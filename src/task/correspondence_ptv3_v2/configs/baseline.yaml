@@ -1,0 +1,65 @@
+_base_: src.task.correspondence_ptv3_v2.config:Config
+
+name: correspondence_ptv3_v2
+
+meta:
+  num_obj_points: 512
+  num_hand_points: 1538
+  num_supervision_edges: 128
+  contact_supervision_quotas: [16, 16, 16, 16]
+  contact_supervision_hard_negative_quota: 16
+  contact_supervision_hard_negative_distance_range: [0.02, 0.03]
+  contact_radius: 0.02
+  quality_focal_beta: 2.0
+  # Coordinate frame the Stage 3 .npz was generated in.
+  coordinate_frame: hand_root
+  # Object pose perturbation (one shared SE(3) on the 512 sampled obj points).
+  obj_rot_std_deg: 10.0
+  obj_trans_std: 0.01
+  obj_perturb_prob: 1.0
+  val_obj_perturb_prob: 1.0
+  # No global scene augmentation — in hand-root frame the T_hand^{-1}
+  # canonicalization already eliminates scene-level SE(3) degrees of freedom.
+  loss_cross_edge_weight: 1.0
+  loss_contact_aux_weight: 0.05
+  # B: a weak object-conditioned dense hand-contact signal.  This is the
+  # validated production default; it remains much smaller than the sampled
+  # random-edge objective despite the dense number of hand-point terms.
+  loss_hand_contact_weight: 0.005
+
+data:
+  batch_size: 8
+  val_batch_size: 24
+  num_workers: 4
+  group_val_by_sequence: true
+  sequence_locality_shuffle: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+train:
+  optimizer: adamw
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  scheduler: cosine
+  warmup_ratio: 0.03
+  warmup_steps: 0
+  epochs: 100
+  amp: false
+  grad_clip_norm: 1.0
+  log_every_steps: 20
+  save_every_epochs: 5
+  eval_every_epochs: 1
+  metric_for_best: val_clean/cross_edge_random_qfl
+  lower_is_better: true
+  distributed:
+    enable: false
+    backend: auto
+    timeout_minutes: 60
+    broadcast_buffers: false
+    find_unused_parameters: false
+
+wandb:
+  enable: true
+  project: ref2dex
+  mode: online
+  tags: [correspondence, ptv3, v2, soft-contact, random128, contact-aux, aux-bce, hard-neg, lambda005]

@@ -1,0 +1,1333 @@
+from __future__ import annotations
+
+import copy
+import json
+import re
+import time
+import traceback
+from contextlib import nullcontext
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import torch
+
+from .base_config import (
+    TaskConfig,
+    load_config,
+    save_config,
+    set_config_default_if_not_explicit,
+    task_config_from_dict,
+)
+from .checkpoint import CheckpointManager, load_checkpoint, unwrap_model
+from .distributed import (
+    DistributedState,
+    barrier,
+    init_distributed,
+    reduce_dict,
+    wrap_model_for_distributed,
+)
+from .metrics import MetricAverager, MetricStat
+from .performance import PerformanceMonitor
+from .run_manifest import build_run_manifest, write_run_manifest
+from .schedulers import CosineRestartScheduler, cosine_schedule, linear_schedule
+from .utils import (
+    JsonlLogger,
+    format_seconds,
+    import_from_path,
+    resolve_device,
+    resolve_optimizer,
+    set_seed,
+    to_jsonable,
+)
+
+
+@dataclass
+class RunnerOutput:
+    loss: torch.Tensor
+    metrics: dict[str, float | torch.Tensor | MetricStat] = field(default_factory=dict)
+    batch_size: int | None = None
+
+
+class BaseRunner:
+    """Runner with train/eval control flow plus overridable data, model, loss, and inference hooks."""
+
+    @classmethod
+    def configure_overfit_mode(
+        cls,
+        cfg: TaskConfig,
+        explicit_override_keys: set[str],
+    ) -> None:
+        """Apply generic overfit-diagnosis defaults without overriding explicit CLI values."""
+        set_config_default_if_not_explicit(
+            cfg,
+            key="data.shuffle",
+            value=False,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="data.drop_last",
+            value=False,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="data.num_workers",
+            value=0,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="data.persistent_workers",
+            value=False,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.weight_decay",
+            value=0.0,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.scheduler",
+            value=None,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.warmup_ratio",
+            value=0.0,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.warmup_steps",
+            value=0,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.grad_clip_norm",
+            value=None,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.amp",
+            value=False,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.compile",
+            value=False,
+            explicit_override_keys=explicit_override_keys,
+        )
+        set_config_default_if_not_explicit(
+            cfg,
+            key="train.early_stopping_patience",
+            value=None,
+            explicit_override_keys=explicit_override_keys,
+        )
+
+    def __init__(
+        self,
+        cfg: TaskConfig,
+        mode: str = "train",
+        checkpoint: str | Path | None = None,
+        device: str | None = None,
+        build_data: bool = True,
+    ) -> None:
+        if mode not in {"train", "eval"}:
+            raise ValueError(f"Runner mode must be 'train' or 'eval', got {mode!r}.")
+        self.cfg = cfg
+        self.mode = mode
+        if device is not None:
+            self.cfg.train.device = device
+        self.explicit_override_keys = set(
+            getattr(self.cfg, "_explicit_override_keys", set()) or set()
+        )
+        if self.mode == "train" and bool(getattr(self.cfg.train, "overfit_mode", False)):
+            type(self).configure_overfit_mode(
+                self.cfg,
+                self.explicit_override_keys,
+            )
+
+        self.distributed: DistributedState = init_distributed(self.cfg.train)
+        self.is_primary = self.distributed.is_primary
+        self.run_name, self.output_dir = self._resolve_run_identity()
+        self.cfg.train.output_dir = str(self.output_dir)
+        self._run_started_at = datetime.now(timezone.utc).isoformat()
+        self.seed = int(cfg.train.seed)
+        self.process_seed = set_seed(self.seed + self.distributed.rank)
+        self.device = resolve_device(
+            cfg.train.device,
+            local_rank=self.distributed.local_rank if self.distributed.enabled else None,
+        )
+        self.metadata: dict[str, Any] = {}
+        self.train_loader = None
+        self.val_loader = None
+        self.val_loaders: dict[str, Any] = {}
+        self.test_loader = None
+        self.test_loaders: dict[str, Any] = {}
+        self.model: torch.nn.Module | None = None
+        self.optimizer: torch.optim.Optimizer | None = None
+        self.scheduler: Any | None = None
+        self.scaler: torch.cuda.amp.GradScaler | None = None
+        self.checkpoints: CheckpointManager | None = None
+        self.jsonl: JsonlLogger | None = None
+        self.wandb_run: Any | None = None
+        self.global_step = 0
+        self.start_epoch = 0
+        self.total_steps = 0
+        self.resolved_warmup_steps = 0
+        self.resolved_warmup_ratio = 0.0
+        self.best_metric: float | None = None
+        # Checkpoint selection and early stopping have intentionally separate
+        # references.  A checkpoint may be saved for any strict improvement,
+        # while early stopping can require an improvement larger than its
+        # configured threshold.
+        self.early_stopping_metric: float | None = None
+        self.train_dataset: Any | None = None
+        self.epochs_without_improvement = 0
+        self.evals_without_improvement = 0
+        self._early_stopping_triggered = False
+        self._last_validation_epoch: int | None = None
+        # PerformanceMonitor 由 ``_setup_train`` 负责创建；eval 模式保持 None。
+        self.performance: PerformanceMonitor | None = None
+
+        if build_data:
+            if mode == "train":
+                self._setup_train()
+                if cfg.train.resume:
+                    self.load(cfg.train.resume, load_optimizer=True)
+            else:
+                if checkpoint is None:
+                    raise ValueError("eval mode requires a checkpoint.")
+                self._setup_eval(checkpoint)
+
+    def run(self) -> dict[str, float]:
+        if self.mode == "train":
+            return self.learn()
+        # In eval mode prefer the held-out test split when it is configured;
+        # otherwise fall back to validation.  This keeps CLI checkpoint evals
+        # from silently reporting validation metrics when a test loader bundle
+        # is available.
+        try:
+            if self._resolve_test_loaders():
+                metrics = self.evaluate_test_all()
+            else:
+                metrics = self.evaluate_all()
+        except BaseException:
+            raise
+        if self.is_primary:
+            for key, value in metrics.items():
+                self._log_line(f"{key}: {value:.6g}")
+        return metrics
+
+    def learn(self) -> dict[str, float]:
+        self._require_train_ready()
+        # Profiler 只在 train 模式启动；用 try/finally 保证异常也能 stop。
+        performance = getattr(self, "performance", None)
+        if performance is not None:
+            performance.start()
+        try:
+            metrics = self._learn_impl()
+            return metrics
+        except BaseException:
+            # ``train.log`` is the durable, user-facing run record.  stdout
+            # may be redirected by W&B or an external launcher, so persist an
+            # unhandled training traceback here before propagating the error.
+            if self.is_primary:
+                self._log_line("Training failed:\n" + traceback.format_exc())
+            raise
+        finally:
+            if performance is not None:
+                performance.stop()
+
+    def _learn_impl(self) -> dict[str, float]:
+        self._require_train_ready()
+        start_time = time.time()
+        last_metrics: dict[str, float] = {}
+        final_epoch = self.start_epoch
+        # When ``max_steps`` is set, it is the authoritative stop condition and
+        # ``epochs`` is treated as a safety cap (or, more commonly, an iteration
+        # counter). Expand the outer loop so the inner ``global_step >=
+        # total_steps`` break is actually reachable when each epoch runs few
+        # steps (e.g. overfit mode with a single-sample loader). See
+        # ``docs/指导.md`` for the design rationale.
+        epoch_upper = self.start_epoch + int(self.cfg.train.epochs)
+        if self.cfg.train.max_steps is not None and self.train_loader is not None:
+            steps_per_epoch = max(1, len(self.train_loader))
+            steps_needed = int(self.cfg.train.max_steps)
+            min_epochs_for_max_steps = (steps_needed // steps_per_epoch) + 2
+            epoch_upper = max(epoch_upper, self.start_epoch + min_epochs_for_max_steps)
+        for epoch in range(self.start_epoch, epoch_upper):
+            final_epoch = epoch + 1
+            train_metrics = self.train_epoch(epoch)
+            last_metrics.update(train_metrics)
+
+            if (
+                self.val_loaders
+                and self.cfg.train.eval_every_steps is None
+                and self._epoch_due(getattr(self.cfg.train, "eval_every_epochs", 1), epoch + 1)
+            ):
+                val_metrics = self.evaluate_all()
+                last_metrics.update(val_metrics)
+                if self._handle_validation(val_metrics, epoch + 1):
+                    break
+
+            if self._epoch_due(getattr(self.cfg.train, "save_every_epochs", None), epoch + 1):
+                self.save(epoch=epoch + 1, is_best=False)
+
+            if self._early_stopping_triggered or self.global_step >= self.total_steps:
+                break
+
+        if (
+            self.val_loaders
+            and not self._early_stopping_triggered
+            and self._last_validation_epoch != final_epoch
+        ):
+            val_metrics = self.evaluate_all()
+            last_metrics.update(val_metrics)
+            self._handle_validation(val_metrics, final_epoch)
+        self.save(epoch=final_epoch, is_best=False)
+        self._last_epoch = final_epoch
+        elapsed = format_seconds(time.time() - start_time)
+        if self._early_stopping_triggered:
+            if self.is_primary:
+                self._log_line(f"Training early stopped at step {self.global_step} in {elapsed}.")
+        else:
+            if self.is_primary:
+                self._log_line(f"Training finished at step {self.global_step} in {elapsed}.")
+        if self.wandb_run is not None:
+            self.wandb_run.finish()
+        return last_metrics
+
+    fit = learn
+
+    def train_epoch(self, epoch: int) -> dict[str, float]:
+        self._require_train_ready()
+        self._set_train_epoch(epoch)
+        self.train_mode()
+        averager = MetricAverager()
+        # 显式持有 iterator，以便单独计时 ``next()`` 等待 DataLoader 的耗时。
+        loader_iterator = iter(self.train_loader)
+
+        while self.global_step < self.total_steps:
+            # 整个 step 起点；PerformanceMonitor 用它计算 ``step_seconds``，不依赖
+            # 墙上时间差，所以验证、checkpoint 保存、日志写入都不会污染吞吐估计。
+            step_start = time.perf_counter()
+
+            data_wait_start = time.perf_counter()
+            try:
+                with self._performance_section("data_wait"):
+                    batch = next(loader_iterator)
+            except StopIteration:
+                break
+            data_wait_seconds = time.perf_counter() - data_wait_start
+
+            with self._performance_section("host_to_device"):
+                batch = self.prepare_batch(batch)
+
+            batch_size = self.batch_size(batch)
+
+            with self._performance_section("train_step"):
+                metrics = self.train_step(batch)
+
+            averager.update(metrics, n=batch_size)
+            self.global_step += 1
+
+            # 把每步 data_wait 数据喂给 monitor；轻量模式只在每 log_every_steps
+            # 返回一次 ``perf/*`` 指标，profile 模式则同步推进 profiler.step()。
+            performance_metrics: dict[str, float] | None = None
+            performance = getattr(self, "performance", None)
+            if performance is not None:
+                performance_metrics = performance.observe_step(
+                    global_step=self.global_step,
+                    batch_size=batch_size,
+                    data_wait_seconds=data_wait_seconds,
+                    step_start_seconds=step_start,
+                )
+
+            if self.global_step % self.cfg.train.log_every_steps == 0:
+                logged = {
+                    f"train_step/{key}": value
+                    for key, value in self.select_step_metrics(
+                        self._reduce_step_metrics(metrics)
+                    ).items()
+                }
+                if performance_metrics is not None:
+                    logged.update(performance_metrics)
+                self._record_metrics(logged, epoch + 1)
+
+            if self.val_loaders and self._step_due(self.cfg.train.eval_every_steps):
+                val_metrics = self.evaluate_all()
+                if self._handle_validation(val_metrics, epoch + 1):
+                    break
+
+            if self._step_due(self.cfg.train.save_every_steps):
+                self.save(epoch=epoch + 1, is_best=False)
+
+        epoch_metrics = self.select_epoch_metrics(
+            self._compute_averager_metrics(averager, prefix="train_epoch/")
+        )
+        self._record_metrics(epoch_metrics, epoch + 1)
+        return epoch_metrics
+
+    def train_step(self, batch: Any) -> dict[str, float]:
+        self._require_train_ready()
+        self.optimizer.zero_grad(set_to_none=True)
+
+        autocast_ctx = (
+            torch.autocast(
+                device_type=self.device.type,
+                dtype=self._autocast_dtype(),
+                enabled=True,
+            )
+            if self.cfg.train.amp and self.device.type == "cuda"
+            else nullcontext()
+        )
+        # profile 模式下 ``record_function`` 才会真正压栈；light/off 退化为
+        # ``nullcontext()``，不影响正常训练。
+        with self._performance_section("forward_and_loss"):
+            with autocast_ctx:
+                output = self.step(self.model, batch, mode="train")
+                loss = output.loss
+
+        with self._performance_section("backward"):
+            self.scaler.scale(loss).backward()
+            self.scaler.unscale_(self.optimizer)
+
+        with self._performance_section("optimizer"):
+            grad_clip_norm = self.cfg.train.grad_clip_norm
+            grad_norm = (
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip_norm)
+                if grad_clip_norm is not None
+                else compute_grad_norm(self.model.parameters())
+            )
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+            if self.scheduler is not None:
+                self.scheduler.step()
+
+        metrics = dict(output.metrics)
+        if "loss" not in metrics:
+            metrics["loss"] = loss.detach()
+        metrics["lr"] = self.optimizer.param_groups[0]["lr"]
+        grad_norm_value = float(grad_norm.detach().cpu() if torch.is_tensor(grad_norm) else grad_norm)
+        metrics["grad_norm"] = grad_norm_value
+        if grad_clip_norm is not None:
+            metrics["grad_clipped"] = float(grad_norm_value > float(grad_clip_norm))
+        return metrics
+
+    def select_step_metrics(self, metrics: dict[str, float]) -> dict[str, float]:
+        """Return metrics recorded at ``log_every_steps``.
+
+        Tasks may override this to keep high-frequency dashboards concise while
+        still retaining richer diagnostics in epoch-level metrics.
+        """
+        return metrics
+
+    def select_epoch_metrics(self, metrics: dict[str, float]) -> dict[str, float]:
+        """Return metrics recorded once per training epoch."""
+        return metrics
+
+    def _autocast_dtype(self) -> torch.dtype:
+        amp_dtype = str(getattr(self.cfg.train, "amp_dtype", "float16")).lower()
+        if amp_dtype in {"bf16", "bfloat16"}:
+            return torch.bfloat16
+        if amp_dtype in {"fp16", "float16", "half"}:
+            return torch.float16
+        raise ValueError(f"Unsupported train.amp_dtype={amp_dtype!r}. Use 'float16' or 'bfloat16'.")
+
+    def _use_grad_scaler(self) -> bool:
+        return (
+            bool(self.cfg.train.amp)
+            and self.device.type == "cuda"
+            and self._autocast_dtype() == torch.float16
+        )
+
+    def evaluate(self, prefix: str = "val/") -> dict[str, float]:
+        self._require_eval_ready()
+        val_loaders = self._resolve_val_loaders()
+        if prefix not in val_loaders:
+            raise ValueError(
+                f"Validation loader for prefix {prefix!r} is not available. "
+                f"Available prefixes: {sorted(val_loaders)}"
+            )
+        return self.evaluate_loader(val_loaders[prefix], prefix=prefix)
+
+    def evaluate_loader(self, loader: Any, *, prefix: str) -> dict[str, float]:
+        if loader is None:
+            raise ValueError("Validation loader is None.")
+        was_training = self.model.training
+        self.eval_mode()
+        averager = MetricAverager()
+        for batch in loader:
+            batch = self.prepare_batch(batch)
+            with self.eval_context():
+                output = self.step(self.model, batch, mode="eval")
+            metrics = dict(output.metrics)
+            if "loss" not in metrics:
+                metrics["loss"] = output.loss.detach()
+            averager.update(metrics, n=output.batch_size or self.batch_size(batch))
+        if was_training:
+            self.train_mode()
+        return self._compute_averager_metrics(averager, prefix=prefix)
+
+    def evaluate_all(self) -> dict[str, float]:
+        metrics: dict[str, float] = {}
+        for prefix, loader in self._resolve_val_loaders().items():
+            metrics.update(self.evaluate_loader(loader, prefix=prefix))
+        return metrics
+
+    def evaluate_test_all(self) -> dict[str, float]:
+        """Evaluate the held-out test set without affecting model selection."""
+        metrics: dict[str, float] = {}
+        for prefix, loader in self._resolve_test_loaders().items():
+            metrics.update(self.evaluate_loader(loader, prefix=prefix))
+        return metrics
+
+    def make_dataloaders(self, data_cfg, seed: int):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement make_dataloaders(). "
+            "BaseRunner does not assume task-specific sample keys or dataset formats."
+        )
+
+    def configure_data(self, metadata: dict[str, Any], train_dataset: Any | None = None) -> None:
+        self.metadata = metadata
+        self.train_dataset = train_dataset
+
+    def build_model(self, model_cfg) -> torch.nn.Module:
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement build_model(). "
+            "The shared runner does not define a generic model architecture."
+        )
+
+    def build_model_from_config(self, model_cfg, **kwargs: Any) -> torch.nn.Module:
+        model_cls = import_from_path(model_cfg.class_path)
+        model_cfg = copy.copy(model_cfg)
+        model_cfg.meta = self.cfg.meta
+        return model_cls(model_cfg, **kwargs)
+
+    def eval_context(self):
+        return torch.enable_grad() if self.eval_requires_grad() else torch.no_grad()
+
+    def eval_requires_grad(self) -> bool:
+        return False
+
+    def prepare_batch(self, batch: Any) -> Any:
+        return move_to_device(batch, self.device)
+
+    def step(self, model: torch.nn.Module, batch: Any, mode: str = "train") -> RunnerOutput:
+        raise NotImplementedError
+
+    def inference(self, model: torch.nn.Module, inputs: Any) -> Any:
+        inputs = self.prepare_batch(inputs)
+        return model(inputs)
+
+    def batch_size(self, batch: Any) -> int:
+        if isinstance(batch, dict):
+            for value in batch.values():
+                if torch.is_tensor(value):
+                    return int(value.shape[0])
+        if torch.is_tensor(batch):
+            return int(batch.shape[0])
+        raise ValueError("Cannot infer batch size for this runner. Override BaseRunner.batch_size().")
+
+    def dataset_epoch_for_train(self, epoch: int) -> int:
+        """Return the dataset epoch used for deterministic runtime sampling.
+
+        Tasks with a fixed overfit sample can override this without having to
+        duplicate the sampler epoch plumbing in ``train_epoch``.
+        """
+        return int(epoch)
+
+    def _set_train_epoch(self, epoch: int) -> None:
+        dataset = getattr(self.train_loader, "dataset", None)
+        if dataset is not None and hasattr(dataset, "set_epoch"):
+            dataset.set_epoch(self.dataset_epoch_for_train(epoch))
+        sampler = getattr(self.train_loader, "sampler", None)
+        if sampler is not None and hasattr(sampler, "set_epoch"):
+            sampler.set_epoch(epoch)
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            "epochs_without_improvement": self.epochs_without_improvement,
+            "evals_without_improvement": self.evals_without_improvement,
+            "early_stopping_metric": self.early_stopping_metric,
+        }
+
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
+        state_dict = state_dict or {}
+        self.epochs_without_improvement = int(state_dict.get("epochs_without_improvement", 0))
+        self.evals_without_improvement = int(state_dict.get("evals_without_improvement", 0))
+        metric = state_dict.get("early_stopping_metric")
+        self.early_stopping_metric = None if metric is None else float(metric)
+
+    def train_mode(self) -> None:
+        if self.model is not None:
+            self.model.train()
+
+    def eval_mode(self) -> None:
+        if self.model is not None:
+            self.model.eval()
+
+    def save(self, epoch: int, is_best: bool = False) -> Path:
+        self._require_train_ready()
+        if not self.is_primary:
+            barrier()
+            return self.checkpoints.root / "latest.pt"
+        path = self.checkpoints.save(
+            step=self.global_step,
+            epoch=epoch,
+            model=self.model,
+            optimizer=self.optimizer,
+            scheduler=self.scheduler,
+            scaler=self.scaler,
+            best_metric=self.best_metric,
+            metadata=self.metadata,
+            config=self.cfg.to_dict(),
+            runner_state=self.state_dict(),
+            is_best=is_best,
+        )
+        if self.wandb_run is not None and self.cfg.wandb.log_model and is_best:
+            self._log_checkpoint_artifact(path)
+        barrier()
+        return path
+
+    def load(
+        self,
+        path: str | Path,
+        load_optimizer: bool = True,
+        map_location: str | torch.device | None = None,
+    ) -> dict[str, Any]:
+        ckpt_path = self.resolve_checkpoint_path(self._resolve_resume_path(path))
+        checkpoint = self.adapt_checkpoint_payload(
+            load_checkpoint(ckpt_path, map_location=map_location or self.device)
+        )
+        self._load_checkpoint_payload(checkpoint, load_optimizer=load_optimizer)
+        if self.is_primary:
+            self._log_line(f"Loaded checkpoint from {ckpt_path} at step {self.global_step}.")
+        return checkpoint
+
+    resume = load
+
+    def setup_inference(self, checkpoint: str | Path) -> dict[str, Any]:
+        checkpoint_data = self.adapt_checkpoint_payload(
+            load_checkpoint(self.resolve_checkpoint_path(checkpoint), map_location="cpu")
+        )
+        self.metadata = checkpoint_data["metadata"]
+        self.configure_data(self.metadata, None)
+        self.model = self.build_model(self.cfg.model).to(self.device)
+        self._load_checkpoint_payload(checkpoint_data, load_optimizer=False)
+        self.eval_mode()
+        return checkpoint_data
+
+    def resolve_checkpoint_path(self, path: str | Path) -> Path:
+        """Resolve a task checkpoint before the shared loader reads it.
+
+        The default is intentionally strict: legacy layouts and payload
+        migrations must be declared by the task that owns their semantics.
+        """
+        return Path(path)
+
+    def adapt_checkpoint_payload(self, checkpoint: dict[str, Any]) -> dict[str, Any]:
+        """Return a current-format checkpoint payload for this task.
+
+        BaseRunner deliberately does not infer historical keys.  A task that
+        changed model, data, or runner-state semantics owns any migration here.
+        """
+        return checkpoint
+
+    def _setup_train(self) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        barrier()
+        dataloader_bundle = self.make_dataloaders(self.cfg.data, seed=self.seed)
+        (self.train_loader, self.val_loader, self.test_loader, self.metadata,
+         self.val_loaders, self.test_loaders) = (
+            self._unpack_dataloader_bundle(dataloader_bundle)
+        )
+        self.configure_data(self.metadata, self.train_loader.dataset)
+        self.total_steps = self._resolve_total_steps()
+        self.resolved_warmup_steps = self._resolve_warmup_steps(self.total_steps)
+        self.resolved_warmup_ratio = (
+            float(self.resolved_warmup_steps) / float(self.total_steps)
+            if self.total_steps > 0
+            else 0.0
+        )
+        # ``total_steps`` 必须先解析完，PerformanceMonitor 才算得出 ETA。
+        self.performance = PerformanceMonitor(
+            mode=str(self.cfg.performance.mode),
+            device=self.device,
+            output_dir=self.output_dir,
+            total_steps=self.total_steps,
+            log_every_steps=int(self.cfg.train.log_every_steps),
+            warmup_steps=int(self.cfg.performance.warmup_steps),
+            profile_wait_steps=int(self.cfg.performance.profile_wait_steps),
+            profile_warmup_steps=int(self.cfg.performance.profile_warmup_steps),
+            profile_active_steps=int(self.cfg.performance.profile_active_steps),
+            world_size=int(getattr(self.distributed, "world_size", 1)),
+            is_primary=self.is_primary,
+        )
+        self.metadata.setdefault("run_name", self.run_name)
+        self.metadata.setdefault("description", str(getattr(self.cfg.train, "description", "") or ""))
+        self.metadata.update(
+            {
+                "total_steps": int(self.total_steps),
+                "warmup_steps": int(self.resolved_warmup_steps),
+                "warmup_ratio": float(self.resolved_warmup_ratio),
+            }
+        )
+        if self._uses_cosine_restart():
+            self.metadata.update(
+                {
+                    "finetune_steps": int(self._resolve_finetune_steps()),
+                    "min_lr": float(self._resolve_min_lr()),
+                }
+            )
+        self._write_run_provenance(
+            initial_checkpoint=(
+                getattr(self.cfg.train, "init_checkpoint", None)
+                or getattr(self.cfg.train, "resume", None)
+            )
+        )
+        self.model = self.build_model(self.cfg.model).to(self.device)
+        if self.cfg.train.compile:
+            self.model = torch.compile(self.model)
+        self.model = wrap_model_for_distributed(
+            self.model,
+            device=self.device,
+            train_cfg=self.cfg.train,
+            state=self.distributed,
+        )
+        self.optimizer = self._build_optimizer()
+        self.scheduler = self._build_scheduler(self.total_steps)
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self._use_grad_scaler())
+        self.checkpoints = CheckpointManager(self.output_dir, max_to_keep=self.cfg.train.max_to_keep)
+        self.jsonl = JsonlLogger(self.output_dir / "metrics.jsonl") if self.is_primary else None
+        self.wandb_run = self._build_wandb_run()
+        self._log_train_setup()
+
+    def _setup_eval(self, checkpoint: str | Path) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        barrier()
+        dataloader_bundle = self.make_dataloaders(self.cfg.data, seed=self.seed)
+        (self.train_loader, self.val_loader, self.test_loader, self.metadata,
+         self.val_loaders, self.test_loaders) = (
+            self._unpack_dataloader_bundle(dataloader_bundle)
+        )
+        if not self.val_loaders and not self.test_loaders:
+            raise ValueError("No evaluation dataset is available. Set data.val_path, data.val_split > 0, or data.test_path.")
+        self.configure_data(self.metadata, self.train_loader.dataset)
+        self._write_run_provenance(initial_checkpoint=checkpoint)
+        self.model = self.build_model(self.cfg.model).to(self.device)
+        self.load(checkpoint, load_optimizer=False, map_location=self.device)
+        self.eval_mode()
+
+    def _load_checkpoint_payload(self, checkpoint: dict[str, Any], load_optimizer: bool) -> None:
+        self._require_model_ready()
+        unwrap_model(self.model).load_state_dict(checkpoint["model"])
+        if load_optimizer and self.optimizer is not None and checkpoint.get("optimizer") is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.global_step = int(checkpoint.get("step", 0))
+        self.start_epoch = int(checkpoint.get("epoch", 0))
+        if load_optimizer and isinstance(self.scheduler, CosineRestartScheduler):
+            scheduler_state = checkpoint.get("scheduler")
+            if self.scheduler.is_compatible_state_dict(scheduler_state):
+                self.scheduler.load_state_dict(scheduler_state)
+                if self.is_primary:
+                    self._log_line(
+                        "Resumed cosine_restart phase "
+                        f"at global_step={self.global_step} "
+                        f"phase_step={self.scheduler.completed_steps}/{self.scheduler.total_steps}."
+                    )
+            else:
+                expected_stop_step = self.global_step + self.scheduler.total_steps
+                if self.total_steps != expected_stop_step:
+                    raise ValueError(
+                        "For a new cosine_restart phase, train.max_steps is an absolute stop step and "
+                        f"must equal checkpoint_step + train.finetune_steps ({self.global_step} + "
+                        f"{self.scheduler.total_steps} = {expected_stop_step}), got {self.total_steps}."
+                    )
+                # Retain Adam moments but start the configured fine-tune phase
+                # at its own base learning rate, not an old LambdaLR state.
+                self.scheduler.restart()
+                if self.is_primary:
+                    self._log_line(
+                        "Started cosine_restart phase "
+                        f"at global_step={self.global_step} "
+                        f"phase_steps={self.scheduler.total_steps} "
+                        f"base_lr={self.scheduler.base_lrs[0]:.8g} "
+                        f"min_lr={self.scheduler.min_lrs[0]:.8g}."
+                    )
+        elif load_optimizer and self.scheduler is not None and checkpoint.get("scheduler") is not None:
+            self.scheduler.load_state_dict(checkpoint["scheduler"])
+        if load_optimizer and self.scaler is not None and checkpoint.get("scaler") is not None:
+            self.scaler.load_state_dict(checkpoint["scaler"])
+        state = checkpoint.get("runner_state")
+        self.best_metric = checkpoint.get("best_metric")
+        self.load_state_dict(state or {})
+        self._early_stopping_triggered = False
+
+    def _resolve_resume_path(self, path: str | Path) -> Path:
+        if path == "auto":
+            if self.checkpoints is None:
+                raise ValueError("resume='auto' is only available after train setup.")
+            ckpt_path = self.checkpoints.latest_checkpoint()
+            if ckpt_path is None:
+                raise FileNotFoundError(f"No checkpoint found in {self.checkpoints.root}")
+            return ckpt_path
+        return Path(path)
+
+    def _build_optimizer(self) -> torch.optim.Optimizer:
+        optimizer_cls = resolve_optimizer(self.cfg.train.optimizer)
+        return optimizer_cls(self.model.parameters(), lr=self.cfg.train.lr, weight_decay=self.cfg.train.weight_decay)
+
+    def _build_scheduler(self, total_steps: int) -> Any | None:
+        name = self.cfg.train.scheduler
+        if name is None or str(name).lower() in {"none", "null"}:
+            return None
+        name = str(name).lower()
+        if name == "cosine_restart":
+            return CosineRestartScheduler(
+                self.optimizer,
+                total_steps=self._resolve_finetune_steps(),
+                min_lr=self._resolve_min_lr(),
+            )
+        warmup = self._resolve_warmup_steps(total_steps)
+        if name == "cosine":
+            return torch.optim.lr_scheduler.LambdaLR(
+                self.optimizer,
+                lr_lambda=lambda step: cosine_schedule(step, total_steps=total_steps, warmup_steps=warmup),
+            )
+        if name == "linear":
+            return torch.optim.lr_scheduler.LambdaLR(
+                self.optimizer,
+                lr_lambda=lambda step: linear_schedule(step, total_steps=total_steps, warmup_steps=warmup),
+            )
+        if name == "step":
+            return torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=max(1, total_steps // 3), gamma=0.1)
+        raise ValueError(
+            f"Unknown scheduler '{self.cfg.train.scheduler}'. "
+            "Use cosine, cosine_restart, linear, step, or null."
+        )
+
+    def _uses_cosine_restart(self) -> bool:
+        return str(getattr(self.cfg.train, "scheduler", "")).lower() == "cosine_restart"
+
+    def _resolve_finetune_steps(self) -> int:
+        value = getattr(self.cfg.train, "finetune_steps", None)
+        if value is None:
+            raise ValueError("train.finetune_steps is required when train.scheduler='cosine_restart'.")
+        value = int(value)
+        if value <= 0:
+            raise ValueError(f"train.finetune_steps must be positive, got {value}.")
+        return value
+
+    def _resolve_min_lr(self) -> float:
+        value = getattr(self.cfg.train, "min_lr", None)
+        if value is None:
+            raise ValueError("train.min_lr is required when train.scheduler='cosine_restart'.")
+        value = float(value)
+        base_lr = float(self.cfg.train.lr)
+        if not 0.0 <= value <= base_lr:
+            raise ValueError(f"train.min_lr must be in [0, train.lr]={base_lr:g}, got {value:g}.")
+        return value
+
+    def _resolve_total_steps(self) -> int:
+        if self.cfg.train.max_steps is not None:
+            return int(self.cfg.train.max_steps)
+        return max(1, self.cfg.train.epochs * len(self.train_loader))
+
+    def _resolve_warmup_steps(self, total_steps: int) -> int:
+        if self._uses_cosine_restart():
+            warmup_ratio = getattr(self.cfg.train, "warmup_ratio", None)
+            warmup_steps = int(getattr(self.cfg.train, "warmup_steps", 0))
+            if warmup_steps != 0 or (warmup_ratio is not None and float(warmup_ratio) != 0.0):
+                raise ValueError(
+                    "train.scheduler='cosine_restart' has no warmup; "
+                    "set train.warmup_steps=0 and train.warmup_ratio=0.0."
+                )
+            return 0
+        ratio = getattr(self.cfg.train, "warmup_ratio", None)
+        if ratio is not None:
+            ratio = float(ratio)
+            if not 0.0 <= ratio < 1.0:
+                raise ValueError(f"train.warmup_ratio must be in [0, 1), got {ratio}")
+            warmup_steps = int(round(total_steps * ratio))
+            if ratio > 0.0:
+                warmup_steps = max(1, warmup_steps)
+            return min(warmup_steps, max(0, total_steps - 1))
+        return min(max(0, int(self.cfg.train.warmup_steps)), max(0, total_steps - 1))
+
+    def _step_due(self, interval: int | None) -> bool:
+        return interval is not None and interval > 0 and self.global_step % interval == 0
+
+    def _epoch_due(self, interval: int | None, epoch: int) -> bool:
+        return interval is not None and interval > 0 and epoch % interval == 0
+
+    def _save_if_best(self, metrics: dict[str, float], epoch: int) -> bool:
+        key = self.cfg.train.metric_for_best
+        if key is None:
+            return False
+        if key not in metrics:
+            raise KeyError(
+                f"metric_for_best={key!r} is unavailable. Available metrics: {sorted(metrics)}"
+            )
+        value = float(metrics[key])
+        if self.best_metric is None:
+            improved = True
+        elif self.cfg.train.lower_is_better:
+            improved = value < self.best_metric
+        else:
+            improved = value > self.best_metric
+        if improved:
+            self.best_metric = value
+            self.save(epoch=epoch, is_best=True)
+        return improved
+
+    def _check_early_stopping(self, metrics: dict[str, float], epoch: int) -> bool:
+        patience = self.cfg.train.early_stopping_patience
+        if patience is None or patience <= 0:
+            return False
+
+        key = self.cfg.train.metric_for_best
+        if key is None:
+            return False
+        if key not in metrics:
+            return False
+
+        value = float(metrics[key])
+        if self.early_stopping_metric is None:
+            self.early_stopping_metric = value
+            self.epochs_without_improvement = 0
+            self.evals_without_improvement = 0
+            return False
+
+        threshold = float(self.cfg.train.early_stopping_threshold)
+        if self.cfg.train.lower_is_better:
+            improved = value < (self.early_stopping_metric - threshold)
+        else:
+            improved = value > (self.early_stopping_metric + threshold)
+
+        if improved:
+            self.early_stopping_metric = value
+            self.epochs_without_improvement = 0
+            self.evals_without_improvement = 0
+        else:
+            self.epochs_without_improvement += 1
+            self.evals_without_improvement += 1
+
+        if self.epochs_without_improvement >= patience or self.evals_without_improvement >= patience:
+            self._early_stopping_triggered = True
+            if self.is_primary:
+                self._log_line(
+                    f"Early stopping triggered at epoch {epoch} "
+                    f"({self.epochs_without_improvement} epochs, {self.evals_without_improvement} evals without improvement)."
+                )
+            return True
+        return False
+
+    def _handle_validation(self, metrics: dict[str, float], epoch: int) -> bool:
+        """Record one validation event and return whether training should stop.
+
+        Both step- and epoch-triggered validation use this path so checkpoint
+        selection, early stopping, and W&B/JSONL records cannot drift apart.
+        """
+        self._record_metrics(metrics, epoch)
+        should_stop = self._check_early_stopping(metrics, epoch)
+        self._save_if_best(metrics, epoch)
+        self._last_validation_epoch = int(epoch)
+        return should_stop
+
+    def _performance_section(self, name: str):
+        """Wrap a training phase as a profiler range.
+
+        训练中（``self.performance`` 已创建）才产出 ``record_function``；
+        其它场景（eval 模式、子类未走 ``_setup_train`` 等）退化为
+        ``nullcontext()``，对正常路径无开销。
+        """
+        performance = getattr(self, "performance", None)
+        if performance is None:
+            return nullcontext()
+        return performance.section(name)
+
+    def select_eval_metrics(self, metrics: dict[str, float]) -> dict[str, float]:
+        """Return the evaluation subset sent to W&B; JSONL always keeps all metrics."""
+        return metrics
+
+    def _record_metrics(self, metrics: dict[str, float], epoch: int) -> None:
+        payload = {"step": self.global_step, "epoch": epoch, **metrics}
+        if self.jsonl is not None:
+            self.jsonl.write(payload)
+        if self.wandb_run is not None:
+            # Match every metric that names a validation/test set, not just
+            # the historical ``val/`` / ``test/`` prefixes. v2 runners use
+            # ``val_clean/`` and ``val_perturbed/``; downstream code that
+            # filters by prefix (``val*/`` or ``test*/``) must keep working
+            # even when a new split name (e.g. ``val_smoke/``) is added.
+            eval_prefixes = ("val", "test")
+            is_evaluation = any(
+                any(key.startswith(prefix) and key[len(prefix):len(prefix) + 1] in ("/", "_") for prefix in eval_prefixes)
+                for key in metrics
+            )
+            self.wandb_run.log(
+                self.select_eval_metrics(metrics) if is_evaluation else metrics,
+                step=self.global_step,
+            )
+        if self.is_primary:
+            message = " ".join(f"{key}={value:.6g}" for key, value in metrics.items())
+            self._log_line(f"step={self.global_step:06d} epoch={epoch:03d} {message}")
+
+    def _build_wandb_run(self) -> Any | None:
+        if not self.cfg.wandb.enable or not self.is_primary:
+            return None
+        try:
+            import wandb
+        except ImportError as exc:
+            raise ImportError("W&B logging is enabled, but wandb is not installed. Install with `pip install wandb`.") from exc
+
+        init_kwargs: dict[str, Any] = {
+            "project": self.cfg.wandb.project,
+            "entity": self.cfg.wandb.entity,
+            "group": self.cfg.wandb.group,
+            "name": self.cfg.wandb.name or self.run_name,
+            "tags": self.cfg.wandb.tags,
+            "job_type": self.cfg.wandb.job_type,
+            "dir": str(self.output_dir),
+            "config": to_jsonable(self.cfg.to_dict()),
+            "settings": wandb.Settings(
+                init_timeout=int(getattr(self.cfg.wandb, "init_timeout", 600))
+            ),
+        }
+        if self.cfg.wandb.mode is not None:
+            init_kwargs["mode"] = self.cfg.wandb.mode
+        return wandb.init(**init_kwargs)
+
+    def _log_checkpoint_artifact(self, checkpoint_path: Path) -> None:
+        try:
+            import wandb
+        except ImportError:
+            return
+        artifact = wandb.Artifact(f"{self.run_name}-best", type="model")
+        if checkpoint_path.is_dir():
+            artifact.add_dir(str(checkpoint_path))
+        else:
+            artifact.add_file(str(checkpoint_path))
+        self.wandb_run.log_artifact(artifact)
+
+    def _write_run_provenance(self, *, initial_checkpoint: str | Path | None) -> None:
+        """Persist config, metadata and a non-overwriting run manifest.
+
+        A fresh run owns ``run_manifest.json``.  Evaluation into an existing
+        directory and train resume attempts receive timestamped snapshots so
+        the original provenance remains immutable.
+        """
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        base_manifest = self.output_dir / "run_manifest.json"
+        if base_manifest.exists():
+            suffix = "eval" if self.mode == "eval" else "resume" if getattr(self.cfg.train, "resume", None) else "attempt"
+            stamp = self._shared_timestamp()
+            manifest_path = self.output_dir / f"run_manifest_{suffix}_{stamp}.json"
+            config_path = self.output_dir / f"config_{suffix}_{stamp}.json"
+            metadata_path = self.output_dir / f"metadata_{suffix}_{stamp}.json"
+        else:
+            manifest_path = base_manifest
+            config_path = self.output_dir / "config.json"
+            metadata_path = self.output_dir / "metadata.json"
+
+        self.metadata.setdefault("run_name", self.run_name)
+        self.metadata.setdefault("description", str(getattr(self.cfg.train, "description", "") or ""))
+        self.metadata["run_manifest_path"] = str(manifest_path)
+        self.metadata["config_snapshot_path"] = str(config_path)
+        self.metadata["metadata_snapshot_path"] = str(metadata_path)
+        if self.is_primary:
+            save_config(self.cfg, config_path)
+        self._write_metadata(metadata_path)
+        if self.is_primary:
+            manifest = build_run_manifest(
+                task=self._task_slug(),
+                run_name=self.run_name,
+                output_dir=self.output_dir,
+                mode=self.mode,
+                config=self.cfg.to_dict(),
+                metadata=self.metadata,
+                config_source=getattr(self.cfg, "_config_source", None),
+                initial_checkpoint=initial_checkpoint,
+                config_snapshot=config_path,
+                metadata_snapshot=metadata_path,
+            )
+            write_run_manifest(manifest_path, manifest)
+
+    def _write_metadata(self, path: str | Path | None = None) -> None:
+        if not self.is_primary:
+            barrier()
+            return
+        path = self.output_dir / "metadata.json" if path is None else Path(path)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(to_jsonable(self.metadata), f, indent=2, ensure_ascii=False)
+        barrier()
+
+    def _reduce_step_metrics(
+        self,
+        metrics: dict[str, float | torch.Tensor | MetricStat],
+    ) -> dict[str, float]:
+        totals: dict[str, float] = {}
+        counts: dict[str, float] = {}
+        expose_validity: dict[str, bool] = {}
+        for key, value in metrics.items():
+            if isinstance(value, MetricStat):
+                totals[key] = float(value.total)
+                counts[key] = float(value.count)
+                expose_validity[key] = value.expose_validity
+            else:
+                totals[key] = float(value)
+                counts[key] = 1.0
+
+        totals = reduce_dict(totals, device=self.device, average=False)
+        counts = reduce_dict(counts, device=self.device, average=False)
+        reduced: dict[str, float] = {}
+        for key in sorted(totals):
+            count = counts.get(key, 0.0)
+            if count > 0:
+                reduced[key] = totals[key] / count
+            if expose_validity.get(key, False):
+                reduced[f"{key}_valid_count"] = float(count)
+                reduced[f"{key}_valid"] = float(count > 0)
+        return reduced
+
+    def _compute_averager_metrics(self, averager: MetricAverager, prefix: str = "") -> dict[str, float]:
+        totals = {key: meter.total for key, meter in averager.meters.items()}
+        counts = {key: meter.count for key, meter in averager.meters.items()}
+        totals = reduce_dict(totals, device=self.device, average=False)
+        counts = reduce_dict(counts, device=self.device, average=False)
+        result: dict[str, float] = {}
+        for key in sorted(totals):
+            count = counts.get(key, 0.0)
+            if count > 0:
+                result[f"{prefix}{key}"] = totals[key] / count
+            if averager.expose_validity.get(key, False):
+                result[f"{prefix}{key}_valid_count"] = float(count)
+                result[f"{prefix}{key}_valid"] = float(count > 0)
+        return result
+
+    def _log_train_setup(self) -> None:
+        if not self.is_primary:
+            return
+        per_device_batch = int(self.cfg.data.batch_size)
+        global_batch = per_device_batch * self.distributed.world_size
+        val_batch = int(getattr(self.cfg.data, "val_batch_size", None) or per_device_batch)
+        self._log_line(
+            "train_setup "
+            f"run_name={self.run_name} "
+            f"device={self.device} world_size={self.distributed.world_size} "
+            f"per_device_batch={per_device_batch} global_batch={global_batch} "
+            f"val_batch={val_batch} num_workers={int(self.cfg.data.num_workers)} "
+            f"amp={bool(self.cfg.train.amp)} total_steps={int(self.total_steps)} "
+            f"warmup_steps={int(self.resolved_warmup_steps)} "
+            f"warmup_ratio={self.resolved_warmup_ratio:.6f} "
+            f"scheduler={self.cfg.train.scheduler} "
+            f"finetune_steps={getattr(self.cfg.train, 'finetune_steps', None)} "
+            f"min_lr={getattr(self.cfg.train, 'min_lr', None)} "
+            f"output_dir={self.output_dir}"
+        )
+
+    def _log_line(self, message: str) -> None:
+        """Print a runner message and persist it inside the current training run.
+
+        Evaluation intentionally remains side-effect free.  A training run writes
+        its human-readable log beside ``metadata.json`` and ``metrics.jsonl`` as
+        ``train.log``; no log directories are pre-created.
+        """
+        print(message)
+        if getattr(self, "mode", "train") != "train" or not getattr(self, "is_primary", False):
+            return
+        output_dir = getattr(self, "output_dir", None)
+        if output_dir is None:
+            return
+        log_path = Path(output_dir) / "train.log"
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(f"{message}\n")
+
+    def _resolve_run_identity(self) -> tuple[str, Path]:
+        if self.mode != "train":
+            run_name = self._slugify(
+                str(getattr(self.cfg.wandb, "name", None) or getattr(self.cfg, "name", "task") or "task")
+            )
+            return run_name, Path(self.cfg.train.output_dir)
+
+        task_slug = self._task_slug()
+        resume = getattr(self.cfg.train, "resume", None)
+        if resume not in {None, "", "auto"}:
+            checkpoint = Path(resume)
+            if checkpoint.parent.name == "checkpoints":
+                output_dir = checkpoint.parent.parent
+                run_name = output_dir.name
+                if output_dir.parent.name != task_slug:
+                    raise ValueError(
+                        f"Resume directory {output_dir} must be under outputs/{task_slug}/."
+                    )
+                self.cfg.wandb.name = run_name
+                return run_name, output_dir
+
+        experiment_slug = self._slugify(str(getattr(self.cfg, "name", task_slug) or task_slug)).lower()
+        run_name = f"{experiment_slug}_{self._shared_timestamp()}"
+        output_dir = Path("outputs") / task_slug / run_name
+        self.cfg.wandb.name = run_name
+        return run_name, output_dir
+
+    def _task_slug(self) -> str:
+        runner_class = str(getattr(self.cfg, "runner_class", "") or "").strip()
+        parts = runner_class.split(".")
+        if len(parts) >= 3 and parts[0] == "src" and parts[1] == "task":
+            return self._slugify(parts[2]).lower()
+        return self._slugify(str(getattr(self.cfg, "name", "task") or "task")).lower()
+
+    def _shared_timestamp(self) -> str:
+        stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime()) if self.is_primary else None
+        if self.distributed.enabled and torch.distributed.is_available() and torch.distributed.is_initialized():
+            payload = [stamp]
+            torch.distributed.broadcast_object_list(payload, src=0)
+            stamp = payload[0]
+        return str(stamp)
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        slug = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+        slug = slug.strip("._-")
+        return slug or "task"
+
+    def _unpack_dataloader_bundle(self, bundle: Any) -> tuple[Any, Any, Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
+        if not isinstance(bundle, tuple):
+            raise TypeError(
+                "make_dataloaders() must return a tuple of "
+                "(train_loader, val_loader, metadata), "
+                "(train_loader, val_loader, metadata, val_loaders), or "
+                "(train_loader, val_loader, test_loader, metadata, val_loaders, test_loaders)."
+            )
+        if len(bundle) == 3:
+            train_loader, val_loader, metadata = bundle
+            val_loaders = {"val/": val_loader} if val_loader is not None else {}
+            return train_loader, val_loader, None, metadata, val_loaders, {}
+        if len(bundle) == 4:
+            train_loader, val_loader, metadata, val_loaders = bundle
+            resolved_val_loaders = {
+                str(prefix): loader
+                for prefix, loader in dict(val_loaders or {}).items()
+                if loader is not None
+            }
+            if not resolved_val_loaders and val_loader is not None:
+                resolved_val_loaders = {"val/": val_loader}
+            return train_loader, val_loader, None, metadata, resolved_val_loaders, {}
+        if len(bundle) == 6:
+            train_loader, val_loader, test_loader, metadata, val_loaders, test_loaders = bundle
+            resolved_val_loaders = {
+                str(prefix): loader for prefix, loader in dict(val_loaders or {}).items() if loader is not None
+            }
+            resolved_test_loaders = {
+                str(prefix): loader for prefix, loader in dict(test_loaders or {}).items() if loader is not None
+            }
+            if not resolved_val_loaders and val_loader is not None:
+                resolved_val_loaders = {"val/": val_loader}
+            if not resolved_test_loaders and test_loader is not None:
+                resolved_test_loaders = {"test/": test_loader}
+            return train_loader, val_loader, test_loader, metadata, resolved_val_loaders, resolved_test_loaders
+        raise ValueError(
+            "make_dataloaders() returned an unexpected tuple length. "
+            f"Expected 3, 4, or 6 values, got {len(bundle)}."
+        )
+
+    def _resolve_val_loaders(self) -> dict[str, Any]:
+        if self.val_loaders:
+            return self.val_loaders
+        if self.val_loader is not None:
+            return {"val/": self.val_loader}
+        return {}
+
+    def _resolve_test_loaders(self) -> dict[str, Any]:
+        if self.test_loaders:
+            return self.test_loaders
+        if self.test_loader is not None:
+            return {"test/": self.test_loader}
+        return {}
+
+    def _require_train_ready(self) -> None:
+        self._require_model_ready()
+        if self.train_loader is None or self.optimizer is None or self.scaler is None or self.checkpoints is None:
+            raise RuntimeError("Runner is not initialized for training.")
+
+    def _require_eval_ready(self) -> None:
+        self._require_model_ready()
+        if not self._resolve_val_loaders():
+            raise RuntimeError("Runner is not initialized for evaluation.")
+
+    def _require_model_ready(self) -> None:
+        if self.model is None:
+            raise RuntimeError("Runner model is not initialized.")
+
+
+def build_runner(
+    cfg: TaskConfig,
+    mode: str = "train",
+    checkpoint: str | Path | None = None,
+    device: str | None = None,
+    build_data: bool = True,
+) -> BaseRunner:
+    runner_cls = resolve_runner_class(cfg)
+    return runner_cls(cfg=cfg, mode=mode, checkpoint=checkpoint, device=device, build_data=build_data)
+
+
+def build_runner_from_checkpoint(
+    checkpoint: str | Path,
+    config: str | Path | dict[str, Any] | TaskConfig | type[Any] | None = None,
+    mode: str = "eval",
+    device: str = "auto",
+    build_data: bool = True,
+) -> BaseRunner:
+    ckpt = load_checkpoint(checkpoint, map_location="cpu")
+    cfg = load_config(config) if config is not None else task_config_from_dict(ckpt["config"])
+    cfg.train.device = device
+    return build_runner(cfg, mode=mode, checkpoint=checkpoint, device=device, build_data=build_data)
+
+
+def resolve_runner_class(cfg: TaskConfig) -> type[BaseRunner]:
+    runner_path = getattr(cfg, "runner_class", cfg.name)
+
+    if "." not in runner_path:
+        raise ValueError(
+            f"Runner path '{runner_path}' must be a full dotted Python path "
+            "(e.g., 'wm.task.wm.runner.WMRunner')."
+        )
+
+    runner_cls = import_from_path(runner_path)
+    if not issubclass(runner_cls, BaseRunner):
+        raise TypeError(f"Runner class must inherit from base.base_runner.BaseRunner, got {runner_cls}.")
+    return runner_cls
+
+
+def move_to_device(value: Any, device: torch.device) -> Any:
+    if torch.is_tensor(value):
+        return value.to(device, non_blocking=True)
+    if isinstance(value, dict):
+        return {key: move_to_device(item, device) for key, item in value.items()}
+    if isinstance(value, list):
+        return [move_to_device(item, device) for item in value]
+    if isinstance(value, tuple):
+        return tuple(move_to_device(item, device) for item in value)
+    return value
+
+
+def compute_grad_norm(parameters, norm_type: float = 2.0) -> torch.Tensor:
+    grads = [param.grad.detach() for param in parameters if param.grad is not None]
+    if not grads:
+        return torch.tensor(0.0)
+    device = grads[0].device
+    if norm_type == float("inf"):
+        return torch.stack([grad.abs().max().to(device) for grad in grads]).max()
+    norms = torch.stack([torch.linalg.vector_norm(grad, ord=norm_type).to(device) for grad in grads])
+    return torch.linalg.vector_norm(norms, ord=norm_type)

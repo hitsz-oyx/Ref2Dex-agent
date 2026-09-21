@@ -1,0 +1,85 @@
+.DS_Store
+**/.DS_Store
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+# Local dataset assets: raw downloads, generated samples, split manifests,
+# and shared models (for example MANO) are machine-local and must not be
+# committed.  The repository keeps only the code and documentation that
+# describe how to create and consume them.
+/data/
+/preprocess/processed_arctic/
+/preprocess/processed_grab/
+/render/assets/
+/preprocess/assets/
+/mano_opti_data/
+/outputs/mano_fit/
+
+# Dataset-local generated files; dataset folders also carry local .gitignore files.
+dataset/*/outputs/
+dataset/*/.codex/
+dataset/*/data/
+dataset/*/downloads/
+dataset/*/logs/
+dataset/*/body_models/
+dataset/*/models/
+dataset/*/object_models/
+dataset/*/MANO*/
+dataset/*/SMPL*/
+dataset/*/SMPLX*/
+/dataset/HRDexDB/
+dataset/*/*.pkl
+dataset/*/*.npz
+dataset/*/*.npy
+dataset/*/*.pt
+dataset/*/*.pth
+dataset/*/*.zip
+dataset/*/*.tar
+dataset/*/*.tar.gz
+# Root-level assets is retired; a local compatibility symlink may remain while
+# old commands are still in use, but no root asset is a repository input.
+/assets
+/assets/
+
+# Task-owned runtime assets are machine-local and must not be committed. Keep
+# an optional README visible so each Task can document its asset contract.
+/src/task/*/assets/
+!/src/task/*/assets/
+src/task/*/assets/*
+!src/task/*/assets/README.md
+!/third_party/PointTransformerV3/
+!/third_party/PointTransformerV3/**
+!/third_party/PointTransformerV3/assets/
+!/third_party/PointTransformerV3/assets/**
+# 研究/训练产物：根 outputs/ 和各 Task research/*/output/ 均不入库。
+# 根 output/ 只保留历史兼容产物，不再新增文件。
+outputs/*
+/runs/
+/output/
+src/task/*/research/**/output/
+docs/修改指导.md
+docs/代码.py
+tmp/**
+*.pyc
+*.log
+wandb/*
+*.pt
+dataset/*/data
+# Hand-added symlinks to data/raw_data/... (see scripts/setup_grab_data.sh).
+# These point to large per-machine asset trees and must not be committed.
+dataset/GRAB/tools/object_meshes
+dataset/GRAB/tools/object_settings
+dataset/GRAB/tools/subject_meshes
+dataset/GRAB/tools/subject_settings
+# Local-only scratch roots that should never be committed.
+# data/processed_data/stage3 is a symlink farm; data/processed_data/stage4 holds
+# large per-machine processed samples.
+data/processed_data/stage3
+data/processed_data/stage4
+data/processed_data/legacy
+data/processed_data/stage2
+
+# Per-machine recursive memory contains host-specific absolute paths,
+# interpreters, GPU details, mounts and proxy settings. Never commit it.
+**/docs/logs/machine_memory.md
