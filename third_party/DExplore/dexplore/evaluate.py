@@ -282,8 +282,8 @@ def main():
     algo_observer = RLGPUAlgoObserver()
     runner = Runner(algo_observer)
     runner.algo_factory.register_builder('dexplore', lambda **kwargs: dexplore_agent.DexploreAgent(**kwargs))
-    def _make_eval_player(**kwargs):
-        p = EvalPlayer(**kwargs)
+    def _make_eval_player(params):
+        p = EvalPlayer(params)
         p.output_file = eval_args.output
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
