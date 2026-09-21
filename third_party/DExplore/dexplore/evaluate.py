@@ -25,6 +25,11 @@ from isaacgym import gymapi  # noqa: must import before torch
 import numpy as np
 import torch
 
+if not hasattr(np, "float"):
+    np.float = float
+if not hasattr(np, "int"):
+    np.int = int
+
 from utils.config import set_np_formatting, set_seed, get_args, parse_sim_params, load_cfg
 from utils.parse_task import parse_task
 
