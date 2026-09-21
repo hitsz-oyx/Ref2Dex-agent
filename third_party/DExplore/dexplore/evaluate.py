@@ -32,6 +32,7 @@ from rl_games.algos_torch import torch_ext
 from rl_games.common import env_configurations, vecenv
 from rl_games.common.algo_observer import AlgoObserver
 from rl_games.torch_runner import Runner
+from rl_games.algos_torch import model_builder
 
 from learning import dexplore_agent
 from learning import dexplore_players
@@ -62,7 +63,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
 
         n_games = self.games_num
         n_game_life = self.n_game_life
-        is_determenistic = self.is_determenistic
+        is_deterministic = self.is_deterministic
         n_games = n_games * n_game_life
         games_played = 0
         has_masks = False
@@ -90,19 +91,40 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             cum_hand_err = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
             cum_obj_err = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
 
+            task = self.env.task
+            initial_object_z = task._target_states[:, 2].clone()
+            max_lift = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
+            contact_steps = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
+            lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+            lift_success = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
+
             done_indices = []
 
             for n in range(self.max_steps):
                 obs_dict = self.env_reset(done_indices)
+                if len(done_indices):
+                    reset_ids = done_indices.reshape(-1).long()
+                    initial_object_z[reset_ids] = task._target_states[reset_ids, 2]
 
                 if has_masks:
                     masks = self.env.get_action_mask()
-                    action = self.get_masked_action(obs_dict, masks, is_determenistic)
+                    action = self.get_masked_action(obs_dict, masks, is_deterministic)
                 else:
-                    action = self.get_action(obs_dict, is_determenistic)
+                    action = self.get_action(obs_dict, is_deterministic)
                 obs_dict, r, done, info = self.env_step(self.env, action)
                 cr += r
                 steps += 1
+
+                lift = task._target_states[:, 2] - initial_object_z
+                max_lift = torch.maximum(max_lift, lift)
+                hand_contact = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > 0.1).any(dim=-1)
+                object_contact = task._tar_contact_forces.norm(dim=-1) > 0.1
+                hand_object_contact = hand_contact & object_contact
+                contact_steps += hand_object_contact.float()
+                held_lift = (lift >= 0.03) & hand_object_contact
+                lift_contact_run = torch.where(held_lift, lift_contact_run + 1,
+                                               torch.zeros_like(lift_contact_run))
+                lift_success |= lift_contact_run >= 5
 
                 # Collect tracking metrics
                 if hasattr(self.env.task, 'metric_1'):
@@ -135,12 +157,19 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                             'survived': not early_term,
                             'mean_hand_error': cum_hand_err[i].item() / ep_len,
                             'mean_obj_error': cum_obj_err[i].item() / ep_len,
+                            'max_lift_m': max_lift[i].item(),
+                            'hand_object_contact_fraction': contact_steps[i].item() / ep_len,
+                            'lift_success': bool(lift_success[i].item()),
                         })
 
                     cr = cr * (1.0 - done.float())
                     steps = steps * (1.0 - done.float())
                     cum_hand_err = cum_hand_err * (1.0 - done.float())
                     cum_obj_err = cum_obj_err * (1.0 - done.float())
+                    max_lift = max_lift * (1.0 - done.float())
+                    contact_steps = contact_steps * (1.0 - done.float())
+                    lift_contact_run = lift_contact_run * (1 - done.long())
+                    lift_success &= ~done.bool()
 
                     if batch_size // self.num_agents == 1 or games_played >= n_games:
                         break
@@ -157,6 +186,9 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             mean_steps = np.mean([r['steps'] for r in self.episode_results])
             mean_hand_err = np.mean([r['mean_hand_error'] for r in self.episode_results])
             mean_obj_err = np.mean([r['mean_obj_error'] for r in self.episode_results])
+            lift_success_rate = np.mean([r['lift_success'] for r in self.episode_results])
+            mean_max_lift = np.mean([r['max_lift_m'] for r in self.episode_results])
+            mean_contact_fraction = np.mean([r['hand_object_contact_fraction'] for r in self.episode_results])
 
             print(f"\n{'=' * 60}")
             print(f"EVALUATION RESULTS ({total} episodes)")
@@ -166,6 +198,9 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             print(f"  Mean Steps:      {mean_steps:.1f}")
             print(f"  Mean Hand Error: {mean_hand_err:.4f}")
             print(f"  Mean Obj Error:  {mean_obj_err:.4f}")
+            print(f"  Lift Success:    {lift_success_rate:.1%}")
+            print(f"  Mean Max Lift:   {mean_max_lift:.4f} m")
+            print(f"  Contact Fraction:{mean_contact_fraction:.4f}")
             print(f"{'=' * 60}")
 
             # Save to file if output path set
@@ -178,6 +213,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 'mean_steps': round(float(mean_steps), 1),
                 'mean_hand_error': round(float(mean_hand_err), 4),
                 'mean_obj_error': round(float(mean_obj_err), 4),
+                'lift_success_rate': round(float(lift_success_rate), 4),
+                'mean_max_lift_m': round(float(mean_max_lift), 5),
+                'mean_hand_object_contact_fraction': round(float(mean_contact_fraction), 5),
+                'lift_success_definition': 'object dz >= 0.03 m with hand+object contact for >=5 consecutive steps',
             }
             output = {'summary': summary, 'per_episode': self.episode_results}
             os.makedirs(os.path.dirname(output_file) or '.', exist_ok=True)
@@ -243,8 +282,15 @@ def main():
         p.output_file = eval_args.output
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
-    runner.model_builder.model_factory.register_builder('dexplore', lambda network, **kwargs: dexplore_models.ModelDexploreContinuous(network))
-    runner.model_builder.network_factory.register_builder('dexplore', lambda **kwargs: dexplore_network_builder.DexploreBuilder())
+    model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
+    model_builder.register_network('dexplore', dexplore_network_builder.DexploreBuilder)
+
+    # One completed episode per requested environment, with deterministic
+    # actions and no unbounded player loop.
+    cfg_train['params']['config']['player'] = {
+        'games_num': cfg['env']['numEnvs'], 'deterministic': True,
+        'print_stats': False,
+    }
 
     runner.load(cfg_train)
     runner.reset()
