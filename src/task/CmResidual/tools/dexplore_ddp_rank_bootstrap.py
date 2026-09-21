@@ -112,7 +112,8 @@ def _install_contact_curriculum_from_env() -> None:
     install_contact_reset_curriculum(
         DexploreTask, before=int(before),
         after=int(os.environ.get("REF2DEX_CONTACT_RESET_AFTER", "0")),
-        fraction=float(os.environ.get("REF2DEX_CONTACT_RESET_FRACTION", "1")))
+        fraction=float(os.environ.get("REF2DEX_CONTACT_RESET_FRACTION", "1")),
+        lift_fraction=float(os.environ.get("REF2DEX_LIFT_RESET_FRACTION", "0")))
 
 
 def main(argv=None, *, agent_class=None) -> None:

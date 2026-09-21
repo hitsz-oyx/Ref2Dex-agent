@@ -14,7 +14,10 @@ def _task_class(contact_frames, num_envs, num_frames=24):
                 contact = torch.zeros(num_frames, 1)
                 if frame is not None:
                     contact[frame:] = 1
-                self.hoi_data_dict.append({"contact": contact})
+                obj_pos = torch.zeros(num_frames, 3)
+                if frame is not None and frame + 4 < num_frames:
+                    obj_pos[frame + 4:, 2] = 0.04
+                self.hoi_data_dict.append({"contact": contact, "obj_pos": obj_pos})
             self.max_episode_length = torch.tensor([num_frames] * len(contact_frames))
             self.hoi_refs = torch.zeros(len(contact_frames), 1, num_frames, 155)
             for motion in range(len(contact_frames)):
@@ -84,3 +87,15 @@ def test_mixed_curriculum_preserves_some_original_start_resets():
     contact_count = int((task.progress_buf == 9).sum())
     assert 80 < contact_count < 176
     assert int((task.progress_buf == 0).sum()) + contact_count == 256
+
+
+def test_three_phase_curriculum_samples_start_contact_and_lift():
+    cls = _task_class([9], 512)
+    install_contact_reset_curriculum(
+        cls, before=0, after=0, fraction=0.25, lift_fraction=0.25)
+    task = cls()
+    torch.manual_seed(42)
+    task._reset_ref_state_init(torch.arange(512))
+    counts = {frame: int((task.progress_buf == frame).sum()) for frame in (0, 9, 13)}
+    assert all(value > 80 for value in counts.values())
+    assert sum(counts.values()) == 512

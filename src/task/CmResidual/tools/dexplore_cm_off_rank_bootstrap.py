@@ -23,6 +23,7 @@ def parse_cm_off_args(argv=None):
     parser.add_argument("--contact-before", type=int)
     parser.add_argument("--contact-after", type=int, default=0)
     parser.add_argument("--contact-fraction", type=float, default=1.0)
+    parser.add_argument("--lift-fraction", type=float, default=0.0)
     args, passthrough = parser.parse_known_args(argv)
     if args.cm_distill_coef != 0.0:
         raise ValueError("Cm-off bootstrap only accepts --cm-distill-coef 0")
@@ -31,7 +32,8 @@ def parse_cm_off_args(argv=None):
     if not math.isfinite(args.approach_reward_coef) or args.approach_reward_coef < 0:
         raise ValueError("approach reward coefficient must be finite and nonnegative")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
-            not (0.0 < args.contact_fraction <= 1.0)):
+            args.contact_fraction < 0 or args.lift_fraction < 0 or
+            not (0.0 < args.contact_fraction + args.lift_fraction <= 1.0)):
         raise ValueError("contact curriculum windows must be nonnegative")
     if args.contact_before is None and args.contact_after:
         raise ValueError("--contact-after requires --contact-before")
@@ -54,6 +56,7 @@ def main(argv=None) -> None:
         os.environ["REF2DEX_CONTACT_RESET_BEFORE"] = str(args.contact_before)
         os.environ["REF2DEX_CONTACT_RESET_AFTER"] = str(args.contact_after)
         os.environ["REF2DEX_CONTACT_RESET_FRACTION"] = str(args.contact_fraction)
+        os.environ["REF2DEX_LIFT_RESET_FRACTION"] = str(args.lift_fraction)
     if args.approach_reward_coef:
         dexplore_ddp_rank_bootstrap.main(
             passthrough,

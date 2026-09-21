@@ -134,6 +134,8 @@ def main(argv=None) -> None:
                         help="frames after first reference contact; requires --contact-before")
     parser.add_argument("--contact-fraction", type=float, default=1.0,
                         help="fraction of training resets placed near contact")
+    parser.add_argument("--lift-fraction", type=float, default=0.0,
+                        help="fraction of training resets placed near reference lift onset")
     parser.add_argument("--cm-reward-positive-only", action="store_true")
     parser.add_argument("--cmv2-checkpoint", type=Path)
     parser.add_argument("--cmv2-sha256")
@@ -164,7 +166,8 @@ def main(argv=None) -> None:
     if args.approach_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
-            not (0.0 < args.contact_fraction <= 1.0) or
+            args.contact_fraction < 0 or args.lift_fraction < 0 or
+            not (0.0 < args.contact_fraction + args.lift_fraction <= 1.0) or
             (args.contact_before is None and args.contact_after)):
         raise ValueError("contact curriculum requires --contact-before >= 0 and --contact-after >= 0")
     if args.contact_before is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
@@ -197,7 +200,8 @@ def main(argv=None) -> None:
     if args.contact_before is not None:
         bootstrap_args += ["--contact-before", str(args.contact_before),
                            "--contact-after", str(args.contact_after),
-                           "--contact-fraction", str(args.contact_fraction)]
+                           "--contact-fraction", str(args.contact_fraction),
+                           "--lift-fraction", str(args.lift_fraction)]
     if args.execute:
         if not args.run_id or args.motion_root is None or args.input_manifest is None:
             raise ValueError("--execute requires --run-id, --motion-root, and --input-manifest")
@@ -249,6 +253,7 @@ def main(argv=None) -> None:
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "contact_before": args.contact_before, "contact_after": args.contact_after,
                   "contact_fraction": args.contact_fraction,
+                  "lift_fraction": args.lift_fraction,
                   "cm_reward_positive_only": args.cm_reward_positive_only,
                   "cmv2_checkpoint": str(args.cmv2_checkpoint.resolve()) if args.cmv2_checkpoint else None,
                   "cmv2_sha256": args.cmv2_sha256,

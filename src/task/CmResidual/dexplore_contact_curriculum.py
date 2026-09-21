@@ -13,9 +13,12 @@ import torch
 
 
 def install_contact_reset_curriculum(task_class, *, before: int, after: int,
-                                     fraction: float = 1.0) -> None:
+                                     fraction: float = 1.0, lift_fraction: float = 0.0,
+                                     lift_threshold_m: float = 0.03) -> None:
     """Patch a process-local DExplore task class before task construction."""
-    if before < 0 or after < 0 or not (0.0 < fraction <= 1.0):
+    if (before < 0 or after < 0 or fraction < 0 or lift_fraction < 0 or
+            fraction + lift_fraction <= 0 or fraction + lift_fraction > 1.0 or
+            lift_threshold_m <= 0):
         raise ValueError("contact curriculum windows must be nonnegative")
     if getattr(task_class, "_ref2dex_contact_curriculum_installed", False):
         raise RuntimeError("contact reset curriculum is already installed")
@@ -26,29 +29,47 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
         if not len(env_ids):
             return
         if not hasattr(self, "_ref2dex_first_contact_frames"):
-            anchors = []
+            anchors, lift_anchors = [], []
             for motion in self.hoi_data_dict:
                 frames = (motion["contact"].reshape(-1) > 0.5).nonzero(as_tuple=True)[0]
                 if frames.numel() == 0:
                     raise ValueError("contact curriculum requires recorded object contact in every motion")
-                anchors.append(int(frames[0].item()))
+                contact_anchor = int(frames[0].item())
+                anchors.append(contact_anchor)
+                z = motion["obj_pos"][:, 2]
+                post_contact = z[contact_anchor:]
+                lifted = (post_contact - post_contact.cummin(0).values >= lift_threshold_m).nonzero(
+                    as_tuple=True)[0]
+                if lift_fraction and lifted.numel() == 0:
+                    raise ValueError("lift curriculum requires a reference lift after contact")
+                lift_anchors.append(contact_anchor + int(lifted[0].item()) if lifted.numel()
+                                    else contact_anchor)
             self._ref2dex_first_contact_frames = torch.tensor(
                 anchors, device=self.device, dtype=torch.long)
+            self._ref2dex_first_lift_frames = torch.tensor(
+                lift_anchors, device=self.device, dtype=torch.long)
             print("REF2DEX_CONTACT_CURRICULUM " + json.dumps({
                 "first_contact_frames": anchors, "window_before": before,
                 "window_after": after, "fraction": fraction,
+                "first_lift_frames": lift_anchors, "lift_fraction": lift_fraction,
+                "lift_threshold_m": lift_threshold_m,
                 "mode": "mixed_start_and_contact_training_reset",
             }, sort_keys=True), flush=True)
 
-        selected_envs = env_ids
-        if fraction < 1.0:
-            selected_envs = env_ids[torch.rand(len(env_ids), device=self.device) < fraction]
+        draw = torch.rand(len(env_ids), device=self.device)
+        contact_mask = draw < fraction
+        lift_mask = (draw >= fraction) & (draw < fraction + lift_fraction)
+        selected_mask = contact_mask | lift_mask
+        selected_envs = env_ids[selected_mask]
         if not len(selected_envs):
             return
         motion = self.data_id[selected_envs].long()
+        anchors = self._ref2dex_first_contact_frames[motion].clone()
+        selected_lift = lift_mask[selected_mask]
+        anchors[selected_lift] = self._ref2dex_first_lift_frames[motion[selected_lift]]
         offset = torch.randint(-before, after + 1, (len(selected_envs),), device=self.device)
         last = self.max_episode_length[motion].to(self.device) - 2
-        times = torch.minimum((self._ref2dex_first_contact_frames[motion] + offset).clamp_min(0), last)
+        times = torch.minimum((anchors + offset).clamp_min(0), last)
         ref = self.hoi_refs[motion, self.ref_index[selected_envs], times]
         self.progress_buf[selected_envs] = times
         self.start_times[selected_envs] = times
