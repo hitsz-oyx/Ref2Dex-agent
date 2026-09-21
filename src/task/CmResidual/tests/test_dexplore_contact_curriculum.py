@@ -73,3 +73,14 @@ def test_contact_curriculum_refuses_motion_without_contact():
         assert "recorded object contact" in str(error)
     else:
         raise AssertionError("missing contact must fail before running training")
+
+
+def test_mixed_curriculum_preserves_some_original_start_resets():
+    cls = _task_class([9], 256)
+    install_contact_reset_curriculum(cls, before=0, after=0, fraction=0.5)
+    task = cls()
+    torch.manual_seed(42)
+    task._reset_ref_state_init(torch.arange(256))
+    contact_count = int((task.progress_buf == 9).sum())
+    assert 80 < contact_count < 176
+    assert int((task.progress_buf == 0).sum()) + contact_count == 256

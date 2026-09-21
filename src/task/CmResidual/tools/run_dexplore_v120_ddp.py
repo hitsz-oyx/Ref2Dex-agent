@@ -132,6 +132,9 @@ def main(argv=None) -> None:
                         help="optional near-contact curriculum: frames before first reference contact")
     parser.add_argument("--contact-after", type=int, default=0,
                         help="frames after first reference contact; requires --contact-before")
+    parser.add_argument("--contact-fraction", type=float, default=1.0,
+                        help="fraction of training resets placed near contact")
+    parser.add_argument("--cm-reward-positive-only", action="store_true")
     parser.add_argument("--cmv2-checkpoint", type=Path)
     parser.add_argument("--cmv2-sha256")
     parser.add_argument("--actual-epochs", type=int,
@@ -153,12 +156,15 @@ def main(argv=None) -> None:
     bootstrap_args: list[str] = []
     if args.cm_distill_coef is not None and args.cm_reward_coef is not None:
         raise ValueError("Cm-off and Cm-reward modes are mutually exclusive")
+    if args.cm_reward_positive_only and args.cm_reward_coef is None:
+        raise ValueError("--cm-reward-positive-only requires --cm-reward-coef")
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
                                                   or args.approach_reward_coef < 0):
         raise ValueError("--approach-reward-coef must be finite and nonnegative")
     if args.approach_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
+            not (0.0 < args.contact_fraction <= 1.0) or
             (args.contact_before is None and args.contact_after)):
         raise ValueError("contact curriculum requires --contact-before >= 0 and --contact-after >= 0")
     if args.contact_before is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
@@ -184,11 +190,14 @@ def main(argv=None) -> None:
                           "--cmv2-sha256", args.cmv2_sha256,
                           "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
+        if args.cm_reward_positive_only:
+            bootstrap_args.append("--cm-reward-positive-only")
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
         bootstrap_args += ["--contact-before", str(args.contact_before),
-                           "--contact-after", str(args.contact_after)]
+                           "--contact-after", str(args.contact_after),
+                           "--contact-fraction", str(args.contact_fraction)]
     if args.execute:
         if not args.run_id or args.motion_root is None or args.input_manifest is None:
             raise ValueError("--execute requires --run-id, --motion-root, and --input-manifest")
@@ -239,6 +248,8 @@ def main(argv=None) -> None:
                   "cm_reward_coef": args.cm_reward_coef,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "contact_before": args.contact_before, "contact_after": args.contact_after,
+                  "contact_fraction": args.contact_fraction,
+                  "cm_reward_positive_only": args.cm_reward_positive_only,
                   "cmv2_checkpoint": str(args.cmv2_checkpoint.resolve()) if args.cmv2_checkpoint else None,
                   "cmv2_sha256": args.cmv2_sha256,
                   "actual_epochs": args.actual_epochs,

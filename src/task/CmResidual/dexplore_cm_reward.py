@@ -19,6 +19,7 @@ class CmRewardConfig:
     compile_swept_topk: bool = True
     interaction_radius_m: float = 0.02
     prefilter_swept_sphere: bool = True
+    positive_only: bool = False
 
 
 @torch.inference_mode()
@@ -78,6 +79,8 @@ def bounded_translation_progress(current_pose: torch.Tensor, goal_pose: torch.Te
     predicted_cost = (predicted_pose[:, :3, 3] - goal_pose[:, :3, 3]).square().sum(-1) / denominator
     improvement = zero_cost - predicted_cost
     reward = torch.tanh(improvement / config.improvement_temperature)
+    if config.positive_only:
+        reward = reward.clamp_min(0)
     return torch.where(valid, reward, torch.zeros_like(reward)), improvement
 
 

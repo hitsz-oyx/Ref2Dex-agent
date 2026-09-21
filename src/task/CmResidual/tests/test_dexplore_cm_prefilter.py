@@ -5,7 +5,8 @@ import pytest
 import torch
 
 from src.task.CmResidual.dexplore_cm_reward import (
-    CmRewardConfig, predict_cm_reward, swept_object_sphere_candidates,
+    CmRewardConfig, bounded_translation_progress, predict_cm_reward,
+    swept_object_sphere_candidates,
 )
 
 
@@ -42,6 +43,22 @@ def test_sphere_prefilter_rejects_nonfinite():
     with pytest.raises(FloatingPointError, match="finite"):
         swept_object_sphere_candidates(torch.zeros(1, 1, 3),
                                        torch.tensor([[[float("nan"), 0, 0]]]), torch.zeros(1, 1, 3))
+
+
+def test_positive_only_cm_reward_keeps_improvements_and_drops_duplicate_penalties():
+    current = torch.eye(4).expand(2, 4, 4).clone()
+    goal = current.clone()
+    goal[:, 0, 3] = 0.01
+    delta = torch.zeros(2, 6)
+    delta[0, 0] = 0.005
+    delta[1, 0] = -0.005
+    signed, _ = bounded_translation_progress(
+        current, goal, delta, torch.ones(2, dtype=torch.bool), CmRewardConfig())
+    positive, _ = bounded_translation_progress(
+        current, goal, delta, torch.ones(2, dtype=torch.bool),
+        CmRewardConfig(positive_only=True))
+    assert signed[0] > 0 and signed[1] < 0
+    assert positive[0] == signed[0] and positive[1] == 0
 
 
 def test_predict_cm_reward_only_infers_candidates_and_zero_fills_skips():

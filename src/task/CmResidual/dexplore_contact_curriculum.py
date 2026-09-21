@@ -12,9 +12,10 @@ import json
 import torch
 
 
-def install_contact_reset_curriculum(task_class, *, before: int, after: int) -> None:
+def install_contact_reset_curriculum(task_class, *, before: int, after: int,
+                                     fraction: float = 1.0) -> None:
     """Patch a process-local DExplore task class before task construction."""
-    if before < 0 or after < 0:
+    if before < 0 or after < 0 or not (0.0 < fraction <= 1.0):
         raise ValueError("contact curriculum windows must be nonnegative")
     if getattr(task_class, "_ref2dex_contact_curriculum_installed", False):
         raise RuntimeError("contact reset curriculum is already installed")
@@ -35,19 +36,25 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int) -> 
                 anchors, device=self.device, dtype=torch.long)
             print("REF2DEX_CONTACT_CURRICULUM " + json.dumps({
                 "first_contact_frames": anchors, "window_before": before,
-                "window_after": after, "mode": "training_reference_reset",
+                "window_after": after, "fraction": fraction,
+                "mode": "mixed_start_and_contact_training_reset",
             }, sort_keys=True), flush=True)
 
-        motion = self.data_id[env_ids].long()
-        offset = torch.randint(-before, after + 1, (len(env_ids),), device=self.device)
+        selected_envs = env_ids
+        if fraction < 1.0:
+            selected_envs = env_ids[torch.rand(len(env_ids), device=self.device) < fraction]
+        if not len(selected_envs):
+            return
+        motion = self.data_id[selected_envs].long()
+        offset = torch.randint(-before, after + 1, (len(selected_envs),), device=self.device)
         last = self.max_episode_length[motion].to(self.device) - 2
         times = torch.minimum((self._ref2dex_first_contact_frames[motion] + offset).clamp_min(0), last)
-        ref = self.hoi_refs[motion, self.ref_index[env_ids], times]
-        self.progress_buf[env_ids] = times
-        self.start_times[env_ids] = times
-        self._hist_obs[env_ids] = 0
-        self.contact_reset[env_ids] = 0
-        self._set_env_state(env_ids=env_ids,
+        ref = self.hoi_refs[motion, self.ref_index[selected_envs], times]
+        self.progress_buf[selected_envs] = times
+        self.start_times[selected_envs] = times
+        self._hist_obs[selected_envs] = 0
+        self.contact_reset[selected_envs] = 0
+        self._set_env_state(env_ids=selected_envs,
                             dof_pos=ref[:, 119:119 + self.num_dof],
                             dof_vel=ref[:, 119 + self.num_dof:119 + 2 * self.num_dof])
 

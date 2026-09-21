@@ -28,6 +28,8 @@ def parse_cm_reward_args(argv=None):
     parser.add_argument("--actual-epochs", type=int, required=True)
     parser.add_argument("--contact-before", type=int)
     parser.add_argument("--contact-after", type=int, default=0)
+    parser.add_argument("--contact-fraction", type=float, default=1.0)
+    parser.add_argument("--cm-reward-positive-only", action="store_true")
     args, passthrough = parser.parse_known_args(argv)
     if not math.isfinite(args.cm_reward_coef) or args.cm_reward_coef <= 0 or args.actual_epochs < 1:
         raise ValueError("Cm reward coefficient and epoch budget must be positive")
@@ -35,7 +37,8 @@ def parse_cm_reward_args(argv=None):
         raise ValueError("approach reward coefficient must be finite and nonnegative")
     if not args.cmv2_checkpoint.is_file() or len(args.cmv2_sha256) != 64:
         raise ValueError("Cm reward requires an existing checkpoint and explicit SHA256")
-    if (args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0:
+    if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
+            not (0.0 < args.contact_fraction <= 1.0)):
         raise ValueError("contact curriculum windows must be nonnegative")
     if args.contact_before is None and args.contact_after:
         raise ValueError("--contact-after requires --contact-before")
@@ -51,10 +54,12 @@ def main(argv=None) -> None:
         "REF2DEX_CMV2_SHA256": args.cmv2_sha256,
         "REF2DEX_ACTUAL_EPOCH_BUDGET": str(args.actual_epochs),
         "REF2DEX_SCRATCH_POLICY": "1",
+        "REF2DEX_CM_REWARD_POSITIVE_ONLY": "1" if args.cm_reward_positive_only else "0",
     })
     if args.contact_before is not None:
         os.environ["REF2DEX_CONTACT_RESET_BEFORE"] = str(args.contact_before)
         os.environ["REF2DEX_CONTACT_RESET_AFTER"] = str(args.contact_after)
+        os.environ["REF2DEX_CONTACT_RESET_FRACTION"] = str(args.contact_fraction)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))

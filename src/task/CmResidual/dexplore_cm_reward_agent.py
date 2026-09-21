@@ -34,6 +34,7 @@ class DExploreCmRewardAgent(DExploreApproachAgent):
             effect_translation_scale=float(os.environ.get("REF2DEX_CMV2_EFFECT_TRANSLATION_SCALE", "1.0")),
             effect_translation_cap_m=float(os.environ.get("REF2DEX_CMV2_EFFECT_TRANSLATION_CAP_M", "0.02")),
             compile_swept_topk=os.environ.get("REF2DEX_CMV2_COMPILE", "1") == "1",
+            positive_only=os.environ.get("REF2DEX_CM_REWARD_POSITIVE_ONLY", "0") == "1",
         )
         self._cm_reward_calls = 0
         self._cm_reward_sum = 0.0
@@ -72,6 +73,7 @@ class DExploreCmRewardAgent(DExploreApproachAgent):
                 "event": "cm_reward", "call": self._cm_reward_calls,
                 "rank": int(getattr(self, "rank", 0)),
                 "coef": self.cm_reward_coef,
+                "positive_only": self.cm_reward_config.positive_only,
                 "mean": self._cm_reward_sum / self._cm_reward_samples,
                 "abs_mean": self._cm_reward_abs_sum / self._cm_reward_samples,
                 "valid_fraction": self._cm_reward_valid / self._cm_reward_samples,
