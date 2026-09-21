@@ -128,6 +128,8 @@ def main(argv=None) -> None:
                         help="positive frozen-Cmv2 dense reward coefficient")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")
+    parser.add_argument("--held-lift-reward-coef", type=float,
+                        help="matched contact-supported lift shaping coefficient for both Cm arms")
     parser.add_argument("--contact-before", type=int,
                         help="optional near-contact curriculum: frames before first reference contact")
     parser.add_argument("--contact-after", type=int, default=0,
@@ -163,8 +165,13 @@ def main(argv=None) -> None:
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
                                                   or args.approach_reward_coef < 0):
         raise ValueError("--approach-reward-coef must be finite and nonnegative")
+    if args.held_lift_reward_coef is not None and (not math.isfinite(args.held_lift_reward_coef)
+                                                   or args.held_lift_reward_coef < 0):
+        raise ValueError("--held-lift-reward-coef must be finite and nonnegative")
     if args.approach_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
+    if args.held_lift_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+        raise ValueError("--held-lift-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
             args.contact_fraction < 0 or args.lift_fraction < 0 or
             not (0.0 < args.contact_fraction + args.lift_fraction <= 1.0) or
@@ -181,6 +188,7 @@ def main(argv=None) -> None:
             raise ValueError("Cm-off launcher requires positive --actual-epochs")
         bootstrap_args = ["--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
+        bootstrap_args += ["--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0)]
     elif args.cm_reward_coef is not None:
         if bootstrap.name != "dexplore_cm_reward_rank_bootstrap.py":
             raise ValueError("--cm-reward-coef requires dexplore_cm_reward_rank_bootstrap.py")
@@ -193,6 +201,7 @@ def main(argv=None) -> None:
                           "--cmv2-sha256", args.cmv2_sha256,
                           "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
+        bootstrap_args += ["--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0)]
         if args.cm_reward_positive_only:
             bootstrap_args.append("--cm-reward-positive-only")
     elif args.actual_epochs is not None:
@@ -251,6 +260,7 @@ def main(argv=None) -> None:
                   "rank_bootstrap": str(bootstrap), "cm_distill_coef": args.cm_distill_coef,
                   "cm_reward_coef": args.cm_reward_coef,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
+                  "held_lift_reward_coef": args.held_lift_reward_coef or 0.0,
                   "contact_before": args.contact_before, "contact_after": args.contact_after,
                   "contact_fraction": args.contact_fraction,
                   "lift_fraction": args.lift_fraction,

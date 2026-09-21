@@ -19,6 +19,7 @@ def parse_cm_off_args(argv=None):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--cm-distill-coef", type=float, required=True)
     parser.add_argument("--approach-reward-coef", type=float, default=0.0)
+    parser.add_argument("--held-lift-reward-coef", type=float, default=0.0)
     parser.add_argument("--actual-epochs", type=int, required=True)
     parser.add_argument("--contact-before", type=int)
     parser.add_argument("--contact-after", type=int, default=0)
@@ -31,6 +32,8 @@ def parse_cm_off_args(argv=None):
         raise ValueError("Cm-off bootstrap requires a positive --actual-epochs budget")
     if not math.isfinite(args.approach_reward_coef) or args.approach_reward_coef < 0:
         raise ValueError("approach reward coefficient must be finite and nonnegative")
+    if not math.isfinite(args.held_lift_reward_coef) or args.held_lift_reward_coef < 0:
+        raise ValueError("held-lift reward coefficient must be finite and nonnegative")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
             args.contact_fraction < 0 or args.lift_fraction < 0 or
             not (0.0 < args.contact_fraction + args.lift_fraction <= 1.0)):
@@ -52,12 +55,13 @@ def main(argv=None) -> None:
     os.environ["REF2DEX_ACTUAL_EPOCH_BUDGET"] = str(args.actual_epochs)
     os.environ["REF2DEX_SCRATCH_POLICY"] = "1"
     os.environ["REF2DEX_APPROACH_REWARD_COEF"] = str(args.approach_reward_coef)
+    os.environ["REF2DEX_HELD_LIFT_REWARD_COEF"] = str(args.held_lift_reward_coef)
     if args.contact_before is not None:
         os.environ["REF2DEX_CONTACT_RESET_BEFORE"] = str(args.contact_before)
         os.environ["REF2DEX_CONTACT_RESET_AFTER"] = str(args.contact_after)
         os.environ["REF2DEX_CONTACT_RESET_FRACTION"] = str(args.contact_fraction)
         os.environ["REF2DEX_LIFT_RESET_FRACTION"] = str(args.lift_fraction)
-    if args.approach_reward_coef:
+    if args.approach_reward_coef or args.held_lift_reward_coef:
         dexplore_ddp_rank_bootstrap.main(
             passthrough,
             agent_class="src.task.CmResidual.dexplore_approach_agent:DExploreApproachAgent")

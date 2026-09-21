@@ -13,6 +13,7 @@ from src.task.CmResidual.dexplore_approach import (
     ApproachConfig, potential_approach_reward, sampled_surface_gap,
 )
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge
+from src.task.CmResidual.dexplore_grasp_reward import held_lift_reward
 
 
 class DExploreApproachAgent(DexploreAgent):
@@ -21,8 +22,11 @@ class DExploreApproachAgent(DexploreAgent):
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
         self.approach_reward_coef = float(os.environ.get("REF2DEX_APPROACH_REWARD_COEF", "0"))
+        self.held_lift_reward_coef = float(os.environ.get("REF2DEX_HELD_LIFT_REWARD_COEF", "0"))
         if self.approach_reward_coef < 0 or not torch.isfinite(torch.tensor(self.approach_reward_coef)):
             raise ValueError("REF2DEX_APPROACH_REWARD_COEF must be finite and nonnegative")
+        if self.held_lift_reward_coef < 0 or not torch.isfinite(torch.tensor(self.held_lift_reward_coef)):
+            raise ValueError("REF2DEX_HELD_LIFT_REWARD_COEF must be finite and nonnegative")
         self.approach_config = ApproachConfig()
         self.approach_bridge = None
         if self.approach_reward_coef:
@@ -34,6 +38,7 @@ class DExploreApproachAgent(DexploreAgent):
         self._approach_object_contacts = self._approach_positive = 0
         self._approach_sum = self._approach_abs_sum = self._approach_gap_before = self._approach_gap_after = 0.0
         self._approach_positive_object_dz = 0.0
+        self._held_lift_sum = self._held_lift_positive = 0.0
         self._approach_min_gap = float("inf")
 
     def _cm_task(self):
@@ -58,19 +63,27 @@ class DExploreApproachAgent(DexploreAgent):
         return sampled_surface_gap(geometry.hand_points, geometry.object_points, self.approach_config)
 
     def env_step(self, actions):
-        if not self.approach_reward_coef:
+        if not self.approach_reward_coef and not self.held_lift_reward_coef:
             return super().env_step(actions)
         task = self._cm_task()
-        gap_before = self._approach_gap(task)
+        gap_before = self._approach_gap(task) if self.approach_reward_coef else None
         object_z_before = task._target_states[:, 2].clone()
         obs, rewards, dones, infos = super().env_step(actions)
-        gap_after = self._approach_gap(task)
-        shaped = potential_approach_reward(
-            gap_before, gap_after, dones.bool(), gamma=self.gamma, config=self.approach_config)
-        bonus = self.approach_reward_coef * shaped
-        rewards = rewards + bonus.view(-1, 1) if rewards.ndim == 2 else rewards + bonus
         contact = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > 0.1).any(dim=-1)
         object_contact = task._tar_contact_forces.norm(dim=-1) > 0.1
+        if self.approach_reward_coef:
+            gap_after = self._approach_gap(task)
+            shaped = potential_approach_reward(
+                gap_before, gap_after, dones.bool(), gamma=self.gamma, config=self.approach_config)
+            bonus = self.approach_reward_coef * shaped
+            rewards = rewards + bonus.view(-1, 1) if rewards.ndim == 2 else rewards + bonus
+        else:
+            gap_after = torch.zeros_like(object_z_before)
+            shaped = torch.zeros_like(object_z_before)
+        rest_z = task.hoi_refs[task.data_id, task.ref_index, 0, 108]
+        held_lift = held_lift_reward(task._target_states[:, 2], rest_z, contact, object_contact)
+        held_bonus = self.held_lift_reward_coef * held_lift
+        rewards = rewards + held_bonus.view(-1, 1) if rewards.ndim == 2 else rewards + held_bonus
         self._approach_calls += 1
         self._approach_samples += shaped.numel()
         self._approach_positive += int((shaped > 0).sum())
@@ -80,6 +93,8 @@ class DExploreApproachAgent(DexploreAgent):
         self._approach_gap_after += float(gap_after.sum())
         self._approach_min_gap = min(self._approach_min_gap, float(gap_after.min()))
         self._approach_positive_object_dz += float((task._target_states[:, 2] - object_z_before).clamp_min(0).sum())
+        self._held_lift_sum += float(held_lift.sum())
+        self._held_lift_positive += int((held_lift > 0).sum())
         self._approach_contacts += int(contact.sum())
         self._approach_object_contacts += int((contact & object_contact).sum())
         if self._approach_calls % self.horizon_length == 0:
@@ -95,10 +110,14 @@ class DExploreApproachAgent(DexploreAgent):
                 "hand_contact_fraction": self._approach_contacts / n,
                 "hand_and_object_contact_fraction": self._approach_object_contacts / n,
                 "positive_object_dz_mean_m": self._approach_positive_object_dz / n,
+                "held_lift_reward_coef": self.held_lift_reward_coef,
+                "held_lift_mean": self._held_lift_sum / n,
+                "held_lift_positive_fraction": self._held_lift_positive / n,
             }, sort_keys=True), flush=True)
             self._approach_samples = self._approach_contacts = self._approach_object_contacts = 0
             self._approach_positive = 0
             self._approach_sum = self._approach_abs_sum = self._approach_gap_before = self._approach_gap_after = 0.0
             self._approach_positive_object_dz = 0.0
+            self._held_lift_sum = self._held_lift_positive = 0.0
             self._approach_min_gap = float("inf")
         return obs, rewards, dones, infos

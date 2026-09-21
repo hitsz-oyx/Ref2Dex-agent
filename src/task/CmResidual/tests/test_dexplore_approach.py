@@ -68,12 +68,15 @@ def test_both_rank_bootstraps_accept_same_explicit_approach_coefficient(tmp_path
     checkpoint.write_bytes(b"fake-test-checkpoint")
     off_args, off_pass = off.parse_cm_off_args([
         "--cm-distill-coef", "0", "--actual-epochs", "1",
-        "--approach-reward-coef", "2", "--task", "Dexplore_Inspire"])
+        "--approach-reward-coef", "2", "--held-lift-reward-coef", "1",
+        "--task", "Dexplore_Inspire"])
     on_args, on_pass = on.parse_cm_reward_args([
         "--cm-reward-coef", "0.05", "--cmv2-checkpoint", str(checkpoint),
         "--cmv2-sha256", "a" * 64, "--actual-epochs", "1",
-        "--approach-reward-coef", "2", "--task", "Dexplore_Inspire"])
+        "--approach-reward-coef", "2", "--held-lift-reward-coef", "1",
+        "--task", "Dexplore_Inspire"])
     assert off_args.approach_reward_coef == on_args.approach_reward_coef == 2
+    assert off_args.held_lift_reward_coef == on_args.held_lift_reward_coef == 1
     assert off_pass == on_pass == ["--task", "Dexplore_Inspire"]
     for module, argv in ((off, ["--cm-distill-coef", "0", "--actual-epochs", "1"]),):
         with pytest.raises(ValueError, match="nonnegative"):
@@ -104,6 +107,8 @@ def test_launcher_limits_gpu_count_to_two_and_forwards_matched_shaping(tmp_path,
     launcher.main(["--gpus", "5,6", "--dry-run", "--rank-bootstrap",
                    str(TOOLS / "dexplore_cm_off_rank_bootstrap.py"),
                    "--cm-distill-coef", "0", "--approach-reward-coef", "2",
+                   "--held-lift-reward-coef", "1",
                    "--actual-epochs", "1"])
     assert captured["bootstrap_args"] == [
-        "--cm-distill-coef", "0", "--actual-epochs", "1", "--approach-reward-coef", "2.0"]
+        "--cm-distill-coef", "0", "--actual-epochs", "1", "--approach-reward-coef", "2.0",
+        "--held-lift-reward-coef", "1.0"]

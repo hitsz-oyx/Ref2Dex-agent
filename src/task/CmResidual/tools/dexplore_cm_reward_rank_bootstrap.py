@@ -23,6 +23,7 @@ def parse_cm_reward_args(argv=None):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--cm-reward-coef", type=float, required=True)
     parser.add_argument("--approach-reward-coef", type=float, default=0.0)
+    parser.add_argument("--held-lift-reward-coef", type=float, default=0.0)
     parser.add_argument("--cmv2-checkpoint", type=Path, required=True)
     parser.add_argument("--cmv2-sha256", required=True)
     parser.add_argument("--actual-epochs", type=int, required=True)
@@ -36,6 +37,8 @@ def parse_cm_reward_args(argv=None):
         raise ValueError("Cm reward coefficient and epoch budget must be positive")
     if not math.isfinite(args.approach_reward_coef) or args.approach_reward_coef < 0:
         raise ValueError("approach reward coefficient must be finite and nonnegative")
+    if not math.isfinite(args.held_lift_reward_coef) or args.held_lift_reward_coef < 0:
+        raise ValueError("held-lift reward coefficient must be finite and nonnegative")
     if not args.cmv2_checkpoint.is_file() or len(args.cmv2_sha256) != 64:
         raise ValueError("Cm reward requires an existing checkpoint and explicit SHA256")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
@@ -52,6 +55,7 @@ def main(argv=None) -> None:
     os.environ.update({
         "REF2DEX_CM_REWARD_COEF": str(args.cm_reward_coef),
         "REF2DEX_APPROACH_REWARD_COEF": str(args.approach_reward_coef),
+        "REF2DEX_HELD_LIFT_REWARD_COEF": str(args.held_lift_reward_coef),
         "REF2DEX_CMV2_CHECKPOINT": str(args.cmv2_checkpoint.resolve()),
         "REF2DEX_CMV2_SHA256": args.cmv2_sha256,
         "REF2DEX_ACTUAL_EPOCH_BUDGET": str(args.actual_epochs),

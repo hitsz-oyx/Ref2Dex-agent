@@ -99,8 +99,11 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             task = self.env.task
             initial_object_z = task._target_states[:, 2].clone()
             max_lift = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
+            max_contact_lift = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
             contact_steps = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
+            airborne_steps = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
             lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+            max_lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
             lift_success = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
 
             done_indices = []
@@ -126,9 +129,13 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 object_contact = task._tar_contact_forces.norm(dim=-1) > 0.1
                 hand_object_contact = hand_contact & object_contact
                 contact_steps += hand_object_contact.float()
+                airborne_steps += (lift >= 0.03).float()
+                max_contact_lift = torch.maximum(
+                    max_contact_lift, torch.where(hand_object_contact, lift, torch.zeros_like(lift)))
                 held_lift = (lift >= 0.03) & hand_object_contact
                 lift_contact_run = torch.where(held_lift, lift_contact_run + 1,
                                                torch.zeros_like(lift_contact_run))
+                max_lift_contact_run = torch.maximum(max_lift_contact_run, lift_contact_run)
                 lift_success |= lift_contact_run >= 5
 
                 # Collect tracking metrics
@@ -163,7 +170,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                             'mean_hand_error': cum_hand_err[i].item() / ep_len,
                             'mean_obj_error': cum_obj_err[i].item() / ep_len,
                             'max_lift_m': max_lift[i].item(),
+                            'max_contact_lift_m': max_contact_lift[i].item(),
                             'hand_object_contact_fraction': contact_steps[i].item() / ep_len,
+                            'airborne_fraction': airborne_steps[i].item() / ep_len,
+                            'max_lift_contact_run_steps': int(max_lift_contact_run[i].item()),
                             'lift_success': bool(lift_success[i].item()),
                         })
 
@@ -172,8 +182,11 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     cum_hand_err = cum_hand_err * (1.0 - done.float())
                     cum_obj_err = cum_obj_err * (1.0 - done.float())
                     max_lift = max_lift * (1.0 - done.float())
+                    max_contact_lift = max_contact_lift * (1.0 - done.float())
                     contact_steps = contact_steps * (1.0 - done.float())
+                    airborne_steps = airborne_steps * (1.0 - done.float())
                     lift_contact_run = lift_contact_run * (1 - done.long())
+                    max_lift_contact_run = max_lift_contact_run * (1 - done.long())
                     lift_success &= ~done.bool()
 
                     if batch_size // self.num_agents == 1 or games_played >= n_games:
@@ -193,7 +206,11 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             mean_obj_err = np.mean([r['mean_obj_error'] for r in self.episode_results])
             lift_success_rate = np.mean([r['lift_success'] for r in self.episode_results])
             mean_max_lift = np.mean([r['max_lift_m'] for r in self.episode_results])
+            mean_max_contact_lift = np.mean([r['max_contact_lift_m'] for r in self.episode_results])
             mean_contact_fraction = np.mean([r['hand_object_contact_fraction'] for r in self.episode_results])
+            mean_airborne_fraction = np.mean([r['airborne_fraction'] for r in self.episode_results])
+            mean_max_lift_contact_run = np.mean(
+                [r['max_lift_contact_run_steps'] for r in self.episode_results])
 
             print(f"\n{'=' * 60}")
             print(f"EVALUATION RESULTS ({total} episodes)")
@@ -205,7 +222,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             print(f"  Mean Obj Error:  {mean_obj_err:.4f}")
             print(f"  Lift Success:    {lift_success_rate:.1%}")
             print(f"  Mean Max Lift:   {mean_max_lift:.4f} m")
+            print(f"  Max Contact Lift:{mean_max_contact_lift:.4f} m")
             print(f"  Contact Fraction:{mean_contact_fraction:.4f}")
+            print(f"  Airborne Fraction:{mean_airborne_fraction:.4f}")
+            print(f"  Lift Contact Run:{mean_max_lift_contact_run:.2f} steps")
             print(f"{'=' * 60}")
 
             # Save to file if output path set
@@ -220,7 +240,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 'mean_obj_error': round(float(mean_obj_err), 4),
                 'lift_success_rate': round(float(lift_success_rate), 4),
                 'mean_max_lift_m': round(float(mean_max_lift), 5),
+                'mean_max_contact_lift_m': round(float(mean_max_contact_lift), 5),
                 'mean_hand_object_contact_fraction': round(float(mean_contact_fraction), 5),
+                'mean_airborne_fraction': round(float(mean_airborne_fraction), 5),
+                'mean_max_lift_contact_run_steps': round(float(mean_max_lift_contact_run), 3),
                 'lift_success_definition': 'object dz >= 0.03 m with hand+object contact for >=5 consecutive steps',
             }
             output = {'summary': summary, 'per_episode': self.episode_results}
