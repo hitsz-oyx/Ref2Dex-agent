@@ -178,8 +178,11 @@ class CommonPlayer(players.PpoPlayerContinuous):
             'input_shape' : obs_shape,
             'num_seqs' : self.num_agents,
             'value_size': self.env_info.get('value_size', 1),
-            'normalize_value': self.normalize_value,
-            'normalize_input': self.normalize_input,
+            # DExplore's legacy agent keeps optional observation RMS outside
+            # the model and its checkpoints therefore contain no model-local
+            # running_mean_std keys.  Match the training network exactly.
+            'normalize_value': False,
+            'normalize_input': False,
         }
         return config
 
