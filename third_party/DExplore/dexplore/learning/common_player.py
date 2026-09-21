@@ -12,14 +12,17 @@ from rl_games.common.player import BasePlayer
 import numpy as np
 
 class CommonPlayer(players.PpoPlayerContinuous):
-    def __init__(self, config):
-        BasePlayer.__init__(self, config)
-        self.network = config['network']
+    def __init__(self, params):
+        BasePlayer.__init__(self, params)
+        # BasePlayer replaces config['network'] with the ModelBuilder product.
+        # Do not overwrite it with the raw top-level YAML mapping.
+        self.network = self.config['network']
         
         self._setup_action_space()
         self.mask = [False]
 
         self.normalize_input = self.config['normalize_input']
+        self.normalize_value = self.config.get('normalize_value', False)
 
         net_config = self._build_net_config()
         self._build_net(net_config)
@@ -173,7 +176,10 @@ class CommonPlayer(players.PpoPlayerContinuous):
         config = {
             'actions_num' : self.actions_num,
             'input_shape' : obs_shape,
-            'num_seqs' : self.num_agents
+            'num_seqs' : self.num_agents,
+            'value_size': self.env_info.get('value_size', 1),
+            'normalize_value': self.normalize_value,
+            'normalize_input': self.normalize_input,
         }
         return config
 
