@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
 from pathlib import Path
 import runpy
@@ -22,6 +23,19 @@ DEFAULT_DEXPLORE_RUN = str(Path(__file__).resolve().parents[4] / "third_party/DE
 def _patch_synchronized_shutdown() -> None:
     """Make the external rank-0 termination decision visible to every rank."""
     import learning.common_agent as common_agent
+    from dexplore_ddp_compat import LegacyAgentSync
+
+    original_init = common_agent.CommonAgent.__init__
+
+    def initialize_legacy_sync(self, base_name, config):
+        original_init(self, base_name, config)
+        self.rank = self.global_rank
+        self.hvd = LegacyAgentSync()
+
+    common_agent.CommonAgent.__init__ = initialize_legacy_sync
+    actual_epoch_budget = int(os.environ.get("REF2DEX_ACTUAL_EPOCH_BUDGET", "0"))
+    if actual_epoch_budget < 0:
+        raise ValueError("REF2DEX_ACTUAL_EPOCH_BUDGET must be non-negative")
 
     def train(self):
         self.init_tensors()
@@ -72,7 +86,8 @@ def _patch_synchronized_shutdown() -> None:
                     self.save(model_output_file)
                     if self._save_intermediate:
                         self.save(model_output_file + "_" + str(epoch_num).zfill(8))
-                if epoch_num > self.max_epochs:
+                if ((actual_epoch_budget and epoch_num >= actual_epoch_budget) or
+                        (not actual_epoch_budget and epoch_num > self.max_epochs)):
                     self.save(model_output_file)
                     print("MAX EPOCHS NUM!")
                     should_exit = True
@@ -87,7 +102,19 @@ def _patch_synchronized_shutdown() -> None:
     common_agent.CommonAgent.train = train
 
 
-def main(argv=None) -> None:
+def _install_contact_curriculum_from_env() -> None:
+    before = os.environ.get("REF2DEX_CONTACT_RESET_BEFORE")
+    if before is None:
+        return
+    from env.tasks.base_dexplore_task import DexploreTask
+    from src.task.CmResidual.dexplore_contact_curriculum import install_contact_reset_curriculum
+
+    install_contact_reset_curriculum(
+        DexploreTask, before=int(before),
+        after=int(os.environ.get("REF2DEX_CONTACT_RESET_AFTER", "0")))
+
+
+def main(argv=None, *, agent_class=None) -> None:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get("REF2DEX_DEXPLORE_RUN", DEFAULT_DEXPLORE_RUN))
     args, passthrough = parser.parse_known_args(argv)
@@ -109,12 +136,18 @@ def main(argv=None) -> None:
         return original_to_torch(x, dtype=dtype, device=device, requires_grad=requires_grad)
 
     torch_utils.to_torch = rank_local_to_torch
-    from dexplore_ddp_compat import cleanup, initialize_from_env, install_horovod_facade
+    from dexplore_ddp_compat import cleanup, install_horovod_facade
 
-    initialize_from_env()
+    # Installed rl_games owns dist.init_process_group inside A2CBase.__init__.
+    # Its environment factory runs after that, so the facade is ready in time.
     install_horovod_facade()
     sys.path.insert(0, str(dexplore_run.parent))
     _patch_synchronized_shutdown()
+    _install_contact_curriculum_from_env()
+    if agent_class is not None:
+        module_name, class_name = agent_class.split(":", 1)
+        import learning.dexplore_agent as agent_module
+        agent_module.DexploreAgent = getattr(importlib.import_module(module_name), class_name)
     sys.argv = [str(dexplore_run)] + passthrough
     try:
         runpy.run_path(str(dexplore_run), run_name="__main__")

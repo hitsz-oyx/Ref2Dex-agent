@@ -17,8 +17,10 @@ import learning.common_agent as common_agent
 
 
 class DexploreAgent(common_agent.CommonAgent):
-    def __init__(self, base_name, config):
-        super().__init__(base_name, config)
+    def __init__(self, base_name, params):
+        super().__init__(base_name, params)
+
+        config = params['config']
 
         if self._normalize_input:
             self._input_mean_std = RunningMeanStd(self._amp_observation_space.shape).to(self.ppo_device)

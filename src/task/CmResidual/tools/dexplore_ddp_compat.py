@@ -156,6 +156,9 @@ class DistributedOptimizer:
         return nullcontext()
 
     def step(self, *args, **kwargs):
+        # DExplore calls scaler.step(optimizer) directly when gradient clipping
+        # is disabled. Horovod synchronizes at that boundary; do the same here.
+        self.synchronize()
         return self.optimizer.step(*args, **kwargs)
 
     def state_dict(self):
@@ -166,6 +169,44 @@ class DistributedOptimizer:
 
     def __getattr__(self, name: str):
         return getattr(self.optimizer, name)
+
+
+class LegacyAgentSync:
+    """Bridge DExplore's old self.hvd API to the installed native-DDP rl_games."""
+
+    def setup_algo(self, algo) -> None:
+        torch, dist = _require_initialized()
+        del torch
+        for tensor in algo.model.state_dict().values():
+            dist.broadcast(tensor, src=0)
+        _broadcast_optimizer_state(algo.optimizer)
+        algo.optimizer = DistributedOptimizer(
+            algo.optimizer, named_parameters=algo.model.named_parameters()
+        )
+        self.sync_stats(algo)
+
+    def sync_stats(self, algo) -> None:
+        # Keep normalization statistics identical between ranks at the epoch
+        # boundary, as required by DExplore's pre-DDP training loop.
+        _, dist = _require_initialized()
+        modules = [getattr(algo.model, "running_mean_std", None),
+                   getattr(algo, "_input_mean_std", None)]
+        for module in modules:
+            if module is not None:
+                for tensor in module.state_dict().values():
+                    dist.broadcast(tensor, src=0)
+
+    def average_value(self, value, name: Optional[str] = None):
+        return _allreduce(value, name=name)
+
+    def broadcast_value(self, value, name: Optional[str] = None):
+        del name
+        torch, dist = _require_initialized()
+        local = value.to(torch.device("cuda", _local_rank())) if value.device.type == "cpu" and dist.get_backend() == "nccl" else value
+        dist.broadcast(local, src=0)
+        if local is not value:
+            value.copy_(local.cpu())
+        return value
 
 
 def install_horovod_facade() -> types.ModuleType:

@@ -30,8 +30,14 @@ class CommonAgent(a2c_continuous.A2CAgent):
     # Initialization
     # ----------------------------------------------------------------
 
-    def __init__(self, base_name, config):
-        a2c_common.A2CBase.__init__(self, base_name, config)
+    def __init__(self, base_name, params):
+        # Modern rl_games passes the complete params mapping to A2CBase;
+        # DExplore's own fields still live in the nested config mapping.
+        config = params['config']
+        a2c_common.A2CBase.__init__(self, base_name, params)
+        # DExplore was written against rl_games' old seq_len attribute.
+        # Current A2CBase exposes the same configuration as seq_length.
+        self.seq_len = self.seq_length
 
         self._load_config_params(config)
 

@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -29,19 +30,20 @@ RUNTIME_ASSETS = (
 
 def parse_gpus(value: str) -> tuple[int, ...]:
     values = tuple(int(item) for item in value.split(",") if item)
-    if len(values) < 2 or len(set(values)) != len(values) or any(item < 0 for item in values):
-        raise ValueError("--gpus must name at least two unique non-negative physical GPU indices")
+    if len(values) != 2 or len(set(values)) != len(values) or any(item < 0 for item in values):
+        raise ValueError("--gpus must name exactly two unique non-negative physical GPU indices")
     return values
 
 
-def torchrun_command(*, gpus: Sequence[int], dexplore_run: Path, dexplore_args: Sequence[str]) -> list[str]:
-    if not BOOTSTRAP.is_file():
-        raise FileNotFoundError(f"missing DDP bootstrap: {BOOTSTRAP}")
+def torchrun_command(*, gpus: Sequence[int], dexplore_run: Path, dexplore_args: Sequence[str],
+                     bootstrap: Path = BOOTSTRAP, bootstrap_args: Sequence[str] = ()) -> list[str]:
+    if not bootstrap.is_file():
+        raise FileNotFoundError(f"missing DDP bootstrap: {bootstrap}")
     if not dexplore_run.is_file():
         raise FileNotFoundError(f"missing DExplore entrypoint: {dexplore_run}")
     return [sys.executable, "-m", "torch.distributed.run", "--standalone",
-            f"--nproc_per_node={len(gpus)}", str(BOOTSTRAP),
-            "--dexplore-run", str(dexplore_run)] + list(dexplore_args)
+            f"--nproc_per_node={len(gpus)}", str(bootstrap),
+            "--dexplore-run", str(dexplore_run)] + list(bootstrap_args) + list(dexplore_args)
 
 
 def _timestamp() -> str:
@@ -118,6 +120,23 @@ def main(argv=None) -> None:
     parser.add_argument("--motion-root", type=Path, help="converted DExplore tensor root; required for --execute")
     parser.add_argument("--input-manifest", type=Path, help="motion-root provenance manifest; required for --execute")
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
+    parser.add_argument("--rank-bootstrap", type=Path, default=BOOTSTRAP,
+                        help="Task-local rank bootstrap; defaults to the V1.20 DDP facade")
+    parser.add_argument("--cm-distill-coef", type=float,
+                        help="only valid with the V1.21 Cm-off bootstrap and must be exactly zero")
+    parser.add_argument("--cm-reward-coef", type=float,
+                        help="positive frozen-Cmv2 dense reward coefficient")
+    parser.add_argument("--approach-reward-coef", type=float,
+                        help="matched geometry potential shaping coefficient for both Cm arms")
+    parser.add_argument("--contact-before", type=int,
+                        help="optional near-contact curriculum: frames before first reference contact")
+    parser.add_argument("--contact-after", type=int, default=0,
+                        help="frames after first reference contact; requires --contact-before")
+    parser.add_argument("--cmv2-checkpoint", type=Path)
+    parser.add_argument("--cmv2-sha256")
+    parser.add_argument("--actual-epochs", type=int,
+                        help="exact epoch budget for the V1.21 Cm-off bootstrap")
+    parser.add_argument("--work-version", default="V1.21")
     parser.add_argument("--num-envs", type=int, default=64)
     parser.add_argument("--horizon-length", type=int, default=64)
     parser.add_argument("--minibatch-size", type=int, default=256)
@@ -130,6 +149,46 @@ def main(argv=None) -> None:
     if args.execute and args.dry_run:
         raise ValueError("--execute and --dry-run are mutually exclusive")
     gpus = parse_gpus(args.gpus)
+    bootstrap = args.rank_bootstrap.resolve()
+    bootstrap_args: list[str] = []
+    if args.cm_distill_coef is not None and args.cm_reward_coef is not None:
+        raise ValueError("Cm-off and Cm-reward modes are mutually exclusive")
+    if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
+                                                  or args.approach_reward_coef < 0):
+        raise ValueError("--approach-reward-coef must be finite and nonnegative")
+    if args.approach_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+        raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
+    if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
+            (args.contact_before is None and args.contact_after)):
+        raise ValueError("contact curriculum requires --contact-before >= 0 and --contact-after >= 0")
+    if args.contact_before is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+        raise ValueError("contact curriculum requires a Cm-off or Cm-reward bootstrap")
+    if args.cm_distill_coef is not None:
+        if bootstrap.name != "dexplore_cm_off_rank_bootstrap.py":
+            raise ValueError("--cm-distill-coef requires dexplore_cm_off_rank_bootstrap.py")
+        if args.cm_distill_coef != 0.0:
+            raise ValueError("this launcher only supports Cm-off --cm-distill-coef 0")
+        if args.actual_epochs is None or args.actual_epochs < 1:
+            raise ValueError("Cm-off launcher requires positive --actual-epochs")
+        bootstrap_args = ["--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
+        bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
+    elif args.cm_reward_coef is not None:
+        if bootstrap.name != "dexplore_cm_reward_rank_bootstrap.py":
+            raise ValueError("--cm-reward-coef requires dexplore_cm_reward_rank_bootstrap.py")
+        if not math.isfinite(args.cm_reward_coef) or args.cm_reward_coef <= 0 or args.actual_epochs is None or args.actual_epochs < 1:
+            raise ValueError("Cm-reward launcher requires positive coefficient and actual epochs")
+        if args.cmv2_checkpoint is None or not args.cmv2_checkpoint.is_file() or not args.cmv2_sha256:
+            raise ValueError("Cm-reward launcher requires checkpoint and SHA256")
+        bootstrap_args = ["--cm-reward-coef", str(args.cm_reward_coef),
+                          "--cmv2-checkpoint", str(args.cmv2_checkpoint.resolve()),
+                          "--cmv2-sha256", args.cmv2_sha256,
+                          "--actual-epochs", str(args.actual_epochs)]
+        bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
+    elif args.actual_epochs is not None:
+        raise ValueError("--actual-epochs requires a Cm mode")
+    if args.contact_before is not None:
+        bootstrap_args += ["--contact-before", str(args.contact_before),
+                           "--contact-after", str(args.contact_after)]
     if args.execute:
         if not args.run_id or args.motion_root is None or args.input_manifest is None:
             raise ValueError("--execute requires --run-id, --motion-root, and --input-manifest")
@@ -159,7 +218,8 @@ def main(argv=None) -> None:
         input_record = None
         manifest = None
         runtime_assets = []
-    command = torchrun_command(gpus=gpus, dexplore_run=args.dexplore_run.resolve(), dexplore_args=dexplore_args)
+    command = torchrun_command(gpus=gpus, dexplore_run=args.dexplore_run.resolve(), dexplore_args=dexplore_args,
+                               bootstrap=bootstrap, bootstrap_args=bootstrap_args)
     source_root = args.dexplore_run.resolve().parents[1]
     environment = os.environ.copy()
     environment["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, gpus))
@@ -175,13 +235,20 @@ def main(argv=None) -> None:
         config = {"command": command, "runtime": runtime, "num_envs_per_rank": args.num_envs,
                   "horizon_length": args.horizon_length, "minibatch_size": args.minibatch_size,
                   "max_iterations": args.max_iterations, "seed": args.seed,
+                  "rank_bootstrap": str(bootstrap), "cm_distill_coef": args.cm_distill_coef,
+                  "cm_reward_coef": args.cm_reward_coef,
+                  "approach_reward_coef": args.approach_reward_coef or 0.0,
+                  "contact_before": args.contact_before, "contact_after": args.contact_after,
+                  "cmv2_checkpoint": str(args.cmv2_checkpoint.resolve()) if args.cmv2_checkpoint else None,
+                  "cmv2_sha256": args.cmv2_sha256,
+                  "actual_epochs": args.actual_epochs,
                   "motion_root": str(args.motion_root.resolve()), "input_manifest": str(manifest),
                   "runtime_assets": runtime_assets}
         _write_json(output / "config.json", config)
         manifest_path = output / "run_manifest.json"
         run_manifest = {
             "manifest_schema": "ref2dex.run.v1", "created_at": _timestamp(),
-            "task": "CmResidual", "work_version": "V1.20", "run_id": args.run_id,
+            "task": "CmResidual", "work_version": args.work_version, "run_id": args.run_id,
             "git_commit": _git_commit(REPOSITORY_ROOT), "external_source_commit": _git_commit(source_root),
             "run_status": "STARTED", "command": command, "runtime": runtime,
             "input_manifest": str(manifest), "input_classification": input_record["classification"],

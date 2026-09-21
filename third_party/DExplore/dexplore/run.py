@@ -16,6 +16,7 @@ from rl_games.algos_torch import torch_ext
 from rl_games.common import env_configurations, vecenv
 from rl_games.common.algo_observer import AlgoObserver
 from rl_games.torch_runner import Runner
+from rl_games.algos_torch import model_builder
 
 import torch
 
@@ -181,8 +182,10 @@ def build_alg_runner(algo_observer, distill=False):
 
     runner.algo_factory.register_builder('dexplore', lambda **kwargs: agent_cls(**kwargs))
     runner.player_factory.register_builder('dexplore', lambda **kwargs: dexplore_players.DexplorePlayerContinuous(**kwargs))
-    runner.model_builder.model_factory.register_builder('dexplore', lambda network, **kwargs: dexplore_models.ModelDexploreContinuous(network))
-    runner.model_builder.network_factory.register_builder('dexplore', lambda **kwargs: network_cls())
+    # rl_games now constructs ModelBuilder inside each agent/player. Register
+    # globally so those fresh builders can resolve DExplore's model and network.
+    model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
+    model_builder.register_network('dexplore', network_cls)
 
     return runner
 
@@ -193,7 +196,15 @@ def main():
     # Load configuration and set up reproducibility
     set_np_formatting()
     args = get_args()
+    # Legacy DExplore uses "Base" as a no-checkpoint sentinel.  Current
+    # rl_games Runner.run_train restores every nonempty checkpoint argument.
+    if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and (args.checkpoint not in (None, "", "Base") or args.resume):
+        raise ValueError("Scratch-policy training forbids loading an actor checkpoint")
     cfg, cfg_train, logdir = load_cfg(args)
+    if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and cfg_train['params'].get('load_checkpoint'):
+        raise ValueError("Scratch-policy training forbids config checkpoint restoration")
+    if args.checkpoint == "Base":
+        args.checkpoint = None
 
     cfg_train['params']['seed'] = set_seed(
         cfg_train['params'].get("seed", -1),
