@@ -194,6 +194,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
 
                     done_indices = done_indices[:, 0]
 
+        # Batched environments may finish several episodes on the step that
+        # crosses n_games.  Keep the requested evaluation budget exact.
+        self.episode_results = self.episode_results[:n_games]
+
         # Print and save results at end of run
         if self.episode_results:
             n_survived = sum(1 for r in self.episode_results if r['survived'])
