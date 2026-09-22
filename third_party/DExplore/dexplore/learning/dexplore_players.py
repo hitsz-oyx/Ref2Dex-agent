@@ -189,8 +189,12 @@ class DexplorePlayerContinuous(common_player.CommonPlayer):
             # normalization disabled.  Loading through modern rl_games'
             # PpoPlayer would incorrectly look for model.running_mean_std
             # whenever the legacy training checkpoint contains its external
-            # (currently unused) observation RMS.
+            # observation RMS.
             self.model.load_state_dict(checkpoint['model'])
+            if self.normalize_input:
+                if 'running_mean_std' not in checkpoint:
+                    raise KeyError('normalized DExplore checkpoint has no running_mean_std')
+                self.running_mean_std.load_state_dict(checkpoint['running_mean_std'])
             if self._normalize_amp_input:
                 self._amp_input_mean_std.load_state_dict(checkpoint['amp_input_mean_std'])
 

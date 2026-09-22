@@ -137,6 +137,20 @@ class CommonPlayer(players.PpoPlayerContinuous):
         output = super().get_action(obs_dict['obs'], is_determenistic)
         return output
 
+    def _preproc_obs(self, obs_batch):
+        """Apply the legacy external observation normalizer.
+
+        DExplore checkpoints were trained with ``running_mean_std`` owned by
+        the player/agent rather than embedded in the rl-games model.  Newer
+        rl-games only handles uint8 conversion in ``BasePlayer._preproc_obs``;
+        without this compatibility step inference silently receives raw
+        1442-D observations even when ``normalize_input`` is enabled.
+        """
+        obs_batch = super()._preproc_obs(obs_batch)
+        if self.normalize_input:
+            obs_batch = self.running_mean_std(obs_batch)
+        return obs_batch
+
     def env_step(self, env, actions):
         if not self.is_tensor_obses:
             actions = actions.cpu().numpy()

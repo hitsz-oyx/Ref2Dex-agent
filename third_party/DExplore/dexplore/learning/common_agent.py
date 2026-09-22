@@ -89,6 +89,23 @@ class CommonAgent(a2c_continuous.A2CAgent):
 
         self.tensor_list += ['next_obses']
 
+    def set_eval(self):
+        super().set_eval()
+        if self.normalize_input:
+            self.running_mean_std.eval()
+
+    def set_train(self):
+        super().set_train()
+        if self.normalize_input:
+            self.running_mean_std.train()
+
+    def _preproc_obs(self, obs_batch):
+        """Preserve DExplore's external RMS contract on modern rl-games."""
+        obs_batch = super()._preproc_obs(obs_batch)
+        if self.normalize_input:
+            obs_batch = self.running_mean_std(obs_batch)
+        return obs_batch
+
     # ----------------------------------------------------------------
     # Training loop
     # ----------------------------------------------------------------
