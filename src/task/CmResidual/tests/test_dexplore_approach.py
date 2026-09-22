@@ -81,6 +81,12 @@ def test_both_rank_bootstraps_accept_same_explicit_approach_coefficient(tmp_path
     for module, argv in ((off, ["--cm-distill-coef", "0", "--actual-epochs", "1"]),):
         with pytest.raises(ValueError, match="nonnegative"):
             module.parse_cm_off_args(argv + ["--approach-reward-coef", "nan"])
+    saved, _ = off.parse_cm_off_args([
+        "--cm-distill-coef", "0", "--actual-epochs", "2", "--save-frequency", "1"])
+    assert saved.save_frequency == 1
+    with pytest.raises(ValueError, match="save frequency"):
+        off.parse_cm_off_args([
+            "--cm-distill-coef", "0", "--actual-epochs", "2", "--save-frequency", "0"])
 
 
 def test_cm_off_installs_only_geometry_agent_when_approach_enabled(monkeypatch):
