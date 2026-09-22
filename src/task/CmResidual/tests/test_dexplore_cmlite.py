@@ -118,10 +118,12 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
         "--lift-progress-reward-coef", "5", "--contact-before", "3",
         "--contact-fraction", "0.5", "--lift-fraction", "0.25",
         "--curriculum-anneal-start", "40", "--curriculum-anneal-end", "80",
+        "--save-frequency", "10",
         "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
     ])
     args = captured["bootstrap_args"]
     assert args[args.index("--cmlite-reward-coef") + 1] == "5.0"
     assert args[args.index("--lift-progress-reward-coef") + 1] == "5.0"
     assert args[args.index("--curriculum-anneal-end") + 1] == "80"
+    assert args[args.index("--save-frequency") + 1] == "10"
     assert "--use-predicted-contact" in args

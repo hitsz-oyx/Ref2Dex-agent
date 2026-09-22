@@ -152,6 +152,7 @@ def main(argv=None) -> None:
     parser.add_argument("--cmlite-sha256")
     parser.add_argument("--use-predicted-contact", action="store_true")
     parser.add_argument("--max-cmlite-gap-m", type=float)
+    parser.add_argument("--save-frequency", type=int)
     parser.add_argument("--actual-epochs", type=int,
                         help="exact epoch budget for the V1.21 Cm-off bootstrap")
     parser.add_argument("--work-version", default="V1.21")
@@ -187,6 +188,8 @@ def main(argv=None) -> None:
             raise ValueError(f"--{name}-reward-coef must be finite and nonnegative")
     if not 0 <= args.min_grasp_links <= 5:
         raise ValueError("--min-grasp-links must be in [0,5]")
+    if args.save_frequency is not None and args.save_frequency < 1:
+        raise ValueError("--save-frequency must be positive")
     if args.approach_reward_coef is not None and modes == 0:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if args.held_lift_reward_coef is not None and modes == 0:
@@ -262,6 +265,8 @@ def main(argv=None) -> None:
     if args.curriculum_anneal_start is not None:
         bootstrap_args += ["--curriculum-anneal-start", str(args.curriculum_anneal_start),
                            "--curriculum-anneal-end", str(args.curriculum_anneal_end)]
+    if args.save_frequency is not None:
+        bootstrap_args += ["--save-frequency", str(args.save_frequency)]
     if args.execute:
         if not args.run_id or args.motion_root is None or args.input_manifest is None:
             raise ValueError("--execute requires --run-id, --motion-root, and --input-manifest")
@@ -328,6 +333,7 @@ def main(argv=None) -> None:
                   "cmlite_sha256": args.cmlite_sha256,
                   "use_predicted_contact": args.use_predicted_contact,
                   "max_cmlite_gap_m": args.max_cmlite_gap_m,
+                  "save_frequency": args.save_frequency,
                   "actual_epochs": args.actual_epochs,
                   "motion_root": str(args.motion_root.resolve()), "input_manifest": str(manifest),
                   "runtime_assets": runtime_assets}

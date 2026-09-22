@@ -33,6 +33,7 @@ def parse_cm_reward_args(argv=None):
     parser.add_argument("--lift-fraction", type=float, default=0.0)
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
+    parser.add_argument("--save-frequency", type=int)
     parser.add_argument("--cm-reward-positive-only", action="store_true")
     args, passthrough = parser.parse_known_args(argv)
     if not math.isfinite(args.cm_reward_coef) or args.cm_reward_coef <= 0 or args.actual_epochs < 1:
@@ -54,6 +55,8 @@ def parse_cm_reward_args(argv=None):
              (args.contact_before is None or args.curriculum_anneal_start < 0 or
               args.curriculum_anneal_end <= args.curriculum_anneal_start))):
         raise ValueError("annealing requires a valid contact curriculum and epoch window")
+    if args.save_frequency is not None and args.save_frequency < 1:
+        raise ValueError("save frequency must be positive")
     return args, passthrough
 
 
@@ -77,6 +80,8 @@ def main(argv=None) -> None:
     if args.curriculum_anneal_start is not None:
         os.environ["REF2DEX_CURRICULUM_ANNEAL_START"] = str(args.curriculum_anneal_start)
         os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
+    if args.save_frequency is not None:
+        os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))
