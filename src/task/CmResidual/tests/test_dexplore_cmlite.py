@@ -1,9 +1,14 @@
 import hashlib
+import importlib.util
+from pathlib import Path
 
 import pytest
 import torch
 
-from src.task.CmResidual.cmlite import CmLite, FrozenCmLite, SCHEMA, goal_reward
+from src.task.CmResidual.cmlite import CmLite, FrozenCmLite, SCHEMA, contact_gate, goal_reward
+
+
+TOOLS = Path(__file__).resolve().parents[1] / "tools"
 
 
 def test_goal_reward_is_positive_only_and_contact_weighted():
@@ -13,6 +18,42 @@ def test_goal_reward_is_positive_only_and_contact_weighted():
     reward = goal_reward(current, goal, delta, torch.tensor([0.5, 1.0]))
     assert reward[0] > 0
     assert reward[1] == 0
+
+
+def test_contact_gate_requires_explicit_predicted_contact_arm():
+    predicted = torch.tensor([0.25, 0.75])
+    actual = torch.tensor([False, True])
+    torch.testing.assert_close(
+        contact_gate(predicted, actual, use_predicted_contact=False),
+        torch.tensor([0.0, 0.75]))
+    torch.testing.assert_close(
+        contact_gate(predicted, actual, use_predicted_contact=True), predicted)
+    with pytest.raises(ValueError, match=r"\[0,1\]"):
+        contact_gate(torch.tensor([1.1]), torch.tensor([True]), use_predicted_contact=True)
+
+
+def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    spec = importlib.util.spec_from_file_location(
+        "cmlite_bootstrap_contract", TOOLS / "dexplore_cmlite_rank_bootstrap.py")
+    bootstrap = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bootstrap)
+    checkpoint = tmp_path / "cmlite.pt"
+    checkpoint.write_bytes(b"test")
+    args, passthrough = bootstrap.parse_cmlite_args([
+        "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
+        "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
+        "--use-predicted-contact", "--save-frequency", "1", "--task", "Dexplore_Inspire",
+    ])
+    assert args.use_predicted_contact
+    assert args.save_frequency == 1
+    assert passthrough == ["--task", "Dexplore_Inspire"]
+    with pytest.raises(ValueError, match="save frequency"):
+        bootstrap.parse_cmlite_args([
+            "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
+            "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
+            "--save-frequency", "0",
+        ])
 
 
 def test_frozen_cmlite_verifies_checksum(tmp_path):

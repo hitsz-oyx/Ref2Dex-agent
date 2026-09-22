@@ -10,6 +10,18 @@ import torch.nn.functional as F
 
 
 SCHEMA = "ref2dex.cmlite.v1"
+
+
+def contact_gate(predicted_contact: torch.Tensor, actual_contact: torch.Tensor,
+                 *, use_predicted_contact: bool) -> torch.Tensor:
+    """Choose the explicit CmLite reward gate used by an experiment arm."""
+    if predicted_contact.ndim != 1 or actual_contact.shape != predicted_contact.shape:
+        raise ValueError("contact gates must be matching rank-1 tensors")
+    if actual_contact.dtype != torch.bool or not torch.isfinite(predicted_contact).all():
+        raise ValueError("actual contact must be boolean and predictions finite")
+    if ((predicted_contact < 0) | (predicted_contact > 1)).any():
+        raise ValueError("predicted contact probability must be in [0,1]")
+    return predicted_contact if use_predicted_contact else predicted_contact * actual_contact
 INPUT_DIM = 49
 
 

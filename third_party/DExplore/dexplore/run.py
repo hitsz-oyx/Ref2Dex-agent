@@ -215,6 +215,15 @@ def main():
             raise ValueError("REF2DEX_LEARNING_RATE must be finite and positive")
         cfg_train['params']['config']['learning_rate'] = learning_rate
         print(f"REF2DEX_LEARNING_RATE {learning_rate}", flush=True)
+    save_frequency_override = os.environ.get("REF2DEX_SAVE_FREQUENCY")
+    if save_frequency_override is not None:
+        save_frequency = int(save_frequency_override)
+        if save_frequency < 1:
+            raise ValueError("REF2DEX_SAVE_FREQUENCY must be positive")
+        cfg_train['params']['config']['save_frequency'] = save_frequency
+        cfg_train['params']['config']['save_best_after'] = save_frequency
+        cfg_train['params']['config']['save_intermediate'] = True
+        print(f"REF2DEX_SAVE_FREQUENCY {save_frequency}", flush=True)
     if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and cfg_train['params'].get('load_checkpoint'):
         raise ValueError("Scratch-policy training forbids config checkpoint restoration")
     if args.checkpoint == "Base":

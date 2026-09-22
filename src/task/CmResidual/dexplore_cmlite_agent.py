@@ -6,7 +6,7 @@ import os
 
 import torch
 
-from src.task.CmResidual.cmlite import FrozenCmLite, goal_reward
+from src.task.CmResidual.cmlite import FrozenCmLite, contact_gate, goal_reward
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 
 
@@ -23,6 +23,12 @@ class DExploreCmLiteAgent(DExploreApproachAgent):
             os.environ["REF2DEX_CMLITE_SHA256"])
         self.cmlite_positive_only = os.environ.get(
             "REF2DEX_CMLITE_REWARD_POSITIVE_ONLY", "1") == "1"
+        # A hard contact gate makes the world-model reward disappear before the
+        # policy has learned to touch the object.  Keep the old behavior as the
+        # default, but allow scratch training to use the model's predicted
+        # contact probability as a dense exploration signal.
+        self.cmlite_use_predicted_contact = os.environ.get(
+            "REF2DEX_CMLITE_USE_PREDICTED_CONTACT", "0") == "1"
         self._cmlite_calls = self._cmlite_samples = self._cmlite_positive = 0
         self._cmlite_actual_contact = 0
         self._cmlite_sum = self._cmlite_contact_sum = self._cmlite_delta_sum = 0.0
@@ -37,9 +43,12 @@ class DExploreCmLiteAgent(DExploreApproachAgent):
         actual_contact = hand_contact & object_contact
         progress = (task.progress_buf + 1).clamp_max(task.hoi_data.shape[1] - 1)
         goal_position = task.hoi_data[task.data_id, progress, 106:109]
+        reward_gate = contact_gate(
+            prediction["contact_probability"], actual_contact,
+            use_predicted_contact=self.cmlite_use_predicted_contact)
         reward = goal_reward(
             task._target_states[:, :3], goal_position, prediction["delta_world"],
-            prediction["contact_probability"] * actual_contact,
+            reward_gate,
             positive_only=self.cmlite_positive_only)
         return reward, prediction, actual_contact
 

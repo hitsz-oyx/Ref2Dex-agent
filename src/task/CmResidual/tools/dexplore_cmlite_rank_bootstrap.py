@@ -35,6 +35,8 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
+    parser.add_argument("--use-predicted-contact", action="store_true")
+    parser.add_argument("--save-frequency", type=int)
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
     parser.add_argument("--learning-rate", type=float)
@@ -67,6 +69,8 @@ def parse_cmlite_args(argv=None):
     if args.learning_rate is not None and not (
             math.isfinite(args.learning_rate) and args.learning_rate > 0):
         raise ValueError("learning rate override must be finite and positive")
+    if args.save_frequency is not None and args.save_frequency < 1:
+        raise ValueError("save frequency must be positive")
     return args, passthrough
 
 
@@ -79,6 +83,7 @@ def main(argv=None):
         "REF2DEX_CMLITE_CHECKPOINT": str(args.cmlite_checkpoint.resolve()),
         "REF2DEX_CMLITE_SHA256": args.cmlite_sha256,
         "REF2DEX_CMLITE_REWARD_POSITIVE_ONLY": "0" if args.allow_negative_cmlite_reward else "1",
+        "REF2DEX_CMLITE_USE_PREDICTED_CONTACT": "1" if args.use_predicted_contact else "0",
         "REF2DEX_ACTUAL_EPOCH_BUDGET": str(args.actual_epochs),
         "REF2DEX_SCRATCH_POLICY": "1",
     })
@@ -98,6 +103,8 @@ def main(argv=None):
         os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
     if args.learning_rate is not None:
         os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
+    if args.save_frequency is not None:
+        os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))
