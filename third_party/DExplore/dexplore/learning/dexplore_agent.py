@@ -76,7 +76,13 @@ class DexploreAgent(common_agent.CommonAgent):
             self.running_mean_std.load_state_dict(checkpoint['running_mean_std'])
         if self._normalize_input:
             self._input_mean_std.load_state_dict(checkpoint['amp_input_mean_std'])
-        self.set_full_state_weights(checkpoint)
+        # rl_games' generic set_stats_weights assumes observation RMS lives
+        # inside the model. DExplore owns it externally, so restore it above
+        # and keep the generic second pass from addressing a nonexistent
+        # model.running_mean_std module.
+        full_state = dict(checkpoint)
+        full_state.pop('running_mean_std', None)
+        self.set_full_state_weights(full_state)
 
     def play_steps(self):
         # Collect rollout experience with epsilon-greedy reference-scoped exploration.

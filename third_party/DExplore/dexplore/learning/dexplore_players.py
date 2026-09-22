@@ -184,9 +184,14 @@ class DexplorePlayerContinuous(common_player.CommonPlayer):
 
     def restore(self, fn):
         if fn != 'Base':
-            super().restore(fn)
+            checkpoint = torch_ext.load_checkpoint(fn)
+            # CommonPlayer deliberately builds a network with model-local
+            # normalization disabled.  Loading through modern rl_games'
+            # PpoPlayer would incorrectly look for model.running_mean_std
+            # whenever the legacy training checkpoint contains its external
+            # (currently unused) observation RMS.
+            self.model.load_state_dict(checkpoint['model'])
             if self._normalize_amp_input:
-                checkpoint = torch_ext.load_checkpoint(fn)
                 self._amp_input_mean_std.load_state_dict(checkpoint['amp_input_mean_std'])
 
     def _build_net(self, config):
