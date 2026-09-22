@@ -1,7 +1,6 @@
 """Main entry point for Dexplore training and inference."""
 
 import os
-import hashlib
 import numpy as np
 
 # Isaac Gym's Python 3.8 bindings still reference removed NumPy aliases.
@@ -20,6 +19,7 @@ from rl_games.torch_runner import Runner
 from rl_games.algos_torch import model_builder
 
 import torch
+from src.task.CmResidual.scratch_checkpoint import authorize_scratch_restore
 
 from learning import dexplore_agent
 from learning import dexplore_agent_distill
@@ -207,14 +207,8 @@ def main():
     args = get_args()
     # Legacy DExplore uses "Base" as a no-checkpoint sentinel.  Current
     # rl_games Runner.run_train restores every nonempty checkpoint argument.
-    if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and (args.checkpoint not in (None, "", "Base") or args.resume):
-        allowed = os.environ.get("REF2DEX_SCRATCH_RESUME_CHECKPOINT")
-        expected = os.environ.get("REF2DEX_SCRATCH_RESUME_SHA256")
-        candidate = os.path.realpath(args.checkpoint) if args.checkpoint else None
-        if (not allowed or not expected or candidate != os.path.realpath(allowed) or
-                len(expected) != 64 or not os.path.isfile(candidate) or
-                hashlib.sha256(open(candidate, "rb").read()).hexdigest() != expected):
-            raise ValueError("Scratch-policy training forbids unverified actor checkpoints")
+    approved_scratch_restore = authorize_scratch_restore(
+        args.checkpoint, args.resume, os.environ)
     cfg, cfg_train, logdir = load_cfg(args)
     learning_rate_override = os.environ.get("REF2DEX_LEARNING_RATE")
     if learning_rate_override is not None:
@@ -232,7 +226,8 @@ def main():
         cfg_train['params']['config']['save_best_after'] = save_frequency
         cfg_train['params']['config']['save_intermediate'] = True
         print(f"REF2DEX_SAVE_FREQUENCY {save_frequency}", flush=True)
-    if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and cfg_train['params'].get('load_checkpoint'):
+    if (os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and
+            cfg_train['params'].get('load_checkpoint') and not approved_scratch_restore):
         raise ValueError("Scratch-policy training forbids config checkpoint restoration")
     if args.checkpoint == "Base":
         args.checkpoint = None
