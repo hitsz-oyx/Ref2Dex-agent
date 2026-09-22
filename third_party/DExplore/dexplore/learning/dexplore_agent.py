@@ -1,6 +1,7 @@
 """PPO training agent with reference-scoped exploration for Dexplore."""
 
 import time
+import os
 import psutil
 import subprocess
 
@@ -83,6 +84,11 @@ class DexploreAgent(common_agent.CommonAgent):
         full_state = dict(checkpoint)
         full_state.pop('running_mean_std', None)
         self.set_full_state_weights(full_state)
+        learning_rate = os.environ.get('REF2DEX_LEARNING_RATE')
+        if learning_rate is not None:
+            self.last_lr = float(learning_rate)
+            for group in self.optimizer.param_groups:
+                group['lr'] = self.last_lr
 
     def play_steps(self):
         # Collect rollout experience with epsilon-greedy reference-scoped exploration.

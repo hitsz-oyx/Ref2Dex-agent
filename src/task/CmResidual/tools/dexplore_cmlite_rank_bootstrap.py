@@ -37,6 +37,7 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
+    parser.add_argument("--learning-rate", type=float)
     args, passthrough = parser.parse_known_args(argv)
     coefficients = (args.cmlite_reward_coef, args.approach_reward_coef,
                     args.held_lift_reward_coef)
@@ -63,6 +64,9 @@ def parse_cmlite_args(argv=None):
               hashlib.sha256(args.scratch_resume_checkpoint.read_bytes()).hexdigest() !=
               args.scratch_resume_sha256))):
         raise ValueError("scratch resume requires an existing checkpoint and matching SHA256")
+    if args.learning_rate is not None and not (
+            math.isfinite(args.learning_rate) and args.learning_rate > 0):
+        raise ValueError("learning rate override must be finite and positive")
     return args, passthrough
 
 
@@ -92,6 +96,8 @@ def main(argv=None):
         os.environ["REF2DEX_SCRATCH_RESUME_CHECKPOINT"] = str(
             args.scratch_resume_checkpoint.resolve())
         os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
+    if args.learning_rate is not None:
+        os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))

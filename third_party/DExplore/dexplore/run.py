@@ -208,6 +208,13 @@ def main():
                 hashlib.sha256(open(candidate, "rb").read()).hexdigest() != expected):
             raise ValueError("Scratch-policy training forbids unverified actor checkpoints")
     cfg, cfg_train, logdir = load_cfg(args)
+    learning_rate_override = os.environ.get("REF2DEX_LEARNING_RATE")
+    if learning_rate_override is not None:
+        learning_rate = float(learning_rate_override)
+        if not (0 < learning_rate < float("inf")):
+            raise ValueError("REF2DEX_LEARNING_RATE must be finite and positive")
+        cfg_train['params']['config']['learning_rate'] = learning_rate
+        print(f"REF2DEX_LEARNING_RATE {learning_rate}", flush=True)
     if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and cfg_train['params'].get('load_checkpoint'):
         raise ValueError("Scratch-policy training forbids config checkpoint restoration")
     if args.checkpoint == "Base":
