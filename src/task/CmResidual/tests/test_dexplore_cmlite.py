@@ -106,6 +106,7 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
     spec.loader.exec_module(launcher)
     checkpoint = tmp_path / "cmlite.pt"
     checkpoint.write_bytes(b"test")
+    resume_sha256 = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     captured = {}
     monkeypatch.setattr(launcher, "torchrun_command",
                         lambda **kwargs: captured.update(kwargs) or ["echo"])
@@ -119,6 +120,8 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
         "--contact-fraction", "0.5", "--lift-fraction", "0.25",
         "--curriculum-anneal-start", "40", "--curriculum-anneal-end", "80",
         "--save-frequency", "10",
+        "--scratch-resume-checkpoint", str(checkpoint),
+        "--scratch-resume-sha256", resume_sha256, "--learning-rate", "5e-6",
         "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
     ])
     args = captured["bootstrap_args"]
@@ -126,4 +129,6 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
     assert args[args.index("--lift-progress-reward-coef") + 1] == "5.0"
     assert args[args.index("--curriculum-anneal-end") + 1] == "80"
     assert args[args.index("--save-frequency") + 1] == "10"
+    assert args[args.index("--scratch-resume-sha256") + 1] == resume_sha256
+    assert args[args.index("--learning-rate") + 1] == "5e-06"
     assert "--use-predicted-contact" in args

@@ -153,6 +153,9 @@ def main(argv=None) -> None:
     parser.add_argument("--use-predicted-contact", action="store_true")
     parser.add_argument("--max-cmlite-gap-m", type=float)
     parser.add_argument("--save-frequency", type=int)
+    parser.add_argument("--scratch-resume-checkpoint", type=Path)
+    parser.add_argument("--scratch-resume-sha256")
+    parser.add_argument("--learning-rate", type=float)
     parser.add_argument("--actual-epochs", type=int,
                         help="exact epoch budget for the V1.21 Cm-off bootstrap")
     parser.add_argument("--work-version", default="V1.21")
@@ -190,6 +193,15 @@ def main(argv=None) -> None:
         raise ValueError("--min-grasp-links must be in [0,5]")
     if args.save_frequency is not None and args.save_frequency < 1:
         raise ValueError("--save-frequency must be positive")
+    if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
+            (args.scratch_resume_checkpoint is not None and
+             (args.cmlite_reward_coef is None or not args.scratch_resume_checkpoint.is_file() or
+              len(args.scratch_resume_sha256) != 64 or
+              _sha256(args.scratch_resume_checkpoint) != args.scratch_resume_sha256))):
+        raise ValueError("scratch resume requires CmLite mode and a matching checkpoint SHA256")
+    if args.learning_rate is not None and (args.cmlite_reward_coef is None or
+            not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
+        raise ValueError("learning-rate override requires CmLite mode and a positive finite value")
     if args.approach_reward_coef is not None and modes == 0:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if args.held_lift_reward_coef is not None and modes == 0:
@@ -255,6 +267,12 @@ def main(argv=None) -> None:
             bootstrap_args.append("--use-predicted-contact")
         if args.max_cmlite_gap_m is not None:
             bootstrap_args += ["--max-cmlite-gap-m", str(args.max_cmlite_gap_m)]
+        if args.scratch_resume_checkpoint is not None:
+            bootstrap_args += ["--scratch-resume-checkpoint",
+                               str(args.scratch_resume_checkpoint.resolve()),
+                               "--scratch-resume-sha256", args.scratch_resume_sha256]
+        if args.learning_rate is not None:
+            bootstrap_args += ["--learning-rate", str(args.learning_rate)]
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
@@ -288,6 +306,9 @@ def main(argv=None) -> None:
                                             horizon_length=args.horizon_length,
                                             minibatch_size=args.minibatch_size,
                                             max_iterations=args.max_iterations, seed=args.seed)
+        if args.scratch_resume_checkpoint is not None:
+            dexplore_args += ["--resume", "1", "--checkpoint",
+                              str(args.scratch_resume_checkpoint.resolve())]
     else:
         dexplore_args = list(args.dexplore_args)
         if dexplore_args[:1] == ["--"]:
@@ -334,6 +355,9 @@ def main(argv=None) -> None:
                   "use_predicted_contact": args.use_predicted_contact,
                   "max_cmlite_gap_m": args.max_cmlite_gap_m,
                   "save_frequency": args.save_frequency,
+                  "scratch_resume_checkpoint": str(args.scratch_resume_checkpoint.resolve()) if args.scratch_resume_checkpoint else None,
+                  "scratch_resume_sha256": args.scratch_resume_sha256,
+                  "learning_rate": args.learning_rate,
                   "actual_epochs": args.actual_epochs,
                   "motion_root": str(args.motion_root.resolve()), "input_manifest": str(manifest),
                   "runtime_assets": runtime_assets}
