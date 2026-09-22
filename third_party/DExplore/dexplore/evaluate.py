@@ -49,6 +49,8 @@ def parse_eval_args():
     import argparse
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--output', type=str, default='eval_results.json')
+    parser.add_argument('--visualize-success-loop', action='store_true')
+    parser.add_argument('--render-sleep', type=float, default=0.01)
     eval_args, remaining = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining
     return eval_args
@@ -60,6 +62,22 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
     def __init__(self, config):
         super().__init__(config)
         self.episode_results = []
+        self.visualize_success_loop = False
+        self.visualize_render_sleep = 0.01
+        self._focused_success_env = None
+
+    def _focus_success_env(self, task, env_id, lift, run_steps):
+        if task.viewer is None or self._focused_success_env == env_id:
+            return
+        origin = task.gym.get_env_origin(task.envs[env_id])
+        cam_pos = gymapi.Vec3(origin.x, origin.y - 1.35, origin.z + 1.25)
+        cam_target = gymapi.Vec3(origin.x, origin.y, origin.z + 0.95)
+        task.gym.viewer_camera_look_at(task.viewer, None, cam_pos, cam_target)
+        self._focused_success_env = env_id
+        print("REF2DEX_VISUAL_SUCCESS " + json.dumps({
+            "env_id": env_id, "lift_m": float(lift),
+            "consecutive_contact_steps": int(run_steps),
+        }, sort_keys=True), flush=True)
 
     def run(self):
         # Disable adaptive termination during evaluation (use fixed thresholds)
@@ -70,6 +88,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         n_game_life = self.n_game_life
         is_deterministic = self.is_deterministic
         n_games = n_games * n_game_life
+        if self.visualize_success_loop:
+            n_games = 1_000_000_000
         games_played = 0
         has_masks = False
         has_masks_func = getattr(self.env, "has_action_mask", None) is not None
@@ -137,6 +157,12 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                                                torch.zeros_like(lift_contact_run))
                 max_lift_contact_run = torch.maximum(max_lift_contact_run, lift_contact_run)
                 lift_success |= lift_contact_run >= 5
+                if self.visualize_success_loop:
+                    successful = (lift_contact_run >= 5).nonzero(as_tuple=False).reshape(-1)
+                    if successful.numel():
+                        chosen = int(successful[0].item())
+                        self._focus_success_env(
+                            task, chosen, lift[chosen].item(), lift_contact_run[chosen].item())
 
                 # Collect tracking metrics
                 if hasattr(self.env.task, 'metric_1'):
@@ -145,6 +171,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     cum_obj_err += self.env.task.metric_2
 
                 self._post_step(info)
+
+                if self.visualize_success_loop:
+                    self.env.render(mode='human')
+                    time.sleep(self.visualize_render_sleep)
 
                 all_done_indices = done.nonzero(as_tuple=False)
                 done_indices = all_done_indices[::self.num_agents]
@@ -165,6 +195,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
 
                         self.episode_results.append({
                             'reward': cr[i].item(),
+                            'env_id': i,
                             'steps': int(steps[i].item()),
                             'survived': not early_term,
                             'mean_hand_error': cum_hand_err[i].item() / ep_len,
@@ -312,6 +343,8 @@ def main():
     def _make_eval_player(params):
         p = EvalPlayer(params)
         p.output_file = eval_args.output
+        p.visualize_success_loop = eval_args.visualize_success_loop
+        p.visualize_render_sleep = eval_args.render_sleep
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
     model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
@@ -321,7 +354,8 @@ def main():
     # actions and no unbounded player loop.
     cfg_train['params']['config']['player'] = {
         'games_num': cfg['env']['numEnvs'], 'deterministic': True,
-        'print_stats': False,
+        'print_stats': False, 'render': eval_args.visualize_success_loop,
+        'render_sleep': eval_args.render_sleep,
     }
 
     runner.load(cfg_train)
