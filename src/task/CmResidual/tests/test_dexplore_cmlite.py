@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 import torch
 
-from src.task.CmResidual.cmlite import CmLite, FrozenCmLite, SCHEMA, contact_gate, goal_reward
+from src.task.CmResidual.cmlite import (
+    CmLite, FrozenCmLite, SCHEMA, contact_gate, goal_reward, proximity_trust,
+)
 
 
 TOOLS = Path(__file__).resolve().parents[1] / "tools"
@@ -32,6 +34,14 @@ def test_contact_gate_requires_explicit_predicted_contact_arm():
         contact_gate(torch.tensor([1.1]), torch.tensor([True]), use_predicted_contact=True)
 
 
+def test_proximity_trust_rejects_far_predicted_contact_rewards():
+    torch.testing.assert_close(
+        proximity_trust(torch.tensor([0.0, 0.1, 0.1001]), 0.1),
+        torch.tensor([1.0, 1.0, 0.0]))
+    with pytest.raises(ValueError, match="positive"):
+        proximity_trust(torch.tensor([0.1]), float("inf"))
+
+
 def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(TOOLS))
     spec = importlib.util.spec_from_file_location(
@@ -43,9 +53,11 @@ def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, mo
     args, passthrough = bootstrap.parse_cmlite_args([
         "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
         "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
-        "--use-predicted-contact", "--save-frequency", "1", "--task", "Dexplore_Inspire",
+        "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
+        "--save-frequency", "1", "--task", "Dexplore_Inspire",
     ])
     assert args.use_predicted_contact
+    assert args.max_cmlite_gap_m == 0.1
     assert args.save_frequency == 1
     assert passthrough == ["--task", "Dexplore_Inspire"]
     with pytest.raises(ValueError, match="save frequency"):
@@ -53,6 +65,12 @@ def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, mo
             "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
             "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
             "--save-frequency", "0",
+        ])
+    with pytest.raises(ValueError, match="requires predicted contact"):
+        bootstrap.parse_cmlite_args([
+            "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
+            "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
+            "--max-cmlite-gap-m", "0.1",
         ])
 
 

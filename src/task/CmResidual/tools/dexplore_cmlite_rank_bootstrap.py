@@ -36,6 +36,7 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
     parser.add_argument("--use-predicted-contact", action="store_true")
+    parser.add_argument("--max-cmlite-gap-m", type=float)
     parser.add_argument("--save-frequency", type=int)
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
@@ -71,6 +72,11 @@ def parse_cmlite_args(argv=None):
         raise ValueError("learning rate override must be finite and positive")
     if args.save_frequency is not None and args.save_frequency < 1:
         raise ValueError("save frequency must be positive")
+    if args.max_cmlite_gap_m is not None and not (
+            math.isfinite(args.max_cmlite_gap_m) and args.max_cmlite_gap_m > 0):
+        raise ValueError("maximum CmLite gap must be finite and positive")
+    if args.max_cmlite_gap_m is not None and not args.use_predicted_contact:
+        raise ValueError("maximum CmLite gap requires predicted contact")
     return args, passthrough
 
 
@@ -105,6 +111,8 @@ def main(argv=None):
         os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
     if args.save_frequency is not None:
         os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
+    if args.max_cmlite_gap_m is not None:
+        os.environ["REF2DEX_CMLITE_MAX_GAP_M"] = str(args.max_cmlite_gap_m)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))

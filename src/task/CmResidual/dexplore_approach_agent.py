@@ -91,7 +91,11 @@ class DExploreApproachAgent(DexploreAgent):
         if not self.approach_reward_coef and not self.held_lift_reward_coef:
             return super().env_step(actions)
         task = self._cm_task()
-        gap_before = self._approach_gap(task) if self.approach_reward_coef else None
+        gap_before = getattr(self, "_ref2dex_cached_gap_before", None)
+        if hasattr(self, "_ref2dex_cached_gap_before"):
+            del self._ref2dex_cached_gap_before
+        if self.approach_reward_coef and gap_before is None:
+            gap_before = self._approach_gap(task)
         object_z_before = task._target_states[:, 2].clone()
         obs, rewards, dones, infos = super().env_step(actions)
         contact = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > 0.1).any(dim=-1)

@@ -22,6 +22,17 @@ def contact_gate(predicted_contact: torch.Tensor, actual_contact: torch.Tensor,
     if ((predicted_contact < 0) | (predicted_contact > 1)).any():
         raise ValueError("predicted contact probability must be in [0,1]")
     return predicted_contact if use_predicted_contact else predicted_contact * actual_contact
+
+
+def proximity_trust(gap_m: torch.Tensor, max_gap_m: float) -> torch.Tensor:
+    """Return a hard geometry trust region for dense predicted-contact rewards."""
+    if gap_m.ndim != 1 or not torch.isfinite(gap_m).all():
+        raise ValueError("surface gap must be a finite rank-1 tensor")
+    if not 0 < max_gap_m < float("inf"):
+        raise ValueError("maximum trusted surface gap must be finite and positive")
+    if (gap_m < 0).any():
+        raise ValueError("surface gap must be nonnegative")
+    return (gap_m <= max_gap_m).to(gap_m.dtype)
 INPUT_DIM = 49
 
 
