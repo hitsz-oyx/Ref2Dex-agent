@@ -13,6 +13,7 @@ from src.task.CmResidual.dexplore_approach import (
     ApproachConfig, potential_approach_reward, sampled_surface_gap,
 )
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge
+from src.task.CmResidual.dexplore_contact_curriculum import annealed_curriculum_scale
 from src.task.CmResidual.dexplore_grasp_reward import held_lift_reward
 
 
@@ -40,6 +41,30 @@ class DExploreApproachAgent(DexploreAgent):
         self._approach_positive_object_dz = 0.0
         self._held_lift_sum = self._held_lift_positive = 0.0
         self._approach_min_gap = float("inf")
+        self.curriculum_anneal_start = int(os.environ.get(
+            "REF2DEX_CURRICULUM_ANNEAL_START", "-1"))
+        self.curriculum_anneal_end = int(os.environ.get(
+            "REF2DEX_CURRICULUM_ANNEAL_END", "-1"))
+        if ((self.curriculum_anneal_start < 0) != (self.curriculum_anneal_end < 0) or
+                (self.curriculum_anneal_start >= 0 and
+                 self.curriculum_anneal_end <= self.curriculum_anneal_start)):
+            raise ValueError("invalid curriculum annealing environment")
+
+    def train_epoch(self):
+        if self.curriculum_anneal_start >= 0:
+            scale = annealed_curriculum_scale(
+                self.epoch_num, self.curriculum_anneal_start,
+                self.curriculum_anneal_end)
+            self._cm_task()._ref2dex_contact_curriculum_scale = scale
+            if (self.epoch_num in (self.curriculum_anneal_start,
+                                   self.curriculum_anneal_end) or
+                    self.epoch_num % 10 == 0):
+                print("REF2DEX_CURRICULUM_ANNEAL " + json.dumps({
+                    "epoch": self.epoch_num, "scale": scale,
+                    "start": self.curriculum_anneal_start,
+                    "end": self.curriculum_anneal_end,
+                }, sort_keys=True), flush=True)
+        return super().train_epoch()
 
     def _cm_task(self):
         required = ("_dof_pos", "_target_states", "hoi_data", "data_id", "progress_buf",

@@ -1,7 +1,9 @@
 """Near-contact training reset is reproducible and preserves per-motion state."""
 import torch
 
-from src.task.CmResidual.dexplore_contact_curriculum import install_contact_reset_curriculum
+from src.task.CmResidual.dexplore_contact_curriculum import (
+    annealed_curriculum_scale, install_contact_reset_curriculum,
+)
 
 
 def _task_class(contact_frames, num_envs, num_frames=24):
@@ -99,3 +101,16 @@ def test_three_phase_curriculum_samples_start_contact_and_lift():
     counts = {frame: int((task.progress_buf == frame).sum()) for frame in (0, 9, 13)}
     assert all(value > 80 for value in counts.values())
     assert sum(counts.values()) == 512
+
+
+def test_curriculum_scale_anneals_to_start_only():
+    assert annealed_curriculum_scale(0, 40, 80) == 1
+    assert annealed_curriculum_scale(60, 40, 80) == 0.5
+    assert annealed_curriculum_scale(80, 40, 80) == 0
+    cls = _task_class([9], 256)
+    install_contact_reset_curriculum(
+        cls, before=0, after=0, fraction=0.25, lift_fraction=0.25)
+    task = cls()
+    task._ref2dex_contact_curriculum_scale = 0
+    task._reset_ref_state_init(torch.arange(256))
+    assert task.progress_buf.eq(0).all()

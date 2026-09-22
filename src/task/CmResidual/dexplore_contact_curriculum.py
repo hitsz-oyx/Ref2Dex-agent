@@ -12,6 +12,16 @@ import json
 import torch
 
 
+def annealed_curriculum_scale(epoch: int, start: int, end: int) -> float:
+    if epoch < 0 or start < 0 or end <= start:
+        raise ValueError("invalid curriculum annealing schedule")
+    if epoch <= start:
+        return 1.0
+    if epoch >= end:
+        return 0.0
+    return float(end - epoch) / float(end - start)
+
+
 def install_contact_reset_curriculum(task_class, *, before: int, after: int,
                                      fraction: float = 1.0, lift_fraction: float = 0.0,
                                      lift_threshold_m: float = 0.03) -> None:
@@ -56,9 +66,15 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
                 "mode": "mixed_start_and_contact_training_reset",
             }, sort_keys=True), flush=True)
 
+        scale = float(getattr(self, "_ref2dex_contact_curriculum_scale", 1.0))
+        if not 0 <= scale <= 1:
+            raise ValueError("contact curriculum scale must be in [0,1]")
+        effective_contact = fraction * scale
+        effective_lift = lift_fraction * scale
         draw = torch.rand(len(env_ids), device=self.device)
-        contact_mask = draw < fraction
-        lift_mask = (draw >= fraction) & (draw < fraction + lift_fraction)
+        contact_mask = draw < effective_contact
+        lift_mask = ((draw >= effective_contact) &
+                     (draw < effective_contact + effective_lift))
         selected_mask = contact_mask | lift_mask
         selected_envs = env_ids[selected_mask]
         if not len(selected_envs):

@@ -31,6 +31,8 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--contact-after", type=int, default=0)
     parser.add_argument("--contact-fraction", type=float, default=1.0)
     parser.add_argument("--lift-fraction", type=float, default=0.0)
+    parser.add_argument("--curriculum-anneal-start", type=int)
+    parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
     args, passthrough = parser.parse_known_args(argv)
     coefficients = (args.cmlite_reward_coef, args.approach_reward_coef,
@@ -46,6 +48,11 @@ def parse_cmlite_args(argv=None):
         raise ValueError("invalid reset curriculum")
     if args.contact_before is None and args.contact_after:
         raise ValueError("--contact-after requires --contact-before")
+    if ((args.curriculum_anneal_start is None) != (args.curriculum_anneal_end is None) or
+            (args.curriculum_anneal_start is not None and
+             (args.contact_before is None or args.curriculum_anneal_start < 0 or
+              args.curriculum_anneal_end <= args.curriculum_anneal_start))):
+        raise ValueError("annealing requires a valid contact curriculum and epoch window")
     return args, passthrough
 
 
@@ -68,6 +75,9 @@ def main(argv=None):
             "REF2DEX_CONTACT_RESET_FRACTION": str(args.contact_fraction),
             "REF2DEX_LIFT_RESET_FRACTION": str(args.lift_fraction),
         })
+    if args.curriculum_anneal_start is not None:
+        os.environ["REF2DEX_CURRICULUM_ANNEAL_START"] = str(args.curriculum_anneal_start)
+        os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))
