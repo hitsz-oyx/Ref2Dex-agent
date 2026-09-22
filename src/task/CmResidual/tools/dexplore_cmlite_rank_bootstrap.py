@@ -25,6 +25,7 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--cmlite-reward-coef", type=float, required=True)
     parser.add_argument("--approach-reward-coef", type=float, default=0.0)
     parser.add_argument("--held-lift-reward-coef", type=float, default=0.0)
+    parser.add_argument("--lift-progress-reward-coef", type=float, default=0.0)
     parser.add_argument("--cmlite-checkpoint", type=Path, required=True)
     parser.add_argument("--cmlite-sha256", required=True)
     parser.add_argument("--actual-epochs", type=int, required=True)
@@ -45,7 +46,7 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--learning-rate", type=float)
     args, passthrough = parser.parse_known_args(argv)
     coefficients = (args.cmlite_reward_coef, args.approach_reward_coef,
-                    args.held_lift_reward_coef)
+                    args.held_lift_reward_coef, args.lift_progress_reward_coef)
     if (not all(math.isfinite(value) and value >= 0 for value in coefficients) or
             args.cmlite_reward_coef == 0 or args.actual_epochs < 1):
         raise ValueError("invalid CmLite reward coefficients or epoch budget")
@@ -96,6 +97,7 @@ def main(argv=None):
         "REF2DEX_CMLITE_REWARD_COEF": str(args.cmlite_reward_coef),
         "REF2DEX_APPROACH_REWARD_COEF": str(args.approach_reward_coef),
         "REF2DEX_HELD_LIFT_REWARD_COEF": str(args.held_lift_reward_coef),
+        "REF2DEX_LIFT_PROGRESS_REWARD_COEF": str(args.lift_progress_reward_coef),
         "REF2DEX_CMLITE_CHECKPOINT": str(args.cmlite_checkpoint.resolve()),
         "REF2DEX_CMLITE_SHA256": args.cmlite_sha256,
         "REF2DEX_CMLITE_REWARD_POSITIVE_ONLY": "0" if args.allow_negative_cmlite_reward else "1",
