@@ -173,7 +173,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 self._post_step(info)
 
                 if self.visualize_success_loop:
-                    self.env.render(mode='human')
+                    task.render()
                     time.sleep(self.visualize_render_sleep)
 
                 all_done_indices = done.nonzero(as_tuple=False)
