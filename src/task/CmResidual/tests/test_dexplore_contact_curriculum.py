@@ -117,16 +117,22 @@ def test_curriculum_scale_anneals_to_start_only():
     assert task.progress_buf.eq(0).all()
 
 
-def test_reverse_curriculum_walks_contact_anchor_to_motion_start():
+def test_reverse_curriculum_expands_contact_window_to_motion_start():
     assert reverse_curriculum_progress(20, 20, 60) == 0
     assert reverse_curriculum_progress(40, 20, 60) == 0.5
     assert reverse_curriculum_progress(60, 20, 60) == 1
     cls = _task_class([20], 64, num_frames=32)
     install_contact_reset_curriculum(cls, before=0, after=0)
     task = cls()
+    torch.manual_seed(42)
     task._ref2dex_contact_backtrack_progress = 0.5
     task._reset_ref_state_init(torch.arange(64))
-    assert task.progress_buf.eq(10).all()
+    assert task.progress_buf.min() >= 10
+    assert task.progress_buf.max() <= 20
+    assert task.progress_buf.unique().numel() > 5
+    torch.manual_seed(43)
     task._ref2dex_contact_backtrack_progress = 1.0
     task._reset_ref_state_init(torch.arange(64))
-    assert task.progress_buf.eq(0).all()
+    assert task.progress_buf.min() >= 0
+    assert task.progress_buf.max() <= 20
+    assert task.progress_buf.unique().numel() > 10
