@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
 import os
 from pathlib import Path
@@ -34,6 +35,8 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
+    parser.add_argument("--scratch-resume-checkpoint", type=Path)
+    parser.add_argument("--scratch-resume-sha256")
     args, passthrough = parser.parse_known_args(argv)
     coefficients = (args.cmlite_reward_coef, args.approach_reward_coef,
                     args.held_lift_reward_coef)
@@ -53,6 +56,13 @@ def parse_cmlite_args(argv=None):
              (args.contact_before is None or args.curriculum_anneal_start < 0 or
               args.curriculum_anneal_end <= args.curriculum_anneal_start))):
         raise ValueError("annealing requires a valid contact curriculum and epoch window")
+    if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
+            (args.scratch_resume_checkpoint is not None and
+             (not args.scratch_resume_checkpoint.is_file() or
+              len(args.scratch_resume_sha256) != 64 or
+              hashlib.sha256(args.scratch_resume_checkpoint.read_bytes()).hexdigest() !=
+              args.scratch_resume_sha256))):
+        raise ValueError("scratch resume requires an existing checkpoint and matching SHA256")
     return args, passthrough
 
 
@@ -78,6 +88,10 @@ def main(argv=None):
     if args.curriculum_anneal_start is not None:
         os.environ["REF2DEX_CURRICULUM_ANNEAL_START"] = str(args.curriculum_anneal_start)
         os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
+    if args.scratch_resume_checkpoint is not None:
+        os.environ["REF2DEX_SCRATCH_RESUME_CHECKPOINT"] = str(
+            args.scratch_resume_checkpoint.resolve())
+        os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dexplore-run", default=os.environ.get(
         "REF2DEX_DEXPLORE_RUN", base.DEFAULT_DEXPLORE_RUN))

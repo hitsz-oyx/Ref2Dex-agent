@@ -1,6 +1,7 @@
 """Main entry point for Dexplore training and inference."""
 
 import os
+import hashlib
 import numpy as np
 
 # Isaac Gym's Python 3.8 bindings still reference removed NumPy aliases.
@@ -199,7 +200,13 @@ def main():
     # Legacy DExplore uses "Base" as a no-checkpoint sentinel.  Current
     # rl_games Runner.run_train restores every nonempty checkpoint argument.
     if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and (args.checkpoint not in (None, "", "Base") or args.resume):
-        raise ValueError("Scratch-policy training forbids loading an actor checkpoint")
+        allowed = os.environ.get("REF2DEX_SCRATCH_RESUME_CHECKPOINT")
+        expected = os.environ.get("REF2DEX_SCRATCH_RESUME_SHA256")
+        candidate = os.path.realpath(args.checkpoint) if args.checkpoint else None
+        if (not allowed or not expected or candidate != os.path.realpath(allowed) or
+                len(expected) != 64 or not os.path.isfile(candidate) or
+                hashlib.sha256(open(candidate, "rb").read()).hexdigest() != expected):
+            raise ValueError("Scratch-policy training forbids unverified actor checkpoints")
     cfg, cfg_train, logdir = load_cfg(args)
     if os.environ.get("REF2DEX_SCRATCH_POLICY") == "1" and cfg_train['params'].get('load_checkpoint'):
         raise ValueError("Scratch-policy training forbids config checkpoint restoration")

@@ -54,6 +54,12 @@ class DexploreAgent(common_agent.CommonAgent):
 
     def get_stats_weights(self):
         state = super().get_stats_weights()
+        # CommonAgent owns a legacy observation normalizer outside the rl_games
+        # model, so modern rl_games cannot discover it through model_stats.
+        # Persist it explicitly; otherwise training checkpoints are not safely
+        # resumable even though evaluation-only restoration appears to work.
+        if self.normalize_input:
+            state['running_mean_std'] = self.running_mean_std.state_dict()
         if self._normalize_input:
             state['amp_input_mean_std'] = self._input_mean_std.state_dict()
         return state
