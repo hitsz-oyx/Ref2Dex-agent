@@ -77,6 +77,27 @@ def test_build_records_explicit_body_world_translation(tmp_path):
         assert np.allclose(result["body"].item()["params"]["transl"], 0.0)
 
 
+def test_build_adds_alignment_delta_to_nonzero_legacy_translation(tmp_path):
+    legacy, raw, skeletons = _write_inputs(tmp_path)
+    motion_path = legacy / "s1_airplane_lift/motion.npz"
+    with np.load(motion_path, allow_pickle=True) as source:
+        payload = {key: source[key] for key in source.files}
+    body = payload["body"].item()
+    body["params"]["transl"] = np.full((3, 3), [1.0, 2.0, 3.0], dtype=np.float32)
+    payload["body"] = np.asarray(body, dtype=object)
+    np.savez(motion_path, **payload)
+
+    delta = np.full((3, 3), [0.1, -0.2, 0.3], dtype=np.float32)
+    ADAPTER.build(sequence="s1_airplane_lift", legacy_root=legacy, raw_root=raw,
+                  raw_object_root=raw / "objects", raw_tools_root=raw / "tools",
+                  skeleton_root=skeletons, output_root=tmp_path / "output",
+                  body_translation_delta=delta)
+    with np.load(tmp_path / "output/sequences/s1_airplane_lift/motion.npz",
+                 allow_pickle=True) as result:
+        translation = result["body"].item()["params"]["transl"]
+    assert np.allclose(translation, [1.1, 1.8, 3.3])
+
+
 def test_derive_body_translation_inverts_converter_x90_rotation(tmp_path):
     baseline = torch.zeros((2, 598), dtype=torch.float32)
     legacy = baseline.clone()
@@ -89,4 +110,4 @@ def test_derive_body_translation_inverts_converter_x90_rotation(tmp_path):
     correction, provenance = ADAPTER.derive_body_translation(
         baseline_tensor=baseline_path, reference_tensor=reference_path)
     assert np.allclose(correction, [[0.1, 0.3, 0.2], [0.1, 0.3, 0.2]])
-    assert provenance["method"] == "right_hand_object_relative_inverse_rotation_x90"
+    assert provenance["method"] == "right_wrist_world_delta_inverse_rotation_x90"
