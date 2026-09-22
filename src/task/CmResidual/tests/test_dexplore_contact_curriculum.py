@@ -3,6 +3,7 @@ import torch
 
 from src.task.CmResidual.dexplore_contact_curriculum import (
     annealed_curriculum_scale, install_contact_reset_curriculum,
+    reverse_curriculum_progress,
 )
 
 
@@ -113,4 +114,19 @@ def test_curriculum_scale_anneals_to_start_only():
     task = cls()
     task._ref2dex_contact_curriculum_scale = 0
     task._reset_ref_state_init(torch.arange(256))
+    assert task.progress_buf.eq(0).all()
+
+
+def test_reverse_curriculum_walks_contact_anchor_to_motion_start():
+    assert reverse_curriculum_progress(20, 20, 60) == 0
+    assert reverse_curriculum_progress(40, 20, 60) == 0.5
+    assert reverse_curriculum_progress(60, 20, 60) == 1
+    cls = _task_class([20], 64, num_frames=32)
+    install_contact_reset_curriculum(cls, before=0, after=0)
+    task = cls()
+    task._ref2dex_contact_backtrack_progress = 0.5
+    task._reset_ref_state_init(torch.arange(64))
+    assert task.progress_buf.eq(10).all()
+    task._ref2dex_contact_backtrack_progress = 1.0
+    task._reset_ref_state_init(torch.arange(64))
     assert task.progress_buf.eq(0).all()

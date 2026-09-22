@@ -34,6 +34,8 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--lift-fraction", type=float, default=0.0)
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
+    parser.add_argument("--curriculum-backtrack-start", type=int)
+    parser.add_argument("--curriculum-backtrack-end", type=int)
     parser.add_argument("--allow-negative-cmlite-reward", action="store_true")
     parser.add_argument("--use-predicted-contact", action="store_true")
     parser.add_argument("--max-cmlite-gap-m", type=float)
@@ -60,6 +62,14 @@ def parse_cmlite_args(argv=None):
              (args.contact_before is None or args.curriculum_anneal_start < 0 or
               args.curriculum_anneal_end <= args.curriculum_anneal_start))):
         raise ValueError("annealing requires a valid contact curriculum and epoch window")
+    if ((args.curriculum_backtrack_start is None) != (args.curriculum_backtrack_end is None) or
+            (args.curriculum_backtrack_start is not None and
+             (args.contact_before is None or args.curriculum_backtrack_start < 0 or
+              args.curriculum_backtrack_end <= args.curriculum_backtrack_start))):
+        raise ValueError("backtracking requires a valid contact curriculum and epoch window")
+    if (args.curriculum_anneal_start is not None and
+            args.curriculum_backtrack_start is not None):
+        raise ValueError("curriculum annealing and backtracking are mutually exclusive")
     if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
             (args.scratch_resume_checkpoint is not None and
              (not args.scratch_resume_checkpoint.is_file() or
@@ -103,6 +113,11 @@ def main(argv=None):
     if args.curriculum_anneal_start is not None:
         os.environ["REF2DEX_CURRICULUM_ANNEAL_START"] = str(args.curriculum_anneal_start)
         os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
+    if args.curriculum_backtrack_start is not None:
+        os.environ["REF2DEX_CURRICULUM_BACKTRACK_START"] = str(
+            args.curriculum_backtrack_start)
+        os.environ["REF2DEX_CURRICULUM_BACKTRACK_END"] = str(
+            args.curriculum_backtrack_end)
     if args.scratch_resume_checkpoint is not None:
         os.environ["REF2DEX_SCRATCH_RESUME_CHECKPOINT"] = str(
             args.scratch_resume_checkpoint.resolve())

@@ -22,6 +22,17 @@ def annealed_curriculum_scale(epoch: int, start: int, end: int) -> float:
     return float(end - epoch) / float(end - start)
 
 
+def reverse_curriculum_progress(epoch: int, start: int, end: int) -> float:
+    """Progress from the first-contact anchor back to the motion start."""
+    if epoch < 0 or start < 0 or end <= start:
+        raise ValueError("invalid reverse curriculum schedule")
+    if epoch <= start:
+        return 0.0
+    if epoch >= end:
+        return 1.0
+    return float(epoch - start) / float(end - start)
+
+
 def install_contact_reset_curriculum(task_class, *, before: int, after: int,
                                      fraction: float = 1.0, lift_fraction: float = 0.0,
                                      lift_threshold_m: float = 0.03) -> None:
@@ -80,7 +91,11 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
         if not len(selected_envs):
             return
         motion = self.data_id[selected_envs].long()
-        anchors = self._ref2dex_first_contact_frames[motion].clone()
+        backtrack = float(getattr(self, "_ref2dex_contact_backtrack_progress", 0.0))
+        if not 0 <= backtrack <= 1:
+            raise ValueError("contact backtrack progress must be in [0,1]")
+        contact_anchors = self._ref2dex_first_contact_frames[motion]
+        anchors = torch.round(contact_anchors.float() * (1.0 - backtrack)).long()
         selected_lift = lift_mask[selected_mask]
         anchors[selected_lift] = self._ref2dex_first_lift_frames[motion[selected_lift]]
         offset = torch.randint(-before, after + 1, (len(selected_envs),), device=self.device)
