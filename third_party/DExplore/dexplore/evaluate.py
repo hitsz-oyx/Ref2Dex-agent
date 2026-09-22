@@ -51,6 +51,7 @@ def parse_eval_args():
     parser.add_argument('--output', type=str, default='eval_results.json')
     parser.add_argument('--visualize-success-loop', action='store_true')
     parser.add_argument('--render-sleep', type=float, default=0.01)
+    parser.add_argument('--transition-output', type=str)
     eval_args, remaining = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining
     return eval_args
@@ -65,6 +66,27 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self.visualize_success_loop = False
         self.visualize_render_sleep = 0.01
         self._focused_success_env = None
+        self.transition_output = None
+        self._transitions = {}
+
+    def _record_transition(self, **values):
+        if self.transition_output is None:
+            return
+        for key, value in values.items():
+            self._transitions.setdefault(key, []).append(value.detach().cpu())
+
+    def _save_transitions(self):
+        if self.transition_output is None:
+            return
+        payload = {key: torch.cat(parts, dim=0) for key, parts in self._transitions.items()}
+        payload['schema'] = 'ref2dex.cmlite_transition.v1'
+        output = os.path.abspath(self.transition_output)
+        os.makedirs(os.path.dirname(output), exist_ok=True)
+        torch.save(payload, output)
+        print("REF2DEX_TRANSITIONS " + json.dumps({
+            "output": output, "samples": int(payload['action'].shape[0]),
+            "keys": sorted(key for key in payload if isinstance(payload[key], torch.Tensor)),
+        }, sort_keys=True), flush=True)
 
     def _focus_success_env(self, task, env_id, lift, run_steps):
         if task.viewer is None or self._focused_success_env == env_id:
@@ -139,6 +161,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     action = self.get_masked_action(obs_dict, masks, is_deterministic)
                 else:
                     action = self.get_action(obs_dict, is_deterministic)
+                q_before = task._dof_pos.clone()
+                object_before = task._target_states.clone()
+                progress_before = task.progress_buf.clone()
+                data_id_before = task.data_id.clone()
                 obs_dict, r, done, info = self.env_step(self.env, action)
                 cr += r
                 steps += 1
@@ -157,6 +183,12 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                                                torch.zeros_like(lift_contact_run))
                 max_lift_contact_run = torch.maximum(max_lift_contact_run, lift_contact_run)
                 lift_success |= lift_contact_run >= 5
+                self._record_transition(
+                    q=q_before, action=action, object_state=object_before,
+                    next_q=task._dof_pos, next_object_state=task._target_states,
+                    hand_contact=hand_contact[:, None], object_contact=object_contact[:, None],
+                    done=done.bool()[:, None], progress=progress_before[:, None],
+                    data_id=data_id_before[:, None])
                 if self.visualize_success_loop:
                     successful = (lift_contact_run >= 5).nonzero(as_tuple=False).reshape(-1)
                     if successful.numel():
@@ -224,6 +256,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                         break
 
                     done_indices = done_indices[:, 0]
+
+        self._save_transitions()
 
         # Batched environments may finish several episodes on the step that
         # crosses n_games.  Keep the requested evaluation budget exact.
@@ -345,6 +379,7 @@ def main():
         p.output_file = eval_args.output
         p.visualize_success_loop = eval_args.visualize_success_loop
         p.visualize_render_sleep = eval_args.render_sleep
+        p.transition_output = eval_args.transition_output
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
     model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
