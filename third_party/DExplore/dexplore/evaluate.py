@@ -139,6 +139,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             cum_obj_err = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
 
             task = self.env.task
+            episode_start_frame = task.start_times.clone()
+            episode_motion_id = task.data_id.clone()
             initial_object_z = task._target_states[:, 2].clone()
             max_lift = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
             max_contact_lift = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
@@ -155,6 +157,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 if len(done_indices):
                     reset_ids = done_indices.reshape(-1).long()
                     initial_object_z[reset_ids] = task._target_states[reset_ids, 2]
+                    episode_start_frame[reset_ids] = task.start_times[reset_ids]
+                    episode_motion_id[reset_ids] = task.data_id[reset_ids]
 
                 if has_masks:
                     masks = self.env.get_action_mask()
@@ -228,6 +232,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                         self.episode_results.append({
                             'reward': cr[i].item(),
                             'env_id': i,
+                            'motion_id': int(episode_motion_id[i].item()),
+                            'start_frame': int(episode_start_frame[i].item()),
                             'steps': int(steps[i].item()),
                             'survived': not early_term,
                             'mean_hand_error': cum_hand_err[i].item() / ep_len,
