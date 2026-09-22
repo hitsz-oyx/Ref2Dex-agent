@@ -118,4 +118,5 @@ def test_launcher_limits_gpu_count_to_two_and_forwards_matched_shaping(tmp_path,
                    "--actual-epochs", "1"])
     assert captured["bootstrap_args"] == [
         "--cm-distill-coef", "0", "--actual-epochs", "1", "--approach-reward-coef", "2.0",
-        "--held-lift-reward-coef", "1.0"]
+        "--held-lift-reward-coef", "1.0", "--lift-progress-reward-coef", "0.0",
+        "--grasp-link-reward-coef", "0.0", "--min-grasp-links", "0"]

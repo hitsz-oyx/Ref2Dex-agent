@@ -96,3 +96,32 @@ def test_frozen_cmlite_verifies_checksum(tmp_path):
     FrozenCmLite(str(checkpoint), "cpu", digest)
     with pytest.raises(ValueError, match="SHA256 mismatch"):
         FrozenCmLite(str(checkpoint), "cpu", "0" * 64)
+
+
+def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    spec = importlib.util.spec_from_file_location(
+        "cmlite_launcher_contract", TOOLS / "run_dexplore_v120_ddp.py")
+    launcher = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(launcher)
+    checkpoint = tmp_path / "cmlite.pt"
+    checkpoint.write_bytes(b"test")
+    captured = {}
+    monkeypatch.setattr(launcher, "torchrun_command",
+                        lambda **kwargs: captured.update(kwargs) or ["echo"])
+    launcher.main([
+        "--gpus", "5", "--dry-run", "--rank-bootstrap",
+        str(TOOLS / "dexplore_cmlite_rank_bootstrap.py"),
+        "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
+        "--cmlite-sha256", "a" * 64, "--actual-epochs", "100",
+        "--approach-reward-coef", "2", "--held-lift-reward-coef", "10",
+        "--lift-progress-reward-coef", "5", "--contact-before", "3",
+        "--contact-fraction", "0.5", "--lift-fraction", "0.25",
+        "--curriculum-anneal-start", "40", "--curriculum-anneal-end", "80",
+        "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
+    ])
+    args = captured["bootstrap_args"]
+    assert args[args.index("--cmlite-reward-coef") + 1] == "5.0"
+    assert args[args.index("--lift-progress-reward-coef") + 1] == "5.0"
+    assert args[args.index("--curriculum-anneal-end") + 1] == "80"
+    assert "--use-predicted-contact" in args

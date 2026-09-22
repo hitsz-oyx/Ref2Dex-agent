@@ -126,10 +126,15 @@ def main(argv=None) -> None:
                         help="only valid with the V1.21 Cm-off bootstrap and must be exactly zero")
     parser.add_argument("--cm-reward-coef", type=float,
                         help="positive frozen-Cmv2 dense reward coefficient")
+    parser.add_argument("--cmlite-reward-coef", type=float,
+                        help="positive frozen-CmLite dense reward coefficient")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")
     parser.add_argument("--held-lift-reward-coef", type=float,
                         help="matched contact-supported lift shaping coefficient for both Cm arms")
+    parser.add_argument("--lift-progress-reward-coef", type=float, default=0.0)
+    parser.add_argument("--grasp-link-reward-coef", type=float, default=0.0)
+    parser.add_argument("--min-grasp-links", type=int, default=0)
     parser.add_argument("--contact-before", type=int,
                         help="optional near-contact curriculum: frames before first reference contact")
     parser.add_argument("--contact-after", type=int, default=0,
@@ -138,9 +143,15 @@ def main(argv=None) -> None:
                         help="fraction of training resets placed near contact")
     parser.add_argument("--lift-fraction", type=float, default=0.0,
                         help="fraction of training resets placed near reference lift onset")
+    parser.add_argument("--curriculum-anneal-start", type=int)
+    parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--cm-reward-positive-only", action="store_true")
     parser.add_argument("--cmv2-checkpoint", type=Path)
     parser.add_argument("--cmv2-sha256")
+    parser.add_argument("--cmlite-checkpoint", type=Path)
+    parser.add_argument("--cmlite-sha256")
+    parser.add_argument("--use-predicted-contact", action="store_true")
+    parser.add_argument("--max-cmlite-gap-m", type=float)
     parser.add_argument("--actual-epochs", type=int,
                         help="exact epoch budget for the V1.21 Cm-off bootstrap")
     parser.add_argument("--work-version", default="V1.21")
@@ -158,8 +169,10 @@ def main(argv=None) -> None:
     gpus = parse_gpus(args.gpus)
     bootstrap = args.rank_bootstrap.resolve()
     bootstrap_args: list[str] = []
-    if args.cm_distill_coef is not None and args.cm_reward_coef is not None:
-        raise ValueError("Cm-off and Cm-reward modes are mutually exclusive")
+    modes = sum(value is not None for value in (
+        args.cm_distill_coef, args.cm_reward_coef, args.cmlite_reward_coef))
+    if modes > 1:
+        raise ValueError("Cm-off, Cmv2-reward, and CmLite-reward modes are mutually exclusive")
     if args.cm_reward_positive_only and args.cm_reward_coef is None:
         raise ValueError("--cm-reward-positive-only requires --cm-reward-coef")
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
@@ -168,17 +181,33 @@ def main(argv=None) -> None:
     if args.held_lift_reward_coef is not None and (not math.isfinite(args.held_lift_reward_coef)
                                                    or args.held_lift_reward_coef < 0):
         raise ValueError("--held-lift-reward-coef must be finite and nonnegative")
-    if args.approach_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+    for name, value in (("lift-progress", args.lift_progress_reward_coef),
+                        ("grasp-link", args.grasp_link_reward_coef)):
+        if not math.isfinite(value) or value < 0:
+            raise ValueError(f"--{name}-reward-coef must be finite and nonnegative")
+    if not 0 <= args.min_grasp_links <= 5:
+        raise ValueError("--min-grasp-links must be in [0,5]")
+    if args.approach_reward_coef is not None and modes == 0:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
-    if args.held_lift_reward_coef is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+    if args.held_lift_reward_coef is not None and modes == 0:
         raise ValueError("--held-lift-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if ((args.contact_before is not None and args.contact_before < 0) or args.contact_after < 0 or
             args.contact_fraction < 0 or args.lift_fraction < 0 or
             not (0.0 < args.contact_fraction + args.lift_fraction <= 1.0) or
             (args.contact_before is None and args.contact_after)):
         raise ValueError("contact curriculum requires --contact-before >= 0 and --contact-after >= 0")
-    if args.contact_before is not None and args.cm_distill_coef is None and args.cm_reward_coef is None:
+    if args.contact_before is not None and modes == 0:
         raise ValueError("contact curriculum requires a Cm-off or Cm-reward bootstrap")
+    if ((args.curriculum_anneal_start is None) != (args.curriculum_anneal_end is None) or
+            (args.curriculum_anneal_start is not None and
+             (args.contact_before is None or args.curriculum_anneal_start < 0 or
+              args.curriculum_anneal_end <= args.curriculum_anneal_start))):
+        raise ValueError("curriculum annealing requires a valid epoch window")
+    shared_shaping = ["--approach-reward-coef", str(args.approach_reward_coef or 0.0),
+                      "--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0),
+                      "--lift-progress-reward-coef", str(args.lift_progress_reward_coef),
+                      "--grasp-link-reward-coef", str(args.grasp_link_reward_coef),
+                      "--min-grasp-links", str(args.min_grasp_links)]
     if args.cm_distill_coef is not None:
         if bootstrap.name != "dexplore_cm_off_rank_bootstrap.py":
             raise ValueError("--cm-distill-coef requires dexplore_cm_off_rank_bootstrap.py")
@@ -187,8 +216,7 @@ def main(argv=None) -> None:
         if args.actual_epochs is None or args.actual_epochs < 1:
             raise ValueError("Cm-off launcher requires positive --actual-epochs")
         bootstrap_args = ["--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
-        bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
-        bootstrap_args += ["--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0)]
+        bootstrap_args += shared_shaping
     elif args.cm_reward_coef is not None:
         if bootstrap.name != "dexplore_cm_reward_rank_bootstrap.py":
             raise ValueError("--cm-reward-coef requires dexplore_cm_reward_rank_bootstrap.py")
@@ -200,10 +228,30 @@ def main(argv=None) -> None:
                           "--cmv2-checkpoint", str(args.cmv2_checkpoint.resolve()),
                           "--cmv2-sha256", args.cmv2_sha256,
                           "--actual-epochs", str(args.actual_epochs)]
-        bootstrap_args += ["--approach-reward-coef", str(args.approach_reward_coef or 0.0)]
-        bootstrap_args += ["--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0)]
+        # The older Cmv2 bootstrap predates lift-progress/link shaping.
+        bootstrap_args += shared_shaping[:4]
         if args.cm_reward_positive_only:
             bootstrap_args.append("--cm-reward-positive-only")
+    elif args.cmlite_reward_coef is not None:
+        if bootstrap.name != "dexplore_cmlite_rank_bootstrap.py":
+            raise ValueError("--cmlite-reward-coef requires dexplore_cmlite_rank_bootstrap.py")
+        if (not math.isfinite(args.cmlite_reward_coef) or args.cmlite_reward_coef <= 0 or
+                args.actual_epochs is None or args.actual_epochs < 1):
+            raise ValueError("CmLite-reward launcher requires positive coefficient and actual epochs")
+        if (args.cmlite_checkpoint is None or not args.cmlite_checkpoint.is_file() or
+                not args.cmlite_sha256):
+            raise ValueError("CmLite-reward launcher requires checkpoint and SHA256")
+        if args.max_cmlite_gap_m is not None and (not args.use_predicted_contact or
+                not math.isfinite(args.max_cmlite_gap_m) or args.max_cmlite_gap_m <= 0):
+            raise ValueError("CmLite gap requires predicted contact and a positive finite threshold")
+        bootstrap_args = ["--cmlite-reward-coef", str(args.cmlite_reward_coef),
+                          "--cmlite-checkpoint", str(args.cmlite_checkpoint.resolve()),
+                          "--cmlite-sha256", args.cmlite_sha256,
+                          "--actual-epochs", str(args.actual_epochs)] + shared_shaping
+        if args.use_predicted_contact:
+            bootstrap_args.append("--use-predicted-contact")
+        if args.max_cmlite_gap_m is not None:
+            bootstrap_args += ["--max-cmlite-gap-m", str(args.max_cmlite_gap_m)]
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
@@ -211,6 +259,9 @@ def main(argv=None) -> None:
                            "--contact-after", str(args.contact_after),
                            "--contact-fraction", str(args.contact_fraction),
                            "--lift-fraction", str(args.lift_fraction)]
+    if args.curriculum_anneal_start is not None:
+        bootstrap_args += ["--curriculum-anneal-start", str(args.curriculum_anneal_start),
+                           "--curriculum-anneal-end", str(args.curriculum_anneal_end)]
     if args.execute:
         if not args.run_id or args.motion_root is None or args.input_manifest is None:
             raise ValueError("--execute requires --run-id, --motion-root, and --input-manifest")
@@ -259,14 +310,24 @@ def main(argv=None) -> None:
                   "max_iterations": args.max_iterations, "seed": args.seed,
                   "rank_bootstrap": str(bootstrap), "cm_distill_coef": args.cm_distill_coef,
                   "cm_reward_coef": args.cm_reward_coef,
+                  "cmlite_reward_coef": args.cmlite_reward_coef,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "held_lift_reward_coef": args.held_lift_reward_coef or 0.0,
+                  "lift_progress_reward_coef": args.lift_progress_reward_coef,
+                  "grasp_link_reward_coef": args.grasp_link_reward_coef,
+                  "min_grasp_links": args.min_grasp_links,
                   "contact_before": args.contact_before, "contact_after": args.contact_after,
                   "contact_fraction": args.contact_fraction,
                   "lift_fraction": args.lift_fraction,
+                  "curriculum_anneal_start": args.curriculum_anneal_start,
+                  "curriculum_anneal_end": args.curriculum_anneal_end,
                   "cm_reward_positive_only": args.cm_reward_positive_only,
                   "cmv2_checkpoint": str(args.cmv2_checkpoint.resolve()) if args.cmv2_checkpoint else None,
                   "cmv2_sha256": args.cmv2_sha256,
+                  "cmlite_checkpoint": str(args.cmlite_checkpoint.resolve()) if args.cmlite_checkpoint else None,
+                  "cmlite_sha256": args.cmlite_sha256,
+                  "use_predicted_contact": args.use_predicted_contact,
+                  "max_cmlite_gap_m": args.max_cmlite_gap_m,
                   "actual_epochs": args.actual_epochs,
                   "motion_root": str(args.motion_root.resolve()), "input_manifest": str(manifest),
                   "runtime_assets": runtime_assets}
