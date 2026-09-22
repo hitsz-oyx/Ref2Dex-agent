@@ -30,8 +30,8 @@ RUNTIME_ASSETS = (
 
 def parse_gpus(value: str) -> tuple[int, ...]:
     values = tuple(int(item) for item in value.split(",") if item)
-    if len(values) != 2 or len(set(values)) != len(values) or any(item < 0 for item in values):
-        raise ValueError("--gpus must name exactly two unique non-negative physical GPU indices")
+    if not 1 <= len(values) <= 2 or len(set(values)) != len(values) or any(item < 0 for item in values):
+        raise ValueError("--gpus must name one or two unique non-negative physical GPU indices")
     return values
 
 

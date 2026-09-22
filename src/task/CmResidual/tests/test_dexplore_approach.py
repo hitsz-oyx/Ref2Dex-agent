@@ -106,7 +106,8 @@ def test_cm_off_installs_only_geometry_agent_when_approach_enabled(monkeypatch):
 def test_launcher_limits_gpu_count_to_two_and_forwards_matched_shaping(tmp_path, monkeypatch):
     launcher = _load("approach_launcher", "run_dexplore_v120_ddp.py")
     assert launcher.parse_gpus("5,6") == (5, 6)
-    with pytest.raises(ValueError, match="exactly two"):
+    assert launcher.parse_gpus("5") == (5,)
+    with pytest.raises(ValueError, match="one or two"):
         launcher.parse_gpus("5,6,7")
     captured = {}
     monkeypatch.setattr(launcher, "torchrun_command", lambda **kwargs: captured.update(kwargs) or ["echo"])

@@ -58,8 +58,9 @@ def test_two_rank_gradient_average_matches_concatenated_single_process(tmp_path)
 
 def test_launcher_requires_explicit_multiple_gpus_and_uses_torchrun(tmp_path):
     launcher = _load_module("dexplore_v120_ddp_launcher", LAUNCHER_PATH)
-    with pytest.raises(ValueError, match="exactly two"):
-        launcher.parse_gpus("3")
+    assert launcher.parse_gpus("3") == (3,)
+    with pytest.raises(ValueError, match="one or two"):
+        launcher.parse_gpus("3,4,5")
     bootstrap = tmp_path / "bootstrap.py"
     dexplore = tmp_path / "run.py"
     bootstrap.write_text("", encoding="utf-8")
