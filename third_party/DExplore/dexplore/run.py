@@ -19,7 +19,7 @@ from rl_games.torch_runner import Runner
 from rl_games.algos_torch import model_builder
 
 import torch
-from src.task.CmResidual.scratch_checkpoint import authorize_scratch_restore
+from utils.scratch_checkpoint import authorize_scratch_restore
 
 from learning import dexplore_agent
 from learning import dexplore_agent_distill

@@ -2,19 +2,13 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from pathlib import Path
 from typing import Mapping
 
 
 def authorize_scratch_restore(checkpoint: str | None, resume: int,
                               environ: Mapping[str, str]) -> bool:
-    """Return whether a requested restore matches the explicitly pinned input.
-
-    No restore request returns ``False``.  A restore request under the scratch
-    policy either matches path and SHA256 exactly or raises before rl-games can
-    inspect the checkpoint.
-    """
+    """Authorize only an explicitly path- and SHA-pinned scratch restore."""
     if environ.get("REF2DEX_SCRATCH_POLICY") != "1":
         return False
     requested = checkpoint not in (None, "", "Base") or bool(resume)

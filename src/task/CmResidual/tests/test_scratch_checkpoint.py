@@ -1,8 +1,15 @@
 import hashlib
+import importlib.util
+from pathlib import Path
 
 import pytest
 
-from src.task.CmResidual.scratch_checkpoint import authorize_scratch_restore
+MODULE = (Path(__file__).resolve().parents[4] / "third_party" / "DExplore" /
+          "dexplore" / "utils" / "scratch_checkpoint.py")
+SPEC = importlib.util.spec_from_file_location("dexplore_scratch_checkpoint", MODULE)
+SCRATCH = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(SCRATCH)
+authorize_scratch_restore = SCRATCH.authorize_scratch_restore
 
 
 def test_verified_scratch_resume_is_authorized(tmp_path):
