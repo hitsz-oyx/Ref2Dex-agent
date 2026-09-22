@@ -149,6 +149,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
             max_lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
             lift_success = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
+            recorded_env = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
 
             done_indices = []
 
@@ -213,8 +214,9 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     time.sleep(self.visualize_render_sleep)
 
                 all_done_indices = done.nonzero(as_tuple=False)
-                done_indices = all_done_indices[::self.num_agents]
-                done_count = len(done_indices)
+                done_indices = all_done_indices[::self.num_agents].reshape(-1)
+                new_done_indices = done_indices[~recorded_env[done_indices]]
+                done_count = len(new_done_indices)
                 games_played += done_count
 
                 if done_count > 0:
@@ -222,7 +224,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                         for s in self.states:
                             s[:, all_done_indices, :] = s[:, all_done_indices, :] * 0.0
 
-                    for idx in done_indices:
+                    for idx in new_done_indices:
                         i = idx.item()
                         ep_len = max(steps[i].item(), 1)
                         early_term = False
@@ -245,6 +247,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                             'max_lift_contact_run_steps': int(max_lift_contact_run[i].item()),
                             'lift_success': bool(lift_success[i].item()),
                         })
+                    recorded_env[new_done_indices] = True
 
                     cr = cr * (1.0 - done.float())
                     steps = steps * (1.0 - done.float())
@@ -260,8 +263,6 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
 
                     if batch_size // self.num_agents == 1 or games_played >= n_games:
                         break
-
-                    done_indices = done_indices[:, 0]
 
         self._save_transitions()
 
@@ -320,6 +321,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 'mean_airborne_fraction': round(float(mean_airborne_fraction), 5),
                 'mean_max_lift_contact_run_steps': round(float(mean_max_lift_contact_run), 3),
                 'lift_success_definition': 'object dz >= 0.03 m with hand+object contact for >=5 consecutive steps',
+                'episode_sampling': 'first completed episode from every parallel environment',
             }
             output = {'summary': summary, 'per_episode': self.episode_results}
             os.makedirs(os.path.dirname(output_file) or '.', exist_ok=True)
