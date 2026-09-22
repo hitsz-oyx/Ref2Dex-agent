@@ -183,10 +183,18 @@ def build_alg_runner(algo_observer, distill=False):
 
     runner.algo_factory.register_builder('dexplore', lambda **kwargs: agent_cls(**kwargs))
     runner.player_factory.register_builder('dexplore', lambda **kwargs: dexplore_players.DexplorePlayerContinuous(**kwargs))
-    # rl_games now constructs ModelBuilder inside each agent/player. Register
-    # globally so those fresh builders can resolve DExplore's model and network.
-    model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
-    model_builder.register_network('dexplore', network_cls)
+    # rl_games has used both process-global registries and Runner-local
+    # factories across releases.  Support the runtime-pinned legacy API as
+    # well as newer installations without changing the network contract.
+    if hasattr(model_builder, 'register_model'):
+        model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
+        model_builder.register_network('dexplore', network_cls)
+    else:
+        runner.model_builder.model_factory.register_builder(
+            'dexplore', lambda network, **kwargs:
+            dexplore_models.ModelDexploreContinuous(network))
+        runner.model_builder.network_factory.register_builder(
+            'dexplore', lambda **kwargs: network_cls())
 
     return runner
 

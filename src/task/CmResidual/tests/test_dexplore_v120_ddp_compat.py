@@ -108,6 +108,15 @@ def test_launcher_default_source_is_repo_local_vendor_snapshot():
     assert launcher.DEFAULT_DEXPLORE_RUN.is_file()
 
 
+def test_vendor_entrypoints_support_runtime_pinned_runner_local_model_registry():
+    root = LAUNCHER_PATH.parents[4] / "third_party/DExplore/dexplore"
+    for entrypoint in (root / "run.py", root / "evaluate.py"):
+        source = entrypoint.read_text(encoding="utf-8")
+        assert "hasattr(model_builder, 'register_model')" in source
+        assert "runner.model_builder.model_factory.register_builder" in source
+        assert "runner.model_builder.network_factory.register_builder" in source
+
+
 def test_runtime_assets_are_fixed_raw_grab_meshes():
     launcher = _load_module("dexplore_v120_ddp_launcher_assets", LAUNCHER_PATH)
     assert [(source.relative_to(launcher.REPOSITORY_ROOT), target, digest)

@@ -382,8 +382,15 @@ def main():
         p.transition_output = eval_args.transition_output
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
-    model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
-    model_builder.register_network('dexplore', dexplore_network_builder.DexploreBuilder)
+    if hasattr(model_builder, 'register_model'):
+        model_builder.register_model('dexplore', dexplore_models.ModelDexploreContinuous)
+        model_builder.register_network('dexplore', dexplore_network_builder.DexploreBuilder)
+    else:
+        runner.model_builder.model_factory.register_builder(
+            'dexplore', lambda network, **kwargs:
+            dexplore_models.ModelDexploreContinuous(network))
+        runner.model_builder.network_factory.register_builder(
+            'dexplore', lambda **kwargs: dexplore_network_builder.DexploreBuilder())
 
     # One completed episode per requested environment, with deterministic
     # actions and no unbounded player loop.
