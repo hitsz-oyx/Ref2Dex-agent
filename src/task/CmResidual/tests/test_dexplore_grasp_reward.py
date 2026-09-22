@@ -3,7 +3,8 @@ import pytest
 import torch
 
 from src.task.CmResidual.dexplore_grasp_reward import (
-    contact_lift_progress_reward, held_lift_reward,
+    contact_lift_progress_reward, grasp_link_gate, grasp_link_reward,
+    held_lift_reward,
 )
 
 
@@ -37,3 +38,10 @@ def test_contact_lift_progress_is_signed_bounded_and_contact_supported():
         torch.tensor([False, False, False, False, True]))
     torch.testing.assert_close(
         reward, torch.tensor([1.0, -1.0, 0.0, 0.0, 0.0]), atol=2e-5, rtol=0)
+
+
+def test_grasp_link_reward_and_gate_require_multiple_geometric_contacts():
+    contacts = torch.tensor([[True, False, False, False, False],
+                             [True, True, False, True, False]])
+    torch.testing.assert_close(grasp_link_reward(contacts), torch.tensor([0.2, 0.6]))
+    assert grasp_link_gate(contacts, 2).tolist() == [False, True]

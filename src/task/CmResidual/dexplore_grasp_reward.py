@@ -39,3 +39,21 @@ def contact_lift_progress_reward(object_z_before: torch.Tensor,
     progress = ((object_z_after - object_z_before) / target_step_m).clamp(-1.0, 1.0)
     valid = hand_contact & object_contact & ~done
     return progress * valid.to(progress.dtype)
+
+
+@torch.inference_mode()
+def grasp_link_reward(link_contacts: torch.Tensor) -> torch.Tensor:
+    """Bounded enclosure reward from per-finger geometric contact targets."""
+    if link_contacts.ndim != 2 or link_contacts.shape[1] < 2:
+        raise ValueError("link contacts must be [B,L] with at least two links")
+    if link_contacts.dtype != torch.bool:
+        raise ValueError("link contacts must be boolean")
+    return link_contacts.float().mean(dim=-1)
+
+
+def grasp_link_gate(link_contacts: torch.Tensor, min_links: int) -> torch.Tensor:
+    if (link_contacts.ndim != 2 or link_contacts.shape[1] < 2 or
+            link_contacts.dtype != torch.bool or
+            not 1 <= min_links <= link_contacts.shape[1]):
+        raise ValueError("invalid geometric grasp-link gate")
+    return link_contacts.sum(dim=-1) >= min_links

@@ -54,6 +54,7 @@ def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, mo
         "--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
         "--cmlite-sha256", "a" * 64, "--actual-epochs", "3",
         "--lift-progress-reward-coef", "5",
+        "--grasp-link-reward-coef", "2", "--min-grasp-links", "2",
         "--contact-before", "3",
         "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
         "--curriculum-backtrack-start", "20", "--curriculum-backtrack-end", "60",
@@ -62,6 +63,8 @@ def test_cmlite_bootstrap_exposes_dense_gate_and_checkpoint_cadence(tmp_path, mo
     assert args.use_predicted_contact
     assert args.max_cmlite_gap_m == 0.1
     assert args.lift_progress_reward_coef == 5
+    assert args.grasp_link_reward_coef == 2
+    assert args.min_grasp_links == 2
     assert args.curriculum_backtrack_start == 20
     assert args.curriculum_backtrack_end == 60
     assert args.save_frequency == 1
