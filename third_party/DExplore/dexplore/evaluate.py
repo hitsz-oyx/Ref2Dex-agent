@@ -43,6 +43,7 @@ from learning import dexplore_agent
 from learning import dexplore_players
 from learning import dexplore_models
 from learning import dexplore_network_builder
+from utils.reference_action import inspire_reference_action
 
 
 def parse_eval_args():
@@ -52,6 +53,7 @@ def parse_eval_args():
     parser.add_argument('--visualize-success-loop', action='store_true')
     parser.add_argument('--render-sleep', type=float, default=0.01)
     parser.add_argument('--transition-output', type=str)
+    parser.add_argument('--reference-action-lead', type=int)
     eval_args, remaining = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining
     return eval_args
@@ -67,6 +69,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self.visualize_render_sleep = 0.01
         self._focused_success_env = None
         self.transition_output = None
+        self.reference_action_lead = None
         self._transitions = {}
 
     def _record_transition(self, **values):
@@ -166,6 +169,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     action = self.get_masked_action(obs_dict, masks, is_deterministic)
                 else:
                     action = self.get_action(obs_dict, is_deterministic)
+                if self.reference_action_lead is not None:
+                    action = inspire_reference_action(task, self.reference_action_lead)
                 q_before = task._dof_pos.clone()
                 object_before = task._target_states.clone()
                 progress_before = task.progress_buf.clone()
@@ -388,6 +393,7 @@ def main():
         p.visualize_success_loop = eval_args.visualize_success_loop
         p.visualize_render_sleep = eval_args.render_sleep
         p.transition_output = eval_args.transition_output
+        p.reference_action_lead = eval_args.reference_action_lead
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
     if hasattr(model_builder, 'register_model'):
