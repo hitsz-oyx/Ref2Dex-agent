@@ -48,14 +48,31 @@ GPU 被他人占用或 wall 超预算即停止。
 
 ## Result
 
-Status: PENDING
+Status: UNPROMISING（动作条件信息未过门）
 
-Key evidence: pending
+Key evidence: `agent_local_geometric_cm_300` COMPLETED；CPU-only；
+六区域 12,932 参数、物体/手各 256 点。训练 768、测试 192 条。
+固定 300 更新步，运动接触 64 条测试：Cm EPE 5.75mm，
+零运动 11.61mm；但同架构零手流 6.04mm，仅改善 4.8%，
+动作置乱 5.93mm，仅恶化 3.1%，均远未过预设 15% 动作信息门。
+静止接触 Cm EPE 2.86mm，零运动 0.41mm，存在明显假运动。
+这说明当前配方在已执行动作的观测数据上主要学习运动先验，
+不能据此认为学到了可供策略选择动作的因果效应。
+
+只读检查旧“first-grip counterfactual”两臂文件：seed97 仅
+1/64 条预干预状态匹配，seed98 0/64；replay seed98 也 0/64。
+因此旧文件不能提供同状态不同动作的有效物理监督/验证。
 
 ## Decision update
 
-pending
+不把当前小 Cm 接入 PPO，不继续只调网络宽度或 loss。
+下一步应先获得**同状态、不同动作、都在仿真中执行**的配对转移，
+并严格验证干预前状态一致和同动作重复的仿真一致性；在这种数据上
+测试 Cm 是否能区分行动效应。若无法构建可靠配对，才考虑直接
+`s,a→s'` 的其他结构/监督。该判断不否定几何 Cm 本身。
 
 ## Artifacts
 
 `src/task/CmResidual/tools/probe_local_geometric_cm.py`
+`outputs/CmResidual/agent_local_geometric_cm_300/report.json`
+`outputs/CmResidual/agent_local_geometric_cm_300/run_manifest.json`
