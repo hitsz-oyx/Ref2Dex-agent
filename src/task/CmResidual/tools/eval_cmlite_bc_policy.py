@@ -106,10 +106,13 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
     router_mode = mode == "router"
     ensemble_mode = mode == "ensemble"
     grip_reflex_mode = os.environ.get("REF2DEX_GRIP_REFLEX_MODE", "off")
+    record_first_grip = os.environ.get("REF2DEX_RECORD_FIRST_GRIP_CF") == "1"
     if grip_reflex_mode not in ("off", "always", "cmlite"):
         raise ValueError("invalid grip reflex mode")
     if grip_reflex_mode != "off" and not router_mode:
         raise ValueError("grip reflex requires router mode")
+    if record_first_grip and (not router_mode or grip_reflex_mode not in ("off", "always")):
+        raise ValueError("first grip counterfactual requires off/always router")
     model = mean = std = None
     if not teacher_mode:
         model, mean, std = _load_bc(checkpoint_path, device)
@@ -169,6 +172,19 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
     teacher_grip_latched = torch.zeros(batch, dtype=torch.bool, device=device)
     proposal_count = torch.zeros(batch, dtype=torch.long, device=device)
     proposal_histogram = torch.zeros(5, dtype=torch.long, device=device)
+    first_grip = None
+    if record_first_grip:
+        first_grip = {
+            "captured": torch.zeros(batch, dtype=torch.bool, device=device),
+            "progress": torch.zeros(batch, dtype=torch.long, device=device),
+            "q": torch.zeros((batch, 18), device=device),
+            "base_action": torch.zeros((batch, 18), device=device),
+            "boosted_action": torch.zeros((batch, 18), device=device),
+            "object_state": torch.zeros((batch, 13), device=device),
+            "next_object_state": torch.zeros((batch, 13), device=device),
+            "goal_position": torch.zeros((batch, 3), device=device),
+            "executed_candidate": torch.zeros(batch, dtype=torch.long, device=device),
+        }
     results = []
     done_indices = torch.empty(0, dtype=torch.long, device=device)
     for _ in range(max_steps):
@@ -221,13 +237,16 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
             base_action = candidates[:, 0]
         else:
             base_action = normalized_action(model, task.obs_buf, mean, std)
-        if router_mode and grip_reflex_mode != "off":
+        if router_mode and (grip_reflex_mode != "off" or record_first_grip):
             eligible = ((stable_contact_steps >= 5) &
                         (task._target_states[:, 2] - initial_z < 0.06))
             boosted = base_action.clone()
             boosted[:, list(FINGER_INDICES)] += 0.08
             boosted.clamp_(-1, 1)
-            if grip_reflex_mode == "always":
+            if grip_reflex_mode == "off":
+                action = base_action
+                selected_id = torch.zeros(batch, dtype=torch.long, device=device)
+            elif grip_reflex_mode == "always":
                 selected_id = eligible.long()
                 action = torch.where(eligible[:, None], boosted, base_action)
             else:
@@ -250,7 +269,22 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
             action, _, selected_id = select_cmlite_action(
                 cm, task._dof_pos, base_action, task._target_states, goal,
                 actual_contact=stable_contact_steps >= 5, config=proposal_config)
+        if record_first_grip:
+            new_first = eligible & ~first_grip["captured"] & ~recorded
+            progress = task.progress_buf.long()
+            goal_index = torch.minimum(progress + 1, lengths - 1)
+            first_grip["progress"][new_first] = progress[new_first]
+            first_grip["q"][new_first] = task._dof_pos[new_first]
+            first_grip["base_action"][new_first] = base_action[new_first]
+            first_grip["boosted_action"][new_first] = boosted[new_first]
+            first_grip["object_state"][new_first] = task._target_states[new_first]
+            first_grip["goal_position"][new_first] = task.hoi_refs[
+                task.data_id, task.ref_index, goal_index, 106:109][new_first]
+            first_grip["executed_candidate"][new_first] = selected_id[new_first]
         _, reward, done, _ = player.env_step(player.env, action)
+        if record_first_grip:
+            first_grip["next_object_state"][new_first] = task._target_states[new_first]
+            first_grip["captured"] |= new_first
         active = ~recorded
         rewards += reward.reshape(-1) * active
         steps += active
@@ -311,6 +345,8 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
         "grip_reflex_mode": grip_reflex_mode,
         "grip_reflex_delta": 0.08 if grip_reflex_mode != "off" else 0.0,
         "grip_reflex_max_lift_m": 0.06 if grip_reflex_mode != "off" else None,
+        "first_grip_counterfactual_count": int(first_grip["captured"].sum().item())
+        if record_first_grip else None,
     }
     if router_mode:
         summary["route_histogram"] = {
@@ -321,6 +357,17 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
             name: int(proposal_histogram[index].item())
             for index, name in enumerate(names)}
     output.mkdir(parents=True, exist_ok=False)
+    if record_first_grip:
+        selected = first_grip["captured"]
+        torch.save({
+            "schema": "ref2dex.first_grip_counterfactual_arm.v1",
+            "grip_reflex_mode": grip_reflex_mode,
+            "env_id": torch.arange(batch, device=device)[selected].cpu(),
+            "motion_id": motion_ids[selected].cpu(),
+            "start_frame": start_frames[selected].cpu(),
+            **{key: value[selected].cpu() for key, value in first_grip.items()
+               if key != "captured"},
+        }, output / "first_grip_counterfactual.pt")
     _write(output / "results.json", {"summary": summary, "per_episode": results})
     _write(output / "summary.json", summary)
     print(json.dumps(summary, sort_keys=True), flush=True)
@@ -444,6 +491,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="JSON file containing route_map, or the route map itself")
     parser.add_argument("--grip-reflex-mode", choices=("off", "always", "cmlite"),
                         default="off", help="V1.41 contact-gated +0.08 finger action")
+    parser.add_argument("--record-first-grip-counterfactual", action="store_true",
+                        help="V1.43: record first eligible pre/post state for paired audit")
     parser.add_argument("--physical-gpu", type=int, required=True)
     args, passthrough = parser.parse_known_args(argv)
     for path in (args.bc_checkpoint, args.cmlite_checkpoint):
@@ -481,10 +530,14 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("router arguments require --mode router")
     if args.grip_reflex_mode != "off" and args.mode != "router":
         raise ValueError("grip reflex requires --mode router")
+    if args.record_first_grip_counterfactual and (
+            args.mode != "router" or args.grip_reflex_mode not in ("off", "always")):
+        raise ValueError("first grip counterfactual requires off/always router")
     manifest = {
         "run_status": "RUNNING", "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "physical_gpu": args.physical_gpu, "mode": args.mode,
         "grip_reflex_mode": args.grip_reflex_mode,
+        "record_first_grip_counterfactual": args.record_first_grip_counterfactual,
         "cm_used_by_policy": args.mode in ("on", "ensemble") or args.grip_reflex_mode == "cmlite",
         "bc_checkpoint": None if args.mode == "teacher" else {
             "path": str(args.bc_checkpoint.resolve()), "sha256": _sha256(args.bc_checkpoint),
@@ -510,6 +563,7 @@ def main(argv: list[str] | None = None) -> int:
         "REF2DEX_CMLITE_SHA256": args.cmlite_sha256,
         "REF2DEX_CMLITE_BC_MODE": args.mode,
         "REF2DEX_GRIP_REFLEX_MODE": args.grip_reflex_mode,
+        "REF2DEX_RECORD_FIRST_GRIP_CF": "1" if args.record_first_grip_counterfactual else "0",
         "PYTHONPATH": os.pathsep.join((str(ROOT), str(DEXPLORE), env.get("PYTHONPATH", ""))),
     })
     if args.mode in ("router", "ensemble"):
@@ -541,6 +595,12 @@ def main(argv: list[str] | None = None) -> int:
         sys.argv = [str(DEXPLORE / "dexplore/run.py")] + passthrough
         dexplore_run.main()
         summary = json.loads((args.output / "rollout/summary.json").read_text())
+        if args.record_first_grip_counterfactual:
+            recorded_path = args.output / "rollout/first_grip_counterfactual.pt"
+            if not recorded_path.is_file():
+                raise FileNotFoundError(recorded_path)
+            manifest["first_grip_counterfactual"] = {
+                "path": str(recorded_path.resolve()), "sha256": _sha256(recorded_path)}
         manifest.update(run_status="COMPLETED", completed_at=datetime.now(timezone.utc).isoformat(timespec="seconds"), summary=summary)
         _write(args.output / "run_manifest.json", manifest)
         return 0
