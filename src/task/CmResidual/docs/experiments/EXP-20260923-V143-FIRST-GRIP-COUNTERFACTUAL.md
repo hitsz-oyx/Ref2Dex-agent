@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V143-FIRST-GRIP-COUNTERFACTUAL`
 - branch: `agent/v143-first-grip-counterfactual`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `INCONCLUSIVE_PRESTATE_MISMATCH`
 - official actor checkpoint used: `no`
 
 ## 核心问题与固定设计
@@ -47,3 +47,31 @@ Cm 预测效应为相同 off 干预前状态下两候选的
 审计不用真实结果作为运行时输入，不训练策略或 Cm。
 最多并发GPU5/6两卡；运行代码、配对文件与来源
 SHA 记录在 manifest，产物远低于300GB。
+
+## 结果与因果限制
+
+四个完整回合均正常结束，各臂64/64环境记录了
+首次满足干预条件的状态。seed97 的 off/always
+严格抓取分别45/48，seed98分别49/45（分母均64）。
+seed97 两臂并发 GPU5/6；为排除跨卡差异，seed98
+在同一 GPU5 顺序执行。但首次干预前配对结果为：
+
+| seed | 共同 env | 同进度/元数据 | 严格同状态 |
+| ---: | ---: | ---: | ---: |
+| 97 | 64 | 36 | **1** |
+| 98 | 64 | 36 | **0** |
+
+干预前同一 env 的物体位置均值差约6–7mm，远大于
+本审计欲分辨的0.2mm效果；同 GPU 顺序执行仍未
+消除。只有1个有效样本，远低于预设总计40、每
+seed15的最低配对数，因此**不计算或解释 Cm 的
+反事实动作排序门槛**。唯一有效对的数值不具统计
+意义；审计 JSON 仅保留供复现。现有证据不能区分
+模拟器非确定性、未记录的初始状态差异或其他运行
+因素，需下一轮重跑同一 `off` 策略审计重现性。
+
+这还限制 V1.40/V1.41 中按相同 env_id 的“修复/
+破坏”描述：相同起始帧不等于同一中途物理状态，
+不能把那些数字解释为逐环境动作的因果效应。
+跨 seed 聚合成功率仍是策略表现的描述性比较，
+但差异显著性需要更多重复及噪声基线。
