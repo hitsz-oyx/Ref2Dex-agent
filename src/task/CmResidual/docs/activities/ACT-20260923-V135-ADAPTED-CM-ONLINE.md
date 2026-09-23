@@ -30,3 +30,9 @@ checkpoint 恢复，`REF2DEX_LEARNING_RATE 1e-05`，Cm-on 产生
 从**原始 e160** checkpoint 重新启动，epoch 预算到 180，
 保存 e170/e180。新 run manifest 为 `STARTED`，工程 smoke
 checkpoint 不参与正式训练。
+
+正式两臂均正常到 e180，run manifest 为 `COMPLETED`，e170/e180
+checkpoint 已保存；`train.log` 与训练摘要仍在各 run 目录。
+GPU 5/6 已释放并用于 seed77 的完整轨迹 pilot：每臂依次评估
+e170、e180，评估 manifest 先记 `STARTED`，终态和严格抓取数
+完成后填入。选择/停损仍完全遵循预注册规则。
