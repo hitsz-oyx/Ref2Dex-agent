@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V134-BALANCED-CM`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `SUPPORTED`（预注册离线门槛；在线收益仍未证实）
 - official actor checkpoint used: `no`
 
 ## 假设与预注册门禁
@@ -34,3 +34,30 @@ seed5909/76 更新模型。一个 GPU 6，训练输出预计 <100 MB。
 总共最多两 GPU。源 checkpoint 均为本地自训练、训练 run manifest
 已完成；GPU 被占、源/输入 SHA 漂移或 schema 不符即停。
 单步模型离线过门不等同于最终抓取提升。
+
+## 结果与边界
+
+V1.34 训练 30 epoch 正常完成，checkpoint
+`outputs/CmLite/V1.34/balanced_s1x16_s3highlift_s74/best.pt`，SHA256
+`1146025ca88b35f39a5fad7f5f899a88cca34b774fa9abe0c0d6f5d72519e1b8`；
+107,012 参数、64 样本 GPU 前向约 0.70 ms（与 V1.29 的 0.53 ms
+不做严格同负载延迟比较）。两条新 seed76 策略评估的完整轨迹严格
+抓取分别为 s3 Cm-off e160 的 23/64、s1 PPO e140 的 33/64。
+筛选首 episode 非终止转移后，离线模型结果为：
+
+| 分布 | 零位移运动 EPE | V1.29 旧 CmLite | V1.33 未平衡 | V1.34 平衡 |
+| --- | ---: | ---: | ---: | ---: |
+| s3 seed76 Cm-off e160 | 9.97 mm | 10.45 mm | 7.46 mm | 7.49 mm |
+| s1 seed76 PPO e140 | 14.91 mm | 17.16 mm | 15.15 mm | 14.87 mm |
+| s1 DAgger seed5909 | 3.31 mm | 2.13 mm | 3.43 mm | 2.00 mm |
+
+s3 seed76 的 V1.34 打乱动作 EPE 为 9.32 mm，比真实动作
+7.49 mm 高 24.3%；相对零位移改善 24.8%，接触 precision
+0.897，均过门。s1 DAgger 重新优于零位移；新 s1 PPO 分布
+也勉强优于零位移（仅 0.05 mm、约 0.3%），按预注册阈值通过，
+但其增益非常弱，不能解释为稳定的跨轨迹预测。该模型允许进入
+下一轮**在线匹配试验**，不允许直接宣称 Cm 改善抓取。
+
+训练 `summary.json`/`metrics.jsonl` 与三份来源的 `source_repeats`
+记录在模型产物中；s3/s1 两个 seed76 评估目录各有
+`run_manifest.json`、转移 SHA 和 `cmlite_audit_{old,v133,v134}.json`。
