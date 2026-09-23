@@ -130,6 +130,8 @@ def main(argv=None) -> None:
                         help="positive frozen-CmLite dense reward coefficient")
     parser.add_argument("--cm-actor-weight-coef", type=float,
                         help="positive frozen-CmLite PPO actor-sample weight coefficient")
+    parser.add_argument("--cm-critic-salience-coef", type=float,
+                        help="frozen-CmLite state salience for normalized PPO critic loss")
     parser.add_argument("--permute-cm-actor-weights", action="store_true",
                         help="placebo: permute Cm weights among active actor samples per step")
     parser.add_argument("--cm-actor-weight-component",
@@ -190,9 +192,9 @@ def main(argv=None) -> None:
     bootstrap_args: list[str] = []
     modes = sum(value is not None for value in (
         args.cm_distill_coef, args.cm_reward_coef, args.cmlite_reward_coef,
-        args.cm_actor_weight_coef))
+        args.cm_actor_weight_coef, args.cm_critic_salience_coef))
     if modes > 1:
-        raise ValueError("Cm-off, Cmv2-reward, CmLite-reward, and Cm-PPO modes are mutually exclusive")
+        raise ValueError("Cm-off, rewards, actor-weight, and critic-salience modes are mutually exclusive")
     if args.permute_cm_actor_weights and args.cm_actor_weight_coef is None:
         raise ValueError("Cm actor-weight permutation requires Cm PPO mode")
     if args.cm_actor_weight_component != "joint" and args.cm_actor_weight_coef is None:
@@ -218,13 +220,15 @@ def main(argv=None) -> None:
     if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
             (args.scratch_resume_checkpoint is not None and
              (not (args.cmlite_reward_coef is not None or args.cm_distill_coef == 0.0 or
-                   args.cm_actor_weight_coef is not None) or
+                   args.cm_actor_weight_coef is not None or
+                   args.cm_critic_salience_coef is not None) or
               not args.scratch_resume_checkpoint.is_file() or
               len(args.scratch_resume_sha256) != 64 or
               _sha256(args.scratch_resume_checkpoint) != args.scratch_resume_sha256))):
         raise ValueError("scratch resume requires CmLite or Cm-off mode and a matching checkpoint SHA256")
     if args.learning_rate is not None and (not (args.cmlite_reward_coef is not None or
-             args.cm_distill_coef == 0.0 or args.cm_actor_weight_coef is not None) or
+             args.cm_distill_coef == 0.0 or args.cm_actor_weight_coef is not None or
+             args.cm_critic_salience_coef is not None) or
             not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
         raise ValueError("learning-rate override requires CmLite or Cm-off mode and a positive finite value")
     ppo_overrides = (args.lr_schedule, args.schedule_type, args.kl_threshold,
@@ -366,6 +370,28 @@ def main(argv=None) -> None:
                                "--scratch-resume-sha256", args.scratch_resume_sha256]
         if args.learning_rate is not None:
             bootstrap_args += ["--learning-rate", str(args.learning_rate)]
+    elif args.cm_critic_salience_coef is not None:
+        if bootstrap.name != "dexplore_cm_critic_salience_rank_bootstrap.py":
+            raise ValueError("Cm critic salience requires its rank bootstrap")
+        if (not math.isfinite(args.cm_critic_salience_coef) or
+                not 0 < args.cm_critic_salience_coef <= 2 or
+                args.actual_epochs is None or args.actual_epochs < 1):
+            raise ValueError("Cm critic salience requires coefficient in (0,2] and actual epochs")
+        if (args.cmlite_checkpoint is None or not args.cmlite_checkpoint.is_file() or
+                not args.cmlite_sha256 or
+                _sha256(args.cmlite_checkpoint) != args.cmlite_sha256):
+            raise ValueError("Cm critic salience requires verified CmLite checkpoint")
+        bootstrap_args = ["--cm-critic-salience-coef", str(args.cm_critic_salience_coef),
+                          "--cmlite-checkpoint", str(args.cmlite_checkpoint.resolve()),
+                          "--cmlite-sha256", args.cmlite_sha256,
+                          "--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
+        bootstrap_args += shared_shaping
+        if args.scratch_resume_checkpoint is not None:
+            bootstrap_args += ["--scratch-resume-checkpoint",
+                               str(args.scratch_resume_checkpoint.resolve()),
+                               "--scratch-resume-sha256", args.scratch_resume_sha256]
+        if args.learning_rate is not None:
+            bootstrap_args += ["--learning-rate", str(args.learning_rate)]
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
@@ -435,6 +461,7 @@ def main(argv=None) -> None:
                   "cm_reward_coef": args.cm_reward_coef,
                   "cmlite_reward_coef": args.cmlite_reward_coef,
                   "cm_actor_weight_coef": args.cm_actor_weight_coef,
+                  "cm_critic_salience_coef": args.cm_critic_salience_coef,
                   "permute_cm_actor_weights": args.permute_cm_actor_weights,
                   "cm_actor_weight_component": args.cm_actor_weight_component,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
