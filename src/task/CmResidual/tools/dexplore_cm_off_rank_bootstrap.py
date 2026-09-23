@@ -32,6 +32,8 @@ def parse_cm_off_args(argv=None):
     parser.add_argument("--lift-fraction", type=float, default=0.0)
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
+    parser.add_argument("--curriculum-backtrack-start", type=int)
+    parser.add_argument("--curriculum-backtrack-end", type=int)
     parser.add_argument("--save-frequency", type=int)
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
@@ -62,6 +64,14 @@ def parse_cm_off_args(argv=None):
              (args.contact_before is None or args.curriculum_anneal_start < 0 or
               args.curriculum_anneal_end <= args.curriculum_anneal_start))):
         raise ValueError("annealing requires a valid contact curriculum and epoch window")
+    if ((args.curriculum_backtrack_start is None) != (args.curriculum_backtrack_end is None) or
+            (args.curriculum_backtrack_start is not None and
+             (args.contact_before is None or args.curriculum_backtrack_start < 0 or
+              args.curriculum_backtrack_end <= args.curriculum_backtrack_start))):
+        raise ValueError("backtracking requires a valid contact curriculum and epoch window")
+    if (args.curriculum_anneal_start is not None and
+            args.curriculum_backtrack_start is not None):
+        raise ValueError("annealing and backtracking are mutually exclusive")
     if args.save_frequency is not None and args.save_frequency < 1:
         raise ValueError("save frequency must be positive")
     if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
@@ -101,6 +111,11 @@ def main(argv=None) -> None:
     if args.curriculum_anneal_start is not None:
         os.environ["REF2DEX_CURRICULUM_ANNEAL_START"] = str(args.curriculum_anneal_start)
         os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
+    if args.curriculum_backtrack_start is not None:
+        os.environ["REF2DEX_CURRICULUM_BACKTRACK_START"] = str(
+            args.curriculum_backtrack_start)
+        os.environ["REF2DEX_CURRICULUM_BACKTRACK_END"] = str(
+            args.curriculum_backtrack_end)
     if args.save_frequency is not None:
         os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
     if args.scratch_resume_checkpoint is not None:

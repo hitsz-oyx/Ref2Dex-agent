@@ -145,6 +145,8 @@ def main(argv=None) -> None:
                         help="fraction of training resets placed near reference lift onset")
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
+    parser.add_argument("--curriculum-backtrack-start", type=int)
+    parser.add_argument("--curriculum-backtrack-end", type=int)
     parser.add_argument("--cm-reward-positive-only", action="store_true")
     parser.add_argument("--cmv2-checkpoint", type=Path)
     parser.add_argument("--cmv2-sha256")
@@ -242,6 +244,14 @@ def main(argv=None) -> None:
              (args.contact_before is None or args.curriculum_anneal_start < 0 or
               args.curriculum_anneal_end <= args.curriculum_anneal_start))):
         raise ValueError("curriculum annealing requires a valid epoch window")
+    if ((args.curriculum_backtrack_start is None) != (args.curriculum_backtrack_end is None) or
+            (args.curriculum_backtrack_start is not None and
+             (args.contact_before is None or args.curriculum_backtrack_start < 0 or
+              args.curriculum_backtrack_end <= args.curriculum_backtrack_start))):
+        raise ValueError("curriculum backtracking requires a valid epoch window")
+    if (args.curriculum_anneal_start is not None and
+            args.curriculum_backtrack_start is not None):
+        raise ValueError("curriculum annealing and backtracking are mutually exclusive")
     shared_shaping = ["--approach-reward-coef", str(args.approach_reward_coef or 0.0),
                       "--held-lift-reward-coef", str(args.held_lift_reward_coef or 0.0),
                       "--lift-progress-reward-coef", str(args.lift_progress_reward_coef),
@@ -323,6 +333,10 @@ def main(argv=None) -> None:
     if args.curriculum_anneal_start is not None:
         bootstrap_args += ["--curriculum-anneal-start", str(args.curriculum_anneal_start),
                            "--curriculum-anneal-end", str(args.curriculum_anneal_end)]
+    if args.curriculum_backtrack_start is not None:
+        bootstrap_args += ["--curriculum-backtrack-start",
+                           str(args.curriculum_backtrack_start),
+                           "--curriculum-backtrack-end", str(args.curriculum_backtrack_end)]
     if args.save_frequency is not None:
         bootstrap_args += ["--save-frequency", str(args.save_frequency)]
     if args.execute:
@@ -387,6 +401,8 @@ def main(argv=None) -> None:
                   "lift_fraction": args.lift_fraction,
                   "curriculum_anneal_start": args.curriculum_anneal_start,
                   "curriculum_anneal_end": args.curriculum_anneal_end,
+                  "curriculum_backtrack_start": args.curriculum_backtrack_start,
+                  "curriculum_backtrack_end": args.curriculum_backtrack_end,
                   "cm_reward_positive_only": args.cm_reward_positive_only,
                   "cmv2_checkpoint": str(args.cmv2_checkpoint.resolve()) if args.cmv2_checkpoint else None,
                   "cmv2_sha256": args.cmv2_sha256,

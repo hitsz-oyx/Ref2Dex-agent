@@ -147,3 +147,26 @@ def test_cm_off_transfer_restore_requires_pinned_scratch_checkpoint(tmp_path, mo
     args = captured["bootstrap_args"]
     assert args[args.index("--scratch-resume-sha256") + 1] == checksum
     assert args[args.index("--learning-rate") + 1] == "1e-05"
+
+
+def test_cm_off_backtrack_curriculum_is_explicitly_forwarded(monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    off = _load("approach_off_backtrack", "dexplore_cm_off_rank_bootstrap.py")
+    launcher = _load("approach_launcher_backtrack", "run_dexplore_v120_ddp.py")
+    base = ["--cm-distill-coef", "0", "--actual-epochs", "182",
+            "--contact-before", "3", "--contact-fraction", "0.5",
+            "--curriculum-backtrack-start", "180",
+            "--curriculum-backtrack-end", "220"]
+    parsed, _ = off.parse_cm_off_args(base)
+    assert (parsed.curriculum_backtrack_start, parsed.curriculum_backtrack_end) == (180, 220)
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        off.parse_cm_off_args(base + ["--curriculum-anneal-start", "40",
+                                      "--curriculum-anneal-end", "80"])
+    captured = {}
+    monkeypatch.setattr(launcher, "torchrun_command",
+                        lambda **kwargs: captured.update(kwargs) or ["echo"])
+    launcher.main(["--gpus", "6", "--dry-run", "--rank-bootstrap",
+                   str(TOOLS / "dexplore_cm_off_rank_bootstrap.py"), *base])
+    args = captured["bootstrap_args"]
+    assert args[args.index("--curriculum-backtrack-start") + 1] == "180"
+    assert args[args.index("--curriculum-backtrack-end") + 1] == "220"
