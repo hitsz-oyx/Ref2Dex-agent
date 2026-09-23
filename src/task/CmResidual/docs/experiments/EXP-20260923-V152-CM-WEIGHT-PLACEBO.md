@@ -2,7 +2,8 @@
 
 - experiment_id: `EXP-20260923-V152-CM-WEIGHT-PLACEBO`
 - branch: `agent/v152-cm-placebo`
-- status: `PREREGISTERED`
+- status: `COMPLETED`
+- conclusion: `INCONCLUSIVE`（整体 Cm policy utility/稳定抓取；预注册样本对应关系门通过，on/off 复制门失败）
 - official actor checkpoint: **never**
 
 ## 前提与待检验问题
@@ -53,3 +54,45 @@ CmLite SHA256
 项目总产物<300GB。用户同期可能修改仓库基本层，训练/评估必须记录
 起始代码提交和关键 DExplore 源码指纹；若评估依赖源码中途变更，停止
 并将受影响矩阵标为无效，不能拼接不同代码版本。
+
+## 固定结果与决策边界
+
+e262 smoke `COMPLETED`，日志 `permuted=true`，权重均值1.205/1.290且有限；
+正式置乱臂从同一 e260 源训练至固定 e300，checkpoint SHA256
+`b0ed3d63080915bb686a70e16a3d21764fdded33b56d0a9d5e612c2eb16d734c`。
+30次 strict/full-first-episode 评估与父 manifest 均 `COMPLETED`，关键
+DExplore/评估源码指纹在每对运行前后保持不变，未使用官方 actor，推理未加载 Cm。
+
+| seed | 原 Cm-on r0/r1 | off r0/r1 | 置乱 r0/r1 | on−置乱/128 | on−off/128 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 124 | 47 / 34 | 38 / 37 | 32 / 33 | +16 | +6 |
+| 125 | 44 / 36 | 35 / 34 | 32 / 34 | +14 | +11 |
+| 126 | 36 / 35 | 37 / 36 | 32 / 30 | +9 | −2 |
+| 127 | 46 / 37 | 37 / 34 | 35 / 42 | +6 | +12 |
+| 128 | 43 / 44 | 39 / 31 | 37 / 38 | +12 | +17 |
+| 合计 | **402/640** | **358/640** | **345/640** | **+57/640 (+8.91pp)** | **+44/640 (+6.88pp)** |
+
+原 Cm-on 对置乱的5个 seed 两次合计均为正；seed 聚类10000次 bootstrap
+双侧95%区间 +6.41至+11.25pp，达到预注册的≥8pp、每 seed 正、
+区间下界>0的**样本对应关系**门。这比 V1.51 的 on/off 比较更能排除
+“只是样本权重边际分布/计算量有用”的解释，但不能分离 CmLite 的
+接触头、位移头、训练数据和权重函数各自作用。
+
+原 Cm-on 对 off 的新 seed 总体为+6.88pp，区间 +2.50至+10.78pp；
+然而未达到预注册≥8pp，且 seed126 为负，故**严格复制门失败**。
+原 Cm-on 十次每次34–47/64，稳定抓取门失败。平均手物接触占比
+on/off/placebo 为0.505/0.547/0.508，平均最大接触抬升
+0.154/0.220/0.188m；抓取成功率差异不能简单归因于更多接触或
+平均最大抬升更高。整 run 含初始化中位耗时66.5/73.5/69.0秒；
+三臂推理均只保留普通 PPO actor，这不是训练阶段 Cm 前向开销测量。
+
+本轮结论只支持：在 s3 单轨迹、固定自训练源和当前 CmLite/PPO
+接法下，**动作-状态对齐的一步模型权重比保持相同边际分布但置乱的
+权重更有利于抓取**。并不支持“所有 seed 均优于 Cm-off”、稳定抓取、
+跨轨迹或原版 Cmv2 几何 token 的作用。依新研究规范，在将此观察升级
+为最终论文 claim 前必须经过 Decision Checkpoint；下一步优先小规模
+稳定性/机制 Probe，而不是自动追加大规模 Validation。
+
+证据：`outputs/CmResidual/agent_v152_eval_matrix/analysis.json`、父/子
+run manifests、两臂 V1.51 与置乱臂 V1.52 e300 checkpoint。正式结果文件
+不纳入 Git，完整指纹由运行 manifest 保存。
