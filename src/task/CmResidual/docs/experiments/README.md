@@ -1,5 +1,6 @@
 # CmResidual Experiments
 
+- [EXP-20260923-V135-ADAPTED-CM-ONLINE](EXP-20260923-V135-ADAPTED-CM-ONLINE.md)：从相同自训练 s3 checkpoint 成对微调，检验适配后低权重 CmLite 奖励的在线增益。
 - [EXP-20260923-V134-BALANCED-CM](EXP-20260923-V134-BALANCED-CM.md)：来源平衡的跨轨迹 CmLite 一步模型与新 seed 离线门禁。
 - [EXP-20260923-V133-CM-ADAPT-HIGHLIFT](EXP-20260923-V133-CM-ADAPT-HIGHLIFT.md)：用高抬升策略转移适配 CmLite，再以未见 seed 检查动作条件一步预测。
 - [EXP-20260923-V132-ONPOLICY-CM-AUDIT](EXP-20260923-V132-ONPOLICY-CM-AUDIT.md)：审计冻结 CmLite 在 s3 微调策略真实转移上的预测质量。
