@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - training code commit: `791381d`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 共同源为 V1.35 自训练 Cm-off s3 e180，源 run manifest
@@ -46,3 +46,9 @@ SHA256 `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`。
 并行启动未见 seeds82/83，run_id 分别
 `eval_s82_e260_full`、`eval_s83_e260_full`；seed84
 将在 GPU 释放后执行。未修改 checkpoint。
+
+三个未见 seed 的 e260 eval manifest 均为 `COMPLETED`：
+seed82/83/84 严格成功40/44/42，每 seed 64 首 episode，
+合计126/192；未达到每 seed≥90% 的稳定门槛。所有九枚
+seed81 网格评估亦为 `COMPLETED`。两臂训练日志与 checkpoint
+保留，GPU5/6 已释放，未删除产物。科学判定见 experiment card。
