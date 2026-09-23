@@ -48,14 +48,34 @@ storage: < 10 MB。优先 1-step/1-sample 工程 smoke，再运行固定 Probe�
 
 ## Result
 
-Status: PENDING
+Status: UNPROMISING（当前 64 样本 / 40 更新配方）
 
-Key evidence: pending
+Key evidence: run `agent_mixed_cm_sim_adapt_40step` 完成，CPU 2 threads、GPU 0、
+约 67 秒，输入 SHA 与提交固定。训练 64 条（运动接触 32 / 非接触 32），
+未见评估 32 条（运动接触 16 / 非接触 16）。
+
+| 接触点流 EPE | 初始 | 10 步 | 20 步 | 40 步 |
+| --- | ---: | ---: | ---: | ---: |
+| 混合预训练 | 34.34 mm | 15.16 mm | 14.89 mm | 10.65 mm |
+| 随机初始化 | 10.44 mm | 10.27 mm | 10.33 mm | 11.22 mm |
+| 零物体运动 | 10.44 mm | 10.44 mm | 10.44 mm | 10.44 mm |
+
+40 步预训练相对 scratch 只低 5.1%，未达 ≥20% 预设门槛，
+且仍未优于零运动。两个模型都未获得有用的物理效应预测。
+非接触样本只有 1/16 被几何交互激活；显式门控后预训练仍有
+0.24mm EPE，零基线约 0.006mm。训练集极小、同轨迹、
+评估 seed 已用于前一冻结迁移 Probe，不能推出预训练一般无用。
 
 ## Decision update
 
-pending
+不扩大当前 V1.3 全量微调，不接 PPO。下一 Decision Probe 应先分开
+“动作→实际手运动”失配与“接触→物体运动”建模：训练/校准可在线使用的
+一步手执行预测，或重设计更小的局部几何 Cm，并在新的未见 seed 上
+与 scratch/零运动对照。混合几何数据可保留作表示预训练，但穿模需
+另做 signed-SDF 质量审计；目前无证据证明它的物理效应标签可信。
 
 ## Artifacts
 
 `src/task/CmResidual/tools/probe_mixed_cm_sim_adapt.py`
+`outputs/CmResidual/agent_mixed_cm_sim_adapt_40step/report.json`
+`outputs/CmResidual/agent_mixed_cm_sim_adapt_40step/run_manifest.json`
