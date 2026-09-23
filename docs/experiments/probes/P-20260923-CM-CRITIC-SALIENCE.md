@@ -6,7 +6,9 @@ date: 2026-09-23
 
 branch: `agent/cm-critic-salience`
 
-status: PLANNED
+status: COMPLETED
+
+code commit: `b8b5cfcfe623b014625cfc97a57e3c3db7935e71`
 
 ## Question and decision
 
@@ -40,4 +42,25 @@ V1.37、corrected_r2 运动输入、PPO/奖励/课程与当前 Cm-off 一致。
 
 ## Result
 
-待运行。
+run_status: `COMPLETED`（1-epoch smoke、训练 1/1、评估 2/2）
+
+conclusion: `PROMISING`（仅此已知困难 seed 的 Probe）
+
+单元测试 11 passed；e261 接线 smoke 完成、checkpoint 存在，Cm
+critic 权重进入日志，无非有限训练。固定 e300 训练正常完成。
+
+| 评估 seed | critic-salience | Cm-off | joint actor 权重参考 |
+| ---: | ---: | ---: | ---: |
+| 133 | 52/64 | 32/64 | 43/64 |
+| 134 | 46/64 | 36/64 | 41/64 |
+| 合计 | **98/128** | **68/128** | **84/128** |
+
+critic−off = +30/128（+23.44pp），两 seed 均正，过预定继续门。
+这不能证明 Cm 对 critic 有独立作用：当前无同结构但置乱/常数显著性
+控制，且困难训练 seed、评估对照已知。下一步先用另一个训练 seed73
+做最小复制；若仍过门，再设计新 seed 的正式 Cm-on/off/placebo 验证。
+
+训练 manifest：`outputs/Dexplore/cm_critic_salience_probe_t74/run_manifest.json`；
+严格评估：该目录下 `eval_s133_e300_full_cmcritic/`、
+`eval_s134_e300_full_cmcritic/`。接线 smoke：
+`outputs/Dexplore/cm_critic_salience_smoke_t74_e261/run_manifest.json`。
