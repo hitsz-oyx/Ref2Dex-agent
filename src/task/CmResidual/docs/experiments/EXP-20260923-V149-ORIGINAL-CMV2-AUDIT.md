@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V149-ORIGINAL-CMV2-AUDIT`
 - branch: `agent/v149-cmv2-audit`
-- run_status: `NOT_STARTED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（原版 Cmv2 + 名义 PD 目标手流在当前 s3 分布的离线一步预测门槛）
 - official actor checkpoint used: `no`
 
 ## 研究问题与冻结输入
@@ -59,3 +59,49 @@ EPE 比真实动作高≥10%，并有至少10%样本激活
 
 新增产物<1GB，总产物<300GB；外部数据只读，
 GPU5占用>1GiB时不启动，也不触碰他人进程。
+
+## 固定样本结果
+
+第一轮 smoke 在结果文件创建前因审计脚本引用旧
+CmDecoder 研究模块、缺少无关依赖而退出，未调用
+原版模型。将姿态差运算隔离到审计脚本并通过
+2项单元测试后，以新代码 commit `259496e`
+重跑8样本 smoke，strict checkpoint 加载、
+名义手流、finite 输出和 GPU 内存门均通过。
+正式 256 样本 run manifest `COMPLETED`，
+固定抽样为每 seed 接触/无接触各64。
+
+| seed | 接触子集 | 零位移 EPE | 原版 Cmv2 EPE | CmLite EPE | Cmv2 打乱动作 EPE | 有效 token |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 95 | 64 | 5.360 mm | **39.048 mm** | 3.477 mm | 45.192 mm | 93.8% |
+| 96 | 64 | 10.349 mm | **52.739 mm** | 6.748 mm | 52.779 mm | 96.9% |
+
+无接触子集原版 Cmv2 EPE 为11.101/7.999 mm，
+零位移7.609/4.848 mm，CmLite9.122/5.737 mm；
+全样本原版 Cmv2 25.075/30.369 mm，CmLite
+6.299/6.242 mm，零位移6.485/7.599 mm。
+原版在接触子集对零位移是显著退步，不满足
+预注册≥20%改善。打乱动作在 seed95 的接触
+子集使原版 EPE 增15.7%，seed96 仅增0.08%，
+第二个动作敏感门也失败。token 激活则过门，
+说明不是简单的“没看到接触”。
+
+同卡同脚本在 microbatch8 的中位 GPU 时间：
+原版几何构造约36.7/38.3 ms，Cmv2 前向约
+54.6/55.3 ms；CmLite 前向约2.6/2.3 ms。
+这是脚本微批延迟，不应外推成整策略帧率。
+参数量原版309,688、CmLite107,012。
+
+严格结论是**这个冻结的 V1.3 权重 + Inspire URDF
+名义 PD 目标手流适配**在 s3 自训练 PPO 状态上
+不能准确预测一步物体位移，且延迟偏高；不能
+据此断言原版 Cmv2 架构或跨手表征无用。一个
+可检验的解释是名义 PD 目标手流远大于一步内
+实际手流，另一个是 MANO→Inspire 输入分布失配。
+下一轮应离线用真实 `next_q` 生成 oracle 手流
+诊断来源；oracle 输入不可用于在线 PPO 推理。
+原版 Cmv2 还没有通过 matched PPO 抓取消融，
+本离线审计也不构成论文的在线增益证据。
+
+运行证据在 `outputs/CmResidual/agent_v149_cmv2_audit_{smoke,}/`，
+输入 checkpoint 是到外部项目的只读软链接。
