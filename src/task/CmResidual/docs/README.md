@@ -6,6 +6,7 @@ interaction residual。canonical owner 为 `src/task/CmResidual/`；IsaacGym ven
 
 ## 当前状态
 
+- V1.28 单轨迹稳定性：不使用官方 DExplore actor，由 reference-action BC 与 CmLite-reward scratch PPO 时点组成的固定整段路由，在规则冻结后的全新 seeds60–64 上分别达到 `61/64、62/64、63/64、59/64、62/64`，合计 `307/320=95.94%`，每个 seed 均超过 90%。该结论只覆盖 `s1_airplane_lift`；多轨迹、跨手和 Cm 的 matched 因果消融仍未完成。详见 [Activity](activities/ACT-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md) 与 [experiment](experiments/EXP-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md)。
 - `work_version`: `V1.20`
 - V1.20e：已完成 `4×2048`、local minibatch `4096` / global `16384` 的四卡容量 smoke；从零正式训练在用户请求下于 epoch 638 停止，未遇 OOM/NCCL/non-finite。epoch-500 checkpoint 的固定 seed 单环境 rollout 最大 lift 为 `0.0 m`，该窄行为假设为 `REFUTED`；训练未完成 5000 epoch，收敛和泛化仍为 `INCONCLUSIVE`。详见 [Activity](activities/ACT-20260919-204049-CMRESIDUAL-V120E-TRAIN-STOPPED.md) 与 [experiment](experiments/EXP-20260919-204049-CMRESIDUAL-V120E-E500-LIFT.md)。
 - V1.20 官方 checkpoint 单环境诊断：当前 vendor/runtime、`coordfix_v4` reconstructed baseline、GPU 0、1 env、seed 5909 的 rollout 成功加载官方 `inspire.pth` 并出现 `0.272567 m` 最大瞬时抬升；末帧回到初始高度附近。它支持这个精确组合的官方 policy 评估入口，不是稳定抓取/放置、泛化、作者 producer 等价性或正式训练结论。详见 [Activity](activities/ACT-20260919-175215-CMRESIDUAL-V120-OFFICIAL-SINGLE-LIFT.md) 与 [experiment](experiments/EXP-20260919-175215-CMRESIDUAL-V120-OFFICIAL-SINGLE-LIFT.md)。
