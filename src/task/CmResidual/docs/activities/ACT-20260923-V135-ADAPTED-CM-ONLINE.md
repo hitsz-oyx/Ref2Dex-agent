@@ -22,3 +22,11 @@ Cm-on GPU5、Cm-off GPU6，各先 e162 smoke，再从同一源正式
 horizon32、minibatch256、学习率 `1e-5`，各只跑 2 epoch，
 预算到 e162。各 run 的 `run_manifest.json` 记录精确命令、
 输入/模型与资源；smoke 只验接线，不用于效果判定。
+
+两个 smoke manifest 均为 `COMPLETED`；日志确认从同一 e160
+checkpoint 恢复，`REF2DEX_LEARNING_RATE 1e-05`，Cm-on 产生
+系数 1.0 的模型奖励。正式 run `agent_v135_s3_adaptcm_s70_e180`
+（GPU 5）和 `agent_v135_s3_cmoff_s70_e180`（GPU 6）已各自
+从**原始 e160** checkpoint 重新启动，epoch 预算到 180，
+保存 e170/e180。新 run manifest 为 `STARTED`，工程 smoke
+checkpoint 不参与正式训练。
