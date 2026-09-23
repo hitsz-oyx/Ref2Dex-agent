@@ -48,15 +48,24 @@ GPU: 1 张真正空闲卡；wall: <= 60 min；输出 < 100 MB。
 
 ## Result
 
-Status: PENDING
+Status: PENDING (GPU physical-pair probe has not run)
 
-Key evidence: pending
+Key evidence: collector code `3e520c6` passes 3 CPU unit tests and Python
+syntax checks. `agent_paired_cpu_smoke_s145_e260` FAILED before the first
+simulation step: DExplore `_load_table` calls `.to('cuda')` even when CPU
+simulation and CPU policy are requested. This is an engineering limitation,
+not evidence for or against the physical-pair hypothesis. All 8 physical
+GPUs were occupied by other users at the attempted smoke time.
 
 ## Decision update
 
-pending
+Do not edit DExplore's basic data loader merely for this smoke. Wait for a
+truly unoccupied GPU and run the fixed 16-env GPU smoke; if none becomes
+available, report the resource blocker rather than treating observational
+action shuffles as physical counterfactuals.
 
 ## Artifacts
 
 `src/task/CmResidual/paired_sim_step.py`
 `third_party/DExplore/dexplore/evaluate_paired.py`
+`outputs/CmResidual/agent_paired_cpu_smoke_s145_e260/run_manifest.json`

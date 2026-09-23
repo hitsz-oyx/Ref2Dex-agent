@@ -1113,3 +1113,17 @@
 
 - 没有暂存 `docs/current_versions.yaml`、任何用户代码、Task 日志、计划、指导、数据、cache、output 或 checkpoint。
 - 机器门禁和 CI 可通过删除本阶段新增的三个文件回滚；第一阶段治理文件和用户既有工作树改动保持独立。
+
+## 2026-09-24 00:48 +0800 — 配对物理动作采样器工程 smoke
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `3e520c61b97107d09753780bc193760cf311f71c`
+- run_id: `agent_paired_cpu_smoke_s145_e260`
+- run_status: `FAILED` (在第一步仿真前)
+- resources: CPU policy + CPU PhysX, GPU 0, 2 environments, 600s wall cap, 100MB output cap
+- manifest: `outputs/CmResidual/agent_paired_cpu_smoke_s145_e260/run_manifest.json`
+- input: 自训练 e260 actor SHA `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`；s3 motion manifest SHA `2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d30725f038`
+- last step: 0；无 pair、无科学指标、无 checkpoint
+- failure: DExplore `_load_table` 在 CPU 模式仍显式 `.to('cuda')`，CUDA 不可见时抛 `RuntimeError: No CUDA GPUs are available`。
+- verification: 采样器 3 个 CPU 单测通过，`py_compile` 通过；本工程 smoke 只暴露 CPU 兼容限制，不检验同状态物理反事实假设。
+- next: 等真正空闲 GPU 后以固定代码提交做 16-env GPU smoke；不占用他人的 8 张在用卡。
