@@ -28,3 +28,11 @@ SHA 启动两 epoch 接线 smoke，各自 manifest 初态 `STARTED`。
 e180 checkpoint 启动，预算80 epoch至 e260，保存
 e200/e220/e240/e260。各 run manifest 为 `STARTED`，
 不从 smoke checkpoint 继续。
+
+正式两臂均正常完成到 e260，run manifest `COMPLETED`，
+e200/e220/e240/e260 checkpoint 均存在；回启课程日志在
+e190/e200/e210/e220 依次记录 0.25/0.5/0.75/1.0。
+GPU 5/6 已释放并开始 seed81 完整轨迹门禁：GPU5 先评估
+共同源 e180，GPU6 顺序评估回启课程臂四枚 checkpoint；
+源评估完成后 GPU5 评估标准继续臂四枚。所有评估
+`run_manifest.json` 记录原始策略 checkpoint SHA、输入与口径。
