@@ -33,6 +33,8 @@ alt 为 base 的腕部 z 命令 +0.1（clamp 到合法范围）。
 每次恢复完整 actor-root 与 DOF 状态，严格检查恢复误差、
 同动作重复误差、动作实际差异和物体一步差异。
 只在通过重复性门后才解释动作差。工程 smoke 先取一个 schedule step。
+GPU 忙时可运行 2 环境 CPU-only 工程 smoke，结果仅检查采样器能否运行，
+不能作为上述 GPU 物理反事实主结论。
 
 ## Budget
 

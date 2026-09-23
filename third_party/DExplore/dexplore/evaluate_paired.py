@@ -147,6 +147,7 @@ def main():
     parser.add_argument("--paired-output", type=Path, required=True)
     parser.add_argument("--paired-schedule", type=int, action="append", required=True)
     parser.add_argument("--paired-delta-z", type=float, default=.1)
+    parser.add_argument("--paired-cpu-smoke", action="store_true")
     args, remaining = parser.parse_known_args()
     if (args.paired_output.exists() or args.paired_output.with_suffix(".json").exists() or
             not args.paired_schedule or len(set(args.paired_schedule)) != len(args.paired_schedule) or
@@ -160,13 +161,21 @@ def main():
             sha256(MOTION_MANIFEST) != MOTION_MANIFEST_SHA256):
         raise ValueError("pinned self-trained actor or motion source drift")
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-    if not visible.isdigit():
-        raise RuntimeError("paired evaluation requires one explicit physical CUDA_VISIBLE_DEVICES index")
-    memory = int(subprocess.check_output([
-        "nvidia-smi", f"--id={visible}", "--query-gpu=memory.used",
-        "--format=csv,noheader,nounits"], text=True).strip())
-    if memory > 1024:
-        raise RuntimeError(f"physical GPU{visible} already occupied: {memory} MiB")
+    if args.paired_cpu_smoke:
+        if (argument_value(remaining, "--sim_device") != "cpu" or
+                argument_value(remaining, "--rl_device") != "cpu" or
+                "--use_gpu" in remaining or "--use_gpu_pipeline" in remaining):
+            raise RuntimeError("CPU smoke requires CPU simulation, CPU policy, no GPU flags")
+        physical_gpu = None
+    else:
+        if not visible.isdigit():
+            raise RuntimeError("paired evaluation requires one explicit physical CUDA_VISIBLE_DEVICES index")
+        memory = int(subprocess.check_output([
+            "nvidia-smi", f"--id={visible}", "--query-gpu=memory.used",
+            "--format=csv,noheader,nounits"], text=True).strip())
+        if memory > 1024:
+            raise RuntimeError(f"physical GPU{visible} already occupied: {memory} MiB")
+        physical_gpu = int(visible)
     args.paired_output.parent.mkdir(parents=True, exist_ok=True)
     manifest_path = args.paired_output.parent / "run_manifest.json"
     if manifest_path.exists():
@@ -176,7 +185,8 @@ def main():
                 "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                        cwd=ROOT, text=True).strip(),
                 "schema": "ref2dex.paired_sim_actions.v1",
-                "physical_gpu": int(visible), "max_gpu_count": 1,
+                "physical_gpu": physical_gpu, "max_gpu_count": 0 if args.paired_cpu_smoke else 1,
+                "cpu_smoke_only": args.paired_cpu_smoke,
                 "wall_budget_minutes": 60, "output_budget_mb": 100,
                 "stop_rule": "input drift, restore/replay error, GPU conflict or wall budget",
                 "checkpoint_sha256": CHECKPOINT_SHA256,
