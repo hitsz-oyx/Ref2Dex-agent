@@ -1,0 +1,7 @@
+{
+  "route_map": {
+    "0": "back260"
+  },
+  "description": "V1.45 constant whole-episode self-trained back260 PPO baseline; nearest-frame routing selects back260 for every start frame",
+  "official_policy_checkpoint": null
+}
