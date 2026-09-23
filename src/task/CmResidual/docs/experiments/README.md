@@ -1,7 +1,8 @@
 # CmResidual Experiments
 
+- [EXP-20260923-V131-S1-SOURCE-SCAN](EXP-20260923-V131-S1-SOURCE-SCAN.md)：扫描自训练 s1 checkpoint 对 s3 的零样本迁移，检验源策略选择。
 - [EXP-20260923-V130-S1-TO-S3-FINETUNE](EXP-20260923-V130-S1-TO-S3-FINETUNE.md)：从自训练 s1 PPO checkpoint 出发，在 s3 上做 SHA 锁定的 Cm-on/off 匹配微调。
-- [EXP-20260923-V129-S3-TRANSFER](EXP-20260923-V129-S3-TRANSFER.md)：第二条 GRAB 轨迹上的旧 Cm 失效、跨轨迹 CmLite 适配与正在进行的 Cm-on/off 配对训练。
+- [EXP-20260923-V129-S3-TRANSFER](EXP-20260923-V129-S3-TRANSFER.md)：第二条 GRAB 轨迹上的旧 Cm 失效、跨轨迹 CmLite 适配与 Cm-on/off 配对训练。
 - [EXP-20260923-V128-ROBUST-SINGLE-TRAJECTORY](EXP-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md)：固定整段策略路由在未见 seeds60–64 上达到 307/320，逐 seed 均超过 90%。
 - [EXP-20260923-V128-PPO-STABILITY-BATCH-EVAL](EXP-20260923-V128-PPO-STABILITY-BATCH-EVAL.md)：adaptive-KL、mini-epochs 2 与 CmLite 在线候选替换的严格反证。
 - [EXP-20260923-CMLITE-BC-PROPOSAL](EXP-20260923-CMLITE-BC-PROPOSAL.md)：单步 CmLite 在 DAgger 转移上有预测增益，但在线动作替换尚未改善抬升。

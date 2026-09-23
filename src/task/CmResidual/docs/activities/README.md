@@ -1,5 +1,6 @@
 # CmResidual Activities
 
+- [ACT-20260923-V131-S1-SOURCE-SCAN](ACT-20260923-V131-S1-SOURCE-SCAN.md)：扫描自训练 s1 策略的 s3 零样本迁移并记录严格门禁。
 - [ACT-20260923-V130-S1-TO-S3-FINETUNE](ACT-20260923-V130-S1-TO-S3-FINETUNE.md)：从 SHA 锁定的自训练 s1 PPO checkpoint 恢复，进行 s3 上的 Cm-on/off 成对微调。
 - [ACT-20260923-V129-S3-TRANSFER](ACT-20260923-V129-S3-TRANSFER.md)：s3 数据、CmLite 适配、GPU 5/6 配对运行与终态入口。
 - [ACT-20260923-V128-ROBUST-SINGLE-TRAJECTORY](ACT-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md)：无官方 actor 的固定整段策略路由在全新 seeds60–64 上逐 seed 超过 90%，单轨迹稳定性门通过。
