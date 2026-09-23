@@ -461,6 +461,11 @@ def main(argv=None) -> None:
             "runtime_assets": runtime_assets,
             "output_dir": str(output), "config": str(output / "config.json"),
             "train_log": str(output / "train.log"), "seed": args.seed,
+            "budget": {"actual_epochs": args.actual_epochs or args.max_iterations,
+                       "num_envs_per_rank": args.num_envs,
+                       "max_concurrent_gpus": len(gpus),
+                       "output_budget_gb": 20},
+            "stop_rule": "fixed epoch budget; stop on input/config error, non-finite training, or GPU conflict",
         }
         _write_json(manifest_path, run_manifest)
         try:
