@@ -134,7 +134,7 @@ def main(argv=None) -> None:
                         help="placebo: permute Cm weights among active actor samples per step")
     parser.add_argument("--cm-actor-weight-component",
                         choices=("joint", "contact_rank", "effect_rank",
-                                 "effect_action_shuffled_rank"), default="joint",
+                                 "effect_action_shuffled_rank", "signed_up_rank"), default="joint",
                         help="assign the same active joint-weight multiset by a component rank")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")

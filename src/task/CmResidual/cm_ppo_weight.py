@@ -25,6 +25,16 @@ def effect_actor_weight(contact_probability: torch.Tensor,
     return (1.0 + coefficient * contact_probability * effect).detach()
 
 
+def signed_up_rank_score(delta_world: torch.Tensor,
+                         effect_scale_m: float = 0.003) -> torch.Tensor:
+    """Rank predicted upward motion, excluding predicted downward motion."""
+    if delta_world.ndim != 2 or delta_world.shape[1] != 3 or effect_scale_m <= 0:
+        raise ValueError("invalid signed effect rank input")
+    if not torch.isfinite(delta_world).all():
+        raise FloatingPointError("non-finite Cm predicted effect")
+    return (delta_world[:, 2] / effect_scale_m).clamp(0, 1).detach()
+
+
 def permute_active_weights(weights: torch.Tensor, actor_mask: torch.Tensor,
                            generator: torch.Generator) -> torch.Tensor:
     """Placebo: retain each step's active-weight multiset, break sample alignment."""

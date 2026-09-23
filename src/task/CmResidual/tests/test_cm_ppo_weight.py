@@ -4,7 +4,7 @@ import torch
 
 from src.task.CmResidual.cm_ppo_weight import (
     align_active_weight_multiset, effect_actor_weight, permute_active_actions,
-    permute_active_weights,
+    permute_active_weights, signed_up_rank_score,
 )
 
 
@@ -18,6 +18,13 @@ def test_component_rank_keeps_active_multiset_and_inactive_samples():
     assert ranked[2] == weights[2]
     assert ranked[1] == 1.1
     assert ranked[4] == 1.8
+
+
+def test_signed_up_rank_excludes_predicted_downward_motion():
+    delta = torch.tensor([[0., 0., -.006], [0., 0., 0.],
+                          [0., 0., .0015], [0., 0., .006]])
+    torch.testing.assert_close(signed_up_rank_score(delta),
+                               torch.tensor([0., 0., .5, 1.]))
 
 
 def test_action_shuffle_preserves_active_multiset_and_inactive_samples():

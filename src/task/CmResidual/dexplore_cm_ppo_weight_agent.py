@@ -9,7 +9,7 @@ import torch
 from src.task.CmResidual.cmlite import FrozenCmLite
 from src.task.CmResidual.cm_ppo_weight import (
     align_active_weight_multiset, effect_actor_weight, permute_active_actions,
-    permute_active_weights,
+    permute_active_weights, signed_up_rank_score,
 )
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 
@@ -27,7 +27,8 @@ class DExploreCmPpoWeightAgent(DExploreApproachAgent):
             "REF2DEX_CM_ACTOR_WEIGHT_PERMUTE", "0") == "1"
         self.component_mode = os.environ.get("REF2DEX_CM_ACTOR_WEIGHT_COMPONENT", "joint")
         if self.component_mode not in (
-                "joint", "contact_rank", "effect_rank", "effect_action_shuffled_rank"):
+                "joint", "contact_rank", "effect_rank", "effect_action_shuffled_rank",
+                "signed_up_rank"):
             raise ValueError("invalid Cm PPO weight component mode")
         if self.permute_cm_weights and self.component_mode != "joint":
             raise ValueError("permuted placebo only supports joint component mode")
@@ -62,9 +63,12 @@ class DExploreCmPpoWeightAgent(DExploreApproachAgent):
                     self._cm_weight_generator)
                 score_prediction = self.cmlite.predict(
                     task._dof_pos, shuffled_action, task._target_states)
-            score = (score_prediction["contact_probability"] if
-                     self.component_mode == "contact_rank" else
-                     score_prediction["delta_world"][:, 2].abs().div(0.003).clamp(0, 1))
+            if self.component_mode == "contact_rank":
+                score = score_prediction["contact_probability"]
+            elif self.component_mode == "signed_up_rank":
+                score = signed_up_rank_score(score_prediction["delta_world"])
+            else:
+                score = score_prediction["delta_world"][:, 2].abs().div(0.003).clamp(0, 1)
             weights = align_active_weight_multiset(
                 weights, score, result["rand_action_mask"])
         if self.permute_cm_weights:
