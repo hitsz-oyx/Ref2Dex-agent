@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V131-S1-SOURCE-SCAN`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（扫描网格中不存在优于 e140 的直接迁移源）
 - official actor checkpoint used: `no`
 
 ## 假设与冻结设计
@@ -28,3 +28,26 @@ seeds 72、73 上复评；否则停止，不启动以此为源的新训练。
 比例，辅以平均最大接触抬升。seed 71 用于挑选，seed 72、73 才是
 选中 checkpoint 的独立复核；不能把 seed 71 扫描最大值视为
 泛化估计。此实验只考察源选择，不证明 Cm 有用。
+
+## 结果与停损
+
+同一 s3 seed 71 完整轨迹门禁：
+
+| 自训练 s1 checkpoint epoch | 严格成功 |
+| ---: | ---: |
+| 100 | 0/64 |
+| 120 | 0/64 |
+| 130 | 0/64 |
+| 140（V1.29 已评估基线） | 2/64 |
+| 150 | 0/64 |
+| 160 | 1/64 |
+| 170 | 0/64 |
+| 180 | 0/64 |
+| 200 | 0/64 |
+
+预注册的八个新增 run manifest 均为 `COMPLETED`，其 checkpoint SHA、
+输入 SHA、评估代码提交和结果各在源 run 的
+`eval_s71_e{epoch}_full_s3_source_scan/` 下。没有候选超过 e140，
+故不执行 seed 72/73 的下一阶段，也不以这些候选启动新微调。
+这只排除了当前 s1 run 的该 checkpoint 网格，不能推断所有可能的
+自训练源策略均无迁移性。

@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - evaluation code commit: `fbf717b`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 输入是 V1.29 s3 重建数据 `corrected_manifest_r2.json`；使用现有
@@ -19,3 +19,8 @@
 `eval_s71_e{epoch}_full_s3_source_scan`。两进程各运行一枚 checkpoint
 一次，预定首轮最多八次评估、约十分钟。各评估目录创建时标记
 `STARTED`，完成后由评估器写入 `COMPLETED` 和结果。
+
+八枚 checkpoint 的 seed 71 完整轨迹评估全部正常完成；最高为 e160
+的 1/64，仍低于原 e140 的 2/64，触发停损。评估终态、严格指标
+与 checkpoint SHA 位于对应 `run_manifest.json`，详细结果见
+experiment card。GPU 5/6 已释放；本轮没有训练、没有删除产物。
