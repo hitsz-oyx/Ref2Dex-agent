@@ -28,6 +28,21 @@ def test_compact_features_are_49d_and_quaternion_sign_invariant():
     assert first.shape == (2, 49)
 
 
+def test_relative_wrist_features_ignore_scene_translation():
+    q, action, state = torch.randn(3, 18), torch.randn(3, 18), _state(3)
+    state[:, :3] = torch.randn(3, 3)
+    first = compact_features(q, action, state, "relative_wrist_v1")
+    shift = torch.tensor([0.3, -0.2, 0.5])
+    shifted_q, shifted_state = q.clone(), state.clone()
+    shifted_q[:, :3] += shift
+    shifted_state[:, :3] += shift
+    torch.testing.assert_close(
+        compact_features(shifted_q, action, shifted_state, "relative_wrist_v1"),
+        first, atol=1e-6, rtol=1e-6)
+    assert first.shape == (3, 49)
+    assert torch.equal(first[:, 36:39], torch.zeros(3, 3))
+
+
 def test_local_world_translation_round_trip():
     state = _state(2)
     state[1, 5:7] = torch.tensor([2 ** -0.5, 2 ** -0.5])

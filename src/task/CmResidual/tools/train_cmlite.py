@@ -13,7 +13,7 @@ import torch
 import torch.nn.functional as F
 
 from src.task.CmResidual.cmlite import (
-    SCHEMA, CmLite, compact_features, local_translation_target,
+    SCHEMA, FEATURE_MODES, CmLite, compact_features, local_translation_target,
 )
 
 
@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--width", type=int, default=128)
     parser.add_argument("--blocks", type=int, default=3)
+    parser.add_argument("--feature-mode", choices=FEATURE_MODES, default="absolute_v1")
     parser.add_argument("--holdout-fraction", type=float, default=0.1)
     return parser.parse_args()
 
@@ -49,9 +50,10 @@ def load_transition(path: str) -> dict[str, torch.Tensor]:
     return result
 
 
-def prepare(payload: dict[str, torch.Tensor]) -> tuple[torch.Tensor, ...]:
+def prepare(payload: dict[str, torch.Tensor],
+            feature_mode: str = "absolute_v1") -> tuple[torch.Tensor, ...]:
     features = compact_features(payload["q"].float(), payload["action"].float(),
-                                payload["object_state"].float())
+                                payload["object_state"].float(), feature_mode)
     target = local_translation_target(payload["object_state"].float(),
                                       payload["next_object_state"].float())
     contact = (payload["hand_contact"].bool() &
@@ -118,7 +120,7 @@ def main() -> None:
     if device.type == "cuda":
         torch.cuda.set_device(device)
 
-    prepared_train = [prepare(load_transition(path)) for path in args.train]
+    prepared_train = [prepare(load_transition(path), args.feature_mode) for path in args.train]
     source_counts = dict(zip(args.train, [item[0].shape[0] for item in prepared_train]))
     generator = torch.Generator().manual_seed(args.seed)
     train_parts, holdout_parts = [], []
@@ -129,7 +131,7 @@ def main() -> None:
         train_parts.append(tuple(value[order[count:]] for value in item))
     train = concatenate(train_parts)
     holdout = concatenate(holdout_parts) if args.holdout_fraction else None
-    external = [(path, prepare(load_transition(path))) for path in args.val]
+    external = [(path, prepare(load_transition(path), args.feature_mode)) for path in args.val]
 
     feature_mean, feature_std = train[0].mean(0), train[0].std(0).clamp_min(1e-6)
     target_mean, target_std = train[1].mean(0), train[1].std(0).clamp_min(1e-5)
@@ -201,6 +203,7 @@ def main() -> None:
     torch.save({
         "schema": SCHEMA,
         "model_config": {"width": args.width, "blocks": args.blocks},
+        "feature_mode": args.feature_mode,
         "model": best_payload,
         **{key: value.cpu() for key, value in stats.items()},
         "train_sources": args.train,

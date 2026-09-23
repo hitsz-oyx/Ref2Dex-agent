@@ -34,6 +34,7 @@ def proximity_trust(gap_m: torch.Tensor, max_gap_m: float) -> torch.Tensor:
         raise ValueError("surface gap must be nonnegative")
     return (gap_m <= max_gap_m).to(gap_m.dtype)
 INPUT_DIM = 49
+FEATURE_MODES = ("absolute_v1", "relative_wrist_v1")
 
 
 def _quat_rotate_inverse_xyzw(quat: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
@@ -49,15 +50,24 @@ def _quat_rotate_xyzw(quat: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 
 
 def compact_features(q: torch.Tensor, action: torch.Tensor,
-                     object_state: torch.Tensor) -> torch.Tensor:
+                     object_state: torch.Tensor,
+                     feature_mode: str = "absolute_v1") -> torch.Tensor:
     if (q.ndim != 2 or q.shape != action.shape or q.shape[1] != 18 or
             object_state.shape != (q.shape[0], 13)):
         raise ValueError("CmLite expects q/action [B,18] and object_state [B,13]")
     if not (torch.isfinite(q).all() and torch.isfinite(action).all() and
             torch.isfinite(object_state).all()):
         raise FloatingPointError("CmLite inputs must be finite")
+    if feature_mode not in FEATURE_MODES:
+        raise ValueError(f"unknown CmLite feature mode: {feature_mode}")
     quat = F.normalize(object_state[:, 3:7], dim=-1, eps=1e-8)
     quat = torch.where(quat[:, 3:4] < 0, -quat, quat)
+    if feature_mode == "relative_wrist_v1":
+        # DExplore's first three DOFs are the wrist root in world coordinates.
+        # A shifted table/object/hand scene should have identical model input.
+        relative_q = torch.cat((q[:, :3] - object_state[:, :3], q[:, 3:]), dim=-1)
+        return torch.cat((relative_q, action, torch.zeros_like(object_state[:, :3]),
+                          quat, object_state[:, 7:]), dim=-1)
     return torch.cat((q, action, object_state[:, :3], quat, object_state[:, 7:]), dim=-1)
 
 
@@ -137,6 +147,9 @@ class FrozenCmLite:
         if payload.get("schema") != SCHEMA:
             raise ValueError("CmLite checkpoint schema mismatch")
         config = payload["model_config"]
+        self.feature_mode = payload.get("feature_mode", "absolute_v1")
+        if self.feature_mode not in FEATURE_MODES:
+            raise ValueError(f"unknown CmLite checkpoint feature mode: {self.feature_mode}")
         self.model = CmLite(**config).to(device).eval()
         self.model.load_state_dict(payload["model"], strict=True)
         self.model.requires_grad_(False)
@@ -148,7 +161,7 @@ class FrozenCmLite:
     @torch.inference_mode()
     def predict(self, q: torch.Tensor, action: torch.Tensor,
                 object_state: torch.Tensor) -> dict[str, torch.Tensor]:
-        features = compact_features(q, action, object_state)
+        features = compact_features(q, action, object_state, self.feature_mode)
         output = self.model((features - self.feature_mean) / self.feature_std)
         local = output["delta_local_normalized"] * self.target_std + self.target_mean
         return {
