@@ -58,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--motion-root-override", type=Path)
     parser.add_argument("--input-manifest-override", type=Path)
     parser.add_argument("--tag", help="short output suffix for a transfer probe")
+    parser.add_argument("--selector-cmlite-checkpoint", type=Path)
+    parser.add_argument("--selector-cmlite-sha256")
+    parser.add_argument("--work-version", default="V1.29")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
     parser.add_argument("--dry-run", action="store_true")
@@ -69,8 +72,16 @@ def main(argv: list[str] | None = None) -> int:
     override = args.motion_root_override is not None
     if override != (args.input_manifest_override is not None):
         raise ValueError("motion root and input manifest overrides must be paired")
-    if override != (args.tag is not None):
+    if override and args.tag is None:
         raise ValueError("a transfer probe requires a unique output tag")
+    selector = args.selector_cmlite_checkpoint is not None
+    if selector != (args.selector_cmlite_sha256 is not None):
+        raise ValueError("CmLite selector checkpoint and SHA256 must be paired")
+    if selector and args.tag is None:
+        raise ValueError("CmLite selector requires a unique output tag")
+    if selector and (not args.selector_cmlite_checkpoint.is_file() or
+                     _sha256(args.selector_cmlite_checkpoint) != args.selector_cmlite_sha256):
+        raise ValueError("CmLite selector checkpoint is missing or SHA256 mismatched")
     if args.tag is not None and (not args.tag or not args.tag.replace("_", "").isalnum()):
         raise ValueError("output tag must contain only letters, digits and underscores")
     run_dir = args.run_dir.resolve()
@@ -108,8 +119,12 @@ def main(argv: list[str] | None = None) -> int:
         transition_output = output / "transitions.pt" if args.save_transitions else None
         if transition_output is not None:
             command += ["--transition-output", str(transition_output)]
+        if selector:
+            command += ["--cmlite-selector-checkpoint",
+                        str(args.selector_cmlite_checkpoint.resolve()),
+                        "--cmlite-selector-sha256", args.selector_cmlite_sha256]
         entry = {"run_status": "STARTED", "created_at": _now(),
-                 "run_id": output.name, "work_version": "V1.29",
+                 "run_id": output.name, "work_version": args.work_version,
                  "evaluation_commit": revision, "training_commit": training["git_commit"],
                  "training_run_id": training["run_id"], "input_manifest": str(input_manifest),
                  "input_manifest_sha256": _sha256(input_manifest),
@@ -117,6 +132,9 @@ def main(argv: list[str] | None = None) -> int:
                  "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
                  "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
                  "num_envs": num_envs, "early_termination_disabled": True,
+                 "selector_cmlite_checkpoint": str(args.selector_cmlite_checkpoint.resolve())
+                 if selector else None,
+                 "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
                  "transition_output": str(transition_output) if transition_output else None,
                  "command": command}
         entries.append((output, command, entry))
@@ -142,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
             if (summary.get("num_episodes") != num_envs or
                     summary.get("early_termination_disabled") is not True):
                 raise ValueError("strict evaluation summary contract mismatch")
+            if summary.get("selector_enabled") is not selector:
+                raise ValueError("selector status mismatch in evaluation summary")
             if transition_output is not None:
                 if not transition_output.is_file() or not transition_output.stat().st_size:
                     raise ValueError("requested transition tensor is missing or empty")

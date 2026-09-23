@@ -19,6 +19,7 @@ import time
 
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _SCRIPT_DIR)
+sys.path.insert(0, os.path.abspath(os.path.join(_SCRIPT_DIR, '../../..')))
 
 from isaacgym import gymapi  # noqa: must import before torch
 
@@ -55,7 +56,13 @@ def parse_eval_args():
     parser.add_argument('--transition-output', type=str)
     parser.add_argument('--reference-action-lead', type=int)
     parser.add_argument('--disable-early-termination', action='store_true')
+    parser.add_argument('--cmlite-selector-checkpoint', type=str)
+    parser.add_argument('--cmlite-selector-sha256', type=str)
     eval_args, remaining = parser.parse_known_args()
+    if bool(eval_args.cmlite_selector_checkpoint) != bool(eval_args.cmlite_selector_sha256):
+        parser.error('CmLite selector checkpoint and SHA256 must be specified together')
+    if eval_args.cmlite_selector_checkpoint and eval_args.reference_action_lead is not None:
+        parser.error('CmLite selector cannot be combined with reference action override')
     sys.argv = [sys.argv[0]] + remaining
     return eval_args
 
@@ -72,6 +79,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self.transition_output = None
         self.reference_action_lead = None
         self.disable_early_termination = False
+        self.cmlite_selector_checkpoint = None
+        self.cmlite_selector_sha256 = None
         self._transitions = {}
 
     def _record_transition(self, **values):
@@ -107,6 +116,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         }, sort_keys=True), flush=True)
 
     def run(self):
+        evaluation_started = time.perf_counter()
         # Disable adaptive termination during evaluation (use fixed thresholds)
         if hasattr(self.env.task, '_adaptive_kappa_enabled'):
             self.env.task._adaptive_kappa_enabled = False
@@ -146,6 +156,18 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             cum_obj_err = torch.zeros(batch_size, dtype=torch.float32, device=self.device)
 
             task = self.env.task
+            selector = None
+            if self.cmlite_selector_checkpoint is not None:
+                from src.task.CmResidual.cmlite import FrozenCmLite
+                from src.task.CmResidual.cmlite_policy_select import (
+                    ProposalConfig, select_cmlite_action)
+                selector = FrozenCmLite(self.cmlite_selector_checkpoint,
+                                        task._dof_pos.device,
+                                        self.cmlite_selector_sha256)
+                selector_config = ProposalConfig()
+                selector_histogram = torch.zeros(5, dtype=torch.long, device=self.device)
+                stable_contact_steps = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+                selector_override_steps = torch.zeros(batch_size, dtype=torch.long, device=self.device)
             episode_start_frame = task.start_times.clone()
             episode_motion_id = task.data_id.clone()
             initial_object_z = task._target_states[:, 2].clone()
@@ -167,6 +189,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     initial_object_z[reset_ids] = task._target_states[reset_ids, 2]
                     episode_start_frame[reset_ids] = task.start_times[reset_ids]
                     episode_motion_id[reset_ids] = task.data_id[reset_ids]
+                    if selector is not None:
+                        stable_contact_steps[reset_ids] = 0
 
                 if has_masks:
                     masks = self.env.get_action_mask()
@@ -175,6 +199,16 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     action = self.get_action(obs_dict, is_deterministic)
                 if self.reference_action_lead is not None:
                     action = inspire_reference_action(task, self.reference_action_lead)
+                if selector is not None:
+                    goal_index = (task.progress_buf + 1).clamp_max(task.hoi_data.shape[1] - 1)
+                    goal_position = task.hoi_data[task.data_id, goal_index, 106:109]
+                    action, _, selected_id = select_cmlite_action(
+                        selector, task._dof_pos, action, task._target_states,
+                        goal_position, actual_contact=stable_contact_steps >= 5,
+                        config=selector_config)
+                    active = ~recorded_env
+                    selector_histogram += torch.bincount(selected_id[active], minlength=5)
+                    selector_override_steps += (selected_id.ne(0) & active).long()
                 q_before = task._dof_pos.clone()
                 object_before = task._target_states.clone()
                 progress_before = task.progress_buf.clone()
@@ -188,6 +222,10 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 hand_contact = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > 0.1).any(dim=-1)
                 object_contact = task._tar_contact_forces.norm(dim=-1) > 0.1
                 hand_object_contact = hand_contact & object_contact
+                if selector is not None:
+                    stable_contact_steps = torch.where(
+                        hand_object_contact, stable_contact_steps + 1,
+                        torch.zeros_like(stable_contact_steps))
                 contact_steps += hand_object_contact.float()
                 airborne_steps += (lift >= 0.03).float()
                 max_contact_lift = torch.maximum(
@@ -240,7 +278,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                         if hasattr(self.env.task, '_terminate_buf'):
                             early_term = self.env.task._terminate_buf[i].item() > 0
 
-                        self.episode_results.append({
+                        episode_result = {
                             'reward': cr[i].item(),
                             'env_id': i,
                             'motion_id': int(episode_motion_id[i].item()),
@@ -255,7 +293,11 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                             'airborne_fraction': airborne_steps[i].item() / ep_len,
                             'max_lift_contact_run_steps': int(max_lift_contact_run[i].item()),
                             'lift_success': bool(lift_success[i].item()),
-                        })
+                        }
+                        if selector is not None:
+                            episode_result['selector_override_fraction'] = (
+                                selector_override_steps[i].item() / ep_len)
+                        self.episode_results.append(episode_result)
                     recorded_env[new_done_indices] = True
 
                     cr = cr * (1.0 - done.float())
@@ -269,6 +311,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     lift_contact_run = lift_contact_run * (1 - done.long())
                     max_lift_contact_run = max_lift_contact_run * (1 - done.long())
                     lift_success &= ~done.bool()
+                    if selector is not None:
+                        selector_override_steps *= 1 - done.long()
 
                     if batch_size // self.num_agents == 1 or games_played >= n_games:
                         break
@@ -332,7 +376,16 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 'lift_success_definition': 'object dz >= 0.03 m with hand+object contact for >=5 consecutive steps',
                 'episode_sampling': 'first completed episode from every parallel environment',
                 'early_termination_disabled': self.disable_early_termination,
+                'selector_enabled': self.cmlite_selector_checkpoint is not None,
+                'evaluation_wall_seconds': round(time.perf_counter() - evaluation_started, 3),
             }
+            if self.cmlite_selector_checkpoint is not None:
+                histogram = selector_histogram.cpu().tolist()
+                summary['selector_histogram'] = histogram
+                summary['selector_override_rate'] = round(
+                    1 - histogram[0] / max(sum(histogram), 1), 5)
+                summary['selector_contact_gate_steps'] = 5
+                summary['selector_candidate_count'] = 5
             output = {'summary': summary, 'per_episode': self.episode_results}
             os.makedirs(os.path.dirname(output_file) or '.', exist_ok=True)
             with open(output_file, 'w') as f:
@@ -400,6 +453,8 @@ def main():
         p.transition_output = eval_args.transition_output
         p.reference_action_lead = eval_args.reference_action_lead
         p.disable_early_termination = eval_args.disable_early_termination
+        p.cmlite_selector_checkpoint = eval_args.cmlite_selector_checkpoint
+        p.cmlite_selector_sha256 = eval_args.cmlite_selector_sha256
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
     if hasattr(model_builder, 'register_model'):
