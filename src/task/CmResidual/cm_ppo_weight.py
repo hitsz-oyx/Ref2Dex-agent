@@ -23,3 +23,22 @@ def effect_actor_weight(contact_probability: torch.Tensor,
         raise FloatingPointError("non-finite or out-of-range Cm prediction")
     effect = (delta_world[:, 2].abs() / effect_scale_m).clamp(0, 1)
     return (1.0 + coefficient * contact_probability * effect).detach()
+
+
+def permute_active_weights(weights: torch.Tensor, actor_mask: torch.Tensor,
+                           generator: torch.Generator) -> torch.Tensor:
+    """Placebo: retain each step's active-weight multiset, break sample alignment."""
+    if weights.ndim != 1 or actor_mask.shape != weights.shape:
+        raise ValueError("Cm weights and PPO actor mask must be matching vectors")
+    if not torch.isfinite(weights).all() or not (weights >= 1).all():
+        raise FloatingPointError("Cm PPO weights must be finite and at least one")
+    if not ((actor_mask == 0) | (actor_mask == 1)).all():
+        raise ValueError("PPO actor mask must be binary")
+    active = actor_mask.bool()
+    result = weights.clone()
+    selected = weights[active]
+    if selected.numel() > 1:
+        order = torch.randperm(selected.numel(), generator=generator,
+                               device=selected.device)
+        result[active] = selected[order]
+    return result.detach()

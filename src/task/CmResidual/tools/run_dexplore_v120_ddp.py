@@ -130,6 +130,8 @@ def main(argv=None) -> None:
                         help="positive frozen-CmLite dense reward coefficient")
     parser.add_argument("--cm-actor-weight-coef", type=float,
                         help="positive frozen-CmLite PPO actor-sample weight coefficient")
+    parser.add_argument("--permute-cm-actor-weights", action="store_true",
+                        help="placebo: permute Cm weights among active actor samples per step")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")
     parser.add_argument("--held-lift-reward-coef", type=float,
@@ -187,6 +189,8 @@ def main(argv=None) -> None:
         args.cm_actor_weight_coef))
     if modes > 1:
         raise ValueError("Cm-off, Cmv2-reward, CmLite-reward, and Cm-PPO modes are mutually exclusive")
+    if args.permute_cm_actor_weights and args.cm_actor_weight_coef is None:
+        raise ValueError("Cm actor-weight permutation requires Cm PPO mode")
     if args.cm_reward_positive_only and args.cm_reward_coef is None:
         raise ValueError("--cm-reward-positive-only requires --cm-reward-coef")
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
@@ -344,6 +348,8 @@ def main(argv=None) -> None:
                           "--cmlite-sha256", args.cmlite_sha256,
                           "--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += shared_shaping
+        if args.permute_cm_actor_weights:
+            bootstrap_args.append("--permute-cm-actor-weights")
         if args.scratch_resume_checkpoint is not None:
             bootstrap_args += ["--scratch-resume-checkpoint",
                                str(args.scratch_resume_checkpoint.resolve()),
@@ -419,6 +425,7 @@ def main(argv=None) -> None:
                   "cm_reward_coef": args.cm_reward_coef,
                   "cmlite_reward_coef": args.cmlite_reward_coef,
                   "cm_actor_weight_coef": args.cm_actor_weight_coef,
+                  "permute_cm_actor_weights": args.permute_cm_actor_weights,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "held_lift_reward_coef": args.held_lift_reward_coef or 0.0,
                   "lift_progress_reward_coef": args.lift_progress_reward_coef,
