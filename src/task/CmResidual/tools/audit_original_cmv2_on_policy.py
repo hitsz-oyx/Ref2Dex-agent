@@ -14,12 +14,12 @@ import time
 import torch
 
 from src.task.CmResidual.cm_v2_adapter import FrozenCmv2Adapter
-from src.task.CmResidual.cm_v2_action_evaluator import effect_metrics, object_pose_delta_to_xi
 from src.task.CmResidual.cmlite import FrozenCmLite
 from src.task.CmResidual.dexplore_cm_geometry import (
     DExploreCmv2GeometryBridge, dexplore_root_pose, native_joint_limits,
 )
 from src.task.CmResidual.tools.analyze_cmlite_on_policy import first_episode_mask
+from src.task.ObjectInteractionCmv2.model import _axis_angle_matrix_stable
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -59,6 +59,33 @@ def write(path: Path, value: dict) -> None:
 
 def sync() -> None:
     torch.cuda.synchronize()
+
+
+def object_pose_delta_to_xi(current_pose: torch.Tensor,
+                            next_pose: torch.Tensor) -> torch.Tensor:
+    """Adjacent world poses to current-object-frame translation and rotvec."""
+    if current_pose.shape != next_pose.shape or current_pose.shape[-2:] != (4, 4):
+        raise ValueError("object poses must be matching [...,4,4]")
+    rotation = current_pose[..., :3, :3].transpose(-1, -2) @ next_pose[..., :3, :3]
+    displacement = next_pose[..., :3, 3] - current_pose[..., :3, 3]
+    local_translation = (current_pose[..., :3, :3].transpose(-1, -2) @
+                         displacement[..., None]).squeeze(-1)
+    skew = torch.stack((rotation[..., 2, 1] - rotation[..., 1, 2],
+                        rotation[..., 0, 2] - rotation[..., 2, 0],
+                        rotation[..., 1, 0] - rotation[..., 0, 1]), -1)
+    sine = torch.linalg.vector_norm(skew, dim=-1) * 0.5
+    cosine = ((rotation.diagonal(dim1=-2, dim2=-1).sum(-1) - 1) * 0.5).clamp(-1, 1)
+    angle = torch.atan2(sine, cosine)
+    rotvec = skew * (angle / (2 * sine).clamp_min(1e-8))[..., None]
+    rotvec = torch.where(angle[..., None] < 1e-6, skew * 0.5, rotvec)
+    return torch.cat((local_translation, rotvec), -1)
+
+
+def rotation_error_rad(predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    relative = (_axis_angle_matrix_stable(target).transpose(-1, -2) @
+                _axis_angle_matrix_stable(predicted))
+    cosine = ((relative.diagonal(dim1=-2, dim2=-1).sum(-1) - 1) * 0.5).clamp(-1, 1)
+    return torch.acos(cosine)
 
 
 def select(payload: dict, seed: int, each: int) -> dict[str, torch.Tensor]:
@@ -168,10 +195,8 @@ def evaluate_seed(data: dict[str, torch.Tensor], *, bridge: DExploreCmv2Geometry
                     rows["cmv2_local"] - rows["cmv2_shuffled_local"]).norm(dim=-1)[group].mean() * 1000),
                 "mean_cmlite_predicted_action_change_mm": float((
                     rows["lite_local"] - rows["lite_shuffled_local"]).norm(dim=-1)[group].mean() * 1000),
-                "cmv2_rotation_error_rad": float(effect_metrics(
-                    torch.cat((rows["cmv2_local"], rows["cmv2_rotation"]), -1)[group],
-                    torch.cat((rows["gt_local"], rows["gt_rotation"]), -1)[group]
-                )["rotation_error_rad"].mean())}
+                "cmv2_rotation_error_rad": float(rotation_error_rad(
+                    rows["cmv2_rotation"][group], rows["gt_rotation"][group]).mean())}
         item["translation_epe_mm"] = {
             key: float(value[group].mean() * 1000) for key, value in errors.items()}
         item["cmv2_improvement_vs_zero_fraction"] = 1 - item["translation_epe_mm"]["cmv2"] / item["translation_epe_mm"]["zero"]
