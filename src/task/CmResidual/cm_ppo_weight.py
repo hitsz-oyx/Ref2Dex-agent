@@ -66,3 +66,21 @@ def align_active_weight_multiset(weights: torch.Tensor, score: torch.Tensor,
         assigned[order] = sorted_weights
         result[active] = assigned
     return result.detach()
+
+
+def permute_active_actions(actions: torch.Tensor, actor_mask: torch.Tensor,
+                           generator: torch.Generator) -> torch.Tensor:
+    """Break action-to-state pairing without changing the active action multiset."""
+    if actions.ndim != 2 or actor_mask.shape != actions.shape[:1]:
+        raise ValueError("actions must be [B,A] and actor mask [B]")
+    if not torch.isfinite(actions).all() or not ((actor_mask == 0) | (actor_mask == 1)).all():
+        raise ValueError("actions must be finite and actor mask binary")
+    active = actor_mask.bool()
+    result = actions.clone()
+    if int(active.sum()) > 1:
+        order = torch.randperm(int(active.sum()), generator=generator,
+                               device=actions.device)
+        if torch.equal(order, torch.arange(order.numel(), device=order.device)):
+            order = order.roll(1)
+        result[active] = actions[active][order]
+    return result.detach()

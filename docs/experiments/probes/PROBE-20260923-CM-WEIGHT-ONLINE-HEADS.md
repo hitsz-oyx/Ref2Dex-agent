@@ -38,10 +38,30 @@ GPU5/6 最多同时两张，使用前必须检查无他人进程；预计训练�
 
 ## Result
 
-Status: PENDING
+Status: PROMISING（仅方向性；两个 seed、每臂每 seed 一次，不是 Validation）
 
-Key evidence: PENDING
+e262 两种新模式 smoke 均 `COMPLETED`，日志中的 mode、有限权重与 checkpoint
+恢复正常。两臂均从同一个自训练 e260 源固定训练至 e300；8 次新 seed 严格完整
+首 episode 评估及源码指纹检查全部 `COMPLETED`，没有官方 actor checkpoint。
+
+| seed | joint | effect-rank | contact-rank | off |
+| ---: | ---: | ---: | ---: | ---: |
+| 129 | 51/64 | 42/64 | 22/64 | 37/64 |
+| 130 | 32/64 | 48/64 | 23/64 | 35/64 |
+| 合计 | 83/128 | **90/128** | 45/128 | 72/128 |
+
+位移排序相对 off 在两个 seed 均为正（+5、+13），接触排序均为负（−15、−12）。
+joint 与 effect-rank 在两个 seed 方向相反（+9、−16），不判断谁更强。
+这是短 Probe，且各策略训练后轨迹分布不同；结果不证明预测位移的精确因果机制。
+父 manifest：`outputs/CmResidual/agent_cm_weight_heads_probe/run_manifest.json`。
+新训练 e300 SHA256：contact-rank
+`1128223798bb5905ae53d5c7eae7ddb0bc78d83242cfffcc972b03581959a42c`；
+effect-rank `12bb9f921cc95fe240f69185118b34c9028b944b90ec9727e88eb3af261f1607`。
 
 ## Decision update
 
-PENDING
+不优先继续优化纯接触概率排序，也不宣称 effect-rank 优于 joint。下一最小问题是：
+effect-rank 的好处是否需要**当前状态下的真实动作**？做保持同一步活跃权重
+多重集、但把动作在活跃样本之间打乱后再计算效应排序的训练 Probe。
+若不需要动作对应关系，当前结果更像状态显著性加权；若需要，则更支持
+动作条件一步效应表示。随后才值得扩大 matched Validation。

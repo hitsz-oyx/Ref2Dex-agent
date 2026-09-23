@@ -3,7 +3,8 @@ import unittest
 import torch
 
 from src.task.CmResidual.cm_ppo_weight import (
-    align_active_weight_multiset, effect_actor_weight, permute_active_weights,
+    align_active_weight_multiset, effect_actor_weight, permute_active_actions,
+    permute_active_weights,
 )
 
 
@@ -17,6 +18,16 @@ def test_component_rank_keeps_active_multiset_and_inactive_samples():
     assert ranked[2] == weights[2]
     assert ranked[1] == 1.1
     assert ranked[4] == 1.8
+
+
+def test_action_shuffle_preserves_active_multiset_and_inactive_samples():
+    actions = torch.arange(12.).reshape(4, 3)
+    mask = torch.tensor([1., 1., 0., 1.])
+    shuffled = permute_active_actions(actions, mask, torch.Generator().manual_seed(153))
+    assert torch.equal(shuffled[2], actions[2])
+    assert torch.equal(torch.sort(shuffled[mask.bool()], dim=0).values,
+                       torch.sort(actions[mask.bool()], dim=0).values)
+    assert not torch.equal(shuffled[mask.bool()], actions[mask.bool()])
 
 
 class CmPpoWeightTests(unittest.TestCase):

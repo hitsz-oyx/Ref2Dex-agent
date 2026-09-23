@@ -15,7 +15,8 @@ def main(argv=None) -> None:
     parser.add_argument("--cm-actor-weight-coef", type=float, required=True)
     parser.add_argument("--permute-cm-actor-weights", action="store_true")
     parser.add_argument("--cm-actor-weight-component",
-                        choices=("joint", "contact_rank", "effect_rank"), default="joint")
+                        choices=("joint", "contact_rank", "effect_rank",
+                                 "effect_action_shuffled_rank"), default="joint")
     parser.add_argument("--cmlite-checkpoint", type=Path, required=True)
     parser.add_argument("--cmlite-sha256", required=True)
     args, passthrough = parser.parse_known_args(argv)
