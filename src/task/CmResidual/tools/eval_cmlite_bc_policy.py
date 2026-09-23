@@ -51,7 +51,7 @@ from rl_games.algos_torch import torch_ext
 
 from src.task.CmResidual.cmlite import FrozenCmLite
 from src.task.CmResidual.cmlite_policy_select import (
-    ProposalConfig, select_cmlite_action, select_cmlite_candidates,
+    FINGER_INDICES, ProposalConfig, select_cmlite_action, select_cmlite_candidates,
 )
 from src.task.CmResidual.dexplore_bc_policy import DExploreBcPolicy, normalized_action
 
@@ -105,10 +105,16 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
     teacher_mode = mode == "teacher"
     router_mode = mode == "router"
     ensemble_mode = mode == "ensemble"
+    grip_reflex_mode = os.environ.get("REF2DEX_GRIP_REFLEX_MODE", "off")
+    if grip_reflex_mode not in ("off", "always", "cmlite"):
+        raise ValueError("invalid grip reflex mode")
+    if grip_reflex_mode != "off" and not router_mode:
+        raise ValueError("grip reflex requires router mode")
     model = mean = std = None
     if not teacher_mode:
         model, mean, std = _load_bc(checkpoint_path, device)
-    cm = FrozenCmLite(str(cm_path), device, cm_sha) if mode in ("on", "ensemble") else None
+    cm = FrozenCmLite(str(cm_path), device, cm_sha) if (
+        mode in ("on", "ensemble") or grip_reflex_mode == "cmlite") else None
     router_models = {}
     route_names = None
     expert_names = sorted(json.loads(os.environ.get(
@@ -215,7 +221,24 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
             base_action = candidates[:, 0]
         else:
             base_action = normalized_action(model, task.obs_buf, mean, std)
-        if ensemble_mode:
+        if router_mode and grip_reflex_mode != "off":
+            eligible = ((stable_contact_steps >= 5) &
+                        (task._target_states[:, 2] - initial_z < 0.06))
+            boosted = base_action.clone()
+            boosted[:, list(FINGER_INDICES)] += 0.08
+            boosted.clamp_(-1, 1)
+            if grip_reflex_mode == "always":
+                selected_id = eligible.long()
+                action = torch.where(eligible[:, None], boosted, base_action)
+            else:
+                progress = task.progress_buf.long()
+                goal_index = torch.minimum(progress + 1, lengths - 1)
+                goal = task.hoi_refs[task.data_id, task.ref_index, goal_index, 106:109]
+                action, _, selected_id = select_cmlite_candidates(
+                    cm, task._dof_pos, torch.stack((base_action, boosted), dim=1),
+                    task._target_states, goal, actual_contact=eligible,
+                    config=proposal_config)
+        elif ensemble_mode:
             pass
         elif cm is None:
             action = base_action
@@ -285,6 +308,9 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
         "proposal_histogram": proposal_histogram.cpu().tolist(),
         "lift_success_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
         "episode_sampling": "first completed episode from every parallel environment",
+        "grip_reflex_mode": grip_reflex_mode,
+        "grip_reflex_delta": 0.08 if grip_reflex_mode != "off" else 0.0,
+        "grip_reflex_max_lift_m": 0.06 if grip_reflex_mode != "off" else None,
     }
     if router_mode:
         summary["route_histogram"] = {
@@ -416,6 +442,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--router-map", help="JSON object mapping start frames to expert names")
     parser.add_argument("--router-map-file", type=Path,
                         help="JSON file containing route_map, or the route map itself")
+    parser.add_argument("--grip-reflex-mode", choices=("off", "always", "cmlite"),
+                        default="off", help="V1.41 contact-gated +0.08 finger action")
     parser.add_argument("--physical-gpu", type=int, required=True)
     args, passthrough = parser.parse_known_args(argv)
     for path in (args.bc_checkpoint, args.cmlite_checkpoint):
@@ -451,9 +479,13 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("ensemble mode requires PPO checkpoints and no router map")
     elif args.router_map or router_checkpoints:
         raise ValueError("router arguments require --mode router")
+    if args.grip_reflex_mode != "off" and args.mode != "router":
+        raise ValueError("grip reflex requires --mode router")
     manifest = {
         "run_status": "RUNNING", "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "physical_gpu": args.physical_gpu, "mode": args.mode,
+        "grip_reflex_mode": args.grip_reflex_mode,
+        "cm_used_by_policy": args.mode in ("on", "ensemble") or args.grip_reflex_mode == "cmlite",
         "bc_checkpoint": None if args.mode == "teacher" else {
             "path": str(args.bc_checkpoint.resolve()), "sha256": _sha256(args.bc_checkpoint),
             "official_policy_checkpoint": None},
@@ -477,6 +509,7 @@ def main(argv: list[str] | None = None) -> int:
         "REF2DEX_CMLITE_CHECKPOINT": str(args.cmlite_checkpoint.resolve()),
         "REF2DEX_CMLITE_SHA256": args.cmlite_sha256,
         "REF2DEX_CMLITE_BC_MODE": args.mode,
+        "REF2DEX_GRIP_REFLEX_MODE": args.grip_reflex_mode,
         "PYTHONPATH": os.pathsep.join((str(ROOT), str(DEXPLORE), env.get("PYTHONPATH", ""))),
     })
     if args.mode in ("router", "ensemble"):
