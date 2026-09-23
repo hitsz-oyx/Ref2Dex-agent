@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V144-SAME-POLICY-REPLAY`
 - branch: `agent/v144-replay-audit`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（同配置逐环境重现性）
 - official actor checkpoint used: `no`
 
 V1.43 在干预前同一 seed/env 的 off 与 always 状态
@@ -29,3 +29,26 @@ V1.43 在干预前同一 seed/env 的 off 与 always 状态
 或同一次物理状态克隆，不再使用跨 run 的逐环境
 反事实。重跑不训练、不选新策略、不用官方 actor；
 最多GPU5一张卡，产物远低于300GB。
+
+## 同策略重跑结果
+
+原始 seed98 off/always 与各自重跑均在GPU5，
+两次运行起始帧和轨迹编号均64/64相同，四个
+run 均记录首次可干预状态64/64。比较如下：
+
+| 策略 | 首次接触同进度 | 严格同状态 | 物体位置均值差 | 首 episode 成功数 | 同 env 结果翻转 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| off vs off重跑 | 37/64 | **0/64** | 5.53mm | 49 vs 56/64 | 15/64 |
+| always vs always重跑 | 35/64 | **0/64** | 4.36mm | 45 vs 52/64 | 23/64 |
+
+两臂自身均远低于预注册40/64重现门槛。
+因此 V1.43 的 off/always 干预前状态不匹配
+不需要动作干预分支来解释；当前评测配置本身
+无法作为跨 run 的逐环境反事实实验。此处尚未
+隔离非确定性的具体来源（GPU PhysX、初始化
+未记录状态、计算内核等都需另证），不据此
+断言某一软件缺陷。后续以多 seed/重复分布级
+性能比较为主；同一 env_id 的“修复/破坏”
+不能赋予动作因果含义。单次评测 1–3/64 的
+微小差别也低于此处可见的重跑波动，V1.41
+的 Cm 净增2/256更不能视为有效证据。
