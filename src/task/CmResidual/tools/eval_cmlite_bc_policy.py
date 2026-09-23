@@ -414,6 +414,8 @@ def main(argv: list[str] | None = None) -> int:
         "--mode", choices=("off", "on", "teacher", "router", "ensemble"), required=True)
     parser.add_argument("--router-checkpoint", action="append", default=[], metavar="NAME=PATH")
     parser.add_argument("--router-map", help="JSON object mapping start frames to expert names")
+    parser.add_argument("--router-map-file", type=Path,
+                        help="JSON file containing route_map, or the route map itself")
     parser.add_argument("--physical-gpu", type=int, required=True)
     args, passthrough = parser.parse_known_args(argv)
     for path in (args.bc_checkpoint, args.cmlite_checkpoint):
@@ -432,9 +434,15 @@ def main(argv: list[str] | None = None) -> int:
         if not name or name in router_checkpoints or not path.is_file():
             raise ValueError("router checkpoint names must be unique and files must exist")
         router_checkpoints[name] = path
+    if args.router_map_file:
+        if args.router_map:
+            raise ValueError("use only one of --router-map and --router-map-file")
+        route_payload = json.loads(args.router_map_file.read_text())
+        parsed_route_map = route_payload.get("route_map", route_payload)
+        args.router_map = json.dumps(parsed_route_map, sort_keys=True)
     if args.mode == "router":
         if not args.router_map or not router_checkpoints:
-            raise ValueError("router mode requires --router-map and PPO checkpoints")
+            raise ValueError("router mode requires a route map and PPO checkpoints")
         parsed_route_map = json.loads(args.router_map)
         if not isinstance(parsed_route_map, dict):
             raise ValueError("router map must be a JSON object")
@@ -451,6 +459,9 @@ def main(argv: list[str] | None = None) -> int:
             "official_policy_checkpoint": None},
         "cmlite_checkpoint": {"path": str(args.cmlite_checkpoint.resolve()), "sha256": args.cmlite_sha256},
         "router_map": json.loads(args.router_map) if args.router_map else None,
+        "router_map_file": None if not args.router_map_file else {
+            "path": str(args.router_map_file.resolve()),
+            "sha256": _sha256(args.router_map_file)},
         "router_checkpoints": {
             name: {"path": str(path), "sha256": _sha256(path),
                    "official_policy_checkpoint": None}
