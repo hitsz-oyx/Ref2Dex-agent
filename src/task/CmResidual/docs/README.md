@@ -6,6 +6,7 @@ interaction residual。canonical owner 为 `src/task/CmResidual/`；IsaacGym ven
 
 ## 当前状态
 
+- V1.50 对同一批 s3 真实转移，将原版 Cmv2 的名义 PD 目标手流换成仅离线可得的真实下一步手流：接触 EPE 由39/53mm降至9/15mm，但仍差于零物体位移5/10mm。控制执行手流失配是重要原因但不是全部；oracle 手流不可在线使用，Cm 对 PPO 的因果增益仍未证明。详见 [Activity](activities/ACT-20260923-V150-ORACLE-HANDFLOW.md) 与 [experiment](experiments/EXP-20260923-V150-ORACLE-HANDFLOW.md)。
 - V1.49 原版 Cmv2 V1.3 在自训练 s3 PPO 真实接触转移上的直接审计：固定原版权重 + Inspire 名义 PD 目标手流在 seeds95/96 各64个接触样本平移 EPE 为39.0/52.7mm，零位移为5.4/10.3mm，CmLite为3.5/6.7mm；token 激活率>93%，但原版接法的离线预测门槛失败。该结果不等于原版架构无用，也不证明 Cm 对 PPO 的在线价值；下一步需区分名义手流与实际手流失配。详见 [Activity](activities/ACT-20260923-V149-ORIGINAL-CMV2-AUDIT.md) 与 [experiment](experiments/EXP-20260923-V149-ORIGINAL-CMV2-AUDIT.md)。
 - V1.48 在 s3 上从相同自训练 e260 源续至 e300，检验多指几何奖励/门与 matched Cm-off；未见 seeds114–118 各重复两次严格抓取为323/640对422/640，差−15.5pp，五 seed 均退步。按用户强调的论文目标停止该无 Cm 奖励路线，转向 Cm 架构和接入的因果消融。详见 [Activity](activities/ACT-20260923-V148-GRASP-LINKS.md) 与 [experiment](experiments/EXP-20260923-V148-GRASP-LINKS.md)。
 - V1.47 从自训练 s3 e260 权重比较单轨迹与 s1+s3 混合轨迹续训至固定 e320；未见 s3 seeds109–113 各重复两次的严格抓取为 200/640 对 225/640，混合臂+3.9pp、seed聚类95%区间跨0，十次运行均未达到58/64。预注册相对改善与稳定抓取门槛失败；此实验未使用 Cm。详见 [Activity](activities/ACT-20260923-V147-MULTIMOTION-S3.md) 与 [experiment](experiments/EXP-20260923-V147-MULTIMOTION-S3.md)。
