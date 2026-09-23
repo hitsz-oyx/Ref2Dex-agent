@@ -6,7 +6,9 @@ date: 2026-09-23
 
 branch: `agent/cm-postvalidation-diagnosis`
 
-status: PLANNED
+status: COMPLETED
+
+code commit: `c8a24d398e4e5abf854116ec64230c7f5f6d7c86`
 
 ## Question and decision
 
@@ -39,4 +41,25 @@ Probe 也失败。早期 V1.51 的正结果实际使用接触概率×绝对效�
 
 ## Result
 
-待运行。
+run_status: `COMPLETED`（训练 1/1、评估 2/2）
+
+conclusion: `PROMISING`（仅 joint 在此困难 seed 的继续信号）
+
+| 评估 seed | joint | effect-rank | Cm-off | action-shuffled 参考 |
+| ---: | ---: | ---: | ---: | ---: |
+| 133 | 43/64 | 18/64 | 32/64 | 45/64 |
+| 134 | 41/64 | 19/64 | 36/64 | 51/64 |
+| 合计 | **84/128** | **37/128** | **68/128** | **96/128** |
+
+joint−off 为 +16/128（+12.5pp），joint−effect-rank 为 +47/128
+（+36.72pp），均过预定 +8pp 门。原 joint 接法不能与 effect-only
+排序视为等价。与此同时 joint 比 action-shuffled 低 12/128，且后者
+仍含 Cm 的真实动作预测生成的权重多重集；本 Probe 不能证明 joint
+的动作条件信息独立有效，也不能形成跨训练 seed 结论。
+
+下一步按预定成功分支：仅在另一此前 effect-rank 失败的训练 seed73
+做小复制；若仍为正，再设计全权重置乱/placebo 的正式 matched 验证。
+
+训练 manifest：`outputs/Dexplore/cm_joint_hard_probe_t74/run_manifest.json`；
+评估：同目录 `eval_s133_e300_full_cmjoint/`、
+`eval_s134_e300_full_cmjoint/`。
