@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Evaluate frozen scratch PPO checkpoints using the V1.28 full-episode gate."""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[4]
+DEXPLORE = ROOT / "third_party/DExplore"
+EVALUATE = DEXPLORE / "dexplore/evaluate.py"
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _now() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def _write(path: Path, value: dict) -> None:
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _gpu_used_mib(index: int) -> int:
+    output = subprocess.check_output(
+        ["nvidia-smi", "--query-gpu=index,memory.used", "--format=csv,noheader,nounits"],
+        text=True)
+    values = {int(row.split(",")[0].strip()): int(row.split(",")[1].strip())
+              for row in output.splitlines()}
+    return values[index]
+
+
+def _checkpoint(run_dir: Path, epoch: int) -> Path:
+    matches = list((run_dir / "train").rglob(f"GRAB_{epoch:08d}.pth"))
+    if len(matches) != 1:
+        raise ValueError(f"expected exactly one epoch {epoch} checkpoint, found {matches}")
+    return matches[0].resolve()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--gpu", type=int, required=True)
+    parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--epochs", type=int, nargs="+", required=True)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
+        raise ValueError("GPU, seed and epochs must be nonnegative/positive")
+    if len(set(args.epochs)) != len(args.epochs):
+        raise ValueError("duplicate checkpoint epochs")
+    run_dir = args.run_dir.resolve()
+    config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+    training = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    if training.get("run_status") != "COMPLETED" or training.get("seed") is None:
+        raise ValueError("source scratch training must have completed with a recorded seed")
+    motion_root = Path(config["motion_root"]).resolve()
+    input_manifest = Path(config["input_manifest"]).resolve()
+    if not motion_root.is_dir() or not input_manifest.is_file():
+        raise FileNotFoundError("frozen motion input is missing")
+    num_envs = int(config["num_envs_per_rank"])
+    if num_envs != 64:
+        raise ValueError("the V1.29 strict gate requires 64 environments")
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                       text=True).strip()
+    entries = []
+    for epoch in args.epochs:
+        checkpoint = _checkpoint(run_dir, epoch)
+        output = run_dir / f"eval_s{args.seed}_e{epoch:03d}_full"
+        if output.exists():
+            raise FileExistsError(output)
+        command = [sys.executable, str(EVALUATE), "--task", "Dexplore_Inspire",
+                   "--cfg_env", "dexplore/data/cfg/inspire.yaml",
+                   "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
+                   "--motion_file", str(motion_root), "--checkpoint", str(checkpoint),
+                   "--disable-early-termination", "--headless", "--sim_device", "cuda:0",
+                   "--rl_device", "cuda:0", "--graphics_device_id", "0",
+                   "--num_envs", str(num_envs), "--seed", str(args.seed),
+                   "--output", str(output / "results.json")]
+        entry = {"run_status": "STARTED", "created_at": _now(),
+                 "run_id": output.name, "work_version": "V1.29",
+                 "evaluation_commit": revision, "training_commit": training["git_commit"],
+                 "training_run_id": training["run_id"], "input_manifest": str(input_manifest),
+                 "input_manifest_sha256": _sha256(input_manifest),
+                 "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
+                 "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
+                 "num_envs": num_envs, "early_termination_disabled": True,
+                 "command": command}
+        entries.append((output, command, entry))
+    if args.dry_run:
+        print(json.dumps([entry for _, _, entry in entries], indent=2))
+        return 0
+    used = _gpu_used_mib(args.gpu)
+    if used > 1024:
+        raise RuntimeError(f"physical GPU {args.gpu} is occupied: {used} MiB")
+    for output, command, entry in entries:
+        output.mkdir(parents=True)
+        manifest = output / "run_manifest.json"
+        _write(manifest, entry)
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        with (output / "eval.log").open("w", encoding="utf-8") as log:
+            code = subprocess.run(command, cwd=DEXPLORE, env=env,
+                                  stdout=log, stderr=subprocess.STDOUT).returncode
+        try:
+            if code:
+                raise RuntimeError(f"evaluation exit code {code}")
+            summary = json.loads((output / "results.json").read_text(encoding="utf-8"))["summary"]
+            if (summary.get("num_episodes") != num_envs or
+                    summary.get("early_termination_disabled") is not True):
+                raise ValueError("strict evaluation summary contract mismatch")
+            entry.update(run_status="COMPLETED", completed_at=_now(), summary=summary)
+            print(json.dumps({"run_id": entry["run_id"], "lift_success_rate":
+                              summary["lift_success_rate"], "mean_max_contact_lift_m":
+                              summary["mean_max_contact_lift_m"]}), flush=True)
+        except BaseException as error:
+            entry.update(run_status="FAILED", completed_at=_now(), failure=str(error))
+            _write(manifest, entry)
+            raise
+        _write(manifest, entry)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

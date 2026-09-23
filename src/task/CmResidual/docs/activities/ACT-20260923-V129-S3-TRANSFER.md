@@ -32,3 +32,8 @@
 `outputs/CmResidual/agent_v129_s3_coordfix/corrected_manifest_r2.json`、
 200 epoch 上限、每 10 epoch 保存。终态记录最后 epoch、checkpoint、
 独立严格评估结果及完成/失败原因；科学解释更新对应 experiment card。
+
+正式评估使用 `tools/eval_dexplore_full_episode_grid.py`，逐 checkpoint
+记录 SHA256、运行命令、GPU、代码提交与结果，并强制
+`early_termination_disabled=true`。在旧 s3 run 上的双 checkpoint
+dry-run 已通过；正式调用等待配对训练释放 GPU 5/6。
