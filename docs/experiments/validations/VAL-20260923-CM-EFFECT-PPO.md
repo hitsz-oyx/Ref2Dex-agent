@@ -6,7 +6,7 @@ date: 2026-09-23
 
 branch: `agent/cm-effect-validation`
 
-status: PRE-REGISTERED
+status: COMPLETED
 
 ## Claim and decision
 
@@ -77,11 +77,55 @@ s3 corrected_r2 manifest
 
 ## Result
 
-run_status: NOT_STARTED
+run_status: COMPLETED
 
-conclusion: PENDING
+conclusion: REFUTED（当前 effect-rank 配方的联合正向主张；不否定所有 Cm）
 
-Evidence: PENDING
+## Fixed-matrix result
+
+代码 commit `c5108d4`；训练 12/12、严格完整首 episode 评估 72/72 全部
+`COMPLETED`，无被剔除运行。父 manifest 在每对任务前后核对关键源码、运动
+tensor、模型/源 checkpoint 输入指纹；GPU 5/6 最多各一进程。
+
+| 训练 seed | effect-rank | action-shuffled | off | effect−off | effect−shuffled |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 71 | 280/384 | 165/384 | 217/384 | +63/384 | +115/384 |
+| 72 | 324/384 | 293/384 | 189/384 | +135/384 | +31/384 |
+| 73 | 168/384 | 287/384 | 203/384 | −35/384 | −119/384 |
+| 74 | 110/384 | 304/384 | 180/384 | −70/384 | −194/384 |
+| 合计 | **882/1536 (57.42%)** | **1049/1536 (68.29%)** | **789/1536 (51.37%)** | **+93/1536 (+6.05pp)** | **−167/1536 (−10.87pp)** |
+
+主效应 effect−off 为 +6.05pp，双维训练/评估 seed bootstrap 95% CI
+**−14.71 至 +26.69pp**；4 个训练 seed 仅 2 个为正，未达到预设
+≥8pp/每训练 seed 正/CI 下界正的 utility 门。因此当前配方的稳定
+Cm-on/off 增益是 `INCONCLUSIVE`，不能作为论文证明。
+
+动作对应效应 effect−action-shuffled 为 −10.87pp，95% CI
+**−42.06 至 +20.18pp**；4 个训练 seed 仅 2 个为正。按预注册的
+联合判定（点估计≤0），当前“真实动作对应的 effect-rank 优于打乱动作”
+主张标为 `REFUTED`。区间跨零意味着**不能反向声称**动作置乱显著优于
+effect-rank；这里只能说本验证不支持正向动作对齐主张。
+
+effect-rank 的 24 次评估只有 **1 次**达到预设的单次稳定抓取门
+≥58/64；稳定抓取目标失败。训练末期两种 Cm 权重均值大致都在 1.41–1.51，
+仅凭权重均值不能解释跨训练 seed 的巨大差异。
+
+## Decision and limitations
+
+遵守已选 Option A 的失败分支：**停止继续扩大当前 effect-rank 配方的
+评估，不将早期 Probe 的正向结果升级为结论**；下一研究路线应转向
+Cm/接法的重设计或分布适配，并先做廉价 Probe。
+
+action-shuffled 在此矩阵总体比 off 高，但这是非预注册的后验比较；
+它仍通过真实动作预测生成每步权重多重集，只是打乱样本分配，因此不能
+称作“完全无动作信息”或证明随机权重优于 Cm。需要新实验才能解释。
+它也不同于 V1.52 的全样本权重置乱：这里仍保留原状态输入，可能保留
+状态显著性信息；两个结果并不构成直接矛盾。
+
+父 manifest：`outputs/CmResidual/cm_effect_validation/run_manifest.json`；
+完整矩阵、每 seed 差值、CI 和判定：
+`outputs/CmResidual/cm_effect_validation/analysis.json`；
+child logs/checkpoints 见父 manifest。没有使用官方 actor checkpoint。
 
 Limitations: 只测试 s3 单轨迹与固定 e260 起点；即使通过，也不证明跨轨迹、
 跨手、原版 Cmv2 架构作用或独立的最终抓取稳定性。
