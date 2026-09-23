@@ -36,3 +36,13 @@ GPU 5/6 已释放并开始 seed81 完整轨迹门禁：GPU5 先评估
 共同源 e180，GPU6 顺序评估回启课程臂四枚 checkpoint；
 源评估完成后 GPU5 评估标准继续臂四枚。所有评估
 `run_manifest.json` 记录原始策略 checkpoint SHA、输入与口径。
+
+seed81 全网格九枚评估均 `COMPLETED`：源 e180 35/64；
+标准继续 e200/e220/e240/e260 为 18/24/31/30；
+回启课程为 25/2/36/**45**。按预注册严格成功数选择
+回启课程 e260，平均最大接触抬升 0.24319 m，checkpoint
+SHA256 `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`。
+它恰比源多10/64，通过扩大门槛。冻结后已在 GPU5/6
+并行启动未见 seeds82/83，run_id 分别
+`eval_s82_e260_full`、`eval_s83_e260_full`；seed84
+将在 GPU 释放后执行。未修改 checkpoint。
