@@ -2,7 +2,8 @@
 
 - experiment_id: `EXP-20260923-V151-CM-PPO-ACTOR-WEIGHT`
 - branch: `agent/v151-cm-ppo-weight`
-- status: `PREREGISTERED`
+- status: `COMPLETED`
+- conclusion: `SUPPORTED`（冻结 CmLite 一步效应接入 PPO actor 样本权重的配方，非 Cm 表征独立因果归因）
 - official actor checkpoint: **never**
 
 ## 问题与假设
@@ -46,3 +47,37 @@ CmLite checkpoint SHA256
 
 最多同时 GPU5/6 两张卡，先检查占用；单训练预计几分钟，评估约20次，
 产物预算<20GB、总上限300GB。失去空闲 GPU、输入合同或权重有限性则停止。
+
+## 固定 e300 与未见 seed 结果
+
+Cm-on e262 smoke 通过，权重均值在 e261/e262 为1.182/1.303，有限且在界内；
+正式两臂从同一 e260 源重新训练至 e300，关键配置逐项相同。
+Cm-on e300 SHA256 `21d4972eb1956258b6d36b12fc31bbcf2ba3dd4dbe622949ee20ffc51547aad8`；
+Cm-off e300 SHA256 `d61a8fdec5948dd3a7df7d3021c0e8a98d0fa6dce9dd00d86d1e805af89c4521`。
+评估代码开始时手抄输入 manifest SHA 少写两位，前置合同拒绝运行，**没有产生
+heldout 结果**；更正至实际/既有 SHA 后在 commit `0500582` 启动完整矩阵。
+
+| seed | Cm-on r0/r1 | Cm-off r0/r1 | 两次差/128 |
+| ---: | ---: | ---: | ---: |
+| 119 | 42 / 39 | 35 / 40 | +6 |
+| 120 | 37 / 37 | 32 / 31 | +11 |
+| 121 | 37 / 40 | 26 / 26 | +25 |
+| 122 | 38 / 45 | 40 / 28 | +15 |
+| 123 | 41 / 40 | 28 / 31 | +22 |
+| 合计 | **396/640 (61.9%)** | **317/640 (49.5%)** | **+79/640 (+12.34pp)** |
+
+五个 seed 的两次合计均有利 Cm-on；seed 聚类10000次 bootstrap 两侧95%区间
+为 +7.66至+17.03pp，因此预注册的**此配方** Cm 增益门通过。
+稳定抓取门失败：Cm-on 十次每次37–45/64，全部低于58/64。
+平均手物接触占比 on/off 为0.5240/0.5245，平均最大接触抬升
+0.157/0.183m；成功率增益不能简单解释为更多接触或更高平均最大抬升。
+整 run 含环境初始化中位耗时 on/off 为75.5/74.5s，推理评估两臂都未加载 Cm，
+不代表训练 Cm 前向成本。
+
+严格结论：动作条件 CmLite 预测驱动的 PPO 样本权重，在这个同源训练/
+未见 seed 的联合配方下显著改善抓取成功率，但不稳定且只测 s3 单轨迹。
+权重函数、系数、模型联合变化；下一步需保持权重边际分布但随机置乱
+样本对应的安慰剂臂，或拆分接触/位移分量，才能更强地证明“学到的 Cm 表征”
+发挥作用。原版 Cmv2 仍有 V1.49–50 的跨域/手流问题，不能由本试验替其背书。
+证据在 `outputs/CmResidual/agent_v151_eval_matrix/analysis.json` 和两臂
+`outputs/Dexplore/agent_v151_*` 的 run manifests/checkpoints。
