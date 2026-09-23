@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V135-ADAPTED-CM-ONLINE`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（适配低权重预测进展奖励的匹配在线增益假设）
 - official actor checkpoint used: `no`
 
 ## 假设与冻结方案
@@ -44,3 +44,31 @@ GPU 5/6 各一臂、同时最多两卡，预计 smoke + 正式训练与
 门禁可在数十分钟内完成；输出总量 <300 GB。checkpoint、
 输入 manifest、代码提交、精确命令及资源由 run manifest 锁定。
 发现占卡、输入漂移、SHA 不符或恢复异常立即停止。
+
+## 结果与预注册停损
+
+e162 两臂 smoke 均正常，日志确认加载同一自训练 e160 源和
+`1e-5` 学习率。正式 run
+`agent_v135_s3_adaptcm_s70_e180`、`agent_v135_s3_cmoff_s70_e180`
+均从原始 e160 恢复并完成到 e180；没有使用 smoke 权重或官方
+actor。seed77、完整轨迹、提前终止关闭、每枚 64 首 episode：
+
+| epoch | Cm-on 严格成功 | Cm-off 严格成功 | Cm-on 平均最大接触抬升 | Cm-off 平均最大接触抬升 |
+| ---: | ---: | ---: | ---: | ---: |
+| 170 | 6/64 | 29/64 | 0.03131 m | 0.08251 m |
+| 180 | 19/64 | 35/64 | 0.04110 m | 0.11175 m |
+
+Cm-on 在两个 checkpoint 均不高于匹配 Cm-off，且平均最大
+接触抬升也均远低于 Cm-off 的 1.25 倍，触发预注册停损；
+**不运行 seeds78–80 的下一阶段**。因此即使离线运动预测通过，
+当前“下一步目标进展 × 预测接触概率、正向截断”的在线奖励仍
+不能证明 Cm 有益，反而在这两个预算点损害了抓取。V1.30 的
+旧模型系数5 与本轮新模型系数1 都出现相同方向，提示问题不只
+是旧模型失准，但仍不能单独分离奖励定义、PPO 优化与模型
+误差的贡献。后续若使用 Cm，应改变其接入机制并重新做匹配
+对照，而不是继续增加此奖励权重。
+
+训练 `run_manifest.json`、`config.json`、`train.log`、e170/e180
+checkpoint 与 seed77 的四个 `eval_s77_e{170,180}_full/results.json`
+均在上述两臂 run 目录。严格定义保持物体抬升至少3 cm且手物
+接触连续至少5步。

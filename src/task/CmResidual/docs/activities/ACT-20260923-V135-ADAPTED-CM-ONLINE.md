@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - training code commit: `81f0327`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 源为本地自训练 Cm-off s3 e160 actor，源 run manifest
@@ -36,3 +36,9 @@ checkpoint 已保存；`train.log` 与训练摘要仍在各 run 目录。
 GPU 5/6 已释放并用于 seed77 的完整轨迹 pilot：每臂依次评估
 e170、e180，评估 manifest 先记 `STARTED`，终态和严格抓取数
 完成后填入。选择/停损仍完全遵循预注册规则。
+
+seed77 的四个 eval manifest 均为 `COMPLETED`：Cm-on e170/e180
+分别 6/64、19/64，Cm-off 分别 29/64、35/64。平均最大接触
+抬升也均为 Cm-off 更高，触发停损；未启动 seeds78–80。
+四份 `results.json` 和评估 manifest 保留完整指标与 checkpoint
+SHA。训练终态已完成，所有 GPU 已释放，未删除产物。
