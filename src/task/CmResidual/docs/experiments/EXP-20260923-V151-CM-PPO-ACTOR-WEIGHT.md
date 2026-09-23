@@ -23,7 +23,7 @@ Cm-off 为 `w=1`。预期该接法强调物手相互作用状态，却不直接�
 两臂都从自己训练的 V1.39 s3 e260 actor 继续到固定 e300：源 checkpoint
 SHA256 `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`，
 s3 corrected_r2 manifest SHA256
-`2878bd20d1dd849f6844883c832a3777602d2bc73f7581b3bc23d30725f038`。
+`2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d30725f038`。
 训练 seed70、64env、horizon32、minibatch256、学习率1e-5、既有相同几何/持物/
 抬升奖励和 reset 课程。唯一处理差异是 Cm-on 的 actor 权重。原计划有条件地
 复用 V1.46 同源同预算 Cm-off e300，但检查到 V1.48 后 approach agent 源码变化；
