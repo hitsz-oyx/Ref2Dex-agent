@@ -8,7 +8,7 @@ from pathlib import Path
 import statistics
 
 from src.task.CmResidual.tools.analyze_v145_replication import cluster_bootstrap, sha256
-from src.task.CmResidual.tools.run_v151_eval_matrix import SEEDS, OFF_SHA, INPUT_SHA
+from src.task.CmResidual.tools.run_v151_eval_matrix import SEEDS, INPUT_SHA
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
             parent.get("seeds") != list(SEEDS) or
             parent.get("repeats_per_seed") != 2 or
             parent.get("input_manifest_sha256") != INPUT_SHA or
-            expected.get("off") != OFF_SHA or len(expected.get("on", "")) != 64 or
+            len(expected.get("off", "")) != 64 or len(expected.get("on", "")) != 64 or
             len(parent.get("completed_runs", [])) != 20):
         raise ValueError("V1.51 parent manifest is incomplete or drifted")
     records = {}

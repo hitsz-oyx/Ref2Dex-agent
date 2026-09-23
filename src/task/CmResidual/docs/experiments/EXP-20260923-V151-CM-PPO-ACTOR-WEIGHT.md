@@ -25,9 +25,10 @@ SHA256 `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`，
 s3 corrected_r2 manifest SHA256
 `2878bd20d1dd849f6844883c832a3777602d2bc73f7581b3bc23d30725f038`。
 训练 seed70、64env、horizon32、minibatch256、学习率1e-5、既有相同几何/持物/
-抬升奖励和 reset 课程。唯一处理差异是 Cm-on 的 actor 权重；Cm-off 复用
-V1.46 的同源同预算 e300 权重作为固定对照，不再消耗额外 GPU 重训。
-该复用只有在除权重外的配置和代码路径一致时有效；否则重新训练 matched off。
+抬升奖励和 reset 课程。唯一处理差异是 Cm-on 的 actor 权重。原计划有条件地
+复用 V1.46 同源同预算 Cm-off e300，但检查到 V1.48 后 approach agent 源码变化；
+虽然新增 grasp-link 路径系数为0，仍不把旧权重作为因果对照，改用当前同版本源码
+从 e260 重新训练 V1.51 Cm-off 到 e300。这个改动在观察任何 heldout 结果前冻结。
 CmLite checkpoint SHA256
 `396f5e0c92ecf67b2a096568c1a538b7c86d40779a594729f786df6c64ed204a`。
 

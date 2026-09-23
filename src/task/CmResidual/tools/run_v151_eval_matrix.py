@@ -16,9 +16,8 @@ from src.task.CmResidual.tools.run_v146_eval_matrix import (
 OUTPUT = ROOT / "outputs/CmResidual/agent_v151_eval_matrix"
 RUNS = {
     "on": ROOT / "outputs/Dexplore/agent_v151_cmppo_s70_e300",
-    "off": ROOT / "outputs/Dexplore/agent_v146_cmoff_s70_e300",
+    "off": ROOT / "outputs/Dexplore/agent_v151_cmoff_s70_e300",
 }
-OFF_SHA = "36ff2ac7ffd4433b5f60b32dce7603cff5db24a0bab9866b9ab469d1ce645929"
 SOURCE_SHA = "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
 INPUT_SHA = "2878bd20d1dd849f6844883c832a3777602d2bc73f7581b3bc23d30725f038"
 SEEDS = tuple(range(119, 124))
@@ -41,11 +40,12 @@ def command(arm: str, seed: int, repeat: int, gpu: int) -> tuple[list[str], Path
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--on-sha256", required=True)
+    parser.add_argument("--off-sha256", required=True)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    if len(args.on_sha256) != 64:
-        raise ValueError("expected full on-checkpoint SHA256")
-    expected = {"on": args.on_sha256, "off": OFF_SHA}
+    if len(args.on_sha256) != 64 or len(args.off_sha256) != 64:
+        raise ValueError("expected full checkpoint SHA256 for both arms")
+    expected = {"on": args.on_sha256, "off": args.off_sha256}
     schedule = [[("on", seed, repeat, 5 if repeat == 0 else 6),
                  ("off", seed, repeat, 6 if repeat == 0 else 5)]
                 for seed in SEEDS for repeat in (0, 1)]
@@ -67,6 +67,7 @@ def main() -> None:
                 sha256(Path(config["input_manifest"])) != INPUT_SHA or
                 sha256(checkpoint) != expected[arm] or
                 (arm == "on") != (config.get("cm_actor_weight_coef") == 1.0) or
+                (arm == "off" and config.get("cm_distill_coef") != 0.0) or
                 config.get("seed") != 70 or config.get("actual_epochs") != 300):
             raise ValueError(f"V1.51 {arm} training provenance mismatch")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
