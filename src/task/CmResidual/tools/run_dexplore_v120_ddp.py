@@ -200,13 +200,15 @@ def main(argv=None) -> None:
         raise ValueError("--save-frequency must be positive")
     if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
             (args.scratch_resume_checkpoint is not None and
-             (args.cmlite_reward_coef is None or not args.scratch_resume_checkpoint.is_file() or
+             (not (args.cmlite_reward_coef is not None or args.cm_distill_coef == 0.0) or
+              not args.scratch_resume_checkpoint.is_file() or
               len(args.scratch_resume_sha256) != 64 or
               _sha256(args.scratch_resume_checkpoint) != args.scratch_resume_sha256))):
-        raise ValueError("scratch resume requires CmLite mode and a matching checkpoint SHA256")
-    if args.learning_rate is not None and (args.cmlite_reward_coef is None or
+        raise ValueError("scratch resume requires CmLite or Cm-off mode and a matching checkpoint SHA256")
+    if args.learning_rate is not None and (not (args.cmlite_reward_coef is not None or
+             args.cm_distill_coef == 0.0) or
             not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
-        raise ValueError("learning-rate override requires CmLite mode and a positive finite value")
+        raise ValueError("learning-rate override requires CmLite or Cm-off mode and a positive finite value")
     ppo_overrides = (args.lr_schedule, args.schedule_type, args.kl_threshold,
                      args.mini_epochs, args.ppo_clip)
     if any(value is not None for value in ppo_overrides) and args.cmlite_reward_coef is None:
@@ -254,6 +256,12 @@ def main(argv=None) -> None:
             raise ValueError("Cm-off launcher requires positive --actual-epochs")
         bootstrap_args = ["--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += shared_shaping
+        if args.scratch_resume_checkpoint is not None:
+            bootstrap_args += ["--scratch-resume-checkpoint",
+                               str(args.scratch_resume_checkpoint.resolve()),
+                               "--scratch-resume-sha256", args.scratch_resume_sha256]
+        if args.learning_rate is not None:
+            bootstrap_args += ["--learning-rate", str(args.learning_rate)]
     elif args.cm_reward_coef is not None:
         if bootstrap.name != "dexplore_cm_reward_rank_bootstrap.py":
             raise ValueError("--cm-reward-coef requires dexplore_cm_reward_rank_bootstrap.py")

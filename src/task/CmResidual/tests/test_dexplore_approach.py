@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -120,3 +121,29 @@ def test_launcher_limits_gpu_count_to_two_and_forwards_matched_shaping(tmp_path,
         "--cm-distill-coef", "0", "--actual-epochs", "1", "--approach-reward-coef", "2.0",
         "--held-lift-reward-coef", "1.0", "--lift-progress-reward-coef", "0.0",
         "--grasp-link-reward-coef", "0.0", "--min-grasp-links", "0"]
+
+
+def test_cm_off_transfer_restore_requires_pinned_scratch_checkpoint(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    off = _load("approach_off_transfer", "dexplore_cm_off_rank_bootstrap.py")
+    launcher = _load("approach_launcher_transfer", "run_dexplore_v120_ddp.py")
+    checkpoint = tmp_path / "scratch.pth"
+    checkpoint.write_bytes(b"local-scratch-policy")
+    checksum = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    base = ["--cm-distill-coef", "0", "--actual-epochs", "160",
+            "--scratch-resume-checkpoint", str(checkpoint)]
+    with pytest.raises(ValueError, match="matching SHA256"):
+        off.parse_cm_off_args(base + ["--scratch-resume-sha256", "a" * 64])
+    parsed, _ = off.parse_cm_off_args(base + [
+        "--scratch-resume-sha256", checksum, "--learning-rate", "1e-5"])
+    assert parsed.learning_rate == 1e-5
+    captured = {}
+    monkeypatch.setattr(launcher, "torchrun_command",
+                        lambda **kwargs: captured.update(kwargs) or ["echo"])
+    launcher.main(["--gpus", "5", "--dry-run", "--rank-bootstrap",
+                   str(TOOLS / "dexplore_cm_off_rank_bootstrap.py"),
+                   *base, "--scratch-resume-sha256", checksum,
+                   "--learning-rate", "1e-5"])
+    args = captured["bootstrap_args"]
+    assert args[args.index("--scratch-resume-sha256") + 1] == checksum
+    assert args[args.index("--learning-rate") + 1] == "1e-05"

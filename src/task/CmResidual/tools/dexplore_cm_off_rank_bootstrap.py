@@ -8,8 +8,10 @@ Cm-off parity branch.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
 import os
+from pathlib import Path
 import sys
 
 import dexplore_ddp_rank_bootstrap
@@ -31,6 +33,9 @@ def parse_cm_off_args(argv=None):
     parser.add_argument("--curriculum-anneal-start", type=int)
     parser.add_argument("--curriculum-anneal-end", type=int)
     parser.add_argument("--save-frequency", type=int)
+    parser.add_argument("--scratch-resume-checkpoint", type=Path)
+    parser.add_argument("--scratch-resume-sha256")
+    parser.add_argument("--learning-rate", type=float)
     args, passthrough = parser.parse_known_args(argv)
     if args.cm_distill_coef != 0.0:
         raise ValueError("Cm-off bootstrap only accepts --cm-distill-coef 0")
@@ -59,6 +64,16 @@ def parse_cm_off_args(argv=None):
         raise ValueError("annealing requires a valid contact curriculum and epoch window")
     if args.save_frequency is not None and args.save_frequency < 1:
         raise ValueError("save frequency must be positive")
+    if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
+            (args.scratch_resume_checkpoint is not None and
+             (not args.scratch_resume_checkpoint.is_file() or
+              len(args.scratch_resume_sha256) != 64 or
+              hashlib.sha256(args.scratch_resume_checkpoint.read_bytes()).hexdigest() !=
+              args.scratch_resume_sha256))):
+        raise ValueError("scratch resume requires an existing checkpoint and matching SHA256")
+    if args.learning_rate is not None and not (math.isfinite(args.learning_rate) and
+                                                args.learning_rate > 0):
+        raise ValueError("learning rate must be finite and positive")
     return args, passthrough
 
 
@@ -88,6 +103,12 @@ def main(argv=None) -> None:
         os.environ["REF2DEX_CURRICULUM_ANNEAL_END"] = str(args.curriculum_anneal_end)
     if args.save_frequency is not None:
         os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
+    if args.scratch_resume_checkpoint is not None:
+        os.environ["REF2DEX_SCRATCH_RESUME_CHECKPOINT"] = str(
+            args.scratch_resume_checkpoint.resolve())
+        os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
+    if args.learning_rate is not None:
+        os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
     if (args.approach_reward_coef or args.held_lift_reward_coef or
             args.lift_progress_reward_coef or args.grasp_link_reward_coef):
         dexplore_ddp_rank_bootstrap.main(
