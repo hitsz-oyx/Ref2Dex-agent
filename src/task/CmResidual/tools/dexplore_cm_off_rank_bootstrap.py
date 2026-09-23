@@ -93,7 +93,7 @@ def _assert_cm_not_imported() -> None:
         raise RuntimeError(f"Cm-off bootstrap refuses pre-imported Cm modules: {forbidden}")
 
 
-def main(argv=None) -> None:
+def main(argv=None, *, agent_class: str | None = None) -> None:
     args, passthrough = parse_cm_off_args(argv)
     _assert_cm_not_imported()
     os.environ["REF2DEX_ACTUAL_EPOCH_BUDGET"] = str(args.actual_epochs)
@@ -124,7 +124,9 @@ def main(argv=None) -> None:
         os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
     if args.learning_rate is not None:
         os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
-    if (args.approach_reward_coef or args.held_lift_reward_coef or
+    if agent_class is not None:
+        dexplore_ddp_rank_bootstrap.main(passthrough, agent_class=agent_class)
+    elif (args.approach_reward_coef or args.held_lift_reward_coef or
             args.lift_progress_reward_coef or args.grasp_link_reward_coef):
         dexplore_ddp_rank_bootstrap.main(
             passthrough,

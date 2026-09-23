@@ -128,6 +128,8 @@ def main(argv=None) -> None:
                         help="positive frozen-Cmv2 dense reward coefficient")
     parser.add_argument("--cmlite-reward-coef", type=float,
                         help="positive frozen-CmLite dense reward coefficient")
+    parser.add_argument("--cm-actor-weight-coef", type=float,
+                        help="positive frozen-CmLite PPO actor-sample weight coefficient")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")
     parser.add_argument("--held-lift-reward-coef", type=float,
@@ -181,9 +183,10 @@ def main(argv=None) -> None:
     bootstrap = args.rank_bootstrap.resolve()
     bootstrap_args: list[str] = []
     modes = sum(value is not None for value in (
-        args.cm_distill_coef, args.cm_reward_coef, args.cmlite_reward_coef))
+        args.cm_distill_coef, args.cm_reward_coef, args.cmlite_reward_coef,
+        args.cm_actor_weight_coef))
     if modes > 1:
-        raise ValueError("Cm-off, Cmv2-reward, and CmLite-reward modes are mutually exclusive")
+        raise ValueError("Cm-off, Cmv2-reward, CmLite-reward, and Cm-PPO modes are mutually exclusive")
     if args.cm_reward_positive_only and args.cm_reward_coef is None:
         raise ValueError("--cm-reward-positive-only requires --cm-reward-coef")
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
@@ -202,18 +205,20 @@ def main(argv=None) -> None:
         raise ValueError("--save-frequency must be positive")
     if ((args.scratch_resume_checkpoint is None) != (args.scratch_resume_sha256 is None) or
             (args.scratch_resume_checkpoint is not None and
-             (not (args.cmlite_reward_coef is not None or args.cm_distill_coef == 0.0) or
+             (not (args.cmlite_reward_coef is not None or args.cm_distill_coef == 0.0 or
+                   args.cm_actor_weight_coef is not None) or
               not args.scratch_resume_checkpoint.is_file() or
               len(args.scratch_resume_sha256) != 64 or
               _sha256(args.scratch_resume_checkpoint) != args.scratch_resume_sha256))):
         raise ValueError("scratch resume requires CmLite or Cm-off mode and a matching checkpoint SHA256")
     if args.learning_rate is not None and (not (args.cmlite_reward_coef is not None or
-             args.cm_distill_coef == 0.0) or
+             args.cm_distill_coef == 0.0 or args.cm_actor_weight_coef is not None) or
             not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
         raise ValueError("learning-rate override requires CmLite or Cm-off mode and a positive finite value")
     ppo_overrides = (args.lr_schedule, args.schedule_type, args.kl_threshold,
                      args.mini_epochs, args.ppo_clip)
-    if any(value is not None for value in ppo_overrides) and args.cmlite_reward_coef is None:
+    if (any(value is not None for value in ppo_overrides) and
+            args.cmlite_reward_coef is None and args.cm_actor_weight_coef is None):
         raise ValueError("PPO stability overrides require CmLite mode")
     if args.lr_schedule == "adaptive" and args.kl_threshold is None:
         raise ValueError("adaptive learning-rate schedule requires --kl-threshold")
@@ -323,6 +328,28 @@ def main(argv=None) -> None:
             bootstrap_args += ["--mini-epochs", str(args.mini_epochs)]
         if args.ppo_clip is not None:
             bootstrap_args += ["--ppo-clip", str(args.ppo_clip)]
+    elif args.cm_actor_weight_coef is not None:
+        if bootstrap.name != "dexplore_cm_ppo_weight_rank_bootstrap.py":
+            raise ValueError("--cm-actor-weight-coef requires its rank bootstrap")
+        if (not math.isfinite(args.cm_actor_weight_coef) or
+                not 0 < args.cm_actor_weight_coef <= 2 or
+                args.actual_epochs is None or args.actual_epochs < 1):
+            raise ValueError("Cm PPO weighting requires coefficient in (0,2] and actual epochs")
+        if (args.cmlite_checkpoint is None or not args.cmlite_checkpoint.is_file() or
+                not args.cmlite_sha256 or
+                _sha256(args.cmlite_checkpoint) != args.cmlite_sha256):
+            raise ValueError("Cm PPO weighting requires verified CmLite checkpoint")
+        bootstrap_args = ["--cm-actor-weight-coef", str(args.cm_actor_weight_coef),
+                          "--cmlite-checkpoint", str(args.cmlite_checkpoint.resolve()),
+                          "--cmlite-sha256", args.cmlite_sha256,
+                          "--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
+        bootstrap_args += shared_shaping
+        if args.scratch_resume_checkpoint is not None:
+            bootstrap_args += ["--scratch-resume-checkpoint",
+                               str(args.scratch_resume_checkpoint.resolve()),
+                               "--scratch-resume-sha256", args.scratch_resume_sha256]
+        if args.learning_rate is not None:
+            bootstrap_args += ["--learning-rate", str(args.learning_rate)]
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
@@ -391,6 +418,7 @@ def main(argv=None) -> None:
                   "rank_bootstrap": str(bootstrap), "cm_distill_coef": args.cm_distill_coef,
                   "cm_reward_coef": args.cm_reward_coef,
                   "cmlite_reward_coef": args.cmlite_reward_coef,
+                  "cm_actor_weight_coef": args.cm_actor_weight_coef,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "held_lift_reward_coef": args.held_lift_reward_coef or 0.0,
                   "lift_progress_reward_coef": args.lift_progress_reward_coef,
