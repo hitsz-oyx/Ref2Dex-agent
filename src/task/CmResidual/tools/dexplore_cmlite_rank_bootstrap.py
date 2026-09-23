@@ -46,6 +46,11 @@ def parse_cmlite_args(argv=None):
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
     parser.add_argument("--learning-rate", type=float)
+    parser.add_argument("--lr-schedule", choices=("constant", "adaptive"))
+    parser.add_argument("--schedule-type", choices=("legacy", "standard", "standard_epoch"))
+    parser.add_argument("--kl-threshold", type=float)
+    parser.add_argument("--mini-epochs", type=int)
+    parser.add_argument("--ppo-clip", type=float)
     args, passthrough = parser.parse_known_args(argv)
     coefficients = (args.cmlite_reward_coef, args.approach_reward_coef,
                     args.held_lift_reward_coef, args.lift_progress_reward_coef,
@@ -84,6 +89,19 @@ def parse_cmlite_args(argv=None):
     if args.learning_rate is not None and not (
             math.isfinite(args.learning_rate) and args.learning_rate > 0):
         raise ValueError("learning rate override must be finite and positive")
+    if args.lr_schedule == "adaptive" and args.kl_threshold is None:
+        raise ValueError("adaptive learning-rate schedule requires --kl-threshold")
+    if args.schedule_type is not None and args.lr_schedule is None:
+        raise ValueError("schedule type requires --lr-schedule")
+    if args.kl_threshold is not None and not (
+            args.lr_schedule == "adaptive" and math.isfinite(args.kl_threshold) and
+            args.kl_threshold > 0):
+        raise ValueError("KL threshold requires adaptive schedule and must be positive")
+    if args.mini_epochs is not None and args.mini_epochs < 1:
+        raise ValueError("mini epochs must be positive")
+    if args.ppo_clip is not None and not (
+            math.isfinite(args.ppo_clip) and 0 < args.ppo_clip < 1):
+        raise ValueError("PPO clip must be finite and in (0,1)")
     if args.save_frequency is not None and args.save_frequency < 1:
         raise ValueError("save frequency must be positive")
     if args.max_cmlite_gap_m is not None and not (
@@ -133,6 +151,16 @@ def main(argv=None):
         os.environ["REF2DEX_SCRATCH_RESUME_SHA256"] = args.scratch_resume_sha256
     if args.learning_rate is not None:
         os.environ["REF2DEX_LEARNING_RATE"] = str(args.learning_rate)
+    if args.lr_schedule is not None:
+        os.environ["REF2DEX_LR_SCHEDULE"] = args.lr_schedule
+    if args.schedule_type is not None:
+        os.environ["REF2DEX_SCHEDULE_TYPE"] = args.schedule_type
+    if args.kl_threshold is not None:
+        os.environ["REF2DEX_KL_THRESHOLD"] = str(args.kl_threshold)
+    if args.mini_epochs is not None:
+        os.environ["REF2DEX_MINI_EPOCHS"] = str(args.mini_epochs)
+    if args.ppo_clip is not None:
+        os.environ["REF2DEX_PPO_CLIP"] = str(args.ppo_clip)
     if args.save_frequency is not None:
         os.environ["REF2DEX_SAVE_FREQUENCY"] = str(args.save_frequency)
     if args.max_cmlite_gap_m is not None:

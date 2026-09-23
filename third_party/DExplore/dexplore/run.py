@@ -217,6 +217,43 @@ def main():
             raise ValueError("REF2DEX_LEARNING_RATE must be finite and positive")
         cfg_train['params']['config']['learning_rate'] = learning_rate
         print(f"REF2DEX_LEARNING_RATE {learning_rate}", flush=True)
+    ppo_config = cfg_train['params']['config']
+    lr_schedule_override = os.environ.get("REF2DEX_LR_SCHEDULE")
+    if lr_schedule_override is not None:
+        if lr_schedule_override not in ("constant", "adaptive"):
+            raise ValueError("REF2DEX_LR_SCHEDULE must be constant or adaptive")
+        ppo_config['lr_schedule'] = lr_schedule_override
+        print(f"REF2DEX_LR_SCHEDULE {lr_schedule_override}", flush=True)
+    schedule_type_override = os.environ.get("REF2DEX_SCHEDULE_TYPE")
+    if schedule_type_override is not None:
+        if schedule_type_override not in ("legacy", "standard", "standard_epoch"):
+            raise ValueError("invalid REF2DEX_SCHEDULE_TYPE")
+        if lr_schedule_override is None:
+            raise ValueError("REF2DEX_SCHEDULE_TYPE requires REF2DEX_LR_SCHEDULE")
+        ppo_config['schedule_type'] = schedule_type_override
+        print(f"REF2DEX_SCHEDULE_TYPE {schedule_type_override}", flush=True)
+    kl_threshold_override = os.environ.get("REF2DEX_KL_THRESHOLD")
+    if kl_threshold_override is not None:
+        kl_threshold = float(kl_threshold_override)
+        if (lr_schedule_override != "adaptive" or
+                not (0 < kl_threshold < float("inf"))):
+            raise ValueError("REF2DEX_KL_THRESHOLD requires adaptive schedule and must be positive")
+        ppo_config['kl_threshold'] = kl_threshold
+        print(f"REF2DEX_KL_THRESHOLD {kl_threshold}", flush=True)
+    mini_epochs_override = os.environ.get("REF2DEX_MINI_EPOCHS")
+    if mini_epochs_override is not None:
+        mini_epochs = int(mini_epochs_override)
+        if mini_epochs < 1:
+            raise ValueError("REF2DEX_MINI_EPOCHS must be positive")
+        ppo_config['mini_epochs'] = mini_epochs
+        print(f"REF2DEX_MINI_EPOCHS {mini_epochs}", flush=True)
+    ppo_clip_override = os.environ.get("REF2DEX_PPO_CLIP")
+    if ppo_clip_override is not None:
+        ppo_clip = float(ppo_clip_override)
+        if not (0 < ppo_clip < 1):
+            raise ValueError("REF2DEX_PPO_CLIP must be in (0,1)")
+        ppo_config['e_clip'] = ppo_clip
+        print(f"REF2DEX_PPO_CLIP {ppo_clip}", flush=True)
     save_frequency_override = os.environ.get("REF2DEX_SAVE_FREQUENCY")
     if save_frequency_override is not None:
         save_frequency = int(save_frequency_override)

@@ -156,6 +156,11 @@ def main(argv=None) -> None:
     parser.add_argument("--scratch-resume-checkpoint", type=Path)
     parser.add_argument("--scratch-resume-sha256")
     parser.add_argument("--learning-rate", type=float)
+    parser.add_argument("--lr-schedule", choices=("constant", "adaptive"))
+    parser.add_argument("--schedule-type", choices=("legacy", "standard", "standard_epoch"))
+    parser.add_argument("--kl-threshold", type=float)
+    parser.add_argument("--mini-epochs", type=int)
+    parser.add_argument("--ppo-clip", type=float)
     parser.add_argument("--actual-epochs", type=int,
                         help="exact epoch budget for the V1.21 Cm-off bootstrap")
     parser.add_argument("--work-version", default="V1.21")
@@ -202,6 +207,23 @@ def main(argv=None) -> None:
     if args.learning_rate is not None and (args.cmlite_reward_coef is None or
             not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
         raise ValueError("learning-rate override requires CmLite mode and a positive finite value")
+    ppo_overrides = (args.lr_schedule, args.schedule_type, args.kl_threshold,
+                     args.mini_epochs, args.ppo_clip)
+    if any(value is not None for value in ppo_overrides) and args.cmlite_reward_coef is None:
+        raise ValueError("PPO stability overrides require CmLite mode")
+    if args.lr_schedule == "adaptive" and args.kl_threshold is None:
+        raise ValueError("adaptive learning-rate schedule requires --kl-threshold")
+    if args.schedule_type is not None and args.lr_schedule is None:
+        raise ValueError("schedule type requires --lr-schedule")
+    if args.kl_threshold is not None and not (
+            args.lr_schedule == "adaptive" and math.isfinite(args.kl_threshold) and
+            args.kl_threshold > 0):
+        raise ValueError("KL threshold requires adaptive schedule and must be positive")
+    if args.mini_epochs is not None and args.mini_epochs < 1:
+        raise ValueError("mini epochs must be positive")
+    if args.ppo_clip is not None and not (
+            math.isfinite(args.ppo_clip) and 0 < args.ppo_clip < 1):
+        raise ValueError("PPO clip must be finite and in (0,1)")
     if args.approach_reward_coef is not None and modes == 0:
         raise ValueError("--approach-reward-coef requires a Cm-off or Cm-reward bootstrap")
     if args.held_lift_reward_coef is not None and modes == 0:
@@ -273,6 +295,16 @@ def main(argv=None) -> None:
                                "--scratch-resume-sha256", args.scratch_resume_sha256]
         if args.learning_rate is not None:
             bootstrap_args += ["--learning-rate", str(args.learning_rate)]
+        if args.lr_schedule is not None:
+            bootstrap_args += ["--lr-schedule", args.lr_schedule]
+        if args.schedule_type is not None:
+            bootstrap_args += ["--schedule-type", args.schedule_type]
+        if args.kl_threshold is not None:
+            bootstrap_args += ["--kl-threshold", str(args.kl_threshold)]
+        if args.mini_epochs is not None:
+            bootstrap_args += ["--mini-epochs", str(args.mini_epochs)]
+        if args.ppo_clip is not None:
+            bootstrap_args += ["--ppo-clip", str(args.ppo_clip)]
     elif args.actual_epochs is not None:
         raise ValueError("--actual-epochs requires a Cm mode")
     if args.contact_before is not None:
@@ -358,6 +390,11 @@ def main(argv=None) -> None:
                   "scratch_resume_checkpoint": str(args.scratch_resume_checkpoint.resolve()) if args.scratch_resume_checkpoint else None,
                   "scratch_resume_sha256": args.scratch_resume_sha256,
                   "learning_rate": args.learning_rate,
+                  "lr_schedule": args.lr_schedule,
+                  "schedule_type": args.schedule_type,
+                  "kl_threshold": args.kl_threshold,
+                  "mini_epochs": args.mini_epochs,
+                  "ppo_clip": args.ppo_clip,
                   "actual_epochs": args.actual_epochs,
                   "motion_root": str(args.motion_root.resolve()), "input_manifest": str(manifest),
                   "runtime_assets": runtime_assets}

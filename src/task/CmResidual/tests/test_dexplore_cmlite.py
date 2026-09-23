@@ -122,6 +122,8 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
         "--save-frequency", "10",
         "--scratch-resume-checkpoint", str(checkpoint),
         "--scratch-resume-sha256", resume_sha256, "--learning-rate", "5e-6",
+        "--lr-schedule", "adaptive", "--schedule-type", "standard",
+        "--kl-threshold", "0.016", "--mini-epochs", "4", "--ppo-clip", "0.15",
         "--use-predicted-contact", "--max-cmlite-gap-m", "0.1",
     ])
     args = captured["bootstrap_args"]
@@ -131,4 +133,30 @@ def test_launcher_forwards_cmlite_and_shared_curriculum(tmp_path, monkeypatch):
     assert args[args.index("--save-frequency") + 1] == "10"
     assert args[args.index("--scratch-resume-sha256") + 1] == resume_sha256
     assert args[args.index("--learning-rate") + 1] == "5e-06"
+    assert args[args.index("--lr-schedule") + 1] == "adaptive"
+    assert args[args.index("--schedule-type") + 1] == "standard"
+    assert args[args.index("--kl-threshold") + 1] == "0.016"
+    assert args[args.index("--mini-epochs") + 1] == "4"
+    assert args[args.index("--ppo-clip") + 1] == "0.15"
     assert "--use-predicted-contact" in args
+
+
+def test_cmlite_bootstrap_validates_ppo_stability_overrides(tmp_path, monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    spec = importlib.util.spec_from_file_location(
+        "cmlite_bootstrap_ppo_contract", TOOLS / "dexplore_cmlite_rank_bootstrap.py")
+    bootstrap = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bootstrap)
+    checkpoint = tmp_path / "cmlite.pt"
+    checkpoint.write_bytes(b"test")
+    common = ["--cmlite-reward-coef", "5", "--cmlite-checkpoint", str(checkpoint),
+              "--cmlite-sha256", "a" * 64, "--actual-epochs", "3"]
+    args, _ = bootstrap.parse_cmlite_args(common + [
+        "--lr-schedule", "adaptive", "--schedule-type", "standard",
+        "--kl-threshold", "0.016", "--mini-epochs", "4", "--ppo-clip", "0.15"])
+    assert (args.lr_schedule, args.schedule_type, args.kl_threshold,
+            args.mini_epochs, args.ppo_clip) == ("adaptive", "standard", 0.016, 4, 0.15)
+    with pytest.raises(ValueError, match="requires --kl-threshold"):
+        bootstrap.parse_cmlite_args(common + ["--lr-schedule", "adaptive"])
+    with pytest.raises(ValueError, match="PPO clip"):
+        bootstrap.parse_cmlite_args(common + ["--ppo-clip", "1"])
