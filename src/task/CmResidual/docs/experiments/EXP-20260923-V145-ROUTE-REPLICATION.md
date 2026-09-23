@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V145-ROUTE-REPLICATION`
 - branch: `agent/v145-route-replication`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `SUPPORTED`（路由相对单专家增益）；`REFUTED`（各重复≥90%稳定目标）
 - official actor checkpoint used: `no`
 
 ## 问题、冻结输入与预注册门槛
@@ -49,3 +49,34 @@ baseline GPU6，r1 对换 GPU6/GPU5，均最多
 不训练 actor、不引用官方 actor，输出预计<1GB，
 总产物限额300GB内；外部占卡则等待，不打扰
 他人的进程。
+
+## 全矩阵结果
+
+20个 run 全部 `COMPLETED`，同一评测器与首个完整
+episode、关闭提前终止，GPU5/6按重复编号交换。
+不进行逐 env_id 因果配对：
+
+| seed | 路由 r0/r1 | 单专家 r0/r1 | 两次净增/128 |
+| ---: | ---: | ---: | ---: |
+| 99 | 46 / 53 | 43 / 41 | +15 |
+| 100 | 51 / 51 | 40 / 39 | +23 |
+| 101 | 52 / 44 | 47 / 40 | +9 |
+| 102 | 51 / 49 | 43 / 46 | +11 |
+| 103 | 51 / 51 | 43 / 49 | +10 |
+| 合计 | **499/640 (78.0%)** | **431/640 (67.3%)** | **+68/640 (10.6pp)** |
+
+五个 seed 两次均值均正向；固定随机种子145、以
+seed 为聚类单位的10,000次 bootstrap 两侧95%
+区间为 **+7.66至+14.69个百分点**，下界>0。
+总体差≥8pp，故预注册的路由增益门槛通过。
+但十次路由最差44/64、最好53/64，**没有一次**
+达到预注册每次58/64；稳定目标明确未达成。
+
+整次 run 含环境初始化的中位耗时路由62.5s、
+单专家60.0s，不能把2.5s差额直接当推理延迟。
+两臂在线都不运行 Cm，所以这是之后证明 Cm 有用
+时必须超越的无 Cm 基线。验证脚本
+`analyze_v145_replication.py` 和输出
+`outputs/CmResidual/agent_v145_replication/analysis.json`
+逐条校验子 manifest、map SHA、成功数与固定矩阵；
+父 manifest 记录代码提交及20次运行结果。
