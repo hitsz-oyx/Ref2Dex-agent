@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--motion-root-override", type=Path)
     parser.add_argument("--input-manifest-override", type=Path)
     parser.add_argument("--tag", help="short output suffix for a transfer probe")
+    parser.add_argument("--save-transitions", action="store_true",
+                        help="save step-major transition tensors for an offline model audit")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
@@ -103,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
                    "--rl_device", "cuda:0", "--graphics_device_id", "0",
                    "--num_envs", str(num_envs), "--seed", str(args.seed),
                    "--output", str(output / "results.json")]
+        transition_output = output / "transitions.pt" if args.save_transitions else None
+        if transition_output is not None:
+            command += ["--transition-output", str(transition_output)]
         entry = {"run_status": "STARTED", "created_at": _now(),
                  "run_id": output.name, "work_version": "V1.29",
                  "evaluation_commit": revision, "training_commit": training["git_commit"],
@@ -112,6 +117,7 @@ def main(argv: list[str] | None = None) -> int:
                  "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
                  "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
                  "num_envs": num_envs, "early_termination_disabled": True,
+                 "transition_output": str(transition_output) if transition_output else None,
                  "command": command}
         entries.append((output, command, entry))
     if args.dry_run:
@@ -136,6 +142,11 @@ def main(argv: list[str] | None = None) -> int:
             if (summary.get("num_episodes") != num_envs or
                     summary.get("early_termination_disabled") is not True):
                 raise ValueError("strict evaluation summary contract mismatch")
+            if transition_output is not None:
+                if not transition_output.is_file() or not transition_output.stat().st_size:
+                    raise ValueError("requested transition tensor is missing or empty")
+                entry["transition_sha256"] = _sha256(transition_output)
+                entry["transition_bytes"] = transition_output.stat().st_size
             entry.update(run_status="COMPLETED", completed_at=_now(), summary=summary)
             print(json.dumps({"run_id": entry["run_id"], "lift_success_rate":
                               summary["lift_success_rate"], "mean_max_contact_lift_m":
