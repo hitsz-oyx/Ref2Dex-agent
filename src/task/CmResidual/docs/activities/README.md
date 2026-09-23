@@ -1,5 +1,6 @@
 # CmResidual Activities
 
+- [ACT-20260923-V133-CM-ADAPT-HIGHLIFT](ACT-20260923-V133-CM-ADAPT-HIGHLIFT.md)：筛选首 episode 转移、训练低延迟 CmLite 并执行独立离线门禁。
 - [ACT-20260923-V132-ONPOLICY-CM-AUDIT](ACT-20260923-V132-ONPOLICY-CM-AUDIT.md)：采集 s3 e160 策略转移并在首 episode 上审计 CmLite。
 - [ACT-20260923-V131-S1-SOURCE-SCAN](ACT-20260923-V131-S1-SOURCE-SCAN.md)：扫描自训练 s1 策略的 s3 零样本迁移并记录严格门禁。
 - [ACT-20260923-V130-S1-TO-S3-FINETUNE](ACT-20260923-V130-S1-TO-S3-FINETUNE.md)：从 SHA 锁定的自训练 s1 PPO checkpoint 恢复，进行 s3 上的 Cm-on/off 成对微调。
