@@ -54,6 +54,7 @@ def parse_eval_args():
     parser.add_argument('--render-sleep', type=float, default=0.01)
     parser.add_argument('--transition-output', type=str)
     parser.add_argument('--reference-action-lead', type=int)
+    parser.add_argument('--disable-early-termination', action='store_true')
     eval_args, remaining = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining
     return eval_args
@@ -70,6 +71,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self._focused_success_env = None
         self.transition_output = None
         self.reference_action_lead = None
+        self.disable_early_termination = False
         self._transitions = {}
 
     def _record_transition(self, **values):
@@ -108,6 +110,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         # Disable adaptive termination during evaluation (use fixed thresholds)
         if hasattr(self.env.task, '_adaptive_kappa_enabled'):
             self.env.task._adaptive_kappa_enabled = False
+        if self.disable_early_termination:
+            self.env.task._enable_early_termination = False
 
         n_games = self.games_num
         n_game_life = self.n_game_life
@@ -327,6 +331,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 'mean_max_lift_contact_run_steps': round(float(mean_max_lift_contact_run), 3),
                 'lift_success_definition': 'object dz >= 0.03 m with hand+object contact for >=5 consecutive steps',
                 'episode_sampling': 'first completed episode from every parallel environment',
+                'early_termination_disabled': self.disable_early_termination,
             }
             output = {'summary': summary, 'per_episode': self.episode_results}
             os.makedirs(os.path.dirname(output_file) or '.', exist_ok=True)
@@ -394,6 +399,7 @@ def main():
         p.visualize_render_sleep = eval_args.render_sleep
         p.transition_output = eval_args.transition_output
         p.reference_action_lead = eval_args.reference_action_lead
+        p.disable_early_termination = eval_args.disable_early_termination
         return p
     runner.player_factory.register_builder('dexplore', lambda **kwargs: _make_eval_player(**kwargs))
     if hasattr(model_builder, 'register_model'):

@@ -14,7 +14,8 @@
 
 - `agent_v129_s3_cmlite_s66_e200`：旧 CmLite、scratch PPO、GPU 5、
   seed 66、200 epoch。`run_manifest.json` 已记录终态；独立 seed 67
-  的五个检查时点均为 `0/64`，最佳严格成功率为 0。
+  的五个检查时点在默认提前终止评估下均为 `0/64`；与 V1.28
+  路由结果比较前需使用无提前终止口径复核。
 - `eval_s67_e050/e100/e130/e170/e200`、`refaction_s67_lead1`：
   产物位于上述训练目录，含逐 episode JSON 和日志。
 - `outputs/CmLite/V1.29/s1_s3_abs_train_s68_val_s69` 与
@@ -31,4 +32,3 @@
 `outputs/CmResidual/agent_v129_s3_coordfix/corrected_manifest_r2.json`、
 200 epoch 上限、每 10 epoch 保存。终态记录最后 epoch、checkpoint、
 独立严格评估结果及完成/失败原因；科学解释更新对应 experiment card。
-
