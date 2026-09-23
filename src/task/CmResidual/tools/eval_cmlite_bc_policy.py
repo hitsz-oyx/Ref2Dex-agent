@@ -8,6 +8,7 @@ DExplore actor checkpoint is loaded by either arm.
 from __future__ import annotations
 
 import argparse
+import copy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -46,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 # Isaac Gym must be imported before torch in its pinned runtime.
 import isaacgym  # noqa: F401
 import torch
+from rl_games.algos_torch import torch_ext
 
 from src.task.CmResidual.cmlite import FrozenCmLite
 from src.task.CmResidual.cmlite_policy_select import ProposalConfig, select_cmlite_action
@@ -94,20 +96,46 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
     player.env_reset()
     device = task.obs_buf.device
     batch = int(task.num_envs)
+    initial_z = task._target_states[:, 2].clone()
+    start_frames = task.start_times.clone()
+    motion_ids = task.data_id.clone()
+    lengths = task.max_episode_length[task.data_id].long()
     teacher_mode = mode == "teacher"
+    router_mode = mode == "router"
     model = mean = std = None
     if not teacher_mode:
         model, mean, std = _load_bc(checkpoint_path, device)
     cm = FrozenCmLite(str(cm_path), device, cm_sha) if mode == "on" else None
+    router_models = {}
+    route_names = None
+    if router_mode:
+        route_map = {int(key): str(value) for key, value in json.loads(
+            os.environ["REF2DEX_POLICY_ROUTE_MAP"]).items()}
+        if not route_map or any(value == "teacher" for value in route_map.values()):
+            raise ValueError("router map must contain BC/PPO expert names")
+        route_frames = torch.tensor(sorted(route_map), device=device)
+        nearest = (start_frames[:, None] - route_frames[None]).abs().argmin(1)
+        route_names = [route_map[int(route_frames[index].item())] for index in nearest]
+        checkpoint_map = json.loads(os.environ["REF2DEX_POLICY_ROUTE_CHECKPOINTS"])
+        required = set(route_map.values()) - {"bc"}
+        if required != set(checkpoint_map):
+            raise ValueError("router checkpoint names must exactly match routed PPO experts")
+        for name, path in checkpoint_map.items():
+            payload = torch_ext.load_checkpoint(path)
+            if "running_mean_std" not in payload or "model" not in payload:
+                raise ValueError(f"router expert {name} lacks model/RMS state")
+            expert = copy.deepcopy(player.model).to(device)
+            expert.load_state_dict(payload["model"], strict=True)
+            expert.eval()
+            rms = copy.deepcopy(player.running_mean_std).to(device)
+            rms.load_state_dict(payload["running_mean_std"])
+            rms.eval()
+            router_models[name] = (expert, rms)
     proposal_config = ProposalConfig(
         wrist_z_delta=float(os.environ.get("REF2DEX_CMLITE_WRIST_Z_DELTA", "0.01")),
         finger_delta=float(os.environ.get("REF2DEX_CMLITE_FINGER_DELTA", "0.04")),
         contact_threshold=float(os.environ.get("REF2DEX_CMLITE_CONTACT_THRESHOLD", "0.5")),
     )
-    initial_z = task._target_states[:, 2].clone()
-    start_frames = task.start_times.clone()
-    motion_ids = task.data_id.clone()
-    lengths = task.max_episode_length[task.data_id].long()
     max_steps = int((lengths - start_frames).clamp_min(1).max().item()) + 2
     recorded = torch.zeros(batch, dtype=torch.bool, device=device)
     rewards = torch.zeros(batch, device=device)
@@ -138,6 +166,23 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
             grip_action_delta = 2.0 * grip_extra / task._pd_action_scale[indices]
             base_action[:, indices] += teacher_grip_latched[:, None] * grip_action_delta[None]
             base_action.clamp_(-1, 1)
+        elif router_mode:
+            base_action = torch.zeros((batch, 18), device=device)
+            raw_obs = task.obs_buf
+            for name in set(route_names):
+                indices = torch.tensor(
+                    [i for i, value in enumerate(route_names) if value == name],
+                    dtype=torch.long, device=device)
+                if name == "bc":
+                    base_action[indices] = normalized_action(
+                        model, raw_obs[indices], mean, std)
+                else:
+                    expert, rms = router_models[name]
+                    result = expert({
+                        "is_train": False, "prev_actions": None,
+                        "obs": rms(raw_obs[indices]), "rnn_states": None,
+                    })
+                    base_action[indices] = result["mus"].clamp(-1, 1)
         else:
             base_action = normalized_action(model, task.obs_buf, mean, std)
         if cm is None:
@@ -195,7 +240,8 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
         raise RuntimeError(f"only completed {len(results)}/{batch} first episodes")
     lift_success_rate = float(np.mean([item["lift_success"] for item in results]))
     summary = {
-        "mode": {"on": "cmlite_on", "off": "cm_off", "teacher": "reference_teacher"}[mode],
+        "mode": {"on": "cmlite_on", "off": "cm_off", "teacher": "reference_teacher",
+                 "router": "fixed_start_frame_router"}[mode],
         "num_episodes": batch, "lift_success_rate": lift_success_rate,
         "mean_max_lift_m": float(np.mean([item["max_lift_m"] for item in results])),
         "mean_max_contact_lift_m": float(np.mean(
@@ -207,6 +253,9 @@ def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path
         "lift_success_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
         "episode_sampling": "first completed episode from every parallel environment",
     }
+    if router_mode:
+        summary["route_histogram"] = {
+            name: route_names.count(name) for name in sorted(set(route_names))}
     output.mkdir(parents=True, exist_ok=False)
     _write(output / "results.json", {"summary": summary, "per_episode": results})
     _write(output / "summary.json", summary)
@@ -323,7 +372,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cmlite-checkpoint", type=Path, required=True)
     parser.add_argument("--cmlite-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--mode", choices=("off", "on", "teacher"), required=True)
+    parser.add_argument("--mode", choices=("off", "on", "teacher", "router"), required=True)
+    parser.add_argument("--router-checkpoint", action="append", default=[], metavar="NAME=PATH")
+    parser.add_argument("--router-map", help="JSON object mapping start frames to expert names")
     parser.add_argument("--physical-gpu", type=int, required=True)
     args, passthrough = parser.parse_known_args(argv)
     for path in (args.bc_checkpoint, args.cmlite_checkpoint):
@@ -333,6 +384,23 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("CmLite checkpoint SHA256 mismatch")
     if args.output.exists():
         raise FileExistsError(args.output)
+    router_checkpoints = {}
+    for item in args.router_checkpoint:
+        if "=" not in item:
+            raise ValueError("--router-checkpoint must be NAME=PATH")
+        name, raw_path = item.split("=", 1)
+        path = Path(raw_path).resolve()
+        if not name or name in router_checkpoints or not path.is_file():
+            raise ValueError("router checkpoint names must be unique and files must exist")
+        router_checkpoints[name] = path
+    if args.mode == "router":
+        if not args.router_map or not router_checkpoints:
+            raise ValueError("router mode requires --router-map and PPO checkpoints")
+        parsed_route_map = json.loads(args.router_map)
+        if not isinstance(parsed_route_map, dict):
+            raise ValueError("router map must be a JSON object")
+    elif args.router_map or router_checkpoints:
+        raise ValueError("router arguments require --mode router")
     manifest = {
         "run_status": "RUNNING", "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "physical_gpu": args.physical_gpu, "mode": args.mode,
@@ -340,6 +408,11 @@ def main(argv: list[str] | None = None) -> int:
             "path": str(args.bc_checkpoint.resolve()), "sha256": _sha256(args.bc_checkpoint),
             "official_policy_checkpoint": None},
         "cmlite_checkpoint": {"path": str(args.cmlite_checkpoint.resolve()), "sha256": args.cmlite_sha256},
+        "router_map": json.loads(args.router_map) if args.router_map else None,
+        "router_checkpoints": {
+            name: {"path": str(path), "sha256": _sha256(path),
+                   "official_policy_checkpoint": None}
+            for name, path in router_checkpoints.items()},
         "official_policy_checkpoint": None,
     }
     _write(args.output / "run_manifest.json", manifest)
@@ -353,6 +426,10 @@ def main(argv: list[str] | None = None) -> int:
         "REF2DEX_CMLITE_BC_MODE": args.mode,
         "PYTHONPATH": os.pathsep.join((str(ROOT), str(DEXPLORE), env.get("PYTHONPATH", ""))),
     })
+    if args.mode == "router":
+        env["REF2DEX_POLICY_ROUTE_MAP"] = args.router_map
+        env["REF2DEX_POLICY_ROUTE_CHECKPOINTS"] = json.dumps(
+            {name: str(path) for name, path in router_checkpoints.items()}, sort_keys=True)
     env["REF2DEX_CMLITE_BC_OUTPUT"] = str((args.output / "rollout").resolve())
     sys.path.insert(0, str(DEXPLORE / "dexplore"))
     try:
