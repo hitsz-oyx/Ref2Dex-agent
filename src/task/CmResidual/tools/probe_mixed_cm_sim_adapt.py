@@ -19,7 +19,9 @@ from src.task.CmResidual.dexplore_cm_geometry import (
     DExploreCmv2GeometryBridge, dexplore_root_pose, native_joint_limits,
     world_to_object_frame,
 )
-from src.task.CmResidual.tools.audit_original_cmv2_on_policy import ASSETS, TRANSITIONS, select
+from src.task.CmResidual.cmlite import local_translation_target
+from src.task.CmResidual.tools.analyze_cmlite_on_policy import first_episode_mask
+from src.task.CmResidual.tools.audit_original_cmv2_on_policy import ASSETS, TRANSITIONS
 from src.task.CmResidual.tools.probe_mixed_cm_sim_transfer import (
     CHECKPOINT, CHECKPOINT_SHA256, object_flow_target, sha256,
 )
@@ -38,6 +40,24 @@ TRAIN = {
 INPUT_KEYS = ("obj_points", "obj_normals", "hand_points", "hand_normals", "hand_flow")
 
 
+def select_moving_contact(payload, seed: int, each: int):
+    mask = first_episode_mask(payload["done"], 64)
+    rows = {key: value[mask] for key, value in payload.items()
+            if isinstance(value, torch.Tensor)}
+    contact = (rows["hand_contact"].bool() & rows["object_contact"].bool()).reshape(-1)
+    motion = local_translation_target(rows["object_state"], rows["next_object_state"]).norm(dim=-1)
+    generator = torch.Generator().manual_seed(2312 + seed)
+    indices = []
+    for candidates in (torch.where(contact & (motion > .002))[0], torch.where(~contact)[0]):
+        if len(candidates) < each:
+            raise ValueError(f"seed {seed} lacks {each} required samples")
+        indices.append(candidates[torch.randperm(len(candidates), generator=generator)[:each]])
+    selected = torch.cat(indices)
+    result = {key: value[selected] for key, value in rows.items()}
+    result["contact_group"] = contact[selected]
+    return result
+
+
 @torch.no_grad()
 def materialize(bridge, lower, upper, sources, each: int) -> dict[str, torch.Tensor]:
     chunks = {key: [] for key in (*INPUT_KEYS, "target", "contact")}
@@ -47,7 +67,7 @@ def materialize(bridge, lower, upper, sources, each: int) -> dict[str, torch.Ten
         payload = torch.load(path, map_location="cpu", weights_only=False)
         if payload.get("schema") != "ref2dex.cmlite_transition.v1":
             raise ValueError(f"transition schema mismatch: {path}")
-        rows = select(payload, seed, each)
+        rows = select_moving_contact(payload, seed, each)
         for start in range(0, len(rows["q"]), 2):
             stop = start + 2
             q = rows["q"][start:stop]

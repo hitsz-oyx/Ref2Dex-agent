@@ -27,9 +27,11 @@ H1 若不成立：先改模型输入/结构，或训练动作到真实手运动�
 
 ## Minimal protocol
 
-训练转移：自训练 s3 策略 e160 seed74 与 e180 seed78，各随机固定接触 /
-非接触 16 条，合计 64 条。评估：e260 seed95/96，各接触/非接触
-8 条，合计 32 条。所有动作条件输入均来自 pre-action q/action 和
+训练转移：自训练 s3 策略 e160 seed74 与 e180 seed78，各随机固定
+真实物体平移 >2mm 的接触转移 / 非接触转移 16 条，合计 64 条。
+评估：e260 seed95/96，按同样分层各 8 条，合计 32 条。固定分层是
+为了避免静止物体主导小样本 Probe；并不改变下一状态只用于采样/监督的边界。
+所有动作条件输入均来自 pre-action q/action 和
 nominal hand flow；next object state 仅作目标。预训练与 scratch
 结构相同，使用同一 mini-batch index schedule、AdamW、LR、40 更新步。
 比较初始/10/20/40 步的接触 EPE、无交互门控 EPE、零运动 EPE。
