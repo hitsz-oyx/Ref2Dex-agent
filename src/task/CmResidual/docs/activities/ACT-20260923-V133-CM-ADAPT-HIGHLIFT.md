@@ -2,7 +2,7 @@
 
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
+- run_status: `RUNNING`
 - official actor checkpoint: `null`
 
 V1.32 的 Cm-off e160 seed74 `eval_s74_e160_full/transitions.pt`
@@ -11,3 +11,21 @@ V1.32 的 Cm-off e160 seed74 `eval_s74_e160_full/transitions.pt`
 超参不变。完成后用 `analyze_cmlite_on_policy.py` 比较旧/新模型，
 并用 `train_cmlite.py` 的 s1 外部验证检查遗忘。具体阈值见
 experiment card。
+
+已完成 seed74 Cm-off e160 筛选：33,189 条首 episode 非终止转移，
+输出 `outputs/CmLite/V1.33/s3_cmoff_e160_seed74_first.pt`，SHA256
+`e36c8116ae78772320de43150755d2f3cc6b170cbccef32f60ecc309611d066e`；
+`s3_cmoff_e160_seed74_first.manifest.json` 为 `COMPLETED`。seed75
+同一策略评估已在 GPU 5 启动，产物为 `eval_s75_e160_full`，不参与训练。
+
+训练 run_id `s1_s3_highlift_seed74_train`，输出
+`outputs/CmLite/V1.33/s1_s3_highlift_seed74_train`，GPU 6、
+30 epochs、batch 2048、`3e-4`、seed 42。五个训练源 SHA256
+依次为：s1 seed5910 `e18aacaf37c8b9b520d4feae080d2bfc12a99f2425a232a5bc8641bfedc8d7d2`，
+s1 seed5929 `82325cdb958a991c9f66446c2191e82690456e49688fb638a0433758621c87c0`，
+s3 e130 seed67 `2a2ee8e5a2dc1bf59d455201ba82834b826ed9d617d5bf87916f9f284d927a96`，
+s3 e100 seed68 `db404622736fd2a45dc7b1f2dbdd3138aa2eba0cf1d0056bb5e8acb8e749c54c`，
+本轮高抬升 seed74 为上述 `e36c...`。s1 外部验证 seed5909
+SHA256 为 `a7790966180ab1765562bcb7af48cc8a113bd0f2f8ff6205d03ece2c4a41d65c`。
+训练 checkpoint、逐 epoch `metrics.jsonl` 和最终 `summary.json`
+都写入此 run 目录。
