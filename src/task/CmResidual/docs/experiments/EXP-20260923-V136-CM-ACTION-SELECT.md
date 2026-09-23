@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V136-CM-ACTION-SELECT`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `INCONCLUSIVE`（预测预检未过，选择器未上线）
 - official actor checkpoint used: `no`
 
 ## 假设与固定设计
@@ -40,3 +40,21 @@ seed78 既用于离线预检和 pilot，不作为未见泛化证据。
 基线与选择器依次占一张空闲 GPU 5，最多两 GPU 总上限；
 每轮保留模型/策略/输入 SHA、命令与结果，所有产物预计 <1GB。
 发现占卡、SHA 漂移、选择器异常或 episode 口径不一致即停。
+
+## 预检结果与停损
+
+新 seed78 的自训练 Cm-off e180 策略在完整轨迹门禁为 32/64；
+33,053 条首 episode 非终止转移中，V1.34 冻结 CmLite 的
+运动 EPE 为 **6.2965 mm**，零位移为 **7.7348 mm**，改善
+**18.6%**，未达到预注册的至少 20%。固定状态打乱动作后的
+运动 EPE 为 7.3143 mm，比真实动作高 16.2%，这一项通过；
+接触 precision 为 0.899。由于预检是联合条件，仍触发
+停损。**没有实现或运行在线选择器，也没有评估 seeds79–81**；
+因此本实验不能判断选择器是否有益，只说明当前模型在 e180
+分布上的运动预测未达到既定上线可靠性门槛。
+
+基线 `eval_s78_e180_full/run_manifest.json` 记录策略/input/转移
+SHA、完整轨迹口径和 32/64；`cmlite_audit_v134.json` 记录
+模型 SHA、首 episode 筛选与全部离线指标。下一步需显式
+适配 e180 成功策略分布，另用全新 seed 复核，不能把 seed78
+重新用作独立门禁。

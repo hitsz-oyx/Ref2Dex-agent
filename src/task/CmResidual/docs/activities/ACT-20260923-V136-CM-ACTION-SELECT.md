@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - evaluation code commit: `df01147`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 冻结自训练 V1.35 Cm-off e180 PPO 与 V1.34 平衡 CmLite，
@@ -16,3 +16,9 @@ Cm-off baseline 已在 GPU 5 启动：run_id `eval_s78_e180_full`，
 `run_manifest.json` 记录自训练 PPO checkpoint SHA、s3 输入
 manifest SHA、精确命令和资源；完成后先审计 CmLite 的运动预测，
 未通过不得运行选择器。
+
+Cm-off baseline `eval_s78_e180_full/run_manifest.json` 为
+`COMPLETED`，严格抓取 32/64，转移 tensor 11,762,928 字节。
+`cmlite_audit_v134.json` 正常产出；运动 EPE 相对零位移仅改善
+18.6%，未过预注册的 20% 预检。按规则停止，未修改 DExplore
+选择器代码，未做 selector 评估。GPU 5 已释放，无训练或删除。
