@@ -42,3 +42,27 @@ def permute_active_weights(weights: torch.Tensor, actor_mask: torch.Tensor,
                                device=selected.device)
         result[active] = selected[order]
     return result.detach()
+
+
+def align_active_weight_multiset(weights: torch.Tensor, score: torch.Tensor,
+                                 actor_mask: torch.Tensor) -> torch.Tensor:
+    """Keep joint weights' active multiset, assign it by one component's rank.
+
+    This isolates which model head selects PPO samples while holding the
+    per-step active weight distribution exactly fixed.
+    """
+    if weights.ndim != 1 or score.shape != weights.shape or actor_mask.shape != weights.shape:
+        raise ValueError("weights, score and actor mask must be matching vectors")
+    if not (torch.isfinite(weights).all() and torch.isfinite(score).all()):
+        raise FloatingPointError("weights and score must be finite")
+    if not ((actor_mask == 0) | (actor_mask == 1)).all():
+        raise ValueError("PPO actor mask must be binary")
+    active = actor_mask.bool()
+    result = weights.clone()
+    if int(active.sum()) > 1:
+        order = torch.argsort(score[active], stable=True)
+        sorted_weights = torch.sort(weights[active]).values
+        assigned = torch.empty_like(sorted_weights)
+        assigned[order] = sorted_weights
+        result[active] = assigned
+    return result.detach()

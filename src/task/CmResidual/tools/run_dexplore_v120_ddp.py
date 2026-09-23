@@ -132,6 +132,9 @@ def main(argv=None) -> None:
                         help="positive frozen-CmLite PPO actor-sample weight coefficient")
     parser.add_argument("--permute-cm-actor-weights", action="store_true",
                         help="placebo: permute Cm weights among active actor samples per step")
+    parser.add_argument("--cm-actor-weight-component",
+                        choices=("joint", "contact_rank", "effect_rank"), default="joint",
+                        help="assign the same active joint-weight multiset by a component rank")
     parser.add_argument("--approach-reward-coef", type=float,
                         help="matched geometry potential shaping coefficient for both Cm arms")
     parser.add_argument("--held-lift-reward-coef", type=float,
@@ -191,6 +194,10 @@ def main(argv=None) -> None:
         raise ValueError("Cm-off, Cmv2-reward, CmLite-reward, and Cm-PPO modes are mutually exclusive")
     if args.permute_cm_actor_weights and args.cm_actor_weight_coef is None:
         raise ValueError("Cm actor-weight permutation requires Cm PPO mode")
+    if args.cm_actor_weight_component != "joint" and args.cm_actor_weight_coef is None:
+        raise ValueError("Cm actor-weight component requires Cm PPO mode")
+    if args.permute_cm_actor_weights and args.cm_actor_weight_component != "joint":
+        raise ValueError("permuted placebo and component ranking are mutually exclusive")
     if args.cm_reward_positive_only and args.cm_reward_coef is None:
         raise ValueError("--cm-reward-positive-only requires --cm-reward-coef")
     if args.approach_reward_coef is not None and (not math.isfinite(args.approach_reward_coef)
@@ -350,6 +357,8 @@ def main(argv=None) -> None:
         bootstrap_args += shared_shaping
         if args.permute_cm_actor_weights:
             bootstrap_args.append("--permute-cm-actor-weights")
+        if args.cm_actor_weight_component != "joint":
+            bootstrap_args += ["--cm-actor-weight-component", args.cm_actor_weight_component]
         if args.scratch_resume_checkpoint is not None:
             bootstrap_args += ["--scratch-resume-checkpoint",
                                str(args.scratch_resume_checkpoint.resolve()),
@@ -426,6 +435,7 @@ def main(argv=None) -> None:
                   "cmlite_reward_coef": args.cmlite_reward_coef,
                   "cm_actor_weight_coef": args.cm_actor_weight_coef,
                   "permute_cm_actor_weights": args.permute_cm_actor_weights,
+                  "cm_actor_weight_component": args.cm_actor_weight_component,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
                   "held_lift_reward_coef": args.held_lift_reward_coef or 0.0,
                   "lift_progress_reward_coef": args.lift_progress_reward_coef,

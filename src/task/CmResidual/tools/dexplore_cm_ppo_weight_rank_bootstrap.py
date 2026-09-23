@@ -14,6 +14,8 @@ def main(argv=None) -> None:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--cm-actor-weight-coef", type=float, required=True)
     parser.add_argument("--permute-cm-actor-weights", action="store_true")
+    parser.add_argument("--cm-actor-weight-component",
+                        choices=("joint", "contact_rank", "effect_rank"), default="joint")
     parser.add_argument("--cmlite-checkpoint", type=Path, required=True)
     parser.add_argument("--cmlite-sha256", required=True)
     args, passthrough = parser.parse_known_args(argv)
@@ -26,6 +28,7 @@ def main(argv=None) -> None:
     os.environ.update({
         "REF2DEX_CM_ACTOR_WEIGHT_COEF": str(args.cm_actor_weight_coef),
         "REF2DEX_CM_ACTOR_WEIGHT_PERMUTE": "1" if args.permute_cm_actor_weights else "0",
+        "REF2DEX_CM_ACTOR_WEIGHT_COMPONENT": args.cm_actor_weight_component,
         "REF2DEX_CMLITE_CHECKPOINT": str(args.cmlite_checkpoint.resolve()),
         "REF2DEX_CMLITE_SHA256": args.cmlite_sha256,
     })

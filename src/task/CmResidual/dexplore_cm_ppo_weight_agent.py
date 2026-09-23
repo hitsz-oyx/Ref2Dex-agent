@@ -7,7 +7,9 @@ import os
 import torch
 
 from src.task.CmResidual.cmlite import FrozenCmLite
-from src.task.CmResidual.cm_ppo_weight import effect_actor_weight, permute_active_weights
+from src.task.CmResidual.cm_ppo_weight import (
+    align_active_weight_multiset, effect_actor_weight, permute_active_weights,
+)
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 
 
@@ -22,6 +24,11 @@ class DExploreCmPpoWeightAgent(DExploreApproachAgent):
             os.environ["REF2DEX_CMLITE_SHA256"])
         self.permute_cm_weights = os.environ.get(
             "REF2DEX_CM_ACTOR_WEIGHT_PERMUTE", "0") == "1"
+        self.component_mode = os.environ.get("REF2DEX_CM_ACTOR_WEIGHT_COMPONENT", "joint")
+        if self.component_mode not in ("joint", "contact_rank", "effect_rank"):
+            raise ValueError("invalid Cm PPO weight component mode")
+        if self.permute_cm_weights and self.component_mode != "joint":
+            raise ValueError("permuted placebo only supports joint component mode")
         self._cm_weight_generator = torch.Generator(device=self.ppo_device)
         self._cm_weight_generator.manual_seed(152 + int(getattr(self, "rank", 0)))
         self._cm_weight_calls = 0
@@ -45,6 +52,12 @@ class DExploreCmPpoWeightAgent(DExploreApproachAgent):
         weights = effect_actor_weight(
             prediction["contact_probability"], prediction["delta_world"],
             coefficient=self.cm_actor_weight_coefficient)
+        if self.component_mode != "joint":
+            score = (prediction["contact_probability"] if
+                     self.component_mode == "contact_rank" else
+                     prediction["delta_world"][:, 2].abs().div(0.003).clamp(0, 1))
+            weights = align_active_weight_multiset(
+                weights, score, result["rand_action_mask"])
         if self.permute_cm_weights:
             weights = permute_active_weights(
                 weights, result["rand_action_mask"], self._cm_weight_generator)
@@ -58,6 +71,7 @@ class DExploreCmPpoWeightAgent(DExploreApproachAgent):
             print("REF2DEX_CM_PPO_WEIGHT " + json.dumps({
                 "epoch": self.epoch_num, "coefficient": self.cm_actor_weight_coefficient,
                 "permuted": self.permute_cm_weights,
+                "component_mode": self.component_mode,
                 "mean_weight": self._cm_weight_sum / self._cm_weight_count,
                 "mean_contact_probability": self._cm_probability_sum / self._cm_weight_count,
                 "mean_abs_predicted_dz_m": self._cm_effect_sum / self._cm_weight_count,

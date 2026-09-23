@@ -2,7 +2,21 @@ import unittest
 
 import torch
 
-from src.task.CmResidual.cm_ppo_weight import effect_actor_weight, permute_active_weights
+from src.task.CmResidual.cm_ppo_weight import (
+    align_active_weight_multiset, effect_actor_weight, permute_active_weights,
+)
+
+
+def test_component_rank_keeps_active_multiset_and_inactive_samples():
+    weights = torch.tensor([1.2, 1.8, 1.4, 1.6, 1.1])
+    score = torch.tensor([0.2, 0.1, 0.8, 0.4, 0.9])
+    mask = torch.tensor([1., 1., 0., 1., 1.])
+    ranked = align_active_weight_multiset(weights, score, mask)
+    assert torch.equal(torch.sort(ranked[mask.bool()]).values,
+                       torch.sort(weights[mask.bool()]).values)
+    assert ranked[2] == weights[2]
+    assert ranked[1] == 1.1
+    assert ranked[4] == 1.8
 
 
 class CmPpoWeightTests(unittest.TestCase):
