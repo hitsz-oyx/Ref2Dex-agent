@@ -2,7 +2,7 @@
 
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 V1.32 的 Cm-off e160 seed74 `eval_s74_e160_full/transitions.pt`
@@ -29,3 +29,13 @@ s3 e100 seed68 `db404622736fd2a45dc7b1f2dbdd3138aa2eba0cf1d0056bb5e8acb8e749c54c
 SHA256 为 `a7790966180ab1765562bcb7af48cc8a113bd0f2f8ff6205d03ece2c4a41d65c`。
 训练 checkpoint、逐 epoch `metrics.jsonl` 和最终 `summary.json`
 都写入此 run 目录。
+
+seed75 Cm-off e160 `eval_s75_e160_full/run_manifest.json` 为
+`COMPLETED`：严格抓取 27/64，转移 tensor 11,762,928 字节，
+只用于独立审计。GPU 6 上的训练正常结束 30 epoch；模型 SHA256
+`2640f2e0b932be375f603bfecca4b3cb61310878b9a580e5512cecefa00272ee`，
+最佳指标与 0.555 ms/64 样本前向见 `summary.json`，逐 epoch
+指标在 `metrics.jsonl`，日志在 `train.log`。seed75 的旧/新
+模型审计均完成，分别写为 `cmlite_audit_old.json` 与
+`cmlite_audit_v133.json`；新模型 s3 运动预测过门，但 s1
+seed5909 遗忘，故未上线。GPU 5/6 已释放。
