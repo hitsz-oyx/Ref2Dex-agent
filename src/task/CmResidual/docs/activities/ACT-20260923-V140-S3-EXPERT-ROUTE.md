@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - evaluation code commit: `2c03929`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - official actor checkpoint: `null`
 
 四枚冻结自训练 PPO checkpoint 的 SHA 与发现集/停损阈值
@@ -29,3 +29,16 @@ seeds83/84 及 back240，不边看结果边增删专家。
 记录所有发现输入结果 SHA；路由不使用 seed、接触或未来结果。
 下一步冻结文件，在全新 seeds85–89 上评估。发现集表现
 低于90%目标，故对 heldout 不作乐观预期。
+
+路由文件 SHA256 `7db4686f8eb273e0ac94bfbbd3625ddd35209a1f4922e8451bcbf519f6395a79`，
+拟合/评测代码冻结于 `e14393a`。首次 heldout 启动将未使用的
+`standard` 也传入评测器，严格名称校验导致两个 run `FAILED`，
+未产生 episode；保留失败 manifest，新 ID `_r1` 仅移除该
+未用参数，路由文件未改。
+
+新 seeds85–89 固定路由依次55/50/50/48/51，单专家
+`back260` 同口径为35/44/43/45/41；各 seed 64/64
+环境按开始帧与轨迹编号完全对齐。总体路由254/320，
+单专家208/320，84修复、38破坏，五 seed 均有净增。
+但最差仅48/64，稳定门槛被否定；Cm 本次仅被 CLI 校验
+其 checkpoint，并未参与策略选择或动作。
