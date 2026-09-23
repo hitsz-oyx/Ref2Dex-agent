@@ -84,15 +84,149 @@ def _load_bc(path: Path, device: torch.device):
 
 
 @torch.inference_mode()
+def _run_batched_eval(player, output: Path, checkpoint_path: Path, cm_path: Path,
+                      mode: str, cm_sha: str) -> None:
+    """Evaluate the first complete episode from every parallel environment."""
+    task = player.env.task
+    task._adaptive_kappa_enabled = False
+    task._enable_early_termination = False
+    player.has_batch_dimension = True
+    player.env_reset()
+    device = task.obs_buf.device
+    batch = int(task.num_envs)
+    teacher_mode = mode == "teacher"
+    model = mean = std = None
+    if not teacher_mode:
+        model, mean, std = _load_bc(checkpoint_path, device)
+    cm = FrozenCmLite(str(cm_path), device, cm_sha) if mode == "on" else None
+    proposal_config = ProposalConfig(
+        wrist_z_delta=float(os.environ.get("REF2DEX_CMLITE_WRIST_Z_DELTA", "0.01")),
+        finger_delta=float(os.environ.get("REF2DEX_CMLITE_FINGER_DELTA", "0.04")),
+        contact_threshold=float(os.environ.get("REF2DEX_CMLITE_CONTACT_THRESHOLD", "0.5")),
+    )
+    initial_z = task._target_states[:, 2].clone()
+    start_frames = task.start_times.clone()
+    motion_ids = task.data_id.clone()
+    lengths = task.max_episode_length[task.data_id].long()
+    max_steps = int((lengths - start_frames).clamp_min(1).max().item()) + 2
+    recorded = torch.zeros(batch, dtype=torch.bool, device=device)
+    rewards = torch.zeros(batch, device=device)
+    steps = torch.zeros(batch, device=device)
+    max_lift = torch.zeros(batch, device=device)
+    max_contact_lift = torch.zeros(batch, device=device)
+    contact_steps = torch.zeros(batch, device=device)
+    airborne_steps = torch.zeros(batch, device=device)
+    lift_run = torch.zeros(batch, dtype=torch.long, device=device)
+    max_lift_run = torch.zeros(batch, dtype=torch.long, device=device)
+    success = torch.zeros(batch, dtype=torch.bool, device=device)
+    stable_contact_steps = torch.zeros(batch, dtype=torch.long, device=device)
+    teacher_grip_latched = torch.zeros(batch, dtype=torch.bool, device=device)
+    proposal_count = torch.zeros(batch, dtype=torch.long, device=device)
+    proposal_histogram = torch.zeros(5, dtype=torch.long, device=device)
+    results = []
+    done_indices = torch.empty(0, dtype=torch.long, device=device)
+    for _ in range(max_steps):
+        player.env_reset(done_indices)
+        if teacher_mode:
+            from utils.reference_action import inspire_reference_action
+            base_action = inspire_reference_action(task, lead=1)
+            occupancy = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).float().mean(-1)
+            teacher_grip_latched |= occupancy >= float(os.environ.get(
+                "REF2DEX_REFERENCE_CONTACT_THRESHOLD", "0.2"))
+            grip_extra = float(os.environ.get("REF2DEX_REFERENCE_GRIP_EXTRA_RAD", "0.1"))
+            indices = torch.as_tensor((6, 8, 10, 12, 14, 15), device=device)
+            grip_action_delta = 2.0 * grip_extra / task._pd_action_scale[indices]
+            base_action[:, indices] += teacher_grip_latched[:, None] * grip_action_delta[None]
+            base_action.clamp_(-1, 1)
+        else:
+            base_action = normalized_action(model, task.obs_buf, mean, std)
+        if cm is None:
+            action = base_action
+            selected_id = torch.zeros(batch, dtype=torch.long, device=device)
+        else:
+            progress = task.progress_buf.long()
+            goal_index = torch.minimum(progress + 1, lengths - 1)
+            goal = task.hoi_refs[task.data_id, task.ref_index, goal_index, 106:109]
+            action, _, selected_id = select_cmlite_action(
+                cm, task._dof_pos, base_action, task._target_states, goal,
+                actual_contact=stable_contact_steps >= 5, config=proposal_config)
+        _, reward, done, _ = player.env_step(player.env, action)
+        active = ~recorded
+        rewards += reward.reshape(-1) * active
+        steps += active
+        lift = task._target_states[:, 2] - initial_z
+        hand_contact = (task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).any(dim=-1)
+        object_contact = task._tar_contact_forces.norm(dim=-1) > .1
+        held = hand_contact & object_contact
+        stable_contact_steps = torch.where(
+            held, stable_contact_steps + 1, torch.zeros_like(stable_contact_steps))
+        active_lift = torch.where(active, lift, torch.zeros_like(lift))
+        max_lift = torch.maximum(max_lift, active_lift)
+        max_contact_lift = torch.maximum(
+            max_contact_lift, torch.where(active & held, lift, torch.zeros_like(lift)))
+        contact_steps += (active & held).float()
+        airborne_steps += (active & (lift >= .03)).float()
+        lift_run = torch.where(active & held & (lift >= .03), lift_run + 1,
+                               torch.zeros_like(lift_run))
+        max_lift_run = torch.maximum(max_lift_run, lift_run)
+        success |= max_lift_run >= 5
+        proposal_count += (active & (selected_id != 0)).long()
+        proposal_histogram += torch.bincount(selected_id[active], minlength=5)
+        done_indices = done.bool().nonzero(as_tuple=False).reshape(-1)
+        new_done = done_indices[~recorded[done_indices]]
+        for index in new_done.tolist():
+            episode_steps = max(int(steps[index].item()), 1)
+            results.append({
+                "env_id": index, "motion_id": int(motion_ids[index].item()),
+                "start_frame": int(start_frames[index].item()),
+                "steps": episode_steps, "reward": float(rewards[index].item()),
+                "max_lift_m": float(max_lift[index].item()),
+                "max_contact_lift_m": float(max_contact_lift[index].item()),
+                "hand_object_contact_fraction": float(contact_steps[index].item() / episode_steps),
+                "airborne_fraction": float(airborne_steps[index].item() / episode_steps),
+                "max_lift_contact_run_steps": int(max_lift_run[index].item()),
+                "lift_success": bool(success[index].item()),
+                "proposal_selection_rate": float(proposal_count[index].item() / episode_steps),
+            })
+        recorded[new_done] = True
+        if bool(recorded.all()):
+            break
+    if len(results) != batch:
+        raise RuntimeError(f"only completed {len(results)}/{batch} first episodes")
+    lift_success_rate = float(np.mean([item["lift_success"] for item in results]))
+    summary = {
+        "mode": {"on": "cmlite_on", "off": "cm_off", "teacher": "reference_teacher"}[mode],
+        "num_episodes": batch, "lift_success_rate": lift_success_rate,
+        "mean_max_lift_m": float(np.mean([item["max_lift_m"] for item in results])),
+        "mean_max_contact_lift_m": float(np.mean(
+            [item["max_contact_lift_m"] for item in results])),
+        "mean_contact_fraction": float(np.mean(
+            [item["hand_object_contact_fraction"] for item in results])),
+        "proposal_selection_rate": float(proposal_count.sum().item() / steps.sum().item()),
+        "proposal_histogram": proposal_histogram.cpu().tolist(),
+        "lift_success_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
+        "episode_sampling": "first completed episode from every parallel environment",
+    }
+    output.mkdir(parents=True, exist_ok=False)
+    _write(output / "results.json", {"summary": summary, "per_episode": results})
+    _write(output / "summary.json", summary)
+    print(json.dumps(summary, sort_keys=True), flush=True)
+
+
+@torch.inference_mode()
 def _run_episode(player) -> None:
     output = Path(os.environ["REF2DEX_CMLITE_BC_OUTPUT"]).resolve()
     checkpoint_path = Path(os.environ["REF2DEX_CMLITE_BC_CHECKPOINT"]).resolve()
     cm_path = Path(os.environ["REF2DEX_CMLITE_CHECKPOINT"]).resolve()
-    cm_enabled = os.environ.get("REF2DEX_CMLITE_BC_MODE", "off") == "on"
+    mode = os.environ.get("REF2DEX_CMLITE_BC_MODE", "off")
+    cm_enabled = mode == "on"
     cm_sha = os.environ["REF2DEX_CMLITE_SHA256"]
     task = player.env.task
-    if int(task.num_envs) != 1 or int(task.control_freq_inv) != 2:
-        raise ValueError("CmLite BC evaluation requires one 30 Hz environment")
+    if int(task.control_freq_inv) != 2:
+        raise ValueError("CmLite BC evaluation requires a 30 Hz environment")
+    if int(task.num_envs) > 1 or mode == "teacher":
+        return _run_batched_eval(
+            player, output, checkpoint_path, cm_path, mode, cm_sha)
     task._adaptive_kappa_enabled = False
     task._enable_early_termination = False
     player.has_batch_dimension = True
@@ -189,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cmlite-checkpoint", type=Path, required=True)
     parser.add_argument("--cmlite-sha256", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--mode", choices=("off", "on"), required=True)
+    parser.add_argument("--mode", choices=("off", "on", "teacher"), required=True)
     parser.add_argument("--physical-gpu", type=int, required=True)
     args, passthrough = parser.parse_known_args(argv)
     for path in (args.bc_checkpoint, args.cmlite_checkpoint):
@@ -202,8 +336,9 @@ def main(argv: list[str] | None = None) -> int:
     manifest = {
         "run_status": "RUNNING", "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "physical_gpu": args.physical_gpu, "mode": args.mode,
-        "bc_checkpoint": {"path": str(args.bc_checkpoint.resolve()), "sha256": _sha256(args.bc_checkpoint),
-                          "official_policy_checkpoint": None},
+        "bc_checkpoint": None if args.mode == "teacher" else {
+            "path": str(args.bc_checkpoint.resolve()), "sha256": _sha256(args.bc_checkpoint),
+            "official_policy_checkpoint": None},
         "cmlite_checkpoint": {"path": str(args.cmlite_checkpoint.resolve()), "sha256": args.cmlite_sha256},
         "official_policy_checkpoint": None,
     }
