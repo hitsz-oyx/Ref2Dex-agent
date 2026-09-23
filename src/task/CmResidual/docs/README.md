@@ -6,6 +6,7 @@ interaction residual。canonical owner 为 `src/task/CmResidual/`；IsaacGym ven
 
 ## 当前状态
 
+- V1.48 在 s3 上从相同自训练 e260 源续至 e300，检验多指几何奖励/门与 matched Cm-off；未见 seeds114–118 各重复两次严格抓取为323/640对422/640，差−15.5pp，五 seed 均退步。按用户强调的论文目标停止该无 Cm 奖励路线，转向 Cm 架构和接入的因果消融。详见 [Activity](activities/ACT-20260923-V148-GRASP-LINKS.md) 与 [experiment](experiments/EXP-20260923-V148-GRASP-LINKS.md)。
 - V1.47 从自训练 s3 e260 权重比较单轨迹与 s1+s3 混合轨迹续训至固定 e320；未见 s3 seeds109–113 各重复两次的严格抓取为 200/640 对 225/640，混合臂+3.9pp、seed聚类95%区间跨0，十次运行均未达到58/64。预注册相对改善与稳定抓取门槛失败；此实验未使用 Cm。详见 [Activity](activities/ACT-20260923-V147-MULTIMOTION-S3.md) 与 [experiment](experiments/EXP-20260923-V147-MULTIMOTION-S3.md)。
 - V1.28 单轨迹稳定性：不使用官方 DExplore actor，由 reference-action BC 与 CmLite-reward scratch PPO 时点组成的固定整段路由，在规则冻结后的全新 seeds60–64 上分别达到 `61/64、62/64、63/64、59/64、62/64`，合计 `307/320=95.94%`，每个 seed 均超过 90%。该结论只覆盖 `s1_airplane_lift`；多轨迹、跨手和 Cm 的 matched 因果消融仍未完成。详见 [Activity](activities/ACT-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md) 与 [experiment](experiments/EXP-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md)。
 - `work_version`: `V1.20`

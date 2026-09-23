@@ -2,8 +2,8 @@
 
 - experiment_id: `EXP-20260923-V148-GRASP-LINKS`
 - branch: `agent/v148-grasp-links`
-- run_status: `NOT_STARTED`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（多指几何包围联合配方）
 - official actor checkpoint used: `no`
 
 ## 假设与预注册对照
@@ -57,3 +57,37 @@ horizon >0.05；若几何门完全失活，停机修接线，
 总产物<300GB，预计训练与20次评估<30分钟。
 输入 SHA 漂移、非有限值、资源冲突或工程 smoke
 不通过则停机。此实验不能证明 Cm 有用。
+
+## 固定 e300 未见 seed 结果
+
+e262 smoke 及正式 e300 训练均 `COMPLETED`，
+训练代码 commit `2d9db1f`，正式 e300 SHA256
+`8d4f80279f80914b82f1cf87616147cd18158d699c4787bb379961a939572312`。
+smoke 前两个 horizon 的合格真实接触比例0.082/0.234，
+确认门未失活；正式训练不使用 smoke 权重。
+全新 seeds114–118 两臂各重复两次、每 run 64个
+完整首 episode，关闭提前终止且未加载 Cm：
+
+| seed | links r0/r1 | Cm-off r0/r1 | 差/128 |
+| ---: | ---: | ---: | ---: |
+| 114 | 30 / 32 | 41 / 43 | −22 |
+| 115 | 30 / 35 | 35 / 39 | −9 |
+| 116 | 27 / 30 | 43 / 43 | −29 |
+| 117 | 35 / 33 | 42 / 49 | −23 |
+| 118 | 36 / 35 | 46 / 41 | −16 |
+| 合计 | **323/640 (50.5%)** | **422/640 (65.9%)** | **−99/640 (−15.5pp)** |
+
+seed 聚类、固定 RNG148 的10,000次 bootstrap 双侧
+95%区间为 **−19.69至−10.31pp**；五 seed 都退步，
+预注册增益与稳定门槛均失败。links 平均真实手物
+接触占比0.492、最大接触抬升0.126m；对照为
+0.615、0.215m。整 run 含初始化的中位耗时
+76.5秒对68.5秒，不能直接作为纯策略推理延迟。
+
+多指几何目标与真实接触确实触发，但联合配方
+显著伤害抓取；不能继续拿这些 heldout seed 调
+系数或门槛。它不涉及 Cm，不能用来判断 Cm
+的论文价值。运行证据位于
+`outputs/Dexplore/agent_v148_links_s70_e300/`、
+`outputs/Dexplore/agent_v146_cmoff_s70_e300/` 及
+`outputs/CmResidual/agent_v148_eval_matrix/`。
