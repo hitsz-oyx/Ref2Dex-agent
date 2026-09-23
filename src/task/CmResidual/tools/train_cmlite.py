@@ -23,6 +23,8 @@ TRANSITION_SCHEMA = "ref2dex.cmlite_transition.v1"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", action="append", required=True)
+    parser.add_argument("--source-repeat", action="append", type=int,
+                        help="training-only repetition for each --train source, after holdout split")
     parser.add_argument("--val", action="append", default=[])
     parser.add_argument("--output", required=True)
     parser.add_argument("--epochs", type=int, default=30)
@@ -64,6 +66,18 @@ def prepare(payload: dict[str, torch.Tensor],
 
 def concatenate(items: list[tuple[torch.Tensor, ...]]) -> tuple[torch.Tensor, ...]:
     return tuple(torch.cat([item[index] for item in items]) for index in range(3))
+
+
+def split_and_repeat_source(item: tuple[torch.Tensor, ...], order: torch.Tensor,
+                            holdout_count: int, repeat: int) -> tuple[tuple[torch.Tensor, ...],
+                                                                        tuple[torch.Tensor, ...]]:
+    """Keep holdout unique; only duplicate the training partition."""
+    if repeat < 1 or not 0 <= holdout_count < order.numel():
+        raise ValueError("invalid source split or repetition")
+    holdout = tuple(value[order[:holdout_count]] for value in item)
+    train = tuple(value[order[holdout_count:]].repeat(
+        (repeat,) + (1,) * (value.ndim - 1)) for value in item)
+    return train, holdout
 
 
 @torch.inference_mode()
@@ -114,6 +128,10 @@ def main() -> None:
     args = parse_args()
     if not 0 <= args.holdout_fraction < 0.5:
         raise ValueError("holdout fraction must be in [0, 0.5)")
+    source_repeats = args.source_repeat or [1] * len(args.train)
+    if len(source_repeats) != len(args.train) or any(not 1 <= value <= 64
+                                                     for value in source_repeats):
+        raise ValueError("one source repeat in [1,64] is required per training source")
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
@@ -124,11 +142,12 @@ def main() -> None:
     source_counts = dict(zip(args.train, [item[0].shape[0] for item in prepared_train]))
     generator = torch.Generator().manual_seed(args.seed)
     train_parts, holdout_parts = [], []
-    for item in prepared_train:
+    for item, repeat in zip(prepared_train, source_repeats):
         order = torch.randperm(item[0].shape[0], generator=generator)
         count = int(item[0].shape[0] * args.holdout_fraction)
-        holdout_parts.append(tuple(value[order[:count]] for value in item))
-        train_parts.append(tuple(value[order[count:]] for value in item))
+        train_part, holdout_part = split_and_repeat_source(item, order, count, repeat)
+        train_parts.append(train_part)
+        holdout_parts.append(holdout_part)
     train = concatenate(train_parts)
     holdout = concatenate(holdout_parts) if args.holdout_fraction else None
     external = [(path, prepare(load_transition(path), args.feature_mode)) for path in args.val]
@@ -209,6 +228,7 @@ def main() -> None:
         "train_sources": args.train,
         "validation_sources": args.val,
         "source_counts": source_counts,
+        "source_repeats": dict(zip(args.train, source_repeats)),
         "seed": args.seed,
         "git_revision": git_revision(),
         "metrics": final,

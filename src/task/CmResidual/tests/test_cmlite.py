@@ -3,7 +3,7 @@ import torch
 from src.task.CmResidual.cmlite import (
     CmLite, compact_features, local_to_world_translation, local_translation_target,
 )
-from src.task.CmResidual.tools.train_cmlite import prepare
+from src.task.CmResidual.tools.train_cmlite import prepare, split_and_repeat_source
 
 
 def _state(batch):
@@ -66,3 +66,11 @@ def test_training_contact_target_is_flat():
     assert features.shape == (3, 49)
     assert target.shape == (3, 3)
     assert contact.shape == (3,)
+
+
+def test_source_repetition_does_not_duplicate_holdout():
+    item = (torch.arange(5).float()[:, None], torch.arange(5).float(),
+            torch.arange(5).float())
+    train, holdout = split_and_repeat_source(item, torch.arange(5), 1, 3)
+    assert holdout[0][:, 0].tolist() == [0]
+    assert train[0][:, 0].tolist() == [1, 2, 3, 4] * 3
