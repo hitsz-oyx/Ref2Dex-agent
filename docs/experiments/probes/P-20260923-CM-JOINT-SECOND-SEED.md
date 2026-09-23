@@ -6,7 +6,9 @@ date: 2026-09-23
 
 branch: `agent/cm-postvalidation-diagnosis`
 
-status: PLANNED
+status: COMPLETED
+
+code commit: `fcade7396c53a966965283b34d24277d6cde1e8c`
 
 ## Question and decision
 
@@ -35,4 +37,26 @@ effect-rank 29/64、20/64，action-shuffled 52/64、46/64。
 
 ## Result
 
-待运行。
+run_status: `COMPLETED`（训练 1/1、评估 2/2）
+
+conclusion: `UNCLEAR`（有小正差，但未过预定继续门）
+
+| 评估 seed | joint | Cm-off | effect-rank | action-shuffled 参考 |
+| ---: | ---: | ---: | ---: | ---: |
+| 133 | 43/64 | 38/64 | 29/64 | 52/64 |
+| 134 | 36/64 | 33/64 | 20/64 | 46/64 |
+| 合计 | **79/128** | **71/128** | **49/128** | **98/128** |
+
+joint−off 为 +8/128（+6.25pp），两次各为正，但未达到预先要求的
+至少 +11/128（≥8pp）和总数 82/128。不能因观察到正号后放宽门槛。
+上一困难 seed74 joint 为 84/128 vs off 68/128，两个事后选定的
+困难 seed 合计 joint 163/256 vs off 139/256；这只是有偏的 Probe
+汇总，不是稳定增益的独立验证。两 seed 的 action-shuffled 参考均高于
+joint；仍无法证明真实动作对应的 joint 权重有独立作用。
+
+按预定失败分支，不启动 joint 版本的多 seed 正式验证，停止当前
+actor 权重族的局部调节。下一路线应换 Cm→PPO 机制。
+
+训练 manifest：`outputs/Dexplore/cm_joint_second_probe_t73/run_manifest.json`；
+评估：同目录 `eval_s133_e300_full_cmjoint2/`、
+`eval_s134_e300_full_cmjoint2/`。
