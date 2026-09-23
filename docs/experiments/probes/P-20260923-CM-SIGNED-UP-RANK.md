@@ -6,7 +6,9 @@ date: 2026-09-23
 
 branch: `agent/cm-postvalidation-diagnosis`
 
-status: RUNNING
+status: COMPLETED
+
+code commit: `6245ed49156e8d1e5a93dbde49672c3b321be1fd`
 
 ## Question and decision
 
@@ -60,4 +62,23 @@ seed133、134，按严格 64env 完整首回合进行对应评估。这个既有
 
 ## Result
 
-待运行。
+run_status: `COMPLETED`（训练 1/1、评估 2/2）
+
+conclusion: `UNPROMISING`（仅此有向排序 PPO 配方的 Probe）
+
+| 评估 seed | signed-up | 旧 effect-rank | Cm-off | action-shuffled 参考 |
+| ---: | ---: | ---: | ---: | ---: |
+| 133 | 12/64 | 18/64 | 32/64 | 45/64 |
+| 134 | 12/64 | 19/64 | 36/64 | 51/64 |
+| 合计 | 24/128 | 37/128 | 68/128 | 96/128 |
+
+signed-up 比旧 effect-rank 低 13/128（−10.16pp），比 off 低 44/128
+（−34.38pp），未通过预定推进门。两次评估平均接触时间占比 0.276/0.192，
+对应 off 为 0.490/0.549；失败不是仅差在成功阈值边缘。
+不能把这一个有意选择的失败训练 seed 结果升级成总体结论；也不能据此否定
+Cm 的有向一步预测能力。下一步停止局部调整 `|dz|`/`+dz` 排序，转向
+不同的 Cm→PPO 接法或表征训练。
+
+训练：`outputs/Dexplore/cm_signed_up_probe_t74/run_manifest.json`；
+严格首回合评估：该目录下
+`eval_s133_e300_full_cmsigned/`、`eval_s134_e300_full_cmsigned/`。
