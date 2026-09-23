@@ -1,5 +1,6 @@
 # CmResidual Activities
 
+- [ACT-20260923-V138-CM-SELECT-E180](ACT-20260923-V138-CM-SELECT-E180.md)：五候选动作选择器接线、baseline 与在线配对结果。
 - [ACT-20260923-V137-CM-E180-ADAPT](ACT-20260923-V137-CM-E180-ADAPT.md)：e180 首 episode 筛选、平衡训练及新 s1/s3 seed 门禁。
 - [ACT-20260923-V136-CM-ACTION-SELECT](ACT-20260923-V136-CM-ACTION-SELECT.md)：局部动作选择器接线、离线分布门禁与完整轨迹配对评估。
 - [ACT-20260923-V135-ADAPTED-CM-ONLINE](ACT-20260923-V135-ADAPTED-CM-ONLINE.md)：SHA 锁定的 s3 e160 成对微调、工程 smoke 与完整轨迹门禁。
