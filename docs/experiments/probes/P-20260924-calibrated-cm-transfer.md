@@ -42,14 +42,29 @@ CPU 2 threads、GPU 0、wall <= 10 min、输出 < 2 MB。
 
 ## Result
 
-Status: PENDING
+Status: UNCLEAR（输入修复有效，冻结物体效应未可靠过门）
 
-Key evidence: pending
+Key evidence: `agent_calibrated_cm_transfer_64` 在 seed95/96 各取
+64 条接触、64 条非接触转移；CPU-only，冻结同一模型和同一状态。
+
+| seed 接触 EPE | nominal | 校准手流 | 事后 oracle | 零手流 | 零物体运动 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 95 | 41.02 mm | 5.97 mm | 5.29 mm | 8.65 mm | 5.87 mm |
+| 96 | 35.25 mm | 6.21 mm | 4.92 mm | 10.95 mm | 9.14 mm |
+
+校准输入大幅改善两个 seed，并接近事后 oracle；但是 seed95 仍略差于
+零物体运动，预设“两 seed 稳定优于零运动 ≥20%”的实质门未通过。
+这不是 Cm policy utility 的证据。样本仍来自单轨迹，seed95/96
+此前已用于诊断；此处只作机制 Probe，不作独立 Validation。
 
 ## Decision update
 
-pending
+不以冻结 V1.3 物体效应头直接接 PPO。保留因果校准手流，
+训练更小的局部几何 Cm，在真实仿真执行转移上与同架构零手流对照；
+若小模型仍无法越过零运动并识别动作对应关系，暂停新的 PPO 接法。
 
 ## Artifacts
 
 `src/task/CmResidual/tools/probe_calibrated_cm_transfer.py`
+`outputs/CmResidual/agent_calibrated_cm_transfer_64/report.json`
+`outputs/CmResidual/agent_calibrated_cm_transfer_64/run_manifest.json`
