@@ -30,10 +30,13 @@ def _record(path: Path) -> dict[str, str]:
 
 
 def derive_body_translation(*, baseline_tensor: Path, reference_tensor: Path):
-    """Infer converter-input translation from right-wrist world deltas.
+    """Infer converter-input translation from right-wrist/object deltas.
 
     The public converter applies +90 degrees about X, mapping input ``(x,y,z)``
     to output ``(x,-z,y)``.  Inverting that map gives ``(dx,dz,-dy)``.
+    Object position is column ``198:201`` in the public 598-D tensor.  Using
+    the wrist/object relative vector preserves the converter's object/table
+    placement while correcting only the reconstructed body translation.
     """
     baseline = torch.load(baseline_tensor, map_location="cpu", weights_only=True)
     reference = torch.load(reference_tensor, map_location="cpu", weights_only=True)
@@ -41,10 +44,12 @@ def derive_body_translation(*, baseline_tensor: Path, reference_tensor: Path):
         raise ValueError("baseline and reference tensors must be matching [T,598]")
     if not torch.isfinite(baseline).all() or not torch.isfinite(reference).all():
         raise ValueError("alignment tensors must be finite")
-    delta = reference[:, 51:54] - baseline[:, 51:54]
+    baseline_relative = baseline[:, 51:54] - baseline[:, 198:201]
+    reference_relative = reference[:, 51:54] - reference[:, 198:201]
+    delta = reference_relative - baseline_relative
     correction = torch.stack((delta[:, 0], delta[:, 2], -delta[:, 1]), dim=-1)
     provenance = {
-        "method": "right_wrist_world_delta_inverse_rotation_x90",
+        "method": "right_hand_object_relative_inverse_rotation_x90",
         "baseline_tensor": _record(Path(baseline_tensor)),
         "reference_tensor": _record(Path(reference_tensor)),
         "output_relative_delta_m": {

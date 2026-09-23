@@ -101,8 +101,10 @@ def test_build_adds_alignment_delta_to_nonzero_legacy_translation(tmp_path):
 def test_derive_body_translation_inverts_converter_x90_rotation(tmp_path):
     baseline = torch.zeros((2, 598), dtype=torch.float32)
     legacy = baseline.clone()
-    # Target output correction is [0.1, -0.2, 0.3] m for both frames.
-    legacy[:, 51:54] = torch.tensor([0.1, -0.2, 0.3])
+    # A shared 10 m world translation must cancel.  The remaining target
+    # hand/object-relative correction is [0.1, -0.2, 0.3] m.
+    legacy[:, 198:201] = 10
+    legacy[:, 51:54] = torch.tensor([10.1, 9.8, 10.3])
     baseline_path = tmp_path / "baseline.pt"
     reference_path = tmp_path / "reference.pt"
     torch.save(baseline, baseline_path)
@@ -110,4 +112,4 @@ def test_derive_body_translation_inverts_converter_x90_rotation(tmp_path):
     correction, provenance = ADAPTER.derive_body_translation(
         baseline_tensor=baseline_path, reference_tensor=reference_path)
     assert np.allclose(correction, [[0.1, 0.3, 0.2], [0.1, 0.3, 0.2]])
-    assert provenance["method"] == "right_wrist_world_delta_inverse_rotation_x90"
+    assert provenance["method"] == "right_hand_object_relative_inverse_rotation_x90"
