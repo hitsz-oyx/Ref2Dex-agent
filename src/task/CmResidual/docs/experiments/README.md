@@ -1,5 +1,6 @@
 # CmResidual Experiments
 
+- [EXP-20260923-V140-S3-EXPERT-ROUTE](EXP-20260923-V140-S3-EXPERT-ROUTE.md)：四枚自训练 s3 checkpoint 的成功互补上界与固定整段路由门禁。
 - [EXP-20260923-V139-S3-CURRICULUM-CONTINUE](EXP-20260923-V139-S3-CURRICULUM-CONTINUE.md)：自训练 s3 策略继续训练与回启接触课程的成对比较。
 - [EXP-20260923-V138-CM-SELECT-E180](EXP-20260923-V138-CM-SELECT-E180.md)：适配后 CmLite 的冻结策略局部动作选择与新 seed 配对门禁。
 - [EXP-20260923-V137-CM-E180-ADAPT](EXP-20260923-V137-CM-E180-ADAPT.md)：加入后期高抬升策略转移，检查 CmLite 在新 seed 的一步预测与 s1 保留。
