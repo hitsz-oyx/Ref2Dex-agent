@@ -6,6 +6,7 @@ from src.task.CmResidual.cmlite_policy_select import (
     ProposalConfig,
     proposal_actions,
     select_cmlite_action,
+    select_cmlite_candidates,
 )
 
 
@@ -64,3 +65,35 @@ def test_selector_falls_back_to_policy_when_model_is_not_confident():
         actual_contact=torch.ones(1, dtype=torch.bool))
     assert int(ids.item()) == 0
     torch.testing.assert_close(selected, base)
+
+
+def test_candidate_selector_can_choose_an_external_expert_action():
+    q = torch.zeros(2, 18)
+    candidates = torch.zeros(2, 3, 18)
+    candidates[:, 1, 2] = 0.5
+    candidates[:, 1, 6] = 0.2
+    state = torch.zeros(2, 13)
+    state[:, 3] = 1
+    goal = torch.zeros(2, 3)
+    goal[:, 2] = 0.1
+    selected, scores, ids = select_cmlite_candidates(
+        _FakeCm(), q, candidates, state, goal,
+        actual_contact=torch.ones(2, dtype=torch.bool),
+        config=ProposalConfig(contact_threshold=0.25),
+    )
+    assert scores.shape == (2, 3)
+    assert ids.tolist() == [1, 1]
+    torch.testing.assert_close(selected, candidates[:, 1])
+
+
+def test_candidate_selector_uses_candidate_zero_as_safe_fallback():
+    q = torch.zeros(1, 18)
+    candidates = torch.full((1, 2, 18), 0.2)
+    state = torch.zeros(1, 13)
+    state[:, 3] = 1
+    selected, _, ids = select_cmlite_candidates(
+        _FakeCm(), q, candidates, state, torch.zeros(1, 3),
+        actual_contact=torch.zeros(1, dtype=torch.bool),
+    )
+    assert ids.tolist() == [0]
+    torch.testing.assert_close(selected, candidates[:, 0])

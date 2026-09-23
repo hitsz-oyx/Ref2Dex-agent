@@ -103,3 +103,62 @@ def select_cmlite_action(
     selected_id = scores.argmax(dim=1)
     selected = candidates[torch.arange(batch, device=q.device), selected_id]
     return selected, scores, selected_id
+
+
+@torch.inference_mode()
+def select_cmlite_candidates(
+    cm: FrozenCmLite,
+    q: torch.Tensor,
+    candidates: torch.Tensor,
+    object_state: torch.Tensor,
+    goal_position: torch.Tensor,
+    *,
+    actual_contact: torch.Tensor | None = None,
+    config: ProposalConfig = ProposalConfig(),
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Select among externally supplied policy actions with candidate zero as fallback.
+
+    This is the expert-ensemble counterpart of :func:`select_cmlite_action`.
+    It deliberately applies the same trust gates and one-step goal-progress
+    score, while allowing each candidate to come from a different scratch
+    policy rather than from a local perturbation of one policy.
+    """
+    if q.ndim != 2 or q.shape[1] != 18:
+        raise ValueError("q must be [B,18]")
+    if (candidates.ndim != 3 or candidates.shape[0] != q.shape[0] or
+            candidates.shape[2] != 18 or candidates.shape[1] < 2):
+        raise ValueError("candidates must be [B,K,18] with K >= 2")
+    if object_state.shape != (q.shape[0], 13) or goal_position.shape != (q.shape[0], 3):
+        raise ValueError("object_state/goal_position shapes are invalid")
+    if not torch.isfinite(candidates).all():
+        raise FloatingPointError("candidates contain non-finite values")
+    if actual_contact is not None and (actual_contact.shape != (q.shape[0],) or
+                                       actual_contact.dtype != torch.bool):
+        raise ValueError("actual_contact must be boolean [B]")
+    candidates = candidates.clamp(-1, 1)
+    batch, count, _ = candidates.shape
+    repeated_q = q[:, None, :].expand(-1, count, -1).reshape(batch * count, 18)
+    repeated_state = object_state[:, None, :].expand(-1, count, -1).reshape(batch * count, 13)
+    prediction = cm.predict(repeated_q, candidates.reshape(batch * count, 18), repeated_state)
+    delta = prediction["delta_world"].reshape(batch, count, 3)
+    contact = prediction["contact_probability"].reshape(batch, count)
+    current_cost = (object_state[:, None, :3] - goal_position[:, None, :]).square().sum(-1)
+    predicted_cost = (
+        object_state[:, None, :3] + delta - goal_position[:, None, :]
+    ).square().sum(-1)
+    scores = torch.tanh((current_cost - predicted_cost) / (0.02 ** 2)) * contact
+    if config.positive_only:
+        scores = scores.clamp_min(0)
+    eligible = contact >= config.contact_threshold
+    if config.require_actual_contact:
+        if actual_contact is None:
+            raise ValueError("actual_contact is required by the default safe gate")
+        eligible = eligible & actual_contact[:, None]
+    elif actual_contact is not None:
+        eligible = eligible | actual_contact[:, None]
+    scores = torch.where(eligible, scores, torch.full_like(scores, -torch.inf))
+    scores[:, 0] = torch.where(
+        torch.isfinite(scores[:, 0]), scores[:, 0], torch.zeros_like(scores[:, 0]))
+    selected_id = scores.argmax(dim=1)
+    selected = candidates[torch.arange(batch, device=q.device), selected_id]
+    return selected, scores, selected_id
