@@ -55,21 +55,34 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--epochs", type=int, nargs="+", required=True)
+    parser.add_argument("--motion-root-override", type=Path)
+    parser.add_argument("--input-manifest-override", type=Path)
+    parser.add_argument("--tag", help="short output suffix for a transfer probe")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
         raise ValueError("GPU, seed and epochs must be nonnegative/positive")
     if len(set(args.epochs)) != len(args.epochs):
         raise ValueError("duplicate checkpoint epochs")
+    override = args.motion_root_override is not None
+    if override != (args.input_manifest_override is not None):
+        raise ValueError("motion root and input manifest overrides must be paired")
+    if override != (args.tag is not None):
+        raise ValueError("a transfer probe requires a unique output tag")
+    if args.tag is not None and (not args.tag or not args.tag.replace("_", "").isalnum()):
+        raise ValueError("output tag must contain only letters, digits and underscores")
     run_dir = args.run_dir.resolve()
     config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
     training = json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))
     if training.get("run_status") != "COMPLETED" or training.get("seed") is None:
         raise ValueError("source scratch training must have completed with a recorded seed")
-    motion_root = Path(config["motion_root"]).resolve()
-    input_manifest = Path(config["input_manifest"]).resolve()
+    motion_root = (args.motion_root_override or Path(config["motion_root"])).resolve()
+    input_manifest = (args.input_manifest_override or Path(config["input_manifest"])).resolve()
     if not motion_root.is_dir() or not input_manifest.is_file():
         raise FileNotFoundError("frozen motion input is missing")
+    input_record = json.loads(input_manifest.read_text(encoding="utf-8"))
+    if input_record.get("classification") != "reconstructed_baseline":
+        raise ValueError("motion input must have reconstructed baseline provenance")
     num_envs = int(config["num_envs_per_rank"])
     if num_envs != 64:
         raise ValueError("the V1.29 strict gate requires 64 environments")
@@ -78,7 +91,8 @@ def main(argv: list[str] | None = None) -> int:
     entries = []
     for epoch in args.epochs:
         checkpoint = _checkpoint(run_dir, epoch)
-        output = run_dir / f"eval_s{args.seed}_e{epoch:03d}_full"
+        suffix = f"_{args.tag}" if args.tag is not None else ""
+        output = run_dir / f"eval_s{args.seed}_e{epoch:03d}_full{suffix}"
         if output.exists():
             raise FileExistsError(output)
         command = [sys.executable, str(EVALUATE), "--task", "Dexplore_Inspire",
@@ -94,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
                  "evaluation_commit": revision, "training_commit": training["git_commit"],
                  "training_run_id": training["run_id"], "input_manifest": str(input_manifest),
                  "input_manifest_sha256": _sha256(input_manifest),
+                 "motion_root": str(motion_root), "input_sequence": input_record.get("sequence"),
                  "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
                  "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
                  "num_envs": num_envs, "early_termination_disabled": True,
