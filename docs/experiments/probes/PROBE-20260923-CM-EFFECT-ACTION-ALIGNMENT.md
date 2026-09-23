@@ -37,10 +37,27 @@ GPU5/6 最多两张，启动前查他人进程；预计新增<3GB、wall time<20
 
 ## Result
 
-Status: PENDING
+Status: PROMISING（动作对应关系；仅两 seed 方向性 Probe）
 
-Key evidence: PENDING
+e262 smoke 和固定 e300 训练 `COMPLETED`；动作置乱臂 e300 checkpoint SHA256
+`a612c4cf4acbee75d9367b2a4b6fa6775e17c01cb2f8874f157957dacd52de4e`。
+6 次 strict/full-first-episode 评估、输入/checkpoint/源码指纹均通过，
+无官方 actor checkpoint，最终推理均不加载 Cm。
+
+| seed | 真实动作 effect-rank | 动作置乱 rank | off |
+| ---: | ---: | ---: | ---: |
+| 131 | 43/64 | 15/64 | 34/64 |
+| 132 | 33/64 | 27/64 | 35/64 |
+| 合计 | **76/128** | **42/128** | **69/128** |
+
+effect-rank 对动作置乱两 seed 均为正（+28、+6），置乱均低于 off（−19、−8），
+达到预设的方向性条件。effect-rank 对 off 一正一负（+9、−2），因此**未证明**
+不同 seed 的稳定策略增益。此对照保持每步活跃权重多重集不变，但训练后状态
+分布会分化，且仅单一训练 seed；不能升级为正式 Cm utility claim。
+父 manifest：`outputs/CmResidual/agent_cm_effect_action_probe/run_manifest.json`。
 
 ## Decision update
 
-PENDING
+动作条件一步位移信息值得保留为候选主方法；不再把纯接触概率排序当主路线。
+现在进入 Decision Checkpoint：是对 effect-rank/动作置乱/off 做跨训练 seed 的
+matched Validation，还是先重设计/适配 Cm 以提高 effect-rank 对 off 的稳定性。
