@@ -2,7 +2,7 @@
 
 - date: `2026-09-23`
 - branch: `agent/v146-cm-train-reward`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 - training code commit: `d0922d6`
 - official actor checkpoint: `null`
 
@@ -31,3 +31,13 @@ Cm-on SHA256
 不按 reward 改选 epoch。下一步按固定 seeds104–108、
 每臂每 seed 两次、GPU5/6交叉的矩阵做首个完整
 episode 评估；评估 actor 不加载 Cm。
+
+固定 seeds104–108、两臂各两次共20 run 全部
+`COMPLETED`，无技术失败。Cm-on依次两次合计
+41/50/63/58/50，Cm-off为81/81/74/89/74；
+总计262/640对399/640，seed聚类95%区间
+−27.34至−14.84pp。Cm 有益与稳定两个
+预注册门槛均失败。平均接触占比0.368对0.615、
+接触抬升0.101对0.217m，确认抓握退化。
+分析脚本 `analyze_v146_eval_matrix.py` 逐项核验
+来源/完整轨迹/固定矩阵，结果写在父矩阵目录。
