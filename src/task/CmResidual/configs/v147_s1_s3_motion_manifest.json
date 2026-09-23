@@ -1,0 +1,26 @@
+{
+  "schema": "ref2dex.multimotion_input.v1",
+  "classification": "reconstructed_baseline",
+  "sequence": "s1_airplane_lift+s3_airplane_lift",
+  "motion_root": "outputs/CmResidual/agent_v147_multimotion/motions",
+  "entries": [
+    {
+      "name": "s1_airplane_lift",
+      "link_target": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/dexplore_reconstructed_v120_coordfix_v4/converted_attempt1/s1_airplane_lift",
+      "tensor_sha256": "305dfd16d9bac0e93a95de5b6fa8b9e721d1edfee6946e49100fe231760a205b",
+      "source_manifest": "/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/dexplore_reconstructed_v120_coordfix_v4/manifest.json",
+      "frames": 432,
+      "right_reference_contact_labels": "all_negative_one"
+    },
+    {
+      "name": "s3_airplane_lift",
+      "link_target": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift",
+      "tensor_sha256": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+      "source_manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/CmResidual/agent_v129_s3_coordfix/corrected_manifest_r2.json",
+      "frames": 543,
+      "right_reference_contact_labels": "positive_from_frame_50"
+    }
+  ],
+  "construction": "symlink directories only; source tensors are never copied or modified",
+  "official_actor_checkpoint": null
+}
