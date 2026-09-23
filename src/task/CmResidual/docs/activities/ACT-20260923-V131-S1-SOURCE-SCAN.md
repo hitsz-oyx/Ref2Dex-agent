@@ -2,7 +2,8 @@
 
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
-- run_status: `PLANNED`
+- evaluation code commit: `fbf717b`
+- run_status: `RUNNING`
 - official actor checkpoint: `null`
 
 输入是 V1.29 s3 重建数据 `corrected_manifest_r2.json`；使用现有
@@ -12,3 +13,9 @@
 只读其现有 checkpoint；独立运行分别记录 checkpoint SHA256、
 代码提交和 GPU。命令、run_id 与终态写在各评估目录的
 `run_manifest.json`。详细假设与停损见对应 experiment card。
+
+已在 GPU 5 依次启动 seed 71 的 e100/e120/e130/e150，在 GPU 6
+依次启动 e160/e170/e180/e200；run_id 采用
+`eval_s71_e{epoch}_full_s3_source_scan`。两进程各运行一枚 checkpoint
+一次，预定首轮最多八次评估、约十分钟。各评估目录创建时标记
+`STARTED`，完成后由评估器写入 `COMPLETED` 和结果。
