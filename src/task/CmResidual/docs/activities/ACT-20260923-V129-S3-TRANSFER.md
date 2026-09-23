@@ -3,7 +3,7 @@
 - date: `2026-09-23`
 - branch: `agent/multitrajectory-v129`
 - code commit: `557702b`
-- run_status: `RUNNING`
+- run_status: `COMPLETED`
 
 保留工作区原有的 `AGENTS.md` 修改、`data`/`dataset` 链接、V1.21c
 未跟踪文件及 DExplore 生成资产。未改动工作区外的 Ref2Dex 项目，也未
@@ -26,14 +26,26 @@
   `agent_v129_s3_cmoff_smoke_s70_e3`：GPU 5/6、3 epoch，均完成。
 - `python -m pytest -q src/task/CmResidual/tests/test_cmlite.py`：`5 passed`。
 
-运行中：`agent_v129_s3_relcm_s70_e200` 与
+已完成：`agent_v129_s3_relcm_s70_e200` 与
 `agent_v129_s3_cmoff_s70_e200`。两者工作版本 V1.29、代码 commit
 `557702bd41738fee24006d949575bb136df99711`、输入 manifest
 `outputs/CmResidual/agent_v129_s3_coordfix/corrected_manifest_r2.json`、
-200 epoch 上限、每 10 epoch 保存。终态记录最后 epoch、checkpoint、
-独立严格评估结果及完成/失败原因；科学解释更新对应 experiment card。
+200 epoch 上限、每 10 epoch 保存，均正常完成。seed 71 的 epoch
+100/140/180/200 完整轨迹评估均为 0/64，触发预注册停损；逐 checkpoint
+manifest 位于各训练目录的 `eval_s71_e{100,140,180,200}_full`。旧 s3
+run 的 `eval_s71_e100_full` 和 `eval_s71_e200_full` 也均为 0/64。
 
 正式评估使用 `tools/eval_dexplore_full_episode_grid.py`，逐 checkpoint
 记录 SHA256、运行命令、GPU、代码提交与结果，并强制
 `early_termination_disabled=true`。在旧 s3 run 上的双 checkpoint
-dry-run 已通过；正式调用等待配对训练释放 GPU 5/6。
+dry-run 与正式运行均通过。
+
+s1 自训练 PPO epoch 140 迁移 s3 的运行在
+`outputs/Dexplore/agent_v125_norm_cmlite_anneal_s45_e200/eval_s71_e140_full_s3_transfer`
+取得 2/64；s1 DAgger BC 迁移在
+`outputs/CmResidual/agent_v129_s1bc_to_s3_s71_n64_r2` 为 0/64。
+首次 BC 调用因工作目录错误失败，证据保留在无 `_r2` 的运行目录；
+修正工作目录后未改变数据或策略。
+
+为下一轮 s1 scratch checkpoint 的匹配微调扩展 Cm-off 的 SHA 锁定恢复，
+对应测试 `14 passed`，尚未把 V1.29 的 0/64 解释为所有迁移方法失败。

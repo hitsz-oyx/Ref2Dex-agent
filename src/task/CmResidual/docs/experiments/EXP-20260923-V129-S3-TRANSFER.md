@@ -3,8 +3,8 @@
 - experiment_id: `EXP-20260923-V129-S3-TRANSFER`
 - branch: `agent/multitrajectory-v129`
 - code_commit: `557702bd41738fee24006d949575bb136df99711`
-- run_status: `RUNNING`
-- conclusion: `INCONCLUSIVE`
+- run_status: `COMPLETED`
+- conclusion: `REFUTED`（此从零 s3 PPO 配方与预设 checkpoint 网格）
 - official actor checkpoint used: `no`
 
 ## 问题与预注册门禁
@@ -82,10 +82,34 @@ s3 seed 69 留出；两种 feature mode 使用完全相同的数据和训练超�
 重复 episode。上述 seed 69 门禁显式用 `done` 的逐环境前缀筛选首个
 episode（2233/9280 条转移），避免把重复 rollout 算作独立样本。
 
-## 正在运行
+## 成对 PPO 终态
 
 - `agent_v129_s3_relcm_s70_e200`：GPU 5，CmLite
   `b7aa7630e31c820802cb95d81c490d4f27be8e74c1c9e1e400b20fcd849a9a38`。
 - `agent_v129_s3_cmoff_s70_e200`：GPU 6，匹配的 Cm-off 对照。
 - 两臂均由同一 launcher 产生 `run_manifest.json`、`config.json`、
-  `train.log` 和每 10 epoch checkpoint。3-epoch 接线小测已分别完成。
+  `train.log` 和每 10 epoch checkpoint；均正常完成 200 epoch。3-epoch
+  接线小测也分别完成。
+
+seed 71、每个 checkpoint 64 个首 episode、提前终止关闭的严格结果：
+
+| epoch | 相对 Cm-on | Cm-off | Cm-on 平均最大接触抬升 | Cm-off 平均最大接触抬升 |
+| ---: | ---: | ---: | ---: | ---: |
+| 100 | 0/64 | 0/64 | 0.00045 m | 0.00050 m |
+| 140 | 0/64 | 0/64 | 0 m | 0.00080 m |
+| 180 | 0/64 | 0/64 | 0.00034 m | 0.00024 m |
+| 200 | 0/64 | 0/64 | 0.00027 m | 0 m |
+
+两臂所有预定候选均为 0/64，触发预注册停损，不再用 seeds 72–74
+扩大此从零训练配方。旧 s3 CmLite run 的 epoch 100/200 用相同完整轨迹
+口径复核，也均为 0/64。因此“离线预测改善会让此 scratch PPO 配方抓取
+s3”被反驳；不能据此否定 Cm 的其他使用方式。
+
+## 下一条线索
+
+将完全由本项目从零训练、在 s1 达到 35/64 的 PPO epoch-140 actor
+直接放到 s3（不更新参数），seed 71 完整轨迹得到 **2/64** 严格成功、
+19/64 出现至少 1 cm 接触抬升，平均最大接触抬升 `0.01057 m`。
+相同 s1 DAgger BC 在 s3 为 0/64，接触占比 `0.00367`。这表明 s3
+物理环境存在可抬升状态，值得以该自训练 PPO 为起点进行成对微调；
+结果不支持直接宣称跨轨迹稳定抓取。
