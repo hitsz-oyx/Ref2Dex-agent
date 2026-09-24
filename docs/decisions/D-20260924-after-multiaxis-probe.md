@@ -32,3 +32,12 @@ User decision: A. Proceed with the frozen multi-axis H10 Cm as a
 train-time PPO representation auxiliary target, not an online action
 override. User permits ordinary in-scope interim decisions before
 16:00 Beijing time.
+
+Interim update: A completed as `P-20260924-cm-h10-ppo-aux-representation`.
+Matched held-lift was 143/256 on vs 133/256 off (+3.91pp), with one
+training seed negative, so neither pre-registered upgrade condition
+passed. Stop A without coefficient search. Under the user's interim
+autonomy instruction, proceed only with B's cheapest decision Probe:
+one bounded 64-env randomized one-vs-two-step physical intervention.
+Do not commit to the higher-cost sequence-Cm/planner construction
+unless this Probe passes its own pre-registered physical gate.

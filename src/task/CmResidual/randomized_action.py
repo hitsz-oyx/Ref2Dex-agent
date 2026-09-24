@@ -52,3 +52,20 @@ def execute_signed_axis_dose(action: torch.Tensor, assignment: torch.Tensor,
         if (executed[chosen, axis].abs() > 1 + 1e-6).any():
             raise ValueError("axis dose would clip")
     return executed
+
+
+def execute_sequence_x_dose(action: torch.Tensor, assignment: torch.Tensor,
+                            delta: float, *, second: bool = False) -> torch.Tensor:
+    """Apply x dose for randomized ±1 (one step) / ±2 (two steps)."""
+    if (action.ndim != 2 or action.shape[1] < 1 or
+            assignment.shape != (len(action),) or
+            not 0 < delta <= .5 or not torch.isfinite(action).all() or
+            not torch.isin(assignment, torch.tensor([-2, -1, 0, 1, 2],
+                                                    device=assignment.device)).all()):
+        raise ValueError("invalid sequence-dose input")
+    chosen = assignment.abs() == 2 if second else assignment != 0
+    executed = action.detach().clone()
+    executed[chosen, 0] += delta * assignment[chosen].sign()
+    if (executed[chosen, 0].abs() > 1 + 1e-6).any():
+        raise ValueError("sequence x dose would clip")
+    return executed
