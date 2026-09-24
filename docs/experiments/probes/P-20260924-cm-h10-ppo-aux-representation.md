@@ -40,4 +40,34 @@ unsafe GPU occupancy, nonfinite gradients or budget overrun.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for this fixed H10 multi-axis train-time
+auxiliary route; not a refutation of Cm or its offline physical effect.
+Implementation commit: `805ada75bcee831b538064d8dd7475763de8fc18`.
+
+Both 16-env e260→e262 smoke runs completed, with a finite nonzero
+Cm-on head gradient (`0.0006144` at epoch 261). Actor state-dict keys
+matched between arms; the auxiliary head is saved separately.
+The four 64-env e260→e300 matched training runs and all eight
+64-env full-episode evaluations completed. Each run's command, SHA256,
+checkpoint, status and metrics are recorded under the corresponding
+`outputs/Dexplore/agent_cm_h10_aux_*` directory.
+
+| Training seed | Eval seed 166 on/off | Eval seed 167 on/off | Combined on/off |
+| --- | --- | --- | --- |
+| 77 | 39/64 vs 30/64 | 36/64 vs 30/64 | 75/128 vs 60/128 (+11.72pp) |
+| 78 | 29/64 vs 40/64 | 39/64 vs 33/64 | 68/128 vs 73/128 (−3.91pp) |
+
+Overall: 143/256 vs 133/256, +10/256 = +3.91pp, below the
+pre-registered +8pp threshold. Training seed 78 is negative, so the
+per-seed nonnegative condition also fails. At epoch 300, auxiliary
+loss on/off was .342/.554 for seed 77 and .369/.533 for seed 78;
+this confirms target learning, not policy benefit. The large
+train-seed reversal is incompatible with claiming a stable Cm policy
+advantage from this Probe. No target-shuffle placebo or formal
+Validation was run because the upgrade conditions were not met.
+
+Decision: stop this auxiliary target/coefficient. Do not tune on
+seeds 166/167. The next route, if pursued, must change the decision
+horizon or supervision alignment, rather than perform local coefficient
+search. A higher-cost sequence-conditioned Cm route remains a separate
+decision; see `docs/decisions/D-20260924-after-multiaxis-probe.md`.

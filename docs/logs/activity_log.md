@@ -1275,3 +1275,11 @@
 - branch: `agent/cm-multiaxis-long-horizon`; code commit `ad577f6`; experiment_id: `P-20260924-multiaxis-h10-online-choice`。
 - run_ids: `agent_multiaxis_online_smoke_s164_n16_cm` 工程 smoke `COMPLETED`；`agent_multiaxis_online_probe_s164_n64_{base,always_x,always_z,cm}` 四个 64-env 完整首 episode run 均 `COMPLETED`，物理 GPU5/6 每次最多并行 2 张。每 run 的 manifest、selector、results、eval.log 在同名 `outputs/CmResidual/` 目录，无新训练 checkpoint，无运行中任务。
 - primary held-lift: base 36/64，always_x 32/64，always_z 39/64，Cm 34/64。Cm 在 768 个 eligible 状态中执行 x+ 156、z+ 217 次，低于 base 2/64 和固定 z+ 5/64；第一新 seed 已违反每 seed 不负门，seed165 四臂均未启动。分类 `UNPROMISING` for 固定双轴在线规则，不是多轴 Cm 总体否定；不在 seed164 调阈值。盲 z+ 的二元成功数较高，但 reward、接触率及最大接触抬升均低于 base，不能据此称为稳健收益。
+
+## 2026-09-24 — 多轴 H10 Cm PPO 训练期辅助表示 Probe 终态
+
+- branch: `agent/cm-h10-ppo-aux`; code commit `805ada7`; experiment_id: `P-20260924-cm-h10-ppo-aux-representation`。
+- smoke run_ids: `agent_cm_h10_aux_smoke_t77_{on,off}_e262`；均 `COMPLETED`，16 env，物理 GPU5/6 各一张并行，e260→e262；on 辅助头有限非零梯度，checkpoint actor key 相同。工程门通过，不构成科学效果证据。
+- matched training run_ids: `agent_cm_h10_aux_t{77,78}_{on,off}_e300`；四个 run 均 `COMPLETED`，各 64 env、物理 GPU5/6 两张以内，固定 e260、H10 teacher SHA 和 commit，e300 checkpoint/`train.log`/`run_manifest.json` 在各同名 `outputs/Dexplore/` 目录。
+- evaluation run_ids: 四个训练 run 各自的 `eval_s{166,167}_e300_full`；八个 run 均 `COMPLETED`，每次 64 env，结果与 checkpoint SHA 在对应 `results.json`/`run_manifest.json`。seed77 on/off 75/128 vs 60/128；seed78 68/128 vs 73/128；总计 143/256 vs 133/256（+3.91pp），未过 +8pp 及每训练 seed 非负双门。
+- scientific boundary: 固定 H10 多轴辅助接法 `UNPROMISING`；不升级置乱 placebo/Validation，不继续在已见评估 seed 上调参。无正在运行的本实验任务。
