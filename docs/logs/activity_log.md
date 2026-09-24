@@ -1212,3 +1212,12 @@
 - artifacts: 各 `outputs/CmResidual/<run_id>/run_manifest.json`、`results.json`、`selector.json`。
 - primary metric: seed149/150 首 episode 的 held-lift：base 41/64、46/64；always 40/64、33/64；Cm 42/64、44/64。合计 Cm 86/128 对 base 87/128（−0.78pp），对 always 73/128（+10.16pp）。
 - gate: 未满足预先要求的两 seed 均不负、且相对两个对照合计各 +8pp；`UNPROMISING` for 当前在线 +0.1 上抬规则。两 seed 的接触比例与 reward 均比 base 低。停止在观察过的 seed 上调阈值，转向考虑长期抓取/接触保持的策略用法。
+
+## 2026-09-24 — 随机动作五步接触随访
+
+- branch: `agent/cm-randomized-action-effect`; code commit: `43e2067`
+- experiment_id: `P-20260924-randomized-contact-followup`
+- run_ids: `agent_randomized_followup_s151_d01_h5_n64`、`agent_randomized_followup_s152_d01_h5_n64`；均 `COMPLETED`，physical GPU6 顺序运行，每次 64 env、11 处理时刻、<30s，无 checkpoint。
+- manifests/data/reports: 各 run 目录下 `run_manifest.json`、`transitions.pt`、`followup_report.json`；每 seed 634 条接触随机处理。
+- primary metrics (+0.1 减 −0.1): 一步物体上移 +12.19/+13.44mm；五步接触比例 −7.58/−4.70pp，两个 environment-cluster 95% CI 都为负；第五步仍接触 −5.62/−3.38pp。五步物体位移仍为正。
+- boundary: Probe `PROMISING` for 短期接触损失机制，而非 Cm 策略效用。支持训练兼顾物体效应与接触保持的动作条件 Cm；不支持继续只最大化一步物体 z。

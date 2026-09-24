@@ -39,10 +39,31 @@ Cm 表示/辅助目标；不在 seed149/150 上重调阈值。
 
 ## Result
 
-Status: PENDING
+Status: PROMISING（短期接触损失机制；非策略效用）
 
-Evidence: pending
+两次 GPU 仿真均 `COMPLETED`，每次 64 env、11 个随机处理时刻，
+各 634 条接触处理。分步加权 `+0.1` 减 `−0.1`，environment-ID
+聚类 bootstrap 2000 次：
+
+| outcome | seed151 | seed152 |
+| --- | ---: | ---: |
+| 一步物体 z 位移 | +12.19mm [9.57,14.71] | +13.44mm [10.40,16.64] |
+| 5 步物体 z 位移 | +9.09mm [5.61,12.77] | +11.46mm [7.68,15.73] |
+| 5 步接触比例 | −7.58pp [−10.31,−5.19] | −4.70pp [−6.77,−2.73] |
+| 第 5 步仍接触 | −5.62pp [−9.26,−2.22] | −3.38pp [−6.29,−0.53] |
+
+两 seed 的接触比例 95% 区间均严格为负，且一步物体上抬
+均严格为正；满足预设的“优先接触稳定 Cm”分支。5 步存活差
+两 seed 均为 0。本结果不是“+0.1 相比不干预”的直接 RCT，
+也不是逐状态反事实或长期策略收益。
+
+产物：
+`outputs/CmResidual/agent_randomized_followup_s{151,152}_d01_h5_n64/`
+中的 `run_manifest.json`、`transitions.pt`、`followup_report.json`。
 
 ## Decision update
 
-pending
+训练一个动作条件的局部交互 Cm，使其同时预测一步物体效应
+和短期接触保持/持续物体位移；在未见 seed 上检验动作效应排序
+及简单 raw-action 模型对照。只有模型可判别这项权衡，才做
+matched 在线策略 Probe。停止纯一步 z 分数直接上抬路线。
