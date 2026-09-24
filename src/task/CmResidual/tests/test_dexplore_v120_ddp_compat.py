@@ -82,6 +82,22 @@ def test_launcher_strips_remainder_separator(monkeypatch, capsys):
     assert "--\n" not in capsys.readouterr().out
 
 
+def test_launcher_builds_pinned_cm_aux_mode(tmp_path, capsys):
+    import hashlib
+
+    launcher = _load_module("dexplore_v120_ddp_launcher_aux", LAUNCHER_PATH)
+    teacher = tmp_path / "cm.pt"
+    teacher.write_bytes(b"frozen-teacher")
+    digest = hashlib.sha256(teacher.read_bytes()).hexdigest()
+    bootstrap = LAUNCHER_PATH.with_name("dexplore_cm_ppo_aux_rank_bootstrap.py")
+    launcher.main(["--gpus", "6", "--dry-run", "--rank-bootstrap", str(bootstrap),
+                   "--cm-aux-coef", "0.002", "--contact-cm-checkpoint", str(teacher),
+                   "--contact-cm-sha256", digest, "--actual-epochs", "262"])
+    output = capsys.readouterr().out
+    assert "--cm-aux-coef 0.002" in output
+    assert "--cm-distill-coef 0" in output
+
+
 def test_smoke_arguments_fix_the_engineering_contract(tmp_path):
     launcher = _load_module("dexplore_v120_ddp_launcher_args", LAUNCHER_PATH)
     arguments = launcher.smoke_dexplore_args(motion_root=tmp_path, output=tmp_path / "out",

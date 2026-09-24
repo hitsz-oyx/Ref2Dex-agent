@@ -491,6 +491,9 @@ def main(argv=None) -> None:
                   "cmlite_reward_coef": args.cmlite_reward_coef,
                   "cm_actor_weight_coef": args.cm_actor_weight_coef,
                   "cm_critic_salience_coef": args.cm_critic_salience_coef,
+                  "cm_aux_coef": args.cm_aux_coef,
+                  "contact_cm_checkpoint": str(args.contact_cm_checkpoint.resolve()) if args.contact_cm_checkpoint else None,
+                  "contact_cm_sha256": args.contact_cm_sha256,
                   "permute_cm_actor_weights": args.permute_cm_actor_weights,
                   "cm_actor_weight_component": args.cm_actor_weight_component,
                   "approach_reward_coef": args.approach_reward_coef or 0.0,
@@ -538,7 +541,7 @@ def main(argv=None) -> None:
             "budget": {"actual_epochs": args.actual_epochs or args.max_iterations,
                        "num_envs_per_rank": args.num_envs,
                        "max_concurrent_gpus": len(gpus),
-                       "output_budget_gb": 20},
+                       "output_budget_gb": 5 if args.cm_aux_coef is not None else 20},
             "stop_rule": "fixed epoch budget; stop on input/config error, non-finite training, or GPU conflict",
         }
         _write_json(manifest_path, run_manifest)
