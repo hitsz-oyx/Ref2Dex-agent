@@ -79,3 +79,8 @@ Cm-on 262、Cm-off 399，与父分析一致；seed 聚类 95% 区间为
 PPO 专家，V1.3 冻结 Cm，以及 V1.46 的共同源、Cm-on 和 Cm-off
 末端策略共 11 个 checkpoint，均与对应运行清单一致。此检查只确认
 文件身份，没有重新执行训练或评估。
+
+资源收尾检查：当前仓库 `outputs/` 约 58 GB，其中 `Dexplore/` 约
+55 GB、`CmResidual/` 约 2.9 GB，低于 `CAMPAIGN.md` 的 300 GB
+工作产物上限。`data`、`dataset` 为指向只读外部项目的软链接，
+未计入本仓库新生成产物；现阶段无需删除正式运行证据。
