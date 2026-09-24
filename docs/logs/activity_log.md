@@ -1150,3 +1150,13 @@
 - last step: 第一次预定物理分叉；accepted pairs 0；无 checkpoint。
 - failure: root/DOF 恢复误差均 0，但刚体张量恢复误差 8.03048，严格拒收；尚未到同动作重复门。
 - interpretation: 顺序 snapshot/restore 方案的工程契约不成立；不是 Cm 模型结论。下一步同 run 三个并行匹配环境做 base/repeat/alt，一次物理步后再检验状态匹配与重复性。
+
+## 2026-09-24 09:00 +0800 — 并行三臂配对仿真终态审计
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `58736bb` (collector), `c20af35` (drift diagnostic)
+- run_ids: `agent_parallel_pair_smoke_s145_n3`, `agent_parallel_pair_drift_s145_n3`, `agent_parallel_pair_drift2_s145_n3`
+- run_status: 三次均 `FAILED` 于 prestate gate；每次 1 GPU、3 environments、seed145、step80、<30s；accepted pairs 0；无 checkpoint。
+- manifests: 各 run 目录的 `run_manifest.json`；summary: 各 run 目录的 `pairs.json`。
+- failure: 从相同 frame0 开始，step1 DOF 差 0，刚体差约 1.2e-6；step2 DOF/刚体已差 0.184/0.225，同步策略动作最大差约 0.00159；到 step80 差异大幅放大。精确配对方法不能安全接纳这些样本。
+- next: 停止逐样本物理反事实采集，转向随机分配且实际执行的动作干预，以估计平均处理效应；不能把这些失败配对数据训练成因果 Cm。

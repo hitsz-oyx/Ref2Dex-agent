@@ -48,7 +48,7 @@ GPU: 1 张真正空闲卡；wall: <= 60 min；输出 < 100 MB。
 
 ## Result
 
-Status: UNCLEAR (sequential restore rejected; parallel-env alternative pending)
+Status: UNPROMISING (both exact-pair acquisition methods rejected)
 
 Key evidence: collector code `3e520c6` passes 3 CPU unit tests and Python
 syntax checks. `agent_paired_cpu_smoke_s145_e260` FAILED before the first
@@ -62,6 +62,14 @@ and FAILED at the first scheduled physical fork: actor-root/DOF tensors were
 restored exactly, but rigid-body state still differed by 8.03048 in tensor
 units. No pairs were accepted. This rejects the assumed sequential
 root+DOF snapshot/restore contract, not the Cm hypothesis.
+
+Parallel-env smoke `agent_parallel_pair_smoke_s145_n3` also rejected its
+scheduled pair: root/DOF/rigid prestate gaps were 2.79/1.81/2.79 after
+80 common policy steps. From identical frame-zero starts, diagnostic runs
+showed at step1 a DOF gap of 0 and rigid gap ~1.2e-6; by step2 the
+DOF/rigid gaps were already 0.184/0.225 while policy action maximum gap
+was 0.00159. The gaps grew through contact. No action-effect pair was
+accepted. These are engineering rejection diagnostics, not Cm metrics.
 
 ## Decision update
 
@@ -79,6 +87,11 @@ whether any pre-contact action effect exceeds 0.2mm and 5x replay error;
 otherwise stop this physical-pair route and do not label observational action
 shuffles as counterfactuals.
 
+H2 failed at the prestate gate. Stop exact-pair acquisition for now.
+Randomized actions actually executed in the simulator can identify an
+average intervention effect without pretending to provide individual
+same-state counterfactuals. The next Probe should test that route.
+
 ## Artifacts
 
 `src/task/CmResidual/paired_sim_step.py`
@@ -87,3 +100,5 @@ shuffles as counterfactuals.
 `third_party/DExplore/dexplore/evaluate_parallel_pairs.py`
 `outputs/CmResidual/agent_paired_cpu_smoke_s145_e260/run_manifest.json`
 `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/run_manifest.json`
+`outputs/CmResidual/agent_parallel_pair_smoke_s145_n3/run_manifest.json`
+`outputs/CmResidual/agent_parallel_pair_drift2_s145_n3/run_manifest.json`
