@@ -41,10 +41,33 @@ checkpoint/输入漂移、非有限预测、分组样本不足或预算超限停
 
 ## Result
 
-Status: PENDING
+Status: PROMISING
 
-Evidence: pending
+Evidence: fixed geometric Cm and raw MLP checkpoints; held-out randomized
+seed146 ±0.3 and seed148 ±0.1, no retraining. `agent_cm_cate_ranking_s146148`
+COMPLETED. Seed146 geometric score lowest/highest quartile (136 each):
+actual treatment effect −0.79/+71.58mm; high−low +72.38mm, environment
+cluster-bootstrap 95% interval +61.27 to +81.82mm. Seed148 (156 each):
++0.31/+25.81mm; high−low +25.51mm, interval +22.18 to +28.18mm.
+Thus both prespecified thresholds and the interval gate pass. Raw
+state+action MLP also ranks: high−low +65.54/+24.32mm, slightly below
+geometric Cm. This comparator prevents claiming geometry is uniquely
+necessary from this Probe.
+
+The score is computed only from pre-intervention state and candidate actions;
+random assignment supplies the observed subgroup treatment effect. Because
+the test trajectory/object are still s3/airplane, this is exploratory
+evidence of within-task heterogeneity, not cross-trajectory or policy gain.
 
 ## Decision update
 
-pending
+Proceed to a latency-bounded, few-environment online candidate-action
+Probe with matched actor-only control; stop if geometry inference is too
+slow or grasp stability degrades. Do not claim `Cm-on > Cm-off` from
+offline CATE ranking alone. Formal multi-training-seed policy Validation
+remains necessary for the paper.
+
+## Artifacts
+
+`src/task/CmResidual/tools/probe_cm_cate_ranking.py`
+`outputs/CmResidual/agent_cm_cate_ranking_s146148/report.json`

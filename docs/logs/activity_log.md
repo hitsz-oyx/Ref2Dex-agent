@@ -1181,3 +1181,14 @@
 - final step: 几何 Cm 400 更新，12,932 参数；训练 1188 条，未见 seed146/148 测试。
 - key metrics: 混合幅度执行模型的手表面 EPE 12.21/7.49mm，旧观测校准 20.37/8.49mm；几何 Cm 物体平移 EPE 11.25/5.81mm，同架构零手流 16.79/7.66mm，raw state+action MLP 13.86/6.53mm。几何 Cm 预测的平均动作效应 20.40/6.83mm，随机试验真实均值 26.00/10.42mm。
 - conclusion boundary: 两个 Probe 均 `UNCLEAR`（各自严格门未全过）。动作信息进入模型且 EPE 有改善，但小动作的效应幅度低估；下一步先检查 Cm 的预测排序是否对应真实随机处理效应，再决定在线策略尝试。
+
+## 2026-09-24 09:23 +0800 — Cm 预测处理效应异质性 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- code commit: `e0120c4`
+- experiment_id: `P-20260924-cm-cate-ranking`
+- run_id: `agent_cm_cate_ranking_s146148`
+- run_status: `COMPLETED`，CPU 2 threads，<12s；无 GPU/新 checkpoint。
+- manifest/report: `outputs/CmResidual/agent_cm_cate_ranking_s146148/run_manifest.json`、`report.json`；逐样本模型分数（非真实反事实）为 `test_s146_d03_scores.pt` 与 `test_s148_d01_scores.pt`。
+- key metrics: 几何 Cm 预测分数最高−最低四分位的真实随机处理效应差，seed146 ±0.3 为 +72.38mm (环境聚类 95% CI +61.27 至 +81.82)，seed148 ±0.1 为 +25.51mm (CI +22.18 至 +28.18)。raw MLP 对照为 +65.54/+24.32mm。
+- conclusion boundary: Probe `PROMISING`，Cm 分数在当前单轨迹随机实验中提供效应异质性排序；raw MLP 也能排序，几何独立性与在线策略收益未证实。下一步延迟受控的在线候选评分小 Probe。
