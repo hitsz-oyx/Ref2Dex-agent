@@ -1,8 +1,9 @@
-"""Randomized, actually executed one-step wrist-z interventions in DExplore.
+"""Randomized, actually executed action interventions in DExplore.
 
 Treatment is randomized among pre-contact environments at prespecified
 global steps. This identifies a population treatment effect, not an
-individual same-state counterfactual. The actor checkpoint is self-trained.
+individual same-state counterfactual. Actor provenance is explicit; an
+official checkpoint may only be used as a Cm data-collection diagnostic.
 """
 from __future__ import annotations
 
@@ -29,6 +30,7 @@ from src.task.CmResidual.randomized_source import validate as validate_object_sp
 original = pinned.original
 BASE_PLAYER = original.EvalPlayer
 CONFIG = None
+OFFICIAL_DIAGNOSTIC_SHA256 = "8f6823db752288f1bddd6d042981d33514e29dac5a68e58726e76215fea6d553"
 
 
 class ProbeDone(Exception):
@@ -256,6 +258,9 @@ def main():
     parser.add_argument("--source-motion-manifest", type=Path)
     parser.add_argument("--source-motion-manifest-sha256")
     parser.add_argument("--source-partition", choices=("train", "heldout"))
+    parser.add_argument("--source-actor-role",
+                        choices=("self_trained", "official_data_collector"),
+                        default="self_trained")
     args, remaining = parser.parse_known_args()
     if (args.intervention_output.exists() or
             args.intervention_output.with_suffix(".json").exists() or
@@ -305,6 +310,9 @@ def main():
         source = {"checkpoint_sha256": pinned.CHECKPOINT_SHA256,
                   "motion_manifest_sha256": pinned.MOTION_MANIFEST_SHA256,
                   "partition": None, "objects": ["airplane"]}
+    if (args.source_actor_role == "official_data_collector") != (
+            source["checkpoint_sha256"] == OFFICIAL_DIAGNOSTIC_SHA256):
+        raise ValueError("official diagnostic actor must have its explicit role and pinned SHA256")
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
     if not visible.isdigit():
         raise RuntimeError("one explicit physical CUDA_VISIBLE_DEVICES index required")
@@ -351,6 +359,7 @@ def main():
         "motion_manifest_sha256": source["motion_manifest_sha256"],
         "source_partition": source["partition"],
         "source_objects": source["objects"],
+        "source_actor_role": args.source_actor_role,
         "wall_budget_minutes": 30, "output_budget_mb": 100,
         "stop_rule": "input drift, GPU conflict, non-finite state or wall budget",
         "command": [sys.executable, *sys.argv],
