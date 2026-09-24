@@ -1269,3 +1269,9 @@
 - data run_id `agent_multiaxis_h10_s163_n64`：`COMPLETED`，物理 GPU6、64 env、16 时刻、803 个有效接触处理，完整性与动作剂量契约通过；`run_manifest.json`、`collect.log`、`transitions.pt` 见同名输出目录。
 - model run_id `agent_multiaxis_h10_cm_s161162_train_s163_test`：`COMPLETED`，CPU 2 threads、500 更新、7.3s、1574 train/803 test；三个 checkpoint、`report.json`、manifest/SHA 在同名输出目录；无运行中任务。
 - held-out x 十步真实干预效应 +16.76mm；state-only/raw-action/六区域几何 Cm 的 factual x RMSE 28.16/26.69/25.25mm，动作条件模型改善 5.22%/10.35%；预测 x 对比 0/17.49/21.41mm。过预注册模型继续门，标 `PROMISING` for 未见动作效应预测，但尚未检验在线 policy utility；几何在 y/z 上较 raw 差，不宣称几何整体优越。
+
+## 2026-09-24 — 多轴十步 Cm 在线选择 Probe 提前停止
+
+- branch: `agent/cm-multiaxis-long-horizon`; code commit `ad577f6`; experiment_id: `P-20260924-multiaxis-h10-online-choice`。
+- run_ids: `agent_multiaxis_online_smoke_s164_n16_cm` 工程 smoke `COMPLETED`；`agent_multiaxis_online_probe_s164_n64_{base,always_x,always_z,cm}` 四个 64-env 完整首 episode run 均 `COMPLETED`，物理 GPU5/6 每次最多并行 2 张。每 run 的 manifest、selector、results、eval.log 在同名 `outputs/CmResidual/` 目录，无新训练 checkpoint，无运行中任务。
+- primary held-lift: base 36/64，always_x 32/64，always_z 39/64，Cm 34/64。Cm 在 768 个 eligible 状态中执行 x+ 156、z+ 217 次，低于 base 2/64 和固定 z+ 5/64；第一新 seed 已违反每 seed 不负门，seed165 四臂均未启动。分类 `UNPROMISING` for 固定双轴在线规则，不是多轴 Cm 总体否定；不在 seed164 调阈值。盲 z+ 的二元成功数较高，但 reward、接触率及最大接触抬升均低于 base，不能据此称为稳健收益。

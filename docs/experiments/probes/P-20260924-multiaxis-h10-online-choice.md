@@ -57,10 +57,38 @@ or budget breach. No training checkpoint modification.
 
 ## Result
 
-Status: PENDING
+Status: `UNPROMISING` for this fixed dual-axis online selector.
+Code commit: `ad577f6`. The 16-env Cm engineering smoke completed;
+16 windows were scored, with 38 x+ and 29 z+ actions among 171
+eligible contact-window states. This checks wiring only.
 
-Evidence: pending
+All four pre-registered seed164 ×64 complete-first-episode runs then
+completed under the same actor, motion and simulator setup:
+
+| Arm | Held-lift | Mean reward | Mean contact fraction | Mean max contact lift |
+| --- | ---: | ---: | ---: | ---: |
+| base | 36/64 | 182.50 | .54225 | .22707 m |
+| always_x | 32/64 | 167.97 | .52146 | .20576 m |
+| always_z | 39/64 | 150.40 | .42901 | .13134 m |
+| Cm choice | 34/64 | 166.64 | .51954 | .21132 m |
+
+Cm scored all 16 windows and selected x+ 156 times, z+ 217 times
+among 768 eligible states; the failure was not a no-op. Cm was
+−2/64 versus base and −5/64 versus the stronger blind arm. The
+pre-registered per-seed-nonnegative upgrade gate is impossible to
+recover on seed165, so that seed was not run. Per-run `run_manifest.json`,
+`selector.json`, `results.json` and `eval.log` are in
+`outputs/CmResidual/agent_multiaxis_online_probe_s164_n64_{base,always_x,always_z,cm}/`.
+Single-seed binary held-lift and diagnostic means cannot formally
+refute all multiaxis Cm uses. The better always-z held-lift count
+coexisted with lower mean reward/contact/lift, so do not infer a
+stable causal policy advantage for a fixed z boost either.
 
 ## Decision update
 
-pending
+Stop this fixed selector and do not tune its .005/.02/.03 thresholds
+on seed164. The data/model Probes established multiaxis physical
+effects and held-out action prediction, but that information did not
+translate into this complete-grasp decision rule. Revisit the
+integration level or target before spending on further matched policy
+runs; a materially costlier route requires a new decision checkpoint.
