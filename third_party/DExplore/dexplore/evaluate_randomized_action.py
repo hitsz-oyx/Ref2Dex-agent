@@ -37,6 +37,7 @@ class RandomizedPlayer(BASE_PLAYER):
             raise RuntimeError("randomized action configuration missing")
         self.probe_step = 0
         self.probe_records = []
+        self.followup_pending = []
         self.probe_error = None
         self.probe_generator = torch.Generator(device="cpu").manual_seed(CONFIG["assignment_seed"])
 
@@ -67,9 +68,14 @@ class RandomizedPlayer(BASE_PLAYER):
             before.update(next_q=task._dof_pos.clone(),
                           next_object_state=task._target_states.clone(),
                           global_step=torch.full_like(task.progress_buf, self.probe_step))
+            if CONFIG["followup_horizon"]:
+                before["next_contact"] = self._contact(task).clone()
+                before["followup_contact_count"] = torch.zeros_like(task.progress_buf)
+                self.followup_pending.append((self.probe_step, before))
             if not all(torch.isfinite(value).all() for value in before.values()):
                 raise FloatingPointError("non-finite randomized physical transition")
-            self.probe_records.append({key: value.detach().cpu() for key, value in before.items()})
+            if not CONFIG["followup_horizon"]:
+                self.probe_records.append({key: value.detach().cpu() for key, value in before.items()})
             print("REF2DEX_RANDOMIZED_STEP " + json.dumps({
                 "step": self.probe_step, "selected": int(valid.sum()),
                 "plus": int((assignment == 1).sum()),
@@ -77,9 +83,31 @@ class RandomizedPlayer(BASE_PLAYER):
             }, sort_keys=True), flush=True)
         else:
             result = BASE_PLAYER.env_step(self, env, action)
+        if CONFIG["followup_horizon"]:
+            contact = self._contact(task)
+            remaining = []
+            for started, record in self.followup_pending:
+                record["followup_contact_count"] += contact.long()
+                if self.probe_step - started + 1 == CONFIG["followup_horizon"]:
+                    record.update(
+                        followup_object_state=task._target_states.clone(),
+                        followup_contact=contact.clone(),
+                        followup_progress=task.progress_buf.clone(),
+                        followup_reset=task.reset_buf.reshape(-1).clone(),
+                    )
+                    self.probe_records.append({key: value.detach().cpu()
+                                               for key, value in record.items()})
+                else:
+                    remaining.append((started, record))
+            self.followup_pending = remaining
         if self.probe_step >= CONFIG["stop_step"]:
             raise ProbeDone
         return result
+
+    @staticmethod
+    def _contact(task):
+        return ((task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).any(-1) &
+                (task._tar_contact_forces.norm(dim=-1) > .1))
 
     def run(self):
         status = "COMPLETED"
@@ -99,10 +127,13 @@ class RandomizedPlayer(BASE_PLAYER):
                            for key in keys}
             else:
                 records = {}
-            torch.save({"schema": "ref2dex.randomized_action_transitions.v1",
+            torch.save({"schema": ("ref2dex.randomized_action_followup.v1"
+                                   if CONFIG["followup_horizon"] else
+                                   "ref2dex.randomized_action_transitions.v1"),
                         "run_status": status, "failure": self.probe_error,
                         "assignment_seed": CONFIG["assignment_seed"],
                         "delta_z_action": CONFIG["delta_z"],
+                        "followup_horizon": CONFIG["followup_horizon"],
                         "records": records}, output)
             selected = records.get("assignment", torch.empty(0, dtype=torch.int8))
             summary = {
@@ -125,12 +156,16 @@ def main():
     parser.add_argument("--intervention-stride", type=int, default=10)
     parser.add_argument("--intervention-delta-z", type=float, default=.3)
     parser.add_argument("--assignment-seed", type=int, default=20260924)
+    parser.add_argument("--followup-horizon", type=int, default=0)
     args, remaining = parser.parse_known_args()
     if (args.intervention_output.exists() or
             args.intervention_output.with_suffix(".json").exists() or
             not 1 <= args.intervention_first <= args.intervention_last <= 500 or
             not 1 <= args.intervention_stride <= 100 or
-            not 0 < args.intervention_delta_z <= .5):
+            not 0 < args.intervention_delta_z <= .5 or
+            not 0 <= args.followup_horizon <= 10 or
+            (args.followup_horizon and args.intervention_stride < args.followup_horizon) or
+            args.intervention_last + max(args.followup_horizon - 1, 0) > 500):
         raise ValueError("invalid randomized intervention design or existing output")
     checkpoint = Path(pinned.argument_value(remaining, "--checkpoint")).resolve()
     motion_root = Path(pinned.argument_value(remaining, "--motion_file")).resolve()
@@ -153,15 +188,19 @@ def main():
         raise FileExistsError(manifest_path)
     steps = list(range(args.intervention_first, args.intervention_last + 1,
                        args.intervention_stride))
+    schema = ("ref2dex.randomized_action_followup.v1" if args.followup_horizon
+              else "ref2dex.randomized_action_transitions.v1")
     manifest = {
-        "run_status": "STARTED", "schema": "ref2dex.randomized_action_transitions.v1",
+        "run_status": "STARTED", "schema": schema,
         "run_id": args.intervention_output.parent.name,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                cwd=pinned.ROOT, text=True).strip(),
         "physical_gpu": int(visible), "max_gpu_count": 1,
-        "intervention_steps": steps, "stop_step": steps[-1],
+        "intervention_steps": steps,
+        "stop_step": steps[-1] + max(args.followup_horizon - 1, 0),
         "delta_z_action": args.intervention_delta_z,
+        "followup_horizon": args.followup_horizon,
         "assignment_seed": args.assignment_seed,
         "checkpoint_sha256": pinned.CHECKPOINT_SHA256,
         "motion_manifest_sha256": pinned.MOTION_MANIFEST_SHA256,
@@ -171,7 +210,8 @@ def main():
     }
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     CONFIG = {"output": args.intervention_output.resolve(), "steps": set(steps),
-              "stop_step": steps[-1], "delta_z": args.intervention_delta_z,
+              "stop_step": manifest["stop_step"], "delta_z": args.intervention_delta_z,
+              "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}
     sys.argv = [sys.argv[0], *remaining]
     original.EvalPlayer = RandomizedPlayer
