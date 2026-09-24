@@ -42,10 +42,38 @@ seed、测试标签不用于调结构或阈值。
 
 ## Result
 
-Status: PENDING
+Status: UNCLEAR（动作信息强，但几何 Cm 独立优势未成立；不升级在线）
 
-Evidence: pending
+固定 500 更新、CPU 2 threads，训练 seed151/152 的 1268 条处理，
+未见 seed153/154 共 1272 条测试。三个模型均完成；几何 Cm
+13,031 参数，state-only 同规模，raw state+action MLP 8,967 参数。
+
+| seed | 模型 | 一步物体 EPE | 五步物体 EPE | 五步接触 RMSE |
+| --- | --- | ---: | ---: | ---: |
+| 153 | geometric | 6.31mm | 20.20mm | .1206 |
+| 153 | state-only | 8.55mm | 21.69mm | .1318 |
+| 153 | raw-action | 6.86mm | 18.50mm | .1149 |
+| 154 | geometric | 5.91mm | 18.82mm | .1428 |
+| 154 | state-only | 7.86mm | 20.50mm | .1581 |
+| 154 | raw-action | 6.45mm | 17.46mm | .1306 |
+
+几何模型优于同结构零手流，对接触维度不如 raw。用处理前
+候选 ±0.1 的模型接触预测差分组，两个未见 seed 合并的真实
+随机处理效应：几何 Cm 最高分组 −0.84pp，最低分组 −23.24pp，
+高−低 +22.40pp，environment-ID 聚类 95% CI [+15.87,+29.29]pp；
+raw 模型高−低 +25.11pp，CI [+18.90,+31.69]pp。
+因此“效应异质性可预测”有 Probe 信号，但几何并未达到
+“至少不劣于 raw”门槛；也未完成每个 seed 平均处理效应
+预测方向的预注册检查，不能把部分通过写成整个门通过。
+
+产物：`outputs/CmResidual/agent_contact_aware_cm_s151152_train_s153154_test/`
+的 `run_manifest.json`、`report.json`、三模型 checkpoint。
+测试输入 SHA 固定于 manifest；没有官方 actor 权重。
 
 ## Decision update
 
-pending
+不进行此几何 Cm 的在线候选搜索，也不根据 seed153/154
+调结构刷分。下一条实现路线应转向训练期 representation /
+auxiliary objective 的最小 matched Probe；先评估是否有
+足够低成本的 PPO 接点。raw 模型是必要对照；不能声称
+当前几何 token 结构对策略不可替代。

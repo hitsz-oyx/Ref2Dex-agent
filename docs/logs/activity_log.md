@@ -1221,3 +1221,12 @@
 - manifests/data/reports: 各 run 目录下 `run_manifest.json`、`transitions.pt`、`followup_report.json`；每 seed 634 条接触随机处理。
 - primary metrics (+0.1 减 −0.1): 一步物体上移 +12.19/+13.44mm；五步接触比例 −7.58/−4.70pp，两个 environment-cluster 95% CI 都为负；第五步仍接触 −5.62/−3.38pp。五步物体位移仍为正。
 - boundary: Probe `PROMISING` for 短期接触损失机制，而非 Cm 策略效用。支持训练兼顾物体效应与接触保持的动作条件 Cm；不支持继续只最大化一步物体 z。
+
+## 2026-09-24 — Contact-aware Cm 未见 seed 判别
+
+- branch: `agent/cm-contact-aware-effect`; code commit: `9b49ee9`
+- experiment_id: `P-20260924-contact-aware-cm`
+- data run_ids: `agent_randomized_followup_s153_d01_h5_n64`、`agent_randomized_followup_s154_d01_h5_n64`（各 1 GPU 顺序运行、64 env、<30s，均 `COMPLETED`）；train/test run_id: `agent_contact_aware_cm_s151152_train_s153154_test`（CPU 2 threads、500 更新、12.8s、`COMPLETED`）。
+- artifacts: `outputs/CmResidual/agent_contact_aware_cm_s151152_train_s153154_test/` 下的 manifest、report、三 checkpoint；数据 SHA 见 manifest；无正在运行任务。
+- key metrics: 几何 Cm 对测试 seed153/154 的一步 EPE 6.31/5.91mm、接触 RMSE .1206/.1428；同架构零动作手流 EPE 8.55/7.86mm、RMSE .1318/.1581；raw MLP RMSE .1149/.1306。几何预测接触 score 的最高−最低四分位真实 RCT 接触效应差 +22.40pp (95% CI +15.87 至 +29.29pp)，raw +25.11pp。
+- boundary: `UNCLEAR` for 几何 Cm 独立性；动作信息有效，但 raw 对照略好，预注册升级在线门未过。不在已见测试 seed 上调结构/阈值；检查训练期 Cm 接法。
