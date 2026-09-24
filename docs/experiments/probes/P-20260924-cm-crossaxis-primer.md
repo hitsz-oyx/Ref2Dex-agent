@@ -44,4 +44,17 @@ motion manifest SHA `2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d3072
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for this fixed x-primer→z+ sequence; not a
+refutation of every Cm or action sequence. Code commit `dbb8b42`.
+The 16-env seed173 engineering smoke completed and passed exact
+first/second-dose audit. The 64-env `agent_crossaxis_primer_s173_n64`
+rollout and `agent_crossaxis_primer_s173_analysis` (500 environment
+cluster draws) both completed. The pre-registered x− primer minus
+z+-only control difference in ten-step contact-weighted signed object
+z displacement was −2.52 mm, 95% CI [−7.67,+3.06] mm; contact
+fraction was −2.63pp [−7.04,+2.08]. Point gain is negative, so the
+borderline repeat rule does not apply. The secondary x+ contrast was
+also negative (−1.64 mm), but is not used to choose a treatment.
+Stop without a new Cm, online selector, extra seed or dose tuning.
+Commands, input hashes, source commit and terminal status are in
+the run manifests; exact counts and metrics are in the report.

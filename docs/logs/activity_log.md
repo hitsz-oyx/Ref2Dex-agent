@@ -1298,3 +1298,10 @@
 - engineering smoke `agent_two_step_z_smoke_s171_n16` `COMPLETED`，物理 GPU6、16 env、两处理时刻，精确剂量与 10 步记录审计通过；仅工程证据。
 - data run_ids `agent_two_step_z_s{171,172}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 时刻、≤1 min；single-seed analysis `agent_two_step_z_s{171,172}_analysis`、pooled `agent_two_step_z_s171172_pool` 均 `COMPLETED`。各目录保存 manifest、transition/report 和 SHA；无 checkpoint、无运行中任务。
 - primary: seed171/172 的第二步 z 效应 +7.00/+5.65mm，环境聚类 95% CI 都跨 0；合并 +6.33mm [−0.93,+12.86]，两步减一步接触比例 −2.61pp。虽点值超过 5mm、接触成本未越 −5pp，合并 CI 未过预注册正值门；`UNCLEAR`，按规则停止此重复 z 剂量接法，不加 seed 或调 dose。
+
+## 2026-09-24 — x 预调整→z 上抬混合轴 Probe 终态
+
+- branch: `agent/cm-crossaxis-primer`; code commit `dbb8b42`; experiment_id `P-20260924-cm-crossaxis-primer`。
+- engineering smoke `agent_crossaxis_primer_smoke_s173_n16` `COMPLETED`，物理 GPU6、16 env/两处理时刻，三臂实际第一/第二步剂量审计通过；无 checkpoint。
+- physical run `agent_crossaxis_primer_s173_n64` 与 CPU 分析 `agent_crossaxis_primer_s173_analysis` 均 `COMPLETED`；64 env、16 处理时刻、十步随访、500 次环境聚类重采样。manifest、transition、report 保存命令/SHA/终态；无正在运行的任务。
+- primary x−→z+ 减仅 z+ 的十步接触加权物体 z 位移 −2.52mm，95% CI [−7.67,+3.06]；接触比例 −2.63pp。点值为负，不触发 borderline 重复；二级 x+ 也为负但不用于事后选臂。分类 `UNPROMISING` for 此固定混合轴序列，停止新 Cm/在线接法。
