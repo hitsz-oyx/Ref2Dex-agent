@@ -1262,3 +1262,10 @@
 - branch: `agent/cm-multiaxis-long-horizon`; collector commit `1c9e2a6`，analysis commit `8920e59`；experiment_id: `P-20260924-multiaxis-h10-effects`。
 - run_ids: `agent_multiaxis_h10_s161_n64`、`agent_multiaxis_h10_s162_n64` 均 `COMPLETED`，各用空闲物理 GPU6 顺序运行、64 env、16 处理时刻、十步随访，分别 817/757 条接触且无裁剪处理。各目录的 `run_manifest.json`、`collect.log`、`transitions.pt` 保存命令、SHA 和终态。CPU 分析 `agent_multiaxis_h10_s161162_analysis` `COMPLETED`，500 次环境聚类 resampling，report/manifest 同名目录；无 checkpoint、无运行中任务。
 - primary: x 轴 ±0.1 的十步物体 x 效应 seed161/162 为 +21.15/+13.04 mm，合并 +17.23 mm [12.30,22.06]；y 轴 +8.51/+17.99 mm，合并 +13.05 mm [1.66,22.05]。x 过预注册继续门。科学分类 `PROMISING` for 可学习的多轴物理干预信息，而非 Cm 预测或策略效用。下一步用新 seed 检验动作条件 Cm 与 state-only 对照。
+
+## 2026-09-24 — 多轴十步 Cm 未见 seed Probe 终态
+
+- branch: `agent/cm-multiaxis-long-horizon`; code commit `34d14fc`; experiment_id: `P-20260924-multiaxis-h10-cm`。
+- data run_id `agent_multiaxis_h10_s163_n64`：`COMPLETED`，物理 GPU6、64 env、16 时刻、803 个有效接触处理，完整性与动作剂量契约通过；`run_manifest.json`、`collect.log`、`transitions.pt` 见同名输出目录。
+- model run_id `agent_multiaxis_h10_cm_s161162_train_s163_test`：`COMPLETED`，CPU 2 threads、500 更新、7.3s、1574 train/803 test；三个 checkpoint、`report.json`、manifest/SHA 在同名输出目录；无运行中任务。
+- held-out x 十步真实干预效应 +16.76mm；state-only/raw-action/六区域几何 Cm 的 factual x RMSE 28.16/26.69/25.25mm，动作条件模型改善 5.22%/10.35%；预测 x 对比 0/17.49/21.41mm。过预注册模型继续门，标 `PROMISING` for 未见动作效应预测，但尚未检验在线 policy utility；几何在 y/z 上较 raw 差，不宣称几何整体优越。
