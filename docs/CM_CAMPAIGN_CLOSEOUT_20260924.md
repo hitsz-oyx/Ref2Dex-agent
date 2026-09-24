@@ -48,6 +48,9 @@ seed60–64 均为 `COMPLETED`，各有 64 个 episode，成功数依次为
 882、action-shuffled 1049、off 789，与 `analysis.json` 一致。
 V1.3 表征 Probe 的 `report.json` SHA256 与清单一致；单对象 option 的
 `effect_report_v2.json` 为 `UNPROMISING`，其效应点值与区间和上表一致。
+从原始 transition 离线重算单对象 option，287/285 两臂计数、−8.198mm
+主效应及环境聚类区间与报告完全一致；无接触权重的 H20 位移差也为
+−14.49mm，两臂重置率均为零。
 五个 V1.28 运行均使用同一份 38 项起始帧路由表。评估代码在 reset 后读取
 `task.start_times`，按最近起始帧选定 BC/PPO 专家，整段 episode 固定路由；
 五份 summary 的在线 proposal 选择率均为 0。故 307/320 是这个组合系统

@@ -53,3 +53,10 @@ the tested self-trained actors.
 The strict `effect_report_v2.json` audit also verified ten treated steps,
 cumulative +1.0 wrist-z increment in both arms and cumulative +2.0 increment
 for every selected finger in the grip arm.
+
+A later read-only recomputation from the pinned 616 KB `transitions.pt`
+reproduced the 287/285 arm counts, −8.1980 mm primary contrast and
+environment-cluster interval exactly. Both arms had zero resets. The secondary
+unweighted H20 object-z contrast was also negative (−14.49 mm), so the sign
+of the primary result is not created solely by contact-fraction weighting.
+This remains a single-seed physical Probe, not a Cm policy comparison.
