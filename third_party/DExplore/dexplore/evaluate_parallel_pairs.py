@@ -49,6 +49,20 @@ class ParallelPlayer(BASE_PLAYER):
 
     def env_step(self, env, action):
         self.pair_step_index += 1
+        if self.pair_step_index in (1, 2, 5, 10, 20, 40, CONFIG["step"]):
+            task = env.task
+            root = task._root_states.view(task.num_envs, -1, 13)
+            rigid = task._rigid_body_state.view(task.num_envs, -1, 13)
+            print("REF2DEX_PARALLEL_DRIFT " + json.dumps({
+                "step": self.pair_step_index,
+                "root_actor_max": (root[1:] - root[0]).abs().amax(dim=(0, 2)).detach().cpu().tolist(),
+                "dof_max": float((task._dof_state.view(task.num_envs, -1, 2)[1:] -
+                                  task._dof_state.view(task.num_envs, -1, 2)[0]).abs().amax()),
+                "rigid_max": float((rigid[1:] - rigid[0]).abs().amax()),
+                "action_max": float((action[1:] - action[0]).abs().amax()),
+                "progress": task.progress_buf.detach().cpu().tolist(),
+                "start_times": task.start_times.detach().cpu().tolist(),
+            }, sort_keys=True), flush=True)
         if self.pair_step_index != CONFIG["step"]:
             return BASE_PLAYER.env_step(self, env, action)
         _, record = parallel_sim_pair_step(
