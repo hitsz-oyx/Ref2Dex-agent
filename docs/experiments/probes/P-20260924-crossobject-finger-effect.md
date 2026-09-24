@@ -35,4 +35,24 @@ policy utility.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for this exact one-step finger synergy. An 8-env
+engineering smoke passed exact dose and ten-step followup. The 64-env train
+run completed 16 intervention steps with 778 treated rows: mug 285,
+toothpaste 244, airplane 249. Positive minus negative action on five
+independent flexion commands was exactly ±0.2, and actual mean joint
+flexion contrast was +0.054/+0.044/+0.060 rad respectively. Ten-step
+contact fraction differences were mug +1.14pp, toothpaste +1.59pp,
+airplane +0.72pp; pooled +1.15pp with environment-cluster 95% CI
+[-1.76,+3.98]pp. It missed the predefined +5pp gate. Contact-supported
+object z contrast was -0.66mm, CI [-1.86,+0.40]mm. No early-followup
+resets occurred.
+
+Do not tune another neighboring dose on this fixed one-step action and do
+not train Cm from this action family. The held-out apple run was omitted
+because the train-only continue gate failed; this is budget-preserving, not
+selective reporting. The next higher-level issue is whether the current
+self-trained actor reaches useful physical grasp states at all. A successful
+simulator actor can be used *only as a data collector* to test Cm's
+object-conditioned architecture, with no official actor weight in the final
+self-trained policy. Raw data and audit are in
+`outputs/CmResidual/agent_crossobject_finger_train_s184_h10/`.

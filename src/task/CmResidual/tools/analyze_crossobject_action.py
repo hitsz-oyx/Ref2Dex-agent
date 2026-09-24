@@ -9,6 +9,7 @@ import numpy as np
 import torch
 
 from src.task.CmResidual.tools.analyze_randomized_action import weighted_step_difference
+from src.task.CmResidual.randomized_action import FINGER_SYNERGY_INDICES
 
 
 def estimate(records: dict, *, horizon: int, num_envs: int) -> dict:
@@ -59,14 +60,19 @@ def estimate(records: dict, *, horizon: int, num_envs: int) -> dict:
     by_object = {str(identifier): summarize(motion == identifier) for identifier in object_ids}
     pooled_strata = steps + motion * 1000
     pooled = weighted_step_difference(outcome, assignment, pooled_strata)[0]
+    pooled_contact = weighted_step_difference(contact_fraction, assignment,
+                                              pooled_strata)[0]
     return {"rows": len(steps), "steps": unique_steps.tolist(),
             "motion_ids": object_ids, "by_object": by_object,
             "pooled_contact_supported_dz_plus_minus_mm": pooled,
+            "pooled_contact_fraction_plus_minus": pooled_contact,
             "outcome": outcome, "assignment": assignment, "strata": pooled_strata,
+            "contact_fraction": contact_fraction,
             "num_envs": num_envs}
 
 
-def bootstrap_ci(result: dict, *, draws: int, seed: int) -> list[float]:
+def bootstrap_ci(result: dict, *, draws: int, seed: int,
+                 metric: str = "outcome") -> list[float]:
     rng = np.random.default_rng(seed)
     nenv = result["num_envs"]
     nsteps = len(result["steps"])
@@ -76,7 +82,7 @@ def bootstrap_ci(result: dict, *, draws: int, seed: int) -> list[float]:
         indices = np.concatenate([step * nenv + envs for step in range(nsteps)])
         try:
             value = weighted_step_difference(
-                result["outcome"][indices], result["assignment"][indices],
+                result[metric][indices], result["assignment"][indices],
                 result["strata"][indices])[0]
         except ValueError:
             continue
@@ -97,25 +103,33 @@ def main() -> None:
     if args.output.exists() or args.num_envs < 4 or args.bootstraps < 100:
         parser.error("new output, >=4 environments and >=100 bootstraps required")
     payload = torch.load(args.input, map_location="cpu", weights_only=False)
-    if payload.get("schema") != "ref2dex.randomized_action_followup.v1" or (
-            payload.get("run_status") != "COMPLETED" or
-            payload.get("followup_horizon") != 5 or
-            payload.get("intervention_axes") != [2]):
+    finger = payload.get("schema") == "ref2dex.randomized_finger_followup.v1"
+    wrist = payload.get("schema") == "ref2dex.randomized_action_followup.v1"
+    if (not (finger or wrist) or payload.get("run_status") != "COMPLETED" or
+            payload.get("followup_horizon") != (10 if finger else 5) or
+            (finger and payload.get("finger_indices") != list(FINGER_SYNERGY_INDICES)) or
+            (wrist and payload.get("intervention_axes") != [2])):
         raise ValueError("unexpected randomized followup source")
     records = payload["records"]
     assignment = records["assignment"].reshape(-1).numpy()
-    dose = (records["executed_action"][:, 2] -
-            records["base_action"][:, 2]).numpy()
-    if not np.allclose(dose[assignment != 0],
-                       payload["delta_z_action"] * assignment[assignment != 0],
-                       atol=1e-5):
+    dose = (records["executed_action"] - records["base_action"]).numpy()
+    expected = np.zeros_like(dose)
+    axes = list(FINGER_SYNERGY_INDICES) if finger else [2]
+    expected[:, axes] = (payload["delta_z_action"] * assignment)[:, None]
+    if not np.allclose(dose, expected, atol=1e-5):
         raise ValueError("executed treatment dose mismatch")
-    result = estimate(records, horizon=5, num_envs=args.num_envs)
+    result = estimate(records, horizon=10 if finger else 5,
+                      num_envs=args.num_envs)
     report = {key: value for key, value in result.items()
-              if key not in ("outcome", "assignment", "strata", "num_envs")}
+              if key not in ("outcome", "contact_fraction", "assignment",
+                             "strata", "num_envs")}
     report["environment_cluster_95ci_mm"] = bootstrap_ci(
         result, draws=args.bootstraps, seed=args.seed)
+    report["contact_fraction_cluster_95ci"] = bootstrap_ci(
+        result, draws=args.bootstraps, seed=args.seed + 1,
+        metric="contact_fraction")
     report["source"] = str(args.input.resolve())
+    report["action_kind"] = "finger_synergy" if finger else "wrist_z"
     report["schema"] = "ref2dex.crossobject_action_effect_report.v1"
     report["run_status"] = "COMPLETED"
     report["bootstrap_draws"] = args.bootstraps
@@ -124,6 +138,8 @@ def main() -> None:
                            encoding="utf-8")
     print(json.dumps({"pooled_mm": report["pooled_contact_supported_dz_plus_minus_mm"],
                       "ci_mm": report["environment_cluster_95ci_mm"],
+                      "pooled_contact_fraction": report["pooled_contact_fraction_plus_minus"],
+                      "contact_ci": report["contact_fraction_cluster_95ci"],
                       "by_object": report["by_object"]}, sort_keys=True))
 
 
