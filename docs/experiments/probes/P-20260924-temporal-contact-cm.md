@@ -33,4 +33,27 @@ contracts. This offline Probe cannot establish Cm policy utility.
 
 ## Results
 
-Pending.
+The CPU Probe completed with 3000 first-episode current-contact training
+rows (1000 per train motion) and 1000 heldout apple rows, all with full
+ten-step history and twenty-step future. Heldout future-contact RMSE:
+
+| Head | RMSE |
+| --- | ---: |
+| Current state + current action | 0.3822 |
+| Temporal history + current action | **0.3320** |
+| Temporal history, no current action | 0.3686 |
+| Temporal history, shuffled training action | 0.3847 |
+
+History improved over current state by 13.1%, but action-aware improved
+over the same-history no-action head by about **9.9%**, just below the
+predeclared >=10% gate. More importantly, heldout contact-supported lift
+RMSE (scaled by 0.3 m) was 0.1917 action-aware versus **0.1739**
+action-blind. The joint action-information gate failed. Status:
+`UNCLEAR` for a general temporal Cm representation and `UNPROMISING` for
+immediate online attachment of this exact current-action head. Do not tune
+on apple or upgrade to PPO from this Probe. The result suggests that recent
+interaction history carries state-estimation information, but does not
+establish a helpful candidate-action signal for lifting.
+
+Report and frozen fitted heads:
+`outputs/CmResidual/agent_temporal_contact_cm_train3_apple_20260924/`.
