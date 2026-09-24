@@ -42,4 +42,25 @@ motion manifest SHA
 
 ## Result
 
-Pending.
+Status: `UNCLEAR` for an additional wrist-z physical interaction;
+pre-registered pooled gate failed, so stop this local sequence route.
+Collector code commit `25ad3bc`, pooled decision code commit `77ffbe9`.
+The 16-env z smoke completed and passed exact first/second dose audit.
+Both 64-env randomized data runs `agent_two_step_z_s{171,172}_n64`
+completed on physical GPU6; each has 16 contact intervention times.
+Single-seed analysis run IDs `agent_two_step_z_s{171,172}_analysis`
+and fixed pooled run ID `agent_two_step_z_s171172_pool` completed.
+Commands, source SHA, status and results are in each output manifest.
+
+| Seed | Second-step z interaction | Environment-cluster 95% CI | Two-step minus one-step contact |
+| --- | --- | --- | --- |
+| 171 | +7.00 mm | [−2.59,+16.32] mm | −3.47pp |
+| 172 | +5.65 mm | [−3.87,+15.40] mm | −1.76pp |
+| pooled | +6.33 mm | [−0.93,+12.86] mm | −2.61pp |
+
+The point interaction exceeds 5mm and contact cost remains within
+the −5pp gate, but the pooled 95% interval includes zero. No third
+seed or dose tuning is allowed by this decision rule. This does not
+refute all temporal Cm representations; it only withholds permission
+to train a wrist-z repeated-dose sequence Cm or run z planning under
+this fixed design.

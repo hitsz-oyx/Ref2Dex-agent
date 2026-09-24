@@ -1291,3 +1291,10 @@
 - physical data run_ids `agent_two_step_s{168,169,170}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 处理时刻/十步随访、≤1 min；对应 `agent_two_step_s{168,169,170}_analysis` CPU 分析均 `COMPLETED`。各 run 的 manifest、transitions、report 保存命令/SHA/终态。第二步 wrist-x 对十步物体 x 的增量分别 +18.67/+19.84/+18.96mm，环境聚类 95% CI 均为正；平均接触比例差 −0.51/−1.18/−1.31pp。
 - raw model run_id `agent_two_step_cm_s168_train_s169_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.43%，但第二步交互效应只预测出真实的 .316 倍，未过 .5 倍门，`UNPROMISING` for 固定 raw 拼接架构。
 - structured model run_id `agent_two_step_structured_cm_s168169_train_s170_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.84%，交互效应预测/真实=.843，过两项门，`PROMISING` for 序列效应预测。两模型均非 policy utility。留出 seed170 的探索性 z 对比为负，故不把 x 位移增益直接当抬升增益；下一步先测试两步 wrist-z 真实随机效应。无本实验运行中任务。
+
+## 2026-09-24 — 两步 wrist-z 物理 Probe 终态
+
+- branch: `agent/cm-two-step-sequence`; collector commit `25ad3bc`，pooled analysis commit `77ffbe9`；experiment_id `P-20260924-cm-two-step-z-effect`。
+- engineering smoke `agent_two_step_z_smoke_s171_n16` `COMPLETED`，物理 GPU6、16 env、两处理时刻，精确剂量与 10 步记录审计通过；仅工程证据。
+- data run_ids `agent_two_step_z_s{171,172}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 时刻、≤1 min；single-seed analysis `agent_two_step_z_s{171,172}_analysis`、pooled `agent_two_step_z_s171172_pool` 均 `COMPLETED`。各目录保存 manifest、transition/report 和 SHA；无 checkpoint、无运行中任务。
+- primary: seed171/172 的第二步 z 效应 +7.00/+5.65mm，环境聚类 95% CI 都跨 0；合并 +6.33mm [−0.93,+12.86]，两步减一步接触比例 −2.61pp。虽点值超过 5mm、接触成本未越 −5pp，合并 CI 未过预注册正值门；`UNCLEAR`，按规则停止此重复 z 剂量接法，不加 seed 或调 dose。

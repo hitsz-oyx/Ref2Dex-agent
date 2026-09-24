@@ -47,6 +47,11 @@ only on 170. Factual ten-step world-x RMSE improved 11.84% versus
 same-size state-only. Predicted second-step interaction was 0.843×
 the randomized observed value; both pre-registered model gates passed.
 The report and both checkpoint SHA256s are in the run directory.
+The earlier raw-concatenation model used only seed168 for training,
+whereas this model used seeds168/169. Therefore its improvement over
+that earlier model cannot be attributed to architecture alone; a
+same-data architecture ablation remains Evidence debt, not a result
+needed for the present planning decision.
 
 Exploratory task-alignment audit on the already-seen seed170 found
 the wrist-x plus-minus contrast in ten-step object z was negative
