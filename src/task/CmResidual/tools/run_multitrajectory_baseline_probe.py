@@ -14,7 +14,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[4]
 DEXPLORE = ROOT / "third_party/DExplore"
-SPEC = ROOT / "src/task/CmResidual/configs/multitrajectory_12_motion_probe.json"
+DEFAULT_SPEC = ROOT / "src/task/CmResidual/configs/multitrajectory_12_motion_probe.json"
 BOOTSTRAP = ROOT / "src/task/CmResidual/tools/dexplore_cm_off_rank_bootstrap.py"
 SOURCE = ROOT / ("outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/"
                  "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/"
@@ -51,9 +51,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, default=4)
     parser.add_argument("--target-epoch", type=int, default=300)
+    parser.add_argument("--spec", type=Path, default=DEFAULT_SPEC)
+    parser.add_argument("--work-version", default="multitrajectory-baseline-probe")
     args = parser.parse_args()
-    if not 261 <= args.target_epoch <= 320:
-        parser.error("target epoch must be 261..320")
+    if not 261 <= args.target_epoch <= 360:
+        parser.error("target epoch must be 261..360")
     output = args.output.resolve()
     if output.exists():
         parser.error("new output directory required")
@@ -61,7 +63,8 @@ def main() -> None:
         raise ValueError("source checkpoint SHA256 drift")
     if gpu_used(args.gpu) > 1024:
         raise RuntimeError(f"physical GPU {args.gpu} is occupied")
-    spec = json.loads(SPEC.read_text())
+    spec_path = args.spec.resolve()
+    spec = json.loads(spec_path.read_text())
     motions = [ROOT / path for path in spec["motions"]]
     names = [path.name for path in motions]
     if len(names) != len(set(names)):
@@ -80,7 +83,7 @@ def main() -> None:
         (motion_root / motion.name).symlink_to(motion, target_is_directory=True)
     input_manifest = output / "input_manifest.json"
     write(input_manifest, {"classification": "reconstructed_baseline",
-                           "source_spec": str(SPEC), "source_spec_sha256": sha256(SPEC),
+                           "source_spec": str(spec_path), "source_spec_sha256": sha256(spec_path),
                            "motions": inputs})
     train_output = output / "train"
     command = [
@@ -105,7 +108,7 @@ def main() -> None:
     manifest_path = output / "run_manifest.json"
     manifest = {
         "manifest_schema": "ref2dex.run.v1", "run_status": "STARTED",
-        "created_at": now(), "run_id": output.name, "work_version": "multitrajectory-baseline-probe",
+        "created_at": now(), "run_id": output.name, "work_version": args.work_version,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                               text=True).strip(),
         "command": command, "physical_gpu": args.gpu, "seed": 70,

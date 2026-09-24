@@ -1,0 +1,6 @@
+{
+  "description": "Duck-only corrected motion to test shared-policy interference",
+  "motions": [
+    "outputs/CmResidual/agent_objectpool_duck_gate/corrected_converted/s1_duck_lift"
+  ]
+}

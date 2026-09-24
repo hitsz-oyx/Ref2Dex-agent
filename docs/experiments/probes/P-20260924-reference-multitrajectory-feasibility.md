@@ -22,4 +22,16 @@ code drift, GPU conflict, incomplete evaluation or nonfinite metrics.
 
 ## Results
 
-Pending.
+Both complete evaluations finished. The reference controller achieved
+**9/128 held-lifts (7.0%)**: mug 8/10, airplane 1/30, and zero on the
+other eight identities. Contact was sometimes present without supported
+lift. The prespecified six-identity and 50% gates failed decisively. Status:
+`UNPROMISING` as a physical multi-object BC teacher for these 12 motions.
+This does not judge the quality of raw GRAB demonstrations or the official
+actor; it judges this particular reference-action controller in DExplore.
+Results and manifests are in
+`outputs/Dexplore/agent_multitrajectory12_s70_e300/eval_s20{3,4}_e300_full_reference_lead1/`.
+
+Next decision: isolate one physically feasible but shared-policy-failed
+identity, duck, to distinguish policy interference from lack of an effective
+reward/curriculum transfer on that object.
