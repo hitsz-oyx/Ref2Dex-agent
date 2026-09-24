@@ -44,10 +44,37 @@ Probe 总计 <=60 min，产物 <100MB。模型/输入漂移、GPU
 
 ## Result
 
-Status: PENDING
+Status: UNPROMISING（当前冻结 Cm + 接触窗口 +0.1 抬腕规则）
 
-Evidence: pending
+工程 smoke：seed149 ×16 的 base、always、Cm 均正常结束，held-lift
+均为 10/16；只验证接线，未据此筛选阈值。
+
+预先固定协议后，在新 seed149/150 ×64 的首 episode 上运行三臂，
+六个 run 均 `COMPLETED`：
+
+| seed | base | always +0.1 | Cm 选择 +0.1 |
+| --- | ---: | ---: | ---: |
+| 149 | 41/64 (64.06%) | 40/64 (62.50%) | 42/64 (65.62%) |
+| 150 | 46/64 (71.88%) | 33/64 (51.56%) | 44/64 (68.75%) |
+| 合计 | 87/128 (67.97%) | 73/128 (57.03%) | 86/128 (67.19%) |
+
+Cm 相对 base 为 −0.78pp，且 seed150 单独为 −3.13pp；相对
+always 为 +10.16pp。Cm 选择比盲目上抬少伤害，但没有提高
+baseline 成功率，未过预设“两 seed 均不负且合计各 +8pp”门槛。
+两个 seed 的平均 reward 和手物接触比例也都低于 base：
+seed149 reward 184.83→171.61、接触比例 .57288→.54980；
+seed150 reward 199.30→174.56、接触比例 .62086→.56383。
+Cm 分别从 2905/2873 个接触 eligible 状态中选择 661/671 次
+上抬，每个 episode 评估 51 个候选时刻；不是 Cm 未被调用。
+
+产物：
+`outputs/CmResidual/agent_cm_online_probe_s{149,150}_n64_{base,always,cm}/`
+下的 `run_manifest.json`、`results.json`、`selector.json`。
 
 ## Decision update
 
-pending
+停止这条“单步物体 z 效应大就直接上抬”的在线接法，不在本次
+seed 上调阈值或窗口。离线 CATE 排序成立与策略效用是不同命题；
+当前数据支持局部效应信息，却不支持其通过该规则改善长期抓取。
+下一步应改为能考虑接触保持/长期结果的 Cm 用法，并设置新的
+matched Cm-on/off Probe；不得把本卡写成“Cm 无用”的总体结论。

@@ -1203,3 +1203,12 @@
 - manifest/report: `outputs/CmResidual/agent_cm_online_latency_gpu6_2cand/run_manifest.json`、`report.json`。
 - metric: 16 环境×2 候选的几何特征+模型整体 median 26.85ms、p95 29.69ms；64 环境 median 27.00ms、p95 28.69ms；分数均有限。
 - boundary: 通过单模块 <33ms 工程门，但 27ms 是较大控制开销，不等于整套在线系统满足 30Hz；在线 Probe 只在接触窗口隔步评分。
+
+## 2026-09-24 — Cm 在线上抬选择 Probe 终态
+
+- branch: `agent/cm-randomized-action-effect`; code commit: `81d6198`
+- experiment_id: `P-20260924-cm-online-action-boost`
+- run_ids: `agent_cm_online_smoke_s149_n16_{base,always,cm}`、`agent_cm_online_probe_s{149,150}_n64_{base,always,cm}`；九个 run 均 `COMPLETED`，每次 1 GPU，最多 64 env，无新 checkpoint。
+- artifacts: 各 `outputs/CmResidual/<run_id>/run_manifest.json`、`results.json`、`selector.json`。
+- primary metric: seed149/150 首 episode 的 held-lift：base 41/64、46/64；always 40/64、33/64；Cm 42/64、44/64。合计 Cm 86/128 对 base 87/128（−0.78pp），对 always 73/128（+10.16pp）。
+- gate: 未满足预先要求的两 seed 均不负、且相对两个对照合计各 +8pp；`UNPROMISING` for 当前在线 +0.1 上抬规则。两 seed 的接触比例与 reward 均比 base 低。停止在观察过的 seed 上调阈值，转向考虑长期抓取/接触保持的策略用法。
