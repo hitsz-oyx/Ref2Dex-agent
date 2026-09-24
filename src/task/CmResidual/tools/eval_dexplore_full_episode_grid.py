@@ -60,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tag", help="short output suffix for a transfer probe")
     parser.add_argument("--selector-cmlite-checkpoint", type=Path)
     parser.add_argument("--selector-cmlite-sha256")
+    parser.add_argument("--reference-action-lead", type=int,
+                        help="diagnostic: execute the reference controller instead of the actor")
     parser.add_argument("--work-version", default="V1.29")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
@@ -79,6 +81,10 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("CmLite selector checkpoint and SHA256 must be paired")
     if selector and args.tag is None:
         raise ValueError("CmLite selector requires a unique output tag")
+    if selector and args.reference_action_lead is not None:
+        raise ValueError("reference action and CmLite selector are mutually exclusive")
+    if args.reference_action_lead is not None and args.reference_action_lead < 0:
+        raise ValueError("reference action lead must be nonnegative")
     if selector and (not args.selector_cmlite_checkpoint.is_file() or
                      _sha256(args.selector_cmlite_checkpoint) != args.selector_cmlite_sha256):
         raise ValueError("CmLite selector checkpoint is missing or SHA256 mismatched")
@@ -123,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
             command += ["--cmlite-selector-checkpoint",
                         str(args.selector_cmlite_checkpoint.resolve()),
                         "--cmlite-selector-sha256", args.selector_cmlite_sha256]
+        if args.reference_action_lead is not None:
+            command += ["--reference-action-lead", str(args.reference_action_lead)]
         entry = {"run_status": "STARTED", "created_at": _now(),
                  "run_id": output.name, "work_version": args.work_version,
                  "evaluation_commit": revision, "training_commit": training["git_commit"],
@@ -135,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
                  "selector_cmlite_checkpoint": str(args.selector_cmlite_checkpoint.resolve())
                  if selector else None,
                  "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
+                 "reference_action_lead": args.reference_action_lead,
                  "transition_output": str(transition_output) if transition_output else None,
                  "command": command}
         entries.append((output, command, entry))
