@@ -40,14 +40,37 @@ H1 不通过：不投入该 z 方向 Cm 训练；检查实际动作传递/接触
 
 ## Result
 
-Status: PENDING
+Status: PROMISING
 
-Evidence: pending
+Evidence: 64-env s3 self-trained actor, 11 randomized contact intervention
+times, all runs COMPLETED. Seed145 ±0.3: 560 interventions, object +/−
+one-step z displacement contrast +29.24mm, environment-cluster bootstrap
+95% interval +21.37 to +37.17mm, step-stratified permutation p=0.00020;
+actual wrist-z motion contrast +76.34mm. Seed146 ±0.3: 544 interventions,
+object contrast +26.00mm, bootstrap interval +18.33 to +34.19mm,
+hand contrast +75.91mm. Seed147 ±0.1: 628 interventions, object contrast
++9.16mm, bootstrap interval +6.77 to +11.82mm, hand contrast +27.35mm.
+The effect is directionally consistent and scales roughly with intervention
+magnitude. The seed145 pre-intervention object vertical velocity contrast
+was small relative to the observed immediate object effect; random assignment
+was balanced within each scheduled step.
+
+This is a Probe on one trajectory and one object. Repeated interventions
+alter later states, and each outcome is one realized action. No individual
+counterfactual or Cm policy-utility claim is made.
 
 ## Decision update
 
-pending
+The action-to-actual-motion map is now the immediate bottleneck for an
+online Cm: the old calibration was fitted on narrow observational actor
+actions and should not be extrapolated to ±0.3. Fit and test a causal
+actuator model on randomized actions first; then train a small geometric Cm
+against the actual object transition with action-only/state-only controls.
 
 ## Artifacts
 
 `third_party/DExplore/dexplore/evaluate_randomized_action.py`
+`src/task/CmResidual/tools/analyze_randomized_action.py`
+`outputs/CmResidual/agent_randomized_wristz_s145_n64/effect_report.json`
+`outputs/CmResidual/agent_randomized_wristz_s146_n64/effect_report.json`
+`outputs/CmResidual/agent_randomized_wristz_s147_d01_n64/effect_report.json`

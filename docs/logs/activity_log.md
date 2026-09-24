@@ -1160,3 +1160,14 @@
 - manifests: 各 run 目录的 `run_manifest.json`；summary: 各 run 目录的 `pairs.json`。
 - failure: 从相同 frame0 开始，step1 DOF 差 0，刚体差约 1.2e-6；step2 DOF/刚体已差 0.184/0.225，同步策略动作最大差约 0.00159；到 step80 差异大幅放大。精确配对方法不能安全接纳这些样本。
 - next: 停止逐样本物理反事实采集，转向随机分配且实际执行的动作干预，以估计平均处理效应；不能把这些失败配对数据训练成因果 Cm。
+
+## 2026-09-24 09:15 +0800 — 随机真实动作干预 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- collector commit: `8c2ebaf`；analysis commit: `fc85b45`
+- experiment_id: `P-20260924-randomized-action-effect`
+- run_ids: `agent_randomized_wristz_s145_n64`, `agent_randomized_wristz_s146_n64`, `agent_randomized_wristz_s147_d01_n64`
+- run_status: 三次 `COMPLETED`；每次 1 GPU、64 environments、global steps 50–150、11 次随机化，单次 <30s；无 checkpoint。
+- manifests: 各 run 目录的 `run_manifest.json`；data: `transitions.pt`；analysis: `effect_report.json`。
+- key metrics: seed145/146 ±0.3 的真实物体一步 z 位移加减臂对比 +29.24/+26.00mm；seed147 ±0.1 为 +9.16mm；三次分步置换 p≈0.0002；总计 1732 条接触干预。
+- conclusion boundary: Probe `PROMISING`，真实平均干预效应明确；不提供逐样本同状态反事实，也尚未训练/证明 Cm。下一步做跨 seed 动作→实际手运动校准，避免旧窄动作校准外推。
