@@ -34,6 +34,26 @@ episodes, mesh/provenance mismatch, GPU conflict, or non-finite results.
 ## Observed so far
 
 Actor arm completed: apple 3/64 = 4.69% held-lift, mean contact fraction
-0.68381, mean maximum contact lift 8.9 mm. This is a single-object,
-single-seed Probe and does not by itself distinguish actor transfer from
-reference/physics invalidity. Reference arm pending.
+0.68381, mean maximum contact lift 8.9 mm. Reference-action lead-1 arm:
+0/64 held-lift, maximum contact lift 1.63 mm on average. Since this simple
+controller is not a known upper bound on achievable physical behavior, the
+two low rates still do **not** establish that the reconstructed apple task is
+invalid. A diagnostic run with the read-only official actor checkpoint is
+therefore the cheapest next gate (seed176, 64 episodes, one GPU, same input).
+It cannot count toward the self-trained policy objective or Cm utility claim.
+
+The read-only official actor reached 61/64 = 95.31% held-lift on apple,
+mean maximum contact lift 0.31893 m and contact fraction 0.75233. This
+diagnostic makes a grossly impossible apple scene unlikely. The observed
+frozen self-trained actor transfer (3/64) is `UNPROMISING` as a starting point
+for a cross-object Cm policy comparison. Next: train a small self-trained
+actor on several *non-apple* objects, keeping apple fully held out, then
+reassess its held-out performance before choosing a Cm attachment. No result
+here demonstrates or refutes cross-object Cm utility.
+
+Artifacts: `outputs/Dexplore/agent_v139_s3_standard_s70_e260/` contains the
+apple actor and reference-action evaluation manifests and per-episode JSON;
+the official diagnostic is
+`outputs/Dexplore/agent_crossobject_apple_official_diag_s176_n64/results.json`.
+Official checkpoint SHA256:
+`8f6823db752288f1bddd6d042981d33514e29dac5a68e58726e76215fea6d553`.
