@@ -41,4 +41,18 @@ first-episode leakage, non-finite values or missing contact strata.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for the one-action/H20-contact auxiliary target.
+`agent_crossobject_contact_future_s178174` used 3,000 train-object
+first-episode rows (500 per object/current-contact stratum) and 1,000
+held-out apple rows, with train-only hand-flow calibration and raw-feature
+normalization. On apple current-contact states, H20 contact-fraction RMSE
+was 0.3145 for action-aware six-region geometry, 0.3102 for the identical
+action-blind geometry model, and 0.3915 for raw state+action. The
+action-aware model did not beat its same-capacity no-action control, let
+alone the >=10% gate. No PPO auxiliary run on this target is justified.
+
+The geometry representation itself transferred better than raw state
+features, but the observed actor action supplied no incremental H20
+contact information on this test. This is an observational forecasting
+comparison, not causal action-effect evidence; it neither disproves Cm
+nor establishes geometry-specific policy utility.
