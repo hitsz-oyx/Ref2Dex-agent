@@ -48,7 +48,7 @@ GPU: 1 张真正空闲卡；wall: <= 60 min；输出 < 100 MB。
 
 ## Result
 
-Status: PENDING (GPU physical-pair probe has not run)
+Status: UNCLEAR (sequential restore rejected; parallel-env alternative pending)
 
 Key evidence: collector code `3e520c6` passes 3 CPU unit tests and Python
 syntax checks. `agent_paired_cpu_smoke_s145_e260` FAILED before the first
@@ -57,15 +57,33 @@ simulation and CPU policy are requested. This is an engineering limitation,
 not evidence for or against the physical-pair hypothesis. All 8 physical
 GPUs were occupied by other users at the attempted smoke time.
 
+`agent_paired_gpu_smoke_s145_e260` later ran on previously idle physical GPU6
+and FAILED at the first scheduled physical fork: actor-root/DOF tensors were
+restored exactly, but rigid-body state still differed by 8.03048 in tensor
+units. No pairs were accepted. This rejects the assumed sequential
+root+DOF snapshot/restore contract, not the Cm hypothesis.
+
 ## Decision update
 
-Do not edit DExplore's basic data loader merely for this smoke. Wait for a
-truly unoccupied GPU and run the fixed 16-env GPU smoke; if none becomes
-available, report the resource blocker rather than treating observational
-action shuffles as physical counterfactuals.
+Stop sequential snapshot/restore collection. A single run with three
+identically initialized environments (base, same-action repeat, alternate)
+can avoid restoring solver state. All arms must start at reference frame zero
+and evolve under identical policy commands until the intervention step.
+
+H2 engineering gate: immediately before the fork, all root/DOF/rigid states
+and reference-progress metadata must match within 1e-4; after a common
+action, the repeat arm must match the base object displacement within 0.05mm
+and joint positions within 1e-4. The smoke uses 3 env, seed145, step80,
+alt wrist-z +0.1. If H2 passes, expand to small matched triplets and measure
+whether any pre-contact action effect exceeds 0.2mm and 5x replay error;
+otherwise stop this physical-pair route and do not label observational action
+shuffles as counterfactuals.
 
 ## Artifacts
 
 `src/task/CmResidual/paired_sim_step.py`
 `third_party/DExplore/dexplore/evaluate_paired.py`
+`src/task/CmResidual/parallel_sim_pair.py`
+`third_party/DExplore/dexplore/evaluate_parallel_pairs.py`
 `outputs/CmResidual/agent_paired_cpu_smoke_s145_e260/run_manifest.json`
+`outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/run_manifest.json`

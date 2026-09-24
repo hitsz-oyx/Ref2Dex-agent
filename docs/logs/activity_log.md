@@ -1127,3 +1127,26 @@
 - failure: DExplore `_load_table` 在 CPU 模式仍显式 `.to('cuda')`，CUDA 不可见时抛 `RuntimeError: No CUDA GPUs are available`。
 - verification: 采样器 3 个 CPU 单测通过，`py_compile` 通过；本工程 smoke 只暴露 CPU 兼容限制，不检验同状态物理反事实假设。
 - next: 等真正空闲 GPU 后以固定代码提交做 16-env GPU smoke；不占用他人的 8 张在用卡。
+
+## 2026-09-24 00:53 +0800 — 等待空闲 GPU 的配对仿真工程 smoke
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `9c61dc347dfad32cf09cc0f2d8017f3d2fda76f1`
+- run_id: `agent_paired_gpu_smoke_s145_e260`
+- run_status: `RUNNING`（当前只等待，不占 GPU）
+- manifest: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/wait_manifest.json`
+- source SHA: evaluator `7e7fb179aee98b44671f32545c109b57885bd64ad632618a3c3cbbcba51809f5`；physical pair step `dbcb535254ac5ad2295768f51e099b917e3d843d1626150cf8abb074731495b4`
+- resources: 最多 1 张卡；连续两次间隔 300s 检查须满足显存 ≤512MiB、利用率 ≤5%；16 environments；单次评估 timeout 900s；等待最长 600 分钟。
+- stop rule: 等待截止、STOP 文件、代码或输入漂移、GPU 冲突或评估失败。等到空闲卡后只运行一次固定 seed145、s3 自训练 e260 actor、step80、腕部 z 命令 +0.1 的工程 smoke；科学门槛仍见 `P-20260924-paired-sim-actions`。
+- first poll: 8/8 GPU 在用，无候选卡。终态待补充；不能把等待状态视为科学结果。
+
+## 2026-09-24 08:50 +0800 — 配对仿真 GPU 工程 smoke 终态审计
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `9c61dc347dfad32cf09cc0f2d8017f3d2fda76f1`
+- run_id: `agent_paired_gpu_smoke_s145_e260`
+- run_status: `FAILED`，physical GPU6，16 environments，seed145，step80。
+- manifest: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/run_manifest.json`；log: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/evaluate.log`；summary: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/pairs.json`。
+- last step: 第一次预定物理分叉；accepted pairs 0；无 checkpoint。
+- failure: root/DOF 恢复误差均 0，但刚体张量恢复误差 8.03048，严格拒收；尚未到同动作重复门。
+- interpretation: 顺序 snapshot/restore 方案的工程契约不成立；不是 Cm 模型结论。下一步同 run 三个并行匹配环境做 base/repeat/alt，一次物理步后再检验状态匹配与重复性。
