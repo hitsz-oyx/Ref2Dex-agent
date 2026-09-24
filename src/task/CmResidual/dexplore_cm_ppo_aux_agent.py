@@ -10,13 +10,16 @@ from rl_games.algos_torch import torch_ext
 
 import learning.common_agent as common_agent
 from src.task.CmResidual.cm_ppo_auxiliary import (
-    cm_candidate_targets, masked_auxiliary_loss,
+    cm_candidate_targets, cm_h10_multiaxis_targets, masked_auxiliary_loss,
 )
 from src.task.CmResidual.contact_aware_cm import RawContactAwareCm
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 
 
 class DExploreCmPpoAuxAgent(DExploreApproachAgent):
+    teacher_schema = "ref2dex.contact_aware_cm.v1"
+    aux_target_dim = 3
+
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
         self.cm_aux_coefficient = float(os.environ["REF2DEX_CM_AUX_COEF"])
@@ -26,7 +29,7 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
         self.cm_teacher = RawContactAwareCm(torch.zeros(67), torch.ones(67)).to(device).eval()
         payload = torch.load(os.environ["REF2DEX_CONTACT_CM_CHECKPOINT"],
                              map_location=device, weights_only=False)
-        if payload.get("schema") != "ref2dex.contact_aware_cm.v1" or (
+        if payload.get("schema") != self.teacher_schema or (
                 payload.get("name") != "raw_action"):
             raise ValueError("contact Cm teacher schema/name mismatch")
         self.cm_teacher.load_state_dict(payload["model"], strict=True)
@@ -45,7 +48,7 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
         width = self.model.a2c_network.mu.in_features
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(240936)
-            head = nn.Linear(width, 3)
+            head = nn.Linear(width, self.aux_target_dim)
             nn.init.normal_(head.weight, std=.01)
             nn.init.zeros_(head.bias)
         self.cm_aux_head = head.to(self.ppo_device)
@@ -92,7 +95,7 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
         super().init_tensors()
         shape = self.experience_buffer.obs_base_shape
         self.experience_buffer.tensor_dict["cm_aux_target"] = torch.zeros(
-            (*shape, 3), dtype=torch.float32, device=self.ppo_device)
+            (*shape, self.aux_target_dim), dtype=torch.float32, device=self.ppo_device)
         self.experience_buffer.tensor_dict["cm_aux_mask"] = torch.zeros(
             (*shape, 1), dtype=torch.float32, device=self.ppo_device)
         self.update_list += ["cm_aux_target", "cm_aux_mask"]
@@ -105,12 +108,16 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
         contact = ((task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).any(-1) &
                    (task._tar_contact_forces.norm(dim=-1) > .1) &
                    (task.reset_buf.reshape(-1) == 0))
-        target = cm_candidate_targets(
-            self.cm_teacher, task._dof_pos, task._dof_vel,
-            task._target_states, result["mus"], contact)
+        target, contact = self._cm_target(task, result["mus"], contact)
         result["cm_aux_target"] = target
         result["cm_aux_mask"] = contact.float()[:, None]
         return result
+
+    def _cm_target(self, task, action, contact):
+        target = cm_candidate_targets(self.cm_teacher, task._dof_pos,
+                                      task._dof_vel, task._target_states,
+                                      action, contact)
+        return target, contact
 
     def prepare_dataset(self, batch_dict):
         super().prepare_dataset(batch_dict)
@@ -170,3 +177,15 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
         self._aux_loss_sum = self._aux_mask_sum = 0.0
         self._aux_minibatches = 0
         return result
+
+
+class DExploreCmH10AuxAgent(DExploreCmPpoAuxAgent):
+    """Train-time H10 multi-axis Cm targets; unchanged actor-only evaluation."""
+
+    teacher_schema = "ref2dex.multiaxis_h10_cm.v1"
+    aux_target_dim = 12
+
+    def _cm_target(self, task, action, contact):
+        return cm_h10_multiaxis_targets(
+            self.cm_teacher, task._dof_pos, task._dof_vel,
+            task._target_states, action, contact)

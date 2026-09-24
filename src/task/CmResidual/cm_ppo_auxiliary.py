@@ -47,9 +47,51 @@ def cm_candidate_targets(cm, q, dof_vel, object_state, action,
     return target
 
 
+@torch.no_grad()
+def cm_h10_multiaxis_targets(cm, q, dof_vel, object_state, action,
+                            contact_mask, delta=.1):
+    """Frozen H10 Cm central contrasts for wrist xyz: world xyz and contact.
+
+    Target order is (object dx, dy, dz, contact) for each wrist axis.
+    Only unclipped ±delta contrasts at existing contact are supervised.
+    """
+    if contact_mask.shape != (len(q),) or contact_mask.dtype != torch.bool:
+        raise ValueError("boolean contact mask [B] required")
+    if not 0 < delta <= .5:
+        raise ValueError("invalid candidate dose")
+    candidate = action.detach().clamp(-1, 1)
+    safe = (candidate[:, :3].abs() <= 1 - delta).all(dim=-1)
+    variants = []
+    for axis in range(3):
+        for sign in (1, -1):
+            variant = candidate.clone()
+            variant[:, axis] = (variant[:, axis] + sign * delta).clamp(-1, 1)
+            variants.append(variant)
+    raw = raw_cm_input(q.repeat(6, 1), dof_vel.repeat(6, 1),
+                       object_state.repeat(6, 1), torch.cat(variants))
+    predicted = cm(raw)
+    if predicted["followup_delta_local"].shape != (6 * len(q), 3) or (
+            predicted["contact_fraction"].shape != (6 * len(q),)):
+        raise ValueError("H10 Cm prediction shape mismatch")
+    followup = local_to_world_translation(
+        object_state.repeat(6, 1), predicted["followup_delta_local"])
+    followup = followup.reshape(6, len(q), 3)
+    contact = predicted["contact_fraction"].reshape(6, len(q))
+    blocks = []
+    for axis in range(3):
+        translation = (followup[2 * axis] - followup[2 * axis + 1]) / .02
+        contact_effect = ((contact[2 * axis] - contact[2 * axis + 1]) / .1)[:, None]
+        blocks.append(torch.cat((translation, contact_effect), dim=-1))
+    target = torch.cat(blocks, dim=-1).clamp(-2, 2)
+    target[~(contact_mask & safe)] = 0
+    if not torch.isfinite(target).all():
+        raise FloatingPointError("non-finite H10 Cm auxiliary target")
+    return target, contact_mask & safe
+
+
 def masked_auxiliary_loss(prediction, target, contact_mask):
     """Per-row loss whose batch mean equals mean contact-row MSE."""
-    if prediction.ndim != 2 or prediction.shape[1] != 3 or (
+    if prediction.ndim != 2 or prediction.shape[1] < 1 or (
             target.shape != prediction.shape or
             contact_mask.shape != (len(prediction), 1)):
         raise ValueError("auxiliary prediction/target/mask shape mismatch")

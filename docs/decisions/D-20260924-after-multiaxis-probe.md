@@ -28,4 +28,7 @@ AI recommendation: A。B 已提供比旧单轴五步模型更丰富、且
 低于重建序列模型。但旧五步辅助 Probe 未过升级门，A 仍需
 新的预注册 matched Probe，不能预设有效。
 
-User decision: pending.
+User decision: A. Proceed with the frozen multi-axis H10 Cm as a
+train-time PPO representation auxiliary target, not an online action
+override. User permits ordinary in-scope interim decisions before
+16:00 Beijing time.
