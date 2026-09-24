@@ -1192,3 +1192,14 @@
 - manifest/report: `outputs/CmResidual/agent_cm_cate_ranking_s146148/run_manifest.json`、`report.json`；逐样本模型分数（非真实反事实）为 `test_s146_d03_scores.pt` 与 `test_s148_d01_scores.pt`。
 - key metrics: 几何 Cm 预测分数最高−最低四分位的真实随机处理效应差，seed146 ±0.3 为 +72.38mm (环境聚类 95% CI +61.27 至 +81.82)，seed148 ±0.1 为 +25.51mm (CI +22.18 至 +28.18)。raw MLP 对照为 +65.54/+24.32mm。
 - conclusion boundary: Probe `PROMISING`，Cm 分数在当前单轨迹随机实验中提供效应异质性排序；raw MLP 也能排序，几何独立性与在线策略收益未证实。下一步延迟受控的在线候选评分小 Probe。
+
+## 2026-09-24 09:28 +0800 — Cm 双候选 GPU 延迟工程门
+
+- branch: `agent/cm-randomized-action-effect`
+- code commit: `0490ac7`
+- experiment_id: `P-20260924-cm-online-latency`
+- run_id: `agent_cm_online_latency_gpu6_2cand`
+- run_status: `COMPLETED`，空闲 physical GPU6，20 次 warm 同步测量，<5s；无 checkpoint。
+- manifest/report: `outputs/CmResidual/agent_cm_online_latency_gpu6_2cand/run_manifest.json`、`report.json`。
+- metric: 16 环境×2 候选的几何特征+模型整体 median 26.85ms、p95 29.69ms；64 环境 median 27.00ms、p95 28.69ms；分数均有限。
+- boundary: 通过单模块 <33ms 工程门，但 27ms 是较大控制开销，不等于整套在线系统满足 30Hz；在线 Probe 只在接触窗口隔步评分。

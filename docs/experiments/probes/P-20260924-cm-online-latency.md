@@ -30,6 +30,24 @@ object_state` 生成 token 并前向。预热后记录 20 次同步 wall
 
 ## Result
 
-Status: PENDING
+Status: PROMISING (engineering latency gate passed)
 
-Evidence: pending
+Evidence: `agent_cm_online_latency_gpu6_2cand` COMPLETED, physical GPU6
+otherwise idle. Warm 20 repeats with synchronous whole feature-extraction
+plus model inference: 16 env × 2 candidates median 26.85ms, p95 29.69ms,
+max 31.69ms; 64 env median 27.00ms, p95 28.69ms. All scores finite.
+This passes the prespecified <33ms *module-only* gate, but 27ms is still
+substantial 30Hz overhead before policy/physics costs. An online Probe
+should restrict scoring to sparse contact-window steps and measure total
+evaluation wall time; do not call this deployable real-time latency yet.
+
+## Decision update
+
+Proceed to a small contact-window online candidate-action Probe, scoring
+at most every second control step. If total wall or grasp performance is
+bad, optimize/cache geometry before further online training.
+
+## Artifacts
+
+`src/task/CmResidual/tools/benchmark_randomized_cm_online.py`
+`outputs/CmResidual/agent_cm_online_latency_gpu6_2cand/report.json`
