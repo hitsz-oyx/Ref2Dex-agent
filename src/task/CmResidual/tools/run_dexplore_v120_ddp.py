@@ -402,7 +402,8 @@ def main(argv=None) -> None:
         if args.learning_rate is not None:
             bootstrap_args += ["--learning-rate", str(args.learning_rate)]
     elif args.cm_aux_coef is not None:
-        if bootstrap.name != "dexplore_cm_ppo_aux_rank_bootstrap.py":
+        if bootstrap.name not in ("dexplore_cm_ppo_aux_rank_bootstrap.py",
+                                  "dexplore_cm_h10_aux_rank_bootstrap.py"):
             raise ValueError("Cm auxiliary PPO requires its rank bootstrap")
         if args.cm_aux_coef not in (0.0, .002) or args.actual_epochs is None or args.actual_epochs < 1:
             raise ValueError("Cm auxiliary PPO requires coefficient 0/.002 and actual epochs")
