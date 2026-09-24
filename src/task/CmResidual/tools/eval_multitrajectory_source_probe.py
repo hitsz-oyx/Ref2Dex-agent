@@ -41,9 +41,15 @@ def main() -> None:
     parser.add_argument("--baseline-run", type=Path, required=True)
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--seed", type=int, required=True)
+    parser.add_argument("--checkpoint", type=Path, default=SOURCE)
+    parser.add_argument("--checkpoint-sha256", default=SOURCE_SHA)
+    parser.add_argument("--tag", default="source_e260")
     args = parser.parse_args()
     baseline = args.baseline_run.resolve()
-    output = baseline / f"eval_source_e260_s{args.seed}_full"
+    if not args.tag.replace("_", "").isalnum():
+        parser.error("tag must be alphanumeric or underscore")
+    checkpoint = args.checkpoint.resolve()
+    output = baseline / f"eval_{args.tag}_s{args.seed}_full"
     if output.exists():
         raise FileExistsError(output)
     used = subprocess.check_output(
@@ -51,8 +57,8 @@ def main() -> None:
         text=True)
     if {int(line.split(",")[0]): int(line.split(",")[1]) for line in used.splitlines()}[args.gpu] > 1024:
         raise RuntimeError("requested physical GPU is occupied")
-    if sha256(SOURCE) != SOURCE_SHA:
-        raise ValueError("source checkpoint drift")
+    if sha256(checkpoint) != args.checkpoint_sha256:
+        raise ValueError("candidate checkpoint drift")
     training = json.loads((baseline / "run_manifest.json").read_text())
     if training["run_status"] != "COMPLETED":
         raise ValueError("baseline training incomplete")
@@ -64,7 +70,7 @@ def main() -> None:
                "--task", "Dexplore_Inspire", "--cfg_env",
                "dexplore/data/cfg/inspire_object_balanced.yaml", "--cfg_train",
                "dexplore/data/cfg/train/rlg/inspire.yaml", "--motion_file", str(motion_root),
-               "--checkpoint", str(SOURCE), "--disable-early-termination", "--headless",
+               "--checkpoint", str(checkpoint), "--disable-early-termination", "--headless",
                "--sim_device", "cuda:0", "--rl_device", "cuda:0",
                "--graphics_device_id", "0", "--num_envs", "64", "--seed", str(args.seed),
                "--output", str(output / "results.json")]
@@ -75,7 +81,7 @@ def main() -> None:
                 "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                     cwd=ROOT, text=True).strip(),
                 "command": command, "physical_gpu": args.gpu, "seed": args.seed,
-                "checkpoint": str(SOURCE), "checkpoint_sha256": SOURCE_SHA,
+                "checkpoint": str(checkpoint), "checkpoint_sha256": args.checkpoint_sha256,
                 "motion_root": str(motion_root), "input_manifest": str(input_manifest),
                 "input_manifest_sha256": sha256(input_manifest),
                 "budget": {"gpu_count": 1, "wall_minutes": 20, "output_gb": 0.1},

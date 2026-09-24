@@ -31,6 +31,31 @@ wall time <=60 minutes, output <=5 GB. Stop on source/input drift, occupied
 GPU, nonfinite training or missing endpoint checkpoint. Run status and
 scientific outcome will be recorded separately below.
 
-## Results
+## Results and next decision
 
-Pending.
+Training `agent_multitrajectory12_s70_e300` completed on commit `748939e`
+in 265 seconds; all 12 motions loaded. At e300, new evaluation seeds201/202
+gave **16/128 held-lifts (12.5%)**: 6/30 airplane, 7/10 toothpaste,
+2/12 alarmclock, 1/12 cup, and zero on apple, cubesmall, duck, mug,
+phone and waterbottle. Mean contact fraction was 0.264. Full per-motion
+report: `outputs/Dexplore/agent_multitrajectory12_s70_e300/analysis_e300_s201_202.json`.
+
+Matched source e260 checkpoint evaluations on the same 12 motions and
+seeds gave **13/128 held-lifts (10.2%)**: 10/30 airplane, 1/10 toothpaste,
+1/12 cubesmall and 1/12 cup, zero on the other six objects. Thus the
+40-epoch continuation shifted success from airplane toward toothpaste
+and alarmclock; the pooled +3/128 is too small to treat as an efficacy
+finding. This single training seed, two evaluation seeds Probe is
+`UNPROMISING` as a broad multi-trajectory baseline. It does not prove
+that more data, longer training or Cm cannot help.
+
+Next cheapest decision test: evaluate existing self-trained train5 e320
+and balanced e360 checkpoints on the same motion mixture. If their
+per-object strengths complement e260/e300 enough to cover at least four
+identities with positive held-lift and improve the object-oracle upper
+bound substantially, test a policy-option Cm that predicts future
+contact-supported lift. Compare its routing against object-only and
+shuffled-Cm routers with the exact same expert portfolio. If portfolio
+coverage remains narrow, focus on baseline training/curriculum before a
+new online Cm policy attachment. These choices are autonomous under the
+user's 2026-09-24 Probe authorization.
