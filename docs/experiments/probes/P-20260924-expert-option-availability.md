@@ -42,4 +42,22 @@ followup or budget overrun.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for the ten-step expert-action option from states
+visited by the self-trained actor. An 8-env wiring smoke and the full
+128-env `agent_expert_option_train_s191_h20_n128` run completed; the
+source actor, official candidate and object split hashes were pinned.
+767 eligible randomized states were treated. The two policy actions
+differed in mean L2 norm by 1.11, so the treatment was not a trivial
+identical-action comparison.
+
+Official-option minus self-trained-option H20 contact-supported object-z
+effects: airplane +24.25 mm (278 treated), mug -1.61 mm (228),
+toothpaste -4.99 mm (261). Object/step-stratified pooled +6.61 mm,
+environment-cluster 95% interval [-0.64,+14.44] mm. H20 contact fraction
+fell by 8.44 pp pooled; mug alone fell 16.37 pp. The predeclared
+>=10 mm, >=+5 pp contact, two-positive-object gate failed. Do not
+replicate, train an expert-option Cm, or treat the official actor as a
+transferable candidate generator on self-trained states. This result
+does not show the expert policy itself is poor: full-episode official
+evaluation from its own states remains strong. It reveals a relevant
+distribution/coupling mismatch for this ten-step splice.
