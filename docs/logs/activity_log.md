@@ -1230,3 +1230,12 @@
 - artifacts: `outputs/CmResidual/agent_contact_aware_cm_s151152_train_s153154_test/` 下的 manifest、report、三 checkpoint；数据 SHA 见 manifest；无正在运行任务。
 - key metrics: 几何 Cm 对测试 seed153/154 的一步 EPE 6.31/5.91mm、接触 RMSE .1206/.1428；同架构零动作手流 EPE 8.55/7.86mm、RMSE .1318/.1581；raw MLP RMSE .1149/.1306。几何预测接触 score 的最高−最低四分位真实 RCT 接触效应差 +22.40pp (95% CI +15.87 至 +29.29pp)，raw +25.11pp。
 - boundary: `UNCLEAR` for 几何 Cm 独立性；动作信息有效，但 raw 对照略好，预注册升级在线门未过。不在已见测试 seed 上调结构/阈值；检查训练期 Cm 接法。
+
+## 2026-09-24 — 冻结 Cm 几何互补性检验
+
+- branch: `agent/cm-contact-aware-effect`; code commit: `590fda1`
+- experiment_id: `P-20260924-cm-geometry-complement`
+- data run_ids: `agent_randomized_followup_s155_d01_h5_n64`、`agent_randomized_followup_s156_d01_h5_n64`（均 `COMPLETED`，physical GPU6 顺序、各 64 env、<30s）；analysis run_id: `agent_cm_geometry_complement_s155156`（CPU 2 threads、<10s、`COMPLETED`）。
+- artifacts: 各数据 run 的 `transitions.pt`/manifest，以及 analysis run 的 `report.json`/manifest；未重训 checkpoint。
+- key metrics: raw 的真实接触效应排序高−低 +27.85pp，固定 .5/.5 geometry+raw +28.72pp；配对差 +0.87pp、95% CI −2.26 至 +3.98pp。ensemble 接触 RMSE seed155 改善、seed156 略差。
+- boundary: `UNPROMISING` for 当前六区域几何互补性，未过预注册联合门槛。停止局部几何结构小修，保留 raw 动作条件模型作一次低成本在线决策 Probe 的可能性。
