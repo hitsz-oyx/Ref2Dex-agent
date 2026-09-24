@@ -47,10 +47,35 @@ or budget breach. No new policy training in this first decision Probe.
 
 ## Result
 
-Status: PENDING
+Status: `PROMISING` for multiaxis executed-action information, not Cm
+policy utility. Code: `1c9e2a6` (collector), `8920e59` (analysis).
 
-Evidence: pending
+Both 64-env runs `agent_multiaxis_h10_s161_n64` and
+`agent_multiaxis_h10_s162_n64` completed with 16 intervention steps,
+respectively 817 and 757 contact-eligible treated rows. The exact
+±0.1 wrist dose, six-cell per-step balance and ten-step followup passed
+contract checks. Inputs/checkpoints and their SHA256s, commands and
+logs are in each run's `run_manifest.json` and `collect.log`.
+Pooled analysis: `outputs/CmResidual/agent_multiaxis_h10_s161162_analysis/`
+(`report.json`, `run_manifest.json`; 500 environment-cluster resamples).
+
+| Axis / outcome, plus-minus | seed161 | seed162 | pooled [95% cluster CI] |
+| --- | ---: | ---: | ---: |
+| wrist x → 10-step object x | +21.15 mm | +13.04 mm | +17.23 [12.30, 22.06] mm |
+| wrist y → 10-step object y | +8.51 mm | +17.99 mm | +13.05 [1.66, 22.05] mm |
+| wrist z → 10-step object z | +2.41 mm | +12.80 mm | +7.40 [0.10, 14.66] mm |
+| wrist x → 10-step contact | +5.46 pp | +4.55 pp | +5.02 [1.99, 8.55] pp |
+| wrist z → 10-step contact | −8.66 pp | −2.38 pp | −5.64 [−10.29, −1.60] pp |
+
+The x-axis result meets the pre-registered ≥5 mm same-sign/two-seed
+and pooled-CI gate. Randomization supports a population intervention
+effect on reached states, not an individual same-state counterfactual.
+This does not show that any Cm can predict heterogeneous effects or
+improve grasp policy.
 
 ## Decision update
 
-pending
+Train a new action-conditioned 10-step Cm on the two run datasets and
+test its action-effect predictions on a fresh seed with a state-only
+capacity control. Only if held-out action information is usable should
+this route be connected to policy decisions.

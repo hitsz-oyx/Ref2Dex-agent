@@ -1256,3 +1256,9 @@
 - engineering smoke: `agent_cm_aux_smoke_t75_on_e262` 因旧 `resume_from` 检查误判 `FAILED`，未进入训练；修复后 `agent_cm_aux_smoke_t75_on_e262_r2` 与 `agent_cm_aux_smoke_t75_off_e262` 均 `COMPLETED`，physical GPU6 顺序，16 env，e260→e262；on 辅助头有有限非零梯度；各 run 的 `run_manifest.json`、`train.log` 与 e262 checkpoint 位于同名 `outputs/Dexplore/` 目录。工程烟测不构成效果证据。
 - matched Probe: `agent_cm_aux_t75_on_e300` 在 physical GPU5、`agent_cm_aux_t75_off_e300` 在 physical GPU6 同时 `STARTED`；各 64 env，共同 e260 checkpoint SHA `16fd261b...`，冻结 Cm SHA `ce711dca...`，e300 截止，最多两张 GPU，超时 30min，产物预算 5GB。每 run 的配置、输入、完整命令与状态在 `outputs/Dexplore/<run_id>/run_manifest.json`；训练流在 `train.log`。预注册判定见 experiment card。
 - terminal update: 上述 seed75 两臂及 `agent_cm_aux_t76_{on,off}_e300` 四次训练均 `COMPLETED`，各 run 的 e300 checkpoint、manifest、`train.log` 齐全；所有 8 次 `eval_s{159,160}_e300_full_cmauxprobe` 均 `COMPLETED`，每次 64 env、物理 GPU5/6 按 pair 运行，结果和 checkpoint SHA 在各评估目录的 `run_manifest.json`/`results.json`。训练 seed75 held-lift on/off 61/128 vs 50/128；seed76 75/128 vs 71/128；总计 136/256 vs 121/256（+5.86pp），低于 +8pp 升级门。科学分类 `UNCLEAR`，详见 experiment card；无任务继续运行。
+
+## 2026-09-24 — 三轴十步真实干预 Probe 终态
+
+- branch: `agent/cm-multiaxis-long-horizon`; collector commit `1c9e2a6`，analysis commit `8920e59`；experiment_id: `P-20260924-multiaxis-h10-effects`。
+- run_ids: `agent_multiaxis_h10_s161_n64`、`agent_multiaxis_h10_s162_n64` 均 `COMPLETED`，各用空闲物理 GPU6 顺序运行、64 env、16 处理时刻、十步随访，分别 817/757 条接触且无裁剪处理。各目录的 `run_manifest.json`、`collect.log`、`transitions.pt` 保存命令、SHA 和终态。CPU 分析 `agent_multiaxis_h10_s161162_analysis` `COMPLETED`，500 次环境聚类 resampling，report/manifest 同名目录；无 checkpoint、无运行中任务。
+- primary: x 轴 ±0.1 的十步物体 x 效应 seed161/162 为 +21.15/+13.04 mm，合并 +17.23 mm [12.30,22.06]；y 轴 +8.51/+17.99 mm，合并 +13.05 mm [1.66,22.05]。x 过预注册继续门。科学分类 `PROMISING` for 可学习的多轴物理干预信息，而非 Cm 预测或策略效用。下一步用新 seed 检验动作条件 Cm 与 state-only 对照。
