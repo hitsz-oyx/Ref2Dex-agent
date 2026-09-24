@@ -68,6 +68,10 @@ def main():
                                    data["object_state"][:, 2]).numpy() * 1000),
         "followup_object_dz_mm": ((data["followup_object_state"][:, 2] -
                                    data["object_state"][:, 2]).numpy() * 1000),
+        "followup_contact_supported_dz_mm": (
+            (data["followup_object_state"][:, 2] -
+             data["object_state"][:, 2]).numpy() * 1000 *
+            data["followup_contact_count"].numpy() / horizon),
         "followup_contact_fraction": (data["followup_contact_count"].numpy() / horizon),
         "followup_final_contact": data["followup_contact"].numpy().astype(float),
         "followup_survival": ((data["followup_progress"] - data["progress"] == horizon) &

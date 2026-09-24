@@ -33,4 +33,21 @@ with SHA256
 
 ## Results
 
-Pending.
+The randomized seed210 collection completed on GPU6 with 789 eligible
+contact interventions across 15 scheduled steps (398 plus, 391 minus).
+Executed dose was verified as unclipped. Environment-cluster, step-stratified
+500-resample analysis gave plus-minus ten-step contact-supported object-z
+effect **+10.10 mm** (95% interval [7.60, 12.47]) and followup contact
+fraction effect **−1.38 percentage points** (95% interval [−2.97, −0.16]).
+One-step object-z effect was +31.34 mm, but ten-step unweighted effect fell
+to +9.55 mm. The predeclared *joint* gate failed because contact decreased.
+Status: `UNPROMISING` for the single-step wrist-z option as a safe duck Cm
+candidate. Do not train a duck z-selector on this seed or retune the
+contact threshold. This does show real physical action information, while
+the lift/contact tradeoff still blocks this particular decision rule.
+
+Artifacts: `outputs/CmResidual/agent_duck_contact_action_s210_h10_n64/`
+(`run_manifest.json`, `transitions.pt`,
+`followup_report_supported.json`). GPU5 was occupied at the first start
+attempt, so no collection ran there; GPU6 was used without disturbing that
+process.
