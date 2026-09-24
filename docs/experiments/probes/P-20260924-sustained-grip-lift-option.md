@@ -39,4 +39,21 @@ This is a Probe; neither arm alone proves Cm utility.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for this bounded ten-step option family. An 8-env
+engineering smoke completed, then the 128-env train-object run
+`agent_crossobject_sustained_option_train_s190_h20_n128` completed with
+700 treated states: airplane 231, mug 260, toothpaste 209. Both arms
+executed a full cumulative +1.0 wrist-z command increment over ten steps;
+the grip arm also executed full cumulative +2.0 per selected finger (no
+finger-command saturation in treated records).
+
+Grip+lift minus lift-only contact-supported H20 object-z contrasts were
++1.45 mm airplane, +0.04 mm mug, -1.14 mm toothpaste, pooled +0.15 mm
+with environment-cluster 95% interval [-1.58,+1.89] mm. The gate of
+>=10 mm and two positive objects failed. Absolute mean H20 object-z
+displacement was near zero or negative under both arms, despite the
+command dose. Additional grip increased pooled H20 contact fraction by
+about +3.39 pp, but did not lift the object. Do not replicate, train Cm
+on this option, or call it a policy improvement. Together with the H1/H10
+diagnostic, this favors a higher-level policy/credit-assignment probe over
+further small wrist/finger action engineering.
