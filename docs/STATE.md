@@ -27,6 +27,9 @@ Updated: 2026-09-24
 仍为零。四个已有自训练 checkpoint 的最优单模型仅 21/128，按物体
 事后挑选的乐观上限 32/128。详见
 [实验卡](experiments/probes/P-20260924-multitrajectory-baseline.md)。
+duck 单物体 self-trained 续训在新种子206–208 为 **140/192**，源 e260
+同轨迹/seed206 为 1/64；相同方法在 waterbottle seed209 仍为 0/64。
+12 轨迹参考动作控制只有 9/128，不能直接作为广覆盖 BC 教师。
 
 ## 决定下一步的事实
 
@@ -44,19 +47,25 @@ Updated: 2026-09-24
 - 任务对齐 grip+lift option 在单对象 self-trained e140 的 H20
   接触加权抬升相对 lift-only 为 −8.20mm，环境聚类 95% CI
   [−14.08, −2.49]mm，停止该固定动作族。
+- 新 s3 专家整段结果 Cm 的初始动作输入无增量：留出 AUC
+  action-aware 0.7539、action-blind 0.7568、action-shuffled 0.7419；
+  不升级在线路由。duck 上随机单步抬腕虽提高 H10 接触加权抬升
+  10.10mm，但接触比例下降 1.38pp；预设联合门失败。
 
 ## 当前 blocker 与活跃假设
 
 尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
 动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
-PPO 接法均未给出稳定 policy utility。活跃 Probe 是先建立
-[12 轨迹 baseline](experiments/probes/P-20260924-multitrajectory-baseline.md)，
-再回到成功的单物体专家候选，针对接触至承重的时序信息设计
-matched Cm-on/off/placebo Probe。
+PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以学会
+共享策略未覆盖的抓取，但 waterbottle 的训练近接触与测试起点分布
+存在显著落差；当前需要决定起点课程能否修复，以及固定专家路由
+在多轨迹上可达到的实际覆盖。
 
 ## 下一步
 
-12 轨迹 Probe 已表明当前共享 actor 与候选组合覆盖不足；转向已具
-物理抓取机会的单物体专家候选，先判别 Cm 能否预测整段候选策略的
-接触承重结果，再决定是否进行在线 matched Probe。未来论文需要
+空闲 GPU 出现后执行
+[waterbottle 起点退火](experiments/probes/P-20260924-waterbottle-start-anneal.md)
+与 [固定专家路由](experiments/probes/P-20260924-object-specialist-router.md)
+Probe；依据逐物体成绩选择下一个可产生承重行为的 Cm 决策点。
+未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
