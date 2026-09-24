@@ -54,6 +54,8 @@ def parse_eval_args():
     parser.add_argument('--visualize-success-loop', action='store_true')
     parser.add_argument('--render-sleep', type=float, default=0.01)
     parser.add_argument('--transition-output', type=str)
+    parser.add_argument('--contact-topology', action='store_true',
+                        help='append configured hand-link force magnitudes to transition export')
     parser.add_argument('--reference-action-lead', type=int)
     parser.add_argument('--disable-early-termination', action='store_true')
     parser.add_argument('--cmlite-selector-checkpoint', type=str)
@@ -77,6 +79,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self.visualize_render_sleep = 0.01
         self._focused_success_env = None
         self.transition_output = None
+        self.contact_topology = False
         self.reference_action_lead = None
         self.disable_early_termination = False
         self.cmlite_selector_checkpoint = None
@@ -243,6 +246,14 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     hand_contact=hand_contact[:, None], object_contact=object_contact[:, None],
                     done=done.bool()[:, None], progress=progress_before[:, None],
                     data_id=data_id_before[:, None])
+                if self.contact_topology:
+                    link_force = task._contact_forces[:, task._contact_body_ids].norm(dim=-1)
+                    if link_force.ndim != 2 or link_force.shape[1] != 5:
+                        raise ValueError('expected five configured hand contact links')
+                    self._record_transition(
+                        configured_link_force_norm=link_force,
+                        object_contact_force_norm=task._tar_contact_forces.norm(
+                            dim=-1, keepdim=True))
                 if self.visualize_success_loop:
                     successful = (lift_contact_run >= 5).nonzero(as_tuple=False).reshape(-1)
                     if successful.numel():
@@ -453,6 +464,7 @@ def main():
         p.visualize_success_loop = eval_args.visualize_success_loop
         p.visualize_render_sleep = eval_args.render_sleep
         p.transition_output = eval_args.transition_output
+        p.contact_topology = eval_args.contact_topology
         p.reference_action_lead = eval_args.reference_action_lead
         p.disable_early_termination = eval_args.disable_early_termination
         p.cmlite_selector_checkpoint = eval_args.cmlite_selector_checkpoint

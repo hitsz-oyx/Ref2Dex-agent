@@ -65,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--work-version", default="V1.29")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
+    parser.add_argument("--contact-topology", action="store_true",
+                        help="append configured hand-link force magnitudes to transitions")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
@@ -83,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("CmLite selector requires a unique output tag")
     if selector and args.reference_action_lead is not None:
         raise ValueError("reference action and CmLite selector are mutually exclusive")
+    if args.contact_topology and not args.save_transitions:
+        raise ValueError("contact topology requires transition export")
     if args.reference_action_lead is not None and args.reference_action_lead < 0:
         raise ValueError("reference action lead must be nonnegative")
     if selector and (not args.selector_cmlite_checkpoint.is_file() or
@@ -125,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         transition_output = output / "transitions.pt" if args.save_transitions else None
         if transition_output is not None:
             command += ["--transition-output", str(transition_output)]
+        if args.contact_topology:
+            command += ["--contact-topology"]
         if selector:
             command += ["--cmlite-selector-checkpoint",
                         str(args.selector_cmlite_checkpoint.resolve()),
@@ -145,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
                  "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
                  "reference_action_lead": args.reference_action_lead,
                  "transition_output": str(transition_output) if transition_output else None,
+                 "contact_topology": args.contact_topology,
                  "command": command}
         entries.append((output, command, entry))
     if args.dry_run:

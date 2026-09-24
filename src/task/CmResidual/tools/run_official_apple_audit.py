@@ -26,6 +26,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, required=True)
+    parser.add_argument("--contact-topology", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         parser.error("new output directory required")
@@ -52,12 +53,15 @@ def main() -> None:
                "--graphics_device_id", "0", "--num_envs", "64",
                "--seed", "174", "--output", str(output / "results.json"),
                "--transition-output", str(output / "transitions.pt")]
+    if args.contact_topology:
+        command.append("--contact-topology")
     manifest = {"run_status": "STARTED", "started_at": datetime.now(timezone.utc).isoformat(),
                 "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                        cwd=ROOT, text=True).strip(),
                 "source_actor_role": "official_diagnostic",
                 "checkpoint_sha256": CHECKPOINT_SHA, "split_sha256": SPLIT_SHA,
                 "seed": 174, "num_envs": 64, "physical_gpu": args.gpu,
+                "contact_topology": args.contact_topology,
                 "wall_budget_minutes": 20, "output_budget_mb": 100,
                 "stop_rule": "input drift, GPU conflict, non-finite export or wall budget",
                 "command": command}
