@@ -46,14 +46,28 @@ CPU 2 threads、GPU 0；wall <=30 min；输出 <10MB。
 
 ## Result
 
-Status: PENDING
+Status: UNCLEAR (EPE/action controls pass; small-dose ATE calibration misses gate)
 
-Evidence: pending
+Evidence: CPU-only `agent_randomized_geometric_cm_400` COMPLETED in 9s.
+1188 training randomized contact transitions, 12,932 geometric parameters.
+Held-out seed146 ±0.3: geometric EPE 11.25mm, same-architecture zero-flow
+16.79mm, raw state+action MLP 13.86mm, zero-motion 16.63mm; model average
+intervention effect +20.40mm vs randomized observed +26.00mm (21.5%
+underprediction). Held-out seed148 ±0.1: geometric EPE 5.81mm,
+zero-flow 7.66mm, raw MLP 6.53mm, zero-motion 7.67mm; model effect
++6.83mm vs observed +10.42mm (34.4% underprediction). Geometric Cm
+beats zero-flow by 33%/24% and raw MLP by 19%/11%, but H1's <=25%
+effect-calibration gate fails at small dose. The model effect is positive
+on 87%/70% of test states, not uniformly.
 
 ## Decision update
 
-pending
+Do not yet connect this Cm to PPO. The next cheap decision Probe should
+test whether model-predicted *relative* effects stratify the actual
+randomized treatment response on untouched test seeds. If ranking is
+uninformative despite better EPE, the current Cm cannot guide actions.
 
 ## Artifacts
 
 `src/task/CmResidual/tools/probe_randomized_geometric_cm.py`
+`outputs/CmResidual/agent_randomized_geometric_cm_400/report.json`

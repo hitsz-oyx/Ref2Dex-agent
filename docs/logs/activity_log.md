@@ -1171,3 +1171,13 @@
 - manifests: 各 run 目录的 `run_manifest.json`；data: `transitions.pt`；analysis: `effect_report.json`。
 - key metrics: seed145/146 ±0.3 的真实物体一步 z 位移加减臂对比 +29.24/+26.00mm；seed147 ±0.1 为 +9.16mm；三次分步置换 p≈0.0002；总计 1732 条接触干预。
 - conclusion boundary: Probe `PROMISING`，真实平均干预效应明确；不提供逐样本同状态反事实，也尚未训练/证明 Cm。下一步做跨 seed 动作→实际手运动校准，避免旧窄动作校准外推。
+
+## 2026-09-24 09:30 +0800 — 干预手流校准与几何 Cm 小 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- experiment_ids: `P-20260924-intervention-handflow`, `P-20260924-randomized-geometric-cm`
+- run_ids: `agent_randomized_wristz_s148_d01_n64` (`COMPLETED`, 1 GPU, 64 env, 11 干预步, <30s)；`agent_intervention_handflow_s145_train_s146147_test`、`agent_intervention_handflow_mix_s145147_train_s146148_test`、`agent_randomized_geometric_cm_400`（均 `COMPLETED`, CPU 2 threads，<10s）；无运行中任务。
+- manifests/reports: 各 `outputs/CmResidual/<run_id>/run_manifest.json`、`report.json`；随机干预数据为 `transitions.pt`；几何 Cm checkpoint 为 `geometric.pt`。
+- final step: 几何 Cm 400 更新，12,932 参数；训练 1188 条，未见 seed146/148 测试。
+- key metrics: 混合幅度执行模型的手表面 EPE 12.21/7.49mm，旧观测校准 20.37/8.49mm；几何 Cm 物体平移 EPE 11.25/5.81mm，同架构零手流 16.79/7.66mm，raw state+action MLP 13.86/6.53mm。几何 Cm 预测的平均动作效应 20.40/6.83mm，随机试验真实均值 26.00/10.42mm。
+- conclusion boundary: 两个 Probe 均 `UNCLEAR`（各自严格门未全过）。动作信息进入模型且 EPE 有改善，但小动作的效应幅度低估；下一步先检查 Cm 的预测排序是否对应真实随机处理效应，再决定在线策略尝试。

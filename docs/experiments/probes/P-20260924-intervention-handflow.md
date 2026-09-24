@@ -36,7 +36,7 @@ CPU 2 threads、GPU 0；wall <=20 min；输出 <5MB。
 
 ## Result
 
-Status: UNCLEAR (single-dose fit misses small-dose EPE gate; mixed-dose test pending)
+Status: UNCLEAR (strict H1 gate fails; mixed-dose follow-up is useful)
 
 Evidence: CPU-only `agent_intervention_handflow_s145_train_s146147_test`
 COMPLETED. On held-out seed146 ±0.3, new action+velocity hand surface EPE
@@ -49,12 +49,23 @@ Strict H1 EPE gate across both magnitudes fails. A cheap mixed-dose fit
 using seeds145 ±0.3 and147 ±0.1 will be tested on untouched seeds146 ±0.3
 and148 ±0.1 before deciding whether the linear actuator is sufficient.
 
+Mixed-dose follow-up `agent_intervention_handflow_mix_s145147_train_s146148_test`
+COMPLETED on 1188 training interventions. Held-out seed146 ±0.3:
+new action+velocity EPE 12.21mm vs old 20.37mm; predicted wrist-z
+plus/minus 74.76mm vs actual 75.89mm. Held-out seed148 ±0.1:
+new EPE 7.49mm vs old 8.49mm; predicted contrast 25.04mm vs actual
+27.45mm. Thus it beats the old gain model at both doses and captures
+intervention response within ~9%, but its small-dose EPE gain is only
+11.8%, short of the original ≥30% H1 threshold.
+
 ## Decision update
 
-Do not yet feed the single-dose model to Cm. Keep future `next_q` out of
-online inputs. Mixed-dose model must improve both held-out magnitudes or the
-next minimal route is a small nonlinear actuator conditioned on action gap.
+Use the mixed-dose model as a provisional online-only Cm input for a cheap
+model Probe because it improves both held-out magnitudes and accurately
+tracks the randomized action response. Do not call the actuator solved or
+claim policy utility. Keep future `next_q` out of online inputs.
 
 ## Artifacts
 
 `src/task/CmResidual/tools/probe_intervention_handflow.py`
+`outputs/CmResidual/agent_intervention_handflow_mix_s145147_train_s146148_test/report.json`
