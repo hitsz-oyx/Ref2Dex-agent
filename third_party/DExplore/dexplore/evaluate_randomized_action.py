@@ -479,6 +479,7 @@ def main():
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                cwd=pinned.ROOT, text=True).strip(),
         "physical_gpu": int(visible), "max_gpu_count": 1,
+        "seed": int(pinned.argument_value(remaining, "--seed")),
         "intervention_steps": steps,
         "stop_step": steps[-1] + max(args.followup_horizon - 1, 0),
         "delta_z_action": args.intervention_delta_z,

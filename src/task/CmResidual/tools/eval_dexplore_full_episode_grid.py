@@ -63,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reference-action-lead", type=int,
                         help="diagnostic: execute the reference controller instead of the actor")
     parser.add_argument("--work-version", default="V1.29")
+    parser.add_argument("--cfg-env", default="dexplore/data/cfg/inspire.yaml",
+                        help="DExplore environment config, relative to the vendor root")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
     parser.add_argument("--contact-topology", action="store_true",
@@ -119,7 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         if output.exists():
             raise FileExistsError(output)
         command = [sys.executable, str(EVALUATE), "--task", "Dexplore_Inspire",
-                   "--cfg_env", "dexplore/data/cfg/inspire.yaml",
+                   "--cfg_env", args.cfg_env,
                    "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
                    "--motion_file", str(motion_root), "--checkpoint", str(checkpoint),
                    "--disable-early-termination", "--headless", "--sim_device", "cuda:0",
@@ -151,6 +153,7 @@ def main(argv: list[str] | None = None) -> int:
                  "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
                  "reference_action_lead": args.reference_action_lead,
                  "transition_output": str(transition_output) if transition_output else None,
+                 "cfg_env": args.cfg_env,
                  "contact_topology": args.contact_topology,
                  "command": command}
         entries.append((output, command, entry))

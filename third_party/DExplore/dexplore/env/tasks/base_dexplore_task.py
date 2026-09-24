@@ -572,9 +572,12 @@ class DexploreTask(InterMimic):
             else:
                 # Primary: all motions except doorknob
                 motion_file_1 = sorted([os.path.join(motion_dir, p) for p in motion_file if 'doorknob' not in p])
-                # Supplementary: oversample small/difficult objects
+                # Supplementary: oversample small/difficult objects unless an
+                # experiment explicitly requests identity-balanced motions.
                 hard_objects = ('pan', 'flute', 'knife', 'scissors', 'toothbrush', 'teapot', 'small', 'watch')
-                motion_file_2 = sorted([os.path.join(motion_dir, p) for p in motion_file if any(obj in p for obj in hard_objects)])
+                motion_file_2 = (sorted([os.path.join(motion_dir, p) for p in motion_file
+                                         if any(obj in p for obj in hard_objects)])
+                                 if cfg["env"].get("hardObjectOversampling", True) else [])
                 self.motion_file = motion_file_1 + motion_file_2
 
         # Load table data and filter valid motions
