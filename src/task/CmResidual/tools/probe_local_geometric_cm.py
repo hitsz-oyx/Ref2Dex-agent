@@ -122,8 +122,13 @@ def extract_features(rows, *, kinematics, geometry, lower, upper, calibration,
         current_links = kinematics.forward(q[:, None])[:, 0]
         current_hand, current_normals = geometry.hand(current_links)
         pd_target = dexplore_action_to_native_targets(action, q, lower, upper)
-        predicted_q = (q + calibration["alpha"] * (pd_target - q)
-                       + calibration["beta"] * (q - rows["q_prev"][start:stop]))
+        if "velocity" in calibration:
+            predicted_q = (q + calibration["alpha"] * (pd_target - q)
+                           + calibration["velocity"] * rows["dof_vel"][start:stop]
+                           + calibration["bias"])
+        else:
+            predicted_q = (q + calibration["alpha"] * (pd_target - q)
+                           + calibration["beta"] * (q - rows["q_prev"][start:stop]))
         next_links = kinematics.forward(predicted_q[:, None])[:, 0]
         next_hand, _ = geometry.hand(next_links)
         hand = world_to_object_frame(current_hand, current_pose, vector=False)
