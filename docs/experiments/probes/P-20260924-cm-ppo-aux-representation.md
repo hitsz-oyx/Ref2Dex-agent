@@ -49,10 +49,38 @@ Cm。两臂都使用同一代码路径，只有预设 loss 系数不同。
 
 ## Result
 
-Status: PENDING
+Status: `UNCLEAR` for Cm policy utility; pre-registered upgrade gate not met.
 
-Evidence: pending
+Code commit: `3d0f068d49e0c567274b4ed513cbb74a2a3dd1ad`.
+The first engineering smoke failed before training due to an obsolete
+`resume_from` guard; after fixing it, both 16-env e260→e262 smoke runs
+completed. Cm-on logged finite nonzero auxiliary-head gradients; the
+two checkpoint `model` key sets matched. All four 64-env e260→e300
+training runs then completed. Original evaluator loaded all four e300
+checkpoints and completed all eight 64-env first-episode evaluations.
+Manifests, SHA256s, checkpoint paths, commands and metrics are in
+`outputs/Dexplore/agent_cm_aux_t{75,76}_{on,off}_e300/`.
+
+Held-lift successes (Cm-on / Cm-off):
+
+| Training seed | Evaluation seed 159 | Evaluation seed 160 | Combined difference |
+| --- | --- | --- | --- |
+| 75 | 29/64 vs 27/64 | 32/64 vs 23/64 | +11/128 = +8.59pp |
+| 76 | 35/64 vs 37/64 | 40/64 vs 34/64 | +4/128 = +3.13pp |
+
+Overall 136/256 vs 121/256, +15/256 = +5.86pp. Both training-seed
+totals are positive, but the overall +8pp threshold was missed.
+Auxiliary loss at epoch 300 was .212/.180 (on seed75/76) versus
+.461/.512 (off), so the auxiliary prediction task was learned; this
+alone is not evidence of policy utility. There was no target-shuffle
+or generic auxiliary placebo in this Probe. The apparent gain is small
+and varies by train/eval seed; the result does not establish a
+Cm-specific causal benefit or stable generalization.
 
 ## Decision update
 
-pending
+Do not upgrade this coefficient/target to formal Validation or tune it
+on the observed evaluation seeds. Stop this local implementation route;
+return to the higher-level question of whether a different Cm target
+or representation can produce an unambiguous policy gain. A placebo
+control and more seeds become Evidence debt if this route is revived.

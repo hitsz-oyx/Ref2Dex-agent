@@ -1248,3 +1248,11 @@
 - artifacts: 各 run 的 `run_manifest.json`、`selector.json`、`results.json`；所有输入 SHA 在 manifest。
 - primary metric: smoke 三臂皆 9/16 仅证明接线。seed157 完整 held-lift base 44/64、always_down 40/64、cm_down 40/64；Cm 实际选 587/3199 eligible 动作。Cm 接触比例 .60383 高于 base .58835，但 reward 184.49 低于 base 192.83。
 - stop: 预注册要求每 seed 的 Cm 不低于 base；第一 seed 已 −6.25pp，第二 seed 无法改变升级决策，按最小 Probe 提前停止。`UNPROMISING` for 此固定 wrist-z 接法；不是所有 Cm 或训练期方法的正式否定。
+
+## 2026-09-24 — Cm PPO 辅助表示 Probe 终态
+
+- branch: `agent/cm-ppo-aux-representation`; code commit: `3d0f068`。
+- experiment_id: `P-20260924-cm-ppo-aux-representation`。
+- engineering smoke: `agent_cm_aux_smoke_t75_on_e262` 因旧 `resume_from` 检查误判 `FAILED`，未进入训练；修复后 `agent_cm_aux_smoke_t75_on_e262_r2` 与 `agent_cm_aux_smoke_t75_off_e262` 均 `COMPLETED`，physical GPU6 顺序，16 env，e260→e262；on 辅助头有有限非零梯度；各 run 的 `run_manifest.json`、`train.log` 与 e262 checkpoint 位于同名 `outputs/Dexplore/` 目录。工程烟测不构成效果证据。
+- matched Probe: `agent_cm_aux_t75_on_e300` 在 physical GPU5、`agent_cm_aux_t75_off_e300` 在 physical GPU6 同时 `STARTED`；各 64 env，共同 e260 checkpoint SHA `16fd261b...`，冻结 Cm SHA `ce711dca...`，e300 截止，最多两张 GPU，超时 30min，产物预算 5GB。每 run 的配置、输入、完整命令与状态在 `outputs/Dexplore/<run_id>/run_manifest.json`；训练流在 `train.log`。预注册判定见 experiment card。
+- terminal update: 上述 seed75 两臂及 `agent_cm_aux_t76_{on,off}_e300` 四次训练均 `COMPLETED`，各 run 的 e300 checkpoint、manifest、`train.log` 齐全；所有 8 次 `eval_s{159,160}_e300_full_cmauxprobe` 均 `COMPLETED`，每次 64 env、物理 GPU5/6 按 pair 运行，结果和 checkpoint SHA 在各评估目录的 `run_manifest.json`/`results.json`。训练 seed75 held-lift on/off 61/128 vs 50/128；seed76 75/128 vs 71/128；总计 136/256 vs 121/256（+5.86pp），低于 +8pp 升级门。科学分类 `UNCLEAR`，详见 experiment card；无任务继续运行。
