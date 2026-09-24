@@ -227,7 +227,7 @@ class RandomizedPlayer(BASE_PLAYER):
                         "finger_primer_lift": CONFIG["finger_primer_lift"],
                         "finger_synergy": CONFIG["finger_synergy"],
                         "finger_indices": list(FINGER_SYNERGY_INDICES)
-                        if CONFIG["finger_synergy"] else None,
+                        if CONFIG["finger_synergy"] or CONFIG["finger_primer_lift"] else None,
                         "intervention_axes": CONFIG["axes"],
                         "sequence_lengths": CONFIG["sequence_lengths"],
                         "crossaxis_primer": CONFIG["crossaxis_primer"],
@@ -380,12 +380,10 @@ def main():
         "finger_primer_lift": args.finger_primer_lift,
         "finger_synergy": args.finger_synergy,
         "finger_indices": list(FINGER_SYNERGY_INDICES)
-        if args.finger_synergy else None,
+        if args.finger_synergy or args.finger_primer_lift else None,
         "intervention_axes": args.intervention_axes,
         "sequence_lengths": args.sequence_lengths,
         "crossaxis_primer": args.cross_axis_primer,
-        "finger_primer_lift": args.finger_primer_lift,
-        "second_delta": args.second_delta,
         "followup_horizon": args.followup_horizon,
         "assignment_seed": args.assignment_seed,
         "checkpoint_sha256": source["checkpoint_sha256"],
@@ -404,6 +402,8 @@ def main():
               "sequence_lengths": args.sequence_lengths,
               "crossaxis_primer": args.cross_axis_primer,
               "finger_synergy": args.finger_synergy,
+              "finger_primer_lift": args.finger_primer_lift,
+              "second_delta": args.second_delta,
               "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}
     sys.argv = [sys.argv[0], *remaining]
