@@ -19,8 +19,8 @@ import torch
 
 import evaluate_paired as pinned
 from src.task.CmResidual.randomized_action import (
-    balanced_assignment, balanced_axis_assignment, execute_signed_axis_dose,
-    execute_sequence_axis_dose,
+    balanced_assignment, balanced_axis_assignment, balanced_three_arm_assignment,
+    execute_signed_axis_dose, execute_sequence_axis_dose, execute_crossaxis_primer,
 )
 
 
@@ -55,14 +55,19 @@ class RandomizedPlayer(BASE_PLAYER):
             valid = pre_contact & (task.reset_buf.reshape(-1) == 0) & (task.progress_buf > 0)
             multiaxis = len(CONFIG["axes"]) > 1
             sequence = CONFIG["sequence_lengths"]
-            if multiaxis or sequence:
+            crossaxis = CONFIG["crossaxis_primer"]
+            if multiaxis or sequence or crossaxis:
                 valid &= (action[:, CONFIG["axes"]].abs() <= 1 - CONFIG["delta_z"]).all(-1)
-                assignment = balanced_axis_assignment(
-                    valid, self.probe_generator, 2 if sequence else len(CONFIG["axes"]))
+                assignment = (balanced_three_arm_assignment(valid, self.probe_generator)
+                              if crossaxis else balanced_axis_assignment(
+                                  valid, self.probe_generator,
+                                  2 if sequence else len(CONFIG["axes"])))
             else:
                 assignment = balanced_assignment(valid, self.probe_generator)
             executed = action.detach().clone()
-            if sequence:
+            if crossaxis:
+                executed = execute_crossaxis_primer(action, assignment, CONFIG["delta_z"])
+            elif sequence:
                 executed = execute_sequence_axis_dose(
                     action, assignment, CONFIG["delta_z"], CONFIG["axes"][0])
             elif multiaxis:
@@ -90,7 +95,7 @@ class RandomizedPlayer(BASE_PLAYER):
                 before["next_contact"] = self._contact(task).clone()
                 before["followup_contact_count"] = torch.zeros_like(task.progress_buf)
                 self.followup_pending.append((self.probe_step, before))
-            if sequence:
+            if sequence or crossaxis:
                 self.sequence_pending = (self.probe_step, assignment, before)
             if not all(torch.isfinite(value).all() for value in before.values()):
                 raise FloatingPointError("non-finite randomized physical transition")
@@ -108,8 +113,12 @@ class RandomizedPlayer(BASE_PLAYER):
             }, sort_keys=True), flush=True)
         elif self.sequence_pending is not None and self.probe_step == self.sequence_pending[0] + 1:
             _, assignment, record = self.sequence_pending
-            executed = execute_sequence_axis_dose(
-                action, assignment, CONFIG["delta_z"], CONFIG["axes"][0], second=True)
+            executed = (execute_crossaxis_primer(action, assignment, CONFIG["delta_z"],
+                                                 second=True)
+                        if CONFIG["crossaxis_primer"] else
+                        execute_sequence_axis_dose(
+                            action, assignment, CONFIG["delta_z"],
+                            CONFIG["axes"][0], second=True))
             record["second_base_action"] = action.detach().clone()
             record["second_executed_action"] = executed.clone()
             result = BASE_PLAYER.env_step(self, env, executed)
@@ -160,7 +169,9 @@ class RandomizedPlayer(BASE_PLAYER):
                            for key in keys}
             else:
                 records = {}
-            schema = ("ref2dex.randomized_sequence_h10.v1"
+            schema = ("ref2dex.crossaxis_primer_h10.v1"
+                      if CONFIG["crossaxis_primer"] else
+                      "ref2dex.randomized_sequence_h10.v1"
                       if CONFIG["sequence_lengths"] else
                       "ref2dex.randomized_multiaxis_followup.v1"
                       if len(CONFIG["axes"]) > 1 else
@@ -173,6 +184,7 @@ class RandomizedPlayer(BASE_PLAYER):
                         "delta_z_action": CONFIG["delta_z"],
                         "intervention_axes": CONFIG["axes"],
                         "sequence_lengths": CONFIG["sequence_lengths"],
+                        "crossaxis_primer": CONFIG["crossaxis_primer"],
                         "followup_horizon": CONFIG["followup_horizon"],
                         "records": records}, output)
             selected = records.get("assignment", torch.empty(0, dtype=torch.int8))
@@ -205,6 +217,8 @@ def main():
     parser.add_argument("--followup-horizon", type=int, default=0)
     parser.add_argument("--sequence-lengths", type=int, nargs=2,
                         help="randomize one wrist axis for exactly 1 or 2 steps")
+    parser.add_argument("--cross-axis-primer", action="store_true",
+                        help="randomize x primer before common z+ action")
     args, remaining = parser.parse_known_args()
     if (args.intervention_output.exists() or
             args.intervention_output.with_suffix(".json").exists() or
@@ -216,6 +230,9 @@ def main():
             (len(args.intervention_axes) == 1 and args.intervention_axes != [2] and
              args.sequence_lengths is None) or
             (len(args.intervention_axes) > 1 and not args.followup_horizon) or
+            (args.cross_axis_primer and (
+                args.sequence_lengths is not None or args.intervention_axes != [0, 2] or
+                args.followup_horizon != 10 or args.intervention_stride < 10)) or
             (args.sequence_lengths is not None and (
                 args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
@@ -245,7 +262,9 @@ def main():
         raise FileExistsError(manifest_path)
     steps = list(range(args.intervention_first, args.intervention_last + 1,
                        args.intervention_stride))
-    schema = ("ref2dex.randomized_sequence_h10.v1"
+    schema = ("ref2dex.crossaxis_primer_h10.v1"
+              if args.cross_axis_primer else
+              "ref2dex.randomized_sequence_h10.v1"
               if args.sequence_lengths is not None else
               "ref2dex.randomized_multiaxis_followup.v1"
               if len(args.intervention_axes) > 1 else
@@ -263,6 +282,7 @@ def main():
         "delta_z_action": args.intervention_delta_z,
         "intervention_axes": args.intervention_axes,
         "sequence_lengths": args.sequence_lengths,
+        "crossaxis_primer": args.cross_axis_primer,
         "followup_horizon": args.followup_horizon,
         "assignment_seed": args.assignment_seed,
         "checkpoint_sha256": pinned.CHECKPOINT_SHA256,
@@ -276,6 +296,7 @@ def main():
               "stop_step": manifest["stop_step"], "delta_z": args.intervention_delta_z,
               "axes": args.intervention_axes,
               "sequence_lengths": args.sequence_lengths,
+              "crossaxis_primer": args.cross_axis_primer,
               "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}
     sys.argv = [sys.argv[0], *remaining]
