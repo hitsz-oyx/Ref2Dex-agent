@@ -23,6 +23,7 @@ from src.task.CmResidual.randomized_action import (
     FINGER_SYNERGY_INDICES, balanced_assignment, balanced_axis_assignment,
     balanced_three_arm_assignment, execute_finger_synergy_dose,
     execute_finger_primer_lift,
+    execute_sustained_grip_lift,
     execute_signed_axis_dose, execute_sequence_axis_dose, execute_crossaxis_primer,
 )
 from src.task.CmResidual.randomized_source import validate as validate_object_split_source
@@ -47,11 +48,14 @@ class RandomizedPlayer(BASE_PLAYER):
         self.probe_records = []
         self.followup_pending = []
         self.sequence_pending = None
+        self.macro_pending = None
         self.probe_error = None
         self.probe_generator = torch.Generator(device="cpu").manual_seed(CONFIG["assignment_seed"])
 
     def env_step(self, env, action):
         self.probe_step += 1
+        if CONFIG["sustained_grip_lift"]:
+            return self._sustained_env_step(env, action)
         task = env.task
         selected_step = self.probe_step in CONFIG["steps"]
         if selected_step:
@@ -183,6 +187,90 @@ class RandomizedPlayer(BASE_PLAYER):
             raise ProbeDone
         return result
 
+    def _sustained_env_step(self, env, action):
+        task = env.task
+        started = self.probe_step in CONFIG["steps"]
+        if started:
+            if self.macro_pending is not None:
+                raise RuntimeError("overlapping sustained options")
+            pre_contact = self._contact(task)
+            valid = pre_contact & (task.reset_buf.reshape(-1) == 0) & (
+                task.progress_buf > 0)
+            assignment = balanced_assignment(valid, self.probe_generator)
+            record = {
+                "q": task._dof_pos.clone(), "dof_vel": task._dof_vel.clone(),
+                "object_state": task._target_states.clone(),
+                "base_action": action.detach().clone(),
+                "assignment": assignment.clone(),
+                "pre_contact": pre_contact.clone(),
+                "progress": task.progress_buf.clone(),
+                "motion_id": task.data_id.clone(),
+                "start_frame": task.start_times.clone(),
+                "global_step": torch.full_like(task.progress_buf, self.probe_step),
+                "followup_contact_count": torch.zeros_like(task.progress_buf),
+                "followup_alive": torch.ones_like(pre_contact),
+                "option_wrist_increment_sum": torch.zeros_like(task.progress_buf,
+                                                                dtype=action.dtype),
+                "option_finger_increment_sum": torch.zeros(
+                    (len(action), len(FINGER_SYNERGY_INDICES)),
+                    dtype=action.dtype, device=action.device),
+                "option_steps": torch.zeros_like(task.progress_buf),
+            }
+            self.macro_pending = (self.probe_step, assignment, record)
+            self.followup_pending.append((self.probe_step, record))
+        if self.macro_pending is not None:
+            option_start, assignment, record = self.macro_pending
+            if self.probe_step - option_start < 10:
+                executed = execute_sustained_grip_lift(
+                    action, assignment, finger_delta=CONFIG["delta_z"],
+                    lift_delta=CONFIG["second_delta"])
+                difference = executed - action
+                record["option_wrist_increment_sum"] += difference[:, 2]
+                record["option_finger_increment_sum"] += difference[:,
+                                                               list(FINGER_SYNERGY_INDICES)]
+                record["option_steps"] += (assignment != 0).long()
+                if started:
+                    record["executed_action"] = executed.clone()
+                result = BASE_PLAYER.env_step(self, env, executed)
+                if started:
+                    record["next_q"] = task._dof_pos.clone()
+                    record["next_object_state"] = task._target_states.clone()
+                if self.probe_step - option_start == 9:
+                    self.macro_pending = None
+            else:
+                raise RuntimeError("sustained option lifetime exceeded")
+        else:
+            result = BASE_PLAYER.env_step(self, env, action)
+        contact = self._contact(task)
+        remaining = []
+        for option_start, record in self.followup_pending:
+            elapsed = self.probe_step - option_start + 1
+            record["followup_alive"] &= ((task.reset_buf.reshape(-1) == 0) &
+                                         (task.progress_buf == record["progress"] + elapsed))
+            record["followup_contact_count"] += (
+                contact & record["followup_alive"]).long()
+            if elapsed == 20:
+                record.update(followup_object_state=task._target_states.clone(),
+                              followup_contact=contact.clone(),
+                              followup_progress=task.progress_buf.clone(),
+                              followup_reset=task.reset_buf.reshape(-1).clone())
+                if not all(torch.isfinite(value.float()).all() for value in record.values()):
+                    raise FloatingPointError("non-finite sustained option record")
+                self.probe_records.append({key: value.detach().cpu()
+                                           for key, value in record.items()})
+            else:
+                remaining.append((option_start, record))
+        self.followup_pending = remaining
+        if started:
+            print("REF2DEX_SUSTAINED_STEP " + json.dumps({
+                "step": self.probe_step, "selected": int(valid.sum()),
+                "grip": int((assignment == 1).sum()),
+                "lift_only": int((assignment == -1).sum()),
+            }, sort_keys=True), flush=True)
+        if self.probe_step >= CONFIG["stop_step"]:
+            raise ProbeDone
+        return result
+
     @staticmethod
     def _contact(task):
         return ((task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).any(-1) &
@@ -206,7 +294,9 @@ class RandomizedPlayer(BASE_PLAYER):
                            for key in keys}
             else:
                 records = {}
-            schema = ("ref2dex.randomized_finger_primer_lift_h10.v1"
+            schema = ("ref2dex.sustained_grip_lift_h20.v1"
+                      if CONFIG["sustained_grip_lift"] else
+                      "ref2dex.randomized_finger_primer_lift_h10.v1"
                       if CONFIG["finger_primer_lift"] else
                       "ref2dex.randomized_finger_followup.v1"
                       if CONFIG["finger_synergy"] else
@@ -225,9 +315,11 @@ class RandomizedPlayer(BASE_PLAYER):
                         "delta_z_action": CONFIG["delta_z"],
                         "second_delta_action": CONFIG["second_delta"],
                         "finger_primer_lift": CONFIG["finger_primer_lift"],
+                        "sustained_grip_lift": CONFIG["sustained_grip_lift"],
                         "finger_synergy": CONFIG["finger_synergy"],
                         "finger_indices": list(FINGER_SYNERGY_INDICES)
-                        if CONFIG["finger_synergy"] or CONFIG["finger_primer_lift"] else None,
+                        if (CONFIG["finger_synergy"] or CONFIG["finger_primer_lift"] or
+                            CONFIG["sustained_grip_lift"]) else None,
                         "intervention_axes": CONFIG["axes"],
                         "sequence_lengths": CONFIG["sequence_lengths"],
                         "crossaxis_primer": CONFIG["crossaxis_primer"],
@@ -238,7 +330,11 @@ class RandomizedPlayer(BASE_PLAYER):
                 "run_status": status, "steps_collected": len(self.probe_records),
                 "rows": len(selected), "plus": int((selected > 0).sum()),
                 "minus": int((selected < 0).sum()),
-                "axis_counts": ({"finger_primer_lift" if CONFIG["finger_primer_lift"]
+                "axis_counts": ({"sustained_grip_lift":
+                                 [int((selected == 1).sum()),
+                                  int((selected == -1).sum())]}
+                                if CONFIG["sustained_grip_lift"] else
+                                {"finger_primer_lift" if CONFIG["finger_primer_lift"]
                                  else "finger_synergy":
                                  [int((selected == 1).sum()),
                                   int((selected == -1).sum())]}
@@ -275,6 +371,8 @@ def main():
                         help="signed dose on five independent finger-flexion commands")
     parser.add_argument("--finger-primer-lift", action="store_true",
                         help="randomized finger primer followed by common wrist-z lift")
+    parser.add_argument("--sustained-grip-lift", action="store_true",
+                        help="ten-step grip+lift versus lift-only option")
     parser.add_argument("--second-delta", type=float, default=.1)
     parser.add_argument("--source-checkpoint-sha256")
     parser.add_argument("--source-motion-manifest", type=Path)
@@ -306,11 +404,17 @@ def main():
                 args.sequence_lengths is not None or args.intervention_axes != [2] or
                 args.followup_horizon != 10 or args.intervention_stride < 10 or
                 not 0 < args.second_delta <= .5)) or
+            (args.sustained_grip_lift and (
+                args.finger_primer_lift or args.finger_synergy or
+                args.cross_axis_primer or args.sequence_lengths is not None or
+                args.intervention_axes != [2] or args.followup_horizon != 20 or
+                args.intervention_stride < 20 or not 0 < args.second_delta <= .5 or
+                args.source_actor_role != "self_trained")) or
             (args.sequence_lengths is not None and (
                 args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
             (args.intervention_axes == [0] and args.sequence_lengths is None) or
-            not 0 <= args.followup_horizon <= 10 or
+            not 0 <= args.followup_horizon <= (20 if args.sustained_grip_lift else 10) or
             (args.followup_horizon and args.intervention_stride < args.followup_horizon) or
             args.intervention_last + max(args.followup_horizon - 1, 0) > 500):
         raise ValueError("invalid randomized intervention design or existing output")
@@ -354,7 +458,9 @@ def main():
         raise FileExistsError(manifest_path)
     steps = list(range(args.intervention_first, args.intervention_last + 1,
                        args.intervention_stride))
-    schema = ("ref2dex.randomized_finger_primer_lift_h10.v1"
+    schema = ("ref2dex.sustained_grip_lift_h20.v1"
+              if args.sustained_grip_lift else
+              "ref2dex.randomized_finger_primer_lift_h10.v1"
               if args.finger_primer_lift else
               "ref2dex.randomized_finger_followup.v1"
               if args.finger_synergy else
@@ -378,9 +484,10 @@ def main():
         "delta_z_action": args.intervention_delta_z,
         "second_delta_action": args.second_delta,
         "finger_primer_lift": args.finger_primer_lift,
+        "sustained_grip_lift": args.sustained_grip_lift,
         "finger_synergy": args.finger_synergy,
         "finger_indices": list(FINGER_SYNERGY_INDICES)
-        if args.finger_synergy or args.finger_primer_lift else None,
+        if args.finger_synergy or args.finger_primer_lift or args.sustained_grip_lift else None,
         "intervention_axes": args.intervention_axes,
         "sequence_lengths": args.sequence_lengths,
         "crossaxis_primer": args.cross_axis_primer,
@@ -403,6 +510,7 @@ def main():
               "crossaxis_primer": args.cross_axis_primer,
               "finger_synergy": args.finger_synergy,
               "finger_primer_lift": args.finger_primer_lift,
+              "sustained_grip_lift": args.sustained_grip_lift,
               "second_delta": args.second_delta,
               "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}

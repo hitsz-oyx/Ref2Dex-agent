@@ -5,7 +5,7 @@ import torch
 from src.task.CmResidual.randomized_action import (
     FINGER_SYNERGY_INDICES, balanced_assignment, balanced_axis_assignment,
     execute_finger_synergy_dose, execute_finger_primer_lift,
-    execute_signed_axis_dose,
+    execute_signed_axis_dose, execute_sustained_grip_lift,
 )
 
 
@@ -78,3 +78,16 @@ def test_finger_primer_then_common_lift_exact_doses():
                           torch.full((5,), -.2))
     assert torch.allclose(second[:, 2], torch.tensor([.1, .1, 0.]))
     assert (second[:, list(FINGER_SYNERGY_INDICES)] == 0).all()
+
+
+def test_sustained_grip_lift_bounds_and_assignments():
+    action = torch.zeros(3, 18)
+    action[0, 2] = .95
+    action[0, list(FINGER_SYNERGY_INDICES)] = .9
+    assignment = torch.tensor([1, -1, 0], dtype=torch.int8)
+    actual = execute_sustained_grip_lift(action, assignment)
+    assert actual[0, 2] == 1
+    assert (actual[0, list(FINGER_SYNERGY_INDICES)] == 1).all()
+    assert actual[1, 2] == .1
+    assert (actual[1, list(FINGER_SYNERGY_INDICES)] == 0).all()
+    torch.testing.assert_close(actual[2], action[2])

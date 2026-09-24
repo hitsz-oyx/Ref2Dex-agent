@@ -111,6 +111,28 @@ def execute_finger_primer_lift(action: torch.Tensor, assignment: torch.Tensor,
     return executed
 
 
+def execute_sustained_grip_lift(action: torch.Tensor,
+                                assignment: torch.Tensor, *,
+                                finger_delta: float = .2,
+                                lift_delta: float = .1) -> torch.Tensor:
+    """Bounded option: common wrist lift, randomized additional finger grip."""
+    if (action.ndim != 2 or action.shape[1] != 18 or
+            assignment.shape != (len(action),) or
+            not 0 < finger_delta <= .5 or not 0 < lift_delta <= .5 or
+            not torch.isfinite(action).all() or
+            not torch.isin(assignment, torch.tensor([-1, 0, 1],
+                                                   device=assignment.device)).all()):
+        raise ValueError("invalid sustained grip-lift input")
+    executed = action.detach().clone()
+    selected = assignment != 0
+    grip = assignment == 1
+    executed[selected, 2] = (executed[selected, 2] + lift_delta).clamp(-1, 1)
+    indices = list(FINGER_SYNERGY_INDICES)
+    executed[:, indices] += grip[:, None].to(action.dtype) * finger_delta
+    executed[:, indices] = executed[:, indices].clamp(-1, 1)
+    return executed
+
+
 def execute_sequence_axis_dose(action: torch.Tensor, assignment: torch.Tensor,
                                delta: float, axis: int, *, second: bool = False) -> torch.Tensor:
     """Apply one-axis dose for randomized ±1 (one step) / ±2 (two steps)."""

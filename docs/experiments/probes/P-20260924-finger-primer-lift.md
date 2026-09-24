@@ -36,4 +36,21 @@ followup or budget overrun.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for the two-step macro's lift target. The first
+`s189` run failed before any intervention because the new runtime flag
+was omitted from the collector's in-memory configuration; no scientific
+data were accepted. The same seed was rerun after the wiring fix as
+`agent_crossobject_finger_primer_train_s189_h10_retry`. It completed,
+and all first-step `+/-0.2` five-finger doses and common second-step
+`+0.1` wrist-z doses were verified. Treated counts: airplane 222,
+mug 274, toothpaste 226.
+
+Close-minus-open ten-step contact-supported object-z effects were
++1.08, +0.33 and +3.78 mm respectively, pooled +1.64 mm with
+environment-cluster 95% interval [-0.48,+3.56] mm. This missed the
+predeclared >=5 mm gate; do not replicate or train Cm for this exact
+two-step effect. Contact fraction did increase by +3.46 pp pooled,
+interval [+0.36,+6.47] pp. Thus the finger primer changed grasp contact
+but did not produce enough subsequent lift under this actor/horizon.
+The physical finding suggests studying a *sustained* grasp-and-lift
+option, rather than another one-step finger coefficient tweak.
