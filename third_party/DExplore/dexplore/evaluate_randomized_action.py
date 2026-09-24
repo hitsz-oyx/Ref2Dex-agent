@@ -18,7 +18,9 @@ from isaacgym import gymapi  # noqa: F401 - must precede torch
 import torch
 
 import evaluate_paired as pinned
-from src.task.CmResidual.randomized_action import balanced_assignment
+from src.task.CmResidual.randomized_action import (
+    balanced_assignment, balanced_axis_assignment, execute_signed_axis_dose,
+)
 
 
 original = pinned.original
@@ -49,9 +51,19 @@ class RandomizedPlayer(BASE_PLAYER):
             pre_contact = ((task._contact_forces[:, task._contact_body_ids].norm(dim=-1) > .1).any(-1) &
                            (task._tar_contact_forces.norm(dim=-1) > .1))
             valid = pre_contact & (task.reset_buf.reshape(-1) == 0) & (task.progress_buf > 0)
-            assignment = balanced_assignment(valid, self.probe_generator)
+            multiaxis = len(CONFIG["axes"]) > 1
+            if multiaxis:
+                valid &= (action[:, CONFIG["axes"]].abs() <= 1 - CONFIG["delta_z"]).all(-1)
+                assignment = balanced_axis_assignment(valid, self.probe_generator,
+                                                      len(CONFIG["axes"]))
+            else:
+                assignment = balanced_assignment(valid, self.probe_generator)
             executed = action.detach().clone()
-            executed[:, 2] = (executed[:, 2] + CONFIG["delta_z"] * assignment).clamp(-1, 1)
+            if multiaxis:
+                executed = execute_signed_axis_dose(action, assignment,
+                                                    tuple(CONFIG["axes"]), CONFIG["delta_z"])
+            else:
+                executed[:, 2] = (executed[:, 2] + CONFIG["delta_z"] * assignment).clamp(-1, 1)
             before = {
                 "q": task._dof_pos.clone(),
                 "dof_vel": task._dof_vel.clone(),
@@ -78,8 +90,11 @@ class RandomizedPlayer(BASE_PLAYER):
                 self.probe_records.append({key: value.detach().cpu() for key, value in before.items()})
             print("REF2DEX_RANDOMIZED_STEP " + json.dumps({
                 "step": self.probe_step, "selected": int(valid.sum()),
-                "plus": int((assignment == 1).sum()),
-                "minus": int((assignment == -1).sum()),
+                "plus": int((assignment > 0).sum()),
+                "minus": int((assignment < 0).sum()),
+                "axis_counts": {str(axis): [int((assignment == code).sum()),
+                                            int((assignment == -code).sum())]
+                                for code, axis in enumerate(CONFIG["axes"], 1)},
             }, sort_keys=True), flush=True)
         else:
             result = BASE_PLAYER.env_step(self, env, action)
@@ -127,19 +142,26 @@ class RandomizedPlayer(BASE_PLAYER):
                            for key in keys}
             else:
                 records = {}
-            torch.save({"schema": ("ref2dex.randomized_action_followup.v1"
-                                   if CONFIG["followup_horizon"] else
-                                   "ref2dex.randomized_action_transitions.v1"),
+            schema = ("ref2dex.randomized_multiaxis_followup.v1"
+                      if len(CONFIG["axes"]) > 1 else
+                      "ref2dex.randomized_action_followup.v1"
+                      if CONFIG["followup_horizon"] else
+                      "ref2dex.randomized_action_transitions.v1")
+            torch.save({"schema": schema,
                         "run_status": status, "failure": self.probe_error,
                         "assignment_seed": CONFIG["assignment_seed"],
                         "delta_z_action": CONFIG["delta_z"],
+                        "intervention_axes": CONFIG["axes"],
                         "followup_horizon": CONFIG["followup_horizon"],
                         "records": records}, output)
             selected = records.get("assignment", torch.empty(0, dtype=torch.int8))
             summary = {
                 "run_status": status, "steps_collected": len(self.probe_records),
-                "rows": len(selected), "plus": int((selected == 1).sum()),
-                "minus": int((selected == -1).sum()),
+                "rows": len(selected), "plus": int((selected > 0).sum()),
+                "minus": int((selected < 0).sum()),
+                "axis_counts": {str(axis): [int((selected == code).sum()),
+                                            int((selected == -code).sum())]
+                                for code, axis in enumerate(CONFIG["axes"], 1)},
                 "failure": self.probe_error,
             }
             output.with_suffix(".json").write_text(
@@ -155,6 +177,7 @@ def main():
     parser.add_argument("--intervention-last", type=int, default=150)
     parser.add_argument("--intervention-stride", type=int, default=10)
     parser.add_argument("--intervention-delta-z", type=float, default=.3)
+    parser.add_argument("--intervention-axes", type=int, nargs="+", default=[2])
     parser.add_argument("--assignment-seed", type=int, default=20260924)
     parser.add_argument("--followup-horizon", type=int, default=0)
     args, remaining = parser.parse_known_args()
@@ -163,6 +186,10 @@ def main():
             not 1 <= args.intervention_first <= args.intervention_last <= 500 or
             not 1 <= args.intervention_stride <= 100 or
             not 0 < args.intervention_delta_z <= .5 or
+            len(set(args.intervention_axes)) != len(args.intervention_axes) or
+            not set(args.intervention_axes).issubset({0, 1, 2}) or
+            (len(args.intervention_axes) == 1 and args.intervention_axes != [2]) or
+            (len(args.intervention_axes) > 1 and not args.followup_horizon) or
             not 0 <= args.followup_horizon <= 10 or
             (args.followup_horizon and args.intervention_stride < args.followup_horizon) or
             args.intervention_last + max(args.followup_horizon - 1, 0) > 500):
@@ -188,7 +215,9 @@ def main():
         raise FileExistsError(manifest_path)
     steps = list(range(args.intervention_first, args.intervention_last + 1,
                        args.intervention_stride))
-    schema = ("ref2dex.randomized_action_followup.v1" if args.followup_horizon
+    schema = ("ref2dex.randomized_multiaxis_followup.v1"
+              if len(args.intervention_axes) > 1 else
+              "ref2dex.randomized_action_followup.v1" if args.followup_horizon
               else "ref2dex.randomized_action_transitions.v1")
     manifest = {
         "run_status": "STARTED", "schema": schema,
@@ -200,6 +229,7 @@ def main():
         "intervention_steps": steps,
         "stop_step": steps[-1] + max(args.followup_horizon - 1, 0),
         "delta_z_action": args.intervention_delta_z,
+        "intervention_axes": args.intervention_axes,
         "followup_horizon": args.followup_horizon,
         "assignment_seed": args.assignment_seed,
         "checkpoint_sha256": pinned.CHECKPOINT_SHA256,
@@ -211,6 +241,7 @@ def main():
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     CONFIG = {"output": args.intervention_output.resolve(), "steps": set(steps),
               "stop_step": manifest["stop_step"], "delta_z": args.intervention_delta_z,
+              "axes": args.intervention_axes,
               "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}
     sys.argv = [sys.argv[0], *remaining]
