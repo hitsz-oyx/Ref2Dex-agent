@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 import numpy as np
 import torch
@@ -102,16 +105,7 @@ def axis_effect(parts: list[dict], axis: int, outcome: str, *,
             "effective_bootstraps": len(draws)}
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, action="append", required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--num-envs", type=int, default=64)
-    parser.add_argument("--bootstraps", type=int, default=1000)
-    args = parser.parse_args()
-    if (args.output.exists() or not 1 <= len(args.input) <= 2 or
-            args.num_envs != 64 or not 100 <= args.bootstraps <= 3000):
-        parser.error("new output, one/two 64-env inputs and bounded bootstrap required")
+def analyze(args) -> None:
     parts = [load_run(path, args.num_envs) for path in args.input]
     report = {"schema": "ref2dex.multiaxis_followup_effects.v1",
               "classification": "Probe", "inputs": [str(path) for path in args.input],
@@ -138,6 +132,51 @@ def main() -> None:
     print(json.dumps({"run_status": "COMPLETED", "output": str(args.output),
                       "pooled_h10_object_mm": {axis: report["pooled"][axis]["h10_object_mm"]
                                                for axis in ("x", "y", "z")}}, sort_keys=True))
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, action="append", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--num-envs", type=int, default=64)
+    parser.add_argument("--bootstraps", type=int, default=1000)
+    args = parser.parse_args()
+    if (args.output.exists() or not 1 <= len(args.input) <= 2 or
+            args.num_envs != 64 or not 100 <= args.bootstraps <= 3000):
+        parser.error("new output, one/two 64-env inputs and bounded bootstrap required")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path = args.output.parent / "run_manifest.json"
+    if manifest_path.exists():
+        raise FileExistsError(manifest_path)
+    root = Path(__file__).resolve().parents[4]
+    manifest = {"run_status": "STARTED", "run_id": args.output.parent.name,
+                "experiment_id": "P-20260924-multiaxis-h10-effects",
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                                       cwd=root, text=True).strip(),
+                "inputs": {str(path.resolve()): sha256(path) for path in args.input},
+                "num_envs": args.num_envs, "bootstraps": args.bootstraps,
+                "cpu_threads": 2, "gpu_count": 0, "wall_budget_minutes": 10,
+                "output_budget_mb": 10}
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    try:
+        torch.set_num_threads(2)
+        analyze(args)
+        manifest.update(run_status="COMPLETED", report_sha256=sha256(args.output))
+    except BaseException as error:
+        manifest.update(run_status="FAILED", failure=f"{type(error).__name__}: {error}")
+        raise
+    finally:
+        manifest["completed_at"] = datetime.now(timezone.utc).isoformat()
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
 
 if __name__ == "__main__":
