@@ -47,6 +47,9 @@ GPU conflict, lost provenance or budget overrun.
 
 The official physical feasibility gate passed on 64 episodes: mug 22/22,
 toothpaste 21/21, airplane 19/21. The official checkpoint remains diagnostic
-only. Frozen self-trained source evaluation and multi-object PPO are pending.
+only. Frozen self-trained source e260 on the same three-motion root gave
+mug 12/22, toothpaste 2/21, airplane 15/21, overall 29/64. On the held-out
+apple it previously gave 3/64. Thus the training split has learnable but
+heterogeneous starting performance; multi-object PPO is the decision run.
 A single seed and one held-out object can only be `PROMISING`,
 `UNPROMISING` or `UNCLEAR`, never proof of cross-object policy or Cm utility.
