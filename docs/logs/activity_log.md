@@ -1283,3 +1283,11 @@
 - matched training run_ids: `agent_cm_h10_aux_t{77,78}_{on,off}_e300`；四个 run 均 `COMPLETED`，各 64 env、物理 GPU5/6 两张以内，固定 e260、H10 teacher SHA 和 commit，e300 checkpoint/`train.log`/`run_manifest.json` 在各同名 `outputs/Dexplore/` 目录。
 - evaluation run_ids: 四个训练 run 各自的 `eval_s{166,167}_e300_full`；八个 run 均 `COMPLETED`，每次 64 env，结果与 checkpoint SHA 在对应 `results.json`/`run_manifest.json`。seed77 on/off 75/128 vs 60/128；seed78 68/128 vs 73/128；总计 143/256 vs 133/256（+3.91pp），未过 +8pp 及每训练 seed 非负双门。
 - scientific boundary: 固定 H10 多轴辅助接法 `UNPROMISING`；不升级置乱 placebo/Validation，不继续在已见评估 seed 上调参。无正在运行的本实验任务。
+
+## 2026-09-24 — 两步随机物理效应与序列 Cm 模型 Probe 终态
+
+- branch: `agent/cm-two-step-sequence`; collector/analysis commit `602efff`；raw model commit `b7f037f`；structured model commit `42b1345`。
+- engineering smoke `agent_two_step_smoke_s168_n16` `COMPLETED`，物理 GPU6、16 env、两处理时刻，第一/第二步执行剂量审计通过；无 checkpoint。
+- physical data run_ids `agent_two_step_s{168,169,170}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 处理时刻/十步随访、≤1 min；对应 `agent_two_step_s{168,169,170}_analysis` CPU 分析均 `COMPLETED`。各 run 的 manifest、transitions、report 保存命令/SHA/终态。第二步 wrist-x 对十步物体 x 的增量分别 +18.67/+19.84/+18.96mm，环境聚类 95% CI 均为正；平均接触比例差 −0.51/−1.18/−1.31pp。
+- raw model run_id `agent_two_step_cm_s168_train_s169_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.43%，但第二步交互效应只预测出真实的 .316 倍，未过 .5 倍门，`UNPROMISING` for 固定 raw 拼接架构。
+- structured model run_id `agent_two_step_structured_cm_s168169_train_s170_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.84%，交互效应预测/真实=.843，过两项门，`PROMISING` for 序列效应预测。两模型均非 policy utility。留出 seed170 的探索性 z 对比为负，故不把 x 位移增益直接当抬升增益；下一步先测试两步 wrist-z 真实随机效应。无本实验运行中任务。

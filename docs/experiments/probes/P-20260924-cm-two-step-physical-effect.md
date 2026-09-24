@@ -39,4 +39,22 @@ and motion manifest SHA
 
 ## Result
 
-Pending.
+Status: `PROMISING` for additional two-step wrist-x physical effect,
+not policy utility. Code commit `602efff`. The 16-env seed168 smoke
+completed and passed exact first/second executed-dose audit. The
+64-env seed168 rollout (`agent_two_step_s168_n64`) completed with
+719 selected contact rows; its analysis
+`agent_two_step_s168_analysis` completed 500 environment-cluster
+resamples. The ten-step x signed-effect interaction was +18.67 mm,
+95% CI [+6.89,+33.36] mm; two-step minus one-step mean contact
+fraction was −0.51pp, 95% CI [−3.66,+3.33]pp. Both pre-registered
+physical gates passed.
+
+The new seed169 collected for the subsequent model test also showed
++19.84 mm [11.91,27.20] and contact −1.18pp [−4.32,+2.22].
+The later held-out model seed170 showed +18.96 mm [9.06,27.65]
+and contact −1.31pp [−4.47,+1.46]. These are repeat Probe observations,
+not formal Validation. Commands, source SHA, code commits, transition
+files and statuses are in each run's `run_manifest.json`; analysis
+reports are in the corresponding `agent_two_step_s{168,169,170}_analysis`
+directories.

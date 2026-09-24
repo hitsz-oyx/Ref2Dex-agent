@@ -38,4 +38,14 @@ not Cm policy utility; matched online Cm-on/off remains necessary.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for the fixed raw-concatenation model, while
+two-step physical effects remain present. Code commit `b7f037f`.
+`agent_two_step_cm_s168_train_s169_test` completed 500 CPU updates
+using 719 seed168 train and 766 new seed169 test contact rows.
+Held-out ten-step world-x RMSE was 28.08 mm vs state-only 31.71 mm
+(11.43% better). But predicted signed second-step interaction was
+6.28 mm vs randomized observed 19.84 mm (0.316×), below the fixed
+0.5× gate. Do not connect this checkpoint to an online planner or
+tune it on seed169. `report.json`, checkpoints and SHA are in the
+run directory. A separate structured-effect architecture is tested
+on a new seed170 in its own pre-registered card.

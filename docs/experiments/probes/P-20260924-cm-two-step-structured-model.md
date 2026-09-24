@@ -38,4 +38,21 @@ leakage, nonfinite output or budget overrun.
 
 ## Result
 
-Pending.
+Status: `PROMISING` for held-out two-step wrist-x effect prediction,
+not policy utility. Code commit `42b1345`. The seed170 physical
+interaction retained positive sign: +18.96 mm, 95% environment-cluster
+CI [+9.06,+27.65] mm. `agent_two_step_structured_cm_s168169_train_s170_test`
+completed 500 CPU updates on 1485 seed168/169 train rows and tested
+only on 170. Factual ten-step world-x RMSE improved 11.84% versus
+same-size state-only. Predicted second-step interaction was 0.843×
+the randomized observed value; both pre-registered model gates passed.
+The report and both checkpoint SHA256s are in the run directory.
+
+Exploratory task-alignment audit on the already-seen seed170 found
+the wrist-x plus-minus contrast in ten-step object z was negative
+(one step −4.71 mm, two steps −9.52 mm); the structured model also
+predicted a negative contrast. Wrist-x response is real and modeled,
+but pushing x alone is not a justified grasp-lift planner objective.
+Do not run an x-only online selector merely because the x-model gate
+passed. Next cheapest decision is a new randomized two-step wrist-z
+physical Probe, with new seed(s) and explicit contact tradeoff.
