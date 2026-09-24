@@ -1239,3 +1239,12 @@
 - artifacts: 各数据 run 的 `transitions.pt`/manifest，以及 analysis run 的 `report.json`/manifest；未重训 checkpoint。
 - key metrics: raw 的真实接触效应排序高−低 +27.85pp，固定 .5/.5 geometry+raw +28.72pp；配对差 +0.87pp、95% CI −2.26 至 +3.98pp。ensemble 接触 RMSE seed155 改善、seed156 略差。
 - boundary: `UNPROMISING` for 当前六区域几何互补性，未过预注册联合门槛。停止局部几何结构小修，保留 raw 动作条件模型作一次低成本在线决策 Probe 的可能性。
+
+## 2026-09-24 — Contact-aware Cm 在线下压 Probe 提前停止
+
+- branch: `agent/cm-contact-aware-action-selection`; code commit: `f517c1c`
+- experiment_id: `P-20260924-contact-cm-online-down`
+- run_ids: `agent_contact_cm_down_smoke_s157_n16_{base,always_down,cm_down}`、`agent_contact_cm_down_probe_s157_n64_{base,always_down,cm_down}`；六次均 `COMPLETED`、physical GPU6 顺序、每次 <60s、无 checkpoint；seed158 三臂未启动。
+- artifacts: 各 run 的 `run_manifest.json`、`selector.json`、`results.json`；所有输入 SHA 在 manifest。
+- primary metric: smoke 三臂皆 9/16 仅证明接线。seed157 完整 held-lift base 44/64、always_down 40/64、cm_down 40/64；Cm 实际选 587/3199 eligible 动作。Cm 接触比例 .60383 高于 base .58835，但 reward 184.49 低于 base 192.83。
+- stop: 预注册要求每 seed 的 Cm 不低于 base；第一 seed 已 −6.25pp，第二 seed 无法改变升级决策，按最小 Probe 提前停止。`UNPROMISING` for 此固定 wrist-z 接法；不是所有 Cm 或训练期方法的正式否定。

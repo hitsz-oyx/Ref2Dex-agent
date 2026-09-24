@@ -42,10 +42,37 @@ policy-utility Validation。
 
 ## Result
 
-Status: PENDING
+Status: UNPROMISING（当前固定接触 Cm 下压规则）
 
-Evidence: pending
+seed157 ×16 三臂工程 smoke 均 `COMPLETED`、held-lift 均
+9/16；Cm 在 799 个 eligible 接触状态选中 120 次，证明模型
+已调用且可执行，不作为效用判断。
+
+seed157 ×64 的预定第一组完整 Probe 三臂均 `COMPLETED`：
+
+| arm | held-lift | mean reward | contact fraction | mean max lift |
+| --- | ---: | ---: | ---: | ---: |
+| base | 44/64 (68.75%) | 192.83 | .58835 | .32905m |
+| always_down | 40/64 (62.50%) | 175.42 | .64498 | .27314m |
+| cm_down | 40/64 (62.50%) | 184.49 | .60383 | .28043m |
+
+Cm 评分 51 个控制时刻，在 3199 个 eligible 接触状态中
+选择 587 次；相对 base −6.25pp，和 always_down 同成功数。
+虽然接触比例略高于 base，但 held-lift、reward 和最大抬升
+都更低。由于预注册要求两个 seed 都不能低于 base，
+seed157 已使联合升级门不可能通过。遵循最小可判别原则，
+seed158 的三臂未运行；这减少成本，不把单 seed 当正式
+否定结论。
+
+产物：`outputs/CmResidual/agent_contact_cm_down_smoke_s157_n16_{base,always_down,cm_down}/`
+与 `outputs/CmResidual/agent_contact_cm_down_probe_s157_n64_{base,always_down,cm_down}/`
+下的 manifest、selector 和 results。
 
 ## Decision update
 
-pending
+停止这条局部 wrist-z 动作选择路线；不在已观察的 seed157
+上调整接触增益、抬升损失或时间窗口阈值。当前的五步接触
+预测和随机效应排序是真实信息，但不能直接转化为完整抓取
+收益。下一步返回更高层：训练期 Cm representation/auxiliary
+或重新定义动作空间/长时域目标；若两者都需要较大投入，
+按 Decision Checkpoint 选择。
