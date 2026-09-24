@@ -132,6 +132,10 @@ def main(argv=None) -> None:
                         help="positive frozen-CmLite PPO actor-sample weight coefficient")
     parser.add_argument("--cm-critic-salience-coef", type=float,
                         help="frozen-CmLite state salience for normalized PPO critic loss")
+    parser.add_argument("--cm-aux-coef", type=float,
+                        help="frozen contact-Cm actor-feature auxiliary loss coefficient")
+    parser.add_argument("--contact-cm-checkpoint", type=Path)
+    parser.add_argument("--contact-cm-sha256")
     parser.add_argument("--permute-cm-actor-weights", action="store_true",
                         help="placebo: permute Cm weights among active actor samples per step")
     parser.add_argument("--cm-actor-weight-component",
@@ -192,11 +196,14 @@ def main(argv=None) -> None:
     bootstrap_args: list[str] = []
     modes = sum(value is not None for value in (
         args.cm_distill_coef, args.cm_reward_coef, args.cmlite_reward_coef,
-        args.cm_actor_weight_coef, args.cm_critic_salience_coef))
+        args.cm_actor_weight_coef, args.cm_critic_salience_coef, args.cm_aux_coef))
     if modes > 1:
         raise ValueError("Cm-off, rewards, actor-weight, and critic-salience modes are mutually exclusive")
     if args.permute_cm_actor_weights and args.cm_actor_weight_coef is None:
         raise ValueError("Cm actor-weight permutation requires Cm PPO mode")
+    if args.cm_aux_coef is None and (args.contact_cm_checkpoint is not None or
+                                     args.contact_cm_sha256 is not None):
+        raise ValueError("contact Cm checkpoint is only valid for auxiliary PPO mode")
     if args.cm_actor_weight_component != "joint" and args.cm_actor_weight_coef is None:
         raise ValueError("Cm actor-weight component requires Cm PPO mode")
     if args.permute_cm_actor_weights and args.cm_actor_weight_component != "joint":
@@ -221,14 +228,16 @@ def main(argv=None) -> None:
             (args.scratch_resume_checkpoint is not None and
              (not (args.cmlite_reward_coef is not None or args.cm_distill_coef == 0.0 or
                    args.cm_actor_weight_coef is not None or
-                   args.cm_critic_salience_coef is not None) or
+                   args.cm_critic_salience_coef is not None or
+                   args.cm_aux_coef is not None) or
               not args.scratch_resume_checkpoint.is_file() or
               len(args.scratch_resume_sha256) != 64 or
               _sha256(args.scratch_resume_checkpoint) != args.scratch_resume_sha256))):
         raise ValueError("scratch resume requires CmLite or Cm-off mode and a matching checkpoint SHA256")
     if args.learning_rate is not None and (not (args.cmlite_reward_coef is not None or
              args.cm_distill_coef == 0.0 or args.cm_actor_weight_coef is not None or
-             args.cm_critic_salience_coef is not None) or
+             args.cm_critic_salience_coef is not None or
+             args.cm_aux_coef is not None) or
             not math.isfinite(args.learning_rate) or args.learning_rate <= 0):
         raise ValueError("learning-rate override requires CmLite or Cm-off mode and a positive finite value")
     ppo_overrides = (args.lr_schedule, args.schedule_type, args.kl_threshold,
@@ -384,6 +393,26 @@ def main(argv=None) -> None:
         bootstrap_args = ["--cm-critic-salience-coef", str(args.cm_critic_salience_coef),
                           "--cmlite-checkpoint", str(args.cmlite_checkpoint.resolve()),
                           "--cmlite-sha256", args.cmlite_sha256,
+                          "--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
+        bootstrap_args += shared_shaping
+        if args.scratch_resume_checkpoint is not None:
+            bootstrap_args += ["--scratch-resume-checkpoint",
+                               str(args.scratch_resume_checkpoint.resolve()),
+                               "--scratch-resume-sha256", args.scratch_resume_sha256]
+        if args.learning_rate is not None:
+            bootstrap_args += ["--learning-rate", str(args.learning_rate)]
+    elif args.cm_aux_coef is not None:
+        if bootstrap.name != "dexplore_cm_ppo_aux_rank_bootstrap.py":
+            raise ValueError("Cm auxiliary PPO requires its rank bootstrap")
+        if args.cm_aux_coef not in (0.0, .002) or args.actual_epochs is None or args.actual_epochs < 1:
+            raise ValueError("Cm auxiliary PPO requires coefficient 0/.002 and actual epochs")
+        if (args.contact_cm_checkpoint is None or not args.contact_cm_checkpoint.is_file() or
+                not args.contact_cm_sha256 or
+                _sha256(args.contact_cm_checkpoint) != args.contact_cm_sha256):
+            raise ValueError("Cm auxiliary PPO requires verified contact Cm checkpoint")
+        bootstrap_args = ["--cm-aux-coef", str(args.cm_aux_coef),
+                          "--contact-cm-checkpoint", str(args.contact_cm_checkpoint.resolve()),
+                          "--contact-cm-sha256", args.contact_cm_sha256,
                           "--cm-distill-coef", "0", "--actual-epochs", str(args.actual_epochs)]
         bootstrap_args += shared_shaping
         if args.scratch_resume_checkpoint is not None:

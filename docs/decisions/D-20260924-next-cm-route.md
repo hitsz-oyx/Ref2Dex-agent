@@ -36,6 +36,9 @@ Option B: 扩展仿真随机干预到多个动作轴、更长随访，训练
 成功后：做 matched 在线 Cm-on/off Validation。失败后：
 回 A 或重审动作模型路线。
 
+User decision: A（2026-09-24）。在 `agent/cm-ppo-aux-representation`
+实现训练期辅助表示 Probe；B 暂不启动。
+
 AI recommendation: A。已有物理随机化数据表明局部效应
 信息可学，但单轴贪心控制两次未变成完整抓取收益；训练期
 辅助目标能让 actor 在较长时域内利用信息，且更快接近
