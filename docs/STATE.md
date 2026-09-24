@@ -8,10 +8,10 @@ Updated: 2026-09-24
 
 ## 当前决定
 
-用户已选择 [D-20260924-after-task-aligned-option](decisions/D-20260924-after-task-aligned-option.md)
-的 Option A：本阶段停止新增 Cm 训练、仿真和 Probe，保留 checkpoint、
-运行清单及报告，整理负结果。研究 Mission 没有改变；Cm 对策略的独立、
-稳定增益仍未建立。这是当前 campaign 的资源决定，不是对所有 Cm 方法的否定。
+用户已于 2026-09-24 重新授权多轨迹 baseline 训练及 Cm Probe；
+[执行选择](decisions/D-20260924-reopen-multitrajectory-cm.md)取代此前的
+暂停决定。北京时间 2026-09-25 10:00 前，常规研究路线选择由 AI 自行
+决定并记录。Mission 与资源硬上限不变。
 
 ## North-star 状态
 
@@ -43,14 +43,12 @@ Updated: 2026-09-24
 
 尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
 动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
-PPO 接法均未给出稳定 policy utility。若未来重启，候选方向是把
-接触维持到承重结果的时序 credit assignment 纳入表示/目标，并先用
-小型 matched Cm-on/off/placebo Probe 判别；目前没有活跃实验。
+PPO 接法均未给出稳定 policy utility。活跃 Probe 是先建立
+[12 轨迹 baseline](experiments/probes/P-20260924-multitrajectory-baseline.md)，
+再针对接触至承重的时序信息设计 matched Cm-on/off/placebo Probe。
 
 ## 下一步
 
-本阶段收尾核验及本地 Git checkpoint 已完成；当前没有活跃实验，
-不启动新训练、仿真或 Probe。若未来决定重启高成本时序新架构，
-先依 [Decision Memo](decisions/D-20260924-after-task-aligned-option.md)
-重新作路线决定，并为新路线设定最小判别门。未来论文需要但当前
-不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
+运行 12 轨迹 self-trained Cm-off 续训并逐轨迹评估；依据覆盖情况决定
+扩展数据、修正训练分配，或进入 matched Cm 机制 Probe。未来论文需要
+但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
