@@ -36,13 +36,24 @@ CPU 2 threads、GPU 0；wall <=20 min；输出 <5MB。
 
 ## Result
 
-Status: PENDING
+Status: UNCLEAR (single-dose fit misses small-dose EPE gate; mixed-dose test pending)
 
-Evidence: pending
+Evidence: CPU-only `agent_intervention_handflow_s145_train_s146147_test`
+COMPLETED. On held-out seed146 ±0.3, new action+velocity hand surface EPE
+11.81mm vs old observational gain 20.37mm (42% lower); predicted wrist-z
+plus/minus motion 74.52mm vs actual 75.89mm. On held-out seed147 ±0.1,
+new EPE 10.30mm vs old 8.66mm (worse), although predicted wrist-z contrast
+24.98mm vs actual 27.34mm, while old predicts only 16.89mm. Velocity-only
+EPE 34.36/13.88mm, so action input carries substantial information.
+Strict H1 EPE gate across both magnitudes fails. A cheap mixed-dose fit
+using seeds145 ±0.3 and147 ±0.1 will be tested on untouched seeds146 ±0.3
+and148 ±0.1 before deciding whether the linear actuator is sufficient.
 
 ## Decision update
 
-pending
+Do not yet feed the single-dose model to Cm. Keep future `next_q` out of
+online inputs. Mixed-dose model must improve both held-out magnitudes or the
+next minimal route is a small nonlinear actuator conditioned on action gap.
 
 ## Artifacts
 

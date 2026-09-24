@@ -29,6 +29,9 @@ INPUTS = {
     "test_s147_d01": (
         ROOT / "outputs/CmResidual/agent_randomized_wristz_s147_d01_n64/transitions.pt",
         "ec1486fbe81773444097518cda3021693865d3db9d8b5ec5e579c4fe72231b99"),
+    "test_s148_d01": (
+        ROOT / "outputs/CmResidual/agent_randomized_wristz_s148_d01_n64/transitions.pt",
+        "44db8a0a0300d371feeffc6e7dbdc4499b452a58ddb9787131a138925d0f7de2"),
 }
 OLD_CALIBRATION = ROOT / "outputs/CmResidual/agent_executed_handflow_64/report.json"
 OLD_CALIBRATION_SHA256 = "76bf65d450e3cfdcb7c0a9f54d68d7324e569fab18e2b7392224bd363ede0b16"
@@ -134,6 +137,7 @@ def evaluate(bridge, rows, fitted, old_gain):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--mix-small-dose", action="store_true")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -146,6 +150,7 @@ def main():
                                                cwd=ROOT, text=True).strip(),
         "input_sha256": {name: item[1] for name, item in INPUTS.items()},
         "old_calibration_sha256": OLD_CALIBRATION_SHA256,
+        "mix_small_dose": args.mix_small_dose,
         "cpu_threads": 2, "gpu_count": 0, "wall_budget_minutes": 20,
         "output_budget_mb": 5,
         "stop_rule": "input drift, non-finite prediction, wall or output budget",
@@ -163,21 +168,27 @@ def main():
             raise ValueError("old calibration SHA drift")
         old_gain = torch.tensor(json.loads(OLD_CALIBRATION.read_text())
                                 ["coefficients"]["per_joint"], dtype=torch.float32)
-        train = rows["train_s145_d03"]
+        train_keys = (["train_s145_d03", "test_s147_d01"] if args.mix_small_dose
+                      else ["train_s145_d03"])
+        test_keys = (["test_s146_d03", "test_s148_d01"] if args.mix_small_dose
+                     else ["test_s146_d03", "test_s147_d01"])
+        train = {key: torch.cat([rows[name][key] for name in train_keys])
+                 for key in rows[train_keys[0]]}
         fitted = {
             "action_only": fit_per_joint(train, use_velocity=False),
             "velocity_only": fit_per_joint(train, use_action=False),
             "action_velocity": fit_per_joint(train),
         }
-        reports = {name: evaluate(bridge, row, fitted, old_gain)
-                   for name, row in rows.items() if name.startswith("test_")}
+        reports = {name: evaluate(bridge, rows[name], fitted, old_gain)
+                   for name in test_keys}
         report = {
             "schema": "ref2dex.intervention_handflow_probe.v1",
             "run_status": "COMPLETED", "git_commit": manifest["git_commit"],
-            "train_samples": len(train["q"]), "input_sha256": manifest["input_sha256"],
+            "train_samples": len(train["q"]), "train_keys": train_keys,
+            "test_keys": test_keys, "input_sha256": manifest["input_sha256"],
             "coefficients": {key: value.tolist() for key, value in fitted.items()},
             "reports": reports, "elapsed_seconds": time.monotonic() - start,
-            "limit": "one trajectory/object; train seed145 and held-out seeds146/147; online features only",
+            "limit": "one trajectory/object; separate train and test seeds; online features only",
         }
         report_path = args.output / "report.json"
         report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
