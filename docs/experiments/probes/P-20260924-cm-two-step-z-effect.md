@@ -27,6 +27,13 @@ exceeds gate, stop wrist-z sequence modeling and do not tune dose on
 seed171. Passing authorizes only a held-out z-sequence Cm model Probe,
 not an online policy claim.
 
+Before viewing seed172, define the borderline repeat rule precisely:
+pool seed171 and new seed172 with each seed's intervention step as a
+separate stratum, resample environments independently within each
+seed, and apply the same ≥5mm/CI>0 and contact ≥−5pp gate to the
+pooled estimate. If it fails, stop; do not add a third seed to search
+for a passing subset.
+
 One GPU, ≤30 min, ≤100MB; stop on source drift, clipping, incomplete
 cells, nonfinite state, GPU conflict or budget overrun. Actor SHA
 `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`;

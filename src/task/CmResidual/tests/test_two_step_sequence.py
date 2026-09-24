@@ -8,6 +8,7 @@ from src.task.CmResidual.randomized_action import (
     balanced_axis_assignment, execute_sequence_axis_dose, execute_sequence_x_dose,
 )
 from src.task.CmResidual.tools.analyze_two_step_sequence import contrasts
+from src.task.CmResidual.tools.analyze_two_step_sequence_pool import pooled
 
 
 def test_sequence_dose_is_exact_and_only_long_arm_repeats():
@@ -40,3 +41,16 @@ def test_four_sequence_cells_balance_and_interaction():
     assert result["two_effect"] == 8
     assert result["interaction"] == 6
     assert result["two_minus_one_contact"] == 0
+
+
+def test_pooled_sequence_preserves_seed_and_step_strata():
+    labels = np.tile(np.array([-2, -1, 1, 2]), 16)
+    value = np.tile(np.array([-4., -1., 1., 4.]), 16)
+    parts = [{"axis": 2, "num_envs": 64, "num_blocks": 1,
+              "steps": np.repeat([50], 64), "assignment": labels,
+              "values": {"object_axis_mm": value}},
+             {"axis": 2, "num_envs": 64, "num_blocks": 1,
+              "steps": np.repeat([50], 64), "assignment": labels,
+              "values": {"object_axis_mm": value}}]
+    result = pooled(parts, "object_axis_mm", 100, 2)
+    assert result["interaction"]["point"] == 6
