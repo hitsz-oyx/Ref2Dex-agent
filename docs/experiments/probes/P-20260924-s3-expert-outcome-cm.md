@@ -42,4 +42,23 @@ first episodes or feature alignment failure. No official actor participates.
 
 ## Results
 
-Pending.
+All 15 expert × seed evaluations completed, with exactly aligned initial
+observations, hand/object states, motion IDs and start frames across the
+three expert candidates for each seed. The 3×3×64 fit and 3×2×64 heldout
+records were finite. The heldout best fixed expert (back260) achieved
+**90/128**. A shadow router selecting among separately evaluated candidate
+outcomes gave **103/128** for action-aware Cm, **101/128** for the same
+state-plus-expert head without action, and **101/128** for action-shuffled
+training. Heldout episode-level success AUC was **0.7539**, **0.7568** and
+**0.7419**, respectively. Action-aware AUC did not beat the no-action head,
+and its two-success shadow-routing edge over no-action is far below the
+predeclared action-information gate. Status: `UNPROMISING` for *initial-action*
+expert outcome Cm. The shadow routing calculation reuses independently
+simulated candidate outcomes; no online selector ran. This does not rule out
+history- or sequence-conditioned Cm. Source hashes, alignment checks,
+models and report are under
+`outputs/CmResidual/agent_s3_expert_outcome_cm_s301_305/`.
+
+Decision: do not run an online route or tune this model on seeds304/305.
+Focus the next baseline Probe on whether reference trajectory control can
+create supervised physical grasp data for the converted multi-object pool.
