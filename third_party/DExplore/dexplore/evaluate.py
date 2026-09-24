@@ -210,6 +210,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     selector_histogram += torch.bincount(selected_id[active], minlength=5)
                     selector_override_steps += (selected_id.ne(0) & active).long()
                 q_before = task._dof_pos.clone()
+                dof_vel_before = task._dof_vel.clone()
                 object_before = task._target_states.clone()
                 progress_before = task.progress_buf.clone()
                 data_id_before = task.data_id.clone()
@@ -236,7 +237,8 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                 max_lift_contact_run = torch.maximum(max_lift_contact_run, lift_contact_run)
                 lift_success |= lift_contact_run >= 5
                 self._record_transition(
-                    q=q_before, action=action, object_state=object_before,
+                    q=q_before, dof_vel=dof_vel_before, action=action,
+                    object_state=object_before,
                     next_q=task._dof_pos, next_object_state=task._target_states,
                     hand_contact=hand_contact[:, None], object_contact=object_contact[:, None],
                     done=done.bool()[:, None], progress=progress_before[:, None],
