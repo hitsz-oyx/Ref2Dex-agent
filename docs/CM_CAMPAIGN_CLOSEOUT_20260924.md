@@ -3,6 +3,7 @@
 Branch: `agent/cm-cross-object`. Decision:
 `docs/decisions/D-20260924-after-task-aligned-option.md`，用户选择 Option A。
 本阶段停止新增计算；既有运行目录、checkpoint 与报告保留。
+状态：阶段收尾与本地 Git checkpoint 已完成，当前无活跃实验。
 
 ## 当前能陈述的结果
 

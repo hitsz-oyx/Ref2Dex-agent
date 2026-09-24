@@ -49,7 +49,8 @@ PPO 接法均未给出稳定 policy utility。若未来重启，候选方向是�
 
 ## 下一步
 
-按已选 Option A 完成现有报告和产物的复现边界核验，保存本地 Git
-checkpoint，不启动新计算。若要改为高成本时序新架构，先依
-[Decision Memo](decisions/D-20260924-after-task-aligned-option.md) 重新作路线决定。
-未来论文需要但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
+本阶段收尾核验及本地 Git checkpoint 已完成；当前没有活跃实验，
+不启动新训练、仿真或 Probe。若未来决定重启高成本时序新架构，
+先依 [Decision Memo](decisions/D-20260924-after-task-aligned-option.md)
+重新作路线决定，并为新路线设定最小判别门。未来论文需要但当前
+不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
