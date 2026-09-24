@@ -45,11 +45,29 @@ GPU conflict, lost provenance or budget overrun.
 
 ## Result
 
+Status: `UNPROMISING` for this short, self-trained multi-object adaptation
+recipe; not a rejection of object-disjoint learning or Cm.
+
 The official physical feasibility gate passed on 64 episodes: mug 22/22,
 toothpaste 21/21, airplane 19/21. The official checkpoint remains diagnostic
 only. Frozen self-trained source e260 on the same three-motion root gave
 mug 12/22, toothpaste 2/21, airplane 15/21, overall 29/64. On the held-out
-apple it previously gave 3/64. Thus the training split has learnable but
-heterogeneous starting performance; multi-object PPO is the decision run.
-A single seed and one held-out object can only be `PROMISING`,
-`UNPROMISING` or `UNCLEAR`, never proof of cross-object policy or Cm utility.
+apple it previously gave 3/64. The one-GPU e260→e320 Cm-off run
+`agent_crossobject_train3_s179_e320` completed in ~6 minutes from the
+SHA-pinned self-trained source checkpoint. Evaluated with the *same* seeds
+as the frozen source: train mug 12/22→16/22, toothpaste 2/21→3/21,
+airplane 15/21→9/21 (total 29/64→28/64); held-out apple 3/64→4/64.
+Apple mean hand-object contact fraction fell from .684 to .266. The
+predefined apple gate of >=15/64 and >=+10/64 was not met. Do not extend
+epochs on this fixed recipe as though reward could establish Cm utility.
+
+The next cheapest discriminating question is whether an object-conditioned
+Cm can learn action effects from physical transitions on the three training
+objects and transfer to apple. The frozen source actor, rather than this
+degraded adapted actor, has adequate contact on both train and held-out
+objects for that randomized-data Probe. This is a new Cm information question,
+not a positive PPO result.
+
+Artifacts: `outputs/Dexplore/agent_crossobject_train3_s179_e320/` contains
+the training manifest, e280/e300/e320 checkpoints, strict per-episode
+evaluations and 27.9/12.6 MB train/held-out transition exports.

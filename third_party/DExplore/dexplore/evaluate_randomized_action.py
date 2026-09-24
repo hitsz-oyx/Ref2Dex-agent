@@ -22,6 +22,7 @@ from src.task.CmResidual.randomized_action import (
     balanced_assignment, balanced_axis_assignment, balanced_three_arm_assignment,
     execute_signed_axis_dose, execute_sequence_axis_dose, execute_crossaxis_primer,
 )
+from src.task.CmResidual.randomized_source import validate as validate_object_split_source
 
 
 original = pinned.original
@@ -219,6 +220,10 @@ def main():
                         help="randomize one wrist axis for exactly 1 or 2 steps")
     parser.add_argument("--cross-axis-primer", action="store_true",
                         help="randomize x primer before common z+ action")
+    parser.add_argument("--source-checkpoint-sha256")
+    parser.add_argument("--source-motion-manifest", type=Path)
+    parser.add_argument("--source-motion-manifest-sha256")
+    parser.add_argument("--source-partition", choices=("train", "heldout"))
     args, remaining = parser.parse_known_args()
     if (args.intervention_output.exists() or
             args.intervention_output.with_suffix(".json").exists() or
@@ -243,11 +248,27 @@ def main():
         raise ValueError("invalid randomized intervention design or existing output")
     checkpoint = Path(pinned.argument_value(remaining, "--checkpoint")).resolve()
     motion_root = Path(pinned.argument_value(remaining, "--motion_file")).resolve()
-    if (checkpoint != pinned.CHECKPOINT.resolve() or
-            pinned.sha256(checkpoint) != pinned.CHECKPOINT_SHA256 or
-            motion_root != pinned.MOTION_ROOT.resolve() or
-            pinned.sha256(pinned.MOTION_MANIFEST) != pinned.MOTION_MANIFEST_SHA256):
-        raise ValueError("pinned self-trained actor or motion source drift")
+    source_overrides = (args.source_checkpoint_sha256,
+                        args.source_motion_manifest,
+                        args.source_motion_manifest_sha256,
+                        args.source_partition)
+    if any(value is not None for value in source_overrides):
+        if not all(value is not None for value in source_overrides):
+            raise ValueError("cross-object source overrides must be supplied together")
+        source = validate_object_split_source(
+            checkpoint=checkpoint, checkpoint_sha256=args.source_checkpoint_sha256,
+            motion_root=motion_root, manifest_path=args.source_motion_manifest,
+            manifest_sha256=args.source_motion_manifest_sha256,
+            partition=args.source_partition)
+    else:
+        if (checkpoint != pinned.CHECKPOINT.resolve() or
+                pinned.sha256(checkpoint) != pinned.CHECKPOINT_SHA256 or
+                motion_root != pinned.MOTION_ROOT.resolve() or
+                pinned.sha256(pinned.MOTION_MANIFEST) != pinned.MOTION_MANIFEST_SHA256):
+            raise ValueError("pinned self-trained actor or motion source drift")
+        source = {"checkpoint_sha256": pinned.CHECKPOINT_SHA256,
+                  "motion_manifest_sha256": pinned.MOTION_MANIFEST_SHA256,
+                  "partition": None, "objects": ["airplane"]}
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
     if not visible.isdigit():
         raise RuntimeError("one explicit physical CUDA_VISIBLE_DEVICES index required")
@@ -285,8 +306,10 @@ def main():
         "crossaxis_primer": args.cross_axis_primer,
         "followup_horizon": args.followup_horizon,
         "assignment_seed": args.assignment_seed,
-        "checkpoint_sha256": pinned.CHECKPOINT_SHA256,
-        "motion_manifest_sha256": pinned.MOTION_MANIFEST_SHA256,
+        "checkpoint_sha256": source["checkpoint_sha256"],
+        "motion_manifest_sha256": source["motion_manifest_sha256"],
+        "source_partition": source["partition"],
+        "source_objects": source["objects"],
         "wall_budget_minutes": 30, "output_budget_mb": 100,
         "stop_rule": "input drift, GPU conflict, non-finite state or wall budget",
         "command": [sys.executable, *sys.argv],
