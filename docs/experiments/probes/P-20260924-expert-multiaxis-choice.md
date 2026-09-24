@@ -32,4 +32,32 @@ action horizon or data distribution. No PPO run on this result alone.
 
 ## Result
 
-Pending.
+Status: `UNPROMISING` for fixed small wrist-action ranking at a ten-step
+closed-loop horizon. The 128-env source run
+`agent_expert_multiaxis_train_s188_h10_n128` completed, pinning official
+collector and split hashes and verifying all 2,021 selected executed doses.
+Every object/arm had >=92 treated rows and all 16 intervention steps.
+Ten-step contact stayed ~0.99-1.00, so loss of contact was not the
+discriminator on this expert-state distribution.
+
+The globally best signed arm in this exploratory sample was x+.
+Airplane's best was also x+; mug's x- exceeded x+ by only +2.03 mm;
+toothpaste's z- exceeded x+ by +9.95 mm. Only one, not two, objects met
+the predeclared >=5 mm distinct-best margin. Do not replicate or fit Cm to
+this six-arm ranking as if it were a robust choice problem. Because best
+arms were selected and evaluated in the same sample, even these margins
+are optimistic.
+
+An offline horizon diagnostic on the same complete run showed the
+contact-supported randomized z+ minus z- effect at one step to be
++19.58 mm for airplane (environment-cluster 95% CI [+16.30,+22.85]),
++30.11 mm for mug ([+27.27,+33.41]), and +30.03 mm for toothpaste
+([+25.57,+34.18]). At ten steps it was -12.09 mm
+([-27.36,+1.20]), +9.84 mm ([-12.62,+32.65]), and -8.80 mm
+([-42.93,+23.63]), respectively. Thus an immediate positive physical
+effect is reliable, but it is not a reliable proxy for the subsequent
+actor-closed-loop lift outcome. The ten-step contrasts are noisy and do
+not establish a sign reversal as a formal conclusion. The next route
+should target policy-closed-loop grasp retention/progress and capture
+pre-contact as well as contact states; further one-step wrist-z network
+tuning would not address this horizon problem.

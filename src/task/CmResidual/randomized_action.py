@@ -90,6 +90,27 @@ def execute_finger_synergy_dose(action: torch.Tensor, assignment: torch.Tensor,
     return executed
 
 
+def execute_finger_primer_lift(action: torch.Tensor, assignment: torch.Tensor,
+                               *, finger_delta: float, lift_delta: float,
+                               second: bool = False) -> torch.Tensor:
+    """Randomized finger close/open primer, then common wrist-z lift."""
+    if (action.ndim != 2 or action.shape[1] != 18 or
+            assignment.shape != (len(action),) or
+            not 0 < finger_delta <= .5 or not 0 < lift_delta <= .5 or
+            not torch.isfinite(action).all() or
+            not torch.isin(assignment, torch.tensor([-1, 0, 1],
+                                                   device=assignment.device)).all()):
+        raise ValueError("invalid finger-primer lift input")
+    if not second:
+        return execute_finger_synergy_dose(action, assignment, finger_delta)
+    executed = action.detach().clone()
+    chosen = assignment != 0
+    executed[chosen, 2] += lift_delta
+    if (executed[chosen, 2].abs() > 1 + 1e-6).any():
+        raise ValueError("finger-primer lift dose would clip")
+    return executed
+
+
 def execute_sequence_axis_dose(action: torch.Tensor, assignment: torch.Tensor,
                                delta: float, axis: int, *, second: bool = False) -> torch.Tensor:
     """Apply one-axis dose for randomized ±1 (one step) / ±2 (two steps)."""

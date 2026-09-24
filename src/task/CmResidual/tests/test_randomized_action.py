@@ -4,7 +4,8 @@ import torch
 
 from src.task.CmResidual.randomized_action import (
     FINGER_SYNERGY_INDICES, balanced_assignment, balanced_axis_assignment,
-    execute_finger_synergy_dose, execute_signed_axis_dose,
+    execute_finger_synergy_dose, execute_finger_primer_lift,
+    execute_signed_axis_dose,
 )
 
 
@@ -61,3 +62,19 @@ def test_finger_synergy_changes_only_five_flexion_commands():
     import pytest
     with pytest.raises(ValueError, match="clip"):
         execute_finger_synergy_dose(action, assignment, .2)
+
+
+def test_finger_primer_then_common_lift_exact_doses():
+    action = torch.zeros(3, 18)
+    assignment = torch.tensor([1, -1, 0], dtype=torch.int8)
+    first = execute_finger_primer_lift(action, assignment,
+                                       finger_delta=.2, lift_delta=.1)
+    second = execute_finger_primer_lift(action, assignment,
+                                        finger_delta=.2, lift_delta=.1,
+                                        second=True)
+    assert torch.allclose(first[0, list(FINGER_SYNERGY_INDICES)],
+                          torch.full((5,), .2))
+    assert torch.allclose(first[1, list(FINGER_SYNERGY_INDICES)],
+                          torch.full((5,), -.2))
+    assert torch.allclose(second[:, 2], torch.tensor([.1, .1, 0.]))
+    assert (second[:, list(FINGER_SYNERGY_INDICES)] == 0).all()
