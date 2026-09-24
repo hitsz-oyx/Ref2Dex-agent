@@ -67,6 +67,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="DExplore environment config, relative to the vendor root")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
+    parser.add_argument("--initial-features", action="store_true",
+                        help="save first pre-action observation/action with episode outcome")
     parser.add_argument("--contact-topology", action="store_true",
                         help="append configured hand-link force magnitudes to transitions")
     parser.add_argument("--dry-run", action="store_true")
@@ -129,8 +131,11 @@ def main(argv: list[str] | None = None) -> int:
                    "--num_envs", str(num_envs), "--seed", str(args.seed),
                    "--output", str(output / "results.json")]
         transition_output = output / "transitions.pt" if args.save_transitions else None
+        initial_feature_output = output / "initial_features.pt" if args.initial_features else None
         if transition_output is not None:
             command += ["--transition-output", str(transition_output)]
+        if initial_feature_output is not None:
+            command += ["--initial-feature-output", str(initial_feature_output)]
         if args.contact_topology:
             command += ["--contact-topology"]
         if selector:
@@ -153,6 +158,8 @@ def main(argv: list[str] | None = None) -> int:
                  "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
                  "reference_action_lead": args.reference_action_lead,
                  "transition_output": str(transition_output) if transition_output else None,
+                 "initial_feature_output": str(initial_feature_output)
+                 if initial_feature_output else None,
                  "cfg_env": args.cfg_env,
                  "contact_topology": args.contact_topology,
                  "command": command}

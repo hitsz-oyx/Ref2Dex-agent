@@ -22,6 +22,12 @@ Updated: 2026-09-24
 | Cm policy utility | **尚未证明**。effect-rank 正式 Validation 的联合正向主张 `REFUTED`；其他已测试接法的 Probe 未建立跨训练 seed 的稳定 matched 增益。 |
 | Generalization | 自训练策略对未见物体的持握抬升弱，未见物体上的 Cm 策略收益未建立。 |
 
+新增 12 条校正轨迹、9 个物体身份的 Cm-off 单策略续训 Probe：e300 在
+两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
+仍为零。四个已有自训练 checkpoint 的最优单模型仅 21/128，按物体
+事后挑选的乐观上限 32/128。详见
+[实验卡](experiments/probes/P-20260924-multitrajectory-baseline.md)。
+
 ## 决定下一步的事实
 
 - V1.28 的 307/320 是固定路由系统结果。路由中的 PPO 专家使用过
@@ -45,10 +51,12 @@ Updated: 2026-09-24
 动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
 PPO 接法均未给出稳定 policy utility。活跃 Probe 是先建立
 [12 轨迹 baseline](experiments/probes/P-20260924-multitrajectory-baseline.md)，
-再针对接触至承重的时序信息设计 matched Cm-on/off/placebo Probe。
+再回到成功的单物体专家候选，针对接触至承重的时序信息设计
+matched Cm-on/off/placebo Probe。
 
 ## 下一步
 
-运行 12 轨迹 self-trained Cm-off 续训并逐轨迹评估；依据覆盖情况决定
-扩展数据、修正训练分配，或进入 matched Cm 机制 Probe。未来论文需要
+12 轨迹 Probe 已表明当前共享 actor 与候选组合覆盖不足；转向已具
+物理抓取机会的单物体专家候选，先判别 Cm 能否预测整段候选策略的
+接触承重结果，再决定是否进行在线 matched Probe。未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。

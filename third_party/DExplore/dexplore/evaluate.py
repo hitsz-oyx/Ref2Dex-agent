@@ -54,6 +54,8 @@ def parse_eval_args():
     parser.add_argument('--visualize-success-loop', action='store_true')
     parser.add_argument('--render-sleep', type=float, default=0.01)
     parser.add_argument('--transition-output', type=str)
+    parser.add_argument('--initial-feature-output', type=str,
+                        help='save first pre-action observation, state and action per environment')
     parser.add_argument('--contact-topology', action='store_true',
                         help='append configured hand-link force magnitudes to transition export')
     parser.add_argument('--reference-action-lead', type=int)
@@ -79,6 +81,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         self.visualize_render_sleep = 0.01
         self._focused_success_env = None
         self.transition_output = None
+        self.initial_feature_output = None
         self.contact_topology = False
         self.reference_action_lead = None
         self.disable_early_termination = False
@@ -182,6 +185,7 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
             max_lift_contact_run = torch.zeros(batch_size, dtype=torch.long, device=self.device)
             lift_success = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
             recorded_env = torch.zeros(batch_size, dtype=torch.bool, device=self.device)
+            initial_features = None
 
             done_indices = []
 
@@ -212,6 +216,15 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
                     active = ~recorded_env
                     selector_histogram += torch.bincount(selected_id[active], minlength=5)
                     selector_override_steps += (selected_id.ne(0) & active).long()
+                if self.initial_feature_output is not None and initial_features is None:
+                    initial_features = {
+                        'observation': obs_dict['obs'].detach().cpu().clone(),
+                        'q': task._dof_pos.detach().cpu().clone(),
+                        'object_state': task._target_states.detach().cpu().clone(),
+                        'action': action.detach().cpu().clone(),
+                        'motion_id': task.data_id.detach().cpu().clone(),
+                        'start_frame': task.start_times.detach().cpu().clone(),
+                    }
                 q_before = task._dof_pos.clone()
                 dof_vel_before = task._dof_vel.clone()
                 object_before = task._target_states.clone()
@@ -335,6 +348,26 @@ class EvalPlayer(dexplore_players.DexplorePlayerContinuous):
         # Batched environments may finish several episodes on the step that
         # crosses n_games.  Keep the requested evaluation budget exact.
         self.episode_results = self.episode_results[:n_games]
+        if self.initial_feature_output is not None:
+            if initial_features is None or len(self.episode_results) != batch_size:
+                raise ValueError('initial-feature export requires one complete episode per environment')
+            initial_features['lift_success'] = torch.tensor(
+                [next(row['lift_success'] for row in self.episode_results
+                      if row['env_id'] == i) for i in range(batch_size)], dtype=torch.bool)
+            initial_features['max_contact_lift_m'] = torch.tensor(
+                [next(row['max_contact_lift_m'] for row in self.episode_results
+                      if row['env_id'] == i) for i in range(batch_size)], dtype=torch.float32)
+            initial_features['contact_fraction'] = torch.tensor(
+                [next(row['hand_object_contact_fraction'] for row in self.episode_results
+                      if row['env_id'] == i) for i in range(batch_size)], dtype=torch.float32)
+            initial_features['schema'] = 'ref2dex.initial_grasp_candidate.v1'
+            output = os.path.abspath(self.initial_feature_output)
+            os.makedirs(os.path.dirname(output), exist_ok=True)
+            torch.save(initial_features, output)
+            print('REF2DEX_INITIAL_FEATURES ' + json.dumps({
+                'output': output, 'environments': batch_size,
+                'observation_dim': initial_features['observation'].shape[-1],
+            }, sort_keys=True), flush=True)
 
         # Print and save results at end of run
         if self.episode_results:
@@ -464,6 +497,7 @@ def main():
         p.visualize_success_loop = eval_args.visualize_success_loop
         p.visualize_render_sleep = eval_args.render_sleep
         p.transition_output = eval_args.transition_output
+        p.initial_feature_output = eval_args.initial_feature_output
         p.contact_topology = eval_args.contact_topology
         p.reference_action_lead = eval_args.reference_action_lead
         p.disable_early_termination = eval_args.disable_early_termination

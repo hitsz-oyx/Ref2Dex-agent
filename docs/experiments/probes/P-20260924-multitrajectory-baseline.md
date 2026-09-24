@@ -59,3 +59,22 @@ shuffled-Cm routers with the exact same expert portfolio. If portfolio
 coverage remains narrow, focus on baseline training/curriculum before a
 new online Cm policy attachment. These choices are autonomous under the
 user's 2026-09-24 Probe authorization.
+
+### Portfolio check
+
+The fixed train5 e320/e360 checkpoints were evaluated on the same 12 motions
+and seeds201/202, with no new training. Totals were e320 **18/128** and e360
+**21/128**. Across four self-trained actors (e260, mixed12 e300, train5 e320,
+balanced e360), the best per-object count chosen *after seeing both evaluation
+seeds* is 32/128, an optimistic oracle upper bound. At least 3 successes on
+an identity occurred only for airplane, mug and toothpaste; apple, phone and
+waterbottle stayed 0/10 under every actor. A simple object router selected on
+seed201 and tested on seed202 scored 12/64; reversing the seeds also scored
+12/64. This is only 24/128 versus the best single actor's 21/128 and does
+not warrant a new Cm router over these four weak, largely object-specialized
+policies. The original "positive on four identities" criterion was too weak
+because it counted isolated 1/10 events; the actual per-object record shows
+the limit. This route is `UNPROMISING` for broad multi-object grasp or a
+high-value Cm candidate portfolio. Preserve the portfolio results as a
+diagnostic, and use the already successful single-object expert portfolio
+as the next Cm decision substrate.
