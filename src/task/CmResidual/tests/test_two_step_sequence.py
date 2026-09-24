@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from src.task.CmResidual.randomized_action import (
-    balanced_axis_assignment, execute_sequence_x_dose,
+    balanced_axis_assignment, execute_sequence_axis_dose, execute_sequence_x_dose,
 )
 from src.task.CmResidual.tools.analyze_two_step_sequence import contrasts
 
@@ -22,6 +22,9 @@ def test_sequence_dose_is_exact_and_only_long_arm_repeats():
     near_limit[0, 0] = -.95
     with pytest.raises(ValueError, match="clip"):
         execute_sequence_x_dose(near_limit, assignment, .1, second=True)
+    z_second = execute_sequence_axis_dose(action, assignment, .1, 2, second=True)
+    torch.testing.assert_close(z_second[:, 2], torch.tensor([-.1, 0, 0, 0, .1]))
+    assert torch.all(z_second[:, :2] == 0)
 
 
 def test_four_sequence_cells_balance_and_interaction():

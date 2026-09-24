@@ -27,12 +27,13 @@ def load_run(path: Path, num_envs: int) -> dict:
     payload = torch.load(path, map_location="cpu", weights_only=False)
     if (payload.get("schema") != "ref2dex.randomized_sequence_h10.v1" or
             payload.get("run_status") != "COMPLETED" or
-            payload.get("intervention_axes") != [0] or
+            payload.get("intervention_axes") not in ([0], [2]) or
             payload.get("sequence_lengths") != [1, 2] or
             payload.get("followup_horizon") != 10 or
             abs(payload.get("delta_z_action", 0) - .1) > 1e-8):
         raise ValueError("sequence transition contract mismatch")
     rows = payload["records"]
+    axis = payload["intervention_axes"][0]
     assignment = rows["assignment"].numpy()
     steps = rows["global_step"].numpy()
     unique_steps = np.unique(steps)
@@ -44,8 +45,8 @@ def load_run(path: Path, num_envs: int) -> dict:
     first = rows["executed_action"] - rows["base_action"]
     second = rows["second_executed_action"] - rows["second_base_action"]
     expected_first, expected_second = torch.zeros_like(first), torch.zeros_like(second)
-    expected_first[:, 0] = rows["assignment"].sign().float() * .1
-    expected_second[:, 0] = (rows["assignment"].abs() == 2).float() * (
+    expected_first[:, axis] = rows["assignment"].sign().float() * .1
+    expected_second[:, axis] = (rows["assignment"].abs() == 2).float() * (
         rows["assignment"].sign().float() * .1)
     if (not torch.allclose(first, expected_first, atol=1e-5) or
             not torch.allclose(second, expected_second, atol=1e-5)):
@@ -57,13 +58,16 @@ def load_run(path: Path, num_envs: int) -> dict:
             raise ValueError("unbalanced sequence allocation")
     current = rows["object_state"].numpy()
     followup = rows["followup_object_state"].numpy()
-    values = {"object_x_mm": (followup[:, 0] - current[:, 0]) * 1000,
+    values = {"object_axis_mm": (followup[:, axis] - current[:, axis]) * 1000,
               "contact_fraction_pp": rows["followup_contact_count"].numpy() * 10,
               "final_contact_pp": rows["followup_contact"].numpy() * 100}
+    if axis == 0:
+        values["object_x_mm"] = values["object_axis_mm"]
     if not all(np.isfinite(value).all() for value in values.values()):
         raise FloatingPointError("non-finite sequence outcome")
     return {"assignment": assignment, "steps": steps, "values": values,
-            "num_envs": num_envs, "num_blocks": len(unique_steps), "path": str(path)}
+            "num_envs": num_envs, "num_blocks": len(unique_steps),
+            "axis": axis, "path": str(path)}
 
 
 def contrasts(value: np.ndarray, assignment: np.ndarray, steps: np.ndarray) -> dict:
@@ -140,7 +144,8 @@ def main() -> None:
     try:
         report = {"schema": "ref2dex.two_step_sequence_effect.v1",
                   "classification": "Probe", "input": str(args.input),
-                  "object_x_mm": bootstrap(part, "object_x_mm", args.bootstraps, 241131),
+                  "axis": part["axis"],
+                  "object_axis_mm": bootstrap(part, "object_axis_mm", args.bootstraps, 241131),
                   "contact_fraction_pp": bootstrap(part, "contact_fraction_pp",
                                                    args.bootstraps, 241132),
                   "final_contact_pp": bootstrap(part, "final_contact_pp",
@@ -149,7 +154,7 @@ def main() -> None:
         args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
         manifest.update(run_status="COMPLETED", report_sha256=sha256(args.output))
         print(json.dumps({"run_status": "COMPLETED",
-                          "interaction_x_mm": report["object_x_mm"]["interaction"],
+                          "interaction_axis_mm": report["object_axis_mm"]["interaction"],
                           "contact_two_minus_one_pp": report["contact_fraction_pp"][
                               "two_minus_one_contact"]}, sort_keys=True), flush=True)
     except BaseException as error:

@@ -20,7 +20,7 @@ import torch
 import evaluate_paired as pinned
 from src.task.CmResidual.randomized_action import (
     balanced_assignment, balanced_axis_assignment, execute_signed_axis_dose,
-    execute_sequence_x_dose,
+    execute_sequence_axis_dose,
 )
 
 
@@ -63,7 +63,8 @@ class RandomizedPlayer(BASE_PLAYER):
                 assignment = balanced_assignment(valid, self.probe_generator)
             executed = action.detach().clone()
             if sequence:
-                executed = execute_sequence_x_dose(action, assignment, CONFIG["delta_z"])
+                executed = execute_sequence_axis_dose(
+                    action, assignment, CONFIG["delta_z"], CONFIG["axes"][0])
             elif multiaxis:
                 executed = execute_signed_axis_dose(action, assignment,
                                                     tuple(CONFIG["axes"]), CONFIG["delta_z"])
@@ -107,8 +108,8 @@ class RandomizedPlayer(BASE_PLAYER):
             }, sort_keys=True), flush=True)
         elif self.sequence_pending is not None and self.probe_step == self.sequence_pending[0] + 1:
             _, assignment, record = self.sequence_pending
-            executed = execute_sequence_x_dose(action, assignment, CONFIG["delta_z"],
-                                               second=True)
+            executed = execute_sequence_axis_dose(
+                action, assignment, CONFIG["delta_z"], CONFIG["axes"][0], second=True)
             record["second_base_action"] = action.detach().clone()
             record["second_executed_action"] = executed.clone()
             result = BASE_PLAYER.env_step(self, env, executed)
@@ -203,7 +204,7 @@ def main():
     parser.add_argument("--assignment-seed", type=int, default=20260924)
     parser.add_argument("--followup-horizon", type=int, default=0)
     parser.add_argument("--sequence-lengths", type=int, nargs=2,
-                        help="randomize wrist-x doses for exactly 1 or 2 steps")
+                        help="randomize one wrist axis for exactly 1 or 2 steps")
     args, remaining = parser.parse_known_args()
     if (args.intervention_output.exists() or
             args.intervention_output.with_suffix(".json").exists() or
@@ -216,7 +217,7 @@ def main():
              args.sequence_lengths is None) or
             (len(args.intervention_axes) > 1 and not args.followup_horizon) or
             (args.sequence_lengths is not None and (
-                args.sequence_lengths != [1, 2] or args.intervention_axes != [0] or
+                args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
             (args.intervention_axes == [0] and args.sequence_lengths is None) or
             not 0 <= args.followup_horizon <= 10 or
