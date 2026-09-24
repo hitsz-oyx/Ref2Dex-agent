@@ -3,7 +3,8 @@ from __future__ import annotations
 import torch
 
 from src.task.CmResidual.randomized_action import (
-    balanced_assignment, balanced_axis_assignment, execute_signed_axis_dose,
+    FINGER_SYNERGY_INDICES, balanced_assignment, balanced_axis_assignment,
+    execute_finger_synergy_dose, execute_signed_axis_dose,
 )
 
 
@@ -46,3 +47,17 @@ def test_multiaxis_dose_changes_exactly_one_unclipped_axis():
     import pytest
     with pytest.raises(ValueError, match="clip"):
         execute_signed_axis_dose(action, assignment, (0, 1, 2), .1)
+
+
+def test_finger_synergy_changes_only_five_flexion_commands():
+    action = torch.zeros(3, 18)
+    assignment = torch.tensor([1, -1, 0], dtype=torch.int8)
+    actual = execute_finger_synergy_dose(action, assignment, .2)
+    expected = torch.zeros_like(action)
+    expected[0, list(FINGER_SYNERGY_INDICES)] = .2
+    expected[1, list(FINGER_SYNERGY_INDICES)] = -.2
+    torch.testing.assert_close(actual, expected)
+    action[0, 6] = .9
+    import pytest
+    with pytest.raises(ValueError, match="clip"):
+        execute_finger_synergy_dose(action, assignment, .2)

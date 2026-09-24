@@ -4,6 +4,9 @@ from __future__ import annotations
 import torch
 
 
+FINGER_SYNERGY_INDICES = (6, 8, 10, 12, 15)
+
+
 def balanced_assignment(mask: torch.Tensor, generator: torch.Generator) -> torch.Tensor:
     if mask.ndim != 1 or mask.dtype != torch.bool:
         raise ValueError("mask must be a one-dimensional boolean tensor")
@@ -66,6 +69,24 @@ def execute_signed_axis_dose(action: torch.Tensor, assignment: torch.Tensor,
         executed[chosen, axis] += delta * assignment[chosen].sign()
         if (executed[chosen, axis].abs() > 1 + 1e-6).any():
             raise ValueError("axis dose would clip")
+    return executed
+
+
+def execute_finger_synergy_dose(action: torch.Tensor, assignment: torch.Tensor,
+                                delta: float) -> torch.Tensor:
+    """Apply one signed flexion dose to five independent Inspire fingers."""
+    if (action.ndim != 2 or action.shape[1] != 18 or
+            assignment.shape != (len(action),) or
+            not 0 < delta <= .5 or not torch.isfinite(action).all() or
+            not torch.isin(assignment, torch.tensor([-1, 0, 1],
+                                                    device=assignment.device)).all()):
+        raise ValueError("invalid finger-synergy dose input")
+    executed = action.detach().clone()
+    chosen = assignment != 0
+    indices = list(FINGER_SYNERGY_INDICES)
+    executed[:, indices] += assignment[:, None].to(action.dtype) * delta
+    if (executed[chosen][:, indices].abs() > 1 + 1e-6).any():
+        raise ValueError("finger synergy dose would clip")
     return executed
 
 

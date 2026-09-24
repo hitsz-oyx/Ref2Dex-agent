@@ -19,7 +19,8 @@ import torch
 
 import evaluate_paired as pinned
 from src.task.CmResidual.randomized_action import (
-    balanced_assignment, balanced_axis_assignment, balanced_three_arm_assignment,
+    FINGER_SYNERGY_INDICES, balanced_assignment, balanced_axis_assignment,
+    balanced_three_arm_assignment, execute_finger_synergy_dose,
     execute_signed_axis_dose, execute_sequence_axis_dose, execute_crossaxis_primer,
 )
 from src.task.CmResidual.randomized_source import validate as validate_object_split_source
@@ -57,7 +58,12 @@ class RandomizedPlayer(BASE_PLAYER):
             multiaxis = len(CONFIG["axes"]) > 1
             sequence = CONFIG["sequence_lengths"]
             crossaxis = CONFIG["crossaxis_primer"]
-            if multiaxis or sequence or crossaxis:
+            finger = CONFIG["finger_synergy"]
+            if finger:
+                valid &= (action[:, list(FINGER_SYNERGY_INDICES)].abs() <=
+                          1 - CONFIG["delta_z"]).all(-1)
+                assignment = balanced_assignment(valid, self.probe_generator)
+            elif multiaxis or sequence or crossaxis:
                 valid &= (action[:, CONFIG["axes"]].abs() <= 1 - CONFIG["delta_z"]).all(-1)
                 assignment = (balanced_three_arm_assignment(valid, self.probe_generator)
                               if crossaxis else balanced_axis_assignment(
@@ -66,7 +72,10 @@ class RandomizedPlayer(BASE_PLAYER):
             else:
                 assignment = balanced_assignment(valid, self.probe_generator)
             executed = action.detach().clone()
-            if crossaxis:
+            if finger:
+                executed = execute_finger_synergy_dose(action, assignment,
+                                                       CONFIG["delta_z"])
+            elif crossaxis:
                 executed = execute_crossaxis_primer(action, assignment, CONFIG["delta_z"])
             elif sequence:
                 executed = execute_sequence_axis_dose(
@@ -95,6 +104,8 @@ class RandomizedPlayer(BASE_PLAYER):
             if CONFIG["followup_horizon"]:
                 before["next_contact"] = self._contact(task).clone()
                 before["followup_contact_count"] = torch.zeros_like(task.progress_buf)
+                if finger:
+                    before["followup_alive"] = torch.ones_like(pre_contact)
                 self.followup_pending.append((self.probe_step, before))
             if sequence or crossaxis:
                 self.sequence_pending = (self.probe_step, assignment, before)
@@ -106,11 +117,13 @@ class RandomizedPlayer(BASE_PLAYER):
                 "step": self.probe_step, "selected": int(valid.sum()),
                 "plus": int((assignment > 0).sum()),
                 "minus": int((assignment < 0).sum()),
-                "axis_counts": {str(axis if not sequence else code):
+                "axis_counts": ({"finger_synergy": [int((assignment == 1).sum()),
+                                                   int((assignment == -1).sum())]}
+                                if finger else {str(axis if not sequence else code):
                                 [int((assignment == code).sum()),
                                             int((assignment == -code).sum())]
                                 for code, axis in enumerate(
-                                    (1, 2) if sequence else CONFIG["axes"], 1)},
+                                    (1, 2) if sequence else CONFIG["axes"], 1)}),
             }, sort_keys=True), flush=True)
         elif self.sequence_pending is not None and self.probe_step == self.sequence_pending[0] + 1:
             _, assignment, record = self.sequence_pending
@@ -130,7 +143,15 @@ class RandomizedPlayer(BASE_PLAYER):
             contact = self._contact(task)
             remaining = []
             for started, record in self.followup_pending:
-                record["followup_contact_count"] += contact.long()
+                if CONFIG["finger_synergy"]:
+                    elapsed = self.probe_step - started + 1
+                    record["followup_alive"] &= (
+                        (task.reset_buf.reshape(-1) == 0) &
+                        (task.progress_buf == record["progress"] + elapsed))
+                    record["followup_contact_count"] += (
+                        contact & record["followup_alive"]).long()
+                else:
+                    record["followup_contact_count"] += contact.long()
                 if self.probe_step - started + 1 == CONFIG["followup_horizon"]:
                     record.update(
                         followup_object_state=task._target_states.clone(),
@@ -170,7 +191,9 @@ class RandomizedPlayer(BASE_PLAYER):
                            for key in keys}
             else:
                 records = {}
-            schema = ("ref2dex.crossaxis_primer_h10.v1"
+            schema = ("ref2dex.randomized_finger_followup.v1"
+                      if CONFIG["finger_synergy"] else
+                      "ref2dex.crossaxis_primer_h10.v1"
                       if CONFIG["crossaxis_primer"] else
                       "ref2dex.randomized_sequence_h10.v1"
                       if CONFIG["sequence_lengths"] else
@@ -183,6 +206,9 @@ class RandomizedPlayer(BASE_PLAYER):
                         "run_status": status, "failure": self.probe_error,
                         "assignment_seed": CONFIG["assignment_seed"],
                         "delta_z_action": CONFIG["delta_z"],
+                        "finger_synergy": CONFIG["finger_synergy"],
+                        "finger_indices": list(FINGER_SYNERGY_INDICES)
+                        if CONFIG["finger_synergy"] else None,
                         "intervention_axes": CONFIG["axes"],
                         "sequence_lengths": CONFIG["sequence_lengths"],
                         "crossaxis_primer": CONFIG["crossaxis_primer"],
@@ -193,11 +219,14 @@ class RandomizedPlayer(BASE_PLAYER):
                 "run_status": status, "steps_collected": len(self.probe_records),
                 "rows": len(selected), "plus": int((selected > 0).sum()),
                 "minus": int((selected < 0).sum()),
-                "axis_counts": {str(axis if not CONFIG["sequence_lengths"] else code):
+                "axis_counts": ({"finger_synergy": [int((selected == 1).sum()),
+                                                   int((selected == -1).sum())]}
+                                if CONFIG["finger_synergy"] else
+                                {str(axis if not CONFIG["sequence_lengths"] else code):
                                 [int((selected == code).sum()),
                                             int((selected == -code).sum())]
                                 for code, axis in enumerate(
-                                    (1, 2) if CONFIG["sequence_lengths"] else CONFIG["axes"], 1)},
+                                    (1, 2) if CONFIG["sequence_lengths"] else CONFIG["axes"], 1)}),
                 "failure": self.probe_error,
             }
             output.with_suffix(".json").write_text(
@@ -212,7 +241,8 @@ def main():
     parser.add_argument("--intervention-first", type=int, default=50)
     parser.add_argument("--intervention-last", type=int, default=150)
     parser.add_argument("--intervention-stride", type=int, default=10)
-    parser.add_argument("--intervention-delta-z", type=float, default=.3)
+    parser.add_argument("--intervention-delta-z", "--intervention-delta",
+                        dest="intervention_delta_z", type=float, default=.3)
     parser.add_argument("--intervention-axes", type=int, nargs="+", default=[2])
     parser.add_argument("--assignment-seed", type=int, default=20260924)
     parser.add_argument("--followup-horizon", type=int, default=0)
@@ -220,6 +250,8 @@ def main():
                         help="randomize one wrist axis for exactly 1 or 2 steps")
     parser.add_argument("--cross-axis-primer", action="store_true",
                         help="randomize x primer before common z+ action")
+    parser.add_argument("--finger-synergy", action="store_true",
+                        help="signed dose on five independent finger-flexion commands")
     parser.add_argument("--source-checkpoint-sha256")
     parser.add_argument("--source-motion-manifest", type=Path)
     parser.add_argument("--source-motion-manifest-sha256")
@@ -238,6 +270,10 @@ def main():
             (args.cross_axis_primer and (
                 args.sequence_lengths is not None or args.intervention_axes != [0, 2] or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
+            (args.finger_synergy and (
+                args.cross_axis_primer or args.sequence_lengths is not None or
+                args.intervention_axes != [2] or args.followup_horizon != 10 or
+                args.intervention_stride < 10)) or
             (args.sequence_lengths is not None and (
                 args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
@@ -283,7 +319,9 @@ def main():
         raise FileExistsError(manifest_path)
     steps = list(range(args.intervention_first, args.intervention_last + 1,
                        args.intervention_stride))
-    schema = ("ref2dex.crossaxis_primer_h10.v1"
+    schema = ("ref2dex.randomized_finger_followup.v1"
+              if args.finger_synergy else
+              "ref2dex.crossaxis_primer_h10.v1"
               if args.cross_axis_primer else
               "ref2dex.randomized_sequence_h10.v1"
               if args.sequence_lengths is not None else
@@ -301,6 +339,9 @@ def main():
         "intervention_steps": steps,
         "stop_step": steps[-1] + max(args.followup_horizon - 1, 0),
         "delta_z_action": args.intervention_delta_z,
+        "finger_synergy": args.finger_synergy,
+        "finger_indices": list(FINGER_SYNERGY_INDICES)
+        if args.finger_synergy else None,
         "intervention_axes": args.intervention_axes,
         "sequence_lengths": args.sequence_lengths,
         "crossaxis_primer": args.cross_axis_primer,
@@ -320,6 +361,7 @@ def main():
               "axes": args.intervention_axes,
               "sequence_lengths": args.sequence_lengths,
               "crossaxis_primer": args.cross_axis_primer,
+              "finger_synergy": args.finger_synergy,
               "followup_horizon": args.followup_horizon,
               "assignment_seed": args.assignment_seed}
     sys.argv = [sys.argv[0], *remaining]
