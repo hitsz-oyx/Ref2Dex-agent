@@ -72,11 +72,13 @@ class DExploreCmPpoAuxAgent(DExploreApproachAgent):
             self.cm_aux_head.load_state_dict(aux_state, strict=True)
 
     def train(self):
-        # DExploreAgent.train suppresses restore exceptions. Matched research
-        # runs must fail loudly rather than silently train from random weights.
-        if self.resume_from == "None":
+        # Runner.run_train restores the pinned --checkpoint before calling
+        # train(); DExplore's legacy resume_from remains "None" in this path.
+        # Never silently fall back to random weights if Runner skipped restore.
+        if not os.environ.get("REF2DEX_SCRATCH_RESUME_CHECKPOINT"):
             raise ValueError("Cm auxiliary Probe requires pinned self-trained resume")
-        self.restore(self.resume_from)
+        if self.cm_aux_head is None:
+            raise RuntimeError("Cm auxiliary Probe checkpoint was not restored")
         return common_agent.CommonAgent.train(self)
 
     def get_stats_weights(self):
