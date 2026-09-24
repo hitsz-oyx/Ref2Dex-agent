@@ -25,4 +25,24 @@ multi-seed claim.
 
 ## Results
 
-Pending.
+Training `agent_duck_specialist_s70_e340` completed on commit `a9acc7c`.
+On unseen seed206, the duck specialist achieved **48/64 held-lifts (75.0%)**,
+mean hand/object contact 0.590 and mean maximum contact-supported lift
+0.308 m. The frozen e260 source on the exact same duck motion and seed
+achieved **1/64 (1.6%)**, contact 0.166 and maximum contact-supported lift
+0.005 m. Both prespecified duck gates passed. This is a single training
+seed and first eval seed, hence `PROMISING`, not a formal claim that all
+duck starts are solved. Repeat on seeds207/208 before choosing a reusable
+specialist portfolio. The two additional unseen evaluation seeds scored
+**49/64** (seed207) and **43/64** (seed208), totaling **140/192 (72.9%)**
+across seeds206–208. This replication strengthens the Probe signal without
+turning it into matched multi-seed training Validation.
+
+The duck result changes the route: shared-policy interference or limited
+per-object update budget is a plausible main blocker, while the fixed reward
+and curriculum can in fact learn this object. Next test the same specialist
+protocol on waterbottle, another physically feasible identity with zero
+shared-policy held-lifts. Waterbottle-only continuation from a *different*
+train5 e320 source previously collapsed; the new e260 source tests whether
+that failure was inherited from the mixed checkpoint. No hyperparameter is
+chosen from duck's heldout seed.
