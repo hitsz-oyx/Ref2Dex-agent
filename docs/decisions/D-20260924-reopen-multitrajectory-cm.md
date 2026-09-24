@@ -22,3 +22,15 @@ The first baseline evaluation will report motion/object strata and held-lift,
 contact, and failure patterns. Cm mechanism work will target contact-supported
 future lift and require a matched same-source Cm-on/off/placebo comparison
 before any utility claim.
+
+## 2026-09-24 late-night resource choice
+
+After the duck and waterbottle Probes, outside jobs occupied all GPUs.
+Waterbottle start-reset annealing and the frozen object-specialist route
+remain decision-relevant and are already specified in their experiment
+cards. A bounded deferred runner will wait for a genuinely idle GPU until
+2026-09-25 09:30 China time, use at most one GPU, and execute those two
+fixed Probes sequentially. It stops on code/input drift, GPU conflict,
+failure, or the wait deadline; it does not change scientific gates or
+infer conclusions. This preserves the user's no-decision-request window
+without interfering with other processes.
