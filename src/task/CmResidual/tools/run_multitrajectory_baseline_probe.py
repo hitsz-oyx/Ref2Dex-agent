@@ -56,8 +56,18 @@ def main() -> None:
     parser.add_argument("--source-checkpoint", type=Path, default=SOURCE)
     parser.add_argument("--source-sha256", default=SOURCE_SHA)
     parser.add_argument("--source-epoch", type=int, default=260)
+    parser.add_argument("--from-scratch", action="store_true",
+                        help="train a self-trained policy with random initialization")
     parser.add_argument("--anneal-start", type=int)
     parser.add_argument("--anneal-end", type=int)
+    parser.add_argument("--cfg-env", type=Path, default=CFG_ENV)
+    parser.add_argument("--num-envs", type=int, default=64)
+    parser.add_argument("--minibatch-size", type=int, default=256)
+    parser.add_argument("--seed", type=int, default=70)
+    parser.add_argument("--contact-fraction", type=float, default=.5)
+    parser.add_argument("--lift-fraction", type=float, default=.25)
+    parser.add_argument("--save-frequency", type=int, default=20)
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if not args.source_epoch < args.target_epoch <= 500:
         parser.error("target epoch must exceed source and be <=500")
@@ -70,7 +80,10 @@ def main() -> None:
     if output.exists():
         parser.error("new output directory required")
     source = args.source_checkpoint.resolve()
-    if sha256(source) != args.source_sha256:
+    cfg_env = args.cfg_env.resolve()
+    if args.num_envs < 1 or (args.num_envs * 32) % args.minibatch_size:
+        parser.error("rollout batch must divide into complete minibatches")
+    if not args.from_scratch and sha256(source) != args.source_sha256:
         raise ValueError("source checkpoint SHA256 drift")
     if gpu_used(args.gpu) > 1024:
         raise RuntimeError(f"physical GPU {args.gpu} is occupied")
@@ -90,15 +103,8 @@ def main() -> None:
             raise FileNotFoundError(tensor)
         inputs.append({"sequence": motion.name, "path": str(motion),
                        "tensor_sha256": sha256(tensor)})
-    output.mkdir(parents=True)
     motion_root = output / "motions"
-    motion_root.mkdir()
-    for motion in motions:
-        (motion_root / motion.name).symlink_to(motion, target_is_directory=True)
     input_manifest = output / "input_manifest.json"
-    write(input_manifest, {"classification": input_classification,
-                           "source_spec": str(spec_path), "source_spec_sha256": sha256(spec_path),
-                           "motions": inputs})
     train_output = output / "train"
     command = [
         sys.executable, "-m", "torch.distributed.run", "--standalone", "--nproc_per_node=1",
@@ -106,19 +112,34 @@ def main() -> None:
         "--actual-epochs", str(args.target_epoch), "--approach-reward-coef", "2.0",
         "--held-lift-reward-coef", "10.0", "--lift-progress-reward-coef", "5.0",
         "--grasp-link-reward-coef", "0.0", "--min-grasp-links", "0",
-        "--scratch-resume-checkpoint", str(source),
-        "--scratch-resume-sha256", args.source_sha256,
         "--learning-rate", "1e-05", "--contact-before", "3", "--contact-after", "3",
-        "--contact-fraction", "0.5", "--lift-fraction", "0.25",
-        "--save-frequency", "20", "--task", "Dexplore_Inspire",
-        "--cfg_env", "dexplore/data/cfg/inspire_object_balanced.yaml",
+        "--contact-fraction", str(args.contact_fraction), "--lift-fraction", str(args.lift_fraction),
+        "--save-frequency", str(args.save_frequency), "--task", "Dexplore_Inspire",
+        "--cfg_env", str(cfg_env),
         "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
         "--motion_file", str(motion_root), "--output_path", str(train_output), "--headless",
         "--sim_device", "cuda:0", "--rl_device", "cuda:0", "--graphics_device_id", "0",
-        "--num_envs", "64", "--horizon_length", "32", "--minibatch_size", "256",
-        "--max_iterations", str(args.target_epoch), "--seed", "70", "--horovod",
-        "--resume", "1", "--checkpoint", str(source),
+        "--num_envs", str(args.num_envs), "--horizon_length", "32", "--minibatch_size", str(args.minibatch_size),
+        "--max_iterations", str(args.target_epoch), "--seed", str(args.seed), "--horovod",
+        "--resume", "0" if args.from_scratch else "1",
+        "--checkpoint", "Base" if args.from_scratch else str(source),
     ]
+    if not args.from_scratch:
+        insert_at = command.index("--learning-rate")
+        command[insert_at:insert_at] = ["--scratch-resume-checkpoint", str(source),
+                                        "--scratch-resume-sha256", args.source_sha256]
+    if args.dry_run:
+        print(json.dumps({"command": command, "output": str(output),
+                          "motion_count": len(inputs), "input_classification": input_classification},
+                         indent=2))
+        return
+    output.mkdir(parents=True)
+    motion_root.mkdir()
+    for motion in motions:
+        (motion_root / motion.name).symlink_to(motion, target_is_directory=True)
+    write(input_manifest, {"classification": input_classification,
+                           "source_spec": str(spec_path), "source_spec_sha256": sha256(spec_path),
+                           "motions": inputs})
     if args.anneal_start is None:
         command[command.index("--save-frequency"):command.index("--save-frequency")] = [
             "--curriculum-backtrack-start", "180", "--curriculum-backtrack-end", "220"]
@@ -132,24 +153,26 @@ def main() -> None:
         "created_at": now(), "run_id": output.name, "work_version": args.work_version,
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                               text=True).strip(),
-        "command": command, "physical_gpu": args.gpu, "seed": 70,
-        "source_checkpoint": str(source), "source_checkpoint_sha256": args.source_sha256,
-        "source_epoch": args.source_epoch, "target_epoch": args.target_epoch,
+        "command": command, "physical_gpu": args.gpu, "seed": args.seed,
+        "source_checkpoint": None if args.from_scratch else str(source),
+        "source_checkpoint_sha256": None if args.from_scratch else args.source_sha256,
+        "source_epoch": 0 if args.from_scratch else args.source_epoch,
         "curriculum_anneal_window": [args.anneal_start, args.anneal_end]
         if args.anneal_start is not None else None, "cm_enabled": False,
         "motion_root": str(motion_root), "input_manifest": str(input_manifest),
         "input_manifest_sha256": sha256(input_manifest), "motion_count": len(inputs),
         "input_classification": input_classification,
-        "env_config": str(CFG_ENV), "env_config_sha256": sha256(CFG_ENV),
-        "object_sampling": "each listed motion once; hard-object oversampling disabled",
+        "env_config": str(cfg_env), "env_config_sha256": sha256(cfg_env),
+        "object_sampling": "see pinned env config; all requested inputs retained or fail loudly",
+        "initialization": "random_scratch" if args.from_scratch else "pinned_scratch_resume",
         "budget": {"gpu_count": 1, "wall_minutes": 60, "output_gb": 5},
         "stop_rule": "input drift, GPU conflict, non-finite training, >60 min, or missing endpoint checkpoint",
     }
-    write(output / "config.json", {"num_envs_per_rank": 64,
+    write(output / "config.json", {"num_envs_per_rank": args.num_envs,
                                    "motion_root": str(motion_root),
                                    "input_manifest": str(input_manifest),
-                                   "cfg_env": "dexplore/data/cfg/inspire_object_balanced.yaml",
-                                   "seed": 70})
+                                   "cfg_env": str(cfg_env),
+                                   "seed": args.seed})
     write(manifest_path, manifest)
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(args.gpu)

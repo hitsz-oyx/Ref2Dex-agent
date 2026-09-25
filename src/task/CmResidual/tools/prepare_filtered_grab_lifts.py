@@ -30,6 +30,7 @@ def digest(path: Path) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--scope", choices=("lift", "all"), default="lift")
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
@@ -42,9 +43,9 @@ def main() -> None:
     object_names = set()
     for motion in sorted(SOURCE.iterdir()):
         match = PATTERN.fullmatch(motion.name)
-        if match is None or not motion.is_dir():
+        if not motion.is_dir() or (args.scope == "lift" and match is None):
             continue
-        obj = match.group(1)
+        obj = motion.name.split("_")[1]
         tensor_path = motion / "interaction_hand_inspire.pt"
         tensor = torch.load(tensor_path, map_location="cpu", weights_only=True)
         if tensor.ndim != 2 or tensor.shape[1] != 598 or not torch.isfinite(tensor).all():
@@ -52,7 +53,7 @@ def main() -> None:
         left = int((tensor[:, 206:222] > 0).sum().item())
         right = int((tensor[:, 222:238] > 0).sum().item())
         vertical_range = float((tensor[:, 200].max() - tensor[:, 200].min()).item())
-        if left or right == 0 or vertical_range < 0.03:
+        if left or right == 0 or (args.scope == "lift" and vertical_range < 0.03):
             raise ValueError(f"invalid grasp reference: {motion.name}")
         source_mesh = RAW_MESHES / obj / "mesh.obj"
         if not source_mesh.is_file():
@@ -62,9 +63,14 @@ def main() -> None:
                         "motion_path": str(motion), "tensor_sha256": digest(tensor_path),
                         "frames": int(tensor.shape[0]), "left_contact_labels": left,
                         "right_contact_labels": right,
+                        "lift_like": match is not None,
+                        "table_pose": tensor[0, 238:245].tolist(),
+                        "recorded_object_contact": bool((tensor[:, 205] > .5).any()),
                         "object_vertical_range_m": vertical_range})
-    if len(entries) != 59 or len(object_names) != 29:
+    if args.scope == "lift" and (len(entries) != 59 or len(object_names) != 29):
         raise ValueError(f"lift pool changed: {len(entries)} motions, {len(object_names)} objects")
+    if args.scope == "all" and len(entries) != source["num_kept"]:
+        raise ValueError("full filtered pool count differs from source manifest")
     meshes = {}
     for obj in sorted(object_names):
         source_mesh = RAW_MESHES / obj / "mesh.obj"
@@ -100,7 +106,7 @@ def main() -> None:
     for row in entries:
         (motion_root / row["sequence"]).symlink_to(SOURCE / row["sequence"],
                                                        target_is_directory=True)
-    spec = {"description": "All 59 filtered single-right-hand GRAB lift motions",
+    spec = {"description": f"All {len(entries)} filtered single-right-hand GRAB {args.scope} motions",
             "input_classification": "filtered_geometric_dexplore",
             "motions": [str(SOURCE.relative_to(ROOT) / row["sequence"]) for row in entries]}
     (output / "motion_spec.json").write_text(json.dumps(spec, indent=2) + "\n")
@@ -109,7 +115,7 @@ def main() -> None:
                    "experts": {"source_e260": source_expert},
                    "object_route": {obj: "source_e260" for obj in sorted(object_names)}}
     (output / "smoke_route_config.json").write_text(json.dumps(smoke_route, indent=2) + "\n")
-    inventory = {"experiment_id": "P-20260925-grab59-input-gate",
+    inventory = {"experiment_id": "P-20260925-grab-full-baseline" if args.scope == "all" else "P-20260925-grab59-input-gate",
                  "source_manifest": str(source_manifest),
                  "source_manifest_sha256": digest(source_manifest),
                  "motion_count": len(entries), "object_count": len(object_names),

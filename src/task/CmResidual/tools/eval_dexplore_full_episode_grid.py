@@ -60,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tag", help="short output suffix for a transfer probe")
     parser.add_argument("--selector-cmlite-checkpoint", type=Path)
     parser.add_argument("--selector-cmlite-sha256")
+    parser.add_argument("--checkpoint-override", type=Path)
+    parser.add_argument("--checkpoint-override-sha256")
     parser.add_argument("--reference-action-lead", type=int,
                         help="diagnostic: execute the reference controller instead of the actor")
     parser.add_argument("--work-version", default="V1.29")
@@ -72,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--contact-topology", action="store_true",
                         help="append configured hand-link force magnitudes to transitions")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--num-envs", type=int, help="explicit full-pool protocol; default retains 64-env gate")
     args = parser.parse_args(argv)
     if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
         raise ValueError("GPU, seed and epochs must be nonnegative/positive")
@@ -96,6 +99,12 @@ def main(argv: list[str] | None = None) -> int:
     if selector and (not args.selector_cmlite_checkpoint.is_file() or
                      _sha256(args.selector_cmlite_checkpoint) != args.selector_cmlite_sha256):
         raise ValueError("CmLite selector checkpoint is missing or SHA256 mismatched")
+    if bool(args.checkpoint_override) != bool(args.checkpoint_override_sha256):
+        raise ValueError("checkpoint override and SHA256 must be specified together")
+    if args.checkpoint_override is not None:
+        if (not args.checkpoint_override.is_file() or
+                _sha256(args.checkpoint_override) != args.checkpoint_override_sha256):
+            raise ValueError("checkpoint override is missing or SHA256 mismatched")
     if args.tag is not None and (not args.tag or not args.tag.replace("_", "").isalnum()):
         raise ValueError("output tag must contain only letters, digits and underscores")
     run_dir = args.run_dir.resolve()
@@ -111,14 +120,17 @@ def main(argv: list[str] | None = None) -> int:
     if input_record.get("classification") not in (
             "reconstructed_baseline", "filtered_geometric_dexplore"):
         raise ValueError("unsupported motion input provenance")
-    num_envs = int(config["num_envs_per_rank"])
-    if num_envs != 64:
+    num_envs = args.num_envs if args.num_envs is not None else int(config["num_envs_per_rank"])
+    if num_envs < 1:
+        raise ValueError("positive environment count required")
+    if args.num_envs is None and num_envs != 64:
         raise ValueError("the V1.29 strict gate requires 64 environments")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                        text=True).strip()
     entries = []
     for epoch in args.epochs:
-        checkpoint = _checkpoint(run_dir, epoch)
+        checkpoint = (args.checkpoint_override.resolve() if args.checkpoint_override is not None
+                      else _checkpoint(run_dir, epoch))
         suffix = f"_{args.tag}" if args.tag is not None else ""
         output = run_dir / f"eval_s{args.seed}_e{epoch:03d}_full{suffix}"
         if output.exists():
