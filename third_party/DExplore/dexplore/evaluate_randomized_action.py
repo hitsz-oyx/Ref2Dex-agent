@@ -37,6 +37,20 @@ CONFIG = None
 OFFICIAL_DIAGNOSTIC_SHA256 = "8f6823db752288f1bddd6d042981d33514e29dac5a68e58726e76215fea6d553"
 
 
+def balanced_base_three_arm_assignment(mask, generator):
+    """Assign eligible environments to -z, base, or +z arms."""
+    if mask.ndim != 1 or mask.dtype != torch.bool:
+        raise ValueError("mask must be a one-dimensional boolean tensor")
+    selected = mask.nonzero(as_tuple=False).reshape(-1)
+    assignment = torch.zeros(len(mask), dtype=torch.int8, device=mask.device)
+    if len(selected):
+        labels = torch.tensor([-1, 0, 1], dtype=torch.int8).repeat(
+            (len(selected) + 2) // 3)[:len(selected)]
+        labels = labels[torch.randperm(len(labels), generator=generator)]
+        assignment[selected] = labels.to(mask.device)
+    return assignment
+
+
 class ProbeDone(Exception):
     """Normal early stop after the last randomized intervention."""
 
@@ -116,7 +130,12 @@ class RandomizedPlayer(BASE_PLAYER):
             crossaxis = CONFIG["crossaxis_primer"]
             finger = CONFIG["finger_synergy"]
             finger_primer = CONFIG["finger_primer_lift"]
-            if finger or finger_primer:
+            if CONFIG["three_arm_randomized"]:
+                valid &= action[:, 2].abs() <= 1 - CONFIG["delta_z"]
+                assignment = balanced_base_three_arm_assignment(
+                    valid, self.probe_generator)
+                policy_plus = policy_minus = None
+            elif finger or finger_primer:
                 valid &= (action[:, list(FINGER_SYNERGY_INDICES)].abs() <=
                           1 - CONFIG["delta_z"]).all(-1)
                 if finger_primer:
@@ -165,6 +184,7 @@ class RandomizedPlayer(BASE_PLAYER):
                 "base_action": action.detach().clone(),
                 "executed_action": executed.clone(),
                 "assignment": assignment.clone(),
+                "intervention_valid": valid.clone(),
                 "pre_contact": pre_contact.clone(),
                 "progress": task.progress_buf.clone(),
                 "motion_id": task.data_id.clone(),
@@ -414,6 +434,7 @@ class RandomizedPlayer(BASE_PLAYER):
                         "followup_horizon": CONFIG["followup_horizon"],
                         "record_final_outcome": CONFIG["record_final_outcome"],
                         "policy_mode": CONFIG["policy_mode"],
+                        "three_arm_randomized": CONFIG["three_arm_randomized"],
                         "records": records}, output)
             selected = records.get("assignment", torch.empty(0, dtype=torch.int8))
             summary = {
@@ -423,6 +444,8 @@ class RandomizedPlayer(BASE_PLAYER):
                 "final_outcome_recorded": bool(CONFIG["record_final_outcome"] and
                                                 status == "COMPLETED"),
                 "policy_mode": CONFIG["policy_mode"],
+                "three_arm_randomized": CONFIG["three_arm_randomized"],
+                "zero": int((selected == 0).sum()),
                 "axis_counts": ({"sustained_grip_lift":
                                  [int((selected == 1).sum()),
                                   int((selected == -1).sum())]}
@@ -473,6 +496,8 @@ def main():
                         help="randomized assignment, frozen Cm policy, or no action intervention")
     parser.add_argument("--policy-joblib", type=Path,
                         help="fitted post-contact value artifact for --policy-mode cm")
+    parser.add_argument("--three-arm-randomized", action="store_true",
+                        help="randomize eligible rows among -z, base, and +z")
     parser.add_argument("--second-delta", type=float, default=.1)
     parser.add_argument("--source-checkpoint-sha256")
     parser.add_argument("--source-motion-manifest", type=Path)
@@ -517,6 +542,11 @@ def main():
                 args.finger_primer_lift or args.cross_axis_primer or
                 args.sequence_lengths is not None or args.intervention_axes != [2] or
                 args.followup_horizon == 0) or
+            args.three_arm_randomized and (
+                args.policy_mode != "random" or args.sustained_grip_lift or
+                args.finger_synergy or args.finger_primer_lift or
+                args.cross_axis_primer or args.sequence_lengths is not None or
+                args.intervention_axes != [2] or args.followup_horizon == 0) or
             (args.sequence_lengths is not None and (
                 args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
@@ -610,6 +640,7 @@ def main():
         "source_actor_role": args.source_actor_role,
         "record_final_outcome": args.record_final_outcome,
         "policy_mode": args.policy_mode,
+        "three_arm_randomized": args.three_arm_randomized,
         "policy_model_sha256": (pinned.sha256(args.policy_joblib)
                                  if args.policy_joblib is not None else None),
         "expected_envs": int(pinned.argument_value(remaining, "--num_envs")),
@@ -631,6 +662,7 @@ def main():
               "assignment_seed": args.assignment_seed,
               "record_final_outcome": args.record_final_outcome,
               "policy_mode": args.policy_mode,
+              "three_arm_randomized": args.three_arm_randomized,
               "policy_model": args.policy_joblib.resolve()
               if args.policy_joblib is not None else None,
               "expected_envs": int(pinned.argument_value(remaining, "--num_envs"))}
