@@ -37,7 +37,7 @@
   },
   "exact_temporal_option_off": {
     "entry_status": "BLOCKED",
-    "reason": "the committed 8f4cf38 launcher is source-e260 temporal reward continuation, while the six-expert first-contact option evaluator remains uncommitted"
+    "reason": "the committed 8f4cf38 launcher is a source-e260 continuation using inspire.yaml, while the canonical route requires inspire_object_balanced.yaml and a six-expert first-contact option evaluator that remains uncommitted"
   },
   "existing_evidence": {
     "six_expert_59_motion_off": {

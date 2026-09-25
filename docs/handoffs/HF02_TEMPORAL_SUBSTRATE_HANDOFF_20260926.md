@@ -99,9 +99,11 @@ of six experts plus these three airplane motions:
 
 The temporal branch has since committed `8f4cf3845f3f48749aa6171a9265a6efd6b5d289`
 (`run_temporal_online_probe.py`). That launcher is provenance-verifiable, but
-it starts a source-e260 temporal-reward continuation; it does not load the six
-candidate experts, perform first-contact option assignment, or save the
-10-step/20-step option records required by the Probe card. The separate
+it starts a source-e260 temporal-reward continuation and passes
+`dexplore/data/cfg/inspire.yaml`, rather than this handoff's pinned
+`inspire_object_balanced.yaml`; it does not load the six candidate experts,
+perform first-contact option assignment, or save the 10-step/20-step option
+records required by the Probe card. The separate
 `evaluate_temporal_expert_option.py` collector remains an uncommitted worktree
 file. Therefore the exact six-expert temporal-option Cm-off collector is still
 not provenance-verifiable. The temporal owner must commit that evaluator (or
