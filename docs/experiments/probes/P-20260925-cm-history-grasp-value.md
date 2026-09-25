@@ -106,11 +106,13 @@ the frozen split, not a new simulator seed or a validation claim.
 
 ## Decision update
 
-Do not connect this model to PPO or call it a grasp-value model yet. The next
-cheap step, if pursued, is to repeat the frozen representation on a held-out
-object/trajectory or attach randomized interventions to an actual final
-held-lift label. A matched online candidate-action Probe is justified only as
-an exploratory follow-up; any policy claim still requires matched Cm-on/off.
+Do not connect this model to PPO or call it a grasp-value model. Repeating the
+frozen representation on the held-out cross-object apple split
+(`P-20260925-cm-crossobject-history-value`) failed the transfer gate, so an
+online selector based on this representation is stopped. A new route should
+either learn a cross-object representation or attach randomized interventions
+to an actual final held-lift label; any policy claim still requires matched
+Cm-on/off.
 
 Artifacts:
 

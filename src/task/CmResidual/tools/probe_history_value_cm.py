@@ -36,9 +36,9 @@ CONTINUOUS_TARGETS = (
     "supported_dz_mm",
 )
 BINARY_TARGETS = ("final_contact",)
-TRAIN_SEEDS = (151, 152, 153, 154)
-TEST_SEEDS = (155, 156)
-DATA = {
+AIRPLANE_TRAIN_SEEDS = (151, 152, 153, 154)
+AIRPLANE_TEST_SEEDS = (155, 156)
+AIRPLANE_DATA = {
     151: (ROOT / "outputs/CmResidual/agent_randomized_followup_s151_d01_h5_n64/transitions.pt",
           "151825821ba8c43762d71c40c4dd20886d83d4f66c1c9168564a002658ac2b05"),
     152: (ROOT / "outputs/CmResidual/agent_randomized_followup_s152_d01_h5_n64/transitions.pt",
@@ -52,6 +52,19 @@ DATA = {
     156: (ROOT / "outputs/CmResidual/agent_randomized_followup_s156_d01_h5_n64/transitions.pt",
           "0dbf7ae466eace755ea41ae44a6aff610faa2c09a7e3091804b0fa4a197692f5"),
 }
+CROSSOBJECT_TRAIN_SEEDS = (186,)
+CROSSOBJECT_TEST_SEEDS = (187,)
+CROSSOBJECT_DATA = {
+    186: (ROOT / "outputs/CmResidual/agent_expert_crossobject_randomized_train_s186_h5/transitions.pt",
+          "83bad847843606ee4058b31d35ddb0c5db44b2e4ca2effba6e5de790cc597dc5"),
+    187: (ROOT / "outputs/CmResidual/agent_expert_crossobject_randomized_apple_s187_h5/transitions.pt",
+          "7150f7298303a1428e9363c8a1094115fe6ce0c4b03550cfa0a3949487527aa6"),
+}
+# These globals retain the original single-trajectory API used by unit tests;
+# main() selects a dataset explicitly before loading rows.
+TRAIN_SEEDS = AIRPLANE_TRAIN_SEEDS
+TEST_SEEDS = AIRPLANE_TEST_SEEDS
+DATA = AIRPLANE_DATA
 
 
 def sha256(path: Path) -> str:
@@ -394,8 +407,10 @@ def pooled_rows(parts: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]
 
 
 def main() -> None:
+    global DATA, TRAIN_SEEDS, TEST_SEEDS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--dataset", choices=("airplane", "crossobject"), default="airplane")
     parser.add_argument("--history-len", type=int, default=5)
     parser.add_argument("--steps", type=int, default=800)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -408,6 +423,10 @@ def main() -> None:
         parser.error("history length or training steps outside bounded Probe range")
     if not 32 <= args.batch_size <= 512 or not 100 <= args.bootstraps <= 5000:
         parser.error("batch size or bootstrap count outside bounded Probe range")
+    if args.dataset == "airplane":
+        DATA, TRAIN_SEEDS, TEST_SEEDS = AIRPLANE_DATA, AIRPLANE_TRAIN_SEEDS, AIRPLANE_TEST_SEEDS
+    else:
+        DATA, TRAIN_SEEDS, TEST_SEEDS = CROSSOBJECT_DATA, CROSSOBJECT_TRAIN_SEEDS, CROSSOBJECT_TEST_SEEDS
     args.output.mkdir(parents=True)
     manifest_path = args.output / "run_manifest.json"
     manifest = {
@@ -415,6 +434,9 @@ def main() -> None:
         "started_at": datetime.now(timezone.utc).isoformat(),
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
                                                cwd=ROOT, text=True).strip(),
+        "dataset": args.dataset,
+        "data_actor_role": "self_trained_s3" if args.dataset == "airplane"
+        else "official_data_collector",
         "input_sha256": {seed: DATA[seed][1] for seed in (*TRAIN_SEEDS, *TEST_SEEDS)},
         "train_seeds": TRAIN_SEEDS, "test_seeds": TEST_SEEDS,
         "history_len": args.history_len, "steps": args.steps,
@@ -556,6 +578,7 @@ def main() -> None:
         report = {
             "schema": "ref2dex.history_value_cm_probe.v1",
             "run_status": "COMPLETED", "git_commit": manifest["git_commit"],
+            "dataset": args.dataset, "data_actor_role": manifest["data_actor_role"],
             "train_samples": len(train["step"]),
             "test_samples": {str(seed): len(all_rows[seed]["step"]) for seed in TEST_SEEDS},
             "continuous_targets": CONTINUOUS_TARGETS,
