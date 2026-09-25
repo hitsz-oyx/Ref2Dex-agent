@@ -29,4 +29,27 @@ training. CPU inventory plus one idle GPU, <=30 minutes, <500 MB output.
 
 ## Results
 
-Pending.
+The CPU inventory staged all **59** filtered lift-like motions from **29**
+objects. All tensors were finite `[T,598]`, had positive right-hand and
+zero left-hand contact labels, and showed >3 cm reference object
+vertical range. The 12 previously corrected motions matched the
+filtered geometric references in wrist/object-relative position to
+floating precision; contact labels differed in some frames, so the two
+producers remain distinct and provenance is explicit.
+
+Local symlinks to the original GRAB meshes were added for 18 objects
+whose DExplore assets were missing. Existing object meshes matched raw
+source hashes and were untouched. Inventory, mesh hashes, frozen
+motion spec and staged links are in
+`outputs/CmResidual/agent_grab59_input_gate_20260925_r3/`.
+
+The source e260 actor was then loaded on all 59 motions with GPU6,
+seed220 and 64 environments. The simulator completed 64 first full
+episodes, produced finite metrics and recorded a 59-motion object map.
+Held-lift was **3/64** and mean hand-object contact fraction 0.1572;
+these are smoke diagnostics, not a baseline efficacy result. The
+engineering gate **passed**, allowing the predeclared 59-motion
+Cm-off continuation Probe. The 59 motions are the complete *currently
+filtered single-right-hand lift pool*, not the entire GRAB dataset.
+
+Smoke artifacts: `outputs/CmResidual/agent_grab59_source_smoke_s220/`.

@@ -48,6 +48,15 @@ toothpaste 14/15 四个身份达到 25% 覆盖门，其余六类仍稀疏或为�
 专家选择一致，抓取为 **19/64**，固定路由为 **16/64**，过预设
 保真门。相同 seed、轨迹和专家选择仍有 11 个逐环境抓取结果不同，
 这两次仿真运行的差异不能解读为观测路由提升抓取。
+五个自训练专家在 seed219 的同起点 Probe：固定路由两次为
+20/64、23/64；五专家事后逐状态上限 33/64，固定 A 失败但
+至少一专家成功 14 例，固定重复 B 补回 3 例。四类物体存在
+不同专家的互补成功，过探索门；上限受重复运行波动影响，不能
+当成可达的 Cm 成绩。
+当前单右手 DExplore 过滤集合有 **59 条 lift-like 轨迹、29 类物体**。
+张量和资产审计以及 64 环境仿真加载已通过；源 e260 在该池 smoke
+为 3/64。59 轨迹 Cm-off 共享 actor 续训正在执行。原始 GRAB 的
+1335 条序列和 268 条字面 `_lift.npz` 仍大于这个兼容子集。
 
 ## 决定下一步的事实
 
@@ -85,9 +94,9 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 
 ## 下一步
 
-观测驱动路由已完成在线 Probe；下一步寻找能对同一专家组合产生
-实际信息增量的 Cm 决策变量，并用相同输入做 Cm 与
-object-only/shuffled-Cm Probe。扩展到全部可转换 GRAB 轨迹前，先
-量化未转换轨迹数和数据处理成本。
+完成 59 轨迹共享 actor 的 heldout baseline 评估；并在
+五专家互补起点上收集可比较的 option outcome/action 数据，先做
+action-aware、action-blind、action-shuffled 的离线 Cm Probe。
+只有出现明显正向信号才投入在线 Cm 路由和正式 matched Validation。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。

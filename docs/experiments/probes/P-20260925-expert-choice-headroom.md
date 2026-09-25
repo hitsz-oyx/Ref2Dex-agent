@@ -28,4 +28,28 @@ conflict, incomplete evaluation, or invalid state alignment.
 
 ## Results
 
-Pending.
+All seven sequential seed219 evaluations completed, with matching
+environment IDs, motion IDs and start frames in all 64 episodes. The
+fixed route scored **20/64** in run A and **23/64** in independent repeat
+B. Individual uniform expert scores were source e260 **4/64**,
+mixed12 e300 **6/64**, train5 e320 **10/64**, balanced e360 **17/64**
+and duck e340 **9/64**.
+
+The observed best-of-five ceiling was **33/64**. Fourteen states failed
+under fixed run A but succeeded under at least one uniform expert run;
+three states failed in fixed run A but succeeded in fixed repeat B.
+The exploratory excess over this one-repeat noise reference is
+**11/64**. Airplane, alarmclock, apple and cup each had different
+experts uniquely succeed on different states, satisfying the
+predeclared three-identity complementarity condition. The Probe gate
+**passed** (`PROMISING`) for offline expert-option value modeling.
+
+The ceiling is optimistic: it selects after observing the outcome of
+five separate simulator executions. Fixed route A even succeeded twice
+on cubesmall where the five uniform runs had only one success in total.
+The one-repeat noise subtraction is not a formal correction. A Cm
+selector must beat object-only and action-shuffled controls on fresh
+states before any policy-utility claim.
+
+Artifacts, frozen route configs and per-run manifests:
+`outputs/CmResidual/agent_expert_choice_headroom_s219/`.
