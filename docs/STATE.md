@@ -117,6 +117,16 @@ baseline Probe 为 `UNPROMISING`；不再追加同一方案的 epoch，详见
 matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
 1.1–1.3 万个决策步，但没有成功率增益，详见
 [Cm route/local residual Probe](experiments/probes/P-20260925-cm-route-local-residual.md)。
+为摆脱均匀共享 actor，当前建立了覆盖 59 条 lift-like 轨迹、29 类物体的
+十专家分组路由；它在新 seeds244–247 的固定身份路由基线为 **20/256**
+held-lift，平均手物接触约 25.5%。这仍是特权物体身份路由，不是 660 条
+轨迹的单 actor，也不是 raw GRAB 全集结果。
+在这条路由上，旧 V1.37 Cm 直接排序专家动作的 matched seeds244–245 为
+on **10/128**、off **11/128**，没有增益。随后用 seed244 路由 transition
+训练 relative-wrist Cm，并在新 seeds245–247 用 local proposal + 五步稳定
+接触门评估，on **16/192**、off **13/192**；接触率增加但预设的 +4/192
+门失败，因此只能记为 `UNCLEAR`，不能形成 Cm policy utility 结论。详见
+[group-route Cm Probe](experiments/probes/P-20260925-grab59-group-route-cm.md)。
 
 ## 决定下一步的事实
 
@@ -144,6 +154,10 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
 - 全池 baseline 的 0/64 不是 Cm 结果；它说明均匀 660 轨迹 PPO 不能
   作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同
   专家组合上建立 Cm-off 对照。
+- 分组路由已经提供非零且可复现的自训练 substrate；但 route-specific
+  Cm 的小幅 held-lift 差值未过 replication gate。下一轮应改变 Cm 的
+  长期信用目标（例如 contact-supported lift），而不是继续调一阶
+  goal-distance selector。
 
 ## 当前 blocker 与活跃假设
 
