@@ -37,7 +37,7 @@
   },
   "exact_temporal_option_off": {
     "entry_status": "BLOCKED",
-    "reason": "temporal option evaluator is uncommitted on agent/cm-temporal"
+    "reason": "the committed 8f4cf38 launcher is source-e260 temporal reward continuation, while the six-expert first-contact option evaluator remains uncommitted"
   },
   "existing_evidence": {
     "six_expert_59_motion_off": {

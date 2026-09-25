@@ -97,12 +97,16 @@ of six experts plus these three airplane motions:
 | `outputs/CmResidual/agent_grab59_six_expert_route_s244_r2/` | all six experts, Cm-off, 64 first episodes; 3/64 held-lift | uses the 59-motion route, not the three-motion temporal substrate |
 | `outputs/CmResidual/agent_contact_expert_option_s234_r2/` and `s235/` | the three airplane motions and first-episode start-frame recording | exposes only source/balanced two-expert option, not six experts |
 
-The temporal branch's `evaluate_temporal_expert_option.py` is currently an
-uncommitted worktree file, so its exact six-expert temporal-option Cm-off
-collector is not provenance-verifiable from a commit. This is the only
-handoff blocker. The temporal owner must commit that evaluator (or provide an
-equivalent tracked evaluator) before collecting Probe 2; until then, the
-baseline owner freezes this handoff and performs no further work.
+The temporal branch has since committed `8f4cf3845f3f48749aa6171a9265a6efd6b5d289`
+(`run_temporal_online_probe.py`). That launcher is provenance-verifiable, but
+it starts a source-e260 temporal-reward continuation; it does not load the six
+candidate experts, perform first-contact option assignment, or save the
+10-step/20-step option records required by the Probe card. The separate
+`evaluate_temporal_expert_option.py` collector remains an uncommitted worktree
+file. Therefore the exact six-expert temporal-option Cm-off collector is still
+not provenance-verifiable. The temporal owner must commit that evaluator (or
+provide an equivalent tracked evaluator) before collecting Probe 2; until
+then, the baseline owner freezes this handoff and performs no further work.
 
 ## Handoff state
 
