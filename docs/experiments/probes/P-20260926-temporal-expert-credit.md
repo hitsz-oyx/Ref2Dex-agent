@@ -4,6 +4,9 @@ probe_id: P-20260926-temporal-expert-credit
 date: 2026-09-26
 branch: agent/cm-temporal
 git_commit: 8f4cf3845f3f48749aa6171a9265a6efd6b5d289
+baseline_handoff_commit: 546f6f8
+canonical_route_manifest: src/task/CmResidual/configs/hf02_temporal_canonical_route.json
+canonical_route_sha256: afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16
 claim_id: C3
 hypothesis_family: HF02
 decision_changed_if_positive: Freeze the history-conditioned option-value representation and propose one independent matched Cm-on/off online confirmation on the same route.
@@ -20,50 +23,65 @@ status: PLANNED
 On one frozen self-trained specialist substrate, does a ten-step interaction
 history contain information that predicts which frozen expert option will
 produce future contact-supported lift and held-lift? This is an offline
-decision Probe. It does not test cross-object transfer and it does not launch
-PPO before the offline gate is evaluated.
+decision Probe on the airplane-only diagnostic route. It does not test
+cross-object transfer and it does not launch PPO or an online Probe before the
+offline gate is evaluated.
 
 ## Baseline handoff and canonical choice
 
-The baseline handoff is `docs/HANDOFF_20260925_1208.md`. It identifies the
-curated 12-motion/10-object self-trained route and the six-expert observation
-route as the current usable substrate. That route is therefore canonical here:
+The baseline handoff is
+`docs/handoffs/HF02_TEMPORAL_SUBSTRATE_HANDOFF_20260926.md`, introduced by
+`8af61c6` and digest-pinned by `546f6f8`. It freezes one small diagnostic
+substrate; the machine-readable manifest is
+`src/task/CmResidual/configs/hf02_temporal_canonical_route.json` with SHA256
+`afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16`.
+That manifest is the only canonical route for this HF02 slot:
 
-* Route config: `src/task/CmResidual/configs/multitrajectory_object_router_with_cup_probe.json`, SHA256
-  `6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8`.
-* Motion root: `outputs/Dexplore/agent_multitrajectory12_s70_e300/motions`.
-  It is frozen to the twelve directories `s3_airplane_lift`,
-  `s7_airplane_lift_Retake`, `s9_airplane_lift`, `s7_apple_lift`,
-  `s1_alarmclock_lift`, `s1_cubesmall_lift`, `s1_cup_lift`,
-  `s1_duck_lift`, `s1_mug_lift`, `s1_phone_lift`, `s1_toothpaste_lift`,
-  and `s1_waterbottle_lift`.
-* Objects are exactly airplane, apple, alarmclock, cubesmall, cup, duck, mug,
-  phone, toothpaste, and waterbottle. The object list is a fixed substrate
-  definition, not a generalization claim.
-* The six frozen self-trained experts and checkpoint hashes are:
+* route mode is `simulator_object_id`, with `airplane -> source_e260` as the
+  default/base route expert;
+* the object set is exactly `airplane`;
+* the motion root is `outputs/CmResidual/agent_contact_option_airplane_motions`
+  with exactly `s3_airplane_lift`, `s7_airplane_lift_Retake`, and
+  `s9_airplane_lift`;
+* candidate experts are fixed, in manifest order, to the six self-trained
+  checkpoints below:
 
   | expert | checkpoint | SHA256 |
   | --- | --- | --- |
-  | `source_e260` | `outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth` | `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f` |
-  | `mixed12_e300` | `outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth` | `93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3` |
-  | `train5_e320` | `outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth` | `6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961` |
   | `balanced_e360` | `outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth` | `a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f` |
-  | `duck_e340` | `outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth` | `9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a` |
   | `cup_e340` | `outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth` | `c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc` |
+  | `duck_e340` | `outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth` | `9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a` |
+  | `mixed12_e300` | `outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth` | `93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3` |
+  | `source_e260` | `outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth` | `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f` |
+  | `train5_e320` | `outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth` | `6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961` |
 
-The earlier uncommitted three-expert airplane configuration and the older
-five-step randomized-wrist history checkpoint conflict with this substrate.
-They are not used: the handoff's six-expert route is the only canonical
-portfolio for this HF02 slot, and choosing it keeps provenance aligned with
-the measured self-trained base.
+There is no learned observation router in this substrate; `simulator_object_id`
+is privileged routing and every result must be labelled that way. The
+59-motion route, any ten-expert route, the old three-expert airplane
+configuration, and the old `3/64` Cm-off result are explicitly excluded and
+must not be mixed into this card. The earlier uncommitted five-step
+randomized-wrist checkpoint is also excluded.
+
+The handoff's fixed-route Cm-off entry is
+`third_party/DExplore/dexplore/evaluate_object_router.py` at blob
+`84e086d502a1b838e4607f3d51f2f0d77073f114`. The exact six-expert temporal
+option evaluator is still uncommitted; until a tracked evaluator (or an
+equivalent tracked implementation) is available and hashed, collection is
+provenance-blocked. This card therefore does not authorize an online Probe.
 
 ## Frozen data collection
 
-For each of two owned simulator seeds, collect first-episode rows with the
-same route and motion root:
+For each of two owned simulator seeds, collect first-episode rows only after
+the evaluator provenance gate above is cleared, using exactly the route
+manifest and three-motion root above:
 
 * fit seed `254`, assignment seed `20260926254`;
 * holdout seed `255`, assignment seed `20260926255`.
+* the simulator route remains `simulator_object_id` with object ID `airplane`
+  and default route expert `source_e260`; no object or route substitution is
+  permitted;
+* use DExplore's seeded `start_times` sampler, do not provide a manual frame
+  list, and record each realized `per_episode.start_frame`.
 
 At the first valid hand-object contact after ten valid history steps, assign
 one of the six experts with a deterministic balanced assignment. Every arm
@@ -74,8 +92,8 @@ is the next twenty simulator steps. No Cm is used in collection (`Cm-off`).
 
 Each row must contain:
 
-* `env_id`, `motion_id`, `object_name`, `route_expert`, `assignment`, and
-  `assignment_propensity`;
+* `env_id`, `motion_id`, `object_name`, `simulator_object_id`, `route_expert`,
+  `assignment`, and `assignment_propensity`;
 * `trigger_step`, `start_frame`, current `state[49]`, `base_action[18]`, and
   `candidate_actions[6,18]`;
 * `history_state[10,49]`, `history_action[10,18]`, and
@@ -87,8 +105,10 @@ Each row must contain:
   `final_contact_fraction`, and `final_episode_steps`.
 
 Rows are valid only when the trigger and all twenty future steps belong to the
-first episode. The fit and holdout collections use the same six arms and input
-schema; only the simulator/assignment seed changes.
+first episode and the recorded route/config/motion hashes match the manifest.
+The fit and holdout collections use the same six arms and input schema; only
+the simulator/assignment seed changes. Do not substitute the 59-motion,
+ten-expert, or old `3/64` route/evidence for either split.
 
 ## Prespecified offline comparison
 
@@ -134,7 +154,8 @@ manifests. This card cannot be upgraded to a formal Cm causal claim.
 
 ## Status and artifacts
 
-Status: `PLANNED`. The one permitted cwd-corrected engineering smoke is
+Status: `PLANNED` (collection provenance `BLOCKED_PENDING_TRACKED_TEMPORAL_EVALUATOR`).
+The one permitted cwd-corrected engineering smoke is
 recorded separately and does not consume this Probe's offline gate:
 
 * run: `agent_temporal_cm_smoke_20260926_r3`;
@@ -147,7 +168,9 @@ recorded separately and does not consume this Probe's offline gate:
   above and does not change HF02 status.
 
 No option collection, offline fit, matched online Probe, or PPO continuation
-is part of this card yet. Planned artifacts:
+is part of this card yet. In particular, the baseline handoff's fixed-route
+Cm-off command is an entry point only; it has not been run here. Planned
+artifacts after the provenance gate is cleared:
 
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/`
 

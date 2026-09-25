@@ -36,6 +36,11 @@ Updated: 2026-09-26
   在 GPU4 上成功加载 temporal 模块、写出 reward 日志并保存 checkpoint（代码
   commit `2d5d0b5`）。它使用旧的五步历史/三条 airplane 输入，只证明 wiring，
   不提供 HF02 的策略或离线预测证据。
+- HF02 substrate handoff 已接入 temporal 分支：唯一 canonical route 是
+  `src/task/CmResidual/configs/hf02_temporal_canonical_route.json`（SHA256
+  `afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16`），即六个
+  self-trained experts、三条 airplane motion、`simulator_object_id` 路由。
+  59-motion/十 expert 路线及旧 `3/64` Cm-off 证据不可混用。
 - 历史正式证据与边界见
   [`VAL-20260923-CM-EFFECT-PPO`](experiments/validations/VAL-20260923-CM-EFFECT-PPO.md)
   和相关 Probe cards，不在 STATE 中复制具体运行矩阵。
@@ -53,9 +58,11 @@ Updated: 2026-09-26
 
 ## Next decision experiment
 
-HF02 slot-2 的 canonical Probe card 已冻结为计划态，当前不执行任何 option
-collection、离线拟合、matched online 或 PPO continuation；等待该 goal 的确认。
-获准后才可在固定六专家 substrate 上运行 card 中的 seed 254/255 离线比较：
+HF02 slot-2 的 canonical Probe card 已冻结为计划态，但 exact temporal-option
+evaluator 仍未提交，因此 collection provenance 目前 blocked。当前不执行任何
+option collection、离线拟合、matched online 或 PPO continuation。待 evaluator
+以 tracked commit/hash 固定后，且该 goal 明确解除阻塞，才可在固定六专家、三条
+airplane、`simulator_object_id` substrate 上运行 card 中的 seed 254/255 离线比较：
 `temporal-Cm` 必须同时相对 `history-only` 与 `action-shuffled` 达到至少
 `+5pp` 的 held-lift policy-value margin，且 contact-supported lift 不下降，
 否则立即将 slot 标为 `UNCLEAR/UNPROMISING` 并冻结，不换 seed、horizon 或
