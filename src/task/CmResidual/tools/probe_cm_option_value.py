@@ -83,7 +83,7 @@ def option_scores(train: dict, test: dict, mode: str, observation_train: np.ndar
         action_test = test["action"].copy()
         if mode == "shuffled":
             for action, seed in ((action_train, 20260925223), (action_test, 20260925224)):
-                rng = np.random.RandomState(seed)
+                rng = np.random.default_rng(seed)
                 for index in range(len(EXPERTS)):
                     section = slice(index * 64, (index + 1) * 64)
                     action[section] = action[section][rng.permutation(64)]
