@@ -22,4 +22,14 @@ conflict or incomplete feature export.
 
 ## Results
 
-Pending.
+The new seed217 completed with 64 first observations. The exact
+predeclared balanced classifier trained only on seeds214/215 classified
+**64/64** expert labels correctly, including airplane15/15, duck6/6,
+mug5/5 and toothpaste5/5. The feasibility gate **passed**. Result:
+`PROMISING` for an online observation-driven expert route on these
+same known converted motions. The test used simulator IDs only to score
+predictions, and is not evidence of grasp improvement or transfer to
+unseen motions/objects. An online grasp comparison is still required.
+
+Artifacts: `outputs/CmResidual/agent_observation_route_s217/` and
+`outputs/CmResidual/agent_observation_route_probe_balanced_20260925/report.json`.

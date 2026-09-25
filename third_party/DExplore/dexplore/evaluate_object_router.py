@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from isaacgym import gymapi  # noqa: F401 - import before torch
+import joblib
 import torch
 
 import evaluate as original
@@ -19,6 +20,8 @@ import evaluate as original
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG = None
+MODEL_PATH = None
+OUTPUT_PATH = None
 
 
 def sha256(path: Path) -> str:
@@ -42,6 +45,7 @@ class RoutedPlayer(original.EvalPlayer):
         super().__init__(config)
         self.expert_models = {}
         self.route_by_motion = None
+        self.observation_router = None
 
     def restore(self, filename):
         super().restore(filename)
@@ -67,6 +71,21 @@ class RoutedPlayer(original.EvalPlayer):
             self.expert_models[name] = (model, rms)
         task = self.env.task
         names = list(self.expert_models)
+        self.expert_names = names
+        if MODEL_PATH is not None:
+            self.observation_router = joblib.load(MODEL_PATH)
+            if set(self.observation_router.classes_) - set(names):
+                raise ValueError("observation router predicts an unknown expert")
+            if self.observation_router.n_features_in_ != 1442:
+                raise ValueError("observation router input dimension differs")
+            self._needs_route = torch.ones(task.num_envs, device=self.device, dtype=torch.bool)
+            self._choice_by_env = torch.full((task.num_envs,), -1, device=self.device,
+                                             dtype=torch.long)
+            self.initial_expert_names = None
+            print("REF2DEX_OBSERVATION_ROUTE_MODEL " + json.dumps({
+                "model_sha256": sha256(MODEL_PATH), "experts": names,
+            }, sort_keys=True), flush=True)
+            return
         route = CONFIG["object_route"]
         motion_objects = [task.object_name[int(object_id)] for object_id in task.object_id]
         unknown = set(motion_objects) - set(route)
@@ -75,17 +94,41 @@ class RoutedPlayer(original.EvalPlayer):
         self.route_by_motion = torch.tensor(
             [names.index(route[obj]) for obj in motion_objects],
             device=self.device, dtype=torch.long)
-        self.expert_names = names
         print("REF2DEX_OBJECT_ROUTE " + json.dumps({
             "motion_objects": motion_objects,
             "motion_experts": [route[obj] for obj in motion_objects],
         }, sort_keys=True), flush=True)
 
+    def env_reset(self, env_ids=None):
+        result = super().env_reset(env_ids)
+        if self.observation_router is not None:
+            if env_ids is None:
+                self._needs_route[:] = True
+            elif len(env_ids):
+                self._needs_route[env_ids.reshape(-1).long()] = True
+        return result
+
     @torch.no_grad()
     def get_action(self, obs_dict, is_determenistic=False):
-        if self.route_by_motion is None:
-            raise RuntimeError("object route not initialized")
-        choice = self.route_by_motion[self.env.task.data_id.long()]
+        if self.observation_router is not None:
+            pending = self._needs_route.nonzero(as_tuple=False).reshape(-1)
+            if pending.numel():
+                observation = obs_dict["obs"][pending].detach().cpu().numpy()
+                prediction = self.observation_router.predict(observation)
+                expert_indices = [self.expert_names.index(name) for name in prediction]
+                self._choice_by_env[pending] = torch.tensor(
+                    expert_indices, device=self.device, dtype=torch.long)
+                self._needs_route[pending] = False
+            choice = self._choice_by_env
+            if self.initial_expert_names is None and not self._needs_route.any():
+                self.initial_expert_names = [self.expert_names[index]
+                                             for index in choice.tolist()]
+        else:
+            if self.route_by_motion is None:
+                raise RuntimeError("object route not initialized")
+            choice = self.route_by_motion[self.env.task.data_id.long()]
+        if (choice < 0).any():
+            raise RuntimeError("unassigned observation route")
         source_model, source_rms = self.model, self.running_mean_std
         selected = None
         try:
@@ -103,12 +146,30 @@ class RoutedPlayer(original.EvalPlayer):
             raise FloatingPointError("invalid routed action")
         return selected
 
+    def run(self):
+        super().run()
+        if self.observation_router is not None:
+            if self.initial_expert_names is None:
+                raise RuntimeError("initial observation route was not recorded")
+            write(OUTPUT_PATH.parent / "initial_routes.json", {
+                "expert_by_env": self.initial_expert_names,
+                "model_sha256": sha256(MODEL_PATH),
+            })
+
 
 def main() -> None:
-    global CONFIG
+    global CONFIG, MODEL_PATH, OUTPUT_PATH
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--route-config", type=Path, required=True)
+    parser.add_argument("--observation-router-model", type=Path)
+    parser.add_argument("--observation-router-sha256")
     args, remaining = parser.parse_known_args()
+    if bool(args.observation_router_model) != bool(args.observation_router_sha256):
+        parser.error("observation router model and SHA256 must be specified together")
+    if args.observation_router_model is not None:
+        MODEL_PATH = args.observation_router_model.resolve()
+        if not MODEL_PATH.is_file() or sha256(MODEL_PATH) != args.observation_router_sha256:
+            raise ValueError("observation router model drift")
     config_path = args.route_config.resolve()
     CONFIG = json.loads(config_path.read_text())
     for name, spec in CONFIG["experts"].items():
@@ -118,6 +179,7 @@ def main() -> None:
     if set(CONFIG["object_route"].values()) - set(CONFIG["experts"]):
         raise ValueError("route refers to missing expert")
     output = Path(remaining[remaining.index("--output") + 1]).resolve()
+    OUTPUT_PATH = output
     if output.exists() or output.parent.exists():
         raise FileExistsError("new output directory required")
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
@@ -139,6 +201,8 @@ def main() -> None:
                 "route_config": str(config_path), "route_config_sha256": sha256(config_path),
                 "physical_gpu": int(visible), "command": [sys.executable, *sys.argv],
                 "checkpoint_roles": "self_trained_only", "cm_enabled": False,
+                "route_mode": "observation" if MODEL_PATH is not None else "simulator_object_id",
+                "observation_router_model_sha256": sha256(MODEL_PATH) if MODEL_PATH else None,
                 "budget": {"gpu_count": 1, "wall_minutes": 10, "output_mb": 50},
                 "stop_rule": "input drift, GPU conflict, invalid route or incomplete evaluation"}
     write(manifest_path, manifest)

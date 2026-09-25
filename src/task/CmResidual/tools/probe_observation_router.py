@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import joblib
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -57,9 +58,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--test-seed", type=int, default=216)
     parser.add_argument("--class-weight", choices=("none", "balanced"), default="none")
+    parser.add_argument("--model-output", type=Path)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
+    if args.model_output is not None and args.model_output.exists():
+        raise FileExistsError(args.model_output)
     config_path = ROOT / "src/task/CmResidual/configs/multitrajectory_object_router_probe.json"
     config = json.loads(config_path.read_text())
     if args.test_seed in TRAIN_SEEDS:
@@ -100,6 +104,13 @@ def main() -> None:
         "gate_pass": bool(accuracy_score(y_test, predicted) >= .90 and
                           all(per_object[obj]["correct"] == per_object[obj]["count"] for obj in strong)),
     }
+    if args.model_output is not None:
+        if not report["gate_pass"]:
+            raise ValueError("do not export a router that failed its heldout gate")
+        args.model_output.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(model, args.model_output)
+        report["model_path"] = str(args.model_output.resolve())
+        report["model_sha256"] = digest(args.model_output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     print(json.dumps({"correct": report["correct"], "count": report["count"],
