@@ -76,6 +76,9 @@ def main() -> None:
         raise RuntimeError(f"physical GPU {args.gpu} is occupied")
     spec_path = args.spec.resolve()
     spec = json.loads(spec_path.read_text())
+    input_classification = spec.get("input_classification", "reconstructed_baseline")
+    if input_classification not in ("reconstructed_baseline", "filtered_geometric_dexplore"):
+        raise ValueError(f"unsupported motion input classification: {input_classification}")
     motions = [ROOT / path for path in spec["motions"]]
     names = [path.name for path in motions]
     if len(names) != len(set(names)):
@@ -93,7 +96,7 @@ def main() -> None:
     for motion in motions:
         (motion_root / motion.name).symlink_to(motion, target_is_directory=True)
     input_manifest = output / "input_manifest.json"
-    write(input_manifest, {"classification": "reconstructed_baseline",
+    write(input_manifest, {"classification": input_classification,
                            "source_spec": str(spec_path), "source_spec_sha256": sha256(spec_path),
                            "motions": inputs})
     train_output = output / "train"
@@ -136,6 +139,7 @@ def main() -> None:
         if args.anneal_start is not None else None, "cm_enabled": False,
         "motion_root": str(motion_root), "input_manifest": str(input_manifest),
         "input_manifest_sha256": sha256(input_manifest), "motion_count": len(inputs),
+        "input_classification": input_classification,
         "env_config": str(CFG_ENV), "env_config_sha256": sha256(CFG_ENV),
         "object_sampling": "each listed motion once; hard-object oversampling disabled",
         "budget": {"gpu_count": 1, "wall_minutes": 60, "output_gb": 5},

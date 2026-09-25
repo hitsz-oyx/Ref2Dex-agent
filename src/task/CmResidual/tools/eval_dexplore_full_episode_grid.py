@@ -108,8 +108,9 @@ def main(argv: list[str] | None = None) -> int:
     if not motion_root.is_dir() or not input_manifest.is_file():
         raise FileNotFoundError("frozen motion input is missing")
     input_record = json.loads(input_manifest.read_text(encoding="utf-8"))
-    if input_record.get("classification") != "reconstructed_baseline":
-        raise ValueError("motion input must have reconstructed baseline provenance")
+    if input_record.get("classification") not in (
+            "reconstructed_baseline", "filtered_geometric_dexplore"):
+        raise ValueError("unsupported motion input provenance")
     num_envs = int(config["num_envs_per_rank"])
     if num_envs != 64:
         raise ValueError("the V1.29 strict gate requires 64 environments")
@@ -150,6 +151,7 @@ def main(argv: list[str] | None = None) -> int:
                  "training_run_id": training["run_id"], "input_manifest": str(input_manifest),
                  "input_manifest_sha256": _sha256(input_manifest),
                  "motion_root": str(motion_root), "input_sequence": input_record.get("sequence"),
+                 "input_classification": input_record["classification"],
                  "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
                  "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
                  "num_envs": num_envs, "early_termination_disabled": True,
