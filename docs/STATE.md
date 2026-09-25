@@ -41,6 +41,10 @@ Updated: 2026-09-26
   `afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16`），即六个
   self-trained experts、三条 airplane motion、`simulator_object_id` 路由。
   59-motion/十 expert 路线及旧 `3/64` Cm-off 证据不可混用。
+- 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
+  中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
+  `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
+  HF02 slot。
 - 历史正式证据与边界见
   [`VAL-20260923-CM-EFFECT-PPO`](experiments/validations/VAL-20260923-CM-EFFECT-PPO.md)
   和相关 Probe cards，不在 STATE 中复制具体运行矩阵。

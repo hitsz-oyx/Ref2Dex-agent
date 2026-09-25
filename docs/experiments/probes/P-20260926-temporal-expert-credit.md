@@ -158,6 +158,22 @@ Status: `PLANNED` (collection provenance `BLOCKED_PENDING_TRACKED_TEMPORAL_EVALU
 The one permitted cwd-corrected engineering smoke is
 recorded separately and does not consume this Probe's offline gate:
 
+### Invalid run record
+
+The previously launched run
+`agent_temporal_cm_online_probe_20260926_on_s254_e280` is retained only as an
+invalid engineering record:
+
+* manifest: `outputs/Dexplore/agent_temporal_cm_online_probe_20260926_on_s254_e280/run_manifest.json`;
+* final status: `STOPPED/INVALID_IMPLEMENTATION`;
+* stop reason: `KeyboardInterrupt` after the user-stopped process group crossed
+  the global goal, with the last completed epoch `276/280`;
+* `train.log` is preserved unchanged (SHA256
+  `b3f88dc19791e668fa5e9a5d2c1e040b43def29a04f5c02bbe145260d791e9b3`);
+* it is excluded from all scientific conclusions and does not consume the
+  HF02 slot. It used an older training/motion setup and is not the canonical
+  offline Probe route.
+
 * run: `agent_temporal_cm_smoke_20260926_r3`;
 * commit: `2d5d0b5`, cwd `third_party/DExplore`, one GPU, 8 environments,
   one epoch from source checkpoint 260;
