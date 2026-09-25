@@ -30,4 +30,28 @@ lift motions do not cover all raw GRAB sequences.
 
 ## Results
 
-Pending.
+The e300→e380 continuation completed on GPU7 in 491 s at commit
+`ecfc93e`. The checkpoint SHA256 is
+`0d58fe9b41fec3ce2c33977022cf44b8b5db9e79007b2c1577f9d9260613ecb6`.
+All four new-seed evaluations completed and each e300/e380 pair had
+identical motion IDs and start frames in all 64 environments.
+
+| Actor | Seed238 | Seed239 | Pooled held-lift | Successful identities | Mean contact |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| e300 | 4/64 | 2/64 | **6/128** | 5/29 | 15.12% |
+| e380 | 3/64 | 6/64 | **9/128** | 6/29 | 24.08% |
+
+e300 succeeded on airplane 2/10 and one each of binoculars,
+gamecontroller, mug and stamp. e380 succeeded on airplane 3/10,
+toothpaste 2/8, and one each of apple, flashlight, mug and wineglass.
+Mean maximum contact-supported lift rose from 1.82 to 2.67 cm, but
+the strict five-consecutive-step held-lift gain was only +3/128.
+The predeclared +10/128 and eight-identity gates failed. Status:
+`UNPROMISING` for simply extending this same uniform shared actor.
+Do not add more epochs to this local route. Favor a different
+specialist/hierarchical or training representation for broad coverage.
+This result covers the 59 compatible right-hand lift motions only.
+
+Training manifest and checkpoint:
+`outputs/Dexplore/agent_grab59_s70_e380/`. Evaluation results are
+in its `eval_e{300,380}_s{238,239}_full/` subdirectories.
