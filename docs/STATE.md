@@ -178,8 +178,10 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
   `-z/base/+z`，消除了前一轮二臂设计的 base 回放歧义。留出 seed252/253
   上 Cm-aware 的多臂 IPW policy value 为 **0.6809**，state-only 为
   **0.6667**，action-shuffled 为 **0.5349**；相对 state-only 仅 **+1.42pp**，
-  未达到预设 5pp 门，且环境聚类区间高度重叠。该三臂离线 gate 仍为 false，
-  因而没有启动新的在线 Cm-on/off；当前 post-contact wrist-z value route
+  未达到预设 5pp 门，且环境聚类区间高度重叠。该三臂离线 gate 仍为 false；
+  留出样本的连续最大接触抬升同样以 base 为最高（0.248m，对 −z 的 0.179m
+  和 +z 的 0.187m），接触比例也以 base 为最高（0.570）。因而没有启动新的
+  在线 Cm-on/off；当前 post-contact wrist-z value route
   继续记为 `UNPROMISING`，详见[三臂实验卡](experiments/probes/P-20260925-cm-postcontact-three-arm-value.md)。
 - 全池 baseline 的 0/64 不是 Cm 结果；它说明均匀 660 轨迹 PPO 不能
   作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同

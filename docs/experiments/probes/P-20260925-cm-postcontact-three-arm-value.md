@@ -56,6 +56,12 @@ factual predictor. The arm-wise held-lift rates in the test files are −z
 0.429, base 0.762, and +z 0.667; this also shows that the state-only policy's
 training-set choice of +z does not identify the best held-out arm.
 
+As a descriptive secondary check, the pooled held-out continuous outcomes also
+favor leaving the action unchanged: mean maximum contact-supported lift is
+0.179 m / 0.248 m / 0.187 m for −z / base / +z, and mean contact fraction is
+0.512 / 0.570 / 0.490. These are arm means from 42 rows per arm, not a new
+formal gate, but they make the binary result directionally consistent.
+
 The pre-registered offline gate requires Cm-aware to beat both controls and
 to exceed their maximum by at least 5 points. It therefore **failed**. No
 frozen online Cm-on/Cm-off run was started from this artifact.
