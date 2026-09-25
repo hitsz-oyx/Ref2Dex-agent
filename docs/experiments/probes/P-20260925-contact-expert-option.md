@@ -38,4 +38,24 @@ drift, incomplete first episodes, nonfinite actions or GPU conflict.
 
 ## Results
 
-Pending.
+The seed234 run at commit `1d473f5` completed after an engineering-only
+failed run at `65bfba0` (recursive action call, no intervention result).
+With 64 first episodes, 63 environments triggered and completed a
+valid 20-step follow-up. Candidate and source groups had 31 and 32
+valid follow-ups; mean initial 18-D action gap was 0.17. Candidate
+minus source mean contact-supported object-z displacement was
+**+32.7 mm**, and 20-step contact fraction was **+6.9 pp**. Full
+held-lifts were 15/31 assigned candidate versus 9/33 assigned source.
+The predeclared signal gate passed (`PROMISING`).
+
+The three airplane motions had respective supported-z candidate minus
+source differences of approximately +68.7, +24.7 and +1.1 mm. The
+largest motion also had unequal mean start frames (33.4 candidate,
+19.5 source), so this single randomization may exaggerate the effect.
+Before fitting Cm, repeat the identical intervention on fresh simulator
+seed235 with a new assignment seed20260925235. Require >=40 valid
+follow-ups, >=0.1 action gap, >=5 mm candidate-minus-source supported-z
+and contact decline no worse than 2 pp. If this fresh repeat passes,
+train a contact option Cm with action-blind and shuffled controls.
+
+Artifacts: `outputs/CmResidual/agent_contact_expert_option_s234_r2/`.

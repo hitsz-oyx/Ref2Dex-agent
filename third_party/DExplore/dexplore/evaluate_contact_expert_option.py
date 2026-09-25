@@ -17,6 +17,7 @@ import evaluate as original
 import evaluate_object_router as routed
 
 BASE_PLAYER = original.EvalPlayer
+ASSIGNMENT_SEED = 20260925234
 
 
 def now() -> str:
@@ -35,7 +36,7 @@ class ContactOptionPlayer(routed.RoutedPlayer):
             raise ValueError("expected three airplane motions and 64 environments")
         if self.route_by_motion.unique().tolist() != [self.expert_names.index("source_e260")]:
             raise ValueError("source route differs")
-        rng = np.random.default_rng(20260925234)
+        rng = np.random.default_rng(ASSIGNMENT_SEED)
         assignment = np.zeros(task.num_envs, dtype=np.int8)
         initial_motion = np.arange(task.num_envs) % task.num_motions
         for motion in range(task.num_motions):
@@ -137,9 +138,12 @@ class ContactOptionPlayer(routed.RoutedPlayer):
 
 
 def main() -> None:
+    global ASSIGNMENT_SEED
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--route-config", type=Path, required=True)
+    parser.add_argument("--assignment-seed", type=int, default=20260925234)
     args, remaining = parser.parse_known_args()
+    ASSIGNMENT_SEED = args.assignment_seed
     config_path = args.route_config.resolve()
     routed.CONFIG = json.loads(config_path.read_text())
     routed.MODEL_PATH = None
@@ -166,7 +170,7 @@ def main() -> None:
                     ["git", "rev-parse", "HEAD"], cwd=routed.ROOT, text=True).strip(),
                 "route_config_sha256": routed.sha256(config_path),
                 "checkpoint_roles": "self_trained_only", "cm_enabled": False,
-                "assignment_seed": 20260925234, "option_steps": 10,
+                "assignment_seed": ASSIGNMENT_SEED, "option_steps": 10,
                 "followup_steps": 20, "physical_gpu": int(visible),
                 "budget": {"gpu_count": 1, "wall_minutes": 15, "output_mb": 100},
                 "stop_rule": "input drift, GPU conflict, incomplete episode or nonfinite action",
