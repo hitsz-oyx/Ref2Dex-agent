@@ -5,7 +5,7 @@
   "frozen_substrate_commit": "8625cd3e4bf958c1af29e0ccf9c69fbd4a402ebb",
   "temporal_probe_card": "docs/experiments/probes/P-20260926-temporal-expert-credit.md",
   "canonical_route": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
-  "canonical_route_sha256": "TBD_AFTER_COMMIT",
+  "canonical_route_sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
   "route_mode": "simulator_object_id",
   "objects": ["airplane"],
   "motions": [
