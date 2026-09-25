@@ -29,8 +29,8 @@ Fit three fixed-capacity regularized logistic models on seed223 only:
    the proposed initial action.
 2. **Action-blind control:** identical inputs and fitting except action.
 3. **Action-shuffled control:** same dimensionality as aware, but permute
-   action vectors across environments *within each expert* using a fixed
-   training shuffle; test with an independent fixed shuffle. This
+   action vectors across environments *within each expert* using RNG seed
+   20260925223 for training; test with independent RNG seed 20260925224. This
    preserves expert identity and the action distribution while breaking
    the state/action pairing.
 
