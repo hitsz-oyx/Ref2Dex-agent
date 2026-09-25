@@ -1,0 +1,17 @@
+{
+  "description": "Self-trained airplane source policy and contact-stage candidate",
+  "default_expert": "source_e260",
+  "experts": {
+    "source_e260": {
+      "checkpoint": "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+      "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+    },
+    "balanced_e360": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+    }
+  },
+  "object_route": {
+    "airplane": "source_e260"
+  }
+}
