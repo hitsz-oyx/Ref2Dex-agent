@@ -50,14 +50,26 @@ and produced e300 SHA256
 On new seed240 it achieved 0/64 held-lifts, 0.905% mean hand-object contact,
 and 0.000 m mean max contact lift.
 
+Two additional random-initialized repetitions used the same frozen input
+manifest, config, 300-epoch budget and 64-environment first-episode protocol:
+
+| run | checkpoint SHA256 | eval seed | held-lift | mean hand-object contact |
+| --- | --- | ---: | ---: | ---: |
+| `s72_e300_scratch_r2` | `5a99095a7320ec26586cd855b1afd1779fe0a2583a7c27ee7a939d7f6ef51fed` | 243 | 0/64 | 0.061% |
+| `s73_e300_scratch_r2` | `fb609a2218b857fce56d58e3ffc359511d8e5b27635c7571f25dc377d8b3404d` | 243 | 0/64 | 0.100% |
+
+Both runs visited all 660 motions (minimum 44 and maximum 801 resets per
+motion). The evaluation summaries are stored under each run's
+`eval_s243_e300_full/results.json`; both had zero mean maximum contact lift.
+
 ## Decision
 
 `UNPROMISING` for a uniform full-pool actor under this training budget and
-initialization. The result is a baseline route failure, not evidence that all
-self-trained full-GRAB policies are impossible. Do not add more epochs to
-this exact route. Use the existing observation-driven specialist/hierarchical
-substrate for the next Cm Probe, and require a matched Cm-off arm before any
-claim of Cm utility.
+both tested initializations. The result is a baseline route failure, not
+evidence that all self-trained full-GRAB policies are impossible. Do not add
+more epochs to this exact route. Use the existing observation-driven
+specialist/hierarchical substrate for the next Cm Probe, and require a matched
+Cm-off arm before any claim of Cm utility.
 
 ## Limits
 

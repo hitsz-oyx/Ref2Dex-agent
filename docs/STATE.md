@@ -11,7 +11,8 @@ Updated: 2026-09-25
 用户已于 2026-09-24 重新授权多轨迹 baseline 训练及 Cm Probe；
 [执行选择](decisions/D-20260924-reopen-multitrajectory-cm.md)取代此前的
 暂停决定。北京时间 2026-09-25 10:00 前，常规研究路线选择由 AI 自行
-决定并记录。Mission 与资源硬上限不变。
+决定并记录。当前资源硬上限为最多同时使用 4 张 GPU，详见
+[执行活动约束](CAMPAIGN.md)。
 
 ## North-star 状态
 
@@ -106,8 +107,16 @@ seeds238/239 仅从 e300 的 **6/128** 到 **9/128**；成功物体身份
 续训 e260→e280 在新 seed221 为 **0/64 held-lift**，平均手物接触
 1.714%；同一协议源 e260 为 0/64、0.787%。随机初始化 Cm-off
 全池 e300 在新 seed240 仍为 **0/64、0.905%**，训练和评估均完成。
-该均匀全池 baseline Probe 为 `UNPROMISING`；不再追加同一方案的 epoch，
-详见 [实验卡](experiments/probes/P-20260925-grab660-full-baseline.md)。
+另两个独立随机初始化 e300 在新 seed243 也均为 **0/64**，平均手物接触
+分别为 **0.061%** 和 **0.100%**，且均访问 660/660 条轨迹。该均匀全池
+baseline Probe 为 `UNPROMISING`；不再追加同一方案的 epoch，详见
+[实验卡](experiments/probes/P-20260925-grab660-full-baseline.md)。
+在已有六专家固定身份路由的 12 条强底座上，Cm 直接排序六个专家动作的
+三 seed matched 结果为 off **75/192**、on **63/192**，属于负对照。
+改为只在连续五步手物接触后对 route action 加局部腕/手指残差，四个
+matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
+1.1–1.3 万个决策步，但没有成功率增益，详见
+[Cm route/local residual Probe](experiments/probes/P-20260925-cm-route-local-residual.md)。
 
 ## 决定下一步的事实
 

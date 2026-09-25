@@ -71,7 +71,7 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 硬上限：
 
-最多同时使用 2 张 GPU。
+最多同时使用 4 张 GPU。
 
 使用 GPU 前检查显存和当前进程。
 
@@ -96,7 +96,7 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 正式 Validation 可以使用：
 
-最多 2 GPU。
+最多 4 GPU。
 
 如果预计：
 
