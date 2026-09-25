@@ -193,6 +193,9 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 同一方案的 epoch；下一步转向专家/层级训练或改变承重表示。
 短时与持续接触切换均未过抓取门，新 H10 事件 Cm 也未过动作
 信息门；Cm 研究需回到更高层的表示和信用分配，不继续细调
-这些局部动作与目标。
+这些局部动作与目标。route-specific CmLite progress reward 及其
+predicted-contact gate 在完整 59-motion route 上都已停止；下一轮若继续
+Cm，应改用长时序的 contact-supported lift 目标，并重新建立便宜的单组
+判别 Probe，再考虑训练整条 route。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
