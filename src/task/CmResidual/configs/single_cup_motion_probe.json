@@ -1,0 +1,6 @@
+{
+  "description": "Corrected single right-hand s1 cup lift for specialist continuation",
+  "motions": [
+    "outputs/CmResidual/agent_objectpool_cup_gate/corrected_converted/s1_cup_lift"
+  ]
+}
