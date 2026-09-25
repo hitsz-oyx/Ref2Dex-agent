@@ -16,6 +16,8 @@ import subprocess
 import sys
 
 from isaacgym import gymapi  # noqa: F401 - must precede torch
+import joblib
+import numpy as np
 import torch
 
 import evaluate_paired as pinned
@@ -51,6 +53,53 @@ class RandomizedPlayer(BASE_PLAYER):
         self.macro_pending = None
         self.probe_error = None
         self.probe_generator = torch.Generator(device="cpu").manual_seed(CONFIG["assignment_seed"])
+        self.policy_artifact = None
+
+    def restore(self, filename):
+        super().restore(filename)
+        if CONFIG["policy_mode"] != "cm":
+            return
+        model_path = CONFIG["policy_model"]
+        self.policy_artifact = joblib.load(model_path)
+        required = {"state_scaler", "state_pca", "models"}
+        if not required.issubset(self.policy_artifact):
+            raise ValueError("Cm policy artifact is missing fitted preprocessing/model")
+        if ("cm_aware", "binary") not in self.policy_artifact["models"]:
+            raise ValueError("Cm policy artifact has no cm_aware binary head")
+
+    @torch.no_grad()
+    def _cm_assignment(self, task, action, valid):
+        """Score +/- delta-z from the pre-action state with a frozen value head."""
+        if self.policy_artifact is None:
+            raise RuntimeError("Cm policy artifact was not loaded")
+        q = task._dof_pos.detach().float().cpu()
+        object_state = task._target_states.detach().float().cpu()
+        q_relative = q.clone()
+        q_relative[:, :3] -= object_state[:, :3]
+        state = torch.cat((
+            q_relative, task._dof_vel.detach().float().cpu(), object_state,
+            action.detach().float().cpu(),
+            task.progress_buf.detach().float().cpu().reshape(-1, 1) / 500.0,
+            task.start_times.detach().float().cpu().reshape(-1, 1) / 500.0,
+        ), dim=1).numpy()
+        scaler = self.policy_artifact["state_scaler"]
+        pca = self.policy_artifact["state_pca"]
+        latent = pca.transform(scaler.transform(state))
+        classifier = self.policy_artifact["models"][("cm_aware", "binary")]
+        plus_features = torch.from_numpy(
+            np.concatenate((latent, np.ones((len(latent), 1)), latent), axis=1))
+        minus_features = plus_features.clone()
+        minus_features[:, latent.shape[1]] = -1.0
+        plus = classifier.predict_proba(plus_features.numpy())[:, 1]
+        minus = classifier.predict_proba(minus_features.numpy())[:, 1]
+        scores = torch.as_tensor(plus - minus, device=action.device, dtype=action.dtype)
+        assignment = torch.where(scores >= 0,
+                                  torch.ones_like(valid, dtype=torch.int8),
+                                  -torch.ones_like(valid, dtype=torch.int8))
+        assignment = torch.where(valid, assignment,
+                                 torch.zeros_like(assignment, dtype=torch.int8))
+        return assignment, torch.as_tensor(plus, device=action.device), \
+            torch.as_tensor(minus, device=action.device)
 
     def env_step(self, env, action):
         self.probe_step += 1
@@ -80,7 +129,16 @@ class RandomizedPlayer(BASE_PLAYER):
                                   valid, self.probe_generator,
                                   2 if sequence else len(CONFIG["axes"])))
             else:
-                assignment = balanced_assignment(valid, self.probe_generator)
+                if CONFIG["policy_mode"] == "off":
+                    assignment = torch.zeros_like(valid, dtype=torch.int8)
+                    policy_plus = policy_minus = None
+                elif CONFIG["policy_mode"] == "cm":
+                    valid &= action[:, 2].abs() <= 1 - CONFIG["delta_z"]
+                    assignment, policy_plus, policy_minus = self._cm_assignment(
+                        task, action, valid)
+                else:
+                    assignment = balanced_assignment(valid, self.probe_generator)
+                    policy_plus = policy_minus = None
             executed = action.detach().clone()
             if finger_primer:
                 executed = execute_finger_primer_lift(
@@ -103,6 +161,7 @@ class RandomizedPlayer(BASE_PLAYER):
                 "q": task._dof_pos.clone(),
                 "dof_vel": task._dof_vel.clone(),
                 "object_state": task._target_states.clone(),
+                "env_id": torch.arange(len(action), device=action.device),
                 "base_action": action.detach().clone(),
                 "executed_action": executed.clone(),
                 "assignment": assignment.clone(),
@@ -111,6 +170,9 @@ class RandomizedPlayer(BASE_PLAYER):
                 "motion_id": task.data_id.clone(),
                 "start_frame": task.start_times.clone(),
             }
+            if CONFIG["policy_mode"] == "cm":
+                before["policy_score_plus"] = policy_plus.clone()
+                before["policy_score_minus"] = policy_minus.clone()
             result = BASE_PLAYER.env_step(self, env, executed)
             before.update(next_q=task._dof_pos.clone(),
                           next_object_state=task._target_states.clone(),
@@ -183,7 +245,8 @@ class RandomizedPlayer(BASE_PLAYER):
                 else:
                     remaining.append((started, record))
             self.followup_pending = remaining
-        if self.probe_step >= CONFIG["stop_step"]:
+        if (self.probe_step >= CONFIG["stop_step"] and
+                not CONFIG["record_final_outcome"]):
             raise ProbeDone
         return result
 
@@ -200,6 +263,7 @@ class RandomizedPlayer(BASE_PLAYER):
             record = {
                 "q": task._dof_pos.clone(), "dof_vel": task._dof_vel.clone(),
                 "object_state": task._target_states.clone(),
+                "env_id": torch.arange(len(action), device=action.device),
                 "base_action": action.detach().clone(),
                 "assignment": assignment.clone(),
                 "pre_contact": pre_contact.clone(),
@@ -267,7 +331,8 @@ class RandomizedPlayer(BASE_PLAYER):
                 "grip": int((assignment == 1).sum()),
                 "lift_only": int((assignment == -1).sum()),
             }, sort_keys=True), flush=True)
-        if self.probe_step >= CONFIG["stop_step"]:
+        if (self.probe_step >= CONFIG["stop_step"] and
+                not CONFIG["record_final_outcome"]):
             raise ProbeDone
         return result
 
@@ -287,6 +352,29 @@ class RandomizedPlayer(BASE_PLAYER):
             self.probe_error = f"{type(error).__name__}: {error}"
             raise
         finally:
+            if (CONFIG["record_final_outcome"] and status == "COMPLETED" and
+                    self.probe_records):
+                by_env = {int(row["env_id"]): row for row in self.episode_results}
+                if len(by_env) < CONFIG["expected_envs"]:
+                    raise RuntimeError(
+                        "complete-episode outcome requested but not every environment finished")
+                for record in self.probe_records:
+                    env_ids = record["env_id"].reshape(-1).tolist()
+                    try:
+                        outcomes = [by_env[int(env_id)] for env_id in env_ids]
+                    except KeyError as error:
+                        raise RuntimeError(
+                            f"missing final episode outcome for env {error.args[0]}") from error
+                    record["final_lift_success"] = torch.tensor(
+                        [bool(row["lift_success"]) for row in outcomes], dtype=torch.bool)
+                    record["final_max_contact_lift_m"] = torch.tensor(
+                        [float(row["max_contact_lift_m"]) for row in outcomes],
+                        dtype=torch.float32)
+                    record["final_contact_fraction"] = torch.tensor(
+                        [float(row["hand_object_contact_fraction"]) for row in outcomes],
+                        dtype=torch.float32)
+                    record["final_episode_steps"] = torch.tensor(
+                        [int(row["steps"]) for row in outcomes], dtype=torch.int64)
             output = CONFIG["output"]
             if self.probe_records:
                 keys = self.probe_records[0]
@@ -324,12 +412,17 @@ class RandomizedPlayer(BASE_PLAYER):
                         "sequence_lengths": CONFIG["sequence_lengths"],
                         "crossaxis_primer": CONFIG["crossaxis_primer"],
                         "followup_horizon": CONFIG["followup_horizon"],
+                        "record_final_outcome": CONFIG["record_final_outcome"],
+                        "policy_mode": CONFIG["policy_mode"],
                         "records": records}, output)
             selected = records.get("assignment", torch.empty(0, dtype=torch.int8))
             summary = {
                 "run_status": status, "steps_collected": len(self.probe_records),
                 "rows": len(selected), "plus": int((selected > 0).sum()),
                 "minus": int((selected < 0).sum()),
+                "final_outcome_recorded": bool(CONFIG["record_final_outcome"] and
+                                                status == "COMPLETED"),
+                "policy_mode": CONFIG["policy_mode"],
                 "axis_counts": ({"sustained_grip_lift":
                                  [int((selected == 1).sum()),
                                   int((selected == -1).sum())]}
@@ -373,6 +466,13 @@ def main():
                         help="randomized finger primer followed by common wrist-z lift")
     parser.add_argument("--sustained-grip-lift", action="store_true",
                         help="ten-step grip+lift versus lift-only option")
+    parser.add_argument("--record-final-outcome", action="store_true",
+                        help="continue first episodes and attach final lift labels")
+    parser.add_argument("--policy-mode", choices=("random", "cm", "off"),
+                        default="random",
+                        help="randomized assignment, frozen Cm policy, or no action intervention")
+    parser.add_argument("--policy-joblib", type=Path,
+                        help="fitted post-contact value artifact for --policy-mode cm")
     parser.add_argument("--second-delta", type=float, default=.1)
     parser.add_argument("--source-checkpoint-sha256")
     parser.add_argument("--source-motion-manifest", type=Path)
@@ -410,6 +510,13 @@ def main():
                 args.intervention_axes != [2] or args.followup_horizon != 20 or
                 args.intervention_stride < 20 or not 0 < args.second_delta <= .5 or
                 args.source_actor_role != "self_trained")) or
+            args.policy_mode == "cm" and args.policy_joblib is None or
+            args.policy_mode != "cm" and args.policy_joblib is not None or
+            args.policy_mode == "cm" and (
+                args.sustained_grip_lift or args.finger_synergy or
+                args.finger_primer_lift or args.cross_axis_primer or
+                args.sequence_lengths is not None or args.intervention_axes != [2] or
+                args.followup_horizon == 0) or
             (args.sequence_lengths is not None and (
                 args.sequence_lengths != [1, 2] or args.intervention_axes not in ([0], [2]) or
                 args.followup_horizon != 10 or args.intervention_stride < 10)) or
@@ -418,6 +525,8 @@ def main():
             (args.followup_horizon and args.intervention_stride < args.followup_horizon) or
             args.intervention_last + max(args.followup_horizon - 1, 0) > 500):
         raise ValueError("invalid randomized intervention design or existing output")
+    if args.policy_joblib is not None and not args.policy_joblib.is_file():
+        raise FileNotFoundError(args.policy_joblib)
     checkpoint = Path(pinned.argument_value(remaining, "--checkpoint")).resolve()
     motion_root = Path(pinned.argument_value(remaining, "--motion_file")).resolve()
     source_overrides = (args.source_checkpoint_sha256,
@@ -499,6 +608,11 @@ def main():
         "source_partition": source["partition"],
         "source_objects": source["objects"],
         "source_actor_role": args.source_actor_role,
+        "record_final_outcome": args.record_final_outcome,
+        "policy_mode": args.policy_mode,
+        "policy_model_sha256": (pinned.sha256(args.policy_joblib)
+                                 if args.policy_joblib is not None else None),
+        "expected_envs": int(pinned.argument_value(remaining, "--num_envs")),
         "wall_budget_minutes": 30, "output_budget_mb": 100,
         "stop_rule": "input drift, GPU conflict, non-finite state or wall budget",
         "command": [sys.executable, *sys.argv],
@@ -514,7 +628,12 @@ def main():
               "sustained_grip_lift": args.sustained_grip_lift,
               "second_delta": args.second_delta,
               "followup_horizon": args.followup_horizon,
-              "assignment_seed": args.assignment_seed}
+              "assignment_seed": args.assignment_seed,
+              "record_final_outcome": args.record_final_outcome,
+              "policy_mode": args.policy_mode,
+              "policy_model": args.policy_joblib.resolve()
+              if args.policy_joblib is not None else None,
+              "expected_envs": int(pinned.argument_value(remaining, "--num_envs"))}
     sys.argv = [sys.argv[0], *remaining]
     original.EvalPlayer = RandomizedPlayer
     try:

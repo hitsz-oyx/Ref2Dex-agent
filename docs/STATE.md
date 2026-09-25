@@ -14,6 +14,12 @@ Updated: 2026-09-25
 决定并记录。当前资源硬上限为最多同时使用 4 张 GPU，详见
 [执行活动约束](CAMPAIGN.md)。
 
+2026-09-25 19:51 起，用户将当前阶段目标明确改为固定自训练任务分布内
+的 Cm policy utility：接触后随机干预、完整 episode held-lift 标签、
+Cm-aware/state-only/action-shuffled 对照和 matched Cm-on/off。跨物体
+泛化与 Apple 留出不再是本阶段门槛，详见
+[目标重述](decisions/D-20260925-cm-goal-reframe.md)。
+
 ## North-star 状态
 
 | 目标 | 当前证据与边界 |
@@ -21,7 +27,7 @@ Updated: 2026-09-25
 | Self-trained grasp | 不使用官方 actor checkpoint 的单轨迹固定路由在新 seeds60–64 为 307/320（95.94%）。路由读取仿真器起始帧，选择整段使用的 BC/PPO 专家；不是单一观测驱动 actor 的成绩。 |
 | Cm one-step information | 若干随机动作干预中存在可学物理效应，但冻结 V1.3 token 的五对象线性头留一 Probe 未显示动作信息增量；结论依赖表示与分布。 |
 | Cm policy utility | **尚未证明**。effect-rank 正式 Validation 的联合正向主张 `REFUTED`；其他已测试接法的 Probe 未建立跨训练 seed 的稳定 matched 增益。 |
-| Generalization | 自训练策略对未见物体的持握抬升弱，未见物体上的 Cm 策略收益未建立。 |
+| Generalization | 暂降为后续研究债务；不阻塞当前固定任务内 Cm policy utility。 |
 
 新增 12 条校正轨迹、10 个物体身份的 Cm-off 单策略续训 Probe：e300 在
 两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
@@ -157,6 +163,17 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
   一步 z 仅 **+1.70 mm [−1.79, 4.81]**。当前历史/状态表示的正向
   CATE 信号因此视为物体与分布特定，不启动在线 selector；需要更高层
   的跨物体表示或直接对齐最终 held-lift 的监督。
+- `P-20260925-cm-postcontact-heldlift-value` 已在固定 airplane 分布完成
+  完整 episode 标签 Probe。第 50 步 `+/-0.1` wrist-z 的四个 seed 均通过
+  env-id、pre-contact 和实际 action 差值审计。246/247 训练、248/249
+  留出时，Cm-aware 的 IPW held-lift policy value 为 0.702，state-only
+  为 0.672、action-shuffled 为 0.678；增益未达到预设 5pp，动作排序
+  区间也未超过置乱控制，离线 gate 失败。冻结头接入在线选择后在两个
+  留出 seed 都几乎全选 `-z`，Cm-on/Cm-off 为 77/128 对 88/128
+  （−8.59pp）；该 action family 的 post-contact value route 记为
+  `UNPROMISING`，详见[实验卡](experiments/probes/P-20260925-cm-postcontact-heldlift-value.md)。
+  同 seed 的 motion/start frame 相同但 GPU 重放的 pre-action 状态未逐元素
+  复现，因此在线差值仍是 matched-protocol Probe，不升级为正式因果结论。
 - 全池 baseline 的 0/64 不是 Cm 结果；它说明均匀 660 轨迹 PPO 不能
   作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同
   专家组合上建立 Cm-off 对照。
@@ -164,8 +181,9 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
 ## 当前 blocker 与活跃假设
 
 尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
-动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
-PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以学会
+动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token、若干
+PPO 接法，以及首个完整 held-lift value route 均未给出稳定 policy
+utility。duck 说明单物体策略可以学会
 共享策略未覆盖的抓取。waterbottle 起点退火增加接触和少量抓取，
 仍不足以支持继续同一局部课程。固定专家路由已证明四类物体
 可以共同成功抓取；下一关键不确定性是能否从策略可用观测识别
@@ -181,9 +199,9 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 兼容轨迹覆盖。59 轨迹共享 actor 延长训练已失败，不再追加
 同一方案的 epoch；下一步转向专家/层级训练或改变承重表示。
 短时与持续接触切换均未过抓取门，新 H10 事件 Cm 也未过动作
-信息门；Cm 研究需回到更高层的表示和信用分配，不继续细调
-这些局部动作与目标。随机干预上的短期条件效应排序已有新的
-`PROMISING` 信号，但跨物体迁移失败且尚未连接到最终 held-lift；当前
-blocker 仍是获得跨物体、任务对齐且可验证的策略决策增益。
+信息门；固定 airplane 的首个 post-contact 完整 episode value route 已
+完成但为 `UNPROMISING`。当前 blocker 是获得同一仿真运行内可验证的
+base/+candidate 候选比较，而不是继续调第 50 步 wrist-z 或追求 Apple/
+跨物体迁移。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
