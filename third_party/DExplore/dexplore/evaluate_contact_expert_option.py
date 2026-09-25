@@ -16,6 +16,8 @@ import torch
 import evaluate as original
 import evaluate_object_router as routed
 
+BASE_PLAYER = original.EvalPlayer
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -63,7 +65,7 @@ class ContactOptionPlayer(routed.RoutedPlayer):
         old_model, old_rms = self.model, self.running_mean_std
         try:
             self.model, self.running_mean_std = self.expert_models["balanced_e360"]
-            candidate = original.EvalPlayer.get_action(self, obs_dict, is_determenistic)
+            candidate = BASE_PLAYER.get_action(self, obs_dict, is_determenistic)
         finally:
             self.model, self.running_mean_std = old_model, old_rms
         if (base.shape != (64, 18) or candidate.shape != base.shape or
