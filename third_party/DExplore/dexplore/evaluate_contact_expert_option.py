@@ -18,6 +18,7 @@ import evaluate_object_router as routed
 
 BASE_PLAYER = original.EvalPlayer
 ASSIGNMENT_SEED = 20260925234
+OPTION_MODE = "ten"
 
 
 def now() -> str:
@@ -45,6 +46,7 @@ class ContactOptionPlayer(routed.RoutedPlayer):
             assignment[ids[:len(ids) // 2]] = 1
         self.assignment = torch.as_tensor(assignment, device=self.device)
         self.triggered = torch.zeros(64, device=self.device, dtype=torch.bool)
+        self.episode_ended = torch.zeros_like(self.triggered)
         self.valid = torch.zeros_like(self.triggered)
         self.elapsed = torch.zeros(64, device=self.device, dtype=torch.long)
         self.contact_count = torch.zeros(64, device=self.device, dtype=torch.long)
@@ -86,7 +88,8 @@ class ContactOptionPlayer(routed.RoutedPlayer):
         task = env.task
         self.step_index += 1
         pre_contact = self.contact(task)
-        new = (pre_contact & ~self.triggered & (task.reset_buf.reshape(-1) == 0) &
+        new = (pre_contact & ~self.triggered & ~self.episode_ended &
+               (task.reset_buf.reshape(-1) == 0) &
                (task.progress_buf > 0))
         if new.any():
             self.triggered[new] = True
@@ -101,17 +104,21 @@ class ContactOptionPlayer(routed.RoutedPlayer):
             self.trigger_base_action[new] = action[new]
             self.trigger_candidate_action[new] = self.candidate_action[new]
         active = self.triggered & (self.elapsed < 20)
-        candidate_mask = active & (self.elapsed < 10) & (self.assignment == 1)
+        candidate_mask = (self.triggered & ~self.episode_ended &
+                          (self.assignment == 1) &
+                          ((self.elapsed < 10) if OPTION_MODE == "ten" else
+                           torch.ones_like(self.triggered)))
         executed = torch.where(candidate_mask[:, None], self.candidate_action, action)
         result = super().env_step(env, executed)
+        done = result[2].reshape(-1).bool()
         if active.any():
-            done = result[2].reshape(-1).bool()
             self.valid[active] &= ~done[active]
             post_contact = self.contact(task)
             self.contact_count[active & self.valid] += post_contact[active & self.valid].long()
             self.elapsed[active] += 1
             complete = active & (self.elapsed == 20) & self.valid
             self.final_z[complete] = task._target_states[complete, 2]
+        self.episode_ended |= done
         return result
 
     def run(self):
@@ -138,12 +145,14 @@ class ContactOptionPlayer(routed.RoutedPlayer):
 
 
 def main() -> None:
-    global ASSIGNMENT_SEED
+    global ASSIGNMENT_SEED, OPTION_MODE
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--route-config", type=Path, required=True)
     parser.add_argument("--assignment-seed", type=int, default=20260925234)
+    parser.add_argument("--option-mode", choices=("ten", "suffix"), default="ten")
     args, remaining = parser.parse_known_args()
     ASSIGNMENT_SEED = args.assignment_seed
+    OPTION_MODE = args.option_mode
     config_path = args.route_config.resolve()
     routed.CONFIG = json.loads(config_path.read_text())
     routed.MODEL_PATH = None
@@ -170,7 +179,8 @@ def main() -> None:
                     ["git", "rev-parse", "HEAD"], cwd=routed.ROOT, text=True).strip(),
                 "route_config_sha256": routed.sha256(config_path),
                 "checkpoint_roles": "self_trained_only", "cm_enabled": False,
-                "assignment_seed": ASSIGNMENT_SEED, "option_steps": 10,
+                "assignment_seed": ASSIGNMENT_SEED, "option_mode": OPTION_MODE,
+                "option_steps": 10 if OPTION_MODE == "ten" else "until_first_episode_end",
                 "followup_steps": 20, "physical_gpu": int(visible),
                 "budget": {"gpu_count": 1, "wall_minutes": 15, "output_mb": 100},
                 "stop_rule": "input drift, GPU conflict, incomplete episode or nonfinite action",

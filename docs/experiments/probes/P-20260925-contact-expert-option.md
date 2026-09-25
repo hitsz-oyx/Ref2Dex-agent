@@ -40,16 +40,16 @@ drift, incomplete first episodes, nonfinite actions or GPU conflict.
 
 The seed234 run at commit `1d473f5` completed after an engineering-only
 failed run at `65bfba0` (recursive action call, no intervention result).
-With 64 first episodes, 63 environments triggered and completed a
-valid 20-step follow-up. Candidate and source groups had 31 and 32
-valid follow-ups; mean initial 18-D action gap was 0.17. Candidate
+With 64 first episodes, 62 environments triggered and completed a
+valid first-episode 20-step follow-up. Candidate and source groups had
+31 each; mean initial 18-D action gap was 0.17. Candidate
 minus source mean contact-supported object-z displacement was
-**+32.7 mm**, and 20-step contact fraction was **+6.9 pp**. Full
+**+32.6 mm**, and 20-step contact fraction was **+5.0 pp**. Full
 held-lifts were 15/31 assigned candidate versus 9/33 assigned source.
 The predeclared signal gate passed (`PROMISING`).
 
 The three airplane motions had respective supported-z candidate minus
-source differences of approximately +68.7, +24.7 and +1.1 mm. The
+source differences of approximately +68.7, +24.7 and +0.8 mm. The
 largest motion also had unequal mean start frames (33.4 candidate,
 19.5 source), so this single randomization may exaggerate the effect.
 Before fitting Cm, repeat the identical intervention on fresh simulator
@@ -59,3 +59,26 @@ and contact decline no worse than 2 pp. If this fresh repeat passes,
 train a contact option Cm with action-blind and shuffled controls.
 
 Artifacts: `outputs/CmResidual/agent_contact_expert_option_s234_r2/`.
+
+The independent seed235 repeat at commit `e194036` completed with
+61 valid first-episode follow-ups (30 candidate, 31 source).
+Candidate minus source 20-step contact fraction remained **+6.11 pp**,
+but contact-supported z was **−0.90 mm** and full held-lifts were
+**11/31** candidate versus
+**11/33** source. Its predeclared joint gate failed. Across the
+three motions, the candidate-minus-source supported-z differences
+were approximately −15.6, +11.1 and +1.0 mm. The first run's large
+gain is not stable; the short ten-step option is `UNPROMISING` as a
+lift-improving intervention. Do not fit a Cm to select this exact
+option. The persistent contact increase suggests a longer expert
+commitment may be needed to turn contact into lift; test that as a
+separate decision Probe. Repeat artifacts are under
+`outputs/CmResidual/agent_contact_expert_option_s235/`.
+
+First-episode filtering correction: the initial runner could record
+a trigger after an environment's first episode ended. Comparing each
+trigger step with the first-episode length excluded one source row in
+seed234 and one candidate plus one source row in seed235. The values
+above use the corrected first-episode follow-ups. The predeclared
+decision is unchanged. Future runs now prevent post-first-episode
+triggers in the evaluator itself.
