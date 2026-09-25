@@ -28,4 +28,17 @@ incomplete episodes, nonfinite actions or GPU conflict.
 
 ## Results
 
-Pending.
+The seed236 run at commit `78a8ebc` completed with 64 first episodes,
+60 first-contact triggers and 60 valid 20-step follow-ups. Candidate
+and source had 29 and 31 valid follow-ups, respectively; mean initial
+action gap was 0.17. Candidate minus source contact-supported object-z
+was **+3.05 mm**, 20-step contact fraction was **+1.80 pp**, and full
+held-lifts were **13/31** candidate versus **14/33** source. The
+predeclared +5/64 full held-lift gate failed. The result is
+`UNPROMISING` for source→balanced contact-stage suffix switching on
+these airplane motions. Do not fit a Cm selector to this expert pair;
+return to a representation or training objective that targets
+contact-supported lift directly.
+
+Run manifest, randomized assignment and first-episode results:
+`outputs/CmResidual/agent_contact_expert_suffix_s236/`.
