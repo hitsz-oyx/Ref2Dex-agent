@@ -27,4 +27,20 @@ checkpoint or incomplete evaluation.
 
 ## Results
 
-Pending.
+The seed70 e260→e340 continuation completed with the corrected cup
+motion. The source e260 actor scored **2/64** on the same seed226 and
+motion. The cup e340 actor scored **59/64**, with mean hand-object
+contact fraction 0.895. The predeclared first-seed gate passed, so
+new seeds227/228 were run without changing the checkpoint or protocol.
+They scored **60/64** and **61/64**, totaling **180/192 (93.75%)** over
+three evaluation seeds. Result: `PROMISING` for a self-trained cup
+specialist on this one corrected trajectory. It is not multi-trajectory
+or multi-training-seed Validation.
+
+The checkpoint SHA256 is
+`c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc`.
+Training and evaluation manifests are in
+`outputs/Dexplore/agent_cup_specialist_s70_e340/`. Next compare a
+frozen route containing this specialist against the previous fixed
+route on fresh 12-motion seeds; isolated cup success need not transfer
+unchanged into the mixed simulator.
