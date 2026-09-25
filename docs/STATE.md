@@ -127,6 +127,18 @@ on **10/128**、off **11/128**，没有增益。随后用 seed244 路由 transit
 接触门评估，on **16/192**、off **13/192**；接触率增加但预设的 +4/192
 门失败，因此只能记为 `UNCLEAR`，不能形成 Cm policy utility 结论。详见
 [group-route Cm Probe](experiments/probes/P-20260925-grab59-group-route-cm.md)。
+将同一 route-specific CmLite 改作冻结 PPO progress reward，在 gC 专家单组
+续训 e360→e400 的两个新 seeds 上得到 Cm **45/128**、Cm-off **33/128**，
+但把 gC–gF 四组统一到 e400 并扩展到完整 59-motion 路由后，matched
+seeds248–249 为 Cm **16/128**、Cm-off **18/128**；接触率为 30.6% 对
+29.9%，没有转化为 held-lift。该局部正向、整路由负向的 reward Probe
+记为 `UNPROMISING`，停止继续扩大这一精确接法，详见
+[Cm reward specialist route](experiments/probes/P-20260925-cm-reward-specialist-route.md)。
+为检验 pre-contact credit，gC 在允许预测接触概率进入 CmLite gate 后，
+matched seeds96–97 为 Cm **45/128**、Cm-off **29/128**；因此将 gD–gF
+用同一设置续训并扩展完整 route。完整 route seeds248–249 为 predicted-contact
+Cm **14/128**、Cm-off **18/128**，接触门变更仍未带来 held-lift 增益，
+该变体也记为 `UNPROMISING`，停止系数扫描。
 
 ## 决定下一步的事实
 
@@ -155,9 +167,10 @@ on **10/128**、off **11/128**，没有增益。随后用 seed244 路由 transit
   作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同
   专家组合上建立 Cm-off 对照。
 - 分组路由已经提供非零且可复现的自训练 substrate；但 route-specific
-  Cm 的小幅 held-lift 差值未过 replication gate。下一轮应改变 Cm 的
-  长期信用目标（例如 contact-supported lift），而不是继续调一阶
-  goal-distance selector。
+  Cm 的小幅 held-lift 差值未过 replication gate，冻结 progress reward
+  在完整 route 上也从 18/128 降至 16/128。下一轮应改变 Cm 的信用门，
+  先测试预测接触提供 pre-contact credit 是否能改善单组 gC，再决定是否
+  扩展，而不是继续调同一 reward 系数。
 
 ## 当前 blocker 与活跃假设
 
