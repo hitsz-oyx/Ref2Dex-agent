@@ -30,4 +30,30 @@ state misalignment, incomplete episodes or GPU conflict.
 
 ## Results
 
-Pending.
+All six seed225 runs completed and aligned with the seed223 training
+states by environment, motion and start frame. The exact seed223-fitted
+procedure reproduced the earlier seed224 report byte-for-byte before
+the new collection. New heldout seed225 contained 61 held-lifts among
+320 expert-state rows. Results:
+
+| Model | Heldout Brier | Offline selected route |
+| --- | ---: | ---: |
+| Action-aware | 0.15445 | 20/64 |
+| Action-blind | 0.16229 | 11/64 |
+| Action-shuffled | 0.17252 | 14/64 |
+| Fixed object route | — | 20/64 actual rollout |
+
+Action-aware Brier improved 4.83% versus blind and 10.47% versus
+shuffled. It improved offline option choice over blind but **tied** the
+fixed route. The predeclared action-information and route-utility gate
+again **failed**. Across the two untouched heldout seeds, aware
+offline selection was 40/128 and the actual fixed route was 41/128;
+neither seed showed a grasp gain over fixed. Result: `UNPROMISING` for
+using the initial 18-D action in this episode-outcome Cm to replace
+the existing router. This is not a general refutation of Cm or of
+contact-stage physical modeling. Stop this specific start-of-episode
+selector and test decision points after contact, where the action has
+a shorter causal horizon to the measured effect.
+
+Artifacts: `outputs/CmResidual/agent_cm_option_value_retest_s225/` and
+`outputs/CmResidual/agent_cm_option_value_retest_probe_20260925/report.json`.
