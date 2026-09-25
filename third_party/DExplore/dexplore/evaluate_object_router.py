@@ -68,16 +68,17 @@ class RoutedPlayer(original.EvalPlayer):
         task = self.env.task
         names = list(self.expert_models)
         route = CONFIG["object_route"]
-        unknown = set(task.object_name) - set(route)
+        motion_objects = [task.object_name[int(object_id)] for object_id in task.object_id]
+        unknown = set(motion_objects) - set(route)
         if unknown:
             raise ValueError(f"unmapped objects: {sorted(unknown)}")
         self.route_by_motion = torch.tensor(
-            [names.index(route[obj]) for obj in task.object_name],
+            [names.index(route[obj]) for obj in motion_objects],
             device=self.device, dtype=torch.long)
         self.expert_names = names
         print("REF2DEX_OBJECT_ROUTE " + json.dumps({
-            "motion_objects": task.object_name,
-            "motion_experts": [route[obj] for obj in task.object_name],
+            "motion_objects": motion_objects,
+            "motion_experts": [route[obj] for obj in motion_objects],
         }, sort_keys=True), flush=True)
 
     @torch.no_grad()
