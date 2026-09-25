@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-25
+Updated: 2026-09-26
 
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
@@ -32,6 +32,10 @@ Updated: 2026-09-25
   系数或门限。
 - 现有 matched 结果必须保留 Cm-off 对照；任何新 Cm Probe 都应复用同一专家
   组合，并先做最小可判别实验。
+- 允许的一次正确 cwd 工程 smoke 已完成：`agent_temporal_cm_smoke_20260926_r3`
+  在 GPU4 上成功加载 temporal 模块、写出 reward 日志并保存 checkpoint（代码
+  commit `2d5d0b5`）。它使用旧的五步历史/三条 airplane 输入，只证明 wiring，
+  不提供 HF02 的策略或离线预测证据。
 - 历史正式证据与边界见
   [`VAL-20260923-CM-EFFECT-PPO`](experiments/validations/VAL-20260923-CM-EFFECT-PPO.md)
   和相关 Probe cards，不在 STATE 中复制具体运行矩阵。
@@ -49,8 +53,11 @@ Updated: 2026-09-25
 
 ## Next decision experiment
 
-在已有专家 substrate 上测试一个**不同于已停止 pre-contact credit 门**的
-temporal/history-conditioned Cm 信用表示，只做单组、Probe seed、最小训练
-预算。若它改变 held-lift 且在 matched Cm-off 下保持方向，再扩到完整 route；
-若不改变，冻结 `HF02` 并提交路线复盘，切换更高层的表示或信用分配假设。不要
-继续微调已停止的局部腕部动作、progress-reward 系数或同一接触门。
+HF02 slot-2 的 canonical Probe card 已冻结为计划态，当前不执行任何 option
+collection、离线拟合、matched online 或 PPO continuation；等待该 goal 的确认。
+获准后才可在固定六专家 substrate 上运行 card 中的 seed 254/255 离线比较：
+`temporal-Cm` 必须同时相对 `history-only` 与 `action-shuffled` 达到至少
+`+5pp` 的 held-lift policy-value margin，且 contact-supported lift 不下降，
+否则立即将 slot 标为 `UNCLEAR/UNPROMISING` 并冻结，不换 seed、horizon 或
+metric 重复消费预算。不要继续微调已停止的局部腕部动作、progress-reward
+系数或同一接触门。

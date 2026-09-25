@@ -134,7 +134,20 @@ manifests. This card cannot be upgraded to a formal Cm causal claim.
 
 ## Status and artifacts
 
-Status: `PLANNED`. Planned artifacts:
+Status: `PLANNED`. The one permitted cwd-corrected engineering smoke is
+recorded separately and does not consume this Probe's offline gate:
+
+* run: `agent_temporal_cm_smoke_20260926_r3`;
+* commit: `2d5d0b5`, cwd `third_party/DExplore`, one GPU, 8 environments,
+  one epoch from source checkpoint 260;
+* result: `COMPLETED`, with the temporal module loaded, one reward log emitted,
+  and a checkpoint saved;
+* inputs were the older five-step history checkpoint and three airplane
+  motions, so this smoke is not evidence for the canonical six-expert route
+  above and does not change HF02 status.
+
+No option collection, offline fit, matched online Probe, or PPO continuation
+is part of this card yet. Planned artifacts:
 
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/`
 
