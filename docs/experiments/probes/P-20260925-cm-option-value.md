@@ -53,4 +53,33 @@ seed224 must not be used for model selection or fitting.
 
 ## Results
 
-Pending.
+All 11 collection runs completed. The five experts saw exactly the
+same initial observations and physical states within each seed, while
+their proposed initial actions differed. Seed223 provided 320 rows
+with 41 held-lifts; unseen seed224 provided 320 rows with 53 held-lifts.
+The fixed object route on seed224 scored 21/64. A predeclared NumPy
+shuffle seed exceeded the legacy `RandomState` range, so the analysis
+script was repaired to use `default_rng` with the **same numeric seeds**;
+no model or gate parameter changed and no partial result was written.
+
+| Model | Heldout Brier (lower is better) | Offline selected route |
+| --- | ---: | ---: |
+| Action-aware | 0.12309 | 20/64 |
+| Action-blind | 0.13626 | 10/64 |
+| Action-shuffled | 0.15164 | 10/64 |
+| Fixed object route | — | 21/64 actual rollout |
+
+Action-aware Brier improved **9.66%** relative to blind and 18.83%
+relative to shuffled. Its offline expert selection improved by 10/64
+over blind but remained 1/64 below the actual fixed route. The joint
+predeclared gate **failed** on the 10% Brier and +5/64-over-fixed clauses.
+Result: `UNCLEAR` for stable action information, `UNPROMISING` for
+replacing the fixed online router with this initial-action predictor.
+The offline selected route combines outcomes from separate expert
+simulations and is not an executed policy result. Do not claim Cm
+policy utility from it. A single untuned new-seed repeat is warranted
+because the action-information threshold was missed narrowly, while
+online integration is not warranted from seed224.
+
+Artifacts: `outputs/CmResidual/agent_cm_option_value_dataset_20260925/`
+and `outputs/CmResidual/agent_cm_option_value_probe_20260925/report.json`.

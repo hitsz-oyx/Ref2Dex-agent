@@ -53,6 +53,12 @@ toothpaste 14/15 四个身份达到 25% 覆盖门，其余六类仍稀疏或为�
 至少一专家成功 14 例，固定重复 B 补回 3 例。四类物体存在
 不同专家的互补成功，过探索门；上限受重复运行波动影响，不能
 当成可达的 Cm 成绩。
+基于 seed223 五专家动作与结果拟合的初始动作 Cm option-value Probe，
+在留出 seed224 的 Brier 为 action-aware 0.12309、blind 0.13626、
+shuffled 0.15164；aware 相对 blind 改善 9.66%，略低于预设 10%。
+离线择优 aware 20/64、blind 10/64，但真实固定路由 21/64。
+动作信息有探索性信号，联合 policy-utility 门失败，不能上线或
+宣称 Cm 提高抓取。
 当前单右手 DExplore 过滤集合有 **59 条 lift-like 轨迹、29 类物体**。
 张量和资产审计以及 64 环境仿真加载已通过；源 e260 在该池 smoke
 为 3/64。59 轨迹 Cm-off 共享 actor 续训 e260→e300 后，在新
@@ -98,8 +104,9 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 ## 下一步
 
 59 轨迹短续训失败后，暂以观测驱动专家路由作为可用抓取底座。
-在五专家互补起点上收集可比较的 option outcome/action 数据，先做
-action-aware、action-blind、action-shuffled 的离线 Cm Probe。
-只有出现明显正向信号才投入在线 Cm 路由和正式 matched Validation。
+保持当前已固定的 Cm 模型与门槛，在一个新 seed 复核临界的动作
+信息信号；若仍不能超过固定路由，停止初始动作选择接法，转向
+接触后的局部物理决策。只有明显正向信号才投入在线 Cm 路由和
+正式 matched Validation。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。

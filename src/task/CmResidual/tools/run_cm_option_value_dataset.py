@@ -32,14 +32,19 @@ def write(path: Path, value: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu", type=int, required=True)
+    parser.add_argument("--retest-seed", type=int, choices=(225,))
     args = parser.parse_args()
     if args.gpu < 0:
         raise ValueError("physical GPU required")
-    root = ROOT / "outputs/CmResidual/agent_cm_option_value_dataset_20260925"
+    root = ROOT / ("outputs/CmResidual/agent_cm_option_value_retest_s225"
+                   if args.retest_seed == 225 else
+                   "outputs/CmResidual/agent_cm_option_value_dataset_20260925")
     if root.exists():
         raise FileExistsError(root)
     root.mkdir(parents=True)
-    manifest = {"experiment_id": "P-20260925-cm-option-value",
+    manifest = {"experiment_id": ("P-20260925-cm-option-value-retest"
+                                   if args.retest_seed == 225 else
+                                   "P-20260925-cm-option-value"),
                 "run_id": root.name, "run_status": "STARTED", "created_at": now(),
                 "physical_gpu": args.gpu,
                 "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"],
@@ -48,8 +53,9 @@ def main() -> None:
     write(root / "run_manifest.json", manifest)
     environment = os.environ.copy()
     environment["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-    plan = [(seed, expert) for seed in (223, 224) for expert in EXPERTS]
-    plan.append((224, "fixed_a"))
+    seeds = (225,) if args.retest_seed == 225 else (223, 224)
+    plan = [(seed, expert) for seed in seeds for expert in EXPERTS]
+    plan.append((seeds[-1], "fixed_a"))
     try:
         for seed, expert in plan:
             directory = root / f"s{seed}" / expert

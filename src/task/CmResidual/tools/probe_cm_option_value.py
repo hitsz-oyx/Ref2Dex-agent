@@ -16,6 +16,7 @@ from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[4]
 DATA = ROOT / "outputs/CmResidual/agent_cm_option_value_dataset_20260925"
+RETEST = ROOT / "outputs/CmResidual/agent_cm_option_value_retest_s225"
 EXPERTS = ("source_e260", "mixed12_e300", "train5_e320", "balanced_e360", "duck_e340")
 
 
@@ -28,10 +29,11 @@ def digest(path: Path) -> str:
 
 
 def load(seed: int) -> dict:
+    root = RETEST if seed == 225 else DATA
     values = {}
     aligned = None
     for expert in EXPERTS:
-        directory = DATA / f"s{seed}" / expert
+        directory = root / f"s{seed}" / expert
         manifest = json.loads((directory / "run_manifest.json").read_text())
         if manifest["run_status"] != "COMPLETED" or manifest["summary"]["num_episodes"] != 64:
             raise ValueError(f"incomplete seed{seed} {expert}")
@@ -55,7 +57,7 @@ def load(seed: int) -> dict:
             raise ValueError(f"nonfinite feature seed{seed} {expert}")
         arrays["sha256"] = digest(path)
         values[expert] = arrays
-    parent = json.loads((DATA / "run_manifest.json").read_text())
+    parent = json.loads((root / "run_manifest.json").read_text())
     if parent["run_status"] != "COMPLETED":
         raise ValueError("collection manifest incomplete")
     return values
@@ -75,14 +77,15 @@ def rows(values: dict) -> dict:
 
 
 def option_scores(train: dict, test: dict, mode: str, observation_train: np.ndarray,
-                  observation_test: np.ndarray) -> np.ndarray:
+                  observation_test: np.ndarray, test_seed: int) -> np.ndarray:
     features_train = [observation_train, train["q"], train["object"], train["identity"]]
     features_test = [observation_test, test["q"], test["object"], test["identity"]]
     if mode != "blind":
         action_train = train["action"].copy()
         action_test = test["action"].copy()
         if mode == "shuffled":
-            for action, seed in ((action_train, 20260925223), (action_test, 20260925224)):
+            for action, seed in ((action_train, 20260925223),
+                                 (action_test, 20260925000 + test_seed)):
                 rng = np.random.default_rng(seed)
                 for index in range(len(EXPERTS)):
                     section = slice(index * 64, (index + 1) * 64)
@@ -100,10 +103,11 @@ def option_scores(train: dict, test: dict, mode: str, observation_train: np.ndar
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--test-seed", type=int, choices=(224, 225), default=224)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
-    train_raw, test_raw = load(223), load(224)
+    train_raw, test_raw = load(223), load(args.test_seed)
     train, test = rows(train_raw), rows(test_raw)
     scaler = StandardScaler().fit(train["observation"])
     pca = PCA(n_components=32, svd_solver="randomized", random_state=0)
@@ -111,7 +115,8 @@ def main() -> None:
     observation_test = pca.transform(scaler.transform(test["observation"]))
     models = {}
     for mode in ("aware", "blind", "shuffled"):
-        scores = option_scores(train, test, mode, observation_train, observation_test)
+        scores = option_scores(train, test, mode, observation_train,
+                               observation_test, args.test_seed)
         matrix = scores.reshape(len(EXPERTS), 64)
         choice = matrix.argmax(axis=0)
         outcomes = test["labels"].reshape(len(EXPERTS), 64)
@@ -121,7 +126,8 @@ def main() -> None:
                         "choice_counts": {name: int((choice == i).sum())
                                           for i, name in enumerate(EXPERTS)},
                         "choice_expert_index": choice.tolist()}
-    fixed_path = DATA / "s224/fixed_a/results.json"
+    fixed_path = (RETEST if args.test_seed == 225 else DATA) / (
+        f"s{args.test_seed}/fixed_a/results.json")
     fixed = json.loads(fixed_path.read_text())
     if fixed["summary"]["num_episodes"] != 64:
         raise ValueError("incomplete fixed route")
@@ -137,10 +143,13 @@ def main() -> None:
             aware["brier"] <= .95 * shuffled["brier"] and
             aware["route_held_lift"] >= blind["route_held_lift"] + 5 and
             aware["route_held_lift"] >= fixed_lift + 5)
-    report = {"experiment_id": "P-20260925-cm-option-value",
-              "train_seed": 223, "test_seed": 224, "experts": EXPERTS,
+    report = {"experiment_id": ("P-20260925-cm-option-value-retest"
+                                if args.test_seed == 225 else
+                                "P-20260925-cm-option-value"),
+              "train_seed": 223, "test_seed": args.test_seed, "experts": EXPERTS,
               "feature_sha256": {str(seed): {name: value[name]["sha256"] for name in EXPERTS}
-                                 for seed, value in ((223, train_raw), (224, test_raw))},
+                                 for seed, value in ((223, train_raw),
+                                                     (args.test_seed, test_raw))},
               "train_rows": len(train["labels"]), "test_rows": len(test["labels"]),
               "train_successes": int(train["labels"].sum()),
               "test_successes": int(test["labels"].sum()),
