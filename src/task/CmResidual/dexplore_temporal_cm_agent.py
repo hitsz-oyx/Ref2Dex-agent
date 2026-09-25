@@ -57,7 +57,13 @@ class DExploreTemporalCmAgent(DExploreApproachAgent):
         elif len(self.temporal_history.history) != count:
             raise RuntimeError("temporal Cm environment count changed during training")
 
-    @torch.inference_mode()
+    # Keep the history buffer as ordinary tensors.  ``torch.inference_mode``
+    # would mark newly allocated buffer storage as inference tensors, and the
+    # next vectorized environment reset legitimately mutates that storage
+    # outside the inference context.  The frozen model itself uses inference
+    # mode in ``FrozenTemporalHistoryCm.predict``; no gradient graph is needed
+    # for the feature/history bookkeeping here.
+    @torch.no_grad()
     def _predict_reward(self, actions: torch.Tensor):
         task = self._cm_task()
         self._ensure_history(actions.shape[0], actions.device)
