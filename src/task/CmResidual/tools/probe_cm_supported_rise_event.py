@@ -15,7 +15,7 @@ from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_s
 ROOT = Path(__file__).resolve().parents[4]
 TRAIN_SEEDS = (161, 162)
 CHECKPOINT_SHA = "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
-MOTION_SHA = "2878bd20d1dd849f6844883c832a3777602d2bc73f7581b3bc23d30725f038"
+MOTION_SHA = "2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d30725f038"
 
 
 def sha256(path: Path) -> str:
