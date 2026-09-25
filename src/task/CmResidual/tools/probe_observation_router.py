@@ -27,13 +27,13 @@ def digest(path: Path) -> str:
     return h.hexdigest()
 
 
-def load_seed(seed: int, route: dict, route_hash: str):
+def load_seed(seed: int, route: dict, feature_route_hash: str):
     directory = ROOT / f"outputs/CmResidual/agent_observation_route_s{seed}"
     manifest = json.loads((directory / "run_manifest.json").read_text())
     result = json.loads((directory / "results.json").read_text())
     features_path = directory / "initial_features.pt"
     features = torch.load(features_path, map_location="cpu", weights_only=False)
-    if manifest["run_status"] != "COMPLETED" or manifest["route_config_sha256"] != route_hash:
+    if manifest["run_status"] != "COMPLETED" or manifest["route_config_sha256"] != feature_route_hash:
         raise ValueError(f"incomplete or drifted seed{seed}")
     if result["summary"]["num_episodes"] != 64 or features["observation"].shape != (64, 1442):
         raise ValueError(f"incomplete feature export seed{seed}")
@@ -59,17 +59,26 @@ def main() -> None:
     parser.add_argument("--test-seed", type=int, default=216)
     parser.add_argument("--class-weight", choices=("none", "balanced"), default="none")
     parser.add_argument("--model-output", type=Path)
+    parser.add_argument("--route-config", type=Path,
+                        default=ROOT / "src/task/CmResidual/configs/multitrajectory_object_router_probe.json")
+    parser.add_argument("--train-feature-config", type=Path)
+    parser.add_argument("--strong-objects", nargs="+",
+                        default=("airplane", "duck", "mug", "toothpaste"))
+    parser.add_argument("--experiment-id", default=None)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
     if args.model_output is not None and args.model_output.exists():
         raise FileExistsError(args.model_output)
-    config_path = ROOT / "src/task/CmResidual/configs/multitrajectory_object_router_probe.json"
+    config_path = args.route_config.resolve()
     config = json.loads(config_path.read_text())
     if args.test_seed in TRAIN_SEEDS:
         raise ValueError("test seed must be held out")
     seeds = (*TRAIN_SEEDS, args.test_seed)
-    data = {seed: load_seed(seed, config["object_route"], digest(config_path)) for seed in seeds}
+    train_hash = digest(args.train_feature_config.resolve()) if args.train_feature_config else digest(config_path)
+    data = {seed: load_seed(seed, config["object_route"],
+                            train_hash if seed in TRAIN_SEEDS else digest(config_path))
+            for seed in seeds}
     x_train = np.concatenate([data[seed][0] for seed in TRAIN_SEEDS])
     y_train = np.concatenate([data[seed][1] for seed in TRAIN_SEEDS])
     x_test, y_test, object_test, _ = data[args.test_seed]
@@ -87,12 +96,13 @@ def main() -> None:
             "count": int(ids.sum()),
             "predicted_experts": {name: int((predicted[ids] == name).sum()) for name in names},
         }
-    strong = ("airplane", "duck", "mug", "toothpaste")
+    strong = args.strong_objects
     report = {
-        "experiment_id": ("P-20260925-balanced-observation-router"
+        "experiment_id": args.experiment_id or ("P-20260925-balanced-observation-router"
                           if class_weight else "P-20260925-observation-route-identifiability"),
         "train_seeds": list(TRAIN_SEEDS), "test_seed": args.test_seed,
         "route_config_sha256": digest(config_path),
+        "train_feature_config_sha256": train_hash,
         "feature_sha256": {str(seed): data[seed][3] for seed in seeds},
         "classifier": ("StandardScaler + SVC(C=1, kernel=rbf, gamma=scale, "
                        f"class_weight={args.class_weight})"),
