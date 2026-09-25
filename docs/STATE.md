@@ -174,6 +174,13 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
   `UNPROMISING`，详见[实验卡](experiments/probes/P-20260925-cm-postcontact-heldlift-value.md)。
   同 seed 的 motion/start frame 相同但 GPU 重放的 pre-action 状态未逐元素
   复现，因此在线差值仍是 matched-protocol Probe，不升级为正式因果结论。
+- 后续 `P-20260925-cm-postcontact-three-arm-value` 在同一批次内平衡随机
+  `-z/base/+z`，消除了前一轮二臂设计的 base 回放歧义。留出 seed252/253
+  上 Cm-aware 的多臂 IPW policy value 为 **0.6809**，state-only 为
+  **0.6667**，action-shuffled 为 **0.5349**；相对 state-only 仅 **+1.42pp**，
+  未达到预设 5pp 门，且环境聚类区间高度重叠。该三臂离线 gate 仍为 false，
+  因而没有启动新的在线 Cm-on/off；当前 post-contact wrist-z value route
+  继续记为 `UNPROMISING`，详见[三臂实验卡](experiments/probes/P-20260925-cm-postcontact-three-arm-value.md)。
 - 全池 baseline 的 0/64 不是 Cm 结果；它说明均匀 660 轨迹 PPO 不能
   作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同
   专家组合上建立 Cm-off 对照。
@@ -182,7 +189,7 @@ matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
 
 尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
 动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token、若干
-PPO 接法，以及首个完整 held-lift value route 均未给出稳定 policy
+PPO 接法，以及二臂和三臂的 post-contact held-lift value route 均未给出稳定 policy
 utility。duck 说明单物体策略可以学会
 共享策略未覆盖的抓取。waterbottle 起点退火增加接触和少量抓取，
 仍不足以支持继续同一局部课程。固定专家路由已证明四类物体
@@ -199,9 +206,9 @@ utility。duck 说明单物体策略可以学会
 兼容轨迹覆盖。59 轨迹共享 actor 延长训练已失败，不再追加
 同一方案的 epoch；下一步转向专家/层级训练或改变承重表示。
 短时与持续接触切换均未过抓取门，新 H10 事件 Cm 也未过动作
-信息门；固定 airplane 的首个 post-contact 完整 episode value route 已
-完成但为 `UNPROMISING`。当前 blocker 是获得同一仿真运行内可验证的
-base/+candidate 候选比较，而不是继续调第 50 步 wrist-z 或追求 Apple/
-跨物体迁移。
+信息门；固定 airplane 的二臂和三臂 post-contact 完整 episode value
+route 均为 `UNPROMISING`。当前 blocker 是找到新的承重表示、监督目标或
+动作族，而不是继续调第 50 步 wrist-z、重复当前 value head，或追求
+Apple/跨物体迁移。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
