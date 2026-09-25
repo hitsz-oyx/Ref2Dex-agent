@@ -42,8 +42,10 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 2. `docs/MISSION.md`
 3. `docs/STATE.md`
 4. `docs/CAMPAIGN.md`
-5. 与当前问题直接相关的代码
-6. 当前活跃实验记录（如果存在）
+5. `docs/RESEARCH_QUEUE.yaml`
+6. `docs/SEED_LEDGER.yaml`
+7. 与当前问题直接相关的代码
+8. 当前活跃实验记录（如果存在）
 
 不要默认批量读取：
 
@@ -180,6 +182,13 @@ Decision Memo 必须简短，只包含：
 
 此时触发一次路线复盘；必要时形成 Decision Memo。
 
+该规则由 `docs/RESEARCH_QUEUE.yaml` 执行化：每个新 Probe 必须填写
+`hypothesis_family` 和 `probe_index_in_family`，并属于队列中登记的 family。
+`probe_budget` 用完且没有信息增益时，family 必须转为 `KILLED`、`PROMISING`
+或其他明确的终止状态；门禁不允许继续以更换 metric、horizon 或 seed 的方式
+消费已耗尽的 `ACTIVE`/`OPEN` family。换高层假设时新建 family，不重置旧 family
+的计数。
+
 ---
 
 ## 7. Git 规则
@@ -196,7 +205,9 @@ Decision Memo 必须简短，只包含：
 
 `agent/cm-action-ranking`
 
-分支代表“实现路线”，不是单个超参数实验。
+分支代表“实现路线”，不是单个超参数实验；对研究路线优先使用一个
+hypothesis family 一个分支，例如 `agent/cm-temporal`、
+`agent/cm-option-value` 或 `agent/hierarchical-baseline`。
 
 不要因为：
 
@@ -331,10 +342,14 @@ Probe 只能形成：
 它只保留：
 
 * 当前 North-star 状态；
-* 已经确认的重要事实；
-* 当前活跃假设；
-* 当前 blocker；
-* 当前最值得做的下一步。
+* 已经确认的重要长期事实；
+* 当前活跃 hypothesis family；
+* 当前最值得做的决策实验。
+
+压缩后的 `STATE.md` 只保留四类信息：North-star scoreboard、已经确认的
+长期事实、当前活跃 hypothesis family、下一项最值得做的决策实验。seed、具体
+分数、失败路径和运行产物必须回到 experiment card；不要为了让 STATE 看起来
+完整而复制历史日志。
 
 不要把每一次命令、每个失败 traceback 或所有历史实验追加进去。
 
@@ -361,3 +376,38 @@ Research Debt 的存在意味着：
 > 这个实验没有被忘记，只是当前不值得占用探索预算。
 
 不要为了“严谨”而立即偿还所有 Research Debt。
+
+## 13. 当前工作流合同
+
+### 13.1 Experiment card
+
+新 Probe 使用 `docs/experiments/probes/PROBE_TEMPLATE.md` 的
+`ref2dex.probe.v2` schema，至少声明：
+
+* `claim_id`；
+* `hypothesis_family`；
+* `decision_changed_if_positive`；
+* `decision_changed_if_negative`；
+* `probe_index_in_family`。
+
+新 Validation 使用 `ref2dex.validation.v2`，在上述研究身份之外还必须冻结：
+
+* `frozen_method_commit`；
+* `development_seed_pool`；
+* `validation_seed_pool`；
+* `matched_control`。
+
+历史卡可以保持旧格式以保留证据，但新卡不得省略 v2 字段。Probe 只能形成
+`PROMISING`、`UNPROMISING` 或 `UNCLEAR`；Validation 才能形成正式结论。
+
+### 13.2 Seed ownership
+
+`docs/SEED_LEDGER.yaml` 将 seed 分成 `debug`、`probe` 和
+`validation.development`/`validation.holdout`。Probe 可以消费自己的池，不能
+消费 validation holdout；正式 Validation 必须使用 ledger 中声明的 development
+和 holdout 池，不能因为中途看到了结果而交换或回收 holdout。
+
+### 13.3 旧治理文件
+
+`docs/current_versions.yaml`、旧指导/plan 和旧治理 Skill 是历史材料，不再是
+当前 verify 合同；本轮不删除或批量归档它们，待新门禁稳定后另行处理。

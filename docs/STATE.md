@@ -2,197 +2,55 @@
 
 Updated: 2026-09-25
 
-本文件是当前唯一默认事实入口；历史经过保留在
-[阶段收尾记录](CM_CAMPAIGN_CLOSEOUT_20260924.md)、实验卡和
-[旧版 STATE 归档](archive/STATE_20260924_precloseout.md)。
+本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
+对应 experiment card；搜索预算和 family 状态在
+[`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 中维护。
 
-## 当前决定
+## North-star scoreboard
 
-用户已于 2026-09-24 重新授权多轨迹 baseline 训练及 Cm Probe；
-[执行选择](decisions/D-20260924-reopen-multitrajectory-cm.md)取代此前的
-暂停决定。北京时间 2026-09-25 10:00 前，常规研究路线选择由 AI 自行
-决定并记录。当前资源硬上限为最多同时使用 4 张 GPU，详见
-[执行活动约束](CAMPAIGN.md)。
+| 目标 | 当前状态 | 证据边界 |
+| --- | --- | --- |
+| Self-trained grasp | `PARTIAL` | 固定物体身份/观测路由已有探索性非零抓取，但还不是单一观测驱动 actor 的稳定结果。 |
+| Cm one-step information | `PARTIAL` | 随机动作干预中有可学物理效应；信息依赖表示、分布和目标。 |
+| Cm policy utility | `OPEN` | 尚无跨训练 seed 的 matched Cm-on > Cm-off 证据；effect-rank 正式 Validation 的正向主张已 `REFUTED`。 |
+| Generalization | `OPEN` | 未见物体和多轨迹上的 Cm 收益尚未建立。 |
 
-## North-star 状态
+最终研究价值由第三项决定：在足够可用的 self-trained substrate 上证明 Cm
+对真实策略决策有因果增益，而不是只提高离线预测指标。
 
-| 目标 | 当前证据与边界 |
-| --- | --- |
-| Self-trained grasp | 不使用官方 actor checkpoint 的单轨迹固定路由在新 seeds60–64 为 307/320（95.94%）。路由读取仿真器起始帧，选择整段使用的 BC/PPO 专家；不是单一观测驱动 actor 的成绩。 |
-| Cm one-step information | 若干随机动作干预中存在可学物理效应，但冻结 V1.3 token 的五对象线性头留一 Probe 未显示动作信息增量；结论依赖表示与分布。 |
-| Cm policy utility | **尚未证明**。effect-rank 正式 Validation 的联合正向主张 `REFUTED`；其他已测试接法的 Probe 未建立跨训练 seed 的稳定 matched 增益。 |
-| Generalization | 自训练策略对未见物体的持握抬升弱，未见物体上的 Cm 策略收益未建立。 |
+## Confirmed long-term facts
 
-新增 12 条校正轨迹、10 个物体身份的 Cm-off 单策略续训 Probe：e300 在
-两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
-仍为零。四个已有自训练 checkpoint 的最优单模型仅 21/128，按物体
-事后挑选的乐观上限 32/128。详见
-[实验卡](experiments/probes/P-20260924-multitrajectory-baseline.md)。
-duck 单物体 self-trained 续训在新种子206–208 为 **140/192**，源 e260
-同轨迹/seed206 为 1/64；相同方法在 waterbottle seed209 为 0/64。
-waterbottle 近接触重置比例退火续训 e340→e400 后，同 seed209 为
-**7/64**，接触比例由 1.6% 升至 27.5%，未过预设的 16/64 与 30% 联合门。
-12 轨迹参考动作控制只有 9/128，不能直接作为广覆盖 BC 教师。
-自训练专家的仿真器物体身份固定路由在全新 seeds211–213 为
-**55/192 (28.65%)**；airplane 17/45、duck 12/18、mug 9/15、
-toothpaste 14/15 四个身份达到 25% 覆盖门，其余六类仍稀疏或为零。
-这通过了探索性多轨迹覆盖门，但路由使用特权物体身份，仍不是
-观测驱动的完整 GRAB 策略，亦不是 Cm 增益证据。
-原始 `dataset/GRAB/data/grab` 当前有 1335 个 `.npz` 序列，
-其中 268 个文件名包含 `_lift`；这次 12 条校正转换轨迹仅为一个
-选定子集，不能报告成“整个 GRAB 数据集”的抓取率。上述计数只按
-文件名清点，尚未完成可模拟性筛选。
-初始策略观测的专家分类器在新 seed216 为 62/64，因 mug 仅 3/5
-未过预设的四类零错误门。只调整 SVC 类别权重后，在新 seed217 为
-64/64 并过探索门；该识别测试未将分类器接入在线控制，也未测试 Cm。
-在线观测路由在新 seed218 的 64 个环境中与固定身份路由 **64/64**
-专家选择一致，抓取为 **19/64**，固定路由为 **16/64**，过预设
-保真门。相同 seed、轨迹和专家选择仍有 11 个逐环境抓取结果不同，
-这两次仿真运行的差异不能解读为观测路由提升抓取。
-五个自训练专家在 seed219 的同起点 Probe：固定路由两次为
-20/64、23/64；五专家事后逐状态上限 33/64，固定 A 失败但
-至少一专家成功 14 例，固定重复 B 补回 3 例。四类物体存在
-不同专家的互补成功，过探索门；上限受重复运行波动影响，不能
-当成可达的 Cm 成绩。
-基于 seed223 五专家动作与结果拟合的初始动作 Cm option-value Probe，
-在留出 seed224 的 Brier 为 action-aware 0.12309、blind 0.13626、
-shuffled 0.15164；aware 相对 blind 改善 9.66%，略低于预设 10%。
-离线择优 aware 20/64、blind 10/64，但真实固定路由 21/64。
-第二个全新 seed225，aware/blind/shuffled Brier 为
-0.15445/0.16229/0.17252，aware 离线择优与真实固定路由均为
-20/64。两个 seed 合计 aware 离线 40/128、固定真实 41/128；
-动作信息有少量探索性预测信号，但预设 policy-utility 门连续失败。
-停止起始动作 Cm 选专家接法，不能宣称 Cm 提高抓取。
-duck 随机腕 z 动作的已有 seed210 数据按早/中/晚接触阶段重析，
-晚期 H10 接触承重 dz +12.29mm，但接触比例仍 −1.58pp；
-简单时间门无法修复抬升/失接触的权衡，不启动该局部 z-selector。
-飞机物体首次接触后随机切换 10 步自训练专家的两个新 seed：
-候选专家的 H20 接触比例分别多 5.00、6.11 个百分点，但
-接触支持抬升差值由 +32.64mm 变为 −0.90mm，最终抓取
-由 15/31 对 9/33 变为 11/31 对 11/33。短切换未显示
-可复现的抬升收益，不据此训练 Cm；接着检查持续接管是否
-能把更长接触转化为抓取。首次接触后持续切换的全新 seed236：
-候选组 13/31、原专家 14/33 抓取，H20 接触支持抬升仅
-+3.05mm，预设门失败。停止该飞机 source→balanced 接触
-切换族；下一种 Cm 目标应直接优化接触支持承重与最终抓取。
-已有随机多轴数据上的新 H10 接触支持抬升事件 Cm 离线筛选也未
-过动作信息门：动作知情/盲/置乱 Brier 为
-0.06307/0.06375/0.06371，知情相对盲仅改善 1.08%；
-AUROC 0.95190 对 0.95111。未采集新 GPU 数据，停止该目标。
-杯子单轨迹自训练专家 e340 在全新 seeds226–228 分别为
-59/64、60/64、61/64，合计 **180/192**；同条件源 e260 在
-seed226 为 2/64。12 轨迹混合环境新 seeds229–231 上，把固定
-物体身份路由的杯子专家换为该 e340 后，held-lift 从 **57/192**
-升至 **75/192**；杯子 0/18→17/18，非杯子 57/174→58/174，
-通过预设探索门。该路线仍读取特权物体身份；下一步验证初始
-策略观测能否识别新增专家，并在在线路由中保持收益。六专家观测
-分类器在新 seed232 为 **62/64** 专家正确，杯子全对；在线新
-seed233 为 **60/64** 专家选择与固定身份路由一致，杯子 6/6
-选对且抓起。在线观测路由 held-lift 27/64、固定路由 21/64，
-过预设保真门，但运行波动不允许把此差值归因为分类器收益。
-当前单右手 DExplore 过滤集合有 **59 条 lift-like 轨迹、29 类物体**。
-张量和资产审计以及 64 环境仿真加载已通过；源 e260 在该池 smoke
-为 3/64。59 轨迹 Cm-off 共享 actor 续训 e260→e300 后，在新
-seeds221/222 仅从源的 2/128 到 4/128，接触比例约 15.5%→19.5%，
-未过预设多物体抓取门。当前加载器在 64 环境时截取前 64 条轨迹；
-扩到更多轨迹需重构同物体轨迹采样。原始 GRAB 的
-1335 条序列和 268 条字面 `_lift.npz` 仍大于这个兼容子集。
-同一 59 轨迹共享 actor 继续从 e300 训到 e380 后，在新
-seeds238/239 仅从 e300 的 **6/128** 到 **9/128**；成功物体身份
-5/29→6/29，接触比例 15.12%→24.08%。延长 80 epoch 仍未过
-预设多轨迹门，停止该均匀共享续训路线。
-本轮新增全池输入审计保留了当前兼容单右手集合的 **660 条轨迹、50 类
-物体**（总计 166337 帧；其中 59 条为 lift-like）。加载器改为显式的
-对象固定/轨迹轮换采样，训练期间 660/660 条轨迹均被访问。Cm-off
-续训 e260→e280 在新 seed221 为 **0/64 held-lift**，平均手物接触
-1.714%；同一协议源 e260 为 0/64、0.787%。随机初始化 Cm-off
-全池 e300 在新 seed240 仍为 **0/64、0.905%**，训练和评估均完成。
-另两个独立随机初始化 e300 在新 seed243 也均为 **0/64**，平均手物接触
-分别为 **0.061%** 和 **0.100%**，且均访问 660/660 条轨迹。该均匀全池
-baseline Probe 为 `UNPROMISING`；不再追加同一方案的 epoch，详见
-[实验卡](experiments/probes/P-20260925-grab660-full-baseline.md)。
-在已有六专家固定身份路由的 12 条强底座上，Cm 直接排序六个专家动作的
-三 seed matched 结果为 off **75/192**、on **63/192**，属于负对照。
-改为只在连续五步手物接触后对 route action 加局部腕/手指残差，四个
-matched seeds 为 off **96/256**、on **91/256**；Cm 确实替换了约
-1.1–1.3 万个决策步，但没有成功率增益，详见
-[Cm route/local residual Probe](experiments/probes/P-20260925-cm-route-local-residual.md)。
-为摆脱均匀共享 actor，当前建立了覆盖 59 条 lift-like 轨迹、29 类物体的
-十专家分组路由；它在新 seeds244–247 的固定身份路由基线为 **20/256**
-held-lift，平均手物接触约 25.5%。这仍是特权物体身份路由，不是 660 条
-轨迹的单 actor，也不是 raw GRAB 全集结果。
-在这条路由上，旧 V1.37 Cm 直接排序专家动作的 matched seeds244–245 为
-on **10/128**、off **11/128**，没有增益。随后用 seed244 路由 transition
-训练 relative-wrist Cm，并在新 seeds245–247 用 local proposal + 五步稳定
-接触门评估，on **16/192**、off **13/192**；接触率增加但预设的 +4/192
-门失败，因此只能记为 `UNCLEAR`，不能形成 Cm policy utility 结论。详见
-[group-route Cm Probe](experiments/probes/P-20260925-grab59-group-route-cm.md)。
-将同一 route-specific CmLite 改作冻结 PPO progress reward，在 gC 专家单组
-续训 e360→e400 的两个新 seeds 上得到 Cm **45/128**、Cm-off **33/128**，
-但把 gC–gF 四组统一到 e400 并扩展到完整 59-motion 路由后，matched
-seeds248–249 为 Cm **16/128**、Cm-off **18/128**；接触率为 30.6% 对
-29.9%，没有转化为 held-lift。该局部正向、整路由负向的 reward Probe
-记为 `UNPROMISING`，停止继续扩大这一精确接法，详见
-[Cm reward specialist route](experiments/probes/P-20260925-cm-reward-specialist-route.md)。
-为检验 pre-contact credit，gC 在允许预测接触概率进入 CmLite gate 后，
-matched seeds96–97 为 Cm **45/128**、Cm-off **29/128**；因此将 gD–gF
-用同一设置续训并扩展完整 route。完整 route seeds248–249 为 predicted-contact
-Cm **14/128**、Cm-off **18/128**，接触门变更仍未带来 held-lift 增益，
-该变体也记为 `UNPROMISING`，停止系数扫描。
+- 当前可靠的抓取 substrate 是自训练专家/层级路由；它仍可能读取特权物体
+  身份，不能报告成完整 GRAB actor。
+- 均匀共享多轨迹 actor 与全池 actor 的近期 Probe 未形成稳定抓取底座；不再
+  继续在同一均匀续训方案上堆 epoch。
+- 初始动作 option-value、短时/持续接触切换、局部残差和 route-specific
+  progress reward 都没有通过预设的 policy-utility 门；不能把单 seed 或离线
+  择优结果升级为 Cm 结论。
+- 预测接触 pre-contact credit 在单组 gC 上有局部正向信号，但完整 route
+  仍为 Cm **14/128** 对 Cm-off **18/128**；该精确变体已停止，不再扫描同一
+  系数或门限。
+- 现有 matched 结果必须保留 Cm-off 对照；任何新 Cm Probe 都应复用同一专家
+  组合，并先做最小可判别实验。
+- 历史正式证据与边界见
+  [`VAL-20260923-CM-EFFECT-PPO`](experiments/validations/VAL-20260923-CM-EFFECT-PPO.md)
+  和相关 Probe cards，不在 STATE 中复制具体运行矩阵。
 
-## 决定下一步的事实
+## Active hypothesis families
 
-- V1.28 的 307/320 是固定路由系统结果。路由中的 PPO 专家使用过
-  CmLite 奖励训练，但没有同路由 matched Cm-off 消融；在线 Cm 选择率为零。
-  早期 CmLite 奖励的 35/64 对 19/64 仅为 checkpoint epoch 不同、
-  缺少相同多 seed Cm-off 网格的探索性正向信号。
-- V1.46 一步预测进展 PPO 奖励的 matched 结果为 Cm-on 262/640、
-  Cm-off 399/640。`VAL-20260923-CM-EFFECT-PPO` 的 effect-rank 为
-  882/1536、off 789/1536、action-shuffled 1049/1536；effect−off
-  +6.05pp 且区间跨零，真实动作对应的联合正向主张未过预设门。
-- 五对象冻结 V1.3 token Probe：action-aware 留一 AUC 0.6387、
-  action-blind 0.6694、action-shuffled 0.6382，未过动作信息门。
-  留一仅作用于新拟合的头；冻结 checkpoint 的预训练数据已含五个物体。
-- 任务对齐 grip+lift option 在单对象 self-trained e140 的 H20
-  接触加权抬升相对 lift-only 为 −8.20mm，环境聚类 95% CI
-  [−14.08, −2.49]mm，停止该固定动作族。
-- 新 s3 专家整段结果 Cm 的初始动作输入无增量：留出 AUC
-  action-aware 0.7539、action-blind 0.7568、action-shuffled 0.7419；
-  不升级在线路由。duck 上随机单步抬腕虽提高 H10 接触加权抬升
-  10.10mm，但接触比例下降 1.38pp；预设联合门失败。
-- 十步历史对 apple 的 H20 接触预测优于当前状态（RMSE
-  0.332 对 0.382），但相对相同历史的无动作头 0.369 仅改善
-  约 9.9%，未过预设 10% 动作信息门，且承重位移预测反而较差。
-- 全池 baseline 的 0/64 不是 Cm 结果；它说明均匀 660 轨迹 PPO 不能
-  作为当前抓取底座。后续 Cm Probe 应复用已有专家/层级路由，并在相同
-  专家组合上建立 Cm-off 对照。
-- 分组路由已经提供非零且可复现的自训练 substrate；但 route-specific
-  Cm 的小幅 held-lift 差值未过 replication gate，冻结 progress reward
-  在完整 route 上也从 18/128 降至 16/128。下一轮应改变 Cm 的信用门，
-  先测试预测接触提供 pre-contact credit 是否能改善单组 gC，再决定是否
-  扩展，而不是继续调同一 reward 系数。
+| Family | Claim | 状态 | 预算状态 | 分支 |
+| --- | --- | --- | --- | --- |
+| `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
+| `HF02` temporal-cm | `C3` | `ACTIVE` | 1/3 | `agent/cm-temporal` |
 
-## 当前 blocker 与活跃假设
+新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
+[`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
+信息增益时，必须切换高层假设；换 metric、horizon 或 seed 不会重置预算。
 
-尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
-动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
-PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以学会
-共享策略未覆盖的抓取。waterbottle 起点退火增加接触和少量抓取，
-仍不足以支持继续同一局部课程。固定专家路由已证明四类物体
-可以共同成功抓取；下一关键不确定性是能否从策略可用观测识别
-专家，以及 Cm 是否在相同专家组合上增加决策价值。
+## Next decision experiment
 
-## 下一步
-
-59 轨迹短续训及 660 轨迹均匀 actor 均失败后，暂以观测驱动专家路由
-作为可用抓取底座。
-接触后腕 z 的时间分段仍失接触，既有 grip/跨轴短 option 也未形成
-稳定抓取收益；不要继续细调同一局部动作。六专家观测路由已过
-单种子在线保真 Probe，可作为下一轮抓取底座；进一步扩大 GRAB
-兼容轨迹覆盖。59 轨迹共享 actor 延长训练已失败，不再追加
-同一方案的 epoch；下一步转向专家/层级训练或改变承重表示。
-短时与持续接触切换均未过抓取门，新 H10 事件 Cm 也未过动作
-信息门；Cm 研究需回到更高层的表示和信用分配，不继续细调
-这些局部动作与目标。
-未来论文需要
-但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
+在已有专家 substrate 上测试一个**不同于已停止 pre-contact credit 门**的
+temporal/history-conditioned Cm 信用表示，只做单组、Probe seed、最小训练
+预算。若它改变 held-lift 且在 matched Cm-off 下保持方向，再扩到完整 route；
+若不改变，冻结 `HF02` 并提交路线复盘，切换更高层的表示或信用分配假设。不要
+继续微调已停止的局部腕部动作、progress-reward 系数或同一接触门。

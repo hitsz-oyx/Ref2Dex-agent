@@ -1,12 +1,19 @@
-# Validation
+---
+schema: ref2dex.validation.v2
+validation_id: VAL-YYYYMMDD-topic
+date: YYYY-MM-DD
+branch: agent/<hypothesis-family>
+git_commit: <card-creation-commit>
+claim_id: C3
+hypothesis_family: HF02
+frozen_method_commit: <immutable-method-commit>
+development_seed_pool: validation.development
+validation_seed_pool: validation.holdout
+matched_control: <precisely matched Cm-off/control definition>
+status: PLANNED
+---
 
-validation_id:
-
-date:
-
-branch:
-
-git_commit:
+# Validation: <formal claim>
 
 ## Claim
 
@@ -48,7 +55,9 @@ Metric:
 
 ## Runs
 
-Seeds:
+Development seeds:
+
+Validation holdout seeds:
 
 Repeats:
 
@@ -68,11 +77,11 @@ scientific early stop:
 
 run_status:
 
-COMPLETED | FAILED | STOPPED
+`COMPLETED` | `FAILED` | `STOPPED`
 
 conclusion:
 
-SUPPORTED | REFUTED | INCONCLUSIVE | INVALID_IMPLEMENTATION
+`SUPPORTED` | `REFUTED` | `INCONCLUSIVE` | `INVALID_IMPLEMENTATION`
 
 ## Evidence
 
@@ -91,5 +100,3 @@ metrics:
 logs:
 
 analysis:
-
----

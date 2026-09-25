@@ -1,0 +1,25 @@
+schema: ref2dex.seed_ledger.v1
+updated: 2026-09-25
+
+# Seed ownership is explicit.  Historical cards keep their original seeds;
+# this ledger governs new v2 cards and prevents a Probe from consuming the
+# validation holdout by accident.
+pools:
+  debug:
+    description: smoke tests and deterministic wiring checks only
+    ranges:
+      - [0, 99]
+
+  probe:
+    description: exploratory runs may consume these freely within a family budget
+    ranges:
+      - [100, 299]
+
+  validation:
+    description: reserved for frozen, matched comparisons
+    development:
+      ranges:
+        - [300, 399]
+    holdout:
+      ranges:
+        - [400, 499]
