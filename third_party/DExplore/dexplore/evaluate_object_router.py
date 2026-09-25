@@ -50,8 +50,13 @@ class RoutedPlayer(original.EvalPlayer):
             path = ROOT / spec["checkpoint"]
             payload = torch.load(path, map_location=self.device, weights_only=False)
             model = copy.deepcopy(self.model)
-            state = {key if key in target_keys else "_orig_mod." + key: value
-                     for key, value in payload["model"].items()}
+            # rl_games may compile the training actor while the evaluation
+            # actor remains eager (or vice versa). Normalize only that wrapper.
+            state = {}
+            for key, value in payload["model"].items():
+                bare_key = key[len("_orig_mod."):] if key.startswith("_orig_mod.") else key
+                target_key = bare_key if bare_key in target_keys else "_orig_mod." + bare_key
+                state[target_key] = value
             if set(state) != target_keys:
                 raise ValueError(f"expert architecture differs: {name}")
             model.load_state_dict(state, strict=True)

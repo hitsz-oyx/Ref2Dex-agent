@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-24
+Updated: 2026-09-25
 
 本文件是当前唯一默认事实入口；历史经过保留在
 [阶段收尾记录](CM_CAMPAIGN_CLOSEOUT_20260924.md)、实验卡和
@@ -22,13 +22,15 @@ Updated: 2026-09-24
 | Cm policy utility | **尚未证明**。effect-rank 正式 Validation 的联合正向主张 `REFUTED`；其他已测试接法的 Probe 未建立跨训练 seed 的稳定 matched 增益。 |
 | Generalization | 自训练策略对未见物体的持握抬升弱，未见物体上的 Cm 策略收益未建立。 |
 
-新增 12 条校正轨迹、9 个物体身份的 Cm-off 单策略续训 Probe：e300 在
+新增 12 条校正轨迹、10 个物体身份的 Cm-off 单策略续训 Probe：e300 在
 两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
 仍为零。四个已有自训练 checkpoint 的最优单模型仅 21/128，按物体
 事后挑选的乐观上限 32/128。详见
 [实验卡](experiments/probes/P-20260924-multitrajectory-baseline.md)。
 duck 单物体 self-trained 续训在新种子206–208 为 **140/192**，源 e260
-同轨迹/seed206 为 1/64；相同方法在 waterbottle seed209 仍为 0/64。
+同轨迹/seed206 为 1/64；相同方法在 waterbottle seed209 为 0/64。
+waterbottle 近接触重置比例退火续训 e340→e400 后，同 seed209 为
+**7/64**，接触比例由 1.6% 升至 27.5%，未过预设的 16/64 与 30% 联合门。
 12 轨迹参考动作控制只有 9/128，不能直接作为广覆盖 BC 教师。
 
 ## 决定下一步的事实
@@ -60,15 +62,14 @@ duck 单物体 self-trained 续训在新种子206–208 为 **140/192**，源 e2
 尚无同时满足“支持持续接触承重”和“Cm 能区分有效策略决策”的
 动作族或监督目标。一步局部效应、简单序列、当前 V1.3 token 与若干
 PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以学会
-共享策略未覆盖的抓取，但 waterbottle 的训练近接触与测试起点分布
-存在显著落差；当前需要决定起点课程能否修复，以及固定专家路由
-在多轨迹上可达到的实际覆盖。
+共享策略未覆盖的抓取。waterbottle 起点退火增加接触和少量抓取，
+仍不足以支持继续同一局部课程；当前需要测定固定专家路由在
+多轨迹上可达到的实际覆盖。
 
 ## 下一步
 
-空闲 GPU 出现后执行
-[waterbottle 起点退火](experiments/probes/P-20260924-waterbottle-start-anneal.md)
-与 [固定专家路由](experiments/probes/P-20260924-object-specialist-router.md)
+修复 checkpoint 前缀兼容性后执行
+[固定专家路由](experiments/probes/P-20260924-object-specialist-router.md)
 Probe；依据逐物体成绩选择下一个可产生承重行为的 Cm 决策点。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。

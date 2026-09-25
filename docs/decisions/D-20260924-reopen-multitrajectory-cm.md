@@ -8,7 +8,7 @@ The hard machine, storage, workspace and process boundaries in `CAMPAIGN.md`
 still apply.
 
 First choice: continue the self-trained s3 e260 actor on 12 already converted,
-coordinate-corrected motions spanning nine object identities. Exclude
+coordinate-corrected motions spanning ten object identities. Exclude
 `s1_torussmall_lift` from the first training mixture because its official
 diagnostic actor achieved only 6/64 held-lift; retain it as a stress test.
 Use one idle GPU, 64 environments, identity-balanced motion listing, and a

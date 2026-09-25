@@ -8,7 +8,7 @@
 ## Question and decision
 
 Can one self-trained actor continued from the s3 airplane e260 checkpoint
-make useful held-lift progress on a fixed 12-motion, nine-object corrected
+make useful held-lift progress on a fixed 12-motion, ten-object corrected
 mixture while retaining airplane performance? If several object identities
 show held-lift and airplane does not collapse, expand the converted GRAB pool
 and design a matched Cm-on/off intervention against this baseline. If the actor

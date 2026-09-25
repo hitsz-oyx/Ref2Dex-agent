@@ -1,5 +1,5 @@
 {
-  "description": "Twelve corrected converted motions, nine object identities; torussmall held out after failed physical diagnostic",
+  "description": "Twelve corrected converted motions, ten object identities; torussmall held out after failed physical diagnostic",
   "motions": [
     "outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift",
     "outputs/CmResidual/agent_v129_s7_coordfix/corrected_converted/s7_airplane_lift_Retake",
