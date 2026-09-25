@@ -55,7 +55,10 @@ toothpaste 14/15 四个身份达到 25% 覆盖门，其余六类仍稀疏或为�
 当成可达的 Cm 成绩。
 当前单右手 DExplore 过滤集合有 **59 条 lift-like 轨迹、29 类物体**。
 张量和资产审计以及 64 环境仿真加载已通过；源 e260 在该池 smoke
-为 3/64。59 轨迹 Cm-off 共享 actor 续训正在执行。原始 GRAB 的
+为 3/64。59 轨迹 Cm-off 共享 actor 续训 e260→e300 后，在新
+seeds221/222 仅从源的 2/128 到 4/128，接触比例约 15.5%→19.5%，
+未过预设多物体抓取门。当前加载器在 64 环境时截取前 64 条轨迹；
+扩到更多轨迹需重构同物体轨迹采样。原始 GRAB 的
 1335 条序列和 268 条字面 `_lift.npz` 仍大于这个兼容子集。
 
 ## 决定下一步的事实
@@ -94,8 +97,8 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 
 ## 下一步
 
-完成 59 轨迹共享 actor 的 heldout baseline 评估；并在
-五专家互补起点上收集可比较的 option outcome/action 数据，先做
+59 轨迹短续训失败后，暂以观测驱动专家路由作为可用抓取底座。
+在五专家互补起点上收集可比较的 option outcome/action 数据，先做
 action-aware、action-blind、action-shuffled 的离线 Cm Probe。
 只有出现明显正向信号才投入在线 Cm 路由和正式 matched Validation。
 未来论文需要

@@ -28,4 +28,35 @@ not Validation of full-GRAB success.
 
 ## Results
 
-Pending input smoke.
+The input smoke passed. One-GPU continuation of source e260 to e300
+completed on seed70 with all 59 filtered motions; the e300 checkpoint
+was produced in `outputs/Dexplore/agent_grab59_s70_e300/`. Source and
+e300 were then evaluated on identical new seeds221/222, 64 first full
+episodes each, without early termination. All four evaluation manifests
+report `COMPLETED`.
+
+| Actor | Held-lift | Positive object identities | Mean contact fraction |
+| --- | ---: | ---: | ---: |
+| Source e260 | 2/128 | 2/29 | 0.1546 |
+| Shared59 e300 | 4/128 | 4/29 | 0.1952 |
+
+The e300 successes were airplane 1/10, phone 1/6, toothpaste 1/8 and
+wineglass 1/8. Source e260 succeeded on airplane 1/10 and duck 1/2.
+Thus the 40-epoch continuation increased contact by about 4.1 percentage
+points but gained only 2/128 held-lifts and lost duck's isolated success.
+The prespecified +10/128, eight-object coverage and no-collapse joint
+gate **failed**. Result: `UNPROMISING` for this short, uniform shared
+continuation as a broad grasp baseline. This does not establish that
+longer training, better sampling or other architectures cannot work.
+
+The current DExplore loader truncates a motion directory to `num_envs`
+before setup, so this 59-motion experiment reaches the 64-environment
+pool limit. Scaling to the remaining filtered right-hand interactions
+requires a loader/sampling design that preserves each environment's
+object mesh. The raw GRAB dataset also includes left-hand or other task
+types outside this experiment.
+
+Matched source evaluations are under
+`outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/eval_s221_e260_full_grab59probe/`
+and `..._s222_...`; e300 evaluations are under the new run's
+`eval_s221_e300_full/` and `eval_s222_e300_full/`.
