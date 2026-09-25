@@ -26,4 +26,23 @@ conflict. Record the actual route accuracy and per-object confusion.
 
 ## Results
 
-Pending.
+Runs214–216 completed; the first pre-action 1442-D observation was
+exported for 64 environments per seed. Training on seeds214/215 and
+testing on seed216 gave **62/64 (96.9%)** correct expert labels.
+Airplane15/15, duck6/6 and toothpaste5/5 were correct, but mug was only
+3/5. The two mug errors were assigned to the default source expert.
+The prespecified gate therefore **failed** despite high overall accuracy.
+The two misclassified mug episodes had start frames8 and0; the frozen
+privileged router failed on the first and succeeded on the second. This
+Probe is `UNCLEAR` for observation-driven routing, and does not test Cm.
+
+Offline diagnostic on the already exposed data: changing only the SVC
+class weight to `balanced` improved leave-one-seed-out results across
+seeds214/215 from 117/128 to 123/128 overall, and from 4/10 to 8/10 on
+mug. On seed216 it achieved 64/64, but this is exploratory because the
+model choice followed inspection of seed216. Test that single fixed change
+on a fresh seed before using it in an online router.
+
+Artifacts: `outputs/CmResidual/agent_observation_route_s214/` through
+`..._s216/`, and
+`outputs/CmResidual/agent_observation_route_probe_20260925/report.json`.
