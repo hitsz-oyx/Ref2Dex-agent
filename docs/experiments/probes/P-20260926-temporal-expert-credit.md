@@ -10,7 +10,7 @@ decision_changed_if_positive: Freeze a temporal Cm option head and run a matched
 decision_changed_if_negative: Freeze HF02 and review a higher-level Cm representation or credit-allocation route; do not tune the same option family.
 probe_index_in_family: 2
 seed_pool: probe
-status: IMPLEMENTED_PENDING_ONLINE
+status: PLANNED
 ---
 
 # Probe: temporal expert-option credit
@@ -77,22 +77,19 @@ fewer than 30 valid candidate rows per arm in the fit split.
 
 ## Result
 
-Status: `IMPLEMENTED_PENDING_ONLINE`
+Status: `PLANNED`
 
-The frozen temporal checkpoint is
-`outputs/CmResidual/agent_cm_history_value_probe_20260925_v2/history_action.pt`
-(SHA256
-`3f4a4dec8d71334460d66070fdd1ea98450f479a2228b63716e3d7cffc5d5100`).
-Its in-distribution held-out offline gate was positive: supported-lift
-high-minus-low was `33.70 mm` with bootstrap 95% CI `[28.78, 38.67]`, and the
-shuffled-action separation and contact-direction controls passed. The separate
-cross-object transfer audit failed its physical ranking gate, so this card
-keeps the online test on the same specialist substrate and makes no
-generalization claim.
+Key evidence: pending.
 
-The online agent and bootstrap are implemented and CPU-smoke tested. The
-matched GPU continuation is pending a compliant idle card; all currently
-occupied cards belong to unrelated SDF jobs and are not touched.
+Engineering note (2026-09-26): a separate five-step history reward prototype
+was added in commit `2632ee4`, with CPU tests only. It loads an older randomized
+wrist-action checkpoint, not a model trained on this card's expert-option
+assignments. It does not implement or complete the protocol above. Its older
+within-distribution ranking result must not be attributed to this Probe, and
+the failed cross-object transfer audit does not justify deploying it as gC
+multi-object reward. No training or online evaluation has been started by this
+prototype work. First establish prediction/decision value on the intended
+expert distribution before deciding whether online integration is warranted.
 
 ## Decision update
 
