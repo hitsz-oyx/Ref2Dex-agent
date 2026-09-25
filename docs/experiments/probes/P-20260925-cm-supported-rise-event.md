@@ -38,4 +38,25 @@ incomplete follow-up or missing treatment cells.
 
 ## Results
 
-Pending.
+The existing-data screen completed at commit `1e86238` with 1,574
+randomized training rows and 803 development rows (297 and 156
+positive contact-supported rise events, respectively). The identical
+fixed classifier gave:
+
+| Input | Brier | AUROC |
+| --- | ---: | ---: |
+| State + actual perturbation | 0.06307 | 0.95190 |
+| State, action blind | 0.06375 | 0.95111 |
+| State + shuffled training perturbation | 0.06371 | 0.95156 |
+
+Action-aware Brier improved only **1.08%** versus blind, below the
+predeclared 5% gate, and AUROC improved only 0.00079 versus the
+required 0.02. The observed plus-minus event-rate contrasts were
+x +0.82 pp, y −2.61 pp and z +8.26 pp; the model predicted x −0.14,
+y 0.00 and z +1.12 pp. Only z met the 3 pp observed-contrast and
+direction condition. The joint gate failed (`UNPROMISING`) for this
+H10 event target under the fixed learner. No new seed237 was collected
+and no online selector was launched. This does not rule out a longer
+decision horizon or a different contact/grasp representation.
+
+Report: `outputs/CmResidual/agent_cm_supported_rise_event_dev_s163/report.json`.
