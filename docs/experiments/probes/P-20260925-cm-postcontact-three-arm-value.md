@@ -1,9 +1,9 @@
 # P-20260925-cm-postcontact-three-arm-value
 
-date: 2026-09-25  
-branch: `agent/cm-postcontact-heldlift-value`  
-code commit: `988ce52`  
-classification: Decision Probe  
+date: 2026-09-25
+branch: `agent/cm-postcontact-heldlift-value`
+code commit: `988ce52`
+classification: Decision Probe
 status: **UNPROMISING for the current post-contact wrist-z value route**
 
 ## Question
