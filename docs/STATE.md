@@ -210,5 +210,8 @@ predicted-contact gate 在完整 59-motion route 上都已停止；下一轮若�
 Cm，应改用长时序的 contact-supported lift 目标，并重新建立便宜的单组
 判别 Probe，再考虑训练整条 route。HF02 temporal option 的 offline gate
 已明确失败，当前不继续扫描同一表示或启动 online confirmation。
+当前 post-HF02 decision memo 选择冻结 policy-utility campaign；若以后建立
+contact-supported credit，应作为新的 HF03-style goal、experiment ID 和预算，
+不能续用 HF02。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
