@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-25
+Updated: 2026-09-26
 
 本文件是当前唯一默认事实入口；历史经过保留在
 [阶段收尾记录](CM_CAMPAIGN_CLOSEOUT_20260924.md)、实验卡和
@@ -22,6 +22,15 @@ Updated: 2026-09-25
 | Cm one-step information | 若干随机动作干预中存在可学物理效应，但冻结 V1.3 token 的五对象线性头留一 Probe 未显示动作信息增量；结论依赖表示与分布。 |
 | Cm policy utility | **尚未证明**。effect-rank 正式 Validation 的联合正向主张 `REFUTED`；其他已测试接法的 Probe 未建立跨训练 seed 的稳定 matched 增益。 |
 | Generalization | 自训练策略对未见物体的持握抬升弱，未见物体上的 Cm 策略收益未建立。 |
+
+HF02 temporal expert-option Probe 已在 canonical six-expert/three-airplane
+substrate 上完成 fit/holdout（有效行数 187/186，六臂 propensity 为 1/6）。
+seed255 的 temporal-cm held-lift IPW 为 38.710%，高于 history-only 的
+25.806%，但低于 action-shuffled 的 48.387%；预设 +5pp margin 与 ranking
+direction gates 均失败，supported lift 虽非回归（3.811mm），因此该 Probe
+为有效的 `UNPROMISING`，HF02 slot 2 冻结，不启动 matched online Cm-on/off
+或 PPO continuation。完整证据见
+[HF02 temporal outcome handoff](handoffs/HF02_TEMPORAL_PROBE_OUTCOME_HANDOFF_20260926.md)。
 
 新增 12 条校正轨迹、10 个物体身份的 Cm-off 单策略续训 Probe：e300 在
 两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
@@ -171,6 +180,9 @@ Cm **14/128**、Cm-off **18/128**，接触门变更仍未带来 held-lift 增益
   在完整 route 上也从 18/128 降至 16/128。下一轮应改变 Cm 的信用门，
   先测试预测接触提供 pre-contact credit 是否能改善单组 gC，再决定是否
   扩展，而不是继续调同一 reward 系数。
+- HF02 temporal option 的 offline gate 已明确失败，当前不继续扫描同一
+  表示或启动 online confirmation；后续 Cm 工作需等待新的高层表示/信用
+  假设，并保持本次 canonical substrate 与 matched-off provenance 可复核。
 
 ## 当前 blocker 与活跃假设
 
@@ -196,6 +208,7 @@ PPO 接法均未给出稳定 policy utility。duck 说明单物体策略可以�
 这些局部动作与目标。route-specific CmLite progress reward 及其
 predicted-contact gate 在完整 59-motion route 上都已停止；下一轮若继续
 Cm，应改用长时序的 contact-supported lift 目标，并重新建立便宜的单组
-判别 Probe，再考虑训练整条 route。
+判别 Probe，再考虑训练整条 route。HF02 temporal option 的 offline gate
+已明确失败，当前不继续扫描同一表示或启动 online confirmation。
 未来论文需要
 但当前不改变决策的实验见 [Research Debt](RESEARCH_DEBT.md)。
