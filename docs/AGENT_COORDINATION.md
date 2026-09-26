@@ -26,12 +26,13 @@
 每个 agent 的 `codex_home` 独立登记；当前多个 agent 可以碰巧使用同一个目录，
 但注册表没有共用的 `default_codex_home`，也不允许从 root 或环境变量继承。
 
-当前登记四个稳定的 `agent_key`：
+当前登记五个稳定的 `agent_key`：
 
 * `root`：全局主代理；
 * `agent_baseline`：GRAB 全池 baseline / provenance 代理；
 * `agent_cm_temporal`：Cm temporal Probe 代理（显示名为 `agent_Cm/temporal`）；
 * `agent_workflow`：工作流与治理代理（显示名为 `agent/workflow`）。
+* `agent_poller`：只读结果轮询与事件通知代理（显示名为 `agent/poller`）。
 
 注册表不记录动态的 `RUNNING`、`BLOCKED` 或 `COMPLETED` 状态；动态状态应从
 对应 `codex_home` 下的 rollout、Goal 数据库、Git 和 run manifest 读取。角色迁移

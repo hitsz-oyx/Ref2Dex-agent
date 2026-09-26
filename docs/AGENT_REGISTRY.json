@@ -2,7 +2,7 @@
   "$schema": "ref2dex.agent_registry.v3",
   "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 3,
+  "registry_version": 4,
   "updated_at": "2026-09-26",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -83,6 +83,40 @@
         "未经审计整体合并混合 ancestry 分支"
       ],
       "handoff": "向用户报告证据化状态、commit、manifest、资源证据和下一决策"
+    },
+    {
+      "agent_key": "agent_poller",
+      "display_name": "agent/poller",
+      "conversation_id": "01a0dca7-9af9-7951-b9c3-58975c4b470b",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0dca7-9af9-7951-b9c3-58975c4b470b.jsonl",
+      "role": "只读结果轮询与事件通知代理",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-poller",
+      "branch": "agent/supervisor-poller",
+      "owns": [
+        "注册代理 Goal、HEAD、run manifest 和归属 GPU 状态轮询",
+        "状态变化去重与 POLL_EVENT 定向通知",
+        "自身轮询进程与 bounded 状态文件"
+      ],
+      "allowed_resources": {
+        "gpu": 0,
+        "research_experiment": false,
+        "root_notification": "仅状态变化时向注册 root thread 发送 POLL_EVENT"
+      },
+      "must_not": [
+        "运行训练、评估、collector 或 PPO",
+        "修改其他代理工作树或 main",
+        "形成科学结论或合并分支",
+        "向 root 发送固定心跳",
+        "唤醒 paused 或 blocked 的子代理 Goal"
+      ],
+      "handoff": "变化字段、旧/新快照、通知状态与错误"
     },
     {
       "agent_key": "agent_baseline",
