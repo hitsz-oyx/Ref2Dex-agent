@@ -74,12 +74,13 @@
         "接受后的 mainline merge"
       ],
       "allowed_resources": {
-        "gpu": "仅按 campaign 与明确 goal 分配；监督本身不启动 GPU",
-        "process_control": "不向实验进程发送信号；只可按明确停用授权关闭本项目自己的监督器"
+        "gpu": "仅按 campaign 与明确 goal 分配给执行代理；主代理不启动 GPU",
+        "process_control": "执行代理持有实验进程；主代理只在已确认归属的紧急资源或安全风险时做最小停止处置"
       },
       "must_not": [
         "运行固定心跳式外部自唤醒",
         "盲目重启或杀实验进程",
+        "亲自承担研究分析、代码或文档实现、preflight、实验运行和长期进程管理",
         "重复子代理实验",
         "将 Probe 证据升格为 Validation",
         "未经审计整体合并混合 ancestry 分支"

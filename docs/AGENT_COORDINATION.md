@@ -72,7 +72,7 @@ PY
 
 | 角色 | 主要责任 | 允许做的事 | 明确禁止 | 必须交接 |
 | --- | --- | --- | --- | --- |
-| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在 `MISSION`/`CAMPAIGN` 与当前授权内主动选择有决策价值的任务；派发明确 goal；只读审计；撰写 Decision Memo；审计后合并已接受提交 | 固定心跳式自唤醒；盲目重启/杀进程；重复实验；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
+| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在 `MISSION`/`CAMPAIGN` 与当前授权内主动选择有决策价值的任务；派发明确 goal；只读审计；撰写 Decision Memo；审计后集成已接受提交 | 亲自承担研究分析、代码或文档实现、preflight、实验运行与长期进程管理；固定心跳式自唤醒；盲目重启/杀进程；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
 | `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
 | `agent_Cm/selective` | 已完成 HF05 的证据保全与新假设设计 | CPU-only 只读复核既有 card、manifest、结果索引并草拟 Decision Memo | 新 Cm Probe/fit/collection、GPU、Isaac Gym、online/PPO；重扫 HF05；复用别的 run | 证据入口、候选假设、最小判别测试、资源估计和下一决策 |
 | `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
@@ -80,6 +80,15 @@ PY
 
 代理之间可以并行，但权限不继承：一个代理的授权不能被另一个代理解释为
 新实验、换资源或改变研究问题的授权。
+
+`/root` 的默认自主权体现为选题、指派、监督、验收和集成；表中各角色的具体执行工作由
+对应 owner 在独立工作树完成。若当前已登记角色没有所需能力或资源权限，先按
+第 10 节建立并登记合适的执行代理。主代理不能因派发较慢而临时兼任执行 owner。
+
+现有 Cm 工作的执行路由固定为注册的 `agent_cm_temporal`，且必须遵守该记录的
+当前冻结、CPU-only 和其他资源边界；`/root` 不直接执行 Cm 分析、实现或实验。
+需要新增身份或能力时，使用 [create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md)
+完成注册后再派发，不通过临时兼任绕过 owner 合同。
 
 ## 3. 启动任务的最小上下文
 
@@ -102,11 +111,18 @@ PY
 每个委派 goal 必须在一条短消息中说明：
 
 * `TARGET_AGENT_KEY`、`CODEX_HOME` 和精确 `conversation_id`；
+* 唯一执行 owner，以及它对 preflight、运行和进程清理的责任；
 * 决策问题与最便宜的可判别测试；
 * 精确 branch、commit 和允许修改的路径；
 * experiment/card ID、seed、control 和资源预算；
 * 停止条件与交付物；
 * 明确未授权启动的内容。
+
+代理收到 goal 后自行完成范围内的实现、preflight、smoke、Probe 或分析，管理
+自己确认归属的长任务，并在停止条件触发时停下和交接。`/root` 不代替 owner 写
+preflight、运行命令、补实验数据、调参、修改工作树或修复失败。需新增任务或
+扩大预算时，owner 先交接证据，由主代理重新分类并派发；达到 Decision
+Checkpoint 时先给用户 Decision Memo。
 
 “继续”“再看看”或固定巡检句子都不是 goal。新路线、新 claim、新资源类别或
 online follow-up 必须建立新的 goal；若触发 `AGENTS.md` 的 Decision Checkpoint，
@@ -134,6 +150,7 @@ BRANCH=<exact branch>  BASE_COMMIT=<sha>
 ALLOWED_PATHS=<paths>
 EXPERIMENT_OR_CARD=<id or NONE>
 RESOURCE_BUDGET=<gpu/time/storage/process>
+EXECUTION_OWNER=<agent_key; owns preflight/run/process cleanup>
 STOP_CONDITIONS=<explicit conditions>
 DELIVERABLE=<commit/card/manifest/handoff>
 NOT_AUTHORIZED=<what must not start>
@@ -158,14 +175,16 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 
 ## 5. 主代理的连续决策循环（由 poller 通知事件）
 
-研究决策、任务选择和资源授权由 `/root` 负责；外部 `agent_poller` 只负责登记
-状态和 completion 的事件通知。不得使用 watchdog 向 `/root` 周期性投递固定的
+研究决策、任务选择和资源授权由 `/root` 负责；任务执行由已派发的 owner 负责；
+外部 `agent_poller` 只负责登记状态和 completion 的事件通知。不得使用 watchdog
+向 `/root` 周期性投递固定的
 “执行一次全局 supervisor 巡检”文本。外部脚本 `codex_research_supervisor.py`
 的旧队列唤醒模式已经 retired；它不是新的任务调度器，也不应重新启动。
 
 `/root` 开始监督时建立一个连续循环：
 
-1. 做一次 preflight，读取注册表并解析每个已登记 thread 的 `CODEX_HOME`；
+1. 做一次监督检查，读取注册表并解析每个已登记 thread 的 `CODEX_HOME`；运行前
+   的实验 preflight 由执行 owner 撰写；
 2. 结合 poller 事件只读检查 thread/Goal、branch/HEAD、card/manifest、归属进程和
    GPU，将每个 child 分类为 `RUNNING`、`WAITING`、`TERMINAL`、`BLOCKED` 或
    `UNKNOWN`；
@@ -208,7 +227,7 @@ root 被唤起后负责审查、选择下一项任务并继续。这类事件通
 
 ## 6. 非 smoke 运行前的 preflight
 
-运行前由 owner 写入 machine-readable `preflight.json`，至少固定：
+运行前由已派发的执行 owner 写入 machine-readable `preflight.json`，至少固定：
 
 1. branch、HEAD、worktree 范围、card schema 和 experiment ID；
 2. route、config、evaluator、checkpoint、motion 与代码 hash；
@@ -216,8 +235,11 @@ root 被唤起后负责审查、选择下一项任务并继续。这类事件通
 4. GPU/process ownership、设备、显存快照和 campaign 限制；
 5. dry-run/测试、输出 schema、wall-time、storage、非有限值、漂移和行数停止条件。
 
-失败的接线或 import 修复保留为 `INVALID_IMPLEMENTATION`；不能把它包装成
-科学结果。没有完整 preflight、manifest 或明确进程归属时，停止并交接。
+执行 owner 自己核对 preflight 并持有运行进程、日志和输出目录；主代理在派发
+和审计时核对资源及停止条件，但不启动、不直接操作训练脚本，也不代写实验
+产物。失败的接线或 import 修复保留为 `INVALID_IMPLEMENTATION`；不能把它
+包装成科学结果。没有完整 preflight、manifest 或明确进程归属时，owner 停止
+并交接；主代理退回缺失证据。
 
 ## 7. 交接格式与证据边界
 
@@ -231,6 +253,10 @@ INPUTS=<key hashes>  RESOURCES=<GPU/process/time/storage>
 EVIDENCE=<tests/metrics/known limits>
 NEXT=<single decision or blocker>
 ```
+
+交接由执行 owner 编制，并明确已确认归属的进程是否结束、预算实耗及工作树是否
+干净。`/root` 独立比对 handoff 与 Git、manifest 和资源快照；缺项应退回 owner
+补齐，不能替 owner 补做科研分析或修复实验。
 
 只有 commit、card、manifest、hash 和资源审计可以相互复核时，supervisor 才接受
 终态。单 seed、单 rollout、loss、视频或工程 smoke 不能被描述为正式科学结论。
@@ -248,8 +274,10 @@ branch: main
 
 `agent/grab-full-baseline` 的工作树为同级的 `Ref2Dex-agent-baseline`。
 
-只有 `/root` 可以把已接受的子代理提交合并到 `main`。合并前必须核对：子线程
-终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否
+只有 `/root` 可以把已接受的子代理提交合并到 `main`。这个集成职责仅包括对已
+验收提交执行 Git 集成及 mainline 验证；有冲突、缺失文档或实现问题时，退回
+相关 owner 在其分支修复，再重新审查，主代理不直接改研究文件。合并前必须核对：
+子线程终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否
 含有无关研究历史。混合 ancestry 的分支只能挑选明确接受的提交，不能因为分支
 tip 通过测试就整体合并。合并后重新运行 mainline verification，并向用户报告
 新的 main commit。

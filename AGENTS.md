@@ -372,3 +372,11 @@ Research Debt 的存在意味着：
 主代理的持续推进与轮询规则见 [docs/ROOT_AGENT.md](docs/ROOT_AGENT.md)。
 新建代理时使用 [create-ref2dex-agent skill](.agents/skills/create-ref2dex-agent/SKILL.md)。
 其中的资源授权必须同时遵守本文件和 `docs/CAMPAIGN.md`。
+
+本文件的自主探索权限由获派任务的执行代理在其独立工作树行使。`/root` 负责
+选题、派发、监督、验收和 `main` 集成；具体分析、实现、preflight、实验及
+长任务进程归属交给相应执行代理，详见上述主代理规范。
+
+现有 Cm 工作必须派发给注册的 `agent_cm_temporal`，并继续受该代理当前的
+冻结、CPU-only 和其他资源权限约束；不得由 `/root` 临时兼任执行 owner。需要
+新增身份或能力时，按 `create-ref2dex-agent` skill 建立并登记代理后再派发。
