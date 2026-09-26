@@ -23,7 +23,7 @@ tracked_cpu_fit_script: src/task/CmResidual/tools/fit_temporal_expert_option_pro
 tracked_cpu_fit_script_commit: ee665d96c340c58644c73c0a38e9e0eafc488cb2
 tracked_cpu_fit_script_sha256: 640168edde4ba33175d6926d46a4afb9d89c30ba82dec0f7f29737ff5e4fb765
 result_summary: docs/experiments/probes/P-20260926-temporal-expert-credit-results.json
-result_summary_sha256: 3c6dd2cb294d6934990ada04818e503aac51225240a1365dfe7af1054ef32c7a
+result_summary_sha256: 54112b28307fd7a4500534d1f500b2f7163b185b2b56d7b3bbdab9c0a4176358
 claim_id: C3
 hypothesis_family: HF02
 decision_changed_if_positive: Freeze the history-conditioned option-value representation and propose one independent matched Cm-on/off online confirmation on the same route.
@@ -264,9 +264,9 @@ tracked hash-and-manifest index is
 `docs/experiments/probes/P-20260926-temporal-expert-credit-results.json`.
 The final preflight/resource manifest is
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/preflight.json`
-(SHA256 `c46280d0df9b74377edf296d1968c38e7a556987ceb8b9537fe562e062d6a662`);
-the complete artifact root is 2,489,112 bytes, with no compute app remaining
-on GPU4 after collection.
+(SHA256 `536029b720c5f9c403de519175099650d0b92204a6e64d047dea89a2b51a5ad7`);
+the complete artifact root is 2,490,839 file bytes (2,519,511 bytes by `du`),
+with no compute app remaining on GPU4 after collection.
 
 The holdout IPW results were:
 

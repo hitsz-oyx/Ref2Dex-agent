@@ -330,7 +330,7 @@
   "preflight": {
     "bytes": 12300,
     "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/preflight.json",
-    "sha256": "c46280d0df9b74377edf296d1968c38e7a556987ceb8b9537fe562e062d6a662"
+    "sha256": "536029b720c5f9c403de519175099650d0b92204a6e64d047dea89a2b51a5ad7"
   },
   "probe_id": "P-20260926-temporal-expert-credit",
   "provenance_checks": {
@@ -340,7 +340,8 @@
     "holdout_payload_contract": "passed"
   },
   "resources": {
-    "artifact_root_bytes": 2489112,
+    "artifact_root_bytes": 2490839,
+    "artifact_root_du_bytes": 2519511,
     "baseline_duplicate_collection_started": false,
     "gpu_compute_apps_after_collection": [],
     "per_collection_budget_minutes": 30,
