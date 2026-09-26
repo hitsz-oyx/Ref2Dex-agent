@@ -78,3 +78,18 @@ Cm-off arm before any claim of Cm utility.
   GRAB still contains 1335 `.npz` sequences.
 - `success_rate` in the evaluator means episode completion; the manipulation
   metric is the held-lift definition above.
+
+## CPU engineering re-verification
+
+On 2026-09-26, the committed coverage implementation was rechecked without
+starting a simulator or GPU process:
+
+```text
+pytest -q src/task/CmResidual/tests/test_object_motion_sampler.py -> 3 passed
+py_compile sampler, filtered-motion loader, baseline launcher, and task      -> passed
+git diff --check against the route commit                                 -> passed
+```
+
+These checks verify object-mesh identity, asynchronous reset coverage, and the
+explicit full-pool sampler wiring. They do not change the Probe's `UNPROMISING`
+decision or authorize another full-pool training run.
