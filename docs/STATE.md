@@ -8,11 +8,12 @@ Updated: 2026-09-26
 
 ## Current decision
 
-用户于 2026-09-26 选择 [HF04 后路线复盘的 Option A](decisions/D-20260926-after-hf04-route-review.md)：
-当前 Cm policy-utility credit campaign **FROZEN**。不为 HF01–HF04 启动新的
-GPU collection、PPO、online Probe 或局部扫描；只做证据保全、复核与 Research
-Debt 整理。C3 claim 仍为 `OPEN`，Cm policy utility 尚未证明，也未被普遍否定。
-重启需新的高层假设、goal、预算和 Decision Checkpoint。
+用户于 2026-09-26 明确要求按代理方案继续研究，建立新的 HF05 goal；HF01–HF04
+仍按 [路线复盘](decisions/D-20260926-after-hf04-route-review.md) 冻结。HF05
+测试“保守的 selective causal gate”：Cm 只有在 fit-only 不确定性界显示
+contact-supported lift 安全增益时才介入，否则保持 no-op。先做既有随机记录的
+CPU-only 离线判别，不启动 GPU、PPO、online 或新 collection。决策合同见
+[`D-20260926-reopen-selective-causal-gate.md`](decisions/D-20260926-reopen-selective-causal-gate.md)。
 
 ## North-star scoreboard
 
@@ -103,6 +104,7 @@ Debt 整理。C3 claim 仍为 `OPEN`，Cm policy utility 尚未证明，也未�
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 | `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
+| `HF05` selective-causal-intervention | `C3` | `ACTIVE` | 0/1，CPU screen predeclared | `agent/cm-selective-causal-gate` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -111,9 +113,10 @@ Debt 整理。C3 claim 仍为 `OPEN`，Cm policy utility 尚未证明，也未�
 ## Next step
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮只读复核，见
-[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。未来论文所需、
-当前不改变路线的实验仍留在 Research Debt。当前没有获准的新 Cm 实验；若要
-继续研究，先提出新的高层假设、goal、预算和 Decision Checkpoint。
+[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。HF05 的 card
+和 CPU evaluator 已预声明；执行唯一的 existing-record screen，再依据固定
+policy/safety gate 决定是否冻结该新 goal。不得恢复 HF01–HF04，也不得在 HF05
+失败后换阈值、seed、target 或启动 online/PPO。
 
 主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
 相关提交暂不合入 `main`。见
