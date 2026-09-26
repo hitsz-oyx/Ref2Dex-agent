@@ -8,7 +8,7 @@ claim_id: C3
 hypothesis_family: HF05
 probe_index_in_family: 1
 seed_pool: existing-probe-records
-status: PLANNED
+status: UNPROMISING
 classification: Decision
 ---
 
