@@ -122,6 +122,17 @@ NOT_AUTHORIZED=<what must not start>
 活动，也不重复投递相同 goal。`paused` 或 `blocked` 的 Goal 不得被静默唤醒，
 除非用户建立新授权或 Decision Memo 明确解除阻塞。
 
+如果确实满足授权条件，`/root` 可以用注册表中的两项身份做**一次性**派发（命令
+中的 `<codex-cli>` 由当前环境解析，不能写死另一个 `CODEX_HOME`）：
+
+```bash
+CODEX_HOME=<registry.codex_home> <codex-cli> queue \
+  --thread <registry.conversation_id> \
+  --message '<完整 GOAL_DISPATCH 消息>'
+```
+
+这条命令只对应一个明确 goal；不得把它包进 cron、setsid、循环脚本或固定心跳。
+
 ## 5. 主代理的连续监督循环（取代外部固定唤醒）
 
 研究监督由 `/root` 在**同一条主对话的活动 turn 内**完成，不使用外部 watchdog
