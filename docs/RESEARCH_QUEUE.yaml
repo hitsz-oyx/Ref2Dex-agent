@@ -1,5 +1,10 @@
 schema: ref2dex.research_queue.v1
 updated: 2026-09-26
+campaign:
+  name: cm_policy_utility_credit
+  status: FROZEN
+  decision: docs/decisions/D-20260926-after-hf04-route-review.md
+  resume_requires: new_high_level_goal_budget_and_decision_checkpoint
 
 # This file is search state, not an experiment-result log.  A Probe card owns
 # the evidence; this file only says which claim/family may consume the next

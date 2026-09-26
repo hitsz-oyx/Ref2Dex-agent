@@ -1,5 +1,7 @@
 # Decision Memo — HF04 之后的 Cm policy-utility 路线复盘（2026-09-26）
 
+**Decision: Option A accepted by the user on 2026-09-26.**
+
 ## 需要决定的问题
 
 在 HF01 local-effect-ranking、HF02 temporal expert-option、HF03
@@ -25,7 +27,7 @@ self-trained airplane substrate 上寻找新的 Cm credit 接法。
    阈值、metric 或模型头不能提供新的可判别信息。当前没有通过门槛的 Cm
    policy-utility Probe，也没有理由启动 online、PPO 或新的 GPU collection。
 
-## Option A — 冻结当前 Cm policy-utility campaign（当前建议）
+## Option A — 冻结当前 Cm policy-utility campaign（已采纳）
 
 保留 HF01–HF04 的代码、数据、测试和负结果，停止新的 GPU collection、PPO、
 online Probe 以及局部 representation sweep。将当前可支持的结论限定为：
@@ -47,9 +49,11 @@ horizon、metric、representation 或 online 变体来继续消耗旧 slot。
 * 成功后：形成独立路线，再决定是否值得进入正式 Validation。
 * 失败后：保持 Option A 的 closeout。
 
-## Recommendation and current action
+## Decision and current action
 
-建议 Option A，并提交用户 Decision Checkpoint。HF04 的 card、CPU evaluator、
-测试、run manifest、结果 hash 和本复盘已提交；当前分支停止实验。没有启动
-GPU、physical collection、PPO 或 online Probe。继续工作需先决定新的高层 goal
-及预算，不能追加当前 HF04 family 的 slot。
+用户选择 Option A。当前 Cm policy-utility credit campaign 冻结；保留 HF01–HF04
+代码、实验卡、run manifest、结果 hash 和负结果。停止为这些 family 启动新的
+GPU collection、PPO、online Probe 或局部表示与参数扫描。可以进行只读审计、
+证据整理和 Research Debt 记录。C3 仍为 `OPEN`，当前结果不构成对所有 Cm
+方法的正式否定。若未来重启研究，需先提交新的高层假设、goal 和资源预算，
+并通过新的 Decision Checkpoint。

@@ -6,6 +6,14 @@ Updated: 2026-09-26
 对应 experiment card；搜索预算和 family 状态在
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 中维护。
 
+## Current decision
+
+用户于 2026-09-26 选择 [HF04 后路线复盘的 Option A](decisions/D-20260926-after-hf04-route-review.md)：
+当前 Cm policy-utility credit campaign **FROZEN**。不为 HF01–HF04 启动新的
+GPU collection、PPO、online Probe 或局部扫描；只做证据保全、复核与 Research
+Debt 整理。C3 claim 仍为 `OPEN`，Cm policy utility 尚未证明，也未被普遍否定。
+重启需新的高层假设、goal、预算和 Decision Checkpoint。
+
 ## North-star scoreboard
 
 | 目标 | 当前状态 | 证据边界 |
@@ -100,10 +108,7 @@ Updated: 2026-09-26
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
 信息增益时，必须切换高层假设；换 metric、horizon 或 seed 不会重置预算。
 
-## Next decision
+## Next step
 
-HF02、HF03 和 HF04 的预设门均失败；当前没有通过门槛的 Cm policy-utility
-Probe。停止在这些 family 上更换 seed、窗口、模型头或重复 online/PPO。
-[HF04 后路线复盘](decisions/D-20260926-after-hf04-route-review.md)
-建议冻结当前 credit campaign；若继续研究，应由用户在 Decision Checkpoint
-决定新的高层假设与资源预算。
+核对 HF01–HF04 的实验卡、manifest 与 Git 提交是否可复核，并将未来论文所需、
+当前不改变路线的工作留在 Research Debt。当前不安排新的 Cm 实验。

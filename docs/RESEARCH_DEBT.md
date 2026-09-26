@@ -223,29 +223,17 @@ Trigger: 新任务对齐的序列 Cm 进入在线 matched Probe 后。
 
 ## D010 — Contact-supported credit representation after HF02
 
-Status: DEFERRED UNTIL A NEW HF03-STYLE GOAL
+Status: CLOSED — HF03/HF04 CPU gates `UNPROMISING`
 
-HF02 的 canonical temporal expert-option Probe 已通过数据合同，但 held-lift
-policy-value gate 低于 action-shuffled placebo（`-9.677pp`）。这排除了当前
-“首次接触时直接选择 expert option”的具体 policy route，同时保留了接触阶段
-短序列、executed handflow、contact-supported lift 之间存在机制信号的可能性。
+HF02 的 canonical temporal expert-option Probe 未过 held-lift policy-value gate。
+后续 HF03 post-action handflow 和 HF04 五步 trajectory-credit screen 均已按冻结
+合同完成，也未达到各自的预测增量门槛。证据见
+[HF03 card](experiments/probes/P-20260926-contact-supported-credit.md)、
+[HF04 card](experiments/probes/P-20260926-trajectory-credit.md) 和
+[路线决定](decisions/D-20260926-after-hf04-route-review.md)。
 
-未来若重新开启该方向，至少需要：
-
-* 明确定义 executed-handflow、接触保持和承重标签的时间窗口；
-* 先完成 CPU-only label/action-alignment audit；
-* 使用新的 experiment ID、预算和 matched Cm-off substrate；
-* 只有在新 seed 的物理方向稳定后，才设计新的 GPU Probe。
-
-Why deferred:
-
-当前 post-HF02 decision memo 选择冻结 Cm policy-utility campaign。不能通过
-换 seed、horizon、metric 或模型头继续 HF02，也不能把本债务当作现有 Cm 增益证据。
-
-Trigger: 用户建立独立 HF03-style goal，且新的 contact-supported credit 假设
-成为论文 claim 或下一阶段核心决策所必需的证据。
-
-2026-09-26 CPU-only preflight 已对 route-specific `motion_id=0` substrate
-完成 label/action-alignment audit；post-handflow gate 为 `UNPROMISING`，未启动
-PPO auxiliary Probe。该结果范围仅限单 motion，不能替代未来 HF03 的跨物体合同；
-完整 provenance 见 [HF03 contact-supported credit audit](handoffs/HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md)。
+这些 CPU 结果只覆盖当前单一 airplane substrate，不能升级为“Cm 普遍无效”的
+正式结论。用户已选择冻结当前 Cm policy-utility credit campaign；不再把
+HF02–HF04 的 seed、窗口、metric 或模型头重扫列为待偿还债务。未来若提出新的
+高层假设，需另建 goal、experiment ID、matched control 和资源预算，再经
+Decision Checkpoint。
