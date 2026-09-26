@@ -34,6 +34,6 @@ python3 scripts/agent_result_poller.py \
 
 ## 通知与恢复
 
-`POLL_EVENT` 只表示“有变化需要 root 审查”，包含 agent key、变化字段、旧/新 HEAD/Goal/GPU/manifest 快照。不得对 root 发送固定心跳。通知使用注册表中的 root 身份及 root 的 `CODEX_HOME`，而非 poller 的 NewAPI home。若 root 对话暂时停下，新结果由队列唤起审查；若队列不可用，保留事件并报告 `POLL_ERROR`。
+`POLL_EVENT` 只表示“有变化需要 root 审查”，包含 agent key、变化字段、旧/新 HEAD/Goal/GPU/manifest 摘要；`task_complete` 只发送新增 ID（最多 8 个）和总数，完整游标留在状态文件。不得对 root 发送固定心跳。通知使用注册表中的 root 身份及 root 的 `CODEX_HOME`，而非 poller 的 NewAPI home。若 root 对话暂时停下，新结果由队列唤起审查；若队列不可用，保留事件并报告 `POLL_ERROR`。
 
 重启前检查旧进程和 `outputs/agent_poller/state.json`；同一时间只允许一个 poller 进程。停止时只停止已确认属于该代理的轮询进程，不触碰其他 Codex 或实验进程。

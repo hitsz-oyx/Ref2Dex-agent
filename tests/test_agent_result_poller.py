@@ -61,7 +61,9 @@ def _setup(monkeypatch):
 def test_initial_snapshot_is_silent_then_own_completion_emits_once(tmp_path, monkeypatch):
     _setup(monkeypatch)
     child, rollout = _child(tmp_path, "child")
-    rollout.write_text(_record("old"), encoding="utf-8")
+    rollout.write_text(
+        "".join(_record(f"old-{index}") for index in range(100)), encoding="utf-8"
+    )
     registry = tmp_path / "registry.json"
     registry.write_text(
         json.dumps(
@@ -91,7 +93,11 @@ def test_initial_snapshot_is_silent_then_own_completion_emits_once(tmp_path, mon
     events, _ = poller.poll_once(args)
     assert len(events) == 1
     assert events[0]["changed"] == ["task_complete"]
+    assert events[0]["before"]["task_complete"]["count"] == 100
+    assert events[0]["after"]["task_complete"]["count"] == 101
+    assert events[0]["task_complete_added_ids"] == ["turn:new"]
     assert queued and len(queued) == 1
+    assert len(queued[0]) < 1200
 
     events, _ = poller.poll_once(args)
     assert events == []

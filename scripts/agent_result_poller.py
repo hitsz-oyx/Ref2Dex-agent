@@ -16,6 +16,7 @@ from pathlib import Path
 
 SCHEMA = "ref2dex.agent_result_poller.v1"
 TASK_COMPLETE = "task_complete"
+TASK_COMPLETE_EVENT_IDS_LIMIT = 8
 
 
 def read_json(path):
@@ -237,6 +238,19 @@ def manifest_transition_key(before, after, worktree=None):
     return current if current is not None else previous
 
 
+def event_snapshot(snapshot):
+    """Keep queue messages bounded while retaining full IDs in the state file."""
+
+    summary = dict(snapshot)
+    completions = summary.get("task_complete")
+    if isinstance(completions, list):
+        summary["task_complete"] = {
+            "count": len(completions),
+            "latest": completions[-1] if completions else None,
+        }
+    return summary
+
+
 def queue_root(root_agent, message, node_bin, codex_js):
     environment = os.environ.copy()
     environment["CODEX_HOME"] = root_agent["codex_home"]
@@ -300,8 +314,14 @@ def poll_once(args):
         if not changed:
             known[key] = current
             continue
-        event = {"agent_key": key, "changed": changed, "before": previous,
-                 "after": current}
+        event = {"agent_key": key, "changed": changed,
+                 "before": event_snapshot(previous), "after": event_snapshot(current)}
+        if "task_complete" in changed:
+            previous_ids = set(previous.get("task_complete", []))
+            added = [identifier for identifier in current["task_complete"]
+                     if identifier not in previous_ids]
+            event["task_complete_added_count"] = len(added)
+            event["task_complete_added_ids"] = added[-TASK_COMPLETE_EVENT_IDS_LIMIT:]
         events.append(event)
         message = "POLL_EVENT\n" + json.dumps(event, ensure_ascii=False, sort_keys=True)
         message += "\nReview evidence and resource ownership before any mainline integration."
