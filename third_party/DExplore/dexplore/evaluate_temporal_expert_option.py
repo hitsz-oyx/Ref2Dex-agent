@@ -21,23 +21,46 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.task.CmResidual.temporal_option_contract import (  # noqa: E402
-    RECORD_SCHEMA,
-    RUN_SCHEMA,
-    balanced_environment_assignment,
-    eligible_trigger_mask,
-    git_blob_sha1,
-    option_active_mask,
-    record_future_step,
-    sha256_path,
-    validate_frozen_contract,
-    validate_record_payload,
-)
-
-
 COLLECTOR_CONFIG = ROOT / "src/task/CmResidual/configs/airplane_temporal_expert_probe.json"
 ROUTE_CONFIG = ROOT / "src/task/CmResidual/configs/hf02_temporal_canonical_route.json"
 EVALUATOR_PATH = Path(__file__).resolve()
+
+# The contract module uses PyTorch for tensor/schema checks.  Isaac Gym must
+# be imported before PyTorch in a real simulator process, while ``--dry-run``
+# must remain import-safe on CPU-only hosts.  Load the contract lazily so the
+# real path can establish Isaac Gym's required import order first.
+_CONTRACT_LOADED = False
+
+
+def _load_contract() -> None:
+    global _CONTRACT_LOADED
+    if _CONTRACT_LOADED:
+        return
+    from src.task.CmResidual.temporal_option_contract import (  # noqa: E402
+        RECORD_SCHEMA,
+        RUN_SCHEMA,
+        balanced_environment_assignment,
+        eligible_trigger_mask,
+        git_blob_sha1,
+        option_active_mask,
+        record_future_step,
+        sha256_path,
+        validate_frozen_contract,
+        validate_record_payload,
+    )
+    globals().update({
+        "RECORD_SCHEMA": RECORD_SCHEMA,
+        "RUN_SCHEMA": RUN_SCHEMA,
+        "balanced_environment_assignment": balanced_environment_assignment,
+        "eligible_trigger_mask": eligible_trigger_mask,
+        "git_blob_sha1": git_blob_sha1,
+        "option_active_mask": option_active_mask,
+        "record_future_step": record_future_step,
+        "sha256_path": sha256_path,
+        "validate_frozen_contract": validate_frozen_contract,
+        "validate_record_payload": validate_record_payload,
+    })
+    _CONTRACT_LOADED = True
 
 
 def _now() -> str:
@@ -71,6 +94,7 @@ def _git_commit() -> str:
 
 
 def _preflight(collector_path: Path, route_path: Path, verify_artifacts: bool) -> dict:
+    _load_contract()
     return validate_frozen_contract(
         ROOT, collector_path, route_path, verify_artifacts=verify_artifacts)
 
@@ -519,6 +543,11 @@ def main() -> None:
     route_path = args.route_config.resolve()
     if not collector_path.is_file() or not route_path.is_file():
         raise FileNotFoundError("collector or canonical route config missing")
+    if not args.dry_run:
+        # Isaac Gym's dependency guard rejects a process that imported torch
+        # first.  The contract is loaded by _preflight immediately after this
+        # import, before any simulator/player construction.
+        from isaacgym import gymapi  # noqa: F401
     provenance = _preflight(
         collector_path, route_path,
         verify_artifacts=not args.skip_artifact_hashes)
@@ -548,7 +577,6 @@ def main() -> None:
     }
 
     # Isaac Gym and the simulator modules are deliberately imported only here.
-    from isaacgym import gymapi  # noqa: F401  # must precede torch
     import torch
     import evaluate as original
     import evaluate_object_router as routed
