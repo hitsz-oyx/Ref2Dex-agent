@@ -3,10 +3,20 @@ schema: ref2dex.probe.v2
 probe_id: P-20260926-temporal-expert-credit
 date: 2026-09-26
 branch: agent/cm-temporal
-git_commit: 8f4cf3845f3f48749aa6171a9265a6efd6b5d289
+git_commit: 33e828859185edb2b4590cbb9eea292d5283be71
 baseline_handoff_commit: 546f6f8
 canonical_route_manifest: src/task/CmResidual/configs/hf02_temporal_canonical_route.json
 canonical_route_sha256: afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16
+tracked_temporal_evaluator: third_party/DExplore/dexplore/evaluate_temporal_expert_option.py
+tracked_temporal_evaluator_commit: 33e828859185edb2b4590cbb9eea292d5283be71
+tracked_temporal_evaluator_git_blob_sha1: 388184b00f9cde55ec2ff508f0581af1b531e91a
+tracked_temporal_evaluator_sha256: 0de5f9743af69e8b4373fd411c1f0ecd2cb3de0ca2089405ac6f68470111ca76
+tracked_collector_config: src/task/CmResidual/configs/airplane_temporal_expert_probe.json
+tracked_collector_config_sha256: 47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536
+tracked_contract_module: src/task/CmResidual/temporal_option_contract.py
+tracked_contract_module_sha256: 4cbe646bebe395c3d3065919da874eb0346c51852670eac1001355d8213be697
+tracked_cpu_tests: src/task/CmResidual/tests/test_temporal_option_contract.py
+tracked_cpu_tests_sha256: 42886719b2dd897e00dd9fd2e8874a38a74e0077d5a7113570ffcccb2c1eb728
 claim_id: C3
 hypothesis_family: HF02
 decision_changed_if_positive: Freeze the history-conditioned option-value representation and propose one independent matched Cm-on/off online confirmation on the same route.
@@ -65,15 +75,30 @@ randomized-wrist checkpoint is also excluded.
 The handoff's fixed-route Cm-off entry is
 `third_party/DExplore/dexplore/evaluate_object_router.py` at blob
 `84e086d502a1b838e4607f3d51f2f0d77073f114`. The exact six-expert temporal
-option evaluator is still uncommitted; until a tracked evaluator (or an
-equivalent tracked implementation) is available and hashed, collection is
-provenance-blocked. This card therefore does not authorize an online Probe.
+option evaluator is now tracked at
+`third_party/DExplore/dexplore/evaluate_temporal_expert_option.py` in commit
+`33e828859185edb2b4590cbb9eea292d5283be71`, with Git blob SHA1
+`388184b00f9cde55ec2ff508f0581af1b531e91a` and file SHA256
+`0de5f9743af69e8b4373fd411c1f0ecd2cb3de0ca2089405ac6f68470111ca76`.
+It is contract-first and imports Isaac Gym only after the CPU preflight passes.
+The companion collector config is tracked at
+`src/task/CmResidual/configs/airplane_temporal_expert_probe.json` with SHA256
+`47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536`.
+The shared CPU contract module is tracked at
+`src/task/CmResidual/temporal_option_contract.py` with SHA256
+`4cbe646bebe395c3d3065919da874eb0346c51852670eac1001355d8213be697`, and the
+contract tests are tracked at
+`src/task/CmResidual/tests/test_temporal_option_contract.py` with SHA256
+`42886719b2dd897e00dd9fd2e8874a38a74e0077d5a7113570ffcccb2c1eb728`.
+The baseline handoff's uncommitted-evaluator note is therefore resolved by this
+implementation commit. This engineering task does not authorize collection or
+an online Probe.
 
 ## Frozen data collection
 
-For each of two owned simulator seeds, collect first-episode rows only after
-the evaluator provenance gate above is cleared, using exactly the route
-manifest and three-motion root above:
+For each of two owned simulator seeds, a future collection may use the tracked
+evaluator only under a separate approved execution step, using exactly the
+route manifest and three-motion root above:
 
 * fit seed `254`, assignment seed `20260926254`;
 * holdout seed `255`, assignment seed `20260926255`.
@@ -90,7 +115,7 @@ actions, and executed action are saved. The assigned candidate controls the
 next ten steps, then the frozen object-route expert resumes. The future window
 is the next twenty simulator steps. No Cm is used in collection (`Cm-off`).
 
-Each row must contain:
+Each row must contain (the tracked evaluator enforces these shapes):
 
 * `env_id`, `motion_id`, `object_name`, `simulator_object_id`, `route_expert`,
   `assignment`, and `assignment_propensity`;
@@ -98,6 +123,9 @@ Each row must contain:
   `candidate_actions[6,18]`;
 * `history_state[10,49]`, `history_action[10,18]`, and
   `history_contact[10]`;
+* ten-step `option_candidate_action[10,18]` and
+  `option_executed_action[10,18]`, with equality checked so an assigned arm
+  cannot silently fall back to the source continuation;
 * twenty-step `future_contact_mask[20]` and
   `future_contact_supported_lift_m[20]`, plus the aggregate
   `followup_contact_fraction` and `followup_max_contact_lift_m`;
@@ -154,7 +182,7 @@ manifests. This card cannot be upgraded to a formal Cm causal claim.
 
 ## Status and artifacts
 
-Status: `PLANNED` (collection provenance `BLOCKED_PENDING_TRACKED_TEMPORAL_EVALUATOR`).
+Status: `PLANNED` (tracked evaluator/config ready; no collection run executed).
 The one permitted cwd-corrected engineering smoke is
 recorded separately and does not consume this Probe's offline gate:
 
@@ -185,8 +213,17 @@ invalid engineering record:
 
 No option collection, offline fit, matched online Probe, or PPO continuation
 is part of this card yet. In particular, the baseline handoff's fixed-route
-Cm-off command is an entry point only; it has not been run here. Planned
-artifacts after the provenance gate is cleared:
+Cm-off command is an entry point only; it has not been run here. The tracked
+implementation's pure-CPU checks are:
+
+* `9 passed` in
+  `src/task/CmResidual/tests/test_temporal_option_contract.py`;
+* `py_compile` passes for evaluator, contract module, and tests;
+* evaluator `--dry-run` verifies all six checkpoint hashes and three motion
+  hashes, reports `isaacgym_imported: false`, and gives `32` assignments per
+  arm for both seed-owned splits.
+
+Planned collection artifacts after a separately approved execution step:
 
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/`
 

@@ -62,10 +62,12 @@ Updated: 2026-09-26
 
 ## Next decision experiment
 
-HF02 slot-2 的 canonical Probe card 已冻结为计划态，但 exact temporal-option
-evaluator 仍未提交，因此 collection provenance 目前 blocked。当前不执行任何
-option collection、离线拟合、matched online 或 PPO continuation。待 evaluator
-以 tracked commit/hash 固定后，且该 goal 明确解除阻塞，才可在固定六专家、三条
+HF02 slot-2 的 canonical Probe card 已冻结为计划态；exact temporal-option
+evaluator、collector config 和 CPU contract tests 已在 commit
+`33e828859185edb2b4590cbb9eea292d5283be71` tracked，evaluator blob SHA1 为
+`388184b00f9cde55ec2ff508f0581af1b531e91a`，因此原先的 tracked-evaluator
+工程 blocker 已清除。当前仍不执行任何 option collection、离线拟合、matched
+online 或 PPO continuation；只有单独解除执行约束后，才可在固定六专家、三条
 airplane、`simulator_object_id` substrate 上运行 card 中的 seed 254/255 离线比较：
 `temporal-Cm` 必须同时相对 `history-only` 与 `action-shuffled` 达到至少
 `+5pp` 的 held-lift policy-value margin，且 contact-supported lift 不下降，
