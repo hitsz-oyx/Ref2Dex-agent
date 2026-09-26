@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 probe_id: P-20260926-selective-causal-gate
 date: 2026-09-26
 branch: agent/cm-selective-causal-gate
-git_commit: de5e83a52efa365a40ff866ea31a1daef7698b79
+git_commit: 228a399cd5c36374c50e3e42b679cfb06d823baf
 claim_id: C3
 hypothesis_family: HF05
 probe_index_in_family: 1
@@ -84,11 +84,13 @@ CPU only, two threads, one deterministic run, and at most 20 MB of output. Stop
 on route/checkpoint/manifest drift, invalid assignment or first-episode boundary,
 nonfinite data, missing arm coverage, or any CUDA/Isaac Gym attempt.
 
-Implementation and tests are pinned at commit
-`de5e83a52efa365a40ff866ea31a1daef7698b79`:
+The contract was predeclared with evaluator commit
+`de5e83a52efa365a40ff866ea31a1daef7698b79`. A path-only implementation repair
+was committed before the scientific run at
+`228a399cd5c36374c50e3e42b679cfb06d823baf`; the model, threshold, inputs and
+tests are unchanged:
 
 * evaluator SHA256:
-  `43a97c5342cd381c1fe32b948c17ce2ebbf6bf197037da3ff8527120786c40ed`;
+  `0343681e0d024edf93ddddcbb7501a3caec877e7dd8589e641cad0447f7356d1`;
 * test SHA256:
   `805ff133c735f747723e839dfc5845674777be25922ab9eec3ebf88092211a79`.
-
