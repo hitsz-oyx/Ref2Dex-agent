@@ -18,6 +18,9 @@ Updated: 2026-09-26
 最终研究价值由第三项决定：在足够可用的 self-trained substrate 上证明 Cm
 对真实策略决策有因果增益，而不是只提高离线预测指标。
 
+当前阶段聚焦固定自训练任务分布内的 Cm policy utility；跨物体泛化暂不作为
+本阶段门槛。见 [目标重述](decisions/D-20260925-cm-goal-reframe.md)。
+
 ## Confirmed long-term facts
 
 - 当前可靠的抓取 substrate 是自训练专家/层级路由；它仍可能读取特权物体
@@ -58,6 +61,10 @@ Updated: 2026-09-26
   预设 label/action gate；它与下述 HF03 跨 seed 的 post-action handflow audit
   是不同的数据合同。见
   [`HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md`](handoffs/HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md)。
+- 固定 airplane 接触后的 wrist-z 完整 episode value 路线在二臂和更严格的
+  三臂 Probe 中均未过预设门：三臂 held-out Cm-aware 离线策略价值 0.6809，
+  state-only 0.6667，差 1.42pp，低于 +5pp 门；没有启动 online Cm-on/off。
+  见 [三臂实验卡](experiments/probes/P-20260925-cm-postcontact-three-arm-value.md)。
 - HF03 `contact_supported_credit` 的 CPU-only retrospective audit 也已完成并判定
   `UNPROMISING`：复用同一 self-trained `source_e260` airplane substrate 的
   seed246/247 fit（123 行）和 seed248/249 holdout（122 行），只保留首次接触、
