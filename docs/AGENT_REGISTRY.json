@@ -2,8 +2,8 @@
   "$schema": "ref2dex.agent_registry.v3",
   "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 9,
-  "updated_at": "2026-09-26",
+  "registry_version": 10,
+  "updated_at": "2026-09-27",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
   "codex_home_env_var": "CODEX_HOME",
@@ -154,6 +154,45 @@
         "未经新 goal 扩展研究路线"
       ],
       "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态"
+    },
+    {
+      "agent_key": "agent_c1_validation",
+      "display_name": "agent/c1-validation",
+      "conversation_id": "01a0de76-3a3f-7293-88f8-18c140024f9f",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0de76-3a3f-7293-88f8-18c140024f9f.jsonl",
+      "role": "C1 Validation owner / observation-router reliability",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-router-reliability",
+      "branch": "agent/observation-router-reliability",
+      "owns": [
+        "当前注册 C1 Validation matrix/card 的 frozen observation-router control/candidate runs",
+        "一张 GPU 上 fixed control 与 observation candidate 的 sequential evaluation、preflight 和 provenance",
+        "C1 Validation card、run manifest、hash 与 handoff"
+      ],
+      "allowed_resources": {
+        "gpu": "最多一张 GPU；当前注册 C1 Validation matrix 的 fixed/control 与 observation/candidate arms 顺序执行",
+        "validation_card": "仅当前注册的 VAL-20260926-observation-six-expert-c1 (ref2dex.validation.v2) matrix/card；不得自行扩大 seed、route、threshold 或 expert set",
+        "cm": false,
+        "other_gpu_work": false,
+        "max_concurrent_gpus": 1,
+        "execution": "sequential arms only",
+        "campaign": "遵守 docs/CAMPAIGN.md 的 GPU、时间、磁盘和停止边界"
+      },
+      "must_not": [
+        "任何 Cm 训练、评估、collection、online 或其他 Cm GPU 工作",
+        "第二张 GPU、并行 arms 或超出当前 C1 Validation matrix 的 seed、route、threshold 或 expert set",
+        "未经新 goal/Decision Checkpoint 修改当前注册 card 的 frozen method、control 或 seed matrix",
+        "启动当前 card 之外的训练、PPO、collector 或 online work",
+        "修改其他代理工作树或 main",
+        "合并或 push"
+      ],
+      "handoff": "C1 Validation card 状态、branch/commit、run manifests/hashes、GPU/time/storage evidence、terminal label"
     },
     {
       "agent_key": "agent_cm_temporal",

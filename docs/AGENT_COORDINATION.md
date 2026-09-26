@@ -26,12 +26,13 @@
 每个 agent 的 `codex_home` 独立登记；当前多个 agent 可以碰巧使用同一个目录，
 但注册表没有共用的 `default_codex_home`，也不允许从 root 或环境变量继承。
 
-当前登记五个稳定的 `agent_key`：
+当前登记六个稳定的 `agent_key`：
 
 * `root`：全局主代理；
 * `agent_baseline`：GRAB 全池 baseline / provenance 代理；
+* `agent_c1_validation`：C1 observation-router Validation owner（显示名为 `agent/c1-validation`）；
 * `agent_cm_temporal`：Cm 路线只读证据复核与新假设设计代理（显示名为 `agent_Cm/selective`）；
-* `agent_workflow`：工作流与治理代理（显示名为 `agent/workflow`）。
+* `agent_workflow`：工作流与治理代理（显示名为 `agent/workflow`）；
 * `agent_poller`：只读结果轮询与事件通知代理（显示名为 `agent/poller`）。
 
 注册表不记录动态的 `RUNNING`、`BLOCKED` 或 `COMPLETED` 状态；动态状态应从
@@ -74,6 +75,7 @@ PY
 | --- | --- | --- | --- | --- |
 | `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在 `MISSION`/`CAMPAIGN` 与当前授权内主动选择有决策价值的任务；派发明确 goal；只读审计；撰写 Decision Memo；审计后集成已接受提交 | 亲自承担研究分析、代码或文档实现、preflight、实验运行与长期进程管理；固定心跳式自唤醒；盲目重启/杀进程；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
 | `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
+| `agent/c1-validation` | `VAL-20260926-observation-six-expert-c1` 的 C1 observation-router Validation owner | 只执行当前注册 card 的 frozen fixed/control 与 observation/candidate 矩阵；一张 GPU 顺序运行；负责 preflight、provenance、card 和 manifest | Cm 或其他 GPU 工作；第二张 GPU、并行 arms、超出 card 的 seed/route/threshold/expert set；修改其他工作树或 main；合并/push | card 状态、branch/commit、manifest/hash、GPU/time/storage 证据和 terminal label |
 | `agent_Cm/selective` | 已完成 HF05 的证据保全与新假设设计 | CPU-only 只读复核既有 card、manifest、结果索引并草拟 Decision Memo | 新 Cm Probe/fit/collection、GPU、Isaac Gym、online/PPO；重扫 HF05；复用别的 run | 证据入口、候选假设、最小判别测试、资源估计和下一决策 |
 | `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
 | `agent/poller` | 登记代理的只读轮询和事件通知 | 读取 Goal/Git/manifest/rollout completion/归属 GPU；仅在变化时向 root 排队 `POLL_EVENT` | GPU 实验；修改其他工作树；科学判断；合并；固定心跳 | 变化字段、旧/新快照、通知状态和错误 |
@@ -141,7 +143,7 @@ online follow-up 必须建立新的 goal；若触发 `AGENTS.md` 的 Decision Ch
 
 ```text
 GOAL_DISPATCH
-TARGET_AGENT_KEY=agent_baseline|agent_cm_temporal|agent_workflow
+TARGET_AGENT_KEY=agent_baseline|agent_c1_validation|agent_cm_temporal|agent_workflow
 CODEX_HOME=<from AGENT_REGISTRY.json>
 CONVERSATION_ID=<from AGENT_REGISTRY.json>
 OBJECTIVE=<one concrete decision/blocker>
