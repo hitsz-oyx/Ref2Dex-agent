@@ -50,7 +50,7 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
         if not len(env_ids):
             return
         if not hasattr(self, "_ref2dex_first_contact_frames"):
-            anchors, lift_anchors = [], []
+            anchors, lift_anchors, has_lift = [], [], []
             for motion in self.hoi_data_dict:
                 frames = (motion["contact"].reshape(-1) > 0.5).nonzero(as_tuple=True)[0]
                 if frames.numel() == 0:
@@ -61,18 +61,24 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
                 post_contact = z[contact_anchor:]
                 lifted = (post_contact - post_contact.cummin(0).values >= lift_threshold_m).nonzero(
                     as_tuple=True)[0]
-                if lift_fraction and lifted.numel() == 0:
-                    raise ValueError("lift curriculum requires a reference lift after contact")
+                # Full GRAB contains pass/inspect/eat trajectories that have
+                # contact but no reference lift.  They remain eligible for a
+                # contact reset; only motions with a real lift may consume
+                # the lift-reset fraction.
+                has_lift.append(bool(lifted.numel()))
                 lift_anchors.append(contact_anchor + int(lifted[0].item()) if lifted.numel()
                                     else contact_anchor)
             self._ref2dex_first_contact_frames = torch.tensor(
                 anchors, device=self.device, dtype=torch.long)
             self._ref2dex_first_lift_frames = torch.tensor(
                 lift_anchors, device=self.device, dtype=torch.long)
+            self._ref2dex_has_lift = torch.tensor(
+                has_lift, device=self.device, dtype=torch.bool)
             print("REF2DEX_CONTACT_CURRICULUM " + json.dumps({
                 "first_contact_frames": anchors, "window_before": before,
                 "window_after": after, "fraction": fraction,
                 "first_lift_frames": lift_anchors, "lift_fraction": lift_fraction,
+                "motions_with_lift": int(sum(has_lift)),
                 "lift_threshold_m": lift_threshold_m,
                 "mode": "mixed_start_and_contact_training_reset",
             }, sort_keys=True), flush=True)
@@ -99,7 +105,7 @@ def install_contact_reset_curriculum(task_class, *, before: int, after: int,
         span = (contact_anchors - lower + 1).float()
         anchors = lower + torch.floor(torch.rand(
             len(selected_envs), device=self.device) * span).long()
-        selected_lift = lift_mask[selected_mask]
+        selected_lift = lift_mask[selected_mask] & self._ref2dex_has_lift[motion]
         anchors[selected_lift] = self._ref2dex_first_lift_frames[motion[selected_lift]]
         offset = torch.randint(-before, after + 1, (len(selected_envs),), device=self.device)
         last = self.max_episode_length[motion].to(self.device) - 2

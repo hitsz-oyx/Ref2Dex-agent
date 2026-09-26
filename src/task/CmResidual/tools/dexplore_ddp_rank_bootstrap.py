@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import os
 from pathlib import Path
 import runpy
@@ -86,6 +87,17 @@ def _patch_synchronized_shutdown() -> None:
                     self.save(model_output_file)
                     if self._save_intermediate:
                         self.save(model_output_file + "_" + str(epoch_num).zfill(8))
+                task = getattr(getattr(self.vec_env, "env", None), "task", None)
+                sampler = getattr(task, "_motion_sampler", None)
+                if sampler is not None and (epoch_num % 10 == 0 or epoch_num >= actual_epoch_budget):
+                    visits = sampler.visits.cpu().tolist()
+                    coverage = {"epoch": epoch_num, "motion_count": len(visits),
+                                "visited_motion_count": sum(v > 0 for v in visits),
+                                "min_resets": min(visits), "max_resets": max(visits),
+                                "reset_counts": dict(zip(task.motion_file, visits))}
+                    Path(self.nn_dir, "motion_coverage.json").write_text(json.dumps(coverage, indent=2) + "\n")
+                    print("REF2DEX_MOTION_COVERAGE " + json.dumps({k: v for k, v in coverage.items()
+                                                                 if k != "reset_counts"}), flush=True)
                 if ((actual_epoch_budget and epoch_num >= actual_epoch_budget) or
                         (not actual_epoch_budget and epoch_num > self.max_epochs)):
                     self.save(model_output_file)

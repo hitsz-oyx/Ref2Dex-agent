@@ -1,0 +1,17 @@
+{
+  "description": "Twelve corrected converted motions, ten object identities; torussmall held out after failed physical diagnostic",
+  "motions": [
+    "outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift",
+    "outputs/CmResidual/agent_v129_s7_coordfix/corrected_converted/s7_airplane_lift_Retake",
+    "outputs/CmResidual/agent_v129_s9_coordfix/corrected_converted/s9_airplane_lift",
+    "outputs/CmResidual/agent_crossobject_apple_gate_20260924/corrected_converted/s7_apple_lift",
+    "outputs/CmResidual/agent_crossobject_mug_gate_20260924/corrected_converted/s1_mug_lift",
+    "outputs/CmResidual/agent_crossobject_toothpaste_gate_20260924/corrected_converted/s1_toothpaste_lift",
+    "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_converted/s1_alarmclock_lift",
+    "outputs/CmResidual/agent_objectpool_cubesmall_gate/corrected_converted/s1_cubesmall_lift",
+    "outputs/CmResidual/agent_objectpool_cup_gate/corrected_converted/s1_cup_lift",
+    "outputs/CmResidual/agent_objectpool_duck_gate/corrected_converted/s1_duck_lift",
+    "outputs/CmResidual/agent_objectpool_phone_gate/corrected_converted/s1_phone_lift",
+    "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_converted/s1_waterbottle_lift"
+  ]
+}

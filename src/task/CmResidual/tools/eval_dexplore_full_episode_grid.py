@@ -60,10 +60,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--tag", help="short output suffix for a transfer probe")
     parser.add_argument("--selector-cmlite-checkpoint", type=Path)
     parser.add_argument("--selector-cmlite-sha256")
+    parser.add_argument("--checkpoint-override", type=Path)
+    parser.add_argument("--checkpoint-override-sha256")
+    parser.add_argument("--reference-action-lead", type=int,
+                        help="diagnostic: execute the reference controller instead of the actor")
     parser.add_argument("--work-version", default="V1.29")
+    parser.add_argument("--cfg-env", default="dexplore/data/cfg/inspire.yaml",
+                        help="DExplore environment config, relative to the vendor root")
     parser.add_argument("--save-transitions", action="store_true",
                         help="save step-major transition tensors for an offline model audit")
+    parser.add_argument("--initial-features", action="store_true",
+                        help="save first pre-action observation/action with episode outcome")
+    parser.add_argument("--contact-topology", action="store_true",
+                        help="append configured hand-link force magnitudes to transitions")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--num-envs", type=int, help="explicit full-pool protocol; default retains 64-env gate")
     args = parser.parse_args(argv)
     if args.gpu < 0 or args.seed < 0 or any(epoch < 1 for epoch in args.epochs):
         raise ValueError("GPU, seed and epochs must be nonnegative/positive")
@@ -79,9 +90,21 @@ def main(argv: list[str] | None = None) -> int:
         raise ValueError("CmLite selector checkpoint and SHA256 must be paired")
     if selector and args.tag is None:
         raise ValueError("CmLite selector requires a unique output tag")
+    if selector and args.reference_action_lead is not None:
+        raise ValueError("reference action and CmLite selector are mutually exclusive")
+    if args.contact_topology and not args.save_transitions:
+        raise ValueError("contact topology requires transition export")
+    if args.reference_action_lead is not None and args.reference_action_lead < 0:
+        raise ValueError("reference action lead must be nonnegative")
     if selector and (not args.selector_cmlite_checkpoint.is_file() or
                      _sha256(args.selector_cmlite_checkpoint) != args.selector_cmlite_sha256):
         raise ValueError("CmLite selector checkpoint is missing or SHA256 mismatched")
+    if bool(args.checkpoint_override) != bool(args.checkpoint_override_sha256):
+        raise ValueError("checkpoint override and SHA256 must be specified together")
+    if args.checkpoint_override is not None:
+        if (not args.checkpoint_override.is_file() or
+                _sha256(args.checkpoint_override) != args.checkpoint_override_sha256):
+            raise ValueError("checkpoint override is missing or SHA256 mismatched")
     if args.tag is not None and (not args.tag or not args.tag.replace("_", "").isalnum()):
         raise ValueError("output tag must contain only letters, digits and underscores")
     run_dir = args.run_dir.resolve()
@@ -94,22 +117,26 @@ def main(argv: list[str] | None = None) -> int:
     if not motion_root.is_dir() or not input_manifest.is_file():
         raise FileNotFoundError("frozen motion input is missing")
     input_record = json.loads(input_manifest.read_text(encoding="utf-8"))
-    if input_record.get("classification") != "reconstructed_baseline":
-        raise ValueError("motion input must have reconstructed baseline provenance")
-    num_envs = int(config["num_envs_per_rank"])
-    if num_envs != 64:
+    if input_record.get("classification") not in (
+            "reconstructed_baseline", "filtered_geometric_dexplore"):
+        raise ValueError("unsupported motion input provenance")
+    num_envs = args.num_envs if args.num_envs is not None else int(config["num_envs_per_rank"])
+    if num_envs < 1:
+        raise ValueError("positive environment count required")
+    if args.num_envs is None and num_envs != 64:
         raise ValueError("the V1.29 strict gate requires 64 environments")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                        text=True).strip()
     entries = []
     for epoch in args.epochs:
-        checkpoint = _checkpoint(run_dir, epoch)
+        checkpoint = (args.checkpoint_override.resolve() if args.checkpoint_override is not None
+                      else _checkpoint(run_dir, epoch))
         suffix = f"_{args.tag}" if args.tag is not None else ""
         output = run_dir / f"eval_s{args.seed}_e{epoch:03d}_full{suffix}"
         if output.exists():
             raise FileExistsError(output)
         command = [sys.executable, str(EVALUATE), "--task", "Dexplore_Inspire",
-                   "--cfg_env", "dexplore/data/cfg/inspire.yaml",
+                   "--cfg_env", args.cfg_env,
                    "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
                    "--motion_file", str(motion_root), "--checkpoint", str(checkpoint),
                    "--disable-early-termination", "--headless", "--sim_device", "cuda:0",
@@ -117,25 +144,38 @@ def main(argv: list[str] | None = None) -> int:
                    "--num_envs", str(num_envs), "--seed", str(args.seed),
                    "--output", str(output / "results.json")]
         transition_output = output / "transitions.pt" if args.save_transitions else None
+        initial_feature_output = output / "initial_features.pt" if args.initial_features else None
         if transition_output is not None:
             command += ["--transition-output", str(transition_output)]
+        if initial_feature_output is not None:
+            command += ["--initial-feature-output", str(initial_feature_output)]
+        if args.contact_topology:
+            command += ["--contact-topology"]
         if selector:
             command += ["--cmlite-selector-checkpoint",
                         str(args.selector_cmlite_checkpoint.resolve()),
                         "--cmlite-selector-sha256", args.selector_cmlite_sha256]
+        if args.reference_action_lead is not None:
+            command += ["--reference-action-lead", str(args.reference_action_lead)]
         entry = {"run_status": "STARTED", "created_at": _now(),
                  "run_id": output.name, "work_version": args.work_version,
                  "evaluation_commit": revision, "training_commit": training["git_commit"],
                  "training_run_id": training["run_id"], "input_manifest": str(input_manifest),
                  "input_manifest_sha256": _sha256(input_manifest),
                  "motion_root": str(motion_root), "input_sequence": input_record.get("sequence"),
+                 "input_classification": input_record["classification"],
                  "checkpoint": str(checkpoint), "checkpoint_sha256": _sha256(checkpoint),
                  "physical_gpu": args.gpu, "seed": args.seed, "epoch": epoch,
                  "num_envs": num_envs, "early_termination_disabled": True,
                  "selector_cmlite_checkpoint": str(args.selector_cmlite_checkpoint.resolve())
                  if selector else None,
                  "selector_cmlite_sha256": args.selector_cmlite_sha256 if selector else None,
+                 "reference_action_lead": args.reference_action_lead,
                  "transition_output": str(transition_output) if transition_output else None,
+                 "initial_feature_output": str(initial_feature_output)
+                 if initial_feature_output else None,
+                 "cfg_env": args.cfg_env,
+                 "contact_topology": args.contact_topology,
                  "command": command}
         entries.append((output, command, entry))
     if args.dry_run:

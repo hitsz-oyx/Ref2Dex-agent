@@ -1113,3 +1113,195 @@
 
 - 没有暂存 `docs/current_versions.yaml`、任何用户代码、Task 日志、计划、指导、数据、cache、output 或 checkpoint。
 - 机器门禁和 CI 可通过删除本阶段新增的三个文件回滚；第一阶段治理文件和用户既有工作树改动保持独立。
+
+## 2026-09-24 00:48 +0800 — 配对物理动作采样器工程 smoke
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `3e520c61b97107d09753780bc193760cf311f71c`
+- run_id: `agent_paired_cpu_smoke_s145_e260`
+- run_status: `FAILED` (在第一步仿真前)
+- resources: CPU policy + CPU PhysX, GPU 0, 2 environments, 600s wall cap, 100MB output cap
+- manifest: `outputs/CmResidual/agent_paired_cpu_smoke_s145_e260/run_manifest.json`
+- input: 自训练 e260 actor SHA `16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f`；s3 motion manifest SHA `2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d30725f038`
+- last step: 0；无 pair、无科学指标、无 checkpoint
+- failure: DExplore `_load_table` 在 CPU 模式仍显式 `.to('cuda')`，CUDA 不可见时抛 `RuntimeError: No CUDA GPUs are available`。
+- verification: 采样器 3 个 CPU 单测通过，`py_compile` 通过；本工程 smoke 只暴露 CPU 兼容限制，不检验同状态物理反事实假设。
+- next: 等真正空闲 GPU 后以固定代码提交做 16-env GPU smoke；不占用他人的 8 张在用卡。
+
+## 2026-09-24 00:53 +0800 — 等待空闲 GPU 的配对仿真工程 smoke
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `9c61dc347dfad32cf09cc0f2d8017f3d2fda76f1`
+- run_id: `agent_paired_gpu_smoke_s145_e260`
+- run_status: `RUNNING`（当前只等待，不占 GPU）
+- manifest: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/wait_manifest.json`
+- source SHA: evaluator `7e7fb179aee98b44671f32545c109b57885bd64ad632618a3c3cbbcba51809f5`；physical pair step `dbcb535254ac5ad2295768f51e099b917e3d843d1626150cf8abb074731495b4`
+- resources: 最多 1 张卡；连续两次间隔 300s 检查须满足显存 ≤512MiB、利用率 ≤5%；16 environments；单次评估 timeout 900s；等待最长 600 分钟。
+- stop rule: 等待截止、STOP 文件、代码或输入漂移、GPU 冲突或评估失败。等到空闲卡后只运行一次固定 seed145、s3 自训练 e260 actor、step80、腕部 z 命令 +0.1 的工程 smoke；科学门槛仍见 `P-20260924-paired-sim-actions`。
+- first poll: 8/8 GPU 在用，无候选卡。终态待补充；不能把等待状态视为科学结果。
+
+## 2026-09-24 08:50 +0800 — 配对仿真 GPU 工程 smoke 终态审计
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `9c61dc347dfad32cf09cc0f2d8017f3d2fda76f1`
+- run_id: `agent_paired_gpu_smoke_s145_e260`
+- run_status: `FAILED`，physical GPU6，16 environments，seed145，step80。
+- manifest: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/run_manifest.json`；log: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/evaluate.log`；summary: `outputs/CmResidual/agent_paired_gpu_smoke_s145_e260/pairs.json`。
+- last step: 第一次预定物理分叉；accepted pairs 0；无 checkpoint。
+- failure: root/DOF 恢复误差均 0，但刚体张量恢复误差 8.03048，严格拒收；尚未到同动作重复门。
+- interpretation: 顺序 snapshot/restore 方案的工程契约不成立；不是 Cm 模型结论。下一步同 run 三个并行匹配环境做 base/repeat/alt，一次物理步后再检验状态匹配与重复性。
+
+## 2026-09-24 09:00 +0800 — 并行三臂配对仿真终态审计
+
+- branch: `agent/cm-paired-sim-actions`
+- code commit: `58736bb` (collector), `c20af35` (drift diagnostic)
+- run_ids: `agent_parallel_pair_smoke_s145_n3`, `agent_parallel_pair_drift_s145_n3`, `agent_parallel_pair_drift2_s145_n3`
+- run_status: 三次均 `FAILED` 于 prestate gate；每次 1 GPU、3 environments、seed145、step80、<30s；accepted pairs 0；无 checkpoint。
+- manifests: 各 run 目录的 `run_manifest.json`；summary: 各 run 目录的 `pairs.json`。
+- failure: 从相同 frame0 开始，step1 DOF 差 0，刚体差约 1.2e-6；step2 DOF/刚体已差 0.184/0.225，同步策略动作最大差约 0.00159；到 step80 差异大幅放大。精确配对方法不能安全接纳这些样本。
+- next: 停止逐样本物理反事实采集，转向随机分配且实际执行的动作干预，以估计平均处理效应；不能把这些失败配对数据训练成因果 Cm。
+
+## 2026-09-24 09:15 +0800 — 随机真实动作干预 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- collector commit: `8c2ebaf`；analysis commit: `fc85b45`
+- experiment_id: `P-20260924-randomized-action-effect`
+- run_ids: `agent_randomized_wristz_s145_n64`, `agent_randomized_wristz_s146_n64`, `agent_randomized_wristz_s147_d01_n64`
+- run_status: 三次 `COMPLETED`；每次 1 GPU、64 environments、global steps 50–150、11 次随机化，单次 <30s；无 checkpoint。
+- manifests: 各 run 目录的 `run_manifest.json`；data: `transitions.pt`；analysis: `effect_report.json`。
+- key metrics: seed145/146 ±0.3 的真实物体一步 z 位移加减臂对比 +29.24/+26.00mm；seed147 ±0.1 为 +9.16mm；三次分步置换 p≈0.0002；总计 1732 条接触干预。
+- conclusion boundary: Probe `PROMISING`，真实平均干预效应明确；不提供逐样本同状态反事实，也尚未训练/证明 Cm。下一步做跨 seed 动作→实际手运动校准，避免旧窄动作校准外推。
+
+## 2026-09-24 09:30 +0800 — 干预手流校准与几何 Cm 小 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- experiment_ids: `P-20260924-intervention-handflow`, `P-20260924-randomized-geometric-cm`
+- run_ids: `agent_randomized_wristz_s148_d01_n64` (`COMPLETED`, 1 GPU, 64 env, 11 干预步, <30s)；`agent_intervention_handflow_s145_train_s146147_test`、`agent_intervention_handflow_mix_s145147_train_s146148_test`、`agent_randomized_geometric_cm_400`（均 `COMPLETED`, CPU 2 threads，<10s）；无运行中任务。
+- manifests/reports: 各 `outputs/CmResidual/<run_id>/run_manifest.json`、`report.json`；随机干预数据为 `transitions.pt`；几何 Cm checkpoint 为 `geometric.pt`。
+- final step: 几何 Cm 400 更新，12,932 参数；训练 1188 条，未见 seed146/148 测试。
+- key metrics: 混合幅度执行模型的手表面 EPE 12.21/7.49mm，旧观测校准 20.37/8.49mm；几何 Cm 物体平移 EPE 11.25/5.81mm，同架构零手流 16.79/7.66mm，raw state+action MLP 13.86/6.53mm。几何 Cm 预测的平均动作效应 20.40/6.83mm，随机试验真实均值 26.00/10.42mm。
+- conclusion boundary: 两个 Probe 均 `UNCLEAR`（各自严格门未全过）。动作信息进入模型且 EPE 有改善，但小动作的效应幅度低估；下一步先检查 Cm 的预测排序是否对应真实随机处理效应，再决定在线策略尝试。
+
+## 2026-09-24 09:23 +0800 — Cm 预测处理效应异质性 Probe
+
+- branch: `agent/cm-randomized-action-effect`
+- code commit: `e0120c4`
+- experiment_id: `P-20260924-cm-cate-ranking`
+- run_id: `agent_cm_cate_ranking_s146148`
+- run_status: `COMPLETED`，CPU 2 threads，<12s；无 GPU/新 checkpoint。
+- manifest/report: `outputs/CmResidual/agent_cm_cate_ranking_s146148/run_manifest.json`、`report.json`；逐样本模型分数（非真实反事实）为 `test_s146_d03_scores.pt` 与 `test_s148_d01_scores.pt`。
+- key metrics: 几何 Cm 预测分数最高−最低四分位的真实随机处理效应差，seed146 ±0.3 为 +72.38mm (环境聚类 95% CI +61.27 至 +81.82)，seed148 ±0.1 为 +25.51mm (CI +22.18 至 +28.18)。raw MLP 对照为 +65.54/+24.32mm。
+- conclusion boundary: Probe `PROMISING`，Cm 分数在当前单轨迹随机实验中提供效应异质性排序；raw MLP 也能排序，几何独立性与在线策略收益未证实。下一步延迟受控的在线候选评分小 Probe。
+
+## 2026-09-24 09:28 +0800 — Cm 双候选 GPU 延迟工程门
+
+- branch: `agent/cm-randomized-action-effect`
+- code commit: `0490ac7`
+- experiment_id: `P-20260924-cm-online-latency`
+- run_id: `agent_cm_online_latency_gpu6_2cand`
+- run_status: `COMPLETED`，空闲 physical GPU6，20 次 warm 同步测量，<5s；无 checkpoint。
+- manifest/report: `outputs/CmResidual/agent_cm_online_latency_gpu6_2cand/run_manifest.json`、`report.json`。
+- metric: 16 环境×2 候选的几何特征+模型整体 median 26.85ms、p95 29.69ms；64 环境 median 27.00ms、p95 28.69ms；分数均有限。
+- boundary: 通过单模块 <33ms 工程门，但 27ms 是较大控制开销，不等于整套在线系统满足 30Hz；在线 Probe 只在接触窗口隔步评分。
+
+## 2026-09-24 — Cm 在线上抬选择 Probe 终态
+
+- branch: `agent/cm-randomized-action-effect`; code commit: `81d6198`
+- experiment_id: `P-20260924-cm-online-action-boost`
+- run_ids: `agent_cm_online_smoke_s149_n16_{base,always,cm}`、`agent_cm_online_probe_s{149,150}_n64_{base,always,cm}`；九个 run 均 `COMPLETED`，每次 1 GPU，最多 64 env，无新 checkpoint。
+- artifacts: 各 `outputs/CmResidual/<run_id>/run_manifest.json`、`results.json`、`selector.json`。
+- primary metric: seed149/150 首 episode 的 held-lift：base 41/64、46/64；always 40/64、33/64；Cm 42/64、44/64。合计 Cm 86/128 对 base 87/128（−0.78pp），对 always 73/128（+10.16pp）。
+- gate: 未满足预先要求的两 seed 均不负、且相对两个对照合计各 +8pp；`UNPROMISING` for 当前在线 +0.1 上抬规则。两 seed 的接触比例与 reward 均比 base 低。停止在观察过的 seed 上调阈值，转向考虑长期抓取/接触保持的策略用法。
+
+## 2026-09-24 — 随机动作五步接触随访
+
+- branch: `agent/cm-randomized-action-effect`; code commit: `43e2067`
+- experiment_id: `P-20260924-randomized-contact-followup`
+- run_ids: `agent_randomized_followup_s151_d01_h5_n64`、`agent_randomized_followup_s152_d01_h5_n64`；均 `COMPLETED`，physical GPU6 顺序运行，每次 64 env、11 处理时刻、<30s，无 checkpoint。
+- manifests/data/reports: 各 run 目录下 `run_manifest.json`、`transitions.pt`、`followup_report.json`；每 seed 634 条接触随机处理。
+- primary metrics (+0.1 减 −0.1): 一步物体上移 +12.19/+13.44mm；五步接触比例 −7.58/−4.70pp，两个 environment-cluster 95% CI 都为负；第五步仍接触 −5.62/−3.38pp。五步物体位移仍为正。
+- boundary: Probe `PROMISING` for 短期接触损失机制，而非 Cm 策略效用。支持训练兼顾物体效应与接触保持的动作条件 Cm；不支持继续只最大化一步物体 z。
+
+## 2026-09-24 — Contact-aware Cm 未见 seed 判别
+
+- branch: `agent/cm-contact-aware-effect`; code commit: `9b49ee9`
+- experiment_id: `P-20260924-contact-aware-cm`
+- data run_ids: `agent_randomized_followup_s153_d01_h5_n64`、`agent_randomized_followup_s154_d01_h5_n64`（各 1 GPU 顺序运行、64 env、<30s，均 `COMPLETED`）；train/test run_id: `agent_contact_aware_cm_s151152_train_s153154_test`（CPU 2 threads、500 更新、12.8s、`COMPLETED`）。
+- artifacts: `outputs/CmResidual/agent_contact_aware_cm_s151152_train_s153154_test/` 下的 manifest、report、三 checkpoint；数据 SHA 见 manifest；无正在运行任务。
+- key metrics: 几何 Cm 对测试 seed153/154 的一步 EPE 6.31/5.91mm、接触 RMSE .1206/.1428；同架构零动作手流 EPE 8.55/7.86mm、RMSE .1318/.1581；raw MLP RMSE .1149/.1306。几何预测接触 score 的最高−最低四分位真实 RCT 接触效应差 +22.40pp (95% CI +15.87 至 +29.29pp)，raw +25.11pp。
+- boundary: `UNCLEAR` for 几何 Cm 独立性；动作信息有效，但 raw 对照略好，预注册升级在线门未过。不在已见测试 seed 上调结构/阈值；检查训练期 Cm 接法。
+
+## 2026-09-24 — 冻结 Cm 几何互补性检验
+
+- branch: `agent/cm-contact-aware-effect`; code commit: `590fda1`
+- experiment_id: `P-20260924-cm-geometry-complement`
+- data run_ids: `agent_randomized_followup_s155_d01_h5_n64`、`agent_randomized_followup_s156_d01_h5_n64`（均 `COMPLETED`，physical GPU6 顺序、各 64 env、<30s）；analysis run_id: `agent_cm_geometry_complement_s155156`（CPU 2 threads、<10s、`COMPLETED`）。
+- artifacts: 各数据 run 的 `transitions.pt`/manifest，以及 analysis run 的 `report.json`/manifest；未重训 checkpoint。
+- key metrics: raw 的真实接触效应排序高−低 +27.85pp，固定 .5/.5 geometry+raw +28.72pp；配对差 +0.87pp、95% CI −2.26 至 +3.98pp。ensemble 接触 RMSE seed155 改善、seed156 略差。
+- boundary: `UNPROMISING` for 当前六区域几何互补性，未过预注册联合门槛。停止局部几何结构小修，保留 raw 动作条件模型作一次低成本在线决策 Probe 的可能性。
+
+## 2026-09-24 — Contact-aware Cm 在线下压 Probe 提前停止
+
+- branch: `agent/cm-contact-aware-action-selection`; code commit: `f517c1c`
+- experiment_id: `P-20260924-contact-cm-online-down`
+- run_ids: `agent_contact_cm_down_smoke_s157_n16_{base,always_down,cm_down}`、`agent_contact_cm_down_probe_s157_n64_{base,always_down,cm_down}`；六次均 `COMPLETED`、physical GPU6 顺序、每次 <60s、无 checkpoint；seed158 三臂未启动。
+- artifacts: 各 run 的 `run_manifest.json`、`selector.json`、`results.json`；所有输入 SHA 在 manifest。
+- primary metric: smoke 三臂皆 9/16 仅证明接线。seed157 完整 held-lift base 44/64、always_down 40/64、cm_down 40/64；Cm 实际选 587/3199 eligible 动作。Cm 接触比例 .60383 高于 base .58835，但 reward 184.49 低于 base 192.83。
+- stop: 预注册要求每 seed 的 Cm 不低于 base；第一 seed 已 −6.25pp，第二 seed 无法改变升级决策，按最小 Probe 提前停止。`UNPROMISING` for 此固定 wrist-z 接法；不是所有 Cm 或训练期方法的正式否定。
+
+## 2026-09-24 — Cm PPO 辅助表示 Probe 终态
+
+- branch: `agent/cm-ppo-aux-representation`; code commit: `3d0f068`。
+- experiment_id: `P-20260924-cm-ppo-aux-representation`。
+- engineering smoke: `agent_cm_aux_smoke_t75_on_e262` 因旧 `resume_from` 检查误判 `FAILED`，未进入训练；修复后 `agent_cm_aux_smoke_t75_on_e262_r2` 与 `agent_cm_aux_smoke_t75_off_e262` 均 `COMPLETED`，physical GPU6 顺序，16 env，e260→e262；on 辅助头有有限非零梯度；各 run 的 `run_manifest.json`、`train.log` 与 e262 checkpoint 位于同名 `outputs/Dexplore/` 目录。工程烟测不构成效果证据。
+- matched Probe: `agent_cm_aux_t75_on_e300` 在 physical GPU5、`agent_cm_aux_t75_off_e300` 在 physical GPU6 同时 `STARTED`；各 64 env，共同 e260 checkpoint SHA `16fd261b...`，冻结 Cm SHA `ce711dca...`，e300 截止，最多两张 GPU，超时 30min，产物预算 5GB。每 run 的配置、输入、完整命令与状态在 `outputs/Dexplore/<run_id>/run_manifest.json`；训练流在 `train.log`。预注册判定见 experiment card。
+- terminal update: 上述 seed75 两臂及 `agent_cm_aux_t76_{on,off}_e300` 四次训练均 `COMPLETED`，各 run 的 e300 checkpoint、manifest、`train.log` 齐全；所有 8 次 `eval_s{159,160}_e300_full_cmauxprobe` 均 `COMPLETED`，每次 64 env、物理 GPU5/6 按 pair 运行，结果和 checkpoint SHA 在各评估目录的 `run_manifest.json`/`results.json`。训练 seed75 held-lift on/off 61/128 vs 50/128；seed76 75/128 vs 71/128；总计 136/256 vs 121/256（+5.86pp），低于 +8pp 升级门。科学分类 `UNCLEAR`，详见 experiment card；无任务继续运行。
+
+## 2026-09-24 — 三轴十步真实干预 Probe 终态
+
+- branch: `agent/cm-multiaxis-long-horizon`; collector commit `1c9e2a6`，analysis commit `8920e59`；experiment_id: `P-20260924-multiaxis-h10-effects`。
+- run_ids: `agent_multiaxis_h10_s161_n64`、`agent_multiaxis_h10_s162_n64` 均 `COMPLETED`，各用空闲物理 GPU6 顺序运行、64 env、16 处理时刻、十步随访，分别 817/757 条接触且无裁剪处理。各目录的 `run_manifest.json`、`collect.log`、`transitions.pt` 保存命令、SHA 和终态。CPU 分析 `agent_multiaxis_h10_s161162_analysis` `COMPLETED`，500 次环境聚类 resampling，report/manifest 同名目录；无 checkpoint、无运行中任务。
+- primary: x 轴 ±0.1 的十步物体 x 效应 seed161/162 为 +21.15/+13.04 mm，合并 +17.23 mm [12.30,22.06]；y 轴 +8.51/+17.99 mm，合并 +13.05 mm [1.66,22.05]。x 过预注册继续门。科学分类 `PROMISING` for 可学习的多轴物理干预信息，而非 Cm 预测或策略效用。下一步用新 seed 检验动作条件 Cm 与 state-only 对照。
+
+## 2026-09-24 — 多轴十步 Cm 未见 seed Probe 终态
+
+- branch: `agent/cm-multiaxis-long-horizon`; code commit `34d14fc`; experiment_id: `P-20260924-multiaxis-h10-cm`。
+- data run_id `agent_multiaxis_h10_s163_n64`：`COMPLETED`，物理 GPU6、64 env、16 时刻、803 个有效接触处理，完整性与动作剂量契约通过；`run_manifest.json`、`collect.log`、`transitions.pt` 见同名输出目录。
+- model run_id `agent_multiaxis_h10_cm_s161162_train_s163_test`：`COMPLETED`，CPU 2 threads、500 更新、7.3s、1574 train/803 test；三个 checkpoint、`report.json`、manifest/SHA 在同名输出目录；无运行中任务。
+- held-out x 十步真实干预效应 +16.76mm；state-only/raw-action/六区域几何 Cm 的 factual x RMSE 28.16/26.69/25.25mm，动作条件模型改善 5.22%/10.35%；预测 x 对比 0/17.49/21.41mm。过预注册模型继续门，标 `PROMISING` for 未见动作效应预测，但尚未检验在线 policy utility；几何在 y/z 上较 raw 差，不宣称几何整体优越。
+
+## 2026-09-24 — 多轴十步 Cm 在线选择 Probe 提前停止
+
+- branch: `agent/cm-multiaxis-long-horizon`; code commit `ad577f6`; experiment_id: `P-20260924-multiaxis-h10-online-choice`。
+- run_ids: `agent_multiaxis_online_smoke_s164_n16_cm` 工程 smoke `COMPLETED`；`agent_multiaxis_online_probe_s164_n64_{base,always_x,always_z,cm}` 四个 64-env 完整首 episode run 均 `COMPLETED`，物理 GPU5/6 每次最多并行 2 张。每 run 的 manifest、selector、results、eval.log 在同名 `outputs/CmResidual/` 目录，无新训练 checkpoint，无运行中任务。
+- primary held-lift: base 36/64，always_x 32/64，always_z 39/64，Cm 34/64。Cm 在 768 个 eligible 状态中执行 x+ 156、z+ 217 次，低于 base 2/64 和固定 z+ 5/64；第一新 seed 已违反每 seed 不负门，seed165 四臂均未启动。分类 `UNPROMISING` for 固定双轴在线规则，不是多轴 Cm 总体否定；不在 seed164 调阈值。盲 z+ 的二元成功数较高，但 reward、接触率及最大接触抬升均低于 base，不能据此称为稳健收益。
+
+## 2026-09-24 — 多轴 H10 Cm PPO 训练期辅助表示 Probe 终态
+
+- branch: `agent/cm-h10-ppo-aux`; code commit `805ada7`; experiment_id: `P-20260924-cm-h10-ppo-aux-representation`。
+- smoke run_ids: `agent_cm_h10_aux_smoke_t77_{on,off}_e262`；均 `COMPLETED`，16 env，物理 GPU5/6 各一张并行，e260→e262；on 辅助头有限非零梯度，checkpoint actor key 相同。工程门通过，不构成科学效果证据。
+- matched training run_ids: `agent_cm_h10_aux_t{77,78}_{on,off}_e300`；四个 run 均 `COMPLETED`，各 64 env、物理 GPU5/6 两张以内，固定 e260、H10 teacher SHA 和 commit，e300 checkpoint/`train.log`/`run_manifest.json` 在各同名 `outputs/Dexplore/` 目录。
+- evaluation run_ids: 四个训练 run 各自的 `eval_s{166,167}_e300_full`；八个 run 均 `COMPLETED`，每次 64 env，结果与 checkpoint SHA 在对应 `results.json`/`run_manifest.json`。seed77 on/off 75/128 vs 60/128；seed78 68/128 vs 73/128；总计 143/256 vs 133/256（+3.91pp），未过 +8pp 及每训练 seed 非负双门。
+- scientific boundary: 固定 H10 多轴辅助接法 `UNPROMISING`；不升级置乱 placebo/Validation，不继续在已见评估 seed 上调参。无正在运行的本实验任务。
+
+## 2026-09-24 — 两步随机物理效应与序列 Cm 模型 Probe 终态
+
+- branch: `agent/cm-two-step-sequence`; collector/analysis commit `602efff`；raw model commit `b7f037f`；structured model commit `42b1345`。
+- engineering smoke `agent_two_step_smoke_s168_n16` `COMPLETED`，物理 GPU6、16 env、两处理时刻，第一/第二步执行剂量审计通过；无 checkpoint。
+- physical data run_ids `agent_two_step_s{168,169,170}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 处理时刻/十步随访、≤1 min；对应 `agent_two_step_s{168,169,170}_analysis` CPU 分析均 `COMPLETED`。各 run 的 manifest、transitions、report 保存命令/SHA/终态。第二步 wrist-x 对十步物体 x 的增量分别 +18.67/+19.84/+18.96mm，环境聚类 95% CI 均为正；平均接触比例差 −0.51/−1.18/−1.31pp。
+- raw model run_id `agent_two_step_cm_s168_train_s169_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.43%，但第二步交互效应只预测出真实的 .316 倍，未过 .5 倍门，`UNPROMISING` for 固定 raw 拼接架构。
+- structured model run_id `agent_two_step_structured_cm_s168169_train_s170_test` `COMPLETED`，CPU 2 线程、500 更新；held-out x RMSE 比 state-only 低 11.84%，交互效应预测/真实=.843，过两项门，`PROMISING` for 序列效应预测。两模型均非 policy utility。留出 seed170 的探索性 z 对比为负，故不把 x 位移增益直接当抬升增益；下一步先测试两步 wrist-z 真实随机效应。无本实验运行中任务。
+
+## 2026-09-24 — 两步 wrist-z 物理 Probe 终态
+
+- branch: `agent/cm-two-step-sequence`; collector commit `25ad3bc`，pooled analysis commit `77ffbe9`；experiment_id `P-20260924-cm-two-step-z-effect`。
+- engineering smoke `agent_two_step_z_smoke_s171_n16` `COMPLETED`，物理 GPU6、16 env、两处理时刻，精确剂量与 10 步记录审计通过；仅工程证据。
+- data run_ids `agent_two_step_z_s{171,172}_n64` 均 `COMPLETED`，物理 GPU6 顺序、各 64 env/16 时刻、≤1 min；single-seed analysis `agent_two_step_z_s{171,172}_analysis`、pooled `agent_two_step_z_s171172_pool` 均 `COMPLETED`。各目录保存 manifest、transition/report 和 SHA；无 checkpoint、无运行中任务。
+- primary: seed171/172 的第二步 z 效应 +7.00/+5.65mm，环境聚类 95% CI 都跨 0；合并 +6.33mm [−0.93,+12.86]，两步减一步接触比例 −2.61pp。虽点值超过 5mm、接触成本未越 −5pp，合并 CI 未过预注册正值门；`UNCLEAR`，按规则停止此重复 z 剂量接法，不加 seed 或调 dose。
+
+## 2026-09-24 — x 预调整→z 上抬混合轴 Probe 终态
+
+- branch: `agent/cm-crossaxis-primer`; code commit `dbb8b42`; experiment_id `P-20260924-cm-crossaxis-primer`。
+- engineering smoke `agent_crossaxis_primer_smoke_s173_n16` `COMPLETED`，物理 GPU6、16 env/两处理时刻，三臂实际第一/第二步剂量审计通过；无 checkpoint。
+- physical run `agent_crossaxis_primer_s173_n64` 与 CPU 分析 `agent_crossaxis_primer_s173_analysis` 均 `COMPLETED`；64 env、16 处理时刻、十步随访、500 次环境聚类重采样。manifest、transition、report 保存命令/SHA/终态；无正在运行的任务。
+- primary x−→z+ 减仅 z+ 的十步接触加权物体 z 位移 −2.52mm，95% CI [−7.67,+3.06]；接触比例 −2.63pp。点值为负，不触发 borderline 重复；二级 x+ 也为负但不用于事后选臂。分类 `UNPROMISING` for 此固定混合轴序列，停止新 Cm/在线接法。

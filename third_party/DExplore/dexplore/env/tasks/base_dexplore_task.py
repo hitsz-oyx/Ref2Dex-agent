@@ -17,6 +17,7 @@ import torch.utils
 from utils import torch_utils
 import torch.nn.functional as F
 from env.tasks.base_task import BaseTask
+from utils.object_motion_sampler import ObjectMotionSampler
 import trimesh
 import math
 
@@ -557,6 +558,9 @@ class DexploreTask(InterMimic):
         self.rollout_length = cfg['env']['rolloutLength']
         self.robot_name = cfg['env']['robot_name']
         self.num_envs = cfg["env"]["numEnvs"]
+        self.object_motion_sampling = bool(cfg["env"].get("objectMotionSampling", False))
+        if self.object_motion_sampling and (self.export_rl or self.play_dataset):
+            raise ValueError("objectMotionSampling is for policy training/evaluation, not export/playback")
 
         # Resolve motion files from directory or explicit list
         if isinstance(self.motion_file, list):
@@ -572,9 +576,12 @@ class DexploreTask(InterMimic):
             else:
                 # Primary: all motions except doorknob
                 motion_file_1 = sorted([os.path.join(motion_dir, p) for p in motion_file if 'doorknob' not in p])
-                # Supplementary: oversample small/difficult objects
+                # Supplementary: oversample small/difficult objects unless an
+                # experiment explicitly requests identity-balanced motions.
                 hard_objects = ('pan', 'flute', 'knife', 'scissors', 'toothbrush', 'teapot', 'small', 'watch')
-                motion_file_2 = sorted([os.path.join(motion_dir, p) for p in motion_file if any(obj in p for obj in hard_objects)])
+                motion_file_2 = (sorted([os.path.join(motion_dir, p) for p in motion_file
+                                         if any(obj in p for obj in hard_objects)])
+                                 if cfg["env"].get("hardObjectOversampling", True) else [])
                 self.motion_file = motion_file_1 + motion_file_2
 
         # Load table data and filter valid motions
@@ -586,6 +593,11 @@ class DexploreTask(InterMimic):
         self.object_id = to_torch([object_name_set.index(name) for name in self.object_name], dtype=torch.long).cuda()
         self.obj2motion = torch.stack([self.object_id == k for k in range(len(object_name_set))], dim=0)
         self.object_name = object_name_set
+        self._motion_sampler = (ObjectMotionSampler(
+            [object_name_set[int(k)] for k in self.object_id], self.num_envs, self.object_id.device)
+            if self.object_motion_sampling else None)
+        self._env_initial_motion = (self._motion_sampler.initial if self._motion_sampler is not None
+                                   else torch.arange(self.num_envs, device=self.object_id.device) % self.num_motions)
 
         self.robot_type = self._get_robot_type()
 
@@ -666,7 +678,7 @@ class DexploreTask(InterMimic):
             if newly_upgraded.any():
                 self._table_col_upgraded_motions |= newly_upgraded
                 for env_id in range(len(self.envs)):
-                    motion_id = env_id % self.num_motions
+                    motion_id = self.data_id[env_id]
                     if newly_upgraded[motion_id]:
                         props = self.gym.get_actor_rigid_shape_properties(
                             self.envs[env_id], self._table_handles[env_id])
@@ -696,8 +708,6 @@ class DexploreTask(InterMimic):
             motion_file = [motion_file]
         motion_file_new = []
         for i, data_path in enumerate(motion_file):
-            if len(motion_file_new) >= self.num_envs:
-                break
             loaded_dict = {}
             hoi_data = torch.load(data_path + f'/interaction_hand_{self.robot_name}.pt')
             loaded_dict['table_pos'] = hoi_data[0, 238:241].clone().detach().to('cuda')
@@ -712,6 +722,11 @@ class DexploreTask(InterMimic):
             self.table_data.append(loaded_dict)
         self.motion_file = motion_file_new
         self.num_motions = len(motion_file_new)
+        if not self.num_motions:
+            raise ValueError("No compatible motions remain after left-contact filtering")
+        if self.num_motions > self.num_envs and not self.object_motion_sampling:
+            raise ValueError(f"{self.num_motions} motions exceed {self.num_envs} environments; "
+                             "enable objectMotionSampling or increase num_envs (no silent truncation)")
         print('num_motions: ', self.num_motions)
 
     def _load_motion(self, motion_file):
@@ -1000,7 +1015,8 @@ class DexploreTask(InterMimic):
 
         default_pose = gymapi.Transform()
 
-        target_handle = self.gym.create_actor(env_ptr, self._target_asset[self.object_id[env_id % self.num_motions]], default_pose, self.object_name[self.object_id[env_id % self.num_motions]], col_group, 0, segmentation_id)
+        object_id = int(self.object_id[self._env_initial_motion[env_id]])
+        target_handle = self.gym.create_actor(env_ptr, self._target_asset[object_id], default_pose, self.object_name[object_id], col_group, 0, segmentation_id)
 
         self._target_handles.append(target_handle)
         self.gym.set_actor_scale(env_ptr, target_handle, self.ball_size)
@@ -1011,14 +1027,15 @@ class DexploreTask(InterMimic):
         segmentation_id = 0
 
         default_pose = gymapi.Transform()
-        default_pose.p.x = self.table_data[env_id % self.num_motions]["table_pos"][0]
-        default_pose.p.y = self.table_data[env_id % self.num_motions]["table_pos"][1]
-        default_pose.p.z = self.table_data[env_id % self.num_motions]["table_pos"][2]
+        table = self.table_data[int(self._env_initial_motion[env_id])]
+        default_pose.p.x = table["table_pos"][0]
+        default_pose.p.y = table["table_pos"][1]
+        default_pose.p.z = table["table_pos"][2]
 
-        default_pose.r.x = self.table_data[env_id % self.num_motions]["table_rot"][0]
-        default_pose.r.y = self.table_data[env_id % self.num_motions]["table_rot"][1]
-        default_pose.r.z = self.table_data[env_id % self.num_motions]["table_rot"][2]
-        default_pose.r.w = self.table_data[env_id % self.num_motions]["table_rot"][3]
+        default_pose.r.x = table["table_rot"][0]
+        default_pose.r.y = table["table_rot"][1]
+        default_pose.r.z = table["table_rot"][2]
+        default_pose.r.w = table["table_rot"][3]
 
         table_col_filter = 1 if self.cfg["env"].get("is_test", False) else 2
         table_handle = self.gym.create_actor(env_ptr, self._table_asset, default_pose, "table", col_group, table_col_filter, segmentation_id)
@@ -1045,6 +1062,10 @@ class DexploreTask(InterMimic):
         num_actors = self.get_num_actors_per_env()
         self._target_states = self._root_states.view(self.num_envs, num_actors, self._root_states.shape[-1])[..., 2, :]
         self._tar_actor_ids = to_torch(num_actors * np.arange(self.num_envs), device=self.device, dtype=torch.int32) + 2
+        self._table_states = self._root_states.view(self.num_envs, num_actors, -1)[:, 1, :]
+        self._table_actor_ids = self._tar_actor_ids - 1
+        self._motion_table_poses = torch.stack([
+            torch.cat((row["table_pos"], row["table_rot"])) for row in self.table_data])
 
         bodies_per_env = self._rigid_body_state.shape[0] // self.num_envs
         contact_force_tensor = self.gym.acquire_net_contact_force_tensor(self.sim)
@@ -1058,6 +1079,18 @@ class DexploreTask(InterMimic):
         self._marker_actor_ids = to_torch(num_actors * np.arange(self.num_envs), device=self.device, dtype=torch.int32) + 2
 
     def _reset_target(self, env_ids):
+        if self._motion_sampler is not None:
+            self._table_states[env_ids, :7] = self._motion_table_poses[self.data_id[env_ids]]
+            self._table_states[env_ids, 7:] = 0
+            # Each reset restores the selected motion's collision curriculum.
+            for env_id in env_ids.tolist():
+                collision_filter = 1 if (self.cfg["env"].get("is_test", False) or
+                    self._table_col_upgraded_motions[self.data_id[env_id]]) else 2
+                props = self.gym.get_actor_rigid_shape_properties(self.envs[env_id], self._table_handles[env_id])
+                if any(p.filter != collision_filter for p in props):
+                    for p in props:
+                        p.filter = collision_filter
+                    self.gym.set_actor_rigid_shape_properties(self.envs[env_id], self._table_handles[env_id], props)
         self._target_states[env_ids, :3] = self.hoi_refs[self.data_id[env_ids], self.ref_index[env_ids], self.progress_buf[env_ids], 106:109]
         self._target_states[env_ids, 3:7] = self.hoi_refs[self.data_id[env_ids], self.ref_index[env_ids], self.progress_buf[env_ids], 109:113]
         self._target_states[env_ids, 7:10] = self.hoi_refs[self.data_id[env_ids], self.ref_index[env_ids], self.progress_buf[env_ids], 113:116]
@@ -1068,6 +1101,10 @@ class DexploreTask(InterMimic):
         env_ids_int32 = self._tar_actor_ids[env_ids]
         self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states),
                                                     gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
+        if self._motion_sampler is not None:
+            table_ids = self._table_actor_ids[env_ids]
+            self.gym.set_actor_root_state_tensor_indexed(self.sim, gymtorch.unwrap_tensor(self._root_states),
+                                                       gymtorch.unwrap_tensor(table_ids), len(table_ids))
 
     def _reset_envs(self, env_ids):
         self._reset_default_env_ids = []
@@ -1095,7 +1132,8 @@ class DexploreTask(InterMimic):
     def _reset_ref_state_init(self, env_ids):
         """Reset environments to reference motion states (Start or Random init)."""
         num_envs = env_ids.shape[0]
-        i = torch.tensor([env_id % self.num_motions for env_id in env_ids], device=self.device)
+        i = (self._motion_sampler.sample(env_ids) if self._motion_sampler is not None
+             else self._env_initial_motion[env_ids])
         ref_probs = to_torch(np.array([self._hybrid_init_prob] * num_envs), device=self.device)
         ref_init_mask = torch.bernoulli(ref_probs) == 1.0
 
@@ -1143,7 +1181,8 @@ class DexploreTask(InterMimic):
 
     def _reset_hybrid_state_init(self, env_ids):
         num_envs = env_ids.shape[0]
-        i = torch.tensor([env_id % self.num_motions for env_id in env_ids], device=self.device)
+        i = (self._motion_sampler.sample(env_ids) if self._motion_sampler is not None
+             else self._env_initial_motion[env_ids])
         ref_probs = to_torch(np.array([self._hybrid_init_prob] * num_envs), device=self.device)
         ref_init_mask = torch.bernoulli(ref_probs) == 1.0
 
@@ -1303,7 +1342,10 @@ class DexploreTask(InterMimic):
         t = time
 
         # Update object state
-        self.data_id = to_torch([i % self.num_motions for i in range(self.num_envs)], device=self.device, dtype=torch.long)
+        if self._motion_sampler is not None:
+            self.data_id = self._env_initial_motion.clone()
+        else:
+            self.data_id = to_torch([i % self.num_motions for i in range(self.num_envs)], device=self.device, dtype=torch.long)
         env_ids = to_torch([i for i in range(min(self.num_motions, self.num_envs)) if t < self.max_episode_length[i]], device=self.device, dtype=torch.long)
 
         self._target_states[env_ids, :3] = self.hoi_refs[self.data_id[env_ids], 0, t, 106:109]

@@ -1,0 +1,81 @@
+{
+  "schema": "ref2dex.hf02_temporal_canonical_route.v1",
+  "description": "HF02 Probe 2 canonical six-expert airplane substrate; deliberately not the 59-motion route",
+  "route_mode": "simulator_object_id",
+  "base_expert": "source_e260",
+  "candidate_experts": [
+    "balanced_e360",
+    "cup_e340",
+    "duck_e340",
+    "mixed12_e300",
+    "source_e260",
+    "train5_e320"
+  ],
+  "experts": {
+    "balanced_e360": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+    },
+    "cup_e340": {
+      "checkpoint": "outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+      "sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc"
+    },
+    "duck_e340": {
+      "checkpoint": "outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+      "sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a"
+    },
+    "mixed12_e300": {
+      "checkpoint": "outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+      "sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3"
+    },
+    "source_e260": {
+      "checkpoint": "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+      "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+    },
+    "train5_e320": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth",
+      "sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961"
+    }
+  },
+  "motions": [
+    {
+      "name": "s3_airplane_lift",
+      "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s3_airplane_lift",
+      "interaction_hand_sha256": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c"
+    },
+    {
+      "name": "s7_airplane_lift_Retake",
+      "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s7_airplane_lift_Retake",
+      "interaction_hand_sha256": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6"
+    },
+    {
+      "name": "s9_airplane_lift",
+      "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s9_airplane_lift",
+      "interaction_hand_sha256": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+    }
+  ],
+  "objects": ["airplane"],
+  "object_route": {"airplane": "source_e260"},
+  "start_frame_policy": {
+    "sampler": "DExplore start_times",
+    "manual_start_frame_list": false,
+    "seed_controls_start_frame": true,
+    "record_field": "per_episode.start_frame",
+    "first_episode_only": true
+  },
+  "provenance": {
+    "frozen_substrate_commit": "8625cd3e4bf958c1af29e0ccf9c69fbd4a402ebb",
+    "six_expert_route_source": "outputs/CmResidual/grab59_six_expert_route.json",
+    "six_expert_route_source_sha256": "637d0e7cfef1ea2b6578bbff468afefc461e98e82f20bdfdf56bc9f892319e9a",
+    "six_expert_route_run_commit": "3e9e7a53acfea134f9715bd6d7165ee47f527cdf",
+    "official_actor_checkpoint": null
+  },
+  "matched_cm_off": {
+    "fixed_route_evaluator": "third_party/DExplore/dexplore/evaluate_object_router.py",
+    "fixed_route_evaluator_blob_sha256": "84e086d502a1b838e4607f3d51f2f0d77073f114",
+    "cm_mode": "off",
+    "cm_candidate_mode": "experts",
+    "cm_contact_gate": "instant",
+    "note": "This is the fixed-route Cm-off entry. The temporal option evaluator is not yet committed on the temporal branch, so it is not silently substituted here."
+  }
+}

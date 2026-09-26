@@ -39,8 +39,12 @@ route、逐 episode 指标和终态 manifest。
 
 ## Cm 证据边界与否定结果
 
-- 同一 CmLite-PPO run 的 epoch 140 在 seeds `49–53` 为 `185/320=57.81%`；先前 matched
-  Cm-off epoch 180 为 `19/64=29.69%`，说明 Cm reward 路线产生了有用且互补的 RL experts。
+- 同一 CmLite-PPO run 的 epoch 140 在 seeds `49–53` 为 `185/320=57.81%`；
+  同训练 seed 的 Cm-off 所选 epoch180 在 seed49 为 `19/64=29.69%`。
+  两臂 epoch 不同，seed49 参与了 checkpoint 选择，且 Cm-off 没有同样的五 seed 网格；
+  这只是早期探索性正向信号，不能证明 Cm reward 的稳定因果增益。
+  V1.28 选中 PPO 专家的 episode 共 141/149 成功，但它们与 BC 处理的起始帧不同，
+  也不能构成 Cm-on/off 比较。
 - 但当前成功系统还包含 reference-action BC，且没有做“相同路由、只移除 Cm reward”的完整消融，
   因此不能把 `95.94%` 全部因果归于 Cm。
 - `318afee` 实现了 CmLite 对 BC/e120/e130/e140 动作的逐步选择；seed59 只有
@@ -52,4 +56,3 @@ route、逐 episode 指标和终态 manifest。
 固定路由在单环境部署时每个控制步只执行被选中的一个 actor；路由是一次整数 frame 查表，不做 Cm
 在线推理，也不同时前向所有 experts。因此控制环的推理路径与单个 BC/PPO actor 同阶。当前实现启动时仍
 加载全部 checkpoint，内存与冷启动尚未优化；蒸馏成单 actor 是后续多轨迹阶段的工程目标。
-

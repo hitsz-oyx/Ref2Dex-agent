@@ -1,0 +1,38 @@
+{
+  "description": "Fixed object-identity route chosen from prior Probe seeds, not Cm and not observation-driven",
+  "default_expert": "source_e260",
+  "experts": {
+    "source_e260": {
+      "checkpoint": "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+      "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+    },
+    "mixed12_e300": {
+      "checkpoint": "outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+      "sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3"
+    },
+    "train5_e320": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth",
+      "sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961"
+    },
+    "balanced_e360": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+    },
+    "duck_e340": {
+      "checkpoint": "outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+      "sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a"
+    }
+  },
+  "object_route": {
+    "airplane": "source_e260",
+    "alarmclock": "mixed12_e300",
+    "apple": "source_e260",
+    "cubesmall": "source_e260",
+    "cup": "source_e260",
+    "duck": "duck_e340",
+    "mug": "train5_e320",
+    "phone": "source_e260",
+    "toothpaste": "balanced_e360",
+    "waterbottle": "source_e260"
+  }
+}

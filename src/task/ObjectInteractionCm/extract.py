@@ -24,7 +24,10 @@ def extract(checkpoint: str | Path, *, output: str | Path, device: str = "cpu", 
         active_only=bool(cfg.data.active_only),
         fixed_stride=int(cfg.data.min_stride),
     )
-    model = ObjectInteractionCmModel(cfg.model).to(device)
+    # ObjectInteractionCm reads architecture constants (KNN K/radius, token
+    # dimensions and scales) from the task-level ``meta`` section. Passing
+    # only cfg.model silently falls back to constructor defaults.
+    model = ObjectInteractionCmModel(cfg).to(device)
     model.load_state_dict(payload["model"])
     model.eval()
     count = len(dataset) if max_samples is None else min(len(dataset), int(max_samples))

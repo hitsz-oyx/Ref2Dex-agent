@@ -7,18 +7,21 @@ from src.task.CmResidual.dexplore_contact_curriculum import (
 )
 
 
-def _task_class(contact_frames, num_envs, num_frames=24):
+def _task_class(contact_frames, num_envs, num_frames=24, lift_motion_indices=None):
+    lift_motion_indices = (set(range(len(contact_frames))) if lift_motion_indices is None
+                           else set(lift_motion_indices))
     class FakeTask:
         def __init__(self):
             self.device = "cpu"
             self.num_dof = 18
             self.hoi_data_dict = []
-            for frame in contact_frames:
+            for motion_index, frame in enumerate(contact_frames):
                 contact = torch.zeros(num_frames, 1)
                 if frame is not None:
                     contact[frame:] = 1
                 obj_pos = torch.zeros(num_frames, 3)
-                if frame is not None and frame + 4 < num_frames:
+                if (motion_index in lift_motion_indices and frame is not None and
+                        frame + 4 < num_frames):
                     obj_pos[frame + 4:, 2] = 0.04
                 self.hoi_data_dict.append({"contact": contact, "obj_pos": obj_pos})
             self.max_episode_length = torch.tensor([num_frames] * len(contact_frames))
@@ -102,6 +105,20 @@ def test_three_phase_curriculum_samples_start_contact_and_lift():
     counts = {frame: int((task.progress_buf == frame).sum()) for frame in (0, 9, 13)}
     assert all(value > 80 for value in counts.values())
     assert sum(counts.values()) == 512
+
+
+def test_lift_fraction_falls_back_to_contact_for_non_lift_motion():
+    cls = _task_class([9, 11], 512, lift_motion_indices={0})
+    install_contact_reset_curriculum(
+        cls, before=0, after=0, fraction=0.25, lift_fraction=0.25)
+    task = cls()
+    torch.manual_seed(42)
+    task._reset_ref_state_init(torch.arange(512))
+    assert task._ref2dex_has_lift.tolist() == [True, False]
+    # Motion 1 has no lift anchor; a lift draw must use its contact frame,
+    # never fabricate a later lift reset.
+    motion_one = task.data_id == 1
+    assert torch.isin(task.progress_buf[motion_one], torch.tensor([0, 11])).all()
 
 
 def test_curriculum_scale_anneals_to_start_only():

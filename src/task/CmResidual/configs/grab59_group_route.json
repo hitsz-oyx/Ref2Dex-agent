@@ -1,0 +1,76 @@
+{
+  "description": "29-object fixed self-trained specialist route over all 59 lift-like GRAB motions",
+  "experts": {
+    "balanced_e360": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+    },
+    "cup_e340": {
+      "checkpoint": "outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+      "sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc"
+    },
+    "duck_e340": {
+      "checkpoint": "outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+      "sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a"
+    },
+    "group_c_e360": {
+      "checkpoint": "outputs/Dexplore/agent_grab59_group_gC_s90_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "02b2edb1b21154da771617b82d72d73d72acbc42ba4ec83e049bbefd1747f973"
+    },
+    "group_d_e360": {
+      "checkpoint": "outputs/Dexplore/agent_grab59_group_gD_s91_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "f22437945233411ae0176e24e080cef85a4ef791f3ecb6566bce0f7abbd58672"
+    },
+    "group_e_e360": {
+      "checkpoint": "outputs/Dexplore/agent_grab59_group_gE_s92_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "b5243fff027807b45259173b3cf5f5fcbaef2ed467b62a1eb83528ab66b9a60b"
+    },
+    "group_f_e360": {
+      "checkpoint": "outputs/Dexplore/agent_grab59_group_gF_s93_e360_r2/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+      "sha256": "35e63450c0601a31699538c0e5986d84a508f1634c63219bafe603167ae12733"
+    },
+    "mixed12_e300": {
+      "checkpoint": "outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+      "sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3"
+    },
+    "source_e260": {
+      "checkpoint": "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+      "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+    },
+    "train5_e320": {
+      "checkpoint": "outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth",
+      "sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961"
+    }
+  },
+  "object_route": {
+    "airplane": "source_e260",
+    "alarmclock": "group_c_e360",
+    "apple": "group_c_e360",
+    "binoculars": "group_c_e360",
+    "cubesmall": "train5_e320",
+    "cup": "cup_e340",
+    "cylindermedium": "group_c_e360",
+    "cylindersmall": "group_c_e360",
+    "duck": "duck_e340",
+    "elephant": "group_c_e360",
+    "flashlight": "group_d_e360",
+    "gamecontroller": "group_d_e360",
+    "hammer": "group_d_e360",
+    "knife": "group_d_e360",
+    "mouse": "group_d_e360",
+    "mug": "train5_e320",
+    "phone": "group_d_e360",
+    "spheremedium": "group_e_e360",
+    "spheresmall": "group_e_e360",
+    "stamp": "group_e_e360",
+    "stapler": "group_e_e360",
+    "toothbrush": "group_e_e360",
+    "toothpaste": "balanced_e360",
+    "toruslarge": "group_f_e360",
+    "torusmedium": "group_f_e360",
+    "torussmall": "group_f_e360",
+    "watch": "group_f_e360",
+    "waterbottle": "source_e260",
+    "wineglass": "group_f_e360"
+  }
+}

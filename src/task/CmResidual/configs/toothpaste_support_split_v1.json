@@ -1,0 +1,16 @@
+{
+  "train": [
+    {
+      "sequence": "s1_toothpaste_lift",
+      "sequence_dir": "outputs/CmResidual/agent_crossobject_toothpaste_gate_20260924/corrected_converted/s1_toothpaste_lift",
+      "input_manifest": "outputs/CmResidual/agent_crossobject_toothpaste_gate_20260924/corrected_input/manifest_s1_toothpaste_lift.json"
+    }
+  ],
+  "heldout": [
+    {
+      "sequence": "s1_alarmclock_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_converted/s1_alarmclock_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_input/manifest_s1_alarmclock_lift.json"
+    }
+  ]
+}

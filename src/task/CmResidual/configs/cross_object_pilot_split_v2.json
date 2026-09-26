@@ -1,0 +1,36 @@
+{
+  "train": [
+    {
+      "sequence": "s3_airplane_lift",
+      "sequence_dir": "outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift",
+      "input_manifest": "outputs/CmResidual/agent_v129_s3_coordfix/corrected_manifest_r2.json"
+    },
+    {
+      "sequence": "s1_toothpaste_lift",
+      "sequence_dir": "outputs/CmResidual/agent_crossobject_toothpaste_gate_20260924/corrected_converted/s1_toothpaste_lift",
+      "input_manifest": "outputs/CmResidual/agent_crossobject_toothpaste_gate_20260924/corrected_input/manifest_s1_toothpaste_lift.json"
+    },
+    {
+      "sequence": "s1_mug_lift",
+      "sequence_dir": "outputs/CmResidual/agent_crossobject_mug_gate_20260924/corrected_converted/s1_mug_lift",
+      "input_manifest": "outputs/CmResidual/agent_crossobject_mug_gate_20260924/corrected_input/manifest_s1_mug_lift.json"
+    },
+    {
+      "sequence": "s1_cubesmall_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_cubesmall_gate/corrected_converted/s1_cubesmall_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_cubesmall_gate/corrected_input/manifest_s1_cubesmall_lift.json"
+    },
+    {
+      "sequence": "s1_waterbottle_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_converted/s1_waterbottle_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_input/manifest_s1_waterbottle_lift.json"
+    }
+  ],
+  "heldout": [
+    {
+      "sequence": "s1_alarmclock_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_converted/s1_alarmclock_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_input/manifest_s1_alarmclock_lift.json"
+    }
+  ]
+}

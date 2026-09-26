@@ -1,0 +1,58 @@
+{
+  "schema": "ref2dex.handoff.v1",
+  "handoff_id": "HF02-TEMPORAL-SUBSTRATE-20260926",
+  "owner_branch": "agent/grab-full-baseline",
+  "frozen_substrate_commit": "8625cd3e4bf958c1af29e0ccf9c69fbd4a402ebb",
+  "temporal_probe_card": "docs/experiments/probes/P-20260926-temporal-expert-credit.md",
+  "canonical_route": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+  "canonical_route_sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
+  "route_mode": "simulator_object_id",
+  "objects": ["airplane"],
+  "motions": [
+    "s3_airplane_lift",
+    "s7_airplane_lift_Retake",
+    "s9_airplane_lift"
+  ],
+  "experts": [
+    "balanced_e360",
+    "cup_e340",
+    "duck_e340",
+    "mixed12_e300",
+    "source_e260",
+    "train5_e320"
+  ],
+  "base_expert": "source_e260",
+  "start_frame_policy": "seeded DExplore start_times; record per_episode.start_frame",
+  "intended_probe_seeds": {
+    "fit": 254,
+    "held_out": 255
+  },
+  "matched_cm_off": {
+    "evaluator": "third_party/DExplore/dexplore/evaluate_object_router.py",
+    "evaluator_blob_sha256": "84e086d502a1b838e4607f3d51f2f0d77073f114",
+    "cm_mode": "off",
+    "candidate_mode": "experts",
+    "contact_gate": "instant",
+    "entry_status": "AVAILABLE_FOR_FIXED_ROUTE"
+  },
+  "exact_temporal_option_off": {
+    "entry_status": "BLOCKED",
+    "reason": "the committed 8f4cf38 launcher is a source-e260 continuation using inspire.yaml, while the canonical route requires inspire_object_balanced.yaml and a six-expert first-contact option evaluator that remains uncommitted"
+  },
+  "existing_evidence": {
+    "six_expert_59_motion_off": {
+      "run": "outputs/CmResidual/agent_grab59_six_expert_route_s244_r2",
+      "held_lift": "3/64",
+      "scope_mismatch": "59 motions"
+    },
+    "three_airplane_two_expert_off": {
+      "runs": [
+        "outputs/CmResidual/agent_contact_expert_option_s234_r2",
+        "outputs/CmResidual/agent_contact_expert_option_s235"
+      ],
+      "scope_mismatch": "source_e260 and balanced_e360 only"
+    }
+  },
+  "gpu_or_cm_training_started": false,
+  "hf02_slot_consumed": false
+}

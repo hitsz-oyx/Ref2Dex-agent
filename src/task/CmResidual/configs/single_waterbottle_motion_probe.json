@@ -1,0 +1,6 @@
+{
+  "description": "Waterbottle-only corrected motion to test source checkpoint versus shared-policy interference",
+  "motions": [
+    "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_converted/s1_waterbottle_lift"
+  ]
+}

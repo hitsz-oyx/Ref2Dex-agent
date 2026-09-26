@@ -1,0 +1,16 @@
+{
+  "train": [
+    {
+      "sequence": "s1_waterbottle_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_converted/s1_waterbottle_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_waterbottle_gate/corrected_input/manifest_s1_waterbottle_lift.json"
+    }
+  ],
+  "heldout": [
+    {
+      "sequence": "s1_alarmclock_lift",
+      "sequence_dir": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_converted/s1_alarmclock_lift",
+      "input_manifest": "outputs/CmResidual/agent_objectpool_alarmclock_gate/corrected_input/manifest_s1_alarmclock_lift.json"
+    }
+  ]
+}
