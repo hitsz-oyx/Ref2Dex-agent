@@ -110,5 +110,7 @@ Debt 整理。C3 claim 仍为 `OPEN`，Cm policy utility 尚未证明，也未�
 
 ## Next step
 
-核对 HF01–HF04 的实验卡、manifest 与 Git 提交是否可复核，并将未来论文所需、
-当前不改变路线的工作留在 Research Debt。当前不安排新的 Cm 实验。
+HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮只读复核，见
+[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。未来论文所需、
+当前不改变路线的实验仍留在 Research Debt。当前没有获准的新 Cm 实验；若要
+继续研究，先提出新的高层假设、goal、预算和 Decision Checkpoint。

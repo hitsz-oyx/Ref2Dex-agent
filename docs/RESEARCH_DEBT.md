@@ -186,25 +186,6 @@ Trigger: 新目标/表示的预注册 matched Probe 达到升级门。
 
 ---
 
-## D008 — Randomized action/contact mechanism validation
-
-Status: DEFERRED UNTIL MECHANISM BECOMES A PAPER CLAIM
-
-目前 seed151/152 的单轨迹、单自训练 actor、单腕部动作轴随机随访
-发现一步上抬与五步接触保持存在反向权衡。正式机制 claim 仍需
-其他训练 actor、动作轴、物体/轨迹和更多 seed 的固定协议复核；
-最好直接比较 +0.1、0、−0.1 三臂以区别相对原策略的效应。
-
-Why deferred:
-
-这不会改变当前“单轴在线规则没有 policy utility”的近期决策。
-
-Trigger:
-
-如果最终论文要将该权衡作为核心因果机制而非探索性线索。
-
----
-
 ## D009 — 两步 Cm 结构的同数据对照
 
 Status: DEFERRED UNTIL SEQUENCE CM BECOMES A POLICY ROUTE
@@ -220,6 +201,8 @@ Why deferred: 当前 wrist-x 效应不直接对齐抬升，重复 z
 效应又未过物理门；该 ablation 现在不改变是否上线规划。
 
 Trigger: 新任务对齐的序列 Cm 进入在线 matched Probe 后。
+
+---
 
 ## D010 — Contact-supported credit representation after HF02
 
@@ -237,3 +220,22 @@ HF02 的 canonical temporal expert-option Probe 未过 held-lift policy-value ga
 HF02–HF04 的 seed、窗口、metric 或模型头重扫列为待偿还债务。未来若提出新的
 高层假设，需另建 goal、experiment ID、matched control 和资源预算，再经
 Decision Checkpoint。
+
+---
+
+## D011 — Randomized action/contact mechanism validation
+
+Status: DEFERRED UNTIL MECHANISM BECOMES A PAPER CLAIM
+
+目前 seed151/152 的单轨迹、单自训练 actor、单腕部动作轴随机随访
+发现一步上抬与五步接触保持存在反向权衡。正式机制 claim 仍需
+其他训练 actor、动作轴、物体/轨迹和更多 seed 的固定协议复核；
+最好直接比较 +0.1、0、−0.1 三臂以区别相对原策略的效应。
+
+Why deferred:
+
+这不会改变当前“单轴在线规则没有 policy utility”的近期决策。
+
+Trigger:
+
+如果最终论文要将该权衡作为核心因果机制而非探索性线索。
