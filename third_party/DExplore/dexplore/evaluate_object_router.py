@@ -27,6 +27,7 @@ CM_SHA = None
 CM_MODE = "off"
 CM_CANDIDATE_MODE = "experts"
 CM_CONTACT_GATE = "instant"
+CM_MIN_SCORE_MARGIN = 0.0
 CM_STATS = {}
 
 
@@ -194,9 +195,19 @@ class RoutedPlayer(original.EvalPlayer):
                 torch.zeros_like(self.cm_stable_contact_steps))
             if CM_CONTACT_GATE == "stable":
                 actual_contact = self.cm_stable_contact_steps >= 5
-            selected, _, selected_id = select_cmlite_candidates(
+            selected, scores, selected_id = select_cmlite_candidates(
                 self.cm, task._dof_pos, candidates, task._target_states,
                 goal_position, actual_contact=actual_contact)
+            if CM_MIN_SCORE_MARGIN > 0:
+                selected_score = scores.gather(1, selected_id[:, None]).squeeze(1)
+                baseline_score = scores.select(1, 0)
+                reject = selected_id.ne(0) & (
+                    selected_score - baseline_score < CM_MIN_SCORE_MARGIN)
+                if reject.any():
+                    selected_id = torch.where(
+                        reject, torch.zeros_like(selected_id), selected_id)
+                    selected = candidates[
+                        torch.arange(choice.shape[0], device=self.device), selected_id]
             active = torch.ones(choice.shape[0], dtype=torch.bool, device=self.device)
             self.cm_histogram += torch.bincount(selected_id[active],
                                                 minlength=candidates.shape[1])
@@ -216,6 +227,7 @@ class RoutedPlayer(original.EvalPlayer):
                 "cm_selection_histogram": self.cm_histogram.detach().cpu().tolist(),
                 "cm_candidate_mode": CM_CANDIDATE_MODE,
                 "cm_contact_gate": CM_CONTACT_GATE,
+                "cm_min_score_margin": CM_MIN_SCORE_MARGIN,
             }
         if self.observation_router is not None:
             if self.initial_expert_names is None:
@@ -228,7 +240,7 @@ class RoutedPlayer(original.EvalPlayer):
 
 def main() -> None:
     global CONFIG, MODEL_PATH, OUTPUT_PATH, CM_MODEL, CM_SHA, CM_MODE, CM_STATS
-    global CM_CANDIDATE_MODE, CM_CONTACT_GATE
+    global CM_CANDIDATE_MODE, CM_CONTACT_GATE, CM_MIN_SCORE_MARGIN
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--route-config", type=Path, required=True)
     parser.add_argument("--observation-router-model", type=Path)
@@ -240,7 +252,10 @@ def main() -> None:
                         default="experts")
     parser.add_argument("--cm-contact-gate", choices=("instant", "stable"),
                         default="instant")
+    parser.add_argument("--cm-min-score-margin", type=float, default=0.0)
     args, remaining = parser.parse_known_args()
+    if args.cm_min_score_margin < 0:
+        parser.error("cm score margin must be non-negative")
     if bool(args.observation_router_model) != bool(args.observation_router_sha256):
         parser.error("observation router model and SHA256 must be specified together")
     if args.observation_router_model is not None:
@@ -254,6 +269,7 @@ def main() -> None:
     CM_MODE = args.cm_mode
     CM_CANDIDATE_MODE = args.cm_candidate_mode
     CM_CONTACT_GATE = args.cm_contact_gate
+    CM_MIN_SCORE_MARGIN = args.cm_min_score_margin
     if args.cm_checkpoint is not None:
         CM_MODEL = args.cm_checkpoint.resolve()
         CM_SHA = args.cm_sha256
@@ -299,6 +315,7 @@ def main() -> None:
                 "cm_mode": CM_MODE, "cm_checkpoint_sha256": CM_SHA,
                 "cm_candidate_mode": CM_CANDIDATE_MODE,
                 "cm_contact_gate": CM_CONTACT_GATE,
+                "cm_min_score_margin": CM_MIN_SCORE_MARGIN,
                 "observation_router_model_sha256": sha256(MODEL_PATH) if MODEL_PATH else None,
                 "budget": {"gpu_count": 1, "wall_minutes": 10, "output_mb": 50},
                 "stop_rule": "input drift, GPU conflict, invalid route or incomplete evaluation"}
