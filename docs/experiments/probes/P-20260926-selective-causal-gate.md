@@ -3,7 +3,7 @@ schema: ref2dex.probe.v2
 probe_id: P-20260926-selective-causal-gate
 date: 2026-09-26
 branch: agent/cm-selective-causal-gate
-git_commit: 228a399cd5c36374c50e3e42b679cfb06d823baf
+git_commit: 22a9eab578df64262b27dd6a716331de5bd209b1
 claim_id: C3
 hypothesis_family: HF05
 probe_index_in_family: 1
@@ -94,3 +94,31 @@ tests are unchanged:
   `0343681e0d024edf93ddddcbb7501a3caec877e7dd8589e641cad0447f7356d1`;
 * test SHA256:
   `805ff133c735f747723e839dfc5845674777be25922ab9eec3ebf88092211a79`.
+
+## Result
+
+The pinned input and finite-value contracts passed: fit has 121 rows (41/40/40
+per arm) and holdout has 126 rows (42/42/42 per arm). The selective policy chose
+a nonzero arm for only **1/126 (0.79%)** holdout rows; the predeclared 5–50%
+intervention-coverage condition therefore failed. Its held-lift IPW/Hájek value
+was `0.7619`, exactly the always-base value, and its gain over the
+treatment-shuffled policy was `-2.879 pp`. Supported-lift and contact safety did
+not regress, but the policy-gain and nontrivial-coverage gates failed.
+
+Decision: **UNPROMISING**. Freeze HF05 after this one CPU run. Do not change the
+bootstrap, target, threshold, seed, or coverage rule, and do not start online,
+PPO, Isaac Gym, or a new collector.
+
+Artifacts:
+
+* run manifest:
+  `outputs/CmResidual/agent_selective_causal_gate_20260926_r1/run_manifest.json`,
+  SHA256 `8e7df4485216303a6108304bbfe2630ef37811222e0f961329244035b5f74909`;
+* result index:
+  `outputs/CmResidual/agent_selective_causal_gate_20260926_r1/result_index.json`,
+  SHA256 `8e154f124415e01e4e606b8fd7bde88044cad54c14e3dec431b9451825bac52c`;
+* report SHA256 `65d4088adcb9cdac067502c2529ddd37da8e3a41e5392a7b4151862382c1e94d`;
+* model artifact SHA256
+  `623254788102486a194b85eed880630c8b935ee6c8663043e3a2396f9b2728a7`;
+* implementation-only failure log SHA256
+  `b711efe958a9681090e90d309123e39b2f4ec3b1fe4ba30f561bc5b13d2f57ed`.

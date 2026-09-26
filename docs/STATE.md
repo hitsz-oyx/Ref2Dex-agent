@@ -8,12 +8,12 @@ Updated: 2026-09-26
 
 ## Current decision
 
-用户于 2026-09-26 明确要求按代理方案继续研究，建立新的 HF05 goal；HF01–HF04
-仍按 [路线复盘](decisions/D-20260926-after-hf04-route-review.md) 冻结。HF05
-测试“保守的 selective causal gate”：Cm 只有在 fit-only 不确定性界显示
-contact-supported lift 安全增益时才介入，否则保持 no-op。先做既有随机记录的
-CPU-only 离线判别，不启动 GPU、PPO、online 或新 collection。决策合同见
-[`D-20260926-reopen-selective-causal-gate.md`](decisions/D-20260926-reopen-selective-causal-gate.md)。
+用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
+已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
+没有超过 always-base，coverage/policy gate 失败。HF01–HF05 均已冻结，不启动
+新的 GPU、PPO、online 或 collector。结果见
+[`P-20260926-selective-causal-gate.md`](experiments/probes/P-20260926-selective-causal-gate.md)，
+路线处置见 [`D-20260926-after-hf05-selective-gate.md`](decisions/D-20260926-after-hf05-selective-gate.md)。
 
 ## North-star scoreboard
 
@@ -104,7 +104,7 @@ CPU-only 离线判别，不启动 GPU、PPO、online 或新 collection。决策�
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 | `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
-| `HF05` selective-causal-intervention | `C3` | `ACTIVE` | 0/1，CPU screen predeclared | `agent/cm-selective-causal-gate` |
+| `HF05` selective-causal-intervention | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -113,10 +113,9 @@ CPU-only 离线判别，不启动 GPU、PPO、online 或新 collection。决策�
 ## Next step
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮只读复核，见
-[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。HF05 的 card
-和 CPU evaluator 已预声明；执行唯一的 existing-record screen，再依据固定
-policy/safety gate 决定是否冻结该新 goal。不得恢复 HF01–HF04，也不得在 HF05
-失败后换阈值、seed、target 或启动 online/PPO。
+[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。HF05 的唯一
+existing-record screen 已完成并失败固定 policy/safety gate。当前不安排新的
+Cm 实验；不得恢复 HF01–HF05，也不得换阈值、seed、target 或启动 online/PPO。
 
 主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
 相关提交暂不合入 `main`。见
