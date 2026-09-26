@@ -17,6 +17,9 @@ tracked_contract_module: src/task/CmResidual/temporal_option_contract.py
 tracked_contract_module_sha256: 4cbe646bebe395c3d3065919da874eb0346c51852670eac1001355d8213be697
 tracked_cpu_tests: src/task/CmResidual/tests/test_temporal_option_contract.py
 tracked_cpu_tests_sha256: 42886719b2dd897e00dd9fd2e8874a38a74e0077d5a7113570ffcccb2c1eb728
+tracked_cpu_fit_script: src/task/CmResidual/tools/fit_temporal_expert_option_probe.py
+tracked_cpu_fit_script_commit: ee665d96c340c58644c73c0a38e9e0eafc488cb2
+tracked_cpu_fit_script_sha256: 640168edde4ba33175d6926d46a4afb9d89c30ba82dec0f7f29737ff5e4fb765
 claim_id: C3
 hypothesis_family: HF02
 decision_changed_if_positive: Freeze the history-conditioned option-value representation and propose one independent matched Cm-on/off online confirmation on the same route.
@@ -161,6 +164,19 @@ inverse-propensity estimator on the observed assigned arm. Compare exactly:
 The primary outcome is held-lift (`final_lift_success`); the secondary physical
 outcome is the mean contact-supported lift in the twenty-step window. The
 offline continuation gate is numeric and must hold on the seed-255 estimate:
+
+The tracked CPU fit script uses one pooled ridge outcome model per listed model
+and outcome. It standardizes with fit rows only, uses ridge lambda `1.0`, applies
+a sigmoid only to the held-lift output, and measures supported lift as the raw
+mean of the twenty stored future values (converted to millimetres). The fixed
+`action_shuffled` placebo permutation is candidate index
+`[1, 2, 3, 4, 5, 0]`; it is applied in both fit and holdout feature construction.
+Policy value is the Horvitz estimator
+`mean(I[policy(X)=A] * Y / (1/6))`, with lowest-index tie breaking. The exact
+implementation is pinned by
+`src/task/CmResidual/tools/fit_temporal_expert_option_probe.py` at commit
+`ee665d96c340c58644c73c0a38e9e0eafc488cb2` (SHA256
+`640168edde4ba33175d6926d46a4afb9d89c30ba82dec0f7f29737ff5e4fb765`).
 
 * `temporal_cm` policy value is at least **+5 percentage points** above
   `history_only` and at least **+5 percentage points** above
