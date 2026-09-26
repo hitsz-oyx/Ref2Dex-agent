@@ -2,6 +2,7 @@
 """Watch registered child agents and notify root only when their state changes."""
 
 import argparse
+import fcntl
 import json
 import os
 import sqlite3
@@ -175,6 +176,13 @@ def main():
     args = parser.parse_args()
     if args.interval < 120:
         parser.error("interval must be at least 120 seconds")
+    lock_path = Path(args.state + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_handle = lock_path.open("a+")
+    try:
+        fcntl.flock(lock_handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        parser.error("another poller already owns this state file")
     while True:
         active_gpu = False
         try:
