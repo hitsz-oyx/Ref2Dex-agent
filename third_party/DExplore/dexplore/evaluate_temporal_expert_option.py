@@ -329,7 +329,10 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             if env_ids is None:
                 ids = torch.arange(self.history_count.numel(), device=self.device)
             else:
-                ids = env_ids.reshape(-1).long().to(self.device)
+                # rl_games may pass reset IDs as a Python list rather than a
+                # tensor.  Normalize both forms before indexing the temporal
+                # buffers; the first-episode boundary semantics are unchanged.
+                ids = torch.as_tensor(env_ids, device=self.device).reshape(-1).long()
             if ids.numel():
                 self.history_state[ids] = 0
                 self.history_action[ids] = 0
