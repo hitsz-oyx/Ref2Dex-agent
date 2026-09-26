@@ -116,6 +116,9 @@ HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮�
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。HF05 的唯一
 existing-record screen 已完成并失败固定 policy/safety gate。当前不安排新的
 Cm 实验；不得恢复 HF01–HF05，也不得换阈值、seed、target 或启动 online/PPO。
+训练期 Cm 表征的只读[路线复盘](handoffs/CM_REPRESENTATION_ROUTE_REVIEW_20260926.md)
+确认旧 3D/H10 auxiliary 已测试这一高层接法而未过升级门；当前也不登记新的
+representation Probe。
 
 主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
 相关提交暂不合入 `main`。见
