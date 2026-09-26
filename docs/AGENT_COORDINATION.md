@@ -7,6 +7,9 @@
 
 [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
 
+`/root` 的持续推进、用户打断与停下条件见
+[`docs/ROOT_AGENT.md`](ROOT_AGENT.md)。
+
 ## 1. 注册制：身份与运行目录
 
 `AGENT_REGISTRY.json` 是代理身份映射的唯一来源。每个登记项至少包含：
@@ -159,7 +162,8 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 4. 若没有已授权 blocker，记录内部状态 `SUPERVISOR_IDLE`，使用等待/定时轮询
    保持当前 turn，不向自己或 child 发送固定心跳消息；
 5. 若有 blocker，只按第 4.1 节派发一个明确 goal，然后继续轮询其证据；
-6. 在终态、异常或 Decision Checkpoint 时立即做 completion audit，并向用户交接。
+6. 在子代理终态或异常时立即做 completion audit，再选择当前目标下的下一步；
+   只有触发 `docs/ROOT_AGENT.md` 的停下条件时才交给用户决策或结束当前活动。
 
 默认轮询节奏：
 
@@ -171,7 +175,7 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 | terminal / exception | 立即一次 | card、manifest、hash、commit、归属进程和下一决策 |
 
 “对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内使用等待和
-轮询保持监督，不主动发送最终结束消息。若平台或用户中断 turn，恢复时必须从
+轮询保持监督，不因一次巡检或子任务完成而主动结束。若平台或用户中断 turn，恢复时必须从
 注册表、Goal 数据库和最后一次状态快照继续；不得假设 child 已经完成，也不得
 自动重启实验。这个连续循环不改变任何资源或实验授权。
 
