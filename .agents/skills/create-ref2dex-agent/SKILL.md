@@ -47,6 +47,20 @@ check_proxy() {
 check_proxy http://127.0.0.1:18080
 ```
 
+这个 home 的 provider 是 loopback URL。**每一次** NewAPI bootstrap、TUI 启动、`resume` 或 `queue` invocation 都必须按 invocation 清除外部代理变量；不要只依赖 `NO_PROXY`，也不要把当前 shell 的 proxy 环境传给 Codex。用同一 shell 中的 helper 可以避免遗漏：
+
+```bash
+NEWAPI_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
+codex_newapi() {
+  env -u http_proxy -u https_proxy -u HTTP_PROXY -u HTTPS_PROXY \
+    NO_PROXY=127.0.0.1,localhost no_proxy=127.0.0.1,localhost \
+    CODEX_HOME="$NEWAPI_HOME" \
+    "$CODEX_NODE" "$CODEX_JS" "$@"
+}
+```
+
+`codex_newapi` 的 `env -u` 是 process-local 的；不要修改共享 `config.toml` 或全局 shell 环境。健康的共享 18080 和下面的临时 loopback 副本都使用这个 helper。只有 `.codex_oyx`/`.codex_oyx_frj` 段落明确保留四个 proxy 变量，不能把那些 `export` 复制到 NewAPI 命令。
+
 若 18080 没有响应，在单独终端启动共享代理并记录其归属：
 
 ```bash
@@ -112,10 +126,9 @@ ps -o pid=,args= -p "$PROXY_PID"
 The copied proxy is disposable and must not be installed over the shared file. If its bounded health check also fails, stop and report the endpoint failure; do not turn it into an unbounded retry loop. Override only the provider URL for that invocation; do not edit the shared config:
 
 ```bash
-export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
 WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
 cd "$WORKTREE"
-"$CODEX_NODE" "$CODEX_JS" \
+codex_newapi \
   -c "model_providers.rlg.base_url=\"${BASE_URL}/v1\"" \
   exec "<initial prompt>"
 ```
@@ -125,17 +138,16 @@ The `-c` override is process-local. Use the same override for `resume`/`queue` w
 该 home 的默认 `config.toml` 指向 `http://127.0.0.1:18080/v1`。健康的 18080 服务可直接复用；不健康时才使用上述副本和 invocation-local override。然后在新代理终端设置：
 
 ```bash
-export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
 WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
 cd "$WORKTREE"
-"$CODEX_NODE" "$CODEX_JS"
+codex_newapi
 ```
 
 已有服务时复用，不重复占用 18080 端口；不停止归属不明的代理进程。
 
 ### `/home2/wyy/oyx_ws/.codex_oyx` 或 `.codex_oyx_frj`
 
-在新代理终端设置所选 home 和四个代理变量，然后启动 Codex：
+这些 home 走外部代理；四个 proxy 变量只在本段落保留。不要把它们继承或复制到上面的 NewAPI invocation。然后在新代理终端设置所选 home 和四个代理变量，再启动 Codex：
 
 ```bash
 export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx
@@ -157,12 +169,11 @@ cd "$WORKTREE"
 ```bash
 THREAD_ID="paste-the-existing-thread-uuid-here"
 WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
-export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
 PROVIDER_ARGS=()
 if test -n "${BASE_URL:-}"; then
   PROVIDER_ARGS=(-c "model_providers.rlg.base_url=\"${BASE_URL}/v1\"")
 fi
-"$CODEX_NODE" "$CODEX_JS" \
+codex_newapi \
   "${PROVIDER_ARGS[@]}" \
   resume "$THREAD_ID" -C "$WORKTREE"
 ```
@@ -170,12 +181,18 @@ fi
 需要重新派发明确 goal 时，仍对同一个 ID 排队：
 
 ```bash
-"$CODEX_NODE" "$CODEX_JS" \
+codex_newapi \
   "${PROVIDER_ARGS[@]}" \
   queue --thread "$THREAD_ID" --message '<完整 GOAL_DISPATCH 消息>'
 ```
 
 恢复前核对 `(CODEX_HOME, THREAD_ID)` 与注册表身份键、工作树和 branch 一致；恢复后再登记/更新同一条记录。只有确认没有可恢复的持久化 ID 时才创建新 thread，并说明原因。
+
+### C1 故障交接（2026-09-27）
+
+thread `01a0de76-3a3f-7293-88f8-18c140024f9f` 的 session 已持久化，但 astra、sol 和 TUI 首轮都在 `task_started` 后没有 assistant `response_item`。该进程继承了四个 proxy 变量，活动连接落到 `127.0.0.1:7897`，而 NewAPI provider 配置是 `127.0.0.1:18080`; 对 18080 的有界直连检查返回 401，session 没有 capacity/429/502/504 错误。因此这次实际故障归类为本地 provider 被无关外部 proxy 环境干扰，而不是模型容量。
+
+安全恢复只向已核对归属的原 thread 进程发送一次 bounded interrupt，然后用上面的 `codex_newapi`、同一 UUID、可用的 `gpt-6-sol` 和 invocation-local loopback URL override 做 bounded `resume`/`queue`。恢复得到 assistant response 和 `task_complete`，C1 10/10 原始结果未重跑或修改；不要由此创建新 thread、重启共享 proxy 或更改共享配置。
 
 ### 区分模型容量错误
 
