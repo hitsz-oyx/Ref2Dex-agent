@@ -85,11 +85,13 @@ On 2026-09-26, the committed coverage implementation was rechecked without
 starting a simulator or GPU process:
 
 ```text
-pytest -q src/task/CmResidual/tests/test_object_motion_sampler.py -> 3 passed
+pytest -q object_motion_sampler, stage_dexplore_object_mesh,
+          dexplore_v120_motion_input, object_disjoint_split -> 13 passed
 py_compile sampler, filtered-motion loader, baseline launcher, and task      -> passed
 git diff --check against the route commit                                 -> passed
 ```
 
-These checks verify object-mesh identity, asynchronous reset coverage, and the
-explicit full-pool sampler wiring. They do not change the Probe's `UNPROMISING`
-decision or authorize another full-pool training run.
+These checks verify object-mesh identity, asynchronous reset coverage, native
+contact preservation, translation provenance, object-disjoint splitting, and
+the explicit full-pool sampler wiring. They do not change the Probe's
+`UNPROMISING` decision or authorize another full-pool training run.
