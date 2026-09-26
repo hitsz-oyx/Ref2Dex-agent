@@ -220,3 +220,27 @@ Why deferred: 当前 wrist-x 效应不直接对齐抬升，重复 z
 效应又未过物理门；该 ablation 现在不改变是否上线规划。
 
 Trigger: 新任务对齐的序列 Cm 进入在线 matched Probe 后。
+
+## D010 — Contact-supported credit representation after HF02
+
+Status: DEFERRED UNTIL A NEW HF03-STYLE GOAL
+
+HF02 的 canonical temporal expert-option Probe 已通过数据合同，但 held-lift
+policy-value gate 低于 action-shuffled placebo（`-9.677pp`）。这排除了当前
+“首次接触时直接选择 expert option”的具体 policy route，同时保留了接触阶段
+短序列、executed handflow、contact-supported lift 之间存在机制信号的可能性。
+
+未来若重新开启该方向，至少需要：
+
+* 明确定义 executed-handflow、接触保持和承重标签的时间窗口；
+* 先完成 CPU-only label/action-alignment audit；
+* 使用新的 experiment ID、预算和 matched Cm-off substrate；
+* 只有在新 seed 的物理方向稳定后，才设计新的 GPU Probe。
+
+Why deferred:
+
+当前 post-HF02 decision memo 选择冻结 Cm policy-utility campaign。不能通过
+换 seed、horizon、metric 或模型头继续 HF02，也不能把本债务当作现有 Cm 增益证据。
+
+Trigger: 用户建立独立 HF03-style goal，且新的 contact-supported credit 假设
+成为论文 claim 或下一阶段核心决策所必需的证据。
