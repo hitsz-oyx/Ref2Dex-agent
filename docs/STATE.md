@@ -218,6 +218,11 @@ predicted-contact gate 在完整 59-motion route 上都已停止；下一轮若�
 Cm，应改用长时序的 contact-supported lift 目标，并重新建立便宜的单组
 判别 Probe，再考虑训练整条 route。HF02 temporal option 的 offline gate
 已明确失败，当前不继续扫描同一表示或启动 online confirmation。
+在同一 canonical six-expert/59-motion substrate 上补做的 local residual
+matched seed254 为 Cm-off/on 均 5/64；Cm 仅替换 1,615/66,944 个评分步，
+接触率与接触支持抬升略降，因此该接法也判为 `UNPROMISING`，不再追加
+同一 residual 的 seed 或系数扫描。证据见
+[full-59 local residual Probe](experiments/probes/P-20260926-cm-local-residual-full59.md)。
 2026-09-26 的 CPU-only contact-supported credit audit 在单一 airplane
 motion substrate 上也未通过预设 label/action gate，未进入 PPO auxiliary Probe；
 这不替代未来 HF03 的跨物体数据合同。
