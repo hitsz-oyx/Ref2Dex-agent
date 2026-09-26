@@ -218,6 +218,9 @@ predicted-contact gate 在完整 59-motion route 上都已停止；下一轮若�
 Cm，应改用长时序的 contact-supported lift 目标，并重新建立便宜的单组
 判别 Probe，再考虑训练整条 route。HF02 temporal option 的 offline gate
 已明确失败，当前不继续扫描同一表示或启动 online confirmation。
+2026-09-26 的 CPU-only contact-supported credit audit 在单一 airplane
+motion substrate 上也未通过预设 label/action gate，未进入 PPO auxiliary Probe；
+这不替代未来 HF03 的跨物体数据合同。
 当前 post-HF02 decision memo 选择冻结 policy-utility campaign；若以后建立
 contact-supported credit，应作为新的 HF03-style goal、experiment ID 和预算，
 不能续用 HF02。

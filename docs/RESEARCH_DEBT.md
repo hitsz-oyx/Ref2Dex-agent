@@ -244,3 +244,8 @@ Why deferred:
 
 Trigger: 用户建立独立 HF03-style goal，且新的 contact-supported credit 假设
 成为论文 claim 或下一阶段核心决策所必需的证据。
+
+2026-09-26 CPU-only preflight 已对 route-specific `motion_id=0` substrate
+完成 label/action-alignment audit；post-handflow gate 为 `UNPROMISING`，未启动
+PPO auxiliary Probe。该结果范围仅限单 motion，不能替代未来 HF03 的跨物体合同；
+完整 provenance 见 [HF03 contact-supported credit audit](handoffs/HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md)。
