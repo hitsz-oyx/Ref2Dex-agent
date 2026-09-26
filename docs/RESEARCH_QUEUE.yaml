@@ -1,0 +1,44 @@
+schema: ref2dex.research_queue.v1
+updated: 2026-09-26
+
+# This file is search state, not an experiment-result log.  A Probe card owns
+# the evidence; this file only says which claim/family may consume the next
+# bounded slot.
+claims:
+  C1:
+    name: self_trained_grasp
+    status: PARTIAL
+  C2:
+    name: cm_one_step_information
+    status: PARTIAL
+  C3:
+    name: cm_policy_utility
+    status: OPEN
+
+hypotheses:
+  HF01:
+    claim: C3
+    name: local_effect_ranking
+    status: KILLED
+    branch: agent/cm-option-value
+    probe_budget: 3
+    probes_used: 3
+    transition: "Budget exhausted without information gain: freeze this family."
+
+  HF02:
+    claim: C3
+    name: temporal_cm
+    status: FROZEN
+    branch: agent/cm-temporal
+    probe_budget: 3
+    probes_used: 2
+    transition: "Slot-2 offline gate UNPROMISING: freeze HF02 and change the high-level hypothesis; do not rescan seed, horizon, metric, or representation."
+
+  HF03:
+    claim: C3
+    name: contact_supported_credit
+    status: UNPROMISING
+    branch: agent/cm-contact-credit
+    probe_budget: 1
+    probes_used: 1
+    transition: "CPU post-action handflow audit failed the predeclared 5% held-lift credit gate; freeze this family and require a new higher-level hypothesis."

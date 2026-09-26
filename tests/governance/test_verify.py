@@ -11,81 +11,218 @@ VERIFY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VERIFY)
 
 
-def test_feature_branch_scope_contains_branch_diff_and_staged_paths(monkeypatch) -> None:
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _queue() -> str:
+    return """
+schema: ref2dex.research_queue.v1
+claims:
+  C3:
+    name: cm_policy_utility
+    status: OPEN
+hypotheses:
+  HF02:
+    claim: C3
+    name: temporal_cm
+    status: ACTIVE
+    probe_budget: 3
+    probes_used: 1
+"""
+
+
+def _ledger() -> str:
+    return """
+schema: ref2dex.seed_ledger.v1
+pools:
+  debug:
+    ranges: [[0, 9]]
+  probe:
+    ranges: [[10, 19]]
+  validation:
+    development:
+      ranges: [[20, 29]]
+    holdout:
+      ranges: [[30, 39]]
+"""
+
+
+def _valid_probe(identifier: str = "P-20260925-temporal") -> str:
+    return f"""---
+schema: ref2dex.probe.v2
+probe_id: {identifier}
+date: 2026-09-25
+branch: agent/cm-temporal
+git_commit: abc123
+claim_id: C3
+hypothesis_family: HF02
+decision_changed_if_positive: continue temporal credit
+decision_changed_if_negative: change high-level hypothesis
+probe_index_in_family: 1
+seed_pool: probe
+---
+# Probe
+"""
+
+
+def _valid_validation() -> str:
+    return """---
+schema: ref2dex.validation.v2
+validation_id: VAL-20260925-temporal
+date: 2026-09-25
+branch: agent/cm-temporal
+git_commit: abc123
+claim_id: C3
+hypothesis_family: HF02
+frozen_method_commit: def456
+development_seed_pool: validation.development
+validation_seed_pool: validation.holdout
+matched_control: identical Cm-off arm
+---
+# Validation
+"""
+
+
+def test_feature_branch_diff_uses_main_and_includes_deleted_and_staged(monkeypatch) -> None:
     def fake_git(*args: str) -> str:
         if args == ("branch", "--show-current"):
-            return "ai/governance/test\n"
-        if args == ("merge-base", "HEAD", "origin/oyx"):
+            return "agent/workflow-v2.1\n"
+        if args == ("merge-base", "HEAD", "origin/main"):
             return "base\n"
         if "--cached" in args:
-            return "docs/plan/V1.2a.md\0"
-        return "tools/verify.py\0"
+            return "docs/staged.md\0"
+        return "tools/verify.py\0docs/removed.md\0"
 
     monkeypatch.setattr(VERIFY, "_git", fake_git)
-    monkeypatch.setattr(VERIFY, "_stable_branch", lambda: "origin/oyx")
-    assert VERIFY._changed_paths() == {"tools/verify.py", "docs/plan/V1.2a.md"}
+    monkeypatch.setattr(VERIFY, "_stable_branch", lambda: "origin/main")
+    assert VERIFY._changed_paths() == {
+        "tools/verify.py",
+        "docs/removed.md",
+        "docs/staged.md",
+    }
 
 
-def test_guidance_addendum_requires_numeric_base(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    guide = tmp_path / "docs/指导"
-    guide.mkdir(parents=True)
-    (guide / "V1.2.md").write_text("base", encoding="utf-8")
+def test_required_context_documents_are_readable() -> None:
     failures: list[str] = []
-    VERIFY._check_guidance({"docs/指导/V1.2a.md"}, failures)
+    VERIFY._check_required_context(failures)
     assert not failures
 
 
-def test_markdown_skips_historical_logs() -> None:
+def test_required_context_rejects_missing_or_empty_file(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/MISSION.md", "mission\n")
+    _write(tmp_path / "docs/CAMPAIGN.md", "campaign\n")
+    _write(tmp_path / "docs/STATE.md", "   \n")
+    failures: list[str] = []
+    VERIFY._check_required_context(failures)
+    assert any("STATE.md" in failure for failure in failures)
+
+
+def test_markdown_link_check_and_deleted_target_check(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/index.md", "[gone](gone.md)\n")
+
+    failures: list[str] = []
+    VERIFY._check_markdown({"docs/index.md"}, failures)
+    assert any("目标不存在" in failure for failure in failures)
+
+    failures = []
+    VERIFY._check_deleted_links({"docs/gone.md"}, failures)
+    assert any("目标已删除" in failure for failure in failures)
+
+
+def test_experiment_ids_are_unique_and_legacy_ids_are_inferred(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/experiments/probes/P-20260925-a.md", "# old card\n")
+    _write(tmp_path / "docs/experiments/probes/P-20260925-b.md", "probe_id: P-20260925-a\n")
+
+    failures: list[str] = []
+    VERIFY._check_experiment_cards(failures)
+    assert any("实验 ID 重复 P-20260925-a" in failure for failure in failures)
+
+
+def test_v2_probe_schema_and_family_contract(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
+    _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
+    _write(
+        tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
+        _valid_probe(),
+    )
+
+    failures: list[str] = []
+    VERIFY._check_research_queue(failures)
+    VERIFY._check_seed_ledger(failures)
+    VERIFY._check_experiment_cards(failures)
+    VERIFY._check_card_seed_pools(failures)
+    assert not failures
+
+
+def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
+    _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
+    _write(
+        tmp_path / "docs/experiments/validations/VAL-20260925-temporal.md",
+        _valid_validation(),
+    )
+    failures: list[str] = []
+    VERIFY._check_experiment_cards(failures)
+    VERIFY._check_card_seed_pools(failures)
+    assert not failures
+
+
+def test_queue_rejects_exhausted_active_family(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue().replace("probes_used: 1", "probes_used: 3"))
+    failures: list[str] = []
+    VERIFY._check_research_queue(failures)
+    assert any("已耗尽预算" in failure for failure in failures)
+
+
+def test_seed_ledger_rejects_pool_overlap(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(
+        tmp_path / "docs/SEED_LEDGER.yaml",
+        _ledger().replace("ranges: [[10, 19]]", "ranges: [[9, 19]]"),
+    )
+    failures: list[str] = []
+    VERIFY._check_seed_ledger(failures)
+    assert any("重叠" in failure for failure in failures)
+
+
+def test_probe_cannot_reference_validation_holdout(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
+    _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
+    _write(
+        tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
+        _valid_probe().replace("seed_pool: probe", "seed_pool: validation.holdout"),
+    )
+    failures: list[str] = []
+    VERIFY._check_card_seed_pools(failures)
+    assert any("不得消费 validation" in failure for failure in failures)
+
+
+def test_seed_ledger_rejects_malformed_range(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(
+        tmp_path / "docs/SEED_LEDGER.yaml",
+        _ledger().replace("ranges: [[0, 9]]", "ranges: [[9, 0]]"),
+    )
+    failures: list[str] = []
+    VERIFY._check_seed_ledger(failures)
+    assert any("递增整数区间" in failure for failure in failures)
+
+
+def test_governance_selection_is_narrow() -> None:
+    selected = VERIFY._select_tests({"AGENTS.md", "docs/RESEARCH_QUEUE.yaml"})
+    assert selected == ["tests/governance/test_verify.py"]
+
+
+def test_historical_markdown_is_not_a_current_link_scope() -> None:
     assert VERIFY._is_historical("docs/logs/activity_log.md")
-    assert VERIFY._is_historical("docs/activities/archive/old.md")
-    assert not VERIFY._is_historical("docs/activities/ACT-001.md")
-
-
-def test_governance_change_selects_governance_tests() -> None:
-    assert "tests/governance/test_verify.py" in VERIFY._select_tests({"AGENTS.md"})
-
-
-def test_base_change_selects_only_hermetic_shared_tests() -> None:
-    selected = VERIFY._select_tests({"src/base/run_manifest.py"})
-
-    assert "tests/test_run_manifest.py" in selected
-    assert "tests/test_framework_contracts.py" not in selected
-
-
-def test_unresolved_directory_path_contract_is_discoverable() -> None:
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    directory_skill = (ROOT / ".agents/skills/directory-and-artifacts/SKILL.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "目录合同不能决定新内容的位置" in agents
-    assert "向用户确认位置" in directory_skill
-    assert "是否应把该例外提升为本" in directory_skill
-
-
-def test_worktree_lifecycle_is_discoverable() -> None:
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    change_control = (ROOT / ".agents/skills/research-change-control/SKILL.md").read_text(
-        encoding="utf-8"
-    )
-
-    for document in (agents, change_control):
-        assert "复用一个干净的 AI worktree" in document
-        assert "无未跟踪内容且用户明确授权后" in document
-        assert "删除分支" in document
-        assert "确认" in document
-
-
-def test_final_plan_append_rule_is_discoverable() -> None:
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    change_control = (ROOT / ".agents/skills/research-change-control/SKILL.md").read_text(
-        encoding="utf-8"
-    )
-
-    assert "状态不是 `FINAL` 的 plan 可在原文件原地修订" in agents
-    assert "一旦 `FINAL`" in agents
-    assert "必须建立 `plan/V<n><letter>.md`" in agents
-    assert "状态不是 `FINAL` 的 plan 可原地修订" in change_control
-    assert "一旦 `FINAL`" in change_control
-    assert "必须建立 `plan/V<n><letter>.md`" in change_control
+    assert VERIFY._is_historical("docs/archive/old.md")
+    assert not VERIFY._is_historical("docs/experiments/P-001.md")

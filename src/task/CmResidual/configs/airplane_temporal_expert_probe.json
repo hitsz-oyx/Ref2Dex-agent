@@ -1,0 +1,98 @@
+{
+  "schema": "ref2dex.temporal_expert_option_config.v2",
+  "probe_id": "P-20260926-temporal-expert-credit",
+  "owner_branch": "agent/cm-temporal",
+  "canonical_route": {
+    "path": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+    "sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16"
+  },
+  "route_mode": "simulator_object_id",
+  "object_name": "airplane",
+  "motion_root": "outputs/CmResidual/agent_contact_option_airplane_motions",
+  "motions": [
+    "s3_airplane_lift",
+    "s7_airplane_lift_Retake",
+    "s9_airplane_lift"
+  ],
+  "base_expert": "source_e260",
+  "candidate_experts": [
+    "balanced_e360",
+    "cup_e340",
+    "duck_e340",
+    "mixed12_e300",
+    "source_e260",
+    "train5_e320"
+  ],
+  "temporal_contract": {
+    "history_steps": 10,
+    "option_steps": 10,
+    "future_steps": 20,
+    "trigger": "first_valid_hand_object_contact_after_complete_history",
+    "first_episode_only": true,
+    "post_option_policy": "canonical_route_expert"
+  },
+  "assignment": {
+    "scheme": "seeded_balanced_per_environment",
+    "arms": 6,
+    "propensity_numerator": 1,
+    "propensity_denominator": 6,
+    "assignment_is_frozen_before_trigger": true
+  },
+  "collections": {
+    "fit": {
+      "simulator_seed": 254,
+      "assignment_seed": 20260926254,
+      "num_envs": 192,
+      "minimum_valid_rows_per_arm": 30
+    },
+    "holdout": {
+      "simulator_seed": 255,
+      "assignment_seed": 20260926255,
+      "num_envs": 192,
+      "minimum_valid_rows_per_arm": 20
+    }
+  },
+  "start_frame_policy": {
+    "sampler": "seeded DExplore start_times",
+    "manual_start_frame_list": false,
+    "record_field": "start_frame",
+    "first_episode_only": true
+  },
+  "record_schema": {
+    "env_id": "int64[N]",
+    "motion_id": "int64[N]",
+    "motion_name": "string[N]",
+    "object_name": "string[N]",
+    "simulator_object_id": "int64[N]",
+    "route_expert": "string[N]",
+    "assignment": "int8[N]",
+    "assignment_propensity": "float32[N]",
+    "trigger_step": "int64[N]",
+    "start_frame": "int64[N]",
+    "state": "float32[N,49]",
+    "base_action": "float32[N,18]",
+    "candidate_actions": "float32[N,6,18]",
+    "history_state": "float32[N,10,49]",
+    "history_action": "float32[N,10,18]",
+    "history_contact": "bool[N,10]",
+    "option_candidate_action": "float32[N,10,18]",
+    "option_executed_action": "float32[N,10,18]",
+    "future_contact_mask": "bool[N,20]",
+    "future_contact_supported_lift_m": "float32[N,20]",
+    "followup_contact_fraction": "float32[N]",
+    "followup_max_contact_lift_m": "float32[N]",
+    "final_lift_success": "bool[N]",
+    "final_max_contact_lift_m": "float32[N]",
+    "final_contact_fraction": "float32[N]",
+    "final_episode_steps": "int64[N]"
+  },
+  "provenance_requirements": {
+    "checkpoint_hashes_from_route_manifest": true,
+    "motion_hashes_from_route_manifest": true,
+    "route_config_hash_in_manifest": true,
+    "collector_config_hash_in_manifest": true,
+    "evaluator_sha256_and_git_blob_in_manifest": true,
+    "git_commit_in_manifest": true,
+    "cm_mode": "off"
+  }
+}
