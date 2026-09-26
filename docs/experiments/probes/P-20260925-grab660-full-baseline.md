@@ -95,3 +95,16 @@ These checks verify object-mesh identity, asynchronous reset coverage, native
 contact preservation, translation provenance, object-disjoint splitting, and
 the explicit full-pool sampler wiring. They do not change the Probe's
 `UNPROMISING` decision or authorize another full-pool training run.
+
+The frozen inventory was independently replayed on 2026-09-26 from
+`outputs/CmResidual/agent_grab660_input_20260925/input_inventory.json`:
+
+```text
+inventory SHA256: 0ac5b4cec689f70d35d5896823d9a431ef9fecc5933a09435c006bc426c5bc5b
+motions: 660 | objects: 50 | frames: 166337 | lift-like: 59
+tensor files missing: 0 | tensor hash drift: 0
+source manifest SHA256: 87f9a27b675133f1e1f122e0ed7f6318c06b62a9977f36bd3b890220fc90d240
+```
+
+This audit only reads the existing inventory and tensor files; it does not
+recreate, relabel, or regenerate the full-pool inputs.
