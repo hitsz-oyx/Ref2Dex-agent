@@ -10,10 +10,12 @@
 
 * 每个子代理工作树的 HEAD；
 * 对应 thread 的 Goal ID/状态；
-* 该工作树 `outputs` 下最新 `run_manifest.json` 的路径和修改时间；
+* 该工作树 `outputs` 下最新 `run_manifest.json` 的路径和修改时间（按 canonical
+  manifest 目标去重共享 outputs symlink）；
 * 工作目录归属该工作树的 GPU 计算进程 PID。
+* 已登记 thread 自己 rollout 中尚未观察过的 `task_complete` turn。
 
-首次运行只建立快照。之后只有这些字段变化才排队 `POLL_EVENT`，成功排队后才更新去重状态。队列失败会保留旧快照并在下一轮重试。脚本不能观察未写入 manifest、未提交且未改变 Goal/GPU 状态的内部想法；子代理仍须按 [协作合同](AGENT_COORDINATION.md) 提交 handoff。
+首次运行只建立快照。之后只有这些字段变化才排队 `POLL_EVENT`，成功排队后才更新去重状态；rollout 中重复的 `task_complete` 只产生一个事件。队列失败会保留旧快照并在下一轮重试。脚本不能观察未写入 manifest、未提交且未改变 Goal/GPU 状态的内部想法；子代理仍须按 [协作合同](AGENT_COORDINATION.md) 提交 handoff。
 
 ## 启动和运行
 
