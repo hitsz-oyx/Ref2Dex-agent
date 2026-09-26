@@ -88,8 +88,8 @@ Updated: 2026-09-26
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
-| `HF02` temporal-cm | `C3` | `FROZEN` | 2/3，slot-2 UNPROMISING | `agent/cm-temporal` |
-| `HF03` contact-supported-credit | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-contact-credit` |
+| `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
+| `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -105,3 +105,5 @@ hypothesis/goal 决定，不能在 HF02/HF03 上继续换 seed、horizon、metri
 representation、PPO 或 matched online，也不要继续微调已停止的局部腕部动作、
 progress-reward 系数或同一接触门。三次无进展后的路线复盘见
 [`D-20260926-after-hf03-route-review.md`](decisions/D-20260926-after-hf03-route-review.md)。
+子代理 `agent/cm-trajectory-credit` 已预声明 HF04 trajectory-credit CPU screen，
+当前尚无结果；它不改变上述已完成 Probe 的结论。
