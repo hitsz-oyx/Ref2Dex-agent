@@ -22,6 +22,16 @@ claims:
     status: OPEN
 
 hypotheses:
+  # C1 baseline route is independent of the frozen Cm policy-utility campaign.
+  HB01:
+    claim: C1
+    name: observation_driven_expert_route
+    status: ACTIVE
+    branch: agent/observation-router-reliability
+    probe_budget: 2
+    probes_used: 1
+    transition: "A new-seed fidelity gate decides whether to validate this nonprivileged self-trained hierarchy or redesign its router."
+
   HF01:
     claim: C3
     name: local_effect_ranking
