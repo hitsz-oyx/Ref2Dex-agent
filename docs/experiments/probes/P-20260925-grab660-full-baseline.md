@@ -109,3 +109,14 @@ source manifest SHA256: 87f9a27b675133f1e1f122e0ed7f6318c06b62a9977f36bd3b890220
 
 This audit only reads the existing inventory and tensor files; it does not
 recreate, relabel, or regenerate the full-pool inputs.
+
+The four run manifests were also cross-checked on the same CPU audit:
+`agent_grab660_s70_e280_probe_r2`, `agent_grab660_s71_e300_scratch`,
+`agent_grab660_s72_e300_scratch_r2`, and `agent_grab660_s73_e300_scratch_r2`
+are all `COMPLETED`, declare `motion_count=660`, and pin the same input
+manifest SHA256 `eae14c02a078a430f6cc8c6754ca53267d647793c2a3347a2bf9a06787a40214`
+and environment-config SHA256
+`e1e41c5e4050f022690f8fef86774259afec1106216325d0ef035430e2867731`.
+The `eval_s244_e300_full_lift59r2` files retained under the s72/s73 output
+directories are explicitly excluded 59-motion subset records; they are not
+part of this 660-motion baseline or its metrics.
