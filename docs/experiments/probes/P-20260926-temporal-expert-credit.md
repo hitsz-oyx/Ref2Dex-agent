@@ -3,14 +3,14 @@ schema: ref2dex.probe.v2
 probe_id: P-20260926-temporal-expert-credit
 date: 2026-09-26
 branch: agent/cm-temporal
-git_commit: 6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f
+git_commit: 97700b549775c6a2d0eb188bf0ffaf5b54881d91
 baseline_handoff_commit: 546f6f8
 canonical_route_manifest: src/task/CmResidual/configs/hf02_temporal_canonical_route.json
 canonical_route_sha256: afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16
 tracked_temporal_evaluator: third_party/DExplore/dexplore/evaluate_temporal_expert_option.py
-tracked_temporal_evaluator_commit: 6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f
-tracked_temporal_evaluator_git_blob_sha1: c759255a9aacc48da7c3f3f0b80e52b708b16db6
-tracked_temporal_evaluator_sha256: d0fdb3d27a034771ab5623c9d58dae90452b03ae426b2065b3ae170640192775
+tracked_temporal_evaluator_commit: 97700b549775c6a2d0eb188bf0ffaf5b54881d91
+tracked_temporal_evaluator_git_blob_sha1: 4e3b294f8ae8bc916e326519a57988866243d6b4
+tracked_temporal_evaluator_sha256: 0ba68d89edd97dfbb6c5708af4a7cb4065e82429b999caf6008df642b8552485
 tracked_collector_config: src/task/CmResidual/configs/airplane_temporal_expert_probe.json
 tracked_collector_config_sha256: 47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536
 tracked_contract_module: src/task/CmResidual/temporal_option_contract.py
@@ -77,12 +77,13 @@ The handoff's fixed-route Cm-off entry is
 `84e086d502a1b838e4607f3d51f2f0d77073f114`. The exact six-expert temporal
 option evaluator is tracked at
 `third_party/DExplore/dexplore/evaluate_temporal_expert_option.py` in fix
-commit `6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f`, with Git blob SHA1
-`c759255a9aacc48da7c3f3f0b80e52b708b16db6` and file SHA256
-`d0fdb3d27a034771ab5623c9d58dae90452b03ae426b2065b3ae170640192775`.
-The fix only defers the contract's PyTorch import until after Isaac Gym is
-loaded in a real collection process; it does not change the route, seeds,
-horizons, assignment, or recorded fields.
+commit `97700b549775c6a2d0eb188bf0ffaf5b54881d91`, with Git blob SHA1
+`4e3b294f8ae8bc916e326519a57988866243d6b4` and file SHA256
+`0ba68d89edd97dfbb6c5708af4a7cb4065e82429b999caf6008df642b8552485`.
+The implementation defers the contract's PyTorch import until after Isaac Gym
+is loaded in a real collection process and normalizes rl_games reset IDs from
+either tensors or Python lists; it does not change the route, seeds, horizons,
+assignment, or recorded fields.
 It is contract-first and imports Isaac Gym only after the CPU preflight passes.
 The companion collector config is tracked at
 `src/task/CmResidual/configs/airplane_temporal_expert_probe.json` with SHA256
