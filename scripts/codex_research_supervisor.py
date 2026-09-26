@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Periodically wake an existing Codex supervisor session when it is idle.
+"""Retired compatibility wrapper for the former fixed-message wake-up daemon.
 
-This is deliberately narrower than ``codex_overload_watchdog.py``.  It does
-not launch a new Codex session, restart a turn, kill a process, or start an
-experiment.  It only queues a user-configurable inspection message for one
-explicitly selected, non-archived thread after checking that the current turn
-is idle and that no message is already queued.
+The research workflow now requires ``/root`` to poll in its own active turn and
+dispatch explicit child goals only when an authorized blocker exists.  This
+module remains only for historical audits and tests.  Real queueing is refused
+unless the caller opts into the deprecated ``--legacy-fixed-message`` mode.
 
-Typical use::
+Historical dry-run syntax (does not queue a message)::
 
     python3 scripts/codex_research_supervisor.py \
       --thread 01a0d943-de74-7021-8d50-2a4e87fde613 \
       --codex-home /home2/wyy/oyx_ws/.codex_oyx_NewAPI \
       --node /home2/wyy/.nvm/versions/node/v24.19.0/bin/node \
       --codex-js /home2/wyy/.nvm/versions/node/v24.19.0/lib/node_modules/@openai/codex/bin/codex.js \
-      --interval 300 --start-immediately --allow-blocked
+      --interval 300 --start-immediately --allow-blocked --dry-run --once
 
-Use ``--dry-run --once`` before enabling the real queue operation.  The
-supervisor persists only its own offsets and wake-up bookkeeping in a small
-JSON file, and reads Codex's SQLite databases in read-only mode.
+Use ``--dry-run --once`` only to inspect legacy eligibility.  Do not launch a
+long-running instance.  The supervisor persists only its own offsets and wake-
+up bookkeeping in a small JSON file, and reads Codex's SQLite databases in
+read-only mode.
 """
 
 from __future__ import annotations
@@ -46,13 +46,6 @@ DEFAULT_INTERVAL = 300.0
 DEFAULT_POLL_INTERVAL = 30.0
 DEFAULT_ACK_TIMEOUT = 180.0
 DEFAULT_COMMAND_TIMEOUT = 60.0
-DEFAULT_MESSAGE = (
-    "执行一次全局 supervisor 巡检（只读优先）：检查 "
-    "agent_baseline、agent_Cm/temporal、agent/workflow 的 thread、branch、"
-    "experiment card、manifest、进程和 GPU 状态；只推进当前最便宜且已授权的 "
-    "blocker，不重复实验、不启动未经授权的 GPU 任务、不发送进程信号。若无动作请回复 "
-    "SUPERVISOR_IDLE；若有终态或阻塞，请给出带 commit、manifest 和资源证据的简短 handoff。"
-)
 ROOT_START = "task_started"
 ROOT_TERMINALS = frozenset(
     {
@@ -410,14 +403,16 @@ class ResearchSupervisor:
         self.args = args
         self.stop_requested = False
         self.state = SupervisorState.load(args.state_file, args.thread)
-        self.invoker = QueueInvoker(
-            args.codex_home,
-            codex_bin=args.codex_bin,
-            node=args.node,
-            codex_js=args.codex_js,
-            timeout=args.command_timeout,
-            dry_run=args.dry_run,
-        )
+        self.invoker: Optional[QueueInvoker] = None
+        if args.dry_run or args.legacy_fixed_message:
+            self.invoker = QueueInvoker(
+                args.codex_home,
+                codex_bin=args.codex_bin,
+                node=args.node,
+                codex_js=args.codex_js,
+                timeout=args.command_timeout,
+                dry_run=args.dry_run,
+            )
 
     def stop(self, *_: Any) -> None:
         self.stop_requested = True
@@ -476,7 +471,13 @@ class ResearchSupervisor:
             LOGGER.info("dry-run: thread %s is ready to receive a supervisor wake", self.args.thread)
             self.state.save(self.args.state_file)
             return False
-        if not self.invoker.queue(self.args.thread, self.args.message):
+        if not self.args.legacy_fixed_message:
+            LOGGER.warning(
+                "legacy fixed-message queueing is retired; use /root in-turn polling"
+            )
+            self.state.save(self.args.state_file)
+            return False
+        if self.invoker is None or not self.invoker.queue(self.args.thread, self.args.message):
             self.state.save(self.args.state_file)
             return False
         self.state.last_wake_at = current
@@ -486,6 +487,13 @@ class ResearchSupervisor:
         return True
 
     def run(self) -> int:
+        if not self.args.dry_run and not self.args.legacy_fixed_message:
+            LOGGER.warning(
+                "research supervisor is retired; no message will be queued. "
+                "Use /root's in-turn polling and explicit GOAL_DISPATCH."
+            )
+            self.state.save(self.args.state_file)
+            return 0
         LOGGER.info(
             "supervising thread %s every %.1fs (poll %.1fs)",
             self.args.thread,
@@ -531,7 +539,16 @@ def build_parser(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--max-wakes", type=int, default=0)
     parser.add_argument("--state-file", type=Path, default=None)
     parser.add_argument("--lock-file", type=Path, default=None)
-    parser.add_argument("--message", default=DEFAULT_MESSAGE)
+    parser.add_argument(
+        "--message",
+        default=None,
+        help="explicit message for deprecated legacy mode; never used by the normal workflow",
+    )
+    parser.add_argument(
+        "--legacy-fixed-message",
+        action="store_true",
+        help="explicitly opt into the retired fixed-message queue mode",
+    )
     parser.add_argument("--start-immediately", action="store_true")
     parser.add_argument(
         "--allow-blocked",
@@ -544,6 +561,8 @@ def build_parser(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     args = parser.parse_args(None if argv is None else list(argv))
     if args.max_wakes < 0:
         parser.error("--max-wakes cannot be negative")
+    if args.legacy_fixed_message and not args.message:
+        parser.error("--legacy-fixed-message requires an explicit --message")
     if args.state_file is None:
         args.state_file = repo_root / "outputs" / "codex_research_supervisor" / f"{args.thread}.json"
     if args.lock_file is None:

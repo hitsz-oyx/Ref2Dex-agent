@@ -161,6 +161,9 @@ def test_real_queue_is_rate_limited_and_records_wake(tmp_path):
             "--interval",
             "300",
             "--start-immediately",
+            "--legacy-fixed-message",
+            "--message",
+            "legacy-test-message",
         ]
     )
     supervisor = ResearchSupervisor(args)
@@ -191,5 +194,39 @@ def test_blocked_goal_requires_explicit_opt_in(tmp_path):
     assert supervisor.cycle(now=100.0) is False
     assert supervisor.state.wake_count == 0
 
-    supervisor = ResearchSupervisor(build_parser(common + ["--allow-blocked"]))
+    supervisor = ResearchSupervisor(
+        build_parser(
+            common
+            + [
+                "--allow-blocked",
+                "--legacy-fixed-message",
+                "--message",
+                "legacy-test-message",
+            ]
+        )
+    )
     assert supervisor.cycle(now=100.0) is True
+
+
+def test_real_queue_is_retired_without_explicit_legacy_opt_in(tmp_path):
+    rollout = tmp_path / "rollout.jsonl"
+    rollout.write_text(json.dumps(_event("task_complete", "old")) + "\n", encoding="utf-8")
+    home = _codex_home(tmp_path, rollout)
+    args = build_parser(
+        [
+            "--thread",
+            THREAD,
+            "--codex-home",
+            str(home),
+            "--codex-bin",
+            "/does/not/exist",
+            "--state-file",
+            str(tmp_path / "supervisor.json"),
+            "--lock-file",
+            str(tmp_path / "lock"),
+            "--start-immediately",
+        ]
+    )
+    supervisor = ResearchSupervisor(args)
+    assert supervisor.run() == 0
+    assert supervisor.state.wake_count == 0
