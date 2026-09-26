@@ -42,3 +42,12 @@ hypotheses:
     probe_budget: 1
     probes_used: 1
     transition: "CPU post-action handflow audit failed the predeclared 5% held-lift credit gate; freeze this family and require a new higher-level hypothesis."
+
+  HF04:
+    claim: C3
+    name: trajectory_level_credit
+    status: KILLED
+    branch: agent/cm-trajectory-credit
+    probe_budget: 1
+    probes_used: 1
+    transition: "CPU trajectory-credit screen failed the predeclared 5% held-lift Brier and max-contact-lift RMSE gate; freeze HF04 and require a new high-level hypothesis."

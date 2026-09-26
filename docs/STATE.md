@@ -75,6 +75,10 @@ Updated: 2026-09-26
   `motion_id=0`，不支持多轨迹或跨物体结论；HF03 已冻结，不启动新的 physical
   collection、critic/PPO 或 online Probe。结果索引见
   [`P-20260926-contact-supported-credit-results.json`](experiments/probes/P-20260926-contact-supported-credit-results.json)。
+- HF04 trajectory-level-credit 的 CPU screen 也为 `UNPROMISING`：121 行 fit、126 行
+  holdout；相对 pre-action，held-lift Brier 仅改善 0.29%，连续 lift RMSE
+  恶化 12.95%，未过预设的双侧 5% gate。见
+  [HF04 card](experiments/probes/P-20260926-trajectory-credit.md)。
 - 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
   中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
   `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
@@ -90,20 +94,16 @@ Updated: 2026-09-26
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
+| `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
 信息增益时，必须切换高层假设；换 metric、horizon 或 seed 不会重置预算。
 
-## Next decision experiment
+## Next decision
 
-HF02 slot-2 的 canonical evaluator、两份 Cm-off collection、CPU 五模型 fit
-和 provenance 已提交；numeric gate 失败后该 family 暂停。随后 HF03 的
-post-action handflow credit audit 也未提供可复用的 held-lift 增量。当前没有
-一个已通过门槛的 Cm policy-utility Probe；下一步必须由新的 higher-level
-hypothesis/goal 决定，不能在 HF02/HF03 上继续换 seed、horizon、metric、
-representation、PPO 或 matched online，也不要继续微调已停止的局部腕部动作、
-progress-reward 系数或同一接触门。三次无进展后的路线复盘见
-[`D-20260926-after-hf03-route-review.md`](decisions/D-20260926-after-hf03-route-review.md)。
-子代理 `agent/cm-trajectory-credit` 已预声明 HF04 trajectory-credit CPU screen，
-当前尚无结果；它不改变上述已完成 Probe 的结论。
+HF02、HF03 和 HF04 的预设门均失败；当前没有通过门槛的 Cm policy-utility
+Probe。停止在这些 family 上更换 seed、窗口、模型头或重复 online/PPO。
+[HF04 后路线复盘](decisions/D-20260926-after-hf04-route-review.md)
+建议冻结当前 credit campaign；若继续研究，应由用户在 Decision Checkpoint
+决定新的高层假设与资源预算。
