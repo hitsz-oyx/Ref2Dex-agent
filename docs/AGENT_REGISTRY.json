@@ -6,7 +6,9 @@
   "updated_at": "2026-09-26",
   "owner": "root",
   "purpose": "记录 Ref2Dex 四个协作角色、Codex 对话 ID 及其所属 CODEX_HOME；动态运行状态不在此文件维护。",
+  "codex_home_env_var": "CODEX_HOME",
   "default_codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+  "codex_home_policy": "每条 agent 记录显式保存 codex_home；切换目录时不得只改环境变量而不更新注册表。",
   "identity_rules": {
     "identity_key": [
       "codex_home",
