@@ -1,0 +1,223 @@
+{
+  "schema": "ref2dex.hf02.fixed_route_cm_off_preflight.v1",
+  "purpose": "CPU/static handoff for the canonical six-expert, three-airplane matched Cm-off entry",
+  "status": "REUSABLE_FOR_FIXED_ROUTE_PREFLIGHT_ONLY",
+  "execution": {
+    "performed": false,
+    "reason": "The fixed-route evaluator imports Isaac Gym at module import; this audit is CPU-only and did not start a GPU, simulator, collector, PPO, or HF02 Probe."
+  },
+  "owner_branch": "agent/grab-full-baseline",
+  "handoff_commit_before_this_file": "86c16ed3086077bad6492604f0e8c65e42fde8f4",
+  "audited_temporal": {
+    "commit": "bf3421d808f261d777d0720c5c5bf9e1a3d82287",
+    "probe_id": "P-20260926-temporal-expert-credit",
+    "probe_card": {
+      "path": "docs/experiments/probes/P-20260926-temporal-expert-credit.md",
+      "git_blob_sha1": "45c7de9d05f992bd999e81660e049a3f606c82ae",
+      "status": "PLANNED"
+    },
+    "exact_temporal_evaluator": {
+      "path": "third_party/DExplore/dexplore/evaluate_temporal_expert_option.py",
+      "commit": "33e828859185edb2b4590cbb9eea292d5283be71",
+      "git_blob_sha1": "388184b00f9cde55ec2ff508f0581af1b531e91a",
+      "sha256": "0de5f9743af69e8b4373fd411c1f0ecd2cb3de0ca2089405ac6f68470111ca76"
+    },
+    "collector_config": {
+      "path": "src/task/CmResidual/configs/airplane_temporal_expert_probe.json",
+      "sha256": "47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536"
+    },
+    "temporal_contract_module": {
+      "path": "src/task/CmResidual/temporal_option_contract.py",
+      "sha256": "4cbe646bebe395c3d3065919da874eb0346c51852670eac1001355d8213be697"
+    }
+  },
+  "canonical_route": {
+    "path": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+    "sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
+    "route_mode": "simulator_object_id",
+    "objects": ["airplane"],
+    "base_expert": "source_e260",
+    "candidate_experts": [
+      "balanced_e360",
+      "cup_e340",
+      "duck_e340",
+      "mixed12_e300",
+      "source_e260",
+      "train5_e320"
+    ],
+    "motion_names": [
+      "s3_airplane_lift",
+      "s7_airplane_lift_Retake",
+      "s9_airplane_lift"
+    ],
+    "object_route": {"airplane": "source_e260"},
+    "motion_root": "outputs/CmResidual/agent_contact_option_airplane_motions"
+  },
+  "fixed_route_evaluator": {
+    "path": "third_party/DExplore/dexplore/evaluate_object_router.py",
+    "source_commit": "8625cd3e4bf958c1af29e0ccf9c69fbd4a402ebb",
+    "git_blob_sha1": "84e086d502a1b838e4607f3d51f2f0d77073f114",
+    "sha256": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+    "cm_mode": "off",
+    "candidate_mode": "experts",
+    "contact_gate": "instant",
+    "cpu_importable": false
+  },
+  "artifacts": {
+    "experts": {
+      "balanced_e360": {
+        "path": "outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+        "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+      },
+      "cup_e340": {
+        "path": "outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+        "sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc"
+      },
+      "duck_e340": {
+        "path": "outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+        "sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a"
+      },
+      "mixed12_e300": {
+        "path": "outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+        "sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3"
+      },
+      "source_e260": {
+        "path": "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+        "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+      },
+      "train5_e320": {
+        "path": "outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth",
+        "sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961"
+      }
+    },
+    "motions": {
+      "s3_airplane_lift": {
+        "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s3_airplane_lift/interaction_hand_inspire.pt",
+        "sha256": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c"
+      },
+      "s7_airplane_lift_Retake": {
+        "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s7_airplane_lift_Retake/interaction_hand_inspire.pt",
+        "sha256": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6"
+      },
+      "s9_airplane_lift": {
+        "path": "outputs/CmResidual/agent_contact_option_airplane_motions/s9_airplane_lift/interaction_hand_inspire.pt",
+        "sha256": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+      }
+    },
+    "runtime_configs": {
+      "cfg_env": {
+        "path": "third_party/DExplore/dexplore/data/cfg/inspire_object_balanced.yaml",
+        "sha256": "75ad8cbfc1e9d2c1207815cbe689a0c19ea16b50498c7935c3a3fdbb8c5c8953",
+        "tracked_in_this_commit": false
+      },
+      "cfg_train": {
+        "path": "third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml",
+        "sha256": "80e00288b482285517d75d7075ee55975ba471b1eca035a25b5c48b9128f2fb1",
+        "tracked_in_this_commit": false
+      }
+    }
+  },
+  "seed_ownership": {
+    "matched_off_fit": {
+      "simulator_seed": 254,
+      "start_frame_source": "DExplore task.start_times; recorded as per_episode.start_frame",
+      "assignment_seed": null,
+      "note": "The fixed-route evaluator has no temporal assignment; seed 254 is the fit simulator-seed counterpart."
+    },
+    "matched_off_holdout": {
+      "simulator_seed": 255,
+      "start_frame_source": "DExplore task.start_times; recorded as per_episode.start_frame",
+      "assignment_seed": null,
+      "note": "Use only as the holdout fixed-route counterpart; keep output directory distinct."
+    },
+    "temporal_probe_contract": {
+      "fit": {"simulator_seed": 254, "assignment_seed": 20260926254, "num_envs": 192},
+      "holdout": {"simulator_seed": 255, "assignment_seed": 20260926255, "num_envs": 192}
+    }
+  },
+  "matched_off_command": {
+    "cwd": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+    "argv": [
+      "CUDA_VISIBLE_DEVICES=<one-idle-approved-gpu>",
+      "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "third_party/DExplore/dexplore/evaluate_object_router.py",
+      "--route-config", "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+      "--task", "Dexplore_Inspire",
+      "--cfg_env", "dexplore/data/cfg/inspire_object_balanced.yaml",
+      "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
+      "--motion_file", "outputs/CmResidual/agent_contact_option_airplane_motions",
+      "--checkpoint", "outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+      "--disable-early-termination", "--headless",
+      "--sim_device", "cuda:0", "--rl_device", "cuda:0", "--graphics_device_id", "0",
+      "--num_envs", "64", "--cm-mode", "off", "--cm-candidate-mode", "experts",
+      "--cm-contact-gate", "instant", "--seed", "254",
+      "--output", "outputs/CmResidual/agent_hf02_temporal_canonical_off_s254/results.json"
+    ],
+    "expected_output_directory": "new directory only; do not overwrite an existing run"
+  },
+  "output_schema": {
+    "top_level": ["summary", "per_episode"],
+    "summary": [
+      "num_episodes", "success_rate", "mean_reward", "std_reward", "mean_steps",
+      "mean_hand_error", "mean_obj_error", "lift_success_rate", "mean_max_lift_m",
+      "mean_max_contact_lift_m", "mean_hand_object_contact_fraction",
+      "mean_airborne_fraction", "mean_max_lift_contact_run_steps",
+      "lift_success_definition", "episode_sampling", "early_termination_disabled",
+      "selector_enabled", "evaluation_wall_seconds"
+    ],
+    "per_episode": [
+      "reward", "env_id", "motion_id", "start_frame", "steps", "survived",
+      "mean_hand_error", "mean_obj_error", "max_lift_m", "max_contact_lift_m",
+      "hand_object_contact_fraction", "airborne_fraction",
+      "max_lift_contact_run_steps", "lift_success"
+    ],
+    "metric_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
+    "sampling": "first completed episode from every parallel environment; fixed evaluator requires 64 episodes"
+  },
+  "static_audit": {
+    "simulator_object_id": {
+      "result": "EXPRESSIBLE",
+      "evidence": "RoutedPlayer.restore maps task.object_id through task.object_name into CONFIG['object_route']; get_action selects the routed expert by task.data_id."
+    },
+    "six_experts": {
+      "result": "EXPRESSIBLE_IF_ROUTE_HAS_SIX",
+      "evidence": "restore iterates CONFIG['experts'] and stacks every loaded expert; the canonical route and temporal contract enforce the exact ordered six names, while this evaluator itself does not assert len==6."
+    },
+    "three_motions": {
+      "result": "EXTERNAL_PIN_REQUIRED",
+      "evidence": "--motion_file is passed to DExplore, but the fixed evaluator does not validate a three-motion list or motion tensor hashes. This manifest pins the canonical root, names, and hashes."
+    },
+    "seed_and_start_frame": {
+      "result": "EXPRESSIBLE_BUT_NOT_SELF_VALIDATING",
+      "evidence": "--seed is forwarded to DExplore; evaluate.py captures task.start_times in per_episode.start_frame. The fixed evaluator does not own the temporal assignment seed or independently verify seed-to-start-frame ownership."
+    },
+    "output_fields": {
+      "result": "FIXED_ROUTE_METRICS_ONLY",
+      "evidence": "The result contains summary/per_episode fixed-route metrics and start_frame, but no explicit simulator_object_id/object_name and no option assignment, propensity, ten-step history, or twenty-step future arrays."
+    },
+    "cm_off": {
+      "result": "EXPRESSIBLE",
+      "evidence": "--cm-mode off leaves CM_MODEL unset and the child run manifest records cm_enabled=false."
+    }
+  },
+  "known_blockers": [
+    "The fixed evaluator cannot be executed in this CPU-only handoff because it imports Isaac Gym at module import; no GPU or simulator run was started.",
+    "The fixed evaluator does not enforce the canonical three-motion root/hash set or temporal seed ownership; the command must be used together with this manifest.",
+    "The fixed evaluator is not a substitute for the temporal offline collector because it omits assignment/propensity, state/action history, option actions, and twenty-step future contact/lift records.",
+    "The frozen route JSON matched_cm_off.note predates temporal commit bf3421d and still says the temporal evaluator is uncommitted; the route hash is intentionally unchanged, so this supplement is the current evaluator-status authority.",
+    "The two DExplore runtime YAMLs and artifact outputs are present as read-only workspace inputs but are not tracked by this commit; their SHA256 values are pinned above."
+  ],
+  "cpu_audit": {
+    "temporal_contract_pytest": "9 passed in 3.02s",
+    "temporal_py_compile": "passed",
+    "temporal_dry_run": {
+      "result": "passed",
+      "isaacgym_imported": false,
+      "route_config_sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
+      "fit_arm_counts": {"0": 32, "1": 32, "2": 32, "3": 32, "4": 32, "5": 32},
+      "holdout_arm_counts": {"0": 32, "1": 32, "2": 32, "3": 32, "4": 32, "5": 32}
+    },
+    "temporal_verify_artifacts": "passed: six checkpoint hashes and three motion hashes",
+    "fixed_evaluator_static_ast": "passed: object-id route, expert loading, Cm-off flags, output path, and seed forwarding inspected; evaluator not imported"
+  }
+}
