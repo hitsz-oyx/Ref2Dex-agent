@@ -17,9 +17,16 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import sys
 from typing import Dict, Mapping, Tuple
 
 import torch
+
+# Make direct execution from ``tools/`` resolve the repository package just as
+# the tracked simulator evaluator does.
+ROOT = Path(__file__).resolve().parents[4]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.task.CmResidual.temporal_option_contract import (
     validate_frozen_contract,
@@ -280,7 +287,7 @@ def main() -> None:
     args = parser.parse_args()
     if torch.cuda.is_available():
         raise RuntimeError("CPU fit must run with CUDA unavailable")
-    root = Path(__file__).resolve().parents[4]
+    root = ROOT
     provenance = validate_frozen_contract(
         root, args.collector_config.resolve(), args.route_config.resolve(),
         verify_artifacts=True)
