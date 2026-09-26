@@ -370,4 +370,5 @@ Research Debt 的存在意味着：
 [docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md) 与
 [docs/AGENT_REGISTRY.json](docs/AGENT_REGISTRY.json)。
 主代理的持续推进与轮询规则见 [docs/ROOT_AGENT.md](docs/ROOT_AGENT.md)。
+新建代理时使用 [create-ref2dex-agent skill](.agents/skills/create-ref2dex-agent/SKILL.md)。
 其中的资源授权必须同时遵守本文件和 `docs/CAMPAIGN.md`。

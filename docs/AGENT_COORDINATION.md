@@ -2,7 +2,7 @@
 
 **状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v3`  ·  **所有者：** `/root`
 
-本文件规定 Ref2Dex 的四个 Codex 对话如何注册、分工、交接和接受监督。它不
+本文件规定 Ref2Dex 当前已登记的 Codex 对话如何注册、分工、交接和接受监督。它不
 保存实验结果。当前对话 ID、`CODEX_HOME`、角色和工作树的机器可读注册表是：
 
 [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
@@ -248,3 +248,10 @@ tip 通过测试就整体合并。合并后重新运行 mainline verification，
 
 不要在本文件、experiment card 或 `STATE.md` 另行维护一份会漂移的 ID 清单。
 需要变更身份职责时，先修改注册表和本节角色契约，再创建 goal；不能只改显示名。
+
+## 10. 如何新建代理
+
+新代理的对话命名、重名数字后缀、按 `CODEX_HOME` 选择网络入口、工作树创建和
+注册步骤见 [create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md)。
+先完成独立身份和权限登记，再派发明确 Goal；新对话不自动继承旧对话的身份、
+资源或当前研究授权。
