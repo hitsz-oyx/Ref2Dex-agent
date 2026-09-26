@@ -8,7 +8,7 @@ claim_id: C3
 hypothesis_family: HF04
 probe_index_in_family: 1
 seed_pool: probe
-status: PLANNED
+status: UNPROMISING
 classification: Decision
 ---
 
@@ -95,3 +95,36 @@ Implementation and tests are pinned at commit
   `d2b9af83a9f6dbe9312225c0317f3cb6a7af3ee895eff3c3d34f62cb1a3bd56b`;
 * test SHA256:
   `9d09bb808ef69a73df19b9a25c712af55f30362b53efcdaa2bf2921214eff5fa`.
+
+## Result
+
+The contract passed with 121 fit rows (arm counts 41/40/40) and 126 holdout
+rows (42/42/42), all finite. The predeclared predictive gate failed:
+
+| model | held-lift Brier | max-contact-lift RMSE (mm) |
+| --- | ---: | ---: |
+| `pre_action` | 0.21274 | 255.917 |
+| `trajectory_credit` | 0.21211 | 289.056 |
+| `action_shuffled` | 0.21289 | 256.063 |
+| `trajectory_shuffled` | 0.21797 | 301.270 |
+
+Relative to `pre_action`, trajectory credit improved held-lift Brier by only
+`+0.29%` and worsened continuous lift RMSE by `−12.95%`. Relative to the
+trajectory placebo, the improvements were `+2.69%` and `+4.05%`, both below the
+fixed 5% joint gate. The trajectory token therefore does not supply a stable
+held-lift credit signal on this substrate.
+
+Decision: **UNPROMISING**. HF04 is frozen after this one CPU screen. No
+recurrent critic, new physical collection, PPO continuation, or online Probe
+is authorized by this card.
+
+Artifacts:
+
+* run manifest:
+  `outputs/CmResidual/agent_trajectory_credit_audit_20260926_r1/run_manifest.json`,
+  SHA256 `cd1aa76f09d14e4421e72c21fa85fd01057fcfc424296e54cd434f513e53ac53`;
+* report:
+  `outputs/CmResidual/agent_trajectory_credit_audit_20260926_r1/report.json`,
+  SHA256 `8766879d4fb949e0f95cad685a8d2019b9581a0d2807895c805f2f071ba6776e`;
+* CPU model artifact SHA256
+  `a6842a7a1c99ca8339f3cabadf2be4668761b41aad9c32023e6bedeaad93f180`.

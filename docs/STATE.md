@@ -60,6 +60,14 @@ Updated: 2026-09-26
   `motion_id=0`，不支持多轨迹或跨物体结论；HF03 已冻结，不启动新的 physical
   collection、critic/PPO 或 online Probe。结果索引见
   [`P-20260926-contact-supported-credit-results.json`](experiments/probes/P-20260926-contact-supported-credit-results.json)。
+- HF04 `trajectory_level_credit` 的 CPU screen 已完成并判定 `UNPROMISING`：
+  seed250/251 fit 共 121 行、seed252/253 holdout 共 126 行，三臂行数和
+  first-episode/finiteness checks 均通过。五步 contact/handflow trajectory
+  token 相对 `pre_action` 的 held-lift Brier 只改善 `+0.29%`，连续
+  contact-lift RMSE 反而恶化 `-12.95%`；相对 trajectory-shuffled 也只有
+  `+2.69%/+4.05%`，未达到预设双侧 5% gate。HF04 已冻结，不启动 recurrent
+  critic、新 collection、PPO 或 online Probe。结果索引见
+  [`P-20260926-trajectory-credit-results.json`](experiments/probes/P-20260926-trajectory-credit-results.json)。
 - 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
   中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
   `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
@@ -75,7 +83,7 @@ Updated: 2026-09-26
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `FROZEN` | 2/3，slot-2 UNPROMISING | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-contact-credit` |
-| `HF04` trajectory-level-credit | `C3` | `ACTIVE` | 0/1，CPU screen predeclared | `agent/cm-trajectory-credit` |
+| `HF04` trajectory-level-credit | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -85,9 +93,9 @@ Updated: 2026-09-26
 
 HF02 slot-2 的 canonical evaluator、两份 Cm-off collection、CPU 五模型 fit
 和 provenance 已提交；numeric gate 失败后该 family 暂停。随后 HF03 的
-post-action handflow credit audit 也未提供可复用的 held-lift 增量。当前没有
-一个已通过门槛的 Cm policy-utility Probe；下一步必须由新的 higher-level
-hypothesis/goal 决定，不能在 HF02/HF03 上继续换 seed、horizon、metric、
-representation、PPO 或 matched online，也不要继续微调已停止的局部腕部动作、
-progress-reward 系数或同一接触门。三次无进展后的路线复盘见
-[`D-20260926-after-hf03-route-review.md`](decisions/D-20260926-after-hf03-route-review.md)。
+post-action handflow credit audit 与 HF04 的 trajectory-level credit screen
+也未提供可复用的 held-lift 增量。当前没有一个已通过门槛的 Cm policy-utility
+Probe；不能在 HF02–HF04 上继续换 seed、horizon、metric、representation、
+PPO 或 matched online，也不要继续微调已停止的局部腕部动作、progress-reward
+系数或同一接触门。HF04 之后的路线复盘建议冻结当前 campaign，见
+[`D-20260926-after-hf04-route-review.md`](decisions/D-20260926-after-hf04-route-review.md)。

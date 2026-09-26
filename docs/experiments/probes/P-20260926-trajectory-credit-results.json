@@ -1,0 +1,57 @@
+{
+  "schema": "ref2dex.hf04_trajectory_credit_result.v1",
+  "probe_id": "P-20260926-trajectory-credit",
+  "branch": "agent/cm-trajectory-credit",
+  "git_commit": "16f345f9d56c58e881731bf91d5a9a2eecb05968",
+  "hypothesis_family": "HF04",
+  "probe_index_in_family": 1,
+  "status": "UNPROMISING",
+  "classification": "Decision",
+  "substrate": {
+    "object": "airplane",
+    "recorded_motion_ids": [0],
+    "source_actor": "source_e260",
+    "checkpoint_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+    "motion_manifest_sha256": "2878bd20d1dd849f6844883c832a3777602d2d2bc73f7581b3bc23d30725f038"
+  },
+  "splits": {
+    "fit": {"simulator_seeds": [250, 251], "assignment_seeds": [20260925250, 20260925251], "rows": 121, "arm_counts": {"-1": 41, "0": 40, "1": 40}},
+    "holdout": {"simulator_seeds": [252, 253], "assignment_seeds": [20260925252, 20260925253], "rows": 126, "arm_counts": {"-1": 42, "0": 42, "1": 42}}
+  },
+  "gate": {
+    "minimum_rows_per_arm": 15,
+    "relative_margin": 0.05,
+    "rows_pass": true,
+    "finite_pass": true,
+    "primary_improvement_pass": false,
+    "all_conditions_pass": false
+  },
+  "holdout_metrics": {
+    "pre_action": {"held_lift_brier": 0.21273728236361256, "max_contact_lift_rmse_mm": 255.91720605921356},
+    "trajectory_credit": {"held_lift_brier": 0.2121146755416055, "max_contact_lift_rmse_mm": 289.056327093243},
+    "action_shuffled": {"held_lift_brier": 0.21288948544065286, "max_contact_lift_rmse_mm": 256.062944580327},
+    "trajectory_shuffled": {"held_lift_brier": 0.21797084955965185, "max_contact_lift_rmse_mm": 301.2704567238553}
+  },
+  "relative_improvements": {
+    "trajectory_vs_pre_action_held_brier": 0.0029266464960423727,
+    "trajectory_vs_pre_action_max_lift_rmse": -0.12949157090423138,
+    "trajectory_vs_shuffle_held_brier": 0.02686677613028104,
+    "trajectory_vs_shuffle_max_lift_rmse": 0.040542075593584664
+  },
+  "artifacts": {
+    "run_manifest": {"path": "outputs/CmResidual/agent_trajectory_credit_audit_20260926_r1/run_manifest.json", "sha256": "cd1aa76f09d14e4421e72c21fa85fd01057fcfc424296e54cd434f513e53ac53"},
+    "report": {"path": "outputs/CmResidual/agent_trajectory_credit_audit_20260926_r1/report.json", "sha256": "8766879d4fb949e0f95cad685a8d2019b9581a0d2807895c805f2f071ba6776e"},
+    "model_artifact_sha256": "a6842a7a1c99ca8339f3cabadf2be4668761b41aad9c32023e6bedeaad93f180",
+    "script": {"path": "src/task/CmResidual/tools/fit_trajectory_credit_audit.py", "sha256": "d2b9af83a9f6dbe9312225c0317f3cb6a7af3ee895eff3c3d34f62cb1a3bd56b"},
+    "tests": {"path": "src/task/CmResidual/tests/test_trajectory_credit_audit.py", "sha256": "9d09bb808ef69a73df19b9a25c712af55f30362b53efcdaa2bf2921214eff5fa"}
+  },
+  "decision": {
+    "status": "UNPROMISING",
+    "freeze_hf04": true,
+    "gpu_started": false,
+    "new_collection_started": false,
+    "ppo_started": false,
+    "online_probe_started": false,
+    "reason": "trajectory_credit failed the predeclared 5% held-lift Brier and max-contact-lift RMSE gate against pre_action and trajectory_shuffled"
+  }
+}

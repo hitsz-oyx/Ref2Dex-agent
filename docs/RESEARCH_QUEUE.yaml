@@ -46,8 +46,8 @@ hypotheses:
   HF04:
     claim: C3
     name: trajectory_level_credit
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-trajectory-credit
     probe_budget: 1
-    probes_used: 0
-    transition: "CPU screen is predeclared; trajectory_credit must beat pre_action and trajectory_shuffled by >=5% on held-lift Brier and max-contact-lift RMSE, or freeze HF04."
+    probes_used: 1
+    transition: "CPU trajectory-credit screen failed the predeclared 5% held-lift Brier and max-contact-lift RMSE gate; freeze HF04 and require a new high-level hypothesis."
