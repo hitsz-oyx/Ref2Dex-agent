@@ -3,14 +3,14 @@ schema: ref2dex.probe.v2
 probe_id: P-20260926-temporal-expert-credit
 date: 2026-09-26
 branch: agent/cm-temporal
-git_commit: 33e828859185edb2b4590cbb9eea292d5283be71
+git_commit: 6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f
 baseline_handoff_commit: 546f6f8
 canonical_route_manifest: src/task/CmResidual/configs/hf02_temporal_canonical_route.json
 canonical_route_sha256: afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16
 tracked_temporal_evaluator: third_party/DExplore/dexplore/evaluate_temporal_expert_option.py
-tracked_temporal_evaluator_commit: 33e828859185edb2b4590cbb9eea292d5283be71
-tracked_temporal_evaluator_git_blob_sha1: 388184b00f9cde55ec2ff508f0581af1b531e91a
-tracked_temporal_evaluator_sha256: 0de5f9743af69e8b4373fd411c1f0ecd2cb3de0ca2089405ac6f68470111ca76
+tracked_temporal_evaluator_commit: 6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f
+tracked_temporal_evaluator_git_blob_sha1: c759255a9aacc48da7c3f3f0b80e52b708b16db6
+tracked_temporal_evaluator_sha256: d0fdb3d27a034771ab5623c9d58dae90452b03ae426b2065b3ae170640192775
 tracked_collector_config: src/task/CmResidual/configs/airplane_temporal_expert_probe.json
 tracked_collector_config_sha256: 47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536
 tracked_contract_module: src/task/CmResidual/temporal_option_contract.py
@@ -75,11 +75,14 @@ randomized-wrist checkpoint is also excluded.
 The handoff's fixed-route Cm-off entry is
 `third_party/DExplore/dexplore/evaluate_object_router.py` at blob
 `84e086d502a1b838e4607f3d51f2f0d77073f114`. The exact six-expert temporal
-option evaluator is now tracked at
-`third_party/DExplore/dexplore/evaluate_temporal_expert_option.py` in commit
-`33e828859185edb2b4590cbb9eea292d5283be71`, with Git blob SHA1
-`388184b00f9cde55ec2ff508f0581af1b531e91a` and file SHA256
-`0de5f9743af69e8b4373fd411c1f0ecd2cb3de0ca2089405ac6f68470111ca76`.
+option evaluator is tracked at
+`third_party/DExplore/dexplore/evaluate_temporal_expert_option.py` in fix
+commit `6338cc3affa0b9cfac9bb6e9c901dd9cbb5e8e3f`, with Git blob SHA1
+`c759255a9aacc48da7c3f3f0b80e52b708b16db6` and file SHA256
+`d0fdb3d27a034771ab5623c9d58dae90452b03ae426b2065b3ae170640192775`.
+The fix only defers the contract's PyTorch import until after Isaac Gym is
+loaded in a real collection process; it does not change the route, seeds,
+horizons, assignment, or recorded fields.
 It is contract-first and imports Isaac Gym only after the CPU preflight passes.
 The companion collector config is tracked at
 `src/task/CmResidual/configs/airplane_temporal_expert_probe.json` with SHA256
@@ -90,8 +93,9 @@ The shared CPU contract module is tracked at
 contract tests are tracked at
 `src/task/CmResidual/tests/test_temporal_option_contract.py` with SHA256
 `42886719b2dd897e00dd9fd2e8874a38a74e0077d5a7113570ffcccb2c1eb728`.
-The baseline handoff's uncommitted-evaluator note is therefore resolved by this
-implementation commit. This engineering task does not authorize collection or
+The baseline handoff's uncommitted-evaluator note is therefore resolved by the
+tracked implementation and its import-order fix. Collection under this card
+is limited to the single fit/holdout offline Probe below; it does not authorize
 an online Probe.
 
 ## Frozen data collection
@@ -182,7 +186,8 @@ manifests. This card cannot be upgraded to a formal Cm causal claim.
 
 ## Status and artifacts
 
-Status: `PLANNED` (tracked evaluator/config ready; no collection run executed).
+Status: `RUNNING` (canonical fit collection is being executed; no valid rows
+have yet been admitted).
 The one permitted cwd-corrected engineering smoke is
 recorded separately and does not consume this Probe's offline gate:
 
@@ -223,7 +228,7 @@ implementation's pure-CPU checks are:
   hashes, reports `isaacgym_imported: false`, and gives `32` assignments per
   arm for both seed-owned splits.
 
-Planned collection artifacts after a separately approved execution step:
+Planned collection artifacts after the approved execution step:
 
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/`
 
