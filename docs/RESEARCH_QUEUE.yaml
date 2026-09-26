@@ -61,7 +61,7 @@ hypotheses:
   HF05:
     claim: C3
     name: selective_causal_intervention
-    status: UNPROMISING
+    status: KILLED
     branch: agent/cm-selective-causal-gate
     probe_budget: 1
     probes_used: 1

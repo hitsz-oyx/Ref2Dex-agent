@@ -104,7 +104,7 @@ Updated: 2026-09-26
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 | `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
-| `HF05` selective-causal-intervention | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
+| `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无

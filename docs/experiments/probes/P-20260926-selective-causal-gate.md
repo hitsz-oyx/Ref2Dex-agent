@@ -6,8 +6,10 @@ branch: agent/cm-selective-causal-gate
 git_commit: 22a9eab578df64262b27dd6a716331de5bd209b1
 claim_id: C3
 hypothesis_family: HF05
+decision_changed_if_positive: "Write a confirmation memo before considering a matched online Cm-on/off Probe."
+decision_changed_if_negative: "Freeze HF05 without changing its seed, target, threshold, bootstrap, or policy rule."
 probe_index_in_family: 1
-seed_pool: existing-probe-records
+seed_pool: probe
 status: UNPROMISING
 classification: Decision
 ---
