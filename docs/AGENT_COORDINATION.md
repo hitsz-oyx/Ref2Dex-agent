@@ -20,6 +20,8 @@
 身份键是 **`(codex_home, conversation_id)`**，而不是单独的 conversation ID。不同
 `CODEX_HOME` 下可以存在相同格式的 ID；读取或派发消息时必须使用注册表中同一
 条记录的两项，不能依赖默认目录或自动发现。
+每个 agent 的 `codex_home` 独立登记；当前多个 agent 可以碰巧使用同一个目录，
+但注册表没有共用的 `default_codex_home`，也不允许从 root 或环境变量继承。
 
 当前登记四个稳定的 `agent_key`：
 
@@ -43,9 +45,18 @@ from pathlib import Path
 d = json.loads(Path("docs/AGENT_REGISTRY.json").read_text())
 agents = d["agents"]
 keys = [(a["codex_home"], a["conversation_id"]) for a in agents]
+assert "default_codex_home" not in d
 assert len({a["agent_key"] for a in agents}) == len(agents)
 assert len(set(keys)) == len(keys)
-assert all(a["codex_home"] and a["conversation_id"] for a in agents)
+for a in agents:
+    home = Path(a["codex_home"])
+    assert home.is_absolute() and a["conversation_id"]
+    assert Path(a["session_root"]) == home / "sessions"
+    for field, filename in (("state_db", "state_5.sqlite"),
+                            ("goal_db", "goals_1.sqlite"),
+                            ("queue_db", "queue_1.sqlite")):
+        assert Path(a[field]) == home / filename
+    assert a["conversation_id"] in a["rollout_locator"]
 print("AGENT_REGISTRY_VALID", len(agents))
 PY
 ```
@@ -208,9 +219,11 @@ NEXT=<single decision or blocker>
 规范集成工作树为：
 
 ```text
-/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main
+/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent
 branch: main
 ```
+
+`agent/grab-full-baseline` 的工作树为同级的 `Ref2Dex-agent-baseline`。
 
 只有 `/root` 可以把已接受的子代理提交合并到 `main`。合并前必须核对：子线程
 终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否

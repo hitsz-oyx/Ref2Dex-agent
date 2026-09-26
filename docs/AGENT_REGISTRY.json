@@ -1,14 +1,13 @@
 {
-  "$schema": "ref2dex.agent_registry.v2",
-  "registry_schema": "ref2dex.agent_registry.v2",
+  "$schema": "ref2dex.agent_registry.v3",
+  "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 2,
+  "registry_version": 3,
   "updated_at": "2026-09-26",
   "owner": "root",
-  "purpose": "记录 Ref2Dex 四个协作角色、Codex 对话 ID 及其所属 CODEX_HOME；动态运行状态不在此文件维护。",
+  "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
   "codex_home_env_var": "CODEX_HOME",
-  "default_codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-  "codex_home_policy": "每条 agent 记录显式保存 codex_home；切换目录时不得只改环境变量而不更新注册表。",
+  "codex_home_policy": "每条 agent 记录独立指定 codex_home；允许多个 agent 当前使用同一路径，但不存在注册表级默认或继承。迁移时同步更新该 agent 的会话和数据库定位。",
   "identity_rules": {
     "identity_key": [
       "codex_home",
@@ -24,12 +23,14 @@
       "<codex_home>/queue_1.sqlite",
       "Git branch/commit/status",
       "experiment card 和 run manifest"
-    ]
+    ],
+    "codex_home_is_per_agent": true,
+    "shared_codex_home_allowed": true
   },
   "supervision": {
     "mode": "root_in_turn_polling",
     "fixed_external_wake_message": "RETIRED",
-    "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main/scripts/codex_research_supervisor.py",
+    "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/codex_research_supervisor.py",
     "polling_owner": "root",
     "polling_intervals_seconds": {
       "waiting_or_blocked": 300,
@@ -40,7 +41,7 @@
     "dispatch_rule": "仅在发现已授权 blocker 时向精确注册 thread 派发明确 GOAL_DISPATCH；不发送固定心跳或模糊 continue。"
   },
   "integration": {
-    "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+    "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
     "canonical_branch": "main",
     "merge_owner": "root",
     "merge_policy": "只合并经过终态审计、范围审计和验证的明确提交；不按分支 tip 整体盲合。"
@@ -49,17 +50,17 @@
     {
       "agent_key": "root",
       "display_name": "/root",
-      "conversation_id": "01a0d943-de74-7021-8d50-2a4e87fde613",
+      "conversation_id": "01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a",
       "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0d943-de74-7021-8d50-2a4e87fde613.jsonl",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a.jsonl",
       "role": "全局主代理 / supervisor / mainline 集成负责人",
       "parent_agent_key": null,
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
       "branch": "main",
       "owns": [
         "MISSION 对齐与全局 goal",
@@ -95,7 +96,7 @@
       "rollout_locator": "sessions/**/rollout-*-01a0d6bf-ba61-7f92-8af7-d68c91f4007d.jsonl",
       "role": "CPU-only canonical baseline / provenance owner",
       "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline",
       "branch": "agent/grab-full-baseline",
       "owns": [
         "GRAB baseline provenance",
@@ -130,7 +131,7 @@
       "role": "单一授权 Cm temporal Probe owner",
       "parent_agent_key": "root",
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-temporal",
-      "branch": "agent/cm-contact-credit",
+      "branch": "agent/cm-trajectory-credit",
       "owns": [
         "当前 experiment card 冻结的 Cm collection/fit",
         "输入、route、checkpoint、seed 和输出 provenance",
@@ -183,5 +184,13 @@
       "handoff": "commit、测试/verify 输出、改动范围和已知取舍"
     }
   ],
-  "retired_conversations": []
+  "retired_conversations": [
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0d943-de74-7021-8d50-2a4e87fde613",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-26",
+      "reason": "superseded as registry owner by the current root conversation; runtime state must be checked separately"
+    }
+  ]
 }
