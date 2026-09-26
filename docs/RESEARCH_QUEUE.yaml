@@ -33,3 +33,12 @@ hypotheses:
     probe_budget: 3
     probes_used: 2
     transition: "Slot-2 offline gate UNPROMISING: freeze HF02 and change the high-level hypothesis; do not rescan seed, horizon, metric, or representation."
+
+  HF03:
+    claim: C3
+    name: contact_supported_credit
+    status: UNPROMISING
+    branch: agent/cm-contact-credit
+    probe_budget: 1
+    probes_used: 1
+    transition: "CPU post-action handflow audit failed the predeclared 5% held-lift credit gate; freeze this family and require a new higher-level hypothesis."

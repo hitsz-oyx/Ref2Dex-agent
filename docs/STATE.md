@@ -50,6 +50,16 @@ Updated: 2026-09-26
   非回归通过。HF02 已冻结，不启动 online/PPO，也不换 seed、horizon、metric 或
   representation 重扫。完整 hash 与 run manifest 索引见
   [`P-20260926-temporal-expert-credit-results.json`](experiments/probes/P-20260926-temporal-expert-credit-results.json)。
+- HF03 `contact_supported_credit` 的 CPU-only retrospective audit 也已完成并判定
+  `UNPROMISING`：复用同一 self-trained `source_e260` airplane substrate 的
+  seed246/247 fit（123 行）和 seed248/249 holdout（122 行），只保留首次接触、
+  完整五步 followup 和首回合 held-lift 标签。动作后 `next_q`/`next_object_state`
+  handflow 相对 action-aware 与 post-handflow-shuffled 对照没有达到预设 5% 的
+  held-lift Brier + max-contact-lift RMSE 联合改进门槛（held Brier 分别
+  `-2.33%`、`-4.36%`；连续 lift RMSE 分别 `+1.86%`、`+4.85%`）。该记录只有
+  `motion_id=0`，不支持多轨迹或跨物体结论；HF03 已冻结，不启动新的 physical
+  collection、critic/PPO 或 online Probe。结果索引见
+  [`P-20260926-contact-supported-credit-results.json`](experiments/probes/P-20260926-contact-supported-credit-results.json)。
 - 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
   中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
   `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
@@ -64,6 +74,7 @@ Updated: 2026-09-26
 | --- | --- | --- | --- | --- |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `FROZEN` | 2/3，slot-2 UNPROMISING | `agent/cm-temporal` |
+| `HF03` contact-supported-credit | `C3` | `UNPROMISING` | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -72,7 +83,9 @@ Updated: 2026-09-26
 ## Next decision experiment
 
 HF02 slot-2 的 canonical evaluator、两份 Cm-off collection、CPU 五模型 fit
-和 provenance 已提交；numeric gate 失败后该 family 暂停。下一步应由新的
-higher-level hypothesis/goal 决定，不能在 HF02 上继续换 seed、horizon、metric、
-representation、PPO 或 matched online。不要继续微调已停止的局部腕部动作、
+和 provenance 已提交；numeric gate 失败后该 family 暂停。随后 HF03 的
+post-action handflow credit audit 也未提供可复用的 held-lift 增量。当前没有
+一个已通过门槛的 Cm policy-utility Probe；下一步必须由新的 higher-level
+hypothesis/goal 决定，不能在 HF02/HF03 上继续换 seed、horizon、metric、
+representation、PPO 或 matched online，也不要继续微调已停止的局部腕部动作、
 progress-reward 系数或同一接触门。
