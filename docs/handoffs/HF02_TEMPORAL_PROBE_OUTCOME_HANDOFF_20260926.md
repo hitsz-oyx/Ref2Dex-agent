@@ -38,3 +38,22 @@ The seed-255 IPW policy values were:
 Freeze HF02 slot 2 at this result. Do not rescan seeds, horizons, metrics, or representations; do not start PPO continuation, a matched online Cm-on/off Probe, a duplicate baseline collection, or a second HF02 card. The fixed-route Cm-off preflight in [HF02_FIXED_ROUTE_CM_OFF_PREFLIGHT_20260926.md](HF02_FIXED_ROUTE_CM_OFF_PREFLIGHT_20260926.md) remains a reproducible baseline entry, while this temporal outcome closes the current offline decision gate.
 
 The engineering retry records remain excluded as documented by the temporal card. CPU checks remain `9 passed`, evaluator dry-run reports `isaacgym_imported=false`, and no new GPU work was started for this outcome handoff.
+
+## Independent provenance replay
+
+After the outcome handoff was written, the current temporal worktree was
+replayed with `validate_frozen_contract(..., verify_artifacts=True)` and
+`validate_record_payload(...)` against both saved payloads. The CPU-only replay
+returned:
+
+```text
+frozen_contract: PASS
+fit payload: PASS       rows=187  arms=31/31/32/31/31/31
+holdout payload: PASS   rows=186  arms=30/32/31/32/31/30
+independent invariants: PASS for both splits
+```
+
+The independent checks also confirmed that every row is `airplane`, every
+`route_expert` is `source_e260`, all assignment propensities are finite and
+equal to `1/6`, and the recorded checkpoint/motion hashes still match the
+canonical route. No Isaac Gym import or GPU process was used for this replay.
