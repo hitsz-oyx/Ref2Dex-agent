@@ -504,9 +504,11 @@ def run(output_dir: Path) -> Dict[str, object]:
             for seed, row in zip((250, 251, 252, 253), fit_parts + holdout_parts)
         },
         "artifacts": {
-            "model_path": str(model_path.relative_to(ROOT)),
+            # Keep the caller's output spelling: worktrees may expose the
+            # shared output directory through a symlink outside ROOT.
+            "model_path": str(model_path),
             "model_sha256": sha256(model_path),
-            "script_path": str(script_path.relative_to(ROOT)),
+            "script_path": str(script_path.resolve().relative_to(ROOT.resolve())),
             "script_sha256": sha256(script_path),
         },
         "decision": {
