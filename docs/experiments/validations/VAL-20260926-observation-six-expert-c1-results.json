@@ -1,0 +1,790 @@
+{
+  "analysis_code": "docs/experiments/validations/VAL-20260926-observation-six-expert-c1-analysis.py",
+  "decision_memo": {
+    "key_evidence": [
+      "All 10 native arms completed with frozen commit and input hashes; all paired episode contracts and finite checks passed.",
+      "Observation choice agreement was 311/320, with per-seed counts 63, 62, 64, 62, 60; cup routing was 30/30.",
+      "Observation held-lift was 123/320 versus fixed 118/320; paired gains/losses were 24/19.",
+      "All predeclared gates passed; descriptive seed bootstrap was +1.5625 pp, 95% percentile interval [-1.8750, +4.6875] pp."
+    ],
+    "option_a": {
+      "cost": "No new compute; root updates the formal card/STATE after checkpoint.",
+      "failure_path": "None for this completed matrix; preserve the evidence and revisit the narrow claim if the checkpoint rejects promotion.",
+      "label": "Promote SUPPORTED",
+      "success_path": "Keep the frozen six-expert observation route as the C1 substrate for the next separately authorized design."
+    },
+    "option_b": {
+      "cost": "No new compute; delay formal promotion.",
+      "failure_path": "The matrix remains valid evidence but is not used as a formal claim.",
+      "label": "Keep SUPPORTED as proposal pending further review",
+      "success_path": "Root performs the required checkpoint and promotes later if accepted."
+    },
+    "question": "May this complete valid C1 matrix be promoted to the predeclared SUPPORTED terminal label?",
+    "recommendation": "Option A at the AGENTS.md checkpoint, with the stated task-bound limitations and no claim about Cm utility."
+  },
+  "gates": {
+    "agreement_each_seed_at_least_60_of_64": true,
+    "all_native_arms_valid": true,
+    "all_predeclared_supported_conditions": true,
+    "cup_each_seed_all_correct": true,
+    "observation_held_lifts_each_seed_at_least_16": true,
+    "observation_held_lifts_total_at_least_100": true,
+    "total_observation_not_more_than_30_below_fixed": true,
+    "within_budget": true
+  },
+  "input_contract": {
+    "all_inputs_match": true,
+    "checkpoints": {
+      "balanced_e360": {
+        "actual_sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f",
+        "declared_sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth"
+      },
+      "cup_e340": {
+        "actual_sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc",
+        "declared_sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth"
+      },
+      "duck_e340": {
+        "actual_sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a",
+        "declared_sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth"
+      },
+      "mixed12_e300": {
+        "actual_sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3",
+        "declared_sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth"
+      },
+      "source_e260": {
+        "actual_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+        "declared_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth"
+      },
+      "train5_e320": {
+        "actual_sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961",
+        "declared_sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961",
+        "matches": true,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth"
+      }
+    },
+    "declared": {
+      "cfg_env": "75ad8cbfc1e9d2c1207815cbe689a0c19ea16b50498c7935c3a3fdbb8c5c8953",
+      "cfg_train": "80e00288b482285517d75d7075ee55975ba471b1eca035a25b5c48b9128f2fb1",
+      "checkpoints": {
+        "balanced_e360": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_crossobject_train5_balanced_s179_e360/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000360.pth",
+          "sha256": "a41fd8281dcf4639579a9cd71baa104f007969cf0642c506d3d358507025f03f"
+        },
+        "cup_e340": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_cup_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+          "sha256": "c7367b92248a01795abafe1761e2e96c86615f70fd406dbc9759c1dd3fc368fc"
+        },
+        "duck_e340": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_duck_specialist_s70_e340/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000340.pth",
+          "sha256": "9bcac13e814cc0de03deb9dcf9fdc8ee8bd9af4e6bb1c71e795c37f8a97e4a7a"
+        },
+        "mixed12_e300": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_multitrajectory12_s70_e300/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+          "sha256": "93626a58cb8448eb8c56b86d0cbdef7a1a66a11c5807a1490319d97eb3974ad3"
+        },
+        "source_e260": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth",
+          "sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+        },
+        "train5_e320": {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_crossobject_train5_s179_e320/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000320.pth",
+          "sha256": "6907c12f8ee4ffa9af22ccae8ffe7599d524e401ff2d8f21b8804185fd5d4961"
+        }
+      },
+      "evaluator": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+      "motion_file_tree": "3614897a03a9bb67f8e8245a0cd51ae4be4f63d1bb87cb3242f5f6247630988f",
+      "route_config": "6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8",
+      "router_model": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14"
+    },
+    "file_hashes": {
+      "cfg_env": {
+        "actual_sha256": "75ad8cbfc1e9d2c1207815cbe689a0c19ea16b50498c7935c3a3fdbb8c5c8953",
+        "declared_sha256": "75ad8cbfc1e9d2c1207815cbe689a0c19ea16b50498c7935c3a3fdbb8c5c8953",
+        "matches": true,
+        "path": "third_party/DExplore/dexplore/data/cfg/inspire_object_balanced.yaml"
+      },
+      "cfg_train": {
+        "actual_sha256": "80e00288b482285517d75d7075ee55975ba471b1eca035a25b5c48b9128f2fb1",
+        "declared_sha256": "80e00288b482285517d75d7075ee55975ba471b1eca035a25b5c48b9128f2fb1",
+        "matches": true,
+        "path": "third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml"
+      },
+      "evaluator": {
+        "actual_sha256": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+        "declared_sha256": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+        "matches": true,
+        "path": "third_party/DExplore/dexplore/evaluate_object_router.py"
+      },
+      "route_config": {
+        "actual_sha256": "6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8",
+        "declared_sha256": "6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8",
+        "matches": true,
+        "path": "src/task/CmResidual/configs/multitrajectory_object_router_with_cup_probe.json"
+      },
+      "router_model": {
+        "actual_sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14",
+        "declared_sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14",
+        "matches": true,
+        "path": "outputs/CmResidual/agent_six_expert_router_model_20260925/router.joblib"
+      }
+    },
+    "motion_file_set_match": true,
+    "motion_hashes": {
+      "s1_alarmclock_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "37549141db1eec571e662a5412458f66ce63bddd9562684b31db8b7ede245912",
+        "declared_sha256": "37549141db1eec571e662a5412458f66ce63bddd9562684b31db8b7ede245912",
+        "matches": true
+      },
+      "s1_cubesmall_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "15295a76264af42306735cf00d7210461ea03f6200fb4b06a08a5a123358a850",
+        "declared_sha256": "15295a76264af42306735cf00d7210461ea03f6200fb4b06a08a5a123358a850",
+        "matches": true
+      },
+      "s1_cup_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "d4a084198fbce4b7eb918421f301bf1d131586fa3ee65e4e7c0ac1e5f15b4e6d",
+        "declared_sha256": "d4a084198fbce4b7eb918421f301bf1d131586fa3ee65e4e7c0ac1e5f15b4e6d",
+        "matches": true
+      },
+      "s1_duck_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "fb0f73535123d9b995140384a019a796f89922bbd44428a4ab8c6fc379f65cee",
+        "declared_sha256": "fb0f73535123d9b995140384a019a796f89922bbd44428a4ab8c6fc379f65cee",
+        "matches": true
+      },
+      "s1_mug_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "a12113b4ac162e47c742729d991e8aa0a859a308f6b96c9d66eb48a00bebd6c0",
+        "declared_sha256": "a12113b4ac162e47c742729d991e8aa0a859a308f6b96c9d66eb48a00bebd6c0",
+        "matches": true
+      },
+      "s1_phone_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "8510666a98c398701e61352f68518c853afee35baa07141f0b9d3ccc381c9311",
+        "declared_sha256": "8510666a98c398701e61352f68518c853afee35baa07141f0b9d3ccc381c9311",
+        "matches": true
+      },
+      "s1_toothpaste_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "667c1e510d158d6efe5d36bea8f065950ecbfa79fc515c27b3bce29b20779113",
+        "declared_sha256": "667c1e510d158d6efe5d36bea8f065950ecbfa79fc515c27b3bce29b20779113",
+        "matches": true
+      },
+      "s1_waterbottle_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "4b75be88f7c4549a8601081d0224262ae0a56c48e673a930a83853556bb70752",
+        "declared_sha256": "4b75be88f7c4549a8601081d0224262ae0a56c48e673a930a83853556bb70752",
+        "matches": true
+      },
+      "s3_airplane_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+        "declared_sha256": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+        "matches": true
+      },
+      "s7_airplane_lift_Retake/interaction_hand_inspire.pt": {
+        "actual_sha256": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+        "declared_sha256": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+        "matches": true
+      },
+      "s7_apple_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "e88eb81b03c11af877099158ae7e4e51fbd9018054319e41ae5f4be55a6713fe",
+        "declared_sha256": "e88eb81b03c11af877099158ae7e4e51fbd9018054319e41ae5f4be55a6713fe",
+        "matches": true
+      },
+      "s9_airplane_lift/interaction_hand_inspire.pt": {
+        "actual_sha256": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+        "declared_sha256": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+        "matches": true
+      }
+    }
+  },
+  "limitations": [
+    "Applies only to the frozen six-expert hierarchy, 12 motions, and five holdout seeds.",
+    "Does not establish a single shared GRAB actor, unseen-object generalization, or superiority over fixed routing.",
+    "Does not test or establish Cm policy utility; Cm was disabled in every arm.",
+    "The seed-level bootstrap is descriptive and is not a superiority test or population guarantee."
+  ],
+  "metrics": {
+    "bootstrap": {
+      "draws": 20000,
+      "percentile_95": {
+        "lower_count_equivalent": -1.2,
+        "lower_pp": -1.875,
+        "median_count_equivalent": 1.0,
+        "median_pp": 1.5625,
+        "upper_count_equivalent": 3.0,
+        "upper_pp": 4.6875
+      },
+      "rng": "numpy.random.default_rng",
+      "rng_seed": 20260926,
+      "statistic": "mean(observation_minus_fixed_seed_rate)",
+      "unit": "seed"
+    },
+    "expert_choice_agreement_rate": 0.971875,
+    "expert_choice_agreement_total": 311,
+    "object_confusion": {
+      "airplane": {
+        "confusion": {
+          "source_e260->source_e260": 75
+        },
+        "n": 75
+      },
+      "alarmclock": {
+        "confusion": {
+          "mixed12_e300->mixed12_e300": 30
+        },
+        "n": 30
+      },
+      "apple": {
+        "confusion": {
+          "source_e260->source_e260": 25
+        },
+        "n": 25
+      },
+      "cubesmall": {
+        "confusion": {
+          "source_e260->cup_e340": 7,
+          "source_e260->source_e260": 23
+        },
+        "n": 30
+      },
+      "cup": {
+        "confusion": {
+          "cup_e340->cup_e340": 30
+        },
+        "n": 30
+      },
+      "duck": {
+        "confusion": {
+          "duck_e340->duck_e340": 30
+        },
+        "n": 30
+      },
+      "mug": {
+        "confusion": {
+          "train5_e320->train5_e320": 25
+        },
+        "n": 25
+      },
+      "phone": {
+        "confusion": {
+          "source_e260->source_e260": 25
+        },
+        "n": 25
+      },
+      "toothpaste": {
+        "confusion": {
+          "balanced_e360->balanced_e360": 25
+        },
+        "n": 25
+      },
+      "waterbottle": {
+        "confusion": {
+          "source_e260->cup_e340": 2,
+          "source_e260->source_e260": 23
+        },
+        "n": 25
+      }
+    },
+    "per_seed": [
+      {
+        "confusion": {
+          "balanced_e360->balanced_e360": 5,
+          "cup_e340->cup_e340": 6,
+          "duck_e340->duck_e340": 6,
+          "mixed12_e300->mixed12_e300": 6,
+          "source_e260->cup_e340": 1,
+          "source_e260->source_e260": 35,
+          "train5_e320->train5_e320": 5
+        },
+        "cup_correct": 6,
+        "cup_environments": 6,
+        "expert_choice_agreement": 63,
+        "expert_choice_denominator": 64,
+        "fixed_held_lifts": 24,
+        "observation_held_lifts": 21,
+        "observation_minus_fixed": -3,
+        "observation_minus_fixed_pp": -4.6875,
+        "paired_alignment": true,
+        "paired_lift_outcomes": {
+          "both": 18,
+          "gain": 3,
+          "loss": 6,
+          "neither": 37
+        },
+        "seed": 400
+      },
+      {
+        "confusion": {
+          "balanced_e360->balanced_e360": 5,
+          "cup_e340->cup_e340": 6,
+          "duck_e340->duck_e340": 6,
+          "mixed12_e300->mixed12_e300": 6,
+          "source_e260->cup_e340": 2,
+          "source_e260->source_e260": 34,
+          "train5_e320->train5_e320": 5
+        },
+        "cup_correct": 6,
+        "cup_environments": 6,
+        "expert_choice_agreement": 62,
+        "expert_choice_denominator": 64,
+        "fixed_held_lifts": 24,
+        "observation_held_lifts": 28,
+        "observation_minus_fixed": 4,
+        "observation_minus_fixed_pp": 6.25,
+        "paired_alignment": true,
+        "paired_lift_outcomes": {
+          "both": 22,
+          "gain": 6,
+          "loss": 2,
+          "neither": 34
+        },
+        "seed": 401
+      },
+      {
+        "confusion": {
+          "balanced_e360->balanced_e360": 5,
+          "cup_e340->cup_e340": 6,
+          "duck_e340->duck_e340": 6,
+          "mixed12_e300->mixed12_e300": 6,
+          "source_e260->source_e260": 36,
+          "train5_e320->train5_e320": 5
+        },
+        "cup_correct": 6,
+        "cup_environments": 6,
+        "expert_choice_agreement": 64,
+        "expert_choice_denominator": 64,
+        "fixed_held_lifts": 23,
+        "observation_held_lifts": 23,
+        "observation_minus_fixed": 0,
+        "observation_minus_fixed_pp": 0.0,
+        "paired_alignment": true,
+        "paired_lift_outcomes": {
+          "both": 20,
+          "gain": 3,
+          "loss": 3,
+          "neither": 38
+        },
+        "seed": 402
+      },
+      {
+        "confusion": {
+          "balanced_e360->balanced_e360": 5,
+          "cup_e340->cup_e340": 6,
+          "duck_e340->duck_e340": 6,
+          "mixed12_e300->mixed12_e300": 6,
+          "source_e260->cup_e340": 2,
+          "source_e260->source_e260": 34,
+          "train5_e320->train5_e320": 5
+        },
+        "cup_correct": 6,
+        "cup_environments": 6,
+        "expert_choice_agreement": 62,
+        "expert_choice_denominator": 64,
+        "fixed_held_lifts": 23,
+        "observation_held_lifts": 26,
+        "observation_minus_fixed": 3,
+        "observation_minus_fixed_pp": 4.6875,
+        "paired_alignment": true,
+        "paired_lift_outcomes": {
+          "both": 20,
+          "gain": 6,
+          "loss": 3,
+          "neither": 35
+        },
+        "seed": 403
+      },
+      {
+        "confusion": {
+          "balanced_e360->balanced_e360": 5,
+          "cup_e340->cup_e340": 6,
+          "duck_e340->duck_e340": 6,
+          "mixed12_e300->mixed12_e300": 6,
+          "source_e260->cup_e340": 4,
+          "source_e260->source_e260": 32,
+          "train5_e320->train5_e320": 5
+        },
+        "cup_correct": 6,
+        "cup_environments": 6,
+        "expert_choice_agreement": 60,
+        "expert_choice_denominator": 64,
+        "fixed_held_lifts": 24,
+        "observation_held_lifts": 25,
+        "observation_minus_fixed": 1,
+        "observation_minus_fixed_pp": 1.5625,
+        "paired_alignment": true,
+        "paired_lift_outcomes": {
+          "both": 19,
+          "gain": 6,
+          "loss": 5,
+          "neither": 34
+        },
+        "seed": 404
+      }
+    ],
+    "totals": {
+      "fixed_held_lifts": 118,
+      "fixed_rate": 0.36875,
+      "observation_held_lifts": 123,
+      "observation_minus_fixed": 5,
+      "observation_minus_fixed_pp": 1.5625,
+      "observation_rate": 0.384375,
+      "paired_lift_outcomes": {
+        "both": 99,
+        "gain": 24,
+        "loss": 19,
+        "neither": 178
+      }
+    }
+  },
+  "native_checks": [
+    {
+      "arm": "fixed",
+      "artifacts": {
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s400_fixed/results.json",
+          "sha256": "0a43381ee5898aa2369a8feaab4ca1c2b291f383a942eedcda83522e14fd682a"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s400_fixed/run_manifest.json",
+          "sha256": "4e4d2c9af846428f4dcae7a928df49eed6ed9b2f3454b326eab25fb88019ec0b"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 24,
+      "seed": 400
+    },
+    {
+      "arm": "obs",
+      "artifacts": {
+        "initial_routes": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s400_obs/initial_routes.json",
+          "sha256": "4e31312a128eb9c1abea2b3ccbe582637f9731c505ba195fc9aef2e9dc5a9fe4"
+        },
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s400_obs/results.json",
+          "sha256": "f258d7dca063fcc5e322ddf1614736b768d00433b398fef888628dd794c239e4"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s400_obs/run_manifest.json",
+          "sha256": "9f716a56d2db1ab0139044f093a3542d4c6d30c05bdb10235067b073b194bc11"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "initial_routes_64": true,
+        "initial_routes_model_sha256": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "router_model_sha256": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 21,
+      "seed": 400
+    },
+    {
+      "arm": "fixed",
+      "artifacts": {
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s401_fixed/results.json",
+          "sha256": "abe90b2bf21912cc0f244a7075c659d3bcd1e581bc97c24abaae03fc0c036521"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s401_fixed/run_manifest.json",
+          "sha256": "34273beba75953a0ae1d0fa60e5ad790ec3ff0d0a515a5c02c7ad2d37ed918d1"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 24,
+      "seed": 401
+    },
+    {
+      "arm": "obs",
+      "artifacts": {
+        "initial_routes": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s401_obs/initial_routes.json",
+          "sha256": "df5478729d2f5f7f663bc4dc4ec4f1c68f584274b902de5dbe09e1c75b063d40"
+        },
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s401_obs/results.json",
+          "sha256": "afde4cb2f5e3d567b867a170cff91afe5aaba21bf0c4ef0d69c2fa7e164624e2"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s401_obs/run_manifest.json",
+          "sha256": "63273c6b9ea21ca22802bf8b58cf02a89ed38a016c6bd455c57e8cc2d9dd0029"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "initial_routes_64": true,
+        "initial_routes_model_sha256": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "router_model_sha256": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 28,
+      "seed": 401
+    },
+    {
+      "arm": "fixed",
+      "artifacts": {
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s402_fixed/results.json",
+          "sha256": "333f1fb9a3f807cc57b52e0ca34ef1220eb3b82f899d4cc424c4b3c3e83d723d"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s402_fixed/run_manifest.json",
+          "sha256": "2f9efde2e4092c0ae26e836da33d9b24ce6ae4ffe52254008619889a6c3d709c"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 23,
+      "seed": 402
+    },
+    {
+      "arm": "obs",
+      "artifacts": {
+        "initial_routes": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s402_obs/initial_routes.json",
+          "sha256": "4ebb34bd941ea0741213889babd6581f5a6533b1b32ca1da991dd6dac65cc2f8"
+        },
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s402_obs/results.json",
+          "sha256": "52742ca6a5d8ea4e3e8539d1f390431b7babee4be3a9b38e0d1d1152b2c73e18"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s402_obs/run_manifest.json",
+          "sha256": "2ae0c9b4c4efb133e31eba700616ea1e3030005827206e8fbcc83c287e856504"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "initial_routes_64": true,
+        "initial_routes_model_sha256": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "router_model_sha256": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 23,
+      "seed": 402
+    },
+    {
+      "arm": "fixed",
+      "artifacts": {
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s403_fixed/results.json",
+          "sha256": "a27190e8283d965a7f847a27638ffff498e7395c259467b262075151668dc0df"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s403_fixed/run_manifest.json",
+          "sha256": "0f19aba5667936db26719a7da4d6d0e2d3f26fb0cb4bb586443090dee32d7e3d"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 23,
+      "seed": 403
+    },
+    {
+      "arm": "obs",
+      "artifacts": {
+        "initial_routes": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s403_obs/initial_routes.json",
+          "sha256": "c3d0eeec4c7eab539bf20eb7a0c05fae69dc28977d42533e7f1a49c4fb876cf3"
+        },
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s403_obs/results.json",
+          "sha256": "851d1d180a1bcbfb508687a8773906c89f5b08529b9f67c8bef4b6b1c562b5c2"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s403_obs/run_manifest.json",
+          "sha256": "3867f6e55271496a117fd8998b5100b704434cb4dff05f77c40d731aaf204654"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "initial_routes_64": true,
+        "initial_routes_model_sha256": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "router_model_sha256": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 26,
+      "seed": 403
+    },
+    {
+      "arm": "fixed",
+      "artifacts": {
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s404_fixed/results.json",
+          "sha256": "434a83d173d21d5abd9313f988e6c17cb829769b701a31619cb69dc4820c7818"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s404_fixed/run_manifest.json",
+          "sha256": "921f230d5506de38d65b4b7b75321de9ea204e69e433771a92ab5b39693ef75d"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 24,
+      "seed": 404
+    },
+    {
+      "arm": "obs",
+      "artifacts": {
+        "initial_routes": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s404_obs/initial_routes.json",
+          "sha256": "2ca2485adfaac94e76af4d1a53e9ccd2d8a8f900c3d000ed132bb2ab9cddebcf"
+        },
+        "results": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s404_obs/results.json",
+          "sha256": "b35a7cb3116004933068039b0e23b8aa3a7a30228053f159bcf2ef40de263bf0"
+        },
+        "run_manifest": {
+          "path": "outputs/CmResidual/val_observation_router_c1_s404_obs/run_manifest.json",
+          "sha256": "a2376c0d1403bcb87356939d622e5d3ff4d7f9f6ffbf70a6798b702257467b77"
+        }
+      },
+      "checks": {
+        "cm_disabled": true,
+        "execution_commit": true,
+        "finite_results": true,
+        "initial_routes_64": true,
+        "initial_routes_model_sha256": true,
+        "num_episodes": true,
+        "parent_entry": true,
+        "parent_native_hash": true,
+        "planned_command": true,
+        "route_config_sha256": true,
+        "route_mode": true,
+        "router_model_sha256": true,
+        "run_status": true,
+        "unique_env_ids": true
+      },
+      "lift_successes": 25,
+      "seed": 404
+    }
+  ],
+  "promotion_status": "PENDING_DECISION_CHECKPOINT",
+  "proposed_terminal_label": "SUPPORTED",
+  "resource_audit": {
+    "finished_at": "2026-09-26T16:24:10.848974+00:00",
+    "output_budget_bytes": 104857600,
+    "output_bytes": 460588,
+    "parent_manifest_reported_output_bytes": 460507,
+    "physical_gpu": 1,
+    "run_status": "COMPLETED",
+    "started_at": "2026-09-26T15:58:17.078624+00:00",
+    "wall_budget_seconds": 3600,
+    "wall_seconds": 1553.77035
+  },
+  "schema": "ref2dex.validation_analysis.v1",
+  "source": {
+    "execution_commit": "3697ddd2b37339990c97aaa025bd37924a673c3c",
+    "frozen_evaluator_sha256": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+    "parent_manifest": {
+      "path": "outputs/CmResidual/val_observation_router_c1/run_manifest.json",
+      "sha256": "05b16815a99bee95c10565e84b3e17f1ea0fe66b3b3ff5183dab1a391808a61a"
+    },
+    "preflight": {
+      "path": "outputs/CmResidual/val_observation_router_c1/preflight.json",
+      "sha256": "873d01fe650eb7c5528e41629b1df19e3a24289a281bd6dfa546dcf1fde9703b"
+    },
+    "route_config_sha256": "6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8",
+    "router_model_sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14"
+  },
+  "validation_id": "VAL-20260926-observation-six-expert-c1"
+}

@@ -10,7 +10,7 @@ frozen_method_commit: 32926392c915d2420140675781182e0d52c533f5
 development_seed_pool: validation.development
 validation_seed_pool: validation.holdout
 matched_control: "Frozen simulator_object_id six-expert route, paired by simulator seed, motion and start frame."
-status: PLANNED
+status: COMPLETED
 ---
 
 # Validation: frozen observation-driven six-expert C1 route
@@ -55,4 +55,69 @@ Even a `SUPPORTED` result applies only to this frozen six-expert hierarchy, thes
 
 ## Result
 
-Pending preflight and fixed matrix.
+run_status: `COMPLETED`
+
+proposed_terminal_label: `SUPPORTED`
+
+promotion_status: `PENDING_DECISION_CHECKPOINT`
+
+The proposal is recorded for root review under the `AGENTS.md` Decision
+Checkpoint. It is not a formal promotion in `docs/STATE.md`.
+
+### Frozen-matrix evidence
+
+The parent manifest and all ten native arms completed on execution commit
+`3697ddd2b37339990c97aaa025bd37924a673c3c`. The preflight input contract,
+route/evaluator/router hashes, checkpoint and motion hashes, planned commands,
+Cm-off settings, unique 64-environment episode sets, finite metrics and all
+fixed/observation episode pairings passed. The matrix used GPU 1 for 1,553.770
+seconds (25.90 minutes) and produced 460,588 bytes of native output, below the
+3,600-second and 104,857,600-byte budgets. The parent manifest recorded 460,507
+bytes before its final manifest write.
+
+| Seed | Choice agreement | Cup route | Fixed held-lift | Observation held-lift | Observation − fixed |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 400 | 63/64 | 6/6 | 24/64 | 21/64 | −3 |
+| 401 | 62/64 | 6/6 | 24/64 | 28/64 | +4 |
+| 402 | 64/64 | 6/6 | 23/64 | 23/64 | 0 |
+| 403 | 62/64 | 6/6 | 23/64 | 26/64 | +3 |
+| 404 | 60/64 | 6/6 | 24/64 | 25/64 | +1 |
+| **Total** | **311/320** | **30/30** | **118/320** | **123/320** | **+5** |
+
+The paired lift outcomes were 99 both-success, 178 neither, 24 observation
+gains and 19 observation losses. Object-wise confusion had 30/30 correct cup
+choices; the nine non-matches were `source_e260 → cup_e340` on seven cubesmall
+and two waterbottle environments. All other object groups were exact.
+
+The predeclared five-seed bootstrap used 20,000 draws and RNG seed `20260926`,
+resampling seed-level observation-minus-fixed rates. Its descriptive 95%
+percentile interval is **+1.5625 pp [−1.8750, +4.6875] pp**. This interval is
+not a superiority test or a general-population guarantee.
+
+All predeclared gates pass: every seed has at least 60/64 choices, every cup
+chooses `cup_e340`, every observation arm has at least 16/64 held-lifts, the
+total observation count is at least 100/320, and observation is no more than
+30/320 below fixed. The exact machine-readable index and reproducible CPU
+analysis are [VAL-20260926-observation-six-expert-c1-results.json](VAL-20260926-observation-six-expert-c1-results.json)
+and [VAL-20260926-observation-six-expert-c1-analysis.py](VAL-20260926-observation-six-expert-c1-analysis.py).
+
+### Decision Memo for root
+
+**Decision:** whether to promote the completed valid matrix to the predeclared
+`SUPPORTED` terminal label for the narrow C1 claim.
+
+**Key evidence:** all technical gates pass; 311/320 choices agree with the
+fixed route, cup routing is 30/30, observation held-lift is 123/320 versus
+118/320 fixed, and paired gains/losses are 24/19. The descriptive seed-level
+interval crosses zero but is not a predeclared superiority gate.
+
+**Option A — promote `SUPPORTED` at the checkpoint.** No new compute. Retain
+the frozen observation-driven six-expert hierarchy as the C1 substrate for a
+separately authorized next design, with the scope limits below.
+
+**Option B — keep the label pending review.** No new compute. Preserve this
+valid matrix and defer formal promotion; no holdout rerun or tuning is needed.
+
+**Recommendation:** Option A at the required checkpoint. This is a task-bound
+route reliability claim; it does not establish a shared GRAB actor, unseen
+object generalization, improvement over fixed routing, or Cm policy utility.
