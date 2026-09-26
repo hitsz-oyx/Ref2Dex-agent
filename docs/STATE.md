@@ -88,4 +88,5 @@ post-action handflow credit audit 也未提供可复用的 held-lift 增量。�
 一个已通过门槛的 Cm policy-utility Probe；下一步必须由新的 higher-level
 hypothesis/goal 决定，不能在 HF02/HF03 上继续换 seed、horizon、metric、
 representation、PPO 或 matched online，也不要继续微调已停止的局部腕部动作、
-progress-reward 系数或同一接触门。
+progress-reward 系数或同一接触门。三次无进展后的路线复盘见
+[`D-20260926-after-hf03-route-review.md`](decisions/D-20260926-after-hf03-route-review.md)。
