@@ -57,3 +57,12 @@ GPU collection、PPO、online Probe 或局部表示与参数扫描。可以进�
 证据整理和 Research Debt 记录。C3 仍为 `OPEN`，当前结果不构成对所有 Cm
 方法的正式否定。若未来重启研究，需先提交新的高层假设、goal 和资源预算，
 并通过新的 Decision Checkpoint。
+
+证据入口：
+
+| Family | Probe 记录 | 本轮处置 |
+| --- | --- | --- |
+| HF01 | [option value](../experiments/probes/P-20260925-cm-option-value.md)、[retest](../experiments/probes/P-20260925-cm-option-value-retest.md) | 已耗尽局部门槛，停止继续扫描 |
+| HF02 | [temporal expert credit](../experiments/probes/P-20260926-temporal-expert-credit.md) | `UNPROMISING`，暂停 |
+| HF03 | [contact-supported credit](../experiments/probes/P-20260926-contact-supported-credit.md) | `UNPROMISING`，关闭 |
+| HF04 | [trajectory credit](../experiments/probes/P-20260926-trajectory-credit.md) | `UNPROMISING`，关闭 |
