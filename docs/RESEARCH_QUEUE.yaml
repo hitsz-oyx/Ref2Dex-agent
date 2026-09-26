@@ -28,7 +28,7 @@ hypotheses:
   HF02:
     claim: C3
     name: temporal_cm
-    status: FROZEN
+    status: PAUSED
     branch: agent/cm-temporal
     probe_budget: 3
     probes_used: 2
@@ -37,7 +37,7 @@ hypotheses:
   HF03:
     claim: C3
     name: contact_supported_credit
-    status: UNPROMISING
+    status: KILLED
     branch: agent/cm-contact-credit
     probe_budget: 1
     probes_used: 1

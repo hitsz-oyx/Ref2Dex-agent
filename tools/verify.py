@@ -519,7 +519,12 @@ def _check_experiment_cards(failures: list[str]) -> None:
                     v2_families[family].append((relative, index))
                     if isinstance(family_state, Mapping):
                         status = str(family_state.get("status", "")).upper()
-                        if status in {"KILLED", "REFUTED", "PAUSED"}:
+                        card_status = str(fields.get("status", "")).upper()
+                        # Closing a family must not invalidate its completed cards.
+                        # Only new or unfinished probes would consume another slot.
+                        if status in {"KILLED", "REFUTED", "PAUSED"} and card_status not in {
+                            "PROMISING", "UNPROMISING", "UNCLEAR"
+                        }:
                             failures.append(f"{relative}: hypothesis_family {family} 当前不可继续消费（{status}）")
                         budget = family_state.get("probe_budget")
                         if isinstance(budget, int) and not isinstance(budget, bool) and index > budget:

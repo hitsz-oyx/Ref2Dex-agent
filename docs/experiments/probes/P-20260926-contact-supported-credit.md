@@ -6,6 +6,8 @@ branch: agent/cm-contact-credit
 git_commit: 326fed4b7a9dabd8c0e535341e8c46fba5259b3d
 claim_id: C3
 hypothesis_family: HF03
+decision_changed_if_positive: "Design a new bounded critic or credit-assignment Probe with matched Cm-off control."
+decision_changed_if_negative: "Freeze HF03 and require a different higher-level representation or supervision goal."
 probe_index_in_family: 1
 seed_pool: probe
 status: UNPROMISING

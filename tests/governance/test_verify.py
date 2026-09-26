@@ -160,6 +160,23 @@ def test_v2_probe_schema_and_family_contract(tmp_path: Path, monkeypatch) -> Non
     assert not failures
 
 
+def test_closed_family_keeps_completed_probe_but_rejects_new_probe(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue().replace("status: ACTIVE", "status: KILLED"))
+    card = tmp_path / "docs/experiments/probes/P-20260925-temporal.md"
+    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: UNPROMISING"))
+    failures: list[str] = []
+    VERIFY._check_experiment_cards(failures)
+    assert not failures
+
+    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: PLANNED"))
+    failures = []
+    VERIFY._check_experiment_cards(failures)
+    assert any("当前不可继续消费" in failure for failure in failures)
+
+
 def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
     _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
