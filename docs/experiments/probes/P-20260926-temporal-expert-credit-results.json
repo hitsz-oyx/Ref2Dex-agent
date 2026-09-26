@@ -1,0 +1,530 @@
+{
+  "base_temporal_head": "bf3421d808f261d777d0720c5c5bf9e1a3d82287",
+  "branch": "agent/cm-temporal",
+  "canonical_inputs": {
+    "collector_config": {
+      "path": "src/task/CmResidual/configs/airplane_temporal_expert_probe.json",
+      "sha256": "47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536"
+    },
+    "cpu_fit_script": {
+      "commit": "ee665d96c340c58644c73c0a38e9e0eafc488cb2",
+      "path": "src/task/CmResidual/tools/fit_temporal_expert_option_probe.py",
+      "sha256": "640168edde4ba33175d6926d46a4afb9d89c30ba82dec0f7f29737ff5e4fb765"
+    },
+    "evaluator": {
+      "git_blob_sha1": "22f0bf8d1470969e14a1030bfcd708a4f1d618ad",
+      "implementation_commit": "83bab98bb31a042879d8146314dfa40904ed839e",
+      "path": "third_party/DExplore/dexplore/evaluate_temporal_expert_option.py",
+      "sha256": "8297c5a09c4bec5f3fa0987d9bb57a552d5a5e43e2dc162a3324ae8ce5b2e0ba"
+    },
+    "route_config": {
+      "path": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+      "sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16"
+    }
+  },
+  "cpu_fit": {
+    "decision": "UNPROMISING",
+    "fit_arm_counts": {
+      "balanced_e360": 31,
+      "cup_e340": 31,
+      "duck_e340": 32,
+      "mixed12_e300": 31,
+      "source_e260": 31,
+      "train5_e320": 31
+    },
+    "fit_rows": 187,
+    "fit_spec": {
+      "action_shuffle_permutation": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        0
+      ],
+      "argmax_tie_break": "lowest expert index",
+      "held_lift_link": "sigmoid_after_ridge",
+      "ipw_formula": "mean(I[policy(X)=A] * Y / p(A|X))",
+      "ipw_propensity": "1/6",
+      "normalization": "fit_split_mean_and_population_std_only",
+      "ridge_lambda": 1.0,
+      "supported_lift_target": "mean(raw future_contact_supported_lift_m[20]) * 1000",
+      "supported_lift_unit": "mm"
+    },
+    "gate": {
+      "all_conditions_pass": false,
+      "finite_pass": true,
+      "fit_min_rows_per_arm": 31,
+      "held_margin_gate_pass": false,
+      "held_margin_vs_action_shuffled_pp": -9.677419354838712,
+      "held_margin_vs_history_only_pp": 12.903225806451612,
+      "holdout_min_rows_per_arm": 30,
+      "ranking_direction_pass": false,
+      "rows_pass": true,
+      "supported_delta_vs_action_shuffled_mm": 1.3220434919480355,
+      "supported_delta_vs_history_only_mm": 0.9547530643401609,
+      "supported_nonregression_pass": true
+    },
+    "holdout_arm_counts": {
+      "balanced_e360": 30,
+      "cup_e340": 32,
+      "duck_e340": 31,
+      "mixed12_e300": 32,
+      "source_e260": 31,
+      "train5_e320": 30
+    },
+    "holdout_rows": 186,
+    "model_artifact": {
+      "bytes": 144042,
+      "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/cpu_fit_models.pt",
+      "sha256": "5c3c35ea2eb8ca8209ae4e92da8af11463b8c3af14bd3b93efcd3bce0c6b7048"
+    },
+    "model_artifact_sha256": "5c3c35ea2eb8ca8209ae4e92da8af11463b8c3af14bd3b93efcd3bce0c6b7048",
+    "models": {
+      "action_shuffled": {
+        "held_lift": {
+          "finite": true,
+          "ipw_policy_value": 0.4838709677419355,
+          "matched_observed_mean": 0.5172413793103449,
+          "matched_rows": 29,
+          "policy_arm_counts": [
+            26,
+            31,
+            36,
+            1,
+            4,
+            88
+          ]
+        },
+        "supported_lift_mm": {
+          "finite": true,
+          "ipw_policy_value": 2.488469058467496,
+          "matched_observed_mean": 2.967020800480476,
+          "matched_rows": 26,
+          "policy_arm_counts": [
+            107,
+            18,
+            7,
+            3,
+            14,
+            37
+          ]
+        }
+      },
+      "history_only": {
+        "held_lift": {
+          "finite": true,
+          "ipw_policy_value": 0.25806451612903225,
+          "matched_observed_mean": 0.26666666666666666,
+          "matched_rows": 30,
+          "policy_arm_counts": [
+            180,
+            2,
+            0,
+            2,
+            1,
+            1
+          ]
+        },
+        "supported_lift_mm": {
+          "finite": true,
+          "ipw_policy_value": 2.8557594860753706,
+          "matched_observed_mean": 2.8557594860753706,
+          "matched_rows": 31,
+          "policy_arm_counts": [
+            170,
+            4,
+            6,
+            3,
+            1,
+            2
+          ]
+        }
+      },
+      "history_plus_expert_id": {
+        "held_lift": {
+          "finite": true,
+          "ipw_policy_value": 0.5161290322580645,
+          "matched_observed_mean": 0.5517241379310345,
+          "matched_rows": 29,
+          "policy_arm_counts": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            185
+          ]
+        },
+        "supported_lift_mm": {
+          "finite": true,
+          "ipw_policy_value": 4.3455351706474055,
+          "matched_observed_mean": 4.490386343002319,
+          "matched_rows": 30,
+          "policy_arm_counts": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            186
+          ]
+        }
+      },
+      "state_only": {
+        "held_lift": {
+          "finite": true,
+          "ipw_policy_value": 0.3225806451612903,
+          "matched_observed_mean": 0.43478260869565216,
+          "matched_rows": 23,
+          "policy_arm_counts": [
+            26,
+            53,
+            0,
+            26,
+            10,
+            71
+          ]
+        },
+        "supported_lift_mm": {
+          "finite": true,
+          "ipw_policy_value": 1.986549488959774,
+          "matched_observed_mean": 2.3685782368366537,
+          "matched_rows": 26,
+          "policy_arm_counts": [
+            48,
+            33,
+            30,
+            36,
+            6,
+            33
+          ]
+        }
+      },
+      "temporal_cm": {
+        "held_lift": {
+          "finite": true,
+          "ipw_policy_value": 0.3870967741935484,
+          "matched_observed_mean": 0.3870967741935484,
+          "matched_rows": 31,
+          "policy_arm_counts": [
+            17,
+            43,
+            20,
+            0,
+            0,
+            106
+          ]
+        },
+        "supported_lift_mm": {
+          "finite": true,
+          "ipw_policy_value": 3.8105125504155315,
+          "matched_observed_mean": 4.3750329282548694,
+          "matched_rows": 27,
+          "policy_arm_counts": [
+            56,
+            9,
+            34,
+            1,
+            1,
+            85
+          ]
+        }
+      }
+    },
+    "report": {
+      "bytes": 6152,
+      "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/cpu_fit_report.json",
+      "sha256": "2f440f6c55fe625ec24140c981ac40086b8021dd981253af1686281ca940598d"
+    },
+    "report_sha256": "2f440f6c55fe625ec24140c981ac40086b8021dd981253af1686281ca940598d"
+  },
+  "decision": {
+    "baseline_collection_started": false,
+    "freeze_hf02": true,
+    "online_probe_started": false,
+    "ppo_started": false,
+    "reason": "temporal_cm held-lift IPW is 12.903 pp above history_only but 9.677 pp below action_shuffled; the +5 pp gate and ranking-direction gate fail. Supported lift nonregression passes.",
+    "seed_or_metric_rescan": false,
+    "status": "UNPROMISING"
+  },
+  "failed_engineering_attempts": [
+    {
+      "log": {
+        "bytes": 956,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_initial_import_failure.log",
+        "sha256": "cbfcdd69015e9ebca0539948cb8bc682b6ed8e12ce68507a22887f152d9b35a7"
+      },
+      "manifest": null,
+      "reason": "PyTorch imported before Isaac Gym; process exited before manifest",
+      "run_id": "fit_s254_initial_import_order",
+      "valid_data": false
+    },
+    {
+      "log": {
+        "bytes": 3845,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_initial_cli_flags_failure.log",
+        "sha256": "bf17cd796429041411e8c9ca758cc23f2658e43aedaf5470894a26b98f9fa1ca"
+      },
+      "manifest": {
+        "bytes": 4548,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254/run_manifest.json",
+        "sha256": "9c327f22dc1f1e49eee528c7bba2ffdf22d3758237ceaa853f79addf1dfc3eb1"
+      },
+      "reason": "extra cm flags rejected by original parser; no records",
+      "run_id": "fit_s254",
+      "run_status": "FAILED",
+      "valid_data": false
+    },
+    {
+      "log": {
+        "bytes": 2029,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_r2.log",
+        "sha256": "428edd3fd7b8f49884b90e73ea09a1b3bfe942aed10c56b9703ea5d57696a282"
+      },
+      "manifest": {
+        "bytes": 4582,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r2/run_manifest.json",
+        "sha256": "42658ce573c4f6664d105bd251094f8e88fbbd608d7e1e5a3ca760f0acd95a71"
+      },
+      "reason": "DExplore cfg paths require third_party/DExplore cwd; no records",
+      "run_id": "fit_s254_r2",
+      "run_status": "FAILED",
+      "valid_data": false
+    },
+    {
+      "log": {
+        "bytes": 6853,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_r3.log",
+        "sha256": "faa0cf51c9541c9907e219eba731c8ba3432dd986c439238a5d41342ae4275f8"
+      },
+      "manifest": {
+        "bytes": 4822,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r3/run_manifest.json",
+        "sha256": "70f599d48ca7cf90a251281eeb66853b0c49620b037fbe9ee9b2796f115cb13e"
+      },
+      "reason": "Python list reset IDs lacked reshape; no records",
+      "run_id": "fit_s254_r3",
+      "run_status": "FAILED",
+      "valid_data": false
+    },
+    {
+      "log": {
+        "bytes": 193307,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_r4.log",
+        "sha256": "10af7efc3726b12b2c9deb5f0226f5a321486a6950b86cd6db093afe34d2f0b2"
+      },
+      "manifest": {
+        "bytes": 4844,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r4/run_manifest.json",
+        "sha256": "1e90e66294ad5b4f0ddeea681dcb2d8cfa507c570d3da86a55f584a68845d9f5"
+      },
+      "reason": "recursive candidate action dispatch; no records",
+      "run_id": "fit_s254_r4",
+      "run_status": "FAILED",
+      "valid_data": false
+    }
+  ],
+  "final_git_commit": "1cd9c6fae51e047b77a8229adfcd0105809e0856",
+  "generated_at": "2026-09-26T02:14:55.182209+00:00",
+  "preflight": {
+    "bytes": 12300,
+    "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/preflight.json",
+    "sha256": "c46280d0df9b74377edf296d1968c38e7a556987ceb8b9537fe562e062d6a662"
+  },
+  "probe_id": "P-20260926-temporal-expert-credit",
+  "provenance_checks": {
+    "contract_tests": "9 passed",
+    "evaluator_dry_run": "passed; six arms 32 each, route/motion/checkpoint hashes verified, isaacgym_imported=false",
+    "fit_payload_contract": "passed",
+    "holdout_payload_contract": "passed"
+  },
+  "resources": {
+    "artifact_root_bytes": 2489112,
+    "baseline_duplicate_collection_started": false,
+    "gpu_compute_apps_after_collection": [],
+    "per_collection_budget_minutes": 30,
+    "selected_gpu": 4,
+    "total_output_limit_bytes": 209715200
+  },
+  "route_contract": {
+    "base_expert": "source_e260",
+    "cm_mode": "off",
+    "experts": [
+      "balanced_e360",
+      "cup_e340",
+      "duck_e340",
+      "mixed12_e300",
+      "source_e260",
+      "train5_e320"
+    ],
+    "first_episode_only": true,
+    "future_steps": 20,
+    "history_steps": 10,
+    "motions": [
+      "s3_airplane_lift",
+      "s7_airplane_lift_Retake",
+      "s9_airplane_lift"
+    ],
+    "object": "airplane",
+    "option_steps": 10,
+    "propensity": "1/6",
+    "route_mode": "simulator_object_id",
+    "start_frame_sampler": "DExplore start_times"
+  },
+  "schema": "ref2dex.hf02_temporal_expert_credit_result.v1",
+  "successful_runs": [
+    {
+      "assignment_propensity": "1/6",
+      "assignment_seed": 20260926254,
+      "candidate_experts": [
+        "balanced_e360",
+        "cup_e340",
+        "duck_e340",
+        "mixed12_e300",
+        "source_e260",
+        "train5_e320"
+      ],
+      "completed_at": "2026-09-26T01:48:43.578755+00:00",
+      "created_at": "2026-09-26T01:47:20.670768+00:00",
+      "future_steps": 20,
+      "git_commit": "5bc9f8820e4c80553b4b77c0a844d1c612fafc0c",
+      "history_steps": 10,
+      "log": {
+        "bytes": 6362,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_collection_r5.log",
+        "sha256": "f21bfc941ba1dd850238b16cefeaed6b4137c25d5656964d59bfcdf2a889dac4"
+      },
+      "manifest": {
+        "bytes": 5887,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r5/run_manifest.json",
+        "sha256": "4ff146f3205ac5379e0ef86925772af34ea9340d2b37f780caeb6a0ce7d221e1"
+      },
+      "num_envs": 192,
+      "option_steps": 10,
+      "physical_gpu": 4,
+      "record_summary": {
+        "arm_counts": {
+          "balanced_e360": 31,
+          "cup_e340": 31,
+          "duck_e340": 32,
+          "mixed12_e300": 31,
+          "source_e260": 31,
+          "train5_e320": 31
+        },
+        "rows": 187
+      },
+      "records": {
+        "bytes": 944529,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r5/records.pt",
+        "sha256": "38f311850f31549f6d3a050cff12df7ebccd00bd9a5ef65ed3a9b12a250f2506"
+      },
+      "results": {
+        "bytes": 96806,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r5/results.json",
+        "sha256": "c7bc3974a2f3f2e7478b3c72538546e8a9b632d8fd241dc9bb8ae8a87d6be91e"
+      },
+      "route_mode": "simulator_object_id",
+      "run_id": "fit_s254_r5",
+      "run_status": "COMPLETED",
+      "simulator_seed": 254,
+      "split": "fit",
+      "summary": {
+        "early_termination_disabled": true,
+        "episode_sampling": "first completed episode from every parallel environment",
+        "evaluation_wall_seconds": 73.225,
+        "lift_success_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
+        "lift_success_rate": 0.2812,
+        "mean_airborne_fraction": 0.07773,
+        "mean_hand_error": 0.703,
+        "mean_hand_object_contact_fraction": 0.34738,
+        "mean_max_contact_lift_m": 0.0818,
+        "mean_max_lift_contact_run_steps": 26.214,
+        "mean_max_lift_m": 0.08302,
+        "mean_obj_error": 0.2469,
+        "mean_reward": 121.22,
+        "mean_steps": 542.5,
+        "num_episodes": 192,
+        "selector_enabled": false,
+        "std_reward": 65.36,
+        "success_rate": 1.0
+      }
+    },
+    {
+      "assignment_propensity": "1/6",
+      "assignment_seed": 20260926255,
+      "candidate_experts": [
+        "balanced_e360",
+        "cup_e340",
+        "duck_e340",
+        "mixed12_e300",
+        "source_e260",
+        "train5_e320"
+      ],
+      "completed_at": "2026-09-26T01:53:04.017692+00:00",
+      "created_at": "2026-09-26T01:51:29.868118+00:00",
+      "future_steps": 20,
+      "git_commit": "5bc9f8820e4c80553b4b77c0a844d1c612fafc0c",
+      "history_steps": 10,
+      "log": {
+        "bytes": 6370,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_collection_r1.log",
+        "sha256": "022032dff59ab5247ffae75d3093d7cf2a72dc61a08e6f17e300e58720352dd0"
+      },
+      "manifest": {
+        "bytes": 5912,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_s255_r1/run_manifest.json",
+        "sha256": "41f54d35238cd85ae2548587ec6b60f0d58a95e5ae15b3c3b887ff60fb78d074"
+      },
+      "num_envs": 192,
+      "option_steps": 10,
+      "physical_gpu": 4,
+      "record_summary": {
+        "arm_counts": {
+          "balanced_e360": 30,
+          "cup_e340": 32,
+          "duck_e340": 31,
+          "mixed12_e300": 32,
+          "source_e260": 31,
+          "train5_e320": 30
+        },
+        "rows": 186
+      },
+      "records": {
+        "bytes": 939729,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_s255_r1/records.pt",
+        "sha256": "cb851a96229df87501d890732cbdf0b90b2c2952e07d018edb6d83d47d641fe8"
+      },
+      "results": {
+        "bytes": 96964,
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_s255_r1/results.json",
+        "sha256": "15dabb885bf6528d5071694b9dee4d89652694500f9c6f480a96497728fcdc94"
+      },
+      "route_mode": "simulator_object_id",
+      "run_id": "holdout_s255_r1",
+      "run_status": "COMPLETED",
+      "simulator_seed": 255,
+      "split": "holdout",
+      "summary": {
+        "early_termination_disabled": true,
+        "episode_sampling": "first completed episode from every parallel environment",
+        "evaluation_wall_seconds": 79.644,
+        "lift_success_definition": "object dz >= 0.03 m with hand+object contact for >=5 consecutive steps",
+        "lift_success_rate": 0.2917,
+        "mean_airborne_fraction": 0.08287,
+        "mean_hand_error": 0.6968,
+        "mean_hand_object_contact_fraction": 0.35129,
+        "mean_max_contact_lift_m": 0.09184,
+        "mean_max_lift_contact_run_steps": 28.911,
+        "mean_max_lift_m": 0.09342,
+        "mean_obj_error": 0.2166,
+        "mean_reward": 120.69,
+        "mean_steps": 542.9,
+        "num_episodes": 192,
+        "selector_enabled": false,
+        "std_reward": 66.4,
+        "success_rate": 1.0
+      }
+    }
+  ]
+}

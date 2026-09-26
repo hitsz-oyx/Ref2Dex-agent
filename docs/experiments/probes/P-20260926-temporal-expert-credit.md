@@ -20,13 +20,15 @@ tracked_cpu_tests_sha256: 42886719b2dd897e00dd9fd2e8874a38a74e0077d5a7113570ffcc
 tracked_cpu_fit_script: src/task/CmResidual/tools/fit_temporal_expert_option_probe.py
 tracked_cpu_fit_script_commit: ee665d96c340c58644c73c0a38e9e0eafc488cb2
 tracked_cpu_fit_script_sha256: 640168edde4ba33175d6926d46a4afb9d89c30ba82dec0f7f29737ff5e4fb765
+result_summary: docs/experiments/probes/P-20260926-temporal-expert-credit-results.json
+result_summary_sha256: 3c6dd2cb294d6934990ada04818e503aac51225240a1365dfe7af1054ef32c7a
 claim_id: C3
 hypothesis_family: HF02
 decision_changed_if_positive: Freeze the history-conditioned option-value representation and propose one independent matched Cm-on/off online confirmation on the same route.
 decision_changed_if_negative: Mark HF02 UNCLEAR or UNPROMISING, freeze this option family, and switch to a higher-level Cm representation or credit-allocation hypothesis.
 probe_index_in_family: 2
 seed_pool: probe
-status: PLANNED
+status: UNPROMISING
 ---
 
 # Probe: temporal expert-option credit
@@ -204,8 +206,8 @@ manifests. This card cannot be upgraded to a formal Cm causal claim.
 
 ## Status and artifacts
 
-Status: `RUNNING` (canonical fit collection is being executed; no valid rows
-have yet been admitted).
+Status: `UNPROMISING` (both canonical Cm-off collections and the prespecified
+CPU gate completed; HF02 slot-2 is frozen).
 The one permitted cwd-corrected engineering smoke is
 recorded separately and does not consume this Probe's offline gate:
 
@@ -234,10 +236,7 @@ invalid engineering record:
   motions, so this smoke is not evidence for the canonical six-expert route
   above and does not change HF02 status.
 
-No option collection, offline fit, matched online Probe, or PPO continuation
-is part of this card yet. In particular, the baseline handoff's fixed-route
-Cm-off command is an entry point only; it has not been run here. The tracked
-implementation's pure-CPU checks are:
+The tracked implementation's pure-CPU checks before collection were:
 
 * `9 passed` in
   `src/task/CmResidual/tests/test_temporal_option_contract.py`;
@@ -246,10 +245,42 @@ implementation's pure-CPU checks are:
   hashes, reports `isaacgym_imported: false`, and gives `32` assignments per
   arm for both seed-owned splits.
 
-Planned collection artifacts after the approved execution step:
+The canonical execution artifacts are:
 
 `outputs/CmResidual/agent_temporal_expert_credit_20260926/`
 
-The card will be updated with fit/holdout reports, exact run manifests,
-checkpoint/model hashes, and the resulting HF02 decision after the single
-offline Probe.
+The successful run manifests are `fit_s254_r5/run_manifest.json` and
+`holdout_s255_r1/run_manifest.json`; their records contain 187 and 186 valid
+rows, with arm counts `31/31/32/31/31/31` and `30/32/31/32/31/30`. Contract
+validation passed for both payloads, including finite tensors, first-episode
+boundaries, start frames, action equality, route/checkpoint/motion hashes, and
+propensity `1/6`. The CPU report is
+`cpu_fit_report.json` (SHA256 `2f440f6c55fe625ec24140c981ac40086b8021dd981253af1686281ca940598d`),
+with coefficient artifact `cpu_fit_models.pt` (SHA256
+`5c3c35ea2eb8ca8209ae4e92da8af11463b8c3af14bd3b93efcd3bce0c6b7048`). A
+tracked hash-and-manifest index is
+`docs/experiments/probes/P-20260926-temporal-expert-credit-results.json`.
+The final preflight/resource manifest is
+`outputs/CmResidual/agent_temporal_expert_credit_20260926/preflight.json`
+(SHA256 `c46280d0df9b74377edf296d1968c38e7a556987ceb8b9537fe562e062d6a662`);
+the complete artifact root is 2,489,112 bytes, with no compute app remaining
+on GPU4 after collection.
+
+The holdout IPW results were:
+
+| model | held-lift policy value | supported-lift policy value (mm) |
+| --- | ---: | ---: |
+| `history_only` | 25.806% | 2.856 |
+| `history_plus_expert_id` | 51.613% | 4.346 |
+| `state_only` | 32.258% | 1.987 |
+| `temporal_cm` | 38.710% | 3.811 |
+| `action_shuffled` | 48.387% | 2.488 |
+
+`temporal_cm` was `+12.903 pp` above `history_only`, but `-9.677 pp`
+below `action_shuffled`; supported lift was non-regressive by `+0.955 mm`
+and `+1.322 mm`, respectively. Row, finite-value, and supported-lift checks
+passed, while the two-sided held-lift margin and ranking-direction gates
+failed. The decision is therefore **UNPROMISING**. HF02 is frozen at this
+slot: no seed, horizon, metric, or representation rescan; no PPO continuation;
+no matched online Probe; and no duplicate baseline collection. The baseline
+handoff supplied provenance only, as required.

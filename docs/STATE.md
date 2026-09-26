@@ -41,6 +41,15 @@ Updated: 2026-09-26
   `afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16`），即六个
   self-trained experts、三条 airplane motion、`simulator_object_id` 路由。
   59-motion/十 expert 路线及旧 `3/64` Cm-off 证据不可混用。
+- HF02 slot-2 的 canonical offline Probe 已完成并判定 `UNPROMISING`：fit seed254
+  有 187 行（六臂最少 31），holdout seed255 有 186 行（六臂最少 30）；两份
+  payload 的 route/checkpoint/motion hash、first-episode boundary、start frame、
+  action equality、propensity 和 finite checks 均通过。CPU IPW held-lift 中，
+  `temporal_cm` 相对 `history_only` 为 `+12.903 pp`，但相对
+  `action_shuffled` 为 `-9.677 pp`，未达到双侧 `+5 pp` 门槛；supported-lift
+  非回归通过。HF02 已冻结，不启动 online/PPO，也不换 seed、horizon、metric 或
+  representation 重扫。完整 hash 与 run manifest 索引见
+  [`P-20260926-temporal-expert-credit-results.json`](experiments/probes/P-20260926-temporal-expert-credit-results.json)。
 - 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
   中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
   `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
@@ -54,7 +63,7 @@ Updated: 2026-09-26
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
-| `HF02` temporal-cm | `C3` | `ACTIVE` | 1/3 | `agent/cm-temporal` |
+| `HF02` temporal-cm | `C3` | `FROZEN` | 2/3，slot-2 UNPROMISING | `agent/cm-temporal` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -62,15 +71,8 @@ Updated: 2026-09-26
 
 ## Next decision experiment
 
-HF02 slot-2 的 canonical Probe card 已冻结为计划态；exact temporal-option
-evaluator、collector config 和 CPU contract tests 已在 commit
-`33e828859185edb2b4590cbb9eea292d5283be71` tracked，evaluator blob SHA1 为
-`388184b00f9cde55ec2ff508f0581af1b531e91a`，因此原先的 tracked-evaluator
-工程 blocker 已清除。当前仍不执行任何 option collection、离线拟合、matched
-online 或 PPO continuation；只有单独解除执行约束后，才可在固定六专家、三条
-airplane、`simulator_object_id` substrate 上运行 card 中的 seed 254/255 离线比较：
-`temporal-Cm` 必须同时相对 `history-only` 与 `action-shuffled` 达到至少
-`+5pp` 的 held-lift policy-value margin，且 contact-supported lift 不下降，
-否则立即将 slot 标为 `UNCLEAR/UNPROMISING` 并冻结，不换 seed、horizon 或
-metric 重复消费预算。不要继续微调已停止的局部腕部动作、progress-reward
-系数或同一接触门。
+HF02 slot-2 的 canonical evaluator、两份 Cm-off collection、CPU 五模型 fit
+和 provenance 已提交；numeric gate 失败后该 family 暂停。下一步应由新的
+higher-level hypothesis/goal 决定，不能在 HF02 上继续换 seed、horizon、metric、
+representation、PPO 或 matched online。不要继续微调已停止的局部腕部动作、
+progress-reward 系数或同一接触门。

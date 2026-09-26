@@ -1,5 +1,5 @@
 schema: ref2dex.research_queue.v1
-updated: 2026-09-25
+updated: 2026-09-26
 
 # This file is search state, not an experiment-result log.  A Probe card owns
 # the evidence; this file only says which claim/family may consume the next
@@ -28,8 +28,8 @@ hypotheses:
   HF02:
     claim: C3
     name: temporal_cm
-    status: ACTIVE
+    status: FROZEN
     branch: agent/cm-temporal
     probe_budget: 3
-    probes_used: 1
-    transition: "After the third non-informative Probe, change the high-level hypothesis."
+    probes_used: 2
+    transition: "Slot-2 offline gate UNPROMISING: freeze HF02 and change the high-level hypothesis; do not rescan seed, horizon, metric, or representation."
