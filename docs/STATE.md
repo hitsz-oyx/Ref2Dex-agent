@@ -178,8 +178,8 @@ Cm **14/128**、Cm-off **18/128**，接触门变更仍未带来 held-lift 增益
 - 分组路由已经提供非零且可复现的自训练 substrate；但 route-specific
   Cm 的小幅 held-lift 差值未过 replication gate，冻结 progress reward
   在完整 route 上也从 18/128 降至 16/128。下一轮应改变 Cm 的信用门，
-  先测试预测接触提供 pre-contact credit 是否能改善单组 gC，再决定是否
-  扩展，而不是继续调同一 reward 系数。
+  predicted-contact gate 在完整 route 上也未改善 held-lift；该局部路线已
+  停止，不再继续调同一 reward 系数或扩展到新的 route。
 - HF02 temporal option 的 offline gate 已明确失败，当前不继续扫描同一
   表示或启动 online confirmation；后续 Cm 工作需等待新的高层表示/信用
   假设，并保持本次 canonical substrate 与 matched-off provenance 可复核。
