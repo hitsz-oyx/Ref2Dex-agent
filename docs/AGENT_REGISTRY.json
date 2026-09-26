@@ -2,7 +2,7 @@
   "$schema": "ref2dex.agent_registry.v3",
   "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 8,
+  "registry_version": 9,
   "updated_at": "2026-09-26",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -28,17 +28,19 @@
     "shared_codex_home_allowed": true
   },
   "supervision": {
-    "mode": "root_in_turn_polling",
+    "mode": "poller_event_driven_root_decision_loop",
     "fixed_external_wake_message": "RETIRED",
     "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/codex_research_supervisor.py",
-    "polling_owner": "root",
+    "polling_owner": "agent_poller",
+    "decision_and_dispatch_owner": "root",
     "polling_intervals_seconds": {
       "waiting_or_blocked": 300,
       "active_cpu": 300,
       "active_gpu": 120,
       "terminal_audit": 0
     },
-    "dispatch_rule": "仅在发现已授权 blocker 时向精确注册 thread 派发明确 GOAL_DISPATCH；不发送固定心跳或模糊 continue。"
+    "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并向精确注册 thread 派发明确 GOAL_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
+    "completion_rule": "agent_poller 只在登记状态或 rollout task_complete 变化时发送 POLL_EVENT；root 审计完成事件后继续选择下一项有决策价值的任务。"
   },
   "integration": {
     "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
@@ -65,8 +67,8 @@
       "branch": "main",
       "owns": [
         "MISSION 对齐与全局 goal",
-        "在同一活动 turn 内轮询子代理",
-        "按需派发明确 child goal",
+        "接收 poller 事件并审计子代理终态",
+        "在 MISSION/CAMPAIGN 与当前授权内主动选择并派发有决策价值的 child goal",
         "子代理验收与资源分配",
         "Decision Memo",
         "接受后的 mainline merge"
@@ -100,14 +102,14 @@
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-poller",
       "branch": "agent/supervisor-poller",
       "owns": [
-        "注册代理 Goal、HEAD、run manifest 和归属 GPU 状态轮询",
+        "注册代理 Goal、HEAD、run manifest、rollout task_complete 和归属 GPU 状态轮询",
         "状态变化去重与 POLL_EVENT 定向通知",
         "自身轮询进程与 bounded 状态文件"
       ],
       "allowed_resources": {
         "gpu": 0,
         "research_experiment": false,
-        "root_notification": "仅状态变化时向注册 root thread 发送 POLL_EVENT"
+        "root_notification": "仅登记状态或 rollout task_complete 变化时向注册 root thread 发送 POLL_EVENT"
       },
       "must_not": [
         "运行训练、评估、collector 或 PPO",
@@ -199,7 +201,7 @@
       "role": "工作流治理与上下文效率 owner",
       "parent_agent_key": "root",
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22",
-      "branch": "agent/workflow-agent-bootstrap",
+      "branch": "agent/continuous-research-supervision",
       "owns": [
         "协作契约和注册表",
         "治理文档、模板和验证门禁",

@@ -72,11 +72,11 @@ PY
 
 | 角色 | 主要责任 | 允许做的事 | 明确禁止 | 必须交接 |
 | --- | --- | --- | --- | --- |
-| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在同一条对话中轮询；按需派发明确 goal；只读审计；撰写 Decision Memo；审计后合并已接受提交 | 固定心跳式自唤醒；盲目重启/杀进程；重复实验；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
+| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在 `MISSION`/`CAMPAIGN` 与当前授权内主动选择有决策价值的任务；派发明确 goal；只读审计；撰写 Decision Memo；审计后合并已接受提交 | 固定心跳式自唤醒；盲目重启/杀进程；重复实验；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
 | `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
 | `agent_Cm/selective` | 已完成 HF05 的证据保全与新假设设计 | CPU-only 只读复核既有 card、manifest、结果索引并草拟 Decision Memo | 新 Cm Probe/fit/collection、GPU、Isaac Gym、online/PPO；重扫 HF05；复用别的 run | 证据入口、候选假设、最小判别测试、资源估计和下一决策 |
 | `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
-| `agent/poller` | 登记代理的只读轮询和变化通知 | 读取 Goal/Git/manifest/归属 GPU；仅在变化时向 root 排队 `POLL_EVENT` | GPU 实验；修改其他工作树；科学判断；合并；固定心跳 | 变化字段、旧/新快照、通知状态和错误 |
+| `agent/poller` | 登记代理的只读轮询和事件通知 | 读取 Goal/Git/manifest/rollout completion/归属 GPU；仅在变化时向 root 排队 `POLL_EVENT` | GPU 实验；修改其他工作树；科学判断；合并；固定心跳 | 变化字段、旧/新快照、通知状态和错误 |
 
 代理之间可以并行，但权限不继承：一个代理的授权不能被另一个代理解释为
 新实验、换资源或改变研究问题的授权。
@@ -113,10 +113,15 @@ online follow-up 必须建立新的 goal；若触发 `AGENTS.md` 的 Decision Ch
 先提交 Decision Memo。实验必须先区分 Blocker、Decision、Evidence 或 Curiosity；
 探索阶段只能形成 `PROMISING`、`UNPROMISING` 或 `UNCLEAR`。
 
+派发不要求先出现 blocker。`/root` 应在 `MISSION.md`、`CAMPAIGN.md` 和当前授权
+内主动选择具体、可判别的 `Blocker` 或 `Decision`；直接支撑当前决策的工程/治理
+任务也可以派发。`Evidence` 留在 Research Debt，`Curiosity` 默认不做；任何新
+授权、资源升级或研究路线变化仍按 Decision Checkpoint 处理。
+
 ### 4.1 目标派发模板
 
-`/root` 只有在发现一个**已授权且可判别的 blocker**时，才向对应 child thread
-发送如下类型的定向消息：
+`/root` 选出一个边界内、具体且可判别的 `Blocker`、`Decision` 或直接必要的
+工程/治理任务后，向对应 child thread 发送如下类型的定向消息：
 
 ```text
 GOAL_DISPATCH
@@ -134,11 +139,13 @@ DELIVERABLE=<commit/card/manifest/handoff>
 NOT_AUTHORIZED=<what must not start>
 ```
 
-派发后 `/root` 等待该 thread 的真实终态或新的 blocker；不再用“继续”消息制造
-活动，也不重复投递相同 goal。`paused` 或 `blocked` 的 Goal 不得被静默唤醒，
-除非用户建立新授权或 Decision Memo 明确解除阻塞。
+同一 goal 运行期间不重复投递；由 `agent_poller` 在登记状态或 rollout completion
+变化时发送 `POLL_EVENT`。`/root` 收到完成事件后立即审计，并回到当前目标的主动
+选择循环，而不是等待新的 blocker。不得用“继续”消息制造活动。`paused` 或
+`blocked` 的 Goal 不得被静默唤醒，除非用户建立新授权或 Decision Memo 明确
+解除阻塞。
 
-如果确实满足授权条件，`/root` 可以用注册表中的两项身份做**一次性**派发（命令
+如果任务符合上述边界，`/root` 可以用注册表中的两项身份做**一次性**派发（命令
 中的 `<codex-cli>` 由当前环境解析，不能写死另一个 `CODEX_HOME`）：
 
 ```bash
@@ -149,25 +156,30 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 
 这条命令只对应一个明确 goal；不得把它包进 cron、setsid、循环脚本或固定心跳。
 
-## 5. 主代理的连续监督循环（取代外部固定唤醒）
+## 5. 主代理的连续决策循环（由 poller 通知事件）
 
-研究监督由 `/root` 在**同一条主对话的活动 turn 内**完成，不使用外部 watchdog
-向 `/root` 周期性投递固定的“执行一次全局 supervisor 巡检”文本。外部脚本
-`codex_research_supervisor.py` 的旧队列唤醒模式已经 retired；它不是新的任务
-调度器，也不应重新启动。
+研究决策、任务选择和资源授权由 `/root` 负责；外部 `agent_poller` 只负责登记
+状态和 completion 的事件通知。不得使用 watchdog 向 `/root` 周期性投递固定的
+“执行一次全局 supervisor 巡检”文本。外部脚本 `codex_research_supervisor.py`
+的旧队列唤醒模式已经 retired；它不是新的任务调度器，也不应重新启动。
 
 `/root` 开始监督时建立一个连续循环：
 
 1. 做一次 preflight，读取注册表并解析每个已登记 thread 的 `CODEX_HOME`；
-2. 只读检查 thread/Goal、branch/HEAD、card/manifest、归属进程和 GPU；
-3. 将每个 child 分类为 `RUNNING`、`WAITING`、`TERMINAL`、`BLOCKED` 或 `UNKNOWN`；
-4. 若没有已授权 blocker，记录内部状态 `SUPERVISOR_IDLE`，使用等待/定时轮询
-   保持当前 turn，不向自己或 child 发送固定心跳消息；
-5. 若有 blocker，只按第 4.1 节派发一个明确 goal，然后继续轮询其证据；
-6. 在子代理终态或异常时立即做 completion audit，再选择当前目标下的下一步；
-   只有触发 `docs/ROOT_AGENT.md` 的停下条件时才交给用户决策或结束当前活动。
+2. 结合 poller 事件只读检查 thread/Goal、branch/HEAD、card/manifest、归属进程和
+   GPU，将每个 child 分类为 `RUNNING`、`WAITING`、`TERMINAL`、`BLOCKED` 或
+   `UNKNOWN`；
+3. 初始审计或 completion audit 后，检查 `MISSION`、`STATE`、`CAMPAIGN` 和当前
+   授权，按 `Blocker`、`Decision`、`Evidence`、`Curiosity` 分类候选任务；
+4. 若存在边界内的 `Blocker`、`Decision` 或直接必要的工程/治理任务，只按第
+   4.1 节派发明确 goal；不以 blocker 已经出现为前提；
+5. 只有候选扫描后没有可执行任务，才记录内部状态 `SUPERVISOR_IDLE` 并等待
+   `POLL_EVENT` 或用户消息，不向自己或 child 发送固定心跳；
+6. `agent_poller` 报告终态或异常后，`/root` 立即做 completion audit，再回到第
+   3 步选择下一项工作；只有触发 `docs/ROOT_AGENT.md` 的停下条件时才交给用户
+   决策或结束当前活动。
 
-默认轮询节奏：
+`agent_poller` 的默认事件采集节奏：
 
 | 阶段 | 间隔 | 检查 |
 | --- | --- | --- |
@@ -176,14 +188,15 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 | active GPU collection | 2 分钟，最长不超过 5 分钟 | owner 进程、显存/利用率、manifest、停止条件 |
 | terminal / exception | 立即一次 | card、manifest、hash、commit、归属进程和下一决策 |
 
-“对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内使用等待和
-轮询保持监督，不因一次巡检或子任务完成而主动结束。若平台或用户中断 turn，恢复时必须从
-注册表、Goal 数据库和最后一次状态快照继续；不得假设 child 已经完成，也不得
-自动重启实验。这个连续循环不改变任何资源或实验授权。
+“对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内等待真实事件并
+持续完成审计和任务选择，不因一次巡检或子任务完成而主动结束。若平台或用户
+中断 turn，恢复时必须从注册表、Goal 数据库和最后一次状态快照继续；不得假设
+child 已经完成，也不得自动重启实验。这个连续循环不改变任何资源或实验授权。
 
-用户明确委托 [结果轮询代理](AGENT_POLLER.md) 后，root 可以暂停自身定时轮询；
-poller 只在登记状态变化时定向排队 `POLL_EVENT`，root 被唤起后仍负责审查。
-这类事件通知不等同于已退役的固定心跳式自唤醒。
+[结果轮询代理](AGENT_POLLER.md) 是默认事件通知 owner；root 不与它并行启动重复
+的长期轮询进程。poller 只在登记状态或 completion 变化时定向排队 `POLL_EVENT`，
+root 被唤起后负责审查、选择下一项任务并继续。这类事件通知不等同于已退役的
+固定心跳式自唤醒。
 
 现有 overload watchdog 仍只处理结构化的 `server_overloaded` 事件；它不负责
 研究监督、目标派发或唤醒 `/root`。
