@@ -15,23 +15,120 @@ description: 在 Ref2Dex 中新建 Codex 代理对话、选择对应 CODEX_HOME 
 
 ## 按 `CODEX_HOME` 启动
 
-`CODEX_HOME` 只在将要启动该对话的终端中设置。选择该代理自己的 home，不依赖 root 的环境变量或注册表默认值。
+`CODEX_HOME` 只在将要启动该对话的终端中设置。选择该代理自己的 home，不依赖 root 的环境变量或注册表默认值。启动是一个有界的 bootstrap：先验证运行时和 HTTP 入口，再创建或恢复对话；不要用无限重试掩盖入口、thread 或模型容量问题。
+
+### 先固定 Node 与 Codex CLI
+
+不要调用系统的 `node`、`npx` 或未解析路径的 `codex`。这台机器的系统 Node 可能仍是 v10，无法可靠运行当前 CLI。使用绝对的 Node v24 和 CLI 文件，并在启动前做一次只读版本检查：
+
+```bash
+CODEX_NODE=/home2/wyy/.nvm/versions/node/v24.19.0/bin/node
+CODEX_JS=/home2/wyy/.nvm/versions/node/v24.19.0/lib/node_modules/@openai/codex/bin/codex.js
+test -x "$CODEX_NODE" && test -f "$CODEX_JS"
+"$CODEX_NODE" "$CODEX_JS" --version
+```
+
+后续 `resume`、`queue` 或普通启动都用同一对绝对路径。若版本检查失败，先修复 CLI 路径，不要创建新的代理 thread。
 
 ### `/home2/wyy/oyx_ws/.codex_oyx_NewAPI`
 
-先确认本地 `127.0.0.1:18080` 服务是否已运行；若未运行，在单独终端启动并保持该进程运行：
+先对 `127.0.0.1:18080` 做**有界 HTTP 健康检查**。端口处于 LISTEN 只说明有进程占用，不能说明 Codex 请求会返回；不要只用 `ss`/`nc` 判断可用。可以接受 401/404 等 HTTP 响应（它们证明请求已返回），但 `000`、连接拒绝或超时都算失败：
+
+```bash
+check_proxy() {
+  local base_url="$1" code
+  code="$(curl --noproxy '*' --silent --show-error --http1.1 \
+    --connect-timeout 1 --max-time 4 \
+    --output /dev/null --write-out '%{http_code}' \
+    "${base_url}/v1/models" 2>/dev/null || true)"
+  test -n "$code" && test "$code" != "000"
+}
+
+check_proxy http://127.0.0.1:18080
+```
+
+若 18080 没有响应，在单独终端启动共享代理并记录其归属：
 
 ```bash
 cd /home2/wyy/oyx_ws
-python proxy.py
+python3 proxy.py
 ```
 
-该 home 的 `config.toml` 指向 `http://127.0.0.1:18080/v1`。然后在新代理终端设置：
+启动后再次运行上面的有界检查。已有服务时复用，不重复占用 18080；不停止、重启或修改归属不明的共享进程。
+
+如果 18080 **能建立连接但 HTTP 检查超时/卡住**，不要修改共享 `proxy.py`、共享 `config.toml`，也不要杀掉该进程。为这一次 invocation 运行独立副本：把脚本复制到临时目录，只修改副本的监听端口，使用空闲的 loopback 端口，并再次做有界检查。例如：
+
+```bash
+PROXY_TMP="$(mktemp -d /tmp/ref2dex-proxy.XXXXXX)"
+PROXY_PID=""
+cleanup_proxy() {
+  if test -n "${PROXY_PID:-}" && kill -0 "$PROXY_PID" 2>/dev/null; then
+    kill "$PROXY_PID" 2>/dev/null || true
+    wait "$PROXY_PID" 2>/dev/null || true
+  fi
+  if test -n "${PROXY_TMP:-}" && test -d "$PROXY_TMP"; then
+    rm -rf -- "$PROXY_TMP"
+  fi
+}
+trap cleanup_proxy EXIT INT TERM
+
+cp /home2/wyy/oyx_ws/proxy.py "$PROXY_TMP/proxy.py"
+PROXY_PORT="$(python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+)"
+python3 - "$PROXY_TMP/proxy.py" "$PROXY_PORT" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+port = sys.argv[2]
+text = path.read_text(encoding="utf-8")
+text = text.replace("http://127.0.0.1:18080", f"http://127.0.0.1:{port}")
+text = text.replace('("127.0.0.1", 18080)', f'("127.0.0.1", {port})')
+path.write_text(text, encoding="utf-8")
+PY
+
+python3 "$PROXY_TMP/proxy.py" >"$PROXY_TMP/proxy.log" 2>&1 &
+PROXY_PID="$!"
+BASE_URL="http://127.0.0.1:${PROXY_PORT}"
+proxy_ready=0
+for attempt in 1 2 3 4 5; do
+  if check_proxy "$BASE_URL"; then
+    proxy_ready=1
+    break
+  fi
+  sleep 1
+done
+test "$proxy_ready" -eq 1
+kill -0 "$PROXY_PID"
+ps -o pid=,args= -p "$PROXY_PID"
+```
+
+The copied proxy is disposable and must not be installed over the shared file. If its bounded health check also fails, stop and report the endpoint failure; do not turn it into an unbounded retry loop. Override only the provider URL for that invocation; do not edit the shared config:
 
 ```bash
 export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
-cd /home2/wyy/oyx_ws/ai_ws/<该代理的工作树目录>
-<当前环境使用的 Codex CLI>
+WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
+cd "$WORKTREE"
+"$CODEX_NODE" "$CODEX_JS" \
+  -c "model_providers.rlg.base_url=\"${BASE_URL}/v1\"" \
+  exec "<initial prompt>"
+```
+
+The `-c` override is process-local. Use the same override for `resume`/`queue` while the copied proxy is alive. On normal exit, the trap stops only the recorded copied-proxy PID and removes its validated temporary directory; it never touches 18080 or another agent's process.
+
+该 home 的默认 `config.toml` 指向 `http://127.0.0.1:18080/v1`。健康的 18080 服务可直接复用；不健康时才使用上述副本和 invocation-local override。然后在新代理终端设置：
+
+```bash
+export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
+WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
+cd "$WORKTREE"
+"$CODEX_NODE" "$CODEX_JS"
 ```
 
 已有服务时复用，不重复占用 18080 端口；不停止归属不明的代理进程。
@@ -46,11 +143,61 @@ export http_proxy=http://127.0.0.1:7897
 export https_proxy=http://127.0.0.1:7897
 export HTTP_PROXY=http://127.0.0.1:7897
 export HTTPS_PROXY=http://127.0.0.1:7897
-cd /home2/wyy/oyx_ws/ai_ws/<该代理的工作树目录>
-<当前环境使用的 Codex CLI>
+WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
+cd "$WORKTREE"
+"$CODEX_NODE" "$CODEX_JS"
 ```
 
 若选择 `.codex_oyx_frj`，只把上面 `CODEX_HOME` 的值改为 `/home2/wyy/oyx_ws/.codex_oyx_frj`；四个代理变量相同。
+
+### 首轮失败后的 thread 恢复
+
+首轮请求可能在模型返回前已经创建并持久化 thread。看到 timeout、proxy error 或首轮 turn 失败时，先保留并确认 CLI 输出/会话记录中的**精确 thread UUID**，再修复入口；不要凭显示名另建一个对话，也不要用 `--last` 猜测。
+
+```bash
+THREAD_ID="paste-the-existing-thread-uuid-here"
+WORKTREE=/home2/wyy/oyx_ws/ai_ws/agent-workflow
+export CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
+PROVIDER_ARGS=()
+if test -n "${BASE_URL:-}"; then
+  PROVIDER_ARGS=(-c "model_providers.rlg.base_url=\"${BASE_URL}/v1\"")
+fi
+"$CODEX_NODE" "$CODEX_JS" \
+  "${PROVIDER_ARGS[@]}" \
+  resume "$THREAD_ID" -C "$WORKTREE"
+```
+
+需要重新派发明确 goal 时，仍对同一个 ID 排队：
+
+```bash
+"$CODEX_NODE" "$CODEX_JS" \
+  "${PROVIDER_ARGS[@]}" \
+  queue --thread "$THREAD_ID" --message '<完整 GOAL_DISPATCH 消息>'
+```
+
+恢复前核对 `(CODEX_HOME, THREAD_ID)` 与注册表身份键、工作树和 branch 一致；恢复后再登记/更新同一条记录。只有确认没有可恢复的持久化 ID 时才创建新 thread，并说明原因。
+
+### 区分模型容量错误
+
+不要把模型容量问题误判为 Node 或 proxy 问题：连接拒绝、`000`/超时、502/504 通常是入口问题；`server_overloaded`、capacity/429 或明确的模型暂不可用响应则是容量问题。容量问题只允许有限次重试（例如两次、带短退避），然后：
+
+* 保留原 thread ID，不重复创建代理；
+* 使用当前确实可用的模型，通过 `-m <available-model>` 或 `-c 'model="<available-model>"'` 重试/恢复；
+* 在交接中记录实际选择的模型和错误类别。
+
+若错误类别不清楚，停止并交接诊断，不要同时换 thread、CODEX_HOME、工作树和模型，使故障不可追溯。
+
+### 启动后的安全核对与清理
+
+至少核对以下项目后才把 bootstrap 视为成功：
+
+1. `git -C <worktree> branch --show-current` 是目标 branch，且没有误写 `main` 或其他 worktree；
+2. 绝对 Node/CLI 的 `--version` 成功；
+3. 共享或副本 proxy 的 HTTP 检查在规定时限内返回；副本还要核对 `PROXY_PID` 的命令行和监听端口确实属于本次启动；
+4. 注册表记录的 `(codex_home, conversation_id)`、worktree、branch 与实际值一致；
+5. 首轮失败时，原 thread/session 日志仍保留，供 `resume` 和审计使用。
+
+退出时只清理自己创建的副本进程、临时目录和日志；不删除 session/thread、注册表记录、共享 `config.toml` 或无法确认归属的进程。不要使用 `pkill`、`killall` 或宽泛的递归删除。
 
 ## 登记与交接
 

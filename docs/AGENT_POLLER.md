@@ -17,7 +17,7 @@
 
 ## 启动和运行
 
-先按 [新建代理 skill](../.agents/skills/create-ref2dex-agent/SKILL.md) 启动 NewAPI 对话并登记。`proxy.py` 的 18080 服务已运行时复用，不启动第二份。在 poller 工作树中运行：
+先按 [新建代理 skill](../.agents/skills/create-ref2dex-agent/SKILL.md) 启动 NewAPI 对话并登记。复用 `proxy.py` 的 18080 前，必须按该 skill 做有界 HTTP health check；仅有 LISTEN 端口不代表请求会返回。若检查超时，按 skill 的临时独立副本和 invocation-local `model_providers.rlg.base_url` override 运行，不修改或停止共享 proxy/config，也不启动第二个 18080 服务。在 poller 工作树中运行：
 
 ```bash
 python3 scripts/agent_result_poller.py \
