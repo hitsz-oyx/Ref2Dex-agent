@@ -63,7 +63,9 @@ def check_inputs(probe):
         if sha(info["path"]) != info["sha256"]:
             raise RuntimeError("checkpoint drift: " + name)
     motions = Path(option(command, "--motion_file"))
-    actual = sorted(str(path.relative_to(motions)) for path in motions.rglob("interaction_hand_inspire.pt"))
+    # Motion subdirectories are symlinks, which Path.rglob does not traverse.
+    actual = sorted(str(path.relative_to(motions)) for directory in motions.iterdir()
+                    for path in [directory / "interaction_hand_inspire.pt"] if path.is_file())
     planned = sorted(relative for relative, _ in probe["motion_files"])
     if actual != planned:
         raise RuntimeError("motion file set drift")
