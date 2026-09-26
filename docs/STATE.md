@@ -34,6 +34,11 @@ Updated: 2026-09-26
 
 - 当前可靠的抓取 substrate 是自训练专家/层级路由；它仍可能读取特权物体
   身份，不能报告成完整 GRAB actor。
+- 冻结的初始观测六专家路由在新 seed260 的 Decision Probe 通过预设门槛：
+  与固定物体身份路由的专家选择 64/64 一致，cup 6/6 正确；held-lift 为
+  观察路由 21/64、固定路由 23/64。它是 C1 `PROMISING` 的探索信号，
+  值得固定配置做多 seed Validation；尚不支持稳定抓取或 Cm utility 结论。
+  见 [实验卡](experiments/probes/P-20260926-observation-router-reliability.md)。
 - 均匀共享多轨迹 actor 与全池 actor 的近期 Probe 未形成稳定抓取底座；不再
   继续在同一均匀续训方案上堆 epoch。
 - 初始动作 option-value、短时/持续接触切换、局部残差和 route-specific
@@ -123,3 +128,7 @@ representation Probe。
 主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
 相关提交暂不合入 `main`。见
 [监督审计](handoffs/BASELINE_POSTFREEZE_PROBE_AUDIT_20260926.md)。
+
+C1 的观察路由新 seed Probe 已过预设门槛。下一步固定六专家 checkpoint、
+观测分类器和评估协议，预先登记多 seed matched Validation 的判定条件；
+不得在同一 Probe 结果上调整分类器、专家集合或阈值。

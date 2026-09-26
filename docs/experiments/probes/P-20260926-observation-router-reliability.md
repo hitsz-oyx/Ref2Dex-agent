@@ -10,7 +10,7 @@ decision_changed_if_positive: "Keep the nonprivileged six-expert hierarchy as th
 decision_changed_if_negative: "Do not validate this router; inspect whether expert-choice fidelity or physical grasp coverage failed before changing the C1 route."
 probe_index_in_family: 1
 seed_pool: probe
-status: PLANNED
+status: PROMISING
 classification: Decision
 ---
 
@@ -40,3 +40,11 @@ If choice fidelity fails, mark the frozen classifier `UNPROMISING` and inspect t
 ## Budget and stop conditions
 
 One idle GPU, sequential arms, target wall time <=10 minutes, output <=200 MB. Stop on occupied GPU, input drift, missing checkpoint, incomplete episodes, nonfinite values, excessive runtime or storage. Save a machine-readable preflight, both native evaluator manifests/results, and a compact result index. No new training, Cm model, PPO or collector.
+
+## Result and decision
+
+The fixed and observation arms completed sequentially on GPU 1 with no resource conflict. Both produced 64 first episodes with identical environment IDs, motion IDs, start frames and episode lengths. All episode metrics were finite; route/config, code commit and model hashes matched the preflight. Both arms had Cm disabled and early termination disabled. The native evaluation time was 122.34 seconds for fixed routing and 118.976 seconds for observation routing; their saved artifacts total 95,782 bytes.
+
+The frozen observation classifier selected the fixed expert in **64/64** environments, including `cup_e340` in **6/6** cup environments. Held-lifts were **21/64** with observation routing and **23/64** with fixed routing, a difference of -2/64. Every predeclared gate passed. The result is **PROMISING** for a fixed multi-seed C1 Validation of this frozen six-expert hierarchy. The complete checks, exact counts and SHA256 artifact index are in [the result index](P-20260926-observation-router-reliability-results.json); raw manifests and per-episode results are under `outputs/CmResidual/agent_obs_router_reliability_s260_{fixed,obs}/`.
+
+This single new seed does not establish a stable grasp claim, nor that observation routing improves grasping. Simulator outcomes can differ even when expert choices match. The hierarchy remains a six-expert policy rather than one shared actor, and this experiment says nothing about Cm policy utility.

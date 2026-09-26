@@ -1,0 +1,88 @@
+{
+  "artifacts": {
+    "fixed_log": {
+      "bytes": 7421,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260/fixed.log",
+      "sha256": "7a0a69651ec9e43228cbd9b56711aba6e77dd1b25000c6960ce7e59d4822bc2e"
+    },
+    "fixed_manifest": {
+      "bytes": 2944,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260_fixed/run_manifest.json",
+      "sha256": "2cf203552fe667d4973d1e5030640f1ee608b2ab96f46b553eb035401b976af4"
+    },
+    "fixed_results": {
+      "bytes": 32623,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260_fixed/results.json",
+      "sha256": "7c721228c8d563d0e799387161cf981aeedfe071459a7b551bdee7adb9d0bcd9"
+    },
+    "observation_log": {
+      "bytes": 7263,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260/observation.log",
+      "sha256": "2a03946a727f593269b442281c623476992242b8cd7e2fb8e48c5c9ad0e1d0ee"
+    },
+    "observation_manifest": {
+      "bytes": 3273,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260_obs/run_manifest.json",
+      "sha256": "b43b1c55ac5f4fa0a8f8fb5a43550bbd59fe8048658c548e29bcb5a74843e790"
+    },
+    "observation_results": {
+      "bytes": 32579,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260_obs/results.json",
+      "sha256": "6072ca0d542324126a03a3ceef673eec867d028bdaa3f9dac44b4306a400d63f"
+    },
+    "observation_routes": {
+      "bytes": 1316,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260_obs/initial_routes.json",
+      "sha256": "4ebb34bd941ea0741213889babd6581f5a6533b1b32ca1da991dd6dac65cc2f8"
+    },
+    "preflight": {
+      "bytes": 8363,
+      "path": "outputs/CmResidual/agent_obs_router_reliability_s260/preflight.json",
+      "sha256": "345ade22356058075a65407a41bd059b27f996e1dbb4c8bb8405b563a99fe36a"
+    }
+  },
+  "branch": "agent/observation-router-reliability",
+  "checks": {
+    "both_completed": true,
+    "cm_off": true,
+    "early_termination_disabled": true,
+    "episodes_64_each": true,
+    "finite_episode_metrics": true,
+    "frozen_observation_model": true,
+    "same_code_and_route_config": true,
+    "same_environment_ids": true,
+    "same_motion_start_and_length": true
+  },
+  "classification": "Decision Probe",
+  "counts": {
+    "cup_correct": 6,
+    "cup_environments": 6,
+    "environments": 64,
+    "expert_choice_matches": 64,
+    "fixed_held_lifts": 23,
+    "observation_held_lifts": 21,
+    "observation_minus_fixed_held_lifts": -2
+  },
+  "decision": "Design fixed multi-seed C1 Validation of frozen observation-driven six-expert hierarchy.",
+  "experiment_id": "P-20260926-observation-router-reliability",
+  "git_commit": "32926392c915d2420140675781182e0d52c533f5",
+  "limitations": [
+    "single new simulator seed",
+    "expert route is a hierarchy, not a single shared actor",
+    "Cm disabled; no Cm policy-utility conclusion",
+    "physical outcomes vary across repeated simulator runs even with matching route"
+  ],
+  "predeclared_gate": {
+    "all_cups_to_cup_e340": true,
+    "choice_at_least_60_of_64": true,
+    "observation_at_least_20_lifts": true,
+    "observation_within_6_lifts_of_fixed": true
+  },
+  "schema": "ref2dex.probe_result.v1",
+  "seed": 260,
+  "status": "PROMISING",
+  "wall_seconds": {
+    "fixed_evaluation": 122.34,
+    "observation_evaluation": 118.976
+  }
+}
