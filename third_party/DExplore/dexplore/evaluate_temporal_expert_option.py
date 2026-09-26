@@ -211,6 +211,10 @@ def _runtime_contract(args: argparse.Namespace, remaining: List[str],
 def _build_player(original, routed, torch, collector: Mapping[str, object],
                   runtime: Mapping[str, object]):
     """Create the Isaac Gym player only after CPU contract validation."""
+    # ``main`` replaces ``original.EvalPlayer`` with the temporal subclass
+    # below.  Capture the untouched class now so candidate action generation
+    # cannot recursively call the replacement class.
+    base_eval_player = original.EvalPlayer
     history_steps = collector["temporal_contract"]["history_steps"]
     option_steps = collector["temporal_contract"]["option_steps"]
     future_steps = collector["temporal_contract"]["future_steps"]
@@ -346,7 +350,7 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             try:
                 for name in experts:
                     self.model, self.running_mean_std = self.expert_models[name]
-                    actions.append(original.EvalPlayer.get_action(
+                    actions.append(base_eval_player.get_action(
                         self, obs_dict, deterministic).detach().clone())
             finally:
                 self.model, self.running_mean_std = source_model, source_rms
