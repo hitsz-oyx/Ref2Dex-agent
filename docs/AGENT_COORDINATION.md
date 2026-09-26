@@ -75,6 +75,7 @@ PY
 | `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
 | `agent_Cm/temporal` | 一个明确授权的 Cm Probe | 只执行当前 card 冻结的 collection/fit，并遵守 GPU/时间/存储预算 | online/PPO follow-up；改 seed、route、metric、horizon；失败后扫描同一假设；复用别的 run | card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker |
 | `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
+| `agent/poller` | 登记代理的只读轮询和变化通知 | 读取 Goal/Git/manifest/归属 GPU；仅在变化时向 root 排队 `POLL_EVENT` | GPU 实验；修改其他工作树；科学判断；合并；固定心跳 | 变化字段、旧/新快照、通知状态和错误 |
 
 代理之间可以并行，但权限不继承：一个代理的授权不能被另一个代理解释为
 新实验、换资源或改变研究问题的授权。
@@ -178,6 +179,10 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 轮询保持监督，不因一次巡检或子任务完成而主动结束。若平台或用户中断 turn，恢复时必须从
 注册表、Goal 数据库和最后一次状态快照继续；不得假设 child 已经完成，也不得
 自动重启实验。这个连续循环不改变任何资源或实验授权。
+
+用户明确委托 [结果轮询代理](AGENT_POLLER.md) 后，root 可以暂停自身定时轮询；
+poller 只在登记状态变化时定向排队 `POLL_EVENT`，root 被唤起后仍负责审查。
+这类事件通知不等同于已退役的固定心跳式自唤醒。
 
 现有 overload watchdog 仍只处理结构化的 `server_overloaded` 事件；它不负责
 研究监督、目标派发或唤醒 `/root`。
