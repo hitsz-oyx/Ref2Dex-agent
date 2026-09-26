@@ -85,16 +85,17 @@ On 2026-09-26, the committed coverage implementation was rechecked without
 starting a simulator or GPU process:
 
 ```text
-pytest -q object_motion_sampler, stage_dexplore_object_mesh,
-          dexplore_v120_motion_input, object_disjoint_split -> 13 passed
+pytest -q dexplore_approach, dexplore_v120_motion_input, object_disjoint_split,
+          object_motion_sampler, stage_dexplore_object_mesh, v140_router -> 23 passed
 py_compile sampler, filtered-motion loader, baseline launcher, and task      -> passed
 git diff --check against the route commit                                 -> passed
 ```
 
-These checks verify object-mesh identity, asynchronous reset coverage, native
-contact preservation, translation provenance, object-disjoint splitting, and
-the explicit full-pool sampler wiring. They do not change the Probe's
-`UNPROMISING` decision or authorize another full-pool training run.
+These checks verify approach shaping, route compatibility, object-mesh identity,
+asynchronous reset coverage, native contact preservation, translation
+provenance, object-disjoint splitting, and explicit full-pool sampler wiring.
+They do not change the Probe's `UNPROMISING` decision or authorize another
+full-pool training run.
 
 The frozen inventory was independently replayed on 2026-09-26 from
 `outputs/CmResidual/agent_grab660_input_20260925/input_inventory.json`:
