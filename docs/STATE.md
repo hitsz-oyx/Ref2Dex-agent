@@ -32,6 +32,14 @@ direction gates 均失败，supported lift 虽非回归（3.811mm），因此该
 或 PPO continuation。完整证据见
 [HF02 temporal outcome handoff](handoffs/HF02_TEMPORAL_PROBE_OUTCOME_HANDOFF_20260926.md)。
 
+在用户重新授权后，对冻结的 59-motion six-expert substrate 做了低成本 Cm gate follow-up：
+instant gate seed250 为 off/on 4/64 对 2/64；stable gate seeds251–252 合计
+off/on 5/128 对 8/128（+2.34pp），低于预设 +5pp continuation gate，当前
+Cm checkpoint 仍判为 policy-utility `UNPROMISING`。660-motion matched evaluator
+因 objectMotionSampling 关闭而要求至少 660 个环境；开启采样会改变 fixed-route
+estimand，因此暂不把失败的初始化尝试当作 full-pool 结果。证据见
+[Cm gate follow-up card](experiments/probes/P-20260926-cm-gate-followup.md)。
+
 新增 12 条校正轨迹、10 个物体身份的 Cm-off 单策略续训 Probe：e300 在
 两个评估种子为 16/128，续训前 e260 同输入为 13/128；至少 6 个身份
 仍为零。四个已有自训练 checkpoint 的最优单模型仅 21/128，按物体

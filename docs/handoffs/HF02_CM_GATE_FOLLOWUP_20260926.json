@@ -1,0 +1,23 @@
+{
+  "experiment_id": "P-20260926-cm-gate-followup",
+  "classification": "UNPROMISING_POLICY_UTILITY",
+  "decision_rule": "continue only if matched Cm-on gains >=5 percentage points lift success",
+  "substrate": {
+    "route": "outputs/CmResidual/grab59_six_expert_route.json",
+    "route_sha256": "637d0e7cfef1ea2b6578bbff468afefc461e98e82f20bdfdf56bc9f892319e9a",
+    "route_sha256_canonical": "637d0e7cfef1ea2b6578bbff468afefc461e98e82f20bdfdf56bc9f892319e9a",
+    "motion_spec": "outputs/CmResidual/agent_grab59_input_gate_20260925_r3/motion_spec.json",
+    "motion_spec_sha256": "8ce7b92b2551af02e928a68c424a806e54722f0d588c65b4321a2e8b8da5c3b4",
+    "actor_checkpoint_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+    "cm_checkpoint_sha256": "396f5e0c92ecf67b2a096568c1a538b7c86d40779a594729f786df6c64ed204a"
+  },
+  "matched_pairs": [
+    {"gate": "instant", "seed": 250, "off": "4/64", "on": "2/64", "delta_pp": -3.125, "off_results_sha256": "61e648e295a0bee4773faac36930d0d64c06f4dab106fc30d059b8d41980721e", "on_results_sha256": "825f32779bfce668d6d0f6af5fca51509f5f2a57a0bbbdd027f7d57c7d50d8e5"},
+    {"gate": "stable", "seed": 251, "off": "2/64", "on": "3/64", "delta_pp": 1.5625, "off_results_sha256": "80d97100b0d86919dd52443e7a59c37f5575fcdfa0fe2540259769bfff944a6f", "on_results_sha256": "67b97c1d8dd3d8c8f5071c410fc2732d686c592e86ee4b2a71992d97ecc67299"},
+    {"gate": "stable", "seed": 252, "off": "3/64", "on": "5/64", "delta_pp": 3.125, "off_results_sha256": "e9b144b0855088607b773c2a06319e0c336ee8126a950911492454dd2ea92683", "on_results_sha256": "5a6df62e32bf266321739c70034a6551e204ea5d45293201e29daf2a27a14784"}
+  ],
+  "stable_pooled": {"off": "5/128", "on": "8/128", "delta_pp": 2.34375},
+  "full_pool_blocker": "660 motions with objectMotionSampling disabled require >=660 environments; enabling sampling changes the fixed-route estimand",
+  "cpu_or_static_checks": ["run manifests validate input/route/checkpoint hashes", "failed 660 preflight is recorded before simulation"],
+  "handoff": "Do not train or sweep this Cm checkpoint; a future 660 Probe needs an explicit evaluator semantics and memory budget."
+}
