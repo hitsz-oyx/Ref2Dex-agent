@@ -115,6 +115,6 @@ HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮�
 当前不改变路线的实验仍留在 Research Debt。当前没有获准的新 Cm 实验；若要
 继续研究，先提出新的高层假设、goal、预算和 Decision Checkpoint。
 
-主代理复核发现 baseline 工作树存在冻结决定之后完成的 GPU 评估；启动时间和
-发起 thread 尚未确认，相关提交暂不合入 `main`。见
+主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
+相关提交暂不合入 `main`。见
 [监督审计](handoffs/BASELINE_POSTFREEZE_PROBE_AUDIT_20260926.md)。
