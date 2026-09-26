@@ -71,6 +71,15 @@ more epochs to this exact route. Use the existing observation-driven
 specialist/hierarchical substrate for the next Cm Probe, and require a matched
 Cm-off arm before any claim of Cm utility.
 
+### Current disposition (2026-09-26)
+
+The recommendation above was the local decision boundary for this baseline
+Probe. The later HF02 temporal Probe is `UNPROMISING`, and
+`docs/decisions/D-20260926-after-hf02-temporal.md` now freezes the Cm
+policy-utility campaign. Therefore this card does not authorize a new Cm Probe;
+the specialist/hierarchical substrate remains provenance only until a separate
+HF03-style goal is created.
+
 ## Limits
 
 - Evaluation is one first episode per 64 parallel environments and is a Probe.
