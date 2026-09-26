@@ -33,15 +33,20 @@ wake interval and a finite 24-hour lifetime:
 
 ```bash
 cd /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main
-python3 scripts/codex_research_supervisor.py \
+setsid sh -c 'exec python3 -u scripts/codex_research_supervisor.py \
   --thread 01a0d943-de74-7021-8d50-2a4e87fde613 \
   --codex-home /home2/wyy/oyx_ws/.codex_oyx_NewAPI \
   --node /home2/wyy/.nvm/versions/node/v24.19.0/bin/node \
   --codex-js /home2/wyy/.nvm/versions/node/v24.19.0/lib/node_modules/@openai/codex/bin/codex.js \
   --interval 300 --poll-interval 30 --ack-timeout 180 \
-  --max-runtime 86400 --start-immediately --allow-blocked \
-  >> outputs/codex_research_supervisor/root.log 2>&1
+  --max-runtime 86400 --max-wakes 288 --start-immediately --allow-blocked' \
+  >> outputs/codex_research_supervisor/root.log 2>&1 < /dev/null &
 ```
+
+`setsid` is intentional when launching from a transient terminal: it keeps
+the single supervisor process alive after the shell disconnects. Record the
+printed PID and stop that exact process with `SIGTERM` when the 24-hour budget
+or the supervision task is over.
 
 The default prompt asks `/root` to inspect the three agent worktrees,
 manifests, processes and merge readiness. Override it with `--message` when a
