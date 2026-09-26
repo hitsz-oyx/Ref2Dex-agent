@@ -2,7 +2,7 @@
   "$schema": "ref2dex.agent_registry.v3",
   "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 4,
+  "registry_version": 6,
   "updated_at": "2026-09-26",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -50,14 +50,14 @@
     {
       "agent_key": "root",
       "display_name": "/root",
-      "conversation_id": "01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a",
+      "conversation_id": "01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc",
       "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a.jsonl",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_frj/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc.jsonl",
       "role": "全局主代理 / supervisor / mainline 集成负责人",
       "operating_contract": "docs/ROOT_AGENT.md",
       "parent_agent_key": null,
@@ -154,7 +154,7 @@
     },
     {
       "agent_key": "agent_cm_temporal",
-      "display_name": "agent_Cm/temporal",
+      "display_name": "agent_Cm/selective",
       "conversation_id": "01a0d7cf-3a82-7a93-b05c-ffecb361f036",
       "conversation_id_kind": "codex_thread_id",
       "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
@@ -163,10 +163,10 @@
       "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
       "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
       "rollout_locator": "sessions/**/rollout-*-01a0d7cf-3a82-7a93-b05c-ffecb361f036.jsonl",
-      "role": "单一授权 Cm temporal Probe owner",
+      "role": "已冻结 Cm selective Probe owner / 新路线候选审计",
       "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-temporal",
-      "branch": "agent/cm-trajectory-credit",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-selective",
+      "branch": "agent/cm-selective-causal-gate",
       "owns": [
         "当前 experiment card 冻结的 Cm collection/fit",
         "输入、route、checkpoint、seed 和输出 provenance",
@@ -220,6 +220,20 @@
     }
   ],
   "retired_conversations": [
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dd70-ae15-7553-a34d-a897f443f454",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-26",
+      "reason": "user appointed the current conversation as root; previous root Goal was paused; no prior Goal or process was modified"
+    },
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "retired_at": "2026-09-26",
+      "reason": "user appointed current conversation as root; prior root is usage_limited and has no active turn; no prior Goal or process was modified"
+    },
     {
       "agent_key": "root",
       "conversation_id": "01a0d943-de74-7021-8d50-2a4e87fde613",
