@@ -1,0 +1,185 @@
+{
+  "$schema": "ref2dex.agent_registry.v2",
+  "registry_schema": "ref2dex.agent_registry.v2",
+  "registry_status": "ACTIVE",
+  "registry_version": 2,
+  "updated_at": "2026-09-26",
+  "owner": "root",
+  "purpose": "记录 Ref2Dex 四个协作角色、Codex 对话 ID 及其所属 CODEX_HOME；动态运行状态不在此文件维护。",
+  "default_codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+  "identity_rules": {
+    "identity_key": [
+      "codex_home",
+      "conversation_id"
+    ],
+    "conversation_id_kind": "codex_thread_id",
+    "identity_keys_must_be_unique": true,
+    "role_changes_require_contract_update": true,
+    "dynamic_status_source": [
+      "<codex_home>/sessions/**/*.jsonl",
+      "<codex_home>/state_5.sqlite",
+      "<codex_home>/goals_1.sqlite",
+      "<codex_home>/queue_1.sqlite",
+      "Git branch/commit/status",
+      "experiment card 和 run manifest"
+    ]
+  },
+  "supervision": {
+    "mode": "root_in_turn_polling",
+    "fixed_external_wake_message": "RETIRED",
+    "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main/scripts/codex_research_supervisor.py",
+    "polling_owner": "root",
+    "polling_intervals_seconds": {
+      "waiting_or_blocked": 300,
+      "active_cpu": 300,
+      "active_gpu": 120,
+      "terminal_audit": 0
+    },
+    "dispatch_rule": "仅在发现已授权 blocker 时向精确注册 thread 派发明确 GOAL_DISPATCH；不发送固定心跳或模糊 continue。"
+  },
+  "integration": {
+    "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+    "canonical_branch": "main",
+    "merge_owner": "root",
+    "merge_policy": "只合并经过终态审计、范围审计和验证的明确提交；不按分支 tip 整体盲合。"
+  },
+  "agents": [
+    {
+      "agent_key": "root",
+      "display_name": "/root",
+      "conversation_id": "01a0d943-de74-7021-8d50-2a4e87fde613",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0d943-de74-7021-8d50-2a4e87fde613.jsonl",
+      "role": "全局主代理 / supervisor / mainline 集成负责人",
+      "parent_agent_key": null,
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+      "branch": "main",
+      "owns": [
+        "MISSION 对齐与全局 goal",
+        "在同一活动 turn 内轮询子代理",
+        "按需派发明确 child goal",
+        "子代理验收与资源分配",
+        "Decision Memo",
+        "接受后的 mainline merge"
+      ],
+      "allowed_resources": {
+        "gpu": "仅按 campaign 与明确 goal 分配；监督本身不启动 GPU",
+        "process_control": "不向实验进程发送信号；只可按明确停用授权关闭本项目自己的监督器"
+      },
+      "must_not": [
+        "运行固定心跳式外部自唤醒",
+        "盲目重启或杀实验进程",
+        "重复子代理实验",
+        "将 Probe 证据升格为 Validation",
+        "未经审计整体合并混合 ancestry 分支"
+      ],
+      "handoff": "向用户报告证据化状态、commit、manifest、资源证据和下一决策"
+    },
+    {
+      "agent_key": "agent_baseline",
+      "display_name": "agent_baseline",
+      "conversation_id": "01a0d6bf-ba61-7f92-8af7-d68c91f4007d",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0d6bf-ba61-7f92-8af7-d68c91f4007d.jsonl",
+      "role": "CPU-only canonical baseline / provenance owner",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+      "branch": "agent/grab-full-baseline",
+      "owns": [
+        "GRAB baseline provenance",
+        "evaluator/config/checkpoint/motion hash 审计",
+        "matched-off preflight manifest",
+        "CPU smoke、静态检查和测试"
+      ],
+      "allowed_resources": {
+        "gpu": 0,
+        "online_or_ppo": false,
+        "collector": false
+      },
+      "must_not": [
+        "启动 GPU 或 Isaac Gym",
+        "启动 collector/PPO",
+        "消费 Cm/HF02 slot",
+        "未经新 goal 扩展研究路线"
+      ],
+      "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态"
+    },
+    {
+      "agent_key": "agent_cm_temporal",
+      "display_name": "agent_Cm/temporal",
+      "conversation_id": "01a0d7cf-3a82-7a93-b05c-ffecb361f036",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0d7cf-3a82-7a93-b05c-ffecb361f036.jsonl",
+      "role": "单一授权 Cm temporal Probe owner",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-temporal",
+      "branch": "agent/cm-temporal",
+      "owns": [
+        "当前 experiment card 冻结的 Cm collection/fit",
+        "输入、route、checkpoint、seed 和输出 provenance",
+        "Probe 结论与后续 blocker"
+      ],
+      "allowed_resources": {
+        "gpu": "最多一个明确选择的 GPU",
+        "collection_wall_minutes": 30,
+        "cpu_fit_wall_minutes": 20,
+        "total_output_bytes": 209715200
+      },
+      "must_not": [
+        "online/PPO follow-up",
+        "改变 route/seed/metric/horizon/representation",
+        "失败后重复扫描同一 HF",
+        "复用别的 run 代替当前 manifest"
+      ],
+      "handoff": "card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker"
+    },
+    {
+      "agent_key": "agent_workflow",
+      "display_name": "agent/workflow",
+      "conversation_id": "01a0d86b-d735-7100-b229-d7a3ff0f83cc",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0d86b-d735-7100-b229-d7a3ff0f83cc.jsonl",
+      "role": "工作流治理与上下文效率 owner",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22",
+      "branch": "agent/workflow-v2.2",
+      "owns": [
+        "协作契约和注册表",
+        "治理文档、模板和验证门禁",
+        "tools/verify.py 与治理测试"
+      ],
+      "allowed_resources": {
+        "gpu": 0,
+        "research_experiment": false,
+        "isaac_gym": false
+      },
+      "must_not": [
+        "启动科研 GPU/Isaac Gym 任务",
+        "改变科学 claim",
+        "未经 Decision Checkpoint 修改研究路线"
+      ],
+      "handoff": "commit、测试/verify 输出、改动范围和已知取舍"
+    }
+  ],
+  "retired_conversations": []
+}

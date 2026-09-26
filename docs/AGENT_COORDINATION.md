@@ -1,141 +1,222 @@
-# Ref2Dex Agent Coordination Contract
+# Ref2Dex 多代理协作、注册与连续监督契约
 
-**Status:** ACTIVE · **schema:** `ref2dex.agent_coordination.v1` · **owner:** `/root`
+**状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v3`  ·  **所有者：** `/root`
 
-This is the short operational contract for the four cooperating roles in the
-Ref2Dex workspace. It is intentionally separate from research history. Agents
-should link to this file instead of copying its rules into experiment cards or
-activity logs.
+本文件规定 Ref2Dex 的四个 Codex 对话如何注册、分工、交接和接受监督。它不
+保存实验结果。当前对话 ID、`CODEX_HOME`、角色和工作树的机器可读注册表是：
 
-## 1. Minimal context route
+[`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
 
-At the start of a task, read only:
+## 1. 注册制：身份与运行目录
 
-1. `AGENTS.md`;
-2. this file;
-3. `docs/MISSION.md`, `docs/STATE.md`, and `docs/CAMPAIGN.md`;
-4. the role-specific code and active experiment card.
+`AGENT_REGISTRY.json` 是代理身份映射的唯一来源。每个登记项至少包含：
 
-Read `docs/RESEARCH_QUEUE.yaml` only when creating/approving a new Probe or
-updating a hypothesis-family budget. Read `docs/SEED_LEDGER.yaml` only when
-allocating or validating seeds. Do not bulk-read historical plans, activities,
-old decision logs, or all experiment cards. Follow links only when current
-evidence conflicts or a formal validation requires the historical baseline.
+* 稳定的 `agent_key`；
+* Codex `conversation_id`（即 thread ID）；
+* 该对话所属的 `codex_home`；
+* rollout、state、Goal 和 queue 数据库的定位；
+* 角色、worktree、branch、权限边界和 handoff 要求。
 
-`STATE.md` is a compact routing index, not an experiment log. Detailed seeds,
-metrics, tracebacks, and run paths belong in the card or run manifest.
+身份键是 **`(codex_home, conversation_id)`**，而不是单独的 conversation ID。不同
+`CODEX_HOME` 下可以存在相同格式的 ID；读取或派发消息时必须使用注册表中同一
+条记录的两项，不能依赖默认目录或自动发现。
 
-## 2. Roles and hard boundaries
+当前登记四个稳定的 `agent_key`：
 
-| Role / conversation | Owns | May do | Must not do | Required handoff |
+* `root`：全局主代理；
+* `agent_baseline`：GRAB 全池 baseline / provenance 代理；
+* `agent_cm_temporal`：Cm temporal Probe 代理（显示名为 `agent_Cm/temporal`）；
+* `agent_workflow`：工作流与治理代理（显示名为 `agent/workflow`）。
+
+注册表不记录动态的 `RUNNING`、`BLOCKED` 或 `COMPLETED` 状态；动态状态应从
+对应 `codex_home` 下的 rollout、Goal 数据库、Git 和 run manifest 读取。角色迁移
+时先在 `retired_conversations` 记录旧身份，再登记新身份；不要复用旧 thread ID。
+
+修改注册表后，至少执行：
+
+```bash
+python3 -m json.tool docs/AGENT_REGISTRY.json >/dev/null
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+d = json.loads(Path("docs/AGENT_REGISTRY.json").read_text())
+agents = d["agents"]
+keys = [(a["codex_home"], a["conversation_id"]) for a in agents]
+assert len({a["agent_key"] for a in agents}) == len(agents)
+assert len(set(keys)) == len(keys)
+assert all(a["codex_home"] and a["conversation_id"] for a in agents)
+print("AGENT_REGISTRY_VALID", len(agents))
+PY
+```
+
+若 supervisor、CLI 或外部脚本显式写入了旧 `CODEX_HOME`/thread ID，必须同步替换。
+不得通过修改显示名来掩盖身份迁移。
+
+## 2. 当前角色与边界
+
+| 角色 | 主要责任 | 允许做的事 | 明确禁止 | 必须交接 |
 | --- | --- | --- | --- | --- |
-| `/root` (global supervisor) | Mission alignment, goals, parallel-resource allocation, acceptance | Assign bounded goals, inspect threads/branches/manifests, run read-only audits, issue Decision Memos | Send signals to Codex or jobs, blindly restart/kill work, duplicate a child’s collection, promote Probe evidence to Validation | Evidence-based status and next decision to the user |
-| `agent/workflow` | Governance and context efficiency | Change workflow docs/templates/verification tests; run governance tests and `tools/verify.py` | GPU/Isaac Gym runs, research experiments, changing scientific claims without a checkpoint | Commit, test output, changed-file scope, known tradeoffs |
-| `agent_baseline` | CPU-only canonical baseline/provenance audit | Inspect evaluator/config/checkpoint/motion hashes; build matched-off preflight manifests; run CPU smoke/tests | GPU, Isaac Gym, collectors, PPO, or consuming the Cm/HF02 slot | Branch/commit, manifest path, hashes, audit result, terminal status |
-| `agent_Cm` (temporal/Cm) | One explicitly authorized Cm Probe | Run only the card’s frozen collection/fit, within its GPU/time/storage budget; record all provenance | Online/PPO follow-up, route/seed/metric drift, reuse of another run, or expanding scope after a failed gate | Card status, run manifests, resource evidence, Probe label, next decision |
+| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在同一条对话中轮询；按需派发明确 goal；只读审计；撰写 Decision Memo；审计后合并已接受提交 | 固定心跳式自唤醒；盲目重启/杀进程；重复实验；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
+| `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
+| `agent_Cm/temporal` | 一个明确授权的 Cm Probe | 只执行当前 card 冻结的 collection/fit，并遵守 GPU/时间/存储预算 | online/PPO follow-up；改 seed、route、metric、horizon；失败后扫描同一假设；复用别的 run | card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker |
+| `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
 
-The baseline and Cm tasks may run in parallel. Under the current supervisor
-contract, baseline uses zero GPUs and `agent_Cm` owns at most one selected GPU;
-`agent/workflow` uses zero GPUs. The campaign-wide four-GPU ceiling still
-applies to any separately authorized work.
+代理之间可以并行，但权限不继承：一个代理的授权不能被另一个代理解释为
+新实验、换资源或改变研究问题的授权。
 
-## 3. Goal and experiment contract
+## 3. 启动任务的最小上下文
 
-Every delegated goal must state, in one short message:
+新任务默认按以下顺序读取：
 
-- the decision question and the cheapest discriminating test;
-- the exact branch/commit and allowed paths;
-- the experiment/card ID, seeds, controls, and resource budget;
-- explicit stop conditions and deliverables;
-- what the agent is not authorized to start.
+1. `AGENTS.md`；
+2. 本文件与 `docs/AGENT_REGISTRY.json`；
+3. `docs/MISSION.md`、`docs/STATE.md`、`docs/CAMPAIGN.md`；
+4. 当前角色相关代码和 active experiment card。
 
-“Continue” by itself is not a goal. A new route, claim, resource class, or
-online follow-up requires a new goal (and a Decision Memo when `AGENTS.md`
-requires one).
+只有在创建/批准 Probe 或分配 seed 时读取 `RESEARCH_QUEUE.yaml`、
+`SEED_LEDGER.yaml`。不要批量读取历史 plan、全部 Activity、全部 experiment
+或无关 Git 历史；只有证据冲突、重复实验核查或正式 Validation 才追溯历史。
 
-## 4. Preflight gate (before any non-smoke run)
+`STATE.md` 是当前路由索引，不是实验日志。seed、指标、traceback、run 路径
+放在 experiment card 和 manifest 中。
 
-The owner records a machine-readable `preflight.json` before starting the
-run. It must verify:
+## 4. Goal 与明确派发合同
 
-1. branch, `HEAD`, worktree scope, and card schema/experiment ID;
-2. route, config, evaluator, checkpoint, motion, and code hashes;
-3. seed ownership and matched-control definitions;
-4. output directory is unique and will not overwrite evidence;
-5. GPU/process ownership, selected device, memory snapshot, and campaign
-   limits;
-6. command-line dry-run/tests and expected output schema;
-7. wall-time, storage, nonfinite-data, drift, and row-count stop conditions.
+每个委派 goal 必须在一条短消息中说明：
 
-If a check fails, status is `PREFLIGHT_FAILED` and the owner stops. An
-implementation-only repair may be attempted only after recording the failed
-attempt as `INVALID_IMPLEMENTATION`, preserving the same card and inputs;
-changing the scientific design requires a new goal.
+* `TARGET_AGENT_KEY`、`CODEX_HOME` 和精确 `conversation_id`；
+* 决策问题与最便宜的可判别测试；
+* 精确 branch、commit 和允许修改的路径；
+* experiment/card ID、seed、control 和资源预算；
+* 停止条件与交付物；
+* 明确未授权启动的内容。
 
-## 5. Supervision cadence and state machine
+“继续”“再看看”或固定巡检句子都不是 goal。新路线、新 claim、新资源类别或
+online follow-up 必须建立新的 goal；若触发 `AGENTS.md` 的 Decision Checkpoint，
+先提交 Decision Memo。实验必须先区分 Blocker、Decision、Evidence 或 Curiosity；
+探索阶段只能形成 `PROMISING`、`UNPROMISING` 或 `UNCLEAR`。
 
-The supervisor uses read-only, event-aware polling:
+### 4.1 目标派发模板
 
-| Phase | Default cadence | Inspect |
+`/root` 只有在发现一个**已授权且可判别的 blocker**时，才向对应 child thread
+发送如下类型的定向消息：
+
+```text
+GOAL_DISPATCH
+TARGET_AGENT_KEY=agent_baseline|agent_cm_temporal|agent_workflow
+CODEX_HOME=<from AGENT_REGISTRY.json>
+CONVERSATION_ID=<from AGENT_REGISTRY.json>
+OBJECTIVE=<one concrete decision/blocker>
+DECISION_TEST=<cheapest discriminating test>
+BRANCH=<exact branch>  BASE_COMMIT=<sha>
+ALLOWED_PATHS=<paths>
+EXPERIMENT_OR_CARD=<id or NONE>
+RESOURCE_BUDGET=<gpu/time/storage/process>
+STOP_CONDITIONS=<explicit conditions>
+DELIVERABLE=<commit/card/manifest/handoff>
+NOT_AUTHORIZED=<what must not start>
+```
+
+派发后 `/root` 等待该 thread 的真实终态或新的 blocker；不再用“继续”消息制造
+活动，也不重复投递相同 goal。`paused` 或 `blocked` 的 Goal 不得被静默唤醒，
+除非用户建立新授权或 Decision Memo 明确解除阻塞。
+
+## 5. 主代理的连续监督循环（取代外部固定唤醒）
+
+研究监督由 `/root` 在**同一条主对话的活动 turn 内**完成，不使用外部 watchdog
+向 `/root` 周期性投递固定的“执行一次全局 supervisor 巡检”文本。外部脚本
+`codex_research_supervisor.py` 的旧队列唤醒模式已经 retired；它不是新的任务
+调度器，也不应重新启动。
+
+`/root` 开始监督时建立一个连续循环：
+
+1. 做一次 preflight，读取注册表并解析每个已登记 thread 的 `CODEX_HOME`；
+2. 只读检查 thread/Goal、branch/HEAD、card/manifest、归属进程和 GPU；
+3. 将每个 child 分类为 `RUNNING`、`WAITING`、`TERMINAL`、`BLOCKED` 或 `UNKNOWN`；
+4. 若没有已授权 blocker，记录内部状态 `SUPERVISOR_IDLE`，使用等待/定时轮询
+   保持当前 turn，不向自己或 child 发送固定心跳消息；
+5. 若有 blocker，只按第 4.1 节派发一个明确 goal，然后继续轮询其证据；
+6. 在终态、异常或 Decision Checkpoint 时立即做 completion audit，并向用户交接。
+
+默认轮询节奏：
+
+| 阶段 | 间隔 | 检查 |
 | --- | --- | --- |
-| queued / preflight / blocked | every 45–60 s | thread turn, latest message, branch/HEAD, resource ownership |
-| active GPU collection | every 2 min (never slower than 5 min) | process owner, GPU memory/utilization, manifest/log heartbeat, elapsed budget |
-| active CPU analysis | every 5 min | process, output growth, elapsed budget, terminal errors |
-| terminal or exception event | immediately, then one completion audit | manifest, card, hashes, commit, scoped processes, next decision |
+| queued / waiting / blocked | 5 分钟 | thread turn、Goal、branch/HEAD、最新 handoff、资源归属 |
+| active CPU analysis | 5 分钟 | 进程、manifest/log heartbeat、输出增长、时间预算 |
+| active GPU collection | 2 分钟，最长不超过 5 分钟 | owner 进程、显存/利用率、manifest、停止条件 |
+| terminal / exception | 立即一次 | card、manifest、hash、commit、归属进程和下一决策 |
 
-The normal states are `PLANNED → PREFLIGHT → RUNNING → COMPLETED` or
-`FAILED/STOPPED/UNKNOWN`; an import/wiring defect is
-`INVALID_IMPLEMENTATION`, not a scientific result. No automatic restart is
-allowed. The existing overload watchdog is limited to overload detection and
-queueing; it is not a substitute for this supervisor and must not send process
-signals.
+“对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内使用等待和
+轮询保持监督，不主动发送最终结束消息。若平台或用户中断 turn，恢复时必须从
+注册表、Goal 数据库和最后一次状态快照继续；不得假设 child 已经完成，也不得
+自动重启实验。这个连续循环不改变任何资源或实验授权。
 
-At each poll, record only a compact status line. Do not append raw logs to
-`STATE.md` or the conversation.
+现有 overload watchdog 仍只处理结构化的 `server_overloaded` 事件；它不负责
+研究监督、目标派发或唤醒 `/root`。
 
-## 6. Stop, escalation, and evidence labels
+停用旧调度器时，先只读检查注册表中对应的 `queue_db`。若存在遗留固定巡检文本，
+必须先做 SQLite 一致性备份，再用 `thread_id`、消息 ID 和文本内容精确匹配清理；
+不得清空整个队列或触碰其他 thread 的排队消息。清理后再次只读确认没有遗留固定
+心跳，未来只允许明确授权的 `GOAL_DISPATCH` 入队。
 
-Stop and report on hash/route drift, ambiguous process ownership, resource or
-time-budget breach, missing manifest, nonfinite output, schema/row-count
-failure, or a Decision Checkpoint. Three valid Probes without North-star
-progress trigger route review rather than another local tweak.
+## 6. 非 smoke 运行前的 preflight
 
-Exploration may end only as `PROMISING`, `UNPROMISING`, or `UNCLEAR`.
-`SUPPORTED`, `REFUTED`, and other formal claims require the Validation path.
-Engineering smoke and `INVALID_IMPLEMENTATION` runs never count as scientific
-Probe evidence.
+运行前由 owner 写入 machine-readable `preflight.json`，至少固定：
 
-## 7. Handoff format
+1. branch、HEAD、worktree 范围、card schema 和 experiment ID；
+2. route、config、evaluator、checkpoint、motion 与代码 hash；
+3. seed ownership、matched control 和唯一输出目录；
+4. GPU/process ownership、设备、显存快照和 campaign 限制；
+5. dry-run/测试、输出 schema、wall-time、storage、非有限值、漂移和行数停止条件。
 
-Each owner ends with one compact record:
+失败的接线或 import 修复保留为 `INVALID_IMPLEMENTATION`；不能把它包装成
+科学结果。没有完整 preflight、manifest 或明确进程归属时，停止并交接。
 
-~~~text
+## 7. 交接格式与证据边界
+
+每个 owner 结束时提供以下紧凑记录：
+
+```text
 STATUS=<terminal state>  LABEL=<if applicable>
 BRANCH=<name>  HEAD=<sha>
 CARD=<experiment/card id>  RUN=<run id or manifest path>
 INPUTS=<key hashes>  RESOURCES=<GPU/process/time/storage>
 EVIDENCE=<tests/metrics/known limits>
-NEXT=<the single decision or blocker>
-~~~
+NEXT=<single decision or blocker>
+```
 
-The supervisor accepts a task only when the record is reproducible from the
-commit, card, manifest, and process audit. Otherwise it remains active or is
-escalated to the user; it is not silently marked complete.
+只有 commit、card、manifest、hash 和资源审计可以相互复核时，supervisor 才接受
+终态。单 seed、单 rollout、loss、视频或工程 smoke 不能被描述为正式科学结论。
+连续三个有效 Probe 没有 North-star 进展时，切换高层路线并触发路线复盘，不得
+在同一局部问题上无限换 seed/metric/horizon。
 
-## 8. Integration ownership
+## 8. mainline 集成归属
 
-The canonical integration worktree is:
+规范集成工作树为：
 
-~~~text
+```text
 /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main
-branch: main (tracking origin/main)
-~~~
+branch: main
+```
 
-Only /root may merge an accepted child commit into main. Before merging,
-/root verifies the child terminal record, diff scope, tests/verification,
-worktree cleanliness, absence of owned processes, and whether the branch
-contains unrelated research history. If a route branch has mixed ancestry,
-merge only the explicitly accepted commits (or a clean integration branch);
-never merge the entire branch by name merely because its tip passed a test.
-After merge, run the mainline verification again and report the resulting
-main commit to the user.
+只有 `/root` 可以把已接受的子代理提交合并到 `main`。合并前必须核对：子线程
+终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否
+含有无关研究历史。混合 ancestry 的分支只能挑选明确接受的提交，不能因为分支
+tip 通过测试就整体合并。合并后重新运行 mainline verification，并向用户报告
+新的 main commit。
+
+## 9. 如何更换对话或 `CODEX_HOME`
+
+新建对话或迁移运行目录后：
+
+1. 在 `docs/AGENT_REGISTRY.json` 找到目标 `agent_key`；
+2. 同时更新 `codex_home`、`conversation_id` 以及该记录下的数据库/rollout 路径；
+3. 保留角色、worktree、branch、资源边界和 handoff 要求；
+4. 运行第 1 节的 JSON/身份键唯一性检查；
+5. 更新任何显式 supervisor/dispatch 参数；
+6. 在下一次 handoff 中说明旧身份、新身份和生效时间。
+
+不要在本文件、experiment card 或 `STATE.md` 另行维护一份会漂移的 ID 清单。
+需要变更身份职责时，先修改注册表和本节角色契约，再创建 goal；不能只改显示名。

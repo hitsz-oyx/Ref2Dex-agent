@@ -16,7 +16,7 @@
 主代理 `/root` 使用注册表和自己的活动 turn 建立连续监督循环：
 
 1. 从
-   [`docs/AGENT_REGISTRY.json`](/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22/docs/AGENT_REGISTRY.json)
+   [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
    读取目标的 `codex_home` 与 `conversation_id`；
 2. 在同一条主对话中读取 thread/Goal、branch/HEAD、experiment card、manifest、
    归属进程和 GPU；
