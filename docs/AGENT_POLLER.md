@@ -62,7 +62,9 @@ NEXT=<single decision or blocker>
 
 poller 不负责 root liveness。`scripts/root_watchdog.py` 是独立进程，读取 root Goal、
 root rollout、Broker supervisor state 和 `.runtime/SUPERVISOR_LEASE.json`，只写
-`CONTROL` 的 `WAKE`、lease-authorized `RESUME` 或 `BUDGET_LIMITED`。它不能读取指标或
+`CONTROL` 的 `WAKE`、lease-authorized `RESUME` 或 `BUDGET_LIMITED`；lease-authorized
+`RESUME` 会通过同一 root runtime 的 app-server 验证 Goal 从 `paused` 或 `blocked`
+回到 `active`。它不能读取指标或
 替 root 选任务。lease 缺失等同于禁用；用户通过
 `python3 scripts/researchctl.py supervisor pause|resume|status` 管理授权。
 

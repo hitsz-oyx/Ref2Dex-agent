@@ -48,8 +48,9 @@ child 终态不会结束 root Goal。
 
 `scripts/root_watchdog.py` 只观察 root Goal、root rollout 和 Broker supervisor state。它在 grace
 period 后写一次 `CONTROL/WAKE`；只有本地 `.runtime/SUPERVISOR_LEASE.json` 同时启用
-且允许恢复时，才写 `CONTROL/RESUME`。provider adapter 负责实际 runtime 恢复；watchdog
-遇到 usage/budget limit 只写 `CONTROL/BUDGET_LIMITED` 并停止，绝不绕过平台预算。
+且允许恢复时，才对 `paused` 或 `blocked` Goal 调用同一 root runtime 的 app-server，
+回读确认 `active` 后写 `CONTROL/RESUME`。watchdog 遇到 usage/budget limit 只写
+`CONTROL/BUDGET_LIMITED` 并停止，绝不绕过平台预算。
 
 启动 watchdog 时使用注册表中的 root `CODEX_HOME`，并让 state/lock 留在本机：
 

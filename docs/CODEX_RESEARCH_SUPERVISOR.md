@@ -35,10 +35,10 @@ watchdog 读取 root Goal、root rollout、Broker supervisor state 和
 
 * active Goal 在 grace period 后没有 turn 或 queued input：发送一次
   `CONTROL/WAKE`；
-* paused Goal 只有在 lease `enabled=true` 且 `allow_root_resume=true` 时才通过
-  `CONTROL/RESUME` 交给对应 runtime adapter；
+* paused 或 blocked Goal 只有在 lease `enabled=true` 且 `allow_root_resume=true` 时才通过
+  对应 root runtime 的 app-server 恢复为 active，并记录 `CONTROL/RESUME`；
 * `usage_limited`/`budget_limited` 写 `CONTROL/BUDGET_LIMITED`，不自动恢复；
-* complete、failed、blocked 或未知状态只记录，不重启。
+* complete、failed、usage/budget limit 或未知状态只记录，不重启。
 
 lease 由以下命令管理：
 

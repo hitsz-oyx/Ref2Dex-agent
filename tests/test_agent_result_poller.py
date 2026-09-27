@@ -472,9 +472,10 @@ def test_paused_or_unknown_root_never_auto_wakes(tmp_path, monkeypatch, root_sta
     assert len(queued) == 1
 
 
-def test_opt_in_resume_uses_app_server_once_on_idle_edge(tmp_path, monkeypatch):
+@pytest.mark.parametrize("root_status", ["paused", "blocked"])
+def test_opt_in_resume_uses_app_server_once_on_idle_edge(tmp_path, monkeypatch, root_status):
     statuses = {"child": "active"}
-    _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-1")
+    _supervision_setup(monkeypatch, statuses, root_status=root_status, root_goal_id="goal-1")
     child, _ = _child(tmp_path, "child")
     registry = _registry(tmp_path, child)
     state = tmp_path / "state.json"
@@ -499,7 +500,7 @@ def test_opt_in_resume_uses_app_server_once_on_idle_edge(tmp_path, monkeypatch):
     assert len(queued) == 1  # the ordinary child state-change event
 
     assert poller.poll_once(args)[0] == []
-    assert resumed == [("root-thread", "goal-1", "paused")]
+    assert resumed == [("root-thread", "goal-1", root_status)]
     assert len(queued) == 2
     assert queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
     persisted = json.loads(state.read_text(encoding="utf-8"))
@@ -544,7 +545,8 @@ def test_static_migrated_idle_paused_goal_resumes_without_new_edge(tmp_path, mon
     assert queued and queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
 
 
-def test_app_server_resume_fake_protocol_sets_and_reads_exact_goal(tmp_path):
+@pytest.mark.parametrize("goal_status", ["paused", "blocked"])
+def test_app_server_resume_fake_protocol_sets_and_reads_exact_goal(tmp_path, goal_status):
     fake = tmp_path / "fake_app_server.py"
     fake.write_text(
         "import json, sys\n"
@@ -587,7 +589,7 @@ def test_app_server_resume_fake_protocol_sets_and_reads_exact_goal(tmp_path):
     connection.close()
     goal = {
         "goal_id": "goal-1",
-        "status": "paused",
+        "status": goal_status,
         "objective": "resume objective",
         "token_budget": 11,
     }

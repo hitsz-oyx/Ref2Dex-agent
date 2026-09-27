@@ -214,6 +214,14 @@ def test_watchdog_budget_and_terminal_states_are_not_resumed() -> None:
         None,
         1.0,
     )[0] == "ROOT_PAUSED"
+    assert classify(
+        {"status": "blocked"},
+        {"rollout": {"status": "known", "active_turns": []}},
+        False,
+        1000.0,
+        None,
+        1.0,
+    )[0] == "ROOT_PAUSED"
 
 
 def test_researchctl_pause_and_resume_only_change_local_lease(tmp_path: Path) -> None:
@@ -291,6 +299,57 @@ def test_root_runtime_binding_and_lease_identity_match(tmp_path: Path) -> None:
     assert identity["conversation_id"] == root["conversation_id"]
     lease = watchdog.load_lease(lease_path)
     assert watchdog.lease_identity_matches(lease, identity) == (True, "matched")
+
+
+@pytest.mark.parametrize("broker_mode", [False, True])
+def test_watchdog_resumes_blocked_root_goal_like_paused(
+    tmp_path: Path, monkeypatch, broker_mode: bool,
+) -> None:
+    registry, lease_path, state, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}), encoding="utf-8"
+    )
+    lease_path.write_text(json.dumps({
+        "schema": watchdog.LEASE_SCHEMA, "enabled": True,
+        "allow_root_resume": True, **_identity(root),
+    }), encoding="utf-8")
+    monkeypatch.setattr(watchdog, "root_snapshot", lambda root, previous=None: {
+        "rollout": {"status": "known", "active_turns": []},
+        "task_complete": [], "rollout_cursor": {},
+    })
+    monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
+        "goal_id": "goal-blocked", "status": "blocked", "objective": "test", "token_budget": 1,
+    })
+    monkeypatch.setattr(watchdog.runtime, "pending_root_turn", lambda agent: False)
+    resumed: list[str] = []
+    queued: list[str] = []
+    monkeypatch.setattr(
+        watchdog, "_resume_root_goal",
+        lambda root, goal, args: resumed.append(goal["status"]) or {"threadId": root["conversation_id"], "status": "active"},
+    )
+    monkeypatch.setattr(watchdog.runtime, "queue_root", lambda *args: queued.append(args[1]))
+    broker_calls: list[dict] = []
+
+    if broker_mode:
+        class StubBroker:
+            def status(self):
+                return {"supervisor": {"desired_state": "RUNNING", "generation": 1}}
+
+            def control(self, **kwargs):
+                broker_calls.append(kwargs)
+
+        monkeypatch.setattr(watchdog, "_broker", lambda args: StubBroker())
+    args = _watchdog_args(registry, lease_path, state)
+    if broker_mode:
+        args.broker_tasks_db = str(tmp_path / "tasks.sqlite")
+        args.broker_state_db = str(tmp_path / "state.sqlite")
+    result = watchdog.check_once(args)
+    assert resumed == ["blocked"]
+    assert queued and queued[0].startswith(watchdog.ROOT_LIVENESS_WAKE)
+    assert result["last_status"] == "ROOT_RUNNING"
+    assert result["resume_consumed_goal_id"] == "goal-blocked"
+    if broker_mode:
+        assert broker_calls and broker_calls[0]["action"] == "RESUME"
 
 
 @pytest.mark.parametrize(

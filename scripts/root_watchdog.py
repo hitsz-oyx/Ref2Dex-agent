@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Keep the root supervision turn live through the Agent Broker.
 
-With broker databases configured, the watchdog writes only ``CONTROL``
-messages and its own JSON state.  Legacy app-server wake/resume is retained
-only when broker arguments are omitted.  It never reads experiment metrics,
-starts a worker, or selects a research route.
+With broker databases configured, the watchdog writes ``CONTROL`` messages and
+its own JSON state; a lease-authorized ``paused`` or ``blocked`` root Goal is
+also resumed through the registered root app-server and verified by readback.
+It never reads experiment metrics, starts a worker, or selects a research route.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ ROOT_BUDGET_LIMITED = "ROOT_BUDGET_LIMITED\n"
 ACTIVE = frozenset({"active", "running"})
 BUDGET = frozenset({"usage_limited", "budget_limited"})
 TERMINAL = frozenset({"complete", "completed", "failed", "stopped", "terminated"})
+RESUMABLE = frozenset({"paused", "blocked"})
 ROOT_IDENTITY_FIELDS = ("conversation_id", "codex_home", "worktree", "branch")
 ROOT_BINDING_SCHEMA = "ref2dex.agent_bindings.v2"
 
@@ -162,10 +163,10 @@ def classify(goal: dict, snapshot: dict, queued: bool, now: float, idle_since: f
     active_turn = rollout.get("status") != "known" or bool(rollout.get("active_turns"))
     if status in BUDGET:
         return "ROOT_BUDGET_LIMITED", "platform budget or usage limit", idle_since
-    if status in TERMINAL or status == "blocked":
+    if status in TERMINAL:
         return "ROOT_TERMINAL", f"Goal status={status}", idle_since
-    if status == "paused":
-        return "ROOT_PAUSED", "Goal is paused", idle_since
+    if status in RESUMABLE:
+        return "ROOT_PAUSED", f"Goal status={status}", idle_since
     if status not in ACTIVE:
         return "ROOT_TERMINAL", f"Goal status={status or 'unknown'}", idle_since
     if active_turn or queued:
@@ -204,6 +205,26 @@ def _broker(args) -> AgentBroker | None:
         args.broker_state_db,
         getattr(args, "broker_roles", "docs/AGENT_ROLES.yaml"),
         getattr(args, "broker_bindings", ".runtime/AGENT_BINDINGS.json"),
+    )
+
+
+def _resume_root_goal(root: dict, goal: dict, args):
+    """Resume a paused or blocked root Goal through app-server and verify it."""
+
+    command = getattr(args, "app_server_command", None)
+    if not command and not (
+        getattr(args, "codex_node", None) and getattr(args, "codex_js", None)
+    ):
+        raise RuntimeError(
+            "root Goal recovery requires --codex-node/--codex-js or --app-server-command"
+        )
+    return runtime.app_server_resume_root_goal(
+        root,
+        goal,
+        getattr(args, "codex_node", None),
+        getattr(args, "codex_js", None),
+        app_server_command=command,
+        timeout=args.app_server_timeout,
     )
 
 
@@ -275,28 +296,18 @@ def check_once(args) -> dict:
     if status == "ROOT_PAUSED":
         consumed = state.get("resume_consumed_goal_id")
         allowed = bool(lease.get("enabled") and lease.get("allow_root_resume"))
-        if broker is not None and allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and not args.dry_run:
-            broker.control(action="RESUME", target="root", reason="lease-authorized bounded root resume")
-            state["resume_consumed_goal_id"] = goal["goal_id"]
-            state["last_status"] = "ROOT_RUNNING"
-            state["last_reason"] = "broker-authorized Goal resume"
-            print("RECORDED root Goal resume via Agent Broker", flush=True)
-            _write_json_atomic(state_path, state)
-            return state
         if allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and not args.dry_run:
-            resumed = runtime.app_server_resume_root_goal(
-                root, goal, args.codex_node, args.codex_js,
-                app_server_command=args.app_server_command,
-                timeout=args.app_server_timeout,
-            )
-            state["resume_consumed_goal_id"] = goal["goal_id"]
+            resumed = _resume_root_goal(root, goal, args)
+            if broker is not None:
+                broker.control(action="RESUME", target="root", reason="lease-authorized bounded root resume")
             resumed_goal = dict(goal)
             resumed_goal["status"] = resumed.get("status", "active")
             if not runtime.pending_root_turn(root):
                 runtime.queue_root(root, _wake_message(resumed_goal, int(lease.get("generation", 0))), args.codex_node, args.codex_js)
+            state["resume_consumed_goal_id"] = goal["goal_id"]
             state["last_status"] = "ROOT_RUNNING"
             state["last_reason"] = "lease-authorized Goal resume"
-            print("RESUMED root Goal via autonomy lease", flush=True)
+            print("RESUMED paused or blocked root Goal via app-server", flush=True)
         elif allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and args.dry_run:
             print("DRY_RUN would resume root Goal via autonomy lease", flush=True)
         _write_json_atomic(state_path, state)

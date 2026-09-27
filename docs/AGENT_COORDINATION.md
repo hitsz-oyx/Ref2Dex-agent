@@ -130,16 +130,17 @@ cursor。未传 Broker 参数的旧 `POLL_EVENT` queue 路径仅用于兼容，�
 它不读取指标来选择路线，不启动或停止实验，不修改任何 Goal，也不发周期性“全局巡检”文本。
 
 `root_watchdog.py` 是另一条极小的 liveness 进程，只观察 root 自己的 Goal、root
-rollout 和 Broker supervisor state。启用 Broker 时它只写 `CONTROL`（`WAKE`、`RESUME`
-或 `BUDGET_LIMITED`），不直接调用 provider 或 OpenAI SDK。它只允许以下动作：
+rollout 和 Broker supervisor state。启用 Broker 时它写 `CONTROL`（`WAKE`、`RESUME`
+或 `BUDGET_LIMITED`）；lease-authorized 恢复会先通过注册 root runtime 的 app-server
+验证 Goal 状态。它只允许以下动作：
 
 * root active 但超过 grace period 没有 turn 或 queued input：写一次 `CONTROL/WAKE`；
-* root Goal paused 且本地 `.runtime/SUPERVISOR_LEASE.json` 同时声明
-  `enabled=true`、`allow_root_resume=true`：写一次 `CONTROL/RESUME`，交给 root runtime
-  adapter 恢复同一 Goal；
+* root Goal 为 `paused` 或 `blocked`，且本地 `.runtime/SUPERVISOR_LEASE.json` 同时声明
+  `enabled=true`、`allow_root_resume=true`：通过同一 root runtime 的 app-server 将 Goal
+  恢复为 `active`，再写一次 `CONTROL/RESUME`；
 * Goal 为 `usage_limited` 或 `budget_limited`：写一次 `CONTROL/BUDGET_LIMITED` 并停止，
   不绕过平台预算；
-* complete、failed、blocked 或其他终态：记录状态，不重启。
+* complete、failed、usage/budget limit 或未知状态：记录状态，不重启。
 
 watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务。lease 缺失等同
 于禁用。使用：
@@ -159,8 +160,8 @@ python3 scripts/researchctl.py supervisor status \
 ```
 
 `pause` 先关闭 lease；如果还要立即停止当前 turn，再由用户通过 Codex Goal 控制
-入口暂停 root。`resume` 只重新授予 lease，watchdog 在下一次 bounded check 中处理
-暂停的 Goal。
+入口暂停 root。`resume` 重新授予 lease，watchdog 在下一次 bounded check 中处理
+暂停或 blocked 的 Goal。
 
 ## 6. root Goal 生命周期
 

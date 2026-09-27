@@ -29,6 +29,7 @@ IDLE_GOAL_STATUSES = frozenset({
     "terminal", "failed", "stopped", "terminated", "waiting", "idle",
 })
 ACTIVE_ROOT_GOAL_STATUSES = frozenset({"active", "running"})
+RESUMABLE_ROOT_GOAL_STATUSES = frozenset({"paused", "blocked"})
 
 
 def read_json(path):
@@ -729,7 +730,7 @@ def _app_server_notify(process, method, params):
 
 def app_server_resume_root_goal(root_agent, goal, node_bin, codex_js,
                                 app_server_command=None, timeout=30.0):
-    """Set one paused Goal active through the supported app-server protocol.
+    """Set one paused or blocked Goal active through app-server.
 
     The caller supplies an exact Goal row read from the registered goal DB and
     must persist a one-time consumption marker only after the readback confirms
@@ -738,8 +739,9 @@ def app_server_resume_root_goal(root_agent, goal, node_bin, codex_js,
 
     goal_id = goal.get("goal_id") if isinstance(goal, dict) else None
     thread_id = root_agent.get("conversation_id")
-    if not goal_id or not thread_id or _normal_goal_status(goal) != "paused":
-        raise RuntimeError("root Goal is not an identifiable paused Goal")
+    status = _normal_goal_status(goal)
+    if not goal_id or not thread_id or status not in RESUMABLE_ROOT_GOAL_STATUSES:
+        raise RuntimeError("root Goal is not an identifiable paused or blocked Goal")
     command = list(app_server_command) if app_server_command else [
         node_bin, codex_js, "app-server", "--listen", "stdio://"
     ]
@@ -839,9 +841,9 @@ def poll_once(args):
     if isinstance(consumed_goal_id, str) and consumed_goal_id:
         supervision["root_goal_resume_consumed_goal_id"] = consumed_goal_id
     resume_once = bool(getattr(args, "root_goal_resume_once", False))
-    paused_resume = (
+    resumable_resume = (
         resume_once
-        and _normal_goal_status(root_goal) == "paused"
+        and _normal_goal_status(root_goal) in RESUMABLE_ROOT_GOAL_STATUSES
         and root_goal.get("goal_id")
         and consumed_goal_id != root_goal.get("goal_id")
     )
@@ -850,22 +852,24 @@ def poll_once(args):
         supervision["wake_sent"] = False
     elif previous_all_idle is None:
         # Establish a quiet baseline when upgrading an old state file.
-        supervision["wake_pending"] = paused_resume
+        supervision["wake_pending"] = resumable_resume
         supervision["wake_sent"] = False
     elif previous_all_idle is False:
-        supervision["wake_pending"] = _root_goal_is_active(root_goal) or paused_resume
+        supervision["wake_pending"] = _root_goal_is_active(root_goal) or resumable_resume
         supervision["wake_sent"] = False
-    elif paused_resume:
+    elif resumable_resume:
         # A migrated state may already say all children are idle while the
         # one-shot opt-in has never been consumed.  Do not require a fresh
-        # idle edge before attempting the exact paused Goal.
+        # idle edge before attempting the exact paused or blocked Goal.
         supervision["wake_pending"] = True
         supervision["wake_sent"] = False
     elif not _root_goal_is_active(root_goal) and not (
-        paused_resume
+        resumable_resume
     ):
-        # A paused, usage-limited, or unknown root is never auto-woken.  The
-        # all-idle edge is consumed so a later manual resume does not replay it.
+        # A paused or blocked root is only resumed through the explicit
+        # one-shot flag; usage-limited or unknown roots are never auto-woken.
+        # The all-idle edge is consumed so a later manual resume does not
+        # replay it.
         supervision["wake_pending"] = False
         supervision["wake_sent"] = False
 
@@ -964,7 +968,7 @@ def poll_once(args):
                     supervision["wake_pending"] = False
                     supervision["wake_sent"] = True
                     print("NOTIFIED ROOT_DECISION_WAKE", flush=True)
-            elif paused_resume:
+            elif resumable_resume:
                 resumed = app_server_resume_root_goal(
                     root,
                     root_goal,
@@ -1020,7 +1024,7 @@ def main():
     parser.add_argument(
         "--root-goal-resume-once",
         action="store_true",
-        help="explicitly allow one app-server resume for the current paused root Goal",
+        help="explicitly allow one app-server resume for the current paused or blocked root Goal",
     )
     parser.add_argument("--app-server-timeout", type=float, default=30.0)
     args = parser.parse_args()
