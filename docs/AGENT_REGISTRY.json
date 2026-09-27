@@ -1,8 +1,8 @@
 {
-  "$schema": "ref2dex.agent_registry.v4",
-  "registry_schema": "ref2dex.agent_registry.v4",
+  "$schema": "ref2dex.agent_registry.v5",
+  "registry_schema": "ref2dex.agent_registry.v5",
   "registry_status": "ACTIVE",
-  "registry_version": 12,
+  "registry_version": 13,
   "updated_at": "2026-09-27",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -44,7 +44,7 @@
         "agent_key": "agent_cm",
         "role": "cm_research",
         "branch": "agent/cm",
-        "runtime_binding": "agent_cm_temporal"
+        "runtime_binding": null
       },
       {
         "agent_key": "agent_rl",
@@ -56,13 +56,13 @@
         "agent_key": "agent_eval",
         "role": "validation",
         "branch": "agent/eval",
-        "runtime_binding": "agent_c1_validation"
+        "runtime_binding": null
       },
       {
         "agent_key": "agent_infra",
         "role": "engineering",
         "branch": "agent/infra",
-        "runtime_binding": "agent_workflow"
+        "runtime_binding": null
       }
     ],
     "branch_policy": {
@@ -158,41 +158,6 @@
       "role_key": "root"
     },
     {
-      "agent_key": "agent_poller",
-      "display_name": "agent/poller",
-      "conversation_id": "01a0dca7-9af9-7951-b9c3-58975c4b470b",
-      "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0dca7-9af9-7951-b9c3-58975c4b470b.jsonl",
-      "role": "只读结果轮询与事件通知代理",
-      "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-poller",
-      "branch": "agent/supervisor-poller",
-      "owns": [
-        "注册代理 Goal、HEAD、run manifest、rollout task_complete 和归属 GPU 状态轮询",
-        "状态变化去重与 POLL_EVENT 定向通知",
-        "自身轮询进程与 bounded 状态文件"
-      ],
-      "allowed_resources": {
-        "gpu": 0,
-        "research_experiment": false,
-        "root_notification": "仅登记状态或 rollout task_complete 变化时向注册 root thread 发送 POLL_EVENT"
-      },
-      "must_not": [
-        "运行训练、评估、collector 或 PPO",
-        "修改其他代理工作树或 main",
-        "形成科学结论或合并分支",
-        "向 root 发送固定心跳",
-        "唤醒 paused 或 blocked 的子代理 Goal"
-      ],
-      "handoff": "变化字段、旧/新快照、通知状态与错误",
-      "service_key": "worker_event_poller"
-    },
-    {
       "agent_key": "agent_baseline",
       "display_name": "agent_baseline",
       "conversation_id": "01a0d6bf-ba61-7f92-8af7-d68c91f4007d",
@@ -225,114 +190,10 @@
         "未经新 goal 扩展研究路线"
       ],
       "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态",
-      "role_key": "agent_eval"
-    },
-    {
-      "agent_key": "agent_c1_validation",
-      "display_name": "agent/c1-validation",
-      "conversation_id": "01a0de76-3a3f-7293-88f8-18c140024f9f",
-      "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0de76-3a3f-7293-88f8-18c140024f9f.jsonl",
-      "role": "C1 Validation owner / observation-router reliability",
-      "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-router-reliability",
-      "branch": "agent/observation-router-reliability",
-      "owns": [
-        "当前注册 C1 Validation matrix/card 的 frozen observation-router control/candidate runs",
-        "一张 GPU 上 fixed control 与 observation candidate 的 sequential evaluation、preflight 和 provenance",
-        "C1 Validation card、run manifest、hash 与 handoff"
-      ],
-      "allowed_resources": {
-        "gpu": "最多一张 GPU；当前注册 C1 Validation matrix 的 fixed/control 与 observation/candidate arms 顺序执行",
-        "validation_card": "仅当前注册的 VAL-20260926-observation-six-expert-c1 (ref2dex.validation.v2) matrix/card；不得自行扩大 seed、route、threshold 或 expert set",
-        "cm": false,
-        "other_gpu_work": false,
-        "max_concurrent_gpus": 1,
-        "execution": "sequential arms only",
-        "campaign": "遵守 docs/CAMPAIGN.md 的 GPU、时间、磁盘和停止边界"
-      },
-      "must_not": [
-        "任何 Cm 训练、评估、collection、online 或其他 Cm GPU 工作",
-        "第二张 GPU、并行 arms 或超出当前 C1 Validation matrix 的 seed、route、threshold 或 expert set",
-        "未经新 goal/Decision Checkpoint 修改当前注册 card 的 frozen method、control 或 seed matrix",
-        "启动当前 card 之外的训练、PPO、collector 或 online work",
-        "修改其他代理工作树或 main",
-        "合并或 push"
-      ],
-      "handoff": "C1 Validation card 状态、branch/commit、run manifests/hashes、GPU/time/storage evidence、terminal label",
-      "role_key": "agent_eval"
-    },
-    {
-      "agent_key": "agent_cm_temporal",
-      "display_name": "agent_Cm/selective",
-      "conversation_id": "01a0d7cf-3a82-7a93-b05c-ffecb361f036",
-      "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0d7cf-3a82-7a93-b05c-ffecb361f036.jsonl",
-      "role": "Cm 路线证据复核与新假设设计 owner；实验执行仍冻结",
-      "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-selective",
-      "branch": "agent/cm-selective-causal-gate",
-      "owns": [
-        "HF05 已完成 Probe 的卡片、manifest 与结果索引",
-        "输入、route、checkpoint、seed 和输出 provenance",
-        "只读比较既有 Cm 路线并草拟新高层假设的 Decision Memo"
-      ],
-      "allowed_resources": {
-        "gpu": 0,
-        "research_experiment": false,
-        "evidence_review": "CPU-only read-only synthesis and Decision Memo; no new fit or collection"
-      },
-      "must_not": [
-        "启动新的 Cm Probe、fit、collection、online 或 PPO",
-        "启动 GPU 或 Isaac Gym",
-        "改变 HF05 的 route、seed、metric、threshold 或 representation",
-        "复用别的 run 代替当前 manifest"
-      ],
-      "handoff": "card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker",
-      "role_key": "agent_cm"
-    },
-    {
-      "agent_key": "agent_workflow",
-      "display_name": "agent/workflow",
-      "conversation_id": "01a0d86b-d735-7100-b229-d7a3ff0f83cc",
-      "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0d86b-d735-7100-b229-d7a3ff0f83cc.jsonl",
-      "role": "工作流治理与上下文效率 owner",
-      "parent_agent_key": "root",
-      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22",
-      "branch": "agent/root-goal-lifecycle-test-20260927",
-      "owns": [
-        "协作契约和注册表",
-        "治理文档、模板和验证门禁",
-        "tools/verify.py 与治理测试"
-      ],
-      "allowed_resources": {
-        "gpu": 0,
-        "research_experiment": false,
-        "isaac_gym": false
-      },
-      "must_not": [
-        "启动科研 GPU/Isaac Gym 任务",
-        "改变科学 claim",
-        "未经 Decision Checkpoint 修改研究路线"
-      ],
-      "handoff": "commit、测试/verify 输出、改动范围和已知取舍",
-      "role_key": "agent_infra"
+      "role_key": null,
+      "lifecycle": "retiring",
+      "retirement_reason": "legacy baseline runtime retained until confirmed Codex processes and uncommitted archive owner handoff finish",
+      "archive_tag": "archive/20260927/agent__grab-full-baseline"
     }
   ],
   "retired_conversations": [
@@ -363,6 +224,42 @@
       "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
       "retired_at": "2026-09-26",
       "reason": "superseded as registry owner by the current root conversation; runtime state must be checked separately"
+    },
+    {
+      "agent_key": "agent_poller",
+      "conversation_id": "01a0dca7-9af9-7951-b9c3-58975c4b470b",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/supervisor-poller",
+      "archive_tag": "archive/20260927/agent__supervisor-poller"
+    },
+    {
+      "agent_key": "agent_c1_validation",
+      "conversation_id": "01a0de76-3a3f-7293-88f8-18c140024f9f",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/observation-router-reliability",
+      "archive_tag": "archive/20260927/agent__observation-router-reliability"
+    },
+    {
+      "agent_key": "agent_cm_temporal",
+      "conversation_id": "01a0d7cf-3a82-7a93-b05c-ffecb361f036",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/cm-selective-causal-gate",
+      "archive_tag": "archive/20260927/agent__cm-selective-causal-gate"
+    },
+    {
+      "agent_key": "agent_workflow",
+      "conversation_id": "01a0d86b-d735-7100-b229-d7a3ff0f83cc",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/root-goal-lifecycle-test-20260927",
+      "archive_tag": "archive/20260927/agent__root-goal-lifecycle-test-20260927"
     }
   ],
   "runtime_bindings": {
@@ -376,5 +273,23 @@
     "replaceable_thread": true,
     "stable_role_key": "role_key",
     "legacy_runtime_records": "agents"
+  },
+  "cleanup": {
+    "performed_at": "2026-09-27",
+    "policy": "archive branch tips; preserve uncommitted files; do not merge historical experiments into main",
+    "archive_root": "/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927",
+    "archive_manifest": "/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927/MANIFEST.json",
+    "fixed_branches": [
+      "main",
+      "agent/cm",
+      "agent/rl",
+      "agent/eval",
+      "agent/infra"
+    ],
+    "pending_branches": [
+      "agent/grab-full-baseline"
+    ],
+    "pending_reason": "active Codex processes and preserved uncommitted files",
+    "historical_branch_refs": "archive/* tags"
   }
 }
