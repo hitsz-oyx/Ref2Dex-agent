@@ -106,7 +106,7 @@ P3 不应阻塞 P1/P2。
 
 | 目标                      | 达成条件                      | 当前状态          |
 | ----------------------- | ------------------------- | ------------- |
-| Self-trained grasp      | 自训练策略在固定任务上稳定抓取           | 单轨迹起始帧固定路由有强阶段证据；单一 actor 未证 |
+| Self-trained grasp      | 自训练策略在固定任务上稳定抓取           | `PARTIAL`：任务限定接受冻结 12-motion 任务上的自训练六专家初始观测路由；单一观测驱动 actor 仍未证 |
 | Cm one-step information | Cm 对真实物理转移具有可用预测/排序信息     | 部分成立，但依赖表示和分布 |
 | Cm policy utility       | matched Cm-on 明显优于 Cm-off | 尚未证明          |
 | Generalization          | 多轨迹/多场景保持效果               | 未见物体迁移弱，Cm 收益未证 |
