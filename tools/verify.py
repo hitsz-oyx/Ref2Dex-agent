@@ -53,6 +53,7 @@ HYPOTHESIS_STATUSES = {
     "ACTIVE",
     "PAUSED",
     "PROMISING",
+    "SUPPORTED",
     "KILLED",
     "REFUTED",
 }
@@ -522,7 +523,7 @@ def _check_experiment_cards(failures: list[str]) -> None:
                         card_status = str(fields.get("status", "")).upper()
                         # Closing a family must not invalidate its completed cards.
                         # Only new or unfinished probes would consume another slot.
-                        if status in {"KILLED", "REFUTED", "PAUSED"} and card_status not in {
+                        if status in {"KILLED", "REFUTED", "PAUSED", "SUPPORTED"} and card_status not in {
                             "PROMISING", "UNPROMISING", "UNCLEAR"
                         }:
                             failures.append(f"{relative}: hypothesis_family {family} 当前不可继续消费（{status}）")
