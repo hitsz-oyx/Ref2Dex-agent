@@ -30,6 +30,7 @@ except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
 SCHEMA = "ref2dex.worker_event_poller.v1"
 POLL_EVENT_PREFIX = "POLL_EVENT\n"
 WORKER_ROLE_KEYS = frozenset({"agent_cm", "agent_rl", "agent_eval", "agent_infra"})
+RETIRING_LIFECYCLES = frozenset({"retiring", "retired", "unbound", "unbound_after_cleanup"})
 
 
 def _role_for(agent: dict) -> str | None:
@@ -47,39 +48,68 @@ def _role_for(agent: dict) -> str | None:
 
 
 def worker_agents(registry: dict, base_dir: str | Path | None = None) -> list[dict]:
-    """Return registered worker runtimes, excluding root and daemon records."""
+    """Return only runtimes selected by a valid local fixed-pool binding.
 
-    # A local binding selects one replaceable conversation for each stable
-    # role.  The registry still contains historical runtime records, but they
-    # must not all be polled as if they were simultaneous fixed workers.
-    selected: dict[str, str] = {}
-    binding_path = registry.get("runtime_bindings", {}).get("path")
-    if isinstance(binding_path, str):
-        binding_path = Path(binding_path)
-        if not binding_path.is_absolute() and base_dir is not None:
-            binding_path = Path(base_dir) / binding_path
-        try:
-            bindings = json.loads(binding_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            bindings = None
-        if isinstance(bindings, dict):
-            for role, item in (bindings.get("bindings") or {}).items():
-                runtime_key = item.get("runtime_agent_key") if isinstance(item, dict) else None
-                if isinstance(runtime_key, str):
-                    selected[role] = runtime_key
+    ``docs/AGENT_REGISTRY.json`` intentionally retains old runtime records.
+    The machine-local binding is the source of truth for which replaceable
+    conversation is live.  Missing, malformed, or mismatched binding data is
+    treated as no worker rather than falling back to every historical record.
+    """
 
-    result = []
+    metadata = registry.get("runtime_bindings")
+    binding_path = metadata.get("path") if isinstance(metadata, dict) else None
+    if not isinstance(binding_path, str) or not binding_path:
+        return []
+    path = Path(binding_path)
+    if not path.is_absolute():
+        path = Path(base_dir or Path.cwd()) / path
+    try:
+        binding_doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return []
+    binding_map = binding_doc.get("bindings") if isinstance(binding_doc, dict) else None
+    if not isinstance(binding_map, dict):
+        return []
+
+    # Index non-retiring registry records by key.  Retiring records can never
+    # satisfy a live binding, even when an old binding still names them.
+    candidates: dict[str, dict] = {}
     for agent in registry.get("agents", []):
         if not isinstance(agent, dict) or agent.get("agent_key") == "root":
             continue
-        role = _role_for(agent)
-        if role is None:
+        if str(agent.get("lifecycle", "")).strip().lower() in RETIRING_LIFECYCLES:
             continue
-        if role in selected and selected[role] != agent.get("agent_key"):
+        key = agent.get("agent_key")
+        if isinstance(key, str):
+            candidates[key] = agent
+
+    result = []
+    used_runtime_keys: set[str] = set()
+    for role in sorted(WORKER_ROLE_KEYS):
+        binding = binding_map.get(role)
+        if not isinstance(binding, dict) or binding.get("status") not in {"bound", "active"}:
+            continue
+        runtime_key = binding.get("runtime_agent_key")
+        if not isinstance(runtime_key, str) or not runtime_key or runtime_key in used_runtime_keys:
+            continue
+        agent = candidates.get(runtime_key)
+        if agent is None or _role_for(agent) != role:
+            continue
+        # When identity fields are present in the binding, every matching
+        # registry value must agree.  A mismatch is skipped (fail closed) and
+        # never silently replaced by another legacy runtime.
+        mismatch = False
+        for field in ("conversation_id", "codex_home", "worktree", "branch"):
+            expected = binding.get(field)
+            if expected is not None and expected != agent.get(field):
+                mismatch = True
+                break
+        if mismatch:
             continue
         item = dict(agent)
         item["role_key"] = role
         result.append(item)
+        used_runtime_keys.add(runtime_key)
     return result
 
 
@@ -89,6 +119,24 @@ def _event_snapshot(snapshot: dict) -> dict:
 
 def _changes(before: dict, after: dict, worktree: str) -> list[str]:
     return legacy.changes(before, after, worktree)
+
+
+def _manifest_transition_key(before: dict, after: dict, worktree: str | None = None):
+    """Return the canonical manifest target introduced by a transition."""
+
+    return legacy.manifest_transition_key(before, after, worktree)
+
+
+def _event_manifest_transition_key(event: dict):
+    """Recover a canonical transition key from a queued event digest."""
+
+    if not isinstance(event, dict) or "newest_manifest" not in event.get("changed", []):
+        return None
+    before = event.get("before") if isinstance(event.get("before"), dict) else {}
+    after = event.get("after") if isinstance(event.get("after"), dict) else {}
+    previous = legacy.manifest_identity(before.get("newest_manifest"))
+    current = legacy.manifest_identity(after.get("newest_manifest"))
+    return current if current is not None else previous
 
 
 def _observed_gpu_pids(event: dict) -> list[int]:
@@ -151,6 +199,14 @@ def poll_once(args):
     current_snapshots = {}
     detected: list[dict] = []
     pending_snapshots: dict[str, dict] = {}
+    # Deferred events are still awaiting root acknowledgement.  Seed the
+    # canonical set from them so an alias worktree cannot produce a second
+    # notification for the same manifest while the first is pending.
+    manifest_alerted = {
+        key for key in (_event_manifest_transition_key(event)
+                        for event in state.get("deferred_events", []))
+        if key is not None
+    }
     for agent in worker_agents(registry, Path(args.registry).resolve().parent.parent):
         key = agent["agent_key"]
         current = legacy.snapshot(agent, all_pids, known.get(key))
@@ -162,6 +218,19 @@ def poll_once(args):
             continue
         changed = _changes(previous, current, agent["worktree"])
         if not changed:
+            known[key] = current
+            continue
+        manifest_key = _manifest_transition_key(previous, current, agent["worktree"])
+        if "newest_manifest" in changed and manifest_key in manifest_alerted:
+            # The same canonical target may be visible through multiple
+            # symlinked output roots or across a deferred poll cycle.  Keep
+            # unrelated changes for this worker, but alert once per target.
+            changed = [item for item in changed if item != "newest_manifest"]
+        elif "newest_manifest" in changed:
+            manifest_alerted.add(manifest_key)
+        if not changed:
+            # Even a deduplicated alias must advance its observation cursor;
+            # otherwise every subsequent poll would rediscover the same edge.
             known[key] = current
             continue
         event = {
