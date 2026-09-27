@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Watch registered child agents and notify root on state or turn completion changes."""
+"""Watch registered child agents and coalesce state or turn completion changes."""
 
 import argparse
 import fcntl
@@ -16,7 +16,17 @@ from pathlib import Path
 
 SCHEMA = "ref2dex.agent_result_poller.v1"
 TASK_COMPLETE = "task_complete"
-TASK_COMPLETE_EVENT_IDS_LIMIT = 8
+POLL_EVENT_PREFIX = "POLL_EVENT\n"
+ROOT_DECISION_WAKE_PREFIX = "ROOT_DECISION_WAKE\n"
+
+# Only these terminal/waiting states are safe evidence that an execution
+# owner is idle.  Unknown values are deliberately not treated as idle: a
+# missed status transition must never manufacture a supervisory wake.
+IDLE_GOAL_STATUSES = frozenset({
+    "none", "paused", "blocked", "usage_limited", "complete", "completed",
+    "terminal", "failed", "stopped", "terminated", "waiting", "idle",
+})
+ACTIVE_ROOT_GOAL_STATUSES = frozenset({"active", "running"})
 
 
 def read_json(path):
@@ -103,12 +113,16 @@ def rollout_paths(agent):
 
 
 def _task_complete_payload(record):
+    return _task_event_payload(record, TASK_COMPLETE)
+
+
+def _task_event_payload(record, event_type):
     if not isinstance(record, dict):
         return None
-    if record.get("type") == TASK_COMPLETE:
+    if record.get("type") == event_type:
         return record
     payload = record.get("payload")
-    if isinstance(payload, dict) and payload.get("type") == TASK_COMPLETE:
+    if isinstance(payload, dict) and payload.get("type") == event_type:
         return payload
     return None
 
@@ -123,6 +137,19 @@ def _is_own_task_complete(payload):
     return bool(turn_id) or not root_turn_id
 
 
+def _is_own_task_event(payload):
+    """Apply the same root-turn filter to task_started and task_complete."""
+
+    return _is_own_task_complete(payload)
+
+
+def _task_turn_id(payload):
+    turn_id = payload.get("turn_id")
+    if isinstance(turn_id, str) and turn_id:
+        return "turn:" + turn_id
+    return None
+
+
 def _task_complete_id(payload):
     turn_id = payload.get("turn_id")
     if isinstance(turn_id, str) and turn_id:
@@ -131,31 +158,140 @@ def _task_complete_id(payload):
     return "event:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def rollout_task_completions(agent):
-    """Read stable completion IDs from the registered agent's own rollout."""
+def _read_rollout_lines(rollout, offset, seen, active_turns):
+    """Read appended records and return completion/active/cursor evidence."""
 
-    completions = []
-    seen = set()
-    for rollout in rollout_paths(agent):
+    additions = []
+    cursor = offset
+    partial = False
+    try:
+        with rollout.open("rb") as handle:
+            handle.seek(offset)
+            while True:
+                start = handle.tell()
+                line = handle.readline()
+                if not line:
+                    cursor = handle.tell()
+                    break
+                if not line.endswith(b"\n"):
+                    # Keep a partial record for the next poll.  It may be a
+                    # task_started event, so callers must conservatively treat
+                    # the rollout as unknown until the line is complete.
+                    cursor = start
+                    partial = True
+                    break
+                cursor = handle.tell()
+                try:
+                    record = json.loads(line.decode("utf-8"))
+                except (UnicodeDecodeError, ValueError):
+                    continue
+                started = _task_event_payload(record, "task_started")
+                if started is not None and _is_own_task_event(started):
+                    identifier = _task_turn_id(started)
+                    if identifier is None:
+                        partial = True
+                    else:
+                        active_turns.add(identifier)
+                completed = _task_complete_payload(record)
+                if completed is not None and _is_own_task_event(completed):
+                    identifier = _task_turn_id(completed)
+                    if identifier is not None:
+                        active_turns.discard(identifier)
+                    completion_id = _task_complete_id(completed)
+                    if completion_id not in seen:
+                        seen.add(completion_id)
+                        additions.append(completion_id)
+                aborted = _task_event_payload(record, "turn_aborted")
+                if aborted is not None and _is_own_task_event(aborted):
+                    # Aborted turns are terminal for active-turn tracking but
+                    # are not completed results and must not create IDs.
+                    identifier = _task_turn_id(aborted)
+                    if identifier is not None:
+                        active_turns.discard(identifier)
+    except OSError:
+        return [], offset, active_turns, False, True
+    return additions, cursor, active_turns, not partial, False
+
+
+def rollout_task_snapshot(agent, previous=None):
+    """Read completion IDs and an append cursor for a registered thread.
+
+    Rollouts are append-only JSONL files.  A prior cursor makes normal polls
+    read only the newly appended bytes; a missing or invalid cursor causes one
+    catch-up scan, which remains quiet when it only confirms the old snapshot.
+    """
+
+    previous = previous if isinstance(previous, dict) else {}
+    completions = list(previous.get("task_complete", []))
+    seen = set(completions)
+    old_cursors = previous.get("rollout_cursor")
+    old_cursors = old_cursors if isinstance(old_cursors, dict) else {}
+    old_rollout = previous.get("rollout")
+    old_rollout = old_rollout if isinstance(old_rollout, dict) else {}
+    old_active = old_rollout.get("active_turns", [])
+    old_active = set(item for item in old_active if isinstance(item, str))
+    cursors = {}
+    paths = rollout_paths(agent)
+    # A pre-CPU-detector state may already have a byte cursor but no active
+    # turn evidence.  Re-scan it once so an unmatched historical start cannot
+    # be mistaken for an idle NONE Goal after an upgrade.
+    full_scan = not old_cursors or "active_turns" not in old_rollout
+    path_stats = {}
+    for rollout in paths:
+        key = str(rollout)
         try:
-            handle = rollout.open("r", encoding="utf-8")
+            stat = rollout.stat()
         except OSError:
             continue
-        with handle:
-            for line in handle:
-                try:
-                    record = json.loads(line)
-                except (UnicodeDecodeError, ValueError):
-                    # A live JSONL writer may leave a partial final record.
-                    continue
-                payload = _task_complete_payload(record)
-                if payload is None or not _is_own_task_complete(payload):
-                    continue
-                identifier = _task_complete_id(payload)
-                if identifier not in seen:
-                    seen.add(identifier)
-                    completions.append(identifier)
-    return completions
+        path_stats[key] = stat
+        old = old_cursors.get(key)
+        if not isinstance(old, dict):
+            full_scan = True
+            continue
+        same_file = old.get("inode") == stat.st_ino and old.get("device") == stat.st_dev
+        old_offset = old.get("offset")
+        if not same_file or not isinstance(old_offset, int) or not 0 <= old_offset <= stat.st_size:
+            full_scan = True
+    active_turns = set() if full_scan else old_active
+    known = bool(paths) and not full_scan
+    unknown = not bool(paths)
+    for rollout in paths:
+        key = str(rollout)
+        stat = path_stats.get(key)
+        if stat is None:
+            unknown = True
+            continue
+        old = old_cursors.get(key)
+        offset = 0
+        if not full_scan and isinstance(old, dict):
+            same_file = old.get("inode") == stat.st_ino and old.get("device") == stat.st_dev
+            old_offset = old.get("offset")
+            if same_file and isinstance(old_offset, int) and 0 <= old_offset <= stat.st_size:
+                offset = old_offset
+        additions, offset, active_turns, readable, failed = _read_rollout_lines(
+            rollout, offset, seen, active_turns
+        )
+        completions.extend(additions)
+        cursors[key] = {"device": stat.st_dev, "inode": stat.st_ino, "offset": offset}
+        if failed or not readable:
+            unknown = True
+        else:
+            known = True
+    if not paths:
+        # A transiently unavailable session must not look like completed turns
+        # disappearing from the thread.
+        cursors = dict(old_cursors)
+    rollout_state = {
+        "status": "known" if known and not unknown else "unknown",
+        "active_turns": sorted(active_turns),
+    }
+    return completions, cursors, rollout_state
+
+
+def rollout_task_completions(agent):
+    """Compatibility wrapper returning only completion IDs."""
+
+    return rollout_task_snapshot(agent)[0]
 
 
 def _canonical_path(path):
@@ -201,13 +337,16 @@ def manifest_identity(manifest, worktree=None):
     return (str(canonical), manifest.get("mtime_ns"))
 
 
-def snapshot(agent, all_gpu_pids):
+def snapshot(agent, all_gpu_pids, previous=None):
+    completions, rollout_cursor, rollout = rollout_task_snapshot(agent, previous)
     return {
         "head": git_head(agent["worktree"]),
         "goal": goal_state(agent),
         "gpu_pids": owned_gpu_pids(agent["worktree"], all_gpu_pids),
         "newest_manifest": newest_manifest(agent["worktree"]),
-        "task_complete": rollout_task_completions(agent),
+        "task_complete": completions,
+        "rollout_cursor": rollout_cursor,
+        "rollout": rollout,
     }
 
 
@@ -242,6 +381,7 @@ def event_snapshot(snapshot):
     """Keep queue messages bounded while retaining full IDs in the state file."""
 
     summary = dict(snapshot)
+    summary.pop("rollout_cursor", None)
     completions = summary.get("task_complete")
     if isinstance(completions, list):
         summary["task_complete"] = {
@@ -249,6 +389,225 @@ def event_snapshot(snapshot):
             "latest": completions[-1] if completions else None,
         }
     return summary
+
+
+def _observed_gpu_pids(*events):
+    observed = set()
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        values = event.get("observed_gpu_pids", [])
+        if isinstance(values, list):
+            observed.update(pid for pid in values if isinstance(pid, int))
+        for side in (event.get("before"), event.get("after")):
+            if isinstance(side, dict) and isinstance(side.get("gpu_pids"), list):
+                observed.update(pid for pid in side["gpu_pids"] if isinstance(pid, int))
+    return sorted(observed)
+
+
+def _queue_item_text(payload_json):
+    """Extract user text from a Codex queue payload without trusting its shape."""
+
+    try:
+        payload = json.loads(payload_json)
+    except (TypeError, ValueError):
+        return ""
+    user_input = payload.get("UserInput") if isinstance(payload, dict) else None
+    content = user_input.get("content") if isinstance(user_input, dict) else None
+    if not isinstance(content, list):
+        return ""
+    texts = []
+    for item in content:
+        if isinstance(item, dict) and isinstance(item.get("text"), str):
+            texts.append(item["text"])
+    return "\n".join(texts)
+
+
+def pending_root_poll_event(root_agent):
+    """Return whether an unconsumed POLL_EVENT is already queued for root.
+
+    Queue inspection errors are raised so the caller never acknowledges a
+    change while the deduplication source is unavailable.
+    """
+
+    database = root_agent.get("queue_db")
+    thread_id = root_agent.get("conversation_id")
+    if not database or not thread_id:
+        # Synthetic registries and old handoffs may omit the queue path.  There
+        # is no queue to gate in that case, so retain the historical behavior.
+        return False
+    database = Path(database)
+    if not database.is_file():
+        return False
+    connection = None
+    try:
+        connection = sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)
+        rows = connection.execute(
+            "SELECT payload_json FROM queued_items WHERE thread_id=?",
+            (thread_id,),
+        )
+        return any(_queue_item_text(payload).startswith(POLL_EVENT_PREFIX)
+                   for (payload,) in rows)
+    except (OSError, sqlite3.DatabaseError) as error:
+        raise RuntimeError("cannot inspect root queue {}: {}".format(database, error)) from error
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def pending_root_turn(root_agent):
+    """Return whether any queued input is already waiting for root.
+
+    A decision wake is only safe when root has no other queued turn.  Missing
+    queue metadata is retained as the historical synthetic-test behavior
+    (there is no durable queue to gate); an actual queue inspection failure is
+    raised so the caller can retry without acknowledging state.
+    """
+
+    database = root_agent.get("queue_db")
+    thread_id = root_agent.get("conversation_id")
+    if not database or not thread_id:
+        return False
+    database = Path(database)
+    if not database.is_file():
+        return False
+    connection = None
+    try:
+        connection = sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)
+        row = connection.execute(
+            "SELECT 1 FROM queued_items WHERE thread_id=? LIMIT 1", (thread_id,)
+        ).fetchone()
+        return row is not None
+    except (OSError, sqlite3.DatabaseError) as error:
+        raise RuntimeError("cannot inspect root queue {}: {}".format(database, error)) from error
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def _normal_goal_status(goal):
+    status = goal.get("status") if isinstance(goal, dict) else None
+    return status.strip().lower() if isinstance(status, str) else None
+
+
+def execution_idle_snapshot(children, snapshots):
+    """Classify registered execution owners without inferring unknown state.
+
+    Returns ``(all_idle, details)``.  A GPU PID or an active/unknown Goal
+    status keeps the result non-idle.  The details are bounded to the
+    registered child set and are persisted for an auditable transition edge.
+    """
+
+    details = {}
+    if not children:
+        return False, details
+    all_idle = True
+    for agent in children:
+        key = agent["agent_key"]
+        current = snapshots.get(key, {})
+        status = _normal_goal_status(current.get("goal"))
+        gpu = list(current.get("gpu_pids") or [])
+        rollout = current.get("rollout")
+        rollout_status = rollout.get("status") if isinstance(rollout, dict) else "unknown"
+        active_turns = list(rollout.get("active_turns", [])) if isinstance(rollout, dict) else []
+        if gpu:
+            idle = False
+            reason = "gpu"
+        elif rollout_status != "known":
+            idle = False
+            reason = "rollout_unknown"
+        elif active_turns:
+            idle = False
+            reason = "cpu_turn"
+        elif status in IDLE_GOAL_STATUSES:
+            idle = True
+            reason = "goal"
+        else:
+            idle = False
+            reason = "unknown_goal" if status is None or status == "unknown" else "active_goal"
+        details[key] = {
+            "status": status,
+            "gpu_pids": gpu,
+            "rollout_status": rollout_status,
+            "active_turns": active_turns,
+            "idle": idle,
+            "reason": reason,
+        }
+        all_idle = all_idle and idle
+    return all_idle, details
+
+
+def _root_goal_is_active(root_goal):
+    return _normal_goal_status(root_goal) in ACTIVE_ROOT_GOAL_STATUSES
+
+
+def decision_wake_message(root_goal, execution_details):
+    """Build one bounded, non-resuming supervisory re-entry notification."""
+
+    payload = {
+        "reason": "execution_agents_became_all_idle",
+        "root_goal": root_goal,
+        "execution_agents": execution_details,
+        "reentry": "event_only",
+        "goal_resume": "user_or_system_controlled",
+    }
+    return ROOT_DECISION_WAKE_PREFIX + json.dumps(
+        payload, ensure_ascii=False, sort_keys=True
+    ) + "\nChoose the next authorized decision; this event does not resume Goal."
+
+
+def poll_event_message(events):
+    """Build one bounded notification for this poll cycle.
+
+    A single event keeps the legacy wire shape.  Multiple child changes are
+    wrapped in one ordered digest so root receives one wake-up while retaining
+    each child and every newly completed turn ID.
+    """
+
+    if len(events) == 1:
+        payload = events[0]
+    else:
+        payload = {
+            "coalesced": True,
+            "event_count": len(events),
+            "events": events,
+        }
+    return POLL_EVENT_PREFIX + json.dumps(payload, ensure_ascii=False, sort_keys=True) + \
+        "\nReview evidence and resource ownership before any mainline integration."
+
+
+def _merge_event(existing, current):
+    """Merge two observations for one child while retaining all new IDs."""
+
+    merged = dict(existing)
+    merged["changed"] = list(dict.fromkeys(
+        list(existing.get("changed", [])) + list(current.get("changed", []))
+    ))
+    merged["after"] = current.get("after", existing.get("after"))
+    merged["observed_gpu_pids"] = _observed_gpu_pids(existing, current)
+    if "task_complete" in merged["changed"] or "task_complete" in current.get("changed", []):
+        ids = list(existing.get("task_complete_added_ids", []))
+        ids.extend(current.get("task_complete_added_ids", []))
+        ids = list(dict.fromkeys(ids))
+        merged["task_complete_added_ids"] = ids
+        merged["task_complete_added_count"] = len(ids)
+    return merged
+
+
+def merge_events(previous, current):
+    """Coalesce deferred and newly observed child events by agent key."""
+
+    merged = []
+    positions = {}
+    for event in list(previous or []) + list(current or []):
+        key = event.get("agent_key")
+        if key in positions:
+            index = positions[key]
+            merged[index] = _merge_event(merged[index], event)
+        else:
+            positions[key] = len(merged)
+            merged.append(event)
+    return merged
 
 
 def queue_root(root_agent, message, node_bin, codex_js):
@@ -285,14 +644,45 @@ def poll_once(args):
     current_snapshots = {}
     for agent in children:
         key = agent["agent_key"]
-        current = snapshot(agent, pids)
+        current = snapshot(agent, pids, known.get(key))
         current_snapshots[key] = current
         active_gpu = active_gpu or bool(current["gpu_pids"])
+    root_goal = goal_state(root)
+    all_execution_idle, execution_details = execution_idle_snapshot(
+        children, current_snapshots
+    )
+    previous_supervision = state.get("supervision")
+    previous_supervision = previous_supervision if isinstance(previous_supervision, dict) else {}
+    previous_all_idle = previous_supervision.get("all_execution_idle")
+    supervision = {
+        "all_execution_idle": all_execution_idle,
+        "root_goal_status": root_goal.get("status"),
+        "execution_agents": execution_details,
+        "wake_pending": bool(previous_supervision.get("wake_pending")),
+        "wake_sent": bool(previous_supervision.get("wake_sent")),
+    }
+    if not all_execution_idle:
+        supervision["wake_pending"] = False
+        supervision["wake_sent"] = False
+    elif previous_all_idle is None:
+        # Establish a quiet baseline when upgrading an old state file.
+        supervision["wake_pending"] = False
+        supervision["wake_sent"] = False
+    elif previous_all_idle is False:
+        supervision["wake_pending"] = _root_goal_is_active(root_goal)
+        supervision["wake_sent"] = False
+    elif not _root_goal_is_active(root_goal):
+        # A paused, usage-limited, or unknown root is never auto-woken.  The
+        # all-idle edge is consumed so a later manual resume does not replay it.
+        supervision["wake_pending"] = False
+        supervision["wake_sent"] = False
 
     # A shared outputs symlink can expose the same manifest to several
     # worktrees. Alert once for a canonical manifest transition, while still
     # advancing every agent's cursor so the duplicate cannot reappear later.
     manifest_alerted = set()
+    pending_updates = {}
+    detected_events = []
     for agent in children:
         key = agent["agent_key"]
         current = current_snapshots[key]
@@ -316,23 +706,81 @@ def poll_once(args):
             continue
         event = {"agent_key": key, "changed": changed,
                  "before": event_snapshot(previous), "after": event_snapshot(current)}
+        event["observed_gpu_pids"] = _observed_gpu_pids(event)
         if "task_complete" in changed:
             previous_ids = set(previous.get("task_complete", []))
             added = [identifier for identifier in current["task_complete"]
                      if identifier not in previous_ids]
             event["task_complete_added_count"] = len(added)
-            event["task_complete_added_ids"] = added[-TASK_COMPLETE_EVENT_IDS_LIMIT:]
-        events.append(event)
-        message = "POLL_EVENT\n" + json.dumps(event, ensure_ascii=False, sort_keys=True)
-        message += "\nReview evidence and resource ownership before any mainline integration."
+            event["task_complete_added_ids"] = added
+        detected_events.append(event)
+        pending_updates[key] = current
+
+    deferred_events = state.get("deferred_events", [])
+    if not isinstance(deferred_events, list):
+        deferred_events = []
+    events = merge_events(deferred_events, detected_events)
+    if events:
+        message = poll_event_message(events)
         if args.dry_run:
             print(message, flush=True)
-            known[key] = current
-            continue
-        queue_root(root, message, args.codex_node, args.codex_js)
-        known[key] = current
-        write_json_atomic(state_path, state)
-        print("NOTIFIED {} {}".format(key, ",".join(changed)), flush=True)
+            for key, current in pending_updates.items():
+                known[key] = current
+        else:
+            pending_snapshots = state.get("pending_snapshots", {})
+            pending_snapshots = pending_snapshots if isinstance(pending_snapshots, dict) else {}
+            pending_snapshots.update(pending_updates)
+            # Make the event and the exact observed snapshot durable before
+            # inspecting or writing the root queue.  This closes the loss
+            # window where a transient GPU PID disappears after queue failure.
+            state["deferred_events"] = events
+            state["pending_snapshots"] = pending_snapshots
+            state["supervision"] = supervision
+            write_json_atomic(state_path, state)
+            if pending_root_poll_event(root):
+                # The previous notification is already durable in root's
+                # queue.  Keep the digest and observed snapshot until it is
+                # consumed, including any transient GPU PID.
+                print("DEFERRED root POLL_EVENT pending", flush=True)
+            else:
+                queue_root(root, message, args.codex_node, args.codex_js)
+                for key, current in pending_snapshots.items():
+                    known[key] = current
+                state.pop("deferred_events", None)
+                state.pop("pending_snapshots", None)
+                print("NOTIFIED {} event(s)".format(len(events)), flush=True)
+    elif deferred_events:
+        # A malformed or stale deferred list should not persist forever once
+        # all of its events have been acknowledged by a successful queue.
+        state.pop("deferred_events", None)
+    elif supervision.get("wake_pending") and not args.dry_run:
+        # A child-idle transition may have coincided with an earlier queued
+        # POLL_EVENT.  Keep the one-shot wake pending until root has no queued
+        # turn, then deliver it exactly once.  Queue failures persist the
+        # pending bit and are retried by the next sparse poll.
+        try:
+            if pending_root_turn(root):
+                print("DEFERRED root ROOT_DECISION_WAKE pending", flush=True)
+            elif _root_goal_is_active(root_goal):
+                queue_root(
+                    root,
+                    decision_wake_message(root_goal, execution_details),
+                    args.codex_node,
+                    args.codex_js,
+                )
+                supervision["wake_pending"] = False
+                supervision["wake_sent"] = True
+                print("NOTIFIED ROOT_DECISION_WAKE", flush=True)
+        except Exception:
+            # Do not lose the transition when queue or read-only inspection
+            # fails.  The caller still reports POLL_ERROR, but the persisted
+            # pending marker makes the next invocation retry safely.
+            state["supervision"] = supervision
+            if not args.dry_run:
+                write_json_atomic(state_path, state)
+            raise
+    if not args.dry_run:
+        state["supervision"] = supervision
     if not args.dry_run:
         write_json_atomic(state_path, state)
     return events, active_gpu
