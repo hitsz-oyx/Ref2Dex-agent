@@ -136,7 +136,10 @@ representation Probe。
 [监督审计](handoffs/BASELINE_POSTFREEZE_PROBE_AUDIT_20260926.md)。
 
 C1 的五 seed matched Validation 已完成；冻结已验证的六专家 checkpoint、
-初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。
-下一项研究决策仍是是否、以及如何在该类可用 substrate 上重新设计 Cm
-policy-utility 路线；现有 Cm campaign 维持冻结，需新的高层 goal 与 Decision
-Checkpoint 才能启动，不从 C1 结果推导 Cm 增益。
+初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。后验
+route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一致环境中
+有 188 个 observation held-lift 失败；这只是描述性证据，不是机制或因果结论。
+见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。下一项
+研究决策仍是是否、以及如何在该类可用 substrate 上重新设计 Cm policy-utility
+路线；现有 Cm campaign 维持冻结，需新的高层 goal 与 Decision Checkpoint 才能
+启动，不从该分层或 C1 结果推导 Cm 增益。
