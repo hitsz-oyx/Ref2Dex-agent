@@ -16,9 +16,9 @@
 * 已登记 thread 自己 rollout 中尚未观察过的 `task_complete` turn。
 * rollout 中未匹配 `task_complete` 的本 thread `task_started` CPU turn。
 
-首次运行只建立快照。之后只有这些字段变化才排队 `POLL_EVENT`：`HEAD`、Goal、归属 GPU PID、canonical manifest，或 thread 自己 rollout 中新的 `task_complete` ID。rollout 使用追加游标，正常轮询只读取新增 JSONL；旧 state 没有游标时会做一次静默 catch-up。rollout 中重复的 `task_complete` 只产生一个 ID。
+首次运行只建立快照。之后只有这些字段变化才排队 `POLL_EVENT`：`HEAD`、Goal、归属 GPU PID、canonical manifest，或 thread 自己 rollout 中新的 `task_complete` ID。rollout 使用追加游标，正常轮询只读取新增 JSONL；旧 state 没有游标，或 `rollout.parser_version` 低于当前版本时，会做一次静默全文件 rescan 并写回新 parser version。rollout 中重复的 `task_complete` 只产生一个 ID。
 
-全闲判定还要求 rollout `status=known` 且 `active_turns` 为空；Goal=`NONE` 但有未完成的本 thread `task_started`、rollout 尾部 partial line、文件不可用或读取失败都按 `rollout_unknown`/`cpu_turn` 保守视为非全闲。真实 `turn_aborted` 也是该 turn 的终止事件：清除匹配 active turn，但不生成 `task_complete` ID。只有对应 `task_complete` 或 `turn_aborted` 到达后才恢复可判定 idle，避免 CPU turn 被误唤醒。
+全闲判定还要求 rollout `status=known` 且 `active_turns` 为空；Goal=`NONE` 但有未完成的本 thread `task_started`、rollout 尾部 partial line、文件不可用或读取失败都按 `rollout_unknown`/`cpu_turn` 保守视为非全闲。Codex thread turn 串行，因此新的 own `task_started` 会隐式 supersede 同 thread 旧的无 terminal start，解决历史中断积累；但当前最新 start 仍保持 active。真实 `turn_aborted` 也是该 turn 的终止事件：清除匹配 active turn，但不生成 `task_complete` ID。只有对应 `task_complete` 或 `turn_aborted` 到达后才恢复可判定 idle，避免 CPU turn 被误唤醒。
 
 同一轮发现多个 child 变化时只排队一条消息：单个变化沿用旧的 `{agent_key, changed, before, after}` 载荷；多个变化使用 `{coalesced: true, event_count, events}`，每个 event 保留完整的新增 turn ID。若 root 的 `queue_db` 中已经有未消费的 `POLL_EVENT`，本轮不推进发生变化的 child 游标，待 root 消费后再把积累变化合并成一条消息。队列失败或 queue 无法只读检查时不确认变化，下一轮重试。该规则保持 HEAD、Goal、GPU 和 manifest 异常的至少一次通知。
 
@@ -47,7 +47,7 @@ python3 scripts/agent_result_poller.py \
 
 去重状态位于 poller 工作树的 `outputs/agent_poller/state.json`，锁文件是同目录的 `state.json.lock`。state 顶层的 `deferred_events` 保存 root queue 忙时尚未确认的合并 digest，`pending_snapshots` 保存发送前观察到的完整快照，避免短暂 GPU/资源异常在等待期间消失；事件的 `observed_gpu_pids` 保留延迟合并期间出现过的精确 PID；`supervision` 保存全闲转换边沿与一次性 wake 的 pending 位。canonical live registry 是 `/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/AGENT_REGISTRY.json`，root 的待发送消息位于其 root 记录的 `queue_db`（当前为 `/home2/wyy/oyx_ws/.codex_oyx_frj/queue_1.sqlite`）；poller 的 NewAPI `queue_db` 只保存本线程的排队输入，不能用来判断 root 是否已收到事件。
 
-升级或重启前先读取 state 并确认旧进程。首次看到 child 或缺少 `task_complete`/`rollout_cursor` 的旧快照时只建立 baseline，不追报历史 turn。发送前先持久化 `deferred_events` 与 `pending_snapshots`；队列失败或 root queue 已有 `POLL_EVENT` 时保持它们，待可发送时以保存的快照确认游标。root 审查时以消息中的 `task_complete_added_ids`、`observed_gpu_pids`、HEAD/Goal/GPU/manifest 前后快照和 state/rollout 交叉核对；不要按消息到达时间把已审计的历史 ID重新解释成新结果。
+升级或重启前先读取 state 并确认旧进程。首次看到 child 或缺少 `task_complete`/`rollout_cursor` 的旧快照时只建立 baseline，不追报历史 turn；旧 parser version（包括 live v4 保存的 stale `active_turns` 加 byte cursor）会强制一次全文件 rescan，完成后写入当前 parser version，partial/UNKNOWN 仍不判 idle。发送前先持久化 `deferred_events` 与 `pending_snapshots`；队列失败或 root queue 已有 `POLL_EVENT` 时保持它们，待可发送时以保存的快照确认游标。root 审查时以消息中的 `task_complete_added_ids`、`observed_gpu_pids`、HEAD/Goal/GPU/manifest 前后快照和 state/rollout 交叉核对；不要按消息到达时间把已审计的历史 ID重新解释成新结果。
 
 重启前检查旧进程和 `outputs/agent_poller/state.json`；同一时间只允许一个 poller 进程。停止时只停止已确认属于该代理的轮询进程，不触碰其他 Codex 或实验进程。
 

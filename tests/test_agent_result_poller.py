@@ -578,6 +578,95 @@ def test_turn_aborted_clears_own_active_cpu_turn_without_completion_id(tmp_path,
     assert queued and queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
 
 
+def test_new_thread_start_supersedes_legacy_unterminated_starts(tmp_path, monkeypatch):
+    statuses = {"child": "NONE"}
+    _supervision_setup(monkeypatch, statuses)
+    child, rollout = _child(tmp_path, "child")
+    rollout.write_text(
+        "".join(_started_record(f"legacy-{index}") for index in range(6)),
+        encoding="utf-8",
+    )
+    registry = _registry(tmp_path, child)
+    state = tmp_path / "state.json"
+    queued = []
+    monkeypatch.setattr(
+        poller, "queue_root", lambda root, message, node, codex: queued.append(message)
+    )
+    args = _args(registry, state)
+
+    assert poller.poll_once(args)[0] == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["agents"]["child"]["rollout"]["active_turns"] == ["turn:legacy-5"]
+    assert persisted["supervision"]["all_execution_idle"] is False
+
+    with rollout.open("a", encoding="utf-8") as handle:
+        handle.write(_started_record("latest"))
+        handle.write(_record("latest"))
+    events, _ = poller.poll_once(args)
+    assert events and events[0]["task_complete_added_ids"] == ["turn:latest"]
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["agents"]["child"]["rollout"]["active_turns"] == []
+    assert persisted["supervision"]["all_execution_idle"] is True
+
+
+def test_v4_stale_active_turns_migrate_with_one_full_rescan(tmp_path, monkeypatch):
+    statuses = {"child": "NONE"}
+    _supervision_setup(monkeypatch, statuses)
+    child, rollout = _child(tmp_path, "child")
+    old_starts = "".join(_started_record(f"stale-{index}") for index in range(6))
+    rollout.write_text(old_starts + _started_record("latest") + _record("latest"), encoding="utf-8")
+    stat = rollout.stat()
+    stale_ids = [f"turn:stale-{index}" for index in range(6)]
+    state = tmp_path / "state.json"
+    state.write_text(
+        json.dumps(
+            {
+                "schema": poller.SCHEMA,
+                "agents": {
+                    "child": {
+                        "head": "same-head",
+                        "goal": {"goal_id": "child-goal", "status": "NONE"},
+                        "gpu_pids": [],
+                        "newest_manifest": None,
+                        "task_complete": ["turn:latest"],
+                        "rollout_cursor": {
+                            str(rollout): {
+                                "device": stat.st_dev,
+                                "inode": stat.st_ino,
+                                "offset": stat.st_size,
+                            }
+                        },
+                        "rollout": {
+                            "status": "known",
+                            "active_turns": stale_ids,
+                        },
+                    }
+                },
+                "supervision": {
+                    "all_execution_idle": False,
+                    "wake_pending": False,
+                    "wake_sent": False,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = _registry(tmp_path, child)
+    queued = []
+    monkeypatch.setattr(
+        poller, "queue_root", lambda root, message, node, codex: queued.append(message)
+    )
+
+    events, _ = poller.poll_once(_args(registry, state))
+    assert events == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    rollout_state = persisted["agents"]["child"]["rollout"]
+    assert rollout_state["parser_version"] == poller.ROLLOUT_PARSER_VERSION
+    assert rollout_state["active_turns"] == []
+    assert persisted["supervision"]["all_execution_idle"] is True
+    assert queued and queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
+
+
 def test_completed_turn_is_idle_but_partial_rollout_is_unknown(tmp_path, monkeypatch):
     statuses = {"child": "NONE"}
     _supervision_setup(monkeypatch, statuses)

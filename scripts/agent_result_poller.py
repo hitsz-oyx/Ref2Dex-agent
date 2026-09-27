@@ -18,6 +18,7 @@ SCHEMA = "ref2dex.agent_result_poller.v1"
 TASK_COMPLETE = "task_complete"
 POLL_EVENT_PREFIX = "POLL_EVENT\n"
 ROOT_DECISION_WAKE_PREFIX = "ROOT_DECISION_WAKE\n"
+ROLLOUT_PARSER_VERSION = 2
 
 # Only these terminal/waiting states are safe evidence that an execution
 # owner is idle.  Unknown values are deliberately not treated as idle: a
@@ -191,6 +192,11 @@ def _read_rollout_lines(rollout, offset, seen, active_turns):
                     if identifier is None:
                         partial = True
                     else:
+                        # A Codex thread executes turns serially.  A newer
+                        # own start therefore supersedes historical starts
+                        # left without terminal records (for example after a
+                        # server interruption); retain only the current turn.
+                        active_turns.clear()
                         active_turns.add(identifier)
                 completed = _task_complete_payload(record)
                 if completed is not None and _is_own_task_event(completed):
@@ -235,7 +241,11 @@ def rollout_task_snapshot(agent, previous=None):
     # A pre-CPU-detector state may already have a byte cursor but no active
     # turn evidence.  Re-scan it once so an unmatched historical start cannot
     # be mistaken for an idle NONE Goal after an upgrade.
-    full_scan = not old_cursors or "active_turns" not in old_rollout
+    full_scan = (
+        not old_cursors
+        or "active_turns" not in old_rollout
+        or old_rollout.get("parser_version") != ROLLOUT_PARSER_VERSION
+    )
     path_stats = {}
     for rollout in paths:
         key = str(rollout)
@@ -282,6 +292,7 @@ def rollout_task_snapshot(agent, previous=None):
         # disappearing from the thread.
         cursors = dict(old_cursors)
     rollout_state = {
+        "parser_version": ROLLOUT_PARSER_VERSION,
         "status": "known" if known and not unknown else "unknown",
         "active_turns": sorted(active_turns),
     }
