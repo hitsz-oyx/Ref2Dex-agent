@@ -3,7 +3,7 @@
   "registry_schema": "ref2dex.agent_registry.v5",
   "registry_status": "ACTIVE",
   "registry_version": 14,
-  "updated_at": "2026-09-27",
+  "updated_at": "2026-09-28",
   "owner": "root",
   "purpose": "固定角色池与历史 runtime 审计兼容记录；当前角色规则在 docs/AGENT_ROLES.yaml，动态绑定和运行状态不在此文件维护。",
   "roles_source": "docs/AGENT_ROLES.yaml",
@@ -209,14 +209,14 @@
     {
       "agent_key": "agent_infra",
       "display_name": "agent/infra",
-      "conversation_id": "01a0e392-d2ac-7db2-8506-7875dee7f8a1",
+      "conversation_id": "01a0e436-ed09-7410-9a97-53ff7d396351",
       "conversation_id_kind": "codex_thread_id",
       "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
       "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
       "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
       "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
       "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0e392-d2ac-7db2-8506-7875dee7f8a1.jsonl",
+      "rollout_locator": "sessions/**/rollout-*-01a0e436-ed09-7410-9a97-53ff7d396351.jsonl",
       "role": "固定池工程与 workflow owner",
       "parent_agent_key": "root",
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-infra",
@@ -307,6 +307,14 @@
       "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
       "branch": "agent/root-goal-lifecycle-test-20260927",
       "archive_tag": "archive/20260927/agent__root-goal-lifecycle-test-20260927"
+    },
+    {
+      "agent_key": "agent_infra",
+      "conversation_id": "01a0e392-d2ac-7db2-8506-7875dee7f8a1",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-28",
+      "reason": "fixed-role runtime rebound after thread/resume reported an unloaded multi-agent v2 sub-agent",
+      "branch": "agent/infra"
     }
   ],
   "runtime_bindings": {
