@@ -11,11 +11,13 @@ from scripts.agent_broker import AgentBroker, BrokerError
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def broker(tmp_path: Path) -> AgentBroker:
+def broker(tmp_path: Path, *, mutate=None) -> AgentBroker:
     bindings = json.loads((ROOT / ".runtime/AGENT_BINDINGS.json").read_text(encoding="utf-8"))
     bindings["bindings"]["agent_infra"].update(
         {"runtime_agent_key": "infra-test", "provider": "other", "profile": "test"}
     )
+    if mutate is not None:
+        mutate(bindings["bindings"]["agent_infra"])
     binding_path = tmp_path / "bindings.json"
     binding_path.write_text(json.dumps(bindings), encoding="utf-8")
     return AgentBroker(
@@ -69,3 +71,28 @@ def test_broker_rejects_wrong_lease_owner(tmp_path: Path) -> None:
     assert claimed
     with pytest.raises(BrokerError, match="invalid task lease token"):
         instance.update(task_id="T-lease", agent_key="agent_infra", lease_token="wrong")
+
+
+@pytest.mark.parametrize(
+    "mutate,pattern",
+    [
+        (lambda binding: binding.update(status="retiring"), "not bound"),
+        (lambda binding: binding.update(status="unbound_after_cleanup"), "not bound"),
+        (lambda binding: binding.pop("runtime_agent_key"), "no runtime binding"),
+        (lambda binding: binding.update(provider="unsupported"), "unsupported provider"),
+        (lambda binding: binding.update(branch="main"), "branch mismatch"),
+    ],
+)
+def test_dispatch_rejects_invalid_runtime_binding_before_persisting(
+    tmp_path: Path, mutate, pattern: str,
+) -> None:
+    instance = broker(tmp_path, mutate=mutate)
+    with pytest.raises(BrokerError, match=pattern):
+        instance.dispatch(
+            task_id="T-invalid-binding",
+            target_agent="agent_infra",
+            objective="must not be persisted",
+        )
+    status = instance.status()
+    assert status["tasks"] == []
+    assert status["messages"] == []

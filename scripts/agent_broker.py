@@ -172,7 +172,9 @@ ADAPTERS = {
 
 
 def adapter_for(binding: Mapping[str, Any]) -> ProviderAdapter:
-    provider = binding.get("provider") or binding.get("runtime") or "other"
+    provider = binding.get("provider")
+    if not isinstance(provider, str) or not provider:
+        raise BrokerError("runtime binding has no provider")
     try:
         return ADAPTERS[str(provider)]()
     except KeyError as error:
@@ -281,6 +283,28 @@ class AgentBroker:
             raise BrokerError(f"invalid binding for {agent_key}")
         return binding
 
+    def _dispatch_binding(self, agent_key: str, role: Mapping[str, Any]) -> dict[str, Any]:
+        """Validate the fixed role's live binding before creating any task."""
+
+        binding = self._binding(agent_key)
+        if binding.get("status") != "bound":
+            raise BrokerError(f"target role has no runtime binding or is not bound: {agent_key}")
+        runtime_key = binding.get("runtime_agent_key")
+        if not isinstance(runtime_key, str) or not runtime_key:
+            raise BrokerError(f"target role has no runtime binding: {agent_key}")
+        expected_branch = role.get("branch")
+        if not isinstance(expected_branch, str) or not expected_branch:
+            raise BrokerError(f"fixed role has no branch contract: {agent_key}")
+        if binding.get("branch") != expected_branch:
+            raise BrokerError(
+                f"runtime binding branch mismatch for {agent_key}: "
+                f"expected {expected_branch}, got {binding.get('branch')}"
+            )
+        # adapter_for rejects missing and unknown providers.  Validate it here
+        # so malformed bindings fail before a task/message transaction starts.
+        adapter_for(binding)
+        return binding
+
     @staticmethod
     def _row_task(row: sqlite3.Row) -> dict[str, Any]:
         result = dict(row)
@@ -325,7 +349,7 @@ class AgentBroker:
             raise BrokerError("root is the decision maker; dispatch only to a worker role")
         if role.get("lifecycle", "active") != "active":
             raise BrokerError(f"target role is not active: {target_agent}")
-        binding = self._binding(target_agent)
+        binding = self._dispatch_binding(target_agent, role)
         task = {
             "task_id": task_id,
             "target_agent": target_agent,
