@@ -142,12 +142,16 @@ watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务�
 
 ```bash
 python3 scripts/researchctl.py supervisor resume \
+  --registry docs/AGENT_REGISTRY.json \
   --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor pause \
+  --registry docs/AGENT_REGISTRY.json \
   --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
-python3 scripts/researchctl.py supervisor status --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor status \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
 `pause` 先关闭 lease；如果还要立即停止当前 turn，再由用户通过 Codex Goal 控制

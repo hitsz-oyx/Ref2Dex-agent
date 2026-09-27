@@ -43,9 +43,15 @@ watchdog 读取 root Goal、root rollout、Broker supervisor state 和
 lease 由以下命令管理：
 
 ```bash
-python3 scripts/researchctl.py supervisor pause --broker-state-db .runtime/AGENT_STATE.sqlite
-python3 scripts/researchctl.py supervisor resume --broker-state-db .runtime/AGENT_STATE.sqlite
-python3 scripts/researchctl.py supervisor status --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor pause \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor resume \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor status \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
 缺少 lease 文件等同于禁用。`pause` 先撤销自动恢复授权；若要立即中断当前 turn，

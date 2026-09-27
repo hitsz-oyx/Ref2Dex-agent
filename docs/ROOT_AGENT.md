@@ -61,9 +61,15 @@ python3 scripts/root_watchdog.py \
 lease 用下面的本地控制命令管理：
 
 ```bash
-python3 scripts/researchctl.py supervisor pause --broker-state-db .runtime/AGENT_STATE.sqlite
-python3 scripts/researchctl.py supervisor resume --broker-state-db .runtime/AGENT_STATE.sqlite
-python3 scripts/researchctl.py supervisor status --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor pause \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor resume \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor status \
+  --registry docs/AGENT_REGISTRY.json \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
 ## 每轮监督
