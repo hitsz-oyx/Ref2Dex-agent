@@ -287,9 +287,22 @@
       "agent/infra"
     ],
     "pending_branches": [
-      "agent/grab-full-baseline"
+      "agent/grab-full-baseline",
+      "agent/root-goal-lifecycle-test-20260927"
     ],
-    "pending_reason": "active Codex processes and preserved uncommitted files",
-    "historical_branch_refs": "archive/* tags"
+    "pending_reason": "baseline hosts the common Git database and occupied runtime; workflow recreated an audit checkout with an active own turn",
+    "historical_branch_refs": "archive/* tags",
+    "pending_worktrees": [
+      {
+        "branch": "agent/grab-full-baseline",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline",
+        "reason": "common Git database storage anchor and occupied runtime; do not delete .git"
+      },
+      {
+        "branch": "agent/root-goal-lifecycle-test-20260927",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22-audit",
+        "reason": "recreated by legacy workflow conversation; active own turn observed during final audit"
+      }
+    ]
   }
 }

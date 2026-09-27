@@ -43,6 +43,18 @@ tracked/untracked content were archived at:
 /home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927/agent__grab-full-baseline/
 ```
 
-Do not remove that worktree or branch until its owner provides a terminal
-handoff and all exact-CWD Codex processes have exited. The archive manifest is
-at `/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927/MANIFEST.json`.
+This directory also contains the **common Git database** in `.git`; the current
+main worktree points into it. Even after its Codex processes exit, do not remove
+the directory or `.git` without separately migrating and verifying the common
+Git database. Process exit alone is insufficient permission to delete it. The
+archive manifest is at
+`/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927/MANIFEST.json`.
+
+During final verification, the legacy workflow conversation recreated
+`Ref2Dex-agent-workflow-v22-audit` on
+`agent/root-goal-lifecycle-test-20260927` at `98c1a7b`. Its registered rollout
+still contains an active own turn, despite Goal status `NONE`. The worktree is
+clean and its tip is already archived, but is retained to avoid deleting an
+active owner's workspace. Its retired runtime binding remains retired; this
+recreated checkout does not authorize a new permanent role or research task.
+Wait for a terminal handoff and recheck files and processes before pruning it.
