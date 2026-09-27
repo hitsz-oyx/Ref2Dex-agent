@@ -1,5 +1,10 @@
 # Ref2Dex Agent Broker
 
+新对话的入口是仓库根目录 [`AGENTS.md`](../AGENTS.md) 第 2 节；本文件必须与
+[`docs/AGENT_ROLES.yaml`](AGENT_ROLES.yaml)、[`docs/AGENT_COORDINATION.md`](AGENT_COORDINATION.md)、
+[`docs/ROOT_AGENT.md`](ROOT_AGENT.md) 和
+[create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md) 一起读取。
+
 `scripts/agent_broker.py` 是固定 worker 池的本地、无模型 orchestration 层。它只做
 角色校验、任务队列、一次性租约、消息持久化、handoff 和 liveness 状态；研究判断仍
 属于 root，provider 只属于 runtime adapter。

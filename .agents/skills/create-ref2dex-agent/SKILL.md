@@ -29,7 +29,11 @@ conversation_id)` in `retired_conversations` and never reuse its thread ID.
 
 # 新建 Ref2Dex 代理
 
-先读 `AGENTS.md`、`docs/AGENT_COORDINATION.md`、`docs/AGENT_REGISTRY.json`、`docs/STATE.md` 和 `docs/CAMPAIGN.md`。明确新代理的角色、可修改路径、资源权限和要解决的目标；新对话不继承其他代理的实验授权。
+先读 `AGENTS.md`、`docs/AGENT_ROLES.yaml`、`docs/AGENT_BROKER.md`、
+`docs/AGENT_COORDINATION.md`、`docs/ROOT_AGENT.md`、`docs/AGENT_REGISTRY.json`、
+`docs/STATE.md` 和 `docs/CAMPAIGN.md`。如果要观察或恢复运行时，再读
+`docs/AGENT_POLLER.md` 和本机 `.runtime/AGENT_BINDINGS.json`。明确新代理的角色、
+可修改路径、资源权限和要解决的目标；新对话不继承其他代理的实验授权。
 
 ## 命名与工作树
 

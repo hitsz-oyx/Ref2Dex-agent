@@ -2,7 +2,11 @@
 
 **状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v5`  ·  **所有者：** `/root`
 
-本文件规定固定角色池、运行绑定、任务交接和监督边界。实验结果仍只写入
+根入口是 [`AGENTS.md`](../AGENTS.md) 第 2 节；本文件与
+[`docs/AGENT_ROLES.yaml`](AGENT_ROLES.yaml)、[`docs/AGENT_BROKER.md`](AGENT_BROKER.md)、
+[`docs/ROOT_AGENT.md`](ROOT_AGENT.md) 及
+[create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md) 一起构成当前
+workflow。它规定固定角色池、运行绑定、任务交接和监督边界。实验结果仍只写入
 experiment card、manifest 和 `docs/STATE.md`；本文件只描述 orchestration。
 
 固定角色规则在 [`docs/AGENT_ROLES.yaml`](AGENT_ROLES.yaml)，只描述长期身份、职责和

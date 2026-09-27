@@ -3,6 +3,12 @@
 **适用对象：** `/root`。研究目标、资源边界和决策权限仍以 `AGENTS.md`、
 `docs/MISSION.md`、`docs/STATE.md`、`docs/CAMPAIGN.md` 为准。
 
+启动 root 对话时还必须读取 `docs/AGENT_ROLES.yaml`、`docs/AGENT_BROKER.md`、
+`docs/AGENT_COORDINATION.md`、`docs/AGENT_POLLER.md` 和本机
+`.runtime/AGENT_BINDINGS.json`；runtime rebind 或新增长期角色再读取
+`.agents/skills/create-ref2dex-agent/SKILL.md`。这些文件共同定义当前 workflow，不能
+用旧的动态 subagent 流程替代。
+
 ## 主代理与固定 worker
 
 root 是唯一的研究决策者和调度者，负责读取当前状态、选择有信息价值的任务、通过
