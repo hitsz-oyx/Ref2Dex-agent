@@ -355,6 +355,78 @@ def test_watchdog_resumes_paused_or_blocked_root_goal_uniformly(
         assert broker_calls and broker_calls[0]["action"] == "RESUME"
 
 
+def test_watchdog_reblocked_after_overload_preserves_status_and_resume_guard(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    """A recovered Goal that is blocked again must not duplicate recovery.
+
+    The second blocked observation represents an app-server overload after the
+    first successful readback.  The exact Goal status remains observable and
+    the lease-scoped Goal ID guard suppresses a second app-server/CONTROL
+    action for the same Goal.
+    """
+    registry, lease_path, state, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}), encoding="utf-8"
+    )
+    lease_path.write_text(json.dumps({
+        "schema": watchdog.LEASE_SCHEMA, "enabled": True,
+        "allow_root_resume": True, **_identity(root),
+    }), encoding="utf-8")
+    monkeypatch.setattr(watchdog, "root_snapshot", lambda root, previous=None: {
+        "rollout": {"status": "known", "active_turns": []},
+        "task_complete": [], "rollout_cursor": {},
+    })
+    statuses = iter(["blocked", "active", "blocked"])
+    monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
+        "goal_id": "goal-cycle", "status": next(statuses),
+        "objective": "test", "token_budget": 1,
+    })
+    monkeypatch.setattr(watchdog.runtime, "pending_root_turn", lambda agent: False)
+    resumed: list[str] = []
+    queued: list[str] = []
+    controls: list[dict] = []
+    monkeypatch.setattr(
+        watchdog,
+        "_resume_root_goal",
+        lambda root, goal, args: resumed.append(goal["status"]) or {
+            "threadId": root["conversation_id"], "status": "active",
+        },
+    )
+    monkeypatch.setattr(watchdog.runtime, "queue_root", lambda *args: queued.append(args[1]))
+
+    class StubBroker:
+        def status(self):
+            return {"supervisor": {"desired_state": "RUNNING", "generation": 1}}
+
+        def control(self, **kwargs):
+            controls.append(kwargs)
+
+    monkeypatch.setattr(watchdog, "_broker", lambda args: StubBroker())
+    args = _watchdog_args(registry, lease_path, state)
+    args.broker_tasks_db = str(tmp_path / "tasks.sqlite")
+    args.broker_state_db = str(tmp_path / "state.sqlite")
+
+    recovered = watchdog.check_once(args)
+    assert recovered["observed_goal_status"] == "blocked"
+    assert recovered["last_status"] == "ROOT_RUNNING"
+    assert resumed == ["blocked"]
+    assert [item["action"] for item in controls] == ["RESUME"]
+    assert len(queued) == 1
+
+    active = watchdog.check_once(args)
+    assert active["observed_goal_status"] == "active"
+    assert active["last_status"] == "ROOT_IDLE"
+
+    reblocked = watchdog.check_once(args)
+    assert reblocked["observed_goal_status"] == "blocked"
+    assert reblocked["last_status"] == "ROOT_PAUSED"
+    assert reblocked["resume_consumed_goal_id"] == "goal-cycle"
+    assert resumed == ["blocked"]
+    assert [item["action"] for item in controls] == ["RESUME"]
+    assert len(queued) == 1
+
+
 @pytest.mark.parametrize(
     "case", ["missing_binding", "binding_mismatch", "lease_mismatch", "lease_missing"]
 )

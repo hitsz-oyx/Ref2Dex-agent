@@ -513,6 +513,73 @@ def test_opt_in_resume_uses_app_server_once_on_idle_edge(tmp_path, monkeypatch, 
     assert len(queued) == 2
 
 
+def test_reblocked_after_overload_keeps_exact_goal_status_and_consumed_guard(
+    tmp_path, monkeypatch,
+):
+    """Poller recovery remains one-shot when the same Goal blocks again."""
+    statuses = {"child": "active"}
+    root_status = {"value": "blocked"}
+    monkeypatch.setattr(poller, "git_head", lambda worktree: "same-head")
+    monkeypatch.setattr(
+        poller,
+        "goal_state",
+        lambda agent: {
+            "goal_id": None if agent["agent_key"] == "root" else "child-goal",
+            "status": root_status["value"] if agent["agent_key"] == "root"
+            else statuses.get(agent["agent_key"], "active"),
+        },
+    )
+    monkeypatch.setattr(
+        poller,
+        "goal_details",
+        lambda agent: {
+            "goal_id": "goal-cycle" if agent["agent_key"] == "root" else "child-goal",
+            "status": root_status["value"] if agent["agent_key"] == "root"
+            else statuses.get(agent["agent_key"], "active"),
+            "objective": "root objective" if agent["agent_key"] == "root" else None,
+            "token_budget": 7 if agent["agent_key"] == "root" else None,
+        },
+    )
+    monkeypatch.setattr(poller, "gpu_pids", lambda: [])
+    monkeypatch.setattr(poller, "owned_gpu_pids", lambda worktree, pids: [])
+    child, _ = _child(tmp_path, "child")
+    registry = _registry(tmp_path, child)
+    state = tmp_path / "state.json"
+    queued = []
+    resumed = []
+    monkeypatch.setattr(poller, "queue_root", lambda *args: queued.append(args[1]))
+    monkeypatch.setattr(
+        poller,
+        "app_server_resume_root_goal",
+        lambda root, goal, node, codex, **kwargs: (
+            resumed.append(goal["status"]) or {"threadId": "root-thread", "status": "active"}
+        ),
+    )
+    args = _args(registry, state)
+    args.root_goal_resume_once = True
+
+    # Establish a non-idle baseline, then trigger the one-shot recovery edge.
+    assert poller.poll_once(args)[0] == []
+    statuses["child"] = "paused"
+    assert poller.poll_once(args)[0]
+    assert poller.poll_once(args)[0] == []
+    assert resumed == ["blocked"]
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["root_goal_status"] == "active"
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-cycle"
+    assert len(queued) == 2
+
+    # The app-server overload leaves the same Goal blocked again.  It remains
+    # classified as blocked, with no duplicate resume or wake notification.
+    root_status["value"] = "blocked"
+    assert poller.poll_once(args)[0] == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["root_goal_status"] == "blocked"
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-cycle"
+    assert resumed == ["blocked"]
+    assert len(queued) == 2
+
+
 def test_static_migrated_idle_paused_goal_resumes_without_new_edge(tmp_path, monkeypatch):
     statuses = {"child": "paused"}
     _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-static")
