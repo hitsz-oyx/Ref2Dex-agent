@@ -32,6 +32,8 @@ ROOT_BUDGET_LIMITED = "ROOT_BUDGET_LIMITED\n"
 ACTIVE = frozenset({"active", "running"})
 BUDGET = frozenset({"usage_limited", "budget_limited"})
 TERMINAL = frozenset({"complete", "completed", "failed", "stopped", "terminated"})
+ROOT_IDENTITY_FIELDS = ("conversation_id", "codex_home", "worktree", "branch")
+ROOT_BINDING_SCHEMA = "ref2dex.agent_bindings.v2"
 
 
 def load_lease(path: str | Path) -> dict:
@@ -49,6 +51,94 @@ def load_lease(path: str | Path) -> dict:
     if not isinstance(value, dict) or value.get("schema") not in {None, LEASE_SCHEMA}:
         raise ValueError("invalid supervisor lease schema")
     return value
+
+
+def _registry_root(registry: dict) -> dict | None:
+    for agent in registry.get("agents", []):
+        if isinstance(agent, dict) and agent.get("agent_key") == "root":
+            return agent
+    return None
+
+
+def root_runtime_identity(registry_path: str | Path,
+                          registry: dict | None = None) -> tuple[dict | None, str]:
+    """Resolve the active root identity from the v2 machine-local binding."""
+
+    path = Path(registry_path)
+    try:
+        registry = registry if isinstance(registry, dict) else runtime.read_json(path)
+    except (OSError, ValueError, TypeError) as error:
+        return None, f"registry unreadable: {error}"
+    root = _registry_root(registry)
+    if root is None:
+        return None, "registry has no root runtime"
+    metadata = registry.get("runtime_bindings")
+    binding_path = metadata.get("path") if isinstance(metadata, dict) else None
+    if not isinstance(binding_path, str) or not binding_path:
+        return None, "runtime binding path missing"
+    binding_path = Path(binding_path)
+    if not binding_path.is_absolute():
+        binding_path = path.resolve().parent.parent / binding_path
+    try:
+        document = runtime.read_json(binding_path)
+    except (OSError, ValueError, TypeError) as error:
+        return None, f"runtime binding unreadable: {error}"
+    if not isinstance(document, dict) or document.get("schema") != ROOT_BINDING_SCHEMA:
+        return None, "runtime binding schema is not v2"
+    bindings = document.get("bindings")
+    binding = bindings.get("root") if isinstance(bindings, dict) else None
+    if not isinstance(binding, dict) or binding.get("status") != "bound":
+        return None, "root runtime binding missing or unbound"
+    if binding.get("runtime_agent_key") != "root":
+        return None, "root runtime binding selects a different agent"
+    identity = {}
+    for field in ROOT_IDENTITY_FIELDS:
+        expected = root.get(field)
+        selected = binding.get(field)
+        if not isinstance(expected, str) or not expected:
+            return None, f"registry root {field} missing"
+        if not isinstance(selected, str) or not selected:
+            return None, f"runtime binding {field} missing"
+        if selected != expected:
+            return None, f"runtime binding {field} mismatches registry root"
+        identity[field] = expected
+    binding_provider = binding.get("provider")
+    registry_provider = root.get("provider")
+    if registry_provider is not None or binding_provider is not None:
+        if not isinstance(binding_provider, str) or not binding_provider:
+            return None, "runtime binding provider missing"
+        if registry_provider is not None and registry_provider != binding_provider:
+            return None, "runtime binding provider mismatches registry root"
+        identity["provider"] = binding_provider
+    identity["runtime_agent_key"] = "root"
+    identity["role_key"] = "root"
+    return identity, "matched"
+
+
+def lease_identity_matches(lease: dict, identity: dict | None) -> tuple[bool, str]:
+    """Require lease identity to match the selected root runtime exactly."""
+
+    if identity is None:
+        return False, "root runtime identity unavailable"
+    if not isinstance(lease, dict):
+        return False, "supervisor lease is not an object"
+    for field in ROOT_IDENTITY_FIELDS:
+        value = lease.get(field)
+        if not isinstance(value, str) or not value:
+            return False, f"supervisor lease {field} missing"
+        if value != identity.get(field):
+            return False, f"supervisor lease {field} mismatches root runtime"
+    if "provider" in identity:
+        value = lease.get("provider")
+        if not isinstance(value, str) or not value:
+            return False, "supervisor lease provider missing"
+        if value != identity["provider"]:
+            return False, "supervisor lease provider mismatches root runtime"
+    if lease.get("root_agent", "root") != "root":
+        return False, "supervisor lease selects a different root agent"
+    if lease.get("runtime_agent_key", "root") != "root":
+        return False, "supervisor lease selects a different agent"
+    return True, "matched"
 
 
 def _write_json_atomic(path: Path, value: dict) -> None:
@@ -121,7 +211,15 @@ def check_once(args) -> dict:
     registry = runtime.read_json(args.registry)
     root = next(agent for agent in registry["agents"] if agent.get("agent_key") == "root")
     lease = load_lease(args.lease)
-    broker = _broker(args)
+    identity, identity_reason = root_runtime_identity(args.registry, registry)
+    lease_identity_ok, lease_identity_reason = lease_identity_matches(lease, identity)
+    identity_ok = identity is not None and lease_identity_ok
+    if identity_ok:
+        identity_report = "matched"
+    elif identity is None:
+        identity_report = f"root runtime identity rejected: {identity_reason}"
+    else:
+        identity_report = f"root lease identity rejected: {lease_identity_reason}"
     state_path = Path(args.state)
     state = runtime.read_json(state_path) if state_path.is_file() else {"schema": SCHEMA}
     if state.get("schema") != SCHEMA:
@@ -139,7 +237,22 @@ def check_once(args) -> dict:
     state["last_status"] = status
     state["last_reason"] = reason
     state["lease_generation"] = lease.get("generation", 0)
+    state["runtime_identity"] = {
+        "status": "matched" if identity_ok else "rejected",
+        "reason": identity_report,
+    }
     state["updated_at"] = now
+
+    # Identity is checked before constructing the broker.  A stale or
+    # malformed binding/lease must be report-only: no CONTROL message,
+    # budget notification, legacy queue, or app-server resume is allowed.
+    if not identity_ok:
+        state["last_reason"] = identity_report
+        _write_json_atomic(state_path, state)
+        print(identity_report, flush=True)
+        return state
+
+    broker = _broker(args)
 
     if broker is not None:
         supervisor = broker.status().get("supervisor") or {}

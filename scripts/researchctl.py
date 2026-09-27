@@ -11,14 +11,15 @@ from pathlib import Path
 try:  # Works both as ``python -m scripts...`` and a direct script path.
     from scripts import agent_result_poller as runtime
     from scripts.agent_broker import AgentBroker
-    from scripts.root_watchdog import LEASE_SCHEMA, load_lease
+    from scripts.root_watchdog import LEASE_SCHEMA, load_lease, root_runtime_identity
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
     import agent_result_poller as runtime
     from agent_broker import AgentBroker
-    from root_watchdog import LEASE_SCHEMA, load_lease
+    from root_watchdog import LEASE_SCHEMA, load_lease, root_runtime_identity
 
 
-def write_lease(path: Path, *, enabled: bool, mode: str) -> dict:
+def write_lease(path: Path, *, enabled: bool, mode: str,
+                registry: Path | None = None) -> dict:
     current = load_lease(path)
     value = {
         "schema": LEASE_SCHEMA,
@@ -29,6 +30,13 @@ def write_lease(path: Path, *, enabled: bool, mode: str) -> dict:
         "generation": int(current.get("generation", 0) or 0) + 1,
         "updated_at": time.time(),
     }
+    # A local-only lease may be created before the canonical registry exists;
+    # watchdog identity checks will fail closed until a complete lease is
+    # written with --registry.
+    if registry is not None:
+        identity, _ = root_runtime_identity(registry)
+        if identity is not None:
+            value.update(identity)
     runtime.write_json_atomic(path, value)
     return value
 
@@ -38,6 +46,7 @@ def main(argv=None) -> int:
     parser.add_argument("supervisor", choices=["supervisor"])
     parser.add_argument("action", choices=["pause", "resume", "status"])
     parser.add_argument("--lease", type=Path, default=Path(".runtime/SUPERVISOR_LEASE.json"))
+    parser.add_argument("--registry", type=Path)
     parser.add_argument("--broker-tasks-db", type=Path)
     parser.add_argument("--broker-state-db", type=Path)
     parser.add_argument("--broker-roles", type=Path, default=Path("docs/AGENT_ROLES.yaml"))
@@ -51,7 +60,12 @@ def main(argv=None) -> int:
             value["broker"] = broker.status().get("supervisor")
         print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
         return 0
-    value = write_lease(args.lease, enabled=args.action == "resume", mode="autonomous" if args.action == "resume" else "manual")
+    value = write_lease(
+        args.lease,
+        enabled=args.action == "resume",
+        mode="autonomous" if args.action == "resume" else "manual",
+        registry=args.registry,
+    )
     broker_value = None
     if args.broker_state_db:
         broker = AgentBroker(args.broker_tasks_db or ".runtime/tasks.sqlite", args.broker_state_db,

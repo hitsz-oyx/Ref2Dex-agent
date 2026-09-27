@@ -5,7 +5,10 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from scripts import worker_event_poller as events
+from scripts import root_watchdog as watchdog
 from scripts.researchctl import main as researchctl_main
 from scripts.root_watchdog import classify
 
@@ -223,3 +226,173 @@ def test_researchctl_pause_and_resume_only_change_local_lease(tmp_path: Path) ->
     paused = json.loads(lease.read_text(encoding="utf-8"))
     assert paused["enabled"] is False
     assert paused["generation"] == resumed["generation"] + 1
+
+
+def _watchdog_fixture(tmp_path: Path, *, binding: dict | None = None,
+                      lease: dict | None = None) -> tuple[Path, Path, Path, dict]:
+    root = {
+        "agent_key": "root",
+        "conversation_id": "root-thread",
+        "codex_home": str(tmp_path / "codex-home"),
+        "worktree": str(tmp_path / "worktree"),
+        "branch": "main",
+        "provider": "newapi",
+    }
+    (tmp_path / "docs").mkdir()
+    (tmp_path / ".runtime").mkdir()
+    (tmp_path / "worktree").mkdir()
+    registry = tmp_path / "docs" / "registry.json"
+    registry.write_text(json.dumps({
+        "runtime_bindings": {"path": ".runtime/AGENT_BINDINGS.json"},
+        "agents": [root],
+    }), encoding="utf-8")
+    if binding is not None:
+        (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": binding}}), encoding="utf-8"
+        )
+    lease_path = tmp_path / ".runtime" / "SUPERVISOR_LEASE.json"
+    if lease is not None:
+        lease_path.write_text(json.dumps(lease), encoding="utf-8")
+    state = tmp_path / "watchdog-state.json"
+    return registry, lease_path, state, root
+
+
+def _identity(root: dict) -> dict:
+    return {
+        "runtime_agent_key": "root",
+        "conversation_id": root["conversation_id"],
+        "codex_home": root["codex_home"],
+        "worktree": root["worktree"],
+        "branch": root["branch"],
+        "provider": "newapi",
+        "status": "bound",
+    }
+
+
+def _watchdog_args(registry: Path, lease: Path, state: Path, *, dry_run: bool = False) -> SimpleNamespace:
+    return SimpleNamespace(
+        registry=str(registry), lease=str(lease), state=str(state),
+        codex_node="node", codex_js="codex.js", grace_period=1.0,
+        app_server_command=None, app_server_timeout=1.0, dry_run=dry_run,
+    )
+
+
+def test_root_runtime_binding_and_lease_identity_match(tmp_path: Path) -> None:
+    registry, lease_path, _, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}), encoding="utf-8"
+    )
+    lease_path.write_text(json.dumps({
+        "schema": watchdog.LEASE_SCHEMA, "enabled": True,
+        "allow_root_resume": True, **_identity(root),
+    }), encoding="utf-8")
+    identity, reason = watchdog.root_runtime_identity(registry)
+    assert reason == "matched"
+    assert identity["conversation_id"] == root["conversation_id"]
+    lease = watchdog.load_lease(lease_path)
+    assert watchdog.lease_identity_matches(lease, identity) == (True, "matched")
+
+
+@pytest.mark.parametrize(
+    "case", ["missing_binding", "binding_mismatch", "lease_mismatch", "lease_missing"]
+)
+def test_watchdog_identity_fail_closed_never_wakes_or_resumes(tmp_path: Path, monkeypatch, case: str) -> None:
+    registry, lease_path, state, root = _watchdog_fixture(tmp_path)
+    binding = _identity(root)
+    lease = {
+        "schema": watchdog.LEASE_SCHEMA,
+        "enabled": True,
+        "allow_root_resume": True,
+        **_identity(root),
+    }
+    if case == "missing_binding":
+        binding = None
+    elif case == "binding_mismatch":
+        binding["conversation_id"] = "other-thread"
+    elif case == "lease_mismatch":
+        lease["worktree"] = str(tmp_path / "other-worktree")
+    elif case == "lease_missing":
+        lease.pop("conversation_id")
+    if binding is not None:
+        (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+            json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": binding}}), encoding="utf-8"
+        )
+    lease_path.write_text(json.dumps(lease), encoding="utf-8")
+    queued: list[str] = []
+    resumed: list[str] = []
+    monkeypatch.setattr(watchdog, "root_snapshot", lambda root, previous=None: {
+        "rollout": {"status": "known", "active_turns": []},
+        "task_complete": [], "rollout_cursor": {},
+    })
+    monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
+        "goal_id": "goal-1", "status": "paused", "objective": "test", "token_budget": 1,
+    })
+    monkeypatch.setattr(watchdog.runtime, "pending_root_turn", lambda agent: False)
+    monkeypatch.setattr(watchdog.runtime, "queue_root", lambda *args: queued.append("wake"))
+    monkeypatch.setattr(watchdog.runtime, "app_server_resume_root_goal", lambda *args, **kwargs: resumed.append("resume"))
+    result = watchdog.check_once(_watchdog_args(registry, lease_path, state))
+    assert queued == []
+    assert resumed == []
+    assert result["runtime_identity"]["status"] == "rejected"
+    assert "identity" in result["last_reason"]
+
+
+def test_researchctl_writes_identity_only_with_canonical_registry(tmp_path: Path) -> None:
+    registry, lease_path, _, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}), encoding="utf-8"
+    )
+    value = __import__("scripts.researchctl", fromlist=["write_lease"]).write_lease(
+        lease_path, enabled=True, mode="autonomous", registry=registry
+    )
+    assert value["conversation_id"] == root["conversation_id"]
+    assert value["worktree"] == root["worktree"]
+    local_only = tmp_path / "local-only.json"
+    value = __import__("scripts.researchctl", fromlist=["write_lease"]).write_lease(
+        local_only, enabled=True, mode="autonomous"
+    )
+    assert "conversation_id" not in value
+
+
+@pytest.mark.parametrize("goal_status", ["active", "paused", "usage_limited"])
+def test_broker_identity_rejection_suppresses_all_control_actions(
+    tmp_path: Path, monkeypatch, goal_status: str,
+) -> None:
+    registry, lease_path, state, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}),
+        encoding="utf-8",
+    )
+    lease = _identity(root)
+    lease.pop("provider")  # old lease: binding is valid, lease identity is incomplete
+    lease.update({"schema": watchdog.LEASE_SCHEMA, "enabled": True, "allow_root_resume": True})
+    lease_path.write_text(json.dumps(lease), encoding="utf-8")
+    state.write_text(json.dumps({"schema": watchdog.SCHEMA, "idle_since": 0.0}), encoding="utf-8")
+
+    class StubBroker:
+        def __init__(self):
+            self.calls: list[dict] = []
+
+        def status(self):
+            return {"supervisor": {"desired_state": "RUNNING", "generation": 1}}
+
+        def control(self, **kwargs):
+            self.calls.append(kwargs)
+
+    broker = StubBroker()
+    monkeypatch.setattr(watchdog, "_broker", lambda args: broker)
+    monkeypatch.setattr(watchdog, "root_snapshot", lambda root, previous=None: {
+        "rollout": {"status": "known", "active_turns": []},
+        "task_complete": [], "rollout_cursor": {},
+    })
+    monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
+        "goal_id": "goal-1", "status": goal_status, "objective": "test", "token_budget": 1,
+    })
+    monkeypatch.setattr(watchdog.runtime, "pending_root_turn", lambda agent: False)
+    monkeypatch.setattr(watchdog, "time", SimpleNamespace(time=lambda: 5.0))
+    args = _watchdog_args(registry, lease_path, state)
+    args.broker_tasks_db = str(tmp_path / "tasks.sqlite")
+    args.broker_state_db = str(tmp_path / "state.sqlite")
+    result = watchdog.check_once(args)
+    assert broker.calls == []
+    assert result["runtime_identity"]["status"] == "rejected"
