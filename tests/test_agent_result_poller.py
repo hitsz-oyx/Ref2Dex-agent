@@ -580,6 +580,73 @@ def test_reblocked_after_overload_keeps_exact_goal_status_and_consumed_guard(
     assert len(queued) == 2
 
 
+def test_active_goal_starts_a_new_recovery_cycle_for_same_goal_id(tmp_path, monkeypatch):
+    """An active observation resets the guard before a later blocked cycle."""
+    statuses = {"child": "active"}
+    root_status = {"value": "blocked"}
+    monkeypatch.setattr(poller, "git_head", lambda worktree: "same-head")
+    monkeypatch.setattr(
+        poller,
+        "goal_state",
+        lambda agent: {
+            "goal_id": None if agent["agent_key"] == "root" else "child-goal",
+            "status": root_status["value"] if agent["agent_key"] == "root"
+            else statuses.get(agent["agent_key"], "active"),
+        },
+    )
+    monkeypatch.setattr(
+        poller,
+        "goal_details",
+        lambda agent: {
+            "goal_id": "goal-cycle" if agent["agent_key"] == "root" else "child-goal",
+            "status": root_status["value"] if agent["agent_key"] == "root"
+            else statuses.get(agent["agent_key"], "active"),
+            "objective": "root objective" if agent["agent_key"] == "root" else None,
+            "token_budget": 7 if agent["agent_key"] == "root" else None,
+        },
+    )
+    monkeypatch.setattr(poller, "gpu_pids", lambda: [])
+    monkeypatch.setattr(poller, "owned_gpu_pids", lambda worktree, pids: [])
+    child, _ = _child(tmp_path, "child")
+    registry = _registry(tmp_path, child)
+    state = tmp_path / "state.json"
+    queued = []
+    resumed = []
+    monkeypatch.setattr(poller, "queue_root", lambda *args: queued.append(args[1]))
+    monkeypatch.setattr(
+        poller,
+        "app_server_resume_root_goal",
+        lambda root, goal, node, codex, **kwargs: (
+            resumed.append(goal["status"]) or {"threadId": "root-thread", "status": "active"}
+        ),
+    )
+    args = _args(registry, state)
+    args.root_goal_resume_once = True
+
+    # First blocked cycle: baseline, idle edge, then one resume.
+    assert poller.poll_once(args)[0] == []
+    statuses["child"] = "paused"
+    assert poller.poll_once(args)[0]
+    assert poller.poll_once(args)[0] == []
+    assert resumed == ["blocked"]
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-cycle"
+
+    # The Goal becomes active, which resets the one-shot marker.
+    root_status["value"] = "active"
+    assert poller.poll_once(args)[0] == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert "root_goal_resume_consumed_goal_id" not in persisted["supervision"]
+
+    # A later blocked cycle for the same Goal ID is recoverable again.
+    root_status["value"] = "blocked"
+    assert poller.poll_once(args)[0] == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert resumed == ["blocked", "blocked"]
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-cycle"
+    assert len(queued) == 3
+
+
 def test_static_migrated_idle_paused_goal_resumes_without_new_edge(tmp_path, monkeypatch):
     statuses = {"child": "paused"}
     _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-static")

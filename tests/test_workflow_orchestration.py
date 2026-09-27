@@ -358,12 +358,11 @@ def test_watchdog_resumes_paused_or_blocked_root_goal_uniformly(
 def test_watchdog_reblocked_after_overload_preserves_status_and_resume_guard(
     tmp_path: Path, monkeypatch,
 ) -> None:
-    """A recovered Goal that is blocked again must not duplicate recovery.
+    """A recovered Goal that is blocked again starts one new recovery cycle.
 
     The second blocked observation represents an app-server overload after the
-    first successful readback.  The exact Goal status remains observable and
-    the lease-scoped Goal ID guard suppresses a second app-server/CONTROL
-    action for the same Goal.
+    first successful readback.  The exact Goal status remains observable; the
+    active observation between them resets the lease-scoped Goal ID guard.
     """
     registry, lease_path, state, root = _watchdog_fixture(tmp_path)
     (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
@@ -377,7 +376,7 @@ def test_watchdog_reblocked_after_overload_preserves_status_and_resume_guard(
         "rollout": {"status": "known", "active_turns": []},
         "task_complete": [], "rollout_cursor": {},
     })
-    statuses = iter(["blocked", "active", "blocked"])
+    statuses = iter(["blocked", "blocked", "active", "blocked"])
     monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
         "goal_id": "goal-cycle", "status": next(statuses),
         "objective": "test", "token_budget": 1,
@@ -414,17 +413,25 @@ def test_watchdog_reblocked_after_overload_preserves_status_and_resume_guard(
     assert [item["action"] for item in controls] == ["RESUME"]
     assert len(queued) == 1
 
-    active = watchdog.check_once(args)
-    assert active["observed_goal_status"] == "active"
-    assert active["last_status"] == "ROOT_IDLE"
-
-    reblocked = watchdog.check_once(args)
-    assert reblocked["observed_goal_status"] == "blocked"
-    assert reblocked["last_status"] == "ROOT_PAUSED"
-    assert reblocked["resume_consumed_goal_id"] == "goal-cycle"
+    unchanged = watchdog.check_once(args)
+    assert unchanged["observed_goal_status"] == "blocked"
+    assert unchanged["last_status"] == "ROOT_PAUSED"
     assert resumed == ["blocked"]
     assert [item["action"] for item in controls] == ["RESUME"]
     assert len(queued) == 1
+
+    active = watchdog.check_once(args)
+    assert active["observed_goal_status"] == "active"
+    assert active["last_status"] == "ROOT_IDLE"
+    assert "resume_consumed_goal_id" not in active
+
+    reblocked = watchdog.check_once(args)
+    assert reblocked["observed_goal_status"] == "blocked"
+    assert reblocked["last_status"] == "ROOT_RUNNING"
+    assert reblocked["resume_consumed_goal_id"] == "goal-cycle"
+    assert resumed == ["blocked", "blocked"]
+    assert [item["action"] for item in controls] == ["RESUME", "RESUME"]
+    assert len(queued) == 2
 
 
 @pytest.mark.parametrize(

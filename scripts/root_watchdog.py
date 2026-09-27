@@ -255,6 +255,11 @@ def check_once(args) -> dict:
     idle_since = float(idle_since) if isinstance(idle_since, (int, float)) else None
     status, reason, idle_since = classify(goal, snapshot, queued, now, idle_since, args.grace_period)
     state["idle_since"] = idle_since
+    # A Goal ID is consumed only within one paused/blocked status cycle.
+    # Seeing the same Goal active establishes a new recovery cycle, while an
+    # unchanged paused/blocked status remains guarded against duplicate wakeups.
+    if _status(goal) in ACTIVE:
+        state.pop("resume_consumed_goal_id", None)
     # Preserve the platform's exact Goal status even though paused and blocked
     # share the same bounded recovery path.
     state["observed_goal_status"] = _status(goal)

@@ -838,6 +838,11 @@ def poll_once(args):
         "wake_sent": bool(previous_supervision.get("wake_sent")),
     }
     consumed_goal_id = previous_supervision.get("root_goal_resume_consumed_goal_id")
+    # Reset the one-shot marker after the exact Goal is observed active again.
+    # The next paused/blocked observation is then a new recovery cycle, while
+    # an unchanged paused/blocked status keeps the existing duplicate guard.
+    if _root_goal_is_active(root_goal):
+        consumed_goal_id = None
     if isinstance(consumed_goal_id, str) and consumed_goal_id:
         supervision["root_goal_resume_consumed_goal_id"] = consumed_goal_id
     resume_once = bool(getattr(args, "root_goal_resume_once", False))
@@ -1024,7 +1029,7 @@ def main():
     parser.add_argument(
         "--root-goal-resume-once",
         action="store_true",
-        help="explicitly allow one app-server resume for the current paused or blocked root Goal",
+        help="explicitly allow one app-server resume per paused or blocked root Goal status cycle",
     )
     parser.add_argument("--app-server-timeout", type=float, default=30.0)
     args = parser.parse_args()
