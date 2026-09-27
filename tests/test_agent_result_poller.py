@@ -452,8 +452,10 @@ def test_active_execution_owner_suppresses_decision_wake(tmp_path, monkeypatch):
     assert queued == []
 
 
-@pytest.mark.parametrize("root_status", ["paused", "UNKNOWN"])
-def test_paused_or_unknown_root_never_auto_wakes(tmp_path, monkeypatch, root_status):
+@pytest.mark.parametrize("root_status", ["paused", "blocked", "UNKNOWN"])
+def test_paused_blocked_or_unknown_root_never_auto_wakes_without_opt_in(
+    tmp_path, monkeypatch, root_status,
+):
     statuses = {"child": "active"}
     _supervision_setup(monkeypatch, statuses, root_status=root_status)
     child, _ = _child(tmp_path, "child")
