@@ -1,5 +1,5 @@
 schema: ref2dex.research_queue.v1
-updated: 2026-09-26
+updated: 2026-09-27
 campaign:
   name: cm_selective_causal_gate
   status: FROZEN
@@ -26,11 +26,11 @@ hypotheses:
   HB01:
     claim: C1
     name: observation_driven_expert_route
-    status: PROMISING
+    status: SUPPORTED
     branch: agent/observation-router-reliability
     probe_budget: 2
     probes_used: 1
-    transition: "Fresh seed260 passed all predeclared choice and physical gates; design fixed multi-seed C1 Validation without retuning the router."
+    transition: "Five-seed matched C1 Validation passed the frozen joint route/held-lift gates; freeze this task-bound observation-driven six-expert substrate. Overall C1 stays PARTIAL; no full actor, generalization, fixed-route superiority, or Cm utility claim."
 
   HF01:
     claim: C3

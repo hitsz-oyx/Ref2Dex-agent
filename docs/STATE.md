@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-26
+Updated: 2026-09-27
 
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
@@ -15,11 +15,17 @@ Updated: 2026-09-26
 [`P-20260926-selective-causal-gate.md`](experiments/probes/P-20260926-selective-causal-gate.md)，
 路线处置见 [`D-20260926-after-hf05-selective-gate.md`](decisions/D-20260926-after-hf05-selective-gate.md)。
 
+独立的 C1 六专家初始观测路由已完成五 seed matched Validation。10/10 native arm
+及输入/配对合同有效，全部预注册门槛通过；root 在用户委托路线选择后接受该
+**任务限定** `SUPPORTED` 结论，并冻结这一路由配置。它不解除上述 Cm 冻结。
+见 [C1 决策](decisions/D-20260927-c1-observation-route-validation.md) 与
+[Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
+
 ## North-star scoreboard
 
 | 目标 | 当前状态 | 证据边界 |
 | --- | --- | --- |
-| Self-trained grasp | `PARTIAL` | 固定物体身份/观测路由已有探索性非零抓取，但还不是单一观测驱动 actor 的稳定结果。 |
+| Self-trained grasp | `PARTIAL` | 冻结六专家初始观测路由在限定 12-motion 任务上通过正式 C1 路由/held-lift 门槛；仍不是单一观测驱动 actor 的稳定结果。 |
 | Cm one-step information | `PARTIAL` | 随机动作干预中有可学物理效应；信息依赖表示、分布和目标。 |
 | Cm policy utility | `OPEN` | 尚无跨训练 seed 的 matched Cm-on > Cm-off 证据；effect-rank 正式 Validation 的正向主张已 `REFUTED`。 |
 | Generalization | `OPEN` | 未见物体和多轨迹上的 Cm 收益尚未建立。 |
@@ -32,13 +38,13 @@ Updated: 2026-09-26
 
 ## Confirmed long-term facts
 
-- 当前可靠的抓取 substrate 是自训练专家/层级路由；它仍可能读取特权物体
-  身份，不能报告成完整 GRAB actor。
-- 冻结的初始观测六专家路由在新 seed260 的 Decision Probe 通过预设门槛：
-  与固定物体身份路由的专家选择 64/64 一致，cup 6/6 正确；held-lift 为
-  观察路由 21/64、固定路由 23/64。它是 C1 `PROMISING` 的探索信号，
-  值得固定配置做多 seed Validation；尚不支持稳定抓取或 Cm utility 结论。
-  见 [实验卡](experiments/probes/P-20260926-observation-router-reliability.md)。
+- 自训练六专家层级是当前任务内已验证的抓取 substrate。C1 观测臂仅由
+  初始 actor observation 选择专家；matched 固定参考臂使用特权物体身份。
+  五个 holdout seed 的初始专家选择一致为 311/320、cup 30/30，held-lift
+  为观测路由 123/320、固定参考 118/320；预注册联合门槛全过，窄范围
+  `SUPPORTED`。这不证明单一 GRAB actor、未见物体泛化、观测路由优于固定
+  参考或 Cm utility。详见
+  [Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
 - 均匀共享多轨迹 actor 与全池 actor 的近期 Probe 未形成稳定抓取底座；不再
   继续在同一均匀续训方案上堆 epoch。
 - 初始动作 option-value、短时/持续接触切换、局部残差和 route-specific
@@ -129,6 +135,8 @@ representation Probe。
 相关提交暂不合入 `main`。见
 [监督审计](handoffs/BASELINE_POSTFREEZE_PROBE_AUDIT_20260926.md)。
 
-C1 的观察路由新 seed Probe 已过预设门槛。下一步固定六专家 checkpoint、
-观测分类器和评估协议，预先登记多 seed matched Validation 的判定条件；
-不得在同一 Probe 结果上调整分类器、专家集合或阈值。
+C1 的五 seed matched Validation 已完成；冻结已验证的六专家 checkpoint、
+初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。
+下一项研究决策仍是是否、以及如何在该类可用 substrate 上重新设计 Cm
+policy-utility 路线；现有 Cm campaign 维持冻结，需新的高层 goal 与 Decision
+Checkpoint 才能启动，不从 C1 结果推导 Cm 增益。

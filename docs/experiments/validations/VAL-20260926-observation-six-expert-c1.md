@@ -57,12 +57,18 @@ Even a `SUPPORTED` result applies only to this frozen six-expert hierarchy, thes
 
 run_status: `COMPLETED`
 
-proposed_terminal_label: `SUPPORTED`
+conclusion: `SUPPORTED`（仅限冻结六专家观测路由在这 12 条 motion、五个 holdout seed 上的预注册联合门槛）
 
-promotion_status: `PENDING_DECISION_CHECKPOINT`
+decision_status: `ACCEPTED`（2026-09-27）
 
-The proposal is recorded for root review under the `AGENTS.md` Decision
-Checkpoint. It is not a formal promotion in `docs/STATE.md`.
+Root 提议 Option A；用户回复“你是主agent有最高权限，按照你的想法来”，将该
+Decision Checkpoint 的路线选择交由 root。Root 随后接受窄范围 `SUPPORTED`
+结论；决策与边界见
+[D-20260927-c1-observation-route-validation.md](../../decisions/D-20260927-c1-observation-route-validation.md)。
+下述机器可读结果索引是在此决策**之前**生成的执行证据，其中
+`promotion_status: PENDING_DECISION_CHECKPOINT` 和
+`proposed_terminal_label: SUPPORTED` 是当时的历史状态；为保留原始分析指纹，
+不修改索引，也不以该字段代表当前决策状态。
 
 ### Frozen-matrix evidence
 
@@ -101,10 +107,11 @@ total observation count is at least 100/320, and observation is no more than
 analysis are [VAL-20260926-observation-six-expert-c1-results.json](VAL-20260926-observation-six-expert-c1-results.json)
 and [VAL-20260926-observation-six-expert-c1-analysis.py](VAL-20260926-observation-six-expert-c1-analysis.py).
 
-### Decision Memo for root
+### Decision Memo and disposition
 
 **Decision:** whether to promote the completed valid matrix to the predeclared
-`SUPPORTED` terminal label for the narrow C1 claim.
+`SUPPORTED` terminal label for the narrow C1 claim. Root accepted Option A at
+the Decision Checkpoint on 2026-09-27.
 
 **Key evidence:** all technical gates pass; 311/320 choices agree with the
 fixed route, cup routing is 30/30, observation held-lift is 123/320 versus
@@ -118,6 +125,6 @@ separately authorized next design, with the scope limits below.
 **Option B — keep the label pending review.** No new compute. Preserve this
 valid matrix and defer formal promotion; no holdout rerun or tuning is needed.
 
-**Recommendation:** Option A at the required checkpoint. This is a task-bound
-route reliability claim; it does not establish a shared GRAB actor, unseen
-object generalization, improvement over fixed routing, or Cm policy utility.
+**Disposition:** Option A was accepted. This task-bound route reliability
+result does not establish a shared GRAB actor, unseen-object generalization,
+improvement over fixed routing, or Cm policy utility.
