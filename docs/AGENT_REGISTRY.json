@@ -40,7 +40,19 @@
       "terminal_audit": 0
     },
     "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并向精确注册 thread 派发明确 GOAL_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
-    "completion_rule": "agent_poller 只在登记状态或 rollout task_complete 变化时发送 POLL_EVENT；root 审计完成事件后继续选择下一项有决策价值的任务。"
+    "completion_rule": "agent_poller 只在登记状态或 rollout task_complete 变化时发送 POLL_EVENT；root 审计完成事件后继续选择下一项有决策价值的任务。",
+    "root_goal_lifecycle": {
+      "anchor": "persistent_supervision",
+      "default_status": "active",
+      "child_goal_terminal_does_not_end_root": true,
+      "idle_or_milestone_does_not_end_root": true,
+      "status_change_authority": [
+        "explicit_user_pause_stop_or_switch",
+        "explicit_platform_usage_budget_or_lifecycle_limit"
+      ],
+      "blocked_status_rule": "platform_three_consecutive_repeated_blockers_only",
+      "after_child_completion": "return_to_root_task_selection_loop"
+    }
   },
   "integration": {
     "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",

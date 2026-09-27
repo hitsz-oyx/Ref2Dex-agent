@@ -164,6 +164,13 @@ NOT_AUTHORIZED=<what must not start>
 `blocked` 的 Goal 不得被静默唤醒，除非用户建立新授权或 Decision Memo 明确
 解除阻塞。
 
+这里的 root Goal 与 child goal 生命周期独立：root Goal 是持续监督的恒定锚点，默认
+保持 `active`；child goal 可以独立进入终态。单轮审计、child 完成、状态报告、暂时
+空闲或普通研究里程碑都不能结束或改变 root Goal，child 完成后 root 必须回到任务选择
+循环。只有用户明确暂停/停止/切换，或平台明确施加 usage、budget 或 lifecycle 限制
+并更新 Goal 状态时，root Goal 才能离开 `active`。`blocked` 只按平台既有的三次连续
+重复阻塞规则使用，不得用来表示普通空闲、child 终态或里程碑完成。
+
 如果任务符合上述边界，`/root` 可以用注册表中的两项身份做**一次性**派发（命令
 中的 `<codex-cli>` 由当前环境解析，不能写死另一个 `CODEX_HOME`）：
 
@@ -194,11 +201,11 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
    授权，按 `Blocker`、`Decision`、`Evidence`、`Curiosity` 分类候选任务；
 4. 若存在边界内的 `Blocker`、`Decision` 或直接必要的工程/治理任务，只按第
    4.1 节派发明确 goal；不以 blocker 已经出现为前提；
-5. 只有候选扫描后没有可执行任务，才记录内部状态 `SUPERVISOR_IDLE` 并等待
-   `POLL_EVENT` 或用户消息，不向自己或 child 发送固定心跳；
+5. 只有候选扫描后没有可执行任务，才在 root Goal 保持 `active` 的同时记录内部状态
+   `SUPERVISOR_IDLE` 并等待 `POLL_EVENT` 或用户消息，不向自己或 child 发送固定心跳；
 6. `agent_poller` 报告终态或异常后，`/root` 立即做 completion audit，再回到第
-   3 步选择下一项工作；只有触发 `docs/ROOT_AGENT.md` 的停下条件时才交给用户
-   决策或结束当前活动。
+   3 步选择下一项工作；child 终态不结束 root Goal，只有触发 `docs/ROOT_AGENT.md`
+   的明确停下条件时才交给用户决策或改变 root Goal 状态。
 
 `agent_poller` 的默认事件采集节奏：
 
@@ -212,7 +219,8 @@ CODEX_HOME=<registry.codex_home> <codex-cli> queue \
 “对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内等待真实事件并
 持续完成审计和任务选择，不因一次巡检或子任务完成而主动结束。若平台或用户
 中断 turn，恢复时必须从注册表、Goal 数据库和最后一次状态快照继续；不得假设
-child 已经完成，也不得自动重启实验。这个连续循环不改变任何资源或实验授权。
+child 已经完成，也不得自动重启实验。除非平台明确更新 Goal 状态，这种 turn 中断
+不改变 root Goal 的生命周期锚点，也不改变任何资源或实验授权。
 
 [结果轮询代理](AGENT_POLLER.md) 是默认事件通知 owner；root 不与它并行启动重复
 的长期轮询进程。poller 只在登记状态或 completion 变化时定向排队 `POLL_EVENT`，
