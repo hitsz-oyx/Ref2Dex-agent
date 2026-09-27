@@ -253,7 +253,7 @@
       "role": "工作流治理与上下文效率 owner",
       "parent_agent_key": "root",
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22",
-      "branch": "agent/root-goal-persistence-20260927",
+      "branch": "agent/root-goal-lifecycle-test-20260927",
       "owns": [
         "协作契约和注册表",
         "治理文档、模板和验证门禁",
