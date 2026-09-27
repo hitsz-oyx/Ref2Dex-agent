@@ -1,80 +1,62 @@
-# 主代理连续监督规范（取代旧外部唤醒器）
+# 主代理连续监督规范
 
 ## 状态
 
-`scripts/codex_research_supervisor.py` 的“空闲时向 `/root` 投递固定巡检句子”
-模式已 **RETIRED**。不要再用 `setsid`、cron、watchdog 或定时 `codex queue`
-让主代理自我唤醒；这样只会制造重复报告，不会形成新的研究 goal，也不会可靠地
-给子代理派发下一项工作。
+旧的 `scripts/codex_research_supervisor.py` 固定巡检模式已 **RETIRED**。它只保留
+兼容测试用途，不得通过 cron、setsid 或 `--legacy-fixed-message` 重新变成研究调度器。
 
-旧脚本保留在仓库中，仅用于历史状态审计和兼容性测试。脚本默认拒绝真实 queue
-操作；除非明确使用 `--legacy-fixed-message`，否则不会向任何 thread 写入消息。
-不应重新启用该兼容模式。
+当前工作流由三层组成：
 
-## 正确的监督方式
+1. root 的一个长期 Mission-level Goal 负责研究决策和任务派发；
+2. `scripts/worker_event_poller.py` 只读观察固定 worker，并在变化时发送 `POLL_EVENT`；
+3. `scripts/root_watchdog.py` 只处理 root liveness、lease-authorized bounded resume
+   和平台预算终态。
 
-主代理 `/root` 使用注册表和自己的活动 turn 建立连续监督循环：
+worker poller 和 root watchdog 都不选择研究路线、不读取科学指标、不启动实验。它们
+不能替 root 形成结论或替 worker 创建子代理。
 
-1. 从
-   [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
-   读取目标的 `codex_home` 与 `conversation_id`；
-2. 在同一条主对话中读取 thread/Goal、branch/HEAD、experiment card、manifest、
-   归属进程和 GPU；
-3. 没有 blocker 时只等待到下一轮轮询，不发送固定心跳，也不结束监督 turn；
-4. 发现已授权 blocker 时，向精确的 child thread 派发一条包含 objective、
-   branch、允许路径、预算、停止条件和交付物的 `GOAL_DISPATCH`；
-5. 等待 child 的真实终态或新的 blocker，再做 completion audit。
+## Root 循环
 
-默认节奏：waiting/blocked 和 CPU 分析每 5 分钟；GPU collection 每 2 分钟，
-最长不超过 5 分钟；终态或异常立即审计。轮询不是实验授权，也不自动恢复
-`paused`/`blocked` Goal。
+root 读取 `docs/AGENT_REGISTRY.json`、`.runtime/AGENT_BINDINGS.json`、`MISSION`、
+`STATE`、`CAMPAIGN` 和当前交接，随后：
 
-### 派发消息的最低格式
+1. 审计 worker 的 evidence、资源归属、停止条件和终态；
+2. 将候选行动分类为 Blocker、Decision、Evidence 或 Curiosity；
+3. 只向固定角色派发一个包含 objective、decision test、branch、预算、停止条件和
+   deliverables 的 `GOAL_DISPATCH`；
+4. 收到 `POLL_EVENT` 或用户消息后再次审计并选择下一任务。
 
-```text
-GOAL_DISPATCH
-TARGET_AGENT_KEY=<registry agent_key>
-CODEX_HOME=<registry codex_home>
-CONVERSATION_ID=<registry conversation_id>
-OBJECTIVE=<one concrete blocker or decision>
-DECISION_TEST=<cheapest discriminating test>
-BRANCH=<exact branch>  BASE_COMMIT=<sha>
-ALLOWED_PATHS=<paths>
-EXPERIMENT_OR_CARD=<id or NONE>
-RESOURCE_BUDGET=<gpu/time/storage/process>
-STOP_CONDITIONS=<explicit conditions>
-DELIVERABLE=<commit/card/manifest/handoff>
-NOT_AUTHORIZED=<what must not start>
+child task 的终态不会结束 root Goal；root 必须回到任务选择循环。没有可执行行动时
+保持 Goal active，记录 `SUPERVISOR_IDLE`，等待真实事件，不发送固定心跳。
+
+## Root watchdog
+
+watchdog 读取 root Goal、root rollout、root queue 和
+`.runtime/SUPERVISOR_LEASE.json`：
+
+* active Goal 在 grace period 后没有 turn 或 queued input：发送一次
+  `ROOT_LIVENESS_WAKE`；
+* paused Goal 只有在 lease `enabled=true` 且 `allow_root_resume=true` 时才通过
+  app-server bounded resume 一次；
+* `usage_limited`/`budget_limited` 输出 `ROOT_BUDGET_LIMITED`，不自动恢复；
+* complete、failed、blocked 或未知状态只记录，不重启。
+
+lease 由以下命令管理：
+
+```bash
+python3 scripts/researchctl.py supervisor pause
+python3 scripts/researchctl.py supervisor resume
+python3 scripts/researchctl.py supervisor status
 ```
 
-不要发送“继续”“再巡检一次”或固定的全局巡检句子作为 goal。没有已授权
-blocker 时，正确状态是内部 `SUPERVISOR_IDLE`，而不是向主对话排队一条消息。
+缺少 lease 文件等同于禁用。`pause` 先撤销自动恢复授权；若要立即中断当前 turn，
+用户仍通过 Codex Goal 控制入口执行暂停。
 
-## `CODEX_HOME` 规则
+## `CODEX_HOME` 和旧状态
 
-thread ID 只在对应 `CODEX_HOME` 下有意义。当前环境的默认目录是：
+thread ID 只在对应 `CODEX_HOME` 下有意义。更换 runtime 时更新本地 binding，保留旧
+身份到 registry 的 `retired_conversations`，不要复用 thread ID。旧 poller state 不
+能直接给新 worker poller 使用；新程序使用独立 schema 和 state 路径。
 
-```text
-CODEX_HOME=/home2/wyy/oyx_ws/.codex_oyx_NewAPI
-```
-
-如果切换目录，必须同时更新注册表中的 `codex_home`、`conversation_id`、
-`session_root`、`state_db`、`goal_db` 和 `queue_db`，并重新验证身份键
-`(codex_home, conversation_id)` 的唯一性。
-
-## 与 overload watchdog 的边界
-
-`codex_overload_watchdog.py` 只处理结构化的 `server_overloaded` 事件；它不负责
-研究巡检、goal 设计、子代理调度或主代理唤醒。不得把两个工具合并成新的定时
-心跳系统。
-
-## 停用与恢复
-
-若历史 research-supervisor 进程仍在运行，只停止已核实属于本项目的精确 PID；
-不要触碰实验进程、其他用户进程或 overload watchdog。若未来确需恢复旧兼容模式，
-必须由用户明确授权，并同时提供非默认的 thread、`CODEX_HOME` 和具体 message。
-
-停用时还要只读检查对应 `queue_db`。如果旧调度器留下固定巡检文本，先把数据库
-做一致性备份，再按 `thread_id`、消息 ID 和固定文本三项精确匹配删除；不得清空
-整个 queue，也不得删除其他用户或 child thread 的排队消息。删除后重新只读核验
-队列为空或只剩明确授权的 `GOAL_DISPATCH`。
+只有 root 集成已验收 worker branch。若 linked worktree 无法写 Git metadata，执行
+`BYTE_EXACT_ROOT_IMPORT` 的逐文件 hash 交接；root 不在集成时改写研究内容。

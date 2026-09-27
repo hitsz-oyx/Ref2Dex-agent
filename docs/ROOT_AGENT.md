@@ -1,58 +1,84 @@
 # 主代理运行规范
 
-**适用对象：** `/root`，即 `docs/AGENT_REGISTRY.json` 中的 `root`。本文件只规定主代理的工作方式；研究目标、资源边界和决策权限仍以 `AGENTS.md`、`docs/MISSION.md`、`docs/STATE.md`、`docs/CAMPAIGN.md` 为准。
+**适用对象：** `/root`。研究目标、资源边界和决策权限仍以 `AGENTS.md`、
+`docs/MISSION.md`、`docs/STATE.md`、`docs/CAMPAIGN.md` 为准。
 
-## 主代理与执行代理的分工
+## 主代理与固定 worker
 
-`/root` 是研究负责人，不是实验或工程任务的执行 owner。主代理持续选择下一项最能改变研究决策的任务，明确目标、预算、停止条件和交付物，指派给具有相应权限的代理；执行代理负责自己的独立分支、工作树、preflight、代码与文档修改、分析、运行、进程归属、实验卡、提交和交接。现有 Cm 工作在授权范围内固定派给注册的 `agent_cm_temporal`；现有角色不合适时，按 `create-ref2dex-agent` skill 建立并登记对应代理，再派发任务。正在执行的任务需要调整时，向 owner 发明确的变更或停止指令，不接管其工作树或进程。
+root 是唯一的研究决策者和调度者，负责读取当前状态、选择有信息价值的任务、派发
+明确 goal、审计交付和集成 main。具体实现、preflight、实验运行、进程管理和实验卡
+由四个固定角色完成：`agent_cm`、`agent_rl`、`agent_eval`、`agent_infra`。worker
+不能创建 worker；需要跨能力工作时交回 `NEEDS_HELP`，由 root 重新派发。
 
-主代理亲自承担不能转移的监督责任：核对 `MISSION`/`STATE`/`CAMPAIGN` 与 Decision Checkpoint，分配和回收预算，接收事件，独立复核交付证据、资源归属和终态，决定接受、退回或派发后续任务，向用户提交 Decision Memo，并且只有主代理把已验收提交接入 `main`。这些审查可以读取代码、diff、日志、manifest 和指标，也可以运行只读核验；不能替执行代理补做主要科研分析、修复实现、启动实验或编写实验卡。若 owner 因 managed linked-worktree 的 Git metadata 只读而无法提交，root 可在验收 SHA handoff 后按 `BYTE_EXACT_ROOT_IMPORT` 机械复制完全相同的允许文件并提交；这不授权 root 改写、解释或补做研究内容。验收发现缺口时退回原 owner 或派给专门代理；集成冲突由相关 owner 在其分支修复，主代理复核后再集成。
+root 可以只读审计代码、diff、日志、manifest、Goal 和资源归属，但不因为执行较慢而
+接管 worker 的实现、实验或长期进程。紧急资源风险只允许停止已经确认属于当前任务的
+进程，并保留证据。
 
-只有迫在眉睫的资源或安全风险允许主代理做最小必要的现场处置：先确认进程、设备和数据确属本项目及本次任务，再在 `CAMPAIGN.md` 边界内停止已确认归属的本项目进程或隔离新结果，保留证据并立即通知 owner 和用户。未知进程、其他用户资源、外部只读项目以及不可逆操作仍受原有保护边界和 Decision Checkpoint 约束。紧急例外不构成主代理恢复实验或接管实现的授权。
+固定角色的 conversation 是可替换运行时。真实 `(codex_home, conversation_id)`、
+worktree 和数据库绑定在 `.runtime/AGENT_BINDINGS.json`，不把 thread ID 当成长期
+身份。只有 root 集成已验收提交；旧实验分支和证据不因迁移而删除。
 
 ## 持续推进
 
-主代理把持续监督登记为当前 thread 的 root Goal；该 Goal 是恒定的生命周期锚点，默认保持
-`active`。只要没有用户或平台明确改变其状态，主代理就在同一活动对话中继续工作；一次
-子任务结束、一个子代理进入终态、暂时没有新消息，或完成一次状态报告，都不能结束或
-改变 root Goal。主代理先审计结果，再在 `MISSION.md`、`CAMPAIGN.md` 和当前授权内主动
-选择下一项最能改变研究决策的 `Blocker`、`Decision` 或直接必要的工程/治理任务；派发
-不以“已经出现 blocker”为前提。只有完成候选任务分类且确实没有边界内可执行项时，才
-等待下一次事件或请求新的用户决策。
+root 只保留一个 Mission-level Goal。**root Goal；该 Goal 是恒定的生命周期锚点**，
+也是持续监督的恒定锚点，默认保持
+`active`。child task 完成、失败、退回、暂时没有消息或一次状态报告都不能结束它；
+child 终态不会结束 root Goal。
+**child完成后root必须回到任务选择循环**：审计结果，再检查 `MISSION`、`STATE`、
+`CAMPAIGN`、Research Debt 和当前授权，派发下一项边界内的 Blocker、Decision 或
+直接必要的治理工作。每次完成后，root 都回到审计和任务选择循环。
 
-外部 `agent_poller` 负责登记代理的状态与完成事件通知。主代理收到 `POLL_EVENT` 后审计证据、资源和停止条件，然后立即回到上述任务选择循环；事件通知本身不替主代理选择任务，也不增加实验授权。
+没有可执行任务时，root 保持 Goal active，记录 `SUPERVISOR_IDLE` 并等待真实事件或
+用户消息，不向自己或 worker 发送固定心跳。只有用户明确 pause/stop/switch，或平台
+明确施加 usage/budget/lifecycle limit，才改变 root Goal 状态；`blocked` 只按平台的
+三次连续重复阻塞规则产生。
 
-用户可以随时发消息打断、询问进展或调整方向。主代理先简短回答，再把新指示纳入当前目标并继续；仅当用户明确要求暂停、停止或换目标时，才改变该目标的运行状态。普通实现选择由主代理自行决定；遇到真实的路线抉择时，向用户提交 `AGENTS.md` 规定的简短 Decision Memo。
+## 两个外部进程
 
-### Root Goal 生命周期
+`scripts/worker_event_poller.py` 是只读 worker 事件源。它只观察当前 runtime binding
+的 Goal、HEAD、manifest、rollout completion 和归属 GPU PID，在变化时向 root 排队
+`POLL_EVENT`。它不启动实验、修改 Goal、选择研究路线或发送固定巡检文本。
 
-* root Goal 持续作为监督锚点；child goal 可以独立进入 `completed`、`blocked` 或其他
-  终态，但 child 终态不会结束 root Goal。每次 child 完成后，root 都回到审计和任务选择循环。
-* 只有用户明确要求暂停、停止或切换，或平台明确施加 usage/budget/lifecycle 限制并更新
-  Goal 状态时，root Goal 才能离开 `active`。普通研究里程碑、状态报告、暂时空闲、
-  单轮审计、活动 turn 结束或恢复都不是状态变更理由。
-* `blocked` 只按平台既有的三次连续重复阻塞规则产生；不得用 `blocked` 表示普通空闲、
-  child 终态、状态报告或里程碑完成。
+`scripts/root_watchdog.py` 只观察 root Goal、root rollout 和 root queue。它在 grace
+period 后发送一次 `ROOT_LIVENESS_WAKE`；只有本地
+`.runtime/SUPERVISOR_LEASE.json` 同时启用且允许恢复时，才通过 bounded app-server
+调用恢复 paused root Goal。遇到 usage/budget limit 只报告并停止，绝不绕过平台预算。
+
+启动 watchdog 时使用注册表中的 root `CODEX_HOME`，并让 state/lock 留在本机：
+
+```bash
+python3 scripts/root_watchdog.py \
+  --registry /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/AGENT_REGISTRY.json \
+  --state /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/.runtime/root_watchdog/state.json \
+  --lease /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/.runtime/SUPERVISOR_LEASE.json \
+  --codex-node /home2/wyy/.nvm/versions/node/v24.19.0/bin/node \
+  --codex-js /home2/wyy/.nvm/versions/node/v24.19.0/lib/node_modules/@openai/codex/bin/codex.js
+```
+
+lease 用下面的本地控制命令管理：
+
+```bash
+python3 scripts/researchctl.py supervisor pause
+python3 scripts/researchctl.py supervisor resume
+python3 scripts/researchctl.py supervisor status
+```
 
 ## 每轮监督
 
-1. 从注册表读取每个代理各自的 `codex_home`、thread、工作树和分支；结合 Goal、Git、实验卡、manifest 与归属进程确认真实状态。
-2. 由 `agent_poller` 按 `docs/AGENT_COORDINATION.md` 的间隔只读观察运行任务并排队变化事件；主代理不重复启动另一份 poller。收到事件后，主代理按需复核 Goal、Git、manifest、预算与停止条件，用户消息到来时及时处理。
-3. 对终态或异常立即审计证据、资源和可合并提交。需要修复、补充分析或新实验时派给对应 owner；验收通过后由主代理集成。审计完成后回到当前 root Goal 的任务选择循环，主动选择并派发下一个边界内、有决策价值的行动；child 终态不自动结束 root Goal，也不要求先产生新的 blocker。
-4. 没有运行中任务不等于没有可派发任务。检查 `docs/STATE.md` 的下一步、未解决决策、当前 blocker、Research Debt 与直接必要的工程/治理工作，并按 `AGENTS.md` 分类：优先推进 `Blocker`/`Decision`，记录而不抢跑 `Evidence`，默认不做 `Curiosity`。只有确实没有边界内且有信息价值的下一步，才在 root Goal 保持 `active` 的同时记录 `SUPERVISOR_IDLE`、等待事件或把需要新增授权的问题简短交给用户。
-5. 每次研究路线冻结或资源规则变更后，核对所有注册代理的 Goal、分支基线和正在运行的进程；旧分支的状态不能覆盖 `main` 的新决策。发现不一致时先隔离新结果、确认资源已停止，再复核授权并向用户报告。
+1. 读取固定 pool、runtime binding、Goal、Git、card、manifest 和资源快照。
+2. 对完成或异常的 worker 做 evidence、范围、预算和进程终态审计。
+3. 按 `AGENTS.md` 将候选行动分类为 Blocker、Decision、Evidence 或 Curiosity。
+4. 只向精确角色派发一个可判别的 `GOAL_DISPATCH`，包含 decision test、branch、预算、
+   stop conditions 和 deliverables。
+5. 收到 `POLL_EVENT` 或用户消息后回到第 2 步；事件通知本身不替 root 做科学决定。
 
-主代理不靠固定自唤醒消息维持活动，也不向子代理重复发送含糊的“继续”。派发必须符合 `docs/AGENT_COORDINATION.md` 的明确 Goal 合同。
+只有发现真实 Decision Checkpoint、资源边界、安全风险或没有任何边界内行动时，才向
+用户提交简短 Decision Memo 或说明等待原因。固定角色和 watchdog 的存在不会增加新的
+科研授权；Cm 仍遵守 `docs/STATE.md` 的冻结和 `agent_cm` 当前权限。
 
-## 需要停下自主推进的情况
+## 集成边界
 
-* 用户明确要求暂停、停止或切换目标。
-* 出现 `AGENTS.md` 的 Decision Checkpoint、重大发现或安全/资源边界，继续行动需要用户决策。
-* 已按实验分类检查当前目标和可行替代行动后，确实没有符合 `MISSION.md`、`CAMPAIGN.md` 与当前授权的 `Blocker`、`Decision` 或直接必要的工程/治理任务，且下一步需要新增授权。
-* 平台结束或中断当前活动 turn，或达到平台预算限制。恢复时从注册表、Goal、`docs/STATE.md` 和运行证据重建状态，不把中断当成研究终态。
-
-前两类需要选择时提交简短 Decision Memo；没有方向时说明已完成的工作、证据和待定决策。平台的实际运行时长由产品控制，仓库规范不能保证一个 turn 永久存活；本文件要求主代理在**活动 turn 内**持续推进，并在后续恢复时接上同一目标。Codex Goals 的持续执行也受用户打断、预算和阻塞条件约束，见 [OpenAI 官方说明](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex)。
-
-## 当前研究边界
-
-用户已选择冻结 Cm policy-utility credit campaign。该路线当前可继续的是证据保全、复核、Research Debt 整理和已授权的工程/治理工作；其他路线按 `docs/STATE.md` 的当前决策另行派发。新 Cm collection、PPO、online Probe 或新高层研究路线，需要先满足 `docs/STATE.md` 和 Decision Checkpoint 的条件；持续轮询本身不增加实验授权。
+worker 必须提供 `STATUS`、branch/HEAD、card/run、输入 hash、资源证据、测试和下一
+决策。root 只合并验收后的固定 worker branch。linked worktree 无法写 Git metadata
+时，接受逐文件 hash 的 `BYTE_EXACT_ROOT_IMPORT`，机械导入后重新验证；root 不借此
+代写或修复 worker 的科研内容。

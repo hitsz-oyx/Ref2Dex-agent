@@ -1,8 +1,8 @@
 {
-  "$schema": "ref2dex.agent_registry.v3",
-  "registry_schema": "ref2dex.agent_registry.v3",
+  "$schema": "ref2dex.agent_registry.v4",
+  "registry_schema": "ref2dex.agent_registry.v4",
   "registry_status": "ACTIVE",
-  "registry_version": 11,
+  "registry_version": 12,
   "updated_at": "2026-09-27",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -27,11 +27,62 @@
     "codex_home_is_per_agent": true,
     "shared_codex_home_allowed": true
   },
+  "pool": {
+    "mode": "fixed",
+    "dynamic_creation": "user_approval_only",
+    "max_agents": 5,
+    "nested_delegation": "forbidden",
+    "dispatch_owner": "root",
+    "roles": [
+      {
+        "agent_key": "root",
+        "role": "supervisor",
+        "branch": "main",
+        "runtime_binding": "root"
+      },
+      {
+        "agent_key": "agent_cm",
+        "role": "cm_research",
+        "branch": "agent/cm",
+        "runtime_binding": "agent_cm_temporal"
+      },
+      {
+        "agent_key": "agent_rl",
+        "role": "rl_execution",
+        "branch": "agent/rl",
+        "runtime_binding": null
+      },
+      {
+        "agent_key": "agent_eval",
+        "role": "validation",
+        "branch": "agent/eval",
+        "runtime_binding": "agent_c1_validation"
+      },
+      {
+        "agent_key": "agent_infra",
+        "role": "engineering",
+        "branch": "agent/infra",
+        "runtime_binding": "agent_workflow"
+      }
+    ],
+    "branch_policy": {
+      "worker_branches": [
+        "agent/cm",
+        "agent/rl",
+        "agent/eval",
+        "agent/infra"
+      ],
+      "task_identity": "experiment_or_task_id_not_branch_name",
+      "sync_before_task": "git merge --ff-only main",
+      "merge_owner": "root",
+      "historical_branches": "retain until separately audited; do not delete as workflow migration"
+    }
+  },
   "supervision": {
-    "mode": "poller_event_driven_root_decision_loop",
+    "mode": "fixed_pool_event_watchdog",
     "fixed_external_wake_message": "RETIRED",
     "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/codex_research_supervisor.py",
-    "polling_owner": "agent_poller",
+    "polling_owner": "worker_event_poller",
     "decision_and_dispatch_owner": "root",
     "polling_intervals_seconds": {
       "waiting_or_blocked": 300,
@@ -40,7 +91,7 @@
       "terminal_audit": 0
     },
     "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并向精确注册 thread 派发明确 GOAL_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
-    "completion_rule": "agent_poller 只在登记状态或 rollout task_complete 变化时发送 POLL_EVENT；root 审计完成事件后继续选择下一项有决策价值的任务。",
+    "completion_rule": "worker_event_poller 只发送状态/完成事件；root 审计后重新选择和派发任务。",
     "root_goal_lifecycle": {
       "anchor": "persistent_supervision",
       "default_status": "active",
@@ -52,7 +103,13 @@
       ],
       "blocked_status_rule": "platform_three_consecutive_repeated_blockers_only",
       "after_child_completion": "return_to_root_task_selection_loop"
-    }
+    },
+    "watchdog_owner": "root_watchdog",
+    "poller_script": "scripts/worker_event_poller.py",
+    "watchdog_script": "scripts/root_watchdog.py",
+    "lease_path": ".runtime/SUPERVISOR_LEASE.json",
+    "nested_delegation": "forbidden",
+    "watchdog_rule": "root_watchdog 只处理 root liveness、lease-authorized resume 和 budget notification；不选择研究路线。"
   },
   "integration": {
     "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
@@ -97,7 +154,8 @@
         "将 Probe 证据升格为 Validation",
         "未经审计整体合并混合 ancestry 分支"
       ],
-      "handoff": "向用户报告证据化状态、commit、manifest、资源证据和下一决策"
+      "handoff": "向用户报告证据化状态、commit、manifest、资源证据和下一决策",
+      "role_key": "root"
     },
     {
       "agent_key": "agent_poller",
@@ -131,7 +189,8 @@
         "向 root 发送固定心跳",
         "唤醒 paused 或 blocked 的子代理 Goal"
       ],
-      "handoff": "变化字段、旧/新快照、通知状态与错误"
+      "handoff": "变化字段、旧/新快照、通知状态与错误",
+      "service_key": "worker_event_poller"
     },
     {
       "agent_key": "agent_baseline",
@@ -165,7 +224,8 @@
         "消费 Cm/HF02 slot",
         "未经新 goal 扩展研究路线"
       ],
-      "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态"
+      "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态",
+      "role_key": "agent_eval"
     },
     {
       "agent_key": "agent_c1_validation",
@@ -204,7 +264,8 @@
         "修改其他代理工作树或 main",
         "合并或 push"
       ],
-      "handoff": "C1 Validation card 状态、branch/commit、run manifests/hashes、GPU/time/storage evidence、terminal label"
+      "handoff": "C1 Validation card 状态、branch/commit、run manifests/hashes、GPU/time/storage evidence、terminal label",
+      "role_key": "agent_eval"
     },
     {
       "agent_key": "agent_cm_temporal",
@@ -237,7 +298,8 @@
         "改变 HF05 的 route、seed、metric、threshold 或 representation",
         "复用别的 run 代替当前 manifest"
       ],
-      "handoff": "card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker"
+      "handoff": "card 状态、run manifest、输入 hash、资源证据、Probe 标签和 blocker",
+      "role_key": "agent_cm"
     },
     {
       "agent_key": "agent_workflow",
@@ -269,7 +331,8 @@
         "改变科学 claim",
         "未经 Decision Checkpoint 修改研究路线"
       ],
-      "handoff": "commit、测试/verify 输出、改动范围和已知取舍"
+      "handoff": "commit、测试/verify 输出、改动范围和已知取舍",
+      "role_key": "agent_infra"
     }
   ],
   "retired_conversations": [
@@ -301,5 +364,17 @@
       "retired_at": "2026-09-26",
       "reason": "superseded as registry owner by the current root conversation; runtime state must be checked separately"
     }
-  ]
+  ],
+  "runtime_bindings": {
+    "source": "machine_local",
+    "path": ".runtime/AGENT_BINDINGS.json",
+    "schema": "ref2dex.agent_bindings.v1",
+    "identity_key": [
+      "codex_home",
+      "conversation_id"
+    ],
+    "replaceable_thread": true,
+    "stable_role_key": "role_key",
+    "legacy_runtime_records": "agents"
+  }
 }

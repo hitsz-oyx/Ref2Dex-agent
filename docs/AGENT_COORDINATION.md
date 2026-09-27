@@ -1,48 +1,71 @@
 # Ref2Dex 多代理协作、注册与连续监督契约
 
-**状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v3`  ·  **所有者：** `/root`
+**状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v4`  ·  **所有者：** `/root`
 
-本文件规定 Ref2Dex 当前已登记的 Codex 对话如何注册、分工、交接和接受监督。它不
-保存实验结果。当前对话 ID、`CODEX_HOME`、角色和工作树的机器可读注册表是：
+本文件规定固定角色池、运行绑定、任务交接和监督边界。实验结果仍只写入
+experiment card、manifest 和 `docs/STATE.md`；本文件只描述 orchestration。
 
-[`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)
+机器可读注册表是 [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)。注册表中的
+`pool.roles` 是稳定组织身份，`agents` 是当前或历史运行记录。可替换的
+conversation、`CODEX_HOME`、数据库和工作树绑定存放在机器本地的
+`.runtime/AGENT_BINDINGS.json`，不会把运行迁移写进研究历史。
 
-`/root` 的持续推进、用户打断与停下条件见
-[`docs/ROOT_AGENT.md`](ROOT_AGENT.md)。
+## 1. 固定角色池
 
-## 1. 注册制：身份与运行目录
+组织永远只有一个 root 和四个执行角色：
 
-`AGENT_REGISTRY.json` 是代理身份映射的唯一来源。每个登记项至少包含：
+| 稳定角色 | 长期职责 | 固定分支 |
+| --- | --- | --- |
+| `root` | 研究决策、派发、验收、main 集成和用户沟通 | `main` |
+| `agent_cm` | Cm、representation、world model 和离线机制分析 | `agent/cm` |
+| `agent_rl` | DExplore、PPO、collector、online 和 GPU 执行 | `agent/rl` |
+| `agent_eval` | matched evaluation、统计、provenance 和 Validation | `agent/eval` |
+| `agent_infra` | 数据 plumbing、工具、测试和 workflow | `agent/infra` |
 
-* 稳定的 `agent_key`；
-* Codex `conversation_id`（即 thread ID）；
-* 该对话所属的 `codex_home`；
-* rollout、state、Goal 和 queue 数据库的定位；
-* 角色、worktree、branch、权限边界和 handoff 要求。
+固定角色不是固定 conversation。对话、`CODEX_HOME` 或工作树损坏时，只替换该
+角色的本地 binding，保留 `agent_key`；身份键始终是
+**`(codex_home, conversation_id)`**。不得只改显示名来掩盖身份迁移，也不得复用
+旧 thread ID。
 
-身份键是 **`(codex_home, conversation_id)`**，而不是单独的 conversation ID。不同
-`CODEX_HOME` 下可以存在相同格式的 ID；读取或派发消息时必须使用注册表中同一
-条记录的两项，不能依赖默认目录或自动发现。
-每个 agent 的 `codex_home` 独立登记；当前多个 agent 可以碰巧使用同一个目录，
-但注册表没有共用的 `default_codex_home`，也不允许从 root 或环境变量继承。
+`agent_poller` 不再是 LLM worker；新的观察程序是无研究决策的
+`scripts/worker_event_poller.py`。历史 `agent_*` 记录保留用于审计，不能因为它们
+仍在 registry 中就自动扩展角色池。
 
-当前登记六个稳定的 `agent_key`：
+## 2. 权限和委派
 
-* `root`：全局主代理；
-* `agent_baseline`：GRAB 全池 baseline / provenance 代理；
-* `agent_c1_validation`：C1 observation-router Validation owner（显示名为 `agent/c1-validation`）；
-* `agent_cm_temporal`：Cm 路线只读证据复核与新假设设计代理（显示名为 `agent_Cm/selective`）；
-* `agent_workflow`：工作流与治理代理（显示名为 `agent/workflow`）；
-* `agent_poller`：只读结果轮询与事件通知代理（显示名为 `agent/poller`）。
+```text
+root → agent_cm
+root → agent_rl
+root → agent_eval
+root → agent_infra
+```
 
-注册表不记录动态的 `RUNNING`、`BLOCKED` 或 `COMPLETED` 状态；动态状态应从
-对应 `codex_home` 下的 rollout、Goal 数据库、Git 和 run manifest 读取。角色迁移
-时先在 `retired_conversations` 记录旧身份，再登记新身份；不要复用旧 thread ID。
+只有 root 可以选择研究问题、创建 task、改变资源预算、接受交付和合并 main。
+worker 不能创建 worker，也不能把一次 Probe 升格为 Validation。worker 需要另一种
+能力时交回 `NEEDS_HELP`，由 root 重新派发。
 
-修改注册表后，至少执行：
+新建 `agent_key` 默认禁止。创建 skill 的默认动作是为既有角色 rebind runtime；
+只有新增长期能力且用户明确同意时，才建立新角色、分支、工作树和 registry 记录。
+
+## 3. 运行绑定和状态来源
+
+每个 binding 至少记录：
+
+* `agent_key`、`conversation_id` 和 `codex_home`；
+* session、state、Goal、queue 数据库和 rollout 定位；
+* worktree、branch、角色权限和 handoff 要求。
+
+动态 `RUNNING`、`BLOCKED`、`COMPLETED` 不写入稳定 pool；它们从 Goal 数据库、
+rollout、Git、manifest 和归属进程只读推导。修改 `AGENT_REGISTRY.json` 后运行：
 
 ```bash
 python3 -m json.tool docs/AGENT_REGISTRY.json >/dev/null
+python3 tools/verify.py --changed
+```
+
+注册表中的所有 legacy runtime record 仍须通过以下身份检查：
+
+```bash
 python3 - <<'PY'
 import json
 from pathlib import Path
@@ -50,7 +73,6 @@ from pathlib import Path
 d = json.loads(Path("docs/AGENT_REGISTRY.json").read_text())
 agents = d["agents"]
 keys = [(a["codex_home"], a["conversation_id"]) for a in agents]
-assert "default_codex_home" not in d
 assert len({a["agent_key"] for a in agents}) == len(agents)
 assert len(set(keys)) == len(keys)
 for a in agents:
@@ -61,281 +83,111 @@ for a in agents:
                             ("goal_db", "goals_1.sqlite"),
                             ("queue_db", "queue_1.sqlite")):
         assert Path(a[field]) == home / filename
-    assert a["conversation_id"] in a["rollout_locator"]
 print("AGENT_REGISTRY_VALID", len(agents))
 PY
 ```
 
-若 supervisor、CLI 或外部脚本显式写入了旧 `CODEX_HOME`/thread ID，必须同步替换。
-不得通过修改显示名来掩盖身份迁移。
+## 4. Task dispatch
 
-## 2. 当前角色与边界
-
-| 角色 | 主要责任 | 允许做的事 | 明确禁止 | 必须交接 |
-| --- | --- | --- | --- | --- |
-| `/root` | 全局监督、目标管理、资源分配、验收和 main 集成 | 在 `MISSION`/`CAMPAIGN` 与当前授权内主动选择有决策价值的任务；派发明确 goal；只读审计；撰写 Decision Memo；审计后集成已接受提交 | 亲自承担研究分析、代码或文档实现、preflight、实验运行与长期进程管理；固定心跳式自唤醒；盲目重启/杀进程；把 Probe 升格为 Validation | 证据化状态、commit、manifest、资源证据和下一决策 |
-| `agent_baseline` | CPU-only canonical baseline 与 provenance | evaluator/config/checkpoint/motion hash 审计；matched-off preflight；CPU smoke、静态审计和测试 | GPU、Isaac Gym、collector、PPO；消费 Cm/HF02 预算；未经新 goal 开启路线 | branch/commit、manifest 路径与 hash、审计结论、终态 |
-| `agent/c1-validation` | `VAL-20260926-observation-six-expert-c1` 的 C1 observation-router Validation owner | 只执行当前注册 card 的 frozen fixed/control 与 observation/candidate 矩阵；一张 GPU 顺序运行；负责 preflight、provenance、card 和 manifest | Cm 或其他 GPU 工作；第二张 GPU、并行 arms、超出 card 的 seed/route/threshold/expert set；修改其他工作树或 main；合并/push | card 状态、branch/commit、manifest/hash、GPU/time/storage 证据和 terminal label |
-| `agent_Cm/selective` | 已完成 HF05 的证据保全与新假设设计 | CPU-only 只读复核既有 card、manifest、结果索引并草拟 Decision Memo | 新 Cm Probe/fit/collection、GPU、Isaac Gym、online/PPO；重扫 HF05；复用别的 run | 证据入口、候选假设、最小判别测试、资源估计和下一决策 |
-| `agent/workflow` | 治理、上下文效率和验证工具 | 修改工作流文档/模板/治理测试；运行治理测试和 `tools/verify.py` | GPU/Isaac Gym；科研实验；未经 Decision Checkpoint 改科学 claim | commit、测试输出、改动范围和已知取舍 |
-| `agent/poller` | 登记代理的只读轮询和事件通知 | 读取 Goal/Git/manifest/rollout completion/归属 GPU；仅在变化时向 root 排队 `POLL_EVENT` | GPU 实验；修改其他工作树；科学判断；合并；固定心跳 | 变化字段、旧/新快照、通知状态和错误 |
-
-代理之间可以并行，但权限不继承：一个代理的授权不能被另一个代理解释为
-新实验、换资源或改变研究问题的授权。
-
-`/root` 的默认自主权体现为选题、指派、监督、验收和集成；表中各角色的具体执行工作由
-对应 owner 在独立工作树完成。若当前已登记角色没有所需能力或资源权限，先按
-第 10 节建立并登记合适的执行代理。主代理不能因派发较慢而临时兼任执行 owner。
-
-现有 Cm 工作的执行路由固定为注册的 `agent_cm_temporal`，且必须遵守该记录的
-当前冻结、CPU-only 和其他资源边界；`/root` 不直接执行 Cm 分析、实现或实验。
-需要新增身份或能力时，使用 [create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md)
-完成注册后再派发，不通过临时兼任绕过 owner 合同。
-
-## 3. 启动任务的最小上下文
-
-新任务默认按以下顺序读取：
-
-1. `AGENTS.md`；
-2. 本文件与 `docs/AGENT_REGISTRY.json`；
-3. `docs/MISSION.md`、`docs/STATE.md`、`docs/CAMPAIGN.md`；
-4. 当前角色相关代码和 active experiment card。
-
-只有在创建/批准 Probe 或分配 seed 时读取 `RESEARCH_QUEUE.yaml`、
-`SEED_LEDGER.yaml`。不要批量读取历史 plan、全部 Activity、全部 experiment
-或无关 Git 历史；只有证据冲突、重复实验核查或正式 Validation 才追溯历史。
-
-`STATE.md` 是当前路由索引，不是实验日志。seed、指标、traceback、run 路径
-放在 experiment card 和 manifest 中。
-
-## 4. Goal 与明确派发合同
-
-每个委派 goal 必须在一条短消息中说明：
-
-* `TARGET_AGENT_KEY`、`CODEX_HOME` 和精确 `conversation_id`；
-* 唯一执行 owner，以及它对 preflight、运行和进程清理的责任；
-* 决策问题与最便宜的可判别测试；
-* 精确 branch、commit 和允许修改的路径；
-* experiment/card ID、seed、control 和资源预算；
-* 停止条件与交付物；
-* 明确未授权启动的内容。
-
-代理收到 goal 后自行完成范围内的实现、preflight、smoke、Probe 或分析，管理
-自己确认归属的长任务，并在停止条件触发时停下和交接。`/root` 不代替 owner 写
-preflight、运行命令、补实验数据、调参、修改工作树或修复失败。需新增任务或
-扩大预算时，owner 先交接证据，由主代理重新分类并派发；达到 Decision
-Checkpoint 时先给用户 Decision Memo。
-
-“继续”“再看看”或固定巡检句子都不是 goal。新路线、新 claim、新资源类别或
-online follow-up 必须建立新的 goal；若触发 `AGENTS.md` 的 Decision Checkpoint，
-先提交 Decision Memo。实验必须先区分 Blocker、Decision、Evidence 或 Curiosity；
-探索阶段只能形成 `PROMISING`、`UNPROMISING` 或 `UNCLEAR`。
-
-派发不要求先出现 blocker。`/root` 应在 `MISSION.md`、`CAMPAIGN.md` 和当前授权
-内主动选择具体、可判别的 `Blocker` 或 `Decision`；直接支撑当前决策的工程/治理
-任务也可以派发。`Evidence` 留在 Research Debt，`Curiosity` 默认不做；任何新
-授权、资源升级或研究路线变化仍按 Decision Checkpoint 处理。
-
-### 4.1 目标派发模板
-
-`/root` 选出一个边界内、具体且可判别的 `Blocker`、`Decision` 或直接必要的
-工程/治理任务后，向对应 child thread 发送如下类型的定向消息：
+root 发出的每个任务必须是一个可判别目标，不发送“继续”“再看看”或固定心跳：
 
 ```text
 GOAL_DISPATCH
-TARGET_AGENT_KEY=agent_baseline|agent_c1_validation|agent_cm_temporal|agent_workflow
-CODEX_HOME=<from AGENT_REGISTRY.json>
-CONVERSATION_ID=<from AGENT_REGISTRY.json>
-OBJECTIVE=<one concrete decision/blocker>
+TARGET_AGENT_KEY=agent_cm|agent_rl|agent_eval|agent_infra
+CODEX_HOME=<from runtime binding>
+CONVERSATION_ID=<from runtime binding>
+OBJECTIVE=<one concrete decision or blocker>
 DECISION_TEST=<cheapest discriminating test>
-BRANCH=<exact branch>  BASE_COMMIT=<sha>
+BRANCH=<fixed role branch>  BASE_COMMIT=<sha>
 ALLOWED_PATHS=<paths>
 EXPERIMENT_OR_CARD=<id or NONE>
 RESOURCE_BUDGET=<gpu/time/storage/process>
-EXECUTION_OWNER=<agent_key; owns preflight/run/process cleanup>
+EXECUTION_OWNER=<same target role>
 STOP_CONDITIONS=<explicit conditions>
 DELIVERABLE=<commit/card/manifest/handoff>
 NOT_AUTHORIZED=<what must not start>
 ```
 
-同一 goal 运行期间不重复投递；由 `agent_poller` 在登记状态或 rollout completion
-变化时发送 `POLL_EVENT`。`/root` 收到完成事件后立即审计，并回到当前目标的主动
-选择循环，而不是等待新的 blocker。不得用“继续”消息制造活动。`paused` 或
-`blocked` 的 Goal 不得被静默唤醒，除非用户建立新授权或 Decision Memo 明确
-解除阻塞。
-
-这里的 root Goal 与 child goal 生命周期独立：root Goal 是持续监督的恒定锚点，默认
-保持 `active`；child goal 可以独立进入终态。单轮审计、child 完成、状态报告、暂时
-空闲或普通研究里程碑都不能结束或改变 root Goal，child 完成后 root 必须回到任务选择
-循环。只有用户明确暂停/停止/切换，或平台明确施加 usage、budget 或 lifecycle 限制
-并更新 Goal 状态时，root Goal 才能离开 `active`。`blocked` 只按平台既有的三次连续
-重复阻塞规则使用，不得用来表示普通空闲、child 终态或里程碑完成。
-
-如果任务符合上述边界，`/root` 可以用注册表中的两项身份做**一次性**派发（命令
-中的 `<codex-cli>` 由当前环境解析，不能写死另一个 `CODEX_HOME`）：
-
-```bash
-CODEX_HOME=<registry.codex_home> <codex-cli> queue \
-  --thread <registry.conversation_id> \
-  --message '<完整 GOAL_DISPATCH 消息>'
-```
-
-这条命令只对应一个明确 goal；不得把它包进 cron、setsid、循环脚本或固定心跳。
-
-## 5. 主代理的连续决策循环（由 poller 通知事件）
-
-研究决策、任务选择和资源授权由 `/root` 负责；任务执行由已派发的 owner 负责；
-外部 `agent_poller` 只负责登记状态和 completion 的事件通知。不得使用 watchdog
-向 `/root` 周期性投递固定的
-“执行一次全局 supervisor 巡检”文本。外部脚本 `codex_research_supervisor.py`
-的旧队列唤醒模式已经 retired；它不是新的任务调度器，也不应重新启动。
-
-`/root` 开始监督时建立一个连续循环：
-
-1. 做一次监督检查，读取注册表并解析每个已登记 thread 的 `CODEX_HOME`；运行前
-   的实验 preflight 由执行 owner 撰写；
-2. 结合 poller 事件只读检查 thread/Goal、branch/HEAD、card/manifest、归属进程和
-   GPU，将每个 child 分类为 `RUNNING`、`WAITING`、`TERMINAL`、`BLOCKED` 或
-   `UNKNOWN`；
-3. 初始审计或 completion audit 后，检查 `MISSION`、`STATE`、`CAMPAIGN` 和当前
-   授权，按 `Blocker`、`Decision`、`Evidence`、`Curiosity` 分类候选任务；
-4. 若存在边界内的 `Blocker`、`Decision` 或直接必要的工程/治理任务，只按第
-   4.1 节派发明确 goal；不以 blocker 已经出现为前提；
-5. 只有候选扫描后没有可执行任务，才在 root Goal 保持 `active` 的同时记录内部状态
-   `SUPERVISOR_IDLE` 并等待 `POLL_EVENT` 或用户消息，不向自己或 child 发送固定心跳；
-6. `agent_poller` 报告终态或异常后，`/root` 立即做 completion audit，再回到第
-   3 步选择下一项工作；child 终态不结束 root Goal，只有触发 `docs/ROOT_AGENT.md`
-   的明确停下条件时才交给用户决策或改变 root Goal 状态。
-
-`agent_poller` 的默认事件采集节奏：
-
-| 阶段 | 间隔 | 检查 |
-| --- | --- | --- |
-| queued / waiting / blocked | 5 分钟 | thread turn、Goal、branch/HEAD、最新 handoff、资源归属 |
-| active CPU analysis | 5 分钟 | 进程、manifest/log heartbeat、输出增长、时间预算 |
-| active GPU collection | 2 分钟，最长不超过 5 分钟 | owner 进程、显存/利用率、manifest、停止条件 |
-| terminal / exception | 立即一次 | card、manifest、hash、commit、归属进程和下一决策 |
-
-“对话本身一直不中断”指 `/root` 在产品允许的单次活动 turn 内等待真实事件并
-持续完成审计和任务选择，不因一次巡检或子任务完成而主动结束。若平台或用户
-中断 turn，恢复时必须从注册表、Goal 数据库和最后一次状态快照继续；不得假设
-child 已经完成，也不得自动重启实验。除非平台明确更新 Goal 状态，这种 turn 中断
-不改变 root Goal 的生命周期锚点，也不改变任何资源或实验授权。
-
-[结果轮询代理](AGENT_POLLER.md) 是默认事件通知 owner；root 不与它并行启动重复
-的长期轮询进程。poller 只在登记状态或 completion 变化时定向排队 `POLL_EVENT`，
-root 被唤起后负责审查、选择下一项任务并继续。这类事件通知不等同于已退役的
-固定心跳式自唤醒。
-
-现有 overload watchdog 仍只处理结构化的 `server_overloaded` 事件；它不负责
-研究监督、目标派发或唤醒 `/root`。
-
-停用旧调度器时，先只读检查注册表中对应的 `queue_db`。若存在遗留固定巡检文本，
-必须先做 SQLite 一致性备份，再用 `thread_id`、消息 ID 和文本内容精确匹配清理；
-不得清空整个队列或触碰其他 thread 的排队消息。清理后再次只读确认没有遗留固定
-心跳，未来只允许明确授权的 `GOAL_DISPATCH` 入队。
-
-## 6. 非 smoke 运行前的 preflight
-
-运行前由已派发的执行 owner 写入 machine-readable `preflight.json`，至少固定：
-
-1. branch、HEAD、worktree 范围、card schema 和 experiment ID；
-2. route、config、evaluator、checkpoint、motion 与代码 hash；
-3. seed ownership、matched control 和唯一输出目录；
-4. GPU/process ownership、设备、显存快照和 campaign 限制；
-5. dry-run/测试、输出 schema、wall-time、storage、非有限值、漂移和行数停止条件。
-
-执行 owner 自己核对 preflight 并持有运行进程、日志和输出目录；主代理在派发
-和审计时核对资源及停止条件，但不启动、不直接操作训练脚本，也不代写实验
-产物。失败的接线或 import 修复保留为 `INVALID_IMPLEMENTATION`；不能把它
-包装成科学结果。没有完整 preflight、manifest 或明确进程归属时，owner 停止
-并交接；主代理退回缺失证据。
-
-## 7. 交接格式与证据边界
-
-每个 owner 结束时提供以下紧凑记录：
+同一 worker 同时只运行一个 task。task identity 用 `TASK-*`、Probe ID 或 Validation
+ID 表达，不创建 task 专用 branch。worker 完成时交接：
 
 ```text
-STATUS=<terminal state>  LABEL=<if applicable>
-BRANCH=<name>  HEAD=<sha>
-CARD=<experiment/card id>  RUN=<run id or manifest path>
-INPUTS=<key hashes>  RESOURCES=<GPU/process/time/storage>
-EVIDENCE=<tests/metrics/known limits>
+TASK_ID=<id>  STATUS=HANDOFF_READY
+BRANCH=<fixed branch>  HEAD=<sha or none>
+CARD=<id>  RUN=<run id or manifest>
+INPUTS=<hashes>  RESOURCES=<GPU/process/time/storage>
+EVIDENCE=<tests/metrics/limits>
 NEXT=<single decision or blocker>
 ```
 
-交接由执行 owner 编制，并明确已确认归属的进程是否结束、预算实耗及工作树是否
-干净。`/root` 独立比对 handoff 与 Git、manifest 和资源快照；缺项应退回 owner
-补齐，不能替 owner 补做科研分析或修复实验。
+## 5. 事件源与 root watchdog
 
-### 7.1 linked-worktree 提交失败时的最小交接
+`worker_event_poller.py` 每 2–5 分钟只读观察当前 binding 对应的 worker：Goal、HEAD、
+manifest、rollout completion、归属 GPU PID。发现变化后向 root queue 一次性发送
+`POLL_EVENT`；队列失败时保留自己的 cursor，不能确认事件。它不读取指标来选择
+路线，不启动或停止实验，不修改任何 Goal，也不发周期性“全局巡检”文本。
 
-managed sandbox 可能允许 owner 修改工作树，却只读其 `.git` 指针解析到的
-`baseline/.git/worktrees/<name>`。此时 `index.lock` 的 `Read-only file system`
-是权限边界，不是可以靠重试消除的 Git 临时错误。CLI 的通用 `--add-dir` 不构成
-Git 提交授权；除非一次独立的 disposable CPU 预检证明精确 metadata、object 和
-ref 路径均可写，否则不得添加整个 baseline `.git`、关闭 sandbox 或修改共享配置。
+`root_watchdog.py` 是另一条极小的 liveness 进程，只观察 root 自己的 Goal、root
+rollout 和 root queue。它只允许以下动作：
 
-owner 不能提交时，应停止提交重试并在 handoff 中写明：
+* root active 但超过 grace period 没有 turn 或 queued input：发送一次
+  `ROOT_LIVENESS_WAKE`；
+* root Goal paused 且本地 `.runtime/SUPERVISOR_LEASE.json` 同时声明
+  `enabled=true`、`allow_root_resume=true`：通过受支持的 app-server bounded resume
+  恢复一次同一 Goal，然后发送一次 liveness wake；
+* Goal 为 `usage_limited` 或 `budget_limited`：输出一次
+  `ROOT_BUDGET_LIMITED` 并停止，不绕过平台预算；
+* complete、failed、blocked 或其他终态：记录状态，不重启。
 
-```text
-COMMIT=none
-COMMIT_BLOCKER=linked Git metadata is read-only (index.lock)
-INTEGRATION_MODE=BYTE_EXACT_ROOT_IMPORT
-FILES=<allowed path>:<sha256>:<mode>:<size>, ...
+watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务。lease 缺失等同
+于禁用。使用：
+
+```bash
+python3 scripts/researchctl.py supervisor pause
+python3 scripts/researchctl.py supervisor resume
+python3 scripts/researchctl.py supervisor status
 ```
 
-只对允许路径计算 SHA256，并保留源文件直到 root 确认接收。`/root` 验证 owner
-已终态、路径白名单、base/branch、进程归属和每个 hash 后，可以在自己的可写
-集成工作树中机械导入完全相同的字节，重新计算目标 hash、审查 diff 并提交；这
-不是 root 代替 owner 编写或修复研究文件。任一 hash、路径或状态不一致，都退回
-owner，不得猜测性修改或扩大权限。
+`pause` 先关闭 lease；如果还要立即停止当前 turn，再由用户通过 Codex Goal 控制
+入口暂停 root。`resume` 只重新授予 lease，watchdog 在下一次 bounded check 中处理
+暂停的 Goal。
 
-通常只有 commit、card、manifest、hash 和资源审计可以相互复核时，supervisor 才接受
-终态；若 owner 明确提供 `COMMIT=none` 的 linked-worktree blocker，则必须以
-`BYTE_EXACT_ROOT_IMPORT`、逐文件 hash 和 root 的集成复核替代 commit。单 seed、单
-rollout、loss、视频或工程 smoke 不能被描述为正式科学结论。
-连续三个有效 Probe 没有 North-star 进展时，切换高层路线并触发路线复盘，不得
-在同一局部问题上无限换 seed/metric/horizon。
+## 6. root Goal 生命周期
 
-## 8. mainline 集成归属
+root 只保留一个 Mission-level Goal。**root Goal 是持续监督的恒定锚点**；child task
+可以完成、失败或退回，但 child 终态不会结束 root Goal。每次 child 完成后，**child
+完成后root必须回到任务选择循环**，审计 evidence、资源和停止条件，再从
+`MISSION`、`STATE`、`CAMPAIGN` 与当前授权选择下一项 Blocker、Decision 或直接必要的
+治理工作。
 
-规范集成工作树为：
+只有用户明确 pause/stop/switch，或平台明确施加 usage/budget/lifecycle limit，才
+改变 root Goal 生命周期。三次重复无进展仍按 `AGENTS.md` 触发路线复盘；普通空闲、
+状态报告、单个 task 终态和 watchdog wake 都不是暂停理由。
 
-```text
-/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent
-branch: main
+## 7. preflight、handoff 和集成
+
+非 smoke 运行必须由执行 owner 在自己的 branch 写入 machine-readable preflight，
+固定 code/route/checkpoint/motion hash、seed、matched control、输出目录、资源归属、
+停止条件和 storage 预算。root 只读复核，不代替 owner 启动实验、补数据或修复实现。
+
+只有 root 在终态审计、范围审计和验证通过后合并 worker branch。若 linked worktree
+的 Git metadata 只读，owner 交接 `COMMIT=none`、允许文件的 sha256/mode/size，root
+只能 byte-exact 导入后提交，不能在集成时改写研究内容。
+
+固定 branch 下一 task 开始前同步 main：
+
+```bash
+git checkout agent/<role>
+git merge --ff-only main
 ```
 
-`agent/grab-full-baseline` 的工作树为同级的 `Ref2Dex-agent-baseline`。
+旧实验 branch、checkpoint、manifest 和运行数据不因本次 workflow 迁移删除或覆盖；
+它们继续由实验 ID 和历史 handoff 作为证据索引。
 
-只有 `/root` 可以把已接受的子代理提交合并到 `main`。通常集成已验收提交；若
-owner 因上面的 linked-worktree 权限边界无法产生 commit，`BYTE_EXACT_ROOT_IMPORT`
-handoff 也可以作为待集成输入，但 root 只能按已核对的 hash 机械导入，不能在
-集成时编辑、解释或修复研究内容。有冲突、缺失文档、hash 不符或实现问题时，
-退回相关 owner，再重新审查。合并前必须核对：
-子线程终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否
-含有无关研究历史。混合 ancestry 的分支只能挑选明确接受的提交，不能因为分支
-tip 通过测试就整体合并。合并后重新运行 mainline verification，并向用户报告
-新的 main commit。
+## 8. 新建或迁移角色
 
-## 9. 如何更换对话或 `CODEX_HOME`
-
-新建对话或迁移运行目录后：
-
-1. 在 `docs/AGENT_REGISTRY.json` 找到目标 `agent_key`；
-2. 同时更新 `codex_home`、`conversation_id` 以及该记录下的数据库/rollout 路径；
-3. 保留角色、worktree、branch、资源边界和 handoff 要求；
-4. 运行第 1 节的 JSON/身份键唯一性检查；
-5. 更新任何显式 supervisor/dispatch 参数；
-6. 在下一次 handoff 中说明旧身份、新身份和生效时间。
-
-不要在本文件、experiment card 或 `STATE.md` 另行维护一份会漂移的 ID 清单。
-需要变更身份职责时，先修改注册表和本节角色契约，再创建 goal；不能只改显示名。
-
-## 10. 如何新建代理
-
-新代理的对话命名、重名数字后缀、按 `CODEX_HOME` 选择网络入口、工作树创建和
-注册步骤见 [create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md)。
-先完成独立身份和权限登记，再派发明确 Goal；新对话不自动继承旧对话的身份、
-资源或当前研究授权。
+新对话和角色注册流程见
+[create-ref2dex-agent skill](../.agents/skills/create-ref2dex-agent/SKILL.md)。先检查
+固定 pool 是否已有所需能力：已有角色就更新 `.runtime/AGENT_BINDINGS.json`；只有
+pool 中没有该能力并得到用户明确批准时才创建新的 `agent_key`。迁移时保留旧身份到
+`retired_conversations`，不复用 thread ID，并运行本文件第 3 节的校验。

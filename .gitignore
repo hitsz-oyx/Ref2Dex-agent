@@ -80,6 +80,11 @@ data/processed_data/stage4
 data/processed_data/legacy
 data/processed_data/stage2
 
+# Workflow runtime bindings, autonomy leases and watchdog cursors are
+# machine-local. Keep the contract README visible while excluding state.
+.runtime/*
+!.runtime/README.md
+
 # Per-machine recursive memory contains host-specific absolute paths,
 # interpreters, GPU details, mounts and proxy settings. Never commit it.
 **/docs/logs/machine_memory.md

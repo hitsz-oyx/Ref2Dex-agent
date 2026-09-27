@@ -3,6 +3,24 @@ name: create-ref2dex-agent
 description: 在 Ref2Dex 中新建 Codex 代理对话、选择对应 CODEX_HOME 与网络入口、处理重名并登记独立身份和工作树时使用；向现有代理派发任务时不用。
 ---
 
+## Fixed-role policy (active workflow)
+
+Ref2Dex now uses a fixed pool: `root`, `agent_cm`, `agent_rl`, `agent_eval`, and
+`agent_infra`. Before creating anything, check `docs/AGENT_REGISTRY.json`:
+
+1. If the requested capability belongs to an existing pool role, **rebind that
+   role's runtime** in the machine-local `.runtime/AGENT_BINDINGS.json`. A new
+   conversation, `CODEX_HOME`, or worktree may replace a broken runtime, but the
+   stable `agent_key` must stay unchanged.
+2. Creating a new `agent_key`, long-lived branch, or role is
+   `user_approval_only`. Do not infer approval from an ordinary task dispatch or
+   from a worker's `NEEDS_HELP` handoff.
+3. Workers never create workers. Send cross-capability needs back to `/root`.
+
+The registry's legacy `agents` records remain auditable runtime history. They do
+not expand the fixed pool. After a rebind, preserve the old `(codex_home,
+conversation_id)` in `retired_conversations` and never reuse its thread ID.
+
 # 新建 Ref2Dex 代理
 
 先读 `AGENTS.md`、`docs/AGENT_COORDINATION.md`、`docs/AGENT_REGISTRY.json`、`docs/STATE.md` 和 `docs/CAMPAIGN.md`。明确新代理的角色、可修改路径、资源权限和要解决的目标；新对话不继承其他代理的实验授权。
