@@ -302,8 +302,9 @@ def test_root_runtime_binding_and_lease_identity_match(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("broker_mode", [False, True])
-def test_watchdog_resumes_blocked_root_goal_like_paused(
-    tmp_path: Path, monkeypatch, broker_mode: bool,
+@pytest.mark.parametrize("goal_status", ["paused", "blocked"])
+def test_watchdog_resumes_paused_or_blocked_root_goal_uniformly(
+    tmp_path: Path, monkeypatch, broker_mode: bool, goal_status: str,
 ) -> None:
     registry, lease_path, state, root = _watchdog_fixture(tmp_path)
     (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
@@ -318,7 +319,8 @@ def test_watchdog_resumes_blocked_root_goal_like_paused(
         "task_complete": [], "rollout_cursor": {},
     })
     monkeypatch.setattr(watchdog.runtime, "goal_details", lambda agent: {
-        "goal_id": "goal-blocked", "status": "blocked", "objective": "test", "token_budget": 1,
+        "goal_id": f"goal-{goal_status}", "status": goal_status,
+        "objective": "test", "token_budget": 1,
     })
     monkeypatch.setattr(watchdog.runtime, "pending_root_turn", lambda agent: False)
     resumed: list[str] = []
@@ -344,10 +346,11 @@ def test_watchdog_resumes_blocked_root_goal_like_paused(
         args.broker_tasks_db = str(tmp_path / "tasks.sqlite")
         args.broker_state_db = str(tmp_path / "state.sqlite")
     result = watchdog.check_once(args)
-    assert resumed == ["blocked"]
+    assert resumed == [goal_status]
     assert queued and queued[0].startswith(watchdog.ROOT_LIVENESS_WAKE)
     assert result["last_status"] == "ROOT_RUNNING"
-    assert result["resume_consumed_goal_id"] == "goal-blocked"
+    assert result["observed_goal_status"] == goal_status
+    assert result["resume_consumed_goal_id"] == f"goal-{goal_status}"
     if broker_mode:
         assert broker_calls and broker_calls[0]["action"] == "RESUME"
 

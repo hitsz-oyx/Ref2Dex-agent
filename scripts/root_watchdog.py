@@ -255,6 +255,9 @@ def check_once(args) -> dict:
     idle_since = float(idle_since) if isinstance(idle_since, (int, float)) else None
     status, reason, idle_since = classify(goal, snapshot, queued, now, idle_since, args.grace_period)
     state["idle_since"] = idle_since
+    # Preserve the platform's exact Goal status even though paused and blocked
+    # share the same bounded recovery path.
+    state["observed_goal_status"] = _status(goal)
     state["last_status"] = status
     state["last_reason"] = reason
     state["lease_generation"] = lease.get("generation", 0)
