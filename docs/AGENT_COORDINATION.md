@@ -260,8 +260,33 @@ NEXT=<single decision or blocker>
 干净。`/root` 独立比对 handoff 与 Git、manifest 和资源快照；缺项应退回 owner
 补齐，不能替 owner 补做科研分析或修复实验。
 
-只有 commit、card、manifest、hash 和资源审计可以相互复核时，supervisor 才接受
-终态。单 seed、单 rollout、loss、视频或工程 smoke 不能被描述为正式科学结论。
+### 7.1 linked-worktree 提交失败时的最小交接
+
+managed sandbox 可能允许 owner 修改工作树，却只读其 `.git` 指针解析到的
+`baseline/.git/worktrees/<name>`。此时 `index.lock` 的 `Read-only file system`
+是权限边界，不是可以靠重试消除的 Git 临时错误。CLI 的通用 `--add-dir` 不构成
+Git 提交授权；除非一次独立的 disposable CPU 预检证明精确 metadata、object 和
+ref 路径均可写，否则不得添加整个 baseline `.git`、关闭 sandbox 或修改共享配置。
+
+owner 不能提交时，应停止提交重试并在 handoff 中写明：
+
+```text
+COMMIT=none
+COMMIT_BLOCKER=linked Git metadata is read-only (index.lock)
+INTEGRATION_MODE=BYTE_EXACT_ROOT_IMPORT
+FILES=<allowed path>:<sha256>:<mode>:<size>, ...
+```
+
+只对允许路径计算 SHA256，并保留源文件直到 root 确认接收。`/root` 验证 owner
+已终态、路径白名单、base/branch、进程归属和每个 hash 后，可以在自己的可写
+集成工作树中机械导入完全相同的字节，重新计算目标 hash、审查 diff 并提交；这
+不是 root 代替 owner 编写或修复研究文件。任一 hash、路径或状态不一致，都退回
+owner，不得猜测性修改或扩大权限。
+
+通常只有 commit、card、manifest、hash 和资源审计可以相互复核时，supervisor 才接受
+终态；若 owner 明确提供 `COMMIT=none` 的 linked-worktree blocker，则必须以
+`BYTE_EXACT_ROOT_IMPORT`、逐文件 hash 和 root 的集成复核替代 commit。单 seed、单
+rollout、loss、视频或工程 smoke 不能被描述为正式科学结论。
 连续三个有效 Probe 没有 North-star 进展时，切换高层路线并触发路线复盘，不得
 在同一局部问题上无限换 seed/metric/horizon。
 
@@ -276,9 +301,11 @@ branch: main
 
 `agent/grab-full-baseline` 的工作树为同级的 `Ref2Dex-agent-baseline`。
 
-只有 `/root` 可以把已接受的子代理提交合并到 `main`。这个集成职责仅包括对已
-验收提交执行 Git 集成及 mainline 验证；有冲突、缺失文档或实现问题时，退回
-相关 owner 在其分支修复，再重新审查，主代理不直接改研究文件。合并前必须核对：
+只有 `/root` 可以把已接受的子代理提交合并到 `main`。通常集成已验收提交；若
+owner 因上面的 linked-worktree 权限边界无法产生 commit，`BYTE_EXACT_ROOT_IMPORT`
+handoff 也可以作为待集成输入，但 root 只能按已核对的 hash 机械导入，不能在
+集成时编辑、解释或修复研究内容。有冲突、缺失文档、hash 不符或实现问题时，
+退回相关 owner，再重新审查。合并前必须核对：
 子线程终态、diff 范围、测试/verify 输出、工作树干净、归属进程已结束，以及分支是否
 含有无关研究历史。混合 ancestry 的分支只能挑选明确接受的提交，不能因为分支
 tip 通过测试就整体合并。合并后重新运行 mainline verification，并向用户报告

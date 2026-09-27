@@ -216,6 +216,50 @@ thread `01a0de76-3a3f-7293-88f8-18c140024f9f` 的 session 已持久化，但 ast
 
 退出时只清理自己创建的副本进程、临时目录和日志；不删除 session/thread、注册表记录、共享 `config.toml` 或无法确认归属的进程。不要使用 `pkill`、`killall` 或宽泛的递归删除。
 
+### Linked worktree 的 Git 提交边界
+
+managed workspace 可能只把代理工作树设为可写，而把 linked worktree 的真实 Git
+metadata 设为只读。C1 的实证是：
+
+```text
+<worktree>/.git
+  -> /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/.git/worktrees/<name>
+```
+
+`git commit` 因无法创建该目录下的 `index.lock` 而返回 `Read-only file system`；
+宿主机的 Unix mode 和 `/home2` 挂载并不是原因。不要反复重试，也不要把整个
+baseline `.git`、其 common `objects`/`refs` 或 `--dangerously-bypass-approvals-and-sandbox`
+加入代理权限。
+
+这不是假设性边界：C1 thread
+`01a0de76-3a3f-7293-88f8-18c140024f9f` 在 2026-09-26T17:09Z 的普通提交已命中
+上述 `index.lock` 错误；17:11Z 的临时 `commit-tree` 调用随后停在 stale
+code-mode cell，未留下 Git 子进程或可用 commit object。后续 handoff 因而保留源
+文件并由 root 做 byte-exact 集成，而不是让 owner 放宽 sandbox。
+
+CLI `0.156.1` 的 `--add-dir <DIR>` 只是通用的额外可写目录选项，不是 Git metadata
+授权；`codex exec resume --help` 也不列出该选项。只有在一次独立、可丢弃的 CPU
+预检中证明**精确**目录和所需 object/ref 路径均可写、且不会扩大到其他 worktree
+或共享配置后，才可以在初始启动命令前放置 `--add-dir <exact-path>`。现有 thread
+的 turn 权限档案未被证明会因事后加该参数而改变；没有上述证明时，选择下面的
+SHA handoff，而不是尝试覆盖 sandbox。
+
+默认的 owner handoff 必须包含：
+
+```text
+COMMIT=none
+COMMIT_BLOCKER=linked Git metadata is read-only (index.lock)
+BRANCH=<exact branch>  BASE_COMMIT=<sha>
+INTEGRATION_MODE=BYTE_EXACT_ROOT_IMPORT
+FILES=<allowed path>:<sha256>:<mode>:<size>, ...
+```
+
+owner 对每个允许路径运行 `sha256sum`，确认进程已结束并保留原文件；不要为了造
+commit 修改研究内容。root 在验收 owner 的 terminal handoff、路径白名单和 hash
+后，才可在自己的可写集成工作树中机械复制同一字节序列，逐个重算 hash、运行
+治理验证并提交。hash 不匹配、路径超出白名单或需要解释/修复内容时，退回 owner；
+root 不借此接管分析、重写卡片或放宽资源权限。
+
 ## 登记与交接
 
 新对话产生 thread ID 后，在 `docs/AGENT_REGISTRY.json` 新增一条记录：唯一的 `agent_key`、`display_name`、`conversation_id`、该代理实际使用的 `codex_home`，由它派生的 `session_root`/三个数据库路径/`rollout_locator`，以及角色、工作树、分支、资源边界和 handoff。身份键是 `(codex_home, conversation_id)`。若是在替换旧对话，把旧身份移入 `retired_conversations`，不要复用旧 thread ID。
