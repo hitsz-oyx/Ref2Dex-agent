@@ -4,7 +4,7 @@ campaign:
   name: cm_selective_causal_gate
   status: FROZEN
   parent_campaign: cm_policy_utility_credit
-  decision: docs/decisions/D-20260926-reopen-selective-causal-gate.md
+  decision: docs/decisions/D-20260927-cm-freeze-option-a.md
   resume_requires: new_high_level_goal_budget_and_decision_checkpoint
 
 # This file is search state, not an experiment-result log.  A Probe card owns

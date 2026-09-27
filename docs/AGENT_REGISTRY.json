@@ -2,7 +2,7 @@
   "$schema": "ref2dex.agent_registry.v3",
   "registry_schema": "ref2dex.agent_registry.v3",
   "registry_status": "ACTIVE",
-  "registry_version": 10,
+  "registry_version": 11,
   "updated_at": "2026-09-27",
   "owner": "root",
   "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
@@ -52,14 +52,14 @@
     {
       "agent_key": "root",
       "display_name": "/root",
-      "conversation_id": "01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc",
+      "conversation_id": "01a0e1ad-01de-7031-8749-8e55426bb9db",
       "conversation_id_kind": "codex_thread_id",
-      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
-      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_frj/sessions",
-      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/state_5.sqlite",
-      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/goals_1.sqlite",
-      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_frj/queue_1.sqlite",
-      "rollout_locator": "sessions/**/rollout-*-01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc.jsonl",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0e1ad-01de-7031-8749-8e55426bb9db.jsonl",
       "role": "全局主代理 / supervisor / mainline 集成负责人",
       "operating_contract": "docs/ROOT_AGENT.md",
       "parent_agent_key": null,
@@ -241,7 +241,7 @@
       "role": "工作流治理与上下文效率 owner",
       "parent_agent_key": "root",
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22",
-      "branch": "agent/continuous-research-supervision",
+      "branch": "agent/root-freeze-handoff-20260927",
       "owns": [
         "协作契约和注册表",
         "治理文档、模板和验证门禁",
@@ -261,6 +261,13 @@
     }
   ],
   "retired_conversations": [
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+      "retired_at": "2026-09-27",
+      "reason": "user appointed a new root conversation; the prior root Goal and processes were not modified"
+    },
     {
       "agent_key": "root",
       "conversation_id": "01a0dd70-ae15-7553-a34d-a897f443f454",

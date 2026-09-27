@@ -21,6 +21,12 @@ Updated: 2026-09-27
 见 [C1 决策](decisions/D-20260927-c1-observation-route-validation.md) 与
 [Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
 
+2026-09-27 的后续 Decision Checkpoint 中，用户答复原文仅为 `A`。按该
+Checkpoint 对选项的定义，Option A 表示继续冻结 Cm、保留 C1 substrate、本阶段
+使用 0 GPU，并等待一个可预声明且区别于 HF01–HF05 的新高层机制。这是路线处置，
+不是新增科学证据；阶段性 handoff 仍为 `UNCLEAR/NOT READY`。见
+[本次决定](decisions/D-20260927-cm-freeze-option-a.md)。
+
 ## North-star scoreboard
 
 | 目标 | 当前状态 | 证据边界 |
@@ -123,13 +129,12 @@ Updated: 2026-09-27
 
 ## Next step
 
-HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成一轮只读复核，见
-[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)。HF05 的唯一
-existing-record screen 已完成并失败固定 policy/safety gate。当前不安排新的
-Cm 实验；不得恢复 HF01–HF05，也不得换阈值、seed、target 或启动 online/PPO。
-训练期 Cm 表征的只读[路线复盘](handoffs/CM_REPRESENTATION_ROUTE_REVIEW_20260926.md)
-确认旧 3D/H10 auxiliary 已测试这一高层接法而未过升级门；当前也不登记新的
-representation Probe。
+HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
+[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一
+existing-record screen 已失败固定 policy/safety gate。训练期 Cm 表征的只读
+[路线复盘](handoffs/CM_REPRESENTATION_ROUTE_REVIEW_20260926.md)也确认旧 3D/H10
+auxiliary 未过升级门。HF01–HF05 与该 representation 路线均保持冻结，不登记新的
+representation Probe，也不更换 threshold、seed 或 target。
 
 主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
 相关提交暂不合入 `main`。见
@@ -139,7 +144,8 @@ C1 的五 seed matched Validation 已完成；冻结已验证的六专家 checkp
 初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。后验
 route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一致环境中
 有 188 个 observation held-lift 失败；这只是描述性证据，不是机制或因果结论。
-见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。下一项
-研究决策仍是是否、以及如何在该类可用 substrate 上重新设计 Cm policy-utility
-路线；现有 Cm campaign 维持冻结，需新的高层 goal 与 Decision Checkpoint 才能
-启动，不从该分层或 C1 结果推导 Cm 增益。
+见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。按用户选择的
+[Option A](decisions/D-20260927-cm-freeze-option-a.md)，当前不登记 HF06，不修改
+logging 或 collection，也不启动 GPU、online/PPO 或新的 Cm 实验。只有出现区别于
+HF01–HF05、可预声明的新高层机制，并建立独立 high-level goal、完成新的 Decision
+Checkpoint 后，才重新评估 Cm 路线；不得从该分层或 C1 结果推导 Cm 增益。
