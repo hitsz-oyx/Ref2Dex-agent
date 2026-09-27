@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Keep the root supervision turn live without making research decisions.
+"""Keep the root supervision turn live through the Agent Broker.
 
-The watchdog has exactly three write paths: a bounded root wake message, a
-one-time Goal resume authorized by the local autonomy lease, and its own JSON
-state.  It never reads experiment metrics, starts a worker, or selects a
-research route.
+With broker databases configured, the watchdog writes only ``CONTROL``
+messages and its own JSON state.  Legacy app-server wake/resume is retained
+only when broker arguments are omitted.  It never reads experiment metrics,
+starts a worker, or selects a research route.
 """
 
 from __future__ import annotations
@@ -19,8 +19,10 @@ from pathlib import Path
 
 try:  # Works both as ``python -m scripts...`` and a direct script path.
     from scripts import agent_result_poller as runtime
+    from scripts.agent_broker import AgentBroker
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
     import agent_result_poller as runtime
+    from agent_broker import AgentBroker
 
 
 SCHEMA = "ref2dex.root_watchdog.v1"
@@ -104,10 +106,22 @@ def _budget_message(goal: dict) -> str:
     )
 
 
+def _broker(args) -> AgentBroker | None:
+    if not getattr(args, "broker_tasks_db", None) or not getattr(args, "broker_state_db", None):
+        return None
+    return AgentBroker(
+        args.broker_tasks_db,
+        args.broker_state_db,
+        getattr(args, "broker_roles", "docs/AGENT_ROLES.yaml"),
+        getattr(args, "broker_bindings", ".runtime/AGENT_BINDINGS.json"),
+    )
+
+
 def check_once(args) -> dict:
     registry = runtime.read_json(args.registry)
     root = next(agent for agent in registry["agents"] if agent.get("agent_key") == "root")
     lease = load_lease(args.lease)
+    broker = _broker(args)
     state_path = Path(args.state)
     state = runtime.read_json(state_path) if state_path.is_file() else {"schema": SCHEMA}
     if state.get("schema") != SCHEMA:
@@ -127,7 +141,18 @@ def check_once(args) -> dict:
     state["lease_generation"] = lease.get("generation", 0)
     state["updated_at"] = now
 
+    if broker is not None:
+        supervisor = broker.status().get("supervisor") or {}
+        state["broker_generation"] = supervisor.get("generation", 0)
+        desired = str(supervisor.get("desired_state", "PAUSED")).upper()
+        if desired != "RUNNING":
+            state["last_reason"] = f"broker desired_state={desired}"
+            _write_json_atomic(state_path, state)
+            return state
+
     if status == "ROOT_BUDGET_LIMITED":
+        if broker is not None:
+            broker.control(action="BUDGET_LIMITED", target="root", reason="platform budget or usage limit")
         if not state.get("budget_notified"):
             print(_budget_message(goal), flush=True)
             state["budget_notified"] = True
@@ -137,6 +162,14 @@ def check_once(args) -> dict:
     if status == "ROOT_PAUSED":
         consumed = state.get("resume_consumed_goal_id")
         allowed = bool(lease.get("enabled") and lease.get("allow_root_resume"))
+        if broker is not None and allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and not args.dry_run:
+            broker.control(action="RESUME", target="root", reason="lease-authorized bounded root resume")
+            state["resume_consumed_goal_id"] = goal["goal_id"]
+            state["last_status"] = "ROOT_RUNNING"
+            state["last_reason"] = "broker-authorized Goal resume"
+            print("RECORDED root Goal resume via Agent Broker", flush=True)
+            _write_json_atomic(state_path, state)
+            return state
         if allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and not args.dry_run:
             resumed = runtime.app_server_resume_root_goal(
                 root, goal, args.codex_node, args.codex_js,
@@ -162,6 +195,12 @@ def check_once(args) -> dict:
             _write_json_atomic(state_path, state)
             return state
         if not args.dry_run:
+            if broker is not None:
+                broker.control(action="WAKE", target="root", reason="root Goal active without continuation")
+                state["wake_sent"] = True
+                print("RECORDED ROOT_LIVENESS_WAKE in Agent Broker", flush=True)
+                _write_json_atomic(state_path, state)
+                return state
             if not runtime.pending_root_turn(root):
                 runtime.queue_root(root, _wake_message(goal, int(lease.get("generation", 0))), args.codex_node, args.codex_js)
             state["wake_sent"] = True
@@ -179,16 +218,22 @@ def main(argv=None) -> int:
     parser.add_argument("--registry", required=True)
     parser.add_argument("--state", required=True)
     parser.add_argument("--lease", required=True)
-    parser.add_argument("--codex-node", required=True)
-    parser.add_argument("--codex-js", required=True)
+    parser.add_argument("--codex-node")
+    parser.add_argument("--codex-js")
     parser.add_argument("--grace-period", type=float, default=90.0)
     parser.add_argument("--app-server-timeout", type=float, default=30.0)
     parser.add_argument("--app-server-command", nargs="+")
+    parser.add_argument("--broker-tasks-db")
+    parser.add_argument("--broker-state-db")
+    parser.add_argument("--broker-roles", default="docs/AGENT_ROLES.yaml")
+    parser.add_argument("--broker-bindings", default=".runtime/AGENT_BINDINGS.json")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.grace_period <= 0:
         parser.error("--grace-period must be positive")
+    if not (args.broker_tasks_db and args.broker_state_db) and not (args.codex_node and args.codex_js):
+        parser.error("legacy mode requires --codex-node/--codex-js; broker mode requires both --broker-* databases")
     lock_path = Path(args.state + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as handle:

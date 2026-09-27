@@ -8,6 +8,12 @@ description: 在 Ref2Dex 中新建 Codex 代理对话、选择对应 CODEX_HOME 
 Ref2Dex now uses a fixed pool: `root`, `agent_cm`, `agent_rl`, `agent_eval`, and
 `agent_infra`. Before creating anything, check `docs/AGENT_REGISTRY.json`:
 
+Normal task dispatch does not create or resume an agent conversation from the
+root model. The root submits `TASK_DISPATCH` to `scripts/agent_broker.py`; the
+broker routes it to the local binding and provider adapter. Use this skill only
+when a fixed role needs a runtime rebind or when the user has explicitly
+approved a new long-lived role.
+
 1. If the requested capability belongs to an existing pool role, **rebind that
    role's runtime** in the machine-local `.runtime/AGENT_BINDINGS.json`. A new
    conversation, `CODEX_HOME`, or worktree may replace a broken runtime, but the

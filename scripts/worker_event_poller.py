@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Observe fixed worker runtimes and send bounded events to ``/root``.
+"""Observe fixed worker runtimes and record bounded events in the Agent Broker.
 
 This daemon deliberately has no research policy and no Goal mutation path.  It
-only reads worker snapshots and queues a ``POLL_EVENT`` when a registered
+only reads worker snapshots and writes a ``TASK_UPDATE`` when a registered
 worker changes.  Root remains responsible for interpreting the event,
-dispatching work, and integrating commits.
+dispatching work, and integrating commits.  Without broker arguments, the
+legacy queue path remains available for migration checks.
 
 The older :mod:`agent_result_poller` remains available for historical state
 files, but new deployments should use this module.  In particular, this
@@ -23,8 +24,10 @@ from pathlib import Path
 
 try:  # Works both as ``python -m scripts...`` and a direct script path.
     from scripts import agent_result_poller as legacy
+    from scripts.agent_broker import AgentBroker
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
     import agent_result_poller as legacy
+    from agent_broker import AgentBroker
 
 
 SCHEMA = "ref2dex.worker_event_poller.v1"
@@ -186,6 +189,17 @@ def _root_poll_event_pending(root: dict) -> bool:
     return legacy.pending_root_poll_event(root)
 
 
+def _broker(args) -> AgentBroker | None:
+    if not getattr(args, "broker_tasks_db", None) or not getattr(args, "broker_state_db", None):
+        return None
+    return AgentBroker(
+        args.broker_tasks_db,
+        args.broker_state_db,
+        getattr(args, "broker_roles", "docs/AGENT_ROLES.yaml"),
+        getattr(args, "broker_bindings", ".runtime/AGENT_BINDINGS.json"),
+    )
+
+
 def poll_once(args):
     registry = legacy.read_json(args.registry)
     root = next(agent for agent in registry["agents"] if agent.get("agent_key") == "root")
@@ -264,6 +278,21 @@ def poll_once(args):
         print(_message(events), flush=True)
         return events, any(bool(item.get("gpu_pids")) for item in current_snapshots.values())
 
+    broker = _broker(args)
+    if broker is not None:
+        for event in events:
+            # Legacy runtime records may still be selected by the binding
+            # file; the broker identity is the stable role, never that old
+            # conversation key.
+            broker.observe(agent_key=event["role_key"], payload=event, task_id=None)
+        for key, current in pending_snapshots.items():
+            known[key] = current
+        state.pop("deferred_events", None)
+        state.pop("pending_snapshots", None)
+        legacy.write_json_atomic(state_path, state)
+        print(f"RECORDED {len(events)} worker event(s) in Agent Broker", flush=True)
+        return events, any(bool(item.get("gpu_pids")) for item in current_snapshots.values())
+
     if _root_poll_event_pending(root):
         print("DEFERRED root POLL_EVENT pending", flush=True)
         return events, any(bool(item.get("gpu_pids")) for item in current_snapshots.values())
@@ -282,14 +311,20 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--registry", required=True)
     parser.add_argument("--state", required=True)
-    parser.add_argument("--codex-node", required=True)
-    parser.add_argument("--codex-js", required=True)
+    parser.add_argument("--codex-node")
+    parser.add_argument("--codex-js")
+    parser.add_argument("--broker-tasks-db")
+    parser.add_argument("--broker-state-db")
+    parser.add_argument("--broker-roles", default="docs/AGENT_ROLES.yaml")
+    parser.add_argument("--broker-bindings", default=".runtime/AGENT_BINDINGS.json")
     parser.add_argument("--interval", type=int, default=300)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.interval < 120:
         parser.error("interval must be at least 120 seconds")
+    if not (args.broker_tasks_db and args.broker_state_db) and not (args.codex_node and args.codex_js):
+        parser.error("legacy mode requires --codex-node/--codex-js; broker mode requires both --broker-* databases")
     lock_path = Path(args.state + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+") as handle:

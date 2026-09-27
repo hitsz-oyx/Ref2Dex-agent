@@ -8,45 +8,44 @@
 当前工作流由三层组成：
 
 1. root 的一个长期 Mission-level Goal 负责研究决策和任务派发；
-2. `scripts/worker_event_poller.py` 只读观察固定 worker，并在变化时发送 `POLL_EVENT`；
-3. `scripts/root_watchdog.py` 只处理 root liveness、lease-authorized bounded resume
-   和平台预算终态。
+2. `scripts/agent_broker.py` 以 SQLite 保存固定角色的任务、租约、四类消息和 handoff；
+3. poller/watchdog 只把 `TASK_UPDATE` 或 `CONTROL` 写入 Broker，不调用动态 subagent API。
 
 worker poller 和 root watchdog 都不选择研究路线、不读取科学指标、不启动实验。它们
 不能替 root 形成结论或替 worker 创建子代理。
 
 ## Root 循环
 
-root 读取 `docs/AGENT_REGISTRY.json`、`.runtime/AGENT_BINDINGS.json`、`MISSION`、
+root 读取 `docs/AGENT_ROLES.yaml`、`.runtime/AGENT_BINDINGS.json`、Broker、`MISSION`、
 `STATE`、`CAMPAIGN` 和当前交接，随后：
 
 1. 审计 worker 的 evidence、资源归属、停止条件和终态；
 2. 将候选行动分类为 Blocker、Decision、Evidence 或 Curiosity；
 3. 只向固定角色派发一个包含 objective、decision test、branch、预算、停止条件和
-   deliverables 的 `GOAL_DISPATCH`；
-4. 收到 `POLL_EVENT` 或用户消息后再次审计并选择下一任务。
+   deliverables 的 `TASK_DISPATCH`；
+4. 收到 `TASK_UPDATE`、`TASK_HANDOFF` 或用户消息后再次审计并选择下一任务。
 
 child task 的终态不会结束 root Goal；root 必须回到任务选择循环。没有可执行行动时
 保持 Goal active，记录 `SUPERVISOR_IDLE`，等待真实事件，不发送固定心跳。
 
 ## Root watchdog
 
-watchdog 读取 root Goal、root rollout、root queue 和
+watchdog 读取 root Goal、root rollout、Broker supervisor state 和
 `.runtime/SUPERVISOR_LEASE.json`：
 
 * active Goal 在 grace period 后没有 turn 或 queued input：发送一次
-  `ROOT_LIVENESS_WAKE`；
+  `CONTROL/WAKE`；
 * paused Goal 只有在 lease `enabled=true` 且 `allow_root_resume=true` 时才通过
-  app-server bounded resume 一次；
-* `usage_limited`/`budget_limited` 输出 `ROOT_BUDGET_LIMITED`，不自动恢复；
+  `CONTROL/RESUME` 交给对应 runtime adapter；
+* `usage_limited`/`budget_limited` 写 `CONTROL/BUDGET_LIMITED`，不自动恢复；
 * complete、failed、blocked 或未知状态只记录，不重启。
 
 lease 由以下命令管理：
 
 ```bash
-python3 scripts/researchctl.py supervisor pause
-python3 scripts/researchctl.py supervisor resume
-python3 scripts/researchctl.py supervisor status
+python3 scripts/researchctl.py supervisor pause --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor resume --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor status --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
 缺少 lease 文件等同于禁用。`pause` 先撤销自动恢复授权；若要立即中断当前 turn，

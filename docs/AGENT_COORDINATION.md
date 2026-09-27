@@ -1,14 +1,15 @@
 # Ref2Dex 多代理协作、注册与连续监督契约
 
-**状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v4`  ·  **所有者：** `/root`
+**状态：** ACTIVE  ·  **schema：** `ref2dex.agent_coordination.v5`  ·  **所有者：** `/root`
 
 本文件规定固定角色池、运行绑定、任务交接和监督边界。实验结果仍只写入
 experiment card、manifest 和 `docs/STATE.md`；本文件只描述 orchestration。
 
-机器可读注册表是 [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json)。注册表中的
-`pool.roles` 是稳定组织身份，`agents` 是当前或历史运行记录。可替换的
-conversation、`CODEX_HOME`、数据库和工作树绑定存放在机器本地的
-`.runtime/AGENT_BINDINGS.json`，不会把运行迁移写进研究历史。
+固定角色规则在 [`docs/AGENT_ROLES.yaml`](AGENT_ROLES.yaml)，只描述长期身份、职责和
+权限。机器可读的旧注册表 [`docs/AGENT_REGISTRY.json`](AGENT_REGISTRY.json) 仍保留
+历史审计兼容性；可替换的 conversation、provider、`CODEX_HOME`、数据库和工作树绑定
+只存放在机器本地的 `.runtime/AGENT_BINDINGS.json`。运行状态、任务租约和 handoff
+只存放在 `.runtime/tasks.sqlite` 与 `.runtime/AGENT_STATE.sqlite`。
 
 ## 1. 固定角色池
 
@@ -40,7 +41,9 @@ root → agent_eval
 root → agent_infra
 ```
 
-只有 root 可以选择研究问题、创建 task、改变资源预算、接受交付和合并 main。
+只有 root 可以选择研究问题、创建 task、改变资源预算、接受交付和合并 main。root
+通过 [`scripts/agent_broker.py`](../scripts/agent_broker.py) 派发；它不能动态创建
+agent 或调用 subagent/create-agent API。
 worker 不能创建 worker，也不能把一次 Probe 升格为 Validation。worker 需要另一种
 能力时交回 `NEEDS_HELP`，由 root 重新派发。
 
@@ -91,25 +94,19 @@ PY
 
 root 发出的每个任务必须是一个可判别目标，不发送“继续”“再看看”或固定心跳：
 
-```text
-GOAL_DISPATCH
-TARGET_AGENT_KEY=agent_cm|agent_rl|agent_eval|agent_infra
-CODEX_HOME=<from runtime binding>
-CONVERSATION_ID=<from runtime binding>
-OBJECTIVE=<one concrete decision or blocker>
-DECISION_TEST=<cheapest discriminating test>
-BRANCH=<fixed role branch>  BASE_COMMIT=<sha>
-ALLOWED_PATHS=<paths>
-EXPERIMENT_OR_CARD=<id or NONE>
-RESOURCE_BUDGET=<gpu/time/storage/process>
-EXECUTION_OWNER=<same target role>
-STOP_CONDITIONS=<explicit conditions>
-DELIVERABLE=<commit/card/manifest/handoff>
-NOT_AUTHORIZED=<what must not start>
+```yaml
+type: TASK_DISPATCH
+task_id: T-YYYYMMDD-short-name
+target: agent_cm|agent_rl|agent_eval|agent_infra
+objective: one concrete decision or blocker
+context: {state_revision: <sha>, decision_test: <cheapest discriminating test>}
+constraints: {branch: <fixed branch>, gpu: 0, stop_conditions: [...]}
+done_when: [commit/card/manifest/handoff]
 ```
 
 同一 worker 同时只运行一个 task。task identity 用 `TASK-*`、Probe ID 或 Validation
-ID 表达，不创建 task 专用 branch。worker 完成时交接：
+ID 表达，不创建 task 专用 branch。Broker 只允许四种消息：
+`TASK_DISPATCH`、`TASK_UPDATE`、`TASK_HANDOFF`、`CONTROL`。worker 完成时交接：
 
 ```text
 TASK_ID=<id>  STATUS=HANDOFF_READY
@@ -123,29 +120,34 @@ NEXT=<single decision or blocker>
 ## 5. 事件源与 root watchdog
 
 `worker_event_poller.py` 每 2–5 分钟只读观察当前 binding 对应的 worker：Goal、HEAD、
-manifest、rollout completion、归属 GPU PID。发现变化后向 root queue 一次性发送
-`POLL_EVENT`；队列失败时保留自己的 cursor，不能确认事件。它不读取指标来选择
-路线，不启动或停止实验，不修改任何 Goal，也不发周期性“全局巡检”文本。
+manifest、rollout completion、归属 GPU PID。启用 Broker 时，变化写成一条
+`TASK_UPDATE`；Broker 负责持久化和 root 消费，不能确认事件时 poller 保留自己的
+cursor。未传 Broker 参数的旧 `POLL_EVENT` queue 路径仅用于兼容，不是当前协议。
+它不读取指标来选择路线，不启动或停止实验，不修改任何 Goal，也不发周期性“全局巡检”文本。
 
 `root_watchdog.py` 是另一条极小的 liveness 进程，只观察 root 自己的 Goal、root
-rollout 和 root queue。它只允许以下动作：
+rollout 和 Broker supervisor state。启用 Broker 时它只写 `CONTROL`（`WAKE`、`RESUME`
+或 `BUDGET_LIMITED`），不直接调用 provider 或 OpenAI SDK。它只允许以下动作：
 
-* root active 但超过 grace period 没有 turn 或 queued input：发送一次
-  `ROOT_LIVENESS_WAKE`；
+* root active 但超过 grace period 没有 turn 或 queued input：写一次 `CONTROL/WAKE`；
 * root Goal paused 且本地 `.runtime/SUPERVISOR_LEASE.json` 同时声明
-  `enabled=true`、`allow_root_resume=true`：通过受支持的 app-server bounded resume
-  恢复一次同一 Goal，然后发送一次 liveness wake；
-* Goal 为 `usage_limited` 或 `budget_limited`：输出一次
-  `ROOT_BUDGET_LIMITED` 并停止，不绕过平台预算；
+  `enabled=true`、`allow_root_resume=true`：写一次 `CONTROL/RESUME`，交给 root runtime
+  adapter 恢复同一 Goal；
+* Goal 为 `usage_limited` 或 `budget_limited`：写一次 `CONTROL/BUDGET_LIMITED` 并停止，
+  不绕过平台预算；
 * complete、failed、blocked 或其他终态：记录状态，不重启。
 
 watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务。lease 缺失等同
 于禁用。使用：
 
 ```bash
-python3 scripts/researchctl.py supervisor pause
-python3 scripts/researchctl.py supervisor resume
-python3 scripts/researchctl.py supervisor status
+python3 scripts/researchctl.py supervisor resume \
+  --broker-tasks-db .runtime/tasks.sqlite \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor pause \
+  --broker-tasks-db .runtime/tasks.sqlite \
+  --broker-state-db .runtime/AGENT_STATE.sqlite
+python3 scripts/researchctl.py supervisor status --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
 `pause` 先关闭 lease；如果还要立即停止当前 turn，再由用户通过 Codex Goal 控制

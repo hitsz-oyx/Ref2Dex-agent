@@ -5,7 +5,16 @@
   "registry_version": 14,
   "updated_at": "2026-09-27",
   "owner": "root",
-  "purpose": "记录每个 Ref2Dex 协作 agent 独立的 Codex 对话身份、CODEX_HOME 与工作树；动态运行状态不在此文件维护。",
+  "purpose": "固定角色池与历史 runtime 审计兼容记录；当前角色规则在 docs/AGENT_ROLES.yaml，动态绑定和运行状态不在此文件维护。",
+  "roles_source": "docs/AGENT_ROLES.yaml",
+  "broker": {
+    "script": "scripts/agent_broker.py",
+    "tasks_db": ".runtime/tasks.sqlite",
+    "state_db": ".runtime/AGENT_STATE.sqlite",
+    "message_types": ["TASK_DISPATCH", "TASK_UPDATE", "TASK_HANDOFF", "CONTROL"],
+    "dynamic_agent_creation": "forbidden",
+    "worker_to_worker_messages": "forbidden"
+  },
   "codex_home_env_var": "CODEX_HOME",
   "codex_home_policy": "每条 agent 记录独立指定 codex_home；允许多个 agent 当前使用同一路径，但不存在注册表级默认或继承。迁移时同步更新该 agent 的会话和数据库定位。",
   "identity_rules": {
@@ -79,9 +88,10 @@
     }
   },
   "supervision": {
-    "mode": "fixed_pool_event_watchdog",
+    "mode": "fixed_pool_agent_broker",
     "fixed_external_wake_message": "RETIRED",
     "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/codex_research_supervisor.py",
+    "broker_owner": "agent_broker",
     "polling_owner": "worker_event_poller",
     "decision_and_dispatch_owner": "root",
     "polling_intervals_seconds": {
@@ -90,8 +100,8 @@
       "active_gpu": 120,
       "terminal_audit": 0
     },
-    "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并向精确注册 thread 派发明确 GOAL_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
-    "completion_rule": "worker_event_poller 只发送状态/完成事件；root 审计后重新选择和派发任务。",
+    "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并通过 Agent Broker 向精确固定 role 派发 TASK_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
+    "completion_rule": "worker_event_poller 只写 TASK_UPDATE；worker 以 TASK_HANDOFF 交付，root 审计后重新选择和派发任务。",
     "root_goal_lifecycle": {
       "anchor": "persistent_supervision",
       "default_status": "active",
@@ -109,7 +119,8 @@
     "watchdog_script": "scripts/root_watchdog.py",
     "lease_path": ".runtime/SUPERVISOR_LEASE.json",
     "nested_delegation": "forbidden",
-    "watchdog_rule": "root_watchdog 只处理 root liveness、lease-authorized resume 和 budget notification；不选择研究路线。"
+    "watchdog_rule": "root_watchdog 只向 Agent Broker 写 CONTROL/WAKE、CONTROL/RESUME 或 CONTROL/BUDGET_LIMITED；不选择研究路线。",
+    "message_types": ["TASK_DISPATCH", "TASK_UPDATE", "TASK_HANDOFF", "CONTROL"]
   },
   "integration": {
     "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
@@ -301,7 +312,7 @@
   "runtime_bindings": {
     "source": "machine_local",
     "path": ".runtime/AGENT_BINDINGS.json",
-    "schema": "ref2dex.agent_bindings.v1",
+    "schema": "ref2dex.agent_bindings.v2",
     "identity_key": [
       "codex_home",
       "conversation_id"
