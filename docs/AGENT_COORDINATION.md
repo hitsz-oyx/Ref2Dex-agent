@@ -142,6 +142,16 @@ rollout 和 Broker supervisor state。启用 Broker 时它写 `CONTROL`（`WAKE`
   不绕过平台预算；
 * complete、failed、usage/budget limit 或未知状态：记录状态，不重启。
 
+恢复周期合同：
+
+* 同一 root Goal 在一个连续的 `paused` 或 `blocked` 状态周期内，最多执行一次
+  lease-authorized app-server resume，并最多写一次对应的 `CONTROL/RESUME`；未发生
+  状态变化时，后续 bounded check 不得重复恢复或重复唤醒。
+* 当同一 Goal 被重新观察为 `active` 时，清除该周期的恢复消费标记；它之后再次进入
+  `paused` 或 `blocked`，属于新的状态周期，可以在 lease 仍有效时再次恢复。
+* 这个 guard 只约束 liveness 操作，不把 `paused`、`blocked` 或恢复失败解释为科研
+  任务完成，也不改变 root 的 Mission-level Goal 生命周期。
+
 watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务。lease 缺失等同
 于禁用。使用：
 

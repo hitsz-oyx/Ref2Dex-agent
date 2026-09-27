@@ -68,5 +68,11 @@ root rollout、Broker supervisor state 和 `.runtime/SUPERVISOR_LEASE.json`，�
 替 root 选任务。lease 缺失等同于禁用；用户通过
 `python3 scripts/researchctl.py supervisor pause|resume|status` 管理授权。
 
+恢复周期合同与 watchdog 相同：同一 Goal 在连续的 `paused` 或 `blocked` 周期内只允
+许一次 lease-authorized resume；重复观察不得重复写 `RESUME` 或重复唤醒。只有观察到
+同一 Goal 回到 `active` 才清除该周期 guard，之后再次 `paused` 或 `blocked` 才能进入
+下一次恢复周期。这个状态标记只用于 liveness 去重，不表示研究任务完成或改变 Goal
+生命周期。
+
 未提供 `--broker-*` 参数的旧 queue 路径仍可用于迁移期预检；它产生的 `POLL_EVENT`
 不属于当前四类 Broker 消息。
