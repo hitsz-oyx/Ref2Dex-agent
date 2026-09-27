@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import json
 import os
+import selectors
 import sqlite3
 import subprocess
 import sys
@@ -64,6 +65,46 @@ def goal_state(agent):
     finally:
         connection.close()
     return {"goal_id": row[0], "status": row[1]} if row else {"goal_id": None, "status": "NONE"}
+
+
+def goal_details(agent):
+    """Read the exact current Goal row used by the opt-in app-server guard."""
+
+    db_value = agent.get("goal_db")
+    if not db_value:
+        state = goal_state(agent)
+        return {
+            "goal_id": state.get("goal_id"),
+            "status": state.get("status", "UNKNOWN"),
+            "objective": None,
+            "token_budget": None,
+        }
+    db = Path(db_value)
+    if not db.is_file():
+        state = goal_state(agent)
+        return {
+            "goal_id": state.get("goal_id"),
+            "status": state.get("status", "UNKNOWN"),
+            "objective": None,
+            "token_budget": None,
+        }
+    connection = sqlite3.connect(db.as_uri() + "?mode=ro", uri=True)
+    try:
+        row = connection.execute(
+            "SELECT goal_id, status, objective, token_budget FROM thread_goals "
+            "WHERE thread_id=? ORDER BY updated_at_ms DESC LIMIT 1",
+            (agent["conversation_id"],),
+        ).fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        return {"goal_id": None, "status": "NONE", "objective": None, "token_budget": None}
+    return {
+        "goal_id": row[0],
+        "status": row[1],
+        "objective": row[2],
+        "token_budget": row[3],
+    }
 
 
 def gpu_pids():
@@ -635,6 +676,128 @@ def queue_root(root_agent, message, node_bin, codex_js):
         raise RuntimeError("root queue failed: {}".format((result.stderr or result.stdout).strip()))
 
 
+def _app_server_request(process, request_id, method, params, timeout):
+    request = {"id": request_id, "method": method, "params": params}
+    process.stdin.write((json.dumps(request, ensure_ascii=False) + "\n").encode("utf-8"))
+    process.stdin.flush()
+    buffer = getattr(process, "_ref2dex_json_buffer", bytearray())
+    fd = process.stdout.fileno()
+    selector = selectors.DefaultSelector()
+    try:
+        selector.register(fd, selectors.EVENT_READ)
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError("app-server {} timed out".format(method))
+            while b"\n" in buffer:
+                line, _, buffer = buffer.partition(b"\n")
+                try:
+                    response = json.loads(line.decode("utf-8"))
+                except (UnicodeDecodeError, ValueError):
+                    continue
+                if response.get("id") != request_id:
+                    continue
+                process._ref2dex_json_buffer = buffer
+                if response.get("error") is not None:
+                    raise RuntimeError("app-server {} error: {}".format(method, response["error"]))
+                return response.get("result")
+            ready = selector.select(remaining)
+            if not ready:
+                raise RuntimeError("app-server {} timed out".format(method))
+            chunk = os.read(fd, 65536)
+            if not chunk:
+                error = process.stderr.read().decode("utf-8", errors="replace")
+                raise RuntimeError(
+                    "app-server exited during {}{}".format(
+                        method, ": " + error.strip() if error.strip() else ""
+                    )
+                )
+            buffer.extend(chunk)
+    finally:
+        process._ref2dex_json_buffer = buffer
+        selector.close()
+
+
+def _app_server_notify(process, method, params):
+    process.stdin.write(
+        (json.dumps({"method": method, "params": params}, ensure_ascii=False) + "\n")
+        .encode("utf-8")
+    )
+    process.stdin.flush()
+
+
+def app_server_resume_root_goal(root_agent, goal, node_bin, codex_js,
+                                app_server_command=None, timeout=30.0):
+    """Set one paused Goal active through the supported app-server protocol.
+
+    The caller supplies an exact Goal row read from the registered goal DB and
+    must persist a one-time consumption marker only after the readback confirms
+    ``status=active`` for the same thread.  This helper never edits SQLite.
+    """
+
+    goal_id = goal.get("goal_id") if isinstance(goal, dict) else None
+    thread_id = root_agent.get("conversation_id")
+    if not goal_id or not thread_id or _normal_goal_status(goal) != "paused":
+        raise RuntimeError("root Goal is not an identifiable paused Goal")
+    command = list(app_server_command) if app_server_command else [
+        node_bin, codex_js, "app-server", "--listen", "stdio://"
+    ]
+    environment = os.environ.copy()
+    environment["CODEX_HOME"] = root_agent["codex_home"]
+    process = subprocess.Popen(
+        command,
+        cwd=root_agent.get("worktree") or None,
+        env=environment,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        _app_server_request(
+            process,
+            1,
+            "initialize",
+            {
+                "clientInfo": {
+                    "name": "ref2dex-agent-poller",
+                    "title": "Ref2Dex result poller",
+                    "version": "1",
+                },
+                "capabilities": {"experimentalApi": True},
+            },
+            timeout,
+        )
+        _app_server_notify(process, "initialized", {})
+        set_params = {"threadId": thread_id, "status": "active"}
+        _app_server_request(process, 2, "thread/goal/set", set_params, timeout)
+        readback = _app_server_request(
+            process, 3, "thread/goal/get", {"threadId": thread_id}, timeout
+        )
+        returned = readback.get("goal") if isinstance(readback, dict) else None
+        if not isinstance(returned, dict):
+            raise RuntimeError("app-server Goal readback is missing")
+        if returned.get("threadId") != thread_id or returned.get("status") != "active":
+            raise RuntimeError("app-server Goal readback did not confirm active status")
+        if root_agent.get("goal_db"):
+            canonical = goal_details(root_agent)
+            if (canonical.get("goal_id") != goal_id
+                    or _normal_goal_status(canonical) != "active"):
+                raise RuntimeError(
+                    "canonical Goal changed before resume consumption"
+                )
+        return returned
+    finally:
+        if process.stdin is not None:
+            process.stdin.close()
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=2)
+
+
 def poll_once(args):
     registry = read_json(args.registry)
     root = next(agent for agent in registry["agents"] if agent["agent_key"] == "root")
@@ -658,7 +821,7 @@ def poll_once(args):
         current = snapshot(agent, pids, known.get(key))
         current_snapshots[key] = current
         active_gpu = active_gpu or bool(current["gpu_pids"])
-    root_goal = goal_state(root)
+    root_goal = goal_details(root)
     all_execution_idle, execution_details = execution_idle_snapshot(
         children, current_snapshots
     )
@@ -672,17 +835,35 @@ def poll_once(args):
         "wake_pending": bool(previous_supervision.get("wake_pending")),
         "wake_sent": bool(previous_supervision.get("wake_sent")),
     }
+    consumed_goal_id = previous_supervision.get("root_goal_resume_consumed_goal_id")
+    if isinstance(consumed_goal_id, str) and consumed_goal_id:
+        supervision["root_goal_resume_consumed_goal_id"] = consumed_goal_id
+    resume_once = bool(getattr(args, "root_goal_resume_once", False))
+    paused_resume = (
+        resume_once
+        and _normal_goal_status(root_goal) == "paused"
+        and root_goal.get("goal_id")
+        and consumed_goal_id != root_goal.get("goal_id")
+    )
     if not all_execution_idle:
         supervision["wake_pending"] = False
         supervision["wake_sent"] = False
     elif previous_all_idle is None:
         # Establish a quiet baseline when upgrading an old state file.
-        supervision["wake_pending"] = False
+        supervision["wake_pending"] = paused_resume
         supervision["wake_sent"] = False
     elif previous_all_idle is False:
-        supervision["wake_pending"] = _root_goal_is_active(root_goal)
+        supervision["wake_pending"] = _root_goal_is_active(root_goal) or paused_resume
         supervision["wake_sent"] = False
-    elif not _root_goal_is_active(root_goal):
+    elif paused_resume:
+        # A migrated state may already say all children are idle while the
+        # one-shot opt-in has never been consumed.  Do not require a fresh
+        # idle edge before attempting the exact paused Goal.
+        supervision["wake_pending"] = True
+        supervision["wake_sent"] = False
+    elif not _root_goal_is_active(root_goal) and not (
+        paused_resume
+    ):
         # A paused, usage-limited, or unknown root is never auto-woken.  The
         # all-idle edge is consumed so a later manual resume does not replay it.
         supervision["wake_pending"] = False
@@ -770,18 +951,48 @@ def poll_once(args):
         # turn, then deliver it exactly once.  Queue failures persist the
         # pending bit and are retried by the next sparse poll.
         try:
-            if pending_root_turn(root):
-                print("DEFERRED root ROOT_DECISION_WAKE pending", flush=True)
-            elif _root_goal_is_active(root_goal):
-                queue_root(
+            if _root_goal_is_active(root_goal):
+                if pending_root_turn(root):
+                    print("DEFERRED root ROOT_DECISION_WAKE pending", flush=True)
+                else:
+                    queue_root(
+                        root,
+                        decision_wake_message(root_goal, execution_details),
+                        args.codex_node,
+                        args.codex_js,
+                    )
+                    supervision["wake_pending"] = False
+                    supervision["wake_sent"] = True
+                    print("NOTIFIED ROOT_DECISION_WAKE", flush=True)
+            elif paused_resume:
+                resumed = app_server_resume_root_goal(
                     root,
-                    decision_wake_message(root_goal, execution_details),
+                    root_goal,
                     args.codex_node,
                     args.codex_js,
+                    app_server_command=getattr(args, "app_server_command", None),
+                    timeout=float(getattr(args, "app_server_timeout", 30.0)),
                 )
+                supervision["root_goal_resume_consumed_goal_id"] = root_goal["goal_id"]
+                resumed_goal = dict(root_goal)
+                resumed_goal.update({"status": resumed.get("status", "active")})
+                supervision["root_goal_status"] = resumed_goal["status"]
+                if pending_root_turn(root):
+                    print("DEFERRED duplicate root ROOT_DECISION_WAKE pending", flush=True)
+                    wake_notice = "existing root turn; no duplicate wake"
+                else:
+                    queue_root(
+                        root,
+                        decision_wake_message(resumed_goal, execution_details),
+                        args.codex_node,
+                        args.codex_js,
+                    )
+                    wake_notice = "ROOT_DECISION_WAKE notified"
                 supervision["wake_pending"] = False
                 supervision["wake_sent"] = True
-                print("NOTIFIED ROOT_DECISION_WAKE", flush=True)
+                print("RESUMED root Goal via app-server; {}".format(wake_notice), flush=True)
+            else:
+                supervision["wake_pending"] = False
         except Exception:
             # Do not lose the transition when queue or read-only inspection
             # fails.  The caller still reports POLL_ERROR, but the persisted
@@ -806,6 +1017,12 @@ def main():
     parser.add_argument("--interval", type=int, default=300)
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--root-goal-resume-once",
+        action="store_true",
+        help="explicitly allow one app-server resume for the current paused root Goal",
+    )
+    parser.add_argument("--app-server-timeout", type=float, default=30.0)
     args = parser.parse_args()
     if args.interval < 120:
         parser.error("interval must be at least 120 seconds")

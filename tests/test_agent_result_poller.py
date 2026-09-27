@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -40,6 +41,9 @@ def _args(registry: Path, state: Path, *, dry_run: bool = False):
         dry_run=dry_run,
         codex_node="node",
         codex_js="codex.js",
+        root_goal_resume_once=False,
+        app_server_command=None,
+        app_server_timeout=3.0,
     )
 
 
@@ -375,7 +379,7 @@ def test_shared_manifest_symlink_emits_one_alert(tmp_path, monkeypatch):
     assert poller.poll_once(args)[0] == []
 
 
-def _supervision_setup(monkeypatch, statuses, root_status="active"):
+def _supervision_setup(monkeypatch, statuses, root_status="active", root_goal_id=None):
     monkeypatch.setattr(poller, "git_head", lambda worktree: "same-head")
     monkeypatch.setattr(
         poller,
@@ -384,6 +388,17 @@ def _supervision_setup(monkeypatch, statuses, root_status="active"):
             "goal_id": None if agent["agent_key"] == "root" else "child-goal",
             "status": root_status if agent["agent_key"] == "root"
             else statuses.get(agent["agent_key"], "active"),
+        },
+    )
+    monkeypatch.setattr(
+        poller,
+        "goal_details",
+        lambda agent: {
+            "goal_id": root_goal_id if agent["agent_key"] == "root" else "child-goal",
+            "status": root_status if agent["agent_key"] == "root"
+            else statuses.get(agent["agent_key"], "active"),
+            "objective": "root objective" if agent["agent_key"] == "root" else None,
+            "token_budget": 7 if agent["agent_key"] == "root" else None,
         },
     )
     monkeypatch.setattr(poller, "gpu_pids", lambda: [])
@@ -455,6 +470,213 @@ def test_paused_or_unknown_root_never_auto_wakes(tmp_path, monkeypatch, root_sta
     assert len(queued) == 1  # state-change event only
     assert poller.poll_once(args)[0] == []
     assert len(queued) == 1
+
+
+def test_opt_in_resume_uses_app_server_once_on_idle_edge(tmp_path, monkeypatch):
+    statuses = {"child": "active"}
+    _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-1")
+    child, _ = _child(tmp_path, "child")
+    registry = _registry(tmp_path, child)
+    state = tmp_path / "state.json"
+    queued = []
+    resumed = []
+    monkeypatch.setattr(
+        poller, "queue_root", lambda root, message, node, codex: queued.append(message)
+    )
+
+    def resume(root, goal, node, codex, app_server_command=None, timeout=30.0):
+        resumed.append((root["conversation_id"], goal["goal_id"], goal["status"]))
+        return {"threadId": root["conversation_id"], "status": "active"}
+
+    monkeypatch.setattr(poller, "app_server_resume_root_goal", resume)
+    args = _args(registry, state)
+    args.root_goal_resume_once = True
+
+    assert poller.poll_once(args)[0] == []
+    statuses["child"] = "paused"
+    assert poller.poll_once(args)[0]
+    assert len(resumed) == 0
+    assert len(queued) == 1  # the ordinary child state-change event
+
+    assert poller.poll_once(args)[0] == []
+    assert resumed == [("root-thread", "goal-1", "paused")]
+    assert len(queued) == 2
+    assert queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-1"
+
+    # The Goal row is deliberately still reported as paused.  The consumed
+    # exact ID prevents a second automatic resume on unchanged idle polls.
+    assert poller.poll_once(args)[0] == []
+    assert len(resumed) == 1
+    assert len(queued) == 2
+
+
+def test_static_migrated_idle_paused_goal_resumes_without_new_edge(tmp_path, monkeypatch):
+    statuses = {"child": "paused"}
+    _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-static")
+    child, _ = _child(tmp_path, "child")
+    registry = _registry(tmp_path, child)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({
+        "schema": poller.SCHEMA,
+        "agents": {},
+        "supervision": {
+            "all_execution_idle": True,
+            "wake_pending": False,
+            "wake_sent": False,
+        },
+    }), encoding="utf-8")
+    resumed = []
+    queued = []
+    monkeypatch.setattr(poller, "queue_root", lambda *args: queued.append(args[1]))
+    monkeypatch.setattr(
+        poller,
+        "app_server_resume_root_goal",
+        lambda root, goal, node, codex, **kwargs: (
+            resumed.append(goal["goal_id"]) or {"threadId": "root-thread", "status": "active"}
+        ),
+    )
+    args = _args(registry, state)
+    args.root_goal_resume_once = True
+    assert poller.poll_once(args)[0] == []
+    assert resumed == ["goal-static"]
+    assert queued and queued[-1].startswith(poller.ROOT_DECISION_WAKE_PREFIX)
+
+
+def test_app_server_resume_fake_protocol_sets_and_reads_exact_goal(tmp_path):
+    fake = tmp_path / "fake_app_server.py"
+    fake.write_text(
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    request = json.loads(line)\n"
+        "    method = request['method']\n"
+        "    result = None\n"
+        "    if method == 'initialize':\n"
+        "        sys.stdout.write(json.dumps({'method': 'server-notice'}) + '\\n' + json.dumps({'id': request['id'], 'result': {}}) + '\\n')\n"
+        "        sys.stdout.flush()\n"
+        "    elif method == 'initialized':\n"
+        "        continue\n"
+        "    elif method == 'thread/goal/set':\n"
+        "        assert request['params'] == {'threadId': 'root-thread', 'status': 'active'}\n"
+        "        result = {'goal': {'threadId': 'root-thread', 'status': 'active'}}\n"
+        "    elif method == 'thread/goal/get':\n"
+        "        assert request['params'] == {'threadId': 'root-thread'}\n"
+        "        result = {'goal': {'threadId': 'root-thread', 'status': 'active'}}\n"
+        "    else:\n"
+        "        raise AssertionError(method)\n"
+        "    print(json.dumps({'id': request['id'], 'result': result}), flush=True)\n",
+        encoding="utf-8",
+    )
+    root = {
+        "conversation_id": "root-thread",
+        "codex_home": str(tmp_path / "codex-home"),
+        "worktree": str(tmp_path),
+        "goal_db": str(tmp_path / "goals.sqlite"),
+    }
+    connection = sqlite3.connect(root["goal_db"])
+    connection.execute(
+        "CREATE TABLE thread_goals (thread_id TEXT, goal_id TEXT, status TEXT, "
+        "objective TEXT, token_budget INTEGER, updated_at_ms INTEGER)"
+    )
+    connection.execute(
+        "INSERT INTO thread_goals VALUES (?, ?, ?, ?, ?, ?)",
+        ("root-thread", "goal-1", "active", "resume objective", 11, 2),
+    )
+    connection.commit()
+    connection.close()
+    goal = {
+        "goal_id": "goal-1",
+        "status": "paused",
+        "objective": "resume objective",
+        "token_budget": 11,
+    }
+    returned = poller.app_server_resume_root_goal(
+        root,
+        goal,
+        sys.executable,
+        "unused.js",
+        app_server_command=[sys.executable, str(fake)],
+        timeout=3.0,
+    )
+    assert returned == {"threadId": "root-thread", "status": "active"}
+
+
+def test_pending_root_turn_does_not_block_goal_recovery_or_duplicate_wake(
+    tmp_path, monkeypatch
+):
+    statuses = {"child": "paused"}
+    _supervision_setup(monkeypatch, statuses, root_status="paused", root_goal_id="goal-pending")
+    child, _ = _child(tmp_path, "child")
+    queue_db = tmp_path / "root-queue.sqlite"
+    connection = _queued_items_db(queue_db)
+    connection.execute(
+        "INSERT INTO queued_items VALUES (?, ?, ?, ?, ?, ?)",
+        ("resume", "root-thread", json.dumps({"UserInput": {"content": [{"text": "/goal resume"}]}}), 0, 1, 1),
+    )
+    connection.commit()
+    connection.close()
+    registry = _registry(tmp_path, child, root_queue=queue_db)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({
+        "schema": poller.SCHEMA,
+        "agents": {},
+        "supervision": {"all_execution_idle": True, "wake_pending": False, "wake_sent": False},
+    }), encoding="utf-8")
+    resumed = []
+    queued = []
+    monkeypatch.setattr(poller, "queue_root", lambda *args: queued.append(args[1]))
+    monkeypatch.setattr(
+        poller,
+        "app_server_resume_root_goal",
+        lambda root, goal, node, codex, **kwargs: (
+            resumed.append(goal["goal_id"]) or {"threadId": "root-thread", "status": "active"}
+        ),
+    )
+    args = _args(registry, state)
+    args.root_goal_resume_once = True
+    assert poller.poll_once(args)[0] == []
+    assert resumed == ["goal-pending"]
+    assert queued == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["wake_pending"] is False
+    assert persisted["supervision"]["root_goal_resume_consumed_goal_id"] == "goal-pending"
+
+
+def test_pending_active_root_wake_persists_supervision_without_early_return(
+    tmp_path, monkeypatch
+):
+    statuses = {"child": "paused"}
+    _supervision_setup(monkeypatch, statuses, root_status="active")
+    child, _ = _child(tmp_path, "child")
+    queue_db = tmp_path / "root-queue.sqlite"
+    connection = _queued_items_db(queue_db)
+    connection.execute(
+        "INSERT INTO queued_items VALUES (?, ?, ?, ?, ?, ?)",
+        ("pending", "root-thread", json.dumps({"UserInput": {"content": [{"text": "turn"}]}}), 0, 1, 1),
+    )
+    connection.commit()
+    connection.close()
+    registry = _registry(tmp_path, child, root_queue=queue_db)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({
+        "schema": poller.SCHEMA,
+        "agents": {},
+        "supervision": {
+            "all_execution_idle": True,
+            "wake_pending": True,
+            "wake_sent": False,
+        },
+    }), encoding="utf-8")
+    queued = []
+    monkeypatch.setattr(poller, "queue_root", lambda *args: queued.append(args[1]))
+    assert poller.poll_once(_args(registry, state))[0] == []
+    assert queued == []
+    persisted = json.loads(state.read_text(encoding="utf-8"))
+    assert persisted["supervision"]["wake_pending"] is True
+    assert persisted["supervision"]["wake_sent"] is False
+    assert persisted["supervision"]["root_goal_status"] == "active"
+    assert persisted["supervision"]["execution_agents"]["child"]["idle"] is True
 
 
 def test_decision_wake_queue_failure_retries_without_duplicate_loss(tmp_path, monkeypatch):

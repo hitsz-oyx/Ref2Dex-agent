@@ -58,11 +58,36 @@ root 的精确 `(codex_home, conversation_id)` 发送一次定向完成 handoff�
 `COMMIT`（或 `COMMIT=none`）、允许文件的校验和/模式/大小、测试结果、live poller
 归属状态和后继迁移步骤。不得用固定心跳替代该 handoff。
 
-Goal 与执行代理状态只作只读证据。只有在执行代理由非全闲变为全闲、root Goal 明确为
-`active`/`running`、且 root queue 没有待处理 turn 时，最多排队一次去重的
-`ROOT_DECISION_WAKE`，供 root 选择下一步；`supervision.wake_pending` 在队列失败时
+Goal 与执行代理状态只作只读证据。执行代理由非全闲变为全闲时，若 root Goal 明确为
+`active`/`running` 且 root queue 没有待处理 turn，最多排队一次去重的
+`ROOT_DECISION_WAKE`，供 root 选择下一步；迁移 state 的静态 `all_execution_idle=true`
+不会单独触发 active Goal 的新 wake。`supervision.wake_pending` 在队列失败时
 保留以便下一次稀疏轮询重试。root Goal 为 `paused`/`usage_limited`/`UNKNOWN`，或
-没有可证明的全闲转换边沿时，不自动唤醒；暂停来源也无法从当前 Goal 表证明时，视为
+没有可证明的全闲转换边沿时，不自动唤醒 active Goal；暂停来源也无法从当前 Goal 表证明时，视为
 显式/未知用户暂停，只提供 event re-entry 说明并等待用户/系统恢复。poller 不修改
-Goal 数据库、不冒充恢复，排队 wake 本身不会使 Goal 变为 active。root 应以事件中的
+Goal 数据库、不冒充恢复，排队 wake 本身不会使 Goal 变为 active。显式
+`--root-goal-resume-once` 会通过 app-server 改变 paused Goal；root 应以事件中的
 精确 ID 和当前 Goal 快照区分已集成的 stale 事件与真正的新结果。
+
+如用户明确授权一次 root Goal 恢复，可在隔离迁移窗口以
+`--root-goal-resume-once` 启用受支持的 app-server 路径。仅当执行代理刚从非全闲变为
+全闲（包括已迁移的静态全闲 state），且 canonical root Goal 表读到精确 `goal_id`、
+`thread_id` 和 `paused` 状态时，脚本才启动短生命周期的
+`codex app-server --listen stdio://`，发送 `thread/goal/set`：
+`{threadId, status: "active"}`，保留现有 objective、token budget 和 usage，随后发送
+`thread/goal/get` 并要求同一 thread 回读 `status=active`。SQLite 仍只读，绝不写
+Goal DB；协议参数来自本机 app-server schema。成功后在
+`supervision.root_goal_resume_consumed_goal_id` 保存精确 Goal ID，并只排队一次
+`ROOT_DECISION_WAKE`；同一 ID 后续再次变为 paused 不会自动恢复。默认不开启该 flag，
+因为现有状态无法可靠区分用户暂停和中断暂停；unknown、缺少精确 ID、读回失败或队列
+失败都保留 pending 并报告 `POLL_ERROR`，不消费授权。该 opt-in 当前不检查 root
+是否已有活跃 turn。
+
+若迁移 state 已经记录 `all_execution_idle=true`，显式 opt-in 仍会立即尝试一次精确
+paused Goal，不要求重新出现 idle 边沿。root queue 中已有 `/goal resume` 或其他待处理
+turn 时，恢复调用仍会执行以解除 stale paused 状态，但不会重复排队
+`ROOT_DECISION_WAKE`；已有 queued `/goal resume` 只抑制重复 wake，不抑制 Goal 状态恢复。
+迁移时先在临时 CODEX_HOME/隔离 fake app-server 上运行 poller 专项测试，再由 root
+审阅命令行和精确 Goal ID 后自行重启/替换 live poller；本代理不调用 live app-server。
+若恢复失败，root 可显式执行 `codex app-server --listen stdio://` 的
+`thread/goal/set`/`thread/goal/get` 流程，或保持 event-only re-entry 并等待用户恢复。
