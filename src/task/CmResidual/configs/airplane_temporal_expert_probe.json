@@ -107,7 +107,8 @@
     "router_input_state_sha256": "string[N]",
     "router_teacher_source": "string[N]",
     "route_config_sha256": "string[N]",
-    "collector_config_sha256": "string[N]"
+    "collector_config_sha256": "string[N]",
+    "object_lift_axis": "float32[N,3]"
   },
   "provenance_requirements": {
     "checkpoint_hashes_from_route_manifest": true,
@@ -116,6 +117,26 @@
     "collector_config_hash_in_manifest": true,
     "evaluator_sha256_and_git_blob_in_manifest": true,
     "git_commit_in_manifest": true,
-    "cm_mode": "off"
+    "cm_mode": "off",
+    "object_lift_axis": {
+      "world_axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "frame": "object_local_at_trigger_t",
+      "source": "inverse_rotation_world_z_using_trigger_object_quaternion_xyzw",
+      "conversion": "local_translation_target_inverse_quaternion_xyzw"
+    }
+  },
+  "object_lift_axis": {
+    "world_axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "frame": "object_local_at_trigger_t",
+    "source": "inverse_rotation_world_z_using_trigger_object_quaternion_xyzw",
+    "conversion": "local_translation_target_inverse_quaternion_xyzw"
   }
 }

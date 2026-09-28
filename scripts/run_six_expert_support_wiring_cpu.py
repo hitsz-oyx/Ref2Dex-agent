@@ -70,6 +70,7 @@ def _synthetic_rows() -> list[dict[str, Any]]:
                     "executed_action": list(candidates[arm]),
                     "object_pose_t_plus_1_object_local_frame": pose_next,
                     "target_delta_object_local_1": [0.01, -0.02, 0.03],
+                    "object_lift_axis": [0.0, 0.0, 1.0],
                     "contact_mask_t_plus_1_to_t_plus_5": [True, False, True, True, False],
                     "router_teacher_candidate_id": teacher_id,
                     "router_teacher_action": list(candidates[teacher_id]),

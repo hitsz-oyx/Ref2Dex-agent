@@ -70,6 +70,7 @@ def _load_contract() -> None:
     from src.task.CmResidual.temporal_option_contract import (  # noqa: E402
         RECORD_SCHEMA,
         RUN_SCHEMA,
+        OBJECT_LIFT_AXIS_METADATA,
         balanced_environment_assignment,
         eligible_trigger_mask,
         git_blob_sha1,
@@ -82,6 +83,7 @@ def _load_contract() -> None:
     globals().update({
         "RECORD_SCHEMA": RECORD_SCHEMA,
         "RUN_SCHEMA": RUN_SCHEMA,
+        "OBJECT_LIFT_AXIS_METADATA": OBJECT_LIFT_AXIS_METADATA,
         "balanced_environment_assignment": balanced_environment_assignment,
         "eligible_trigger_mask": eligible_trigger_mask,
         "git_blob_sha1": git_blob_sha1,
@@ -305,6 +307,7 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             self.trigger_object_pose_t = None
             self.trigger_object_pose_t_plus_1 = None
             self.trigger_target_delta = None
+            self.trigger_object_lift_axis = None
             self.trigger_object_state_t = None
             self.trigger_pose_pending = None
             self.trigger_executed_action = None
@@ -367,6 +370,32 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 raise FloatingPointError("nonfinite object-local one-step delta")
             return delta
 
+        @staticmethod
+        def _object_local_lift_axis(state_t):
+            """Transform world +Z into the trigger-time object-local frame.
+
+            The quaternion normalization and inverse XYZW rotation are exactly
+            the helpers used by ``local_translation_target``.  This records
+            frame provenance for the future world-vertical lift signal without
+            changing the signed object-local target delta.
+            """
+            if (state_t.ndim != 2 or state_t.shape[1] != 13):
+                raise ValueError("object state must be [N,13] for lift axis")
+            import torch.nn.functional as F
+            from src.task.CmResidual.cmlite import _quat_rotate_inverse_xyzw
+            quat = F.normalize(state_t[:, 3:7], dim=-1, eps=1e-8)
+            world_axis = torch.zeros_like(state_t[:, :3])
+            world_axis[:, 2] = 1.0
+            axis = _quat_rotate_inverse_xyzw(quat, world_axis)
+            axis = F.normalize(axis, dim=-1, eps=1e-8)
+            if not torch.isfinite(axis).all():
+                raise FloatingPointError("nonfinite object-local lift axis")
+            if not torch.allclose(axis.square().sum(dim=1),
+                                  torch.ones_like(axis[:, 0]),
+                                  rtol=0.0, atol=1e-5):
+                raise FloatingPointError("object-local lift axis is not unit length")
+            return axis
+
         def restore(self, filename):
             super().restore(filename)
             task = self.env.task
@@ -422,6 +451,7 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             self.trigger_object_pose_t = torch.zeros(n, 3, device=device)
             self.trigger_object_pose_t_plus_1 = torch.zeros(n, 3, device=device)
             self.trigger_target_delta = torch.zeros(n, 3, device=device)
+            self.trigger_object_lift_axis = torch.zeros(n, 3, device=device)
             self.trigger_object_state_t = torch.zeros(n, 13, device=device)
             self.trigger_pose_pending = torch.zeros(n, dtype=torch.bool, device=device)
             self.trigger_executed_action = torch.zeros(n, 18, device=device)
@@ -624,12 +654,15 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 state_next = task._target_states[pose_rows].clone()
                 delta = self._object_local_delta(
                     self.trigger_object_state_t[pose_rows], state_next)
+                lift_axis = self._object_local_lift_axis(
+                    self.trigger_object_state_t[pose_rows])
                 # The pair is expressed in the t object-local frame: pose_t
                 # is its origin and pose_t+1 is the lossless transformed
                 # translation.  No world pose is substituted.
                 self.trigger_object_pose_t[pose_rows] = 0
                 self.trigger_object_pose_t_plus_1[pose_rows] = delta
                 self.trigger_target_delta[pose_rows] = delta
+                self.trigger_object_lift_axis[pose_rows] = lift_axis
                 self.trigger_pose_pending[pose_rows] = False
             active_option = self.last_option_active
             self.option_elapsed[active_option] += 1
@@ -707,6 +740,8 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 "object_pose_t_plus_1_object_local_frame": self.trigger_object_pose_t_plus_1[
                     index].detach().cpu(),
                 "target_delta_object_local_1": self.trigger_target_delta[
+                    index].detach().cpu(),
+                "object_lift_axis": self.trigger_object_lift_axis[
                     index].detach().cpu(),
                 "contact_mask_t_plus_1_to_t_plus_5": mask[:, :5],
                 "candidate_expert_names_and_checkpoint_sha256": [
@@ -830,6 +865,7 @@ def main() -> None:
         "evaluator_path": str(EVALUATOR_PATH),
         "evaluator_sha256": sha256_path(EVALUATOR_PATH),
         "evaluator_git_blob_sha1": git_blob_sha1(EVALUATOR_PATH),
+        "object_lift_axis": OBJECT_LIFT_AXIS_METADATA,
     }
 
     # Isaac Gym and the simulator modules are deliberately imported only here.

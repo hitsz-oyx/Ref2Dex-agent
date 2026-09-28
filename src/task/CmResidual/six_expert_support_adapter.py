@@ -121,6 +121,18 @@ def validate_payload(
         raise contract.ContractError("post-option base expert must be source_e260")
     if payload.get("post_option_policy") != "canonical_route_expert":
         raise contract.ContractError("post-option policy must remain canonical_route_expert")
+    payload_provenance = payload.get("provenance")
+    if not isinstance(payload_provenance, Mapping):
+        raise contract.ContractError("payload provenance missing")
+    expected_axis = getattr(contract, "OBJECT_LIFT_AXIS_METADATA", None)
+    if not isinstance(expected_axis, Mapping):
+        raise contract.ContractError("support contract lacks object_lift_axis provenance")
+    if payload_provenance.get("object_lift_axis") != dict(expected_axis):
+        raise contract.ContractError("payload object_lift_axis provenance differs")
+    if (expected_provenance is not None and
+            "object_lift_axis" in expected_provenance and
+            expected_provenance["object_lift_axis"] != dict(expected_axis)):
+        raise contract.ContractError("expected object_lift_axis provenance differs")
     records = payload.get("records")
     if not isinstance(records, Mapping):
         raise contract.ContractError("payload records missing")
@@ -232,6 +244,7 @@ def validate_payload(
         "router_model_sha256": router_model,
         "route_config_sha256": route_hash,
         "collector_config_sha256": collector_hash,
+        "object_lift_axis": dict(expected_axis),
     }
 
 

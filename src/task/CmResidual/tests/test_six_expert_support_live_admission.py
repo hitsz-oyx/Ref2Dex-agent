@@ -7,7 +7,10 @@ import pytest
 import torch
 
 from src.task.CmResidual.cmlite import local_translation_target
-from src.task.CmResidual.six_expert_support_adapter import validate_payload
+from src.task.CmResidual.six_expert_support_adapter import (
+    load_main_contract,
+    validate_payload,
+)
 
 
 def _payload(rows: int = 6):
@@ -33,6 +36,7 @@ def _payload(rows: int = 6):
         "object_pose_t_object_local_frame": pose_t,
         "object_pose_t_plus_1_object_local_frame": pose_next,
         "target_delta_object_local_1": pose_next - pose_t,
+        "object_lift_axis": torch.tensor([[0.0, 0.0, 1.0]] * rows),
         "candidate_actions": candidate,
         "candidate_expert_names_and_checkpoint_sha256": [
             [{"name": name, "checkpoint_sha256": checkpoint[name]}
@@ -60,6 +64,9 @@ def _payload(rows: int = 6):
         "candidate_experts": names,
         "base_expert": "source_e260",
         "post_option_policy": "canonical_route_expert",
+        "provenance": {
+            "object_lift_axis": dict(load_main_contract().OBJECT_LIFT_AXIS_METADATA),
+        },
         "records": records,
     }
     expected = {
@@ -98,6 +105,31 @@ def test_live_admission_fails_closed_on_arm_underflow():
     payload, expected = _payload()
     with pytest.raises(ValueError, match="arm support below 2"):
         validate_payload(payload, expected_provenance=expected, min_rows_per_arm=2)
+
+
+def test_live_admission_rejects_nonunit_axis_and_missing_provenance():
+    payload, expected = _payload()
+    payload["records"]["object_lift_axis"][0, 0] = 0.5
+    with pytest.raises(ValueError, match="unit length"):
+        validate_payload(payload, expected_provenance=expected, min_rows_per_arm=1)
+
+    payload, expected = _payload()
+    payload["provenance"].pop("object_lift_axis")
+    with pytest.raises(ValueError, match="provenance"):
+        validate_payload(payload, expected_provenance=expected, min_rows_per_arm=1)
+
+
+def test_object_lift_axis_is_world_z_in_trigger_object_local_frame():
+    # A +90 degree x rotation maps local +y to world +z.  Inverting world +z
+    # therefore yields local +y, proving this is not a hard-coded local z.
+    from src.task.CmResidual.cmlite import _quat_rotate_inverse_xyzw
+
+    half = 2 ** -0.5
+    quat = torch.tensor([[half, 0.0, 0.0, half]])
+    world_z = torch.tensor([[0.0, 0.0, 1.0]])
+    axis = _quat_rotate_inverse_xyzw(quat, world_z)
+    torch.testing.assert_close(axis, torch.tensor([[0.0, 1.0, 0.0]]),
+                               atol=1e-6, rtol=0)
 
 
 def test_object_local_delta_rotates_world_translation():

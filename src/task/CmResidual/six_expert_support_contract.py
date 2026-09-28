@@ -24,6 +24,12 @@ CONTACT_HORIZON = 5
 MIN_ROWS_PER_ARM = 30
 PROPENSITY = 1.0 / EXPERT_COUNT
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+OBJECT_LIFT_AXIS_METADATA = {
+    "world_axis": [0.0, 0.0, 1.0],
+    "frame": "object_local_at_trigger_t",
+    "source": "inverse_rotation_world_z_using_trigger_object_quaternion_xyzw",
+    "conversion": "local_translation_target_inverse_quaternion_xyzw",
+}
 
 REQUIRED_FIELDS = frozenset(
     {
@@ -38,6 +44,7 @@ REQUIRED_FIELDS = frozenset(
         "executed_action",
         "object_pose_t_plus_1_object_local_frame",
         "target_delta_object_local_1",
+        "object_lift_axis",
         "contact_mask_t_plus_1_to_t_plus_5",
         "router_teacher_candidate_id",
         "router_teacher_action",
@@ -157,6 +164,13 @@ def validate_record(record: Mapping[str, Any]) -> dict[str, Any]:
             for actual, expected in zip(delta, expected_delta)),
         "target_delta_object_local_1 does not match object-local pose difference",
     )
+    axis = _finite_vector(record["object_lift_axis"],
+                          name="object_lift_axis", length=3)
+    _fail(
+        math.isclose(sum(value * value for value in axis), 1.0,
+                     rel_tol=0.0, abs_tol=1e-5),
+        "object_lift_axis must be unit length",
+    )
 
     candidate_actions_value = record["candidate_actions"]
     _fail(isinstance(candidate_actions_value, (list, tuple)) and
@@ -214,6 +228,7 @@ def validate_record(record: Mapping[str, Any]) -> dict[str, Any]:
         "route_config_sha256": route_hash,
         "collector_config_sha256": collector_hash,
         "observation_dim": len(observation),
+        "object_lift_axis_metadata": OBJECT_LIFT_AXIS_METADATA,
     }
 
 
@@ -250,6 +265,9 @@ def validate_records(records: Iterable[Mapping[str, Any]], *,
     ):
         if key in expected:
             _fail(expected[key] == actual, f"{key} does not match expected provenance")
+    if "object_lift_axis" in expected:
+        _fail(expected["object_lift_axis"] == OBJECT_LIFT_AXIS_METADATA,
+              "object_lift_axis provenance differs from canonical metadata")
 
     arm_counts = {
         split: {str(arm): 0 for arm in range(EXPERT_COUNT)}
@@ -288,6 +306,7 @@ def validate_records(records: Iterable[Mapping[str, Any]], *,
         "router_model_sha256": router_model,
         "route_config_sha256": route_hash,
         "collector_config_sha256": collector_hash,
+        "object_lift_axis_metadata": OBJECT_LIFT_AXIS_METADATA,
     }
 
 
@@ -308,6 +327,7 @@ def build_manifest(records: Iterable[Mapping[str, Any]], *,
             "router_teacher_source": "c1_observation_router",
             "fit_holdout_episode_disjoint": True,
             "minimum_valid_rows_per_arm": min_rows_per_arm,
+            "object_lift_axis": OBJECT_LIFT_AXIS_METADATA,
         },
         "summary": summary,
     }
@@ -320,6 +340,7 @@ __all__ = [
     "EXPERT_COUNT",
     "MIN_ROWS_PER_ARM",
     "OBSERVATION_DIM",
+    "OBJECT_LIFT_AXIS_METADATA",
     "PROPENSITY",
     "SCHEMA",
     "build_manifest",

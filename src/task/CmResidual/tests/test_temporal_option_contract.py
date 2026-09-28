@@ -21,6 +21,7 @@ from src.task.CmResidual.temporal_option_contract import (
     sha256_path,
     validate_frozen_contract,
     validate_record_payload,
+    OBJECT_LIFT_AXIS_METADATA,
 )
 
 
@@ -47,6 +48,9 @@ def test_frozen_route_and_collector_are_exact_six_arm_contract():
         "s3_airplane_lift", "s7_airplane_lift_Retake", "s9_airplane_lift"]
     assert collector["assignment"]["propensity_numerator"] == 1
     assert collector["assignment"]["propensity_denominator"] == 6
+    assert collector["object_lift_axis"] == OBJECT_LIFT_AXIS_METADATA
+    assert collector["provenance_requirements"]["object_lift_axis"] == (
+        OBJECT_LIFT_AXIS_METADATA)
     assert collector["temporal_contract"] == {
         "history_steps": 10,
         "option_steps": 10,
@@ -164,6 +168,7 @@ def _synthetic_payload():
             [[0.01, -0.02, 0.03]] * n),
         "target_delta_object_local_1": torch.tensor(
             [[0.01, -0.02, 0.03]] * n),
+        "object_lift_axis": torch.tensor([[0.0, 0.0, 1.0]] * n),
         "contact_mask_t_plus_1_to_t_plus_5": contact[:, :5].clone(),
         "candidate_expert_names_and_checkpoint_sha256": [
             [{"name": name, "checkpoint_sha256": provenance["expert_checkpoint_sha256"][name]}
@@ -201,6 +206,7 @@ def _synthetic_payload():
             "motion_sha256": provenance["motion_sha256"],
             "evaluator_sha256": "a" * 64,
             "evaluator_git_blob_sha1": "b" * 40,
+            "object_lift_axis": dict(OBJECT_LIFT_AXIS_METADATA),
         },
         "records": records,
     }, collector, provenance
@@ -291,3 +297,15 @@ def test_temporal_source_keeps_trigger_teacher_distinct_from_initial_route():
     assert "self._router_teacher(" in source
     assert '"router_teacher_source": ["c1_observation_router"]' in source
     assert '"route_expert": [collector["base_expert"]]' in source
+
+
+def test_temporal_source_derives_world_z_axis_with_delta_semantics_unchanged():
+    source = EVALUATOR.read_text()
+    assert "def _object_local_lift_axis" in source
+    assert "_quat_rotate_inverse_xyzw" in source
+    assert "world_axis[:, 2] = 1.0" in source
+    assert "self.trigger_object_lift_axis[pose_rows] = lift_axis" in source
+    assert '"object_lift_axis": self.trigger_object_lift_axis[' in source
+    assert '"object_lift_axis": OBJECT_LIFT_AXIS_METADATA' in source
+    assert "self.trigger_object_pose_t_plus_1[pose_rows] = delta" in source
+    assert "self.trigger_target_delta[pose_rows] = delta" in source

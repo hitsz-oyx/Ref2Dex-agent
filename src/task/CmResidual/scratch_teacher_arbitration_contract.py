@@ -27,6 +27,12 @@ MODEL_ID = "CM-SCRATCH-TA-20260928"
 CANDIDATE_COUNT = 6
 ASSIGNMENT_PROPENSITY = 1.0 / CANDIDATE_COUNT
 CONTACT_HORIZON = 5
+OBJECT_LIFT_AXIS_METADATA = {
+    "world_axis": [0.0, 0.0, 1.0],
+    "frame": "object_local_at_trigger_t",
+    "source": "inverse_rotation_world_z_using_trigger_object_quaternion_xyzw",
+    "conversion": "local_translation_target_inverse_quaternion_xyzw",
+}
 
 
 class ContractError(ValueError):
@@ -85,7 +91,10 @@ def validate_row(row: Mapping[str, Any], *, candidate_count: int = CANDIDATE_COU
              f"candidate_id must be in [0, {candidate_count})")
     _finite_vector(row["candidate_action"], name="candidate_action")
     _finite_vector(row["pre_action_observation"], name="pre_action_observation")
-    _finite_vector(row["object_lift_axis"], name="object_lift_axis", length=3)
+    axis = _finite_vector(row["object_lift_axis"], name="object_lift_axis", length=3)
+    _require(math.isclose(sum(value * value for value in axis), 1.0,
+                          rel_tol=0.0, abs_tol=1e-5),
+             "object_lift_axis must be unit length")
     _finite_vector(row["target_delta_object_local_1"],
                    name="target_delta_object_local_1", length=3)
     retention = row["target_contact_retention_h5"]

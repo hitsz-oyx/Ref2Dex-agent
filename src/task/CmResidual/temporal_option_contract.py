@@ -20,6 +20,12 @@ RUN_SCHEMA = "ref2dex.temporal_expert_option_run.v2"
 ROUTE_SCHEMA = "ref2dex.hf02_temporal_canonical_route.v1"
 STATE_DIM = 49
 ACTION_DIM = 18
+OBJECT_LIFT_AXIS_METADATA = {
+    "world_axis": [0.0, 0.0, 1.0],
+    "frame": "object_local_at_trigger_t",
+    "source": "inverse_rotation_world_z_using_trigger_object_quaternion_xyzw",
+    "conversion": "local_translation_target_inverse_quaternion_xyzw",
+}
 
 
 class ContractError(ValueError):
@@ -171,6 +177,7 @@ def validate_frozen_contract(
         "object_pose_t_object_local_frame",
         "object_pose_t_plus_1_object_local_frame",
         "target_delta_object_local_1",
+        "object_lift_axis",
         "contact_mask_t_plus_1_to_t_plus_5",
         "candidate_expert_names_and_checkpoint_sha256",
         "executed_action", "router_teacher_candidate_id",
@@ -180,6 +187,11 @@ def validate_frozen_contract(
     }
     _require(set(collector.get("record_schema", {})) == required_fields,
              "record schema fields differ from the Probe card contract")
+    _require(collector.get("object_lift_axis") == OBJECT_LIFT_AXIS_METADATA,
+             "collector object_lift_axis provenance differs")
+    _require(collector.get("provenance_requirements", {}).get("object_lift_axis") ==
+             OBJECT_LIFT_AXIS_METADATA,
+             "collector object_lift_axis provenance requirement differs")
 
     checkpoint_hashes = {
         name: route["experts"][name]["sha256"] for name in expected_experts
@@ -324,6 +336,8 @@ def validate_record_payload(
     _require(isinstance(provenance.get("evaluator_git_blob_sha1"), str) and
              len(provenance["evaluator_git_blob_sha1"]) == 40,
              "payload evaluator blob hash missing")
+    _require(provenance.get("object_lift_axis") == OBJECT_LIFT_AXIS_METADATA,
+             "payload object_lift_axis provenance differs")
     if expected_provenance is not None:
         _require(provenance.get("collector_config_sha256") ==
                  expected_provenance.get("collector_config_sha256"),
@@ -355,6 +369,7 @@ def validate_record_payload(
         "object_pose_t_object_local_frame": (n, 3),
         "object_pose_t_plus_1_object_local_frame": (n, 3),
         "target_delta_object_local_1": (n, 3),
+        "object_lift_axis": (n, 3),
         "contact_mask_t_plus_1_to_t_plus_5": (n, 5),
         "executed_action": (n, ACTION_DIM),
         "router_teacher_candidate_id": (n,),
@@ -414,6 +429,7 @@ def validate_record_payload(
         "history_action", "option_candidate_action", "option_executed_action",
         "pre_action_observation", "object_pose_t_object_local_frame",
         "object_pose_t_plus_1_object_local_frame", "target_delta_object_local_1",
+        "object_lift_axis",
         "executed_action", "router_teacher_action",
         "future_contact_supported_lift_m", "followup_contact_fraction",
         "followup_max_contact_lift_m", "final_max_contact_lift_m",
@@ -453,6 +469,13 @@ def validate_record_payload(
         _tensor(records, "object_pose_t_object_local_frame"),
         rtol=0.0, atol=1e-9)),
         "object-local signed delta differs from pose pair")
+    axis = _tensor(records, "object_lift_axis").float()
+    _require(bool(torch.isfinite(axis).all()),
+             "nonfinite record field: object_lift_axis")
+    _require(bool(torch.allclose(axis.square().sum(dim=1),
+                                 torch.ones_like(axis[:, 0]),
+                                 rtol=0.0, atol=1e-5)),
+             "object_lift_axis must be unit length")
     _require(bool(torch.allclose(
         _tensor(records, "contact_mask_t_plus_1_to_t_plus_5").float(),
         _tensor(records, "future_contact_mask")[:, :5].float(),
