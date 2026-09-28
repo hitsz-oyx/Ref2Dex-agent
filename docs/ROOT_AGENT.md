@@ -70,12 +70,15 @@ lease 用下面的本地控制命令管理：
 ```bash
 python3 scripts/researchctl.py supervisor pause \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor resume \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor status \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 
@@ -89,9 +92,14 @@ python3 scripts/researchctl.py supervisor status \
 5. 收到 `TASK_UPDATE`、`TASK_HANDOFF` 或用户消息后回到第 2 步；事件通知本身不替
    root 做科学决定。
 
-只有发现真实 Decision Checkpoint、资源边界、安全风险或没有任何边界内行动时，才向
-用户提交简短 Decision Memo 或说明等待原因。固定角色和 watchdog 的存在不会增加新的
-科研授权；Cm 仍遵守 `docs/STATE.md` 的冻结和 `agent_cm` 当前权限。
+发现 Decision Checkpoint 时，root 先记录简短 Decision Memo，再按当前用户授权、证据、
+资源和安全边界自主选择路线。只有行动超出授权、需要改变核心问题/claim、突破资源或
+权限限制、执行不可逆外部操作，或没有任何边界内行动时，才向用户请求授权或说明等待
+原因。固定角色和 watchdog 的存在不会增加科研权限；路线状态以 `STATE.md` 的当前
+事实为准，历史处置记录不构成永久的 Option A/Option B 插入点。
+
+watchdog 与兼容 poller 共享 `recovery_control_decision` 的判断算法，但不共享持久化
+周期 guard，也不提供跨进程去重；部署时只启用一个恢复 owner，默认使用 watchdog。
 
 ## 集成边界
 

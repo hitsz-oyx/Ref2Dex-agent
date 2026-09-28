@@ -111,6 +111,42 @@ def _pending_poll_payload() -> str:
     )
 
 
+@pytest.mark.parametrize(
+    ("status", "authorized", "consumed", "action"),
+    [
+        ("active", True, None, "ACTIVE"),
+        ("paused", True, None, "RESUME"),
+        ("blocked", True, None, "RESUME"),
+        ("paused", False, None, "OBSERVE"),
+        ("blocked", True, "goal-1", "NOOP"),
+        ("usage_limited", True, None, "BUDGET_LIMITED"),
+        ("budget_limited", True, None, "BUDGET_LIMITED"),
+        ("completed", True, None, "TERMINAL"),
+        ("unknown", True, None, "OBSERVE"),
+    ],
+)
+def test_recovery_control_decision_has_one_bounded_contract(
+    status, authorized, consumed, action,
+):
+    decision = poller.recovery_control_decision(
+        {"goal_id": "goal-1", "status": status},
+        resume_authorized=authorized,
+        consumed_goal_id=consumed,
+    )
+    assert decision["schema"] == poller.RECOVERY_CONTROL_SCHEMA
+    assert decision["action"] == action
+
+
+def test_recovery_control_decision_is_pure_for_capacity_and_terminal_states():
+    goal = {"goal_id": "goal-capacity", "status": "usage_limited"}
+    before = dict(goal)
+    decision = poller.recovery_control_decision(
+        goal, resume_authorized=True, consumed_goal_id=None,
+    )
+    assert decision["action"] == "BUDGET_LIMITED"
+    assert goal == before
+
+
 def test_initial_snapshot_is_silent_then_own_completion_emits_once(tmp_path, monkeypatch):
     _setup(monkeypatch)
     child, rollout = _child(tmp_path, "child")

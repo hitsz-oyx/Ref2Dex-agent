@@ -29,10 +29,10 @@ SCHEMA = "ref2dex.root_watchdog.v1"
 LEASE_SCHEMA = "ref2dex.supervisor_lease.v1"
 ROOT_LIVENESS_WAKE = "ROOT_LIVENESS_WAKE\n"
 ROOT_BUDGET_LIMITED = "ROOT_BUDGET_LIMITED\n"
-ACTIVE = frozenset({"active", "running"})
-BUDGET = frozenset({"usage_limited", "budget_limited"})
-TERMINAL = frozenset({"complete", "completed", "failed", "stopped", "terminated"})
-RESUMABLE = frozenset({"paused", "blocked"})
+ACTIVE = runtime.ACTIVE_ROOT_GOAL_STATUSES
+BUDGET = runtime.ROOT_BUDGET_GOAL_STATUSES
+TERMINAL = runtime.ROOT_TERMINAL_GOAL_STATUSES
+RESUMABLE = runtime.RESUMABLE_ROOT_GOAL_STATUSES
 ROOT_IDENTITY_FIELDS = ("conversation_id", "codex_home", "worktree", "branch")
 ROOT_BINDING_SCHEMA = "ref2dex.agent_bindings.v2"
 
@@ -270,6 +270,14 @@ def check_once(args) -> dict:
         "status": "matched" if identity_ok else "rejected",
         "reason": identity_report,
     }
+    recovery = runtime.recovery_control_decision(
+        goal,
+        resume_authorized=bool(
+            identity_ok and lease.get("enabled") and lease.get("allow_root_resume")
+        ),
+        consumed_goal_id=state.get("resume_consumed_goal_id"),
+    )
+    state["recovery_control"] = recovery
     state["updated_at"] = now
 
     # Identity is checked before constructing the broker.  A stale or
@@ -302,9 +310,7 @@ def check_once(args) -> dict:
         return state
 
     if status == "ROOT_PAUSED":
-        consumed = state.get("resume_consumed_goal_id")
-        allowed = bool(lease.get("enabled") and lease.get("allow_root_resume"))
-        if allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and not args.dry_run:
+        if recovery["action"] == "RESUME" and not args.dry_run:
             resumed = _resume_root_goal(root, goal, args)
             if broker is not None:
                 broker.control(action="RESUME", target="root", reason="lease-authorized bounded root resume")
@@ -316,7 +322,7 @@ def check_once(args) -> dict:
             state["last_status"] = "ROOT_RUNNING"
             state["last_reason"] = "lease-authorized Goal resume"
             print("RESUMED paused or blocked root Goal via app-server", flush=True)
-        elif allowed and goal.get("goal_id") and consumed != goal.get("goal_id") and args.dry_run:
+        elif recovery["action"] == "RESUME" and args.dry_run:
             print("DRY_RUN would resume root Goal via autonomy lease", flush=True)
         _write_json_atomic(state_path, state)
         return state

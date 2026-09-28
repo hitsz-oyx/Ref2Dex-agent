@@ -52,6 +52,8 @@ def main(argv=None) -> int:
     parser.add_argument("--broker-roles", type=Path, default=Path("docs/AGENT_ROLES.yaml"))
     parser.add_argument("--broker-bindings", type=Path, default=Path(".runtime/AGENT_BINDINGS.json"))
     args = parser.parse_args(argv)
+    if bool(args.broker_tasks_db) != bool(args.broker_state_db):
+        parser.error("broker control plane requires both --broker-tasks-db and --broker-state-db")
     if args.action == "status":
         value = {"lease": load_lease(args.lease)}
         if args.broker_state_db:

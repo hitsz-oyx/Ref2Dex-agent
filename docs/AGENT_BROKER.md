@@ -36,6 +36,23 @@ Broker 只接受以下四类消息：
 worker 之间不能直接通信；跨角色依赖必须用 `TASK_HANDOFF` 退回 root，由 root 重新
 发出 `TASK_DISPATCH`。Broker 不创建 agent，不调用模型，不推断科学结论。
 
+## Root recovery control plane
+
+`researchctl.py` 是 lease/supervisor 控制入口，只能写 `CONTROL/PAUSE` 或
+`CONTROL/RESUME` 来改变 Broker 的 desired state；它不直接恢复 Goal。默认恢复 owner
+是 `root_watchdog.py`：经过 runtime identity、lease 和 Broker desired-state 检查后，
+它才通过同一 root app-server 做一次 `paused`/`blocked` readback，并写对应的
+`CONTROL/RESUME`。`agent_result_poller.py` 的 `--root-goal-resume-once` 是迁移期兼容
+开关，`worker_event_poller.py` 只能写 `TASK_UPDATE`。
+
+所有入口使用同一纯 `recovery_control_decision` 算法；该 helper 不持久化 guard，也不
+提供 watchdog 与 legacy poller 之间的跨进程去重。每个进程的周期 guard 仍保存在各自
+状态文件中，因此部署时只能有一个 recovery owner：默认使用 watchdog，legacy
+`--root-goal-resume-once` 仅作显式兼容入口，不能与 watchdog 并行运行。容量/预算状态
+（`usage_limited`、`budget_limited`）、终态和未知状态只记录或写 `CONTROL/BUDGET_LIMITED`，
+不绕过平台上限；外部容量错误导致的 `blocked` 仍最多恢复一次，直到观察到 `active` 才
+开启下一周期。
+
 ## Provider adapters
 
 代码内置四个确定性 adapter 名称：`codex_app_server`、`codex_cli`、`newapi` 和

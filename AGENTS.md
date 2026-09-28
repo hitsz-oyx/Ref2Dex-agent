@@ -49,17 +49,17 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 9. 与当前问题直接相关的代码
 10. 当前活跃实验记录（如果存在）
 
-文档分类入口见 [`docs/README.md`](docs/README.md)；workflow 和 research 的索引分别
-见 [`docs/workflow/README.md`](docs/workflow/README.md) 与
-[`docs/research/README.md`](docs/research/README.md)。这些索引不替代上面的最小上下文
-清单，只用于定位当前入口和区分历史资料。
-
 如果任务涉及代理身份、runtime binding、任务派发、工作树或 provider 迁移，还必须
 读取 [`docs/AGENT_REGISTRY.json`](docs/AGENT_REGISTRY.json)、本机
 `.runtime/AGENT_BINDINGS.json`（若存在）以及
 [`.agents/skills/create-ref2dex-agent/SKILL.md`](.agents/skills/create-ref2dex-agent/SKILL.md)。
 如果任务是 workflow 迁移或规范审计，仓库中的 `docs/ref.md` 也属于直接相关上下文；
 它是设计输入，不替代本文件和当前状态。
+
+文档分类入口见 [`docs/README.md`](docs/README.md)；workflow 和 research 的索引分别
+见 [`docs/workflow/README.md`](docs/workflow/README.md) 与
+[`docs/research/README.md`](docs/research/README.md)。这些索引不替代上面的最小上下文
+清单，只用于定位当前入口和区分历史资料。
 
 不要默认批量读取：
 
@@ -176,7 +176,7 @@ Validation 才要求 matched control、多 seed、固定 metric、预先定义�
 
 ## 5. Decision Checkpoint
 
-以下情况必须暂停自主推进并向用户提交 Decision Memo：
+以下情况必须在继续前记录简短 Decision Memo，并重新核对证据、资源和安全边界：
 
 1. 准备改变 `MISSION.md` 中的核心研究问题；
 2. 准备放弃一个核心研究假设；
@@ -191,11 +191,14 @@ Decision Memo 必须简短，只包含：
 
 * 当前需要决定的问题；
 * 当前最关键证据；
-* Option A；
-* Option B（必要时 Option C）；
-* 每个选项预计成本；
-* 每个选项成功/失败后会去哪里；
-* AI 当前建议及理由。
+* root 选择的行动及其理由；
+* 预计成本、成功/失败后的下一步和停止条件；
+* 仍需外部授权的边界（如果存在）。
+
+在 `MISSION.md`、`CAMPAIGN.md` 和当前用户授权允许的范围内，root 自主选择并执行
+记录过的行动，不要求用户在预设的 Option A/Option B 之间插入选择。只有改变核心研究
+问题或 claim、突破资源/权限边界、执行不可逆外部操作，或需要新的长期身份时，才暂停
+并向用户请求相应授权。
 
 不要提交长篇计划让用户审批。
 

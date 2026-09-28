@@ -152,6 +152,22 @@ rollout 和 Broker supervisor state。启用 Broker 时它写 `CONTROL`（`WAKE`
 * 这个 guard 只约束 liveness 操作，不把 `paused`、`blocked` 或恢复失败解释为科研
   任务完成，也不改变 root 的 Mission-level Goal 生命周期。
 
+恢复控制平面由 `scripts/agent_result_poller.py` 中的纯函数
+`recovery_control_decision` 统一判断 Goal 状态、容量/终态和周期 guard；它不写
+数据库、不调用 app-server。`root_watchdog.py` 是默认且唯一的 lease-authorized
+恢复 owner，负责通过 app-server 验证 `active` 后写 `CONTROL/RESUME`；
+`researchctl.py` 只管理 lease 与 Broker supervisor desired state。兼容
+`agent_result_poller.py` 只有显式 opt-in 才能走旧 queue/app-server 路径，不能与
+watchdog 并行作为默认 owner；`worker_event_poller.py` 只写 `TASK_UPDATE`。
+
+这里共享的是判断算法，不是持久化状态：watchdog 与 legacy poller 各自维护本地周期
+guard，helper 不提供跨进程去重或共享 persistent guard。因此部署只能选择一个恢复
+owner，默认启用 watchdog，legacy 入口不得与其并行运行。
+
+`usage_limited`、`budget_limited`、终态和未知状态都不得转换成恢复动作。外部
+`server_overloaded` 等容量错误若使 Goal 回到 `blocked`，仍受同一 Goal 周期 guard
+约束；恢复失败保留 `blocked` 观察状态，不得伪造完成或绕过平台上限。
+
 watchdog 不读取 Cm、PPO、reward 或实验指标，也不选择下一任务。lease 缺失等同
 于禁用。使用：
 
@@ -166,6 +182,7 @@ python3 scripts/researchctl.py supervisor pause \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor status \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 

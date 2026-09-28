@@ -214,6 +214,14 @@ def test_watchdog_budget_and_terminal_states_are_not_resumed() -> None:
         None,
         1.0,
     )[0] == "ROOT_PAUSED"
+    assert watchdog.runtime.recovery_control_decision(
+        {"goal_id": "goal-budget", "status": "budget_limited"},
+        resume_authorized=True,
+    )["action"] == "BUDGET_LIMITED"
+    assert watchdog.runtime.recovery_control_decision(
+        {"goal_id": "goal-terminal", "status": "completed"},
+        resume_authorized=True,
+    )["action"] == "TERMINAL"
     assert classify(
         {"status": "blocked"},
         {"rollout": {"status": "known", "active_turns": []}},
@@ -234,6 +242,14 @@ def test_researchctl_pause_and_resume_only_change_local_lease(tmp_path: Path) ->
     paused = json.loads(lease.read_text(encoding="utf-8"))
     assert paused["enabled"] is False
     assert paused["generation"] == resumed["generation"] + 1
+
+
+def test_researchctl_rejects_partial_broker_database_configuration(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        researchctl_main([
+            "supervisor", "status",
+            "--broker-state-db", str(tmp_path / "state.sqlite"),
+        ])
 
 
 def _watchdog_fixture(tmp_path: Path, *, binding: dict | None = None,
@@ -351,6 +367,7 @@ def test_watchdog_resumes_paused_or_blocked_root_goal_uniformly(
     assert result["last_status"] == "ROOT_RUNNING"
     assert result["observed_goal_status"] == goal_status
     assert result["resume_consumed_goal_id"] == f"goal-{goal_status}"
+    assert result["recovery_control"]["action"] == "RESUME"
     if broker_mode:
         assert broker_calls and broker_calls[0]["action"] == "RESUME"
 

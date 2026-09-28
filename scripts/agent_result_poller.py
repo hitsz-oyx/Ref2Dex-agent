@@ -20,6 +20,7 @@ TASK_COMPLETE = "task_complete"
 POLL_EVENT_PREFIX = "POLL_EVENT\n"
 ROOT_DECISION_WAKE_PREFIX = "ROOT_DECISION_WAKE\n"
 ROLLOUT_PARSER_VERSION = 2
+RECOVERY_CONTROL_SCHEMA = "ref2dex.root_recovery_control.v1"
 
 # Only these terminal/waiting states are safe evidence that an execution
 # owner is idle.  Unknown values are deliberately not treated as idle: a
@@ -30,6 +31,10 @@ IDLE_GOAL_STATUSES = frozenset({
 })
 ACTIVE_ROOT_GOAL_STATUSES = frozenset({"active", "running"})
 RESUMABLE_ROOT_GOAL_STATUSES = frozenset({"paused", "blocked"})
+ROOT_BUDGET_GOAL_STATUSES = frozenset({"usage_limited", "budget_limited"})
+ROOT_TERMINAL_GOAL_STATUSES = frozenset({
+    "complete", "completed", "terminal", "failed", "stopped", "terminated",
+})
 
 
 def read_json(path):
@@ -543,6 +548,45 @@ def _normal_goal_status(goal):
     return status.strip().lower() if isinstance(status, str) else None
 
 
+def recovery_control_decision(goal, *, resume_authorized: bool,
+                              consumed_goal_id=None) -> dict:
+    """Return the bounded recovery action shared by watchdog and legacy poller.
+
+    This is deliberately a pure decision helper.  It does not mutate Goal or
+    queue state, invoke an app-server, or write Broker messages.  Callers must
+    perform their own runtime identity check before setting ``resume_authorized``
+    and persist the cycle guard only after an app-server readback succeeds.
+    Capacity and terminal statuses are report-only and never become resume
+    actions.
+    """
+
+    status = _normal_goal_status(goal)
+    goal_id = goal.get("goal_id") if isinstance(goal, dict) else None
+    if status in ROOT_BUDGET_GOAL_STATUSES:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "BUDGET_LIMITED",
+                "status": status, "reason": "platform budget or usage limit"}
+    if status in ROOT_TERMINAL_GOAL_STATUSES:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "TERMINAL",
+                "status": status, "reason": "terminal Goal status"}
+    if status in ACTIVE_ROOT_GOAL_STATUSES:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "ACTIVE",
+                "status": status, "reason": "active Goal"}
+    if status not in RESUMABLE_ROOT_GOAL_STATUSES:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "OBSERVE",
+                "status": status, "reason": "unknown Goal status"}
+    if not goal_id:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "OBSERVE",
+                "status": status, "reason": "resumable Goal has no goal_id"}
+    if consumed_goal_id == goal_id:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "NOOP",
+                "status": status, "goal_id": goal_id, "reason": "recovery cycle already consumed"}
+    if not resume_authorized:
+        return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "OBSERVE",
+                "status": status, "goal_id": goal_id, "reason": "resume not authorized"}
+    return {"schema": RECOVERY_CONTROL_SCHEMA, "action": "RESUME",
+            "status": status, "goal_id": goal_id, "reason": "lease-authorized recovery cycle"}
+
+
 def execution_idle_snapshot(children, snapshots):
     """Classify registered execution owners without inferring unknown state.
 
@@ -846,12 +890,13 @@ def poll_once(args):
     if isinstance(consumed_goal_id, str) and consumed_goal_id:
         supervision["root_goal_resume_consumed_goal_id"] = consumed_goal_id
     resume_once = bool(getattr(args, "root_goal_resume_once", False))
-    resumable_resume = (
-        resume_once
-        and _normal_goal_status(root_goal) in RESUMABLE_ROOT_GOAL_STATUSES
-        and root_goal.get("goal_id")
-        and consumed_goal_id != root_goal.get("goal_id")
+    recovery = recovery_control_decision(
+        root_goal,
+        resume_authorized=resume_once,
+        consumed_goal_id=consumed_goal_id,
     )
+    supervision["recovery_control"] = recovery
+    resumable_resume = recovery["action"] == "RESUME"
     if not all_execution_idle:
         supervision["wake_pending"] = False
         supervision["wake_sent"] = False

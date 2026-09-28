@@ -69,17 +69,25 @@ root rollout、Broker supervisor state 和 `.runtime/SUPERVISOR_LEASE.json`，�
 `python3 scripts/researchctl.py supervisor pause|resume|status` 管理授权。
 
 职责边界：`worker_event_poller.py` 是当前 Broker 事件源，永远不修改或恢复 root
-Goal；`agent_result_poller.py` 只作为历史兼容路径保留。兼容路径的
-`--root-goal-resume-once` 是显式 opt-in，每个连续的 `paused` 或 `blocked` 周期最多
-恢复一次；没有该开关时，poller 只记录/转发事件，不自动恢复。默认的 lease-authorized
-root 恢复由 `root_watchdog.py` 负责。两条路径都必须保持相同的 paused/blocked 周期
-去重、active 后重置、identity/lease/budget/terminal 安全边界。
+Goal；它只向固定 worker 集合写 `TASK_UPDATE`。`agent_result_poller.py` 只作为历史兼容路径保留。
+兼容路径的 `--root-goal-resume-once` 是显式 opt-in，每个连续的
+`paused` 或 `blocked` 周期最多恢复一次；没有该开关时，poller 只记录/转发事件，不
+自动恢复。默认的 lease-authorized root 恢复由 `root_watchdog.py` 负责。
+
+两条恢复路径共用 `agent_result_poller.py` 的纯 `recovery_control_decision` 判断：
+它统一 `active`、`paused`、`blocked`、容量/预算、终态、未知状态和 Goal-ID 周期
+guard，但不产生副作用；共享的是算法，不是持久化状态，两个进程之间没有 shared
+persistent guard 或跨进程去重。watchdog 在身份和 lease 校验后才执行 app-server readback
+并写 `CONTROL/RESUME`；兼容 poller 只有显式 opt-in 才能调用旧 queue 路径。两条路径
+都必须保持 identity、lease、本进程周期去重和容量/终态安全边界；部署时只能选择一个
+recovery owner，默认使用 watchdog，不能让 legacy poller 与其并行运行。
 
 恢复周期合同与 watchdog 相同：同一 Goal 在连续的 `paused` 或 `blocked` 周期内只允
 许一次 lease-authorized resume；重复观察不得重复写 `RESUME` 或重复唤醒。只有观察到
 同一 Goal 回到 `active` 才清除该周期 guard，之后再次 `paused` 或 `blocked` 才能进入
 下一次恢复周期。这个状态标记只用于 liveness 去重，不表示研究任务完成或改变 Goal
-生命周期。
+生命周期。`usage_limited`、`budget_limited`、终态和未知状态是容量/安全边界，不能
+自动恢复；`server_overloaded` 后重新观察到 `blocked` 仍按上述周期合同处理。
 
 未提供 `--broker-*` 参数的旧 queue 路径仍可用于迁移期预检；它产生的 `POLL_EVENT`
 不属于当前四类 Broker 消息。

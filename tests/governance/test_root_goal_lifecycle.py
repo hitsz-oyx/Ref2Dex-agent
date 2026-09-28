@@ -67,3 +67,32 @@ def test_root_recovery_ownership_and_legacy_poller_opt_in_are_documented() -> No
     assert "root_watchdog.py" in root_policy
     assert "allow_root_resume" in coordination
     assert "--root-goal-resume-once" in poller_script
+
+
+def test_autonomous_decision_memo_replaces_mandatory_option_pair() -> None:
+    policy = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    root_policy = (ROOT / "docs/ROOT_AGENT.md").read_text(encoding="utf-8")
+
+    assert "root 自主选择并执行" in policy
+    assert "预设的 Option A/Option B 之间插入选择" in policy
+    assert "root 先记录简短 Decision Memo" in root_policy
+    assert "历史处置记录不构成永久的 Option A/Option B 插入点" in root_policy
+    assert "* Option A；" not in policy
+    assert "* Option B" not in policy
+
+
+def test_recovery_control_plane_has_single_owner_and_shared_decision_helper() -> None:
+    coordination = (ROOT / "docs/AGENT_COORDINATION.md").read_text(encoding="utf-8")
+    broker = (ROOT / "docs/AGENT_BROKER.md").read_text(encoding="utf-8")
+    poller = (ROOT / "docs/AGENT_POLLER.md").read_text(encoding="utf-8")
+    watchdog = (ROOT / "scripts/root_watchdog.py").read_text(encoding="utf-8")
+    legacy = (ROOT / "scripts/agent_result_poller.py").read_text(encoding="utf-8")
+
+    for document in (coordination, broker, poller):
+        assert "root_watchdog.py" in document
+        assert "recovery_control_decision" in document or "默认恢复 owner" in document
+        assert "usage_limited" in document
+        assert "budget_limited" in document
+    assert "recovery_control_decision" in watchdog
+    assert "recovery_control_decision" in legacy
+    assert "ROOT_TERMINAL_GOAL_STATUSES" in legacy
