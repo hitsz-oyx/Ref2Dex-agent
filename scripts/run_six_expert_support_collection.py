@@ -33,10 +33,13 @@ CHECKPOINT_RELATIVE = Path(
     "GRAB_00000260.pth")
 ROUTER_RELATIVE = Path(
     "outputs/CmResidual/agent_six_expert_router_model_20260925/router.joblib")
+DEXPLORE_RELATIVE = Path("third_party/DExplore")
 CFG_ENV_RELATIVE = Path(
     "third_party/DExplore/dexplore/data/cfg/inspire_object_balanced.yaml")
 CFG_TRAIN_RELATIVE = Path(
     "third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml")
+ASSET_ROOT_RELATIVE = Path("dexplore/data/assets")
+AIRPLANE_ASSET_RELATIVE = ASSET_ROOT_RELATIVE / "mjcf/objects/airplane/airplane.obj"
 
 SPLITS: Mapping[str, Mapping[str, int]] = {
     "fit": {"simulator_seed": 256, "assignment_seed": 20260928256},
@@ -72,6 +75,25 @@ def _canonical_config_paths(root: Path = MAIN_ROOT) -> tuple[Path, Path]:
     if missing:
         raise FileNotFoundError("canonical DExplore config is missing: " + ", ".join(missing))
     return cfg_env, cfg_train
+
+
+def runtime_cwd(root: Path = MAIN_ROOT) -> Path:
+    """Return DExplore's canonical cwd, validating configured relative assets.
+
+    The environment YAML uses ``assetRoot=dexplore/data/assets`` and task
+    code resolves it relative to the process cwd.  Starting from the canonical
+    main checkout's DExplore directory makes that path point at the real,
+    read-only asset tree even when this launcher runs from the worker worktree.
+    """
+    dplore_root = (Path(root).resolve() / DEXPLORE_RELATIVE).resolve()
+    airplane_asset = (dplore_root / AIRPLANE_ASSET_RELATIVE).resolve()
+    table_asset = (dplore_root / ASSET_ROOT_RELATIVE / "mjcf/table.urdf").resolve()
+    if not dplore_root.is_dir():
+        raise FileNotFoundError(f"canonical DExplore cwd is missing: {dplore_root}")
+    missing = [str(path) for path in (airplane_asset, table_asset) if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("canonical DExplore assets are missing: " + ", ".join(missing))
+    return dplore_root
 
 
 def _literal_add_argument_flags(path: Path) -> set[str]:
@@ -126,8 +148,17 @@ def source_preflight() -> dict[str, Any]:
     except FileNotFoundError as exc:
         config_paths = {}
         config_paths_missing = [str(exc)]
+    try:
+        dplore_cwd = runtime_cwd()
+        resolved_airplane_asset = (dplore_cwd / AIRPLANE_ASSET_RELATIVE).resolve()
+        runtime_cwd_error = None
+    except FileNotFoundError as exc:
+        dplore_cwd = None
+        resolved_airplane_asset = None
+        runtime_cwd_error = str(exc)
     return {
         "status": "PASS" if (not parser_missing and not config_paths_missing and
+                              runtime_cwd_error is None and
                               internal_cm_off and
                               adapter_before_save and "--cm-mode" not in real_source
                               and "--cm-candidate-mode" not in real_source
@@ -141,6 +172,10 @@ def source_preflight() -> dict[str, Any]:
         "adapter_before_save": adapter_before_save,
         "config_paths": config_paths,
         "config_paths_missing": config_paths_missing,
+        "runtime_cwd": str(dplore_cwd) if dplore_cwd else None,
+        "resolved_airplane_asset": (str(resolved_airplane_asset)
+                                     if resolved_airplane_asset else None),
+        "runtime_cwd_error": runtime_cwd_error,
         "isaacgym_imported": False,
     }
 
@@ -330,7 +365,7 @@ def main() -> int:
     if args.execute:
         env, gpu_evidence = execute_environment(args.gpu_index)
         result["gpu_preflight"] = gpu_evidence
-        return subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
+        return subprocess.run(command, cwd=runtime_cwd(), env=env, check=False).returncode
     return 0
 
 
