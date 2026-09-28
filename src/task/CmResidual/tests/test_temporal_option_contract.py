@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import ast
 from pathlib import Path
 import os
 import subprocess
@@ -254,3 +255,39 @@ def test_cpu_dry_run_does_not_import_isaacgym():
     assert report["route_config_sha256"].startswith("afedfa54")
     assert report["assignments"]["fit"]["arm_counts"] == {
         str(index): 32 for index in range(6)}
+
+
+def _temporal_get_action_source():
+    tree = ast.parse(EVALUATOR.read_text())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "TemporalOptionPlayer":
+            for child in node.body:
+                if isinstance(child, ast.FunctionDef) and child.name == "get_action":
+                    return child, ast.get_source_segment(EVALUATOR.read_text(), child)
+    raise AssertionError("TemporalOptionPlayer.get_action not found")
+
+
+def test_temporal_get_action_records_initial_c1_route_before_post_option_route():
+    method, source = _temporal_get_action_source()
+    calls = [
+        node.func.attr for node in ast.walk(method)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    ]
+    assert "_record_initial_observation_route" in calls
+    assert "_candidate_actions" in calls
+    assert source.index("_record_initial_observation_route") < source.index(
+        "route_by_motion")
+    assert "_router_teacher(" in source
+    assert source.index("_router_teacher(") > source.index("route_by_motion")
+    assert "route_by_motion[task.data_id.long()]" in source
+
+
+def test_temporal_source_keeps_trigger_teacher_distinct_from_initial_route():
+    source = EVALUATOR.read_text()
+    assert "def _record_initial_observation_route" in source
+    assert "self.initial_expert_names" in source
+    assert "self.initial_route_choice = choice.detach().clone()" in source
+    assert "self.trigger_router_teacher_candidate_id" in source
+    assert "self._router_teacher(" in source
+    assert '"router_teacher_source": ["c1_observation_router"]' in source
+    assert '"route_expert": [collector["base_expert"]]' in source

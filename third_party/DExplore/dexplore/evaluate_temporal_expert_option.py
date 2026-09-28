@@ -311,6 +311,7 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             self.trigger_router_teacher_candidate_id = None
             self.trigger_router_teacher_action = None
             self.trigger_router_input_state_sha256 = None
+            self.initial_route_choice = None
             self.trigger_start_z = None
             self.history_state = None
             self.history_action = None
@@ -476,9 +477,57 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 raise FloatingPointError("invalid expert candidate action")
             return candidates
 
+        def _record_initial_observation_route(self, obs_dict):
+            """Record the first C1 route without changing the post-option route.
+
+            ``TemporalOptionPlayer`` computes candidate actions directly through
+            the untouched evaluator class, so it cannot rely on
+            ``RoutedPlayer.get_action`` to populate the initial observation
+            route.  Keep the same fail-closed routing state machine here.  The
+            resulting ``initial_expert_names`` is written by the routed player
+            as initial provenance; ``route_by_motion`` below remains the
+            canonical ``source_e260`` post-option route, and trigger-time
+            ``_router_teacher`` remains a separate label.
+            """
+            if self.observation_router is None:
+                raise RuntimeError("C1 observation router is unavailable")
+            pending = self._needs_route.nonzero(as_tuple=False).reshape(-1)
+            if pending.numel():
+                observation = obs_dict.get("obs")
+                if (observation is None or observation.ndim != 2 or
+                        observation.shape[1] != 1442):
+                    raise ValueError(
+                        "canonical initial observation must be [N,1442]")
+                values = observation.index_select(0, pending)
+                if not torch.isfinite(values).all():
+                    raise FloatingPointError(
+                        "nonfinite canonical initial observation")
+                prediction = self.observation_router.predict(
+                    values.detach().cpu().numpy())
+                unknown = set(prediction) - set(experts)
+                if unknown:
+                    raise ValueError(
+                        f"C1 router predicted unknown experts: {sorted(unknown)}")
+                expert_indices = torch.tensor(
+                    [experts.index(name) for name in prediction],
+                    dtype=torch.long, device=self.device)
+                self._choice_by_env[pending] = expert_indices
+                self._needs_route[pending] = False
+            choice = self._choice_by_env
+            if choice is None or (choice < 0).any():
+                raise RuntimeError("initial observation route was not recorded")
+            if self.initial_expert_names is None and not self._needs_route.any():
+                self.initial_expert_names = [
+                    self.expert_names[index] for index in choice.tolist()]
+                self.initial_route_choice = choice.detach().clone()
+            if self.initial_expert_names is None:
+                raise RuntimeError("initial observation route is incomplete")
+            return choice
+
         @torch.no_grad()
         def get_action(self, obs_dict, is_determenistic=False):
             task = self.env.task
+            self._record_initial_observation_route(obs_dict)
             candidates = self._candidate_actions(obs_dict, is_determenistic)
             # The canonical post-option route remains source_e260.  The C1
             # observation router is recorded as a teacher label at trigger
