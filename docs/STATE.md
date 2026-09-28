@@ -35,8 +35,9 @@ root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选�
 已经完成并通过 root 审计：fit 189 行、holdout 186 行，六个随机 assignment 臂均有
 至少 30 行且 split episode 不重叠。第一阶段 CPU student Probe 随后判定
 `UNCLEAR`，因为两份数据的 C1 teacher label 全部为 `source_e260`，不能识别六专家
-蒸馏。North-star scoreboard 保持不变；当前只推进一个受限的 scratch Cm CPU
-support/calibration gate。
+蒸馏。North-star scoreboard 保持不变；scratch Cm CPU support/calibration gate
+随后以 `NO_GO` 结束，因为记录中没有可验证的 `object_lift_axis` 及其坐标系
+provenance。
 
 ## North-star scoreboard
 
@@ -167,9 +168,13 @@ route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一
 从该分层或 C1 结果推导 Cm 增益，也不得把历史冻结标签改写成新的实验结果。
 
 r6 support collection 和 source-only CPU distillation 已完成审计。固定 Cm-off
-teacher label 的六专家覆盖不足，故当前由 `agent_cm` 执行
-`CM-SCRATCH-TA-20260928` 的 CPU-only contract/calibration gate；它只能使用现有
-transition 字段，禁止猜测缺失的 object-local one-step delta、伪造 episode ID 或
-把 `source_e260` 当静态 fallback。若 gate 失败，下一步是按 handoff 中的最小字段
-要求重新申请一次受限 support collection；若通过，才进入 matched `cm_on`/`cm_off`
-离线 student Probe。
+teacher label 的六专家覆盖不足；`agent_cm` 的
+`CM-SCRATCH-TA-20260928` CPU-only contract/calibration gate 已按
+`UNVERIFIABLE_OBJECT_LIFT_AXIS`、`SCRATCH_CONTRACT_VALIDATION_BLOCKED` 和
+`NO_CM_CALIBRATION_AFTER_CONTRACT_STOP` 结束。它确认一步 delta、五步 contact、六臂
+assignment、`1/6` propensity 和 episode disjoint 均有效，但没有猜测缺失轴，也没有
+把 `source_e260` 当静态 fallback。正式 handoff 见
+[`CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md)。
+下一步只有在新的 support collection 明确记录带坐标系与 provenance 的单位
+`object_lift_axis` 后，才重跑 contract；当前记录禁止 transition fit、Cm-on 标签和
+matched student Probe。

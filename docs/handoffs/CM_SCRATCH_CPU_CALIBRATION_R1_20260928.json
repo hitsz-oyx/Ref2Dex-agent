@@ -1,0 +1,120 @@
+{
+  "schema": "ref2dex.cm_scratch_teacher_arbitration_cpu_calibration.v1",
+  "task_id": "T-20260928-cm-scratch-teacher-arbitration-cpu-calibration-r1",
+  "status": "NO_GO",
+  "decision": "NO_GO",
+  "reason_codes": [
+    "UNVERIFIABLE_OBJECT_LIFT_AXIS",
+    "SCRATCH_CONTRACT_VALIDATION_BLOCKED",
+    "NO_CM_CALIBRATION_AFTER_CONTRACT_STOP"
+  ],
+  "resource_evidence": {
+    "cpu_only": true,
+    "gpu": 0,
+    "isaac_gym_imported": false,
+    "collector_started": false,
+    "fitting_started": false,
+    "cm_training_started": false,
+    "student_distillation_started": false,
+    "ppo_started": false,
+    "online_started": false,
+    "new_transitions": false,
+    "outputs_overwritten": false
+  },
+  "input_hashes": {
+    "fit_records": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r6/fit/records.pt",
+      "sha256": "7f38b1fd310f0dfea46d9e1e754893020223436dbc2a2ba13628d39a9c5c1a71",
+      "mode": "0664",
+      "size": 2106428
+    },
+    "fit_manifest": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r6/fit/run_manifest.json",
+      "sha256": "dd1558cf25238dcd631e937ee5e4f09133651c94e5aea5e1141f2388798bf7e0",
+      "mode": "0664",
+      "size": 8749
+    },
+    "holdout_records": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r6-holdout/holdout/records.pt",
+      "sha256": "c7abaf9524f06971b4bff18bd1cfef769b3ce7653345d8853629525b8738dff8",
+      "mode": "0664",
+      "size": 2074108
+    },
+    "holdout_manifest": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r6-holdout/holdout/run_manifest.json",
+      "sha256": "49bb9b0c45868d7b7377586519f61c9ed9a8c4440527d5f6debbc7f432515b70",
+      "mode": "0664",
+      "size": 8800
+    },
+    "scratch_contract": {
+      "path": "src/task/CmResidual/scratch_teacher_arbitration_contract.py",
+      "sha256": "40b88bd892481db04475c970b5a4f7247da8ca5e093bb4d830ee3098714e6497"
+    },
+    "scratch_config": {
+      "path": "src/task/CmResidual/configs/cm_scratch_teacher_arbitration_v1.json",
+      "sha256": "c1f345a3acf798ca72eda8167795fab693d8eaa3aed525c230c23f4edc832fa3"
+    }
+  },
+  "support_audit": {
+    "fit": {
+      "rows": 189,
+      "arm_counts": {"0": 31, "1": 32, "2": 32, "3": 31, "4": 32, "5": 31},
+      "episode_id_unique": true,
+      "candidate_actions_shape": [189, 6, 18],
+      "pre_action_observation_shape": [189, 1442],
+      "contact_shape": [189, 5],
+      "router_label_counts": {"0": 0, "1": 0, "2": 0, "3": 0, "4": 189, "5": 0}
+    },
+    "holdout": {
+      "rows": 186,
+      "arm_counts": {"0": 32, "1": 30, "2": 30, "3": 31, "4": 31, "5": 32},
+      "episode_id_unique": true,
+      "candidate_actions_shape": [186, 6, 18],
+      "pre_action_observation_shape": [186, 1442],
+      "contact_shape": [186, 5],
+      "router_label_counts": {"0": 0, "1": 0, "2": 0, "3": 0, "4": 186, "5": 0}
+    },
+    "fit_holdout_episode_ids_disjoint": true,
+    "propensity_one_sixth": true,
+    "candidate_action_matches_assignment": true,
+    "router_action_matches_router_id": true,
+    "target_delta_matches_pose_difference": true,
+    "five_step_contact_matches_future_prefix": true,
+    "finite_required_tensors": true,
+    "router_teacher_source_is_c1": true,
+    "object_lift_axis_field_present": false,
+    "object_lift_axis_provenance": {
+      "fit_record": false,
+      "holdout_record": false,
+      "fit_manifest": false,
+      "holdout_manifest": false,
+      "collector_config": false,
+      "evaluator_source": false
+    },
+    "scratch_validate_rows": {
+      "result": "EXPECTED_STOP",
+      "error": "row is missing fields: ['object_lift_axis']",
+      "synthetic_or_fabricated_labels": false
+    }
+  },
+  "calibration": {
+    "transition_model_fit": "NOT_RUN_CONTRACT_STOP",
+    "contact_lcb": "NOT_RUN_CONTRACT_STOP",
+    "cm_on_labels": "NOT_GENERATED",
+    "arbitration_stability": "NOT_RUN",
+    "cm_off_router_coverage": {
+      "fit_rows": 189,
+      "holdout_rows": 186,
+      "router_source": "c1_observation_router",
+      "router_label_id": "4 for every audited row; this is observed router output, not a static fallback substitution"
+    },
+    "classification": "UNCLEAR_FOR_MODEL_CALIBRATION; NO_GO_FOR_CURRENT_RECORDS"
+  },
+  "minimum_new_collection_fields": [
+    "object_lift_axis as an explicit unit vector with frame and provenance",
+    "globally unique episode_id retained in both split manifests",
+    "the existing target_delta_object_local_1 and pose pair retained unchanged"
+  ],
+  "branch": "agent/cm",
+  "head": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237"
+}
