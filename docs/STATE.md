@@ -37,7 +37,9 @@ root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选�
 `UNCLEAR`，因为两份数据的 C1 teacher label 全部为 `source_e260`，不能识别六专家
 蒸馏。North-star scoreboard 保持不变；scratch Cm CPU support/calibration gate
 随后以 `NO_GO` 结束，因为记录中没有可验证的 `object_lift_axis` 及其坐标系
-provenance。
+provenance。随后已在主分支修复该合约：新的 evaluator 会按触发时物体四元数将世界
+`+Z` 逆旋转到 `object_local_at_trigger_t`，并在每条记录、manifest 和 adapter 中保留
+单位轴及其 provenance；旧 r6 数据仍不具备该字段，不能回填或用于拟合。
 
 ## North-star scoreboard
 
@@ -175,6 +177,7 @@ teacher label 的六专家覆盖不足；`agent_cm` 的
 assignment、`1/6` propensity 和 episode disjoint 均有效，但没有猜测缺失轴，也没有
 把 `source_e260` 当静态 fallback。正式 handoff 见
 [`CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md)。
-下一步只有在新的 support collection 明确记录带坐标系与 provenance 的单位
-`object_lift_axis` 后，才重跑 contract；当前记录禁止 transition fit、Cm-on 标签和
-matched student Probe。
+主分支当前 CPU preflight 已返回 `READY_FOR_COLLECTION`。下一步是使用新输出根目录做一轮
+有界的 fit/holdout support collection，先验证六臂覆盖、episode disjoint 和轴的单位/坐标系
+provenance，再由 `agent_cm` 重跑 scratch contract 与 CPU calibration；在这些门通过前，旧
+记录仍禁止 transition fit、Cm-on 标签和 matched student Probe。
