@@ -59,11 +59,13 @@ def validate_frozen_contract(
         collector_path: Path,
         route_path: Path,
         *,
-        verify_artifacts: bool = False) -> dict:
+        verify_artifacts: bool = False,
+        artifact_root: Path | None = None) -> dict:
     """Validate the exact v2 collector contract and return pinned provenance."""
     repo_root = repo_root.resolve()
     collector_path = collector_path.resolve()
     route_path = route_path.resolve()
+    artifact_root = (artifact_root or repo_root).resolve()
     collector = _load_json(collector_path)
     route = _load_json(route_path)
 
@@ -123,8 +125,8 @@ def validate_frozen_contract(
     _require(set(splits) == {"fit", "holdout"},
              "collector must own exactly fit and holdout splits")
     expected_seeds = {
-        "fit": (254, 20260926254, 30),
-        "holdout": (255, 20260926255, 20),
+        "fit": (256, 20260928256, 30),
+        "holdout": (257, 20260928257, 30),
     }
     for name, (sim_seed, assignment_seed, minimum) in expected_seeds.items():
         split = splits[name]
@@ -165,6 +167,16 @@ def validate_frozen_contract(
         "followup_max_contact_lift_m", "final_lift_success",
         "final_max_contact_lift_m", "final_contact_fraction",
         "final_episode_steps",
+        "episode_id", "split", "pre_action_observation",
+        "object_pose_t_object_local_frame",
+        "object_pose_t_plus_1_object_local_frame",
+        "target_delta_object_local_1",
+        "contact_mask_t_plus_1_to_t_plus_5",
+        "candidate_expert_names_and_checkpoint_sha256",
+        "executed_action", "router_teacher_candidate_id",
+        "router_teacher_action", "router_model_sha256",
+        "router_input_state_sha256", "router_teacher_source",
+        "route_config_sha256", "collector_config_sha256",
     }
     _require(set(collector.get("record_schema", {})) == required_fields,
              "record schema fields differ from the Probe card contract")
@@ -180,13 +192,13 @@ def validate_frozen_contract(
     if verify_artifacts:
         for name in expected_experts:
             spec = route["experts"][name]
-            path = (repo_root / spec["checkpoint"]).resolve()
+            path = (artifact_root / spec["checkpoint"]).resolve()
             _require(path.is_file(), f"missing expert checkpoint: {name}")
             _require(sha256_path(path) == spec["sha256"],
                      f"expert checkpoint hash drift: {name}")
             artifact_sizes[f"expert:{name}"] = path.stat().st_size
         for motion in route["motions"]:
-            path = (repo_root / motion["path"] /
+            path = (artifact_root / motion["path"] /
                     "interaction_hand_inspire.pt").resolve()
             _require(path.is_file(), f"missing motion tensor: {motion['name']}")
             _require(sha256_path(path) == motion["interaction_hand_sha256"],
@@ -294,6 +306,8 @@ def validate_record_payload(
              "payload expert order differs")
     _require(payload.get("base_expert") == "source_e260",
              "payload base expert differs")
+    _require(payload.get("post_option_policy") == temporal["post_option_policy"],
+             "payload post-option policy differs")
     _require(payload.get("history_steps") == temporal["history_steps"] and
              payload.get("option_steps") == temporal["option_steps"] and
              payload.get("future_steps") == temporal["future_steps"],
@@ -337,6 +351,14 @@ def validate_record_payload(
         "option_executed_action": (n, 10, ACTION_DIM),
         "future_contact_mask": (n, 20),
         "future_contact_supported_lift_m": (n, 20),
+        "pre_action_observation": (n, 1442),
+        "object_pose_t_object_local_frame": (n, 3),
+        "object_pose_t_plus_1_object_local_frame": (n, 3),
+        "target_delta_object_local_1": (n, 3),
+        "contact_mask_t_plus_1_to_t_plus_5": (n, 5),
+        "executed_action": (n, ACTION_DIM),
+        "router_teacher_candidate_id": (n,),
+        "router_teacher_action": (n, ACTION_DIM),
         "followup_contact_fraction": (n,), "followup_max_contact_lift_m": (n,),
         "final_lift_success": (n,), "final_max_contact_lift_m": (n,),
         "final_contact_fraction": (n,), "final_episode_steps": (n,),
@@ -344,11 +366,22 @@ def validate_record_payload(
     for name, shape in shapes.items():
         _require(tuple(_tensor(records, name).shape) == shape,
                  f"record shape differs: {name}")
-    for name in ("motion_name", "object_name", "route_expert"):
+    for name in ("motion_name", "object_name", "route_expert", "episode_id", "split",
+                 "router_model_sha256", "router_input_state_sha256",
+                 "router_teacher_source", "route_config_sha256", "collector_config_sha256"):
         value = records.get(name)
         _require(isinstance(value, Sequence) and not isinstance(value, (str, bytes)) and
                  len(value) == n, f"record string field differs: {name}")
-    for name in ("history_contact", "future_contact_mask", "final_lift_success"):
+    _require(all(value in {"fit", "holdout"} for value in records["split"]),
+             "record split differs")
+    _require(all(isinstance(value, str) and value for value in records["episode_id"]),
+             "record episode_id differs")
+    _require(len(set(records["episode_id"])) == n,
+             "episode_id values must be unique within the run")
+    _require(all(value == "c1_observation_router" for value in records["router_teacher_source"]),
+             "router teacher fallback is forbidden")
+    for name in ("history_contact", "future_contact_mask", "contact_mask_t_plus_1_to_t_plus_5",
+                 "final_lift_success"):
         _require(_tensor(records, name).dtype == torch.bool,
                  f"boolean record field has wrong dtype: {name}")
     motion_ids = _tensor(records, "motion_id").long()
@@ -379,6 +412,9 @@ def validate_record_payload(
     finite_names = [
         "state", "base_action", "candidate_actions", "history_state",
         "history_action", "option_candidate_action", "option_executed_action",
+        "pre_action_observation", "object_pose_t_object_local_frame",
+        "object_pose_t_plus_1_object_local_frame", "target_delta_object_local_1",
+        "executed_action", "router_teacher_action",
         "future_contact_supported_lift_m", "followup_contact_fraction",
         "followup_max_contact_lift_m", "final_max_contact_lift_m",
         "final_contact_fraction",
@@ -398,6 +434,30 @@ def validate_record_payload(
         _require(bool(torch.allclose(at_trigger, option_candidate[:, 0],
                                      rtol=0.0, atol=1e-7)),
                  "first option action differs from the assigned trigger candidate")
+
+    _require(bool(torch.allclose(
+        _tensor(records, "executed_action"), option_executed[:, 0],
+        rtol=0.0, atol=1e-7)), "executed action differs from trigger option action")
+    teacher_id = _tensor(records, "router_teacher_candidate_id").long()
+    _require(bool(((teacher_id >= 0) & (teacher_id < len(experts))).all()),
+             "router teacher candidate outside six arms")
+    teacher_action = _tensor(records, "router_teacher_action")
+    candidates = _tensor(records, "candidate_actions")
+    rows = torch.arange(n)
+    _require(bool(torch.allclose(teacher_action, candidates[rows, teacher_id],
+                                 rtol=0.0, atol=1e-7)),
+             "router teacher action differs from its candidate")
+    _require(bool(torch.allclose(
+        _tensor(records, "target_delta_object_local_1"),
+        _tensor(records, "object_pose_t_plus_1_object_local_frame") -
+        _tensor(records, "object_pose_t_object_local_frame"),
+        rtol=0.0, atol=1e-9)),
+        "object-local signed delta differs from pose pair")
+    _require(bool(torch.allclose(
+        _tensor(records, "contact_mask_t_plus_1_to_t_plus_5").float(),
+        _tensor(records, "future_contact_mask")[:, :5].float(),
+        rtol=0.0, atol=0.0)),
+        "five-step contact target differs from future contact mask")
 
     contact = _tensor(records, "future_contact_mask").bool()
     supported = _tensor(records, "future_contact_supported_lift_m").float()

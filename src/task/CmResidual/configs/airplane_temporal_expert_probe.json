@@ -7,6 +7,13 @@
     "sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16"
   },
   "route_mode": "simulator_object_id",
+  "support_contract": "ref2dex.six_expert_support_contract.v1",
+  "frozen_c1_router": {
+    "path": "outputs/CmResidual/agent_six_expert_router_model_20260925/router.joblib",
+    "sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14",
+    "input_dim": 1442,
+    "teacher_source": "c1_observation_router"
+  },
   "object_name": "airplane",
   "motion_root": "outputs/CmResidual/agent_contact_option_airplane_motions",
   "motions": [
@@ -40,16 +47,16 @@
   },
   "collections": {
     "fit": {
-      "simulator_seed": 254,
-      "assignment_seed": 20260926254,
+      "simulator_seed": 256,
+      "assignment_seed": 20260928256,
       "num_envs": 192,
       "minimum_valid_rows_per_arm": 30
     },
     "holdout": {
-      "simulator_seed": 255,
-      "assignment_seed": 20260926255,
+      "simulator_seed": 257,
+      "assignment_seed": 20260928257,
       "num_envs": 192,
-      "minimum_valid_rows_per_arm": 20
+      "minimum_valid_rows_per_arm": 30
     }
   },
   "start_frame_policy": {
@@ -84,7 +91,23 @@
     "final_lift_success": "bool[N]",
     "final_max_contact_lift_m": "float32[N]",
     "final_contact_fraction": "float32[N]",
-    "final_episode_steps": "int64[N]"
+    "final_episode_steps": "int64[N]",
+    "episode_id": "string[N]",
+    "split": "string[N]",
+    "pre_action_observation": "float32[N,1442]",
+    "object_pose_t_object_local_frame": "float32[N,3]",
+    "object_pose_t_plus_1_object_local_frame": "float32[N,3]",
+    "target_delta_object_local_1": "float32[N,3]",
+    "contact_mask_t_plus_1_to_t_plus_5": "bool[N,5]",
+    "candidate_expert_names_and_checkpoint_sha256": "object[N,6]",
+    "executed_action": "float32[N,18]",
+    "router_teacher_candidate_id": "int8[N]",
+    "router_teacher_action": "float32[N,18]",
+    "router_model_sha256": "string[N]",
+    "router_input_state_sha256": "string[N]",
+    "router_teacher_source": "string[N]",
+    "route_config_sha256": "string[N]",
+    "collector_config_sha256": "string[N]"
   },
   "provenance_requirements": {
     "checkpoint_hashes_from_route_manifest": true,

@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-27
+Updated: 2026-09-28
 
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
@@ -10,8 +10,8 @@ Updated: 2026-09-27
 
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
-没有超过 always-base，coverage/policy gate 失败。HF01–HF05 均已冻结，不启动
-新的 GPU、PPO、online 或 collector。结果见
+没有超过 always-base，coverage/policy gate 失败。历史 HF01–HF05 仍保持冻结，
+但该历史处置不构成对所有后续 GPU 或新 Cm 路线的全局禁止。结果见
 [`P-20260926-selective-causal-gate.md`](experiments/probes/P-20260926-selective-causal-gate.md)，
 路线处置见 [`D-20260926-after-hf05-selective-gate.md`](decisions/D-20260926-after-hf05-selective-gate.md)。
 
@@ -21,11 +21,19 @@ Updated: 2026-09-27
 见 [C1 决策](decisions/D-20260927-c1-observation-route-validation.md) 与
 [Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
 
-2026-09-27 的后续 Decision Checkpoint 中，用户答复原文仅为 `A`。按该
+2026-09-27 的后续 Decision Checkpoint 中，用户答复原文仅为 `A`。按当时
 Checkpoint 对选项的定义，Option A 表示继续冻结 Cm、保留 C1 substrate、本阶段
-使用 0 GPU，并等待一个可预声明且区别于 HF01–HF05 的新高层机制。这是路线处置，
+使用 0 GPU，并等待一个可预声明且区别于 HF01–HF05 的新高层机制。这是历史路线处置，
 不是新增科学证据；阶段性 handoff 仍为 `UNCLEAR/NOT READY`。见
 [本次决定](decisions/D-20260927-cm-freeze-option-a.md)。
+
+2026-09-28 的后续授权已移除把 root 停在预设 Option A/Option B 之间的流程依赖。
+root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选择后续路线，并记录
+简短 decision memo；本授权不改写上述历史标签，也不把 C1 的任务限定证据升级为更强
+的科学结论。用户同时已授权六专家蒸馏与一条新的 Cm 探索路线；这两条路线仍须遵守
+`CAMPAIGN`、资源上限、preflight、matched control 和停止条件。当前 P0 蒸馏 preflight
+与 Cm scratch contract 仅完成工程检查并通过，支持数据仍待审计，North-star scoreboard
+保持不变。
 
 ## North-star scoreboard
 
@@ -144,8 +152,8 @@ C1 的五 seed matched Validation 已完成；冻结已验证的六专家 checkp
 初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。后验
 route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一致环境中
 有 188 个 observation held-lift 失败；这只是描述性证据，不是机制或因果结论。
-见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。按用户选择的
-[Option A](decisions/D-20260927-cm-freeze-option-a.md)，当前不登记 HF06，不修改
-logging 或 collection，也不启动 GPU、online/PPO 或新的 Cm 实验。只有出现区别于
-HF01–HF05、可预声明的新高层机制，并建立独立 high-level goal、完成新的 Decision
-Checkpoint 后，才重新评估 Cm 路线；不得从该分层或 C1 结果推导 Cm 增益。
+见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。此前的
+[Option A](decisions/D-20260927-cm-freeze-option-a.md) 是历史冻结处置，不是当前要求
+用户再次插入选择的门槛。六专家蒸馏与新的 Cm scratch 路线均应先记录区别于 HF01–HF05
+的高层机制、预算、停止条件和证据边界，再在现有授权内自主选择或请求缺失的资源授权；不得
+从该分层或 C1 结果推导 Cm 增益，也不得把历史冻结标签改写成新的实验结果。

@@ -1,0 +1,222 @@
+{
+  "schema": "ref2dex.cm_scratch_teacher_arbitration_support_audit.v1",
+  "task_id": "T-20260928-cm-support-contract-audit",
+  "status": "NO_GO",
+  "scope": "read-only audit of existing HF02 six-arm temporal records and frozen C1 router provenance",
+  "resource_guard": {
+    "gpu": 0,
+    "training": false,
+    "fitting": false,
+    "simulator": false,
+    "ppo": false,
+    "collector": false,
+    "new_transitions": false,
+    "external_writes": false
+  },
+  "decision": {
+    "existing_transitions_usable_for_scratch_cm": false,
+    "reason_codes": [
+      "MISSING_ONE_STEP_OBJECT_LOCAL_DELTA",
+      "MISSING_FROZEN_ROUTER_TEACHER_LABEL",
+      "EPISODE_DISJOINTNESS_NOT_MACHINE_VERIFIABLE"
+    ],
+    "preserve_six_expert_control": true,
+    "formal_policy_utility_claim": false
+  },
+  "audited_inputs": {
+    "hf02_temporal_fit": {
+      "run_id": "fit_s254_r5",
+      "split": "fit",
+      "simulator_seed": 254,
+      "assignment_seed": 20260926254,
+      "records": {
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r5/records.pt",
+        "sha256": "38f311850f31549f6d3a050cff12df7ebccd00bd9a5ef65ed3a9b12a250f2506",
+        "rows": 187,
+        "arm_counts": {
+          "balanced_e360": 31,
+          "cup_e340": 31,
+          "duck_e340": 32,
+          "mixed12_e300": 31,
+          "source_e260": 31,
+          "train5_e320": 31
+        }
+      },
+      "run_manifest": {
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/fit_s254_r5/run_manifest.json",
+        "sha256": "4ff146f3205ac5379e0ef86925772af34ea9340d2b37f780caeb6a0ce7d221e1"
+      }
+    },
+    "hf02_temporal_holdout": {
+      "run_id": "holdout_s255_r1",
+      "split": "holdout",
+      "simulator_seed": 255,
+      "assignment_seed": 20260926255,
+      "records": {
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_s255_r1/records.pt",
+        "sha256": "cb851a96229df87501d890732cbdf0b90b2c2952e07d018edb6d83d47d641fe8",
+        "rows": 186,
+        "arm_counts": {
+          "balanced_e360": 30,
+          "cup_e340": 32,
+          "duck_e340": 31,
+          "mixed12_e300": 32,
+          "source_e260": 31,
+          "train5_e320": 30
+        }
+      },
+      "run_manifest": {
+        "path": "outputs/CmResidual/agent_temporal_expert_credit_20260926/holdout_s255_r1/run_manifest.json",
+        "sha256": "41f54d35238cd85ae2548587ec6b60f0d58a95e5ae15b3c3b887ff60fb78d074"
+      }
+    },
+    "hf02_collector_config": {
+      "path": "src/task/CmResidual/configs/airplane_temporal_expert_probe.json",
+      "sha256": "47162342929f2b2889197d2d80b6a9069f6ee513d6a83d33cf99c25cba681536"
+    },
+    "hf02_route_config": {
+      "path": "src/task/CmResidual/configs/hf02_temporal_canonical_route.json",
+      "sha256": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16"
+    },
+    "hf02_evaluator": {
+      "path": "third_party/DExplore/dexplore/evaluate_temporal_expert_option.py",
+      "sha256": "8297c5a09c4bec5f3fa0987d9bb57a552d5a5e43e2dc162a3324ae8ce5b2e0ba",
+      "git_blob_sha1": "22f0bf8d1470969e14a1030bfcd708a4f1d618ad"
+    },
+    "frozen_c1_router": {
+      "validation_results_path": "docs/experiments/validations/VAL-20260926-observation-six-expert-c1-results.json",
+      "validation_results_sha256": "4ae15cd36ba5530da0160071e295a9f8fca4065366353b2e82aa2984bd7809ab",
+      "router_model_sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14",
+      "route_config_sha256": "6e3205a8b5fe2be3ab46308678e673d10e62745a7eda8196a7fe0e0d365bb7a8",
+      "evaluator_sha256": "4f4feddb3bbad7d5b0dbd67848f4a9a88fa1923bdfcdeb316d5916640c6b6320",
+      "router_label_present_in_hf02_records": false
+    }
+  },
+  "field_support": {
+    "pre_action_observation": {
+      "status": "PRESENT",
+      "fields": ["state", "history_state", "history_action", "history_contact"],
+      "shapes": ["[N,49]", "[N,10,49]", "[N,10,18]", "[N,10]"]
+    },
+    "six_expert_candidate_actions": {
+      "status": "PRESENT",
+      "field": "candidate_actions",
+      "shape": "[N,6,18]",
+      "provenance": "candidate expert order and six checkpoint SHA256 values are pinned by the HF02 route/run manifests",
+      "action_source_static_check": "evaluator loops over all six expert names and stacks one action per expert"
+    },
+    "propensity": {
+      "status": "PRESENT",
+      "field": "assignment_propensity",
+      "value": "1/6",
+      "assignment_field": "assignment",
+      "fit_and_holdout_all_arms": true
+    },
+    "one_step_object_local_delta": {
+      "status": "MISSING",
+      "required": "next object pose/position at t+1 and object-frame transform or equivalent signed 3-vector",
+      "available_substitute": "future_contact_supported_lift_m[N,20] is contact-gated scalar z lift relative to trigger; it is not a one-step signed 3D displacement"
+    },
+    "five_step_contact_retention": {
+      "status": "PRESENT_DERIVABLE",
+      "fields": ["future_contact_mask", "future_contact_supported_lift_m"],
+      "derivation": "mean(future_contact_mask[:,0:5])",
+      "caveat": "outcome follows one assigned option sequence; no next-object pose is recorded"
+    },
+    "episode_split": {
+      "status": "PARTIAL_NOT_VERIFIABLE",
+      "evidence": "fit uses simulator seed 254 and holdout uses 255; both reuse env_id range and records have no globally unique episode_id",
+      "required": "globally unique split/seed/env/episode/start-frame identifier and machine-checked disjointness"
+    },
+    "frozen_router_teacher_label": {
+      "status": "MISSING",
+      "required_fields": [
+        "router_teacher_candidate_id",
+        "router_teacher_action",
+        "router_model_sha256",
+        "router_input_state_sha256"
+      ],
+      "observed": "route_expert is source_e260 for every HF02 row; this is the fixed simulator route, not the C1 observation-router label"
+    }
+  },
+  "matched_control_contract": {
+    "cm_off": "frozen C1 observation-router teacher label on the identical state/candidate row",
+    "cm_on": "replace only that offline teacher label with the certified Cm candidate",
+    "fallback": "exact frozen C1 observation-router label; never source_e260 by default",
+    "required_same": ["state rows", "six candidate actions", "student architecture", "optimizer", "steps", "seed set", "evaluation split"],
+    "placebo": "fixed-seed permutation of Cm candidate labels with equal model capacity"
+  },
+  "minimal_collection_spec": {
+    "status": "REQUIRED_BEFORE_ANY_CM_FIT_OR_DISTILLATION",
+    "randomization": {
+      "arms": 6,
+      "action": "at each eligible pre-action trigger, generate all six expert actions and execute exactly one assigned candidate",
+      "assignment": "seeded balanced assignment fixed before trigger",
+      "propensity": "1/6",
+      "record_router_label_without_executing_it": true
+    },
+    "required_fields": [
+      "globally_unique_episode_id",
+      "split",
+      "pre_action_observation",
+      "object_pose_t_object_local_frame",
+      "candidate_actions[N,6,18]",
+      "candidate_expert_names_and_checkpoint_sha256",
+      "assignment",
+      "assignment_propensity",
+      "executed_action",
+      "object_pose_t_plus_1_object_local_frame",
+      "target_delta_object_local_1",
+      "contact_mask_t_plus_1_to_t_plus_5",
+      "router_teacher_candidate_id",
+      "router_teacher_action",
+      "router_model_sha256",
+      "router_input_state_sha256",
+      "start_frame",
+      "motion_name",
+      "route_config_sha256",
+      "collector_config_sha256"
+    ],
+    "splits": {
+      "fit": {"simulator_seed": 256, "assignment_seed": 20260928256, "num_envs": 192, "minimum_valid_rows_per_arm": 30},
+      "holdout": {"simulator_seed": 257, "assignment_seed": 20260928257, "num_envs": 192, "minimum_valid_rows_per_arm": 30}
+    },
+    "budget": {
+      "gpu_max": 1,
+      "wall_minutes_max": 20,
+      "episodes": "one completed first episode per environment per split",
+      "storage_max_gib": 1,
+      "current_task_authorization": "none; specification only"
+    },
+    "stop_if": [
+      "any arm below 30 valid rows",
+      "missing or mismatched action/checkpoint/router provenance",
+      "missing next object pose or any of five contact steps",
+      "fit and holdout globally unique episode IDs overlap",
+      "propensity differs from 1/6",
+      "route/config hash drift",
+      "router fallback is not exactly the recorded C1 label",
+      "output exceeds storage or time budget"
+    ]
+  },
+  "cpu_static_smoke": {
+    "result": "PASS",
+    "checks": [
+      "JSON parse and schema field audit",
+      "torch.load records with map_location=cpu only",
+      "finite tensors and exact [N,6,18] candidate action shapes",
+      "all six arms and 1/6 propensity",
+      "evaluator source inspection confirms candidate actions come from six expert models",
+      "no Isaac Gym import, fitting, simulator, collector, or GPU process"
+    ],
+    "observed": {
+      "fit_rows": 187,
+      "holdout_rows": 186,
+      "fit_candidate_shape": "[187,6,18]",
+      "holdout_candidate_shape": "[186,6,18]",
+      "fit_contact_shape": "[187,20]",
+      "holdout_contact_shape": "[186,20]",
+      "missing_required_targets": ["next_object_pose", "target_delta_object_local_1", "router_teacher_candidate_id", "router_teacher_action"]
+    }
+  }
+}

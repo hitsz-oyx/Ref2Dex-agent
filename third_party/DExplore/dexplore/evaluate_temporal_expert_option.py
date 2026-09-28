@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -21,9 +22,39 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.task.CmResidual.six_expert_support_adapter import (  # noqa: E402
+    validate_payload as validate_support_payload,
+)
+
 COLLECTOR_CONFIG = ROOT / "src/task/CmResidual/configs/airplane_temporal_expert_probe.json"
 ROUTE_CONFIG = ROOT / "src/task/CmResidual/configs/hf02_temporal_canonical_route.json"
 EVALUATOR_PATH = Path(__file__).resolve()
+PINNED_ROOT = Path(os.environ.get("REF2DEX_MAIN_ROOT", str(ROOT))).resolve()
+
+
+def _artifact_path(relative: str | Path) -> Path:
+    value = Path(relative)
+    if value.is_absolute():
+        if value.is_file():
+            return value.resolve()
+        try:
+            relative = value.relative_to(ROOT)
+        except ValueError:
+            return value
+        return (PINNED_ROOT / relative).resolve()
+    local = (ROOT / value).resolve()
+    if local.is_file():
+        return local
+    return (PINNED_ROOT / value).resolve()
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _observation_hash(observation) -> str:
+    array = observation.detach().cpu().contiguous().numpy()
+    return _sha256_bytes(array.tobytes())
 
 # The contract module uses PyTorch for tensor/schema checks.  Isaac Gym must
 # be imported before PyTorch in a real simulator process, while ``--dry-run``
@@ -96,7 +127,8 @@ def _git_commit() -> str:
 def _preflight(collector_path: Path, route_path: Path, verify_artifacts: bool) -> dict:
     _load_contract()
     return validate_frozen_contract(
-        ROOT, collector_path, route_path, verify_artifacts=verify_artifacts)
+        ROOT, collector_path, route_path, verify_artifacts=verify_artifacts,
+        artifact_root=PINNED_ROOT)
 
 
 def _dry_run_report(provenance: Mapping[str, object], split: Optional[str]) -> dict:
@@ -159,19 +191,19 @@ def _runtime_contract(args: argparse.Namespace, remaining: List[str],
         raise ValueError("num_envs differs from the frozen split contract")
     if not _has_flag(remaining, "--disable-early-termination"):
         raise ValueError("first-episode boundary requires --disable-early-termination")
-    for forbidden in ("--cm-checkpoint", "--observation-router-model",
-                      "--reference-action-lead"):
+    for forbidden in ("--cm-checkpoint", "--reference-action-lead"):
         if _has_flag(remaining, forbidden):
             raise ValueError(f"forbidden non-Cm-off option: {forbidden}")
     if _has_flag(remaining, "--cm-mode") and _flag_value(remaining, "--cm-mode") != "off":
         raise ValueError("temporal option collection must remain Cm-off")
 
-    checkpoint = Path(_flag_value(remaining, "--checkpoint")).resolve()
-    expected_checkpoint = (ROOT / route["experts"][route["base_expert"]]["checkpoint"]).resolve()
+    checkpoint = _artifact_path(_flag_value(remaining, "--checkpoint"))
+    expected_checkpoint = _artifact_path(
+        route["experts"][route["base_expert"]]["checkpoint"])
     if checkpoint != expected_checkpoint:
         raise ValueError("base checkpoint must be canonical source_e260")
-    motion_root = Path(_flag_value(remaining, "--motion_file")).resolve()
-    expected_motion_root = (ROOT / collector["motion_root"]).resolve()
+    motion_root = _artifact_path(_flag_value(remaining, "--motion_file"))
+    expected_motion_root = _artifact_path(collector["motion_root"])
     if motion_root != expected_motion_root:
         raise ValueError("motion root differs from canonical three-airplane root")
     output = Path(_flag_value(remaining, "--output")).resolve()
@@ -180,6 +212,16 @@ def _runtime_contract(args: argparse.Namespace, remaining: List[str],
         raise ValueError("record output must be beside the evaluator result")
     if output.exists() or output.parent.exists() or record_output.exists():
         raise FileExistsError("all collection outputs must be new")
+
+    router_spec = collector.get("frozen_c1_router", {})
+    router_model = (Path(args.observation_router_model).resolve()
+                    if args.observation_router_model is not None
+                    else _artifact_path(router_spec.get("path", "")))
+    router_sha = args.observation_router_sha256 or router_spec.get("sha256")
+    if not router_model.is_file():
+        raise FileNotFoundError(f"frozen C1 router missing: {router_model}")
+    if not router_sha or _sha256_bytes(router_model.read_bytes()) != router_sha:
+        raise ValueError("frozen C1 router hash drift")
 
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
     if not visible.isdigit():
@@ -202,6 +244,8 @@ def _runtime_contract(args: argparse.Namespace, remaining: List[str],
         "motion_root": motion_root,
         "output": output,
         "record_output": record_output,
+        "router_model": router_model,
+        "router_model_sha256": router_sha,
         "physical_gpu": int(visible),
         "assignments": assignments,
         "contract_provenance": provenance,
@@ -220,6 +264,14 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
     future_steps = collector["temporal_contract"]["future_steps"]
     experts = list(collector["candidate_experts"])
     motion_names = list(collector["motions"])
+    expert_provenance = [
+        {"name": name, "checkpoint_sha256": runtime["contract_provenance"]
+         ["expert_checkpoint_sha256"][name]}
+        for name in experts
+    ]
+    router_model_sha256 = runtime["router_model_sha256"]
+    route_config_sha256 = runtime["contract_provenance"]["route_config_sha256"]
+    collector_config_sha256 = runtime["contract_provenance"]["collector_config_sha256"]
 
     class TemporalOptionPlayer(routed.RoutedPlayer):
         """Run the frozen route and intervene with one assigned expert option."""
@@ -247,6 +299,18 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             self.trigger_state = None
             self.trigger_base_action = None
             self.trigger_candidate_actions = None
+            self.trigger_pre_action_observation = None
+            self.trigger_episode_id = None
+            self.trigger_split = None
+            self.trigger_object_pose_t = None
+            self.trigger_object_pose_t_plus_1 = None
+            self.trigger_target_delta = None
+            self.trigger_object_state_t = None
+            self.trigger_pose_pending = None
+            self.trigger_executed_action = None
+            self.trigger_router_teacher_candidate_id = None
+            self.trigger_router_teacher_action = None
+            self.trigger_router_input_state_sha256 = None
             self.trigger_start_z = None
             self.history_state = None
             self.history_action = None
@@ -270,6 +334,38 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             return torch.cat((q, task._dof_vel.clone(),
                               task._target_states.clone()), dim=1)
 
+        def _router_teacher(self, obs_dict, rows):
+            if self.observation_router is None:
+                raise RuntimeError("C1 router teacher is unavailable")
+            observation = obs_dict.get("obs")
+            if observation is None or observation.ndim != 2 or observation.shape[1] != 1442:
+                raise ValueError("canonical pre-action observation must be [N,1442]")
+            values = observation.index_select(0, rows)
+            if not torch.isfinite(values).all():
+                raise FloatingPointError("nonfinite canonical pre-action observation")
+            prediction = self.observation_router.predict(
+                values.detach().cpu().numpy())
+            unknown = set(prediction) - set(experts)
+            if unknown:
+                raise ValueError(f"C1 router predicted unknown experts: {sorted(unknown)}")
+            choices = torch.tensor(
+                [experts.index(name) for name in prediction],
+                dtype=torch.long, device=self.device)
+            hashes = [_observation_hash(values[index])
+                      for index in range(values.shape[0])]
+            return values, choices, hashes
+
+        @staticmethod
+        def _object_local_delta(state_t, state_next):
+            if (state_t.ndim != 2 or state_next.ndim != 2 or
+                    state_t.shape != state_next.shape or state_t.shape[1] != 13):
+                raise ValueError("object state must be [N,13] for local transform")
+            from src.task.CmResidual.cmlite import local_translation_target
+            delta = local_translation_target(state_t, state_next)
+            if not torch.isfinite(delta).all():
+                raise FloatingPointError("nonfinite object-local one-step delta")
+            return delta
+
         def restore(self, filename):
             super().restore(filename)
             task = self.env.task
@@ -284,7 +380,13 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             source_index = self.expert_names.index(collector["base_expert"])
             if self.route_by_motion is None or not torch.all(
                     self.route_by_motion == source_index):
-                raise ValueError("airplane route is not source_e260")
+                # Observation routing is the teacher label; the post-option
+                # fallback remains the canonical source_e260 route.
+                self.route_by_motion = torch.full(
+                    (task.num_envs,), source_index, dtype=torch.long,
+                    device=self.device)
+            if self.observation_router is None:
+                raise ValueError("frozen C1 observation router is required")
 
             n, device = task.num_envs, self.device
             self.assignment = runtime["assignments"].to(device=device)
@@ -314,6 +416,20 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             self.trigger_base_action = torch.zeros(n, 18, device=device)
             self.trigger_candidate_actions = torch.zeros(
                 n, len(experts), 18, device=device)
+            self.trigger_pre_action_observation = torch.zeros(
+                n, 1442, device=device)
+            self.trigger_object_pose_t = torch.zeros(n, 3, device=device)
+            self.trigger_object_pose_t_plus_1 = torch.zeros(n, 3, device=device)
+            self.trigger_target_delta = torch.zeros(n, 3, device=device)
+            self.trigger_object_state_t = torch.zeros(n, 13, device=device)
+            self.trigger_pose_pending = torch.zeros(n, dtype=torch.bool, device=device)
+            self.trigger_executed_action = torch.zeros(n, 18, device=device)
+            self.trigger_router_teacher_candidate_id = torch.full(
+                (n,), -1, dtype=torch.long, device=device)
+            self.trigger_router_teacher_action = torch.zeros(n, 18, device=device)
+            self.trigger_router_input_state_sha256 = [None] * n
+            self.trigger_episode_id = [None] * n
+            self.trigger_split = [None] * n
             self.trigger_start_z = torch.full((n,), float("nan"), device=device)
             self.history_state = torch.zeros(n, history_steps, 49, device=device)
             self.history_action = torch.zeros(n, history_steps, 18, device=device)
@@ -364,6 +480,9 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
         def get_action(self, obs_dict, is_determenistic=False):
             task = self.env.task
             candidates = self._candidate_actions(obs_dict, is_determenistic)
+            # The canonical post-option route remains source_e260.  The C1
+            # observation router is recorded as a teacher label at trigger
+            # time and is never silently replaced by this fallback.
             choice = self.route_by_motion[task.data_id.long()]
             rows = torch.arange(choice.shape[0], device=self.device)
             base = candidates[rows, choice]
@@ -375,7 +494,8 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 self.history_count, history_steps)
             if eligible.any():
                 trigger_rows = eligible.nonzero(as_tuple=False).reshape(-1)
-                self.assignment[trigger_rows] = self.assignment[trigger_rows]
+                observation, teacher_id, input_hashes = self._router_teacher(
+                    obs_dict, trigger_rows)
                 self.triggered[trigger_rows] = True
                 self.future_valid[trigger_rows] = True
                 self.trigger_step[trigger_rows] = task.progress_buf[trigger_rows].long()
@@ -391,6 +511,19 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 self.trigger_state[trigger_rows] = state[trigger_rows]
                 self.trigger_base_action[trigger_rows] = base[trigger_rows]
                 self.trigger_candidate_actions[trigger_rows] = candidates[trigger_rows]
+                self.trigger_pre_action_observation[trigger_rows] = observation
+                self.trigger_object_state_t[trigger_rows] = task._target_states[
+                    trigger_rows]
+                self.trigger_pose_pending[trigger_rows] = True
+                self.trigger_router_teacher_candidate_id[trigger_rows] = teacher_id
+                self.trigger_router_teacher_action[trigger_rows] = (
+                    candidates[trigger_rows, teacher_id])
+                for index, row in enumerate(trigger_rows.tolist()):
+                    self.trigger_router_input_state_sha256[row] = input_hashes[index]
+                    self.trigger_episode_id[row] = (
+                        f"{runtime['split']}-seed{runtime['simulator_seed']}-"
+                        f"env{row}-episode0")
+                    self.trigger_split[row] = runtime["split"]
                 for row in trigger_rows.tolist():
                     motion_id = int(self.trigger_motion[row].item())
                     if motion_id < 0 or motion_id >= len(motion_names):
@@ -410,6 +543,8 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                     executed[active_rows])
                 self.option_executed_action[active_rows, slots] = (
                     executed[active_rows])
+            if eligible.any():
+                self.trigger_executed_action[trigger_rows] = executed[trigger_rows]
 
             if not torch.isfinite(executed).all():
                 raise FloatingPointError("nonfinite executed action")
@@ -434,6 +569,19 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             result = super().env_step(env, action)
             task = env.task
             done = result[2].reshape(-1).bool()
+            pending = self.trigger_pose_pending
+            if pending.any():
+                pose_rows = pending.nonzero(as_tuple=False).reshape(-1)
+                state_next = task._target_states[pose_rows].clone()
+                delta = self._object_local_delta(
+                    self.trigger_object_state_t[pose_rows], state_next)
+                # The pair is expressed in the t object-local frame: pose_t
+                # is its origin and pose_t+1 is the lossless transformed
+                # translation.  No world pose is substituted.
+                self.trigger_object_pose_t[pose_rows] = 0
+                self.trigger_object_pose_t_plus_1[pose_rows] = delta
+                self.trigger_target_delta[pose_rows] = delta
+                self.trigger_pose_pending[pose_rows] = False
             active_option = self.last_option_active
             self.option_elapsed[active_option] += 1
             post_contact = self._contact(task)
@@ -462,6 +610,15 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
             ids = complete.nonzero(as_tuple=False).reshape(-1).tolist()
             if not ids:
                 raise ValueError("no complete first-episode temporal option rows")
+            index = torch.tensor(ids, dtype=torch.long, device=self.device)
+            if self.trigger_pose_pending[index].any():
+                raise ValueError("missing t+1 object-local pose for a complete row")
+            if any(self.trigger_episode_id[i] is None or
+                   self.trigger_router_input_state_sha256[i] is None
+                   for i in ids):
+                raise ValueError("missing canonical episode/router provenance")
+            if len({self.trigger_episode_id[i] for i in ids}) != len(ids):
+                raise ValueError("first-episode episode_id is not globally unique")
             for env_id in ids:
                 if env_id not in by_env:
                     raise ValueError(f"missing first-episode result for env {env_id}")
@@ -470,7 +627,6 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                         int(row["start_frame"]) != int(self.trigger_start_frame[env_id])):
                     raise ValueError("episode reset changed motion/start_frame provenance")
 
-            index = torch.tensor(ids, dtype=torch.long, device=self.device)
             mask = self.future_contact_mask[index].detach().cpu()
             supported = self.future_contact_supported_lift_m[index].detach().cpu()
             records = {
@@ -493,6 +649,29 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 "option_candidate_action": self.option_candidate_action[index].detach().cpu(),
                 "option_executed_action": self.option_executed_action[index].detach().cpu(),
                 "future_contact_mask": mask,
+                "episode_id": [self.trigger_episode_id[i] for i in ids],
+                "split": [self.trigger_split[i] for i in ids],
+                "pre_action_observation": self.trigger_pre_action_observation[
+                    index].detach().cpu(),
+                "object_pose_t_object_local_frame": self.trigger_object_pose_t[
+                    index].detach().cpu(),
+                "object_pose_t_plus_1_object_local_frame": self.trigger_object_pose_t_plus_1[
+                    index].detach().cpu(),
+                "target_delta_object_local_1": self.trigger_target_delta[
+                    index].detach().cpu(),
+                "contact_mask_t_plus_1_to_t_plus_5": mask[:, :5],
+                "candidate_expert_names_and_checkpoint_sha256": [
+                    expert_provenance for _ in ids],
+                "executed_action": self.trigger_executed_action[index].detach().cpu(),
+                "router_teacher_candidate_id": self.trigger_router_teacher_candidate_id[
+                    index].detach().cpu().to(torch.int8),
+                "router_teacher_action": self.trigger_router_teacher_action[index].detach().cpu(),
+                "router_model_sha256": [router_model_sha256] * len(ids),
+                "router_input_state_sha256": [
+                    self.trigger_router_input_state_sha256[i] for i in ids],
+                "router_teacher_source": ["c1_observation_router"] * len(ids),
+                "route_config_sha256": [route_config_sha256] * len(ids),
+                "collector_config_sha256": [collector_config_sha256] * len(ids),
                 "future_contact_supported_lift_m": supported,
                 "followup_contact_fraction": mask.float().mean(dim=1),
                 "followup_max_contact_lift_m": supported.max(dim=1).values.clamp_min(0),
@@ -510,6 +689,8 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 "run_status": "COMPLETED",
                 "candidate_experts": experts,
                 "base_expert": collector["base_expert"],
+                "post_option_policy": collector["temporal_contract"][
+                    "post_option_policy"],
                 "history_steps": history_steps,
                 "option_steps": option_steps,
                 "future_steps": future_steps,
@@ -523,6 +704,21 @@ def _build_player(original, routed, torch, collector: Mapping[str, object],
                 raise ValueError(
                     "valid rows per arm below the frozen split minimum: "
                     f"{summary['arm_counts']}")
+            # Admission is fail-closed and happens before torch.save.  The
+            # adapter sends every canonical row through main's validator and
+            # separately enforces the one-split collection support minimum.
+            support_summary = validate_support_payload(
+                payload,
+                expected_provenance={
+                    "expert_checkpoint_sha256": runtime["contract_provenance"][
+                        "expert_checkpoint_sha256"],
+                    "router_model_sha256": router_model_sha256,
+                    "route_config_sha256": route_config_sha256,
+                    "collector_config_sha256": collector_config_sha256,
+                },
+                min_rows_per_arm=runtime["minimum_rows_per_arm"],
+            )
+            summary["support_contract"] = support_summary
             torch.save(payload, runtime["record_output"])
             runtime["record_summary"] = summary
             print("REF2DEX_TEMPORAL_OPTION " + json.dumps({
@@ -542,6 +738,8 @@ def main() -> None:
     parser.add_argument("--split", choices=("fit", "holdout"))
     parser.add_argument("--assignment-seed", type=int)
     parser.add_argument("--record-output", type=Path)
+    parser.add_argument("--observation-router-model", type=Path)
+    parser.add_argument("--observation-router-sha256")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-artifact-hashes", action="store_true",
                         help="only for CPU contract smoke; never valid for collection")
@@ -578,6 +776,8 @@ def main() -> None:
         "canonical_route_sha256": collector["canonical_route"]["sha256"],
         "expert_checkpoint_sha256": provenance["expert_checkpoint_sha256"],
         "motion_sha256": provenance["motion_sha256"],
+        "router_model": str(runtime["router_model"]),
+        "router_model_sha256": runtime["router_model_sha256"],
         "evaluator_path": str(EVALUATOR_PATH),
         "evaluator_sha256": sha256_path(EVALUATOR_PATH),
         "evaluator_git_blob_sha1": git_blob_sha1(EVALUATOR_PATH),
@@ -610,6 +810,8 @@ def main() -> None:
         "assignment_propensity": "1/6",
         "first_episode_only": True,
         "cm_mode": "off",
+        "observation_router_model": str(runtime["router_model"]),
+        "observation_router_model_sha256": runtime["router_model_sha256"],
         "checkpoint": str(runtime["checkpoint"]),
         "motion_root": str(runtime["motion_root"]),
         "record_output": str(runtime["record_output"]),
@@ -622,7 +824,8 @@ def main() -> None:
     _write_json(manifest_path, manifest)
 
     routed.CONFIG = provenance["route"]
-    routed.MODEL_PATH = None
+    routed.PINNED_ROOT = PINNED_ROOT
+    routed.MODEL_PATH = runtime["router_model"]
     routed.OUTPUT_PATH = output
     routed.CM_MODEL = None
     routed.CM_SHA = None

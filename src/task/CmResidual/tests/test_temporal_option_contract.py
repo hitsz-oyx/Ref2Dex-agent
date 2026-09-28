@@ -57,9 +57,9 @@ def test_frozen_route_and_collector_are_exact_six_arm_contract():
 
 
 def test_seeded_assignment_is_reproducible_balanced_and_six_arms():
-    first = balanced_environment_assignment(192, 6, 20260926254)
-    second = balanced_environment_assignment(192, 6, 20260926254)
-    other = balanced_environment_assignment(192, 6, 20260926255)
+    first = balanced_environment_assignment(192, 6, 20260928256)
+    second = balanced_environment_assignment(192, 6, 20260928256)
+    other = balanced_environment_assignment(192, 6, 20260928257)
     assert torch.equal(first, second)
     assert not torch.equal(first, other)
     assert sorted(first.unique().tolist()) == list(range(6))
@@ -134,6 +134,7 @@ def _synthetic_payload():
     contact = torch.zeros(n, 20, dtype=torch.bool)
     contact[:, ::2] = True
     supported = torch.where(contact, torch.full((n, 20), 0.04), torch.zeros(n, 20))
+    teacher_id = (assignment.long() + 1) % 6
     records = {
         "env_id": torch.arange(n),
         "motion_id": torch.tensor([0, 1, 2, 0, 1, 2]),
@@ -154,6 +155,26 @@ def _synthetic_payload():
         "option_candidate_action": option,
         "option_executed_action": option.clone(),
         "future_contact_mask": contact,
+        "episode_id": [f"fit-test-episode-{i}" for i in range(n)],
+        "split": ["fit"] * n,
+        "pre_action_observation": torch.zeros(n, 1442),
+        "object_pose_t_object_local_frame": torch.zeros(n, 3),
+        "object_pose_t_plus_1_object_local_frame": torch.tensor(
+            [[0.01, -0.02, 0.03]] * n),
+        "target_delta_object_local_1": torch.tensor(
+            [[0.01, -0.02, 0.03]] * n),
+        "contact_mask_t_plus_1_to_t_plus_5": contact[:, :5].clone(),
+        "candidate_expert_names_and_checkpoint_sha256": [
+            [{"name": name, "checkpoint_sha256": provenance["expert_checkpoint_sha256"][name]}
+             for name in experts] for _ in range(n)],
+        "executed_action": candidate[torch.arange(n), assignment.long()].clone(),
+        "router_teacher_candidate_id": teacher_id.to(torch.int8),
+        "router_teacher_action": candidate[torch.arange(n), teacher_id].clone(),
+        "router_model_sha256": ["3" * 64] * n,
+        "router_input_state_sha256": ["4" * 64] * n,
+        "router_teacher_source": ["c1_observation_router"] * n,
+        "route_config_sha256": [provenance["route_config_sha256"]] * n,
+        "collector_config_sha256": [provenance["collector_config_sha256"]] * n,
         "future_contact_supported_lift_m": supported,
         "followup_contact_fraction": contact.float().mean(1),
         "followup_max_contact_lift_m": supported.max(1).values,
@@ -167,6 +188,7 @@ def _synthetic_payload():
         "run_status": "COMPLETED",
         "candidate_experts": experts,
         "base_expert": "source_e260",
+        "post_option_policy": "canonical_route_expert",
         "history_steps": 10,
         "option_steps": 10,
         "future_steps": 20,

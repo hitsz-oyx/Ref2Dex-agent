@@ -1,0 +1,114 @@
+{
+  "schema": "ref2dex.cm_scratch_teacher_arbitration.v1",
+  "model_id": "CM-SCRATCH-TA-20260928",
+  "status": "DESIGN_ONLY_NO_TRAINING",
+  "purpose": "Use a from-scratch physical transition envelope to choose the offline teacher label for a matched six-expert-to-one-student distillation run.",
+  "distinctness": {
+    "policy_decision": "choose the expert action assigned as the student supervision label before distillation",
+    "not_online_execution": true,
+    "not_value_critic": true,
+    "not_action_ranking_at_runtime": true,
+    "not_residual_intervention": true,
+    "not_shared_representation_auxiliary": true,
+    "separation_from_hf01_hf05": "Cm does not rank or intervene on an executed wrist action; it arbitrates offline teacher labels using physical transition targets.",
+    "separation_from_ref_student": "The six-expert/student substrate supplies candidate actions and the student architecture; it supplies no Cm target, checkpoint, or runtime Cm call."
+  },
+  "initialization": {
+    "from_scratch": true,
+    "checkpoint": null,
+    "pretrained_encoder": null,
+    "reuse_hf01_hf05_outputs": false,
+    "old_representation_reuse": false,
+    "random_seed": 20260928
+  },
+  "candidate_support": {
+    "candidate_count": 6,
+    "assignment": "seeded_balanced_six_arm",
+    "propensity": "1/6",
+    "required_action_support": "each candidate expert action must be randomized at the same pre-action state",
+    "required_split": "episode-disjoint fit and holdout",
+    "current_task_data_action": "read-only audit only; do not collect new transitions"
+  },
+  "model": {
+    "input_blocks": [
+      "pre_action_observation",
+      "candidate_action",
+      "candidate_id_one_hot"
+    ],
+    "forbidden_input_blocks": [
+      "next_state",
+      "future_contact",
+      "final_held_lift",
+      "terminal_success",
+      "teacher_label"
+    ],
+    "encoder": {
+      "type": "mlp",
+      "hidden_widths": [128, 128],
+      "activation": "relu",
+      "initialization": "random_normalized",
+      "framework": "cpu_or_gpu_after_preflight_only"
+    },
+    "heads": {
+      "delta_object_local_1": {
+        "shape": 3,
+        "loss": "huber",
+        "target": "next_object_state_minus_pre_action_object_state in object-local frame"
+      },
+      "contact_retention_h5": {
+        "shape": 3,
+        "quantiles": [0.1, 0.5, 0.9],
+        "loss": "quantile",
+        "target": "mean contact indicator over the next five physical steps"
+      }
+    },
+    "decision_uncertainty": "contact q10 is the certified lower bound; delta interval radius is the max q90-q10 coordinate span"
+  },
+  "teacher_arbitration": {
+    "contact_lcb_threshold": 0.6,
+    "objective": "maximize certified displacement along the object lift axis among candidates passing contact LCB",
+    "tie_break": ["smaller uncertainty_radius", "lower candidate_id"],
+    "fallback": "frozen_c1_observation_router_teacher_label",
+    "cm_off": "same states, same six expert actions, frozen C1 observation-router teacher label",
+    "cm_on_unique_difference": "replace only the offline teacher label with the certified Cm candidate; if no candidate passes, use the exact router label",
+    "required_router_fields": [
+      "router_teacher_candidate_id",
+      "router_teacher_action",
+      "router_model_sha256",
+      "router_input_state_sha256"
+    ],
+    "placebo": "same-capacity output with candidate labels permuted by a fixed seed",
+    "student_match": ["architecture", "optimizer", "steps", "state rows", "seed set", "evaluation motions"]
+  },
+  "cpu_preflight": {
+    "allowed_now": true,
+    "must_validate": [
+      "schema and no post-action leakage",
+      "six-arm 1/6 propensity support",
+      "episode-disjoint fit/holdout",
+      "finite physical targets",
+      "deterministic arbitration and source-route fallback"
+    ],
+    "must_not_claim": "Cm policy utility, held-lift improvement, or causal support",
+    "fail_closed_if": [
+      "candidate expert actions are not randomized at matched states",
+      "any arm is missing",
+      "fit and holdout share an episode",
+      "only HF03/HF04 wrist-z support is available"
+    ]
+  },
+  "agent_rl_upgrade": {
+    "stage_1": "prepare six-arm randomized pre-action transitions with one-step object motion and five-step contact targets; keep fit/holdout episodes disjoint",
+    "stage_2": "fit the scratch model and report CPU calibration/coverage and arbitration stability; stop on failed support or calibration",
+    "stage_3": "run a matched offline distillation Probe for cm_on, cm_off, and fixed-seed placebo; no online/PPO/collector in this task",
+    "stage_4": "only after a separate Decision Checkpoint may a later matched held-lift validation be considered"
+  },
+  "resource_guard": {
+    "gpu": 0,
+    "training": false,
+    "online": false,
+    "ppo": false,
+    "collector": false,
+    "new_data": false
+  }
+}

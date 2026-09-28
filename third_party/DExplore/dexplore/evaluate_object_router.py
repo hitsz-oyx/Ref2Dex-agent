@@ -19,6 +19,7 @@ import evaluate as original
 
 
 ROOT = Path(__file__).resolve().parents[3]
+PINNED_ROOT = Path(os.environ.get("REF2DEX_MAIN_ROOT", str(ROOT))).resolve()
 CONFIG = None
 MODEL_PATH = None
 OUTPUT_PATH = None
@@ -28,6 +29,17 @@ CM_MODE = "off"
 CM_CANDIDATE_MODE = "experts"
 CM_CONTACT_GATE = "instant"
 CM_STATS = {}
+
+
+def artifact_path(relative: str | Path) -> Path:
+    """Resolve a pinned read-only artifact from worker or main root."""
+    value = Path(relative)
+    if value.is_absolute():
+        return value
+    local = (ROOT / value).resolve()
+    if local.is_file():
+        return local
+    return (PINNED_ROOT / value).resolve()
 
 
 def sha256(path: Path) -> str:
@@ -57,12 +69,13 @@ class RoutedPlayer(original.EvalPlayer):
         self.cm_scored_steps = 0
         self.cm_histogram = None
         self.cm_stable_contact_steps = None
+        self.last_teacher_choice = None
 
     def restore(self, filename):
         super().restore(filename)
         target_keys = set(self.model.state_dict())
         for name, spec in CONFIG["experts"].items():
-            path = ROOT / spec["checkpoint"]
+            path = artifact_path(spec["checkpoint"])
             payload = torch.load(path, map_location=self.device, weights_only=False)
             model = copy.deepcopy(self.model)
             # rl_games may compile the training actor while the evaluation
@@ -128,16 +141,18 @@ class RoutedPlayer(original.EvalPlayer):
 
     def env_reset(self, env_ids=None):
         result = super().env_reset(env_ids)
+        ids = None if env_ids is None else torch.as_tensor(
+            env_ids, device=self.device).reshape(-1).long()
         if self.cm_stable_contact_steps is not None:
             if env_ids is None:
                 self.cm_stable_contact_steps.zero_()
-            elif len(env_ids):
-                self.cm_stable_contact_steps[env_ids.reshape(-1).long()] = 0
+            elif ids.numel():
+                self.cm_stable_contact_steps[ids] = 0
         if self.observation_router is not None:
             if env_ids is None:
                 self._needs_route[:] = True
-            elif len(env_ids):
-                self._needs_route[env_ids.reshape(-1).long()] = True
+            elif ids.numel():
+                self._needs_route[ids] = True
         return result
 
     @torch.no_grad()
@@ -161,6 +176,7 @@ class RoutedPlayer(original.EvalPlayer):
             choice = self.route_by_motion[self.env.task.data_id.long()]
         if (choice < 0).any():
             raise RuntimeError("unassigned observation route")
+        self.last_teacher_choice = choice.detach().clone()
         source_model, source_rms = self.model, self.running_mean_std
         actions = []
         try:
