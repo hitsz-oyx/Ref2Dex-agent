@@ -206,13 +206,20 @@ codex_newapi \
   resume "$THREAD_ID" -C "$WORKTREE"
 ```
 
-需要重新派发明确 goal 时，仍对同一个 ID 排队：
+runtime 恢复只确认同一 `(CODEX_HOME, THREAD_ID)` 身份。普通任务派发不直接向
+thread queue 写消息，而是由 root 把 `TASK_DISPATCH` 写入 Agent Broker；provider
+adapter 再决定如何唤醒对应 runtime：
 
 ```bash
-codex_newapi \
-  "${PROVIDER_ARGS[@]}" \
-  queue --thread "$THREAD_ID" --message '<完整 GOAL_DISPATCH 消息>'
+python3 scripts/agent_broker.py dispatch \
+  --task-id '<task-id>' \
+  --target '<stable-agent-key>' \
+  --objective '<明确任务>'
 ```
+
+直接 `codex queue --thread` 只能作为 provider adapter 内部的兼容实现，不能作为
+root 的任务协议，也不能再使用 `GOAL_DISPATCH` 名称。恢复后仍须登记同一 runtime
+身份并由 Broker 记录任务状态。
 
 恢复前核对 `(CODEX_HOME, THREAD_ID)` 与注册表身份键、工作树和 branch 一致；恢复后再登记/更新同一条记录。只有确认没有可恢复的持久化 ID 时才创建新 thread，并说明原因。
 

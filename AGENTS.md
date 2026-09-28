@@ -49,6 +49,11 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 9. 与当前问题直接相关的代码
 10. 当前活跃实验记录（如果存在）
 
+文档分类入口见 [`docs/README.md`](docs/README.md)；workflow 和 research 的索引分别
+见 [`docs/workflow/README.md`](docs/workflow/README.md) 与
+[`docs/research/README.md`](docs/research/README.md)。这些索引不替代上面的最小上下文
+清单，只用于定位当前入口和区分历史资料。
+
 如果任务涉及代理身份、runtime binding、任务派发、工作树或 provider 迁移，还必须
 读取 [`docs/AGENT_REGISTRY.json`](docs/AGENT_REGISTRY.json)、本机
 `.runtime/AGENT_BINDINGS.json`（若存在）以及
