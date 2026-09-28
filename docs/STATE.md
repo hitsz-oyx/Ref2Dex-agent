@@ -31,9 +31,12 @@ Checkpoint 对选项的定义，Option A 表示继续冻结 Cm、保留 C1 subst
 root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选择后续路线，并记录
 简短 decision memo；本授权不改写上述历史标签，也不把 C1 的任务限定证据升级为更强
 的科学结论。用户同时已授权六专家蒸馏与一条新的 Cm 探索路线；这两条路线仍须遵守
-`CAMPAIGN`、资源上限、preflight、matched control 和停止条件。当前 P0 蒸馏 preflight
-与 Cm scratch contract 仅完成工程检查并通过，支持数据仍待审计，North-star scoreboard
-保持不变。
+`CAMPAIGN`、资源上限、preflight、matched control 和停止条件。r6 support collection
+已经完成并通过 root 审计：fit 189 行、holdout 186 行，六个随机 assignment 臂均有
+至少 30 行且 split episode 不重叠。第一阶段 CPU student Probe 随后判定
+`UNCLEAR`，因为两份数据的 C1 teacher label 全部为 `source_e260`，不能识别六专家
+蒸馏。North-star scoreboard 保持不变；当前只推进一个受限的 scratch Cm CPU
+support/calibration gate。
 
 ## North-star scoreboard
 
@@ -69,6 +72,11 @@ root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选�
   系数或门限。
 - 现有 matched 结果必须保留 Cm-off 对照；任何新 Cm Probe 都应复用同一专家
   组合，并先做最小可判别实验。
+- 2026-09-28 six-expert support collection r6 的 fit/holdout 已通过 canonical
+  adapter 和 provenance 审计（189/186 行，六臂覆盖、`1/6` propensity、episode
+  disjoint）。其随机 candidate actions 可用于后续 support 检查，但 C1 router
+  teacher label 在两 split 均只覆盖 `source_e260`；CPU student Probe 因此只是
+  source-only 可预测性证据，不能升级为六专家结论。
 - 允许的一次正确 cwd 工程 smoke 已完成：`agent_temporal_cm_smoke_20260926_r3`
   在 GPU4 上成功加载 temporal 模块、写出 reward 日志并保存 checkpoint（代码
   commit `2d5d0b5`）。它使用旧的五步历史/三条 airplane 输入，只证明 wiring，
@@ -157,3 +165,11 @@ route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一
 用户再次插入选择的门槛。六专家蒸馏与新的 Cm scratch 路线均应先记录区别于 HF01–HF05
 的高层机制、预算、停止条件和证据边界，再在现有授权内自主选择或请求缺失的资源授权；不得
 从该分层或 C1 结果推导 Cm 增益，也不得把历史冻结标签改写成新的实验结果。
+
+r6 support collection 和 source-only CPU distillation 已完成审计。固定 Cm-off
+teacher label 的六专家覆盖不足，故当前由 `agent_cm` 执行
+`CM-SCRATCH-TA-20260928` 的 CPU-only contract/calibration gate；它只能使用现有
+transition 字段，禁止猜测缺失的 object-local one-step delta、伪造 episode ID 或
+把 `source_e260` 当静态 fallback。若 gate 失败，下一步是按 handoff 中的最小字段
+要求重新申请一次受限 support collection；若通过，才进入 matched `cm_on`/`cm_off`
+离线 student Probe。
