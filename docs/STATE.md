@@ -80,6 +80,11 @@ provenance。随后已在主分支修复该合约：新的 evaluator 会按触�
   disjoint）。其随机 candidate actions 可用于后续 support 检查，但 C1 router
   teacher label 在两 split 均只覆盖 `source_e260`；CPU student Probe 因此只是
   source-only 可预测性证据，不能升级为六专家结论。
+- 带 `object_lift_axis` 合约的 r7 fit/holdout 已完成同样的 canonical 审计（188/186 行，
+  六臂均至少 30 行，374 个 episode disjoint）。scratch CPU calibration 的 contract
+  通过，但 holdout contact q10 和 delta 区间覆盖均未过门槛，结论为
+  `UNPROMISING`；详细输入/输出 hash、离线 label 统计和边界见
+  [`CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
 - 允许的一次正确 cwd 工程 smoke 已完成：`agent_temporal_cm_smoke_20260926_r3`
   在 GPU4 上成功加载 temporal 模块、写出 reward 日志并保存 checkpoint（代码
   commit `2d5d0b5`）。它使用旧的五步历史/三条 airplane 输入，只证明 wiring，
@@ -177,7 +182,10 @@ teacher label 的六专家覆盖不足；`agent_cm` 的
 assignment、`1/6` propensity 和 episode disjoint 均有效，但没有猜测缺失轴，也没有
 把 `source_e260` 当静态 fallback。正式 handoff 见
 [`CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md)。
-主分支当前 CPU preflight 已返回 `READY_FOR_COLLECTION`。下一步是使用新输出根目录做一轮
-有界的 fit/holdout support collection，先验证六臂覆盖、episode disjoint 和轴的单位/坐标系
-provenance，再由 `agent_cm` 重跑 scratch contract 与 CPU calibration；在这些门通过前，旧
-记录仍禁止 transition fit、Cm-on 标签和 matched student Probe。
+主分支当前 CPU preflight 已返回 `READY_FOR_COLLECTION`，随后完成了新的带轴 fit/holdout
+support collection：fit 188 行、holdout 186 行，六臂均至少 30 行，374 个 episode 全局
+不重叠，axis finite/unit 和 provenance 均通过 root 独立复核。`agent_cm` 随后通过了
+scratch contract 并完成 CPU calibration，但 holdout contact q10 下界覆盖率只有 0.7688、
+delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准结论为 `UNPROMISING`。
+因此当前停止在 calibration：不生成可用于蒸馏的正式 Cm-on 标签，不启动 online/PPO/Cm
+训练；任何重新校准或改写 scratch 目标都需要单独 Decision Checkpoint。
