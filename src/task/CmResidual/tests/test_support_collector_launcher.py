@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 import pytest
@@ -44,12 +45,30 @@ def test_launcher_emits_no_legacy_cm_flags_and_exact_fit_holdout_contract(tmp_pa
         assert motion == motion.resolve()
 
 
+def test_launcher_uses_absolute_real_dexplore_config_paths(tmp_path):
+    command = build_command(split="fit", output_root=tmp_path / "fit")
+    cfg_env = Path(command[command.index("--cfg_env") + 1])
+    cfg_train = Path(command[command.index("--cfg_train") + 1])
+    assert cfg_env.is_absolute() and cfg_env.is_file()
+    assert cfg_train.is_absolute() and cfg_train.is_file()
+    assert os.path.join(str(Path.cwd()), str(cfg_env)) == str(cfg_env)
+    assert os.path.join(str(Path.cwd()), str(cfg_train)) == str(cfg_train)
+    assert command[command.index("--cfg_env") + 1] != \
+        "dexplore/data/cfg/inspire_object_balanced.yaml"
+    assert command[command.index("--cfg_train") + 1] != \
+        "dexplore/data/cfg/train/rlg/inspire.yaml"
+
+
 def test_cpu_preflight_never_queries_gpu(monkeypatch):
     def fail(_args):
         raise AssertionError("CPU preflight must not query nvidia-smi")
 
     monkeypatch.setattr(launcher, "_nvidia_smi", fail)
-    assert source_preflight()["status"] == "PASS"
+    audit = source_preflight()
+    assert audit["status"] == "PASS"
+    assert audit["config_paths_missing"] == []
+    assert all(Path(value).is_absolute() and Path(value).is_file()
+               for value in audit["config_paths"].values())
 
 
 def test_execute_requires_explicit_gpu_index_without_gpu_probe(monkeypatch, tmp_path):

@@ -33,6 +33,10 @@ CHECKPOINT_RELATIVE = Path(
     "GRAB_00000260.pth")
 ROUTER_RELATIVE = Path(
     "outputs/CmResidual/agent_six_expert_router_model_20260925/router.joblib")
+CFG_ENV_RELATIVE = Path(
+    "third_party/DExplore/dexplore/data/cfg/inspire_object_balanced.yaml")
+CFG_TRAIN_RELATIVE = Path(
+    "third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml")
 
 SPLITS: Mapping[str, Mapping[str, int]] = {
     "fit": {"simulator_seed": 256, "assignment_seed": 20260928256},
@@ -51,6 +55,23 @@ def _canonical_main(relative: Path) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"canonical input is missing: {path}")
     return path
+
+
+def _canonical_config_paths(root: Path = MAIN_ROOT) -> tuple[Path, Path]:
+    """Return real absolute config files accepted by the DExplore loader.
+
+    ``utils.config.load_cfg`` joins each argument with ``cwd``.  Absolute
+    arguments remain absolute under ``os.path.join`` and therefore work when
+    the launcher is invoked from the worker root.  The config files are kept
+    in the read-only canonical main checkout, not copied into outputs.
+    """
+    config_root = Path(root).resolve()
+    cfg_env = (config_root / CFG_ENV_RELATIVE).resolve()
+    cfg_train = (config_root / CFG_TRAIN_RELATIVE).resolve()
+    missing = [str(path) for path in (cfg_env, cfg_train) if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("canonical DExplore config is missing: " + ", ".join(missing))
+    return cfg_env, cfg_train
 
 
 def _literal_add_argument_flags(path: Path) -> set[str]:
@@ -95,8 +116,19 @@ def source_preflight() -> dict[str, Any]:
     gate = evaluator_source.find("validate_support_payload(")
     save = evaluator_source.find('torch.save(payload, runtime["record_output"])')
     adapter_before_save = gate >= 0 and save > gate
+    try:
+        cfg_env, cfg_train = _canonical_config_paths()
+        config_paths = {
+            "cfg_env": str(cfg_env),
+            "cfg_train": str(cfg_train),
+        }
+        config_paths_missing: list[str] = []
+    except FileNotFoundError as exc:
+        config_paths = {}
+        config_paths_missing = [str(exc)]
     return {
-        "status": "PASS" if (not parser_missing and internal_cm_off and
+        "status": "PASS" if (not parser_missing and not config_paths_missing and
+                              internal_cm_off and
                               adapter_before_save and "--cm-mode" not in real_source
                               and "--cm-candidate-mode" not in real_source
                               and "--cm-contact-gate" not in real_source) else "FAIL",
@@ -107,6 +139,8 @@ def source_preflight() -> dict[str, Any]:
             flag for flag in LEGACY_CM_FLAGS if flag in real_source),
         "internal_cm_off": internal_cm_off,
         "adapter_before_save": adapter_before_save,
+        "config_paths": config_paths,
+        "config_paths_missing": config_paths_missing,
         "isaacgym_imported": False,
     }
 
@@ -122,6 +156,7 @@ def build_command(*, split: str, output_root: Path,
     motion = (Path(main_root) / MOTION_RELATIVE).resolve()
     checkpoint = (Path(main_root) / CHECKPOINT_RELATIVE).resolve()
     router = (Path(main_root) / ROUTER_RELATIVE).resolve()
+    cfg_env, cfg_train = _canonical_config_paths(Path(main_root))
     for name, path in (("motion root", motion), ("base checkpoint", checkpoint),
                        ("C1 router", router)):
         if not path.exists():
@@ -138,8 +173,8 @@ def build_command(*, split: str, output_root: Path,
         "--observation-router-sha256",
         "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14",
         "--task", "Dexplore_Inspire",
-        "--cfg_env", "dexplore/data/cfg/inspire_object_balanced.yaml",
-        "--cfg_train", "dexplore/data/cfg/train/rlg/inspire.yaml",
+        "--cfg_env", str(cfg_env),
+        "--cfg_train", str(cfg_train),
         "--motion_file", str(motion),
         "--checkpoint", str(checkpoint),
         "--disable-early-termination", "--headless",
