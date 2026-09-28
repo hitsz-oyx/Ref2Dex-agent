@@ -43,6 +43,7 @@ LEGACY_CM_FLAGS = frozenset(
 REQUIRED_REAL_PARSER_FLAGS = frozenset(
     {"--task", "--cfg_env", "--cfg_train", "--motion_file", "--checkpoint",
      "--headless", "--num_envs", "--seed", "--disable-early-termination"})
+MAX_PREEXISTING_GPU_MEMORY_MIB = 512
 
 
 def _canonical_main(relative: Path) -> Path:
@@ -181,6 +182,86 @@ def validate_command(command: list[str], *, split: str, output_root: Path) -> di
     return result
 
 
+def _nvidia_smi(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run a read-only nvidia-smi query for an explicitly selected GPU.
+
+    This helper is only called from the explicit ``--execute`` path.  Keeping
+    it out of ``source_preflight`` makes the default launcher invocation safe
+    on CPU-only workers and prevents an accidental CUDA/Isaac Gym probe.
+    """
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", *args], capture_output=True, text=True, check=False)
+    except OSError as exc:
+        raise RuntimeError(f"nvidia-smi unavailable: {exc}") from exc
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"nvidia-smi query failed: {detail or result.returncode}")
+    return result
+
+
+def check_gpu_for_execute(gpu_index: int) -> dict[str, Any]:
+    """Fail closed unless the selected physical GPU is free and attributable.
+
+    The query verifies that the requested physical index exists, has bounded
+    pre-existing memory, and has no compute process owned by another task.
+    No fallback GPU or implicit environment selection is permitted.
+    """
+    if isinstance(gpu_index, bool) or gpu_index < 0:
+        raise RuntimeError("--gpu-index must be a non-negative physical GPU index")
+    gpu = _nvidia_smi([
+        f"--id={gpu_index}",
+        "--query-gpu=index,memory.used,memory.total,uuid",
+        "--format=csv,noheader,nounits",
+    ])
+    rows = [line.strip() for line in gpu.stdout.splitlines() if line.strip()]
+    if len(rows) != 1:
+        raise RuntimeError(
+            f"physical GPU{gpu_index} ownership query returned {len(rows)} rows")
+    fields = [value.strip() for value in rows[0].split(",")]
+    if len(fields) != 4:
+        raise RuntimeError(f"unexpected nvidia-smi GPU row: {rows[0]}")
+    try:
+        reported_index, memory_used, memory_total = (
+            int(fields[0]), int(fields[1]), int(fields[2]))
+    except ValueError as exc:
+        raise RuntimeError(f"non-numeric nvidia-smi GPU row: {rows[0]}") from exc
+    if reported_index != gpu_index:
+        raise RuntimeError(
+            f"nvidia-smi selected GPU{gpu_index} but reported GPU{reported_index}")
+    if memory_used > MAX_PREEXISTING_GPU_MEMORY_MIB:
+        raise RuntimeError(
+            f"physical GPU{gpu_index} occupied: {memory_used}MiB used "
+            f"(limit {MAX_PREEXISTING_GPU_MEMORY_MIB}MiB)")
+    apps = _nvidia_smi([
+        f"--id={gpu_index}",
+        "--query-compute-apps=pid,process_name,used_memory",
+        "--format=csv,noheader,nounits",
+    ])
+    app_rows = [line.strip() for line in apps.stdout.splitlines()
+                if line.strip() and "no running processes" not in line.lower()]
+    if app_rows:
+        raise RuntimeError(
+            f"physical GPU{gpu_index} has compute owners: {'; '.join(app_rows)}")
+    return {
+        "physical_gpu_index": gpu_index,
+        "uuid": fields[3],
+        "memory_used_mib": memory_used,
+        "memory_total_mib": memory_total,
+        "compute_owners": [],
+    }
+
+
+def execute_environment(gpu_index: int) -> tuple[dict[str, str], dict[str, Any]]:
+    """Validate ownership and return the child environment for explicit execute."""
+    evidence = check_gpu_for_execute(gpu_index)
+    env = dict(os.environ)
+    env["CUDA_VISIBLE_DEVICES"] = str(gpu_index)
+    env["REF2DEX_MAIN_ROOT"] = str(MAIN_ROOT)
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return env, evidence
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--split", choices=tuple(SPLITS))
@@ -189,14 +270,20 @@ def main() -> int:
     parser.add_argument("--emit-command", action="store_true")
     parser.add_argument("--execute", action="store_true",
                         help="explicitly run the command; never used by CPU preflight")
+    parser.add_argument("--gpu-index", type=int,
+                        help="physical GPU index; required for --execute")
     args = parser.parse_args()
     audit = source_preflight()
     if audit["status"] != "PASS":
         print(json.dumps({"status": "NOT_READY", "source_preflight": audit}, indent=2))
         return 2
     if not args.split:
+        if args.execute:
+            parser.error("--execute requires --split")
         print(json.dumps({"status": "READY_FOR_COLLECTION", "source_preflight": audit}, indent=2))
         return 0
+    if args.execute and args.gpu_index is None:
+        parser.error("--execute requires an explicit --gpu-index")
     command = build_command(split=args.split, output_root=args.output_root)
     validation = validate_command(command, split=args.split, output_root=args.output_root)
     result = {"status": "READY_FOR_COLLECTION", "source_preflight": audit,
@@ -206,9 +293,8 @@ def main() -> int:
     else:
         print(json.dumps(result, indent=2, sort_keys=True))
     if args.execute:
-        env = dict(os.environ)
-        env["REF2DEX_MAIN_ROOT"] = str(MAIN_ROOT)
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env, gpu_evidence = execute_environment(args.gpu_index)
+        result["gpu_preflight"] = gpu_evidence
         return subprocess.run(command, cwd=ROOT, env=env, check=False).returncode
     return 0
 
