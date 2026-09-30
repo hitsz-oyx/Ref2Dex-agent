@@ -43,3 +43,5 @@ r7 mixed-data预训练工程smoke已在空闲GPU2完成（2更新/模型，非�
 plain_off与direct_q四臂科学训练均已完成e420、327680新交互，初始模型hash一致；两个cm_value臂继续固定训练。新evaluation_handoff.py/session17061仅等待六臂终态、复核epoch/frame/行为与梯度标记后启动既有48点评价，不改变矩阵。当前运行训练调度加载的是c9c49f0，其中GPU时长汇总误将group wall纳入子臂合计；交接脚本会保留原值并更正为六个native臂时长之和，墙钟账本和科学结果不变。代码68bb31f已修正未来运行。
 
 最大档预训练模型开发审计（固定2048行、component_audit_largest_with_baselines.json）：物体位置坐标RMSE0.027890m，高于copy-state的0.009263m及恒定线速度的0.004684m；姿态测地RMSE1.663830rad，高于copy-state的0.193119rad。该恒速基线的旋转仍沿用当前姿态，不包含角速度积分。Cm的joint-position/velocity、object-velocity和contact分量优于copy-state，但不能用总loss概括为物理转移已准确。V/Q对完整return的RMSE24.428/25.808低于fit-mean常量45.480，仍不证明未执行候选动作的排序或policy收益。以上是带噪source分布的开发诊断，不改变固定闭环或主gate；新增online-checkpoint审计仅比较Cm物理分量，明确不将source-policy MC return用于宣称当前策略V/Q校准。
+
+在线Cm终点审计已安排受控CPU接续session39234：等待train_parallel完成后，用共同开发2048行分别审计seed286/287的e420 dynamics，输出models/component_audit_online_s{seed}_e420.json，CPU线程2；代码e339c84。它与session17061的完整评价独立，不能替代policy gate，诊断耗时单独记录。
