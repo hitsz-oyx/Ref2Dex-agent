@@ -92,10 +92,12 @@ class PhysicalPlayer(original.EvalPlayer):
         for tick in range(ARGS.max_steps):
             if time.monotonic() - started > ARGS.wall_seconds:
                 raise TimeoutError("environment phase wall budget")
+            # DExplore's reset adapter also packages obs/AMP in a dictionary
+            # on non-reset steps; env_step itself returns a bare tensor.
+            obs = self.env_reset(done_indices)
             if done_indices:
                 # Player reset consumes only completed environments, before the
                 # next state snapshot; terminal snapshots above are preserved.
-                obs = self.env_reset(done_indices)
                 reset_ids = torch.tensor(done_indices, device=self.device)
                 tracker.reset(reset_ids, task._target_states[reset_ids, 2])
                 start_frame[reset_ids] = task.start_times[reset_ids]

@@ -69,7 +69,7 @@ def dynamics_output(model, features, states, actions, mask, context, candidate):
 
 
 def dynamics_loss(predicted, contact_logits, reward, terminal_logits, target, actual_reward,
-                  terminal, features, reward_scale):
+                  terminal, features, reward_scale, reduction="mean"):
     groups = []
     for part in (slice(0, 18), slice(18, 36), slice(36, 39), slice(43, 49)):
         groups.append(((predicted[:, part] - target[:, part]) / features.state_std[part]).square().mean(-1))
@@ -77,7 +77,8 @@ def dynamics_loss(predicted, contact_logits, reward, terminal_logits, target, ac
     groups.append(F.binary_cross_entropy_with_logits(contact_logits, target[:, 49:51], reduction="none").mean(-1))
     groups.append(((reward - actual_reward) / reward_scale.clamp_min(1)).square())
     groups.append(F.binary_cross_entropy_with_logits(terminal_logits, terminal.float(), reduction="none"))
-    return torch.stack(groups).mean(0).mean()
+    rows = torch.stack(groups).mean(0)
+    return rows.mean() if reduction == "mean" else rows
 
 
 class Teacher:
