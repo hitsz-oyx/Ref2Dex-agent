@@ -9,7 +9,7 @@ import pytest
 
 from scripts import worker_event_poller as events
 from scripts import root_watchdog as watchdog
-from scripts.researchctl import main as researchctl_main
+from scripts.researchctl import main as researchctl_main, write_lease
 from scripts.root_watchdog import classify
 
 
@@ -510,6 +510,38 @@ def test_researchctl_writes_identity_only_with_canonical_registry(tmp_path: Path
         local_only, enabled=True, mode="autonomous"
     )
     assert "conversation_id" not in value
+
+
+def test_researchctl_pause_preserves_identity_and_resume_rejects_invalid_registry(tmp_path: Path) -> None:
+    registry, lease_path, _, root = _watchdog_fixture(tmp_path)
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}),
+        encoding="utf-8",
+    )
+    resumed = write_lease(lease_path, enabled=True, mode="autonomous", registry=registry)
+    paused = write_lease(lease_path, enabled=False, mode="manual")
+    for field in ("conversation_id", "codex_home", "worktree", "branch", "provider"):
+        assert paused[field] == resumed[field]
+
+    invalid_base = tmp_path / "invalid"
+    invalid_base.mkdir()
+    invalid_registry, invalid_lease, _, _ = _watchdog_fixture(invalid_base)
+    with pytest.raises(ValueError, match="root runtime identity"):
+        write_lease(invalid_lease, enabled=True, mode="autonomous", registry=invalid_registry)
+
+
+def test_researchctl_resume_default_registry_emits_watchdog_identity(tmp_path: Path, monkeypatch) -> None:
+    registry, lease_path, _, root = _watchdog_fixture(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "docs/AGENT_REGISTRY.json").write_text(registry.read_text(encoding="utf-8"), encoding="utf-8")
+    (tmp_path / ".runtime/AGENT_BINDINGS.json").write_text(
+        json.dumps({"schema": "ref2dex.agent_bindings.v2", "bindings": {"root": _identity(root)}}),
+        encoding="utf-8",
+    )
+    assert researchctl_main(["supervisor", "resume", "--lease", str(lease_path)]) == 0
+    value = json.loads(lease_path.read_text(encoding="utf-8"))
+    assert value["conversation_id"] == root["conversation_id"]
+    assert value["worktree"] == root["worktree"]
 
 
 @pytest.mark.parametrize("goal_status", ["active", "paused", "usage_limited"])

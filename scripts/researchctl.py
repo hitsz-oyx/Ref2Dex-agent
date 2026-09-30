@@ -18,6 +18,9 @@ except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
     from root_watchdog import LEASE_SCHEMA, load_lease, root_runtime_identity
 
 
+LEASE_IDENTITY_FIELDS = ("conversation_id", "codex_home", "worktree", "branch", "provider")
+
+
 def write_lease(path: Path, *, enabled: bool, mode: str,
                 registry: Path | None = None) -> dict:
     current = load_lease(path)
@@ -30,13 +33,20 @@ def write_lease(path: Path, *, enabled: bool, mode: str,
         "generation": int(current.get("generation", 0) or 0) + 1,
         "updated_at": time.time(),
     }
-    # A local-only lease may be created before the canonical registry exists;
-    # watchdog identity checks will fail closed until a complete lease is
-    # written with --registry.
+    # Preserve an existing identity while migrating or pausing a lease. This
+    # prevents a pause/resume cycle from deleting watchdog-required fields.
+    for field in LEASE_IDENTITY_FIELDS:
+        if isinstance(current.get(field), str) and current[field]:
+            value[field] = current[field]
     if registry is not None:
-        identity, _ = root_runtime_identity(registry)
-        if identity is not None:
+        identity, reason = root_runtime_identity(registry)
+        if identity is None:
+            if enabled:
+                raise ValueError(f"cannot enable supervisor lease without root runtime identity: {reason}")
+        else:
             value.update(identity)
+    # Local migration fixtures may omit a registry; root_watchdog continues to
+    # fail closed until a complete identity is supplied.
     runtime.write_json_atomic(path, value)
     return value
 
@@ -52,6 +62,9 @@ def main(argv=None) -> int:
     parser.add_argument("--broker-roles", type=Path, default=Path("docs/AGENT_ROLES.yaml"))
     parser.add_argument("--broker-bindings", type=Path, default=Path(".runtime/AGENT_BINDINGS.json"))
     args = parser.parse_args(argv)
+    if args.registry is None:
+        candidate = Path("docs/AGENT_REGISTRY.json")
+        args.registry = candidate if candidate.is_file() else None
     if bool(args.broker_tasks_db) != bool(args.broker_state_db):
         parser.error("broker control plane requires both --broker-tasks-db and --broker-state-db")
     if args.action == "status":

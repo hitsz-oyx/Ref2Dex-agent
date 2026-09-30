@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-28
+Updated: 2026-09-30
 
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
@@ -40,6 +40,14 @@ root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选�
 provenance。随后已在主分支修复该合约：新的 evaluator 会按触发时物体四元数将世界
 `+Z` 逆旋转到 `object_local_at_trigger_t`，并在每条记录、manifest 和 adapter 中保留
 单位轴及其 provenance；旧 r6 数据仍不具备该字段，不能回填或用于拟合。
+
+2026-09-30 已在用户授权范围内并行派发两个受控 Probe：
+`T-20260928-cm-calibration-repair-screen-r1` 做一次 fit-only CPU 校准修复检查，
+`T-20260930-six-expert-trajectory-distillation` 独立审计并尝试真正的六专家逐步轨迹
+蒸馏。前者预算为 2 CPU、15 分钟、1 GiB，后者为 1 GPU、60 分钟、5 GiB；两者都不
+产生正式 Cm claim。旧 r2 只是 ridge 加 in-sample residual screen，不能据此否定设计
+MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tuning，蒸馏继续独立
+推进。当前结果以各自 Broker handoff 为准。
 
 ## North-star scoreboard
 

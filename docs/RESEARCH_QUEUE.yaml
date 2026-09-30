@@ -1,5 +1,21 @@
 schema: ref2dex.research_queue.v1
 updated: 2026-09-27
+
+# 2026-09-30 bounded routes currently dispatched by root. Each task owns its
+# evidence and must return a Probe-bounded result before this queue is closed.
+pending_dispatches:
+  - id: T-20260928-cm-calibration-repair-screen-r1
+    family: HF06
+    purpose: "one fit-only Cm calibration repair screen"
+    resources: {cpu: 2, wall_minutes: 15, storage_gib: 1, gpu: 0}
+    outcome_boundary: "Probe only; no formal Cm claim"
+    stop_if: "local calibration gate fails; stop calibration tuning"
+  - id: T-20260930-six-expert-trajectory-distillation
+    family: HB02
+    purpose: "independent six-expert trajectory distillation"
+    resources: {gpu: 1, wall_minutes: 60, storage_gib: 5}
+    outcome_boundary: "Probe only; no formal Cm claim"
+    dependency: "independent of Cm repair"
 campaign:
   name: cm_selective_causal_gate
   status: FROZEN
