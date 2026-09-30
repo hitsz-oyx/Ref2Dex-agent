@@ -792,7 +792,7 @@ def _select_tests(paths: Iterable[str]) -> list[str]:
     needs_governance = False
     needs_shared = False
     for path in paths:
-        if path.startswith("tests/") and path.endswith(".py"):
+        if path.startswith("tests/") and path.endswith(".py") and (ROOT / path).is_file():
             selected.add(path)
         if path.startswith("src/base/"):
             needs_shared = True

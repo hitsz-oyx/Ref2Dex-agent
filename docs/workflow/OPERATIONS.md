@@ -15,6 +15,13 @@ npm ci --prefix tools/workflow_runtime
 command 为 argv 数组，建议显式写 Node 24 和本地 CLI 的绝对路径；env.PATH 也要
 使后台子进程找到正确的 Node/Codex。模型凭据仅放本机配置或各自账号目录。
 
+模型任务当前使用 Codex harness：各角色通过独立 CODEX_HOME 内的
+`model_provider` / `model_providers` 配置选择 provider，参见
+[Codex 配置参考](https://developers.openai.com/codex/config-reference)。身份封印覆盖
+账号身份、provider 配置和隐式配置来源；OAuth token 正常刷新不改变账号身份。
+其他原生模型 harness 的账号隔离尚未验收，当前拒绝启用。自定义工程进程必须
+显式设置 `engineering_only: true` 和 `runtime_config`，只能接工程 smoke 任务。
+
 首次启用前运行[工程 smoke](../../tools/workflow_smoke.py)，再用有界真实账号任务
 验证每个账号的身份、root JSON 输出和后台续接。不要仅凭 thread ID 不同认定账号
 隔离。对运行中的实际 campaign，此门槛完成前保持旧派发入口。
@@ -58,3 +65,10 @@ python3 scripts/researchctl.py --legacy supervisor pause --lease .runtime/SUPERV
 旧 lease/registry/broker 参数也会选择兼容路径，保留已有启动脚本；新路径与旧
 数据库无依赖。先停止旧的未来派发和恢复 owner，保留已启动实验及产物，再启用新
 监督。旧兼容代码的保留是收尾需要，不代表可以并行开启两个派发 owner。
+
+## 依赖验收限制
+
+2026-09-30 npm audit 报告 6 项传递依赖公告（含 bundled undici、brace-expansion、
+protobufjs）。普通 overrides 在该上游打包布局中未生效；此分支未宣称已修复。
+当前只使用执行 CLI、不使用 Pi parent，仍须在真实账号上线前核对上游修复版本或
+安全的重打包方案。锁定依赖便于复现，不等于安全验收。

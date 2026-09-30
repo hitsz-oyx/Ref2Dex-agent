@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import json
 import os
 import subprocess
@@ -15,6 +16,58 @@ class WorkflowError(RuntimeError):
     pass
 
 
+class BudgetError(WorkflowError):
+    pass
+
+
+class ResearchPaused(WorkflowError):
+    pass
+
+
+def runtime_environment(binding: dict[str, Any]) -> dict[str, str]:
+    allowed = {'PATH', 'HOME', 'XDG_CONFIG_HOME', 'TMPDIR', 'LANG', 'TZ', 'LD_LIBRARY_PATH',
+               'CUDA_VISIBLE_DEVICES', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS', 'PYTHONPATH',
+               'http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'no_proxy',
+               'SSL_CERT_FILE', 'SSL_CERT_DIR', 'REQUESTS_CA_BUNDLE'}
+    env = {key: value for key, value in os.environ.items() if key in allowed or key.startswith('LC_')}
+    env.update(binding.get('env', {}))
+    if binding.get('codex_home'):
+        env['CODEX_HOME'] = binding['codex_home']
+    return env
+
+
+def identity_sources(binding: dict[str, Any]) -> dict[str, Any]:
+    env = runtime_environment(binding)
+    home = Path(env.get('HOME', str(Path.home())))
+    xdg = Path(env.get('XDG_CONFIG_HOME', str(home / '.config')))
+    workspace = Path(binding['workspace'])
+    sources = [xdg / 'orchestrator/config.json', home / '.orchestrator/config.json',
+               workspace / 'orchestrator.config.json', workspace / '.orchestrator/config.json',
+               workspace / '.codex/config.toml']
+    account = None
+    if binding.get('codex_home'):
+        codex_home = Path(binding['codex_home'])
+        sources.append(codex_home / 'config.toml')
+        sources.extend(sorted(codex_home.glob('*.config.toml')))
+        auth = codex_home / 'auth.json'
+        if auth.exists():
+            try:
+                value = json.loads(auth.read_text())
+                tokens = value.get('tokens') or {}
+                # OAuth token refresh should not invalidate an unchanged account.
+                account = {'mode': value.get('auth_mode'), 'account_id': tokens.get('account_id'),
+                           'api_key': value.get('OPENAI_API_KEY')}
+                if not account['account_id'] and not account['api_key']:
+                    account = {key: item for key, item in value.items() if key != 'last_refresh'}
+            except (ValueError, AttributeError) as exc:
+                raise WorkflowError('Codex account metadata is invalid') from exc
+    if binding.get('runtime_config'):
+        sources.append(Path(binding['runtime_config']))
+    return {'files': {str(path): hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+                      for path in sources},
+            'account': hashlib.sha256(json.dumps(account, sort_keys=True).encode()).hexdigest()}
+
+
 class Runtime:
     def __init__(self, config: dict[str, Any], binding: dict[str, Any]):
         self.command = config['command']
@@ -23,29 +76,26 @@ class Runtime:
         self.workspace = Path(binding['workspace']).resolve()
         identity = {key: binding.get(key) for key in
                     ('provider', 'runtime', 'codex_home', 'workspace', 'env', 'runtime_config')}
-        if binding.get('runtime_config'):
-            identity['config_hash'] = hashlib.sha256(Path(binding['runtime_config']).read_bytes()).hexdigest()
+        identity['effective_config'] = identity_sources(binding)
         self.identity = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
         self.store.mkdir(parents=True, exist_ok=True)
         marker = self.store / '.ref2dex-identity'
-        if not marker.exists() and any(self.store.iterdir()):
-            raise WorkflowError('unsealed nonempty store cannot be adopted; bind a new isolated store')
-        try:
-            with marker.open('x') as stream:
-                stream.write(self.identity)
-        except FileExistsError:
-            if marker.read_text() != self.identity:
-                raise WorkflowError('backend identity changed; bind a new isolated store')
+        lock = self.store / '.ref2dex-identity.lock'
+        with lock.open('a') as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            if marker.exists():
+                if marker.read_text() != self.identity:
+                    raise WorkflowError('backend identity changed; bind a new isolated store')
+            else:
+                if any(path != lock for path in self.store.iterdir()):
+                    raise WorkflowError('unsealed nonempty store cannot be adopted; bind a new isolated store')
+                temporary = self.store / '.ref2dex-identity.tmp'
+                temporary.write_text(self.identity)
+                temporary.replace(marker)
 
     def invoke(self, *args: str) -> Any:
-        # Do not inherit another role's model credentials. Binding env is local,
-        # never included in status, prompts or error output.
-        env = {key: value for key, value in os.environ.items()
-               if not key.startswith(('OPENAI_', 'ANTHROPIC_', 'AZURE_OPENAI_', 'GEMINI_', 'GOOGLE_API_'))
-               and key not in {'CODEX_HOME', 'ORCHESTRATOR_HOME'}}
-        env.update(self.binding.get('env', {}))
-        if self.binding.get('codex_home'):
-            env['CODEX_HOME'] = self.binding['codex_home']
+        # All credentials and routing additions must be explicit in the local binding.
+        env = runtime_environment(self.binding)
         command = [*self.command, '--workspace', str(self.workspace),
                    '--orchestrator-dir', str(self.store)]
         if self.binding.get('runtime_config'):

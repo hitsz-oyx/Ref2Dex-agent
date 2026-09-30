@@ -17,10 +17,9 @@ from typing import Any, Iterator
 
 import yaml
 
-try:
-    from scripts.workflow_runtime import Runtime, TERMINAL, WorkflowError
-except ModuleNotFoundError:
-    from workflow_runtime import Runtime, TERMINAL, WorkflowError
+if __package__ in (None, ''):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.workflow_runtime import Runtime, TERMINAL, WorkflowError, BudgetError, ResearchPaused
 
 
 def encoded(value: Any) -> str:
@@ -63,11 +62,35 @@ class Workflow:
             for key in ('provider', 'runtime', 'workspace', 'store'):
                 if not isinstance(binding.get(key), str) or not binding[key]:
                     raise WorkflowError('binding requires provider, runtime, workspace and isolated store')
-            if binding['runtime'].startswith('codex') and not binding.get('codex_home'):
+            if binding['runtime'] not in ('codex', 'codex-app-server'):
+                if binding['runtime'] in ('claude-code', 'copilot', 'grok', 'pi', 'shell') or binding.get('engineering_only') is not True or not binding.get('runtime_config'):
+                    raise WorkflowError('non-Codex model account isolation is unverified; use an explicit custom engineering process')
+                try:
+                    definition = json.loads(Path(binding['runtime_config']).read_text())['agents'][binding['runtime']]
+                    valid_process = definition['adapter'] == 'process' and isinstance(definition['command'], str) and bool(definition['command'])
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    raise WorkflowError('engineering runtime requires an explicit process definition') from exc
+                if not valid_process:
+                    raise WorkflowError('engineering runtime requires an explicit process definition')
+            if binding['runtime'] in ('codex', 'codex-app-server') and not binding.get('codex_home'):
                 raise WorkflowError('Codex roles require an explicit CODEX_HOME')
             for key in ('workspace', 'store', 'codex_home', 'runtime_config'):
                 if binding.get(key) and not Path(binding[key]).is_absolute():
                     raise WorkflowError('binding paths must be absolute')
+            allowed = self.budget.get('allowed_workspace_roots')
+            if not isinstance(allowed, list) or not allowed or any(
+                    not isinstance(item, str) or not Path(item).is_absolute() for item in allowed):
+                raise WorkflowError('campaign requires explicit absolute allowed_workspace_roots')
+            workspace = Path(binding['workspace']).resolve()
+            permitted = False
+            for allowed_path in allowed:
+                try:
+                    workspace.relative_to(Path(allowed_path).resolve())
+                    permitted = True
+                except ValueError:
+                    pass
+            if not permitted:
+                raise WorkflowError('role workspace is outside authorized campaign roots')
             if not Path(binding['workspace']).is_dir():
                 raise WorkflowError('role workspace does not exist')
             stores.append(str(Path(binding['store']).resolve()))
@@ -126,15 +149,15 @@ class Workflow:
 
     def check_budget(self, db: sqlite3.Connection, role: str) -> None:
         if self.get(db, 'mode') != 'active':
-            raise WorkflowError('research is paused or stopped')
+            raise ResearchPaused('research is paused or stopped')
         started = self.get(db, 'started')
         if started is None or time.time() - started >= self.budget['wall_time_seconds']:
-            raise WorkflowError('campaign time budget exhausted')
+            raise BudgetError('campaign time budget exhausted')
         count = db.execute('SELECT COUNT(*) FROM deliveries WHERE ' +
                            ('role="root"' if role == 'root' else 'role!="root"')).fetchone()[0]
         limit = self.budget['max_root_turns' if role == 'root' else 'max_dispatches']
         if count >= limit:
-            raise WorkflowError('campaign dispatch budget exhausted')
+            raise BudgetError('campaign dispatch budget exhausted')
 
     def validate_contract(self, task: dict[str, Any]) -> None:
         if not isinstance(task, dict):
@@ -152,6 +175,13 @@ class Workflow:
             if not isinstance(task.get(key), list) or not task[key] or any(
                     not isinstance(item, str) or not item.strip() for item in task[key]):
                 raise WorkflowError('task requires stop conditions and deliverables')
+        kind = task.get('kind')
+        if kind not in ('engineering', 'probe', 'validation'):
+            raise WorkflowError('task kind must be engineering, probe or validation')
+        if kind != 'engineering' and self.bindings[role].get('engineering_only'):
+            raise WorkflowError('engineering-only runtime cannot run research experiments')
+        if kind != 'engineering' and self.roles[role]['resources'].get('experiments') is False:
+            raise WorkflowError('logical role is not authorized to run experiments')
         gpu = task.get('gpu')
         permission = self.roles[role]['resources']['gpu']
         if type(gpu) is not int or gpu < 0 or gpu > self.budget['max_gpu'] or (permission == 0 and gpu):
@@ -165,6 +195,19 @@ class Workflow:
             self.validate_contract(task)
         role = task['role']
         ident = task['task_id']
+        used_gpu = 0
+        if role != 'root':
+            with self.transaction() as db:
+                active = [dict(row) for row in db.execute(
+                    'SELECT * FROM deliveries WHERE role!="root" AND acceptance IS NULL')]
+            for row in active:
+                if row['id'] == ident:
+                    continue
+                if row['execution_id'] is None:
+                    raise WorkflowError('unresolved launch intent blocks new dispatch')
+                execution = self.runtime(row['role']).read(row['execution_id'])
+                if execution.get('status') not in TERMINAL:
+                    used_gpu += json.loads(row['contract']).get('gpu', 0)
         # Hold pause/dispatch serialization through the bounded launch call. A
         # pause returning to the user guarantees no subsequent launch races it.
         with self.transaction() as db:
@@ -180,13 +223,6 @@ class Workflow:
                 busy = db.execute('SELECT id FROM deliveries WHERE role=? AND acceptance IS NULL', (role,)).fetchone()
                 if busy:
                     raise WorkflowError('role has an unaccepted or unfinished delivery')
-                used_gpu = 0
-                for row in db.execute('SELECT * FROM deliveries WHERE role!="root" AND acceptance IS NULL'):
-                    if row['execution_id'] is None:
-                        raise WorkflowError('unresolved launch intent blocks new dispatch')
-                    execution = self.runtime(row['role']).read(row['execution_id'])
-                    if execution.get('status') not in TERMINAL:
-                        used_gpu += json.loads(row['contract']).get('gpu', 0)
                 if used_gpu + task.get('gpu', 0) > self.budget['max_gpu']:
                     raise WorkflowError('concurrent GPU budget exceeded')
             name = 'ref2dex:' + self.get(db, 'workflow_id') + ':' + ident
@@ -198,7 +234,8 @@ class Workflow:
             if self.get(db, 'mode') != 'active':
                 # No call was made. Removing this intent is safe.
                 db.execute('DELETE FROM deliveries WHERE id=? AND execution_id IS NULL', (ident,))
-                raise WorkflowError('research paused before launch')
+                db.commit()  # Keep the known-no-launch removal despite the control exception.
+                raise ResearchPaused('research paused before launch')
             prompt = root_prompt or ('Execute this research contract in your assigned worktree. '
                                      'Do not dispatch other roles or alter research claims. Report evidence, '
                                      'commit, resource/process disposition and next decision.\n' + encoded(task))
@@ -209,13 +246,19 @@ class Workflow:
     def reconcile(self) -> dict[str, Any]:
         unresolved = []
         with self.transaction() as db:
-            for row in db.execute('SELECT * FROM deliveries WHERE execution_id IS NULL').fetchall():
-                found = self.runtime(row['role']).find(row['name'])
-                if len(found) == 1:
-                    db.execute('UPDATE deliveries SET execution_id=? WHERE id=?', (found[0], row['id']))
-                else:
-                    unresolved.append(row['id'])
-            if unresolved:
+            rows = [dict(row) for row in db.execute('SELECT * FROM deliveries WHERE execution_id IS NULL')]
+        found_ids = []
+        for row in rows:
+            found = self.runtime(row['role']).find(row['name'])
+            if len(found) == 1:
+                found_ids.append((found[0], row['id']))
+            else:
+                unresolved.append(row['id'])
+        with self.transaction() as db:
+            for execution_id, ident in found_ids:
+                db.execute('UPDATE deliveries SET execution_id=? WHERE id=? AND execution_id IS NULL',
+                           (execution_id, ident))
+            if unresolved and self.get(db, 'mode') != 'paused':
                 self.set(db, 'mode', 'attention')
         return {'unresolved': unresolved}
 
@@ -311,8 +354,10 @@ class Workflow:
             'A process success is not a scientific conclusion. Preserve Probe/Validation boundaries. '
             'The user requires fixed logical roles and independent accounts. Choose only useful '
             'bounded tasks; GPU/time/disk permissions in CAMPAIGN remain binding. Return ONE JSON '
-            'object with no fences or prose: {"action":"dispatch","task":{task_id,role,objective,'
-            'decision_test,gpu,timeout_seconds,stop_conditions:[...],deliverables:[...]}} or '
+            'object with no fences or prose. Dispatch example: '
+            '{"action":"dispatch","task":{"task_id":"T-example","role":"agent_cm",'
+            '"kind":"probe","objective":"...","decision_test":"...","gpu":0,'
+            '"timeout_seconds":30,"stop_conditions":["..."],"deliverables":["..."]}} or '
             '{"action":"accept","task_id":"...","reason":"evidence checked"} or '
             '{"action":"reject","task_id":"...","reason":"..."} or '
             '{"action":"idle","reason":"no authorized useful next step"}. Never modify '
@@ -326,13 +371,17 @@ class Workflow:
     def tick(self) -> dict[str, Any]:
         reconciliation = self.reconcile()
         if reconciliation['unresolved']:
-            return {'state': 'attention', **reconciliation}
+            with self.transaction() as db:
+                mode = self.get(db, 'mode')
+            return {'state': mode, **reconciliation}
         status = self.status()
         if status['mode'] != 'active':
             return {'state': status['mode']}
         if time.time() < status['control']['retry_at']:
             return {'state': 'backoff'}
         for item in status['deliveries']:
+            if (item['role'] == 'root' and item['applied']) or item['acceptance'] is not None:
+                continue
             if item['execution'].get('status') == 'unknown':
                 raise WorkflowError('execution state unavailable; do not infer completion')
         pending = [item for item in status['deliveries'] if item['role'] == 'root' and not item['applied']]
@@ -341,6 +390,7 @@ class Workflow:
             execution = item['execution']
             if execution.get('status') not in TERMINAL:
                 return {'state': 'waiting_root'}
+            consumed = True
             try:
                 if execution.get('status') != 'succeeded' or execution.get('outputTruncated'):
                     raise WorkflowError('root execution failed or decision output was truncated')
@@ -359,13 +409,17 @@ class Workflow:
                     result = {'reason': decision['reason']}
                 else:
                     raise WorkflowError('invalid root decision')
+            except ResearchPaused:
+                consumed = False
+                return {'state': 'paused'}
             except (ValueError, KeyError, TypeError) as exc:
                 raise WorkflowError('root decision violates the task contract') from exc
             finally:
                 # A failed decision is consumed; an existing worker side effect
                 # remains associated with its stable ID across retries.
-                with self.transaction() as db:
-                    db.execute('UPDATE deliveries SET applied=1 WHERE id=?', (item['task_id'],))
+                if consumed:
+                    with self.transaction() as db:
+                        db.execute('UPDATE deliveries SET applied=1 WHERE id=?', (item['task_id'],))
             with self.transaction() as db:
                 self.set(db, 'failures', 0)
                 self.set(db, 'last_error', None)
@@ -376,7 +430,7 @@ class Workflow:
             started = self.get(db, 'started')
         remaining = self.budget['wall_time_seconds'] - int(time.time() - started)
         if remaining <= 0:
-            raise WorkflowError('campaign time budget exhausted')
+            raise BudgetError('campaign time budget exhausted')
         task = {'task_id': 'root-' + uuid.uuid4().hex, 'role': 'root',
                 'timeout_seconds': min(300, remaining)}
         result = self.dispatch(task, root_prompt=self.root_prompt(status))
@@ -385,12 +439,16 @@ class Workflow:
     def step(self) -> dict[str, Any]:
         try:
             return self.tick()
+        except ResearchPaused:
+            return {'state': 'paused'}
         except WorkflowError as exc:
             with self.transaction() as db:
+                if self.get(db, 'mode') == 'paused':
+                    return {'state': 'paused', 'error': str(exc)}
                 count = self.get(db, 'failures') + 1
                 self.set(db, 'failures', count)
                 self.set(db, 'last_error', str(exc))
-                if 'budget exhausted' in str(exc):
+                if isinstance(exc, BudgetError):
                     self.set(db, 'mode', 'budget_limited')
                 elif count >= self.config.get('max_recovery_attempts', 3):
                     self.set(db, 'mode', 'attention')

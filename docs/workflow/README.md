@@ -9,3 +9,5 @@
 [重构规格](../../.scratch/workflow-runtime-adoption/spec.md)与[设计讨论](REDESIGN.md)记录来源，
 不增加另一套运行规则。历史 v1 合同位于 [archive/workflow-v1](../archive/workflow-v1/)。
 本机绑定与控制状态留在 `.runtime/`；研究证据仍属于实验卡、manifest 与 Git。
+
+工程验收结果见 [VALIDATION.md](VALIDATION.md)。

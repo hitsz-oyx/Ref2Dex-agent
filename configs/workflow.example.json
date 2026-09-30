@@ -9,7 +9,10 @@
     "max_dispatches": 8,
     "max_root_turns": 32,
     "wall_time_seconds": 3600,
-    "max_gpu": 1
+    "max_gpu": 1,
+    "allowed_workspace_roots": [
+      "/absolute/worktrees"
+    ]
   },
   "max_recovery_attempts": 3,
   "recovery_backoff_seconds": 2,

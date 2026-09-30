@@ -35,7 +35,7 @@ reject 或 idle。确定性入口验证任务、权限、预算和验收状态�
 ## 身份与绑定
 
 一份 tracked 角色定义、一份本机 workflow 配置。每个角色有独立 store、workspace、
-runtime、provider 标识；Codex 还必须指定 CODEX_HOME。store 使用绑定指纹封存；
+runtime、provider 标识；Codex 还必须指定 CODEX_HOME。store 使用绑定、非秘密账号身份和有效配置来源的指纹封存；正常 OAuth token 刷新不改变账号身份。
 更换账号、环境或 provider 要使用新 store。未知或不匹配的身份不自动接管。
 当前默认使用有界 process task；会话连续性不是身份持久性的前提。
 
@@ -46,12 +46,12 @@ runtime、provider 标识；Codex 还必须指定 CODEX_HOME。store 使用绑�
 ## 暂停、预算与恢复
 
 Pause 停止新派发，已启动实验继续收尾。后台仍可观察已有结果，恢复后再调用主管
-推进。手动验收已完成交付可在暂停时执行；它不会派发新任务。
+推进。后台 owner 停止时可手动验收已完成交付；它不会派发新任务。后台运行时验收由同一 owner 负责。
 暂停不等于 interrupt，不杀训练进程，不自动恢复用户明确的暂停。
 
-任务需要 objective、decision_test、GPU 数、有限 timeout、stop_conditions 和
+任务需要 engineering/probe/validation 类型、objective、decision_test、GPU 数、有限 timeout、stop_conditions 和
 deliverables。Campaign 必须有总派发数、root 回合数、wall time 和最多四张 GPU 的
-明确限额。恢复不会重置已花费的派发/时间预算；超限停止新执行，已有实验可收尾。
+明确限额和授权工作树根目录。禁止实验的角色只接 engineering 任务。恢复不会重置已花费的派发/时间预算；超限停止新执行，已有实验可收尾。
 GPU 数由角色权限和当前未验收任务的实际后端状态联合约束。停用的旧任务资源要
 纳入启动新 campaign 前的可用预算；不得抢占未知进程。
 

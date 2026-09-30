@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / "scripts/researchctl.py"
 
 
@@ -45,6 +45,10 @@ if cmd == "launch":
 elif cmd == "ps":
     print(json.dumps({"tasks": tasks}))
 else:
+    if (store / "delay-read").exists():
+        import time
+        (store / "reading").touch()
+        time.sleep(0.5)
     ident = args[args.index(cmd) + 1]
     print(json.dumps(next(t for t in tasks if t["taskId"] == ident)))
 ''')
@@ -58,13 +62,13 @@ else:
     config.write_text(json.dumps({"command": [sys.executable, str(backend)], "state_dir": str(tmp_path / "control"),
                                  "roles_file": str(ROOT / "docs/AGENT_ROLES.yaml"), "bindings": roles,
                                  "campaign": {"max_dispatches": 3, "max_root_turns": 12,
-                                              "wall_time_seconds": 120, "max_gpu": 1}}))
+                                              "wall_time_seconds": 120, "max_gpu": 1, "allowed_workspace_roots": [str(tmp_path)]}}))
     return config
 
 
 def contract(tmp_path: Path, ident: str = "task-one", role: str = "agent_cm") -> Path:
     path = tmp_path / (ident + ".json")
-    path.write_text(json.dumps({"task_id": ident, "role": role, "objective": "Distinguish two designs",
+    path.write_text(json.dumps({"task_id": ident, "role": role, "kind": "engineering", "objective": "Distinguish two designs",
                                 "decision_test": "Run the smallest engineering check", "gpu": 0,
                                 "timeout_seconds": 10, "stop_conditions": ["ten seconds"],
                                 "deliverables": ["result and evidence"]}))
@@ -262,7 +266,7 @@ def test_detached_supervisor_survives_frontend_exit_and_recovers_its_child(tmp_p
         while time.monotonic() < deadline:
             status = call(config, "supervisor", "status")
             child = status["control"]["pid"]
-            if child and any(item["role"] == "agent_cm" for item in status["deliveries"]):
+            if child and status["control"]["idle_fingerprint"] is not None and any(item["role"] == "agent_cm" for item in status["deliveries"]):
                 break
             time.sleep(0.03)
         else:
@@ -289,3 +293,108 @@ def test_detached_supervisor_survives_frontend_exit_and_recovers_its_child(tmp_p
                     os.kill(pid, signal.SIGTERM)
                 except ProcessLookupError:
                     pass
+
+
+def test_account_refresh_is_allowed_but_account_and_implicit_config_changes_are_sealed(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    account = tmp_path / "root-account"
+    account.mkdir()
+    auth = account / "auth.json"
+    auth.write_text(json.dumps({"auth_mode": "chatgpt", "tokens": {"account_id": "account-A", "access_token": "old"}}))
+    call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    auth.write_text(json.dumps({"auth_mode": "chatgpt", "tokens": {"account_id": "account-A", "access_token": "refreshed"}}))
+    assert call(config, "supervisor", "status")["code"] == 0
+    auth.write_text(json.dumps({"auth_mode": "chatgpt", "tokens": {"account_id": "account-B", "access_token": "new"}}))
+    assert "identity changed" in call(config, "supervisor", "status")["error"]
+    auth.write_text(json.dumps({"auth_mode": "chatgpt", "tokens": {"account_id": "account-A", "access_token": "refreshed"}}))
+    (tmp_path / "root" / "orchestrator.config.json").write_text('{"agents":{}}')
+    assert "identity changed" in call(config, "supervisor", "status")["error"]
+
+
+def test_experiment_permissions_and_workspace_roots_are_enforced(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    path = contract(tmp_path, "infra-experiment", "agent_infra")
+    value = json.loads(path.read_text())
+    value["kind"] = "probe"
+    path.write_text(json.dumps(value))
+    assert "not authorized" in call(config, "dispatch", "--task", str(path))["error"]
+    document = json.loads(config.read_text())
+    document["campaign"]["allowed_workspace_roots"] = [str(tmp_path / "agent_cm")]
+    config.write_text(json.dumps(document))
+    assert "outside authorized" in call(config, "supervisor", "status")["error"]
+
+
+def test_completed_history_read_failure_does_not_block_new_research(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    call(config, "dispatch", "--task", str(contract(tmp_path)))
+    call(config, "accept", "task-one", "--decision", "accepted", "--reason", "evidence verified")
+    # The external executor loses an old result after acceptance. Current work
+    # should still be scheduled; the public historical read remains unknown.
+    document = json.loads(config.read_text())
+    store = Path(document["bindings"]["agent_cm"]["store"])
+    (store / "fake.json").write_text('[]')
+    plan(config, [{"action": "idle", "reason": "waiting"}])
+    assert call(config, "supervisor", "tick")["state"] == "root_started"
+    assert call(config, "supervisor", "tick")["action"] == "idle"
+
+
+def test_pause_during_a_slow_backend_read_preserves_root_decision(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    task = json.loads(contract(tmp_path).read_text())
+    plan(config, [{"action": "dispatch", "task": task}])
+    call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    assert call(config, "supervisor", "tick")["state"] == "root_started"
+    store = Path(json.loads(config.read_text())["bindings"]["root"]["store"])
+    (store / "delay-read").touch()
+    proc = subprocess.Popen([sys.executable, str(CLI), "--config", str(config), "supervisor", "tick"],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 5
+        while not (store / "reading").exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert (store / "reading").exists()
+        assert call(config, "supervisor", "pause")["mode"] == "paused"
+        stdout, stderr = proc.communicate(timeout=5)
+        assert proc.returncode == 0, stderr
+        assert json.loads(stdout)["state"] == "paused"
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            proc.communicate(timeout=5)
+        (store / "delay-read").unlink()
+    status = call(config, "supervisor", "status")
+    assert len(status["deliveries"]) == 1
+    assert status["deliveries"][0]["applied"] is False
+    call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    assert call(config, "supervisor", "tick")["action"] == "dispatch"
+
+
+def test_unverified_model_harness_is_rejected(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    binding = document['bindings']['agent_cm']
+    binding['runtime'] = 'claude-code'
+    config.write_text(json.dumps(document))
+    assert 'account isolation is unverified' in call(config, 'supervisor', 'status')['error']
+    binding['engineering_only'] = True
+    binding['runtime_config'] = str(tmp_path / 'unused.json')
+    config.write_text(json.dumps(document))
+    assert 'account isolation is unverified' in call(config, 'supervisor', 'status')['error']
+    binding['runtime'] = 'codex-other'
+    config.write_text(json.dumps(document))
+    assert call(config, 'supervisor', 'status')['code'] != 0
+    binding['runtime'] = 'engineering-process'
+    binding['engineering_only'] = True
+    runtime_config = tmp_path / 'custom.json'
+    runtime_config.write_text(json.dumps({'agents': {'engineering-process': {'adapter': 'process', 'command': sys.executable}}}))
+    binding['runtime_config'] = str(runtime_config)
+    config.write_text(json.dumps(document))
+    assert call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')['code'] == 0
+    task = contract(tmp_path)
+    value = json.loads(task.read_text())
+    value['kind'] = 'probe'
+    task.write_text(json.dumps(value))
+    assert 'engineering-only' in call(config, 'dispatch', '--task', str(task))['error']

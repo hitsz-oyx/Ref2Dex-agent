@@ -33,13 +33,13 @@ def main() -> int:
             'bindings': {
                 'root': {'provider': 'unused-codex', 'runtime': 'codex', 'codex_home': str(area / 'unused-account'),
                          'workspace': str(ROOT), 'store': str(area / 'unused-store')},
-                'agent_infra': {'provider': 'engineering', 'runtime': 'engineering-smoke', 'workspace': str(ROOT),
+                'agent_infra': {'provider': 'engineering', 'runtime': 'engineering-smoke', 'engineering_only': True, 'workspace': str(ROOT),
                     'store': str(area / 'infra-store'), 'runtime_config': str(runtime_config),
                     'env': {'PATH': str(args.node.resolve().parent) + ':' + os.environ.get('PATH', '/usr/bin:/bin')}}},
-            'campaign': {'max_dispatches': 1, 'max_root_turns': 1, 'wall_time_seconds': 60, 'max_gpu': 0}}))
+            'campaign': {'max_dispatches': 1, 'max_root_turns': 1, 'wall_time_seconds': 60, 'max_gpu': 0, 'allowed_workspace_roots': [str(ROOT)]}}))
         task = area / 'task.json'
         task.write_text(json.dumps({'task_id': 'engineering-smoke', 'role': 'agent_infra',
-            'objective': 'Verify external process launch', 'decision_test': 'Observe known process output',
+            'kind': 'engineering', 'objective': 'Verify external process launch', 'decision_test': 'Observe known process output',
             'gpu': 0, 'timeout_seconds': 20, 'stop_conditions': ['20 seconds'],
             'deliverables': ['ENGINEERING_SMOKE_OK']}))
 

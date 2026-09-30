@@ -1,6 +1,6 @@
 # Ref2Dex 工作流执行层迁移
 
-Status: ready-for-agent
+Status: implemented (engineering validation complete; live-account rollout pending)
 
 ## Problem Statement
 
