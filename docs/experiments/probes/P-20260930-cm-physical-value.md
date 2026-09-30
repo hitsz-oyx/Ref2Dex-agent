@@ -28,3 +28,5 @@ r5 位于 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physi
 r6 在第一次非空 reset 因环境编号为list而失败，耗时75.409s，无完整科学数据池或策略结果。只保留FAILED/工程证据；修正为Tensor IDs，并对player起始执行显式全量reset。补充审计发现r5初始未reset导致全部motion_id=0，因此r5评价只证明checkpoint加载，不能证明三轨迹覆盖。r7扩大smoke到4000目标转移、覆盖重复reset，并加入首回合motion均衡硬检查；继承r6的75.409s科学耗时和分阶段成本，slot仍为HF08 1/1，seed不变。当前状态r7工程检查RUNNING，科学矩阵等待此检查通过后启动。修正代码35ee1b8。
 
 r7扩展工程检查COMPLETED：采集6592条/12episode，三motion各4；起始帧包含0和5/16/17/27/33/34，已覆盖跨回合reset。source actor-only评价6episode，三motion各2，全部start_frame0。12项合同检查再次通过。r7科学stage all从公共采集开始；实施代码64ba312，准确阶段提交以manifest为准。
+
+r7 mixed-data预训练工程smoke已在空闲GPU2完成（2更新/模型，非科学规模）：6592完整转移、fit4166、holdout2426、12episode、excluded_rows0，V/Q及四个动力学诊断模型均能训练保存；native manifest/results在r7/smoke_models_mixed。该模型不用于科学策略训练或模型挑选，GPU2任务已结束。科学采集session仍为22846，GPU1，固定完整数据预算不变。
