@@ -170,7 +170,7 @@ class PhysicalPlayer(original.EvalPlayer):
 
 def main():
     global ARGS
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     parser.add_argument("--mode", choices=("collect", "evaluate"), required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--checkpoint-sha256", required=True)

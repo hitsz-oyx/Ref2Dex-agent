@@ -36,6 +36,8 @@ def main():
     p.add_argument("--stage", choices=("smoke", "collect", "fit", "train", "evaluate", "all"), required=True)
     a = p.parse_args()
     out = a.output.resolve()
+    if ROOT not in out.parents:
+        raise ValueError("new research artifacts must stay in this worktree; outputs is a shared symlink")
     idle(a.gpu)
     if sha(SOURCE) != SOURCE_SHA:
         raise ValueError("source drift")
