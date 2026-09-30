@@ -1,5 +1,5 @@
 schema: ref2dex.research_queue.v1
-updated: 2026-09-27
+updated: 2026-09-30
 
 # 2026-09-30 bounded routes currently dispatched by root. Each task owns its
 # evidence and must return a Probe-bounded result before this queue is closed.
@@ -38,6 +38,15 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF06:
+    claim: C3
+    name: scratch_offline_teacher_arbitration
+    status: ACTIVE
+    branch: agent/cm-scratch-mlp-policy-probe
+    probe_budget: 3
+    probes_used: 3
+    transition: "Final fixed designed-MLP feasibility screen after two ridge screens; no threshold/seed/architecture sweep. Failure closes the teacher-envelope implementation; success permits design of a matched physical student Probe."
+
   # C1 baseline route is independent of the frozen Cm policy-utility campaign.
   HB01:
     claim: C1

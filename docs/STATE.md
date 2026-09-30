@@ -8,6 +8,13 @@ Updated: 2026-09-30
 
 ## Current decision
 
+2026-09-30 用户明确下一阶段优先回答 **Cm 策略价值**，复用当前已验证的
+六专家底座；单一 actor 蒸馏不作为默认优先交付。交付期限更新为
+2026-10-03 23:59（Asia/Shanghai），资源边界仍见 `CAMPAIGN.md`。
+本次用户授权暂时跳过代理工作流搭建，聚焦研究推进。交付标准已明确：先取得
+真实策略上的 matched Probe，出现正向信号就优先完成正式 Validation；本记录
+不代表新的实验结果。
+
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
 没有超过 always-base，coverage/policy gate 失败。历史 HF01–HF05 仍保持冻结，
