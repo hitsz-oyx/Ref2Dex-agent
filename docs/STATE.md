@@ -15,6 +15,12 @@ Updated: 2026-09-30
 真实策略上的 matched Probe，出现正向信号就优先完成正式 Validation；本记录
 不代表新的实验结果。
 
+本轮固定 scratch MLP 可行性检查已完成，teacher-envelope 的 contact coverage
+和 arbitration stability 未过门，HF06 关闭，不调参。下一轮 HF07 在固定 airplane
+子任务上将物理预测作为学生策略的显式推理输入，比较 on/off/random/action 四臂；
+它仍需 self-trained expert 在推理时生成候选动作。见
+[当前决策](decisions/D-20260930-cm-inference-bottleneck.md)。策略收益尚未获得。
+
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
 没有超过 always-base，coverage/policy gate 失败。历史 HF01–HF05 仍保持冻结，

@@ -38,14 +38,23 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF07:
+    claim: C3
+    name: physical_prediction_inference_bottleneck
+    status: ACTIVE
+    branch: agent/cm-scratch-mlp-policy-probe
+    probe_budget: 1
+    probes_used: 1
+    transition: "One fixed four-arm BC/physical Probe; explicit Cm inference input, not confidence-certified labels or train-only auxiliary. No seed/width/target sweep after failure."
+
   HF06:
     claim: C3
     name: scratch_offline_teacher_arbitration
-    status: ACTIVE
+    status: KILLED
     branch: agent/cm-scratch-mlp-policy-probe
     probe_budget: 3
     probes_used: 3
-    transition: "Final fixed designed-MLP feasibility screen after two ridge screens; no threshold/seed/architecture sweep. Failure closes the teacher-envelope implementation; success permits design of a matched physical student Probe."
+    transition: "Fixed designed-MLP screen failed contact coverage and arbitration stability; close teacher-envelope implementation without a local sweep. This does not reject the core Cm hypothesis."
 
   # C1 baseline route is independent of the frozen Cm policy-utility campaign.
   HB01:
