@@ -252,3 +252,5 @@ delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准�
 不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
 
 HF08 工程 preflight 已通过：12项合同/模型/数据检查；真实环境完整采集与评价 smoke；三臂 source e260→e261 的 PPO 更新和保存。三臂初始 actor hash 相同，direct_q 与 cm_value 的行为动作/RNG 完整性及有效 actor 监督梯度标志均为真。以上仅为工程证据；正在检查训练所得 checkpoint 的 actor-only 评价，然后启动公共百万转移采集，尚无 HF08 策略收益结论。当前实施及结果以 [HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md) 为准。
+
+HF08 保存策略的三臂 actor-only 工程评价均已完成（各6个完整首回合，均从帧0开始）。已启动科学执行 r6，GPU1，固定百万转移公共采集→预训练→六臂PPO→配对评价；总阶段预算6h/20GiB。当前状态以r6原生manifest为准，结论尚未形成。

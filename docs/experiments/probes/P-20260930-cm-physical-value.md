@@ -22,3 +22,5 @@ PROMISING：cm_value对两对照均≥+5pp持续抬升成功率，各训练seed�
 r5 位于 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r5。12项合同/模型/数据检查通过。smoke采集3252条完整转移、6episode；source actor-only评价完成6episode；128行档2更新仅用于接线。三臂单epoch训练均完成，保存e261；共同初始 actor hash d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9。direct_q/cm_value保存的行为/RNG完整性及actor监督梯度检查均通过。科学百万转移采集尚未启动。
 
 早期工程失败r1–r4及smoke_train_r1均保留原日志；分别修复参数缩写、player batch初始化、CUDA设备编号、obs包装及import路径，不用于科学判定。outputs是指向baseline的共享软链；新正式产物使用当前工作树research/output，launcher拒绝越界路径。r1仅生成少量启动日志/配置，失败于模拟器启动前，证据不删除。
+
+三组保存e261的 actor-only 首回合评价已全部完成（每臂6episode，start_frame全部0），工程闭环通过。科学执行登记run_id r6，代码4e389cc，物理GPU1，最大六小时阶段累计预算；launcher stage all依次执行采集、模型预训练、六臂训练和固定评价矩阵。运行记录位于当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r6/run_manifest.json。启动状态RUNNING/采集，尚无科学判定。
