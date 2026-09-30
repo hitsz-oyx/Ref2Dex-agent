@@ -45,3 +45,5 @@ plain_off与direct_q四臂科学训练均已完成e420、327680新交互，初�
 最大档预训练模型开发审计（固定2048行、component_audit_largest_with_baselines.json）：物体位置坐标RMSE0.027890m，高于copy-state的0.009263m及恒定线速度的0.004684m；姿态测地RMSE1.663830rad，高于copy-state的0.193119rad。该恒速基线的旋转仍沿用当前姿态，不包含角速度积分。Cm的joint-position/velocity、object-velocity和contact分量优于copy-state，但不能用总loss概括为物理转移已准确。V/Q对完整return的RMSE24.428/25.808低于fit-mean常量45.480，仍不证明未执行候选动作的排序或policy收益。以上是带噪source分布的开发诊断，不改变固定闭环或主gate；新增online-checkpoint审计仅比较Cm物理分量，明确不将source-policy MC return用于宣称当前策略V/Q校准。
 
 在线Cm终点审计已安排受控CPU接续session39234：等待train_parallel完成后，用共同开发2048行分别审计seed286/287的e420 dynamics，输出models/component_audit_online_s{seed}_e420.json，CPU线程2；代码e339c84。它与session17061的完整评价独立，不能替代policy gate，诊断耗时单独记录。
+
+六臂科学训练全部COMPLETED，训练group wall4244.890s，累计科学阶段9090.904s；GPU时长误计已按交接记录修正，初始化/交互/行为监督合同均通过。全48点评价已启动并完成30点。training-seed286终点部分结果（每臂192首episode）：plain_off36、direct_q39、cm_value31稳定成功，掉落30/38/30；尚不是完整Probe结论。在线终点Cm的共同source开发2048行审计完成，CPU native51.740s：seed286/287位置RMSE0.007818/0.008576m（copy0.009263m、恒速0.004684m），姿态RMSE1.337133/1.364590rad（copy0.193119rad）。在线适配改善位置但姿态仍明显欠佳；这些诊断不能被表述为当前策略分布校准或Cm策略价值证据。
