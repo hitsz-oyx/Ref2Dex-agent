@@ -31,6 +31,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, required=True)
+    parser.add_argument("--reuse-collection", type=Path,
+                        help="explicit completed fit/holdout from a prior technical run")
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
@@ -58,6 +60,26 @@ def main():
                                 physical_sha256=sha(PHYSICAL), cfg_env_sha256=sha(cfg_env), cfg_train_sha256=sha(cfg_train)),
                     commands=[], evaluation_seeds=[281, 282], training_seed=278,
                     statement="single-training-seed physical Probe only; no formal causal claim")
+    collection = output
+    previous_elapsed = 0
+    if args.reuse_collection is not None:
+        collection = args.reuse_collection.resolve()
+        previous = json.loads((collection / "run_manifest.json").read_text())
+        if previous["inputs"] != manifest["inputs"]:
+            raise ValueError("reused collection input hashes differ")
+        previous_elapsed = previous["elapsed_seconds"]
+        reused = {}
+        for split in ("fit_s279", "holdout_s280"):
+            native = json.loads((collection / split / "run_manifest.json").read_text())
+            if native["run_status"] != "COMPLETED" or native["student_sha256"] is not None:
+                raise ValueError("reuse requires completed unmodified teacher collection")
+            if native["source_sha256"] != source_hash or native["summary"]["num_episodes"] != 64:
+                raise ValueError("reused teacher provenance mismatch")
+            path = collection / split / "trajectory.pt"
+            reused[split] = dict(path=str(path), sha256=sha(path),
+                                 collection_commit=native["git_commit"])
+        manifest["reused_collection"] = reused
+        manifest["previous_run_elapsed_seconds"] = previous_elapsed
     started = time.monotonic()
     def save():
         manifest["elapsed_seconds"] = time.monotonic() - started
@@ -73,7 +95,7 @@ def main():
             raise RuntimeError("GPU collision before next phase")
         if sum(path.stat().st_size for path in output.rglob("*") if path.is_file()) > manifest["storage_limit_bytes"]:
             raise RuntimeError("storage limit exceeded")
-        remaining = 3600 - (time.monotonic() - started)
+        remaining = 3600 - previous_elapsed - (time.monotonic() - started)
         if remaining <= 0:
             raise TimeoutError("whole-probe wall budget")
         manifest["phase"] = phase
@@ -100,11 +122,12 @@ def main():
         run(name, command)
 
     try:
-        evaluate("fit_s279", 279, export=True)
-        evaluate("holdout_s280", 280, export=True)
+        if args.reuse_collection is None:
+            evaluate("fit_s279", 279, export=True)
+            evaluate("holdout_s280", 280, export=True)
         run("training", [PYTHON, str(ROOT / "scripts/train_cm_bottleneck_students.py"),
-                         "--fit", str(output / "fit_s279/trajectory.pt"),
-                         "--holdout", str(output / "holdout_s280/trajectory.pt"),
+                         "--fit", str(collection / "fit_s279/trajectory.pt"),
+                         "--holdout", str(collection / "holdout_s280/trajectory.pt"),
                          "--physical", str(PHYSICAL), "--output", str(output / "students")])
         training = json.loads((output / "students/results.json").read_text())
         counts = {arm: [] for arm in ARMS}
