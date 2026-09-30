@@ -33,6 +33,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--gpu", type=int, default=1)
+    p.add_argument("--smoke-run-id", default="r1")
     p.add_argument("--stage", choices=("smoke", "smoke_train", "collect", "fit", "train", "evaluate", "all"), required=True)
     a = p.parse_args()
     out = a.output.resolve()
@@ -153,7 +154,7 @@ def main():
     if a.stage == "smoke_train":
         model = out / "smoke_models/tier_128.pt"
         for arm in ("plain_off", "direct_q", "cm_value"):
-            train("smoke_train_" + arm, arm, 85, model, 261, 8)
+            train("smoke_train_" + arm + "_" + a.smoke_run_id, arm, 85, model, 261, 8)
     if a.stage in ("train", "all"):
         model_report = json.loads((out / "models/results.json").read_text())
         if model_report["run_status"] != "COMPLETED" or model_report["smoke"]:

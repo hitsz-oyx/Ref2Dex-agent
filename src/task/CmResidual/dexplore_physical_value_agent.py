@@ -44,6 +44,8 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         self._pv_actor_mean = None
         self._pv_rollout_cursor = 0
         self._pv_updates = 0
+        self.pv_integrity_verified = False
+        self.pv_supervision_gradient_verified = False
         self.model.a2c_network.mu.register_forward_hook(self._capture_mu)
 
     def _capture_mu(self, module, inputs, output):
@@ -103,9 +105,17 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
             label = result["mus"].clone()
             active = torch.zeros(len(label), dtype=torch.bool, device=label.device)
         else:
+            before = {k: result[k].clone() for k in ("actions", "neglogpacs", "mus", "sigmas") if k in result}
+            cpu_rng = torch.get_rng_state()
+            cuda_rng = torch.cuda.get_rng_state(result["mus"].device)
             label, active, scores = self.pv_teacher.labels(self.pv_arm, result["mus"], states, actions, mask, ctx, next_ctx)
             if not torch.isfinite(label).all():
                 raise FloatingPointError("nonfinite teacher labels")
+            if any(not torch.equal(v, result[k]) for k, v in before.items()):
+                raise ValueError("teacher changed PPO behavior tensors")
+            if not torch.equal(cpu_rng, torch.get_rng_state()) or not torch.equal(cuda_rng, torch.cuda.get_rng_state(result["mus"].device)):
+                raise ValueError("teacher changed global RNG stream")
+            self.pv_integrity_verified = True
         result.update(pv_history_state=states, pv_history_action=actions, pv_history_mask=mask,
                       pv_context=ctx, pv_next_context=next_ctx, pv_label=label, pv_active=active.float()[:, None])
         return result
@@ -186,6 +196,12 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
             raise RuntimeError("actor supervision hook missing")
         b = self._pv_active_batch
         rows = actor_supervision(self._pv_actor_mean, b["sigma"], b["pv_label"], b["pv_active"].reshape(-1))[:, None]
+        if self.pv_arm != "plain_off" and not self.pv_supervision_gradient_verified and b["pv_active"].sum() > 0:
+            grad = torch.autograd.grad(rows.mean(), self._pv_actor_mean, retain_graph=True)[0]
+            if not torch.isfinite(grad).all() or grad.norm() <= 0:
+                raise ValueError("teacher produces no finite actor-mean gradient")
+            self.pv_supervision_gradient_verified = True
+            print("REF2DEX_PV_SUPERVISION " + json.dumps(dict(arm=self.pv_arm, gradient_norm=float(grad.norm()))), flush=True)
         if rows.shape != result["critic_loss"].shape:
             raise ValueError("PPO and teacher loss shapes differ")
         result["critic_loss"] += .01 / self.critic_coef * rows
@@ -195,6 +211,8 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         state = super().get_stats_weights()
         if hasattr(self, "pv_value"):
             state["physical_value"] = dict(arm=self.pv_arm, initial_model_sha256=self.pv_initial_model_sha,
+                behavior_integrity_verified=self.pv_integrity_verified,
+                actor_supervision_gradient_verified=self.pv_supervision_gradient_verified,
                 value=self.pv_value.state_dict(), direct_q=self.pv_q.state_dict(),
                 dynamics=self.pv_dynamics.state_dict(), value_optimizer=self.pv_value_optimizer.state_dict(),
                 model_optimizer=self.pv_model_optimizer.state_dict())

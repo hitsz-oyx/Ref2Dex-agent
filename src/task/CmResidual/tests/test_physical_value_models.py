@@ -29,3 +29,15 @@ def test_network_creation_preserves_cuda_and_cpu_streams():
     OutcomeNetwork(8, 18, 53, 9283)
     assert torch.equal(cpu, torch.get_rng_state())
     assert all(torch.equal(a, b) for a, b in zip(cuda, torch.cuda.get_rng_state_all()))
+
+
+def test_cached_prefix_is_exactly_the_same_sliding_window_value():
+    network = OutcomeNetwork(8, 0, 1, 9283)
+    history = torch.randn(3, 16, 92)
+    last = torch.randn(3, 1, 92)
+    ctx = torch.randn(3, 8)
+    full = network(torch.cat((history[:, 1:], last), 1), ctx)
+    prefix = network.encode(history[:, 1:])
+    final = network.encoder(last, prefix[None])[0][:, -1]
+    cached = network.from_hidden(final, ctx)
+    torch.testing.assert_close(full, cached)
