@@ -17,6 +17,8 @@ def provider_failure(execution: dict[str, Any]) -> str | None:
     if execution.get('status') != 'failed':
         return None
     error = str(execution.get('error', '')) + ' ' + str(execution.get('output', ''))
+    if re.search(r'Selected model is at capacity', error, re.I):
+        return 'capacity'
     if re.search(r'quota (?:exhausted|exceeded)|insufficient_quota|rate.limit|provider unavailable', error, re.I):
         return 'unavailable'
     if re.search(r'connection (?:refused|reset|failed)|connect(?:ion)? timeout|provider (?:connection|network) error|HTTP (?:502|503|504)', error, re.I):
@@ -37,6 +39,10 @@ class ProviderWaiting(WorkflowError):
 
 
 class ResearchPaused(WorkflowError):
+    pass
+
+
+class NativeGoalHeld(WorkflowError):
     pass
 
 
@@ -150,7 +156,39 @@ class Runtime:
         if value.get('state') in ('stale', 'orphaned', 'lost'):
             value['status'] = 'unknown'
         return {key: value[key] for key in ('taskId', 'name', 'status', 'state', 'active',
-                    'output', 'outputTruncated', 'exitCode', 'account', 'error') if key in value}
+                    'output', 'outputTruncated', 'exitCode', 'account', 'error', 'provider', 'resume', 'resumedFrom', 'goal', 'session') if key in value}
+
+    def continue_task(self, execution: dict[str, Any], name: str, prompt: str, timeout: int) -> str:
+        provider = execution.get('provider') or {}
+        if self.binding['runtime'] in ('codex', 'codex-app-server') and provider.get('threadId'):
+            value = self.invoke('resume', execution['taskId'], '--name', name,
+                                '--timeout-ms', str(timeout * 1000), '--max-output-bytes', '200000', prompt)
+            task = value.get('task', value)
+            ident = task.get('taskId')
+            if not isinstance(ident, str) or not ident:
+                raise WorkflowError('resume response lacks taskId; reconcile before retry')
+            return ident
+        return self.launch(name, prompt, timeout)
+
+    def continuation_source(self, execution: dict[str, Any]) -> dict[str, Any]:
+        if self.binding['runtime'] not in ('codex', 'codex-app-server'):
+            return execution
+        # read omits provider metadata in CLI 0.1.0. Use normalized public
+        # agent events; goal-get is only supported by app-server session tasks.
+        value = self.invoke('events', execution['taskId'], '--agent-only', '--compact', '--max-bytes', '2000000')
+        if value.get('taskId') != execution['taskId']:
+            raise WorkflowError('continuation metadata belongs to another execution')
+        state = execution.get('goal') or {}
+        if state.get('status') in ('paused', 'complete', 'completed', 'budget-limited', 'usage-limited'):
+            raise NativeGoalHeld('native Goal is paused, complete or budget limited')
+        thread_id = None
+        for event in value.get('events', []):
+            data = event.get('data') or {}
+            if data.get('kind') == 'thread.started' and isinstance(data.get('threadId'), str):
+                thread_id = data['threadId']
+        if not thread_id and value.get('eventsTruncated'):
+            raise WorkflowError('continuation metadata is truncated; do not assume a new session is safe')
+        return {**execution, 'provider': {'provider': 'codex', 'threadId': thread_id} if thread_id else {}}
 
     def find(self, name: str) -> list[str]:
         view = self.invoke('ps', '--all')

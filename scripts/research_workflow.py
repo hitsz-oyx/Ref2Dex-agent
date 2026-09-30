@@ -22,6 +22,7 @@ if __package__ in (None, ''):
 from scripts.workflow_policy import root_prompt as build_root_prompt, worker_prompt
 from scripts.workflow_bindings import validate_bindings, protect_workspace, WorkspaceConflict
 from scripts.research_evidence import completion_evidence
+from scripts.workflow_recovery import recover
 from scripts.workflow_runtime import Runtime, TERMINAL, WorkflowError, BudgetError, ResearchPaused, ProviderWaiting, provider_failure
 
 
@@ -68,6 +69,8 @@ class Workflow:
             ''')
             db.execute('CREATE TABLE IF NOT EXISTS decisions (id TEXT PRIMARY KEY, goal_version INTEGER NOT NULL, value TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS instructions (request_id TEXT PRIMARY KEY, version INTEGER NOT NULL UNIQUE, text TEXT NOT NULL, new_goal INTEGER NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS recoveries (task_id TEXT PRIMARY KEY, value TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS execution_attempts (task_id TEXT NOT NULL, attempt INTEGER NOT NULL, execution_id TEXT, name TEXT NOT NULL, PRIMARY KEY(task_id,attempt))')
             columns = {row[1] for row in db.execute('PRAGMA table_info(deliveries)')}
             if 'store' not in columns:
                 db.execute('ALTER TABLE deliveries ADD COLUMN store TEXT')
@@ -136,20 +139,6 @@ class Workflow:
                 failure = provider_failure(execution)
                 if failure == 'unavailable':
                     observations.append(latest['sequence'])
-                elif failure == 'connection':
-                    # Only confirmed terminal provider failures qualify. Unreadable
-                    # or ambiguous launches remain on their original binding.
-                    consecutive = []
-                    for row in history:
-                        if (row['store'] or self.candidates[role][0]['store']) != binding['store'] or row['sequence'] <= ready_after.get(binding['store'], 0):
-                            continue
-                        result = execution if row['sequence'] == latest['sequence'] else self.runtime(role, binding['store']).read(row['execution_id'])
-                        if provider_failure(result) != 'connection':
-                            break
-                        consecutive.append(row['sequence'])
-                        if len(consecutive) >= self.config.get('max_recovery_attempts', 3):
-                            observations.extend(consecutive)
-                            break
             with self.transaction() as db:
                 # A readiness notification during the read invalidates older observations.
                 waits = self.get(db, 'provider_waits')
@@ -275,6 +264,8 @@ class Workflow:
             raise BudgetError('campaign time budget exhausted')
         count = db.execute('SELECT COUNT(*) FROM deliveries WHERE ' +
                            ('role="root"' if role == 'root' else 'role!="root"')).fetchone()[0]
+        count += db.execute('SELECT COUNT(*) FROM execution_attempts a JOIN deliveries d ON a.task_id=d.id WHERE a.attempt>0 AND ' +
+                            ('d.role="root"' if role == 'root' else 'd.role!="root"')).fetchone()[0]
         limit = self.budget.get('max_root_turns' if role == 'root' else 'max_dispatches')
         if limit is not None and count >= limit:
             raise BudgetError('campaign dispatch budget exhausted')
@@ -335,6 +326,11 @@ class Workflow:
                     continue
                 if row['execution_id'] is None:
                     raise WorkflowError('unresolved launch intent blocks new dispatch')
+                with self.transaction() as db:
+                    recovery = db.execute('SELECT value FROM recoveries WHERE task_id=?', (row['id'],)).fetchone()
+                if recovery and json.loads(recovery['value'])['phase'] in ('launching', 'uncertain'):
+                    used_gpu += json.loads(row['contract']).get('gpu', 0)
+                    continue
                 execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
                 if execution.get('status') not in TERMINAL:
                     used_gpu += json.loads(row['contract']).get('gpu', 0)
@@ -396,6 +392,8 @@ class Workflow:
             control = {row['key']: json.loads(row['value']) for row in db.execute('SELECT * FROM control')}
             rows = [dict(row) for row in db.execute('SELECT * FROM deliveries ORDER BY rowid')]
             instructions = [dict(row) for row in db.execute('SELECT * FROM instructions ORDER BY version')]
+            recoveries = [json.loads(row['value']) for row in db.execute('SELECT value FROM recoveries')]
+            attempts = [dict(row) for row in db.execute('SELECT * FROM execution_attempts ORDER BY attempt')]
         deliveries = []
         for row in rows:
             execution: dict[str, Any] = {'status': 'unknown'}
@@ -407,13 +405,15 @@ class Workflow:
             deliveries.append({'task_id': row['id'], 'role': row['role'],
                                'contract': json.loads(row['contract']), 'binding_store': row['store'], 'execution_id': row['execution_id'],
                                'acceptance': json.loads(row['acceptance']) if row['acceptance'] else None,
+                               'attempts': [item for item in attempts if item['task_id'] == row['id']],
+                               'recovery': next((item for item in recoveries if item['task_id'] == row['id']), None),
                                'applied': bool(row['applied']), 'goal_version': row['goal_version'], 'execution': execution})
         decisions, record = self.decision_record()
         running = self.lock_active('supervisor.lock')
         if not running:
             control['pid'] = None
         return {'mode': control['mode'], 'control': control, 'deliveries': deliveries,
-                'campaign': self.budget, 'instructions': instructions, 'decisions': decisions, 'decision_record': record, 'supervisor_running': running,
+                'campaign': self.budget, 'instructions': instructions, 'recoveries': recoveries, 'decisions': decisions, 'decision_record': record, 'supervisor_running': running,
                 'guardian_running': self.lock_active('guardian.lock')}
 
     def lock_active(self, filename: str) -> bool:
@@ -430,9 +430,14 @@ class Workflow:
             raise WorkflowError('acceptance requires a decision and evidence reason')
         with self.transaction() as db:
             row = db.execute('SELECT * FROM deliveries WHERE id=? AND role!="root"', (ident,)).fetchone()
+            recovery = db.execute('SELECT value FROM recoveries WHERE task_id=?', (ident,)).fetchone()
+            if recovery and json.loads(recovery['value'])['phase'] in ('waiting', 'launching', 'uncertain'):
+                raise WorkflowError('delivery has pending recovery; cannot adjudicate yet')
         if row is None or not row['execution_id']:
             raise WorkflowError('unknown or unresolved worker delivery')
         execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
+        if recovery and json.loads(recovery['value'])['phase'] == 'observing' and provider_failure(execution) in ('capacity', 'connection'):
+            raise WorkflowError('delivery is awaiting recovery observation; cannot adjudicate yet')
         if execution.get('status') not in TERMINAL:
             raise WorkflowError('cannot accept an unfinished delivery')
         if decision == 'accepted' and execution.get('status') != 'succeeded':
@@ -470,6 +475,7 @@ class Workflow:
         import hashlib
         workers = [{'task_id': item['task_id'], 'acceptance': item['acceptance'],
                     'status': item['execution'].get('status'),
+                    'recovery': item.get('recovery'),
                     'output': item['execution'].get('output')} for item in status['deliveries']
                    if item['role'] != 'root']
         context = []
@@ -488,6 +494,8 @@ class Workflow:
             with self.transaction() as db:
                 mode = self.get(db, 'mode')
             return {'state': mode, **reconciliation}
+        status = self.status()
+        recover(self, status)
         status = self.status()
         if status['mode'] == 'blocked' and self.fingerprint(status) != status['control']['blocked_fingerprint']:
             with self.transaction() as db:
@@ -513,12 +521,16 @@ class Workflow:
                 with self.transaction() as db:
                     db.execute('UPDATE deliveries SET applied=1 WHERE id=?', (item['task_id'],))
                 return {'state': 'stale_decision'}
+            recovery = item.get('recovery')
+            if recovery and (recovery['phase'] in ('waiting', 'launching', 'uncertain', 'stopped') or (
+                    recovery['phase'] == 'observing' and provider_failure(item['execution']) in ('capacity', 'connection'))):
+                return {'state': 'waiting_recovery', 'recovery': recovery}
             execution = item['execution']
             if execution.get('status') not in TERMINAL:
                 return {'state': 'waiting_root'}
             consumed = True
             try:
-                if provider_failure(execution):
+                if provider_failure(execution) == 'unavailable':
                     with self.transaction() as db:
                         self.check_control(db, version)
                     self.select_binding('root', None, item['task_id'])

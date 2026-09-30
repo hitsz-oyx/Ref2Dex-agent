@@ -24,13 +24,16 @@ store = Path(args[args.index("--orchestrator-dir") + 1])
 store.mkdir(parents=True, exist_ok=True)
 data = store / "fake.json"
 tasks = json.loads(data.read_text()) if data.exists() else []
-cmd = next(x for x in args if x in ("launch", "read", "ps", "resume"))
-if cmd == "launch":
+cmd = next(x for x in args if x in ("launch", "read", "ps", "resume", "goal", "events"))
+if cmd in ("launch", "resume"):
     ident = "execution-" + str(len(tasks) + 1)
     name = args[args.index("--name") + 1]
     prompt = args[-1]
     result = {"taskId": ident, "name": name, "status": "succeeded",
               "output": "delivery", "account": os.environ.get("CODEX_HOME")}
+    result["provider"] = {"provider": "codex", "threadId": "thread-owned"}
+    if cmd == "resume":
+        result["resumedFrom"] = args[args.index("resume") + 1]
     plan = Path.cwd() / "plan.json"
     if ":root-" in name and plan.exists():
         actions = json.loads(plan.read_text())
@@ -48,6 +51,19 @@ if cmd == "launch":
         (store / "crash-after-launch").unlink()
         sys.exit(1)
     print(json.dumps(result))
+elif cmd == "events":
+    ident = args[args.index("events") + 1]
+    task = next(t for t in tasks if t["taskId"] == ident)
+    thread_id = task.get("provider", {}).get("threadId")
+    events = [{"type": "agent_event", "data": {"kind": "thread.started", "threadId": thread_id}}] if thread_id else []
+    print(json.dumps({"taskId": ident, "events": events, "eventsTruncated": False}))
+elif cmd == "goal":
+    ident = args[args.index("get") + 1]
+    task = next(t for t in tasks if t["taskId"] == ident)
+    goal = {"provider": task.get("provider", {})}
+    if (store / "goal-status").exists():
+        goal["state"] = {"status": (store / "goal-status").read_text()}
+    print(json.dumps({"task": {"taskId": ident}, "goal": goal}))
 elif cmd == "ps":
     print(json.dumps({"tasks": tasks}))
 else:
@@ -56,7 +72,11 @@ else:
         (store / "reading").touch()
         time.sleep(0.5)
     ident = args[args.index(cmd) + 1]
-    print(json.dumps(next(t for t in tasks if t["taskId"] == ident)))
+    result = dict(next(t for t in tasks if t["taskId"] == ident))
+    result.pop("provider", None)
+    if (store / "goal-status").exists():
+        result["goal"] = {"status": (store / "goal-status").read_text()}
+    print(json.dumps(result))
 ''')
     roles = {}
     for role in ("root", "agent_cm", "agent_rl", "agent_eval", "agent_infra"):
@@ -713,7 +733,7 @@ def test_provider_readiness_wins_over_old_inflight_failure_observation(tmp_path:
         if proc.poll() is None: proc.terminate();proc.wait(timeout=5)
 
 
-def test_confirmed_connection_failures_switch_after_finite_attempts(tmp_path: Path) -> None:
+def test_confirmed_connection_failures_do_not_switch_providers(tmp_path: Path) -> None:
     config = setup(tmp_path)
     document = json.loads(config.read_text());document['max_recovery_attempts'] = 2
     primary = document['bindings']['agent_cm']
@@ -728,7 +748,7 @@ def test_confirmed_connection_failures_switch_after_finite_attempts(tmp_path: Pa
         assert call(config, 'accept', ident, '--decision', 'rejected', '--reason', 'provider connection failed')['code'] == 0
     assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'task-three')))['code'] == 0
     deliveries = call(config, 'supervisor', 'status')['deliveries']
-    assert [d['binding_store'] for d in deliveries] == [primary['store'], primary['store'], str(tmp_path / 'backup-store')]
+    assert [d['binding_store'] for d in deliveries] == [primary['store']] * 3
 
 
 def test_major_decision_result_can_update_same_record_and_shows_control_scope(tmp_path: Path) -> None:
@@ -751,7 +771,7 @@ def test_major_decision_result_can_update_same_record_and_shows_control_scope(tm
     assert 'paused' in rendered and 'Test current authorized research scope' in rendered
 
 
-def test_background_root_provider_recovers_on_verified_backup(tmp_path: Path) -> None:
+def test_background_root_gateway_stops_after_three_recovery_attempts(tmp_path: Path) -> None:
     import time
     config = setup(tmp_path)
     document = json.loads(config.read_text())
@@ -762,9 +782,162 @@ def test_background_root_provider_recovers_on_verified_backup(tmp_path: Path) ->
     config.write_text(json.dumps(document))
     call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
     (Path(primary['store']) / 'provider-error').write_text('provider connection refused')
-    for _ in range(6):
+    for _ in range(14):
         call(config, 'supervisor', 'tick')
         time.sleep(0.03)
     status = call(config, 'supervisor', 'status')
     assert status['mode'] == 'active'
-    assert [d['binding_store'] for d in status['deliveries']] == [primary['store'], primary['store'], str(tmp_path / 'backup-root-store')]
+    assert len(status['deliveries']) == 1
+    assert status['recoveries'][0]['phase'] == 'stopped'
+    assert status['recoveries'][0]['gateway_attempts'] == 3
+    assert len(status['deliveries'][0]['attempts']) == 4
+    assert not Path(tmp_path / 'backup-root-store/fake.json').exists()
+
+
+def test_capacity_watchdog_waits_one_minute_then_resumes_same_task(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    store = Path(document['bindings']['agent_cm']['store'])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (store / 'provider-error').write_text('Selected model is at capacity. Please try a different model.')
+    original = call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    status = call(config, 'supervisor', 'status')
+    recovery = status['recoveries'][0]
+    assert recovery['kind'] == 'capacity' and recovery['attempt'] == 0
+    assert 55 < recovery['due'] - time.time() <= 60
+    call(config, 'supervisor', 'tick')
+    assert len(json.loads((store / 'fake.json').read_text())) == 1
+    (store / 'provider-error').unlink()
+    time.sleep(max(0, recovery['due'] - time.time()) + 0.1)
+    call(config, 'supervisor', 'tick')
+    status = call(config, 'supervisor', 'status')
+    worker = next(d for d in status['deliveries'] if d['role'] == 'agent_cm')
+    assert worker['task_id'] == 'task-one' and worker['execution_id'] != original['execution_id']
+    executions = json.loads((store / 'fake.json').read_text())
+    assert executions[-1]['resumedFrom'] == original['execution_id']
+    assert worker['binding_store'] == str(store)
+    assert len(worker['attempts']) == 2
+    assert status['control']['provider_waits'] == {}
+
+
+def test_gateway_recovery_is_local_and_pause_prevents_continuation(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    document.update(recovery_backoff_seconds=0.01)
+    document['campaign']['max_dispatches'] = 10
+    config.write_text(json.dumps(document))
+    plan(config, [{'action': 'idle', 'reason': 'waiting for worker recovery'}] * 10)
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    call(config, 'supervisor', 'pause')
+    time.sleep(0.03)
+    assert call(config, 'supervisor', 'tick')['state'] == 'paused'
+    assert len(json.loads((store / 'fake.json').read_text())) == 1
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    for _ in range(10):
+        call(config, 'supervisor', 'tick');time.sleep(0.03)
+    status = call(config, 'supervisor', 'status')
+    recovery = next(r for r in status['recoveries'] if r['task_id'] == 'task-one')
+    assert recovery['phase'] == 'stopped' and recovery['gateway_attempts'] == 3
+    assert len(json.loads((store / 'fake.json').read_text())) == 4
+    assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'other-role', 'agent_rl')))['code'] == 0
+    assert status['mode'] == 'active'
+
+
+def test_lost_continuation_response_is_reconciled_without_second_resume(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 503 Service Unavailable')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    (store / 'provider-error').unlink()
+    (store / 'crash-after-launch').touch()
+    time.sleep(0.03)
+    call(config, 'supervisor', 'tick')
+    assert len(json.loads((store / 'fake.json').read_text())) == 2
+    call(config, 'supervisor', 'pause')
+    call(config, 'supervisor', 'tick')
+    status = call(config, 'supervisor', 'status')
+    worker = next(d for d in status['deliveries'] if d['role'] == 'agent_cm')
+    assert worker['execution_id'] == 'execution-2'
+    assert worker['execution']['status'] == 'succeeded'
+    assert len(json.loads((store / 'fake.json').read_text())) == 2
+    assert worker['recovery']['phase'] == 'observing'
+
+
+def test_continuation_does_not_bypass_explicit_dispatch_budget(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    document['campaign']['max_dispatches'] = 1
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 504 Gateway Timeout')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick');time.sleep(0.03)
+    assert call(config, 'supervisor', 'tick')['state'] == 'budget_limited'
+    assert len(json.loads((store / 'fake.json').read_text())) == 1
+
+
+def test_successful_continuation_clears_gateway_streak(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    (store / 'provider-error').unlink();time.sleep(0.03)
+    call(config, 'supervisor', 'tick');call(config, 'supervisor', 'tick')
+    recovery = call(config, 'supervisor', 'status')['recoveries'][0]
+    assert recovery['phase'] == 'finished' and recovery['gateway_attempts'] == 0
+    assert call(config, 'accept', 'task-one', '--decision', 'accepted', '--reason', 'resumed evidence checked')['code'] == 0
+
+
+def test_user_paused_native_goal_is_not_resumed(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    (store / 'goal-status').write_text('paused');time.sleep(0.03)
+    call(config, 'supervisor', 'tick')
+    recovery = call(config, 'supervisor', 'status')['recoveries'][0]
+    assert recovery['phase'] == 'stopped' and 'Goal' in recovery['reason']
+    assert len(json.loads((store / 'fake.json').read_text())) == 1
+
+
+def test_no_provider_session_continues_from_contract_without_claiming_resume(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    tasks = json.loads((store / 'fake.json').read_text());tasks[0].pop('provider')
+    (store / 'fake.json').write_text(json.dumps(tasks))
+    call(config, 'supervisor', 'tick')
+    (store / 'provider-error').unlink();time.sleep(0.03)
+    call(config, 'supervisor', 'tick')
+    tasks = json.loads((store / 'fake.json').read_text())
+    assert len(tasks) == 2 and 'resumedFrom' not in tasks[1]
+    assert call(config, 'supervisor', 'status')['deliveries'][0]['task_id'] == 'task-one'
