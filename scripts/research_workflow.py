@@ -22,7 +22,7 @@ if __package__ in (None, ''):
 from scripts.workflow_policy import root_prompt as build_root_prompt, worker_prompt
 from scripts.workflow_bindings import validate_bindings, protect_workspace, WorkspaceConflict
 from scripts.research_evidence import completion_evidence
-from scripts.workflow_runtime import Runtime, TERMINAL, WorkflowError, BudgetError, ResearchPaused, ProviderWaiting
+from scripts.workflow_runtime import Runtime, TERMINAL, WorkflowError, BudgetError, ResearchPaused, ProviderWaiting, provider_failure
 
 
 def encoded(value: Any) -> str:
@@ -108,7 +108,7 @@ class Workflow:
                 return Runtime(self.config, binding)
         raise WorkflowError('historical execution binding is no longer configured')
 
-    def select_binding(self, role: str, provider: str | None, ident: str) -> dict[str, Any]:
+    def select_binding(self, role: str, provider: str | None, ident: str, kind: str | None = None) -> dict[str, Any]:
         with self.transaction() as db:
             active = self.get(db, 'active_bindings').get(role, self.candidates[role][0]['store'])
             history = [dict(row) for row in db.execute('SELECT rowid AS sequence, * FROM deliveries WHERE role=? AND execution_id IS NOT NULL ORDER BY rowid DESC', (role,))]
@@ -120,7 +120,12 @@ class Workflow:
         if provider is None:
             eligible.sort(key=lambda item: item['store'] != active)
         for binding in eligible:
+            if kind in ('probe', 'validation') and binding.get('engineering_only'):
+                if provider is not None:
+                    raise WorkflowError('engineering-only fallback cannot run research experiments')
+                continue
             latest = next((row for row in history if (row['store'] or self.candidates[role][0]['store']) == binding['store'] and row['sequence'] > ready_after.get(binding['store'], 0)), None)
+            observations = []
             if latest:
                 try:
                     execution = self.runtime(role, binding['store']).read(latest['execution_id'])
@@ -128,14 +133,32 @@ class Workflow:
                     if not latest['acceptance']:
                         raise
                     execution = {'status': 'unknown'}
-                error = str(execution.get('error', '')) + ' ' + str(execution.get('output', ''))
-                unavailable = execution.get('status') == 'failed' and re.search(r'quota (?:exhausted|exceeded)|insufficient_quota|rate.limit|provider unavailable', error, re.I)
-                if unavailable:
-                    waits[binding['store']] = {'role': role, 'provider': binding['provider'], 'reason': 'provider unavailable or quota exhausted'}
-            if binding['store'] in waits:
-                continue
+                failure = provider_failure(execution)
+                if failure == 'unavailable':
+                    observations.append(latest['sequence'])
+                elif failure == 'connection':
+                    # Only confirmed terminal provider failures qualify. Unreadable
+                    # or ambiguous launches remain on their original binding.
+                    consecutive = []
+                    for row in history:
+                        if (row['store'] or self.candidates[role][0]['store']) != binding['store'] or row['sequence'] <= ready_after.get(binding['store'], 0):
+                            continue
+                        result = execution if row['sequence'] == latest['sequence'] else self.runtime(role, binding['store']).read(row['execution_id'])
+                        if provider_failure(result) != 'connection':
+                            break
+                        consecutive.append(row['sequence'])
+                        if len(consecutive) >= self.config.get('max_recovery_attempts', 3):
+                            observations.extend(consecutive)
+                            break
             with self.transaction() as db:
-                self.set(db, 'provider_waits', waits)
+                # A readiness notification during the read invalidates older observations.
+                waits = self.get(db, 'provider_waits')
+                ready_after = self.get(db, 'provider_ready_after')
+                if observations and min(observations) > ready_after.get(binding['store'], 0):
+                    waits[binding['store']] = {'role': role, 'provider': binding['provider'], 'reason': 'provider unavailable or quota exhausted'}
+                    self.set(db, 'provider_waits', waits)
+                if binding['store'] in waits:
+                    continue
                 selected = self.get(db, 'active_bindings')
                 if binding['store'] != active:
                     self.save_decision(db, 'provider-' + ident, {'action': 'provider_switch', 'role': role,
@@ -143,8 +166,6 @@ class Workflow:
                 selected[role] = binding['store']
                 self.set(db, 'active_bindings', selected)
             return binding
-        with self.transaction() as db:
-            self.set(db, 'provider_waits', waits)
         raise ProviderWaiting('no available permitted provider for ' + role)
 
     def provider_ready(self, role: str, provider: str) -> dict[str, Any]:
@@ -209,12 +230,16 @@ class Workflow:
             raise ResearchPaused('control changed before applying decision')
 
     def save_decision(self, db: sqlite3.Connection, ident: str, value: dict[str, Any], goal_version: int | None = None) -> None:
-        db.execute('INSERT OR IGNORE INTO decisions VALUES (?,?,?)',
-                   (ident, self.get(db, 'goal_version') if goal_version is None else goal_version, encoded(value)))
+        goal = self.get(db, 'goal_version') if goal_version is None else goal_version
+        db.execute('INSERT INTO decisions VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value WHERE decisions.goal_version=excluded.goal_version',
+                   (ident, goal, encoded(value)))
 
     def decision_record(self) -> tuple[list[dict[str, Any]], str]:
         with self.transaction() as db:
             current_goal = self.get(db, 'goal_version')
+            mode = self.get(db, 'mode')
+            scope = db.execute('SELECT text FROM instructions WHERE new_goal=1 ORDER BY version DESC LIMIT 1').fetchone()
+            scope_text = scope['text'] if scope else 'docs/MISSION.md（当前已授权范围）'
             decisions = [{'id': row['id'], 'goal_version': row['goal_version'], **json.loads(row['value'])}
                          for row in db.execute('SELECT * FROM decisions ORDER BY rowid')]
         path = self.directory / 'AUTONOMOUS_DECISIONS.md'
@@ -223,6 +248,7 @@ class Workflow:
             goals = {item['goal_version'] for item in decisions} | {current_goal}
             for goal in sorted(goals):
                 lines = ['# 自主决策记录', '', '目标版本：' + str(goal), '',
+                         *(['推进状态：' + mode, '', '研究范围：' + scope_text, ''] if goal == current_goal else []),
                          '重要研究选择；实验细节以引用证据为准。', '']
                 for item in decisions:
                     if item['goal_version'] == goal:
@@ -234,6 +260,11 @@ class Workflow:
                     temporary = output.with_suffix('.tmp')
                     temporary.write_text(content)
                     temporary.replace(output)
+                if goal == current_goal and mode == 'completed':
+                    archive = self.directory / 'decision-history' / ('completed-goal-' + str(goal) + '.md')
+                    archive.parent.mkdir(exist_ok=True)
+                    if not archive.exists():
+                        archive.write_text(content)
         return decisions, str(path)
 
     def check_budget(self, db: sqlite3.Connection, role: str) -> None:
@@ -290,7 +321,9 @@ class Workflow:
                 raise WorkflowError('unresolved launch intent; reconcile instead of redispatch')
             if existing and existing['contract'] == encoded(task) and existing['execution_id']:
                 return {'task_id': ident, 'execution_id': existing['execution_id'], 'reused': True}
-        binding = self.select_binding(role, task.get('provider'), ident)
+        binding = self.select_binding(role, task.get('provider'), ident, task.get('kind'))
+        if root_prompt is None and task['kind'] != 'engineering' and binding.get('engineering_only'):
+            raise WorkflowError('engineering-only fallback cannot run research experiments')
         protect_workspace(binding)
         used_gpu = 0
         if role != 'root':
@@ -408,7 +441,8 @@ class Workflow:
             if expected_version is not None:
                 self.check_control(db, expected_version)
             value = {'decision': decision, 'reason': reason}
-            if row['acceptance'] and json.loads(row['acceptance']) != value:
+            current = db.execute('SELECT acceptance FROM deliveries WHERE id=?', (ident,)).fetchone()
+            if current['acceptance'] and json.loads(current['acceptance']) != value:
                 raise WorkflowError('delivery already adjudicated differently')
             db.execute('UPDATE deliveries SET acceptance=? WHERE id=?', (encoded(value), ident))
             self.set(db, 'idle_fingerprint', None)
@@ -484,6 +518,15 @@ class Workflow:
                 return {'state': 'waiting_root'}
             consumed = True
             try:
+                if provider_failure(execution):
+                    with self.transaction() as db:
+                        self.check_control(db, version)
+                    self.select_binding('root', None, item['task_id'])
+                    with self.transaction() as db:
+                        self.check_control(db, version)
+                        self.set(db, 'failures', 0)
+                        self.set(db, 'retry_at', time.time() + self.config.get('recovery_backoff_seconds', 1))
+                    return {'state': 'retrying_provider'}
                 if execution.get('status') != 'succeeded' or execution.get('outputTruncated'):
                     raise WorkflowError('root execution failed or decision output was truncated')
                 decision = json.loads(execution.get('output', ''))
@@ -493,6 +536,8 @@ class Workflow:
                 major = decision.get('major_decision')
                 if major is not None and (not isinstance(major, dict) or not all(isinstance(major.get(k), str) and major[k].strip() for k in ('decision', 'evidence', 'reason', 'cost_and_stop', 'outcome'))):
                     raise WorkflowError('major_decision requires decision, evidence, reason, cost_and_stop, outcome')
+                if major is not None and 'decision_id' in major and (not isinstance(major['decision_id'], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,100}', major['decision_id'])):
+                    raise WorkflowError('major_decision decision_id must be a stable identifier')
                 if action == 'dispatch':
                     result = self.dispatch(decision['task'], expected_version=version)
                 elif action in ('accept', 'reject'):
@@ -544,13 +589,15 @@ class Workflow:
                 self.set(db, 'last_error', None)
                 self.set(db, 'processed_version', version)
                 if major is not None:
-                    self.save_decision(db, item['task_id'], major, item['goal_version'])
+                    self.save_decision(db, 'goal-' + str(item['goal_version']) + ':' + major['decision_id'] if 'decision_id' in major else item['task_id'], major, item['goal_version'])
             return {'state': 'decision_applied', 'action': action, 'result': result}
         if self.fingerprint(status) == status['control']['idle_fingerprint']:
             return {'state': 'idle'}
         with self.transaction() as db:
             started = self.get(db, 'started')
-        remaining = self.budget.get('wall_time_seconds', 300 + int(time.time() - started)) - int(time.time() - started)
+        remaining = 300
+        if 'wall_time_seconds' in self.budget:
+            remaining = self.budget['wall_time_seconds'] - int(time.time() - started)
         if remaining <= 0:
             raise BudgetError('campaign time budget exhausted')
         task = {'task_id': 'root-' + uuid.uuid4().hex, 'role': 'root',

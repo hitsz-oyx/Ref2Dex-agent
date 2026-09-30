@@ -43,6 +43,7 @@ independent eval review. Eval output must follow ref2dex.validation-evidence.v1 
 If evidence is absent, continue research or honestly report blocked; engineering/Probe cannot complete MISSION.
 Optionally include major_decision only for a consequential choice that previously deserved user input:
 {"decision":"...","evidence":"evidence links","reason":"...","cost_and_stop":"...","outcome":"..."}.
+Reuse an optional stable decision_id to update the same important decision when its outcome changes.
 Do not record routine fixes, commands, retries or small parameter adjustments.
 Latest durable instructions, evidence and resource state:\n''' + json.dumps(view, ensure_ascii=False, sort_keys=True)
 

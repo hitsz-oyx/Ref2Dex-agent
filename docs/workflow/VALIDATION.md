@@ -46,7 +46,7 @@ CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 \
 ## 第二阶段：持续推进与文档精简
 
 在同一 graspenv 环境完成 CLI 行为切片和回归：106 passed；8 个入口、运行与索引
-模块 mypy 通过。新增覆盖无默认总截止、持久用户指令、旧 root 决策失效、受阻
+模块 mypy 通过。审查补充 7 项入口回归，CLI 现有 34 项；provider 专项 6 项通过。新增覆盖无默认总截止、持久用户指令、旧 root 决策失效、受阻
 等待、正式 Validation 完成门槛、provider 备选/指定、独立工作树保护、决策记录、
 停止后台 owner 时保留现有任务，以及实验索引不改原卡。
 
@@ -59,6 +59,16 @@ session_meta 为 openai，infra 为 rlg；worker 输出 WORKFLOW_PROVIDER_OK，�
 
 全仓 pytest 仍在收集阶段报上述 10 个既有 Cm 路径错误。本记录不把结构化
 Validation 验收等同于科学事实成立；root/eval 仍须核对预注册、原始结果与方法。
+
+## 第二阶段审查
+
+Standards 轴：3 项原发现已关闭并复核通过。派发拒绝无法确认的 Git 工作树；恢复通知
+不会被旧 provider 观察覆盖；root 全部备选保持 Codex。
+
+Spec 轴：4 项原发现已修复。最终执行绑定也检查工程/研究能力，CODEX_HOME 使用解析
+路径全局隔离；确认终态连接故障有限重试后可切换，root 同样覆盖；重要决定以稳定 ID
+更新结果，并显示研究范围与启停状态。未知投递和不可读执行仍须 reconcile，不推断
+失败或切换来重发。Standards 与 Spec 最终只读复核均通过；7 项新增回归分别观察过失败再修复。
 
 ## 上线边界
 

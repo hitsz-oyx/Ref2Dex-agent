@@ -5,11 +5,23 @@ import hashlib
 import fcntl
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
 TERMINAL = frozenset({'succeeded', 'failed', 'cancelled', 'timed_out'})
+
+
+def provider_failure(execution: dict[str, Any]) -> str | None:
+    if execution.get('status') != 'failed':
+        return None
+    error = str(execution.get('error', '')) + ' ' + str(execution.get('output', ''))
+    if re.search(r'quota (?:exhausted|exceeded)|insufficient_quota|rate.limit|provider unavailable', error, re.I):
+        return 'unavailable'
+    if re.search(r'connection (?:refused|reset|failed)|connect(?:ion)? timeout|provider (?:connection|network) error|HTTP (?:502|503|504)', error, re.I):
+        return 'connection'
+    return None
 
 
 class WorkflowError(RuntimeError):

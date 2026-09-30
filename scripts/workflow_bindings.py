@@ -25,8 +25,11 @@ def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dic
     if len(set(workspaces)) != len(workspaces):
         raise WorkflowError('logical roles require separate workspaces')
     stores = []
+    account_homes = []
     for role, candidates in bindings.items():
         for binding in candidates:
+            if role == 'root' and binding.get('runtime') != 'codex':
+                raise WorkflowError('root bindings require Codex runtime')
             if role not in roles:
                 raise WorkflowError('unknown logical role')
             for key in ('provider', 'runtime', 'workspace', 'store'):
@@ -63,10 +66,14 @@ def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dic
                 raise WorkflowError('role workspace is outside authorized campaign roots')
             if not Path(binding['workspace']).is_dir():
                 raise WorkflowError('role workspace does not exist')
+            if binding.get('codex_home'):
+                account_homes.append(str(Path(binding['codex_home']).resolve()))
             binding['logical_role'] = role
             stores.append(str(Path(binding['store']).resolve()))
     if len(set(stores)) != len(stores):
         raise WorkflowError('roles must use independent backend stores')
+    if len(set(account_homes)) != len(account_homes):
+        raise WorkflowError('bindings require independent CODEX_HOME directories')
     for candidates in bindings.values():
         for binding in candidates:
             Runtime(config, binding)
@@ -77,6 +84,8 @@ def protect_workspace(binding: dict[str, Any]) -> None:
     workspace = Path(binding['workspace'])
     result = subprocess.run(['git', '-C', str(workspace), 'rev-parse', '--show-toplevel'],
                             capture_output=True, text=True, timeout=10)
+    if result.returncode != 0:
+        raise WorkspaceConflict('role workspace must be its own Git worktree')
     if result.returncode == 0:
         if Path(result.stdout.strip()).resolve() != workspace.resolve():
             raise WorkflowError('role workspace must be its own worktree root')

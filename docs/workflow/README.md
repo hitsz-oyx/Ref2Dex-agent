@@ -59,6 +59,7 @@ npm 必须来自 Node 24 的 PATH；不修改系统 Node 或全局包。参考
 不同 provider 使用独立 Codex 配置。fallbacks 是按优先级排列的完整绑定列表，每项必须
 verified:true，表示已经完成真实账号身份与能力验收。额度耗尽或 provider 不可用时，入口
 记录原因并选列表中的可用备选。任务 provider 字段若明确指定绑定，就不得跨 provider。
+确认终态的连接/网关故障达到有限尝试数后也可切换；未知执行不推断失败。
 无备选时该角色等待，其他角色继续；已恢复可用的绑定由 provider-ready 通知，不盲目重试。
 未知投递先 reconcile，不能换账号重复启动。其他原生模型 harness 的账号隔离未验收，当前
 拒绝启用；自定义工程 process 必须 engineering_only:true，不能接 Probe/Validation。
@@ -125,3 +126,6 @@ card 指向 root 工作树 docs/experiments/validations 中的已集成正式验
 回合和后台续接，之后才切换活跃系统。当前 npm audit 的 6 项传递依赖公告未修复；普通
 overrides 对 bundled 依赖未生效。上线前核对上游修复或安全重打包，锁定版本不是安全验收。
 工程验证与实际限制见 [VALIDATION.md](VALIDATION.md)。设计/实施记录按需查 docs/superpowers。
+
+重要决定可以附带稳定 `decision_id`，后续结果变化时沿用该 ID 更新同条记录。
+决策文档显示当前目标范围和启停状态；完成时保留归档，普通启停命令不追加流水账。

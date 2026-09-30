@@ -39,6 +39,9 @@ if cmd == "launch":
     if (store / "provider-down").exists():
         result["status"] = "failed"
         result["error"] = "quota exhausted"
+    if (store / "provider-error").exists():
+        result["status"] = "failed"
+        result["error"] = (store / "provider-error").read_text()
     tasks.append(result)
     data.write_text(json.dumps(tasks))
     if (store / "crash-after-launch").exists():
@@ -59,6 +62,8 @@ else:
     for role in ("root", "agent_cm", "agent_rl", "agent_eval", "agent_infra"):
         workspace = tmp_path / role
         workspace.mkdir()
+        subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+        (workspace / ".git/info/exclude").write_text("plan.json\ndocs/\n")
         roles[role] = {"provider": role, "runtime": "codex", "codex_home": str(tmp_path / (role + "-account")),
                        "workspace": str(workspace), "store": str(tmp_path / (role + "-store"))}
     config = tmp_path / "config.json"
@@ -640,3 +645,126 @@ def test_stop_background_owner_preserves_worker_results(tmp_path: Path) -> None:
         if proc.poll() is None:
             proc.terminate()
             proc.wait(timeout=5)
+
+
+def test_shared_provider_account_directory_is_rejected(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    primary['fallbacks'] = [{**primary, 'provider': 'backup', 'store': str(tmp_path / 'backup-store'), 'verified': True}]
+    config.write_text(json.dumps(document))
+    assert 'independent CODEX_HOME' in call(config, 'supervisor', 'status')['error']
+
+
+def test_engineering_fallback_cannot_run_research_or_supervise_root(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    definition = tmp_path / 'runtime.json'
+    definition.write_text(json.dumps({'agents': {'engineering': {'adapter': 'process', 'command': sys.executable}}}))
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    primary['fallbacks'] = [{'provider': 'engineering', 'runtime': 'engineering', 'engineering_only': True,
+        'runtime_config': str(definition), 'store': str(tmp_path / 'engineering-store'),
+        'workspace': primary['workspace'], 'verified': True}]
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    task = contract(tmp_path)
+    value = json.loads(task.read_text());value.update(kind='probe', provider='engineering')
+    task.write_text(json.dumps(value))
+    assert 'engineering-only' in call(config, 'dispatch', '--task', str(task))['error']
+    document['bindings']['root']['fallbacks'] = [{**primary['fallbacks'][0], 'workspace': document['bindings']['root']['workspace']}]
+    config.write_text(json.dumps(document))
+    assert 'root bindings require Codex' in call(config, 'supervisor', 'status')['error']
+
+
+def test_non_git_workspace_is_not_adopted(tmp_path: Path) -> None:
+    import shutil
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    shutil.rmtree(Path(document['bindings']['agent_cm']['workspace']) / '.git')
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    assert 'own Git worktree' in call(config, 'dispatch', '--task', str(contract(tmp_path)))['error']
+    assert call(config, 'supervisor', 'status')['deliveries'] == []
+
+
+def test_provider_readiness_wins_over_old_inflight_failure_observation(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(primary['store'])
+    (store / 'provider-down').touch()
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'quota exhausted')
+    (store / 'delay-read').touch()
+    task = contract(tmp_path, 'task-two')
+    proc = subprocess.Popen([sys.executable, str(CLI), '--config', str(config), 'dispatch', '--task', str(task)], stdout=subprocess.PIPE)
+    try:
+        for _ in range(100):
+            if (store / 'reading').exists(): break
+            time.sleep(0.01)
+        assert (store / 'reading').exists()
+        (store / 'provider-down').unlink()
+        assert call(config, 'provider-ready', '--role', 'agent_cm', '--provider', 'agent_cm')['code'] == 0
+        output, _ = proc.communicate(timeout=10)
+        assert proc.returncode == 0, output.decode()
+        assert call(config, 'supervisor', 'status')['control']['provider_waits'] == {}
+    finally:
+        if proc.poll() is None: proc.terminate();proc.wait(timeout=5)
+
+
+def test_confirmed_connection_failures_switch_after_finite_attempts(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document['max_recovery_attempts'] = 2
+    primary = document['bindings']['agent_cm']
+    primary['fallbacks'] = [{**primary, 'provider': 'backup', 'codex_home': str(tmp_path / 'backup-account'),
+        'store': str(tmp_path / 'backup-store'), 'verified': True}]
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(primary['store'])
+    (store / 'provider-error').write_text('provider connection refused')
+    for ident in ('task-one', 'task-two'):
+        assert call(config, 'dispatch', '--task', str(contract(tmp_path, ident)))['code'] == 0
+        assert call(config, 'accept', ident, '--decision', 'rejected', '--reason', 'provider connection failed')['code'] == 0
+    assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'task-three')))['code'] == 0
+    deliveries = call(config, 'supervisor', 'status')['deliveries']
+    assert [d['binding_store'] for d in deliveries] == [primary['store'], primary['store'], str(tmp_path / 'backup-store')]
+
+
+def test_major_decision_result_can_update_same_record_and_shows_control_scope(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, 'instruct', '--request-id', 'scope', '--text', 'Test current authorized research scope', '--new-goal')
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    first = {'decision_id': 'route-choice', 'decision': 'Switch representation', 'evidence': 'evidence/card',
+        'reason': 'Exclude failed route', 'cost_and_stop': 'one bounded test', 'outcome': 'pending'}
+    plan(config, [{'action': 'idle', 'reason': 'waiting for work', 'major_decision': first}])
+    call(config, 'supervisor', 'tick');call(config, 'supervisor', 'tick')
+    call(config, 'instruct', '--request-id', 'result', '--text', 'The route test resolved the blocker')
+    plan(config, [{'action': 'idle', 'reason': 'external wait', 'major_decision': {**first, 'outcome': 'blocker resolved'}}])
+    call(config, 'supervisor', 'tick');call(config, 'supervisor', 'tick')
+    call(config, 'supervisor', 'pause')
+    status = call(config, 'supervisor', 'status')
+    records = [d for d in status['decisions'] if d.get('decision_id') == 'route-choice']
+    assert len(records) == 1
+    assert records[0]['outcome'] == 'blocker resolved'
+    rendered = Path(status['decision_record']).read_text()
+    assert 'paused' in rendered and 'Test current authorized research scope' in rendered
+
+
+def test_background_root_provider_recovers_on_verified_backup(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    document.update(max_recovery_attempts=2, recovery_backoff_seconds=0.01)
+    primary = document['bindings']['root']
+    primary['fallbacks'] = [{**primary, 'provider': 'root-backup', 'codex_home': str(tmp_path / 'backup-root-account'),
+        'store': str(tmp_path / 'backup-root-store'), 'verified': True}]
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (Path(primary['store']) / 'provider-error').write_text('provider connection refused')
+    for _ in range(6):
+        call(config, 'supervisor', 'tick')
+        time.sleep(0.03)
+    status = call(config, 'supervisor', 'status')
+    assert status['mode'] == 'active'
+    assert [d['binding_store'] for d in status['deliveries']] == [primary['store'], primary['store'], str(tmp_path / 'backup-root-store')]
