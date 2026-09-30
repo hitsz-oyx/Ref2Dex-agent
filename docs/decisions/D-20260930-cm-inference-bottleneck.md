@@ -33,3 +33,9 @@ evaluation seed 相对 off 都不负。否则 `UNPROMISING` 或技术无效 `UNC
 无视频。不突破 Campaign。输入 hash 漂移、first-episode pairing 失败、非有限
 数据、未知 GPU 冲突或超预算立即停止。采集和评估 stdout 写日志文件，避免
 旧任务 BrokenPipe 的输出管道失效。现有 checkpoint 和研究工作树只读。
+
+执行后处置：有效 r2 的八臂配对通过，on/off 均 18/128，random 21/128、
+action 14/128，升级门失败；关闭这个 BC inference-input 实现，不进入 Validation，
+不调参。r1 的 random CUDA reseed 造成配对失败，保留为执行无效；修复后整组
+重新训练、评估。两次执行累计 19.81 分钟、单 GPU，输出约 0.5 GiB，无遗留进程。
+结果见 [实验卡](../experiments/probes/P-20260930-cm-inference-bottleneck.md)。

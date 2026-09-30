@@ -16,10 +16,14 @@ Updated: 2026-09-30
 不代表新的实验结果。
 
 本轮固定 scratch MLP 可行性检查已完成，teacher-envelope 的 contact coverage
-和 arbitration stability 未过门，HF06 关闭，不调参。下一轮 HF07 在固定 airplane
-子任务上将物理预测作为学生策略的显式推理输入，比较 on/off/random/action 四臂；
-它仍需 self-trained expert 在推理时生成候选动作。见
-[当前决策](decisions/D-20260930-cm-inference-bottleneck.md)。策略收益尚未获得。
+和 arbitration stability 未过门，HF06 关闭，不调参。HF07 随后在固定三条 airplane
+motion 上完成了四臂真实策略 matched Probe：on 18/128、off 18/128、random
+21/128、action 14/128，八个 native arm、配对和初始化合同有效。该 BC 推理输入
+实现判为 `UNPROMISING` 并关闭，不升级 Validation。它仍需 self-trained expert
+在推理时生成候选动作，只有一个 BC training seed，不能否定整个 Cm 思路。
+见 [实验卡](experiments/probes/P-20260930-cm-inference-bottleneck.md)。
+North-star scoreboard 不变：Cm policy utility 尚未证明。本轮实验已结束，无本轮
+训练/评估进程遗留；下一步返回高层机制选择，不扫描上述局部实现。
 
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
@@ -167,12 +171,19 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
 | `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
+| `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
+| `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
 信息增益时，必须切换高层假设；换 metric、horizon 或 seed 不会重置预算。
 
 ## Next step
+
+2026-09-30 最新处置：HF06 和 HF07 均已结束；优先级继续是 Cm 策略价值，期限
+2026-10-03 23:59。下一步返回高层机制选择，复用已验证六专家底座；不继续调
+teacher envelope 或这次 BC inference-input 的宽度、步数、seed、目标。下面保留
+此前路线的证据边界，不将历史派发状态视为当前活跃任务。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一

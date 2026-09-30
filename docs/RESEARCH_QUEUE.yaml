@@ -41,11 +41,11 @@ hypotheses:
   HF07:
     claim: C3
     name: physical_prediction_inference_bottleneck
-    status: ACTIVE
+    status: KILLED
     branch: agent/cm-scratch-mlp-policy-probe
     probe_budget: 1
     probes_used: 1
-    transition: "One fixed four-arm BC/physical Probe; explicit Cm inference input, not confidence-certified labels or train-only auxiliary. No seed/width/target sweep after failure."
+    transition: "Valid four-arm physical Probe UNPROMISING: on 18/128 equals off 18/128 and trails random 21/128. Close this BC inference-input implementation; no Validation or local sweep. Core Cm claim stays OPEN."
 
   HF06:
     claim: C3
