@@ -259,6 +259,6 @@ delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准�
 
 当前科学run为r7，session93879，GPU1/2，固定总阶段预算6h/20GiB，继承r6失败成本。公共采集完成1041599转移、1920完整episode，hash/连续性/完整return检查通过，无剔除行。fit831811行/1536episode、开发holdout209788行/384episode；三motion转移近均衡、四档额外动作噪声均覆盖。采集池稳定标签稀少（15episode），只作带噪声数据池描述，不能代替actor-only指标或提前否定路线。
 
-固定100k/500k/最大档模型、V/Q预训练已全部完成，实际fit档为100206/500169/831811行，native约25.6min。因96环境评价实测97.8s，采用两GPU配对面板并行保持48点评价；已核对并终止旧launcher，fit产物未中断，调度交接及保守墙钟成本记录在launcher_handoff.json。六臂PPO按两个training-seed并行，seed内三臂同GPU，训练预算160追加epoch和327680交互不变；当前plain_off两臂接近e420。分量与完整return审计工具只作开发诊断，不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
+固定100k/500k/最大档模型、V/Q预训练已全部完成，实际fit档为100206/500169/831811行，native约25.6min。因96环境评价实测97.8s，采用两GPU配对面板并行保持48点评价；已核对并终止旧launcher，fit产物未中断，调度交接及保守墙钟成本记录在launcher_handoff.json。六臂PPO按两个training-seed并行，seed内三臂同GPU，训练预算160追加epoch和327680交互不变；plain_off和direct_q四臂均已到e420，epoch/327680交互/共同初始化检查通过；两个cm_value臂仍在训练。已启动受控接续session17061，等待六臂完成及审计后自动运行固定48点评价。开发分量审计发现初始Cm物体位置和姿态误差高于保持状态基线，不能称为准确物理模型；同数据上的V/Q完整return拟合优于常量基线，但不证明反事实动作排序。将对在线更新后的Cm做同样的物理审计，不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
 
 详细证据见 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)；原生状态见当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/run_manifest.json。

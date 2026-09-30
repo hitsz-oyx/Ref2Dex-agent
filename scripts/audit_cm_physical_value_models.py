@@ -14,10 +14,12 @@ from src.task.CmResidual.physical_value_models import Features, OutcomeNetwork, 
 
 
 @torch.no_grad()
-def audit(dataset, payload, device, limit):
+def audit(dataset, payload, device, limit, physics_only=False):
     features = Features(**{k: v.to(device) for k, v in payload["stats"].items()}, device=device).to(device)
     networks = {}
     for name, action_dim, seed in (("value", 0, 9283), ("direct_q", 18, 9284)):
+        if physics_only:
+            continue
         network = OutcomeNetwork(payload["context_dim"], action_dim, 1, seed).to(device)
         network.load_state_dict(payload[name])
         networks[name] = network.eval()
@@ -91,15 +93,21 @@ def audit(dataset, payload, device, limit):
             components["reward_rmse"] = components.pop("reward_squared_error") ** .5
         return components
     components = reduce_components(physical)
-    return dict(rows=len(hold), fit_mean_return=float(fit_mean), constant_return_rmse=float(baseline_mse.sqrt()),
+    result = dict(rows=len(hold), fit_mean_return=float(fit_mean), constant_return_rmse=float(baseline_mse.sqrt()),
                 value_fit=values, physical_member_mean=components,
                 physical_baselines={name: reduce_components(rows) for name, rows in baselines.items()})
+    if physics_only:
+        for name in ("fit_mean_return", "constant_return_rmse", "value_fit"):
+            result.pop(name)
+    return result
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--collections", nargs="+", type=Path, required=True)
     p.add_argument("--checkpoint", type=Path, required=True)
+    p.add_argument("--online-checkpoint", type=Path,
+                   help="Audit only online Cm dynamics on the same source-policy development states")
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--device", default="cpu")
     p.add_argument("--rows", type=int, default=2048)
@@ -108,13 +116,36 @@ def main():
     payload = torch.load(a.checkpoint, map_location="cpu", weights_only=False)
     if payload["schema"] != "ref2dex.physical_value_models.v1":
         raise ValueError("model schema")
+    online_metadata = None
+    if a.online_checkpoint:
+        online = torch.load(a.online_checkpoint, map_location="cpu", weights_only=False)
+        saved = online["physical_value"]
+        if saved["arm"] != "cm_value":
+            raise ValueError("online checkpoint must contain Cm dynamics")
+        states = saved["dynamics"]
+        members = []
+        for i in range(len(payload["dynamics"])):
+            prefix = f"{i}."
+            member = {key[len(prefix):]: value for key, value in states.items() if key.startswith(prefix)}
+            if not member:
+                raise ValueError("missing online dynamics member")
+            members.append(member)
+        if sum(len(member) for member in members) != len(states):
+            raise ValueError("unexpected online dynamics keys")
+        payload["dynamics"] = members
+        online_metadata = dict(checkpoint_sha256=sha(a.online_checkpoint), epoch=online["epoch"],
+                               frame=online["frame"], initial_model_sha256=saved["initial_model_sha256"])
     dataset = Episodes(a.collections, gamma=payload["gamma"])
     report = dict(run_status="COMPLETED", checkpoint_sha256=sha(a.checkpoint), command=sys.argv,
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         tier=payload["tier"], fit_rows=payload["fit_rows"],
         inputs=dataset.inputs,
         scope="development holdout under noisy source collection policy; diagnostic only, no counterfactual action-value or policy utility claim",
-        diagnostics=audit(dataset, payload, a.device, a.rows))
+        diagnostics=audit(dataset, payload, a.device, a.rows, physics_only=bool(a.online_checkpoint)))
+    if online_metadata:
+        report["online_dynamics"] = online_metadata
+        report["scope"] = ("online Cm dynamics on fixed noisy source-policy development states; distribution mismatch "
+                           "with current policy is possible; no current-policy value calibration or policy utility claim")
     with a.output.open("x") as output:
         json.dump(report, output, indent=2)
     print(json.dumps(report["diagnostics"]), flush=True)
