@@ -301,6 +301,20 @@ class Workflow:
         if type(timeout) is not int or timeout <= 0 or ('wall_time_seconds' in self.budget and timeout > self.budget['wall_time_seconds']):
             raise WorkflowError('task requires a bounded timeout within any explicit campaign budget')
 
+    def gpu_usage(self, excluded_task: str) -> int:
+        with self.transaction() as db:
+            rows = [dict(row) for row in db.execute('SELECT * FROM deliveries WHERE role!="root" AND acceptance IS NULL AND id!=?', (excluded_task,))]
+            recoveries = {row['task_id']: json.loads(row['value']) for row in db.execute('SELECT * FROM recoveries')}
+        used = 0
+        for row in rows:
+            recovery = recoveries.get(row['id']) or {}
+            if row['execution_id'] is None:
+                raise WorkflowError('unresolved launch intent blocks new dispatch')
+            execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
+            if recovery.get('phase') in ('launching', 'uncertain') or execution.get('active') is True or execution.get('status') not in TERMINAL:
+                used += json.loads(row['contract']).get('gpu', 0)
+        return used
+
     def dispatch(self, task: dict[str, Any], *, root_prompt: str | None = None, expected_version: int | None = None) -> dict[str, Any]:
         if root_prompt is None:
             self.validate_contract(task)
@@ -316,24 +330,7 @@ class Workflow:
         if root_prompt is None and task['kind'] != 'engineering' and binding.get('engineering_only'):
             raise WorkflowError('engineering-only fallback cannot run research experiments')
         protect_workspace(binding)
-        used_gpu = 0
-        if role != 'root':
-            with self.transaction() as db:
-                active = [dict(row) for row in db.execute(
-                    'SELECT * FROM deliveries WHERE role!="root" AND acceptance IS NULL')]
-            for row in active:
-                if row['id'] == ident:
-                    continue
-                if row['execution_id'] is None:
-                    raise WorkflowError('unresolved launch intent blocks new dispatch')
-                with self.transaction() as db:
-                    recovery = db.execute('SELECT value FROM recoveries WHERE task_id=?', (row['id'],)).fetchone()
-                if recovery and json.loads(recovery['value'])['phase'] in ('launching', 'uncertain'):
-                    used_gpu += json.loads(row['contract']).get('gpu', 0)
-                    continue
-                execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
-                if execution.get('status') not in TERMINAL:
-                    used_gpu += json.loads(row['contract']).get('gpu', 0)
+        used_gpu = self.gpu_usage(ident) if role != 'root' else 0
         # Hold pause/dispatch serialization through the bounded launch call. A
         # pause returning to the user guarantees no subsequent launch races it.
         with self.transaction() as db:
@@ -436,7 +433,8 @@ class Workflow:
         if row is None or not row['execution_id']:
             raise WorkflowError('unknown or unresolved worker delivery')
         execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
-        if recovery and json.loads(recovery['value'])['phase'] == 'observing' and provider_failure(execution) in ('capacity', 'connection'):
+        if provider_failure(execution) in ('capacity', 'connection') and (
+                not recovery or json.loads(recovery['value'])['phase'] != 'stopped'):
             raise WorkflowError('delivery is awaiting recovery observation; cannot adjudicate yet')
         if execution.get('status') not in TERMINAL:
             raise WorkflowError('cannot accept an unfinished delivery')
@@ -522,6 +520,12 @@ class Workflow:
                     db.execute('UPDATE deliveries SET applied=1 WHERE id=?', (item['task_id'],))
                 return {'state': 'stale_decision'}
             recovery = item.get('recovery')
+            if recovery and recovery['phase'] == 'stopped':
+                with self.transaction() as db:
+                    self.check_control(db, version)
+                    self.set(db, 'mode', 'attention')
+                    self.set(db, 'last_error', 'root recovery stopped: ' + recovery.get('reason', ''))
+                return {'state': 'attention', 'recovery': recovery}
             if recovery and (recovery['phase'] in ('waiting', 'launching', 'uncertain', 'stopped') or (
                     recovery['phase'] == 'observing' and provider_failure(item['execution']) in ('capacity', 'connection'))):
                 return {'state': 'waiting_recovery', 'recovery': recovery}

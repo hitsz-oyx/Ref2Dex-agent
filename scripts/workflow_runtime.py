@@ -21,7 +21,7 @@ def provider_failure(execution: dict[str, Any]) -> str | None:
         return 'capacity'
     if re.search(r'quota (?:exhausted|exceeded)|insufficient_quota|rate.limit|provider unavailable', error, re.I):
         return 'unavailable'
-    if re.search(r'connection (?:refused|reset|failed)|connect(?:ion)? timeout|provider (?:connection|network) error|HTTP (?:502|503|504)', error, re.I):
+    if re.search(r'connection (?:refused|reset|failed)|connect(?:ion)? timeout|provider (?:connection|network) error|HTTP (?:502|503|504)|\b(?:502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout)\b', error, re.I):
         return 'connection'
     return None
 
@@ -178,7 +178,7 @@ class Runtime:
         value = self.invoke('events', execution['taskId'], '--agent-only', '--compact', '--max-bytes', '2000000')
         if value.get('taskId') != execution['taskId']:
             raise WorkflowError('continuation metadata belongs to another execution')
-        state = execution.get('goal') or {}
+        state = value.get('goal') or execution.get('goal') or {}
         if state.get('status') in ('paused', 'complete', 'completed', 'budget-limited', 'usage-limited'):
             raise NativeGoalHeld('native Goal is paused, complete or budget limited')
         thread_id = None

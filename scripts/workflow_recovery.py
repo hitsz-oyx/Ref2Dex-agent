@@ -60,10 +60,11 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
         version = status['control']['instruction_version']
         if item['goal_version'] != status['control']['goal_version'] or (
                 item['role'] == 'root' and item['contract'].get('instruction_version') != version):
-            if recovery:
-                recovery.update(phase='stopped', reason='superseded control or goal')
-                with workflow.transaction() as db:
-                    save(db, item['task_id'], recovery)
+            recovery = recovery or {'task_id': item['task_id'], 'source_execution_id': item['execution_id'],
+                                    'kind': failure, 'due': None, 'attempt': 0, 'gateway_attempts': 0}
+            recovery.update(phase='stopped', reason='superseded control or goal')
+            with workflow.transaction() as db:
+                save(db, item['task_id'], recovery)
             continue
         if recovery is None or recovery['source_execution_id'] != item['execution_id'] or recovery['phase'] != 'waiting':
             previous = recovery or {}
@@ -80,6 +81,11 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
                 save(db, item['task_id'], recovery)
             continue
         if time.time() < recovery['due']:
+            continue
+        if item['role'] != 'root' and workflow.gpu_usage(item['task_id']) + item['contract'].get('gpu', 0) > workflow.budget['max_gpu']:
+            recovery['reason'] = 'waiting for authorized GPU capacity'
+            with workflow.transaction() as db:
+                save(db, item['task_id'], recovery)
             continue
         try:
             protect_workspace(runtime.binding)

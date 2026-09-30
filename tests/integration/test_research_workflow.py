@@ -56,7 +56,10 @@ elif cmd == "events":
     task = next(t for t in tasks if t["taskId"] == ident)
     thread_id = task.get("provider", {}).get("threadId")
     events = [{"type": "agent_event", "data": {"kind": "thread.started", "threadId": thread_id}}] if thread_id else []
-    print(json.dumps({"taskId": ident, "events": events, "eventsTruncated": False}))
+    payload = {"taskId": ident, "events": events, "eventsTruncated": False}
+    if (store / "event-goal-status").exists():
+        payload["goal"] = {"status": (store / "event-goal-status").read_text()}
+    print(json.dumps(payload))
 elif cmd == "goal":
     ident = args[args.index("get") + 1]
     task = next(t for t in tasks if t["taskId"] == ident)
@@ -733,22 +736,16 @@ def test_provider_readiness_wins_over_old_inflight_failure_observation(tmp_path:
         if proc.poll() is None: proc.terminate();proc.wait(timeout=5)
 
 
-def test_confirmed_connection_failures_do_not_switch_providers(tmp_path: Path) -> None:
+def test_gateway_failure_cannot_be_rejected_before_watchdog_observes_it(tmp_path: Path) -> None:
     config = setup(tmp_path)
-    document = json.loads(config.read_text());document['max_recovery_attempts'] = 2
-    primary = document['bindings']['agent_cm']
-    primary['fallbacks'] = [{**primary, 'provider': 'backup', 'codex_home': str(tmp_path / 'backup-account'),
-        'store': str(tmp_path / 'backup-store'), 'verified': True}]
-    config.write_text(json.dumps(document))
+    document = json.loads(config.read_text())
     call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
-    store = Path(primary['store'])
-    (store / 'provider-error').write_text('provider connection refused')
-    for ident in ('task-one', 'task-two'):
-        assert call(config, 'dispatch', '--task', str(contract(tmp_path, ident)))['code'] == 0
-        assert call(config, 'accept', ident, '--decision', 'rejected', '--reason', 'provider connection failed')['code'] == 0
-    assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'task-three')))['code'] == 0
-    deliveries = call(config, 'supervisor', 'status')['deliveries']
-    assert [d['binding_store'] for d in deliveries] == [primary['store']] * 3
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    rejected = call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'first fault')
+    assert 'recovery' in rejected['error']
+    assert call(config, 'supervisor', 'status')['deliveries'][0]['acceptance'] is None
 
 
 def test_major_decision_result_can_update_same_record_and_shows_control_scope(tmp_path: Path) -> None:
@@ -786,7 +783,7 @@ def test_background_root_gateway_stops_after_three_recovery_attempts(tmp_path: P
         call(config, 'supervisor', 'tick')
         time.sleep(0.03)
     status = call(config, 'supervisor', 'status')
-    assert status['mode'] == 'active'
+    assert status['mode'] == 'attention'
     assert len(status['deliveries']) == 1
     assert status['recoveries'][0]['phase'] == 'stopped'
     assert status['recoveries'][0]['gateway_attempts'] == 3
@@ -917,7 +914,7 @@ def test_user_paused_native_goal_is_not_resumed(tmp_path: Path) -> None:
     (store / 'provider-error').write_text('HTTP 502 Bad Gateway')
     call(config, 'dispatch', '--task', str(contract(tmp_path)))
     call(config, 'supervisor', 'tick')
-    (store / 'goal-status').write_text('paused');time.sleep(0.03)
+    (store / 'event-goal-status').write_text('paused');time.sleep(0.03)
     call(config, 'supervisor', 'tick')
     recovery = call(config, 'supervisor', 'status')['recoveries'][0]
     assert recovery['phase'] == 'stopped' and 'Goal' in recovery['reason']
@@ -941,3 +938,52 @@ def test_no_provider_session_continues_from_contract_without_claiming_resume(tmp
     tasks = json.loads((store / 'fake.json').read_text())
     assert len(tasks) == 2 and 'resumedFrom' not in tasks[1]
     assert call(config, 'supervisor', 'status')['deliveries'][0]['task_id'] == 'task-one'
+
+
+def test_recovery_rechecks_gpu_capacity_before_resuming(tmp_path: Path) -> None:
+    import time
+    import yaml
+    config = setup(tmp_path)
+    document = json.loads(config.read_text());document.update(recovery_backoff_seconds=0.01)
+    document['campaign']['max_dispatches'] = 10
+    roles = yaml.safe_load(Path(document['roles_file']).read_text())
+    next(role for role in roles['roles'] if role['agent_key'] == 'agent_cm')['resources']['gpu'] = 1
+    role_file = tmp_path / 'test-roles.yaml';role_file.write_text(yaml.safe_dump(roles))
+    document['roles_file'] = str(role_file);config.write_text(json.dumps(document))
+    plan(config, [{'action': 'idle', 'reason': 'resource wait'}] * 10)
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    cm_store = Path(document['bindings']['agent_cm']['store'])
+    (cm_store / 'provider-error').write_text('HTTP 502 Bad Gateway')
+    first = contract(tmp_path);task = json.loads(first.read_text());task['gpu'] = 1;first.write_text(json.dumps(task))
+    assert call(config, 'dispatch', '--task', str(first))['code'] == 0
+    call(config, 'supervisor', 'tick')
+    second = contract(tmp_path, 'occupied-gpu', 'agent_rl')
+    task = json.loads(second.read_text());task['gpu'] = 1;second.write_text(json.dumps(task))
+    assert call(config, 'dispatch', '--task', str(second))['code'] == 0
+    rl_store = Path(document['bindings']['agent_rl']['store']) / 'fake.json'
+    tasks = json.loads(rl_store.read_text());tasks[0]['status'] = 'running';rl_store.write_text(json.dumps(tasks))
+    (cm_store / 'provider-error').unlink();time.sleep(0.03)
+    call(config, 'supervisor', 'tick')
+    recovery = next(r for r in call(config, 'supervisor', 'status')['recoveries'] if r['task_id'] == 'task-one')
+    assert recovery['attempt'] == 0 and 'GPU capacity' in recovery['reason']
+    assert len(json.loads((cm_store / 'fake.json').read_text())) == 1
+    tasks[0]['status'] = 'succeeded';rl_store.write_text(json.dumps(tasks))
+    call(config, 'supervisor', 'tick')
+    assert len(json.loads((cm_store / 'fake.json').read_text())) == 2
+
+
+def test_new_goal_can_adjudicate_old_capacity_failure_and_reuse_role(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    store = Path(document['bindings']['agent_cm']['store'])
+    (store / 'provider-error').write_text('Selected model is at capacity. Please try a different model.')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'instruct', '--request-id', 'new-target', '--text', 'Replace the old objective', '--new-goal')
+    call(config, 'supervisor', 'tick')
+    assert call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'superseded objective')['code'] == 0
+    (store / 'provider-error').unlink()
+    assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'new-target-task')))['code'] == 0
+    status = call(config, 'supervisor', 'status')
+    assert status['recoveries'][0]['phase'] == 'stopped'
+    assert status['deliveries'][-1]['goal_version'] == 1

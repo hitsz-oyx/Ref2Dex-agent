@@ -75,3 +75,32 @@ Spec 轴：4 项原发现已修复。最终执行绑定也检查工程/研究能
 现有 campaign 尚未切换。真实两 provider 工程链路已验证，其他账号/provider、
 长期科研验收和旧新 owner 切换仍须按 [README.md](README.md) 操作。
 依赖的 6 项 npm audit 公告尚未修复，限制见同一入口的依赖审计说明。
+
+## 容量与网关恢复：2026-09-30 后续实施
+
+用户确认的局部恢复设计已实施，规则以 [README.md](README.md) 为准。
+Selected model is at capacity 在失败结束后等待 60 秒，仍沿用原任务/provider；
+网关初始失败后最多 3 次恢复尝试，不切 provider。root 耗尽后 attention，worker
+耗尽只停止该任务恢复；现有其他实验可收尾。明确预算不清零。
+
+graspenv、CUDA 关闭：公开入口 43 项与治理 16 项由 tools/verify.py --changed 通过；
+旧 broker/poller/supervisor 与索引回归 79 passed。4 个受影响运行模块 mypy 通过。
+测试包含实际等待一分钟、暂停、原任务执行链、响应丢失核对、无会话时的契约续接、
+原生 Goal 查询期间暂停、GPU 等待后重新准入、首次故障禁止提前驳回，以及新目标
+释放旧失败角色。全仓 pytest 仍为上述 10 个既有 Cm 收集错误。
+
+真实 Orchestrator 0.1.0 加模拟 Codex 进程验证通过，模型调用 0：通过公开 events
+读取 thread.started 元数据，resume 使用同一 provider thread 并产生新执行 ID。
+普通 read 不包含 provider ID；实现不读取后端私有状态文件，也不发送 slash 命令。
+本轮没有调用真实账号或切换现有科研绑定。
+
+### Standards
+
+最终只读复核通过。关闭 root 耗尽后误报 active 和原生 Goal 使用旧快照的问题。
+未提交修改无法可靠确认归属，保留原内容并停止自动续接，现已明确列为保护限制，
+不宣称可以自动恢复任意脏工作树。
+
+### Spec
+
+最终只读复核通过。关闭恢复绕过 GPU 准入、首次故障提前驳回和旧目标失败永久
+占用角色的问题；新派发与恢复共用并发资源检查。没有未关闭审查发现。
