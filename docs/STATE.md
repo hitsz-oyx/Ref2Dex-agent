@@ -175,7 +175,7 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 | `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
 | `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
-| `HF08` physical-value | `C3` | `ACTIVE`（科学预训练） | 1/1，r7 执行中 | `agent/cm-physical-value` |
+| `HF08` physical-value | `C3` | `ACTIVE`（真实PPO训练） | 1/1，r7 执行中 | `agent/cm-physical-value` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -257,8 +257,8 @@ delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准�
 
 12项合同/数据/模型检查通过；三臂单epoch PPO及保存策略加载评价通过。补充跨回合工程检查覆盖三motion、重复reset和混合起始帧。r6第一次非空reset因list/Tensor接口失败，已修正并保留75.409s成本；r5仅初始motion0的加载证据不作三motion覆盖证据。
 
-当前科学run为r7，session22846，GPU1，固定总阶段预算6h/20GiB，继承r6失败成本。公共采集完成1041599转移、1920完整episode，hash/连续性/完整return检查通过，无剔除行。fit831811行/1536episode、开发holdout209788行/384episode；三motion转移近均衡、四档额外动作噪声均覆盖。采集池稳定标签稀少（15episode），只作带噪声数据池描述，不能代替actor-only指标或提前否定路线。
+当前科学run为r7，session93879，GPU1/2，固定总阶段预算6h/20GiB，继承r6失败成本。公共采集完成1041599转移、1920完整episode，hash/连续性/完整return检查通过，无剔除行。fit831811行/1536episode、开发holdout209788行/384episode；三motion转移近均衡、四档额外动作噪声均覆盖。采集池稳定标签稀少（15episode），只作带噪声数据池描述，不能代替actor-only指标或提前否定路线。
 
-正在固定100k/500k/最大档模型、V/Q预训练，实际fit档为100206/500169/831811行；后续执行六臂PPO及配对评价矩阵，不按小档loss缩减或调整设计。分量与完整return审计工具只作开发诊断，不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
+固定100k/500k/最大档模型、V/Q预训练已全部完成，实际fit档为100206/500169/831811行，native约25.6min。因96环境评价实测97.8s，采用两GPU配对面板并行保持48点评价；已核对并终止旧launcher，fit产物未中断，调度交接及保守墙钟成本记录在launcher_handoff.json。六臂PPO按两个training-seed并行，seed内三臂同GPU，训练预算160追加epoch和327680交互不变；当前plain_off两臂接近e420。分量与完整return审计工具只作开发诊断，不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
 
 详细证据见 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)；原生状态见当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/run_manifest.json。

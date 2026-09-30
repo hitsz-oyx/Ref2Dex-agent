@@ -36,3 +36,5 @@ r7 mixed-data预训练工程smoke已在空闲GPU2完成（2更新/模型，非�
 公共采集全部完成：1041599转移、1920完整episode；逐shard hash、episode连续性、完整return及fit/holdout隔离审计见r7/full_collection_audit.json。两批合计15个稳定标签、147个历史五步标签、12个成功后掉落标签，仅作带噪声采集池描述。第二批父phase1060.912s，两批加r6失败科学耗时累计2081.544s，未超过采集90min上限。正式fit已启动，固定三档各1000更新，不依小档loss改策略矩阵。新增独立模型分量/完整return审计工具audit_cm_physical_value_models.py（a562a14），只作开发集诊断，已通过三轨迹工程smoke，不参与模型挑选或改变主gate。
 
 96环境actor-only工程吞吐为97.789s，串行48点预计超过评价60min墙钟预算。按已授权两GPU并行，不改矩阵与判定；配对三臂在同GPU，GPU映射跨training-seed互换。launcher已SIGSTOP暂停后续派发，native fit继续完整运行，PID和命令核对在r7/launcher_handoff.json，处置见D-20260930-hf08-evaluation-throughput.md。阶段wall与GPU计算成本分别报告，不增加Probe slot。
+
+正式预训练已COMPLETED，native1534.601s；三档实际fit100206/500169/831811。完整fit原生manifest及各checkpoint hash复核通过；旧launcher仅在native已退出且模型完整后SIGTERM结束（session22846 exit143是主动调度交接，不是模型失败）。fit父阶段保守上界2764.470s含root交接等待，科学阶段已记累计4846.014s，不遗漏该等待成本。新paired两GPU训练调度c9c49f0/session93879，seed286三臂GPU1、seed287三臂GPU2；全48点评价另用并行调度，新增4项固定gate/配对/缺失点检查通过。原研究变量、160追加epoch、每臂每seed327680交互及gate不变；墙钟与设备分配时长单独报告。
