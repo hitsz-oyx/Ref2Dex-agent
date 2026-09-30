@@ -45,7 +45,7 @@ hypotheses:
     branch: agent/cm-physical-value
     probe_budget: 1
     probes_used: 1
-    transition: "User approved full design and execution. r6 RUNNING on GPU1; fixed plain PPO/direct Q/Cm-value Probe; positive prioritizes Validation, no local sweep."
+    transition: "User approved full design and execution. r7 RUNNING on GPU1 (r6 reset failure cost retained); fixed plain PPO/direct Q/Cm-value Probe; positive prioritizes Validation, no local sweep."
 
   HF07:
     claim: C3
