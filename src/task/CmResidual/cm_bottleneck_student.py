@@ -1,6 +1,7 @@
 """Matched observation-driven students with a four-dimensional inference input."""
 from __future__ import annotations
 
+import math
 import torch
 from torch import nn
 
@@ -25,11 +26,14 @@ class PhysicalFeatures(nn.Module):
         self.net = nn.Sequential(nn.Linear(checkpoint["mean"].numel(), 128), nn.ReLU(),
                                  nn.Linear(128, 128), nn.ReLU(), nn.Linear(128, 6))
         if arm == "random":
-            with torch.random.fork_rng(devices=[]):
-                torch.manual_seed(9278)
-                for layer in self.net:
-                    if isinstance(layer, nn.Linear):
-                        layer.reset_parameters()
+            # manual_seed also resets CUDA; a CPU-only fork_rng cannot restore
+            # simulator start-frame sampling. Use a private CPU generator.
+            generator = torch.Generator().manual_seed(9278)
+            for layer in self.net:
+                if isinstance(layer, nn.Linear):
+                    nn.init.kaiming_uniform_(layer.weight, a=math.sqrt(5), generator=generator)
+                    bound = 1 / math.sqrt(layer.in_features)
+                    nn.init.uniform_(layer.bias, -bound, bound, generator=generator)
         else:
             self.net.load_state_dict(checkpoint["state_dict"], strict=True)
         for name in ("mean", "std", "delta_mean", "delta_std"):
