@@ -48,6 +48,10 @@ class PhysicalPlayer(original.EvalPlayer):
         assignment_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed + 1)
         num = task.num_envs
         obs = self.env_reset([])
+        if self.get_batch_size(obs["obs"], 1) != num:
+            raise ValueError("player batch size differs from simulator")
+        if self.is_rnn:
+            self.init_rnn()
         ids = torch.arange(num, device=self.device)
         tracker.reset(ids, task._target_states[:, 2])
         start_frame = task.start_times.clone()
