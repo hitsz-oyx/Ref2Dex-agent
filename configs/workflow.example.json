@@ -1,0 +1,74 @@
+{
+  "command": [
+    "/absolute/node24",
+    "/absolute/repo/tools/workflow_runtime/node_modules/@backnotprop/orchestrator-cli/dist/cli.js"
+  ],
+  "state_dir": "/absolute/repo/.runtime/new-campaign",
+  "roles_file": "/absolute/repo/docs/AGENT_ROLES.yaml",
+  "campaign": {
+    "max_gpu": 1,
+    "allowed_workspace_roots": [
+      "/absolute/worktrees"
+    ]
+  },
+  "max_recovery_attempts": 3,
+  "recovery_backoff_seconds": 2,
+  "poll_seconds": 5,
+  "bindings": {
+    "root": {
+      "provider": "explicit-account-root",
+      "runtime": "codex",
+      "codex_home": "/absolute/accounts/root",
+      "workspace": "/absolute/worktrees/root",
+      "store": "/absolute/repo/.runtime/stores/root",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": []
+    },
+    "agent_cm": {
+      "provider": "explicit-account-agent_cm",
+      "runtime": "codex",
+      "codex_home": "/absolute/accounts/agent_cm",
+      "workspace": "/absolute/worktrees/agent_cm",
+      "store": "/absolute/repo/.runtime/stores/agent_cm",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": []
+    },
+    "agent_rl": {
+      "provider": "explicit-account-agent_rl",
+      "runtime": "codex",
+      "codex_home": "/absolute/accounts/agent_rl",
+      "workspace": "/absolute/worktrees/agent_rl",
+      "store": "/absolute/repo/.runtime/stores/agent_rl",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": []
+    },
+    "agent_eval": {
+      "provider": "explicit-account-agent_eval",
+      "runtime": "codex",
+      "codex_home": "/absolute/accounts/agent_eval",
+      "workspace": "/absolute/worktrees/agent_eval",
+      "store": "/absolute/repo/.runtime/stores/agent_eval",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": []
+    },
+    "agent_infra": {
+      "provider": "explicit-account-agent_infra",
+      "runtime": "codex",
+      "codex_home": "/absolute/accounts/agent_infra",
+      "workspace": "/absolute/worktrees/agent_infra",
+      "store": "/absolute/repo/.runtime/stores/agent_infra",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": []
+    }
+  }
+}

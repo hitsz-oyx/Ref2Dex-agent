@@ -1,6 +1,6 @@
 schema: ref2dex.agent_roles.v1
 version: 1
-purpose: Stable worker identities and research permissions. Runtime bindings are local.
+purpose: Stable worker identities and research permissions. Only explicitly enrolled research sessions use these roles. Runtime bindings are local.
 dispatch_owner: root
 dynamic_creation: forbidden
 nested_delegation: forbidden

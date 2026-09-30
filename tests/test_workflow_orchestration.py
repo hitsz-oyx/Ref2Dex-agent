@@ -232,7 +232,8 @@ def test_watchdog_budget_and_terminal_states_are_not_resumed() -> None:
     )[0] == "ROOT_PAUSED"
 
 
-def test_researchctl_pause_and_resume_only_change_local_lease(tmp_path: Path) -> None:
+def test_researchctl_pause_and_resume_only_change_local_lease(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
     lease = tmp_path / "SUPERVISOR_LEASE.json"
     assert researchctl_main(["supervisor", "resume", "--lease", str(lease)]) == 0
     resumed = json.loads(lease.read_text(encoding="utf-8"))

@@ -1,0 +1,11 @@
+{
+  "name": "ref2dex-workflow-runtime",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@backnotprop/orchestrator-cli": "0.1.0"
+  }
+}
