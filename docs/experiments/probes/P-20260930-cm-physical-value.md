@@ -24,3 +24,5 @@ r5 位于 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physi
 早期工程失败r1–r4及smoke_train_r1均保留原日志；分别修复参数缩写、player batch初始化、CUDA设备编号、obs包装及import路径，不用于科学判定。outputs是指向baseline的共享软链；新正式产物使用当前工作树research/output，launcher拒绝越界路径。r1仅生成少量启动日志/配置，失败于模拟器启动前，证据不删除。
 
 三组保存e261的 actor-only 首回合评价已全部完成（每臂6episode，start_frame全部0），工程闭环通过。科学执行登记run_id r6，代码4e389cc，物理GPU1，最大六小时阶段累计预算；launcher stage all依次执行采集、模型预训练、六臂训练和固定评价矩阵。运行记录位于当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r6/run_manifest.json。启动状态RUNNING/采集，尚无科学判定。
+
+r6 在第一次非空 reset 因环境编号为list而失败，耗时75.409s，无完整科学数据池或策略结果。只保留FAILED/工程证据；修正为Tensor IDs，并对player起始执行显式全量reset。补充审计发现r5初始未reset导致全部motion_id=0，因此r5评价只证明checkpoint加载，不能证明三轨迹覆盖。r7扩大smoke到4000目标转移、覆盖重复reset，并加入首回合motion均衡硬检查；继承r6的75.409s科学耗时和分阶段成本，slot仍为HF08 1/1，seed不变。当前状态r7工程检查RUNNING，科学矩阵等待此检查通过后启动。修正代码35ee1b8。
