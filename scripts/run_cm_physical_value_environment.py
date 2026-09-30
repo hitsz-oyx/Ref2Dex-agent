@@ -42,7 +42,7 @@ class PhysicalPlayer(original.EvalPlayer):
         tracker = HoldTracker(task.num_envs, self.device)
         asset = ROOT / "third_party/DExplore/dexplore/data/assets"
         bridge = DExploreCmv2GeometryBridge(hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
-                                           object_urdf=asset / "mjcf/airplane.urdf", device=self.device)
+                                           object_urdf=asset / "mjcf/airplane.urdf", device=task._dof_pos.device)
         approach = ApproachConfig()
         noise_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed)
         assignment_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed + 1)
