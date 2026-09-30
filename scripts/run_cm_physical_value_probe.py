@@ -101,7 +101,8 @@ def main():
             remaining = min(remaining, limits[category] - used)
         if remaining <= 0:
             raise TimeoutError("whole Probe budget exhausted")
-        if sum(f.stat().st_size for f in out.rglob("*") if f.is_file()) > manifest["storage_limit_bytes"]:
+        artifact_roots = [out] + [Path(attempt["path"]) for attempt in manifest.get("prior_attempts", [])]
+        if sum(f.stat().st_size for root in artifact_roots for f in root.rglob("*") if f.is_file()) > manifest["storage_limit_bytes"]:
             raise RuntimeError("storage limit")
         phase = dict(name=name, command=cmd, git_commit=commit, run_status="STARTED", scientific=scientific)
         manifest["phases"].append(phase)
