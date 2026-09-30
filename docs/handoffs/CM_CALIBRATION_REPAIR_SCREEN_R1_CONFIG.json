@@ -1,0 +1,52 @@
+{
+  "schema": "ref2dex.cm_calibration_repair_screen_config.v1",
+  "experiment_id": "P-20260928-cm-calibration-repair-screen-r1",
+  "inputs": {
+    "fit_records": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r7-axis/fit/records.pt",
+    "fit_sha256": "aa60b82b35d95ea6278e8cf0c386d00b5fcf6ed5fc3ec31bc7a858c0f31dbf93",
+    "holdout_records": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20260928-six-expert-support-collection-r7-axis-holdout/holdout/records.pt",
+    "holdout_sha256": "b49e30045ba2370546cc0c6ea8949660fbcdc7984a584fe4d67113f59ddeef80",
+    "router_model_sha256": "1fa84c94891d63824be0100b5eb78f4aa1e37825c6d71fff65e517c0c7f2fc14"
+  },
+  "resources": {
+    "device": "cpu",
+    "threads": 2,
+    "max_minutes": 15,
+    "gpu": 0,
+    "isaac_gym": false,
+    "collector": false,
+    "new_transitions": false,
+    "student_distillation": false,
+    "ppo": false,
+    "online": false,
+    "cm_training": false
+  },
+  "model_inputs": ["pre_action_observation", "candidate_action", "candidate_id_one_hot"],
+  "forbidden_inputs": ["next_state", "future_contact", "final_held_lift", "terminal_success", "teacher_label"],
+  "frozen_methods": {
+    "crossfit_conformal_style": {
+      "folds": 5,
+      "fold_assignment": "row_index_mod_5 on fit only",
+      "model": "centered ridge",
+      "ridge_lambda": 1.0,
+      "residual_inflation": "absolute residual q0.90 for contact and each delta coordinate",
+      "contact_lcb_threshold": 0.6,
+      "formal_distribution_free_certification": false
+    },
+    "conservative_zero_contact_range_delta": {
+      "contact_lcb": 0.0,
+      "delta_center": [0.0, 0.0, 0.0],
+      "delta_radius": "fit max absolute target per coordinate",
+      "contact_lcb_threshold": 0.6
+    }
+  },
+  "gates": {
+    "holdout_contact_q10_coverage_min": 0.9,
+    "holdout_delta_coordinate_coverage_min": 0.8,
+    "holdout_fallback_rate_max": 0.5,
+    "threshold_stability_agreement_min": 0.9,
+    "thresholds": [0.55, 0.6, 0.65],
+    "stability_reference": 0.6
+  },
+  "repro_command": "OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 python3 docs/handoffs/CM_CALIBRATION_REPAIR_SCREEN_R1.py --output /tmp/CM_CALIBRATION_REPAIR_SCREEN_R1.json"
+}
