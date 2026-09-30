@@ -34,7 +34,7 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--gpu", type=int, default=1)
     p.add_argument("--smoke-run-id", default="r1")
-    p.add_argument("--stage", choices=("smoke", "smoke_train", "collect", "fit", "train", "evaluate", "all"), required=True)
+    p.add_argument("--stage", choices=("smoke", "smoke_train", "smoke_saved", "collect", "fit", "train", "evaluate", "all"), required=True)
     a = p.parse_args()
     out = a.output.resolve()
     if ROOT not in out.parents:
@@ -85,6 +85,12 @@ def main():
         if any(x["name"] == name for x in manifest["phases"]):
             raise ValueError("phase already attempted; retain evidence and explicitly choose a new run")
         remaining = min(wall, manifest["wall_limit_seconds"] - manifest["scientific_elapsed_seconds"])
+        if scientific:
+            category = name.split("_")[0]
+            limits = dict(collect=5400, fit=7200, train=5400, eval=3600)
+            used = sum(x.get("elapsed_seconds", 0) for x in manifest["phases"]
+                       if x["scientific"] and x["name"].split("_")[0] == category)
+            remaining = min(remaining, limits[category] - used)
         if remaining <= 0:
             raise TimeoutError("whole Probe budget exhausted")
         if sum(f.stat().st_size for f in out.rglob("*") if f.is_file()) > manifest["storage_limit_bytes"]:
@@ -149,12 +155,30 @@ def main():
                "--num_envs", str(envs), "--seed", str(seed), "--sim_device", "cuda:0",
                "--rl_device", "cuda:0", "--graphics_device_id", "0", "--output_path", str(directory)]
         run(name, cmd, 900 if name.startswith("smoke") else 1800, scientific=not name.startswith("smoke"))
-        return directory / "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn"
+        nn_dir = directory / "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn"
+        # Inspect native saved metadata before admitting a training arm.
+        audit_cmd = [PYTHON, "-c", "import json,sys,torch; p=torch.load(sys.argv[1],map_location='cpu',weights_only=False); print(json.dumps({'epoch':p['epoch'],'physical_value':{k:v for k,v in p['physical_value'].items() if k in ('arm','initial_model_sha256','behavior_integrity_verified','actor_supervision_gradient_verified')}}))", str(nn_dir / "GRAB.pth")]
+        audit = json.loads(subprocess.check_output(audit_cmd, text=True, env=env))
+        pv = audit["physical_value"]
+        if audit["epoch"] != end_epoch or pv["arm"] != arm:
+            raise ValueError("saved training epoch/arm mismatch")
+        if arm != "plain_off" and not (pv["behavior_integrity_verified"] and pv["actor_supervision_gradient_verified"]):
+            raise ValueError("teacher behavior/gradient integrity missing")
+        initial = manifest.setdefault("initial_actor_sha256", pv["initial_model_sha256"])
+        if initial != pv["initial_model_sha256"]:
+            raise ValueError("arms did not start from identical actor")
+        (directory / "checkpoint_audit.json").write_text(json.dumps(audit, indent=2) + "\n")
+        save()
+        return nn_dir
 
     if a.stage == "smoke_train":
         model = out / "smoke_models/tier_128.pt"
         for arm in ("plain_off", "direct_q", "cm_value"):
             train("smoke_train_" + arm + "_" + a.smoke_run_id, arm, 85, model, 261, 8)
+    if a.stage == "smoke_saved":
+        for arm in ("plain_off", "direct_q", "cm_value"):
+            nn_dir = out / ("smoke_train_" + arm + "_" + a.smoke_run_id) / "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn"
+            environment("smoke_saved_" + arm + "_" + a.smoke_run_id, "evaluate", 84, 0, 6, nn_dir / "GRAB.pth", wall=600)
     if a.stage in ("train", "all"):
         model_report = json.loads((out / "models/results.json").read_text())
         if model_report["run_status"] != "COMPLETED" or model_report["smoke"]:

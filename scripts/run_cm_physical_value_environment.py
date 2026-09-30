@@ -60,6 +60,8 @@ class PhysicalPlayer(original.EvalPlayer):
         episode = ids.clone() + ARGS.seed_namespace * 10000000
         next_episode = int(episode.max()) + 1
         step = torch.zeros(num, dtype=torch.long, device=self.device)
+        lift_sum = torch.zeros(num, device=self.device)
+        contact_sum = torch.zeros(num, device=self.device)
         noise = torch.tensor((0., .05, .10, .20), device=self.device)[torch.randint(4, (num,), generator=assignment_rng, device=self.device)]
         finished = torch.zeros(num, dtype=torch.bool, device=self.device)
         ending = False
@@ -106,6 +108,8 @@ class PhysicalPlayer(original.EvalPlayer):
                 episode[reset_ids] = torch.arange(next_episode, next_episode + len(reset_ids), device=self.device)
                 next_episode += len(reset_ids)
                 step[reset_ids] = 0
+                lift_sum[reset_ids] = 0
+                contact_sum[reset_ids] = 0
                 previous_action[reset_ids] = 0
                 noise[reset_ids] = torch.tensor((0., .05, .10, .20), device=self.device)[torch.randint(4, (len(reset_ids),), generator=assignment_rng, device=self.device)]
             before = snapshot(task, tracker)
@@ -127,6 +131,8 @@ class PhysicalPlayer(original.EvalPlayer):
                 stable, _ = tracker.step(task._target_states[:, 2], contacts(task).bool().all(-1))
                 reward = base_reward.to(self.device).reshape(-1) + stable
             after = snapshot(task, tracker)
+            lift_sum += (task._target_states[:, 2] - tracker.initial_height).clamp_min(0)
+            contact_sum += contacts(task).bool().all(-1).float()
             next_ctx = context(task, tracker)
             if ARGS.mode == "collect":
                 values = dict(state=before, next_state=after, context=ctx, next_context=next_ctx,
@@ -151,6 +157,9 @@ class PhysicalPlayer(original.EvalPlayer):
                     steps=int(step[env_id]), stable_success=bool(tracker.stable[env_id]),
                     drop_after_success=bool(tracker.drop_after_success[env_id]),
                     max_hold_seconds=float(tracker.max_run[env_id]),
+                    mean_lift_meters=float(lift_sum[env_id] / step[env_id]),
+                    contact_fraction=float(contact_sum[env_id] / step[env_id]),
+                    legacy_five_step_success=bool(tracker.max_run[env_id] >= 5 * task.dt - 1e-6),
                     initial_object_height=float(tracker.initial_height[env_id]),
                     control_dt=float(task.dt), terminate=bool(terminate[env_id])))
             if ARGS.mode == "evaluate":
@@ -174,6 +183,7 @@ class PhysicalPlayer(original.EvalPlayer):
                       complete_episodes=len(completed_episodes), shards=shard_paths,
                       per_episode=completed_episodes,
                       stable_success_count=sum(row["stable_success"] for row in completed_episodes),
+                      legacy_five_step_success_count=sum(row["legacy_five_step_success"] for row in completed_episodes),
                       drop_after_success_count=sum(row["drop_after_success"] for row in completed_episodes),
                       elapsed_seconds=time.monotonic() - started)
         (ARGS.run_dir / "results.json").write_text(json.dumps(result, indent=2) + "\n")

@@ -1,0 +1,24 @@
+# P-20260930-cm-physical-value
+
+Family: HF08；probe_index_in_family: 1/1；类型：Decision Probe。
+状态：工程 preflight；conclusion：未形成；分支 agent/cm-physical-value。
+
+用户已批准 [固定设计](../../superpowers/specs/2026-09-30-cm-physical-value-design.md)，并授权本轮暂时跳过代理工作流，root 直接推进研究。期限 2026-10-03 23:59 Asia/Shanghai。具体代码提交、命令、输入 hash 与阶段状态由原生 run_manifest 保存；工程 smoke 不消费科学 Probe slot。
+
+本实验区分：完整真实交互数据上的短期动作条件物理模型与长期价值结合，能否改善训练所得 actor，超过普通 PPO 及同形式的直接 Q 候选监督。正向后优先正式 Validation；完整有效负向则停止该实现；合同失败或预算未完成为 UNCLEAR。最便宜的有效检验是固定公共预训练池及单一三臂矩阵，不对数据规模分别做 RL sweep。
+
+固定 source 为自训练 source_e260，SHA256 16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f。三 motion 为 canonical airplane s3/s7/s9，参考文件 hash 在 hf02_temporal_canonical_route.json，全部臂使用同一 actor/critic/normalization/optimizer 初态，使用相同任务 reward。无六专家路由。候选监督保留 PPO 原执行动作及 logprob；独立评估只运行 actor。
+
+公共采集 seeds283/284，每次目标500000转移、64环境，达到目标后完成活跃 episode。保存逐步实际 action、pre/post物理状态、真实 reward 分量、终止原因、reset前后继及参考上下文。完整 episode 20%开发 holdout、80%fit；规模100k/500k/1M是公共池目标，最大档实际fit约800k，全部报告实际行数，不将holdout计入拟合。每档固定1000更新/模型、三动力学成员、V与Q；最大档增加同容量动作无关诊断。最大档开发loss选模型，不按策略评价挑模型。
+
+三训练臂 plain_off/direct_q/cm_value，seeds286/287，均追加160epoch（e260→e420）、64环境、horizon32，每臂每seed327680新交互。在追加0/40/80/160epoch固定 actor-only 评价；seeds288/289，每次96完整首回合，三motion各32，全部从帧0开始。主判定仅终点，每臂384episode；曲线面积为辅指标。
+
+PROMISING：cm_value对两对照均≥+5pp持续抬升成功率，各训练seed对两对照均非负；全episode中成功后掉落比例对任一对照不恶化超过5pp。稳定成功为高度≥初始+3cm且满足固定接触代理，连续45控制步（1.5s）。另报历史五步、最长保持、平均抬升、接触及条件掉落率。Probe标签不构成正式科学结论。
+
+硬上限：同时最多2GPU，总阶段累计≤6h，新增产物≤20GiB；采集≤90min，模型预训练≤120min，六臂训练≤90min，矩阵评估≤60min。使用空闲GPU，不触碰未知进程。预算不足不得换seed、缩短矩阵或改门槛拼成负向结论。
+
+## 工程证据
+
+r5 位于 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r5。12项合同/模型/数据检查通过。smoke采集3252条完整转移、6episode；source actor-only评价完成6episode；128行档2更新仅用于接线。三臂单epoch训练均完成，保存e261；共同初始 actor hash d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9。direct_q/cm_value保存的行为/RNG完整性及actor监督梯度检查均通过。科学百万转移采集尚未启动。
+
+早期工程失败r1–r4及smoke_train_r1均保留原日志；分别修复参数缩写、player batch初始化、CUDA设备编号、obs包装及import路径，不用于科学判定。outputs是指向baseline的共享软链；新正式产物使用当前工作树research/output，launcher拒绝越界路径。r1仅生成少量启动日志/配置，失败于模拟器启动前，证据不删除。

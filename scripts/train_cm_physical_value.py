@@ -6,6 +6,8 @@ import copy
 import json
 import sys
 import time
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -13,6 +15,8 @@ import torch
 from src.task.CmResidual.physical_value_contract import advance_events
 from src.task.CmResidual.physical_value_data import Episodes, sha
 from src.task.CmResidual.physical_value_models import Features, OutcomeNetwork, dynamics_output, dynamics_loss
+MANIFEST_PATH = None
+MANIFEST = None
 
 
 def roll_loss(model, features, dataset, indices, device, reward_scale, blind=False):
@@ -71,6 +75,7 @@ def diagnostics(models, value, features, dataset, hold, device, reward_scale, bl
 
 
 def main():
+    global MANIFEST_PATH, MANIFEST
     p = argparse.ArgumentParser()
     p.add_argument("--collections", nargs="+", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -82,6 +87,12 @@ def main():
     if a.output.exists():
         raise FileExistsError(a.output)
     a.output.mkdir(parents=True)
+    MANIFEST_PATH = a.output / "run_manifest.json"
+    MANIFEST = dict(run_status="STARTED", command=sys.argv,
+                    git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+                    collection_results_sha256={str(p / "results.json"): sha(p / "results.json") for p in a.collections},
+                    created_at=datetime.now(timezone.utc).isoformat(), wall_seconds=a.wall_seconds)
+    MANIFEST_PATH.write_text(json.dumps(MANIFEST, indent=2) + "\n")
     started = time.monotonic()
     torch.set_num_threads(2)
     dataset = Episodes(a.collections)
@@ -183,4 +194,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        MANIFEST["run_status"] = "COMPLETED"
+    except BaseException as error:
+        if MANIFEST is not None:
+            MANIFEST.update(run_status="FAILED", failure=f"{type(error).__name__}: {error}")
+        raise
+    finally:
+        if MANIFEST_PATH is not None:
+            MANIFEST["completed_at"] = datetime.now(timezone.utc).isoformat()
+            MANIFEST_PATH.write_text(json.dumps(MANIFEST, indent=2) + "\n")

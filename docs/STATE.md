@@ -198,7 +198,7 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 公式、时长、数据预算和算法仍待设计与 preflight，以上仅为已确定研究边界。
 
 具体设计现已写入 [airplane physical-value spec](superpowers/specs/2026-09-30-cm-physical-value-design.md)，
-状态为待用户审阅，尚未运行。它拟用100万条完整过程转移、三臂真实 PPO 与
+设计已获用户批准，正在实施。它拟用100万条完整过程转移、三臂真实 PPO 与
 候选评分的旁路策略监督，以及1.5秒连续保持主指标；成本为两GPU、六小时内，
 均是拟定合同而非新证据。只读核查补充确认 source_e260 本身已经有 approach=2、
 held-lift=10、progress=5 shaping，不能将源策略表述为只训练模仿reward。
@@ -247,3 +247,5 @@ scratch contract 并完成 CPU calibration，但 holdout contact q10 下界覆�
 delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准结论为 `UNPROMISING`。
 因此该历史 calibration slot 停止：不从此 artifact 生成可用于蒸馏的正式 Cm-on 标签，
 不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
+
+HF08 工程 preflight 已通过：12项合同/模型/数据检查；真实环境完整采集与评价 smoke；三臂 source e260→e261 的 PPO 更新和保存。三臂初始 actor hash 相同，direct_q 与 cm_value 的行为动作/RNG 完整性及有效 actor 监督梯度标志均为真。以上仅为工程证据；正在检查训练所得 checkpoint 的 actor-only 评价，然后启动公共百万转移采集，尚无 HF08 策略收益结论。当前实施及结果以 [HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md) 为准。
