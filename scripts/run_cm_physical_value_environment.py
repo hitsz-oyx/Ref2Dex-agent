@@ -41,8 +41,9 @@ class PhysicalPlayer(original.EvalPlayer):
             raise ValueError("control interval drift")
         tracker = HoldTracker(task.num_envs, self.device)
         asset = ROOT / "third_party/DExplore/dexplore/data/assets"
-        bridge = DExploreCmv2GeometryBridge(hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
-                                           object_urdf=asset / "mjcf/airplane.urdf", device=task._dof_pos.device)
+        bridge = (DExploreCmv2GeometryBridge(hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
+                                            object_urdf=asset / "mjcf/airplane.urdf", device=task._dof_pos.device)
+                  if ARGS.mode == "collect" else None)
         approach = ApproachConfig()
         noise_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed)
         assignment_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed + 1)
@@ -115,12 +116,16 @@ class PhysicalPlayer(original.EvalPlayer):
             if ARGS.mode == "collect":
                 action = action + noise[:, None] * torch.randn(action.shape, generator=noise_rng, device=self.device)
             action = action.clamp(-1, 1)
-            gap_before = gap()
+            gap_before = gap() if bridge is not None else None
             obs, base_reward, done, info = self.env_step(self.env, action)
             done = done.to(self.device).bool().reshape(-1)
             terminate = info["terminate"].to(self.device).bool().reshape(-1)
-            reward, components = shared_reward(task, tracker, base_reward.to(self.device),
-                                               before[:, 38], gap_before, gap(), gamma, approach)
+            if bridge is not None:
+                reward, components = shared_reward(task, tracker, base_reward.to(self.device),
+                                                   before[:, 38], gap_before, gap(), gamma, approach)
+            else:
+                stable, _ = tracker.step(task._target_states[:, 2], contacts(task).bool().all(-1))
+                reward = base_reward.to(self.device).reshape(-1) + stable
             after = snapshot(task, tracker)
             next_ctx = context(task, tracker)
             if ARGS.mode == "collect":

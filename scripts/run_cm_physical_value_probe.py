@@ -33,7 +33,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--gpu", type=int, default=1)
-    p.add_argument("--stage", choices=("smoke", "collect", "fit", "train", "evaluate", "all"), required=True)
+    p.add_argument("--stage", choices=("smoke", "smoke_train", "collect", "fit", "train", "evaluate", "all"), required=True)
     a = p.parse_args()
     out = a.output.resolve()
     if ROOT not in out.parents:
@@ -121,7 +121,7 @@ def main():
                "--checkpoint", str(checkpoint), "--motion_file", str(MOTIONS), "--headless",
                "--num_envs", str(envs), "--seed", str(seed), "--sim_device", "cuda:0",
                "--rl_device", "cuda:0", "--graphics_device_id", "0", "--disable-early-termination",
-               "--output", str(directory / "unused.json")]
+               "--output", str(directory / "unused.json"), "--output_path", str(directory / "player")]
         run(name, cmd, wall, scientific=not name.startswith("smoke"))
 
     if a.stage == "smoke":
@@ -134,8 +134,73 @@ def main():
         run("fit", [PYTHON, str(ROOT / "scripts/train_cm_physical_value.py"), "--collections",
                     str(out / "collect_s283"), str(out / "collect_s284"), "--output", str(out / "models"),
                     "--device", "cuda:0"], 7200)
-    if a.stage in ("train", "evaluate", "all"):
-        raise NotImplementedError("PPO and evaluation phase wiring must pass preflight before launch")
+    def train(name, arm, seed, model, end_epoch, envs):
+        directory = out / name
+        cmd = [PYTHON, str(ROOT / "src/task/CmResidual/tools/dexplore_physical_value_bootstrap.py"),
+               "--physical-value-arm", arm, "--physical-value-checkpoint", str(model),
+               "--physical-value-sha256", sha(model), "--cm-distill-coef", "0",
+               "--approach-reward-coef", "2", "--held-lift-reward-coef", "10",
+               "--lift-progress-reward-coef", "5", "--actual-epochs", str(end_epoch),
+               "--scratch-resume-checkpoint", str(SOURCE), "--scratch-resume-sha256", SOURCE_SHA,
+               "--save-frequency", "20", "--learning-rate", "1e-5",
+               "--task", "Dexplore_Inspire", "--cfg_env", str(env_cfg), "--cfg_train", str(train_cfg),
+               "--checkpoint", str(SOURCE), "--motion_file", str(MOTIONS), "--headless",
+               "--num_envs", str(envs), "--seed", str(seed), "--sim_device", "cuda:0",
+               "--rl_device", "cuda:0", "--graphics_device_id", "0", "--output_path", str(directory)]
+        run(name, cmd, 900 if name.startswith("smoke") else 1800, scientific=not name.startswith("smoke"))
+        return directory / "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn"
+
+    if a.stage == "smoke_train":
+        model = out / "smoke_models/tier_128.pt"
+        for arm in ("plain_off", "direct_q", "cm_value"):
+            train("smoke_train_" + arm, arm, 85, model, 261, 8)
+    if a.stage in ("train", "all"):
+        model_report = json.loads((out / "models/results.json").read_text())
+        if model_report["run_status"] != "COMPLETED" or model_report["smoke"]:
+            raise ValueError("full-size pretraining required")
+        model = Path(model_report["selected_checkpoint"])
+        manifest["physical_checkpoint_sha256"] = sha(model)
+        for seed in (286, 287):
+            for arm in ("plain_off", "direct_q", "cm_value"):
+                train("train_%s_s%d" % (arm, seed), arm, seed, model, 420, 64)
+    if a.stage in ("evaluate", "all"):
+        counts = {arm: {} for arm in ("plain_off", "direct_q", "cm_value")}
+        episode_results = {}
+        for training_seed in (286, 287):
+            for epoch in (0, 40, 80, 160):
+                for seed in (288, 289):
+                    reference = None
+                    for arm in counts:
+                        directory = out / ("train_%s_s%d" % (arm, training_seed))
+                        nn_dir = directory / "inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn"
+                        checkpoint = SOURCE if epoch == 0 else nn_dir / ("GRAB_%08d.pth" % (260 + epoch))
+                        name = "eval_%s_t%d_e%d_s%d" % (arm, training_seed, epoch, seed)
+                        environment(name, "evaluate", seed, 0, 96, checkpoint, wall=300)
+                        result = json.loads((out / name / "results.json").read_text())
+                        episodes = sorted(result["per_episode"], key=lambda row: row["env_id"])
+                        if len(episodes) != 96 or any(row["start_frame"] != 0 for row in episodes):
+                            raise ValueError("evaluation episode/start contract")
+                        paired = [(r["env_id"], r["motion_id"], r["start_frame"], r["steps"]) for r in episodes]
+                        if reference is not None and paired != reference:
+                            raise ValueError("native evaluation pairing mismatch")
+                        reference = paired
+                        key = "%d/%d/%d" % (training_seed, epoch, seed)
+                        counts[arm][key] = result["stable_success_count"]
+                        episode_results[name] = result
+        terminal = {arm: sum(n for k, n in values.items() if k.split("/")[1] == "160") for arm, values in counts.items()}
+        effects = {arm: (terminal["cm_value"] - terminal[arm]) / 384 for arm in ("plain_off", "direct_q")}
+        nonnegative = all(sum(counts["cm_value"]["%d/160/%d" % (t, s)] - counts[arm]["%d/160/%d" % (t, s)]
+                              for s in (288, 289)) >= 0 for t in (286, 287) for arm in effects)
+        drop_counts = {arm: sum(result["drop_after_success_count"] for name, result in episode_results.items()
+                                if name.startswith("eval_" + arm + "_") and "_e160_" in name) for arm in counts}
+        drop_gate = all((drop_counts["cm_value"] - drop_counts[arm]) / 384 <= .05 for arm in effects)
+        promising = min(effects.values()) >= .05 and nonnegative and drop_gate
+        result = dict(run_status="COMPLETED", conclusion="PROMISING" if promising else "UNPROMISING",
+                      terminal_counts=terminal, differences=effects, per_checkpoint_counts=counts,
+                      drop_counts=drop_counts, native_pairing_valid=True)
+        (out / "results.json").write_text(json.dumps(result, indent=2) + "\n")
+        manifest["conclusion"] = result["conclusion"]
+        save()
 
 
 if __name__ == "__main__":

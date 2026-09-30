@@ -19,8 +19,8 @@ def snapshot(task, tracker):
                       contacts(task), tracker.events.clone()), -1)
 
 
-def context(task, tracker):
-    phase = task.progress_buf.clone()
+def context(task, tracker, delta=0):
+    phase = task.progress_buf.clone() + delta
     length = task.max_episode_length[task.data_id].clone()
     safe = torch.minimum(phase, length - 1)
     ref = task.hoi_data[task.data_id, safe].clone()

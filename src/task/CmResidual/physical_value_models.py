@@ -49,7 +49,13 @@ class OutcomeNetwork(nn.Module):
         self.action_dim = action_dim
 
     def forward(self, history, context, action=None):
-        hidden = self.encoder(history)[0][:, -1]
+        hidden = self.encode(history)
+        return self.from_hidden(hidden, context, action)
+
+    def encode(self, history):
+        return self.encoder(history)[0][:, -1]
+
+    def from_hidden(self, hidden, context, action=None):
         items = [hidden, context]
         if self.action_dim:
             if action is None:
@@ -60,7 +66,10 @@ class OutcomeNetwork(nn.Module):
 
 def dynamics_output(model, features, states, actions, mask, context, candidate):
     raw = model(features.history(states, actions, mask), features.context(context), candidate)
-    current = states[:, -1]
+    return decode_dynamics(raw, states[:, -1], features)
+
+
+def decode_dynamics(raw, current, features):
     next_state = current.clone()
     # q, dq and object position/velocities use normalized residuals.
     next_state[:, :49] += raw[:, :49] * features.state_std[:49]
@@ -95,26 +104,32 @@ class Teacher:
         batch, count = candidates.shape[:2]
         def repeat(x):
             return x[:, None].expand(batch, count, *x.shape[1:]).reshape(batch * count, *x.shape[1:])
-        s, a, m, c, nc = map(repeat, (states, actions, mask, context, next_context))
+        c, nc = map(repeat, (context, next_context))
         candidate = candidates.reshape(-1, ACTION_DIM)
+        history_features = self.features.history(states, actions, mask)
         if arm == "direct_q":
-            scores = self.direct_q(self.features.history(s, a, m), self.features.context(c), candidate).reshape(batch, count)
+            hidden = repeat(self.direct_q.encode(history_features))
+            scores = self.direct_q.from_hidden(hidden, self.features.context(c), candidate).reshape(batch, count)
         elif arm == "cm_value":
             samples = []
+            value_prefix = repeat(self.value.encode(history_features[:, 1:]))
+            current = repeat(states[:, -1])
             for model in self.dynamics:
-                predicted, logits, reward, terminal_logits = dynamics_output(model, self.features, s, a, m, c, candidate)
+                hidden = repeat(model.encode(history_features))
+                raw = model.from_hidden(hidden, self.features.context(c), candidate)
+                predicted, logits, reward, terminal_logits = decode_dynamics(raw, current, self.features)
                 for _ in range(4):
                     predicted = predicted.clone()
                     # Common random numbers across a state's candidates avoid
                     # selecting actions solely because of Monte Carlo noise.
                     uniform = torch.rand(batch, 1, 2, generator=self.generator, device=mean.device)
                     predicted[:, 49:51] = (uniform.expand(batch, count, 2).reshape(-1, 2) < logits.sigmoid()).float()
-                    predicted[:, 51:55], _, _ = advance_events(s[:, -1, 51:55], predicted[:, 38],
+                    predicted[:, 51:55], _, _ = advance_events(current[:, 51:55], predicted[:, 38],
                                                                predicted[:, 49:51].bool().all(-1), c[:, 6])
-                    hs = torch.cat((s[:, 1:], predicted[:, None]), 1)
-                    ha = torch.cat((a[:, 1:], candidate[:, None]), 1)
-                    hm = torch.cat((m[:, 1:], torch.ones_like(m[:, :1])), 1)
-                    continuation = self.value(self.features.history(hs, ha, hm), self.features.context(nc)).squeeze(-1)
+                    last = torch.cat((self.features.state(predicted), candidate,
+                                      torch.ones(len(candidate), 1, device=mean.device)), -1)
+                    next_hidden = self.value.encoder(last[:, None], value_prefix[None])[0][:, -1]
+                    continuation = self.value.from_hidden(next_hidden, self.features.context(nc)).squeeze(-1)
                     uniform = torch.rand(batch, 1, generator=self.generator, device=mean.device)
                     terminated = (uniform.expand(batch, count).reshape(-1) < terminal_logits.sigmoid()).float()
                     samples.append(reward + self.gamma * (1 - terminated) * continuation)
