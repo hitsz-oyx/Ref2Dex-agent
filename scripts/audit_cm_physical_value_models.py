@@ -32,11 +32,26 @@ def audit(dataset, payload, device, limit):
     assert len(fit) == payload["fit_rows"]
     fit_mean = dataset.data["return"][fit].mean()
     actuals, estimates, physical = [], {name: [] for name in networks}, []
+    baselines = {name: [] for name in ("copy_state", "constant_velocity")}
     for indices in hold.split(128):
         b = dataset.batch(indices, device)
         history = features.history(b["history_state"], b["history_action"], b["history_mask"])
         context = features.context(b["context"])
         actuals.append(b["return"].cpu())
+        for name in baselines:
+            predicted = b["state"].clone()
+            if name == "constant_velocity":
+                predicted[:, :18] += predicted[:, 18:36] / 30
+                predicted[:, 36:39] += predicted[:, 43:46] / 30
+            target = b["next_state"]
+            dot = (predicted[:, 39:43] * target[:, 39:43]).sum(-1).abs().clamp(0, 1)
+            baselines[name].append(dict(
+                joint_position_normalized_mse=((predicted[:, :18]-target[:, :18])/features.state_std[:18]).square().mean(-1).cpu(),
+                joint_velocity_normalized_mse=((predicted[:, 18:36]-target[:, 18:36])/features.state_std[18:36]).square().mean(-1).cpu(),
+                object_position_squared_meters=(predicted[:, 36:39]-target[:, 36:39]).square().mean(-1).cpu(),
+                object_rotation_squared_radians=(2*dot.acos()).square().cpu(),
+                object_velocity_normalized_mse=((predicted[:, 43:49]-target[:, 43:49])/features.state_std[43:49]).square().mean(-1).cpu(),
+                contact_brier=(predicted[:, 49:51]-target[:, 49:51]).square().mean(-1).cpu()))
         for name, network in networks.items():
             pred = network(history, context, b["action"] if network.action_dim else None).squeeze(-1)
             estimates[name].append(pred.cpu())
@@ -68,12 +83,17 @@ def audit(dataset, payload, device, limit):
         values[name] = dict(return_rmse=float(mse.sqrt()), return_mae=float((pred-target).abs().mean()),
                             normalized_return_mse=float(mse / payload["return_scale"].square()),
                             improvement_over_fit_mean=float(1 - mse / baseline_mse.clamp_min(1e-9)))
-    components = {key: float(torch.cat([row[key] for row in physical]).mean()) for key in physical[0]}
-    components["object_position_rmse_meters"] = components.pop("object_position_squared_meters") ** .5
-    components["object_rotation_rmse_radians"] = components.pop("object_rotation_squared_radians") ** .5
-    components["reward_rmse"] = components.pop("reward_squared_error") ** .5
+    def reduce_components(rows):
+        components = {key: float(torch.cat([row[key] for row in rows]).mean()) for key in rows[0]}
+        components["object_position_rmse_meters"] = components.pop("object_position_squared_meters") ** .5
+        components["object_rotation_rmse_radians"] = components.pop("object_rotation_squared_radians") ** .5
+        if "reward_squared_error" in components:
+            components["reward_rmse"] = components.pop("reward_squared_error") ** .5
+        return components
+    components = reduce_components(physical)
     return dict(rows=len(hold), fit_mean_return=float(fit_mean), constant_return_rmse=float(baseline_mse.sqrt()),
-                value_fit=values, physical_member_mean=components)
+                value_fit=values, physical_member_mean=components,
+                physical_baselines={name: reduce_components(rows) for name, rows in baselines.items()})
 
 
 def main():

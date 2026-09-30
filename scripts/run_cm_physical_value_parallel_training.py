@@ -123,7 +123,7 @@ async def execute(out, gpus):
         raise
     finally:
         group["elapsed_seconds"] = time.monotonic()-started
-        group["gpu_seconds"] = sum(p.get("elapsed_seconds", 0) for p in manifest["phases"] if p["name"].startswith("train_"))
+        group["gpu_seconds"] = sum(p.get("elapsed_seconds", 0) for p in manifest["phases"] if p["name"].startswith("train_") and p["name"] != "train_parallel")
         manifest["scientific_elapsed_seconds"] += group["elapsed_seconds"]
         save()
 

@@ -62,7 +62,7 @@ async def execute(out, gpus):
                 roots = [out] + [Path(p["path"]) for p in manifest.get("prior_attempts", [])]
                 if sum(f.stat().st_size for root in roots for f in root.rglob("*") if f.is_file()) > manifest["storage_limit_bytes"]:
                     raise RuntimeError("storage limit")
-                remaining = min(300, deadline-time.monotonic())
+                remaining = min(300, deadline-time.monotonic()-60)
                 if remaining <= 0:
                     raise TimeoutError("evaluation wall budget exhausted")
                 ckpt = checkpoint(out, arm, t, epoch, SOURCE)
