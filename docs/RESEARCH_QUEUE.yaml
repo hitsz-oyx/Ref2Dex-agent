@@ -38,6 +38,15 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF08:
+    claim: C3
+    name: short_physical_transition_long_term_value
+    status: ACTIVE
+    branch: agent/cm-physical-value
+    probe_budget: 1
+    probes_used: 0
+    transition: "User approved full design and execution. Implement and run fixed plain PPO/direct Q/Cm-value Probe; positive prioritizes Validation, no local sweep."
+
   HF07:
     claim: C3
     name: physical_prediction_inference_bottleneck
