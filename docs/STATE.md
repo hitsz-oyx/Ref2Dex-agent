@@ -175,7 +175,7 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 | `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
 | `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
-| `HF08` physical-value | `C3` | `ACTIVE`（工程 preflight） | 1/1，r7 科学采集进行中 | `agent/cm-physical-value` |
+| `HF08` physical-value | `C3` | `ACTIVE`（科学预训练） | 1/1，r7 执行中 | `agent/cm-physical-value` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -251,14 +251,14 @@ delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准�
 因此该历史 calibration slot 停止：不从此 artifact 生成可用于蒸馏的正式 Cm-on 标签，
 不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
 
-HF08 工程 preflight 已通过：12项合同/模型/数据检查；真实环境完整采集与评价 smoke；三臂 source e260→e261 的 PPO 更新和保存。三臂初始 actor hash 相同，direct_q 与 cm_value 的行为动作/RNG 完整性及有效 actor 监督梯度标志均为真。以上仅为工程证据；正在检查训练所得 checkpoint 的 actor-only 评价，然后启动公共百万转移采集，尚无 HF08 策略收益结论。当前实施及结果以 [HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md) 为准。
+## HF08 current execution
 
-HF08 保存策略的三臂 actor-only 工程评价均已完成（各6个完整首回合，均从帧0开始）。已启动科学执行 r6，GPU1，固定百万转移公共采集→预训练→六臂PPO→配对评价；总阶段预算6h/20GiB。当前状态以r6原生manifest为准，结论尚未形成。
+已批准设计、登记唯一Probe slot 1/1，并在 agent/cm-physical-value 实施。root依据本轮暂时跳过代理工作流、直接推进研究的授权执行。固定三臂 plain_off/direct_q/cm_value，三条canonical airplane motion，复用同一自训练source_e260；最终actor-only持续抬升收益为判据，正向优先正式Validation。
 
-HF08最新状态：r6首次非空reset接口失败（75.409s），无科学结果。已修复Tensor reset和显式初始reset；r5初始仅覆盖motion0，旧成功评价只作加载证据。r7正在进行重复reset与均衡三轨迹工程检查，科学矩阵待该检查通过；保留原seed与判定门槛，继承失败尝试耗时，不新增Probe slot。
+12项合同/数据/模型检查通过；三臂单epoch PPO及保存策略加载评价通过。补充跨回合工程检查覆盖三motion、重复reset和混合起始帧。r6第一次非空reset因list/Tensor接口失败，已修正并保留75.409s成本；r5仅初始motion0的加载证据不作三motion覆盖证据。
 
-HF08 r7扩展工程检查通过：采集6592条、12个完整episode，三motion各4回合并覆盖重复reset和非零起始帧；actor-only评价三motion各2回合、全部从帧0开始。12项单元合同检查再次通过。r7进入固定科学矩阵，继承r6失败成本，当前为公共采集，尚无科学收益结论。
+当前科学run为r7，session22846，GPU1，固定总阶段预算6h/20GiB，继承r6失败成本。公共采集完成1041599转移、1920完整episode，hash/连续性/完整return检查通过，无剔除行。fit831811行/1536episode、开发holdout209788行/384episode；三motion转移近均衡、四档额外动作噪声均覆盖。采集池稳定标签稀少（15episode），只作带噪声数据池描述，不能代替actor-only指标或提前否定路线。
 
-HF08 r7第一批科学采集及完整episode/hash合同审计完成（520833转移、960episode，三motion转移近均衡，四噪声档全覆盖）；第二批运行中。采集池保持标签稀少，后续按完整固定预算训练与评价，不以采集标签率代替actor-only策略指标或提前否定路线。尚无Cm policy utility结论。
+正在固定100k/500k/最大档模型、V/Q预训练，实际fit档为100206/500169/831811行；后续执行六臂PPO及配对评价矩阵，不按小档loss缩减或调整设计。分量与完整return审计工具只作开发诊断，不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
 
-HF08 r7公共采集全部完成（1041599转移、1920完整episode），完整数据审计通过；正在固定三档模型/V/Q预训练，后续按原矩阵运行三臂真实PPO与actor-only评价。最大档实际fit约80%的完整数据池，具体数量见full_collection_audit.json，不能把开发holdout算作拟合数据。North-star保持不变。
+详细证据见 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)；原生状态见当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/run_manifest.json。
