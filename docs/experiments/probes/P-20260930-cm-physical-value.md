@@ -30,3 +30,5 @@ r6 在第一次非空 reset 因环境编号为list而失败，耗时75.409s，�
 r7扩展工程检查COMPLETED：采集6592条/12episode，三motion各4；起始帧包含0和5/16/17/27/33/34，已覆盖跨回合reset。source actor-only评价6episode，三motion各2，全部start_frame0。12项合同检查再次通过。r7科学stage all从公共采集开始；实施代码64ba312，准确阶段提交以manifest为准。
 
 r7 mixed-data预训练工程smoke已在空闲GPU2完成（2更新/模型，非科学规模）：6592完整转移、fit4166、holdout2426、12episode、excluded_rows0，V/Q及四个动力学诊断模型均能训练保存；native manifest/results在r7/smoke_models_mixed。该模型不用于科学策略训练或模型挑选，GPU2任务已结束。科学采集session仍为22846，GPU1，固定完整数据预算不变。
+
+科学collect_s283已完成：520833转移、960完整episode、excluded_rows0；fit415925行/768episode，holdout104908行/192episode。三motion转移174480/175912/170441，四噪声档均覆盖（约12–14.5万行/档），动作界[-1,1]，维度std约0.139–0.190。逐shard hash与数据合同及完整return检查通过，collection_audit.json保留原输入。零起始帧501/960，符合随机混合采集。采集策略有8个稳定保持标签、71个历史五步标签、6个成功后掉落标签；这些属于带额外噪声的采集池描述，不是actor-only主评价或策略收益结果。父phase945.223s，native采集924.866s；第二批collect_s284已自动启动，同一session22846。
