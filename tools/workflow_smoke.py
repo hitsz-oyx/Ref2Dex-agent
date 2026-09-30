@@ -22,6 +22,9 @@ def main() -> int:
     (ROOT / '.runtime').mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='workflow-smoke-', dir=ROOT / '.runtime') as temporary:
         area = Path(temporary)
+        for role in ('root', 'infra'):
+            (area / role).mkdir()
+            subprocess.run(['git', 'init', '-q', str(area / role)], check=True)
         (area / 'worker.py').write_text('print("ENGINEERING_SMOKE_OK")\n')
         runtime_config = area / 'runtime.json'
         runtime_config.write_text(json.dumps({'agents': {'engineering-smoke': {
@@ -32,8 +35,8 @@ def main() -> int:
             'state_dir': str(area / 'control'), 'roles_file': str(ROOT / 'docs/AGENT_ROLES.yaml'),
             'bindings': {
                 'root': {'provider': 'unused-codex', 'runtime': 'codex', 'codex_home': str(area / 'unused-account'),
-                         'workspace': str(ROOT), 'store': str(area / 'unused-store')},
-                'agent_infra': {'provider': 'engineering', 'runtime': 'engineering-smoke', 'engineering_only': True, 'workspace': str(ROOT),
+                         'workspace': str(area / 'root'), 'store': str(area / 'unused-store')},
+                'agent_infra': {'provider': 'engineering', 'runtime': 'engineering-smoke', 'engineering_only': True, 'workspace': str(area / 'infra'),
                     'store': str(area / 'infra-store'), 'runtime_config': str(runtime_config),
                     'env': {'PATH': str(args.node.resolve().parent) + ':' + os.environ.get('PATH', '/usr/bin:/bin')}}},
             'campaign': {'max_dispatches': 1, 'max_root_turns': 1, 'wall_time_seconds': 60, 'max_gpu': 0, 'allowed_workspace_roots': [str(ROOT)]}}))

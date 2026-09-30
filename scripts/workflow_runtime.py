@@ -20,6 +20,10 @@ class BudgetError(WorkflowError):
     pass
 
 
+class ProviderWaiting(WorkflowError):
+    pass
+
+
 class ResearchPaused(WorkflowError):
     pass
 
@@ -31,6 +35,8 @@ def runtime_environment(binding: dict[str, Any]) -> dict[str, str]:
                'SSL_CERT_FILE', 'SSL_CERT_DIR', 'REQUESTS_CA_BUNDLE'}
     env = {key: value for key, value in os.environ.items() if key in allowed or key.startswith('LC_')}
     env.update(binding.get('env', {}))
+    if binding.get('logical_role'):
+        env['REF2DEX_ROLE'] = binding['logical_role']
     if binding.get('codex_home'):
         env['CODEX_HOME'] = binding['codex_home']
     return env
@@ -75,7 +81,7 @@ class Runtime:
         self.store = Path(binding['store']).resolve()
         self.workspace = Path(binding['workspace']).resolve()
         identity = {key: binding.get(key) for key in
-                    ('provider', 'runtime', 'codex_home', 'workspace', 'env', 'runtime_config')}
+                    ('provider', 'runtime', 'codex_home', 'workspace', 'env', 'runtime_config', 'logical_role')}
         identity['effective_config'] = identity_sources(binding)
         self.identity = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
         self.store.mkdir(parents=True, exist_ok=True)

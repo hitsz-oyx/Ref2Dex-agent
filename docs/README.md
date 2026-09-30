@@ -1,6 +1,6 @@
 # Ref2Dex 文档入口
 
-新对话先读仓库根目录的 [`AGENTS.md`](../AGENTS.md)。文档按用途索引，避免把历史
+普通会话默认独立；显式加入科研工作流后才按需使用以下入口。新对话先读仓库根目录的 [`AGENTS.md`](../AGENTS.md)。文档按用途索引，避免把历史
 记录误当成当前规范：
 
 * [`workflow/README.md`](workflow/README.md)：研究主管、账号隔离的执行层、暂停、

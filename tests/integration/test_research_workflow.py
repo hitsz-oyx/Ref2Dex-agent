@@ -36,6 +36,9 @@ if cmd == "launch":
         actions = json.loads(plan.read_text())
         result["output"] = json.dumps(actions.pop(0)) if actions else json.dumps({"action": "idle", "reason": "no next task"})
         plan.write_text(json.dumps(actions))
+    if (store / "provider-down").exists():
+        result["status"] = "failed"
+        result["error"] = "quota exhausted"
     tasks.append(result)
     data.write_text(json.dumps(tasks))
     if (store / "crash-after-launch").exists():
@@ -173,7 +176,7 @@ def test_lost_launch_response_is_reconciled_without_duplicate_execution(tmp_path
     assert len(call(config, "supervisor", "status")["deliveries"]) == 1
 
 
-def test_recovery_is_finite_and_pause_preserves_pending_root_decision(tmp_path: Path) -> None:
+def test_recovery_is_finite_and_pause_requires_fresh_root_decision(tmp_path: Path) -> None:
     import time
     config = setup(tmp_path)
     document = json.loads(config.read_text())
@@ -188,6 +191,9 @@ def test_recovery_is_finite_and_pause_preserves_pending_root_decision(tmp_path: 
     assert call(config, "supervisor", "tick")["state"] == "paused"
     assert len(call(config, "supervisor", "status")["deliveries"]) == 1
     call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    assert call(config, "supervisor", "tick")["state"] == "stale_decision"
+    plan(config, [{"action": "dispatch", "task": task}])
+    assert call(config, "supervisor", "tick")["state"] == "root_started"
     assert call(config, "supervisor", "tick")["action"] == "dispatch"
     call(config, "accept", "task-one", "--decision", "accepted", "--reason", "evidence checked")
     plan(config, [{"action": "unsupported"}, {"action": "unsupported"}])
@@ -340,7 +346,7 @@ def test_completed_history_read_failure_does_not_block_new_research(tmp_path: Pa
     assert call(config, "supervisor", "tick")["action"] == "idle"
 
 
-def test_pause_during_a_slow_backend_read_preserves_root_decision(tmp_path: Path) -> None:
+def test_pause_during_a_slow_backend_read_preserves_then_invalidates_old_decision(tmp_path: Path) -> None:
     import time
     config = setup(tmp_path)
     task = json.loads(contract(tmp_path).read_text())
@@ -369,6 +375,9 @@ def test_pause_during_a_slow_backend_read_preserves_root_decision(tmp_path: Path
     assert len(status["deliveries"]) == 1
     assert status["deliveries"][0]["applied"] is False
     call(config, "supervisor", "resume", "--legacy-dispatch-disabled")
+    assert call(config, "supervisor", "tick")["state"] == "stale_decision"
+    plan(config, [{"action": "dispatch", "task": task}])
+    assert call(config, "supervisor", "tick")["state"] == "root_started"
     assert call(config, "supervisor", "tick")["action"] == "dispatch"
 
 
@@ -398,3 +407,236 @@ def test_unverified_model_harness_is_rejected(tmp_path: Path) -> None:
     value['kind'] = 'probe'
     task.write_text(json.dumps(value))
     assert 'engineering-only' in call(config, 'dispatch', '--task', str(task))['error']
+
+
+def test_continuous_research_has_no_implicit_total_deadline(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    for key in ('max_dispatches', 'max_root_turns', 'wall_time_seconds'):
+        document['campaign'].pop(key)
+    config.write_text(json.dumps(document))
+    assert call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')['code'] == 0
+    for index in range(4):
+        task_id = 'continuous-' + str(index)
+        assert call(config, 'dispatch', '--task', str(contract(tmp_path, task_id)))['code'] == 0
+        assert call(config, 'accept', task_id, '--decision', 'accepted', '--reason', 'checked')['code'] == 0
+    plan(config, [{'action': 'idle', 'reason': 'waiting for evidence'}])
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+
+
+def test_user_instruction_is_durable_and_obsoletes_old_root_decisions(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    task = json.loads(contract(tmp_path).read_text())
+    plan(config, [{'action': 'dispatch', 'task': task}, {'action': 'idle', 'reason': 'new instruction'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    submitted = call(config, 'instruct', '--request-id', 'user-1', '--text', 'Do CPU analysis first; leave independent work alone.')
+    assert submitted['code'] == 0
+    assert call(config, 'instruct', '--request-id', 'user-1', '--text', 'Do CPU analysis first; leave independent work alone.')['reused'] is True
+    assert call(config, 'supervisor', 'tick')['state'] == 'stale_decision'
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    assert call(config, 'supervisor', 'tick')['action'] == 'idle'
+    status = call(config, 'supervisor', 'status')
+    assert not any(item['role'] == 'agent_cm' for item in status['deliveries'])
+    assert status['control']['processed_version'] == status['control']['instruction_version']
+    assert status['instructions'][-1]['text'].startswith('Do CPU')
+
+
+def test_research_blocked_has_review_record_and_wakes_on_new_instruction(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    plan(config, [{'action': 'blocked', 'reason': 'No authorized discriminating direction remains.',
+                  'review': 'Checked a higher-level representation route and objective alternative; both need unavailable data.',
+                  'alternatives': ['representation change', 'objective change'],
+                  'resume_when': 'new data or user changes the goal'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    applied = call(config, 'supervisor', 'tick')
+    assert applied['action'] == 'blocked'
+    status = call(config, 'supervisor', 'status')
+    assert status['mode'] == 'blocked'
+    assert status['control']['completion'] is None
+    assert 'higher-level' in status['decisions'][-1]['review']
+    log = Path(status['decision_record'])
+    assert 'No authorized' in log.read_text()
+    assert call(config, 'supervisor', 'tick')['state'] == 'blocked'
+    assert call(config, 'instruct', '--request-id', 'new-data', '--text', 'New data is now available')['code'] == 0
+    assert call(config, 'supervisor', 'status')['mode'] == 'active'
+
+
+def test_engineering_delivery_cannot_complete_research_mission(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'accept', 'task-one', '--decision', 'accepted', '--reason', 'smoke passed')
+    plan(config, [{'action': 'complete', 'reason': 'process succeeded', 'evidence_task_ids': ['task-one']}])
+    call(config, 'supervisor', 'tick')
+    rejected = call(config, 'supervisor', 'tick')
+    assert 'formal Validation' in rejected['error']
+    assert call(config, 'supervisor', 'status')['control']['completion'] is None
+
+
+def test_failed_provider_uses_only_verified_backup_and_preserves_execution_binding(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    backup = {**primary, 'provider': 'backup-cm', 'codex_home': str(tmp_path / 'backup-account'),
+              'store': str(tmp_path / 'backup-store'), 'verified': True}
+    primary['fallbacks'] = [backup]
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (Path(primary['store']) / 'provider-down').touch()
+    first = call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    assert first['code'] == 0
+    assert call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'quota exhausted')['code'] == 0
+    second = call(config, 'dispatch', '--task', str(contract(tmp_path, 'task-two')))
+    assert second['code'] == 0
+    status = call(config, 'supervisor', 'status')
+    assert status['deliveries'][0]['execution']['account'] == primary['codex_home']
+    assert status['deliveries'][1]['execution']['account'] == backup['codex_home']
+    assert status['deliveries'][0]['execution_id'] == first['execution_id']
+    assert status['decisions'][-1]['action'] == 'provider_switch'
+
+
+def test_requested_provider_waits_without_switching_or_launching_again(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    backup = {**primary, 'provider': 'backup-cm', 'codex_home': str(tmp_path / 'backup-account'),
+              'store': str(tmp_path / 'backup-store'), 'verified': True}
+    primary['fallbacks'] = [backup]
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (Path(primary['store']) / 'provider-down').touch()
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'quota exhausted')
+    next_task = contract(tmp_path, 'task-two')
+    value = json.loads(next_task.read_text())
+    value['provider'] = 'agent_cm'
+    next_task.write_text(json.dumps(value))
+    assert 'no available permitted provider' in call(config, 'dispatch', '--task', str(next_task))['error']
+    assert len(call(config, 'supervisor', 'status')['deliveries']) == 1
+    (Path(primary['store']) / 'provider-down').unlink()
+    assert call(config, 'provider-ready', '--role', 'agent_cm', '--provider', 'agent_cm')['code'] == 0
+    assert call(config, 'dispatch', '--task', str(next_task))['code'] == 0
+    assert call(config, 'supervisor', 'status')['deliveries'][-1]['execution']['account'] == primary['codex_home']
+
+
+def test_independent_changes_are_left_untouched_and_not_dispatched_into(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    directory = Path(json.loads(config.read_text())['bindings']['agent_cm']['workspace'])
+    subprocess.run(['git', 'init', '-q', str(directory)], check=True)
+    independent = directory / 'user-work.txt'
+    independent.write_text('independent unfinished work\n')
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    result = call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    assert 'independent or uncommitted work' in result['error']
+    assert independent.read_text() == 'independent unfinished work\n'
+    assert call(config, 'supervisor', 'status')['deliveries'] == []
+
+
+def test_formal_eval_can_complete_current_goal_but_old_goal_cannot(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    document['campaign']['max_dispatches'] = 10
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    for ident, role in [('validation-source', 'agent_rl'), ('eval-review', 'agent_eval')]:
+        path = contract(tmp_path, ident, role)
+        value = json.loads(path.read_text())
+        value['kind'] = 'validation'
+        path.write_text(json.dumps(value))
+        assert call(config, 'dispatch', '--task', str(path))['code'] == 0
+        assert call(config, 'accept', ident, '--decision', 'accepted', '--reason', 'formal evidence checked')['code'] == 0
+    workspace = Path(document['bindings']['root']['workspace'])
+    cards = workspace / 'docs/experiments/validations'
+    cards.mkdir(parents=True)
+    (cards / 'VAL-baseline.md').write_text('Validation: VAL-baseline\nSUPPORTED\n')
+    (cards / 'VAL-cm.md').write_text('Validation: VAL-cm\nSUPPORTED\n')
+    report = {'schema': 'ref2dex.validation-evidence.v1', 'goal_version': 0,
+              'reviewed_task_ids': ['validation-source'], 'checks': {
+                  'self_trained_grasp': {'verdict': 'SUPPORTED', 'validation_id': 'VAL-baseline',
+                     'card': 'docs/experiments/validations/VAL-baseline.md', 'scope': 'fixed grasp task',
+                     'pre_registered': True, 'seeds': [1, 2, 3], 'self_trained': True},
+                  'cm_policy_utility': {'verdict': 'SUPPORTED', 'validation_id': 'VAL-cm',
+                     'card': 'docs/experiments/validations/VAL-cm.md', 'scope': 'fixed Cm task',
+                     'pre_registered': True, 'seeds': [1, 2, 3], 'matched_control': True, 'arms': ['Cm-on', 'Cm-off']}}}
+    data = Path(document['bindings']['agent_eval']['store']) / 'fake.json'
+    tasks = json.loads(data.read_text())
+    tasks[0]['output'] = json.dumps(report)
+    data.write_text(json.dumps(tasks))
+    plan(config, [{'action': 'complete', 'reason': 'both MISSION objectives independently reviewed',
+                   'evidence_task_ids': ['validation-source', 'eval-review']}])
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    assert call(config, 'supervisor', 'tick')['action'] == 'complete'
+    assert call(config, 'supervisor', 'status')['mode'] == 'completed'
+    assert call(config, 'supervisor', 'tick')['state'] == 'completed'
+    # A new goal cannot reuse accepted evidence as current-goal completion.
+    call(config, 'instruct', '--request-id', 'new-goal', '--text', 'Expand the task scope', '--new-goal')
+    assert call(config, 'supervisor', 'status')['mode'] == 'paused'
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    plan(config, [{'action': 'complete', 'reason': 'reuse prior evidence',
+                   'evidence_task_ids': ['validation-source', 'eval-review']}])
+    call(config, 'supervisor', 'tick')
+    assert 'current-goal' in call(config, 'supervisor', 'tick')['error']
+
+
+def test_changed_instruction_waits_for_running_old_root_before_starting_another(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    plan(config, [{'action': 'idle', 'reason': 'old goal'}])
+    call(config, 'supervisor', 'tick')
+    store = Path(json.loads(config.read_text())['bindings']['root']['store']) / 'fake.json'
+    executions = json.loads(store.read_text())
+    executions[0]['status'] = 'running'
+    store.write_text(json.dumps(executions))
+    call(config, 'instruct', '--request-id', 'changed', '--text', 'Adjust the goal')
+    assert call(config, 'supervisor', 'tick')['state'] == 'waiting_stale_root'
+    assert len(call(config, 'supervisor', 'status')['deliveries']) == 1
+    executions[0]['status'] = 'succeeded'
+    store.write_text(json.dumps(executions))
+    assert call(config, 'supervisor', 'tick')['state'] == 'stale_decision'
+
+
+def test_idle_decision_cannot_hide_worker_completion_during_root_turn(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    worker_store = Path(json.loads(config.read_text())['bindings']['agent_cm']['store']) / 'fake.json'
+    worker = json.loads(worker_store.read_text())
+    worker[0]['status'] = 'running'
+    worker_store.write_text(json.dumps(worker))
+    plan(config, [{'action': 'idle', 'reason': 'worker was running at observation time'},
+                  {'action': 'accept', 'task_id': 'task-one', 'reason': 'finished evidence checked'}])
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    worker[0]['status'] = 'succeeded'
+    worker_store.write_text(json.dumps(worker))
+    assert call(config, 'supervisor', 'tick')['action'] == 'idle'
+    assert call(config, 'supervisor', 'tick')['state'] == 'root_started'
+    assert call(config, 'supervisor', 'tick')['action'] == 'accept'
+
+
+def test_stop_background_owner_preserves_worker_results(tmp_path: Path) -> None:
+    import time
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    document['poll_seconds'] = 0.05
+    config.write_text(json.dumps(document))
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'pause')
+    proc = subprocess.Popen([sys.executable, str(CLI), '--config', str(config), 'supervisor', 'run'], stdout=subprocess.PIPE)
+    try:
+        for _ in range(20):
+            if call(config, 'supervisor', 'status')['supervisor_running']:
+                break
+            time.sleep(0.05)
+        assert call(config, 'supervisor', 'stop')['state'] == 'stop_requested'
+        assert proc.wait(timeout=5) == 0
+        status = call(config, 'supervisor', 'status')
+        assert status['mode'] == 'paused'
+        assert status['supervisor_running'] is False
+        assert status['deliveries'][0]['execution']['status'] == 'succeeded'
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            proc.wait(timeout=5)

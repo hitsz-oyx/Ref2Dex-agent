@@ -43,8 +43,25 @@ CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 \
 配置、角色实验权限与授权工作区未验证、已验收历史记录读取失败阻塞新工作。
 模型执行限定为已检查的 Codex harness；其他原生模型 harness 不能借工程标记绕过。
 
-## 尚未执行的上线验证
+## 第二阶段：持续推进与文档精简
 
-未调用真实模型，未修改现有绑定、训练进程或 campaign 的派发入口。真实多账号
-身份、provider 输出、后台 root 回合和旧新 owner 切换仍按操作指南验证。
-依赖的 6 项 npm audit 公告尚未修复，具体限制见 [OPERATIONS.md](OPERATIONS.md)。
+在同一 graspenv 环境完成 CLI 行为切片和回归：106 passed；8 个入口、运行与索引
+模块 mypy 通过。新增覆盖无默认总截止、持久用户指令、旧 root 决策失效、受阻
+等待、正式 Validation 完成门槛、provider 备选/指定、独立工作树保护、决策记录、
+停止后台 owner 时保留现有任务，以及实验索引不改原卡。
+
+真实 CPU-only 工程联调使用临时独立工作树、store 和现有账号配置副本：root 的
+session_meta 为 openai，infra 为 rlg；worker 输出 WORKFLOW_PROVIDER_OK，关闭
+前台调用后由 detached supervisor 的 root 验收。联调发现并修复 worker 在 root
+回合中完成时被 idle 状态漏掉的竞态；现在用 root 实际观察的指纹判定新事件，
+并有公开 CLI 回归。联调完成后停止自己的 owner，等所有模型回合自然结束，
+删除临时凭据副本；原始账号文件、科研绑定和训练进程未修改。
+
+全仓 pytest 仍在收集阶段报上述 10 个既有 Cm 路径错误。本记录不把结构化
+Validation 验收等同于科学事实成立；root/eval 仍须核对预注册、原始结果与方法。
+
+## 上线边界
+
+现有 campaign 尚未切换。真实两 provider 工程链路已验证，其他账号/provider、
+长期科研验收和旧新 owner 切换仍须按 [README.md](README.md) 操作。
+依赖的 6 项 npm audit 公告尚未修复，限制见同一入口的依赖审计说明。
