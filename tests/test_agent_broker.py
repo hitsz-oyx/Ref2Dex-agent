@@ -12,15 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def broker(tmp_path: Path, *, mutate=None) -> AgentBroker:
-    bindings = json.loads((ROOT / ".runtime/AGENT_BINDINGS.json").read_text(encoding="utf-8"))
-    # Keep the fixture independent of the machine-local runtime binding.  The
-    # real agent_cm binding may be present while this test needs an explicitly
-    # malformed binding to exercise the fail-closed path.
-    bindings["bindings"]["agent_cm"].update({"status": "bound"})
-    bindings["bindings"]["agent_cm"].pop("runtime_agent_key", None)
-    bindings["bindings"]["agent_infra"].update(
-        {"runtime_agent_key": "infra-test", "provider": "other", "profile": "test"}
-    )
+    # Synthetic role bindings make drain-only tests independent of live accounts.
+    bindings = {"bindings": {
+        "agent_cm": {"status": "bound", "provider": "other", "branch": "agent/cm"},
+        "agent_infra": {"status": "bound", "runtime_agent_key": "infra-test",
+                        "provider": "other", "profile": "test", "branch": "agent/infra"},
+    }}
     if mutate is not None:
         mutate(bindings["bindings"]["agent_infra"])
     binding_path = tmp_path / "bindings.json"

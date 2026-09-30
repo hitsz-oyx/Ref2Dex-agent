@@ -1,15 +1,9 @@
-# Local workflow runtime
+# Local workflow state
 
-Files in this directory are machine-local and are not research evidence.  The
-autonomy lease and watchdog state live here so changing a conversation binding
-does not change the Git history:
+New supervision uses a machine-local workflow.json, its configured state_dir/research.sqlite,
+supervisor/guardian process locks and logs, plus isolated external backend stores. These are
+not research evidence and are not committed. Commands and lifecycle are documented in
+[OPERATIONS](../docs/workflow/OPERATIONS.md).
 
-```text
-SUPERVISOR_LEASE.json
-root_watchdog/state.json
-worker_event_poller/state.json
-```
-
-Use `python3 scripts/researchctl.py supervisor pause|resume|status` to change
-the lease.  A missing lease is treated as disabled; the watchdog never resumes
-a paused Goal without an enabled lease.
+Old AGENT_BINDINGS, leases, tasks.sqlite, AGENT_STATE and watchdog cursors remain drain-only.
+Do not copy them into the new executor or enable old/new dispatch owners together.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/ARCHITECTURE.md.
 """Retired compatibility wrapper for the former fixed-message wake-up daemon.
 
 The research workflow now requires ``/root`` to poll in its own active turn and
