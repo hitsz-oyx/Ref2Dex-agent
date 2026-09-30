@@ -180,6 +180,30 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 
 ## Next step
 
+2026-09-30 路线讨论后，用户认可采用动作条件短期物理转移与长期价值结合的方向，
+先在 airplane 上检验收益，允许重新设计 Cm，不要求沿用原几何模型。最终交付
+要求 Cm 参与策略训练；冻结 actor 的候选动作选择收益仅作机制 Probe。成功标准
+将包含明确保持时长与后续掉落检查；跨数据集预训练是可选方向。Mission 已澄清
+这些边界，尚未固定网络、reward、数据规模、训练算法或启动新实验。
+
+只读接口核查确认已有 source_e260 的完整首回合轨迹可用于物理模型预训练，但
+缺少逐步 reward、显式 next-observation 和 terminal/timeout 区分，不能直接视作
+完整 TD 训练数据。当前 actor/critic observation 含未来参考信息，reward 主要是
+参考轨迹模仿；新路线仍须明确价值学习目标及与稳定抓取评价的关系。下一步先
+完成该设计，再记录 Decision Memo、登记新 family 和固定真实策略 matched Probe。
+
+用户随后委托 root 采用任务相关的长期价值目标：保留参考轨迹引导，加入持续抓取、
+保持抬升与掉落反馈，Cm-on/off 使用完全相同的奖励。固定环境交互预算下的持续
+抬升成功率为主指标，学习效率为辅，预训练与额外计算成本单独报告。具体奖励
+公式、时长、数据预算和算法仍待设计与 preflight，以上仅为已确定研究边界。
+
+具体设计现已写入 [airplane physical-value spec](superpowers/specs/2026-09-30-cm-physical-value-design.md)，
+状态为待用户审阅，尚未运行。它拟用100万条完整过程转移、三臂真实 PPO 与
+候选评分的旁路策略监督，以及1.5秒连续保持主指标；成本为两GPU、六小时内，
+均是拟定合同而非新证据。只读核查补充确认 source_e260 本身已经有 approach=2、
+held-lift=10、progress=5 shaping，不能将源策略表述为只训练模仿reward。
+当前 blocker 是具体设计审阅；实现、数据采集和新 family 的执行登记尚未开始。
+
 2026-09-30 最新处置：HF06 和 HF07 均已结束；优先级继续是 Cm 策略价值，期限
 2026-10-03 23:59。下一步返回高层机制选择，复用已验证六专家底座；不继续调
 teacher envelope 或这次 BC inference-input 的宽度、步数、seed、目标。下面保留
@@ -219,5 +243,5 @@ support collection：fit 188 行、holdout 186 行，六臂均至少 30 行，37
 不重叠，axis finite/unit 和 provenance 均通过 root 独立复核。`agent_cm` 随后通过了
 scratch contract 并完成 CPU calibration，但 holdout contact q10 下界覆盖率只有 0.7688、
 delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准结论为 `UNPROMISING`。
-因此当前停止在 calibration：不生成可用于蒸馏的正式 Cm-on 标签，不启动 online/PPO/Cm
-训练；任何重新校准或改写 scratch 目标都需要单独 Decision Checkpoint。
+因此该历史 calibration slot 停止：不从此 artifact 生成可用于蒸馏的正式 Cm-on 标签，
+不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
