@@ -48,7 +48,10 @@ class PhysicalPlayer(original.EvalPlayer):
         noise_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed)
         assignment_rng = torch.Generator(device=self.device).manual_seed(ARGS.assignment_seed + 1)
         num = task.num_envs
-        obs = self.env_reset([])
+        # Player construction initializes every environment to the first
+        # reference. An explicit full reset invokes the balanced sampler and
+        # the configured start-frame distribution before recording data.
+        obs = self.env_reset(torch.arange(num, device=self.device))
         if self.get_batch_size(obs["obs"], 1) != num:
             raise ValueError("player batch size differs from simulator")
         if self.is_rnn:
@@ -97,7 +100,7 @@ class PhysicalPlayer(original.EvalPlayer):
                 raise TimeoutError("environment phase wall budget")
             # DExplore's reset adapter also packages obs/AMP in a dictionary
             # on non-reset steps; env_step itself returns a bare tensor.
-            obs = self.env_reset(done_indices)
+            obs = self.env_reset(torch.as_tensor(done_indices, dtype=torch.long, device=self.device))
             if done_indices:
                 # Player reset consumes only completed environments, before the
                 # next state snapshot; terminal snapshots above are preserved.
@@ -179,6 +182,10 @@ class PhysicalPlayer(original.EvalPlayer):
         flush()
         if ARGS.mode == "evaluate" and len(completed_episodes) != num:
             raise ValueError("incomplete first-episode evaluation")
+        if ARGS.mode == "evaluate":
+            counts = [sum(row["motion_id"] == motion_id for row in completed_episodes) for motion_id in range(3)]
+            if num % 3 or counts != [num // 3] * 3:
+                raise ValueError("evaluation motion distribution is not balanced")
         result = dict(schema=SCHEMA, mode=ARGS.mode, run_status="COMPLETED", rows=rows,
                       complete_episodes=len(completed_episodes), shards=shard_paths,
                       per_episode=completed_episodes,

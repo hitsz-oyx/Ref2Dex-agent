@@ -33,6 +33,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--gpu", type=int, default=1)
+    p.add_argument("--prior-attempt", type=Path)
     p.add_argument("--smoke-run-id", default="r1")
     p.add_argument("--stage", choices=("smoke", "smoke_train", "smoke_saved", "collect", "fit", "train", "evaluate", "all"), required=True)
     a = p.parse_args()
@@ -71,6 +72,12 @@ def main():
         manifest = dict(experiment_id="P-20260930-cm-physical-value", family="HF08", inputs=inputs,
                         phases=[], scientific_elapsed_seconds=0, storage_limit_bytes=20 * 1024**3,
                         wall_limit_seconds=21600, run_status="STARTED", physical_gpu=a.gpu)
+        if a.prior_attempt:
+            previous = json.loads((a.prior_attempt / "run_manifest.json").read_text())
+            if previous["run_status"] not in ("FAILED", "STOPPED") or previous["inputs"] != inputs:
+                raise ValueError("prior attempt is not a terminated run of the same design")
+            manifest["prior_attempts"] = [dict(path=str(a.prior_attempt.resolve()), phases=previous["phases"])]
+            manifest["scientific_elapsed_seconds"] = previous["scientific_elapsed_seconds"]
     env = os.environ.copy()
     env.update(CUDA_VISIBLE_DEVICES=str(a.gpu), PYTHONUNBUFFERED="1", LOCAL_RANK="0", RANK="0", WORLD_SIZE="1",
                OMP_NUM_THREADS="2", MKL_NUM_THREADS="2")
@@ -88,7 +95,8 @@ def main():
         if scientific:
             category = name.split("_")[0]
             limits = dict(collect=5400, fit=7200, train=5400, eval=3600)
-            used = sum(x.get("elapsed_seconds", 0) for x in manifest["phases"]
+            prior_phases = [phase for attempt in manifest.get("prior_attempts", []) for phase in attempt["phases"]]
+            used = sum(x.get("elapsed_seconds", 0) for x in manifest["phases"] + prior_phases
                        if x["scientific"] and x["name"].split("_")[0] == category)
             remaining = min(remaining, limits[category] - used)
         if remaining <= 0:
@@ -132,7 +140,7 @@ def main():
         run(name, cmd, wall, scientific=not name.startswith("smoke"))
 
     if a.stage == "smoke":
-        environment("smoke_collect_s83", "collect", 83, 512, 6, wall=600)
+        environment("smoke_collect_s83", "collect", 83, 4000, 6, wall=600)
         environment("smoke_evaluate_s84", "evaluate", 84, 0, 6, wall=600)
     if a.stage in ("collect", "all"):
         environment("collect_s283", "collect", 283, 500000, 64)
