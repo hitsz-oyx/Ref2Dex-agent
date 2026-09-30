@@ -32,3 +32,5 @@ r7扩展工程检查COMPLETED：采集6592条/12episode，三motion各4；起始
 r7 mixed-data预训练工程smoke已在空闲GPU2完成（2更新/模型，非科学规模）：6592完整转移、fit4166、holdout2426、12episode、excluded_rows0，V/Q及四个动力学诊断模型均能训练保存；native manifest/results在r7/smoke_models_mixed。该模型不用于科学策略训练或模型挑选，GPU2任务已结束。科学采集session仍为22846，GPU1，固定完整数据预算不变。
 
 科学collect_s283已完成：520833转移、960完整episode、excluded_rows0；fit415925行/768episode，holdout104908行/192episode。三motion转移174480/175912/170441，四噪声档均覆盖（约12–14.5万行/档），动作界[-1,1]，维度std约0.139–0.190。逐shard hash与数据合同及完整return检查通过，collection_audit.json保留原输入。零起始帧501/960，符合随机混合采集。采集策略有8个稳定保持标签、71个历史五步标签、6个成功后掉落标签；这些属于带额外噪声的采集池描述，不是actor-only主评价或策略收益结果。父phase945.223s，native采集924.866s；第二批collect_s284已自动启动，同一session22846。
+
+公共采集全部完成：1041599转移、1920完整episode；逐shard hash、episode连续性、完整return及fit/holdout隔离审计见r7/full_collection_audit.json。两批合计15个稳定标签、147个历史五步标签、12个成功后掉落标签，仅作带噪声采集池描述。第二批父phase1060.912s，两批加r6失败科学耗时累计2081.544s，未超过采集90min上限。正式fit已启动，固定三档各1000更新，不依小档loss改策略矩阵。新增独立模型分量/完整return审计工具audit_cm_physical_value_models.py（a562a14），只作开发集诊断，已通过三轨迹工程smoke，不参与模型挑选或改变主gate。

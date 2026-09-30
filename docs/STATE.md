@@ -260,3 +260,5 @@ HF08最新状态：r6首次非空reset接口失败（75.409s），无科学结�
 HF08 r7扩展工程检查通过：采集6592条、12个完整episode，三motion各4回合并覆盖重复reset和非零起始帧；actor-only评价三motion各2回合、全部从帧0开始。12项单元合同检查再次通过。r7进入固定科学矩阵，继承r6失败成本，当前为公共采集，尚无科学收益结论。
 
 HF08 r7第一批科学采集及完整episode/hash合同审计完成（520833转移、960episode，三motion转移近均衡，四噪声档全覆盖）；第二批运行中。采集池保持标签稀少，后续按完整固定预算训练与评价，不以采集标签率代替actor-only策略指标或提前否定路线。尚无Cm policy utility结论。
+
+HF08 r7公共采集全部完成（1041599转移、1920完整episode），完整数据审计通过；正在固定三档模型/V/Q预训练，后续按原矩阵运行三臂真实PPO与actor-only评价。最大档实际fit约80%的完整数据池，具体数量见full_collection_audit.json，不能把开发holdout算作拟合数据。North-star保持不变。
