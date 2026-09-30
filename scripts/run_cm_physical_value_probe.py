@@ -220,8 +220,17 @@ def main():
                                 if name.startswith("eval_" + arm + "_") and "_e160_" in name) for arm in counts}
         drop_gate = all((drop_counts["cm_value"] - drop_counts[arm]) / 384 <= .05 for arm in effects)
         promising = min(effects.values()) >= .05 and nonnegative and drop_gate
+        success_rates = {arm: terminal[arm] / 384 for arm in counts}
+        conditional_drop_rates = {arm: drop_counts[arm] / terminal[arm] if terminal[arm] else None for arm in counts}
+        curve_rates = {arm: {str(epoch): sum(n for k, n in values.items() if int(k.split("/")[1]) == epoch) / 384
+                            for epoch in (0, 40, 80, 160)} for arm, values in counts.items()}
+        curve_area = {arm: sum((curve[str(left)] + curve[str(right)]) / 2 * (right - left) * 2048
+                              for left, right in ((0, 40), (40, 80), (80, 160)))
+                      for arm, curve in curve_rates.items()}
         result = dict(run_status="COMPLETED", conclusion="PROMISING" if promising else "UNPROMISING",
                       terminal_counts=terminal, differences=effects, per_checkpoint_counts=counts,
+                      terminal_success_rates=success_rates, conditional_drop_rates=conditional_drop_rates,
+                      learning_curve_rates=curve_rates, learning_curve_area=curve_area,
                       drop_counts=drop_counts, native_pairing_valid=True)
         (out / "results.json").write_text(json.dumps(result, indent=2) + "\n")
         manifest["conclusion"] = result["conclusion"]

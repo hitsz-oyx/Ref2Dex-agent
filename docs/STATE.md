@@ -8,6 +8,8 @@ Updated: 2026-09-30
 
 ## Current decision
 
+当前执行 HF08 physical-value：用户已批准完整设计，复用单一自训练 source_e260，在 canonical airplane s3/s7/s9 上采集完整转移，比较 plain PPO、direct Q 候选监督和 Cm＋V 候选监督。HF06/HF07及六专家路线的下述记录为历史背景，当前不重新选择路线。
+
 2026-09-30 用户明确下一阶段优先回答 **Cm 策略价值**，复用当前已验证的
 六专家底座；单一 actor 蒸馏不作为默认优先交付。交付期限更新为
 2026-10-03 23:59（Asia/Shanghai），资源边界仍见 `CAMPAIGN.md`。
@@ -173,6 +175,7 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 | `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
 | `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
+| `HF08` physical-value | `C3` | `ACTIVE`（工程 preflight） | 0/1，科学矩阵尚未开始 | `agent/cm-physical-value` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -206,7 +209,7 @@ held-lift=10、progress=5 shaping，不能将源策略表述为只训练模仿re
 agent/cm-physical-value，正在实现完整转移、持续保持评价及候选价值的旁路策略监督。
 当前尚未运行新科学实验，后续结果须以原生 manifest 和实验卡为准。
 
-2026-09-30 最新处置：HF06 和 HF07 均已结束；优先级继续是 Cm 策略价值，期限
+HF08 启动前的历史处置：HF06 和 HF07 均已结束；优先级继续是 Cm 策略价值，期限
 2026-10-03 23:59。下一步返回高层机制选择，复用已验证六专家底座；不继续调
 teacher envelope 或这次 BC inference-input 的宽度、步数、seed、目标。下面保留
 此前路线的证据边界，不将历史派发状态视为当前活跃任务。
