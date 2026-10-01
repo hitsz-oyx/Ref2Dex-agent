@@ -1,0 +1,11 @@
+{
+  "status": "FAILED_PARENT_COMPLETED_NATIVE_ENGINEERING",
+  "error": "KeyError('initially_clear')",
+  "native_run_status": "COMPLETED",
+  "manifest_sha256": "7e7c8b61f59242aa01502513e861254faf5c3290ce513874de5add7d3d5747d9",
+  "record_sha256": "88fe5c64e02de3a7743618f407c2b18ee8ab2cb0ceb0c947bf2da9d56be2c3c6",
+  "rows": 34,
+  "own_pids_exited": true,
+  "elapsed_seconds": 114.98532352410257,
+  "scope": "parent logging KeyError corrected; all costs preserved in r2 prior; not scientific utility data"
+}
