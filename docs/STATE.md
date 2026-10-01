@@ -139,7 +139,7 @@ witness only. Strictforce75 misses17of these64geometricallyheld rows. No old
 failedgate upgraded; no forceclosure/learnedpolicy/Validation claim. Motion0/2
 remain unsuccessful. Next priority is a freshly trained observation policy on
 verified holding physics, withprospective physical105-tick retention andcurrent
-force proxy retained assecondary. Scratch BC9c0a218then COMPLETED149.84s/44.10MiB,all200inputs unchanged: physical105andstrictforce75both0/192;motion1 0/64,UNPROMISING. Late wrist-target RMSE~171mm, no normalization clipping onmotion1; descriptive posthoc diagnostic only. Stop this exactfit. Next distinct Probe is one fresh on-policy aggregation513/514, independenttest515/516, fixed2000updates; oldtest511/512never used in fit. No active simulation/training at this checkpoint.
+force proxy retained assecondary. Scratch BC9c0a218then COMPLETED149.84s/44.10MiB,all200inputs unchanged: physical105andstrictforce75both0/192;motion1 0/64,UNPROMISING. Late wrist-target RMSE~171mm, no normalization clipping onmotion1; descriptive posthoc diagnostic only. Stop this exactfit. Next distinct Probe is one fresh on-policy aggregation513/514, independenttest515/516, fixed2000updates; oldtest511/512never used in fit. One aggregatione2a38c2completed184.70s, all217inputs unchanged, physical105andstrictforce75also0/192,UNPROMISING. No further aggregationrounds. Next distinct design learns reference-relative absolute targets from originalteacher510only, fixed2000updates, freshtest517/518. No active simulation/training at this checkpoint.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -166,6 +166,7 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Next support-removal witness](experiments/probes/P-20261002-support-removal-witness.md)
 - [Support witness result](research/20261002-support-removal-witness-results.md)
 - [Scratch policy result](research/20261002-observation-hold-baseline-results.md)
+- [Aggregation result](research/20261002-observation-hold-aggregation-results.md)
 - [Novelty update](research/20261002-contact-response-novelty-update.md)
 - [Current manuscript](../paper/manuscript-v5.tex) and [PDF review copy](../paper/manuscript-v5.pdf)
 
