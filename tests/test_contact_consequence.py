@@ -11,9 +11,8 @@ from src.task.CmResidual.contact_consequence import local_outcomes, opportunity_
 
 
 class ContactConsequenceTests(unittest.TestCase):
-    def test_native_loop_replays_prefix_and_executes_candidate_then_own_base(self):
-        from scripts.collect_contact_consequences import build_player
-
+    @staticmethod
+    def fake_player_type():
         class Gym:
             def __init__(self): self.frame=0
             def get_frame_count(self,sim): return self.frame
@@ -72,6 +71,11 @@ class ContactConsequenceTests(unittest.TestCase):
                 task._target_states[:,2]+=action[:,0]*.01
                 task.obs_buf[:,0]=task._target_states[:,2]
                 return task.obs_buf,torch.zeros(96),torch.zeros(96,dtype=torch.bool),{}
+        return Player
+
+    def test_native_loop_replays_prefix_and_executes_candidate_then_own_base(self):
+        from scripts.collect_contact_consequences import build_player
+        Player=self.fake_player_type()
 
         with tempfile.TemporaryDirectory() as directory:
             first=Path(directory)/'first';branch=Path(directory)/'branch';first.mkdir();branch.mkdir()
@@ -108,6 +112,29 @@ class ContactConsequenceTests(unittest.TestCase):
             self.assertEqual(first_player.inference_calls,branch_player.inference_calls)
             self.assertEqual(first_player.inference_calls,len(ref['action'])*6)
 
+    def test_randomized_native_windows_use_actual_states_known_propensity_and_complete_followup(self):
+        from scripts.collect_randomized_contact_consequences import randomized_player
+        Player=self.fake_player_type()
+        with tempfile.TemporaryDirectory() as directory:
+            args=SimpleNamespace(output=Path(directory),seed=331,assignment_seed=7331,
+                                 windows_per_episode=8,max_steps=100,wall_seconds=60)
+            player=randomized_player(SimpleNamespace(EvalPlayer=Player),args,torch,
+                                     SimpleNamespace(unwrap_tensor=lambda x:x))()
+            player.run()
+            data=torch.load(Path(directory)/'records.pt',weights_only=False)
+            self.assertTrue(data['assignment_after_observation'])
+            self.assertFalse(data['teacher_or_optimizer'])
+            self.assertFalse(data['future_done'].any())
+            self.assertGreaterEqual(len(data['assignment']),96)
+            self.assertTrue((torch.bincount(data['assignment'],minlength=6)>0).all())
+            self.assertTrue(torch.allclose(data['propensity'],torch.full_like(data['propensity'],1/6)))
+            for row in range(len(data['assignment'])):
+                selected=data['candidate_actions'][row,data['assignment'][row]]
+                self.assertTrue(torch.equal(data['actual_action'][row,:2],selected[None].expand(2,-1)))
+            self.assertTrue((data['actual_action'][:,2:]==0).all())
+            self.assertTrue(torch.equal(data['history'][:,-1,:49],data['state']))
+            self.assertEqual(len(set(data['episode_id'])),96)
+
     def test_labels_distinguish_supported_progress_contact_loss_and_existing_lift_drop(self):
         future=torch.zeros(3,10,49)
         future[:,:,38]=torch.tensor([1.04,1.04,1.01])[:,None]
@@ -129,6 +156,7 @@ class ContactConsequenceTests(unittest.TestCase):
         lift[:,0,1]=5
         self.assertTrue(opportunity_gate(lift,contact,drop,paired_valid=True)['passed'])
         self.assertFalse(opportunity_gate(lift,contact,drop,paired_valid=False)['passed'])
+        self.assertEqual(opportunity_gate(lift,contact,drop,paired_valid=False)['label'],'UNCLEAR')
         contact[:,0,1]=0
         self.assertFalse(opportunity_gate(lift,contact,drop,paired_valid=True)['passed'])
 

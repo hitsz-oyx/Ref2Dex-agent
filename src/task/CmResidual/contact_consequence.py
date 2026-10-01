@@ -90,5 +90,5 @@ def opportunity_gate(lift, contact, drop, *, paired_valid):
                 all_state_drop_change=float(drop_change.mean()),
                 first_repeat_choices=torch.bincount(chosen, minlength=6).tolist(),
                 paired_valid=bool(paired_valid),
-                label='PROMISING' if passed else 'UNPROMISING',
+                label='UNCLEAR' if not paired_valid else ('PROMISING' if passed else 'UNPROMISING'),
                 boundary='confirmed local candidate opportunity; no learned selector or grasp claim')

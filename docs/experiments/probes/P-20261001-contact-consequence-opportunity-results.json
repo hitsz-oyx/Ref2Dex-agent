@@ -1,0 +1,147 @@
+{
+  "experiment_id": "P-20261001-contact-consequence-opportunity",
+  "run_status": "COMPLETED",
+  "raw_result": {
+    "run_status": "COMPLETED",
+    "opportunity": {
+      "passed": false,
+      "states": 32,
+      "mean_confirmed_uplift_mm": 2.2236275672912598,
+      "median_confirmed_uplift_mm": 0.5414783954620361,
+      "base_repeat_absolute_noise_mm": 0.21020567417144775,
+      "required_mean_uplift_mm": 2.0,
+      "resolved_opportunity_fraction": 0.34375,
+      "mean_contact_change": 0.04374999925494194,
+      "all_state_drop_change": 0.0,
+      "first_repeat_choices": [
+        15,
+        4,
+        7,
+        5,
+        1,
+        0
+      ],
+      "paired_valid": false,
+      "label": "UNPROMISING",
+      "boundary": "confirmed local candidate opportunity; no learned selector or grasp claim"
+    },
+    "paired_valid_states": 11,
+    "drop_eligible": 0,
+    "decision": "REVIEW_CANDIDATE_OPPORTUNITY",
+    "baseline_status": "PARTIAL",
+    "cm_utility": "UNPROVEN",
+    "input_hashes_unchanged": true,
+    "elapsed_seconds": 405.89118266804144,
+    "cumulative_seconds": 480.24402601365,
+    "output_bytes": 215275377
+  },
+  "audited_scientific_label": "UNCLEAR",
+  "reason": "numeric opportunity screen passes but only11/32 full approximate-pairing contracts pass; no true individual oracle/regret claim",
+  "panels": [
+    {
+      "arm": 4,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 32,
+      "supported_lift_mm": 1.775050163269043,
+      "contact_fraction": 0.878125011920929
+    },
+    {
+      "arm": 0,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 21,
+      "supported_lift_mm": 2.4622561931610107,
+      "contact_fraction": 0.8906250596046448
+    },
+    {
+      "arm": 0,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 22,
+      "supported_lift_mm": 2.555913209915161,
+      "contact_fraction": 0.8968749642372131
+    },
+    {
+      "arm": 1,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 24,
+      "supported_lift_mm": 3.020139217376709,
+      "contact_fraction": 0.875
+    },
+    {
+      "arm": 1,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 26,
+      "supported_lift_mm": 3.109707832336426,
+      "contact_fraction": 0.8656250238418579
+    },
+    {
+      "arm": 2,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 22,
+      "supported_lift_mm": 2.538543462753296,
+      "contact_fraction": 0.859375
+    },
+    {
+      "arm": 2,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 21,
+      "supported_lift_mm": 2.5430002212524414,
+      "contact_fraction": 0.862500011920929
+    },
+    {
+      "arm": 3,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 22,
+      "supported_lift_mm": 1.316476821899414,
+      "contact_fraction": 0.9000000357627869
+    },
+    {
+      "arm": 3,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 24,
+      "supported_lift_mm": 1.533430576324463,
+      "contact_fraction": 0.934374988079071
+    },
+    {
+      "arm": 4,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 24,
+      "supported_lift_mm": 1.9492199420928955,
+      "contact_fraction": 0.8843750357627869
+    },
+    {
+      "arm": 5,
+      "repeat": 0,
+      "states": 32,
+      "paired_valid": 20,
+      "supported_lift_mm": 2.1248037815093994,
+      "contact_fraction": 0.8968750238418579
+    },
+    {
+      "arm": 5,
+      "repeat": 1,
+      "states": 32,
+      "paired_valid": 19,
+      "supported_lift_mm": 2.0509023666381836,
+      "contact_fraction": 0.887499988079071
+    }
+  ],
+  "input_hashes_verified": true,
+  "full_initial_states_verified": true,
+  "actual_candidate_execution_verified": true,
+  "complete_windows_verified": true,
+  "frozen_actors_verified": true,
+  "owned_processes_terminal": true,
+  "gpu4_released": true,
+  "drop_risk_support": "zero lifted-eligible states; not learned or validated",
+  "next_decision": "sequential randomized actual-state consequences with known propensity; no threshold/seed search to rescue paired gate"
+}

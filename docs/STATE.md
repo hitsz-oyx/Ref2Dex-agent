@@ -16,10 +16,14 @@ Updated: 2026-10-01
 并验证直接执行与重新观察的作用链条。旧数据不能直接提供逐状态真实 regret。
 具体区别、最小 Probe、对照与停止条件见
 [接触后果机制决定](decisions/D-20261001-contact-consequence-mechanism.md)。
-HF09 独立路线已登记：首轮真实候选机会 Probe，六臂各重复两次，候选直接执行2步、
-随后自身 base8步；触发状态/历史与完整动作/RNG合同经过工程测试，准备单 GPU 执行。
-实验卡见 [接触候选机会](experiments/probes/P-20261001-contact-consequence-opportunity.md)。
-尚无该路线的科学结果，不重开 HF08/HD02。
+HF09 候选机会 Probe 已完成12个真实 GPU 分支：二次重复的候选优势2.224mm、
+base重复噪声0.210mm，数值屏通过，但仅11/32完整近似配对有效，标签 UNCLEAR。
+不能把它称为可靠逐状态 oracle；也没有已抬升状态的掉落支持。
+下一轮使用已预述的随机干预回退：记录实际状态、已知p=1/6、完整2+8后果，
+覆盖较晚接触，并按起始帧/episode分组留出，再学习物理后果与对照排序。
+见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
+[随机后果排序卡](experiments/probes/P-20261001-contact-consequence-ranking.md)。
+旧输入hash未变、自有 GPU4进程已结束；本路线尚未证明 Cm 选择收益，不重开 HF08/HD02。
 当前授权以用户最新方向为准；旧 Goal 的“无新 Cm 接法”属于该已完成诊断的边界。
 MISSION claim 不变，baseline PARTIAL、Cm utility OPEN；旧结果与输入继续保留。
 
@@ -211,7 +215,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
-| `HF09` contact-consequence-direct-control | `C3` | `ACTIVE`（机会→排序→闭环） | 1/3，候选机会 Probe | `agent/cm-contact-consequence` |
+| `HF09` contact-consequence-direct-control | `C3` | `ACTIVE`（机会→排序→闭环） | 2/3，随机后果排序 Probe | `agent/cm-contact-consequence` |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
@@ -227,8 +231,9 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 ## Next step
 
-当前优先完成接触候选的机会/局部噪声 Probe 设计：先确认真实可执行候选有可利用
-优势，再检验 Cm 能否排序、直接执行和重新决策。第一阶段不依赖长期 V、不启动
+当前推进随机干预的实际状态/后果数据与非线性排序。近似配对的机会信号不能作为
+可靠反事实真值；使用已知 propensity 测量留出策略价值，并补掉落支持。
+排序与覆盖过门后才检验直接重新决策；不依赖长期 V、不启动
 完整 PPO 或终点成功率矩阵；模型计算与仿真默认单 GPU，先固定合同与有界预算。
 HF08 当前实现和 HD02 诊断已关闭，后续机制是独立路线，旧证据继续保留。
 完整 paired evaluator 证据保留在

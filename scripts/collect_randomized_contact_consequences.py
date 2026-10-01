@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""Sequential randomized contact interventions with recorded propensity.
+
+Unlike a solver-state branch, each label belongs to its actual observed
+pre-action state. Group by first episode for all learning/evaluation splits.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'scripts'))
+from run_paired_evaluator_resolution import sha
+from collect_contact_consequences import build_player
+
+
+def randomized_player(original,args,torch,gymtorch):
+    from src.task.CmResidual.contact_consequence import HISTORY,HORIZON,EXECUTION_STEPS,BASE_INDEX,local_outcomes
+    from src.task.CmResidual.paired_evaluation import fingerprint
+    from src.task.CmResidual.physical_value_live import contacts
+    parent=build_player(original,args,torch,gymtorch)
+
+    class RandomizedPlayer(parent):
+        @torch.no_grad()
+        def run(self):
+            started=time.monotonic();torch.set_num_threads(2)
+            torch.backends.cudnn.benchmark=False;torch.backends.cudnn.deterministic=True
+            torch.backends.cudnn.allow_tf32=False;torch.backends.cuda.matmul.allow_tf32=False
+            task=self.env.task;task._hybrid_init_prob=0.0
+            task._enable_early_termination=False;task._adaptive_kappa_enabled=False
+            if self.is_rnn or task.num_envs!=96 or abs(task.dt-1/30)>1e-8:
+                raise ValueError('frozen stateless96env/30Hz contract')
+            ids=torch.arange(task.num_envs,device=self.device)
+            obs=self.env_reset(ids)
+            if self.get_batch_size(obs['obs'],1)!=task.num_envs:raise ValueError('native batch')
+            n=task.num_envs;w=args.windows_per_episode
+            history=torch.zeros(n,HISTORY,69,device=self.device)
+            previous=torch.zeros(n,18,device=self.device)
+            count=torch.zeros(n,dtype=torch.long,device=self.device)
+            elapsed=torch.full((n,),-1,dtype=torch.long,device=self.device)
+            current_arm=torch.full((n,),BASE_INDEX,dtype=torch.long,device=self.device)
+            cached=torch.zeros(n,18,device=self.device)
+            cooldown=torch.zeros(n,dtype=torch.long,device=self.device)
+            contact_run=torch.zeros(n,dtype=torch.long,device=self.device)
+            ended=torch.zeros(n,dtype=torch.bool,device=self.device)
+            trigger=torch.full((n,w),-1,dtype=torch.long,device=self.device)
+            assignment=torch.full_like(trigger,-1)
+            trigger_state=torch.zeros(n,w,49,device=self.device)
+            trigger_history=torch.zeros(n,w,HISTORY,69,device=self.device)
+            proposals=torch.zeros(n,w,6,18,device=self.device)
+            future=torch.zeros(n,w,HORIZON,49,device=self.device)
+            future_contact=torch.zeros(n,w,HORIZON,2,dtype=torch.bool,device=self.device)
+            actual=torch.zeros(n,w,HORIZON,18,device=self.device)
+            terminal=torch.zeros(n,w,HORIZON,dtype=torch.bool,device=self.device)
+            steps=torch.zeros(n,w,dtype=torch.long,device=self.device)
+            motion=task.data_id.clone();start=task.start_times.clone()
+            rest=task.hoi_refs[task.data_id,task.ref_index,0,108].clone()
+            generator=torch.Generator(device=self.device).manual_seed(args.assignment_seed)
+            before=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts])
+            reset_ids=torch.empty(0,dtype=torch.long,device=self.device)
+            for tick in range(args.max_steps):
+                if time.monotonic()-started>args.wall_seconds:raise TimeoutError('randomized native budget')
+                obs=self.env_reset(reset_ids)
+                state=torch.cat((task._dof_pos.clone(),task._dof_vel.clone(),task._target_states.clone()),-1)
+                contact=contacts(task)
+                history=torch.cat((history[:,1:],torch.cat((state,contact,previous),-1)[:,None]),1)
+                contact_run=torch.where(contact.bool().all(-1),contact_run+1,0)
+                candidate=self.candidates(obs)
+                base=candidate[:,BASE_INDEX]
+                eligible=((elapsed<0)&(count<w)&~ended&(cooldown<=0)&(contact_run>=3)&
+                          (tick>=HISTORY)&(tick<=args.max_steps-HORIZON)&
+                          (task.max_episode_length[task.data_id]-task.progress_buf>HORIZON+1))
+                rows=eligible.nonzero().flatten();slots=count[rows]
+                if len(rows):
+                    # This private draw is after observing the current state,
+                    # independent of actor/FPS RNG and all future labels.
+                    arm=torch.randint(6,(len(rows),),device=self.device,generator=generator)
+                    current_arm[rows]=arm;cached[rows]=candidate[rows,arm]
+                    trigger[rows,slots]=tick;assignment[rows,slots]=arm
+                    trigger_state[rows,slots]=state[rows]
+                    trigger_history[rows,slots]=history[rows]
+                    proposals[rows,slots]=candidate[rows]
+                    elapsed[rows]=0
+                live=(elapsed>=0)&~ended
+                rows=live.nonzero().flatten();slots=count[rows];offset=elapsed[rows]
+                action=base.clone()
+                override=live&(elapsed<EXECUTION_STEPS)
+                action[override]=cached[override]
+                applied=action.clone()
+                _,_,done,_=self.env_step(self.env,action)
+                done=done.bool().reshape(-1)
+                after=torch.cat((task._dof_pos.clone(),task._dof_vel.clone(),task._target_states.clone()),-1)
+                future[rows,slots,offset]=after[rows]
+                future_contact[rows,slots,offset]=contacts(task)[rows].bool()
+                actual[rows,slots,offset]=applied[rows]
+                terminal[rows,slots,offset]=done[rows]
+                steps[rows,slots]+=1
+                elapsed[live]+=1
+                complete=live&(elapsed==HORIZON)
+                count[complete]+=1;elapsed[complete]=-1;cooldown[complete]=6
+                cooldown=(cooldown-1).clamp_min(0)
+                ended|=done
+                reset_ids=done.nonzero().flatten();previous=applied
+                if tick%100==0:print(json.dumps(dict(tick=tick,complete_windows=int((steps==HORIZON).sum()),first_episodes_ended=int(ended.sum()))),flush=True)
+                if bool((ended|(count>=w)).all()):break
+            valid=(steps==HORIZON)&~terminal.any(-1)&(assignment>=0)
+            if int(valid.sum())<96:raise ValueError('insufficient complete randomized support')
+            if ((steps>0)&~valid).any():raise ValueError('incomplete/terminal-contaminated window; do not discard')
+            expected=proposals[valid][torch.arange(int(valid.sum()),device=self.device),assignment[valid]]
+            if not torch.equal(actual[valid][:,:EXECUTION_STEPS],expected[:,None].expand(-1,EXECUTION_STEPS,-1)):
+                raise ValueError('random candidate not executed')
+            outcome=local_outcomes(future[valid],future_contact[valid].all(-1),trigger_state[valid][:,38],rest[:,None].expand(-1,w)[valid])
+            if before!=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts]):
+                raise ValueError('frozen expert updated')
+            env_id=torch.arange(n,device=self.device)[:,None].expand(-1,w)[valid]
+            payload=dict(schema='ref2dex.randomized_contact_consequence.v1',seed=args.seed,assignment_seed=args.assignment_seed,
+                         episode_id=[f's{args.seed}/env{int(i)}/first' for i in env_id.cpu()],
+                         env_id=env_id.cpu(),motion_id=motion[:,None].expand(-1,w)[valid].cpu(),
+                         start_frame=start[:,None].expand(-1,w)[valid].cpu(),trigger=trigger[valid].cpu(),
+                         state=trigger_state[valid].cpu(),history=trigger_history[valid].cpu(),
+                         candidate_actions=proposals[valid].cpu(),assignment=assignment[valid].cpu(),
+                         propensity=torch.full((int(valid.sum()),),1/6),
+                         future_state=future[valid].cpu(),future_contact=future_contact[valid].cpu(),
+                         actual_action=actual[valid].cpu(),future_done=terminal[valid].cpu(),
+                         rest_z=rest[:,None].expand(-1,w)[valid].cpu(),outcome={k:v.cpu() for k,v in outcome.items()},
+                         contact_definition='native hand/object force proxy; collision pair unavailable',
+                         intervention='cached current candidate2steps + own base8steps;6step cooldown',
+                         teacher_or_optimizer=False,assignment_after_observation=True)
+            torch.save(payload,args.output/'records.pt')
+            result=dict(run_status='COMPLETED',rows=int(valid.sum()),episodes=len(set(payload['episode_id'])),
+                        arms=torch.bincount(payload['assignment'],minlength=6).tolist(),
+                        drop_eligible=int(outcome['drop_eligible'].sum()),drops=int(outcome['drop'].sum()),
+                        elapsed_seconds=time.monotonic()-started,sha256=sha(args.output/'records.pt'))
+            (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+    return RandomizedPlayer
+
+
+def main():
+    p=argparse.ArgumentParser(add_help=False,allow_abbrev=False)
+    p.add_argument('--output-dir',dest='output',type=Path,required=True)
+    p.add_argument('--panel-seed',dest='seed',type=int,required=True)
+    p.add_argument('--assignment-seed',type=int,required=True)
+    p.add_argument('--windows-per-episode',type=int,default=8)
+    p.add_argument('--max-steps',type=int,default=650)
+    p.add_argument('--wall-seconds',type=int,default=240)
+    args,remaining=p.parse_known_args()
+    root=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
+    if root not in args.output.resolve().parents:raise ValueError('outside owned output')
+    args.output.mkdir(parents=True,exist_ok=False)
+    manifest=dict(run_status='STARTED',pid=os.getpid(),command=sys.argv,gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),
+                  git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+                  actor_training=False,cm_training=False)
+    (args.output/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+    started=time.monotonic()
+    try:
+        sys.path.insert(0,str(ROOT/'third_party/DExplore/dexplore'))
+        from isaacgym import gymtorch
+        import torch
+        import evaluate as original
+        original.EvalPlayer=randomized_player(original,args,torch,gymtorch)
+        sys.argv=[sys.argv[0],*remaining];original.main();manifest['run_status']='COMPLETED'
+    except BaseException as error:
+        manifest.update(run_status='FAILED',error=repr(error));raise
+    finally:
+        manifest['elapsed_seconds']=time.monotonic()-started
+        (args.output/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+
+
+if __name__=='__main__':main()

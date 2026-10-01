@@ -77,3 +77,33 @@ flattening96 observations into one actor input. Full cold snapshot restore had
 passed. Added the required batch initialization and a native-loop regression
 that refuses action inference before it. r3 charges both failed attempts under
 the same budget; no candidate outcome or scientific negative existed in r1/r2.
+
+## Terminal r3 and next decision
+
+All12 native phases COMPLETED;32 first-contact states, complete10step windows,
+six arms/two repeats, actual cached candidate2→own-base8 execution verified.
+The first-repeat-selected candidate has second-repeat mean uplift2.224mm,
+median0.541mm, versus base mean absolute repeat noise0.210mm. Resolved-opportunity
+fraction34.375%, contact change+0.04375; these numerical screens pass.
+However only11/32 states pass every arm/repeat trigger/history tolerance.
+Most discrepancies are thresholded contact flags; some velocity/rotation
+histories also differ. No state is>=3cm above rest at trigger, so there is no
+drop-risk support. Do not discard the failing states and call the rest positive.
+
+The native automatic label was UNPROMISING because its positive gate failed.
+The independent completion audit correctly classifies the scientific result
+as **UNCLEAR / PAIRING_CONTRACT_FAILED**: candidate opportunity has a signal,
+but approximate branches cannot confirm per-state counterfactual ranking.
+The raw result remains unchanged; label helper corrected for future runs so
+contract failure is not confused with a valid negative opportunity result.
+
+All checkpoint/config/motion/source hashes verified unchanged at completion,
+all owned native processes terminal and GPU4 released. Cumulative r1/r2/r3
+native wall480.24seconds,215.3MB retained. CPU was used only for isolated tests
+and file/trace auditing. [Audited result index](P-20261001-contact-consequence-opportunity-results.json).
+
+Next: use actual-state sequential randomized interventions with private
+assignment p=1/6, complete2+8 labels and episode/frame-group splits. Multiple
+contact points cover later states; do not reuse old10-step options as labels.
+This follows the mechanism memo's declared randomization fallback, leaves
+this paired gate unchanged, and does not claim Cm selection already works.
