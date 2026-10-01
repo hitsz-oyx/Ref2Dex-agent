@@ -134,14 +134,14 @@ hypotheses:
   HF11:
     claim: C3
     name: physical_recovery_categorical_option_learning
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-contact-consequence
     probe_budget: 1
     probes_used: 1
     owner: current_session
     authorization: "active goal plus AGENTS autonomy; distinct trainable direct-action recovery role from HF10 local release signal; core claim/resource boundaries unchanged"
     card: docs/experiments/probes/P-20261001-recovery-option-learning.md
-    transition: "GPU full-episode engineering passed: each96episodes/51746envsteps/22updates, actual-option initial ratio error0, Cm/expert frozen and inputs unchanged. Launching fixed4rollout/arm matched PPO and391-394independent eval; prior controller391baseline. Budget1/1, no intermediate tuning. HF10 remainsUNPROMISING2/2closed, C3OPEN."
+    transition: "Budget1/1closed UNPROMISING. Matched207123effective steps/840updates perarm; stable17/384vs13/384,+1.042pp eval-seed t95cross0. ZEROraw greedy-choice changes in5065on/5014off decisions, so no RL utility. Frozen prior advantage3.807 exceeds learned maximum1.283/1.612; next trainable-guide/task-retention objective route, no epochs/prior sweep. Inputs/records verified, GPUs released; C3OPEN."
   HF10:
     claim: C3
     name: retained_physical_trajectory_relative_action_effect

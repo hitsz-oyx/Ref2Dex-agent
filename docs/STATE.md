@@ -44,10 +44,16 @@ vsstate-only/shuffled +.279/+.060mm，vs最佳固定cup −.699mm，原收益门
 HF10预算2/2关闭，旧MAE门失败及新收益失败都保留，不扫阈值追抬升。
 下一步HF11已固定直接categorical片段策略的学习合同：Cm提供物理未来特征和
 明确动作先验，PPO使用实际片段选择概率，评价训练所得策略时继续调用Cm。
-GPU完整episode工程smoke已通过：on/off各96episodes/51746有效envsteps，
-各22次更新，初始实际选择ratio误差0；Cm/专家冻结且输入hash未变。
-现在启动固定4rollout/arm的matched on/off有界训练与独立完整回合评价。
-新训练seed单个只作Probe，稳定45tick/后续drop协议预固定，C3仍OPEN。
+HF11已完成matched训练：on/off各207123有效envsteps/840updates，
+初始权重及四批episode预算一致。独立stable45tick且无后续drop为17/384vs13/384，
+差+1.042pp，四eval seed描述性t95[−.872,+2.956]pp。关键学习门失败：
+on5065/off5014评价决策原始argmax相对冻结先验均0变化，故UNPROMISING，
+不能把数值差或trained6/96vsprior3/96称为RL收益。预算1/1关闭。
+GPU机械审计确认：固定先验log优势3.807，高于学到的最大相对分数1.283/1.612；
+网络学到了概率偏好，但贪心执行被固定先验压住。原生reward同时是参考轨迹
+imitation乘积，而非45tick保持/防掉落任务目标。下一步把Cm知识放入可学习
+动作评分参数，使用共同的接触支持保留reward，先验证学到的策略确实能执行
+不同物理动作。现有NN/专家输入未改，自有GPU进程结束；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
 [保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。

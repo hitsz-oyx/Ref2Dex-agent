@@ -1,6 +1,6 @@
 # P-20261001-recovery-option-learning
 
-HF11, scientific budget1/1 running after terminal engineering pass.
+HF11 COMPLETED / UNPROMISING, scientific budget1/1closed.
 [Frozen design](../../decisions/D-20261001-recovery-option-learning.md).
 
 Question: can the physical recovery signal become a trainable actual option
@@ -52,3 +52,38 @@ r1 and charge its cost into r2 and scientific parent. No science outcome used
 to modify method. r2smoke artifact includes full manifest/results. Per-decision
 Cm computation is identical on/off; actual decision counts/total compute can
 differ and will be reported. Science slot1/1 now launching fixed protocol.
+
+Terminal: matched4rollouts/arm,each207123effective first-episode steps and
+840updates; all rollout episode-length arrays matched. Actual batched simulator
+steps counted separately in results. Initial weights identical; all inputs,
+model/decision hashes unchanged and own native processes exited/GPU released.
+Total including successful/failed engineering1849.32s/110.74MB.
+
+Independent four-seed evaluation: stable-success on17/384 vs off13/384
+(+1.042pp, eval-seed descriptive t95[−.872,+2.956]pp). Acquisition143vs137;
+release-after-acquisition127/143vs126/137 is descriptive, conditions on a
+post-treatment outcome and is not a common-prestate causal risk comparison.
+On/off stable-ever58vs46,followed-by-drop41vs33. Only17vs13retain success
+through episode end. No formal utility or stable-grasp claim.
+
+Critical failed learning gate: on5065/off5014evaluation choices have ZERO
+raw option-ID argmax changes from their frozen priors. Learned probabilities
+changed, but greedy deployed physical actions did not. Trained-on6/96 vs
+frozen-on3/96 atseed391 therefore cannot demonstrate learning; labels can
+vary without changed choices under nonrepeatable simulator/observations.
+
+GPU mechanical audit(.960s): fixed log prior advantage3.80666; maximum
+learned competitor score advantage1.28299on/1.61185off, so no learned choice
+can win against it. Removing prior only in offline arithmetic changes
+4535/5065on and4871/5014offargmaxes; that is NOT evidence those alternative
+actions improve outcomes. Runtime actual choices replay exactly; weights and
+records unchanged. Root introduced the fixed prior, and it prevented this
+learned scoring head from changing deployed decisions. Do not solve this
+by adding epochs or interpreting17vs13asRL benefit.
+
+Native reward audit: compute_humanoid_reward is rb*ro*rig*rcg tracking
+reference body/object/interaction/contact and energy. It does not explicitly
+optimize45tickhold/drop prevention. Next independent route should move Cm
+knowledge into trainable actor parameters and align common reward with contact
+supported retention, then first verify actual learned control. Existing gate
+UNPROMISING and budget1/1remain closed; C3OPEN.
