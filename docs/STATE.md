@@ -8,6 +8,14 @@ Updated: 2026-10-01
 
 ## Current decision
 
+当前用户 Goal 明确停止 V 训练、PPO 与新增 Cm 接法；HF08 checkpoint、数据和
+旧结果全部冻结。当前会话直接修复 paired evaluator，先仅重复 plain-off，并检验
+是否能分辨5pp；通过后才允许一次已有 checkpoint 的三臂 actor-only 推理评价。
+重复性或三臂 gate 失败则关闭当前实现，Cm policy utility 仍未证明，self-trained
+baseline 保持 PARTIAL。不得混入 baseline epoch/curriculum 训练。
+见 [评价器分辨率决策](decisions/D-20261001-paired-evaluator-resolution.md) 和
+[HD02 固定实验卡](experiments/probes/P-20261001-paired-evaluator-resolution.md)。
+
 HF08 physical-value Probe 已完成：r7 的 48/48 native 评价完成，终点成功率为
 plain_off 41/384、direct_q 40/384、cm_value 33/384；原生 gate 为
 `UNPROMISING`。HF08 family 为 `PAUSED`，Probe 预算 1/1 已用；不升级
