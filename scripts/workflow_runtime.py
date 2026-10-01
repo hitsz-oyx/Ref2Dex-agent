@@ -19,6 +19,8 @@ def provider_failure(execution: dict[str, Any]) -> str | None:
     error = str(execution.get('error', '')) + ' ' + str(execution.get('output', ''))
     if re.search(r'Selected model is at capacity', error, re.I):
         return 'capacity'
+    if re.search(r'usage[ _-]?limit', error, re.I):
+        return 'usage_limit'
     if re.search(r'quota (?:exhausted|exceeded)|insufficient_quota|rate.limit|provider unavailable', error, re.I):
         return 'unavailable'
     if re.search(r'connection (?:refused|reset|failed)|connect(?:ion)? timeout|provider (?:connection|network) error|HTTP (?:502|503|504)|\b(?:502 Bad Gateway|503 Service Unavailable|504 Gateway Timeout)\b', error, re.I):

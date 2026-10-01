@@ -22,7 +22,9 @@ description: 显式科研角色的账号/provider绑定建立或迁移时使用�
 
 1. 在授权工作区创建独立工作树；检查同名目录/分支和未提交修改，不覆盖用户工作。
 2. 为绑定指定绝对的 CODEX_HOME、workspace、store 和 Node/Codex PATH。逻辑角色之间
-   使用不同工作树；同角色备选保留工作树但使用不同账号目录/store。
+   使用不同工作树/store；逐角色配置允许当前 CODEX_HOME 相同，此时凭据/额度相同。
+   同角色备选保留工作树但使用不同账号目录/store。root 首次通过 bind-root 传入前台
+   主代理 CODEX_HOME 与运行环境，后台使用保存配置；有历史的 campaign 不直接改绑 root。
 3. 模型路径使用 Codex harness。选择真实 provider 依赖该账号的 Codex 配置，不能只改
    provider 显示名。凭据、本机 workflow.json、执行数据库不提交，工具输出不打印密钥。
 4. 使用 Node 24 的绝对路径做有界版本与 HTTP 入口检查，不修改系统 Node 或全局依赖。

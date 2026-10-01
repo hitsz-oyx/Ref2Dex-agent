@@ -7,7 +7,7 @@ from typing import Any
 
 from scripts.workflow_bindings import protect_workspace, WorkspaceConflict
 from scripts.workflow_policy import worker_prompt
-from scripts.workflow_runtime import provider_failure, WorkflowError, NativeGoalHeld
+from scripts.workflow_runtime import provider_failure, WorkflowError, NativeGoalHeld, ProviderWaiting
 
 
 def save(db: Any, ident: str, value: dict[str, Any]) -> None:
@@ -15,7 +15,8 @@ def save(db: Any, ident: str, value: dict[str, Any]) -> None:
 
 
 def attach(workflow: Any, db: Any, item: dict[str, Any], recovery: dict[str, Any], execution_id: str) -> None:
-    db.execute('UPDATE deliveries SET execution_id=? WHERE id=?', (execution_id, item['task_id']))
+    db.execute('UPDATE deliveries SET execution_id=?, store=COALESCE(?,store) WHERE id=?',
+               (execution_id, recovery.get('binding_store'), item['task_id']))
     db.execute('UPDATE execution_attempts SET execution_id=? WHERE task_id=? AND attempt=?',
                (execution_id, item['task_id'], recovery['attempt']))
     recovery.update(phase='observing', source_execution_id=execution_id)
@@ -33,7 +34,7 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
         with workflow.transaction() as db:
             row = db.execute('SELECT value FROM recoveries WHERE task_id=?', (item['task_id'],)).fetchone()
         recovery = json.loads(row['value']) if row else None
-        runtime = workflow.runtime(item['role'], item['binding_store'])
+        runtime = workflow.runtime(item['role'], (recovery or {}).get('binding_store', item['binding_store']))
         if recovery and recovery['phase'] in ('launching', 'uncertain'):
             found = runtime.find(recovery['name'])
             with workflow.transaction() as db:
@@ -51,7 +52,7 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
             continue
         if recovery and recovery['phase'] == 'stopped':
             continue
-        if failure not in ('capacity', 'connection'):
+        if failure not in ('capacity', 'connection', 'usage_limit'):
             if recovery and execution.get('status') == 'succeeded':
                 recovery.update(phase='finished', gateway_attempts=0)
                 with workflow.transaction() as db:
@@ -76,8 +77,8 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
                 recovery.update(phase='stopped', reason='three gateway recovery attempts exhausted')
             with workflow.transaction() as db:
                 workflow.check_control(db, version)
-                db.execute('INSERT OR IGNORE INTO execution_attempts VALUES (?,?,?,?)',
-                           (item['task_id'], 0, item['execution_id'], item['task_id']))
+                db.execute('INSERT OR IGNORE INTO execution_attempts(task_id,attempt,execution_id,name,store) VALUES (?,?,?,?,?)',
+                           (item['task_id'], 0, item['execution_id'], item['task_id'], item['binding_store']))
                 save(db, item['task_id'], recovery)
             continue
         if time.time() < recovery['due']:
@@ -87,6 +88,15 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
             with workflow.transaction() as db:
                 save(db, item['task_id'], recovery)
             continue
+        if failure == 'usage_limit':
+            try:
+                binding = workflow.select_binding(item['role'], item['contract'].get('provider'), item['task_id'], item['contract'].get('kind'))
+            except ProviderWaiting:
+                recovery['reason'] = 'waiting for a permitted verified account'
+                with workflow.transaction() as db:
+                    save(db, item['task_id'], recovery)
+                continue
+            runtime = workflow.runtime(item['role'], binding['store'])
         try:
             protect_workspace(runtime.binding)
         except WorkspaceConflict as exc:
@@ -97,7 +107,12 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
         prompt = workflow.root_prompt(status) if item['role'] == 'root' else worker_prompt(item['contract'], workflow.roles[item['role']])
         prompt += '\nContinue the SAME authorized task after a provider interruption. Inspect saved artifacts and owned processes first; do not duplicate experiments or rerun completed work. Preserve existing changes. Do not unpause a user-paused Goal or reset its budget.'
         try:
-            execution = runtime.continuation_source(execution)
+            source_runtime = workflow.runtime(item['role'], item['binding_store'])
+            execution = source_runtime.continuation_source(execution)
+            if runtime.store != source_runtime.store:
+                # Cross-account handoff must never resume an old account's thread.
+                prompt += '\nAccount handoff. Previous execution: ' + json.dumps(item['execution'], ensure_ascii=False)
+                execution = {**execution, 'provider': {}}
         except NativeGoalHeld as exc:
             recovery.update(phase='stopped', reason=str(exc))
             with workflow.transaction() as db:
@@ -111,14 +126,14 @@ def recover(workflow: Any, status: dict[str, Any]) -> None:
                 timeout = min(timeout, int(workflow.budget['wall_time_seconds'] - (time.time() - workflow.get(db, 'started'))))
             if timeout <= 0:
                 raise WorkflowError('no authorized time remains for recovery')
-            recovery.update(phase='launching', attempt=recovery['attempt'] + 1, timeout_seconds=timeout)
+            recovery.update(phase='launching', attempt=recovery['attempt'] + 1, timeout_seconds=timeout, binding_store=runtime.binding['store'])
             if item['role'] == 'root':
                 recovery['observation_fingerprint'] = workflow.fingerprint(status)
             if failure == 'connection':
                 recovery['gateway_attempts'] += 1
             recovery['name'] = 'ref2dex:' + workflow.get(db, 'workflow_id') + ':' + item['task_id'] + ':recovery-' + str(recovery['attempt'])
-            db.execute('INSERT INTO execution_attempts VALUES (?,?,?,?)',
-                       (item['task_id'], recovery['attempt'], None, recovery['name']))
+            db.execute('INSERT INTO execution_attempts(task_id,attempt,execution_id,name,store) VALUES (?,?,?,?,?)',
+                       (item['task_id'], recovery['attempt'], None, recovery['name'], runtime.binding['store']))
             save(db, item['task_id'], recovery)
         # Persist intent before the side effect; a missing response is reconciled
         # by unique name and never causes another continuation to be launched.
