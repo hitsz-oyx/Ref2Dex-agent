@@ -141,7 +141,7 @@ hypotheses:
     owner: current_session
     authorization: "AGENTS autonomous research and active user goal; fixed-prior execution gap and imitation/retention objective mismatch confirmed, distinct actor-ownership/task-objective route, mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261001-trainable-recovery-guide.md
-    transition: "Engineering only. Trainable guide initialized half-exploit/half-explore, no external log prior; common bounded contact-supported retention reward. Fresh400smoke then401training/411-414eval only if contracts pass. Actual learned independent-command fraction>=5% before utility. HF11/HF10 budgets closed; no threshold sweep/C3promotion."
+    transition: "Engineering/replay passed after endpoint-control repair. Scientific1/1 RUNNING: train401/four complete96episode rollouts perarm and fixed411-414greedy evaluation. Actor-owned guide/no external log prior and common bounded retention reward; science inputs frozen. Actual learned independent-command fraction>=5% before utility. HF11/HF10 budgets closed; no threshold sweep/C3promotion."
   HF11:
     claim: C3
     name: physical_recovery_categorical_option_learning
