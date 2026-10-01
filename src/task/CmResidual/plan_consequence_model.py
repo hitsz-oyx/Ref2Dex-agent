@@ -59,11 +59,12 @@ class StateOptionOutcomeModel(nn.Module):
     def __init__(self,native_observation_dim):
         super().__init__()
         self.history=nn.GRU(69,64,batch_first=True)
-        self.context=nn.Sequential(nn.Linear(native_observation_dim,64),nn.SiLU(),nn.LayerNorm(64))
+        self.context=nn.Sequential(nn.Linear(native_observation_dim+1,64),nn.SiLU(),nn.LayerNorm(64))
         self.heads=nn.Sequential(nn.Linear(128,128),nn.SiLU(),nn.Linear(128,8*3))
 
-    def forward(self,history,native_observation):
-        _,h=self.history(history);state=torch.cat((h[-1],self.context(native_observation)),-1)
+    def forward(self,history,native_observation,task_rest):
+        context=torch.cat((native_observation,task_rest[:,None]),-1)
+        _,h=self.history(history);state=torch.cat((h[-1],self.context(context)),-1)
         return self.heads(state).reshape(-1,8,3)
 
 
