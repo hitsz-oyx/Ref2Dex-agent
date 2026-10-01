@@ -239,3 +239,22 @@ Why deferred:
 Trigger:
 
 如果最终论文要将该权衡作为核心因果机制而非探索性线索。
+
+---
+
+## CR-D01 — Attributed grasp and table-clearance validation
+
+Status: DEFERRED UNTIL HOLDING FEASIBILITY PASSES
+
+Standalone branch contact-response currently reports object-root rise plus two
+unattributed force proxies. For an elongated object, supported tilting and
+hand/table forces can satisfy proxy labels without establishing a free grasp.
+Existing height-only compact traces cannot independently recover object-table
+clearance or contact attribution. Keep failed frozen gates unchanged.
+
+Trigger: if the held-task baseline passes its current feasibility gate, inspect
+new fixed evaluation trajectories with full object pose, object-table clearance,
+hand-object geometry and, where available, attributed contact. This becomes a
+Decision check before model utility rather than an optional figure. Formal
+grasp/retention claims additionally require a frozen, verified physical criterion;
+do not equate proxy success with force closure or hardware validation.
