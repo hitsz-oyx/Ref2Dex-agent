@@ -192,6 +192,8 @@ class ContactConsequenceTests(unittest.TestCase):
                             physics=torch.zeros(n,6,22),recommended=torch.zeros(n,dtype=torch.long))
         Player=self.fake_player_type()
         class CompletePlayer(Player):
+            def __init__(self):
+                super().__init__();del self.batch_initialized
             def env_step(self,env,action):
                 obs,reward,_,info=super().env_step(env,action)
                 return obs,reward,env.task.progress_buf>=40,info

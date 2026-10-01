@@ -38,7 +38,7 @@ def recovery_player(original,args,torch,gymtorch):
             ids=torch.arange(n,device=self.device);empty=ids[:0]
             for rollout in range(args.rollouts):
                 observation=self.env_reset(ids)
-                if not self.batch_initialized and self.get_batch_size(observation['obs'],1)!=n:raise ValueError('native batch')
+                if self.get_batch_size(observation['obs'],1)!=n:raise ValueError('native batch')
                 motion=task.data_id.clone();start=task.start_times.clone()
                 rest=task.hoi_refs[task.data_id,task.ref_index,0,108].clone()
                 tracker=HoldTracker(n,self.device);tracker.reset(ids,rest)
