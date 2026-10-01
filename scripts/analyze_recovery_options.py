@@ -27,19 +27,26 @@ def run(args):
         if not all(torch.isfinite(v).all() for v in policy['policy'].values()):raise ValueError('nonfinite policy')
         for b in buffers:
             if not torch.isfinite(b['returns']).all() or not torch.isfinite(b['old_logprob']).all() or (b['old_logprob']>1e-6).any():raise ValueError('invalid return/log probability')
-        learned_physical=0;nonbase=0;decisions=0
+        learned_physical=0;nonbase=0;decisions=0;raw_changes=0
         for b in buffers:
             row=torch.arange(len(b['selected']));selected=b['selected'];prior=b.get('reference_option',b['inputs']['log_prior'].argmax(-1))
             a=effective_commands(b['candidate_actions']) if 'candidate_actions' in b else b['inputs']['actions']
+            raw_changes+=int((selected!=prior).sum())
             learned_physical+=int((a[row,selected]!=a[row,prior]).any(-1).sum())
             nonbase+=int((a[row,selected]!=a[:,4]).any(-1).sum());decisions+=len(row)
         audit[name]=dict(episodes=sum(q['episodes'] for q in r['rollouts']),effective_first_episode_steps=r['native_env_steps'],
                         actual_batched_sim_steps=sum(q['episodes']*max(q['episode_steps']) for q in r['rollouts']),optimizer_updates=r['optimizer_updates'],
                         initial_fingerprint=policy['initial_fingerprint'],policy_parameters_changed=r['policy_parameters_changed'],
-                        decisions=decisions,actual_nonbase_decisions=nonbase,selected_physical_differs_from_prior=learned_physical,
+                        guide_weight=policy['policy'].get('guide_weight',torch.tensor(float('nan'))).item() if learnable_guide else None,
+                        selected_raw_option_differs_from_prior=raw_changes,decisions=decisions,actual_nonbase_decisions=nonbase,selected_physical_differs_from_prior=learned_physical,
                         inference_ms_total=sum(r['batched_inference_ms']),inference_calls=len(r['batched_inference_ms']),
                         inference_ms_median=float(np.median(r['batched_inference_ms'])))
         records[name]=r
+    trace_audit=None
+    if learnable_guide:
+        from audit_recovery_traces import audit_phase
+        trace_audit={}
+        for name,p in phases.items():trace_audit[name]=audit_phase(Path(p['directory']),p['result'])[0]
     on,off=records['train_on'],records['train_off']
     if len(on['rollouts'])!=4 or len(off['rollouts'])!=4 or on['native_env_steps']!=off['native_env_steps']:raise ValueError('training budget mismatch')
     if audit['train_on']['initial_fingerprint']!=audit['train_off']['initial_fingerprint']:raise ValueError('initial weights mismatch')
@@ -75,9 +82,9 @@ def run(args):
                 all_episode_release_difference=evaluated['on']['rates']['post_lift_release']-evaluated['off']['rates']['post_lift_release'],
                 frozen_prior=prior,prior_comparison_seed=first_seed,stable_learning_difference_first_seed=learning_success_delta,
                 learned_physical_evaluation_decisions=physical_changes,learned_physical_decision_fraction=physical_fraction,
-                phase_audits=audit,input_hashes_unchanged=all(sha(Path(k))==v for k,v in m['input_sha256'].items()),
+                phase_audits=audit,trace_replay_audits=trace_audit,input_hashes_unchanged=all(sha(Path(k))==v for k,v in m['input_sha256'].items()),
                 elapsed_seconds_including_smoke=m['cumulative_seconds'],bytes_including_smoke=m['output_bytes'],
-                scope='one training seed; interval only over four evaluation seeds conditional on these checkpoints; matched configuration/initial weights/episode budgets, exact cold physical-state identity not recorded; acquisition-conditioned release is descriptive, no common-prestate causal risk estimate; clipped normalized command inequality gives conservative physical-change evidence',
+                scope='one training seed; interval only over four evaluation seeds conditional on these checkpoints; matched configuration/initial weights/episode budgets; acquisition-conditioned release is descriptive, no common-prestate causal risk estimate; '+('cold physical inputs recorded and compared in separate trace audit; raw independent12 commands establish actual changes' if learnable_guide else 'exact cold physical-state identity not recorded; clipped normalized command inequality gives conservative physical-change evidence'),
                 scientific_claim='C3 remains OPEN; engineering or single-seed positive Probe is not formal stable-grasp/Cm training utility support')
     if not output['input_hashes_unchanged']:raise ValueError('input/code drift')
     if args.output.exists():raise ValueError('analysis exists')

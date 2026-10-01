@@ -1,7 +1,7 @@
 # P-20261001-trainable-recovery-guide
 
-HF12, independent Decision Probe budget1/1; current stage engineering smoke,
-scientific slot not started. Branch agent/cm-trainable-recovery.
+HF12, independent Decision Probe budget1/1; current stage frozen scientific Probe,
+scientific slot1/1 started after independent engineering replay. Branch agent/cm-trainable-recovery.
 [Frozen design](../../decisions/D-20261001-trainable-recovery-guide.md).
 
 Previous HF11 remains UNPROMISING1/1closed. Its learned score maximum1.283on/
@@ -58,3 +58,12 @@ a one-step prefix only at episode termination; record/audit executed_steps.
 Revised r2 engineering must pass before science. Preserve r1 as completed
 engineering with its original source identity and charge its whole cost; no
 scientific outcomes or thresholds changed, scientific slot still0/1.
+
+Engineering r2 completed under dcc19a6: both96complete episodes/51823effective
+steps/20PPOupdates. Guideweights1.612273on/1.612754off from log5; old NN/experts
+frozen. Independent saved-state replay reproduced bounded reward, full MC,
+selected raw commands and allstable/drop metrics; tiny synthetic integration
+also exercises a genuine one-step terminal prefix. Total including preserved
+r1:418.263s/66.00MB. All owned PIDs exited before scientific launch.
+Scientific run_id r1, train401/eval411–414, budgetslot1/1 now consumed; fixed
+gates and four full rollouts/arm unchanged.

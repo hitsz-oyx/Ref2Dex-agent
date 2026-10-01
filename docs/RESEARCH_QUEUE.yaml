@@ -137,7 +137,7 @@ hypotheses:
     status: ACTIVE
     branch: agent/cm-trainable-recovery
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "AGENTS autonomous research and active user goal; fixed-prior execution gap and imitation/retention objective mismatch confirmed, distinct actor-ownership/task-objective route, mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261001-trainable-recovery-guide.md

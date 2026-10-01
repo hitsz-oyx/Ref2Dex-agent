@@ -223,6 +223,10 @@ class ContactConsequenceTests(unittest.TestCase):
             expected=((trace['object_state'][:,:,2]-cold['rest'])/.03).clamp(0,1)
             self.assertTrue(torch.allclose(trace['training_reward'],expected,atol=1e-5))
             self.assertEqual(result['reward_mode'],'supported_height_fraction')
+            from scripts.audit_recovery_traces import audit_phase
+            audit,_=audit_phase(root,result)
+            self.assertEqual(audit[0]['terminal_one_step_prefixes'],96)
+            self.assertTrue(audit[0]['all_primary_labels_replayed'])
 
     def test_five_policy_pool_merges_physical_aliases_and_records_native_targets(self):
         from scripts.collect_randomized_contact_consequences import randomized_player

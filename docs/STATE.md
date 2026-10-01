@@ -55,7 +55,8 @@ imitation乘积，而非45tick保持/防掉落任务目标。下一步把Cm知�
 动作评分参数，使用共同的接触支持保留reward，先验证学到的策略确实能执行
 不同物理动作。HF12合同已固定：guide为PPO可学习参数、外部log先验为0；
 初始一半利用/一半探索，两组共同reward改为接触支持高度到3cm后饱和，
-原生imitation单独记录。先运行新seed400工程smoke，尚未启动科学slot。
+原生imitation单独记录。新seed400两臂工程及保存轨迹复算已通过；
+修复末回合强制base缺口后，HF12科学slot1/1已启动，不调阈值或挑checkpoint。
 使用新401训练与411–414评价，保存完整冷初始/物理轨迹与raw候选；
 学习门要求至少5%真正不同的独立控制命令，未过则不信用success变化。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
