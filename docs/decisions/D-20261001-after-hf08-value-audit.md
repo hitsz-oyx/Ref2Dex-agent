@@ -41,3 +41,26 @@ held 项约占源池 return 的 73%，不能将该池描述为主要由模仿项
 修正任务为 `T-20261001-hf08-value-audit-label-repair`，计算上限 10 分钟、2 CPU
 线程、1 GiB。首轮脚本若已响应 CONTROL 改动须说明，R1 的旧报告与 Broker hash
 保留为审计记录；root 只验收新的 R2 交付。
+
+**可并行的工程准备。** `agent_rl` 只准备当前策略完整轨迹采集接口和 CPU
+合同检查，暂不启动仿真。基线是已有 physical-value collector；新接口限定两个
+保存的 Cm-value e420 actor，96 个环境的完整首 episode、三 motion 均衡、帧 0
+起始，共同诊断 seed 290。必须读取 HF08 原生配置：其
+`enable_eps_greedy=false`，因此行为是 Gaussian 采样后按原合同裁剪，不是
+deterministic actor mean，也没有 source 采集池的额外动作噪声。保留相同 reward、
+reset 前 next-state、terminal/timeout、previous-action 和动作采样 provenance。
+准备上限 2 CPU 线程、20 分钟、0.1 GiB；无 GPU、采集或训练。采集是否启动仍
+等待 R2 验收和独立有界运行派发，不增加或重置 HF08 的 policy-utility Probe slot。
+
+**R2 验收及并行分工。** root 已核对修正交付的原生标签、checkpoint hash 和
+逐文件导入合同，接受 R2；R1 仅保留为被修正的历史依赖。源池主指标成功为
+15/1920，holdout 仅 1/384 个成功 episode；两个 e420 的 V 参数均有实际更新，
+optimizer step 为 7680。这证明 V 被训练过，尚不能判断是否充分或适用于当前策略。
+`agent_rl` 继续实现真实采集 runtime 及 CPU 合同检查，暂不执行仿真；
+`agent_cm` 并行实现完整 episode 的 MC 与冻结 PPO critic 的 32-step GAE(lambda)
+目标诊断，并以合成完整轨迹验证终点 mask 和边界；`agent_infra` 同步已验收事实与
+任务账本。后两项分别限 2 CPU/20 分钟/0.1 GiB 和 2 CPU/10 分钟/0.1 GiB。
+当前只授权工程实现和文档维护，不以合成数据形成科学判断。采集器与诊断器
+验收后，另派固定 actor 的有界当前策略轨迹诊断，区分 V 对在线目标拟合不足与
+在线 bootstrap 目标偏离完整回报；frame-0 诊断子分布不代表全部训练 reset 分布。
+依据结果选择下一机制，不预定重训 V，不重新开放 HF08 调参预算。

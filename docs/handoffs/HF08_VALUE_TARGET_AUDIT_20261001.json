@@ -1,0 +1,905 @@
+{
+  "contract": {
+    "base_component_note": "stored base_source is original_reward; source code does not expose an independent tracking-only column",
+    "episode_split": "episode_id remainder 10 < 2 holdout; no cross-episode rows",
+    "gamma": 0.99,
+    "offline_target": "complete episode Monte Carlo return",
+    "online_target": "PPO GAE(lambda) return: delta=r+gamma*(1-terminate)V(next)-V; recursive gamma*tau with gamma=.99,tau=.95; bootstrap zero only info['terminate']",
+    "reward_components": [
+      "base_source",
+      "approach",
+      "held",
+      "progress",
+      "stable"
+    ],
+    "schema": "ref2dex.physical_value.v1"
+  },
+  "cpu_only": {
+    "cuda_used": false,
+    "device": "cpu",
+    "gpu": 0,
+    "torch_threads": 2
+  },
+  "dataset": {
+    "episodes": 1920,
+    "fit_episodes": 1536,
+    "fit_rows": 831811,
+    "holdout_episodes": 384,
+    "holdout_rows": 209788,
+    "motions": [
+      0,
+      1,
+      2
+    ],
+    "rows": 1041599
+  },
+  "decision": {
+    "classification": "TRAINING_SUFFICIENCY_OR_DISTRIBUTION_UNKNOWN",
+    "loss_convergence_claim": false,
+    "policy_utility_claim": false,
+    "reason_codes": [
+      "SOURCE_MC_NOT_CURRENT_POLICY_TRUTH",
+      "NO_COUNTERFACTUAL_RANKING",
+      "HOLDOUT_PHASE_SAMPLE_DIAGNOSTIC",
+      "NATIVE_ENDPOINT_GATE_UNPROMISING"
+    ],
+    "recommendation": "Do not repair or train V from these diagnostics alone; before any further Cm policy training, collect current-policy complete trajectories with terminal provenance and evaluate V against those returns."
+  },
+  "discounted_reward_contributions": {
+    "events": {
+      "drop_after_success_proxy_episodes": 22,
+      "stable_success_episodes": 25
+    },
+    "events_by_motion": {
+      "0": {
+        "drop_after_success_proxy_episodes": 15,
+        "episodes": 660,
+        "stable_success_episodes": 17
+      },
+      "1": {
+        "drop_after_success_proxy_episodes": 6,
+        "episodes": 546,
+        "stable_success_episodes": 7
+      },
+      "2": {
+        "drop_after_success_proxy_episodes": 1,
+        "episodes": 714,
+        "stable_success_episodes": 1
+      }
+    },
+    "motion": {
+      "0": {
+        "episodes": 660,
+        "mean_discounted": [
+          5.48036783072091,
+          -0.15999980924309792,
+          25.92600028504555,
+          3.796309879367707,
+          0.32873477853336824
+        ],
+        "rows": 349251,
+        "sum_discounted": [
+          3617.0427682758004,
+          -105.59987410044462,
+          17111.160188130063,
+          2505.5645203826866,
+          216.96495383202304
+        ]
+      },
+      "1": {
+        "episodes": 546,
+        "mean_discounted": [
+          5.9896590176540405,
+          -0.5025252948240866,
+          32.711171279221,
+          2.971341972718527,
+          0.12880864044178794
+        ],
+        "rows": 351835,
+        "sum_discounted": [
+          3270.353823639106,
+          -274.37881097395126,
+          17860.299518454667,
+          1622.3527171043156,
+          70.32951768121622
+        ]
+      },
+      "2": {
+        "episodes": 714,
+        "mean_discounted": [
+          4.417300089821669,
+          -0.3759225706897324,
+          8.847807527736277,
+          1.8486666920516317,
+          0.03497473773557214
+        ],
+        "rows": 340513,
+        "sum_discounted": [
+          3153.9522641326716,
+          -268.40871547246894,
+          6317.334574803702,
+          1319.948018124865,
+          24.971962743198503
+        ]
+      }
+    },
+    "motion_phase": {
+      "motion_0::contact": {
+        "episodes": 648,
+        "mean_discounted": [
+          1.4931675400054902,
+          -0.3969987264034239,
+          20.481016538610515,
+          3.9011684237624062,
+          0.13739973360597513
+        ],
+        "rows": 33515,
+        "sum_discounted": [
+          967.5725659235577,
+          -257.25517470941867,
+          13271.698717019613,
+          2527.9571385980394,
+          89.03502737667188
+        ]
+      },
+      "motion_0::drop": {
+        "episodes": 15,
+        "mean_discounted": [
+          0.013326392639537107,
+          -0.004205672545570491,
+          0.17464837539771186,
+          0.23812420838447795,
+          0.0
+        ],
+        "rows": 15,
+        "sum_discounted": [
+          0.1998958895930566,
+          -0.06308508818355738,
+          2.619725630965678,
+          3.571863125767169,
+          0.0
+        ]
+      },
+      "motion_0::held": {
+        "episodes": 17,
+        "mean_discounted": [
+          3.530954231454142,
+          -0.3103007467881836,
+          151.81035705085804,
+          1.6007343134685936,
+          7.523193279777299
+        ],
+        "rows": 2058,
+        "sum_discounted": [
+          60.02622193472041,
+          -5.275112695399121,
+          2580.7760698645866,
+          27.21248332896609,
+          127.89428575621409
+        ]
+      },
+      "motion_0::other": {
+        "episodes": 14,
+        "mean_discounted": [
+          1.2617097797462777,
+          -0.3239835090477134,
+          0.7049638964242628,
+          0.024413353473014703,
+          -0.06745878629626872
+        ],
+        "rows": 4117,
+        "sum_discounted": [
+          17.663936916447888,
+          -4.535769126667987,
+          9.86949454993968,
+          0.3417869486222058,
+          -0.9444230081477621
+        ]
+      },
+      "motion_0::pre_contact": {
+        "episodes": 660,
+        "mean_discounted": [
+          3.8963335569870825,
+          0.24474131442306812,
+          1.8881760319165712,
+          -0.08108901760410633,
+          0.0014849450110374033
+        ],
+        "rows": 309546,
+        "sum_discounted": [
+          2571.5801476114743,
+          161.52926751922496,
+          1246.196181064937,
+          -53.518751618710176,
+          0.9800637072846862
+        ]
+      },
+      "motion_1::contact": {
+        "episodes": 532,
+        "mean_discounted": [
+          1.3453123165843208,
+          -0.33906663865688197,
+          25.668482643670064,
+          2.970418629118241,
+          0.06459281595999092
+        ],
+        "rows": 31520,
+        "sum_discounted": [
+          715.7061524228586,
+          -180.38345176546122,
+          13655.632766432474,
+          1580.2627106909042,
+          34.363378090715166
+        ]
+      },
+      "motion_1::drop": {
+        "episodes": 6,
+        "mean_discounted": [
+          0.0002561968147731382,
+          -0.01822229311981133,
+          0.006786892548864586,
+          0.004523628393691452,
+          0.0
+        ],
+        "rows": 6,
+        "sum_discounted": [
+          0.0015371808886388292,
+          -0.10933375871886798,
+          0.04072135529318752,
+          0.027141770362148713,
+          0.0
+        ]
+      },
+      "motion_1::held": {
+        "episodes": 7,
+        "mean_discounted": [
+          2.088239481183847,
+          -0.21719353868193517,
+          102.81719845549391,
+          2.399346889569356,
+          5.133301884612933
+        ],
+        "rows": 715,
+        "sum_discounted": [
+          14.61767636828693,
+          -1.520354770773546,
+          719.7203891884574,
+          16.795428226985493,
+          35.93311319229053
+        ]
+      },
+      "motion_1::other": {
+        "episodes": 6,
+        "mean_discounted": [
+          0.26313884578368113,
+          -0.21746964483396983,
+          0.47526766386913155,
+          0.13109746068967246,
+          -0.11555833061204634
+        ],
+        "rows": 1901,
+        "sum_discounted": [
+          1.578833074702087,
+          -1.304817869003819,
+          2.8516059832147893,
+          0.7865847641380348,
+          -0.6933499836722781
+        ]
+      },
+      "motion_1::pre_contact": {
+        "episodes": 546,
+        "mean_discounted": [
+          4.649175136616063,
+          -0.16677811869962272,
+          6.3773883433978416,
+          0.04483672463722731,
+          0.0013303596737780548
+        ],
+        "rows": 317693,
+        "sum_discounted": [
+          2538.4496245923706,
+          -91.060852809994,
+          3482.0540354952213,
+          24.48085165192611,
+          0.726376381882818
+        ]
+      },
+      "motion_2::contact": {
+        "episodes": 692,
+        "mean_discounted": [
+          0.8518725995423444,
+          -0.27937802641098614,
+          7.922295162657413,
+          1.9831967690709267,
+          0.02856068972420257
+        ],
+        "rows": 34808,
+        "sum_discounted": [
+          589.4958388833023,
+          -193.32959427640242,
+          5482.22825255893,
+          1372.3721641970812,
+          19.76399728914818
+        ]
+      },
+      "motion_2::drop": {
+        "episodes": 1,
+        "mean_discounted": [
+          0.00015416706663178207,
+          0.0014444005854344349,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rows": 1,
+        "sum_discounted": [
+          0.00015416706663178207,
+          0.0014444005854344349,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "motion_2::held": {
+        "episodes": 1,
+        "mean_discounted": [
+          2.040864595727476,
+          -0.18780205434432512,
+          93.67206512223665,
+          -2.521702511174379,
+          4.683603256111833
+        ],
+        "rows": 193,
+        "sum_discounted": [
+          2.040864595727476,
+          -0.18780205434432512,
+          93.67206512223665,
+          -2.521702511174379,
+          4.683603256111833
+        ]
+      },
+      "motion_2::other": {
+        "episodes": 1,
+        "mean_discounted": [
+          0.017215079059586642,
+          -0.02909368033560337,
+          0.002247661549556772,
+          -0.05876050240662934,
+          -0.01559453018688805
+        ],
+        "rows": 64,
+        "sum_discounted": [
+          0.017215079059586642,
+          -0.02909368033560337,
+          0.002247661549556772,
+          -0.05876050240662934,
+          -0.01559453018688805
+        ]
+      },
+      "motion_2::pre_contact": {
+        "episodes": 714,
+        "mean_discounted": [
+          3.5887929851645928,
+          -0.1048510782380557,
+          1.0384201813179113,
+          -0.06980907991405581,
+          0.0007562419161419807
+        ],
+        "rows": 305447,
+        "sum_discounted": [
+          2562.3981914075193,
+          -74.86366986197177,
+          741.4320094609886,
+          -49.843683058635854,
+          0.5399567281253742
+        ]
+      }
+    },
+    "overall": {
+      "episodes": 1920,
+      "mean_discounted": [
+        5.229869195858105,
+        -0.33770177111815813,
+        21.504580354889764,
+        2.837429820631179,
+        0.16263876784189468
+      ],
+      "rows": 1041599,
+      "signed_share_of_total": [
+        0.17790597221040608,
+        -0.01148769876606719,
+        0.7315275261651617,
+        0.09652167041156033,
+        0.005532529978939045
+      ],
+      "sum_discounted": [
+        10041.348856047562,
+        -648.3874005468637,
+        41288.79428138835,
+        5447.865255611864,
+        312.2664342564378
+      ]
+    }
+  },
+  "elapsed_seconds": 41.869677528738976,
+  "git_commit": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237",
+  "input_hashes": {
+    "checkpoint": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+    "collection_results": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/results.json": "9e34b7950feb1d0d7830fb3654800e086abed2ea1ddace1a2b4540ba58ba3943",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/results.json": "ddeb7c1adbe6a4eff012b0107b70b4163eb8783b88eb93d7370963f4576a0d58"
+    },
+    "full_collection_audit": "5297841d9af0ff3f3b22ea9f2b9d6725623912e4f33c9037bc982557e92dfb88",
+    "model_manifest": "3239ba83a2264261f5712e51fada2403df1535f94c7649c438da0f5aba88889f",
+    "model_results": "30349766ce442bc0c44bf02b3da3bae36b0d068f7db55e3b9f4de4f7b9e4db6f",
+    "transition_shards": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_000.pt": "d8d394d0eb4224213c14506c057122543eb960fb55422eb8f73580d984e33238",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_001.pt": "53fbe380fb015efbd7639220864f11ee7a1b52a6d311a4c6412eb5a13fa5971a",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_002.pt": "12f79f60c84a361e811ec0c93e1c3f1b9de079b3b3b39fb4b2d4482303189982",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_003.pt": "9f29ed69c9cfa0951afb3ac496c691d22a0b19b0f4b018db2c6f2229bb755d22",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_004.pt": "d44c5ebe6c854384ba15bd77ba24d772d26ccd05c1e35e344cc629f3b3891c26",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_005.pt": "f5f7dc2a57ce6f1d917f5fc6a4b6fecb8ffdf7579698ec10974d79fedccc798d",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_006.pt": "7111ee6481b29a7eb3e12ba5a9a21ad32789476e870e6981fdc385d4eef7663c",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_007.pt": "f67ec3af939b4c188a37558a15866783dff4472633923e58aea11b06d41fe143",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_008.pt": "febfa032af9a441b39bdee60372073b3bb923dbede95b349468df06e241fc8b8",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_009.pt": "4f4acf586f9482b466c1d913dd8d63da0722b5c39f990b1a5e8c12795605fa27",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_010.pt": "759962fb23019769baf3bf250c2d35d6dcdad683505b07b33c5aab0a5ec582d6",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_011.pt": "c9747409b7cdcb645110534ca9eecac88334ae5c2608d8920d299aa9156b8082",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_012.pt": "6d0c0b6705682c949c03d4630ca848eb80a819e9a3640899f836626f08b4a824",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_013.pt": "b07f3b8a13ee7ec263c52472c8ea03629511b85fdcd4a2b86049029db73a200b",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_014.pt": "46fc94d96eee68b131bd91cb60e320c8d54b65ff93bfe7cf338cabd3aacbe737",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s283/transitions_015.pt": "3429031dbd9876670acc7776a7d7be40afb66ff9d43025770f9f88c8f7a76f5c",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_000.pt": "61923dd54c9aa937a86e975eca9e39731c93a4164ad0235645f6dfe721389d91",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_001.pt": "ad7cf20163d3cac61c8ed17d8cc3bcdfc31b03c4bf3439e0acef5b789f07fc37",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_002.pt": "b94d6af0088c630cb06fed45f84264dc1d4350681c4bb8b713d572a13dc11621",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_003.pt": "25d9b866da938bdf6f39d9a8de58e8c87c16682186333c4bdb323465f80b68e2",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_004.pt": "8cc7e277091e84b93aed972694f3d00fc07c2f5b8271573de120477e00603e19",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_005.pt": "8ef93d28fca92e37b06f4f9460ee75e73a4a662f1a143c543bd437f7c689311f",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_006.pt": "b630c48db866f18ecf96767304357bf0e1cd3dc7b3efa9cfa27f037ed272d32e",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_007.pt": "b8496f86044186c7e424789e3990e66b28efcf5f4cad2f6b86bca797ddef2cde",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_008.pt": "abd78456c95c60fe8fac16bb953c0f253755bc6bca9a6dd6c841f869a4a44155",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_009.pt": "69c165364305661dc3c6f99f90232d08cf3e2a744aecf39616c32c3e99da222c",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_010.pt": "a3c080c20d518575132ad46c79d0f30296c5ccb5d2b679f7839c990a8ab48f6c",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_011.pt": "0accdca271a496da4ded69b52a895500044da3caf3b400740bffe765e9a6156a",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_012.pt": "b9e31b20d5b14ad653f5f3e56622c115fe34a3a6a9624dfb083e9a70e18454f5",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_013.pt": "ea153857313659f31dd9796258035292d3446c3459b09552e2f9ef55431a917a",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_014.pt": "d4b74da3b01714b9ea532345f93d3659493fc0e122165bdadb7fe42a3ac7a2aa",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/collect_s284/transitions_015.pt": "a0fb736b94f76b67f2662c2caa1b1b7139866bbe1e0b1937d6a5da777853f34a"
+    }
+  },
+  "online_e420_inspection": {
+    "s286": {
+      "artifact_sha256": "17658c384d91e81f7c60e79142b395d0f71c5e49fa8f78eeb3e9b38da376d771",
+      "checkpoint_sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+      "diagnostics": {
+        "physical_baselines": {
+          "constant_velocity": {
+            "contact_brier": 0.096923828125,
+            "joint_position_normalized_mse": 0.2639274597167969,
+            "joint_velocity_normalized_mse": 1.6712656021118164,
+            "object_position_rmse_meters": 0.004683723611111092,
+            "object_rotation_rmse_radians": 0.19311934320874832,
+            "object_velocity_normalized_mse": 0.8825628757476807
+          },
+          "copy_state": {
+            "contact_brier": 0.096923828125,
+            "joint_position_normalized_mse": 0.1055617555975914,
+            "joint_velocity_normalized_mse": 1.6712656021118164,
+            "object_position_rmse_meters": 0.009263395188494634,
+            "object_rotation_rmse_radians": 0.19311934320874832,
+            "object_velocity_normalized_mse": 0.8825628757476807
+          }
+        },
+        "physical_member_mean": {
+          "contact_brier": 0.06897759437561035,
+          "joint_position_normalized_mse": 0.09448998421430588,
+          "joint_velocity_normalized_mse": 0.8114063739776611,
+          "object_position_rmse_meters": 0.007817940754610167,
+          "object_rotation_rmse_radians": 1.3371328616496452,
+          "object_velocity_normalized_mse": 0.539125919342041,
+          "reward_rmse": 0.9745502645115539,
+          "termination_brier": 0.0009476428385823965
+        },
+        "rows": 2048
+      },
+      "epoch": 420,
+      "frame": 327680,
+      "initial_model_sha256": "d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9",
+      "parameter_inspection": {
+        "actor_supervision_gradient_verified": true,
+        "arm": "cm_value",
+        "behavior_integrity_verified": true,
+        "epoch": 420,
+        "frame": 327680,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "physical_value_state": {
+          "all_finite": true,
+          "parameter_count": 295681,
+          "tensor_count": 10
+        },
+        "ppo_critic_state": {
+          "all_finite": true,
+          "parameter_count": 4102145,
+          "tensor_count": 10
+        },
+        "running_mean_std": {
+          "all_finite": true,
+          "count": 5160961.0,
+          "keys": [
+            "count",
+            "running_mean",
+            "running_var"
+          ]
+        },
+        "saved_return_targets": false,
+        "saved_teacher_labels": false,
+        "sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0"
+      },
+      "scope": "online Cm dynamics on fixed noisy source-policy development states; distribution mismatch with current policy is possible; no current-policy value calibration or policy utility claim"
+    },
+    "s287": {
+      "artifact_sha256": "6a33e48562f3ed6ba2344399651c2e10b76a4eff4a000421b87fda3edfabf600",
+      "checkpoint_sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+      "diagnostics": {
+        "physical_baselines": {
+          "constant_velocity": {
+            "contact_brier": 0.096923828125,
+            "joint_position_normalized_mse": 0.2639274597167969,
+            "joint_velocity_normalized_mse": 1.6712656021118164,
+            "object_position_rmse_meters": 0.004683723611111092,
+            "object_rotation_rmse_radians": 0.19311934320874832,
+            "object_velocity_normalized_mse": 0.8825628757476807
+          },
+          "copy_state": {
+            "contact_brier": 0.096923828125,
+            "joint_position_normalized_mse": 0.1055617555975914,
+            "joint_velocity_normalized_mse": 1.6712656021118164,
+            "object_position_rmse_meters": 0.009263395188494634,
+            "object_rotation_rmse_radians": 0.19311934320874832,
+            "object_velocity_normalized_mse": 0.8825628757476807
+          }
+        },
+        "physical_member_mean": {
+          "contact_brier": 0.06956055760383606,
+          "joint_position_normalized_mse": 0.09556590765714645,
+          "joint_velocity_normalized_mse": 0.7747138142585754,
+          "object_position_rmse_meters": 0.008576149588670836,
+          "object_rotation_rmse_radians": 1.364589729973552,
+          "object_velocity_normalized_mse": 0.5350983738899231,
+          "reward_rmse": 0.9833387945853268,
+          "termination_brier": 0.0009762999252416193
+        },
+        "rows": 2048
+      },
+      "epoch": 420,
+      "frame": 327680,
+      "initial_model_sha256": "d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9",
+      "parameter_inspection": {
+        "actor_supervision_gradient_verified": true,
+        "arm": "cm_value",
+        "behavior_integrity_verified": true,
+        "epoch": 420,
+        "frame": 327680,
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "physical_value_state": {
+          "all_finite": true,
+          "parameter_count": 295681,
+          "tensor_count": 10
+        },
+        "ppo_critic_state": {
+          "all_finite": true,
+          "parameter_count": 4102145,
+          "tensor_count": 10
+        },
+        "running_mean_std": {
+          "all_finite": true,
+          "count": 5160961.0,
+          "keys": [
+            "count",
+            "running_mean",
+            "running_var"
+          ]
+        },
+        "saved_return_targets": false,
+        "saved_teacher_labels": false,
+        "sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf"
+      },
+      "scope": "online Cm dynamics on fixed noisy source-policy development states; distribution mismatch with current policy is possible; no current-policy value calibration or policy utility claim"
+    }
+  },
+  "output_bytes": 33722,
+  "reproduction": {
+    "command": "python3 scripts/audit_hf08_value_targets.py --output docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json",
+    "threads": 2
+  },
+  "run_status": "COMPLETED",
+  "task_id": "T-20261001-hf08-value-target-audit",
+  "value_holdout": {
+    "episodes": 381,
+    "fit_mean_return": 13.338061332702637,
+    "fit_motion_phase_baseline_fallback_rows": 0,
+    "fit_rows": 831811,
+    "motion": {
+      "0": {
+        "bias": 2.0265798568725586,
+        "constant_fit_baseline": {
+          "bias": 2.9555327892303467,
+          "episodes": null,
+          "mae": 19.469593048095703,
+          "rmse": 68.0749740600586,
+          "rows": 713
+        },
+        "episodes": 132,
+        "mae": 8.260152816772461,
+        "motion_phase_baseline": {
+          "bias": 3.0690770149230957,
+          "episodes": null,
+          "mae": 12.720505714416504,
+          "rmse": 45.34507369995117,
+          "rows": 713
+        },
+        "rmse": 27.725238800048828,
+        "rows": 713
+      },
+      "1": {
+        "bias": 1.4670106172561646,
+        "constant_fit_baseline": {
+          "bias": 2.8436970710754395,
+          "episodes": null,
+          "mae": 16.815061569213867,
+          "rmse": 22.87000274658203,
+          "rows": 739
+        },
+        "episodes": 118,
+        "mae": 9.080070495605469,
+        "motion_phase_baseline": {
+          "bias": 6.441348075866699,
+          "episodes": null,
+          "mae": 17.179901123046875,
+          "rmse": 23.979785919189453,
+          "rows": 739
+        },
+        "rmse": 17.57992935180664,
+        "rows": 739
+      },
+      "2": {
+        "bias": -2.926283121109009,
+        "constant_fit_baseline": {
+          "bias": 5.630334854125977,
+          "episodes": null,
+          "mae": 15.350957870483398,
+          "rmse": 30.25282859802246,
+          "rows": 596
+        },
+        "episodes": 131,
+        "mae": 7.1993303298950195,
+        "motion_phase_baseline": {
+          "bias": -1.6787126064300537,
+          "episodes": null,
+          "mae": 10.123823165893555,
+          "rmse": 29.220590591430664,
+          "rows": 596
+        },
+        "rmse": 27.342979431152344,
+        "rows": 596
+      }
+    },
+    "overall": {
+      "all": {
+        "bias": 0.3833046555519104,
+        "constant_fit_baseline": {
+          "bias": 3.693587303161621,
+          "episodes": null,
+          "mae": 17.313146591186523,
+          "rmse": 45.4802360534668,
+          "rows": 2048
+        },
+        "episodes": 381,
+        "mae": 8.247295379638672,
+        "motion_phase_baseline": {
+          "bias": 2.9042458534240723,
+          "episodes": null,
+          "mae": 13.573957443237305,
+          "rmse": 34.23188018798828,
+          "rows": 2048
+        },
+        "rmse": 24.4276123046875,
+        "rows": 2048
+      },
+      "drop_after_success_proxy": {
+        "bias": 19.42934226989746,
+        "constant_fit_baseline": {
+          "bias": -521.8441772460938,
+          "episodes": null,
+          "mae": 526.8847045898438,
+          "rmse": 656.8054809570312,
+          "rows": 7
+        },
+        "episodes": 2,
+        "mae": 162.27914428710938,
+        "motion_phase_baseline": {
+          "bias": -100.09944152832031,
+          "episodes": null,
+          "mae": 257.0822448730469,
+          "rmse": 417.5516357421875,
+          "rows": 7
+        },
+        "rmse": 222.8588104248047,
+        "rows": 7
+      },
+      "failure": {
+        "bias": 0.31798264384269714,
+        "constant_fit_baseline": {
+          "bias": 5.49601936340332,
+          "episodes": null,
+          "mae": 15.565473556518555,
+          "rmse": 24.413108825683594,
+          "rows": 2041
+        },
+        "episodes": 379,
+        "mae": 7.7190141677856445,
+        "motion_phase_baseline": {
+          "bias": 3.257516860961914,
+          "episodes": null,
+          "mae": 12.738800048828125,
+          "rmse": 24.0390567779541,
+          "rows": 2041
+        },
+        "rmse": 20.69820213317871,
+        "rows": 2041
+      },
+      "no_drop_after_success_proxy": {
+        "bias": 0.31798264384269714,
+        "constant_fit_baseline": {
+          "bias": 5.49601936340332,
+          "episodes": null,
+          "mae": 15.565473556518555,
+          "rmse": 24.413108825683594,
+          "rows": 2041
+        },
+        "episodes": 379,
+        "mae": 7.7190141677856445,
+        "motion_phase_baseline": {
+          "bias": 3.257516860961914,
+          "episodes": null,
+          "mae": 12.738800048828125,
+          "rmse": 24.0390567779541,
+          "rows": 2041
+        },
+        "rmse": 20.69820213317871,
+        "rows": 2041
+      },
+      "success": {
+        "bias": 19.42934226989746,
+        "constant_fit_baseline": {
+          "bias": -521.8441772460938,
+          "episodes": null,
+          "mae": 526.8847045898438,
+          "rmse": 656.8054809570312,
+          "rows": 7
+        },
+        "episodes": 2,
+        "mae": 162.27914428710938,
+        "motion_phase_baseline": {
+          "bias": -100.09944152832031,
+          "episodes": null,
+          "mae": 257.0822448730469,
+          "rmse": 417.5516357421875,
+          "rows": 7
+        },
+        "rmse": 222.8588104248047,
+        "rows": 7
+      }
+    },
+    "phase": {
+      "contact": {
+        "bias": -5.218878746032715,
+        "constant_fit_baseline": {
+          "bias": -21.227508544921875,
+          "episodes": null,
+          "mae": 31.503469467163086,
+          "rmse": 89.56773376464844,
+          "rows": 180
+        },
+        "episodes": 121,
+        "mae": 24.332639694213867,
+        "motion_phase_baseline": {
+          "bias": 10.281647682189941,
+          "episodes": null,
+          "mae": 41.06900405883789,
+          "rmse": 89.74317932128906,
+          "rows": 180
+        },
+        "rmse": 50.3510627746582,
+        "rows": 180
+      },
+      "drop": {
+        "bias": null,
+        "constant_fit_baseline": {
+          "bias": null,
+          "episodes": null,
+          "mae": null,
+          "rmse": null,
+          "rows": 0
+        },
+        "episodes": 0,
+        "mae": null,
+        "motion_phase_baseline": {
+          "bias": null,
+          "episodes": null,
+          "mae": null,
+          "rmse": null,
+          "rows": 0
+        },
+        "rmse": null,
+        "rows": 0
+      },
+      "held": {
+        "bias": 115.89482116699219,
+        "constant_fit_baseline": {
+          "bias": -663.58154296875,
+          "episodes": null,
+          "mae": 663.58154296875,
+          "rmse": 704.7772827148438,
+          "rows": 4
+        },
+        "episodes": 1,
+        "mae": 202.09507751464844,
+        "motion_phase_baseline": {
+          "bias": 71.05838775634766,
+          "episodes": null,
+          "mae": 200.8153076171875,
+          "rmse": 247.830322265625,
+          "rows": 4
+        },
+        "rmse": 246.54379272460938,
+        "rows": 4
+      },
+      "other": {
+        "bias": -2.1446197032928467,
+        "constant_fit_baseline": {
+          "bias": 8.820911407470703,
+          "episodes": null,
+          "mae": 8.820911407470703,
+          "rmse": 9.910250663757324,
+          "rows": 2
+        },
+        "episodes": 2,
+        "mae": 2.1446197032928467,
+        "motion_phase_baseline": {
+          "bias": 1.175370693206787,
+          "episodes": null,
+          "mae": 4.517145156860352,
+          "rmse": 4.667557716369629,
+          "rows": 2
+        },
+        "rmse": 2.6498184204101562,
+        "rows": 2
+      },
+      "pre_contact": {
+        "bias": 0.6794393062591553,
+        "constant_fit_baseline": {
+          "bias": 7.530667781829834,
+          "episodes": null,
+          "mae": 14.562152862548828,
+          "rmse": 20.79412841796875,
+          "rows": 1862
+        },
+        "episodes": 378,
+        "mae": 6.282447814941406,
+        "motion_phase_baseline": {
+          "bias": 2.0465171337127686,
+          "episodes": null,
+          "mae": 10.523496627807617,
+          "rmse": 19.45107078552246,
+          "rows": 1862
+        },
+        "rmse": 16.752573013305664,
+        "rows": 1862
+      }
+    },
+    "rows": 2048,
+    "sample_seed": 20260930285,
+    "selection": "dataset.hold deterministic permutation, first 2048 rows; episode-level counts reported"
+  }
+}
