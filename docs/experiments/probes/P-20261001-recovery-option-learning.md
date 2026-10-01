@@ -42,3 +42,13 @@ Single training seed remains Probe. No positive signal: close1/1, do not add
 rollouts/epochs/seeds/reward variants. Positive: independently predeclare
 multi-training-seed Validation. Total smoke+science<=60min/8GiB,<=2idle GPUs;
 parent admission falls back only among declared GPUs, never kills unknown jobs.
+
+GPU engineering completed, code be58aee: on/off each96complete episodes,
+51746effective nativeenvsteps,22optimizer updates; actual option probability
+ratio error0, policy parameters changed, frozen Cm/experts unchanged. Raw
+inputs checked unchanged and own native PIDs exited. First attempt r1 failed
+before simulation at a public batch-initialization compatibility bug; preserve
+r1 and charge its cost into r2 and scientific parent. No science outcome used
+to modify method. r2smoke artifact includes full manifest/results. Per-decision
+Cm computation is identical on/off; actual decision counts/total compute can
+differ and will be reported. Science slot1/1 now launching fixed protocol.

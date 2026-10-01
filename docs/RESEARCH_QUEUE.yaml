@@ -137,11 +137,11 @@ hypotheses:
     status: ACTIVE
     branch: agent/cm-contact-consequence
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "active goal plus AGENTS autonomy; distinct trainable direct-action recovery role from HF10 local release signal; core claim/resource boundaries unchanged"
     card: docs/experiments/probes/P-20261001-recovery-option-learning.md
-    transition: "Engineering setup only; real categorical option likelihood and frozen Cm/expert contracts must pass full-episode GPU smoke before matched4rollout/arm PPO Probe. HF10 retained-height gate stays UNPROMISING2/2closed. No C3 promotion."
+    transition: "GPU full-episode engineering passed: each96episodes/51746envsteps/22updates, actual-option initial ratio error0, Cm/expert frozen and inputs unchanged. Launching fixed4rollout/arm matched PPO and391-394independent eval; prior controller391baseline. Budget1/1, no intermediate tuning. HF10 remainsUNPROMISING2/2closed, C3OPEN."
   HF10:
     claim: C3
     name: retained_physical_trajectory_relative_action_effect

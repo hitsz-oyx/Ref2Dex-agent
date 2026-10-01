@@ -44,7 +44,9 @@ vsstate-only/shuffled +.279/+.060mm，vs最佳固定cup −.699mm，原收益门
 HF10预算2/2关闭，旧MAE门失败及新收益失败都保留，不扫阈值追抬升。
 下一步HF11已固定直接categorical片段策略的学习合同：Cm提供物理未来特征和
 明确动作先验，PPO使用实际片段选择概率，评价训练所得策略时继续调用Cm。
-当前先做GPU完整episode工程smoke；通过后才启动matched on/off有界训练。
+GPU完整episode工程smoke已通过：on/off各96episodes/51746有效envsteps，
+各22次更新，初始实际选择ratio误差0；Cm/专家冻结且输入hash未变。
+现在启动固定4rollout/arm的matched on/off有界训练与独立完整回合评价。
 新训练seed单个只作Probe，稳定45tick/后续drop协议预固定，C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
