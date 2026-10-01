@@ -1,0 +1,630 @@
+{
+  "accepted_executable_sha256": {
+    "scripts/collect_current_policy_value.py": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de",
+    "scripts/run_current_policy_value_environment.py": "ffe1c061dbd9accb947e248a82cf7c01c2e6afa9229e2949080b9cfdeee474a7"
+  },
+  "accepted_implementation_commit": "ff48f6d61fb4e63d2c3525896237971512bfb576",
+  "card": {
+    "bytes": 6690,
+    "mode": "0664",
+    "path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+    "sha256": "3dec3b73b5190365675b8bfe79078c90dc1b969438f0ff86536b8d96f8223bb8"
+  },
+  "collection": {
+    "aggregate_r3_file_bytes": 38686750,
+    "episodes_s286": 0,
+    "episodes_s287": 0,
+    "output_file_bytes": 2139,
+    "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r3",
+    "r3b_output_file_bytes": 2126,
+    "r3b_rows_s286": 0,
+    "r3b_rows_s287": 0,
+    "r3b_support_file_bytes": 38681083,
+    "results": [],
+    "rows_s286": 0,
+    "rows_s287": 0,
+    "run_manifests": [
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r3/checkpoint_s286_e420/runtime_manifest.json"
+    ],
+    "shards": [],
+    "support_file_bytes": 38684611,
+    "support_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r3-support"
+  },
+  "controls_applied": [
+    258,
+    260,
+    263
+  ],
+  "cpu_admission": {
+    "boundary": {
+      "bytes": 286,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_boundary.json",
+      "sha256": "d0a48d3911b2ec59c36b290691b826e57feeb329dee3fe966e1da65d621c523c"
+    },
+    "deadline_stop": "PASS",
+    "missing_output_counts_zero": true,
+    "mock_episodes_compatible_each": true,
+    "mock_rows_each": 3168,
+    "mock_summary": {
+      "bytes": 535,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_summary.json",
+      "sha256": "bd51eb01a18a3c6d3fc9744e0d81903cd9008b4492110b9f6333218e76df8b18"
+    },
+    "overbudget_stop": "PASS",
+    "owned_group_termination": "PASS",
+    "preflight": {
+      "bytes": 4355,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/preflight.json",
+      "sha256": "e6dc49058ed8df28d1e86498242ffb1ecfa7059a8836ef3085a07eb489be3ab9"
+    },
+    "status": "PASS"
+  },
+  "experiment_id": "P-20261001-current-policy-value-diagnostic",
+  "gpu_admission": {
+    "artifact": {
+      "bytes": 2253,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/gpu_preflight.json",
+      "sha256": "ff4d38c36a50e67e649a5184cf412f21650ed359db480182b5e7b9d6ece6aa70"
+    },
+    "preferred_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "selected": {
+      "compute_owners": [],
+      "index": 4,
+      "memory_used_mib": 2,
+      "uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307"
+    }
+  },
+  "input_hashes": {
+    "checkpoint_s286_e420": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+    "checkpoint_s287_e420": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+    "environment": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "manifest_s286": "41684e03d98b925731f7a5b2936d2d2bedb822ea1ed57d599a1993083d4d7cbe",
+    "manifest_s287": "3f02355e366c0d9e3b0670428a7f5d847d270740ec696f5d2e077d16384851b1",
+    "motion_s3": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+    "motion_s7": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+    "motion_s9": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+    "source_runner": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "training": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38"
+  },
+  "modified_runtime_sha256": "d537eb8a88ba46179ac2d43e4e79b766877419dfa0a05684a54a3234203be97c",
+  "next_step": "Do not retry R3/R3b. Create a separate engineering repair for non-positive actor sigma handling only after root review; no scientific claim or collection rerun is permitted from this task.",
+  "output_artifacts": [
+    {
+      "bytes": 1329,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3/checkpoint_s286_e420/runtime_manifest.json",
+      "sha256": "cea38c4fe40594406ae533221a793107780702ef5931b08b4f72075d7c8979ab"
+    },
+    {
+      "bytes": 810,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3/runtime_root.json",
+      "sha256": "bca7128562ae7b7540cb6d1b1248405016bf075e3777507fd1cb85c0e48973bf"
+    }
+  ],
+  "r3b": {
+    "absolute_deadline_epoch": 1790836597,
+    "failure": {
+      "episodes": 0,
+      "episodes_validation": "NOT_RUN_NO_COMPLETE_PANEL",
+      "exception": "normal expects all elements of std >= 0.0",
+      "exception_type": "RuntimeError",
+      "phase": "s286 actor forward after config guard",
+      "results": [],
+      "rows": 0,
+      "s287_started": false,
+      "shards": []
+    },
+    "gpu_post": {
+      "bytes": 852,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/gpu_post_r3b.json",
+      "sha256": "10c7fc284602f645d5d238cd6e1650771fa6c18ff5c02fc7c5661337e15db7e9"
+    },
+    "output_artifacts": [
+      {
+        "bytes": 1316,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b/checkpoint_s286_e420/runtime_manifest.json",
+        "sha256": "d4cb37c39b25f0a55f8e481c1390a2f4ad2092b392027ef232a92a3a09b1499b"
+      },
+      {
+        "bytes": 810,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b/runtime_root.json",
+        "sha256": "bf683b08bb23c3300a898ad375e2c71bd37d3078d705e6e1d54ae31fdb3fdc76"
+      }
+    ],
+    "output_file_bytes": 2126,
+    "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r3b",
+    "process_terminal": {
+      "bytes": 988,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/process_terminal_r3b.json",
+      "sha256": "2bd52cfdc81ba92275ba19c48b295f8583bb596980eb2c6b5ce52ad7960917d8"
+    },
+    "runtime_failed_epoch": 1790836524.956141,
+    "runtime_seconds": 32.56849384,
+    "runtime_started_epoch": 1790836492.3876476,
+    "s286_manifest": {
+      "bytes": 1316,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b/checkpoint_s286_e420/runtime_manifest.json",
+      "sha256": "d4cb37c39b25f0a55f8e481c1390a2f4ad2092b392027ef232a92a3a09b1499b"
+    },
+    "status": "FAILED_ENGINEERING_RUNTIME_EXCEPTION",
+    "support_artifacts": [
+      {
+        "bytes": 7917,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/collect_s286.log",
+        "sha256": "05eb3bdbb141da6d1f20f82e5fa1b9f42b340cb55f0e31a38a078db394a8d1d0"
+      },
+      {
+        "bytes": 98,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/collect_s286.process_end.json",
+        "sha256": "9a79b1d8f9ffc5b0646d0746a4ab0e5e8be19c284980483125d0bf1339b2e12f"
+      },
+      {
+        "bytes": 111,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/collect_s286.process_start.json",
+        "sha256": "8024f6e929878008426f84b3c0c68b6527e1d3800b771c4f5ad699075061a034"
+      },
+      {
+        "bytes": 286,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_boundary.json",
+        "sha256": "a579c29d3ef0f96211a4c67b5509d14c68dbbc46a6cc84bb8b6ee119454e3b09"
+      },
+      {
+        "bytes": 36159,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_mock_s286/checkpoint_s286_e420/results.json",
+        "sha256": "e1857cc16f44e7d2a7102632307ff2b25326699d11fcd5251b799c1fc6970b38"
+      },
+      {
+        "bytes": 17529252,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_mock_s286/checkpoint_s286_e420/transitions_000.pt",
+        "sha256": "b0f0e5b5b0c582d674277a1c046a72489fd986afbcddae73b110b462593224bc"
+      },
+      {
+        "bytes": 36158,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_mock_s287/checkpoint_s287_e420/results.json",
+        "sha256": "f55961cdda1453b233cd692e2b67a8777dafa91c7591bda0a9da10a27924c3f2"
+      },
+      {
+        "bytes": 17529252,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_mock_s287/checkpoint_s287_e420/transitions_000.pt",
+        "sha256": "1cf289141593abaeec3c08126e70714f1074ca45ee900fc8bafa62a33130e890"
+      },
+      {
+        "bytes": 537,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_mock_summary.json",
+        "sha256": "b816871bfb8f22a16f0dec6287672670aac3bafad0ba87fdc9e001fbcfe3ceb5"
+      },
+      {
+        "bytes": 0,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_preflight_stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 4747,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/cpu_preflight_stdout.json",
+        "sha256": "4802024b388610e3f7d4ea11b31b34a6a56476cbc441d2f1c50b3a01caa5fd00"
+      },
+      {
+        "bytes": 852,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/gpu_post_r3b.json",
+        "sha256": "10c7fc284602f645d5d238cd6e1650771fa6c18ff5c02fc7c5661337e15db7e9"
+      },
+      {
+        "bytes": 2253,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/gpu_preflight.json",
+        "sha256": "28a35ee6ce1b369b031983fa401a13d54fe4dbb9fe29e2a9c31a35d4cd184b7b"
+      },
+      {
+        "bytes": 1262,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/launch_r3b.py",
+        "sha256": "f0e1f7c5c733b23e21726d075a7d44e213cc69a0473b6d74aa7caa90ae4868bf"
+      },
+      {
+        "bytes": 4357,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/preflight.json",
+        "sha256": "60776a479541c3e0f20838a0d19213aaa05f2169e3b751e92cd05ec7e27f3335"
+      },
+      {
+        "bytes": 988,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/process_terminal_r3b.json",
+        "sha256": "2bd52cfdc81ba92275ba19c48b295f8583bb596980eb2c6b5ce52ad7960917d8"
+      },
+      {
+        "bytes": 700,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/r3_orchestrator.log",
+        "sha256": "df58c8bb72a4b97615fdf594662096b64c00d91081abef159038d2cca2b15f1b"
+      },
+      {
+        "bytes": 7,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/r3_orchestrator.pid",
+        "sha256": "ab41d21a5630f7583bd7155ecf433f42ab95bf4646555e0270e4b0a5e8a3a509"
+      },
+      {
+        "bytes": 91,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/r3_orchestrator.process_end.json",
+        "sha256": "c7632376525e1209ef7666a3c84833f3d71e26394903b8eea867ef6a5b81b7ba"
+      },
+      {
+        "bytes": 146,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/r3_orchestrator.process_start.json",
+        "sha256": "ded1b04299ed838b6d6577ed3ed287f8321a62471b25e7544adf50879be81500"
+      },
+      {
+        "bytes": 12156,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/run_r3b_two_stage.py",
+        "sha256": "b5cfb8b967a9cc61b9eda61ba2ec610cae72ad701262db7fafdc0375f8fc6786"
+      },
+      {
+        "bytes": 799,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/test_reward_shaper_guard.py",
+        "sha256": "9a516cdcd03681b3bf5188f4ed16e952b1b958b26b3531220ab9f695e0ee3311"
+      },
+      {
+        "bytes": 240,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/torch_extensions/gymtorch/.ninja_deps",
+        "sha256": "75c783c6b0f94541ce9cb76bb7d9fe881ea28fa647725d5393eb05d1d49b9f2b"
+      },
+      {
+        "bytes": 132,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/torch_extensions/gymtorch/.ninja_log",
+        "sha256": "42a0b2b9b239e3258368bae983b78a81e4f504459700f5ef1c229d87f741142d"
+      },
+      {
+        "bytes": 1154,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/torch_extensions/gymtorch/build.ninja",
+        "sha256": "22d7b1649b4c4ef00a86d02ba2c818eca0b2c51526af3d3c4d1a8d7ef8926157"
+      },
+      {
+        "bytes": 2200136,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/torch_extensions/gymtorch/gymtorch.o",
+        "sha256": "f803586b2aa8b1491a15f7df84822db4424a023778d8b20625dd6f26212a03ed"
+      },
+      {
+        "bytes": 1310840,
+        "mode": "0775",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/torch_extensions/gymtorch/gymtorch.so",
+        "sha256": "cf15f6381d938eed50ad4f059b7c587e94a5781ecddd0557422fa36e07914f37"
+      },
+      {
+        "bytes": 453,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/workflow_start.json",
+        "sha256": "8cdb75603fa667d9ba42e659f763dde8ffc716136407e1ea58973bc265c4cf16"
+      }
+    ],
+    "support_file_bytes": 38681083,
+    "support_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r3b-support"
+  },
+  "resource_evidence": {
+    "absolute_deadline_clamp_epoch": 1790836597,
+    "accepted_runtime_manifest_workflow_start_epoch": 1790836078.9475064,
+    "gpu_index": 4,
+    "gpu_post": {
+      "bytes": 852,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/gpu_post_r3.json",
+      "sha256": "c560af8e79a67f9a44a139d276a4d97cf6f175ecb8d066a50e122821e2343396"
+    },
+    "gpu_post_runtime_processes_owned": false,
+    "gpu_post_target_compute_owners": [],
+    "gpu_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "orchestrator_end": {
+      "bytes": 92,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.process_end.json",
+      "sha256": "c4ceaa7966a1878aecaa3060763ae174b89701519507e983b4fbb1680d19b9db"
+    },
+    "orchestrator_start": {
+      "bytes": 146,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.process_start.json",
+      "sha256": "df4d103c8a210c28ffc3dacbb9cb05afa654789404e7cba88e3b116465be3728"
+    },
+    "owned_processes_alive": false,
+    "prior_conservative_bytes": 3580219,
+    "r3_max_output_bytes": 2143903429,
+    "r3_max_wall_seconds": 900,
+    "runtime_panel_seconds": 32.66119861602783,
+    "terminal": {
+      "bytes": 360,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/process_terminal_r3.json",
+      "sha256": "044adfc9e3a60e1835e34bc4cdda926aebfe6bd83d46765db3d8732411ace16e"
+    },
+    "workflow_start_artifact": {
+      "bytes": 451,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/workflow_start.json",
+      "sha256": "cc09271a969437c12c0a93ba7895c050f50bb23bf76cfc0d7bc65c6a842241c7"
+    },
+    "workflow_start_current_epoch": 1790835995.8876534,
+    "workflow_start_overwritten_by_first_collect_attempt": true,
+    "wrapper_first_failed_seconds": 2.403
+  },
+  "run_id": "r3",
+  "run_status": "FAILED_ENGINEERING_RUNTIME_EXCEPTION",
+  "runtime_cwd": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore",
+  "runtime_failure": {
+    "episodes_validation": "NOT_RUN_NO_COMPLETE_PANEL",
+    "exception": "'DefaultRewardsShaper' object has no attribute 'get'",
+    "exception_type": "AttributeError",
+    "location": "run_current_policy_value_environment.py:_runtime_player_run config reward_shaper access",
+    "output_transitions_exported": false,
+    "phase": "s286 Isaac/PhysX initialization and policy setup before first episode export",
+    "results_exported": false,
+    "s286_manifest": {
+      "bytes": 1329,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3/checkpoint_s286_e420/runtime_manifest.json",
+      "sha256": "cea38c4fe40594406ae533221a793107780702ef5931b08b4f72075d7c8979ab"
+    },
+    "s286_runtime_status": "FAILED",
+    "s287_started": false
+  },
+  "science_conclusion": "NOT_ASSESSED/AWAITING_CPU_AUDIT",
+  "source_current_head_from_preflight": "25ca9651b1106282cd91a549230739b9af0a8289",
+  "source_origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+  "status": "FAILED",
+  "support_artifacts": [
+    {
+      "bytes": 7607,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/collect_s286.log",
+      "sha256": "824d4af7b0ce03a79bb59cff40209a554a937beb3abe4e6bfaccc28690341dce"
+    },
+    {
+      "bytes": 98,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/collect_s286.process_end.json",
+      "sha256": "72eecf3a0b64ec075bc1590e0af231282f223329804680defa560be4b6853762"
+    },
+    {
+      "bytes": 111,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/collect_s286.process_start.json",
+      "sha256": "16b9ff96380a673b050390f8f86bb4cfc87c22f4e00f96e5ed6807dccfae6999"
+    },
+    {
+      "bytes": 286,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_boundary.json",
+      "sha256": "d0a48d3911b2ec59c36b290691b826e57feeb329dee3fe966e1da65d621c523c"
+    },
+    {
+      "bytes": 36157,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_s286/checkpoint_s286_e420/results.json",
+      "sha256": "381cfab042cda60a5986480b2e9e7e3a0e27d36d5d2f61ea87a303ea54d5b17b"
+    },
+    {
+      "bytes": 17529252,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_s286/checkpoint_s286_e420/transitions_000.pt",
+      "sha256": "b0f0e5b5b0c582d674277a1c046a72489fd986afbcddae73b110b462593224bc"
+    },
+    {
+      "bytes": 36157,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_s287/checkpoint_s287_e420/results.json",
+      "sha256": "58cfb905a71f3b416f0679fd5247ca75d975006e77ecbf9c80938284c802897b"
+    },
+    {
+      "bytes": 17529252,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_s287/checkpoint_s287_e420/transitions_000.pt",
+      "sha256": "1cf289141593abaeec3c08126e70714f1074ca45ee900fc8bafa62a33130e890"
+    },
+    {
+      "bytes": 535,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_mock_summary.json",
+      "sha256": "bd51eb01a18a3c6d3fc9744e0d81903cd9008b4492110b9f6333218e76df8b18"
+    },
+    {
+      "bytes": 0,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_wrapper_recheck_stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 4743,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_wrapper_recheck_stdout.json",
+      "sha256": "f611258d72429d9311700e2ce924bb1e61615e27b3c41a52e2f9ab3e420053c8"
+    },
+    {
+      "bytes": 0,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_wrapper_stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 4743,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_wrapper_stdout.json",
+      "sha256": "f611258d72429d9311700e2ce924bb1e61615e27b3c41a52e2f9ab3e420053c8"
+    },
+    {
+      "bytes": 852,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/gpu_post_r3.json",
+      "sha256": "c560af8e79a67f9a44a139d276a4d97cf6f175ecb8d066a50e122821e2343396"
+    },
+    {
+      "bytes": 2253,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/gpu_preflight.json",
+      "sha256": "ff4d38c36a50e67e649a5184cf412f21650ed359db480182b5e7b9d6ece6aa70"
+    },
+    {
+      "bytes": 1260,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/launch_r3.py",
+      "sha256": "1affcd4363be607a61dc4eb81f5412f8665b61efd29789ab74bd0abcfca6f877"
+    },
+    {
+      "bytes": 4355,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/preflight.json",
+      "sha256": "e6dc49058ed8df28d1e86498242ffb1ecfa7059a8836ef3085a07eb489be3ab9"
+    },
+    {
+      "bytes": 360,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/process_terminal_r3.json",
+      "sha256": "044adfc9e3a60e1835e34bc4cdda926aebfe6bd83d46765db3d8732411ace16e"
+    },
+    {
+      "bytes": 694,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.log",
+      "sha256": "473aa76ef82d76288c70902e217014f9740d8d9df6b2f49c7ae06575420f8cad"
+    },
+    {
+      "bytes": 7,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.pid",
+      "sha256": "371f1ce7d03d4744f4ac45e92a473b922828cbe772c7e9c282aa08915e3963bf"
+    },
+    {
+      "bytes": 92,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.process_end.json",
+      "sha256": "c4ceaa7966a1878aecaa3060763ae174b89701519507e983b4fbb1680d19b9db"
+    },
+    {
+      "bytes": 146,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/r3_orchestrator.process_start.json",
+      "sha256": "df4d103c8a210c28ffc3dacbb9cb05afa654789404e7cba88e3b116465be3728"
+    },
+    {
+      "bytes": 12154,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/run_r3_two_stage.py",
+      "sha256": "9310efee322778285a20eadf6277c1264ff1c647db2f4050d07c65e0e324619a"
+    },
+    {
+      "bytes": 240,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/torch_extensions/gymtorch/.ninja_deps",
+      "sha256": "36a7f27542ee10d40e0826750998d06d13f5a0ae196709180c3ae51138dd88df"
+    },
+    {
+      "bytes": 132,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/torch_extensions/gymtorch/.ninja_log",
+      "sha256": "da94651ae35e993a6fab0e0f0560c01f50e05dbe4ccc9bd92c3bf613f32e38c4"
+    },
+    {
+      "bytes": 1154,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/torch_extensions/gymtorch/build.ninja",
+      "sha256": "22d7b1649b4c4ef00a86d02ba2c818eca0b2c51526af3d3c4d1a8d7ef8926157"
+    },
+    {
+      "bytes": 2200136,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/torch_extensions/gymtorch/gymtorch.o",
+      "sha256": "f803586b2aa8b1491a15f7df84822db4424a023778d8b20625dd6f26212a03ed"
+    },
+    {
+      "bytes": 1310840,
+      "mode": "0775",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/torch_extensions/gymtorch/gymtorch.so",
+      "sha256": "cf15f6381d938eed50ad4f059b7c587e94a5781ecddd0557422fa36e07914f37"
+    },
+    {
+      "bytes": 451,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/workflow_start.json",
+      "sha256": "cc09271a969437c12c0a93ba7895c050f50bb23bf76cfc0d7bc65c6a842241c7"
+    },
+    {
+      "bytes": 544,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/wrapper_pre_gpu_failure.json",
+      "sha256": "d23f95a86819c8b9c3b3df5a60da3123f115d2855418152da92f8017171b5cc0"
+    }
+  ],
+  "task_id": "T-20261001-current-policy-value-diagnostic-collection-r3",
+  "worker_head": "39d0615db896ee66befa41504f605e87a6f9d136",
+  "wrapper_correction": {
+    "control_263": {
+      "cpu_test": {
+        "bytes": 799,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r3b-support/test_reward_shaper_guard.py",
+        "sha256": "9a516cdcd03681b3bf5188f4ed16e952b1b958b26b3531220ab9f695e0ee3311"
+      },
+      "cpu_test_result": "PASS unit scale and scaled rejection",
+      "scientific_inputs_unchanged": true,
+      "scope": "only DefaultRewardsShaper Mapping/object scale_value guard"
+    },
+    "controls_applied": [
+      258,
+      260
+    ],
+    "correction": "collect reuses immutable CPU evidence and does not recreate mock roots or rewrite workflow_start",
+    "correction_script": {
+      "bytes": 12154,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/run_r3_two_stage.py",
+      "sha256": "9310efee322778285a20eadf6277c1264ff1c647db2f4050d07c65e0e324619a"
+    },
+    "cpu_recheck": {
+      "bytes": 4743,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/cpu_wrapper_recheck_stdout.json",
+      "sha256": "f611258d72429d9311700e2ce924bb1e61615e27b3c41a52e2f9ab3e420053c8"
+    },
+    "initial_failure": "FileExistsError on existing cpu_mock_s286 during collect CPU re-entry; no GPU started",
+    "initial_failure_artifact": {
+      "bytes": 544,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/wrapper_pre_gpu_failure.json",
+      "sha256": "d23f95a86819c8b9c3b3df5a60da3123f115d2855418152da92f8017171b5cc0"
+    },
+    "launch_script": {
+      "bytes": 1260,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r3-support/launch_r3.py",
+      "sha256": "1affcd4363be607a61dc4eb81f5412f8665b61efd29789ab74bd0abcfca6f877"
+    }
+  }
+}
