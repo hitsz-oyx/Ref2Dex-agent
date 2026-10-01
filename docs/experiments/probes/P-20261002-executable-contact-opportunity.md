@@ -28,7 +28,7 @@ identified pairwise contacts. Native hand/object net-force proxy retained and
 named; no formal true-grasp claim from10ticks.
 
 Engineering seed420/private8420, quotas2not-yet-clear +2already-clear windows
-each env. Actual GPU2/3,96env,650ticks/240sec native budget. Tiny synthetic
+each env. Actual GPU0/1 (fresh admission;2/3 became occupied),96env,650ticks/240sec native budget. Tiny synthetic
 inverse/rotation/full-feedback tests CPU (startup exceeds this tiny fixture).
 Require hold PD/online expert execution, full nonterminal10labels, native
 geometry orientation/finite values, frozen checkpoints. No utility inference.
@@ -77,3 +77,7 @@ any output/native/GPU process (missing quote, code41dcf96). Corrected before
 smoke data; actual graspenv interpreter compiles allthree runtime files.
 Recorded.0276s, conservatively charge.03s in engineering cumulative budget;
 no scientificslot consumed or data overwritten.
+
+Engineering r1 terminalFAILED before native launch: GPUs2/3 became occupied
+by external jobs. No worker/data created. Preserve manifest, charge elapsed;
+r2 uses newly confirmed idleGPU0/1, no process interference.
