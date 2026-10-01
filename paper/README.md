@@ -1,6 +1,16 @@
 # Contact-response manuscript
 
-Current: `manuscript-v4.tex` and nine-page `manuscript-v4.pdf`. Revision4adds
+Current: `manuscript-v5.tex` and twelve-page `manuscript-v5.pdf`. Revision5adds
+completed synthetic-hold transfer5/768, one fixed PPO continuation0/384, invalid
+static tabletop-axis measurement with separately audited correction, and four-dose
+mechanical closure screen0/0/6/13 successes per48. All frozen gates remain failed.
+Eleven JSON-generated tables and two recorded-label/physical figures; source/data/
+PDF hashes in export_manifest-v5.json. The physical figure averages ALL sixteen
+trajectories per motion/dose; it is not presented as learned-policy success.
+Previous revisions preserved. Export with python3 scripts/export_contact_response_v5.py
+to a new retained review destination. No version is journal ready.
+
+Preserved: `manuscript-v4.tex` and nine-page `manuscript-v4.pdf`. Revision4adds
 the completed3072-episode randomized task failure and independently verified
 reference/hold-specification mismatch. Nine tables and a source-label figure
 are generated from recorded evidence. Figure labels are reference targets, never

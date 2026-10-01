@@ -118,7 +118,12 @@ only. Wrist joint5 is continuous; geometry helper +/-pi fallback is not its boun
 Current distinct Decision Probe is bounded fixed finger preload0/.05/.15/.30rad,
 new seeds504/505, corrected tabletop geometry; no more PPO of the failed recipe.
 Question: can added closure establish mechanical retention before a pickup teacher?
-Design and prospective gates in P-20261002-finger-preload-feasibility; not yet launched.
+Run P-20261002-finger-preload-feasibility-r1 COMPLETED (`5d7c375`),192 fresh
+90-step trajectories,76.99s/9.43MiB, all189 inputs unchanged. Retained75 counts
+0/0/6/13 out of48 per dose; motion1 all zero. All candidate multi-motion gates
+fail, UNPROMISING; stop this exact static family. Positive mechanical cases on
+motions0/2 motivate a distinct frame0 approach/lift feasibility question, with.30
+an explicitly post-hoc candidate. No epoch or larger-dose expansion.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -139,8 +144,9 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Next hold feasibility Probe](experiments/probes/P-20261001-hold-plateau-substrate.md)
 - [Holding curriculum result](research/20261001-hold-plateau-curriculum-results.md)
 - [Static mechanical result and corrected geometry](research/20261002-static-hold-feasibility-results.md)
+- [Finger-preload result](research/20261002-finger-preload-feasibility-results.md)
 - [Finger-preload decision](decisions/D-20261002-finger-preload-feasibility.md)
-- [Current manuscript](../paper/manuscript-v4.tex) and [PDF review copy](../paper/manuscript-v4.pdf)
+- [Current manuscript](../paper/manuscript-v5.tex) and [PDF review copy](../paper/manuscript-v5.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
 readiness is NOT READY: distinctive method, task-level matched policy benefit,

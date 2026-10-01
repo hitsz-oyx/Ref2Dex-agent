@@ -21,6 +21,11 @@
 固定门槛失败；发现参考抬升仅25--36帧且会正常放回桌面，与45帧保持及整回合不回落
 要求冲突。下一步先验证单独标注的合成保持任务底座，不重写旧结果。
 
+新完成的 [holding curriculum](20261001-hold-plateau-curriculum-results.md)0/384，
+[static PD](20261002-static-hold-feasibility-results.md)0/192必要保持条件；其错误桌面轴
+完整保留，单独离线修正。 [bounded closure](20261002-finger-preload-feasibility-results.md)
+有部分机械保持实例，但整体门槛仍失败，停止原静态剂量族；论文第五版报告全部结果。
+
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。
 
