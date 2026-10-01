@@ -46,3 +46,28 @@ Slot1 label remains UNCLEAR for policy utility regardless of training loss;
 prepare fresh control test only if heads are finite/supported and calibration
 screen passes. Fixed single idleGPU4, model/batch inference GPU first,≤60min/
 8GiB including retries. Unique owned outputs, original artifacts untouched.
+
+## Run r1 terminal
+
+run_status COMPLETED, code fbf3002;51.11s GPU4. All9models completed1000updates
+and warmed8encoder keys each, original inputs/NN hashes verified and GPU
+released.20 targeted tests at launch. Fit3277windows/444episodes/89release
+events, cal1297/186/13, historical engineering audit1351/192/39; grouped
+partitions preserve first episodes and initial frames.
+
+Original physical preparation gate FAILED; policy label UNCLEAR. Cm cal
+height RMSE24.35mm, retained MAE3.416mm (state-only3.757/shuffle3.673), joint
+contact MAE.239>.20, release Brier.00953<constant.01022. Old held is engineering
+only and cannot promote utility. Checkpoint f7c0b0f95d2344947bd872e0ef518bc0fa49ebc592a9c154bb101f55ebdd22e8,
+owned output `src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-trajectory-model-r1/`.
+
+Terminal diagnostic:9.25%cal histories exceed10old std; lower-norm contact
+MAE still.232. Largest973std occurs in rare finger velocity spikes, not a
+global feature unit mismatch. Joint Brier.157 improves overconstant.223, but
+ECE.096 indicates overconfidence (predicted.991bin observed.908). More
+updates or a normalization-only rerun are not justified. Old MAE failure
+stays; subsequent probability reliability/signed-support design is separately
+fixed in [decision](../../decisions/D-20261001-supported-height-calibration.md).
+NN training remains closed; only scalar calibration and prospective actual
+control may follow the new setup gate, with total family budget2/2.
+Full result/audit: [results](P-20261001-contact-trajectory-model-results.json).

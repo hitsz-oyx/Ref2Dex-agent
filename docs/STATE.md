@@ -31,10 +31,13 @@ vs4/122base；安全和四控制归因尚未通过，整体 utility 仍 UNCLEAR�
 HF09预算3/3完成，不调旧模型/阈值追门。下一步改进物理目标：预测高度/接触
 轨迹、显式相对base动作效果，以保留抬升和条件掉落风险选择动作；不进入 PPO。
 设计与结果见 [定向介入卡](experiments/probes/P-20261001-targeted-contact-interventions.md)。
-HF10已登记2个有界slot：物理轨迹heads与相对base分支适配、随后新的五推荐器
-随机闭环对照。当前slot1用已保存的5925个实际转移窗口，保持encoder/scales，
-预测10步高度/接触、末3步联合接触及新抬升后release。旧held只作工程审计，
-未来utility必须来自新实际随机数据；见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md)。
+HF10 slot1已完成9个物理模型各1000GPU更新（51秒），但joint-contact MAE
+.239未通过原.20门；Brier优于constant，概率过度自信，utility仍UNCLEAR。
+当前slot2/2冻结物理NN，仅做分组概率可靠性校准，并将已取得支持高度的损失
+计为负收益。proper Brier/ECE setup门通过后才采集新的五推荐器随机闭环；
+不过则停止HF10本地调整。旧MAE失败记录不改，旧held只作工程审计。
+见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
+[保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
 [随机后果排序卡](experiments/probes/P-20261001-contact-consequence-ranking.md)。
 HF09 原数据/checkpoint hash未变，自有 GPU4进程已结束，不重开 HF08/HD02。

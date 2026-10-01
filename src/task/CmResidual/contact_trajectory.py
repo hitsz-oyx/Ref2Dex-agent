@@ -14,6 +14,8 @@ def trajectory_targets(future,contact,trigger_z,rest_z):
     height=(z-trigger_z[...,None])*1000
     joint=contact[...,-3:].all(-1)
     retained=height[...,-3:].amin(-1).clamp_min(0)*joint.float()
+    initial_height_mm=(trigger_z-rest_z).clamp_min(0)*1000
+    supported_change=(z[...,-3:].amin(-1)-rest_z).clamp_min(0)*joint.float()*1000-initial_height_mm
     seen=trigger_z-rest_z>=.03
     release=torch.zeros_like(seen);lost=torch.zeros_like(trigger_z,dtype=torch.long)
     for step in range(10):
@@ -21,7 +23,8 @@ def trajectory_targets(future,contact,trigger_z,rest_z):
         lost=torch.where(seen&~contact[...,step],lost+1,0)
         release|=seen&((z[...,step]-rest_z<.02)|(lost>=6))
     return dict(height_mm=height,contact=contact.float(),joint_contact=joint.float(),
-                release=release.float(),retained_lift_mm=retained,initially_lifted=(trigger_z-rest_z>=.03))
+                release=release.float(),retained_lift_mm=retained,supported_change_mm=supported_change,
+                initially_lifted=(trigger_z-rest_z>=.03))
 
 
 class TrajectoryNetwork(nn.Module):
@@ -60,16 +63,24 @@ def all_trajectories(model,history,candidate,context):
                  context[:,None].expand(-1,6,-1).reshape(n*6,22)).reshape(n,6,22)
 
 
-def decode_trajectories(raw,height_mean,height_scale):
+def decode_trajectories(raw,height_mean,height_scale,initial_height_mm=None,probability_calibration=None):
     height=raw[...,:10]*height_scale+height_mean
     probability=raw[...,10:].sigmoid()
+    if probability_calibration:
+        probability=probability.clone()
+        for key,index in [('joint_contact',10),('release',11)]:
+            parameters=probability_calibration[key]
+            probability[...,index]=(raw[...,10+index]*parameters['scale']+parameters['bias']).sigmoid()
     score=height[...,-3:].amin(-1).clamp_min(0)*probability[...,10]
-    return dict(height_mm=height,contact=probability[...,:10],joint_contact=probability[...,10],
+    result=dict(height_mm=height,contact=probability[...,:10],joint_contact=probability[...,10],
                 release=probability[...,11],retained_score_mm=score)
+    if initial_height_mm is not None:
+        result['supported_change_mm']=(height[...,-3:].amin(-1)+initial_height_mm).clamp_min(0)*probability[...,10]-initial_height_mm.clamp_min(0)
+    return result
 
 
-def retained_choice(predictions,margin_mm,release_supported):
-    score=predictions['retained_score_mm']
+def retained_choice(predictions,margin_mm,release_supported,score_key='retained_score_mm'):
+    score=predictions[score_key]
     difference=score-score[:,:,BASE_INDEX:BASE_INDEX+1]
     lower=difference.mean(0)-difference.std(0,unbiased=False)
     contact=predictions['joint_contact'].mean(0)

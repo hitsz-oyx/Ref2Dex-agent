@@ -1,0 +1,625 @@
+{
+  "experiment_id": "P-20261001-contact-trajectory-model",
+  "run_status": "COMPLETED",
+  "scientific_label": "UNCLEAR",
+  "result": {
+    "run_status": "COMPLETED",
+    "label": "UNCLEAR",
+    "physical_preparation_gate": false,
+    "decision": "REVIEW_PHYSICAL_REPRESENTATION_OR_CALIBRATION",
+    "split_stats": {
+      "fit": {
+        "rows": 3277,
+        "episodes": 444,
+        "initially_lifted": 423,
+        "release_events": 89,
+        "source_counts": [
+          1163,
+          2114
+        ],
+        "arms": [
+          228,
+          304,
+          225,
+          207,
+          2109,
+          204
+        ]
+      },
+      "calibration": {
+        "rows": 1297,
+        "episodes": 186,
+        "initially_lifted": 114,
+        "release_events": 13,
+        "source_counts": [
+          428,
+          869
+        ],
+        "arms": [
+          64,
+          118,
+          88,
+          83,
+          872,
+          72
+        ]
+      },
+      "old_held_engineering_audit": {
+        "rows": 1351,
+        "episodes": 192,
+        "initially_lifted": 137,
+        "release_events": 39,
+        "source_counts": [
+          393,
+          958
+        ],
+        "arms": [
+          80,
+          105,
+          83,
+          60,
+          951,
+          72
+        ]
+      }
+    },
+    "calibration": {
+      "cm": {
+        "height_rmse_mm": 24.349170684814453,
+        "retained_mae_mm": 3.4162089824676514,
+        "joint_contact_mae": 0.23921258747577667,
+        "release_brier": 0.009532220661640167,
+        "constant_release_brier": 0.010216305032372475,
+        "margin_mm": 0.6705522537231445,
+        "retained_error_q90_mm": 8.45595645904541,
+        "release_supported": true,
+        "proposal_fraction": 0.06939090043306351,
+        "choice_counts": [
+          14,
+          36,
+          11,
+          22,
+          1207,
+          7
+        ],
+        "scope": "factual calibration; relative-effect ensemble uncertainty heuristic"
+      },
+      "state_only": {
+        "height_rmse_mm": 25.061410903930664,
+        "retained_mae_mm": 3.757209300994873,
+        "joint_contact_mae": 0.2417425960302353,
+        "release_brier": 0.010146104730665684,
+        "constant_release_brier": 0.010216305032372475,
+        "margin_mm": 1.0589996576309204,
+        "retained_error_q90_mm": 8.505078315734863,
+        "release_supported": true,
+        "proposal_fraction": 0.05397070199251175,
+        "choice_counts": [
+          0,
+          22,
+          0,
+          47,
+          1227,
+          1
+        ],
+        "scope": "factual calibration; relative-effect ensemble uncertainty heuristic"
+      },
+      "action_shuffled": {
+        "height_rmse_mm": 24.878328323364258,
+        "retained_mae_mm": 3.6732378005981445,
+        "joint_contact_mae": 0.23250436782836914,
+        "release_brier": 0.009979130700230598,
+        "constant_release_brier": 0.010216305032372475,
+        "margin_mm": 0.8303589224815369,
+        "retained_error_q90_mm": 8.82802963256836,
+        "release_supported": true,
+        "proposal_fraction": 0.06322281807661057,
+        "choice_counts": [
+          30,
+          15,
+          14,
+          15,
+          1215,
+          8
+        ],
+        "scope": "factual calibration; relative-effect ensemble uncertainty heuristic"
+      }
+    },
+    "old_held_engineering_audit": {
+      "cm": {
+        "height_rmse_mm": 14.449769020080566,
+        "retained_mae_mm": 2.696133852005005,
+        "joint_contact_mae": 0.23757337033748627,
+        "release_brier": 0.019105510786175728,
+        "constant_release_brier": 0.028037091717123985
+      },
+      "state_only": {
+        "height_rmse_mm": 14.511295318603516,
+        "retained_mae_mm": 2.9275476932525635,
+        "joint_contact_mae": 0.23809118568897247,
+        "release_brier": 0.020153621211647987,
+        "constant_release_brier": 0.028037091717123985
+      },
+      "action_shuffled": {
+        "height_rmse_mm": 14.725893020629883,
+        "retained_mae_mm": 2.9046378135681152,
+        "joint_contact_mae": 0.23157301545143127,
+        "release_brier": 0.02406766638159752,
+        "constant_release_brier": 0.028037091717123985
+      }
+    },
+    "best_fixed": 1,
+    "uniform_fit_fixed_retained_means_mm": [
+      3.779787540435791,
+      6.769165515899658,
+      3.889848470687866,
+      3.49835205078125,
+      2.331693172454834,
+      3.8817739486694336
+    ],
+    "updates": [
+      {
+        "variant": "cm",
+        "member": 0,
+        "updates": 1000,
+        "last_loss": 0.24125239253044128,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "cm",
+        "member": 1,
+        "updates": 1000,
+        "last_loss": 0.35551175475120544,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "cm",
+        "member": 2,
+        "updates": 1000,
+        "last_loss": 0.30765271186828613,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "state_only",
+        "member": 0,
+        "updates": 1000,
+        "last_loss": 0.24303752183914185,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "state_only",
+        "member": 1,
+        "updates": 1000,
+        "last_loss": 0.41313254833221436,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "state_only",
+        "member": 2,
+        "updates": 1000,
+        "last_loss": 0.3355650305747986,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "action_shuffled",
+        "member": 0,
+        "updates": 1000,
+        "last_loss": 0.253578782081604,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "action_shuffled",
+        "member": 1,
+        "updates": 1000,
+        "last_loss": 0.34174641966819763,
+        "encoder_keys_warmed": 8
+      },
+      {
+        "variant": "action_shuffled",
+        "member": 2,
+        "updates": 1000,
+        "last_loss": 0.2926478385925293,
+        "encoder_keys_warmed": 8
+      }
+    ],
+    "input_norm": {
+      "history_abs_max": 973.6798706054688,
+      "candidate_abs_max": 11.872116088867188,
+      "context_abs_max": 14.05905818939209
+    },
+    "source_record_sha256": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed331/records.pt": "8e1db44fb0dbe9056c0cc8ace79044699843244e7969156679b6e05d6759a673",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed332/records.pt": "4c83c45af6775cb4ed57095a5fed3fd112cbe02f0d25bce1552a580240a79de8",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed333/records.pt": "da38487e1add20907a96762e23efbe4c201a350ad53a2e117f5abae8ecef50da",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed341/records.pt": "ab7888f102d6b9245a23dda37ca75ee3e843b6349bf4d386980a06c264f78d8f",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed342/records.pt": "2083234ee2f6bb665ba7d246e0132173d587e63ceec0989d657792492e71a2bc",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed343/records.pt": "437161d9c5e309feda4cd1ed72170a51d238a8c93d920018fbf76315861ce2bc",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed344/records.pt": "c18a6a2509d126c49de7fc9e97b67bc3f89df3867be638b3590c057165ef83ab",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed345/records.pt": "d6dd1154041d0ea7758810966eee2497ceb7b2b27c3f3968a37f59acb9c3682f",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed346/records.pt": "3f48bcd1984b8ff668e6ea9874ae59d3f9deadd06c824de57899ccac09d06ee4"
+    },
+    "trajectory_sha256": "f7c0b0f95d2344947bd872e0ef518bc0fa49ebc592a9c154bb101f55ebdd22e8",
+    "input_hashes_unchanged": true,
+    "elapsed_seconds": 51.10779356909916,
+    "cumulative_seconds": 51.10779448971152,
+    "actor_training": false,
+    "value_training": false,
+    "utility_boundary": "historical held targets previously used; no new utility or safe-grasp result from this adaptation"
+  },
+  "terminal_diagnostic": {
+    "scope": "terminal diagnostic; no refit, model selection or change to failed primary gate",
+    "normalization": {
+      "fit": {
+        "rows": 3277,
+        "old_norm_max": 973.6798706054688,
+        "rows_above10_fraction": 0.06164174526929855,
+        "rows_above100_fraction": 0.0006103143095970154,
+        "fit_rebased_max": 177.99160766601562,
+        "top_columns": [
+          {
+            "column": 25,
+            "maximum_old_abs_norm": 973.6798706054688,
+            "old_mean": -0.008339299820363522,
+            "old_scale": 0.7656121253967285,
+            "new_fit_mean": -0.03682059794664383,
+            "new_fit_scale": 4.188021659851074
+          },
+          {
+            "column": 29,
+            "maximum_old_abs_norm": 461.713134765625,
+            "old_mean": -0.007685018703341484,
+            "old_scale": 2.44225811958313,
+            "new_fit_mean": 0.006645587272942066,
+            "new_fit_scale": 6.719562530517578
+          },
+          {
+            "column": 28,
+            "maximum_old_abs_norm": 393.6735534667969,
+            "old_mean": 0.046543143689632416,
+            "old_scale": 1.5864211320877075,
+            "new_fit_mean": 0.04636985808610916,
+            "new_fit_scale": 3.7035670280456543
+          },
+          {
+            "column": 24,
+            "maximum_old_abs_norm": 384.949462890625,
+            "old_mean": 0.1130058690905571,
+            "old_scale": 0.9779537320137024,
+            "new_fit_mean": 0.08761420845985413,
+            "new_fit_scale": 2.2618634700775146
+          },
+          {
+            "column": 27,
+            "maximum_old_abs_norm": 384.3561096191406,
+            "old_mean": -0.027428453788161278,
+            "old_scale": 1.3800668716430664,
+            "new_fit_mean": -0.010350211523473263,
+            "new_fit_scale": 4.697683811187744
+          },
+          {
+            "column": 23,
+            "maximum_old_abs_norm": 289.3335266113281,
+            "old_mean": -0.027488119900226593,
+            "old_scale": 1.1336714029312134,
+            "new_fit_mean": -0.025575662031769753,
+            "new_fit_scale": 1.9677979946136475
+          },
+          {
+            "column": 26,
+            "maximum_old_abs_norm": 281.5769348144531,
+            "old_mean": 0.03731892630457878,
+            "old_scale": 1.1604727506637573,
+            "new_fit_mean": 0.03764547035098076,
+            "new_fit_scale": 2.5938048362731934
+          },
+          {
+            "column": 21,
+            "maximum_old_abs_norm": 262.719970703125,
+            "old_mean": 0.17892713844776154,
+            "old_scale": 1.1773409843444824,
+            "new_fit_mean": 0.17205187678337097,
+            "new_fit_scale": 1.9105490446090698
+          },
+          {
+            "column": 31,
+            "maximum_old_abs_norm": 251.5143585205078,
+            "old_mean": -0.058779194951057434,
+            "old_scale": 1.735411524772644,
+            "new_fit_mean": -0.04262128472328186,
+            "new_fit_scale": 3.2746360301971436
+          },
+          {
+            "column": 30,
+            "maximum_old_abs_norm": 235.63177490234375,
+            "old_mean": 0.03466298431158066,
+            "old_scale": 1.1843111515045166,
+            "new_fit_mean": 0.014774840325117111,
+            "new_fit_scale": 2.0344347953796387
+          }
+        ]
+      },
+      "calibration": {
+        "rows": 1297,
+        "old_norm_max": 103.75460815429688,
+        "rows_above10_fraction": 0.09252120554447174,
+        "rows_above100_fraction": 0.0030840400140732527,
+        "fit_rebased_max": 63.26380157470703,
+        "top_columns": [
+          {
+            "column": 27,
+            "maximum_old_abs_norm": 103.75460815429688,
+            "old_mean": -0.027428453788161278,
+            "old_scale": 1.3800668716430664,
+            "new_fit_mean": -0.010350211523473263,
+            "new_fit_scale": 4.697683811187744
+          },
+          {
+            "column": 23,
+            "maximum_old_abs_norm": 103.71342468261719,
+            "old_mean": -0.027488119900226593,
+            "old_scale": 1.1336714029312134,
+            "new_fit_mean": -0.025575662031769753,
+            "new_fit_scale": 1.9677979946136475
+          },
+          {
+            "column": 25,
+            "maximum_old_abs_norm": 102.72119140625,
+            "old_mean": -0.008339299820363522,
+            "old_scale": 0.7656121253967285,
+            "new_fit_mean": -0.03682059794664383,
+            "new_fit_scale": 4.188021659851074
+          },
+          {
+            "column": 21,
+            "maximum_old_abs_norm": 102.6565170288086,
+            "old_mean": 0.17892713844776154,
+            "old_scale": 1.1773409843444824,
+            "new_fit_mean": 0.17205187678337097,
+            "new_fit_scale": 1.9105490446090698
+          },
+          {
+            "column": 32,
+            "maximum_old_abs_norm": 80.12393951416016,
+            "old_mean": -0.0010503963567316532,
+            "old_scale": 0.408274382352829,
+            "new_fit_mean": -0.00712514529004693,
+            "new_fit_scale": 0.5407766103744507
+          },
+          {
+            "column": 20,
+            "maximum_old_abs_norm": 59.40914535522461,
+            "old_mean": -0.02377503551542759,
+            "old_scale": 0.15499892830848694,
+            "new_fit_mean": -0.022698935121297836,
+            "new_fit_scale": 0.1510958969593048
+          },
+          {
+            "column": 26,
+            "maximum_old_abs_norm": 57.407535552978516,
+            "old_mean": 0.03731892630457878,
+            "old_scale": 1.1604727506637573,
+            "new_fit_mean": 0.03764547035098076,
+            "new_fit_scale": 2.5938048362731934
+          },
+          {
+            "column": 28,
+            "maximum_old_abs_norm": 50.83262634277344,
+            "old_mean": 0.046543143689632416,
+            "old_scale": 1.5864211320877075,
+            "new_fit_mean": 0.04636985808610916,
+            "new_fit_scale": 3.7035670280456543
+          },
+          {
+            "column": 34,
+            "maximum_old_abs_norm": 45.80186080932617,
+            "old_mean": -0.07618214935064316,
+            "old_scale": 1.600468635559082,
+            "new_fit_mean": -0.05815621092915535,
+            "new_fit_scale": 2.107508420944214
+          },
+          {
+            "column": 33,
+            "maximum_old_abs_norm": 45.70674133300781,
+            "old_mean": 0.01799464225769043,
+            "old_scale": 0.7104038596153259,
+            "new_fit_mean": 0.014027091674506664,
+            "new_fit_scale": 1.123102068901062
+          }
+        ]
+      }
+    },
+    "contact": {
+      "cm": {
+        "brier": 0.15674731135368347,
+        "constant_brier": 0.22262448072433472,
+        "mae": 0.23921258747577667,
+        "empirical_positive_rate": 0.6723207235336304,
+        "fit_constant_prediction": 0.7204760313034058,
+        "descriptive_ece": 0.09559203971697214,
+        "bins": [
+          {
+            "rows": 133,
+            "prediction": 0.016614412888884544,
+            "observed": 0.13533835113048553
+          },
+          {
+            "rows": 40,
+            "prediction": 0.1458444595336914,
+            "observed": 0.30000001192092896
+          },
+          {
+            "rows": 36,
+            "prediction": 0.2530041038990021,
+            "observed": 0.4722222089767456
+          },
+          {
+            "rows": 74,
+            "prediction": 0.34867846965789795,
+            "observed": 0.3378378450870514
+          },
+          {
+            "rows": 48,
+            "prediction": 0.44336891174316406,
+            "observed": 0.4166666567325592
+          },
+          {
+            "rows": 56,
+            "prediction": 0.5567649602890015,
+            "observed": 0.5
+          },
+          {
+            "rows": 97,
+            "prediction": 0.6549358367919922,
+            "observed": 0.5876288414001465
+          },
+          {
+            "rows": 68,
+            "prediction": 0.7434845566749573,
+            "observed": 0.6323529481887817
+          },
+          {
+            "rows": 82,
+            "prediction": 0.8524897694587708,
+            "observed": 0.6097561120986938
+          },
+          {
+            "rows": 663,
+            "prediction": 0.9907720685005188,
+            "observed": 0.9079939723014832
+          }
+        ],
+        "high_norm_mae": 0.306801974773407,
+        "low_norm_mae": 0.23232156038284302
+      },
+      "state_only": {
+        "brier": 0.1602451503276825,
+        "constant_brier": 0.22262448072433472,
+        "mae": 0.24174261093139648,
+        "empirical_positive_rate": 0.6723207235336304,
+        "fit_constant_prediction": 0.7204760313034058,
+        "descriptive_ece": 0.10858597470276522,
+        "bins": [
+          {
+            "rows": 132,
+            "prediction": 0.019131779670715332,
+            "observed": 0.17424242198467255
+          },
+          {
+            "rows": 31,
+            "prediction": 0.1350226253271103,
+            "observed": 0.25806450843811035
+          },
+          {
+            "rows": 37,
+            "prediction": 0.25135165452957153,
+            "observed": 0.2702702581882477
+          },
+          {
+            "rows": 105,
+            "prediction": 0.34924206137657166,
+            "observed": 0.4476190507411957
+          },
+          {
+            "rows": 47,
+            "prediction": 0.44136470556259155,
+            "observed": 0.40425533056259155
+          },
+          {
+            "rows": 46,
+            "prediction": 0.5555127859115601,
+            "observed": 0.6304348111152649
+          },
+          {
+            "rows": 95,
+            "prediction": 0.6579359173774719,
+            "observed": 0.4842105209827423
+          },
+          {
+            "rows": 52,
+            "prediction": 0.7455952167510986,
+            "observed": 0.5769230723381042
+          },
+          {
+            "rows": 73,
+            "prediction": 0.85297691822052,
+            "observed": 0.6164383292198181
+          },
+          {
+            "rows": 679,
+            "prediction": 0.9908465147018433,
+            "observed": 0.9057437181472778
+          }
+        ],
+        "high_norm_mae": 0.37025728821754456,
+        "low_norm_mae": 0.22864003479480743
+      },
+      "action_shuffled": {
+        "brier": 0.14657926559448242,
+        "constant_brier": 0.22262448072433472,
+        "mae": 0.23250436782836914,
+        "empirical_positive_rate": 0.6723207235336304,
+        "fit_constant_prediction": 0.7204760313034058,
+        "descriptive_ece": 0.08956425791245842,
+        "bins": [
+          {
+            "rows": 142,
+            "prediction": 0.021466178819537163,
+            "observed": 0.17605634033679962
+          },
+          {
+            "rows": 24,
+            "prediction": 0.1433526575565338,
+            "observed": 0.2083333283662796
+          },
+          {
+            "rows": 36,
+            "prediction": 0.2446427047252655,
+            "observed": 0.1388888955116272
+          },
+          {
+            "rows": 64,
+            "prediction": 0.3447585999965668,
+            "observed": 0.359375
+          },
+          {
+            "rows": 46,
+            "prediction": 0.44218721985816956,
+            "observed": 0.5
+          },
+          {
+            "rows": 64,
+            "prediction": 0.5519640445709229,
+            "observed": 0.46875
+          },
+          {
+            "rows": 140,
+            "prediction": 0.6549823880195618,
+            "observed": 0.4928571283817291
+          },
+          {
+            "rows": 66,
+            "prediction": 0.7538884878158569,
+            "observed": 0.6515151262283325
+          },
+          {
+            "rows": 71,
+            "prediction": 0.8571537733078003,
+            "observed": 0.6478873491287231
+          },
+          {
+            "rows": 644,
+            "prediction": 0.9916362166404724,
+            "observed": 0.9363353848457336
+          }
+        ],
+        "high_norm_mae": 0.3302144706249237,
+        "low_norm_mae": 0.22254244983196259
+      }
+    },
+    "input_hashes_unchanged": true
+  },
+  "all_input_hashes_verified_at_completion": true,
+  "gpu4_released": true,
+  "training_commit": "fbf30022be56b8f8412c50d51ac8c526b85685c9",
+  "interpretation": "Original0.20joint-contact MAE preparation gate failed. High-normalization history rows are only9.25% of calibration; lower-norm MAE still0.232. Raw probabilistic joint-contact Brier improves versusconstant but ECE0.096 indicates overconfidence. No utility experiment or actor/V updates."
+}

@@ -20,6 +20,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261001-contact-trajectory-model
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261001-contact-trajectory-model.md
+    evidence: docs/experiments/probes/P-20261001-contact-trajectory-model-results.json
+    outcome_boundary: "9physical models×1000updates complete; original joint-contact MAE.239 gate FAILED, release Brier beats constant; predictive probabilities overconfident. Old held engineering-only. No utility promotion; scalar reliability/signed-support setup replaces further NN tuning."
   - id: P-20261001-targeted-contact-interventions
     owner: current_session
     status: COMPLETED
@@ -130,11 +137,11 @@ hypotheses:
     status: ACTIVE
     branch: agent/cm-contact-consequence
     probe_budget: 2
-    probes_used: 1
+    probes_used: 2
     owner: current_session
     authorization: "active user goal and AGENTS autonomous implementation; HF09 local physical signal motivates distinct retention/release mechanism, no mission/claim/resource change"
-    card: docs/experiments/probes/P-20261001-contact-trajectory-model.md
-    transition: "Slot1 adapts explicit base-relative10step height/contact/joint-retention/release heads with old encoder/scales and recorded real sim trajectories. Old held is engineering-only; slot2 fresh five-selector randomized actual control only after supported calibrated heads. HF09 budget stays3/3closed; no actor/PPO/V."
+    card: docs/experiments/probes/P-20261001-contact-supported-height-control.md
+    transition: "Slot1 original MAE preparation gate FAILED and stays failed; physical NN weights frozen. Slot2 predeclares grouped probability calibration (proper Brier/ECE gate) and signed retained-supported-height score, then new five-selector actual randomization only if setup passes. NN tuning closed; budget2/2, HF09 stays3/3closed. No actor/PPO/V or utility promotion."
   HF09:
     claim: C3
     name: contact_consequence_direct_control
