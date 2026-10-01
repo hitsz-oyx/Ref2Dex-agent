@@ -46,3 +46,18 @@ for each contrast. Insufficient support UNCLEAR; no threshold rerun. Record
 action changes, proposal/actual coverage, replans and inference latency.
 Positive permits policy-training design; mixed-history local effects alone
 do not meet the final stable-grasp or matched trained-policy claim.
+
+Setup completed on GPU4 in2.535seconds (code ac8aa8e): crossfit Cm joint
+Brier .143864 vs constant .222624, ECE .030780; release Brier .009298 vs
+constant .010216. Proper setup PASSED; original MAE gate remains FAILED.
+Frozen artifact SHA027202015c32ba783aa1bbef5a0a3c501643bfa904e0b460cdf1877193971355;
+physical NN weights unchanged. Cal proposal117/1297 (9.02%), margin1.358195mm,
+bestfixed cup arm1. Details in supported-height-control-setup-results.json.
+
+Native-command contract fixed before fresh outcomes: Inspire overwrites raw
+channels7/9/11/13/16/17. Equivalent constant2step plans are merged using
+12independent commands for actual propensity and all effect-support counts.
+Log exact native18DOF candidate targets and executed targets at every step.
+State-only6slots preserve expert identity and predict candidate-specific
+physical futures; this control tests numeric action information, not absence
+of all action-consequence modeling. Runtime/collection tests25passed.

@@ -63,13 +63,22 @@ def randomized_player(original,args,torch,gymtorch):
             rest=task.hoi_refs[task.data_id,task.ref_index,0,108].clone()
             generator=torch.Generator(device=self.device).manual_seed(args.assignment_seed)
             before=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts])
-            selector=None;policy_trace={};latencies=[]
+            selector=None;policy_trace={};latencies=[];selector_pool=getattr(args,'trajectory',None) is not None
             if getattr(args,'ranker',None):
                 from src.task.CmResidual.contact_selector import FrozenContactSelector
                 selector=FrozenContactSelector(args.ranker,self.device)
                 selector_before=fingerprint([m.state_dict() for m in selector.models])
                 for key in ['proposed_arm','treatment','propensity','predicted_gain_mm','lower_gain_mm','predicted_contact','predicted_drop']:
                     policy_trace[key]=torch.zeros(n,w,device=self.device)
+            elif selector_pool:
+                from src.task.CmResidual.trajectory_selector import FrozenTrajectorySelectors,recommendation_probability,effective_commands
+                selector=FrozenTrajectorySelectors(args.trajectory,self.device)
+                selector_before=fingerprint([m.state_dict() for m in selector.models])
+                for key in ['proposed_arm','treatment','propensity','selected_policy','predicted_gain_mm','lower_gain_mm','predicted_contact','predicted_release']:
+                    policy_trace[key]=torch.zeros(n,w,device=self.device)
+                policy_trace['policy_proposals']=torch.zeros(n,w,5,device=self.device)
+                candidate_pd=torch.zeros(n,w,6,18,device=self.device)
+                actual_pd=torch.zeros(n,w,HORIZON,18,device=self.device)
             reset_ids=torch.empty(0,dtype=torch.long,device=self.device)
             for tick in range(args.max_steps):
                 if time.monotonic()-started>args.wall_seconds:raise TimeoutError('randomized native budget')
@@ -95,11 +104,23 @@ def randomized_player(original,args,torch,gymtorch):
                                                    torch.full_like(start[rows],tick))
                         torch.cuda.synchronize();latencies.append(dict(batch=len(rows),milliseconds=1000*(time.monotonic()-begin)))
                         proposal=predicted['proposed_arm'];active=proposal!=BASE_INDEX
-                        treatment=(torch.rand(len(rows),device=self.device,generator=generator)<.5)&active
-                        arm=torch.where(treatment,proposal,torch.full_like(proposal,BASE_INDEX))
+                        if selector_pool:
+                            selected_policy=torch.randint(5,(len(rows),),device=self.device,generator=generator)
+                            arm=predicted['policy_proposals'][torch.arange(len(rows),device=self.device),selected_policy]
+                            probability=recommendation_probability(candidate[rows],predicted['policy_proposals'],arm)
+                            treatment=(selected_policy==0)&active
+                            policy_trace['selected_policy'][rows,slots]=selected_policy.float()
+                        else:
+                            treatment=(torch.rand(len(rows),device=self.device,generator=generator)<.5)&active
+                            arm=torch.where(treatment,proposal,torch.full_like(proposal,BASE_INDEX))
+                            probability=torch.where(active,.5,1.)
                         for key,value in predicted.items():policy_trace[key][rows,slots]=value.float()
                         policy_trace['treatment'][rows,slots]=treatment.float()
-                        policy_trace['propensity'][rows,slots]=torch.where(active,.5,1.)
+                        policy_trace['propensity'][rows,slots]=probability
+                        if selector_pool:
+                            # Exact native mapping includes wrist increments,
+                            # finger target ranges and overwritten couplings.
+                            candidate_pd[rows,slots]=torch.stack([task._action_to_pd_targets(candidate[:,a].clone()).clone() for a in range(6)],1)[rows]
                     current_arm[rows]=arm;cached[rows]=candidate[rows,arm]
                     trigger[rows,slots]=tick;assignment[rows,slots]=arm
                     trigger_state[rows,slots]=state[rows]
@@ -112,6 +133,7 @@ def randomized_player(original,args,torch,gymtorch):
                 override=live&(elapsed<EXECUTION_STEPS)
                 action[override]=cached[override]
                 applied=action.clone()
+                if selector_pool:actual_pd[rows,slots,offset]=task._action_to_pd_targets(applied.clone())[rows].clone()
                 _,_,done,_=self.env_step(self.env,action)
                 done=done.bool().reshape(-1)
                 after=torch.cat((task._dof_pos.clone(),task._dof_vel.clone(),task._target_states.clone()),-1)
@@ -134,6 +156,9 @@ def randomized_player(original,args,torch,gymtorch):
             expected=proposals[valid][torch.arange(int(valid.sum()),device=self.device),assignment[valid]]
             if not torch.equal(actual[valid][:,:EXECUTION_STEPS],expected[:,None].expand(-1,EXECUTION_STEPS,-1)):
                 raise ValueError('random candidate not executed')
+            if selector_pool:
+                expected_pd=candidate_pd[valid][torch.arange(int(valid.sum()),device=self.device),assignment[valid]]
+                if not torch.equal(actual_pd[valid][:,0],expected_pd):raise ValueError('native PD target not equal to selected current command')
             outcome=local_outcomes(future[valid],future_contact[valid].all(-1),trigger_state[valid][:,38],rest[:,None].expand(-1,w)[valid])
             if before!=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts]):
                 raise ValueError('frozen expert updated')
@@ -157,10 +182,24 @@ def randomized_player(original,args,torch,gymtorch):
                 payload['schema']='ref2dex.targeted_contact_consequence.v1'
                 payload['policy_trace']={k:v[valid].cpu() for k,v in policy_trace.items()}
                 payload['propensity']=payload['policy_trace']['propensity']
-                payload['ranker_sha256']=sha(args.ranker);payload['inference_latency']=latencies
+                payload['ranker_sha256']=sha(args.trajectory if selector_pool else args.ranker);payload['inference_latency']=latencies
                 active=payload['policy_trace']['proposed_arm'].long()!=BASE_INDEX
                 treated=payload['policy_trace']['treatment'].bool()
-                expected_arm=torch.where(treated,payload['policy_trace']['proposed_arm'].long(),BASE_INDEX)
+                if selector_pool:
+                    payload['schema']='ref2dex.selector_pool_contact_consequence.v1'
+                    payload['policy_names']=list(selector.policy_names);payload['policy_allocation_probability']=.2
+                    payload.pop('teacher_or_optimizer')
+                    payload.update(actor_training=False,selector_training=False,frozen_proposal_models=True,
+                                   predicted_release_scope='all-window acquired or pre-existing lift release')
+                    pool=payload['policy_trace']['policy_proposals'].long()
+                    expected_arm=pool[torch.arange(len(pool)),payload['policy_trace']['selected_policy'].long()]
+                    if not torch.equal(payload['propensity'],recommendation_probability(payload['candidate_actions'],pool,expected_arm)):
+                        raise ValueError('duplicate recommendation propensity mismatch')
+                    payload.update(candidate_pd_targets=candidate_pd[valid].cpu(),actual_pd_targets=actual_pd[valid].cpu(),
+                                   effective_candidate_commands=effective_commands(payload['candidate_actions']),
+                                   command_definition='Inspire12independent normalized channels;6overwritten channels cannot cause physical differences',
+                                   actual_propensity_definition='uniform5policy allocation, merge equal12channel constant2step plans')
+                else:expected_arm=torch.where(treated,payload['policy_trace']['proposed_arm'].long(),BASE_INDEX)
                 if not torch.equal(expected_arm,payload['assignment']):raise ValueError('allocation/proposal mismatch')
             torch.save(payload,args.output/'records.pt')
             result=dict(run_status='COMPLETED',rows=int(valid.sum()),episodes=len(set(payload['episode_id'])),
@@ -171,6 +210,10 @@ def randomized_player(original,args,torch,gymtorch):
                 result.update(active_windows=int(active.sum()),treated_windows=int((active&treated).sum()),
                               control_windows=int((active&~treated).sum()),frozen_selector=True,
                               decision_windows_per_episode=torch.bincount(env_id,minlength=n).cpu().tolist())
+                if selector_pool:
+                    result.pop('treated_windows');result.pop('control_windows')
+                    result.update(policy_assignment_counts=torch.bincount(payload['policy_trace']['selected_policy'].long(),minlength=5).tolist(),
+                                  cm_nonbase_recommendation_executed=int((active&(payload['assignment']==pool[:,0])).sum()))
             (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     return RandomizedPlayer
 
@@ -184,7 +227,9 @@ def main():
     p.add_argument('--max-steps',type=int,default=650)
     p.add_argument('--wall-seconds',type=int,default=240)
     p.add_argument('--ranker',type=Path)
+    p.add_argument('--trajectory',type=Path)
     args,remaining=p.parse_known_args()
+    if args.ranker and args.trajectory:raise ValueError('one frozen selector mode')
     root=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
     if root not in args.output.resolve().parents:raise ValueError('outside owned output')
     args.output.mkdir(parents=True,exist_ok=False)

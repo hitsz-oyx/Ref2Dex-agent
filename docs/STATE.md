@@ -33,9 +33,11 @@ HF09预算3/3完成，不调旧模型/阈值追门。下一步改进物理目标
 设计与结果见 [定向介入卡](experiments/probes/P-20261001-targeted-contact-interventions.md)。
 HF10 slot1已完成9个物理模型各1000GPU更新（51秒），但joint-contact MAE
 .239未通过原.20门；Brier优于constant，概率过度自信，utility仍UNCLEAR。
-当前slot2/2冻结物理NN，仅做分组概率可靠性校准，并将已取得支持高度的损失
-计为负收益。proper Brier/ECE setup门通过后才采集新的五推荐器随机闭环；
-不过则停止HF10本地调整。旧MAE失败记录不改，旧held只作工程审计。
+当前slot2/2的proper校准setup已通过：Cm joint Brier .1439、ECE .0308，
+release Brier .00930，物理NN权重未改。使用已取得支持高度的有符号变化，
+冻结参数启动新seed351–356五推荐器实际随机闭环；按12个独立控制通道合并
+等价动作概率，并记录native PD目标。四控制、安全与有效支持门待新数据，
+旧MAE失败记录不改，旧held只作工程审计；失败不继续HF10局部调参。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
 [保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和

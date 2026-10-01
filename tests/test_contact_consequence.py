@@ -181,6 +181,42 @@ class ContactConsequenceTests(unittest.TestCase):
         self.assertEqual(result['drop_eligible'].tolist(),[True,True,False])
         self.assertAlmostEqual(float(result['contact_loss'][1]),.6,places=5)
 
+    def test_five_policy_pool_merges_physical_aliases_and_records_native_targets(self):
+        from scripts.collect_randomized_contact_consequences import randomized_player
+        class Selector:
+            policy_names=('cm','state_only','action_shuffled','always_base','best_fixed')
+            def __init__(self,*args):self.models=[torch.nn.Linear(1,1)]
+            def predict(self,history,candidate,*args):
+                n=len(history);pool=torch.tensor([0,1,2,4,0]).expand(n,-1)
+                return dict(proposed_arm=pool[:,0],policy_proposals=pool,predicted_gain_mm=torch.ones(n),
+                            lower_gain_mm=torch.ones(n),predicted_contact=torch.ones(n),predicted_release=torch.zeros(n))
+        Player=self.fake_player_type()
+        class NativePlayer(Player):
+            def __init__(self):
+                super().__init__()
+                def targets(a):
+                    a[:,6:]=(a[:,6:]+1)/2
+                    a[:,:6]+=self.env.task._dof_pos[:,:6]
+                    for dst,src,scale in [(7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)]:
+                        a[:,dst]=a[:,src]*scale
+                    return a
+                self.env.task._action_to_pd_targets=targets
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);checkpoint=root/'frozen.pt';checkpoint.write_bytes(b'frozen')
+            args=SimpleNamespace(output=root,seed=351,assignment_seed=7351,trajectory=checkpoint,
+                                 windows_per_episode=8,max_steps=100,wall_seconds=60)
+            with patch('src.task.CmResidual.trajectory_selector.FrozenTrajectorySelectors',Selector),patch.object(torch.cuda,'synchronize'):
+                randomized_player(SimpleNamespace(EvalPlayer=NativePlayer),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))().run()
+            data=torch.load(root/'records.pt',weights_only=False);trace=data['policy_trace'];arm=data['assignment']
+            self.assertEqual(data['schema'],'ref2dex.selector_pool_contact_consequence.v1')
+            self.assertTrue((torch.bincount(trace['selected_policy'].long(),minlength=5)>0).all())
+            self.assertTrue(torch.equal(data['propensity'],torch.where(arm==4,.2,.8)))
+            selected=data['candidate_pd_targets'][torch.arange(len(arm)),arm]
+            self.assertTrue(torch.equal(data['actual_pd_targets'][:,0],selected))
+            self.assertTrue((data['actual_action'][:,2:]==0).all())
+            self.assertTrue(torch.equal(data['history'][:,-1,:49],data['state']))
+            self.assertGreater(int((data['env_id']==0).sum()),2)
+
     def test_opportunity_requires_independent_repeat_gain_not_first_repeat_winners(self):
         lift=torch.zeros(32,6,2);contact=torch.ones_like(lift);drop=torch.zeros_like(lift,dtype=torch.bool)
         lift[:,0,0]=20

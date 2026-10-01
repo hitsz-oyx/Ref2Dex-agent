@@ -141,7 +141,7 @@ hypotheses:
     owner: current_session
     authorization: "active user goal and AGENTS autonomous implementation; HF09 local physical signal motivates distinct retention/release mechanism, no mission/claim/resource change"
     card: docs/experiments/probes/P-20261001-contact-supported-height-control.md
-    transition: "Slot1 original MAE preparation gate FAILED and stays failed; physical NN weights frozen. Slot2 predeclares grouped probability calibration (proper Brier/ECE gate) and signed retained-supported-height score, then new five-selector actual randomization only if setup passes. NN tuning closed; budget2/2, HF09 stays3/3closed. No actor/PPO/V or utility promotion."
+    transition: "Slot1 original MAE gate remains FAILED. Slot2 proper grouped probability setup PASSED (joint Brier .1439/ECE .0308, release Brier .00930); physical NN frozen. New351-356 five-selector native control uses signed support change and merged12channel physical-command propensity, logs native PD targets. Prospective utility/safety/support pending. NN tuning closed; budget2/2, HF09 stays3/3closed; no actor/PPO/V or utility promotion."
   HF09:
     claim: C3
     name: contact_consequence_direct_control
