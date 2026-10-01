@@ -6,9 +6,11 @@ branch: agent/cm-scratch-mlp-policy-probe
 git_commit: see run results.json
 claim_id: C3
 hypothesis_family: HF06
+decision_changed_if_positive: Prepare matched student and physical policy Probe
+decision_changed_if_negative: Close teacher-envelope implementation without a local sweep
 probe_index_in_family: 3
 seed_pool: probe
-status: COMPLETED
+status: UNPROMISING
 ---
 
 # Decision prerequisite: fixed scratch MLP feasibility

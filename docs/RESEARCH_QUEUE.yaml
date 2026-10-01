@@ -41,11 +41,11 @@ hypotheses:
   HF08:
     claim: C3
     name: short_physical_transition_long_term_value
-    status: ACTIVE
+    status: PAUSED
     branch: agent/cm-physical-value
     probe_budget: 1
     probes_used: 1
-    transition: "User approved full design and execution. r7 RUNNING on GPU1 (r6 reset failure cost retained); fixed plain PPO/direct Q/Cm-value Probe; positive prioritizes Validation, no local sweep."
+    transition: "r7 execution completed all 48 evaluations. Native gate UNPROMISING: Cm 33/384 vs PPO 41/384 and direct-Q 40/384. No Validation or local tuning. Audit identical-source e0 repeatability before final causal interpretation; core C3 stays OPEN."
 
   HF07:
     claim: C3

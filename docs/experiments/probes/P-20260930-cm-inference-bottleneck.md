@@ -6,9 +6,11 @@ branch: agent/cm-scratch-mlp-policy-probe
 git_commit: see parent run_manifest.json
 claim_id: C3
 hypothesis_family: HF07
+decision_changed_if_positive: Prioritize multi-training-seed matched Validation
+decision_changed_if_negative: Close this BC inference-input implementation without a local sweep
 probe_index_in_family: 1
 seed_pool: probe
-status: COMPLETED
+status: UNPROMISING
 ---
 
 # Real-policy Probe: explicit physical prediction input

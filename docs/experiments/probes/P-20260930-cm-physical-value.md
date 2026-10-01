@@ -1,7 +1,7 @@
 # P-20260930-cm-physical-value
 
 Family: HF08；probe_index_in_family: 1/1；类型：Decision Probe。
-状态：工程 preflight；conclusion：未形成；分支 agent/cm-physical-value。
+执行状态：COMPLETED；原生gate：UNPROMISING；最终因果解释需初始评价一致性审计；分支 agent/cm-physical-value。
 
 用户已批准 [固定设计](../../superpowers/specs/2026-09-30-cm-physical-value-design.md)，并授权本轮暂时跳过代理工作流，root 直接推进研究。期限 2026-10-03 23:59 Asia/Shanghai。具体代码提交、命令、输入 hash 与阶段状态由原生 run_manifest 保存；工程 smoke 不消费科学 Probe slot。
 
@@ -47,3 +47,9 @@ plain_off与direct_q四臂科学训练均已完成e420、327680新交互，初�
 在线Cm终点审计已安排受控CPU接续session39234：等待train_parallel完成后，用共同开发2048行分别审计seed286/287的e420 dynamics，输出models/component_audit_online_s{seed}_e420.json，CPU线程2；代码e339c84。它与session17061的完整评价独立，不能替代policy gate，诊断耗时单独记录。
 
 六臂科学训练全部COMPLETED，训练group wall4244.890s，累计科学阶段9090.904s；GPU时长误计已按交接记录修正，初始化/交互/行为监督合同均通过。全48点评价已启动并完成30点。training-seed286终点部分结果（每臂192首episode）：plain_off36、direct_q39、cm_value31稳定成功，掉落30/38/30；尚不是完整Probe结论。在线终点Cm的共同source开发2048行审计完成，CPU native51.740s：seed286/287位置RMSE0.007818/0.008576m（copy0.009263m、恒速0.004684m），姿态RMSE1.337133/1.364590rad（copy0.193119rad）。在线适配改善位置但姿态仍明显欠佳；这些诊断不能被表述为当前策略分布校准或Cm策略价值证据。
+
+## 完整矩阵交付（2026-10-01）
+
+48/48 native评价完成；原生合同检查通过，固定gate为UNPROMISING。终点每臂384episode：plain_off41、direct_q40、cm_value33；Cm差值为-2.083pp/-1.823pp。成功后掉落35/39/32；条件掉落85.37%/97.5%/96.97%，不能将通过1.5秒保持等同于整段不掉落。完整数值见[结果索引](P-20260930-cm-physical-value-results.json)。原始产物保留在当前research/output/r7，未将checkpoint与数据池提交Git。
+
+同source checkpoint的e0重复评价仍有差异，现有配对检查只覆盖env/motion/start/时长/初始高度；全状态与执行重复性尚待核查。因此不升级正式结论，不启动Validation，不继续这条实现的局部调参；新的机制检查尚在brainstorming，未启动。North-star Cm policy utility仍为OPEN。
