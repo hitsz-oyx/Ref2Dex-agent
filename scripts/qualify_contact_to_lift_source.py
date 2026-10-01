@@ -11,26 +11,36 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from run_paired_evaluator_resolution import sha
 
 
-def qualify(source):
+def qualify(source, additional=None, additional_audit=None):
     import torch
     from analyze_executable_contact_opportunity import split_group
     from src.task.CmResidual.contact_to_lift_macro import windows
     torch.set_num_threads(2)
-    manifest = json.loads((source / 'run_manifest.json').read_text())
-    if manifest['run_status'] != 'COMPLETED' or manifest['smoke_only']:
-        raise ValueError('completed source required')
-    if any(sha(Path(k)) != v for k, v in manifest['input_sha256'].items()):
-        raise ValueError('source drift')
     parts, episodes, groups, buckets, hashes = [], [], [], [], {}
-    for phase in manifest['phases']:
-        path = Path(phase['directory']) / 'records.pt'
-        if phase['run_status'] != 'COMPLETED' or sha(path) != phase['result']['record_sha256']:
-            raise ValueError('record drift')
-        b = torch.load(path, weights_only=False, map_location='cpu')
-        parts.append(windows(b)); episodes += b['episode_id']
-        groups += [f'{int(i)}/{int(j)}' for i, j in zip(b['motion_id'], b['start_frame'])]
-        buckets += [split_group(int(i), int(j)) for i, j in zip(b['motion_id'], b['start_frame'])]
-        hashes[str(path.resolve())] = sha(path)
+    if additional:
+        if additional_audit is None:
+            raise ValueError('additional source audit required')
+        audit = json.loads(additional_audit.read_text())
+        if audit['run_status'] != 'COMPLETED' or audit['run_manifest_sha256'] != sha(additional / 'run_manifest.json'):
+            raise ValueError('additional source audit drift')
+    for index, directory in enumerate([source] + ([additional] if additional else [])):
+        manifest = json.loads((directory / 'run_manifest.json').read_text())
+        if manifest['run_status'] != 'COMPLETED' or manifest['smoke_only']:
+            raise ValueError('completed source required')
+        if any(sha(Path(k)) != v for k, v in manifest['input_sha256'].items()):
+            raise ValueError('source drift')
+        for phase in manifest['phases']:
+            path = Path(phase['directory']) / 'records.pt'
+            if phase['run_status'] != 'COMPLETED' or sha(path) != phase['result']['record_sha256']:
+                raise ValueError('record drift')
+            b = torch.load(path, weights_only=False, map_location='cpu')
+            local = [split_group(int(i), int(j)) for i, j in zip(b['motion_id'], b['start_frame'])]
+            if index and any(v >= 70 for v in local):
+                raise ValueError('additional source leaked into held groups')
+            parts.append(windows(b)); episodes += b['episode_id']
+            groups += [f'{int(i)}/{int(j)}' for i, j in zip(b['motion_id'], b['start_frame'])]
+            buckets += local
+            hashes[str(path.resolve())] = sha(path)
     data = {k: torch.cat([p[k] for p in parts]) for k in parts[0]}
     bucket = torch.tensor(buckets)
     splits = {'fit': bucket < 50, 'cal': (bucket >= 50) & (bucket < 70), 'held': bucket >= 70}
@@ -56,10 +66,11 @@ def qualify(source):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--source', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--additional', type=Path); p.add_argument('--additional-audit', type=Path)
     args = p.parse_args()
     if args.output.exists(): raise ValueError('unique output required')
     begin = time.monotonic()
-    _, _, counts, adequate, hashes = qualify(args.source)
+    _, _, counts, adequate, hashes = qualify(args.source, args.additional, args.additional_audit)
     result = dict(experiment_id='P-20261002-contact-to-lift-macro', status='COMPLETED',
                   supervision_adequate=adequate, counts=counts, input_sha256=hashes,
                   elapsed_seconds=time.monotonic()-begin, device_reason='CPU label/support tally; no neural computation')
