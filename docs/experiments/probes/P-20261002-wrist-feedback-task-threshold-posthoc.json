@@ -1,0 +1,99 @@
+{
+  "status": "COMPLETED",
+  "scope": "post-hoc engineering decision analysis; new endpoints were not HF14 preregistered gates; original UNPROMISING unchanged, requires independent future data for confirmation",
+  "held_initially_clear": 777,
+  "options": {
+    "6": {
+      "last3_task_threshold_retained": {
+        "difference_pp": -0.6435006391257048,
+        "frame90_pp": [
+          -17.9560411771861,
+          23.41030992816706
+        ],
+        "episode90_pp": [
+          -15.827897115503543,
+          14.167793289707983
+        ]
+      },
+      "all10_task_threshold_retained": {
+        "difference_pp": -0.6435006391257048,
+        "frame90_pp": [
+          -17.288796209843188,
+          22.228508910990207
+        ],
+        "episode90_pp": [
+          -15.65570537650335,
+          13.94360022918162
+        ]
+      },
+      "lost_mesh_clearance": {
+        "difference_pp": -6.435006111860275,
+        "frame90_pp": [
+          -11.786600496277917,
+          -1.503736910257856
+        ],
+        "episode90_pp": [
+          -11.935423975222022,
+          -0.9822635049325903
+        ]
+      },
+      "last3_joint_contact": {
+        "difference_pp": -2.895752899348736,
+        "frame90_pp": [
+          -19.939716877502565,
+          20.635160035168447
+        ],
+        "episode90_pp": [
+          -18.628168977311297,
+          11.94231442459168
+        ]
+      }
+    },
+    "7": {
+      "last3_task_threshold_retained": {
+        "difference_pp": 3.2175030559301376,
+        "frame90_pp": [
+          -8.252844994966201,
+          15.921843619388804
+        ],
+        "episode90_pp": [
+          -11.557724904458997,
+          16.877885771931865
+        ]
+      },
+      "all10_task_threshold_retained": {
+        "difference_pp": 3.861003741621971,
+        "frame90_pp": [
+          -7.868363259825675,
+          16.40286617053327
+        ],
+        "episode90_pp": [
+          -11.06223497418879,
+          17.470861931726915
+        ]
+      },
+      "lost_mesh_clearance": {
+        "difference_pp": 4.504504427313805,
+        "frame90_pp": [
+          -3.989611108088008,
+          12.212002583274971
+        ],
+        "episode90_pp": [
+          -2.561313193486697,
+          11.68254642553708
+        ]
+      },
+      "last3_joint_contact": {
+        "difference_pp": 7.4002571403980255,
+        "frame90_pp": [
+          -6.149969968908988,
+          20.7641317016317
+        ],
+        "episode90_pp": [
+          -8.301893121110838,
+          22.489689267540054
+        ]
+      }
+    }
+  }
+}

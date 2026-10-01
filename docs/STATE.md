@@ -77,9 +77,16 @@ HF13已完成3404实际窗口/573episodes：留出已离桌536状态，hold204/b
 腕部保持/手指继续反馈的候选；不会回填旧bool标签或改旧失败门，C3仍OPEN。
 见 [原始力审计](experiments/probes/P-20261002-contact-force-units-r1-audit.json)。
 悬空负例亦通过：480帧rawforce全0；新重量归一化代理支撑5760/5760触发、
-悬空0/480触发，仅证明两个受控条件，不证明实际抓取接触识别。HF14开始
-工程检查腕部固定/手指继续专家反馈的新H10候选，保存rawforce/质量和全部
-原生专家观测，GPU独立重算所选反馈，旧Cm不复用。
+悬空0/480触发，仅证明两个受控条件，不证明实际抓取接触识别。HF14已完成
+3964窗口/584episodes，原收益门UNPROMISING1/1关闭。留出777已离桌状态，
+fit选腕部保持/base指反馈，146候选/310base匹配，保留高度−7.985mm，
+frame90[−12.842,−4.179]；几何间隙丢失−6.435pp（posthocframe90
+[−11.787,−1.504]pp），是保留/继续抬升的取舍，不能算Cm收益。cup指反馈
+方案高度−12.387mm且几何损失+4.505pp。posthoc3cm局部阈值保留差
+−.644pp，区间宽跨零，不改旧失败门或视为新目标过门。1109腕部保持窗口
+手指确实持续变化；专家/rawforce/PD/geometry/propensity复算全0误差；
+输入未变，自有PIDs退出/GPU释放，含工程21.66分钟/278.2MB。下一步路线复盘
+控制的平移/旋转职责，保留负责抬升的平移反馈，不继续整腕冻结参数扫描。
 见 [新候选卡](experiments/probes/P-20261002-wrist-feedback-opportunity.md)。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
@@ -280,7 +287,12 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
-| `HF09` contact-consequence-direct-control | `C3` | `ACTIVE`（机会→排序→闭环） | 2/3，随机后果排序 Probe | `agent/cm-contact-consequence` |
+| `HF14` wrist-anchored-finger-feedback | `C3` | `CLOSED UNPROMISING` | 1/1；保持/抬升取舍，旧门保留 | `agent/cm-executable-options` |
+| `HF13` executable-pose-hold | `C3` | `CLOSED UNPROMISING` | 1/1；固定整姿态失去几何保留 | `agent/cm-executable-options` |
+| `HF12` trainable-recovery-guide | `C3` | `CLOSED UNPROMISING` | 1/1；on贪心执行未学到改变 | `agent/cm-trainable-recovery` |
+| `HF11` recovery-option-learning | `C3` | `CLOSED UNPROMISING` | 1/1；固定先验压住执行 | `agent/cm-recovery-option-learning` |
+| `HF10` physical-trajectory-retention | `C3` | `CLOSED UNPROMISING` | 2/2；局部释放信号，收益未过门 | `agent/cm-contact-trajectory` |
+| `HF09` contact-consequence-direct-control | `C3` | `CLOSED UNCLEAR` | 3/3；局部抬升PROMISING，风险未过门 | `agent/cm-contact-consequence` |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
@@ -296,8 +308,11 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 ## Next step
 
-当前推进随机干预的实际状态/后果数据与非线性排序。近似配对的机会信号不能作为
-可靠反事实真值；使用已知 propensity 测量留出策略价值，并补掉落支持。
+当前先复盘动作控制职责：整腕固定降低几何丢失却损失抬升，局部3cm保留
+也未确认收益。下一步保留专家平移/手指反馈，只保持腕部旋转目标，检验是否
+能保留接触并继续抬升，再拟合该实际H10计划对应的物理Cm。旧统计门不改。
+近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
+新数据测量收益，而非把单状态预测当全候选真值。
 排序与覆盖过门后才检验直接重新决策；不依赖长期 V、不启动
 完整 PPO 或终点成功率矩阵；模型计算与仿真默认单 GPU，先固定合同与有界预算。
 HF08 当前实现和 HD02 诊断已关闭，后续机制是独立路线，旧证据继续保留。

@@ -1,6 +1,6 @@
 # P-20261002-wrist-feedback-opportunity
 
-HF14 Decision Probe1/1, engineering COMPLETED; frozen science starts. Owner current session, branch
+HF14 Decision Probe1/1, COMPLETED / UNPROMISING, budget1/1closed. Owner current session, branch
 agent/cm-executable-options. [Frozen design](../../decisions/D-20261002-wrist-anchored-feedback.md).
 
 Test whether continuing expert finger feedback with an anchored wrist offers
@@ -47,3 +47,30 @@ anchored finger programs vary;80expert windows vary. Frozen-expert replay,
 raw-force ratio/label replay, relative wrist PD and whole-mesh geometry all0
 error. Complete nonterminal labels and merged propensities verified; both own
 PIDs exited.112.350sec/10.533MB. [Audit](P-20261002-wrist-feedback-engineering-record-audit.json).
+
+Terminal science3964windows/584episodes,1434alreadyclear. Held777clear states:
+fit-selected wrist_base6 actual146matches/83episodes/17groups vsbase310/110/21,
+support sufficient. Signed retention−7.98467mm, frame90[−12.8423,−4.1787],
+episode90[−12.4751,−3.7066]. Lost clearance−6.435pp, joint proxy−2.896pp;
+risk/contact point gates pass but gain/CI gates fail. Wrist_cup7 has−12.387mm,
++4.505pp lost-clearance risk. Fit-qualified best fixed remainsbase4. Null
+−4.295mm frame90[−11.043,+4.914], required gain8.590mm. Original UNPROMISING
+preserved, no NN/Cm/PPO updates. [Full results](P-20261002-wrist-feedback-opportunity-results.json).
+
+Post-hoc task-threshold diagnostic does not rescue the gate: wrist_base last3
+3cm+clearance+joint-force retained difference−.644pp, frame90[−17.956,+23.410]
+wide/crosszero. Geometric loss reduction frame90[−11.787,−1.504]pp/episode90
+[−11.935,−.982]pp supports a local tradeoff hypothesis only. Cup threshold
+point+3.218pp also wide/crosszero. These endpoints/intervals were not original
+HF14 gates; require independent future data, no utility/grasp claim.
+[Post-hoc diagnostic](P-20261002-wrist-feedback-task-threshold-posthoc.json).
+
+All12full-label/propensity/source/weight/force/PD/whole-mesh checks pass;
+1109anchored programs have varying finger commands, expert replay and all
+numerical audits0error. Own parent/nativePIDs exited/GPU0released. Cumulative
+1299.593sec/278.185MB including engineering; no files/checkpoints overwritten.
+[Records](P-20261002-wrist-feedback-record-audit.json),
+[terminal audit](P-20261002-wrist-feedback-completion-audit.json).
+Next route review: preserve expert translation/lift and finger feedback,
+stabilize only orientation; stop treating full-wrist freezing as a complete
+candidate. No local threshold/seed/parameter sweep, C3remainsOPEN.

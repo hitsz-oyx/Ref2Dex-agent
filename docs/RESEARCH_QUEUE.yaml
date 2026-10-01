@@ -75,14 +75,14 @@ diagnostic_hypotheses:
   HF14:
     claim: C3
     name: wrist_anchored_feedback_opportunity
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-executable-options
     probe_budget: 1
     probes_used: 1
     owner: current_session
     authorization: "active user mechanism goal; distinct wrist-hold/finger-feedback plans after preserved HF13 failure and measured force-unit blocker, no claim/resource change"
     card: docs/experiments/probes/P-20261002-wrist-feedback-opportunity.md
-    transition: "Known supported5760/5760 and airborne0/480 normalized proxy conditions pass. New raw-force/native-observation schema and independent GPU expert replay; engineering seed440 before frozen12panels. Historical labels/gates unchanged."
+    transition: "Closed UNPROMISING1/1.3964windows/584episodes,1434initiallyclear. Held777,146fit-chosen wrist_base/310base actual matches; signed retention−7.985mm, geometric-loss−6.435pp tradeoff, bestqualifiedfixed=base. Cup variant−12.387mm/+4.505pploss. Posthoc3cm-retention−.644pp wideCIcross0 does not change original gate.1109anchored fingers vary, all12expert/raw-force/PD/geometry/propensity/input gates pass; ownPIDs exit/GPU released,21.66min/278.2MB. Route review translation/rotation roles rather than another full-wrist freeze sweep."
   HF13:
     claim: C3
     name: executable_contact_plan_opportunity
