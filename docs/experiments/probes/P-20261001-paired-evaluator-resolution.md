@@ -23,11 +23,13 @@ old terminal panel (training seeds286/287, evaluation seeds288/289).
   and then evolves under that arm's own observation (never copy off's later RNN
   to a different actor). Save actual actions before native PD mutation.
 - Four plain-off panels,96 complete first episodes each, balanced three motions
-  each32, frame0,1/30second control. Save full traces. Repeat each once from its
-  snapshot using off's saved action/RNG trace and a shadow plain-off actor forward.
-  Shadow RNN evolves independently. Repeated applied actions must be identical.
-  Shadow versus saved policy action maximum absolute error<=1e-5 is required
-  to treat trace replay as equivalent to a closed-loop actor repeat.
+  each32, frame0,1/30second control. Save full traces. Replay saved actions/RNG
+  with a shadow actor to diagnose physics. Replayed applied actions must be
+  identical; shadow error<=1e-5 would establish closed-loop equivalence. If
+  that equivalence fails, this replay cannot decide the Goal: perform one
+  actual closed-loop repeat per panel, applying native actor actions from the
+  same snapshot/RNG. Its endogenous actions and RNN evolve independently and
+  are saved. No off action is forced during actual closed-loop comparison.
 - Primary stable success:>=3cm lift plus native hand/object contact proxy,
   consecutive45steps. Record all followup until first terminal, including
   drop-after-success (<2cm lift or6lost-contact steps), max hold, lift/contact.
@@ -35,8 +37,9 @@ old terminal panel (training seeds286/287, evaluation seeds288/289).
 - Repeat noise gate on384 paired episodes: absolute success-rate difference
   <2.5pp; Wilson95% upper bound for per-episode success disagreement <5%, and
   analogous post-success-drop disagreement bound <5%. Full initial-state,
-  checkpoint, applied-action, RNG and terminal/motion pairing contracts must
-  pass, as must the shadow closed-loop equivalence check. This rules out net
+  checkpoint, RNG and terminal/motion pairing contracts must pass. The noise
+  gate must use actual closed-loop repeats, or replay verified equivalent to
+  closed-loop via the shadow check; replay alone is insufficient. This rules out net
   cancellation masking changed episodes. This screen is not a power guarantee
   or formal scientific validation; paired matrix confidence intervals reported.
 - If any repeat gate/implementation contract fails, do not launch direct-Q or
@@ -77,3 +80,28 @@ setter-order changes from being mistaken for solver replay noise. Only the
 verified owned PID/process group was terminated. The launcher recorded FAILED
 from SIGTERM; this is an engineering stop, not a scientific result. No other
 arm was started. r3 preserves the panel/gates and charges both r1/r2 costs.
+
+## r3 replay diagnostic and closed-loop completion
+
+r3 COMPLETED: eight plain-off processes,384 replay pairs, initial state/RNG/
+applied-action contracts valid, original inputs unchanged. Success counts34/36,
+2discordant success labels and2discordant post-success-drop labels; Wilson95%
+upper1.879%. All first-run34 successes subsequently dropped. However shadow
+actor errors.03361/.03267/.04052/.04813 exceed1e-5, so forcing actions is not
+equivalent to repeating the closed-loop policy. r3's automatic UNPROMISING/
+CLOSE decision is a failed surrogate contract, **not** a final Goal closure or
+evidence that closed-loop noise exceeds5pp. No direct-Q/Cm-value was launched.
+
+r4 corrects that incomplete surrogate by applying the actual native plain-off
+actor once again in each frozen condition. It then uses the same2.5pp/Wilson5%
+success/drop gates to decide whether the existing matrix can run. Panel, GPU,
+checkpoints, native evaluator and thresholds remain fixed; no post-hoc split,
+seed, simulator or policy changes. Saved action replay remains an independent
+physics diagnostic. The Goal requires a valid closed-loop signal, so stopping
+at the easier replay-only result would be incomplete.
+
+Entire r1/r2/r3 cost is charged to r4. New r4 traces are losslessly gzip archived
+after native completion, with compressed hash and decompressed byte hash
+verified before removing only the redundant new raw file. Original HF08 data,
+r3 reference snapshots/traces and checkpoint files remain unchanged. Full raw
+observation/action/physical/RNG/RNN payload is retained, not subsampled.

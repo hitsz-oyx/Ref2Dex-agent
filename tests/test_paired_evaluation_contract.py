@@ -1,5 +1,6 @@
 import random
 import json
+import gzip
 from pathlib import Path
 import tempfile
 import unittest
@@ -21,6 +22,26 @@ def episodes(n=384):
 
 
 class PairedEvaluationContracts(unittest.TestCase):
+    def test_completed_trace_archival_preserves_exact_bytes_and_original_inputs(self):
+        from scripts.complete_paired_evaluator_closed_loop import archive_trace,sha
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            reference=root/'reference.pt';trace=root/'trace.pt'
+            payload=dict(action=torch.randn(64,6,18),observation=torch.randn(64,6,32),
+                         rnn=[None],rng=capture_rng())
+            torch.save(payload,reference);torch.save(payload,trace)
+            reference_hash=sha(reference);raw_hash=sha(trace)
+            raw_bytes=trace.read_bytes()
+            record=archive_trace(root)
+            self.assertFalse(trace.exists())
+            self.assertEqual(record['raw_sha256'],raw_hash)
+            self.assertEqual(sha(reference),reference_hash)
+            with gzip.open(root/'trace.pt.gz','rb') as stream:
+                self.assertEqual(stream.read(),raw_bytes)
+            with gzip.open(root/'trace.pt.gz','rb') as stream:
+                restored=torch.load(stream,map_location='cpu',weights_only=False)
+            self.assertEqual(fingerprint(restored),fingerprint(payload))
+
     def test_physical_property_dtype_metadata_is_finite_and_struct_padding_is_ignored(self):
         vector=SimpleNamespace(x=1.,y=2.,z=3.,dtype=np.dtype([('x','f4'),('y','f4'),('z','f4')]))
         result=physical_property_value(SimpleNamespace(com=vector,mass=2.))
