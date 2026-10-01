@@ -72,17 +72,27 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HF16:
+    claim: C3
+    name: native_pd_force_consequence
+    status: ACTIVE
+    branch: agent/cm-executable-options
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    card: docs/decisions/D-20261002-native-pd-consequence.md
+    transition: "Decisionslot1: originalfit/cal/held groups, actualprestate/nativePD/currentrawforces, shortphysicalresidual/jointsupportedheight supervisedlabels.9nets1000updatesGPU; no fitting currentheldutility data. Frozenfirst gates, positive before multi-step/directcontrol; oldHF15 failures retained."
   HF15:
     claim: C3
     name: translation_feedback_orientation_stabilization
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-executable-options
     probe_budget: 2
     probes_used: 2
     owner: current_session
     authorization: "active mechanism goal; explicit control-responsibility review after preserved HF13/HF14 failures, same mission/claim/resources"
-    card: docs/experiments/probes/P-20261002-orientation-feedback-opportunity.md
-    transition: "Slot1/2COMPLETED PROMISING.3917windows/587episodes,1409initiallyclear; fit-selected rotation_cup7/fit-best-fixed7. Held704clear states134selected/274base; signed retention+26.509mm, frame90[19.241,32.794], episode90[16.602,36.590]; lost-clearance−4.972pp/joint-force−1.776pp. All original gates/input/expert/raw-force/PD/XYZ/finger/geometry/propensity contracts pass, ownPIDs exit/GPU released,21.28min/274.7MB. Slot2 actual9nets×1000updates complete42.813sec. Raw-inputCm19.85mmheightRMSE vscatalogphysicalhead17.79/shuffled22.57; frozen gain gate0/704proposals, raw decoder UNPROMISING/no threshold reduction. Catalog physicalmodel255/704proposals, not actual utility; it has program-conditioned output heads. Preserve original comparison, choose existing catalog model as candidate, added6controlnets1000updates25.896sec; Cm weights/cal unchanged. Shared-rule held proposalsCm255/state-policy279/shuffled0. Full H10 controller owner, execute2/reobserve5times, engineering28windows16episodes420NNdecisionreplay/nativePD/countercommands/forces/geometry passed. First parent logging failure preserved/charged; now independent fresh original-held-group five-policy randomization with all-four utility/actual-actuation gates. Charge all to same2/2budget, no reset; C3OPEN."
+    card: docs/experiments/probes/P-20261002-catalog-closed-loop-utility-result.md
+    transition: "Budget2/2CLOSED. Candidate opportunityPROMISING preserved; raw decoder0proposals UNPROMISING. Actual catalog controller821H10windows161episodes supports/actuation gates pass: Cm91/170differentbase,160differentfixed7. Cmvsbase+24.125mm90[13.704,31.583], vsshuffled+23.538; vsstate-policy-4.445CIcross0/vsfixed7-27.65190[-34.701,-17.101]. Originalall-four gateUNPROMISING. Frozenmodel/experts,12315NNchoices/nativePD/countercommands/rawforce/geometry/outcomes replaypass; ownPIDs exited/GPUreleased,25.19min97.54MBincludingoldfits/failedengineering/diagnosis. No margin/epoch/seed tuning. Movehigherlevel physicalmotor-target/currentforce transition representation HF16; C3OPEN."
   HF14:
     claim: C3
     name: wrist_anchored_feedback_opportunity

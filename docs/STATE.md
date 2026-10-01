@@ -105,11 +105,19 @@ Slot2已完成真实9模型×1000GPU更新（42.81秒）；Cm heldheightRMSE19.8
 预测提议，并非执行收益。该模型通过目录索引区分程序，本身也是程序条件Cm；
 已完成6对照模型各1000GPU更新（25.90秒），原目录Cm权重/校准完全复用。
 共享冻结选择规则下Cm255/704、局部收益策略279/704、head-shuffled0提议。
-新2步执行/重观察、完整H10控制器协议工程通过：28窗口/16episodes，420次
-模型决策复现；原生PD/专家与参考命令/rawforce/geometry全部一致。父运行器
-第一轮摘要字段错误已修复，两次工程成本保留。下一步科学采集只用原始held
-初始组、观察后等概率分配五控制器，独立检验四控制收益/风险/实际命令变化；
-旧比较失败和表示选择轨迹保留，C3仍OPEN。
+新闭环已完成821实际H10窗口/161episodes/25初始组，支持和真实改变门通过。
+Cm170窗口中91不同于base、160不同于固定7，662/1700实际控制帧非base。
+vsbase保留高度+24.125mm、初始组90[13.704,31.583]；vshead-shuffled+23.538mm。
+但vsstate-policy−4.445mm区间跨零，vs固定7−27.651mm90[−34.701,−17.101]；
+原全四控制收益门UNPROMISING，HF15预算2/2关闭。所有12,315次模型决策/
+PD/专家及参考命令/rawforce/geometry/outcome回放通过，ownPIDs退出/GPU释放；
+含全部拟合/失败工程/采集/诊断25.19分钟/97.54MB。后验4105真实H2prefix
+高度RMSE8.733优于常速度10.748，但jointBrier.0204差于存在代理延续.0116。
+不是完全没物理信息，也没有超过强固定程序；原失败门不改，C3仍OPEN。
+下一步HF16检验真实原生PD目标+原始力的一步后果表示，先用现有数据辨别
+动作信息是否改善物理预测，再决定多步/控制设计。见
+[闭环结果](experiments/probes/P-20261002-catalog-closed-loop-utility-result.md)和
+[执行器条件设计](decisions/D-20261002-native-pd-consequence.md)。
 见 [对照边界复盘](decisions/D-20261002-catalog-consequence-controls.md)。
 不声称HF14已证明旋转是掉落原因。此为最后一轮腕部保持
 候选机会Probe；正向才拟合对应新Cm，失败转更高层候选生成，避免关节扫描。
@@ -313,7 +321,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
-| `HF15` translation/orientation-plan-Cm | `C3` | `ACTIVE`（候选PROMISING，raw解码器UNPROMISING，目录Cm待独立验证） | 2/2，当前slot2内补对照/闭环 | `agent/cm-executable-options` |
+| `HF15` translation/orientation-plan-Cm | `C3` | `UNPROMISING`（候选机会正向，闭环未过强控制门） | 2/2关闭 | `agent/cm-executable-options` |
 | `HF14` wrist-anchored-finger-feedback | `C3` | `CLOSED UNPROMISING` | 1/1；保持/抬升取舍，旧门保留 | `agent/cm-executable-options` |
 | `HF13` executable-pose-hold | `C3` | `CLOSED UNPROMISING` | 1/1；固定整姿态失去几何保留 | `agent/cm-executable-options` |
 | `HF12` trainable-recovery-guide | `C3` | `CLOSED UNPROMISING` | 1/1；on贪心执行未学到改变 | `agent/cm-trainable-recovery` |
@@ -337,11 +345,11 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 当前候选机会已过门：rotation_cup程序留出保留支持高度+26.509mm。真实H10
 物理模型拟合也已完成；raw动作张量解码器置信门下0提议，不能进入PPO。
-目录条件物理Cm（旧名state-only固定物理头）与局部收益/head-shuffled对照
-均已冻结，直接2步执行/H10重规划工程通过。下一步运行独立held初始组
-随机五控制器窗口，检验四控制的真实收益、风险与原生PD命令变化。
-协议见 [闭环作用卡](experiments/probes/P-20261002-catalog-closed-loop-utility.md)；
-所有旧失败门/标签保持，同一HF15slot2预算涵盖全部模型/工程/新采集。
+HF15已实际验证动作改变及局部vsbase收益，但未超过固定7/状态结果评分器；
+预算2/2关闭，不继续阈值/epochs追门。HF16从真实原生PD目标和原始力学习
+一步后果，使用旧fit/cal组内真实transition，held utility数据不用于拟合；
+先检验动作条件是否提高物理预测及联合支持高度预测，再设计匹配的多步控制。
+这是改变动作/物理状态表示的独立路线，C3仍OPEN，不进入PPO/最终成功率验证。
 近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
 新数据测量收益，而非把单状态预测当全候选真值。
 排序与覆盖过门后才检验直接重新决策；不依赖长期 V、不启动
