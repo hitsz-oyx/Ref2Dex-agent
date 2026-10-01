@@ -58,4 +58,11 @@
 - [Absolute-target initializer](20261002-reference-target-policy-results.md): PROMISING56/64on primary motion1; other motions0.
 - [Updated primary-source novelty constraints](20261002-contact-response-novelty-update.md).
 
-Paper revision6incorporates these results without a Cm utility or journal-readiness claim.
+Paper revision7incorporates these and the newer results below without a Cm utility
+or journal-readiness claim. Earlier revisions remain preserved.
+
+- [Executable-support forecasting](20261002-support-response-information-results.md):6144complete trajectories, strong-global primary gate fails.
+- [Gradient / positional headroom](20261002-support-gradient-and-headroom-results.md): two explicitly reused-data screens, both UNPROMISING.
+- [Post-lift disturbance feasibility](20261002-support-disturbance-feasibility-results.md):1536complete fresh trajectories, no eligible fixed load.
+- [Control-variate primary sources](20261002-physical-control-variate-literature.md) and [recovery novelty boundary](20261002-disturbance-recovery-literature.md).
+- [Next matched policy-learning design](../decisions/D-20261002-support-feature-policy-training.md): frozen physical features, actual physical105reward; implementation/integration pending, no utility result yet.

@@ -1,6 +1,17 @@
 # Contact-response manuscript
 
-Current: `manuscript-v6.tex` and fifteen-page `manuscript-v6.pdf`. Revision6 adds
+Current: [manuscript-v7.tex](manuscript-v7.tex) and seventeen-page
+[manuscript-v7.pdf](manuscript-v7.pdf). Revision7 adds6144-trajectory executable
+support forecasting, reused-data corrected-gradient / position-headroom screens,
+and1536-trajectory post-lift disturbance calibration. All four gates fail and
+remain UNPROMISING. Seventeen recorded-JSON tables, three figures,70hashed export
+inputs independently verified; four new numeric tables independently reconstructed
+and PDF pages14--16visually inspected. Prior revision6and intermediate review
+renders preserved. Export with python3 scripts/export_contact_response_v7.py only
+to a new retained review destination. The PDF is a ReportLab review copy, without
+native TeX compilation. No Cm-on/off trained-policy benefit or journal readiness.
+
+Preserved: `manuscript-v6.tex` and fifteen-page `manuscript-v6.pdf`. Revision6 adds
 prospectively randomized support removal (PROMISING mechanical witness), failed
 scratch BC and single aggregation (both0/192), and the reference-conditioned
 absolute-target policy (56/192overall;56/64on preselected motion1, PROMISING
