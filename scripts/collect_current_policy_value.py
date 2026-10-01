@@ -62,7 +62,8 @@ MAX_WALL_SECONDS = 20 * 60
 MAX_STEPS_PER_EPISODE = 700
 STATE_DIM = 55
 ACTION_DIM = 18
-CONTEXT_DIM = 605
+# Seven phase/initial-height metadata fields plus the pinned 428-D reference.
+CONTEXT_DIM = 435
 SCHEMA = "ref2dex.physical_value.v1"
 
 

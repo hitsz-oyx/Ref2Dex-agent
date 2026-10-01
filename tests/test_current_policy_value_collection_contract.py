@@ -54,7 +54,7 @@ def test_episode_rejects_reset_inside_episode():
     rewards = torch.zeros(3, 5)
     data = {
         "state": torch.zeros(3, 55), "next_state": torch.zeros(3, 55),
-        "context": torch.zeros(3, 605), "next_context": torch.zeros(3, 605),
+        "context": torch.zeros(3, contract.CONTEXT_DIM), "next_context": torch.zeros(3, contract.CONTEXT_DIM),
         "action": action, "previous_action": torch.zeros(3, 18),
         "reward": rewards.sum(-1), "reward_components": rewards,
         "done": torch.tensor([True, False, True]), "terminate": torch.tensor([True, False, True]),
@@ -105,6 +105,22 @@ def test_collect_entry_stays_lazy_and_requires_explicit_gpu_for_real_runtime():
     assert "source.original.main()" in wrapper
     assert "source.SOURCE_SHA =" not in wrapper
     assert contract.main(["--collect", "--checkpoint-seed", "286", "--run-root", "/tmp/unused"]) == 2
+
+
+def test_context_contract_matches_saved_physical_model():
+    checkpoint = contract.R7_ROOT / "models/tier_1000000.pt"
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    assert contract.CONTEXT_DIM == payload["context_dim"]
+
+
+def test_long_complete_panel_crosses_old_partial_flush_threshold(tmp_path):
+    runtime = _native_runtime_module()
+    result = runtime._mock_collect(tmp_path / "long-panel", 286, steps=400)
+    assert result["rows"] == 38400
+    from src.task.CmResidual.physical_value_data import Episodes
+    episodes = Episodes([Path(result["run_dir"])], gamma=.99)
+    assert episodes.episode_ids.numel() == 96
+    assert episodes.excluded_rows == 0
 
 
 def _native_runtime_module():

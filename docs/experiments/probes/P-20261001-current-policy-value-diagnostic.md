@@ -66,3 +66,9 @@ frame0/seed290/Gaussian/原动作裁剪，无额外噪声、teacher、参数或 
 2GiB（data/cache/log/support 合计）、192000行；CPU分析最多2线程/20分钟。
 发生 input drift/nonfinite/无法完成 episode/ownership conflict/预算到限则停止并留证据。
 科学状态仍 NOT_ASSESSED，成功采集后对 factual V/MC/frozen GAE 做诊断。
+
+## r4 terminal and r5 recovery
+
+r4 FAILED after 76.468 seconds, 0 exported rows. Native player sampling passed; first export hit a context-shape guard. The saved physical model uses context_dim=435, while the old collector/mock assumed605. A long-panel CPU repro also revealed premature32768-row export applying a complete-episode validator to partial episodes. Both defects are now repaired: pinned435-D context, one final export after all first episodes complete. 24 CPU tests passed, including the actual two-checkpoint native-player equivalence, saved model context dimension, and400-step/38400-row complete-panel regression.
+
+r5 keeps identical scientific inputs/seed/task/reward and fresh unique output. It consumes the remaining1120 seconds of this takeover1200-second runtime ceiling; r4 bytes remain charged against the same2GiB ceiling. Old attempts remain read-only. GPU4 ownership is rechecked; no new scientific slot or training.

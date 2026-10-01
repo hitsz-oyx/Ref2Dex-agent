@@ -257,7 +257,7 @@ def _existing_rows(root: Path) -> int:
     return total
 
 
-def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
+def _mock_collect(run_root: Path, seed: int, steps: int = 33) -> dict[str, Any]:
     """Exercise the real runtime loop with an Isaac-free vector-environment double."""
     import types
     torch = __import__("torch")
@@ -334,7 +334,7 @@ def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
             task = env.task
             task.progress_buf += 1
             task._target_states[:, 2] = .03
-            done = task.progress_buf >= 33
+            done = task.progress_buf >= steps
             return torch.zeros(n_env, 1442), torch.ones(n_env), done, {"terminate": done.clone()}
 
     class MockBridge:
@@ -360,7 +360,7 @@ def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
     mock_source.snapshot = lambda task, tracker: torch.cat(
         (task.progress_buf.float()[:, None].expand(-1, 39),
          torch.ones(n_env, 1), torch.zeros(n_env, 15)), dim=1)
-    mock_source.context = lambda task, tracker: torch.zeros(n_env, 605)
+    mock_source.context = lambda task, tracker: torch.zeros(n_env, contract.CONTEXT_DIM)
     mock_source.contacts = lambda task: torch.ones(n_env, 1)
 
     def reward(task, tracker, base, before_z, gap_before, gap_after, gamma, approach):
@@ -545,8 +545,9 @@ def _runtime_player_run(self):
                               "mean_lift_meters": float(lift_sum[env_id] / step[env_id]),
                               "contact_fraction": float(contact_sum[env_id] / step[env_id])})
         finished |= done
-        if len(parts.get("state", [])) and sum(len(x) for x in parts["state"]) >= 32768:
-            flush()
+        # This bounded panel fits in memory. Export only once all first
+        # episodes are complete, so the full-episode validator cannot receive
+        # a partial episode at an arbitrary row-count threshold.
         if finished.all():
             break
         done_indices = done.nonzero(as_tuple=False).reshape(-1).tolist()
