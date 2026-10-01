@@ -21,7 +21,7 @@ vertical residual, using all3072fit rows and their known original propensities.
 This differs explicitly from the previous three-axis contrast-mean control:
 action selection needs all seven factual candidate scores. Never calculate it
 from new test outcomes. Random control chooses uniformly among valid candidates
-with a separate per-environment CPU generator (seed21000+evaluation_seed+env).
+with a separate per-environment CPU generator (seed21000+1000*evaluation_seed+env).
 Native-actor control always chooseszero. Mask candidates that would clip wrist
 commands;zero remains valid. Same candidate validity rule in every policy.
 
@@ -75,6 +75,7 @@ or a favorable video cannot upgrade failed retained success. Positive justifies
 independent tasks/objects and a novel-method proposal; negative ends this exact
 one-step vertical-selection controller without changing its dose/budget/gate.
 
-Resources:GPU4sequential,<=3600s/2GiB, at most2of our GPUs concurrently. Freeze
+Resources:GPU4sequential or another independently admitted idle GPU if occupied,
+<=3600s/2GiB, at most2of our GPUs concurrently. Freeze
 controller sources, seven global scores and all model/physical input SHA before
 any new physics. No PPO, no external write, no checkpoint replacement.
