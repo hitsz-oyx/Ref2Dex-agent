@@ -45,12 +45,15 @@ lease 由以下命令管理：
 ```bash
 python3 scripts/researchctl.py supervisor pause \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor resume \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 python3 scripts/researchctl.py supervisor status \
   --registry docs/AGENT_REGISTRY.json \
+  --broker-tasks-db .runtime/tasks.sqlite \
   --broker-state-db .runtime/AGENT_STATE.sqlite
 ```
 

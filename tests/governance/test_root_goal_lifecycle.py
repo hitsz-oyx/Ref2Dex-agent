@@ -57,16 +57,18 @@ def test_root_recovery_ownership_and_legacy_poller_opt_in_are_documented() -> No
     coordination = (ROOT / "docs/AGENT_COORDINATION.md").read_text(encoding="utf-8")
     poller_doc = (ROOT / "docs/AGENT_POLLER.md").read_text(encoding="utf-8")
     root_policy = (ROOT / "docs/ROOT_AGENT.md").read_text(encoding="utf-8")
-    poller_script = (ROOT / "scripts/agent_result_poller.py").read_text(encoding="utf-8")
+    poller_script = (ROOT / "scripts/runtime_support.py").read_text(encoding="utf-8")
+    compatibility_entry = (ROOT / "scripts/agent_result_poller.py").read_text(encoding="utf-8")
 
     assert "poller 不负责 root liveness" in poller_doc
     assert "worker_event_poller.py` 是当前 Broker 事件源" in poller_doc
-    assert "agent_result_poller.py` 只作为历史兼容路径保留" in poller_doc
+    assert "agent_result_poller.py` 只作为历史兼容入口保留" in poller_doc
     assert "--root-goal-resume-once" in poller_doc
     assert "默认的 lease-authorized" in poller_doc
     assert "root_watchdog.py" in root_policy
     assert "allow_root_resume" in coordination
     assert "--root-goal-resume-once" in poller_script
+    assert "runtime_support" in compatibility_entry
 
 
 def test_autonomous_decision_memo_replaces_mandatory_option_pair() -> None:
@@ -86,7 +88,7 @@ def test_recovery_control_plane_has_single_owner_and_shared_decision_helper() ->
     broker = (ROOT / "docs/AGENT_BROKER.md").read_text(encoding="utf-8")
     poller = (ROOT / "docs/AGENT_POLLER.md").read_text(encoding="utf-8")
     watchdog = (ROOT / "scripts/root_watchdog.py").read_text(encoding="utf-8")
-    legacy = (ROOT / "scripts/agent_result_poller.py").read_text(encoding="utf-8")
+    legacy = (ROOT / "scripts/runtime_support.py").read_text(encoding="utf-8")
 
     for document in (coordination, broker, poller):
         assert "root_watchdog.py" in document

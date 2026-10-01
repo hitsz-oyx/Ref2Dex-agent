@@ -9,6 +9,10 @@
 角色校验、任务队列、一次性租约、消息持久化、handoff 和 liveness 状态；研究判断仍
 属于 root，provider 只属于 runtime adapter。
 
+Broker 的 supervisor desired state 是派发闸门：只有 `RUNNING` 接受新的 dispatch
+或 claim；`PAUSED`/`STOPPED` 会拒绝新任务，但允许已经持有租约的任务收尾。暂停不会
+杀死训练进程。
+
 当前身份分层如下：
 
 | 层 | 文件 | 内容 |
@@ -36,13 +40,16 @@ Broker 只接受以下四类消息：
 worker 之间不能直接通信；跨角色依赖必须用 `TASK_HANDOFF` 退回 root，由 root 重新
 发出 `TASK_DISPATCH`。Broker 不创建 agent，不调用模型，不推断科学结论。
 
+worker 必须先 claim 获得 lease；每次 `TASK_UPDATE`、`TASK_HANDOFF` 和 lease renewal
+都必须携带同一有效 token。任务退出而没有 handoff 会被 runtime adapter 标记为失败。
+
 ## Root recovery control plane
 
 `researchctl.py` 是 lease/supervisor 控制入口，只能写 `CONTROL/PAUSE` 或
 `CONTROL/RESUME` 来改变 Broker 的 desired state；它不直接恢复 Goal。默认恢复 owner
 是 `root_watchdog.py`：经过 runtime identity、lease 和 Broker desired-state 检查后，
 它才通过同一 root app-server 做一次 `paused`/`blocked` readback，并写对应的
-`CONTROL/RESUME`。`agent_result_poller.py` 的 `--root-goal-resume-once` 是迁移期兼容
+`CONTROL/RESUME`。兼容入口 `agent_result_poller.py` 的 `--root-goal-resume-once` 是迁移期兼容
 开关，`worker_event_poller.py` 只能写 `TASK_UPDATE`。
 
 所有入口使用同一纯 `recovery_control_decision` 算法；该 helper 不持久化 guard，也不
@@ -62,7 +69,13 @@ OpenAI-compatible NewAPI 客户端由对应外部 runtime 消费 binding，不�
 
 ## CLI smoke
 
+先通过 `researchctl` 或 Broker control 将 supervisor 置为 `RUNNING`；默认状态是
+`PAUSED`，暂停时新的 dispatch/claim 会被拒绝。
+
 ```bash
+python3 scripts/agent_broker.py \
+  control --action RESUME --target root --reason 'broker smoke'
+
 python3 scripts/agent_broker.py dispatch \
   --task-id T-20260928-infra-broker \
   --target agent_infra \
@@ -77,3 +90,17 @@ python3 scripts/agent_broker.py status
 
 运行前先让目标角色拥有一个有效的本机 binding；没有 binding 的固定角色会被拒绝，
 不会静默创建新的 runtime。
+
+实际 provider 投递由显式 runtime launcher 完成。它可以通过 stdin 接收标准化的
+`TASK_DISPATCH` JSON，并使用 `REF2DEX_TASK_ID`、`REF2DEX_LEASE_TOKEN` 等环境变量
+回写 Broker：
+
+```bash
+python3 scripts/agent_runtime_adapter.py \
+  --agent agent_infra \
+  --command '/path/to/provider-launcher --stdin-json' \
+  --request-dir .runtime/provider_requests
+```
+
+该命令不猜测 provider，也不会共享 root 凭证；没有显式 launcher 时，Broker 只排队，
+不会把排队状态伪装成已启动。

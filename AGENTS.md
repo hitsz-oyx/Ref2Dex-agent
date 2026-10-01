@@ -99,9 +99,13 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 当前主路径是：root 通过 `scripts/agent_broker.py` 向固定 `agent_key` 写入
 `TASK_DISPATCH`；worker 只能写 `TASK_UPDATE` 或 `TASK_HANDOFF`；watchdog 和本地控制
 只写 `CONTROL`。Broker 只管理队列、租约、provider adapter 和运行时状态，不做研究
-决策，也不创建动态 subagent。worker 不能直接互相通信，跨角色依赖必须退回 root。
+ 决策，也不创建动态 subagent。worker 不能直接互相通信，跨角色依赖必须退回 root。
 运行时 binding 属于本机 `.runtime/AGENT_BINDINGS.json`，任务队列和状态属于本机
-`.runtime/tasks.sqlite` 与 `.runtime/AGENT_STATE.sqlite`，不能把它们当作研究证据提交。
+ `.runtime/tasks.sqlite` 与 `.runtime/AGENT_STATE.sqlite`，不能把它们当作研究证据提交。
+只有 supervisor desired state 为 `RUNNING` 时才允许新 dispatch/claim；已持有租约的
+任务可以在暂停后收尾。真实 provider 投递必须经过显式
+`scripts/agent_runtime_adapter.py` launcher；仅写入 SQLite 不代表 worker 已启动。
+派发前可运行 `python3 scripts/workflow_doctor.py` 检查角色、binding、数据库和 lease。
 
 ---
 

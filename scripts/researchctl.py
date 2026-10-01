@@ -9,11 +9,11 @@ import time
 from pathlib import Path
 
 try:  # Works both as ``python -m scripts...`` and a direct script path.
-    from scripts import agent_result_poller as runtime
+    from scripts import runtime_support as runtime
     from scripts.agent_broker import AgentBroker
     from scripts.root_watchdog import LEASE_SCHEMA, load_lease, root_runtime_identity
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
-    import agent_result_poller as runtime
+    import runtime_support as runtime
     from agent_broker import AgentBroker
     from root_watchdog import LEASE_SCHEMA, load_lease, root_runtime_identity
 

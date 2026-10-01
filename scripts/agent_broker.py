@@ -28,6 +28,16 @@ TASK_STATES = frozenset({
     "PENDING", "LEASED", "RUNNING", "HANDOFF_READY", "COMPLETED", "FAILED",
     "CANCELLED",
 })
+TASK_TRANSITIONS = {
+    "PENDING": frozenset({"LEASED"}),
+    "LEASED": frozenset({"RUNNING", "HANDOFF_READY", "COMPLETED", "FAILED", "CANCELLED"}),
+    "RUNNING": frozenset({"RUNNING", "HANDOFF_READY", "COMPLETED", "FAILED", "CANCELLED"}),
+    "HANDOFF_READY": frozenset({"RUNNING", "HANDOFF_READY", "COMPLETED", "FAILED", "CANCELLED"}),
+    "COMPLETED": frozenset(),
+    "FAILED": frozenset(),
+    "CANCELLED": frozenset(),
+}
+TERMINAL_TASK_STATES = frozenset({"COMPLETED", "FAILED", "CANCELLED"})
 CONTROL_ACTIONS = frozenset({"PAUSE", "RESUME", "CANCEL", "STOP", "RELOAD", "WAKE", "BUDGET_LIMITED"})
 SCHEMA = "ref2dex.agent_broker.v1"
 ROLES_SCHEMA = "ref2dex.agent_roles.v1"
@@ -360,6 +370,7 @@ class AgentBroker:
         }
         adapter = adapter_for(binding)
         request = adapter.dispatch(task, binding)
+        self._require_supervisor_running()
         now = _now()
         with self._connect(self.tasks_db) as db:
             try:
@@ -385,6 +396,7 @@ class AgentBroker:
             raise BrokerError("root cannot claim worker tasks")
         if lease_seconds <= 0:
             raise BrokerError("lease_seconds must be positive")
+        self._require_supervisor_running()
         now = _now()
         with self._connect(self.tasks_db) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -444,16 +456,30 @@ class AgentBroker:
                 raise BrokerError(f"unknown task: {task_id}")
             if row["target_agent"] != agent_key:
                 raise BrokerError("task update must come from its target agent")
-            if lease_token is not None and row["lease_token"] != lease_token:
-                raise BrokerError("invalid task lease token")
+            self._require_live_lease(row, lease_token, now)
+            current_status = str(row["status"])
+            if status not in TASK_TRANSITIONS.get(current_status, frozenset()):
+                raise BrokerError(f"invalid task transition: {current_status} -> {status}")
             db.execute(
-                "UPDATE tasks SET status=?, updated_at=?, last_error=? WHERE task_id=?",
-                (status, now, error, task_id),
+                "UPDATE tasks SET status=?, updated_at=?, last_error=?, "
+                "lease_token=?, lease_expires_at=? WHERE task_id=?",
+                (
+                    status, now, error,
+                    None if status in TERMINAL_TASK_STATES else row["lease_token"],
+                    None if status in TERMINAL_TASK_STATES else row["lease_expires_at"],
+                    task_id,
+                ),
             )
             message_id = self._message(
                 db, "TASK_UPDATE", task_id=task_id, sender=agent_key, recipient="root", payload=payload,
             )
-        self.update_runtime(agent_key, status=status, current_task=task_id, event="TASK_UPDATE", error=error)
+        self.update_runtime(
+            agent_key,
+            status=status,
+            current_task=None if status in TERMINAL_TASK_STATES else task_id,
+            event="TASK_UPDATE",
+            error=error,
+        )
         return {"task_id": task_id, "message_id": message_id, **payload}
 
     def handoff(
@@ -486,9 +512,19 @@ class AgentBroker:
                 raise BrokerError(f"unknown task: {task_id}")
             if row["target_agent"] != agent_key:
                 raise BrokerError("handoff must come from its target agent")
-            if lease_token is not None and row["lease_token"] != lease_token:
-                raise BrokerError("invalid task lease token")
-            db.execute("UPDATE tasks SET status=?, updated_at=? WHERE task_id=?", (status, now, task_id))
+            self._require_live_lease(row, lease_token, now)
+            current_status = str(row["status"])
+            if status not in TASK_TRANSITIONS.get(current_status, frozenset()):
+                raise BrokerError(f"invalid task transition: {current_status} -> {status}")
+            db.execute(
+                "UPDATE tasks SET status=?, updated_at=?, lease_token=?, lease_expires_at=? WHERE task_id=?",
+                (
+                    status, now,
+                    None if status in TERMINAL_TASK_STATES else row["lease_token"],
+                    None if status in TERMINAL_TASK_STATES else row["lease_expires_at"],
+                    task_id,
+                ),
+            )
             db.execute(
                 "INSERT OR REPLACE INTO handoffs(task_id,agent_key,status,payload_json,created_at) VALUES (?, ?, ?, ?, ?)",
                 (task_id, agent_key, status, _json(payload), now),
@@ -500,6 +536,31 @@ class AgentBroker:
                             event="TASK_HANDOFF")
         return {"task_id": task_id, "message_id": message_id, **payload}
 
+    def renew(self, *, task_id: str, agent_key: str, lease_token: str,
+              lease_seconds: float = 900.0) -> dict[str, Any]:
+        """Extend an owned lease while its runtime process is still alive."""
+
+        if lease_seconds <= 0:
+            raise BrokerError("lease_seconds must be positive")
+        self._role(agent_key)
+        now = _now()
+        expires = now + lease_seconds
+        with self._connect(self.tasks_db) as db:
+            row = db.execute("SELECT * FROM tasks WHERE task_id=?", (task_id,)).fetchone()
+            if row is None:
+                raise BrokerError(f"unknown task: {task_id}")
+            if row["target_agent"] != agent_key:
+                raise BrokerError("lease renewal must come from its target agent")
+            self._require_live_lease(row, lease_token, now)
+            if row["status"] not in {"LEASED", "RUNNING", "HANDOFF_READY"}:
+                raise BrokerError(f"cannot renew terminal task: {row['status']}")
+            db.execute(
+                "UPDATE tasks SET lease_expires_at=?, updated_at=? WHERE task_id=?",
+                (expires, now, task_id),
+            )
+        self.update_runtime(agent_key, status=str(row["status"]), current_task=task_id, event="LEASE_RENEW")
+        return {"task_id": task_id, "lease_expires_at": expires}
+
     def control(self, *, action: str, target: str = "root", reason: str = "", sender: str = "root") -> dict[str, Any]:
         action = action.upper()
         if action not in CONTROL_ACTIONS:
@@ -508,8 +569,9 @@ class AgentBroker:
         payload = {"action": action, "target": target, "reason": reason}
         with self._connect(self.tasks_db) as db:
             message_id = self._message(db, "CONTROL", task_id=None, sender=sender, recipient=target, payload=payload)
-        if target == "root" and action in {"PAUSE", "RESUME"}:
-            self.set_desired_state("PAUSED" if action == "PAUSE" else "RUNNING", reason=reason)
+        if target == "root" and action in {"PAUSE", "RESUME", "STOP"}:
+            desired = {"PAUSE": "PAUSED", "RESUME": "RUNNING", "STOP": "STOPPED"}[action]
+            self.set_desired_state(desired, reason=reason)
         return {"message_id": message_id, **payload}
 
     def observe(self, *, agent_key: str, payload: Mapping[str, Any], task_id: str | None = None,
@@ -544,6 +606,28 @@ class AgentBroker:
                 "last_event=excluded.last_event,last_error=excluded.last_error,heartbeat_at=excluded.heartbeat_at,updated_at=excluded.updated_at",
                 (agent_key, status, current_task, event, error, now, now),
             )
+
+    def _supervisor_desired_state(self) -> str:
+        with self._connect(self.state_db) as db:
+            row = db.execute(
+                "SELECT desired_state FROM supervisor_state WHERE singleton=1"
+            ).fetchone()
+        return str(row[0]).upper() if row else "PAUSED"
+
+    def _require_supervisor_running(self) -> None:
+        desired = self._supervisor_desired_state()
+        if desired != "RUNNING":
+            raise BrokerError(f"supervisor is {desired}; new work is paused")
+
+    @staticmethod
+    def _require_live_lease(row: sqlite3.Row, lease_token: str | None, now: float) -> None:
+        if not lease_token:
+            raise BrokerError("lease token is required")
+        if row["lease_token"] != lease_token:
+            raise BrokerError("invalid task lease token")
+        expires = row["lease_expires_at"]
+        if expires is None or float(expires) <= now:
+            raise BrokerError("task lease has expired")
 
     def set_desired_state(self, desired_state: str, *, reason: str = "") -> dict[str, Any]:
         desired_state = desired_state.upper()
@@ -629,6 +713,11 @@ def main(argv: list[str] | None = None) -> int:
     handoff.add_argument("--commit")
     handoff.add_argument("--next")
     handoff.add_argument("--lease-token")
+    renew = sub.add_parser("renew")
+    renew.add_argument("--task-id", required=True)
+    renew.add_argument("--agent", required=True)
+    renew.add_argument("--lease-token", required=True)
+    renew.add_argument("--lease-seconds", type=float, default=900.0)
     control = sub.add_parser("control")
     control.add_argument("--action", required=True)
     control.add_argument("--target", default="root")
@@ -651,6 +740,9 @@ def main(argv: list[str] | None = None) -> int:
             value = broker.handoff(task_id=args.task_id, agent_key=args.agent, status=args.status,
                                    result=json.loads(args.result), evidence=args.evidence, commit=args.commit,
                                    recommended_next_action=args.next, lease_token=args.lease_token)
+        elif args.command == "renew":
+            value = broker.renew(task_id=args.task_id, agent_key=args.agent,
+                                 lease_token=args.lease_token, lease_seconds=args.lease_seconds)
         elif args.command == "control":
             value = broker.control(action=args.action, target=args.target, reason=args.reason)
         else:

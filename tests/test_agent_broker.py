@@ -35,6 +35,7 @@ def broker(tmp_path: Path, *, mutate=None) -> AgentBroker:
 
 def test_broker_persists_four_message_contract_and_handoff(tmp_path: Path) -> None:
     instance = broker(tmp_path)
+    instance.set_desired_state("RUNNING", reason="test")
     dispatched = instance.dispatch(
         task_id="T-test-broker",
         target_agent="agent_infra",
@@ -71,11 +72,65 @@ def test_broker_rejects_dynamic_or_unbound_targets(tmp_path: Path) -> None:
 
 def test_broker_rejects_wrong_lease_owner(tmp_path: Path) -> None:
     instance = broker(tmp_path)
+    instance.set_desired_state("RUNNING", reason="test")
     instance.dispatch(task_id="T-lease", target_agent="agent_infra", objective="lease")
     claimed = instance.claim("agent_infra")
     assert claimed
     with pytest.raises(BrokerError, match="invalid task lease token"):
         instance.update(task_id="T-lease", agent_key="agent_infra", lease_token="wrong")
+
+
+def test_pause_blocks_new_dispatch_and_claim_but_allows_in_flight_handoff(tmp_path: Path) -> None:
+    instance = broker(tmp_path)
+    instance.set_desired_state("RUNNING", reason="test")
+    instance.dispatch(task_id="T-in-flight", target_agent="agent_infra", objective="finish")
+    claimed = instance.claim("agent_infra")
+    assert claimed
+    instance.control(action="PAUSE", target="root", reason="user pause")
+
+    with pytest.raises(BrokerError, match="supervisor is PAUSED"):
+        instance.dispatch(task_id="T-blocked", target_agent="agent_infra", objective="blocked")
+    with pytest.raises(BrokerError, match="supervisor is PAUSED"):
+        instance.claim("agent_infra")
+    instance.handoff(
+        task_id="T-in-flight", agent_key="agent_infra", status="COMPLETED",
+        result={"ok": True}, lease_token=claimed["lease_token"],
+    )
+
+
+def test_update_and_handoff_require_live_lease(tmp_path: Path) -> None:
+    instance = broker(tmp_path)
+    instance.set_desired_state("RUNNING", reason="test")
+    instance.dispatch(task_id="T-token", target_agent="agent_infra", objective="token")
+    claimed = instance.claim("agent_infra", lease_seconds=30)
+    assert claimed
+
+    with pytest.raises(BrokerError, match="lease token is required"):
+        instance.update(task_id="T-token", agent_key="agent_infra")
+    with pytest.raises(BrokerError, match="lease token is required"):
+        instance.handoff(task_id="T-token", agent_key="agent_infra", status="COMPLETED")
+
+
+def test_expired_lease_and_terminal_transition_are_rejected(tmp_path: Path) -> None:
+    instance = broker(tmp_path)
+    instance.set_desired_state("RUNNING", reason="test")
+    instance.dispatch(task_id="T-expired", target_agent="agent_infra", objective="expiry")
+    claimed = instance.claim("agent_infra", lease_seconds=1)
+    assert claimed
+    with instance._connect(instance.tasks_db) as db:
+        db.execute("UPDATE tasks SET lease_expires_at=0 WHERE task_id='T-expired'")
+        db.commit()
+    with pytest.raises(BrokerError, match="lease has expired"):
+        instance.update(
+            task_id="T-expired", agent_key="agent_infra", lease_token=claimed["lease_token"]
+        )
+
+
+def test_dispatch_requires_running_supervisor(tmp_path: Path) -> None:
+    instance = broker(tmp_path)
+    assert instance.status()["supervisor"]["desired_state"] == "PAUSED"
+    with pytest.raises(BrokerError, match="supervisor is PAUSED"):
+        instance.dispatch(task_id="T-paused", target_agent="agent_infra", objective="blocked")
 
 
 @pytest.mark.parametrize(

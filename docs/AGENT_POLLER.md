@@ -69,12 +69,13 @@ root rollout、Broker supervisor state 和 `.runtime/SUPERVISOR_LEASE.json`，�
 `python3 scripts/researchctl.py supervisor pause|resume|status` 管理授权。
 
 职责边界：`worker_event_poller.py` 是当前 Broker 事件源，永远不修改或恢复 root
-Goal；它只向固定 worker 集合写 `TASK_UPDATE`。`agent_result_poller.py` 只作为历史兼容路径保留。
+Goal；它只向固定 worker 集合写 `TASK_UPDATE`。`runtime_support.py` 提供当前
+poller/watchdog 共用的只读运行时 helper；`agent_result_poller.py` 只作为历史兼容入口保留。
 兼容路径的 `--root-goal-resume-once` 是显式 opt-in，每个连续的
 `paused` 或 `blocked` 周期最多恢复一次；没有该开关时，poller 只记录/转发事件，不
 自动恢复。默认的 lease-authorized root 恢复由 `root_watchdog.py` 负责。
 
-两条恢复路径共用 `agent_result_poller.py` 的纯 `recovery_control_decision` 判断：
+两条恢复路径共用 `runtime_support.py` 的纯 `recovery_control_decision` 判断：
 它统一 `active`、`paused`、`blocked`、容量/预算、终态、未知状态和 Goal-ID 周期
 guard，但不产生副作用；共享的是算法，不是持久化状态，两个进程之间没有 shared
 persistent guard 或跨进程去重。watchdog 在身份和 lease 校验后才执行 app-server readback

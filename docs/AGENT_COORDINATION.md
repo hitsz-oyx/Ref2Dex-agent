@@ -152,12 +152,12 @@ rollout 和 Broker supervisor state。启用 Broker 时它写 `CONTROL`（`WAKE`
 * 这个 guard 只约束 liveness 操作，不把 `paused`、`blocked` 或恢复失败解释为科研
   任务完成，也不改变 root 的 Mission-level Goal 生命周期。
 
-恢复控制平面由 `scripts/agent_result_poller.py` 中的纯函数
+恢复控制平面由 `scripts/runtime_support.py` 中的纯函数
 `recovery_control_decision` 统一判断 Goal 状态、容量/终态和周期 guard；它不写
 数据库、不调用 app-server。`root_watchdog.py` 是默认且唯一的 lease-authorized
 恢复 owner，负责通过 app-server 验证 `active` 后写 `CONTROL/RESUME`；
 `researchctl.py` 只管理 lease 与 Broker supervisor desired state。兼容
-`agent_result_poller.py` 只有显式 opt-in 才能走旧 queue/app-server 路径，不能与
+兼容 `agent_result_poller.py` 只有显式 opt-in 才能走旧 queue/app-server 路径，不能与
 watchdog 并行作为默认 owner；`worker_event_poller.py` 只写 `TASK_UPDATE`。
 
 这里共享的是判断算法，不是持久化状态：watchdog 与 legacy poller 各自维护本地周期
