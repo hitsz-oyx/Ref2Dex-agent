@@ -1,0 +1,16 @@
+{
+  "run_status": "COMPLETED",
+  "rendering": "ReportLab review copy; not native TeX compilation",
+  "source_sha256": {
+    "paper/manuscript.tex": "f65d5fd777810e1a39e9a1e875808db8a22b9586e9f91eca1527c546c577dfb3",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-contact-response-resolution-r1/analysis-v2/analysis.json": "2ee02fa832e55ae789e2b4d5369a9cdfa4dc7e4dc7bf179611252db2514ddc66",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-contact-response-resolution-r1/analysis-v2/contact_response.png": "58694ff2b28ab075a4c4b9aca797e9d97fcebf90d3d11e8b4deb9bcb4bbeb0dd",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-contact-response-resolution-r1/analysis-v2/contact_response.pdf": "5e012768251e9b455800b688427e1974216c3220c7e8683808c0e5d9958b6f56",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-differential-response-learning-r1/results.json": "3cde4863d6e69b9796a3649f054b6c22f9f7c5f6d7fa750a2598ca33d6ea116f",
+    "scripts/export_contact_response_paper.py": "95aa46f55715c8d7b9a6c4d72e34f298ad17c2a98b2c0c6856dd2c8a979dfbe8"
+  },
+  "output_sha256": "fef43c0e6819c2c1ee337671261395e530c3fa66ef26f371511e79dd60c8d59d",
+  "physical_label": "UNPROMISING",
+  "learning_label": "UNPROMISING",
+  "tables_verified_against_json": true
+}

@@ -1,5 +1,13 @@
 # Research 文档
 
+## 当前独立工作树研究
+
+`agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见
+[contact-response results](20261001-contact-response-results.md)，文献和 novelty
+边界见 [literature](20261001-contact-response-literature.md)。论文工作稿位于
+[paper](../../paper/README.md)。此分支的实验、写作与产物独立于原 paired-evaluator
+工作树；旧冻结指令和状态记录用于解释历史证据。
+
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。
 
