@@ -36,10 +36,14 @@ def make_player(original,args,torch):
                 raise ValueError('wrist target scales changed')
             motion=task.data_id.cpu().clone();generator=torch.Generator(device='cpu').manual_seed(9900+args.eval_seed)
             assignment=torch.empty(768,dtype=torch.long);propensity=torch.empty(768,7)
-            for m in range(3):
-                env=(motion==m).nonzero().flatten();labels=torch.arange(256)%7
-                labels=labels[torch.randperm(256,generator=generator)]
-                assignment[env]=labels;propensity[env]=torch.bincount(labels,minlength=7).float()/256
+            if args.assignment_mode == 'iid':
+                from src.task.CmResidual.direct_randomized_response import iid_assignment
+                assignment, propensity = iid_assignment(768, args.eval_seed)
+            else:
+                for m in range(3):
+                    env=(motion==m).nonzero().flatten();labels=torch.arange(256)%7
+                    labels=labels[torch.randperm(256,generator=generator)]
+                    assignment[env]=labels;propensity[env]=torch.bincount(labels,minlength=7).float()/256
             model_hash=fingerprint(self.model.state_dict());rms_hash=fingerprint(self.running_mean_std.state_dict()) if self.normalize_input else None
             initial_rng=capture_rng()
             torch.save(dict(root=task._root_states.cpu().clone(),dof=task._dof_state.cpu().clone(),rng=initial_rng,
@@ -97,6 +101,7 @@ def make_player(original,args,torch):
                         all_windows_complete=bool(complete.all()),actor_and_rms_unchanged=True,
                         max_gap_mm=float(gaps[complete].max()*1000) if complete.any() else None,
                         windows_sha256=sha(args.run_dir/'windows.pt'),wall_seconds=time.monotonic()-begin,
+                        assignment_mode=args.assignment_mode,
                         assignment_counts={str(m):torch.bincount(assignment[motion==m],minlength=7).tolist() for m in range(3)})
             (args.run_dir/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     return RandomizedPlayer
@@ -107,6 +112,7 @@ def main():
     parser.add_argument('--run-dir',type=Path,required=True);parser.add_argument('--checkpoint-sha256',required=True)
     parser.add_argument('--training-seed',type=int,required=True);parser.add_argument('--eval-seed',type=int,required=True)
     parser.add_argument('--wall-seconds',type=int,default=600)
+    parser.add_argument('--assignment-mode',choices=('balanced','iid'),default='balanced')
     args,remaining=parser.parse_known_args()
     if args.run_dir.exists() or ROOT not in args.run_dir.resolve().parents:raise ValueError('unique isolated output required')
     checkpoint=Path(remaining[remaining.index('--checkpoint')+1]);value=sha(checkpoint)
