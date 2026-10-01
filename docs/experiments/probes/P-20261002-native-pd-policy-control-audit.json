@@ -1,0 +1,42 @@
+{
+  "status": "COMPLETED",
+  "own_fit_pid_exited": true,
+  "input_hashes_verified": true,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "cumulative_seconds": 86.51641354709864,
+  "scoped_bytes": 4685530,
+  "result": {
+    "run_status": "COMPLETED",
+    "physical_weights_reused_exactly": true,
+    "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+    "cal_clear_rows": 1869,
+    "cal_positive_events": [
+      1834.0,
+      30.0
+    ],
+    "cal_negative_events": [
+      35.0,
+      1839.0
+    ],
+    "reports": {
+      "state_policy": {
+        "held_clear_rows": 6706,
+        "joint_supported_height_mae_mm": 4.515468597412109,
+        "cal_margin_mm": 4.572290420532227
+      },
+      "cm": {
+        "held_clear_rows": 6706,
+        "joint_supported_height_mae_mm": 3.5067250728607178,
+        "cal_margin_mm": 3.6141862869262695
+      },
+      "shuffled": {
+        "held_clear_rows": 6706,
+        "joint_supported_height_mae_mm": 3.975369930267334,
+        "cal_margin_mm": 4.326333999633789
+      }
+    },
+    "elapsed_seconds": 20.69185592001304,
+    "cumulative_seconds": 86.51641354709864,
+    "scoped_bytes": 4685530
+  }
+}

@@ -114,8 +114,16 @@ PD/专家及参考命令/rawforce/geometry/outcome回放通过，ownPIDs退出/G
 含全部拟合/失败工程/采集/诊断25.19分钟/97.54MB。后验4105真实H2prefix
 高度RMSE8.733优于常速度10.748，但jointBrier.0204差于存在代理延续.0116。
 不是完全没物理信息，也没有超过强固定程序；原失败门不改，C3仍OPEN。
-下一步HF16检验真实原生PD目标+原始力的一步后果表示，先用现有数据辨别
-动作信息是否改善物理预测，再决定多步/控制设计。见
+HF16 slot1信息门已PROMISING：39170真实step，held已离桌6706/138ep/27组；
+Cm高度RMSE4.149 vsstate4.824/shuffled4.850mm，CLRMAE2.271 vs2.855/2.864mm，
+jointBrier.002318优于persist.002982。输入pre-state/rawforce/实际nativePD目标
+时序、联合height-support标签及fit-only归一化独立复算通过，9nets×1000GPU
+更新61.49秒。此为一步物理信息，不和旧两步/H10误差直接比较。
+Slot2已补3个状态结果评分器1000updates，校准1869clear转移支持35/30negative
+事件，physics权重完全复用；Cm/state-policy/shuf margin3.614/4.572/4.326mm。
+单步nativePD候选缓存评分与直接forward误差2.86e−6mm；相同执行器目标的
+Cm评分完全相同。下一步冻结单步真实动作控制/H10实际观察协议做工程和
+独立五控制器采集，不进入PPO。见
 [闭环结果](experiments/probes/P-20261002-catalog-closed-loop-utility-result.md)和
 [执行器条件设计](decisions/D-20261002-native-pd-consequence.md)。
 见 [对照边界复盘](decisions/D-20261002-catalog-consequence-controls.md)。

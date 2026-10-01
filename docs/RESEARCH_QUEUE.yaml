@@ -76,12 +76,12 @@ diagnostic_hypotheses:
     claim: C3
     name: native_pd_force_consequence
     status: ACTIVE
-    branch: agent/cm-executable-options
+    branch: agent/cm-native-pd-consequence
     probe_budget: 2
-    probes_used: 1
+    probes_used: 2
     owner: current_session
-    card: docs/decisions/D-20261002-native-pd-consequence.md
-    transition: "Decisionslot1: originalfit/cal/held groups, actualprestate/nativePD/currentrawforces, shortphysicalresidual/jointsupportedheight supervisedlabels.9nets1000updatesGPU; no fitting currentheldutility data. Frozenfirst gates, positive before multi-step/directcontrol; oldHF15 failures retained."
+    card: docs/experiments/probes/P-20261002-native-pd-direct-control.md
+    transition: "Slot1PROMISING.39170actualsteps; heldclear6706/138ep/27groups, CmheightRMSE4.149vsstate4.824/shuffled4.850mm, CLRMAE2.271vs2.855/2.864; jointBrier.002318beatspersist.002982. prestate/rawforce/nativePD/target timing and fit-only normalizer independentlyverified.9nets1000updates61.485sec. Slot2 added3state-outcome controls1000updates20.692sec, physicalweightsreusedexactly; cal1869clear with35/30negativeevents, marginscm3.614/state4.572/shuf4.326mm; cachedscore2.86e-6mmerror andactuatedcommandinvariancepassed. Frozen execute1/reobserve10times peractualH10owner protocol, freshheldinitialgroupfivepolicyutility next. C3OPEN, no PPO or oldgate/model tuning."
   HF15:
     claim: C3
     name: translation_feedback_orientation_stabilization
