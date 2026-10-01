@@ -1,5 +1,5 @@
 schema: ref2dex.research_queue.v1
-updated: 2026-09-27
+updated: 2026-09-30
 
 # 2026-09-30 bounded routes currently dispatched by root. Each task owns its
 # evidence and must return a Probe-bounded result before this queue is closed.
@@ -38,6 +38,33 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF08:
+    claim: C3
+    name: short_physical_transition_long_term_value
+    status: PAUSED
+    branch: agent/cm-physical-value
+    probe_budget: 1
+    probes_used: 1
+    transition: "r7 execution completed all 48 evaluations. Native gate UNPROMISING: Cm 33/384 vs PPO 41/384 and direct-Q 40/384. No Validation or local tuning. Audit identical-source e0 repeatability before final causal interpretation; core C3 stays OPEN."
+
+  HF07:
+    claim: C3
+    name: physical_prediction_inference_bottleneck
+    status: KILLED
+    branch: agent/cm-scratch-mlp-policy-probe
+    probe_budget: 1
+    probes_used: 1
+    transition: "Valid four-arm physical Probe UNPROMISING: on 18/128 equals off 18/128 and trails random 21/128. Close this BC inference-input implementation; no Validation or local sweep. Core Cm claim stays OPEN."
+
+  HF06:
+    claim: C3
+    name: scratch_offline_teacher_arbitration
+    status: KILLED
+    branch: agent/cm-scratch-mlp-policy-probe
+    probe_budget: 3
+    probes_used: 3
+    transition: "Fixed designed-MLP screen failed contact coverage and arbitration stability; close teacher-envelope implementation without a local sweep. This does not reject the core Cm hypothesis."
+
   # C1 baseline route is independent of the frozen Cm policy-utility campaign.
   HB01:
     claim: C1

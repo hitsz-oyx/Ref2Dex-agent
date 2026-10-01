@@ -1,7 +1,7 @@
 # Ref2Dex 当前研究状态
 
-更新：2026-09-30。本摘要保留合并前主分支已经记录的研究事实，不产生新科研结论，
-不纳入其他研究分支或独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
+更新：2026-10-01。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
+不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 
 | North-star | 当前判断 |
 | --- | --- |
@@ -21,7 +21,7 @@
 - r7 轴合约通过，但 contact q10 与 delta 覆盖未过 calibration gate，不生成正式 Cm-on 标签。
   [校准证据](handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
 
-## 当前交付与下一步
+## 其他已有任务交付边界
 
 主分支已记录的两个旧系统受控任务：一次 fit-only CPU 校准修复，以及独立六专家逐步轨迹蒸馏。
 校准任务 2 CPU/15 分钟/1 GiB，蒸馏任务 1 GPU/60 分钟/5 GiB；均只形成 Probe 结论。
@@ -30,3 +30,29 @@
 先验收实际交付，停止失败的局部 calibration tuning；蒸馏独立推进。新 Cm 路线须服务于
 真实策略因果增益，保留 matched Cm-off 对照。[实验索引](experiments/INDEX.md)按需检索。
 运行细节、失效执行、数值和哈希留在原卡/manifest；资源授权见 [CAMPAIGN](CAMPAIGN.md)。
+
+
+## 本轮 Cm 策略价值研究
+
+用户授权先取得真实策略 matched Probe，正向则优先正式 Validation；期限为
+2026-10-03 23:59（Asia/Shanghai）。完整交互与短期物理预测结合长期价值，
+最终要求训练所得actor受益；瞬时物体位移不替代动作价值，跨数据集预训练可选。
+
+HF06 teacher-envelope与HF07 BC物理预测输入实现均为UNPROMISING，保持关闭。
+HF08 physical-value已完成：公共池1041599转移、1920完整episode，fit831811行，
+开发holdout209788行；同一自训练source_e260、三条canonical airplane motion，
+六臂均追加160epoch/327680交互，全部48点actor-only评价完成。原生gate为
+UNPROMISING：终点Cm33/384，普通PPO41/384，直接Q40/384。这里只是Probe，
+不否定Cm核心假设；North-star policy utility仍OPEN。
+
+在线适配后物体位置误差降至0.78/0.86cm，仍弱于恒定线速度基线；姿态误差
+仍约1.34/1.36rad，明显弱于保持状态。模型不能称为已准确预测物理转移。
+同source checkpoint的e0重复评价有差异，原生配对只覆盖env/motion/start/时长/
+初始高度；完整初态与执行重复性待审计。暂不升级Validation，不调参重扫HF08。
+
+下一步先核对初始评价一致性，再讨论区分物理预测、长期价值排序和actor监督
+各环节的新机制检查；新的实验方案尚未批准或启动。
+[HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)与
+[完整结果](experiments/probes/P-20260930-cm-physical-value-results.json)保留边界与数值。
+原始数据/checkpoint留在原研究工作树的research/output/P-20260930-cm-physical-value/r7，
+未提交Git，不因本次合并移动或删除。

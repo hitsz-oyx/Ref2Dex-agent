@@ -1,0 +1,213 @@
+{
+  "conclusion": "UNPROMISING",
+  "cumulative_wall_seconds": 1188.6472583948635,
+  "execution_commit": "fadcd72d7478a9c6d6093154a9c7c0a8d6c497a5",
+  "experiment_id": "P-20260930-cm-inference-bottleneck",
+  "held_lift_counts": {
+    "action": [
+      5,
+      9
+    ],
+    "off": [
+      7,
+      11
+    ],
+    "on": [
+      10,
+      8
+    ],
+    "random": [
+      12,
+      9
+    ]
+  },
+  "inputs": {
+    "cfg_env_sha256": "75ad8cbfc1e9d2c1207815cbe689a0c19ea16b50498c7935c3a3fdbb8c5c8953",
+    "cfg_train_sha256": "80e00288b482285517d75d7075ee55975ba471b1eca035a25b5c48b9128f2fb1",
+    "motion_hashes": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions/s3_airplane_lift/interaction_hand_inspire.pt": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions/s7_airplane_lift_Retake/interaction_hand_inspire.pt": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions/s9_airplane_lift/interaction_hand_inspire.pt": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+    },
+    "physical_sha256": "76026c86f7320f432c4a93c432afdf008b4e3153b195c7870bd9548339f63cb8",
+    "source_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
+  },
+  "native_artifacts": {
+    "action_s281": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/action_s281/results.json",
+        "sha256": "f606ef72319c5732ecb159c26526752c0adcc6d6a15d93e2819c1451048bffa2"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/action_s281/run_manifest.json",
+        "sha256": "416fdbc84c856953b0e102809e19cf7b6b3a1938457d20ea6fb694e1fa1441e2"
+      }
+    },
+    "action_s282": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/action_s282/results.json",
+        "sha256": "103a3d21bf15d271d5901c0799a71a5a415023f3ac618f15c4b391f28c77ebfd"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/action_s282/run_manifest.json",
+        "sha256": "5ce3263d005639556ab84f6877718f91622b537354dea480a7ffcbece6043391"
+      }
+    },
+    "off_s281": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/off_s281/results.json",
+        "sha256": "19142e32b20ae236aaa92817cf323876ecda34f07d3dc2ebd1052f7a65e835a9"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/off_s281/run_manifest.json",
+        "sha256": "eba0f48aaaffb099bf09c9fe25445c398c1ebf8ef6a31a5b12775fdd589eafdd"
+      }
+    },
+    "off_s282": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/off_s282/results.json",
+        "sha256": "8763130f98f7f8dbd0270632b90629eaf443314a9bf25d565475d81c8a10247c"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/off_s282/run_manifest.json",
+        "sha256": "06ce31278131f7fdcab335455ee8a0b75b97f81515512ea9da0a251fc104e5e2"
+      }
+    },
+    "on_s281": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/on_s281/results.json",
+        "sha256": "9398958d8f841e3819c22b8b5c0365f0b274a2b920bfeb600925421014b50cf3"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/on_s281/run_manifest.json",
+        "sha256": "f6503ba634cf36e3c8a0339fe5d6d3c8ed21037835dcc9d8cbecae09ccbe0661"
+      }
+    },
+    "on_s282": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/on_s282/results.json",
+        "sha256": "30c26f2f9d683acb8973d7cab715f6f3b49f62ad8b57ecb381f6a914513ca8c0"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/on_s282/run_manifest.json",
+        "sha256": "421fa8aad66e1eeafae55aeb41e1dea138f80f81797e5e151e302de4fcaddd1c"
+      }
+    },
+    "random_s281": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/random_s281/results.json",
+        "sha256": "c3e432aaa8e43057de3c2a3f108e379cab962bbc09ad16cdf642db26f5a69968"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/random_s281/run_manifest.json",
+        "sha256": "cb87ec80fa8ff7f71ea5754d516600cf478a8549c97f8e88f7e9ebf552047bb3"
+      }
+    },
+    "random_s282": {
+      "results.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/random_s282/results.json",
+        "sha256": "86a594c4afc46caa0855f5e88649d6799437130797abf3b7ec3f89dc3377e264"
+      },
+      "run_manifest.json": {
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/random_s282/run_manifest.json",
+        "sha256": "fe43ed42dc70ebe890b2320edd6533fbfda5aded9bf7ca0d8344aea0f4e206b5"
+      }
+    }
+  },
+  "native_pairing_valid": true,
+  "on_minus_control": {
+    "action": 0.03125,
+    "off": 0.0,
+    "random": -0.0234375
+  },
+  "output_bytes": 543883547,
+  "paired_outcomes": {
+    "281": {
+      "action": {
+        "gains": 9,
+        "losses": 4
+      },
+      "off": {
+        "gains": 9,
+        "losses": 6
+      },
+      "random": {
+        "gains": 8,
+        "losses": 10
+      }
+    },
+    "282": {
+      "action": {
+        "gains": 6,
+        "losses": 7
+      },
+      "off": {
+        "gains": 6,
+        "losses": 9
+      },
+      "random": {
+        "gains": 8,
+        "losses": 9
+      }
+    }
+  },
+  "reused_collection": {
+    "fit_s279": {
+      "collection_commit": "d42a3827ecad1e929f54c9a519e5c1716c330e36",
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r1/fit_s279/trajectory.pt",
+      "sha256": "2e03f5324585310b7c7818301cc13452379aaa19cbaeb9f37e442972de7d66df"
+    },
+    "holdout_s280": {
+      "collection_commit": "d42a3827ecad1e929f54c9a519e5c1716c330e36",
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r1/holdout_s280/trajectory.pt",
+      "sha256": "d353bdd6b42603cf64ee7c2c54f8a391ccb6d25df16b44435c2518d43e408f49"
+    }
+  },
+  "run_status": "COMPLETED",
+  "scope": "fixed three-airplane task; one BC training seed; self-trained expert required at inference",
+  "training": {
+    "arms": {
+      "action": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/students/action.pt",
+        "holdout_action_mse": 0.00015937078569550067,
+        "initial_state_sha256": "2c786ee8fafe9abc2fbd1a7e3e761712f0ebaf2088c2aee9016ab82841be855e",
+        "last_loss": 3.6003148125018924e-05,
+        "sha256": "ce7bf97e134dded946874c2c0f5009342dfaa22fbf1ae5f0d6c2e2634e6d1170",
+        "wall_seconds": 3.9047501678578556
+      },
+      "off": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/students/off.pt",
+        "holdout_action_mse": 0.00020559204858727753,
+        "initial_state_sha256": "2c786ee8fafe9abc2fbd1a7e3e761712f0ebaf2088c2aee9016ab82841be855e",
+        "last_loss": 4.5064287405693904e-05,
+        "sha256": "69bc7d8d54dfc05f8e0e95552833c169a6064f41dcd1b80b686a60ad3714d1f6",
+        "wall_seconds": 3.8832519580610096
+      },
+      "on": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/students/on.pt",
+        "holdout_action_mse": 0.00021342500986065716,
+        "initial_state_sha256": "2c786ee8fafe9abc2fbd1a7e3e761712f0ebaf2088c2aee9016ab82841be855e",
+        "last_loss": 5.53995996597223e-05,
+        "sha256": "b0d4eb8af6aec1688deac7cadd71d780e4924ea751ca284fec662f525bf81d93",
+        "wall_seconds": 5.292951780837029
+      },
+      "random": {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/P-20260930-cm-inference-bottleneck/r2/students/random.pt",
+        "holdout_action_mse": 0.00020791451970580965,
+        "initial_state_sha256": "2c786ee8fafe9abc2fbd1a7e3e761712f0ebaf2088c2aee9016ab82841be855e",
+        "last_loss": 4.722289304481819e-05,
+        "sha256": "8ef351395c80a956f02b6c87a8ac82830994215947ecdd7832f5499bccf9fe13",
+        "wall_seconds": 3.765330953989178
+      }
+    },
+    "batch_size": 512,
+    "fit_rows": 34608,
+    "fit_sha256": "2e03f5324585310b7c7818301cc13452379aaa19cbaeb9f37e442972de7d66df",
+    "holdout_rows": 34706,
+    "holdout_sha256": "d353bdd6b42603cf64ee7c2c54f8a391ccb6d25df16b44435c2518d43e408f49",
+    "physical_sha256": "76026c86f7320f432c4a93c432afdf008b4e3153b195c7870bd9548339f63cb8",
+    "run_status": "COMPLETED",
+    "seed": 278,
+    "steps": 2000
+  }
+}
