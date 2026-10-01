@@ -1,3 +1,4 @@
+- [Exact resume implementation and current resource blocker](../activities/20261002-continuous-critic-resume-ready.md)
 Current independent continuation: `/tmp/Ref2Dex-contact-response-continuation`,
 same research branch/history with separate local Git metadata; old worktree read-only.
 - [Completed selective-finger negative](20261002-selective-finger-feasibility-results.md)

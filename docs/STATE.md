@@ -131,7 +131,16 @@ old parent/child PIDs not visible HERE, original-host liveness unestablished.
 SavedRUNNINGsnapshot preserved. No restart or CPU training substitution.
 Next required phase is GPUu02from already audited548and retainedu01optimizer,
 then549--566and final568/569under the SAMEfixed gates/budgets.
-[Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md). [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
+[Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md).
+
+Exact bounded resume supervisor now implemented;447old/relocated protected
+path hashes checked on REALsaved data, scientific source matches e37eca3.
+Four engineering tests pass, including actual owned-child cleanup on source
+progress. It retains547/548/u01, startsu02, then549--566and final568/569;
+400sreserved old +3200snew, combined6GiB. Actual launch remains unavailable:
+no usable GPU and no attested original-host terminal receipt. No new fitting,
+physics or scientific utility label. [Resume evidence](activities/20261002-continuous-critic-resume-ready.md).
+ [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
 and hardware remain unmet. The objective stays active and NOT READY.

@@ -269,3 +269,15 @@ Do not present our gravity witness as new grasp verification or force closure.
 This evidence does not currently change the decision to test a self-trained
 observation policy, so broad metric benchmarking is deferred rather than used
 to delay P0/Cm utility. All previous failed gates stay unchanged.
+
+
+## Continuous critic: optimizer-pathway attribution, after a positive utility gate
+
+Codee37eca3uses joint actor+critic gradient clipping(.5). Separate encoders
+ensure no auxiliary AUTOGRADpath into actor; joint clipping can still change
+actor gradient scaling through critic norms. Do not attribute any future utility
+solely to value-representation learning from encoder isolation. If the fixed
+whole-learner utility gate passes and a mechanistic claim is sought, predeclare
+matched separate actor/critic clipping controls and distinguish this pathway.
+This does not change the interrupted fixed recipe, add new current runs, or
+imply a measured performance benefit/harm. Current comparison remains incomplete.
