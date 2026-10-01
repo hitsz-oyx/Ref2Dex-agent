@@ -98,14 +98,27 @@ rechecked. Unchanged motion1triggers in82successful and17failed trials: observab
 relative slip is insufficient to prescribe closure. No event-conditioned causal
 claim or Cm utility; privileged native state, no sensing/hardware transfer.
 
-The trigger/shared-curl/wrist-arrest family ends without scans. Next higher-level
-question is the effective independent FINGER action representation. Native parents
-6/8/10/12/15plus thumb yaw14can act separately; dependent child commands are not
-independent dimensions. Before any new fit, fix a prospective selective-finger
-feasibility screen with strong static controls and original physical105. This can
-distinguish shared-synergy harm from absence of mechanical correction headroom;
-it is not novel methodology or a successful Cm route.
-[Route review](decisions/D-20261002-contact-action-representation-review.md).
+The trigger/shared-curl/wrist-arrest family ends without scans. Native selective
+finger code9ef3050 completes1536fresh545/546trajectories in112.349s,279708481bytes.
+Independent SDK/URDF, actual target offsets, current state, PD and full-mesh
+physical105 audits pass;255protected inputs rechecked. Preselected motion2
+successes/64: unchanged12, shared curl21, index10, middle6, pinky10, ring6,
+thumb curl8, thumb yaw4. No selective arm passes20pp over BOTHcontrols and
+per-seed noninferiority; UNPROMISING. Stop this exact positive-offset basis without
+sign/dose/timing scans. Thumb yaw is null at first intervention in ALL64motion1
+trials; thumb curl in47/64. These bounds diagnostics are not whole-rollout
+counterfactuals or evidence of unavailable continuous-control headroom.
+[Selective-finger results](research/20261002-selective-finger-feasibility-results.md).
+
+Next implement matched continuous policy optimization across all12effective
+wrist/finger coordinates with a causal physical auxiliary critic, state-only
+auxiliary control and no-auxiliary control. Value is state-only; Cm sees current
+state and executed target-minus-currentq, predicts actual next object position/
+velocity, never future hand input or model reward. PPO uses Gaussian REQUEST
+likelihood before tanh/projection. Three meaningful unit tests pass. First run
+one fresh567engineering-only native smoke, zero optimizer updates; success would
+only authorize integration, not policy utility. Full20-panel training and fresh
+568/569evaluation remain pending. [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
 and hardware remain unmet. The objective stays active and NOT READY.
@@ -134,9 +147,3 @@ and hardware remain unmet. The objective stays active and NOT READY.
   and their hashed inputs are preserved. No native TeX compilation or journal
   readiness. Export/source/numeric/visual checks are recorded separately.
 
-No live owned native/training job. Parent79521and all former handles are terminal;
-never restart a run because its output observation has ended. All original
-worktree/external assets/checkpoints remain read-only; own outputs about4.4GiB,
-within300GB. Next run requires fixed design/code, fresh resource admission and
-unique output. No local failed recipe is extended.
-Resource and external-data boundaries remain in [CAMPAIGN.md](CAMPAIGN.md).
