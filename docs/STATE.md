@@ -115,10 +115,12 @@ wrist/finger coordinates with a causal physical auxiliary critic, state-only
 auxiliary control and no-auxiliary control. Value is state-only; Cm sees current
 state and executed target-minus-currentq, predicts actual next object position/
 velocity, never future hand input or model reward. PPO uses Gaussian REQUEST
-likelihood before tanh/projection. Three meaningful unit tests pass. First run
-one fresh567engineering-only native smoke, zero optimizer updates; success would
-only authorize integration, not policy utility. Full20-panel training and fresh
-568/569evaluation remain pending. [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
+likelihood before tanh/projection. Three meaningful unit tests pass. Fresh567engineering-only native smoke COMPLETED70.580s/768trajectories,
+zero optimizer updates; all253protected hashes and independent raw state,
+request probability, actor/critic, target projection/PD/physical audits pass.
+This proves integration only. Four tests now pass, including independent NumPy
+full auxiliary critic gradients. Full20-panel training547--566and fresh final-only
+568/569evaluation are committed for launch; no utility result yet. [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
 and hardware remain unmet. The objective stays active and NOT READY.
