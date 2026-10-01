@@ -19,8 +19,10 @@ from typing import Any
 
 try:  # Works both as ``python -m scripts...`` and a direct script path.
     from scripts.agent_broker import ADAPTERS, load_bindings, load_roles
+    from scripts.root_watchdog import lease_identity_matches, root_runtime_identity
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
     from agent_broker import ADAPTERS, load_bindings, load_roles
+    from root_watchdog import lease_identity_matches, root_runtime_identity
 
 
 def _result(level: str, check: str, detail: str) -> dict[str, str]:
@@ -79,10 +81,12 @@ def inspect_workflow(
         results.append(_result("WARN", "supervisor_lease", "lease file is absent; automatic recovery is disabled"))
     else:
         lease = json.loads(lease_path.read_text(encoding="utf-8"))
-        if lease.get("root_agent") != "root":
-            results.append(_result("ERROR", "supervisor_lease", "lease does not select root"))
+        identity, identity_reason = root_runtime_identity(registry_path)
+        identity_ok, lease_reason = lease_identity_matches(lease, identity)
+        if not identity_ok:
+            results.append(_result("ERROR", "supervisor_lease", f"identity check failed: {identity_reason if identity is None else lease_reason}"))
         else:
-            results.append(_result("OK", "supervisor_lease", f"enabled={bool(lease.get('enabled'))}"))
+            results.append(_result("OK", "supervisor_lease", f"identity matched; enabled={bool(lease.get('enabled'))}"))
 
     expected_task_tables = {"tasks", "messages", "handoffs"}
     expected_state_tables = {"runtime_state", "supervisor_state"}
