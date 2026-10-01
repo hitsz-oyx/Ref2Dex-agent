@@ -1,6 +1,6 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-09-30
+Updated: 2026-10-01
 
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
@@ -8,24 +8,16 @@ Updated: 2026-09-30
 
 ## Current decision
 
-当前执行 HF08 physical-value：用户已批准完整设计，复用单一自训练 source_e260，在 canonical airplane s3/s7/s9 上采集完整转移，比较 plain PPO、direct Q 候选监督和 Cm＋V 候选监督。HF06/HF07及六专家路线的下述记录为历史背景，当前不重新选择路线。
+HF08 physical-value Probe 已完成：r7 的 48/48 native 评价完成，终点成功率为
+plain_off 41/384、direct_q 40/384、cm_value 33/384；原生 gate 为
+`UNPROMISING`。HF08 family 为 `PAUSED`，Probe 预算 1/1 已用；不升级
+Validation，也不继续这条实现的局部调参。North-star scoreboard 不变，Cm policy
+utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性审计边界约束。
 
-2026-09-30 用户明确下一阶段优先回答 **Cm 策略价值**，复用当前已验证的
-六专家底座；单一 actor 蒸馏不作为默认优先交付。交付期限更新为
-2026-10-03 23:59（Asia/Shanghai），资源边界仍见 `CAMPAIGN.md`。
-本次用户授权暂时跳过代理工作流搭建，聚焦研究推进。交付标准已明确：先取得
-真实策略上的 matched Probe，出现正向信号就优先完成正式 Validation；本记录
-不代表新的实验结果。
-
-本轮固定 scratch MLP 可行性检查已完成，teacher-envelope 的 contact coverage
-和 arbitration stability 未过门，HF06 关闭，不调参。HF07 随后在固定三条 airplane
-motion 上完成了四臂真实策略 matched Probe：on 18/128、off 18/128、random
-21/128、action 14/128，八个 native arm、配对和初始化合同有效。该 BC 推理输入
-实现判为 `UNPROMISING` 并关闭，不升级 Validation。它仍需 self-trained expert
-在推理时生成候选动作，只有一个 BC training seed，不能否定整个 Cm 思路。
-见 [实验卡](experiments/probes/P-20260930-cm-inference-bottleneck.md)。
-North-star scoreboard 不变：Cm policy utility 尚未证明。本轮实验已结束，无本轮
-训练/评估进程遗留；下一步返回高层机制选择，不扫描上述局部实现。
+用户已开启 Mission-level 持续 Goal，root 通过固定 Broker 向 worker 派发任务。
+当前交付期限仍为 2026-10-03 23:59（Asia/Shanghai）；资源边界见
+`CAMPAIGN.md`。当前下一步由 `agent_cm` 执行 CPU-only HF08 价值目标、V 训练充分性
+与分布适用性审计；结果尚未交付，不预告结论。
 
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
@@ -60,13 +52,10 @@ provenance。随后已在主分支修复该合约：新的 evaluator 会按触�
 `+Z` 逆旋转到 `object_local_at_trigger_t`，并在每条记录、manifest 和 adapter 中保留
 单位轴及其 provenance；旧 r6 数据仍不具备该字段，不能回填或用于拟合。
 
-2026-09-30 已在用户授权范围内并行派发两个受控 Probe：
-`T-20260928-cm-calibration-repair-screen-r1` 做一次 fit-only CPU 校准修复检查，
-`T-20260930-six-expert-trajectory-distillation` 独立审计并尝试真正的六专家逐步轨迹
-蒸馏。前者预算为 2 CPU、15 分钟、1 GiB，后者为 1 GPU、60 分钟、5 GiB；两者都不
-产生正式 Cm claim。旧 r2 只是 ridge 加 in-sample residual screen，不能据此否定设计
-MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tuning，蒸馏继续独立
-推进。当前结果以各自 Broker handoff 为准。
+2026-09-30 root 曾在用户授权范围内并行派发 fit-only CPU 校准修复和独立六专家
+轨迹蒸馏；两者预算分别为 2 CPU/15 分钟/1 GiB 与 1 GPU/60 分钟/5 GiB，均不产生
+正式 Cm claim。旧 r2 只是 ridge 加 in-sample residual screen，不能据此否定设计
+MLP 或整条 Cm 路线；相关历史边界和 Broker 交接继续保留。
 
 ## North-star scoreboard
 
@@ -175,7 +164,7 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 | `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
 | `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
-| `HF08` physical-value | `C3` | `ACTIVE`（完整matched评价） | 1/1，r7 执行中 | `agent/cm-physical-value` |
+| `HF08` physical-value | `C3` | `PAUSED`（r7 native gate `UNPROMISING`） | 1/1，预算已用 | `agent/cm-physical-value` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -183,36 +172,14 @@ MLP 或整条 Cm 路线；校准修复若仍失败则停止局部 calibration tu
 
 ## Next step
 
-2026-09-30 路线讨论后，用户认可采用动作条件短期物理转移与长期价值结合的方向，
-先在 airplane 上检验收益，允许重新设计 Cm，不要求沿用原几何模型。最终交付
-要求 Cm 参与策略训练；冻结 actor 的候选动作选择收益仅作机制 Probe。成功标准
-将包含明确保持时长与后续掉落检查；跨数据集预训练是可选方向。Mission 已澄清
-这些边界，尚未固定网络、reward、数据规模、训练算法或启动新实验。
+root 的 Mission-level 持续 Goal 保持 active，并继续通过固定 Broker 监督 worker。当前
+唯一下一步是 `T-20261001-hf08-value-target-audit`：`agent_cm` 只读审计 HF08 的
+价值目标、V 训练充分性和分布适用性，使用 CPU，不新建科学 Probe 或训练。该审计
+结果尚未交付；在结果返回前不预告结论、不启动 HF08 新训练或局部调参。
 
-只读接口核查确认已有 source_e260 的完整首回合轨迹可用于物理模型预训练，但
-缺少逐步 reward、显式 next-observation 和 terminal/timeout 区分，不能直接视作
-完整 TD 训练数据。当前 actor/critic observation 含未来参考信息，reward 主要是
-参考轨迹模仿；新路线仍须明确价值学习目标及与稳定抓取评价的关系。下一步先
-完成该设计，再记录 Decision Memo、登记新 family 和固定真实策略 matched Probe。
-
-用户随后委托 root 采用任务相关的长期价值目标：保留参考轨迹引导，加入持续抓取、
-保持抬升与掉落反馈，Cm-on/off 使用完全相同的奖励。固定环境交互预算下的持续
-抬升成功率为主指标，学习效率为辅，预训练与额外计算成本单独报告。具体奖励
-公式、时长、数据预算和算法仍待设计与 preflight，以上仅为已确定研究边界。
-
-具体设计现已写入 [airplane physical-value spec](superpowers/specs/2026-09-30-cm-physical-value-design.md)，
-设计已获用户批准，正在实施。它拟用100万条完整过程转移、三臂真实 PPO 与
-候选评分的旁路策略监督，以及1.5秒连续保持主指标；成本为两GPU、六小时内，
-均是拟定合同而非新证据。只读核查补充确认 source_e260 本身已经有 approach=2、
-held-lift=10、progress=5 shaping，不能将源策略表述为只训练模仿reward。
-用户随后明确批准具体设计并要求开始工作。HF08 已登记，分支为
-agent/cm-physical-value，正在实现完整转移、持续保持评价及候选价值的旁路策略监督。
-当前尚未运行新科学实验，后续结果须以原生 manifest 和实验卡为准。
-
-HF08 启动前的历史处置：HF06 和 HF07 均已结束；优先级继续是 Cm 策略价值，期限
-2026-10-03 23:59。下一步返回高层机制选择，复用已验证六专家底座；不继续调
-teacher envelope 或这次 BC inference-input 的宽度、步数、seed、目标。下面保留
-此前路线的证据边界，不将历史派发状态视为当前活跃任务。
+HF08 的原生 Probe 结果仍固定为 `UNPROMISING`、family `PAUSED`、预算 1/1；不升级
+Validation。重要历史证据和边界仍以实验卡、Broker handoff 与下文长期事实为准，
+期限为 2026-10-03 23:59（Asia/Shanghai）。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一
@@ -251,14 +218,11 @@ delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准�
 因此该历史 calibration slot 停止：不从此 artifact 生成可用于蒸馏的正式 Cm-on 标签，
 不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
 
-## HF08 current execution
+## HF08 completed Probe
 
-已批准设计、登记唯一Probe slot 1/1，并在 agent/cm-physical-value 实施。root依据本轮暂时跳过代理工作流、直接推进研究的授权执行。固定三臂 plain_off/direct_q/cm_value，三条canonical airplane motion，复用同一自训练source_e260；最终actor-only持续抬升收益为判据，正向优先正式Validation。
-
-12项合同/数据/模型检查通过；三臂单epoch PPO及保存策略加载评价通过。补充跨回合工程检查覆盖三motion、重复reset和混合起始帧。r6第一次非空reset因list/Tensor接口失败，已修正并保留75.409s成本；r5仅初始motion0的加载证据不作三motion覆盖证据。
-
-当前科学run为r7，session93879，GPU1/2，固定总阶段预算6h/20GiB，继承r6失败成本。公共采集完成1041599转移、1920完整episode，hash/连续性/完整return检查通过，无剔除行。fit831811行/1536episode、开发holdout209788行/384episode；三motion转移近均衡、四档额外动作噪声均覆盖。采集池稳定标签稀少（15episode），只作带噪声数据池描述，不能代替actor-only指标或提前否定路线。
-
-固定100k/500k/最大档模型、V/Q预训练已全部完成，实际fit档为100206/500169/831811行，native约25.6min。因96环境评价实测97.8s，采用两GPU配对面板并行保持48点评价；已核对并终止旧launcher，fit产物未中断，调度交接及保守墙钟成本记录在launcher_handoff.json。六臂PPO按两个training-seed并行，seed内三臂同GPU，训练预算160追加epoch和327680交互不变；六臂均已完成e420，epoch/327680交互/共同初始化检查通过。受控接续session17061已进入固定48点评价，当前完成30点；不能将部分矩阵作为完整Probe结论。开发分量审计发现初始Cm物体位置和姿态误差高于保持状态基线，不能称为准确物理模型；同数据上的V/Q完整return拟合优于常量基线，但不证明反事实动作排序。在线终点Cm物理审计已完成：位置坐标RMSE降至0.78/0.86cm，优于保持状态但仍弱于恒定线速度；姿态RMSE仍约1.34/1.36rad，明显弱于保持状态。该审计沿用source开发分布，不证明当前策略分布上的校准；不改变policy gate。科学结论尚未形成，North-star scoreboard保持不变。
-
-详细证据见 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)；原生状态见当前工作树 src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/run_manifest.json。
+HF08 physical-value 的 r7 native 执行已经完成 48/48 固定评价。终点每臂 384 个
+episode：plain_off 41、direct_q 40、cm_value 33；原生 gate 为 `UNPROMISING`。
+因此不启动 Validation，不继续该实现的局部调参，North-star Cm policy utility 保持
+`OPEN`。同源 checkpoint 的 e0 重复性审计仍是最终因果解释的边界；完整合同、输入
+输出 hash、评价矩阵和运行资源记录见
+[HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md)及其结果索引。
