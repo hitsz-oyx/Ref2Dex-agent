@@ -24,6 +24,8 @@ class ContactConsequenceTests(unittest.TestCase):
         class Player:
             def __init__(self):
                 self.device='cpu';self.states=None;self.is_rnn=False
+                self.batch_initialized=False
+                self.inference_calls=0
                 self.model=torch.nn.Linear(1,1,bias=False)
                 self.model.weight.data.zero_()
                 self.running_mean_std=torch.nn.Identity()
@@ -58,7 +60,12 @@ class ContactConsequenceTests(unittest.TestCase):
                     self.frozen_experts.append((model,torch.nn.Identity()))
             def env_reset(self,ids): return {'obs':self.env.task.obs_buf.clone()}
             def restore(self,filename): pass
+            def get_batch_size(self,obs,count):
+                self.batch_initialized=True
+                return len(obs)
             def get_action(self,obs,deterministic):
+                if not self.batch_initialized: raise ValueError('missing native batch initialization')
+                self.inference_calls+=1
                 result=torch.zeros(96,18);result[:,0]=float(self.model.weight[0,0]);return result
             def env_step(self,env,action):
                 task=env.task;task.gym.frame+=1;task.progress_buf+=1
@@ -82,9 +89,11 @@ class ContactConsequenceTests(unittest.TestCase):
                 pool.restore('unused')
             self.assertEqual(len(pool.frozen_experts),6)
             self.assertTrue(all(float(m.weight[0,0])==.25 and not m.weight.requires_grad for m,_ in pool.frozen_experts))
-            build_player(original,args,torch,wrapper)().run()
+            first_player=build_player(original,args,torch,wrapper)()
+            first_player.run()
             args=SimpleNamespace(**dict(vars(args),reference=first/'records.pt',output=branch,arm=0))
-            build_player(original,args,torch,wrapper)().run()
+            branch_player=build_player(original,args,torch,wrapper)()
+            branch_player.run()
             data=torch.load(branch/'records.pt',weights_only=False)
             ref=torch.load(first/'records.pt',weights_only=False)
             selected=data['selected']
@@ -96,6 +105,8 @@ class ContactConsequenceTests(unittest.TestCase):
             self.assertTrue((data['outcome']['supported_lift_mm']>3.7).all())
             self.assertTrue((data['window_steps'][selected]==10).all())
             self.assertFalse(data['future_done'][selected].any())
+            self.assertEqual(first_player.inference_calls,branch_player.inference_calls)
+            self.assertEqual(first_player.inference_calls,len(ref['action'])*6)
 
     def test_labels_distinguish_supported_progress_contact_loss_and_existing_lift_drop(self):
         future=torch.zeros(3,10,49)

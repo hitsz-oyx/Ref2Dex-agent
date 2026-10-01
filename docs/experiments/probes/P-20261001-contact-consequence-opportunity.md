@@ -36,7 +36,9 @@ Frozen design before execution:
   own resulting state and controls8steps. Six arms, two fresh repeats per arm;
   the first base run also records prefix/actions/RNG. Reuse identical candidate
   proposals; confirm actual applied actions and complete10step first-episode
-  windows. Actor and RMS parameters/buffers remain frozen.
+  windows. Every arm computes all six expert forwards in the same order,
+  preserving point-sampling RNG placement; only action execution changes.
+  Actor and RMS parameters/buffers remain frozen.
 - Physical outcome: mean positive lift relative to trigger, supported by the
   native hand-force AND object-force contact proxy, in mm; contact fraction;
   contact loss; drop if object is already>=3cm above motion frame0 rest height
@@ -68,3 +70,10 @@ exercise real six-expert loading, compiled wrapper keys and frozen parameters.
 No scientific result or checkpoint update existed. r1 logs/cache remain;
 r2 charges its time/storage to the same fixed60minute/8GiB budget, preserving
 seed/panel/gates and all input hashes.
+
+Engineering r2 also failed before the first applied action: the custom player
+did not call native `get_batch_size`, leaving `has_batch_dimension` false and
+flattening96 observations into one actor input. Full cold snapshot restore had
+passed. Added the required batch initialization and a native-loop regression
+that refuses action inference before it. r3 charges both failed attempts under
+the same budget; no candidate outcome or scientific negative existed in r1/r2.

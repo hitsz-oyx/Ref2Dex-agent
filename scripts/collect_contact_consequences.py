@@ -89,6 +89,8 @@ def build_player(original, args, torch, gymtorch):
                 raise ValueError('this expert pool must be stateless; no shared RNN across experts')
             ids = torch.arange(task.num_envs, device=self.device)
             observation = self.env_reset(ids)
+            if self.get_batch_size(observation['obs'], 1) != task.num_envs:
+                raise ValueError('player batch dimension mismatch')
             props = properties(task)
             ref = torch.load(args.reference, map_location='cpu', weights_only=False) if args.reference else None
             initial = ref['initial'] if ref else capture_initial(task, self, observation, props)
@@ -129,7 +131,10 @@ def build_player(original, args, torch, gymtorch):
                 before_action = capture_rng()
                 if ref:
                     current_trigger = trigger == tick
-                    base = self.get_action(observation, True).clamp(-1, 1).clone()
+                    # Match all six forwards even for the repeat base arm.
+                    # The PointNet fallback may sample points during inference;
+                    # a different forward count would change its RNG placement.
+                    base = self.candidates(observation)[:, BASE_INDEX]
                     actions = ref['action'][tick].to(self.device).clone()
                     elapsed = tick-trigger
                     active = (trigger >= 0) & (elapsed >= 0) & (elapsed < HORIZON)
