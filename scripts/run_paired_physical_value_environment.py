@@ -26,24 +26,10 @@ def sha(path):
 def make_player(original, args, torch, gymtorch):
     from src.task.CmResidual.paired_evaluation import (
         SCHEMA, capture_initial, capture_rng, cpu_copy, fingerprint, restore_initial, restore_rng,
+        physical_property_value,
     )
     from src.task.CmResidual.physical_value_contract import HoldTracker
     from src.task.CmResidual.physical_value_live import contacts, snapshot
-    import numpy as np
-
-    def property_value(value, depth=0):
-        if depth>8: raise ValueError('physical property serialization depth')
-        if isinstance(value,(bool,int,float,str,np.ndarray)): return cpu_copy(value)
-        if isinstance(value,np.generic): return value.item()
-        if isinstance(value,(list,tuple)): return [property_value(v,depth+1) for v in value]
-        out={}
-        for name in dir(value):
-            if name.startswith('_'): continue
-            field=getattr(value,name)
-            if callable(field): continue
-            out[name]=property_value(field,depth+1)
-        if not out: raise ValueError('unsupported physical property: '+str(type(value)))
-        return out
 
     def physics_properties(task):
         result=[]
@@ -52,8 +38,8 @@ def make_player(original, args, torch, gymtorch):
             for actor in range(task.gym.get_actor_count(env)):
                 actors.append(dict(name=task.gym.get_actor_name(env,actor),
                     dof=cpu_copy(task.gym.get_actor_dof_properties(env,actor)),
-                    rigid_body=property_value(task.gym.get_actor_rigid_body_properties(env,actor)),
-                    rigid_shape=property_value(task.gym.get_actor_rigid_shape_properties(env,actor))))
+                    rigid_body=physical_property_value(task.gym.get_actor_rigid_body_properties(env,actor)),
+                    rigid_shape=physical_property_value(task.gym.get_actor_rigid_shape_properties(env,actor))))
             result.append(actors)
         return result
 

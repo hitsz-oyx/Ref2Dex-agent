@@ -35,7 +35,14 @@ def fingerprint(value):
             h.update(str((t.dtype, tuple(t.shape))).encode())
             h.update(t.numpy().tobytes())
         elif isinstance(v, np.ndarray):
-            h.update(str((v.dtype, v.shape)).encode()); h.update(v.tobytes())
+            h.update(str((v.dtype, v.shape)).encode())
+            if v.dtype.names:
+                # Isaac DOF records have alignment padding with unspecified
+                # bytes. Hash named physical fields, not struct padding.
+                for name in v.dtype.names:
+                    visit(name); visit(np.ascontiguousarray(v[name]))
+            else:
+                h.update(v.tobytes())
         elif isinstance(v, dict):
             for k in sorted(v):
                 visit(k); visit(v[k])
@@ -46,6 +53,29 @@ def fingerprint(value):
             h.update(repr(v).encode())
     visit(value)
     return h.hexdigest()
+
+
+def physical_property_value(value, depth=0):
+    """Serialize Isaac public physical fields and its NumPy dtype metadata."""
+    if depth>8:
+        raise ValueError('physical property serialization depth: '+str(type(value)))
+    if isinstance(value,(bool,int,float,str,np.ndarray)):
+        return cpu_copy(value)
+    if isinstance(value,np.dtype):
+        return str(value)
+    if isinstance(value,np.generic):
+        return physical_property_value(value.item(),depth+1)
+    if isinstance(value,(list,tuple)):
+        return [physical_property_value(v,depth+1) for v in value]
+    out={}
+    for name in dir(value):
+        if name.startswith('_'): continue
+        field=getattr(value,name)
+        if callable(field): continue
+        out[name]=physical_property_value(field,depth+1)
+    if not out:
+        raise ValueError('unsupported physical property: '+str(type(value)))
+    return out
 
 
 def capture_rng():

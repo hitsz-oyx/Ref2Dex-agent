@@ -46,6 +46,16 @@ def run(args):
         raise ValueError('output must be unique owned task directory')
     output.mkdir(exist_ok=False)
     started=time.monotonic()
+    prior_seconds=0
+    prior_bytes=0
+    prior=[]
+    if args.prior_attempt:
+        previous=json.loads((args.prior_attempt/'run_manifest.json').read_text())
+        if previous['run_status'] not in ('FAILED','STOPPED'):
+            raise ValueError('prior attempt still live')
+        prior_seconds=float(previous['elapsed_seconds'])
+        prior_bytes=sum(p.stat().st_size for p in args.prior_attempt.rglob('*') if p.is_file())
+        prior=[dict(path=str(args.prior_attempt.resolve()),elapsed_seconds=prior_seconds,bytes=prior_bytes)]
     original_paths=[R7/'environment.yaml',R7/'training.yaml',R7/'results.json']
     original_paths += [R7/f'train_{arm}_s{t}'/NN for arm in ARMS for t in (286,287)]
     original_paths += sorted((R7/'models').glob('*.pt'))
@@ -63,15 +73,16 @@ def run(args):
              ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
              ROOT/'third_party/DExplore/dexplore/learning/common_player.py']
     hashes={str(p.resolve()):sha(p) for p in original_paths+sources}
-    manifest=dict(experiment_id='P-20261001-paired-evaluator-resolution',family='HD02',run_id='r1',
+    manifest=dict(experiment_id='P-20261001-paired-evaluator-resolution',family='HD02',run_id=args.output.name.rsplit('-',1)[-1],
         run_status='RUNNING',pid=os.getpid(),command=sys.argv,phases=[],input_sha256=hashes,
         original_hf08_inputs_read_only=True,no_training=True,no_new_cm_mechanism=True,
         baseline_status='PARTIAL',wall_limit_seconds=3600,storage_limit_bytes=8<<30,
+        prior_attempts=prior,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
     def save(): (output/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     def check():
-        if time.monotonic()-started>3540: raise TimeoutError('whole audit budget')
-        if sum(p.stat().st_size for p in output.rglob('*') if p.is_file())>8<<30:
+        if prior_seconds+time.monotonic()-started>3540: raise TimeoutError('whole audit budget')
+        if prior_bytes+sum(p.stat().st_size for p in output.rglob('*') if p.is_file())>(8<<30):
             raise RuntimeError('storage budget')
         if any(sha(p)!=hashes[str(p.resolve())] for p in sources): raise RuntimeError('source drift')
     def execute(arm,t,seed,repeat=False,reference=None):
@@ -106,7 +117,7 @@ def run(args):
                 process=subprocess.Popen(command,cwd=ROOT/'third_party/DExplore',env=environment,
                     stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
                 phase.update(pid=process.pid,pgid=process.pid);save()
-                code=process.wait(timeout=min(290,3540-(time.monotonic()-started)))
+                code=process.wait(timeout=min(290,3540-prior_seconds-(time.monotonic()-started)))
             if code: raise RuntimeError(f'native exit {code}: {name}')
             result=json.loads((directory/'results.json').read_text())
             if result['run_status']!='COMPLETED' or result['complete_episodes']!=96:
@@ -187,6 +198,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--gpu',type=int,default=4)
+    parser.add_argument('--prior-attempt',type=Path)
     run(parser.parse_args())
 
 

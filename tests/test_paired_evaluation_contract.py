@@ -7,6 +7,7 @@ import torch
 
 from src.task.CmResidual.paired_evaluation import (
     capture_initial, capture_rng, fingerprint, repeatability_gate, restore_initial, restore_rng,
+    physical_property_value,
 )
 
 
@@ -17,6 +18,20 @@ def episodes(n=384):
 
 
 class PairedEvaluationContracts(unittest.TestCase):
+    def test_physical_property_dtype_metadata_is_finite_and_struct_padding_is_ignored(self):
+        vector=SimpleNamespace(x=1.,y=2.,z=3.,dtype=np.dtype([('x','f4'),('y','f4'),('z','f4')]))
+        result=physical_property_value(SimpleNamespace(com=vector,mass=2.))
+        self.assertEqual(result['com']['z'],3.)
+        self.assertIsInstance(result['com']['dtype'],str)
+        dtype=np.dtype({'names':['hasLimits','lower'], 'formats':['bool','f4'],
+                        'offsets':[0,4], 'itemsize':8})
+        a=np.zeros(3,dtype=dtype); b=np.zeros(3,dtype=dtype)
+        a['lower']=.25; b['lower']=.25
+        b.view('u1').reshape(3,8)[:,1:4]=255
+        self.assertEqual(fingerprint(a),fingerprint(b))
+        b['lower'][0]=.5
+        self.assertNotEqual(fingerprint(a),fingerprint(b))
+
     def test_gate_rejects_cancelling_episode_changes(self):
         first=episodes(); second=episodes()
         for i in range(18): first[i]['stable_success']=True

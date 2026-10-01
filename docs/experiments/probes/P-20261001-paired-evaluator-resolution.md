@@ -53,4 +53,16 @@ old terminal panel (training seeds286/287, evaluation seeds288/289).
   <=8GiB, native process<=300seconds. Input hashes verified before/after; never
   overwrite old outputs or original checkpoints. Root outputs symlink unused.
 
-Status: implementation in progress; no native run yet.
+## Engineering attempt r1
+
+r1 FAILED before the first simulate/action/episode: Isaac Vec3/Quat/Transform
+expose NumPy dtype metadata, and the generic property serializer recursed into
+dtype.base. Corrected by explicit dtype serialization. Added a regression that
+also excludes unspecified alignment padding in structured DOF property hashes;
+actual named physical fields remain checked. CPU tests14passed; all six real
+Isaac property classes serialize successfully in an Isaac-only CPU preflight.
+
+r1 artifacts/log/cache retained; its recorded wall time and bytes are charged
+to the same3600second/8GiB budget by r2. Scientific panel/state/actor/seed/gates
+unchanged. New r2 output is unique; no native episode or policy result existed
+in r1. r2 begins after fixed correction commit and fresh GPU admission.
