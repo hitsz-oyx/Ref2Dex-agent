@@ -52,12 +52,15 @@ def executable_player(original,args,torch,gymtorch):
                 mesh_clearance=geometry.clearance(task._target_states,task._table_states)
                 lifted=(state[:,38]-rest>=.03)&(mesh_clearance>=.002)
                 stratum=lifted.long()
-                eligible=(~ended)&(elapsed<0)&(cooldown<=0)&(contact_run>=3)&(tick>=10)&(tick<=args.max_steps-10)&(task.max_episode_length[task.data_id]-task.progress_buf>11)&(strata_count[ids,stratum]<args.windows_per_stratum)
+                eligible=(~ended)&(elapsed<0)&(cooldown<=0)&(contact_run>=3)&((ids>=64)|lifted)&(tick>=10)&(tick<=args.max_steps-10)&(task.max_episode_length[task.data_id]-task.progress_buf>11)&(strata_count[ids,stratum]<args.windows_per_stratum)
                 rows=eligible.nonzero().flatten();slot=count[rows]
                 if len(rows):
                     # Independent duplicate-base labels form a randomized null;
                     # they do not claim individual cold/hot replay pairs.
-                    draw=torch.randint(8,(len(rows),),device=self.device,generator=generator)
+                    probability=torch.full((len(rows),8),.125,device=self.device)
+                    rare=lifted[rows]
+                    probability[rare]=torch.tensor([.04,.04,.04,.04,.20,.04,.40,.20],device=self.device)
+                    draw=torch.multinomial(probability,1,generator=generator).squeeze(-1)
                     selected=torch.where(draw==7,4,draw);anchor[rows]=hold_target(task._dof_pos[rows],task._pd_action_offset,task._pd_action_scale)
                     holding=hold_action(anchor[rows],task._dof_pos[rows],task._pd_action_offset,task._pd_action_scale)
                     trigger[rows,slot]=tick;allocation[rows,slot]=draw;assignment[rows,slot]=selected;arm[rows]=selected;elapsed[rows]=0
@@ -92,6 +95,9 @@ def executable_player(original,args,torch,gymtorch):
             outcome.update(supported_change_mm=signed*1000,retained_mesh_clearance_mm=clr[:,-3:].amin(-1)*1000,
                            initially_clear=(initial>=.002)&(state_rows[:,38]-rest_rows>=.03),retained_clear=(clr[:,-3:]>=.002).all(-1)&pair[:,-3:].all(-1))
             selected=assignment[valid];propensity=torch.where(selected==4,.25,.125)
+            rare=outcome['initially_clear'];propensity[rare]=torch.where((selected[rare]==4)|(selected[rare]==6),.40,.04)
+            allocations=torch.full((len(selected),8),.125,device=self.device)
+            allocations[rare]=torch.tensor([.04,.04,.04,.04,.20,.04,.40,.20],device=self.device)
             payload=dict(schema='ref2dex.executable_contact_options.v1',seed=args.seed,assignment_seed=args.assignment_seed,
                          episode_id=[f's{args.seed}/env{int(i)}/first' for i in env.cpu()],env_id=env.cpu(),motion_id=motion[:,None].expand(-1,w)[valid].cpu(),
                          start_frame=start[:,None].expand(-1,w)[valid].cpu(),trigger=trigger[valid].cpu(),state=state_rows.cpu(),history=hist[valid].cpu(),
@@ -100,8 +106,9 @@ def executable_player(original,args,torch,gymtorch):
                          future_clearance=clr.cpu(),actual_action=actual[valid].cpu(),actual_pd_targets=pd[valid].cpu(),future_done=terminal[valid].cpu(),
                          rest_z=rest_rows.cpu(),outcome={k:v.cpu() for k,v in outcome.items()},frozen_experts=True,cm_used=False,optimizer_used=False,
                          intervention='full10step feedback expert or anchored native-PD pose-hold;6tick cooldown',
-                         option_names=['balanced','cup','duck','mixed12','base','train5','pose_hold'],allocation_probability=.125,
-                         base_propensity_definition='two uniform allocation slots4/7 both execute feedback base; actual option probability.25',
+                         option_names=['balanced','cup','duck','mixed12','base','train5','pose_hold'],allocation_probabilities=allocations.cpu(),
+                         sampling_cohort=torch.where(env<64,0,1).cpu(),
+                         base_propensity_definition='slots4/7 identical feedback base; actual probability.25general/.40initiallyclear; hold.125general/.40initiallyclear; other5experts.125general/.04clear',
                          geometry_definition='full25002vertex source collision mesh support over oriented thin-table upper plane; scale matches native ball_size; VHACD approximation and pairwise contacts unavailable',
                          assignment_after_observation=True)
             torch.save(payload,args.output/'records.pt');result=dict(run_status='COMPLETED',rows=len(selected),episodes=len(set(payload['episode_id'])),

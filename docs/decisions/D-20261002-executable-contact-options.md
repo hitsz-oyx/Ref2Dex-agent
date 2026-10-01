@@ -32,3 +32,10 @@ Cm-on/off Validation。保持候选上线前核对whole-mesh/table clearance，
 若无法在剩余deadline/预算内完成最小判别设计，则记录未完成范围，不压缩
 label/配对/结论边界。MISSION claim、资源权限、外部read-only不变；
 当前会话直接执行，无子代理、无新身份、无外部不可逆操作，无新授权边界。
+
+Pre-science power check: r2engineering35clear windows/217total atquota2.
+Choose twelve collection panels with64clear-first envs/32general and
+already-clear.4hold/.4base/.04eachotherexpert allocation. This changes only
+predeclared state sampling/allocation before science, allsevenoptions retained;
+base duplicated null slots.2each. Reverify engineering, charge r2; no success
+labels used for this decision, unchanged opportunity/support/risk gates.

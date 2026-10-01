@@ -24,6 +24,12 @@ def run(args):
         if prior['run_status']!='FAILED' or not prior['smoke_only'] or prior['experiment_id']!=EXPERIMENT:raise ValueError('terminal failed engineering required')
         prior_seconds=prior['elapsed_seconds']+prior.get('prior_seconds',0)
         prior_bytes=sum(p.stat().st_size for p in args.prior_failed.rglob('*') if p.is_file())+prior.get('prior_bytes',0)
+    if args.prior_superseded:
+        if not args.smoke_only or args.prior_smoke or args.prior_failed:raise ValueError('superseded completed engineering only')
+        prior=json.loads((args.prior_superseded/'run_manifest.json').read_text())
+        if prior['run_status']!='COMPLETED' or not prior['smoke_only'] or prior['experiment_id']!=EXPERIMENT:raise ValueError('same terminal engineering required')
+        prior_seconds=prior['cumulative_seconds']
+        prior_bytes=sum(p.stat().st_size for p in args.prior_superseded.rglob('*') if p.is_file())+prior.get('prior_bytes',0)
     route_path=ROOT/'src/task/CmResidual/configs/hf02_temporal_canonical_route.json';route=json.loads(route_path.read_text())
     inputs=[route_path,R7/'environment.yaml',R7/'training.yaml',Path(__file__),ROOT/'scripts/collect_executable_contact_options.py',ROOT/'scripts/collect_contact_consequences.py']
     inputs += [ROOT/'src/task/CmResidual'/n for n in ['executable_contact_options.py','contact_consequence.py','paired_evaluation.py','physical_value_live.py']]
@@ -38,10 +44,11 @@ def run(args):
         inputs.append(p)
     if args.prior_smoke:inputs.append(args.prior_smoke/'run_manifest.json')
     if args.prior_failed:inputs.append(args.prior_failed/'run_manifest.json')
+    if args.prior_superseded:inputs.append(args.prior_superseded/'run_manifest.json')
     hashes={str(p.resolve()):sha(p) for p in inputs};output.mkdir(exist_ok=False);begin=time.monotonic()
     m=dict(experiment_id=EXPERIMENT,family='HF13',probe_index_in_family=1,smoke_only=args.smoke_only,run_status='RUNNING',pid=os.getpid(),command=sys.argv,
            git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),input_sha256=hashes,phases=[],prior_seconds=prior_seconds,prior_bytes=prior_bytes,
-           cm_training=False,expert_training=False,wall_limit_seconds=3600,output_limit_bytes=8<<30,scientific_seeds=list(range(421,427)),assignment_seed_offset=8000)
+           cm_training=False,expert_training=False,wall_limit_seconds=3600,output_limit_bytes=8<<30,scientific_seeds=list(range(421,433)),assignment_seed_offset=8000)
     def save():(output/'run_manifest.json').write_text(json.dumps(m,indent=2)+'\n')
     def check():
         if time.monotonic()-begin+prior_seconds>3540:raise TimeoutError('family wall limit')
@@ -49,7 +56,7 @@ def run(args):
         if any(sha(Path(k))!=v for k,v in hashes.items()):raise ValueError('input/source drift')
     save()
     try:
-        for seed in ([420] if args.smoke_only else range(421,427)):
+        for seed in ([420] if args.smoke_only else range(421,433)):
             check();admission=None
             for gpu in args.gpus:
                 try:admission=gpu_admission(gpu);break
@@ -84,4 +91,4 @@ def run(args):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpus',type=int,nargs='+',default=[2,3]);p.add_argument('--smoke-only',action='store_true');p.add_argument('--prior-smoke',type=Path);p.add_argument('--prior-failed',type=Path);run(p.parse_args())
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpus',type=int,nargs='+',default=[2,3]);p.add_argument('--smoke-only',action='store_true');p.add_argument('--prior-smoke',type=Path);p.add_argument('--prior-failed',type=Path);p.add_argument('--prior-superseded',type=Path);run(p.parse_args())

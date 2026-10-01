@@ -45,6 +45,7 @@ def test_actual_loop_executes_full_feedback_window_and_fixed_hold_target():
     class FeedbackPlayer(Player):
         def __init__(self):
             super().__init__();t=self.env.task;t._pd_action_offset=torch.zeros(18);t._pd_action_scale=torch.ones(18);t._pd_action_scale[3:6]=math.pi
+            t._target_states[:64,2]=.94
             t._table_states=t._root_states.view(96,3,13)[:,1];t._table_states[:,2]=.88;t._table_states[:,3]=math.sqrt(.5);t._table_states[:,6]=math.sqrt(.5)
             t._action_to_pd_targets=lambda a:native_targets(a,t._dof_pos,t._pd_action_offset,t._pd_action_scale)
         def get_action(self,obs,deterministic):
@@ -64,7 +65,12 @@ def test_actual_loop_executes_full_feedback_window_and_fixed_hold_target():
             executable_player(SimpleNamespace(EvalPlayer=FeedbackPlayer),args,torch,SimpleNamespace())().run()
         data=torch.load(Path(d)/'records.pt',weights_only=False)
         assert not data['future_done'].any() and data['frozen_experts']
-        assert (data['propensity']==torch.where(data['assignment']==4,.25,.125)).all()
+        rare=data['outcome']['initially_clear']
+        expected=torch.where(data['assignment']==4,.25,.125)
+        expected[rare]=torch.where((data['assignment'][rare]==4)|(data['assignment'][rare]==6),.4,.04)
+        assert (data['propensity']==expected).all()
+        assert torch.allclose(data['allocation_probabilities'].sum(-1),torch.ones(len(rare)))
+        assert rare[data['sampling_cohort']==0].all()
         hold=data['assignment']==6;assert hold.any()
         assert torch.allclose(data['actual_pd_targets'][hold],data['hold_target'][hold,None].expand(-1,10,-1),atol=1e-6)
         expert=(data['assignment']<6)&(data['assignment']!=4)

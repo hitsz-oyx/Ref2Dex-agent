@@ -33,18 +33,22 @@ inverse/rotation/full-feedback tests CPU (startup exceeds this tiny fixture).
 Require hold PD/online expert execution, full nonterminal10labels, native
 geometry orientation/finite values, frozen checkpoints. No utility inference.
 
-Science fixed421–426/private8421–8426,96env/seed,650ticks,per-episode quotas
+Science fixed421–432/private8421–8432,96env/seed,650ticks,per-episode quotas
 8not-yet-clear +8already-clear. Already-clear prestate means center>=3cm above
 fixed rest AND full-mesh plane clearance>=2mm. All triggers require3consecutive
 force-proxy ticks and a full nonterminal H10. No deletion of partial labels:
-any partial/terminal window invalidates collection. Separate private uniform
-8allocation slots: expert0..5,hold6,duplicatebase7. Both4/7 execute identical
-feedback-base rule, probability1/8each; actualbase propensity1/4, others1/8.
+any partial/terminal window invalidates collection. Two preassigned sampling cohorts: env0..63 follow base until an already-clear
+state before any intervention; env64..95 can contribute both general and
+already-clear states. Both retain per-stratum8window quotas. Allocation after
+observing state: general8slots uniform1/8; already-clear slots0/1/2/3/5 each.04,
+base slots4/7 each.20 andhold6.40. Actual base propensity.25general/.40clear,
+hold.125general/.40clear, other five.125general/.04clear. Record the entire
+allocation vector and cohort; merge only the identical base4/7rules.
 Do not merge distinct feedback programs merely because first commands match.
 Randomized baseA/baseB null estimates population variability, not an individual
 solver-repeat oracle. Each actual record belongs to observed pre-action state.
 
-Frozen split across allsix panels: initial (motion,start) group SHA256 of
+Frozen split across alltwelve panels: initial (motion,start) group SHA256 of
 `9851/{motion}/{start}`, first8hex modulo100: <50fit,50..69cal,>=70held.
 No initial group/episode cross split. Fit alone chooses bestfixed option by
 IPW mean clearance-supported signed retained-height change on already-clear
@@ -66,7 +70,7 @@ opportunity PROMISING; both sufficiently supported failing UNPROMISING; needed
 support missing UNCLEAR. Missing/null one-slot support remains explicit.
 No post-outcome threshold/split/seed/checkpoint selection. No full success metric.
 
-Budget engineering+science<=60min/8GiB,oneidleGPU preferred; collect six
+Budget engineering+science<=60min/8GiB,oneidleGPU preferred; collect twelve
 phases serially. No unknown process kills/external writes/overwrite; input,
 source,asset,expert and motion hashes pinned. Failed engineering charged.
 No scientific run starts until source-matched engineering passes. Actual
@@ -81,3 +85,13 @@ no scientificslot consumed or data overwritten.
 Engineering r1 terminalFAILED before native launch: GPUs2/3 became occupied
 by external jobs. No worker/data created. Preserve manifest, charge elapsed;
 r2 uses newly confirmed idleGPU0/1, no process interference.
+
+Before scientific data, engineering r2 provided217complete windows/94episodes,
+35already-clear cases with quotas2, alltarget/feedback/geometry contracts pass.
+Even optimistic quota scaling makes six uniform panels fragile for48held
+matches perprimary side. Amend sampling before science: twelve freshpanels,
+64clear-first envs plus32general envs; common-prestate targetedhold/base.4/.4
+andotherfive.04each. Keep original support/gain/risk/split gates unchanged.
+R3 must reverify the new allocation/cohort contract. R2 stays COMPLETED with
+its original codeidentity and allcost charged; no scientific outcome inspected,
+scientificslot0/1. Expected engineering+collection20–30min, capstill60min.
