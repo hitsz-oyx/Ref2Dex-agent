@@ -50,7 +50,7 @@ alone causally explains the winning program without a sufficiently supported
 cup-vsrotation_cup comparison. [Results](P-20261002-orientation-feedback-opportunity-results.json).
 
 All12input/NN/rawforce/rotationPD/translation/finger/geometry/probability
-contracts pass,1116anchored finger windows vary. OwnPIDs exit/GPU0released;
+contracts pass,1153anchored finger windows vary. OwnPIDs exit/GPU0released;
 including engineering1276.604sec/274.658MB. [Records](P-20261002-orientation-feedback-record-audit.json),
 [completion](P-20261002-orientation-feedback-completion-audit.json).
 This is local candidate opportunity PROMISING, not learned Cm/control/RL
