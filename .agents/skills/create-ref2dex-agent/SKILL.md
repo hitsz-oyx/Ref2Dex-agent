@@ -1,6 +1,6 @@
 ---
 name: create-ref2dex-agent
-description: 在 Ref2Dex 中新建 Codex 代理对话、选择对应 CODEX_HOME 与网络入口、处理重名并登记独立身份和工作树时使用；向现有代理派发任务时不用。
+description: 在 Ref2Dex 中新建或重绑 Codex 代理运行时、登记身份和工作树，或恢复现有 NewAPI 代理的本地 proxy 入口时使用；普通任务仍通过 Agent Broker 派发。
 ---
 
 ## Fixed-role policy (active workflow)
@@ -11,8 +11,9 @@ Ref2Dex now uses a fixed pool: `root`, `agent_cm`, `agent_rl`, `agent_eval`, and
 Normal task dispatch does not create or resume an agent conversation from the
 root model. The root submits `TASK_DISPATCH` to `scripts/agent_broker.py`; the
 broker routes it to the local binding and provider adapter. Use this skill only
-when a fixed role needs a runtime rebind or when the user has explicitly
-approved a new long-lived role.
+when a fixed role needs a runtime rebind, when an existing NewAPI worker needs
+the local proxy entry restored, or when the user has explicitly approved a new
+long-lived role. Entry restoration does not create or rebind a conversation.
 
 1. If the requested capability belongs to an existing pool role, **rebind that
    role's runtime** in the machine-local `.runtime/AGENT_BINDINGS.json`. A new
@@ -60,6 +61,12 @@ test -x "$CODEX_NODE" && test -f "$CODEX_JS"
 
 ### `/home2/wyy/oyx_ws/.codex_oyx_NewAPI`
 
+现有 NewAPI worker 的恢复和任务执行同样依赖本节的代理入口，不只新建对话时需要。
+用户于 2026-10-01 明确指定本机启动命令为 `cd /home2/wyy/oyx_ws` 后运行
+`python proxy.py`。先检查入口；健康时复用，连接拒绝且没有监听服务时按下述命令启动，
+再复查 HTTP 响应。不要仅因 proxy 未启动就重绑角色或创建新 conversation；任务本身
+仍由 Agent Broker 派发。
+
 先对 `127.0.0.1:18080` 做**有界 HTTP 健康检查**。端口处于 LISTEN 只说明有进程占用，不能说明 Codex 请求会返回；不要只用 `ss`/`nc` 判断可用。可以接受 401/404 等 HTTP 响应（它们证明请求已返回），但 `000`、连接拒绝或超时都算失败：
 
 ```bash
@@ -89,11 +96,11 @@ codex_newapi() {
 
 `codex_newapi` 的 `env -u` 是 process-local 的；不要修改共享 `config.toml` 或全局 shell 环境。健康的共享 18080 和下面的临时 loopback 副本都使用这个 helper。只有 `.codex_oyx`/`.codex_oyx_frj` 段落明确保留四个 proxy 变量，不能把那些 `export` 复制到 NewAPI 命令。
 
-若 18080 没有响应，在单独终端启动共享代理并记录其归属：
+若 18080 连接拒绝且没有监听服务，在单独终端启动共享代理并记录其归属：
 
 ```bash
 cd /home2/wyy/oyx_ws
-python3 proxy.py
+python proxy.py
 ```
 
 启动后再次运行上面的有界检查。已有服务时复用，不重复占用 18080；不停止、重启或修改归属不明的共享进程。
