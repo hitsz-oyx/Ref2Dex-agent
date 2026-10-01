@@ -17,15 +17,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-try:
-    import yaml  # type: ignore
-except ImportError as error:  # pragma: no cover
-    raise SystemExit(f"PyYAML is required: {error}")
-
 try:  # Works both as ``python -m scripts...`` and a direct script path.
-    from scripts.agent_broker import ADAPTERS, SCHEMA, load_bindings, load_roles
+    from scripts.agent_broker import ADAPTERS, load_bindings, load_roles
 except ModuleNotFoundError:  # pragma: no cover - direct CLI entry point
-    from agent_broker import ADAPTERS, SCHEMA, load_bindings, load_roles
+    from agent_broker import ADAPTERS, load_bindings, load_roles
 
 
 def _result(level: str, check: str, detail: str) -> dict[str, str]:
