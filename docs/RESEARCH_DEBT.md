@@ -264,3 +264,21 @@ reported; consider whole-episode randomized on/off evaluation in one batch.
 Why deferred: HF12 first tests owned learned commands and local retention
 utility. No formal stable-grasp or Cm learning claim is being made now.
 Trigger: positive mechanism/utility screen or any formal claim/public report.
+
+## D012 — 正式验证前重新登记未消费 seed 池
+
+Status: DEFERRED
+
+`SEED_LEDGER.yaml` 的2026-09-25旧范围把300–399/400–499标为Validation；
+后续HF09–HF15探索已使用其中多个seed，当前480为工程、481–492为
+冻结闭环Probe。它们都不是未来未见Validation seed。已有实验类别、结果和
+预算保持原记录，不因数值曾属于holdout就升级为正式验证。
+
+当前Probe按初始motion/start组排除模型fit/cal数据；这个训练分组留出，
+与未来方法选择完成后独立冻结的正式验证是不同边界。探索期已查看的组和
+结果也要在正式设计中声明。
+
+Trigger：准备训练所得策略的正式matched Cm-on/off Validation时。
+届时先登记新未消费开发/最终holdout池，区分模型init、simulator、私有分配
+和bootstrap seed；禁止把本轮481–492或旧探索结果重复称为未见验证。
+不为当前机制Probe追加seed、重跑或改变冻结门限。
