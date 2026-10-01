@@ -1,0 +1,545 @@
+{
+  "command": [
+    "scripts/audit_current_policy_value.py",
+    "--synthetic",
+    "--output",
+    "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.json"
+  ],
+  "cpu_only": {
+    "collection": false,
+    "device": "cpu",
+    "gpu": 0,
+    "torch_threads": 2,
+    "training": false
+  },
+  "elapsed_seconds": 0.5373809617012739,
+  "git_commit": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237",
+  "known_limits": [
+    "synthetic engineering smoke only; no current-policy collector output",
+    "missing/nonfinite critic or next-value stops diagnostic",
+    "no utility/counterfactual/convergence claim"
+  ],
+  "output_bytes": 16732,
+  "run_status": "COMPLETED",
+  "scope": "synthetic engineering smoke only; no real data claim",
+  "synthetic": {
+    "checks": [
+      "hand_computable_mc",
+      "terminal_timeout_zero_bootstrap",
+      "rollout_boundary_cut",
+      "episode_split",
+      "saved_pv_v_inference"
+    ],
+    "diagnostic": {
+      "contract": {
+        "checkpoint_provenance": "explicit_checkpoint_field",
+        "gamma": 0.99,
+        "horizon": 32,
+        "target_origin": "frozen critic factual diagnostic; not historical labels",
+        "tau": 0.95,
+        "terminal_bootstrap": "done mask zero, including timeout"
+      },
+      "episode_metrics": [
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 11,
+          "lambda_rmse": 24.29094886779785,
+          "mc_rmse": 22.08112335205078,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 4,
+          "saved_pv_v_lambda_rmse": 24.554576873779297,
+          "saved_pv_v_mc_rmse": 22.885587692260742
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 22,
+          "lambda_rmse": 21.36399269104004,
+          "mc_rmse": 22.08112335205078,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 4,
+          "saved_pv_v_lambda_rmse": 22.106460571289062,
+          "saved_pv_v_mc_rmse": 22.885587692260742
+        }
+      ],
+      "episodes": 2,
+      "lambda_meta": {
+        "missing_nonterminal_next_values": 0,
+        "rollout_boundary_rows": 3,
+        "terminal_rows_masked": 2
+      },
+      "metrics": {
+        "ppo_critic": {
+          "motion": {
+            "0": {
+              "lambda": {
+                "bias": 10.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 19.914161682128906,
+                "rmse": 22.87433433532715,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 17.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 17.587024688720703,
+                "rmse": 22.08112335205078,
+                "rows": 8
+              }
+            }
+          },
+          "overall": {
+            "all": {
+              "lambda": {
+                "bias": 10.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 19.914161682128906,
+                "rmse": 22.87433433532715,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 17.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 17.587024688720703,
+                "rmse": 22.08112335205078,
+                "rows": 8
+              }
+            }
+          },
+          "phase": {
+            "contact": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "drop": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "held_1s": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "other": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "pre_contact": {
+              "lambda": {
+                "bias": 10.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 19.914161682128906,
+                "rmse": 22.87433433532715,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 17.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 17.587024688720703,
+                "rmse": 22.08112335205078,
+                "rows": 8
+              }
+            }
+          },
+          "primary": {
+            "drop_after_primary": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "no_drop_after_primary": {
+              "lambda": {
+                "bias": 10.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 19.914161682128906,
+                "rmse": 22.87433433532715,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 17.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 17.587024688720703,
+                "rmse": 22.08112335205078,
+                "rows": 8
+              }
+            },
+            "primary_failure": {
+              "lambda": {
+                "bias": 10.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 19.914161682128906,
+                "rmse": 22.87433433532715,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 17.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 17.587024688720703,
+                "rmse": 22.08112335205078,
+                "rows": 8
+              }
+            },
+            "primary_success": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            }
+          }
+        },
+        "saved_pv_v": {
+          "motion": {
+            "0": {
+              "lambda": {
+                "bias": 11.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 20.164161682128906,
+                "rmse": 23.362606048583984,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 18.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 18.587024688720703,
+                "rmse": 22.885587692260742,
+                "rows": 8
+              }
+            }
+          },
+          "overall": {
+            "all": {
+              "lambda": {
+                "bias": 11.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 20.164161682128906,
+                "rmse": 23.362606048583984,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 18.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 18.587024688720703,
+                "rmse": 22.885587692260742,
+                "rows": 8
+              }
+            }
+          },
+          "phase": {
+            "contact": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "drop": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "held_1s": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "other": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "pre_contact": {
+              "lambda": {
+                "bias": 11.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 20.164161682128906,
+                "rmse": 23.362606048583984,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 18.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 18.587024688720703,
+                "rmse": 22.885587692260742,
+                "rows": 8
+              }
+            }
+          },
+          "primary": {
+            "drop_after_primary": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            },
+            "no_drop_after_primary": {
+              "lambda": {
+                "bias": 11.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 20.164161682128906,
+                "rmse": 23.362606048583984,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 18.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 18.587024688720703,
+                "rmse": 22.885587692260742,
+                "rows": 8
+              }
+            },
+            "primary_failure": {
+              "lambda": {
+                "bias": 11.788126945495605,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 20.164161682128906,
+                "rmse": 23.362606048583984,
+                "rows": 8
+              },
+              "mc": {
+                "bias": 18.587024688720703,
+                "episodes": 2,
+                "judgement": "UNDETERMINED_RARE_SLICE",
+                "mae": 18.587024688720703,
+                "rmse": 22.885587692260742,
+                "rows": 8
+              }
+            },
+            "primary_success": {
+              "lambda": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              },
+              "mc": {
+                "bias": null,
+                "episodes": 0,
+                "judgement": "UNDETERMINED_EMPTY",
+                "mae": null,
+                "rmse": null,
+                "rows": 0
+              }
+            }
+          }
+        }
+      },
+      "native_per_episode_checked": 0,
+      "primary_episode_counts": {
+        "drop_after_primary": 0,
+        "success": 0
+      },
+      "rows": 8,
+      "status": "COMPLETED"
+    },
+    "saved_v_checkpoint_smoke": {
+      "checkpoints": {
+        "286": {
+          "epoch": 420,
+          "finite": true,
+          "frame": 327680,
+          "optimizer_step": [
+            7680.0
+          ],
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+          "rows": 8,
+          "sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+          "value_parameter_count": 295681
+        }
+      },
+      "model_checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+      "return_scale_not_applied": true
+    },
+    "scope": "synthetic engineering smoke only",
+    "status": "COMPLETED"
+  },
+  "task_id": "T-20261001-current-policy-value-diagnostic-contract",
+  "tests": {
+    "command": "python3 -m unittest tests/test_current_policy_value_diagnostics.py -v",
+    "elapsed_seconds": 0.929,
+    "failed": 0,
+    "passed": 5,
+    "status": "PASS"
+  },
+  "workflow": {
+    "claim_to_handoff_wall_seconds": 1401.226544857025,
+    "collection": false,
+    "cpu_threads": 2,
+    "failed_attempts": [
+      "initial syntax annotation fixed before tests",
+      "initial hand-computed MC smoke assertion fixed",
+      "initial rollout-boundary smoke assertion fixed"
+    ],
+    "isaac_gym": false,
+    "max_output_gib": 0.1,
+    "max_wall_minutes": 20,
+    "synthetic_seconds": 0.5373809617012739,
+    "test_seconds": 0.929,
+    "training": false
+  }
+}

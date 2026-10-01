@@ -1,0 +1,295 @@
+{
+  "agent": "agent_rl",
+  "artifacts": {
+    "episodes_by_checkpoint": {
+      "286": 0,
+      "287": "NOT_STARTED"
+    },
+    "files": [
+      {
+        "bytes": 1352,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1/checkpoint_s286_e420/runtime_manifest.json",
+        "sha256": "9c639a3ad3f72fe083897008e6f657e92ba63f89f516fb41f3534828c83094f9"
+      },
+      {
+        "bytes": 810,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1/runtime_root.json",
+        "sha256": "0a92fe6df73df9420bf7c04f8f9ecec39efb1f3425474cf4c86a8b28bba37ef0"
+      },
+      {
+        "bytes": 9379,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/collect_s286.log",
+        "sha256": "df0f9260e50d7e1bdcef760f0bb81b1279c24f764446a21da8b2e9345f3e4c4e"
+      },
+      {
+        "bytes": 7,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/collect_s286.pid",
+        "sha256": "19d591d01bdb9c9e100398757f929538cdd524345eb7750d17c03f9e44bf8c47"
+      },
+      {
+        "bytes": 860,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/collect_s286.process_start.txt",
+        "sha256": "d053c5d22d90aca7340e06546a1f67a68f95bcb1cefad686339f14fe5eba2143"
+      },
+      {
+        "bytes": 884,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/gpu_post_s286.json",
+        "sha256": "71f1e13b78ef2bf340bb5dcfdee27892d3979d78abcf976bc707e675873f774e"
+      },
+      {
+        "bytes": 1376,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/gpu_preflight_s286.json",
+        "sha256": "9df18528ccca87864b62510cd18f5dab02e208a1305e3844ad7ae62a36ae917a"
+      },
+      {
+        "bytes": 4355,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/preflight.json",
+        "sha256": "09fc2bff044e3a2c8406b205d047b778c53ff1fa675728edcd92a33023c21d16"
+      },
+      {
+        "bytes": 240,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/torch_extensions/gymtorch/.ninja_deps",
+        "sha256": "1c8be1f1fb3c30655e4d4aa5ab0bb95d5f27a9415ad86b04b8320446841a0ca3"
+      },
+      {
+        "bytes": 132,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/torch_extensions/gymtorch/.ninja_log",
+        "sha256": "8aa25604f5130a88a33c3887ee0dc2531dc43e12596b7a178f8814eb80382050"
+      },
+      {
+        "bytes": 1154,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/torch_extensions/gymtorch/build.ninja",
+        "sha256": "22d7b1649b4c4ef00a86d02ba2c818eca0b2c51526af3d3c4d1a8d7ef8926157"
+      },
+      {
+        "bytes": 2200136,
+        "mode": "0664",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/torch_extensions/gymtorch/gymtorch.o",
+        "sha256": "f803586b2aa8b1491a15f7df84822db4424a023778d8b20625dd6f26212a03ed"
+      },
+      {
+        "bytes": 1310840,
+        "mode": "0775",
+        "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/torch_extensions/gymtorch/gymtorch.so",
+        "sha256": "cf15f6381d938eed50ad4f059b7c587e94a5781ecddd0557422fa36e07914f37"
+      }
+    ],
+    "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r1",
+    "results_json": [],
+    "rows_by_checkpoint": {
+      "286": 0,
+      "287": "NOT_STARTED"
+    },
+    "support_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r1-support",
+    "transition_shards": []
+  },
+  "budgets": {
+    "combined_output_bytes": 3555217,
+    "cpu_threads": 2,
+    "gpu_count": 1,
+    "max_output_bytes": 2147483648,
+    "max_rows_per_checkpoint": 96000,
+    "max_rows_total": 192000,
+    "rows_emitted": 0,
+    "runtime_elapsed_seconds": 28.14,
+    "runtime_wall_seconds": 1200
+  },
+  "classification": "Decision retrospective current-policy value diagnostic; no utility tuning",
+  "control_messages_applied": [
+    249
+  ],
+  "decision_card": {
+    "path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+    "questions": [
+      "V versus frozen-critic lambda fit insufficiency versus complete-MC distribution difference",
+      "adaptation/target/representation next check",
+      "cheapest two-e420 complete-first-episode diagnostic"
+    ],
+    "sha256": "155e1828cd144f412ead20b58b26cf7b9e01cbe8878f43b6cc006bb916b12ea5"
+  },
+  "failure": {
+    "checkpoint_run_manifest": {
+      "completed_at": "2026-10-01T05:48:48.942461+00:00",
+      "failure": "ValueError: string is not a file: `dexplore/data/assets/mjcf/objects/airplane/airplane.obj`",
+      "provenance": {
+        "checkpoint_seed": 286,
+        "checkpoint_sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+        "diagnostic_seed": 290,
+        "environment_sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+        "max_output_bytes": 2147483648,
+        "max_rows_total": 192000,
+        "max_wall_seconds": 1200,
+        "motion_hashes": {
+          "s3_airplane_lift": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+          "s7_airplane_lift_Retake": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+          "s9_airplane_lift": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+        },
+        "schema": "ref2dex.current_policy_value.runtime_root.v1",
+        "source_runner_sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+        "training_sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+        "workflow_started_epoch": 1790833700.8015869
+      },
+      "requested_gpu_index": 4,
+      "run_status": "FAILED",
+      "schema": "ref2dex.current_policy_value.runtime.v2",
+      "started_at": "2026-10-01T05:48:20.802011+00:00",
+      "workflow_started_epoch": 1790833700.8015869
+    },
+    "checkpoint_seed": 286,
+    "cwd_evidence": {
+      "attempted_cwd": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl",
+      "native_manifest_cwd_field": null,
+      "native_success_evidence": "native r7 log resolves the same relative asset and its manifest does not record cwd; the source-root asset path is the successful launcher context evidence",
+      "source_launcher_relative_asset": "dexplore/data/assets/mjcf/objects/airplane/airplane.obj",
+      "source_root_asset_exists": true,
+      "source_root_asset_path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/data/assets/mjcf/objects/airplane/airplane.obj",
+      "worker_cwd_asset_exists": false,
+      "worker_cwd_asset_path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/dexplore/data/assets/mjcf/objects/airplane/airplane.obj"
+    },
+    "exception_type": "ValueError",
+    "message": "string is not a file: `dexplore/data/assets/mjcf/objects/airplane/airplane.obj`",
+    "phase": "Isaac environment construction before first episode",
+    "retry_policy": "stop condition reached; no s287 and no retry",
+    "traceback_log": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/collect_s286.log"
+  },
+  "fixed_panel": {
+    "checkpoint_seeds": [
+      286,
+      287
+    ],
+    "diagnostic_seed": 290,
+    "envs_per_checkpoint": 96,
+    "epoch": 420,
+    "gamma": 0.99,
+    "max_steps": 700,
+    "motion_counts": [
+      32,
+      32,
+      32
+    ],
+    "policy": "Gaussian sampled, clip [-1,1], no extra noise/teacher/update",
+    "start_frame": 0
+  },
+  "gpu": {
+    "expected_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "post_artifact": {
+      "bytes": 884,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/gpu_post_s286.json",
+      "sha256": "71f1e13b78ef2bf340bb5dcfdee27892d3979d78abcf976bc707e675873f774e"
+    },
+    "post_status": "target memory 2 MiB; target compute owners []; no owned process remained",
+    "preflight_artifact": {
+      "bytes": 1376,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/gpu_preflight_s286.json",
+      "sha256": "9df18528ccca87864b62510cd18f5dab02e208a1305e3844ad7ae62a36ae917a"
+    },
+    "preflight_status": "READY; target memory 2 MiB; target compute owners []",
+    "requested_index": 4
+  },
+  "lease_seconds": 3900,
+  "lease_token": "C1s4FDrUQ9PZgqVMLE_WS5Ig",
+  "next_step": "CONTROL 249 applied: preserve this FAILED artifact and do not repair/retry or run s287. Root may dispatch a separate cwd-only repair/run task.",
+  "preflight": {
+    "artifact": {
+      "bytes": 4355,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r1-support/preflight.json",
+      "sha256": "09fc2bff044e3a2c8406b205d047b778c53ff1fa675728edcd92a33023c21d16"
+    },
+    "collection_started": false,
+    "command": "PYTHONDONTWRITEBYTECODE=1 LD_LIBRARY_PATH=/home2/wyy/miniconda3/envs/graspenv/lib:$LD_LIBRARY_PATH TORCH_EXTENSIONS_DIR=<support>/torch_extensions XDG_CACHE_HOME=<support>/xdg-cache /home2/wyy/miniconda3/envs/graspenv/bin/python scripts/collect_current_policy_value.py --preflight --run-root <new output root>",
+    "cpu_fixture": {
+      "reset_boundary_preserved": true,
+      "sampled_action_sha256": "e351864d88e65ca87e15949eb55fa8800509f60e111bae7d64fe1b73fa34e243",
+      "validation": {
+        "episode_ids": [
+          100,
+          101
+        ],
+        "episodes": 2,
+        "rows": 4
+      }
+    },
+    "gpu_started": false,
+    "isaac_imported": false,
+    "status": "READY_FOR_ROOT_RUNTIME_TASK"
+  },
+  "provenance": {
+    "checkpoint_sha256": {
+      "286": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+      "287": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf"
+    },
+    "environment_yaml_sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "implementation_sha256": {
+      "scripts/collect_current_policy_value.py": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de",
+      "scripts/run_current_policy_value_environment.py": "ffe1c061dbd9accb947e248a82cf7c01c2e6afa9229e2949080b9cfdeee474a7"
+    },
+    "motion_sha256": {
+      "s3_airplane_lift": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+      "s7_airplane_lift_Retake": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+      "s9_airplane_lift": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+    },
+    "native_manifests": [
+      {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "checkpoint_sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+        "manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/eval_cm_value_t286_e160_s289/run_manifest.json",
+        "manifest_sha256": "41684e03d98b925731f7a5b2936d2d2bedb822ea1ed57d599a1993083d4d7cbe",
+        "native_completed_at": "2026-09-30T13:42:43.229999+00:00",
+        "native_physical_gpu": "2",
+        "seed": 286
+      },
+      {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "checkpoint_sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+        "manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/eval_cm_value_t287_e160_s289/run_manifest.json",
+        "manifest_sha256": "3f02355e366c0d9e3b0670428a7f5d847d270740ec696f5d2e077d16384851b1",
+        "native_completed_at": "2026-09-30T13:57:09.756580+00:00",
+        "native_physical_gpu": "1",
+        "seed": 287
+      }
+    ],
+    "old_preflight_reports": {
+      "json_sha256": "95f9df27fd9de72d00bba39108a507f39eaaf22e54c49bd5b7a906f0e41f1401",
+      "md_sha256": "a58ca7313521e57768e66335fb46943d8ada7bbd4e8a855f1aeea11a04892f28"
+    },
+    "root_accepted_implementation_commit": "ff48f6d61fb4e63d2c3525896237971512bfb576",
+    "source_head_at_preflight": "f3d65e153783be16de10c3068a5acb0435754428",
+    "source_origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+    "source_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+    "source_runner_sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "training_yaml_sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+    "worker_head": "39d0615db896ee66befa41504f605e87a6f9d136"
+  },
+  "resources": {
+    "actor_or_v_updates": false,
+    "main_written": false,
+    "online": false,
+    "owned_process_group_leader": 324723,
+    "owned_process_terminal": "no matching process after failure",
+    "runtime_imported_isaac": true,
+    "runtime_started_simulator_environment_construction": true,
+    "source_written": false,
+    "student_or_ppo": false,
+    "training": false,
+    "unknown_processes_killed": false
+  },
+  "run_status": "FAILED",
+  "run_status_is_not_scientific_conclusion": true,
+  "scientific_conclusion": "NOT_ASSESSED_RUNTIME_ENGINEERING_FAILURE",
+  "status": "FAILED",
+  "task_id": "T-20261001-current-policy-value-diagnostic-collection-r1"
+}

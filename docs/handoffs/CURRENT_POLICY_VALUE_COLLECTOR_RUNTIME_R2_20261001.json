@@ -1,0 +1,102 @@
+{
+  "task_id": "T-20261001-current-policy-value-collector-runtime",
+  "agent": "agent_rl",
+  "status": "COMPLETED",
+  "classification": "blocker engineering implementation; no science execution",
+  "runtime": {
+    "real_collect_entry": "scripts/collect_current_policy_value.py --collect delegates to scripts/run_current_policy_value_environment.py",
+    "mock_collect": "shared _runtime_player_run loop with CPU vector-environment double; emits Episodes-compatible shard",
+    "isaac_import_order": "real process imports isaacgym before torch; preflight and mock never import isaacgym",
+    "future_authorization": "runtime implemented but not executed in this task",
+    "gpu_started": false,
+    "isaac_started": false,
+    "collection_started": false,
+    "training_started": false
+  },
+  "contracts": {
+    "schema": "ref2dex.physical_value.v1",
+    "panels": [286, 287],
+    "checkpoint_epoch": 420,
+    "diagnostic_seed": 290,
+    "envs_per_checkpoint": 96,
+    "motion_counts": [32, 32, 32],
+    "start_frame": 0,
+    "policy": {
+      "gaussian": true,
+      "enable_eps_greedy": false,
+      "extra_noise": false,
+      "teacher": false,
+      "weights_updated": false,
+      "action_clip": [-1.0, 1.0]
+    },
+    "value_fields": ["value_at_state", "next_value", "global_tick", "horizon_phase"],
+    "terminal_next_value": 0.0,
+    "episode_ids": "int64 checkpoint namespace plus diagnostic seed and env id; first-episode complete and disjoint",
+    "diagnostic_distribution": "frame0 fixed diagnostic sub-distribution, not full training reset distribution"
+  },
+  "budgets": {
+    "workflow_wall_seconds": 1200,
+    "max_output_bytes": 2147483648,
+    "max_rows_total": 192000,
+    "max_rows_per_checkpoint": 96000,
+    "preflight_output_bytes": 107374182,
+    "preflight_wall_seconds": 1200,
+    "checks": ["before GPU/import", "before loop rows", "before flush", "before and after shard export", "before and after results export"]
+  },
+  "source_provenance": {
+    "origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+    "current_head_at_preflight": "20f6937202fe7d36b045396e2649d3a67ef5ba7c",
+    "origin_is_ancestor": true,
+    "source_runner": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/run_cm_physical_value_environment.py",
+    "source_runner_sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "environment_yaml_sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "training_yaml_sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+    "checkpoint_sha256": {
+      "286": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+      "287": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf"
+    },
+    "motion_sha256": {
+      "s3_airplane_lift": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+      "s7_airplane_lift_Retake": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+      "s9_airplane_lift": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+    },
+    "native_manifest_sha256": {
+      "286": "41684e03d98b925731f7a5b2936d2d2bedb822ea1ed57d599a1993083d4d7cbe",
+      "287": "3f02355e366c0d9e3b0670428a7f5d847d270740ec696f5d2e077d16384851b1"
+    }
+  },
+  "changed_files": {
+    "scripts/collect_current_policy_value.py": {"sha256": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de", "mode": "0664", "bytes": 18549},
+    "scripts/run_current_policy_value_environment.py": {"sha256": "ffe1c061dbd9accb947e248a82cf7c01c2e6afa9229e2949080b9cfdeee474a7", "mode": "0664", "bytes": 28574},
+    "tests/test_current_policy_value_collection_contract.py": {"sha256": "17b0142cd5e1ce61dea63ad347a67b32c7f2d30f3661cf8c3824574c480c0da8", "mode": "0664", "bytes": 5007}
+  },
+  "tests": {
+    "command": "python3 -m pytest -q tests/test_current_policy_value_collection_contract.py",
+    "result": "6 passed",
+    "compile": "python3 -m py_compile scripts/collect_current_policy_value.py scripts/run_current_policy_value_environment.py tests/test_current_policy_value_collection_contract.py",
+    "diff_check": "git diff --check PASS",
+    "mock_rows": 3168,
+    "mock_complete_episodes": 96,
+    "mock_episode_reader": "src.task.CmResidual.physical_value_data.Episodes accepted the emitted shard",
+    "mock_phase": "global_tick 0..32; horizon_phase 0..31",
+    "mock_terminal_next_value": "all done rows zero",
+    "mock_episode_id_dtype": "torch.int64"
+  },
+  "preflight": {
+    "command": "python3 scripts/collect_current_policy_value.py --preflight --run-root /tmp/current-policy-value-preflight-r2-20261001b",
+    "status": "READY_FOR_ROOT_RUNTIME_TASK",
+    "isaac_imported": false,
+    "gpu_started": false,
+    "collection_started": false,
+    "cpu_fixture": {"rows": 4, "episodes": 2, "episode_ids": [100, 101], "reset_boundary_preserved": true},
+    "old_preflight_json_sha256": "95f9df27fd9de72d00bba39108a507f39eaaf22e54c49bd5b7a906f0e41f1401",
+    "old_preflight_md_sha256": "a58ca7313521e57768e66335fb46943d8ada7bbd4e8a855f1aeea11a04892f28"
+  },
+  "resource_evidence": {
+    "process_check": "no current-policy-value, HF08 runner, Isaac, or collector process remained",
+    "nvidia_smi": "driver unavailable in this CPU-only invocation; no GPU call was launched",
+    "git_commit": null,
+    "git_note": "linked Git metadata is not writable; handoff is byte-exact SHA/mode/size"
+  },
+  "next_step": "Root may audit and integrate the three allowed files; only a later Broker run task may execute real GPU/Isaac collection, using explicit GPU ownership and a new direct child output root."
+}

@@ -1,0 +1,182 @@
+{
+  "accepted_executable_sha256": {
+    "scripts/collect_current_policy_value.py": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de",
+    "scripts/run_current_policy_value_environment.py": "ffe1c061dbd9accb947e248a82cf7c01c2e6afa9229e2949080b9cfdeee474a7"
+  },
+  "accepted_implementation_commit": "ff48f6d61fb4e63d2c3525896237971512bfb576",
+  "card": {
+    "bytes": 5129,
+    "mode": "0664",
+    "path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+    "sha256": "8fd86d2f629aa7bb7fa6b373272a638898e716883eccee5379fdca5c74f33909"
+  },
+  "collection": {
+    "episodes_s286": 0,
+    "episodes_s287": 0,
+    "episodes_validation": "NOT_RUN_NO_OUTPUT",
+    "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r2",
+    "output_root_exists": false,
+    "results": [],
+    "rows_s286": 0,
+    "rows_s287": 0,
+    "run_manifests": [],
+    "shards": [],
+    "support_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r2-support"
+  },
+  "experiment_id": "P-20261001-current-policy-value-diagnostic",
+  "failure": {
+    "accepted_tools_modified": false,
+    "collect_s286_started": false,
+    "collect_s287_started": false,
+    "exception": "set -euo pipefail caused the wrapper pipeline du -sb \"$OUTPUT_ROOT\" \"$SUPPORT_ROOT\" | awk ... to exit because the intentionally new output root did not exist",
+    "isaac_started": false,
+    "output_root_guard": "passed: output root was absent before preflight",
+    "phase": "support wrapper first check_budget after CPU preflight and before GPU ownership artifact/collection",
+    "retry_performed": false,
+    "source_modified": false,
+    "wrapper_line": 29
+  },
+  "input_hashes": {
+    "checkpoint_s286_e420": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+    "checkpoint_s287_e420": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+    "environment": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "manifest_s286": "41684e03d98b925731f7a5b2936d2d2bedb822ea1ed57d599a1993083d4d7cbe",
+    "manifest_s287": "3f02355e366c0d9e3b0670428a7f5d847d270740ec696f5d2e077d16384851b1",
+    "motion_s3": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+    "motion_s7": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+    "motion_s9": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+    "source_runner": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "training": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38"
+  },
+  "next_step": "Do not retry this frozen invocation. Repair/replace the support wrapper in a separate engineering task, then dispatch a new run; agent_cm may audit only completed panels.",
+  "preflight": {
+    "artifact": {
+      "bytes": 4355,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/preflight.json",
+      "sha256": "f1c47874c0e3eaa20641213b522ce6a6e37a096708ff0e186e4479fbd8ad0d14"
+    },
+    "collection_started": false,
+    "fixture_episodes": 2,
+    "fixture_rows": 4,
+    "gpu_started": false,
+    "isaac_imported": false,
+    "reset_boundary_preserved": true,
+    "status": "READY_FOR_ROOT_RUNTIME_TASK"
+  },
+  "reproduction_note": "The intended commands were to run both accepted absolute collector scripts from runtime_cwd with checkpoint seeds 286 and 287; they were not executed because the bounded wrapper failed before GPU validation.",
+  "resource_evidence": {
+    "combined_prior_bytes": 3555217,
+    "gpu_index": 4,
+    "gpu_post_artifact": {
+      "bytes": 920,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/gpu_post_r2.json",
+      "sha256": "49918f1dd11f2ae9df079b0e712007cee07a26eef452047501a7a4b63cabd235"
+    },
+    "gpu_post_observed_at_epoch": 1790835015.6865733,
+    "gpu_post_status": false,
+    "gpu_post_target_compute_owners": [],
+    "gpu_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "orchestrator_pgid": 359122,
+    "orchestrator_pid": 359122,
+    "orchestrator_pid_alive": false,
+    "orchestrator_process_start": {
+      "bytes": 121,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/orchestrator.process_start.json",
+      "sha256": "93cd4762a025fdeae4af55a25d0d6a9d1fbb03efa2a496ef9c5e99e6fb070a67"
+    },
+    "output_bytes": 0,
+    "owned_runtime_children": [],
+    "r2_remaining_bytes": 2143928431,
+    "r2_wall_budget_seconds": 1100,
+    "rows_total": 0,
+    "runtime_process_terminal_artifact": {
+      "bytes": 373,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/process_terminal_r2.json",
+      "sha256": "e174b23f1eeb46d893ea5ad40766870f76da7959cec5d8ece90940b9e9a802e1"
+    },
+    "runtime_wall_seconds": "not completed; <=174 seconds from workflow_start to GPU post-check observation",
+    "support_bytes": 12714,
+    "support_du_bytes": 25002,
+    "support_file_bytes": 12714,
+    "workflow_start": {
+      "deadline_epoch": 1790835941,
+      "max_jobs": 2,
+      "mkl_threads": 2,
+      "omp_threads": 2,
+      "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r2",
+      "source_cwd": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore",
+      "start_epoch": 1790834841,
+      "support_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl/outputs/P-20261001-current-policy-value-diagnostic-r2-support"
+    },
+    "workflow_start_artifact": {
+      "bytes": 405,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/workflow_start.json",
+      "sha256": "fb114976c88cdf047d8d313322b651dc045d50ef14ad737ff1fc4b5513394c29"
+    }
+  },
+  "run_id": "r2",
+  "run_status": "FAILED_ENGINEERING_BEFORE_GPU",
+  "runtime_cwd": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore",
+  "runtime_python": "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+  "science_conclusion": "NOT_ASSESSED/AWAITING_CPU_AUDIT",
+  "source_current_head_from_preflight": "25ca9651b1106282cd91a549230739b9af0a8289",
+  "source_origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+  "status": "FAILED",
+  "support_artifacts": [
+    {
+      "bytes": 920,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/gpu_post_r2.json",
+      "sha256": "49918f1dd11f2ae9df079b0e712007cee07a26eef452047501a7a4b63cabd235"
+    },
+    {
+      "bytes": 0,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/orchestrator.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 7,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/orchestrator.pid",
+      "sha256": "f07d0751d990b8d7ff3e4d1d88df91ec510ace7fcba5c35a5d5b3be3bd03b479"
+    },
+    {
+      "bytes": 121,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/orchestrator.process_start.json",
+      "sha256": "93cd4762a025fdeae4af55a25d0d6a9d1fbb03efa2a496ef9c5e99e6fb070a67"
+    },
+    {
+      "bytes": 4355,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/preflight.json",
+      "sha256": "f1c47874c0e3eaa20641213b522ce6a6e37a096708ff0e186e4479fbd8ad0d14"
+    },
+    {
+      "bytes": 373,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/process_terminal_r2.json",
+      "sha256": "e174b23f1eeb46d893ea5ad40766870f76da7959cec5d8ece90940b9e9a802e1"
+    },
+    {
+      "bytes": 6533,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/run_r2_two_stage.sh",
+      "sha256": "9bcd6e8694bfe07676e330e4dd60a9836bf415c063d78499ceaf243ec6480d79"
+    },
+    {
+      "bytes": 405,
+      "mode": "0664",
+      "path": "outputs/P-20261001-current-policy-value-diagnostic-r2-support/workflow_start.json",
+      "sha256": "fb114976c88cdf047d8d313322b651dc045d50ef14ad737ff1fc4b5513394c29"
+    }
+  ],
+  "task_id": "T-20261001-current-policy-value-diagnostic-collection-r2",
+  "worker_head": "39d0615db896ee66befa41504f605e87a6f9d136"
+}
