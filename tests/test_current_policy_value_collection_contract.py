@@ -105,3 +105,101 @@ def test_collect_entry_stays_lazy_and_requires_explicit_gpu_for_real_runtime():
     assert "source.original.main()" in wrapper
     assert "source.SOURCE_SHA =" not in wrapper
     assert contract.main(["--collect", "--checkpoint-seed", "286", "--run-root", "/tmp/unused"]) == 2
+
+
+def _native_runtime_module():
+    import importlib.util
+    path = ROOT / "scripts/run_current_policy_value_environment.py"
+    spec = importlib.util.spec_from_file_location("current_policy_runtime_contract", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _native_player_fixture():
+    from types import SimpleNamespace
+    from rl_games.algos_torch.models import ModelA2CContinuousLogStd
+
+    class RawNetwork(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.calls = 0
+            self.last_obs = None
+
+        def forward(self, input_dict):
+            self.calls += 1
+            obs = input_dict["obs"]
+            self.last_obs = obs.detach().clone()
+            mu = torch.full((obs.shape[0], 18), 3.0, dtype=obs.dtype)
+            logstd = torch.full_like(mu, -1.0)  # negative logstd, not sigma
+            value = obs[:, :1] * 2.0
+            return mu, logstd, value, input_dict.get("rnn_states")
+
+    raw = RawNetwork()
+    model = ModelA2CContinuousLogStd.Network(
+        raw, obs_shape=(4,), normalize_value=False, normalize_input=True, value_size=1
+    )
+    model.eval()
+    with torch.no_grad():
+        model.running_mean_std.running_mean.copy_(torch.tensor([1.0, -1.0, 2.0, -2.0], dtype=torch.float64))
+        model.running_mean_std.running_var.copy_(torch.tensor([4.0, 9.0, 16.0, 25.0], dtype=torch.float64))
+        model.running_mean_std.count.copy_(torch.tensor(100.0, dtype=torch.float64))
+    player = SimpleNamespace(
+        model=model, states=None, clip_actions=True,
+        actions_low=torch.full((18,), -2.0), actions_high=torch.full((18,), 2.0),
+        normalize_value=False,
+        _preproc_obs=lambda obs: obs,
+    )
+    return player, raw
+
+
+def test_native_model_player_equivalence_normalizes_exp_logstd_and_clips():
+    runtime = _native_runtime_module()
+    player, raw = _native_player_fixture()
+    observation = {"obs": torch.tensor([[5.0, 2.0, 6.0, 3.0]])}
+    initial_state = torch.tensor([[7.0]])
+    player.states = initial_state
+    torch.manual_seed(1234)
+    expected = player.model({"is_train": False, "prev_actions": None,
+                             "obs": observation["obs"], "rnn_states": initial_state})
+    torch.manual_seed(1234)
+    player.states = initial_state
+    action, value, result = runtime._native_actor_forward(player, observation)
+    assert raw.calls == 2  # one direct native reference call and one helper call
+    assert torch.equal(player.states, result["rnn_states"]) if isinstance(result["rnn_states"], torch.Tensor) else result["rnn_states"] is None
+    expected_action = torch.clamp(expected["actions"], -1.0, 1.0) * 2.0
+    assert torch.allclose(action, expected_action)
+    assert torch.allclose(value, expected["values"].reshape(-1))
+    assert torch.all(action <= 2.0) and torch.all(action >= -2.0)
+    normalized = player.model.norm_obs(observation["obs"])
+    assert torch.allclose(raw.last_obs, normalized)
+    assert torch.all(expected["sigmas"] > 0.0)
+
+
+def test_native_critic_is_normalized_and_consumes_no_rng_for_dict_or_tensor():
+    runtime = _native_runtime_module()
+    player, raw = _native_player_fixture()
+    tensor_obs = torch.tensor([[5.0, 2.0, 6.0, 3.0]])
+    state_before = torch.random.get_rng_state()
+    value_tensor = runtime._native_critic_value(player, tensor_obs)
+    state_after = torch.random.get_rng_state()
+    assert torch.equal(state_before, state_after)
+    assert raw.calls == 1
+    assert torch.allclose(raw.last_obs, player.model.norm_obs(tensor_obs))
+    value_dict = runtime._native_critic_value(player, {"obs": tensor_obs})
+    assert torch.allclose(value_tensor, value_dict)
+
+
+def test_native_guard_rejects_unknown_reward_shaper_and_accepts_installed_object():
+    runtime = _native_runtime_module()
+    from rl_games.common.tr_helpers import DefaultRewardsShaper
+    runtime._validate_value_config({"normalize_value": False,
+                                    "reward_shaper": DefaultRewardsShaper(scale_value=1)})
+    with pytest.raises(ValueError, match="reward scale"):
+        runtime._validate_value_config({"normalize_value": False,
+                                        "reward_shaper": DefaultRewardsShaper(scale_value=.5)})
+    with pytest.raises(ValueError, match="reward scale"):
+        runtime._validate_value_config({"normalize_value": False, "reward_shaper": object()})
+    with pytest.raises(TypeError, match="Mapping"):
+        runtime._validate_value_config(object())

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+from collections.abc import Mapping
 import hashlib
 import importlib.util
 import json
@@ -51,6 +52,97 @@ def _sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1 << 20), b""):
             h.update(block)
     return h.hexdigest()
+
+
+def _validate_value_config(config: Any) -> None:
+    """Accept rl_games mappings and DefaultRewardsShaper objects at unit scale."""
+    if not isinstance(config, Mapping):
+        raise TypeError("player config must be a Mapping")
+    if config.get("normalize_value", False):
+        raise ValueError("normalize_value must remain false")
+    shaper = config.get("reward_shaper", 1)
+    if isinstance(shaper, Mapping):
+        scale = shaper.get("scale_value", 1)
+    else:
+        scale = getattr(shaper, "scale_value", None)
+    if scale is None or float(scale) != 1.0:
+        raise ValueError("reward scale must remain 1")
+
+
+def _player_obs(player: Any, observation: Any) -> Any:
+    """Apply installed preprocessing to tensor or the env's outer ``{obs: tensor}``."""
+    if isinstance(observation, Mapping) and set(observation) == {"obs"}:
+        observation = observation["obs"]
+    return player._preproc_obs(observation)
+
+
+def _clip_player_action(player: Any, action: Any) -> Any:
+    """Match rl_games PpoPlayerContinuous clamp then action-space rescaling."""
+    import torch
+    clipped = torch.clamp(action, -1.0, 1.0)
+    if not getattr(player, "clip_actions", True):
+        return action
+    low = getattr(player, "actions_low", None)
+    high = getattr(player, "actions_high", None)
+    if low is None or high is None:
+        return clipped
+    d = (high - low) / 2.0
+    m = (high + low) / 2.0
+    return clipped * d + m
+
+
+def _native_actor_forward(player: Any, observation: Any) -> tuple[Any, Any, Any]:
+    """Use the installed ModelA2CContinuousLogStd player call exactly once.
+
+    The model performs running-mean/std normalization and converts raw logstd to
+    sigma before its one Gaussian draw.
+    """
+    import torch
+    obs = _player_obs(player, observation)
+    input_dict = {"is_train": False, "prev_actions": None, "obs": obs,
+                  "rnn_states": player.states}
+    with torch.no_grad():
+        result = player.model(input_dict)
+    for key in ("actions", "values", "rnn_states"):
+        if key not in result:
+            raise KeyError(f"native player result lacks {key}")
+    player.states = result["rnn_states"]
+    action = _clip_player_action(player, result["actions"])
+    value = result["values"].reshape(-1)
+    if not torch.isfinite(action).all() or not torch.isfinite(value).all():
+        raise FloatingPointError("nonfinite native actor action/value")
+    return action, value, result
+
+
+def _native_critic_value(player: Any, observation: Any) -> Any:
+    """Evaluate the native critic with identical normalization and no sampling."""
+    import torch
+    obs = _player_obs(player, observation)
+    model = player.model
+    normalized = model.norm_obs(obs) if hasattr(model, "norm_obs") else obs
+    critic = getattr(model, "eval_critic", None)
+    if critic is not None:
+        value = critic(normalized)
+    else:
+        network = getattr(model, "a2c_network", None)
+        critic = getattr(network, "eval_critic", None) if network is not None else None
+        if critic is not None:
+            value = critic(normalized)
+        elif network is not None:
+            # rl_games 1.x exposes the critic only through the raw network
+            # tuple; invoking it is deterministic and does not draw actions.
+            raw = network({"obs": normalized, "rnn_states": player.states})
+            if not isinstance(raw, (tuple, list)) or len(raw) < 3:
+                raise TypeError("native network has no critic-only path")
+            value = raw[2]
+        else:
+            raise TypeError("native model has no critic-only path")
+    value = value.reshape(-1)
+    if getattr(player, "normalize_value", False):
+        raise ValueError("normalize_value must remain false")
+    if not torch.isfinite(value).all():
+        raise FloatingPointError("nonfinite native next critic value")
+    return value
 
 
 def _load_contract():
@@ -195,9 +287,10 @@ def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
         def __call__(self, inputs):
             batch = inputs["obs"].shape[0]
             mu = torch.zeros(batch, 18)
-            sigma = torch.full_like(mu, .2)
+            # Native ModelA2CContinuousLogStd expects raw logstd.
+            logstd = torch.full_like(mu, torch.log(torch.tensor(.2)))
             value = torch.full((batch, 1), .5)
-            return mu, sigma, value, inputs.get("rnn_states")
+            return mu, logstd, value, inputs.get("rnn_states")
 
         def eval_critic(self, obs):
             return torch.full((obs.shape[0], 1), .5)
@@ -211,7 +304,10 @@ def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
             self.has_batch_dimension = True
             self.normalize_value = False
             self.config = {"normalize_value": False, "reward_shaper": {"scale_value": 1}}
-            self.model = types.SimpleNamespace(a2c_network=MockNetwork())
+            from rl_games.algos_torch.models import ModelA2CContinuousLogStd
+            self.model = ModelA2CContinuousLogStd.Network(
+                MockNetwork(), obs_shape=(1442,), normalize_value=False,
+                normalize_input=False, value_size=1)
 
         def get_batch_size(self, obs, default):
             return int(obs.shape[0]) if hasattr(obs, "shape") else default
@@ -305,8 +401,7 @@ def _runtime_player_run(self):
     task._hybrid_init_prob = 1.0
     if abs(task.dt - 1 / 30) > 1e-8 or task.num_envs != ENVS:
         raise ValueError("HF08 runtime environment contract drift")
-    if self.config.get("normalize_value", False) or self.config.get("reward_shaper", {}).get("scale_value", 1) != 1:
-        raise ValueError("normalize_value/reward scale drift")
+    _validate_value_config(self.config)
     asset = source.ROOT / "third_party/DExplore/dexplore/data/assets"
     bridge = source.DExploreCmv2GeometryBridge(
         hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
@@ -344,32 +439,16 @@ def _runtime_player_run(self):
     workflow_rows_before = int(getattr(args, "workflow_rows_before", 0))
     done_indices: list[int] = []
 
-    def actor_forward(obs_dict):
-        processed = self._preproc_obs(obs_dict["obs"])
-        # Call the pinned DExplore network once: it returns (mu, sigma,
-        # critic_value, rnn_state).  Sampling the Normal here reproduces the
-        # PPO player draw without the legacy collect branch's extra noise.
-        mu, sigma, value, states = self.model.a2c_network(
-            {"obs": processed, "rnn_states": self.states})
-        self.states = states
-        action = torch.clamp(torch.distributions.Normal(mu, sigma).sample(), -1.0, 1.0)
-        value = value.reshape(-1)
-        if not torch.isfinite(action).all() or not torch.isfinite(value).all():
-            raise FloatingPointError("nonfinite actor action/value")
+    def actor_forward(observation):
+        # The installed player model owns running-mean/std normalization,
+        # logstd -> exp conversion, one Gaussian draw, and rnn state updates.
+        action, value, _ = _native_actor_forward(self, observation)
         return action, value
 
-    def critic_value(obs_dict):
-        # CommonPlayer.env_step returns a bare tensor on the tensor-observation
-        # path, while env_reset returns {"obs": tensor}.  Normalize both
-        # shapes before applying the training preprocessing.
-        obs_tensor = obs_dict["obs"] if isinstance(obs_dict, dict) else obs_dict
-        processed = self._preproc_obs(obs_tensor)
-        value = self.model.a2c_network.eval_critic(processed).reshape(-1)
-        if self.normalize_value:
-            raise ValueError("normalize_value must remain false")
-        if not torch.isfinite(value).all():
-            raise FloatingPointError("nonfinite next critic value")
-        return value
+    def critic_value(observation):
+        # Critic-only evaluation shares native normalization and consumes no
+        # random numbers; tensor and dict observations are both supported.
+        return _native_critic_value(self, observation)
 
     def gap():
         geometry = bridge.current(task._dof_pos, task._target_states)

@@ -1,0 +1,117 @@
+{
+  "accepted_implementation_commit": "ff48f6d61fb4e63d2c3525896237971512bfb576",
+  "archived_r3_note": {
+    "actual_current_card_bytes": 7672,
+    "actual_current_card_sha256": "c26337b3f87459ea04151a38f343b40aad1116a9fd81b59e05fc079d9ab1841a",
+    "archived_handoff_card_bytes": 6690,
+    "archived_handoff_card_sha256": "3dec3b73b5190365675b8bfe79078c90dc1b969438f0ff86536b8d96f8223bb8",
+    "note": "R3b appended the card after the archived R3 handoff; this delivery uses the current final card hash."
+  },
+  "artifacts": [
+    {
+      "bytes": 18549,
+      "mode": "0664",
+      "path": "scripts/collect_current_policy_value.py",
+      "sha256": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de"
+    },
+    {
+      "bytes": 31707,
+      "mode": "0664",
+      "path": "scripts/run_current_policy_value_environment.py",
+      "sha256": "bd708a0edbaa74692928d8e8dec68354717465da6e9bdd4c72aae94fdbcf8654"
+    },
+    {
+      "bytes": 9573,
+      "mode": "0664",
+      "path": "tests/test_current_policy_value_collection_contract.py",
+      "sha256": "cd1a06fb82470eee255c731c5cf288850c4dcf6d053a9576e39d128e4b9473ed"
+    },
+    {
+      "bytes": 7672,
+      "mode": "0664",
+      "path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+      "sha256": "c26337b3f87459ea04151a38f343b40aad1116a9fd81b59e05fc079d9ab1841a"
+    }
+  ],
+  "card_current": {
+    "bytes": 7672,
+    "mode": "0664",
+    "path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+    "sha256": "c26337b3f87459ea04151a38f343b40aad1116a9fd81b59e05fc079d9ab1841a"
+  },
+  "classification": "CPU-only blocker repair; no simulator or scientific trajectories",
+  "collector_sha256": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de",
+  "contract_repair": {
+    "actions": "native actions are clamped to [-1,1] and rescaled using actions_low/actions_high exactly as PpoPlayerContinuous when clip_actions is enabled.",
+    "actor": "_native_actor_forward calls installed player.model(is_train=False, prev_actions=None, obs=_preproc_obs(...), rnn_states=...) once; ModelA2CContinuousLogStd performs norm_obs, exp(logstd), and one Gaussian draw; result rnn_states is assigned.",
+    "config": "normalize_value=false and reward scale=1 enforced; Mapping and installed DefaultRewardsShaper.scale_value accepted; unknown config/shaper types rejected.",
+    "critic": "_native_critic_value supports model/network eval_critic when available and otherwise invokes the native raw network tuple only for value, after model.norm_obs, with no distribution draw.",
+    "observations": "outer {obs:tensor} and tensor observations are accepted; structured mappings remain available to model preprocessing."
+  },
+  "handoff_artifacts": {
+    "json_note": "This JSON self-hash is reported by the terminal Broker handoff after final write.",
+    "md": {
+      "bytes": 2671,
+      "mode": "0664",
+      "path": "docs/handoffs/CURRENT_POLICY_NATIVE_PLAYER_CONTRACT_20261001.md",
+      "sha256": "e0c24b3e6441d95e74fc31d3989d8596e23c05f8f38d07637665f7c86ff9c0e9"
+    }
+  },
+  "input_hashes": {
+    "checkpoint_s286_e420": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+    "checkpoint_s287_e420": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+    "environment_sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "motion_s3": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+    "motion_s7": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+    "motion_s9": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+    "source_runner_sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "training_sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38"
+  },
+  "new_runtime_sha256": "bd708a0edbaa74692928d8e8dec68354717465da6e9bdd4c72aae94fdbcf8654",
+  "next_step": "Root may audit these CPU changes and dispatch a fresh bounded collection task (up to its separately authorized budget). Do not start simulator or reopen HF08 from this task.",
+  "old_non_equivalence": {
+    "actor_path": "old actor_forward called self.model.a2c_network directly, treated raw logstd as sigma, and bypassed model.norm_obs/running_mean_std",
+    "critic_path": "old critic_value called raw a2c_network.eval_critic on preprocessed-but-unnormalized observations",
+    "guard_origin": "the d537 runtime was the CONTROL 263-only DefaultRewardsShaper guard repair from the preceding R3b failure; it is preserved as the exact pre-task baseline.",
+    "runtime_sha256": "d537eb8a88ba46179ac2d43e4e79b766877419dfa0a05684a54a3234203be97c"
+  },
+  "old_runtime_sha256": "d537eb8a88ba46179ac2d43e4e79b766877419dfa0a05684a54a3234203be97c",
+  "resources": {
+    "artifact_budget_bytes": 107374182,
+    "collector_started": false,
+    "cpu_threads": 2,
+    "gpu_started": false,
+    "isaac_imported": false,
+    "output_bytes": 0,
+    "output_data_rows": 0,
+    "owned_processes": [],
+    "training_started": false
+  },
+  "science_conclusion": "NOT_ASSESSED; no transitions and no V/utility/convergence claim",
+  "source_current_head_from_preflight": "25ca9651b1106282cd91a549230739b9af0a8289",
+  "source_origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+  "status": "READY_FOR_COLLECTION",
+  "task_id": "T-20261001-current-policy-native-player-contract",
+  "tests": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 TORCH_NUM_THREADS=2 python3 -m pytest -q tests/test_current_policy_value_collection_contract.py",
+    "coverage": [
+      "actual installed ModelA2CContinuousLogStd.Network",
+      "nonidentity running_mean_std",
+      "negative raw logstd and exp-to-sigma",
+      "native player action/value/rnn equivalence under restored RNG",
+      "single actor model draw",
+      "critic-only RNG unchanged",
+      "dict/tensor observations",
+      "clip/rescale range",
+      "DefaultRewardsShaper unit/scale rejection",
+      "actual shared mock loop and Episodes compatibility",
+      "existing terminal/phase/data contract tests"
+    ],
+    "elapsed_seconds": 7.94,
+    "maxrss_kib": 529060,
+    "result": "9 passed, 3 warnings",
+    "sys_seconds": 1.21,
+    "user_seconds": 7.04
+  },
+  "worker_head": "39d0615db896ee66befa41504f605e87a6f9d136"
+}
