@@ -20,6 +20,12 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261001-current-policy-v-fit
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
+    outcome_boundary: "fixed two-checkpoint20% GAE adaptation gate missed; fit improves70-76%, holdout18-46%; no MC/convergence/Cm utility claim"
   - id: P-20261001-current-policy-value-diagnostic
     owner: root
     status: COMPLETED
@@ -32,13 +38,13 @@ completed_diagnostics:
 diagnostic_hypotheses:
   HD01:
     name: current_policy_frozen_gae_value_adaptation
-    status: ACTIVE
+    status: CLOSED
     probe_budget: 1
     probes_used: 1
     owner: current_session
-    authorization: "user said continue after bounded V-fitting proposal, then requested GPU use"
+    authorization: "user said continue after bounded V-fitting proposal, then questioned GPU nonuse"
     card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
-    transition: "One GPU, separate s286/s287 V-only fits, fixed 1000 updates each, episode holdout; no HF08 utility slot reset or policy update."
+    transition: "Completed GPU4/31second V-only probe. Both fit gains large; holdout18.1%/45.8% misses fixed joint20% gate. Close without update/seed sweep; HF08 slot unchanged."
 
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:

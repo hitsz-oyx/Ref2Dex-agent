@@ -31,6 +31,16 @@ utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性�
 DExplore 原路径已有外置观测归一化，旧“漏掉归一化”归因已更正。24 项针对测试通过，
 所有自有 GPU 进程结束；本诊断无训练，不重置 HF08 的已用收益 Probe slot。
 
+用户随后授权有界 V 额外拟合，HD01 GPU Probe 已完成：一张 GPU、每个 V
+1000 次更新、约31秒。相同表示的 fit GAE RMSE 降低75.8%/70.3%，episode-disjoint
+holdout 降低18.1%/45.8%；s286 未过预设20%门，联合 gate 为 `UNPROMISING`。
+网络能够进一步拟合当前事实目标，但不能据此认定原在线训练不足或已收敛；留出集
+完整 realized MC 误差一升一降，主成功覆盖为 fit6/0、holdout0/1，稳定抓取价值的
+泛化仍未解决。HD01 预算1/1关闭，不增加更新/换 seed 追门槛，HF08仍 PAUSED。
+结果见 [GPU V 拟合卡](experiments/probes/P-20261001-current-policy-v-fit.md)。
+GPU 已释放，源数据与 checkpoint 未修改；GPU 适合本次重复 GRU 训练，历史
+CPU-only 阶段限制不构成当前 GPU 禁止。North-star scoreboard 不变。
+
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
 没有超过 always-base，coverage/policy gate 失败。历史 HF01–HF05 仍保持冻结，
@@ -184,10 +194,11 @@ MLP 或整条 Cm 路线；相关历史边界和 Broker 交接继续保留。
 
 ## Next step
 
-冻结当前策略的完整轨迹采集与 factual V 诊断已经由 root 按用户明确授权直接完成。
-下一项科学行动应区分 V 对诊断目标的拟合误差与冻结 GAE/完整回报差异，优先查看
-任务相关接触/成功段及稀有高回报 episode；本诊断不自动授权重训 V 或新一轮 PPO。
-不能以总体平均 bias 接近零认定校准，也不能以单次 realized MC 差异证明目标偏差。
+冻结当前策略完整轨迹采集、factual V 诊断及用户授权的 GPU V-only 拟合已完成。
+同一 V 可明显降低 fit GAE 误差，holdout 改进尚未通过预设联合门；这不是无法拟合
+当前目标的证据，也不支持继续机械增加更新。下一项决策应优先解决持续抓取相关的
+目标/成功覆盖及可迁移决策信息，记录独立机制与预算后再投入 PPO/utility；不重开
+HF08 局部调参。不能以总体 bias 接近零认定校准，或以单条 realized MC 证明目标偏差。
 
 HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；诊断
 不重置该 slot。任何未来科学 Probe 都须以独立机制、预算和预设判据重新决策，

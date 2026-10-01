@@ -1,7 +1,8 @@
 # P-20261001-current-policy-v-fit
 
 Classification: Decision Probe. User authorized continuation of the factual V
-diagnosis and directly requested GPU use. Single-session implementation.
+diagnosis, then asked why GPU was unused; hardware reassessed for GPU training.
+Single-session implementation.
 
 Question: can the saved V, with unchanged input representation, fit frozen
 current-policy GAE targets better and transfer that improvement to independent
@@ -44,4 +45,52 @@ features and reproduce each prior saved-V GAE RMSE within.001 before updating.
 Focused tests cover paired episode split, boundary features, and optimizer
 moments/ownership. Code commit and input hashes recorded by runtime manifest.
 
-Outcome: PENDING.
+## Completed r1
+
+Run status COMPLETED; fixed gate **UNPROMISING**. This label applies to the
+predeclared two-checkpoint20% adaptation gate, not to all V adaptation or Cm.
+
+Implementation commit `cc37c03`; all15 focused tests passed. GPU4 UUID
+`GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307` admitted with2MiB/no compute owners.
+Whole process30.604seconds (internal28.797seconds), peak torch allocated
+memory685054464bytes, combined output/support10503124bytes. GPU released;
+all original source/checkpoint/data hashes unchanged. Cached history versus
+direct features maximum absolute error0; original saved-V RMSE reproduced.
+Both V optimizer step sets advance7680 ->8680; only new V/Adam artifacts saved.
+
+Raw reward-unit frozen GAE RMSE:
+
+| Checkpoint | Split | Episodes | Before | After1000 | Reduction |
+| --- | --- | --- | --- | --- | --- |
+| s286 | fit | 78 | 30.615 | 7.413 | 75.8% |
+| s286 | holdout | 18 | 13.756 | 11.269 | 18.1% |
+| s287 | fit | 78 | 19.786 | 5.880 | 70.3% |
+| s287 | holdout | 18 | 30.839 | 16.719 | 45.8% |
+
+Both networks can fit these factual targets substantially better using the
+same representation. Some gains transfer to independent episodes, but s286
+misses20%, so the fixed joint gate fails. This does not establish why the
+original online training had larger error: the present target/distribution is
+frozen and narrow, and V-only optimization differs from joint V/Q updates.
+Neither convergence nor original-training insufficiency is established.
+
+PPO critic holdout GAE RMSE remains10.601/16.209, versus adapted V11.269/16.719.
+Holdout realized MC RMSE is32.355 ->33.525 (s286) and68.619 ->65.507 (s287).
+Reducing GAE error therefore does not establish stable complete-return
+improvement. Primary-success coverage is particularly sparse: s286 has6 fit,
+0 holdout successes; s287 has0 fit,1 holdout success. On the lone s287 holdout
+held_1s episode,41 rows, GAE RMSE37.147 ->106.119 and MC149.080 ->255.954.
+This rare diagnostic phase cannot carry a general scientific claim, but it
+prevents treating aggregate improvement as verified held-grasp value accuracy.
+Do not reassign split or select an intermediate checkpoint after seeing this.
+
+Decision: close HD01 at1/1, retain HF08 PAUSED, do not add updates/seeds to chase
+the gate. Optimization can reduce observed fit error; the next decision must
+address useful held-grasp target/coverage and transferable decision information
+before another costly PPO/utility run. No online policy update is launched by
+this diagnostic. North-star Cm utility remains OPEN.
+
+Full metrics, split/input hashes, command, runtime and artifact audit are in
+[the results record](P-20261001-current-policy-v-fit-results.json). Local new
+artifacts are under `src/task/CmResidual/research/physical_value/output/`
+`P-20261001-current-policy-v-fit-r1` and its `-support` directory.

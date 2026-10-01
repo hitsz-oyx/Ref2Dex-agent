@@ -1,0 +1,3455 @@
+{
+  "experiment_id": "P-20261001-current-policy-v-fit",
+  "run_id": "r1",
+  "diagnostic": {
+    "run_status": "COMPLETED",
+    "label": "UNPROMISING",
+    "rows": 107584,
+    "episodes": 192,
+    "hypothesis": "same V can adapt to current-policy frozen GAE with episode generalization",
+    "target_metadata": {
+      "missing_nonterminal_next_values": 0,
+      "rollout_boundary_rows": 3456,
+      "terminal_rows_masked": 192
+    },
+    "return_scale": 63.89336395263672,
+    "history_cache_max_abs_error": 0.0,
+    "rmse_reductions": {
+      "286": {
+        "fit": 0.7578492484020178,
+        "holdout": 0.18076752633269122
+      },
+      "287": {
+        "fit": 0.7028425194922425,
+        "holdout": 0.4578574096889272
+      }
+    },
+    "checkpoints": {
+      "286": {
+        "baseline": {
+          "fit": {
+            "all": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 30.614601135253906,
+                "mae": 13.293402671813965,
+                "bias": -3.7408676147460938
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 163.98037719726562,
+                "mae": 52.922916412353516,
+                "bias": -34.89158630371094
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 3307,
+                "episodes": 6,
+                "rmse": 100.08883666992188,
+                "mae": 68.6382827758789,
+                "bias": -64.97136688232422
+              },
+              "mc": {
+                "rows": 3307,
+                "episodes": 6,
+                "rmse": 583.7566528320312,
+                "mae": 451.57562255859375,
+                "bias": -448.661376953125
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 40399,
+                "episodes": 72,
+                "rmse": 13.926105499267578,
+                "mae": 8.762954711914062,
+                "bias": 1.2713665962219238
+              },
+              "mc": {
+                "rows": 40399,
+                "episodes": 72,
+                "rmse": 34.57814025878906,
+                "mae": 20.289827346801758,
+                "bias": -1.0210223197937012
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 26464,
+                "episodes": 78,
+                "rmse": 11.032353401184082,
+                "mae": 6.650710582733154,
+                "bias": 0.2760816514492035
+              },
+              "mc": {
+                "rows": 26464,
+                "episodes": 78,
+                "rmse": 59.631309509277344,
+                "mae": 18.64940643310547,
+                "bias": -5.433657646179199
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 15086,
+                "episodes": 78,
+                "rmse": 28.351943969726562,
+                "mae": 16.127927780151367,
+                "bias": -1.0724294185638428
+              },
+              "mc": {
+                "rows": 15086,
+                "episodes": 78,
+                "rmse": 167.49021911621094,
+                "mae": 65.95964050292969,
+                "bias": -37.64460372924805
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 1183,
+                "episodes": 7,
+                "rmse": 146.9134521484375,
+                "mae": 133.56854248046875,
+                "bias": -132.43463134765625
+              },
+              "mc": {
+                "rows": 1183,
+                "episodes": 7,
+                "rmse": 745.0925903320312,
+                "mae": 691.2255859375,
+                "bias": -689.5855102539062
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 7,
+                "episodes": 7,
+                "rmse": 87.7298355102539,
+                "mae": 55.95330047607422,
+                "bias": -35.685489654541016
+              },
+              "mc": {
+                "rows": 7,
+                "episodes": 7,
+                "rmse": 382.1070861816406,
+                "mae": 227.14486694335938,
+                "bias": -185.2016143798828
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 966,
+                "episodes": 5,
+                "rmse": 5.4566192626953125,
+                "mae": 3.4036073684692383,
+                "bias": 2.3747847080230713
+              },
+              "mc": {
+                "rows": 966,
+                "episodes": 5,
+                "rmse": 12.264416694641113,
+                "mae": 5.31498908996582,
+                "bias": 3.9413132667541504
+              }
+            }
+          },
+          "holdout": {
+            "all": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 13.755699157714844,
+                "mae": 8.58509635925293,
+                "bias": 0.7086163759231567
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 32.3552131652832,
+                "mae": 19.41246795654297,
+                "bias": -1.608558177947998
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 13.755699157714844,
+                "mae": 8.58509635925293,
+                "bias": 0.7086163759231567
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 32.3552131652832,
+                "mae": 19.41246795654297,
+                "bias": -1.608558177947998
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 6700,
+                "episodes": 18,
+                "rmse": 10.36884880065918,
+                "mae": 6.024662494659424,
+                "bias": -0.05505283549427986
+              },
+              "mc": {
+                "rows": 6700,
+                "episodes": 18,
+                "rmse": 26.033233642578125,
+                "mae": 12.56199836730957,
+                "bias": -1.522037386894226
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 3386,
+                "episodes": 18,
+                "rmse": 18.732173919677734,
+                "mae": 13.651520729064941,
+                "bias": 2.2197160720825195
+              },
+              "mc": {
+                "rows": 3386,
+                "episodes": 18,
+                "rmse": 42.15769958496094,
+                "mae": 32.967735290527344,
+                "bias": -1.7797601222991943
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            }
+          }
+        },
+        "ppo_critic": {
+          "fit": {
+            "all": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 22.231006622314453,
+                "mae": 8.658586502075195,
+                "bias": -3.6189889907836914
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 156.73683166503906,
+                "mae": 52.392852783203125,
+                "bias": -34.76970291137695
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 3307,
+                "episodes": 6,
+                "rmse": 71.70152282714844,
+                "mae": 46.8156623840332,
+                "bias": -43.83934783935547
+              },
+              "mc": {
+                "rows": 3307,
+                "episodes": 6,
+                "rmse": 555.2384643554688,
+                "mae": 429.9828796386719,
+                "bias": -427.52935791015625
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 40399,
+                "episodes": 72,
+                "rmse": 10.669129371643066,
+                "mae": 5.535107135772705,
+                "bias": -0.32661211490631104
+              },
+              "mc": {
+                "rows": 40399,
+                "episodes": 72,
+                "rmse": 36.62342071533203,
+                "mae": 21.483901977539062,
+                "bias": -2.6190006732940674
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 26464,
+                "episodes": 78,
+                "rmse": 6.256781101226807,
+                "mae": 3.2357113361358643,
+                "bias": 0.757209062576294
+              },
+              "mc": {
+                "rows": 26464,
+                "episodes": 78,
+                "rmse": 58.178466796875,
+                "mae": 17.71280288696289,
+                "bias": -4.952530384063721
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 15086,
+                "episodes": 78,
+                "rmse": 24.60619354248047,
+                "mae": 12.7130126953125,
+                "bias": -5.480557441711426
+              },
+              "mc": {
+                "rows": 15086,
+                "episodes": 78,
+                "rmse": 166.05557250976562,
+                "mae": 70.1744384765625,
+                "bias": -42.05272674560547
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 1183,
+                "episodes": 7,
+                "rmse": 97.98432922363281,
+                "mae": 83.21631622314453,
+                "bias": -81.20500946044922
+              },
+              "mc": {
+                "rows": 1183,
+                "episodes": 7,
+                "rmse": 692.3023681640625,
+                "mae": 639.2472534179688,
+                "bias": -638.3558959960938
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 7,
+                "episodes": 7,
+                "rmse": 91.5678939819336,
+                "mae": 65.441162109375,
+                "bias": -28.269704818725586
+              },
+              "mc": {
+                "rows": 7,
+                "episodes": 7,
+                "rmse": 382.5852355957031,
+                "mae": 230.6046905517578,
+                "bias": -177.7858123779297
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 966,
+                "episodes": 5,
+                "rmse": 3.7587733268737793,
+                "mae": 2.1851086616516113,
+                "bias": 0.7586011290550232
+              },
+              "mc": {
+                "rows": 966,
+                "episodes": 5,
+                "rmse": 11.27463436126709,
+                "mae": 4.797910690307617,
+                "bias": 2.325129270553589
+              }
+            }
+          },
+          "holdout": {
+            "all": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 10.601425170898438,
+                "mae": 5.545275688171387,
+                "bias": -0.5188784599304199
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 35.43074035644531,
+                "mae": 21.44571304321289,
+                "bias": -2.836052894592285
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 10.601425170898438,
+                "mae": 5.545275688171387,
+                "bias": -0.5188784599304199
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 35.43074035644531,
+                "mae": 21.44571304321289,
+                "bias": -2.836052894592285
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 6700,
+                "episodes": 18,
+                "rmse": 6.109579086303711,
+                "mae": 3.2239456176757812,
+                "bias": 0.41520705819129944
+              },
+              "mc": {
+                "rows": 6700,
+                "episodes": 18,
+                "rmse": 25.76002311706543,
+                "mae": 12.666403770446777,
+                "bias": -1.0517773628234863
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 3386,
+                "episodes": 18,
+                "rmse": 16.15303611755371,
+                "mae": 10.13857364654541,
+                "bias": -2.3671867847442627
+              },
+              "mc": {
+                "rows": 3386,
+                "episodes": 18,
+                "rmse": 49.25719451904297,
+                "mae": 38.817649841308594,
+                "bias": -6.36666202545166
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            }
+          }
+        },
+        "stages": {
+          "250": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 11.201322555541992,
+                  "mae": 5.764788627624512,
+                  "bias": 1.0250447988510132
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 139.71572875976562,
+                  "mae": 46.7505989074707,
+                  "bias": -30.125669479370117
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 28.584487915039062,
+                  "mae": 18.08621597290039,
+                  "bias": 8.40906810760498
+                },
+                "mc": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 494.2689208984375,
+                  "mae": 378.1837158203125,
+                  "bias": -375.28094482421875
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 8.297955513000488,
+                  "mae": 4.756175518035889,
+                  "bias": 0.42060011625289917
+                },
+                "mc": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 33.46996307373047,
+                  "mae": 19.619997024536133,
+                  "bias": -1.8717886209487915
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 5.196297645568848,
+                  "mae": 2.998816728591919,
+                  "bias": 0.3120873272418976
+                },
+                "mc": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 57.49595260620117,
+                  "mae": 16.78883171081543,
+                  "bias": -5.397651195526123
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 14.003705024719238,
+                  "mae": 8.91453742980957,
+                  "bias": 1.11283278465271
+                },
+                "mc": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 149.468505859375,
+                  "mae": 62.90614700317383,
+                  "bias": -35.45934295654297
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 38.70175552368164,
+                  "mae": 30.251720428466797,
+                  "bias": 16.062454223632812
+                },
+                "mc": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 601.372314453125,
+                  "mae": 545.4237060546875,
+                  "bias": -541.0884399414062
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 34.284523010253906,
+                  "mae": 26.981382369995117,
+                  "bias": 14.461161613464355
+                },
+                "mc": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 317.1549377441406,
+                  "mae": 185.0018768310547,
+                  "bias": -135.05496215820312
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 5.631103515625,
+                  "mae": 2.2088749408721924,
+                  "bias": 0.6731115579605103
+                },
+                "mc": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 10.661271095275879,
+                  "mae": 3.570002555847168,
+                  "bias": 2.2396397590637207
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.816910743713379,
+                  "mae": 6.237703800201416,
+                  "bias": 0.7311438918113708
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.987789154052734,
+                  "mae": 20.371532440185547,
+                  "bias": -1.5860304832458496
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.816910743713379,
+                  "mae": 6.237703800201416,
+                  "bias": 0.7311438918113708
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.987789154052734,
+                  "mae": 20.371532440185547,
+                  "bias": -1.5860304832458496
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 6.270954132080078,
+                  "mae": 3.332045793533325,
+                  "bias": 0.22557125985622406
+                },
+                "mc": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 24.778759002685547,
+                  "mae": 11.62001895904541,
+                  "bias": -1.2414131164550781
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 18.388456344604492,
+                  "mae": 11.987235069274902,
+                  "bias": 1.7315388917922974
+                },
+                "mc": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 47.180809020996094,
+                  "mae": 37.6884651184082,
+                  "bias": -2.267937421798706
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              }
+            }
+          },
+          "500": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 9.340641975402832,
+                  "mae": 5.013646602630615,
+                  "bias": -0.7867140769958496
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 142.93881225585938,
+                  "mae": 47.012088775634766,
+                  "bias": -31.937429428100586
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 22.367523193359375,
+                  "mae": 14.055187225341797,
+                  "bias": -3.139883279800415
+                },
+                "mc": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 506.6284484863281,
+                  "mae": 388.82275390625,
+                  "bias": -386.8299560546875
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 7.309943675994873,
+                  "mae": 4.273519515991211,
+                  "bias": -0.5940873622894287
+                },
+                "mc": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 33.0633430480957,
+                  "mae": 19.03199005126953,
+                  "bias": -2.8864760398864746
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 4.799214839935303,
+                  "mae": 2.799245834350586,
+                  "bias": -0.30755382776260376
+                },
+                "mc": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 57.56850051879883,
+                  "mae": 16.3594913482666,
+                  "bias": -6.0172929763793945
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 11.756353378295898,
+                  "mae": 7.648285865783691,
+                  "bias": -1.6053812503814697
+                },
+                "mc": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 153.56935119628906,
+                  "mae": 63.185089111328125,
+                  "bias": -38.17755126953125
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 30.4921932220459,
+                  "mae": 23.301542282104492,
+                  "bias": -2.0647854804992676
+                },
+                "mc": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 615.8406372070312,
+                  "mae": 561.1126708984375,
+                  "bias": -559.215576171875
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 25.072877883911133,
+                  "mae": 19.29215431213379,
+                  "bias": -2.2150232791900635
+                },
+                "mc": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 319.3913879394531,
+                  "mae": 190.4837188720703,
+                  "bias": -151.7311248779297
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 3.850958824157715,
+                  "mae": 2.033510684967041,
+                  "bias": 0.4471043050289154
+                },
+                "mc": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 10.87527084350586,
+                  "mae": 3.5536458492279053,
+                  "bias": 2.0136325359344482
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.027987480163574,
+                  "mae": 5.987234115600586,
+                  "bias": -0.29414114356040955
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.29193115234375,
+                  "mae": 19.602025985717773,
+                  "bias": -2.611315965652466
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.027987480163574,
+                  "mae": 5.987234115600586,
+                  "bias": -0.29414114356040955
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.29193115234375,
+                  "mae": 19.602025985717773,
+                  "bias": -2.611315965652466
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 6.368473529815674,
+                  "mae": 3.433264970779419,
+                  "bias": -0.27521270513534546
+                },
+                "mc": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 24.41203498840332,
+                  "mae": 11.130339622497559,
+                  "bias": -1.7421971559524536
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 16.793182373046875,
+                  "mae": 11.040864944458008,
+                  "bias": -0.3315955698490143
+                },
+                "mc": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 46.06807327270508,
+                  "mae": 36.36525344848633,
+                  "bias": -4.331071853637695
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              }
+            }
+          },
+          "750": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 8.067825317382812,
+                  "mae": 4.414062023162842,
+                  "bias": -0.11786118894815445
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 142.14259338378906,
+                  "mae": 46.861900329589844,
+                  "bias": -31.26857566833496
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 18.507909774780273,
+                  "mae": 11.41512393951416,
+                  "bias": -1.0072696208953857
+                },
+                "mc": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 503.8771057128906,
+                  "mae": 386.51495361328125,
+                  "bias": -384.6972961425781
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 6.509833812713623,
+                  "mae": 3.8409652709960938,
+                  "bias": -0.0450555644929409
+                },
+                "mc": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 32.79037857055664,
+                  "mae": 19.058420181274414,
+                  "bias": -2.337444305419922
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 4.484813690185547,
+                  "mae": 2.589632749557495,
+                  "bias": -0.1349448412656784
+                },
+                "mc": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 57.520751953125,
+                  "mae": 16.52442741394043,
+                  "bias": -5.84468412399292
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 9.977667808532715,
+                  "mae": 6.605837821960449,
+                  "bias": 0.049318715929985046
+                },
+                "mc": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 151.49655151367188,
+                  "mae": 62.49555969238281,
+                  "bias": -36.52285385131836
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 25.919231414794922,
+                  "mae": 19.154443740844727,
+                  "bias": -1.8881654739379883
+                },
+                "mc": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 615.6897583007812,
+                  "mae": 560.763427734375,
+                  "bias": -559.0390625
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 16.085296630859375,
+                  "mae": 12.296103477478027,
+                  "bias": -0.7995743155479431
+                },
+                "mc": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 316.3750305175781,
+                  "mae": 183.1529998779297,
+                  "bias": -150.31568908691406
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 3.820822238922119,
+                  "mae": 2.057435989379883,
+                  "bias": -0.08777013421058655
+                },
+                "mc": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 10.758183479309082,
+                  "mae": 3.489211082458496,
+                  "bias": 1.4787579774856567
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.473607063293457,
+                  "mae": 6.12258768081665,
+                  "bias": 0.16061192750930786
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.615543365478516,
+                  "mae": 19.963695526123047,
+                  "bias": -2.156562328338623
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.473607063293457,
+                  "mae": 6.12258768081665,
+                  "bias": 0.16061192750930786
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.615543365478516,
+                  "mae": 19.963695526123047,
+                  "bias": -2.156562328338623
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 6.235080242156982,
+                  "mae": 3.368044137954712,
+                  "bias": -0.11382105946540833
+                },
+                "mc": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 24.62189483642578,
+                  "mae": 11.41805362701416,
+                  "bias": -1.5808053016662598
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 17.75404167175293,
+                  "mae": 11.573101997375488,
+                  "bias": 0.7036422491073608
+                },
+                "mc": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 46.544620513916016,
+                  "mae": 36.873260498046875,
+                  "bias": -3.2958338260650635
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              }
+            }
+          },
+          "1000": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 7.41334867477417,
+                  "mae": 4.16832160949707,
+                  "bias": -1.114019751548767
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 142.6094970703125,
+                  "mae": 46.73237991333008,
+                  "bias": -32.26473617553711
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 16.68688201904297,
+                  "mae": 10.2493257522583,
+                  "bias": -2.224236488342285
+                },
+                "mc": {
+                  "rows": 3307,
+                  "episodes": 6,
+                  "rmse": 505.55755615234375,
+                  "mae": 387.7672119140625,
+                  "bias": -385.9142761230469
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 6.054985046386719,
+                  "mae": 3.6705403327941895,
+                  "bias": -1.0231391191482544
+                },
+                "mc": {
+                  "rows": 40399,
+                  "episodes": 72,
+                  "rmse": 32.86623001098633,
+                  "mae": 18.8157901763916,
+                  "bias": -3.31552791595459
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 4.198636054992676,
+                  "mae": 2.499420404434204,
+                  "bias": -0.517500638961792
+                },
+                "mc": {
+                  "rows": 26464,
+                  "episodes": 78,
+                  "rmse": 57.369808197021484,
+                  "mae": 16.33100700378418,
+                  "bias": -6.22723913192749
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 9.253890991210938,
+                  "mae": 6.24165153503418,
+                  "bias": -2.112607717514038
+                },
+                "mc": {
+                  "rows": 15086,
+                  "episodes": 78,
+                  "rmse": 152.4224853515625,
+                  "mae": 62.431678771972656,
+                  "bias": -38.684783935546875
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 23.124216079711914,
+                  "mae": 16.81401824951172,
+                  "bias": -2.447810411453247
+                },
+                "mc": {
+                  "rows": 1183,
+                  "episodes": 7,
+                  "rmse": 617.11572265625,
+                  "mae": 561.1988525390625,
+                  "bias": -559.5986938476562
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 9.077089309692383,
+                  "mae": 7.251229763031006,
+                  "bias": -1.0715992450714111
+                },
+                "mc": {
+                  "rows": 7,
+                  "episodes": 7,
+                  "rmse": 303.2408142089844,
+                  "mae": 174.29051208496094,
+                  "bias": -150.5877227783203
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 3.2839953899383545,
+                  "mae": 2.000718116760254,
+                  "bias": -0.2279004454612732
+                },
+                "mc": {
+                  "rows": 966,
+                  "episodes": 5,
+                  "rmse": 10.84952449798584,
+                  "mae": 3.4563615322113037,
+                  "bias": 1.3386276960372925
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.269115447998047,
+                  "mae": 6.023230075836182,
+                  "bias": -0.9333972930908203
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.52486038208008,
+                  "mae": 19.684839248657227,
+                  "bias": -3.2505717277526855
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 11.269115447998047,
+                  "mae": 6.023230075836182,
+                  "bias": -0.9333972930908203
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 33.52486038208008,
+                  "mae": 19.684839248657227,
+                  "bias": -3.2505717277526855
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 6.189181804656982,
+                  "mae": 3.2824113368988037,
+                  "bias": -0.3957085907459259
+                },
+                "mc": {
+                  "rows": 6700,
+                  "episodes": 18,
+                  "rmse": 24.56923484802246,
+                  "mae": 11.267979621887207,
+                  "bias": -1.862692952156067
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 17.391984939575195,
+                  "mae": 11.446587562561035,
+                  "bias": -1.9973410367965698
+                },
+                "mc": {
+                  "rows": 3386,
+                  "episodes": 18,
+                  "rmse": 46.40463638305664,
+                  "mae": 36.3395881652832,
+                  "bias": -5.996817111968994
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              }
+            }
+          }
+        },
+        "optimizer_step_before": [
+          7680.0
+        ],
+        "reproduced_rmse": 28.231142044067383,
+        "source_actor_initial_model_sha256": "d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9",
+        "optimizer_step_after": [
+          8680.0
+        ]
+      },
+      "287": {
+        "baseline": {
+          "fit": {
+            "all": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 19.78609848022461,
+                "mae": 11.047001838684082,
+                "bias": 2.4991254806518555
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 42.988712310791016,
+                "mae": 24.36930274963379,
+                "bias": -1.2675793170928955
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 19.78609848022461,
+                "mae": 11.047001838684082,
+                "bias": 2.4991254806518555
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 42.988712310791016,
+                "mae": 24.36930274963379,
+                "bias": -1.2675793170928955
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 27282,
+                "episodes": 78,
+                "rmse": 12.11611557006836,
+                "mae": 7.647336959838867,
+                "bias": 2.4312052726745605
+              },
+              "mc": {
+                "rows": 27282,
+                "episodes": 78,
+                "rmse": 29.70685386657715,
+                "mae": 15.905428886413574,
+                "bias": 3.290222644805908
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 16058,
+                "episodes": 78,
+                "rmse": 28.108020782470703,
+                "mae": 16.65425682067871,
+                "bias": 2.2524125576019287
+              },
+              "mc": {
+                "rows": 16058,
+                "episodes": 78,
+                "rmse": 59.32029342651367,
+                "mae": 39.044673919677734,
+                "bias": -9.290980339050293
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 8,
+                "episodes": 1,
+                "rmse": 180.66464233398438,
+                "mae": 178.45220947265625,
+                "bias": 178.45220947265625,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 8,
+                "episodes": 1,
+                "rmse": 22.083467483520508,
+                "mae": 20.124435424804688,
+                "bias": 3.5548171997070312,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 182.39627075195312,
+                "mae": 182.39627075195312,
+                "bias": 182.39627075195312,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 286.5938415527344,
+                "mae": 286.5938415527344,
+                "bias": 286.5938415527344,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 357,
+                "episodes": 1,
+                "rmse": 18.656770706176758,
+                "mae": 14.402003288269043,
+                "bias": 14.340023040771484,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 357,
+                "episodes": 1,
+                "rmse": 16.835723876953125,
+                "mae": 10.436554908752441,
+                "bias": 10.40575885772705,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            }
+          },
+          "holdout": {
+            "all": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 30.839080810546875,
+                "mae": 14.512554168701172,
+                "bias": 4.393059730529785
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 68.61933135986328,
+                "mae": 34.10007095336914,
+                "bias": -6.60015344619751
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 542,
+                "episodes": 1,
+                "rmse": 114.91719818115234,
+                "mae": 75.25556182861328,
+                "bias": 61.46292495727539,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 542,
+                "episodes": 1,
+                "rmse": 251.9114227294922,
+                "mae": 177.36744689941406,
+                "bias": -41.73747634887695,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 9544,
+                "episodes": 17,
+                "rmse": 15.97176456451416,
+                "mae": 11.062981605529785,
+                "bias": 1.1520839929580688
+              },
+              "mc": {
+                "rows": 9544,
+                "episodes": 17,
+                "rmse": 37.04294967651367,
+                "mae": 25.963972091674805,
+                "bias": -4.604719161987305
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 5376,
+                "episodes": 18,
+                "rmse": 12.266555786132812,
+                "mae": 8.337625503540039,
+                "bias": 3.2983317375183105
+              },
+              "mc": {
+                "rows": 5376,
+                "episodes": 18,
+                "rmse": 44.66029357910156,
+                "mae": 21.49460220336914,
+                "bias": -0.20493300259113312
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 4456,
+                "episodes": 18,
+                "rmse": 44.02274703979492,
+                "mae": 22.101654052734375,
+                "bias": 5.476651668548584
+              },
+              "mc": {
+                "rows": 4456,
+                "episodes": 18,
+                "rmse": 89.51638793945312,
+                "mae": 49.56071090698242,
+                "bias": -13.963546752929688
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 41,
+                "episodes": 1,
+                "rmse": 37.14729309082031,
+                "mae": 31.167781829833984,
+                "bias": 14.004915237426758,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 41,
+                "episodes": 1,
+                "rmse": 149.0802459716797,
+                "mae": 131.26998901367188,
+                "bias": -131.26998901367188,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 161.3499755859375,
+                "mae": 161.3499755859375,
+                "bias": 161.3499755859375,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 251.77444458007812,
+                "mae": 251.77444458007812,
+                "bias": 251.77444458007812,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 212,
+                "episodes": 1,
+                "rmse": 17.511754989624023,
+                "mae": 7.671431541442871,
+                "bias": 6.778566837310791,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 212,
+                "episodes": 1,
+                "rmse": 20.262998580932617,
+                "mae": 8.971603393554688,
+                "bias": 8.88881778717041,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            }
+          }
+        },
+        "ppo_critic": {
+          "fit": {
+            "all": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 12.05433464050293,
+                "mae": 6.590400218963623,
+                "bias": -0.3337031304836273
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 39.61473083496094,
+                "mae": 22.069438934326172,
+                "bias": -4.100407600402832
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              },
+              "mc": {
+                "rows": 0,
+                "episodes": 0,
+                "rmse": null,
+                "mae": null,
+                "bias": null,
+                "judgement": "UNDETERMINED_EMPTY"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 12.05433464050293,
+                "mae": 6.590400218963623,
+                "bias": -0.3337031304836273
+              },
+              "mc": {
+                "rows": 43706,
+                "episodes": 78,
+                "rmse": 39.61473083496094,
+                "mae": 22.069438934326172,
+                "bias": -4.100407600402832
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 27282,
+                "episodes": 78,
+                "rmse": 8.427374839782715,
+                "mae": 4.730781555175781,
+                "bias": 1.0060207843780518
+              },
+              "mc": {
+                "rows": 27282,
+                "episodes": 78,
+                "rmse": 29.282543182373047,
+                "mae": 15.372403144836426,
+                "bias": 1.865038275718689
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 16058,
+                "episodes": 78,
+                "rmse": 16.543216705322266,
+                "mae": 9.8257417678833,
+                "bias": -2.6228649616241455
+              },
+              "mc": {
+                "rows": 16058,
+                "episodes": 78,
+                "rmse": 52.89204788208008,
+                "mae": 33.74368667602539,
+                "bias": -14.16625690460205
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 8,
+                "episodes": 1,
+                "rmse": 41.58538818359375,
+                "mae": 34.298614501953125,
+                "bias": 5.366098403930664,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 8,
+                "episodes": 1,
+                "rmse": 173.77761840820312,
+                "mae": 169.53128051757812,
+                "bias": -169.53128051757812,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 30.399925231933594,
+                "mae": 30.399925231933594,
+                "bias": 30.399925231933594,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 134.5974884033203,
+                "mae": 134.5974884033203,
+                "bias": 134.5974884033203,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 357,
+                "episodes": 1,
+                "rmse": 3.228198289871216,
+                "mae": 2.4882092475891113,
+                "bias": 0.037944354116916656,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 357,
+                "episodes": 1,
+                "rmse": 5.924246788024902,
+                "mae": 5.125889778137207,
+                "bias": -3.8963205814361572,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            }
+          },
+          "holdout": {
+            "all": {
+              "gae": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 16.209346771240234,
+                "mae": 8.358896255493164,
+                "bias": -1.6397967338562012
+              },
+              "mc": {
+                "rows": 10086,
+                "episodes": 18,
+                "rmse": 67.22040557861328,
+                "mae": 31.18300437927246,
+                "bias": -12.63300895690918
+              }
+            },
+            "primary_success": {
+              "gae": {
+                "rows": 542,
+                "episodes": 1,
+                "rmse": 47.678550720214844,
+                "mae": 26.12938117980957,
+                "bias": -16.251663208007812,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 542,
+                "episodes": 1,
+                "rmse": 246.3451690673828,
+                "mae": 147.47755432128906,
+                "bias": -119.45206451416016,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "primary_failure": {
+              "gae": {
+                "rows": 9544,
+                "episodes": 17,
+                "rmse": 12.188819885253906,
+                "mae": 7.349717617034912,
+                "bias": -0.8099945187568665
+              },
+              "mc": {
+                "rows": 9544,
+                "episodes": 17,
+                "rmse": 36.45354080200195,
+                "mae": 24.578683853149414,
+                "bias": -6.566797733306885
+              }
+            },
+            "pre_contact": {
+              "gae": {
+                "rows": 5376,
+                "episodes": 18,
+                "rmse": 8.605020523071289,
+                "mae": 5.3566365242004395,
+                "bias": 1.1841903924942017
+              },
+              "mc": {
+                "rows": 5376,
+                "episodes": 18,
+                "rmse": 46.77207946777344,
+                "mae": 21.302610397338867,
+                "bias": -2.3190746307373047
+              }
+            },
+            "contact": {
+              "gae": {
+                "rows": 4456,
+                "episodes": 18,
+                "rmse": 21.20381736755371,
+                "mae": 11.66880989074707,
+                "bias": -4.614474296569824
+              },
+              "mc": {
+                "rows": 4456,
+                "episodes": 18,
+                "rmse": 84.42427062988281,
+                "mae": 42.72111511230469,
+                "bias": -24.05467414855957
+              }
+            },
+            "held_1s": {
+              "gae": {
+                "rows": 41,
+                "episodes": 1,
+                "rmse": 75.47686004638672,
+                "mae": 64.13632202148438,
+                "bias": -61.11363220214844,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 41,
+                "episodes": 1,
+                "rmse": 221.41098022460938,
+                "mae": 206.3885040283203,
+                "bias": -206.3885040283203,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "drop_edge": {
+              "gae": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 81.8223876953125,
+                "mae": 81.8223876953125,
+                "bias": 81.8223876953125,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 1,
+                "episodes": 1,
+                "rmse": 172.24685668945312,
+                "mae": 172.24685668945312,
+                "bias": 172.24685668945312,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            },
+            "other": {
+              "gae": {
+                "rows": 212,
+                "episodes": 1,
+                "rmse": 6.243295192718506,
+                "mae": 3.787421703338623,
+                "bias": 0.38082829117774963,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              },
+              "mc": {
+                "rows": 212,
+                "episodes": 1,
+                "rmse": 8.179244041442871,
+                "mae": 4.667386531829834,
+                "bias": 2.4910788536071777,
+                "judgement": "UNDETERMINED_RARE_SLICE"
+              }
+            }
+          }
+        },
+        "stages": {
+          "250": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 8.146695137023926,
+                  "mae": 5.033365726470947,
+                  "bias": -1.20254385471344
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 36.3873405456543,
+                  "mae": 19.901973724365234,
+                  "bias": -4.969248294830322
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 8.146695137023926,
+                  "mae": 5.033365726470947,
+                  "bias": -1.20254385471344
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 36.3873405456543,
+                  "mae": 19.901973724365234,
+                  "bias": -4.969248294830322
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 6.0248823165893555,
+                  "mae": 3.7608470916748047,
+                  "bias": -0.5974116325378418
+                },
+                "mc": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 28.129228591918945,
+                  "mae": 13.996902465820312,
+                  "bias": 0.2616058588027954
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 10.886902809143066,
+                  "mae": 7.243101119995117,
+                  "bias": -2.294304132461548
+                },
+                "mc": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 47.3657112121582,
+                  "mae": 30.20909309387207,
+                  "bias": -13.83769702911377
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 17.879541397094727,
+                  "mae": 15.551494598388672,
+                  "bias": 3.784271240234375,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 171.51490783691406,
+                  "mae": 171.1131134033203,
+                  "bias": -171.1131134033203,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 4.695274353027344,
+                  "mae": 4.695274353027344,
+                  "bias": 4.695274353027344,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 108.89283752441406,
+                  "mae": 108.89283752441406,
+                  "bias": 108.89283752441406,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 3.5677335262298584,
+                  "mae": 2.64988112449646,
+                  "bias": 1.5326862335205078,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 4.724026679992676,
+                  "mae": 3.9122865200042725,
+                  "bias": -2.401578664779663,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 17.048105239868164,
+                  "mae": 8.589385032653809,
+                  "bias": -3.4577505588531494
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 66.07759857177734,
+                  "mae": 29.827465057373047,
+                  "bias": -14.450963973999023
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 50.499977111816406,
+                  "mae": 28.86260223388672,
+                  "bias": -13.004815101623535,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 242.54776000976562,
+                  "mae": 146.3386993408203,
+                  "bias": -116.20523071289062,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 12.740310668945312,
+                  "mae": 7.438077926635742,
+                  "bias": -2.9155759811401367
+                },
+                "mc": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 35.68342590332031,
+                  "mae": 23.21083641052246,
+                  "bias": -8.672379493713379
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 7.597924709320068,
+                  "mae": 4.841777324676514,
+                  "bias": -1.0644439458847046
+                },
+                "mc": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 46.505714416503906,
+                  "mae": 20.091053009033203,
+                  "bias": -4.567708492279053
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 21.992494583129883,
+                  "mae": 12.416183471679688,
+                  "bias": -5.74611234664917
+                },
+                "mc": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 81.68050384521484,
+                  "mae": 40.765296936035156,
+                  "bias": -25.186309814453125
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 105.24781799316406,
+                  "mae": 100.26687622070312,
+                  "bias": -100.26687622070312,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 254.72695922851562,
+                  "mae": 245.541748046875,
+                  "bias": -245.541748046875,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 7.07274055480957,
+                  "mae": 7.07274055480957,
+                  "bias": 7.07274055480957,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 97.49720001220703,
+                  "mae": 97.49720001220703,
+                  "bias": 97.49720001220703,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 7.391312122344971,
+                  "mae": 5.465226650238037,
+                  "bias": 2.623234987258911,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 7.502295970916748,
+                  "mae": 4.789785861968994,
+                  "bias": 4.733485221862793,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            }
+          },
+          "500": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 6.8929266929626465,
+                  "mae": 4.4080281257629395,
+                  "bias": -0.7161571383476257
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.68497085571289,
+                  "mae": 19.521305084228516,
+                  "bias": -4.4828619956970215
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 6.8929266929626465,
+                  "mae": 4.4080281257629395,
+                  "bias": -0.7161571383476257
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.68497085571289,
+                  "mae": 19.521305084228516,
+                  "bias": -4.4828619956970215
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 5.365876197814941,
+                  "mae": 3.3955509662628174,
+                  "bias": -0.4068688154220581
+                },
+                "mc": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 27.796628952026367,
+                  "mae": 13.792729377746582,
+                  "bias": 0.4521486461162567
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 8.943693161010742,
+                  "mae": 6.168426036834717,
+                  "bias": -1.2793718576431274
+                },
+                "mc": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 46.2403450012207,
+                  "mae": 29.513595581054688,
+                  "bias": -12.82276439666748
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 19.79360008239746,
+                  "mae": 17.266542434692383,
+                  "bias": 9.963689804077148,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 165.33444213867188,
+                  "mae": 164.9337158203125,
+                  "bias": -164.9337158203125,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 16.66228485107422,
+                  "mae": 16.66228485107422,
+                  "bias": 16.66228485107422,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 120.85984802246094,
+                  "mae": 120.85984802246094,
+                  "bias": 120.85984802246094,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 2.980961799621582,
+                  "mae": 2.2758758068084717,
+                  "bias": 0.6935901045799255,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 4.865154266357422,
+                  "mae": 4.300455570220947,
+                  "bias": -3.2406747341156006,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 16.511720657348633,
+                  "mae": 8.457799911499023,
+                  "bias": -2.756436347961426
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 65.40637969970703,
+                  "mae": 29.43419647216797,
+                  "bias": -13.749648094177246
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 47.814510345458984,
+                  "mae": 27.19350242614746,
+                  "bias": -11.546101570129395,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 240.75929260253906,
+                  "mae": 144.58612060546875,
+                  "bias": -114.74650573730469,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 12.581171035766602,
+                  "mae": 7.393805980682373,
+                  "bias": -2.257274627685547
+                },
+                "mc": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 35.05892562866211,
+                  "mae": 22.89476203918457,
+                  "bias": -8.014078140258789
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 7.6450347900390625,
+                  "mae": 4.859663963317871,
+                  "bias": -0.7081044316291809
+                },
+                "mc": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 45.90026092529297,
+                  "mae": 19.76633644104004,
+                  "bias": -4.21136999130249
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 21.052814483642578,
+                  "mae": 12.135703086853027,
+                  "bias": -4.539542198181152
+                },
+                "mc": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 80.89098358154297,
+                  "mae": 40.31178665161133,
+                  "bias": -23.9797420501709
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 104.8049545288086,
+                  "mae": 99.078125,
+                  "bias": -99.078125,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 254.00021362304688,
+                  "mae": 244.35304260253906,
+                  "bias": -244.35304260253906,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 5.6572265625,
+                  "mae": 5.6572265625,
+                  "bias": 5.6572265625,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 96.0816879272461,
+                  "mae": 96.0816879272461,
+                  "bias": 96.0816879272461,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 6.94824743270874,
+                  "mae": 4.883308410644531,
+                  "bias": 1.3683936595916748,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 6.848437786102295,
+                  "mae": 4.082897186279297,
+                  "bias": 3.4786441326141357,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            }
+          },
+          "750": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 6.243131637573242,
+                  "mae": 3.9990732669830322,
+                  "bias": 0.6405861377716064
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.49050521850586,
+                  "mae": 19.783031463623047,
+                  "bias": -3.1261186599731445
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 6.243131637573242,
+                  "mae": 3.9990732669830322,
+                  "bias": 0.6405861377716064
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.49050521850586,
+                  "mae": 19.783031463623047,
+                  "bias": -3.1261186599731445
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 4.9494452476501465,
+                  "mae": 3.1355464458465576,
+                  "bias": 0.7024731040000916
+                },
+                "mc": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 28.026626586914062,
+                  "mae": 14.352344512939453,
+                  "bias": 1.5614904165267944
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 8.011491775512695,
+                  "mae": 5.499551296234131,
+                  "bias": 0.5203326940536499
+                },
+                "mc": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 45.57536697387695,
+                  "mae": 29.287710189819336,
+                  "bias": -11.02306079864502
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 14.619688987731934,
+                  "mae": 11.347803115844727,
+                  "bias": -0.8777103424072266,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 176.09800720214844,
+                  "mae": 175.77511596679688,
+                  "bias": -175.77511596679688,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 9.21966552734375,
+                  "mae": 9.21966552734375,
+                  "bias": 9.21966552734375,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 113.417236328125,
+                  "mae": 113.417236328125,
+                  "bias": 113.417236328125,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 2.7634172439575195,
+                  "mae": 2.3185131549835205,
+                  "bias": 1.3302150964736938,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 4.094328880310059,
+                  "mae": 3.5150375366210938,
+                  "bias": -2.6040496826171875,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 16.14423942565918,
+                  "mae": 8.330367088317871,
+                  "bias": -1.2623462677001953
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 65.05816650390625,
+                  "mae": 29.818523406982422,
+                  "bias": -12.255558967590332
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 45.71670913696289,
+                  "mae": 26.27967071533203,
+                  "bias": -12.021751403808594,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 239.06356811523438,
+                  "mae": 144.2906494140625,
+                  "bias": -115.2221450805664,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 12.519847869873047,
+                  "mae": 7.311033248901367,
+                  "bias": -0.6513239145278931
+                },
+                "mc": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 35.03321838378906,
+                  "mae": 23.31769561767578,
+                  "bias": -6.408126354217529
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 7.621789455413818,
+                  "mae": 4.839237689971924,
+                  "bias": 0.5437679290771484
+                },
+                "mc": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 46.32081985473633,
+                  "mae": 20.54916763305664,
+                  "bias": -2.9594974517822266
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 20.510456085205078,
+                  "mae": 11.866414070129395,
+                  "bias": -2.7388291358947754
+                },
+                "mc": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 80.009033203125,
+                  "mae": 40.21443176269531,
+                  "bias": -22.179027557373047
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 102.58956909179688,
+                  "mae": 97.7816162109375,
+                  "bias": -97.7816162109375,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 252.24732971191406,
+                  "mae": 243.0565185546875,
+                  "bias": -243.0565185546875,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 7.822521209716797,
+                  "mae": 7.822521209716797,
+                  "bias": 7.822521209716797,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 98.24697875976562,
+                  "mae": 98.24697875976562,
+                  "bias": 98.24697875976562,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 6.991503715515137,
+                  "mae": 5.239240646362305,
+                  "bias": 2.594926357269287,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 7.377872943878174,
+                  "mae": 4.802847862243652,
+                  "bias": 4.70517635345459,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            }
+          },
+          "1000": {
+            "fit": {
+              "all": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 5.879587173461914,
+                  "mae": 3.7810654640197754,
+                  "bias": -0.9418666958808899
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.94113540649414,
+                  "mae": 19.550647735595703,
+                  "bias": -4.708571910858154
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                },
+                "mc": {
+                  "rows": 0,
+                  "episodes": 0,
+                  "rmse": null,
+                  "mae": null,
+                  "bias": null,
+                  "judgement": "UNDETERMINED_EMPTY"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 5.879587173461914,
+                  "mae": 3.7810654640197754,
+                  "bias": -0.9418666958808899
+                },
+                "mc": {
+                  "rows": 43706,
+                  "episodes": 78,
+                  "rmse": 35.94113540649414,
+                  "mae": 19.550647735595703,
+                  "bias": -4.708571910858154
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 4.626193046569824,
+                  "mae": 2.97178053855896,
+                  "bias": -0.5831628441810608
+                },
+                "mc": {
+                  "rows": 27282,
+                  "episodes": 78,
+                  "rmse": 28.01008415222168,
+                  "mae": 13.921493530273438,
+                  "bias": 0.27585458755493164
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 7.585004806518555,
+                  "mae": 5.196821689605713,
+                  "bias": -1.5882691144943237
+                },
+                "mc": {
+                  "rows": 16058,
+                  "episodes": 78,
+                  "rmse": 46.558815002441406,
+                  "mae": 29.38318634033203,
+                  "bias": -13.131661415100098
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 13.194233894348145,
+                  "mae": 10.352771759033203,
+                  "bias": 6.639369964599609,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 8,
+                  "episodes": 1,
+                  "rmse": 168.77093505859375,
+                  "mae": 168.25802612304688,
+                  "bias": -168.25802612304688,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 5.709159851074219,
+                  "mae": 5.709159851074219,
+                  "bias": -5.709159851074219,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 98.4884033203125,
+                  "mae": 98.4884033203125,
+                  "bias": 98.4884033203125,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 2.2060790061950684,
+                  "mae": 1.7928123474121094,
+                  "bias": 0.5648293495178223,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 357,
+                  "episodes": 1,
+                  "rmse": 4.273642539978027,
+                  "mae": 3.9067225456237793,
+                  "bias": -3.3694353103637695,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            },
+            "holdout": {
+              "all": {
+                "gae": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 16.719179153442383,
+                  "mae": 8.690858840942383,
+                  "bias": -3.0585787296295166
+                },
+                "mc": {
+                  "rows": 10086,
+                  "episodes": 18,
+                  "rmse": 65.50749206542969,
+                  "mae": 30.066072463989258,
+                  "bias": -14.05179214477539
+                }
+              },
+              "primary_success": {
+                "gae": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 46.0232048034668,
+                  "mae": 26.602397918701172,
+                  "bias": -12.961407661437988,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 542,
+                  "episodes": 1,
+                  "rmse": 238.63670349121094,
+                  "mae": 144.3418426513672,
+                  "bias": -116.16181182861328,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "primary_failure": {
+                "gae": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 13.23319149017334,
+                  "mae": 7.673669338226318,
+                  "bias": -2.496201276779175
+                },
+                "mc": {
+                  "rows": 9544,
+                  "episodes": 17,
+                  "rmse": 36.06805419921875,
+                  "mae": 23.57639503479004,
+                  "bias": -8.253003120422363
+                }
+              },
+              "pre_contact": {
+                "gae": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 7.9247965812683105,
+                  "mae": 5.103868007659912,
+                  "bias": -0.8755049109458923
+                },
+                "mc": {
+                  "rows": 5376,
+                  "episodes": 18,
+                  "rmse": 46.811485290527344,
+                  "mae": 20.305631637573242,
+                  "bias": -4.378769874572754
+                }
+              },
+              "contact": {
+                "gae": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 21.2437686920166,
+                  "mae": 12.361642837524414,
+                  "bias": -5.0235981941223145
+                },
+                "mc": {
+                  "rows": 4456,
+                  "episodes": 18,
+                  "rmse": 80.3874740600586,
+                  "mae": 41.06308364868164,
+                  "bias": -24.463796615600586
+                }
+              },
+              "held_1s": {
+                "gae": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 106.11931610107422,
+                  "mae": 100.9403076171875,
+                  "bias": -100.9403076171875,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 41,
+                  "episodes": 1,
+                  "rmse": 255.9542999267578,
+                  "mae": 246.21522521972656,
+                  "bias": -246.21522521972656,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "drop_edge": {
+                "gae": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 0.4561595916748047,
+                  "mae": 0.4561595916748047,
+                  "bias": 0.4561595916748047,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 1,
+                  "episodes": 1,
+                  "rmse": 90.88062286376953,
+                  "mae": 90.88062286376953,
+                  "bias": 90.88062286376953,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              },
+              "other": {
+                "gae": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 6.525373935699463,
+                  "mae": 4.693887710571289,
+                  "bias": 1.7978360652923584,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                },
+                "mc": {
+                  "rows": 212,
+                  "episodes": 1,
+                  "rmse": 7.2864789962768555,
+                  "mae": 4.342069149017334,
+                  "bias": 3.9080865383148193,
+                  "judgement": "UNDETERMINED_RARE_SLICE"
+                }
+              }
+            }
+          }
+        },
+        "optimizer_step_before": [
+          7680.0
+        ],
+        "reproduced_rmse": 22.280195236206055,
+        "source_actor_initial_model_sha256": "d97f44d9b6cd5281faa63917021a94204658b5c461abc23017c7f4cd48061eb9",
+        "optimizer_step_after": [
+          8680.0
+        ]
+      }
+    },
+    "scope": "offline factual V-only fit; no PPO/Cm/actor update or utility claim; held_1s is a diagnostic phase",
+    "elapsed_seconds": 28.79686951590702,
+    "gpu_peak_memory_bytes": 685054464
+  },
+  "runtime": {
+    "run_status": "COMPLETED",
+    "experiment_id": "P-20261001-current-policy-v-fit",
+    "run_id": "r1",
+    "pid": 564298,
+    "command": [
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/probe_current_policy_value_fit.py",
+      "--collection",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420",
+      "--collection",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420",
+      "--pretrained",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt",
+      "--checkpoint286",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "--checkpoint287",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "--baseline-report",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/value_diagnostic.json",
+      "--output",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1"
+    ],
+    "git_commit": "cc37c037d49aab6955772a47cbaf2535c2fec81b",
+    "gpu_visibility": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "updates_per_checkpoint": 1000,
+    "batch_size": 128,
+    "split_seed": 20261001,
+    "budget_seconds": 1200,
+    "budget_bytes": 1073741824,
+    "cpu_threads": 2,
+    "inputs_sha256": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/probe_current_policy_value_fit.py": "e65a62940e9a5d80dd13e506b2198022f1bf4aa9626b4cdc4f7fc45e4d96a612",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/audit_current_policy_value.py": "17457a4d1cf6f970c3dbce4dcb02f962b5ec19d20d051a814c54f39717d4dfe8",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/physical_value_models.py": "18f61f5bda33839d20a8fcf24413784cdb85c88822b0eff226887d4c75eaab3e",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/physical_value_data.py": "560e0be680cf32f788cd6d14cb400e2d1c7e1df6867191b7cb5f486c8b7d767a",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/physical_value_contract.py": "5bc08eab29dd4f31a6460a5802dea355aaedffd8392085d59dd1462f666c9ac9",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/dexplore_physical_value_agent.py": "a69be04496e9abfb6139c277df88d569242d597ff09823c7b49f6ccd6317ccc2",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/v118_planner.py": "5e44501ead98cc001e177d204bec02028afaf855fa015991d65328820691fe16",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/value_diagnostic.json": "b1bb3d497262b87153a0f5b23997c90de8f092949d8ee1d712c0f8c320eec584",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420/results.json": "ec728679d5aa60b0ad61d5c083e43d280074d9b51f93d51412e8841d0b21dd79",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420/runtime_manifest.json": "d636ebcee16c7ca1c1ec3f210cfd6a2bdf1c81216143f338a7ca06a2fd50415d",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420/transitions_000.pt": "5ec09e4b14de61010d8ba7c4260b846f775324f2fe527689deb3a267ab81cbbc",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420/results.json": "ea7a896ba29b9e51317f45ec9641db3e6f83acf941a42f437965b7eb1287c675",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420/runtime_manifest.json": "f9ecc7b6d4a078a221d424b129e91db23d5fd70c5279ee505bc4a19364e16abf",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420/transitions_000.pt": "c9008a20cb71c14a33c57c2c3a11ca84199ea138efef2feebb6a3f79248d2623"
+    },
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "label": "UNPROMISING",
+    "elapsed_seconds": 28.80510523915291,
+    "input_hashes_unchanged": true
+  },
+  "launcher": {
+    "run_status": "COMPLETED",
+    "launcher_pid": 564274,
+    "timeout_pid": 564297,
+    "command": [
+      "timeout",
+      "--signal=TERM",
+      "--kill-after=5s",
+      "1200s",
+      "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+      "-u",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/probe_current_policy_value_fit.py",
+      "--collection",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420",
+      "--collection",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420",
+      "--pretrained",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt",
+      "--checkpoint286",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "--checkpoint287",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "--baseline-report",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/value_diagnostic.json",
+      "--output",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1"
+    ],
+    "log": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1-support/train.log",
+    "gpu_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "exit_code": 0,
+    "elapsed_seconds": 30.604208554606885
+  },
+  "gpu_admission": {
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2 MiB, 0 %\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2 MiB, 0 %\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 2 MiB, 0 %\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 2 MiB, 0 %\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2 MiB, 0 %\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2 MiB, 0 %\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2 MiB, 0 %\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2 MiB, 0 %\n",
+    "compute_apps": "",
+    "selected_uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+    "time": 1790842364.2471578
+  },
+  "audit": {
+    "original_inputs_unchanged": true,
+    "new_value_only_artifacts_finite": true,
+    "all_saved_adam_steps": 8680,
+    "output_and_support_bytes": 10503124
+  },
+  "artifacts": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/frozen_targets.pt": "604a362bf8bc69e90842d373fe7e1b93ef728723b8055b3d89d29e460113d946",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/value_s287.pt": "aaf88f216877d87b1583181330d86ca7b58b8abe6141ac124e4de08297e8ea74",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/value_s286.pt": "a9012ffeada6a54ad647a8ca184cd43530ce6f57d7126e3ff67c9c69d78107a0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/runtime_manifest.json": "153ceb94b32c1e1b48b3aa4175ab6177039174655b3d5b52d3e637d83ed562f8",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/metrics.jsonl": "2530395d2f57b8c0d1bcce65168addb096e752ab37d369eb4b3d127afafa271d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/results.json": "3a7dd89611529d0b316951f8308c6bb3d742dbb5bdcc17c04b3e83dff6825920",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1/split.json": "5122b95dcf6d1b3f55b641f7d2e6cd23ff314017b0649285265f3d84c818271b",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1-support/launcher_manifest.json": "bff29e83955ca04f530c3aa2c5e082f87152ce5ccb09e5f61010ed4be64d9e69",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1-support/train.log": "02a3a7a5fc7d58cbfdd43134e1fc285d7d60514b91c13f7de47119e68655b410",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-v-fit-r1-support/gpu_admission.json": "1b1aa2dc7f1e089f247c4ae91fb8cad7e092452d28f7de9b293673e073343959"
+  }
+}
