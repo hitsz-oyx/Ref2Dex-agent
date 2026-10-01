@@ -17,7 +17,7 @@ def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dic
         alternatives = primary.get('fallbacks', [])
         if not isinstance(alternatives, list) or any(not isinstance(item, dict) or item.get('verified') is not True for item in alternatives):
             raise WorkflowError('fallback bindings must be explicitly verified')
-        candidates = [{key: value for key, value in primary.items() if key != 'fallbacks'}, *alternatives]
+        candidates = [{key: value for key, value in primary.items() if key != 'fallbacks'}, *(dict(item) for item in alternatives)]
         if len({item.get('provider') for item in candidates}) != len(candidates):
             raise WorkflowError('a role requires distinct provider binding names')
         if any(item.get('workspace') != primary.get('workspace') for item in alternatives):
