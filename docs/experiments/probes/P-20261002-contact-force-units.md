@@ -19,7 +19,15 @@ raw telemetry SHA e39ddeae430600a043a3cd361f9d6b57132add3b38c541b8ad7d0b053717d8
 quiet mask/quantiles independently recomputed, both owned PIDs exited.
 [Exact terminal audit](P-20261002-contact-force-units-r1-audit.json).
 
-Next engineering check: same setup, after resting measurement lift object
+`r2` COMPLETED, same supported protocol plus airborne negative condition.
+5760/5760 quiet supported observations trigger normalized presence;0/480
+airborne observations trigger it (all raw forces exactly0N, clearance>=.361m,
+hand distance>=1.761m). This verifies these two controlled force conditions,
+not sensitivity/specificity on actual grasp transitions or identified pairs.
+Both runs total86.191sec/9.303MB; inputs/hashes/raw telemetry replay and owned
+PID exits verified. [Exact terminal audit](P-20261002-contact-force-units-r2-audit.json).
+
+Executed check: same setup, after resting measurement lift object
 .5m, zero its velocity, observe first5ticks of free fall while full-mesh
 clearance>.2m and hand distance>1m. Save all raw forces; test a new
 weight-normalized presence proxy (>.1 of static weight) against both known

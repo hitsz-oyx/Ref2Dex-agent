@@ -1,0 +1,83 @@
+{
+  "status": "COMPLETED",
+  "inputs_verified": true,
+  "raw_telemetry_replay_passed": true,
+  "known_supported_observations": 5760,
+  "known_airborne_observations": 480,
+  "normalized_positive_recall": 1.0,
+  "normalized_negative_false_positives": 0.0,
+  "old_threshold_positive_recall": 0.0,
+  "own_pids_exited": true,
+  "cumulative_seconds": 86.19094698084518,
+  "cumulative_bytes": 9303074,
+  "result": {
+    "run_status": "COMPLETED",
+    "kind": "ENGINEERING_FORCE_UNIT_DIAGNOSTIC",
+    "episodes": 96,
+    "frames": 150,
+    "quiet_observations": 5760,
+    "mass_kg_range": [
+      0.0025936129968613386,
+      0.0025936129968613386
+    ],
+    "object_flags": [
+      0
+    ],
+    "substeps": 4,
+    "contact_collection": 2,
+    "weight_N_range": [
+      0.025443345308303833,
+      0.025443345308303833
+    ],
+    "quiet_force_N_quantiles": [
+      0.006606529001146555,
+      0.017437854781746864,
+      0.025441711768507957,
+      0.03430374711751938,
+      0.05650718882679939
+    ],
+    "quiet_force_over_weight_quantiles": [
+      0.6853600740432739,
+      0.9999358057975769,
+      1.3482403755187988
+    ],
+    "quiet_fraction_above_legacy_threshold": 0.0,
+    "quiet_min_hand_distance_m": 2.148879051208496,
+    "quiet_clearance_m_quantiles": [
+      0.00036738673225045204,
+      0.00036765309050679207,
+      0.0003677518106997013
+    ],
+    "telemetry_sha256": "88394bbba3179fb6dc0bc92ec167c6e1dd7e435902359950765ef6de2af71a86",
+    "elapsed_seconds": 41.21776912827045,
+    "airborne_sha256": "b0abc2b153b9deb07f754369e57a5eb5f6a5391f346ee3aeeb54c3139ffb00cf",
+    "airborne_observations": 480,
+    "airborne_max_object_force_N": 0.0,
+    "airborne_min_clearance_m": 0.36079245805740356,
+    "airborne_min_hand_distance_m": 1.7606656551361084,
+    "airborne_normalized_contact_false_positive_fraction": 0.0,
+    "quiet_normalized_contact_detection_fraction": 1.0,
+    "scope": "known resting-contact telemetry with hand>1m away and object quiet; verifies net-force scale, does not prove grasp or change old labels"
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/probe_contact_force_units.py": "11d1cb88ec6a3d1f90f77ce3b14c077601fa1348e152e8b1e316c0e161ecd622",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/executable_contact_options.py": "5993d464bfb1ff5d3fb70da76825b79bed77a7990f7b9fceefc93d950de81a25",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/weight_normalized_contact.py": "fabd8428009c9e2109069aa8e1949b93ad57853df39d2562995a67202340d07b",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/configs/hf02_temporal_canonical_route.json": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/environment.yaml": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/training.yaml": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf": "9a1b201ca8ae2f175aa14799fdae1367863363d92a005221c58cb5626366e2f4",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/table.urdf": "83f54218ac181102ebbf9a36f9c795819940c2f649e5f950741f99b4a75f28fe",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/objects/airplane/airplane.obj": "dcbb1cce38e65b3ee608e20f0846cbf93aa3b7bbf863a67582d9944f9a0d64f0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/objects/table/table.obj": "25c6fb8b774a04f5314a13a538b9c26886716d196d46a68979e817755cf0e383",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/evaluate.py": "ec4bdc11e3a794d6a5743b4ea2bb0eacb01d885d3cf686d5625b43a6bad1d8f9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py": "ef9d000cd365663e6deca5d4b3cf14c82eb67e20f997f4db913cd60cfd522b3d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py": "9824b67e3fdbe2dcc81302311cbb2694f50c07d0b48a0283852402f6d5babcb7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/base_task.py": "a8dfe482676897eff737918270314b7b4fded057faf260337603b5b5c90dd986",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift/interaction_hand_inspire.pt": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s7_coordfix/corrected_converted/s7_airplane_lift_Retake/interaction_hand_inspire.pt": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s9_coordfix/corrected_converted/s9_airplane_lift/interaction_hand_inspire.pt": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-force-units-r1/run_manifest.json": "8ffd8ed2a9db9df37e8c08175daccb4322d5074a78f6252629f5081606e69fd9"
+  }
+}
