@@ -31,7 +31,8 @@ def run(args):
             a=b['inputs']['actions']
             learned_physical+=int((a[row,selected]!=a[row,prior]).any(-1).sum())
             nonbase+=int((a[row,selected]!=a[:,4]).any(-1).sum());decisions+=len(row)
-        audit[name]=dict(episodes=sum(q['episodes'] for q in r['rollouts']),env_steps=r['native_env_steps'],optimizer_updates=r['optimizer_updates'],
+        audit[name]=dict(episodes=sum(q['episodes'] for q in r['rollouts']),effective_first_episode_steps=r['native_env_steps'],
+                        actual_batched_sim_steps=sum(q['episodes']*max(q['episode_steps']) for q in r['rollouts']),optimizer_updates=r['optimizer_updates'],
                         initial_fingerprint=policy['initial_fingerprint'],policy_parameters_changed=r['policy_parameters_changed'],
                         decisions=decisions,actual_nonbase_decisions=nonbase,selected_physical_differs_from_prior=learned_physical,
                         inference_ms_total=sum(r['batched_inference_ms']),inference_calls=len(r['batched_inference_ms']),
