@@ -1,0 +1,124 @@
+{
+  "status": "COMPLETED",
+  "rows": 39170,
+  "own_fit_pid_exited": true,
+  "input_hashes_verified": true,
+  "pre_step_state_force_goal_timing_verified": true,
+  "joint_target_independently_recomputed": true,
+  "fit_only_normalization_max_error": 0.0,
+  "checkpoint_sha256": "fd9945d9f5710f3c4537351a0f204885ac3059aa592a44da016b4ff9ea37d6bc",
+  "original_gate": "PROMISING",
+  "elapsed_seconds": 4.335115447174758,
+  "cumulative_probe_seconds": 65.8245576270856,
+  "output_bytes": 1728627,
+  "gpu": {
+    "index": 0,
+    "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7475\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790883300.8042648
+  },
+  "result": {
+    "run_status": "COMPLETED",
+    "label": "PROMISING",
+    "metrics": {
+      "cm": {
+        "held": {
+          "rows": 16750,
+          "height_rmse_mm": 2.9312472343444824,
+          "clearance_mae_mm": 1.3742181062698364,
+          "joint_brier": 0.03800039365887642,
+          "persist_joint_brier": 0.04829850792884827,
+          "joint_supported_height_mae_mm": 3.1737587451934814
+        },
+        "held_clear": {
+          "rows": 6706,
+          "height_rmse_mm": 4.1493940353393555,
+          "clearance_mae_mm": 2.27109694480896,
+          "joint_brier": 0.002318014856427908,
+          "persist_joint_brier": 0.0029824036173522472,
+          "joint_supported_height_mae_mm": 3.5067248344421387
+        },
+        "cal": {
+          "rows": 5860,
+          "height_rmse_mm": 2.0547618865966797,
+          "clearance_mae_mm": 1.190317153930664,
+          "joint_brier": 0.04099750518798828,
+          "persist_joint_brier": 0.052389077842235565,
+          "joint_supported_height_mae_mm": 2.86376690864563
+        }
+      },
+      "state_only": {
+        "held": {
+          "rows": 16750,
+          "height_rmse_mm": 3.3328535556793213,
+          "clearance_mae_mm": 1.5978516340255737,
+          "joint_brier": 0.03747583553195,
+          "persist_joint_brier": 0.04829850792884827,
+          "joint_supported_height_mae_mm": 3.4926297664642334
+        },
+        "held_clear": {
+          "rows": 6706,
+          "height_rmse_mm": 4.824234962463379,
+          "clearance_mae_mm": 2.8545308113098145,
+          "joint_brier": 0.0023960142862051725,
+          "persist_joint_brier": 0.0029824036173522472,
+          "joint_supported_height_mae_mm": 4.048780918121338
+        },
+        "cal": {
+          "rows": 5860,
+          "height_rmse_mm": 2.303138017654419,
+          "clearance_mae_mm": 1.3233826160430908,
+          "joint_brier": 0.040805574506521225,
+          "persist_joint_brier": 0.052389077842235565,
+          "joint_supported_height_mae_mm": 3.0848851203918457
+        }
+      },
+      "shuffled": {
+        "held": {
+          "rows": 16750,
+          "height_rmse_mm": 3.347968578338623,
+          "clearance_mae_mm": 1.6015435457229614,
+          "joint_brier": 0.03752816095948219,
+          "persist_joint_brier": 0.04829850792884827,
+          "joint_supported_height_mae_mm": 3.460733652114868
+        },
+        "held_clear": {
+          "rows": 6706,
+          "height_rmse_mm": 4.849900245666504,
+          "clearance_mae_mm": 2.864405632019043,
+          "joint_brier": 0.0024082057643681765,
+          "persist_joint_brier": 0.0029824036173522472,
+          "joint_supported_height_mae_mm": 3.975369930267334
+        },
+        "cal": {
+          "rows": 5860,
+          "height_rmse_mm": 2.3054277896881104,
+          "clearance_mae_mm": 1.3249423503875732,
+          "joint_brier": 0.04087670519948006,
+          "persist_joint_brier": 0.052389077842235565,
+          "joint_supported_height_mae_mm": 3.0848774909973145
+        }
+      }
+    },
+    "gate": {
+      "support": true,
+      "joint_no_worse_than_persist": true,
+      "state_only_height5pct": true,
+      "state_only_clearance5pct": true,
+      "state_only_joint_height": true,
+      "shuffled_height5pct": true,
+      "shuffled_clearance5pct": true,
+      "shuffled_joint_height": true,
+      "passed": true
+    },
+    "support": {
+      "transitions": 6706,
+      "episodes": 138,
+      "initial_groups": 27
+    },
+    "elapsed_seconds": 61.485050005838275,
+    "checkpoint_sha256": "fd9945d9f5710f3c4537351a0f204885ac3059aa592a44da016b4ff9ea37d6bc",
+    "scope": "factual one-step intervention information, pre motor-target/raw-force state only; no multistep forecast/planning/utility/final grasp claim"
+  }
+}
