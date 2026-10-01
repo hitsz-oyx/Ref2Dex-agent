@@ -181,6 +181,34 @@ class ContactConsequenceTests(unittest.TestCase):
         self.assertEqual(result['drop_eligible'].tolist(),[True,True,False])
         self.assertAlmostEqual(float(result['contact_loss'][1]),.6,places=5)
 
+    def test_native_option_learning_updates_actual_choice_probabilities_on_complete_episodes(self):
+        from scripts.train_recovery_options import recovery_player
+        from src.task.CmResidual.trajectory_selector import effective_commands
+        class Physics:
+            def __init__(self,*args):self.models=[torch.nn.Linear(1,1)]
+            def inputs(self,history,candidate,*args):
+                n=len(history)
+                return dict(history=history,context=torch.zeros(n,22),actions=effective_commands(candidate),
+                            physics=torch.zeros(n,6,22),recommended=torch.zeros(n,dtype=torch.long))
+        Player=self.fake_player_type()
+        class CompletePlayer(Player):
+            def env_step(self,env,action):
+                obs,reward,_,info=super().env_step(env,action)
+                return obs,reward,env.task.progress_buf>=40,info
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);checkpoint=root/'frozen.pt';checkpoint.write_bytes(b'frozen')
+            args=SimpleNamespace(output=root,trajectory=checkpoint,policy=None,cm_on=True,assignment_seed=7381,
+                                 rollouts=1,epochs=2,evaluate=False,smoke=True,wall_seconds=60)
+            with patch('src.task.CmResidual.recovery_option_policy.FrozenRecoveryPhysics',Physics),patch.object(torch.cuda,'synchronize'):
+                recovery_player(SimpleNamespace(EvalPlayer=CompletePlayer),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))().run()
+            result=json.loads((root/'results.json').read_text());data=torch.load(root/'decisions.pt',weights_only=False)[0]
+            self.assertEqual(result['native_env_steps'],96*40)
+            self.assertEqual(result['scientific_label'],'ENGINEERING_SMOKE')
+            self.assertEqual(result['optimizer_updates'],4)
+            self.assertTrue(result['policy_parameters_changed'] and result['frozen_cm_experts'])
+            self.assertLess(result['rollouts'][0]['first_actual_option_ratio_error'],1e-6)
+            self.assertTrue(torch.allclose(data['old_logprob'].exp(),torch.where(data['selected']==0,.9,.02),atol=1e-6))
+
     def test_five_policy_pool_merges_physical_aliases_and_records_native_targets(self):
         from scripts.collect_randomized_contact_consequences import randomized_player
         class Selector:

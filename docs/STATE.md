@@ -42,7 +42,11 @@ vsstate-only/shuffled +.279/+.060mm，vs最佳固定cup −.699mm，原收益门
 提议8.846%，105次真实非base Cm匹配，523episodes重新决策；NN/actor/V均冻结。
 所有输入/PD执行合同通过，自有进程结束，GPU释放；包括setup共596.62秒/34.85MB。
 HF10预算2/2关闭，旧MAE门失败及新收益失败都保留，不扫阈值追抬升。
-下一步应设计能保留现有抓取的Cm训练作用链，先固定独立机制/训练合同。
+下一步HF11已固定直接categorical片段策略的学习合同：Cm提供物理未来特征和
+明确动作先验，PPO使用实际片段选择概率，评价训练所得策略时继续调用Cm。
+当前先做GPU完整episode工程smoke；通过后才启动matched on/off有界训练。
+新训练seed单个只作Probe，稳定45tick/后续drop协议预固定，C3仍OPEN。
+见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
 [保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
