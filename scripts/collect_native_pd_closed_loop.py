@@ -113,7 +113,7 @@ def closed_loop_player(original,args,torch,gymtorch):
                 if (ended|~held|(count>=w)).all():break
             valid=steps==10
             if ((steps>0)&(~valid|terminal.any(-1))).any():raise ValueError('incomplete/reset-contaminated window')
-            if int(valid.sum())<24:raise ValueError('insufficient collected support')
+            if int(valid.sum())<(1 if args.engineering_smoke else 24):raise ValueError('insufficient collected support')
             # Replay the frozen feedback experts independently on actual saved observations.
             saved_obs=native_obs[valid].reshape(-1,native_obs.shape[-1]);saved_feedback=feedback[valid].reshape(-1,18);choice=programs[valid].reshape(-1)
             index=torch.where(choice==7,1,torch.where(choice==6,4,choice));replay_error=0.;counter_error=0.
@@ -148,7 +148,7 @@ def closed_loop_player(original,args,torch,gymtorch):
 
 def main():
     p=argparse.ArgumentParser(add_help=False,allow_abbrev=False);p.add_argument('--output-dir',dest='output',type=Path,required=True);p.add_argument('--native-pd-checkpoint',dest='checkpoint',type=Path,required=True)
-    p.add_argument('--panel-seed',dest='seed',type=int,required=True);p.add_argument('--assignment-seed',type=int,required=True);p.add_argument('--windows-per-episode',type=int,default=8);p.add_argument('--max-steps',type=int,default=650);p.add_argument('--wall-seconds',type=int,default=240)
+    p.add_argument('--panel-seed',dest='seed',type=int,required=True);p.add_argument('--assignment-seed',type=int,required=True);p.add_argument('--engineering-smoke',action='store_true');p.add_argument('--windows-per-episode',type=int,default=8);p.add_argument('--max-steps',type=int,default=650);p.add_argument('--wall-seconds',type=int,default=240)
     args,remaining=p.parse_known_args();base=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():raise ValueError('new owned output required')
     args.output.mkdir(parents=True,exist_ok=False);begin=time.monotonic();m=dict(run_status='STARTED',pid=os.getpid(),command=sys.argv,gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),expert_training=False,cm_training=False)

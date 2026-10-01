@@ -76,6 +76,7 @@ def run(args):
                 '--native-pd-checkpoint',str(checkpoint),'--windows-per-episode','2' if args.smoke_only else '8','--max-steps','650','--wall-seconds','240','--task','Dexplore_Inspire','--cfg_env',str(R7/'environment.yaml'),'--cfg_train',str(R7/'training.yaml'),
                 '--checkpoint',str((ROOT/route['experts']['source_e260']['checkpoint']).resolve()),'--motion_file',str(MOTIONS),'--headless','--num_envs','96','--seed',str(seed),'--sim_device','cuda:0','--rl_device','cuda:0','--graphics_device_id','0','--disable-early-termination',
                 '--output',str(d/'unused.json'),'--output_path',str(d/'player')]
+            if args.smoke_only:command.append('--engineering-smoke')
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=admission['uuid'],OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',PYTHONDONTWRITEBYTECODE='1',CUBLAS_WORKSPACE_CONFIG=':4096:8',PYTHONHASHSEED=str(seed),TORCH_EXTENSIONS_DIR=str(output/'cache/torch_extensions'),XDG_CACHE_HOME=str(output/'cache'))
             env['LD_LIBRARY_PATH']='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH','')
             p=dict(seed=seed,assignment_seed=12000+seed,run_status='STARTED',directory=str(d),command=command,gpu=admission);m['phases'].append(p);save();process=None;t=time.monotonic();print(json.dumps(dict(seed=seed,status='STARTED')),flush=True)
