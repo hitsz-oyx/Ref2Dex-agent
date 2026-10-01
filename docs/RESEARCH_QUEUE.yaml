@@ -72,6 +72,17 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HF15:
+    claim: C3
+    name: translation_feedback_orientation_stabilization
+    status: ENGINEERING
+    branch: agent/cm-executable-options
+    probe_budget: 2
+    probes_used: 0
+    owner: current_session
+    authorization: "active mechanism goal; explicit control-responsibility review after preserved HF13/HF14 failures, same mission/claim/resources"
+    card: docs/experiments/probes/P-20261002-orientation-feedback-opportunity.md
+    transition: "Keep expert XYZ/lift and finger feedback; anchor only wrist rotation DOFs3..5. Last wrist-anchoring candidate Probe; positive permits new plan-Cm controls/direct utility, negative ends this local candidate family."
   HF14:
     claim: C3
     name: wrist_anchored_feedback_opportunity

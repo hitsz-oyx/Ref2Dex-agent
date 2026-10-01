@@ -88,6 +88,10 @@ frame90[−12.842,−4.179]；几何间隙丢失−6.435pp（posthocframe90
 输入未变，自有PIDs退出/GPU释放，含工程21.66分钟/278.2MB。下一步路线复盘
 控制的平移/旋转职责，保留负责抬升的平移反馈，不继续整腕冻结参数扫描。
 见 [新候选卡](experiments/probes/P-20261002-wrist-feedback-opportunity.md)。
+HF15已按控制职责复盘实现只稳定腕部旋转、保留专家XYZ/手指反馈，正在
+GPU工程检查；不声称HF14已证明旋转是掉落原因。此为最后一轮腕部保持
+候选机会Probe；正向才拟合对应新Cm，失败转更高层候选生成，避免关节扫描。
+见 [旋转稳定卡](experiments/probes/P-20261002-orientation-feedback-opportunity.md)。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
