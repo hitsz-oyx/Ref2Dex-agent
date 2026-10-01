@@ -52,6 +52,8 @@ HYPOTHESIS_STATUSES = {
     "ACTIVE",
     "PAUSED",
     "PROMISING",
+    "UNPROMISING",
+    "UNCLEAR",
     "SUPPORTED",
     "KILLED",
     "REFUTED",
