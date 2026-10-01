@@ -122,10 +122,10 @@ hypotheses:
     status: ACTIVE
     branch: agent/cm-contact-consequence
     probe_budget: 3
-    probes_used: 2
+    probes_used: 3
     owner: current_session
     authorization: "active user goal: real candidate opportunity, physical consequence ranking, direct short-segment replanning; original HF08 preserved"
-    card: docs/experiments/probes/P-20261001-contact-consequence-ranking.md
+    card: docs/experiments/probes/P-20261001-targeted-contact-interventions.md
     transition: "Slot1 pairing UNCLEAR; slot2 native selector gate UNPROMISING with only6selected/9base active matches. Factual prediction is better, action effects unsupported. Remaining slot3 reserved for frozen-proposer1:1 actual-state randomized interventions and re-observation; explicitly a measurement repair, no PPO/V or claim change. C1 PARTIAL/C3 OPEN."
   HF08:
     claim: C3

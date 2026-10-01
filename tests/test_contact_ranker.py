@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 import torch
 
 from src.task.CmResidual.contact_ranker import (
@@ -61,6 +63,48 @@ class ContactRankerTests(unittest.TestCase):
         self.assertAlmostEqual(estimate['value'],.3,places=6)
         self.assertEqual(estimate['matched_windows'],10)
         self.assertEqual(estimate['episodes'],20)
+
+    def test_frozen_runtime_matches_training_inputs_and_preserves_actor_rng(self):
+        from src.task.CmResidual.contact_selector import FrozenContactSelector
+        models=[ConsequenceNetwork().eval() for _ in range(3)]
+        h=torch.randn(8,10,69);a=torch.randn(8,6,18);rest=torch.zeros(8)
+        motion=torch.arange(8)%3;start=torch.arange(8);trigger=torch.full_like(start,20)
+        saved=dict(schema='ref2dex.contact_ranker.v1',models={'cm':[m.state_dict() for m in models]},
+                   history_mean=torch.randn(69),history_scale=torch.rand(69)+1,
+                   action_mean=torch.randn(18),action_scale=torch.rand(18)+1,
+                   context_mean=torch.randn(22),context_scale=torch.rand(22)+1,
+                   lift_mean=torch.tensor(3.),lift_scale=torch.tensor(5.),drop_supported=True,
+                   calibration={'cm':{'margin_mm':.5}})
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint=Path(directory)/'model.pt';torch.save(saved,checkpoint)
+            before=torch.get_rng_state();selector=FrozenContactSelector(checkpoint,'cpu')
+            self.assertTrue(torch.equal(before,torch.get_rng_state()))
+            result=selector.predict(h,a,rest,motion,start,trigger)
+        context=torch.cat((a[:,4],torch.nn.functional.one_hot(motion,3).float(),((start+trigger)/600)[:,None]),-1)
+        context=(context-saved['context_mean'])/saved['context_scale']
+        predictions=[]
+        with torch.no_grad():
+            for model in models:
+                raw=all_predictions(model,(physical_history(h,rest)-saved['history_mean'])/saved['history_scale'],
+                                    (a-saved['action_mean'])/saved['action_scale'],context)
+                predictions.append(torch.stack(((raw[:,:,0]*5+3).clamp_min(0),raw[:,:,1].sigmoid(),raw[:,:,2].sigmoid()),-1))
+        choice,mean,lower=policy_choice(torch.stack(predictions),.5,drop_supported=True,eligible=h[:,-1,38]-rest>=.03)
+        self.assertTrue(torch.equal(choice,result['proposed_arm']))
+        self.assertTrue(torch.allclose(result['lower_gain_mm'],lower[torch.arange(8),choice]))
+
+    def test_targeted_contrast_uses_known_allocation_and_clusters_same_records(self):
+        from scripts.analyze_targeted_contact import contrast
+        treatment=torch.tensor([True,False]*30)
+        outcome=torch.where(treatment,3.,1.)
+        clusters=[f'episode{i//2}' for i in range(60)]
+        result=contrast(treatment,outcome,clusters,clusters)
+        self.assertAlmostEqual(result['effect'],2.)
+        self.assertEqual(result['frame_cluster90'],[2.,2.])
+        self.assertEqual(result['treated_rows'],30)
+        # Known-propensity IPW retains allocation noise; do not substitute an
+        # observational arm-mean difference when counts are unequal.
+        result=contrast(torch.tensor([True,True,False]),torch.tensor([3.,3.,1.]),['a','b','c'],['a','b','c'])
+        self.assertAlmostEqual(result['effect'],10/3)
 
 
 if __name__=='__main__':unittest.main()

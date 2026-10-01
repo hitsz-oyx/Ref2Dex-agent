@@ -135,6 +135,40 @@ class ContactConsequenceTests(unittest.TestCase):
             self.assertTrue(torch.equal(data['history'][:,-1,:49],data['state']))
             self.assertEqual(len(set(data['episode_id'])),96)
 
+    def test_targeted_allocation_executes_proposal_or_base_and_reobserves(self):
+        from scripts.collect_randomized_contact_consequences import randomized_player
+        class Selector:
+            def __init__(self,*args):self.models=[torch.nn.Linear(1,1)];self.calls=0
+            def predict(self,history,candidate,rest,motion,start,trigger):
+                self.calls+=1
+                arm=torch.where(torch.arange(len(history))%2==0,0,4)
+                return dict(proposed_arm=arm,predicted_gain_mm=torch.where(arm==0,5.,0.),
+                            lower_gain_mm=torch.where(arm==0,4.,0.),predicted_contact=torch.ones(len(history)),
+                            predicted_drop=torch.zeros(len(history)))
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);checkpoint=root/'frozen.pt';checkpoint.write_bytes(b'frozen')
+            args=SimpleNamespace(output=root,seed=341,assignment_seed=7341,ranker=checkpoint,
+                                 windows_per_episode=8,max_steps=100,wall_seconds=60)
+            with patch('src.task.CmResidual.contact_selector.FrozenContactSelector',Selector),patch.object(torch.cuda,'synchronize'):
+                player=randomized_player(SimpleNamespace(EvalPlayer=self.fake_player_type()),args,torch,
+                                         SimpleNamespace(unwrap_tensor=lambda x:x))()
+                player.run()
+            data=torch.load(root/'records.pt',weights_only=False);trace=data['policy_trace']
+            active=trace['proposed_arm'].long()!=4;treat=trace['treatment'].bool()
+            self.assertTrue(torch.equal(data['propensity'],torch.where(active,.5,1.)))
+            self.assertGreater(int((active&treat).sum()),50)
+            self.assertGreater(int((active&~treat).sum()),50)
+            self.assertFalse(treat[~active].any())
+            self.assertTrue(torch.equal(data['assignment'],torch.where(treat,trace['proposed_arm'].long(),4)))
+            self.assertTrue((data['actual_action'][treat,:2,0]==.2).all())
+            self.assertTrue((data['actual_action'][~treat,:2,0]==0).all())
+            self.assertTrue((data['actual_action'][:,2:]==0).all())
+            self.assertTrue(torch.equal(data['history'][:,-1,:49],data['state']))
+            ids=data['env_id']==0
+            self.assertGreater(int(ids.sum()),2)
+            self.assertGreater(float(data['state'][ids,38].max()-data['state'][ids,38].min()),0)
+            self.assertFalse(data['future_done'].any())
+
     def test_labels_distinguish_supported_progress_contact_loss_and_existing_lift_drop(self):
         future=torch.zeros(3,10,49)
         future[:,:,38]=torch.tensor([1.04,1.04,1.01])[:,None]

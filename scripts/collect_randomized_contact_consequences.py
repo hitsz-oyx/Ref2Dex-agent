@@ -63,6 +63,13 @@ def randomized_player(original,args,torch,gymtorch):
             rest=task.hoi_refs[task.data_id,task.ref_index,0,108].clone()
             generator=torch.Generator(device=self.device).manual_seed(args.assignment_seed)
             before=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts])
+            selector=None;policy_trace={};latencies=[]
+            if getattr(args,'ranker',None):
+                from src.task.CmResidual.contact_selector import FrozenContactSelector
+                selector=FrozenContactSelector(args.ranker,self.device)
+                selector_before=fingerprint([m.state_dict() for m in selector.models])
+                for key in ['proposed_arm','treatment','propensity','predicted_gain_mm','lower_gain_mm','predicted_contact','predicted_drop']:
+                    policy_trace[key]=torch.zeros(n,w,device=self.device)
             reset_ids=torch.empty(0,dtype=torch.long,device=self.device)
             for tick in range(args.max_steps):
                 if time.monotonic()-started>args.wall_seconds:raise TimeoutError('randomized native budget')
@@ -80,7 +87,19 @@ def randomized_player(original,args,torch,gymtorch):
                 if len(rows):
                     # This private draw is after observing the current state,
                     # independent of actor/FPS RNG and all future labels.
-                    arm=torch.randint(6,(len(rows),),device=self.device,generator=generator)
+                    if selector is None:
+                        arm=torch.randint(6,(len(rows),),device=self.device,generator=generator)
+                    else:
+                        torch.cuda.synchronize();begin=time.monotonic()
+                        predicted=selector.predict(history[rows],candidate[rows],rest[rows],motion[rows],start[rows],
+                                                   torch.full_like(start[rows],tick))
+                        torch.cuda.synchronize();latencies.append(dict(batch=len(rows),milliseconds=1000*(time.monotonic()-begin)))
+                        proposal=predicted['proposed_arm'];active=proposal!=BASE_INDEX
+                        treatment=(torch.rand(len(rows),device=self.device,generator=generator)<.5)&active
+                        arm=torch.where(treatment,proposal,torch.full_like(proposal,BASE_INDEX))
+                        for key,value in predicted.items():policy_trace[key][rows,slots]=value.float()
+                        policy_trace['treatment'][rows,slots]=treatment.float()
+                        policy_trace['propensity'][rows,slots]=torch.where(active,.5,1.)
                     current_arm[rows]=arm;cached[rows]=candidate[rows,arm]
                     trigger[rows,slots]=tick;assignment[rows,slots]=arm
                     trigger_state[rows,slots]=state[rows]
@@ -118,6 +137,8 @@ def randomized_player(original,args,torch,gymtorch):
             outcome=local_outcomes(future[valid],future_contact[valid].all(-1),trigger_state[valid][:,38],rest[:,None].expand(-1,w)[valid])
             if before!=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts]):
                 raise ValueError('frozen expert updated')
+            if selector is not None and selector_before!=fingerprint([m.state_dict() for m in selector.models]):
+                raise ValueError('frozen selector updated')
             env_id=torch.arange(n,device=self.device)[:,None].expand(-1,w)[valid]
             payload=dict(schema='ref2dex.randomized_contact_consequence.v1',seed=args.seed,assignment_seed=args.assignment_seed,
                          episode_id=[f's{args.seed}/env{int(i)}/first' for i in env_id.cpu()],
@@ -132,11 +153,24 @@ def randomized_player(original,args,torch,gymtorch):
                          contact_definition='native hand/object force proxy; collision pair unavailable',
                          intervention='cached current candidate2steps + own base8steps;6step cooldown',
                          teacher_or_optimizer=False,assignment_after_observation=True)
+            if selector is not None:
+                payload['schema']='ref2dex.targeted_contact_consequence.v1'
+                payload['policy_trace']={k:v[valid].cpu() for k,v in policy_trace.items()}
+                payload['propensity']=payload['policy_trace']['propensity']
+                payload['ranker_sha256']=sha(args.ranker);payload['inference_latency']=latencies
+                active=payload['policy_trace']['proposed_arm'].long()!=BASE_INDEX
+                treated=payload['policy_trace']['treatment'].bool()
+                expected_arm=torch.where(treated,payload['policy_trace']['proposed_arm'].long(),BASE_INDEX)
+                if not torch.equal(expected_arm,payload['assignment']):raise ValueError('allocation/proposal mismatch')
             torch.save(payload,args.output/'records.pt')
             result=dict(run_status='COMPLETED',rows=int(valid.sum()),episodes=len(set(payload['episode_id'])),
                         arms=torch.bincount(payload['assignment'],minlength=6).tolist(),
                         drop_eligible=int(outcome['drop_eligible'].sum()),drops=int(outcome['drop'].sum()),
                         elapsed_seconds=time.monotonic()-started,sha256=sha(args.output/'records.pt'))
+            if selector is not None:
+                result.update(active_windows=int(active.sum()),treated_windows=int((active&treated).sum()),
+                              control_windows=int((active&~treated).sum()),frozen_selector=True,
+                              decision_windows_per_episode=torch.bincount(env_id,minlength=n).cpu().tolist())
             (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     return RandomizedPlayer
 
@@ -149,6 +183,7 @@ def main():
     p.add_argument('--windows-per-episode',type=int,default=8)
     p.add_argument('--max-steps',type=int,default=650)
     p.add_argument('--wall-seconds',type=int,default=240)
+    p.add_argument('--ranker',type=Path)
     args,remaining=p.parse_known_args()
     root=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
     if root not in args.output.resolve().parents:raise ValueError('outside owned output')

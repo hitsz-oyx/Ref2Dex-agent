@@ -16,7 +16,8 @@ from run_paired_evaluator_resolution import sha,gpu_admission,PYTHON,R7,MOTIONS
 
 
 def run(args):
-    experiment_id='P-20261001-contact-consequence-ranking'
+    targeted=getattr(args,'ranker',None) is not None
+    experiment_id='P-20261001-targeted-contact-interventions' if targeted else 'P-20261001-contact-consequence-ranking'
     base=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
     output=args.output.absolute()
     if output.parent.resolve()!=base or output.is_symlink():raise ValueError('outside owned task output')
@@ -43,8 +44,13 @@ def run(args):
              ROOT/'scripts/collect_contact_consequences.py',ROOT/'src/task/CmResidual/contact_consequence.py',
              ROOT/'src/task/CmResidual/paired_evaluation.py',ROOT/'src/task/CmResidual/physical_value_live.py',
              ROOT/'third_party/DExplore/dexplore/evaluate.py']
+    if targeted:
+        if sha(args.ranker)!='a38be701e1d32fbe66ea4c4ecc4e78178d205f5d8649beb921818ace364e808d':
+            raise ValueError('targeted proposer must remain preregistered checkpoint')
+        inputs.append(args.ranker)
+        sources.extend([ROOT/'src/task/CmResidual/contact_selector.py',ROOT/'src/task/CmResidual/contact_ranker.py'])
     hashes={str(p.resolve()):sha(p) for p in inputs+sources}
-    manifest=dict(experiment_id=experiment_id,family='HF09',probe_index_in_family=2,run_status='RUNNING',
+    manifest=dict(experiment_id=experiment_id,family='HF09',probe_index_in_family=3 if targeted else 2,run_status='RUNNING',
                   pid=os.getpid(),command=sys.argv,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                   phases=[],input_sha256=hashes,prior_attempts=previous,wall_limit_seconds=3600,output_limit_bytes=8<<30,
                   actor_training=False,cm_training=False,stage='randomized_actual_state_collection')
@@ -55,7 +61,7 @@ def run(args):
         if any(sha(p)!=hashes[str(p.resolve())] for p in sources):raise ValueError('source drift during collection')
     save()
     try:
-        for seed in (331,332,333):
+        for seed in ((341,342,343,344,345,346) if targeted else (331,332,333)):
             check();admission=gpu_admission(args.gpu);directory=output/f'seed{seed}'
             source=(ROOT/route['experts']['source_e260']['checkpoint']).resolve()
             command=[PYTHON,'-u',str(ROOT/'scripts/collect_randomized_contact_consequences.py'),
@@ -65,6 +71,7 @@ def run(args):
                      '--checkpoint',str(source),'--motion_file',str(MOTIONS),'--headless','--num_envs','96','--seed',str(seed),
                      '--sim_device','cuda:0','--rl_device','cuda:0','--graphics_device_id','0','--disable-early-termination',
                      '--output',str(directory/'unused.json'),'--output_path',str(directory/'player')]
+            if targeted:command.extend(['--ranker',str(args.ranker.resolve())])
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=admission['uuid'],OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',
                      LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',PYTHONDONTWRITEBYTECODE='1',CUBLAS_WORKSPACE_CONFIG=':4096:8',
                      PYTHONHASHSEED=str(seed),TORCH_EXTENSIONS_DIR=str(output/'cache/torch_extensions'),XDG_CACHE_HOME=str(output/'cache'))
@@ -90,7 +97,7 @@ def run(args):
                 phase.update(run_status='FAILED',error=repr(error));raise
             finally:phase['elapsed_seconds']=time.monotonic()-begin;save()
         if any(sha(Path(p))!=digest for p,digest in hashes.items()):raise ValueError('original input mutated')
-        manifest.update(run_status='COMPLETED',stage='COLLECTION_COMPLETE_AWAITING_MODEL_FIT',input_hashes_unchanged=True,
+        manifest.update(run_status='COMPLETED',stage='TARGETED_COMPLETE_AWAITING_ANALYSIS' if targeted else 'COLLECTION_COMPLETE_AWAITING_MODEL_FIT',input_hashes_unchanged=True,
                         cumulative_seconds=prior_seconds+time.monotonic()-started,
                         output_bytes=prior_bytes+sum(p.stat().st_size for p in output.rglob('*') if p.is_file()))
         check()
@@ -103,4 +110,5 @@ if __name__=='__main__':
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=4)
     p.add_argument('--prior',type=Path)
+    p.add_argument('--ranker',type=Path)
     run(p.parse_args())
