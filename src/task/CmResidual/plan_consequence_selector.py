@@ -31,8 +31,17 @@ class FrozenPlanSelector:
         probability=torch.sigmoid(prediction[:,:,:,30:32]*c['slope']+c['bias'])
         z=history[:,-1,38];height=(z[None,:,None,None]+prediction[:,:,:,:10]*.01-rest_z[None,:,None,None])[:,:,:,-3:].amin(-1).clamp_min(0)
         scores=(height*probability[:,:,:,0]-(z-rest_z).clamp_min(0)[None,:,None])*1000
-        mean=scores.mean(0);difference=scores-scores[:,:,4:5];uncertainty=difference.std(0,unbiased=False)
-        retention=probability[:,:,:,0].mean(0);release=probability[:,:,:,1]
-        valid=(mean-mean[:,4:5]>self.margins[mode]+uncertainty)&(release.max(0).values<=release.mean(0)[:,4:5]+.02)&(retention>=retention[:,4:5]-.05)&~ood[:,None]
+        # Point score must exactly match the ensemble-mean prediction used
+        # for fitting calibration and the residual margin. Member scores
+        # provide dispersion only; averaging their nonlinear scores differs.
+        point=prediction.mean(0);point_prob=torch.sigmoid(point[:,:,30:32]*c['slope']+c['bias'])
+        point_height=(z[:,None,None]+point[:,:,:10]*.01-rest_z[:,None,None])[:,:,-3:].amin(-1).clamp_min(0)
+        mean=(point_height*point_prob[:,:,0]-(z-rest_z).clamp_min(0)[:,None])*1000
+        difference=scores-scores[:,:,4:5];uncertainty=difference.std(0,unbiased=False)
+        retention=point_prob[:,:,0];release=probability[:,:,:,1]
+        gain_gate=mean-mean[:,4:5]>self.margins[mode]+uncertainty
+        risk_gate=release.max(0).values<=point_prob[:,4:5,1]+.02
+        contact_gate=retention>=retention[:,4:5]-.05
+        valid=gain_gate&risk_gate&contact_gate&~ood[:,None]
         score=mean.masked_fill(~valid,-torch.inf);best=score.argmax(-1);chosen=torch.where(valid.any(-1),best,torch.full_like(best,4))
-        return chosen,dict(ood=ood,score_mm=mean,relative_std_mm=uncertainty,valid=valid,retention=retention,release_mean=release.mean(0))
+        return chosen,dict(ood=ood,score_mm=mean,relative_std_mm=uncertainty,valid=valid,retention=retention,release_mean=point_prob[:,:,1],gain_gate=gain_gate,risk_gate=risk_gate,contact_gate=contact_gate)

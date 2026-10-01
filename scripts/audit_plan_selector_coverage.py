@@ -16,7 +16,7 @@ def run(args):
     if m['run_status']!='COMPLETED' or args.output.exists():raise ValueError('terminal input/unique audit required')
     for k,v in m['input_sha256'].items():
         if sha(Path(k))!=v:raise ValueError('input drift')
-    counts={mode:dict(rows=0,ood=0,proposals=0,selected=[0]*8,actual_selected_matches=0,actual_base_matches=0,episodes=set()) for mode in selector.models}
+    counts={mode:dict(rows=0,ood=0,proposals=0,gain_rows=0,gain_risk_rows=0,gain_risk_contact_rows=0,selected=[0]*8,actual_selected_matches=0,actual_base_matches=0,episodes=set()) for mode in selector.models}
     for p in m['phases']:
         path=Path(p['directory'])/'records.pt'
         if sha(path)!=p['result']['record_sha256']:raise ValueError('record drift')
@@ -27,9 +27,10 @@ def run(args):
                 ids=rows[begin:begin+96];choice,d=selector.choose(mode,b['history'][ids].cuda(),b['native_observation'][ids,0].cuda(),b['candidate_actions'][ids].cuda(),b['hold_target'][ids,3:6].cuda(),b['rest_z'][ids].cuda())
                 if not torch.isfinite(d['score_mm']).all():raise ValueError('nonfinite forecast score')
                 c=counts[mode];chosen=choice.cpu();c['rows']+=len(ids);c['ood']+=int(d['ood'].sum());c['proposals']+=int((chosen!=4).sum());c['selected']=[a+v for a,v in zip(c['selected'],torch.bincount(chosen,minlength=8).tolist())]
+                c['gain_rows']+=int(d['gain_gate'].any(-1).sum());c['gain_risk_rows']+=int((d['gain_gate']&d['risk_gate']).any(-1).sum());c['gain_risk_contact_rows']+=int((d['gain_gate']&d['risk_gate']&d['contact_gate']).any(-1).sum())
                 active=chosen!=4;c['actual_selected_matches']+=int(((b['assignment'][ids]==chosen)&active).sum());c['actual_base_matches']+=int(((b['assignment'][ids]==4)&active).sum());c['episodes'].update(b['episode_id'][int(i)] for i in ids[active])
     for c in counts.values():c['proposal_episodes']=len(c.pop('episodes'))
-    result=dict(run_status='COMPLETED',kind='FROZEN_MODEL_SELECTOR_ENGINEERING_AND_COVERAGE',checkpoint_sha256=sha(args.checkpoint),gpu=admission,modes=counts,elapsed_seconds=time.monotonic()-start,scope='held observed-state proposal support only; factual one-action matches are not individual counterfactuals or actual MPC utility')
+    result=dict(run_status='COMPLETED',kind='FROZEN_MODEL_SELECTOR_ENGINEERING_AND_COVERAGE',checkpoint_sha256=sha(args.checkpoint),selector_source_sha256=sha(ROOT/'src/task/CmResidual/plan_consequence_selector.py'),gpu=admission,modes=counts,elapsed_seconds=time.monotonic()-start,scope='held observed-state proposal support only; factual one-action matches are not individual counterfactuals or actual MPC utility')
     args.output.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 
 
