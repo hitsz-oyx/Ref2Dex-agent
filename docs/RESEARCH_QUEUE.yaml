@@ -72,6 +72,17 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HF18:
+    claim: C3
+    name: contact_to_lift_feedback_macro_physics
+    status: ACTIVE
+    branch: agent/cm-contact-to-lift-macro
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    authorization: "active mechanism goal; contact-to-lift control responsibility and fixed feedback-law H10 contract after closed post-lift routes; same mission/claim/resources"
+    card: docs/experiments/probes/P-20261002-contact-to-lift-macro.md
+    transition: "Firstsource supervisionqualification, then onlyifadequate matched9GPU models11601-11603/1000updates, pre-only actualnativePD/currentrawforce/feedbacklaw H10taskphysics. Original3917completeprogram records only, no heldutility fitting. Frozenearly informationgates; no finalsuccess/PPO untilactualcontrolbenefit.60min8GiB/slot, C3OPEN."
   HF17:
     claim: C3
     name: strong_reference_feedback_corrections

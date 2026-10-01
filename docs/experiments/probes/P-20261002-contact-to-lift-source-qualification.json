@@ -1,0 +1,89 @@
+{
+  "experiment_id": "P-20261002-contact-to-lift-macro",
+  "status": "COMPLETED",
+  "supervision_adequate": false,
+  "counts": {
+    "fit": {
+      "all": {
+        "windows": 1656,
+        "episodes": 245,
+        "initial_groups": 38
+      },
+      "early": {
+        "windows": 1151,
+        "episodes": 155,
+        "initial_groups": 35
+      },
+      "positive_lift": {
+        "windows": 23,
+        "episodes": 19,
+        "initial_groups": 11
+      },
+      "negative_lift": {
+        "windows": 1128,
+        "episodes": 155,
+        "initial_groups": 35
+      }
+    },
+    "cal": {
+      "all": {
+        "windows": 586,
+        "episodes": 94,
+        "initial_groups": 17
+      },
+      "early": {
+        "windows": 386,
+        "episodes": 61,
+        "initial_groups": 14
+      },
+      "positive_lift": {
+        "windows": 11,
+        "episodes": 7,
+        "initial_groups": 6
+      },
+      "negative_lift": {
+        "windows": 375,
+        "episodes": 61,
+        "initial_groups": 14
+      }
+    },
+    "held": {
+      "all": {
+        "windows": 1675,
+        "episodes": 248,
+        "initial_groups": 34
+      },
+      "early": {
+        "windows": 971,
+        "episodes": 144,
+        "initial_groups": 30
+      },
+      "positive_lift": {
+        "windows": 41,
+        "episodes": 21,
+        "initial_groups": 8
+      },
+      "negative_lift": {
+        "windows": 930,
+        "episodes": 144,
+        "initial_groups": 30
+      }
+    }
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed461/records.pt": "adecfb2615914d2cae82b53021a20a6796eac5043435e6dc665c00f7ace5e06c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed462/records.pt": "e4f86503be4d5cb4df6192ec8cd849f7e3a8b6c3dcd6848ee5c47f09e2b1a4e9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed463/records.pt": "eeb86a8cf8bad14a2efd7c2bffa0d21ff6cb8b3f83d7541a51bc96384fc7cf4d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed464/records.pt": "15acfacad85dfeef2e4076e44f70a8d0d0c7d0879d64ac5bd353c48eb8116ba3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed465/records.pt": "118e413e7ca3dcde142639a6135a649a321023181af46de4c04f517ef2acd40a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed466/records.pt": "f7347533962178feb3f1222e9f41799cde50e60c6f1ed70f2198c5891f934429",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed467/records.pt": "f0696c2994df910b326cddfe4ed1ab76f2544c56ae37d974636062bbecba6274",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed468/records.pt": "fc23415ca27aa4586c32f389428c4cbd2affa9be46b2abfb4e7f2bd2ecb24b3e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed469/records.pt": "25f0c08594b0fe3dbb48153978f4ad13c6f853e332390f9d9bf0e1cb7b81b9ba",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed470/records.pt": "a379bec9ff024dc8b422f6c55da62154ff0ab43586f4c7edd59cc0139e442309",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed471/records.pt": "49c64f54e83da1e26119193b9876323d1d00e4db1f0557e2b50377cefa295278",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed472/records.pt": "3a9b000ad908d269dafaa1cbfeea87950d0edd9a8abdb611aba0cf989ddd8bbe"
+  },
+  "elapsed_seconds": 4.390545764006674,
+  "device_reason": "CPU label/support tally; no neural computation"
+}

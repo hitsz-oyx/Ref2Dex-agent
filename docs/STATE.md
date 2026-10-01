@@ -332,6 +332,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
+| `HF18` contact-to-lift macro-Cm | `C3` | `ACTIVE`（先查抬升监督支持） | slot1/2登记 | `agent/cm-contact-to-lift-macro` |
 | `HF17` strong-reference corrections | `C3` | `UNPROMISING`（固定修正未过留出机会门） | slot1后关闭，不启动slot2 | `agent/cm-strong-reference-corrections` |
 | `HF16` native-PD/force-Cm | `C3` | `UNPROMISING`（一步信息正向，强控制门失败） | 2/2关闭 | `agent/cm-native-pd-consequence` |
 | `HF15` translation/orientation-plan-Cm | `C3` | `UNPROMISING`（候选机会正向，闭环未过强控制门） | 2/2关闭 | `agent/cm-executable-options` |
