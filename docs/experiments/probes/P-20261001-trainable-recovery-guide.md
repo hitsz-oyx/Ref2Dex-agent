@@ -1,7 +1,6 @@
 # P-20261001-trainable-recovery-guide
 
-HF12, independent Decision Probe budget1/1; current stage frozen scientific Probe,
-scientific slot1/1 started after independent engineering replay. Branch agent/cm-trainable-recovery.
+HF12, independent Decision Probe budget1/1; COMPLETED / UNPROMISING, scientific budget1/1closed. Branch agent/cm-trainable-recovery.
 [Frozen design](../../decisions/D-20261001-trainable-recovery-guide.md).
 
 Previous HF11 remains UNPROMISING1/1closed. Its learned score maximum1.283on/
@@ -67,3 +66,44 @@ also exercises a genuine one-step terminal prefix. Total including preserved
 r1:418.263s/66.00MB. All owned PIDs exited before scientific launch.
 Scientific run_id r1, train401/eval411–414, budgetslot1/1 now consumed; fixed
 gates and four full rollouts/arm unchanged.
+
+Terminal result (2026-10-02): all12native phases COMPLETED, code/input hashes
+unchanged, all owned parent/native PIDs exited; GPU2 simulation/training and
+GPU3 terminal score replay released. Both207028effective first-episode steps,
+matched four episode-step arrays and initial weights; on800/off820updates
+reflect different actual decision counts with identical optimizer settings.
+On17/384stable vs off19/384, −.521pp; descriptive evaluation-seed t95
+[−7.220,+6.178]pp conditional on these two checkpoints. Not formal causality.
+On51ever-stable/34subsequentdrop, off50/31; acquisition161/151, laterrelease
+146/137. Conditional release90.683%vs90.728% is post-treatment descriptive.
+Trained-on4113/96vsinitialguide-on4119/96 is not learning harm: all5130on
+raw/independent greedy commands still match the initial recommendation rule.
+Off actually changes45/5144commands; the pipeline can alter decisions.
+
+Actor-owned guide changed1.60944→1.62974on/1.57207off; on maximum learned
+NN competitor advantage1.35162 stays below coefficient, smallest winning
+margin.27813. Off max2.94389beats its guide in45decisions. This is an owned
+learned parameter, not the old fixed external prior. Exact greedy checkpoint
+replay passes; no alternative physical outcome inferred from score changes.
+Candidate cached-command coverage on is4.952%effective frames; nonbase-option
+cached coverage.485%. This exposes sparse authority, but does not prove it is
+the sole cause. Do not sweep prior/reward/epochs after this result.
+
+All12physical traces replay bounded state reward, complete MC returns,
+actual raw commands and stable/drop labels (3terminal one-step prefixes).
+Cold root/dof/target/motion/start/CPU-RNG exact across four training batches;
+observation and some simulator-derived tensors differ after first training
+batch, retained in audit. Allfour eval pairs have exact recorded cold inputs
+in the compared fields. Matching cold inputs does not remove observed
+closed-loop physics repeatability limits. NN/experts remain frozen.
+
+Including both engineering runs2041.680s/335.277MB manifest accounting,
+terminalGPUscore audit.787s; scoped artifacts335.324MB before final audit.
+33targeted checks pass. Original outcomes/failed gates preserved. HF12 closes
+UNPROMISING1/1; C3OPEN, baselinePARTIAL. Next is executable-option authority,
+not further success comparisons on this selector. See [new control decision](../../decisions/D-20261002-executable-contact-options.md).
+
+Evidence: [results](P-20261001-trainable-recovery-guide-results.json),
+[score audit](P-20261001-trainable-recovery-guide-guide-audit.json),
+[trace/cold audit](P-20261001-trainable-recovery-guide-trace-audit.json),
+[completion](P-20261001-trainable-recovery-guide-completion-audit.json).

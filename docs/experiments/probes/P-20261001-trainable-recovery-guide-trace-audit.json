@@ -1,0 +1,639 @@
+{
+  "run_status": "COMPLETED",
+  "artifact_and_label_contract_passed": true,
+  "phases": {
+    "train_on": [
+      {
+        "episodes": 96,
+        "steps": 51770,
+        "decisions": 1083,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51791,
+        "decisions": 1228,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51725,
+        "decisions": 1266,
+        "terminal_one_step_prefixes": 1,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51742,
+        "decisions": 1357,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "train_off": [
+      {
+        "episodes": 96,
+        "steps": 51770,
+        "decisions": 1174,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51791,
+        "decisions": 1337,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51725,
+        "decisions": 1233,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      },
+      {
+        "episodes": 96,
+        "steps": 51742,
+        "decisions": 1250,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_on_s411": [
+      {
+        "episodes": 96,
+        "steps": 51789,
+        "decisions": 1364,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_off_s411": [
+      {
+        "episodes": 96,
+        "steps": 51789,
+        "decisions": 1419,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_on_s412": [
+      {
+        "episodes": 96,
+        "steps": 51848,
+        "decisions": 1252,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_off_s412": [
+      {
+        "episodes": 96,
+        "steps": 51848,
+        "decisions": 1326,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_on_s413": [
+      {
+        "episodes": 96,
+        "steps": 51649,
+        "decisions": 1236,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_off_s413": [
+      {
+        "episodes": 96,
+        "steps": 51649,
+        "decisions": 1251,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_on_s414": [
+      {
+        "episodes": 96,
+        "steps": 51866,
+        "decisions": 1278,
+        "terminal_one_step_prefixes": 2,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "eval_off_s414": [
+      {
+        "episodes": 96,
+        "steps": 51866,
+        "decisions": 1148,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "prior_on_s411": [
+      {
+        "episodes": 96,
+        "steps": 51789,
+        "decisions": 1466,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ],
+    "prior_off_s411": [
+      {
+        "episodes": 96,
+        "steps": 51789,
+        "decisions": 1281,
+        "terminal_one_step_prefixes": 0,
+        "reward_max_error": 5.960464477539063e-08,
+        "return_max_error": 0.0,
+        "all_primary_labels_replayed": true,
+        "actual_commands_replayed": true
+      }
+    ]
+  },
+  "cold_comparisons": {
+    "train_on vs train_off": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      },
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": false,
+          "max_abs_difference": 24.459068298339844
+        },
+        "observation": {
+          "exact": false,
+          "max_abs_difference": 16.268502235412598
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": false,
+          "max_abs_difference": 7.930573463439941
+        },
+        "object_forces": {
+          "exact": false,
+          "max_abs_difference": 15.87332558631897
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      },
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": false,
+          "max_abs_difference": 22.000340223312378
+        },
+        "observation": {
+          "exact": false,
+          "max_abs_difference": 22.86026096343994
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": false,
+          "max_abs_difference": 12.038351647555828
+        },
+        "object_forces": {
+          "exact": false,
+          "max_abs_difference": 20.893803358078003
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      },
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": false,
+          "max_abs_difference": 9.581627160310745
+        },
+        "observation": {
+          "exact": false,
+          "max_abs_difference": 17.403260231018066
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": false,
+          "max_abs_difference": 8.465413197875023
+        },
+        "object_forces": {
+          "exact": false,
+          "max_abs_difference": 10.390705585479736
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ],
+    "eval_on_s411 vs eval_off_s411": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ],
+    "eval_on_s412 vs eval_off_s412": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ],
+    "eval_on_s413 vs eval_off_s413": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ],
+    "eval_on_s414 vs eval_off_s414": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ],
+    "prior_on_s411 vs prior_off_s411": [
+      {
+        "root": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "dof": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rigid_body": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "observation": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "target": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "contact_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "object_forces": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "motion": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "start": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "rest": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        },
+        "cpu_rng": {
+          "exact": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    ]
+  },
+  "scope": "CPU file/label/statistical audit only; no model fitting/inference; cold differences reported, no imposed outcome pairing"
+}

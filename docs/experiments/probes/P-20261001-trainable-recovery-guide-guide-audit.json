@@ -1,0 +1,42 @@
+{
+  "run_status": "COMPLETED",
+  "gpu": {
+    "index": 3,
+    "uuid": "GPU-136e8f52-698e-904b-0bda-35b8382a45d8",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 2\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 2\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "",
+    "time": 1790871682.0229197
+  },
+  "elapsed_seconds": 0.7872401596978307,
+  "modes": {
+    "on": {
+      "decisions": 5130,
+      "learned_guide_weight": 1.6297407150268555,
+      "initial_guide_weight": 1.6094379124341003,
+      "maximum_nn_competitor_advantage": 1.3516151905059814,
+      "minimum_total_guide_winner_margin": 0.278125524520874,
+      "decisions_nn_overrides_guide": 0,
+      "greedy_replay_errors": 0
+    },
+    "off": {
+      "decisions": 5144,
+      "learned_guide_weight": 1.5720652341842651,
+      "initial_guide_weight": 1.6094379124341003,
+      "maximum_nn_competitor_advantage": 2.943894863128662,
+      "minimum_total_guide_winner_margin": -1.371829628944397,
+      "decisions_nn_overrides_guide": 45,
+      "greedy_replay_errors": 0
+    }
+  },
+  "input_sha256": {
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_on_s411/decisions.pt": "5225669841b1d9fdfed3b54493b3583722a6bc87749c4d70297b8f952ca1db4c",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_on_s412/decisions.pt": "bdc8746ea8b83d533fb65327a7b6604e3bf03afdfc94cb80b6f206c17ff6ee52",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_on_s413/decisions.pt": "b18a8d74130ca0bbdbb734adb5cc509221d4bc379c32b41223c2d52e945731e9",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_on_s414/decisions.pt": "e9022f4b324eec9187707183bd0732dc952ebe27ebc7f73ea82ab575362914b6",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_off_s411/decisions.pt": "1bb99aaef2b057190e34b218d38cc40c1ea764b19a82a0c05e1d2da5deac1acf",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_off_s412/decisions.pt": "4d5f0a5256fc94ecbbc8e8e10d0f010bd08125d49ba2b0ad63f6e3b20bef50ef",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_off_s413/decisions.pt": "4c2f62650bdb3e8837133cbecbaaeeb04ed9fd04be324beb29bd0283b2063149",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261001-trainable-recovery-guide-r1/eval_off_s414/decisions.pt": "9e1b63408e7ca4285249ac91886f331c3235aff9d9beb5e019a54baa1142266e"
+  },
+  "scope": "mechanical score/execution audit only; coefficient belongs to trained actor, not a fixed external prior; no alternative physical outcomes or learning utility inferred"
+}

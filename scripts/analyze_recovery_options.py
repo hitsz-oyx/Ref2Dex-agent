@@ -27,18 +27,23 @@ def run(args):
         if not all(torch.isfinite(v).all() for v in policy['policy'].values()):raise ValueError('nonfinite policy')
         for b in buffers:
             if not torch.isfinite(b['returns']).all() or not torch.isfinite(b['old_logprob']).all() or (b['old_logprob']>1e-6).any():raise ValueError('invalid return/log probability')
-        learned_physical=0;nonbase=0;decisions=0;raw_changes=0
+        learned_physical=0;nonbase=0;decisions=0;raw_changes=0;cached_frames=0;nonbase_cached_frames=0
         for b in buffers:
             row=torch.arange(len(b['selected']));selected=b['selected'];prior=b.get('reference_option',b['inputs']['log_prior'].argmax(-1))
             a=effective_commands(b['candidate_actions']) if 'candidate_actions' in b else b['inputs']['actions']
             raw_changes+=int((selected!=prior).sum())
             learned_physical+=int((a[row,selected]!=a[row,prior]).any(-1).sum())
-            nonbase+=int((a[row,selected]!=a[:,4]).any(-1).sum());decisions+=len(row)
+            different=(a[row,selected]!=a[:,4]).any(-1)
+            nonbase+=int(different.sum());decisions+=len(row)
+            counts=b.get('executed_steps',torch.full_like(selected,2))
+            cached_frames+=int(counts.sum());nonbase_cached_frames+=int(counts[different].sum())
         audit[name]=dict(episodes=sum(q['episodes'] for q in r['rollouts']),effective_first_episode_steps=r['native_env_steps'],
                         actual_batched_sim_steps=sum(q['episodes']*max(q['episode_steps']) for q in r['rollouts']),optimizer_updates=r['optimizer_updates'],
                         initial_fingerprint=policy['initial_fingerprint'],policy_parameters_changed=r['policy_parameters_changed'],
                         guide_weight=policy['policy'].get('guide_weight',torch.tensor(float('nan'))).item() if learnable_guide else None,
                         selected_raw_option_differs_from_prior=raw_changes,decisions=decisions,actual_nonbase_decisions=nonbase,selected_physical_differs_from_prior=learned_physical,
+                        cached_candidate_frames=cached_frames,nonbase_candidate_frames=nonbase_cached_frames,
+                        cached_frame_fraction=cached_frames/r['native_env_steps'],nonbase_candidate_frame_fraction=nonbase_cached_frames/r['native_env_steps'],
                         inference_ms_total=sum(r['batched_inference_ms']),inference_calls=len(r['batched_inference_ms']),
                         inference_ms_median=float(np.median(r['batched_inference_ms'])))
         records[name]=r

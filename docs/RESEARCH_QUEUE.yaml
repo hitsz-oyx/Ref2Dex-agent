@@ -134,14 +134,14 @@ hypotheses:
   HF12:
     claim: C3
     name: trainable_cm_guide_task_retention_policy
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-trainable-recovery
     probe_budget: 1
     probes_used: 1
     owner: current_session
     authorization: "AGENTS autonomous research and active user goal; fixed-prior execution gap and imitation/retention objective mismatch confirmed, distinct actor-ownership/task-objective route, mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261001-trainable-recovery-guide.md
-    transition: "Engineering/replay passed after endpoint-control repair. Scientific1/1 RUNNING: train401/four complete96episode rollouts perarm and fixed411-414greedy evaluation. Actor-owned guide/no external log prior and common bounded retention reward; science inputs frozen. Actual learned independent-command fraction>=5% before utility. HF11/HF10 budgets closed; no threshold sweep/C3promotion."
+    transition: "Closed UNPROMISING1/1. On17/384vs off19/384; all5130on greedy independent commands still match initial guide, off45/5144change. Actor-owned guide updated but on NN advantage1.352<1.630. Candidate/nonbase frame coverage4.952%/.485%. All12phases/hash/frozen/trace contracts pass, GPUs released. No local parameter sweep; next executable-window/hold control, old2+8 Cm contract not reused as full10 control."
   HF11:
     claim: C3
     name: physical_recovery_categorical_option_learning

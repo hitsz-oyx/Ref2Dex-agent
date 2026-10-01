@@ -1,0 +1,15 @@
+{
+  "run_status": "COMPLETED",
+  "all_12_native_phases_completed": true,
+  "inputs_unchanged": true,
+  "parent_pid_live": false,
+  "native_pids_live": [],
+  "frozen_models": true,
+  "policy_record_hashes_valid": true,
+  "physical_trace_contract_passed": true,
+  "guide_execution_replay_passed": true,
+  "total_run_seconds_including_engineering": 2041.6804709690623,
+  "gpu_audit_seconds": 0.7872401596978307,
+  "actual_scoped_bytes_before_completion_audit": 335323744,
+  "scope": "science completed and immutable; CPU file/stat audit, terminal model replay GPU3; all local artifacts retained; C3 OPEN"
+}
