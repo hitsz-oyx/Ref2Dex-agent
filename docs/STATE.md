@@ -121,9 +121,19 @@ Question: can added closure establish mechanical retention before a pickup teach
 Run P-20261002-finger-preload-feasibility-r1 COMPLETED (`5d7c375`),192 fresh
 90-step trajectories,76.99s/9.43MiB, all189 inputs unchanged. Retained75 counts
 0/0/6/13 out of48 per dose; motion1 all zero. All candidate multi-motion gates
-fail, UNPROMISING; stop this exact static family. Positive mechanical cases on
-motions0/2 motivate a distinct frame0 approach/lift feasibility question, with.30
-an explicitly post-hoc candidate. No epoch or larger-dose expansion.
+fail, UNPROMISING; stop this exact static family. Positive suspended-start cases do not establish pickup. A distinct original-frame0
+reference controller (`d15ef0f`) with post-hoc.30rad candidate finishes192trajectories
+on506/507; unchanged0/96 vsclosure5/96 strictretained75. All fullgates not passed,
+UNPROMISING. Original parent resource FAILED after one panel; verified continuation
+(`3c8c78f`) runs ONLY missing panel on freeGPU1, all198 inputs unchanged, no reruns.
+Active parent time119.23s. Geometry-only SECONDARY on closure motion1 is32/32,
+strictforce75 only5/32. Native mass2.5936g, gravityon, weight.025443N; historical
+.1N force threshold equals3.9303weights. This does not yet establish false negatives.
+Prior static POSTHOC component audit also separates geometry/strictforce counts.
+Next most informative question: randomized support removal after established
+motion1 geometry to test actual hand-supported retention before changing metrics.
+Preserve every old primary gate; stop exact fixed temporal/static recipes. No
+training or simulation currently active; next witness design needs freezing.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -146,6 +156,7 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Static mechanical result and corrected geometry](research/20261002-static-hold-feasibility-results.md)
 - [Finger-preload result](research/20261002-finger-preload-feasibility-results.md)
 - [Finger-preload decision](decisions/D-20261002-finger-preload-feasibility.md)
+- [Frame0 tracking and measurement result](research/20261002-frame0-tracking-feasibility-results.md)
 - [Current manuscript](../paper/manuscript-v5.tex) and [PDF review copy](../paper/manuscript-v5.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
