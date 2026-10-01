@@ -1,6 +1,6 @@
 # P-20261002-wrist-feedback-opportunity
 
-HF14 Decision Probe1/1, engineering in progress. Owner current session, branch
+HF14 Decision Probe1/1, engineering COMPLETED; frozen science starts. Owner current session, branch
 agent/cm-executable-options. [Frozen design](../../decisions/D-20261002-wrist-anchored-feedback.md).
 
 Test whether continuing expert finger feedback with an anchored wrist offers
@@ -41,3 +41,9 @@ immutable inputs/expert/asset/motion checks. Stop on input drift, invalid
 execution/partial labels, occupied devices or scope budget. Positive permits
 new plan-conditioned physical Cm; negative closes family without threshold/
 seed tuning. No full-task success or RL-learning conclusion from this Probe.
+
+Engineering105windows/53episodes,46alreadyclear,25anchored windows. All25
+anchored finger programs vary;80expert windows vary. Frozen-expert replay,
+raw-force ratio/label replay, relative wrist PD and whole-mesh geometry all0
+error. Complete nonterminal labels and merged propensities verified; both own
+PIDs exited.112.350sec/10.533MB. [Audit](P-20261002-wrist-feedback-engineering-record-audit.json).

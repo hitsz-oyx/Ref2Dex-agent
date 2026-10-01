@@ -75,10 +75,10 @@ diagnostic_hypotheses:
   HF14:
     claim: C3
     name: wrist_anchored_feedback_opportunity
-    status: ENGINEERING
+    status: ACTIVE
     branch: agent/cm-executable-options
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "active user mechanism goal; distinct wrist-hold/finger-feedback plans after preserved HF13 failure and measured force-unit blocker, no claim/resource change"
     card: docs/experiments/probes/P-20261002-wrist-feedback-opportunity.md
