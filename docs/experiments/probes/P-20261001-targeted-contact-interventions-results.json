@@ -1,0 +1,718 @@
+{
+  "experiment_id": "P-20261001-targeted-contact-interventions",
+  "run_status": "COMPLETED",
+  "native_analysis": {
+    "experiment_id": "P-20261001-targeted-contact-interventions",
+    "run_status": "COMPLETED",
+    "label": "PROMISING",
+    "local_lift_label": "PROMISING",
+    "gate": {
+      "support": true,
+      "lift": true,
+      "contact": true,
+      "drop": true,
+      "risk_support": true,
+      "passed": true
+    },
+    "contrasts": {
+      "supported_lift_mm": {
+        "effect": 5.105671716982358,
+        "treated_rows": 309,
+        "control_rows": 313,
+        "treated_mean": 17.519984151878692,
+        "control_mean": 12.223038974277964,
+        "episode_cluster90": [
+          1.6273197185874646,
+          8.584023715377251
+        ],
+        "episode_cluster95": [
+          0.9612523146395064,
+          9.250091119325209
+        ],
+        "episode_groups": 283,
+        "frame_cluster90": [
+          1.962901166491184,
+          8.248442267473532
+        ],
+        "frame_cluster95": [
+          1.3610940398013844,
+          8.850249394163331
+        ],
+        "frame_groups": 76
+      },
+      "contact_fraction": {
+        "effect": -0.014790996933098391,
+        "treated_rows": 309,
+        "control_rows": 313,
+        "treated_mean": 0.915857608843004,
+        "control_mean": 0.9188498440213477,
+        "episode_cluster90": [
+          -0.14987105209878826,
+          0.12028905823259149
+        ],
+        "episode_cluster95": [
+          -0.1757374456411544,
+          0.14615545177495765
+        ],
+        "episode_groups": 283,
+        "frame_cluster90": [
+          -0.13383080818414667,
+          0.1042488143179499
+        ],
+        "frame_cluster95": [
+          -0.15662566565775166,
+          0.1270436717915549
+        ],
+        "frame_groups": 76
+      },
+      "drop": {
+        "effect": 0.022508038585209004,
+        "treated_rows": 309,
+        "control_rows": 313,
+        "treated_mean": 0.03559870550161812,
+        "control_mean": 0.012779552715654952,
+        "episode_cluster90": [
+          0.0020934741907469682,
+          0.04292260297967104
+        ],
+        "episode_cluster95": [
+          -0.0018156977145755496,
+          0.04683177488499356
+        ],
+        "episode_groups": 283,
+        "frame_cluster90": [
+          -0.001332823299067816,
+          0.046348900469485824
+        ],
+        "frame_cluster95": [
+          -0.005898094723716569,
+          0.05091417189413458
+        ],
+        "frame_groups": 76
+      }
+    },
+    "conditional_risk_support": {
+      "treated": {
+        "rows": 140,
+        "events": 11,
+        "episodes": 74
+      },
+      "control": {
+        "rows": 122,
+        "events": 4,
+        "episodes": 66
+      }
+    },
+    "all_window_local_contrasts": {
+      "supported_lift_mm": {
+        "effect": 0.8058177640099028,
+        "treated_rows": 309,
+        "control_rows": 3632,
+        "episode_cluster90": [
+          0.25222304261062933,
+          1.3594124854091763
+        ],
+        "episode_cluster95": [
+          0.14621554276821525,
+          1.4654199852515903
+        ],
+        "episode_groups": 547,
+        "frame_cluster90": [
+          0.24516949863967208,
+          1.3664660293801334
+        ],
+        "frame_cluster95": [
+          0.13781132016452158,
+          1.4738242078552841
+        ],
+        "frame_groups": 87
+      },
+      "contact_fraction": {
+        "effect": -0.0023344329084971326,
+        "treated_rows": 309,
+        "control_rows": 3632,
+        "episode_cluster90": [
+          -0.023633713786194513,
+          0.018964847969200248
+        ],
+        "episode_cluster95": [
+          -0.027712299486179117,
+          0.023043433669184852
+        ],
+        "episode_groups": 547,
+        "frame_cluster90": [
+          -0.021037871963365956,
+          0.01636900614637169
+        ],
+        "frame_cluster95": [
+          -0.024619381569617432,
+          0.019950515752623167
+        ],
+        "frame_groups": 87
+      },
+      "drop": {
+        "effect": 0.003552397868561279,
+        "treated_rows": 309,
+        "control_rows": 3632,
+        "episode_cluster90": [
+          0.00032740878473525763,
+          0.006777386952387301
+        ],
+        "episode_cluster95": [
+          -0.0002901423164229167,
+          0.007394938053545475
+        ],
+        "episode_groups": 547,
+        "frame_cluster90": [
+          -0.0002467076836384888,
+          0.007351503420761046
+        ],
+        "frame_cluster95": [
+          -0.0009741959808682319,
+          0.008078991717990789
+        ],
+        "frame_groups": 87
+      }
+    },
+    "eligible_drop_contrast": {
+      "effect": 0.05343511450381679,
+      "treated_rows": 140,
+      "control_rows": 122,
+      "treated_mean": 0.07857142857142857,
+      "control_mean": 0.03278688524590164,
+      "episode_cluster90": [
+        0.004164389110283523,
+        0.10270583989735006
+      ],
+      "episode_cluster95": [
+        -0.005270430645924973,
+        0.11214065965355856
+      ],
+      "episode_groups": 96,
+      "frame_cluster90": [
+        -0.007829098245130749,
+        0.11469932725276433
+      ],
+      "frame_cluster95": [
+        -0.01956054323961006,
+        0.12643077224724364
+      ],
+      "frame_groups": 34
+    },
+    "initial_frame_overlap_audit": {
+      "old_fit_frames": {
+        "active_windows": 334,
+        "all_windows": 1978,
+        "scope": "descriptive initial-frame overlap audit; no new threshold/model selection",
+        "contrast": {
+          "effect": 4.056821126122067,
+          "treated_rows": 171,
+          "control_rows": 163,
+          "treated_mean": 16.489641365622393,
+          "control_mean": 13.142573898521743,
+          "episode_cluster90": [
+            -0.650315597101212,
+            8.763957849345346
+          ],
+          "episode_cluster95": [
+            -1.551682203675882,
+            9.665324455920015
+          ],
+          "episode_groups": 147,
+          "frame_cluster90": [
+            -0.33234892573706887,
+            8.445991177981202
+          ],
+          "frame_cluster95": [
+            -1.1728282973696693,
+            9.286470549613803
+          ],
+          "frame_groups": 37
+        }
+      },
+      "old_calibration_frames": {
+        "active_windows": 86,
+        "all_windows": 757,
+        "scope": "descriptive initial-frame overlap audit; no new threshold/model selection",
+        "contrast": {
+          "effect": -0.03604329767277218,
+          "treated_rows": 33,
+          "control_rows": 53,
+          "treated_mean": 12.631936004893346,
+          "control_mean": 7.89441037663037,
+          "episode_cluster90": [
+            -8.406890835095853,
+            8.334804239750307
+          ],
+          "episode_cluster95": [
+            -10.009819086942825,
+            9.937732491597279
+          ],
+          "episode_groups": 50,
+          "frame_cluster90": [
+            -10.426434434308225,
+            10.35434783896268
+          ],
+          "frame_cluster95": [
+            -12.416083800897992,
+            12.343997205552446
+          ],
+          "frame_groups": 12
+        }
+      },
+      "old_held_frames": {
+        "active_windows": 130,
+        "all_windows": 911,
+        "scope": "descriptive initial-frame overlap audit; no new threshold/model selection",
+        "contrast": {
+          "effect": 9.999023642204701,
+          "treated_rows": 69,
+          "control_rows": 61,
+          "treated_mean": 19.23840300630832,
+          "control_mean": 11.106774929376533,
+          "episode_cluster90": [
+            3.461148294967252,
+            16.53689898944215
+          ],
+          "episode_cluster95": [
+            2.2092147178366766,
+            17.788832566572726
+          ],
+          "episode_groups": 57,
+          "frame_cluster90": [
+            5.959515175571104,
+            14.038532108838298
+          ],
+          "frame_cluster95": [
+            5.185992277705096,
+            14.812055006704306
+          ],
+          "frame_groups": 16
+        }
+      },
+      "new_frames": {
+        "active_windows": 72,
+        "all_windows": 295,
+        "scope": "descriptive initial-frame overlap audit; no new threshold/model selection",
+        "contrast": {
+          "effect": 7.277447249326441,
+          "treated_rows": 36,
+          "control_rows": 36,
+          "treated_mean": 23.60118705034256,
+          "control_mean": 16.323739801016117,
+          "episode_cluster90": [
+            -6.003167414468011,
+            20.558061913120895
+          ],
+          "episode_cluster95": [
+            -8.546263839449928,
+            23.10115833810281
+          ],
+          "episode_groups": 29,
+          "frame_cluster90": [
+            1.0687451163279613,
+            13.486149382324921
+          ],
+          "frame_cluster95": [
+            -0.12015529211855558,
+            14.675049790771437
+          ],
+          "frame_groups": 11
+        }
+      }
+    },
+    "risk_interval_boundary": "zero observed events can yield degenerate descriptive intervals; risk gate still requires actual event support",
+    "decision": "ACTION_EFFECT_LEARNING_DESIGN",
+    "total_windows": 3941,
+    "episodes": 547,
+    "active_windows": 622,
+    "proposal_fraction": 0.1578279584646225,
+    "actual_change_fraction": 0.07840649783611298,
+    "nonbase_executed_windows": 309,
+    "action_difference_l2_quantiles": [
+      0.039622947573661804,
+      0.08784698694944382,
+      0.12289366871118546,
+      0.2941242456436157
+    ],
+    "proposal_counts": [
+      137,
+      336,
+      99,
+      31,
+      3319,
+      19
+    ],
+    "arm_episodes": {
+      "treated": 183,
+      "control": 195
+    },
+    "repeated_decision_episodes": 534,
+    "decision_count_distribution": {
+      "1": 13,
+      "2": 16,
+      "3": 16,
+      "4": 29,
+      "5": 6,
+      "6": 11,
+      "7": 12,
+      "8": 444
+    },
+    "inference_batch_ms_quantiles": [
+      3.5866150856018066,
+      5.708028793334961,
+      6.037191390991211,
+      36.65660095214844
+    ],
+    "collection_seconds": 563.9584923107177,
+    "frozen_checkpoint_sha256": "a38be701e1d32fbe66ea4c4ecc4e78178d205f5d8649beb921818ace364e808d",
+    "record_sha256": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed341/records.pt": "ab7888f102d6b9245a23dda37ca75ee3e843b6349bf4d386980a06c264f78d8f",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed342/records.pt": "2083234ee2f6bb665ba7d246e0132173d587e63ceec0989d657792492e71a2bc",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed343/records.pt": "437161d9c5e309feda4cd1ed72170a51d238a8c93d920018fbf76315861ce2bc",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed344/records.pt": "c18a6a2509d126c49de7fc9e97b67bc3f89df3867be638b3590c057165ef83ab",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed345/records.pt": "d6dd1154041d0ea7758810966eee2497ceb7b2b27c3f3968a37f59acb9c3682f",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/seed346/records.pt": "3f48bcd1984b8ff668e6ea9874ae59d3f9deadd06c824de57899ccac09d06ee4"
+    },
+    "actor_training": false,
+    "cm_training": false,
+    "individual_regret": "unavailable",
+    "boundary": "local effect at fresh frozen proposals in randomized sequential mixed histories; no pure-policy utility or formal stable-grasp claim"
+  },
+  "scientific_label": "UNCLEAR",
+  "local_lift_label": "PROMISING",
+  "original_native_gate_preserved": true,
+  "interpretation": "Local supported-lift improvement on fresh randomized decisions; conditional eligible drop IPW increase5.344pp and broad interval; four selector controls not observed in this targeted two-arm support. Not yet safe policy utility.",
+  "gpu4_released": true,
+  "all_owned_native_pids_exited": true,
+  "all_input_hashes_verified_at_completion": true,
+  "collection_commit": "dbe3212317c86a08667f2926dd46395535c69959",
+  "analysis_commit": "127b02743e6c909eba9a0c9941ae0bc8c43d3bd5",
+  "output_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1",
+  "total_output_bytes": 28209398,
+  "trajectory_audit": {
+    "scope": "terminal descriptive objective audit; does not refit or change the completed predeclared gate",
+    "strata": {
+      "all_proposals": {
+        "supported_lift_mm": {
+          "effect": 5.105671716982358,
+          "treated_rows": 309,
+          "control_rows": 313,
+          "treated_mean": 17.519984151878692,
+          "control_mean": 12.223038974277964,
+          "episode_cluster90": [
+            1.6273197185874646,
+            8.584023715377251
+          ],
+          "episode_cluster95": [
+            0.9612523146395064,
+            9.250091119325209
+          ],
+          "episode_groups": 283,
+          "frame_cluster90": [
+            1.962901166491184,
+            8.248442267473532
+          ],
+          "frame_cluster95": [
+            1.3610940398013844,
+            8.850249394163331
+          ],
+          "frame_groups": 76
+        },
+        "retained_supported_lift_mm": {
+          "effect": 2.900915688640435,
+          "treated_rows": 309,
+          "control_rows": 313,
+          "treated_mean": 17.09925624853585,
+          "control_mean": 13.998355915752082,
+          "episode_cluster90": [
+            -1.331500606920569,
+            7.133331984201439
+          ],
+          "episode_cluster95": [
+            -2.1419633018152284,
+            7.943794679096098
+          ],
+          "episode_groups": 283,
+          "frame_cluster90": [
+            -1.3000080313463789,
+            7.1018394086272485
+          ],
+          "frame_cluster95": [
+            -2.104440233045981,
+            7.906271610326851
+          ],
+          "frame_groups": 76
+        },
+        "terminal_contact": {
+          "effect": -0.03536977491961415,
+          "treated_rows": 309,
+          "control_rows": 313,
+          "treated_mean": 0.8090614886731392,
+          "control_mean": 0.8338658146964856,
+          "episode_cluster90": [
+            -0.1650707803426303,
+            0.094331230503402
+          ],
+          "episode_cluster95": [
+            -0.18990714308320786,
+            0.11916759324397955
+          ],
+          "episode_groups": 283,
+          "frame_cluster90": [
+            -0.14088227382404853,
+            0.07014272398482022
+          ],
+          "frame_cluster95": [
+            -0.16108679489085512,
+            0.0903472450516268
+          ],
+          "frame_groups": 76
+        },
+        "drop": {
+          "effect": 0.022508038585209004,
+          "treated_rows": 309,
+          "control_rows": 313,
+          "treated_mean": 0.03559870550161812,
+          "control_mean": 0.012779552715654952,
+          "episode_cluster90": [
+            0.0020934741907469682,
+            0.04292260297967104
+          ],
+          "episode_cluster95": [
+            -0.0018156977145755496,
+            0.04683177488499356
+          ],
+          "episode_groups": 283,
+          "frame_cluster90": [
+            -0.001332823299067816,
+            0.046348900469485824
+          ],
+          "frame_cluster95": [
+            -0.005898094723716569,
+            0.05091417189413458
+          ],
+          "frame_groups": 76
+        }
+      },
+      "not_yet_lifted": {
+        "supported_lift_mm": {
+          "effect": 1.3843740737317705,
+          "treated_rows": 169,
+          "control_rows": 191,
+          "treated_mean": 8.870977515189429,
+          "control_mean": 6.544543805210968,
+          "episode_cluster90": [
+            -1.8421740988612816,
+            4.610922246324822
+          ],
+          "episode_cluster95": [
+            -2.460023748932292,
+            5.228771896395832
+          ],
+          "episode_groups": 249,
+          "frame_cluster90": [
+            -2.0253547006630663,
+            4.794102848126608
+          ],
+          "frame_cluster95": [
+            -2.678281487249312,
+            5.447029634712853
+          ],
+          "frame_groups": 76
+        },
+        "retained_supported_lift_mm": {
+          "effect": 0.6883419593175252,
+          "treated_rows": 169,
+          "control_rows": 191,
+          "treated_mean": 10.719047145730645,
+          "control_mean": 8.835693271996464,
+          "episode_cluster90": [
+            -4.112098454260654,
+            5.488782372895704
+          ],
+          "episode_cluster95": [
+            -5.0313317249458365,
+            6.408015643580887
+          ],
+          "episode_groups": 249,
+          "frame_cluster90": [
+            -4.21399993939722,
+            5.59068385803227
+          ],
+          "frame_cluster95": [
+            -5.152746260427703,
+            6.529430179062754
+          ],
+          "frame_groups": 76
+        },
+        "terminal_contact": {
+          "effect": -0.10555555555555556,
+          "treated_rows": 169,
+          "control_rows": 191,
+          "treated_mean": 0.7514792899408284,
+          "control_mean": 0.7643979057591623,
+          "episode_cluster90": [
+            -0.2644857185972164,
+            0.05337460748610533
+          ],
+          "episode_cluster95": [
+            -0.2949191540732792,
+            0.08380804296216805
+          ],
+          "episode_groups": 249,
+          "frame_cluster90": [
+            -0.26868818733823924,
+            0.05757707622712814
+          ],
+          "frame_cluster95": [
+            -0.2999263508710936,
+            0.08881523975998247
+          ],
+          "frame_groups": 76
+        },
+        "drop": {
+          "effect": 0.0,
+          "treated_rows": 169,
+          "control_rows": 191,
+          "treated_mean": 0.0,
+          "control_mean": 0.0,
+          "episode_cluster90": [
+            0.0,
+            0.0
+          ],
+          "episode_cluster95": [
+            0.0,
+            0.0
+          ],
+          "episode_groups": 249,
+          "frame_cluster90": [
+            0.0,
+            0.0
+          ],
+          "frame_cluster95": [
+            0.0,
+            0.0
+          ],
+          "frame_groups": 76
+        }
+      },
+      "already_lifted": {
+        "supported_lift_mm": {
+          "effect": 10.218905119922097,
+          "treated_rows": 140,
+          "control_rows": 122,
+          "treated_mean": 27.960570734739303,
+          "control_mean": 21.11314206683367,
+          "episode_cluster90": [
+            3.4323014260683697,
+            17.005508813775823
+          ],
+          "episode_cluster95": [
+            2.132739016607019,
+            18.305071223237174
+          ],
+          "episode_groups": 96,
+          "frame_cluster90": [
+            6.314048823501144,
+            14.123761416343049
+          ],
+          "frame_cluster95": [
+            5.566310383760961,
+            14.871499856083233
+          ],
+          "frame_groups": 34
+        },
+        "retained_supported_lift_mm": {
+          "effect": 5.9410933319848915,
+          "treated_rows": 140,
+          "control_rows": 122,
+          "treated_mean": 24.801080094064986,
+          "control_mean": 22.080885136713746,
+          "episode_cluster90": [
+            -1.2146428319477485,
+            13.096829495917532
+          ],
+          "episode_cluster95": [
+            -2.584890182488042,
+            14.467076846457825
+          ],
+          "episode_groups": 96,
+          "frame_cluster90": [
+            1.1284249009126972,
+            10.753761763057085
+          ],
+          "frame_cluster95": [
+            0.2068500949627019,
+            11.675336569007081
+          ],
+          "frame_groups": 34
+        },
+        "terminal_contact": {
+          "effect": 0.061068702290076333,
+          "treated_rows": 140,
+          "control_rows": 122,
+          "treated_mean": 0.8785714285714286,
+          "control_mean": 0.9426229508196722,
+          "episode_cluster90": [
+            -0.1501381605853158,
+            0.27227556516546847
+          ],
+          "episode_cluster95": [
+            -0.1905820279444334,
+            0.31271943252458606
+          ],
+          "episode_groups": 96,
+          "frame_cluster90": [
+            -0.07713458819740851,
+            0.19927199277756116
+          ],
+          "frame_cluster95": [
+            -0.1035990480779907,
+            0.22573645265814335
+          ],
+          "frame_groups": 34
+        },
+        "drop": {
+          "effect": 0.05343511450381679,
+          "treated_rows": 140,
+          "control_rows": 122,
+          "treated_mean": 0.07857142857142857,
+          "control_mean": 0.03278688524590164,
+          "episode_cluster90": [
+            0.004164389110283523,
+            0.10270583989735006
+          ],
+          "episode_cluster95": [
+            -0.005270430645924973,
+            0.11214065965355856
+          ],
+          "episode_groups": 96,
+          "frame_cluster90": [
+            -0.007829098245130749,
+            0.11469932725276433
+          ],
+          "frame_cluster95": [
+            -0.01956054323961006,
+            0.12643077224724364
+          ],
+          "frame_groups": 34
+        }
+      }
+    },
+    "positive_mean_lift_but_zero_retained": {
+      "Cm": {
+        "positive_windows": 231,
+        "transient_windows": 81,
+        "fraction": 0.350649356842041,
+        "dropped_with_positive_mean": 7
+      },
+      "base": {
+        "positive_windows": 198,
+        "transient_windows": 53,
+        "fraction": 0.26767677068710327,
+        "dropped_with_positive_mean": 2
+      }
+    }
+  }
+}

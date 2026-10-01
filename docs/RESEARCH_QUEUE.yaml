@@ -20,6 +20,14 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261001-targeted-contact-interventions
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    local_lift_label: PROMISING
+    card: docs/experiments/probes/P-20261001-targeted-contact-interventions.md
+    evidence: docs/experiments/probes/P-20261001-targeted-contact-interventions-results.json
+    outcome_boundary: "622active proposals randomized309/313; local lift+5.106mm with positive descriptive frame95%, but retained gain interval crosses zero and eligible drops11/140vs4/122. Actual replanning works; safe utility and four-control attribution unresolved. Original arithmetic PROMISING gate preserved."
   - id: P-20261001-contact-consequence-ranking
     owner: current_session
     status: COMPLETED
@@ -119,14 +127,14 @@ hypotheses:
   HF09:
     claim: C3
     name: contact_consequence_direct_control
-    status: ACTIVE
+    status: PROMISING
     branch: agent/cm-contact-consequence
     probe_budget: 3
     probes_used: 3
     owner: current_session
     authorization: "active user goal: real candidate opportunity, physical consequence ranking, direct short-segment replanning; original HF08 preserved"
     card: docs/experiments/probes/P-20261001-targeted-contact-interventions.md
-    transition: "Slot1 pairing UNCLEAR; slot2 native selector gate UNPROMISING with only6selected/9base active matches. Factual prediction is better, action effects unsupported. Remaining slot3 reserved for frozen-proposer1:1 actual-state randomized interventions and re-observation; explicitly a measurement repair, no PPO/V or claim change. C1 PARTIAL/C3 OPEN."
+    transition: "Budget3/3closed. Fresh targeted randomization gives local mean-lift PROMISING (+5.106mm); retained-lift and eligible-drop safety unresolved, four controls not established. Preserve native gates and all artifacts. Advance physical trajectory/relative-effect objective, not local old-threshold tuning or PPO. C1 PARTIAL/C3 OPEN."
   HF08:
     claim: C3
     name: short_physical_transition_long_term_value

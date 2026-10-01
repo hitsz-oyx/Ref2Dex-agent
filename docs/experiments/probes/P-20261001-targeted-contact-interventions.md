@@ -39,7 +39,7 @@ base allocation, exact2step execution, and actual-state re-observation. Small
 isolated unit tests use CPU; model inference and real simulation use admitted
 GPU4 UUID GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307.
 
-run_status: RUNNING. Owned output:
+run_status: COMPLETED. Owned output:
 `src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/`
 with `run_manifest.json`, per-seed logs/manifests and complete `records.pt`.
 
@@ -49,3 +49,39 @@ python3 -u scripts/run_randomized_contact_collection.py --output src/task/CmResi
 
 No result or benefit conclusion at launch. All six fixed phases required,
 even if intermediate outcome estimates are disappointing.
+
+## Terminal results and route decision
+
+Six phases completed,3941windows/547episodes;622proposals randomized309Cm/
+313base, from183/195episodes.534episodes had repeated actual observations
+and decisions. Proposal15.8%, actual changed actions7.84% under1:1 allocation;
+nonbase action L2difference median.088. Inference batch median5.71ms/p90 6.04ms
+(max36.66ms). Single GPU4 collection563.96s,28.2MB; original inputs hash-verified
+at completion, all own native PIDs exited and GPU released.15 targeted tests.
+
+Original predeclared local screen PROMISING, all arithmetic gates pass:
+active supported-lift effect+5.106mm, descriptive frame-cluster95%interval
+[+1.361,+8.850]mm; all-window local effect+.806mm[+.138,+1.474]. This is
+prospective randomized mixed-history decision evidence; no individual oracle
+or pure-policy/long-term success claim. Old-held-frame descriptive subgroup
+has130active windows and+9.999mm signal, so the whole signal is not confined
+to frames used for fitting. Subgroups were not used to tune a model or gate.
+
+Safety and attribution prevent utility/training promotion: eligible-drop
+counts11/140Cm vs4/122base; known-propensity eligible-drop effect+5.344pp,
+frame95%[−1.956,+12.643]pp. All-active drop+2.251pp passes the declared5pp
+arithmetic guard but dilutes already-lifted risk. Retained supported lift
+(minimum height in last3steps with contact throughout those3) effect+2.901mm,
+frame95%[−2.104,+7.906], weaker than mean-positive lift.35.1% of Cm's positive
+lift windows lose that retained progress, versus26.8%base;7Cm/2base windows
+drop despite positive mean-lift labels. This does not prove a risk increase or
+that all gains are transient, but makes the physical objective/safety repair
+necessary. Always-base is the only supported decision contrast here; original
+slot2 four-control failure remains, no claim of numeric-Cm-specific utility.
+
+Scientific scope: local mean supported lift PROMISING, overall safe policy
+utility UNCLEAR. Preserve the original gate, checkpoint and all results.
+HF09 closes its3/3slots with useful information. Next mechanism work should
+predict/score retained physical trajectories and action-relative effects,
+not increase PPO supervision or silently loosen thresholds. Detailed frozen
+results and terminal audit: [results](P-20261001-targeted-contact-interventions-results.json).
