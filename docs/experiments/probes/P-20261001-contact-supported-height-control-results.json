@@ -1,0 +1,834 @@
+{
+  "analysis": {
+    "experiment_id": "P-20261001-contact-supported-height-control",
+    "run_status": "COMPLETED",
+    "label": "UNPROMISING",
+    "gate": {
+      "support": true,
+      "gain_over_four_controls": false,
+      "base_gain_lower_positive": false,
+      "all_release_upper_le_2pp": true,
+      "initially_lifted_release_upper_le_5pp": true,
+      "joint_contact_loss_le_2pp": true,
+      "physical_proposal_coverage_5_to_80pct": true,
+      "passed": false
+    },
+    "rows": 3821,
+    "episodes": 534,
+    "frame_groups": 87,
+    "initially_lifted_windows": 457,
+    "release_events": 94,
+    "physical_proposal_windows": 338,
+    "physical_proposal_coverage": 0.08845851570367813,
+    "actual_nonbase_command_windows": 925,
+    "actual_nonbase_command_coverage": 0.24208322167396545,
+    "executed_cm_nonbase_matches": 105,
+    "policy_assignment_counts": [
+      756,
+      769,
+      772,
+      744,
+      780
+    ],
+    "native_cm_vs_base_delta": {
+      "wrist_translation_l2_median_m": 0.04741409793496132,
+      "wrist_rotation_l2_median_rad": 0.12358058243989944,
+      "finger_l2_median_rad": 0.03792960196733475
+    },
+    "replanned_episodes": 523,
+    "latency_ms": {
+      "median": 16.829753294587135,
+      "p90": 21.408100379630923,
+      "max": 104.57462491467595
+    },
+    "policy_values": {
+      "cm": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -0.7341413228668291,
+            "groups": 534,
+            "se": 0.2921914799277472,
+            "interval90": [
+              -1.2147535383903023,
+              -0.2535291073433558
+            ]
+          },
+          "frame": {
+            "value": -0.7341413228668291,
+            "groups": 87,
+            "se": 0.30421480427774267,
+            "interval90": [
+              -1.2345301470554064,
+              -0.23375249867825187
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.6887376761130718,
+            "groups": 534,
+            "se": 0.013987478259432425,
+            "interval90": [
+              0.6657303217661396,
+              0.711745030460004
+            ]
+          },
+          "frame": {
+            "value": 0.6887376761130718,
+            "groups": 87,
+            "se": 0.02136564656858544,
+            "interval90": [
+              0.6535943148625708,
+              0.7238810373635728
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": 0.01864695099753505,
+            "groups": 534,
+            "se": 0.0024711895109436562,
+            "interval90": [
+              0.014582205967574941,
+              0.02271169602749516
+            ]
+          },
+          "frame": {
+            "value": 0.01864695099753505,
+            "groups": 87,
+            "se": 0.002924754521600831,
+            "interval90": [
+              0.013836157914737204,
+              0.023457744080332896
+            ]
+          }
+        }
+      },
+      "state_only": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -1.0130452519624087,
+            "groups": 534,
+            "se": 0.33784169103519457,
+            "interval90": [
+              -1.5687453827970672,
+              -0.4573451211277503
+            ]
+          },
+          "frame": {
+            "value": -1.0130452519624087,
+            "groups": 87,
+            "se": 0.3262564751403729,
+            "interval90": [
+              -1.5496893984134539,
+              -0.4764011055113635
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.6902643265570686,
+            "groups": 534,
+            "se": 0.013348360371370101,
+            "interval90": [
+              0.6683082275863652,
+              0.712220425527772
+            ]
+          },
+          "frame": {
+            "value": 0.6902643265570686,
+            "groups": 87,
+            "se": 0.020633284493700093,
+            "interval90": [
+              0.6563255937216844,
+              0.7242030593924528
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": 0.027588763682513423,
+            "groups": 534,
+            "se": 0.003697922161113903,
+            "interval90": [
+              0.021506223003620994,
+              0.03367130436140585
+            ]
+          },
+          "frame": {
+            "value": 0.027588763682513423,
+            "groups": 87,
+            "se": 0.004139277096048786,
+            "interval90": [
+              0.02078025873812042,
+              0.034397268626906424
+            ]
+          }
+        }
+      },
+      "action_shuffled": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -0.7939730122633215,
+            "groups": 534,
+            "se": 0.3456000939394182,
+            "interval90": [
+              -1.3624345802543432,
+              -0.22551144427229997
+            ]
+          },
+          "frame": {
+            "value": -0.7939730122633215,
+            "groups": 87,
+            "se": 0.4097091120311822,
+            "interval90": [
+              -1.4678845311828788,
+              -0.12006149334376437
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.6920090710046684,
+            "groups": 534,
+            "se": 0.013696323611608349,
+            "interval90": [
+              0.6694806234362133,
+              0.7145375185731234
+            ]
+          },
+          "frame": {
+            "value": 0.6920090710046684,
+            "groups": 87,
+            "se": 0.021546775170228533,
+            "interval90": [
+              0.65656777971681,
+              0.7274503622925267
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": 0.026280205775792296,
+            "groups": 534,
+            "se": 0.0032944213205140806,
+            "interval90": [
+              0.02086136491803845,
+              0.03169904663354614
+            ]
+          },
+          "frame": {
+            "value": 0.026280205775792296,
+            "groups": 87,
+            "se": 0.003891830715820121,
+            "interval90": [
+              0.019878713907394426,
+              0.03268169764419017
+            ]
+          }
+        }
+      },
+      "always_base": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -1.1473036059688986,
+            "groups": 534,
+            "se": 0.28747196265570013,
+            "interval90": [
+              -1.620152906389985,
+              -0.674454305547812
+            ]
+          },
+          "frame": {
+            "value": -1.1473036059688986,
+            "groups": 87,
+            "se": 0.2804063891793328,
+            "interval90": [
+              -1.6085310722308903,
+              -0.686076139706907
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.688846721788939,
+            "groups": 534,
+            "se": 0.012044353551834655,
+            "interval90": [
+              0.669035523164918,
+              0.70865792041296
+            ]
+          },
+          "frame": {
+            "value": 0.688846721788939,
+            "groups": 87,
+            "se": 0.018453518100850625,
+            "interval90": [
+              0.6584933856107402,
+              0.7192000579671378
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": 0.02671639172390037,
+            "groups": 534,
+            "se": 0.003138550882445083,
+            "interval90": [
+              0.02155393492153883,
+              0.03187884852626191
+            ]
+          },
+          "frame": {
+            "value": 0.02671639172390037,
+            "groups": 87,
+            "se": 0.0037700011415447566,
+            "interval90": [
+              0.020515291672619285,
+              0.032917491775181454
+            ]
+          }
+        }
+      },
+      "best_fixed": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -0.034764868056889574,
+            "groups": 534,
+            "se": 0.5596474568729987,
+            "interval90": [
+              -0.9553030173086091,
+              0.8857732811948299
+            ]
+          },
+          "frame": {
+            "value": -0.034764868056889574,
+            "groups": 87,
+            "se": 0.4429140788212789,
+            "interval90": [
+              -0.7632936970339405,
+              0.6937639609201612
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.6842667710809176,
+            "groups": 534,
+            "se": 0.02829508590060031,
+            "interval90": [
+              0.6377254964124117,
+              0.7308080457494235
+            ]
+          },
+          "frame": {
+            "value": 0.6842667710809176,
+            "groups": 87,
+            "se": 0.033955728769037824,
+            "interval90": [
+              0.6284145674593853,
+              0.7401189747024499
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": 0.023772136418178613,
+            "groups": 534,
+            "se": 0.005280085424653867,
+            "interval90": [
+              0.015087168756823095,
+              0.03245710407953413
+            ]
+          },
+          "frame": {
+            "value": 0.023772136418178613,
+            "groups": 87,
+            "se": 0.006225853922640388,
+            "interval90": [
+              0.01353151801265352,
+              0.03401275482370371
+            ]
+          }
+        }
+      }
+    },
+    "contrasts": {
+      "state_only": {
+        "supported_change_mm": {
+          "episode": {
+            "value": 0.2789039507161077,
+            "groups": 534,
+            "se": 0.3326563906350733,
+            "interval90": [
+              -0.2682671199485784,
+              0.8260750213807937
+            ]
+          },
+          "frame": {
+            "value": 0.2789039507161077,
+            "groups": 87,
+            "se": 0.35548615798506994,
+            "interval90": [
+              -0.3058187455766787,
+              0.863626647008894
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": -0.0015266504439968179,
+            "groups": 534,
+            "se": 0.012389088405458697,
+            "interval90": [
+              -0.02190488744233799,
+              0.01885158655434435
+            ]
+          },
+          "frame": {
+            "value": -0.0015266504439968179,
+            "groups": 87,
+            "se": 0.012864813668512205,
+            "interval90": [
+              -0.022687385866703994,
+              0.019634084978710355
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": -0.008941812684978375,
+            "groups": 534,
+            "se": 0.0028637715828113497,
+            "interval90": [
+              -0.013652297759726182,
+              -0.0042313276102305675
+            ]
+          },
+          "frame": {
+            "value": -0.008941812684978375,
+            "groups": 87,
+            "se": 0.002897198612149863,
+            "interval90": [
+              -0.013707280330171849,
+              -0.004176345039784901
+            ]
+          }
+        },
+        "initially_lifted_release": {
+          "episode": {
+            "value": -0.06199854051519014,
+            "groups": 138,
+            "se": 0.022687245518764748,
+            "interval90": [
+              -0.09931573859226886,
+              -0.02468134243811141
+            ]
+          },
+          "frame": {
+            "value": -0.06199854051519014,
+            "groups": 52,
+            "se": 0.024574252906211496,
+            "interval90": [
+              -0.10241958953759488,
+              -0.0215774914927854
+            ]
+          }
+        },
+        "support": {
+          "different_command_windows": 409,
+          "cm": {
+            "windows": 153,
+            "episodes": 124
+          },
+          "control": {
+            "windows": 187,
+            "episodes": 140
+          },
+          "sufficient": true
+        },
+        "release_observed_support": {
+          "cm": {
+            "windows": 153,
+            "events": 1,
+            "initially_lifted_windows": 58,
+            "initially_lifted_events": 1
+          },
+          "control": {
+            "windows": 187,
+            "events": 15,
+            "initially_lifted_windows": 67,
+            "initially_lifted_events": 12
+          }
+        }
+      },
+      "action_shuffled": {
+        "supported_change_mm": {
+          "episode": {
+            "value": 0.059831703287847426,
+            "groups": 534,
+            "se": 0.4062099032169938,
+            "interval90": [
+              -0.6083241293222312,
+              0.7279875358979262
+            ]
+          },
+          "frame": {
+            "value": 0.059831703287847426,
+            "groups": 87,
+            "se": 0.47482073947486014,
+            "interval90": [
+              -0.7211789121891563,
+              0.8408423187648513
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": -0.0032713948915966268,
+            "groups": 534,
+            "se": 0.012654814776380068,
+            "interval90": [
+              -0.024086712874924466,
+              0.017543923091731212
+            ]
+          },
+          "frame": {
+            "value": -0.0032713948915966268,
+            "groups": 87,
+            "se": 0.010821669185845772,
+            "interval90": [
+              -0.02107145670160403,
+              0.014528666918410777
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": -0.0076332547782572485,
+            "groups": 534,
+            "se": 0.002915094774588119,
+            "interval90": [
+              -0.012428158991145799,
+              -0.002838350565368697
+            ]
+          },
+          "frame": {
+            "value": -0.0076332547782572485,
+            "groups": 87,
+            "se": 0.0030174936987236944,
+            "interval90": [
+              -0.01259659023290613,
+              -0.0026699193236083673
+            ]
+          }
+        },
+        "initially_lifted_release": {
+          "episode": {
+            "value": -0.05288110833199332,
+            "groups": 138,
+            "se": 0.020072965594718273,
+            "interval90": [
+              -0.08589819859413778,
+              -0.019864018069848853
+            ]
+          },
+          "frame": {
+            "value": -0.05288110833199332,
+            "groups": 52,
+            "se": 0.017184725812063373,
+            "interval90": [
+              -0.08114746691213234,
+              -0.024614749751854296
+            ]
+          }
+        },
+        "support": {
+          "different_command_windows": 513,
+          "cm": {
+            "windows": 216,
+            "episodes": 158
+          },
+          "control": {
+            "windows": 203,
+            "episodes": 152
+          },
+          "sufficient": true
+        },
+        "release_observed_support": {
+          "cm": {
+            "windows": 216,
+            "events": 7,
+            "initially_lifted_windows": 84,
+            "initially_lifted_events": 5
+          },
+          "control": {
+            "windows": 203,
+            "events": 19,
+            "initially_lifted_windows": 78,
+            "initially_lifted_events": 16
+          }
+        }
+      },
+      "always_base": {
+        "supported_change_mm": {
+          "episode": {
+            "value": 0.41316229635361246,
+            "groups": 534,
+            "se": 0.31720915789599147,
+            "interval90": [
+              -0.10860033751383136,
+              0.9349249302210563
+            ]
+          },
+          "frame": {
+            "value": 0.41316229635361246,
+            "groups": 87,
+            "se": 0.34342291090800975,
+            "interval90": [
+              -0.15171812423165965,
+              0.9780427169388846
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": -0.00010904567586723593,
+            "groups": 534,
+            "se": 0.01035303183974679,
+            "interval90": [
+              -0.017138267647418815,
+              0.016920176295684344
+            ]
+          },
+          "frame": {
+            "value": -0.00010904567586723593,
+            "groups": 87,
+            "se": 0.009969455506787961,
+            "interval90": [
+              -0.01650734072493874,
+              0.01628924937320427
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": -0.008069440726365321,
+            "groups": 534,
+            "se": 0.0024504664090397826,
+            "interval90": [
+              -0.012100099286997158,
+              -0.0040387821657334845
+            ]
+          },
+          "frame": {
+            "value": -0.008069440726365321,
+            "groups": 87,
+            "se": 0.0025900696191272377,
+            "interval90": [
+              -0.012329726133443575,
+              -0.0038091553192870662
+            ]
+          }
+        },
+        "initially_lifted_release": {
+          "episode": {
+            "value": -0.05470459466429195,
+            "groups": 138,
+            "se": 0.01859134841386937,
+            "interval90": [
+              -0.08528464153276348,
+              -0.024124547795820416
+            ]
+          },
+          "frame": {
+            "value": -0.05470459466429195,
+            "groups": 52,
+            "se": 0.016392976574994812,
+            "interval90": [
+              -0.08166864164020268,
+              -0.02774054768838121
+            ]
+          }
+        },
+        "support": {
+          "different_command_windows": 338,
+          "cm": {
+            "windows": 105,
+            "episodes": 78
+          },
+          "control": {
+            "windows": 175,
+            "episodes": 129
+          },
+          "sufficient": true
+        },
+        "release_observed_support": {
+          "cm": {
+            "windows": 105,
+            "events": 3,
+            "initially_lifted_windows": 64,
+            "initially_lifted_events": 3
+          },
+          "control": {
+            "windows": 175,
+            "events": 18,
+            "initially_lifted_windows": 68,
+            "initially_lifted_events": 15
+          }
+        }
+      },
+      "best_fixed": {
+        "supported_change_mm": {
+          "episode": {
+            "value": -0.6993764647074051,
+            "groups": 534,
+            "se": 0.7127578344755457,
+            "interval90": [
+              -1.8717587738825836,
+              0.4730058444677733
+            ]
+          },
+          "frame": {
+            "value": -0.6993764647074051,
+            "groups": 87,
+            "se": 0.5410133713984416,
+            "interval90": [
+              -1.5892642708813756,
+              0.19051134146656545
+            ]
+          }
+        },
+        "joint_contact": {
+          "episode": {
+            "value": 0.004470905032154154,
+            "groups": 534,
+            "se": 0.0334884992797127,
+            "interval90": [
+              -0.05061277446924305,
+              0.05955458453355136
+            ]
+          },
+          "frame": {
+            "value": 0.004470905032154154,
+            "groups": 87,
+            "se": 0.03133688771750983,
+            "interval90": [
+              -0.047073688387362936,
+              0.05601549845167124
+            ]
+          }
+        },
+        "release": {
+          "episode": {
+            "value": -0.0051251854206435625,
+            "groups": 534,
+            "se": 0.005628534816742509,
+            "interval90": [
+              -0.014383301328385119,
+              0.004132930487097994
+            ]
+          },
+          "frame": {
+            "value": -0.0051251854206435625,
+            "groups": 87,
+            "se": 0.005486595769072392,
+            "interval90": [
+              -0.014149832371018889,
+              0.0038994615297317636
+            ]
+          }
+        },
+        "initially_lifted_release": {
+          "episode": {
+            "value": -0.028264041019998964,
+            "groups": 138,
+            "se": 0.03776116740035502,
+            "interval90": [
+              -0.0903756341763946,
+              0.03384755213639668
+            ]
+          },
+          "frame": {
+            "value": -0.028264041019998964,
+            "groups": 52,
+            "se": 0.03433298337451239,
+            "interval90": [
+              -0.08473677324763026,
+              0.028208691207632336
+            ]
+          }
+        },
+        "support": {
+          "different_command_windows": 3650,
+          "cm": {
+            "windows": 2757,
+            "episodes": 529
+          },
+          "control": {
+            "windows": 769,
+            "episodes": 415
+          },
+          "sufficient": true
+        },
+        "release_observed_support": {
+          "cm": {
+            "windows": 2757,
+            "events": 51,
+            "initially_lifted_windows": 242,
+            "initially_lifted_events": 33
+          },
+          "control": {
+            "windows": 769,
+            "events": 18,
+            "initially_lifted_windows": 73,
+            "initially_lifted_events": 12
+          }
+        }
+      }
+    },
+    "checkpoint_sha256": "027202015c32ba783aa1bbef5a0a3c501643bfa904e0b460cdf1877193971355",
+    "record_sha256": {
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-r1/seed351/records.pt": "58361c626ad9b9ab4bb85a08e4462db88793f082d4d300369ec5ab03df7327f1",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-r1/seed352/records.pt": "a0ad38a311bde5749373fde48b3eee48e1c7573d6e66356180dc569c51548c72",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-r1/seed353/records.pt": "a6e1b9a94fdeb35e33bcaec39ce3a08ba3b6fd627db7e93b084dcee860644015",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-r1/seed354/records.pt": "7bfeb706ab95dcf6daee5a6f6e411b4a13dd62de42870de37c54563f704077d7",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-r1/seed355/records.pt": "84d87445fc047876367808fb540efee4551cac0ee76177af702fdaa038800b09",
+      "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-supported-height-control-continuation-r1/seed356/records.pt": "3053e640ea35e822026dcb73e02e54fb8fed592691d563215c0a00b03c2f26c4"
+    },
+    "scope": "prospective mixed-history local randomized common-physical-action IPW; descriptive normal cluster90 intervals, zero observed release is not zero risk; no pure-policy/stable-grasp claim; state_only six slots retain expert identity",
+    "inputs_unchanged": true,
+    "elapsed_seconds_including_setup": 596.6190868578851,
+    "output_bytes_including_setup": 34854065
+  },
+  "completion_audit": {
+    "run_status": "COMPLETED",
+    "input_hashes_unchanged": true,
+    "records_unchanged": true,
+    "all_native_pids_exited": true,
+    "native_source_commit": "ebba974b2e11088eeca33dd6c9ec5eeb28b70a01",
+    "continuation_commit": "ee8517667dcaf4d889323dccf012bdbd31b46c1e",
+    "original_failure": "GPU occupied at sixth phase admission; five completed phases preserved",
+    "gpu_indices": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      3
+    ],
+    "phase_record_sha256": [
+      "58361c626ad9b9ab4bb85a08e4462db88793f082d4d300369ec5ab03df7327f1",
+      "a0ad38a311bde5749373fde48b3eee48e1c7573d6e66356180dc569c51548c72",
+      "a6e1b9a94fdeb35e33bcaec39ce3a08ba3b6fd627db7e93b084dcee860644015",
+      "7bfeb706ab95dcf6daee5a6f6e411b4a13dd62de42870de37c54563f704077d7",
+      "84d87445fc047876367808fb540efee4551cac0ee76177af702fdaa038800b09",
+      "3053e640ea35e822026dcb73e02e54fb8fed592691d563215c0a00b03c2f26c4"
+    ],
+    "analysis_sha256": "a88bf1eabb1491b52e5799321dbcad99d3757dc565203cd4e97b53da127756bf",
+    "total_seconds": 596.6190868578851,
+    "total_bytes": 34854065,
+    "tests": 27,
+    "actor_or_neural_training": false
+  }
+}

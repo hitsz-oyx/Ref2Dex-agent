@@ -134,14 +134,14 @@ hypotheses:
   HF10:
     claim: C3
     name: retained_physical_trajectory_relative_action_effect
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-contact-consequence
     probe_budget: 2
     probes_used: 2
     owner: current_session
     authorization: "active user goal and AGENTS autonomous implementation; HF09 local physical signal motivates distinct retention/release mechanism, no mission/claim/resource change"
     card: docs/experiments/probes/P-20261001-contact-supported-height-control.md
-    transition: "Slot1 original MAE gate remains FAILED. Slot2 proper grouped probability setup PASSED (joint Brier .1439/ECE .0308, release Brier .00930); physical NN frozen. New351-356 five-selector native control uses signed support change and merged12channel physical-command propensity, logs native PD targets. Prospective utility/safety/support pending. NN tuning closed; budget2/2, HF09 stays3/3closed; no actor/PPO/V or utility promotion."
+    transition: "Budget2/2closed. Fresh3821windows/534episodes four-control support passes, retained-support uplift gate UNPROMISING (vsbase+.413mm90CIcross0, vsfixed-.699mm). Preserve old MAE/new gate failures; no tuning. Separate initiallylifted release signal vsbase-5.470pp frame90[-8.167,-2.774], vsstate/shuffled favorable, vsfixed unresolved. Consider recovery/retention policy-learning role, no stable-grasp/C3 promotion. Frozen NN/actor/V, inputs verified, own GPUs released; GPU4resource admission interrupted after5completed phases, only356finishedGPU3."
   HF09:
     claim: C3
     name: contact_consequence_direct_control

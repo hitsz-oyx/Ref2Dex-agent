@@ -33,11 +33,16 @@ HF09预算3/3完成，不调旧模型/阈值追门。下一步改进物理目标
 设计与结果见 [定向介入卡](experiments/probes/P-20261001-targeted-contact-interventions.md)。
 HF10 slot1已完成9个物理模型各1000GPU更新（51秒），但joint-contact MAE
 .239未通过原.20门；Brier优于constant，概率过度自信，utility仍UNCLEAR。
-当前slot2/2的proper校准setup已通过：Cm joint Brier .1439、ECE .0308，
-release Brier .00930，物理NN权重未改。使用已取得支持高度的有符号变化，
-冻结参数启动新seed351–356五推荐器实际随机闭环；按12个独立控制通道合并
-等价动作概率，并记录native PD目标。四控制、安全与有效支持门待新数据，
-旧MAE失败记录不改，旧held只作工程审计；失败不继续HF10局部调参。
+HF10 slot2已完成3821个实际五推荐器窗口/534episodes，四项不同动作支持充分。
+校准物理Cm的保留支持高度vsbase +.413mm，frame90区间[−.152,+.978]；
+vsstate-only/shuffled +.279/+.060mm，vs最佳固定cup −.699mm，原收益门UNPROMISING。
+有用的新机制信号是已抬升状态释放标签vsbase −5.470pp，描述性frame90
+[−8.167,−2.774]pp；vsstate-only/shuffled也降低，但vs固定cup区间跨零。
+这支持转向局部防丢失/保留控制的研究判断，不是稳定抓取或最终Cm utility证明。
+提议8.846%，105次真实非base Cm匹配，523episodes重新决策；NN/actor/V均冻结。
+所有输入/PD执行合同通过，自有进程结束，GPU释放；包括setup共596.62秒/34.85MB。
+HF10预算2/2关闭，旧MAE门失败及新收益失败都保留，不扫阈值追抬升。
+下一步应设计能保留现有抓取的Cm训练作用链，先固定独立机制/训练合同。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
 [保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和

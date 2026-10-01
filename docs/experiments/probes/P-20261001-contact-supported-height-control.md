@@ -61,3 +61,36 @@ Log exact native18DOF candidate targets and executed targets at every step.
 State-only6slots preserve expert identity and predict candidate-specific
 physical futures; this control tests numeric action information, not absence
 of all action-consequence modeling. Runtime/collection tests25passed.
+
+Terminal actual-control result: COMPLETED / UNPROMISING on the frozen gate.
+3821windows/534episodes/87initial-frame groups,457initiallylifted windows,
+94all-window release events. Cm proposes338physical interventions (8.846%);
+105actual matching nonbase executions. The five-policy mixture executes925
+nonbase commands (24.21%); that is not Cm-only coverage.523episodes replan.
+Each of four different-command contrasts has adequate support.
+
+Cm signed-supported-height effect in mm, descriptive frame-cluster90:
+base +.413 [−.152,+.978], state-only +.279 [−.306,+.864],
+action-shuffled +.060 [−.721,+.841], bestfixed −.699 [−1.589,+.191].
+The all-four uplift gate and positive base lower bound fail; do not tune
+thresholds or reopen HF10budget2/2. Network NN weights stayed frozen.
+
+Useful separate mechanism observation: Cm release difference vsbase
+−.807percentagepoints [−1.233,−.381] acrossall windows, and
+−5.470pp [−8.167,−2.774] in the pre-action initiallylifted stratum.
+Vsstate-only/shuffled, conditional release differences −6.200pp/−5.288pp;
+vsbestfixed −2.826pp [−8.474,+2.821], so superiority over fixed is unresolved.
+Native joint-contact and risk screens pass. This suggests a local recovery/
+retention role, not improved stable grasp or the original uplift-gate pass.
+The event support and full controls are in supported-height-control-results.json.
+
+Native Cmvsbase median target differences on proposal states: translation
+47.41mm,rotation .12358rad,fingers .03793rad. These are PDtarget changes,
+not measured joint displacement or object motion. Three-variant infer median
+16.83ms/p90 21.41ms/max104.57ms; this is batched inference, not guaranteed
+real-time latency. All records/models/sources unchanged, all own native PIDs
+exited and GPUs released. Total including setup/resource interruption596.62s,
+34.85MB. Firstfive phases GPU4; otherjob arrival prevented sixth admission.
+Preserve original failed parent, finish only seed356 on idleGPU3 in separate
+continuation directory; no rerun/label selection. Current completed manifest
+is contact-supported-height-control-continuation-r1/run_manifest.json.
