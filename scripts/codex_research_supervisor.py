@@ -5,11 +5,10 @@ This is the small, session-only watchdog recovered from the historical
 ``codex_research_supervisor.py`` implementation. It reads Codex metadata and
 rollouts, never creates a child agent, and never uses the retired Broker.
 
-For every unarchived thread updated within the active window, a new
-``Selected model is at capacity``/``server_overloaded`` event arms recovery.
-When the thread is idle and has no queued input, the watchdog sends ``继续`` at
-most once per interval. A later turn start clears the recovery arm; stale
-threads naturally expire from the active window.
+For every unarchived thread updated within the active window, a real
+``task_complete.error`` capacity event arms recovery. When the thread is idle
+and has no queued input, the watchdog sends one ``继续`` after the delay. A
+successful queue clears the arm; a later capacity event can arm it again.
 """
 
 from __future__ import annotations
@@ -31,14 +30,14 @@ from urllib.parse import quote
 from datetime import datetime, timezone
 
 
-SCHEMA = "ref2dex.session_capacity_watchdog.v1"
+SCHEMA = "ref2dex.session_capacity_watchdog.v2"
 DEFAULT_SCAN_ROOT = "/home2/wyy/oyx_ws"
 DEFAULT_ACTIVE_WINDOW = 24 * 60 * 60
 DEFAULT_INTERVAL = 60.0
 DEFAULT_POLL_INTERVAL = 10.0
-CAPACITY_RE = re.compile(
-    r"selected model is at capacity|server[_ -]?overloaded|codex_error_info.{0,80}capacity",
-    re.IGNORECASE,
+CAPACITY_INFO = frozenset({"server_overloaded", "capacity", "capacity_exceeded"})
+CAPACITY_MESSAGE_RE = re.compile(
+    r"^\s*selected model is at capacity(?:\.|\s|$)", re.IGNORECASE
 )
 START_TYPES = frozenset({"task_started", "turn_started", "thread.started"})
 END_TYPES = frozenset(
@@ -186,10 +185,6 @@ def _event_turn_id(event: dict[str, Any]) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _event_text(event: dict[str, Any]) -> str:
-    return json.dumps(event, ensure_ascii=False, sort_keys=True)
-
-
 def _event_time(event: dict[str, Any], fallback: float) -> float:
     value = event.get("timestamp")
     if not isinstance(value, str):
@@ -200,6 +195,22 @@ def _event_time(event: dict[str, Any], fallback: float) -> float:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
     except ValueError:
         return fallback
+
+
+def _is_capacity_error(event: dict[str, Any]) -> bool:
+    """Match only the structured provider error, never arbitrary rollout text."""
+
+    payload = _event_payload(event)
+    if payload.get("type") not in {"task_complete", "turn_failed", "turn_cancelled"}:
+        return False
+    error = payload.get("error")
+    if not isinstance(error, dict):
+        return False
+    info = error.get("codex_error_info")
+    if isinstance(info, str) and info.lower() in CAPACITY_INFO:
+        return True
+    message = error.get("message")
+    return isinstance(message, str) and bool(CAPACITY_MESSAGE_RE.match(message))
 
 
 def consume_rollout_events(state: SessionState, rollout: str | None) -> list[dict[str, Any]]:
@@ -248,9 +259,10 @@ def apply_events(
     minimum_event_time: float = 0.0,
 ) -> None:
     for event in events:
-        if CAPACITY_RE.search(_event_text(event)) and _event_time(event, now) >= minimum_event_time:
+        event_time = _event_time(event, now)
+        if _is_capacity_error(event) and event_time >= minimum_event_time:
             state.capacity_pending = True
-            state.last_capacity_at = now
+            state.last_capacity_at = event_time
         kind = _event_type(event)
         turn_id = _event_turn_id(event)
         if kind in START_TYPES:
@@ -376,10 +388,12 @@ class CapacityWatchdog:
                 state.capacity_pending
                 and state.active_turn_id is None
                 and queue_status is False
+                and current - state.last_capacity_at >= self.args.interval
                 and current - state.last_sent_at >= self.args.interval
             )
             if can_send and self.invoker.queue(Path(session.home), session.thread_id, self.args.message):
                 state.last_sent_at = current
+                state.capacity_pending = False
                 sent.append(key)
             self.state["sessions"][key] = asdict(state)
         self.state["sessions"] = {

@@ -40,10 +40,12 @@ def _home(tmp_path: Path, name: str, *, updated_ms: int, archived: int = 0, even
     return home
 
 
-def _event(kind: str, *, text: str | None = None, turn_id: str = "turn") -> dict:
+def _event(kind: str, *, text: str | None = None, turn_id: str = "turn", error=None) -> dict:
     payload = {"type": kind, "turn_id": turn_id}
     if text:
-        payload["error"] = text
+        payload["error"] = {"message": text, "codex_error_info": "server_overloaded"}
+    if error is not None:
+        payload["error"] = error
     return {"payload": payload}
 
 
@@ -84,10 +86,27 @@ def test_capacity_event_arms_and_sends_continue_once_per_minute(tmp_path):
         events=[_event("task_complete", text="Selected model is at capacity")],
     )
     watchdog = _watchdog(tmp_path)
-    first = watchdog.cycle(now=now)
-    assert first["scanned"] == 1 and len(first["sent"]) == 1
+    assert watchdog.cycle(now=now)["sent"] == []
     assert watchdog.cycle(now=now + 59)["sent"] == []
-    assert len(watchdog.cycle(now=now + 60)["sent"]) == 1
+    first = watchdog.cycle(now=now + 60)
+    assert first["scanned"] == 1 and len(first["sent"]) == 1
+    assert watchdog.cycle(now=now + 120)["sent"] == []
+
+
+def test_capacity_phrase_in_normal_rollout_text_does_not_arm(tmp_path):
+    now = 2_000_000_000.0
+    _home(
+        tmp_path,
+        ".codex_one",
+        updated_ms=int(now * 1000),
+        events=[
+            {"payload": {"type": "assistant_message", "text": "Selected model is at capacity"}},
+            {"payload": {"type": "custom_tool_call", "command": "server_overloaded"}},
+        ],
+    )
+    result = _watchdog(tmp_path).cycle(now=now + 60)
+    assert result["armed"] == []
+    assert result["sent"] == []
 
 
 def test_new_turn_clears_capacity_arm(tmp_path):
@@ -99,7 +118,8 @@ def test_new_turn_clears_capacity_arm(tmp_path):
         events=[_event("task_complete", text="server_overloaded")],
     )
     watchdog = _watchdog(tmp_path)
-    assert watchdog.cycle(now=now)["sent"]
+    assert watchdog.cycle(now=now)["sent"] == []
+    assert watchdog.cycle(now=now + 60)["sent"]
     rollout = home / "rollout.jsonl"
     with rollout.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(_event("task_started", turn_id="recovery")) + "\n")
@@ -137,7 +157,7 @@ def test_stale_archived_and_old_capacity_sessions_are_ignored(tmp_path):
     assert result["sent"] == []
 
 
-def test_active_turn_is_not_interrupted(tmp_path):
+def test_nonterminal_capacity_text_does_not_arm(tmp_path):
     now = 2_000_000_000.0
     _home(
         tmp_path,
@@ -149,7 +169,7 @@ def test_active_turn_is_not_interrupted(tmp_path):
         ],
     )
     result = _watchdog(tmp_path).cycle(now=now)
-    assert result["armed"] and result["sent"] == []
+    assert result["armed"] == [] and result["sent"] == []
 
 
 def test_subagent_threads_are_scanned_but_never_queued(tmp_path):

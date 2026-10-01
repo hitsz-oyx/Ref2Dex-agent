@@ -36,6 +36,15 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HD02:
+    name: paired_evaluator_five_pp_resolution
+    status: ACTIVE
+    probe_budget: 1
+    probes_used: 1
+    owner: current_session
+    authorization: "active user goal: state/RNG/action paired evaluator; repeat off before gated existing three-arm inference; no training"
+    card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
+    transition: "Freeze HF08 and all V/PPO/new Cm work; repair cold-state pairing and repeat plain-off; failure closes current route without further policy evaluation."
   HD01:
     name: current_policy_frozen_gae_value_adaptation
     status: CLOSED
