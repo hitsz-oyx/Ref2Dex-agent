@@ -101,3 +101,34 @@ calibration428/61, holdout393/56; lifted/drop support154/18,18/3,21/7.
 This is descriptive label/support audit, before any model fitting or held
 policy selection. All original input hashes unchanged; GPU collection279.90s,
 15.9MB, no actor/Cm updates during collection. Full traces remain owned output.
+
+## Terminal result and effect-support audit
+
+Collection and fitting COMPLETED, native screen UNPROMISING. Nine models each
+completed1000 GPU updates; collection+fit344.34s on GPU4. Held factual lift
+RMSE(mm): Cm3.684, state-only4.547, shuffled4.099. Better factual prediction
+does not establish better candidate differences or a useful selector.
+
+Held randomized supported-lift policy estimates(mm): Cm1.278, state-only1.793,
+shuffled2.187, always-base2.546, fit-only fixed cup1.601. Cm changes42/393
+decisions(10.7%); support/contact gates fail. No direct utility/PPO launch
+authorized by this gate. Ranker hash and full frozen metrics are in
+[results](P-20261001-contact-consequence-ranking-results.json).
+
+Terminal audit reveals the policy-match count65 includes mostly unchanged-base
+choices. Within42 proposed interventions, only6 selected-action and9 base
+factual records inform the effect. Cm-base effect−1.268mm, paired frame-group
+descriptive95%interval[−3.255,+0.719]mm. One base record contributes−0.908mm;
+retain it, do not trim the inconvenient outcome. Calibration effect+0.875mm
+also has broad interval[−0.828,+2.577]. Training effect+3.710mm is in-sample
+selection, not evidence. Only2 eligible held policy matches mean the observed
+zero matched drops is unsupported risk, despite the native arithmetic gate.
+
+Conclusion: current selector did not pass; neither sign of its action effect
+is established. The next decision is measurement/data repair at proposed
+interventions, not increased PPO loss or threshold tuning on this holdout.
+A new frozen-proposer1:1 sequential diagnostic is separately prespecified in
+[D-20261001-targeted-contact-interventions](../../decisions/D-20261001-targeted-contact-interventions.md).
+Original inputs independently hash-verified before any follow-up code change;
+split has no episode overlap. All native processes exited;12 targeted tests
+passed. Full simulation traces and checkpoint remain in the owned output.

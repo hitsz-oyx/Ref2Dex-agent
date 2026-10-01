@@ -20,6 +20,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261001-contact-consequence-ranking
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261001-contact-consequence-ranking.md
+    evidence: docs/experiments/probes/P-20261001-contact-consequence-ranking-results.json
+    outcome_boundary: "Factual Cm prediction improves but selector gate fails;42/393 interventions, only6selected/9base intervention matches; wide effect interval and only2eligible policy matches. No formal utility or zero-risk claim; targeted randomized measurement repair next."
   - id: P-20261001-contact-consequence-opportunity
     owner: current_session
     status: COMPLETED
@@ -119,7 +126,7 @@ hypotheses:
     owner: current_session
     authorization: "active user goal: real candidate opportunity, physical consequence ranking, direct short-segment replanning; original HF08 preserved"
     card: docs/experiments/probes/P-20261001-contact-consequence-ranking.md
-    transition: "Slot1 numeric opportunity signal but replay contract UNCLEAR. Slot2 uses prespecified randomized actual-state fallback with known propensity, complete2+8 consequences, late contact and frame/episode-group splits; learn nonlinear physical ranker and controls. No claimed oracle or PPO/V; C1 PARTIAL/C3 OPEN."
+    transition: "Slot1 pairing UNCLEAR; slot2 native selector gate UNPROMISING with only6selected/9base active matches. Factual prediction is better, action effects unsupported. Remaining slot3 reserved for frozen-proposer1:1 actual-state randomized interventions and re-observation; explicitly a measurement repair, no PPO/V or claim change. C1 PARTIAL/C3 OPEN."
   HF08:
     claim: C3
     name: short_physical_transition_long_term_value

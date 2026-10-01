@@ -1,0 +1,1359 @@
+{
+  "experiment_id": "P-20261001-contact-consequence-ranking",
+  "result": {
+    "run_status": "COMPLETED",
+    "label": "UNPROMISING",
+    "decision": "REVIEW_PHYSICAL_RANKING",
+    "split_stats": {
+      "fit": {
+        "rows": 1163,
+        "episodes": 158,
+        "arms": [
+          188,
+          206,
+          199,
+          196,
+          173,
+          201
+        ],
+        "drop_eligible": 154,
+        "drops": 18
+      },
+      "calibration": {
+        "rows": 428,
+        "episodes": 61,
+        "arms": [
+          55,
+          81,
+          80,
+          82,
+          59,
+          71
+        ],
+        "drop_eligible": 18,
+        "drops": 3
+      },
+      "holdout": {
+        "rows": 393,
+        "episodes": 56,
+        "arms": [
+          69,
+          62,
+          70,
+          57,
+          68,
+          67
+        ],
+        "drop_eligible": 21,
+        "drops": 7
+      }
+    },
+    "factual_metrics": {
+      "cm": {
+        "factual_lift_rmse_mm": 3.684352397918701,
+        "factual_contact_mae": 0.13421902060508728,
+        "factual_drop_brier": 0.20712965726852417,
+        "lift_interval_factual_coverage": 0.9211195707321167
+      },
+      "state_only": {
+        "factual_lift_rmse_mm": 4.546895980834961,
+        "factual_contact_mae": 0.13539566099643707,
+        "factual_drop_brier": 0.2020190805196762,
+        "lift_interval_factual_coverage": 0.9083969593048096
+      },
+      "action_shuffled": {
+        "factual_lift_rmse_mm": 4.098601818084717,
+        "factual_contact_mae": 0.14214226603507996,
+        "factual_drop_brier": 0.18741163611412048,
+        "lift_interval_factual_coverage": 0.9389312863349915
+      }
+    },
+    "calibration": {
+      "cm": {
+        "margin_mm": 1.2017593383789062,
+        "supported_lift_absolute_q90_mm": 5.7181291580200195,
+        "factual_contact_mae": 0.157492533326149,
+        "conditional_drop_brier": 0.11063825339078903,
+        "drop_supported": true,
+        "scope": "factual calibration; effect dispersion heuristic"
+      },
+      "state_only": {
+        "margin_mm": 1.2262983322143555,
+        "supported_lift_absolute_q90_mm": 5.421966552734375,
+        "factual_contact_mae": 0.14920315146446228,
+        "conditional_drop_brier": 0.12024591863155365,
+        "drop_supported": true,
+        "scope": "factual calibration; effect dispersion heuristic"
+      },
+      "action_shuffled": {
+        "margin_mm": 1.2879679203033447,
+        "supported_lift_absolute_q90_mm": 6.260168552398682,
+        "factual_contact_mae": 0.16453620791435242,
+        "conditional_drop_brier": 0.14333540201187134,
+        "drop_supported": true,
+        "scope": "factual calibration; effect dispersion heuristic"
+      }
+    },
+    "policy": {
+      "cm": {
+        "supported_lift_mm": {
+          "value": 1.278252862393856,
+          "approximate_episode_cluster95": [
+            -0.18368967773983358,
+            2.7401954025275455
+          ],
+          "matched_windows": 65,
+          "matched_episodes": 38,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "contact_fraction": {
+          "value": 0.7984732914971941,
+          "approximate_episode_cluster95": [
+            0.5938704769939611,
+            1.0030761060004272
+          ],
+          "matched_windows": 65,
+          "matched_episodes": 38,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "drop": {
+          "value": 0.0,
+          "approximate_episode_cluster95": [
+            0.0,
+            0.0
+          ],
+          "matched_windows": 65,
+          "matched_episodes": 38,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "intervention_fraction": 0.10687022656202316,
+        "choice_counts": [
+          9,
+          22,
+          8,
+          0,
+          351,
+          3
+        ]
+      },
+      "state_only": {
+        "supported_lift_mm": {
+          "value": 1.7933303738254627,
+          "approximate_episode_cluster95": [
+            0.45075706035235563,
+            3.13590368729857
+          ],
+          "matched_windows": 74,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "contact_fraction": {
+          "value": 0.8748091671985524,
+          "approximate_episode_cluster95": [
+            0.6498809045324935,
+            1.0997374298646112
+          ],
+          "matched_windows": 74,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "drop": {
+          "value": 0.015267175572519083,
+          "approximate_episode_cluster95": [
+            -0.014755846688905389,
+            0.04529019783394356
+          ],
+          "matched_windows": 74,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "intervention_fraction": 0.27226462960243225,
+        "choice_counts": [
+          37,
+          25,
+          16,
+          23,
+          286,
+          6
+        ]
+      },
+      "action_shuffled": {
+        "supported_lift_mm": {
+          "value": 2.1870346930418307,
+          "approximate_episode_cluster95": [
+            0.1616828403541577,
+            4.212386545729504
+          ],
+          "matched_windows": 67,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "contact_fraction": {
+          "value": 0.8244274896747283,
+          "approximate_episode_cluster95": [
+            0.6202071273950358,
+            1.0286478519544209
+          ],
+          "matched_windows": 67,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "drop": {
+          "value": 0.015267175572519083,
+          "approximate_episode_cluster95": [
+            -0.014600907959741673,
+            0.04513525910477984
+          ],
+          "matched_windows": 67,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "intervention_fraction": 0.08651399612426758,
+        "choice_counts": [
+          2,
+          2,
+          9,
+          3,
+          359,
+          18
+        ]
+      },
+      "always_base": {
+        "supported_lift_mm": {
+          "value": 2.546327255325008,
+          "approximate_episode_cluster95": [
+            0.247462331030182,
+            4.8451921796198345
+          ],
+          "matched_windows": 68,
+          "matched_episodes": 41,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "contact_fraction": {
+          "value": 0.8320610766647426,
+          "approximate_episode_cluster95": [
+            0.6311107625147991,
+            1.033011390814686
+          ],
+          "matched_windows": 68,
+          "matched_episodes": 41,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "drop": {
+          "value": 0.0,
+          "approximate_episode_cluster95": [
+            0.0,
+            0.0
+          ],
+          "matched_windows": 68,
+          "matched_episodes": 41,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "intervention_fraction": 0.0,
+        "choice_counts": [
+          0,
+          0,
+          0,
+          0,
+          393,
+          0
+        ]
+      },
+      "best_fixed": {
+        "supported_lift_mm": {
+          "value": 1.6005530263526535,
+          "approximate_episode_cluster95": [
+            0.10470776122288528,
+            3.096398291482422
+          ],
+          "matched_windows": 62,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "contact_fraction": {
+          "value": 0.7236641303046059,
+          "approximate_episode_cluster95": [
+            0.552489234159595,
+            0.8948390264496167
+          ],
+          "matched_windows": 62,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "drop": {
+          "value": 0.030534351145038167,
+          "approximate_episode_cluster95": [
+            -0.011238814559196588,
+            0.07230751684927292
+          ],
+          "matched_windows": 62,
+          "matched_episodes": 39,
+          "episodes": 56,
+          "windows": 393,
+          "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+        },
+        "intervention_fraction": 1.0,
+        "choice_counts": [
+          0,
+          393,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "best_fixed": 1,
+    "effects_mm": {
+      "state_only": -0.5150775114316066,
+      "action_shuffled": -0.9087818306479747,
+      "always_base": -1.268074392931152,
+      "best_fixed": -0.32230016395879746
+    },
+    "gate": {
+      "passed": false,
+      "contact": false,
+      "drop": true,
+      "support": true,
+      "coverage": true,
+      "calibration": true
+    },
+    "true_individual_regret": "unavailable in randomized single-action data",
+    "baseline_status": "PARTIAL",
+    "cm_utility": "UNPROVEN",
+    "elapsed_seconds": 64.44231517938897,
+    "cumulative_probe_seconds": 344.34344363212585,
+    "input_hashes_unchanged": true,
+    "ranker_sha256": "a38be701e1d32fbe66ea4c4ecc4e78178d205f5d8649beb921818ace364e808d"
+  },
+  "terminal_audit": {
+    "checkpoint_sha256": "a38be701e1d32fbe66ea4c4ecc4e78178d205f5d8649beb921818ace364e808d",
+    "label": "UNPROMISING",
+    "split_audits": {
+      "fit": {
+        "rows": 1163,
+        "frame_groups": 46,
+        "variants": {
+          "cm": {
+            "intervention_windows": 222,
+            "choice_counts": [
+              54,
+              110,
+              40,
+              6,
+              941,
+              12
+            ],
+            "policy_value_mm": {
+              "value": 5.736435359101646,
+              "approximate_episode_cluster95": [
+                3.2806356398994265,
+                8.192235078303867
+              ],
+              "matched_windows": 170,
+              "matched_episodes": 109,
+              "episodes": 158,
+              "windows": 1163,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 3.7098270996661116,
+            "paired_episode95": [
+              1.1409988082465277,
+              6.278655391085696
+            ],
+            "paired_frame_group95": [
+              0.9140950869775906,
+              6.505558805539499
+            ],
+            "selected_intervention_matches": 36,
+            "base_intervention_matches": 39,
+            "selected_observed_mm": {
+              "q0": 0.0020027162972837687,
+              "q50": 20.492372512817383,
+              "q90": 63.45082092285156,
+              "q100": 88.11729431152344
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.8442044258117676,
+              "q90": 23.65523338317871,
+              "q100": 62.7579460144043
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.3608624935150146,
+              "q50": 5.564337730407715,
+              "q90": 16.598716735839844,
+              "q100": 27.02499008178711
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.05220906063914299,
+              "q50": 1.544170618057251,
+              "q90": 10.329614639282227,
+              "q100": 60.229026794433594
+            },
+            "factual_rmse_mm": 4.302582263946533,
+            "eligible_policy_matches": 24,
+            "eligible_policy_matched_drops": 4,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 372,
+                "episode": "s331/env51/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 88.11729431152344,
+                "contribution_mm": 0.454603383793261
+              },
+              {
+                "row": 476,
+                "episode": "s331/env66/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 87.35279846191406,
+                "contribution_mm": 0.45065934762602106
+              },
+              {
+                "row": 988,
+                "episode": "s332/env45/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 86.52000427246094,
+                "contribution_mm": 0.4463628504876935
+              },
+              {
+                "row": 1259,
+                "episode": "s332/env87/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 63.67416763305664,
+                "contribution_mm": 0.3284995816231594
+              },
+              {
+                "row": 1005,
+                "episode": "s332/env48/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 63.227474212646484,
+                "contribution_mm": 0.32619504526782833
+              }
+            ]
+          },
+          "state_only": {
+            "intervention_windows": 353,
+            "choice_counts": [
+              88,
+              123,
+              60,
+              60,
+              810,
+              22
+            ],
+            "policy_value_mm": {
+              "value": 6.250543898928859,
+              "approximate_episode_cluster95": [
+                3.885447554329742,
+                8.615640243527976
+              ],
+              "matched_windows": 160,
+              "matched_episodes": 101,
+              "episodes": 158,
+              "windows": 1163,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 4.223935640723343,
+            "paired_episode95": [
+              2.1093220071252405,
+              6.338549274321445
+            ],
+            "paired_frame_group95": [
+              1.6678780094714178,
+              6.779994152393817
+            ],
+            "selected_intervention_matches": 50,
+            "base_intervention_matches": 63,
+            "selected_observed_mm": {
+              "q0": 0.0020027162972837687,
+              "q50": 12.226978302001953,
+              "q90": 48.44987869262695,
+              "q100": 88.11729431152344
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.2821981906890869,
+              "q90": 12.44871997833252,
+              "q100": 28.52721405029297
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.4741158485412598,
+              "q50": 5.494832992553711,
+              "q90": 17.445886611938477,
+              "q100": 46.280601501464844
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.2864100933074951,
+              "q50": 2.549337863922119,
+              "q90": 14.277050971984863,
+              "q100": 54.431495666503906
+            },
+            "factual_rmse_mm": 4.752985954284668,
+            "eligible_policy_matches": 20,
+            "eligible_policy_matched_drops": 2,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 372,
+                "episode": "s331/env51/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 88.11729431152344,
+                "contribution_mm": 0.454603383793261
+              },
+              {
+                "row": 1005,
+                "episode": "s332/env48/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 63.227474212646484,
+                "contribution_mm": 0.32619504526782833
+              },
+              {
+                "row": 1764,
+                "episode": "s333/env63/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 58.37228775024414,
+                "contribution_mm": 0.3011468049276521
+              },
+              {
+                "row": 304,
+                "episode": "s331/env42/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 54.312652587890625,
+                "contribution_mm": 0.28020285084036434
+              },
+              {
+                "row": 1944,
+                "episode": "s333/env90/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 48.6468391418457,
+                "contribution_mm": 0.25097252147933685
+              }
+            ]
+          },
+          "action_shuffled": {
+            "intervention_windows": 163,
+            "choice_counts": [
+              23,
+              11,
+              34,
+              15,
+              1000,
+              80
+            ],
+            "policy_value_mm": {
+              "value": 2.391290683739739,
+              "approximate_episode_cluster95": [
+                1.165301830486604,
+                3.617279536992874
+              ],
+              "matched_windows": 175,
+              "matched_episodes": 112,
+              "episodes": 158,
+              "windows": 1163,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 0.3646825165555893,
+            "paired_episode95": [
+              -1.1808855953654926,
+              1.9102506284766714
+            ],
+            "paired_frame_group95": [
+              -0.907350458568883,
+              1.636715509361577
+            ],
+            "selected_intervention_matches": 28,
+            "base_intervention_matches": 26,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 6.020200252532959,
+              "q90": 30.549137115478516,
+              "q100": 87.35279846191406
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 3.5362155437469482,
+              "q90": 22.765338897705078,
+              "q100": 62.7579460144043
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.5534285306930542,
+              "q50": 5.577521324157715,
+              "q90": 15.359663963317871,
+              "q100": 35.130001068115234
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.10304936021566391,
+              "q50": 1.2962310314178467,
+              "q90": 7.068970203399658,
+              "q100": 35.130001068115234
+            },
+            "factual_rmse_mm": 5.456003189086914,
+            "eligible_policy_matches": 26,
+            "eligible_policy_matched_drops": 4,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 476,
+                "episode": "s331/env66/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 87.35279846191406,
+                "contribution_mm": 0.45065934762602106
+              },
+              {
+                "row": 420,
+                "episode": "s331/env57/first",
+                "assignment": 4,
+                "choice": 2,
+                "actual_lift_mm": 62.7579460144043,
+                "contribution_mm": -0.32377271578420574
+              },
+              {
+                "row": 16,
+                "episode": "s331/env2/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 53.953731536865234,
+                "contribution_mm": -0.278351144962852
+              },
+              {
+                "row": 1416,
+                "episode": "s333/env12/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 45.03575134277344,
+                "contribution_mm": 0.2323426552507658
+              },
+              {
+                "row": 614,
+                "episode": "s331/env84/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 38.50175094604492,
+                "contribution_mm": 0.19863327433093292
+              }
+            ]
+          }
+        },
+        "outcome_mm": {
+          "q0": 0.0,
+          "q50": 0.13123154640197754,
+          "q90": 8.717957496643066,
+          "q100": 98.83053588867188
+        }
+      },
+      "calibration": {
+        "rows": 428,
+        "frame_groups": 15,
+        "variants": {
+          "cm": {
+            "intervention_windows": 58,
+            "choice_counts": [
+              12,
+              32,
+              4,
+              7,
+              370,
+              3
+            ],
+            "policy_value_mm": {
+              "value": 1.8979407774520984,
+              "approximate_episode_cluster95": [
+                -0.5166193175950893,
+                4.312500872499286
+              ],
+              "matched_windows": 70,
+              "matched_episodes": 42,
+              "episodes": 61,
+              "windows": 428,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 0.8747088740642751,
+            "paired_episode95": [
+              -0.7093200267301324,
+              2.4587377748586827
+            ],
+            "paired_frame_group95": [
+              -0.827895821455483,
+              2.577313603285317
+            ],
+            "selected_intervention_matches": 16,
+            "base_intervention_matches": 5,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.007712841033935547,
+              "q90": 14.822690963745117,
+              "q100": 30.884986877441406
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.0,
+              "q90": 1.1926064491271973,
+              "q100": 1.9876658916473389
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.5043566226959229,
+              "q50": 3.7335562705993652,
+              "q90": 10.526667594909668,
+              "q100": 14.676766395568848
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.0,
+              "q50": 1.79392671585083,
+              "q90": 6.2650933265686035,
+              "q100": 32.6304931640625
+            },
+            "factual_rmse_mm": 6.947854042053223,
+            "eligible_policy_matches": 4,
+            "eligible_policy_matched_drops": 0,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 1393,
+                "episode": "s333/env9/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 30.884986877441406,
+                "contribution_mm": 0.4329671057585244
+              },
+              {
+                "row": 1395,
+                "episode": "s333/env9/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 26.816343307495117,
+                "contribution_mm": 0.3759300374539099
+              },
+              {
+                "row": 729,
+                "episode": "s332/env5/first",
+                "assignment": 0,
+                "choice": 0,
+                "actual_lift_mm": 2.8290393352508545,
+                "contribution_mm": 0.03965942881931769
+              },
+              {
+                "row": 514,
+                "episode": "s331/env70/first",
+                "assignment": 4,
+                "choice": 3,
+                "actual_lift_mm": 1.9876658916473389,
+                "contribution_mm": -0.02786447400244597
+              },
+              {
+                "row": 1371,
+                "episode": "s333/env6/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 1.4387726783752441,
+                "contribution_mm": 0.020169710444512767
+              }
+            ]
+          },
+          "state_only": {
+            "intervention_windows": 154,
+            "choice_counts": [
+              33,
+              38,
+              24,
+              47,
+              274,
+              12
+            ],
+            "policy_value_mm": {
+              "value": 2.081630762958862,
+              "approximate_episode_cluster95": [
+                -0.03638504706397283,
+                4.199646572981697
+              ],
+              "matched_windows": 71,
+              "matched_episodes": 41,
+              "episodes": 61,
+              "windows": 428,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 1.0583988578998806,
+            "paired_episode95": [
+              -0.3218880416668757,
+              2.438685757466637
+            ],
+            "paired_frame_group95": [
+              -0.3110576733473305,
+              2.4278553589704996
+            ],
+            "selected_intervention_matches": 32,
+            "base_intervention_matches": 20,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.2635151445865631,
+              "q90": 5.680605411529541,
+              "q100": 26.816343307495117
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.0784844234585762,
+              "q90": 2.2083141803741455,
+              "q100": 5.074971675872803
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.4760386943817139,
+              "q50": 4.444634437561035,
+              "q90": 10.91770076751709,
+              "q100": 17.742883682250977
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.28531044721603394,
+              "q50": 2.965057849884033,
+              "q90": 9.85776424407959,
+              "q100": 32.92475891113281
+            },
+            "factual_rmse_mm": 6.552656650543213,
+            "eligible_policy_matches": 6,
+            "eligible_policy_matched_drops": 0,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 1395,
+                "episode": "s333/env9/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 26.816343307495117,
+                "contribution_mm": 0.3759300374539099
+              },
+              {
+                "row": 33,
+                "episode": "s331/env4/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 24.0170955657959,
+                "contribution_mm": 0.33668824668242553
+              },
+              {
+                "row": 1392,
+                "episode": "s333/env9/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 16.24711799621582,
+                "contribution_mm": 0.22776334530839296
+              },
+              {
+                "row": 202,
+                "episode": "s331/env28/first",
+                "assignment": 0,
+                "choice": 0,
+                "actual_lift_mm": 5.778301239013672,
+                "contribution_mm": 0.08100422297682718
+              },
+              {
+                "row": 172,
+                "episode": "s331/env25/first",
+                "assignment": 4,
+                "choice": 2,
+                "actual_lift_mm": 5.074971675872803,
+                "contribution_mm": -0.07114446051766939
+              }
+            ]
+          },
+          "action_shuffled": {
+            "intervention_windows": 35,
+            "choice_counts": [
+              1,
+              3,
+              13,
+              1,
+              393,
+              17
+            ],
+            "policy_value_mm": {
+              "value": 1.8097230269816795,
+              "approximate_episode_cluster95": [
+                0.19400461390956014,
+                3.425441440053799
+              ],
+              "matched_windows": 61,
+              "matched_episodes": 40,
+              "episodes": 61,
+              "windows": 428,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": 0.786491121922698,
+            "paired_episode95": [
+              -0.6211589762164278,
+              2.194141220061824
+            ],
+            "paired_frame_group95": [
+              -0.37050937400800055,
+              1.9434915660474903
+            ],
+            "selected_intervention_matches": 5,
+            "base_intervention_matches": 3,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 1.4387726783752441,
+              "q90": 33.264041900634766,
+              "q100": 50.8694953918457
+            },
+            "base_observed_mm": {
+              "q0": 0.5417108535766602,
+              "q50": 1.3372957706451416,
+              "q90": 1.8575918674468994,
+              "q100": 1.9876658916473389
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.7209206819534302,
+              "q50": 3.563286066055298,
+              "q90": 11.380298614501953,
+              "q100": 18.66199493408203
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.1765425205230713,
+              "q50": 1.5859169960021973,
+              "q90": 4.721086502075195,
+              "q100": 18.66199493408203
+            },
+            "factual_rmse_mm": 6.748020648956299,
+            "eligible_policy_matches": 3,
+            "eligible_policy_matched_drops": 0,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 31,
+                "episode": "s331/env4/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 50.8694953918457,
+                "contribution_mm": 0.7131237850010952
+              },
+              {
+                "row": 1731,
+                "episode": "s333/env58/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 6.855875015258789,
+                "contribution_mm": 0.09611039741016994
+              },
+              {
+                "row": 514,
+                "episode": "s331/env70/first",
+                "assignment": 4,
+                "choice": 5,
+                "actual_lift_mm": 1.9876658916473389,
+                "contribution_mm": -0.02786447400244597
+              },
+              {
+                "row": 1371,
+                "episode": "s333/env6/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 1.4387726783752441,
+                "contribution_mm": 0.020169710444512767
+              },
+              {
+                "row": 488,
+                "episode": "s331/env67/first",
+                "assignment": 4,
+                "choice": 2,
+                "actual_lift_mm": 1.3372957706451416,
+                "contribution_mm": -0.018747138085766373
+              }
+            ]
+          }
+        },
+        "outcome_mm": {
+          "q0": 0.0,
+          "q50": 0.04235506057739258,
+          "q90": 3.5101728439331055,
+          "q100": 76.0133285522461
+        }
+      },
+      "holdout": {
+        "rows": 393,
+        "frame_groups": 17,
+        "variants": {
+          "cm": {
+            "intervention_windows": 42,
+            "choice_counts": [
+              9,
+              22,
+              8,
+              0,
+              351,
+              3
+            ],
+            "policy_value_mm": {
+              "value": 1.278252862393856,
+              "approximate_episode_cluster95": [
+                -0.18368967773983358,
+                2.7401954025275455
+              ],
+              "matched_windows": 65,
+              "matched_episodes": 38,
+              "episodes": 56,
+              "windows": 393,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": -1.2680743674513038,
+            "paired_episode95": [
+              -3.1226448942763785,
+              0.5864961593737712
+            ],
+            "paired_frame_group95": [
+              -3.2549659694302777,
+              0.7188174213040572
+            ],
+            "selected_intervention_matches": 6,
+            "base_intervention_matches": 9,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.018614530563354492,
+              "q90": 1.7136037349700928,
+              "q100": 3.388345241546631
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 7.450580596923828e-07,
+              "q90": 24.50050926208496,
+              "q100": 59.47262191772461
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.5908620357513428,
+              "q50": 4.880855560302734,
+              "q90": 11.4020414352417,
+              "q100": 17.43130111694336
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.031455837190151215,
+              "q50": 1.3333683013916016,
+              "q90": 5.1888651847839355,
+              "q100": 61.848236083984375
+            },
+            "factual_rmse_mm": 3.684352397918701,
+            "eligible_policy_matches": 2,
+            "eligible_policy_matched_drops": 0,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 816,
+                "episode": "s332/env21/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 59.47262191772461,
+                "contribution_mm": -0.9079789411627306
+              },
+              {
+                "row": 1283,
+                "episode": "s332/env90/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 15.757490158081055,
+                "contribution_mm": -0.24057235911905614
+              },
+              {
+                "row": 631,
+                "episode": "s331/env87/first",
+                "assignment": 4,
+                "choice": 2,
+                "actual_lift_mm": 11.174779891967773,
+                "contribution_mm": -0.170607316888319
+              },
+              {
+                "row": 736,
+                "episode": "s332/env6/first",
+                "assignment": 1,
+                "choice": 1,
+                "actual_lift_mm": 3.388345241546631,
+                "contribution_mm": 0.0517304592763498
+              },
+              {
+                "row": 734,
+                "episode": "s332/env6/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 0.11841655522584915,
+                "contribution_mm": -0.001807886377242382
+              }
+            ]
+          },
+          "state_only": {
+            "intervention_windows": 107,
+            "choice_counts": [
+              37,
+              25,
+              16,
+              23,
+              286,
+              6
+            ],
+            "policy_value_mm": {
+              "value": 1.7933303738254627,
+              "approximate_episode_cluster95": [
+                0.45075706035235563,
+                3.13590368729857
+              ],
+              "matched_windows": 74,
+              "matched_episodes": 39,
+              "episodes": 56,
+              "windows": 393,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": -0.7529968560196971,
+            "paired_episode95": [
+              -2.795150463494317,
+              1.2891567514549231
+            ],
+            "paired_frame_group95": [
+              -2.767541310405003,
+              1.2615474673263898
+            ],
+            "selected_intervention_matches": 24,
+            "base_intervention_matches": 18,
+            "selected_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.3484010696411133,
+              "q90": 9.815677642822266,
+              "q100": 30.56901741027832
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.22656619548797607,
+              "q90": 25.328563690185547,
+              "q100": 59.47262191772461
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.5094385147094727,
+              "q50": 3.857372999191284,
+              "q90": 10.530335426330566,
+              "q100": 30.105680465698242
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.2507786750793457,
+              "q50": 2.4170033931732178,
+              "q90": 7.480947971343994,
+              "q100": 51.47051239013672
+            },
+            "factual_rmse_mm": 4.546896457672119,
+            "eligible_policy_matches": 6,
+            "eligible_policy_matched_drops": 1,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 816,
+                "episode": "s332/env21/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 59.47262191772461,
+                "contribution_mm": -0.9079789411627306
+              },
+              {
+                "row": 1801,
+                "episode": "s333/env69/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 47.66115188598633,
+                "contribution_mm": -0.72765119324507
+              },
+              {
+                "row": 819,
+                "episode": "s332/env21/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 30.56901741027832,
+                "contribution_mm": 0.4667025655887206
+              },
+              {
+                "row": 756,
+                "episode": "s332/env9/first",
+                "assignment": 2,
+                "choice": 2,
+                "actual_lift_mm": 23.27960205078125,
+                "contribution_mm": 0.35541377176765265
+              },
+              {
+                "row": 1283,
+                "episode": "s332/env90/first",
+                "assignment": 4,
+                "choice": 1,
+                "actual_lift_mm": 15.757490158081055,
+                "contribution_mm": -0.24057235911905614
+              }
+            ]
+          },
+          "action_shuffled": {
+            "intervention_windows": 34,
+            "choice_counts": [
+              2,
+              2,
+              9,
+              3,
+              359,
+              18
+            ],
+            "policy_value_mm": {
+              "value": 2.1870346930418307,
+              "approximate_episode_cluster95": [
+                0.1616828403541577,
+                4.212386545729504
+              ],
+              "matched_windows": 67,
+              "matched_episodes": 39,
+              "episodes": 56,
+              "windows": 393,
+              "boundary": "randomized window-policy value; no individual oracle/regret or formal validation"
+            },
+            "effect_vs_base_mm": -0.3592925768430906,
+            "paired_episode95": [
+              -1.847511273337725,
+              1.1289261196515439
+            ],
+            "paired_frame_group95": [
+              -1.8233927004634576,
+              1.1048075669109063
+            ],
+            "selected_intervention_matches": 7,
+            "base_intervention_matches": 8,
+            "selected_observed_mm": {
+              "q0": 0.012862682342529297,
+              "q50": 1.718759536743164,
+              "q90": 15.059348106384277,
+              "q100": 21.448284149169922
+            },
+            "base_observed_mm": {
+              "q0": 0.0,
+              "q50": 0.2110689878463745,
+              "q90": 22.120681762695312,
+              "q100": 47.66115188598633
+            },
+            "predicted_selected_gain_mm": {
+              "q0": 1.584409236907959,
+              "q50": 4.271920204162598,
+              "q90": 12.290687561035156,
+              "q100": 19.878292083740234
+            },
+            "predicted_pool_range_mm": {
+              "q0": 0.014788389205932617,
+              "q50": 1.2037783861160278,
+              "q90": 4.187934398651123,
+              "q100": 19.878292083740234
+            },
+            "factual_rmse_mm": 4.098601818084717,
+            "eligible_policy_matches": 4,
+            "eligible_policy_matched_drops": 1,
+            "no_matched_drop_is_not_zero_risk": true,
+            "largest_effect_contributions": [
+              {
+                "row": 1801,
+                "episode": "s333/env69/first",
+                "assignment": 4,
+                "choice": 2,
+                "actual_lift_mm": 47.66115188598633,
+                "contribution_mm": -0.72765119324507
+              },
+              {
+                "row": 757,
+                "episode": "s332/env9/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 21.448284149169922,
+                "contribution_mm": 0.32745470042143765
+              },
+              {
+                "row": 631,
+                "episode": "s331/env87/first",
+                "assignment": 4,
+                "choice": 5,
+                "actual_lift_mm": 11.174779891967773,
+                "contribution_mm": -0.170607316888319
+              },
+              {
+                "row": 1800,
+                "episode": "s333/env69/first",
+                "assignment": 5,
+                "choice": 5,
+                "actual_lift_mm": 10.800064086914062,
+                "contribution_mm": 0.164886474609375
+              },
+              {
+                "row": 752,
+                "episode": "s332/env9/first",
+                "assignment": 3,
+                "choice": 3,
+                "actual_lift_mm": 8.537602424621582,
+                "contribution_mm": 0.13034508003836673
+              }
+            ]
+          }
+        },
+        "outcome_mm": {
+          "q0": 0.0,
+          "q50": 0.07492899894714355,
+          "q90": 3.186715602874756,
+          "q100": 59.47262191772461
+        }
+      }
+    },
+    "scope": "terminal descriptive audit, no refit or threshold search; no individual counterfactual labels",
+    "elapsed_seconds": 0.8884794688783586,
+    "input_hashes_unchanged": true,
+    "gpu": {
+      "index": 4,
+      "uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+      "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2991\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2991\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 2\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 2\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+      "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 943318, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 943745, /home2/jiao/anaconda3/envs/splatam/bin/python\n",
+      "time": 1790858967.8140557
+    }
+  },
+  "artifact_root": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1",
+  "collection_commit": "25428a19202181753a0cefad962a6806fae38085",
+  "fitting_commit": "a4ca55ea5997240db2e713a4543736d4d5a42bc3",
+  "record_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed331/records.pt": "8e1db44fb0dbe9056c0cc8ace79044699843244e7969156679b6e05d6759a673",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed332/records.pt": "4c83c45af6775cb4ed57095a5fed3fd112cbe02f0d25bce1552a580240a79de8",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/seed333/records.pt": "da38487e1add20907a96762e23efbe4c201a350ad53a2e117f5abae8ecef50da"
+  },
+  "episode_split_leak": false,
+  "terminal_all_original_inputs_verified": true,
+  "actor_or_value_training": false,
+  "interpretation": "Native UNPROMISING screening result preserved. Intervention effect support is only6selected/9base matches in holdout; no formal negative or positive Cm claim. Original gate counted unchanged-base matches and is not sufficient for effect support.",
+  "drop_boundary": "Only2 held eligible Cm-policy matches, zero matched drops does not establish zero risk.",
+  "next": "Frozen proposer, fresh targeted1:1 actual-state randomization and repeated observation; data/measurement repair, not utility deployment or PPO."
+}

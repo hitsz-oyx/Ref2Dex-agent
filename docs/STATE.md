@@ -19,8 +19,12 @@ Updated: 2026-10-01
 HF09 候选机会 Probe 已完成12个真实 GPU 分支：二次重复的候选优势2.224mm、
 base重复噪声0.210mm，数值屏通过，但仅11/32完整近似配对有效，标签 UNCLEAR。
 不能把它称为可靠逐状态 oracle；也没有已抬升状态的掉落支持。
-下一轮使用已预述的随机干预回退：记录实际状态、已知p=1/6、完整2+8后果，
-覆盖较晚接触，并按起始帧/episode分组留出，再学习物理后果与对照排序。
+随机后果 Probe 已完成1984个实际2+8窗口，含193个已抬升窗口/28次掉落。
+非线性 Cm 的留出后果误差低于 state-only/shuffled，但动作选择门 UNPROMISING：
+介入42/393，收益估计1.278mm低于base2.546mm。介入窗口只有6个所选动作、
+9个base真值，效应区间跨零，不能据此确认负效应；零匹配掉落也不能当零风险。
+下一项为冻结提议器的1:1随机介入数据修复：实际短片段执行、重新观察/决策，
+提高动作效应支持。它不表示旧排序门通过，不进入 PPO 或最终成功率比较。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
 [随机后果排序卡](experiments/probes/P-20261001-contact-consequence-ranking.md)。
 旧输入hash未变、自有 GPU4进程已结束；本路线尚未证明 Cm 选择收益，不重开 HF08/HD02。
