@@ -75,14 +75,14 @@ diagnostic_hypotheses:
   HF13:
     claim: C3
     name: executable_contact_plan_opportunity
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-executable-options
     probe_budget: 1
     probes_used: 1
     owner: current_session
     authorization: "active user goal and AGENTS autonomous research; HF12 sparse control/failure motivates distinct full-window executable plans, no mission/claim/resource change"
     card: docs/experiments/probes/P-20261002-executable-contact-opportunity.md
-    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
+    transition: "Closed UNPROMISING1/1. 3404windows/573episodes; held536initiallyclear,204hold/218base supported. Pose-hold signed-retention−25.191mm, geometric-loss+21.922pp, joint-force−20.989pp. Bestqualifiedfixed=base. All12phase/input/PD/geometry/propensity gates pass; owned PIDs exit/GPU released. Do not fit Cm on unsupported pose-freeze; verify light-object contact-force reporting then active finger-control candidates."
   HD02:
     name: paired_evaluator_five_pp_resolution
     status: CLOSED
@@ -91,7 +91,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "active user goal: state/RNG/action paired evaluator; repeat off before gated existing three-arm inference; no training"
     card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
-    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
+    transition: "Closed UNPROMISING1/1. 3404windows/573episodes; held536initiallyclear,204hold/218base supported. Pose-hold signed-retention−25.191mm, geometric-loss+21.922pp, joint-force−20.989pp. Bestqualifiedfixed=base. All12phase/input/PD/geometry/propensity gates pass; owned PIDs exit/GPU released. Do not fit Cm on unsupported pose-freeze; verify light-object contact-force reporting then active finger-control candidates."
   HD01:
     name: current_policy_frozen_gae_value_adaptation
     status: CLOSED
@@ -100,7 +100,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "user said continue after bounded V-fitting proposal, then questioned GPU nonuse"
     card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
-    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
+    transition: "Closed UNPROMISING1/1. 3404windows/573episodes; held536initiallyclear,204hold/218base supported. Pose-hold signed-retention−25.191mm, geometric-loss+21.922pp, joint-force−20.989pp. Bestqualifiedfixed=base. All12phase/input/PD/geometry/propensity gates pass; owned PIDs exit/GPU released. Do not fit Cm on unsupported pose-freeze; verify light-object contact-force reporting then active finger-control candidates."
 
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:

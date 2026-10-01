@@ -65,10 +65,15 @@ GPU审计：on guide1.630、最大NN相对分数1.352，推荐仍胜出；参数
 所有12phase终态/输入hash/冻结合同通过，自有进程退出，GPU释放；含工程34.03分钟/
 335.3MB。下一步先设计预测窗口内持续执行的专家/保持片段，实际验证保留机会，
 再训练与该新控制合同对应的Cm；不把旧2+8模型冒充10步持续控制预测。
-HF13工程及独立GPU回放通过：108完整窗口/48已离桌，固定PD/反馈命令/
-概率/整张source-mesh间隙记录通过。科学slot1/1已开始，421–432共12采集
-批，64clear-first/32general环境，已离桌hold/base各.4，其余五专家各.04。
-只检验真实full10候选保留机会，旧Cm/PPO不参与，门与停止条件已固定。
+HF13已完成3404实际窗口/573episodes：留出已离桌536状态，hold204/base218
+匹配支持充分。固定当前关节姿态hold的保留支持高度−25.191mm，frame90
+[−33.629,−17.382]mm；几何失去离桌间隙+21.922pp，fit最佳合格固定候选
+仍base，原门UNPROMISING1/1关闭。PD/geometry/propensity全回放0误差，
+自有PIDs退出/GPU释放；含工程23.21分钟/37.7MB。不对该候选直接拟合Cm。
+另有尚待实测的标签blocker：airplane实际质量约2.6g，重量.0254N而净力
+代理阈值.1N；4substeps的力汇总需用静态已知接触测量，不先断言误标。
+下一步先核对原始force，再设计腕部保持/手指继续反馈的候选；旧几何损失
+和所有失败门保留，C3仍OPEN。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。

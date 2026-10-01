@@ -1,0 +1,228 @@
+{
+  "experiment_id": "P-20261002-executable-contact-opportunity",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 3404,
+  "episodes": 573,
+  "split": {
+    "fit": {
+      "rows": 1247,
+      "episodes": 223,
+      "initial_groups": 41,
+      "already_clear": 220,
+      "arms": [
+        141,
+        128,
+        157,
+        135,
+        334,
+        153,
+        199
+      ],
+      "already_clear_arms": [
+        5,
+        10,
+        12,
+        7,
+        90,
+        12,
+        84
+      ]
+    },
+    "cal": {
+      "rows": 686,
+      "episodes": 114,
+      "initial_groups": 17,
+      "already_clear": 140,
+      "arms": [
+        76,
+        64,
+        72,
+        78,
+        195,
+        72,
+        129
+      ],
+      "already_clear_arms": [
+        3,
+        5,
+        8,
+        5,
+        48,
+        4,
+        67
+      ]
+    },
+    "held": {
+      "rows": 1471,
+      "episodes": 236,
+      "initial_groups": 33,
+      "already_clear": 536,
+      "arms": [
+        142,
+        149,
+        132,
+        126,
+        485,
+        131,
+        306
+      ],
+      "already_clear_arms": [
+        26,
+        23,
+        19,
+        17,
+        218,
+        29,
+        204
+      ]
+    }
+  },
+  "fit_fixed_candidate_values": {
+    "0": {
+      "support": {
+        "matches": 5,
+        "episodes": 5,
+        "initial_groups": 5
+      },
+      "ipw_value_mm": -16.197357177734375,
+      "eligible": false
+    },
+    "1": {
+      "support": {
+        "matches": 10,
+        "episodes": 9,
+        "initial_groups": 8
+      },
+      "ipw_value_mm": 61.804046630859375,
+      "eligible": false
+    },
+    "2": {
+      "support": {
+        "matches": 12,
+        "episodes": 12,
+        "initial_groups": 10
+      },
+      "ipw_value_mm": -7.68354606628418,
+      "eligible": false
+    },
+    "3": {
+      "support": {
+        "matches": 7,
+        "episodes": 7,
+        "initial_groups": 7
+      },
+      "ipw_value_mm": -21.402219772338867,
+      "eligible": false
+    },
+    "4": {
+      "support": {
+        "matches": 90,
+        "episodes": 48,
+        "initial_groups": 21
+      },
+      "ipw_value_mm": -10.149927139282227,
+      "eligible": true
+    },
+    "5": {
+      "support": {
+        "matches": 12,
+        "episodes": 11,
+        "initial_groups": 8
+      },
+      "ipw_value_mm": -52.59469985961914,
+      "eligible": false
+    },
+    "6": {
+      "support": {
+        "matches": 84,
+        "episodes": 65,
+        "initial_groups": 25
+      },
+      "ipw_value_mm": -47.04267120361328,
+      "eligible": true
+    }
+  },
+  "best_fixed_option": 4,
+  "primary_pose_hold_vs_base": {
+    "option": 6,
+    "already_clear_windows": 536,
+    "support": {
+      "6": {
+        "matches": 204,
+        "episodes": 107,
+        "initial_groups": 19
+      },
+      "4": {
+        "matches": 218,
+        "episodes": 88,
+        "initial_groups": 21
+      }
+    },
+    "score_uplift_mm": -25.191198348999023,
+    "frame90": [
+      -33.6291917061418,
+      -17.38189391790876
+    ],
+    "episode90": [
+      -34.51843416573249,
+      -15.611108838898298
+    ],
+    "lost_clearance_risk_difference": 0.21921642124652863,
+    "joint_force_difference": -0.2098880559206009,
+    "gate": {
+      "support": true,
+      "null_available": true,
+      "signed_retention_uplift": false,
+      "frame90_positive": false,
+      "episode90_positive": false,
+      "lost_clearance_risk_point_bound": false,
+      "last3_joint_force_point_bound": false,
+      "passed": false
+    },
+    "label": "UNPROMISING"
+  },
+  "secondary_fit_fixed_vs_base": {
+    "option": 4,
+    "already_clear_windows": 536,
+    "support": {
+      "4": {
+        "matches": 218,
+        "episodes": 88,
+        "initial_groups": 21
+      }
+    },
+    "score_uplift_mm": 0.0,
+    "frame90": [
+      0.0,
+      0.0
+    ],
+    "episode90": [
+      0.0,
+      0.0
+    ],
+    "lost_clearance_risk_difference": 0.0,
+    "joint_force_difference": 0.0,
+    "gate": {
+      "support": true,
+      "null_available": true,
+      "signed_retention_uplift": false,
+      "frame90_positive": false,
+      "episode90_positive": false,
+      "lost_clearance_risk_point_bound": true,
+      "last3_joint_force_point_bound": true,
+      "passed": false
+    },
+    "label": "UNPROMISING"
+  },
+  "held_base_null_difference_mm": 5.28322696685791,
+  "held_base_null_frame90": [
+    -5.326328730517382,
+    16.625164114788458
+  ],
+  "required_uplift_mm": 10.56645393371582,
+  "total_seconds_including_engineering": 1392.5441761310212,
+  "bytes_including_engineering": 37657646,
+  "scope": "known-propensity randomized local full10plan consequences on observed already-clear prestates; no individual oracle/regret, no learned Cm or two-step MPC deployment, no full-task success or formal safety proof",
+  "claim": "C3 OPEN; seven full-window candidates, unqualified fixed options reported rather than presumed comparable"
+}

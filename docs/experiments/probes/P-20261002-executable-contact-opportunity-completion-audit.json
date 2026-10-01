@@ -1,0 +1,10 @@
+{
+  "status": "COMPLETED",
+  "all12completed": true,
+  "inputs_unchanged": true,
+  "parent_pid_live": false,
+  "native_pids_live": [],
+  "cumulative_seconds": 1392.5441761310212,
+  "scoped_bytes": 37669903,
+  "all_contracts_passed": true
+}

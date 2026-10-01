@@ -1,6 +1,6 @@
 # P-20261002-executable-contact-opportunity
 
-HF13 Decision Probe1/1, stage SCIENTIFIC, scientificslot1/1started. Branch
+HF13 Decision Probe1/1, COMPLETED / UNPROMISING, scientificslot1/1closed. Branch
 agent/cm-executable-options. Frozen design:
 [D-20261002](../../decisions/D-20261002-executable-contact-options.md).
 
@@ -101,3 +101,30 @@ windows with fixed PD targets,79varying feedback-expert windows; wrist and
 fullmesh replay errors0. All inputs unchanged/owned PIDs exited. Including
 prior attempts 244.515s/9.416MB.
 Scientific r1 now consumes1/1 under fixed12panels421–432.
+
+Terminal:3404actual windows/573episodes; already-clear held536windows.
+Hold204matches/107episodes/19initialgroups, base218/88/21; all support gates
+pass. Pose-hold clearance-supported signed-height effect−25.191mm, frame90
+[−33.629,−17.382], episode90[−34.518,−15.611]mm. Lost-mesh-clearance risk
+point difference+21.922pp, last3joint-force−20.989pp. Hold fails allbenefit/risk
+screens. Fitbestqualifiedfixed=base4, secondary effect0. Base duplicate null
++5.283mm, frame90[−5.326,+16.625], gives frozen threshold10.566mm; this
+population null is not individual solver replay noise. All original gates kept.
+
+Every actual wrist-PD/hold-target/geometry/propensity replay passes with0max
+error; old Cm/expert weights unchanged, all12native/parentPIDs exited/GPU0
+released. Including allengineering1392.544s/37.658MB manifest accounting;
+CPUstats and separate GPUmesh replay audited,38targeted tests pass. Budget1/1
+closed UNPROMISING; no newCm fit or PPO on this unsupported pose-freeze.
+
+Additional blocker identified, not yet resolved: actual archived airplane
+mass.00259361kg/flags0, gravity9.81→weight.025443N vs net-force proxy.1N.
+Installed Isaac docs say force reporting depends on substeps/contact collection;
+current4substeps/default allcollection must be measured before declaring unit
+mismatch. This does not erase geometric retention loss or relabel old scores.
+Next known-static-contact telemetry checks raw forces/mass/mode, then active
+finger-control alternatives if valid. C3OPEN; no stable-grasp/learning claim.
+
+Evidence: [results](P-20261002-executable-contact-opportunity-results.json),
+[execution/geometry audit](P-20261002-executable-contact-opportunity-record-audit.json),
+[completion](P-20261002-executable-contact-opportunity-completion-audit.json).
