@@ -1,3 +1,10 @@
+Current independent continuation: `/tmp/Ref2Dex-contact-response-continuation`,
+same research branch/history with separate local Git metadata; old worktree read-only.
+- [Completed selective-finger negative](20261002-selective-finger-feasibility-results.md)
+- [Continuous method boundary](20261002-continuous-method-boundary.md)
+- [Actual training progress and GPU/runtime interruption](../activities/20261002-continuous-critic-runtime-change.md)
+- [Paper10source](../../paper/manuscript-v10.tex) / [reviewPDF](../../paper/manuscript-v10.pdf)
+
 # Research 文档
 
 ## 当前独立工作树研究

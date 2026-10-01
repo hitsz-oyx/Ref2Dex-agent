@@ -1,3 +1,18 @@
+Current: [manuscript-v10.tex](manuscript-v10.tex) and21-page
+[manuscript-v10.pdf](manuscript-v10.pdf), generated in the isolated writable
+continuation `/tmp/Ref2Dex-contact-response-continuation`. Adds1536fresh selective
+finger trials: motion2unchanged12/64,shared21/64,selective4--10/64, all gates fail.
+20recorded-data tables/4figures,99hashed inputs checked; new table/gates independently
+rebuilt from ALL1536rows, pages18--20visually/bounds checked. Readable heatmap
+and rewritten abstract; firstv10render+ALL99input snapshots retained. Continuous
+PPO has ONLYone matched update and TWOcollected/audited native panels, no final
+comparison. Native GPU execution currently unavailable; original-host liveness
+unestablished. No training loss or partial cohort is promoted to utility evidence.
+Auxiliary-task learning/CAPG boundaries stated. No native TeX build or journal
+readiness; full user objective stays active. All original work is read-only.
+
+Preserved revision9below:
+
 Current: [manuscript-v9.tex](manuscript-v9.tex) and twenty-page
 [manuscript-v9.pdf](manuscript-v9.pdf). Revision9 adds training-only natural loss
 diagnosis and a1536fresh-trajectory prospective feedback test. Unchanged133/384,

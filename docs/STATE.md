@@ -2,7 +2,10 @@
 
 Updated 2 October 2026. Independent worktree
 `/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response`, branch
-`agent/contact-response-cm`. Original worktree, external project, checkpoints
+`agent/contact-response-cm`. Current writable continuation is the standalone
+local clone `/tmp/Ref2Dex-contact-response-continuation`, same e37eca3 history
+and separate Git metadata; old independent tree is now read-only. Historical
+outputs/assets are read-only links, new outputs have distinct real directories. Original worktree, external project, checkpoints
 and original motion data remain read-only. This branch does not switch the
 original worktree's branch or use its shared output symlink.
 
@@ -119,8 +122,16 @@ likelihood before tanh/projection. Three meaningful unit tests pass. Fresh567eng
 zero optimizer updates; all253protected hashes and independent raw state,
 request probability, actor/critic, target projection/PD/physical audits pass.
 This proves integration only. Four tests now pass, including independent NumPy
-full auxiliary critic gradients. Full20-panel training547--566and fresh final-only
-568/569evaluation are committed for launch; no utility result yet. [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
+full auxiliary critic gradients. Actual matched codee37eca3training has completed native547and548and oneu01
+update (152minibatches per variant,456total). Both native panels and ALLthree
+predetermined first-minibatch gradients/Adam steps independently pass; all262
+parent inputs rechecked. Onlyu01exists, final568/569absent: comparisonINCOMPLETE,
+no utility label. Current runtime has no GPU devices/driver and oldPTYis missing;
+old parent/child PIDs not visible HERE, original-host liveness unestablished.
+SavedRUNNINGsnapshot preserved. No restart or CPU training substitution.
+Next required phase is GPUu02from already audited548and retainedu01optimizer,
+then549--566and final568/569under the SAMEfixed gates/budgets.
+[Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md). [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
 and hardware remain unmet. The objective stays active and NOT READY.
@@ -141,11 +152,12 @@ and hardware remain unmet. The objective stays active and NOT READY.
 - [Prospective support witness](research/20261002-support-removal-witness-results.md)
 - [Primary-source novelty update](research/20261002-contact-response-novelty-update.md)
 - [Prior evidence index](research/README.md); all historical results and gates remain in cards/Git.
-- [Current working manuscript](../paper/manuscript-v9.tex) and [PDF](../paper/manuscript-v9.pdf):
-  twenty-page ReportLab review copy, nineteen recorded-JSON tables, three
-  figures. Adds the negative actual training and natural-feedback comparisons;84hashed
-  sources independently checked, new table reconstructed from1536audited rows;
-  pages17/18visually and numerically checked. Previous revisions
-  and their hashed inputs are preserved. No native TeX compilation or journal
-  readiness. Export/source/numeric/visual checks are recorded separately.
-
+- [Current working manuscript](../paper/manuscript-v10.tex) and [PDF](../paper/manuscript-v10.pdf):
+  twenty-one-page ReportLab review copy, twenty recorded-JSON tables, four
+  figures. Adds the complete selective-finger negative and clearly INCOMPLETE
+  continuous comparison.99hashed sources checked; new table and six candidate
+  gates independently rebuilt from1536audited rows. Newpages18--20visually
+  inspected, all PDFtext bounds checked. Paper6/7/8/9retain50/70/76/84valid
+  sources; firstv10render and every input snapshot retained. No native TeX
+  compilation, novel method, Cm utility or journal readiness.
+- [Continuous auxiliary/CAPG prior-art boundary](research/20261002-continuous-method-boundary.md).
