@@ -987,3 +987,133 @@ def test_new_goal_can_adjudicate_old_capacity_failure_and_reuse_role(tmp_path: P
     status = call(config, 'supervisor', 'status')
     assert status['recoveries'][0]['phase'] == 'stopped'
     assert status['deliveries'][-1]['goal_version'] == 1
+
+
+def test_roles_can_configure_the_same_home_with_independent_stores(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    for role, binding in document['bindings'].items():
+        if role != 'root':
+            binding['codex_home'] = str(tmp_path / 'current-account')
+    config.write_text(json.dumps(document))
+    assert call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')['code'] == 0
+    for role in ('agent_cm', 'agent_rl'):
+        assert call(config, 'dispatch', '--task', str(contract(tmp_path, role, role)))['code'] == 0
+    workers = call(config, 'supervisor', 'status')['deliveries']
+    assert len({item['binding_store'] for item in workers}) == 2
+    assert [item['execution']['account'] for item in workers] == [str(tmp_path / 'current-account')] * 2
+
+
+def test_usage_limit_hands_off_same_task_without_resuming_other_account(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    backup = {**primary, 'provider': 'backup-cm', 'codex_home': str(tmp_path / 'backup-account'),
+              'store': str(tmp_path / 'backup-store'), 'verified': True}
+    primary['fallbacks'] = [backup]
+    document['recovery_backoff_seconds'] = 0.01
+    config.write_text(json.dumps(document))
+    plan(config, [{'action': 'idle', 'reason': 'waiting for worker'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (Path(primary['store']) / 'provider-error').write_text("You've hit your usage limit. Try again later.")
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    assert call(config, 'accept', 'task-one', '--decision', 'rejected', '--reason', 'quota')['code'] != 0
+    for _ in range(4):
+        call(config, 'supervisor', 'tick')
+    status = call(config, 'supervisor', 'status')
+    worker = next(item for item in status['deliveries'] if item['role'] == 'agent_cm')
+    assert worker['task_id'] == 'task-one'
+    assert worker['execution']['status'] == 'succeeded'
+    assert worker['execution']['account'] == backup['codex_home']
+    assert 'resumedFrom' not in worker['execution']
+    assert [item['store'] for item in worker['attempts']] == [primary['store'], backup['store']]
+    assert call(config, 'accept', 'task-one', '--decision', 'accepted', '--reason', 'handoff checked')['code'] == 0
+
+
+def test_bind_root_captures_foreground_home_once_and_requires_idle_owner(tmp_path: Path) -> None:
+    import os
+    config = setup(tmp_path)
+    current_home = tmp_path / 'foreground-account'
+    current_home.mkdir()
+    store = tmp_path / 'foreground-root-store'
+    env = {**os.environ, 'CODEX_HOME': str(current_home)}
+    proc = subprocess.run([sys.executable, str(CLI), '--config', str(config), 'bind-root', '--store', str(store)],
+                          env=env, capture_output=True, text=True, cwd=ROOT)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    binding = json.loads(config.read_text())['bindings']['root']
+    assert binding['codex_home'] == str(current_home)
+    assert binding['store'] == str(store)
+    assert binding['configuration_source'] == 'foreground'
+    plan(config, [{'action': 'idle', 'reason': 'done'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    assert call(config, 'bind-root', '--store', str(tmp_path / 'other-store'))['code'] != 0
+    call(config, 'supervisor', 'tick')
+    root = call(config, 'supervisor', 'status')['deliveries'][0]
+    assert root['execution']['account'] == str(current_home)
+
+
+def test_usage_handoff_reconciles_lost_launch_response_in_backup_store(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    primary = document['bindings']['agent_cm']
+    backup = {**primary, 'provider': 'backup-cm', 'codex_home': str(tmp_path / 'backup-account'),
+              'store': str(tmp_path / 'backup-store'), 'verified': True}
+    primary['fallbacks'] = [backup]
+    document['recovery_backoff_seconds'] = 0.01
+    config.write_text(json.dumps(document))
+    plan(config, [{'action': 'idle', 'reason': 'waiting'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (Path(primary['store']) / 'provider-error').write_text('usage_limit reached')
+    (Path(backup['store']) / 'crash-after-launch').touch()
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'tick')
+    call(config, 'supervisor', 'pause')
+    call(config, 'supervisor', 'tick')
+    assert not (Path(backup['store']) / 'fake.json').exists()
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    for _ in range(5):
+        call(config, 'supervisor', 'tick')
+    worker = next(item for item in call(config, 'supervisor', 'status')['deliveries'] if item['role'] == 'agent_cm')
+    assert worker['execution']['status'] == 'succeeded'
+    assert worker['binding_store'] == backup['store']
+    assert len(json.loads((Path(backup['store']) / 'fake.json').read_text())) == 1
+
+
+def test_usage_limit_without_backup_waits_and_other_role_can_finish(tmp_path: Path) -> None:
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    document['recovery_backoff_seconds'] = 0.01
+    config.write_text(json.dumps(document))
+    plan(config, [{'action': 'idle', 'reason': 'waiting'}])
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    (tmp_path / 'agent_cm-store/provider-error').write_text('usage limit exceeded')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    for _ in range(3):
+        call(config, 'supervisor', 'tick')
+    worker = next(item for item in call(config, 'supervisor', 'status')['deliveries'] if item['role'] == 'agent_cm')
+    assert worker['recovery']['phase'] == 'waiting'
+    assert worker['recovery']['attempt'] == 0
+    assert call(config, 'dispatch', '--task', str(contract(tmp_path, 'other', 'agent_rl')))['code'] == 0
+    assert call(config, 'accept', 'other', '--decision', 'accepted', '--reason', 'done')['code'] == 0
+
+
+def test_bind_root_rejects_live_guardian_and_preserves_historical_campaign(tmp_path: Path) -> None:
+    import fcntl
+    config = setup(tmp_path)
+    document = json.loads(config.read_text())
+    home = tmp_path / 'new-root-home'
+    home.mkdir()
+    call(config, 'supervisor', 'status')
+    before = config.read_text()
+    with (tmp_path / 'control/guardian.lock').open('a') as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = call(config, 'bind-root', '--store', str(tmp_path / 'new-store'), '--codex-home', str(home))
+        assert result['code'] != 0
+        assert 'background owner' in result['error']
+    assert config.read_text() == before
+    call(config, 'supervisor', 'resume', '--legacy-dispatch-disabled')
+    call(config, 'dispatch', '--task', str(contract(tmp_path)))
+    call(config, 'supervisor', 'pause')
+    result = call(config, 'bind-root', '--store', str(tmp_path / 'new-store'), '--codex-home', str(home))
+    assert 'new campaign' in result['error']
+    assert json.loads(config.read_text()) == document

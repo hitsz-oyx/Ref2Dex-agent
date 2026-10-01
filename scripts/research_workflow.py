@@ -71,11 +71,15 @@ class Workflow:
             db.execute('CREATE TABLE IF NOT EXISTS instructions (request_id TEXT PRIMARY KEY, version INTEGER NOT NULL UNIQUE, text TEXT NOT NULL, new_goal INTEGER NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS recoveries (task_id TEXT PRIMARY KEY, value TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS execution_attempts (task_id TEXT NOT NULL, attempt INTEGER NOT NULL, execution_id TEXT, name TEXT NOT NULL, PRIMARY KEY(task_id,attempt))')
+            attempt_columns = {row[1] for row in db.execute('PRAGMA table_info(execution_attempts)')}
+            if 'store' not in attempt_columns:
+                db.execute('ALTER TABLE execution_attempts ADD COLUMN store TEXT')
             columns = {row[1] for row in db.execute('PRAGMA table_info(deliveries)')}
             if 'store' not in columns:
                 db.execute('ALTER TABLE deliveries ADD COLUMN store TEXT')
             if 'goal_version' not in columns:
                 db.execute('ALTER TABLE deliveries ADD COLUMN goal_version INTEGER NOT NULL DEFAULT 0')
+            db.execute('UPDATE execution_attempts SET store=(SELECT store FROM deliveries WHERE deliveries.id=execution_attempts.task_id) WHERE store IS NULL')
             defaults: dict[str, Any] = {'shutdown_requested': False, 'instruction_version': 0, 'processed_version': 0, 'goal_version': 0, 'completion': None, 'blocked': None, 'blocked_fingerprint': None, 'active_bindings': {}, 'provider_waits': {}, 'provider_ready_after': {}, 'mode': 'paused', 'workflow_id': uuid.uuid4().hex, 'started': None,
                         'failures': 0, 'retry_at': 0, 'idle_fingerprint': None, 'pid': None, 'last_error': None}
             for key, value in defaults.items():
@@ -137,7 +141,7 @@ class Workflow:
                         raise
                     execution = {'status': 'unknown'}
                 failure = provider_failure(execution)
-                if failure == 'unavailable':
+                if failure in ('unavailable', 'usage_limit'):
                     observations.append(latest['sequence'])
             with self.transaction() as db:
                 # A readiness notification during the read invalidates older observations.
@@ -433,7 +437,7 @@ class Workflow:
         if row is None or not row['execution_id']:
             raise WorkflowError('unknown or unresolved worker delivery')
         execution = self.runtime(row['role'], row['store'] or self.candidates[row['role']][0]['store']).read(row['execution_id'])
-        if provider_failure(execution) in ('capacity', 'connection') and (
+        if provider_failure(execution) in ('capacity', 'connection', 'usage_limit') and (
                 not recovery or json.loads(recovery['value'])['phase'] != 'stopped'):
             raise WorkflowError('delivery is awaiting recovery observation; cannot adjudicate yet')
         if execution.get('status') not in TERMINAL:
@@ -459,6 +463,8 @@ class Workflow:
                 fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
                 raise WorkflowError('another supervisor owns dispatch') from exc
+            if json.loads(self.config_path.read_text()) != self.config:
+                raise WorkflowError('configuration changed; restart the foreground command')
             with self.transaction() as db:
                 self.set(db, 'pid', os.getpid())
             try:
@@ -527,7 +533,7 @@ class Workflow:
                     self.set(db, 'last_error', 'root recovery stopped: ' + recovery.get('reason', ''))
                 return {'state': 'attention', 'recovery': recovery}
             if recovery and (recovery['phase'] in ('waiting', 'launching', 'uncertain', 'stopped') or (
-                    recovery['phase'] == 'observing' and provider_failure(item['execution']) in ('capacity', 'connection'))):
+                    recovery['phase'] == 'observing' and provider_failure(item['execution']) in ('capacity', 'connection', 'usage_limit'))):
                 return {'state': 'waiting_recovery', 'recovery': recovery}
             execution = item['execution']
             if execution.get('status') not in TERMINAL:
@@ -740,6 +746,9 @@ def main(argv: list[str] | None = None) -> int:
     supervisor.add_argument('--cycles', type=int)
     dispatch = sub.add_parser('dispatch')
     dispatch.add_argument('--task', type=Path, required=True)
+    bootstrap = sub.add_parser('bind-root')
+    bootstrap.add_argument('--store', required=True, type=Path)
+    bootstrap.add_argument('--codex-home', type=Path)
     sub.add_parser('reconcile')
     decisions = sub.add_parser('decisions')
     decisions.add_argument('--export', dest='export_path', type=Path)
@@ -761,6 +770,10 @@ def main(argv: list[str] | None = None) -> int:
             if paused is not None:
                 print(encoded(paused))
                 return 0
+        if args.command == 'bind-root':
+            from scripts.workflow_bootstrap import bind_root
+            print(encoded(bind_root(args.config, args.store, args.codex_home)))
+            return 0
         workflow = Workflow(args.config)
         if args.command == 'decisions':
             records, path = workflow.decision_record()

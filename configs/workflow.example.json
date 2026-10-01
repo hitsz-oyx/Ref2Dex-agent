@@ -16,59 +16,107 @@
   "poll_seconds": 5,
   "bindings": {
     "root": {
-      "provider": "explicit-account-root",
+      "provider": "foreground-root",
       "runtime": "codex",
-      "codex_home": "/absolute/accounts/root",
       "workspace": "/absolute/worktrees/root",
       "store": "/absolute/repo/.runtime/stores/root",
       "env": {
         "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
       },
-      "fallbacks": []
+      "fallbacks": [],
+      "inherit_current_session": true
     },
     "agent_cm": {
-      "provider": "explicit-account-agent_cm",
+      "provider": "agent_cm-primary",
       "runtime": "codex",
-      "codex_home": "/absolute/accounts/agent_cm",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
       "workspace": "/absolute/worktrees/agent_cm",
       "store": "/absolute/repo/.runtime/stores/agent_cm",
       "env": {
         "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
       },
-      "fallbacks": []
+      "fallbacks": [
+        {
+          "provider": "agent_cm-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_cm",
+          "store": "/absolute/repo/.runtime/stores/agent_cm-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
     },
     "agent_rl": {
-      "provider": "explicit-account-agent_rl",
+      "provider": "agent_rl-primary",
       "runtime": "codex",
-      "codex_home": "/absolute/accounts/agent_rl",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
       "workspace": "/absolute/worktrees/agent_rl",
       "store": "/absolute/repo/.runtime/stores/agent_rl",
       "env": {
         "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
       },
-      "fallbacks": []
+      "fallbacks": [
+        {
+          "provider": "agent_rl-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_rl",
+          "store": "/absolute/repo/.runtime/stores/agent_rl-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
     },
     "agent_eval": {
-      "provider": "explicit-account-agent_eval",
+      "provider": "agent_eval-primary",
       "runtime": "codex",
-      "codex_home": "/absolute/accounts/agent_eval",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
       "workspace": "/absolute/worktrees/agent_eval",
       "store": "/absolute/repo/.runtime/stores/agent_eval",
       "env": {
         "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
       },
-      "fallbacks": []
+      "fallbacks": [
+        {
+          "provider": "agent_eval-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_eval",
+          "store": "/absolute/repo/.runtime/stores/agent_eval-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
     },
     "agent_infra": {
-      "provider": "explicit-account-agent_infra",
+      "provider": "agent_infra-primary",
       "runtime": "codex",
-      "codex_home": "/absolute/accounts/agent_infra",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
       "workspace": "/absolute/worktrees/agent_infra",
       "store": "/absolute/repo/.runtime/stores/agent_infra",
       "env": {
         "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
       },
-      "fallbacks": []
+      "fallbacks": [
+        {
+          "provider": "agent_infra-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_infra",
+          "store": "/absolute/repo/.runtime/stores/agent_infra-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
     }
   }
 }

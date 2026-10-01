@@ -54,13 +54,27 @@ npm ci --prefix tools/workflow_runtime
 npm 必须来自 Node 24 的 PATH；不修改系统 Node 或全局包。参考
 [workflow.example.json](../../configs/workflow.example.json)，填写绝对路径并存为本机
 .runtime/workflow.json。command 是 Node 与 CLI 的 argv 数组，env.PATH 明确包含 Node/Codex。
-各逻辑角色工作树必须不同；同一角色的 provider 备选保留工作树，使用不同 CODEX_HOME/store。
+各逻辑角色逐个写完整绑定，工作树和 store 必须不同。不同角色可以当前填写相同的
+CODEX_HOME，之后分别更换；相同目录仍使用同一登录凭据/额度，不构成账号隔离。
+同一角色的账号备选保留工作树，使用不同 CODEX_HOME/store。样例为四个 worker 分别填写
+.codex_oyx 主配置与 .codex_oyx_frj 备选；备选 verified:false 仅表示待验收，不能直接启用。
+先移除未验收备选以验证主路径，完成真实账号检查后再添加 verified:true 备选。
+
+root 由明确接管科研工作流的前台主代理传入配置，不要求用户另外选择一个主管账号。
+首次启动前执行 bind-root，捕获 CODEX_HOME 与 PATH/网络配置，保存为本机完整绑定；
+未传入时拒绝启动。若当前会话未向 shell 暴露 CODEX_HOME，主代理通过 --codex-home
+明确传入实际目录。后台重启只读取保存的绑定，不随调用者当前环境换账号。此入口继承
+账号目录中的持久模型配置，不自动读取当前聊天记录或会话临时 model/profile 参数。
+已有 owner 必须先 stop 并等待退出，工作流须 paused；已有执行历史不能改绑 root，须
+保留旧 campaign 并建立新 campaign。前台用 instruct/status/pause 联系后台；已有 owner 锁
+保证前台 dispatch/accept/tick 与后台决策串行，不创建第二个并行科研主管。
 
 不同 provider 使用独立 Codex 配置。fallbacks 是按优先级排列的完整绑定列表，每项必须
 verified:true，表示已经完成真实账号身份与能力验收。额度耗尽或 provider 不可用时，入口
 记录原因并选列表中的可用备选。任务 provider 字段若明确指定绑定，就不得跨 provider。
 账号额度耗尽仍可按已验收备选切换。用户后续确认的恢复策略优先于旧连接故障切换：
 
+- 明确 usage limit 且执行已经失败结束：按该角色已验收备选交接同一个逻辑任务，保留工作树、契约与带 store 的执行历史；在新账号新建会话，不跨账号 resume 旧 thread。无可用备选时等待，其余角色继续。明确指定 provider 的任务不越过绑定，未知投递先在目标 store 核对，Pause 不产生交接执行。
 - 明确 `Selected model is at capacity` 且执行已经失败结束：等待 60 秒后续接原任务、原 provider/模型；重复容量故障再等待 60 秒，不设默认次数截止。
 - 确认连接/网关故障：初始失败后最多 3 次恢复尝试；成功清零，耗尽后停止该任务恢复，不自动切 provider，其他角色继续。root 自身耗尽时进入 attention：现有 worker 可收尾，新的验收/派发等待用户明确恢复。
 - 用户暂停/完成/明确预算截止不恢复；运行中、取消、超时或状态未知不按容量/网关错误重启。
@@ -85,6 +99,7 @@ worker 负责检查现有 GPU 进程、磁盘与任务产物成本，不抢占�
 以下 python 指 graspenv 的 Python；可显式使用 /home2/wyy/miniconda3/envs/graspenv/bin/python。
 
 ```bash
+python scripts/researchctl.py --config /absolute/workflow.json bind-root --store /absolute/repo/.runtime/stores/root-new --codex-home /absolute/foreground-codex-home
 python scripts/researchctl.py --config /absolute/workflow.json instruct --request-id U-001 --text '沿当前 MISSION 继续，先解决数据 blocker'
 python scripts/researchctl.py supervisor resume --legacy-dispatch-disabled
 python scripts/researchctl.py supervisor run --detach

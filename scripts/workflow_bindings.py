@@ -1,4 +1,4 @@
-"""Explicit role bindings and isolated provider alternatives."""
+"""Explicit role bindings and provider alternatives."""
 from __future__ import annotations
 
 import json
@@ -10,6 +10,8 @@ from scripts.workflow_runtime import Runtime, WorkflowError
 
 
 def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    if config['bindings'].get('root', {}).get('inherit_current_session'):
+        raise WorkflowError('root configuration has not been captured; run bind-root first')
     bindings = {}
     for role, primary in config['bindings'].items():
         alternatives = primary.get('fallbacks', [])
@@ -25,8 +27,10 @@ def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dic
     if len(set(workspaces)) != len(workspaces):
         raise WorkflowError('logical roles require separate workspaces')
     stores = []
-    account_homes = []
     for role, candidates in bindings.items():
+        account_homes = [str(Path(item['codex_home']).resolve()) for item in candidates if item.get('codex_home')]
+        if len(set(account_homes)) != len(account_homes):
+            raise WorkflowError('a role requires independent CODEX_HOME directories for alternatives')
         for binding in candidates:
             if role == 'root' and binding.get('runtime') != 'codex':
                 raise WorkflowError('root bindings require Codex runtime')
@@ -66,14 +70,10 @@ def validate_bindings(config: dict[str, Any], roles: dict[str, Any], budget: dic
                 raise WorkflowError('role workspace is outside authorized campaign roots')
             if not Path(binding['workspace']).is_dir():
                 raise WorkflowError('role workspace does not exist')
-            if binding.get('codex_home'):
-                account_homes.append(str(Path(binding['codex_home']).resolve()))
             binding['logical_role'] = role
             stores.append(str(Path(binding['store']).resolve()))
     if len(set(stores)) != len(stores):
         raise WorkflowError('roles must use independent backend stores')
-    if len(set(account_homes)) != len(account_homes):
-        raise WorkflowError('bindings require independent CODEX_HOME directories')
     for candidates in bindings.values():
         for binding in candidates:
             Runtime(config, binding)
