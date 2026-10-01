@@ -8,6 +8,20 @@ Updated: 2026-10-01
 
 ## Current decision
 
+2026-10-01 用户调整下一步方向：先检验接触阶段 Cm 的真实动作控制与短期后果排序，
+最终成功率仍是任务验收；不把 HF08 间接监督失败当作 Cm 核心思想反证。
+本次源码与旧数据审计已完成：HF08 不直接执行候选、评价仅运行 actor；旧 HF02
+已做六专家10步干预/20步观察，但每状态只有一个随机候选的真实后果。
+下一步先检验候选优势是否超过局部 base/base 噪声，再拟合任务相关动作条件 Cm，
+并验证直接执行与重新观察的作用链条。旧数据不能直接提供逐状态真实 regret。
+具体区别、最小 Probe、对照与停止条件见
+[接触后果机制决定](decisions/D-20261001-contact-consequence-mechanism.md)。
+本次仅完成设计与只读审计，尚未训练或采集；新实验须独立登记，不重开 HF08/HD02。
+当前授权以用户最新方向为准；旧 Goal 的“无新 Cm 接法”属于该已完成诊断的边界。
+MISSION claim 不变，baseline PARTIAL、Cm utility OPEN；旧结果与输入继续保留。
+
+以下为已完成的 HF08/HD02 处置事实。
+
 当前用户 Goal 已完成：paired evaluator 的完整冷初始状态、RNN、随机数、动作
 轨迹和成功后掉落合同通过审计；真实闭环 plain-off 重复性未通过预设门槛。
 两次成功为34/384和35/384，63个成功标签、61个掉落标签变化；平均成功率差
@@ -209,7 +223,10 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 ## Next step
 
-本次任务到此关闭：不再运行当前 HF08 策略实验、V/PPO 训练或新的 Cm 接法。
+当前优先完成接触候选的机会/局部噪声 Probe 设计：先确认真实可执行候选有可利用
+优势，再检验 Cm 能否排序、直接执行和重新决策。第一阶段不依赖长期 V、不启动
+完整 PPO 或终点成功率矩阵；模型计算与仿真默认单 GPU，先固定合同与有界预算。
+HF08 当前实现和 HD02 诊断已关闭，后续机制是独立路线，旧证据继续保留。
 完整 paired evaluator 证据保留在
 [HD02 结果索引](experiments/probes/P-20261001-paired-evaluator-resolution-results.json)。
 self-trained baseline 继续 PARTIAL；若后续补 Objective A，应另开明确预算、目标和
