@@ -50,7 +50,7 @@ def build_player(original, args, torch, gymtorch):
                 model = copy.deepcopy(self.model)
                 state = {}
                 for key, value in payload['model'].items():
-                    bare = key.removeprefix('_orig_mod.')
+                    bare = key[len('_orig_mod.'):] if key.startswith('_orig_mod.') else key
                     state[bare if bare in target_keys else '_orig_mod.'+bare] = value
                 model.load_state_dict(state, strict=True)
                 model.eval().requires_grad_(False)

@@ -2,6 +2,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
+from unittest.mock import patch
+import json
 
 import torch
 
@@ -55,6 +57,7 @@ class ContactConsequenceTests(unittest.TestCase):
                     model.weight.data.fill_(0 if arm==4 else .2)
                     self.frozen_experts.append((model,torch.nn.Identity()))
             def env_reset(self,ids): return {'obs':self.env.task.obs_buf.clone()}
+            def restore(self,filename): pass
             def get_action(self,obs,deterministic):
                 result=torch.zeros(96,18);result[:,0]=float(self.model.weight[0,0]);return result
             def env_step(self,env,action):
@@ -69,6 +72,16 @@ class ContactConsequenceTests(unittest.TestCase):
                                  max_states=32,max_steps=100,wall_seconds=60)
             original=SimpleNamespace(EvalPlayer=Player)
             wrapper=SimpleNamespace(unwrap_tensor=lambda x:x)
+            # Exercise actual expert restoration under the simulator's Python
+            # interpreter, including the compiled-checkpoint key wrapper.
+            pool=build_player(original,args,torch,wrapper)()
+            route=json.loads(Path('src/task/CmResidual/configs/hf02_temporal_canonical_route.json').read_text())
+            hashes={str((Path.cwd()/spec['checkpoint']).resolve()):spec['sha256'] for spec in route['experts'].values()}
+            with patch('scripts.collect_contact_consequences.sha',side_effect=lambda p:hashes[str(p)]), \
+                 patch.object(torch,'load',return_value={'model':{'_orig_mod.weight':torch.full((1,1),.25)},'running_mean_std':{}}):
+                pool.restore('unused')
+            self.assertEqual(len(pool.frozen_experts),6)
+            self.assertTrue(all(float(m.weight[0,0])==.25 and not m.weight.requires_grad for m,_ in pool.frozen_experts))
             build_player(original,args,torch,wrapper)().run()
             args=SimpleNamespace(**dict(vars(args),reference=first/'records.pt',output=branch,arm=0))
             build_player(original,args,torch,wrapper)().run()

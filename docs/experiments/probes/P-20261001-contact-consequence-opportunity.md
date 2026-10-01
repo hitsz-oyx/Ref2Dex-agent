@@ -60,3 +60,11 @@ Implementation and isolated tests cover physical labels, independent-repeat
 selection, noise threshold, pose/joint/velocity tolerances, and the actual
 collector loop's cold-state/prefix/candidate2→own-base8 action path. Real native
 execution is still required; CPU tests do not establish physical opportunity.
+
+Engineering r1 failed before the first native action/episode: the simulator
+uses Python3.8, which lacks `str.removeprefix`. Replaced with the existing
+compatible startswith/slice pattern and expanded the native-player test to
+exercise real six-expert loading, compiled wrapper keys and frozen parameters.
+No scientific result or checkpoint update existed. r1 logs/cache remain;
+r2 charges its time/storage to the same fixed60minute/8GiB budget, preserving
+seed/panel/gates and all input hashes.
