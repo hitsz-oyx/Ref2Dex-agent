@@ -124,6 +124,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF10:
+    claim: C3
+    name: retained_physical_trajectory_relative_action_effect
+    status: ACTIVE
+    branch: agent/cm-contact-consequence
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    authorization: "active user goal and AGENTS autonomous implementation; HF09 local physical signal motivates distinct retention/release mechanism, no mission/claim/resource change"
+    card: docs/experiments/probes/P-20261001-contact-trajectory-model.md
+    transition: "Slot1 adapts explicit base-relative10step height/contact/joint-retention/release heads with old encoder/scales and recorded real sim trajectories. Old held is engineering-only; slot2 fresh five-selector randomized actual control only after supported calibrated heads. HF09 budget stays3/3closed; no actor/PPO/V."
   HF09:
     claim: C3
     name: contact_consequence_direct_control
