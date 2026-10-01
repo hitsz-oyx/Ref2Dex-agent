@@ -1,0 +1,282 @@
+{
+  "status": "COMPLETED",
+  "actual_models": 9,
+  "updates_each": 1000,
+  "checkpoint_sha256": "67699186270bca969849d97941f6c42436addbdaa609b596ab018e4e71152da6",
+  "inputs_verified": true,
+  "own_pid_exited": true,
+  "elapsed_seconds": 42.81378881493583,
+  "conservative_prior_seconds": 10.0,
+  "scoped_bytes": 5990963,
+  "utility_label": "NOT_TESTED",
+  "result": {
+    "run_status": "COMPLETED",
+    "experiment_id": "P-20261002-plan-consequence-control",
+    "kind": "ACTUAL_PHYSICAL_MODEL_FIT_AND_CALIBRATION",
+    "models": {
+      "cm": {
+        "runs": [
+          {
+            "seed": 10501,
+            "updates": 1000,
+            "final_fit_loss": 0.26118791103363037,
+            "held_height_rmse_mm": 20.403728485107422,
+            "held_clearance_mae_mm": 8.81103801727295
+          },
+          {
+            "seed": 10502,
+            "updates": 1000,
+            "final_fit_loss": 0.2608756124973297,
+            "held_height_rmse_mm": 19.932727813720703,
+            "held_clearance_mae_mm": 8.65727424621582
+          },
+          {
+            "seed": 10503,
+            "updates": 1000,
+            "final_fit_loss": 0.4359145164489746,
+            "held_height_rmse_mm": 20.230607986450195,
+            "held_clearance_mae_mm": 8.929750442504883
+          }
+        ],
+        "metrics": {
+          "fit/all": {
+            "rows": 1656,
+            "height_rmse_mm": 10.994254112243652,
+            "clearance_mae_mm": 2.9276537895202637,
+            "joint_force_brier": 0.04105715826153755,
+            "retention_brier": 0.14926181733608246,
+            "clearance_loss_brier": 0.12460450083017349
+          },
+          "fit/initially_clear": {
+            "rows": 505,
+            "height_rmse_mm": 13.82536792755127,
+            "clearance_mae_mm": 5.862758636474609,
+            "joint_force_brier": 0.009764280170202255,
+            "retention_brier": 0.08405021578073502,
+            "clearance_loss_brier": 0.08188843727111816
+          },
+          "cal/all": {
+            "rows": 586,
+            "height_rmse_mm": 21.190425872802734,
+            "clearance_mae_mm": 8.972822189331055,
+            "joint_force_brier": 0.08118581026792526,
+            "retention_brier": 0.16700081527233124,
+            "clearance_loss_brier": 0.14719358086585999
+          },
+          "cal/initially_clear": {
+            "rows": 200,
+            "height_rmse_mm": 31.722320556640625,
+            "clearance_mae_mm": 20.206708908081055,
+            "joint_force_brier": 0.03167765960097313,
+            "retention_brier": 0.11972592771053314,
+            "clearance_loss_brier": 0.12403038889169693
+          },
+          "held/all": {
+            "rows": 1675,
+            "height_rmse_mm": 19.84829330444336,
+            "clearance_mae_mm": 8.492452621459961,
+            "joint_force_brier": 0.07178770750761032,
+            "retention_brier": 0.1463117003440857,
+            "clearance_loss_brier": 0.1316235065460205
+          },
+          "held/initially_clear": {
+            "rows": 704,
+            "height_rmse_mm": 26.464481353759766,
+            "clearance_mae_mm": 15.903347969055176,
+            "joint_force_brier": 0.022129682824015617,
+            "retention_brier": 0.10151137411594391,
+            "clearance_loss_brier": 0.10713367164134979
+          }
+        },
+        "cal_margin_mm": 44.56549072265625,
+        "calibration_slope": [
+          0.2623043358325958,
+          0.25866904854774475
+        ],
+        "calibration_bias": [
+          1.1178086996078491,
+          -1.1145893335342407
+        ]
+      },
+      "state_heads": {
+        "runs": [
+          {
+            "seed": 10501,
+            "updates": 1000,
+            "final_fit_loss": 0.23716071248054504,
+            "held_height_rmse_mm": 17.96070098876953,
+            "held_clearance_mae_mm": 8.183561325073242
+          },
+          {
+            "seed": 10502,
+            "updates": 1000,
+            "final_fit_loss": 0.24654942750930786,
+            "held_height_rmse_mm": 17.787630081176758,
+            "held_clearance_mae_mm": 8.043253898620605
+          },
+          {
+            "seed": 10503,
+            "updates": 1000,
+            "final_fit_loss": 0.4494786858558655,
+            "held_height_rmse_mm": 18.781707763671875,
+            "held_clearance_mae_mm": 8.372629165649414
+          }
+        ],
+        "metrics": {
+          "fit/all": {
+            "rows": 1656,
+            "height_rmse_mm": 11.994802474975586,
+            "clearance_mae_mm": 2.995196580886841,
+            "joint_force_brier": 0.03534133732318878,
+            "retention_brier": 0.15734648704528809,
+            "clearance_loss_brier": 0.11878908425569534
+          },
+          "fit/initially_clear": {
+            "rows": 505,
+            "height_rmse_mm": 14.677776336669922,
+            "clearance_mae_mm": 5.541787147521973,
+            "joint_force_brier": 0.00737908435985446,
+            "retention_brier": 0.08467040956020355,
+            "clearance_loss_brier": 0.0817662924528122
+          },
+          "cal/all": {
+            "rows": 586,
+            "height_rmse_mm": 18.686901092529297,
+            "clearance_mae_mm": 7.921243190765381,
+            "joint_force_brier": 0.07896797358989716,
+            "retention_brier": 0.1667669266462326,
+            "clearance_loss_brier": 0.13136103749275208
+          },
+          "cal/initially_clear": {
+            "rows": 200,
+            "height_rmse_mm": 27.10453987121582,
+            "clearance_mae_mm": 16.33427619934082,
+            "joint_force_brier": 0.03252245858311653,
+            "retention_brier": 0.11977901309728622,
+            "clearance_loss_brier": 0.12436255067586899
+          },
+          "held/all": {
+            "rows": 1675,
+            "height_rmse_mm": 17.785152435302734,
+            "clearance_mae_mm": 7.812643051147461,
+            "joint_force_brier": 0.06448106467723846,
+            "retention_brier": 0.14666840434074402,
+            "clearance_loss_brier": 0.11858304589986801
+          },
+          "held/initially_clear": {
+            "rows": 704,
+            "height_rmse_mm": 23.030723571777344,
+            "clearance_mae_mm": 13.47822093963623,
+            "joint_force_brier": 0.02013581432402134,
+            "retention_brier": 0.10039427131414413,
+            "clearance_loss_brier": 0.10538417845964432
+          }
+        },
+        "cal_margin_mm": 41.93111801147461,
+        "calibration_slope": [
+          0.2438855618238449,
+          0.26251906156539917
+        ],
+        "calibration_bias": [
+          1.0326169729232788,
+          -1.0559605360031128
+        ]
+      },
+      "shuffled": {
+        "runs": [
+          {
+            "seed": 10501,
+            "updates": 1000,
+            "final_fit_loss": 0.3281993269920349,
+            "held_height_rmse_mm": 23.09677505493164,
+            "held_clearance_mae_mm": 10.562314987182617
+          },
+          {
+            "seed": 10502,
+            "updates": 1000,
+            "final_fit_loss": 0.2713629901409149,
+            "held_height_rmse_mm": 22.826549530029297,
+            "held_clearance_mae_mm": 10.535343170166016
+          },
+          {
+            "seed": 10503,
+            "updates": 1000,
+            "final_fit_loss": 0.48449453711509705,
+            "held_height_rmse_mm": 22.884180068969727,
+            "held_clearance_mae_mm": 10.587459564208984
+          }
+        ],
+        "metrics": {
+          "fit/all": {
+            "rows": 1656,
+            "height_rmse_mm": 11.818092346191406,
+            "clearance_mae_mm": 3.166616439819336,
+            "joint_force_brier": 0.04945802688598633,
+            "retention_brier": 0.15266691148281097,
+            "clearance_loss_brier": 0.12629468739032745
+          },
+          "fit/initially_clear": {
+            "rows": 505,
+            "height_rmse_mm": 15.354940414428711,
+            "clearance_mae_mm": 6.638613700866699,
+            "joint_force_brier": 0.01032336801290512,
+            "retention_brier": 0.08518125116825104,
+            "clearance_loss_brier": 0.08269306272268295
+          },
+          "cal/all": {
+            "rows": 586,
+            "height_rmse_mm": 22.984371185302734,
+            "clearance_mae_mm": 10.039022445678711,
+            "joint_force_brier": 0.09446344524621964,
+            "retention_brier": 0.16813138127326965,
+            "clearance_loss_brier": 0.14718294143676758
+          },
+          "cal/initially_clear": {
+            "rows": 200,
+            "height_rmse_mm": 34.9579963684082,
+            "clearance_mae_mm": 23.097524642944336,
+            "joint_force_brier": 0.030890733003616333,
+            "retention_brier": 0.11816033720970154,
+            "clearance_loss_brier": 0.12272357940673828
+          },
+          "held/all": {
+            "rows": 1675,
+            "height_rmse_mm": 22.565879821777344,
+            "clearance_mae_mm": 10.23712158203125,
+            "joint_force_brier": 0.0900813564658165,
+            "retention_brier": 0.14799325168132782,
+            "clearance_loss_brier": 0.13199801743030548
+          },
+          "held/initially_clear": {
+            "rows": 704,
+            "height_rmse_mm": 30.91108512878418,
+            "clearance_mae_mm": 19.888853073120117,
+            "joint_force_brier": 0.02255547232925892,
+            "retention_brier": 0.10169534385204315,
+            "clearance_loss_brier": 0.10778979957103729
+          }
+        },
+        "cal_margin_mm": 57.64037322998047,
+        "calibration_slope": [
+          0.26159214973449707,
+          0.2673521339893341
+        ],
+        "calibration_bias": [
+          1.0761975049972534,
+          -1.0661146640777588
+        ]
+      }
+    },
+    "split": {
+      "fit": 1656,
+      "cal": 586,
+      "held": 1675
+    },
+    "initially_clear_cal": 200,
+    "checkpoint_sha256": "67699186270bca969849d97941f6c42436addbdaa609b596ab018e4e71152da6",
+    "elapsed_seconds": 42.812808327842504,
+    "utility_label": "NOT_TESTED",
+    "state_only_definition": "eight fixed-program heads encode catalog identity; no candidate action/anchor inputs",
+    "fixed_option": 7
+  }
+}
