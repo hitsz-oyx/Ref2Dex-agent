@@ -308,6 +308,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
+| `HF15` translation/orientation-plan-Cm | `C3` | `ACTIVE`（候选PROMISING，raw解码器UNPROMISING，目录Cm待独立验证） | 2/2，当前slot2内补对照/闭环 | `agent/cm-executable-options` |
 | `HF14` wrist-anchored-finger-feedback | `C3` | `CLOSED UNPROMISING` | 1/1；保持/抬升取舍，旧门保留 | `agent/cm-executable-options` |
 | `HF13` executable-pose-hold | `C3` | `CLOSED UNPROMISING` | 1/1；固定整姿态失去几何保留 | `agent/cm-executable-options` |
 | `HF12` trainable-recovery-guide | `C3` | `CLOSED UNPROMISING` | 1/1；on贪心执行未学到改变 | `agent/cm-trainable-recovery` |
@@ -329,9 +330,11 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 ## Next step
 
-当前先复盘动作控制职责：整腕固定降低几何丢失却损失抬升，局部3cm保留
-也未确认收益。下一步保留专家平移/手指反馈，只保持腕部旋转目标，检验是否
-能保留接触并继续抬升，再拟合该实际H10计划对应的物理Cm。旧统计门不改。
+当前候选机会已过门：rotation_cup程序留出保留支持高度+26.509mm。真实H10
+物理模型拟合也已完成；raw动作张量解码器置信门下0提议，不能进入PPO。
+下一步用已拟合目录条件物理模型（旧名state-only固定物理头），补state局部
+收益预测及同结构head-shuffled对照，再冻结新2步重规划/H10实际观察协议，
+独立测量对四控制的真实收益、风险及命令改变；所有旧失败门/标签保持。
 近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
 新数据测量收益，而非把单状态预测当全候选真值。
 排序与覆盖过门后才检验直接重新决策；不依赖长期 V、不启动
