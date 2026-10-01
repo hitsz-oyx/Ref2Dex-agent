@@ -8,7 +8,7 @@ Read on 2026-10-01. This is a focused novelty screen, not an exhaustive survey.
    He et al., 2025: already uses shared hand/object particles and particle-displacement
    actions, with dynamics learning and planning. Point-flow cross-hand modeling
    alone is not an original contribution for this project.
-2. [Dexplore](https://arxiv.org/abs/2509.09671), Zheng et al., 2025:
+2. [Dexplore](https://arxiv.org/abs/2509.09671), Xu et al., 2025:
    reference-scoped exploration provides the existing manipulation substrate.
    Our pilot uses the repository's self-trained actor, not released official weights.
 3. [Value-Aware Loss Function for Model-based Reinforcement Learning](https://proceedings.mlr.press/v54/farahmand17a.html),
@@ -23,6 +23,12 @@ Read on 2026-10-01. This is a focused novelty screen, not an exhaustive survey.
    2026 position paper: advocates evaluation under interventions and closed-loop
    decision making. A general counterfactual benchmark claim needs more than
    renaming this established evaluation principle.
+6. [Learning Action-based Representations Using Invariance](https://rlj.cs.umass.edu/2024/papers/RLJ_RLC_2024_39.pdf),
+   Rudolph et al., 2024: action-bisimulation learns representations of multi-step
+   controllability. Controllability-aware representations or action-effect
+   equivalence alone are also established ideas. Any quotient-style extension
+   must distinguish itself from this work and cannot equate a noisy distance
+   threshold with a mathematically transitive equivalence relation.
 
 ## Local evidence and interpretation
 
