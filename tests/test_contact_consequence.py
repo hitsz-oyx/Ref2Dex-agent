@@ -1,0 +1,125 @@
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+import tempfile
+
+import torch
+
+from src.task.CmResidual.contact_consequence import local_outcomes, opportunity_gate, prefix_errors
+
+
+class ContactConsequenceTests(unittest.TestCase):
+    def test_native_loop_replays_prefix_and_executes_candidate_then_own_base(self):
+        from scripts.collect_contact_consequences import build_player
+
+        class Gym:
+            def __init__(self): self.frame=0
+            def get_frame_count(self,sim): return self.frame
+            def get_actor_count(self,env): return 0
+            def set_actor_root_state_tensor(self,sim,tensor): pass
+            def set_dof_state_tensor(self,sim,tensor): pass
+
+        class Player:
+            def __init__(self):
+                self.device='cpu';self.states=None;self.is_rnn=False
+                self.model=torch.nn.Linear(1,1,bias=False)
+                self.model.weight.data.zero_()
+                self.running_mean_std=torch.nn.Identity()
+                task=SimpleNamespace(gym=Gym(),sim=object(),envs=list(range(96)),num_envs=96,dt=1/30,
+                    device='cpu',dr_randomizations={},projtype='None',_motion_sampler=None,
+                    _reset_default_env_ids=[],_reset_ref_env_ids=[])
+                task._root_states=torch.zeros(288,13)
+                task._target_states=task._root_states.view(96,3,13)[:,2]
+                task._target_states[:,2]=.9;task._target_states[:,6]=1
+                task._dof_state=torch.zeros(1728,2)
+                task._dof_pos=task._dof_state.view(96,18,2)[:,:,0]
+                task._dof_vel=task._dof_state.view(96,18,2)[:,:,1]
+                task._rigid_body_state=torch.zeros(2208,13)
+                task._contact_forces=torch.ones(96,23,3)
+                task._tar_contact_forces=torch.ones(96,3)
+                task._contact_body_ids=torch.arange(5)
+                task.obs_buf=torch.zeros(96,1442)
+                task.progress_buf=torch.zeros(96,dtype=torch.long)
+                task.data_id=torch.arange(96)%3
+                task.start_times=torch.zeros(96,dtype=torch.long)
+                task.max_episode_length=torch.full((3,),100,dtype=torch.long)
+                task.ref_index=torch.zeros(96,dtype=torch.long)
+                task.hoi_refs=torch.zeros(3,1,101,150);task.hoi_refs[:,:,:,108]=.9
+                for name in ('_curr_obs','_hist_obs','contact_reset','_terminate_buf'):
+                    setattr(task,name,torch.zeros(96,4) if name!='_terminate_buf' else torch.zeros(96,dtype=torch.bool))
+                task._refresh_sim_tensors=lambda:None
+                self.env=SimpleNamespace(task=task)
+                self.frozen_experts=[]
+                for arm in range(6):
+                    model=torch.nn.Linear(1,1,bias=False)
+                    model.weight.data.fill_(0 if arm==4 else .2)
+                    self.frozen_experts.append((model,torch.nn.Identity()))
+            def env_reset(self,ids): return {'obs':self.env.task.obs_buf.clone()}
+            def get_action(self,obs,deterministic):
+                result=torch.zeros(96,18);result[:,0]=float(self.model.weight[0,0]);return result
+            def env_step(self,env,action):
+                task=env.task;task.gym.frame+=1;task.progress_buf+=1
+                task._target_states[:,2]+=action[:,0]*.01
+                task.obs_buf[:,0]=task._target_states[:,2]
+                return task.obs_buf,torch.zeros(96),torch.zeros(96,dtype=torch.bool),{}
+
+        with tempfile.TemporaryDirectory() as directory:
+            first=Path(directory)/'first';branch=Path(directory)/'branch';first.mkdir();branch.mkdir()
+            args=SimpleNamespace(reference=None,output=first,arm=4,repeat=0,seed=330,
+                                 max_states=32,max_steps=100,wall_seconds=60)
+            original=SimpleNamespace(EvalPlayer=Player)
+            wrapper=SimpleNamespace(unwrap_tensor=lambda x:x)
+            build_player(original,args,torch,wrapper)().run()
+            args=SimpleNamespace(**dict(vars(args),reference=first/'records.pt',output=branch,arm=0))
+            build_player(original,args,torch,wrapper)().run()
+            data=torch.load(branch/'records.pt',weights_only=False)
+            ref=torch.load(first/'records.pt',weights_only=False)
+            selected=data['selected']
+            self.assertEqual(int(selected.sum()),32)
+            self.assertTrue(data['paired_valid'].all())
+            self.assertEqual(data['initial_fingerprint'],ref['initial_fingerprint'])
+            self.assertTrue((data['future_action'][selected,:2,0]==.2).all())
+            self.assertTrue((data['future_action'][selected,2:]==0).all())
+            self.assertTrue((data['outcome']['supported_lift_mm']>3.7).all())
+            self.assertTrue((data['window_steps'][selected]==10).all())
+            self.assertFalse(data['future_done'][selected].any())
+
+    def test_labels_distinguish_supported_progress_contact_loss_and_existing_lift_drop(self):
+        future=torch.zeros(3,10,49)
+        future[:,:,38]=torch.tensor([1.04,1.04,1.01])[:,None]
+        contact=torch.ones(3,10,dtype=torch.bool)
+        contact[1,4:]=False
+        result=local_outcomes(future,contact,torch.ones(3),torch.tensor([.95,.95,1.]))
+        self.assertAlmostEqual(float(result['supported_lift_mm'][0]),40,places=3)
+        self.assertAlmostEqual(float(result['supported_lift_mm'][1]),16,places=3)
+        self.assertEqual(result['drop'].tolist(),[False,True,False])
+        self.assertEqual(result['drop_eligible'].tolist(),[True,True,False])
+        self.assertAlmostEqual(float(result['contact_loss'][1]),.6,places=5)
+
+    def test_opportunity_requires_independent_repeat_gain_not_first_repeat_winners(self):
+        lift=torch.zeros(32,6,2);contact=torch.ones_like(lift);drop=torch.zeros_like(lift,dtype=torch.bool)
+        lift[:,0,0]=20
+        gate=opportunity_gate(lift,contact,drop,paired_valid=True)
+        self.assertFalse(gate['passed'])
+        self.assertEqual(gate['mean_confirmed_uplift_mm'],0)
+        lift[:,0,1]=5
+        self.assertTrue(opportunity_gate(lift,contact,drop,paired_valid=True)['passed'])
+        self.assertFalse(opportunity_gate(lift,contact,drop,paired_valid=False)['passed'])
+        contact[:,0,1]=0
+        self.assertFalse(opportunity_gate(lift,contact,drop,paired_valid=True)['passed'])
+
+    def test_gate_rejects_opportunity_smaller_than_base_repeat_noise(self):
+        lift=torch.zeros(32,6,2);lift[:,4,1]=5;lift[:,0,:]=8
+        gate=opportunity_gate(lift,torch.ones_like(lift),torch.zeros_like(lift,dtype=torch.bool),paired_valid=True)
+        self.assertEqual(gate['required_mean_uplift_mm'],10)
+        self.assertFalse(gate['passed'])
+
+    def test_pairing_checks_pose_joint_and_velocity_and_quaternion_sign(self):
+        state=torch.zeros(4,49);state[:,42]=1
+        actual=state.clone();actual[0,42]=-1;actual[1,36]=.002;actual[2,3]=.02;actual[3,18]=.1
+        valid,errors=prefix_errors(actual,state)
+        self.assertEqual(valid.tolist(),[True,False,False,False])
+        self.assertEqual(float(errors['object_rotation_rad'][0]),0)
+
+
+if __name__=='__main__':unittest.main()

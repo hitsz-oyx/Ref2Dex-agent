@@ -16,7 +16,10 @@ Updated: 2026-10-01
 并验证直接执行与重新观察的作用链条。旧数据不能直接提供逐状态真实 regret。
 具体区别、最小 Probe、对照与停止条件见
 [接触后果机制决定](decisions/D-20261001-contact-consequence-mechanism.md)。
-本次仅完成设计与只读审计，尚未训练或采集；新实验须独立登记，不重开 HF08/HD02。
+HF09 独立路线已登记：首轮真实候选机会 Probe，六臂各重复两次，候选直接执行2步、
+随后自身 base8步；触发状态/历史与完整动作/RNG合同经过工程测试，准备单 GPU 执行。
+实验卡见 [接触候选机会](experiments/probes/P-20261001-contact-consequence-opportunity.md)。
+尚无该路线的科学结果，不重开 HF08/HD02。
 当前授权以用户最新方向为准；旧 Goal 的“无新 Cm 接法”属于该已完成诊断的边界。
 MISSION claim 不变，baseline PARTIAL、Cm utility OPEN；旧结果与输入继续保留。
 
@@ -208,6 +211,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
+| `HF09` contact-consequence-direct-control | `C3` | `ACTIVE`（机会→排序→闭环） | 1/3，候选机会 Probe | `agent/cm-contact-consequence` |
 | `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
 | `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
 | `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |

@@ -102,6 +102,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF09:
+    claim: C3
+    name: contact_consequence_direct_control
+    status: ACTIVE
+    branch: agent/cm-contact-consequence
+    probe_budget: 3
+    probes_used: 1
+    owner: current_session
+    authorization: "active user goal: real candidate opportunity, physical consequence ranking, direct short-segment replanning; original HF08 preserved"
+    card: docs/experiments/probes/P-20261001-contact-consequence-opportunity.md
+    transition: "Slot1 real six-arm/two-repeat contact opportunity Probe;2step candidate followed by8step own base. Only if opportunity passes learn ranker and controls, then directly execute replanning. No PPO/V in slot1; C1 PARTIAL/C3 OPEN."
   HF08:
     claim: C3
     name: short_physical_transition_long_term_value
