@@ -76,6 +76,11 @@ HF13已完成3404实际窗口/573episodes：留出已离桌536状态，hold204/b
 下一步补测完全悬空负例，给新数据保存原始力/质量及归一化接触代理，再设计
 腕部保持/手指继续反馈的候选；不会回填旧bool标签或改旧失败门，C3仍OPEN。
 见 [原始力审计](experiments/probes/P-20261002-contact-force-units-r1-audit.json)。
+悬空负例亦通过：480帧rawforce全0；新重量归一化代理支撑5760/5760触发、
+悬空0/480触发，仅证明两个受控条件，不证明实际抓取接触识别。HF14开始
+工程检查腕部固定/手指继续专家反馈的新H10候选，保存rawforce/质量和全部
+原生专家观测，GPU独立重算所选反馈，旧Cm不复用。
+见 [新候选卡](experiments/probes/P-20261002-wrist-feedback-opportunity.md)。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。

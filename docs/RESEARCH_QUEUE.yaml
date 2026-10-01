@@ -72,6 +72,17 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HF14:
+    claim: C3
+    name: wrist_anchored_feedback_opportunity
+    status: ENGINEERING
+    branch: agent/cm-executable-options
+    probe_budget: 1
+    probes_used: 0
+    owner: current_session
+    authorization: "active user mechanism goal; distinct wrist-hold/finger-feedback plans after preserved HF13 failure and measured force-unit blocker, no claim/resource change"
+    card: docs/experiments/probes/P-20261002-wrist-feedback-opportunity.md
+    transition: "Known supported5760/5760 and airborne0/480 normalized proxy conditions pass. New raw-force/native-observation schema and independent GPU expert replay; engineering seed440 before frozen12panels. Historical labels/gates unchanged."
   HF13:
     claim: C3
     name: executable_contact_plan_opportunity
