@@ -100,9 +100,14 @@ Next design: explicitly synthetic90-row holding plateau at each FIRSTlift
 interval's label-only peak. Generation COMPLETE (`b2b26e0`), initial/remainder
 preserved, generated files4.68MB. A new actor-only feasibility Probe is frozen:
 actors286/287,new seeds498/499,four192-env panels;75consecutive held steps within
-inserted phase, pooled>=10%and each motion>=5%. No physical result yet; implement
-and audit the native phase/velocity/episode contract before collection. GPU5
-released; no own run active. No predictor tuning or PPO until holding baseline.
+inserted phase, pooled>=10%and each motion>=5%. Physical collection COMPLETE (`40e73f2`):768 first
+episodes,5/768 retained75 (0.651%),19/768 stable45 (2.474%), all four gates fail.
+UNPROMISING for direct transfer. Original reporting job FAILED on duplicate
+keyword fields; preserved. Separate identical-score correction (`3f4ae77`) audits
+all768 actual-progress trajectories without new physics; all protected inputs
+unchanged. GPU5 released; no own run active. Next frozen baseline curriculum
+Probe trains one fixed actor286 continuation, seed721,300 new epochs/460800
+interactions; final-only frame0 evaluation500/501. No Cm or predictor tuning.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
