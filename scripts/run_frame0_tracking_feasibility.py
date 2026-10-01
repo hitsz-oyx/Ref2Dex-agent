@@ -37,7 +37,7 @@ def main():
     sources = [Path(__file__), ROOT / 'scripts/run_frame0_tracking_environment.py',
         ROOT / 'src/task/CmResidual/research/contact_response/output/P-20261002-finger-preload-feasibility-r1/results.json',
         ROOT / 'scripts/analyze_frame0_tracking_feasibility.py', old, references / 'run_manifest.json', ROOT / 'src/task/CmResidual/static_hold_feasibility.py',
-        ROOT / 'docs/experiments/probes/P-20261002-frame0 tracking-feasibility.md',
+        ROOT / 'docs/experiments/probes/P-20261002-frame0-tracking-feasibility.md',
         ROOT / 'src/task/CmResidual/finger_preload.py', ROOT / 'src/task/CmResidual/frame0_tracking.py', ROOT / 'src/task/CmResidual/tabletop_clearance.py',
         ROOT / 'scripts/analyze_static_hold_feasibility.py',
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/table.urdf',
@@ -49,7 +49,7 @@ def main():
     templates = {p['training_seed']: p for p in original['phases'] if not p['repeat'] and p['evaluation_seed'] == 288}
     output.mkdir(parents=True)
     begin = time.monotonic()
-    manifest = dict(experiment_id='P-20261002-frame0 tracking-feasibility', run_id=output.name,
+    manifest = dict(experiment_id='P-20261002-frame0-tracking-feasibility', run_id=output.name,
         run_status='RUNNING', pid=os.getpid(), isolated_worktree=str(ROOT), synthetic_task=True,
         no_training=True, gpu_index=args.gpu, references=str(references), panels=PANELS, evaluation_seeds=[506,507], phases=[],
         input_sha256=hashes, wall_limit_seconds=600, storage_limit_bytes=128*(1<<20),
