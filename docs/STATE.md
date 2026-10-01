@@ -1,6 +1,6 @@
 # Standalone Contact-Response Research State
 
-Updated: 2026-10-01. Worktree `Ref2Dex-agent-contact-response`, branch
+Updated: 2026-10-02. Worktree `Ref2Dex-agent-contact-response`, branch
 `agent/contact-response-cm`. This branch is an independent research track.
 The original worktree remains on `agent/paired-evaluator`; its existing changes
 were preserved. Its checkpoints, prior results and motion inputs are read-only.
@@ -105,11 +105,20 @@ episodes,5/768 retained75 (0.651%),19/768 stable45 (2.474%), all four gates fail
 UNPROMISING for direct transfer. Original reporting job FAILED on duplicate
 keyword fields; preserved. Separate identical-score correction (`3f4ae77`) audits
 all768 actual-progress trajectories without new physics; all protected inputs
-unchanged. Baseline curriculum Probe ACTIVE on admitted GPU5 (`e770d4b`),
-runP-20261001-hold-plateau-curriculum-r1: fixed actor286 continuation, seed721,
-300 new epochs/460800 interactions, final-only frame0 evaluation500/501. Fresh
-optimizer, predetermined phase starts/reward and5mm wrist exploration. No Cm,
-checkpoint selection or predictor tuning; scientific result pending.
+unchanged. Baseline curriculum COMPLETED (`e770d4b`):300 NEWepochs/460800 interactions,
+1120.95s/106.30MiB, final-only evaluation500/5010/384 retained75 and0/384 stable45.
+All178 inputs unchanged; exact continuation UNPROMISING and stopped.
+Native reset audit (`da39660`) changes raw finger joints but preserves sampled
+contact flags; no causal explanation of failure follows. Static unmodified PD
+(`1e38cf6`) COMPLETED192 elevated90-step trajectories,0/192 necessary height/proxy
+retained75. Original table-localZ clearance INVALID_TABLETOP_AXIS; immutable
+original gate and inputs retained. Separate68bf178 full-pose correction uses actual
+thin localY normal; correct initial clearance307/131/154mm, still0/192; post-hoc
+only. Wrist joint5 is continuous; geometry helper +/-pi fallback is not its bound.
+Current distinct Decision Probe is bounded fixed finger preload0/.05/.15/.30rad,
+new seeds504/505, corrected tabletop geometry; no more PPO of the failed recipe.
+Question: can added closure establish mechanical retention before a pickup teacher?
+Design and prospective gates in P-20261002-finger-preload-feasibility; not yet launched.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -128,6 +137,9 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Task result](research/20261001-randomized-task-selection-results.md)
 - [Hold-task decision](decisions/D-20261001-reference-hold-task.md)
 - [Next hold feasibility Probe](experiments/probes/P-20261001-hold-plateau-substrate.md)
+- [Holding curriculum result](research/20261001-hold-plateau-curriculum-results.md)
+- [Static mechanical result and corrected geometry](research/20261002-static-hold-feasibility-results.md)
+- [Finger-preload decision](decisions/D-20261002-finger-preload-feasibility.md)
 - [Current manuscript](../paper/manuscript-v4.tex) and [PDF review copy](../paper/manuscript-v4.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
