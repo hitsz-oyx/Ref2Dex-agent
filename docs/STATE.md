@@ -2,8 +2,9 @@
 
 Updated: 2026-10-02. Worktree `Ref2Dex-agent-contact-response`, branch
 `agent/contact-response-cm`. This branch is an independent research track.
-The original worktree remains on `agent/paired-evaluator`; its existing changes
-were preserved. Its checkpoints, prior results and motion inputs are read-only.
+The user's original worktree progresses independently (observed on
+`agent/cm-executable-options` on2October); this session does not switch its branch
+or modify its files. Its initial changes were preserved. Its checkpoints, prior results and motion inputs are read-only.
 
 ## Current objective
 
@@ -133,7 +134,8 @@ Prior static POSTHOC component audit also separates geometry/strictforce counts.
 Next most informative question: randomized support removal after established
 motion1 geometry to test actual hand-supported retention before changing metrics.
 Preserve every old primary gate; stop exact fixed temporal/static recipes. No
-training or simulation currently active; next witness design needs freezing.
+training or simulation currently active; next witness is frozen in
+P-20261002-support-removal-witness, implementation pending.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -157,6 +159,7 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Finger-preload result](research/20261002-finger-preload-feasibility-results.md)
 - [Finger-preload decision](decisions/D-20261002-finger-preload-feasibility.md)
 - [Frame0 tracking and measurement result](research/20261002-frame0-tracking-feasibility-results.md)
+- [Next support-removal witness](experiments/probes/P-20261002-support-removal-witness.md)
 - [Current manuscript](../paper/manuscript-v5.tex) and [PDF review copy](../paper/manuscript-v5.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
