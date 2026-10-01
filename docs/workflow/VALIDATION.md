@@ -116,3 +116,32 @@ graspenv、CUDA 关闭：公开入口 43 项与治理 16 项由 tools/verify.py 
 实验索引一致性与 git diff --check 通过。全仓测试既有的 Cm 导入错误及依赖审计
 限制沿用前述记录。此合并未部署新 campaign、启动生产 owner、改写 runtime binding
 或停止已有实验；没有向远程 push。
+
+## 逐角色账号配置与前台 root 传入：2026-10-01
+
+用户确认各 worker 分别配置主、备用绑定，当前四角色均使用 .codex_oyx，usage limit
+后切换 .codex_oyx_frj。允许跨角色 CODEX_HOME 相同，但工作树/store 独立；相同目录
+仍代表相同登录凭据与额度。角色内主备目录必须不同。样例逐项写出，真实备用验收前
+保持 verified:false；本轮不启动生产 campaign 或修改旧科研绑定。
+
+bind-root 仅在 owner 已停止、paused 且无执行历史时捕获前台明确传入的 CODEX_HOME
+与运行环境，原子保存本机配置。后台使用保存的配置；环境之后改变不会改绑账号。
+不自动读取聊天记录或临时 model/profile。历史 campaign 保留原绑定；前后台沿用唯一
+owner 锁和持久指令入口。验证过程复制备选配置，避免归一化误触配置一致性检查。
+
+usage limit 的失败执行通过同一逻辑任务进行账号交接。旧、新执行记录分别保存 store，
+不跨账号 resume thread；恢复意图先落盘，丢失响应在目标 store 核对，不重复启动。
+无可用备选时等待，其他角色可继续；Pause 不启动交接，容量/网关策略不变。
+
+公开 CLI 新增 6 项工程回归：逐角色相同目录、usage limit 交接、目标 store 丢失响应
+核对、Pause 与无备选等待、root 捕获/拒绝运行中改绑、guardian/历史 campaign 保护。
+其中相关 11 项回归通过，5 个修改的运行模块 mypy 通过；模型调用 0，未做真实账号
+可用性验收。以 3b775eb 为固定比较点，最终 tools/verify.py --changed PASS：
+49 项公开 CLI 与 16 项当前治理测试全部通过；Markdown 链接与 diff 检查通过。
+
+全仓 pytest 仍有既有 10 个 Cm 导入收集错误；额外运行全部治理测试发现 5 项旧 Goal
+文档检查仍读当前跳转入口，未切换至历史规范。相关测试/文档与 3b775eb 完全相同，
+main 上单独重跑同样失败；本次不将旧 Goal 合同重新塞回当前入口。
+
+Standards 与 Spec 分别只读复核，均无未关闭发现；真实备用账号验收与生产 owner
+切换仍是部署条件，不以工程控制测试代替。
