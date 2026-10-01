@@ -239,3 +239,28 @@ Why deferred:
 Trigger:
 
 如果最终论文要将该权衡作为核心因果机制而非探索性线索。
+
+## D011 — Stable-grasp contact/clearance and training-seed validation
+
+Status: DEFERRED until a positive trainable-Cm utility Probe.
+
+Current supported-height reward/45tick stable label uses object-center lift
+and native hand/object net-force proxies (`physical_value_live.contacts`).
+These are not pairwise hand-object contacts: hand and object forces may arise
+from different collisions, and object-center lift alone does not establish
+whole-mesh table clearance. HF12 saves full object pose/quaternion and cold
+root/table poses for a subsequent audit. Before a formal true-grasp claim,
+use the actual airplane collision geometry/scale and fixed table transform;
+report mesh/table clearance and relevant contact evidence, keeping the
+original center/force-proxy labels. Sampled256surface points cannot establish
+a strict lowest-point clearance; compare actual collision representations.
+
+A positive HF12 single-training-seed result must also receive independently
+predeclared matched multi-training-seed Validation. Evaluation-seed intervals
+condition on the trained checkpoints and cannot substitute for training-seed
+variation. Cold-state and physics/FPS repeatability differences must remain
+reported; consider whole-episode randomized on/off evaluation in one batch.
+
+Why deferred: HF12 first tests owned learned commands and local retention
+utility. No formal stable-grasp or Cm learning claim is being made now.
+Trigger: positive mechanism/utility screen or any formal claim/public report.
