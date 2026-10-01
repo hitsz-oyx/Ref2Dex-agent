@@ -55,6 +55,17 @@ def run(args):
     trace={k:torch.cat([p['policy_trace'][k] for p in rows]) for k in rows[0]['policy_trace']}
     active=trace['proposed_arm'].long()!=4;treat=trace['treatment'].bool()
     outcome={k:torch.cat([p['outcome'][k] for p in rows]) for k in rows[0]['outcome']}
+    checkpoint_paths=[Path(p) for p in manifest['input_sha256'] if Path(p).name=='ranker.pt']
+    if len(checkpoint_paths)!=1 or sha(checkpoint_paths[0])!=rows[0]['ranker_sha256']:raise ValueError('proposer drift')
+    old_groups=torch.load(checkpoint_paths[0],map_location='cpu',weights_only=False)['group_split']
+    old_split=torch.tensor([old_groups.get(frame,-1) for frame in frames])
+    strata={}
+    for name,code in [('old_fit_frames',0),('old_calibration_frames',1),('old_held_frames',2),('new_frames',-1)]:
+        mask=active&(old_split==code);idx=mask.nonzero().flatten().tolist()
+        strata[name]=dict(active_windows=len(idx),all_windows=int((old_split==code).sum()),
+                         scope='descriptive initial-frame overlap audit; no new threshold/model selection',
+                         contrast=contrast(treat[mask],outcome['supported_lift_mm'][mask].float(),
+                                           [episodes[i] for i in idx],[frames[i] for i in idx]) if idx else None)
     ep=[episodes[i] for i in active.nonzero().flatten().tolist()]
     fr=[frames[i] for i in active.nonzero().flatten().tolist()]
     if not active.any():raise ValueError('no proposed interventions')
@@ -65,6 +76,15 @@ def run(args):
         risk[name]=dict(rows=int(mask.sum()),events=int(outcome['drop'][mask].sum()),
                        episodes=len({episodes[i] for i in mask.nonzero().flatten().tolist()}))
     risk_supported=all(v['rows']>=20 and v['events']>=3 for v in risk.values())
+    all_windows={}
+    for key in ['supported_lift_mm','contact_fraction','drop']:
+        # Inactive proposals are identical to base, hence their contrast is
+        # exactly zero. This still concerns mixed-history observed states.
+        value=contrast(treat,outcome[key].float()*active.float(),episodes,frames)
+        all_windows[key]={k:v for k,v in value.items() if k not in ['treated_mean','control_mean']}
+    eligible_rows=eligible.nonzero().flatten().tolist()
+    conditional_drop=contrast(treat[eligible],outcome['drop'][eligible].float(),
+                              [episodes[i] for i in eligible_rows],[frames[i] for i in eligible_rows]) if eligible_rows else None
     per_episode={}
     for e in episodes:per_episode[e]=per_episode.get(e,0)+1
     arm_episodes={name:len({episodes[i] for i in mask.nonzero().flatten().tolist()})
@@ -81,6 +101,9 @@ def run(args):
                 label='UNCLEAR' if not support or not risk_supported else ('PROMISING' if gate['passed'] else 'UNPROMISING'),
                 local_lift_label='UNCLEAR' if not support else ('PROMISING' if lift_ok and contact_ok else 'UNPROMISING'),
                 gate=gate,contrasts=result,conditional_risk_support=risk,
+                all_window_local_contrasts=all_windows,eligible_drop_contrast=conditional_drop,
+                initial_frame_overlap_audit=strata,
+                risk_interval_boundary='zero observed events can yield degenerate descriptive intervals; risk gate still requires actual event support',
                 decision='ACTION_EFFECT_LEARNING_DESIGN' if gate['passed'] else 'REVIEW_CANDIDATE_EXECUTION_AND_EFFECT_REPRESENTATION',
                 total_windows=len(episodes),episodes=len(per_episode),active_windows=int(active.sum()),
                 proposal_fraction=float(active.float().mean()),actual_change_fraction=float((delta>1e-7).float().mean()),
