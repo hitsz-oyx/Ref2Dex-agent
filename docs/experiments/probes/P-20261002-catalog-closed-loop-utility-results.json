@@ -1,0 +1,253 @@
+{
+  "experiment_id": "P-20261002-catalog-closed-loop-utility",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 821,
+  "episodes": 161,
+  "initial_groups": 25,
+  "support_adequate": true,
+  "physical_change_gate": true,
+  "actual_cm_changes": {
+    "base": {
+      "windows": 91,
+      "episodes": 62,
+      "initial_groups": 19,
+      "frames": 662,
+      "window_fraction": 0.5352941176470588
+    },
+    "fixed": {
+      "windows": 160,
+      "episodes": 94,
+      "initial_groups": 21,
+      "frames": 1286,
+      "window_fraction": 0.9411764705882353
+    }
+  },
+  "contrasts": {
+    "state_policy": {
+      "score_uplift_mm": -4.444871425628662,
+      "initial_group90": [
+        -13.152820785987547,
+        2.003470216952303
+      ],
+      "episode90": [
+        -16.218275720616433,
+        7.403126569068946
+      ],
+      "geometric_loss_difference": 0.0,
+      "joint_force_difference": -0.012180267833173275,
+      "gate": {
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    },
+    "catalog_shuffled": {
+      "score_uplift_mm": 23.538219451904297,
+      "initial_group90": [
+        9.641181861037742,
+        35.40862209567948
+      ],
+      "episode90": [
+        11.62600411931732,
+        35.20114035988413
+      ],
+      "geometric_loss_difference": -0.07917173951864243,
+      "joint_force_difference": 0.0974421426653862,
+      "gate": {
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": true
+      }
+    },
+    "always_base": {
+      "score_uplift_mm": 24.124765396118164,
+      "initial_group90": [
+        13.703760044132531,
+        31.582930120228824
+      ],
+      "episode90": [
+        13.472134383483167,
+        35.10444279649285
+      ],
+      "geometric_loss_difference": -0.03654080256819725,
+      "joint_force_difference": 0.0487210713326931,
+      "gate": {
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": true
+      }
+    },
+    "always_fixed": {
+      "score_uplift_mm": -27.651180267333984,
+      "initial_group90": [
+        -34.70131866964077,
+        -17.100980525035006
+      ],
+      "episode90": [
+        -40.18458993622017,
+        -15.92362208028289
+      ],
+      "geometric_loss_difference": 0.018270401284098625,
+      "joint_force_difference": 0.09135200828313828,
+      "gate": {
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    }
+  },
+  "policies": {
+    "catalog_cm": {
+      "support": {
+        "matches": 170,
+        "episodes": 97,
+        "initial_groups": 21
+      },
+      "ipw_score_mm": 13.857442855834961,
+      "observed_score_mm": 13.384659767150879,
+      "observed_loss_rate": 0.1411764705882353,
+      "observed_joint_last3_rate": 0.9529411764705882,
+      "observed_retained_rate": 0.8529411764705882,
+      "program_frame_counts": [
+        0,
+        246,
+        2,
+        0,
+        1038,
+        0,
+        0,
+        414
+      ],
+      "nonbase_frames": 662,
+      "physical_changed_base_frames": 662,
+      "physical_changed_fixed_frames": 1286
+    },
+    "state_policy": {
+      "support": {
+        "matches": 173,
+        "episodes": 94,
+        "initial_groups": 21
+      },
+      "ipw_score_mm": 18.30231285095215,
+      "observed_score_mm": 17.371328353881836,
+      "observed_loss_rate": 0.13872832369942195,
+      "observed_joint_last3_rate": 0.9479768786127167,
+      "observed_retained_rate": 0.8728323699421965,
+      "program_frame_counts": [
+        0,
+        242,
+        4,
+        0,
+        1048,
+        0,
+        0,
+        436
+      ],
+      "nonbase_frames": 682,
+      "physical_changed_base_frames": 682,
+      "physical_changed_fixed_frames": 1294
+    },
+    "catalog_shuffled": {
+      "support": {
+        "matches": 153,
+        "episodes": 87,
+        "initial_groups": 19
+      },
+      "ipw_score_mm": -9.680778503417969,
+      "observed_score_mm": -10.389437675476074,
+      "observed_loss_rate": 0.24183006535947713,
+      "observed_joint_last3_rate": 0.954248366013072,
+      "observed_retained_rate": 0.7843137254901961,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        1530,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 1530
+    },
+    "always_base": {
+      "support": {
+        "matches": 162,
+        "episodes": 94,
+        "initial_groups": 23
+      },
+      "ipw_score_mm": -10.267322540283203,
+      "observed_score_mm": -10.406755447387695,
+      "observed_loss_rate": 0.18518518518518517,
+      "observed_joint_last3_rate": 0.9506172839506173,
+      "observed_retained_rate": 0.8148148148148148,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        1620,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 1620
+    },
+    "always_fixed": {
+      "support": {
+        "matches": 163,
+        "episodes": 97,
+        "initial_groups": 23
+      },
+      "ipw_score_mm": 41.50862121582031,
+      "observed_score_mm": 41.814208984375,
+      "observed_loss_rate": 0.12883435582822086,
+      "observed_joint_last3_rate": 0.901840490797546,
+      "observed_retained_rate": 0.8773006134969326,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1630
+      ],
+      "nonbase_frames": 1630,
+      "physical_changed_base_frames": 1630,
+      "physical_changed_fixed_frames": 0
+    }
+  },
+  "first_episode_frames": 620628,
+  "sim_frames": 739584,
+  "same_actual_state_shadow_agreement": {
+    "state_policy": 0.7831912040710449,
+    "catalog_shuffled": 0.6494519114494324,
+    "always_base": 0.6494519114494324,
+    "always_fixed": 0.20000000298023224
+  },
+  "cm_ood_decisions": 445,
+  "cumulative_seconds_including_fit_engineering_audits_analysis": 1507.6886523240246,
+  "bytes_including_fit_engineering": 97539682,
+  "budget_passed": true,
+  "scope": "actual randomized full H10 controller windows on held initial groups; execute2/reobserve five times; fixed catalogue physics vs local outcome scoring and controls; not individual regret or learned-policy/final stable grasp utility",
+  "claim": "C3 OPEN"
+}

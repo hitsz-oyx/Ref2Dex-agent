@@ -1,0 +1,98 @@
+{
+  "run_status": "COMPLETED",
+  "diagnosis": {
+    "all": {
+      "two_step_prefixes": 4105,
+      "actual_program_counts": [
+        0,
+        244,
+        3,
+        0,
+        2618,
+        0,
+        0,
+        1240
+      ],
+      "constant_velocity_height_rmse_mm": 10.74755573272705,
+      "persist_joint_brier": 0.011571254581212997,
+      "models": {
+        "catalog_cm": {
+          "height_rmse_mm": 8.73345947265625,
+          "clearance_mae_mm": 5.21858549118042,
+          "joint_brier": 0.02040291018784046
+        },
+        "catalog_shuffled": {
+          "height_rmse_mm": 9.440381050109863,
+          "clearance_mae_mm": 6.000625133514404,
+          "joint_brier": 0.021197445690631866
+        }
+      }
+    },
+    "in_fit_domain": {
+      "two_step_prefixes": 3660,
+      "actual_program_counts": [
+        0,
+        244,
+        3,
+        0,
+        2277,
+        0,
+        0,
+        1136
+      ],
+      "constant_velocity_height_rmse_mm": 9.36622142791748,
+      "persist_joint_brier": 0.010109289549291134,
+      "models": {
+        "catalog_cm": {
+          "height_rmse_mm": 6.716377258300781,
+          "clearance_mae_mm": 4.692231178283691,
+          "joint_brier": 0.014571144245564938
+        },
+        "catalog_shuffled": {
+          "height_rmse_mm": 7.614479064941406,
+          "clearance_mae_mm": 5.49537992477417,
+          "joint_brier": 0.014838862232863903
+        }
+      }
+    },
+    "out_of_domain": {
+      "two_step_prefixes": 445,
+      "actual_program_counts": [
+        0,
+        0,
+        0,
+        0,
+        341,
+        0,
+        0,
+        104
+      ],
+      "constant_velocity_height_rmse_mm": 18.547893524169922,
+      "persist_joint_brier": 0.023595506325364113,
+      "models": {
+        "catalog_cm": {
+          "height_rmse_mm": 18.23691749572754,
+          "clearance_mae_mm": 9.54770278930664,
+          "joint_brier": 0.06836755573749542
+        },
+        "catalog_shuffled": {
+          "height_rmse_mm": 18.580711364746094,
+          "clearance_mae_mm": 10.15612506866455,
+          "joint_brier": 0.07349501550197601
+        }
+      }
+    }
+  },
+  "checkpoint_sha256": "6b51f56459ee16564105cb4c630b70a553701f9cbb737cfe1829a415416644f6",
+  "gpu": {
+    "index": 0,
+    "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7475\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790882274.1127357
+  },
+  "elapsed_seconds": 3.9124293187633157,
+  "original_gate": "UNPROMISING_PRESERVED",
+  "cumulative_slot2_seconds": 1511.601081642788,
+  "scope": "posthoc decision diagnosis of factual first2 prefixes only; no full10 forecast validation under replanning, no counterfactual oracle, no threshold/model adjustment or gate rescue"
+}

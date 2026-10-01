@@ -1,0 +1,17 @@
+{
+  "status": "COMPLETED",
+  "all12phases_completed": true,
+  "all_own_native_pids_exited": true,
+  "input_hashes_unchanged": true,
+  "record_audit": "P-20261002-catalog-closed-loop-utility-record-audit.json",
+  "original_utility_gate": "UNPROMISING",
+  "real_actuation_gate_passed": true,
+  "slot2_budget_closed": "2/2",
+  "cumulative_seconds": 1511.601081642788,
+  "scoped_bytes": 97539682,
+  "posthoc_diagnostic_source_sha256": "7818e7d29a72828dd134c7893dd425acbc0c8b6130395cdade6389b9b5a98c38",
+  "checkpoint_sha256": "6b51f56459ee16564105cb4c630b70a553701f9cbb737cfe1829a415416644f6",
+  "verification": "VERIFY_BASE=6a13a62 python3 tools/verify.py --changed: PASS",
+  "gpu_snapshot": "0, 2 MiB\n1, 2 MiB\n2, 7475 MiB\n3, 8011 MiB\n4, 2 MiB\n5, 2 MiB\n6, 2 MiB\n7, 2 MiB\n",
+  "scope": "local control chain tested; positive versus base/shuffled, original all-four gate failed; no RL or final stable-grasp claim"
+}
