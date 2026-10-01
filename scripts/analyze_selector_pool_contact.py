@@ -74,6 +74,13 @@ def run(args):
         contrasts[name]={k:report(weight*labels[k]) for k in ['supported_change_mm','joint_contact','release']}
         contrasts[name]['initially_lifted_release']=report(weight*labels['release'],labels['initially_lifted'])
         contrasts[name]['support']=contrast_support(matches,commands,episodes,index)
+        different=~(commands[:,0]==commands[:,index]).all(-1)
+        contrasts[name]['release_observed_support']={}
+        for arm_name,arm_index in [('cm',0),('control',index)]:
+            mask=different&matches[:,arm_index]
+            lifted=mask&labels['initially_lifted']
+            contrasts[name]['release_observed_support'][arm_name]=dict(windows=int(mask.sum()),events=int(labels['release'][mask].sum()),
+                initially_lifted_windows=int(lifted.sum()),initially_lifted_events=int(labels['release'][lifted].sum()))
     active=~(commands[:,0]==commands[:,3]).all(-1)
     executed=~(chosen==commands[:,3]).all(-1)
     native_delta=data['candidate_pd_targets'][rows,pool[:,0]]-data['candidate_pd_targets'][:,4]
@@ -98,7 +105,7 @@ def run(args):
                     finger_l2_median_rad=float(native_delta[active,6:].norm(dim=-1).median()) if active.any() else None),
                 replanned_episodes=sum(episodes.count(e)>1 for e in set(episodes)),latency_ms=dict(median=float(np.median(latency)),p90=float(np.quantile(latency,.9)),max=max(latency)),
                 policy_values=policy_values,contrasts=contrasts,checkpoint_sha256=records[0]['ranker_sha256'],record_sha256=hashes,
-                scope='prospective mixed-history local randomized common-physical-action IPW; descriptive normal cluster90 intervals, no pure-policy/stable-grasp claim; state_only six slots retain expert identity',
+                scope='prospective mixed-history local randomized common-physical-action IPW; descriptive normal cluster90 intervals, zero observed release is not zero risk; no pure-policy/stable-grasp claim; state_only six slots retain expert identity',
                 inputs_unchanged=all(sha(Path(k))==v for k,v in manifest['input_sha256'].items()),
                 elapsed_seconds_including_setup=manifest['cumulative_seconds'],output_bytes_including_setup=manifest['output_bytes'])
     if not output['inputs_unchanged']:raise ValueError('collection source/input drift')
