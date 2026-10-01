@@ -46,7 +46,7 @@ def make_player(original,args,torch):
                             assignment=assignment,propensity=propensity,motion=motion),args.run_dir/'initial.pt')
             asset=ROOT/'third_party/DExplore/dexplore/data/assets'
             bridge=DExploreCmv2GeometryBridge(hand_urdf=asset/'inspire_hand_new/inspire_hand_right.urdf',
-                object_urdf=asset/'mjcf/airplane.urdf',device=self.device,seed=42)
+                object_urdf=asset/'mjcf/airplane.urdf',device=task._dof_state.device,seed=42)
             restore_rng(initial_rng)
             tracker=HoldTracker(768,self.device);tracker.reset(ids,task._target_states[:,2])
             trigger=torch.full((768,),-1,dtype=torch.long,device=self.device)
