@@ -1414,10 +1414,11 @@
     "elapsed_seconds": 206.07838971866295
   },
   "initial_policy_fingerprints": [
-    null,
-    null
+    "64e7593accccd553170abdd346a66b67f633a130ab6148bc0396f13ea93538bb",
+    "64e7593accccd553170abdd346a66b67f633a130ab6148bc0396f13ea93538bb"
   ],
   "inputs_unchanged": true,
   "native_pids_exited": true,
-  "neural_actor_training_boundary": "new categorical policy/MC head only; Cm/expert parameters frozen"
+  "neural_actor_training_boundary": "new categorical policy/MC head only; Cm/expert parameters frozen",
+  "initial_weights_equal": true
 }

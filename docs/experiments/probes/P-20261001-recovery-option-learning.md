@@ -1,6 +1,6 @@
 # P-20261001-recovery-option-learning
 
-HF11, budget1/1; engineering setup in progress, scientific slot not launched.
+HF11, scientific budget1/1 running after terminal engineering pass.
 [Frozen design](../../decisions/D-20261001-recovery-option-learning.md).
 
 Question: can the physical recovery signal become a trainable actual option
