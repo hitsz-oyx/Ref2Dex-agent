@@ -1,0 +1,253 @@
+{
+  "experiment_id": "P-20261002-native-pd-direct-control",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 903,
+  "episodes": 175,
+  "initial_groups": 28,
+  "support_adequate": true,
+  "physical_change_gate": true,
+  "actual_cm_changes": {
+    "base": {
+      "windows": 129,
+      "episodes": 85,
+      "initial_groups": 19,
+      "frames": 815,
+      "window_fraction": 0.7206703910614525
+    },
+    "fixed": {
+      "windows": 177,
+      "episodes": 101,
+      "initial_groups": 24,
+      "frames": 1316,
+      "window_fraction": 0.9888268156424581
+    }
+  },
+  "contrasts": {
+    "state_policy": {
+      "score_uplift_mm": 28.28441619873047,
+      "initial_group90": [
+        16.220891691587205,
+        40.88894645566923
+      ],
+      "episode90": [
+        17.667729240622226,
+        39.26194181941994
+      ],
+      "geometric_loss_difference": -0.027685493230819702,
+      "joint_force_difference": -0.02214839495718479,
+      "gate": {
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": true
+      }
+    },
+    "shuffled": {
+      "score_uplift_mm": 37.217655181884766,
+      "initial_group90": [
+        26.006132524720034,
+        49.82684920882253
+      ],
+      "episode90": [
+        25.745925713704597,
+        48.757206437746184
+      ],
+      "geometric_loss_difference": -0.12181616574525833,
+      "joint_force_difference": -0.055370986461639404,
+      "gate": {
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": false,
+        "passed": false
+      }
+    },
+    "always_base": {
+      "score_uplift_mm": 41.08850860595703,
+      "initial_group90": [
+        22.7767509868488,
+        59.972423817753366
+      ],
+      "episode90": [
+        27.342445830994464,
+        54.1721856311604
+      ],
+      "geometric_loss_difference": -0.11627907305955887,
+      "joint_force_difference": -0.06644517928361893,
+      "gate": {
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": false,
+        "passed": false
+      }
+    },
+    "always_fixed": {
+      "score_uplift_mm": -1.671048879623413,
+      "initial_group90": [
+        -17.801105879501833,
+        16.61943309576079
+      ],
+      "episode90": [
+        -14.724284181993076,
+        10.204590722576325
+      ],
+      "geometric_loss_difference": 0.027685493230819702,
+      "joint_force_difference": 0.07198227941989899,
+      "gate": {
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": false,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    }
+  },
+  "policies": {
+    "cm": {
+      "support": {
+        "matches": 179,
+        "episodes": 101,
+        "initial_groups": 24
+      },
+      "ipw_score_mm": 31.788421630859375,
+      "observed_score_mm": 32.072566986083984,
+      "observed_loss_rate": 0.1340782122905028,
+      "observed_joint_last3_rate": 0.9497206703910615,
+      "observed_retained_rate": 0.8770949720670391,
+      "program_frame_counts": [
+        0,
+        299,
+        39,
+        2,
+        975,
+        0,
+        1,
+        474
+      ],
+      "nonbase_frames": 815,
+      "physical_changed_base_frames": 815,
+      "physical_changed_fixed_frames": 1316
+    },
+    "state_policy": {
+      "support": {
+        "matches": 181,
+        "episodes": 106,
+        "initial_groups": 22
+      },
+      "ipw_score_mm": 3.5040090084075928,
+      "observed_score_mm": 3.496265411376953,
+      "observed_loss_rate": 0.16022099447513813,
+      "observed_joint_last3_rate": 0.9613259668508287,
+      "observed_retained_rate": 0.856353591160221,
+      "program_frame_counts": [
+        6,
+        53,
+        17,
+        6,
+        1560,
+        0,
+        62,
+        106
+      ],
+      "nonbase_frames": 250,
+      "physical_changed_base_frames": 250,
+      "physical_changed_fixed_frames": 1704
+    },
+    "shuffled": {
+      "support": {
+        "matches": 188,
+        "episodes": 113,
+        "initial_groups": 27
+      },
+      "ipw_score_mm": -5.429229736328125,
+      "observed_score_mm": -5.2155256271362305,
+      "observed_loss_rate": 0.24468085106382978,
+      "observed_joint_last3_rate": 0.9574468085106383,
+      "observed_retained_rate": 0.7819148936170213,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        1880,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 1880
+    },
+    "always_base": {
+      "support": {
+        "matches": 191,
+        "episodes": 113,
+        "initial_groups": 26
+      },
+      "ipw_score_mm": -9.300082206726074,
+      "observed_score_mm": -8.79369068145752,
+      "observed_loss_rate": 0.2356020942408377,
+      "observed_joint_last3_rate": 0.9528795811518325,
+      "observed_retained_rate": 0.7905759162303665,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        1910,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 1910
+    },
+    "always_fixed": {
+      "support": {
+        "matches": 164,
+        "episodes": 101,
+        "initial_groups": 21
+      },
+      "ipw_score_mm": 33.45947265625,
+      "observed_score_mm": 36.84622573852539,
+      "observed_loss_rate": 0.11585365853658537,
+      "observed_joint_last3_rate": 0.9573170731707317,
+      "observed_retained_rate": 0.8902439024390244,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1640
+      ],
+      "nonbase_frames": 1640,
+      "physical_changed_base_frames": 1640,
+      "physical_changed_fixed_frames": 0
+    }
+  },
+  "first_episode_frames": 620661,
+  "sim_frames": 743136,
+  "same_actual_state_shadow_agreement": {
+    "state_policy": 0.607862651348114,
+    "shuffled": 0.6676633358001709,
+    "always_base": 0.6676633358001709,
+    "always_fixed": 0.12724252045154572
+  },
+  "cm_ood_decisions": 541,
+  "cumulative_seconds_including_fit_engineering_audits_analysis": 1513.0628521428443,
+  "bytes_including_fit_engineering": 113678204,
+  "budget_passed": true,
+  "scope": "actual randomized full H10 controller windows on held initial groups; motor-conditioned execute1/reobserve ten times; fixed catalogue physics vs local outcome scoring and controls; not individual regret or learned-policy/final stable grasp utility",
+  "claim": "C3 OPEN"
+}

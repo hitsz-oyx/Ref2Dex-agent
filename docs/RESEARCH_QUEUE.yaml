@@ -75,13 +75,13 @@ diagnostic_hypotheses:
   HF16:
     claim: C3
     name: native_pd_force_consequence
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-native-pd-consequence
     probe_budget: 2
     probes_used: 2
     owner: current_session
-    card: docs/experiments/probes/P-20261002-native-pd-direct-control.md
-    transition: "Slot1PROMISING.39170actualsteps; heldclear6706/138ep/27groups, CmheightRMSE4.149vsstate4.824/shuffled4.850mm, CLRMAE2.271vs2.855/2.864; jointBrier.002318beatspersist.002982. prestate/rawforce/nativePD/target timing and fit-only normalizer independentlyverified.9nets1000updates61.485sec. Slot2 added3state-outcome controls1000updates20.692sec, physicalweightsreusedexactly; cal1869clear with35/30negativeevents, marginscm3.614/state4.572/shuf4.326mm; cachedscore2.86e-6mmerror andactuatedcommandinvariancepassed. Frozen execute1/reobserve10times peractualH10owner protocol, freshheldinitialgroupfivepolicyutility next. C3OPEN, no PPO or oldgate/model tuning."
+    card: docs/experiments/probes/P-20261002-native-pd-direct-control-result.md
+    transition: "Budget2/2CLOSED. One-step informationPROMISING preserved. Actual903H10windows175episodes28groups, Cm129/179changedbase and177changedfixed. IPWvsstate-policy+28.284mmgroup90[16.221,40.889], vsshuffled+37.218/vsbase+41.089 but originalcontactproxygatesfail; vsfixed7-1.671CIcross0/geometricrisk+2.769pp. Originalall-four gateUNPROMISING.27090NNdecisions/nativePD/rawforce/geometry/labels replaypass; ownPIDs exited/GPUreleased,25.30min113.68MBincludingfits/failedengineering/audits. No oldgate tuning/PPO. Nextstrong-control-centered executable correction opportunities before physical consequence learning. C3OPEN."
   HF15:
     claim: C3
     name: translation_feedback_orientation_stabilization

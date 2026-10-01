@@ -1,0 +1,15 @@
+{
+  "status": "COMPLETED",
+  "all12phases_completed": true,
+  "all_own_native_pids_exited": true,
+  "input_hashes_unchanged": true,
+  "record_audit": "P-20261002-native-pd-direct-control-record-audit.json",
+  "original_utility_gate": "UNPROMISING",
+  "real_actuation_gate_passed": true,
+  "slot2_budget_closed": "2/2",
+  "cumulative_seconds": 1518.0628521428443,
+  "scoped_bytes": 113678204,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "scope": "One-step information PROMISING; H10 local control all-four gate UNPROMISING. Not formal refutation of Cm, not RL/final stable grasp utility.",
+  "gpu_snapshot": "0, 2 MiB\n1, 2 MiB\n2, 7699 MiB\n3, 8011 MiB\n4, 2 MiB\n5, 2 MiB\n6, 2 MiB\n7, 2 MiB\n"
+}

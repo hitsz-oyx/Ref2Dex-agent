@@ -1,0 +1,244 @@
+{
+  "run_status": "COMPLETED",
+  "phases": [
+    {
+      "seed": 511,
+      "rows": 103,
+      "policies": [
+        12,
+        17,
+        29,
+        24,
+        21
+      ],
+      "model_decisions_replayed": 3090,
+      "prediction_max_error": 7.62939453125e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 39,
+      "physical_changed_fixed_windows": 82,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 512,
+      "rows": 36,
+      "policies": [
+        6,
+        10,
+        3,
+        10,
+        7
+      ],
+      "model_decisions_replayed": 1080,
+      "prediction_max_error": 1.52587890625e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 16,
+      "physical_changed_fixed_windows": 29,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 513,
+      "rows": 88,
+      "policies": [
+        19,
+        18,
+        18,
+        19,
+        14
+      ],
+      "model_decisions_replayed": 2640,
+      "prediction_max_error": 1.1444091796875e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 33,
+      "physical_changed_fixed_windows": 74,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 514,
+      "rows": 84,
+      "policies": [
+        17,
+        22,
+        21,
+        12,
+        12
+      ],
+      "model_decisions_replayed": 2520,
+      "prediction_max_error": 1.1444091796875e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 33,
+      "physical_changed_fixed_windows": 72,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 515,
+      "rows": 73,
+      "policies": [
+        10,
+        16,
+        18,
+        14,
+        15
+      ],
+      "model_decisions_replayed": 2190,
+      "prediction_max_error": 9.059906005859375e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 31,
+      "physical_changed_fixed_windows": 58,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 516,
+      "rows": 29,
+      "policies": [
+        9,
+        8,
+        3,
+        7,
+        2
+      ],
+      "model_decisions_replayed": 870,
+      "prediction_max_error": 7.62939453125e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 12,
+      "physical_changed_fixed_windows": 27,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 517,
+      "rows": 95,
+      "policies": [
+        21,
+        17,
+        20,
+        23,
+        14
+      ],
+      "model_decisions_replayed": 2850,
+      "prediction_max_error": 7.929280400276184e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 30,
+      "physical_changed_fixed_windows": 81,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 518,
+      "rows": 73,
+      "policies": [
+        20,
+        14,
+        10,
+        19,
+        10
+      ],
+      "model_decisions_replayed": 2190,
+      "prediction_max_error": 1.1444091796875e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 32,
+      "physical_changed_fixed_windows": 63,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 519,
+      "rows": 61,
+      "policies": [
+        11,
+        14,
+        10,
+        11,
+        15
+      ],
+      "model_decisions_replayed": 1830,
+      "prediction_max_error": 7.62939453125e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 34,
+      "physical_changed_fixed_windows": 45,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 520,
+      "rows": 78,
+      "policies": [
+        13,
+        13,
+        22,
+        13,
+        17
+      ],
+      "model_decisions_replayed": 2340,
+      "prediction_max_error": 1.1444091796875e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 32,
+      "physical_changed_fixed_windows": 61,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 521,
+      "rows": 116,
+      "policies": [
+        28,
+        21,
+        23,
+        24,
+        20
+      ],
+      "model_decisions_replayed": 3480,
+      "prediction_max_error": 1.1444091796875e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 52,
+      "physical_changed_fixed_windows": 95,
+      "all_contracts_passed": true
+    },
+    {
+      "seed": 522,
+      "rows": 67,
+      "policies": [
+        13,
+        11,
+        11,
+        15,
+        17
+      ],
+      "model_decisions_replayed": 2010,
+      "prediction_max_error": 1.52587890625e-05,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 31,
+      "physical_changed_fixed_windows": 50,
+      "all_contracts_passed": true
+    }
+  ],
+  "input_hashes_unchanged": true,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "gpu": {
+    "index": 0,
+    "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7699\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790885731.4856334
+  },
+  "elapsed_seconds": 5.2688570828177035,
+  "scope": "replay of frozen selector/real observed histories/native PD/raw forces/source mesh/known controller propensities; no true counterfactual paths or final grasp claim"
+}
