@@ -8,17 +8,24 @@ Updated: 2026-10-01
 
 ## Current decision
 
-当前用户 Goal 明确停止 V 训练、PPO 与新增 Cm 接法；HF08 checkpoint、数据和
-旧结果全部冻结。当前会话直接修复 paired evaluator，先仅重复 plain-off，并检验
-是否能分辨5pp；通过后才允许一次已有 checkpoint 的三臂 actor-only 推理评价。
-重复性或三臂 gate 失败则关闭当前实现，Cm policy utility 仍未证明，self-trained
-baseline 保持 PARTIAL。不得混入 baseline epoch/curriculum 训练。
+当前用户 Goal 已完成：paired evaluator 的完整冷初始状态、RNN、随机数、动作
+轨迹和成功后掉落合同通过审计；真实闭环 plain-off 重复性未通过预设门槛。
+两次成功为34/384和35/384，63个成功标签、61个掉落标签变化；平均成功率差
+仅0.26pp，不能掩盖逐 episode 的不稳定。Wilson95%标签分歧上界为20.44%/19.88%，
+超过5%门槛；这不是把标签分歧率当作净成功率噪声或正式统计功效结论。
+HD02 已关闭，当前 HF08 实现已停止（KILLED）；条件三臂推理阶段未启动。
+原 checkpoint、数据和结果均保留且 hash 未变，无 V/PPO 训练或新增 Cm 接法。
+Cm policy utility 仍未证明、C3 OPEN，self-trained baseline PARTIAL。单 GPU4
+累计22.02分钟/4.50GiB；自有进程结束，GPU释放。16项针对测试通过。
+不得继续本实现的调参、训练或策略实验；Objective A 后续须独立 baseline/curriculum
+路线，不能混入 Cm 诊断。
 见 [评价器分辨率决策](decisions/D-20261001-paired-evaluator-resolution.md) 和
 [HD02 固定实验卡](experiments/probes/P-20261001-paired-evaluator-resolution.md)。
 
 HF08 physical-value Probe 已完成：r7 的 48/48 native 评价完成，终点成功率为
 plain_off 41/384、direct_q 40/384、cm_value 33/384；原生 gate 为
-`UNPROMISING`。HF08 family 为 `PAUSED`，Probe 预算 1/1 已用；不升级
+`UNPROMISING`。HF08 family 此前为 `PAUSED`，现因 HD02 评价分辨率门失败而
+停止当前实现（`KILLED`），Probe 预算 1/1 已用；不升级
 Validation，也不继续这条实现的局部调参。North-star scoreboard 不变，Cm policy
 utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性审计边界约束。
 
@@ -44,7 +51,7 @@ DExplore 原路径已有外置观测归一化，旧“漏掉归一化”归因�
 holdout 降低18.1%/45.8%；s286 未过预设20%门，联合 gate 为 `UNPROMISING`。
 网络能够进一步拟合当前事实目标，但不能据此认定原在线训练不足或已收敛；留出集
 完整 realized MC 误差一升一降，主成功覆盖为 fit6/0、holdout0/1，稳定抓取价值的
-泛化仍未解决。HD01 预算1/1关闭，不增加更新/换 seed 追门槛，HF08仍 PAUSED。
+泛化仍未解决。HD01 预算1/1关闭，不增加更新/换 seed 追门槛，当时 HF08 为 PAUSED；当前处置见 HD02 关闭结果。
 结果见 [GPU V 拟合卡](experiments/probes/P-20261001-current-policy-v-fit.md)。
 GPU 已释放，源数据与 checkpoint 未修改；GPU 适合本次重复 GRU 训练，历史
 CPU-only 阶段限制不构成当前 GPU 禁止。North-star scoreboard 不变。
@@ -194,7 +201,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 | `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
 | `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
 | `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
-| `HF08` physical-value | `C3` | `PAUSED`（r7 native gate `UNPROMISING`） | 1/1，预算已用 | `agent/cm-physical-value` |
+| `HF08` physical-value | `C3` | `KILLED`（HD02 闭环重复性门失败，非 Cm 核心假设反证） | 1/1，预算已用 | `agent/cm-physical-value` |
 
 新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
@@ -202,16 +209,14 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 ## Next step
 
-冻结当前策略完整轨迹采集、factual V 诊断及用户授权的 GPU V-only 拟合已完成。
-同一 V 可明显降低 fit GAE 误差，holdout 改进尚未通过预设联合门；这不是无法拟合
-当前目标的证据，也不支持继续机械增加更新。下一项决策应优先解决持续抓取相关的
-目标/成功覆盖及可迁移决策信息，记录独立机制与预算后再投入 PPO/utility；不重开
-HF08 局部调参。不能以总体 bias 接近零认定校准，或以单条 realized MC 证明目标偏差。
+本次任务到此关闭：不再运行当前 HF08 策略实验、V/PPO 训练或新的 Cm 接法。
+完整 paired evaluator 证据保留在
+[HD02 结果索引](experiments/probes/P-20261001-paired-evaluator-resolution-results.json)。
+self-trained baseline 继续 PARTIAL；若后续补 Objective A，应另开明确预算、目标和
+停止条件的 baseline/curriculum 路线，不盲目堆 epoch，不混入 Cm 诊断。
+HF08/HD02 均已用满1/1，当前实现关闭不意味着 Cm 核心假设被否定。
 
-HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；诊断
-不重置该 slot。任何未来科学 Probe 都须以独立机制、预算和预设判据重新决策，
-期限仍为 2026-10-03 23:59（Asia/Shanghai）。本次直接接管是当前任务的用户授权，
-不改写既有科学证据或路线标签。
+以下保留 HD02 前的历史路线背景；当前授权和处置以上述 HD02 终止结果为准。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一

@@ -20,6 +20,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261001-paired-evaluator-resolution
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
+    evidence: docs/experiments/probes/P-20261001-paired-evaluator-resolution-results.json
+    outcome_boundary: "Full state/RNG/action/drop audit passed; actual closed-loop off 34/384 vs35/384,63 success and61 drop labels changed; noise gate failed, gated policy matrix skipped. Current HF08 implementation closed; C3 OPEN/C1 PARTIAL. No training."
   - id: P-20261001-current-policy-v-fit
     owner: current_session
     status: COMPLETED
@@ -38,13 +45,13 @@ completed_diagnostics:
 diagnostic_hypotheses:
   HD02:
     name: paired_evaluator_five_pp_resolution
-    status: ACTIVE
+    status: CLOSED
     probe_budget: 1
     probes_used: 1
     owner: current_session
     authorization: "active user goal: state/RNG/action paired evaluator; repeat off before gated existing three-arm inference; no training"
     card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
-    transition: "Freeze HF08 and all V/PPO/new Cm work; repair cold-state pairing and repeat plain-off; failure closes current route without further policy evaluation."
+    transition: "Completed actual closed-loop off repeats with verified full cold state/RNG;63/384 success and61/384 drop label disagreements fail fixed noise gate. Close HD02 and current HF08 implementation; no three-arm policy evaluation, V/PPO or new Cm mechanism. Original inputs preserved; GPU released."
   HD01:
     name: current_policy_frozen_gae_value_adaptation
     status: CLOSED
@@ -98,11 +105,12 @@ hypotheses:
   HF08:
     claim: C3
     name: short_physical_transition_long_term_value
-    status: PAUSED
+    status: KILLED
     branch: agent/cm-physical-value
     probe_budget: 1
     probes_used: 1
-    transition: "r7 execution completed all 48 evaluations. Native gate UNPROMISING: Cm 33/384 vs PPO 41/384 and direct-Q 40/384. No Validation or local tuning. Audit identical-source e0 repeatability before final causal interpretation; core C3 stays OPEN."
+    transition: "HD02 actual closed-loop paired repeat noise gate failed after full state/RNG/action/drop audit. Close current HF08 implementation at evaluator-resolution boundary; matrix skipped, no training or new Cm mechanisms. This is not core Cm refutation; C3 remains OPEN/C1 PARTIAL; budgets stay1/1."
+    historical_r7_transition: "r7 execution completed all 48 evaluations. Native gate UNPROMISING: Cm 33/384 vs PPO 41/384 and direct-Q 40/384. No Validation or local tuning. Audit identical-source e0 repeatability before final causal interpretation; core C3 stays OPEN."
 
   HF07:
     claim: C3

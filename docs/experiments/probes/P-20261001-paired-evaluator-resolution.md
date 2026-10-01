@@ -105,3 +105,54 @@ after native completion, with compressed hash and decompressed byte hash
 verified before removing only the redundant new raw file. Original HF08 data,
 r3 reference snapshots/traces and checkpoint files remain unchanged. Full raw
 observation/action/physical/RNG/RNN payload is retained, not subsampled.
+
+## Terminal r4 outcome — actual closed-loop gate failed
+
+r4 COMPLETED four actual native plain-off repeats, without forced actions.
+Each reused the r3 first-run full cold snapshot and per-tick RNG schedule.
+The independent completion audit verified all61 task tensors, actor physical
+properties, reset metadata, stateless RNN representation, first observations
+and first actions. Every applied action equals that run's native proposed
+action; later actions evolve with its own observations. All384 pairs completed
+their first episode and retained post-success followup and drop labels.
+
+| Training seed | Evaluation seed | First/repeat successes | Changed success labels | Changed drop labels |
+| --- | --- | --- | --- | --- |
+| 286 | 288 | 12/16 of96 | 26 | 25 |
+| 286 | 289 | 14/12 of96 | 22 | 21 |
+| 287 | 288 | 5/3 of96 | 8 | 8 |
+| 287 | 289 | 3/4 of96 | 7 | 7 |
+| Total | | 34/35 of384 | 63 | 61 |
+
+The aggregate success-rate difference is only0.2604pp, but63/384 success
+labels change (16.406%), with Wilson95% upper20.440%; drop labels change61/384
+(15.885%), upper19.877%. Both exceed the predeclared5% discordance bound.
+One fixed panel's net success-rate variation is4.167pp. Changed-label fractions
+are not net success-rate differences, and aggregate cancellation does not pass
+the paired gate. This screen does not establish statistical power or a formal
+negative Cm effect. Identical exposed initial state/RNG does not guarantee
+identical subsequent native closed-loop trajectories; the cause of remaining
+variation is not isolated here.
+
+**UNPROMISING / CLOSE_CURRENT_ROUTE_EVALUATOR_RESOLUTION**. The evaluator's
+state/trace contracts pass, while actual closed-loop repeatability fails.
+The conditional direct-Q/Cm-value matrix was skipped; no V/PPO/Cm training,
+new Cm mechanism, seed search, threshold change or baseline continuation ran.
+Close the current HF08 implementation, keep Cm utility UNPROVEN/C3 OPEN and
+self-trained baseline PARTIAL. HF08 and HD02 budgets remain1/1 consumed.
+
+The cumulative native audit, including failed engineering attempts r1/r2,
+took1321.37seconds (22.02minutes) on one admitted GPU4, with4.50GiB retained
+artifacts, below60minutes/8GiB. All original checkpoint/data/config/motion and
+frozen evaluator-source hashes remained unchanged. Owned native processes
+exited and GPU4 was released. Lossless r4 archives were verified against raw
+byte hashes; original r3 snapshots/traces remain available. CPU was used only
+for file/hash/trace auditing and isolated engineering tests, not native model
+evaluation. The16 focused state/RNG/trace/drop/archive tests passed.
+
+Tracked evidence: [audited result index](P-20261001-paired-evaluator-resolution-results.json).
+Native artifacts are under
+`src/task/CmResidual/research/physical_value/output/P-20261001-paired-evaluator-resolution-r{1,2,3,4}`;
+r4 contains `independent_completion_audit.json`, runtime manifests and the
+four complete compressed traces. Native r3 code was1d063d1; actual r4 code
+e9b72d3. The result index records input/output hashes and the completion checklist.
