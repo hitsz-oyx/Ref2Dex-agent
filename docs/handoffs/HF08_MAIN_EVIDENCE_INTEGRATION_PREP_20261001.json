@@ -1,0 +1,173 @@
+{
+  "task_id": "T-20261001-hf08-main-evidence-integration-prep",
+  "status": "COMPLETED",
+  "decision": "BYTE_EXACT_ROOT_IMPORT",
+  "branch": "agent/infra",
+  "commit": null,
+  "base_main": {
+    "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+    "commit": "3b775ebc84820e07a749fcb22e61f546c7df2725",
+    "state_path": "docs/STATE.md",
+    "state_sha256": "5f4fc88dfe1090f7fc1f21c67d39548bce876e2e31d8b46a464de2fa84408cce",
+    "state_mode": "0664",
+    "state_size": 4179
+  },
+  "candidate": {
+    "path": "docs/handoffs/HF08_MAIN_STATE_CANDIDATE_20261001.md",
+    "sha256": "25b686b7cd12862c1f4d4ca38c922ca7bdbbd98cc17f3fa822a50cea56cc7cb6",
+    "mode": "0664",
+    "size": 4534,
+    "diff_from_main": {
+      "additions": 8,
+      "removals": 3,
+      "unified_diff_lines": 24
+    }
+  },
+  "verified_scientific_changes": [
+    "HF08 remains UNPROMISING/PAUSED with Probe budget 1/1 and Cm policy utility OPEN.",
+    "R2 accepted facts: source primary success 15/1920, holdout success 1/384, both e420 V checkpoints had 7680 optimizer updates.",
+    "R2 interpretation remains UNCLEAR for V training sufficiency/current-policy calibration; no retraining or convergence claim.",
+    "Initial complete-state restoration audit is no longer the current blocker; current status is CPU-only engineering preparation for native Gaussian frame-0 frozen-policy complete-episode diagnostics, with no new GPU/training and no bias claim from one realized MC error."
+  ],
+  "preserved_main_content": [
+    "North-star table",
+    "research history and links",
+    "workflow/identity/runtime/config/AGENTS text",
+    "main STATE layout"
+  ],
+  "evidence_manifest": [
+    {
+      "kind": "R1 audit archive",
+      "path": "scripts/audit_hf08_value_targets.py",
+      "sha256": "af7bc56c93f167545a1cfc9ee380b35ed5533e18cded72d020e32400bd03ee3e",
+      "mode": "0664",
+      "size": 21211,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "R1 audit archive",
+      "path": "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.md",
+      "sha256": "e4fcc7cdb7c2ac6567ddcd81e334d368bc23c1791d137f744449f0d7d919480c",
+      "mode": "0664",
+      "size": 6371,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "R1 audit archive",
+      "path": "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json",
+      "sha256": "6404898c087e91cb2a97b022ac020506ed7c956a492e274a69044c5a4f49b009",
+      "mode": "0664",
+      "size": 33722,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "R2 audit evidence",
+      "path": "scripts/audit_hf08_value_targets_r2.py",
+      "sha256": "c5b6c1ac5285a711f73a26ddbbdf50c29ecce5c64f2329fb9039ee8a30f59771",
+      "mode": "0664",
+      "size": 28680,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "R2 audit evidence",
+      "path": "docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md",
+      "sha256": "0f643511ca37f815fe8fed3ac74268f58d24f20c9beb07ad2c6dbd18793fca84",
+      "mode": "0664",
+      "size": 4975,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "R2 audit evidence",
+      "path": "docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.json",
+      "sha256": "e4fe36068eb3bbe2b8747ed32f96ddb6b96a0f1ba1aab676ef45d0d14d9b27a0",
+      "mode": "0664",
+      "size": 36796,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "root decision memo",
+      "path": "docs/decisions/D-20260930-hf08-evaluation-throughput.md",
+      "sha256": "9187b0b0c5ba1e4915e5698a936d5e10e73ba2f4d2d437044860d5c78c579ac0",
+      "mode": "0664",
+      "size": 1065,
+      "main_status": "EXISTS_MATCH",
+      "main_sha256": "9187b0b0c5ba1e4915e5698a936d5e10e73ba2f4d2d437044860d5c78c579ac0",
+      "main_mode": "0664",
+      "main_size": 1065,
+      "action": "do_not_overwrite_existing_main_target"
+    },
+    {
+      "kind": "root decision memo",
+      "path": "docs/decisions/D-20261001-after-hf08-value-audit.md",
+      "sha256": "8497633a8b3730dc534207648b8bc81b193222f54fd4f891c27b3e7b34903ea4",
+      "mode": "0664",
+      "size": 5368,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "prior handoff",
+      "path": "docs/handoffs/HF08_STATE_SYNC_20261001.md",
+      "sha256": "f3f5bb99c239f7bef2f733378dd6681f22991ee8c236175aad45c8bf2a01415a",
+      "mode": "0664",
+      "size": 2929,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "prior handoff",
+      "path": "docs/handoffs/HF08_AUDIT_STATE_LEDGER_SYNC_20261001.md",
+      "sha256": "72fe174e3eaa58249fef581a23058c1842be5335e37a318d2c535f3916b7a88b",
+      "mode": "0664",
+      "size": 3334,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    },
+    {
+      "kind": "prior handoff",
+      "path": "docs/handoffs/HF08_AUDIT_STATE_LEDGER_SYNC_20261001.json",
+      "sha256": "518cffa310a2d55c5b0714f0837f68df41c96dc3c7ff0cbb816133dcc0595eb7",
+      "mode": "0664",
+      "size": 4035,
+      "main_status": "ABSENT_READY_FOR_ROOT_IMPORT",
+      "action": "root_may_import_byte_exactly"
+    }
+  ],
+  "manifest_policy": {
+    "main_existing_targets_not_overwritten": true,
+    "needs_help_conflicts": [],
+    "copy_to_main": false,
+    "excluded": [
+      "root workflow-version STATE/QUEUE",
+      "skills directory",
+      "root-owned five commits",
+      "workflow/identity/runtime/config/AGENTS files"
+    ]
+  },
+  "resources": {
+    "gpu": 0,
+    "cpu_threads": 2,
+    "experiments": false,
+    "training": false,
+    "scripts_or_scientific_analysis": false,
+    "main_written": false,
+    "source_written": false,
+    "other_worktrees_written": false,
+    "max_wall_minutes": 10,
+    "max_output_gib": 0.1,
+    "processes_started": []
+  },
+  "verification": [
+    "main commit and STATE hash guard passed",
+    "candidate minimal diff is 8 additions/3 removals",
+    "evidence manifest has 11 entries and 0 NEEDS_HELP conflicts",
+    "candidate/JSON/MD format and trailing-whitespace checks passed"
+  ],
+  "recommended_next_action": "Root reviews the candidate and manifest, then mechanically maps the candidate bytes to main/docs/STATE.md and imports only manifest files with ABSENT_READY_FOR_ROOT_IMPORT status; do not merge this worker branch."
+}

@@ -1,0 +1,95 @@
+{
+  "task_id": "T-20261001-hf08-audit-state-ledger-sync",
+  "status": "COMPLETED",
+  "decision": "BYTE_EXACT_ROOT_IMPORT",
+  "branch": "agent/infra",
+  "head": "52e9480e4ce4d2b2fef72a4ed2892c37e260416c",
+  "source_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+  "source_head": "cc9f47863a6f869effba1d2e2e6fc3159d70dd7d",
+  "source_inputs": {
+    "docs/STATE.md": "beb9667c6900ac8b7bd646c8e6a3a20f02c2ac1161943833a6f398c96cec9435",
+    "docs/RESEARCH_QUEUE.yaml": "99fe825275e36061890805ced954faca9a193ed6daa6b9b205cf3bc814e0e8b6",
+    "docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md": "0f643511ca37f815fe8fed3ac74268f58d24f20c9beb07ad2c6dbd18793fca84",
+    "docs/decisions/D-20261001-after-hf08-value-audit.md": "8497633a8b3730dc534207648b8bc81b193222f54fd4f891c27b3e7b34903ea4"
+  },
+  "outputs": {
+    "docs/STATE.md": {
+      "sha256": "4b9b56e18ddc2eb5d816e744bf3d285c4866b31495dcaf5c03c0e6260d2bb441",
+      "mode": "0664",
+      "size": 18257
+    },
+    "docs/RESEARCH_QUEUE.yaml": {
+      "sha256": "f2c2bb91ba614a75ab454df6e067c37ff4fd78b0c8017829f1fa840d58ceaf45",
+      "mode": "0664",
+      "size": 5715
+    }
+  },
+  "diff_from_source": {
+    "docs/STATE.md": {
+      "additions": 21,
+      "removals": 10,
+      "unified_diff_lines": 46
+    },
+    "docs/RESEARCH_QUEUE.yaml": {
+      "additions": 35,
+      "removals": 10,
+      "unified_diff_lines": 58
+    }
+  },
+  "exact_changes": [
+    "STATE records accepted R2: HF08 remains UNPROMISING/PAUSED/1-of-1/C3 OPEN; primary success 15/1920 and holdout success 1/384; both e420 V checkpoints have 7680 optimizer updates; no retraining/convergence claim.",
+    "STATE records the two current CPU-only engineering tasks and removes the completed value-target audit from current next-step wording.",
+    "QUEUE removes closed legacy entries from pending_dispatches; records agent_rl and agent_cm in active_engineering_tasks without creating Probe slots.",
+    "QUEUE preserves calibration r1 COMPLETED, legacy distillation id CLOSED_HISTORICAL, and distillation-r2 FAILED/ENGINEERING_FAILURE with scientific conclusion NONE.",
+    "HF08 budget and hypothesis/claim statuses are unchanged; future Probe requires an independent root mechanism decision.",
+    "CONTROL RELOAD 232 corrected agent_cm diagnostic engineering budget to 20 CPU minutes; infra task ceiling remains 10 minutes."
+  ],
+  "facts": {
+    "hf08_native_gate": "UNPROMISING",
+    "hf08_family": "PAUSED",
+    "hf08_probe_budget": "1/1",
+    "c3_policy_utility": "OPEN",
+    "r2_conclusion": "UNCLEAR / TRAINING_SUFFICIENCY_OR_DISTRIBUTION_UNKNOWN",
+    "r2_primary_success": "15/1920",
+    "r2_holdout_success": "1/384",
+    "r2_online_v_optimizer_updates_per_e420": 7680,
+    "new_gpu_collection_or_training": false
+  },
+  "resources": {
+    "gpu": 0,
+    "cpu_threads": 2,
+    "experiments": false,
+    "training": false,
+    "isaac_gym": false,
+    "collector_started": false,
+    "new_transitions": false,
+    "daemon_started": false,
+    "source_written": false,
+    "main_written": false,
+    "other_worktrees_written": false,
+    "max_wall_minutes": 10,
+    "max_output_gib": 0.1,
+    "processes_started": []
+  },
+  "verification": [
+    "source hashes checked before edit; no source drift observed",
+    "RESEARCH_QUEUE.yaml parsed with PyYAML",
+    "STATE and queue fact assertions passed",
+    "git diff --check passed for allowed text outputs",
+    "no scientific analysis or broad tests run"
+  ],
+  "broker": {
+    "lease_seconds": 600,
+    "lease_token": "dtUH-mZgbn25En9Vp3yr5xWL",
+    "terminal_messages": [
+      "TASK_UPDATE",
+      "TASK_HANDOFF"
+    ]
+  },
+  "recommended_next_action": "Root reviews and byte-exact imports STATE, RESEARCH_QUEUE, and the two handoff files; keep HF08 slot closed and await the two CPU engineering task handoffs before any independent Probe decision.",
+  "control_reload": {
+    "message_id": 232,
+    "action": "RELOAD",
+    "effect": "agent_cm diagnostic engineering budget corrected to 20 CPU minutes; infra task ceiling remains 10 minutes"
+  }
+}
