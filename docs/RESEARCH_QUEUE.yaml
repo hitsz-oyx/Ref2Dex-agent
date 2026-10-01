@@ -1,21 +1,46 @@
 schema: ref2dex.research_queue.v1
-updated: 2026-09-30
+updated: 2026-10-01
 
 # 2026-09-30 bounded routes currently dispatched by root. Each task owns its
 # evidence and must return a Probe-bounded result before this queue is closed.
-pending_dispatches:
+pending_dispatches: []
+
+# CPU-only engineering preparation is tracked separately from Probe search slots.
+# These tasks do not collect transitions, train, or create a scientific claim.
+active_engineering_tasks:
+  - id: T-20261001-current-policy-value-collector-runtime
+    owner: agent_rl
+    kind: engineering_preparation
+    status: ACTIVE
+    resources: {cpu: 2, wall_minutes: 20, storage_gib: 0.1, gpu: 0}
+    purpose: "prepare current-policy complete-episode collector runtime and CPU contract"
+    outcome_boundary: "no simulator, collection, training, or new Probe"
+  - id: T-20261001-current-policy-value-diagnostic-contract
+    owner: agent_cm
+    kind: engineering_preparation
+    status: ACTIVE
+    resources: {cpu: 2, wall_minutes: 20, storage_gib: 0.1, gpu: 0}
+    purpose: "prepare MC and frozen PPO GAE(lambda) diagnostic contract"
+    outcome_boundary: "synthetic contract checks only; no scientific judgment"
+
+# Closed Broker dispatches remain as provenance and must not appear as pending work.
+historical_dispatches:
   - id: T-20260928-cm-calibration-repair-screen-r1
     family: HF06
-    purpose: "one fit-only Cm calibration repair screen"
-    resources: {cpu: 2, wall_minutes: 15, storage_gib: 1, gpu: 0}
-    outcome_boundary: "Probe only; no formal Cm claim"
-    stop_if: "local calibration gate fails; stop calibration tuning"
+    broker_status: COMPLETED
+    classification: ENGINEERING_CLOSED
+    scientific_claim: "none; no formal Cm claim"
   - id: T-20260930-six-expert-trajectory-distillation
     family: HB02
-    purpose: "independent six-expert trajectory distillation"
-    resources: {gpu: 1, wall_minutes: 60, storage_gib: 5}
-    outcome_boundary: "Probe only; no formal Cm claim"
-    dependency: "independent of Cm repair"
+    broker_status: COMPLETED
+    classification: LEGACY_CLOSED_HISTORICAL
+    note: "legacy dispatch id; terminal engineering NO_GO is not a scientific negative result"
+  - id: T-20260930-six-expert-trajectory-distillation-r2
+    family: HB02
+    broker_status: FAILED
+    classification: ENGINEERING_FAILURE
+    note: "preserve failed runtime/artifact provenance; scientific conclusion NONE; do not rerun this old task"
+
 campaign:
   name: cm_selective_causal_gate
   status: FROZEN

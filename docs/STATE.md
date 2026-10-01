@@ -16,8 +16,13 @@ utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性�
 
 用户已开启 Mission-level 持续 Goal，root 通过固定 Broker 向 worker 派发任务。
 当前交付期限仍为 2026-10-03 23:59（Asia/Shanghai）；资源边界见
-`CAMPAIGN.md`。当前下一步由 `agent_cm` 执行 CPU-only HF08 价值目标、V 训练充分性
-与分布适用性审计；结果尚未交付，不预告结论。
+`CAMPAIGN.md`。root 已验收 [HF08 R2 价值目标审计](handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md)：
+合同和标签 provenance 通过，主成功为 15/1920、holdout 成功为 1/384；两个 e420
+在线 V 均实际完成 7680 次 optimizer update。结论仍为
+`UNCLEAR / TRAINING_SUFFICIENCY_OR_DISTRIBUTION_UNKNOWN`，不能写成需要重训或已收敛。
+当前并行的是 CPU-only 工程准备：`T-20261001-current-policy-value-collector-runtime`
+（agent_rl）与 `T-20261001-current-policy-value-diagnostic-contract`（agent_cm）；均未启动
+新 GPU 采集或训练。
 
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
@@ -172,14 +177,16 @@ MLP 或整条 Cm 路线；相关历史边界和 Broker 交接继续保留。
 
 ## Next step
 
-root 的 Mission-level 持续 Goal 保持 active，并继续通过固定 Broker 监督 worker。当前
-唯一下一步是 `T-20261001-hf08-value-target-audit`：`agent_cm` 只读审计 HF08 的
-价值目标、V 训练充分性和分布适用性，使用 CPU，不新建科学 Probe 或训练。该审计
-结果尚未交付；在结果返回前不预告结论、不启动 HF08 新训练或局部调参。
+root 的 Mission-level 持续 Goal 保持 active，并继续通过固定 Broker 监督 worker。R2
+已验收，但只确认标签合同、主成功/holdout 稀有性和在线 V 实际更新；它没有证明
+当前策略 V 已充分、已校准或已收敛。当前并行工程任务只做 CPU 合同和接口准备：
+`T-20261001-current-policy-value-collector-runtime`（agent_rl）与
+`T-20261001-current-policy-value-diagnostic-contract`（agent_cm），不启动 GPU、仿真、
+采集或训练。任务账本见 `RESEARCH_QUEUE.yaml` 的 `active_engineering_tasks`。
 
-HF08 的原生 Probe 结果仍固定为 `UNPROMISING`、family `PAUSED`、预算 1/1；不升级
-Validation。重要历史证据和边界仍以实验卡、Broker handoff 与下文长期事实为准，
-期限为 2026-10-03 23:59（Asia/Shanghai）。
+HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；工程准备和
+冻结策略诊断不重置该 slot。任何未来科学 Probe 都须由 root 以独立机制、预算和预设
+判据重新决策，期限仍为 2026-10-03 23:59（Asia/Shanghai）。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一
@@ -226,3 +233,7 @@ episode：plain_off 41、direct_q 40、cm_value 33；原生 gate 为 `UNPROMISIN
 `OPEN`。同源 checkpoint 的 e0 重复性审计仍是最终因果解释的边界；完整合同、输入
 输出 hash、评价矩阵和运行资源记录见
 [HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md)及其结果索引。
+
+R2 价值目标审计已由 root 验收：主成功 15/1920、holdout 1/384，两个 e420 V
+均有 7680 次 optimizer update；这些是已验收工程/标签事实，不构成 V 充分性、当前
+策略校准、策略效用或收敛结论。后续工程准备不改变 HF08 已用预算。
