@@ -41,7 +41,10 @@ per split, three motions represented, at least15 factual rows per arm in fit
 and holdout. Unsupported drop classes are explicitly unlearned, never zero risk.
 
 Nonlinear history+numeric-action Cm predicts supported lift, contact fraction
-and conditional drop probability. Same update budget for state-only six-slot
+and conditional drop probability. All predictors also receive the same current
+base intent18D and pre-action motion/phase4D: the8step base continuation depends
+on reference-policy intent, not physical state alone. No future realized action
+or target enters this context. Same update budget for state-only six-slot
 outcome heads (no numeric current candidate), action-shuffled Cm (independent
 fit-row action corruption, labels retained), always-base and fit-only best
 fixed expert. No expert-ID input in numeric-action Cm; physical feature
@@ -70,3 +73,31 @@ Unique owned outputs; original HF08 and six-expert checkpoints remain read-only.
 No actor/V/PPO optimizer updates. Stop on budget, input drift or label/action
 contract failure. A positive local Probe still requires independent direct
 replanning measurement and ultimately matched trained-policy validation.
+
+## Fixed fitting implementation before execution
+
+Three ensemble members per learned variant, history GRU32, fusion width96/64,
+explicit nonlinear state×numeric-action interaction;1000 Adam updates/member,
+lr.001, batch64, frame-group bootstrap seeds9561–9563. Current numeric-action
+and history/base-context normalization use fit only. State-only has6 output
+slots and the same history/base intent/phase, without current candidate values.
+Action-shuffled uses independent per-fit-row nonzero cyclic offsets seed9431,
+not a single global permutation; holdout candidates remain real.
+
+Loss: normalized supported-lift smooth-L1, soft contact-fraction BCE,
+eligible-only drop BCE; no V or actor optimizer. Calibrate factual errors only:
+margin=max(.5mm,calibration median absolute lift error). Candidate gain minus
+one ensemble standard deviation must exceed that margin; mean contact/drop
+changes obey the fixed.05 guards, otherwise base. Ensemble effect dispersion
+is a heuristic, not an identified/certified causal effect interval. Unsupported
+drop classification always abstains in already lifted states. Support requires
+fit>=20 lifted rows/3drops, calibration>=10 lifted rows/2drops; calibration
+screen contact MAE<=.20 and held factual lift90%interval coverage>=.80.
+
+Collection COMPLETED:1984 windows/275 distinct first episodes,193 lifted
+eligible windows and28drop events; all action/label/input checks pass. Split
+uses78 distinct motion/start-frame groups. Fit1163windows/158episodes,
+calibration428/61, holdout393/56; lifted/drop support154/18,18/3,21/7.
+This is descriptive label/support audit, before any model fitting or held
+policy selection. All original input hashes unchanged; GPU collection279.90s,
+15.9MB, no actor/Cm updates during collection. Full traces remain owned output.
