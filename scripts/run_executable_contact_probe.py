@@ -10,7 +10,7 @@ EXPERIMENT='P-20261002-executable-contact-opportunity'
 def run(args):
     base=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve();output=args.output.resolve()
     if output.parent!=base or args.output.is_symlink():raise ValueError('new owned output required')
-    prior_seconds=0.;prior_bytes=0;prior=None
+    prior_seconds=.03;prior_bytes=0;prior=None # preserved preflight syntax failure, no GPU/data
     if not args.smoke_only:
         if not args.prior_smoke:raise ValueError('completed source-matched engineering required')
         prior=json.loads((args.prior_smoke/'run_manifest.json').read_text())
@@ -57,7 +57,7 @@ def run(args):
             if admission is None:raise RuntimeError('allowed GPUs occupied')
             d=output/f'seed{seed}'
             command=[PYTHON,'-u',str(ROOT/'scripts/collect_executable_contact_options.py'),'--output-dir',str(d),'--panel-seed',str(seed),'--assignment-seed',str(8000+seed),
-                '--windows-per-stratum','2' if args.smoke_only else '8','--max-steps','650','--wall-seconds','240','--task','Dexplore_Inspire','--cfg_env',str(R7/'environment.yaml),'--cfg_train',str(R7/'training.yaml'),
+                '--windows-per-stratum','2' if args.smoke_only else '8','--max-steps','650','--wall-seconds','240','--task','Dexplore_Inspire','--cfg_env',str(R7/'environment.yaml'),'--cfg_train',str(R7/'training.yaml'),
                 '--checkpoint',str((ROOT/route['experts']['source_e260']['checkpoint']).resolve()),'--motion_file',str(MOTIONS),'--headless','--num_envs','96','--seed',str(seed),'--sim_device','cuda:0','--rl_device','cuda:0','--graphics_device_id','0','--disable-early-termination',
                 '--output',str(d/'unused.json'),'--output_path',str(d/'player')]
             env=dict(os.environ,CUDA_VISIBLE_DEVICES=admission['uuid'],OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',PYTHONDONTWRITEBYTECODE='1',CUBLAS_WORKSPACE_CONFIG=':4096:8',PYTHONHASHSEED=str(seed),TORCH_EXTENSIONS_DIR=str(output/'cache/torch_extensions'),XDG_CACHE_HOME=str(output/'cache'))

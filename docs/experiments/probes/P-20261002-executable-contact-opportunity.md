@@ -71,3 +71,9 @@ phases serially. No unknown process kills/external writes/overwrite; input,
 source,asset,expert and motion hashes pinned. Failed engineering charged.
 No scientific run starts until source-matched engineering passes. Actual
 elapsed/storage/physical support and all failed gates archived. C3OPEN.
+
+Engineering bootstrap: first launcher failed Python parsing before creating
+any output/native/GPU process (missing quote, code41dcf96). Corrected before
+smoke data; actual graspenv interpreter compiles allthree runtime files.
+Recorded.0276s, conservatively charge.03s in engineering cumulative budget;
+no scientificslot consumed or data overwritten.
