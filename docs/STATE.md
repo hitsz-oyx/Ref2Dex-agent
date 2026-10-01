@@ -83,10 +83,26 @@ novel and has not demonstrated task benefit. Next frozen Decision Probe tests
 equal-weight factual selection against actor/random/global controls on new
 seeds496/497, full first-episode retained success and drops, bounded corrections.
 No PPO yet.13focused learner checks and6task-controller checks pass.
-Task Probe `P-20261001-randomized-task-selection-r1` ACTIVE, code c0ec955,
-four768-env panels on independently admitted GPU5;GPU4occupied by another task.
-Models/fit-global scores/source SHA frozen before physics. Budget3600s/2GiB;
-no result or policy benefit yet. Current process state is in its run manifest.
+Task Probe `P-20261001-randomized-task-selection-r1` COMPLETED, code c0ec955,
+3072first episodes,465.87s/44.13MiB on admitted GPU5. All four gates fail:
+conditional/actor retained success0.803%/1.166%; difference-0.364pp. Stable
+success14.004%/11.509%does not replace retention; drop increase+2.859pp,
+upper95%+5.478fails2ppgate.3072trajectories,30440policy choices,142protected
+inputs independently audited. End this exact greedy controller/protocol.
+
+Task-specification BLOCKER: immutable reference lift intervals last at most
+36/28/25frames, below45-step hold standard, and all return to table beforeend.
+Full-episode nonreturn conflicts with perfect reference tracking. This should
+have been checked before freezing the last gate; preserve its failure, do not
+claim that every counted return is accidental loss or that all models are useless.
+
+Next design: explicitly synthetic90-row holding plateau at each FIRSTlift
+interval's label-only peak. Generation COMPLETE (`b2b26e0`), initial/remainder
+preserved, generated files4.68MB. A new actor-only feasibility Probe is frozen:
+actors286/287,new seeds498/499,four192-env panels;75consecutive held steps within
+inserted phase, pooled>=10%and each motion>=5%. No physical result yet; implement
+and audit the native phase/velocity/episode contract before collection. GPU5
+released; no own run active. No predictor tuning or PPO until holding baseline.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -102,7 +118,10 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Direct randomized results](research/20261001-direct-randomized-response-results.md)
 - [Task-selection decision](decisions/D-20261001-randomized-task-selection.md)
 - [Next task Probe](experiments/probes/P-20261001-randomized-task-selection.md)
-- [Current manuscript](../paper/manuscript-v3.tex) and [PDF review copy](../paper/manuscript-v3.pdf)
+- [Task result](research/20261001-randomized-task-selection-results.md)
+- [Hold-task decision](decisions/D-20261001-reference-hold-task.md)
+- [Next hold feasibility Probe](experiments/probes/P-20261001-hold-plateau-substrate.md)
+- [Current manuscript](../paper/manuscript-v4.tex) and [PDF review copy](../paper/manuscript-v4.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
 readiness is NOT READY: distinctive method, task-level matched policy benefit,

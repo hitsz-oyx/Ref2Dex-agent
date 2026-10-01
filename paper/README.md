@@ -1,6 +1,16 @@
 # Contact-response manuscript
 
-Current: `manuscript-v3.tex` and six-page `manuscript-v3.pdf`. Revision3adds
+Current: `manuscript-v4.tex` and nine-page `manuscript-v4.pdf`. Revision4adds
+the completed3072-episode randomized task failure and independently verified
+reference/hold-specification mismatch. Nine tables and a source-label figure
+are generated from recorded evidence. Figure labels are reference targets, never
+presented as successful simulator trajectories. The next synthetic hold-task
+baseline is a separate frozen Probe with no physical result yet.
+Hashes are in `export_manifest-v4.json`; prior versions remain preserved.
+Export with `python3 scripts/export_contact_response_v4.py` after preserving an
+existing review render. No version is journal ready.
+
+Preserved: `manuscript-v3.tex` and six-page `manuscript-v3.pdf`. Revision3adds
 prospective randomized identification and the failed direct-supervision screen.
 It distinguishes primary failure from post-hoc factual-control candidate evidence;
 no task benefit is yet claimed. Seven tables come from recorded result JSON;

@@ -17,6 +17,9 @@
 [direct randomized response](20261001-direct-randomized-response-results.md)
 在另一批3072新窗口上未通过门槛；其事实模型对照的事后信号只用于选择下一轮
 [抓取保持/掉落实验](../experiments/probes/P-20261001-randomized-task-selection.md)。
+该 [任务实验](20261001-randomized-task-selection-results.md) 已完整运行3072首回合，
+固定门槛失败；发现参考抬升仅25--36帧且会正常放回桌面，与45帧保持及整回合不回落
+要求冲突。下一步先验证单独标注的合成保持任务底座，不重写旧结果。
 
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。
