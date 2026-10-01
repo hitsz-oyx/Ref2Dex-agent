@@ -30,3 +30,22 @@ These are Probe criteria, not formal validation. Unsupported heads/events stay
 unsupported even with successful action wiring. Unique owned outputs, total
 ≤60min/8GiB including failed engineering attempts; GPU first. Stop on
 input drift, unfinished windows, frozen-model changes, or resource violation.
+
+## Run r1
+
+Code dbe3212317c86a08667f2926dd46395535c69959;15 targeted checks pass,
+including real runtime normalization/RNG preservation and sequential proposal/
+base allocation, exact2step execution, and actual-state re-observation. Small
+isolated unit tests use CPU; model inference and real simulation use admitted
+GPU4 UUID GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307.
+
+run_status: RUNNING. Owned output:
+`src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1/`
+with `run_manifest.json`, per-seed logs/manifests and complete `records.pt`.
+
+```sh
+python3 -u scripts/run_randomized_contact_collection.py --output src/task/CmResidual/research/contact_consequence/output/P-20261001-targeted-contact-interventions-r1 --gpu 4 --ranker src/task/CmResidual/research/contact_consequence/output/P-20261001-contact-consequence-ranking-r1/model_fit-r1/ranker.pt
+```
+
+No result or benefit conclusion at launch. All six fixed phases required,
+even if intermediate outcome estimates are disappointing.

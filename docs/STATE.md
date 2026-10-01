@@ -23,11 +23,13 @@ base重复噪声0.210mm，数值屏通过，但仅11/32完整近似配对有效�
 非线性 Cm 的留出后果误差低于 state-only/shuffled，但动作选择门 UNPROMISING：
 介入42/393，收益估计1.278mm低于base2.546mm。介入窗口只有6个所选动作、
 9个base真值，效应区间跨零，不能据此确认负效应；零匹配掉落也不能当零风险。
-下一项为冻结提议器的1:1随机介入数据修复：实际短片段执行、重新观察/决策，
-提高动作效应支持。它不表示旧排序门通过，不进入 PPO 或最终成功率比较。
+HF09 slot3/3 正在 GPU4 运行冻结提议器的1:1随机介入数据修复：
+实际短片段执行、重新观察/决策，提高动作效应支持。它不表示旧排序门通过，
+不进入 PPO 或最终成功率比较；原模型/阈值冻结，独立新seed341–346。
+设计与运行入口见 [定向介入卡](experiments/probes/P-20261001-targeted-contact-interventions.md)。
 见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
 [随机后果排序卡](experiments/probes/P-20261001-contact-consequence-ranking.md)。
-旧输入hash未变、自有 GPU4进程已结束；本路线尚未证明 Cm 选择收益，不重开 HF08/HD02。
+slot2 原输入hash未变、对应 GPU4进程已结束；slot3单 GPU4运行中，不重开 HF08/HD02。
 当前授权以用户最新方向为准；旧 Goal 的“无新 Cm 接法”属于该已完成诊断的边界。
 MISSION claim 不变，baseline PARTIAL、Cm utility OPEN；旧结果与输入继续保留。
 
