@@ -12,6 +12,8 @@
 [exact-null recovery screen](20261001-null-action-results.md)。新的候选机制与
 已有研究的边界见 [action-recovery boundary](20261001-action-recovery-boundary.md)。
 全部失败门槛保留；当前活跃实验以本工作树 STATE 和对应 run manifest 为准。
+新的 [prospective randomized risk result](20261001-randomized-effect-risk-results.md)
+完整采集3072窗口，未支持历史模型的因果效果优势；不能当作政策收益。
 
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。

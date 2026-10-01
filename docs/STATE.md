@@ -58,14 +58,21 @@ Do not widen the tolerance, exclude arms, or report a model winner. Scientific
 transfer label UNCLEAR; frozen nominal model remains untested causally. All36
 native output files and102input hashes independently verified after closure.
 
-Next: prospective randomized pulse trial `P-20261001-randomized-effect-risk`.
-New initial seeds492/493, four768-environment batches, frozen models. Known
-assignment probabilities identify conditional-effect RISK DIFFERENCES without
-asserting individually cloned solver states or absolute effect RMSE. Analytical
-identity checks pass under uniform and unequal propensities. Three additional
-tests pass (25relevant checks total across this stage). GPU5 is released.
-Before resuming, inspect the new experiment's run manifest/process for an active
-run; do not relaunch from transient waiting. All outputs stay in this worktree.
+Randomized trial `P-20261001-randomized-effect-risk-r2`, code510a00e, COMPLETED:
+3072/3072new windows, four768-environment panels,137.84s/8.29MiB. The r1device
+alias failure (35.85s) is preserved. All assigned propensities and action changes
+are audited. Nominal-minus-command risk difference+0.1223mm², upper95%=1.0126;
+nominal-minus-zero-0.3261mm², upper95%=1.1242. All three gates fail, UNPROMISING.
+This is an identified risk DIFFERENCE, not absolute effect RMSE. No subgroup
+or seed replaces the failed gate. Stop direct control use of these archived
+factual predictors; their causal advantage is not supported by the new trial.
+
+Current next hypothesis: learn conditional effects directly from randomized
+supervision; evaluate on another independently frozen initial-seed cohort with
+matched newly trained factual/compute controls and a global-effect baseline.
+No PPO yet. Analytical estimator checks pass under uniform/unequal propensities;
+25relevant checks have passed across this stage. GPU4/5 released; no run active.
+Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
 
@@ -76,6 +83,7 @@ run; do not relaunch from transient waiting. All outputs stay in this worktree.
 - [Fresh causal-transfer decision](decisions/D-20261001-fresh-causal-transfer.md)
 - [Fresh matching failure](research/20261001-fresh-causal-transfer-results.md)
 - [Randomized estimand decision](decisions/D-20261001-randomized-effect-risk.md)
+- [Randomized trial results](research/20261001-randomized-effect-risk-results.md)
 - [Current manuscript](../paper/manuscript-v2.tex) and [PDF review copy](../paper/manuscript-v2.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
