@@ -63,36 +63,16 @@ worker 不能创建 worker，也不能把一次 Probe 升格为 Validation。wor
 * worktree、branch、角色权限和 handoff 要求。
 
 动态 `RUNNING`、`BLOCKED`、`COMPLETED` 不写入稳定 pool；它们从 Goal 数据库、
-rollout、Git、manifest 和归属进程只读推导。修改 `AGENT_REGISTRY.json` 后运行：
+rollout、Git、manifest 和归属进程只读推导。修改 registry 或 binding 后运行：
 
 ```bash
 python3 -m json.tool docs/AGENT_REGISTRY.json >/dev/null
+python3 scripts/workflow_doctor.py --json
 python3 tools/verify.py --changed
 ```
 
-注册表中的所有 legacy runtime record 仍须通过以下身份检查：
-
-```bash
-python3 - <<'PY'
-import json
-from pathlib import Path
-
-d = json.loads(Path("docs/AGENT_REGISTRY.json").read_text())
-agents = d["agents"]
-keys = [(a["codex_home"], a["conversation_id"]) for a in agents]
-assert len({a["agent_key"] for a in agents}) == len(agents)
-assert len(set(keys)) == len(keys)
-for a in agents:
-    home = Path(a["codex_home"])
-    assert home.is_absolute() and a["conversation_id"]
-    assert Path(a["session_root"]) == home / "sessions"
-    for field, filename in (("state_db", "state_5.sqlite"),
-                            ("goal_db", "goals_1.sqlite"),
-                            ("queue_db", "queue_1.sqlite")):
-        assert Path(a[field]) == home / filename
-print("AGENT_REGISTRY_VALID", len(agents))
-PY
-```
+`workflow_doctor.py` 负责固定角色、branch、provider、身份、数据库和 lease 的一致性
+检查；不再需要在文档中维护另一份手写注册表校验脚本。
 
 ## 4. Task dispatch
 
@@ -157,7 +137,7 @@ rollout 和 Broker supervisor state。启用 Broker 时它写 `CONTROL`（`WAKE`
 数据库、不调用 app-server。`root_watchdog.py` 是默认且唯一的 lease-authorized
 恢复 owner，负责通过 app-server 验证 `active` 后写 `CONTROL/RESUME`；
 `researchctl.py` 只管理 lease 与 Broker supervisor desired state。兼容
-兼容 `agent_result_poller.py` 只有显式 opt-in 才能走旧 queue/app-server 路径，不能与
+`agent_result_poller.py` 只有显式 opt-in 才能走旧 queue/app-server 路径，不能与
 watchdog 并行作为默认 owner；`worker_event_poller.py` 只写 `TASK_UPDATE`。
 
 这里共享的是判断算法，不是持久化状态：watchdog 与 legacy poller 各自维护本地周期
