@@ -14,7 +14,7 @@ Both remain native PD actions; no target-object reset, state writes or external
 forces after initialization. Source model loaded for player construction only;
 actor invocation forbidden and model/RMS unchanged. No clipping; PD error<=1e-5.
 
-200steps globally; fullphase90steps for all motions; earlytermination/kappaoff.
+202steps globally; fullphase90steps for all motions; earlytermination/kappaoff.
 Record full roots/nativeq/hand andobjectforce/actions/targets/progress, actual
 initial states, arm/RNG, reference/phase/ramp, allphysical native metadata. Source
 assets/checkpoints immutable. Correct thin-Y tabletop normal, actual fullmesh
@@ -31,3 +31,6 @@ force-closure, multi-object generalization or formal Validation claim.
 One free admitted GPU,<=600s/128MiB. Stop drift, nonfinite, clipping, PD mismatch,
 wrong geometry, missing phase/window, native end or budget failure. Never stop
 unknown GPU jobs. Preserve completed native phases if admission later rejects.
+
+Prelaunch horizon amendment:202 ticks includes motion0 stop162+40; primary
+motion1 window and every gate unchanged. No physics existed when amended.

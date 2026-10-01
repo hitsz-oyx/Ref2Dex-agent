@@ -17,7 +17,7 @@ retain all three motions and both arms. No future outcomes select witness rows.
 Fresh508/509,96env each, balanced private arm assignment16per motion/seed. Tracking
 plus.30rad closure through each plateau; after its endpoint, control holds its last
 target, intervention uses that same wrist orientation with world-z+20cm and all
-finger targets0. Follow200 global physical ticks, no native reset. Verify actual
+finger targets0. Follow202 global physical ticks, no native reset. Verify actual
 wrist retreat rather than equating desired offset with travel. <=600s/128MiB, one
 admitted free GPU. Independently audit poses, fulltable clearance, masses/gravity,
 PD targets and predeclared before/after scores.
@@ -35,3 +35,6 @@ Positive supports a prospective physically grounded retention protocol and a
 separate self-trained baseline design; negative returns to support geometry/model
 wiring. No threshold relaxation or candidate reselection within this witness.
 Within existing autonomous authorization; no external action or approval needed.
+
+Prelaunch horizon amendment:202 ticks includes motion0 stop162+40; primary
+motion1 window and every gate unchanged. No physics existed when amended.
