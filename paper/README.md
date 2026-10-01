@@ -1,4 +1,14 @@
-# Contact-response manuscript
+Current: [manuscript-v8.tex](manuscript-v8.tex) and eighteen-page
+[manuscript-v8.pdf](manuscript-v8.pdf). Revision8 adds the first actual matched
+return-trained Cm/state/global policy comparison:9216fresh training and1536fresh
+evaluation trajectories. Cm151/384,state153/384,global140/384; fixed gates fail.
+All three trained heads choose identical argmax on all1536observed states.
+Eighteen JSON-generated tables, three figures. The parent FAILED numeric analysis
+and separate same-input correction are distinguished; no new physics, training,
+or enlarged tolerance. Previous exports and their sources remain retained.
+The ReportLab review copy is not native TeX compilation or a journal-ready paper.
+
+Preserved: -response manuscript
 
 Current: [manuscript-v7.tex](manuscript-v7.tex) and seventeen-page
 [manuscript-v7.pdf](manuscript-v7.pdf). Revision7 adds6144-trajectory executable

@@ -75,30 +75,35 @@ journal-level paper. It is active and **NOT READY**, without a reduced target.
 
 ## Current decision and next work
 
-Freeze the PROMISING absolute-target initializer. Stop baseline-only tuning.
-Exact forecast fitting, gradient-control-variate integration, position-bin policy
-and finite impulse calibration are closed. Surrogate gate failures are retained,
-not a general refutation of physical information or an invitation to more scans.
+The first actual matched feature-policy training34f78b6 completes9216fresh
+training529--540and1536evaluation541/542trajectories. All14native panels and12
+independent gradient/Adam audits pass. Parent remains FAILED at final analysis;
+separate same-input correctiondb96433is COMPLETED without new physics/training,
+data changes or larger tolerances. Cm151/384,state153/384,global140/384; both
+frozen gate families fail, UNPROMISING. Allthree heads choose IDENTICAL argmax
+on ALL1536states: macro0on motions0/1,macro3on motion2. Cohort outcome differences
+cannot establish Cm-specific utility. Closeout rechecks374parent inputs,13correction
+inputs and both prior paper exports. Final checkpoint and all intermediate data
+remain retained; no job from this experiment is live.
 
-Next is a DIFFERENT bounded integration: frozen short-physical probabilities as
-features of a macro policy TRAINED on actual physical105returns. Same initializer,
-independent training529--540and evaluation541/542, matched state-only and
-privileged-global controls, identical initial macro probabilities, data/update
-budgets and fixed gates. No model reward or direct greedy model selector.
-Full design is [frozen decision](decisions/D-20261002-support-feature-policy-training.md).
-Policy/input/importance-score modules are implemented; exact expected-return
-gradient and initializer tests pass. Native collection, per-panel training,
-evaluation and independent audit integration remain to be implemented and run.
-No utility experiment has started. This is established feature transfer, with
-no methodological-priority or utility claim before results.
+Stop this exact feature-transfer recipe without extra updates, seeds, changed
+heads/LR or deployment selection. Forecast, gradient, position and fixed external
+impulse recipes remain closed. The next decision is temporal contact support:
+reused TRAINING-only unchanged trajectories show natural acquisition-then-loss
+on56/384motion1and101/384motion2. Every such failure has observable relative
+downward speed before first loss; motion0never acquires. This is descriptive
+headroom, not recoverability or Cm utility. Design a prospective bounded native
+comparison of unchanged, pre-lift curl, slip-triggered curl and slip-triggered
+wrist arrest. No external force or object/material modification; samephysical105.
+[Decision](decisions/D-20261002-natural-retention-headroom.md).
 
-Novelty remains a separate blocker for journal readiness. WorldSimProbe,
-Facet-0, Interventional Causal Circuits and Physically Viable World Models already
-cover related generic principles. The successful initializer is established
-control practice, not the proposed novel contribution.
+Distinctive methodology, matched positive policy-training utility, generalization
+and hardware remain unmet. The objective stays active and NOT READY.
 
 ## Evidence and manuscript
 
+- [First matched actual policy-training result](research/20261002-support-feature-policy-results.md)
+- [Full-text methodological boundaries](research/20261002-fulltext-method-boundary.md)
 - [Executable-support forecast](research/20261002-support-response-information-results.md)
 - [Gradient and positional headroom](research/20261002-support-gradient-and-headroom-results.md)
 - [Physical disturbance calibration](research/20261002-support-disturbance-feasibility-results.md)
@@ -109,12 +114,12 @@ control practice, not the proposed novel contribution.
 - [Prospective support witness](research/20261002-support-removal-witness-results.md)
 - [Primary-source novelty update](research/20261002-contact-response-novelty-update.md)
 - [Prior evidence index](research/README.md); all historical results and gates remain in cards/Git.
-- [Current working manuscript](../paper/manuscript-v7.tex) and [PDF](../paper/manuscript-v7.pdf):
-  seventeen pages, seventeen JSON-generated tables, three figures;70hashed export
-  inputs independently verified, new numeric tables reconstructed and pages14--16
-  visually inspected. Earlier revision6and both intermediate review copies
-  preserved with exact source mappings. ReportLab
-  review copy, not native TeX compilation or a journal-ready submission.
+- [Current working manuscript](../paper/manuscript-v8.tex) and [PDF](../paper/manuscript-v8.pdf):
+  eighteen-page ReportLab review copy, eighteen recorded-JSON tables, three
+  figures. Adds the first negative actual training comparison; previous revisions
+  and their hashed inputs are preserved. No native TeX compilation or journal
+  readiness. Export/source/numeric/visual checks are recorded separately.
 
-All owned simulation/training jobs are terminal; no background task remains.
+No live owned native/training job at this closeout. New experiments require fixed
+code/design, fresh resource admission and unique output. No old run is restarted.
 Resource and external-data boundaries remain in [CAMPAIGN.md](CAMPAIGN.md).
