@@ -20,9 +20,16 @@ utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性�
 合同和标签 provenance 通过，主成功为 15/1920、holdout 成功为 1/384；两个 e420
 在线 V 均实际完成 7680 次 optimizer update。结论仍为
 `UNCLEAR / TRAINING_SUFFICIENCY_OR_DISTRIBUTION_UNKNOWN`，不能写成需要重训或已收敛。
-当前并行的是 CPU-only 工程准备：`T-20261001-current-policy-value-collector-runtime`
-（agent_rl）与 `T-20261001-current-policy-value-diagnostic-contract`（agent_cm）；均未启动
-新 GPU 采集或训练。
+用户随后明确要求 root 直接接管采集器修复及 V 诊断。现已完成：两个冻结 e420
+策略共 107584 行、192 个完整首回合，数据与 next-value/主成功/drop 合同通过。
+保存 V 对冻结 GAE 诊断目标的 RMSE 为 25.43，原 PPO critic 为 17.17；冻结 GAE
+与完整 realized MC 的 RMSE 为 95.35。7 个主成功 episode 均随后掉落；该稀有分层
+及单条 realized return 不支持校准、收敛或 bootstrap 偏差结论。当前 factual V 拟合
+与目标/回报差异均待区分，不预定增加 V 更新即可修复。完整证据见
+[直接接管诊断交接](handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_DIRECT_20261001.md)。
+采集器已修复 raw logstd/sigma 调用、435-D context 及完整 episode 导出；实际
+DExplore 原路径已有外置观测归一化，旧“漏掉归一化”归因已更正。24 项针对测试通过，
+所有自有 GPU 进程结束；本诊断无训练，不重置 HF08 的已用收益 Probe slot。
 
 用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
 已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
@@ -177,16 +184,15 @@ MLP 或整条 Cm 路线；相关历史边界和 Broker 交接继续保留。
 
 ## Next step
 
-root 的 Mission-level 持续 Goal 保持 active，并继续通过固定 Broker 监督 worker。R2
-已验收，但只确认标签合同、主成功/holdout 稀有性和在线 V 实际更新；它没有证明
-当前策略 V 已充分、已校准或已收敛。当前并行工程任务只做 CPU 合同和接口准备：
-`T-20261001-current-policy-value-collector-runtime`（agent_rl）与
-`T-20261001-current-policy-value-diagnostic-contract`（agent_cm），不启动 GPU、仿真、
-采集或训练。任务账本见 `RESEARCH_QUEUE.yaml` 的 `active_engineering_tasks`。
+冻结当前策略的完整轨迹采集与 factual V 诊断已经由 root 按用户明确授权直接完成。
+下一项科学行动应区分 V 对诊断目标的拟合误差与冻结 GAE/完整回报差异，优先查看
+任务相关接触/成功段及稀有高回报 episode；本诊断不自动授权重训 V 或新一轮 PPO。
+不能以总体平均 bias 接近零认定校准，也不能以单次 realized MC 差异证明目标偏差。
 
-HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；工程准备和
-冻结策略诊断不重置该 slot。任何未来科学 Probe 都须由 root 以独立机制、预算和预设
-判据重新决策，期限仍为 2026-10-03 23:59（Asia/Shanghai）。
+HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；诊断
+不重置该 slot。任何未来科学 Probe 都须以独立机制、预算和预设判据重新决策，
+期限仍为 2026-10-03 23:59（Asia/Shanghai）。本次直接接管是当前任务的用户授权，
+不改写固定角色与默认 Broker 工作流。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一

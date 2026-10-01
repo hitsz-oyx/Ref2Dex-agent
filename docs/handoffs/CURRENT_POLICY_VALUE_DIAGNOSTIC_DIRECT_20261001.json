@@ -1,0 +1,3185 @@
+{
+  "status": "COMPLETED",
+  "probe_label": "UNCLEAR",
+  "owner": "root direct user authorization",
+  "branch": "agent/current-policy-value-repair",
+  "code_commit": "56b898ecee1cc51b995dbb1434b912543b205796",
+  "tests": "24 passed (full), followed by11 diagnostic tests after adding checkpoint/target-gap reporting",
+  "science_scope": "factual current-policy diagnostic; no utility/counterfactual/convergence claim",
+  "input_hashes_after": {
+    "source_runner_sha256": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/run_cm_physical_value_environment.py",
+      "sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+      "unchanged": true
+    },
+    "environment_sha256": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/environment.yaml",
+      "sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+      "unchanged": true
+    },
+    "training_sha256": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/training.yaml",
+      "sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+      "unchanged": true
+    },
+    "checkpoint_286": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+      "unchanged": true
+    },
+    "checkpoint_287": {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+      "unchanged": true
+    }
+  },
+  "collector_provenance": {
+    "collection_started": false,
+    "cpu_fixture": {
+      "reset_boundary_preserved": true,
+      "sampled_action_sha256": "e351864d88e65ca87e15949eb55fa8800509f60e111bae7d64fe1b73fa34e243",
+      "validation": {
+        "episode_ids": [
+          100,
+          101
+        ],
+        "episodes": 2,
+        "rows": 4
+      }
+    },
+    "environment_sha256": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "gpu_started": false,
+    "isaac_imported": false,
+    "motion_hashes": {
+      "s3_airplane_lift": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+      "s7_airplane_lift_Retake": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+      "s9_airplane_lift": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+    },
+    "panels": [
+      {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "checkpoint_sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+        "manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/eval_cm_value_t286_e160_s289/run_manifest.json",
+        "manifest_sha256": "41684e03d98b925731f7a5b2936d2d2bedb822ea1ed57d599a1993083d4d7cbe",
+        "native_completed_at": "2026-09-30T13:42:43.229999+00:00",
+        "native_physical_gpu": "2",
+        "seed": 286
+      },
+      {
+        "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+        "checkpoint_sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+        "manifest": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/eval_cm_value_t287_e160_s289/run_manifest.json",
+        "manifest_sha256": "3f02355e366c0d9e3b0670428a7f5d847d270740ec696f5d2e077d16384851b1",
+        "native_completed_at": "2026-09-30T13:57:09.756580+00:00",
+        "native_physical_gpu": "1",
+        "seed": 287
+      }
+    ],
+    "plan": {
+      "commands": [
+        "python3 scripts/collect_current_policy_value.py --collect --checkpoint-seed 286 --run-root /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5",
+        "python3 scripts/collect_current_policy_value.py --collect --checkpoint-seed 287 --run-root /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5"
+      ],
+      "diagnostic_seed": 290,
+      "envs_per_checkpoint": 96,
+      "episode_id": "checkpoint-specific prefix s{training_seed}_e420_diag290_env{env_id}; globally disjoint",
+      "max_output_bytes": 2147483648,
+      "max_rows_per_checkpoint": 96000,
+      "max_rows_total": 192000,
+      "max_steps_per_episode": 700,
+      "max_wall_seconds": 1200,
+      "motion_counts": {
+        "0": 32,
+        "1": 32,
+        "2": 32
+      },
+      "start_frame": 0,
+      "storage": "Episodes-compatible tensors; export only after all 96 episodes are complete and finite"
+    },
+    "schema": "ref2dex.physical_value.v1",
+    "source_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+    "source_contract": {
+      "correction": "new entry must not delegate to old PhysicalPlayer.run collect branch",
+      "new_entry_sampling": {
+        "action_clip": [
+          -1.0,
+          1.0
+        ],
+        "deterministic": false,
+        "enable_eps_greedy": false,
+        "extra_noise": false,
+        "gaussian": true
+      },
+      "old_runner_collect_injects_noise": true,
+      "old_runner_sampling_dispatch": "collect passes deterministic=False; evaluate passes deterministic=True",
+      "preprocessing": "DExplore player _preproc_obs with checkpoint running_mean_std; no replacement normalization"
+    },
+    "source_current_head": "56b898ecee1cc51b995dbb1434b912543b205796",
+    "source_origin_commit": "f3ae0dfd6072f0d3cde8112f71574828b6a5a4bc",
+    "source_runner_sha256": "1fc914f75b5579078eea533660a57f2c820414995da18cd7304858054ab26a57",
+    "status": "READY_FOR_ROOT_RUNTIME_TASK",
+    "training_sha256": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+    "training_started": false
+  },
+  "collections": [
+    {
+      "checkpoint_seed": 286,
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420",
+      "rows": 53792,
+      "complete_episodes": 96,
+      "primary_successes": 6,
+      "drop_after_primary": 6,
+      "results_sha256": "ec728679d5aa60b0ad61d5c083e43d280074d9b51f93d51412e8841d0b21dd79",
+      "runtime_manifest_sha256": "d636ebcee16c7ca1c1ec3f210cfd6a2bdf1c81216143f338a7ca06a2fd50415d",
+      "shards": [
+        {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420/transitions_000.pt",
+          "sha256": "5ec09e4b14de61010d8ba7c4260b846f775324f2fe527689deb3a267ab81cbbc",
+          "rows": 53792
+        }
+      ]
+    },
+    {
+      "checkpoint_seed": 287,
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420",
+      "rows": 53792,
+      "complete_episodes": 96,
+      "primary_successes": 1,
+      "drop_after_primary": 1,
+      "results_sha256": "ea7a896ba29b9e51317f45ec9641db3e6f83acf941a42f437965b7eb1287c675",
+      "runtime_manifest_sha256": "f9ecc7b6d4a078a221d424b129e91db23d5fd70c5279ee505bc4a19364e16abf",
+      "shards": [
+        {
+          "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420/transitions_000.pt",
+          "sha256": "c9008a20cb71c14a33c57c2c3a11ca84199ea138efef2feebb6a3f79248d2623",
+          "rows": 53792
+        }
+      ]
+    }
+  ],
+  "excluded_rows": 0,
+  "collection_orchestrator": {
+    "run_id": "r5",
+    "owner": "root direct user authorization",
+    "run_status": "COMPLETED",
+    "started_epoch": 1790839906.7469115,
+    "orchestrator_pid": 487415,
+    "code_commit": "56b898ecee1cc51b995dbb1434b912543b205796",
+    "prior_run_cost": {
+      "r4_elapsed_seconds": 76.46778392791748,
+      "r4_output_bytes": 3533891
+    },
+    "script_hashes_before": {
+      "scripts/collect_current_policy_value.py": "12a931ef1d9ce513412b766b2c6831cf05b73f13ccba6b20830447d14be15661",
+      "scripts/run_current_policy_value_environment.py": "249d99ef8c805484ba70b32cb0c8f38e2d04a6b1b78297e209c20053831ea32b",
+      "scripts/audit_current_policy_value.py": "17457a4d1cf6f970c3dbce4dcb02f962b5ec19d20d051a814c54f39717d4dfe8"
+    },
+    "limit_seconds": 1120,
+    "limit_bytes": 2143949757,
+    "limit_rows": 192000,
+    "processes": [
+      {
+        "pid": 487418,
+        "pgid": 487418,
+        "command": [
+          "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/collect_current_policy_value.py",
+          "--preflight",
+          "--run-root",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5",
+          "--preflight-json",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/preflight.json"
+        ],
+        "started_epoch": 1790839906.7534697,
+        "log": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/preflight.log",
+        "returncode": 0,
+        "finished_epoch": 1790839909.7955189
+      },
+      {
+        "pid": 487476,
+        "pgid": 487476,
+        "command": [
+          "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/collect_current_policy_value.py",
+          "--collect",
+          "--checkpoint-seed",
+          "286",
+          "--run-root",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5",
+          "--gpu-index",
+          "4"
+        ],
+        "started_epoch": 1790839909.9835663,
+        "log": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/collect_s286.log",
+        "returncode": 0,
+        "finished_epoch": 1790840019.2149456
+      },
+      {
+        "pid": 490484,
+        "pgid": 490484,
+        "command": [
+          "/home2/wyy/miniconda3/envs/graspenv/bin/python",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/collect_current_policy_value.py",
+          "--collect",
+          "--checkpoint-seed",
+          "287",
+          "--run-root",
+          "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5",
+          "--gpu-index",
+          "4"
+        ],
+        "started_epoch": 1790840019.417698,
+        "log": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/collect_s287.log",
+        "returncode": 0,
+        "finished_epoch": 1790840109.6203346
+      }
+    ],
+    "rows": 107584,
+    "episodes": 192,
+    "finished_epoch": 1790840109.748488,
+    "elapsed_seconds": 203.00157737731934,
+    "output_bytes": 452373971,
+    "gpu_postcheck": {
+      "index": 4,
+      "uuid": "GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307",
+      "memory_used_mib": 2,
+      "compute_owners": []
+    },
+    "script_hashes_after": {
+      "scripts/collect_current_policy_value.py": "12a931ef1d9ce513412b766b2c6831cf05b73f13ccba6b20830447d14be15661",
+      "scripts/run_current_policy_value_environment.py": "249d99ef8c805484ba70b32cb0c8f38e2d04a6b1b78297e209c20053831ea32b",
+      "scripts/audit_current_policy_value.py": "17457a4d1cf6f970c3dbce4dcb02f962b5ec19d20d051a814c54f39717d4dfe8"
+    }
+  },
+  "diagnostic": {
+    "command": [
+      "scripts/audit_current_policy_value.py",
+      "--collections",
+      "src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s286_e420",
+      "src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5/checkpoint_s287_e420",
+      "--output",
+      "src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/value_diagnostic.json",
+      "--online-checkpoint",
+      "286=src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+      "--online-checkpoint",
+      "287=src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth"
+    ],
+    "cpu_only": {
+      "collection": false,
+      "device": "cpu",
+      "gpu": 0,
+      "torch_threads": 2,
+      "training": false
+    },
+    "diagnostic": {
+      "contract": {
+        "checkpoint_provenance": "explicit_checkpoint_field",
+        "gamma": 0.99,
+        "horizon": 32,
+        "target_origin": "frozen critic factual diagnostic; not historical labels",
+        "tau": 0.95,
+        "terminal_bootstrap": "done mask zero, including timeout"
+      },
+      "episode_metrics": [
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652096,
+          "lambda_rmse": 87.28733825683594,
+          "mc_rmse": 721.7905883789062,
+          "motion_id": 0,
+          "primary_success": true,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 132.78285217285156,
+          "saved_pv_v_mc_rmse": 766.0625610351562
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652097,
+          "lambda_rmse": 34.149105072021484,
+          "mc_rmse": 206.6492919921875,
+          "motion_id": 1,
+          "primary_success": true,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 37.46261215209961,
+          "saved_pv_v_mc_rmse": 205.73744201660156
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652098,
+          "lambda_rmse": 5.83375883102417,
+          "mc_rmse": 6.117707252502441,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.085371971130371,
+          "saved_pv_v_mc_rmse": 8.027034759521484
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652099,
+          "lambda_rmse": 10.374627113342285,
+          "mc_rmse": 30.06877899169922,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.181757926940918,
+          "saved_pv_v_mc_rmse": 24.313310623168945
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652100,
+          "lambda_rmse": 6.198395252227783,
+          "mc_rmse": 12.81039810180664,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 12.504549026489258,
+          "saved_pv_v_mc_rmse": 14.92531967163086
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652101,
+          "lambda_rmse": 6.421131134033203,
+          "mc_rmse": 17.651308059692383,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.968837738037109,
+          "saved_pv_v_mc_rmse": 17.076923370361328
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652102,
+          "lambda_rmse": 7.2586445808410645,
+          "mc_rmse": 23.138586044311523,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.698104858398438,
+          "saved_pv_v_mc_rmse": 19.543493270874023
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652103,
+          "lambda_rmse": 13.026851654052734,
+          "mc_rmse": 30.151430130004883,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.549223899841309,
+          "saved_pv_v_mc_rmse": 28.715532302856445
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652104,
+          "lambda_rmse": 8.781591415405273,
+          "mc_rmse": 20.19395637512207,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.89727783203125,
+          "saved_pv_v_mc_rmse": 18.426563262939453
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652105,
+          "lambda_rmse": 87.64215087890625,
+          "mc_rmse": 706.7089233398438,
+          "motion_id": 0,
+          "primary_success": true,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 121.81375885009766,
+          "saved_pv_v_mc_rmse": 741.9047241210938
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652106,
+          "lambda_rmse": 9.384342193603516,
+          "mc_rmse": 40.26750946044922,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.9246187210083,
+          "saved_pv_v_mc_rmse": 37.735137939453125
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652107,
+          "lambda_rmse": 4.688199043273926,
+          "mc_rmse": 6.676107406616211,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 4.958325386047363,
+          "saved_pv_v_mc_rmse": 6.375129699707031
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652108,
+          "lambda_rmse": 7.096938610076904,
+          "mc_rmse": 30.60740852355957,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.437012672424316,
+          "saved_pv_v_mc_rmse": 27.08487892150879
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652109,
+          "lambda_rmse": 15.184233665466309,
+          "mc_rmse": 57.32195281982422,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 22.58069610595703,
+          "saved_pv_v_mc_rmse": 56.25886535644531
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652110,
+          "lambda_rmse": 12.490216255187988,
+          "mc_rmse": 26.244831085205078,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 12.577519416809082,
+          "saved_pv_v_mc_rmse": 20.484846115112305
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652111,
+          "lambda_rmse": 7.350357532501221,
+          "mc_rmse": 22.231670379638672,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 10.812894821166992,
+          "saved_pv_v_mc_rmse": 21.657766342163086
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652112,
+          "lambda_rmse": 15.975316047668457,
+          "mc_rmse": 58.38324737548828,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 20.204072952270508,
+          "saved_pv_v_mc_rmse": 56.30595779418945
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652113,
+          "lambda_rmse": 8.226149559020996,
+          "mc_rmse": 21.313732147216797,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 7.3560791015625,
+          "saved_pv_v_mc_rmse": 15.565923690795898
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652114,
+          "lambda_rmse": 8.630831718444824,
+          "mc_rmse": 27.91652488708496,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.684625625610352,
+          "saved_pv_v_mc_rmse": 24.50266456604004
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652115,
+          "lambda_rmse": 10.977307319641113,
+          "mc_rmse": 20.4918270111084,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 11.804487228393555,
+          "saved_pv_v_mc_rmse": 23.328828811645508
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652116,
+          "lambda_rmse": 8.111117362976074,
+          "mc_rmse": 15.726194381713867,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.71860122680664,
+          "saved_pv_v_mc_rmse": 13.33792495727539
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652117,
+          "lambda_rmse": 7.578428745269775,
+          "mc_rmse": 25.567073822021484,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.189915657043457,
+          "saved_pv_v_mc_rmse": 21.61693572998047
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652118,
+          "lambda_rmse": 6.495932579040527,
+          "mc_rmse": 24.794384002685547,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.426321029663086,
+          "saved_pv_v_mc_rmse": 27.041833877563477
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652119,
+          "lambda_rmse": 16.277711868286133,
+          "mc_rmse": 39.16458511352539,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 19.320846557617188,
+          "saved_pv_v_mc_rmse": 41.700504302978516
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652120,
+          "lambda_rmse": 10.70729923248291,
+          "mc_rmse": 29.771896362304688,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 11.178606033325195,
+          "saved_pv_v_mc_rmse": 29.047136306762695
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652121,
+          "lambda_rmse": 11.150674819946289,
+          "mc_rmse": 39.6707878112793,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.376455307006836,
+          "saved_pv_v_mc_rmse": 35.432342529296875
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652122,
+          "lambda_rmse": 20.59196662902832,
+          "mc_rmse": 79.07210540771484,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 21.119258880615234,
+          "saved_pv_v_mc_rmse": 79.79202270507812
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652123,
+          "lambda_rmse": 7.0294952392578125,
+          "mc_rmse": 12.273098945617676,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 7.971071243286133,
+          "saved_pv_v_mc_rmse": 15.422168731689453
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652124,
+          "lambda_rmse": 8.222931861877441,
+          "mc_rmse": 19.71422576904297,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.132848739624023,
+          "saved_pv_v_mc_rmse": 26.6882266998291
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652125,
+          "lambda_rmse": 9.428032875061035,
+          "mc_rmse": 12.920530319213867,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.678488731384277,
+          "saved_pv_v_mc_rmse": 10.124833106994629
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652126,
+          "lambda_rmse": 5.371162414550781,
+          "mc_rmse": 18.19685935974121,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 7.886421203613281,
+          "saved_pv_v_mc_rmse": 17.422042846679688
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652127,
+          "lambda_rmse": 7.868252754211426,
+          "mc_rmse": 32.8829231262207,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 24.076967239379883,
+          "saved_pv_v_mc_rmse": 23.370681762695312
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652128,
+          "lambda_rmse": 8.903177261352539,
+          "mc_rmse": 25.664737701416016,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.038944244384766,
+          "saved_pv_v_mc_rmse": 19.894819259643555
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652129,
+          "lambda_rmse": 17.253292083740234,
+          "mc_rmse": 66.08917236328125,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 21.344240188598633,
+          "saved_pv_v_mc_rmse": 67.48188018798828
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652130,
+          "lambda_rmse": 7.0181074142456055,
+          "mc_rmse": 14.1217041015625,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 13.472530364990234,
+          "saved_pv_v_mc_rmse": 17.02281379699707
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652131,
+          "lambda_rmse": 7.809198379516602,
+          "mc_rmse": 14.511255264282227,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.53545093536377,
+          "saved_pv_v_mc_rmse": 10.965387344360352
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652132,
+          "lambda_rmse": 18.294147491455078,
+          "mc_rmse": 73.78874969482422,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 22.840713500976562,
+          "saved_pv_v_mc_rmse": 72.97367095947266
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652133,
+          "lambda_rmse": 7.937257289886475,
+          "mc_rmse": 20.832523345947266,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.193470001220703,
+          "saved_pv_v_mc_rmse": 27.56685447692871
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652134,
+          "lambda_rmse": 5.8785223960876465,
+          "mc_rmse": 18.356332778930664,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.2095136642456055,
+          "saved_pv_v_mc_rmse": 14.888505935668945
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652135,
+          "lambda_rmse": 6.5986480712890625,
+          "mc_rmse": 23.79425811767578,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.091187477111816,
+          "saved_pv_v_mc_rmse": 18.7691707611084
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652136,
+          "lambda_rmse": 5.757452964782715,
+          "mc_rmse": 7.679053783416748,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 12.066255569458008,
+          "saved_pv_v_mc_rmse": 15.484315872192383
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652137,
+          "lambda_rmse": 12.292116165161133,
+          "mc_rmse": 36.1895637512207,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 13.510754585266113,
+          "saved_pv_v_mc_rmse": 34.24238586425781
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652138,
+          "lambda_rmse": 7.977705478668213,
+          "mc_rmse": 12.625417709350586,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 13.918249130249023,
+          "saved_pv_v_mc_rmse": 18.712203979492188
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652139,
+          "lambda_rmse": 7.261873245239258,
+          "mc_rmse": 13.571514129638672,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.063370704650879,
+          "saved_pv_v_mc_rmse": 21.94474220275879
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652140,
+          "lambda_rmse": 8.517656326293945,
+          "mc_rmse": 16.62949562072754,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.570399284362793,
+          "saved_pv_v_mc_rmse": 17.64263153076172
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652141,
+          "lambda_rmse": 14.651315689086914,
+          "mc_rmse": 47.73966979980469,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.747980117797852,
+          "saved_pv_v_mc_rmse": 47.24143600463867
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652142,
+          "lambda_rmse": 8.534804344177246,
+          "mc_rmse": 25.279478073120117,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.9993896484375,
+          "saved_pv_v_mc_rmse": 37.694332122802734
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652143,
+          "lambda_rmse": 8.300152778625488,
+          "mc_rmse": 22.574039459228516,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.598127365112305,
+          "saved_pv_v_mc_rmse": 14.91136646270752
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652144,
+          "lambda_rmse": 6.387225151062012,
+          "mc_rmse": 19.44931411743164,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.730897903442383,
+          "saved_pv_v_mc_rmse": 15.505350112915039
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652145,
+          "lambda_rmse": 10.283665657043457,
+          "mc_rmse": 43.16908264160156,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.65424919128418,
+          "saved_pv_v_mc_rmse": 42.84123229980469
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652146,
+          "lambda_rmse": 51.28422164916992,
+          "mc_rmse": 327.77801513671875,
+          "motion_id": 2,
+          "primary_success": true,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 50.126564025878906,
+          "saved_pv_v_mc_rmse": 326.0282897949219
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652147,
+          "lambda_rmse": 4.69210958480835,
+          "mc_rmse": 16.55653190612793,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 7.094226360321045,
+          "saved_pv_v_mc_rmse": 12.572897911071777
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652148,
+          "lambda_rmse": 12.384505271911621,
+          "mc_rmse": 51.376956939697266,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 12.187897682189941,
+          "saved_pv_v_mc_rmse": 48.05481719970703
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652149,
+          "lambda_rmse": 10.525020599365234,
+          "mc_rmse": 23.797590255737305,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.324649810791016,
+          "saved_pv_v_mc_rmse": 21.2956485748291
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652150,
+          "lambda_rmse": 7.833083629608154,
+          "mc_rmse": 17.01949119567871,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 11.665169715881348,
+          "saved_pv_v_mc_rmse": 16.025436401367188
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652151,
+          "lambda_rmse": 10.327878952026367,
+          "mc_rmse": 28.478212356567383,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.960393905639648,
+          "saved_pv_v_mc_rmse": 34.527061462402344
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652152,
+          "lambda_rmse": 6.9707159996032715,
+          "mc_rmse": 22.652528762817383,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 7.455508708953857,
+          "saved_pv_v_mc_rmse": 21.02735710144043
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652153,
+          "lambda_rmse": 8.13184928894043,
+          "mc_rmse": 26.51407814025879,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 7.645846843719482,
+          "saved_pv_v_mc_rmse": 21.096567153930664
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652154,
+          "lambda_rmse": 14.305512428283691,
+          "mc_rmse": 52.47174835205078,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 17.43319320678711,
+          "saved_pv_v_mc_rmse": 46.05673599243164
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652155,
+          "lambda_rmse": 11.982928276062012,
+          "mc_rmse": 22.404836654663086,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.993583679199219,
+          "saved_pv_v_mc_rmse": 22.3266544342041
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652156,
+          "lambda_rmse": 10.531331062316895,
+          "mc_rmse": 22.112449645996094,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 10.318012237548828,
+          "saved_pv_v_mc_rmse": 17.79347801208496
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652157,
+          "lambda_rmse": 8.377507209777832,
+          "mc_rmse": 16.87889289855957,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 11.642733573913574,
+          "saved_pv_v_mc_rmse": 17.07091522216797
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652158,
+          "lambda_rmse": 9.005355834960938,
+          "mc_rmse": 22.359838485717773,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.322225570678711,
+          "saved_pv_v_mc_rmse": 21.860492706298828
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652159,
+          "lambda_rmse": 9.328322410583496,
+          "mc_rmse": 28.29735565185547,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 11.75162410736084,
+          "saved_pv_v_mc_rmse": 21.30037498474121
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652160,
+          "lambda_rmse": 6.060296535491943,
+          "mc_rmse": 11.430453300476074,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 11.98419189453125,
+          "saved_pv_v_mc_rmse": 15.99808120727539
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652161,
+          "lambda_rmse": 8.766473770141602,
+          "mc_rmse": 18.54205894470215,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.340424537658691,
+          "saved_pv_v_mc_rmse": 16.94978904724121
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652162,
+          "lambda_rmse": 10.468459129333496,
+          "mc_rmse": 22.93903160095215,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.817737579345703,
+          "saved_pv_v_mc_rmse": 21.670490264892578
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652163,
+          "lambda_rmse": 9.933774948120117,
+          "mc_rmse": 49.95539855957031,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.93440055847168,
+          "saved_pv_v_mc_rmse": 41.11661148071289
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652164,
+          "lambda_rmse": 7.530887603759766,
+          "mc_rmse": 16.052749633789062,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.349752426147461,
+          "saved_pv_v_mc_rmse": 14.602060317993164
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652165,
+          "lambda_rmse": 98.6073226928711,
+          "mc_rmse": 786.6945190429688,
+          "motion_id": 0,
+          "primary_success": true,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 146.14817810058594,
+          "saved_pv_v_mc_rmse": 835.2526245117188
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652166,
+          "lambda_rmse": 28.054698944091797,
+          "mc_rmse": 127.55854034423828,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 25.577836990356445,
+          "saved_pv_v_mc_rmse": 116.34709930419922
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652167,
+          "lambda_rmse": 4.704716682434082,
+          "mc_rmse": 14.219339370727539,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 7.457268714904785,
+          "saved_pv_v_mc_rmse": 15.818337440490723
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": true,
+          "episode_id": 1228379652168,
+          "lambda_rmse": 50.780921936035156,
+          "mc_rmse": 306.2818298339844,
+          "motion_id": 0,
+          "primary_success": true,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 57.86252975463867,
+          "saved_pv_v_mc_rmse": 312.8310241699219
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652169,
+          "lambda_rmse": 5.907849311828613,
+          "mc_rmse": 14.88407039642334,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.588333129882812,
+          "saved_pv_v_mc_rmse": 22.25527572631836
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652170,
+          "lambda_rmse": 6.840435981750488,
+          "mc_rmse": 21.184900283813477,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.023192405700684,
+          "saved_pv_v_mc_rmse": 13.601806640625
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652171,
+          "lambda_rmse": 7.3014140129089355,
+          "mc_rmse": 24.437034606933594,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 7.158279895782471,
+          "saved_pv_v_mc_rmse": 19.984914779663086
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652172,
+          "lambda_rmse": 13.72780990600586,
+          "mc_rmse": 44.36946105957031,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 17.72742462158203,
+          "saved_pv_v_mc_rmse": 42.7161865234375
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652173,
+          "lambda_rmse": 7.680354118347168,
+          "mc_rmse": 11.84979248046875,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.893417358398438,
+          "saved_pv_v_mc_rmse": 10.355624198913574
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652174,
+          "lambda_rmse": 7.496284008026123,
+          "mc_rmse": 21.060487747192383,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.56238079071045,
+          "saved_pv_v_mc_rmse": 16.972354888916016
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652175,
+          "lambda_rmse": 13.366601943969727,
+          "mc_rmse": 48.088958740234375,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.523548126220703,
+          "saved_pv_v_mc_rmse": 36.59333801269531
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652176,
+          "lambda_rmse": 10.622425079345703,
+          "mc_rmse": 19.389877319335938,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.976181983947754,
+          "saved_pv_v_mc_rmse": 17.528169631958008
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652177,
+          "lambda_rmse": 6.675595760345459,
+          "mc_rmse": 28.285552978515625,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.183638572692871,
+          "saved_pv_v_mc_rmse": 24.496337890625
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652178,
+          "lambda_rmse": 12.295492172241211,
+          "mc_rmse": 51.78059005737305,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.205785751342773,
+          "saved_pv_v_mc_rmse": 42.02679443359375
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652179,
+          "lambda_rmse": 7.074392318725586,
+          "mc_rmse": 18.61842918395996,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.201709747314453,
+          "saved_pv_v_mc_rmse": 20.61599349975586
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652180,
+          "lambda_rmse": 8.64936351776123,
+          "mc_rmse": 26.992164611816406,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.759175300598145,
+          "saved_pv_v_mc_rmse": 22.90821647644043
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652181,
+          "lambda_rmse": 14.67532730102539,
+          "mc_rmse": 63.34928894042969,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 23.176111221313477,
+          "saved_pv_v_mc_rmse": 58.74204635620117
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652182,
+          "lambda_rmse": 7.7406229972839355,
+          "mc_rmse": 20.78418731689453,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.745046615600586,
+          "saved_pv_v_mc_rmse": 17.295772552490234
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652183,
+          "lambda_rmse": 7.566172122955322,
+          "mc_rmse": 20.84321403503418,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 9.40531063079834,
+          "saved_pv_v_mc_rmse": 22.319076538085938
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652184,
+          "lambda_rmse": 9.190164566040039,
+          "mc_rmse": 45.90422439575195,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 19.488649368286133,
+          "saved_pv_v_mc_rmse": 31.874107360839844
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652185,
+          "lambda_rmse": 9.580209732055664,
+          "mc_rmse": 17.09601593017578,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.407256126403809,
+          "saved_pv_v_mc_rmse": 16.13064193725586
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652186,
+          "lambda_rmse": 8.160188674926758,
+          "mc_rmse": 20.03162956237793,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 10.976561546325684,
+          "saved_pv_v_mc_rmse": 22.690011978149414
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652187,
+          "lambda_rmse": 18.407228469848633,
+          "mc_rmse": 74.83891296386719,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 23.845396041870117,
+          "saved_pv_v_mc_rmse": 67.2647476196289
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652188,
+          "lambda_rmse": 20.69328498840332,
+          "mc_rmse": 69.30381774902344,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 18.31353759765625,
+          "saved_pv_v_mc_rmse": 64.68101501464844
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652189,
+          "lambda_rmse": 9.795607566833496,
+          "mc_rmse": 28.572290420532227,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 8.648894309997559,
+          "saved_pv_v_mc_rmse": 23.75873374938965
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652190,
+          "lambda_rmse": 10.588238716125488,
+          "mc_rmse": 44.08390426635742,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.41126823425293,
+          "saved_pv_v_mc_rmse": 43.406497955322266
+        },
+        {
+          "checkpoint": 286,
+          "drop_after_primary": false,
+          "episode_id": 1228379652191,
+          "lambda_rmse": 9.785764694213867,
+          "mc_rmse": 22.622535705566406,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.966266632080078,
+          "saved_pv_v_mc_rmse": 19.85645294189453
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619392,
+          "lambda_rmse": 10.185735702514648,
+          "mc_rmse": 20.75603485107422,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 18.766761779785156,
+          "saved_pv_v_mc_rmse": 30.697925567626953
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619393,
+          "lambda_rmse": 13.748738288879395,
+          "mc_rmse": 60.414329528808594,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 19.68698501586914,
+          "saved_pv_v_mc_rmse": 61.62984085083008
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619394,
+          "lambda_rmse": 5.598564624786377,
+          "mc_rmse": 10.84921932220459,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.459148406982422,
+          "saved_pv_v_mc_rmse": 15.311186790466309
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619395,
+          "lambda_rmse": 7.288349628448486,
+          "mc_rmse": 13.143662452697754,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.026555061340332,
+          "saved_pv_v_mc_rmse": 20.496444702148438
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619396,
+          "lambda_rmse": 10.695646286010742,
+          "mc_rmse": 62.39562225341797,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.864479064941406,
+          "saved_pv_v_mc_rmse": 65.79039764404297
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619397,
+          "lambda_rmse": 5.575660705566406,
+          "mc_rmse": 14.598387718200684,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.024765968322754,
+          "saved_pv_v_mc_rmse": 19.560455322265625
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619398,
+          "lambda_rmse": 11.001652717590332,
+          "mc_rmse": 16.071701049804688,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 16.53751564025879,
+          "saved_pv_v_mc_rmse": 13.75704574584961
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619399,
+          "lambda_rmse": 13.370551109313965,
+          "mc_rmse": 49.85635757446289,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.161279678344727,
+          "saved_pv_v_mc_rmse": 46.419795989990234
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619400,
+          "lambda_rmse": 7.502419471740723,
+          "mc_rmse": 12.688750267028809,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.500937461853027,
+          "saved_pv_v_mc_rmse": 12.923563957214355
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619401,
+          "lambda_rmse": 7.414755821228027,
+          "mc_rmse": 11.151969909667969,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 10.067018508911133,
+          "saved_pv_v_mc_rmse": 12.013242721557617
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619402,
+          "lambda_rmse": 14.68068790435791,
+          "mc_rmse": 39.7081298828125,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.449337005615234,
+          "saved_pv_v_mc_rmse": 33.86968994140625
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619403,
+          "lambda_rmse": 7.957362174987793,
+          "mc_rmse": 14.68376636505127,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 12.670588493347168,
+          "saved_pv_v_mc_rmse": 19.170557022094727
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619404,
+          "lambda_rmse": 8.96630859375,
+          "mc_rmse": 16.94927406311035,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.09939193725586,
+          "saved_pv_v_mc_rmse": 18.769474029541016
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619405,
+          "lambda_rmse": 14.563529968261719,
+          "mc_rmse": 58.54117965698242,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.290203094482422,
+          "saved_pv_v_mc_rmse": 53.1437873840332
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619406,
+          "lambda_rmse": 12.297826766967773,
+          "mc_rmse": 27.152347564697266,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.788450241088867,
+          "saved_pv_v_mc_rmse": 25.867544174194336
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619407,
+          "lambda_rmse": 8.368147850036621,
+          "mc_rmse": 19.811687469482422,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 13.69190788269043,
+          "saved_pv_v_mc_rmse": 23.722993850708008
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619408,
+          "lambda_rmse": 8.92424488067627,
+          "mc_rmse": 24.297752380371094,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 12.737370491027832,
+          "saved_pv_v_mc_rmse": 21.46036720275879
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619409,
+          "lambda_rmse": 7.464989185333252,
+          "mc_rmse": 12.065857887268066,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 7.560968399047852,
+          "saved_pv_v_mc_rmse": 8.31166934967041
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619410,
+          "lambda_rmse": 9.250890731811523,
+          "mc_rmse": 14.676445960998535,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 17.146577835083008,
+          "saved_pv_v_mc_rmse": 24.065692901611328
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619411,
+          "lambda_rmse": 12.009228706359863,
+          "mc_rmse": 36.352020263671875,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 21.28295135498047,
+          "saved_pv_v_mc_rmse": 43.561161041259766
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619412,
+          "lambda_rmse": 9.37166690826416,
+          "mc_rmse": 15.491639137268066,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 12.201530456542969,
+          "saved_pv_v_mc_rmse": 19.13978385925293
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619413,
+          "lambda_rmse": 7.059192657470703,
+          "mc_rmse": 15.951116561889648,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 17.42813491821289,
+          "saved_pv_v_mc_rmse": 26.580724716186523
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619414,
+          "lambda_rmse": 10.050610542297363,
+          "mc_rmse": 24.88016128540039,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 12.978861808776855,
+          "saved_pv_v_mc_rmse": 23.70491600036621
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619415,
+          "lambda_rmse": 7.2938714027404785,
+          "mc_rmse": 14.651209831237793,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.167391777038574,
+          "saved_pv_v_mc_rmse": 19.064668655395508
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": true,
+          "episode_id": 1232674619416,
+          "lambda_rmse": 47.678550720214844,
+          "mc_rmse": 246.3451690673828,
+          "motion_id": 0,
+          "primary_success": true,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 114.91719818115234,
+          "saved_pv_v_mc_rmse": 251.9114227294922
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619417,
+          "lambda_rmse": 11.460798263549805,
+          "mc_rmse": 28.55145263671875,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.978791236877441,
+          "saved_pv_v_mc_rmse": 28.283981323242188
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619418,
+          "lambda_rmse": 12.350692749023438,
+          "mc_rmse": 27.525779724121094,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 16.150352478027344,
+          "saved_pv_v_mc_rmse": 22.9339599609375
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619419,
+          "lambda_rmse": 13.357972145080566,
+          "mc_rmse": 22.756715774536133,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 18.51774787902832,
+          "saved_pv_v_mc_rmse": 26.829763412475586
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619420,
+          "lambda_rmse": 13.483734130859375,
+          "mc_rmse": 50.97642135620117,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 19.82246971130371,
+          "saved_pv_v_mc_rmse": 55.492618560791016
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619421,
+          "lambda_rmse": 6.660709381103516,
+          "mc_rmse": 13.027678489685059,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.014265060424805,
+          "saved_pv_v_mc_rmse": 17.797584533691406
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619422,
+          "lambda_rmse": 7.120743751525879,
+          "mc_rmse": 17.018003463745117,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.892066955566406,
+          "saved_pv_v_mc_rmse": 24.816184997558594
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619423,
+          "lambda_rmse": 36.29590606689453,
+          "mc_rmse": 164.6648712158203,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 93.97576141357422,
+          "saved_pv_v_mc_rmse": 196.6201629638672
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619424,
+          "lambda_rmse": 3.933567523956299,
+          "mc_rmse": 10.768819808959961,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.427400588989258,
+          "saved_pv_v_mc_rmse": 17.916370391845703
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619425,
+          "lambda_rmse": 9.899694442749023,
+          "mc_rmse": 14.256291389465332,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 13.124850273132324,
+          "saved_pv_v_mc_rmse": 17.030372619628906
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619426,
+          "lambda_rmse": 10.06480884552002,
+          "mc_rmse": 28.83003044128418,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 11.692578315734863,
+          "saved_pv_v_mc_rmse": 26.474044799804688
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619427,
+          "lambda_rmse": 5.22465705871582,
+          "mc_rmse": 12.63755989074707,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.826129913330078,
+          "saved_pv_v_mc_rmse": 16.262067794799805
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619428,
+          "lambda_rmse": 10.691390991210938,
+          "mc_rmse": 22.401371002197266,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.942967414855957,
+          "saved_pv_v_mc_rmse": 25.745906829833984
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619429,
+          "lambda_rmse": 12.550431251525879,
+          "mc_rmse": 24.09571647644043,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 13.824845314025879,
+          "saved_pv_v_mc_rmse": 21.51190757751465
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619430,
+          "lambda_rmse": 5.029592990875244,
+          "mc_rmse": 12.453932762145996,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 11.493205070495605,
+          "saved_pv_v_mc_rmse": 18.08894920349121
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619431,
+          "lambda_rmse": 11.35705280303955,
+          "mc_rmse": 23.3045597076416,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.769232749938965,
+          "saved_pv_v_mc_rmse": 24.223209381103516
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619432,
+          "lambda_rmse": 14.884247779846191,
+          "mc_rmse": 45.23527145385742,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.995698928833008,
+          "saved_pv_v_mc_rmse": 44.42523956298828
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619433,
+          "lambda_rmse": 5.654004096984863,
+          "mc_rmse": 12.782966613769531,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.781330585479736,
+          "saved_pv_v_mc_rmse": 13.761886596679688
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619434,
+          "lambda_rmse": 7.300164222717285,
+          "mc_rmse": 19.20189094543457,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.508060455322266,
+          "saved_pv_v_mc_rmse": 25.76226234436035
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619435,
+          "lambda_rmse": 14.414685249328613,
+          "mc_rmse": 58.31551742553711,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.74338150024414,
+          "saved_pv_v_mc_rmse": 51.482173919677734
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619436,
+          "lambda_rmse": 7.037349700927734,
+          "mc_rmse": 9.03915023803711,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.187721252441406,
+          "saved_pv_v_mc_rmse": 9.753371238708496
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619437,
+          "lambda_rmse": 26.183229446411133,
+          "mc_rmse": 75.19927978515625,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 27.505191802978516,
+          "saved_pv_v_mc_rmse": 74.82806396484375
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619438,
+          "lambda_rmse": 12.601734161376953,
+          "mc_rmse": 24.681711196899414,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.690454483032227,
+          "saved_pv_v_mc_rmse": 26.163955688476562
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619439,
+          "lambda_rmse": 6.303513050079346,
+          "mc_rmse": 15.769649505615234,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.452997207641602,
+          "saved_pv_v_mc_rmse": 20.6151123046875
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619440,
+          "lambda_rmse": 8.70206069946289,
+          "mc_rmse": 17.172107696533203,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.694942474365234,
+          "saved_pv_v_mc_rmse": 23.08015251159668
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619441,
+          "lambda_rmse": 13.053459167480469,
+          "mc_rmse": 64.52605438232422,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.165544509887695,
+          "saved_pv_v_mc_rmse": 66.50941467285156
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619442,
+          "lambda_rmse": 8.282514572143555,
+          "mc_rmse": 13.376099586486816,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.206672668457031,
+          "saved_pv_v_mc_rmse": 11.254481315612793
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619443,
+          "lambda_rmse": 19.57463836669922,
+          "mc_rmse": 17.983325958251953,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 26.693214416503906,
+          "saved_pv_v_mc_rmse": 28.20411491394043
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619444,
+          "lambda_rmse": 18.85360336303711,
+          "mc_rmse": 97.7392807006836,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 25.269758224487305,
+          "saved_pv_v_mc_rmse": 93.16825103759766
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619445,
+          "lambda_rmse": 5.350857257843018,
+          "mc_rmse": 9.924027442932129,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 7.987681865692139,
+          "saved_pv_v_mc_rmse": 10.259370803833008
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619446,
+          "lambda_rmse": 18.552064895629883,
+          "mc_rmse": 29.063570022583008,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 26.89990997314453,
+          "saved_pv_v_mc_rmse": 37.60024642944336
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619447,
+          "lambda_rmse": 11.61458683013916,
+          "mc_rmse": 26.243919372558594,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 13.228623390197754,
+          "saved_pv_v_mc_rmse": 19.915239334106445
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619448,
+          "lambda_rmse": 5.2716217041015625,
+          "mc_rmse": 7.919349670410156,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.596045017242432,
+          "saved_pv_v_mc_rmse": 7.139227390289307
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619449,
+          "lambda_rmse": 7.7909255027771,
+          "mc_rmse": 18.489870071411133,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 15.352778434753418,
+          "saved_pv_v_mc_rmse": 23.05681610107422
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619450,
+          "lambda_rmse": 21.460041046142578,
+          "mc_rmse": 39.57689666748047,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 25.334259033203125,
+          "saved_pv_v_mc_rmse": 30.36245346069336
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619451,
+          "lambda_rmse": 10.081348419189453,
+          "mc_rmse": 17.85978126525879,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 13.078384399414062,
+          "saved_pv_v_mc_rmse": 18.38498306274414
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619452,
+          "lambda_rmse": 7.577627658843994,
+          "mc_rmse": 17.97454071044922,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 11.975017547607422,
+          "saved_pv_v_mc_rmse": 21.47368812561035
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619453,
+          "lambda_rmse": 13.511800765991211,
+          "mc_rmse": 48.195960998535156,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 17.317285537719727,
+          "saved_pv_v_mc_rmse": 50.97809982299805
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619454,
+          "lambda_rmse": 8.124862670898438,
+          "mc_rmse": 15.815686225891113,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.979132652282715,
+          "saved_pv_v_mc_rmse": 12.120100021362305
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619455,
+          "lambda_rmse": 6.6549973487854,
+          "mc_rmse": 19.795202255249023,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 17.20673370361328,
+          "saved_pv_v_mc_rmse": 32.318634033203125
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619456,
+          "lambda_rmse": 12.218515396118164,
+          "mc_rmse": 31.661258697509766,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 18.591772079467773,
+          "saved_pv_v_mc_rmse": 34.98074722290039
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619457,
+          "lambda_rmse": 8.557733535766602,
+          "mc_rmse": 21.250137329101562,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.763327598571777,
+          "saved_pv_v_mc_rmse": 24.38172149658203
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619458,
+          "lambda_rmse": 14.345263481140137,
+          "mc_rmse": 21.6095027923584,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.452683448791504,
+          "saved_pv_v_mc_rmse": 17.146060943603516
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619459,
+          "lambda_rmse": 19.716602325439453,
+          "mc_rmse": 64.37349700927734,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 26.808387756347656,
+          "saved_pv_v_mc_rmse": 61.70178985595703
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619460,
+          "lambda_rmse": 6.511862754821777,
+          "mc_rmse": 15.780389785766602,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.954444885253906,
+          "saved_pv_v_mc_rmse": 17.326702117919922
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619461,
+          "lambda_rmse": 11.691010475158691,
+          "mc_rmse": 20.28335952758789,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 17.819562911987305,
+          "saved_pv_v_mc_rmse": 29.713972091674805
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619462,
+          "lambda_rmse": 26.487140655517578,
+          "mc_rmse": 117.8118896484375,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 41.609378814697266,
+          "saved_pv_v_mc_rmse": 122.16058349609375
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619463,
+          "lambda_rmse": 4.7637128829956055,
+          "mc_rmse": 8.489364624023438,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 4.806324481964111,
+          "saved_pv_v_mc_rmse": 6.343099117279053
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619464,
+          "lambda_rmse": 6.25956916809082,
+          "mc_rmse": 12.911236763000488,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 11.775588035583496,
+          "saved_pv_v_mc_rmse": 20.22156524658203
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619465,
+          "lambda_rmse": 9.030705451965332,
+          "mc_rmse": 24.194107055664062,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 13.116857528686523,
+          "saved_pv_v_mc_rmse": 22.31378936767578
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619466,
+          "lambda_rmse": 5.053511142730713,
+          "mc_rmse": 9.367473602294922,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.156627655029297,
+          "saved_pv_v_mc_rmse": 11.67230224609375
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619467,
+          "lambda_rmse": 7.2909464836120605,
+          "mc_rmse": 20.520225524902344,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.293283462524414,
+          "saved_pv_v_mc_rmse": 27.91114044189453
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619468,
+          "lambda_rmse": 15.03934097290039,
+          "mc_rmse": 44.354217529296875,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 19.560216903686523,
+          "saved_pv_v_mc_rmse": 48.83143997192383
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619469,
+          "lambda_rmse": 5.846851348876953,
+          "mc_rmse": 10.194467544555664,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.815510272979736,
+          "saved_pv_v_mc_rmse": 13.436595916748047
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619470,
+          "lambda_rmse": 8.010956764221191,
+          "mc_rmse": 15.918331146240234,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 10.732166290283203,
+          "saved_pv_v_mc_rmse": 9.826659202575684
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619471,
+          "lambda_rmse": 10.292224884033203,
+          "mc_rmse": 28.427501678466797,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 14.31350326538086,
+          "saved_pv_v_mc_rmse": 22.918413162231445
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619472,
+          "lambda_rmse": 6.917886734008789,
+          "mc_rmse": 13.346151351928711,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.314148902893066,
+          "saved_pv_v_mc_rmse": 14.333712577819824
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619473,
+          "lambda_rmse": 18.113134384155273,
+          "mc_rmse": 33.69416809082031,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 37.13798904418945,
+          "saved_pv_v_mc_rmse": 51.84135818481445
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619474,
+          "lambda_rmse": 12.033181190490723,
+          "mc_rmse": 54.97931671142578,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 16.82303810119629,
+          "saved_pv_v_mc_rmse": 57.16333770751953
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619475,
+          "lambda_rmse": 6.3684515953063965,
+          "mc_rmse": 12.092158317565918,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.348527908325195,
+          "saved_pv_v_mc_rmse": 14.868735313415527
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619476,
+          "lambda_rmse": 5.485866546630859,
+          "mc_rmse": 11.771292686462402,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 12.117526054382324,
+          "saved_pv_v_mc_rmse": 18.538005828857422
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619477,
+          "lambda_rmse": 9.944371223449707,
+          "mc_rmse": 33.208984375,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 13.993282318115234,
+          "saved_pv_v_mc_rmse": 30.2338809967041
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619478,
+          "lambda_rmse": 4.39769172668457,
+          "mc_rmse": 20.106494903564453,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 9.938669204711914,
+          "saved_pv_v_mc_rmse": 26.592592239379883
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619479,
+          "lambda_rmse": 9.18166732788086,
+          "mc_rmse": 16.842710494995117,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.520255088806152,
+          "saved_pv_v_mc_rmse": 25.122114181518555
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619480,
+          "lambda_rmse": 11.985210418701172,
+          "mc_rmse": 27.201631546020508,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.91873836517334,
+          "saved_pv_v_mc_rmse": 27.138887405395508
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619481,
+          "lambda_rmse": 10.987606048583984,
+          "mc_rmse": 18.374731063842773,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 10.383131980895996,
+          "saved_pv_v_mc_rmse": 15.412389755249023
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619482,
+          "lambda_rmse": 6.08191442489624,
+          "mc_rmse": 14.303030967712402,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 15.592386245727539,
+          "saved_pv_v_mc_rmse": 24.433629989624023
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619483,
+          "lambda_rmse": 13.023385047912598,
+          "mc_rmse": 57.4007568359375,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 17.47669219970703,
+          "saved_pv_v_mc_rmse": 61.61697006225586
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619484,
+          "lambda_rmse": 5.551487922668457,
+          "mc_rmse": 27.250904083251953,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 6.686318397521973,
+          "saved_pv_v_mc_rmse": 29.398962020874023
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619485,
+          "lambda_rmse": 9.511993408203125,
+          "mc_rmse": 17.560087203979492,
+          "motion_id": 0,
+          "primary_success": false,
+          "rows": 542,
+          "saved_pv_v_lambda_rmse": 14.588117599487305,
+          "saved_pv_v_mc_rmse": 23.606534957885742
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619486,
+          "lambda_rmse": 11.287304878234863,
+          "mc_rmse": 25.017108917236328,
+          "motion_id": 1,
+          "primary_success": false,
+          "rows": 652,
+          "saved_pv_v_lambda_rmse": 15.052669525146484,
+          "saved_pv_v_mc_rmse": 22.143360137939453
+        },
+        {
+          "checkpoint": 287,
+          "drop_after_primary": false,
+          "episode_id": 1232674619487,
+          "lambda_rmse": 5.556473255157471,
+          "mc_rmse": 17.333818435668945,
+          "motion_id": 2,
+          "primary_success": false,
+          "rows": 487,
+          "saved_pv_v_lambda_rmse": 8.479229927062988,
+          "saved_pv_v_mc_rmse": 21.93986701965332
+        }
+      ],
+      "episodes": 192,
+      "lambda_meta": {
+        "missing_nonterminal_next_values": 0,
+        "rollout_boundary_rows": 3456,
+        "terminal_rows_masked": 192
+      },
+      "lambda_vs_mc": {
+        "286": {
+          "bias": -25.744426727294922,
+          "episodes": 96,
+          "mae": 41.05852127075195,
+          "rmse": 128.52423095703125,
+          "rows": 53792
+        },
+        "287": {
+          "bias": -5.121674537658691,
+          "episodes": 96,
+          "mae": 20.763124465942383,
+          "rmse": 40.8133659362793,
+          "rows": 53792
+        },
+        "all": {
+          "bias": -15.433051109313965,
+          "episodes": 192,
+          "mae": 30.910823822021484,
+          "rmse": 95.35253143310547,
+          "rows": 107584
+        }
+      },
+      "metrics": {
+        "ppo_critic": {
+          "checkpoint": {
+            "286": {
+              "lambda": {
+                "bias": -3.037717819213867,
+                "episodes": 96,
+                "mae": 8.074840545654297,
+                "rmse": 20.557846069335938,
+                "rows": 53792
+              },
+              "mc": {
+                "bias": -28.78214454650879,
+                "episodes": 96,
+                "mae": 46.59025573730469,
+                "rmse": 142.11123657226562,
+                "rows": 53792
+              }
+            },
+            "287": {
+              "lambda": {
+                "bias": -0.5785956978797913,
+                "episodes": 96,
+                "mae": 6.921993732452393,
+                "rmse": 12.935463905334473,
+                "rows": 53792
+              },
+              "mc": {
+                "bias": -5.700270652770996,
+                "episodes": 96,
+                "mae": 23.778230667114258,
+                "rmse": 46.06856155395508,
+                "rows": 53792
+              }
+            }
+          },
+          "motion": {
+            "0": {
+              "lambda": {
+                "bias": -2.975435256958008,
+                "episodes": 64,
+                "mae": 9.229159355163574,
+                "rmse": 23.824954986572266,
+                "rows": 34688
+              },
+              "mc": {
+                "bias": -29.388952255249023,
+                "episodes": 64,
+                "mae": 53.11547088623047,
+                "rmse": 169.39682006835938,
+                "rows": 34688
+              }
+            },
+            "1": {
+              "lambda": {
+                "bias": -2.1815147399902344,
+                "episodes": 64,
+                "mae": 7.940596103668213,
+                "rmse": 14.173245429992676,
+                "rows": 41728
+              },
+              "mc": {
+                "bias": -19.515535354614258,
+                "episodes": 64,
+                "mae": 34.08915328979492,
+                "rmse": 57.39289093017578,
+                "rows": 41728
+              }
+            },
+            "2": {
+              "lambda": {
+                "bias": -0.009195334278047085,
+                "episodes": 64,
+                "mae": 4.980218887329102,
+                "rmse": 10.839983940124512,
+                "rows": 31168
+              },
+              "mc": {
+                "bias": -0.6766496300697327,
+                "episodes": 64,
+                "mae": 16.694046020507812,
+                "rmse": 46.60356521606445,
+                "rows": 31168
+              }
+            }
+          },
+          "overall": {
+            "all": {
+              "lambda": {
+                "bias": -1.8081566095352173,
+                "episodes": 192,
+                "mae": 7.498417377471924,
+                "rmse": 17.174854278564453,
+                "rows": 107584
+              },
+              "mc": {
+                "bias": -17.241207122802734,
+                "episodes": 192,
+                "mae": 35.18424606323242,
+                "rmse": 105.63597106933594,
+                "rows": 107584
+              }
+            }
+          },
+          "phase": {
+            "contact": {
+              "lambda": {
+                "bias": -3.934105634689331,
+                "episodes": 192,
+                "mae": 11.180826187133789,
+                "rmse": 20.519886016845703,
+                "rows": 38986
+              },
+              "mc": {
+                "bias": -25.410003662109375,
+                "episodes": 192,
+                "mae": 49.30768966674805,
+                "rmse": 113.34841918945312,
+                "rows": 38986
+              }
+            },
+            "drop": {
+              "lambda": {
+                "bias": -9.518402099609375,
+                "episodes": 9,
+                "mae": 63.36782455444336,
+                "rmse": 85.83692932128906,
+                "rows": 9
+              },
+              "mc": {
+                "bias": -104.18405151367188,
+                "episodes": 9,
+                "mae": 213.45301818847656,
+                "rmse": 345.1868591308594,
+                "rows": 9
+              }
+            },
+            "held_1s": {
+              "lambda": {
+                "bias": -79.97422790527344,
+                "episodes": 9,
+                "mae": 82.2636947631836,
+                "rmse": 97.05610656738281,
+                "rows": 1232
+              },
+              "mc": {
+                "bias": -620.93603515625,
+                "episodes": 9,
+                "mae": 621.7919921875,
+                "rmse": 679.740966796875,
+                "rows": 1232
+              }
+            },
+            "other": {
+              "lambda": {
+                "bias": 0.5388211607933044,
+                "episodes": 7,
+                "mae": 2.476898670196533,
+                "rmse": 4.086355686187744,
+                "rows": 1535
+              },
+              "mc": {
+                "bias": 0.9011057019233704,
+                "episodes": 7,
+                "mae": 4.856163501739502,
+                "rmse": 9.869100570678711,
+                "rows": 1535
+              }
+            },
+            "pre_contact": {
+              "lambda": {
+                "bias": 0.8603982329368591,
+                "episodes": 192,
+                "mae": 4.027419090270996,
+                "rmse": 7.417768955230713,
+                "rows": 65822
+              },
+              "mc": {
+                "bias": -1.5146307945251465,
+                "episodes": 192,
+                "mae": 16.522275924682617,
+                "rmse": 44.29977035522461,
+                "rows": 65822
+              }
+            }
+          },
+          "primary": {
+            "drop_after_primary": {
+              "lambda": {
+                "bias": -39.95456314086914,
+                "episodes": 7,
+                "mae": 43.902706146240234,
+                "rmse": 68.82781982421875,
+                "rows": 3849
+              },
+              "mc": {
+                "bias": -384.147216796875,
+                "episodes": 7,
+                "mae": 390.20172119140625,
+                "rmse": 522.8988647460938,
+                "rows": 3849
+              }
+            },
+            "no_drop_after_primary": {
+              "lambda": {
+                "bias": -0.3927665054798126,
+                "episodes": 185,
+                "mae": 6.147666931152344,
+                "rmse": 11.408246040344238,
+                "rows": 103735
+              },
+              "mc": {
+                "bias": -3.6274678707122803,
+                "episodes": 185,
+                "mae": 22.011621475219727,
+                "rmse": 37.78704833984375,
+                "rows": 103735
+              }
+            },
+            "primary_failure": {
+              "lambda": {
+                "bias": -0.3927665054798126,
+                "episodes": 185,
+                "mae": 6.147666931152344,
+                "rmse": 11.408246040344238,
+                "rows": 103735
+              },
+              "mc": {
+                "bias": -3.6274678707122803,
+                "episodes": 185,
+                "mae": 22.011621475219727,
+                "rmse": 37.78704833984375,
+                "rows": 103735
+              }
+            },
+            "primary_success": {
+              "lambda": {
+                "bias": -39.95456314086914,
+                "episodes": 7,
+                "mae": 43.902706146240234,
+                "rmse": 68.82781982421875,
+                "rows": 3849
+              },
+              "mc": {
+                "bias": -384.147216796875,
+                "episodes": 7,
+                "mae": 390.20172119140625,
+                "rmse": 522.8988647460938,
+                "rows": 3849
+              }
+            }
+          }
+        },
+        "saved_pv_v": {
+          "checkpoint": {
+            "286": {
+              "lambda": {
+                "bias": -2.9065895080566406,
+                "episodes": 96,
+                "mae": 12.410595893859863,
+                "rmse": 28.231143951416016,
+                "rows": 53792
+              },
+              "mc": {
+                "bias": -28.65101432800293,
+                "episodes": 96,
+                "mae": 46.639713287353516,
+                "rmse": 148.472412109375,
+                "rows": 53792
+              }
+            },
+            "287": {
+              "lambda": {
+                "bias": 2.8542370796203613,
+                "episodes": 96,
+                "mae": 11.696791648864746,
+                "rmse": 22.280195236206055,
+                "rows": 53792
+              },
+              "mc": {
+                "bias": -2.2674381732940674,
+                "episodes": 96,
+                "mae": 26.19382095336914,
+                "rmse": 48.830204010009766,
+                "rows": 53792
+              }
+            }
+          },
+          "motion": {
+            "0": {
+              "lambda": {
+                "bias": -1.9684603214263916,
+                "episodes": 64,
+                "mae": 15.390419960021973,
+                "rmse": 36.04517364501953,
+                "rows": 34688
+              },
+              "mc": {
+                "bias": -28.381973266601562,
+                "episodes": 64,
+                "mae": 56.93996047973633,
+                "rmse": 178.7328643798828,
+                "rows": 34688
+              }
+            },
+            "1": {
+              "lambda": {
+                "bias": 1.8198373317718506,
+                "episodes": 64,
+                "mae": 13.08109188079834,
+                "rmse": 21.85742950439453,
+                "rows": 41728
+              },
+              "mc": {
+                "bias": -15.51418399810791,
+                "episodes": 64,
+                "mae": 33.920963287353516,
+                "rmse": 57.746883392333984,
+                "rows": 41728
+              }
+            },
+            "2": {
+              "lambda": {
+                "bias": -0.33599698543548584,
+                "episodes": 64,
+                "mae": 6.9646406173706055,
+                "rmse": 12.109979629516602,
+                "rows": 31168
+              },
+              "mc": {
+                "bias": -1.0034513473510742,
+                "episodes": 64,
+                "mae": 16.917160034179688,
+                "rmse": 46.288482666015625,
+                "rows": 31168
+              }
+            }
+          },
+          "overall": {
+            "all": {
+              "lambda": {
+                "bias": -0.026176348328590393,
+                "episodes": 192,
+                "mae": 12.053692817687988,
+                "rmse": 25.430341720581055,
+                "rows": 107584
+              },
+              "mc": {
+                "bias": -15.459227561950684,
+                "episodes": 192,
+                "mae": 36.41676712036133,
+                "rmse": 110.51798248291016,
+                "rows": 107584
+              }
+            }
+          },
+          "phase": {
+            "contact": {
+              "lambda": {
+                "bias": 1.331514835357666,
+                "episodes": 192,
+                "mae": 16.812419891357422,
+                "rmse": 29.80695152282715,
+                "rows": 38986
+              },
+              "mc": {
+                "bias": -20.144384384155273,
+                "episodes": 192,
+                "mae": 50.13383483886719,
+                "rmse": 115.65038299560547,
+                "rows": 38986
+              }
+            },
+            "drop": {
+              "lambda": {
+                "bias": 10.438637733459473,
+                "episodes": 9,
+                "mae": 81.7132568359375,
+                "rmse": 112.13972473144531,
+                "rows": 9
+              },
+              "mc": {
+                "bias": -84.22701263427734,
+                "episodes": 9,
+                "mae": 236.4868927001953,
+                "rmse": 360.1800842285156,
+                "rows": 9
+              }
+            },
+            "held_1s": {
+              "lambda": {
+                "bias": -125.54248809814453,
+                "episodes": 9,
+                "mae": 130.45217895507812,
+                "rmse": 144.85508728027344,
+                "rows": 1232
+              },
+              "mc": {
+                "bias": -666.5043334960938,
+                "episodes": 9,
+                "mae": 668.2329711914062,
+                "rmse": 730.633544921875,
+                "rows": 1232
+              }
+            },
+            "other": {
+              "lambda": {
+                "bias": 5.765789031982422,
+                "episodes": 7,
+                "mae": 6.550973415374756,
+                "rmse": 11.918216705322266,
+                "rows": 1535
+              },
+              "mc": {
+                "bias": 6.1280741691589355,
+                "episodes": 7,
+                "mae": 7.01114559173584,
+                "rmse": 14.740653038024902,
+                "rows": 1535
+              }
+            },
+            "pre_contact": {
+              "lambda": {
+                "bias": 1.3824756145477295,
+                "episodes": 192,
+                "mae": 7.13784646987915,
+                "rmse": 11.533183097839355,
+                "rows": 65822
+              },
+              "mc": {
+                "bias": -0.9925534129142761,
+                "episodes": 192,
+                "mae": 17.12482261657715,
+                "rmse": 45.025875091552734,
+                "rows": 65822
+              }
+            }
+          },
+          "primary": {
+            "drop_after_primary": {
+              "lambda": {
+                "bias": -47.167423248291016,
+                "episodes": 7,
+                "mae": 69.57009887695312,
+                "rmse": 102.30699920654297,
+                "rows": 3849
+              },
+              "mc": {
+                "bias": -391.36004638671875,
+                "episodes": 7,
+                "mae": 412.9627685546875,
+                "rmse": 549.2921752929688,
+                "rows": 3849
+              }
+            },
+            "no_drop_after_primary": {
+              "lambda": {
+                "bias": 1.7229599952697754,
+                "episodes": 185,
+                "mae": 9.919595718383789,
+                "rmse": 16.802936553955078,
+                "rows": 103735
+              },
+              "mc": {
+                "bias": -1.5117416381835938,
+                "episodes": 185,
+                "mae": 22.445343017578125,
+                "rmse": 38.37038803100586,
+                "rows": 103735
+              }
+            },
+            "primary_failure": {
+              "lambda": {
+                "bias": 1.7229599952697754,
+                "episodes": 185,
+                "mae": 9.919595718383789,
+                "rmse": 16.802936553955078,
+                "rows": 103735
+              },
+              "mc": {
+                "bias": -1.5117416381835938,
+                "episodes": 185,
+                "mae": 22.445343017578125,
+                "rmse": 38.37038803100586,
+                "rows": 103735
+              }
+            },
+            "primary_success": {
+              "lambda": {
+                "bias": -47.167423248291016,
+                "episodes": 7,
+                "mae": 69.57009887695312,
+                "rmse": 102.30699920654297,
+                "rows": 3849
+              },
+              "mc": {
+                "bias": -391.36004638671875,
+                "episodes": 7,
+                "mae": 412.9627685546875,
+                "rmse": 549.2921752929688,
+                "rows": 3849
+              }
+            }
+          }
+        }
+      },
+      "native_per_episode_checked": 192,
+      "primary_episode_counts": {
+        "drop_after_primary": 7,
+        "success": 7
+      },
+      "rows": 107584,
+      "saved_pv_v": {
+        "checkpoints": {
+          "286": {
+            "epoch": 420,
+            "finite": true,
+            "frame": 327680,
+            "optimizer_step": [
+              7680.0
+            ],
+            "path": "src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s286/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+            "rows": 53792,
+            "sha256": "0fe81f67f7b95356253edbdc755ccbc475ea77fb8a472ee99bb565dd6f327cf0",
+            "value_parameter_count": 295681
+          },
+          "287": {
+            "epoch": 420,
+            "finite": true,
+            "frame": 327680,
+            "optimizer_step": [
+              7680.0
+            ],
+            "path": "src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/train_cm_value_s287/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000420.pth",
+            "rows": 53792,
+            "sha256": "afdb2cdf56d3350e18862d782d777e9aeb8a8133bf6690c440b43b9c8d5698bf",
+            "value_parameter_count": 295681
+          }
+        },
+        "model_checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+        "return_scale_not_applied": true
+      },
+      "status": "COMPLETED"
+    },
+    "elapsed_seconds": 32.08695367304608,
+    "git_commit": "56b898ecee1cc51b995dbb1434b912543b205796",
+    "output_bytes": 91271,
+    "run_status": "COMPLETED",
+    "scope": "factual current-policy diagnostic; no utility/counterfactual/convergence claim"
+  },
+  "raw_diagnostic_path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/value_diagnostic.json",
+  "raw_diagnostic_sha256": "b1bb3d497262b87153a0f5b23997c90de8f092949d8ee1d712c0f8c320eec584",
+  "orchestrator_source": {
+    "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-diagnostic-r5-support/run_panel_r5.py",
+    "sha256": "c8a6daac20ae08b320a6dd5035f2527759be0cd21ace7eab399e09720c406ef3"
+  },
+  "interpretation": {
+    "observed": "Saved physical V has greater factual frozen-lambda error than PPO critic in both checkpoint panels; frozen-lambda and realized complete MC differ substantially, especially on rare primary-success episodes.",
+    "decision": "Do not conclude V is sufficiently fitted/calibrated or that more V updates alone repair HF08. Any next work should separate factual V fit from target/return disagreement on task-relevant episodes.",
+    "limits": [
+      "frame0 Gaussian diagnostic sub-distribution only",
+      "single realized return per episode is stochastic",
+      "7 primary successes, all drop afterwards; seed287 success stratum has only1 episode",
+      "no candidate counterfactual ranking, convergence, bootstrap-bias, policy-utility, or formal causal claim",
+      "HF08 remains PAUSED and utility slot1of1 exhausted"
+    ]
+  }
+}

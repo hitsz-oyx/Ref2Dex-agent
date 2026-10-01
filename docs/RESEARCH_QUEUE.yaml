@@ -7,21 +7,27 @@ pending_dispatches: []
 
 # CPU-only engineering preparation is tracked separately from Probe search slots.
 # These tasks do not collect transitions, train, or create a scientific claim.
-active_engineering_tasks:
+active_engineering_tasks: []
+
+completed_engineering_tasks:
   - id: T-20261001-current-policy-value-collector-runtime
     owner: agent_rl
-    kind: engineering_preparation
-    status: ACTIVE
-    resources: {cpu: 2, wall_minutes: 20, storage_gib: 0.1, gpu: 0}
-    purpose: "prepare current-policy complete-episode collector runtime and CPU contract"
-    outcome_boundary: "no simulator, collection, training, or new Probe"
+    status: COMPLETED
+    outcome_boundary: "initial CPU implementation; later direct root repair in diagnostic card"
   - id: T-20261001-current-policy-value-diagnostic-contract
     owner: agent_cm
-    kind: engineering_preparation
-    status: ACTIVE
-    resources: {cpu: 2, wall_minutes: 20, storage_gib: 0.1, gpu: 0}
-    purpose: "prepare MC and frozen PPO GAE(lambda) diagnostic contract"
-    outcome_boundary: "synthetic contract checks only; no scientific judgment"
+    status: COMPLETED
+    outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
+
+completed_diagnostics:
+  - id: P-20261001-current-policy-value-diagnostic
+    owner: root
+    status: COMPLETED
+    label: UNCLEAR
+    authorization: "user explicitly requested direct takeover without subagents"
+    card: docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md
+    evidence: docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_DIRECT_20261001.md
+    outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:

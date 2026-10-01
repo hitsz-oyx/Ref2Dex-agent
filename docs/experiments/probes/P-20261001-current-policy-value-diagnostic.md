@@ -72,3 +72,24 @@ frame0/seed290/Gaussian/原动作裁剪，无额外噪声、teacher、参数或 
 r4 FAILED after 76.468 seconds, 0 exported rows. Native player sampling passed; first export hit a context-shape guard. The saved physical model uses context_dim=435, while the old collector/mock assumed605. A long-panel CPU repro also revealed premature32768-row export applying a complete-episode validator to partial episodes. Both defects are now repaired: pinned435-D context, one final export after all first episodes complete. 24 CPU tests passed, including the actual two-checkpoint native-player equivalence, saved model context dimension, and400-step/38400-row complete-panel regression.
 
 r5 keeps identical scientific inputs/seed/task/reward and fresh unique output. It consumes the remaining1120 seconds of this takeover1200-second runtime ceiling; r4 bytes remain charged against the same2GiB ceiling. Old attempts remain read-only. GPU4 ownership is rechecked; no new scientific slot or training.
+
+## r5 completed factual diagnostic
+
+r5 COMPLETED: each actor53792 rows/96 complete episodes; total107584/192.
+Native primary/drop replay matches all192 episodes, excluded_rows0, next critic
+values crosscheck same-episode successor and terminal0; source/model/config hashes
+unchanged, all owned GPU processes terminal. Full CPU tests24 passed; diagnostic
+reporting tests11 passed after per-checkpoint/target-gap reporting.
+
+Saved physical V vs frozen32-step GAE RMSE: s28628.231, s28722.280, pooled25.430.
+PPO critic vs same GAE:20.558/12.935/17.175. Frozen GAE vs realized complete MC:
+128.524/40.813/95.353. Seven primary successes (s2866, s2871) all subsequently
+drop; this Gaussian frame0 panel is not the deterministic native utility gate.
+
+Diagnostic label UNCLEAR: factual V fit and target/realized-return disagreement
+both remain active; cannot infer convergence, conditional-expectation calibration,
+bootstrap bias, counterfactual ranking, or that more V updates alone repair HF08.
+No training or HF08 utility slot reset. Detailed metrics, hashes, commands and
+costs: [direct-root report](../../handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_DIRECT_20261001.md).
+Combined r4+r5 runtime279.469 seconds, collection/support455907862 bytes before
+small diagnostic/report additions, CPU diagnostic32.087 seconds/2threads.
