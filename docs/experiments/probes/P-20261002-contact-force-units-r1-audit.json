@@ -1,0 +1,70 @@
+{
+  "status": "COMPLETED",
+  "telemetry_sha256": "e39ddeae430600a043a3cd361f9d6b57132add3b38c541b8ad7d0b053717d8ea",
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/probe_contact_force_units.py": "44fff082255e4624cf91a63ed15ac5499c272df8a31577e0a0c54795f25cab7a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/executable_contact_options.py": "5993d464bfb1ff5d3fb70da76825b79bed77a7990f7b9fceefc93d950de81a25",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/configs/hf02_temporal_canonical_route.json": "afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/environment.yaml": "f66b3d16d685678ec24e757972b1521de96df6d51970a7abca2185fb376a37b9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/training.yaml": "a9b46c7bad03df3518cca07734fcb1a9d78f448ccf951ed119c999ff97eebf38",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf": "9a1b201ca8ae2f175aa14799fdae1367863363d92a005221c58cb5626366e2f4",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/table.urdf": "83f54218ac181102ebbf9a36f9c795819940c2f649e5f950741f99b4a75f28fe",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/objects/airplane/airplane.obj": "dcbb1cce38e65b3ee608e20f0846cbf93aa3b7bbf863a67582d9944f9a0d64f0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/third_party/DExplore/dexplore/data/assets/mjcf/objects/table/table.obj": "25c6fb8b774a04f5314a13a538b9c26886716d196d46a68979e817755cf0e383",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/evaluate.py": "ec4bdc11e3a794d6a5743b4ea2bb0eacb01d885d3cf686d5625b43a6bad1d8f9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py": "ef9d000cd365663e6deca5d4b3cf14c82eb67e20f997f4db913cd60cfd522b3d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py": "9824b67e3fdbe2dcc81302311cbb2694f50c07d0b48a0283852402f6d5babcb7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/DExplore/dexplore/env/tasks/base_task.py": "a8dfe482676897eff737918270314b7b4fded057faf260337603b5b5c90dd986",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s3_coordfix/corrected_converted_r2/s3_airplane_lift/interaction_hand_inspire.pt": "64d18ee69ea3fcb7ed76300aa2f5004383b7c01b29a30bc533f6960e3db5be1c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s7_coordfix/corrected_converted/s7_airplane_lift_Retake/interaction_hand_inspire.pt": "31cc18d4719e9e8d02f3c6d142d943a1eeedcdde3472ff690f0171090b374fc6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/CmResidual/agent_v129_s9_coordfix/corrected_converted/s9_airplane_lift/interaction_hand_inspire.pt": "27e96c54756b84502cd56c6f801852b809de378a45b69f8de24f4b9899305c32"
+  },
+  "input_hashes_verified_before_source_change": true,
+  "quiet_mask_and_force_quantiles_recomputed": true,
+  "parent_and_native_pids_exited": true,
+  "scoped_bytes": 4632487,
+  "elapsed_seconds": 42.185641888994724,
+  "result": {
+    "run_status": "COMPLETED",
+    "kind": "ENGINEERING_FORCE_UNIT_DIAGNOSTIC",
+    "episodes": 96,
+    "frames": 150,
+    "quiet_observations": 5760,
+    "mass_kg_range": [
+      0.0025936129968613386,
+      0.0025936129968613386
+    ],
+    "object_flags": [
+      0
+    ],
+    "substeps": 4,
+    "contact_collection": 2,
+    "weight_N_range": [
+      0.025443345308303833,
+      0.025443345308303833
+    ],
+    "quiet_force_N_quantiles": [
+      0.00635926378890872,
+      0.014939483255147934,
+      0.025529224425554276,
+      0.0359543040394783,
+      0.07124713808298111
+    ],
+    "quiet_force_over_weight_quantiles": [
+      0.5871666073799133,
+      1.0033752918243408,
+      1.4131122827529907
+    ],
+    "quiet_fraction_above_legacy_threshold": 0.0,
+    "quiet_min_hand_distance_m": 2.148879051208496,
+    "quiet_clearance_m_quantiles": [
+      0.00036738673225045204,
+      0.00036765681579709053,
+      0.0003677518106997013
+    ],
+    "telemetry_sha256": "e39ddeae430600a043a3cd361f9d6b57132add3b38c541b8ad7d0b053717d8ea",
+    "elapsed_seconds": 39.728052569087595,
+    "scope": "known resting-contact telemetry with hand>1m away and object quiet; verifies net-force scale, does not prove grasp or change old labels"
+  }
+}

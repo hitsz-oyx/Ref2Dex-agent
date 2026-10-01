@@ -70,10 +70,12 @@ HF13已完成3404实际窗口/573episodes：留出已离桌536状态，hold204/b
 [−33.629,−17.382]mm；几何失去离桌间隙+21.922pp，fit最佳合格固定候选
 仍base，原门UNPROMISING1/1关闭。PD/geometry/propensity全回放0误差，
 自有PIDs退出/GPU释放；含工程23.21分钟/37.7MB。不对该候选直接拟合Cm。
-另有尚待实测的标签blocker：airplane实际质量约2.6g，重量.0254N而净力
-代理阈值.1N；4substeps的力汇总需用静态已知接触测量，不先断言误标。
-下一步先核对原始force，再设计腕部保持/手指继续反馈的候选；旧几何损失
-和所有失败门保留，C3仍OPEN。
+已完成原始force单位工程核对：96env×60安静支撑帧，物体净接触力中位
+.025529N，约1.003倍实际重量；旧.1N代理在5760帧均不触发。旧false不能
+直接解释为真实接触丢失，旧结果继续按强力代理合同保留；HF13几何损失不变。
+下一步补测完全悬空负例，给新数据保存原始力/质量及归一化接触代理，再设计
+腕部保持/手指继续反馈的候选；不会回填旧bool标签或改旧失败门，C3仍OPEN。
+见 [原始力审计](experiments/probes/P-20261002-contact-force-units-r1-audit.json)。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。

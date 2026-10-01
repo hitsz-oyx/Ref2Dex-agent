@@ -91,7 +91,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "active user goal: state/RNG/action paired evaluator; repeat off before gated existing three-arm inference; no training"
     card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
-    transition: "Closed UNPROMISING1/1. 3404windows/573episodes; held536initiallyclear,204hold/218base supported. Pose-hold signed-retention−25.191mm, geometric-loss+21.922pp, joint-force−20.989pp. Bestqualifiedfixed=base. All12phase/input/PD/geometry/propensity gates pass; owned PIDs exit/GPU released. Do not fit Cm on unsupported pose-freeze; verify light-object contact-force reporting then active finger-control candidates."
+    transition: "Closed UNPROMISING1/1. Cold/RNN/RNG/action/drop contracts pass, but off-repeat34/384vs35/384 has63success and61drop flips; original5% disagreement gate fails. Current HF08 implementation KILLED, no gated policy matrix or training; C3OPEN, resources released."
   HD01:
     name: current_policy_frozen_gae_value_adaptation
     status: CLOSED
@@ -100,7 +100,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "user said continue after bounded V-fitting proposal, then questioned GPU nonuse"
     card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
-    transition: "Closed UNPROMISING1/1. 3404windows/573episodes; held536initiallyclear,204hold/218base supported. Pose-hold signed-retention−25.191mm, geometric-loss+21.922pp, joint-force−20.989pp. Bestqualifiedfixed=base. All12phase/input/PD/geometry/propensity gates pass; owned PIDs exit/GPU released. Do not fit Cm on unsupported pose-freeze; verify light-object contact-force reporting then active finger-control candidates."
+    transition: "Closed UNPROMISING1/1. Fixed two-checkpoint20% GAE adaptation gate missed: factual fit improves70–76%, holdout18–46%; MC/calibration/convergence unresolved. No repeated tuning; source checkpoints unchanged, GPU released."
 
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:
