@@ -67,11 +67,22 @@ This is an identified risk DIFFERENCE, not absolute effect RMSE. No subgroup
 or seed replaces the failed gate. Stop direct control use of these archived
 factual predictors; their causal advantage is not supported by the new trial.
 
-Current next hypothesis: learn conditional effects directly from randomized
-supervision; evaluate on another independently frozen initial-seed cohort with
-matched newly trained factual/compute controls and a global-effect baseline.
-No PPO yet. Analytical estimator checks pass under uniform/unequal propensities;
-25relevant checks have passed across this stage. GPU4/5 released; no run active.
+Direct randomized learner (`2075314`) COMPLETED:3072fit and3072newtest windows,
+initial seeds494/495,IIDseven-arm assignment. All five gates fail, UNPROMISING:
+direct-minus-factual risk+23.9773mm²,upper95%=44.2011; every seed worse.
+Compute-matched/global/zero controls also not beaten. Six nuisance-fold scales,
+16fit model/data files,135test input hashes, predictions and risk/bootstrap arrays
+pass independent CPU/NumPy audits. Fit/test30.31/134.49s;3.41/11.89MiB. Stop
+this exact learner; no further updates or selected subgroups.
+
+POST-HOC candidate evidence: the simpler factual1000-update control has
+factual-minus-zero/global risk-3.4359/-3.1576mm²,upper95%-1.1063/-1.2216,
+negative in each fixed seed. This does not upgrade the failed direct primary
+gate. No robust benefit of3000versus1000updates appears. The baseline is not
+novel and has not demonstrated task benefit. Next frozen Decision Probe tests
+equal-weight factual selection against actor/random/global controls on new
+seeds496/497, full first-episode retained success and drops, bounded corrections.
+No PPO yet.13focused implementation checks pass. GPU4/5 released; no run active.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -84,7 +95,10 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Fresh matching failure](research/20261001-fresh-causal-transfer-results.md)
 - [Randomized estimand decision](decisions/D-20261001-randomized-effect-risk.md)
 - [Randomized trial results](research/20261001-randomized-effect-risk-results.md)
-- [Current manuscript](../paper/manuscript-v2.tex) and [PDF review copy](../paper/manuscript-v2.pdf)
+- [Direct randomized results](research/20261001-direct-randomized-response-results.md)
+- [Task-selection decision](decisions/D-20261001-randomized-task-selection.md)
+- [Next task Probe](experiments/probes/P-20261001-randomized-task-selection.md)
+- [Current manuscript](../paper/manuscript-v3.tex) and [PDF review copy](../paper/manuscript-v3.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
 readiness is NOT READY: distinctive method, task-level matched policy benefit,

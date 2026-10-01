@@ -1,6 +1,15 @@
 # Contact-response manuscript
 
-Current: `manuscript-v2.tex` and five-page `manuscript-v2.pdf`. This revision
+Current: `manuscript-v3.tex` and six-page `manuscript-v3.pdf`. Revision3adds
+prospective randomized identification and the failed direct-supervision screen.
+It distinguishes primary failure from post-hoc factual-control candidate evidence;
+no task benefit is yet claimed. Seven tables come from recorded result JSON;
+post-hoc prose numbers are checked against a separately labeled secondary record.
+Source/evidence/PDF hashes are in `export_manifest-v3.json`. PDF text and table
+layout were checked. Export using `python3 scripts/export_contact_response_v3.py`
+after preserving the old review render. No TeX installation is required for review.
+
+Preserved: `manuscript-v2.tex` and five-page `manuscript-v2.pdf`. This revision
 adds the geometry audit, larger archived factorization screen, exact-null
 recovery screen, and failed fresh matching requirement. All five tables in
 `tables/` are generated from recorded JSON. No fresh causal-model winner is
@@ -9,7 +18,7 @@ records source/evidence/PDF hashes; PDF text and table layout were checked.
 Export with `python3 scripts/export_contact_response_v2.py` to a NEW destination
 after preserving an existing render. No TeX installation is required for review.
 
-The original first revision below remains preserved. Neither revision meets the
+The original first revision below remains preserved. None of these revisions meets the
 user's journal-level objective; distinctive methodology and task evidence remain
 active research requirements.
 

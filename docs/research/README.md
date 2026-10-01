@@ -14,6 +14,9 @@
 全部失败门槛保留；当前活跃实验以本工作树 STATE 和对应 run manifest 为准。
 新的 [prospective randomized risk result](20261001-randomized-effect-risk-results.md)
 完整采集3072窗口，未支持历史模型的因果效果优势；不能当作政策收益。
+[direct randomized response](20261001-direct-randomized-response-results.md)
+在另一批3072新窗口上未通过门槛；其事实模型对照的事后信号只用于选择下一轮
+[抓取保持/掉落实验](../experiments/probes/P-20261001-randomized-task-selection.md)。
 
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。

@@ -1,0 +1,35 @@
+{
+  "run_status": "COMPLETED",
+  "rendering": "ReportLab review copy; not native TeX compilation",
+  "source_sha256": {
+    "paper/manuscript-v3.tex": "7778b34d05f086183f3af56384e1feb5322aa930baf0f17d39c48a2dec73f256",
+    "scripts/export_contact_response_v3.py": "a3d936587dc4463d1e5ac72087bb26cd6c7a1b15b1c70f47e532219abb1e2585",
+    "scripts/export_contact_response_paper.py": "95aa46f55715c8d7b9a6c4d72e34f298ad17c2a98b2c0c6856dd2c8a979dfbe8",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-direct-randomized-response-test-r1/posthoc_controls.json": "7bcad0622c9de17f361c51c5fa37d8224224b0a97d5a06c27d7e60e2abe6a1b3",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-contact-response-resolution-r1/analysis-v2/analysis.json": "2ee02fa832e55ae789e2b4d5369a9cdfa4dc7e4dc7bf179611252db2514ddc66",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-differential-response-learning-r1/results.json": "3cde4863d6e69b9796a3649f054b6c22f9f7c5f6d7fa750a2598ca33d6ea116f",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-actuation-effect-factorization-r1/results.json": "42eca6a17cbb0a00f506790737181e779d6227a0826bdfb80c5e85288bfd156e",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-null-action-recovery-r1/results.json": "6a52c5ac9556d1c65c1493cd40915870c5c7d84b801e750560636efd11c8ddbc",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-fresh-causal-transfer-r1/failure_analysis.json": "5364ef8c1ef0b5e1b2d7f3fbc2991d6cd7c099a2783d87612694b13180d4fcec",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-randomized-effect-risk-r2/results.json": "4006c8bdb93893e287eacec3522c86342861466205eec5bef6dd82b95bbc3b8a",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-direct-randomized-response-test-r1/results.json": "9206c9cec36a1e42cc51027b5e6fce0d8981759d4d416f18df9d8c77c4975f5e",
+    "paper/tables/physical-r1.tex": "4d82e1c40d8a47d489d5cf6d278233ff4f9b9d41a1431d1370a6d30b4571cde4",
+    "paper/tables/differential-r1.tex": "3f5df36eaa7b1918433cde7dae372d9aaaa7addce9f7e6695fcba26245a5b1fa",
+    "paper/tables/factorization-r1.tex": "ddba55f2aacd62617083a79f3a8ec9ee708716dbf38f1265e83cfb641b04cdd7",
+    "paper/tables/null-r1.tex": "df4f99e3bc5a379ac65f689615fe4269aae9349aec263d79e506dcb7a190bdd5",
+    "paper/tables/fresh-r1.tex": "be402b9bb6722782986c6b0ba0e0fc75f81a453cde6541da8f99bf8545503cf1",
+    "paper/tables/randomized-r1.tex": "23ca16b83f5e6c36b388ed67f8a02ba6fefb0d550cf57564ae3a5a6548e6fc06",
+    "paper/tables/direct-r1.tex": "2b8af1dd458fbe0178514c6d123265a4d60e5e9ed1e5aa0201eb2af5ea0e3aa3"
+  },
+  "output_sha256": "3c861e84668bc35d33fdb7105f629cc2b8c0d7ec5e3e8a9607058720400cf67a",
+  "scientific_labels": {
+    "physical": "UNPROMISING",
+    "differential": "UNPROMISING",
+    "factorization": "UNPROMISING",
+    "null": "UNPROMISING",
+    "fresh": "UNCLEAR",
+    "randomized": "UNPROMISING",
+    "direct": "UNPROMISING"
+  },
+  "tables_generated_from_recorded_json": true
+}

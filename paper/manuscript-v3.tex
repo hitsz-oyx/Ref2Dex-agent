@@ -1,0 +1,327 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,booktabs,hyperref}
+\title{Physical Action Effects in Dexterous Interaction Models:\\Measurement, Randomized Identification, and Task-Utility Prerequisites}
+\author{Exploratory working manuscript, revision 3}
+\date{1 October 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We study whether an interaction model can distinguish alternative physical
+commands before investing in dexterous policy optimization. Initial wrist-pulse,
+contrast-learning and actuation-factorization screens fail their fixed gates.
+Geometry-conditioned cold replay acquires all 384 windows but fails its strict
+pre-intervention matching requirement. Prospective randomized assignment instead
+identifies conditional-effect risk differences without claiming solver-state clones.
+On 3072 new windows, archived nominal-motion predictors show no robust advantage
+over command or zero-effect controls. A directly contrast-supervised learner,
+trained on these randomized windows with crossfit nuisance centering, also fails
+on 3072 further windows: direct-minus-factual risk difference 23.98 mm squared.
+Exploratory comparisons between its frozen controls suggest a simpler factual
+learner merits a separate task test. All failures remain explicit. These results
+establish measurement and route-selection evidence on one simulation object;
+no new general modeling method, manipulation-policy benefit or journal readiness
+is claimed.
+\end{abstract}
+
+\section{Problem and relation to prior work}
+An interaction model can fit common motion while failing to compare alternative actions.
+Useful comparisons additionally require experiments capable of measuring physical
+differences at the states in which actions are selected. We examine this prerequisite
+before committing further resources to a policy. The repository provides self-trained
+actors, geometric models and a DExplore simulation substrate \cite{xu2025}. Historical
+policy audits are motivation rather than fresh evidence for this manuscript.
+
+Shared particle actions and cross-embodiment world models already support planning
+\cite{he2025}. Value-aware objectives \cite{farahmand2017}, predictor-level action
+recovery \cite{qiu2026} and multi-step controllability representations \cite{rudolph2024}
+are established. Contact-consistent replay and actuator residuals are also developed
+by Contact-UAN \cite{fey2026}. Our small physical MLP studies do not reproduce these
+systems or establish priority for their general principles. The present contribution
+is an exploratory evidence record with frozen hypotheses and retained failures.
+
+\section{Initial physical and contrast-learning screens}
+Four panels combine actor seeds 286/287 with environment seeds 288/289, each with
+32 environments for each of three airplane motions. A retrospective trigger schedules
+one step after the first reference event where independent hand and object force
+proxies are active. A one-step wrist-z action change requests a plus or minus 10-mm
+PD target offset. This is a desired offset, not measured wrist travel. All subsequent
+normalized actions and RNG schedules are replayed. Two zero arms measure repeated
+process variation. Each object response subtracts its own actual pre-intervention
+position. Pulse and repeat contrasts are summarized by vector RMS.
+
+\begin{table}[h]
+\centering
+\input{tables/physical-r1.tex}
+\caption{Initial fixed panels: pulse versus observed zero-repeat position contrasts.}
+\end{table}
+
+At five and ten steps, contrast ratios are 70.44 and 42.36. At one step, the observed
+zero repeat is exactly zero; its ratio is undefined rather than made finite by an
+arbitrary denominator. Mixed vertical signs fail the joint physical gate. No beneficial
+lifting or population confidence bound follows from a large observed contrast.
+
+The subsequent vector-learning decision retains this failure. It fits 192 actor-286
+windows and tests 192 actor-287 windows using four past/current physical states and
+ten preset replay actions. Future observed physical states are absent from inputs.
+Matched two-layer 128-unit SiLU networks predict five/ten-step position responses;
+three seeds each receive 1000 Adam updates. Differential training adds measured
+plus--minus contrast loss. All normalization uses fit rows. Fixed test panels were
+already inspected by the physical experiment, making this reused-data exploration.
+
+\begin{table}[h]
+\centering
+\input{tables/differential-r1.tex}
+\caption{Actor-transfer contrast RMSE, millimeters; learned rows average three optimization seeds.}
+\end{table}
+
+Differential training does not improve over factual or global fit-mean controls.
+Vertical sign agreement is 32.6\%/31.1\%, below its fixed 75\% gate. Both initial
+screens are UNPROMISING. Increasing steps or choosing another seed is not used to
+salvage these exact designs. Physical acquisition took 481.9 seconds; fitting took
+17.2 seconds on one RTX 3090.
+
+\section{Geometry and larger archived predictive screen}
+Full sampled current geometry places 318 of 384 old triggers within 20 mm. However,
+actor 287's motion 1 is entirely outside that range in both old test panels, with
+gaps 55--105 mm. Independent force proxies can both activate due to table contacts.
+The geometric shift is documented, without identifying it as the sole cause of
+learning failure or redefining the old gate.
+
+We next use two immutable, episode-disjoint historical collections, 960 complete
+episodes each. Nonterminal frames at step modulo 16 equal to zero yield 32902 fit
+and 32896 test rows. These collections have been used by previous research and are
+not pristine Validation data. The current-near test stratum contains 1756 frames
+from 639 episodes; proximity uses a frozen stride-8 surface convention.
+
+The target is one-step object-position residual over constant velocity, expressed
+in the current object frame. State input includes joint angles and velocities,
+object velocities, gravity direction, object height, palm/tip relative positions
+and force proxies. Matched effect networks receive either zero action slots, native
+commands, exact PD-target/FK palm-tip motion, predicted realized hand motion, or
+measured future hand motion. The last is a privileged diagnostic. An independently
+fit actuator model predicts joint residuals before the learned-motion variant's FK.
+Effect networks have two 128-unit SiLU layers, fixed 1000 updates and three seeds.
+Sampling is half-near and half-all fit rows. No test-selected checkpoint is used.
+
+\begin{table}[h]
+\centering
+\input{tables/factorization-r1.tex}
+\caption{Archived one-step vector prediction error, seed-mean millimeters. Near and all-state strata differ.}
+\end{table}
+
+The predicted-motion primary method gains 8.33\% over command input, failing the
+10\% requirement despite beating state-only, passive and its geometric transport
+control. Its gate remains UNPROMISING. Actuator wrist-position errors are
+11.75--12.07 mm near the object. Measured future hand motion includes possible
+contact feedback and cannot establish a deployable causal mediator.
+
+The separately reported nominal-motion variant gains 11.18\% and is better in each
+seed. This motivates a separately frozen fresh causal test; it does not retroactively
+replace the primary method. The label-free nominal no-slip transport control is
+inaccurate, with near RMSE 133.64 mm. The full screen took 53.64 seconds. All 30
+saved held RMSE metrics were independently recomputed.
+
+\section{Fresh proximity acquisition and failed matching requirement}
+New environment seeds 490/491 are combined with the same two actors. A compact
+reference records up to 360 steps, stopping at the first native termination.
+For each environment, acquisition selects the first pre-action step at or after
+step 10 with five remaining nonterminal transitions, both current force proxies,
+and full sampled surface distance at most 20 mm. Future object outcomes never
+choose a trigger. Frozen assets provide 1538 hand and 1024 object points.
+
+All 384 environments acquire a qualifying state, including all three motions in
+every panel. The maximum sampled gap per panel is 16.60, 15.57, 18.83, 18.12 mm.
+Eight cold processes per panel implement two zeros and one-step plus/minus pulses
+in world x, y, z. Initial tensors, physical properties, actor/RMS states, actions and
+RNG schedules are checked. Warm solver state is not asserted to be cloneable.
+The existing effect models are frozen before acquisition; no refit is allowed.
+
+The intended comparison requires pre-intervention position RMS at most 0.05 mm,
+maximum joint difference at most 0.0001, and maximum quaternion-component difference
+at most 0.0001. Joint coordinates combine translations in meters and angles in
+radians; quaternion differences are dimensionless component differences.
+
+\begin{table}[h]
+\centering
+\input{tables/fresh-r1.tex}
+\caption{Maximum pre-intervention mismatch over arms relative to zero-a. Limits: position 0.05 mm; joint and quaternion components 0.0001.}
+\end{table}
+
+All 32 physical arms complete, but seven arms of panel actor 286/seed 491 fail the
+joint/orientation precondition. The first detected failure is zero-b, before any
+action intervention. Execution stops with FAILED; the scientific transfer screen
+is UNCLEAR due to invalid matching. No favorable arm or window is retained, no
+threshold is widened, and no pooled causal score or model winner is reported.
+Acquisition and the failed analysis took 1152.21 seconds. This is a measurement
+blocker, not a refutation of the nominal predictor.
+
+\section{Exact-null recovery mechanism screen}
+Six native commands are overwritten by dependent finger targets. Randomizing them
+leaves every PD target exactly unchanged; all 32896 held rows verify this bitwise.
+We test whether recovering such independent null commands from model-generated
+object predictions induces false action responses. A truthful physical transition
+cannot recover an independent normalized null coordinate with population MSE below
+one. This is an elementary conditional-variance bound, not a novel theorem.
+Mutual-information sufficiency limits are already studied \cite{rakelly2021}.
+
+Every minibatch independently randomizes null commands while keeping physical
+labels fixed. Four matched physical predictors receive factual loss only, full
+inverse loss, effective-command inverse loss, or hard-canonicalized forward input
+with effective inverse loss. Inverse heads take current state and generated object
+residuals, never actual future state. Seeds 511--513 each train for 1000 updates;
+the auxiliary coefficient is fixed at one. Hard canonicalization guarantees null
+invariance by construction, without establishing learned causal correctness.
+
+\begin{table}[h]
+\centering
+\input{tables/null-r1.tex}
+\caption{Exact-null intervention diagnostics, near stratum and seed means. Untrained null-head coordinates in effective/quotient variants are diagnostic only.}
+\end{table}
+
+Full inverse null error remains near the population floor and its null response is
+below factual-only in every seed. Three of five interference gates fail: UNPROMISING.
+The proposed inverse-induced null-encoding mechanism is not supported here.
+Hard canonicalization removes null response, with little factual-error change.
+This screen took 33.06 seconds; 66 saved prediction/recovery metrics were independently
+audited. It is neither an AD-WM reproduction nor a general rejection of inverse learning.
+
+\section{Prospective randomized identification}
+To avoid invalid cold-replay matching, we acquire a single factual transition
+per independently assigned intervention. Four 768-environment panels combine
+actors 286/287 with initial seeds 492/493, 256 environments per motion. Assignment
+is drawn with a private CPU generator before physics. The trigger is the first
+even current step at or after 10 with both force proxies and full sampled
+hand--object gap at most 20 mm. A zero arm or one-step plus/minus wrist pulse in
+world x, y, z is executed once; the actor remains closed loop. All 3072 windows
+complete. Realized counts per motion are 37/37/37/37/36/36/36; recorded known
+propensities account for the unequal count convention.
+
+Let Y be observed one-step world position residual over current object velocity.
+For each wrist axis j, define Z_j as the observed residual times the difference
+between the inverse-propensity indicators for its plus and minus arms. Under
+randomization and the independent-environment potential-outcome assumption,
+its conditional mean is the plus-minus physical effect tau_j(X). For predictions
+f, g, the row score is sum(f squared - g squared - 2(f-g)Z), summing all three
+output coordinates and intervention axes. Its expectation is the squared
+conditional-effect risk of f minus that of g. This elementary estimator identifies
+a difference, not absolute effect RMSE or individually observed counterfactuals.
+Weak numeric interactions between batched environments remain an assumption
+limitation; exact solver-state cloning is not asserted.
+
+Existing nominal-motion and command checkpoints 411--413 are frozen before the
+trial. Each scores all six candidate commands at the same current context.
+Per-model losses are averaged across seeds. Descriptive intervals use 2000
+bootstrap replicates, preserving shared initial-seed/environment blocks across
+actors within six initial-seed/motion strata.
+
+\begin{table}[h]
+\centering
+\input{tables/randomized-r1.tex}
+\caption{Randomized held-window conditional-effect risk differences, mm squared; negative favors the first predictor.}
+\end{table}
+
+All three nominal-motion gates fail: UNPROMISING. Its historical 11.18 percent
+factual error advantage does not establish causal action-effect superiority.
+The trial takes 137.84 seconds after a retained 35.85-second device-alias engineering
+failure. All 3072 physical windows, risk statistics and 107 input hashes pass an
+independent numeric audit. We stop direct control use of these archived models.
+
+\section{Direct randomized learning and strong controls}
+The 3072 observed randomized windows now become fit data. A new test uses initial
+seeds 494/495 and all 3072 windows; no future test outcome chooses a model. This
+cohort changes the assignment protocol explicitly to independent seven-arm draws
+with propensity 1/7, avoiding forced assignment balance. Counts are recorded as
+realized; no rebalancing or partial-window selection is performed.
+
+Context comprises 63 current physical/geometry features and 18 reference commands.
+Six overwritten finger-command inputs are canonicalized to zero. Motion identity
+and observed future states are excluded. Two nuisance folds separate acquisition
+seeds 492/493, keeping shared actor/environment blocks together. Each nuisance
+model predicts Y from context, scales only its own fit fold, and predicts the
+other fold. Subtracting this out-of-fold response mean before constructing the
+inverse-propensity pseudo-contrast preserves its conditional mean. Crossfitting
+and randomization are established methods, not novelty claims.
+
+For seeds 611--613, direct models have 81 inputs, 128/128 SiLU layers and nine outputs
+reshaped as a world contrast matrix. Factual controls receive the same context
+plus six pulse indicators and predict three world residual coordinates. All use
+Adam 0.001, weight decay 0.0001, uniform 256-row minibatches and fixed final checkpoints.
+Direct/factual/nuisance models get 1000 updates; the compute control gets 3000
+factual updates, matching direct plus two nuisance update counts but not asserting
+identical FLOPs or output capacity. All scales use fit rows only. A per-seed global
+mean of residualized FIT contrasts and zero effect are additional strong controls.
+
+Fresh test risk uses original observed residuals and known propensities, without
+nuisance fitting on test. The gate requires a one-sided 95 percent upper risk bound
+below zero against every control and favorable direct-minus-factual point in every
+seed. Bootstrap preserves the same six paired strata as above.
+
+\begin{table}[h]
+\centering
+\input{tables/direct-r1.tex}
+\caption{Direct randomized learner minus each frozen control, mm squared; every fixed gate fails.}
+\end{table}
+
+Direct-minus-factual seed points 32.35/19.35/20.23 all have the wrong direction.
+The direct method is UNPROMISING and ends without extra updates or label clipping.
+Fit/test take 30.31/134.49 seconds on separate admitted GPUs, producing 3.41/11.89 MiB.
+Six nuisance-fold scales, 16 fit model/data files, held predictions, all risk arrays
+and bootstrap intervals pass independent CPU/NumPy audits.
+
+After retaining this primary failure, exploratory comparisons between the already
+frozen controls suggest factual-minus-zero/global differences of-3.436/-3.158 mm
+squared, with one-sided 95 percent upper bounds-1.106/-1.222. More factual updates
+have no robust incremental advantage over 1000 updates. These comparisons were
+selected after primary scoring; they are candidate-selection evidence, not a
+successful primary trial or independent Validation. A standard factual predictor
+is not a new method. Its candidate value must be tested in a fresh randomized
+closed-loop retained-success/drop experiment before any policy claim.
+
+\section{Limitations and research decision}
+These experiments involve one object, three shared motions, two existing actors
+and small fixed fitting procedures. Contact proxies plus sampled proximity are
+not attributed pairwise forces. Short-horizon measurement is not stable lift,
+retention or manipulation utility. No policy training, unseen-object/hand evaluation
+or hardware deployment is presented. Optimization seeds do not create independent
+physical datasets. Existing papers' claims are not replaced by these diagnostic tests.
+
+The failed direct learner is stopped. The next decisive experiment freezes the
+simpler factual controller, compares native actor, random local corrections and
+state-independent fit-response selection, and measures full first-episode retained
+success and drops. A favorable first-step vertical displacement cannot replace
+retention benefit. No policy outcome has yet been collected for this design.
+
+The original user objective remains a journal-level research outcome. This working
+paper does not meet it: a distinctive method and consequential matched task evidence
+remain necessary. Negative outcomes and the unresolved causal screen are retained
+to guide further work rather than converted into positive conclusions.
+
+\section*{Reproducibility}
+All new work is isolated in branch agent/contact-response-cm. Original checkpoints,
+motion assets and prior evidence are read-only. Physical/differential code is fixed
+at 466 e 80 d/44 f 22 ea; factorization atbbd 5 ba 4; fresh collection at 59 de 1 cf; null recovery
+at 33 d 1085. Manifests preserve commands, input SHA, GPU UUID, budgets and failures.
+Randomized collection uses 510 a 00 e; direct fitting 2075314; independent auditing
+f 283 bb 9. Every table is generated directly from recorded result JSON, including the failed
+fresh matching audit. This PDF is a ReportLab review copy; portable LaTeX source
+and tables are also retained. The first manuscript revision is preserved separately.
+
+\begin{thebibliography}{9}
+\bibitem{he2025} Z.He et al. Scaling Cross-Embodiment World Models for Dexterous Manipulation.
+arXiv:2511.01177, 2025. \url{https://arxiv.org/abs/2511.01177}.
+\bibitem{xu2025} S.Xu et al. Dexplore:Scalable Neural Control for Dexterous Manipulation
+from Reference-Scoped Exploration.2025. \url{https://arxiv.org/abs/2509.09671}.
+\bibitem{farahmand2017} A.-M.Farahmand, A.Barreto, D.Nikovski. Value-Aware Loss Function
+for Model-based Reinforcement Learning.2017. \url{https://proceedings.mlr.press/v54/farahmand17a.html}.
+\bibitem{qiu2026} J.Qiu et al. AD-WM:Action-Discriminative World Models for Counterfactual
+Model Predictive Control.2026. \url{https://arxiv.org/abs/2609.30264v2}.
+\bibitem{rudolph2024} M.Rudolph et al. Learning Action-based Representations Using Invariance.
+2024. \url{https://arxiv.org/abs/2403.16369}.
+\bibitem{fey2026} N.Fey et al. Contact-UAN:Unsupervised Actuator Networks as a Residual
+World Model for Humanoid Control.2026. \url{https://contact-uan.csail.mit.edu/}.
+\bibitem{rakelly2021} K.Rakelly, A.Gupta, C.Florensa, S.Levine. Which Mutual-Information
+Representation Learning Objectives are Sufficient for Control?2021.
+\url{https://arxiv.org/abs/2106.07278}.
+\end{thebibliography}
+\end{document}
