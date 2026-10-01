@@ -2,10 +2,9 @@
 """Run the small, repository-local verification gate.
 
 The gate is deliberately about contracts that are useful on every research
-branch: the three current context documents, structured workflow state,
-experiment-card identity/schema, and navigable Markdown.  Historical cards
-remain readable without being silently rewritten; cards that opt into the v2
-schema are checked strictly.
+branch: the three current context documents, experiment-card identity/schema,
+and navigable Markdown. Historical cards remain readable without being
+silently rewritten; cards that opt into the v2 schema are checked strictly.
 
 The feature-branch diff is compared with ``main`` (or ``origin/main``) and
 includes deleted paths.  Deletions matter because an otherwise unchanged
@@ -793,7 +792,10 @@ def _select_tests(paths: Iterable[str]) -> list[str]:
     needs_shared = False
     for path in paths:
         if path.startswith("tests/") and path.endswith(".py"):
-            selected.add(path)
+            # Deleted legacy tests are part of the diff but cannot be passed
+            # to pytest as collection targets.
+            if (ROOT / path).is_file():
+                selected.add(path)
         if path.startswith("src/base/"):
             needs_shared = True
         if path == "AGENTS.md" or path.startswith(

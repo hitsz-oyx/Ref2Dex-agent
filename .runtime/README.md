@@ -1,15 +1,13 @@
-# Local workflow runtime
+# Local runtime state
 
-Files in this directory are machine-local and are not research evidence.  The
-autonomy lease and watchdog state live here so changing a conversation binding
-does not change the Git history:
+Files in this directory are machine-local and are not research evidence.
 
-```text
-SUPERVISOR_LEASE.json
-root_watchdog/state.json
-worker_event_poller/state.json
-```
+The current workflow has one optional runtime helper:
+`session_capacity_watchdog/state.json` and its lock belong to
+`scripts/codex_research_supervisor.py`. The helper reads Codex metadata and
+rollouts, and only queues `继续` after a recent capacity failure. It does not
+create agents, dispatch research tasks, manage leases, or change experiment
+state.
 
-Use `python3 scripts/researchctl.py supervisor pause|resume|status` to change
-the lease.  A missing lease is treated as disabled; the watchdog never resumes
-a paused Goal without an enabled lease.
+Do not restore the retired Broker, role registry, root watchdog, pollers, or
+their lease files from old runtime artifacts.

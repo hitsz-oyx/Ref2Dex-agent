@@ -14,8 +14,8 @@ plain_off 41/384、direct_q 40/384、cm_value 33/384；原生 gate 为
 Validation，也不继续这条实现的局部调参。North-star scoreboard 不变，Cm policy
 utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性审计边界约束。
 
-用户已开启 Mission-level 持续 Goal，root 通过固定 Broker 向 worker 派发任务。
-当前交付期限仍为 2026-10-03 23:59（Asia/Shanghai）；资源边界见
+此前 Mission-level Goal 的任务曾通过固定 Broker 运行；该旧工作流现已退役，当前会话直接
+承担后续研究、实现和验证。当前交付期限仍为 2026-10-03 23:59（Asia/Shanghai）；资源边界见
 `CAMPAIGN.md`。root 已验收 [HF08 R2 价值目标审计](handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md)：
 合同和标签 provenance 通过，主成功为 15/1920、holdout 成功为 1/384；两个 e420
 在线 V 均实际完成 7680 次 optimizer update。结论仍为
@@ -77,7 +77,7 @@ provenance。随后已在主分支修复该合约：新的 evaluator 会按触�
 2026-09-30 root 曾在用户授权范围内并行派发 fit-only CPU 校准修复和独立六专家
 轨迹蒸馏；两者预算分别为 2 CPU/15 分钟/1 GiB 与 1 GPU/60 分钟/5 GiB，均不产生
 正式 Cm claim。旧 r2 只是 ridge 加 in-sample residual screen，不能据此否定设计
-MLP 或整条 Cm 路线；相关历史边界和 Broker 交接继续保留。
+MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据。
 
 ## North-star scoreboard
 
@@ -203,7 +203,7 @@ HF08 局部调参。不能以总体 bias 接近零认定校准，或以单条 re
 HF08 原生收益 Probe 仍为 `UNPROMISING`、family `PAUSED`、预算 1/1 已用；诊断
 不重置该 slot。任何未来科学 Probe 都须以独立机制、预算和预设判据重新决策，
 期限仍为 2026-10-03 23:59（Asia/Shanghai）。本次直接接管是当前任务的用户授权，
-不改写固定角色与默认 Broker 工作流。
+不改写既有科学证据或路线标签。
 
 HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
 [closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一

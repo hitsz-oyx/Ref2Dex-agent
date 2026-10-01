@@ -96,7 +96,10 @@ NumPy 兼容 fixture 和测试收集范围，避免迁移一半时出现环境�
 
 ### 治理 → `tests/governance/`
 
-`test_verify.py`、`test_work_version_migration.py`
+`test_verify.py`
+
+容量看门狗回归位于根目录的 `test_codex_research_supervisor.py`，覆盖多 CODEX_HOME 扫描、
+容量错误识别、60 秒节流、活跃 turn 保护和 24 小时过期。
 
 ## 四、迁移边界
 

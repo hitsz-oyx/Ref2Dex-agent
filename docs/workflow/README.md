@@ -1,39 +1,39 @@
-# Workflow 文档
+# 单会话容量看门狗
 
-这些文档描述当前固定角色池、Agent Broker、runtime binding、任务交接和 root
-liveness。新对话从根目录 [`AGENTS.md`](../../AGENTS.md) 进入；不要把旧 plan、log 或
-历史 handoff 当作当前 workflow。
+仓库只保留一个运行时辅助进程：
+[`scripts/codex_research_supervisor.py`](../../scripts/codex_research_supervisor.py)。它源自旧
+的 Codex supervisor，但已经去掉 root/worker、Broker、任务租约和研究决策。
 
-当前规范入口仍保留在 `docs/` 根目录，供脚本、测试和已有链接兼容：
+看门狗会：
 
-| 主题 | 当前入口 |
-| --- | --- |
-| 固定角色和权限 | [`AGENT_ROLES.yaml`](../AGENT_ROLES.yaml) |
-| Broker、队列、租约、四类消息 | [`AGENT_BROKER.md`](../AGENT_BROKER.md) |
-| root/worker 委派和集成 | [`AGENT_COORDINATION.md`](../AGENT_COORDINATION.md) |
-| root 决策循环 | [`ROOT_AGENT.md`](../ROOT_AGENT.md) |
-| poller/watchdog 运行合同 | [`AGENT_POLLER.md`](../AGENT_POLLER.md) |
-| 连续监督兼容说明 | [`CODEX_RESEARCH_SUPERVISOR.md`](../CODEX_RESEARCH_SUPERVISOR.md) |
-| 历史 runtime 审计记录 | [`AGENT_REGISTRY.json`](../AGENT_REGISTRY.json) |
+1. 扫描 `/home2/wyy/oyx_ws` 下所有 `.codex*` CODEX_HOME；
+2. 只考虑最近 24 小时更新且未归档的 thread；
+3. 在 rollout 中发现 `Selected model is at capacity`、`server_overloaded` 等容量错误后
+   记录恢复状态；
+4. 线程空闲且没有排队输入时，每 60 秒最多发送一次 `继续`；
+5. 看到新的 turn 开始后清除该线程的恢复状态，超过活跃窗口后自动忘记。
 
-`.runtime/AGENT_BINDINGS.json`、`.runtime/tasks.sqlite` 和
-`.runtime/AGENT_STATE.sqlite` 是本机运行状态，不提交到 Git。
+它不会读取实验指标、创建子代理、改变 Goal、绕过用户暂停或重置预算。状态和锁只写入
+`.runtime/`。
 
-## 操作前检查
+## 预检
 
-在派发新任务前运行：
+先只读检查，不发送消息：
 
 ```bash
-python3 scripts/workflow_doctor.py
+python3 scripts/codex_research_supervisor.py \
+  --dry-run --once \
+  --state .runtime/session_capacity_watchdog/state.json
 ```
 
-它只读检查角色定义、registry、binding、Broker 数据库、supervisor lease 和活动租约。
-`WARN` 可以是故意未绑定的可选角色；需要完整角色池时使用
-`--require-all-bound --strict`。新的 dispatch/claim 只有 Broker 状态为 `RUNNING` 时
-才会通过；暂停允许已有任务收尾。
+确认输出和状态文件后再启动实际看门狗。需要发送消息时显式提供 Codex CLI 或 Node
+入口：
 
-`scripts/agent_runtime_adapter.py` 是显式执行边界。它消费一个已 claim 的任务，向
-调用者提供标准化 JSON 和 lease 环境变量，并要求 runtime launcher 通过 Broker 完成
-handoff；没有 launcher 时只会排队，不会声称任务已经启动。
+```bash
+python3 scripts/codex_research_supervisor.py \
+  --codex-node /home2/wyy/.nvm/versions/node/v24.19.0/bin/node \
+  --codex-js /home2/wyy/.nvm/versions/node/v24.19.0/lib/node_modules/@openai/codex/bin/codex.js \
+  --state .runtime/session_capacity_watchdog/state.json
+```
 
-详细设计见 [`workflow-repair-design.md`](../superpowers/specs/2026-10-01-workflow-repair-design.md)。
+停止进程即可停止看门狗；它不会停止或修改任何 Codex 会话和研究进程。

@@ -42,70 +42,25 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 2. `docs/MISSION.md`
 3. `docs/STATE.md`
 4. `docs/CAMPAIGN.md`
-5. `docs/AGENT_ROLES.yaml`
-6. `docs/AGENT_BROKER.md`
-7. `docs/AGENT_COORDINATION.md`
-8. `docs/ROOT_AGENT.md`（root）或与当前 worker 角色对应的交接规范
-9. 与当前问题直接相关的代码
-10. 当前活跃实验记录（如果存在）
+5. `docs/README.md`
+6. 与当前问题直接相关的代码和活跃实验记录
 
-如果任务涉及代理身份、runtime binding、任务派发、工作树或 provider 迁移，还必须
-读取 [`docs/AGENT_REGISTRY.json`](docs/AGENT_REGISTRY.json)、本机
-`.runtime/AGENT_BINDINGS.json`（若存在）以及
-[`.agents/skills/create-ref2dex-agent/SKILL.md`](.agents/skills/create-ref2dex-agent/SKILL.md)。
-如果任务是 workflow 迁移或规范审计，仓库中的 `docs/ref.md` 也属于直接相关上下文；
-它是设计输入，不替代本文件和当前状态。
+研究路线迁移或规范审计需要读取 `docs/ref.md`（如果存在）；它是设计输入，不替代本文件
+和当前状态。`docs/research/README.md` 是研究记录索引；历史 plan、指导、activity、log 和
+handoff 只有在需要核对证据时才追溯，不属于默认上下文。
 
-文档分类入口见 [`docs/README.md`](docs/README.md)；workflow 和 research 的索引分别
-见 [`docs/workflow/README.md`](docs/workflow/README.md) 与
-[`docs/research/README.md`](docs/research/README.md)。这些索引不替代上面的最小上下文
-清单，只用于定位当前入口和区分历史资料。
+当前会话采用单会话工作流：
 
-不要默认批量读取：
+* 会话直接完成用户授权的研究、工程和文档工作；
+* 会话不得创建、派生、派发或恢复子代理，也不使用 Agent Broker、固定 worker、任务租约或
+  多代理 handoff；
+* 不把 conversation ID、thread ID 或历史代理名称当作长期身份；
+* 需要持续推进时由同一会话继续，容量中断由 `scripts/codex_research_supervisor.py` 的
+  本机看门狗发送固定的 `继续` 消息；看门狗不选择研究路线、不创建代理、不修改实验数据；
+* 看门狗只读取本机 Codex 元数据和 rollout，状态写入 `.runtime/`，不把运行时状态当作研究证据。
 
-* 历史 plan；
-* 历史指导；
-* 全部 Activity；
-* 全部 experiment；
-* 旧 decision log；
-* 无关 Git 历史。
-
-只有以下情况才追溯历史：
-
-* 当前证据存在冲突；
-* 需要确认某个历史设计为什么存在；
-* 怀疑已经重复做过同一实验；
-* 正式验证需要固定历史 baseline；
-* 准备修改一个长期 invariant。
-
-历史文档是证据库，不是默认 prompt。
-
-### 2.1 当前 workflow 的唯一入口
-
-本文件是所有新对话的总规则入口；代理协作的具体实现必须与以下规范一起读取，不能
-只读取其中一份后自行拼接旧流程：
-
-* [`docs/AGENT_ROLES.yaml`](docs/AGENT_ROLES.yaml)：tracked 的固定角色、职责、权限和 branch；
-* [`docs/AGENT_BROKER.md`](docs/AGENT_BROKER.md)：本地无模型 Broker、任务租约、runtime
-  状态和四类消息；
-* [`docs/AGENT_COORDINATION.md`](docs/AGENT_COORDINATION.md)：root、worker、handoff、
-  liveness 和集成边界；
-* [`docs/ROOT_AGENT.md`](docs/ROOT_AGENT.md)：`/root` 的决策、派发、验收和持续监督循环；
-* [`docs/AGENT_POLLER.md`](docs/AGENT_POLLER.md)：worker event poller 与 watchdog 的运行合同；
-* [`docs/AGENT_REGISTRY.json`](docs/AGENT_REGISTRY.json)：固定 pool 和历史 runtime 审计兼容信息；
-* [create-ref2dex-agent skill](.agents/skills/create-ref2dex-agent/SKILL.md)：只有 runtime
-  rebind 或经用户批准的新长期角色才使用的身份与启动流程。
-
-当前主路径是：root 通过 `scripts/agent_broker.py` 向固定 `agent_key` 写入
-`TASK_DISPATCH`；worker 只能写 `TASK_UPDATE` 或 `TASK_HANDOFF`；watchdog 和本地控制
-只写 `CONTROL`。Broker 只管理队列、租约、provider adapter 和运行时状态，不做研究
- 决策，也不创建动态 subagent。worker 不能直接互相通信，跨角色依赖必须退回 root。
-运行时 binding 属于本机 `.runtime/AGENT_BINDINGS.json`，任务队列和状态属于本机
- `.runtime/tasks.sqlite` 与 `.runtime/AGENT_STATE.sqlite`，不能把它们当作研究证据提交。
-只有 supervisor desired state 为 `RUNNING` 时才允许新 dispatch/claim；已持有租约的
-任务可以在暂停后收尾。真实 provider 投递必须经过显式
-`scripts/agent_runtime_adapter.py` launcher；仅写入 SQLite 不代表 worker 已启动。
-派发前可运行 `python3 scripts/workflow_doctor.py` 检查角色、binding、数据库和 lease。
+除非用户明确要求，不恢复旧 Broker、root/worker、动态 subagent、旧 poller 或旧 supervisor
+流程。历史 workflow 文档和脚本不是当前规范。
 
 ---
 
@@ -410,24 +365,12 @@ Research Debt 的存在意味着：
 
 ---
 
-## 13. 多代理协作
+## 13. 单会话边界
 
-多代理身份、固定角色、Broker、工作树、交接和 main 集成规则见
-[docs/AGENT_ROLES.yaml](docs/AGENT_ROLES.yaml)、
-[docs/AGENT_BROKER.md](docs/AGENT_BROKER.md)、
-[docs/AGENT_COORDINATION.md](docs/AGENT_COORDINATION.md) 与
-[docs/AGENT_REGISTRY.json](docs/AGENT_REGISTRY.json)。
-主代理的持续推进与轮询规则见 [docs/ROOT_AGENT.md](docs/ROOT_AGENT.md)。
-worker 事件与 root liveness 规则见 [docs/AGENT_POLLER.md](docs/AGENT_POLLER.md)。
-新建或迁移 runtime 时使用 [create-ref2dex-agent skill](.agents/skills/create-ref2dex-agent/SKILL.md)；
-普通任务派发不调用该 skill 创建代理，而是由 root 通过 Agent Broker 派发。
-其中的资源授权必须同时遵守本文件和 `docs/CAMPAIGN.md`。
+科研决策、代码修改、实验启动、验证和文档更新都由当前会话直接完成。需要并行能力时，先
+在本会话内拆分可逆的检查步骤；不得通过会话 API、Broker、旧 registry 或外部脚本派生新的
+Codex 子会话。
 
-本文件的自主探索权限由获派任务的执行代理在其独立工作树行使。`/root` 负责
-选题、派发、监督、验收和 `main` 集成；具体分析、实现、preflight、实验及
-长任务进程归属交给相应执行代理，详见上述主代理规范。
-
-现有 Cm 工作必须派发给固定角色 `agent_cm`；如果该角色当前 binding 仍指向历史的
-`agent_cm_temporal` conversation，则沿用该 binding 的冻结、CPU-only 和其他资源权限，
-但不得把历史 conversation 当成新的组织身份，也不得由 `/root` 临时兼任执行 owner。
-需要新增身份或能力时，按 `create-ref2dex-agent` skill 建立并登记代理后再派发。
+外部看门狗只负责容量故障后的 liveness：它按最近更新时间扫描本机 `.codex*` 会话，识别
+容量错误后每 60 秒最多排队一条 `继续`，直到会话恢复或退出 24 小时活跃窗口。它不解除用户
+暂停，不重置预算，不启动实验，也不改写仓库外的数据。

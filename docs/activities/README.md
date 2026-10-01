@@ -1,15 +1,11 @@
 # Ref2Dex Activities
 
-本目录索引根级治理与跨 Task 的长期工作单元。Activity 回答“做了什么”；科学假设、证据和结论写入 `docs/experiments/`。
+本目录只索引跨 Task 的研究活动。科学假设、证据和结论仍写入
+`docs/experiments/`；旧治理活动已经移除，不再作为当前 workflow 的入口。
 
-## Recent
+## Research activities
 
-| Date | Activity | work_version | Type | Result |
-| --- | --- | --- | --- | --- |
-| 2026-09-19 | [V1.2h plan finalization rule](V1.2h-plan-finalization-rule.md) | V1.2h | governance | completed |
-| 2026-09-19 | [V1.2g retire remote CI and retain worktree lifecycle](V1.2g-retire-remote-ci-worktree-lifecycle.md) | V1.2g | governance | completed |
-| 2026-09-19 | [V1.2e hermetic CI test selection](V1.2e-hermetic-ci-test-selection.md) | V1.2e | governance | completed |
-| 2026-09-19 | [V1.2d tracked-source migration gate](V1.2d-tracked-source-migration-gate.md) | V1.2d | governance | completed |
-| 2026-09-19 | [V1.2c directory exception control](V1.2c-directory-exception-control.md) | V1.2c | governance | completed |
-| 2026-09-19 | [V1.2b Skill responsibility split](V1.2b-skill-responsibility-split.md) | V1.2b | governance | completed |
-| 2026-09-19 | [V1.2a work-version Skill migration](V1.2a-work-version-skill-migration.md) | V1.2a | governance | completed |
+* [Mixed Cm simulation adaptation](20260923-mixed-cm-sim-adapt.md)
+* [Calibrated Cm transfer](20260924-calibrated-cm-transfer.md)
+* [Executed hand flow](20260924-executed-handflow.md)
+* [Local geometric Cm](20260924-local-geometric-cm.md)
