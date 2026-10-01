@@ -200,7 +200,7 @@ class ContactConsequenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);checkpoint=root/'frozen.pt';checkpoint.write_bytes(b'frozen')
             args=SimpleNamespace(output=root,trajectory=checkpoint,policy=None,cm_on=True,assignment_seed=7381,
-                                 rollouts=1,epochs=2,evaluate=False,smoke=True,wall_seconds=60)
+                                 rollouts=1,epochs=2,evaluate=False,smoke=True,wall_seconds=60,learnable_guide=True,physical_reward=True)
             with patch('src.task.CmResidual.recovery_option_policy.FrozenRecoveryPhysics',Physics),patch.object(torch.cuda,'synchronize'):
                 recovery_player(SimpleNamespace(EvalPlayer=CompletePlayer),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))().run()
             result=json.loads((root/'results.json').read_text());data=torch.load(root/'decisions.pt',weights_only=False)[0]
@@ -209,7 +209,14 @@ class ContactConsequenceTests(unittest.TestCase):
             self.assertEqual(result['optimizer_updates'],4)
             self.assertTrue(result['policy_parameters_changed'] and result['frozen_cm_experts'])
             self.assertLess(result['rollouts'][0]['first_actual_option_ratio_error'],1e-6)
-            self.assertTrue(torch.allclose(data['old_logprob'].exp(),torch.where(data['selected']==0,.9,.02),atol=1e-6))
+            self.assertTrue(torch.allclose(data['old_logprob'].exp(),torch.where(data['selected']==0,.5,.1),atol=1e-6))
+            trace=torch.load(root/'episode_traces.pt',weights_only=False)[0]
+            cold=torch.load(root/'cold_states.pt',weights_only=False)[0]
+            self.assertTrue((trace['native_reward']==0).all())
+            self.assertTrue((trace['training_reward']>0).any() and (trace['training_reward']<=1).all())
+            expected=((trace['object_state'][:,:,2]-cold['rest'])/.03).clamp(0,1)
+            self.assertTrue(torch.allclose(trace['training_reward'],expected,atol=1e-5))
+            self.assertEqual(result['reward_mode'],'supported_height_fraction')
 
     def test_five_policy_pool_merges_physical_aliases_and_records_native_targets(self):
         from scripts.collect_randomized_contact_consequences import randomized_player

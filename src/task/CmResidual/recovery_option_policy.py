@@ -38,27 +38,42 @@ def option_prior(recommended):
     return probability.log()
 
 
+def supported_height_reward(height,rest,contact):
+    """Bounded task reward: contact-supported progress, saturated at3cm."""
+    return ((height-rest)/.03).clamp(0,1)*contact.bool()
+
+
 class RecoveryOptionPolicy(nn.Module):
-    def __init__(self):
+    def __init__(self,learnable_guide=False):
         super().__init__()
+        self.learnable_guide=learnable_guide
         self.history=nn.GRU(69,32,batch_first=True)
         self.context=nn.Sequential(nn.Linear(123,96),nn.SiLU())
-        self.score=nn.Sequential(nn.Linear(130,64),nn.SiLU(),nn.Linear(64,1))
+        self.score=nn.Sequential(nn.Linear(131 if learnable_guide else 130,64),nn.SiLU(),nn.Linear(64,1))
         self.value=nn.Sequential(nn.Linear(96,64),nn.SiLU(),nn.Linear(64,1))
+        if learnable_guide:
+            # Half exploitation, half exploration at initialization. This
+            # actor parameter is optimized by the same genuine PPO loss.
+            self.guide_weight=nn.Parameter(torch.tensor(5.).log())
         for head in (self.score,self.value):nn.init.zeros_(head[-1].weight);nn.init.zeros_(head[-1].bias)
 
     def forward(self,history,context,actions,physics,log_prior):
         _,hidden=self.history(history)
         x=self.context(torch.cat((hidden[-1],history[:,-1],context),-1))
         bank=torch.cat((x[:,None].expand(-1,6,-1),actions,physics),-1)
-        distribution=torch.distributions.Categorical(logits=self.score(bank).squeeze(-1)+log_prior)
+        logits=self.score(bank).squeeze(-1)+log_prior
+        if self.learnable_guide:logits=logits+self.guide_weight*physics[:,:,-1]
+        distribution=torch.distributions.Categorical(logits=logits)
         return distribution,self.value(x).squeeze(-1)
 
 
-def policy_inputs(physical,cm_on):
+def policy_inputs(physical,cm_on,learnable_guide=False):
+    recommendation=physical['recommended'] if cm_on else torch.full_like(physical['recommended'],4)
+    future=physical['physics'] if cm_on else torch.zeros_like(physical['physics'])
+    if learnable_guide:
+        future=torch.cat((future,torch.nn.functional.one_hot(recommendation,6).float()[...,None]),-1)
     return dict(history=physical['history'],context=physical['context'],actions=physical['actions'],
-                physics=physical['physics'] if cm_on else torch.zeros_like(physical['physics']),
-                log_prior=option_prior(physical['recommended'] if cm_on else torch.full_like(physical['recommended'],4)))
+                physics=future,log_prior=torch.zeros(len(recommendation),6,device=recommendation.device) if learnable_guide else option_prior(recommendation))
 
 
 def ppo_loss(distribution,value,selected,old_logprob,advantage,returns):

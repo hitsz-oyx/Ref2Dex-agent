@@ -1,5 +1,5 @@
 import torch
-from src.task.CmResidual.recovery_option_policy import RecoveryOptionPolicy,option_prior,policy_inputs,ppo_loss
+from src.task.CmResidual.recovery_option_policy import RecoveryOptionPolicy,option_prior,policy_inputs,ppo_loss,supported_height_reward
 
 
 def inputs(n=8):
@@ -36,3 +36,25 @@ def test_clipped_surrogate_limits_large_positive_actual_choice_ratio():
     _,stats=ppo_loss(distribution,value,selected,old,torch.ones(2),torch.zeros(2))
     assert torch.allclose(stats['ratio'],torch.full((2,),8.))
     assert abs(float(stats['actor'])+1.2)<1e-6
+
+
+def test_actor_owns_guide_weight_and_equal_initial_half_exploration():
+    physical=inputs(12);model=RecoveryOptionPolicy(learnable_guide=True)
+    on_x=policy_inputs(physical,True,learnable_guide=True);off_x=policy_inputs(physical,False,learnable_guide=True)
+    assert (on_x['log_prior']==0).all() and (off_x['log_prior']==0).all()
+    on,_=model(**on_x);off,_=model(**off_x)
+    row=torch.arange(12);top=physical['recommended'];expected=torch.full((12,6),.1);expected[row,top]=.5
+    assert torch.allclose(on.probs,expected,atol=1e-6)
+    assert torch.allclose(on.entropy(),off.entropy(),atol=1e-6)
+    assert model.guide_weight in list(model.parameters())[:1]
+    chosen=(top+1)%6;old=on.log_prob(chosen).detach();before=model.guide_weight.detach().clone()
+    optimizer=torch.optim.SGD(model.parameters(),lr=.1)
+    dist,value=model(**on_x);loss,_=ppo_loss(dist,value,chosen,old,torch.ones(12),torch.zeros(12))
+    loss.backward();assert model.guide_weight.grad>0
+    optimizer.step();assert model.guide_weight<before
+    assert model(**on_x)[0].probs[row,chosen].mean()>expected[row,chosen].mean()
+
+
+def test_task_reward_requires_support_and_does_not_reward_height_above_goal():
+    r=supported_height_reward(torch.tensor([.99,1.,1.015,1.03,1.30,1.03]),torch.ones(6),torch.tensor([1,1,1,1,1,0]))
+    assert torch.allclose(r,torch.tensor([0.,0.,.5,1.,1.,0.]),atol=1e-5)

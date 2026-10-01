@@ -7,6 +7,7 @@ import torch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'scripts'))
 from run_paired_evaluator_resolution import sha
+from src.task.CmResidual.trajectory_selector import effective_commands
 
 
 def run(args):
@@ -14,6 +15,7 @@ def run(args):
     m=json.loads((args.run/'run_manifest.json').read_text())
     if m['run_status']!='COMPLETED' or m['smoke_only']:raise ValueError('terminal scientific phases required')
     if len(m['phases'])!=12:raise ValueError('all fixed phases required')
+    learnable_guide=m.get('learnable_guide',False);seeds=m.get('evaluation_seeds',list(range(391,395)));first_seed=seeds[0]
     phases={p['name']:p for p in m['phases']};records={};audit={}
     for name,p in phases.items():
         directory=Path(p['directory']);r=p['result']
@@ -27,8 +29,8 @@ def run(args):
             if not torch.isfinite(b['returns']).all() or not torch.isfinite(b['old_logprob']).all() or (b['old_logprob']>1e-6).any():raise ValueError('invalid return/log probability')
         learned_physical=0;nonbase=0;decisions=0
         for b in buffers:
-            row=torch.arange(len(b['selected']));selected=b['selected'];prior=b['inputs']['log_prior'].argmax(-1)
-            a=b['inputs']['actions']
+            row=torch.arange(len(b['selected']));selected=b['selected'];prior=b.get('reference_option',b['inputs']['log_prior'].argmax(-1))
+            a=effective_commands(b['candidate_actions']) if 'candidate_actions' in b else b['inputs']['actions']
             learned_physical+=int((a[row,selected]!=a[row,prior]).any(-1).sum())
             nonbase+=int((a[row,selected]!=a[:,4]).any(-1).sum());decisions+=len(row)
         audit[name]=dict(episodes=sum(q['episodes'] for q in r['rollouts']),effective_first_episode_steps=r['native_env_steps'],
@@ -49,27 +51,30 @@ def run(args):
                 for key,value in r['metrics'].items():result[key]=result.get(key,0)+value
         return dict(episodes=episodes,counts=result,rates={k:v/episodes for k,v in result.items()},
                     conditional_release_after_acquisition=result['post_lift_release']/result['acquired_lift'] if result['acquired_lift'] else None)
-    evaluated={mode:metrics([f'eval_{mode}_s{s}' for s in range(391,395)]) for mode in ['on','off']}
-    prior={mode:metrics([f'prior_{mode}_s391']) for mode in ['on','off']}
+    evaluated={mode:metrics([f'eval_{mode}_s{s}' for s in seeds]) for mode in ['on','off']}
+    prior={mode:metrics([f'prior_{mode}_s{first_seed}']) for mode in ['on','off']}
     per_seed=[]
-    for seed in range(391,395):
+    for seed in seeds:
         left=metrics([f'eval_on_s{seed}']);right=metrics([f'eval_off_s{seed}'])
         per_seed.append(dict(seed=seed,on=left,off=right,stable_difference=left['rates']['stable_success']-right['rates']['stable_success']))
     differences=np.array([v['stable_difference'] for v in per_seed]);mean=float(differences.mean());se=float(differences.std(ddof=1)/2)
     interval=[mean-3.182446305284263*se,mean+3.182446305284263*se]
     conditional_on=evaluated['on']['conditional_release_after_acquisition'];conditional_off=evaluated['off']['conditional_release_after_acquisition']
     conditional_diff=conditional_on-conditional_off if conditional_on is not None and conditional_off is not None else None
-    trained391=metrics(['eval_on_s391']);learning_success_delta=trained391['rates']['stable_success']-prior['on']['rates']['stable_success']
-    physical_changes=sum(audit[f'eval_on_s{s}']['selected_physical_differs_from_prior'] for s in range(391,395))
+    trained_first=metrics([f'eval_on_s{first_seed}']);learning_success_delta=trained_first['rates']['stable_success']-prior['on']['rates']['stable_success']
+    physical_changes=sum(audit[f'eval_on_s{s}']['selected_physical_differs_from_prior'] for s in seeds)
+    physical_fraction=physical_changes/sum(audit[f'eval_on_s{s}']['decisions'] for s in seeds)
     gates=dict(actual_policy_training=all(r['optimizer_updates']>0 and r['policy_parameters_changed'] for r in [on,off]),
-               learned_physical_decisions=physical_changes>0,stable_success_on_above_off=mean>0,
+               learned_physical_decisions=physical_fraction>=.05 if learnable_guide else physical_changes>0,
+               stable_success_on_above_off=mean>=.02 if learnable_guide else mean>0,
                release_after_acquisition_noninferior=conditional_diff is not None and conditional_diff<=.02,
                stable_learning_beyond_frozen_prior=learning_success_delta>0)
     gates['passed']=all(gates.values());label='PROMISING' if gates['passed'] else 'UNPROMISING'
-    output=dict(experiment_id=m['experiment_id'],run_status='COMPLETED',label=label,gate=gates,training_seed=381,evaluated=evaluated,per_seed=per_seed,
+    output=dict(experiment_id=m['experiment_id'],run_status='COMPLETED',label=label,gate=gates,training_seed=m.get('training_seed',381),evaluated=evaluated,per_seed=per_seed,
                 stable_difference=mean,descriptive_eval_seed_t95=interval,conditional_release_difference=conditional_diff,
                 all_episode_release_difference=evaluated['on']['rates']['post_lift_release']-evaluated['off']['rates']['post_lift_release'],
-                frozen_prior=prior,stable_learning_difference_s391=learning_success_delta,learned_physical_evaluation_decisions=physical_changes,
+                frozen_prior=prior,prior_comparison_seed=first_seed,stable_learning_difference_first_seed=learning_success_delta,
+                learned_physical_evaluation_decisions=physical_changes,learned_physical_decision_fraction=physical_fraction,
                 phase_audits=audit,input_hashes_unchanged=all(sha(Path(k))==v for k,v in m['input_sha256'].items()),
                 elapsed_seconds_including_smoke=m['cumulative_seconds'],bytes_including_smoke=m['output_bytes'],
                 scope='one training seed; interval only over four evaluation seeds conditional on these checkpoints; matched configuration/initial weights/episode budgets, exact cold physical-state identity not recorded; acquisition-conditioned release is descriptive, no common-prestate causal risk estimate; clipped normalized command inequality gives conservative physical-change evidence',

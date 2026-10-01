@@ -53,7 +53,13 @@ GPU机械审计确认：固定先验log优势3.807，高于学到的最大相对
 网络学到了概率偏好，但贪心执行被固定先验压住。原生reward同时是参考轨迹
 imitation乘积，而非45tick保持/防掉落任务目标。下一步把Cm知识放入可学习
 动作评分参数，使用共同的接触支持保留reward，先验证学到的策略确实能执行
-不同物理动作。现有NN/专家输入未改，自有GPU进程结束；C3仍OPEN。
+不同物理动作。HF12合同已固定：guide为PPO可学习参数、外部log先验为0；
+初始一半利用/一半探索，两组共同reward改为接触支持高度到3cm后饱和，
+原生imitation单独记录。先运行新seed400工程smoke，尚未启动科学slot。
+使用新401训练与411–414评价，保存完整冷初始/物理轨迹与raw候选；
+学习门要求至少5%真正不同的独立控制命令，未过则不信用success变化。
+见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
+现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
 见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
 [保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
