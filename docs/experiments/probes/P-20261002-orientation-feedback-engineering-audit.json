@@ -1,0 +1,29 @@
+{
+  "run_status": "COMPLETED",
+  "gpu": {
+    "index": 0,
+    "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7475\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 7773\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 1815\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 1460712, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790877116.668256
+  },
+  "phases": [
+    {
+      "seed": 460,
+      "rows": 99,
+      "initially_clear": 42,
+      "hold_windows": 26,
+      "varying_feedback_expert_windows": 73,
+      "varying_anchored_finger_windows": 26,
+      "raw_force_ratio_error": 0.0,
+      "saved_observation_expert_replay_max_error": 0.0,
+      "wrist_mapping_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "complete_labels": true,
+      "wrist_anchor_target": true,
+      "actual_propensity_verified": true,
+      "geometry_replayed": true
+    }
+  ],
+  "scope": "actual native-PD and full source-mesh replay; no model training/inference, no utility conclusion"
+}

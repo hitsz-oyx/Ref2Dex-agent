@@ -75,10 +75,10 @@ diagnostic_hypotheses:
   HF15:
     claim: C3
     name: translation_feedback_orientation_stabilization
-    status: ENGINEERING
+    status: ACTIVE
     branch: agent/cm-executable-options
     probe_budget: 2
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "active mechanism goal; explicit control-responsibility review after preserved HF13/HF14 failures, same mission/claim/resources"
     card: docs/experiments/probes/P-20261002-orientation-feedback-opportunity.md

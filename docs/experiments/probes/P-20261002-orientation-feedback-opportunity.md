@@ -1,6 +1,6 @@
 # P-20261002-orientation-feedback-opportunity
 
-HF15 Decision Probe1/2, engineering running, branchagent/cm-executable-options,
+HF15 Decision Probe1/2, engineering COMPLETED, frozen science starts, branchagent/cm-executable-options,
 owner current session. [Control review](../../decisions/D-20261002-translation-orientation-control.md).
 
 Actual six frozen feedback experts plus two plans keeping expert XYZ/fingers
@@ -34,3 +34,8 @@ direct-control utility, independently bounded. Include state-only, shuffled,
 base and fit-best-fixed, calibrated abstain and actual reobserve/command logs.
 No PPO/fullsuccess comparison yet. Negative closes wrist-anchoring route;
 no more per-DOF/metric/seed scans, review higher-level candidate generation.
+
+Engineering99windows/47episodes,42initiallyclear,26rotation-anchored programs;
+all26have varying finger feedback, translation equality verified. Expert/force/
+PD/geometry replay0error, full labels/actual propensities pass; ownPIDs exited.
+111.242sec/10.134MB. [Engineering audit](P-20261002-orientation-feedback-engineering-audit.json).
