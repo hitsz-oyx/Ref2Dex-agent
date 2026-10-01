@@ -12,7 +12,9 @@ original worktree's branch or use its shared output symlink.
 ## Objective and scoreboard
 
 User objective remains autonomous idea development, experiments and a
-journal-level paper. It is active and **NOT READY**, without a reduced target.
+journal-level paper. It is **BLOCKED and NOT READY**, without a reduced target:
+the third consecutive runtime check has no usable GPU or original-host terminal
+observation. [Blocked audit](activities/20261002-continuous-critic-blocked-audit.md).
 
 | Requirement | Current evidence |
 | --- | --- |
@@ -143,7 +145,9 @@ physics or scientific utility label. [Resume evidence](activities/20261002-conti
  [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
-and hardware remain unmet. The objective stays active and NOT READY.
+and hardware remain unmet. The objective is blocked after three consecutive
+execution-blocked turns; it is not complete. Restore GPU execution and verify
+original-host ownership before continuing the fixed comparison.
 
 ## Evidence and manuscript
 
