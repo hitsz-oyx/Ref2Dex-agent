@@ -90,7 +90,14 @@ frame90[−12.842,−4.179]；几何间隙丢失−6.435pp（posthocframe90
 见 [新候选卡](experiments/probes/P-20261002-wrist-feedback-opportunity.md)。
 HF15已按控制职责复盘实现只稳定腕部旋转、保留专家XYZ/手指反馈，正在
 GPU工程检查通过：99窗口/47episodes、26旋转稳定程序的平移/手指保持反馈，
-全部复算0误差，工程111.24秒/10.14MB；开始冻结12科学批次机会Probe。
+全部复算0误差，工程111.24秒/10.14MB。HF15 slot1已完成3917窗口/587episodes，
+1409initiallyclear；fit选rotation_cup7、最佳固定也7。留出704clear状态，
+134候选/274base匹配，保留支持高度+26.509mm，frame90[19.241,32.794]、
+episode90[16.602,36.590]mm；几何丢失−4.972pp，joint-force−1.776pp。
+原收益/支持/风险门全部通过，局部候选机会PROMISING，不是Cm或稳定抓取收益。
+全12专家/rawforce/PD/XYZ/finger/geometry/propensity/hash检查通过，PIDs退出/
+GPU释放，含工程21.28分钟/274.7MB。下一步slot2用新H10数据实际拟合plan-Cm，
+与state-only固定程序头、shuffled、base和最佳固定7比较，再做新数据直接控制。
 不声称HF14已证明旋转是掉落原因。此为最后一轮腕部保持
 候选机会Probe；正向才拟合对应新Cm，失败转更高层候选生成，避免关节扫描。
 见 [旋转稳定卡](experiments/probes/P-20261002-orientation-feedback-opportunity.md)。

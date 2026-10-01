@@ -1,0 +1,12 @@
+{
+  "status": "COMPLETED",
+  "all12completed": true,
+  "inputs_unchanged": true,
+  "owned_pids_live": [],
+  "all_contracts_passed": true,
+  "cumulative_seconds": 1276.604049616959,
+  "scoped_bytes": 274658057,
+  "rows": 3917,
+  "initially_clear": 1409,
+  "varying_anchored_finger_windows": 1153
+}

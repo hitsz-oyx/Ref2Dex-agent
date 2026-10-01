@@ -1,6 +1,6 @@
 # P-20261002-orientation-feedback-opportunity
 
-HF15 Decision Probe1/2, engineering COMPLETED, frozen science starts, branchagent/cm-executable-options,
+HF15 Decision Probe1/2, COMPLETED / PROMISING; slot1/2done, branchagent/cm-executable-options,
 owner current session. [Control review](../../decisions/D-20261002-translation-orientation-control.md).
 
 Actual six frozen feedback experts plus two plans keeping expert XYZ/fingers
@@ -39,3 +39,21 @@ Engineering99windows/47episodes,42initiallyclear,26rotation-anchored programs;
 all26have varying finger feedback, translation equality verified. Expert/force/
 PD/geometry replay0error, full labels/actual propensities pass; ownPIDs exited.
 111.242sec/10.134MB. [Engineering audit](P-20261002-orientation-feedback-engineering-audit.json).
+
+Terminal3917windows/587episodes,1409initiallyclear. Fit-selected rotation_cup7
+and best-fit-fixed7. Held704clear,134selected/81episodes/19groups vsbase274/
+100episodes/18groups. Signed-retention+26.509mm, frame90[19.241,32.794],
+episode90[16.602,36.590]; geometry-loss−4.972pp, joint-force−1.776pp. Null
++.175mm frame90[−17.396,+14.915], original gain threshold2mm; all gates pass.
+Rotation_base6gain−.134mm90crosszero, not the fit winner. Do not claim rotation
+alone causally explains the winning program without a sufficiently supported
+cup-vsrotation_cup comparison. [Results](P-20261002-orientation-feedback-opportunity-results.json).
+
+All12input/NN/rawforce/rotationPD/translation/finger/geometry/probability
+contracts pass,1116anchored finger windows vary. OwnPIDs exit/GPU0released;
+including engineering1276.604sec/274.658MB. [Records](P-20261002-orientation-feedback-record-audit.json),
+[completion](P-20261002-orientation-feedback-completion-audit.json).
+This is local candidate opportunity PROMISING, not learned Cm/control/RL
+utility, individual oracle, full-grasp success or formal safety confirmation.
+Proceed slot2new actualH10 plan-Cm/fixed-head-state/shuffled/fresh direct-control
+comparison; always-base and best-fixedrotation_cup are mandatory comparators.
