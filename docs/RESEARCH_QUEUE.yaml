@@ -75,14 +75,14 @@ diagnostic_hypotheses:
   HF17:
     claim: C3
     name: strong_reference_feedback_corrections
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-strong-reference-corrections
     probe_budget: 2
     probes_used: 1
     owner: current_session
     authorization: "active mechanism goal; strong-reference-centered executable corrections after HF16 preserved gate failure; same mission/claim/resources"
-    card: docs/experiments/probes/P-20261002-strong-reference-opportunity.md
-    transition: "Slot1 fixed before collection: real H10 bounded feedback corrections around strong rotation_cup; uniform9allocation slots with duplicated reference, actual8commands. Fit-group selects correction, held-group original gain/risk/null gates. Engineering530; science531-542/private13531-13542, singleGPU60min8GiB. No NN fit until actual strong-reference opportunity passes. C3OPEN."
+    card: docs/experiments/probes/P-20261002-strong-reference-opportunity-result.md
+    transition: "CLOSED after slot1 UNPROMISING; slot2 not started.1506H10windows322episodes; fit-selected7 half-base fingers vsstrongreference held-9.227mmgroup90[-23.722,6.520], riskpointgatespass/scorefails; duplicate-reference null16.358mm, originalthreshold32.716mm. Support adequate. All15060actualPD/feedback/rawforce/sourcegeometry labels replay0; ownPIDs exited/GPUreleased,21.58min110.68MB. No mixratio/seed/gate scan. Nextcontact-to-lift phase and feedback-law-conditioned H10 information, ratherthanpost-lift catalogue refinement; C3OPEN."
   HF16:
     claim: C3
     name: native_pd_force_consequence

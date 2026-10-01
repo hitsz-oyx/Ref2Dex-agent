@@ -332,7 +332,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
-| `HF17` strong-reference corrections | `C3` | `ACTIVE`（先验证强控制之上是否有机会） | slot1/2登记 | `agent/cm-strong-reference-corrections` |
+| `HF17` strong-reference corrections | `C3` | `UNPROMISING`（固定修正未过留出机会门） | slot1后关闭，不启动slot2 | `agent/cm-strong-reference-corrections` |
 | `HF16` native-PD/force-Cm | `C3` | `UNPROMISING`（一步信息正向，强控制门失败） | 2/2关闭 | `agent/cm-native-pd-consequence` |
 | `HF15` translation/orientation-plan-Cm | `C3` | `UNPROMISING`（候选机会正向，闭环未过强控制门） | 2/2关闭 | `agent/cm-executable-options` |
 | `HF14` wrist-anchored-finger-feedback | `C3` | `CLOSED UNPROMISING` | 1/1；保持/抬升取舍，旧门保留 | `agent/cm-executable-options` |
@@ -360,8 +360,12 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 物理模型拟合也已完成；raw动作张量解码器置信门下0提议，不能进入PPO。
 HF15/HF16均预算2/2关闭。HF16一步物理信息PROMISING且实际局部控制
 胜过state-policy/base/shuf，但未超过强rotation_cup，原风险门保留。
-下一步在强控制之上生成可执行、有界的动作修正；先随机实际执行判断是否
-存在超出重复控制噪声的H10机会，正向才学习对应短后果与局部选择。
+HF17强参考修正1506窗口已完成：fit选中手指半修正，heldvsreference
+−9.227mm90[−23.722,+6.520]，机会门UNPROMISING；slot1后关闭，slot2不启动。
+全部实际PD/force/geometry/反馈审计通过，21.58min/110.68MB，本任务PID退出。
+当前触发要求物体已离桌3cm，不能帮助尚未形成的抓取；下一步转接触到抬升
+阶段，先利用原有真实反馈片段检查监督支持，足够才学习程序条件H10物理
+后果。见 [HF17结果](experiments/probes/P-20261002-strong-reference-opportunity-result.md)。
 不对旧目录或阈值继续扫描，不启动完整PPO/最终成功率矩阵。C3仍OPEN。
 近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
 新数据测量收益，而非把单状态预测当全候选真值。

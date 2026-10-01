@@ -1,0 +1,517 @@
+{
+  "experiment_id": "P-20261002-strong-reference-opportunity",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 1506,
+  "episodes": 322,
+  "split": {
+    "fit": {
+      "rows": 599,
+      "episodes": 135,
+      "initial_groups": 34,
+      "already_clear": 599,
+      "arms": [
+        57,
+        72,
+        74,
+        70,
+        129,
+        62,
+        68,
+        67
+      ],
+      "already_clear_arms": [
+        57,
+        72,
+        74,
+        70,
+        129,
+        62,
+        68,
+        67
+      ]
+    },
+    "cal": {
+      "rows": 259,
+      "episodes": 58,
+      "initial_groups": 16,
+      "already_clear": 259,
+      "arms": [
+        27,
+        24,
+        32,
+        38,
+        49,
+        37,
+        31,
+        21
+      ],
+      "already_clear_arms": [
+        27,
+        24,
+        32,
+        38,
+        49,
+        37,
+        31,
+        21
+      ]
+    },
+    "held": {
+      "rows": 648,
+      "episodes": 129,
+      "initial_groups": 24,
+      "already_clear": 648,
+      "arms": [
+        60,
+        69,
+        70,
+        68,
+        145,
+        85,
+        79,
+        72
+      ],
+      "already_clear_arms": [
+        60,
+        69,
+        70,
+        68,
+        145,
+        85,
+        79,
+        72
+      ]
+    }
+  },
+  "fit_fixed_candidate_values": {
+    "0": {
+      "support": {
+        "matches": 57,
+        "episodes": 44,
+        "initial_groups": 24
+      },
+      "ipw_value_mm": -3.030160427093506,
+      "eligible": true
+    },
+    "1": {
+      "support": {
+        "matches": 72,
+        "episodes": 49,
+        "initial_groups": 21
+      },
+      "ipw_value_mm": 12.4224271774292,
+      "eligible": true
+    },
+    "2": {
+      "support": {
+        "matches": 74,
+        "episodes": 54,
+        "initial_groups": 21
+      },
+      "ipw_value_mm": 3.3154540061950684,
+      "eligible": true
+    },
+    "3": {
+      "support": {
+        "matches": 70,
+        "episodes": 50,
+        "initial_groups": 25
+      },
+      "ipw_value_mm": 7.105739593505859,
+      "eligible": true
+    },
+    "4": {
+      "support": {
+        "matches": 129,
+        "episodes": 69,
+        "initial_groups": 23
+      },
+      "ipw_value_mm": 11.249884605407715,
+      "eligible": true
+    },
+    "5": {
+      "support": {
+        "matches": 62,
+        "episodes": 44,
+        "initial_groups": 23
+      },
+      "ipw_value_mm": -8.997838973999023,
+      "eligible": true
+    },
+    "6": {
+      "support": {
+        "matches": 68,
+        "episodes": 48,
+        "initial_groups": 22
+      },
+      "ipw_value_mm": -0.49399328231811523,
+      "eligible": true
+    },
+    "7": {
+      "support": {
+        "matches": 67,
+        "episodes": 50,
+        "initial_groups": 19
+      },
+      "ipw_value_mm": 18.83014678955078,
+      "eligible": true
+    }
+  },
+  "best_fixed_option": 7,
+  "selected_correction_option": 7,
+  "primary_fit_selected_correction_vs_reference": {
+    "option": 7,
+    "already_clear_windows": 648,
+    "support": {
+      "7": {
+        "matches": 72,
+        "episodes": 53,
+        "initial_groups": 18
+      },
+      "4": {
+        "matches": 145,
+        "episodes": 75,
+        "initial_groups": 21
+      }
+    },
+    "score_uplift_mm": -9.227299690246582,
+    "frame90": [
+      -23.72216246901134,
+      6.520294827668335
+    ],
+    "episode90": [
+      -24.280779272445738,
+      7.020775084298402
+    ],
+    "lost_clearance_risk_difference": 0.0,
+    "joint_force_difference": -0.0069444444961845875,
+    "gate": {
+      "support": true,
+      "null_available": true,
+      "signed_retention_uplift": false,
+      "frame90_positive": false,
+      "episode90_positive": false,
+      "lost_clearance_risk_point_bound": true,
+      "last3_joint_force_point_bound": true,
+      "passed": false
+    },
+    "label": "UNPROMISING"
+  },
+  "descriptive_correction_variants": {
+    "0": {
+      "option": 0,
+      "already_clear_windows": 648,
+      "support": {
+        "0": {
+          "matches": 60,
+          "episodes": 47,
+          "initial_groups": 14
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -29.89171028137207,
+      "frame90": [
+        -47.020216575699024,
+        -16.416564156909505
+      ],
+      "episode90": [
+        -44.43557559520932,
+        -14.876956000963425
+      ],
+      "lost_clearance_risk_difference": -0.013888888992369175,
+      "joint_force_difference": -0.1319444477558136,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": false,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "1": {
+      "option": 1,
+      "already_clear_windows": 648,
+      "support": {
+        "1": {
+          "matches": 69,
+          "episodes": 53,
+          "initial_groups": 17
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -4.470980167388916,
+      "frame90": [
+        -16.657288674407297,
+        5.218129580968519
+      ],
+      "episode90": [
+        -20.243900891939713,
+        12.088812245644808
+      ],
+      "lost_clearance_risk_difference": -0.0416666679084301,
+      "joint_force_difference": -0.0347222238779068,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "2": {
+      "option": 2,
+      "already_clear_windows": 648,
+      "support": {
+        "2": {
+          "matches": 70,
+          "episodes": 57,
+          "initial_groups": 19
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -24.285253524780273,
+      "frame90": [
+        -46.91256269721327,
+        -1.0706323138165763
+      ],
+      "episode90": [
+        -39.402200272626345,
+        -10.614346495737433
+      ],
+      "lost_clearance_risk_difference": 0.013888888992369175,
+      "joint_force_difference": -0.0347222238779068,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "3": {
+      "option": 3,
+      "already_clear_windows": 648,
+      "support": {
+        "3": {
+          "matches": 68,
+          "episodes": 49,
+          "initial_groups": 15
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -16.456933975219727,
+      "frame90": [
+        -33.551864415122274,
+        -1.5019299830507857
+      ],
+      "episode90": [
+        -32.975258906437766,
+        0.2965626429265199
+      ],
+      "lost_clearance_risk_difference": 0.013888888992369175,
+      "joint_force_difference": -0.02083333395421505,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "5": {
+      "option": 5,
+      "already_clear_windows": 648,
+      "support": {
+        "5": {
+          "matches": 85,
+          "episodes": 63,
+          "initial_groups": 20
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -24.894065856933594,
+      "frame90": [
+        -34.80328127886987,
+        -13.663656693439945
+      ],
+      "episode90": [
+        -38.57132282961187,
+        -11.923186103607916
+      ],
+      "lost_clearance_risk_difference": 0.0416666679084301,
+      "joint_force_difference": 0.2013888955116272,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": false,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "6": {
+      "option": 6,
+      "already_clear_windows": 648,
+      "support": {
+        "6": {
+          "matches": 79,
+          "episodes": 58,
+          "initial_groups": 18
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -8.461675643920898,
+      "frame90": [
+        -22.44476757753846,
+        4.778026394757305
+      ],
+      "episode90": [
+        -22.694368332255216,
+        7.5027060046227
+      ],
+      "lost_clearance_risk_difference": 0.013888888992369175,
+      "joint_force_difference": 0.0902777761220932,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    },
+    "7": {
+      "option": 7,
+      "already_clear_windows": 648,
+      "support": {
+        "7": {
+          "matches": 72,
+          "episodes": 53,
+          "initial_groups": 18
+        },
+        "4": {
+          "matches": 145,
+          "episodes": 75,
+          "initial_groups": 21
+        }
+      },
+      "score_uplift_mm": -9.227299690246582,
+      "frame90": [
+        -23.72216246901134,
+        6.520294827668335
+      ],
+      "episode90": [
+        -24.280779272445738,
+        7.020775084298402
+      ],
+      "lost_clearance_risk_difference": 0.0,
+      "joint_force_difference": -0.0069444444961845875,
+      "gate": {
+        "support": true,
+        "null_available": true,
+        "signed_retention_uplift": false,
+        "frame90_positive": false,
+        "episode90_positive": false,
+        "lost_clearance_risk_point_bound": true,
+        "last3_joint_force_point_bound": true,
+        "passed": false
+      },
+      "label": "UNPROMISING"
+    }
+  },
+  "secondary_fit_fixed_vs_reference": {
+    "option": 7,
+    "already_clear_windows": 648,
+    "support": {
+      "7": {
+        "matches": 72,
+        "episodes": 53,
+        "initial_groups": 18
+      },
+      "4": {
+        "matches": 145,
+        "episodes": 75,
+        "initial_groups": 21
+      }
+    },
+    "score_uplift_mm": -9.227299690246582,
+    "frame90": [
+      -23.72216246901134,
+      6.520294827668335
+    ],
+    "episode90": [
+      -24.280779272445738,
+      7.020775084298402
+    ],
+    "lost_clearance_risk_difference": 0.0,
+    "joint_force_difference": -0.0069444444961845875,
+    "gate": {
+      "support": true,
+      "null_available": true,
+      "signed_retention_uplift": false,
+      "frame90_positive": false,
+      "episode90_positive": false,
+      "lost_clearance_risk_point_bound": true,
+      "last3_joint_force_point_bound": true,
+      "passed": false
+    },
+    "label": "UNPROMISING"
+  },
+  "held_reference_null_difference_mm": 16.357769012451172,
+  "held_reference_null_frame90": [
+    -1.3356826009171,
+    36.81972725776949
+  ],
+  "required_uplift_mm": 32.715538024902344,
+  "total_seconds_including_engineering": 1280.812427594792,
+  "bytes_including_engineering": 110665292,
+  "scope": "known-propensity randomized local full10plan consequences on observed already-clear prestates; no individual oracle/regret, no learned Cm or MPC deployment, no full-task success or formal safety proof",
+  "claim": "C3 OPEN; eight full-window candidates, unqualified fixed options reported rather than presumed comparable"
+}

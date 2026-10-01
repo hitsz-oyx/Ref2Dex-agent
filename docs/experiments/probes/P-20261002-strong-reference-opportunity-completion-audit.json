@@ -1,0 +1,13 @@
+{
+  "status": "COMPLETED",
+  "all12phases_completed": true,
+  "all_own_native_pids_exited": true,
+  "input_hashes_unchanged": true,
+  "record_audit": "P-20261002-strong-reference-opportunity-record-audit.json",
+  "original_gate": "UNPROMISING",
+  "family_closed": "HF17 slot1 failed; slot2 not started",
+  "cumulative_seconds": 1294.7944178986363,
+  "analysis_seconds_conservative": 10,
+  "scoped_bytes": 110684804,
+  "gpu_snapshot": "0, 2 MiB\n1, 2 MiB\n2, 7795 MiB\n3, 8011 MiB\n4, 2 MiB\n5, 2123 MiB\n6, 2 MiB\n7, 2 MiB\n"
+}
