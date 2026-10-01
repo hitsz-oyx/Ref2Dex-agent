@@ -35,6 +35,25 @@ class PlanConsequenceModel(nn.Module):
         return self.base(state)+self.effect(torch.cat((state,program),-1))-self.effect(torch.cat((state,base_program),-1))
 
 
+class StateOptionConsequenceModel(nn.Module):
+    """Strong state-only control: fixed catalog heads, no action tensor input.
+
+    Output head identity encodes the static program catalog. Report this
+    explicitly; it is stronger than the unconditional state-only forecaster,
+    whose predictions cannot rank candidates. It receives no first commands
+    or anchor parameters, while factual training selects the observed head.
+    """
+    def __init__(self,native_observation_dim):
+        super().__init__()
+        self.history=nn.GRU(69,64,batch_first=True)
+        self.context=nn.Sequential(nn.Linear(native_observation_dim,64),nn.SiLU(),nn.LayerNorm(64))
+        self.heads=nn.Sequential(nn.Linear(128,128),nn.SiLU(),nn.Linear(128,8*32))
+
+    def forward(self,history,native_observation):
+        _,h=self.history(history);state=torch.cat((h[-1],self.context(native_observation)),-1)
+        return self.heads(state).reshape(-1,8,32)
+
+
 def physical_targets(record):
     state=record['state'];future=record['future_state'];clear=record['future_clearance'];pair=record['future_contact'].all(-1)
     if future.shape[1:]!=(10,49) or record['future_done'].any():raise ValueError('complete nonterminal H10 required')

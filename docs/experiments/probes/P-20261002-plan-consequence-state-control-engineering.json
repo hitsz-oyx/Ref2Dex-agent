@@ -1,0 +1,16 @@
+{
+  "kind": "GPU_ENGINEERING_ONLY",
+  "state_catalog_heads": 8,
+  "physical_outputs_per_head": 32,
+  "candidate_tensor_input": false,
+  "static_head_identity_encodes_program": true,
+  "actual_record_target_shape": [
+    99,
+    32
+  ],
+  "actual_model_training": false,
+  "synthetic_backward_passed": true,
+  "elapsed_seconds": 0.6293596299365163,
+  "record_sha256": "403e352767e96c72776bdc872ff65c2b66413ae045c6aceb620989071e1ea602",
+  "source_sha256": "f1ec6d40ded6d4d52d10d1ab27856925b1043ba2f69c96608c09105c31b7b4b7"
+}
