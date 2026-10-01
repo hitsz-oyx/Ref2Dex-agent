@@ -1,4 +1,16 @@
-Current: [manuscript-v8.tex](manuscript-v8.tex) and eighteen-page
+Current: [manuscript-v9.tex](manuscript-v9.tex) and twenty-page
+[manuscript-v9.pdf](manuscript-v9.pdf). Revision9 adds training-only natural loss
+diagnosis and a1536fresh-trajectory prospective feedback test. Unchanged133/384,
+event curl92/384,wrist arrest125/384; both frozen event gates fail. Nineteen
+JSON-generated tables and three figures,84hashed inputs. New feedback table
+independently reconstructed from all1536audited rows; pages17/18visually inspected
+and text bounds checked. Generic slip reflexes, predictive/reactive tactile
+control and failure monitoring are explicitly situated against primary sources.
+Previous revisions remain intact. ReportLab review copy, no native TeX build;
+actual Cm utility, distinctive method, Validation/generalization/hardware remain
+unproved. This is not a journal-ready submission.
+
+Preserved: [manuscript-v8.tex](manuscript-v8.tex) and eighteen-page
 [manuscript-v8.pdf](manuscript-v8.pdf). Revision8 adds the first actual matched
 return-trained Cm/state/global policy comparison:9216fresh training and1536fresh
 evaluation trajectories. Cm151/384,state153/384,global140/384; fixed gates fail.

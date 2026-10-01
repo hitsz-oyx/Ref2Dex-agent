@@ -58,7 +58,7 @@
 - [Absolute-target initializer](20261002-reference-target-policy-results.md): PROMISING56/64on primary motion1; other motions0.
 - [Updated primary-source novelty constraints](20261002-contact-response-novelty-update.md).
 
-Paper revision8incorporates these and the newer results below without a Cm utility
+Paper revision9incorporates these and the newer results below without a Cm utility
 or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Executable-support forecasting](20261002-support-response-information-results.md):6144complete trajectories, strong-global primary gate fails.
@@ -68,3 +68,7 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [First actual matched policy-training result](20261002-support-feature-policy-results.md):9216training/1536evaluation, UNPROMISING; all three tested deterministic decision rules coincide.
 - [Full-text method boundaries](20261002-fulltext-method-boundary.md): generic contact prediction and frozen-feature adaptation are already occupied.
 - [Temporal decision review](../decisions/D-20261002-natural-retention-headroom.md): reused training-only natural loss counts, no recovery or policy-utility claim.
+
+- [Natural feedback failure](20261002-natural-retention-feedback-results.md):1536fresh trajectories, both event arms trail unchanged; UNPROMISING.
+- [Predictive/reactive method boundaries](20261002-feedback-method-boundary.md): primary full-text sources, no novelty from generic slip alarms.
+- [Action representation review](../decisions/D-20261002-contact-action-representation-review.md): selective effective finger directions, next design pending.

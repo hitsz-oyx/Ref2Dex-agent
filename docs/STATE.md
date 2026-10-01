@@ -15,7 +15,7 @@ journal-level paper. It is active and **NOT READY**, without a reduced target.
 | --- | --- |
 | Self-trained manipulation substrate | PROMISING reference-conditioned initializer on one preselected motion; all-motion competence unproved |
 | Useful action-conditioned physical information | New6144-trajectory forecast fails its strong-global primary gate; mechanical support witness remains PROMISING |
-| Cm policy-training utility | Unproved; no matched Cm-on/off trained-policy improvement |
+| Cm policy-training utility | First actual matched experiment is negative; no demonstrated improvement |
 | Distinctive method | Unestablished; broad physical-grounding/contact-prediction themes already occupied |
 | Generalization / hardware | Absent on this independent track |
 
@@ -88,20 +88,32 @@ remain retained; no job from this experiment is live.
 
 Stop this exact feature-transfer recipe without extra updates, seeds, changed
 heads/LR or deployment selection. Forecast, gradient, position and fixed external
-impulse recipes remain closed. The next decision is temporal contact support:
-reused TRAINING-only unchanged trajectories show natural acquisition-then-loss
-on56/384motion1and101/384motion2. Every such failure has observable relative
-downward speed before first loss; motion0never acquires. This is descriptive
-headroom, not recoverability or Cm utility. Design a prospective bounded native
-comparison of unchanged, pre-lift curl, slip-triggered curl and slip-triggered
-wrist arrest. No external force or object/material modification; samephysical105.
-[Decision](decisions/D-20261002-natural-retention-headroom.md).
+impulse recipes remain closed. Training-only natural loss diagnosis motivates a
+separate current-state feedback experiment7e2c741:1536fresh543/544native trajectories,
+COMPLETED114.312s/271742088bytes. Unchanged133/384,early shared curl96/384,event
+curl92/384,wrist arrest125/384. Both event policies fail gain5pp over BOTHstatic
+controls and each-seed noninferiority, UNPROMISING. Independent full-mesh,
+current-event/target/PD/private-assignment audit passes; all251protected inputs
+rechecked. Unchanged motion1triggers in82successful and17failed trials: observable
+relative slip is insufficient to prescribe closure. No event-conditioned causal
+claim or Cm utility; privileged native state, no sensing/hardware transfer.
+
+The trigger/shared-curl/wrist-arrest family ends without scans. Next higher-level
+question is the effective independent FINGER action representation. Native parents
+6/8/10/12/15plus thumb yaw14can act separately; dependent child commands are not
+independent dimensions. Before any new fit, fix a prospective selective-finger
+feasibility screen with strong static controls and original physical105. This can
+distinguish shared-synergy harm from absence of mechanical correction headroom;
+it is not novel methodology or a successful Cm route.
+[Route review](decisions/D-20261002-contact-action-representation-review.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
 and hardware remain unmet. The objective stays active and NOT READY.
 
 ## Evidence and manuscript
 
+- [Prospective natural feedback failure](research/20261002-natural-retention-feedback-results.md)
+- [Predictive/reactive primary-source boundary](research/20261002-feedback-method-boundary.md)
 - [First matched actual policy-training result](research/20261002-support-feature-policy-results.md)
 - [Full-text methodological boundaries](research/20261002-fulltext-method-boundary.md)
 - [Executable-support forecast](research/20261002-support-response-information-results.md)
@@ -114,12 +126,17 @@ and hardware remain unmet. The objective stays active and NOT READY.
 - [Prospective support witness](research/20261002-support-removal-witness-results.md)
 - [Primary-source novelty update](research/20261002-contact-response-novelty-update.md)
 - [Prior evidence index](research/README.md); all historical results and gates remain in cards/Git.
-- [Current working manuscript](../paper/manuscript-v8.tex) and [PDF](../paper/manuscript-v8.pdf):
-  eighteen-page ReportLab review copy, eighteen recorded-JSON tables, three
-  figures. Adds the first negative actual training comparison; previous revisions
+- [Current working manuscript](../paper/manuscript-v9.tex) and [PDF](../paper/manuscript-v9.pdf):
+  twenty-page ReportLab review copy, nineteen recorded-JSON tables, three
+  figures. Adds the negative actual training and natural-feedback comparisons;84hashed
+  sources independently checked, new table reconstructed from1536audited rows;
+  pages17/18visually and numerically checked. Previous revisions
   and their hashed inputs are preserved. No native TeX compilation or journal
   readiness. Export/source/numeric/visual checks are recorded separately.
 
-No live owned native/training job at this closeout. New experiments require fixed
-code/design, fresh resource admission and unique output. No old run is restarted.
+No live owned native/training job. Parent79521and all former handles are terminal;
+never restart a run because its output observation has ended. All original
+worktree/external assets/checkpoints remain read-only; own outputs about4.4GiB,
+within300GB. Next run requires fixed design/code, fresh resource admission and
+unique output. No local failed recipe is extended.
 Resource and external-data boundaries remain in [CAMPAIGN.md](CAMPAIGN.md).
