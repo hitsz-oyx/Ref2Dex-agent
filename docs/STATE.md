@@ -82,7 +82,11 @@ gate. No robust benefit of3000versus1000updates appears. The baseline is not
 novel and has not demonstrated task benefit. Next frozen Decision Probe tests
 equal-weight factual selection against actor/random/global controls on new
 seeds496/497, full first-episode retained success and drops, bounded corrections.
-No PPO yet.13focused implementation checks pass. GPU4/5 released; no run active.
+No PPO yet.13focused learner checks and6task-controller checks pass.
+Task Probe `P-20261001-randomized-task-selection-r1` ACTIVE, code c0ec955,
+four768-env panels on independently admitted GPU5;GPU4occupied by another task.
+Models/fit-global scores/source SHA frozen before physics. Budget3600s/2GiB;
+no result or policy benefit yet. Current process state is in its run manifest.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
