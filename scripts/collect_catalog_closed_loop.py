@@ -11,7 +11,7 @@ POLICIES=['catalog_cm','state_policy','catalog_shuffled','always_base','always_f
 
 
 def closed_loop_player(original,args,torch,gymtorch):
-    from src.task.CmResidual.executable_contact_options import hold_target,obj_vertices,TableClearance,INDEPENDENT
+    from src.task.CmResidual.executable_contact_options import hold_target,obj_vertices,TableClearance,INDEPENDENT,COUPLINGS
     from src.task.CmResidual.physical_value_live import contacts as legacy_contacts
     from src.task.CmResidual.weight_normalized_contact import weight_normalized_contacts
     from src.task.CmResidual.orientation_anchored_options import orientation_anchored_action
@@ -110,12 +110,22 @@ def closed_loop_player(original,args,torch,gymtorch):
             if int(valid.sum())<24:raise ValueError('insufficient collected support')
             # Replay the frozen feedback experts independently on actual saved observations.
             saved_obs=native_obs[valid].reshape(-1,native_obs.shape[-1]);saved_feedback=feedback[valid].reshape(-1,18);choice=programs[valid].reshape(-1)
-            index=torch.where(choice==7,1,torch.where(choice==6,4,choice));replay_error=0.
+            index=torch.where(choice==7,1,torch.where(choice==6,4,choice));replay_error=0.;counter_error=0.
+            prior_position=torch.cat((pre[valid][:,None,:18],future[valid][:,:-1,:18]),1).reshape(-1,18)
+            saved_fixed_anchor=fixed_anchors[valid].reshape(-1,18)
+            saved_base_pd=base_pd[valid].reshape(-1,18);saved_fixed_pd=fixed_pd[valid].reshape(-1,18)
+            def native_pd(raw,position):
+                value=raw.clone();value[:,6:]=(1+value[:,6:])/2
+                target=task._pd_action_offset+task._pd_action_scale*value;target[:,:6]+=position[:,:6]
+                for dst,src,ratio in COUPLINGS:target[:,dst]=target[:,src]*ratio
+                return target
             for begin_batch in range(0,len(saved_obs),96):
                 batch=saved_obs[begin_batch:begin_batch+96];k=len(batch);padded=torch.cat((batch,batch[:1].expand(96-k,-1)),0) if k<96 else batch
                 replay=self.candidates({'obs':padded})[:k];selected=replay[torch.arange(k,device=self.device),index[begin_batch:begin_batch+k]]
                 replay_error=max(replay_error,float((selected-saved_feedback[begin_batch:begin_batch+k]).abs().max()))
-            if replay_error>2e-5 or not torch.equal(actual[valid][:,:,:3],feedback[valid][:,:,:3]) or not torch.equal(actual[valid][:,:,6:],feedback[valid][:,:,6:]):raise ValueError('expert feedback/XYZ/fingers replay mismatch')
+                pos=prior_position[begin_batch:begin_batch+k];fix=orientation_anchored_action(replay[:,1],saved_fixed_anchor[begin_batch:begin_batch+k],pos,task._pd_action_offset,task._pd_action_scale)
+                counter_error=max(counter_error,float((native_pd(replay[:,4],pos)-saved_base_pd[begin_batch:begin_batch+k]).abs().max()),float((native_pd(fix,pos)-saved_fixed_pd[begin_batch:begin_batch+k]).abs().max()))
+            if replay_error>2e-5 or counter_error>2e-5 or not torch.equal(actual[valid][:,:,:3],feedback[valid][:,:,:3]) or not torch.equal(actual[valid][:,:,6:],feedback[valid][:,:,6:]):raise ValueError('expert feedback/XYZ/fingers replay mismatch')
             if expert_before!=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts]) or model_before!=fingerprint({mode:[m.state_dict() for m in models] for mode,models in selector.models.items()}) or cm_before!=sha(args.checkpoint):raise ValueError('frozen model drift')
             env=ids[:,None].expand(-1,w)[valid];rest_rows=rest[:,None].expand(-1,w)[valid];state_rows=pre[valid];f=future[valid];pair=force[valid].all(-1);clr=clearance[valid]
             retention=(clr[:,-3:]>=.002).all(-1)&pair[:,-3:].all(-1)
@@ -125,7 +135,7 @@ def closed_loop_player(original,args,torch,gymtorch):
                 actual_action=actual[valid].cpu(),actual_pd_targets=pd[valid].cpu(),feedback_action=feedback[valid].cpu(),native_observation=native_obs[valid].cpu(),program=programs[valid].cpu(),rotation_anchor=anchors[valid].cpu(),fixed_rotation_anchor=fixed_anchors[valid].cpu(),base_pd_targets=base_pd[valid].cpu(),fixed_pd_targets=fixed_pd[valid].cpu(),changed_base=changed_base[valid].cpu(),changed_fixed=changed_fixed[valid].cpu(),decision_history=decisions[valid].cpu(),recommendations=recommend[valid].cpu(),ood=ood[valid].cpu(),diagnostics={key:v[valid].cpu() for key,v in diagnostics.items()},
                 mass_kg=mass[env].cpu(),gravity_magnitude=gravity,contact_collection=int(task.sim_params.physx.contact_collection),substeps=task.sim_params.substeps,initial_hand_force=pre_hand[valid].cpu(),initial_object_force=pre_object[valid].cpu(),future_hand_force=raw_hand[valid].cpu(),future_object_force=raw_object[valid].cpu(),future_force_ratio=ratios[valid].cpu(),legacy_future_contact=old_force[valid].cpu(),outcome=dict(score_mm=score.cpu(),retained=retention.cpu(),lost_clearance=(clr<.002).any(-1).cpu(),joint_last3=pair[:,-3:].all(-1).cpu()),
                 policy_names=POLICIES,intervention='random controller owner for H10; five observed-state replans each execute2feedbacksteps; clear prestates held initial groups only;6tickcooldown',assignment_after_observation=True,policy_propensity_definition='five distinct whole-window controller laws p=.2; coincident recommendations never merge policies',frozen_experts=True,frozen_cm=True,cm_used=True,optimizer_used=False,first_episode_frames=first_episode_frames,sim_frames=n*(tick+1),checkpoint_sha256=cm_before,pd_offset=task._pd_action_offset.cpu(),pd_scale=task._pd_action_scale.cpu(),geometry_definition='full25002vertex source mesh support over upper table plane; approximation to nativeVHACD',contact_definition='netforce norms divided by actual object weight >.1 presence proxy; not identified contact pairs',countercommand_definition='same observed-state base and reanchored fixed7 native PD references; not counterfactual outcome trajectories')
-            torch.save(payload,args.output/'records.pt');result=dict(run_status='COMPLETED',rows=len(score),episodes=len(set(payload['episode_id'])),policies=torch.bincount(payload['assignment'],minlength=5).tolist(),elapsed_seconds=time.monotonic()-begin,record_sha256=sha(args.output/'records.pt'),frozen_experts=True,frozen_cm=True,checkpoint_sha256=cm_before,complete_labels=True,held_initial_groups_only=True,saved_observation_expert_replay_max_error=replay_error,first_episode_frames=first_episode_frames,sim_frames=payload['sim_frames'])
+            torch.save(payload,args.output/'records.pt');result=dict(run_status='COMPLETED',rows=len(score),episodes=len(set(payload['episode_id'])),policies=torch.bincount(payload['assignment'],minlength=5).tolist(),elapsed_seconds=time.monotonic()-begin,record_sha256=sha(args.output/'records.pt'),frozen_experts=True,frozen_cm=True,checkpoint_sha256=cm_before,complete_labels=True,held_initial_groups_only=True,saved_observation_expert_replay_max_error=replay_error,countercommand_replay_max_error=counter_error,first_episode_frames=first_episode_frames,sim_frames=payload['sim_frames'])
             (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     return ClosedLoopPlayer
 

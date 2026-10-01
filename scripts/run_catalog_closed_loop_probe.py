@@ -86,7 +86,7 @@ def run(args):
                 if code:raise RuntimeError('native exit'+str(code))
                 r=json.loads((d/'results.json').read_text())
                 if r['run_status']!='COMPLETED' or sha(d/'records.pt')!=r['record_sha256']:raise ValueError('record contract')
-                p.update(run_status='COMPLETED',result=r);print(json.dumps(dict(seed=seed,status='COMPLETED',rows=r['rows'],initially_clear=r['initially_clear'])),flush=True)
+                p.update(run_status='COMPLETED',result=r);print(json.dumps(dict(seed=seed,status='COMPLETED',rows=r['rows'])),flush=True)
             except BaseException as e:
                 if process and process.poll() is None:
                     os.killpg(process.pid,signal.SIGTERM)
