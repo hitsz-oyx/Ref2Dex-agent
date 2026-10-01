@@ -68,17 +68,25 @@ def recovery_player(original,args,torch,gymtorch):
                     history=torch.cat((history[:,1:],torch.cat((state,contact,previous),-1)[:,None]),1)
                     contact_run=torch.where(contact.bool().all(-1),contact_run+1,0)
                     candidate=self.candidates(observation);base=candidate[:,4]
-                    eligible=(~ended)&(elapsed<0)&(cooldown<=0)&(contact_run>=3)&(tick>=10)&(task.max_episode_length[task.data_id]-task.progress_buf>11)
+                    remaining=task.max_episode_length[task.data_id]-task.progress_buf
+                    eligible=(~ended)&(elapsed<0)&(cooldown<=0)&(contact_run>=3)&(tick>=10)&(remaining>(1 if learnable_guide else 11))
                     rows=eligible.nonzero().flatten()
                     if len(rows):
                         torch.cuda.synchronize();t=time.monotonic()
                         physical=physics.inputs(history[rows],candidate[rows],rest[rows],motion[rows],start[rows],torch.full_like(start[rows],tick))
+                        if learnable_guide:
+                            # H10 predictions cease to be valid across native reset.
+                            # Abstain in the information channel; retain actor control.
+                            boundary=remaining[rows]<=11
+                            physical['physics'][boundary]=0
+                            physical['recommended'][boundary]=4
                         x=policy_inputs(physical,args.cm_on,learnable_guide=learnable_guide);distribution,value=policy(**x)
                         chosen=distribution.probs.argmax(-1) if args.evaluate else torch.multinomial(distribution.probs,1,generator=generator).squeeze(-1)
                         torch.cuda.synchronize();infer_ms.append(1000*(time.monotonic()-t))
                         command=candidate[rows,chosen].clone();cached[rows]=command;elapsed[rows]=0
                         entry=dict(inputs={k:v.clone() for k,v in x.items()},selected=chosen.clone(),old_logprob=distribution.log_prob(chosen).clone(),
-                                   old_value=value.clone(),env=rows.clone(),tick=tick,candidate=command,executed=torch.zeros(len(rows),2,18,device=self.device))
+                                   old_value=value.clone(),env=rows.clone(),tick=tick,candidate=command,executed=torch.zeros(len(rows),2,18,device=self.device),
+                                   executed_steps=torch.zeros(len(rows),dtype=torch.long,device=self.device))
                         entry['reference_option']=physical['recommended'].clone() if args.cm_on else torch.full_like(chosen,4)
                         entry['candidate_bank']=candidate[rows].clone()
                         buffer.append(entry)
@@ -86,7 +94,10 @@ def recovery_player(original,args,torch,gymtorch):
                     action=base.clone();action[override]=cached[override];applied=action.clone()
                     for entry in buffer[-2:]:
                         offset=tick-entry['tick']
-                        if 0<=offset<2:entry['executed'][:,offset]=applied[entry['env']]
+                        if 0<=offset<2:
+                            active=~ended[entry['env']]
+                            entry['executed'][active,offset]=applied[entry['env'][active]]
+                            entry['executed_steps']+=active.long()
                     _,native_reward,done,_=self.env_step(self.env,action)
                     if not torch.isfinite(native_reward).all():raise ValueError('nonfinite native reward')
                     native_rewards[tick]=native_reward.reshape(-1)*~ended
@@ -113,7 +124,11 @@ def recovery_player(original,args,torch,gymtorch):
                     if ended.all():break
                 if not ended.all():raise ValueError('incomplete episodes; no trimming')
                 if not buffer:raise ValueError('no contact decisions')
-                if not all(torch.equal(b['executed'],b['candidate'][:,None].expand(-1,2,-1)) for b in buffer):raise ValueError('selected option was not executed')
+                for b in buffer:
+                    count=b['executed_steps'];valid=torch.arange(2,device=self.device)[None]<count[:,None]
+                    if not ((count>=1)&(count<=2)).all():raise ValueError('invalid executed prefix')
+                    if not torch.equal(b['executed'][valid],b['candidate'][:,None].expand(-1,2,-1)[valid]):raise ValueError('selected option was not executed')
+                    if not torch.equal(count,torch.minimum(torch.full_like(count,2),episode_steps[b['env']]-b['tick'])):raise ValueError('option truncated outside terminal prefix')
                 running=torch.zeros(n,device=self.device);returns=torch.zeros_like(reward)
                 for tick in reversed(range(horizon)):running=reward[tick]+.99*running;returns[tick]=running
                 x={k:torch.cat([b['inputs'][k] for b in buffer]) for k in buffer[0]['inputs']}
@@ -152,7 +167,7 @@ def recovery_player(original,args,torch,gymtorch):
                                            done=done_trace[:int(episode_steps.max())].cpu(),episode_steps=episode_steps.cpu(),
                                            native_reward=native_rewards[:int(episode_steps.max())].cpu(),training_reward=reward[:int(episode_steps.max())].cpu()/.01))
                 all_buffers.append(dict(inputs={k:v.cpu() for k,v in x.items()},selected=selected.cpu(),old_logprob=old.cpu(),returns=target.cpu(),
-                                        reference_option=reference.cpu(),
+                                        reference_option=reference.cpu(),executed_steps=torch.cat([b['executed_steps'] for b in buffer]).cpu(),
                                         candidate_actions=torch.cat([b['candidate_bank'] for b in buffer]).cpu(),
                                         env=torch.cat([b['env'] for b in buffer]).cpu(),tick=torch.cat([torch.full_like(b['env'],b['tick']) for b in buffer]).cpu(),
                                         chosen_command=torch.cat([b['candidate'] for b in buffer]).cpu()))

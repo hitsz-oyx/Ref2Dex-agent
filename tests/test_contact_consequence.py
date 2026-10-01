@@ -194,9 +194,10 @@ class ContactConsequenceTests(unittest.TestCase):
         class CompletePlayer(Player):
             def __init__(self):
                 super().__init__();del self.batch_initialized
+                self.env.task.max_episode_length.fill_(42)
             def env_step(self,env,action):
                 obs,reward,_,info=super().env_step(env,action)
-                return obs,reward,env.task.progress_buf>=40,info
+                return obs,reward,env.task.progress_buf>=41,info
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);checkpoint=root/'frozen.pt';checkpoint.write_bytes(b'frozen')
             args=SimpleNamespace(output=root,trajectory=checkpoint,policy=None,cm_on=True,assignment_seed=7381,
@@ -204,12 +205,17 @@ class ContactConsequenceTests(unittest.TestCase):
             with patch('src.task.CmResidual.recovery_option_policy.FrozenRecoveryPhysics',Physics),patch.object(torch.cuda,'synchronize'):
                 recovery_player(SimpleNamespace(EvalPlayer=CompletePlayer),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))().run()
             result=json.loads((root/'results.json').read_text());data=torch.load(root/'decisions.pt',weights_only=False)[0]
-            self.assertEqual(result['native_env_steps'],96*40)
+            self.assertEqual(result['native_env_steps'],96*41)
             self.assertEqual(result['scientific_label'],'ENGINEERING_SMOKE')
-            self.assertEqual(result['optimizer_updates'],4)
+            self.assertEqual(result['optimizer_updates'],6)
+            self.assertEqual(int((data['executed_steps']==1).sum()),96)
+            last=data['tick']==40
+            self.assertEqual(int(last.sum()),96)
+            self.assertTrue((data['reference_option'][last]==4).all())
+            self.assertTrue((data['inputs']['physics'][last,:,:22]==0).all())
             self.assertTrue(result['policy_parameters_changed'] and result['frozen_cm_experts'])
             self.assertLess(result['rollouts'][0]['first_actual_option_ratio_error'],1e-6)
-            self.assertTrue(torch.allclose(data['old_logprob'].exp(),torch.where(data['selected']==0,.5,.1),atol=1e-6))
+            self.assertTrue(torch.allclose(data['old_logprob'].exp(),torch.where(data['selected']==data['reference_option'],.5,.1),atol=1e-6))
             trace=torch.load(root/'episode_traces.pt',weights_only=False)[0]
             cold=torch.load(root/'cold_states.pt',weights_only=False)[0]
             self.assertTrue((trace['native_reward']==0).all())

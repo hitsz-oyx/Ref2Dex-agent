@@ -30,6 +30,13 @@ def run(args):
         if failed['run_status']!='FAILED' or not failed['smoke_only'] or failed['experiment_id']!=experiment_id:raise ValueError('terminal failed engineering run required')
         prior_seconds=failed['elapsed_seconds']+failed.get('prior_smoke_seconds',0)
         prior_bytes=sum(p.stat().st_size for p in args.prior_failed.rglob('*') if p.is_file())+failed.get('prior_smoke_bytes',0)
+    prior_superseded=getattr(args,'prior_superseded',None)
+    if prior_superseded:
+        if not args.smoke_only or args.prior_failed or args.prior_smoke:raise ValueError('superseded engineering only, no ambiguous cost chain')
+        old=json.loads((prior_superseded/'run_manifest.json').read_text())
+        if old['run_status']!='COMPLETED' or not old['smoke_only'] or old['experiment_id']!=experiment_id:raise ValueError('completed same-family engineering required')
+        prior_seconds=old['cumulative_seconds']
+        prior_bytes=sum(p.stat().st_size for p in prior_superseded.rglob('*') if p.is_file())+old.get('prior_smoke_bytes',0)
     trajectory=(base/'P-20261001-contact-supported-height-control-setup-r1/calibrated_trajectory.pt')
     if sha(trajectory)!='027202015c32ba783aa1bbef5a0a3c501643bfa904e0b460cdf1877193971355':raise ValueError('frozen physical Cm required')
     route_path=ROOT/'src/task/CmResidual/configs/hf02_temporal_canonical_route.json';route=json.loads(route_path.read_text())
@@ -48,6 +55,7 @@ def run(args):
     inputs+=sources
     if args.prior_smoke:inputs.append(args.prior_smoke/'run_manifest.json')
     if args.prior_failed:inputs.append(args.prior_failed/'run_manifest.json')
+    if prior_superseded:inputs.append(prior_superseded/'run_manifest.json')
     hashes={str(p.resolve()):sha(p) for p in inputs}
     output.mkdir(exist_ok=False);start=time.monotonic()
     manifest=dict(experiment_id=experiment_id,family='HF12' if learnable_guide else 'HF11',probe_index_in_family=1,learnable_guide=learnable_guide,
@@ -55,6 +63,7 @@ def run(args):
                   smoke_only=args.smoke_only,run_status='RUNNING',pid=os.getpid(),command=sys.argv,phases=[],input_sha256=hashes,
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),prior_smoke_seconds=prior_seconds,prior_smoke_bytes=prior_bytes,
                   prior_failed=str(args.prior_failed.resolve()) if args.prior_failed else None,
+                  prior_superseded=str(prior_superseded.resolve()) if prior_superseded else None,
                   wall_limit_seconds=3600,output_limit_bytes=8<<30,cm_training=False,expert_training=False,option_policy_training=True)
     def save(): (output/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     def check():
@@ -120,5 +129,5 @@ def run(args):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpus',type=int,nargs='+',default=[2,3]);p.add_argument('--smoke-only',action='store_true');p.add_argument('--prior-smoke',type=Path);p.add_argument('--prior-failed',type=Path);p.add_argument('--learnable-guide',action='store_true')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpus',type=int,nargs='+',default=[2,3]);p.add_argument('--smoke-only',action='store_true');p.add_argument('--prior-smoke',type=Path);p.add_argument('--prior-failed',type=Path);p.add_argument('--learnable-guide',action='store_true');p.add_argument('--prior-superseded',type=Path)
     run(p.parse_args())

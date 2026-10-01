@@ -45,3 +45,14 @@ epochs/seed。失败则关闭1/1，回到实际候选片段/接触几何层面�
 成本：工程+Probe≤60分钟/8GiB，最多2空闲GPU（当前2/3声明，通常只用一张），
 预计30分钟。MISSION claim/权限/deadline不变，无新的授权边界。实际全仿真
 步数与有效首回合步数分别报告，所有旧数据/checkpoint/失败门保留。
+
+Pre-science endpoint contract refinement: r1 engineering completed with both arms
+updating the owned guide (210.164s/33.18MB), but source inspection found the
+legacy H10-collection eligibility forced base during the last11episode ticks.
+For HF12 only, actor decisions remain eligible until the actual native terminal
+step. If fewer than a full H10 steps remain, zero Cm futures/base recommendation
+(abstain in information, no forced execution). A cached2command may execute
+a one-step prefix only at episode termination; record/audit executed_steps.
+Revised r2 engineering must pass before science. Preserve r1 as completed
+engineering with its original source identity and charge its whole cost; no
+scientific outcomes or thresholds changed, scientific slot still0/1.
