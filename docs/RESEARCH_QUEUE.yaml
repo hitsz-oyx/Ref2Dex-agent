@@ -29,6 +29,17 @@ completed_diagnostics:
     evidence: docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_DIRECT_20261001.md
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
+diagnostic_hypotheses:
+  HD01:
+    name: current_policy_frozen_gae_value_adaptation
+    status: ACTIVE
+    probe_budget: 1
+    probes_used: 1
+    owner: current_session
+    authorization: "user said continue after bounded V-fitting proposal, then requested GPU use"
+    card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
+    transition: "One GPU, separate s286/s287 V-only fits, fixed 1000 updates each, episode holdout; no HF08 utility slot reset or policy update."
+
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:
   - id: T-20260928-cm-calibration-repair-screen-r1
