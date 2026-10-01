@@ -258,3 +258,14 @@ hand-object geometry and, where available, attributed contact. This becomes a
 Decision check before model utility rather than an optional figure. Formal
 grasp/retention claims additionally require a frozen, verified physical criterion;
 do not equate proxy success with force closure or hardware validation.
+
+## CR-D02: independent retention-measurement Validation
+
+The frozen support-removal Probe is PROMISING only for one low-mass object and
+preselected motion. Before a formal metric-validity claim, require prospective
+Validation over independent runs/physical settings, pinned criterion and robust
+support/removal controls, reporting force false positives and false negatives.
+Do not present our gravity witness as new grasp verification or force closure.
+This evidence does not currently change the decision to test a self-trained
+observation policy, so broad metric benchmarking is deferred rather than used
+to delay P0/Cm utility. All previous failed gates stay unchanged.

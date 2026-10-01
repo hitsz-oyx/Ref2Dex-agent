@@ -131,11 +131,15 @@ Active parent time119.23s. Geometry-only SECONDARY on closure motion1 is32/32,
 strictforce75 only5/32. Native mass2.5936g, gravityon, weight.025443N; historical
 .1N force threshold equals3.9303weights. This does not yet establish false negatives.
 Prior static POSTHOC component audit also separates geometry/strictforce counts.
-Next most informative question: randomized support removal after established
-motion1 geometry to test actual hand-supported retention before changing metrics.
-Preserve every old primary gate; stop exact fixed temporal/static recipes. No
-training or simulation currently active; next witness is frozen in
-P-20261002-support-removal-witness, implementation pending.
+Prospective support witness (`49cf8b3`) COMPLETED102.35s/17.03MiB,193inputs
+unchanged,192fresh202-tick trajectories508/509. Predeclared motion1 all64prior
+geometry75; all32controls retain lategeometry, all32release lose it and retract
+>=15cm. Heightcontrast147.113/144.379mm, all10gates pass: PROMISING mechanical
+witness only. Strictforce75 misses17of these64geometricallyheld rows. No old
+failedgate upgraded; no forceclosure/learnedpolicy/Validation claim. Motion0/2
+remain unsuccessful. Next priority is a freshly trained observation policy on
+verified holding physics, withprospective physical105-tick retention andcurrent
+force proxy retained assecondary. No simulation or training currently active.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
@@ -160,6 +164,7 @@ Original-worktree data remain read-only and all outputs remain isolated here.
 - [Finger-preload decision](decisions/D-20261002-finger-preload-feasibility.md)
 - [Frame0 tracking and measurement result](research/20261002-frame0-tracking-feasibility-results.md)
 - [Next support-removal witness](experiments/probes/P-20261002-support-removal-witness.md)
+- [Support witness result](research/20261002-support-removal-witness-results.md)
 - [Current manuscript](../paper/manuscript-v5.tex) and [PDF review copy](../paper/manuscript-v5.pdf)
 
 The manuscript reports actual methods and negative pilot results. Journal
