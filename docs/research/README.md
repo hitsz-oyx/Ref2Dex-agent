@@ -8,6 +8,11 @@
 [paper](../../paper/README.md)。此分支的实验、写作与产物独立于原 paired-evaluator
 工作树；旧冻结指令和状态记录用于解释历史证据。
 
+后续实际结果：[actuation/effect screen](20261001-actuation-effect-results.md)，
+[exact-null recovery screen](20261001-null-action-results.md)。新的候选机制与
+已有研究的边界见 [action-recovery boundary](20261001-action-recovery-boundary.md)。
+全部失败门槛保留；当前活跃实验以本工作树 STATE 和对应 run manifest 为准。
+
 这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
 `tools/verify.py`、实验卡和已有交接把它们作为稳定入口。
 

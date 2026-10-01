@@ -1,5 +1,18 @@
 # Contact-response manuscript
 
+Current: `manuscript-v2.tex` and five-page `manuscript-v2.pdf`. This revision
+adds the geometry audit, larger archived factorization screen, exact-null
+recovery screen, and failed fresh matching requirement. All five tables in
+`tables/` are generated from recorded JSON. No fresh causal-model winner is
+reported when the matching prerequisite fails. `export_manifest-v2.json`
+records source/evidence/PDF hashes; PDF text and table layout were checked.
+Export with `python3 scripts/export_contact_response_v2.py` to a NEW destination
+after preserving an existing render. No TeX installation is required for review.
+
+The original first revision below remains preserved. Neither revision meets the
+user's journal-level objective; distinctive methodology and task evidence remain
+active research requirements.
+
 - `manuscript.tex`: complete English working draft with the actual two Probe results.
 - `figures/contact_response.pdf`: standalone vector figure, copied from corrected analysis-v2.
 - `manuscript.pdf`: locally rendered review copy; not a journal submission.

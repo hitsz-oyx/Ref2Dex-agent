@@ -1,0 +1,28 @@
+{
+  "run_status": "COMPLETED",
+  "rendering": "ReportLab review copy; not native TeX compilation",
+  "source_sha256": {
+    "paper/manuscript-v2.tex": "8497f7490ea5ce2b8136c343cae0238fdc55ffedbb4f117a8d6cab22175995cb",
+    "scripts/export_contact_response_v2.py": "8011c43f3ad67e95b08e7853a098ed0b1f7e7ed5a517f954fe77fb6235e67cc4",
+    "scripts/export_contact_response_paper.py": "95aa46f55715c8d7b9a6c4d72e34f298ad17c2a98b2c0c6856dd2c8a979dfbe8",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-contact-response-resolution-r1/analysis-v2/analysis.json": "2ee02fa832e55ae789e2b4d5369a9cdfa4dc7e4dc7bf179611252db2514ddc66",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-differential-response-learning-r1/results.json": "3cde4863d6e69b9796a3649f054b6c22f9f7c5f6d7fa750a2598ca33d6ea116f",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-actuation-effect-factorization-r1/results.json": "42eca6a17cbb0a00f506790737181e779d6227a0826bdfb80c5e85288bfd156e",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-null-action-recovery-r1/results.json": "6a52c5ac9556d1c65c1493cd40915870c5c7d84b801e750560636efd11c8ddbc",
+    "src/task/CmResidual/research/contact_response/output/P-20261001-fresh-causal-transfer-r1/failure_analysis.json": "5364ef8c1ef0b5e1b2d7f3fbc2991d6cd7c099a2783d87612694b13180d4fcec",
+    "paper/tables/physical-r1.tex": "4d82e1c40d8a47d489d5cf6d278233ff4f9b9d41a1431d1370a6d30b4571cde4",
+    "paper/tables/differential-r1.tex": "3f5df36eaa7b1918433cde7dae372d9aaaa7addce9f7e6695fcba26245a5b1fa",
+    "paper/tables/factorization-r1.tex": "ddba55f2aacd62617083a79f3a8ec9ee708716dbf38f1265e83cfb641b04cdd7",
+    "paper/tables/null-r1.tex": "df4f99e3bc5a379ac65f689615fe4269aae9349aec263d79e506dcb7a190bdd5",
+    "paper/tables/fresh-r1.tex": "be402b9bb6722782986c6b0ba0e0fc75f81a453cde6541da8f99bf8545503cf1"
+  },
+  "output_sha256": "db0b1c47acbd24bed99ecab5b88d37c40264acf97fcd7254c34acf4506418670",
+  "scientific_labels": {
+    "physical": "UNPROMISING",
+    "differential": "UNPROMISING",
+    "factorization": "UNPROMISING",
+    "null": "UNPROMISING",
+    "fresh": "UNCLEAR"
+  },
+  "tables_generated_from_recorded_json": true
+}
