@@ -131,6 +131,17 @@ Validation 才要求 matched control、多 seed、固定 metric、预先定义�
 
 不要把 Validation 的严谨程度施加到每一个探索想法上。
 
+### 4.1 默认优先使用 GPU
+
+神经网络训练、微调、重复模型推理和批量模型评估默认优先使用 GPU；支持 GPU
+加速的仿真采集也优先使用 GPU。离线实验同样适用，不因“Probe”“小规模”或
+历史 CPU-only 阶段而默认改用 CPU。
+
+设备选择须针对当前任务重新判断。纯文件处理、标签审计、统计计算，以及 GPU
+启动成本明显超过收益的极小 smoke 可以使用 CPU；模型计算改用 CPU 时，在
+实验卡或运行记录中写明具体原因。具体选择和资源边界遵循
+[`CAMPAIGN.md`](docs/CAMPAIGN.md) 的 GPU execution policy 与 GPU budget。
+
 ---
 
 ## 5. Decision Checkpoint
