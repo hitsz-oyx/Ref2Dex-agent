@@ -66,3 +66,14 @@ r1 artifacts/log/cache retained; its recorded wall time and bytes are charged
 to the same3600second/8GiB budget by r2. Scientific panel/state/actor/seed/gates
 unchanged. New r2 output is unique; no native episode or policy result existed
 in r1. r2 begins after fixed correction commit and fresh GPU admission.
+
+## r2 symmetric initialization correction
+
+r2 was deliberately stopped after startup, before any complete first-episode
+export, when code audit found the first run skipped the full-state setter path
+used by restored runs. All runs now perform identical native full reset,
+full root/DOF setter, cold-cache restoration and verification. This prevents
+setter-order changes from being mistaken for solver replay noise. Only the
+verified owned PID/process group was terminated. The launcher recorded FAILED
+from SIGTERM; this is an engineering stop, not a scientific result. No other
+arm was started. r3 preserves the panel/gates and charges both r1/r2 costs.

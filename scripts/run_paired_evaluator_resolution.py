@@ -53,9 +53,12 @@ def run(args):
         previous=json.loads((args.prior_attempt/'run_manifest.json').read_text())
         if previous['run_status'] not in ('FAILED','STOPPED'):
             raise ValueError('prior attempt still live')
-        prior_seconds=float(previous['elapsed_seconds'])
-        prior_bytes=sum(p.stat().st_size for p in args.prior_attempt.rglob('*') if p.is_file())
-        prior=[dict(path=str(args.prior_attempt.resolve()),elapsed_seconds=prior_seconds,bytes=prior_bytes)]
+        prior=list(previous.get('prior_attempts',[]))
+        prior.append(dict(path=str(args.prior_attempt.resolve()),elapsed_seconds=float(previous['elapsed_seconds']),
+                         bytes=sum(p.stat().st_size for p in args.prior_attempt.rglob('*') if p.is_file())))
+        if len({p['path'] for p in prior})!=len(prior): raise ValueError('duplicate prior accounting')
+        prior_seconds=sum(p['elapsed_seconds'] for p in prior)
+        prior_bytes=sum(p['bytes'] for p in prior)
     original_paths=[R7/'environment.yaml',R7/'training.yaml',R7/'results.json']
     original_paths += [R7/f'train_{arm}_s{t}'/NN for arm in ARMS for t in (286,287)]
     original_paths += sorted((R7/'models').glob('*.pt'))

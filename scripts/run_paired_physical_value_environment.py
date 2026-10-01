@@ -67,9 +67,11 @@ def make_player(original, args, torch, gymtorch):
             saved=None
             if args.initial:
                 saved=torch.load(args.initial,map_location='cpu',weights_only=False)
-                observation=restore_initial(task,self,saved,gymtorch.unwrap_tensor,properties)
             else:
                 saved=capture_initial(task,self,observation,properties)
+            # Match native setter order even in the first run: each fresh
+            # process performs reset -> full-state restore -> verification.
+            observation=restore_initial(task,self,saved,gymtorch.unwrap_tensor,properties)
             initial_hash=fingerprint(saved)
             torch.save(saved,args.run_dir/'initial_state.pt')
             trace_reference=torch.load(args.trace,map_location='cpu',weights_only=False) if args.trace else None

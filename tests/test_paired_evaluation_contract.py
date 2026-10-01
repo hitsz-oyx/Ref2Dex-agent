@@ -1,4 +1,7 @@
 import random
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from types import SimpleNamespace
 
@@ -84,6 +87,71 @@ class PairedEvaluationContracts(unittest.TestCase):
         task.gym.frame=1
         with self.assertRaisesRegex(ValueError,'warm simulator'):
             restore_initial(task,player,saved,lambda x:x,{'mass':2.0})
+
+    def test_native_player_paths_share_setter_order_and_keep_success_followup(self):
+        from scripts.run_paired_physical_value_environment import make_player
+        class Gym:
+            def __init__(self): self.frame=0; self.calls=[]
+            def get_frame_count(self,sim): return self.frame
+            def get_actor_count(self,env): return 0
+            def set_actor_root_state_tensor(self,sim,tensor): self.calls.append('root')
+            def set_dof_state_tensor(self,sim,tensor): self.calls.append('dof')
+        class Player:
+            def __init__(self):
+                self.device='cpu'; self.states=None; self.is_rnn=False; self.normalize_input=False
+                self.model=torch.nn.Linear(1,1)
+                task=SimpleNamespace(gym=Gym(),sim=object(),envs=list(range(96)),num_envs=96,dt=1/30,
+                    device='cpu',dr_randomizations={},projtype='None',_motion_sampler=None,
+                    _reset_default_env_ids=[],_reset_ref_env_ids=[])
+                task._root_states=torch.zeros(288,13)
+                task._target_states=task._root_states.view(96,3,13)[:,2]
+                task._target_states[:,2]=.9
+                task._dof_state=torch.zeros(1728,2)
+                task._dof_pos=task._dof_state.view(96,18,2)[:,:,0]
+                task._dof_vel=task._dof_state.view(96,18,2)[:,:,1]
+                task._rigid_body_state=torch.zeros(2208,13)
+                task._contact_forces=torch.zeros(96,23,3)
+                task._tar_contact_forces=torch.zeros(96,3)
+                task._contact_body_ids=torch.arange(5)
+                task.obs_buf=torch.zeros(96,1442)
+                task.progress_buf=torch.zeros(96,dtype=torch.long)
+                task.data_id=torch.arange(96)%3
+                task.start_times=torch.zeros(96,dtype=torch.long)
+                for name in ('_curr_obs','_hist_obs','contact_reset','_terminate_buf'):
+                    setattr(task,name,torch.zeros(96,4) if name!='_terminate_buf' else torch.zeros(96,dtype=torch.bool))
+                task._refresh_sim_tensors=lambda:None
+                self.env=SimpleNamespace(task=task)
+            def env_reset(self,ids): return {'obs':self.env.task.obs_buf.clone()}
+            def get_batch_size(self,obs,batch): return 96
+            def get_action(self,obs,deterministic): return torch.zeros(96,18)
+            def env_step(self,env,action):
+                task=env.task; task.gym.frame+=1; task.progress_buf+=1
+                task.obs_buf[:,0]=task.gym.frame
+                task._target_states[:,2]=1.0 if task.gym.frame<49 else .9
+                task._contact_forces[:]=1. if task.gym.frame<49 else 0.
+                task._tar_contact_forces[:]=1. if task.gym.frame<49 else 0.
+                done=torch.full((96,),task.gym.frame==55)
+                return task.obs_buf,torch.zeros(96),done,{'terminate':torch.zeros(96,dtype=torch.bool)}
+        with tempfile.TemporaryDirectory() as directory:
+            first=Path(directory)/'first'; repeat=Path(directory)/'repeat'
+            first.mkdir();repeat.mkdir()
+            args=SimpleNamespace(initial=None,trace=None,replay_actions=False,run_dir=first,
+                wall_seconds=60,arm='plain_off',training_seed=286,eval_seed=288,checkpoint_sha256='a')
+            baseline=make_player(SimpleNamespace(EvalPlayer=Player),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))()
+            baseline.run()
+            args=SimpleNamespace(**dict(vars(args),initial=first/'initial_state.pt',trace=first/'trace.pt',
+                replay_actions=True,run_dir=repeat))
+            second=make_player(SimpleNamespace(EvalPlayer=Player),args,torch,SimpleNamespace(unwrap_tensor=lambda x:x))()
+            second.run()
+            self.assertEqual(baseline.env.task.gym.calls,['root','dof'])
+            self.assertEqual(second.env.task.gym.calls,baseline.env.task.gym.calls)
+            result=json.loads((repeat/'results.json').read_text())
+            self.assertTrue(result['closed_loop_equivalent'])
+            self.assertEqual(result['stable_success_count'],96)
+            self.assertEqual(result['drop_after_success_count'],96)
+            self.assertEqual(result['per_episode'][0]['first_success_step'],45)
+            self.assertEqual(result['per_episode'][0]['first_drop_step'],49)
+            self.assertEqual(result['per_episode'][0]['followup_after_success_steps'],10)
 
 
 if __name__=='__main__': unittest.main()
