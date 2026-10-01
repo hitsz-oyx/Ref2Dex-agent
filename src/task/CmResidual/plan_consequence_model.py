@@ -54,6 +54,19 @@ class StateOptionConsequenceModel(nn.Module):
         return self.heads(state).reshape(-1,8,32)
 
 
+class StateOptionOutcomeModel(nn.Module):
+    """State policy baseline: local score and two events, no physical timeline."""
+    def __init__(self,native_observation_dim):
+        super().__init__()
+        self.history=nn.GRU(69,64,batch_first=True)
+        self.context=nn.Sequential(nn.Linear(native_observation_dim,64),nn.SiLU(),nn.LayerNorm(64))
+        self.heads=nn.Sequential(nn.Linear(128,128),nn.SiLU(),nn.Linear(128,8*3))
+
+    def forward(self,history,native_observation):
+        _,h=self.history(history);state=torch.cat((h[-1],self.context(native_observation)),-1)
+        return self.heads(state).reshape(-1,8,3)
+
+
 def physical_targets(record):
     state=record['state'];future=record['future_state'];clear=record['future_clearance'];pair=record['future_contact'].all(-1)
     if future.shape[1:]!=(10,49) or record['future_done'].any():raise ValueError('complete nonterminal H10 required')

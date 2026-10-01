@@ -98,6 +98,14 @@ episode90[16.602,36.590]mm；几何丢失−4.972pp，joint-force−1.776pp。
 全12专家/rawforce/PD/XYZ/finger/geometry/propensity/hash检查通过，PIDs退出/
 GPU释放，含工程21.28分钟/274.7MB。下一步slot2用新H10数据实际拟合plan-Cm，
 与state-only固定程序头、shuffled、base和最佳固定7比较，再做新数据直接控制。
+Slot2已完成真实9模型×1000GPU更新（42.81秒）；Cm heldheightRMSE19.85mm，
+固定程序物理头17.79、shuffled22.57。校准Cm margin44.565mm，704heldclear
+状态0非base提议；修正评分/校准的集成一致性后gain gate仍0，原raw解码器
+直接控制UNPROMISING，不降低门槛。固定程序物理头255/704提议，但这只是
+预测提议，并非执行收益。该模型通过目录索引区分程序，本身也是程序条件Cm；
+下一步采用这个已拟合的候选表示，补齐state-only局部收益策略及同结构head-
+shuffled控制，再在独立新数据上做四控制闭环；旧比较失败和方法选择轨迹保留。
+见 [对照边界复盘](decisions/D-20261002-catalog-consequence-controls.md)。
 不声称HF14已证明旋转是掉落原因。此为最后一轮腕部保持
 候选机会Probe；正向才拟合对应新Cm，失败转更高层候选生成，避免关节扫描。
 见 [旋转稳定卡](experiments/probes/P-20261002-orientation-feedback-opportunity.md)。
