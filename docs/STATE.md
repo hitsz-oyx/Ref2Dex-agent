@@ -105,9 +105,11 @@ episodes,5/768 retained75 (0.651%),19/768 stable45 (2.474%), all four gates fail
 UNPROMISING for direct transfer. Original reporting job FAILED on duplicate
 keyword fields; preserved. Separate identical-score correction (`3f4ae77`) audits
 all768 actual-progress trajectories without new physics; all protected inputs
-unchanged. GPU5 released; no own run active. Next frozen baseline curriculum
-Probe trains one fixed actor286 continuation, seed721,300 new epochs/460800
-interactions; final-only frame0 evaluation500/501. No Cm or predictor tuning.
+unchanged. Baseline curriculum Probe ACTIVE on admitted GPU5 (`e770d4b`),
+runP-20261001-hold-plateau-curriculum-r1: fixed actor286 continuation, seed721,
+300 new epochs/460800 interactions, final-only frame0 evaluation500/501. Fresh
+optimizer, predetermined phase starts/reward and5mm wrist exploration. No Cm,
+checkpoint selection or predictor tuning; scientific result pending.
 Original-worktree data remain read-only and all outputs remain isolated here.
 
 ## Paper and evidence
