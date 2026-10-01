@@ -31,3 +31,13 @@ PPO 便宜。不得凭 loss 或 source MC 宣称当前策略 V 已收敛。
 
 **外部授权边界。** 当前行动在既有授权内，无额外授权需求。改变核心研究问题
 或 claim、突破 CAMPAIGN 资源限制、不可逆外部操作或新增长期角色时再请求授权。
+
+**首轮审计验收。** worker 已完成交付，但 root 暂不接受其完整报告：脚本把
+30 步 tracker 事件标成 `stable_success`，与主指标 45 步不一致；在线 V 一节
+只读取了 Cm dynamics 的开发诊断，没有直接检查保存的 V 参数。折扣分量显示
+held 项约占源池 return 的 73%，不能将该池描述为主要由模仿项主导。报告的
+分层成功统计必须由 owner 修正，在线 V checkpoint 必须直接核查；在此之前
+不以该报告启动重训或新科学 Probe。原始交付保留，修正作为独立有界 CPU 任务。
+修正任务为 `T-20261001-hf08-value-audit-label-repair`，计算上限 10 分钟、2 CPU
+线程、1 GiB。首轮脚本若已响应 CONTROL 改动须说明，R1 的旧报告与 Broker hash
+保留为审计记录；root 只验收新的 R2 交付。
