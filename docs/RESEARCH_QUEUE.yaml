@@ -78,11 +78,11 @@ diagnostic_hypotheses:
     status: ACTIVE
     branch: agent/cm-executable-options
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "active user goal and AGENTS autonomous research; HF12 sparse control/failure motivates distinct full-window executable plans, no mission/claim/resource change"
     card: docs/experiments/probes/P-20261002-executable-contact-opportunity.md
-    transition: "Engineering full10feedback experts and native-PD anchored hold; whole-source-mesh/table-plane clearance. Fresh420smoke, then frozen421-426randomized8slot/7option opportunity only after execution/hash gate. Old Cm unused; HF12/HF11/HF10 closed."
+    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
   HD02:
     name: paired_evaluator_five_pp_resolution
     status: CLOSED
@@ -91,7 +91,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "active user goal: state/RNG/action paired evaluator; repeat off before gated existing three-arm inference; no training"
     card: docs/experiments/probes/P-20261001-paired-evaluator-resolution.md
-    transition: "Completed actual closed-loop off repeats with verified full cold state/RNG;63/384 success and61/384 drop label disagreements fail fixed noise gate. Close HD02 and current HF08 implementation; no three-arm policy evaluation, V/PPO or new Cm mechanism. Original inputs preserved; GPU released."
+    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
   HD01:
     name: current_policy_frozen_gae_value_adaptation
     status: CLOSED
@@ -100,7 +100,7 @@ diagnostic_hypotheses:
     owner: current_session
     authorization: "user said continue after bounded V-fitting proposal, then questioned GPU nonuse"
     card: docs/experiments/probes/P-20261001-current-policy-v-fit.md
-    transition: "Completed GPU4/31second V-only probe. Both fit gains large; holdout18.1%/45.8% misses fixed joint20% gate. Close without update/seed sweep; HF08 slot unchanged."
+    transition: "Engineering/replay passed: fixed native-PD targets, feedback commands, full mesh geometry, recorded propensities. Scientific1/1 RUNNING421-432: 64clear-first/32general envs, clearhold/base.4/.4 andotherfive.04; full10plans, frozen opportunity/risk/support gates. No Cm/PPO; old families closed."
 
 # Closed Broker dispatches remain as provenance and must not appear as pending work.
 historical_dispatches:

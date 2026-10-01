@@ -65,9 +65,10 @@ GPU审计：on guide1.630、最大NN相对分数1.352，推荐仍胜出；参数
 所有12phase终态/输入hash/冻结合同通过，自有进程退出，GPU释放；含工程34.03分钟/
 335.3MB。下一步先设计预测窗口内持续执行的专家/保持片段，实际验证保留机会，
 再训练与该新控制合同对应的Cm；不把旧2+8模型冒充10步持续控制预测。
-HF13已实现full10专家反馈/固定PD保持计划，整张source-mesh/table-plane
-间隙与实际commands/PD targets记录；36项检查通过，seed420GPU工程smoke
-开始。科学slot尚0/1，先验固定的新机会门见独立卡，旧Cm不参与采集。
+HF13工程及独立GPU回放通过：108完整窗口/48已离桌，固定PD/反馈命令/
+概率/整张source-mesh间隙记录通过。科学slot1/1已开始，421–432共12采集
+批，64clear-first/32general环境，已离桌hold/base各.4，其余五专家各.04。
+只检验真实full10候选保留机会，旧Cm/PPO不参与，门与停止条件已固定。
 见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
 现有物理NN/六专家未改；C3仍OPEN。
 见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。

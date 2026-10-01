@@ -1,6 +1,6 @@
 # P-20261002-executable-contact-opportunity
 
-HF13 Decision Probe1/1, stage ENGINEERING, scientificslot0/1. Branch
+HF13 Decision Probe1/1, stage SCIENTIFIC, scientificslot1/1started. Branch
 agent/cm-executable-options. Frozen design:
 [D-20261002](../../decisions/D-20261002-executable-contact-options.md).
 
@@ -95,3 +95,9 @@ andotherfive.04each. Keep original support/gain/risk/split gates unchanged.
 R3 must reverify the new allocation/cohort contract. R2 stays COMPLETED with
 its original codeidentity and allcost charged; no scientific outcome inspected,
 scientificslot0/1. Expected engineering+collection20–30min, capstill60min.
+
+R3engineering/replay COMPLETED:108windows/51episodes,48already-clear,29hold
+windows with fixed PD targets,79varying feedback-expert windows; wrist and
+fullmesh replay errors0. All inputs unchanged/owned PIDs exited. Including
+prior attempts 244.515s/9.416MB.
+Scientific r1 now consumes1/1 under fixed12panels421–432.
