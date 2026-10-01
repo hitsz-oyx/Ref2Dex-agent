@@ -1,0 +1,35 @@
+{
+  "run_status": "COMPLETED",
+  "phases": [
+    {
+      "seed": 510,
+      "rows": 18,
+      "policies": [
+        3,
+        6,
+        4,
+        2,
+        3
+      ],
+      "model_decisions_replayed": 540,
+      "prediction_max_error": 7.808208465576172e-06,
+      "native_pd_max_error": 0.0,
+      "geometry_max_error": 0.0,
+      "force_ratio_max_error": 0.0,
+      "physical_changed_base_windows": 9,
+      "physical_changed_fixed_windows": 14,
+      "all_contracts_passed": true
+    }
+  ],
+  "input_hashes_unchanged": true,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "gpu": {
+    "index": 0,
+    "uuid": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7607\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 1981\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 1983\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 1665069, python\nGPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 1665071, python\n",
+    "time": 1790884304.772609
+  },
+  "elapsed_seconds": 3.875432380940765,
+  "scope": "replay of frozen selector/real observed histories/native PD/raw forces/source mesh/known controller propensities; no true counterfactual paths or final grasp claim"
+}

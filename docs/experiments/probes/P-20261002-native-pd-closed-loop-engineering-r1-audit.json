@@ -1,0 +1,8 @@
+{
+  "status": "FAILED",
+  "own_pids_exited": true,
+  "native_error": "engineering-only sample sanity minimum24;16complete windows logged, no records saved",
+  "manifest_sha256": "4be9840e01db1bff306d8c3d17111909563ae7f9ba8ddf420ab92f5b51393fca",
+  "elapsed_seconds": 124.446336730849,
+  "scope": "science support/gain/risk gates unchanged; same seed/private allocation retried with separate smoke minimum; all cost carried into r2"
+}

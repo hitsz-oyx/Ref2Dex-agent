@@ -31,10 +31,10 @@ def run(args):
         if not torch.equal(b['history'][:,-1,:49],b['state']) or not torch.equal(b['decision_history'][:,0],b['history']):raise ValueError('trigger history mismatch')
         q=torch.arange(10);selected=b['recommendations'][row[:,None],q[None,:],b['assignment'][:,None]]
         if not torch.equal(selected,b['program']):raise ValueError('owner recommendations not actually executed')
-        if not torch.allclose(b['allocation_probabilities'],torch.full((n,10),.2)) or not torch.allclose(b['propensity'],torch.full((n,),.2)):raise ValueError('distinct policy propensity mismatch')
+        if not torch.allclose(b['allocation_probabilities'],torch.full((n,5),.2)) or not torch.allclose(b['propensity'],torch.full((n,),.2)):raise ValueError('distinct policy propensity mismatch')
         prior_state=torch.cat((b['state'][:,None],b['future_state'][:,:-1]),1)
         if not torch.equal(b['decision_history'][:,:,-1,:49],prior_state):raise ValueError('future state in model input')
-        if not torch.equal(b['decision_history'][:,1:,:-1],b['decision_history'][:,:-1,1:]):raise ValueError('history shifts not actual two new frames')
+        if not torch.equal(b['decision_history'][:,1:,:-1],b['decision_history'][:,:-1,1:]):raise ValueError('history shifts not actual new frame')
         for t in range(1,10):
             offsets=[t-1]
             last2=torch.cat((b['future_state'][:,offsets],b['future_contact'][:,offsets].float(),b['actual_action'][:,offsets]),-1)
