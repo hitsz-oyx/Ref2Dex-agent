@@ -36,7 +36,8 @@ def smoke_data():
             "value_at_state": torch.tensor([10., 20., 30., 40., 10., 20., 30., 40.]),
             "global_tick": torch.tensor([30, 31, 32, 33, 80, 81, 82, 83], dtype=torch.long),
             "checkpoint_seed": torch.full((n,), 286, dtype=torch.long),
-            "value_at_next_state": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.])}
+            "value_at_next_state": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.]),
+            "next_value": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.])}
 
 
 class CurrentPolicyValueTests(unittest.TestCase):
@@ -67,6 +68,33 @@ class CurrentPolicyValueTests(unittest.TestCase):
         with self.assertRaises(DiagnosticError):
             run_diagnostic(data)
 
+    def test_next_value_mismatch_is_explicit(self):
+        data = smoke_data()
+        data["next_value"] = data["next_value"].clone()
+        data["next_value"][2] = 999.0
+        with self.assertRaisesRegex(DiagnosticError, "next_value_crosscheck_mismatch:2"):
+            run_diagnostic(data)
+
+    def test_terminal_next_value_must_be_zero(self):
+        data = smoke_data()
+        data["next_value"] = data["next_value"].clone()
+        data["next_value"][3] = 1.0
+        with self.assertRaisesRegex(DiagnosticError, "terminal_next_value_not_zero:3"):
+            run_diagnostic(data)
+
+    def test_legacy_and_new_next_value_fields_must_agree(self):
+        data = smoke_data()
+        data["next_value"] = data["next_value"].clone()
+        data["next_value"][0] = data["value_at_next_state"][0] + 1.0
+        with self.assertRaisesRegex(DiagnosticError, "next_value_crosscheck_mismatch:0"):
+            run_diagnostic(data)
+
+    def test_legacy_value_at_next_state_remains_compatible(self):
+        data = smoke_data()
+        del data["next_value"]
+        target = run_diagnostic(data)
+        self.assertEqual(target["status"], "COMPLETED")
+
     def test_saved_v_checkpoint_inference_path_is_separate(self):
         data = smoke_data()
         data["context"] = torch.zeros(8, 435)
@@ -77,6 +105,23 @@ class CurrentPolicyValueTests(unittest.TestCase):
         self.assertEqual(tuple(prediction.shape), (8,))
         self.assertTrue(torch.isfinite(prediction).all())
         self.assertEqual(metadata["checkpoints"]["286"]["optimizer_step"], [7680.0])
+
+    def test_saved_v_requires_previous_action_history(self):
+        data = smoke_data()
+        data["context"] = torch.zeros(8, 435)
+        root = Path("/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7")
+        online = next((root / "train_cm_value_s286").glob("**/GRAB_00000420.pth"))
+        with self.assertRaisesRegex(DiagnosticError, "previous_action_required_for_saved_pv_v"):
+            evaluate_saved_pv_value(data, root / "models/tier_1000000.pt", {286: online})
+
+    def test_saved_v_rejects_malformed_previous_action_history(self):
+        data = smoke_data()
+        data["context"] = torch.zeros(8, 435)
+        data["previous_action"] = torch.zeros(8, 17)
+        root = Path("/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7")
+        online = next((root / "train_cm_value_s286").glob("**/GRAB_00000420.pth"))
+        with self.assertRaisesRegex(DiagnosticError, "previous_action_shape_for_saved_pv_v"):
+            evaluate_saved_pv_value(data, root / "models/tier_1000000.pt", {286: online})
 
     def test_episodes_loader_retains_collector_fields(self):
         n = 4

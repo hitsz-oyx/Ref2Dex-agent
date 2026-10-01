@@ -178,16 +178,26 @@ def frozen_critic_lambda_targets(data: Mapping[str, Any], groups: list[tuple[tup
             next_value[i] = value[j]
             if int(tick[j]) != int(tick[i]) + 1:
                 raise DiagnosticError(f"global_tick_step_mismatch:{i}->{j}")
-    if "value_at_next_state" in data:
-        provided_next = data["value_at_next_state"].float().reshape(-1)
+    # ``value_at_next_state`` is the legacy spelling.  New collector output
+    # uses ``next_value``.  Validate either spelling against the factual
+    # same-episode/checkpoint successor above; never silently ignore one.
+    # When both are present, checking each against the same successor also
+    # enforces that the two collector fields agree.
+    for field_name in ("value_at_next_state", "next_value"):
+        if field_name not in data:
+            continue
+        provided_next = data[field_name]
+        if not isinstance(provided_next, torch.Tensor):
+            raise DiagnosticError(f"invalid_{field_name}")
+        provided_next = provided_next.float().reshape(-1)
         if len(provided_next) != n or not torch.isfinite(provided_next).all():
-            raise DiagnosticError("invalid_value_at_next_state")
+            raise DiagnosticError(f"invalid_{field_name}")
         for i in range(n):
             if bool(done[i]):
                 if abs(float(provided_next[i])) > 1e-6:
-                    raise DiagnosticError(f"terminal_next_value_not_zero:{i}")
+                    raise DiagnosticError(f"terminal_{field_name}_not_zero:{i}")
             elif int(next_index[i]) >= 0 and abs(float(provided_next[i] - next_value[i])) > 1e-5:
-                raise DiagnosticError(f"next_value_crosscheck_mismatch:{i}")
+                raise DiagnosticError(f"{field_name}_crosscheck_mismatch:{i}")
     if missing:
         raise DiagnosticError(f"missing_nonterminal_next_critic_values:{len(missing)}")
     advantage = torch.full((n,), float("nan"))
@@ -275,6 +285,16 @@ def evaluate_saved_pv_value(data: Mapping[str, Any], model_checkpoint: Path,
     features = Features(**{k: v.to("cpu") for k, v in payload["stats"].items()}, device="cpu").to("cpu")
     context_dim = int(payload["context_dim"])
     n = len(data["reward"])
+    # The saved physical V consumes a history of previous actions.  Filling
+    # this with zeros would fabricate an unobserved factual context, so the
+    # checkpoint-inference path requires the collector field explicitly.
+    previous_action = data.get("previous_action")
+    if not isinstance(previous_action, torch.Tensor):
+        raise DiagnosticError("previous_action_required_for_saved_pv_v")
+    if previous_action.ndim != 2 or tuple(previous_action.shape) != (n, 18):
+        raise DiagnosticError("previous_action_shape_for_saved_pv_v")
+    if not torch.isfinite(previous_action.float()).all():
+        raise DiagnosticError("nonfinite:previous_action")
     checkpoints = _checkpoint_tensor(data, n)
     predictions = torch.full((n,), float("nan"))
     metadata = {"model_checkpoint_sha256": sha256(model_checkpoint), "return_scale_not_applied": True,
@@ -304,7 +324,7 @@ def evaluate_saved_pv_value(data: Mapping[str, Any], model_checkpoint: Path,
             mask &= checkpoints[safe] == checkpoints[idx, None]
             mask &= step[safe] == (step[idx, None] - (HISTORY - 1 - torch.arange(HISTORY)[None]))
             hs = data["state"][safe] * mask[:, :, None]
-            ha = data["previous_action"][safe] * mask[:, :, None] if "previous_action" in data else torch.zeros(len(idx), HISTORY, 18)
+            ha = previous_action[safe] * mask[:, :, None]
             hm = mask[:, :, None].float()
             history = features.history(hs, ha, hm)
             context = features.context(data["context"][idx])
@@ -434,7 +454,8 @@ def synthetic_smoke() -> dict[str, Any]:
             "terminate": terminate, "timeout": timeout, "episode_id": episode, "step": step,
             "motion_id": torch.zeros(n, dtype=torch.long), "value_at_state": values,
             "global_tick": ticks, "checkpoint_seed": torch.full((n,), 286, dtype=torch.long),
-            "value_at_next_state": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.])}
+            "value_at_next_state": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.]),
+            "next_value": torch.tensor([20., 30., 40., 0., 20., 30., 40., 0.])}
     # Inject an independent saved-V prediction to exercise the separate V
     # metric path without claiming this fixture is a policy calibration run.
     result = run_diagnostic(data, pv_value_at_state=data["value_at_state"] + 1.0)

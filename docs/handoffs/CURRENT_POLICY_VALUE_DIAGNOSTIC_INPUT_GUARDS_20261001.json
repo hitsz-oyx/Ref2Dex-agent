@@ -1,0 +1,98 @@
+{
+  "baseline_source_sha256": "ad82d5ac73b4d769fb19c6dc92c685c9939347ed93d247d0be3b1f982c256b4e",
+  "branch": "agent/cm",
+  "changed_files": [
+    {
+      "mode": "0664",
+      "path": "scripts/audit_current_policy_value.py",
+      "sha256": "a3817b2cdd3e2b61811878d07ec3ef9ed8067142793fce6751901368271aabd6",
+      "size": 27891
+    },
+    {
+      "mode": "0664",
+      "path": "tests/test_current_policy_value_diagnostics.py",
+      "sha256": "eb9152c058f263908bb0e6dadef11831b442cc94f0baf2b64fdeb30cf5a77cc3",
+      "size": 8215
+    }
+  ],
+  "classification": "CPU-only engineering input-contract repair; no scientific analysis",
+  "compatibility": {
+    "gamma": 0.99,
+    "horizon": 32,
+    "legacy_value_at_next_state_supported": true,
+    "original_target_calculation_unchanged": true,
+    "prior_contract_report_preserved": true,
+    "saved_v_output_units_unchanged": "raw reward-return units; return_scale not applied",
+    "synthetic_fixture_supplies_previous_action": true,
+    "tau": 0.95
+  },
+  "guards": {
+    "next_value": {
+      "behavior": "Either spelling is accepted; each present field is finite, length-checked, terminal-zero checked, and crosschecked against the same checkpoint/episode successor critic. If both are present, both must agree through that shared successor check.",
+      "errors": [
+        "invalid_next_value",
+        "terminal_next_value_not_zero:<row>",
+        "next_value_crosscheck_mismatch:<row>",
+        "invalid_value_at_next_state",
+        "terminal_value_at_next_state_not_zero:<row>",
+        "value_at_next_state_crosscheck_mismatch:<row>"
+      ],
+      "legacy_field": "value_at_next_state",
+      "new_field": "next_value",
+      "status": "PASS"
+    },
+    "previous_action": {
+      "behavior": "Saved physical V inference requires factual previous_action with exact shape [N,18] and finite values; no zero fabrication when absent or malformed.",
+      "errors": [
+        "previous_action_required_for_saved_pv_v",
+        "previous_action_shape_for_saved_pv_v",
+        "nonfinite:previous_action"
+      ],
+      "status": "PASS"
+    }
+  },
+  "head": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237",
+  "limits": [
+    "No real collector data was analyzed or fabricated.",
+    "No policy utility, counterfactual, convergence, or V calibration claim.",
+    "Root must run this guard-complete diagnostic after a real complete current-policy panel is available."
+  ],
+  "reproduction": [
+    "python3 -m unittest tests/test_current_policy_value_diagnostics.py -v",
+    "python3 -m py_compile scripts/audit_current_policy_value.py tests/test_current_policy_value_diagnostics.py"
+  ],
+  "resource_termination": {
+    "collection": false,
+    "cpu_only": true,
+    "cpu_threads": 2,
+    "gpu": 0,
+    "isaac_gym": false,
+    "max_output_bytes": 107374182,
+    "new_scientific_data": false,
+    "ppo": false,
+    "runtime_budget_seconds": 900,
+    "training": false
+  },
+  "status": "COMPLETED",
+  "task_id": "T-20261001-current-policy-value-diagnostic-input-guards",
+  "tests": {
+    "command": "python3 -m unittest tests/test_current_policy_value_diagnostics.py -v",
+    "command_wall_seconds": 2.65,
+    "compatibility_cases": [
+      "legacy value_at_next_state only",
+      "both fields consistent",
+      "existing MC/GAE/timeout/episode/saved-V tests"
+    ],
+    "failed": 0,
+    "negative_cases": [
+      "next_value mismatch",
+      "terminal next_value nonzero",
+      "legacy/new disagreement",
+      "missing previous_action",
+      "malformed previous_action"
+    ],
+    "passed": 11,
+    "status": "PASS",
+    "suite_elapsed_seconds": 0.859
+  }
+}
