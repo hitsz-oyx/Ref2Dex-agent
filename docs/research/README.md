@@ -49,3 +49,13 @@
 
 旧的根级 `plan/`、`指导/` 和多代理 workflow 规范已删除。Task 内部仍可能保留与历史
 实验绑定的计划或指导文件；它们只用于解释对应证据，不是仓库级运行规则。
+
+## Independent contact-response update, 2 October 2026
+
+- [Support-removal witness](20261002-support-removal-witness-results.md): PROMISING mechanical Probe.
+- [Scratch observation-policy fit](20261002-observation-hold-baseline-results.md): UNPROMISING0/192.
+- [One fresh aggregation](20261002-observation-hold-aggregation-results.md): UNPROMISING0/192.
+- [Absolute-target initializer](20261002-reference-target-policy-results.md): PROMISING56/64on primary motion1; other motions0.
+- [Updated primary-source novelty constraints](20261002-contact-response-novelty-update.md).
+
+Paper revision6incorporates these results without a Cm utility or journal-readiness claim.

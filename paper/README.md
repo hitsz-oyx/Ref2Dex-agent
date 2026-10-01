@@ -1,6 +1,16 @@
 # Contact-response manuscript
 
-Current: `manuscript-v5.tex` and twelve-page `manuscript-v5.pdf`. Revision5adds
+Current: `manuscript-v6.tex` and fifteen-page `manuscript-v6.pdf`. Revision6 adds
+prospectively randomized support removal (PROMISING mechanical witness), failed
+scratch BC and single aggregation (both0/192), and the reference-conditioned
+absolute-target policy (56/192overall;56/64on preselected motion1, PROMISING
+initializer). Motion0/2remain0; no Cm-on/off policy-training gain is claimed.
+Thirteen JSON-generated tables, three figures,50hashed export inputs. Sources
+and numeric/visual PDF checks completed. Earlier revisions and intermediate
+review renders preserved. Export via python3 scripts/export_contact_response_v6.py
+to a new retained destination; current paper remains NOT JOURNAL READY.
+
+Preserved: `manuscript-v5.tex` and twelve-page `manuscript-v5.pdf`. Revision5adds
 completed synthetic-hold transfer5/768, one fixed PPO continuation0/384, invalid
 static tabletop-axis measurement with separately audited correction, and four-dose
 mechanical closure screen0/0/6/13 successes per48. All frozen gates remain failed.

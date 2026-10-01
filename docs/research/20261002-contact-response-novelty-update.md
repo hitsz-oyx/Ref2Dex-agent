@@ -14,6 +14,15 @@ external performance. Abstract-level primary-source inspection only.
   Predicting or valuing contact consequences, by itself, cannot establish our
   novelty. Differences in dexterous support identification must be demonstrated
   technically and through matched policy-training utility.
+- [Interventional Causal Circuits, Vasantakumaar et al., v1, 16 July2026](https://arxiv.org/abs/2607.14826v1)
+  uses interventional queries for diagnosed action correction after rejected
+  robot plans. Causal failure diagnosis and corrective action querying are also
+  established themes; this abstract does not demonstrate equivalence to our
+  physical support-removal experiment.
+- [Physically Viable World Models, Thorpe et al., v1, 28 May2026](https://arxiv.org/abs/2605.30542v1)
+  argues for physical abstractions sufficient for intervention queries and
+  modular learned/structured dynamics. Query-specific physical representations
+  alone cannot provide a distinctive claim for our future method.
 
 The prospective support-removal witness is useful experimental infrastructure,
 not a novel grasp certificate. A future method needs a precise information
