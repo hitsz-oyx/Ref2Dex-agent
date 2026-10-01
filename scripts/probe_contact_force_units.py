@@ -15,6 +15,7 @@ def native(args,remaining):
     import torch
     import evaluate as original
     from src.task.CmResidual.executable_contact_options import hold_target,hold_action,TableClearance,obj_vertices
+    from src.task.CmResidual.weight_normalized_contact import weight_normalized_contacts
     class CalibrationPlayer(original.EvalPlayer):
         @torch.no_grad()
         def run(self):
@@ -55,6 +56,22 @@ def native(args,remaining):
             torch.save(dict(object_force=f.cpu(),object_state=s.cpu(),mesh_clearance=c.cpu(),hand_force_max=h.cpu(),hand_distance=distance.cpu(),mass=masses,
                             flags=flags,gravity=[t.sim_params.gravity.x,t.sim_params.gravity.y,t.sim_params.gravity.z],quiet_final_frames=quiet.cpu(),
                             substeps=t.sim_params.substeps,contact_collection=int(t.sim_params.physx.contact_collection)),args.output/'telemetry.pt')
+            # Known absence of support: free fall well above the plane, hand
+            # remains distant. Do not label it using the force being tested.
+            t._target_states[:,2]+=.5;t._target_states[:,7:]=0
+            t.gym.set_actor_root_state_tensor_indexed(t.sim,gymtorch.unwrap_tensor(t._root_states),gymtorch.unwrap_tensor(t._tar_actor_ids),n)
+            airborne=[]
+            for tick in range(5):
+                _,_,done,_=self.env_step(self.env,hold_action(goal,t._dof_pos,t._pd_action_offset,t._pd_action_scale))
+                if done.any():raise ValueError('negative calibration ended unexpectedly')
+                airborne.append(dict(object_force=t._tar_contact_forces.clone(),object_state=t._target_states.clone(),
+                                    clearance=geometry.clearance(t._target_states,t._table_states),
+                                    hand_distance=(t._rigid_body_pos[:,t._key_body_ids[0]]-t._target_states[:,:3]).norm(dim=-1)))
+            air={k:torch.stack([a[k] for a in airborne]) for k in airborne[0]}
+            if (air['clearance']<=.2).any() or (air['hand_distance']<=1.).any():raise ValueError('known no-contact condition invalid')
+            mass=torch.tensor(masses,device=self.device).repeat(5)
+            detected,_=weight_normalized_contacts(torch.zeros(5*n,1,3,device=self.device),air['object_force'].reshape(-1,3),mass,abs(t.sim_params.gravity.z))
+            torch.save({k:v.cpu() for k,v in air.items()},args.output/'airborne.pt')
             result=dict(run_status='COMPLETED',kind='ENGINEERING_FORCE_UNIT_DIAGNOSTIC',episodes=n,frames=150,quiet_observations=int(quiet.sum()),
                         mass_kg_range=[min(masses),max(masses)],object_flags=sorted(set(flags)),substeps=t.sim_params.substeps,contact_collection=int(t.sim_params.physx.contact_collection),
                         weight_N_range=[float(weight.min()),float(weight.max())],quiet_force_N_quantiles=torch.quantile(selected,torch.tensor([0.,.1,.5,.9,1.],device=self.device)).cpu().tolist(),
@@ -62,6 +79,11 @@ def native(args,remaining):
                         quiet_fraction_above_legacy_threshold=float((selected>.1).float().mean()),quiet_min_hand_distance_m=float(distance[-60:][quiet].min()),
                         quiet_clearance_m_quantiles=torch.quantile(c[-60:][quiet],torch.tensor([.1,.5,.9],device=self.device)).cpu().tolist(),
                         telemetry_sha256=sha(args.output/'telemetry.pt'),elapsed_seconds=time.monotonic()-begin,
+                        airborne_sha256=sha(args.output/'airborne.pt'),airborne_observations=5*n,
+                        airborne_max_object_force_N=float(air['object_force'].norm(dim=-1).max()),
+                        airborne_min_clearance_m=float(air['clearance'].min()),airborne_min_hand_distance_m=float(air['hand_distance'].min()),
+                        airborne_normalized_contact_false_positive_fraction=float(detected[:,1].float().mean()),
+                        quiet_normalized_contact_detection_fraction=float((selected/(torch.tensor(masses,device=self.device)[None].expand(60,-1)[quiet]*abs(t.sim_params.gravity.z))>.1).float().mean()),
                         scope='known resting-contact telemetry with hand>1m away and object quiet; verifies net-force scale, does not prove grasp or change old labels')
             (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     original.EvalPlayer=CalibrationPlayer;sys.argv=[sys.argv[0],*remaining];original.main()
@@ -73,13 +95,20 @@ def launch(args):
     route_path=ROOT/'src/task/CmResidual/configs/hf02_temporal_canonical_route.json';route=json.loads(route_path.read_text());spec=route['experts']['source_e260'];checkpoint=(ROOT/spec['checkpoint']).resolve()
     if sha(checkpoint)!=spec['sha256']:raise ValueError('checkpoint drift')
     assets=ROOT/'third_party/DExplore/dexplore/data/assets/mjcf'
-    inputs=[Path(__file__),ROOT/'src/task/CmResidual/executable_contact_options.py',route_path,R7/'environment.yaml',R7/'training.yaml',checkpoint]
+    inputs=[Path(__file__),ROOT/'src/task/CmResidual/executable_contact_options.py',ROOT/'src/task/CmResidual/weight_normalized_contact.py',route_path,R7/'environment.yaml',R7/'training.yaml',checkpoint]
     inputs += [assets/p for p in ['airplane.urdf','table.urdf','objects/airplane/airplane.obj','objects/table/table.obj']]
     inputs += [ROOT/'third_party/DExplore/dexplore'/p for p in ['evaluate.py','env/tasks/base_dexplore_task.py','env/tasks/dexplore_inspire.py','env/tasks/base_task.py']]
     for spec in route['motions']:
         p=MOTIONS/spec['name']/'interaction_hand_inspire.pt'
         if sha(p)!=spec['interaction_hand_sha256']:raise ValueError('motion drift')
         inputs.append(p)
+    prior_seconds=0.;prior_bytes=0
+    if args.prior:
+        prior=json.loads((args.prior/'run_manifest.json').read_text())
+        if prior['run_status']!='COMPLETED' or prior['experiment_id']!='P-20261002-contact-force-units':raise ValueError('terminal same-family diagnostic required')
+        prior_seconds=prior['elapsed_seconds']+prior.get('prior_seconds',0.)
+        prior_bytes=sum(p.stat().st_size for p in args.prior.rglob('*') if p.is_file())+prior.get('prior_bytes',0)
+        inputs.append(args.prior/'run_manifest.json')
     hashes={str(p.resolve()):sha(p) for p in inputs};admission=None
     for gpu in args.gpus:
         try:admission=gpu_admission(gpu);break
@@ -91,17 +120,17 @@ def launch(args):
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=admission['uuid'],OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',PYTHONDONTWRITEBYTECODE='1',TORCH_EXTENSIONS_DIR=str(output/'cache/torch_extensions'),XDG_CACHE_HOME=str(output/'cache'))
     env['LD_LIBRARY_PATH']='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH','')
     m=dict(run_status='RUNNING',experiment_id='P-20261002-contact-force-units',kind='ENGINEERING_BLOCKER_DIAGNOSTIC',pid=os.getpid(),gpu=admission,input_sha256=hashes,command=command,
-           git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),wall_limit_seconds=240,output_limit_bytes=100<<20)
+           git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),wall_limit_seconds=240,output_limit_bytes=100<<20,prior_seconds=prior_seconds,prior_bytes=prior_bytes)
     path=output/'run_manifest.json'
     def save():path.write_text(json.dumps(m,indent=2)+'\n')
     save();process=None
     try:
         with (output/'native.log').open('x') as log:
-            process=subprocess.Popen(command,cwd=ROOT/'third_party/DExplore',env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);m.update(native_pid=process.pid,pgid=process.pid);save();code=process.wait(timeout=210)
+            process=subprocess.Popen(command,cwd=ROOT/'third_party/DExplore',env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);m.update(native_pid=process.pid,pgid=process.pid);save();code=process.wait(timeout=min(210,235-prior_seconds))
         if code:raise RuntimeError('native exit'+str(code))
         if any(sha(Path(k))!=v for k,v in hashes.items()):raise ValueError('input drift')
-        if sum(p.stat().st_size for p in output.rglob('*') if p.is_file())>100<<20:raise ValueError('storage limit')
-        m.update(run_status='COMPLETED',result=json.loads((child/'results.json').read_text()),input_hashes_unchanged=True)
+        if prior_bytes+sum(p.stat().st_size for p in output.rglob('*') if p.is_file())>100<<20:raise ValueError('storage limit')
+        m.update(run_status='COMPLETED',result=json.loads((child/'results.json').read_text()),input_hashes_unchanged=True,cumulative_seconds=prior_seconds+time.monotonic()-begin)
         print(json.dumps(m['result']),flush=True)
     except BaseException as e:
         if process and process.poll() is None:
@@ -113,7 +142,7 @@ def launch(args):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(add_help=False,allow_abbrev=False);p.add_argument('--output-dir',dest='output',type=Path,required=True);p.add_argument('--native',action='store_true');p.add_argument('--gpus',type=int,nargs='+',default=[0,1]);args,remaining=p.parse_known_args()
+    p=argparse.ArgumentParser(add_help=False,allow_abbrev=False);p.add_argument('--output-dir',dest='output',type=Path,required=True);p.add_argument('--native',action='store_true');p.add_argument('--gpus',type=int,nargs='+',default=[0,1]);p.add_argument('--prior',type=Path);args,remaining=p.parse_known_args()
     if args.native:native(args,remaining)
     elif remaining:raise ValueError('unknown parent arguments')
     else:launch(args)
