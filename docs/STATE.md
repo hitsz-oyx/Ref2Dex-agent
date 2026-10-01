@@ -58,9 +58,10 @@ V checkpoint均实际完成7680 optimizer updates。结论为UNCLEAR：V训练�
 collector与V诊断工程已验收；R1 nativecwd资产失败、R2 wrapper在GPU ownership前失败，
 两者均无新数据、无V充分性结论。当前RL r3在原总1200秒/2GiB剩余预算内恢复，CM正在
 加入真实输入守卫；R3与guard尚未验收，不纳入本候选。
-当前仅作原生Gaussian、frame-0、冻结策略的完整episode诊断工程准备；CPU-only，无新GPU
-采集或训练，不以单次realized MC误差宣称bias。这项工程准备不重置HF08 slot；未来Probe须
-由root独立机制决策。
+当前执行原生Gaussian、frame-0、冻结策略的完整episode诊断，尚无完整采集数据或新训练。
+R3已进入真实环境初始化，但在首个转移前因reward_shaper运行时对象的API检查错误退出；
+root已授权owner修复该工程守卫，科学输入不变，截止时间不重置。单次realized MC误差不
+单独证明bias；本诊断不重置HF08 slot，未来Probe须由root独立机制决策。
 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)与
 [完整结果](experiments/probes/P-20260930-cm-physical-value-results.json)保留边界与数值。
 原始数据/checkpoint留在原研究工作树的research/output/P-20260930-cm-physical-value/r7，
