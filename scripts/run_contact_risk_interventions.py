@@ -22,6 +22,7 @@ def run(args):
     output=args.output.resolve()
     if output.parent!=base or output.exists() or args.output.is_symlink():
         raise ValueError('unique owned source output required')
+    if args.force_first_cm and not args.engineering:raise ValueError('forced branch exercise is engineering only')
     devices=args.gpus
     if len(devices)!=(1 if args.engineering else 3) or len(set(devices))!=len(devices):
         raise ValueError('one engineering or three scientific idle GPUs')
@@ -47,7 +48,18 @@ def run(args):
     efficiency=json.loads(efficiency_path.read_text())
     if not efficiency['engineering_passed'] or not efficiency['weights_exact']:raise ValueError('exact computation equivalence')
     correction_cost=10. # conservative execution allowance: failing old fixture plus old/new equivalence
-    if failed_engineering_seconds+correction_cost>=900:raise ValueError('internal engineering budget exhausted')
+    coverage_engineering_seconds=0.
+    if args.force_first_cm or not args.engineering:
+        coverage_path=ROOT/'src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-native-engineering-r2/run_manifest.json'
+        coverage=json.loads(coverage_path.read_text())
+        if coverage['run_status']!='COMPLETED' or coverage['child_exit_code']!=0 or not coverage['smoke_only']:
+            raise ValueError('completed unforced engineering coverage required')
+        if coverage['phases'][0]['native_exit_code']!=0 or coverage['phases'][0]['audit_exit_code']!=0:
+            raise ValueError('coverage source and audit terminal')
+        coverage_engineering_seconds=coverage['elapsed_seconds']
+        hashes[str(coverage_path.resolve())]=sha(coverage_path)
+    if failed_engineering_seconds+coverage_engineering_seconds+correction_cost>=900:
+        raise ValueError('internal engineering budget exhausted')
     if not args.engineering:
         if args.engineering_run is None:raise ValueError('accepted new native engineering required')
         engineering_path=args.engineering_run.resolve()/'run_manifest.json'
@@ -77,6 +89,7 @@ def run(args):
     if sha(checkpoint)!=static['checkpoint_sha256']:raise ValueError('frozen adapted model')
     paths=[Path(__file__),static_path,checkpoint,template_path,efficiency_path,
         ROOT/'docs/decisions/D-20261002-contact-risk-execution-cost.md',ROOT/'scripts/check_contact_guard_unguarded_cost.py',
+        ROOT/'docs/decisions/D-20261002-contact-risk-native-branch-smoke.md',
         ROOT/'docs/experiments/probes/P-20261002-contact-risk-interventions.md',
         ROOT/'docs/decisions/D-20261002-contact-risk-interventions.md',
         ROOT/'scripts/collect_contact_risk_interventions.py',ROOT/'scripts/audit_contact_risk_interventions.py',
@@ -97,7 +110,8 @@ def run(args):
         input_sha256=hashes,phases=phases,admissions=admissions,
         wall_limit_seconds=900 if args.engineering else 3600,
         failed_native_engineering_seconds=failed_engineering_seconds,correction_execution_allowance_seconds=correction_cost,
-        prior_engineering_seconds=prior_engineering+failed_engineering_seconds+correction_cost+60.+16.45606490969658,
+        prior_engineering_seconds=prior_engineering+coverage_engineering_seconds+failed_engineering_seconds+correction_cost+60.+16.45606490969658,
+        prior_coverage_engineering_seconds=coverage_engineering_seconds,engineering_force_first_cm=args.force_first_cm,
         prior_native_engineering_seconds=prior_engineering,prior_static_engineering_seconds=16.45606490969658,
         preparation_budget_seconds=60.,analysis_reserve_seconds=120.,output_limit_bytes=8<<30,
         max_owned_gpu_concurrency=len(devices),model_training=False,expert_training=False,
@@ -113,7 +127,7 @@ def run(args):
     def check():
         if stop.is_set():
             raise RuntimeError('another owned phase failed; no new work')
-        if (args.engineering and time.monotonic()-begin+failed_engineering_seconds+correction_cost>900) or (not args.engineering and
+        if (args.engineering and time.monotonic()-begin+failed_engineering_seconds+coverage_engineering_seconds+correction_cost>900) or (not args.engineering and
             time.monotonic()-begin+manifest['prior_engineering_seconds']+120.>3600):
             raise TimeoutError('whole fixed slot wall budget')
         size=sum(p.stat().st_size for p in output.rglob('*') if p.is_file())
@@ -185,11 +199,12 @@ def run(args):
                 changes={'--output-dir':str(directory),'--panel-seed':str(seed),
                     '--assignment-seed':str(seed+16000),'--seed':str(seed),
                     '--windows-per-stratum':'1' if args.engineering else '2',
-                    '--max-steps':'160' if args.engineering else '300','--wall-seconds':'300' if args.engineering else '600',
+                    '--max-steps':('60' if args.force_first_cm else '160') if args.engineering else '300','--wall-seconds':'300' if args.engineering else '600',
                     '--generator-checkpoint':str(checkpoint),
                     '--output':str(directory/'unused.json'),'--output_path':str(directory/'player')}
                 for key,value in changes.items():
                     command[command.index(key)+1]=value
+                if args.force_first_cm:command.append('--engineering-force-first-cm')
                 env['PYTHONHASHSEED']=str(seed)
                 with lock:
                     phase.update(run_status='RUNNING',admission=current)
@@ -265,5 +280,6 @@ if __name__=='__main__':
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpus',type=int,nargs='+',default=[4,5,6])
     p.add_argument('--engineering',action='store_true')
+    p.add_argument('--force-first-cm',action='store_true')
     p.add_argument('--engineering-run',type=Path)
     run(p.parse_args())

@@ -70,6 +70,7 @@ def load(source):
         record=torch.load(record_path,map_location='cpu',weights_only=False)
         if record['schema']!='ref2dex.contact_risk_interventions_source.v1' or record['seed']!=phase['seed']:
             raise ValueError('truthful source identity')
+        if record['engineering_force_first_cm'] or record['forced_allocation'].any():raise ValueError('engineering forced windows cannot enter science')
         if record['future_done'].any() or len(record['state'])!=audit['phases'][0]['physical']['rows']:
             raise ValueError('accepted complete physical rows')
         detections+=record['shadow_detection_rows'];parts.append(arrays(record))

@@ -44,8 +44,18 @@ def audit_record(b, geometry):
     if not torch.equal(mapping[b['allocation']],b['assignment']):
         raise ValueError('allocated/actual option drift')
     probability = b['allocation_probabilities']
-    if probability.shape != (n,16) or not torch.allclose(probability,torch.full_like(probability,1/16),atol=1e-7):
-        raise ValueError('uniform allocation contract')
+    expected_probability=torch.full((n,16),1/16)
+    forced=b['forced_allocation']
+    if b['engineering_force_first_cm']:
+        if int(forced.sum())!=1:raise ValueError('one explicit engineering branch exercise')
+        index=int(forced.nonzero()[0]);first_tick=int(b['trigger'].min())
+        first_env=int(b['env_id'][b['trigger']==first_tick].min())
+        if int(b['trigger'][index])!=first_tick or int(b['env_id'][index])!=first_env or int(b['allocation'][index])!=2:
+            raise ValueError('first accepted engineering window only')
+        expected_probability[forced]=0.;expected_probability[forced,2]=1.
+    elif forced.any():raise ValueError('scientific source must remain uniformly randomized')
+    if probability.shape!=(n,16) or not torch.allclose(probability,expected_probability,atol=1e-7):
+        raise ValueError('truthful actual allocation probability')
     merged = torch.stack([probability[:,mapping == k].sum(-1) for k in range(8)],-1)
     if not torch.allclose(merged[torch.arange(n),b['assignment']],b['propensity'],atol=1e-7):
         raise ValueError('actual merged propensity')
@@ -242,7 +252,7 @@ def audit_planning(b, planning, checkpoint, device):
             accepted[key]=(shadow,index)
     if shadow_rows!=b['shadow_detection_rows']:raise ValueError('all detection rows')
     lookup={(int(env),int(tick)):i for i,(env,tick) in enumerate(zip(b['env_id'],b['trigger']))}
-    covered=set()
+    covered=set();forced_seen=False
     for batch in planning['batches']:
         keys=[(int(env),int(batch['tick'])) for env in batch['env_id']]
         indices=[lookup[key] for key in keys];n=len(indices)
@@ -250,6 +260,8 @@ def audit_planning(b, planning, checkpoint, device):
         covered.update(indices)
         c={k:v[indices].to(device) for k,v in b.items() if torch.is_tensor(v) and v.ndim and len(v)==len(b['state'])}
         draw=torch.randint(16,(n,),device=device,generator=allocator).cpu()
+        if b['engineering_force_first_cm'] and not forced_seen:
+            draw[0]=2;forced_seen=True
         if not torch.equal(draw,batch['allocation']) or not torch.equal(draw,b['allocation'][indices]):raise ValueError('allocation RNG')
         for local,key in enumerate(keys):
             shadow,index=accepted[key]

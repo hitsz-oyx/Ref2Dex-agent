@@ -78,6 +78,7 @@ def make_player(original, args, torch, gymtorch):
             live_weights, anchor = zeros(n, 8, 6, 6), zeros(n, 18)
             trigger = torch.full((n, w), -1, dtype=torch.long, device=self.device)
             assignment, allocation, steps = trigger.clone(), trigger.clone(), torch.zeros_like(trigger)
+            forced_flags=torch.zeros_like(trigger,dtype=torch.bool);forced_done=False
             pre, hist, tables = zeros(n, w, 49), zeros(n, w, 10, 69), zeros(n, w, 7)
             weights, candidates, anchors = zeros(n, w, 8, 6, 6), zeros(n, w, 8, 18), zeros(n, w, 18)
             initial_clearance, future_clearance = zeros(n, w), zeros(n, w, 10)
@@ -173,6 +174,10 @@ def make_player(original, args, torch, gymtorch):
                             live_weights[rows], task._pd_action_offset, task._pd_action_scale)
                         nuisance[rows, slot] = forecasts
                         draw = torch.randint(16, (len(rows),), device=self.device, generator=allocator)
+                        if args.engineering_force_first_cm and not forced_done:
+                            draw[0]=2
+                            forced_flags[rows[0],slot[0]]=True
+                            forced_done=True
                         selected = mapping[draw]
                         planning_batches.append(dict(tick=tick, env_id=rows.cpu(), slot=slot.cpu(),
                             random_weights=random_weights.cpu(), weights=live_weights[rows].cpu(),
@@ -268,6 +273,11 @@ def make_player(original, args, torch, gymtorch):
             initially_clear = (initial_clearance[valid] >= .002) & (pre[valid][:, 38]-rest[env] >= .03)
             supported = bits[valid][:, -3:].all(-1).all(-1) & (future_clearance[valid][:, -3:] >= .002).all(-1)
             signed = (future[valid][:, -3:, 38].amin(-1)-rest[env]).clamp_min(0) * supported - (pre[valid][:, 38]-rest[env]).clamp_min(0)
+            probabilities=torch.full((len(env),16),1/16,device=self.device)
+            forced=forced_flags[valid]
+            probabilities[forced]=0.;probabilities[forced,2]=1.
+            propensity=torch.tensor([*ARM_PROBABILITIES,0.,0.,0.],device=self.device)[selected]
+            propensity[forced]=1.
             payload = dict(schema='ref2dex.contact_risk_interventions_source.v1', seed=args.seed, assignment_seed=args.assignment_seed,
                 episode_id=[f's{args.seed}/env{int(i)}/first' for i in env.cpu()], env_id=env.cpu(),
                 motion_id=motion[env].cpu(), start_frame=start[env].cpu(), trigger=trigger[valid].cpu(),
@@ -278,8 +288,8 @@ def make_player(original, args, torch, gymtorch):
                 state=pre[valid].cpu(), history=hist[valid].cpu(), candidate_weights=weights[valid].cpu(),
                 candidate_actions=candidates[valid].cpu(), hold_target=anchors[valid].cpu(), table_pose=tables[valid].cpu(),
                 assignment=selected.cpu(), allocation=allocation[valid].cpu(), allocation_to_option=list(ALLOCATION_TO_OPTION),
-                propensity=torch.tensor([*ARM_PROBABILITIES,0.,0.,0.],device=self.device)[selected].cpu(),
-                allocation_probabilities=torch.full((len(env), 16), 1/16),
+                propensity=propensity.cpu(),allocation_probabilities=probabilities.cpu(),
+                engineering_force_first_cm=args.engineering_force_first_cm,forced_allocation=forced.cpu(),
                 initial_clearance=initial_clearance[valid].cpu(), future_clearance=future_clearance[valid].cpu(),
                 future_state=future[valid].cpu(), future_contact=bits[valid].cpu(), future_done=terminal[valid].cpu(),
                 native_observation=native_obs[valid].cpu(), future_native_observation=future_native_obs[valid].cpu(),
@@ -320,6 +330,7 @@ def main():
     p.add_argument('--panel-seed', dest='seed', type=int, required=True)
     p.add_argument('--assignment-seed', type=int, required=True)
     p.add_argument('--generator-checkpoint', type=Path, required=True)
+    p.add_argument('--engineering-force-first-cm',action='store_true')
     p.add_argument('--windows-per-stratum', type=int, default=4)
     p.add_argument('--max-steps', type=int, default=650)
     p.add_argument('--wall-seconds', type=int, default=240)
