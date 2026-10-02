@@ -101,6 +101,18 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
+  HD04:
+    claim: C3
+    name: randomized_native_motor_response_qualification
+    status: ACTIVE
+    branch: agent/cm-randomized-motor-effects
+    probe_budget: 1
+    probes_used: 0
+    active_run_id: P-20261002-randomized-motor-response-fit-r1
+    owner: current_session
+    authorization: "persistent mechanism goal; distinct randomization-centered first-cycle physics response after closed catalogue/risk recipes, reused originalfit/cal only; no mission/resources change and no subagents"
+    card: docs/experiments/probes/P-20261002-randomized-motor-response.md
+    transition: "Reserved singlequalification: oldHF19sourcefirstperiod fit/cal, knownprobabilitycenterednative12DOF; statebaseline +geometrydependentlinearresponse. Predictactualdv/dp/CLR residuals; no endpoint-forceintegration/no held/no new simulation. Fixedridge0.01 oneGPUsolve/state/shuffled matched; 300s64MiB, no hyper scan. Fullphysics/mapping/normal-equation/prediction/gate audit required. C3OPEN, no controller/actor claim."
   HF18:
     claim: C3
     name: contact_to_lift_feedback_macro_physics
