@@ -6,7 +6,7 @@ from scripts.run_contact_response_probe import sha,admission,PYTHON
 from scripts.resume_continuous_critic_policy import run_owned_child,bytes_in,SCIENTIFIC_FILES
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--gpu-index',type=int,default=4);p.add_argument('--source',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
     source=a.source.resolve();out=a.output.resolve();assert ROOT in out.parents and not out.exists()
     old=json.loads((source/'run_manifest.json').read_text());assert old['run_status']=='COMPLETED'
     heads=source/'u20/policy_heads.pt';base=Path(old['base_checkpoint']);hashes=dict(old['input_sha256'])
@@ -17,12 +17,12 @@ def main():
     def verify():
         for f,h in hashes.items():
             if sha(Path(f))!=h:raise ValueError('source drift '+f)
-    verify();gpu=admission(4);out.mkdir();begin=time.monotonic()
+    verify();gpu=admission(a.gpu_index);out.mkdir();begin=time.monotonic()
     m=dict(experiment_id='P-20261002-measured-geometry-barriers',run_id=out.name,run_status='RUNNING',pid=os.getpid(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),isolated_worktree=str(ROOT),source_run=str(source),input_sha256=hashes,gpu=gpu,phases=[],wall_limit_seconds=1200,storage_limit_bytes=1<<30,base_checkpoint=str(base),policy_sha256=old['policy_sha256'],panel_checkpoints={str(seed):dict(path=str(heads.resolve()),sha256=sha(heads),update=20) for seed in (578,579,580)})
     def save():
         m['wall_seconds']=time.monotonic()-begin;(out/'run_manifest.json').write_text(json.dumps(m,indent=2)+'\n')
     def execute(name,cmd,gpu_compute,timeout):
-        verify();admitted=admission(4) if gpu_compute else None
+        verify();admitted=admission(a.gpu_index) if gpu_compute else None
         env=dict(os.environ,CUDA_VISIBLE_DEVICES=gpu['uuid'] if gpu_compute else '',LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1',CUBLAS_WORKSPACE_CONFIG=':4096:8',TORCH_EXTENSIONS_DIR=str(out/'cache/torch_extensions'),XDG_CACHE_HOME=str(out/'cache'))
         env['LD_LIBRARY_PATH']='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH','')
         phase=dict(name=name,command=cmd,admission=admitted,run_status='RUNNING',device_reason='GPU simulation/fits/inference' if gpu_compute else 'independent NumPy physical/state/request/PD/full-mesh audit');m['phases'].append(phase);save();start=time.monotonic()
