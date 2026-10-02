@@ -112,3 +112,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Fixed-policy truth-successor task-value result](20261002-truth-successor-task-value-results.md): UNPROMISING; oracle gain over direct Q0.9354% fails the frozen1% gate. This track is being finalized at the user's request before a new route.
 
 - [Resumed observed-support task-value result](20261002-observed-support-task-value-results.md): UNPROMISING;1.6088% descriptive gain but paired interval crosses zero.
+
+- [Paired joint-option opportunity and engineering checks](20261002-paired-option-task-opportunity-results.md): UNCLEAR; pre-intervention matching fails despite identical reset states. No same-state oracle utility inferred.

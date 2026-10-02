@@ -294,3 +294,19 @@ no optimizer replay.319.342s/536427817bytes; own jobs terminal.
 Close exact support-value predictor. Next is directly EXECUTED paired joint
 option task opportunity601, common initial placement and pre-intervention P0,
 with baseline repeat/matching gates; no failed model is adopted.
+
+Joint option601 COMPLETED/UNCLEAR:768newtrajectories; resetq/dq/object exact,
+but allfive prefix state gates fail before intervention. P063/192,dup67,
+options47/52, retrospective anchor/options OR88 cannot establish conditional
+headroom. Baseline repeat agreement96.875% does not rescue primary matching.
+Full P0/PD/geometry/option audits pass;156.338s/249505391bytes, own jobs terminal.
+Property-only605: all768paired SDK body/PD/material properties identical,
+origins up to280m. Zero-origin short prefix fails matching; layout not adopted.
+Allengineering runs terminal; unique microscopic cause remains unestablished.
+[Full record](research/20261002-paired-option-task-opportunity-results.md).
+
+Current priority: stop exact-replay/layout tuning, use actual decision states
+and fresh randomized comparisons of trained option actors. Develop a short
+Cm-successor/continuation-value learning design with same-observation Cm-off
+and direct-Q controls before any new launch. No active GPU job or frozen
+new learning experiment at this checkpoint. [Decision](decisions/D-20261002-statistical-option-learning-review.md).
