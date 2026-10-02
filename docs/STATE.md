@@ -1,326 +1,110 @@
 # Standalone contact-response research state
 
-Updated 2 October 2026. Independent worktree
-`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response`, branch
-`agent/contact-response-cm`. Current writable continuation is the standalone
-local clone `/tmp/Ref2Dex-contact-response-continuation`, currentbranch
-`agent/response-actor`, same e37eca3 history
-and separate Git metadata; old independent tree is now read-only. Historical
-outputs/assets are read-only links, new outputs have distinct real directories. Original worktree, external project, checkpoints
-and original motion data remain read-only. This branch does not switch the
-original worktree's branch or use its shared output symlink.
+Updated2October2026. Goal ACTIVE / journal readiness NOT READY.
+Current user instruction: continue the same independent research route.
 
-## Objective and scoreboard
+## Workspace and boundaries
 
-User objective remains autonomous idea development, experiments and a
-journal-level paper. It is **ACTIVE and NOT READY**, without a reduced target.
-The user explicitly resumed this route after committing and archiving its
-results. Prior closeout/delivery records remain valid historical checkpoints.
-Full-access execution exposes GPU devices and original-host process observation;
-the prior sandbox blockage has been removed.
-[Host resumption](activities/20261002-continuous-critic-host-resumption.md).
+Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
+`agent/response-actor`, independent Git metadata and own real output directories.
+Old own tree `/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response` and original
+user tree are read-only. Original code/data/checkpoints and external projects
+are not modified. No remote push, subagents/Broker or unknown process control.
+Native environment Python3.8graspenv/IsaacGym/PyTorch2.4.1; fresh idle GPU
+admission per model/native phase, CPU for independent geometry/file audits.
+Deadline3October2026 23:59Beijing; ordinary one-GPU Probe/300GB storage limits.
 
-| Requirement | Current evidence |
+## North-star
+
+| Requirement | Current independent evidence |
 | --- | --- |
-| Self-trained manipulation substrate | PROMISING reference-conditioned initializer on one preselected motion; all-motion competence unproved |
-| Useful action-conditioned physical information | New6144-trajectory forecast fails its strong-global primary gate; mechanical support witness remains PROMISING |
-| Cm policy-training utility | Two actual matched training designs are negative; no demonstrated improvement |
-| Distinctive method | Unestablished; broad physical-grounding/contact-prediction themes already occupied |
-| Generalization / hardware | Absent on this independent track |
+| Self-trained manipulation | PARTIAL: P0 motion1; latest direct-Q option actor motion2117/128, motion1105/128, motion0zero |
+| Useful physical information | Mechanical support witness PROMISING; several fixed short-response/model/value gates fail |
+| Matched Cm policy-training utility | NOT DEMONSTRATED: three actual learning comparisons fail their complete Cm gates |
+| Distinctive method | Unestablished; generic physical forecasting/model-based RL/control variates are prior art |
+| Formal Validation/generalization/hardware | Absent on this track |
 
-## Confirmed decision-relevant facts
+Same-airplane task requires root rise>=30mm and FULLmesh tabletop clearance
+>=20mm on ALL105ticks:75synthetic plateau+30drop-checking.202native ticks,
+reference stops[162,140,152], lift starts[63,44,55]. Synthetic90-frame plateau,
+privileged current native state and public reference plan remain explicit.
+SDK body origins/net forces are not pairwise contact truth/force closure.
+No user-track six-expert or twelve-motion claim transferred.
 
-- New executable-support collection3ac4f6c retains6144trajectories,4608FIT519--524
-  and1536TEST525/526,202ticks each. Geometry, current-state features, native PD,
-  private initial-XY offsets and8balanced primitives independently reconstructed;
-  all271protected input hashes match. Primary motion1forecast logloss
-  Cm0.12215545/state0.61131642/global0.13089668:6.678%global gain fails10%gate,
-  UNPROMISING. Old engineering r1stale-refresh failure remains separately archived.
-- Distinct ef71c33reused-data gradient screen fails20%gate:18.648%gain over
-  state-only,15.592%over global. Independent full520-coordinate NumPy audit
-  agrees2.22e-16. No extra fitting, coefficient selection, physics or policy
-  benefit inferred. Exact finite-action correction is established methodology.
-- Position-bin headroomf66aa01uses FIT-only policies and reused TEST labels:
- 34.375%IPW versus38.021%global and32.8125%unchanged, UNPROMISING. These are
-  exploratory off-policy estimates, not executed success. Three failed gates
-  close the nominal8-primitive/initial-XY candidate family without local tuning.
-- New post-lift calibration721b44dretains1536fresh527/528trajectories. Four fixed
-  one-step object-COM forces and4privileged mechanical recovery arms; every force
-  tensor/body index, native target and recovery90label independently audited.
-  Primary at.45N:unchanged30/32,follow31/32,oppose31/32,curl25/32; no eligible
-  load, UNPROMISING. Other nonzero loads have unchanged32/32. This exact force
-  family ends without force/axis/window scans. New90criterion never replaces105.
-- The reference-relative absolute-target actor, code596c5a0, uses scratch
-  weights and original teacher510's19392rows. One fixed2000-update fit, no old
-  evaluation reuse, source actor action, teacher fallback or scripted curl at
-  test time. Native PD inversion enforces feedback/bounds/coupling.
-- Prospective physical105 requires root rise>=30mm and complete mesh table
-  clearance>=20mm on ALL105ticks:75plateau ticks plus30drop-checking ticks.
-  Fresh517/518give **56/64motion1 (87.5%)**,28/32eachseed. Both initializer
-  gates pass, PROMISING. Allmotions pooled56/192; motion0/2each0/64.
-  Historical strictforce75is50/192. Two environment seeds share one trained
-  model; this is a Probe, not multi-training-seed Validation or reference-free
-  manipulation. Plan availability and the bounded202-tick task remain explicit.
-- Native PD/current-context/residual-target/geometry labels reconstruct
-  independently; maxPD error1.19e-7, mesh clearance error3.66e-8m. Run
-  COMPLETED117.158s/35,089,617bytes, all226protected inputs unchanged.
-- Earlier scratch incremental-action BC9c0a218and one fresh corrective-state
-  aggregatione2a38c2eachfail0/192physical105, UNPROMISING; both ended without
-  tuning. Posthoc wrist target errors motivate a coordinate change but do not
-  identify a unique causal failure or prove matched architectural superiority.
-- Prospective randomized support removal49cf8b3,508/509,192trajectories:
-  primary motion1all64prior geometry75;32controls retain and32releases lose
-  late geometry, with measured retreat>=15cm. Height contrasts147.113/144.379mm.
-  All ten gates pass, PROMISING mechanical support only. Strictforce75counts
-  47/64; no universal proxy error rate or force-closure claim follows.
-- Original short references return to the table and have only25--36-frame
-  lift intervals. Synthetic90-frame holding plateaus are explicitly synthetic;
-  old failed full-episode and strict-force gates are preserved. Correct tabletop
-  geometry uses the thin localY axis; the earlier wrong-axis measurement and
-  separate correction remain archived, not silently substituted.
-- Previous direct effect learning, randomized model comparison, greedy task
-  selection, fixed PPO continuation and static closure designs failed their
-  frozen gates. No Cm utility is inferred from their losses, heights or subgroups.
+## Latest actual learning result
+
+`P-20261002-option-model-policy`: design3cde51a, implementation3ae0701.
+Fresh FIT603/6041536trajectories, EVAL611/6121536trajectories;6000model and
+3000actor optimizer steps. Actual three trained actors deploy without models
+or future observations. Independent placements/arms; no exact replay assumed.
+
+| Method | Physical105 successes /384 |
+| --- | ---: |
+| P0 |129|
+| Cm physical successor + continuation V |172|
+| Physical-action-removed model + same V |174|
+| Direct task-Q actor |222|
+
+Primary UNPROMISING: Cm fails >=5pp over EACHcontrol and each-seed
+noninferiority; motion1 safeguard passes. Cm's gain over P0 is not Cm-specific.
+Direct-Q motion2117/128 versus P022/128 provides positive self-training evidence
+and a strong retained comparison; one train fit/two EVALseeds, not Validation.
+
+All four native/P0/PD/full-mesh audits and full final model/actor NumPy checks
+pass. Current/successor SDK reconstruction discrepancy0; deployed actor inputs
+error0 and outputs<=4.707e-7. Actual nonzero gradients and changed parameters
+recorded; no independent optimizer replay. Parent r1 FAILED only final NumPy
+boolean JSON serialization; correction54d3c2a/r2 COMPLETED with identical
+counts/gates, zero repeated physics/updates and original failure retained.
+Conservative combined633.273s/997392487bytes<=1200s/2GiB. Protected inputs
+verify; ALL own jobs terminal.
+[Results](research/20261002-option-model-policy-results.md).
+
+## Important earlier facts and closed families
+
+- Scratch reference-relative P0 fit: fresh motion156/64 at517/518; other
+  motions thenzero. Synthetic task, independent full-context/native audits.
+- Full continuous auxiliary-critic learner e37eca3/runtime99a2521:15360TRAIN,
+  1536EVAL,9120updates; Cm129/state129/noaux147/P0137 per384, UNPROMISING.
+  All22native and60first-minibatch gradient/Adam checks retained;9060other
+  optimizer steps not independently replayed. Branch-rounding/resource
+  failures and same-model corrections preserved. [Results](research/20261002-continuous-critic-policy-results.md).
+- One-tick, coherent four-tick, force impulse, truth-successor task-value and
+  observed-support value recipes fail frozen gates; do not scan to rescue.
+  Truth successor over directQgain.9354%<1%; observed support gain1.6088%
+  but paired interval crosseszero. [Index](research/README.md).
+- Paired601joint options give retrospective opportunity but identical resets
+  diverge BEFOREintervention. SDK property equality and zero-origin tests
+  do not repair exact replay; original layout retained. No same-state oracle
+  utility or unique microscopic cause inferred. [Results](research/20261002-paired-option-task-opportunity-results.md).
+- Earlier feedback/rotation/selective-finger/source_e260 qualification and
+  first feature-policy training fail complete gates. Partial subgroups,
+  loss/height/forecast improvements cannot rescue their primary conclusions.
 
 ## Current decision and next work
 
-The first actual matched feature-policy training34f78b6 completes9216fresh
-training529--540and1536evaluation541/542trajectories. All14native panels and12
-independent gradient/Adam audits pass. Parent remains FAILED at final analysis;
-separate same-input correctiondb96433is COMPLETED without new physics/training,
-data changes or larger tolerances. Cm151/384,state153/384,global140/384; both
-frozen gate families fail, UNPROMISING. Allthree heads choose IDENTICAL argmax
-on ALL1536states: macro0on motions0/1,macro3on motion2. Cohort outcome differences
-cannot establish Cm-specific utility. Closeout rechecks374parent inputs,13correction
-inputs and both prior paper exports. Final checkpoint and all intermediate data
-remain retained; no job from this experiment is live.
+End the exact offline Cm-successor actor objective without penalty, width,
+steps, horizon, threshold, seed or checkpoint scans. Retain all actors/data,
+particularly direct-Q, without relabeling its benefit as Cm utility.
 
-Stop this exact feature-transfer recipe without extra updates, seeds, changed
-heads/LR or deployment selection. Forecast, gradient, position and fixed external
-impulse recipes remain closed. Training-only natural loss diagnosis motivates a
-separate current-state feedback experiment7e2c741:1536fresh543/544native trajectories,
-COMPLETED114.312s/271742088bytes. Unchanged133/384,early shared curl96/384,event
-curl92/384,wrist arrest125/384. Both event policies fail gain5pp over BOTHstatic
-controls and each-seed noninferiority, UNPROMISING. Independent full-mesh,
-current-event/target/PD/private-assignment audit passes; all251protected inputs
-rechecked. Unchanged motion1triggers in82successful and17failed trials: observable
-relative slip is insufficient to prescribe closure. No event-conditioned causal
-claim or Cm utility; privileged native state, no sensing/hardware transfer.
+Next Decision: assess a RETURN-CORRECTED physical-model contribution. Fixed
+models must be trained without the fresh episode's action/return; measure
+COMPLETE actor-parameter-gradient noise against a common state baseline,
+physical-action-removed derivative and direct-Q derivative. A cheap fresh
+Gaussian-option comparison can reject this role before costly matched online
+training. Freeze the collection, algebra, audits and gates before launching.
+No new experiment queued yet. This is established Q-Prop/Stein machinery;
+new utility and distinctive methodology remain to be demonstrated.
+[Route review](decisions/D-20261002-after-option-model-policy.md).
+[Primary-source boundary](research/20261002-return-corrected-gradient-boundary.md).
 
-The trigger/shared-curl/wrist-arrest family ends without scans. Native selective
-finger code9ef3050 completes1536fresh545/546trajectories in112.349s,279708481bytes.
-Independent SDK/URDF, actual target offsets, current state, PD and full-mesh
-physical105 audits pass;255protected inputs rechecked. Preselected motion2
-successes/64: unchanged12, shared curl21, index10, middle6, pinky10, ring6,
-thumb curl8, thumb yaw4. No selective arm passes20pp over BOTHcontrols and
-per-seed noninferiority; UNPROMISING. Stop this exact positive-offset basis without
-sign/dose/timing scans. Thumb yaw is null at first intervention in ALL64motion1
-trials; thumb curl in47/64. These bounds diagnostics are not whole-rollout
-counterfactuals or evidence of unavailable continuous-control headroom.
-[Selective-finger results](research/20261002-selective-finger-feasibility-results.md).
+## Preservation
 
-The fixed continuous policy-training comparison is now COMPLETED and
-**UNPROMISING**. Scientific sourcee37eca3, exact runtime continuation99a2521:
-20panels547--566/20updates plus final-only568/569,15360training/1536evaluation
-trajectories,9120actual optimizer steps. Pooled successes/384: unchanged137,
-Cm129,state-only129,no-auxiliary147. Cm33.59% ties state-only and trails
-no-auxiliary38.28%; six of seven frozen gates fail. Stop this exact one-step
-auxiliary-critic recipe without coefficient/seed/epoch/checkpoint scans.
-[Complete results](research/20261002-continuous-critic-policy-results.md).
-
-All22native audits and60predetermined first-minibatch gradient/Adam checks
-complete; the remaining9060steps are retained but not independently replayed.
-A SINGLEu17near-zero ReLU differs between float64 and float32 branch signs;
-original audit/failed parent remain unchanged. Saved-batch GPU replay is exact,
-and separate branch-aware NumPy correction passes SAME scalar tolerances after
-independent rounding-enclosure checks. No optimizer step or valid panel is
-repeated. GPU1native resource failure and engineering reproduction are retained;
-remaining phases use explicitly recorded same-model GPU4. All675protected paths
-and original scientific files verify. Conservative cumulative3311.593s and
-5,303,126,219bytes stay within3600s/6GiB.
-[Branch correction](decisions/D-20261002-continuous-gradient-branch-correction.md).
-[GPU migration](decisions/D-20261002-continuous-gpu-migration.md).
-
-The subsequent predeclared TRAINING-only execution-headroom screen completes
-32.967s, no models/optimizer/physics. On all403200motion2criterion-window
-transitions, actual versus saved-mean requests produce meaningful executable
-command changes in100%of transitions in ALLthree arms, target reconstruction
-error<=2.396e-7. PROMISING for command execution only; no object response or Cm
-utility follows. Do not make projection repair the principal route. Wrist axes
-have91.7--92.1%/83.8--84.6%meaningful translation/rotation contrasts; individual
-finger axes49.5--51.5%, not universal axis availability.
-[Execution headroom](research/20261002-request-execution-headroom-results.md).
-
-The fixed delayed-response screen completes31.925s on23920eligible training
-transitions/325episodes: immediate moment0.167295mm, delayed8-tick0.155047mm;
-paired delay CI[-0.351119,0.318222] fails and future-control equivalence is
-unclear. Label UNCLEAR, not established future leakage. Stop without lag/axis
-scans. [Results](research/20261002-delayed-request-response-results.md).
-
-The fixed immediate field is now COMPLETED/UNPROMISING:60480FIT response
-transitions at547,60480fresh TEST570, same u00mean0/std.05behavior. Paired
-state-minus-motion/phase risk+0.007890725, exploratory95%CI[+.002580592,
-+.018270229]; both gain gates fail. Independent all-label/all-prediction,
-FIT-control/cluster/bootstrap audit passes; full NumPy forwarderror8.731e-6.
-Original pre-optimizer mask assertion failure preserved; correctedr2reuses
-all audited570physics without retrying any update. Conservative233.498s/
-260.59MB plus15.841saudit. No direct actor field training launched; close
-this field WITHOUT width/steps/data/target/seed scans.
-[Results](research/20261002-state-response-field-results.md).
-
-Independent rotation-only control571/572is COMPLETED/UNPROMISING:
-physical105counts/384 unchanged126,duplicate125,earlyhold114,eventhold127;
-both fixed5ppALLcontrols and each-seed gates fail. Current-event/rotation
-latch/feasible projection/URDF/PD/geometry pass, EXACTsame-state XYZ/fingers
-preserved.192.816s/271.85MB, no fits/updates, owned processes ended. No
-transfer of original-worktree six-expert findings; stop rotation program
-without anchor/cup/timing/axis scans.
-[Results](research/20261002-rotation-retention-feasibility-results.md).
-
-Force-aware impulse screen is COMPLETED/UNPROMISING:398224FITtransitions,
-19674fresh575TESTtransitions/234episodes. MSE Cm.070602,state-only.067165,
-live-force motion/phase action.064279, approximate physical persistence626.126.
-Cm-state/global primary gates fail. AllFITstats/templates EXACT, full current
-force/clock/velocity-label causality and model/statistical checks pass.208.861s/
-254.83MB plus17.639saudit; no actor/model-gradient training launched, no jobs
-remain from this screen. Do not identify impulse as pure pairwise contact:
-native damping.01and instantaneous-force variability remain explicit.
-[Results](research/20261002-force-aware-impulse-results.md).
-
-Measured geometry engineering576 completes155.248s/258.77MB; original native audits pass, FK binding FAILS unchanged5µm position limit in both FP32/FP64 (84.04µm). Rotation/root pass. No frame correction or tolerance widening; historical q-derived exact SDK geometry reuse is closed. Native logger works, so future predictors use NEW actual SDK poses. Separate summary fixes a mislabeled mean field without rerunning physics or changing gates.
-[Binding results](research/20261002-object-frame-binding-results.md).
-Measured barrier Probe is COMPLETED/UNPROMISING:120960FIT/60480TESTrows from2304fresh native trajectories. MSE Cm.03446466 vs geometry state-only.03447739 (0.0369%gain; CI crosses0), geometry-off.04137424, phase/live-geometry.04615217, persistence.07518358. All3other controls pass, but mandatory action-information gate fails. Preserve descriptive16.70%geometry benefit without rescuing primary label; no direct actor from this failed model. Three native audits and independent TEST geometry/labels/controls/cluster audit pass, explicit512sample NN forward scope. Device occupation caused terminal execution interruptions; validated panels reused once. Final fits use declared common CPU batch stream because all8GPUsoccupied; no trajectory/update replay. All owned jobs terminal.
-[Measured barrier results](research/20261002-measured-geometry-barrier-results.md).
-Next Decision: change ACTUAL temporal execution semantics to coherent short held requests, then assess physical action information before model-guided learning. No delayed-label/axis/amplitude/seed scans on closed one-tick recipes. Generic object-frame/contact models alone are already established.
-Generic action-effect embeddings and Gaussian scores have established prior
-art; [method boundary](research/20261002-response-field-method-boundary.md).
-
-Distinctive methodology, matched positive policy-training utility, formal
-Validation, generalization and hardware remain unmet. The journal objective
-continues under the user's explicit request to resume; it is NOTcomplete.
-
-Native manuscriptv11now includes the full negative continuous comparison:
-21pages/21tables/4figures,231hashed inputs, preservedv6--v10inputs/PDFs, all1536
-new result counts independently rebuilt. Native result pages16/17visually
-inspected, no text clipping. `paper/native-v11/manuscript-v11.pdf` is a working
-evidence manuscript, not a journal-ready claim. Durable complete-run delivery
-is COMPLETE:4,931,916,091verified bytes at
-`/home2/wyy/tmp/ref2dex-contact-response-20261002-v11`, including all raw panels,
-checkpoints, failed runtime evidence and code.bundle throughbb2d497. New probes
-throughaabe90aare separately delivered at
-`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r1`,604,119,524
-unique bytes, all copied SHA verified. Both packages remain immutable.
-
-## Evidence and manuscript
-
-- [Prospective natural feedback failure](research/20261002-natural-retention-feedback-results.md)
-- [Predictive/reactive primary-source boundary](research/20261002-feedback-method-boundary.md)
-- [First matched actual policy-training result](research/20261002-support-feature-policy-results.md)
-- [Full-text methodological boundaries](research/20261002-fulltext-method-boundary.md)
-- [Executable-support forecast](research/20261002-support-response-information-results.md)
-- [Gradient and positional headroom](research/20261002-support-gradient-and-headroom-results.md)
-- [Physical disturbance calibration](research/20261002-support-disturbance-feasibility-results.md)
-- [Primary-source control-variate boundary](research/20261002-physical-control-variate-literature.md)
-- [Reference-target initializer](research/20261002-reference-target-policy-results.md)
-- [Scratch BC failure](research/20261002-observation-hold-baseline-results.md)
-- [Aggregation failure](research/20261002-observation-hold-aggregation-results.md)
-- [Prospective support witness](research/20261002-support-removal-witness-results.md)
-- [Primary-source novelty update](research/20261002-contact-response-novelty-update.md)
-- [Prior evidence index](research/README.md); all historical results and gates remain in cards/Git.
-- [Current native working manuscript](../paper/manuscript-v11.tex) and [PDF](../paper/native-v11/manuscript-v11.pdf):21pages/21tables/4figures, full negative continuous result, independently audited231inputs. No novel method, positive Cm utility or journal readiness.
-- [Continuous auxiliary/CAPG prior-art boundary](research/20261002-continuous-method-boundary.md).
-
-## Latest durable continuation
-
-Supplementr2 COMPLETE at `/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r2`:1,526,819,827unique bytes, all new copies SHA verified, code.bundle through37aab00, inherited immutable v11/r1 manifests unchanged. Includes force-impulse/raw/audit, SDK/FK/precision failures, all measured-barrier native panels/models/audits and execution interruptions. No paper/journal readiness implied.
-
-Next coherent4tick request cache implemented; CPU semantic checks PASS decision-state Gaussian likelihood, causal hold, RNG, alias and202tick clock. Initial batch-logstd API mismatch preserved and corrected to native12-vector; no native trajectory or scientific optimizer involved. Native integration/audit is now complete; the separately frozen four-tick consequence Probe is next, before any policy utility claim. Working branch remains agent/response-actor; original worktree untouched. Goal ACTIVE/NOT READY.
-
-## Coherent executed-consequence decision
-
-Native collector and independent auditad45560 complete fresh583/768trajectories,202ticks,201.299s including bounded idle admission. Request/noise/mean actually held4ticks,51decisions/50fullblocks/final2ticks; cached decision-state likelihood replay error3.124e-6, complete mesh clearance1.709e-7m, all original limits unchanged. Engineering contract VALID; no model fit or policy utility inferred. Generated-source/causal4tick decoder checks pass14592rows/576episodes;583is excluded from scientific FIT/TEST. User's latest original-worktree changes leave ALLpinned engineering inputs unchanged.
-
-Coherent consequence Probe is now COMPLETED/UNPROMISING:2304fresh trajectories,29184FIT/14592TESTrows,6000actual GPU updates. Cm MSE2.46750 vsstate2.44961/geometry-off1.20746/global2.86726/persistence2.33615; only global passes mandatory gates. Independent4tick causal/geometry/label/control/statistical audit passes; explicit512sample model scope, no optimizer replay.417.750s/816903406bytes plus19.807saudit. All own jobs terminal. Close exact4tick contract/model/target, no local scans or direct actor from failed information gate.
-[Full results](research/20261002-coherent-barrier-information-results.md).
-
-Next Decision: qualify read-only repository self-trained source_e260 under SAMEsynthetic105task against independent P0 and duplicates. Historical source success/validation is not ours and is not transferred. Protected source inputs checked against user's latest changes. See [substrate review](decisions/D-20261002-after-coherent-substrate-review.md). Goal ACTIVE/NOT READY.
-
-Teacher qualification r1 stopped for unequal reference-goal inputs before primary analysis: P0 clamps at plateau stop, native expert saw original lowering suffix. First native/audit/full expert replay preserved; own PIDs stopped and failed parent retained. Engineering correction separately freezes589/590fresh cohorts and identical gates/tolerances, only aligns in-memory reference suffix to existing P0hold goal. See [alignment](experiments/probes/P-20261002-self-trained-teacher-qualification-goal-alignment.md). No teacher-quality/Cm conclusion from failedr1.
-
-Teacher qualification correctedr3 COMPLETED/UNPROMISING:384fresh589/590trajectories; P031/96,duplicate35/96,sourceexpert6/96,duplicate4/96 physical105. All quality gates fail; reject adopting this expert for this protocol, no checkpoint/task/threshold/subgroup rescue. Both native/reference-goal audits and ALL38592expert forwards perpanel pass; full P0NumPyforward checked, independent1442feature derivation excluded explicitly. Combinedfailures573.376s/866065416bytes≤900s/1GiB, all own jobs terminal. [Results](research/20261002-self-trained-teacher-qualification-results.md).
-
-Next higher-level Decision: keep partial P0 and test object-relative closed-loop XYZ responsibility (XYtransport preserving commandedliftZ,rotation,fingers), with BOTH P0duplicates and static initial-placement correction as controls. No new barrier predictor from failed gates. Existing [model/value methods](research/20261002-model-value-interface-boundary.md) mean genericCm→successor→V alone cannot establish novelty. Goal ACTIVE, journal readiness unmet.
-
-Object-relative feedback591/592 COMPLETED/UNPROMISING:384freshtrajectories, P036/96,duplicate25/96,dynamic33/96,static30/96. All-controlgain/eachseed gates fail; motion1dynamic32/32descriptive only. Allnative/P0/PD/fullmesh/delta/same-state Z+rotation+finger checks pass;250.929s/117398280bytes, ownPIDs ended. Stop exact feedback law without timing/gain/axis/seed scans. [Results](research/20261002-object-relative-transport-results.md).
-
-Next task-value review: continuous training actually uses terminalphysical105bool, not dense-imitation reward. Do not mislabel its reward. Before a Cm→future→V design, inspect how fixed deadline and known past105violations enter task state, and quantify TRAIN-only updates after task outcome becomes irreversible. No further barrier-model/feedback scan, no journal-readiness claim.
-
-TRAIN-only outcome determinacy547–566 COMPLETE34.258s. Aftercertaintyrows44.15–45.39%, Gaussianadvantage-score proxyenergy5.98–6.28%; allbelow50%priority criterion, AFTER_CERTAINTY_NOT_DOMINANT. All105labels/60firstbatchreturntargets/advantages agree(max0), rewardcorrect. Do NOT prioritize a history-only repair or callMCgradient invalid; scoreproxyisnotPPO/Adamgradient. Knownhistory/deadline must remain explicit for futurevalueinterface. [Results](research/20261002-task-outcome-determinacy-results.md).
-
-Truth-successor task-value Probe COMPLETED/UNPROMISING:64174FIT/63175fresh
-TESTrows,576TESTepisodes,4500GPUupdates. Brier oracle.05678169 versus
-currentV.05760456/directQ.05731782/motion-time.09920008. Oracle gain over
-directQ0.9354%fails unchanged1%mandatory gate despite all paired intervals
-being negative. Native and separate full TEST state/NN/control/statistical
-audits pass; no optimizer replay, actor or Cm training claimed.210.929s/
-222641171bytes; protected inputs unchanged, all owned phases terminal.
-[Results](research/20261002-truth-successor-task-value-results.md).
-
-Close this exact one-step value contract without local scans or threshold
-changes. The user's new-route instruction takes precedence over older
-prospective next-step paragraphs above: this branch now retains completed
-code, evidence and manuscript draft, with no new experiment queued. No
-positive matched Cm training benefit or journal-ready conclusion exists.
-
-Final delivery before the user's new route: supplementr4 COMPLETED at
-`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r4`,
-2,555,878,483 unique bytes, all copies SHA verified, prior v11/r1/r2/r3
-manifests unchanged. Verified code.bundle through scientific closeout3d10db5
-and nine recent terminal run directories preserve raw data, checkpoints,
-audits and failures. [Delivery receipt](activities/20261002-research-track-final-delivery.md).
-
-Current instruction overrides the earlier closure: continue this same branch.
-Next Decision is a fresh current-observed-support TASK-value information
-screen597/598, before committing to another physical predictor or actor.
-Old failed one-step/four-tick/oracle recipes stay closed with unchanged gates.
-[Resume decision](decisions/D-20261002-observed-support-task-value.md).
-
-Observed support task-value597/598 now COMPLETED/UNPROMISING:1536newtrajectories,
-63682FIT/63048TESTrows,3000GPUupdates. Brier support.05318334 vscompact.05405293
-(1.6088%gain), but paired CI[-.00207045,+.00032280] crosses0. Full current
-SDK/force/flow/history and native audits pass; allTEST NN/statistics replay,
-no optimizer replay.319.342s/536427817bytes; own jobs terminal.
-[Results](research/20261002-observed-support-task-value-results.md).
-Close exact support-value predictor. Next is directly EXECUTED paired joint
-option task opportunity601, common initial placement and pre-intervention P0,
-with baseline repeat/matching gates; no failed model is adopted.
-
-Joint option601 COMPLETED/UNCLEAR:768newtrajectories; resetq/dq/object exact,
-but allfive prefix state gates fail before intervention. P063/192,dup67,
-options47/52, retrospective anchor/options OR88 cannot establish conditional
-headroom. Baseline repeat agreement96.875% does not rescue primary matching.
-Full P0/PD/geometry/option audits pass;156.338s/249505391bytes, own jobs terminal.
-Property-only605: all768paired SDK body/PD/material properties identical,
-origins up to280m. Zero-origin short prefix fails matching; layout not adopted.
-Allengineering runs terminal; unique microscopic cause remains unestablished.
-[Full record](research/20261002-paired-option-task-opportunity-results.md).
-
-Current priority: stop exact-replay/layout tuning, use actual decision states
-and fresh randomized comparisons of trained option actors. Develop a short
-Cm-successor/continuation-value learning design with same-observation Cm-off
-and direct-Q controls before any new launch. No active GPU job or frozen
-new learning experiment at this checkpoint. [Decision](decisions/D-20261002-statistical-option-learning-review.md).
-
-Resumed evidence durably delivered in supplementr5 at
-`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r5`:
-944,661,638 unique bytes, all copies SHA verified, verified full-history
-code.bundle throughb2ebc96, six terminal result/diagnostic directories.
-Immutable v11/r1--r4 manifest identities remain unchanged. This receipt
-is committed after packaging; original worktree remains untouched.
-
-Next actual learning design is now frozen: option-model-policy603/604FIT,
-611/612EVAL. Predict8-step physical successor, learn option-conditioned
-continuation value, optimize three matched actor means offline, deploy actors
-only. Action-removed dynamics and direct-Q control actual policy utility; no
-prediction-error gate or exact replay assumption.1200s/2GiB/oneGPU budget.
-[Card](experiments/probes/P-20261002-option-model-policy.md).
+Native manuscriptv11 is an audited historical draft, not journal-ready and
+not updated for recent results; integration/Validation are Research Debt.
+Immutable `/home2/wyy/tmp/ref2dex-contact-response-20261002-v11` and
+supplement-r1--r5 preserve prior evidence/code/failures. Latest r5 through
+b2ebc96 stores944661638unique bytes. New option-learning evidence is complete
+in the current clone and is being durably delivered as supplement-r6; verify
+its receipt before claiming that delivery complete. History and complete
+experimental details remain in Git, cards and the research index.

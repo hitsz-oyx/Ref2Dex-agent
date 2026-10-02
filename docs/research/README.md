@@ -114,3 +114,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Resumed observed-support task-value result](20261002-observed-support-task-value-results.md): UNPROMISING;1.6088% descriptive gain but paired interval crosses zero.
 
 - [Paired joint-option opportunity and engineering checks](20261002-paired-option-task-opportunity-results.md): UNCLEAR; pre-intervention matching fails despite identical reset states. No same-state oracle utility inferred.
+
+- [Actual option-model policy learning](20261002-option-model-policy-results.md): UNPROMISING; Cm172/off174/directQ222/P0129 per384. Complete3072native trajectories and9000optimizer steps, original JSON failure and same-data correction preserved.
+- [Return-corrected gradient prior-art and algebra](20261002-return-corrected-gradient-boundary.md).

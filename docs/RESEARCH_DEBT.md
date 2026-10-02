@@ -281,3 +281,18 @@ whole-learner utility gate passes and a mechanistic claim is sought, predeclare
 matched separate actor/critic clipping controls and distinguish this pathway.
 This does not change the interrupted fixed recipe, add new current runs, or
 imply a measured performance benefit/harm. Current comparison remains incomplete.
+
+## Independent option-learning Probe: Validation and paper integration
+
+Direct-Q actor on fresh611/612 achieves222/384physical105, motion2117/128,
+but both environment seeds share one training initialization/data fit and
+motion0remains0. Formal self-training claims require independent training-seed
+Validation and broader fixed tasks; this is deferred while Cm utility remains
+the principal unresolved objective. No six-expert/user-track result transferred.
+
+Native manuscriptv11 does not yet integrate the newer coherent/teacher/value/
+option records. Their complete cards/results/raw data remain retained and
+indexed. Integrate these before any external manuscript/report; formatting
+work must not replace the search for actual matched Cm utility. Positive
+return-corrected learning would trigger formal Validation, specific novelty
+assessment and this manuscript update; negative probes remain negative.

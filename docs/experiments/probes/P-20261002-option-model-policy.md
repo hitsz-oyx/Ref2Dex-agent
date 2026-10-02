@@ -87,3 +87,15 @@ and3000actor optimizer steps reported separately. Positive triggers matched
 Validation/novelty review, negative closes this exact option-model-policy
 recipe. Generic model-based offline RL is established; no publication claim
 without real positive utility and further validation.
+
+## Execution closure
+
+Implementation3ae0701, all3072native trajectories and9000optimizer steps
+completed. r1 FAILED only final NumPy boolean JSON serialization; separate
+54d3c2a/r2 COMPLETED with unchanged counts/gates, zero new physics/updates,
+original failure retained. Cm172/off174/directQ222/P0129 per384; primary
+UNPROMISING, two of three gates fail. Full native/SDK/actor/model audits pass.
+Combined633.273s/997392487bytes, protected inputs unchanged, own jobs terminal.
+[Complete result](../../research/20261002-option-model-policy-results.md).
+Exact recipe closed without local scans. Next role review is
+[return-corrected learning](../../decisions/D-20261002-after-option-model-policy.md).
