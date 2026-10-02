@@ -175,16 +175,23 @@ transfer of original-worktree six-expert findings; stop rotation program
 without anchor/cup/timing/axis scans.
 [Results](research/20261002-rotation-retention-feasibility-results.md).
 
-Next force-aware normalized NON-GRAVITATIONAL object impulse prediction,
-using CURRENT raw forces and native weight, before model-to-actor gradients.
-Damping0.01means this is not exact pairwise contact impulse or support proof.
-Fixed force-aware impulse screen now declares20trainingpanels and fresh575
-stochasticu20only; require>=1%forecastMSEgain plus negative upper exploratory
-paired95%CI over force-aware state-only, force-aware motion/phase action model
-and physical persistence before actual actor learning. This operational gate
-is not a paper effect size or proof of policy utility.
-[Card](experiments/probes/P-20261002-force-aware-impulse.md).
-[Physics/prior-art boundary](research/20261002-impulse-gradient-method-boundary.md).
+Force-aware impulse screen is COMPLETED/UNPROMISING:398224FITtransitions,
+19674fresh575TESTtransitions/234episodes. MSE Cm.070602,state-only.067165,
+live-force motion/phase action.064279, approximate physical persistence626.126.
+Cm-state/global primary gates fail. AllFITstats/templates EXACT, full current
+force/clock/velocity-label causality and model/statistical checks pass.208.861s/
+254.83MB plus17.639saudit; no actor/model-gradient training launched, no jobs
+remain from this screen. Do not identify impulse as pure pairwise contact:
+native damping.01and instantaneous-force variability remain explicit.
+[Results](research/20261002-force-aware-impulse-results.md).
+
+Next Blocker ENGINEERING: native576captures five configured hand-bodySDKposes;
+validate pinned URDF FK/actual18q/fixedroot before constructing DERIVED
+object-frame hand-object link-flow. Position5e-6m/rotation2e-5/root1e-7,
+no tolerance widening, fitted offset or guessed body frame. This is a different
+representation and actor-coupling route, NOTmore force-MSE steps or rotation
+hold scans. It is no claim of real contact points or utility.
+[Geometry route review](decisions/D-20261002-after-impulse-geometry-route-review.md).
 Generic action-effect embeddings and Gaussian scores have established prior
 art; [method boundary](research/20261002-response-field-method-boundary.md).
 

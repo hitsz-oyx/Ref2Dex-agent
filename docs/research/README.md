@@ -92,3 +92,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Independent rotation-only retention negative](20261002-rotation-retention-feasibility-results.md)
 - [Impulse and model-to-actor prior-art boundary](20261002-impulse-gradient-method-boundary.md)
+
+- [Force-aware non-gravity impulse forecast negative](20261002-force-aware-impulse-results.md)
