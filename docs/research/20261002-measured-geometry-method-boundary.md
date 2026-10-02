@@ -1,0 +1,13 @@
+# Object-frame geometry and contact models: primary-source boundary
+
+Read 2 October2026 while the measured barrier Probe runs. This is a novelty/route decision input, not experimental evidence for our method. No claim of reading full papers where only primary abstracts/project descriptions were inspected.
+
+[Learning Contact Dynamics using Physically Structured Neural Networks, AISTATS2021](https://papers.avt.im/contact-dynamics/) explicitly separates smooth evolution from contact impulse effects using mechanical structure and learned contact events. The authors discuss idealized touch information for distinguishing noise and contact effects. This predates merely proposing a contact-gated dynamics network. Our measured body origins and native aggregate force channels are not equivalent to actual tactile contact-event supervision.
+
+[Contact-Aware Neural Dynamics, CVPR2026, author project](https://changwei-jing.github.io/neural-physics/) describes contact prediction conditioning future pose increments and simulator-prior refinement using tactile data, including policy-performance evaluation/refinement. Contact-aware future-state models plus policy refinement are already occupied. This source does not establish that our force/geometry features capture the same information or transfer to hardware.
+
+[Where to Touch, How to Contact, arXiv2601.10930v5](https://arxiv.org/abs/2601.10930v5), revised19August2026, proposes an object-centric contact-location/subgoal interface between RL and contact-implicit MPC. Use current v5 rather than stale search abstract: its reported T-pushing efficiency distinguishes RL decision steps from control steps. Object-centric hierarchical contact planning is not new by naming a geometric representation.
+
+[DexWM, arXiv2512.13644v2](https://arxiv.org/abs/2512.13644v2), revised16March2026, represents dexterous actions with finger keypoints and uses hand consistency with latent prediction. Geometric dexterous actions and auxiliary hand consistency are established; this abstract describes a much larger video-data setting than our privileged native-state airplane experiments.
+
+Decision implication (our inference, not a source claim): changing inputs to object-frame SDK geometry or changing output to task barriers can resolve an implementation/information question but cannot alone establish a journal contribution. A successful forecast screen would justify direct coupling and a matched policy-training comparison. A failed screen closes the exact shallow regression recipe, not all geometry/contact learning. No negative result licenses rebranding established components as novel. Generalization/hardware/model-induced policy utility remain separate unpaid obligations.
