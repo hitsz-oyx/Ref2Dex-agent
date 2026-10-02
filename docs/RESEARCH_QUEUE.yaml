@@ -205,6 +205,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF21:
+    claim: C3
+    name: joint_contact_consequences_reference_action_effects
+    status: ACTIVE
+    branch: agent/cm-structured-contact-effects
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    authorization: "active mechanism goal and structured-consequence memo; experimental event/action-effect prototype after preserved HF20/HD03, mission/claim/resources unchanged"
+    card: docs/experiments/probes/P-20261002-structured-contact-effects.md
+    transition: "Slot1 fixed auditedHF19/HF20union5018, fit-only normalization, coherent8joint events/conditionalheight and current expert PD/reference inputs. Excluded590engineering labels/PD/future-poison/state-only/gradient pass,0modelupdates; initialevalGRUbackward failure preserved. Fixed4modesx3seedsx1000updates on idleGPU1 <=1800s/512MiB; oldsourcecosts separate, reused-held not independentValidation. Only primary5pctheight/supportBrier plus nonregression/domain gates passing enters new independent true execution slot2; no retuning/PPO."
   HD03:
     claim: C3
     name: generated_contact_forecast_decision_diagnostic
