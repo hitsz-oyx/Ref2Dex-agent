@@ -1,0 +1,24 @@
+{
+  "run_status": "FAILED",
+  "engineering_passed": false,
+  "source_handle_exit_code": 1,
+  "error": "RuntimeError('native child exit 1')",
+  "native_error": "TimeoutError bounded native collection at original240s limit",
+  "elapsed_seconds": 276.9720002822578,
+  "last_progress": {
+    "tick": 400,
+    "complete_windows": 89
+  },
+  "records_saved": false,
+  "scientific_probe_started": false,
+  "timestamp_epoch": 1790911419.0915527,
+  "artifact_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r1/run_manifest.json": "f4ee6aa2977f603a9a10bff16d29dc0064f2a8a700fcffbb0f5b05a2ab916d4a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r1/native.log": "bc674ae6987513741149c8dafec89b4cf0630bbad5f6cc8ce03f11bcf660b228",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r1/seed590/run_manifest.json": "b6e2241d0df1a04c0e1aa2eb5031c79315809b5ded8f907a29938f61d313811c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/run_optimized_contact_engineering.py": "e86816e719860fc5ffe13c6755c5f5c2d214352e755dd6c622c0bd2b5f6ad33f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/collect_optimized_contact_source.py": "99081d019f1fa99fb53b47d66375ce6427a15cc1ac5dc853e680a8cafa77dce9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-optimized-contact-native-engineering.md": "7676c5e3a4cc6d2be9f571e9a2e64477a6c82d707ad2f4d01232c7afe91a4361"
+  },
+  "scope": "bounded engineering timeout, no accepted actual records; generator/parameters/gates unchanged"
+}
