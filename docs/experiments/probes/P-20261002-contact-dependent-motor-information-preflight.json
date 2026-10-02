@@ -1,0 +1,46 @@
+{
+  "run_status": "COMPLETED",
+  "kind": "label-support preflight; no model fit or simulation",
+  "source_seeds": [
+    571,
+    572,
+    573,
+    574,
+    575,
+    576,
+    577,
+    578,
+    579,
+    580,
+    581,
+    582
+  ],
+  "counts": {
+    "cal_first_cycle_rows": 989,
+    "next_joint_contact_loss": 16,
+    "next_clearance_below_2mm": 655,
+    "current_clearance_at_least_2mm": 325,
+    "current_clear_to_next_unclear": 29
+  },
+  "required_loss_cases": 24,
+  "support_passed": false,
+  "decision": "Do not fit proposed HF25 on old first-cycle source; preserve per-cycle randomized collector as unexecuted draft for future work",
+  "device": "CPU",
+  "device_reason": "pure raw-force and clearance label counts; no neural computations",
+  "held_used": false,
+  "source_record_sha256": {
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed571/records.pt": "ce1d8fb4bdb9f299009e50356bafc201a8a765e18757fe0a3a57e1e9d1deafc9",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed572/records.pt": "d9559387e84bfae7c2e47d710df5050a81eeb87cf2e2587e50040c7f82be915b",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed573/records.pt": "06953da18f25af3b1b17b5a7df70b7424a66078d3d3eb288610d9e678276932d",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed574/records.pt": "f0a6a72b980bc85c110af289a3339ffbf11efa8b304cb0eb1762d3045b1af0d7",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed575/records.pt": "ae06c2114fbb594464d99930ed1ff5f32f7e7ca002e57712cce41b433af1b437",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed576/records.pt": "b16abe4eda9abaee15a247ce5a8782637c4775a5b03e356dc5f831c38148f1db",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed577/records.pt": "2028b02dd9ccc34b2cfdfbe08e4b3ff9f6d411bda8e55c35fc3d8e170b5a3cf0",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed578/records.pt": "f37715a6751528d865e572a3125fbe541d7e1508931618009cfbab8ab03ccd6d",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed579/records.pt": "47f5cbc5ea72c71659083877cd48dcbcd6a45c8d157db77e951b802b25f9adac",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed580/records.pt": "de7a02b01f334e4157eacee8dea847c8279a8bb1d718cb33f9dfbd71f3d8d051",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed581/records.pt": "745b29434d7c23c78eff51bee3c9ff2229266a3116f018dc9d4c5dfcb79a4288",
+    "src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-r1/seed582/records.pt": "c09bdc49fb850555fa1bea309c9d79f412ca3fca9e1d8d0ec4705ccdd2adfe58"
+  },
+  "elapsed_seconds": 1.6625782186165452
+}
