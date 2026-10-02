@@ -1,0 +1,10 @@
+{
+  "run_status": "FAILED",
+  "exit_code": 1,
+  "git_commit": "568bd02",
+  "auditor_sha256": "b577069642192dbe5d93b0c6eec41ef62a3f51c650150deb5d15cc0ce773fc86",
+  "elapsed_seconds": 2.853145676,
+  "stage": "gradient engineering; no optimizer updates",
+  "error": "cudnn RNN backward can only be called in training mode",
+  "resolution": "training-mode gradient check; inference remains eval and frozen; excluded seed590 unchanged"
+}

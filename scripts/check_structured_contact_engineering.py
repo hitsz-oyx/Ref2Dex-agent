@@ -92,7 +92,7 @@ def run(args):
     if 'future' in signature:raise ValueError('current-only interface')
     norm=normalization(d,torch.ones(n,dtype=torch.bool));f={k:v.cuda() for k,v in normalize(d,norm).items()}
     y={k:v.cuda() for k,v in labels.items()}
-    torch.manual_seed(12801);model=StructuredContactConsequence(d['physical'].shape[-1]).cuda().eval()
+    torch.manual_seed(12801);model=StructuredContactConsequence(d['physical'].shape[-1]).cuda().train()
     f['node_action']=f['node_action'].detach().requires_grad_(True)
     output=model(**f);marginals=event_marginals(output['event_probability'])
     subset=(output['lift_probability'][:,None]-marginals).max().item()
