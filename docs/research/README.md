@@ -122,3 +122,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Observed successor law actual policy result](20261002-empirical-successor-policy-results.md): UNPROMISING; Cm188/off188/directQ222/P0126 per384, all native/input/value checks pass.
 - [Empirical successor prior-art boundary](20261002-empirical-successor-method-boundary.md).
+
+- [Physical encoder transfer primary-source boundary](20261002-physical-encoder-transfer-boundary.md).

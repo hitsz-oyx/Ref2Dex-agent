@@ -126,3 +126,7 @@ History and complete experimental details remain in Git, cards and the index.
 Supplement-r7 COMPLETED througha5a095c,469089569unique bytes; verified
 full-gradient/native/audit copies and code bundle, prior manifests unchanged.
 [Receipt](activities/20261002-gradient-control-delivery.md).
+
+Supplement-r8 COMPLETED through7f0f691,678300657unique bytes;
+compatibility and empirical actual-policy raw/code/model evidence SHAverified,
+prior archives unchanged. [Receipt](activities/20261002-empirical-policy-delivery.md).
