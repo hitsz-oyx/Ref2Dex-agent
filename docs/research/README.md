@@ -99,3 +99,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Measured geometry barrier result](20261002-measured-geometry-barrier-results.md).
 - [Geometric contact model primary-source boundary](20261002-measured-geometry-method-boundary.md).
+
+- [Actual coherent four-tick consequence negative](20261002-coherent-barrier-information-results.md).
