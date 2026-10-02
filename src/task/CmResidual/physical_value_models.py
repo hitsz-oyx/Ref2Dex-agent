@@ -9,6 +9,7 @@ from src.task.CmResidual.physical_value_contract import (
     advance_events, make_candidates, teacher_label, quaternion_loss,
 )
 from src.task.CmResidual.v118_planner import TorchInspireKinematics, QUERY_LINKS, TIP_LINKS
+from src.task.CmResidual.task_representation import predict_cm_residual
 
 URDF = Path(__file__).resolve().parents[3] / "third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf"
 
@@ -91,9 +92,11 @@ def dynamics_loss(predicted, contact_logits, reward, terminal_logits, target, ac
 
 
 class Teacher:
-    def __init__(self, features, dynamics, value, direct_q, gamma, seed, reward_scale):
+    def __init__(self, features, dynamics, value, direct_q, gamma, seed, reward_scale,
+                 task_representation=None):
         self.features, self.dynamics = features, dynamics
         self.value, self.direct_q, self.gamma = value, direct_q, gamma
+        self.task_representation = task_representation
         device = features.state_mean.device
         self.generator = torch.Generator(device=device).manual_seed(seed)
         self.reward_scale = reward_scale
@@ -137,7 +140,36 @@ class Teacher:
                     samples.append(reward + self.gamma * (1 - terminated) * continuation)
             draws = torch.stack(samples)
             scores = (draws.mean(0) - draws.std(0, unbiased=False)).reshape(batch, count)
+        elif arm == "cm_representation":
+            if self.task_representation is None:
+                raise ValueError("Cm task representation is not loaded")
+            hidden = repeat(self.direct_q.encode(history_features))
+            direct = self.direct_q.from_hidden(
+                hidden, self.features.context(c), candidate
+            ).squeeze(-1)
+            current = repeat(states[:, -1])
+            physical = []
+            for model in self.dynamics:
+                raw = model.from_hidden(
+                    repeat(model.encode(history_features)),
+                    self.features.context(c), candidate
+                )
+                predicted, contact, reward, terminal = decode_dynamics(raw, current, self.features)
+                physical.append(torch.cat((
+                    predicted[:, 36:39] - current[:, 36:39],
+                    predicted[:, 43:49],
+                    contact.sigmoid(),
+                    reward[:, None],
+                    terminal.sigmoid()[:, None],
+                ), dim=-1))
+            physical = torch.stack(physical)
+            physical_mean, physical_std = physical.mean(0), physical.std(0, unbiased=False)
+            representation_input = torch.cat((
+                direct[:, None], candidate, current[:, 36:51], physical_mean, physical_std
+            ), dim=-1)
+            residual = predict_cm_residual(*self.task_representation, representation_input)
+            scores = (direct + residual).reshape(batch, count)
         else:
-            raise ValueError("teacher arm must be direct_q or cm_value")
+            raise ValueError("teacher arm must be direct_q, cm_value, or cm_representation")
         label, active = teacher_label(mean, scores, candidates, valid)
         return label, active, scores

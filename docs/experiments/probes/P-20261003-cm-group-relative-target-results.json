@@ -1,0 +1,397 @@
+{
+  "schema": "ref2dex.cm_group_relative_target_audit.v1",
+  "run_status": "COMPLETED",
+  "records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry609/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry610/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run603/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run604/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run605/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run606/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run607/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run608/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r3/seed622/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r3/seed624/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r4/retry625/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r4/retry626/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r4/retry627/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r4/retry628/records.pt"
+  ],
+  "rows": 411,
+  "groups": 45,
+  "split": {
+    "fit_rows": 239,
+    "held_rows": 172,
+    "fit_groups": 32,
+    "held_groups": 13,
+    "centered_fit_rows": 229
+  },
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "candidate_names": [
+    "expert0",
+    "expert1",
+    "expert2",
+    "expert3",
+    "expert4",
+    "expert5",
+    "base_hold",
+    "fixed_cup"
+  ],
+  "support": [
+    55,
+    58,
+    55,
+    50,
+    57,
+    54,
+    37,
+    45
+  ],
+  "reports": {
+    "absolute_state_action": {
+      "rows": 172,
+      "groups": 13,
+      "changed_from_fixed": 164,
+      "changed_fraction": 0.9534883720930233,
+      "choice_counts": [
+        13,
+        6,
+        6,
+        62,
+        0,
+        20,
+        57,
+        8
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": 30.279672305002652,
+        "lower90": -18.397436078119547,
+        "upper90": 72.37018635152286
+      },
+      "held_demeaned_spearman": 0.5825763962997247,
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": 30.435981931775004,
+          "lower90": -18.514177009281866,
+          "upper90": 73.09141922302929
+        },
+        "retained": {
+          "mean": 0.18500768086500527,
+          "lower90": -0.0919128576312946,
+          "upper90": 0.4520821318529296
+        },
+        "contact_last3": {
+          "mean": 0.16048982320836724,
+          "lower90": -0.17300436114623297,
+          "upper90": 0.520688963173621
+        },
+        "clearance_last3": {
+          "mean": 0.18500768086500527,
+          "lower90": -0.0919128576312946,
+          "upper90": 0.4520821318529296
+        }
+      }
+    },
+    "absolute_state_action_plus_cm": {
+      "rows": 172,
+      "groups": 13,
+      "changed_from_fixed": 167,
+      "changed_fraction": 0.9709302325581395,
+      "choice_counts": [
+        21,
+        11,
+        1,
+        43,
+        0,
+        11,
+        80,
+        5
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": 32.03799955764265,
+        "lower90": -9.872420498636568,
+        "upper90": 71.84762803515434
+      },
+      "held_demeaned_spearman": 0.5732372692486837,
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": 32.36870389766188,
+          "lower90": -11.13693211327854,
+          "upper90": 72.77276662088552
+        },
+        "retained": {
+          "mean": 0.09673436138859641,
+          "lower90": -0.21557789410597655,
+          "upper90": 0.3895081429740529
+        },
+        "contact_last3": {
+          "mean": 0.05629151769446222,
+          "lower90": -0.3827707513726826,
+          "upper90": 0.5140259740259738
+        },
+        "clearance_last3": {
+          "mean": 0.09673436138859641,
+          "lower90": -0.21557789410597655,
+          "upper90": 0.3895081429740529
+        }
+      }
+    },
+    "group_relative_state_action_plus_cm": {
+      "rows": 172,
+      "groups": 13,
+      "changed_from_fixed": 172,
+      "changed_fraction": 1.0,
+      "choice_counts": [
+        26,
+        3,
+        1,
+        56,
+        0,
+        8,
+        78,
+        0
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": 48.20308893515106,
+        "lower90": 0.6750859385825975,
+        "upper90": 92.03486025506281
+      },
+      "held_demeaned_spearman": 0.6228502025246301,
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": 48.338620981746445,
+          "lower90": 1.2036837209722493,
+          "upper90": 92.51926371267801
+        },
+        "retained": {
+          "mean": 0.09923918151719327,
+          "lower90": -0.15740933886907044,
+          "upper90": 0.3535853260223007
+        },
+        "contact_last3": {
+          "mean": 0.05879633782305908,
+          "lower90": -0.2396873453943453,
+          "upper90": 0.3787332499867935
+        },
+        "clearance_last3": {
+          "mean": 0.09923918151719327,
+          "lower90": -0.15740933886907044,
+          "upper90": 0.3535853260223007
+        }
+      }
+    },
+    "cm_raw_top": {
+      "rows": 172,
+      "groups": 13,
+      "changed_from_fixed": 145,
+      "changed_fraction": 0.8430232558139535,
+      "choice_counts": [
+        1,
+        116,
+        20,
+        1,
+        5,
+        0,
+        2,
+        27
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": 21.33798414706051,
+        "lower90": -15.864857108473897,
+        "upper90": 58.61340245432549
+      },
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": 21.3185052722769,
+          "lower90": -15.705156619544589,
+          "upper90": 58.2966739427703
+        },
+        "retained": {
+          "mean": 0.3449170481471235,
+          "lower90": -0.07380889193484888,
+          "upper90": 0.784467629833901
+        },
+        "contact_last3": {
+          "mean": 0.36013861426878846,
+          "lower90": -0.11350046880874466,
+          "upper90": 0.8683740259740259
+        },
+        "clearance_last3": {
+          "mean": 0.3449170481471235,
+          "lower90": -0.07380889193484888,
+          "upper90": 0.784467629833901
+        }
+      }
+    },
+    "fixed_cup": {
+      "rows": 172,
+      "groups": 13,
+      "changed_from_fixed": 0,
+      "changed_fraction": 0.0,
+      "choice_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        172
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": -0.10040460929312435,
+        "lower90": -43.96916625500856,
+        "upper90": 44.01686715457408
+      },
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": 0.16457016881030692,
+          "lower90": -42.1849693165001,
+          "upper90": 43.386537784278715
+        },
+        "retained": {
+          "mean": -0.0004933821246100865,
+          "lower90": -0.2337483648587216,
+          "upper90": 0.22703083265201712
+        },
+        "contact_last3": {
+          "mean": -0.0013829590150642962,
+          "lower90": -0.37899672995663397,
+          "upper90": 0.37779987135386045
+        },
+        "clearance_last3": {
+          "mean": -0.0004933821246100865,
+          "lower90": -0.2337483648587216,
+          "upper90": 0.22703083265201712
+        }
+      }
+    },
+    "cross_fit_absolute_state_action_plus_cm": {
+      "rows": 411,
+      "groups": 45,
+      "changed_from_fixed": 356,
+      "changed_fraction": 0.8661800486618005,
+      "choice_counts": [
+        43,
+        31,
+        20,
+        126,
+        1,
+        91,
+        44,
+        55
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": -11.585663670895075,
+        "lower90": -36.790994157287265,
+        "upper90": 14.060006409159342
+      },
+      "held_demeaned_spearman": 0.6916247491300033,
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": -11.771526769285305,
+          "lower90": -37.257721467421995,
+          "upper90": 13.404479779910803
+        },
+        "retained": {
+          "mean": -0.047967895293335575,
+          "lower90": -0.2685198653711799,
+          "upper90": 0.16003364489578228
+        },
+        "contact_last3": {
+          "mean": -0.08563963606537071,
+          "lower90": -0.31906442390815176,
+          "upper90": 0.13664622915218202
+        },
+        "clearance_last3": {
+          "mean": -0.04815999917202551,
+          "lower90": -0.26928753995050425,
+          "upper90": 0.15931182700679908
+        }
+      },
+      "label": "cross_fit_absolute_state_action_plus_cm",
+      "folds": {
+        "count": 5,
+        "group_counts": [
+          10,
+          8,
+          8,
+          8,
+          11
+        ],
+        "row_counts": [
+          95,
+          98,
+          111,
+          49,
+          58
+        ]
+      }
+    },
+    "cross_fit_group_relative_state_action_plus_cm": {
+      "rows": 411,
+      "groups": 45,
+      "changed_from_fixed": 344,
+      "changed_fraction": 0.8369829683698297,
+      "choice_counts": [
+        49,
+        9,
+        13,
+        98,
+        0,
+        62,
+        113,
+        67
+      ],
+      "ipw_delta_vs_fixed": {
+        "mean": -11.175569007834499,
+        "lower90": -39.004531340705185,
+        "upper90": 17.45370881581101
+      },
+      "held_demeaned_spearman": 0.7037098942901979,
+      "metric_ipw_delta_vs_fixed": {
+        "score_mm": {
+          "mean": -11.41598662319351,
+          "lower90": -39.1793748763677,
+          "upper90": 17.190809260573747
+        },
+        "retained": {
+          "mean": -0.10547231143075592,
+          "lower90": -0.3153221921396252,
+          "upper90": 0.09320160926543647
+        },
+        "contact_last3": {
+          "mean": -0.1023891948052921,
+          "lower90": -0.34422434590915985,
+          "upper90": 0.13241112107619493
+        },
+        "clearance_last3": {
+          "mean": -0.10566360213806138,
+          "lower90": -0.3199596083387582,
+          "upper90": 0.0898453303834491
+        }
+      },
+      "label": "cross_fit_group_relative_state_action_plus_cm",
+      "folds": {
+        "count": 5,
+        "group_counts": [
+          10,
+          8,
+          8,
+          8,
+          11
+        ],
+        "row_counts": [
+          95,
+          98,
+          111,
+          49,
+          58
+        ]
+      }
+    }
+  },
+  "target_contract": "fit-only leave-one-row-out motion/start group-centered realized H10 score; no future state input",
+  "interpretation": "Offline action-relative value-equivalence Probe; no actor, policy, or success claim",
+  "decision_rule": "A new route is promising only if group-relative held IPW lower90 is positive and held demeaned ranking improves over the absolute Cm adapter."
+}

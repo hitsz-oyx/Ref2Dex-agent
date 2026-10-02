@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from pathlib import Path
 import torch
 from torch import nn
 import learning.common_agent as common_agent
@@ -10,13 +11,14 @@ from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 from src.task.CmResidual.physical_value_contract import HoldTracker, HistoryBuffer, actor_supervision
 from src.task.CmResidual.physical_value_live import snapshot, context, contacts
 from src.task.CmResidual.physical_value_models import Features, OutcomeNetwork, Teacher, dynamics_output, dynamics_loss
+from src.task.CmResidual.task_representation import load_frozen_cm_residual
 
 
 class DExplorePhysicalValueAgent(DExploreApproachAgent):
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
         self.pv_arm = os.environ["REF2DEX_PHYSICAL_VALUE_ARM"]
-        if self.pv_arm not in ("plain_off", "direct_q", "cm_value"):
+        if self.pv_arm not in ("plain_off", "direct_q", "cm_value", "cm_representation"):
             raise ValueError("invalid physical-value arm")
         task = self._cm_task()
         payload = torch.load(os.environ["REF2DEX_PHYSICAL_VALUE_CHECKPOINT"], map_location="cpu", weights_only=False)
@@ -35,8 +37,21 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         self.pv_model_optimizer = torch.optim.Adam(self.pv_dynamics.parameters(), lr=.0001)
         self.pv_return_scale = payload["return_scale"].to(device)
         self.pv_reward_scale = payload["reward_scale"].to(device)
-        self.pv_teacher = Teacher(self.pv_features, self.pv_dynamics, self.pv_value, self.pv_q,
-                                  self.gamma, 20260930286, self.pv_reward_scale)
+        self.pv_task_representation = None
+        self.pv_teacher_q = self.pv_q
+        self.pv_representation_sha = None
+        if self.pv_arm == "cm_representation":
+            representation_path = os.environ["REF2DEX_CM_REPRESENTATION_CHECKPOINT"]
+            self.pv_task_representation = load_frozen_cm_residual(representation_path, device)
+            self.pv_representation_sha = hashlib.sha256(Path(representation_path).read_bytes()).hexdigest()
+            self.pv_teacher_q = OutcomeNetwork(payload["context_dim"], 18, 1, 9284).to(device)
+            self.pv_teacher_q.load_state_dict(payload["direct_q"])
+            self.pv_teacher_q.eval()
+            for parameter in self.pv_teacher_q.parameters():
+                parameter.requires_grad_(False)
+        self.pv_teacher = Teacher(self.pv_features, self.pv_dynamics, self.pv_value, self.pv_teacher_q,
+                                  self.gamma, 20260930286, self.pv_reward_scale,
+                                  task_representation=self.pv_task_representation)
         self.pv_tracker = HoldTracker(task.num_envs, device)
         self.pv_history = HistoryBuffer(task.num_envs, device)
         self.pv_previous_action = torch.zeros(task.num_envs, 18, device=device)
@@ -213,6 +228,7 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
             state["physical_value"] = dict(arm=self.pv_arm, initial_model_sha256=self.pv_initial_model_sha,
                 behavior_integrity_verified=self.pv_integrity_verified,
                 actor_supervision_gradient_verified=self.pv_supervision_gradient_verified,
+                representation_sha256=self.pv_representation_sha,
                 value=self.pv_value.state_dict(), direct_q=self.pv_q.state_dict(),
                 dynamics=self.pv_dynamics.state_dict(), value_optimizer=self.pv_value_optimizer.state_dict(),
                 model_optimizer=self.pv_model_optimizer.state_dict())

@@ -2,6 +2,30 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm task representation policy Probe: closed
+
+为检验“Cm 物理信息先进入非线性任务价值表征，再进入策略”是否能绕开线性 residual
+瓶颈，冻结 direct-Q 与 physical-value ensemble，训练了一个两层 SiLU residual MLP。
+它只接收 direct-Q、候选动作、当前状态，以及 Cm 预测的 object delta/velocity/contact/
+reward/terminal 均值和不确定性，不接收 future state，也不更新 actor。held 209,788 行上，
+Cm 表征相对 direct-Q 的 RMSE/MAE 为 `26.737/8.797`，row Spearman `0.615`；episode
+Spearman 从 `0.743` 降至 `0.731`。episode bootstrap 的 RMSE delta 均值 `-1.532`、90%
+区间 `[-1.851,-1.213]`，说明有局部 critic signal，但不足以构成 policy utility。
+
+按 Probe 优先原则，随后做了一个小规模 matched policy Probe：两臂从同一 epoch-260
+source、seed286、64 env、40 epochs 训练，在 seed288/289 各评估96个完整 episode。
+direct-Q 稳定成功 `23/192`，Cm 表征 `9/192`，差值 `-14`；成功后掉落为 `23/192`
+与 `8/192`。因此 Cm 表征策略接口判定 `UNPROMISING`，不追加 epoch、seed、普通数据或
+PPO；保留 MLP 作为离线 representation clue。见 [task-representation Probe]
+(experiments/probes/P-20261003-cm-task-representation.md) 和 [policy 结果]
+(experiments/probes/P-20261003-cm-task-representation-policy-results.json)。
+
+同批 411 行/45 组候选数据的 group-relative target 也完成了五折 group cross-fit。单一
+fit/held split 的 `+0.675mm` lower90 未复现；cross-fit score lower90 为 `-39.179mm`，
+retention/contact/clearance lower90 为 `-0.315/-0.344/-0.320`。该 target route 同样关闭，
+不把 split-specific 正值升级为动作优势。见 [group-relative Probe]
+(experiments/probes/P-20261003-cm-group-relative-target.md)。
+
 ## 2026-10-03 candidate coverage and critic residual route: closed
 
 候选动作覆盖 Probe 已完成。先增加148行但 motion/start 组数仍为25，随后新增覆盖组，最终

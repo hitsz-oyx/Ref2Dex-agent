@@ -1,0 +1,95 @@
+{
+  "schema": "ref2dex.cm_task_representation_audit.v1",
+  "run_status": "COMPLETED",
+  "rows": {
+    "fit": 831811,
+    "held": 209788
+  },
+  "fit_episodes": 1536,
+  "held_episodes": 384,
+  "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "architecture": {
+    "hidden": [
+      128,
+      128
+    ],
+    "activation": "SiLU",
+    "epochs": 5,
+    "batch_size": 4096,
+    "optimizer": "Adam(lr=1e-3)",
+    "target": "realized complete-return minus frozen direct-Q"
+  },
+  "models": {
+    "direct": {
+      "rmse": 26.833181381225586,
+      "mae": 9.108014106750488,
+      "spearman": 0.5889916827063789,
+      "episode_spearman": 0.7429344969651758
+    },
+    "direct_plus_base_mlp": {
+      "rmse": 27.696422576904297,
+      "mae": 9.351581573486328,
+      "spearman": 0.6117134275758441,
+      "episode_spearman": 0.7063750381472313
+    },
+    "direct_plus_cm_mlp": {
+      "rmse": 26.736713409423828,
+      "mae": 8.796568870544434,
+      "spearman": 0.6148734640463274,
+      "episode_spearman": 0.7308984096843104
+    }
+  },
+  "episode_error_bootstrap": {
+    "rmse": {
+      "base_mlp_vs_direct": {
+        "mean": -0.32119824175313116,
+        "lower90": -0.7070502534198276,
+        "upper90": 0.0715897548943758
+      },
+      "cm_mlp_vs_direct": {
+        "mean": -1.532233255889577,
+        "lower90": -1.8510434507702793,
+        "upper90": -1.21272408493484
+      }
+    },
+    "mae": {
+      "base_mlp_vs_direct": {
+        "mean": 0.31970829170498377,
+        "lower90": 0.07283098627813214,
+        "upper90": 0.5796678950854893
+      },
+      "cm_mlp_vs_direct": {
+        "mean": -0.27475970663717014,
+        "lower90": -0.4821325935423376,
+        "upper90": -0.05271530024086501
+      }
+    }
+  },
+  "delta_cm_vs_base_mlp": {
+    "rmse": -0.9597091674804688,
+    "mae": -0.5550127029418945,
+    "spearman": 0.0031600364704832407,
+    "episode_spearman": 0.024523371537079064
+  },
+  "training": {
+    "base_losses": [
+      0.9605692529237485,
+      0.9251050841754921,
+      0.8930799287430361,
+      0.8717168549794798,
+      0.8602973082592182
+    ],
+    "cm_losses": [
+      0.9540651954659617,
+      0.9181569949549526,
+      0.8913782326462139,
+      0.8635140416712194,
+      0.8391817647327601
+    ],
+    "cm_feature_contract": "frozen ensemble predicted object delta/velocity/contact/reward/terminal plus uncertainty; no future state"
+  },
+  "interpretation": "Offline matched nonlinear task-representation Probe; no actor, policy, or success claim",
+  "cm_model_output": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/cm_residual_mlp.pt",
+  "cm_model_sha256": "8c2a0b2970bf68c34e2bda00f0eb199b546e5d511bf9021774cbbe5bef4231ba"
+}

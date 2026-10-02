@@ -1,0 +1,70 @@
+{
+  "schema": "ref2dex.cm_task_representation_policy_probe.v1",
+  "experiment_id": "P-20261003-cm-task-representation-policy",
+  "git_commit": "24989f0bb79eb1f46da7732f7651977a9b81f559",
+  "source_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+  "physical_checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "representation_sha256": "8c2a0b2970bf68c34e2bda00f0eb199b546e5d511bf9021774cbbe5bef4231ba",
+  "training_seed": 286,
+  "epochs": 300,
+  "train_envs": 64,
+  "eval_envs": 96,
+  "eval_seeds": [
+    288,
+    289
+  ],
+  "arms": [
+    "direct_q",
+    "cm_representation"
+  ],
+  "runs": {
+    "direct_q": {
+      "train_seconds": 278.0502634970471,
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/train_direct_q/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+      "checkpoint_sha256": "ae656a3a7cca9f90757521ccbd7ce9531246cf760d29b0bc96e4e4d9d26b443b",
+      "evaluations": {
+        "288": {
+          "seconds": 69.47602075804025,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/eval_direct_q_s288/results.json",
+          "stable_success_count": 10,
+          "drop_after_success_count": 10,
+          "complete_episodes": 96
+        },
+        "289": {
+          "seconds": 69.49487059470266,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/eval_direct_q_s289/results.json",
+          "stable_success_count": 13,
+          "drop_after_success_count": 13,
+          "complete_episodes": 96
+        }
+      }
+    },
+    "cm_representation": {
+      "train_seconds": 281.6438452191651,
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/train_cm_representation/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000300.pth",
+      "checkpoint_sha256": "639382a6e92131798fb9f918b2044a5196a93ffbaccc828a82eda7bbfd040b94",
+      "evaluations": {
+        "288": {
+          "seconds": 72.8951461352408,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/eval_cm_representation_s288/results.json",
+          "stable_success_count": 6,
+          "drop_after_success_count": 5,
+          "complete_episodes": 96
+        },
+        "289": {
+          "seconds": 71.78515489213169,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-representation/policy_probe_r2/eval_cm_representation_s289/results.json",
+          "stable_success_count": 3,
+          "drop_after_success_count": 3,
+          "complete_episodes": 96
+        }
+      }
+    }
+  },
+  "run_status": "COMPLETED",
+  "result": {
+    "stable_success_delta": -14,
+    "drop_after_success_delta": -15,
+    "decision_boundary": "Probe only; policy utility requires stable-hold and drop gates."
+  }
+}

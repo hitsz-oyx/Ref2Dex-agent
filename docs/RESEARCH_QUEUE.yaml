@@ -49,6 +49,21 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-task-representation
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-task-representation.md
+    evidence: docs/experiments/probes/P-20261003-cm-task-representation-results.json
+    outcome_boundary: "Offline Cm nonlinear task representation improved held RMSE/MAE versus direct-Q but lowered episode Spearman. A matched two-arm policy Probe then produced 9/192 stable successes versus direct-Q 23/192 (delta -14); close actor wiring and retain only the offline representation clue."
+    policy_evidence: docs/experiments/probes/P-20261003-cm-task-representation-policy-results.json
+  - id: P-20261003-cm-group-relative-target
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-group-relative-target.md
+    evidence: docs/experiments/probes/P-20261003-cm-group-relative-target-results.json
+    outcome_boundary: "A single group split gave +0.675mm lower90, but five-fold group cross-fit gave -39.179mm lower90 with negative retention/contact/clearance lower90. Treat the positive split as an artifact; close this target route and do not start PPO."
   - id: P-20261003-cm-candidate-coverage
     owner: current_session
     status: COMPLETED
