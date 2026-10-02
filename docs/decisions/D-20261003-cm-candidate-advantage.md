@@ -27,6 +27,13 @@ release 和 H10 后果。
 优势数据契约，不扫描阈值、ridge、seed，不启动 PPO；成功时才设计独立的短期 value
 conversion 和 matched policy training。
 
-成本边界：最多 5 个 single-GPU native seed、每 seed 96 env、每状态最多 2 个窗口，
-总 wall time 60 分钟、输出 8 GiB；所有模型和专家冻结，输出只写本仓库 owned
-research/output。
+首批 5 个 seed 完成后共有 195 个窗口，但 arm 支持为
+`[34,30,14,24,24,23,19,27]`，因此支持门尚未满足。首批固定审计显示 candidate4
+相对 fixed Cup 的点估计为正，但 group interval 很宽；这不是效用结论。只因支持不足，
+追加一次预先限定的 support-completion：再用 3 个显式 seed，完全相同的候选生成、
+`p=1/8` 分配、one-tick candidate + nine-tick fixed Cup continuation 和独立输出目录。
+不根据首批分数改 candidate、模型、阈值或标签。追加后若任一 arm 仍少于 24 个窗口，
+直接记 `UNCLEAR` 并关闭此数据契约；若支持通过，再按原定 group bootstrap 审计。
+
+总成本上限仍为单 GPU native 60 分钟、输出 8 GiB；所有模型和专家冻结，输出只写本
+仓库 owned research/output。
