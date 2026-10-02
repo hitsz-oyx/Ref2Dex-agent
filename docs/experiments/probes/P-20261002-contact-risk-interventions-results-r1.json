@@ -1,0 +1,465 @@
+{
+  "label": "UNPROMISING",
+  "counts": {
+    "rows": 88,
+    "episodes": 76,
+    "groups": 40,
+    "arms": [
+      4,
+      6,
+      34,
+      33,
+      11
+    ]
+  },
+  "policy_support": {
+    "0": {
+      "rows": 4,
+      "episodes": 4,
+      "groups": 4
+    },
+    "1": {
+      "rows": 6,
+      "episodes": 6,
+      "groups": 6
+    },
+    "2": {
+      "rows": 34,
+      "episodes": 34,
+      "groups": 20
+    },
+    "3": {
+      "rows": 33,
+      "episodes": 32,
+      "groups": 28
+    },
+    "4": {
+      "rows": 11,
+      "episodes": 11,
+      "groups": 11
+    }
+  },
+  "coverage": {
+    "detection_rows": 5440,
+    "binding_windows": 88,
+    "binding_fraction": 0.016176470588235296,
+    "actual_cm_windows": 34,
+    "actual_cm_different_direct_windows": 34,
+    "actual_cm_different_direct_steps": 340,
+    "scope": "PD alternative on the same actual observations; not unexecuted physical outcomes"
+  },
+  "reference_null": {
+    "cm": {
+      "available": true,
+      "mean": [
+        -10.200283994578353,
+        -0.03722282371135674,
+        0.07524468990588427,
+        0.09293724182579254
+      ],
+      "slots": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          5,
+          6,
+          7
+        ]
+      ]
+    },
+    "direct": {
+      "available": true,
+      "mean": [
+        23.49965134533969,
+        -0.212168544229835,
+        -0.027414166641355722,
+        0.1965512211218175
+      ],
+      "slots": [
+        [
+          8,
+          9,
+          10
+        ],
+        [
+          11,
+          12,
+          13
+        ]
+      ]
+    }
+  },
+  "required_contact_loss_reduction": 0.42433708845967,
+  "primary_gate": {
+    "support": true,
+    "null_available": true,
+    "contact_loss_five_pp": false,
+    "contact_loss_exceeds_noise": false,
+    "contact_loss_group90": false,
+    "contact_loss_episode90": false,
+    "height_point": false,
+    "height_group90": false,
+    "height_episode90": false,
+    "geometric_loss_point": true,
+    "joint_presence_point": true,
+    "actual_cm_changed12": true,
+    "binding_coverage_one_pct": true,
+    "passed": false
+  },
+  "comparisons": {
+    "always_base": {
+      "mean": [
+        -0.17047451481674736,
+        0.14050651710442832,
+        0.00484626434715186,
+        -0.12832050240067103
+      ],
+      "group90": [
+        [
+          -34.61139917162612,
+          26.23071906043215
+        ],
+        [
+          -0.11265571788046568,
+          0.4753739616754469
+        ],
+        [
+          -0.2628805699596739,
+          0.3081814564339787
+        ],
+        [
+          -0.4596714406756137,
+          0.11479329389482207
+        ]
+      ],
+      "episode90": [
+        [
+          -36.409622748952245,
+          26.399052964642017
+        ],
+        [
+          -0.11393250130441894,
+          0.47738234561126375
+        ],
+        [
+          -0.2591643034855466,
+          0.2882581738163344
+        ],
+        [
+          -0.45040539271469265,
+          0.11942361221528416
+        ]
+      ],
+      "raw_ht_difference": [
+        -22.90573060873783,
+        0.1818181818181818,
+        0.2727272727272727,
+        0.15151515151515157
+      ]
+    },
+    "cup": {
+      "mean": [
+        56.626402072834246,
+        -0.5748258365525142,
+        -0.6128580562248263,
+        0.4171021574440253
+      ],
+      "group90": [
+        [
+          19.995049761397933,
+          95.95010602051165
+        ],
+        [
+          -1.0162889219279418,
+          -0.13610094562977965
+        ],
+        [
+          -1.0913024531841071,
+          -0.2097261904781048
+        ],
+        [
+          0.05844474808309383,
+          0.8214633924452951
+        ]
+      ],
+      "episode90": [
+        [
+          22.051511655626516,
+          100.54353775813053
+        ],
+        [
+          -1.0924747069828964,
+          -0.16121162294844607
+        ],
+        [
+          -1.1409749765915842,
+          -0.198017081853155
+        ],
+        [
+          0.07342948540526037,
+          0.8512908221975305
+        ]
+      ],
+      "raw_ht_difference": [
+        16.078340776038893,
+        -0.5454545454545455,
+        -0.45454545454545464,
+        0.33333333333333337
+      ]
+    },
+    "direct_score_and_state_only": {
+      "mean": [
+        -4.417452645121198,
+        0.013848897859905689,
+        -0.1316147410578912,
+        0.011256803092288074
+      ],
+      "group90": [
+        [
+          -17.711151413349278,
+          8.471046338721061
+        ],
+        [
+          -0.12269132107949383,
+          0.16563491051825774
+        ],
+        [
+          -0.3233897735486113,
+          0.060644222079620974
+        ],
+        [
+          -0.1268201415156669,
+          0.1362779556192411
+        ]
+      ],
+      "episode90": [
+        [
+          -19.690772429643328,
+          9.673495050901757
+        ],
+        [
+          -0.13500187185875326,
+          0.16303157721336356
+        ],
+        [
+          -0.3426519889421987,
+          0.0650339225202183
+        ],
+        [
+          -0.13004061947747209,
+          0.16946894610697325
+        ]
+      ],
+      "raw_ht_difference": [
+        -17.342601313735496,
+        -0.0303030303030303,
+        -0.09090909090909091,
+        0.09090909090909091
+      ]
+    },
+    "shuffled": {
+      "mean": [
+        -26.027355144421264,
+        0.11446517329625405,
+        0.0807261370390541,
+        -0.1766078242034924
+      ],
+      "group90": [
+        [
+          -61.42104264000762,
+          4.728330829697413
+        ],
+        [
+          -0.11100241345026751,
+          0.38797972206468234
+        ],
+        [
+          -0.1699959274720698,
+          0.3470472557717704
+        ],
+        [
+          -0.4541246971604032,
+          0.06834241595095827
+        ]
+      ],
+      "episode90": [
+        [
+          -55.72055510333934,
+          5.440232131573589
+        ],
+        [
+          -0.13099305951231563,
+          0.36286002327608985
+        ],
+        [
+          -0.1597793123281627,
+          0.31292428249317017
+        ],
+        [
+          -0.44874302287546475,
+          0.07788305968674493
+        ]
+      ],
+      "raw_ht_difference": [
+        -18.85191064892393,
+        -2.0185873175002847e-17,
+        0.09090909090909087,
+        -0.03030303030303041
+      ]
+    }
+  },
+  "aipw_arm_values": [
+    [
+      4.6344640254974365,
+      0.05990482821609034,
+      0.22774301252017415,
+      0.9551416400495465
+    ],
+    [
+      -52.16241256215358,
+      0.7752371818730329,
+      0.8454473330921523,
+      0.40971898020485026
+    ],
+    [
+      4.463989510680689,
+      0.20041134532051863,
+      0.23258927686732597,
+      0.8268211376488754
+    ],
+    [
+      8.88144215580189,
+      0.18656244746061298,
+      0.36420401792521717,
+      0.8155643345565875
+    ],
+    [
+      30.49134465510194,
+      0.0859461720242645,
+      0.15186313982827193,
+      1.003428961852367
+    ]
+  ],
+  "raw_ht_arm_values": [
+    [
+      19.971067255193535,
+      0.0,
+      0.0,
+      0.7272727272727273
+    ],
+    [
+      -19.013004129583184,
+      0.7272727272727273,
+      0.7272727272727273,
+      0.5454545454545454
+    ],
+    [
+      -2.934663353544292,
+      0.1818181818181818,
+      0.2727272727272727,
+      0.8787878787878788
+    ],
+    [
+      14.407937960191203,
+      0.2121212121212121,
+      0.36363636363636365,
+      0.7878787878787876
+    ],
+    [
+      15.917247295379639,
+      0.18181818181818182,
+      0.18181818181818182,
+      0.9090909090909091
+    ]
+  ],
+  "best_fixed": null,
+  "outcome_columns": [
+    "supported_change_mm",
+    "any_contact_loss",
+    "geometric_loss",
+    "terminal_joint_presence"
+  ],
+  "initially_clear_support": {
+    "0": {
+      "rows": 0,
+      "episodes": 0,
+      "groups": 0
+    },
+    "1": {
+      "rows": 0,
+      "episodes": 0,
+      "groups": 0
+    },
+    "2": {
+      "rows": 5,
+      "episodes": 5,
+      "groups": 5
+    },
+    "3": {
+      "rows": 7,
+      "episodes": 7,
+      "groups": 6
+    },
+    "4": {
+      "rows": 3,
+      "episodes": 3,
+      "groups": 3
+    }
+  },
+  "replanning": {
+    "episodes_with_multiple_windows": 12,
+    "subsequent_windows": 12
+  },
+  "full_control_utility_proven": false,
+  "stable_grasp_or_learned_policy_utility_proven": false,
+  "experiment_id": "P-20261002-contact-risk-interventions",
+  "run_status": "COMPLETED",
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/run_manifest.json": "8bba274943bf763c2922440e3e18d5601fb496928a25c75ee069882fcdadc1c1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed651/records.pt": "9fbf16f221d1799de71decd0e262245b02a3b9a339c14fffef8f240d7e050ea7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed651/planning.pt": "c645a78e0350c9be4e962da36310e7e001e0863f42e5425a3e33c31d28b3341f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed651.audit.json": "1026cbeb5a2224a61de439177e375ff3e130ce98c0cccaf7ed07566d17736d84",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed651/run_manifest.json": "33b07f965fb6a28982d27a4db132a253a0efc0fddded749ebab11df78e32916e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed652/records.pt": "e73dfed0c662502d9566370ea634c65bbf11806965a16a12d6d03f34f776bbc8",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed652/planning.pt": "68737d43ba1ecc0f8dccb49b6617931245e0df2b500bd9e8f6046e1cd89c82fb",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed652.audit.json": "630d8a47eda91b85614252b42175009e1c1b293302fa839f3df679ab46377c5a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed652/run_manifest.json": "d4db0940676f0e5d8dcfed67e20653978d585faddc4aaeeb2b46678aea246cf1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed653/records.pt": "c42aed600767963a6d6478a47114fb40034e9e7717d5d8b617f2f1a78d2e0037",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed653/planning.pt": "d44826478d819b687d6d62257634d350bffa2f9841eeb4723c62135cb8817250",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed653.audit.json": "3c2e83f471f27c391bb43f0c5d4c7f2f30d711004eb9184b6428caa9fb2e29e9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed653/run_manifest.json": "d77e91b3dcb557edb8639080d1ec71363be0d054a97da8737fe4355a7958f4ea",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed654/records.pt": "b7f89b5493ecd0eef18091c4fa8d17a2d7472ec5cacdd3ea65cbee3427e264c6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed654/planning.pt": "0a83668c43c0f17582017eb56395f9d6e9a0e6862038dbf23cca236a88fe866f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed654.audit.json": "092069d69213658253ba0d32bdff1639e289f465121e8ca6bac43d79234adf8e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed654/run_manifest.json": "15914bde9f173c7579b09c601152c8c279721b2ed4717caaa3be13639adb047b",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed655/records.pt": "c701b606e5f78c5283482dafde87a167ab88e67d611ae931704133e6b2691aa7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed655/planning.pt": "a9b981ce2560ff0481c95a2542fb5c40961102564742ffae423a9c6edde58ecd",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed655.audit.json": "bd0b3c0cdd497e59153ac1dcaa46c90420b1ac05eee395560292a77adc19cad3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed655/run_manifest.json": "afc6d14ab64403bade4abf8f47e9145d27c8348b11c202401f9d1e8476ae4e2e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed656/records.pt": "3c836461083b9143d921bd590acb117f3122278ffd01b32b2242d7adfd3161b0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed656/planning.pt": "34f80264724a4361c222096ad979135c86e9314a3b746a63f71c19dfe26c8d5c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed656.audit.json": "46e223367e31fa28b1814df3f4df46b9d383cb924d01c24cbc7b8f13ee2e784d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed656/run_manifest.json": "8f30b98a4477d013d0b5599f924869d25731dce4f35155a9e9be2d791557237e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed657/records.pt": "a442ec4f25da57463f326bfdf9ddb81dfd9b973d345e91d6c81b4fb8ce6a80dc",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed657/planning.pt": "8c14ac9cd6f1fb796e9ab38b5bfc3541177f614f17be58a5dc7d789b2c98da15",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed657.audit.json": "509a9cce472ad88abf3a4a89615adfd321c15107c5adfa00020c3ee39ec2b98f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed657/run_manifest.json": "44bbec7181401d3367623001701e4b00273911289b0070f235bda0fd0ea0cbf1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed658/records.pt": "2f43d1a8b7d8715672fc7e9fed1638f9aa11d99e03a9d896544ca85e4ab40053",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed658/planning.pt": "1dec783b36082571e81aeb0df94f606a65122faa569933b744ced841b7c56b6d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed658.audit.json": "455ad0c0fb64d95eb8631a15fa77d0e925a668dd2037f9c6809f18ec19f487ac",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/phase-controls/seed658/run_manifest.json": "8352d5342df34bfb64cfb7f2e6ef6e49dec37487b2f264841baec57c48fd9189",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_contact_risk_interventions.py": "80a2bb631594812b480f04d8deffdbbfc0ada3bd6716337032ecd0a827672872",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/contact_risk_intervention_statistics.py": "79131e52a10258e9db4ef9540dbab6c5df9f9ed45853e78c2001ea5140960f59",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_orientation_feedback_opportunity.py": "c02deb589f656ae8bcb8c67c7ee3042e922e12472f9198286f513b5f80fcdf46",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_structured_contact_opportunity.py": "36f5fe59fc390d156c5d848095b10f6a47759a832e0a7c83b6c5bb3b6d06ea02"
+  },
+  "source_cumulative_seconds": 2720.959103066474,
+  "elapsed_seconds": 2.8091563070192933,
+  "estimator": "fixed pre-allocation frozen Cm AIPW; raw HT parallel",
+  "device": "cpu",
+  "device_reason": "raw force/geometry/PD arithmetic and known-propensity statistics; no neural computation",
+  "scope": "randomized H10 contact-risk intervention effect conditional on current binding over a mixed behavior distribution; no exact-state counterfactual, full policy or final stable utility"
+}

@@ -1,0 +1,20 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "actual_cm_changed_windows": 34,
+  "actual_cm_changed_steps": 340,
+  "inputs_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/analysis-r1.json": "eca65896d357d6c2fb730e0729c96e53c83b8cbd8b72e0453b1a6ccd33de913d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed651/records.pt": "9fbf16f221d1799de71decd0e262245b02a3b9a339c14fffef8f240d7e050ea7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed652/records.pt": "e73dfed0c662502d9566370ea634c65bbf11806965a16a12d6d03f34f776bbc8",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed653/records.pt": "c42aed600767963a6d6478a47114fb40034e9e7717d5d8b617f2f1a78d2e0037",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed654/records.pt": "b7f89b5493ecd0eef18091c4fa8d17a2d7472ec5cacdd3ea65cbee3427e264c6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed655/records.pt": "c701b606e5f78c5283482dafde87a167ab88e67d611ae931704133e6b2691aa7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed656/records.pt": "3c836461083b9143d921bd590acb117f3122278ffd01b32b2242d7adfd3161b0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed657/records.pt": "a442ec4f25da57463f326bfdf9ddb81dfd9b973d345e91d6c81b4fb8ce6a80dc",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-source-r1/seed658/records.pt": "2f43d1a8b7d8715672fc7e9fed1638f9aa11d99e03a9d896544ca85e4ab40053"
+  },
+  "auditor_sha256": "6939956327120fe252e0738702c1be851acb90a69680aa9582c8c1b8ae2d3a41",
+  "elapsed_seconds": 0.1442066691815853,
+  "scope": "scalar alternative PD on each same actual Cm observation; no unexecuted physics or regret claim"
+}

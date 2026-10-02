@@ -1,0 +1,13 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "rows": 88,
+  "shadow_detection_rows": 5440,
+  "raw_supported_label_max_error_mm": 7.152557373046875e-06,
+  "statistics_max_error": 6.442167261866416e-07,
+  "classification_and_gates_exact": true,
+  "result_sha256": "eca65896d357d6c2fb730e0729c96e53c83b8cbd8b72e0453b1a6ccd33de913d",
+  "auditor_sha256": "41d4208be76ef796693e3f1d2d894a794f3f3f53f9b7637523812cea35ece5ff",
+  "elapsed_seconds": 0.9800713201984763,
+  "scope": "independent raw force/clearance labels, scalar propensity corrections, cluster intervals, duplicate null and primary gates; physical PD/fullNN in accepted source audits"
+}

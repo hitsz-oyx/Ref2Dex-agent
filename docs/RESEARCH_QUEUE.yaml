@@ -223,15 +223,15 @@ hypotheses:
   HF23:
     claim: C3
     name: contact_risk_constraints_at_actual_binding_states
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-structured-contact-effects
     probe_budget: 1
-    probes_used: 0
-    active_run_id: P-20261002-contact-risk-interventions-source-r1
+    probes_used: 1
+    last_run_id: P-20261002-contact-risk-interventions-source-r1
     owner: current_session
     authorization: "persistent full mechanism objective and distinct fixed-risk intervention memo; same mission/resources, no subagents"
     card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
-    transition: "Fixed contact-specific binding engineering129 has4 action changes. New role uses frozen contactCm risk to constrain separate direct height scorer; Excluded649 native/audit complete incl explicitlyforced engineering branch. Launch single independent fixed651-658 panel; all scientific windows fullyrandom. Focus actual conditional contact-risk reduction and lift retention; all controls visible, no PPO/fullpolicy gain claim."
+    transition: "CLOSED UNPROMISING1/1. Fixed8seeds complete5440detections/88H10/76ep/40groups; actualarms4/6/34/33/11,primarysupportadequate. Cm34windows/340PDsteps changed direct,12epreplan but1.618pctbinding. AIPWcontactloss+1.385pp group90[-12.269,+16.563],height-4.417mm[-17.711,+8.471];risk/height/noise42.434ppgates fail. All8native/8fullplanner/physicsaudits exit0,independentstats6.44e-7/scalarPDcounts exact. Whole2731.752s/174.51MiB inclfailed/forcedengineering; forcedexcluded. FitBaseabsent=>bestfixedunavailable,clear15insufficientdrop; noformalnegativeutilityclaim. Stopriskrecipe,noextraseed/threshold/adapt/PPO; next new object-relative feedback candidate responsibility, C3OPEN."
   HF22:
     claim: C3
     name: generated_distribution_contact_loss_protection

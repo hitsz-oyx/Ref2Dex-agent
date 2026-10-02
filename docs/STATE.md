@@ -457,12 +457,20 @@ exit0，累计16.456秒。接法有实际指令作用但覆盖稀疏，没有真
 须考虑低覆盖。HF22原门仍UNPROMISING，C3OPEN，当前不启动PPO。
 见[风险约束工程结果](experiments/probes/P-20261002-contact-risk-guard-engineering-result.md)。
 
-HF23独立实际介入卡已固定，先完成排除649的原生工程：首轮超时保留；等价
-修复后370检测/7窗口全审计通过但随机无Cm。明确排除的首窗口Cm smoke亦
-完成，实际1Cm窗口10步PD均改变direct，全NN/规划/RNG/原生物理审计通过。
-累计工程/失败/准备预算884.767秒；科学651–658保持完全随机，不混入强制
-工程。当前准备启动固定独立科学源，测接触风险减少及抬升代价，不改HF22门。
-见[原生介入工程结果](experiments/probes/P-20261002-contact-risk-interventions-native-engineering-result.md)。
+HF23独立8seed真实介入已完成UNPROMISING：5440检测/88H10窗口/76ep/40组，
+base/Cup/Cm/direct/shuf=4/6/34/33/11，primary支持充分；Cm34窗口/340PD步
+改变direct、12ep重复规划，但介入仅1.618%。Cm-vs-direct接触loss+1.385pp，
+group90[-12.269,+16.563]；支持高度-4.417mm，[-17.711,+8.471]，风险改善/
+高度保持/42.434pp零差噪声门未过。原HT方向有差别，不事后选择估计器；
+不是负因果效应证明。全部8native/8全检测NN与实际物理audit exit0，独立
+统计差6.44e-7、额外标量PD计数34/340完全一致。累计2731.752秒/174.51MiB，
+失败/强制工程/旧数据费用分开保留；forced数据明确排除科学与训练。
+fit无实际base，best-fixed无法按原规则选定；15个初始clear窗口不足drop比较，
+完整策略/学习及稳定抓取仍未证。HF23 1/1关闭，不补seed/调风险阈值或本配方PPO。
+下一步返回候选控制职责：接触阶段的对象相对位姿/速度反馈程序，先检验真正
+可执行的反馈作用与新的实际机会，再拟合对应Cm；不把旧固定权重H10模型当
+新反馈程序真值。C3保持OPEN，核心目标不变。
+见[真实介入结果](experiments/probes/P-20261002-contact-risk-interventions-result.md)。
 
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
