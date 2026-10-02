@@ -21,3 +21,19 @@ The apparent residual-minus-baseline height difference is descriptive and unpair
 **Gate and decision:** The row and motion/start support gates pass, but the predeclared residual coverage gate requires at least 48 changed held residual windows and only 4 changed. The result is `UNPROMISING` for this implementation route. Do not start PPO, do not promote this to a supported scientific claim, and do not interpret the arm means as evidence that residuals improve the strong controller.
 
 **Next decision:** Treat fail-closed coverage as the blocker. If this route is revisited, first run a cheap policy-coverage diagnosis on held states (actor output scale, calibration margin, and OOD distribution) and require an independently justified coverage target before another native comparison. The current route supplies native wiring and risk accounting but does not establish Cm residual utility.
+
+**Coverage diagnosis:** To distinguish fail-closed coverage from a useful residual, a diagnostic
+checkpoint copied the frozen policy and changed only the predicted-lift margin from the calibrated
+3.99 mm to 0.5 mm. OOD, ensemble-disagreement, contact-loss, and clearance-loss filters stayed
+unchanged; this checkpoint was never treated as the calibrated policy. Twelve additional native
+runs (`probe_m050_s741` through `probe_m050_s752`) produced 867 held windows with 55 actual
+residual changes, passing the predeclared coverage gate. The corrected independent audit
+(`audit_margin050_all12_corrected.json`) applies the predeclared episode and motion/start cluster
+bootstrap checks in [the corrected audit JSON](P-20261003-cm-residual-policy-margin050-results.json): residual-minus-baseline height was -1.69 mm at the motion/start level, the 90%
+lower bounds were -1.39 mm (episode) and -7.15 mm (motion/start), and clearance-loss increases
+were +3.44 and +1.31 percentage points respectively. The diagnostic is therefore also
+`UNPROMISING`; lowering the safety margin does not reveal a stable Cm residual benefit.
+
+The audit implementation now enforces the predeclared lift, bootstrap, contact, and clearance
+criteria instead of treating coverage alone as `PROMISING`. Do not lower the margin further or
+start PPO on this route.

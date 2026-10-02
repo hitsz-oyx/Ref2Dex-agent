@@ -65,6 +65,71 @@
       "note": "descriptive unpaired arm difference; coverage gate failed"
     }
   },
+  "cluster_bootstrap": {
+    "height_mm": {
+      "episode": {
+        "clusters": 49,
+        "delta": 20.97480430570589,
+        "lower90": 9.284594768083016
+      },
+      "motion_start": {
+        "clusters": 18,
+        "delta": 12.260644900021305,
+        "lower90": -1.9649135942657003
+      }
+    },
+    "contact3": {
+      "episode": {
+        "clusters": 49,
+        "delta": 0.06009070271131944,
+        "lower90": -0.02834466954275053
+      },
+      "motion_start": {
+        "clusters": 18,
+        "delta": 0.09127632107216097,
+        "lower90": 0.022085008135122815
+      }
+    },
+    "contact_loss": {
+      "episode": {
+        "clusters": 49,
+        "delta": 0.03061224489795918,
+        "lower90": -0.06802721088435373
+      },
+      "motion_start": {
+        "clusters": 18,
+        "delta": -0.05453303958205919,
+        "lower90": -0.14119047619047617
+      }
+    },
+    "clearance_loss": {
+      "episode": {
+        "clusters": 49,
+        "delta": 0.061224489795918366,
+        "lower90": 0.0
+      },
+      "motion_start": {
+        "clusters": 18,
+        "delta": -0.025201432554373734,
+        "lower90": -0.06459329069623189
+      }
+    }
+  },
+  "predeclared_criterion": {
+    "height_delta_mm": 2.0,
+    "height_delta_episode_ok": true,
+    "height_delta_motion_start_ok": true,
+    "height_episode_lower90_positive": true,
+    "height_motion_start_lower90_positive": false,
+    "contact_loss_episode_delta_ok": false,
+    "contact_loss_motion_start_delta_ok": true,
+    "clearance_loss_episode_delta_ok": false,
+    "clearance_loss_motion_start_delta_ok": true,
+    "contact3_episode_delta_ok": true,
+    "contact3_motion_start_delta_ok": true,
+    "safety_ok": false,
+    "promising": false
+  },
   "support_gate": true,
   "changed_gate": false,
   "coverage_gate": false,
@@ -81,6 +146,6 @@
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s737/records.pt": "20193156621402f863c979fda9220d377ec8a51dbc51bf4b33437f33c090a75e",
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s738/records.pt": "d6bdd8bd735475fc221ad83d2b85f14b986bee409ff4abc161c34206c446fad9"
   },
-  "git_commit": "9ec429bdd5f1c967f888fb0125bebfeb83959f33",
-  "interpretation": "The residual arm was mostly fail-closed; arm-level height differences are not attributable to executed residual actions."
+  "git_commit": "19f846ad70cce4c56ac3cc1a13bee991a2d83d4c",
+  "interpretation": "The residual arm did not pass the predeclared lift and safety checks; arm-level differences do not support Cm utility."
 }

@@ -38,6 +38,30 @@ def interval(values: list[float]) -> list[float]:
     return [mean - error, mean + error]
 
 
+def cluster_bootstrap_lower(
+    rows: list[dict], field: str, key: str, *, seed: int, draws: int = 10000,
+) -> dict[str, float | int]:
+    """One-sided 90% lower bound for residual-minus-baseline cluster deltas."""
+    clusters: dict[object, dict[int, list[float]]] = {}
+    for row in rows:
+        clusters.setdefault(row[key], {}).setdefault(row["arm"], []).append(float(row[field]))
+    deltas = [
+        sum(arms[1]) / len(arms[1]) - sum(arms[0]) / len(arms[0])
+        for arms in clusters.values() if 0 in arms and 1 in arms
+    ]
+    if not deltas:
+        return {"clusters": 0, "delta": float("nan"), "lower90": float("nan")}
+    values = torch.tensor(deltas, dtype=torch.float64)
+    generator = torch.Generator().manual_seed(seed)
+    indices = torch.randint(len(values), (draws, len(values)), generator=generator)
+    samples = values[indices].mean(-1)
+    return {
+        "clusters": len(deltas),
+        "delta": float(values.mean()),
+        "lower90": float(torch.quantile(samples, .10)),
+    }
+
+
 def audit(args: argparse.Namespace) -> None:
     rows = []
     source_hashes = {}
@@ -53,8 +77,10 @@ def audit(args: argparse.Namespace) -> None:
             rows.append(dict(
                 arm=arm,
                 run=path.parent.name,
+                episode=(path.parent.name, int(payload["env_id"][index])),
                 motion=int(payload["motion_id"][index]),
                 start=int(payload["start_frame"][index]),
+                group=(int(payload["motion_id"][index]), int(payload["start_frame"][index])),
                 height_mm=float((payload["future_state"][index, -1, 38] - payload["state"][index, 38]) * 1000),
                 contact3=float(payload["future_contact"][index, -3:].all(-1).float().mean()),
                 contact_loss=float((~payload["future_contact"][index].all(-1)).any()),
@@ -93,7 +119,42 @@ def audit(args: argparse.Namespace) -> None:
     supported = all(metrics[name]["rows"] >= 96 and metrics[name]["groups"] >= 8 for name in names)
     changed_gate = metrics["residual"]["changed"] >= 48
     coverage_gate = metrics["residual"]["changed"] >= 48 and metrics["residual"]["groups"] >= 8
-    label = "UNPROMISING" if supported and not coverage_gate else ("UNCLEAR" if not supported else "PROMISING")
+    bootstrap = {
+        field: {
+            "episode": cluster_bootstrap_lower(rows, field, "episode", seed=12651 + i),
+            "motion_start": cluster_bootstrap_lower(rows, field, "group", seed=13651 + i),
+        }
+        for i, field in enumerate(("height_mm", "contact3", "contact_loss", "clearance_loss"))
+    }
+    height_effect = bootstrap["height_mm"]
+    contact_effect = bootstrap["contact_loss"]
+    clearance_effect = bootstrap["clearance_loss"]
+    contact3_effect = bootstrap["contact3"]
+    criterion = dict(
+        height_delta_mm=2.0,
+        height_delta_episode_ok=height_effect["episode"]["delta"] >= 2.0,
+        height_delta_motion_start_ok=height_effect["motion_start"]["delta"] >= 2.0,
+        height_episode_lower90_positive=height_effect["episode"]["lower90"] > 0,
+        height_motion_start_lower90_positive=height_effect["motion_start"]["lower90"] > 0,
+        contact_loss_episode_delta_ok=contact_effect["episode"]["delta"] <= 0.02,
+        contact_loss_motion_start_delta_ok=contact_effect["motion_start"]["delta"] <= 0.02,
+        clearance_loss_episode_delta_ok=clearance_effect["episode"]["delta"] <= 0.02,
+        clearance_loss_motion_start_delta_ok=clearance_effect["motion_start"]["delta"] <= 0.02,
+        contact3_episode_delta_ok=contact3_effect["episode"]["delta"] >= -0.05,
+        contact3_motion_start_delta_ok=contact3_effect["motion_start"]["delta"] >= -0.05,
+    )
+    criterion["safety_ok"] = all(criterion[key] for key in (
+        "contact_loss_episode_delta_ok", "contact_loss_motion_start_delta_ok",
+        "clearance_loss_episode_delta_ok", "clearance_loss_motion_start_delta_ok",
+        "contact3_episode_delta_ok", "contact3_motion_start_delta_ok",
+    ))
+    criterion["promising"] = bool(coverage_gate
+                                   and criterion["height_delta_episode_ok"]
+                                   and criterion["height_delta_motion_start_ok"]
+                                   and criterion["height_episode_lower90_positive"]
+                                   and criterion["height_motion_start_lower90_positive"]
+                                   and criterion["safety_ok"])
+    label = "UNCLEAR" if not supported else ("PROMISING" if criterion["promising"] else "UNPROMISING")
     report = dict(
         schema="ref2dex.cm_residual_probe_audit.v1",
         run_status="COMPLETED",
@@ -101,12 +162,15 @@ def audit(args: argparse.Namespace) -> None:
         decision="CLOSE_CURRENT_CM_RESIDUAL_POLICY_ROUTE" if label == "UNPROMISING" else "REQUIRES_FOLLOWUP",
         held_split="bucket>=70; bucket=hash(12651/motion/start)%100",
         rows=len(rows), metrics=metrics, effects=effects,
+        cluster_bootstrap=bootstrap, predeclared_criterion=criterion,
         support_gate=supported, changed_gate=changed_gate, coverage_gate=coverage_gate,
         minimums=dict(rows_per_arm=96, groups_per_arm=8, changed_residual=48),
         policy_checkpoint_sha256=args.policy_sha256,
         source_sha256=source_hashes,
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-        interpretation="The residual arm was mostly fail-closed; arm-level height differences are not attributable to executed residual actions.",
+        interpretation=("The residual arm met the predeclared coverage, lift, and safety checks."
+                        if label == "PROMISING" else
+                        "The residual arm did not pass the predeclared lift and safety checks; arm-level differences do not support Cm utility."),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

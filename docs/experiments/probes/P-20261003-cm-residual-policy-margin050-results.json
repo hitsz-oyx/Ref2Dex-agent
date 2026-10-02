@@ -1,0 +1,158 @@
+{
+  "schema": "ref2dex.cm_residual_probe_audit.v1",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "decision": "CLOSE_CURRENT_CM_RESIDUAL_POLICY_ROUTE",
+  "held_split": "bucket>=70; bucket=hash(12651/motion/start)%100",
+  "rows": 867,
+  "metrics": {
+    "baseline": {
+      "rows": 284,
+      "groups": 21,
+      "runs": 12,
+      "height_mm": 6.705493072388878,
+      "contact3": 0.672535212841672,
+      "contact_loss": 0.4154929577464789,
+      "clearance_loss": 0.795774647887324,
+      "changed": 0,
+      "accepted": 0,
+      "ood": 0
+    },
+    "residual": {
+      "rows": 284,
+      "groups": 19,
+      "runs": 12,
+      "height_mm": 4.045608137694883,
+      "contact3": 0.6784037576175072,
+      "contact_loss": 0.426056338028169,
+      "clearance_loss": 0.8133802816901409,
+      "changed": 55,
+      "accepted": 55,
+      "ood": 35
+    },
+    "shuffled": {
+      "rows": 299,
+      "groups": 21,
+      "runs": 12,
+      "height_mm": 3.332918902304659,
+      "contact3": 0.6744704590393946,
+      "contact_loss": 0.451505016722408,
+      "clearance_loss": 0.8494983277591973,
+      "changed": 44,
+      "accepted": 44,
+      "ood": 31
+    }
+  },
+  "effects": {
+    "height_mm": {
+      "delta": -2.659884934693995,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "contact3": {
+      "delta": 0.005868544775835205,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "contact_loss": {
+      "delta": 0.010563380281690127,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "clearance_loss": {
+      "delta": 0.017605633802816878,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    }
+  },
+  "cluster_bootstrap": {
+    "height_mm": {
+      "episode": {
+        "clusters": 121,
+        "delta": 3.3411584379916017,
+        "lower90": -1.3862780234045236
+      },
+      "motion_start": {
+        "clusters": 19,
+        "delta": -1.6914142105365986,
+        "lower90": -7.148045713874596
+      }
+    },
+    "contact3": {
+      "episode": {
+        "clusters": 121,
+        "delta": -0.01515151490521496,
+        "lower90": -0.07116620731501541
+      },
+      "motion_start": {
+        "clusters": 19,
+        "delta": -0.017897757914527763,
+        "lower90": -0.07177556978568682
+      }
+    },
+    "contact_loss": {
+      "episode": {
+        "clusters": 121,
+        "delta": 0.017906336088154274,
+        "lower90": -0.04132231404958678
+      },
+      "motion_start": {
+        "clusters": 19,
+        "delta": 0.03572020523521073,
+        "lower90": -0.022037080445012625
+      }
+    },
+    "clearance_loss": {
+      "episode": {
+        "clusters": 121,
+        "delta": 0.034435261707988975,
+        "lower90": -0.011019283746556469
+      },
+      "motion_start": {
+        "clusters": 19,
+        "delta": 0.013091542502683014,
+        "lower90": -0.04225633456809178
+      }
+    }
+  },
+  "predeclared_criterion": {
+    "height_delta_mm": 2.0,
+    "height_delta_episode_ok": true,
+    "height_delta_motion_start_ok": false,
+    "height_episode_lower90_positive": false,
+    "height_motion_start_lower90_positive": false,
+    "contact_loss_episode_delta_ok": true,
+    "contact_loss_motion_start_delta_ok": false,
+    "clearance_loss_episode_delta_ok": false,
+    "clearance_loss_motion_start_delta_ok": true,
+    "contact3_episode_delta_ok": true,
+    "contact3_motion_start_delta_ok": true,
+    "safety_ok": false,
+    "promising": false
+  },
+  "support_gate": true,
+  "changed_gate": true,
+  "coverage_gate": true,
+  "minimums": {
+    "rows_per_arm": 96,
+    "groups_per_arm": 8,
+    "changed_residual": 48
+  },
+  "policy_checkpoint_sha256": "7d6b698a93162fa1708dba025e4cb99f657e30920ca316a3cf1c10b4a254538f",
+  "source_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s741/records.pt": "cccbd0457a766e46fa8180aa51d279c36a6d8c0c4c1fb9e7464d25fc49e38c08",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s742/records.pt": "e5a8793acdc745c4de07e30bd1c74a4c5f98d48951aaebce9943eac7c5740753",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s743/records.pt": "68ecc3ce150557deda48a5d854a9c8d4e53893662435cfd7ed0124c4f99bf20a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s744/records.pt": "89662b3b0fad9a8d97240bfa76ad489bcfeb227d1f3baf05e99763f6b0b5fdbb",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s745/records.pt": "d0f089bc9907448b302edf96436fffe56135ad98b0e58e01bb1fc757ac1ee4c6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s746/records.pt": "038d90e57259ca3104330ac27f9aa4a20958d0cd0ae1b831991bd89488321d20",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s747/records.pt": "3d3a3837b4633bb5646a1ccb7f5d3927eb0f6a247d86b24d35220fecba1bdb67",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s748/records.pt": "cdf9bed4560d7bc0aff48464376a478652d51008ed09c89574943c2d45dd7320",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s749/records.pt": "00e305ddc9a369320c03dd8fefa8c480b517d11e6de3462f05e7347c9b4d773f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s750/records.pt": "6ae16f886f5e89d11f5f4b4220e312e2fcbf65b42b14dab4a6782ae5ec07b47c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s751/records.pt": "126465804edaf3cd3a0486a87911b985864d40136538a3ebccc82187d8bdabea",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_m050_s752/records.pt": "3a1ec93458d2aba84f453007354a592d511ced439297c52787648fb8870cd3eb"
+  },
+  "git_commit": "19f846ad70cce4c56ac3cc1a13bee991a2d83d4c",
+  "interpretation": "The residual arm did not pass the predeclared lift and safety checks; arm-level differences do not support Cm utility."
+}
