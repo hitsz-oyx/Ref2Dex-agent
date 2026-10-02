@@ -66,7 +66,7 @@ def make_player(original, args, torch, gymtorch):
     from src.task.CmResidual.weight_normalized_contact import weight_normalized_contacts
 
     @torch.no_grad()
-    def projected_mve_scores(features, dynamics, value, gamma, mean, states, actions, mask, context_now, context_next):
+    def projected_mve_scores(features, dynamics, continuation_model, gamma, mean, states, actions, mask, context_now, context_next):
         """One-step Cm MVE with current hand/orientation and predicted object state.
 
         The model owns object translation/velocity/contact/event consequences.
@@ -99,9 +99,9 @@ def make_player(original, args, torch, gymtorch):
             next_history_state = torch.cat((history_state[:, 1:], out[:, None]), 1)
             next_history_action = torch.cat((history_action[:, 1:], candidate[:, None]), 1)
             next_history_mask = torch.cat((history_mask[:, 1:], torch.ones_like(history_mask[:, :1])), 1)
-            continuation = value(
+            continuation = continuation_model(
                 features.history(next_history_state, next_history_action, next_history_mask),
-                features.context(c_next)).squeeze(-1)
+                features.context(c_next), candidate if continuation_model.action_dim else None).squeeze(-1)
             values.append(reward + gamma * (1 - terminal_logits.sigmoid()) * continuation)
         draws = torch.stack(values).reshape(len(dynamics), batch, count)
         score = draws.mean(0) - draws.std(0, unbiased=False)
@@ -252,8 +252,9 @@ def make_player(original, args, torch, gymtorch):
                         "direct_q", cup[rows], hs[rows], ha[rows], hm[rows], ctx[rows], nctx[rows])
                     _, c_active, c_scores = teacher.labels(
                         "cm_value", cup[rows], hs[rows], ha[rows], hm[rows], ctx[rows], nctx[rows])
+                    continuation_model = direct_q if args.mve_continuation == "direct_q" else value
                     mve_panel_scores, mve_is_active = projected_mve_scores(
-                        features, dynamics, value, .99, cup[rows], hs[rows], ha[rows], hm[rows],
+                        features, dynamics, continuation_model, .99, cup[rows], hs[rows], ha[rows], hm[rows],
                         ctx[rows], nctx[rows])
                     d_index = d_scores.masked_fill(~valid, -torch.inf).argmax(-1)
                     c_index = c_scores.masked_fill(~valid, -torch.inf).argmax(-1)
@@ -351,7 +352,8 @@ def make_player(original, args, torch, gymtorch):
                 future_contact=future_contact[valid].cpu(), future_clearance=future_clearance[valid].cpu(),
                 future_done=future_done[valid].cpu(), future_reward=future_reward[valid].cpu(),
                 rest_z=rest[:, None].expand(-1, windows)[valid].cpu(), control_dt=task.dt,
-                gamma=.99, checkpoint=str(args.value_checkpoint.resolve()),
+                gamma=.99, mve_continuation=args.mve_continuation,
+                checkpoint=str(args.value_checkpoint.resolve()),
                 checkpoint_sha256=sha(args.value_checkpoint), teacher_fingerprint=teacher_fingerprint,
                 model_training=False, actor_training=False,
                 local_utility_contract="10-step height delta + tracker stable reward; full policy success is not evaluated",
@@ -380,6 +382,7 @@ def main():
     p.add_argument("--windows-per-stratum", type=int, default=1)
     p.add_argument("--max-steps", type=int, default=650)
     p.add_argument("--wall-seconds", type=int, default=240)
+    p.add_argument("--mve-continuation", choices=("value", "direct_q"), default="value")
     args, remaining = p.parse_known_args()
     base = (ROOT / "src/task/CmResidual/research/decision_interface/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():

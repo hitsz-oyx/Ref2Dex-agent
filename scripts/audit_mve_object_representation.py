@@ -42,7 +42,7 @@ def load_models(checkpoint, device):
 
 
 @torch.no_grad()
-def evaluate(collections, checkpoint, device, max_rows):
+def evaluate(collections, checkpoint, device, max_rows, continuation_name):
     dataset = Episodes(collections)
     payload, features, value, direct_q, dynamics = load_models(checkpoint, device)
     generator = torch.Generator(device="cpu").manual_seed(20261003)
@@ -75,6 +75,9 @@ def evaluate(collections, checkpoint, device, max_rows):
                 next_history_action = torch.cat((current["history_action"][:, 1:], next_action[:, None]), 1)
                 next_history_mask = torch.cat((current["history_mask"][:, 1:],
                                                torch.ones_like(current["history_mask"][:, :1])), 1)
+                if continuation_name == "direct_q":
+                    return direct_q(features.history(next_history_state, next_history_action, next_history_mask),
+                                    features.context(current["next_context"]), next_action).squeeze(-1)
                 return value(features.history(next_history_state, next_history_action, next_history_mask),
                              features.context(current["next_context"])).squeeze(-1)
 
@@ -118,11 +121,13 @@ def main():
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--continuation", choices=("value", "direct_q"), default="value")
     parser.add_argument("--max-rows", type=int, default=0,
                         help="0 evaluates the complete deterministic held split")
     args = parser.parse_args()
     checkpoint = args.checkpoint.resolve()
-    payload, values = evaluate(args.collections, checkpoint, torch.device(args.device), args.max_rows)
+    payload, values = evaluate(args.collections, checkpoint, torch.device(args.device), args.max_rows,
+                               args.continuation)
     target = values["target"]
     result = {
         "schema": "ref2dex.mve_object_representation_audit.v1",
@@ -134,6 +139,7 @@ def main():
         "models": {name: metrics(values[name], target, values["episode"])
                    for name in ("direct", "mve_full", "mve_object_current")},
         "delta_vs_direct": {},
+        "continuation": args.continuation,
         "projection": "current hand q/dq and current object orientation plus Cm-predicted object translation/velocity/contact/events",
         "target": "realized complete-return from the held transition; no future state is an input",
         "interpretation": "Offline target-quality Probe only; this does not establish candidate action utility or policy gain",

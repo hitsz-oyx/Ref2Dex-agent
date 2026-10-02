@@ -77,6 +77,7 @@ def audit(record: Path, output: Path, draws: int):
             for index, name in enumerate(names)
         },
         "checkpoint_sha256": payload["checkpoint_sha256"],
+        "mve_continuation": payload.get("mve_continuation", "legacy_value"),
         "metrics": {},
         "intervals": {},
     }
