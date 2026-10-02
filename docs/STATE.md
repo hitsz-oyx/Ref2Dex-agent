@@ -22,6 +22,12 @@ episode Spearman 升至 `0.761`，但 RMSE `27.050`、MAE `9.589`、row Spearman
 (decisions/D-20261003-cm-critic-residual.md) 和 [结果]
 (experiments/probes/P-20261003-cm-critic-residual-results.json)。
 
+最近三个 decision-interface Probe 均未改善 North-star：MVE 原生效用为负，覆盖门通过后
+Cm adapter lower90 仍为负，critic residual 只有混合的 episode-level 小信号。按三次无进展
+规则暂停这条 selector/MVE/线性 residual 细化线；不再扩大普通候选数据、不扫 Ridge 或阈值、
+不启动 PPO。下一条路线必须先改变 representation 或 decision target，并在执行前写明 held
+判定条件。见 [路线复盘 Decision Memo](decisions/D-20261003-cm-route-review-followup.md)。
+
 ## 2026-10-03 direct-Q Cm MVE interface: closed
 
 按用户建议补做了严格的 direct-Q continuation：Cm 只提供 object translation/velocity/contact/events，保留当前 hand q/dq 与 object orientation，短期分数为 `local reward + gamma * direct-Q(predicted state, candidate action)`。held 209,788 rows 上 object-projected MVE 为 RMSE 26.60、row Spearman 0.591、episode Spearman 0.741，direct-Q 为 26.83、0.589、0.743；离线小信号没有 episode-level 改善。
