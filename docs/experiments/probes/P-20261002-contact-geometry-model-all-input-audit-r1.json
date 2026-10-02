@@ -1,0 +1,67 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "phases": [
+    {
+      "seed": 571,
+      "rows": 329
+    },
+    {
+      "seed": 572,
+      "rows": 299
+    },
+    {
+      "seed": 573,
+      "rows": 316
+    },
+    {
+      "seed": 574,
+      "rows": 321
+    },
+    {
+      "seed": 575,
+      "rows": 322
+    },
+    {
+      "seed": 576,
+      "rows": 321
+    },
+    {
+      "seed": 577,
+      "rows": 308
+    },
+    {
+      "seed": 578,
+      "rows": 286
+    },
+    {
+      "seed": 579,
+      "rows": 325
+    },
+    {
+      "seed": 580,
+      "rows": 303
+    },
+    {
+      "seed": 581,
+      "rows": 302
+    },
+    {
+      "seed": 582,
+      "rows": 313
+    }
+  ],
+  "independent_errors": {
+    "history": 0,
+    "physical": 0,
+    "node_state": 9.5367431640625e-06,
+    "node_action": 0,
+    "law": 0,
+    "target": 0.00048828125,
+    "prior": 0.00048828125
+  },
+  "elapsed_seconds": 1.0252230847254395,
+  "source_manifest_sha256": "98c07eb0767f4334a53f55c2e1a655b23f60216ec622c508a8d0dff8c46c9ecb",
+  "auditor_sha256": "f6c254572e0c2bf70c143a3a55b6d8cec24790d4c9668d4be20ac3ba09ab01e3",
+  "scope": "all 3745 windows 52 labels and pre inputs; pure tensor/frame audit, no neural computations"
+}

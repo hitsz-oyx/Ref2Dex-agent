@@ -1,0 +1,34 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 4519\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 18411\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2220497, /home2/wyy/miniconda3/envs/graspenv/bin/python\n",
+    "time": 1790908783.0449178
+  },
+  "actual_native_dof_names": [
+    "joint1",
+    "joint2",
+    "joint3",
+    "joint4",
+    "joint5",
+    "joint6",
+    "index_proximal_joint",
+    "index_intermediate_joint",
+    "middle_proximal_joint",
+    "middle_intermediate_joint",
+    "pinky_proximal_joint",
+    "pinky_intermediate_joint",
+    "ring_proximal_joint",
+    "ring_intermediate_joint",
+    "thumb_proximal_yaw_joint",
+    "thumb_proximal_pitch_joint",
+    "thumb_intermediate_joint",
+    "thumb_distal_joint"
+  ],
+  "urdf_sha256": "7d0023168a22191de2126d71f8d2a810f82e8cba56b74c82be6db04812b80f58",
+  "elapsed_seconds": 3.835119846276939,
+  "scope": "native importer joint order verification; no scientific rollout or utility claim"
+}

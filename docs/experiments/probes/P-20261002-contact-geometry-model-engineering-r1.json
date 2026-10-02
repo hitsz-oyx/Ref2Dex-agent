@@ -1,0 +1,82 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 4527\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790908863.8648078
+  },
+  "rows": 108,
+  "steps": 1080,
+  "independent_errors": {
+    "history": 0.0,
+    "physical": 0.0,
+    "node_state": 1.9073486328125e-06,
+    "node_action": 0.0,
+    "law": 0.0,
+    "target": 6.258487701416016e-05,
+    "prior": 3.0517578125e-05
+  },
+  "actual_candidate_errors": {
+    "history": 0.0,
+    "physical": 0.0,
+    "node_state": 0.0,
+    "node_action": 0.0,
+    "law": 0.0,
+    "prior": 0.0
+  },
+  "last_post_corruption_rejected": true,
+  "gpu_gradient_smoke": {
+    "cm": {
+      "loss": 4.815939426422119,
+      "node_gradient_norm": 0.01380151230841875,
+      "action_gradient_norm": 0.007288058754056692,
+      "prediction_shape": [
+        64,
+        52
+      ]
+    },
+    "state_only": {
+      "loss": 4.815024375915527,
+      "node_gradient_norm": 0.01375514641404152,
+      "action_gradient_norm": 0.0,
+      "prediction_shape": [
+        64,
+        52
+      ]
+    },
+    "shuffled": {
+      "loss": 4.815939426422119,
+      "node_gradient_norm": 0.01380151230841875,
+      "action_gradient_norm": 0.007288058754056692,
+      "prediction_shape": [
+        64,
+        52
+      ]
+    },
+    "direct_score": {
+      "loss": 10.097667694091797,
+      "node_gradient_norm": 0.08453497290611267,
+      "action_gradient_norm": 0.04580940678715706,
+      "prediction_shape": [
+        64,
+        52
+      ]
+    }
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/audit_contact_geometry_model_inputs.py": "f6c254572e0c2bf70c143a3a55b6d8cec24790d4c9668d4be20ac3ba09ab01e3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/contact_geometry_consequence.py": "3890b601772fbf17550f994041a614b63a021a225ebde6e83b51be2f2bf2c729",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-engineering-r2/seed570/records.pt": "c4df87915d65ee971f4ccca1a278cea0fb6f66386e6d22fce4d9024f28187b0f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-geometry-model-contract.md": "b0aea28da5507fb9734ab4eb0a1061485950676258609c4f670f126b2b8ddd8a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-geometry-native-dof-mapping-r1.json": "edb2d851b6c019189273f919233f59a916918ae8646200b9282b6615442f364f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-geometry-model-all-input-audit-r1.json": "6c9fda5a3af37d6fb5f330d170df604cae60fc605aea381854fba85dd9450ff0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-geometry-model-input-audit-failure-r1.json": "8876fd71065c69072d4ab333a60a4dafb040f371505409ceae792d85364bc7d7"
+  },
+  "elapsed_seconds": 2.467097772285342,
+  "scope": "engineering inputs/all52labels/priors and GPU gradients only; not fitted information or policy utility",
+  "additional_preparation_seconds": 49.86034293100238,
+  "additional_preparation_scope": "Native DOF import, full3745-window model-label audit, preserved failed absolute numeric tolerance check30s, prior tensor/selector checks15s conservative; no additional scientific fit."
+}

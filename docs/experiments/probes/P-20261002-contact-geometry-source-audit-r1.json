@@ -1,0 +1,280 @@
+{
+  "run_status": "COMPLETED",
+  "phases": [
+    {
+      "seed": 571,
+      "rows": 329,
+      "steps": 3290,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 1.4901161193847656e-08,
+        "actual_command": 1.4901161193847656e-08,
+        "initial_candidate": 1.4901161193847656e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.939881286716627e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.2782554626464844e-07,
+        "pre_relative_velocity": 1.7881393432617188e-06,
+        "post_relative_position": 3.2782554626464844e-07,
+        "post_relative_velocity": 1.5497207641601562e-06
+      }
+    },
+    {
+      "seed": 572,
+      "rows": 299,
+      "steps": 2990,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 1.4901161193847656e-08,
+        "actual_command": 1.4901161193847656e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.1920928955078125e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9281564789253025e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.725290298461914e-07,
+        "pre_relative_velocity": 2.86102294921875e-06,
+        "post_relative_position": 3.725290298461914e-07,
+        "post_relative_velocity": 2.1457672119140625e-06
+      }
+    },
+    {
+      "seed": 573,
+      "rows": 316,
+      "steps": 3160,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9365161563200672e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 2.8312206268310547e-07,
+        "pre_relative_velocity": 3.5762786865234375e-06,
+        "post_relative_position": 2.384185791015625e-07,
+        "post_relative_velocity": 3.5762786865234375e-06
+      }
+    },
+    {
+      "seed": 574,
+      "rows": 321,
+      "steps": 3210,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 4.656612873077393e-10,
+        "force_ratio_relative": 1.9379753268822242e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 4.023313522338867e-07,
+        "pre_relative_velocity": 1.9073486328125e-06,
+        "post_relative_position": 4.023313522338867e-07,
+        "post_relative_velocity": 1.1920928955078125e-06
+      }
+    },
+    {
+      "seed": 575,
+      "rows": 322,
+      "steps": 3220,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 1.1920928955078125e-07,
+        "force_ratio_relative": 1.934671587378034e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 4.023313522338867e-07,
+        "pre_relative_velocity": 1.6689300537109375e-06,
+        "post_relative_position": 4.023313522338867e-07,
+        "post_relative_velocity": 1.817941665649414e-06
+      }
+    },
+    {
+      "seed": 576,
+      "rows": 321,
+      "steps": 3210,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 1.4901161193847656e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 4.656612873077393e-10,
+        "force_ratio_relative": 1.921861922937751e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 4.76837158203125e-07,
+        "pre_relative_velocity": 1.1324882507324219e-06,
+        "post_relative_position": 4.76837158203125e-07,
+        "post_relative_velocity": 1.1920928955078125e-06
+      }
+    },
+    {
+      "seed": 577,
+      "rows": 308,
+      "steps": 3080,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 1.4901161193847656e-08,
+        "actual_command": 1.4901161193847656e-08,
+        "initial_candidate": 1.4901161193847656e-08,
+        "native_pd": 1.1920928955078125e-07,
+        "fixed_rotation": 3.2014213502407074e-10,
+        "force_ratio_relative": 1.9341791812621523e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.5762786865234375e-07,
+        "pre_relative_velocity": 2.384185791015625e-06,
+        "post_relative_position": 4.470348358154297e-07,
+        "post_relative_velocity": 2.384185791015625e-06
+      }
+    },
+    {
+      "seed": 578,
+      "rows": 286,
+      "steps": 2860,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.1920928955078125e-07,
+        "fixed_rotation": 5.960464477539063e-08,
+        "force_ratio_relative": 1.9336474110787094e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.2782554626464844e-07,
+        "pre_relative_velocity": 1.0728836059570312e-06,
+        "post_relative_position": 3.2782554626464844e-07,
+        "post_relative_velocity": 1.0728836059570312e-06
+      }
+    },
+    {
+      "seed": 579,
+      "rows": 325,
+      "steps": 3250,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9231077885706327e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 1.9073486328125e-06,
+        "pre_relative_velocity": 9.5367431640625e-06,
+        "post_relative_position": 1.9073486328125e-06,
+        "post_relative_velocity": 9.5367431640625e-06
+      }
+    },
+    {
+      "seed": 580,
+      "rows": 303,
+      "steps": 3030,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 1.4901161193847656e-08,
+        "actual_command": 1.4901161193847656e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9394751404888666e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.2782554626464844e-07,
+        "pre_relative_velocity": 2.7418136596679688e-06,
+        "post_relative_position": 3.5762786865234375e-07,
+        "post_relative_velocity": 2.7418136596679688e-06
+      }
+    },
+    {
+      "seed": 581,
+      "rows": 302,
+      "steps": 3020,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.1920928955078125e-07,
+        "fixed_rotation": 2.3283064365386963e-10,
+        "force_ratio_relative": 1.9388674843412446e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 5.960464477539062e-07,
+        "pre_relative_velocity": 2.384185791015625e-06,
+        "post_relative_position": 5.960464477539062e-07,
+        "post_relative_velocity": 2.384185791015625e-06
+      }
+    },
+    {
+      "seed": 582,
+      "rows": 313,
+      "steps": 3130,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.7881393432617188e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9371260862044437e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 2.8312206268310547e-07,
+        "pre_relative_velocity": 2.0265579223632812e-06,
+        "post_relative_position": 2.8312206268310547e-07,
+        "post_relative_velocity": 2.0265579223632812e-06
+      }
+    }
+  ],
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 4381\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790908680.763734
+  },
+  "elapsed_seconds": 6.170667761936784,
+  "run_manifest_sha256": "98c07eb0767f4334a53f55c2e1a655b23f60216ec622c508a8d0dff8c46c9ecb",
+  "auditor_sha256": "ca0c700e667171bbad1088e8824ab29b6026f6a50381b1ffe8147ed4aa1372b6",
+  "scope": "actual command, labels and every pre/post geometry; no utility conclusion"
+}
