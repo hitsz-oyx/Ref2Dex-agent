@@ -456,6 +456,14 @@ exit0，累计16.456秒。接法有实际指令作用但覆盖稀疏，没有真
 下一步固定独立真实执行Probe，检验介入是否减少接触丢失及抬升代价；采集成本
 须考虑低覆盖。HF22原门仍UNPROMISING，C3OPEN，当前不启动PPO。
 见[风险约束工程结果](experiments/probes/P-20261002-contact-risk-guard-engineering-result.md)。
+
+HF23独立实际介入卡已固定，先完成排除649的原生工程：首轮超时保留；等价
+修复后370检测/7窗口全审计通过但随机无Cm。明确排除的首窗口Cm smoke亦
+完成，实际1Cm窗口10步PD均改变direct，全NN/规划/RNG/原生物理审计通过。
+累计工程/失败/准备预算884.767秒；科学651–658保持完全随机，不混入强制
+工程。当前准备启动固定独立科学源，测接触风险减少及抬升代价，不改HF22门。
+见[原生介入工程结果](experiments/probes/P-20261002-contact-risk-interventions-native-engineering-result.md)。
+
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。

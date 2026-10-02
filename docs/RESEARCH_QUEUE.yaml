@@ -6,15 +6,14 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks:
-  - id: T-20261002-contact-risk-intervention-native
-    owner: current_session
-    status: ACTIVE
-    card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
-    outcome_boundary: "Fixed excluded649 native cumulative<=900s including preserved timeout; pre-only binding selection before random allocation, saved rejected detections, fullNN/32-step/RNG/PD/force/mesh/expert audit. NeedactualCm-vs-direct PD change before newsciencepanel651-658; no risk/utility claim from engineering."
-
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-contact-risk-intervention-native
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-contact-risk-interventions-native-engineering-result.md
+    outcome_boundary: "Excluded649 engineering complete. Preserved firsttimeout343.856s; equivalent computation r2 370detections/7windows noCm; explicitlyforced firstCm r3 95detections/3windows,actual1Cm/10PDsteps changeddirect,fullNN/32-step/RNG/PD/force/mesh/expert audits pass,allnative/auditexit0. Whole884.767budgeteds includingfailure/engineering/prep; forcedp1 explicitlysaved andexcluded from science. Fixedindependent651-658 fullyrandom next,no benefitclaim."
   - id: T-20261002-contact-risk-guard
     owner: current_session
     status: COMPLETED
@@ -228,10 +227,11 @@ hypotheses:
     branch: agent/cm-structured-contact-effects
     probe_budget: 1
     probes_used: 0
+    active_run_id: P-20261002-contact-risk-interventions-source-r1
     owner: current_session
     authorization: "persistent full mechanism objective and distinct fixed-risk intervention memo; same mission/resources, no subagents"
     card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
-    transition: "Fixed contact-specific binding engineering129 has4 action changes. New role uses frozen contactCm risk to constrain separate direct height scorer; excluded649 native/audit first, then single independent fixed651-658 panel. Focus actual conditional contact-risk reduction and lift retention; all controls visible, no PPO/fullpolicy gain claim."
+    transition: "Fixed contact-specific binding engineering129 has4 action changes. New role uses frozen contactCm risk to constrain separate direct height scorer; Excluded649 native/audit complete incl explicitlyforced engineering branch. Launch single independent fixed651-658 panel; all scientific windows fullyrandom. Focus actual conditional contact-risk reduction and lift retention; all controls visible, no PPO/fullpolicy gain claim."
   HF22:
     claim: C3
     name: generated_distribution_contact_loss_protection
