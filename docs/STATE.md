@@ -471,6 +471,14 @@ fit无实际base，best-fixed无法按原规则选定；15个初始clear窗口�
 可执行的反馈作用与新的实际机会，再拟合对应Cm；不把旧固定权重H10模型当
 新反馈程序真值。C3保持OPEN，核心目标不变。
 见[真实介入结果](experiments/probes/P-20261002-contact-risk-interventions-result.md)。
+新的相对反馈工程完成：固定gain0.5保留Cup XYZ/手指与起始旋转，加入当前
+手物相对速度/位置平移反馈；URDF世界轴与native根/DOF核对通过。静态129旧
+排除窗口映射0/未来poison通过；排除669原生49H10/37ep/490步，实际速度6窗口/
+60步、位置7窗口/63步PD不同Cup，完整专家重放0、独立PD/接触/几何审计通过。
+首推理batch初始化错误已修复，失败42.010秒保留并计费；累计162.771秒/
+12.81MiB，全部自己任务exit0/GPU释放。这只是工程，不证明候选收益；不以
+工程后果调gain。下一步固定独立候选机会与base/Cup重复噪声，再学对应Cm。
+见[反馈执行工程](experiments/probes/P-20261002-contact-relative-feedback-engineering-result.md)。
 
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。

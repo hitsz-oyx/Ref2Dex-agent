@@ -6,15 +6,14 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks:
-  - id: T-20261002-contact-relative-feedback
-    owner: current_session
-    status: ACTIVE
-    card: docs/decisions/D-20261002-contact-relative-feedback.md
-    run_id: P-20261002-contact-relative-feedback-native-engineering-r2
-    outcome_boundary: "Fixed0.5gain current-relative translation around Cup; engineering only. Static129excluded windows mapping0/futurepoison/firstpositionCup pass, next excluded669 nativeGPU5<=600s/128MiB includingstatic/preparation/audit; no oldCm/no utility/no gate tuning."
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-contact-relative-feedback
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-contact-relative-feedback-engineering-result.md
+    outcome_boundary: "Static129excluded/current-only PD0 and native669excluded49H10/37ep/490steps pass. Actualvelocity6windows60steps/position7windows63steps changed Cup PD; fixedgain0.5/fingers unchanged/rootaxisverified. Expertreplay0 and independentRNG/PD/force/mesh/prepostphysicsmax1.31e-6 pass, allownPIDs terminal. Preservedinitialbatchbug42.010s; whole162.771s/12.81MiB includingfailure/static/prep/correction. Engineering only; no outcomechosen and no Cm. Next fixed independent candidate opportunity."
   - id: T-20261002-contact-risk-intervention-native
     owner: current_session
     status: COMPLETED
@@ -226,6 +225,18 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF24:
+    claim: C3
+    name: current_object_relative_feedback_control
+    status: ACTIVE
+    branch: agent/cm-contact-relative-feedback
+    probe_budget: 3
+    probes_used: 0
+    active_run_id: P-20261002-relative-feedback-opportunity-source-r1
+    owner: current_session
+    authorization: "persistent actual-candidate/consequence/direct-control goal; new current-relative programme responsibility after closed fixed-mixture/risk recipes; same mission/resources; no subagents"
+    card: docs/experiments/probes/P-20261002-relative-feedback-opportunity.md
+    transition: "Slot1reserved fixed671-676 uniformsixslots duplicatedbase/Cup and velocity/positiongain0.5, firstepisodeH10/cooldown/currentjoint3; fit-selectedcandidate vsheldstrongCup/base plusnullnoise, allactualPD/force/mesh audited. Engineeringexcluded669 passed49H10/490steps; failure42.010s preserved,total162.771s12.81MiB. No oldmacroCm queried. Opportunity first, onlypass then correspondingCm fit and independent actualcontrol; no threshold/seed/gain tuning. C3OPEN."
   HF23:
     claim: C3
     name: contact_risk_constraints_at_actual_binding_states

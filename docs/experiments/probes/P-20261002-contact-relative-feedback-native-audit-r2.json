@@ -1,0 +1,54 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "smoke_only": true,
+  "rows": 49,
+  "steps": 490,
+  "episodes": 37,
+  "errors": {
+    "slot_probability": 0.0,
+    "merged_propensity": 0.0,
+    "initial_relative": 0.0,
+    "current_correction": 0.0,
+    "actual_command": 0.0,
+    "initial_candidates": 0.0,
+    "native_pd": 0.0,
+    "rotation_hold": 2.3283064365386963e-10,
+    "force_ratio_relative": 1.9152020058754715e-07,
+    "mesh_clearance": 2.9802322387695312e-08,
+    "supported_height_mm": 0.0,
+    "pre_relative_position": 1.9371509552001953e-07,
+    "pre_relative_velocity": 1.3113021850585938e-06,
+    "post_relative_position": 1.9371509552001953e-07,
+    "post_relative_velocity": 1.3113021850585938e-06
+  },
+  "actuation": [
+    {
+      "option": 0,
+      "actual_windows": 24,
+      "changed_windows": 24,
+      "changed_steps": 240
+    },
+    {
+      "option": 1,
+      "actual_windows": 12,
+      "changed_windows": 0,
+      "changed_steps": 0
+    },
+    {
+      "option": 2,
+      "actual_windows": 6,
+      "changed_windows": 6,
+      "changed_steps": 60
+    },
+    {
+      "option": 3,
+      "actual_windows": 7,
+      "changed_windows": 7,
+      "changed_steps": 63
+    }
+  ],
+  "record_sha256": "7e969c11b8e873ffa60fc913924b79c7adb5047f04bd17118b028cde6f486ead",
+  "elapsed_seconds": 0.5296042338013649,
+  "scope": "independent execution and observed physics; no opportunity gate or unexecuted outcomes"
+}
