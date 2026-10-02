@@ -27,7 +27,7 @@ def main():
         i=torch.load(path/'initial.pt',map_location='cpu',weights_only=False);t=torch.load(path/'trace.pt',map_location='cpu',weights_only=False);p=json.loads((path/'physical_metadata.json').read_text())
         gravity=float(-p['gravity'][2]);assert abs(gravity-9.81)<1e-5 and p['gravity'][:2]==[0.,0.];mass=np.array([v['mass'] for v in p['object_body_properties']]);assert (mass>0).all()
         post=t['object_root'].numpy();pre=np.concatenate([i['object_root'].numpy()[None],post[:-1]],0);group=i['policy_group'].numpy();mo=i['motion'].numpy();stop=i['phase_stop'].numpy()[mo];lift=i['lift_start'].numpy()[mo];prog=t['progress'].numpy()
-        clearance=np.concatenate([np.full((1,768),np.nan),t['clearance'].numpy()[:-1]],0);mask=(prog>=stop[None]-74)&(prog<=stop[None]+30)&(pre[...,2]-i['initial_height'].numpy()[None]>=np.float32(.03))&(clearance>=np.float32(.02))&(group[None]>0);mask[0]=False;tick,env=np.where(mask)
+        clearance=np.concatenate([np.full((1,768),np.nan),t['clearance'].numpy()[:-1]],0);mask=(prog>=stop[None]-74)&(prog<=stop[None]+30)&(pre[...,2]-i['initial_height'].numpy()[None]>=np.float32(.03))&(clearance>=.02)&(group[None]>0);mask[0]=False;tick,env=np.where(mask)
         current_v=pre[tick,env,7:10].astype(np.float64);next_v=post[tick,env,7:10].astype(np.float64);label=(next_v-current_v)/(gravity*(2/60));label[:,2]+=1
         of=t['object_force'].numpy()[tick-1,env].astype(np.float64);hf=t['hand_force'].numpy()[tick-1,env].astype(np.float64).reshape(-1,15)
         normalized_force=np.concatenate([of,hf],-1)/(mass[env,None]*gravity);prior=of/(mass[env,None]*gravity)-.01*current_v/gravity
