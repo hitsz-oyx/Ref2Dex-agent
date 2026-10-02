@@ -96,14 +96,22 @@ pass, no new optimizer steps,206.507s/391985146bytes, all own PIDs terminal.
 [Results](research/20261002-physical-gradient-control-results.md).
 
 Stop this fixed derivative recipe without coefficient/sigma/model/seed scans;
-no corrected actor training from this failed gate. Next cheap Decision is a
-REUSED618actual-eight-step-successor value/mean-successor compatibility screen
-with fixed existingmodels, before choosing an uncertainty-aware physical
-representation versus a different physical interaction distribution. Freeze
-analysis/audits/gates before inspecting its predictions. No new experiment
-queued at this checkpoint. Future-state oracle is only diagnosis, not deployable
-utility. Standard control variates and probabilistic world models are prior art.
-[Higher-level review](decisions/D-20261002-after-physical-gradient-control.md).
+no corrected actor training from this failed gate. REUSED618actual-eight-step
+successor/value Decision now COMPLETED/PROMISING: Brieroracle.084409/directQ
+.122460/meanCm.120472, all four frozen gates pass. Full current/futureSDK and
+network/statistical audits pass;79.290s/9644276bytes, zero new physics/updates.
+Future-state oracle is only diagnosis, not deployable utility or identified
+Jensen explanation. [Results](research/20261002-successor-value-compatibility-results.md).
+
+Next actuallearning design is frozen: empirical-successor-policy usesONLY
+FIT603/604complete observed future tuples and learned action-conditioned
+probabilities; actors maximize expected held-option continuation value across
+that support. Matched action-removed physical law and reused strong direct-Q
+actor, new623/624nativeEVAL, original5ppALLcontrols gates.1200s/1GiB, no new
+FITphysics/control-optimizer repeats, no618or future deployment inputs.
+[Card](experiments/probes/P-20261002-empirical-successor-policy.md).
+Generic kernels/world models are prior art; no distinctive method or utility
+claim yet. All own jobs terminal at this design checkpoint.
 
 ## Preservation
 

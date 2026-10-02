@@ -49,3 +49,8 @@ Complete original mesh labels/audits and source model hashes must verify.
 Protect original675inputs, source618/models/initial policy and own scripts;
 no overwrite, no original/external writes, no job restarts or unknown kills.
 Whole<=180s/32MiB, one freshly idle GPU; zero new trajectories/updates.
+
+Execution9a0f873/r1 COMPLETED/PROMISING for representationDecision; all four
+gates pass. Brieroracle.084409/directQ.122460/meanCm.120472; fullSDK/NN/statistical
+audits pass,79.290s/9644276bytes, protected inputs unchanged, own PIDs terminal.
+[Results](../../research/20261002-successor-value-compatibility-results.md).

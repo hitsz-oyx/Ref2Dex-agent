@@ -118,3 +118,4 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Actual option-model policy learning](20261002-option-model-policy-results.md): UNPROMISING; Cm172/off174/directQ222/P0129 per384. Complete3072native trajectories and9000optimizer steps, original JSON failure and same-data correction preserved.
 - [Return-corrected gradient prior-art and algebra](20261002-return-corrected-gradient-boundary.md).
 - [Fresh complete actor-gradient control](20261002-physical-gradient-control-results.md): UNPROMISING; Cm32.58 versus baseline8.25/off11.94/directQ14.05 covariance trace; actual14732-parameter gradients independently audited, no new training.
+- [Reused actual-successor/value compatibility](20261002-successor-value-compatibility-results.md): PROMISING for a different representation only; oracleBrier.08441/directQ.12246/meanCm.12047, no policy or Jensen claim.
