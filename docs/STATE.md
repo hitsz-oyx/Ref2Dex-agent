@@ -141,3 +141,7 @@ full-gradient/native/audit copies and code bundle, prior manifests unchanged.
 Supplement-r8 COMPLETED through7f0f691,678300657unique bytes;
 compatibility and empirical actual-policy raw/code/model evidence SHAverified,
 prior archives unchanged. [Receipt](activities/20261002-empirical-policy-delivery.md).
+
+Supplement-r9 COMPLETED through756c05f,582812871unique bytes;
+physical-encoder actuallearning and original/corrected support evidence SHAverified,
+prior manifests unchanged. [Receipt](activities/20261002-physical-encoder-delivery.md).
