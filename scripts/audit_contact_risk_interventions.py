@@ -150,7 +150,7 @@ def audit_record(b, geometry):
 
 def audit_planning(b, planning, checkpoint, device):
     import torch
-    from src.task.CmResidual.contact_risk_guard import ContactRiskGuard
+    from src.task.CmResidual.efficient_contact_risk_guard import EfficientContactRiskGuard
     from src.task.CmResidual.structured_contact_actions import live_inputs
     from src.task.CmResidual.support_preserving_consequence import current_features, normalize
     from src.task.CmResidual.paired_evaluation import fingerprint
@@ -162,7 +162,7 @@ def audit_planning(b, planning, checkpoint, device):
         allowed_loss_difference=.02,allowed_joint_drop=.02,allowed_contact_loss_difference=.02,
         allowed_support_drop=.05,hard_feasibility=True,feature_clip=8.)
     if planning['optimization'] != expected:raise ValueError('frozen optimization')
-    generator = ContactRiskGuard(checkpoint,device)
+    generator = EfficientContactRiskGuard(checkpoint,device)
     before = fingerprint([{k:[m.state_dict() for m in v]} for k,v in generator.models.items()])
     if before != planning['model_fingerprint_before'] or before != planning['model_fingerprint_after']:
         raise ValueError('frozen network fingerprints')
@@ -194,7 +194,8 @@ def audit_planning(b, planning, checkpoint, device):
         reference=c['bank'].new_zeros(n,6,6);reference[:,:,1]=1
         from src.task.CmResidual.optimized_contact_actions import mixed_command
         cup=mixed_command(c['bank'],reference,c['anchor'],c['position'],offset,scale)
-        for option,mode in enumerate(('cm','unguarded','shuffled'),2):
+        for option,mode in ((2,'cm'),(3,'unguarded'),(4,'shuffled')):
+            if mode not in cpu['modes']:continue
             weights,info=generator.optimize(mode,c['bank'],c['anchor'],c['position'],offset,scale,inputs)
             compare(mode+'_optimized_weights',weights,c['weights'][:,option])
             for key in ('trace','predicted_score_mm','predicted_risk','reference_score_mm','reference_risk','initial_command','initial_pd_targets'):
@@ -220,12 +221,19 @@ def audit_planning(b, planning, checkpoint, device):
                     (delta[changed,1:3]>.02+1e-6).any() or (delta[changed,3]<-.05-1e-6).any()):
                 raise ValueError('hard risk feasibility')
             if info['context_ood'][changed].any() or info['candidate_ood'][changed].any():raise ValueError('OOD abstention')
-        unguarded,guarded=cpu['modes']['unguarded'],cpu['modes']['cm']
+        unguarded=cpu['modes']['unguarded']
         difference=(unguarded['predicted_risk']-unguarded['reference_risk']).mean(0)
         unsafe=(difference[:,0]<-.02)|(difference[:,1]>.02)
-        changed=(guarded['initial_pd_targets']-unguarded['initial_pd_targets']).abs().amax(-1)>1e-5
-        mask=unsafe&changed
-        if not torch.equal(mask,cpu['accepted']) or not torch.equal(unsafe,cpu['contact_unsafe']) or not torch.equal(changed,cpu['changed_pd']):
+        if bool(unsafe.any())!=cpu['guard_evaluated']:raise ValueError('lazy guard eligibility')
+        if cpu['guard_evaluated']:
+            guarded=cpu['modes']['cm']
+            changed=(guarded['initial_pd_targets']-unguarded['initial_pd_targets']).abs().amax(-1)>1e-5
+            mask=unsafe&changed
+            if not torch.equal(changed,cpu['changed_pd']):raise ValueError('pre-only changed PD')
+        else:
+            if set(cpu['modes'])!={'unguarded'} or cpu['changed_pd'] is not None:raise ValueError('unused guarded programs')
+            mask=torch.zeros_like(unsafe)
+        if not torch.equal(mask,cpu['accepted']) or not torch.equal(unsafe,cpu['contact_unsafe']):
             raise ValueError('pre-allocation intervention selection')
         binding_rows+=int(mask.sum())
         for index in mask.nonzero().flatten().tolist():

@@ -1,0 +1,22 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "excluded_seed": 590,
+  "rows": 96,
+  "weights_exact": true,
+  "report_errors": {
+    "trace": 3.8743019104003906e-07,
+    "predicted_score_mm": 0.0,
+    "predicted_risk": 0.0,
+    "reference_score_mm": 0.0,
+    "reference_risk": 0.0,
+    "initial_command": 0.0,
+    "initial_pd_targets": 0.0
+  },
+  "legacy_risk_calls": 35,
+  "efficient_risk_calls": 3,
+  "legacy_seconds": 1.9289763774722815,
+  "efficient_seconds": 0.5070016738027334,
+  "checkpoint_sha256": "73c3e106f9716441f9dccda92b853ddea6eb4b1499724207656d48a6845e76b1",
+  "scope": "same objective, candidate, PD and risk trace; runtime engineering only"
+}

@@ -11,7 +11,7 @@ active_engineering_tasks:
     owner: current_session
     status: ACTIVE
     card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
-    outcome_boundary: "Fixed excluded649 native <=600s; pre-only binding selection before random allocation, saved rejected detections, fullNN/32-step/RNG/PD/force/mesh/expert audit. NeedactualCm-vs-direct PD change before newsciencepanel651-658; no risk/utility claim from engineering."
+    outcome_boundary: "Fixed excluded649 native cumulative<=900s including preserved timeout; pre-only binding selection before random allocation, saved rejected detections, fullNN/32-step/RNG/PD/force/mesh/expert audit. NeedactualCm-vs-direct PD change before newsciencepanel651-658; no risk/utility claim from engineering."
 
 
 completed_engineering_tasks:

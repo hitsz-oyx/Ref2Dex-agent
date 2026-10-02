@@ -33,7 +33,21 @@ def run(args):
     template=json.loads(template_path.read_text())
     # Inherited environment, asset and six self-trained expert identities remain read-only.
     hashes=dict(template['input_sha256'])
-    prior_engineering=0.;engineering_bytes=0
+    prior_engineering=0.;engineering_bytes=0;failed_engineering_seconds=0.
+    failure_path=ROOT/'src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-risk-interventions-native-engineering-r1/run_manifest.json'
+    failure=json.loads(failure_path.read_text())
+    failed_native_path=Path(failure['phases'][0]['directory'])/'run_manifest.json'
+    failed_native=json.loads(failed_native_path.read_text())
+    if failure['run_status']!='FAILED' or failed_native.get('error')!="TimeoutError('bounded native collection')":
+        raise ValueError('preserved verified engineering timeout required')
+    failed_engineering_seconds=failure['elapsed_seconds']
+    hashes[str(failure_path.resolve())]=sha(failure_path)
+    hashes[str(failed_native_path.resolve())]=sha(failed_native_path)
+    efficiency_path=ROOT/'docs/experiments/probes/P-20261002-contact-guard-cost-equivalence-r1.json'
+    efficiency=json.loads(efficiency_path.read_text())
+    if not efficiency['engineering_passed'] or not efficiency['weights_exact']:raise ValueError('exact computation equivalence')
+    correction_cost=10. # conservative execution allowance: failing old fixture plus old/new equivalence
+    if failed_engineering_seconds+correction_cost>=900:raise ValueError('internal engineering budget exhausted')
     if not args.engineering:
         if args.engineering_run is None:raise ValueError('accepted new native engineering required')
         engineering_path=args.engineering_run.resolve()/'run_manifest.json'
@@ -58,10 +72,11 @@ def run(args):
             hashes[str(path.resolve())]=sha(path)
     dependencies=['contact_geometry_consequence.py','native_pd_selector.py','native_pd_consequence.py',
         'native_pd_policy_controls.py','optimized_contact_actions.py','structured_contact_consequence.py',
-        'structured_contact_actions.py','support_preserving_consequence.py','contact_risk_guard.py','contact_risk_interventions.py']
+        'structured_contact_actions.py','support_preserving_consequence.py','contact_risk_guard.py','efficient_contact_risk_guard.py','contact_risk_interventions.py']
     checkpoint=ROOT/'src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/support_preserving_contact_consequence.pt'
     if sha(checkpoint)!=static['checkpoint_sha256']:raise ValueError('frozen adapted model')
-    paths=[Path(__file__),static_path,checkpoint,template_path,
+    paths=[Path(__file__),static_path,checkpoint,template_path,efficiency_path,
+        ROOT/'docs/decisions/D-20261002-contact-risk-execution-cost.md',ROOT/'scripts/check_contact_guard_unguarded_cost.py',
         ROOT/'docs/experiments/probes/P-20261002-contact-risk-interventions.md',
         ROOT/'docs/decisions/D-20261002-contact-risk-interventions.md',
         ROOT/'scripts/collect_contact_risk_interventions.py',ROOT/'scripts/audit_contact_risk_interventions.py',
@@ -80,8 +95,9 @@ def run(args):
         probe_index_in_family=1,run_status='RUNNING',smoke_only=args.engineering,pid=os.getpid(),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=hashes,phases=phases,admissions=admissions,
-        wall_limit_seconds=600 if args.engineering else 3600,
-        prior_engineering_seconds=prior_engineering+60.+16.45606490969658,
+        wall_limit_seconds=900 if args.engineering else 3600,
+        failed_native_engineering_seconds=failed_engineering_seconds,correction_execution_allowance_seconds=correction_cost,
+        prior_engineering_seconds=prior_engineering+failed_engineering_seconds+correction_cost+60.+16.45606490969658,
         prior_native_engineering_seconds=prior_engineering,prior_static_engineering_seconds=16.45606490969658,
         preparation_budget_seconds=60.,analysis_reserve_seconds=120.,output_limit_bytes=8<<30,
         max_owned_gpu_concurrency=len(devices),model_training=False,expert_training=False,
@@ -97,7 +113,7 @@ def run(args):
     def check():
         if stop.is_set():
             raise RuntimeError('another owned phase failed; no new work')
-        if (args.engineering and time.monotonic()-begin>600) or (not args.engineering and
+        if (args.engineering and time.monotonic()-begin+failed_engineering_seconds+correction_cost>900) or (not args.engineering and
             time.monotonic()-begin+manifest['prior_engineering_seconds']+120.>3600):
             raise TimeoutError('whole fixed slot wall budget')
         size=sum(p.stat().st_size for p in output.rglob('*') if p.is_file())

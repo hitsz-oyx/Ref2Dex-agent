@@ -25,7 +25,7 @@ def make_player(original, args, torch, gymtorch):
     from src.task.CmResidual.weight_normalized_contact import weight_normalized_contacts
     from src.task.CmResidual.paired_evaluation import fingerprint
     from src.task.CmResidual.structured_contact_actions import live_inputs
-    from src.task.CmResidual.contact_risk_guard import ContactRiskGuard
+    from src.task.CmResidual.efficient_contact_risk_guard import EfficientContactRiskGuard
     OPTION_NAMES = ('base', 'rotation_cup', 'cm_guard', 'unguarded_direct',
                     'shuffled_guard', 'mixture0', 'mixture1', 'mixture2')
     parent = build_player(original, args, torch, gymtorch)
@@ -92,7 +92,7 @@ def make_player(original, args, torch, gymtorch):
             terminal = torch.zeros(n, w, 10, dtype=torch.bool, device=self.device)
             initial_keys, initial_keyvel = zeros(n, w, 6, 3), zeros(n, w, 6, 3)
             future_keys, future_keyvel = zeros(n, w, 10, 6, 3), zeros(n, w, 10, 6, 3)
-            generator = ContactRiskGuard(args.generator_checkpoint, self.device)
+            generator = EfficientContactRiskGuard(args.generator_checkpoint, self.device)
             generator_before = fingerprint([{mode: [m.state_dict() for m in models]}
                                              for mode, models in generator.models.items()])
             checkpoint_hash = sha(args.generator_checkpoint)
@@ -128,13 +128,25 @@ def make_player(original, args, torch, gymtorch):
                         task._contact_forces[rows][:, body_ids], task._tar_contact_forces[rows],
                         mass[rows], gravity, clearance[rows], rest[rows])
                     reports = {}
-                    for option, mode in enumerate(('cm', 'unguarded', 'shuffled'), 2):
-                        generated, report = generator.optimize(mode, bank[rows], anchor[rows],
-                            task._dof_pos[rows], task._pd_action_offset, task._pd_action_scale, inputs)
-                        live_weights[rows, option] = generated
-                        reports[mode] = {k: (v.detach().cpu() if torch.is_tensor(v) else v)
-                                         for k, v in report.items()}
-                    accepted, unsafe, changed = binding_mask(reports['unguarded'], reports['cm'])
+                    generated,report=generator.optimize('unguarded',bank[rows],anchor[rows],
+                        task._dof_pos[rows],task._pd_action_offset,task._pd_action_scale,inputs)
+                    live_weights[rows,3]=generated
+                    reports['unguarded']={k:(v.detach().cpu() if torch.is_tensor(v) else v) for k,v in report.items()}
+                    direct_difference=(reports['unguarded']['predicted_risk']-reports['unguarded']['reference_risk']).mean(0)
+                    unsafe=(direct_difference[:,0]<-.02)|(direct_difference[:,1]>.02)
+                    guard_evaluated=bool(unsafe.any())
+                    if guard_evaluated:
+                        # Entire original batch is kept so input-optimizer scaling is unchanged.
+                        for option,mode in ((2,'cm'),(4,'shuffled')):
+                            generated,report=generator.optimize(mode,bank[rows],anchor[rows],
+                                task._dof_pos[rows],task._pd_action_offset,task._pd_action_scale,inputs)
+                            live_weights[rows,option]=generated
+                            reports[mode]={k:(v.detach().cpu() if torch.is_tensor(v) else v) for k,v in report.items()}
+                        accepted,unsafe,changed=binding_mask(reports['unguarded'],reports['cm'])
+                    else:
+                        accepted=torch.zeros(len(rows),dtype=torch.bool,device=self.device)
+                        changed=None
+                    unsafe=unsafe.cpu()
                     # Reports are CPU audit records; the eligibility decision precedes allocation.
                     accepted = accepted.to(self.device)
                     shadow_batches.append(dict(tick=tick, env_id=rows.cpu(),
@@ -145,6 +157,7 @@ def make_player(original, args, torch, gymtorch):
                         bank=bank[rows].cpu(), position=task._dof_pos[rows].cpu(), anchor=anchor[rows].cpu(),
                         random_weights=random_weights.cpu(), weights=live_weights[rows].cpu(),
                         modes=reports, accepted=accepted.cpu(), contact_unsafe=unsafe, changed_pd=changed,
+                        guard_evaluated=guard_evaluated,
                         inputs={k:(v.detach().cpu() if torch.is_tensor(v) else v) for k,v in inputs.items()}))
                     cooldown[rows] = 6
                     rows = rows[accepted]
@@ -213,8 +226,9 @@ def make_player(original, args, torch, gymtorch):
                 cooldown = (cooldown - 1).clamp_min(0)
                 ended |= done
                 reset, previous = done.nonzero().flatten(), applied
-                if tick % 100 == 0:
-                    print(json.dumps(dict(tick=tick, complete_windows=int((steps == 10).sum()))), flush=True)
+                if tick % 50 == 0:
+                    print(json.dumps(dict(tick=tick, complete_windows=int((steps == 10).sum()),
+                        detection_rows=sum(len(b['env_id']) for b in shadow_batches))), flush=True)
                 if (ended | (count >= w)).all():
                     break
             valid = steps == 10
