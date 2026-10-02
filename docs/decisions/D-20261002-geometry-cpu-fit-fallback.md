@@ -1,0 +1,7 @@
+# Bounded CPU fallback for small geometry forecast fits
+
+All eight GPU UUIDs have other live compute processes at fresh admission; GPU0fit-only preflight65aa56f rejects correctly before output/native/optimizer. Native three cohorts complete and immutable, no fitted result or optimizer step observed. Preserve all previous failed parents. Default GPU policy allows an explicit device/implementation constraint; no other process may be disturbed. Instead of more migrations, use CPU2threads for this small four-network Probe and pin a thin CPU execution wrapper around unchanged scientific fitter. No external permission or budget expansion.
+
+Same models/initial weights/seeds/data/features/1500updates/4096batches/Adam/clip/gates/bootstrap. CPU RNG3212 generates a different batch stream than CUDA3212 would, but ALL FOUR variants use the SAME CPU sequence; this is recorded, not called bitwise GPU reproduction. No prior fit was started, no model/step/result selection, no completed optimizer replay. CPUFP32 numerical behavior receives the same fixed512sample independent NumPy forward check2e-5. Held-out geometry/labels and gates independently audited. CPU choice is a current all-GPU occupation exception, not a new general CPU policy.
+
+Original+new total<=1200s/1GiB. Fixed fitter400s limit and owned parent420s remain; failure stops without parameter scans. Frozen scalar source/design files and rawSDKdata unchanged. Explicit CPU run metadata, no claim of additional scientific training seed or journal readiness.
