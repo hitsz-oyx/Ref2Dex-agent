@@ -84,3 +84,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Complete continuous policy comparison](20261002-continuous-critic-policy-results.md):15360training/1536evaluation, Cm129/state129/no-aux147/384; UNPROMISING. Original failures, same-model GPU migration and separate witnessed ReLU audit correction retained; native manuscriptv11preserves all prior evidence.
 
 - [Training-only request execution headroom](20261002-request-execution-headroom-results.md):403200command transitions,100%meaningful in all three arms; not physical response or policy benefit. Projection repair is not the main next route.
+
+- [Fixed delayed-response UNCLEAR](20261002-delayed-request-response-results.md)
+- [Response-field prior-art boundary](20261002-response-field-method-boundary.md)

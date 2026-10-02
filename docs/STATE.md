@@ -148,12 +148,19 @@ have91.7--92.1%/83.8--84.6%meaningful translation/rotation contrasts; individual
 finger axes49.5--51.5%, not universal axis availability.
 [Execution headroom](research/20261002-request-execution-headroom-results.md).
 
-Next distinguish immediate object movement from delayed short-horizon response,
-using one separately fixed training-only randomized-innovation screen if it will
-choose the physical target. Then design a task-relevant representation or direct
-policy integration, not one-step critic coefficient/seed scans. Delayed response
-is still an unobserved hypothesis; no lag/axis/window search is authorized by
-this next-step statement.
+The fixed delayed-response screen completes31.925s on23920eligible training
+transitions/325episodes: immediate moment0.167295mm, delayed8-tick0.155047mm;
+paired delay CI[-0.351119,0.318222] fails and future-control equivalence is
+unclear. Label UNCLEAR, not established future leakage. Stop without lag/axis
+scans. [Results](research/20261002-delayed-request-response-results.md).
+
+Next: a fixed immediate state-conditioned randomized-request response field,
+fit initial547 only and test fresh570 under exactly the same u00 Gaussian
+behavior. Beat motion/known-phase response means on predeclared paired moment
+risk before investing in direct actor integration. This is information screening,
+not policy utility. [Card](experiments/probes/P-20261002-state-response-field.md).
+Generic action-effect embeddings and Gaussian scores have established prior
+art; [method boundary](research/20261002-response-field-method-boundary.md).
 
 Distinctive methodology, matched positive policy-training utility, formal
 Validation, generalization and hardware remain unmet. The journal objective
@@ -164,7 +171,10 @@ Native manuscriptv11now includes the full negative continuous comparison:
 new result counts independently rebuilt. Native result pages16/17visually
 inspected, no text clipping. `paper/native-v11/manuscript-v11.pdf` is a working
 evidence manuscript, not a journal-ready claim. Durable complete-run delivery
-is being materialized in a new package; existing packages remain unchanged.
+is COMPLETE:4,931,916,091verified bytes at
+`/home2/wyy/tmp/ref2dex-contact-response-20261002-v11`, including all raw panels,
+checkpoints, failed runtime evidence and code.bundle throughbb2d497. New probes
+need a separate supplemental delivery; existing package remains immutable.
 
 ## Evidence and manuscript
 
@@ -182,12 +192,5 @@ is being materialized in a new package; existing packages remain unchanged.
 - [Prospective support witness](research/20261002-support-removal-witness-results.md)
 - [Primary-source novelty update](research/20261002-contact-response-novelty-update.md)
 - [Prior evidence index](research/README.md); all historical results and gates remain in cards/Git.
-- [Current working manuscript](../paper/manuscript-v10.tex) and [PDF](../paper/manuscript-v10.pdf):
-  twenty-one-page ReportLab review copy, twenty recorded-JSON tables, four
-  figures. Adds the complete selective-finger negative and clearly INCOMPLETE
-  continuous comparison.99hashed sources checked; new table and six candidate
-  gates independently rebuilt from1536audited rows. Newpages18--20visually
-  inspected, all PDFtext bounds checked. Paper6/7/8/9retain50/70/76/84valid
-  sources; firstv10render and every input snapshot retained. No native TeX
-  compilation, novel method, Cm utility or journal readiness.
+- [Current native working manuscript](../paper/manuscript-v11.tex) and [PDF](../paper/native-v11/manuscript-v11.pdf):21pages/21tables/4figures, full negative continuous result, independently audited231inputs. No novel method, positive Cm utility or journal readiness.
 - [Continuous auxiliary/CAPG prior-art boundary](research/20261002-continuous-method-boundary.md).
