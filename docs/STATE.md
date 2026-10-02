@@ -13,7 +13,7 @@ original worktree's branch or use its shared output symlink.
 
 User objective remains autonomous idea development, experiments and a
 journal-level paper. It is **ACTIVE and NOT READY**, without a reduced target.
-Full-access execution now exposes GPU1and original-host process observation;
+Full-access execution exposes GPU devices and original-host process observation;
 the prior sandbox blockage has been removed.
 [Host resumption](activities/20261002-continuous-critic-host-resumption.md).
 
@@ -21,7 +21,7 @@ the prior sandbox blockage has been removed.
 | --- | --- |
 | Self-trained manipulation substrate | PROMISING reference-conditioned initializer on one preselected motion; all-motion competence unproved |
 | Useful action-conditioned physical information | New6144-trajectory forecast fails its strong-global primary gate; mechanical support witness remains PROMISING |
-| Cm policy-training utility | First actual matched experiment is negative; no demonstrated improvement |
+| Cm policy-training utility | Two actual matched training designs are negative; no demonstrated improvement |
 | Distinctive method | Unestablished; broad physical-grounding/contact-prediction themes already occupied |
 | Generalization / hardware | Absent on this independent track |
 
@@ -116,46 +116,46 @@ trials; thumb curl in47/64. These bounds diagnostics are not whole-rollout
 counterfactuals or evidence of unavailable continuous-control headroom.
 [Selective-finger results](research/20261002-selective-finger-feasibility-results.md).
 
-Next implement matched continuous policy optimization across all12effective
-wrist/finger coordinates with a causal physical auxiliary critic, state-only
-auxiliary control and no-auxiliary control. Value is state-only; Cm sees current
-state and executed target-minus-currentq, predicts actual next object position/
-velocity, never future hand input or model reward. PPO uses Gaussian REQUEST
-likelihood before tanh/projection. Three meaningful unit tests pass. Fresh567engineering-only native smoke COMPLETED70.580s/768trajectories,
-zero optimizer updates; all253protected hashes and independent raw state,
-request probability, actor/critic, target projection/PD/physical audits pass.
-This proves integration only. Four tests now pass, including independent NumPy
-full auxiliary critic gradients. Actual matched codee37eca3training now retains
-native547--549and u01--u03:2304native trajectories,1368actual optimizer steps,
-all three native audits and nine predetermined first-minibatch gradient/Adam
-audits pass. GPU1resume-r1thenFAILED at550: native allocator OOM/illegal address,
-no complete550trace/results or u04; one engineering reproduction also fails
-before actor execution. All482protected paths remain identical after the user's
-changes. No final568/569: comparisonINCOMPLETE, no utility label.
-Original parent/resume parent/children are terminal or absent on the actual host;
-all old manifests, partial updates and failures retained unchanged. GPU1now
-hosts a different18GiBtask. Choose the empty same-model GPU4for a documented
-runtime migration, retain exactu03and collect550--566/final568/569under the SAME
-scientific design/gates. No valid panel/update recollection, no CPU substitution,
-no unknown process manipulation. [GPU migration decision](decisions/D-20261002-continuous-gpu-migration.md).
-[Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md).
+The fixed continuous policy-training comparison is now COMPLETED and
+**UNPROMISING**. Scientific sourcee37eca3, exact runtime continuation99a2521:
+20panels547--566/20updates plus final-only568/569,15360training/1536evaluation
+trajectories,9120actual optimizer steps. Pooled successes/384: unchanged137,
+Cm129,state-only129,no-auxiliary147. Cm33.59% ties state-only and trails
+no-auxiliary38.28%; six of seven frozen gates fail. Stop this exact one-step
+auxiliary-critic recipe without coefficient/seed/epoch/checkpoint scans.
+[Complete results](research/20261002-continuous-critic-policy-results.md).
 
-Exact bounded resume supervisor now implemented;447old/relocated protected
-path hashes checked on REALsaved data, scientific source matches e37eca3.
-Four engineering tests pass, including actual owned-child cleanup on source
-progress. First supervisor resumed throughu03and preserved its550failure.
-The resource-recovery supervisor retains547--549/u00--u03via protected read
-links and resumes550/u04. Reserve650sfor all prior execution/diagnosis/margin,
-new<=2950s, combined original/resume/diagnosis/new<=6GiB. Explicit same-model
-GPU identity change and new-contender guard; independent original scientific
-collector/auditors/analyzer remain byte-identical. No completed utility result yet.
-[Resume evidence](activities/20261002-continuous-critic-resume-ready.md).
- [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
+All22native audits and60predetermined first-minibatch gradient/Adam checks
+complete; the remaining9060steps are retained but not independently replayed.
+A SINGLEu17near-zero ReLU differs between float64 and float32 branch signs;
+original audit/failed parent remain unchanged. Saved-batch GPU replay is exact,
+and separate branch-aware NumPy correction passes SAME scalar tolerances after
+independent rounding-enclosure checks. No optimizer step or valid panel is
+repeated. GPU1native resource failure and engineering reproduction are retained;
+remaining phases use explicitly recorded same-model GPU4. All675protected paths
+and original scientific files verify. Conservative cumulative3311.593s and
+5,303,126,219bytes stay within3600s/6GiB.
+[Branch correction](decisions/D-20261002-continuous-gradient-branch-correction.md).
+[GPU migration](decisions/D-20261002-continuous-gpu-migration.md).
 
-Distinctive methodology, matched positive policy-training utility, generalization
-and hardware remain unmet. The objective is active after GPU/host observation
-restoration and is not complete. Complete the fixed continuous comparison
-before interpreting its utility or changing the implementation route.
+Next choose a different representation/integration based on whether sampled
+commands have usable task-relevant physical response. Reuse existing randomized
+Gaussian traces for one bounded decision screen before collecting more native
+training; no repeated one-step auxiliary or failed static-arm tuning. A late
+response is a hypothesis, not an observed mechanism. The outcome must decide
+between a delayed-response representation and changing the exploration/task
+substrate, without treating either as novel or supported in advance.
+
+Distinctive methodology, matched positive policy-training utility, formal
+Validation, generalization and hardware remain unmet. The journal objective
+continues under the user's explicit request to resume; it is NOTcomplete.
+
+Native manuscriptv11now includes the full negative continuous comparison:
+21pages/21tables/4figures,231hashed inputs, preservedv6--v10inputs/PDFs, all1536
+new result counts independently rebuilt. Native result pages16/17visually
+inspected, no text clipping. `paper/native-v11/manuscript-v11.pdf` is a working
+evidence manuscript, not a journal-ready claim. Durable complete-run delivery
+is being materialized in a new package; existing packages remain unchanged.
 
 ## Evidence and manuscript
 

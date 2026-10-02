@@ -80,3 +80,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Natural feedback failure](20261002-natural-retention-feedback-results.md):1536fresh trajectories, both event arms trail unchanged; UNPROMISING.
 - [Predictive/reactive method boundaries](20261002-feedback-method-boundary.md): primary full-text sources, no novelty from generic slip alarms.
 - [Action representation review](../decisions/D-20261002-contact-action-representation-review.md): selective effective finger directions, next design pending.
+
+- [Complete continuous policy comparison](20261002-continuous-critic-policy-results.md):15360training/1536evaluation, Cm129/state129/no-aux147/384; UNPROMISING. Original failures, same-model GPU migration and separate witnessed ReLU audit correction retained; native manuscriptv11preserves all prior evidence.
