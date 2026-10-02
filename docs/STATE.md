@@ -317,3 +317,10 @@ Resumed evidence durably delivered in supplementr5 at
 code.bundle throughb2ebc96, six terminal result/diagnostic directories.
 Immutable v11/r1--r4 manifest identities remain unchanged. This receipt
 is committed after packaging; original worktree remains untouched.
+
+Next actual learning design is now frozen: option-model-policy603/604FIT,
+611/612EVAL. Predict8-step physical successor, learn option-conditioned
+continuation value, optimize three matched actor means offline, deploy actors
+only. Action-removed dynamics and direct-Q control actual policy utility; no
+prediction-error gate or exact replay assumption.1200s/2GiB/oneGPU budget.
+[Card](experiments/probes/P-20261002-option-model-policy.md).
