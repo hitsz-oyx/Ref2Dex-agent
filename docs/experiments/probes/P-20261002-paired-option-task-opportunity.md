@@ -32,7 +32,7 @@ contact-solver state restoration. Both P0 physical105 labels agree>=95% of
 do not widen matching limits or selectively retain matching groups.
 
 After all engineering gates pass, primary opportunity ceiling is whether the
-retrospective OR of option2/3 outcomes improves pooled physical105 by at least
+retrospective OR of anchor P0arm0 and option2/3 outcomes improves pooled physical105 by at least
 5 percentage points over BOTH P0 duplicates and improves each motion by>=0
 against BOTH. At least5groups must have different option2/3 outcomes. ALL192
 groups included; no subgroup rescue or select failed-only groups as primary.
@@ -49,3 +49,9 @@ claim of contact points. Original native numerical limits retained. Whole
 guarded, no overwrite or unknown process termination. Positive needs a new
 frozen learning design; negative ends this family without additional candidates,
 amplitude/axis/duration/seed/checkpoint scans.
+
+Pre-data design review: include the unchanged P0arm0 as an actual candidate
+fallback. A selector can reject both intervention options; requiring options
+alone to dominate P0 would ask a different question. No601data/model/physics
+exists at this revision; all matching/effect thresholds otherwise unchanged.
+The duplicate P0arm1 is a repeat control, not another oracle candidate.
