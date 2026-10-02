@@ -1,0 +1,121 @@
+{
+  "experiment_id": "P-20261002-contact-impulse-observability",
+  "status": "COMPLETED",
+  "label": "UNPROMISING",
+  "selected_on_fit": "endpoint_average",
+  "cal_relative_rmse_improvement": -208.31685174715517,
+  "gate": {
+    "cal_dynamic_support": true,
+    "cal_rmse20pct": false
+  },
+  "metrics": {
+    "fit": {
+      "all": {
+        "rows": 21470,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.26951876282691956,
+          "gravity_only": 0.4196438491344452,
+          "pre_force": 88.53730773925781,
+          "post_force": 86.98912048339844,
+          "endpoint_average": 70.55601501464844
+        }
+      },
+      "dynamic": {
+        "rows": 14316,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.3298262059688568,
+          "gravity_only": 0.4589536488056183,
+          "pre_force": 101.20869445800781,
+          "post_force": 99.7045669555664,
+          "endpoint_average": 81.32709503173828
+        }
+      },
+      "early": {
+        "rows": 16538,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.2708929777145386,
+          "gravity_only": 0.42293140292167664,
+          "pre_force": 91.88642883300781,
+          "post_force": 90.20088958740234,
+          "endpoint_average": 73.89523315429688
+        }
+      },
+      "early_dynamic": {
+        "rows": 9731,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.3529014587402344,
+          "gravity_only": 0.47865647077560425,
+          "pre_force": 110.95174407958984,
+          "post_force": 109.36493682861328,
+          "endpoint_average": 90.2464370727539
+        }
+      }
+    },
+    "cal": {
+      "all": {
+        "rows": 7640,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.24302981793880463,
+          "gravity_only": 0.4035578668117523,
+          "pre_force": 69.19902038574219,
+          "post_force": 68.87550354003906,
+          "endpoint_average": 54.28069305419922
+        }
+      },
+      "dynamic": {
+        "rows": 5190,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.29461678862571716,
+          "gravity_only": 0.4348919987678528,
+          "pre_force": 77.69499206542969,
+          "post_force": 77.77267456054688,
+          "endpoint_average": 61.66825866699219
+        }
+      },
+      "early": {
+        "rows": 5509,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.24626991152763367,
+          "gravity_only": 0.4093334972858429,
+          "pre_force": 70.92534637451172,
+          "post_force": 69.95855712890625,
+          "endpoint_average": 55.845252990722656
+        }
+      },
+      "early_dynamic": {
+        "rows": 3214,
+        "velocity_vector_rmse_m_s": {
+          "constant_velocity": 0.3221498429775238,
+          "gravity_only": 0.4589410424232483,
+          "pre_force": 84.63276672363281,
+          "post_force": 83.75914764404297,
+          "endpoint_average": 67.6402816772461
+        }
+      }
+    }
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-to-lift-qualified-source-r1.json": "20dedc556546b80d6362fa6f0af9027cfd9e1daf569a271de9996d7ca3ca0f85",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/qualify_contact_impulse_observability.py": "b4e0055e2bacc4a0985f33af2b8bebdcbe5713770bc78d4ad33b882b7a9a6385",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed461/records.pt": "adecfb2615914d2cae82b53021a20a6796eac5043435e6dc665c00f7ace5e06c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed462/records.pt": "e4f86503be4d5cb4df6192ec8cd849f7e3a8b6c3dcd6848ee5c47f09e2b1a4e9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed463/records.pt": "eeb86a8cf8bad14a2efd7c2bffa0d21ff6cb8b3f83d7541a51bc96384fc7cf4d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed464/records.pt": "15acfacad85dfeef2e4076e44f70a8d0d0c7d0879d64ac5bd353c48eb8116ba3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed465/records.pt": "118e413e7ca3dcde142639a6135a649a321023181af46de4c04f517ef2acd40a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed466/records.pt": "f7347533962178feb3f1222e9f41799cde50e60c6f1ed70f2198c5891f934429",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed467/records.pt": "f0696c2994df910b326cddfe4ed1ab76f2544c56ae37d974636062bbecba6274",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed468/records.pt": "fc23415ca27aa4586c32f389428c4cbd2affa9be46b2abfb4e7f2bd2ecb24b3e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed469/records.pt": "25f0c08594b0fe3dbb48153978f4ad13c6f853e332390f9d9bf0e1cb7b81b9ba",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed470/records.pt": "a379bec9ff024dc8b422f6c55da62154ff0ab43586f4c7edd59cc0139e442309",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed471/records.pt": "49c64f54e83da1e26119193b9876323d1d00e4db1f0557e2b50377cefa295278",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-orientation-feedback-opportunity-r1/seed472/records.pt": "3a9b000ad908d269dafaa1cbfeea87950d0edd9a8abdb611aba0cf989ddd8bbe",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-to-lift-targeted-source-r1/seed551/records.pt": "a6efffb36203d262d9d5491a8fda9caf87bb48a4f0af891938f816593300c41d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-to-lift-targeted-source-r1/seed552/records.pt": "775a14c72c5d45031931aa70965caa9203582a0ed8b9e41bf4ef8cc085d5d9c3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-to-lift-targeted-source-r1/seed553/records.pt": "13b6e4e64f3b417712c2273c9f68bc355d21bdc59fd84bbb43d618dac1454893",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-to-lift-targeted-source-r1/seed554/records.pt": "e276f8696359597a62cc92dc0ba828092726a6208e28ee5c174c826ea67cf35e"
+  },
+  "elapsed_seconds": 0.9762050798162818,
+  "dt_seconds": 0.03333333333333333,
+  "device_reason": "CPU label/statistical calculations only; no neural fitting or inference",
+  "scope": "sensor observability; not Cm prediction, action ranking or actual control utility"
+}

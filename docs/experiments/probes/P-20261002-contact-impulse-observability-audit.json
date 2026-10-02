@@ -1,0 +1,49 @@
+{
+  "status": "COMPLETED",
+  "passed": true,
+  "cal_dynamic": {
+    "rows": 5190,
+    "constant_velocity": 0.29461679109652106,
+    "endpoint_average": 61.668260807651954
+  },
+  "relative_reconstruction_error": 3.471250547773869e-08,
+  "raw_force_N": {
+    "p50": 2.02516752306766,
+    "p90": 7.750238154386541,
+    "p99": 20.340237964777124,
+    "max": 64.33279252897091
+  },
+  "raw_force_in_weights": {
+    "p50": 79.5951772810548,
+    "p90": 304.6076795337696,
+    "p99": 799.4325547413922,
+    "max": 2528.472320439084
+  },
+  "actual_velocity_change_m_s": {
+    "p50": 0.1070321279997196,
+    "p90": 0.3502907152531818,
+    "p99": 0.8648303283216714,
+    "max": 2.9675603661640193
+  },
+  "endpoint_velocity_error_m_s": {
+    "p50": 22.918241096369215,
+    "p90": 76.35783364564408,
+    "p99": 204.32956153184574,
+    "max": 583.8710035937147
+  },
+  "mass_kg_range": [
+    0.0025936129968613386,
+    0.0025936129968613386
+  ],
+  "contact_collection_substeps": [
+    [
+      2,
+      4
+    ]
+  ],
+  "elapsed_seconds": 0.913507642224431,
+  "result_sha256": "9144bdc6f210c1117e219df08b9d2b34c5263b9b206d2528f4007f86599e1e4c",
+  "auditor_sha256": "cf11a72d1b1f299736ede51337e1fcb0d961948b07d0a8cf89561be5b00c0ea7",
+  "device_reason": "CPU independent sensor/statistical reconstruction; no models",
+  "scope": "endpoint force is not qualified as control-period average; exact cause remains unknown"
+}

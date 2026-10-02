@@ -1,0 +1,45 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "good_record": {
+    "rows": 3,
+    "steps": 30,
+    "actual_propensity_verified": true,
+    "complete_labels": true,
+    "pre_and_post_geometry_verified": true,
+    "errors": {
+      "feedback": 1.4901161193847656e-08,
+      "actual_command": 1.4901161193847656e-08,
+      "initial_candidate": 1.4901161193847656e-08,
+      "native_pd": 7.450580596923828e-09,
+      "fixed_rotation": 0.0,
+      "force_ratio_relative": 0.0,
+      "mesh_clearance": 1.1175870895385742e-08,
+      "supported_score_mm": 0.0,
+      "pre_relative_position": 0.0,
+      "pre_relative_velocity": 0.0,
+      "post_relative_position": 0.0,
+      "post_relative_velocity": 0.0
+    }
+  },
+  "rejected_corruptions": [
+    "pd_target",
+    "merged_probability",
+    "allocation",
+    "reference_weights",
+    "last_post_position",
+    "last_post_velocity",
+    "contact_proxy",
+    "mesh_label",
+    "cross_reset",
+    "group_split"
+  ],
+  "elapsed_seconds": 0.06999620888382196,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/smoke_contact_geometry_record_audit.py": "99acc94be03588d7c103408a95ff9e955904924cf0bdf513ee81a8064ee31f77",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/audit_contact_geometry_source.py": "ca0c700e667171bbad1088e8824ab29b6026f6a50381b1ffe8147ed4aa1372b6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/contact_geometry_actions.py": "2a1a1bbdb7e51a342e633a04abe493fcf09d69ec2477debeb61748cf4cd01d49"
+  },
+  "device_reason": "CPU tiny synthetic record checks; no models/simulator",
+  "scope": "in-memory synthetic unit fixtures; not native runtime, real transitions or Cm utility evidence"
+}

@@ -15,15 +15,23 @@ def run(args):
     if args.output.exists(): raise ValueError('unique audit output required')
     begin = time.monotonic(); m = json.loads((args.run/'run_manifest.json').read_text())
     if m['run_status'] != 'COMPLETED': raise ValueError('terminal fit required')
-    try:
-        os.kill(m['pid'], 0)
-        raise ValueError('fit owner still running')
-    except ProcessLookupError:
-        pass
+    terminal = json.loads(args.terminal_evidence.read_text())
+    if terminal['exit_code'] != 0 or terminal['run_manifest_sha256'] != sha(args.run/'run_manifest.json'):
+        raise ValueError('matching terminal tool evidence required')
+    # Isolated exec namespaces can reuse PID2; compare identity as well as liveness.
+    command_path = Path('/proc')/str(m['pid'])/'cmdline'
+    visible_command = [v.decode(errors='replace') for v in command_path.read_bytes().split(b'\0') if v] if command_path.exists() else []
+    same_command = visible_command[1:] == m['command']
+    if same_command:
+        raise ValueError('matching fit command still visible')
     if any(sha(Path(k)) != v for k, v in m['input_sha256'].items()): raise ValueError('input drift')
     checkpoint = args.run/'contact_to_lift_macro.pt'
     if sha(checkpoint) != m['result']['checkpoint_sha256']: raise ValueError('checkpoint drift')
-    admission = gpu_admission(args.gpu); os.environ['CUDA_VISIBLE_DEVICES'] = admission['uuid']
+    device = m.get('device', 'cuda')
+    if device == 'cpu':
+        admission = dict(device='cpu', reason='label reconstruction and statistics; matches recorded CPU device exception')
+    else:
+        admission = gpu_admission(args.gpu); os.environ['CUDA_VISIBLE_DEVICES'] = admission['uuid']
     import torch
     from qualify_contact_to_lift_source import qualify
     from src.task.CmResidual.contact_to_lift_macro import windows
@@ -68,7 +76,7 @@ def run(args):
             audited_rows += n
     normalizer_error = 0.
     for name in ['history', 'physical', 'native', 'goal', 'law']:
-        x = data[name][splits['fit']].cuda(); dims = (0, 1) if name == 'history' else 0
+        x = data[name][splits['fit']].to(device); dims = (0, 1) if name == 'history' else 0
         mean = x.mean(dims); std = x.std(dims, unbiased=False).clamp_min(.001)
         for key, value in [(name+'_mean', mean), (name+'_std', std)]:
             error = float((p['normalization'][key]-value.cpu()).abs().max()); normalizer_error = max(normalizer_error, error)
@@ -80,6 +88,7 @@ def run(args):
                   fit_only_normalization_max_error=normalizer_error, checkpoint_sha256=sha(checkpoint),
                   elapsed_seconds=time.monotonic()-begin, cumulative_seconds=m['result']['cumulative_seconds']+time.monotonic()-begin,
                   scoped_bytes=m['result']['scoped_bytes'], gpu=admission, information_result=m['result'],
+                  terminal_evidence_sha256=sha(args.terminal_evidence), auditor_sha256=sha(Path(__file__)),
                   scope='pre-only timing, actual force labels, feedback law and fit-only normalization; no controller/RL/stable grasp claim')
     args.output.write_text(json.dumps(result, indent=2)+'\n')
     print(json.dumps({k: v for k, v in result.items() if k not in ['gpu', 'information_result', 'counts']}, indent=2))
@@ -87,6 +96,6 @@ def run(args):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
-    for name in ['run', 'source', 'additional', 'additional-audit', 'output']:
+    for name in ['run', 'source', 'additional', 'additional-audit', 'terminal-evidence', 'output']:
         p.add_argument('--'+name, type=Path, required=True)
     p.add_argument('--gpu', type=int, default=0); run(p.parse_args())

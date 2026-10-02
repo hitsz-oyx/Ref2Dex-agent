@@ -1,0 +1,21 @@
+{
+  "experiment_id": "P-20261002-contact-to-lift-macro",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "family_disposition": "CLOSED_AFTER_SLOT1",
+  "slot2_started": false,
+  "cumulative_seconds": 667.5135524268262,
+  "scoped_bytes": 65473553,
+  "checkpoint_sha256": "d80db71a855d66273b3b34d93fb047d8aea821aadbfd63bf04cf27edd0b821c3",
+  "source_and_model_inputs_unchanged": true,
+  "fit_terminal_evidence_passed": true,
+  "failed_audit_seconds_conservative": 1,
+  "audit_sha256": {
+    "docs/experiments/probes/P-20261002-contact-to-lift-targeted-source-record-audit.json": "e6cde467280f52a63514c9bb5d57e5d0dbaae80a16ef232fbfcf9f88eac21430",
+    "docs/experiments/probes/P-20261002-contact-to-lift-qualified-source-r1.json": "20dedc556546b80d6362fa6f0af9027cfd9e1daf569a271de9996d7ca3ca0f85",
+    "docs/experiments/probes/P-20261002-contact-to-lift-device-evidence.json": "094169f49f73c4ac64b31fcb7af75a88af90cf0eb7c4b62c0112eb3bc1b309c3",
+    "docs/experiments/probes/P-20261002-contact-to-lift-fit-terminal-evidence.json": "6983bd7c9be32e5ba371e9c155daea8bff21736f3b8aca744780991317f5e622",
+    "docs/experiments/probes/P-20261002-contact-to-lift-macro-fit-audit.json": "499de74c6933cf177b8a567cd14a2d181ff47f6c8784313f984ee226aba805c3"
+  },
+  "scope": "no actual new controller, no policy learning, no final success-rate claim"
+}

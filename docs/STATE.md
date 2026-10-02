@@ -332,7 +332,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
-| `HF18` contact-to-lift macro-Cm | `C3` | `ACTIVE`（先查抬升监督支持） | slot1/2登记 | `agent/cm-contact-to-lift-macro` |
+| `HF18` contact-to-lift macro-Cm | `C3` | `UNPROMISING`（early轨迹信息门失败） | slot1后关闭，不启动slot2 | `agent/cm-contact-to-lift-macro` |
 | `HF17` strong-reference corrections | `C3` | `UNPROMISING`（固定修正未过留出机会门） | slot1后关闭，不启动slot2 | `agent/cm-strong-reference-corrections` |
 | `HF16` native-PD/force-Cm | `C3` | `UNPROMISING`（一步信息正向，强控制门失败） | 2/2关闭 | `agent/cm-native-pd-consequence` |
 | `HF15` translation/orientation-plan-Cm | `C3` | `UNPROMISING`（候选机会正向，闭环未过强控制门） | 2/2关闭 | `agent/cm-executable-options` |
@@ -364,9 +364,28 @@ HF15/HF16均预算2/2关闭。HF16一步物理信息PROMISING且实际局部控�
 HF17强参考修正1506窗口已完成：fit选中手指半修正，heldvsreference
 −9.227mm90[−23.722,+6.520]，机会门UNPROMISING；slot1后关闭，slot2不启动。
 全部实际PD/force/geometry/反馈审计通过，21.58min/110.68MB，本任务PID退出。
-当前触发要求物体已离桌3cm，不能帮助尚未形成的抓取；下一步转接触到抬升
-阶段，先利用原有真实反馈片段检查监督支持，足够才学习程序条件H10物理
-后果。见 [HF17结果](experiments/probes/P-20261002-strong-reference-opportunity-result.md)。
+HF18已完成4586窗口资格与9模型各1000更新，early held971/144ep/30组、
+41抬升正例，原监督支持门通过。Cm高度14.476 vsstate15.173/shuf15.208mm、
+CLR5.819 vs5.927/6.078mm，均未过对两控制改善至少5%的原门；形成抬升
+Brier与联合高度有信息增益但不替代失败门。UNPROMISING，slot1后关闭。
+全部pre/真实PD/控制律/34标签/fit归一化复算0误差，冻结hash/任务终态通过；
+GPU采集后当前执行环境CUDA不可用，记录后全部9个匹配拟合统一CPU125.73s，
+默认仍GPU。累计11.13min/65.47MB，未启动闭环/PPO。
+见 [HF18结果](experiments/probes/P-20261002-contact-to-lift-macro-result.md)。
+fit/cal接触作用检查已完成：端点净力不能直接当作周期平均力；cal5190
+动态帧Newton速度更新RMSE61.668m/s，常速度.2946；独立float64复算通过。
+具体原因未定位，不对力事后缩放。下一步监督实际速度增量或有效非重力
+冲量，不称已分离的手物力。相对几何工程亦通过29110个pre-step观测；
+下一步把各指动作与物体坐标下的几何绑定，设计可执行候选修正和相应物理
+预测合同，而非继续固定目录/门限扫描。
+见 [作用链条检查](experiments/probes/P-20261002-contact-impulse-observability-result.md)。
+具体下一路线见 [相对几何与动作生成决定](decisions/D-20261002-contact-geometry-action-synthesis.md)。
+随机组合采集器/有界工程启动器已实现；离线193状态/1158命令的专家范围、
+固定旋转和历史真实40base/20cup PD复现均通过，目标误差0。独立记录审计已实现并拒绝10类synthetic损坏，34输入hash核对，
+GPU访问已恢复：8张3090可见，GPU0上的实际CUDA矩阵运算通过；旧阻塞
+记录保留。当前继续有界原生工程，使用新独立源采集合同；完整机制/收益与
+策略学习仍未完成，C3仍OPEN。
+见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。
 不对旧目录或阈值继续扫描，不启动完整PPO/最终成功率矩阵。C3仍OPEN。
 近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
 新数据测量收益，而非把单状态预测当全候选真值。

@@ -1,0 +1,17 @@
+{
+  "status": "GPU_ACCESS_RESTORED",
+  "timestamp": 1790906781.6503599,
+  "nvidia_smi_returncode": 0,
+  "gpus": "0, NVIDIA GeForce RTX 3090, 261, 24576\n1, NVIDIA GeForce RTX 3090, 2, 24576\n2, NVIDIA GeForce RTX 3090, 7987, 24576\n3, NVIDIA GeForce RTX 3090, 8011, 24576\n4, NVIDIA GeForce RTX 3090, 2, 24576\n5, NVIDIA GeForce RTX 3090, 2, 24576\n6, NVIDIA GeForce RTX 3090, 2, 24576\n7, NVIDIA GeForce RTX 3090, 2, 24576\n",
+  "cuda_available": true,
+  "gpu_matmul_passed": true,
+  "cuda_smoke_terminal_evidence": {
+    "exec_session_id": 90094,
+    "exit_code": 0,
+    "selected_physical_gpu": 0,
+    "torch_version": "2.4.1+cu121"
+  },
+  "historical_blocker": "P-20261002-contact-geometry-gpu-blocker.json",
+  "native_source_started": false,
+  "scope": "device access restored; no scientific Cm claim"
+}

@@ -26,7 +26,17 @@ def run(args):
         raise ValueError('terminal audited source required')
     prior_seconds = extra['cumulative_seconds'] + audit['elapsed_seconds'] + engineering['elapsed_seconds'] + qualification['elapsed_seconds']
     prior_bytes = extra['output_bytes'] + sum(p.stat().st_size for p in [args.additional_audit, args.engineering_audit, args.qualification])
-    admission = gpu_admission(args.gpu); os.environ['CUDA_VISIBLE_DEVICES'] = admission['uuid']
+    device = args.device
+    if device == 'cpu':
+        if args.device_evidence is None: raise ValueError('explicit device limitation evidence required')
+        evidence = json.loads(args.device_evidence.read_text())
+        if evidence.get('cuda_available') is not False or evidence['gpu_probe_returncode'] == 0:
+            raise ValueError('GPU-first exception requires failed CUDA and GPU admission')
+        if time.time()-evidence['timestamp'] > 600: raise ValueError('fresh device evidence required')
+        admission = dict(device='cpu', reason=evidence['reason'], evidence=str(args.device_evidence))
+        prior_seconds += evidence.get('cost_seconds_conservative', 5)
+    else:
+        admission = gpu_admission(args.gpu); os.environ['CUDA_VISIBLE_DEVICES'] = admission['uuid']
     begin = time.monotonic()
     import torch
     from qualify_contact_to_lift_source import qualify
@@ -34,7 +44,7 @@ def run(args):
     torch.set_num_threads(2); torch.backends.cudnn.allow_tf32 = False; torch.backends.cuda.matmul.allow_tf32 = False
     args.output.mkdir()
     manifest = dict(experiment_id='P-20261002-contact-to-lift-macro', family='HF18', probe_index_in_family=1,
-                    run_status='STARTED', pid=os.getpid(), command=sys.argv, gpu=admission,
+                    run_status='STARTED', pid=os.getpid(), command=sys.argv, gpu=admission, device=device,
                     git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                     prior_seconds=prior_seconds, prior_bytes=prior_bytes, wall_limit_seconds=3600,
                     output_limit_bytes=8 << 30, models=[], input_sha256={})
@@ -53,12 +63,13 @@ def run(args):
                   ROOT / 'docs/decisions/D-20261002-contact-to-lift-macro.md',
                   ROOT / 'docs/experiments/probes/P-20261002-contact-to-lift-macro.md',
                   args.qualification, args.additional_audit, args.engineering_audit]
+        if args.device_evidence: inputs.append(args.device_evidence)
         for directory in [args.source, args.additional]:
             p = directory / 'run_manifest.json'; inputs.append(p)
             source = json.loads(p.read_text()); inputs += [Path(k) for k in source['input_sha256']]
         hashes = {str(p.resolve()): sha(p) for p in inputs}; hashes.update(record_hashes)
         manifest.update(run_status='RUNNING', input_sha256=hashes, counts=counts); save()
-        data = {k: v.cuda() for k, v in raw.items()}; splits = {k: v.cuda() for k, v in splits.items()}
+        data = {k: v.to(device) for k, v in raw.items()}; splits = {k: v.to(device) for k, v in splits.items()}
         normalization = {}
         for name in ['history', 'physical', 'native', 'goal', 'law']:
             x = data[name][splits['fit']]; dims = (0, 1) if name == 'history' else 0
@@ -73,20 +84,23 @@ def run(args):
         for mode in ['cm', 'state_only', 'shuffled']:
             trained, predictions = [], []
             for seed in [11601, 11602, 11603]:
-                check(); torch.manual_seed(seed); torch.cuda.manual_seed_all(seed)
-                model = ContactToLiftMacroModel(data['physical'].shape[-1], data['native'].shape[-1], mode).cuda()
+                check(); torch.manual_seed(seed)
+                if device != 'cpu': torch.cuda.manual_seed_all(seed)
+                model = ContactToLiftMacroModel(data['physical'].shape[-1], data['native'].shape[-1], mode).to(device)
                 optimizer = torch.optim.Adam(model.parameters(), lr=.0003, weight_decay=.0001)
-                generator = torch.Generator(device='cuda').manual_seed(seed+30000)
+                generator = torch.Generator(device=device).manual_seed(seed+30000)
                 goals = data['goal'].clone(); laws = data['law'].clone()
                 if mode == 'shuffled':
-                    shuffler = torch.Generator(device='cuda').manual_seed(seed+40000)
+                    shuffler = torch.Generator(device=device).manual_seed(seed+40000)
                     for condition in [False, True]:
                         rows = fit[data['early'][fit] == condition]
-                        permuted = rows[torch.randperm(len(rows), device='cuda', generator=shuffler)]
+                        permuted = rows[torch.randperm(len(rows), device=device, generator=shuffler)]
                         goals[rows] = data['goal'][permuted]; laws[rows] = data['law'][permuted]
                 model.train()
                 for update in range(1000):
-                    ids = fit[torch.randint(len(fit), (256,), device='cuda', generator=generator)]
+                    if update % 100 == 0 and prior_seconds+time.monotonic()-begin > 3540:
+                        raise TimeoutError('whole slot budget during training')
+                    ids = fit[torch.randint(len(fit), (256,), device=device, generator=generator)]
                     optimizer.zero_grad(set_to_none=True)
                     prediction = model(data['history'][ids], data['physical'][ids], data['native'][ids], goals[ids], laws[ids], data['prior'][ids])
                     value = loss(prediction, data['target'][ids]); value.backward()
@@ -141,4 +155,6 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     for name in ['source', 'additional', 'additional-audit', 'engineering-audit', 'qualification', 'output']:
         p.add_argument('--'+name, type=Path, required=True)
-    p.add_argument('--gpu', type=int, default=0); run(p.parse_args())
+    p.add_argument('--gpu', type=int, default=0)
+    p.add_argument('--device', choices=['cuda', 'cpu'], default='cuda'); p.add_argument('--device-evidence', type=Path)
+    run(p.parse_args())

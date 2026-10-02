@@ -1,0 +1,11 @@
+{
+  "status": "COMPLETED",
+  "terminal_tool": "functions.exec/tools.write_stdin",
+  "session_id": 20179,
+  "exit_code": 0,
+  "run_manifest_sha256": "59bf38b0210fe837736f262cf5b0b5e55bdecdb8daa41531658e9e63bb0466af",
+  "checkpoint_sha256": "d80db71a855d66273b3b34d93fb047d8aea821aadbfd63bf04cf27edd0b821c3",
+  "observed_label": "UNPROMISING",
+  "note": "Terminal tool result observed exit_code0. Isolated exec calls reuse small PID values; os.kill(pid,0) alone cannot identify the former fit owner.",
+  "failed_audit_seconds_conservative": 1
+}

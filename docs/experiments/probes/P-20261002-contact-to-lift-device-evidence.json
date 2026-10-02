@@ -1,0 +1,15 @@
+{
+  "status": "COMPLETED",
+  "gpu_probe_returncode": 9,
+  "gpu_stdout": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\n",
+  "gpu_stderr": "",
+  "timestamp": 1790889141.5977354,
+  "neural_fitting_started": false,
+  "cuda_available": false,
+  "cuda_device_count": 0,
+  "torch_version": "2.4.1+cu121",
+  "probe_elapsed_seconds": 0.059091415256261826,
+  "reason": "Current managed execution environment cannot admit or access CUDA; prefer GPU when available, CPU fallback permitted by AGENTS.md 4.1 and CAMPAIGN GPU execution policy.",
+  "cost_seconds_conservative": 5,
+  "exception_scope": "Only current matched offline H10 fitting; all nine models on CPU, default remains CUDA. Native GPU controller execution needs restored device access."
+}

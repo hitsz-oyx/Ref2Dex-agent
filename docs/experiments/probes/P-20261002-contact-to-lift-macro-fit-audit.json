@@ -1,0 +1,284 @@
+{
+  "status": "COMPLETED",
+  "own_fit_pid_exited": true,
+  "input_hashes_unchanged": true,
+  "rows": 4586,
+  "counts": {
+    "fit": {
+      "all": {
+        "windows": 2147,
+        "episodes": 389,
+        "initial_groups": 39
+      },
+      "early": {
+        "windows": 1642,
+        "episodes": 299,
+        "initial_groups": 39
+      },
+      "positive_lift": {
+        "windows": 64,
+        "episodes": 43,
+        "initial_groups": 21
+      },
+      "negative_lift": {
+        "windows": 1578,
+        "episodes": 293,
+        "initial_groups": 39
+      }
+    },
+    "cal": {
+      "all": {
+        "windows": 764,
+        "episodes": 151,
+        "initial_groups": 17
+      },
+      "early": {
+        "windows": 564,
+        "episodes": 118,
+        "initial_groups": 17
+      },
+      "positive_lift": {
+        "windows": 48,
+        "episodes": 24,
+        "initial_groups": 9
+      },
+      "negative_lift": {
+        "windows": 516,
+        "episodes": 116,
+        "initial_groups": 16
+      }
+    },
+    "held": {
+      "all": {
+        "windows": 1675,
+        "episodes": 248,
+        "initial_groups": 34
+      },
+      "early": {
+        "windows": 971,
+        "episodes": 144,
+        "initial_groups": 30
+      },
+      "positive_lift": {
+        "windows": 41,
+        "episodes": 21,
+        "initial_groups": 8
+      },
+      "negative_lift": {
+        "windows": 930,
+        "episodes": 144,
+        "initial_groups": 30
+      }
+    }
+  },
+  "reconstruction_max_error": 0.0,
+  "fit_only_normalization_max_error": 0.0,
+  "checkpoint_sha256": "d80db71a855d66273b3b34d93fb047d8aea821aadbfd63bf04cf27edd0b821c3",
+  "elapsed_seconds": 8.251087363343686,
+  "cumulative_seconds": 666.5135524268262,
+  "scoped_bytes": 65473553,
+  "gpu": {
+    "device": "cpu",
+    "reason": "label reconstruction and statistics; matches recorded CPU device exception"
+  },
+  "information_result": {
+    "run_status": "COMPLETED",
+    "label": "UNPROMISING",
+    "metrics": {
+      "cm": {
+        "held": {
+          "rows": 1675,
+          "height_rmse_mm": 19.63978385925293,
+          "clearance_mae_mm": 9.995256423950195,
+          "joint_brier": 0.06191868335008621,
+          "support_brier": 0.05769067257642746,
+          "loss_brier": 0.06273199617862701,
+          "new_lift_brier": 0.06894789636135101,
+          "persist_lift_brier": 0.09791044890880585,
+          "joint_supported_height_mae_mm": 14.999298095703125
+        },
+        "held_early": {
+          "rows": 971,
+          "height_rmse_mm": 14.475617408752441,
+          "clearance_mae_mm": 5.819141387939453,
+          "joint_brier": 0.09220568090677261,
+          "support_brier": 0.020380409434437752,
+          "loss_brier": 0.02375434897840023,
+          "new_lift_brier": 0.025977397337555885,
+          "persist_lift_brier": 0.04222451150417328,
+          "joint_supported_height_mae_mm": 5.939992904663086
+        },
+        "cal_early": {
+          "rows": 564,
+          "height_rmse_mm": 19.59126853942871,
+          "clearance_mae_mm": 7.968593120574951,
+          "joint_brier": 0.0892847552895546,
+          "support_brier": 0.053112052381038666,
+          "loss_brier": 0.051727816462516785,
+          "new_lift_brier": 0.050615549087524414,
+          "persist_lift_brier": 0.08510638028383255,
+          "joint_supported_height_mae_mm": 9.343969345092773
+        }
+      },
+      "state_only": {
+        "held": {
+          "rows": 1675,
+          "height_rmse_mm": 23.848918914794922,
+          "clearance_mae_mm": 12.35980224609375,
+          "joint_brier": 0.08196799457073212,
+          "support_brier": 0.06174154579639435,
+          "loss_brier": 0.06676547229290009,
+          "new_lift_brier": 0.0757530927658081,
+          "persist_lift_brier": 0.09791044890880585,
+          "joint_supported_height_mae_mm": 18.162899017333984
+        },
+        "held_early": {
+          "rows": 971,
+          "height_rmse_mm": 15.173412322998047,
+          "clearance_mae_mm": 5.926545143127441,
+          "joint_brier": 0.12654846906661987,
+          "support_brier": 0.0201980322599411,
+          "loss_brier": 0.02371031790971756,
+          "new_lift_brier": 0.02701273187994957,
+          "persist_lift_brier": 0.04222451150417328,
+          "joint_supported_height_mae_mm": 6.237124443054199
+        },
+        "cal_early": {
+          "rows": 564,
+          "height_rmse_mm": 20.922637939453125,
+          "clearance_mae_mm": 8.511237144470215,
+          "joint_brier": 0.11209538578987122,
+          "support_brier": 0.05546395853161812,
+          "loss_brier": 0.050680872052907944,
+          "new_lift_brier": 0.05726837366819382,
+          "persist_lift_brier": 0.08510638028383255,
+          "joint_supported_height_mae_mm": 10.31092643737793
+        }
+      },
+      "shuffled": {
+        "held": {
+          "rows": 1675,
+          "height_rmse_mm": 23.774677276611328,
+          "clearance_mae_mm": 12.4637451171875,
+          "joint_brier": 0.0816878229379654,
+          "support_brier": 0.06153574585914612,
+          "loss_brier": 0.06547070294618607,
+          "new_lift_brier": 0.07536715269088745,
+          "persist_lift_brier": 0.09791044890880585,
+          "joint_supported_height_mae_mm": 18.413129806518555
+        },
+        "held_early": {
+          "rows": 971,
+          "height_rmse_mm": 15.207534790039062,
+          "clearance_mae_mm": 6.077831268310547,
+          "joint_brier": 0.12618783116340637,
+          "support_brier": 0.02061900496482849,
+          "loss_brier": 0.024852508679032326,
+          "new_lift_brier": 0.027782365679740906,
+          "persist_lift_brier": 0.04222451150417328,
+          "joint_supported_height_mae_mm": 6.488405227661133
+        },
+        "cal_early": {
+          "rows": 564,
+          "height_rmse_mm": 20.890390396118164,
+          "clearance_mae_mm": 8.49199390411377,
+          "joint_brier": 0.112662672996521,
+          "support_brier": 0.055306289345026016,
+          "loss_brier": 0.05107796564698219,
+          "new_lift_brier": 0.05631709098815918,
+          "persist_lift_brier": 0.08510638028383255,
+          "joint_supported_height_mae_mm": 10.426704406738281
+        }
+      }
+    },
+    "gate": {
+      "supervision": true,
+      "new_lift_no_worse_than_persist": true,
+      "state_only_height5pct": false,
+      "state_only_clearance5pct": false,
+      "state_only_new_lift": true,
+      "state_only_joint_height": true,
+      "shuffled_height5pct": false,
+      "shuffled_clearance5pct": false,
+      "shuffled_new_lift": true,
+      "shuffled_joint_height": true,
+      "passed": false
+    },
+    "counts": {
+      "fit": {
+        "all": {
+          "windows": 2147,
+          "episodes": 389,
+          "initial_groups": 39
+        },
+        "early": {
+          "windows": 1642,
+          "episodes": 299,
+          "initial_groups": 39
+        },
+        "positive_lift": {
+          "windows": 64,
+          "episodes": 43,
+          "initial_groups": 21
+        },
+        "negative_lift": {
+          "windows": 1578,
+          "episodes": 293,
+          "initial_groups": 39
+        }
+      },
+      "cal": {
+        "all": {
+          "windows": 764,
+          "episodes": 151,
+          "initial_groups": 17
+        },
+        "early": {
+          "windows": 564,
+          "episodes": 118,
+          "initial_groups": 17
+        },
+        "positive_lift": {
+          "windows": 48,
+          "episodes": 24,
+          "initial_groups": 9
+        },
+        "negative_lift": {
+          "windows": 516,
+          "episodes": 116,
+          "initial_groups": 16
+        }
+      },
+      "held": {
+        "all": {
+          "windows": 1675,
+          "episodes": 248,
+          "initial_groups": 34
+        },
+        "early": {
+          "windows": 971,
+          "episodes": 144,
+          "initial_groups": 30
+        },
+        "positive_lift": {
+          "windows": 41,
+          "episodes": 21,
+          "initial_groups": 8
+        },
+        "negative_lift": {
+          "windows": 930,
+          "episodes": 144,
+          "initial_groups": 30
+        }
+      }
+    },
+    "elapsed_seconds": 125.72596769919619,
+    "cumulative_seconds": 658.2624620054848,
+    "scoped_bytes": 65473553,
+    "checkpoint_sha256": "d80db71a855d66273b3b34d93fb047d8aea821aadbfd63bf04cf27edd0b821c3",
+    "scope": "factual H10 information; no ranking-regret/actual controller/RL/stable grasp claim"
+  },
+  "terminal_evidence_sha256": "6983bd7c9be32e5ba371e9c155daea8bff21736f3b8aca744780991317f5e622",
+  "auditor_sha256": "245c99c50dacb10b249e38613c08bdedf564b42b8058d489776e72f78047e6bf",
+  "scope": "pre-only timing, actual force labels, feedback law and fit-only normalization; no controller/RL/stable grasp claim"
+}

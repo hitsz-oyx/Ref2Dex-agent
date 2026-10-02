@@ -7,7 +7,12 @@ pending_dispatches: []
 
 # CPU-only engineering preparation is tracked separately from Probe search slots.
 # These tasks do not collect transitions, train, or create a scientific claim.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-contact-geometry-source
+    owner: current_session
+    status: ACTIVE
+    card: docs/experiments/probes/P-20261002-contact-geometry-source-engineering.md
+    outcome_boundary: "Offline1158commands/193states verified; archived actual40base/20cup nativePD replay0; collector/bounded launcher plus independent full pre/post geometry/PD/label auditor implemented;10synthetic corruptions rejected,34inputhashes verified in supersedingR2plan. No native job started, no new transitions/fits/utility claim. GPU access restored and CUDA GPU0 matmul verified; proceed bounded native engineering, scientific Probe budget not consumed."
 
 completed_engineering_tasks:
   - id: T-20261001-current-policy-value-collector-runtime
@@ -75,14 +80,14 @@ diagnostic_hypotheses:
   HF18:
     claim: C3
     name: contact_to_lift_feedback_macro_physics
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-contact-to-lift-macro
     probe_budget: 2
     probes_used: 1
     owner: current_session
     authorization: "active mechanism goal; contact-to-lift control responsibility and fixed feedback-law H10 contract after closed post-lift routes; same mission/claim/resources"
-    card: docs/experiments/probes/P-20261002-contact-to-lift-macro.md
-    transition: "Firstsource supervisionqualification, then onlyifadequate matched9GPU models11601-11603/1000updates, pre-only actualnativePD/currentrawforce/feedbacklaw H10taskphysics. Original3917completeprogram records only, no heldutility fitting. Frozenearly informationgates; no finalsuccess/PPO untilactualcontrolbenefit.60min8GiB/slot, C3OPEN."
+    card: docs/experiments/probes/P-20261002-contact-to-lift-macro-result.md
+    transition: "CLOSED after slot1 UNPROMISING; slot2 not started. Audited4586H10windows; earlyheld971/144ep/30groups,41newliftpositive/21ep/8groups. Cmheight14.476 vsstate15.173/shuf15.208mm; CLR5.819 vs5.927/6.078mm, original5pctgatesfail. NewliftBrier and jointheightMAE improve, partialinformation preserved. Allpre/PD/law/34labels/fitnormalizers independently reconstructed0; terminalfit exit0. GPU source, currentCUDAunavailable recorded matchingCPU9x1000updates125.73s. Total667.51s65.47MB inclfailed audit. No epoch/seed/threshold scan; nextfit/cal contact-impulse observability qualification, C3OPEN."
   HF17:
     claim: C3
     name: strong_reference_feedback_corrections

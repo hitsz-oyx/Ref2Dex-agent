@@ -1,0 +1,23 @@
+{
+  "status": "BLOCKER_CONFIRMED",
+  "timestamp": 1790892297.3999064,
+  "gpu_probe_returncode": 9,
+  "gpu_probe_stdout": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\n",
+  "gpu_probe_stderr": "",
+  "device_nodes": [
+    "/dev/nvidia-caps"
+  ],
+  "cuda_available": false,
+  "cuda_device_count": 0,
+  "torch_probe_terminal_evidence": {
+    "exec_session_id": 88014,
+    "exit_code": 0,
+    "torch_version": "2.4.1+cu121"
+  },
+  "missing_primary_device_nodes": true,
+  "consecutive_goal_turns_with_same_blocker": 3,
+  "native_collection_started": false,
+  "goal_completion_proven": false,
+  "required_external_change": "restore GPU device access to this execution environment or provide an authorized existing GPU execution entry",
+  "scope": "execution blocker; no scientific Cm conclusion"
+}

@@ -1,0 +1,34 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "source_rows": 193,
+  "archived_real_cup_matches": 20,
+  "archived_real_base_matches": 40,
+  "mixture_commands_tested": 1158,
+  "max_errors": {
+    "base_reference": 0.0,
+    "cup_reference": 0.0,
+    "weight_sum": 2.384185791015625e-07,
+    "fixed_rotation": 0.0,
+    "archived_actual_cup_pd": 0.0,
+    "archived_actual_base_pd": 0.0
+  },
+  "merged_propensity": [
+    0.20000000298023224,
+    0.20000000298023224,
+    0.10000000149011612,
+    0.10000000149011612,
+    0.10000000149011612,
+    0.10000000149011612,
+    0.10000000149011612,
+    0.10000000149011612
+  ],
+  "elapsed_seconds": 0.019546985626220703,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-to-lift-targeted-source-r1/seed551/records.pt": "a6efffb36203d262d9d5491a8fda9caf87bb48a4f0af891938f816593300c41d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/smoke_contact_geometry_actions.py": "b6831a554223ffc3a3ea3fd8d82154614b35845b01ca413e059d968cff063309",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/contact_geometry_actions.py": "2a1a1bbdb7e51a342e633a04abe493fcf09d69ec2477debeb61748cf4cd01d49"
+  },
+  "device_reason": "CPU small command algebra and archived PD checks; no NN or simulation",
+  "scope": "offline command engineering only; no new physical transitions, candidate opportunity or Cm utility evidence"
+}
