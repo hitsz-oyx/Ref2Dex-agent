@@ -1,0 +1,122 @@
+{
+  "schema": "ref2dex.cm_macro_native_audit.v1",
+  "run_status": "COMPLETED",
+  "records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed619/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed620/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed621/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed622/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed623/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed624/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-macro-consequence-r1/seed625/records.pt"
+  ],
+  "seeds": [
+    619,
+    620,
+    621,
+    622,
+    623,
+    624,
+    625
+  ],
+  "rows": 278,
+  "groups": 24,
+  "episodes": 95,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "candidate_names": [
+    "expert0",
+    "expert1",
+    "expert2",
+    "expert3",
+    "expert4",
+    "expert5",
+    "base_hold",
+    "fixed_cup"
+  ],
+  "policy_definition": "0=raw_top_cm_macro_3tick, 1=fixed_cup",
+  "policy_counts": [
+    142,
+    136
+  ],
+  "policy_episode_counts": [
+    74,
+    77
+  ],
+  "policy_value_reports": {
+    "raw_top_cm_macro_3tick": {
+      "score_mm": 34.5641204093,
+      "first_delta_mm": 5.1658248043746395,
+      "retained": 0.8489208633093526,
+      "contact_last3": 0.9496402877697842,
+      "clearance_last3": 0.8561151079136691
+    },
+    "fixed_cup": {
+      "score_mm": 20.633616546932743,
+      "first_delta_mm": 3.424958798525145,
+      "retained": 0.7553956834532374,
+      "contact_last3": 0.8705035971223022,
+      "clearance_last3": 0.7553956834532374
+    }
+  },
+  "delta_reports": {
+    "score_mm": {
+      "mean": 13.54677545508247,
+      "lower90": 4.056297584576093,
+      "upper90": 21.845167796821745
+    },
+    "first_delta_mm": {
+      "mean": 1.7022821702905468,
+      "lower90": -0.024509300487853974,
+      "upper90": 3.236045139518385
+    },
+    "retained": {
+      "mean": 0.08365520019251742,
+      "lower90": -0.04790419161676647,
+      "upper90": 0.1875077160493826
+    },
+    "contact_last3": {
+      "mean": 0.06967960353307585,
+      "lower90": -0.0750042662116041,
+      "upper90": 0.18764598283382578
+    },
+    "clearance_last3": {
+      "mean": 0.09155210346388305,
+      "lower90": -0.03690720240535738,
+      "upper90": 0.19548872180451127
+    }
+  },
+  "changed_from_fixed": 125,
+  "changed_fraction": 0.8802816901408451,
+  "cm_choice_counts": [
+    0,
+    110,
+    10,
+    0,
+    4,
+    0,
+    1,
+    17
+  ],
+  "chosen_candidate_counts": [
+    0,
+    110,
+    10,
+    0,
+    4,
+    0,
+    1,
+    17
+  ],
+  "support_gate": true,
+  "score_gate": true,
+  "risk_gate": false,
+  "support_requirements": {
+    "each_policy_rows": 48,
+    "each_policy_episodes": 20
+  },
+  "cluster_bootstrap_draws": 10000,
+  "label": "UNPROMISING",
+  "macro_steps": 3,
+  "continuation_steps": 7,
+  "interpretation": "Fresh native repeated-macro A/B local utility validation; still not a trained-policy or task-success claim"
+}
