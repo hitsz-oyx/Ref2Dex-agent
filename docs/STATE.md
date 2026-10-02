@@ -284,3 +284,13 @@ Next Decision is a fresh current-observed-support TASK-value information
 screen597/598, before committing to another physical predictor or actor.
 Old failed one-step/four-tick/oracle recipes stay closed with unchanged gates.
 [Resume decision](decisions/D-20261002-observed-support-task-value.md).
+
+Observed support task-value597/598 now COMPLETED/UNPROMISING:1536newtrajectories,
+63682FIT/63048TESTrows,3000GPUupdates. Brier support.05318334 vscompact.05405293
+(1.6088%gain), but paired CI[-.00207045,+.00032280] crosses0. Full current
+SDK/force/flow/history and native audits pass; allTEST NN/statistics replay,
+no optimizer replay.319.342s/536427817bytes; own jobs terminal.
+[Results](research/20261002-observed-support-task-value-results.md).
+Close exact support-value predictor. Next is directly EXECUTED paired joint
+option task opportunity601, common initial placement and pre-intervention P0,
+with baseline repeat/matching gates; no failed model is adopted.

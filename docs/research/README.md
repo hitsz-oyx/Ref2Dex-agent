@@ -110,3 +110,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Task determinacy diagnostic](20261002-task-outcome-determinacy-results.md).
 
 - [Fixed-policy truth-successor task-value result](20261002-truth-successor-task-value-results.md): UNPROMISING; oracle gain over direct Q0.9354% fails the frozen1% gate. This track is being finalized at the user's request before a new route.
+
+- [Resumed observed-support task-value result](20261002-observed-support-task-value-results.md): UNPROMISING;1.6088% descriptive gain but paired interval crosses zero.
