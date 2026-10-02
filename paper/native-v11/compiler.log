@@ -1,0 +1,20 @@
+note: Running TeX ...
+warning: manuscript-v11.tex:198: Overfull \hbox (0.78616pt too wide) in paragraph at lines 191--198
+note: downloading lmmono10-regular.otf
+warning: manuscript-v11.tex:1059: Underfull \hbox (badness 4647) in paragraph at lines 1058--1059
+note: Rerunning TeX because "manuscript-v11.out" changed ...
+warning: manuscript-v11.tex:198: Overfull \hbox (0.78616pt too wide) in paragraph at lines 191--198
+warning: manuscript-v11.tex:842: Overfull \hbox (5.29214pt too wide) in paragraph at lines 833--842
+warning: manuscript-v11.tex:1059: Underfull \hbox (badness 4647) in paragraph at lines 1058--1059
+warning: warnings were issued by the TeX engine; use --print and/or --keep-logs for details.
+note: Running xdvipdfmx ...
+note: downloading pdftex.map
+note: downloading kanjix.map
+note: downloading ckx.map
+note: downloading texglyphlist.txt
+note: downloading pdfglyphlist.txt
+note: downloading glyphlist.txt
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v11/manuscript-v11.out` (5.5595703125 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v11/manuscript-v11.aux` (11.5732421875 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v11/manuscript-v11.pdf` (200.9072265625 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v11/manuscript-v11.log` (12.8701171875 KiB)

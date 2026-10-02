@@ -47,12 +47,13 @@ def main():
            'P-20261002-continuous-native-memory-diagnosis-r1','P-20261002-continuous-gradient-diagnosis-r1',
            'P-20261002-continuous-gradient-correction-r1','P-20261002-continuous-critic-policy-closeout-r3',
            'P-20261002-continuous-critic-host-stop-r1','P-20261002-continuous-critic-migration-inspection-r1',
-           'P-20261002-continuous-critic-audit-resume-inspection-r1','P-20261002-paper-v11-audit-r1']
+           'P-20261002-continuous-critic-audit-resume-inspection-r1','P-20261002-paper-v11-audit-r1',
+           'P-20261002-request-execution-headroom-r1']
     for name in names:
         for f in (base/name).iterdir():
             if f.is_file():copy(f,Path('provenance')/name/f.name)
         if name in ['P-20261002-continuous-critic-policy-resume-r1','P-20261002-continuous-native-memory-diagnosis-r1']:
-            for f in (base/name/'s550').iterdir():
+            for f in ((base/name/'s550').iterdir() if (base/name/'s550').exists() else []):
                 if f.is_file():copy(f,Path('provenance')/name/'s550'/f.name)
     original=Path(m['original_source_run'])
     for f in original.iterdir():
@@ -76,7 +77,7 @@ def main():
     subprocess.run(['git','bundle','create',str(dest/'code.bundle'),'--all'],cwd=str(ROOT),check=True)
     subprocess.run(['git','bundle','verify',str(dest/'code.bundle')],cwd=str(ROOT),check=True)
     hashes['code.bundle']=sha(dest/'code.bundle')
-    readme='''Complete continuous-policy Probe and native manuscript v11.\n\nThis package materializes all 22 native raw panels, all 21 actor/critic/Adam\ncheckpoints, all 20 optimizer packets and audits, preserved failure/diagnostic\nrecords, native paper and exact hashed manuscript inputs. External IsaacGym,\nDExplore dependencies and asset datasets are not redistributed; their original\npaths/hashes remain in the source manifests. The experiment includes an explicit\nGPU migration and witnessed u17 floating-point ReLU branch audit correction.\nAbsolute paths in original manifests are retained for provenance; delivery.json\nmaps original source paths to verified local snapshots. Earlier delivery packages\nare untouched. This is one optimization seed and does not establish journal\nreadiness, generalization or a distinctive method.\n'''
+    readme='''Complete continuous-policy Probe and native manuscript v11.\n\nThis package materializes all 22 native raw panels, all 21 policy checkpoints (20 with optimizer states), all 20 optimizer packets and audits, preserved failure/diagnostic\nrecords, native paper and exact hashed manuscript inputs. External IsaacGym,\nDExplore dependencies and asset datasets are not redistributed; their original\npaths/hashes remain in the source manifests. The experiment includes an explicit\nGPU migration and witnessed u17 floating-point ReLU branch audit correction.\nAbsolute paths in original manifests are retained for provenance; delivery.json\nmaps original source paths to verified local snapshots. Earlier delivery packages\nare untouched. This is one optimization seed and does not establish journal\nreadiness, generalization or a distinctive method.\n'''
     (dest/'README.txt').write_text(readme);hashes['README.txt']=sha(dest/'README.txt')
     for relative,digest in hashes.items():assert sha(dest/relative)==digest,relative
     record=dict(run_status='COMPLETED',files_sha256=hashes,original_source_mapping=mapping,

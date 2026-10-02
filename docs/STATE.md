@@ -138,13 +138,22 @@ and original scientific files verify. Conservative cumulative3311.593s and
 [Branch correction](decisions/D-20261002-continuous-gradient-branch-correction.md).
 [GPU migration](decisions/D-20261002-continuous-gpu-migration.md).
 
-Next choose a different representation/integration based on whether sampled
-commands have usable task-relevant physical response. Reuse existing randomized
-Gaussian traces for one bounded decision screen before collecting more native
-training; no repeated one-step auxiliary or failed static-arm tuning. A late
-response is a hypothesis, not an observed mechanism. The outcome must decide
-between a delayed-response representation and changing the exploration/task
-substrate, without treating either as novel or supported in advance.
+The subsequent predeclared TRAINING-only execution-headroom screen completes
+32.967s, no models/optimizer/physics. On all403200motion2criterion-window
+transitions, actual versus saved-mean requests produce meaningful executable
+command changes in100%of transitions in ALLthree arms, target reconstruction
+error<=2.396e-7. PROMISING for command execution only; no object response or Cm
+utility follows. Do not make projection repair the principal route. Wrist axes
+have91.7--92.1%/83.8--84.6%meaningful translation/rotation contrasts; individual
+finger axes49.5--51.5%, not universal axis availability.
+[Execution headroom](research/20261002-request-execution-headroom-results.md).
+
+Next distinguish immediate object movement from delayed short-horizon response,
+using one separately fixed training-only randomized-innovation screen if it will
+choose the physical target. Then design a task-relevant representation or direct
+policy integration, not one-step critic coefficient/seed scans. Delayed response
+is still an unobserved hypothesis; no lag/axis/window search is authorized by
+this next-step statement.
 
 Distinctive methodology, matched positive policy-training utility, formal
 Validation, generalization and hardware remain unmet. The journal objective
