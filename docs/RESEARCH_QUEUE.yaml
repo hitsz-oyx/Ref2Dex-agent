@@ -49,6 +49,20 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-candidate-coverage
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-candidate-coverage.md
+    evidence: docs/experiments/probes/P-20261003-cm-candidate-coverage-results.json
+    outcome_boundary: "Expanded the frozen candidate panel to 411 rows across 45 motion/start groups; support passed, but state/action+Cm held lower90 remained -22.162mm and mean Cm increment was +1.189mm. Close ordinary candidate-data expansion; no PPO."
+  - id: P-20261003-cm-critic-residual
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261003-cm-critic-residual.md
+    evidence: docs/experiments/probes/P-20261003-cm-critic-residual-results.json
+    outcome_boundary: "Frozen direct-Q plus Cm physical residual raised held episode Spearman 0.743 to 0.761, but worsened RMSE, MAE, and row Spearman. Close this linear critic interface; no policy training or Ridge scan."
   - id: P-20261003-cm-direct-q-mve-object-projection
     owner: current_session
     status: COMPLETED

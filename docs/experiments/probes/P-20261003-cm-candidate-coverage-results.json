@@ -1,0 +1,50 @@
+{
+  "schema": "ref2dex.cm_candidate_coverage_probe.v1",
+  "experiment_id": "P-20261003-cm-candidate-coverage",
+  "status": "COMPLETED",
+  "label": "UNPROMISING",
+  "frozen_contract": {
+    "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+    "candidate_count": 8,
+    "coverage_salts": [9851, 20261003, 20261004],
+    "ordinary_cm_training": false,
+    "policy_training": false
+  },
+  "stages": {
+    "r2_row_expansion": {
+      "new_rows": 148,
+      "combined_rows": 435,
+      "combined_groups": 25,
+      "adapter_state_action_lower90_mm": 2.417,
+      "adapter_state_action_plus_cm_lower90_mm": -21.861,
+      "interpretation": "row expansion without new motion/start support"
+    },
+    "r3_new_coverage": {
+      "complete_new_rows": 36,
+      "combined_rows": 323,
+      "combined_groups": 32,
+      "adapter_state_action_lower90_mm": -35.506,
+      "adapter_state_action_plus_cm_lower90_mm": -19.881,
+      "cm_increment_mean_mm": 12.451,
+      "cm_increment_lower90_mm": null,
+      "incomplete_seeds": [621, 623]
+    },
+    "r4_new_coverage": {
+      "complete_new_rows": 88,
+      "combined_rows": 411,
+      "combined_groups": 45,
+      "arm_support": [55, 58, 55, 50, 57, 54, 37, 45],
+      "support_gate": "PASS",
+      "adapter_state_action_mean_mm": 12.063,
+      "adapter_state_action_lower90_mm": -29.187,
+      "adapter_state_action_plus_cm_mean_mm": 13.253,
+      "adapter_state_action_plus_cm_lower90_mm": -22.162,
+      "cm_increment_mean_mm": 1.189,
+      "cm_increment_lower90_mm": -22.162,
+      "choice_agreement": 0.698,
+      "uncertainty_fallback_lower90_mm": -2.02,
+      "raw_top_lower90_mm": -11.54
+    }
+  },
+  "decision": "Do not expand ordinary Cm candidate data or start PPO under this contract; change value representation or decision target first."
+}

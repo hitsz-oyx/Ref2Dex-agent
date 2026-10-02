@@ -1,0 +1,49 @@
+{
+  "schema": "ref2dex.cm_critic_residual_audit.v1",
+  "run_status": "COMPLETED",
+  "rows": {
+    "fit": 831811,
+    "held": 209788
+  },
+  "fit_episodes": 1536,
+  "held_episodes": 384,
+  "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "models": {
+    "direct": {
+      "rmse": 26.833181381225586,
+      "mae": 9.108014106750488,
+      "spearman": 0.5889916827063789,
+      "episode_spearman": 0.7429344969651758
+    },
+    "direct_plus_base_residual": {
+      "rmse": 27.456735610961914,
+      "mae": 9.709253311157227,
+      "spearman": 0.5821729530127606,
+      "episode_spearman": 0.7305230833135532
+    },
+    "direct_plus_cm_residual": {
+      "rmse": 27.049623489379883,
+      "mae": 9.589498519897461,
+      "spearman": 0.5862063866168143,
+      "episode_spearman": 0.7609546132718457
+    }
+  },
+  "delta_vs_direct": {
+    "direct_plus_base_residual": {
+      "rmse": 0.6235542297363281,
+      "mae": 0.6012392044067383,
+      "spearman": -0.006818729693618297,
+      "episode_spearman": -0.012411413651622571
+    },
+    "direct_plus_cm_residual": {
+      "rmse": 0.21644210815429688,
+      "mae": 0.48148441314697266,
+      "spearman": -0.0027852960895645706,
+      "episode_spearman": 0.018020116306669887
+    }
+  },
+  "cm_feature_contract": "frozen ensemble predicted object delta/velocity/contact/reward/terminal plus current state/action; no future state",
+  "target": "realized complete-return from held transition; no success label",
+  "interpretation": "Offline critic-residual sufficiency Probe; no actor, policy, or success claim"
+}

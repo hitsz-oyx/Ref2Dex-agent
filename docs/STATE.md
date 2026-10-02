@@ -2,6 +2,26 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 candidate coverage and critic residual route: closed
+
+候选动作覆盖 Probe 已完成。先增加148行但 motion/start 组数仍为25，随后新增覆盖组，最终
+得到411行、45组，八个动作支持为 `[55,58,55,50,57,54,37,45]`，支持门通过。冻结同一
+Cm/direct-Q adapter 的 state/action+Cm held lower90 仍为 `-22.162mm`，Cm 增量均值仅
+`+1.189mm`；raw uncertainty fallback 和 raw-top selector 的 lower90 也分别为 `-2.02`
+和 `-11.54mm`。这排除了“普通候选数据不足”作为主要瓶颈，关闭继续扩数据，不启动 PPO。
+见 [coverage Probe](experiments/probes/P-20261003-cm-candidate-coverage.md) 和 [结果]
+(experiments/probes/P-20261003-cm-candidate-coverage-results.json)。
+
+随后完成离线 critic residual Probe：Cm 只提供冻结 ensemble 的 object delta/velocity/contact/
+reward/terminal 及不确定性，拟合 realized complete-return 相对 direct-Q 的 Ridge residual。
+held direct-Q 为 RMSE `26.833`、row Spearman `0.589`、episode Spearman `0.743`；加入 Cm 后
+episode Spearman 升至 `0.761`，但 RMSE `27.050`、MAE `9.589`、row Spearman `0.586` 均变差。
+这是混合的 critic-only 线索，不能支持策略训练或 Cm utility claim；关闭该线性 residual 接口，
+下一步若继续必须改变 representation 或 decision target，并预先定义 held criterion。见
+[critic residual Probe](experiments/probes/P-20261003-cm-critic-residual.md)、[Decision Memo]
+(decisions/D-20261003-cm-critic-residual.md) 和 [结果]
+(experiments/probes/P-20261003-cm-critic-residual-results.json)。
+
 ## 2026-10-03 direct-Q Cm MVE interface: closed
 
 按用户建议补做了严格的 direct-Q continuation：Cm 只提供 object translation/velocity/contact/events，保留当前 hand q/dq 与 object orientation，短期分数为 `local reward + gamma * direct-Q(predicted state, candidate action)`。held 209,788 rows 上 object-projected MVE 为 RMSE 26.60、row Spearman 0.591、episode Spearman 0.741，direct-Q 为 26.83、0.589、0.743；离线小信号没有 episode-level 改善。
