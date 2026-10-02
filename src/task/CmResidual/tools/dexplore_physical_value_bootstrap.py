@@ -11,7 +11,8 @@ import dexplore_cm_off_rank_bootstrap as base
 
 def main(argv=None):
     p = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
-    p.add_argument("--physical-value-arm", choices=("plain_off", "direct_q", "cm_value", "cm_representation"), required=True)
+    p.add_argument("--physical-value-arm", choices=("plain_off", "direct_q", "cm_value", "cm_representation",
+                                                     "cm_task_aux", "cm_task_aux_off"), required=True)
     p.add_argument("--physical-value-checkpoint", type=Path, required=True)
     p.add_argument("--physical-value-sha256", required=True)
     a, remaining = p.parse_known_args(argv)

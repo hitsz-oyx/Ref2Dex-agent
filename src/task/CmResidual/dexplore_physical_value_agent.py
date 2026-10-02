@@ -18,7 +18,8 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
         self.pv_arm = os.environ["REF2DEX_PHYSICAL_VALUE_ARM"]
-        if self.pv_arm not in ("plain_off", "direct_q", "cm_value", "cm_representation"):
+        if self.pv_arm not in ("plain_off", "direct_q", "cm_value", "cm_representation",
+                               "cm_task_aux", "cm_task_aux_off"):
             raise ValueError("invalid physical-value arm")
         task = self._cm_task()
         payload = torch.load(os.environ["REF2DEX_PHYSICAL_VALUE_CHECKPOINT"], map_location="cpu", weights_only=False)
@@ -40,7 +41,7 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         self.pv_task_representation = None
         self.pv_teacher_q = self.pv_q
         self.pv_representation_sha = None
-        if self.pv_arm == "cm_representation":
+        if self.pv_arm in ("cm_representation", "cm_task_aux", "cm_task_aux_off"):
             representation_path = os.environ["REF2DEX_CM_REPRESENTATION_CHECKPOINT"]
             self.pv_task_representation = load_frozen_cm_residual(representation_path, device)
             self.pv_representation_sha = hashlib.sha256(Path(representation_path).read_bytes()).hexdigest()
@@ -57,6 +58,14 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         self.pv_previous_action = torch.zeros(task.num_envs, 18, device=device)
         self._pv_active_batch = None
         self._pv_actor_mean = None
+        self._pv_aux_active_batch = None
+        self._pv_aux_hidden = None
+        self._pv_task_aux_gradient_verified = False
+        self.pv_aux_head = None
+        self.pv_aux_coefficient = .002 if self.pv_arm == "cm_task_aux" else 0.0
+        if self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            self._pv_aux_target_scale = self.pv_task_representation[4]
+            self._pv_aux_target_mean = self.pv_task_representation[3]
         self._pv_rollout_cursor = 0
         self._pv_updates = 0
         self.pv_integrity_verified = False
@@ -66,6 +75,26 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
     def _capture_mu(self, module, inputs, output):
         if self._pv_active_batch is not None:
             self._pv_actor_mean = output
+
+    def _install_aux_head(self):
+        if self.pv_aux_head is not None:
+            return
+        width = self.model.a2c_network.mu.in_features
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(240937)
+            self.pv_aux_head = nn.Linear(width, 1).to(self.ppo_device)
+            nn.init.normal_(self.pv_aux_head.weight, std=.01)
+            nn.init.zeros_(self.pv_aux_head.bias)
+        self.optimizer.add_param_group({"params": self.pv_aux_head.parameters(),
+                                         "lr": self.last_lr})
+
+        def capture(_module, _inputs, hidden):
+            if self._pv_aux_active_batch is not None:
+                if self._pv_aux_hidden is not None:
+                    raise RuntimeError("multiple task-value actor hidden captures")
+                self._pv_aux_hidden = hidden
+
+        self._pv_aux_hook = self.model.a2c_network.actor_mlp.register_forward_hook(capture)
 
     def restore(self, filename):
         super().restore(filename)
@@ -77,6 +106,8 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
             digest.update(name.encode())
             digest.update(value.detach().cpu().numpy().tobytes())
         self.pv_initial_model_sha = digest.hexdigest()
+        if self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            self._install_aux_head()
         print("REF2DEX_PV_INIT " + json.dumps(dict(arm=self.pv_arm, model_sha256=self.pv_initial_model_sha)), flush=True)
 
     def train(self):
@@ -91,6 +122,8 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         pre = dict(pv_history_state=(16, 55), pv_history_action=(16, 18), pv_history_mask=(16, 1),
                    pv_context=(cdim,), pv_next_context=(cdim,), pv_label=(18,), pv_active=(1,))
         post = dict(pv_next_state=(55,), pv_actual_reward=(1,))
+        if self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            pre.update(pv_aux_target=(1,), pv_aux_mask=(1,))
         for name, shape in {**pre, **post}.items():
             self.experience_buffer.tensor_dict[name] = torch.zeros((*base, *shape), device=self.ppo_device)
         self.update_list += list(pre)
@@ -119,6 +152,17 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         if self.pv_arm == "plain_off":
             label = result["mus"].clone()
             active = torch.zeros(len(label), dtype=torch.bool, device=label.device)
+        elif self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            label = result["mus"].clone()
+            active = torch.zeros(len(label), dtype=torch.bool, device=label.device)
+            residual = self.pv_teacher.task_residual(
+                states, actions, mask, ctx, result["mus"].detach()
+            )
+            target = ((residual - self._pv_aux_target_mean) /
+                      self._pv_aux_target_scale).clamp(-8, 8)
+            pair = contacts(task).bool().all(-1) & ~task.reset_buf.bool()
+            result["pv_aux_target"] = target[:, None]
+            result["pv_aux_mask"] = pair.float()[:, None]
         else:
             before = {k: result[k].clone() for k in ("actions", "neglogpacs", "mus", "sigmas") if k in result}
             cpu_rng = torch.get_rng_state()
@@ -195,11 +239,25 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
             self.pv_model_optimizer.step()
         self._pv_active_batch = inputs
         self._pv_actor_mean = None
+        if self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            self._pv_aux_active_batch = inputs
+            self._pv_aux_hidden = None
         try:
             super().calc_gradients(inputs)
+            if (self.pv_arm == "cm_task_aux" and
+                    not self._pv_task_aux_gradient_verified):
+                gradient = self.pv_aux_head.weight.grad
+                if (gradient is None or not torch.isfinite(gradient).all() or
+                        gradient.norm() <= 0):
+                    raise RuntimeError("task-value auxiliary head has no finite gradient")
+                self._pv_task_aux_gradient_verified = True
+                print("REF2DEX_PV_TASK_AUX " + json.dumps(dict(
+                    arm=self.pv_arm, gradient_norm=float(gradient.norm()))), flush=True)
         finally:
             self._pv_active_batch = None
             self._pv_actor_mean = None
+            self._pv_aux_active_batch = None
+            self._pv_aux_hidden = None
         self._pv_updates += 1
         if self._pv_updates % 48 == 0:
             print("REF2DEX_PV_UPDATE " + json.dumps(dict(arm=self.pv_arm, epoch=self.epoch_num,
@@ -220,6 +278,14 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
         if rows.shape != result["critic_loss"].shape:
             raise ValueError("PPO and teacher loss shapes differ")
         result["critic_loss"] += .01 / self.critic_coef * rows
+        if self.pv_arm in ("cm_task_aux", "cm_task_aux_off"):
+            if self._pv_aux_hidden is None or self.pv_aux_head is None:
+                raise RuntimeError("task-value auxiliary hidden state missing")
+            target = self._pv_aux_active_batch["pv_aux_target"].float()
+            mask = self._pv_aux_active_batch["pv_aux_mask"].float()
+            prediction = self.pv_aux_head(self._pv_aux_hidden.float())
+            aux_rows = (prediction - target).square() * mask / mask.mean().clamp_min(.1)
+            result["critic_loss"] += self.pv_aux_coefficient / self.critic_coef * aux_rows
         return result
 
     def get_stats_weights(self):
@@ -229,6 +295,9 @@ class DExplorePhysicalValueAgent(DExploreApproachAgent):
                 behavior_integrity_verified=self.pv_integrity_verified,
                 actor_supervision_gradient_verified=self.pv_supervision_gradient_verified,
                 representation_sha256=self.pv_representation_sha,
+                task_aux_head=(self.pv_aux_head.state_dict() if self.pv_aux_head is not None else None),
+                task_aux_coefficient=self.pv_aux_coefficient,
+                task_aux_gradient_verified=self._pv_task_aux_gradient_verified,
                 value=self.pv_value.state_dict(), direct_q=self.pv_q.state_dict(),
                 dynamics=self.pv_dynamics.state_dict(), value_optimizer=self.pv_value_optimizer.state_dict(),
                 model_optimizer=self.pv_model_optimizer.state_dict())

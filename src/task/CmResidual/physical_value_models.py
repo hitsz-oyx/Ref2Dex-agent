@@ -102,6 +102,42 @@ class Teacher:
         self.reward_scale = reward_scale
 
     @torch.no_grad()
+    def task_residual(self, states, actions, mask, context, candidate):
+        """Predict the frozen Cm task-value residual for one current action.
+
+        This path is used only as a train-time auxiliary target.  It keeps the
+        physical consequence model in the loop while never replacing the
+        sampled PPO action or adding a future state to the actor observation.
+        """
+        if self.task_representation is None:
+            raise ValueError("Cm task representation is not loaded")
+        history_features = self.features.history(states, actions, mask)
+        direct_hidden = self.direct_q.encode(history_features)
+        direct = self.direct_q.from_hidden(
+            direct_hidden, self.features.context(context), candidate
+        ).squeeze(-1)
+        current = states[:, -1]
+        physical = []
+        for model in self.dynamics:
+            raw = model.from_hidden(
+                model.encode(history_features), self.features.context(context), candidate
+            )
+            predicted, contact, reward, terminal = decode_dynamics(raw, current, self.features)
+            physical.append(torch.cat((
+                predicted[:, 36:39] - current[:, 36:39],
+                predicted[:, 43:49],
+                contact.sigmoid(),
+                reward[:, None],
+                terminal.sigmoid()[:, None],
+            ), dim=-1))
+        physical = torch.stack(physical)
+        physical_mean, physical_std = physical.mean(0), physical.std(0, unbiased=False)
+        representation_input = torch.cat((
+            direct[:, None], candidate, current[:, 36:51], physical_mean, physical_std
+        ), dim=-1)
+        return predict_cm_residual(*self.task_representation, representation_input)
+
+    @torch.no_grad()
     def labels(self, arm, mean, states, actions, mask, context, next_context):
         candidates, valid = make_candidates(mean)
         batch, count = candidates.shape[:2]
