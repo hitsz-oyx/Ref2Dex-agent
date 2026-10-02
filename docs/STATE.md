@@ -28,6 +28,13 @@ decision-interface 的均匀 random arm 作 utility 标签，并按 motion/start
 继续调系数。见 [Probe card](experiments/probes/P-20261003-cm-relative-direct-q.md)
 和 [结果](experiments/probes/P-20261003-cm-relative-direct-q-results.json)。
 
+随后尝试一个同热状态逐候选的 exact-paired action panel，以区分跨状态数据混杂和真实
+动作排序。单状态 smoke 触发了8候选面板；root/DOF 恢复为0，但 PhysX rigid-body
+tensor 恢复误差为8.4–40.5，超过固定 `1e-6` contract，Cup 以外候选均在产生效应前被拒绝。
+因此该配方为工程边界 `UNCLEAR`，不放宽容差、不解读为 Cm utility，也不进入 short rollout
+或 PPO。见 [Probe card](experiments/probes/P-20261003-cm-exact-paired-panel.md)
+和 [结果](experiments/probes/P-20261003-cm-exact-paired-panel-results.json)。
+
 ## 2026-10-03 uncertainty fallback native validation: closed
 
 离线 known-propensity screen 中的 `cm_uncertainty_fallback_2std` 已在新 native 状态上

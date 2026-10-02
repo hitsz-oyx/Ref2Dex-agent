@@ -1,0 +1,52 @@
+{
+  "schema": "ref2dex.cm_exact_paired_panel_audit.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-exact-paired-panel",
+  "record": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-exact-paired-panel-smoke5/records.pt",
+  "record_sha256": "c6bceb1f151b293f6c77b0189aae54aaa7b339ead76a40f2dc88803bb4693147",
+  "rows": 1,
+  "groups": 1,
+  "candidate_names": [
+    "expert0",
+    "expert1",
+    "expert2",
+    "expert3",
+    "expert4",
+    "expert5",
+    "base_hold",
+    "fixed_cup"
+  ],
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "engineering_blocker": "paired restore contract rejected hot-state candidates",
+  "pair_errors": {
+    "0": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=33.46250534057617')": 1
+    },
+    "1": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=8.400934219360352')": 1
+    },
+    "2": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=29.60199737548828')": 1
+    },
+    "3": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=21.553375244140625')": 1
+    },
+    "4": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=40.48518371582031')": 1
+    },
+    "5": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=24.47525978088379')": 1
+    },
+    "6": {
+      "RuntimeError('physics state restore failed: root=0.0, dof=0.0, rigid=29.148487091064453')": 1
+    }
+  },
+  "gates": {
+    "support_ok": false,
+    "coverage_ok": false,
+    "ranking_ok": false,
+    "local_utility_ok": false
+  },
+  "probe_label": "UNCLEAR",
+  "interpretation": "Engineering-boundary Probe only: rigid-body restore failed before candidate effects were observable; no Cm utility or policy claim"
+}

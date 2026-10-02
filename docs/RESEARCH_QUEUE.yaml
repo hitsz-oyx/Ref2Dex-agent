@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-exact-paired-panel
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261003-cm-exact-paired-panel.md
+    evidence: docs/experiments/probes/P-20261003-cm-exact-paired-panel-results.json
+    outcome_boundary: "Engineering-boundary smoke reached1 eligible hot state. Root/DOF restore was exact, but PhysX rigid-body restore errors were8.4–40.5 against fixed1e-6; seven non-Cup candidates were rejected before effects. Do not relax tolerance or claim Cm utility; close exact hot-state route and do not start PPO."
   - id: P-20261003-cm-relative-direct-q
     owner: current_session
     status: COMPLETED
