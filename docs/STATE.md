@@ -166,12 +166,21 @@ all audited570physics without retrying any update. Conservative233.498s/
 this field WITHOUT width/steps/data/target/seed scans.
 [Results](research/20261002-state-response-field-results.md).
 
-Next fixed571/572mechanical feasibility: isolate rotation holding while
-preserving scratch actor XYZ/finger feedback, event acquisition vs fixed early
-hold and two unchanged arms. Require physical105gain>=5pp over ALLthree
-controls and per-seed noninferiority before further Cm fitting. Original-worktree
-six-expert rotation opportunity and subsequent negative Cm control are read-only
-DESIGN INPUTS, not transferred findings. [Route review](decisions/D-20261002-after-response-field-route-review.md).
+Independent rotation-only control571/572is COMPLETED/UNPROMISING:
+physical105counts/384 unchanged126,duplicate125,earlyhold114,eventhold127;
+both fixed5ppALLcontrols and each-seed gates fail. Current-event/rotation
+latch/feasible projection/URDF/PD/geometry pass, EXACTsame-state XYZ/fingers
+preserved.192.816s/271.85MB, no fits/updates, owned processes ended. No
+transfer of original-worktree six-expert findings; stop rotation program
+without anchor/cup/timing/axis scans.
+[Results](research/20261002-rotation-retention-feasibility-results.md).
+
+Next force-aware normalized NON-GRAVITATIONAL object impulse prediction,
+using CURRENT raw forces and native weight, before model-to-actor gradients.
+Damping0.01means this is not exact pairwise contact impulse or support proof.
+Require fresh fixed prediction gains over force-aware state-only, force-aware
+motion/phase action model and physical persistence before actual actor learning.
+[Physics/prior-art boundary](research/20261002-impulse-gradient-method-boundary.md).
 Generic action-effect embeddings and Gaussian scores have established prior
 art; [method boundary](research/20261002-response-field-method-boundary.md).
 

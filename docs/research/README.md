@@ -89,3 +89,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Response-field prior-art boundary](20261002-response-field-method-boundary.md)
 
 - [Fixed state-conditioned response field negative](20261002-state-response-field-results.md)
+
+- [Independent rotation-only retention negative](20261002-rotation-retention-feasibility-results.md)
+- [Impulse and model-to-actor prior-art boundary](20261002-impulse-gradient-method-boundary.md)
