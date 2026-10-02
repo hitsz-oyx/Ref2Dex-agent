@@ -7,7 +7,7 @@ from src.task.CmResidual.coherent_motor_request import CoherentMotorRequest
 from src.task.CmResidual.continuous_critic_cm import request_log_probability
 
 def main():
-    torch.set_num_threads(2);gen=torch.Generator().manual_seed(4101);reference=torch.Generator().manual_seed(4101);cache=CoherentMotorRequest();mu=torch.zeros((2,12));ls=torch.full_like(mu,-3.)
+    torch.set_num_threads(2);gen=torch.Generator().manual_seed(4101);reference=torch.Generator().manual_seed(4101);cache=CoherentMotorRequest();mu=torch.zeros((2,12));ls=torch.full((12,),-3.)
     expected=torch.randn(mu.shape,generator=reference);p,decision=cache.choose(0,mu,ls,gen);assert decision and torch.equal(p['request_noise'],expected);first={k:v.clone() if isinstance(v,torch.Tensor) else v for k,v in p.items()};rng=gen.get_state().clone()
     logp=request_log_probability(p['request_mean'],p['request_logstd'],p['request']);mu.fill_(100);ls.fill_(2)
     for tick in (1,2,3):

@@ -9,7 +9,7 @@ class CoherentMotorRequest:
 
     def choose(self,tick,mean,logstd,generator):
         if tick!=self.last_tick+1:raise ValueError('contiguous native clock required')
-        if mean.ndim!=2 or mean.shape[-1]!=12 or logstd.shape!=mean.shape:raise ValueError('twelve independent Gaussian request coordinates')
+        if mean.ndim!=2 or mean.shape[-1]!=12 or logstd.shape!=(12,):raise ValueError('twelve independent Gaussian request coordinates')
         if not torch.isfinite(mean).all() or not torch.isfinite(logstd).all():raise ValueError('finite Gaussian parameters required')
         decision=tick%self.period==0
         if decision:
