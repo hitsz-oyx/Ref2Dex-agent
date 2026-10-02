@@ -1,0 +1,70 @@
+{
+  "schema": "ref2dex.cm_task_value_aux_policy_probe.v1",
+  "experiment_id": "P-20261003-cm-task-value-aux-policy",
+  "git_commit": "12bd8d662a4e372049dbc57ce79c7ebc9d1af19a",
+  "source_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+  "physical_checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "representation_sha256": "8c2a0b2970bf68c34e2bda00f0eb199b546e5d511bf9021774cbbe5bef4231ba",
+  "training_seed": 287,
+  "epochs": 280,
+  "train_envs": 64,
+  "eval_envs": 96,
+  "eval_seeds": [
+    290,
+    291
+  ],
+  "arms": [
+    "cm_task_aux_off",
+    "cm_task_aux"
+  ],
+  "runs": {
+    "cm_task_aux_off": {
+      "train_seconds": 164.52967940084636,
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-value-aux/policy_probe_r1/train_cm_task_aux_off/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000280.pth",
+      "checkpoint_sha256": "de40f8bbecd085e5848b2156f8159a3282f2ba21bb08647c6f40a1d89cf45f98",
+      "evaluations": {
+        "290": {
+          "seconds": 72.44656160473824,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-value-aux/policy_probe_r1/eval_cm_task_aux_off_s290/results.json",
+          "stable_success_count": 20,
+          "drop_after_success_count": 20,
+          "complete_episodes": 96
+        },
+        "291": {
+          "seconds": 73.70060203690082,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-value-aux/policy_probe_r1/eval_cm_task_aux_off_s291/results.json",
+          "stable_success_count": 26,
+          "drop_after_success_count": 23,
+          "complete_episodes": 96
+        }
+      }
+    },
+    "cm_task_aux": {
+      "train_seconds": 151.0917670726776,
+      "checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-value-aux/policy_probe_r1/train_cm_task_aux/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000280.pth",
+      "checkpoint_sha256": "cf7e08c31045ad148d151bcc203b4e24622ca43bcbe3e2711acbc31f02835c50",
+      "evaluations": {
+        "290": {
+          "seconds": 71.57654765155166,
+          "results": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/physical_value/output/P-20261003-cm-task-value-aux/policy_probe_r1/eval_cm_task_aux_s290/results.json",
+          "stable_success_count": 1,
+          "drop_after_success_count": 1,
+          "complete_episodes": 96
+        }
+      }
+    }
+  },
+  "run_status": "COMPLETED_EARLY_STOP",
+  "result": {
+    "stop_reason": "Cm-on failed predeclared per-seed nonnegative gate on evaluation seed 290; seed 291 was intentionally not run.",
+    "seed_290": {
+      "cm_task_aux_off_stable_success": 20,
+      "cm_task_aux_stable_success": 1,
+      "stable_success_delta": -19,
+      "cm_task_aux_off_drop_after_success": 20,
+      "cm_task_aux_drop_after_success": 1
+    },
+    "decision": "UNPROMISING for this task-value auxiliary interface; no coefficient or seed scan."
+  },
+  "evaluation_contract": "96 complete episodes per arm for completed seed; early stop is predeclared and preserves all completed artifacts."
+}

@@ -2,6 +2,23 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm task-value auxiliary policy Probe: closed
+
+为区分“Cm 直接改动作导致退化”和“Cm 任务价值目标能塑造策略表示”，新增了一个不改
+action/reward/observation 的 auxiliary 路线。Cm-on 与 Cm-off 都计算同一个冻结 target：
+direct-Q 加上由 Cm 物理后果预测驱动的 nonlinear residual MLP；唯一差异是固定 auxiliary
+loss coefficient `0.002` vs `0`。两臂 16-env epoch260→262 smoke 均通过，Cm-on head 梯度
+非零（`5.70e-4`）；matched 训练使用 seed287、64 env、epoch280，两个 checkpoint 都
+成功保存。
+
+按预注册的 per-seed nonnegative gate，seed290 的96个完整 episode 中 Cm-off 稳定成功
+`20/96`，Cm-on 仅 `1/96`，差值 `-19`。因此在启动 seed291 前提前停止；这条 task-value
+auxiliary 接口判定 `UNPROMISING`，不扫描系数、seed 或 target。Cm 仍保留真实动作后果预测
+职责，但该 target 没有转成策略收益。见 [Probe card]
+(experiments/probes/P-20261003-cm-task-value-aux-policy.md)、[结果]
+(experiments/probes/P-20261003-cm-task-value-aux-policy-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-task-value-aux.md)。
+
 ## 2026-10-03 Cm task representation policy Probe: closed
 
 为检验“Cm 物理信息先进入非线性任务价值表征，再进入策略”是否能绕开线性 residual

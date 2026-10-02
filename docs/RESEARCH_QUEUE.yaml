@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-task-value-aux-policy
+    owner: current_session
+    status: COMPLETED_EARLY
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-task-value-aux-policy.md
+    evidence: docs/experiments/probes/P-20261003-cm-task-value-aux-policy-results.json
+    outcome_boundary: "Cm-on/off shared the frozen task-value auxiliary target and differed only by coefficient 0.002 vs 0. Seed290 gave 1/96 versus 20/96 stable successes; the predeclared per-seed nonnegative gate failed, so seed291 and all coefficient scans were stopped."
   - id: P-20261003-cm-task-representation
     owner: current_session
     status: COMPLETED
