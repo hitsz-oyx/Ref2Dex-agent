@@ -2,6 +2,22 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 object-projected Cm MVE interface: closed
+
+为检验 full-state model error 是否阻塞 MVE，冻结同一 physical-value checkpoint，令 Cm
+只预测 object translation/velocity/contact/events，Q continuation 保留当前 hand q/dq 和
+object orientation。现有 held 209,788 rows 上，object-projected pessimistic MVE 的 RMSE
+为 26.05、row Spearman 0.605；direct-Q 为 26.83、0.589。这个 target-quality 局部信号
+没有转化成动作效用：fresh native 五臂 127 个完整窗口中 mve-object 改变25次，但相对
+Cup 的 motion/start cluster-bootstrap 90% 下界为 height -47.16mm、local reward -0.492、
+contact -0.324、clearance -0.324；random arm 仅23行，mve-object 的随机动作排序也低于
+direct-Q。Probe 标记 `UNCLEAR`（support boundary with negative utility screen），关闭该
+action-ranking 配方，不启动 short rollout/PPO，不扩大普通 Cm 数据。离线 target-quality
+改善保留为未来 critic-only MVE 线索，但不构成 Cm policy utility。见 [Decision Memo]
+(decisions/D-20261003-cm-mve-object-projection.md)、[Probe card]
+(experiments/probes/P-20261003-cm-mve-object-projection.md) 和 [结果]
+(experiments/probes/P-20261003-cm-mve-object-projection-results.json)。
+
 ## 2026-10-03 learned binary macro policy: closed
 
 Raw Cm 3-tick macro 在 native score 上曾为正，但安全门控 macro 失败；随后完成一个

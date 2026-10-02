@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-mve-object-projection
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261003-cm-mve-object-projection.md
+    evidence: docs/experiments/probes/P-20261003-cm-mve-object-projection-results.json
+    outcome_boundary: "Decision-safe object-projected MVE improved held target RMSE/row ranking, but fresh native 127-window action utility was negative versus Cup (height lower90 -47.16mm, reward -0.492) and support was 17/31/25/31/23. Close action interface; retain critic-only clue; no PPO or ordinary Cm data expansion."
   - id: P-20261003-cm-exact-paired-panel
     owner: current_session
     status: COMPLETED

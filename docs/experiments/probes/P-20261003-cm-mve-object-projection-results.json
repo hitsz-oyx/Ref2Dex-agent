@@ -1,0 +1,50 @@
+{
+  "schema": "ref2dex.cm_mve_object_projection_probe.v1",
+  "experiment_id": "P-20261003-cm-mve-object-projection",
+  "run_status": "COMPLETED",
+  "probe_label": "UNCLEAR",
+  "decision": "CLOSE_OBJECT_PROJECTED_ACTION_INTERFACE_NO_PPO",
+  "offline": {
+    "schema": "ref2dex.mve_object_representation_audit.v1",
+    "rows": 209788,
+    "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+    "direct": {
+      "rmse": 26.833179473876953,
+      "spearman": 0.5889917393020105,
+      "episode_spearman": 0.7429344969651758
+    },
+    "mve_full": {
+      "rmse": 28.30836296081543,
+      "spearman": 0.6036993320583919,
+      "episode_spearman": 0.7240622138957648
+    },
+    "mve_object_current": {
+      "rmse": 26.052785873413086,
+      "spearman": 0.6045947263131062,
+      "episode_spearman": 0.7416442728289987
+    },
+    "interpretation": "Offline target-quality diagnostic; no candidate utility or policy claim"
+  },
+  "native": {
+    "record": "src/task/CmResidual/research/decision_interface/output/P-20261003-mve-object-decision-interface-smoke4/records.pt",
+    "record_sha256": "a787e26452221a057b984a22d8ac2febd44bb58e1c1d049ad4c230b81633d83a",
+    "rows": 127,
+    "env_clusters": 90,
+    "arm_names": ["cup", "direct_q", "mve_object", "cm_value", "random"],
+    "supports": [17, 31, 25, 31, 23],
+    "mve_changed": 25,
+    "mve_vs_cup_lower90": {
+      "height_last3_min_mm": -47.15889531199549,
+      "local_reward_sum": -0.493390496492918,
+      "contact_last3_fraction": -0.3237602659046943,
+      "clear_last3_fraction": -0.3269841276464009
+    },
+    "random_ranking_spearman": {
+      "direct_q_height_last3_min_mm": 0.43411834019733586,
+      "mve_object_height_last3_min_mm": 0.1061043429253265,
+      "direct_q_local_reward_sum": 0.7233201581027668,
+      "mve_object_local_reward_sum": 0.4426877470355731
+    }
+  },
+  "interpretation": "Offline object-projected MVE target quality improved slightly, but fresh native action utility and ranking did not; no PPO or ordinary Cm-data expansion is authorized by this result."
+}
