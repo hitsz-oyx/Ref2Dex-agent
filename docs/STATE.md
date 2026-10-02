@@ -409,10 +409,16 @@ HT支持高度−6.372mm，组90[−14.214,+.916]；原收益/噪声/接触联�
 23个实际Cm中16窗口/160步PD不同cup，控制路径生效，但收益未证明；不补seed、
 不改门、不启动slot2/PPO。累计2981.63秒含工程900秒，源+审计101.58GPU分钟，
 共享预训练另报；全部任务exit0，资源释放。见[HF20结果](experiments/probes/P-20261002-optimized-contact-opportunity-result.md)。
-下一步HD03只用cal306重放冻结后果网络：比较生成程序的未来手/物存在预测及
-任务事件一致性与实际分配标签，区分预测不可靠和决策未使用保持风险；单空闲
-GPU1<=600秒/32MiB，无新采集/训练/held调参。完整作用链条与策略收益仍未完成。
-见[后果诊断卡](experiments/probes/P-20261002-generated-contact-consequence-diagnostic.md)。
+HD03已在GPU1完成cal306完整冻结网络后果重放及独立rawforce/算术审计。
+模型预测生成程序手保持更好，0个Fréchet明确joint下降；但55窗口的支持抬升
+概率高于必要接触概率，22窗口超5pp，独立任务头内部不一致。支持高度MAE
+23.940 vsstate24.863mm、预测增益2.216mm；不能仅加保持门推导真实收益。
+共12.04秒/5.93MiB，参数与输入冻结、任务exit0，原HF20标签/门保留。
+见[HD03结果](experiments/probes/P-20261002-generated-contact-consequence-diagnostic-result.md)。
+下一步先做联合事件一致、参考附近动作效果的后果原型：显式联合hand/object/
+clear事件、条件高度与当前专家bank/参考PD差/原生参考状态；复用fit-only数据，
+完整工程后登记匹配控制模型Probe，正向才新独立真实执行及重新决策，不继续
+旧独立头门限扫描。见[结构化后果决定](decisions/D-20261002-structured-contact-consequences.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。

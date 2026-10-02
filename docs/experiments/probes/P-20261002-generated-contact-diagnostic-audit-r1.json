@@ -1,0 +1,16 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "cal_rows": 306,
+  "raw_force_labels_verified": true,
+  "label_max_error": 1.4781951904296875e-05,
+  "statistics_max_error": 4.0765964648414865e-06,
+  "full_forecast_checks": "frozen GPU replay and cached planning errors in result",
+  "result_sha256": "f59ed4dfea5a30d1c43a98e4630bc88e98efbcde1e035a47bbbb95c64ad73dce",
+  "forecast_sha256": "ff0cd0b1b540860af68d622f0dc716fbaf54cb4e24d6fa3e8376ef3c423200af",
+  "auditor_sha256": "e5e947875fab833cf8508f02b99bb64029866b620fce73db7e7dc225bd669e9e",
+  "elapsed_seconds": 3.6147274477407336,
+  "device": "cpu",
+  "device_reason": "independent label/arithmetic audit; no model computation",
+  "scope": "HD03 diagnostic consistency only; no HF20 gate changes or utility claim"
+}

@@ -1,0 +1,1494 @@
+{
+  "experiment_id": "P-20261002-generated-contact-consequence-diagnostic",
+  "run_status": "COMPLETED",
+  "rows": 306,
+  "source_hf20_label": "UNCLEAR",
+  "device": "cuda:0",
+  "physical_gpu": 1,
+  "planning_forecast_max_errors": {
+    "joint_height_mm": 9.1552734375e-05,
+    "geometric_loss_probability": 5.662441253662109e-07
+  },
+  "planning_cal_rows": 306,
+  "factual_metrics": {
+    "cm": {
+      "all": {
+        "rows": 306,
+        "brier": {
+          "hand_presence": 0.13190601766109467,
+          "object_presence": 0.012896793894469738,
+          "geometric_loss": 0.16003352403640747,
+          "supported_lift": 0.1452018767595291
+        },
+        "observed_rates": {
+          "hand_presence": 0.7810457348823547,
+          "object_presence": 0.9869281053543091,
+          "geometric_loss": 0.24183006584644318,
+          "supported_lift": 0.2647058963775635
+        },
+        "predicted_rates": {
+          "hand_presence": 0.7828375101089478,
+          "object_presence": 0.982731819152832,
+          "geometric_loss": 0.1700495481491089,
+          "supported_lift": 0.2978282868862152
+        },
+        "joint_presence_observed": 0.7810457348823547,
+        "supported_height_mae_mm": 23.93987274169922,
+        "supported_height_bias_mm": 3.1010501384735107,
+        "observed_supported_height_mm": 28.004968643188477,
+        "predicted_supported_height_mm": 31.10601806640625
+      },
+      "by_arm": {
+        "0": {
+          "rows": 61,
+          "brier": {
+            "hand_presence": 0.1345309168100357,
+            "object_presence": 0.030691474676132202,
+            "geometric_loss": 0.19435828924179077,
+            "supported_lift": 0.10892874747514725
+          },
+          "observed_rates": {
+            "hand_presence": 0.8196721076965332,
+            "object_presence": 0.9672130942344666,
+            "geometric_loss": 0.26229506731033325,
+            "supported_lift": 0.24590164422988892
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8234704732894897,
+            "object_presence": 0.9804931879043579,
+            "geometric_loss": 0.20403873920440674,
+            "supported_lift": 0.2155046910047531
+          },
+          "joint_presence_observed": 0.8196721076965332,
+          "supported_height_mae_mm": 18.156400680541992,
+          "supported_height_bias_mm": 1.4229238033294678,
+          "observed_supported_height_mm": 16.959165573120117,
+          "predicted_supported_height_mm": 18.382091522216797
+        },
+        "1": {
+          "rows": 60,
+          "brier": {
+            "hand_presence": 0.11789937317371368,
+            "object_presence": 0.0004993718466721475,
+            "geometric_loss": 0.1805868148803711,
+            "supported_lift": 0.15360477566719055
+          },
+          "observed_rates": {
+            "hand_presence": 0.7666666507720947,
+            "object_presence": 1.0,
+            "geometric_loss": 0.21666666865348816,
+            "supported_lift": 0.3166666626930237
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7100725769996643,
+            "object_presence": 0.9845921993255615,
+            "geometric_loss": 0.1085304543375969,
+            "supported_lift": 0.3506181538105011
+          },
+          "joint_presence_observed": 0.7666666507720947,
+          "supported_height_mae_mm": 26.06402587890625,
+          "supported_height_bias_mm": -2.0933361053466797,
+          "observed_supported_height_mm": 39.2755126953125,
+          "predicted_supported_height_mm": 37.18217468261719
+        },
+        "2": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.11386943608522415,
+            "object_presence": 0.00044313177932053804,
+            "geometric_loss": 0.025348681956529617,
+            "supported_lift": 0.02533840388059616
+          },
+          "observed_rates": {
+            "hand_presence": 0.6800000071525574,
+            "object_presence": 1.0,
+            "geometric_loss": 0.11999999731779099,
+            "supported_lift": 0.23999999463558197
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7215530276298523,
+            "object_presence": 0.9852203130722046,
+            "geometric_loss": 0.13829484581947327,
+            "supported_lift": 0.2930009365081787
+          },
+          "joint_presence_observed": 0.6800000071525574,
+          "supported_height_mae_mm": 18.609468460083008,
+          "supported_height_bias_mm": 5.706992149353027,
+          "observed_supported_height_mm": 42.57676696777344,
+          "predicted_supported_height_mm": 48.283756256103516
+        },
+        "3": {
+          "rows": 41,
+          "brier": {
+            "hand_presence": 0.1861995905637741,
+            "object_presence": 0.0003930218517780304,
+            "geometric_loss": 0.14041398465633392,
+            "supported_lift": 0.1459481120109558
+          },
+          "observed_rates": {
+            "hand_presence": 0.6829268336296082,
+            "object_presence": 1.0,
+            "geometric_loss": 0.24390244483947754,
+            "supported_lift": 0.3414634168148041
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7858171463012695,
+            "object_presence": 0.9846991300582886,
+            "geometric_loss": 0.13525605201721191,
+            "supported_lift": 0.3830074071884155
+          },
+          "joint_presence_observed": 0.6829268336296082,
+          "supported_height_mae_mm": 26.48923683166504,
+          "supported_height_bias_mm": -0.9465897679328918,
+          "observed_supported_height_mm": 39.344505310058594,
+          "predicted_supported_height_mm": 38.39791488647461
+        },
+        "4": {
+          "rows": 33,
+          "brier": {
+            "hand_presence": 0.08011472225189209,
+            "object_presence": 0.059022583067417145,
+            "geometric_loss": 0.12016633152961731,
+            "supported_lift": 0.10358914732933044
+          },
+          "observed_rates": {
+            "hand_presence": 0.8787878751754761,
+            "object_presence": 0.939393937587738,
+            "geometric_loss": 0.24242424964904785,
+            "supported_lift": 0.1818181872367859
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7380891442298889,
+            "object_presence": 0.9773277640342712,
+            "geometric_loss": 0.1850621998310089,
+            "supported_lift": 0.24010322988033295
+          },
+          "joint_presence_observed": 0.8787878751754761,
+          "supported_height_mae_mm": 27.250001907348633,
+          "supported_height_bias_mm": -1.6694822311401367,
+          "observed_supported_height_mm": 22.57632064819336,
+          "predicted_supported_height_mm": 20.906837463378906
+        },
+        "5": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.12670427560806274,
+            "object_presence": 0.000383947161026299,
+            "geometric_loss": 0.17035505175590515,
+            "supported_lift": 0.24081313610076904
+          },
+          "observed_rates": {
+            "hand_presence": 0.800000011920929,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2800000011920929,
+            "supported_lift": 0.1599999964237213
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8060991168022156,
+            "object_presence": 0.98491370677948,
+            "geometric_loss": 0.18350444734096527,
+            "supported_lift": 0.1938415914773941
+          },
+          "joint_presence_observed": 0.800000011920929,
+          "supported_height_mae_mm": 23.613588333129883,
+          "supported_height_bias_mm": 10.232730865478516,
+          "observed_supported_height_mm": 8.882551193237305,
+          "predicted_supported_height_mm": 19.11528205871582
+        },
+        "6": {
+          "rows": 37,
+          "brier": {
+            "hand_presence": 0.09692288935184479,
+            "object_presence": 0.001116895000450313,
+            "geometric_loss": 0.2026916742324829,
+            "supported_lift": 0.25396642088890076
+          },
+          "observed_rates": {
+            "hand_presence": 0.8648648858070374,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2702702581882477,
+            "supported_lift": 0.29729729890823364
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8742275834083557,
+            "object_presence": 0.9836877584457397,
+            "geometric_loss": 0.22454752027988434,
+            "supported_lift": 0.4009566307067871
+          },
+          "joint_presence_observed": 0.8648648858070374,
+          "supported_height_mae_mm": 32.68434143066406,
+          "supported_height_bias_mm": 15.027442932128906,
+          "observed_supported_height_mm": 26.94122886657715,
+          "predicted_supported_height_mm": 41.96866989135742
+        },
+        "7": {
+          "rows": 24,
+          "brier": {
+            "hand_presence": 0.21685141324996948,
+            "object_presence": 0.0007673215004615486,
+            "geometric_loss": 0.17352287471294403,
+            "supported_lift": 0.12991546094417572
+          },
+          "observed_rates": {
+            "hand_presence": 0.7083333134651184,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2916666567325592,
+            "supported_lift": 0.25
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8166268467903137,
+            "object_presence": 0.9815011024475098,
+            "geometric_loss": 0.21129898726940155,
+            "supported_lift": 0.2633086144924164
+          },
+          "joint_presence_observed": 0.7083333134651184,
+          "supported_height_mae_mm": 16.833890914916992,
+          "supported_height_bias_mm": 5.296575546264648,
+          "observed_supported_height_mm": 22.376211166381836,
+          "predicted_supported_height_mm": 27.67279052734375
+        }
+      },
+      "generated_pool": {
+        "rows": 99,
+        "brier": {
+          "hand_presence": 0.13257277011871338,
+          "object_presence": 0.019948864355683327,
+          "geometric_loss": 0.10460787266492844,
+          "supported_lift": 0.10137145966291428
+        },
+        "observed_rates": {
+          "hand_presence": 0.747474730014801,
+          "object_presence": 0.9797979593276978,
+          "geometric_loss": 0.21212121844291687,
+          "supported_lift": 0.2626262605190277
+        },
+        "predicted_rates": {
+          "hand_presence": 0.7536795139312744,
+          "object_presence": 0.9823736548423767,
+          "geometric_loss": 0.15262548625469208,
+          "supported_lift": 0.31264379620552063
+        },
+        "joint_presence_observed": 0.747474730014801,
+        "supported_height_mae_mm": 24.75298309326172,
+        "supported_height_bias_mm": 0.4926431179046631,
+        "observed_supported_height_mm": 34.57133865356445,
+        "predicted_supported_height_mm": 35.06398010253906
+      },
+      "random_pool": {
+        "rows": 86,
+        "brier": {
+          "hand_presence": 0.13904868066310883,
+          "object_presence": 0.0008062733104452491,
+          "geometric_loss": 0.1851513534784317,
+          "supported_lift": 0.21552394330501556
+        },
+        "observed_rates": {
+          "hand_presence": 0.8023256063461304,
+          "object_presence": 1.0,
+          "geometric_loss": 0.27906978130340576,
+          "supported_lift": 0.24418604373931885
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8383483290672302,
+          "object_presence": 0.9834339022636414,
+          "geometric_loss": 0.20891912281513214,
+          "supported_lift": 0.30233538150787354
+        },
+        "joint_presence_observed": 0.8023256063461304,
+        "supported_height_mae_mm": 25.62411117553711,
+        "supported_height_bias_mm": 10.918039321899414,
+        "observed_supported_height_mm": 20.41765594482422,
+        "predicted_supported_height_mm": 31.335695266723633
+      }
+    },
+    "state_only": {
+      "all": {
+        "rows": 306,
+        "brier": {
+          "hand_presence": 0.13673782348632812,
+          "object_presence": 0.013116470538079739,
+          "geometric_loss": 0.15628096461296082,
+          "supported_lift": 0.15340089797973633
+        },
+        "observed_rates": {
+          "hand_presence": 0.7810457348823547,
+          "object_presence": 0.9869281053543091,
+          "geometric_loss": 0.24183006584644318,
+          "supported_lift": 0.2647058963775635
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8108457922935486,
+          "object_presence": 0.9820811152458191,
+          "geometric_loss": 0.18989861011505127,
+          "supported_lift": 0.28482598066329956
+        },
+        "joint_presence_observed": 0.7810457348823547,
+        "supported_height_mae_mm": 24.86318588256836,
+        "supported_height_bias_mm": -1.8734732866287231,
+        "observed_supported_height_mm": 28.004968643188477,
+        "predicted_supported_height_mm": 26.131498336791992
+      },
+      "by_arm": {
+        "0": {
+          "rows": 61,
+          "brier": {
+            "hand_presence": 0.14135460555553436,
+            "object_presence": 0.031458549201488495,
+            "geometric_loss": 0.19042228162288666,
+            "supported_lift": 0.11697215586900711
+          },
+          "observed_rates": {
+            "hand_presence": 0.8196721076965332,
+            "object_presence": 0.9672130942344666,
+            "geometric_loss": 0.26229506731033325,
+            "supported_lift": 0.24590164422988892
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8365427851676941,
+            "object_presence": 0.9851863384246826,
+            "geometric_loss": 0.17925478518009186,
+            "supported_lift": 0.2995798885822296
+          },
+          "joint_presence_observed": 0.8196721076965332,
+          "supported_height_mae_mm": 19.12966537475586,
+          "supported_height_bias_mm": 5.337981224060059,
+          "observed_supported_height_mm": 16.959165573120117,
+          "predicted_supported_height_mm": 22.297147750854492
+        },
+        "1": {
+          "rows": 60,
+          "brier": {
+            "hand_presence": 0.12458755075931549,
+            "object_presence": 0.0006616092869080603,
+            "geometric_loss": 0.16794782876968384,
+            "supported_lift": 0.14745014905929565
+          },
+          "observed_rates": {
+            "hand_presence": 0.7666666507720947,
+            "object_presence": 1.0,
+            "geometric_loss": 0.21666666865348816,
+            "supported_lift": 0.3166666626930237
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8006764650344849,
+            "object_presence": 0.9819219708442688,
+            "geometric_loss": 0.16842173039913177,
+            "supported_lift": 0.26244106888771057
+          },
+          "joint_presence_observed": 0.7666666507720947,
+          "supported_height_mae_mm": 27.78754234313965,
+          "supported_height_bias_mm": -16.46518325805664,
+          "observed_supported_height_mm": 39.2755126953125,
+          "predicted_supported_height_mm": 22.810327529907227
+        },
+        "2": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.135125994682312,
+            "object_presence": 0.0006235720356926322,
+            "geometric_loss": 0.03258679062128067,
+            "supported_lift": 0.033467575907707214
+          },
+          "observed_rates": {
+            "hand_presence": 0.6800000071525574,
+            "object_presence": 1.0,
+            "geometric_loss": 0.11999999731779099,
+            "supported_lift": 0.23999999463558197
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7586377859115601,
+            "object_presence": 0.9819703698158264,
+            "geometric_loss": 0.18473385274410248,
+            "supported_lift": 0.2265491485595703
+          },
+          "joint_presence_observed": 0.6800000071525574,
+          "supported_height_mae_mm": 16.336315155029297,
+          "supported_height_bias_mm": -9.045842170715332,
+          "observed_supported_height_mm": 42.57676696777344,
+          "predicted_supported_height_mm": 33.53092575073242
+        },
+        "3": {
+          "rows": 41,
+          "brier": {
+            "hand_presence": 0.19619320333003998,
+            "object_presence": 0.0005955163505859673,
+            "geometric_loss": 0.11875652521848679,
+            "supported_lift": 0.15027378499507904
+          },
+          "observed_rates": {
+            "hand_presence": 0.6829268336296082,
+            "object_presence": 1.0,
+            "geometric_loss": 0.24390244483947754,
+            "supported_lift": 0.3414634168148041
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8251729607582092,
+            "object_presence": 0.9808434247970581,
+            "geometric_loss": 0.19743402302265167,
+            "supported_lift": 0.28476202487945557
+          },
+          "joint_presence_observed": 0.6829268336296082,
+          "supported_height_mae_mm": 27.324064254760742,
+          "supported_height_bias_mm": -15.536955833435059,
+          "observed_supported_height_mm": 39.344505310058594,
+          "predicted_supported_height_mm": 23.807552337646484
+        },
+        "4": {
+          "rows": 33,
+          "brier": {
+            "hand_presence": 0.06707122176885605,
+            "object_presence": 0.05908048152923584,
+            "geometric_loss": 0.12709258496761322,
+            "supported_lift": 0.12875676155090332
+          },
+          "observed_rates": {
+            "hand_presence": 0.8787878751754761,
+            "object_presence": 0.939393937587738,
+            "geometric_loss": 0.24242424964904785,
+            "supported_lift": 0.1818181872367859
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7792681455612183,
+            "object_presence": 0.9766119718551636,
+            "geometric_loss": 0.20901735126972198,
+            "supported_lift": 0.22957761585712433
+          },
+          "joint_presence_observed": 0.8787878751754761,
+          "supported_height_mae_mm": 28.49688148498535,
+          "supported_height_bias_mm": -3.0275862216949463,
+          "observed_supported_height_mm": 22.57632064819336,
+          "predicted_supported_height_mm": 19.54873275756836
+        },
+        "5": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.14175134897232056,
+            "object_presence": 0.00045630228123627603,
+            "geometric_loss": 0.17349612712860107,
+            "supported_lift": 0.24617834389209747
+          },
+          "observed_rates": {
+            "hand_presence": 0.800000011920929,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2800000011920929,
+            "supported_lift": 0.1599999964237213
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7831107974052429,
+            "object_presence": 0.9835923910140991,
+            "geometric_loss": 0.17905853688716888,
+            "supported_lift": 0.20742709934711456
+          },
+          "joint_presence_observed": 0.800000011920929,
+          "supported_height_mae_mm": 26.082569122314453,
+          "supported_height_bias_mm": 10.781900405883789,
+          "observed_supported_height_mm": 8.882551193237305,
+          "predicted_supported_height_mm": 19.664451599121094
+        },
+        "6": {
+          "rows": 37,
+          "brier": {
+            "hand_presence": 0.10097012668848038,
+            "object_presence": 0.0009241392253898084,
+            "geometric_loss": 0.2033373862504959,
+            "supported_lift": 0.2655845284461975
+          },
+          "observed_rates": {
+            "hand_presence": 0.8648648858070374,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2702702581882477,
+            "supported_lift": 0.29729729890823364
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8578008413314819,
+            "object_presence": 0.9836462140083313,
+            "geometric_loss": 0.21266710758209229,
+            "supported_lift": 0.43780821561813354
+          },
+          "joint_presence_observed": 0.8648648858070374,
+          "supported_height_mae_mm": 33.150123596191406,
+          "supported_height_bias_mm": 17.038673400878906,
+          "observed_supported_height_mm": 26.94122886657715,
+          "predicted_supported_height_mm": 43.97990036010742
+        },
+        "7": {
+          "rows": 24,
+          "brier": {
+            "hand_presence": 0.20119935274124146,
+            "object_presence": 0.0008212623069994152,
+            "geometric_loss": 0.18294662237167358,
+            "supported_lift": 0.15543310344219208
+          },
+          "observed_rates": {
+            "hand_presence": 0.7083333134651184,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2916666567325592,
+            "supported_lift": 0.25
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8007843494415283,
+            "object_presence": 0.9803483486175537,
+            "geometric_loss": 0.21305309236049652,
+            "supported_lift": 0.28484630584716797
+          },
+          "joint_presence_observed": 0.7083333134651184,
+          "supported_height_mae_mm": 17.760950088500977,
+          "supported_height_bias_mm": 6.337683200836182,
+          "observed_supported_height_mm": 22.376211166381836,
+          "predicted_supported_height_mm": 28.713895797729492
+        }
+      },
+      "generated_pool": {
+        "rows": 99,
+        "brier": {
+          "hand_presence": 0.13773153722286224,
+          "object_presence": 0.02009759098291397,
+          "geometric_loss": 0.09977517277002335,
+          "supported_lift": 0.11360491812229156
+        },
+        "observed_rates": {
+          "hand_presence": 0.747474730014801,
+          "object_presence": 0.9797979593276978,
+          "geometric_loss": 0.21212121844291687,
+          "supported_lift": 0.2626262605190277
+        },
+        "predicted_rates": {
+          "hand_presence": 0.7930694818496704,
+          "object_presence": 0.9797175526618958,
+          "geometric_loss": 0.19808802008628845,
+          "supported_lift": 0.25166699290275574
+        },
+        "joint_presence_observed": 0.747474730014801,
+        "supported_height_mae_mm": 24.940319061279297,
+        "supported_height_bias_mm": -9.727995872497559,
+        "observed_supported_height_mm": 34.57133865356445,
+        "predicted_supported_height_mm": 24.84334373474121
+      },
+      "random_pool": {
+        "rows": 86,
+        "brier": {
+          "hand_presence": 0.14079608023166656,
+          "object_presence": 0.0007594302878715098,
+          "geometric_loss": 0.18897214531898499,
+          "supported_lift": 0.22920328378677368
+        },
+        "observed_rates": {
+          "hand_presence": 0.8023256063461304,
+          "object_presence": 1.0,
+          "geometric_loss": 0.27906978130340576,
+          "supported_lift": 0.24418604373931885
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8201770186424255,
+          "object_presence": 0.9827101826667786,
+          "geometric_loss": 0.203004851937294,
+          "supported_lift": 0.3281499147415161
+        },
+        "joint_presence_observed": 0.8023256063461304,
+        "supported_height_mae_mm": 26.800949096679688,
+        "supported_height_bias_mm": 12.2335205078125,
+        "observed_supported_height_mm": 20.41765594482422,
+        "predicted_supported_height_mm": 32.65117645263672
+      }
+    },
+    "shuffled": {
+      "all": {
+        "rows": 306,
+        "brier": {
+          "hand_presence": 0.13555358350276947,
+          "object_presence": 0.013142308220267296,
+          "geometric_loss": 0.15642261505126953,
+          "supported_lift": 0.15735699236392975
+        },
+        "observed_rates": {
+          "hand_presence": 0.7810457348823547,
+          "object_presence": 0.9869281053543091,
+          "geometric_loss": 0.24183006584644318,
+          "supported_lift": 0.2647058963775635
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8055927157402039,
+          "object_presence": 0.9821706414222717,
+          "geometric_loss": 0.18739144504070282,
+          "supported_lift": 0.28573933243751526
+        },
+        "joint_presence_observed": 0.7810457348823547,
+        "supported_height_mae_mm": 25.21383285522461,
+        "supported_height_bias_mm": -1.3647795915603638,
+        "observed_supported_height_mm": 28.004968643188477,
+        "predicted_supported_height_mm": 26.64019012451172
+      },
+      "by_arm": {
+        "0": {
+          "rows": 61,
+          "brier": {
+            "hand_presence": 0.14171569049358368,
+            "object_presence": 0.03148416429758072,
+            "geometric_loss": 0.19153891503810883,
+            "supported_lift": 0.11455556750297546
+          },
+          "observed_rates": {
+            "hand_presence": 0.8196721076965332,
+            "object_presence": 0.9672130942344666,
+            "geometric_loss": 0.26229506731033325,
+            "supported_lift": 0.24590164422988892
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8335512280464172,
+            "object_presence": 0.9864122867584229,
+            "geometric_loss": 0.17362909018993378,
+            "supported_lift": 0.2893300950527191
+          },
+          "joint_presence_observed": 0.8196721076965332,
+          "supported_height_mae_mm": 18.60256576538086,
+          "supported_height_bias_mm": 4.634814262390137,
+          "observed_supported_height_mm": 16.959165573120117,
+          "predicted_supported_height_mm": 21.593982696533203
+        },
+        "1": {
+          "rows": 60,
+          "brier": {
+            "hand_presence": 0.12121228128671646,
+            "object_presence": 0.0006952800904400647,
+            "geometric_loss": 0.1676858514547348,
+            "supported_lift": 0.1475478708744049
+          },
+          "observed_rates": {
+            "hand_presence": 0.7666666507720947,
+            "object_presence": 1.0,
+            "geometric_loss": 0.21666666865348816,
+            "supported_lift": 0.3166666626930237
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7932165265083313,
+            "object_presence": 0.9813420176506042,
+            "geometric_loss": 0.1710187792778015,
+            "supported_lift": 0.25927653908729553
+          },
+          "joint_presence_observed": 0.7666666507720947,
+          "supported_height_mae_mm": 27.5958251953125,
+          "supported_height_bias_mm": -15.904812812805176,
+          "observed_supported_height_mm": 39.2755126953125,
+          "predicted_supported_height_mm": 23.370698928833008
+        },
+        "2": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.1307126134634018,
+            "object_presence": 0.0006164928781799972,
+            "geometric_loss": 0.0314050018787384,
+            "supported_lift": 0.037966739386320114
+          },
+          "observed_rates": {
+            "hand_presence": 0.6800000071525574,
+            "object_presence": 1.0,
+            "geometric_loss": 0.11999999731779099,
+            "supported_lift": 0.23999999463558197
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7556989789009094,
+            "object_presence": 0.9824203252792358,
+            "geometric_loss": 0.18333324790000916,
+            "supported_lift": 0.23115909099578857
+          },
+          "joint_presence_observed": 0.6800000071525574,
+          "supported_height_mae_mm": 16.706987380981445,
+          "supported_height_bias_mm": -7.624712944030762,
+          "observed_supported_height_mm": 42.57676696777344,
+          "predicted_supported_height_mm": 34.95205307006836
+        },
+        "3": {
+          "rows": 41,
+          "brier": {
+            "hand_presence": 0.19220049679279327,
+            "object_presence": 0.0006013946258462965,
+            "geometric_loss": 0.11981438100337982,
+            "supported_lift": 0.15694382786750793
+          },
+          "observed_rates": {
+            "hand_presence": 0.6829268336296082,
+            "object_presence": 1.0,
+            "geometric_loss": 0.24390244483947754,
+            "supported_lift": 0.3414634168148041
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8163198828697205,
+            "object_presence": 0.9805517196655273,
+            "geometric_loss": 0.1941118985414505,
+            "supported_lift": 0.2868882715702057
+          },
+          "joint_presence_observed": 0.6829268336296082,
+          "supported_height_mae_mm": 27.526203155517578,
+          "supported_height_bias_mm": -15.021167755126953,
+          "observed_supported_height_mm": 39.344505310058594,
+          "predicted_supported_height_mm": 24.323341369628906
+        },
+        "4": {
+          "rows": 33,
+          "brier": {
+            "hand_presence": 0.07017095386981964,
+            "object_presence": 0.05926274508237839,
+            "geometric_loss": 0.12841056287288666,
+            "supported_lift": 0.14353902637958527
+          },
+          "observed_rates": {
+            "hand_presence": 0.8787878751754761,
+            "object_presence": 0.939393937587738,
+            "geometric_loss": 0.24242424964904785,
+            "supported_lift": 0.1818181872367859
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7721810936927795,
+            "object_presence": 0.9757547974586487,
+            "geometric_loss": 0.20501019060611725,
+            "supported_lift": 0.2403622716665268
+          },
+          "joint_presence_observed": 0.8787878751754761,
+          "supported_height_mae_mm": 30.419885635375977,
+          "supported_height_bias_mm": -0.6775842308998108,
+          "observed_supported_height_mm": 22.57632064819336,
+          "predicted_supported_height_mm": 21.89873695373535
+        },
+        "5": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.14265033602714539,
+            "object_presence": 0.00043287259177304804,
+            "geometric_loss": 0.17467443645000458,
+            "supported_lift": 0.25039321184158325
+          },
+          "observed_rates": {
+            "hand_presence": 0.800000011920929,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2800000011920929,
+            "supported_lift": 0.1599999964237213
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7792537808418274,
+            "object_presence": 0.9836810827255249,
+            "geometric_loss": 0.17662586271762848,
+            "supported_lift": 0.21144935488700867
+          },
+          "joint_presence_observed": 0.800000011920929,
+          "supported_height_mae_mm": 25.99295425415039,
+          "supported_height_bias_mm": 10.443232536315918,
+          "observed_supported_height_mm": 8.882551193237305,
+          "predicted_supported_height_mm": 19.32578468322754
+        },
+        "6": {
+          "rows": 37,
+          "brier": {
+            "hand_presence": 0.10093347728252411,
+            "object_presence": 0.0008856819476932287,
+            "geometric_loss": 0.20267637073993683,
+            "supported_lift": 0.27323782444000244
+          },
+          "observed_rates": {
+            "hand_presence": 0.8648648858070374,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2702702581882477,
+            "supported_lift": 0.29729729890823364
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8560579419136047,
+            "object_presence": 0.9841030240058899,
+            "geometric_loss": 0.20951342582702637,
+            "supported_lift": 0.44541260600090027
+          },
+          "joint_presence_observed": 0.8648648858070374,
+          "supported_height_mae_mm": 34.645538330078125,
+          "supported_height_bias_mm": 18.295427322387695,
+          "observed_supported_height_mm": 26.94122886657715,
+          "predicted_supported_height_mm": 45.236656188964844
+        },
+        "7": {
+          "rows": 24,
+          "brier": {
+            "hand_presence": 0.19989700615406036,
+            "object_presence": 0.0008317898609675467,
+            "geometric_loss": 0.17997276782989502,
+            "supported_lift": 0.15917469561100006
+          },
+          "observed_rates": {
+            "hand_presence": 0.7083333134651184,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2916666567325592,
+            "supported_lift": 0.25
+          },
+          "predicted_rates": {
+            "hand_presence": 0.7946951389312744,
+            "object_presence": 0.9802365303039551,
+            "geometric_loss": 0.20893292129039764,
+            "supported_lift": 0.2912771999835968
+          },
+          "joint_presence_observed": 0.7083333134651184,
+          "supported_height_mae_mm": 18.462995529174805,
+          "supported_height_bias_mm": 6.032372951507568,
+          "observed_supported_height_mm": 22.376211166381836,
+          "predicted_supported_height_mm": 28.408584594726562
+        }
+      },
+      "generated_pool": {
+        "rows": 99,
+        "brier": {
+          "hand_presence": 0.1359967440366745,
+          "object_presence": 0.02015899121761322,
+          "geometric_loss": 0.10035417228937149,
+          "supported_lift": 0.12243084609508514
+        },
+        "observed_rates": {
+          "hand_presence": 0.747474730014801,
+          "object_presence": 0.9797979593276978,
+          "geometric_loss": 0.21212121844291687,
+          "supported_lift": 0.2626262605190277
+        },
+        "predicted_rates": {
+          "hand_presence": 0.7862986326217651,
+          "object_presence": 0.9794246554374695,
+          "geometric_loss": 0.19502276182174683,
+          "supported_lift": 0.2573065757751465
+        },
+        "joint_presence_observed": 0.747474730014801,
+        "supported_height_mae_mm": 25.758638381958008,
+        "supported_height_bias_mm": -8.37218189239502,
+        "observed_supported_height_mm": 34.57133865356445,
+        "predicted_supported_height_mm": 26.199153900146484
+      },
+      "random_pool": {
+        "rows": 86,
+        "brier": {
+          "hand_presence": 0.14067821204662323,
+          "object_presence": 0.0007390117389149964,
+          "geometric_loss": 0.18820039927959442,
+          "supported_lift": 0.23476538062095642
+        },
+        "observed_rates": {
+          "hand_presence": 0.8023256063461304,
+          "object_presence": 1.0,
+          "geometric_loss": 0.27906978130340576,
+          "supported_lift": 0.24418604373931885
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8166066408157349,
+          "object_presence": 0.982901394367218,
+          "geometric_loss": 0.1997910887002945,
+          "supported_lift": 0.3343855142593384
+        },
+        "joint_presence_observed": 0.8023256063461304,
+        "supported_height_mae_mm": 27.614192962646484,
+        "supported_height_bias_mm": 12.590563774108887,
+        "observed_supported_height_mm": 20.41765594482422,
+        "predicted_supported_height_mm": 33.00822067260742
+      }
+    },
+    "direct_score": {
+      "all": {
+        "rows": 306,
+        "brier": {
+          "hand_presence": 0.18516336381435394,
+          "object_presence": 0.02045753039419651,
+          "geometric_loss": 0.18254901468753815,
+          "supported_lift": 0.3446405529975891
+        },
+        "observed_rates": {
+          "hand_presence": 0.7810457348823547,
+          "object_presence": 0.9869281053543091,
+          "geometric_loss": 0.24183006584644318,
+          "supported_lift": 0.2647058963775635
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8999996781349182,
+          "object_presence": 0.8999996781349182,
+          "geometric_loss": 0.152287557721138,
+          "supported_lift": 0.599346399307251
+        },
+        "joint_presence_observed": 0.7810457348823547,
+        "supported_height_mae_mm": 25.24491310119629,
+        "supported_height_bias_mm": 3.957933187484741,
+        "observed_supported_height_mm": 28.004968643188477,
+        "predicted_supported_height_mm": 31.96290397644043
+      },
+      "by_arm": {
+        "0": {
+          "rows": 61,
+          "brier": {
+            "hand_presence": 0.1542622447013855,
+            "object_presence": 0.03622951731085777,
+            "geometric_loss": 0.2329508364200592,
+            "supported_lift": 0.3903278708457947
+          },
+          "observed_rates": {
+            "hand_presence": 0.8196721076965332,
+            "object_presence": 0.9672130942344666,
+            "geometric_loss": 0.26229506731033325,
+            "supported_lift": 0.24590164422988892
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999997973442078,
+            "object_presence": 0.8999997973442078,
+            "geometric_loss": 0.1393442451953888,
+            "supported_lift": 0.6245901584625244
+          },
+          "joint_presence_observed": 0.8196721076965332,
+          "supported_height_mae_mm": 21.62616539001465,
+          "supported_height_bias_mm": 1.6573772430419922,
+          "observed_supported_height_mm": 16.959165573120117,
+          "predicted_supported_height_mm": 18.61654281616211
+        },
+        "1": {
+          "rows": 60,
+          "brier": {
+            "hand_presence": 0.1966666281223297,
+            "object_presence": 0.010000018402934074,
+            "geometric_loss": 0.1966666579246521,
+            "supported_lift": 0.28999996185302734
+          },
+          "observed_rates": {
+            "hand_presence": 0.7666666507720947,
+            "object_presence": 1.0,
+            "geometric_loss": 0.21666666865348816,
+            "supported_lift": 0.3166666626930237
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999997973442078,
+            "object_presence": 0.8999997973442078,
+            "geometric_loss": 0.11333334445953369,
+            "supported_lift": 0.6333332061767578
+          },
+          "joint_presence_observed": 0.7666666507720947,
+          "supported_height_mae_mm": 26.47882080078125,
+          "supported_height_bias_mm": -1.6993268728256226,
+          "observed_supported_height_mm": 39.2755126953125,
+          "predicted_supported_height_mm": 37.5761833190918
+        },
+        "2": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.2659999430179596,
+            "object_presence": 0.0100000174716115,
+            "geometric_loss": 0.07399998605251312,
+            "supported_lift": 0.4259999990463257
+          },
+          "observed_rates": {
+            "hand_presence": 0.6800000071525574,
+            "object_presence": 1.0,
+            "geometric_loss": 0.11999999731779099,
+            "supported_lift": 0.23999999463558197
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999998569488525,
+            "object_presence": 0.8999998569488525,
+            "geometric_loss": 0.19599997997283936,
+            "supported_lift": 0.5799999833106995
+          },
+          "joint_presence_observed": 0.6800000071525574,
+          "supported_height_mae_mm": 19.860950469970703,
+          "supported_height_bias_mm": 6.011274337768555,
+          "observed_supported_height_mm": 42.57676696777344,
+          "predicted_supported_height_mm": 48.588043212890625
+        },
+        "3": {
+          "rows": 41,
+          "brier": {
+            "hand_presence": 0.2636584937572479,
+            "object_presence": 0.010000018402934074,
+            "geometric_loss": 0.18560972809791565,
+            "supported_lift": 0.3807317316532135
+          },
+          "observed_rates": {
+            "hand_presence": 0.6829268336296082,
+            "object_presence": 1.0,
+            "geometric_loss": 0.24390244483947754,
+            "supported_lift": 0.3414634168148041
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999998569488525,
+            "object_presence": 0.8999998569488525,
+            "geometric_loss": 0.11951220035552979,
+            "supported_lift": 0.7048779726028442
+          },
+          "joint_presence_observed": 0.6829268336296082,
+          "supported_height_mae_mm": 28.79384422302246,
+          "supported_height_bias_mm": 8.926593780517578,
+          "observed_supported_height_mm": 39.344505310058594,
+          "predicted_supported_height_mm": 48.27109909057617
+        },
+        "4": {
+          "rows": 33,
+          "brier": {
+            "hand_presence": 0.1069696843624115,
+            "object_presence": 0.058484844863414764,
+            "geometric_loss": 0.13121211528778076,
+            "supported_lift": 0.2524241805076599
+          },
+          "observed_rates": {
+            "hand_presence": 0.8787878751754761,
+            "object_presence": 0.939393937587738,
+            "geometric_loss": 0.24242424964904785,
+            "supported_lift": 0.1818181872367859
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999997973442078,
+            "object_presence": 0.8999997973442078,
+            "geometric_loss": 0.17272725701332092,
+            "supported_lift": 0.48787879943847656
+          },
+          "joint_presence_observed": 0.8787878751754761,
+          "supported_height_mae_mm": 26.075340270996094,
+          "supported_height_bias_mm": -3.2347850799560547,
+          "observed_supported_height_mm": 22.57632064819336,
+          "predicted_supported_height_mm": 19.341533660888672
+        },
+        "5": {
+          "rows": 25,
+          "brier": {
+            "hand_presence": 0.16999995708465576,
+            "object_presence": 0.0100000174716115,
+            "geometric_loss": 0.2019999623298645,
+            "supported_lift": 0.3620000183582306
+          },
+          "observed_rates": {
+            "hand_presence": 0.800000011920929,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2800000011920929,
+            "supported_lift": 0.1599999964237213
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999998569488525,
+            "object_presence": 0.8999998569488525,
+            "geometric_loss": 0.13200001418590546,
+            "supported_lift": 0.515999972820282
+          },
+          "joint_presence_observed": 0.800000011920929,
+          "supported_height_mae_mm": 23.419017791748047,
+          "supported_height_bias_mm": 11.536530494689941,
+          "observed_supported_height_mm": 8.882551193237305,
+          "predicted_supported_height_mm": 20.419082641601562
+        },
+        "6": {
+          "rows": 37,
+          "brier": {
+            "hand_presence": 0.11810809373855591,
+            "object_presence": 0.0100000174716115,
+            "geometric_loss": 0.1829729676246643,
+            "supported_lift": 0.3559459149837494
+          },
+          "observed_rates": {
+            "hand_presence": 0.8648648858070374,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2702702581882477,
+            "supported_lift": 0.29729729890823364
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999997973442078,
+            "object_presence": 0.8999997973442078,
+            "geometric_loss": 0.22972968220710754,
+            "supported_lift": 0.5540540218353271
+          },
+          "joint_presence_observed": 0.8648648858070374,
+          "supported_height_mae_mm": 31.7688045501709,
+          "supported_height_bias_mm": 10.191665649414062,
+          "observed_supported_height_mm": 26.94122886657715,
+          "predicted_supported_height_mm": 37.132896423339844
+        },
+        "7": {
+          "rows": 24,
+          "brier": {
+            "hand_presence": 0.2433333396911621,
+            "object_presence": 0.0100000174716115,
+            "geometric_loss": 0.17666666209697723,
+            "supported_lift": 0.3099999725818634
+          },
+          "observed_rates": {
+            "hand_presence": 0.7083333134651184,
+            "object_presence": 1.0,
+            "geometric_loss": 0.2916666567325592,
+            "supported_lift": 0.25
+          },
+          "predicted_rates": {
+            "hand_presence": 0.8999998569488525,
+            "object_presence": 0.8999998569488525,
+            "geometric_loss": 0.166666641831398,
+            "supported_lift": 0.5999999046325684
+          },
+          "joint_presence_observed": 0.7083333134651184,
+          "supported_height_mae_mm": 21.60576629638672,
+          "supported_height_bias_mm": 5.706583499908447,
+          "observed_supported_height_mm": 22.376211166381836,
+          "predicted_supported_height_mm": 28.082794189453125
+        }
+      },
+      "generated_pool": {
+        "rows": 99,
+        "brier": {
+          "hand_presence": 0.2120201587677002,
+          "object_presence": 0.026161624118685722,
+          "geometric_loss": 0.139292910695076,
+          "supported_lift": 0.34939390420913696
+        },
+        "observed_rates": {
+          "hand_presence": 0.747474730014801,
+          "object_presence": 0.9797979593276978,
+          "geometric_loss": 0.21212121844291687,
+          "supported_lift": 0.2626262605190277
+        },
+        "predicted_rates": {
+          "hand_presence": 0.899999737739563,
+          "object_presence": 0.899999737739563,
+          "geometric_loss": 0.15656563639640808,
+          "supported_lift": 0.6010100841522217
+        },
+        "joint_presence_observed": 0.747474730014801,
+        "supported_height_mae_mm": 25.631895065307617,
+        "supported_height_bias_mm": 4.136609077453613,
+        "observed_supported_height_mm": 34.57133865356445,
+        "predicted_supported_height_mm": 38.707942962646484
+      },
+      "random_pool": {
+        "rows": 86,
+        "brier": {
+          "hand_presence": 0.1681395173072815,
+          "object_presence": 0.010000019334256649,
+          "geometric_loss": 0.18674418330192566,
+          "supported_lift": 0.3448837101459503
+        },
+        "observed_rates": {
+          "hand_presence": 0.8023256063461304,
+          "object_presence": 1.0,
+          "geometric_loss": 0.27906978130340576,
+          "supported_lift": 0.24418604373931885
+        },
+        "predicted_rates": {
+          "hand_presence": 0.8999998569488525,
+          "object_presence": 0.8999998569488525,
+          "geometric_loss": 0.1837209165096283,
+          "supported_lift": 0.5558139681816101
+        },
+        "joint_presence_observed": 0.8023256063461304,
+        "supported_height_mae_mm": 26.505346298217773,
+        "supported_height_bias_mm": 9.330964088439941,
+        "observed_supported_height_mm": 20.41765594482422,
+        "predicted_supported_height_mm": 29.748620986938477
+      }
+    }
+  },
+  "consistency": {
+    "cm": {
+      "cm_vs_cup": {
+        "all": {
+          "rows": 306,
+          "hand_probability_difference": 0.035616230219602585,
+          "object_probability_difference": 0.0009186542592942715,
+          "loss_probability_difference": -0.00010423375351820141,
+          "supported_lift_probability_difference": -0.0012352027697488666,
+          "predicted_joint_height_gain_mm": 2.2163171768188477,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        },
+        "changed_cup_pd": {
+          "rows": 190,
+          "hand_probability_difference": 0.05736086890101433,
+          "object_probability_difference": 0.0014795168535783887,
+          "loss_probability_difference": -0.00016787118511274457,
+          "supported_lift_probability_difference": -0.001989326672628522,
+          "predicted_joint_height_gain_mm": 3.5694375038146973,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        }
+      },
+      "lift_subset_violation_by_arm": {
+        "0": {
+          "rows": 12,
+          "over_5pp_rows": 3,
+          "maximum_excess": 0.12948060035705566
+        },
+        "1": {
+          "rows": 55,
+          "over_5pp_rows": 22,
+          "maximum_excess": 0.30549466609954834
+        },
+        "2": {
+          "rows": 55,
+          "over_5pp_rows": 22,
+          "maximum_excess": 0.30549466609954834
+        },
+        "3": {
+          "rows": 52,
+          "over_5pp_rows": 17,
+          "maximum_excess": 0.29359304904937744
+        },
+        "4": {
+          "rows": 37,
+          "over_5pp_rows": 9,
+          "maximum_excess": 0.19430279731750488
+        },
+        "5": {
+          "rows": 17,
+          "over_5pp_rows": 3,
+          "maximum_excess": 0.15305769443511963
+        },
+        "6": {
+          "rows": 17,
+          "over_5pp_rows": 3,
+          "maximum_excess": 0.1736277937889099
+        },
+        "7": {
+          "rows": 15,
+          "over_5pp_rows": 2,
+          "maximum_excess": 0.15493392944335938
+        }
+      },
+      "scope": "predicted marginals/internal consistency; no counterfactual outcome; direct-score non-height heads are prior-only"
+    },
+    "state_only": {
+      "cm_vs_cup": {
+        "all": {
+          "rows": 306,
+          "hand_probability_difference": 0.0,
+          "object_probability_difference": 0.0,
+          "loss_probability_difference": 0.0,
+          "supported_lift_probability_difference": 0.0,
+          "predicted_joint_height_gain_mm": 0.0,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        },
+        "changed_cup_pd": {
+          "rows": 190,
+          "hand_probability_difference": 0.0,
+          "object_probability_difference": 0.0,
+          "loss_probability_difference": 0.0,
+          "supported_lift_probability_difference": 0.0,
+          "predicted_joint_height_gain_mm": 0.0,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        }
+      },
+      "lift_subset_violation_by_arm": {
+        "0": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "1": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "2": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "3": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "4": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "5": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "6": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        },
+        "7": {
+          "rows": 19,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12284350395202637
+        }
+      },
+      "scope": "predicted marginals/internal consistency; no counterfactual outcome; direct-score non-height heads are prior-only"
+    },
+    "shuffled": {
+      "cm_vs_cup": {
+        "all": {
+          "rows": 306,
+          "hand_probability_difference": 0.0012570235412567854,
+          "object_probability_difference": 0.0005767649272456765,
+          "loss_probability_difference": -0.0017917528748512268,
+          "supported_lift_probability_difference": 0.0010006058728322387,
+          "predicted_joint_height_gain_mm": 0.2258019745349884,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        },
+        "changed_cup_pd": {
+          "rows": 190,
+          "hand_probability_difference": 0.002024469431489706,
+          "object_probability_difference": 0.0009288950823247433,
+          "loss_probability_difference": -0.002885664813220501,
+          "supported_lift_probability_difference": 0.001611502026207745,
+          "predicted_joint_height_gain_mm": 0.3636600375175476,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        }
+      },
+      "lift_subset_violation_by_arm": {
+        "0": {
+          "rows": 16,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.12138843536376953
+        },
+        "1": {
+          "rows": 21,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.13057178258895874
+        },
+        "2": {
+          "rows": 21,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.13057178258895874
+        },
+        "3": {
+          "rows": 20,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.13125663995742798
+        },
+        "4": {
+          "rows": 23,
+          "over_5pp_rows": 5,
+          "maximum_excess": 0.13625723123550415
+        },
+        "5": {
+          "rows": 20,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.13148748874664307
+        },
+        "6": {
+          "rows": 20,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.1337922215461731
+        },
+        "7": {
+          "rows": 21,
+          "over_5pp_rows": 4,
+          "maximum_excess": 0.127391517162323
+        }
+      },
+      "scope": "predicted marginals/internal consistency; no counterfactual outcome; direct-score non-height heads are prior-only"
+    },
+    "direct_score": {
+      "cm_vs_cup": {
+        "all": {
+          "rows": 306,
+          "hand_probability_difference": 0.0,
+          "object_probability_difference": 0.0,
+          "loss_probability_difference": 0.0,
+          "supported_lift_probability_difference": 0.0,
+          "predicted_joint_height_gain_mm": 3.2931463718414307,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        },
+        "changed_cup_pd": {
+          "rows": 190,
+          "hand_probability_difference": 0.0,
+          "object_probability_difference": 0.0,
+          "loss_probability_difference": 0.0,
+          "supported_lift_probability_difference": 0.0,
+          "predicted_joint_height_gain_mm": 5.303698539733887,
+          "frechet_definite_decline_rows": 0,
+          "frechet_decline_over_5pp_rows": 0
+        }
+      },
+      "lift_subset_violation_by_arm": {
+        "0": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "1": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "2": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "3": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "4": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "5": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "6": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        },
+        "7": {
+          "rows": 0,
+          "over_5pp_rows": 0,
+          "maximum_excess": 0.0
+        }
+      },
+      "scope": "predicted marginals/internal consistency; no counterfactual outcome; direct-score non-height heads are prior-only"
+    }
+  },
+  "allocation": {
+    "0": {
+      "rows": 61,
+      "ht_weight_mass": 0.9967320112913265,
+      "conditional_observed_joint_presence": 0.8196721076965332
+    },
+    "1": {
+      "rows": 60,
+      "ht_weight_mass": 0.9803921422537637,
+      "conditional_observed_joint_presence": 0.7666666507720947
+    },
+    "2": {
+      "rows": 25,
+      "ht_weight_mass": 0.8169934518781364,
+      "conditional_observed_joint_presence": 0.6800000071525574
+    },
+    "3": {
+      "rows": 41,
+      "ht_weight_mass": 1.339869261080144,
+      "conditional_observed_joint_presence": 0.6829268336296082
+    },
+    "4": {
+      "rows": 33,
+      "ht_weight_mass": 1.0784313564791401,
+      "conditional_observed_joint_presence": 0.8787878751754761
+    },
+    "5": {
+      "rows": 25,
+      "ht_weight_mass": 0.8169934518781365,
+      "conditional_observed_joint_presence": 0.800000011920929
+    },
+    "6": {
+      "rows": 37,
+      "ht_weight_mass": 1.2091503087796418,
+      "conditional_observed_joint_presence": 0.8648648858070374
+    },
+    "7": {
+      "rows": 24,
+      "ht_weight_mass": 0.784313713803011,
+      "conditional_observed_joint_presence": 0.7083333134651184
+    }
+  },
+  "parameter_fingerprint_before": "bd34083ece59afb741f1f8f3a66cab38312abda2ef846b53e6402bdd1672f5a0",
+  "parameter_fingerprint_after": "bd34083ece59afb741f1f8f3a66cab38312abda2ef846b53e6402bdd1672f5a0",
+  "parameter_frozen": true,
+  "input_hashes_unchanged": true,
+  "elapsed_seconds": 8.422081912867725,
+  "scope": "cal-only model/decision diagnostic; no new rollout or held tuning; HF20 gates unchanged",
+  "source_cost_separate": true
+}
