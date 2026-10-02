@@ -6,7 +6,13 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-contact-risk-guard
+    owner: current_session
+    status: ACTIVE
+    card: docs/decisions/D-20261002-contact-risk-constrained-scoring.md
+    outcome_boundary: "Excluded623 pre-only<=300s/64MiB, frozen contact Cm risk constrains separate direct height scorer; full NN/PD/frozenparams/state-only equivalence and binding coverage. No actual outcomes or scientific Probe classification; future real source only if role has action effect."
+
 
 completed_engineering_tasks:
   - id: T-20261002-structured-native-generation
@@ -213,14 +219,14 @@ hypotheses:
   HF22:
     claim: C3
     name: generated_distribution_contact_loss_protection
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-structured-contact-effects
     probe_budget: 2
     probes_used: 1
     owner: current_session
     authorization: "active full mechanism goal; new support-preserving role memo after HF21 fixed gate failure; mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261002-support-preserving-contact-effects.md
-    transition: "Slot1 fixed adaptation: actual6263union,oldfit2532/newfit624 batch128+128,frozenoldnorm,4modesx3membersx500GPUupdates,new any-H10 contactloss coherent with terminal joint,old19heads warm-start unchanged. Excluded623/33rows labels/PD0, nofutureleak,warmstart0,finitegradient,2.461s. Premature uncommitted launch stopped after queue check failure; six completed members plus possible seventh partial updates preserved,300s conservative cost upper bound. Same fixed protocol resumes after valid code commit; new known cal/held reused Probe only,no label/PPO."
+    transition: "Slot1 CLOSED UNPROMISING with fixed gates preserved:6263actualunion,12membersx500GPUupdates from oldfit2532/newfit624,oldnormfixed. Newheldheight11.027vsold11.242/generated12.685vs12.986:1.92%/2.32% below5%; joint/contactloss Brier improve vsstate/shuf and allphysics/oldretention/coherence pass. Independent rawlabels/PD/norm/fullNN/baseline/gates pass:NN0,stats2.59e-6,fit/audit exit0,511.60budgeteds/66.10MiB. Premature stopped attempt3000-3500extra updates retained; exactwallunknown,300s budgetcharge separate. No second adaptation slot/epoch or PPO; next contact-risk constraint responsibility engineering per distinct memo, C3OPEN."
   HF21:
     claim: C3
     name: joint_contact_consequences_reference_action_effects

@@ -440,12 +440,19 @@ cal-3.164/held+3.487mm均区间跨0。相对base held高度+13.455mm但joint -27
 不能替代hand/object共同存在保护。只用新fit624事实转移适配，旧fit回放；
 新cal/held用于复用信息Probe、未来实际效用仍需独立源，绝不把预测当真值。
 见[新职责决定](decisions/D-20261002-generated-support-preserving-cm.md)。
-HF22新模型/标签工程已通过排除623/33窗口：rawforce/PD标签0、future-poison
-不变、旧19头初始化输出0、接触loss必要关系与有限动作梯度通过，2.46秒。
-现在固定四模式各三成员500次GPU适配，旧fit2532/新fit624各占batch一半，
-归一化继承旧fit，新增contact-loss保护职责；所有已知cal/held不训练。
-见[信息卡](experiments/probes/P-20261002-support-preserving-contact-effects.md)，尚无本轮科学结论。
-
+HF22适配及独立审计已完成，原门UNPROMISING：已知新held298，Cm高度
+11.027 vs旧11.242mm、生成subset12.685 vs12.986mm，改善1.92%/2.32%未达
+预设5%。接触loss Brier.10512 vsstate.13063/shuf.12720，joint Brier.11067
+vs.12694/.12099，两项动作信息子门与全部物理非劣/旧能力保持/包含关系通过。
+实际6263标签/PD/旧fitnorm/actual及8候选全NN/冻结旧Cm/原门独立审计通过：
+任务标签0、物理目标1.54e-4、NN0、统计2.59e-6。正式12成员x500GPU更新，
+fit与audit均exit0，累计预算511.60秒/66.10MiB；被停止的早期3000–3500更新
+另保留，精确墙钟未知、预算费用300秒，旧源/模型成本另报。无新真实收益证明。
+见[适配结果](experiments/probes/P-20261002-support-preserving-contact-effects-result.md)。
+下一步改控制职责：Cm承担接触风险约束，独立direct高度评分承担收益排序，
+先用排除623做<=300秒/64MiB的全NN与实际PD作用工程，不用未来标签挑程序。
+有实际约束作用才固定新的独立执行卡；这不是放宽HF22原门，当前不启动PPO。
+见[风险约束决定](decisions/D-20261002-contact-risk-constrained-scoring.md)。
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。

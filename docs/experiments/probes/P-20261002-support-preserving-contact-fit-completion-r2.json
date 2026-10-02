@@ -1,0 +1,25 @@
+{
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "audit_passed": true,
+  "cumulative_budgeted_seconds": 511.6011368148029,
+  "prior_premature_attempt_budget_charge_seconds": 300.0,
+  "premature_attempt_exact_wall_unknown": true,
+  "accepted_models": 12,
+  "accepted_updates": 6000,
+  "discarded_completed_updates": 3000,
+  "discarded_partial_updates_range": [
+    0,
+    500
+  ],
+  "total_output_bytes": 69315182,
+  "checkpoint_sha256": "73c3e106f9716441f9dccda92b853ddea6eb4b1499724207656d48a6845e76b1",
+  "artifact_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/run_manifest.json": "f874cba42acfa42e2d6eba72f8170678668497b7d590d3fe719e0b9263dba8c2",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/results.json": "f134d1bc8fc3ff78430762c2d93fb1197ce8c9a059139ea9f7b36fb4a8a52d26",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/independent-audit.json": "5d7dae6faaca125089c2fdbfc8d667d440219cdf5638c0204fcecebae66fc0a9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/support_preserving_contact_consequence.pt": "73c3e106f9716441f9dccda92b853ddea6eb4b1499724207656d48a6845e76b1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-support-preserving-contact-fit-r2/forecasts.pt": "b10053bc33a28b3da49bfc995f961cb907f2fdec65687e3d49b4bf5f4c3cdd88"
+  },
+  "shared_prior_models_sources_separate": true
+}
