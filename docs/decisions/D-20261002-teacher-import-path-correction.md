@@ -1,0 +1,3 @@
+# Teacher wrapper import-path correction
+
+Corrected-goal r2 failed before IsaacGym/Torch imports, environment construction, physics, RNG or optimizer: ModuleNotFoundError scripts. Native subprocess working directory is third_party/DExplore; v2wrapper imported a repository module before adding ROOT to sys.path. Preserve r2log/manifest and all frozen31d61a2sources. v3entrypoints only add isolated ROOT to import path then run the SAMEv2module. Fixed589/590seeds/goals/weights/gates/tolerances unchanged; cumulative r1+r2+r3<=900s/1GiB. No result-dependent change. Smoke imports and generated source executed from actual DExplorecwd before launch.
