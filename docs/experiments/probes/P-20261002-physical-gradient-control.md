@@ -64,3 +64,13 @@ Whole<=300s/512MiB, one freshly idle GPU for native/inference/gradients;
 CPU independent files/NumPy audit/statistical reconstruction. Original675
 inputs and prior fit/models/raw outcomes protected/read-only. New Gaussian
 collection and complete-gradient data retained regardless of outcome.
+
+## Execution closure
+
+f0be3ca/r1 COMPLETED,768fresh trajectories/576stochastic gradient episodes,
+zero new optimizer steps. Full parameter-gradient trace baseline8.2513/
+Cm32.5816/off11.9448/directQ14.0500; both mandatory gates fail, UNPROMISING.
+Allnative/input/critic-reverse/complete-actor-gradient/bootstrap audits pass.
+206.507s/391985146bytes, protected inputs unchanged, all own PIDs terminal.
+[Complete result](../../research/20261002-physical-gradient-control-results.md).
+Do not launch corrected policy training or vary the control coefficient.

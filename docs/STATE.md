@@ -87,16 +87,23 @@ End the exact offline Cm-successor actor objective without penalty, width,
 steps, horizon, threshold, seed or checkpoint scans. Retain all actors/data,
 particularly direct-Q, without relabeling its benefit as Cm utility.
 
-Next Decision: assess a RETURN-CORRECTED physical-model contribution. Fixed
-models must be trained without the fresh episode's action/return; measure
-COMPLETE actor-parameter-gradient noise against a common state baseline,
-physical-action-removed derivative and direct-Q derivative. A cheap fresh
-Gaussian-option comparison can reject this role before costly matched online
-training. Freeze the collection, algebra, audits and gates before launching.
-No new experiment queued yet. This is established Q-Prop/Stein machinery;
-new utility and distinctive methodology remain to be demonstrated.
-[Route review](decisions/D-20261002-after-option-model-policy.md).
-[Primary-source boundary](research/20261002-return-corrected-gradient-boundary.md).
+The RETURN-CORRECTED gradient Decision is now COMPLETED/UNPROMISING:
+fresh618768trajectories,576Gaussian options, actual14732-parameter gradients.
+Covariance trace baseline8.2513/Cm32.5816/off11.9448/directQ14.0500; both
+mandatory gates fail and all three Cm-minus-control bootstrap intervals
+positive. Full native/current/critic-reverse/actor-gradient/statistical audits
+pass, no new optimizer steps,206.507s/391985146bytes, all own PIDs terminal.
+[Results](research/20261002-physical-gradient-control-results.md).
+
+Stop this fixed derivative recipe without coefficient/sigma/model/seed scans;
+no corrected actor training from this failed gate. Next cheap Decision is a
+REUSED618actual-eight-step-successor value/mean-successor compatibility screen
+with fixed existingmodels, before choosing an uncertainty-aware physical
+representation versus a different physical interaction distribution. Freeze
+analysis/audits/gates before inspecting its predictions. No new experiment
+queued at this checkpoint. Future-state oracle is only diagnosis, not deployable
+utility. Standard control variates and probabilistic world models are prior art.
+[Higher-level review](decisions/D-20261002-after-physical-gradient-control.md).
 
 ## Preservation
 
@@ -108,3 +115,5 @@ b2ebc96 stores944661638unique bytes. Supplement-r6 COMPLETED through
 ed92752,1074130402unique bytes; verified code bundle/raw/model/audit copies
 and unchanged prior manifests. [Receipt](activities/20261002-option-policy-delivery.md).
 History and complete experimental details remain in Git, cards and the index.
+Latest complete-gradient record is terminal in the writable clone; preserve
+it durably as supplement-r7 before reporting that delivery complete.
