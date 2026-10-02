@@ -37,13 +37,16 @@ def load_panel(path,sources):
     assert np.max(np.abs(y-trace['physical_transition'].numpy()))<1e-5
     cells=cell_ids(progress,motion[None],lift[None],stop[None]);x=trace['normalized_context'].numpy()
     packets=[]
+    full_streams=[eps[:,np.flatnonzero(group==g)] for g in (1,2,3)]
+    assert np.array_equal(full_streams[0],full_streams[1]) and np.array_equal(full_streams[0],full_streams[2])
     for g in range(4):
         ids=np.flatnonzero(group==g);assert len(ids)==192
         # Episode first; preserve matching private stream indices across replicas.
         keep=eligible[:,ids].T
         def select(a):return a[:,ids].swapaxes(0,1)[keep]
         packets.append(dict(x=select(x),y=select(y),eps=select(eps),cells=select(cells),episode=np.repeat(np.arange(192),105)))
-    assert np.array_equal(packets[1]['eps'],packets[2]['eps']) and np.array_equal(packets[1]['eps'],packets[3]['eps'])
+    # Common stream indices stay paired; different assigned motions select
+    # different known reference tick windows within those full streams.
     return packets
 
 def np_forward(x,state):
