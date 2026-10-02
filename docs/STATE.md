@@ -242,3 +242,5 @@ Coherent consequence Probe is now COMPLETED/UNPROMISING:2304fresh trajectories,2
 [Full results](research/20261002-coherent-barrier-information-results.md).
 
 Next Decision: qualify read-only repository self-trained source_e260 under SAMEsynthetic105task against independent P0 and duplicates. Historical source success/validation is not ours and is not transferred. Protected source inputs checked against user's latest changes. See [substrate review](decisions/D-20261002-after-coherent-substrate-review.md). Goal ACTIVE/NOT READY.
+
+Teacher qualification r1 stopped for unequal reference-goal inputs before primary analysis: P0 clamps at plateau stop, native expert saw original lowering suffix. First native/audit/full expert replay preserved; own PIDs stopped and failed parent retained. Engineering correction separately freezes589/590fresh cohorts and identical gates/tolerances, only aligns in-memory reference suffix to existing P0hold goal. See [alignment](experiments/probes/P-20261002-self-trained-teacher-qualification-goal-alignment.md). No teacher-quality/Cm conclusion from failedr1.
