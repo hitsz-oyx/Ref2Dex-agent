@@ -397,6 +397,11 @@ UNPROMISING，slot1后关闭，不启动slot2/PPO；不把部分H10信息解释�
 见[HF19结果](experiments/probes/P-20261002-contact-geometry-action-information-result.md)。
 下一步让冻结Cm的H10后果预测主动生成受约束程序，先做梯度/可执行域工程，
 再固定真实候选机会检验，而非继续随机组合排序器的网络/门限扫描。
+动作生成GPU工程已通过24个真实bank：固定32梯度步，Cm生成14个不同cup
+权重；凸权重/专家命令范围全部有效、原生旋转PD误差0、缓存NN回放0、参数
+冻结。online输入仅pre，与已有已审计起点一致。尚未在物理环境执行这些新
+动作；下一步接入新原生collector并验证实际记录，然后登记候选机会科学卡。
+见[动作生成工程](experiments/probes/P-20261002-optimized-contact-actions-engineering.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。

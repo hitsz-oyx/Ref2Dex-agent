@@ -1,0 +1,56 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 5401\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790910450.0902545
+  },
+  "pre_only_live_input_errors": {
+    "history": 0.0,
+    "physical": 4.76837158203125e-07,
+    "node_state": 5.960464477539063e-08,
+    "prior": 7.62939453125e-06
+  },
+  "modes": {
+    "cm": {
+      "cache_max_error": 0.0,
+      "states": 24,
+      "changed_reference": 14,
+      "weight_sum_max_error": 1.1920928955078125e-07,
+      "rotation_target_max_error": 0.0,
+      "best_relative_score_mm_mean": 1.9673330783843994,
+      "steps": 32
+    },
+    "direct_score": {
+      "cache_max_error": 0.0,
+      "states": 24,
+      "changed_reference": 21,
+      "weight_sum_max_error": 1.7881393432617188e-07,
+      "rotation_target_max_error": 0.0,
+      "best_relative_score_mm_mean": 4.108654975891113,
+      "steps": 32
+    },
+    "shuffled": {
+      "cache_max_error": 0.0,
+      "states": 24,
+      "changed_reference": 21,
+      "weight_sum_max_error": 1.7881393432617188e-07,
+      "rotation_target_max_error": 0.0,
+      "best_relative_score_mm_mean": 1.5384610891342163,
+      "steps": 32
+    }
+  },
+  "model_parameters_frozen": true,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/smoke_optimized_contact_actions.py": "d0ce4f51a61c7a08f9255f6ce230810371cb60b3b1affc2a292b0634fca228ae",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/optimized_contact_actions.py": "057df4f23e7b7255470ef77921f9f4da4e2ab7e16ad0c07c479312e09cbe64ff",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-engineering-r2/seed570/records.pt": "c4df87915d65ee971f4ccca1a278cea0fb6f66386e6d22fce4d9024f28187b0f",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-fit-r1/contact_geometry_consequence.pt": "486973bf5bb822c6858f6ba467f1b33d7482256d7ac69ebf5e84f1baa5651688",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/decisions/D-20261002-cm-optimized-action-generation.md": "88a45bcb446272fe39d40ddae144ef0bcc940b94290b13d460cba7d2cc7a43c0"
+  },
+  "elapsed_seconds": 4.624593497253954,
+  "scope": "GPU input-gradient and executable coefficient engineering; generated actions NOT simulated, no candidate opportunity/utility claim"
+}

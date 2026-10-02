@@ -6,7 +6,12 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-optimized-contact-actions
+    owner: current_session
+    status: ACTIVE
+    card: docs/experiments/probes/P-20261002-optimized-contact-actions-engineering.md
+    outcome_boundary: "Frozen Cm input-gradient generator GPU engineering passed24real states: Cm14changedcup, direct/shuf21each; fixed32steps, allconvex weights/expert command envelopes, rotationPD0, cache-fullNN0, frozenparameter fingerprint unchanged. Pre-only live input matches audited source withinfloat precision. No new generated action physically simulated yet; nextnewnativecollector engineering then register actualopportunity science, originalHF19UNPROMISING retained/C3OPEN."
 
 completed_engineering_tasks:
   - id: T-20261002-contact-geometry-source
