@@ -8,7 +8,7 @@ def main():
         "p.add_argument('--gpu-index',type=int,default=4);":"p.add_argument('--resume-source',type=Path,required=True);p.add_argument('--gpu-index',type=int,default=7);",
         "    verify();gpu=admission(a.gpu_index);out.mkdir();begin=time.monotonic()":'''    previous=a.resume_source.resolve();pm=json.loads((previous/'run_manifest.json').read_text());assert pm['run_status']=='FAILED' and pm['experiment_id']=='P-20261002-measured-geometry-barriers'
     assert [q['name'] for q in pm['phases'] if q['run_status']=='COMPLETED']==['s578','s578_audit']
-    assert pm['phases'][-1]['name']=='s579' and 'contention' in pm['phases'][-1]['error'] and not (previous/'s579').exists()
+    assert pm['phases'][-1]['name']=='s579' and 'contention' in pm['phases'][-1]['error'] and not any((previous/'s579').iterdir())
     childpid=pm['phases'][-1]['pid'];assert not Path('/proc') .joinpath(str(childpid)).exists(),'old owned process remains live'
     prior_wall=pm['wall_seconds'];prior_bytes=bytes_in(previous);hashes.update(pm['input_sha256']);hashes[str(previous/'run_manifest.json')]=sha(previous/'run_manifest.json')
     for f in ['scripts/resume_measured_geometry_barrier_probe.py','docs/decisions/D-20261002-geometry-barrier-device-resume.md']:hashes[str(ROOT/f)]=sha(ROOT/f)
