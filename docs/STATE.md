@@ -271,3 +271,10 @@ changes. The user's new-route instruction takes precedence over older
 prospective next-step paragraphs above: this branch now retains completed
 code, evidence and manuscript draft, with no new experiment queued. No
 positive matched Cm training benefit or journal-ready conclusion exists.
+
+Final delivery before the user's new route: supplementr4 COMPLETED at
+`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r4`,
+2,555,878,483 unique bytes, all copies SHA verified, prior v11/r1/r2/r3
+manifests unchanged. Verified code.bundle through scientific closeout3d10db5
+and nine recent terminal run directories preserve raw data, checkpoints,
+audits and failures. [Delivery receipt](activities/20261002-research-track-final-delivery.md).
