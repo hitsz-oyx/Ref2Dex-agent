@@ -6,7 +6,13 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-contact-risk-intervention-native
+    owner: current_session
+    status: ACTIVE
+    card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
+    outcome_boundary: "Fixed excluded649 native <=600s; pre-only binding selection before random allocation, saved rejected detections, fullNN/32-step/RNG/PD/force/mesh/expert audit. NeedactualCm-vs-direct PD change before newsciencepanel651-658; no risk/utility claim from engineering."
+
 
 completed_engineering_tasks:
   - id: T-20261002-contact-risk-guard
@@ -215,6 +221,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF23:
+    claim: C3
+    name: contact_risk_constraints_at_actual_binding_states
+    status: ACTIVE
+    branch: agent/cm-structured-contact-effects
+    probe_budget: 1
+    probes_used: 0
+    owner: current_session
+    authorization: "persistent full mechanism objective and distinct fixed-risk intervention memo; same mission/resources, no subagents"
+    card: docs/experiments/probes/P-20261002-contact-risk-interventions.md
+    transition: "Fixed contact-specific binding engineering129 has4 action changes. New role uses frozen contactCm risk to constrain separate direct height scorer; excluded649 native/audit first, then single independent fixed651-658 panel. Focus actual conditional contact-risk reduction and lift retention; all controls visible, no PPO/fullpolicy gain claim."
   HF22:
     claim: C3
     name: generated_distribution_contact_loss_protection
