@@ -101,3 +101,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Geometric contact model primary-source boundary](20261002-measured-geometry-method-boundary.md).
 
 - [Actual coherent four-tick consequence negative](20261002-coherent-barrier-information-results.md).
+
+- [Self-trained source qualification negative](20261002-self-trained-teacher-qualification-results.md).
+- [Existing model/value interface boundary](20261002-model-value-interface-boundary.md).
