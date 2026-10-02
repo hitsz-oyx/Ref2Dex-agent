@@ -115,5 +115,6 @@ b2ebc96 stores944661638unique bytes. Supplement-r6 COMPLETED through
 ed92752,1074130402unique bytes; verified code bundle/raw/model/audit copies
 and unchanged prior manifests. [Receipt](activities/20261002-option-policy-delivery.md).
 History and complete experimental details remain in Git, cards and the index.
-Latest complete-gradient record is terminal in the writable clone; preserve
-it durably as supplement-r7 before reporting that delivery complete.
+Supplement-r7 COMPLETED througha5a095c,469089569unique bytes; verified
+full-gradient/native/audit copies and code bundle, prior manifests unchanged.
+[Receipt](activities/20261002-gradient-control-delivery.md).
