@@ -35,7 +35,18 @@ def run(args):
     old=json.loads(old_path.read_text())
     if any(sha(Path(k))!=v for k,v in old['input_sha256'].items()):
         raise ValueError('native generator input drift')
+    failed_seconds=0.
+    failed_path=None
+    if args.prior_failed_run is not None:
+        failed_path=args.prior_failed_run.resolve()/'run_manifest.json'
+        failed=json.loads(failed_path.read_text())
+        if failed['run_status']!='FAILED' or any(p.get('native_pid') is not None for p in failed['phases']):
+            raise ValueError('only a verified before-native startup failure can be resumed')
+        if failed.get('error')!="KeyError('command')":
+            raise ValueError('unexpected prior failure; do not silently retry')
+        failed_seconds=failed['elapsed_seconds']
     hashes=dict(old['input_sha256'])
+    if failed_path is not None:hashes[str(failed_path)]=sha(failed_path)
     dependencies=['contact_geometry_consequence.py','native_pd_selector.py','native_pd_consequence.py',
                   'native_pd_policy_controls.py','optimized_contact_actions.py', 'structured_contact_consequence.py',
                   'structured_contact_actions.py','structured_contact_opportunity.py']
@@ -57,7 +68,8 @@ def run(args):
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=hashes,phases=phases,admissions=admissions,
         wall_limit_seconds=3600,source_pipeline_limit_seconds=3200,
-        prior_engineering_seconds=engineering['actual_engineering_and_preparation_seconds'],
+        prior_engineering_seconds=engineering['actual_engineering_and_preparation_seconds']+failed_seconds,
+        preserved_before_native_failure_seconds=failed_seconds,
         prior_engineering_budget_seconds=400.,output_limit_bytes=8<<30,
         max_owned_gpu_concurrency=3,model_training=False,expert_training=False,
         scope='randomized H10 generated candidates and full audits; utility analysis separate')
@@ -72,7 +84,7 @@ def run(args):
     def check():
         if stop.is_set():
             raise RuntimeError('another owned phase failed; no new work')
-        if time.monotonic()-begin>3200 or time.monotonic()-begin+400.>3600:
+        if time.monotonic()-begin+failed_seconds>3200 or time.monotonic()-begin+failed_seconds+400.>3600:
             raise TimeoutError('whole fixed slot wall budget')
         size=sum(p.stat().st_size for p in output.rglob('*') if p.is_file())
         if size+engineering['total_output_bytes']>8<<30:
@@ -138,7 +150,7 @@ def run(args):
                 if current['uuid']!=admission['uuid']:
                     raise ValueError('GPU identity drift')
                 seed=phase['seed'];directory=Path(phase['directory'])
-                command=list(old['phases'][0]['command'])
+                command=list(old['phases'][0]['native_command'])
                 changes={'--output-dir':str(directory),'--panel-seed':str(seed),
                     '--assignment-seed':str(seed+15000),'--seed':str(seed),
                     '--windows-per-stratum':'2','--max-steps':'300','--wall-seconds':'600',
@@ -219,4 +231,5 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpus',type=int,nargs=3,default=[4,5,6])
+    p.add_argument('--prior-failed-run',type=Path)
     run(p.parse_args())
