@@ -235,7 +235,7 @@ def candidate_player(original, args, torch, gymtorch):
             valid = steps == 10
             if ((steps > 0) & (~valid | future_done.any(-1))).any():
                 raise ValueError("incomplete or terminal-contaminated window")
-            if int(valid.sum()) < (1 if args.engineering_smoke else 24):
+            if int(valid.sum()) < (1 if args.engineering_smoke else args.min_windows):
                 raise ValueError("insufficient candidate windows")
             if model_before != fingerprint({
                 mode: [m.state_dict() for m in models]
@@ -307,6 +307,7 @@ def main():
     p.add_argument("--panel-seed", dest="seed", type=int, required=True)
     p.add_argument("--assignment-seed", type=int, required=True)
     p.add_argument("--engineering-smoke", action="store_true")
+    p.add_argument("--min-windows", type=int, default=12)
     p.add_argument("--windows-per-episode", type=int, default=2)
     p.add_argument("--max-steps", type=int, default=650)
     p.add_argument("--wall-seconds", type=int, default=240)
