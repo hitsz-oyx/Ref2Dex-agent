@@ -29,6 +29,12 @@ and post-success drops `23/192`; Cm representation achieved stable success
 what the critic could fit offline but did not produce a safer or more successful
 policy under this training contract.
 
+An initial launcher attempt reached epoch 300 but failed while resolving a relative
+checkpoint path inside the DExplore working directory. Its artifacts remain under
+the `policy_probe_r1` output directory and are excluded from the result. The
+successful rerun used absolute output paths in `policy_probe_r2`; the runner fix is
+part of the committed implementation.
+
 Close this actor wiring and do not add epochs, seeds, ordinary data, or PPO. Keep
 the frozen MLP checkpoint and offline result as a representation-learning clue for
 a future route that changes the decision experiment rather than merely inserting
