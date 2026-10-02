@@ -310,3 +310,10 @@ and fresh randomized comparisons of trained option actors. Develop a short
 Cm-successor/continuation-value learning design with same-observation Cm-off
 and direct-Q controls before any new launch. No active GPU job or frozen
 new learning experiment at this checkpoint. [Decision](decisions/D-20261002-statistical-option-learning-review.md).
+
+Resumed evidence durably delivered in supplementr5 at
+`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r5`:
+944,661,638 unique bytes, all copies SHA verified, verified full-history
+code.bundle throughb2ebc96, six terminal result/diagnostic directories.
+Immutable v11/r1--r4 manifest identities remain unchanged. This receipt
+is committed after packaging; original worktree remains untouched.
