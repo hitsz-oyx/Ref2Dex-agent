@@ -233,3 +233,7 @@ unique bytes, all copied SHA verified. Both packages remain immutable.
 Supplementr2 COMPLETE at `/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r2`:1,526,819,827unique bytes, all new copies SHA verified, code.bundle through37aab00, inherited immutable v11/r1 manifests unchanged. Includes force-impulse/raw/audit, SDK/FK/precision failures, all measured-barrier native panels/models/audits and execution interruptions. No paper/journal readiness implied.
 
 Next coherent4tick request cache implemented; CPU semantic checks PASS decision-state Gaussian likelihood, causal hold, RNG, alias and202tick clock. Initial batch-logstd API mismatch preserved and corrected to native12-vector; no native trajectory or scientific optimizer involved. Cache is NOT yet integrated/audited in native physics; that is next work before any new fitted physical claim. Working branch remains agent/response-actor; original worktree untouched. Goal ACTIVE/NOT READY.
+
+## Coherent native integration in progress
+
+Native collector and independent audit integrated on commitad45560; exact-source generation and request-cache semantic checks pass. Actual request/noise/mean held4ticks; cached decision-state likelihood replay indexed accordingly, original physical/PD/mesh checks retained. One engineering583run is waiting for idle GPU under observable bounded admission; no native result or model fit yet. Prospective scientific584/585FIT,586TESTcard is fixed separately and requires actual native contract to pass before activation.
