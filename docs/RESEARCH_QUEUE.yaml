@@ -6,7 +6,13 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-contact-relative-feedback
+    owner: current_session
+    status: ACTIVE
+    card: docs/decisions/D-20261002-contact-relative-feedback.md
+    run_id: P-20261002-contact-relative-feedback-native-engineering-r1
+    outcome_boundary: "Fixed0.5gain current-relative translation around Cup; engineering only. Static129excluded windows mapping0/futurepoison/firstpositionCup pass, next excluded669 nativeGPU5<=600s/128MiB includingstatic/preparation/audit; no oldCm/no utility/no gate tuning."
 
 completed_engineering_tasks:
   - id: T-20261002-contact-risk-intervention-native

@@ -1,0 +1,53 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "gpu": {
+    "index": 5,
+    "uuid": "GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 8187\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 5291\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8257\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 9497\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2728016, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2573472, python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2728342, /home2/jiao/anaconda3/envs/splatam/bin/python\n",
+    "time": 1790933900.6228094
+  },
+  "asset_sha256": "7d0023168a22191de2126d71f8d2a810f82e8cba56b74c82be6db04812b80f58",
+  "asset_contract": {
+    "translation_dofs": [
+      0,
+      1,
+      2
+    ],
+    "world_axes": [
+      "x",
+      "y",
+      "z"
+    ],
+    "frame": "virtual wrist translation origin; constant reset origin cancels"
+  },
+  "fixtures": [
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/seed623/records.pt",
+      "sha256": "3bbdb4a24c4dbbe505522ff858a37e6d9c430932be3fc6fd0aad6881c6e62944",
+      "rows": 33,
+      "independent_command_error": 0.0,
+      "velocity_changed_windows": 33,
+      "position_changed_windows": 33,
+      "requested_correction_max_mm": 70.9446792602539,
+      "first_position_exact_cup": true,
+      "fingers_preserved": true,
+      "future_poison_passed": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r2/seed590/records.pt",
+      "sha256": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93",
+      "rows": 96,
+      "independent_command_error": 0.0,
+      "velocity_changed_windows": 96,
+      "position_changed_windows": 96,
+      "requested_correction_max_mm": 118.14958953857422,
+      "first_position_exact_cup": true,
+      "fingers_preserved": true,
+      "future_poison_passed": true
+    }
+  ],
+  "elapsed_seconds": 0.44850575644522905,
+  "scope": "observed-trajectory countercommands only; no candidate outcome or utility inference"
+}
