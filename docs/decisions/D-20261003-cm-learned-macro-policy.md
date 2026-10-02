@@ -17,3 +17,14 @@ evaluation seed 做确定性 argmax。推进门要求：训练后实际二元 ar
 确实改变，Cm-on 的 stable hold 不低于 off 且 contact-loss 不恶化超过 2pp。若任一门
 失败，关闭该 learned-macro 配方，不增加 rollout/epoch、调 reward 或扫描 seed；通过
 才做正式多 seed Validation。
+
+## 结果
+
+Probe 已按固定预算完成。二元 actor 的实际 greedy 选择发生改变，且 Cm-on/off 的
+选择分布明显不同；但两个 evaluation seed 汇总 stable success 为 Cm-on `7/192`
+（3.65%）、Cm-off `11/192`（5.73%），未达到 stable-hold 门。acquisition 后
+release 差为 `-0.06pp`，contact-loss 门通过，但单一失败门足以关闭路线。
+
+结论：**UNPROMISING**。不增加训练轮数、epoch、reward 或 seed 扫描；Cm 一步物理
+信息仍保留，下一次路线需要重新定义宏动作或更高层的价值/规划接口。机器结果见
+`docs/experiments/probes/P-20261003-cm-learned-macro-policy-results.json`。

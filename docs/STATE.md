@@ -1,6 +1,24 @@
 # Ref2Dex Current Research State
 
-Updated: 2026-10-02
+Updated: 2026-10-03
+
+## 2026-10-03 learned binary macro policy: closed
+
+Raw Cm 3-tick macro 在 native score 上曾为正，但安全门控 macro 失败；随后完成一个
+无固定 action prior 的二元 PPO Probe。option 0 为 raw-top Cm candidate 3 tick 后
+fixed Cup 7 tick，option 1 为全程 fixed Cup；Cm-on 只输入冻结 consequence 的
+score/std/retention/release 与候选动作差，Cm-off 将同形 consequence 通道置零。
+两臂同一初始化、seed、4 个完整 96-env rollout、reward、optimizer 和两个 evaluation
+seed，训练与执行合同均通过。
+
+训练后 greedy option-ID 确实改变，且 consequence 通道明显改变选择分布：evaluation
+中 Cm-on option1 为 18/163（11.04%），Cm-off 为 212/272（77.94%）。但 stable
+success（45 tick 且无后续 drop）Cm-on 为 7/192（3.65%），Cm-off 为 11/192（5.73%），
+未通过 stable-hold 门；acquisition 后 release 差为 -0.06pp，contact-loss 门通过。
+因此该 learned-macro 配方判定 UNPROMISING 并关闭，不追加 epochs、rollouts、reward
+或 seed 扫描。这说明策略接口确实能使用 Cm 特征改变动作，不构成 Cm utility 的正式
+结论；C3 policy utility 仍 OPEN。见 [Probe card](experiments/probes/P-20261003-cm-learned-macro-policy.md)
+和 [结果](experiments/probes/P-20261003-cm-learned-macro-policy-results.json)。
 
 ## 2026-10-03 uncertainty fallback native validation: closed
 
