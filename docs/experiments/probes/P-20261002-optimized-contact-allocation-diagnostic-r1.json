@@ -1,0 +1,47 @@
+{
+  "run_status": "COMPLETED",
+  "primary_label_unchanged": "UNCLEAR",
+  "splits": {
+    "cal": {
+      "cm": {
+        "n": 25,
+        "conditional_observed_joint_rate": 0.6800000071525574,
+        "conditional_observed_score_mm": 19.12554168701172,
+        "ht_weight_mass": 0.8169934640522876
+      },
+      "cup": {
+        "n": 60,
+        "conditional_observed_joint_rate": 0.7666666507720947,
+        "conditional_observed_score_mm": 15.373844146728516,
+        "ht_weight_mass": 0.9803921568627451
+      },
+      "direct_score": {
+        "n": 41,
+        "conditional_observed_joint_rate": 0.6829268336296082,
+        "conditional_observed_score_mm": 12.357038497924805,
+        "ht_weight_mass": 1.3398692810457515
+      }
+    },
+    "held": {
+      "cm": {
+        "n": 23,
+        "conditional_observed_joint_rate": 0.6521739363670349,
+        "conditional_observed_score_mm": 13.261758804321289,
+        "ht_weight_mass": 0.688622754491018
+      },
+      "cup": {
+        "n": 62,
+        "conditional_observed_joint_rate": 0.6935483813285828,
+        "conditional_observed_score_mm": 16.705188751220703,
+        "ht_weight_mass": 0.9281437125748502
+      },
+      "direct_score": {
+        "n": 42,
+        "conditional_observed_joint_rate": 0.6190476417541504,
+        "conditional_observed_score_mm": 16.527036666870117,
+        "ht_weight_mass": 1.2574850299401197
+      }
+    }
+  },
+  "scope": "conditional observed rates and HT allocation mass only; not causal effect estimates or replacement gates"
+}

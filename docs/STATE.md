@@ -403,12 +403,16 @@ score标签差0，参数冻结，源与审计exit0。Cm71/96不同cup权重；�
 分配中6窗口/60步PD不同cup，尚不代表收益。240秒原生超时记录保留，同规则
 420秒重试完成；含失败853.32秒/20.05MiB，共享预训练另报。
 见[原生生成工程](experiments/probes/P-20261002-optimized-contact-native-engineering-result.md)。
-HF20 slot1已固定独立12科学seed591–602、每early/clear一个H10窗口，模型/专家
-冻结，实际随机执行Cm/direct/shuffled生成、cup/base/随机程序；预算3600秒/
-8GiB含工程900秒。实测源+完整审计约499秒/phase，计划3空闲GPU并行保持总
-wall预算，分别报告累计GPU时间；不超过CAMPAIGN4卡边界。新源机会、风险、
-噪声与真实执行门未测；正向才适配与重规划，不进入PPO/最终成功率。
-见[生成动作机会卡](experiments/probes/P-20261002-optimized-contact-opportunity.md)。
+HF20 slot1已完成1273个实际H10窗口/12730步及全部独立物理/完整规划/统计
+审计；held334中Cm23匹配，低于固定24支持门，标签UNCLEAR。vs强cup
+HT支持高度−6.372mm，组90[−14.214,+.916]；原收益/噪声/接触联合门均未过。
+23个实际Cm中16窗口/160步PD不同cup，控制路径生效，但收益未证明；不补seed、
+不改门、不启动slot2/PPO。累计2981.63秒含工程900秒，源+审计101.58GPU分钟，
+共享预训练另报；全部任务exit0，资源释放。见[HF20结果](experiments/probes/P-20261002-optimized-contact-opportunity-result.md)。
+下一步HD03只用cal306重放冻结后果网络：比较生成程序的未来手/物存在预测及
+任务事件一致性与实际分配标签，区分预测不可靠和决策未使用保持风险；单空闲
+GPU1<=600秒/32MiB，无新采集/训练/held调参。完整作用链条与策略收益仍未完成。
+见[后果诊断卡](experiments/probes/P-20261002-generated-contact-consequence-diagnostic.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。

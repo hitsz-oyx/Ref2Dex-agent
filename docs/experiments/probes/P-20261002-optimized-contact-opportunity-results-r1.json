@@ -1,0 +1,609 @@
+{
+  "experiment_id": "P-20261002-optimized-contact-opportunity",
+  "run_status": "COMPLETED",
+  "label": "UNCLEAR",
+  "fixed_reference": 1,
+  "fit_fixed_values_mm": {
+    "0": -6.061469710153088,
+    "1": 2.932661183816973
+  },
+  "counts": {
+    "fit": {
+      "rows": 633,
+      "episodes": 497,
+      "initial_groups": 46,
+      "arms": [
+        126,
+        133,
+        59,
+        67,
+        62,
+        59,
+        68,
+        59
+      ],
+      "early": 496,
+      "initially_clear": 137,
+      "adequate": true
+    },
+    "cal": {
+      "rows": 306,
+      "episodes": 223,
+      "initial_groups": 26,
+      "arms": [
+        61,
+        60,
+        25,
+        41,
+        33,
+        25,
+        37,
+        24
+      ],
+      "early": 223,
+      "initially_clear": 83,
+      "adequate": true
+    },
+    "held": {
+      "rows": 334,
+      "episodes": 261,
+      "initial_groups": 23,
+      "arms": [
+        57,
+        62,
+        23,
+        42,
+        30,
+        43,
+        39,
+        38
+      ],
+      "early": 261,
+      "initially_clear": 73,
+      "adequate": false
+    }
+  },
+  "source_support_adequate": false,
+  "policy_support": {
+    "cal": {
+      "cm": {
+        "matches": 25,
+        "episodes": 25,
+        "initial_groups": 13
+      },
+      "state_only": {
+        "matches": 60,
+        "episodes": 58,
+        "initial_groups": 24
+      },
+      "shuffled": {
+        "matches": 33,
+        "episodes": 31,
+        "initial_groups": 14
+      },
+      "direct_score": {
+        "matches": 41,
+        "episodes": 41,
+        "initial_groups": 18
+      },
+      "always_base": {
+        "matches": 61,
+        "episodes": 58,
+        "initial_groups": 21
+      },
+      "best_fixed": {
+        "matches": 60,
+        "episodes": 58,
+        "initial_groups": 24
+      },
+      "random_pool": {
+        "matches": 86,
+        "episodes": 81,
+        "initial_groups": 21
+      }
+    },
+    "held": {
+      "cm": {
+        "matches": 23,
+        "episodes": 23,
+        "initial_groups": 14
+      },
+      "state_only": {
+        "matches": 62,
+        "episodes": 60,
+        "initial_groups": 17
+      },
+      "shuffled": {
+        "matches": 30,
+        "episodes": 29,
+        "initial_groups": 14
+      },
+      "direct_score": {
+        "matches": 42,
+        "episodes": 40,
+        "initial_groups": 15
+      },
+      "always_base": {
+        "matches": 57,
+        "episodes": 55,
+        "initial_groups": 19
+      },
+      "best_fixed": {
+        "matches": 62,
+        "episodes": 60,
+        "initial_groups": 17
+      },
+      "random_pool": {
+        "matches": 120,
+        "episodes": 106,
+        "initial_groups": 21
+      }
+    }
+  },
+  "coverage": {
+    "cal": {
+      "proposed_cup_pd_change_fraction": 0.6209150326797386,
+      "actual_cm_windows": 25,
+      "actual_non_cup_pd_windows": 19,
+      "actual_non_cup_pd_steps": 190,
+      "actual_cm_total_steps": 250,
+      "actual_non_cup_fraction": 0.76
+    },
+    "held": {
+      "proposed_cup_pd_change_fraction": 0.6676646706586826,
+      "actual_cm_windows": 23,
+      "actual_non_cup_pd_windows": 16,
+      "actual_non_cup_pd_steps": 160,
+      "actual_cm_total_steps": 230,
+      "actual_non_cup_fraction": 0.6956521739130435
+    }
+  },
+  "reference_null": {
+    "cal": {
+      "pairs": {
+        "base": {
+          "slots": [
+            0,
+            8
+          ],
+          "available": true,
+          "difference_mm": -1.4304078580845803,
+          "group90": [
+            -18.111060499784603,
+            12.531898304757119
+          ]
+        },
+        "cup": {
+          "slots": [
+            1,
+            9
+          ],
+          "available": true,
+          "difference_mm": 9.807055987906654,
+          "group90": [
+            -19.347502970034796,
+            43.18694587933859
+          ]
+        }
+      },
+      "required_gain_mm": 19.61411197581331,
+      "available": true,
+      "scope": "duplicate-slot random allocation differences, not exact-state simulator replay"
+    },
+    "held": {
+      "pairs": {
+        "base": {
+          "slots": [
+            0,
+            8
+          ],
+          "available": true,
+          "difference_mm": 6.541086816113019,
+          "group90": [
+            -4.968199005894601,
+            22.387476351776684
+          ]
+        },
+        "cup": {
+          "slots": [
+            1,
+            9
+          ],
+          "available": true,
+          "difference_mm": -11.703189815372703,
+          "group90": [
+            -35.674404538492794,
+            11.963327529644271
+          ]
+        }
+      },
+      "required_gain_mm": 23.406379630745406,
+      "available": true,
+      "scope": "duplicate-slot random allocation differences, not exact-state simulator replay"
+    }
+  },
+  "ipw_values_mm": {
+    "cal": {
+      "cm": 15.625441511599401,
+      "state_only": 15.072396169098706,
+      "shuffled": -1.008972327462525,
+      "direct_score": 16.556816493257887,
+      "always_base": -6.843301649282068,
+      "best_fixed": 15.072396169098706,
+      "random_pool": -10.343078637175052
+    },
+    "held": {
+      "cm": 9.132348526996212,
+      "state_only": 15.504815111857676,
+      "shuffled": -2.0661966221547745,
+      "direct_score": 20.782501287920947,
+      "always_base": -3.2741804191819806,
+      "best_fixed": 15.504815111857676,
+      "random_pool": -0.5229600984417275
+    }
+  },
+  "comparisons": {
+    "cal": {
+      "state_only": {
+        "score_difference_mm": 0.5530453425006968,
+        "group90": [
+          -16.76495473576546,
+          19.986703250411995
+        ],
+        "episode90": [
+          -19.517945382225598,
+          20.87543682118867
+        ],
+        "loss_difference": -0.11437908326293912,
+        "joint_difference": -0.19607842845075274,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "shuffled": {
+        "score_difference_mm": 16.63441383906192,
+        "group90": [
+          -5.096772499216225,
+          35.888918204409215
+        ],
+        "episode90": [
+          -6.2493583325508455,
+          40.07456136443394
+        ],
+        "loss_difference": -0.1633986903756273,
+        "joint_difference": -0.3921568569015055,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "always_base": {
+        "score_difference_mm": 22.46874316088147,
+        "group90": [
+          4.8649450365497255,
+          40.958225376899634
+        ],
+        "episode90": [
+          2.339911445646107,
+          42.282730961270886
+        ],
+        "loss_difference": -0.1633986903756273,
+        "joint_difference": -0.2614379046010037,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": true,
+          "group90_positive": true,
+          "episode90_positive": true,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "best_fixed": {
+        "score_difference_mm": 0.5530453425006968,
+        "group90": [
+          -16.76495473576546,
+          19.986703250411995
+        ],
+        "episode90": [
+          -19.517945382225598,
+          20.87543682118867
+        ],
+        "loss_difference": -0.11437908326293912,
+        "joint_difference": -0.19607842845075274,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "direct_score": {
+        "score_difference_mm": -0.9313749816584831,
+        "group90": [
+          -18.63737024579064,
+          18.431204625944208
+        ],
+        "episode90": [
+          -26.551077252955352,
+          25.753364405082834
+        ],
+        "loss_difference": -0.22875816652587821,
+        "joint_difference": -0.35947711882638006,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "random_pool": {
+        "score_difference_mm": 25.968520148774452,
+        "group90": [
+          10.815399321671762,
+          41.124469551286325
+        ],
+        "episode90": [
+          7.34107572824877,
+          45.03820841619538
+        ],
+        "loss_difference": -0.16339869427135567,
+        "joint_difference": -0.19607843965097185,
+        "gate": {
+          "support": true,
+          "null_available": true,
+          "score": true,
+          "group90_positive": true,
+          "episode90_positive": true,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      }
+    },
+    "held": {
+      "state_only": {
+        "score_difference_mm": -6.37246658486146,
+        "group90": [
+          -14.214201620070648,
+          0.915714787081596
+        ],
+        "episode90": [
+          -21.20682555075884,
+          10.543725266903886
+        ],
+        "loss_difference": 0.0,
+        "joint_difference": -0.1946107755431872,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "shuffled": {
+        "score_difference_mm": 11.198545149150986,
+        "group90": [
+          -5.052510366782177,
+          24.74074115518698
+        ],
+        "episode90": [
+          -3.3449963519126436,
+          25.750212837887098
+        ],
+        "loss_difference": -0.05988023862867299,
+        "joint_difference": -0.1497005965716825,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "always_base": {
+        "score_difference_mm": 12.406528946178192,
+        "group90": [
+          1.100745584063945,
+          24.4264530085877
+        ],
+        "episode90": [
+          -0.11142314082949027,
+          27.012796510830594
+        ],
+        "loss_difference": -0.014970059657168248,
+        "joint_difference": -0.25449101417186026,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": true,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "best_fixed": {
+        "score_difference_mm": -6.37246658486146,
+        "group90": [
+          -14.214201620070648,
+          0.915714787081596
+        ],
+        "episode90": [
+          -21.20682555075884,
+          10.543725266903886
+        ],
+        "loss_difference": 0.0,
+        "joint_difference": -0.1946107755431872,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "direct_score": {
+        "score_difference_mm": -11.650152760924739,
+        "group90": [
+          -31.44871802324984,
+          8.495171135298643
+        ],
+        "episode90": [
+          -32.2879984423009,
+          9.228172721222496
+        ],
+        "loss_difference": 0.0,
+        "joint_difference": -0.3293413124577015,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": false,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      },
+      "random_pool": {
+        "score_difference_mm": 9.65530862543794,
+        "group90": [
+          1.4406654014957985,
+          18.622724781484415
+        ],
+        "episode90": [
+          -2.5722934277006324,
+          24.001918932971797
+        ],
+        "loss_difference": -0.16966068042728474,
+        "joint_difference": -0.4590818430194835,
+        "gate": {
+          "support": false,
+          "null_available": true,
+          "score": false,
+          "group90_positive": true,
+          "episode90_positive": false,
+          "loss_point_nonregression": true,
+          "joint_point_nonregression": false,
+          "proposed_physical_change10pct": true,
+          "actual_non_cup_windows12": true,
+          "passed": false
+        }
+      }
+    }
+  },
+  "elapsed_seconds": 2.8846114920452237,
+  "prior_cumulative_seconds": 2974.291529341601,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/run_manifest.json": "ecbec8c264ba2103f5e48ff3c6885dedf3ece786ec17f3b13636ab2a5556b9cb",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed591/records.pt": "4d652d7008b789718c0ad58720daafbaf8288fa1c3ad7e6d9140b6e2e79a4b20",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed591/planning.pt": "0bd4092127c96ab1f847278ddfbae4ec61d647b128dcfd6547dfaaaba18c7a03",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed591.audit.json": "b1e979adb24a2ccd5ab60a528de6dd9fc081205edc67e6453a255a176a752239",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed591/run_manifest.json": "b5686b5821ee59973fc08b7cfb75c3db8ddef24b4a03152944dd30c2ebcef301",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed592/records.pt": "68cdf96ae5593f422f4989383b0d4127398fb3e007bcf63a5eb477ed760ca8c7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed592/planning.pt": "3ac7aef3c8e09843f3e5f637ca066005c4d34e147c0986739cb665988c6c54e6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed592.audit.json": "938de4af5558cda30a9d63840fa386bd218f7af5bc9ec506a07ee22bce3aecb5",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed592/run_manifest.json": "6e3d68303959455dd7ae09886917f09f9de54fed00b01ba93bae19b24da61c81",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed593/records.pt": "2d794ed963a91887c28e0c874c061845874ea3af479259e0321938c3df4d19f4",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed593/planning.pt": "4b7da3844af9de90ab98b0007508a931f224aa09d2d43ba7fc9ed8a43a04fb74",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed593.audit.json": "c2c72439ffb09f0add0757f255f093c20664c14eb0f3923368cfae271f72f3ff",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed593/run_manifest.json": "ee9b0cea7e234a458b3041192b072b80d0e17bb0c2949939a36a892e84861091",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed594/records.pt": "2e32a55f8b363fa2050e8fc87ae21dcf5b9a3a9853ce28826b6da0f8d32cfd9d",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed594/planning.pt": "e544dd731d6a9ec78acae191eec9a5fcfc9ed8499de796ea92abbe4c74dc9387",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed594.audit.json": "7e0e40b06d7d476316f35178fecc8b54e7f12ba4f24afb46f0bf5ea1836529f2",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed594/run_manifest.json": "9851652680f2a132cd26cba35f8d192644f93e01b77e82670a58e96090a766a1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed595/records.pt": "00ccd1b1d89a8689a98e3783a36212c7c4f4be74220690de3eca4f24f8ff7563",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed595/planning.pt": "abe6a8b4e3eff2fe3c741830c11f68d506332cb80061fc00fcbc5871b3eced97",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed595.audit.json": "def832702475da55963b2367d62524885df5d0aef2a82bca17e2f17ad0852579",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed595/run_manifest.json": "8113c9346ff4042e61e5ebaba9cc70c9fdb66ecf6ebcbcb0dc20212d382aa309",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed596/records.pt": "8132a7a8499501f1103bdcb59a94145b0c08dfa6d32a2b8e9a8324ff689296f4",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed596/planning.pt": "0e445b0226b3ac73e90690a380874fb1029e9001de637e396cf2a3df8cec7f55",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed596.audit.json": "86b28fb8dc3cd5a91d53f83e5f2fe030fca6c1f68f2b0be3a577ac5d9b2dbfec",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed596/run_manifest.json": "e06b267d338144819ffc98f1f4a7dbb2c4648440070d309e1196613fc5143013",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed597/records.pt": "597543ae977a3e9430af0230e15b651211bd858ea2050cdacb721d53f1aeacca",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed597/planning.pt": "b0b240c1b1fe30e9fb5da8e60dab2daebb32f3433bc2b2138d4ee6732fe5f938",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed597.audit.json": "bb47485409a73fef2a1aee9c26d65fd48b6f22156dcda1ffa4445d76086cf901",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed597/run_manifest.json": "affb2ac3f024fcb525f4460e878ee44e4bc64540c6ac878f21485417f4c97b5e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed598/records.pt": "cd7dc5566812860232bae2b12f324888608cff9dd7d4f50213ade725ad97fea1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed598/planning.pt": "fa34d2b69544077210befabf2a8249803e2e9b7336c7a1cb0b97976654f3d8ec",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed598.audit.json": "c9b13cddde28e6a29c5cc22f347f01e39cb01488c710d06e2465d1b842dd3388",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed598/run_manifest.json": "86f040777badae7f55748c00797fe1ed1ef822a45dd9384ee8a0c9d87b44ca77",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed599/records.pt": "90e7921c6c5caf7ec9905867fa7b06c1bd89a8ebc95dcb029d30c5d0e8b4e6d6",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed599/planning.pt": "6ffd41ad8e07b51eca8a1002c43014b86c4ce13092e786e474cbb6082c5f9122",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed599.audit.json": "5a40569ba65659d4afd67e2b9a71d69ce0973e5081ef8205179c8a0e0031c2b2",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed599/run_manifest.json": "ca26da5254a1fad5aaf88c4047bb9b8ee297bdbd3ffeec50a426e883ef93bcd3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed600/records.pt": "e5576fd2fffed6db7e588d038f138825530813e990935f55d2c0aa291a1d0453",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed600/planning.pt": "24fc25a6270e185fac8719f09460216de6a93a00f3679eed055299e5e54585cc",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed600.audit.json": "c2609558b8b18ce81e25bc5405628076a2e87a223d4cc473cd24a9fd01a0d730",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed600/run_manifest.json": "e737144621cf45149fb3e60a595f42fefb32b5f82b10bcbc806dc0c9b6dc9967",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed601/records.pt": "d6a23178a40111b404936a981077533b6ca3cb29022528e010c1721f79216ba1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed601/planning.pt": "5ee512f7587498ff128a32e6173dff121330e8cbd1d729866eb90091ba771f37",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed601.audit.json": "94357bf295dabb13340fca8bac87abe5e50c48c199a7b68f3d38f8c39a8a49e5",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed601/run_manifest.json": "1474052735fe28a05cb5cfa48c3324162d1cd66d1848baa763fc64160c431e65",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed602/records.pt": "600fe2f1e7a89be0beae5e7fd4c64a6a4e9a7c380e955fed87766888d07af0ca",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed602/planning.pt": "f7ebb9d7ace9df3bb0bda9d68ab24f4c5d6890a2901867e37bad07e50ae21373",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/seed602.audit.json": "0d75dc1ec22d7db5e1f12e72b94a1505448930bf9b54efc82229c845bc70e759",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-opportunity-source-r1/phase-controls/seed602/run_manifest.json": "61a4fd147658c1d583412070ec75a7472a959a0961bbbfdb632d08c3bb7e5644",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_optimized_contact_opportunity.py": "c6184cf4a9deb45c6fce1d77a686a91dbfa8cfbdb65fd6d7d4d1da46c62c7640",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_orientation_feedback_opportunity.py": "c02deb589f656ae8bcb8c67c7ee3042e922e12472f9198286f513b5f80fcdf46"
+  },
+  "device": "cpu",
+  "device_reason": "pure physical label/actuation reconstruction and IPW statistics; no neural computations",
+  "scope": "known actual randomized generated-policy local opportunity; no counterfactual oracle, replan utility, learned actor or stable grasp claim"
+}

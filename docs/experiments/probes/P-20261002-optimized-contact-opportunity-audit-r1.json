@@ -1,0 +1,12 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "rows": 1273,
+  "physical_score_max_error_mm": 0.0,
+  "statistics_max_error": 8.881784197001252e-16,
+  "result_sha256": "c20087e6962135ec2549f9c714c38da3ee4adbf97f943be2a5c9c023bd2455bc",
+  "auditor_sha256": "84e0aed34a35466c823581cb7b8f86b58a119e81171034b9b38d7b9a4d5d5cc7",
+  "elapsed_seconds": 4.4503678400069475,
+  "cumulative_seconds": 2981.626508673653,
+  "scope": "independent labels, native actuation, known-probability values, all fixed gates and cluster intervals; no scope promotion"
+}

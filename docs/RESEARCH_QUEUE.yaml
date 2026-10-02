@@ -205,17 +205,28 @@ claims:
     status: OPEN
 
 hypotheses:
+  HD03:
+    claim: C3
+    name: generated_contact_forecast_decision_diagnostic
+    status: ACTIVE
+    branch: agent/cm-optimized-contact-actions
+    probe_budget: 1
+    probes_used: 0
+    owner: current_session
+    authorization: "active Cm mechanism goal; cal-only current-input replay distinguishes forecast failure from unused contact consequences, no new rollout/training or held tuning"
+    card: docs/experiments/probes/P-20261002-generated-contact-consequence-diagnostic.md
+    transition: "Fixed cal306, frozen12model full NN forecasts all8knownprogrammes, factual-only labels; compare hand/object presence, Frechet bounds, lift subset consistency and cached generator predictions. One idleGPU <=600s/32MiB; source/pretraining costs separate. HF20 originalUNCLEAR/gates preserved, no PPO or final success matrix."
   HF20:
     claim: C3
     name: frozen_consequence_gradient_action_generation
-    status: ACTIVE
+    status: UNCLEAR
     branch: agent/cm-optimized-contact-actions
     probe_budget: 2
     probes_used: 1
     owner: current_session
     authorization: "active mechanism goal and autonomous AGENTS; frozen H10 Cm generates executable expert coefficients after preserved HF19 closure, same mission/claim/resource limits"
     card: docs/experiments/probes/P-20261002-optimized-contact-opportunity.md
-    transition: "Slot1 fixed12newseeds591-602, oneearly/clear window, H10 actualrandom allocation; frozen Cm/direct/shuf32inputgradientsteps, strongcup/base/random/state controls. Complete native/planner replay required;900sengineering counted, <=3600s/8GiB,3idleGPU concurrency within4card campaign cap due measured499s native+audit perphase. No newmodel training/gate scan; opportunity labels pending; only positive moves slot2 adaptation/replan, fullgoal/C3OPEN."
+    transition: "CLOSED recipe after slot1 UNCLEAR:1273auditedH10windows, held334/Cm23 below fixed24support; Cmvsstrongcup-6.372mm group90[-14.214,+.916], episode90[-21.207,+10.544], no contrast passes originalnoise/joint/gain gates. Actual16of23Cmwindows/160steps differ cup PD; control is real but utility unproven. Full native/planner/physical/stat audits pass, ownsource exits0; cumulative2981.63s including900sengineering, native+audit101.58GPUmin separately. No extra seeds/waived gates/slot2/PPO; nextHD03 cal-only forecast-vs-decoder diagnostic, fullgoal/C3OPEN."
   HF19:
     claim: C3
     name: contact_geometry_action_synthesis
