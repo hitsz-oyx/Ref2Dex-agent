@@ -70,6 +70,14 @@ exact; no independent optimizer replay claimed. All native current/P0/options/
 PD/fullmesh105/privateRNG audits bothEVALpanels; allactual actor observations
 and recorded forwards checked. Tiny CPU law/gradient seam beforelaunch.
 
+Audit numerical scope: physical kernel independently reconstructed in float64,
+encoder and probability forwards <=2e-5. Logweights may accumulate amplified
+roundoff for extremely small probabilities, compared with atol.002/rtol2e-6;
+kernel score, Vsum/Vmean and statistics then use recorded float32 probabilities/
+logweights AFTERthose independent checks. Composition outputs remain <=2e-5.
+Physical-update1500 and actor-step0500/1000 checkpoints retain complete actual
+states/optimizers/privatebatch generator, distinct files without overwrites.
+
 Whole<=1200s/1GiB, freshly idle oneGPU for fit/native, CPU independent files/
 geometry/NumPy; original675inputs/sourceFIT/V/Q/checkpoints protectedread-only.
 Bounded owned process guards; preserve failures, no overwritten checkpoints,
