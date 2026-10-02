@@ -2,6 +2,17 @@
 
 Updated: 2026-10-02
 
+## 2026-10-03 uncertainty fallback native validation: closed
+
+离线 known-propensity screen 中的 `cm_uncertainty_fallback_2std` 已在新 native 状态上
+做固定 A/B 验证：5 个 seed、190 个窗口，Cm/fixed Cup 各 95 个。支持门通过，但
+score 差为 `-2.79 mm`，90% motion/start cluster 区间 `[-15.74,+11.00] mm`；
+retention/contact/clearance 的区间下界分别为 `-0.290/-0.244/-0.295`。离线正信号
+没有迁移，当前 fallback 和 categorical PPO 入口关闭；不扫描 sigma/阈值/seed，不扩大
+普通 Cm 数据。Cm 一步物理预测信息仍保留，C3 policy utility 仍 OPEN，后续若继续需
+改写更高层 representation/planning 或动作优势合同。见 [原生结果卡]
+([experiments/probes/P-20261003-cm-uncertainty-native.md](experiments/probes/P-20261003-cm-uncertainty-native.md))。
+
 ## 2026-10-03 route review: physical information exists, native task utility remains unproven
 
 HF16 的一步 motor-conditioned Cm 物理预测门仍成立，但两种相对任务价值接法都没有
