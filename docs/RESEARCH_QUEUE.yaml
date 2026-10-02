@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-learned-macro-policy
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-learned-macro-policy.md
+    evidence: docs/experiments/probes/P-20261003-cm-learned-macro-policy-results.json
+    outcome_boundary: "Unbiased binary PPO changed actual Cm-on/off macro choices: evaluation greedy option1 18/163 on versus 212/272 off. Stable success was 7/192 versus 11/192, so the stable-hold gate failed; post-acquisition release delta was -0.06pp and the contact-loss gate passed. Close recipe; no extra epochs/rollouts/reward/seed scans; C3 remains OPEN."
   - id: P-20261001-contact-trajectory-model
     owner: current_session
     status: COMPLETED
