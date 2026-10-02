@@ -185,13 +185,9 @@ remain from this screen. Do not identify impulse as pure pairwise contact:
 native damping.01and instantaneous-force variability remain explicit.
 [Results](research/20261002-force-aware-impulse-results.md).
 
-Next Blocker ENGINEERING: native576captures five configured hand-bodySDKposes;
-validate pinned URDF FK/actual18q/fixedroot before constructing DERIVED
-object-frame hand-object link-flow. Position5e-6m/rotation2e-5/root1e-7,
-no tolerance widening, fitted offset or guessed body frame. This is a different
-representation and actor-coupling route, NOTmore force-MSE steps or rotation
-hold scans. It is no claim of real contact points or utility.
-[Geometry route review](decisions/D-20261002-after-impulse-geometry-route-review.md).
+Measured geometry engineering576 completes155.248s/258.77MB; original native audits pass, FK binding FAILS unchanged5µm position limit in both FP32/FP64 (84.04µm). Rotation/root pass. No frame correction or tolerance widening; historical q-derived exact SDK geometry reuse is closed. Native logger works, so future predictors use NEW actual SDK poses. Separate summary fixes a mislabeled mean field without rerunning physics or changing gates.
+[Binding results](research/20261002-object-frame-binding-results.md).
+Active Decision: committed fresh578/579FIT and580TEST actual SDK geometry forecasts of root-height/full-mesh-clearance changes. Four matched models plus observed persistence, no future eligibility or old TEST reuse; fixed1500updates/1%ALLcontrols gates. <=1200s/1GiB, before direct actor coupling. This is not another force-MSE update or rotation-hold scan.
 Generic action-effect embeddings and Gaussian scores have established prior
 art; [method boundary](research/20261002-response-field-method-boundary.md).
 

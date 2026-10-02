@@ -94,3 +94,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Impulse and model-to-actor prior-art boundary](20261002-impulse-gradient-method-boundary.md)
 
 - [Force-aware non-gravity impulse forecast negative](20261002-force-aware-impulse-results.md)
+
+- [Measured geometry binding and failed FP64 recovery](20261002-object-frame-binding-results.md).
