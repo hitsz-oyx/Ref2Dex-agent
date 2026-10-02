@@ -1,7 +1,7 @@
 # P-20261003-cm-group-relative-target
 
-Family: Cm decision interface  
-Type: Action-relative target Decision Probe  
+Family: Cm decision interface
+Type: Action-relative target Decision Probe
 Status: COMPLETED — `UNPROMISING`, close this offline action-target route
 
 This Probe tested whether changing the target from an absolute candidate score to a

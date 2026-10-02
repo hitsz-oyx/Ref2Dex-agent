@@ -1,7 +1,7 @@
 # P-20261003-cm-task-representation
 
-Family: Cm decision interface  
-Type: Nonlinear task-representation and matched policy Decision Probe  
+Family: Cm decision interface
+Type: Nonlinear task-representation and matched policy Decision Probe
 Status: COMPLETED — offline critic signal `PROMISING`; policy interface `UNPROMISING`
 
 This Probe tested a new representation after the linear critic residual route was
