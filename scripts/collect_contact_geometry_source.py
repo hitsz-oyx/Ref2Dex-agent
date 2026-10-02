@@ -232,9 +232,9 @@ def main():
     p.add_argument('--wall-seconds', type=int, default=240)
     args, remaining = p.parse_known_args()
     base = (ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
-    if args.output.resolve().parent != base or args.output.is_symlink():
+    if base not in args.output.resolve().parents or args.output.is_symlink():
         raise ValueError('new owned output required')
-    args.output.mkdir(exist_ok=False)
+    args.output.mkdir(parents=True, exist_ok=False)
     begin = time.monotonic()
     manifest = dict(run_status='STARTED', pid=os.getpid(), command=sys.argv, gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
