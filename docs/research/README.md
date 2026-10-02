@@ -119,3 +119,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Return-corrected gradient prior-art and algebra](20261002-return-corrected-gradient-boundary.md).
 - [Fresh complete actor-gradient control](20261002-physical-gradient-control-results.md): UNPROMISING; Cm32.58 versus baseline8.25/off11.94/directQ14.05 covariance trace; actual14732-parameter gradients independently audited, no new training.
 - [Reused actual-successor/value compatibility](20261002-successor-value-compatibility-results.md): PROMISING for a different representation only; oracleBrier.08441/directQ.12246/meanCm.12047, no policy or Jensen claim.
+
+- [Observed successor law actual policy result](20261002-empirical-successor-policy-results.md): UNPROMISING; Cm188/off188/directQ222/P0126 per384, all native/input/value checks pass.
+- [Empirical successor prior-art boundary](20261002-empirical-successor-method-boundary.md).

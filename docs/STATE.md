@@ -33,32 +33,30 @@ No user-track six-expert or twelve-motion claim transferred.
 
 ## Latest actual learning result
 
-`P-20261002-option-model-policy`: design3cde51a, implementation3ae0701.
-Fresh FIT603/6041536trajectories, EVAL611/6121536trajectories;6000model and
-3000actor optimizer steps. Actual three trained actors deploy without models
-or future observations. Independent placements/arms; no exact replay assumed.
+P-20261002-empirical-successor-policy: design9b84c45/implementation6efc6c0,
+run-r1 COMPLETED/UNPROMISING. ReusedFIT603/6041536trajectories,3000newphysical
+and2000newactor steps; existing direct-Q1000steps reused unchanged. Fresh
+EVAL623/6241536trajectories; actors deploy without models or future observations.
 
-| Method | Physical105 successes /384 |
+| Method | Physical105 /384 |
 | --- | ---: |
-| P0 |129|
-| Cm physical successor + continuation V |172|
-| Physical-action-removed model + same V |174|
+| P0 |126|
+| Cm observed-successor distribution + continuation V |188|
+| Action-removed physical law + same V |188|
 | Direct task-Q actor |222|
 
-Primary UNPROMISING: Cm fails >=5pp over EACHcontrol and each-seed
-noninferiority; motion1 safeguard passes. Cm's gain over P0 is not Cm-specific.
-Direct-Q motion2117/128 versus P022/128 provides positive self-training evidence
-and a strong retained comparison; one train fit/two EVALseeds, not Validation.
+Cm fails>=5ppoverEACHcontrol and each-seed noninferiority; motion1 safeguard
+passes. Motion0all0; motion1[105,106,110,111]/128; motion2[21,82,78,111]/128.
+FullFITrawcurrent/futureSDKerror0, independent law/value/actor forwards and both
+native/P0/PD/fullmesh105audits pass.417.390s/591055743bytes, protectedinputs
+unchanged, all own PIDs terminal. No independent optimizer replay or calibrated
+uncertainty claim. [Result](research/20261002-empirical-successor-policy-results.md).
 
-All four native/P0/PD/full-mesh audits and full final model/actor NumPy checks
-pass. Current/successor SDK reconstruction discrepancy0; deployed actor inputs
-error0 and outputs<=4.707e-7. Actual nonzero gradients and changed parameters
-recorded; no independent optimizer replay. Parent r1 FAILED only final NumPy
-boolean JSON serialization; correction54d3c2a/r2 COMPLETED with identical
-counts/gates, zero repeated physics/updates and original failure retained.
-Conservative combined633.273s/997392487bytes<=1200s/2GiB. Protected inputs
-verify; ALL own jobs terminal.
-[Results](research/20261002-option-model-policy-results.md).
+Previous deterministic option actor experiment611/612also UNPROMISING:
+Cm172/off174/directQ222/P0129 per384,6000model/3000actor steps. Original JSON
+failure and zero-repeat correction preserved. Strong direct-Q motion2117/128
+is retained positive self-training evidence, not Cm utility or all-motion success.
+[Result](research/20261002-option-model-policy-results.md).
 
 ## Important earlier facts and closed families
 
@@ -103,15 +101,17 @@ network/statistical audits pass;79.290s/9644276bytes, zero new physics/updates.
 Future-state oracle is only diagnosis, not deployable utility or identified
 Jensen explanation. [Results](research/20261002-successor-value-compatibility-results.md).
 
-Next actuallearning design is frozen: empirical-successor-policy usesONLY
-FIT603/604complete observed future tuples and learned action-conditioned
-probabilities; actors maximize expected held-option continuation value across
-that support. Matched action-removed physical law and reused strong direct-Q
-actor, new623/624nativeEVAL, original5ppALLcontrols gates.1200s/1GiB, no new
-FITphysics/control-optimizer repeats, no618or future deployment inputs.
-[Card](experiments/probes/P-20261002-empirical-successor-policy.md).
-Generic kernels/world models are prior art; no distinctive method or utility
-claim yet. All own jobs terminal at this design checkpoint.
+Observed-successor law actuallearning now closes the frozen representation:
+Cm188/off188/directQ222/P0126 per384, mandatory gates fail despite full audits.
+No kernel/support/temperature/width/seed/epoch/penalty rescue. Fixed actual
+successor headroom does not establish accessible physical information.
+
+Next bounded role under design: transfer existing action-conditioned physical
+encoder into a task critic trained on measured outcomes; matched action-removed
+physical encoder and retained strong direct-Q control. No predicted successor
+value objective, new FITphysics or repeat of valid physical pretraining.
+Generic physical pretraining is prior art; do not claim novelty or success.
+All own jobs terminal; goal ACTIVE / journal readiness NOT READY.
 
 ## Preservation
 
