@@ -3,7 +3,8 @@
 Updated 2 October 2026. Independent worktree
 `/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response`, branch
 `agent/contact-response-cm`. Current writable continuation is the standalone
-local clone `/tmp/Ref2Dex-contact-response-continuation`, same e37eca3 history
+local clone `/tmp/Ref2Dex-contact-response-continuation`, currentbranch
+`agent/response-actor`, same e37eca3 history
 and separate Git metadata; old independent tree is now read-only. Historical
 outputs/assets are read-only links, new outputs have distinct real directories. Original worktree, external project, checkpoints
 and original motion data remain read-only. This branch does not switch the
@@ -154,11 +155,23 @@ paired delay CI[-0.351119,0.318222] fails and future-control equivalence is
 unclear. Label UNCLEAR, not established future leakage. Stop without lag/axis
 scans. [Results](research/20261002-delayed-request-response-results.md).
 
-Next: a fixed immediate state-conditioned randomized-request response field,
-fit initial547 only and test fresh570 under exactly the same u00 Gaussian
-behavior. Beat motion/known-phase response means on predeclared paired moment
-risk before investing in direct actor integration. This is information screening,
-not policy utility. [Card](experiments/probes/P-20261002-state-response-field.md).
+The fixed immediate field is now COMPLETED/UNPROMISING:60480FIT response
+transitions at547,60480fresh TEST570, same u00mean0/std.05behavior. Paired
+state-minus-motion/phase risk+0.007890725, exploratory95%CI[+.002580592,
++.018270229]; both gain gates fail. Independent all-label/all-prediction,
+FIT-control/cluster/bootstrap audit passes; full NumPy forwarderror8.731e-6.
+Original pre-optimizer mask assertion failure preserved; correctedr2reuses
+all audited570physics without retrying any update. Conservative233.498s/
+260.59MB plus15.841saudit. No direct actor field training launched; close
+this field WITHOUT width/steps/data/target/seed scans.
+[Results](research/20261002-state-response-field-results.md).
+
+Next fixed571/572mechanical feasibility: isolate rotation holding while
+preserving scratch actor XYZ/finger feedback, event acquisition vs fixed early
+hold and two unchanged arms. Require physical105gain>=5pp over ALLthree
+controls and per-seed noninferiority before further Cm fitting. Original-worktree
+six-expert rotation opportunity and subsequent negative Cm control are read-only
+DESIGN INPUTS, not transferred findings. [Route review](decisions/D-20261002-after-response-field-route-review.md).
 Generic action-effect embeddings and Gaussian scores have established prior
 art; [method boundary](research/20261002-response-field-method-boundary.md).
 

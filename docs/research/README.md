@@ -87,3 +87,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Fixed delayed-response UNCLEAR](20261002-delayed-request-response-results.md)
 - [Response-field prior-art boundary](20261002-response-field-method-boundary.md)
+
+- [Fixed state-conditioned response field negative](20261002-state-response-field-results.md)
