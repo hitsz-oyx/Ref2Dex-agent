@@ -42,6 +42,7 @@ def run(args):
     paths=[Path(__file__),engineering_path,
            ROOT/'docs/experiments/probes/P-20261002-structured-contact-opportunity.md',
            ROOT/'scripts/analyze_structured_contact_opportunity.py',
+           ROOT/'scripts/audit_structured_opportunity_statistics.py',
            ROOT/'scripts/structured_opportunity_statistics.py']
     paths += [ROOT/'src/task/CmResidual'/name for name in dependencies]
     for path in paths:
