@@ -397,11 +397,18 @@ UNPROMISING，slot1后关闭，不启动slot2/PPO；不把部分H10信息解释�
 见[HF19结果](experiments/probes/P-20261002-contact-geometry-action-information-result.md)。
 下一步让冻结Cm的H10后果预测主动生成受约束程序，先做梯度/可执行域工程，
 再固定真实候选机会检验，而非继续随机组合排序器的网络/门限扫描。
-动作生成GPU工程已通过24个真实bank：固定32梯度步，Cm生成14个不同cup
-权重；凸权重/专家命令范围全部有效、原生旋转PD误差0、缓存NN回放0、参数
-冻结。online输入仅pre，与已有已审计起点一致。尚未在物理环境执行这些新
-动作；下一步接入新原生collector并验证实际记录，然后登记候选机会科学卡。
-见[动作生成工程](experiments/probes/P-20261002-optimized-contact-actions-engineering.md)。
+动作生成原生工程已完成96H10窗口/78episodes/960实际步；79批完整规划
+和pre-only输入/分配RNG/32步梯度/完整NN回放均0，PD差1.19e-7、旋转/mesh/
+score标签差0，参数冻结，源与审计exit0。Cm71/96不同cup权重；实际7个Cm
+分配中6窗口/60步PD不同cup，尚不代表收益。240秒原生超时记录保留，同规则
+420秒重试完成；含失败853.32秒/20.05MiB，共享预训练另报。
+见[原生生成工程](experiments/probes/P-20261002-optimized-contact-native-engineering-result.md)。
+HF20 slot1已固定独立12科学seed591–602、每early/clear一个H10窗口，模型/专家
+冻结，实际随机执行Cm/direct/shuffled生成、cup/base/随机程序；预算3600秒/
+8GiB含工程900秒。实测源+完整审计约499秒/phase，计划3空闲GPU并行保持总
+wall预算，分别报告累计GPU时间；不超过CAMPAIGN4卡边界。新源机会、风险、
+噪声与真实执行门未测；正向才适配与重规划，不进入PPO/最终成功率。
+见[生成动作机会卡](experiments/probes/P-20261002-optimized-contact-opportunity.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。

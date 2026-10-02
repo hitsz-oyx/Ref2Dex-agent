@@ -6,14 +6,14 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks:
-  - id: T-20261002-optimized-contact-actions
-    owner: current_session
-    status: ACTIVE
-    card: docs/experiments/probes/P-20261002-optimized-contact-actions-engineering.md
-    outcome_boundary: "Frozen Cm input-gradient generator GPU engineering passed24real states: Cm14changedcup, direct/shuf21each; fixed32steps, allconvex weights/expert command envelopes, rotationPD0, cache-fullNN0, frozenparameter fingerprint unchanged. Pre-only live input matches audited source withinfloat precision. No new generated action physically simulated yet; nextnewnativecollector engineering then register actualopportunity science, originalHF19UNPROMISING retained/C3OPEN."
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-optimized-contact-actions
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-optimized-contact-native-engineering-result.md
+    outcome_boundary: "GPU1 native96H10windows/78episodes/960steps; full79batch pre-only/proposal/allocation/32gradient/finalcoefficients/fullNN replay all0, physical PD max1.19e-7/rotation0/meshscore0; experts/models frozen, source/audit exit0. Cm71of96differentcup proposals; actual7assignedCm,6windows/60steps change cup PD on same actual state. Original240s timeout preserved, identical rule retry420s completed; costs853.32s/20.05MiB plus sharedHF19pretraining separately. Executability engineering only, no candidate gain; nextHF20independent randomized opportunity, C3OPEN."
   - id: T-20261002-contact-geometry-source
     owner: current_session
     status: COMPLETED
@@ -205,6 +205,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF20:
+    claim: C3
+    name: frozen_consequence_gradient_action_generation
+    status: ACTIVE
+    branch: agent/cm-optimized-contact-actions
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    authorization: "active mechanism goal and autonomous AGENTS; frozen H10 Cm generates executable expert coefficients after preserved HF19 closure, same mission/claim/resource limits"
+    card: docs/experiments/probes/P-20261002-optimized-contact-opportunity.md
+    transition: "Slot1 fixed12newseeds591-602, oneearly/clear window, H10 actualrandom allocation; frozen Cm/direct/shuf32inputgradientsteps, strongcup/base/random/state controls. Complete native/planner replay required;900sengineering counted, <=3600s/8GiB,3idleGPU concurrency within4card campaign cap due measured499s native+audit perphase. No newmodel training/gate scan; opportunity labels pending; only positive moves slot2 adaptation/replan, fullgoal/C3OPEN."
   HF19:
     claim: C3
     name: contact_geometry_action_synthesis

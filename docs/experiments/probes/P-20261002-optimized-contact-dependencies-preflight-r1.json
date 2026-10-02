@@ -1,0 +1,30 @@
+{
+  "run_status": "COMPLETED",
+  "timestamp_epoch": 1790911535.2392583,
+  "native_git_commit": "86cb132a2443fa16aa51abd8e15b1db09e9326a5",
+  "extra_import_dependencies": [
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/contact_geometry_consequence.py",
+      "sha256": "3890b601772fbf17550f994041a614b63a021a225ebde6e83b51be2f2bf2c729",
+      "git_commit_bytes_match": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/native_pd_selector.py",
+      "sha256": "857fab6f72cc75e6560f070a9fc32c3061f8255a0564cfe5e0f400580af683fd",
+      "git_commit_bytes_match": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/native_pd_consequence.py",
+      "sha256": "03a469ef214ad9223f21523f687272b47aa4f9ad16e95f6425b51fceb0776cbe",
+      "git_commit_bytes_match": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/optimized_contact_actions.py",
+      "sha256": "057df4f23e7b7255470ef77921f9f4da4e2ab7e16ad0c07c479312e09cbe64ff",
+      "git_commit_bytes_match": true
+    }
+  ],
+  "borrowed_model_fit_input_hashes_unchanged": true,
+  "model_fit_manifest_sha256": "15e859688e40fd81dc14c40156faf6b1aee19b533763e9706b9158b9025263fb",
+  "scope": "additional import modules equal fixed code commit and audited fit contract; no outcome observation"
+}

@@ -1,0 +1,26 @@
+{
+  "run_status": "COMPLETED",
+  "record_sha256": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93",
+  "modes": {
+    "cm_generated": {
+      "actual_windows": 7,
+      "different_cup_pd_windows": 6,
+      "different_cup_pd_steps": 60,
+      "total_actual_steps": 70
+    },
+    "direct_generated": {
+      "actual_windows": 7,
+      "different_cup_pd_windows": 7,
+      "different_cup_pd_steps": 70,
+      "total_actual_steps": 70
+    },
+    "shuffled_generated": {
+      "actual_windows": 14,
+      "different_cup_pd_windows": 14,
+      "different_cup_pd_steps": 140,
+      "total_actual_steps": 140
+    }
+  },
+  "threshold_native_pd": 1e-05,
+  "scope": "command actuation compared with cup on the SAME actual trajectory states; no counterfactual outcomes or gain"
+}
