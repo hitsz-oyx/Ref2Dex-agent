@@ -1,0 +1,86 @@
+{
+  "schema": "ref2dex.cm_residual_probe_audit.v1",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "decision": "CLOSE_CURRENT_CM_RESIDUAL_POLICY_ROUTE",
+  "held_split": "bucket>=70; bucket=hash(12651/motion/start)%100",
+  "rows": 363,
+  "metrics": {
+    "baseline": {
+      "rows": 103,
+      "groups": 21,
+      "runs": 5,
+      "height_mm": -5.178432376639357,
+      "contact3": 0.6699029146467598,
+      "contact_loss": 0.46601941747572817,
+      "clearance_loss": 0.8446601941747572,
+      "changed": 0,
+      "accepted": 0,
+      "ood": 0
+    },
+    "residual": {
+      "rows": 130,
+      "groups": 18,
+      "runs": 5,
+      "height_mm": 10.047829308876624,
+      "contact3": 0.8051282066565294,
+      "contact_loss": 0.33076923076923076,
+      "clearance_loss": 0.7846153846153846,
+      "changed": 4,
+      "accepted": 4,
+      "ood": 15
+    },
+    "shuffled": {
+      "rows": 130,
+      "groups": 20,
+      "runs": 5,
+      "height_mm": 8.299138534986056,
+      "contact3": 0.6512820532688728,
+      "contact_loss": 0.4846153846153846,
+      "clearance_loss": 0.8307692307692308,
+      "changed": 4,
+      "accepted": 4,
+      "ood": 23
+    }
+  },
+  "effects": {
+    "height_mm": {
+      "delta": 15.226261685515981,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "contact3": {
+      "delta": 0.13522529200976963,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "contact_loss": {
+      "delta": -0.1352501867064974,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    },
+    "clearance_loss": {
+      "delta": -0.060044809559372636,
+      "interval": null,
+      "note": "descriptive unpaired arm difference; coverage gate failed"
+    }
+  },
+  "support_gate": true,
+  "changed_gate": false,
+  "coverage_gate": false,
+  "minimums": {
+    "rows_per_arm": 96,
+    "groups_per_arm": 8,
+    "changed_residual": 48
+  },
+  "policy_checkpoint_sha256": "2dcefa6ee5ecaef4cc34c1a6ef7478ab16c7356e54f6a6ebe84cce99e660cfcc",
+  "source_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s734/records.pt": "a060da3cb464bbf6f5cac1bbdc0d581fc8a958302a79fd8252035b81e5afbcc1",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s735/records.pt": "47fd6c510ac6151cfcea52757bddca8ccc6fad44ee52d70ecc6d74d54651308a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s736/records.pt": "f3dc9165dd6d2cd559dffae08fa122f93290f34c3365f1ec0a8e7cbcd1b62811",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s737/records.pt": "20193156621402f863c979fda9220d377ec8a51dbc51bf4b33437f33c090a75e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s738/records.pt": "d6bdd8bd735475fc221ad83d2b85f14b986bee409ff4abc161c34206c446fad9"
+  },
+  "git_commit": "362621fab5a6ed0bb78b020bb9f6e324405cb411",
+  "interpretation": "The residual arm was mostly fail-closed; arm-level height differences are not attributable to executed residual actions."
+}
