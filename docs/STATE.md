@@ -125,26 +125,30 @@ likelihood before tanh/projection. Three meaningful unit tests pass. Fresh567eng
 zero optimizer updates; all253protected hashes and independent raw state,
 request probability, actor/critic, target projection/PD/physical audits pass.
 This proves integration only. Four tests now pass, including independent NumPy
-full auxiliary critic gradients. Actual matched codee37eca3training has completed native547and548and oneu01
-update (152minibatches per variant,456total). Both native panels and ALLthree
-predetermined first-minibatch gradients/Adam steps independently pass; all262
-parent inputs rechecked. Onlyu01exists, final568/569absent: comparisonINCOMPLETE,
-no utility label. Earlier isolated runtime lacked GPU access and original-host
-observation. Full-access host now has usable GPU1and no original parent/child
-or matching continuous Python processes. SavedRUNNINGsnapshot preserved;
-the new host observation, not sandbox PID absence, establishes the old stop.
-No restart or CPU training substitution.
-Next required phase is GPUu02from already audited548and retainedu01optimizer,
-then549--566and final568/569under the SAMEfixed gates/budgets.
+full auxiliary critic gradients. Actual matched codee37eca3training now retains
+native547--549and u01--u03:2304native trajectories,1368actual optimizer steps,
+all three native audits and nine predetermined first-minibatch gradient/Adam
+audits pass. GPU1resume-r1thenFAILED at550: native allocator OOM/illegal address,
+no complete550trace/results or u04; one engineering reproduction also fails
+before actor execution. All482protected paths remain identical after the user's
+changes. No final568/569: comparisonINCOMPLETE, no utility label.
+Original parent/resume parent/children are terminal or absent on the actual host;
+all old manifests, partial updates and failures retained unchanged. GPU1now
+hosts a different18GiBtask. Choose the empty same-model GPU4for a documented
+runtime migration, retain exactu03and collect550--566/final568/569under the SAME
+scientific design/gates. No valid panel/update recollection, no CPU substitution,
+no unknown process manipulation. [GPU migration decision](decisions/D-20261002-continuous-gpu-migration.md).
 [Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md).
 
 Exact bounded resume supervisor now implemented;447old/relocated protected
 path hashes checked on REALsaved data, scientific source matches e37eca3.
 Four engineering tests pass, including actual owned-child cleanup on source
-progress. It retains547/548/u01, startsu02, then549--566and final568/569;
-400sreserved old +3200snew, combined6GiB. Full-access host observation permits
-an actual source-stop receipt and fresh GPU admission. Resume the exact fixed
-comparison in a unique own output. No completed utility result yet.
+progress. First supervisor resumed throughu03and preserved its550failure.
+The resource-recovery supervisor retains547--549/u00--u03via protected read
+links and resumes550/u04. Reserve650sfor all prior execution/diagnosis/margin,
+new<=2950s, combined original/resume/diagnosis/new<=6GiB. Explicit same-model
+GPU identity change and new-contender guard; independent original scientific
+collector/auditors/analyzer remain byte-identical. No completed utility result yet.
 [Resume evidence](activities/20261002-continuous-critic-resume-ready.md).
  [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
