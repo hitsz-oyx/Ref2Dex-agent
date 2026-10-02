@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-direct-q-mve-object-projection
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261003-cm-direct-q-mve-object-projection.md
+    evidence: docs/experiments/probes/P-20261003-cm-direct-q-mve-object-projection-results.json
+    outcome_boundary: "Exact direct-Q Q_base continuation produced 119 native windows and changed29 MVE actions, but lower90 vs Cup was height -34.02mm/reward -0.173/contact -0.215/clearance -0.251; random support22 and ranking below direct-Q. Close interface; retain critic-only clue; no PPO or ordinary Cm data expansion."
   - id: P-20261003-cm-mve-object-projection
     owner: current_session
     status: COMPLETED

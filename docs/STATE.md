@@ -2,6 +2,12 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 direct-Q Cm MVE interface: closed
+
+按用户建议补做了严格的 direct-Q continuation：Cm 只提供 object translation/velocity/contact/events，保留当前 hand q/dq 与 object orientation，短期分数为 `local reward + gamma * direct-Q(predicted state, candidate action)`。held 209,788 rows 上 object-projected MVE 为 RMSE 26.60、row Spearman 0.591、episode Spearman 0.741，direct-Q 为 26.83、0.589、0.743；离线小信号没有 episode-level 改善。
+
+fresh native 五臂面板得到119个完整窗口、86个 env clusters，MVE 改变29次。相对 Cup 的 cluster-bootstrap 90% 下界为 height -34.02mm、local reward -0.173、contact -0.215、clearance -0.251；random arm 22行，MVE 高度/reward Spearman 0.360/0.503，低于 direct-Q 的 0.417/0.531。Probe 标记 `UNCLEAR`，关闭用户建议的 direct-Q MVE action interface；不启动 PPO、不扩大普通 Cm 数据。离线目标质量变化只保留为 critic-only 线索，不构成 policy utility。见 [Decision Memo](decisions/D-20261003-cm-direct-q-mve-interface.md)、[Probe card](experiments/probes/P-20261003-cm-direct-q-mve-object-projection.md) 和 [结果](experiments/probes/P-20261003-cm-direct-q-mve-object-projection-results.json)。
+
 ## 2026-10-03 object-projected Cm MVE interface: closed
 
 为检验 full-state model error 是否阻塞 MVE，冻结同一 physical-value checkpoint，令 Cm

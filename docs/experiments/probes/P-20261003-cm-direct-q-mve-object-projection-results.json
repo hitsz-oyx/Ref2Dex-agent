@@ -1,0 +1,84 @@
+{
+  "schema": "ref2dex.cm_direct_q_mve_object_projection_probe.v1",
+  "experiment_id": "P-20261003-cm-direct-q-mve-object-projection",
+  "run_status": "COMPLETED",
+  "probe_label": "UNCLEAR",
+  "decision": "CLOSE_DIRECT_Q_MVE_OBJECT_ACTION_INTERFACE_NO_PPO",
+  "offline": {
+    "schema": "ref2dex.mve_object_representation_audit.v1",
+    "rows": 209788,
+    "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+    "continuation": "direct_q",
+    "direct": {
+      "rmse": 26.833179473876953,
+      "mae": 9.108012199401855,
+      "spearman": 0.5889917393020105,
+      "episode_spearman": 0.7429344969651758
+    },
+    "mve_full": {
+      "rmse": 28.70078468322754,
+      "mae": 8.863630294799805,
+      "spearman": 0.5895825762561911,
+      "episode_spearman": 0.7239528584992032
+    },
+    "mve_object_current": {
+      "rmse": 26.60127830505371,
+      "mae": 8.870360374450684,
+      "spearman": 0.5906456499174993,
+      "episode_spearman": 0.740791258350005
+    },
+    "interpretation": "Offline target-quality diagnostic; no candidate utility or policy claim"
+  },
+  "native": {
+    "record": "src/task/CmResidual/research/decision_interface/output/P-20261003-mve-direct-q-decision-interface-smoke1/records.pt",
+    "record_sha256": "6ca308446aa07f0c32b7c52f8eb4aa9013796b8a4663307221ce2f52020db985",
+    "rows": 119,
+    "env_clusters": 86,
+    "arm_names": [
+      "cup",
+      "direct_q",
+      "mve_object",
+      "cm_value",
+      "random"
+    ],
+    "supports": [
+      18,
+      31,
+      29,
+      19,
+      22
+    ],
+    "mve_changed": 29,
+    "mve_continuation": "direct_q",
+    "mve_vs_cup_lower90": {
+      "height_last3_min_mm": -34.023129079752955,
+      "local_reward_sum": -0.17286511364478285,
+      "contact_last3_fraction": -0.2148148148148148,
+      "clear_last3_fraction": -0.2513494079124824
+    },
+    "random_ranking_spearman": {
+      "direct_q": {
+        "height_last3_min_mm": 0.41747366565915967,
+        "height_last3_mean_mm": 0.45384265051634015,
+        "local_reward_sum": 0.531338226990401,
+        "contact_last3_fraction": 0.5545147707825671,
+        "clear_last3_fraction": 0.35745328124069964
+      },
+      "mve_object": {
+        "height_last3_min_mm": 0.3604590527466796,
+        "height_last3_mean_mm": 0.40451192763412935,
+        "local_reward_sum": 0.5031055900621118,
+        "contact_last3_fraction": 0.5896455202358726,
+        "clear_last3_fraction": 0.2978777343672497
+      }
+    },
+    "gates": {
+      "support_ok": false,
+      "mve_changed_ok": true,
+      "mve_positive_height": false,
+      "mve_positive_reward": false,
+      "random_ranking_support_ok": false
+    }
+  },
+  "interpretation": "The exact direct-Q Q_base continuation did not turn Cm object consequences into positive native candidate utility or stronger random-panel ranking; no PPO or ordinary Cm-data expansion is authorized by this Probe."
+}
