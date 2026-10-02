@@ -14,13 +14,16 @@ def sha(p):
 
 
 def main():
-    a=argparse.ArgumentParser();a.add_argument('--source',type=Path,required=True);a.add_argument('--output',type=Path,required=True);args=a.parse_args();source=args.source.resolve();out=args.output.resolve();assert ROOT in out.parents and not out.exists();begin=time.monotonic();torch.set_num_threads(2)
+    a=argparse.ArgumentParser();a.add_argument('--source',type=Path,required=True);a.add_argument('--output',type=Path,required=True);a.add_argument('--corrects',type=Path);args=a.parse_args();source=args.source.resolve();out=args.output.resolve();assert ROOT in out.parents and not out.exists();begin=time.monotonic();torch.set_num_threads(2)
     protected={}
     for seed in (603,604):
         for name in ('initial.pt','trace.pt','rows.json','results.json','panel_audit.json','physical_metadata.json'):
             p=source/f's{seed}'/name;protected[str(p)]=sha(p)
     for p in (Path(__file__).resolve(),ROOT/'docs/decisions/D-20261002-late-option-support-review.md'):protected[str(p)]=sha(p)
-    out.mkdir();m=dict(experiment_id='P-20261002-late-option-support',run_id=out.name,run_status='RUNNING',pid=os.getpid(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),source=str(source),input_sha256=protected,execution_device='cpu',device_reason='pure file/label statistics without neural inference',wall_limit_seconds=60,storage_limit_bytes=16<<20)
+    if args.corrects:
+        for name in ('results.json','run_manifest.json'):
+            p=args.corrects.resolve()/name;protected[str(p)]=sha(p)
+    out.mkdir();m=dict(experiment_id='P-20261002-late-option-support',run_id=out.name,run_status='RUNNING',pid=os.getpid(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),source=str(source),input_sha256=protected,corrects_run=str(args.corrects.resolve()) if args.corrects else None,execution_device='cpu',device_reason='pure file/label statistics without neural inference',wall_limit_seconds=60,storage_limit_bytes=16<<20)
     def save():m['wall_seconds']=time.monotonic()-begin;(out/'run_manifest.json').write_text(json.dumps(m,indent=2)+'\n')
     save();parts=[]
     try:
@@ -30,15 +33,19 @@ def main():
             motion=initial['motion'].numpy();arm=initial['policy_group'].numpy();stop=initial['phase_stop'].numpy()[motion];progress=trace['progress'].numpy();window=(progress>=stop[None]-74)&(progress<=stop[None]+30);assert np.all(window.sum(0)==105)
             valid=(trace['object_root'].numpy()[...,2]-initial['initial_height'].numpy()[None]>=np.float32(.03))&(trace['clearance'].numpy()>=np.float32(.02));success=~(window&~valid).any(0);transient=(window&valid).any(0)
             assert np.array_equal(success,np.array([r['physical105'] for r in rows],bool));assert np.array_equal(motion,np.array([r['motion'] for r in rows])) and np.array_equal(arm,np.array([r['arm'] for r in rows]))
+            draws=torch.randn((192,12),generator=torch.Generator(device='cpu').manual_seed(seed+18000)).numpy();raw=initial['option_raw12'].numpy()
+            for mot in range(3):
+                for group in range(4):
+                    ids=np.where((motion==mot)&(arm==group))[0];expected=np.zeros((64,12),np.float32) if group<2 else draws[mot*64:(mot+1)*64]*(1 if group==2 else -1);assert np.array_equal(raw[ids],expected)
             domain=np.all(np.abs(initial['option_raw12'].numpy())<=1,axis=1)
             for i in range(768):parts.append(dict(seed=seed,environment=i,motion=int(motion[i]),arm=int(arm[i]),physical105=bool(success[i]),any_joint_lift_in105=bool(transient[i]),within_bounded_actor_raw_domain=bool(domain[i])))
         table={}
         for motion in range(3):
             table[str(motion)]={}
-            for name,arms in [('p0',(0,)),('random_options',(1,2,3)),*[(f'arm{k}',(k,)) for k in range(4)]]:
+            for name,arms in [('p0',(0,)),('duplicate_p0',(1,)),('all_zero_options',(0,1)),('random_options',(2,3)),*[(f'arm{k}',(k,)) for k in range(4)]]:
                 rows=[r for r in parts if r['motion']==motion and r['arm'] in arms];table[str(motion)][name]=dict(episodes=len(rows),physical105=sum(r['physical105'] for r in rows),any_joint_lift_in105=sum(r['any_joint_lift_in105'] for r in rows),within_actor_domain=sum(r['within_bounded_actor_raw_domain'] for r in rows),within_actor_domain_physical105=sum(r['physical105'] and r['within_bounded_actor_raw_domain'] for r in rows))
         observed=table['0']['random_options'];route='TASK_LEARNING_WITH_POSITIVE_SUPPORT' if observed['physical105']>=8 else ('RETENTION_CONTROL' if observed['any_joint_lift_in105']>=8 else 'EARLIER_CONTACT_ACQUISITION')
-        result=dict(run_status='COMPLETED',source_fit_only=True,reused_episodes=len(parts),no_new_physics_or_neural_calls=True,all105_labels_rebuilt_exact=True,counts=table,route_screen_motion0=route,frozen_support_threshold=8,no_universal_infeasibility_or_counterfactual_claim=True,new_optimizer_steps=0)
+        result=dict(run_status='COMPLETED',source_fit_only=True,reused_episodes=len(parts),no_new_physics_or_neural_calls=True,all105_labels_rebuilt_exact=True,all_raw_options_and_zero_duplicate_and_antithetic_cohorts_verified=True,counts=table,route_screen_motion0=route,frozen_support_threshold=8,no_universal_infeasibility_or_counterfactual_claim=True,new_optimizer_steps=0)
         (out/'rows.json').write_text(json.dumps(parts)+'\n');(out/'results.json').write_text(json.dumps(result,indent=2)+'\n')
         for p,h in protected.items():assert sha(p)==h
         m.update(run_status='COMPLETED',inputs_unchanged=True,bytes=sum(p.stat().st_size for p in out.iterdir() if p.is_file()));assert time.monotonic()-begin<=60 and m['bytes']<=16<<20;print(json.dumps(result),flush=True)
