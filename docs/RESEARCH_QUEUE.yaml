@@ -6,14 +6,14 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks:
-  - id: T-20261002-structured-native-generation
-    owner: current_session
-    status: ACTIVE
-    card: docs/experiments/probes/P-20261002-structured-native-engineering.md
-    outcome_boundary: "Excluded610 native96env/180ticks and full physics/planning/RNG/NN audit <=900s/128MiB. AuditedHF21informationPROMISING and frozen generation54of96changedPD/32OODcup fallback passed; engineering verifies true H10 execution, no utility label or new scientific slot."
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-structured-native-generation
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-structured-native-engineering-result.md
+    outcome_boundary: "NativeGPU1 excluded610:72H10windows/53episodes/720steps,47fullpre/RNG/32optimization/fullNN batches audited, planner all0; PD1.19e-7/rotationmeshscore0. Actual4of6Cmwindows/40steps differ cup on actual state; allmodels/experts frozen, allhandlesexit0. Native+audit308.04s, wholeHF21slot1inclfit/staticengineering554.09s/63.00MiB; borrowedsources separate. Execution engineering only, no new opportunity or stable utility claim; nextfreeze new balanced independent slot2, C3OPEN."
   - id: T-20261002-optimized-contact-actions
     owner: current_session
     status: COMPLETED
@@ -220,7 +220,7 @@ hypotheses:
     owner: current_session
     authorization: "active mechanism goal and structured-consequence memo; experimental event/action-effect prototype after preserved HF20/HD03, mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261002-structured-contact-effects.md
-    transition: "Slot1 PROMISING information: audited5018union, fit2532/cal1295/reusedheld1191; Cmheight9.980 vsstate14.365/shuf14.516mm, supportBrier.06901 vs.08458/.08480, allfixed gates pass. Directscoreheight9.935 slightlybetter, physics utility not yetproved. Alllabels/PD/fitnorm/fullNN/gates independently verified; NNforecast0, stats1.56e-6; all12modelsx1000GPUupdates, ownhandlesexit0,239.98s/47.87MiB sharedsourcecost separate. Frozen generation engineering54of96CmchangedPD,32OODcup fallback, allNN/PD/feasibility0 and frozenparams passed6.07s. Nextexcluded610nativeexecution engineering then freeze slot2 independent actual-opportunity/replan; reused-held not Validation, no PPO yet."
+    transition: "Slot1 PROMISING information: audited5018union, fit2532/cal1295/reusedheld1191; Cmheight9.980 vsstate14.365/shuf14.516mm, supportBrier.06901 vs.08458/.08480, allfixed gates pass. Directscoreheight9.935 slightlybetter, physics utility not yetproved. Alllabels/PD/fitnorm/fullNN/gates independently verified; NNforecast0, stats1.56e-6; all12modelsx1000GPUupdates, ownhandlesexit0,239.98s/47.87MiB sharedsourcecost separate. Frozen generation engineering54of96CmchangedPD,32OODcup fallback, allNN/PD/feasibility0 and frozenparams passed6.07s. Excluded610native72H10/47fullplannerphysicalaudit passed, actual4of6Cmwindows/40steps differ cup, allhandlesexit0; total554.09s/63MiB. Next freeze slot2 new8seeds/balanced16allocation/frozen-pre-only augmentedIPW with unchanged oldlabels, independent actual opportunity and repeated planning; reused-held notValidation, no PPO yet."
   HD03:
     claim: C3
     name: generated_contact_forecast_decision_diagnostic

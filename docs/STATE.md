@@ -424,9 +424,15 @@ joint-support Brier.06901 vs.08458/.08480；生成分布95事实窗口及物理�
 直接评分高度9.935mm略优，物理后果的独特控制收益仍未证明。见[HF21信息结果](experiments/probes/P-20261002-structured-contact-effects-result.md)。
 冻结新模型的受约束动作生成亦已通过排除seed590工程：54/96初始PD不同cup，
 32当前OOD均返回cup，完整NN/规划/PD复现0，参数冻结，6.07秒。预测增益不是
-真实收益；当前推进排除seed610的96env/180tick原生执行与完整物理/规划审计。
-工程通过才固定slot2新独立真实机会及持续重新决策，不进行PPO/最终成功率。
-见[原生结构化工程](experiments/probes/P-20261002-structured-native-engineering.md)。
+真实收益。排除seed610原生工程亦已通过：72H10窗口/53ep/720步，47批完整
+current输入/RNG/32步优化/全NN/硬可行性均0；实际4/6Cm窗口/40步不同cup，
+原生PD差1.19e-7、旋转/mesh/任务标签0；参数/专家冻结，全部任务exit0/GPU释放。
+slot1累计554.09秒/63.00MiB，借用旧源另报。见[原生结构化结果](experiments/probes/P-20261002-structured-native-engineering-result.md)。
+下一步固定slot2的新8科学seed611–618、重复H10观察/规划与balanced16分配；
+新卡预先固定冻结pre-only后果的augmented IPW并同时报告原HT，降低有限分配
+噪声是新设计，不重算/改旧HF20失败门。先完成对应记录/独立审计工程和精确
+科学卡再启动；真实收益、策略学习与最终稳定抓取仍未完成。
+见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。
