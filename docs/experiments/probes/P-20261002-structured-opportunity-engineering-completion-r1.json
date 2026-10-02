@@ -1,0 +1,30 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "excluded_seed": 623,
+  "rows": 33,
+  "elapsed_seconds": 154.26180341932923,
+  "preparation_budget_seconds": 60.0,
+  "engineering_reserved_seconds": 400.0,
+  "actual_engineering_and_preparation_seconds": 214.26180341932923,
+  "total_output_bytes": 8632069,
+  "artifact_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/run_manifest.json": "31063fd235a8166294c6066902efc480ebbeaeb3c1f7c8d91dbc38b5b47f7a07",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/audit.json": "34326479d624dbc0ca62df09d8455631c426fd65edbd0ebe9d57a88d9a7f8bdf",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/phase-control/run_manifest.json": "b47da5f42493abbebc9a839a7b184ff416cc7228da05c5cc034ff0e3c5e9962b",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/seed623/records.pt": "3bbdb4a24c4dbbe505522ff858a37e6d9c430932be3fc6fd0aad6881c6e62944",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/seed623/planning.pt": "56a81adf3aeb58ef304cd7c1298c0f4d909d190e972730208fe4ac04c641c9f5",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/seed623/results.json": "830a33ffe50e7c14f5e8b3fabc9595e6e991ee714a17cfd702274ffd325e12d5"
+  },
+  "enumeration_check": {
+    "engineering_passed": true,
+    "enumerated_allocations": 16,
+    "deliberately_wrong_mu_expected_value_error": 1.5543122344752192e-15,
+    "zero_mu_equals_ht": true,
+    "perfect_mu_zero_residual": true,
+    "duplicate_program_expected_zero": true,
+    "scope": "estimator algebra only; synthetic potential outcomes are not simulator counterfactual truth"
+  },
+  "full_pre_nuisance_max_error": 0.0,
+  "scope": "excluded native pre-allocation/physical/planner engineering only; no opportunity label"
+}

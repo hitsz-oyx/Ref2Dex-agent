@@ -213,14 +213,14 @@ hypotheses:
   HF21:
     claim: C3
     name: joint_contact_consequences_reference_action_effects
-    status: ACTIVE
+    status: PROMISING
     branch: agent/cm-structured-contact-effects
     probe_budget: 2
-    probes_used: 1
+    probes_used: 2
     owner: current_session
     authorization: "active mechanism goal and structured-consequence memo; experimental event/action-effect prototype after preserved HF20/HD03, mission/claim/resources unchanged"
-    card: docs/experiments/probes/P-20261002-structured-contact-effects.md
-    transition: "Slot1 PROMISING information: audited5018union, fit2532/cal1295/reusedheld1191; Cmheight9.980 vsstate14.365/shuf14.516mm, supportBrier.06901 vs.08458/.08480, allfixed gates pass. Directscoreheight9.935 slightlybetter, physics utility not yetproved. Alllabels/PD/fitnorm/fullNN/gates independently verified; NNforecast0, stats1.56e-6; all12modelsx1000GPUupdates, ownhandlesexit0,239.98s/47.87MiB sharedsourcecost separate. Frozen generation engineering54of96CmchangedPD,32OODcup fallback, allNN/PD/feasibility0 and frozenparams passed6.07s. Excluded610native72H10/47fullplannerphysicalaudit passed, actual4of6Cmwindows/40steps differ cup, allhandlesexit0; total554.09s/63MiB. Next freeze slot2 new8seeds/balanced16allocation/frozen-pre-only augmentedIPW with unchanged oldlabels, independent actual opportunity and repeated planning; reused-held notValidation, no PPO yet."
+    card: docs/experiments/probes/P-20261002-structured-contact-opportunity.md
+    transition: "Slot1 PROMISING information: audited5018union, fit2532/cal1295/reusedheld1191; Cmheight9.980 vsstate14.365/shuf14.516mm, supportBrier.06901 vs.08458/.08480, allfixed gates pass. Directscoreheight9.935 slightlybetter, physics utility not yetproved. Alllabels/PD/fitnorm/fullNN/gates independently verified; NNforecast0, stats1.56e-6; all12modelsx1000GPUupdates, ownhandlesexit0,239.98s/47.87MiB sharedsourcecost separate. Frozen generation engineering54of96CmchangedPD,32OODcup fallback, allNN/PD/feasibility0 and frozenparams passed6.07s. Excluded610native72H10/47fullplannerphysicalaudit passed, actual4of6Cmwindows/40steps differ cup, allhandlesexit0; total554.09s/63MiB. Slot2 reserved and starts fixed8seeds611-618: balanced16, old-fit pre-only AIPW plus rawHT, repeatH10 planning. Excluded623 engineering33windows passed allpreNN0/PD1.19e-7, parentexit0 in154.26s. Family PROMISING refers completed slot1 information only; slot2 utility label pending authoritative source/analysis, no extra slots or PPO. Reused-held notValidation."
   HD03:
     claim: C3
     name: generated_contact_forecast_decision_diagnostic

@@ -57,14 +57,15 @@ def run(args):
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=hashes,phases=phases,admissions=admissions,
         wall_limit_seconds=3600,source_pipeline_limit_seconds=3200,
-        prior_engineering_seconds=400.,output_limit_bytes=8<<30,
+        prior_engineering_seconds=engineering['actual_engineering_and_preparation_seconds'],
+        prior_engineering_budget_seconds=400.,output_limit_bytes=8<<30,
         max_owned_gpu_concurrency=3,model_training=False,expert_training=False,
         scope='randomized H10 generated candidates and full audits; utility analysis separate')
     lock=threading.RLock();stop=threading.Event();processes={}
     def save():
         with lock:
             manifest['elapsed_seconds']=time.monotonic()-begin
-            manifest['cumulative_seconds']=manifest['elapsed_seconds']+400.
+            manifest['cumulative_seconds']=manifest['elapsed_seconds']+manifest['prior_engineering_seconds']
             temporary=output/'run_manifest.json.tmp'
             temporary.write_text(json.dumps(manifest,indent=2)+'\n')
             temporary.replace(output/'run_manifest.json')
@@ -178,7 +179,7 @@ def run(args):
                 print(json.dumps(dict(seed=seed,gpu=gpu,rows=result['rows'],
                     source_seconds=phase['native_elapsed_seconds'],audit_seconds=phase['audit_elapsed_seconds'],
                     complete_phases=sum(p['run_status']=='COMPLETED' for p in phases),
-                    cumulative_seconds=time.monotonic()-begin+400.)),flush=True)
+                    cumulative_seconds=time.monotonic()-begin+manifest['prior_engineering_seconds'])),flush=True)
             except BaseException as exc:
                 with lock:
                     phase.update(run_status='FAILED',error=repr(exc))
