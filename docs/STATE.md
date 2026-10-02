@@ -13,7 +13,9 @@ original worktree's branch or use its shared output symlink.
 ## Objective and scoreboard
 
 User objective remains autonomous idea development, experiments and a
-journal-level paper. It is **ACTIVE and NOT READY**, without a reduced target.
+journal-level paper. It is **NOT READY**, without a reduced target. On the
+user's instruction to start a new route, this track is being finalized as a
+committed research record; no further experiments are being started here.
 Full-access execution exposes GPU devices and original-host process observation;
 the prior sandbox blockage has been removed.
 [Host resumption](activities/20261002-continuous-critic-host-resumption.md).
@@ -255,4 +257,17 @@ Next task-value review: continuous training actually uses terminalphysical105boo
 
 TRAIN-only outcome determinacy547–566 COMPLETE34.258s. Aftercertaintyrows44.15–45.39%, Gaussianadvantage-score proxyenergy5.98–6.28%; allbelow50%priority criterion, AFTER_CERTAINTY_NOT_DOMINANT. All105labels/60firstbatchreturntargets/advantages agree(max0), rewardcorrect. Do NOT prioritize a history-only repair or callMCgradient invalid; scoreproxyisnotPPO/Adamgradient. Knownhistory/deadline must remain explicit for futurevalueinterface. [Results](research/20261002-task-outcome-determinacy-results.md).
 
-Next Decision: truth-successor task-value upperbound against currentstate/directQ/motion-time controls, onfixedu00stochasticbehavior. No failedforecastmodel guides anactor. Currentnovelty/matchedutility/journalgoalstillunmet.
+Truth-successor task-value Probe COMPLETED/UNPROMISING:64174FIT/63175fresh
+TESTrows,576TESTepisodes,4500GPUupdates. Brier oracle.05678169 versus
+currentV.05760456/directQ.05731782/motion-time.09920008. Oracle gain over
+directQ0.9354%fails unchanged1%mandatory gate despite all paired intervals
+being negative. Native and separate full TEST state/NN/control/statistical
+audits pass; no optimizer replay, actor or Cm training claimed.210.929s/
+222641171bytes; protected inputs unchanged, all owned phases terminal.
+[Results](research/20261002-truth-successor-task-value-results.md).
+
+Close this exact one-step value contract without local scans or threshold
+changes. The user's new-route instruction takes precedence over older
+prospective next-step paragraphs above: this branch now retains completed
+code, evidence and manuscript draft, with no new experiment queued. No
+positive matched Cm training benefit or journal-ready conclusion exists.
