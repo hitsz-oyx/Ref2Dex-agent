@@ -104,7 +104,7 @@ Native manuscriptv11 is an audited historical draft, not journal-ready and
 not updated for recent results; integration/Validation are Research Debt.
 Immutable `/home2/wyy/tmp/ref2dex-contact-response-20261002-v11` and
 supplement-r1--r5 preserve prior evidence/code/failures. Latest r5 through
-b2ebc96 stores944661638unique bytes. New option-learning evidence is complete
-in the current clone and is being durably delivered as supplement-r6; verify
-its receipt before claiming that delivery complete. History and complete
-experimental details remain in Git, cards and the research index.
+b2ebc96 stores944661638unique bytes. Supplement-r6 COMPLETED through
+ed92752,1074130402unique bytes; verified code bundle/raw/model/audit copies
+and unchanged prior manifests. [Receipt](activities/20261002-option-policy-delivery.md).
+History and complete experimental details remain in Git, cards and the index.
