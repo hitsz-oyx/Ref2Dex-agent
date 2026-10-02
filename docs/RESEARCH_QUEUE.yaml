@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-relative-direct-q
+    owner: current_session
+    status: COMPLETED
+    label: UNCLEAR
+    card: docs/experiments/probes/P-20261003-cm-relative-direct-q.md
+    evidence: docs/experiments/probes/P-20261003-cm-relative-direct-q-results.json
+    outcome_boundary: "Offline direct-Q plus Cm-relative residual audit completed on frozen decision-interface data. Uniform-random arm had42 rows; 4:1 motion/start split left5 held rows across4 groups, below8-row/5-group support. No coefficients or action claim fit; no PPO or fresh ordinary Cm data authorized. Existing native randomized candidate panel remains utility boundary and failed its fresh gate."
   - id: P-20261003-cm-learned-macro-policy
     owner: current_session
     status: COMPLETED

@@ -20,6 +20,14 @@ success（45 tick 且无后续 drop）Cm-on 为 7/192（3.65%），Cm-off 为 11
 结论；C3 policy utility 仍 OPEN。见 [Probe card](experiments/probes/P-20261003-cm-learned-macro-policy.md)
 和 [结果](experiments/probes/P-20261003-cm-learned-macro-policy-results.json)。
 
+随后完成最小 `direct-Q + Cm-relative residual` 离线审计。它只允许使用
+decision-interface 的均匀 random arm 作 utility 标签，并按 motion/start 做 4:1
+组隔离；212 行中 random 仅42行，held-out 只有5行/4组，低于预注册的8行/5组支持门。
+因此结果为 `UNCLEAR`，没有拟合残差系数、动作排序或 native utility claim，也不启动 PPO。
+这与既有 native randomized candidate panel 的 fresh utility 门失败一致；不能通过小样本
+继续调系数。见 [Probe card](experiments/probes/P-20261003-cm-relative-direct-q.md)
+和 [结果](experiments/probes/P-20261003-cm-relative-direct-q-results.json)。
+
 ## 2026-10-03 uncertainty fallback native validation: closed
 
 离线 known-propensity screen 中的 `cm_uncertainty_fallback_2std` 已在新 native 状态上
