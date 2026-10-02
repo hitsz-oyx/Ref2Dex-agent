@@ -1,0 +1,86 @@
+{
+  "schema": "ref2dex.cm_value_adapter_audit.v1",
+  "run_status": "COMPLETED",
+  "records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry609/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry610/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run603/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run604/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run605/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run606/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run607/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run608/records.pt"
+  ],
+  "rows": 287,
+  "groups": 25,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "target": "one-candidate H10 physical score_mm",
+  "assignment_counts": [
+    44,
+    42,
+    28,
+    33,
+    43,
+    39,
+    26,
+    32
+  ],
+  "split": {
+    "fit_rows": 165,
+    "held_rows": 122,
+    "fit_groups": 19,
+    "held_groups": 6
+  },
+  "reports": {
+    "state_action": {
+      "rows": 122,
+      "groups": 6,
+      "choice_counts": [
+        0,
+        4,
+        0,
+        0,
+        0,
+        19,
+        99,
+        0
+      ],
+      "changed_from_fixed": 122,
+      "changed_fraction": 1.0,
+      "ipw_delta_vs_fixed": {
+        "mean": 36.04358689758316,
+        "lower90": 0.010079244288002573,
+        "upper90": 112.00581455230713
+      },
+      "predicted_score_gap": 25.77506228399651
+    },
+    "state_action_plus_cm": {
+      "rows": 122,
+      "groups": 6,
+      "choice_counts": [
+        3,
+        24,
+        0,
+        15,
+        0,
+        34,
+        46,
+        0
+      ],
+      "changed_from_fixed": 122,
+      "changed_fraction": 1.0,
+      "ipw_delta_vs_fixed": {
+        "mean": 32.846815528007355,
+        "lower90": -3.4462163588579964,
+        "upper90": 100.83918285369873
+      },
+      "predicted_score_gap": 19.599698127393424
+    }
+  },
+  "interpretation": "Frozen Cm physical transition features feed a separate local-score adapter; no success or trained-policy claim",
+  "cm_increment": {
+    "score_delta_mean": -3.1967713695758064,
+    "choice_agreement": 0.5327868852459017
+  },
+  "probe_label": "UNPROMISING_OFFLINE"
+}

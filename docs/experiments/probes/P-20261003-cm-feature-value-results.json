@@ -1,0 +1,147 @@
+{
+  "schema": "ref2dex.cm_feature_value_audit.v1",
+  "run_status": "COMPLETED",
+  "records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry609/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/retry610/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run603/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run604/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run605/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run606/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run607/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-candidate-advantage-r1/run608/records.pt"
+  ],
+  "rows": 287,
+  "groups": 25,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "target": "one-candidate H10 physical score_mm",
+  "assignment_counts": [
+    44,
+    42,
+    28,
+    33,
+    43,
+    39,
+    26,
+    32
+  ],
+  "fixed_split": {
+    "fit_rows": 142,
+    "held_rows": 145,
+    "fit_groups": 16,
+    "held_groups": 9
+  },
+  "fixed_holdout": {
+    "state_action": {
+      "rmse_mm": 92.58722505360797,
+      "mae_mm": 61.24336125149991,
+      "spearman": 0.33060541646984726
+    },
+    "state_action_plus_cm": {
+      "rmse_mm": 90.00396916639292,
+      "mae_mm": 62.350506927277785,
+      "spearman": 0.3677413005825854
+    }
+  },
+  "group_oof": {
+    "folds": 5,
+    "models": {
+      "state_action": [
+        {
+          "rmse_mm": 39.171381032782,
+          "mae_mm": 26.52419463083892,
+          "spearman": 0.719926468736622
+        },
+        {
+          "rmse_mm": 31.47277532456004,
+          "mae_mm": 25.87325796146195,
+          "spearman": 0.8386699507389164
+        },
+        {
+          "rmse_mm": 67.9010658113942,
+          "mae_mm": 53.884318957623904,
+          "spearman": 0.6645933014354067
+        },
+        {
+          "rmse_mm": 65.77593872690368,
+          "mae_mm": 40.515345717449236,
+          "spearman": 0.6496240601503759
+        },
+        {
+          "rmse_mm": 86.01848585593577,
+          "mae_mm": 63.436646823424745,
+          "spearman": 0.6704032809295967
+        }
+      ],
+      "state_action_plus_cm": [
+        {
+          "rmse_mm": 42.713004411946336,
+          "mae_mm": 28.109461122191952,
+          "spearman": 0.7041122107224699
+        },
+        {
+          "rmse_mm": 30.310585531569888,
+          "mae_mm": 24.524423791805486,
+          "spearman": 0.8566243194192379
+        },
+        {
+          "rmse_mm": 73.87551508041713,
+          "mae_mm": 59.15547288277492,
+          "spearman": 0.6358851674641148
+        },
+        {
+          "rmse_mm": 69.39551425338021,
+          "mae_mm": 40.86131790285678,
+          "spearman": 0.6645249487354751
+        },
+        {
+          "rmse_mm": 97.91023080187023,
+          "mae_mm": 70.25632872673903,
+          "spearman": 0.6684894053315106
+        }
+      ]
+    }
+  },
+  "fixed_holdout_learning_curve": [
+    {
+      "fit_groups": 5,
+      "state_action": {
+        "rmse_mm": 90.61123855314968,
+        "mae_mm": 58.088734715187734,
+        "spearman": 0.5105613289245787
+      },
+      "state_action_plus_cm": {
+        "rmse_mm": 75.02038850572788,
+        "mae_mm": 53.22633537732986,
+        "spearman": 0.6357738938749803
+      }
+    },
+    {
+      "fit_groups": 10,
+      "state_action": {
+        "rmse_mm": 97.20944155581894,
+        "mae_mm": 63.70250393333253,
+        "spearman": 0.36949299322941265
+      },
+      "state_action_plus_cm": {
+        "rmse_mm": 95.91831083088145,
+        "mae_mm": 66.62937234938549,
+        "spearman": 0.3924027712171311
+      }
+    },
+    {
+      "fit_groups": 16,
+      "state_action": {
+        "rmse_mm": 92.58722505360797,
+        "mae_mm": 61.24336125149991,
+        "spearman": 0.33060541646984726
+      },
+      "state_action_plus_cm": {
+        "rmse_mm": 90.00396916639292,
+        "mae_mm": 62.350506927277785,
+        "spearman": 0.3677413005825854
+      }
+    }
+  ],
+  "interpretation": "Cm physical feature sufficiency for measured local consequence; no policy or success claim"
+}
