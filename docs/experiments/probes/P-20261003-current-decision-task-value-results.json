@@ -1,0 +1,65 @@
+{
+  "schema": "ref2dex.current_decision_task_value.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-current-decision-task-value",
+  "label": "PROMISING",
+  "rows": 903,
+  "split_rows": {
+    "fit": 401,
+    "cal": 102,
+    "held": 400
+  },
+  "held_groups": 9,
+  "reports": {
+    "fit": {
+      "rows": 401,
+      "spearman_calibrated": 0.7312053442001343,
+      "spearman_raw": 0.3946475088596344,
+      "rmse_calibrated": 43.0692138671875,
+      "rmse_raw": 60.05082321166992
+    },
+    "cal": {
+      "rows": 102,
+      "spearman_calibrated": 0.6817659735679626,
+      "spearman_raw": 0.26756420731544495,
+      "rmse_calibrated": 44.597129821777344,
+      "rmse_raw": 60.008460998535156
+    },
+    "held": {
+      "rows": 400,
+      "spearman_calibrated": 0.6909933686256409,
+      "spearman_raw": 0.42930248379707336,
+      "rmse_calibrated": 41.03462600708008,
+      "rmse_raw": 56.37137222290039
+    }
+  },
+  "improvement": {
+    "spearman_delta": 0.2616908848285675,
+    "rmse_ratio": 0.7279337789547389
+  },
+  "gates": {
+    "support": true,
+    "spearman_gain": true,
+    "rmse_gain": true
+  },
+  "ridge_lambda": 1.0,
+  "input_records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed511/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed512/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed513/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed514/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed515/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed516/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed517/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed518/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed519/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed520/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed521/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed522/records.pt"
+  ],
+  "input_checkpoint": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-consequence-r1/native_pd_consequence.pt",
+  "input_checkpoint_sha256": "fd9945d9f5710f3c4537351a0f204885ac3059aa592a44da016b4ff9ea37d6bc",
+  "target": "actual H10 retained supported height minus current decision-time frozen fixed-Cup prediction",
+  "feature_mode": "current decision only; no post-intervention suffix",
+  "scope": "decision-time relative task-value calibration only; no success classifier, native control, or PPO"
+}

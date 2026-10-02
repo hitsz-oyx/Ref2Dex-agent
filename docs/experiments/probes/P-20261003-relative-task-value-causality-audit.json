@@ -1,0 +1,142 @@
+{
+  "schema": "ref2dex.relative_task_value_causality_audit.v1",
+  "run_status": "COMPLETED",
+  "label": "UNCLEAR",
+  "decision_gate_valid": false,
+  "allow_native_followup": false,
+  "rows": 903,
+  "split": {
+    "fit": {
+      "rows": 401,
+      "groups": 15
+    },
+    "held": {
+      "rows": 400,
+      "groups": 9
+    }
+  },
+  "retrospective_target_metrics": {
+    "full": {
+      "rmse_mm": 21.303145641594085,
+      "spearman": 0.9266326664541653
+    },
+    "common_fixed_only": {
+      "rmse_mm": 29.285577281888088,
+      "spearman": 0.8541822136388352
+    },
+    "common_fixed_and_initial_state": {
+      "rmse_mm": 25.736038034811973,
+      "spearman": 0.8841270882943018
+    }
+  },
+  "decision_time_actual_outcome_metrics": {
+    "current_state": {
+      "rmse_mm": 61.21320073969345,
+      "spearman": 0.22573359833498957
+    },
+    "common_fixed_and_state": {
+      "rmse_mm": 46.370216019470156,
+      "spearman": 0.6651476571728572
+    },
+    "cm_first_decision": {
+      "rmse_mm": 41.036913345127545,
+      "spearman": 0.7572523578272363
+    },
+    "deployed_head_at_start": {
+      "rmse_mm": 48.54818035221069,
+      "spearman": 0.7416040725254534
+    },
+    "raw_cm_first_step": {
+      "rmse_mm": 56.37137278014408,
+      "spearman": 0.7168893555584722
+    }
+  },
+  "future_poison": [
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed511/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed512/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed513/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed514/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed515/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed516/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed517/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed518/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed519/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed520/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed521/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    },
+    {
+      "path": "src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed522/records.pt",
+      "retrospective_features_change": true,
+      "decision_features_unchanged": true
+    }
+  ],
+  "reasons": [
+    "Original x averages predictions on actual post-intervention states at offsets 1--9.",
+    "Online suffix repetition was never the distribution used to fit or hold out the head.",
+    "Original target subtracts mean fixed prediction on the same post-intervention trajectory; it is not Q_fixed(s0).",
+    "Native panel restricts old physical-model held groups only, and includes relative-head fit groups.",
+    "Pooled factual Spearman does not identify within-state candidate ranking or value beyond direct-Q."
+  ],
+  "input_records_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed511/records.pt": "d9a65d0f787b43c81c70864acc0f015a29e02f5654d8a363642eb7e6fbc050f2",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed512/records.pt": "6c924e0323278c6e85f74f2c06435068408a4ab8b8408567b0b6719ce561f74e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed513/records.pt": "f4d71d3433af0938b9e620b60bec0b57fba3f2ead90b0b43648d69b19ecd9bd9",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed514/records.pt": "aaa7c12613d50beaa25ebb24dc4417f8fb0cb78f098c6f3f3c25b0187db77871",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed515/records.pt": "8ba37d694869f320103c10bd0be696b014661d3cc70c955d50201a81a3291383",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed516/records.pt": "6c3ce7f40fd9b33ed0ccc11923aad17f57c82a1605c3dd84e4d6ce13c773a919",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed517/records.pt": "d8c3c7b9c346969f6561bebc957e4a9862017ef416260527df5515c3faf9496e",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed518/records.pt": "eb938e5fc45df52bc6ce061b51a400a8718c4c3390fa67d869b935dd36e2f36a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed519/records.pt": "9c551f55b886c2d25dcca8c76b0920d3076cdf6e170ac0d4d144608c060f9ab3",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed520/records.pt": "758b28a6a7f8f8f84d6fa2e6393116a15e7b764af061ebd324c0ade282343993",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed521/records.pt": "3838efbae6b26804c0c2b03cbb7d26ab65795c3d4b65153878ee894a3ea1d3e4",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-native-pd-direct-control-r1/seed522/records.pt": "247295904a82b98eeb3527a0dd240aefa2d3169984477f88ed8a9ebf6b6cbbfb"
+  },
+  "head_sha256": "17618fdfb2905db7094d84f56e8a352a7554e2b1b59e6dfc8e75eaa78be9086a",
+  "script_sha256": "59f94c3b992e4959c39bd7c9b6b258cf3bbdee3779c40f27f287dc792ae6a1e9",
+  "device": "cpu",
+  "device_reason": "12-column double-precision statistical solves and label audit; no neural model computation",
+  "scope": "Revokes retrospective calibration as a decision gate; current-only factual metrics are diagnostics, not causal action advantage."
+}

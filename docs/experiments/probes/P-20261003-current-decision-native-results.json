@@ -1,0 +1,240 @@
+{
+  "schema": "ref2dex.relative_task_value_native_analysis.v1",
+  "experiment_id": "P-20261003-relative-task-value-native",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 384,
+  "policies": {
+    "cm": {
+      "support": {
+        "matches": 64,
+        "episodes": 39,
+        "initial_groups": 15
+      },
+      "observed_score_mm": 8.941315650939941,
+      "observed_lost_clearance_rate": 0.203125,
+      "observed_joint_last3_rate": 0.953125,
+      "observed_retained_rate": 0.78125,
+      "program_frame_counts": [
+        0,
+        103,
+        28,
+        0,
+        360,
+        0,
+        0,
+        149
+      ],
+      "nonbase_frames": 280,
+      "physical_changed_base_frames": 280,
+      "physical_changed_fixed_frames": 491
+    },
+    "state_policy": {
+      "support": {
+        "matches": 69,
+        "episodes": 46,
+        "initial_groups": 15
+      },
+      "observed_score_mm": 2.7747485637664795,
+      "observed_lost_clearance_rate": 0.2463768115942029,
+      "observed_joint_last3_rate": 0.9565217391304348,
+      "observed_retained_rate": 0.7971014492753623,
+      "program_frame_counts": [
+        1,
+        20,
+        5,
+        0,
+        589,
+        3,
+        27,
+        45
+      ],
+      "nonbase_frames": 101,
+      "physical_changed_base_frames": 101,
+      "physical_changed_fixed_frames": 645
+    },
+    "shuffled": {
+      "support": {
+        "matches": 76,
+        "episodes": 41,
+        "initial_groups": 13
+      },
+      "observed_score_mm": -3.383241653442383,
+      "observed_lost_clearance_rate": 0.27631578947368424,
+      "observed_joint_last3_rate": 0.9473684210526315,
+      "observed_retained_rate": 0.7236842105263158,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        760,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 760
+    },
+    "always_base": {
+      "support": {
+        "matches": 57,
+        "episodes": 42,
+        "initial_groups": 17
+      },
+      "observed_score_mm": -9.926039695739746,
+      "observed_lost_clearance_rate": 0.22807017543859648,
+      "observed_joint_last3_rate": 0.9298245614035088,
+      "observed_retained_rate": 0.7894736842105263,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        570,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 570
+    },
+    "always_fixed": {
+      "support": {
+        "matches": 58,
+        "episodes": 39,
+        "initial_groups": 14
+      },
+      "observed_score_mm": 37.170494079589844,
+      "observed_lost_clearance_rate": 0.1206896551724138,
+      "observed_joint_last3_rate": 0.9482758620689655,
+      "observed_retained_rate": 0.896551724137931,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        580
+      ],
+      "nonbase_frames": 580,
+      "physical_changed_base_frames": 580,
+      "physical_changed_fixed_frames": 0
+    },
+    "cm_calibrated": {
+      "support": {
+        "matches": 60,
+        "episodes": 39,
+        "initial_groups": 16
+      },
+      "observed_score_mm": 46.194271087646484,
+      "observed_lost_clearance_rate": 0.1,
+      "observed_joint_last3_rate": 0.9166666666666666,
+      "observed_retained_rate": 0.9,
+      "program_frame_counts": [
+        3,
+        162,
+        68,
+        2,
+        0,
+        1,
+        3,
+        361
+      ],
+      "nonbase_frames": 600,
+      "physical_changed_base_frames": 600,
+      "physical_changed_fixed_frames": 239
+    }
+  },
+  "contrasts": {
+    "cm_vs_fixed": {
+      "option": "cm",
+      "reference": "always_fixed",
+      "score_uplift_mm": -24.744443893432617,
+      "initial_group90": [
+        -44.97914342746092,
+        4.7791410802520184
+      ],
+      "episode90": [
+        -45.66286063655112,
+        -4.199682277204048
+      ],
+      "lost_clearance_difference": 0.09375,
+      "joint_force_difference": 0.09375,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": false,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    },
+    "calibrated_vs_fixed": {
+      "option": "cm_calibrated",
+      "reference": "always_fixed",
+      "score_uplift_mm": 9.621367454528809,
+      "initial_group90": [
+        -8.140776857441043,
+        33.445275016540734
+      ],
+      "episode90": [
+        -11.256506574886679,
+        33.50620242848413
+      ],
+      "lost_clearance_difference": -0.015625,
+      "joint_force_difference": 0.0,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    },
+    "calibrated_vs_cm": {
+      "option": "cm_calibrated",
+      "reference": "cm",
+      "score_uplift_mm": 34.36581039428711,
+      "initial_group90": [
+        10.079098268491181,
+        56.90367349440113
+      ],
+      "episode90": [
+        12.372899033515168,
+        58.16640138984269
+      ],
+      "lost_clearance_difference": -0.109375,
+      "joint_force_difference": -0.09375,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": true,
+        "episode90_positive": true,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": false,
+        "passed": false
+      }
+    }
+  },
+  "support_adequate": true,
+  "calibrated_windows": 60,
+  "calibrated_decision_frames": 600,
+  "calibrated_recommendation_changes_vs_cm": 269,
+  "calibrated_recommendation_change_fraction_vs_cm": 0.4483333333333333,
+  "source_records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-current-decision-native-r1/seed521/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-current-decision-native-r1/seed522/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-current-decision-native-r1/seed523/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-current-decision-native-r1/seed524/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-current-decision-native-r1/seed525/records.pt"
+  ],
+  "scope": "bounded randomized native H10 controller windows; frozen Cm physical guard plus frozen relative task-value head; no PPO or final success claim"
+}

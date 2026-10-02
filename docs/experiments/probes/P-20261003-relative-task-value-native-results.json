@@ -1,0 +1,242 @@
+{
+  "schema": "ref2dex.relative_task_value_native_analysis.v1",
+  "experiment_id": "P-20261003-relative-task-value-native",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 463,
+  "policies": {
+    "cm": {
+      "support": {
+        "matches": 76,
+        "episodes": 49,
+        "initial_groups": 15
+      },
+      "observed_score_mm": 24.80437660217285,
+      "observed_lost_clearance_rate": 0.11842105263157894,
+      "observed_joint_last3_rate": 0.9736842105263158,
+      "observed_retained_rate": 0.8947368421052632,
+      "program_frame_counts": [
+        0,
+        110,
+        9,
+        0,
+        435,
+        0,
+        0,
+        206
+      ],
+      "nonbase_frames": 325,
+      "physical_changed_base_frames": 325,
+      "physical_changed_fixed_frames": 554
+    },
+    "state_policy": {
+      "support": {
+        "matches": 81,
+        "episodes": 46,
+        "initial_groups": 13
+      },
+      "observed_score_mm": 1.7612080574035645,
+      "observed_lost_clearance_rate": 0.1728395061728395,
+      "observed_joint_last3_rate": 0.9135802469135802,
+      "observed_retained_rate": 0.8641975308641975,
+      "program_frame_counts": [
+        2,
+        24,
+        3,
+        2,
+        694,
+        1,
+        20,
+        64
+      ],
+      "nonbase_frames": 116,
+      "physical_changed_base_frames": 116,
+      "physical_changed_fixed_frames": 746
+    },
+    "shuffled": {
+      "support": {
+        "matches": 76,
+        "episodes": 48,
+        "initial_groups": 15
+      },
+      "observed_score_mm": 0.44883978366851807,
+      "observed_lost_clearance_rate": 0.13157894736842105,
+      "observed_joint_last3_rate": 0.9605263157894737,
+      "observed_retained_rate": 0.8947368421052632,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        760,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 760
+    },
+    "always_base": {
+      "support": {
+        "matches": 97,
+        "episodes": 55,
+        "initial_groups": 18
+      },
+      "observed_score_mm": 4.103922367095947,
+      "observed_lost_clearance_rate": 0.16494845360824742,
+      "observed_joint_last3_rate": 0.9690721649484536,
+      "observed_retained_rate": 0.8762886597938144,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        970,
+        0,
+        0,
+        0
+      ],
+      "nonbase_frames": 0,
+      "physical_changed_base_frames": 0,
+      "physical_changed_fixed_frames": 970
+    },
+    "always_fixed": {
+      "support": {
+        "matches": 67,
+        "episodes": 46,
+        "initial_groups": 14
+      },
+      "observed_score_mm": 29.916988372802734,
+      "observed_lost_clearance_rate": 0.19402985074626866,
+      "observed_joint_last3_rate": 0.9552238805970149,
+      "observed_retained_rate": 0.8059701492537313,
+      "program_frame_counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        670
+      ],
+      "nonbase_frames": 670,
+      "physical_changed_base_frames": 670,
+      "physical_changed_fixed_frames": 0
+    },
+    "cm_calibrated": {
+      "support": {
+        "matches": 66,
+        "episodes": 43,
+        "initial_groups": 14
+      },
+      "observed_score_mm": 31.2666015625,
+      "observed_lost_clearance_rate": 0.10606060606060606,
+      "observed_joint_last3_rate": 0.9696969696969697,
+      "observed_retained_rate": 0.8939393939393939,
+      "program_frame_counts": [
+        0,
+        234,
+        57,
+        4,
+        2,
+        0,
+        0,
+        363
+      ],
+      "nonbase_frames": 658,
+      "physical_changed_base_frames": 658,
+      "physical_changed_fixed_frames": 297
+    }
+  },
+  "contrasts": {
+    "cm_vs_fixed": {
+      "option": "cm",
+      "reference": "always_fixed",
+      "score_uplift_mm": -1.5460745096206665,
+      "initial_group90": [
+        -15.662732478919555,
+        13.619908056175333
+      ],
+      "episode90": [
+        -22.01908640243802,
+        20.38002643555699
+      ],
+      "lost_clearance_difference": -0.05183585360646248,
+      "joint_force_difference": 0.12958963215351105,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    },
+    "calibrated_vs_fixed": {
+      "option": "cm_calibrated",
+      "reference": "always_fixed",
+      "score_uplift_mm": 0.7666218876838684,
+      "initial_group90": [
+        -12.429852243058093,
+        18.388992181023806
+      ],
+      "episode90": [
+        -18.33394015110043,
+        18.84991601027374
+      ],
+      "lost_clearance_difference": -0.07775378227233887,
+      "joint_force_difference": 0.0,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": false,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": true,
+        "passed": false
+      }
+    },
+    "calibrated_vs_cm": {
+      "option": "cm_calibrated",
+      "reference": "cm",
+      "score_uplift_mm": 2.312696695327759,
+      "initial_group90": [
+        -17.324123006688325,
+        20.068222702339014
+      ],
+      "episode90": [
+        -16.967203411285873,
+        20.900557850211502
+      ],
+      "lost_clearance_difference": -0.02591792680323124,
+      "joint_force_difference": -0.12958963215351105,
+      "gate": {
+        "support": true,
+        "gain_at_least_2mm": true,
+        "initial_group90_positive": false,
+        "episode90_positive": false,
+        "geometric_loss_point_bound": true,
+        "joint_force_point_bound": false,
+        "passed": false
+      }
+    }
+  },
+  "support_adequate": true,
+  "calibrated_windows": 66,
+  "calibrated_decision_frames": 660,
+  "calibrated_recommendation_changes_vs_cm": 334,
+  "calibrated_recommendation_change_fraction_vs_cm": 0.5060606060606061,
+  "source_records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r1/seed511/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r1/seed512/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r1/seed513/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r2/seed514/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r2/seed515/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r2/seed516/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-relative-task-value-native-r2/seed517/records.pt"
+  ],
+  "scope": "bounded randomized native H10 controller windows; frozen Cm physical guard plus frozen relative task-value head; no PPO or final success claim"
+}

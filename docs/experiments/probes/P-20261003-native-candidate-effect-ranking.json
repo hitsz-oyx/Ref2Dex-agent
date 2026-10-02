@@ -1,0 +1,95 @@
+{
+  "schema": "ref2dex.native_candidate_effect_ranking_audit.v1",
+  "run_status": "COMPLETED",
+  "label": "UNCLEAR",
+  "rows": 384,
+  "reports": {
+    "cm": {
+      "score_q25": -2.2862056493759155,
+      "score_q75": 0.8388155698776245,
+      "effects": {
+        "low": {
+          "rows": 31,
+          "arm_rows": 15,
+          "fixed_rows": 16,
+          "effect_mm": -71.9201431274414,
+          "group90": [
+            -219.6857886345,
+            125.11848627522056
+          ],
+          "episode90": [
+            -231.65815952110847,
+            91.7857037083856
+          ]
+        },
+        "high": {
+          "rows": 31,
+          "arm_rows": 18,
+          "fixed_rows": 13,
+          "effect_mm": -37.27463912963867,
+          "group90": [
+            -115.36835106983443,
+            43.62670374783598
+          ],
+          "episode90": [
+            -145.7285468544955,
+            61.94437961518573
+          ]
+        }
+      },
+      "high_minus_low_mm": 34.645503997802734,
+      "high_minus_low_group90": [
+        -152.7738786841679,
+        197.17230162783216
+      ]
+    },
+    "cm_calibrated": {
+      "score_q25": 0.0,
+      "score_q75": 1.4111080169677734,
+      "effects": {
+        "low": {
+          "rows": 36,
+          "arm_rows": 18,
+          "fixed_rows": 18,
+          "effect_mm": -24.859031677246094,
+          "group90": [
+            -194.34135538313123,
+            137.88560065042404
+          ],
+          "episode90": [
+            -163.62327428898755,
+            118.50043501909174
+          ]
+        },
+        "high": {
+          "rows": 30,
+          "arm_rows": 16,
+          "fixed_rows": 14,
+          "effect_mm": 101.90750885009766,
+          "group90": [
+            -106.53793447560278,
+            229.70799572376976
+          ],
+          "episode90": [
+            -59.613503367926484,
+            250.70821781075085
+          ]
+        }
+      },
+      "high_minus_low_mm": 126.76654052734375,
+      "high_minus_low_group90": [
+        -151.76958020355178,
+        319.90141288053786
+      ]
+    }
+  },
+  "arms": [
+    "cm",
+    "state_policy",
+    "shuffled",
+    "always_base",
+    "always_fixed",
+    "cm_calibrated"
+  ],
+  "scope": "known-propensity native treatment-effect stratification; not individual regret, policy proof, or PPO"
+}

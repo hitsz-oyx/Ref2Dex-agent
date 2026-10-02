@@ -17,6 +17,7 @@ def closed_loop_player(original,args,torch,gymtorch):
     from src.task.CmResidual.orientation_anchored_options import orientation_anchored_action
     from src.task.CmResidual.paired_evaluation import fingerprint
     from src.task.CmResidual.native_pd_selector import FrozenNativePDSelector,native_pd_targets
+    from src.task.CmResidual.relative_task_value_selector import FrozenRelativeTaskValueSelector
     parent=build_player(original,args,torch,gymtorch)
     class ClosedLoopPlayer(parent):
         @torch.no_grad()
@@ -29,7 +30,11 @@ def closed_loop_player(original,args,torch,gymtorch):
             if set(getattr(task,'object_name',['airplane']))!={'airplane'} or n!=96 or self.is_rnn or abs(task.dt-1/30)>1e-8:raise ValueError('native execution contract')
             selector=FrozenNativePDSelector(args.checkpoint,self.device)
             if selector.fixed!=7:raise ValueError('frozen fixed candidate must be7')
+            relative_selector=(FrozenRelativeTaskValueSelector(args.relative_value_checkpoint,self.device)
+                               if args.relative_value_checkpoint else None)
+            active_policies=POLICIES+(['cm_calibrated'] if relative_selector else [])
             cm_before=sha(args.checkpoint)
+            relative_before=sha(args.relative_value_checkpoint) if args.relative_value_checkpoint else None
             model_before=fingerprint({mode:[m.state_dict() for m in models] for mode,models in selector.models.items()})
             expert_before=fingerprint([dict(model=m.state_dict(),rms=r.state_dict()) for m,r in self.frozen_experts])
             geometry=TableClearance(obj_vertices(ASSETS/'objects/airplane/airplane.obj',self.device),obj_vertices(ASSETS/'objects/table/table.obj',self.device),getattr(task,'ball_size',1.))
@@ -51,7 +56,7 @@ def closed_loop_player(original,args,torch,gymtorch):
             anchors=zeros(10,18);fixed_anchors=zeros(10,18);programs=zeros(10,dtype=torch.long)
             raw_hand=zeros(10,len(body_ids),3);raw_object=zeros(10,3);ratios=zeros(10,2);old_force=zeros(10,2,dtype=torch.bool)
             pre_hand=zeros(len(body_ids),3);pre_object=zeros(3);native_obs=zeros(10,obs['obs'].shape[-1]);clearance=zeros(10);terminal=zeros(10,dtype=torch.bool)
-            decisions=zeros(10,10,69);recommend=zeros(10,5,dtype=torch.long);ood=zeros(10,3,dtype=torch.bool);candidate_pd=zeros(10,8,18)
+            decisions=zeros(10,10,69);recommend=zeros(10,len(active_policies),dtype=torch.long);ood=zeros(10,3,dtype=torch.bool);candidate_pd=zeros(10,8,18)
             diagnostics={key:zeros(10,3,8) for key in ['score_mm','relative_std_mm','retention','release']}
             changed_base=zeros(10,dtype=torch.bool);changed_fixed=zeros(10,dtype=torch.bool)
             generator=torch.Generator(device=self.device).manual_seed(args.assignment_seed);reset=ids[:0];first_episode_frames=0
@@ -66,7 +71,7 @@ def closed_loop_player(original,args,torch,gymtorch):
                 eligible=held&(~ended)&(elapsed<0)&(cooldown<=0)&(contact_run>=3)&lifted&(tick>=10)&(tick<=args.max_steps-10)&(task.max_episode_length[task.data_id]-task.progress_buf>11)&(count<w)
                 rows=eligible.nonzero().flatten();slot=count[rows]
                 if len(rows):
-                    draw=torch.multinomial(torch.full((len(rows),5),.2,device=self.device),1,generator=generator).squeeze(-1)
+                    draw=torch.multinomial(torch.full((len(rows),len(active_policies)),1/len(active_policies),device=self.device),1,generator=generator).squeeze(-1)
                     owner[rows]=draw;assignment[rows,slot]=draw;trigger[rows,slot]=tick;elapsed[rows]=0
                     pre[rows,slot]=state[rows];hist[rows,slot]=history[rows];tables[rows,slot]=task._table_states[rows,:7];initial_clearance[rows,slot]=mesh_clearance[rows]
                     pre_hand[rows,slot]=task._contact_forces[rows][:,body_ids];pre_object[rows,slot]=task._tar_contact_forces[rows]
@@ -79,13 +84,35 @@ def closed_loop_player(original,args,torch,gymtorch):
                     raw_candidates=torch.cat((bank[rr],base_hold[:,None],cup_hold[:,None]),1)
                     motor_candidates=native_pd_targets(raw_candidates,task._dof_pos[rr,None].expand(-1,8,-1),task._pd_action_offset,task._pd_action_scale)
                     candidate_pd[rr,ss,dd]=motor_candidates
-                    choices=[]
+                    choices=[];cm_d=None
                     for mode_index,mode in enumerate(POLICIES[:3]):
                         choice,d=selector.choose(mode,history[rr],obs['obs'][rr],rest[rr],motor_candidates,task._contact_forces[rr][:,body_ids],task._tar_contact_forces[rr],mass[rr],gravity,mesh_clearance[rr]);choices.append(choice)
+                        if mode=='cm':cm_d=d
                         if any(not torch.isfinite(d[key]).all() for key in diagnostics):raise ValueError('nonfinite frozen model prediction')
                         ood[rr,ss,dd,mode_index]=d['ood']
                         for key in diagnostics:diagnostics[key][rr,ss,dd,mode_index]=d[key]
-                    choices=torch.stack(choices+[torch.full_like(rr,4),torch.full_like(rr,7)],-1)
+                    if relative_selector:
+                        # Build a causal ten-step diagnostic prefix for the
+                        # calibrated head.  Unknown suffix entries repeat the
+                        # current one-step Cm prediction and never use future
+                        # simulator outcomes.
+                        prefix={}
+                        for key in diagnostics:
+                            current=diagnostics[key][rr,ss,dd,0]
+                            if relative_selector.mode == 'current':
+                                prefix[key]=current
+                            else:
+                                value=diagnostics[key][rr,ss,:,0].clone()
+                                future_mask=torch.arange(10,device=self.device)[None,:]>dd[:,None]
+                                prefix[key]=torch.where(future_mask[:,:,None],current[:,None,:],value)
+                        calibrated_choice,_=relative_selector.choose(
+                            prefix,pre[rr,ss],rest[rr],initial_clearance[rr,ss],
+                            hist[rr,ss][:,-1,49:51],
+                            {key: cm_d[key] for key in ('risk','contact','ood','candidate_ood')})
+                    if relative_selector:
+                        choices=torch.stack(choices+[torch.full_like(rr,4),torch.full_like(rr,7),calibrated_choice],-1)
+                    else:
+                        choices=torch.stack(choices+[torch.full_like(rr,4),torch.full_like(rr,7)],-1)
                     recommend[rr,ss,dd]=choices;decisions[rr,ss,dd]=history[rr];program[rr]=choices[torch.arange(len(rr),device=self.device),owner[rr]]
                 action=base.clone();experts=live&(program<6);action[experts]=bank[experts,program[experts]]
                 holding=live&(program>=6);expert_index=torch.where(program==7,1,torch.where(program==6,4,program));selected_feedback=bank[ids,expert_index]
@@ -137,17 +164,17 @@ def closed_loop_player(original,args,torch,gymtorch):
             retention=(clr[:,-3:]>=.002).all(-1)&pair[:,-3:].all(-1)
             score=((f[:,-3:,38].amin(-1)-rest_rows).clamp_min(0)*retention-(state_rows[:,38]-rest_rows).clamp_min(0))*1000
             payload=dict(schema='ref2dex.native_pd_closed_loop.v1',seed=args.seed,assignment_seed=args.assignment_seed,episode_id=[f's{args.seed}/env{int(i)}/first' for i in env.cpu()],env_id=env.cpu(),motion_id=motion[:,None].expand(-1,w)[valid].cpu(),start_frame=start[:,None].expand(-1,w)[valid].cpu(),
-                trigger=trigger[valid].cpu(),assignment=assignment[valid].cpu(),propensity=torch.full((int(valid.sum()),),.2),allocation_probabilities=torch.full((int(valid.sum()),5),.2),state=state_rows.cpu(),history=hist[valid].cpu(),table_pose=tables[valid].cpu(),initial_clearance=initial_clearance[valid].cpu(),rest_z=rest_rows.cpu(),future_state=f.cpu(),future_contact=force[valid].cpu(),future_clearance=clr.cpu(),future_done=terminal[valid].cpu(),
+                trigger=trigger[valid].cpu(),assignment=assignment[valid].cpu(),propensity=torch.full((int(valid.sum()),),1/len(active_policies)),allocation_probabilities=torch.full((int(valid.sum()),len(active_policies)),1/len(active_policies)),state=state_rows.cpu(),history=hist[valid].cpu(),table_pose=tables[valid].cpu(),initial_clearance=initial_clearance[valid].cpu(),rest_z=rest_rows.cpu(),future_state=f.cpu(),future_contact=force[valid].cpu(),future_clearance=clr.cpu(),future_done=terminal[valid].cpu(),
                 actual_action=actual[valid].cpu(),actual_pd_targets=pd[valid].cpu(),feedback_action=feedback[valid].cpu(),native_observation=native_obs[valid].cpu(),program=programs[valid].cpu(),rotation_anchor=anchors[valid].cpu(),fixed_rotation_anchor=fixed_anchors[valid].cpu(),base_pd_targets=base_pd[valid].cpu(),fixed_pd_targets=fixed_pd[valid].cpu(),changed_base=changed_base[valid].cpu(),changed_fixed=changed_fixed[valid].cpu(),decision_history=decisions[valid].cpu(),candidate_pd_targets=candidate_pd[valid].cpu(),recommendations=recommend[valid].cpu(),ood=ood[valid].cpu(),diagnostics={key:v[valid].cpu() for key,v in diagnostics.items()},
                 mass_kg=mass[env].cpu(),gravity_magnitude=gravity,contact_collection=int(task.sim_params.physx.contact_collection),substeps=task.sim_params.substeps,initial_hand_force=pre_hand[valid].cpu(),initial_object_force=pre_object[valid].cpu(),future_hand_force=raw_hand[valid].cpu(),future_object_force=raw_object[valid].cpu(),future_force_ratio=ratios[valid].cpu(),legacy_future_contact=old_force[valid].cpu(),outcome=dict(score_mm=score.cpu(),retained=retention.cpu(),lost_clearance=(clr<.002).any(-1).cpu(),joint_last3=pair[:,-3:].all(-1).cpu()),
-                policy_names=POLICIES,intervention='random controller owner for H10; ten observed-state decisions each execute1feedbackstep; clear prestates held initial groups only;6tickcooldown',assignment_after_observation=True,policy_propensity_definition='five distinct whole-window controller laws p=.2; coincident recommendations never merge policies',frozen_experts=True,frozen_cm=True,cm_used=True,optimizer_used=False,first_episode_frames=first_episode_frames,sim_frames=n*(tick+1),checkpoint_sha256=cm_before,pd_offset=task._pd_action_offset.cpu(),pd_scale=task._pd_action_scale.cpu(),geometry_definition='full25002vertex source mesh support over upper table plane; approximation to nativeVHACD',contact_definition='netforce norms divided by actual object weight >.1 presence proxy; not identified contact pairs',countercommand_definition='same observed-state base and reanchored fixed7 native PD references; not counterfactual outcome trajectories')
-            torch.save(payload,args.output/'records.pt');result=dict(run_status='COMPLETED',rows=len(score),episodes=len(set(payload['episode_id'])),policies=torch.bincount(payload['assignment'],minlength=5).tolist(),elapsed_seconds=time.monotonic()-begin,record_sha256=sha(args.output/'records.pt'),frozen_experts=True,frozen_cm=True,checkpoint_sha256=cm_before,complete_labels=True,held_initial_groups_only=True,saved_observation_expert_replay_max_error=replay_error,countercommand_replay_max_error=counter_error,first_episode_frames=first_episode_frames,sim_frames=payload['sim_frames'])
+                policy_names=active_policies,intervention='random controller owner for H10; ten observed-state decisions each execute1feedbackstep; clear prestates held initial groups only;6tickcooldown',assignment_after_observation=True,policy_propensity_definition=f'{len(active_policies)} distinct whole-window controller laws p=1/{len(active_policies)}; coincident recommendations never merge policies',frozen_experts=True,frozen_cm=True,cm_used=True,optimizer_used=False,first_episode_frames=first_episode_frames,sim_frames=n*(tick+1),checkpoint_sha256=cm_before,relative_value_checkpoint_sha256=relative_before,pd_offset=task._pd_action_offset.cpu(),pd_scale=task._pd_action_scale.cpu(),geometry_definition='full25002vertex source mesh support over upper table plane; approximation to nativeVHACD',contact_definition='netforce norms divided by actual object weight >.1 presence proxy; not identified contact pairs',countercommand_definition='same observed-state base and reanchored fixed7 native PD references; not counterfactual outcome trajectories')
+            torch.save(payload,args.output/'records.pt');result=dict(run_status='COMPLETED',rows=len(score),episodes=len(set(payload['episode_id'])),policies=torch.bincount(payload['assignment'],minlength=len(active_policies)).tolist(),elapsed_seconds=time.monotonic()-begin,record_sha256=sha(args.output/'records.pt'),frozen_experts=True,frozen_cm=True,checkpoint_sha256=cm_before,relative_value_checkpoint_sha256=relative_before,complete_labels=True,held_initial_groups_only=True,saved_observation_expert_replay_max_error=replay_error,countercommand_replay_max_error=counter_error,first_episode_frames=first_episode_frames,sim_frames=payload['sim_frames'])
             (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
     return ClosedLoopPlayer
 
 
 def main():
-    p=argparse.ArgumentParser(add_help=False,allow_abbrev=False);p.add_argument('--output-dir',dest='output',type=Path,required=True);p.add_argument('--native-pd-checkpoint',dest='checkpoint',type=Path,required=True)
+    p=argparse.ArgumentParser(add_help=False,allow_abbrev=False);p.add_argument('--output-dir',dest='output',type=Path,required=True);p.add_argument('--native-pd-checkpoint',dest='checkpoint',type=Path,required=True);p.add_argument('--relative-value-checkpoint',type=Path)
     p.add_argument('--panel-seed',dest='seed',type=int,required=True);p.add_argument('--assignment-seed',type=int,required=True);p.add_argument('--engineering-smoke',action='store_true');p.add_argument('--windows-per-episode',type=int,default=8);p.add_argument('--max-steps',type=int,default=650);p.add_argument('--wall-seconds',type=int,default=240)
     args,remaining=p.parse_known_args();base=(ROOT/'src/task/CmResidual/research/contact_consequence/output').resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():raise ValueError('new owned output required')
