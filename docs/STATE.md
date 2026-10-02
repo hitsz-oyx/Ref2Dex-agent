@@ -428,11 +428,18 @@ joint-support Brier.06901 vs.08458/.08480；生成分布95事实窗口及物理�
 current输入/RNG/32步优化/全NN/硬可行性均0；实际4/6Cm窗口/40步不同cup，
 原生PD差1.19e-7、旋转/mesh/任务标签0；参数/专家冻结，全部任务exit0/GPU释放。
 slot1累计554.09秒/63.00MiB，借用旧源另报。见[原生结构化结果](experiments/probes/P-20261002-structured-native-engineering-result.md)。
-slot2前置预测/分配工程已通过：排除623、33H10窗口，16slot已知概率及
-全部候选pre-only完整NN重放0，原生PD最大1.19e-7，参数冻结，parent/native/
-audit均exit0，154.26秒。现在启动固定科学seed611–618，GPU4/5/6、96env、
-每stratum最多2个H10片段后重新观察规划；真实收益结论待完整panel及独立审计。
-固定AIPW主要估计器与原HT并报，不扩seed/不降门。策略学习与最终稳定抓取未完成。
+HF21 slot2完整8seed已完成并判UNPROMISING：1245H10窗口/563ep，fit624/
+cal323/held298支持充分，全部native/完整审计exit0；原标签独立差0、统计差
+1.78e-14，原门不改。held45/73Cm窗口/450步改变Cup，99ep重复规划，但相对
+强Cup高度+3.420mm、group90[-3.325,9.280]，不足9.616mm噪声门；相对direct
+cal-3.164/held+3.487mm均区间跨0。相对base held高度+13.455mm但joint -27.92pp，
+不能升级为通过。累计2261.93秒/202.66MiB（旧slot1/共享源另报），所有自己
+任务exit0；当前GPU4新外部PID2768199不得干扰。见[真实机会结果](experiments/probes/P-20261002-structured-contact-opportunity-result.md)。
+作用链已经打通，强对照增益仍未建立，不启动本配方PPO/最终成功率矩阵。
+下一步新职责为生成分布适配与显式H10接触损失：当前几何loss与P111约束
+不能替代hand/object共同存在保护。只用新fit624事实转移适配，旧fit回放；
+新cal/held用于复用信息Probe、未来实际效用仍需独立源，绝不把预测当真值。
+见[新职责决定](decisions/D-20261002-generated-support-preserving-cm.md)。
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。

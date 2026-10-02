@@ -21,3 +21,8 @@ process handle与该目录run_manifest.json为准，不从此静态记录假定�
 新工程/准备预留400秒、pipeline<=3200秒、slot<=3600秒/8GiB。
 真实收益只在完整panel与全审计终态后按既定AIPW门分类，同时报告原HT。
 尚未获得本轮科学结论，不表示策略学习或最终稳定抓取完成。
+
+终态：parent session47015 exit0；8native/8audit均exit0，1245窗口。分析session23135
+exit0、独立统计审计session67058 exit0；原门UNPROMISING。总2261.93秒/202.66MiB。
+GPU4当前PID2768199为本次结束后新任务，不能宣称整卡空闲；不干扰他人进程。
+科研结论见[结果](../experiments/probes/P-20261002-structured-contact-opportunity-result.md)。

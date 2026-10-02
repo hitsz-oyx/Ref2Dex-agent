@@ -1,0 +1,13 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "label": "UNPROMISING",
+  "raw_supported_score_max_error_mm": 0.0,
+  "statistic_max_error": 1.7763568394002505e-14,
+  "source_sha256": "499b829df493a8b671760484b8cd42fe916aa00bf88f9b42ec94af0565b0ec89",
+  "result_sha256": "011c19dd2dc85c7a7e2bcea45e6c19c6d317431e1ae64ee0dfbbfe9645352489",
+  "auditor_sha256": "b4df087e7badfc82a20e20e924e5d380f023a575d19e7f2cff66d49824f2b59a",
+  "elapsed_seconds": 4.007141026668251,
+  "all_fixed_gates_reconstructed": true,
+  "scope": "independent actual-label and estimator audit; no final policy claim"
+}
