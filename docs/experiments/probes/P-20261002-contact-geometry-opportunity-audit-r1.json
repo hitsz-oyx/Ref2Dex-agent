@@ -1,0 +1,17 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "score_and_intervals_max_error": 0.0,
+  "held_policy_actual_matches": {
+    "cm": 154,
+    "state_only": 166,
+    "shuffled": 158,
+    "direct_score": 159,
+    "always_base": 194,
+    "best_fixed": 166
+  },
+  "fixed_reference": 1,
+  "result_sha256": "0c05c7e494c8fb0c3e28bf8851164e834b24206cf9d9a23894440cdea8ddf1ce",
+  "elapsed_seconds": 0.4910186631605029,
+  "scope": "independent float64 candidate predicates plus actual source score/IPW/cluster intervals; no actual controller or unseen-candidate truth"
+}

@@ -332,6 +332,7 @@ MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据
 
 | Family | Claim | 状态 | 预算状态 | 分支 |
 | --- | --- | --- | --- | --- |
+| `HF19` contact-geometry action synthesis | `C3` | `UNPROMISING`（部分H10信息，条件选择无增益） | slot1后关闭，不启动slot2 | `agent/cm-contact-geometry-synthesis` |
 | `HF18` contact-to-lift macro-Cm | `C3` | `UNPROMISING`（early轨迹信息门失败） | slot1后关闭，不启动slot2 | `agent/cm-contact-to-lift-macro` |
 | `HF17` strong-reference corrections | `C3` | `UNPROMISING`（固定修正未过留出机会门） | slot1后关闭，不启动slot2 | `agent/cm-strong-reference-corrections` |
 | `HF16` native-PD/force-Cm | `C3` | `UNPROMISING`（一步信息正向，强控制门失败） | 2/2关闭 | `agent/cm-native-pd-consequence` |
@@ -386,9 +387,18 @@ GPU访问已恢复：8张3090可见，实际CUDA矩阵运算通过；旧阻塞�
 GPU0有他人任务，当前使用空闲GPU1。新采集器原生工程已完成108个H10窗口、
 82episodes；1080步实际组合命令/PD/force/mesh标签、全部pre/post相对几何
 独立复算通过，专家回放误差0，原生与审计进程均exit0。首次目录检查失败
-已修正并保留，全部成本计入工程记录。HF19 slot1新随机组合监督/信息Probe
-已登记，固定12个真实采集seed与信息/条件机会门，单GPU60min/8GiB含工程；
-本次仅证明原生工程可用，完整机制/收益与策略学习仍未完成，C3仍OPEN。
+已修正并保留，全部成本计入工程记录。HF19 slot1已完成3745个真实H10窗口、
+37450步、12个模型各1000次GPU更新；held857/243ep/22组。H10支持高度MAE
+15.656 vsstate18.250/shuf18.272mm约改善14.2%，但原一步dv/几何信息门失败。
+Cm离线改变固定参考158/857（18.44%），实际策略匹配154窗口；IPWvs强cup
+−.089mm90[−.645,+.404]，vs直接评分+.078mm区间跨0，原选择门未过。
+全部52标签/时序/PD/fit归一化/NN候选预测/IPW独立复算通过，任务均exit0。
+UNPROMISING，slot1后关闭，不启动slot2/PPO；不把部分H10信息解释成策略收益。
+见[HF19结果](experiments/probes/P-20261002-contact-geometry-action-information-result.md)。
+下一步让冻结Cm的H10后果预测主动生成受约束程序，先做梯度/可执行域工程，
+再固定真实候选机会检验，而非继续随机组合排序器的网络/门限扫描。
+见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
+完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。
 不对旧目录或阈值继续扫描，不启动完整PPO/最终成功率矩阵。C3仍OPEN。
 近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立

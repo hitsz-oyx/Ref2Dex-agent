@@ -1,5 +1,6 @@
 # Ref2Dex Research Debt
 
+
 这里记录：
 
 > 最终可能需要，但当前不会改变近期研究决策的实验。
@@ -282,3 +283,16 @@ Trigger：准备训练所得策略的正式matched Cm-on/off Validation时。
 届时先登记新未消费开发/最终holdout池，区分模型init、simulator、私有分配
 和bootstrap seed；禁止把本轮481–492或旧探索结果重复称为未见验证。
 不为当前机制Probe追加seed、重跑或改变冻结门限。
+
+## D013 — 自适应窗口采集的重复参考噪声正式验证
+
+Status: DEFERRED
+
+HF19 held的同一cup重复槽IPW差−11.696mm，组90区间未覆盖0；原噪声门保留。
+这不是逐状态真实配对，有限随机分配/窗口数量及跨seed依赖都需正式协议处理。
+当前Cm vs强cup本身−.089mm、区间跨0，即使去掉噪声门也不改变停止随机排序
+配方的决定，因此不继续局部噪声审计。进入正向候选/策略Validation时再固定
+平衡或方差降低的随机设计、seed/episode/初始组依赖与真实重复控制协议；
+不得把HT point risk/存在估计直接叫实际因果掉落率。
+
+---

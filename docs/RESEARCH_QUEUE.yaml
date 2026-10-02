@@ -203,12 +203,12 @@ hypotheses:
   HF19:
     claim: C3
     name: contact_geometry_action_synthesis
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-contact-geometry-synthesis
     probe_budget: 2
     probes_used: 1
-    card: docs/experiments/probes/P-20261002-contact-geometry-action-information.md
-    transition: "Slot1 registered after native108windows/1080steps engineering and independent pre/post audit passed. Fresh randomized continuous expert mixtures, per-finger geometry/action binding and dense actual physical consequences; fixed12source seeds571-582, oneGPU,60min/8GiB inclengineering/failures/audits/fits. No changes to closed HF18 or old gates. Conditional information/opportunity before actual closed-loop slot2; C3OPEN."
+    card: docs/experiments/probes/P-20261002-contact-geometry-action-information-result.md
+    transition: "CLOSED after slot1 UNPROMISING; slot2 not started. Audited3745H10windows,12matchedmodelsx1000GPUupdates130.58s; held857/243ep/22groups. CmH10jointheightMAE15.656 vsstate18.250/shuf18.272 improves14.2%, but originalone-stepdv/relativegeometry5pctgatesfail. Cmchangesfixed158/857(18.44%), actual154policy matches; IPWvsstrongcup-.089mm90[-.645,.404],vsdirectscore+.078CIcross0,base+17.277 but originalnoise/jointgatesfail. Allactualphysics/52labels/fitstats/NNpredictions/IPW replay audited; no newthreshold/epoch/PPO. NextfrozenCm constrained action-generation engineering, originalgoal/C3OPEN."
   HF12:
     claim: C3
     name: trainable_cm_guide_task_retention_policy

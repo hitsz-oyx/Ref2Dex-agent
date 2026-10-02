@@ -1,0 +1,110 @@
+{
+  "run_status": "COMPLETED",
+  "audit_passed": true,
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 4659\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 337\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2230255, /home2/wyy/miniconda3/envs/graspenv/bin/python\n",
+    "time": 1790909105.125318
+  },
+  "counts": {
+    "fit": {
+      "rows": 1899,
+      "episodes": 513,
+      "initial_groups": 45,
+      "arms": [
+        357,
+        400,
+        175,
+        196,
+        181,
+        207,
+        183,
+        200
+      ],
+      "early": 1466,
+      "initially_clear": 433,
+      "adequate": true
+    },
+    "cal": {
+      "rows": 989,
+      "episodes": 248,
+      "initial_groups": 26,
+      "arms": [
+        180,
+        195,
+        109,
+        107,
+        108,
+        105,
+        89,
+        96
+      ],
+      "early": 740,
+      "initially_clear": 249,
+      "adequate": true
+    },
+    "held": {
+      "rows": 857,
+      "episodes": 243,
+      "initial_groups": 22,
+      "arms": [
+        194,
+        166,
+        86,
+        78,
+        77,
+        87,
+        89,
+        80
+      ],
+      "early": 651,
+      "initially_clear": 206,
+      "adequate": true
+    }
+  },
+  "all52labels_and_pre_inputs_errors": {
+    "history": 0,
+    "physical": 0,
+    "node_state": 9.5367431640625e-06,
+    "node_action": 0,
+    "law": 0,
+    "target": 0.00048828125,
+    "prior": 0.00048828125
+  },
+  "actual_candidate_input_errors": {
+    "history": 0,
+    "physical": 0,
+    "node_state": 0,
+    "node_action": 0,
+    "law": 0,
+    "prior": 0
+  },
+  "fit_only_normalizer_errors": {
+    "history_mean": 2.384185791015625e-07,
+    "history_std": 4.76837158203125e-07,
+    "physical_mean": 1.1920928955078125e-07,
+    "physical_std": 2.384185791015625e-07,
+    "node_state_mean": 1.1920928955078125e-07,
+    "node_state_std": 8.940696716308594e-08,
+    "node_action_mean": 8.940696716308594e-08,
+    "node_action_std": 2.9802322387695312e-08,
+    "law_mean": 5.960464477539063e-08,
+    "law_std": 0.0
+  },
+  "metric_replay_max_error": 0,
+  "candidate_NN_replay_errors": {
+    "cm": 0.0,
+    "state_only": 0.0,
+    "shuffled": 0.0,
+    "direct_score": 0.0
+  },
+  "checkpoint_sha256": "486973bf5bb822c6858f6ba467f1b33d7482256d7ac69ebf5e84f1baa5651688",
+  "candidate_predictions_sha256": "146a3681b90d0fe03df35726262f15241d0aa2c0f86c9ac00e5df1b9b232701e",
+  "fit_manifest_sha256": "15e859688e40fd81dc14c40156faf6b1aee19b533763e9706b9158b9025263fb",
+  "auditor_sha256": "5809ae39b93e3f2178fa999154cf9f60689407ea42ae0ba085eab42de7c4786b",
+  "elapsed_seconds": 12.03928188700229,
+  "cumulative_seconds": 1622.477891867049,
+  "scope": "all actual physical input/labels, matched12models, fit-only statistics and NN replay; no actual controller utility"
+}
