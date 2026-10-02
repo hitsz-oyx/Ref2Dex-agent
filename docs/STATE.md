@@ -106,13 +106,22 @@ Cm188/off188/directQ222/P0126 per384, mandatory gates fail despite full audits.
 No kernel/support/temperature/width/seed/epoch/penalty rescue. Fixed actual
 successor headroom does not establish accessible physical information.
 
-Physical encoder -> measured-return critic actuallearning now COMPLETED/
-UNPROMISING,219/off218/directQ225/P0143 per384. Close exacttransfer without
-layer-freeze/LR/head/steps/penalty/seed/label-subset rescue. Reconsider the wider
-fixed late held-option setting before another related learner. Next cheapest
-Decision: FIT-only success/transient-lift support for unsolvedmotion0; do not
-infer universal infeasibility from sparse/zero outcomes. Outcome chooses task
-learning, retention or earlier contact-acquisition data, not another encoder scan.
+Physical encoder -> measured-return critic actuallearning COMPLETED/UNPROMISING,
+219/off218/directQ225/P0143 per384. Close exacttransfer without layer-freeze/LR/
+head/steps/penalty/seed/label-subset rescue. Broader late-setting support review
+COMPLETED: motion0has0complete AND0transient joint-lift episodes in256zero plus
+256Gaussian trajectories within105window. Original r1mislabelled zero duplicate
+as random; separate r2correctscohorts and verifies allGaussian/antithetic draws,
+labels/gateunchanged, original preserved. [Result](research/20261002-late-option-support-results.md).
+This is sampled support absence, not universal control impossibility or sole
+cause of Cm failure. SourceFIT comprises768zero+768random trajectories; all
+previous learning used the full1536correctly. Only8/256motion0random rawoptions
+lie fully inside boundedactor[-1,1]domain; no range scan to rescue oldlearners.
+
+Next single structural opportunity:24-tick preparation option from PRElift-32
+untilPRElift-8exclusive, then unchangedP0. Decisiontimes[31,12,23], ends[55,36,47].
+Fresh native random/zero controls before any new Cm/value fitting. Fulltask105
+unchanged; no timing/horizon sweep, exactpair/oracle or deployable benefit claim.
 All own scientific jobs terminal. Goal ACTIVE / journal readiness NOT READY.
 
 ## Preservation

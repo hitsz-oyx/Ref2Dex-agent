@@ -126,3 +126,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Physical encoder transfer primary-source boundary](20261002-physical-encoder-transfer-boundary.md).
 
 - [Physical encoder into measured-return task critic](20261002-physical-encoder-critic-results.md): UNPROMISING; Cm219/off218/directQ225/P0143 per384, all checks pass.
+
+- [Training-only late-option support review and cohort correction](20261002-late-option-support-results.md): motion0zero complete/transient labels in256Gaussian plus256zero trajectories; choose earlier preparation data.
