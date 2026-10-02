@@ -1,0 +1,94 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_only": true,
+  "scientific_panel_unopened": true,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_optimized_contact_opportunity.py": "c6184cf4a9deb45c6fce1d77a686a91dbfa8cfbdb65fd6d7d4d1da46c62c7640",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r2/seed590/records.pt": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93"
+  },
+  "modes": {
+    "cm": {
+      "proposed_xyz_max_axis_mm": {
+        "mean": 9.708454132080078,
+        "q50": 0.04665367305278778,
+        "q90": 31.024807929992676,
+        "max": 92.09970092773438
+      },
+      "proposed_independent_finger_max_joint_rad": {
+        "mean": 0.014981248416006565,
+        "q50": 0.012421280145645142,
+        "q90": 0.037812113761901855,
+        "max": 0.06795370578765869
+      },
+      "actual_assigned_windows": 7,
+      "actual_xyz_step_max_axis_mm": {
+        "mean": 23.427846908569336,
+        "q50": 23.275314331054688,
+        "q90": 45.2920166015625,
+        "max": 51.88690948486328
+      },
+      "actual_independent_finger_step_max_joint_rad": {
+        "mean": 0.026103323325514793,
+        "q50": 0.023956894874572754,
+        "q90": 0.04841694235801699,
+        "max": 0.09121447801589966
+      }
+    },
+    "direct_score": {
+      "proposed_xyz_max_axis_mm": {
+        "mean": 15.069134712219238,
+        "q50": 5.4005126953125,
+        "q90": 42.084228515625,
+        "max": 99.22355651855469
+      },
+      "proposed_independent_finger_max_joint_rad": {
+        "mean": 0.014563917182385921,
+        "q50": 0.011407911777496338,
+        "q90": 0.027723729610443115,
+        "max": 0.07247346639633179
+      },
+      "actual_assigned_windows": 7,
+      "actual_xyz_step_max_axis_mm": {
+        "mean": 31.976348876953125,
+        "q50": 32.89185333251953,
+        "q90": 63.704000854492186,
+        "max": 90.8226547241211
+      },
+      "actual_independent_finger_step_max_joint_rad": {
+        "mean": 0.020153982564806938,
+        "q50": 0.018869608640670776,
+        "q90": 0.03799626231193543,
+        "max": 0.05393648147583008
+      }
+    },
+    "shuffled": {
+      "proposed_xyz_max_axis_mm": {
+        "mean": 14.424370765686035,
+        "q50": 5.299076557159424,
+        "q90": 41.062198638916016,
+        "max": 99.0307388305664
+      },
+      "proposed_independent_finger_max_joint_rad": {
+        "mean": 0.019322022795677185,
+        "q50": 0.016356945037841797,
+        "q90": 0.03864315152168274,
+        "max": 0.07320082187652588
+      },
+      "actual_assigned_windows": 14,
+      "actual_xyz_step_max_axis_mm": {
+        "mean": 12.099125862121582,
+        "q50": 0.7917582988739014,
+        "q90": 41.82716941833498,
+        "max": 70.78218078613281
+      },
+      "actual_independent_finger_step_max_joint_rad": {
+        "mean": 0.01861492358148098,
+        "q50": 0.01699623465538025,
+        "q90": 0.029320657253265388,
+        "max": 0.06451839208602905
+      }
+    }
+  },
+  "scope": "command amplitudes and physical units on excluded seed590 engineering; not outcome/utility or a new scientific gate",
+  "timestamp_epoch": 1790913140.8797302
+}

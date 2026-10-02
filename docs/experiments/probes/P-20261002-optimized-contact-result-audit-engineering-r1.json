@@ -1,0 +1,18 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_only": true,
+  "fixture_excluded_from_science": true,
+  "checks": {
+    "independent_scalar_native_PD": true,
+    "independent_cluster_bootstrap": true
+  },
+  "native_PD_max_error": 0.0,
+  "bootstrap_max_error": 0.0,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_optimized_contact_opportunity.py": "c6184cf4a9deb45c6fce1d77a686a91dbfa8cfbdb65fd6d7d4d1da46c62c7640",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/audit_optimized_contact_opportunity.py": "84e0aed34a35466c823581cb7b8f86b58a119e81171034b9b38d7b9a4d5d5cc7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r2/seed590/records.pt": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93"
+  },
+  "elapsed_seconds": 0.12854358088225126,
+  "scope": "independent statistical/actuation engineering only; no scientific outcomes observed"
+}

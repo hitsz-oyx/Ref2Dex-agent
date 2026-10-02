@@ -1,0 +1,25 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_only": true,
+  "fixture_excluded_from_science": true,
+  "checks": {
+    "engineering_actual_actuation_matches": true,
+    "physical_score_reconstruction": true,
+    "known_HT_contrast": true,
+    "identical_policy_zero": true,
+    "live_partial_panel_rejected": true
+  },
+  "actual_actuation": {
+    "actual_windows": 7,
+    "different_cup_pd_windows": 6,
+    "different_cup_pd_steps": 60,
+    "total_actual_steps": 70
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/analyze_optimized_contact_opportunity.py": "c6184cf4a9deb45c6fce1d77a686a91dbfa8cfbdb65fd6d7d4d1da46c62c7640",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r2/seed590/records.pt": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-optimized-contact-actuation-engineering-r2.json": "95a3ad71d05962ea64d7e7e3447baf2283cc2ba880fc6948b0f7e511c8eaa786"
+  },
+  "elapsed_seconds": 1.766326416283846,
+  "scope": "pure record/estimator engineering; scientific panel remains unopened"
+}
