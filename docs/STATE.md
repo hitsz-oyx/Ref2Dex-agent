@@ -449,10 +449,13 @@ vs.12694/.12099，两项动作信息子门与全部物理非劣/旧能力保持/
 fit与audit均exit0，累计预算511.60秒/66.10MiB；被停止的早期3000–3500更新
 另保留，精确墙钟未知、预算费用300秒，旧源/模型成本另报。无新真实收益证明。
 见[适配结果](experiments/probes/P-20261002-support-preserving-contact-effects-result.md)。
-下一步改控制职责：Cm承担接触风险约束，独立direct高度评分承担收益排序，
-先用排除623做<=300秒/64MiB的全NN与实际PD作用工程，不用未来标签挑程序。
-有实际约束作用才固定新的独立执行卡；这不是放宽HF22原门，当前不启动PPO。
-见[风险约束决定](decisions/D-20261002-contact-risk-constrained-scoring.md)。
+接触风险约束工程已完成：排除623/33无接触约束介入，按固定覆盖修正加入
+排除590/96后，129状态中4个接触风险违规均改变PD，介入4/129（3.10%）。
+全NN与独立PD差0、state-only=无约束、参数冻结、未来字段不影响规划；GPU5
+exit0，累计16.456秒。接法有实际指令作用但覆盖稀疏，没有真实风险/收益证据。
+下一步固定独立真实执行Probe，检验介入是否减少接触丢失及抬升代价；采集成本
+须考虑低覆盖。HF22原门仍UNPROMISING，C3OPEN，当前不启动PPO。
+见[风险约束工程结果](experiments/probes/P-20261002-contact-risk-guard-engineering-result.md)。
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。

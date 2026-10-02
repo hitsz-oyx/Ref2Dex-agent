@@ -6,15 +6,14 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks:
-  - id: T-20261002-contact-risk-guard
-    owner: current_session
-    status: ACTIVE
-    card: docs/decisions/D-20261002-contact-risk-constrained-scoring.md
-    outcome_boundary: "Excluded623 pre-only<=300s/64MiB, frozen contact Cm risk constrains separate direct height scorer; full NN/PD/frozenparams/state-only equivalence and binding coverage. No actual outcomes or scientific Probe classification; future real source only if role has action effect."
-
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-contact-risk-guard
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-contact-risk-guard-engineering-result.md
+    outcome_boundary: "Fixed excluded623/33 plus590/96 pre-only engineering. First33 no binding; fixed coverage129 has4 contact-specific unsafe unguarded proposals and4 corresponding actual PD changes,5 total changes. AllfullNN/PD0,state-only=unguarded,frozenmodels,futurepoison pass. GPU5 exit0,cumulative16.456s within300s/64MiB. Sparse4/129 binding is executability only, no actual risk/utility claim. Nextfreeze independent factual execution card; HF22 UNPROMISING/C3OPEN preserved,no PPO."
   - id: T-20261002-structured-native-generation
     owner: current_session
     status: COMPLETED
