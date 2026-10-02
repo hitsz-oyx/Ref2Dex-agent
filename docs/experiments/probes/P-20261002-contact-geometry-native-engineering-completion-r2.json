@@ -1,0 +1,89 @@
+{
+  "experiment_id": "P-20261002-contact-geometry-source",
+  "run_status": "COMPLETED",
+  "smoke_only": true,
+  "scientific_probe_started": false,
+  "engineering_passed": true,
+  "timestamp_epoch": 1790907213.3393242,
+  "gpu_index": 1,
+  "gpu_uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+  "cuda_matrix_check": {
+    "torch": "2.4.1+cu121",
+    "cuda_available": true,
+    "visible_device_count": 1,
+    "physical_gpu_index": 1,
+    "device": "NVIDIA GeForce RTX 3090",
+    "result": 384.0,
+    "expected": 384.0,
+    "passed": true
+  },
+  "source_result": {
+    "run_status": "COMPLETED",
+    "rows": 108,
+    "episodes": 82,
+    "arms": [
+      16,
+      20,
+      13,
+      16,
+      10,
+      8,
+      17,
+      8
+    ],
+    "initially_clear": 26,
+    "saved_observation_expert_replay_max_error": 0.0,
+    "elapsed_seconds": 77.653350523673,
+    "record_sha256": "c4df87915d65ee971f4ccca1a278cea0fb6f66386e6d22fce4d9024f28187b0f",
+    "frozen_experts": true,
+    "cm_used": false
+  },
+  "audit": {
+    "seed": 570,
+    "rows": 108,
+    "steps": 1080,
+    "actual_propensity_verified": true,
+    "complete_labels": true,
+    "pre_and_post_geometry_verified": true,
+    "errors": {
+      "feedback": 2.9802322387695312e-08,
+      "actual_command": 2.9802322387695312e-08,
+      "initial_candidate": 2.9802322387695312e-08,
+      "native_pd": 1.1920928955078125e-07,
+      "fixed_rotation": 0.0,
+      "force_ratio_relative": 1.9100066595001408e-07,
+      "mesh_clearance": 0.0,
+      "supported_score_mm": 0.0,
+      "pre_relative_position": 3.2782554626464844e-07,
+      "pre_relative_velocity": 1.9073486328125e-06,
+      "post_relative_position": 3.2782554626464844e-07,
+      "post_relative_velocity": 1.9073486328125e-06
+    }
+  },
+  "native_git_commit": "1ebad5d97988e554bbab788f8cff6435e3f319a1",
+  "native_handle_exit_code": 0,
+  "audit_handle_exit_code": 0,
+  "failed_attempt": {
+    "directory": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-engineering-r1",
+    "git_commit": "0e92b3bfe1b87377314f582ca1f38b3c83485dda",
+    "error": "RuntimeError('native exit 1')",
+    "reason": "collector mistakenly required direct child of task output root; launcher uses owned per-seed nested directory"
+  },
+  "input_hashes_unchanged": true,
+  "cost_seconds_components": {
+    "offline_and_plan_seconds": 3.0895431945100427,
+    "failed_native_seconds": 4.603028643876314,
+    "completed_native_seconds": 118.37827590573579,
+    "independent_audit_seconds": 3.752797848545015,
+    "failed_gpu0_admission_conservative_seconds": 5,
+    "additional_cuda_checks_and_recording_conservative_seconds": 60
+  },
+  "total_seconds_conservative": 194.82364559266716,
+  "total_output_bytes": 17731294,
+  "artifact_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-engineering-r1/run_manifest.json": "b8e294f246df068fc1e271603227b615efbcaf78cd4274afb0afbbea46d91f2c",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-contact-geometry-source-engineering-r2/run_manifest.json": "e76d0caf9453e801911d13bfdabeaddc72ead85484ed22ec814d9dee8b5c0cbb",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-contact-geometry-native-engineering-audit-r2.json": "3494ec21e9a73c48b016d0022392053118142bd0bca4c2240c045432d7e2e203"
+  },
+  "scope": "Native GPU engineering and independent actual-record audit only; candidate opportunity, Cm information, control utility and policy training remain unproven."
+}

@@ -1,37 +1,41 @@
-# 随机组合源采集：当前工程状态
+# 随机组合源采集：工程完成
 
-离线动作合同已通过，原生工程尚未启动，新候选机会/Cm信息/闭环utility未证。
-[采集合同](P-20261002-contact-geometry-source.md)保留原目标的真实执行、排序
-和重新决策要求，不把本工程结果当成科学Probe结果。
+GPU访问已恢复，实际CUDA矩阵运算通过。物理GPU0被其他用户占用，本次
+选择空闲GPU1；单卡隔离后原生进程中的cuda:0对应物理GPU1。
+原生仿真与独立记录审计均已完成。这里只确认可执行性，不构成新候选优势、
+Cm信息或闭环utility结论；[采集合同](P-20261002-contact-geometry-source.md)
+和原目标的真实执行、排序、重新决策要求保留。
 
-从已审计的HF18 seed551实际记录读取193个pre-state，生成1158个新组合命令。
-XYZ与每指动作都在六专家坐标范围内，固定旋转PD误差0；40个历史实际base
-和20个实际rotation_cup的首步PD目标均完整复现，误差0。随机生成可重复，
-不修改专家bank；非法非凸权重会拒绝；重复base/cup合并概率.2，其余.1。
-权重和最大误差2.38e-7。仅CPU小型命令代数，未生成新物理后果。
-见[离线记录](P-20261002-contact-geometry-action-engineering-r1.json)。
+离线动作合同：HF18 seed551实际193个pre-state、1158个新组合命令；XYZ与
+每指动作在六专家范围内，40个历史base/20个cup原生PD复现误差0。权重和
+最大误差2.38e-7。见[离线检查](P-20261002-contact-geometry-action-engineering-r1.json)。
+独立审计软件检查拒绝10类synthetic损坏，包括最后post位置/速度、PD、
+概率、reset和group split；[该记录](P-20261002-contact-geometry-record-audit-engineering-r1.json)
+明确是内存fixture，不能代替真实物理数据。
 
-[采集器](../../../scripts/collect_contact_geometry_source.py)保存固定系数、完整
-候选集、10步全专家bank/实际PD/原始力、pre与post真实link位置和速度。
-窗口起点旋转锚定，每步新专家反馈，early/clear各限额，旧模型和输入不改。
-源码语法检查通过；尚未在原生环境跑过，不能声称整采集器runtime已通过。
+恢复后的第一次native尝试r1在仿真启动前失败：采集器只接受输出根目录
+的直接子目录，而启动器使用run/seed570嵌套目录。修复为允许任务根目录
+内的新独立目录，继续拒绝越界、符号链接及覆盖；修复提交1ebad5d。
+r1失败目录与旧提交输入保留。先前GPU0 admission被占用而拒绝，也计入成本。
 
-[启动器](../../../scripts/run_contact_geometry_engineering.py)默认只生成可审阅
-计划；显式native入口仅运行一个用于工程检查的phase，96env、每层1窗口、
-650tick/240秒，整体600秒/256MiB。34个输入文件hash及已有专家/motion来源
-已核对，见[计划](P-20261002-contact-geometry-native-engineering-plan-r2.json)。
-GPU admission在创建原生运行目录之前完成，设备不可用时不写假运行状态。
-本次未调用native入口，计划产物不是live job，无进程在后台等待。
-R1计划已被未执行的R2计划替代，旧产物保留；补齐全10步post-native观测，
-独立审计覆盖每个pre/post相对位置与速度、分配/PD/force/mesh与联合标签。
-[审计工程检查](P-20261002-contact-geometry-record-audit-engineering-r1.json)通过
-30步内存fixture，10类损坏均拒绝，包括最后一帧位置/速度、PD、概率、
-reset及group split；明确是synthetic软件检查，不是新物理转移。
+r2原生工程采用[新计划](P-20261002-contact-geometry-native-engineering-plan-r5.json)：
+seed570、96env、early/clear每层最多1窗口、650tick/240秒；整体600秒/256MiB。
+完成108个H10窗口、82episodes，初始clear26；8类分配计数
+16/20/13/16/10/8/17/8。全部六专家在保存观测上回放最大误差0。
+原生父/子进程完成，工具返回exit0，全部34输入hash未变。
+未执行候选仍没有逐状态真实后果，不能从此声称oracle或真实regret。
 
-当前连续三轮nvidia-smi exit9、CUDA0设备，执行环境缺少/dev/nvidia0和
-/dev/nvidiactl；[设备边界证据](P-20261002-contact-geometry-gpu-blocker.json)已保存。已请求用户提供现成执行入口或恢复
-访问的方法；不升级权限、不改系统、不启动CPU替代物理仿真。不再用旧动作
-数据冒充新组合监督。设备恢复后先做此原生工程与独立记录审计，再登记下一
-科学源采集/拟合合同；工程准备完成，下一步必须执行原生phase；没有可继续的真实新组合数据。
-完整goal仍未完成，满足三轮同一外部阻塞条件，执行状态将设为blocked；
-恢复GPU访问后才能继续原生工程、新源采集与科学Probe。
+[独立GPU审计](P-20261002-contact-geometry-native-engineering-audit-r2.json)完成
+1080步实际命令、PD、合并propensity、固定旋转、rawforce存在代理、完整mesh
+间隙及H10联合标签复算。固定旋转/mesh/支持标签误差0；PD最大1.19e-7；
+pre/post相对位置最大3.28e-7m，速度1.91e-6m/s，均通过原限制。最后post
+帧亦验证，全部窗口完整且不跨reset。审计工具返回exit0。
+力只是存在代理，掌部/指端是link原点，不声称已经识别真实接触点或接触对。
+
+[工程完成记录](P-20261002-contact-geometry-native-engineering-completion-r2.json)
+保存终态/hash与成本：成功原生118.38秒、失败4.60秒、独立审计3.75秒；含离线、
+计划、GPU admission失败和额外检查的保守累计194.82秒，产物16.91MiB。
+旧[GPU阻塞证据](P-20261002-contact-geometry-gpu-blocker.json)与
+[恢复记录](P-20261002-contact-geometry-gpu-restored.json)保留。
+目前没有后台采集或训练进程，本工程不消耗科学Probe slot。下一步登记随机
+组合真实监督与物理作用模型的新科学合同/预算，再采集；完整goal及C3仍OPEN。

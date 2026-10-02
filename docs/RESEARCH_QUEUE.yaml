@@ -5,16 +5,15 @@ updated: 2026-10-01
 # evidence and must return a Probe-bounded result before this queue is closed.
 pending_dispatches: []
 
-# CPU-only engineering preparation is tracked separately from Probe search slots.
-# These tasks do not collect transitions, train, or create a scientific claim.
-active_engineering_tasks:
-  - id: T-20261002-contact-geometry-source
-    owner: current_session
-    status: ACTIVE
-    card: docs/experiments/probes/P-20261002-contact-geometry-source-engineering.md
-    outcome_boundary: "Offline1158commands/193states verified; archived actual40base/20cup nativePD replay0; collector/bounded launcher plus independent full pre/post geometry/PD/label auditor implemented;10synthetic corruptions rejected,34inputhashes verified in supersedingR2plan. No native job started, no new transitions/fits/utility claim. GPU access restored and CUDA GPU0 matmul verified; proceed bounded native engineering, scientific Probe budget not consumed."
+# Engineering is tracked separately from scientific Probe search slots.
+active_engineering_tasks: []
 
 completed_engineering_tasks:
+  - id: T-20261002-contact-geometry-source
+    owner: current_session
+    status: COMPLETED
+    card: docs/experiments/probes/P-20261002-contact-geometry-source-engineering.md
+    outcome_boundary: "GPU access restored, actual CUDA matmul passed. PhysicalGPU0 occupied by another user; GPU1 native engineering COMPLETED108H10windows/82episodes, all1080actualcommands/PD/force/meshlabels/fullpre-postrelativegeometry independently verified, expert replay0. Original nested-output check failed before simulator start, fixed in1ebad5d and rerun using unique directory; failure preserved and cost counted. Native/audit exit0, frozen input hashes unchanged. No scientific opportunity, Cm fit/control utility or RL claim; scientific Probe budget not consumed."
   - id: T-20261001-current-policy-value-collector-runtime
     owner: agent_rl
     status: COMPLETED

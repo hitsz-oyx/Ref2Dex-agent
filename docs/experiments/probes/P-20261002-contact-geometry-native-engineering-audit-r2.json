@@ -1,0 +1,38 @@
+{
+  "run_status": "COMPLETED",
+  "phases": [
+    {
+      "seed": 570,
+      "rows": 108,
+      "steps": 1080,
+      "actual_propensity_verified": true,
+      "complete_labels": true,
+      "pre_and_post_geometry_verified": true,
+      "errors": {
+        "feedback": 2.9802322387695312e-08,
+        "actual_command": 2.9802322387695312e-08,
+        "initial_candidate": 2.9802322387695312e-08,
+        "native_pd": 1.1920928955078125e-07,
+        "fixed_rotation": 0.0,
+        "force_ratio_relative": 1.9100066595001408e-07,
+        "mesh_clearance": 0.0,
+        "supported_score_mm": 0.0,
+        "pre_relative_position": 3.2782554626464844e-07,
+        "pre_relative_velocity": 1.9073486328125e-06,
+        "post_relative_position": 3.2782554626464844e-07,
+        "post_relative_velocity": 1.9073486328125e-06
+      }
+    }
+  ],
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2705\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\n",
+    "time": 1790907165.529167
+  },
+  "elapsed_seconds": 3.752797848545015,
+  "run_manifest_sha256": "e76d0caf9453e801911d13bfdabeaddc72ead85484ed22ec814d9dee8b5c0cbb",
+  "auditor_sha256": "ca0c700e667171bbad1088e8824ab29b6026f6a50381b1ffe8147ed4aa1372b6",
+  "scope": "actual command, labels and every pre/post geometry; no utility conclusion"
+}
