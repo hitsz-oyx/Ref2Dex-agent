@@ -63,6 +63,15 @@ def main():
         for name in ['results.json','gradient_audit.json']:protected[str((d/name).resolve())]=sha(d/name)
     assert steps==9120 and report['total_actual_optimizer_steps']==steps
     assert sha(root/'u20/policy_heads.pt')==m['final_checkpoint_sha256']
+    correction=m.get('audit_correction')
+    if correction:
+        corrected=root/'u17/gradient_audit.json';c=read(corrected)
+        assert sha(corrected)==correction['sha256']
+        assert c['original_audit_retained_failed'] and c['gpu_saved_gradients_exactly_reproduced']
+        assert c['no_optimizer_or_physics_updates'] and len(c['branch_certificates'])==1
+        assert c['scalar_tolerances_unchanged']==dict(input=0.,advantage=2e-5,forward=2e-5,loss=2e-5,gradient=2e-5,adam=2e-5,norm_relative=2e-6)
+        assert all(c['maximum_error'][k]<=v for k,v in c['scalar_tolerances_unchanged'].items())
+        assert not (Path(correction['original_failed_parent_retained'])/'u17/gradient_audit.json').exists()
     total=bytes_in(root)+m['previous_bytes'];assert total<=6<<30 and m['accounted_total_wall_seconds']<=3600
     for name in ['run_manifest.json','results.json']:protected[str(root/name)]=sha(root/name)
     result=dict(run_status='COMPLETED',label=label,pooled=pooled,by_seed=by_seed,by_motion=by_motion,gates=gates,
@@ -71,6 +80,7 @@ def main():
         source_protected_paths_verified=len(m['input_sha256']),full_unique_cohort_coverage=True,
         fixed_final_only_integer_gates_independently_reconstructed=True,scientific_sources_unchanged=True,
         hardware_migration_recorded=m['runtime_migration'],all_prior_failure_records_retained=True,
+        witnessed_relu_branch_audit_correction=correction,
         combined_bytes=total,accounted_execution_seconds=m['accounted_total_wall_seconds'],
         source_sha256=protected,closeout_script_sha256=sha(Path(__file__)),
         one_optimization_seed_probe_only=True,journal_ready=False)
