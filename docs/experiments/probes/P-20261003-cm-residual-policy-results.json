@@ -81,6 +81,6 @@
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s737/records.pt": "20193156621402f863c979fda9220d377ec8a51dbc51bf4b33437f33c090a75e",
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s738/records.pt": "d6bdd8bd735475fc221ad83d2b85f14b986bee409ff4abc161c34206c446fad9"
   },
-  "git_commit": "362621fab5a6ed0bb78b020bb9f6e324405cb411",
+  "git_commit": "9ec429bdd5f1c967f888fb0125bebfeb83959f33",
   "interpretation": "The residual arm was mostly fail-closed; arm-level height differences are not attributable to executed residual actions."
 }
