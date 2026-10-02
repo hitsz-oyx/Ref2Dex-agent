@@ -6,7 +6,12 @@ updated: 2026-10-01
 pending_dispatches: []
 
 # Engineering is tracked separately from scientific Probe search slots.
-active_engineering_tasks: []
+active_engineering_tasks:
+  - id: T-20261002-structured-native-generation
+    owner: current_session
+    status: ACTIVE
+    card: docs/experiments/probes/P-20261002-structured-native-engineering.md
+    outcome_boundary: "Excluded610 native96env/180ticks and full physics/planning/RNG/NN audit <=900s/128MiB. AuditedHF21informationPROMISING and frozen generation54of96changedPD/32OODcup fallback passed; engineering verifies true H10 execution, no utility label or new scientific slot."
 
 completed_engineering_tasks:
   - id: T-20261002-optimized-contact-actions
@@ -215,7 +220,7 @@ hypotheses:
     owner: current_session
     authorization: "active mechanism goal and structured-consequence memo; experimental event/action-effect prototype after preserved HF20/HD03, mission/claim/resources unchanged"
     card: docs/experiments/probes/P-20261002-structured-contact-effects.md
-    transition: "Slot1 fixed auditedHF19/HF20union5018, fit-only normalization, coherent8joint events/conditionalheight and current expert PD/reference inputs. Excluded590engineering labels/PD/future-poison/state-only/gradient pass,0modelupdates; initialevalGRUbackward failure preserved. Fixed4modesx3seedsx1000updates on idleGPU1 <=1800s/512MiB; oldsourcecosts separate, reused-held not independentValidation. Only primary5pctheight/supportBrier plus nonregression/domain gates passing enters new independent true execution slot2; no retuning/PPO."
+    transition: "Slot1 PROMISING information: audited5018union, fit2532/cal1295/reusedheld1191; Cmheight9.980 vsstate14.365/shuf14.516mm, supportBrier.06901 vs.08458/.08480, allfixed gates pass. Directscoreheight9.935 slightlybetter, physics utility not yetproved. Alllabels/PD/fitnorm/fullNN/gates independently verified; NNforecast0, stats1.56e-6; all12modelsx1000GPUupdates, ownhandlesexit0,239.98s/47.87MiB sharedsourcecost separate. Frozen generation engineering54of96CmchangedPD,32OODcup fallback, allNN/PD/feasibility0 and frozenparams passed6.07s. Nextexcluded610nativeexecution engineering then freeze slot2 independent actual-opportunity/replan; reused-held not Validation, no PPO yet."
   HD03:
     claim: C3
     name: generated_contact_forecast_decision_diagnostic

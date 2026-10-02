@@ -415,10 +415,18 @@ HD03已在GPU1完成cal306完整冻结网络后果重放及独立rawforce/算术
 23.940 vsstate24.863mm、预测增益2.216mm；不能仅加保持门推导真实收益。
 共12.04秒/5.93MiB，参数与输入冻结、任务exit0，原HF20标签/门保留。
 见[HD03结果](experiments/probes/P-20261002-generated-contact-consequence-diagnostic-result.md)。
-下一步先做联合事件一致、参考附近动作效果的后果原型：显式联合hand/object/
-clear事件、条件高度与当前专家bank/参考PD差/原生参考状态；复用fit-only数据，
-完整工程后登记匹配控制模型Probe，正向才新独立真实执行及重新决策，不继续
-旧独立头门限扫描。见[结构化后果决定](decisions/D-20261002-structured-contact-consequences.md)。
+HF21结构化联合后果slot1已完成并通过固定信息门PROMISING：复用5018窗口，
+fit2532/cal1295/reused-held1191。Cm支持高度9.980 vsstate14.365/shuf14.516mm，
+joint-support Brier.06901 vs.08458/.08480；生成分布95事实窗口及物理非劣门通过。
+全部joint/rawforce/PD/世界物理标签/fit归一化/8候选完整NN和原门独立复算通过，
+完整NN差0、指标差1.56e-6。12模型各1000GPU更新，拟合及审计exit0；含工程/
+准备239.98秒/47.87MiB，旧源成本另报；reused-held不是新独立Validation。
+直接评分高度9.935mm略优，物理后果的独特控制收益仍未证明。见[HF21信息结果](experiments/probes/P-20261002-structured-contact-effects-result.md)。
+冻结新模型的受约束动作生成亦已通过排除seed590工程：54/96初始PD不同cup，
+32当前OOD均返回cup，完整NN/规划/PD复现0，参数冻结，6.07秒。预测增益不是
+真实收益；当前推进排除seed610的96env/180tick原生执行与完整物理/规划审计。
+工程通过才固定slot2新独立真实机会及持续重新决策，不进行PPO/最终成功率。
+见[原生结构化工程](experiments/probes/P-20261002-structured-native-engineering.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。
 见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。

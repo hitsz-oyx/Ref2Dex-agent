@@ -1,0 +1,103 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "excluded_seed": 590,
+  "metrics": {
+    "cm": {
+      "rows": 96,
+      "changed_weights": 54,
+      "changed_pd": 54,
+      "context_ood": 32,
+      "mean_predicted_gain_mm": 1.5047967433929443,
+      "changed_predicted_gain_mm": 2.675194263458252,
+      "changed_predicted_support_difference": 0.016693390905857086,
+      "max_errors": {
+        "score_mm": 0.0,
+        "loss": 0.0,
+        "support": 0.0,
+        "saved_score_mm": 0.0,
+        "saved_loss": 0.0,
+        "saved_support": 0.0,
+        "saved_command": 0.0,
+        "saved_pd": 0.0
+      },
+      "trace_shape": [
+        33,
+        96,
+        6
+      ]
+    },
+    "direct_score": {
+      "rows": 96,
+      "changed_weights": 22,
+      "changed_pd": 22,
+      "context_ood": 32,
+      "mean_predicted_gain_mm": 2.745899200439453,
+      "changed_predicted_gain_mm": 11.98210620880127,
+      "changed_predicted_support_difference": 0.0,
+      "max_errors": {
+        "score_mm": 0.0,
+        "loss": 0.0,
+        "support": 0.0,
+        "saved_score_mm": 0.0,
+        "saved_loss": 0.0,
+        "saved_support": 0.0,
+        "saved_command": 0.0,
+        "saved_pd": 0.0
+      },
+      "trace_shape": [
+        33,
+        96,
+        6
+      ]
+    },
+    "shuffled": {
+      "rows": 96,
+      "changed_weights": 38,
+      "changed_pd": 38,
+      "context_ood": 32,
+      "mean_predicted_gain_mm": 1.9597926139831543,
+      "changed_predicted_gain_mm": 4.95105504989624,
+      "changed_predicted_support_difference": 0.03237375617027283,
+      "max_errors": {
+        "score_mm": 0.0,
+        "loss": 0.0,
+        "support": 0.0,
+        "saved_score_mm": 0.0,
+        "saved_loss": 0.0,
+        "saved_support": 0.0,
+        "saved_command": 0.0,
+        "saved_pd": 0.0
+      },
+      "trace_shape": [
+        33,
+        96,
+        6
+      ]
+    }
+  },
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-optimized-contact-native-engineering-r2/seed590/records.pt": "8c663fe0f21c3295bdcf6d6aa38a0cf47206320b2f87d50a3b91e0ad3fa94c93",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-contact-fit-r1/structured_contact_consequence.pt": "3121c65f571210e71f761247a973adcabd2df029841777f7e81761e6edc533f0",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/experiments/probes/P-20261002-structured-contact-fit-audit-r1.json": "64b7fafab0fbf3605c21bbd99981323c60af867994e94ca725966f393d0f9303",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/check_structured_action_generation.py": "cc67418973f20226fda7fb4be40863c47cc2284868f1350e1759b2189e0860dc",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/structured_contact_actions.py": "ae709e616d643147c7fd4b9279f90793dd7e3e38a75c18056d1a49f7591c9e26",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/structured_contact_consequence.py": "10be96fc7f0cedb9e590554c9531bec02e39e05e5f67868fb34c16f564247cdf",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/optimized_contact_actions.py": "057df4f23e7b7255470ef77921f9f4da4e2ab7e16ad0c07c479312e09cbe64ff",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/native_pd_selector.py": "857fab6f72cc75e6560f070a9fc32c3061f8255a0564cfe5e0f400580af683fd",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/paired_evaluation.py": "932d468f3297e149f79d6836f7764a87528b68247a2c2bd12de01cb1d301343d"
+  },
+  "parameters_frozen": true,
+  "parameter_fingerprint": "69c01c83ddb0d3ae87089630bf6a167d323863973c89182af53042a705aad4fc",
+  "gpu": {
+    "index": 1,
+    "uuid": "GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 7877\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 18539\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2162609, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2518322, /home2/wyy/miniconda3/envs/graspenv/bin/python\n",
+    "time": 1790916949.2034223
+  },
+  "elapsed_seconds": 6.067873970605433,
+  "planning_sha256": "d182d997c608e7bbe880de933fbd771bd23d819b4503c5cbcbe361968e8abb02",
+  "git_commit": "2db51bf5cdd91106425c25943582b596472b3f54",
+  "scope": "frozen generation/executable domain/NN/abstain engineering; no new actual outcome or control benefit"
+}
