@@ -1,0 +1,48 @@
+{
+  "run_status": "COMPLETED",
+  "engineering_passed": true,
+  "excluded_seed": 623,
+  "rows": 33,
+  "independent_errors": {
+    "label_event": 0.0,
+    "label_height": 0.0,
+    "label_support": 0.0,
+    "label_supported_height": 0.0,
+    "label_loss": 0.0,
+    "label_lift": 0.0,
+    "label_joint": 0.0,
+    "label_contact_loss": 0.0,
+    "reference_pd_action": 0.0,
+    "current_cup_goal": 0.0,
+    "current_bank_pd": 0.0
+  },
+  "future_poison_unchanged": true,
+  "current_only_signature": "(history, native, hand_force, object_force, mass, gravity, clearance, rest, bank, cup_action, candidate_action, weights, law, offset, scale)",
+  "subset_max_excess": -2.9802322387695312e-06,
+  "support_subset_max_excess": -4.76837158203125e-07,
+  "old_heads_warm_start_max_error": 0.0,
+  "contact_loss_containment": true,
+  "finite_action_gradient_max": 0.02936927229166031,
+  "state_only_action_invariance": 0.0,
+  "input_sha256": {
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-opportunity-engineering-r1/seed623/records.pt": "3bbdb4a24c4dbbe505522ff858a37e6d9c430932be3fc6fd0aad6881c6e62944",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/check_support_preserving_engineering.py": "36155539545528ba77c725735be3c1ead65f8a442379dafa6e31f549bbfc04bd",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/support_preserving_consequence.py": "da30f7b3e9097fdbb69e47a6fdae758a75786d7410536792396fb872eaaf494a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/support_preserving_contact_data.py": "4f3677bdff1a8e5128f51381539a03a0993d265afe6f787ec97815c8c47978d7",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/docs/decisions/D-20261002-generated-support-preserving-cm.md": "3cef805ed00247fd0b60a3d4b4c94eb397478f5f8e419e5c27597cc6c40fae6a",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/contact_geometry_consequence.py": "3890b601772fbf17550f994041a614b63a021a225ebde6e83b51be2f2bf2c729",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/native_pd_selector.py": "857fab6f72cc75e6560f070a9fc32c3061f8255a0564cfe5e0f400580af683fd",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261002-structured-contact-fit-r1/structured_contact_consequence.pt": "3121c65f571210e71f761247a973adcabd2df029841777f7e81761e6edc533f0"
+  },
+  "gpu": {
+    "index": 5,
+    "uuid": "GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e",
+    "gpus": "0, GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 6199\n1, GPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 5291\n2, GPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 7987\n3, GPU-136e8f52-698e-904b-0bda-35b8382a45d8, 8011\n4, GPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2027\n5, GPU-34fc272e-0657-e8f0-d8b4-e5f27c4a8d5e, 2\n6, GPU-9442e3c0-2f76-67d9-c326-d86b42440622, 2\n7, GPU-b409b7db-7602-cc5d-095a-26983ff0609a, 5901\n",
+    "compute_apps": "GPU-6132dc13-97d7-4ffa-41aa-778f0b48e606, 2728016, /home2/jiao/anaconda3/envs/splatam/bin/python\nGPU-33a9c1c9-cccb-61c2-afeb-4ec98be09963, 2573472, python\nGPU-38984681-4d43-0b6d-20b2-96b4fd20f010, 1316559, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-136e8f52-698e-904b-0bda-35b8382a45d8, 1316564, /home2/zyc/miniconda3/envs/parkour/bin/python\nGPU-0606f00a-d9d0-3a00-5b49-c9e747b77307, 2768199, python\nGPU-b409b7db-7602-cc5d-095a-26983ff0609a, 2728342, /home2/jiao/anaconda3/envs/splatam/bin/python\n",
+    "time": 1790927277.5662947
+  },
+  "model_updates": 0,
+  "elapsed_seconds": 2.461241473443806,
+  "git_commit": "beed7046df548e4e92619fc3202f43940ea25bd9",
+  "scope": "input/label/event/gradient engineering only; no fitting or utility claim"
+}

@@ -440,6 +440,12 @@ cal-3.164/held+3.487mm均区间跨0。相对base held高度+13.455mm但joint -27
 不能替代hand/object共同存在保护。只用新fit624事实转移适配，旧fit回放；
 新cal/held用于复用信息Probe、未来实际效用仍需独立源，绝不把预测当真值。
 见[新职责决定](decisions/D-20261002-generated-support-preserving-cm.md)。
+HF22新模型/标签工程已通过排除623/33窗口：rawforce/PD标签0、future-poison
+不变、旧19头初始化输出0、接触loss必要关系与有限动作梯度通过，2.46秒。
+现在固定四模式各三成员500次GPU适配，旧fit2532/新fit624各占batch一半，
+归一化继承旧fit，新增contact-loss保护职责；所有已知cal/held不训练。
+见[信息卡](experiments/probes/P-20261002-support-preserving-contact-effects.md)，尚无本轮科学结论。
+
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
 完整机制/收益与策略学习仍未完成，C3仍OPEN。

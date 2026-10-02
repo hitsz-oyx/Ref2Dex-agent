@@ -86,17 +86,6 @@ completed_diagnostics:
     outcome_boundary: "factual V/GAE/MC diagnostic; no training or HF08 slot reset"
 
 diagnostic_hypotheses:
-  HF22:
-    claim: C3
-    name: generated_distribution_contact_loss_protection
-    status: ACTIVE
-    branch: agent/cm-structured-contact-effects
-    probe_budget: 2
-    probes_used: 0
-    owner: current_session
-    authorization: "active full mechanism goal; new support-preserving role memo after HF21 fixed gate failure; mission/claim/resources unchanged"
-    card: docs/decisions/D-20261002-generated-support-preserving-cm.md
-    transition: "Not yet started. New current-only consequence model uses actual generated fit transitions with old fit replay, explicit H10 contact-loss label and terminal joint protection. Exact card/input/training/gates pinned before GPU run; reused known cal/held are Probe only, future real utility needs independent source. No PPO or final stable grasp yet."
   HF18:
     claim: C3
     name: contact_to_lift_feedback_macro_physics
@@ -221,6 +210,17 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF22:
+    claim: C3
+    name: generated_distribution_contact_loss_protection
+    status: ACTIVE
+    branch: agent/cm-structured-contact-effects
+    probe_budget: 2
+    probes_used: 1
+    owner: current_session
+    authorization: "active full mechanism goal; new support-preserving role memo after HF21 fixed gate failure; mission/claim/resources unchanged"
+    card: docs/experiments/probes/P-20261002-support-preserving-contact-effects.md
+    transition: "Slot1 fixed adaptation: actual6263union,oldfit2532/newfit624 batch128+128,frozenoldnorm,4modesx3membersx500GPUupdates,new any-H10 contactloss coherent with terminal joint,old19heads warm-start unchanged. Excluded623/33rows labels/PD0, nofutureleak,warmstart0,finitegradient,2.461s. Premature uncommitted launch stopped after queue check failure; six completed members plus possible seventh partial updates preserved,300s conservative cost upper bound. Same fixed protocol resumes after valid code commit; new known cal/held reused Probe only,no label/PPO."
   HF21:
     claim: C3
     name: joint_contact_consequences_reference_action_effects
