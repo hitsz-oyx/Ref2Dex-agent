@@ -96,3 +96,6 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Force-aware non-gravity impulse forecast negative](20261002-force-aware-impulse-results.md)
 
 - [Measured geometry binding and failed FP64 recovery](20261002-object-frame-binding-results.md).
+
+- [Measured geometry barrier result](20261002-measured-geometry-barrier-results.md).
+- [Geometric contact model primary-source boundary](20261002-measured-geometry-method-boundary.md).
