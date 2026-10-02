@@ -33,30 +33,30 @@ No user-track six-expert or twelve-motion claim transferred.
 
 ## Latest actual learning result
 
-P-20261002-empirical-successor-policy: design9b84c45/implementation6efc6c0,
-run-r1 COMPLETED/UNPROMISING. ReusedFIT603/6041536trajectories,3000newphysical
-and2000newactor steps; existing direct-Q1000steps reused unchanged. Fresh
-EVAL623/6241536trajectories; actors deploy without models or future observations.
+P-20261002-physical-encoder-critic, designa085032/implementation56ed3e0,
+run-r1 COMPLETED/UNPROMISING. ReusedFIT603/6041536episodes and alreadyvalid
+physical encoders; new3000measured-return Q/2000actor steps, strongdirectQ
+reused unchanged. Fresh625/6261536episodes, actors deploy without models/future.
 
 | Method | Physical105 /384 |
 | --- | ---: |
-| P0 |126|
-| Cm observed-successor distribution + continuation V |188|
-| Action-removed physical law + same V |188|
-| Direct task-Q actor |222|
+| P0 |143|
+| Cm-pretrained encoder -> measured-return Q -> actor |219|
+| Action-removed physical encoder -> measured-return Q -> actor |218|
+| Retained direct task-Q actor |225|
 
-Cm fails>=5ppoverEACHcontrol and each-seed noninferiority; motion1 safeguard
-passes. Motion0all0; motion1[105,106,110,111]/128; motion2[21,82,78,111]/128.
-FullFITrawcurrent/futureSDKerror0, independent law/value/actor forwards and both
-native/P0/PD/fullmesh105audits pass.417.390s/591055743bytes, protectedinputs
-unchanged, all own PIDs terminal. No independent optimizer replay or calibrated
-uncertainty claim. [Result](research/20261002-empirical-successor-policy-results.md).
+>=5ppEACHcontrol and each-seed noninferiority FAIL; motion1 safeguard PASS.
+Motion0all0; motion1[106,113,108,113]/128; motion2[37,106,110,112]/128.
+All FITrawSDK/transfer/critic/actor and both native/fullmesh105audits pass;
+387.568s/504286350bytes, protectedinputs unchanged, all owned PIDs terminal.
+No independent optimizer replay. [Result](research/20261002-physical-encoder-critic-results.md).
 
-Previous deterministic option actor experiment611/612also UNPROMISING:
-Cm172/off174/directQ222/P0129 per384,6000model/3000actor steps. Original JSON
-failure and zero-repeat correction preserved. Strong direct-Q motion2117/128
-is retained positive self-training evidence, not Cm utility or all-motion success.
-[Result](research/20261002-option-model-policy-results.md).
+Earlier observed-successor law623/624also UNPROMISING:
+Cm188/off188/directQ222/P0126 per384. Earlier deterministic successor611/612:
+Cm172/off174/directQ222/P0129 per384. Strong direct-Q motion2117/128 remains
+positive own self-training evidence, not Cm utility/all-motion/generalization.
+[Law result](research/20261002-empirical-successor-policy-results.md);
+[deterministic result](research/20261002-option-model-policy-results.md).
 
 ## Important earlier facts and closed families
 
@@ -106,12 +106,14 @@ Cm188/off188/directQ222/P0126 per384, mandatory gates fail despite full audits.
 No kernel/support/temperature/width/seed/epoch/penalty rescue. Fixed actual
 successor headroom does not establish accessible physical information.
 
-Next bounded role under design: transfer existing action-conditioned physical
-encoder into a task critic trained on measured outcomes; matched action-removed
-physical encoder and retained strong direct-Q control. No predicted successor
-value objective, new FITphysics or repeat of valid physical pretraining.
-Generic physical pretraining is prior art; do not claim novelty or success.
-All own jobs terminal; goal ACTIVE / journal readiness NOT READY.
+Physical encoder -> measured-return critic actuallearning now COMPLETED/
+UNPROMISING,219/off218/directQ225/P0143 per384. Close exacttransfer without
+layer-freeze/LR/head/steps/penalty/seed/label-subset rescue. Reconsider the wider
+fixed late held-option setting before another related learner. Next cheapest
+Decision: FIT-only success/transient-lift support for unsolvedmotion0; do not
+infer universal infeasibility from sparse/zero outcomes. Outcome chooses task
+learning, retention or earlier contact-acquisition data, not another encoder scan.
+All own scientific jobs terminal. Goal ACTIVE / journal readiness NOT READY.
 
 ## Preservation
 

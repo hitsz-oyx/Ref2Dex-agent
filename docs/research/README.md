@@ -124,3 +124,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Empirical successor prior-art boundary](20261002-empirical-successor-method-boundary.md).
 
 - [Physical encoder transfer primary-source boundary](20261002-physical-encoder-transfer-boundary.md).
+
+- [Physical encoder into measured-return task critic](20261002-physical-encoder-critic-results.md): UNPROMISING; Cm219/off218/directQ225/P0143 per384, all checks pass.
