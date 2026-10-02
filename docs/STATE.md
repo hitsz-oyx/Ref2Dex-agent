@@ -13,9 +13,9 @@ original worktree's branch or use its shared output symlink.
 ## Objective and scoreboard
 
 User objective remains autonomous idea development, experiments and a
-journal-level paper. It is **NOT READY**, without a reduced target. On the
-user's instruction to start a new route, this track is being finalized as a
-committed research record; no further experiments are being started here.
+journal-level paper. It is **ACTIVE and NOT READY**, without a reduced target.
+The user explicitly resumed this route after committing and archiving its
+results. Prior closeout/delivery records remain valid historical checkpoints.
 Full-access execution exposes GPU devices and original-host process observation;
 the prior sandbox blockage has been removed.
 [Host resumption](activities/20261002-continuous-critic-host-resumption.md).
@@ -278,3 +278,9 @@ Final delivery before the user's new route: supplementr4 COMPLETED at
 manifests unchanged. Verified code.bundle through scientific closeout3d10db5
 and nine recent terminal run directories preserve raw data, checkpoints,
 audits and failures. [Delivery receipt](activities/20261002-research-track-final-delivery.md).
+
+Current instruction overrides the earlier closure: continue this same branch.
+Next Decision is a fresh current-observed-support TASK-value information
+screen597/598, before committing to another physical predictor or actor.
+Old failed one-step/four-tick/oracle recipes stay closed with unchanged gates.
+[Resume decision](decisions/D-20261002-observed-support-task-value.md).
