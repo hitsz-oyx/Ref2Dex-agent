@@ -72,7 +72,7 @@ def candidate_player(original, args, torch, gymtorch):
             start = task.start_times.clone()
             rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             held = torch.tensor([
-                int(hashlib.sha256(f"9851/{int(i)}/{int(j)}".encode()).hexdigest()[:8], 16) % 100 >= 70
+                int(hashlib.sha256(f"{args.coverage_salt}/{int(i)}/{int(j)}".encode()).hexdigest()[:8], 16) % 100 >= 70
                 for i, j in zip(motion, start)
             ], device=self.device)
             mass = torch.tensor([
@@ -260,6 +260,7 @@ def candidate_player(original, args, torch, gymtorch):
             payload = dict(
                 schema="ref2dex.cm_candidate_advantage.v1",
                 seed=args.seed, assignment_seed=args.assignment_seed,
+                coverage_salt=args.coverage_salt,
                 episode_id=[f"s{args.seed}/env{int(i)}/first" for i in env.cpu()],
                 env_id=env.cpu(), motion_id=motion[:, None].expand(-1, w)[valid].cpu(),
                 start_frame=start[:, None].expand(-1, w)[valid].cpu(), trigger=trigger[valid].cpu(),
@@ -311,6 +312,7 @@ def main():
     p.add_argument("--windows-per-episode", type=int, default=2)
     p.add_argument("--max-steps", type=int, default=650)
     p.add_argument("--wall-seconds", type=int, default=240)
+    p.add_argument("--coverage-salt", type=int, default=9851)
     args, remaining = p.parse_known_args()
     base = (ROOT / "src/task/CmResidual/research/contact_consequence/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():
