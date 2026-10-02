@@ -11,7 +11,7 @@ active_engineering_tasks:
     owner: current_session
     status: ACTIVE
     card: docs/decisions/D-20261002-contact-relative-feedback.md
-    run_id: P-20261002-contact-relative-feedback-native-engineering-r1
+    run_id: P-20261002-contact-relative-feedback-native-engineering-r2
     outcome_boundary: "Fixed0.5gain current-relative translation around Cup; engineering only. Static129excluded windows mapping0/futurepoison/firstpositionCup pass, next excluded669 nativeGPU5<=600s/128MiB includingstatic/preparation/audit; no oldCm/no utility/no gate tuning."
 
 completed_engineering_tasks:

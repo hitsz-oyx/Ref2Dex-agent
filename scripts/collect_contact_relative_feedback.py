@@ -44,7 +44,8 @@ def make_player(original, args, torch, gymtorch):
             geometry = TableClearance(obj_vertices(assets/'objects/airplane/airplane.obj', self.device),
                 obj_vertices(assets/'objects/table/table.obj', self.device), getattr(task, 'ball_size', 1.))
             ids = torch.arange(n, device=self.device); obs = self.env_reset(ids)
-            if obs['obs'].shape != (n, 1442): raise ValueError('native observation')
+            if self.get_batch_size(obs['obs'], 1) != n or obs['obs'].shape != (n, 1442):
+                raise ValueError('native observation and initialized player batch')
             motion, start = task.data_id.clone(), task.start_times.clone()
             rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             mass = torch.tensor([task.gym.get_actor_rigid_body_properties(e, h)[0].mass

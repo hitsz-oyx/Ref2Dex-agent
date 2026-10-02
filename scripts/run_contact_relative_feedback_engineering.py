@@ -38,6 +38,7 @@ def run(args):
         ROOT/'src/task/CmResidual/weight_normalized_contact.py',ROOT/'src/task/CmResidual/paired_evaluation.py',
         ROOT/'src/task/CmResidual/configs/hf02_temporal_canonical_route.json',static_path,
         ROOT/'docs/decisions/D-20261002-contact-relative-feedback.md',template_path,
+        ROOT/'docs/decisions/D-20261002-relative-feedback-batch-initialization.md',
         ROOT/'third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py',ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
         ROOT/'third_party/DExplore/dexplore/evaluate.py',ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',
         ROOT/'third_party/DExplore/dexplore/data/assets/mjcf/objects/airplane/airplane.obj',
@@ -55,20 +56,34 @@ def run(args):
         paths.append(path)
     hashes={str(p.resolve()):sha(p) for p in paths}
     admission=gpu_admission(args.gpu);output.mkdir(exist_ok=False)
-    prior=60.+float(static['elapsed_seconds'])
+    attempts=[]
+    if args.prior_attempt is not None:
+        previous_path=args.prior_attempt.resolve()/'run_manifest.json'
+        previous=json.loads(previous_path.read_text())
+        if (previous['run_status'] not in ('FAILED','STOPPED') or not previous['smoke_only']
+                or args.prior_attempt.resolve().parent!=base):raise ValueError('terminal owned prior engineering required')
+        for pid in [previous['pid']]+[p['pid'] for p in previous['phases'] if 'pid' in p]:
+            if Path('/proc').joinpath(str(pid)).exists():raise ValueError('prior handle remains live; do not restart')
+        attempts=previous.get('prior_attempts',[])+[dict(path=str(args.prior_attempt.resolve()),
+            elapsed_seconds=previous['elapsed_seconds'],
+            bytes=sum(p.stat().st_size for p in args.prior_attempt.rglob('*') if p.is_file()))]
+        hashes[str(previous_path)]=sha(previous_path)
+    prior=60.+float(static['elapsed_seconds'])+sum(p['elapsed_seconds'] for p in attempts)+5.*len(attempts)
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=admission['uuid'],OMP_NUM_THREADS='2',MKL_NUM_THREADS='2',
         LOCAL_RANK='0',RANK='0',WORLD_SIZE='1',PYTHONDONTWRITEBYTECODE='1',PYTHONHASHSEED=str(seed),
         CUBLAS_WORKSPACE_CONFIG=':4096:8',TORCH_EXTENSIONS_DIR=str(output/'cache/torch_extensions'),XDG_CACHE_HOME=str(output/'cache'))
     env['LD_LIBRARY_PATH']='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH','')
     manifest=dict(run_status='RUNNING',smoke_only=True,run_id=output.name,pid=os.getpid(),seed=seed,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),input_sha256=hashes,
-        admission=admission,wall_limit_seconds=600,output_limit_bytes=128<<20,prior_budget_seconds=prior,phases=[])
+        admission=admission,wall_limit_seconds=600,output_limit_bytes=128<<20,prior_budget_seconds=prior,
+        prior_attempts=attempts,correction_allowance_seconds=5.*len(attempts),phases=[])
     def save():
         manifest['elapsed_seconds']=time.monotonic()-begin;manifest['cumulative_seconds']=manifest['elapsed_seconds']+prior
         (output/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     def check():
         if time.monotonic()-begin+prior>600:raise TimeoutError('whole engineering budget')
-        if sum(p.stat().st_size for p in output.rglob('*') if p.is_file())>128<<20:raise ValueError('engineering output budget')
+        if sum(p.stat().st_size for p in output.rglob('*') if p.is_file())+sum(p['bytes'] for p in attempts)>128<<20:
+            raise ValueError('engineering output budget')
         if any(sha(Path(k))!=v for k,v in hashes.items()):raise ValueError('engineering inputs drift')
     def execute(kind,cmd,limit):
         check();started=time.monotonic();phase=dict(kind=kind,command=cmd,run_status='RUNNING')
@@ -115,4 +130,5 @@ def run(args):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('--gpu',type=int,default=5);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--prior-attempt',type=Path)
     run(p.parse_args())
