@@ -1,0 +1,121 @@
+{
+  "schema": "ref2dex.cm_gated_macro_native_audit.v1",
+  "run_status": "COMPLETED",
+  "records": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-gated-macro-r1/seed628/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-gated-macro-r1/seed629/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-gated-macro-r1/seed630/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-gated-macro-r1/seed631/records.pt",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-gated-macro-r1/seed632/records.pt"
+  ],
+  "seeds": [
+    628,
+    629,
+    630,
+    631,
+    632
+  ],
+  "rows": 172,
+  "groups": 19,
+  "episodes": 58,
+  "checkpoint_sha256": "07537b1e9ae6b1e38b2a34367ca68436e1dfbe4c0c9585bba2c80c54f8c099a5",
+  "candidate_names": [
+    "expert0",
+    "expert1",
+    "expert2",
+    "expert3",
+    "expert4",
+    "expert5",
+    "base_hold",
+    "fixed_cup"
+  ],
+  "policy_definition": "0=gated_cm_macro_3tick, 1=fixed_cup; macro_applied is the pre-action safety gate",
+  "policy_counts": [
+    86,
+    86
+  ],
+  "policy_episode_counts": [
+    47,
+    44
+  ],
+  "policy_value_reports": {
+    "gated_cm_macro_3tick": {
+      "score_mm": 8.830223815385686,
+      "first_delta_mm": 2.1426414223604424,
+      "retained": 0.37209302325581395,
+      "contact_last3": 0.45348837209302323,
+      "clearance_last3": 0.37209302325581395
+    },
+    "fixed_cup": {
+      "score_mm": 26.08619796398074,
+      "first_delta_mm": 4.44643300078636,
+      "retained": 0.7790697674418605,
+      "contact_last3": 0.8953488372093024,
+      "clearance_last3": 0.7906976744186046
+    }
+  },
+  "delta_reports": {
+    "score_mm": {
+      "mean": -16.61263892724905,
+      "lower90": -25.884424270821487,
+      "upper90": -5.248548063807048
+    },
+    "first_delta_mm": {
+      "mean": -2.369487496062649,
+      "lower90": -4.131242984234136,
+      "upper90": -0.5282534113731303
+    },
+    "retained": {
+      "mean": -0.3928551589423159,
+      "lower90": -0.5633802816901409,
+      "upper90": -0.18865704772475062
+    },
+    "contact_last3": {
+      "mean": -0.42991051420095455,
+      "lower90": -0.5783232101961565,
+      "upper90": -0.25173945551304056
+    },
+    "clearance_last3": {
+      "mean": -0.40263434348564897,
+      "lower90": -0.5777777777777777,
+      "upper90": -0.1875
+    }
+  },
+  "changed_from_fixed": 44,
+  "changed_fraction": 1.0,
+  "macro_applied_count": 44,
+  "macro_arm_count": 86,
+  "macro_gate_rate": 0.5116279069767442,
+  "cm_choice_counts": [
+    0,
+    37,
+    3,
+    0,
+    4,
+    0,
+    0,
+    0
+  ],
+  "chosen_candidate_counts": [
+    0,
+    37,
+    3,
+    0,
+    4,
+    0,
+    0,
+    0
+  ],
+  "support_gate": false,
+  "score_gate": false,
+  "risk_gate": false,
+  "support_requirements": {
+    "each_policy_rows": 48,
+    "each_policy_episodes": 20
+  },
+  "cluster_bootstrap_draws": 10000,
+  "label": "UNPROMISING",
+  "macro_steps": 3,
+  "continuation_steps": 7,
+  "interpretation": "Fresh native safety-gated repeated-macro A/B local utility validation; still not a trained-policy or task-success claim"
+}
