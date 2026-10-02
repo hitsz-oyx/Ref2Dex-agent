@@ -178,8 +178,12 @@ without anchor/cup/timing/axis scans.
 Next force-aware normalized NON-GRAVITATIONAL object impulse prediction,
 using CURRENT raw forces and native weight, before model-to-actor gradients.
 Damping0.01means this is not exact pairwise contact impulse or support proof.
-Require fresh fixed prediction gains over force-aware state-only, force-aware
-motion/phase action model and physical persistence before actual actor learning.
+Fixed force-aware impulse screen now declares20trainingpanels and fresh575
+stochasticu20only; require>=1%forecastMSEgain plus negative upper exploratory
+paired95%CI over force-aware state-only, force-aware motion/phase action model
+and physical persistence before actual actor learning. This operational gate
+is not a paper effect size or proof of policy utility.
+[Card](experiments/probes/P-20261002-force-aware-impulse.md).
 [Physics/prior-art boundary](research/20261002-impulse-gradient-method-boundary.md).
 Generic action-effect embeddings and Gaussian scores have established prior
 art; [method boundary](research/20261002-response-field-method-boundary.md).
@@ -196,7 +200,9 @@ evidence manuscript, not a journal-ready claim. Durable complete-run delivery
 is COMPLETE:4,931,916,091verified bytes at
 `/home2/wyy/tmp/ref2dex-contact-response-20261002-v11`, including all raw panels,
 checkpoints, failed runtime evidence and code.bundle throughbb2d497. New probes
-need a separate supplemental delivery; existing package remains immutable.
+throughaabe90aare separately delivered at
+`/home2/wyy/tmp/ref2dex-contact-response-20261002-supplement-r1`,604,119,524
+unique bytes, all copied SHA verified. Both packages remain immutable.
 
 ## Evidence and manuscript
 
