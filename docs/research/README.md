@@ -104,3 +104,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 
 - [Self-trained source qualification negative](20261002-self-trained-teacher-qualification-results.md).
 - [Existing model/value interface boundary](20261002-model-value-interface-boundary.md).
+
+- [Object-relative feedback negative](20261002-object-relative-transport-results.md).
