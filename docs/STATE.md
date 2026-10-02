@@ -12,9 +12,10 @@ original worktree's branch or use its shared output symlink.
 ## Objective and scoreboard
 
 User objective remains autonomous idea development, experiments and a
-journal-level paper. It is **BLOCKED and NOT READY**, without a reduced target:
-the third consecutive runtime check has no usable GPU or original-host terminal
-observation. [Blocked audit](activities/20261002-continuous-critic-blocked-audit.md).
+journal-level paper. It is **ACTIVE and NOT READY**, without a reduced target.
+Full-access execution now exposes GPU1and original-host process observation;
+the prior sandbox blockage has been removed.
+[Host resumption](activities/20261002-continuous-critic-host-resumption.md).
 
 | Requirement | Current evidence |
 | --- | --- |
@@ -128,9 +129,11 @@ full auxiliary critic gradients. Actual matched codee37eca3training has complete
 update (152minibatches per variant,456total). Both native panels and ALLthree
 predetermined first-minibatch gradients/Adam steps independently pass; all262
 parent inputs rechecked. Onlyu01exists, final568/569absent: comparisonINCOMPLETE,
-no utility label. Current runtime has no GPU devices/driver and oldPTYis missing;
-old parent/child PIDs not visible HERE, original-host liveness unestablished.
-SavedRUNNINGsnapshot preserved. No restart or CPU training substitution.
+no utility label. Earlier isolated runtime lacked GPU access and original-host
+observation. Full-access host now has usable GPU1and no original parent/child
+or matching continuous Python processes. SavedRUNNINGsnapshot preserved;
+the new host observation, not sandbox PID absence, establishes the old stop.
+No restart or CPU training substitution.
 Next required phase is GPUu02from already audited548and retainedu01optimizer,
 then549--566and final568/569under the SAMEfixed gates/budgets.
 [Runtime/provenance record](activities/20261002-continuous-critic-runtime-change.md).
@@ -139,15 +142,16 @@ Exact bounded resume supervisor now implemented;447old/relocated protected
 path hashes checked on REALsaved data, scientific source matches e37eca3.
 Four engineering tests pass, including actual owned-child cleanup on source
 progress. It retains547/548/u01, startsu02, then549--566and final568/569;
-400sreserved old +3200snew, combined6GiB. Actual launch remains unavailable:
-no usable GPU and no attested original-host terminal receipt. No new fitting,
-physics or scientific utility label. [Resume evidence](activities/20261002-continuous-critic-resume-ready.md).
+400sreserved old +3200snew, combined6GiB. Full-access host observation permits
+an actual source-stop receipt and fresh GPU admission. Resume the exact fixed
+comparison in a unique own output. No completed utility result yet.
+[Resume evidence](activities/20261002-continuous-critic-resume-ready.md).
  [Frozen design](decisions/D-20261002-continuous-critic-cm.md).
 
 Distinctive methodology, matched positive policy-training utility, generalization
-and hardware remain unmet. The objective is blocked after three consecutive
-execution-blocked turns; it is not complete. Restore GPU execution and verify
-original-host ownership before continuing the fixed comparison.
+and hardware remain unmet. The objective is active after GPU/host observation
+restoration and is not complete. Complete the fixed continuous comparison
+before interpreting its utility or changing the implementation route.
 
 ## Evidence and manuscript
 
