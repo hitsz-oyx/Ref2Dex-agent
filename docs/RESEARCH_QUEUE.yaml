@@ -104,15 +104,16 @@ diagnostic_hypotheses:
   HD04:
     claim: C3
     name: randomized_native_motor_response_qualification
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-randomized-motor-effects
     probe_budget: 1
-    probes_used: 0
-    active_run_id: P-20261002-randomized-motor-response-fit-r1
+    probes_used: 1
+    last_run_id: P-20261002-randomized-motor-response-fit-r1
     owner: current_session
     authorization: "persistent mechanism goal; distinct randomization-centered first-cycle physics response after closed catalogue/risk recipes, reused originalfit/cal only; no mission/resources change and no subagents"
     card: docs/experiments/probes/P-20261002-randomized-motor-response.md
-    transition: "Reserved singlequalification: oldHF19sourcefirstperiod fit/cal, knownprobabilitycenterednative12DOF; statebaseline +geometrydependentlinearresponse. Predictactualdv/dp/CLR residuals; no endpoint-forceintegration/no held/no new simulation. Fixedridge0.01 oneGPUsolve/state/shuffled matched; 300s64MiB, no hyper scan. Fullphysics/mapping/normal-equation/prediction/gate audit required. C3OPEN, no controller/actor claim."
+    transition: "CLOSED UNPROMISING1/1. OldHF19 firstperiod fit1899/cal989/248ep/26groups dynamic960,held857excluded. Centeredlinearresponse velocityRMSE0.32550vsstate0.33672/shuf0.36088; 3.33pctvsstate below10pct, dp6.993vs7.063mm/CLR5.018vs4.903mm fail5pctgates. Smallvelocitysignal preserved; calgroup90RMSEdelta[-.01992,-.000968] descriptiveonly. Weightedcandidate effectzero9.24e-14/neutralexact; PD2.37e-7, independentrawphysics/norm/GPUsolves/allcandidatepredictions/gatesmax1.65e-12pass. Singlefixedridge0.01/GPU5 terminal, no NN/hyper scan/newactualsource/heldtargets. Stoplinearrecipe, aggregateactioncovariancespectrumnotdegenerate doesnotproveperstatecounterfactualrank. Next reassess nonlinear contact-dependent response and observation sufficiency; C3OPEN, fullgoal incomplete."
+
   HF18:
     claim: C3
     name: contact_to_lift_feedback_macro_physics

@@ -1,0 +1,17 @@
+{
+  "experiment_id": "P-20261002-randomized-motor-response",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "fit_pid": 3030355,
+  "fit_pid_terminal": true,
+  "source_reused_wall_seconds": 1415.7831858694553,
+  "source_cost_separate": true,
+  "fit_cumulative_seconds": 36.55504165310413,
+  "independent_audit_seconds": 4.0534019861370325,
+  "closeout_allowance_seconds": 5.0,
+  "cumulative_budget_seconds": 45.60844363924116,
+  "output_bytes": 6424651,
+  "frozen_protocol_sha256": "9443ba7c44fc8bb884f5c860e7de3eabfdee52c87187253ae460d69f3b30b49e",
+  "full_goal_completed": false,
+  "scope": "closed single linear response qualification; no actual control or final policy utility claim"
+}

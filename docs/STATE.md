@@ -490,6 +490,16 @@ fit选速度反馈（亦best-fixed），held46速度/116Cup/115base支持充分�
 关闭1/3，不补seed/gain、不给此配方追加Cm/PPO；返回物理表示/控制职责复盘，
 不重复固定候选列表或风险阈值扫描。完整Cm效用/学习/稳定抓取仍未证，C3OPEN。
 见[反馈真实机会结果](experiments/probes/P-20261002-relative-feedback-opportunity-result.md)。
+动作增量表示已做HD04最小GPU资格：复用HF19第一周期fit1899/cal989，held857
+不构造目标；known随机化中心PD +几何条件线性响应，原门UNPROMISING。
+cal速度RMSE .32550 vsstate .33672/shuf .36088（state改善3.33%<10%），位移
+6.993 vs7.063mm、CLR5.018 vs4.903mm未过5%门；小幅速度信号保留，不否定
+非线性物理作用。加权候选预测中心误差9.24e-14，零动作精确state；独立raw
+物理/fitnorm/GPU正规方程/全部预测/原门审计最大1.65e-12通过。GPU5 fit/audit
+exit0，累计45.608秒/6.13MiB，旧源1415.783秒另报；HD04关闭1/1不扫ridge。
+当前没有新训练/采集在跑；下一步判断非线性接触依赖响应和观察信息是否足以
+生成物理动作修正，不再回到固定目录或仅拟合绝对收益。完整goal/C3仍OPEN。
+见[动作响应资格结果](experiments/probes/P-20261002-randomized-motor-response-result.md)。
 
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。

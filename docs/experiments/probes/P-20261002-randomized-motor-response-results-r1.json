@@ -1,0 +1,91 @@
+{
+  "experiment_id": "P-20261002-randomized-motor-response",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "support": {
+    "fit_rows": 1899,
+    "cal_rows": 989,
+    "cal_episodes": 248,
+    "cal_groups": 26,
+    "dynamic_cal_rows": 960,
+    "total_source_rows": 3745,
+    "excluded_held_rows": 857
+  },
+  "metrics": {
+    "all_cal": {
+      "state_only": {
+        "velocity_vector_rmse_mps": 0.3367203220350705,
+        "displacement_vector_rmse_mm": 7.062945898932929,
+        "clearance_rmse_mm": 4.903453943743233,
+        "cv_velocity_vector_rmse_mps": 0.3764005859513641
+      },
+      "cm": {
+        "velocity_vector_rmse_mps": 0.3254964542877181,
+        "displacement_vector_rmse_mm": 6.993020318278127,
+        "clearance_rmse_mm": 5.01843165847223,
+        "cv_velocity_vector_rmse_mps": 0.3764005859513641
+      },
+      "shuffled": {
+        "velocity_vector_rmse_mps": 0.3608777644303936,
+        "displacement_vector_rmse_mm": 7.593279004408193,
+        "clearance_rmse_mm": 5.229946762595999,
+        "cv_velocity_vector_rmse_mps": 0.3764005859513641
+      }
+    },
+    "dynamic_cal": {
+      "state_only": {
+        "velocity_vector_rmse_mps": 0.3404424469521959,
+        "displacement_vector_rmse_mm": 7.134811007033383,
+        "clearance_rmse_mm": 4.958912235778667,
+        "cv_velocity_vector_rmse_mps": 0.38199129525847003
+      },
+      "cm": {
+        "velocity_vector_rmse_mps": 0.3287084871872708,
+        "displacement_vector_rmse_mm": 7.0595612716840295,
+        "clearance_rmse_mm": 5.065038182060898,
+        "cv_velocity_vector_rmse_mps": 0.38199129525847003
+      },
+      "shuffled": {
+        "velocity_vector_rmse_mps": 0.36469242660953727,
+        "displacement_vector_rmse_mm": 7.669562661755862,
+        "clearance_rmse_mm": 5.2914031612008054,
+        "cv_velocity_vector_rmse_mps": 0.38199129525847003
+      }
+    }
+  },
+  "gates": {
+    "support": true,
+    "all_cal_velocity_action_information": false,
+    "dynamic_cal_velocity_action_information": false,
+    "displacement_vector_rmse_mm_action_information": false,
+    "clearance_rmse_mm_action_information": false,
+    "velocity_cv_nonregression": true
+  },
+  "centering_error": 9.237055564881302e-14,
+  "neutral_exact_state": true,
+  "initial_native_pd_max_error": 2.3725569331389806e-07,
+  "normalized_action_covariance_eigenvalues": [
+    0.4859035160536092,
+    0.6636097757952134,
+    0.7117391741199168,
+    0.7531032967826852,
+    0.8210254660242534,
+    0.9025169472151708,
+    0.9178004136607838,
+    0.9458668708415353,
+    1.1953158444148315,
+    1.3560685513892645,
+    1.4881397974581052,
+    1.7589103462446258
+  ],
+  "descriptive_cal_group90_cm_minus_state_velocity_rmse": [
+    -0.01992207217885525,
+    -0.0009683139194780998
+  ],
+  "bundle_sha256": "58ee65d80b126f454b5c4fb04dada10a1a72c33f41b0b21a4d02246a05469287",
+  "held_targets_used": false,
+  "model_device": "GPU",
+  "ridge": 0.01,
+  "elapsed_seconds": 6.554511192254722,
+  "scope": "reused fit/cal first-cycle physical response information only; no new actual candidate advantage, no task-risk/utility or actor claim"
+}
