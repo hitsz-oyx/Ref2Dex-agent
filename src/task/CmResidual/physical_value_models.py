@@ -112,7 +112,9 @@ class Teacher:
             scores = self.direct_q.from_hidden(hidden, self.features.context(c), candidate).reshape(batch, count)
         elif arm == "cm_value":
             samples = []
-            value_prefix = repeat(self.value.encode(history_features[:, 1:]))
+            # GRU on CUDA requires an explicitly contiguous hidden state after
+            # the candidate expansion; CPU happened to accept the strided view.
+            value_prefix = repeat(self.value.encode(history_features[:, 1:])).contiguous()
             current = repeat(states[:, -1])
             for model in self.dynamics:
                 hidden = repeat(model.encode(history_features))
