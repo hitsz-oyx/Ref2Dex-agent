@@ -4,7 +4,7 @@
 
 **Decision question:** Can a Cm policy improve the frozen HF15 rotation-Cup controller by adding a small object-frame translation residual for two native control steps, while preserving contact and mesh-clearance safety?
 
-**Implementation:** branch `agent/cm-residual-policy`, commit `362621f` plus the native source, fit, evaluator, and audit changes in the working tree. The baseline is the Cup expert with trigger-anchored wrist orientation. The policy emits only a bounded object-local translation in `[-2,2] mm × [-2,2] mm × [-3,3] mm`; all other native action channels remain baseline-owned. Cm and actor weights are frozen in `cm_residual_policy.pt` (SHA256 `2dcefa6ee5ecaef4cc34c1a6ef7478ab16c7356e54f6a6ebe84cce99e660cfcc`).
+**Implementation:** branch `agent/cm-residual-policy`, final route commit `5bc3cb1` (design contract in `362621f`). The baseline is the Cup expert with trigger-anchored wrist orientation. The policy emits only a bounded object-local translation in `[-2,2] mm × [-2,2] mm × [-3,3] mm`; all other native action channels remain baseline-owned. Cm and actor weights are frozen in `cm_residual_policy.pt` (SHA256 `2dcefa6ee5ecaef4cc34c1a6ef7478ab16c7356e54f6a6ebe84cce99e660cfcc`).
 
 **Source and fit:** Four native source attempts contributed 592 valid rows after rejecting partial/reset-contaminated or saturated windows. Fit/calibration/held buckets contained 263/156/173 rows. Three-model Cm and matched shuffled ensembles were trained from the same fit rows. Source execution used real Isaac Gym PhysX, 96 environments, 30 Hz, airplane motions, and the frozen six-expert bank.
 
