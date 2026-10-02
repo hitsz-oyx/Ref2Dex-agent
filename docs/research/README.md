@@ -106,3 +106,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Existing model/value interface boundary](20261002-model-value-interface-boundary.md).
 
 - [Object-relative feedback negative](20261002-object-relative-transport-results.md).
+
+- [Task determinacy diagnostic](20261002-task-outcome-determinacy-results.md).
