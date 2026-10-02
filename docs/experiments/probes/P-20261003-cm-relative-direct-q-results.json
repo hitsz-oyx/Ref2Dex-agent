@@ -1,0 +1,24 @@
+{
+  "schema": "ref2dex.cm_relative_direct_q_audit.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-relative-direct-q",
+  "record": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/decision_interface/output/P-20261002-cm-decision-interface-probe-r1/records.pt",
+  "record_sha256": "1f14c7f617863bfcd9b465f5aea3a3b9cb8dca098d4abbe01167df3ba51f9e19",
+  "rows": 212,
+  "random_rows": 42,
+  "held_random_rows": 5,
+  "held_groups": 4,
+  "fit_random_rows": 37,
+  "reports": {},
+  "coefficients": {},
+  "prospective_changed_rows": null,
+  "prospective_changed_fraction": null,
+  "prospective_top_counts": null,
+  "gates": {
+    "support_ok": false,
+    "ranking_ok": false,
+    "coverage_ok": false
+  },
+  "probe_label": "UNCLEAR",
+  "interpretation": "Uniform-random rows do not provide the predeclared held-out group support; no residual fit or native action claim is allowed"
+}
