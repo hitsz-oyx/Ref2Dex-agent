@@ -228,15 +228,16 @@ hypotheses:
   HF24:
     claim: C3
     name: current_object_relative_feedback_control
-    status: ACTIVE
+    status: UNPROMISING
     branch: agent/cm-contact-relative-feedback
     probe_budget: 3
-    probes_used: 0
-    active_run_id: P-20261002-relative-feedback-opportunity-source-r1
+    probes_used: 1
+    last_run_id: P-20261002-relative-feedback-opportunity-source-r1
     owner: current_session
     authorization: "persistent actual-candidate/consequence/direct-control goal; new current-relative programme responsibility after closed fixed-mixture/risk recipes; same mission/resources; no subagents"
     card: docs/experiments/probes/P-20261002-relative-feedback-opportunity.md
-    transition: "Slot1reserved fixed671-676 uniformsixslots duplicatedbase/Cup and velocity/positiongain0.5, firstepisodeH10/cooldown/currentjoint3; fit-selectedcandidate vsheldstrongCup/base plusnullnoise, allactualPD/force/mesh audited. Engineeringexcluded669 passed49H10/490steps; failure42.010s preserved,total162.771s12.81MiB. No oldmacroCm queried. Opportunity first, onlypass then correspondingCm fit and independent actualcontrol; no threshold/seed/gain tuning. C3OPEN."
+    transition: "CLOSED UNPROMISING1/3,unused2/3 notstarted. Fixed6seed982H10/438ep fit420/cal222/held340; fitselectedvelocity2 also bestfixed. Heldvelocity46/Cup116/base115 supportadequate, actual46changedCup PD. Velocity-baseheight+22.434mmgroup90[9.529,33.349] exceedsbase1.395mmnull; velocity-Cup+6.415[-1.784,16.164] below21.952mmCupnullgate,epCIcross0. Contactloss-9.783pp/geoloss-3.786/joint+10.682 pointsnonregpass, no reliable strongheightadvantage. Initialclearvelocity19/Cup27 insufficientdrop. All6native/6PD/RNG/force/mesh audits exit0,scalarstats5.98e-7/gatesexact; ownPIDs terminal. Whole640.669s137.57MiB inclengineeringfailure. Stopfeedbackrecipe/noextraseed/gain/Cmfit/PPO; retainpartialbase signal and newfactualsource, review physicalcontrol representation ratherthanmorecatalogtuning. C3OPEN."
+
   HF23:
     claim: C3
     name: contact_risk_constraints_at_actual_binding_states

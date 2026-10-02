@@ -1,0 +1,43 @@
+{
+  "experiment_id": "P-20261002-relative-feedback-opportunity",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "source_parent_and_children_terminal": true,
+  "pids": [
+    2985569,
+    2985735,
+    2988153,
+    2988403,
+    2989971,
+    2990759,
+    2994003,
+    2994443,
+    2996302,
+    2996537,
+    2998631,
+    2999179,
+    3000907
+  ],
+  "all_native_and_audit_exit_codes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "source_cumulative_seconds_including_engineering": 631.7304020794109,
+  "analysis_seconds": 2.0895469402894378,
+  "statistics_audit_seconds": 1.848831388168037,
+  "closeout_allowance_seconds": 5.0,
+  "cumulative_budget_seconds": 640.6687804078683,
+  "output_bytes_including_engineering": 144252822,
+  "full_goal_completed": false,
+  "scope": "candidate opportunity probe; model learning, controller utility, policy training and stable grasp not completed"
+}

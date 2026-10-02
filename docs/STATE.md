@@ -479,6 +479,17 @@ fit无实际base，best-fixed无法按原规则选定；15个初始clear窗口�
 12.81MiB，全部自己任务exit0/GPU释放。这只是工程，不证明候选收益；不以
 工程后果调gain。下一步固定独立候选机会与base/Cup重复噪声，再学对应Cm。
 见[反馈执行工程](experiments/probes/P-20261002-contact-relative-feedback-engineering-result.md)。
+HF24独立机会6seed已完成UNPROMISING：982H10/438ep，fit420/cal222/held340，
+fit选速度反馈（亦best-fixed），held46速度/116Cup/115base支持充分且46实际PD
+改变Cup。相对base支持高度+22.434mm，group90[9.529,33.349]超过base重复1.395mm；
+相对强Cup+6.415mm[-1.784,16.164]、episode区间亦跨0，未达Cup重复21.952mm门。
+接触loss-9.783pp、geoloss-3.786pp、joint+10.682pp点非劣通过，局部base信号
+保留但不替代失败的强对照机会门。初始clear速度19/Cup27，drop仍UNCLEAR。
+全部6native/6完整物理审计exit0、独立标量统计最大差5.98e-7/原门一致；累计
+640.669秒/137.57MiB包含工程失败修正，全部自己源PIDterminal。HF24当前配方
+关闭1/3，不补seed/gain、不给此配方追加Cm/PPO；返回物理表示/控制职责复盘，
+不重复固定候选列表或风险阈值扫描。完整Cm效用/学习/稳定抓取仍未证，C3OPEN。
+见[反馈真实机会结果](experiments/probes/P-20261002-relative-feedback-opportunity-result.md)。
 
 见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
 见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。

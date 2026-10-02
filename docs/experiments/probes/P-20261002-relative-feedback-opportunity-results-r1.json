@@ -1,0 +1,494 @@
+{
+  "experiment_id": "P-20261002-relative-feedback-opportunity",
+  "run_status": "COMPLETED",
+  "label": "UNPROMISING",
+  "rows": 982,
+  "episodes": 438,
+  "metrics": [
+    "height_mm",
+    "contact_loss",
+    "geometric_loss",
+    "joint_presence"
+  ],
+  "primary_estimator": "Hajek known-propensity ratio; fixed constant probabilities",
+  "fit_selection": {
+    "0": {
+      "support": {
+        "windows": 141,
+        "episodes": 111,
+        "groups": 32
+      },
+      "height_mm": -6.8218654267331384,
+      "eligible": true
+    },
+    "1": {
+      "support": {
+        "windows": 146,
+        "episodes": 111,
+        "groups": 32
+      },
+      "height_mm": 1.3217325406531766,
+      "eligible": true
+    },
+    "2": {
+      "support": {
+        "windows": 70,
+        "episodes": 57,
+        "groups": 24
+      },
+      "height_mm": 12.89159653527396,
+      "eligible": true
+    },
+    "3": {
+      "support": {
+        "windows": 63,
+        "episodes": 56,
+        "groups": 23
+      },
+      "height_mm": 6.05186861280411,
+      "eligible": true
+    }
+  },
+  "selected_feedback_option": 2,
+  "best_fixed_option": 2,
+  "split": {
+    "fit": {
+      "rows": 420,
+      "episodes": 202,
+      "groups": 36,
+      "arms": [
+        141,
+        146,
+        70,
+        63
+      ],
+      "initial_clear_arms": [
+        28,
+        29,
+        16,
+        12
+      ],
+      "values": {
+        "0": {
+          "height_mm": -6.8218654267331384,
+          "contact_loss": 0.2553191489361702,
+          "geometric_loss": 0.2127659574468085,
+          "joint_presence": 0.8014184397163121
+        },
+        "1": {
+          "height_mm": 1.3217325406531766,
+          "contact_loss": 0.4657534246575342,
+          "geometric_loss": 0.10273972602739725,
+          "joint_presence": 0.5616438356164384
+        },
+        "2": {
+          "height_mm": 12.89159653527396,
+          "contact_loss": 0.32857142857142857,
+          "geometric_loss": 0.18571428571428572,
+          "joint_presence": 0.7285714285714285
+        },
+        "3": {
+          "height_mm": 6.05186861280411,
+          "contact_loss": 0.3333333333333333,
+          "geometric_loss": 0.07936507936507936,
+          "joint_presence": 0.7619047619047619
+        }
+      }
+    },
+    "cal": {
+      "rows": 222,
+      "episodes": 96,
+      "groups": 22,
+      "arms": [
+        68,
+        77,
+        39,
+        38
+      ],
+      "initial_clear_arms": [
+        17,
+        16,
+        11,
+        8
+      ],
+      "values": {
+        "0": {
+          "height_mm": -8.740747760323917,
+          "contact_loss": 0.25,
+          "geometric_loss": 0.16176470588235295,
+          "joint_presence": 0.8088235294117647
+        },
+        "1": {
+          "height_mm": -4.3504422051565985,
+          "contact_loss": 0.33766233766233766,
+          "geometric_loss": 0.2077922077922078,
+          "joint_presence": 0.7012987012987013
+        },
+        "2": {
+          "height_mm": 6.45159143056625,
+          "contact_loss": 0.1794871794871795,
+          "geometric_loss": 0.2564102564102564,
+          "joint_presence": 0.8461538461538461
+        },
+        "3": {
+          "height_mm": -0.6293811296161852,
+          "contact_loss": 0.21052631578947367,
+          "geometric_loss": 0.05263157894736842,
+          "joint_presence": 0.868421052631579
+        }
+      }
+    },
+    "held": {
+      "rows": 340,
+      "episodes": 140,
+      "groups": 25,
+      "arms": [
+        115,
+        116,
+        46,
+        63
+      ],
+      "initial_clear_arms": [
+        25,
+        27,
+        19,
+        20
+      ],
+      "values": {
+        "0": {
+          "height_mm": -3.0599129469498343,
+          "contact_loss": 0.1565217391304348,
+          "geometric_loss": 0.17391304347826086,
+          "joint_presence": 0.8608695652173913
+        },
+        "1": {
+          "height_mm": 12.959484614174942,
+          "contact_loss": 0.25,
+          "geometric_loss": 0.14655172413793102,
+          "joint_presence": 0.7844827586206896
+        },
+        "2": {
+          "height_mm": 19.37442095383354,
+          "contact_loss": 0.15217391304347827,
+          "geometric_loss": 0.10869565217391304,
+          "joint_presence": 0.8913043478260869
+        },
+        "3": {
+          "height_mm": 9.754686908116417,
+          "contact_loss": 0.2857142857142857,
+          "geometric_loss": 0.1746031746031746,
+          "joint_presence": 0.7936507936507936
+        }
+      }
+    }
+  },
+  "held_support": {
+    "0": {
+      "windows": 115,
+      "episodes": 86,
+      "groups": 22
+    },
+    "1": {
+      "windows": 116,
+      "episodes": 90,
+      "groups": 24
+    },
+    "2": {
+      "windows": 46,
+      "episodes": 39,
+      "groups": 16
+    },
+    "3": {
+      "windows": 63,
+      "episodes": 55,
+      "groups": 19
+    }
+  },
+  "comparisons": {
+    "2-0": {
+      "delta": {
+        "height_mm": 22.434333900783372,
+        "contact_loss": -0.004347826086956524,
+        "geometric_loss": -0.06521739130434782,
+        "joint_presence": 0.030434782608695587
+      },
+      "raw_ht_delta": {
+        "height_mm": 18.8323827939875,
+        "contact_loss": -0.03529411764705881,
+        "geometric_loss": -0.08823529411764706,
+        "joint_presence": -0.15000000000000002
+      },
+      "confidence90": {
+        "group": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              9.528837262208443,
+              33.34902031341388
+            ],
+            [
+              -0.06806295335009463,
+              0.0695259470679813
+            ],
+            [
+              -0.14674426996680115,
+              0.018358004542032756
+            ],
+            [
+              -0.023088134386532195,
+              0.08263996338967117
+            ]
+          ]
+        },
+        "episode": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              8.727504850766266,
+              35.01265909704695
+            ],
+            [
+              -0.0912819672264192,
+              0.09060158623408548
+            ],
+            [
+              -0.15788590749490658,
+              0.032783612679913
+            ],
+            [
+              -0.052266483516483435,
+              0.11404881101376722
+            ]
+          ]
+        }
+      }
+    },
+    "2-1": {
+      "delta": {
+        "height_mm": 6.414936339658597,
+        "contact_loss": -0.09782608695652173,
+        "geometric_loss": -0.03785607196401798,
+        "joint_presence": 0.1068215892053973
+      },
+      "raw_ht_delta": {
+        "height_mm": 2.463057463309344,
+        "contact_loss": -0.13235294117647056,
+        "geometric_loss": -0.06176470588235293,
+        "joint_presence": -0.0794117647058824
+      },
+      "confidence90": {
+        "group": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -1.784135979473554,
+              16.164304040607078
+            ],
+            [
+              -0.20671994671994673,
+              -0.00704939854151768
+            ],
+            [
+              -0.10811710076682854,
+              0.04145597197365804
+            ],
+            [
+              0.03640817398232645,
+              0.2060200554391075
+            ]
+          ]
+        },
+        "episode": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -5.7962883692102425,
+              17.58443252488688
+            ],
+            [
+              -0.20446741484495168,
+              0.015920834225744262
+            ],
+            [
+              -0.12494747899159662,
+              0.051605539138650784
+            ],
+            [
+              0.0030701294420806993,
+              0.20210689273189267
+            ]
+          ]
+        }
+      }
+    },
+    "3-0": {
+      "delta": {
+        "height_mm": 12.814599855066252,
+        "contact_loss": 0.1291925465838509,
+        "geometric_loss": 0.0006901311249137287,
+        "joint_presence": -0.06721877156659772
+      },
+      "raw_ht_delta": {
+        "height_mm": 13.949828288134405,
+        "contact_loss": 0.1588235294117647,
+        "geometric_loss": 0.017647058823529405,
+        "joint_presence": 0.008823529411764675
+      },
+      "confidence90": {
+        "group": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -17.238753660233513,
+              39.70734690254393
+            ],
+            [
+              0.03459677419354839,
+              0.27528739667293883
+            ],
+            [
+              -0.09442003883902797,
+              0.12464106969584213
+            ],
+            [
+              -0.18419141952425078,
+              0.018963092606239164
+            ]
+          ]
+        },
+        "episode": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -2.4836057363679367,
+              27.32113701526745
+            ],
+            [
+              0.02424574535355784,
+              0.23705131094583423
+            ],
+            [
+              -0.10014457263444,
+              0.10195086464915191
+            ],
+            [
+              -0.17000945913989393,
+              0.032507772204176485
+            ]
+          ]
+        }
+      }
+    },
+    "3-1": {
+      "delta": {
+        "height_mm": -3.2047977060585247,
+        "contact_loss": 0.0357142857142857,
+        "geometric_loss": 0.02805145046524357,
+        "joint_presence": 0.009168035030103994
+      },
+      "raw_ht_delta": {
+        "height_mm": -2.419497042543748,
+        "contact_loss": 0.061764705882352944,
+        "geometric_loss": 0.04411764705882354,
+        "joint_presence": 0.07941176470588229
+      },
+      "confidence90": {
+        "group": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -25.342052445802803,
+              17.18463778553803
+            ],
+            [
+              -0.04563819117390547,
+              0.1404681974187318
+            ],
+            [
+              -0.0610588369093171,
+              0.14246250857491874
+            ],
+            [
+              -0.0958688030006523,
+              0.10058349688789477
+            ]
+          ]
+        },
+        "episode": {
+          "valid_replicates": 1000,
+          "intervals": [
+            [
+              -16.505998097599065,
+              11.278117182221527
+            ],
+            [
+              -0.07704588017119704,
+              0.15612433862433858
+            ],
+            [
+              -0.061024895588063593,
+              0.11568888572378104
+            ],
+            [
+              -0.10330588562485347,
+              0.11828321170066802
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "held_duplicate_slot_counts": [
+    52,
+    63,
+    57,
+    59,
+    46,
+    63
+  ],
+  "held_base_null_mm": 1.3951582710675998,
+  "held_cup_null_mm": 10.975961945931044,
+  "required_cup_uplift_mm": 21.951923891862087,
+  "gates": {
+    "support": true,
+    "duplicate_reference_support": true,
+    "cup_height_over_noise": false,
+    "base_height_at_least_2mm": true,
+    "both_reference_cluster90_positive": false,
+    "contact_loss_nonregression": true,
+    "geometric_loss_nonregression": true,
+    "terminal_joint_nonregression": true,
+    "actual_pd_changes": true
+  },
+  "actual_selected_held_pd_changed_windows": 46,
+  "initial_clear": {
+    "support": {
+      "0": {
+        "windows": 25,
+        "episodes": 23,
+        "groups": 8
+      },
+      "1": {
+        "windows": 27,
+        "episodes": 24,
+        "groups": 10
+      },
+      "2": {
+        "windows": 19,
+        "episodes": 15,
+        "groups": 5
+      },
+      "3": {
+        "windows": 20,
+        "episodes": 18,
+        "groups": 8
+      }
+    },
+    "comparison_supported": false,
+    "selected_vs_cup_geometric_loss": null,
+    "scope": "H10 initial-clear proxy; no final stable-grasp/drop claim"
+  },
+  "elapsed_seconds": 2.0895469402894378,
+  "source_manifest_sha256": "e71c5028f8e22b0541923f48f5c74b14107db0a8fdb81e1f7fe6c5cba135f9f1",
+  "scope": "fit-selected executable candidate opportunity only, mixed behavior conditional windows; no individual oracle, Cm information/controller/actor utility not established"
+}
