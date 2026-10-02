@@ -2,6 +2,30 @@
 
 Updated: 2026-10-02
 
+## 2026-10-03 route review: physical information exists, native task utility remains unproven
+
+HF16 的一步 motor-conditioned Cm 物理预测门仍成立，但两种相对任务价值接法都没有
+通过真实 native H10 效用门。回顾性 H10 摘要校准在 held 上取得 0.927 Spearman，
+但使用了干预后状态，严格决策时刻审计将其撤回；463 个 native 窗口的对应控制相对
+fixed-Cup 仅 +0.77 mm，90% 组级区间 [-12.43,+18.39]。
+
+修正后的 current-step head 只看触发时 Cm 候选预测和初始状态，离线 held 400/9 组
+通过 Spearman/RMSE Probe 门（0.429→0.691；56.37→41.03 mm）。随后 5-seed native
+matched panel 共 384 个窗口、6 个 arm，支持达到预设门；calibrated 相对 strong
+fixed-Cup 的点估计 +9.62 mm，但 90% 组级区间 [-8.14,+33.45] 跨零，joint/loss
+控制不能把它升级为正向效用。相对原 Cm 的 +34.37 mm 也因 joint 控制门失败而不采用。
+
+因此关闭回顾性和 current-step 两个 local-value conversion 配方，不扩大普通 Cm 数据，
+不扫描阈值/ridge/seed，不启动 PPO 或策略训练。当前最强事实是“Cm 有一步物理信息，
+但尚未转成相对 strong fixed-Cup 的可靠任务价值”；C3 policy utility 仍 OPEN。下一步
+必须换更高层 representation/planning 或重新定义可识别的动作优势实验，不能继续细化
+同一 native selector。
+证据见 [HF26 校准审计](experiments/probes/P-20261003-relative-task-value-causality-audit.json)、
+[HF26 native 结果](experiments/probes/P-20261003-relative-task-value-native-results.json)、
+[HF27 current-step 结果](experiments/probes/P-20261003-current-decision-task-value-results.json)、
+[HF27 native 结果](experiments/probes/P-20261003-current-decision-native-results.json) 和
+[候选 effect 排序审计](experiments/probes/P-20261003-native-candidate-effect-ranking.json)。
+
 本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
 对应 experiment card；搜索预算和 family 状态在
 [`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 中维护。
