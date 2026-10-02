@@ -146,6 +146,6 @@
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s737/records.pt": "20193156621402f863c979fda9220d377ec8a51dbc51bf4b33437f33c090a75e",
     "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-residual-policy/probe_s738/records.pt": "d6bdd8bd735475fc221ad83d2b85f14b986bee409ff4abc161c34206c446fad9"
   },
-  "git_commit": "19f846ad70cce4c56ac3cc1a13bee991a2d83d4c",
+  "git_commit": "c4e5da183ec380c1cec7686eb78d8c543e702048",
   "interpretation": "The residual arm did not pass the predeclared lift and safety checks; arm-level differences do not support Cm utility."
 }
