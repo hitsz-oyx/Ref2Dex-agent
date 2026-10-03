@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected causal calibration Probe completed.
+Goal ACTIVE; journal readiness NOT READY. Rigid transport capacity Probe prepared.
 
 ## Workspace and task
 
@@ -174,6 +174,16 @@ capacity screen versus state-only candidates, prospective construction/gates
 before any execution. Oracle outcome-fitted coefficients are a capacity bound
 only. No newfit/collection/policy until that screen.
 [Decision](decisions/D-20261003-after-surface-calibration.md).
+
+P-20261003-rigid-transport-capacity prepared:6144retained held windows,
+13causal handrigid transports+2state endpoints, sameanchor and outcome-fitted
+single scalar/endpoint oracle. State-only oracle is equally outcome-fitted;
+measured-hand family diagnoses executiongap. Gates10%whole+near stateoracle
+and<=10%measuredhand gap. This is a permissive capacity bound, not a
+deployable Cm/contact validation/causal policy result.4stateCPUsmoke passes,
+mainoneGPU/300s/512MiB,0neural updates/physics,52convex bisections persegment,
+full numerical certificates+384independentgeometry/SciPysolves fixed.
+[Card](experiments/probes/P-20261003-rigid-transport-capacity.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
