@@ -344,12 +344,12 @@ historical_dispatches:
     note: "preserve failed runtime/artifact provenance; scientific conclusion NONE; do not rerun this old task"
 
 campaign:
-  name: cm_targeted_acquisition
-  status: FROZEN
+  name: cm_uncertainty_value_allocation
+  status: ACTIVE
   parent_campaign: cm_consequence_memory
-  previous_campaign: cm_consequence_memory
-  decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
-  resume_requires: new_high_level_goal_budget_and_decision_checkpoint
+  previous_campaign: cm_targeted_acquisition
+  decision: docs/decisions/D-20261003-cm-route-review-uncertainty-value-allocation.md
+  resume_requires: none
 
 # This file is search state, not an experiment-result log.  A Probe card owns
 # the evidence; this file only says which claim/family may consume the next
@@ -366,6 +366,19 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF32:
+    claim: C3
+    name: uncertainty_guided_value_allocation
+    status: RUNNING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 0
+    owner: current_session
+    authorization: "route review changed Cm responsibility from consequence fitting to fixed real-return direct-Q loss allocation using the existing held uncertainty signal; no actor, reward, action or data-distribution change"
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-weighted-value.md
+    decision: docs/decisions/D-20261003-cm-route-review-uncertainty-value-allocation.md
+    transition: "Running one fixed top-20% uncertainty weight=2.0 versus same-batch unweighted direct-Q refit; no scan or policy follow-up before held gates."
+
   HF31:
     claim: C3
     name: targeted_transition_consequence_fit
