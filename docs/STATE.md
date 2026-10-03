@@ -313,6 +313,11 @@ completed3state-anchored heads/r2/data/base/outputs/audits,163257183unique
 bytes, allcopiedSHA/Gitbundle verified,base/prior manifests unchanged.
 [Receipt](activities/20261003-state-anchored-transport-delivery.md).
 
+Supplement-r19 throughc12d883 preserves completed fullmeshrotation Probe,
+all155904poses/155136transitions/audits/logs/source/card/results/decision;
+106913163unique bytes,46fileSHA/Gitbundle verified,base/r1--r18manifests
+unchanged. [Receipt](activities/20261003-rotational-clearance-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
