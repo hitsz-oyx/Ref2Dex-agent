@@ -8,7 +8,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 # Research 文档
 
-- [Oracle effect + interaction primary-source review](20261003-effect-interaction-oracle-review.md): user-proposed next priority; current contact versus future-query oracle distinguished, no experiment launched.
+- [Oracle effect + interaction primary-source review](20261003-effect-interaction-oracle-review.md): user-proposed next priority; current contact versus future-query oracle distinguished; user-authorized actual Probe now running.
+- [Actual contact API and full-prefix replay qualification](20261003-oracle-native-qualification.md): CPU read/GPU physics passes, all72 native ticks bit-identical; friction fields unavailable.
 - [Fixed persistent hidden-density screen](20261003-latent-load-feasibility-results.md): UNPROMISING; coldQ32/96nominal versus0/96heavy, all engineering/native audits pass.
 - [Independently supervised implementation review and confirmed native collision-filter bug](20261003-implementation-review.md).
 - [Completed fixed-policy sensitivity to corrected collision filters](20261003-inspire-filter-impact-results.md).

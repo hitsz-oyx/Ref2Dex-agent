@@ -1,14 +1,14 @@
 # Independent contact-response research state
 
-Updated 3 October 2026. User proposes oracle effect+interaction usefulness before more Cm learning; prioritized for qualification.
+Updated 3 October 2026. User-authorized no-Cm effect+interaction oracle Probe RUNNING after native contact/prefix qualification.
 Research continues under the user's explicit continuation; journal readiness NOT READY. Latent-load fixed-density feasibility completed UNPROMISING; native manuscriptv12 remains the last compiled draft; core utility still unproved. Goal service's historical BLOCKED status was observed on resumption and cannot be changed to ACTIVE with available tools; it does not describe a current research obstacle.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
 `agent/cm-interaction-oracle` (retains latent-load, active-acquisition, rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
-are read-only. No remote push, broker or unknown process control. User explicitly
-authorized one read-only implementation-review subagent for this review only.
+are read-only. No remote push, broker or unknown process control. Historical one-off implementation review is complete; current work uses the
+user-mandated single session without new agents.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
 model fitting/native physics, CPU independent file/geometry audits. One-GPU
 ordinary Probe, 300GB total owned storage; deadline3October23:59Beijing.
@@ -247,13 +247,20 @@ superseding the pending history-only route. Focused primary-source review
 supports testing relational/contact information, not guaranteed success or
 novelty. Distinguish current attributed contacts/geometry from action-query
 short future SE3/twist/contact trajectories; existing SDK netforces are not
-contact pairs, and existing8tick oracle was valueprediction only. First native
-engineering qualification of contact fields/units/GPU availability and any
-same-state future query, then prospective no-Cm baseline/E/I/E+I actual grasp
-comparison. No new experiment or neural model is running. Fixed density,
+contact pairs, and existing8tick oracle was valueprediction only. Native engineering qualification completed: CPU data + GPU PhysX contact
+pairs/force units pass; GPU data contact API silently returns empty arrays.
+Full48-env72-tick fresh-scene replay is bit-identical for all states/actions.
+P-20261003-effect-interaction-oracle-r1 is RUNNING at101a493: TRAIN761/EVAL762,
+96envs,8fixed options, common decision36,32tick real-future queries, four
+matched1500-update task-Q selectors followed by actual202-tick deployment.
+No learned Cm or official actor. Candidate prefix, mixed deployed futures,
+all105 mesh labels and independent final-Q inference audits remain required.
+Single scene pair, no scientific utility conclusion yet. Fixed density,
 oldheads/auxiliaryQ/allocator/horizon scans remainclosed. No missionchange.
 [Review](research/20261003-effect-interaction-oracle-review.md),
-[decision](decisions/D-20261003-effect-interaction-oracle.md).
+[decision](decisions/D-20261003-effect-interaction-oracle.md),
+[native qualification](research/20261003-oracle-native-qualification.md),
+[fixed card](experiments/probes/P-20261003-effect-interaction-oracle.md).
 
 Causal execution, negative surfacecalibration, positive rigidtransport capacity
 and negative learnedcoefficient/confidence screen are complete. Close this
