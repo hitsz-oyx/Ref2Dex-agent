@@ -128,3 +128,7 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Physical encoder into measured-return task critic](20261002-physical-encoder-critic-results.md): UNPROMISING; Cm219/off218/directQ225/P0143 per384, all checks pass.
 
 - [Training-only late-option support review and cohort correction](20261002-late-option-support-results.md): motion0zero complete/transient labels in256Gaussian plus256zero trajectories; choose earlier preparation data.
+
+- [Finite prelift contact opportunity](20261003-prelift-contact-opportunity-results.md): UNPROMISING; randommotion0zero/256, full control/P0-restoration/native checks pass.
+
+- [Joint physical/Q prior-art boundary](20261003-budgeted-physical-critic-boundary.md).

@@ -1,6 +1,6 @@
 # Standalone contact-response research state
 
-Updated2October2026. Goal ACTIVE / journal readiness NOT READY.
+Updated3October2026. Goal ACTIVE / journal readiness NOT READY.
 Current user instruction: continue the same independent research route.
 
 ## Workspace and boundaries
@@ -20,7 +20,7 @@ Deadline3October2026 23:59Beijing; ordinary one-GPU Probe/300GB storage limits.
 | --- | --- |
 | Self-trained manipulation | PARTIAL: P0 motion1; latest direct-Q option actor motion2117/128, motion1105/128, motion0zero |
 | Useful physical information | Mechanical support witness PROMISING; several fixed short-response/model/value gates fail |
-| Matched Cm policy-training utility | NOT DEMONSTRATED: three actual learning comparisons fail their complete Cm gates |
+| Matched Cm policy-training utility | NOT DEMONSTRATED: all tested actual learning roles fail their complete Cm gates |
 | Distinctive method | Unestablished; generic physical forecasting/model-based RL/control variates are prior art |
 | Formal Validation/generalization/hardware | Absent on this track |
 
@@ -118,11 +118,19 @@ cause of Cm failure. SourceFIT comprises768zero+768random trajectories; all
 previous learning used the full1536correctly. Only8/256motion0random rawoptions
 lie fully inside boundedactor[-1,1]domain; no range scan to rescue oldlearners.
 
-Next single structural opportunity:24-tick preparation option from PRElift-32
-untilPRElift-8exclusive, then unchangedP0. Decisiontimes[31,12,23], ends[55,36,47].
-Fresh native random/zero controls before any new Cm/value fitting. Fulltask105
-unchanged; no timing/horizon sweep, exactpair/oracle or deployable benefit claim.
-All own scientific jobs terminal. Goal ACTIVE / journal readiness NOT READY.
+Finite prelift preparation now COMPLETED/UNPROMISING:629/6301536episodes,
+randommotion0zero/256andzeroonEACHseed; allmotion0transient105alsozero. Fullnative/
+zero-duplicate/antithetic/privateplacement/24tick/P0restore/fullmesh105audits pass;
+280.766s/495402134bytes, all ownPIDs terminal. [Result](research/20261003-prelift-contact-opportunity-results.md).
+Close exactearlyprogram without timing/window/rawscale/horizon/seed scans.
+
+Higher-level next question: use unlabeled short physical episodes to jointly
+train action-conditioned Qfeatures, compare with physical-action-removed aux,
+no-auxQ and an equalinteraction-budget Qtrained on more full labeled episodes.
+This changes resource allocation and jointQlearning, not the closed encoder
+warm-start or imagined-future-value objective. Terminal task105/allmotions fixed;
+no scarcity chosen by dropping previouslyavailable labels or reusing oldmodel
+cost as free pretraining. Fresh data and finaltrainedactors required. Goal ACTIVE.
 
 ## Preservation
 
