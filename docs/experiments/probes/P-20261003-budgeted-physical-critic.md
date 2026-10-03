@@ -15,8 +15,9 @@ no exactpairing. Bothshortpanels have no complete105label; never zero-filled.
 Allcurrent/future at8ticks beforefirstcriterion; no model/actor atcollection.
 
 Commonphysicalpool651/652/653=2304pairs; commonrewardpool653768; budgetrewardpool
-653/6541536. FITSDK80mean/std from current/futurephysicalpoolONLY, floor.001/
-clamp10, P0normfixed,current152. Targetdelta=future[DYNAMIC]-current[DYNAMIC],
+653/6541536. FITSDK80mean/std from current/futureCOMMON653ONLY, floor.001/
+clamp10, P0normfixed,current152. Normalizer correction is pre-fit; budgetQ
+receives no short-panel input statistics. Target-only statistics follow below. Targetdelta=future[DYNAMIC]-current[DYNAMIC],
 131unknown coordinates, targetmean/std physicalpoolONLYfloor.001. Knownfuture21
 analytic/excluded fromphysicaltargets. Extra654neverdefines normalizers/auxdata
 or feedsCm/off/coldQ. No oldsourcefit/tasklabels or pretrainedCm/Qmodels reused.
@@ -65,3 +66,7 @@ optimizerreplayclaimed. GPUtraining/native, CPUfile/geometry/audits. Whole2400s/
 3GiB, onefreshidleGPUphaseguard, source675/newcodeSHAguard, ownedprocessesonly.
 No seed, width, coefficient, responsehorizon, truncationfraction or labelbudget
 scan afterfailure. GoalACTIVE/journalstandardunchanged.
+
+Pre-fit normalizer correction: D-20261003-budget-normalizer-correction. First
+short651collector retained; r1stopped under code guard, r2inherits exactly651
+under SHA and independently audits it. No valid scientific collection repeated.

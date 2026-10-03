@@ -38,3 +38,7 @@ input/SDK/NN/PD/fullmesh/label audits. Positive triggers formalValidation and
 novelty development; failure closes this allocation/jointQrecipe without
 coefficient/steps/physicalwidth/labelbudget or seed scans. Coremission/claim and
 externalresource permissions unchanged; genericauxQalreadyexists in priorart.
+
+Input-normalizer accounting correction before complete task data/fitting:
+[D-20261003-budget-normalizer-correction](D-20261003-budget-normalizer-correction.md).
+All methods use only common653current/future SDKstats, never short651/652stats.

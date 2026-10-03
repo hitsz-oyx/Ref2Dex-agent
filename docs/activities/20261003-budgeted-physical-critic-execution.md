@@ -21,3 +21,12 @@ fresh GPU admission and2400s/3GiB bounds. Matched310272environment-controlticks
 per method; aggregate1085952including independently evaluated policies. Six gates
 frozen; scientific conclusions only after complete independent audits. No full
 optimizer replay claim. Goal ACTIVE/journal readiness NOT READY.
+
+Before any complete task data or fitting, shared short-data normalizer leakage
+was identified and corrected. r1completed its valid651short collector then
+stopped under protected-code drift; no model/evaluation existed. r2inherits
+that panel under SHA and independently audits it, then completes remaining
+new phases. Actual new interaction count excludes inherited77568ticks, while
+aggregate/per-method accounting includes them. Corrected command uses
+`--partial-data-source src/task/CmResidual/research/contact_response/output/P-20261003-budgeted-physical-critic-r1`
+and outputr2. No valid scientific rollout or optimizer step repeated.

@@ -1,12 +1,12 @@
 """Bounded fresh equal-budget physical auxiliary Q training and actual policy evaluation."""
-import argparse,json,os,subprocess,sys,time
+import argparse,json,os,shutil,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from scripts.run_contact_response_probe import sha,admission,PYTHON
 from scripts.resume_continuous_critic_policy import run_owned_child,bytes_in,SCIENTIFIC_FILES
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();source=a.source.resolve();out=a.output.resolve();assert ROOT in out.parents and not out.exists()
+    p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--partial-data-source',type=Path);a=p.parse_args();source=a.source.resolve();out=a.output.resolve();assert ROOT in out.parents and not out.exists()
     old=json.loads((source/'run_manifest.json').read_text());assert old['run_status']=='COMPLETED'
     heads=Path(old['panel_checkpoints']['547']['path']);base=Path(old['base_checkpoint']);hashes=dict(old['input_sha256'])
     for f in SCIENTIFIC_FILES:hashes[str(ROOT/f)]=sha(ROOT/f)
@@ -15,13 +15,22 @@ def main():
     assert sha(teacher)==teacher_sha
     for f in ['scripts/run_option_model_policy.py','scripts/audit_statistical_option_panel.py','scripts/analyze_option_model_policy.py','scripts/analyze_option_model_policy.py','src/task/CmResidual/paired_option_opportunity.py','docs/experiments/probes/P-20261003-budgeted-physical-critic.md','docs/decisions/D-20261002-option-model-policy.md','scripts/run_statistical_option_environment.py','scripts/audit_truth_successor_native_panel.py','scripts/audit_truth_successor_value.py','src/task/CmResidual/truth_successor_value.py','src/task/CmResidual/measured_geometry_barriers.py','src/task/CmResidual/option_model_policy.py','scripts/run_paired_option_environment.py','scripts/audit_paired_option_panel.py','scripts/run_trained_option_environment.py','scripts/audit_trained_option_panel.py','scripts/train_option_model_policy.py','scripts/audit_option_model_training.py','scripts/audit_option_feature_contract.py','scripts/check_option_model_gradient_seam.py','scripts/audit_observed_support_value.py']:
         hashes[str(ROOT/f)]=sha(ROOT/f)
-    for f in ['scripts/run_budgeted_physical_critic.py', 'scripts/run_budgeted_physical_data_environment.py', 'scripts/audit_budgeted_physical_data_panel.py', 'scripts/train_budgeted_physical_critic.py', 'scripts/audit_budgeted_physical_critic_training.py', 'scripts/audit_budgeted_physical_critic_panel.py', 'scripts/analyze_budgeted_physical_critic.py', 'src/task/CmResidual/budgeted_physical_q.py', 'docs/experiments/probes/P-20261003-budgeted-physical-critic.md', 'docs/decisions/D-20261003-budgeted-physical-critic.md', 'docs/decisions/D-20261003-budget-layout-prelaunch.md']:hashes[str(ROOT/f)]=sha(ROOT/f)
+    for f in ['scripts/run_budgeted_physical_critic.py', 'scripts/run_budgeted_physical_data_environment.py', 'scripts/audit_budgeted_physical_data_panel.py', 'scripts/train_budgeted_physical_critic.py', 'scripts/audit_budgeted_physical_critic_training.py', 'scripts/audit_budgeted_physical_critic_panel.py', 'scripts/analyze_budgeted_physical_critic.py', 'src/task/CmResidual/budgeted_physical_q.py', 'docs/experiments/probes/P-20261003-budgeted-physical-critic.md', 'docs/decisions/D-20261003-budgeted-physical-critic.md', 'docs/decisions/D-20261003-budget-layout-prelaunch.md','docs/decisions/D-20261003-budget-normalizer-correction.md']:hashes[str(ROOT/f)]=sha(ROOT/f)
     for f in (source/'s547').iterdir():
         if f.is_file():hashes[str(f.resolve())]=sha(f)
     for f in [source/'run_manifest.json',heads,base,teacher]:hashes[str(f.resolve())]=sha(f)
     def verify():
         for f,h in hashes.items():
             if sha(Path(f))!=h:raise ValueError('protected source drift '+f)
+    partial=a.partial_data_source.resolve() if a.partial_data_source else None
+    if partial:
+        prior=json.loads((partial/'run_manifest.json').read_text());assert prior['experiment_id']=='P-20261003-budgeted-physical-critic' and prior['run_status']=='FAILED' and not (partial/'fit').exists()
+        assert not Path('/proc/'+str(prior['pid'])).exists()
+        assert sha(ROOT/'scripts/run_budgeted_physical_data_environment.py')==prior['input_sha256'][str(ROOT/'scripts/run_budgeted_physical_data_environment.py')]
+        panel_result=json.loads((partial/'s651/results.json').read_text());assert panel_result['run_status']=='COMPLETED' and panel_result['budget_panel_kind']=='short' and panel_result['physical_steps_each']==101
+        for f in (partial/'s651').iterdir():
+            if f.is_file():hashes[str(f.resolve())]=sha(f)
+        hashes[str(partial/'run_manifest.json')]=sha(partial/'run_manifest.json')
     verify();out.mkdir();begin=time.monotonic()
     m=dict(experiment_id='P-20261003-budgeted-physical-critic',run_id=out.name,run_status='RUNNING',pid=os.getpid(),git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),isolated_worktree=str(ROOT),source_run=str(source),teacher_checkpoint=str(teacher),teacher_sha256=teacher_sha,input_sha256=hashes,phases=[],wall_limit_seconds=2400,storage_limit_bytes=3<<30,base_checkpoint=str(base),policy_sha256=old['policy_sha256'],panel_checkpoints={str(seed):dict(path=str(heads.resolve()),sha256=sha(heads),update=0) for seed in (651,652,653,654,655,656,657,658)})
     def save():m['wall_seconds']=time.monotonic()-begin;(out/'run_manifest.json').write_text(json.dumps(m,indent=2)+'\n')
@@ -65,7 +74,13 @@ def main():
                 actor_file=out/('fit/actors_budget.pt' if seed in (657,658) else 'fit/actors.pt')
                 cmd+=['--option-actors',str(actor_file),'--option-actors-sha256',m['panel_actor_sha256'][str(seed)]]
             else:cmd+=['--budget-panel-kind',kind]
-            execute(f's{seed}',cmd,'native',240)
+            if partial and seed==651:
+                d.mkdir()
+                for f in (partial/'s651').iterdir():
+                    if f.is_file():
+                        target=d/f.name;shutil.copy2(f,target);assert sha(target)==hashes[str(f.resolve())]
+                m['inherited_native_data']=dict(source=str(partial),panel=651,episodes=768,env_control_ticks=77568,no_recollection=True);save()
+            else:execute(f's{seed}',cmd,'native',240)
             audit='scripts/audit_budgeted_physical_critic_panel.py' if evaluation else 'scripts/audit_budgeted_physical_data_panel.py'
             execute(f's{seed}_audit',[PYTHON,'-u',str(ROOT/audit),'--directory',str(out),'--panel',str(seed)],'audit',180)
             for f in d.iterdir():
@@ -81,7 +96,7 @@ def main():
         execute('training_audit',[PYTHON,'-u',str(ROOT/'scripts/audit_budgeted_physical_critic_training.py'),'--directory',str(out)],'audit',180)
         for seed in (655,656,657,658):collect(seed,True)
         execute('policy_result',[PYTHON,'-u',str(ROOT/'scripts/analyze_budgeted_physical_critic.py'),'--directory',str(out)],'audit',120)
-        result=json.loads((out/'results.json').read_text());assert result['run_status']=='COMPLETED';m.update(run_status='COMPLETED',label=result['label'],bytes=bytes_in(out),inputs_unchanged=True,actual_joint_critic_optimizer_steps=6000,physical_auxiliary_updates_subset=3000,actual_actor_optimizer_steps=4000,short_physical_episodes=1536,common_full_episodes=768,extra_full_episodes=768,evaluation_trajectories=3072,env_control_ticks_per_method=310272,actual_total_env_control_ticks=1085952)
+        result=json.loads((out/'results.json').read_text());assert result['run_status']=='COMPLETED';m.update(run_status='COMPLETED',label=result['label'],bytes=bytes_in(out),inputs_unchanged=True,actual_joint_critic_optimizer_steps=6000,physical_auxiliary_updates_subset=3000,actual_actor_optimizer_steps=4000,short_physical_episodes=1536,common_full_episodes=768,extra_full_episodes=768,evaluation_trajectories=3072,env_control_ticks_per_method=310272,actual_total_env_control_ticks=1085952,actual_new_env_control_ticks=1085952-(77568 if partial else 0),inherited_env_control_ticks=77568 if partial else 0)
 
     except BaseException as e:m.update(run_status='FAILED',error=repr(e));raise
     finally:save()
