@@ -1,0 +1,363 @@
+{
+  "$schema": "ref2dex.agent_registry.v5",
+  "registry_schema": "ref2dex.agent_registry.v5",
+  "registry_status": "ACTIVE",
+  "registry_version": 14,
+  "updated_at": "2026-09-28",
+  "owner": "root",
+  "purpose": "固定角色池与历史 runtime 审计兼容记录；当前角色规则在 docs/AGENT_ROLES.yaml，动态绑定和运行状态不在此文件维护。",
+  "roles_source": "docs/AGENT_ROLES.yaml",
+  "broker": {
+    "script": "scripts/agent_broker.py",
+    "tasks_db": ".runtime/tasks.sqlite",
+    "state_db": ".runtime/AGENT_STATE.sqlite",
+    "message_types": ["TASK_DISPATCH", "TASK_UPDATE", "TASK_HANDOFF", "CONTROL"],
+    "dynamic_agent_creation": "forbidden",
+    "worker_to_worker_messages": "forbidden"
+  },
+  "codex_home_env_var": "CODEX_HOME",
+  "codex_home_policy": "每条 agent 记录独立指定 codex_home；允许多个 agent 当前使用同一路径，但不存在注册表级默认或继承。迁移时同步更新该 agent 的会话和数据库定位。",
+  "identity_rules": {
+    "identity_key": [
+      "codex_home",
+      "conversation_id"
+    ],
+    "conversation_id_kind": "codex_thread_id",
+    "identity_keys_must_be_unique": true,
+    "role_changes_require_contract_update": true,
+    "dynamic_status_source": [
+      "<codex_home>/sessions/**/*.jsonl",
+      "<codex_home>/state_5.sqlite",
+      "<codex_home>/goals_1.sqlite",
+      "<codex_home>/queue_1.sqlite",
+      "Git branch/commit/status",
+      "experiment card 和 run manifest"
+    ],
+    "codex_home_is_per_agent": true,
+    "shared_codex_home_allowed": true
+  },
+  "pool": {
+    "mode": "fixed",
+    "dynamic_creation": "user_approval_only",
+    "max_agents": 5,
+    "nested_delegation": "forbidden",
+    "dispatch_owner": "root",
+    "roles": [
+      {
+        "agent_key": "root",
+        "role": "supervisor",
+        "branch": "main",
+        "runtime_binding": "root"
+      },
+      {
+        "agent_key": "agent_cm",
+        "role": "cm_research",
+        "branch": "agent/cm",
+        "runtime_binding": null
+      },
+      {
+        "agent_key": "agent_rl",
+        "role": "rl_execution",
+        "branch": "agent/rl",
+        "runtime_binding": null
+      },
+      {
+        "agent_key": "agent_eval",
+        "role": "validation",
+        "branch": "agent/eval",
+        "runtime_binding": null
+      },
+      {
+        "agent_key": "agent_infra",
+        "role": "engineering",
+        "branch": "agent/infra",
+        "runtime_binding": "agent_infra"
+      }
+    ],
+    "branch_policy": {
+      "worker_branches": [
+        "agent/cm",
+        "agent/rl",
+        "agent/eval",
+        "agent/infra"
+      ],
+      "task_identity": "experiment_or_task_id_not_branch_name",
+      "sync_before_task": "git merge --ff-only main",
+      "merge_owner": "root",
+      "historical_branches": "retain until separately audited; do not delete as workflow migration"
+    }
+  },
+  "supervision": {
+    "mode": "fixed_pool_agent_broker",
+    "fixed_external_wake_message": "RETIRED",
+    "retired_scheduler": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/scripts/codex_research_supervisor.py",
+    "broker_owner": "agent_broker",
+    "polling_owner": "worker_event_poller",
+    "decision_and_dispatch_owner": "root",
+    "polling_intervals_seconds": {
+      "waiting_or_blocked": 300,
+      "active_cpu": 300,
+      "active_gpu": 120,
+      "terminal_audit": 0
+    },
+    "dispatch_rule": "root 在 MISSION/CAMPAIGN 与当前授权内主动选择可判别的 Blocker、Decision 或直接必要的工程/治理任务，并通过 Agent Broker 向精确固定 role 派发 TASK_DISPATCH；不要求先出现 blocker，不发送固定心跳或模糊 continue。",
+    "completion_rule": "worker_event_poller 只写 TASK_UPDATE；worker 以 TASK_HANDOFF 交付，root 审计后重新选择和派发任务。",
+    "root_goal_lifecycle": {
+      "anchor": "persistent_supervision",
+      "default_status": "active",
+      "child_goal_terminal_does_not_end_root": true,
+      "idle_or_milestone_does_not_end_root": true,
+      "status_change_authority": [
+        "explicit_user_pause_stop_or_switch",
+        "explicit_platform_usage_budget_or_lifecycle_limit"
+      ],
+      "blocked_status_rule": "platform_three_consecutive_repeated_blockers_only",
+      "after_child_completion": "return_to_root_task_selection_loop"
+    },
+    "watchdog_owner": "root_watchdog",
+    "poller_script": "scripts/worker_event_poller.py",
+    "watchdog_script": "scripts/root_watchdog.py",
+    "lease_path": ".runtime/SUPERVISOR_LEASE.json",
+    "nested_delegation": "forbidden",
+    "watchdog_rule": "root_watchdog 只向 Agent Broker 写 CONTROL/WAKE、CONTROL/RESUME 或 CONTROL/BUDGET_LIMITED；不选择研究路线。",
+    "message_types": ["TASK_DISPATCH", "TASK_UPDATE", "TASK_HANDOFF", "CONTROL"]
+  },
+  "integration": {
+    "canonical_worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+    "canonical_branch": "main",
+    "merge_owner": "root",
+    "merge_policy": "只合并经过终态审计、范围审计和验证的明确提交；不按分支 tip 整体盲合。"
+  },
+  "agents": [
+    {
+      "agent_key": "root",
+      "display_name": "/root",
+      "conversation_id": "01a0e1ad-01de-7031-8749-8e55426bb9db",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0e1ad-01de-7031-8749-8e55426bb9db.jsonl",
+      "role": "全局主代理 / supervisor / mainline 集成负责人",
+      "operating_contract": "docs/ROOT_AGENT.md",
+      "parent_agent_key": null,
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+      "branch": "main",
+      "owns": [
+        "MISSION 对齐与全局 goal",
+        "接收 poller 事件并审计子代理终态",
+        "在 MISSION/CAMPAIGN 与当前授权内主动选择并派发有决策价值的 child goal",
+        "子代理验收与资源分配",
+        "Decision Memo",
+        "接受后的 mainline merge"
+      ],
+      "allowed_resources": {
+        "gpu": "仅按 campaign 与明确 goal 分配给执行代理；主代理不启动 GPU",
+        "process_control": "执行代理持有实验进程；主代理只在已确认归属的紧急资源或安全风险时做最小停止处置"
+      },
+      "must_not": [
+        "运行固定心跳式外部自唤醒",
+        "盲目重启或杀实验进程",
+        "亲自承担研究分析、代码或文档实现、preflight、实验运行和长期进程管理",
+        "重复子代理实验",
+        "将 Probe 证据升格为 Validation",
+        "未经审计整体合并混合 ancestry 分支"
+      ],
+      "handoff": "向用户报告证据化状态、commit、manifest、资源证据和下一决策",
+      "role_key": "root"
+    },
+    {
+      "agent_key": "agent_baseline",
+      "display_name": "agent_baseline",
+      "conversation_id": "01a0d6bf-ba61-7f92-8af7-d68c91f4007d",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0d6bf-ba61-7f92-8af7-d68c91f4007d.jsonl",
+      "role": "CPU-only canonical baseline / provenance owner",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline",
+      "branch": "agent/grab-full-baseline",
+      "owns": [
+        "GRAB baseline provenance",
+        "evaluator/config/checkpoint/motion hash 审计",
+        "matched-off preflight manifest",
+        "CPU smoke、静态检查和测试"
+      ],
+      "allowed_resources": {
+        "gpu": 0,
+        "online_or_ppo": false,
+        "collector": false
+      },
+      "must_not": [
+        "启动 GPU 或 Isaac Gym",
+        "启动 collector/PPO",
+        "消费 Cm/HF02 slot",
+        "未经新 goal 扩展研究路线"
+      ],
+      "handoff": "branch/commit、manifest 路径与 hash、审计结论、终态",
+      "role_key": null,
+      "lifecycle": "retiring",
+      "retirement_reason": "legacy baseline runtime retained until confirmed Codex processes and uncommitted archive owner handoff finish",
+      "archive_tag": "archive/20260927/agent__grab-full-baseline"
+    },
+    {
+      "agent_key": "agent_infra",
+      "display_name": "agent/infra",
+      "conversation_id": "01a0e436-ed09-7410-9a97-53ff7d396351",
+      "conversation_id_kind": "codex_thread_id",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "session_root": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/sessions",
+      "state_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/state_5.sqlite",
+      "goal_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/goals_1.sqlite",
+      "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
+      "rollout_locator": "sessions/**/rollout-*-01a0e436-ed09-7410-9a97-53ff7d396351.jsonl",
+      "role": "固定池工程与 workflow owner",
+      "parent_agent_key": "root",
+      "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-infra",
+      "branch": "agent/infra",
+      "owns": [
+        "data plumbing、工具、测试和 workflow",
+        "worker_event_poller/root_watchdog 的 CPU 工程修复与治理测试"
+      ],
+      "allowed_resources": {
+        "gpu": 0,
+        "research_experiment": false,
+        "isaac_gym": false,
+        "process_control": "不得启动或停止外部/实验 daemon"
+      },
+      "must_not": [
+        "启动科研 GPU/Isaac Gym 任务",
+        "改变科学 claim",
+        "未经 Decision Checkpoint 修改研究路线",
+        "修改其他代理工作树或 main",
+        "启动/停止 live daemon"
+      ],
+      "handoff": "commit、测试/verify 输出、改动范围和已知取舍",
+      "role_key": "agent_infra",
+      "lifecycle": "active"
+    }
+  ],
+  "retired_conversations": [
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dd78-82d0-7f03-b294-e0d2ad4ee9dc",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+      "retired_at": "2026-09-27",
+      "reason": "user appointed a new root conversation; the prior root Goal and processes were not modified"
+    },
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dd70-ae15-7553-a34d-a897f443f454",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-26",
+      "reason": "user appointed the current conversation as root; previous root Goal was paused; no prior Goal or process was modified"
+    },
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0dc59-b9f2-7f33-9c0c-ea2f5b19dd8a",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "retired_at": "2026-09-26",
+      "reason": "user appointed current conversation as root; prior root is usage_limited and has no active turn; no prior Goal or process was modified"
+    },
+    {
+      "agent_key": "root",
+      "conversation_id": "01a0d943-de74-7021-8d50-2a4e87fde613",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-26",
+      "reason": "superseded as registry owner by the current root conversation; runtime state must be checked separately"
+    },
+    {
+      "agent_key": "agent_poller",
+      "conversation_id": "01a0dca7-9af9-7951-b9c3-58975c4b470b",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/supervisor-poller",
+      "archive_tag": "archive/20260927/agent__supervisor-poller"
+    },
+    {
+      "agent_key": "agent_c1_validation",
+      "conversation_id": "01a0de76-3a3f-7293-88f8-18c140024f9f",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/observation-router-reliability",
+      "archive_tag": "archive/20260927/agent__observation-router-reliability"
+    },
+    {
+      "agent_key": "agent_cm_temporal",
+      "conversation_id": "01a0d7cf-3a82-7a93-b05c-ffecb361f036",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/cm-selective-causal-gate",
+      "archive_tag": "archive/20260927/agent__cm-selective-causal-gate"
+    },
+    {
+      "agent_key": "agent_workflow",
+      "conversation_id": "01a0d86b-d735-7100-b229-d7a3ff0f83cc",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-27",
+      "reason": "fixed-pool workflow cleanup; runtime binding retired after archive",
+      "branch": "agent/root-goal-lifecycle-test-20260927",
+      "archive_tag": "archive/20260927/agent__root-goal-lifecycle-test-20260927"
+    },
+    {
+      "agent_key": "agent_infra",
+      "conversation_id": "01a0e392-d2ac-7db2-8506-7875dee7f8a1",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI",
+      "retired_at": "2026-09-28",
+      "reason": "fixed-role runtime rebound after thread/resume reported an unloaded multi-agent v2 sub-agent",
+      "branch": "agent/infra"
+    }
+  ],
+  "runtime_bindings": {
+    "source": "machine_local",
+    "path": ".runtime/AGENT_BINDINGS.json",
+    "schema": "ref2dex.agent_bindings.v2",
+    "identity_key": [
+      "codex_home",
+      "conversation_id"
+    ],
+    "replaceable_thread": true,
+    "stable_role_key": "role_key",
+    "legacy_runtime_records": "agents"
+  },
+  "cleanup": {
+    "performed_at": "2026-09-27",
+    "policy": "archive branch tips; preserve uncommitted files; do not merge historical experiments into main",
+    "archive_root": "/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927",
+    "archive_manifest": "/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20260927/MANIFEST.json",
+    "fixed_branches": [
+      "main",
+      "agent/cm",
+      "agent/rl",
+      "agent/eval",
+      "agent/infra"
+    ],
+    "pending_branches": [
+      "agent/grab-full-baseline",
+      "agent/root-goal-lifecycle-test-20260927"
+    ],
+    "pending_reason": "baseline hosts the common Git database and occupied runtime; workflow recreated an audit checkout with an active own turn",
+    "historical_branch_refs": "archive/* tags",
+    "pending_worktrees": [
+      {
+        "branch": "agent/grab-full-baseline",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline",
+        "reason": "common Git database storage anchor and occupied runtime; do not delete .git"
+      },
+      {
+        "branch": "agent/root-goal-lifecycle-test-20260927",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22-audit",
+        "reason": "recreated by legacy workflow conversation; active own turn observed during final audit"
+      }
+    ]
+  }
+}
