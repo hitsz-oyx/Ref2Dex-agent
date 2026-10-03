@@ -216,6 +216,11 @@ raw/geometry/coefficients/features/predictions/audits and decision records;
 334336017 unique bytes, all copied-file/prior manifest hashes and Git bundle
 verified. [Receipt](activities/20261003-surface-execution-delivery.md).
 
+Supplement-r15 throughd65a4e0 preserves calibration r1FAILEDaudit+completed
+fits and r2verifiedaudit recovery;159222731unique bytes,60copiedfileSHAchecks
+andGitbundle verified,priorv11/r1--r14manifests unchanged.
+[Receipt](activities/20261003-surface-calibration-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
