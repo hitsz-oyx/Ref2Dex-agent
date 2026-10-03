@@ -45,7 +45,8 @@ interaction `[N,H,80]`。
 
 为回应独立 episode 数过少的问题，又在同一修正后的 collector 上并行采集了
 两组 fresh run：每组约 15.2k transitions、28 episodes，合计 56 episodes。
-两组共包含 1 个 stable-success 和 1 个 drop-after-success。合并数据的
+两组共包含 1 个同时满足 stable-success 与 drop-after-success 的 episode；另一组
+没有这两类 outcome。合并数据的
 horizon sweep 仍使用同一个 GRU bridge 和 composite episode split。
 
 使用 episode-balanced MAE 后，五个 split 上 h16 的 `V_HEI` 相对 `V_H`
@@ -84,8 +85,9 @@ episode 的 MAE（`heldout_episode_error_table`）。在五个 e260 h16 split �
 
 为检查 e260 actor 分布依赖，另外使用文档中已登记的 e420 `plain_off`
 s286/s287 checkpoint 做了明确隔离的 diagnostic Probe。两组 pre-step run
-合计 44 episodes、23.7k transitions，其中 s286 有 1 success/1 drop，s287
-没有 success。h16 的五个 composite split 中，`V_HEI` 相对 `V_H` 的
+合计 44 episodes、23.7k transitions，其中 s286 的同一个 episode 同时满足
+stable-success 与 drop-after-success，s287 没有这两类 outcome。h16 的五个
+composite split 中，`V_HEI` 相对 `V_H` 的
 episode-balanced MAE 变化为 `+2.9%`、`+2.8%`、`-18.2%`、`+24.4%`、
 `+3.7%`；只有一个 split 的 bootstrap CI 排除零。该 actor 上没有复现
 e260 的稳定 h16 方向，因此这个 diagnostic 分支停止扩展，并继续与 pinned

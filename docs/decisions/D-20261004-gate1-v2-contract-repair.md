@@ -15,7 +15,8 @@
 **后续 Probe 记录。** 随后两组 fresh run 合计 56 episodes、约 30k 可用窗口；以
 episode-balanced MAE 计算，h16 在五个 split 都保持正向，改善约 `9.8%`–`29.8%`，
 但只有部分 CI 排除零。
-加入未来 on-policy action control 后，五个 split 的 E/I 相对 `V_HF` 变化为
+早期诊断输出（尚未统一 episode-balanced 主指标）中，加入未来 on-policy action
+control 后五个 split 的 E/I 相对 `V_HF` 变化为
 `-9.2%`、`+10.8%`、`+27.5%`、`+15.9%`、`+23.3%`。因此 h16 方向值得继续
 验证，但仍不能升级为 Gate closeout 或 Cm 训练授权。
 

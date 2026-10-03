@@ -193,6 +193,8 @@ def _bootstrap_delta(base: Dict[str, object], variant: Dict[str, object], seed: 
     variant_errors = torch.abs(variant["test_predictions"] - variant["test_targets"])
     base_groups = list(zip(base["test_source_run"].tolist(), base["test_episode_id"].tolist()))
     variant_groups = list(zip(variant["test_source_run"].tolist(), variant["test_episode_id"].tolist()))
+    if set(base_groups) != set(variant_groups):
+        raise ValueError("bootstrap arms do not share the same held-out episode groups")
     base_by_group = {g: base_errors[torch.tensor([x == g for x in base_groups])].mean() for g in groups}
     variant_by_group = {g: variant_errors[torch.tensor([x == g for x in variant_groups])].mean() for g in groups}
     deltas = torch.tensor([float(base_by_group[g] - variant_by_group[g]) for g in groups])
