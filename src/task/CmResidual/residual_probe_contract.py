@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import torch
 
 
 def simulator_seed_from_argv(arguments: Sequence[str]) -> int:
@@ -25,12 +24,14 @@ def simulator_seed_from_argv(arguments: Sequence[str]) -> int:
 
 
 def snapshot_window_metadata(
-    motion_id: torch.Tensor,
-    start_frame: torch.Tensor,
-    rest_z: torch.Tensor,
-    rows: torch.Tensor,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    motion_id: "torch.Tensor",
+    start_frame: "torch.Tensor",
+    rest_z: "torch.Tensor",
+    rows: "torch.Tensor",
+) -> tuple["torch.Tensor", "torch.Tensor", "torch.Tensor"]:
     """Copy episode metadata at the trigger, before a later reset can change it."""
+    import torch
+
     for name, value in (("motion_id", motion_id), ("start_frame", start_frame), ("rest_z", rest_z)):
         if value.ndim != 1:
             raise ValueError(f"{name} must be one-dimensional")

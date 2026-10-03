@@ -16,15 +16,13 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from collect_contact_consequences import build_player
 from run_paired_evaluator_resolution import sha
-from src.task.CmResidual.residual_probe_contract import (
-    simulator_seed_from_argv,
-    snapshot_window_metadata,
-)
 
 ASSETS = ROOT / "third_party/DExplore/dexplore/data/assets/mjcf"
 
 
 def candidate_player(original, args, torch, gymtorch):
+    from src.task.CmResidual.residual_probe_contract import snapshot_window_metadata
+
     from src.task.CmResidual.executable_contact_options import hold_target, obj_vertices, TableClearance
     from src.task.CmResidual.native_pd_selector import FrozenNativePDSelector, native_pd_targets
     from src.task.CmResidual.orientation_anchored_options import orientation_anchored_action
@@ -345,6 +343,8 @@ def main():
     p.add_argument("--wall-seconds", type=int, default=240)
     p.add_argument("--coverage-salt", type=int, default=9851)
     args, remaining = p.parse_known_args()
+    from src.task.CmResidual.residual_probe_contract import simulator_seed_from_argv
+
     args.simulator_seed = simulator_seed_from_argv(remaining)
     args.seed = args.simulator_seed
     base = (ROOT / "src/task/CmResidual/research/contact_consequence/output").resolve()
