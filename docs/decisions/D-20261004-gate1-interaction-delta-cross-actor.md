@@ -1,5 +1,11 @@
 # Gate 1 interaction-delta cross-actor probe
 
+> **Erratum (2026-10-04).** The future-action control numbers in this historical memo
+> were generated before the fast assembler's episode-local action-index repair and are
+> `INVALID_IMPLEMENTATION`. Direct I+/H results remain valid. See
+> [future-action index repair](D-20261004-gate1-future-action-index-repair.md) for the
+> corrected control artifacts.
+
 **当前需要决定的问题。** I+ 在 e260 112-episode exploratory fit 的 h16/h32
 方向明显好于基础 I，但 split 3 被一个 success/drop episode 主导；是否能在已
 采集的独立 e420 actor 上复现。

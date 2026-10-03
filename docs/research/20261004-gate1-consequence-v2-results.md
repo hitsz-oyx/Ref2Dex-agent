@@ -1,5 +1,17 @@
 # Gate 1 consequence bridge v2: contract-corrected probe
 
+## Implementation erratum: future-action control (2026-10-04)
+
+旧版 fast assembler 曾用 episode-local `future_pos` 直接索引交错 shard 的全局
+`merged["action"]`，导致 `future_action` 跨 episode 错配。因而本文件早期章节、旧
+decision/probe cards 和 `tmp/gate1_split_rng/` 中旧的 `V_HF`/`V_HFEI` 结果均为
+`INVALID_IMPLEMENTATION`，不再作为证据。direct `V_H`/`V_HEI`/`V_HAEI` 结果不读取
+该字段，不受影响。修复和回归测试记录在
+[`D-20261004-gate1-future-action-index-repair`](../decisions/D-20261004-gate1-future-action-index-repair.md)。
+
+修复后重组、audit 和五 seed fit 的新 control 数字只以该 memo 和本文末尾的
+`fastfix` artifacts 为准。
+
 这次 Probe 修正了旧 v2 的采集时序。旧 wrapper 在 `env_step` 之后保存
 `object_root`、hand pose 和 force；因此 row `t` 的物理量对应 `x_{t+1}`，而
 `return_to_go[t]` 仍从 `r_t` 开始。旧的 horizon 结果标记为历史实现产物，不能
@@ -200,10 +212,9 @@ augmentation audit 均通过。
 
 五个 fixed split 的 direct I+ `V_HEI`/`V_H` 改善为
 `+12.6%`、`+5.2%`、`+18.3%`、`+26.9%`、`+14.9%`，episode bootstrap CI 有
-4/5 排除零。matched future-action control `V_HFEI`/`V_HF` 为
-`+15.9%`、`+18.9%`、`+25.3%`、`+25.3%`、`+40.7%`，5/5 CI 排除零。用 8 个
-source-run 做 cluster bootstrap 后，direct 只有 split 1 区间跨零，control 五个
-区间均为正。
+4/5 排除零。修复后的 matched future-action control `V_HFEI`/`V_HF` 为
+`+19.1%`、`-0.6%`、`+14.0%`、`+14.8%`、`+15.3%`，episode CI 有 4/5 排除零；
+8 个 source-run cluster CI 也有 4/5 排除零。
 作为严格 action-inclusive 消融，`V_HAEI` 相对 `V_H` 为
 `+13.7%`、`+9.8%`、`-3.2%`、`+24.8%`、`+18.2%`；split 3 仍跨零，说明
 future-action control 的正向结果不能替代对 action/outcome 敏感性的正式检验。
@@ -223,8 +234,8 @@ matched control 和独立验证集；在此之前不启动 Cm。
 均显示 seed 敏感；h32 五个 seed 为 `+16.4%`、`+22.6%`、`+35.3%`、`+47.2%`、
 `+33.7%`，每个 episode CI 和 8-source-run cluster CI 均排除零。
 
-h32 matched future-action control 五个 seed 为 `+34.8%`、`+25.4%`、`+38.7%`、
-`+45.2%`、`+36.8%`，episode 与 cluster CI 均为正。这个结果把后续正式
+h32 修复后的 matched future-action control 五个 seed 为 `+29.0%`、`+17.4%`、`+18.9%`、
+`+31.2%`、`+33.8%`，episode 与 cluster CI 均为正。这个结果把后续正式
 Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数据扩展和 horizon
 选择发生在探索阶段，尚需独立、预注册的 actor/outcome cluster 验证；在此之前不启动 Cm。
 
@@ -235,5 +246,7 @@ Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数
 五个 unique seed 的 direct I+ 改善为 `+4.0%`、`+22.6%`、`+30.1%`、`+3.9%`、
 `+2.2%`，seed 1、3 的 episode bootstrap CI 排除零（2/5）；2-source-run cluster CI
 也只有部分 seed 为正。`V_HAEI` screening 为 `+2.9%`。所以 h32 没有在独立
-e420 actor 上稳定复现，h32 当前仍是 e260-local `PROMISING` candidate，正式
+e420 actor 上稳定复现。修复后的 future-action control 为
+`+3.9%`、`+6.6%`、`+16.8%`、`+4.8%`、`+12.0%`，episode CI 有 3/5、cluster CI
+有 4/5 排除零；h32 当前仍是 e260-local `PROMISING` candidate，正式
 Validation 必须重新采集并预注册 actor/outcome 覆盖；不启动 Cm。

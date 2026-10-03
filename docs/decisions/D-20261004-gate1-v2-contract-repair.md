@@ -1,5 +1,10 @@
 # Gate 1 v2 contract repair
 
+> **Erratum (2026-10-04).** Any future-action control numbers later copied into this
+> historical record used the pre-repair fast assembler and are `INVALID_IMPLEMENTATION`.
+> Direct H/E/I results are unaffected; corrected controls are recorded in
+> [D-20261004-gate1-future-action-index-repair](D-20261004-gate1-future-action-index-repair.md).
+
 **当前需要决定的问题。** 旧 Gate 1 v2 结果能否作为历史窗口和未来后果的证据，还是必须先审计采集时序与坐标契约。
 
 **关键证据。** 复核发现 collector 在 `env_step` 后写入物理张量，导致 row `t` 的物理量是 `x_{t+1}`，而 return 仍包含 `r_t`。旧 v2 因此漏掉了 `a_t` 的即时后果。复核还发现相对四元数存在 q/−q 跳变，force 分量仍是 world frame，以及多 run split 只使用 episode 编号。

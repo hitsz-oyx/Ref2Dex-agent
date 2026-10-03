@@ -1,5 +1,9 @@
 # Gate 1 e260 outcome-coverage probe
 
+> **Erratum (2026-10-04).** Historical future-action control values in this memo used
+> the pre-repair fast assembler and are `INVALID_IMPLEMENTATION`. Direct H/E/I results
+> are unaffected; see [the repair memo](D-20261004-gate1-future-action-index-repair.md).
+
 **当前需要决定的问题。** e260 h16 的方向性增益在五个 split 中为正，但前两个
 split 的大部分收益来自同一个同时满足 stable-success 与 drop-after-success 的
 episode；是否需要独立 episode 才能判断它是否可复现。

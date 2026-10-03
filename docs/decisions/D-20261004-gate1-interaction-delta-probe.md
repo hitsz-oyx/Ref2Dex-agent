@@ -1,5 +1,10 @@
 # Gate 1 interaction-delta representation probe
 
+> **Erratum (2026-10-04).** The historical future-action control values below were
+> produced by the pre-repair fast assembler and are `INVALID_IMPLEMENTATION`; the
+> direct I+ values remain valid. Corrected controls are in
+> [D-20261004-gate1-future-action-index-repair](D-20261004-gate1-future-action-index-repair.md).
+
 **当前需要决定的问题。** `I` 的现有 contemporaneous object-frame pose/force/mask
 序列已经用 GRU 编码，但 ref1 指出它没有显式表达 slip、force change 和
 contact establish/release。加入这些可从现有 assembled tensor 重建的变化量，

@@ -9,11 +9,12 @@ episode is `stable_success` and none are `drop_after_success`. Merging with the
 previous four corrected runs gives 224 episodes and 116,067 h16 windows.
 
 All transforms and audits passed. The corrected direct I+ h16 results are
-`+12.6%`, `+5.2%`, `+18.3%`, `+26.9%`, `+14.9%`; the five future-action controls
-are `+15.9%`, `+18.9%`, `+25.3%`, `+25.3%`, `+40.7%`. Direct episode-bootstrap
-CI excludes zero in 4/5 splits; control excludes zero in 5/5. Eight-source-run
-cluster bootstrap leaves only direct split 1 crossing zero, with all control
-intervals positive.
+`+12.6%`, `+5.2%`, `+18.3%`, `+26.9%`, `+14.9%`; after repairing the fast
+assembler's episode-local future-action index, the five controls are
+`+19.1%`, `-0.6%`, `+14.0%`, `+14.8%`, `+15.3%`. Direct episode-bootstrap CI
+excludes zero in 4/5 splits; the repaired control excludes zero in 4/5. Eight-
+source-run cluster bootstrap leaves only direct split 1 and control split 2
+crossing zero.
 
 The strict action-inclusive `V_HAEI` relative to `V_H` is
 `+13.7%`, `+9.8%`, `-3.2%`, `+24.8%`, `+18.2%`; its split 3 interval still
@@ -29,10 +30,12 @@ actor/outcome-cluster Validation before any Cm training.
 The follow-up corrected horizon probe fixed the next Validation candidate at
 `H=32`: direct I+ across five seeds is `+16.4%`, `+22.6%`, `+35.3%`, `+47.2%`,
 `+33.7%`, with every episode and eight-source-run cluster CI positive; matched
-future-action control is `+34.8%`, `+25.4%`, `+38.7%`, `+45.2%`, `+36.8%`, also
-positive in every CI. H3 and h5 remain seed-sensitive, while h10 direct is only
+future-action control is `+29.0%`, `+17.4%`, `+18.9%`, `+31.2%`, `+33.8%`, also
+positive in every episode and cluster CI. H3 and h5 remain seed-sensitive, while h10 direct is only
 `+5.1%` in the screening seed (its action-inclusive arm is `+21.6%`).
 
-Artifacts: `tmp/e260_all8_h16_histfix.pt`,
-`tmp/e260_all8_h16_histfix_i_aug.pt`, the corresponding audit JSONs, and
-`tmp/gate1_split_rng/e260_all8_histfix_i_aug_fit_h16_[1-5].json` plus controls.
+Artifacts: `tmp/e260_all8_h16_histfix_fastfix_i_aug.pt`, its base/augmentation audit
+JSONs, and `tmp/gate1_split_rng/e260_all8_histfix_fastfix_h16_ctrl_2026122*.json`
+plus the corresponding actor-cluster bootstrap JSON. The direct I+ artifacts remain
+the previously audited `e260_all8_histfix_i_aug` outputs; the repaired control is the
+only future-action evidence used here.

@@ -1,5 +1,9 @@
 # Gate 1 e420 coverage follow-up
 
+> **Erratum (2026-10-04).** Historical future-action control values in this memo used
+> the pre-repair fast assembler and are `INVALID_IMPLEMENTATION`. Direct H/E/I results
+> are unaffected; see [the repair memo](D-20261004-gate1-future-action-index-repair.md).
+
 **当前需要决定的问题。** e260 fresh 数据的 h16 `V_HEI` 方向在五个 split
 都为正，但只有 1/56 episodes 是 stable-success，future-action control 也
 对 split 敏感；是否需要更有 outcome variation 的独立 Probe。

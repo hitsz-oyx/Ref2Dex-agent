@@ -23,8 +23,12 @@ control 和多 seed。无论结果如何不启动 Cm，因为本 probe 不是 Va
 `+16.4%`（CI 均为正），h10 direct 为 `+5.1%`，但 h10 `V_HAEI` 为 `+21.6%`。
 按预定规则追加 h3/h5/h32 direct 多 seed：h3 为 `+11.7,-5.2,+9.2,+7.9%`
 （只保留方向性），h5 为 `+15.0,+10.6,-6.6,+19.0%`（不稳定），h32 为
-`+16.4,+22.6,+35.3,+47.2,+33.7%`，五个 episode CI 均排除零。h32 matched
-future-action control 为 `+34.8,+25.4,+38.7,+45.2,+36.8%`，五个 CI 也均为正；
-8-source-run cluster CI 的 h32 direct/control 全部为正。由此将后续正式
+`+16.4,+22.6,+35.3,+47.2,+33.7%`，五个 episode CI 均排除零。修复 assembler 后，
+h32 matched future-action control 为 `+29.0,+17.4,+18.9,+31.2,+33.8%`，五个
+episode 和 8-source-run cluster CI 也均为正。由此将后续正式
 Validation horizon 固定为 h32；h3/h5 不再追加预算，h10 保留为 action-inclusive
 诊断，不启动 Cm。
+
+旧版 future-action 数字因 fast assembler 的 episode-local index bug 已标记为
+`INVALID_IMPLEMENTATION`，修复记录见
+[`D-20261004-gate1-future-action-index-repair`](D-20261004-gate1-future-action-index-repair.md)。

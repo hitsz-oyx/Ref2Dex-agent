@@ -1,5 +1,10 @@
 # P-20261004-gate1-consequence-v2 — corrected physical timing probe
 
+> **Erratum (2026-10-04).** Any future-action control values copied into this card
+> predate the episode-local index repair and are `INVALID_IMPLEMENTATION`; direct
+> H/E/I results are unaffected. Corrected controls are listed in
+> [the repair memo](../../decisions/D-20261004-gate1-future-action-index-repair.md).
+
 **Type.** Decision Probe.
 
 **Question.** After correcting the physical transition timing and coordinate
