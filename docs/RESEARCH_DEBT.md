@@ -306,3 +306,17 @@ matched initialization, resource accounting (including normalization data),
 actual trained policy evaluation and independent training-seed Validation.
 The new results belong in manuscript integration before any external report;
 they do not establish generic model failure or a journal-ready method.
+
+## Recent transport representation: qualify before attribution/validation
+
+Rigidcapacity is positive but coefficient/confidence and state-anchored
+learnedtransport gates fail. The latter has8.955%matchedstate gain yet fails
+fixed10%; do not repay Validation debt by rerunning that boundedrecipe.
+If a distinct qualified method later uses frozenstate/proximitygating/
+convextransport/direct-flowloss, separate their contributions with matched
+ablations BEFOREa mechanistic claim. Farpreservation is deterministicgate,
+not learnedphysics. Require freshdata/randomizedcommand qualification and
+actualmatched trainedpolicy utility/multiple independenttrainingseeds.
+Recent scale/granularity/causalexecution/calibration/capacity/learnability
+results and retainedengineeringfailures must enter the manuscript before
+externalreport. No paperready claim follows currentpredictionimprovements.

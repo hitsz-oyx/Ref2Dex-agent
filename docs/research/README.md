@@ -20,6 +20,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 - [Actual causal rigid coupling and fixed-weight diagnosis](20261003-rigid-coupling-learnability-results.md):4500matchedupdates, full0.558mm vsstate0.448; UNPROMISING, auditpassed; even oracle selection at fixedlearnedcoeff0.486 cannot recover overallgain.
 
+- [State-anchored direct-flow transport](20261003-state-anchored-transport-results.md):4500newupdates, full0.395mm vsmatchedstate0.434;4/5gatespass but8.955%fails10%, UNPROMISING. FrozenB/faroutputsbyteexact; r1prefitnormalizationfailure andr2fullaudit retained.
+
 ## 当前独立工作树研究
 
 `agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见

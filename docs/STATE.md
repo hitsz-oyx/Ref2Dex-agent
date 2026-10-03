@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling completed UNPROMISING; state-anchored Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport completed UNPROMISING (4/5gates pass).
 
 ## Workspace and task
 
@@ -33,6 +33,22 @@ No user-track six-expert/twelve-motion evidence is transferred.
 
 ## Latest actual result
 
+
+P-20261003-state-anchored-transport-r2 COMPLETED/UNPROMISING at171af9c:
+full0.395165mm vs matchedstatecorrection0.434032,shuffle0.493533,frozenstate
+0.448096,persistence0.629368.4/5gatespass; state10%gain fails at8.954988%,
+near9.395%passes5%. FaroutputbyteidenticalBbyhardcurrent2cmproximity gate,
+notlearnedfarbenefit.3x1500newupdates/23808params/sharedinit+schedule,4500new
+and1500sharedstateinherited separately;0newnative/actor. r1FAILEDbefore0new
+updates fromCPUinstead oforiginalGPUbaseline normalization;171af9c restores
+originalarithmetic, samegates/1e-12tol, frozenBbyteidenticaloldoutputs. Both
+historiesretained, combined102.288419s/75757776bytes/ownedPIDsabsent.
+All12288base/768KDTreecurrentgeometry/ALLheldnewneural+metrics/9manualAdamW
+updates auditpass;remaining4491notreplayed. Independentreview repeats all
+metrics/1500sourceSHA/commoninit/schedules/frozenBexactness withnoblocker.
+Smallpositiveobservation preserved withoutpromotingfailedqualification.
+[Result](research/20261003-state-anchored-transport-results.md).
+
 P-20261003-rigid-coupling-learnability-r1 COMPLETED/UNPROMISING at348302a:
 full0.558129mm vs matched learnedstate0.448096,shuffle0.731395,persistence
 0.629368. Persistence/shuffle gates pass; state10% and near5% gates fail
@@ -56,9 +72,9 @@ hand0.294313; all3gatespass.15endpoint/scalar segments,not fullcontacthull;
 oraclecoefficients/winners use actualfutureoutcome,not deployable/contact/
 policy evidence.6144raw/statefields/joints+384geometry+196608convexcertificates
 and12288SciPysolves/allmetrics audit pass,protectedinputs unchanged,PIDs
-absent.56.656s/353030828bytes,0newNNupdates/physics. Next SAMEfamily causal
-coefficient/endpoint learning with learnedstate-only/information controls,
-prospective architecture/gates beforefit,noactor/native until learnedgate.
+absent.56.656s/353030828bytes,0newNNupdates/physics. SubsequentSAMEfamily
+causal coefficient learning fails; state-anchored expansion has smallgain
+but also misses matchedgate. Noactor/native until a newusefullearnedgate.
 [Result](research/20261003-rigid-transport-capacity-results.md).
 
 P-20261003-surface-calibration-r2 COMPLETED/UNPROMISING at7709263; r1d47e1fe
@@ -199,31 +215,23 @@ exact inference recipe; score-only repair cannot recover overallgain even
 with perfect future-outcome selection at fixedlearnedcoefficients. Do not
 rescan density/data/epochs/seeds/width or use near subgroup to rescue failure.
 
-Next ONEdifferent state-anchored hand-correction/direct-flow-loss question,
-preserving the competitive learnedstate control instead of degrading its
-predictions with independent15candidate regression. Require a separate
-prospective design (exact objective, frozenanchor rule, matched information
-control, whole-panel gates) BEFOREfit. Current capacity does not authorize
-nativequalification/actortraining; learned gate is still failed. If the
-newobjective also fails, revisit higher-level representation/utility rather
-than indefinitely refine this local family. Mission unchanged, goalACTIVE.
-[Decision](decisions/D-20261003-after-rigid-coupling-learnability.md).
+State-anchored direct-flow/convexcorrection has now completed,4/5gatespass
+but overallmatchedstate advantage8.955%fails10%; boundedlocalheadfamily
+closed. No additionalsteps/seed/width/radius/objective/mixing rescans or
+subgroup rescue; no nativequalification/actortraining from this failedgate.
 
-P-20261003-state-anchored-transport prepared: frozen learnedstate23874param
-B shared across3new23808param/1500update heads, directpointEPE loss and14token
-convexmixture, zero/inertia correction control with SAME99commoninformation,
-TRAINflowshuffle4303. Sharedinit4301/schedule4302,4500newupdates; beyond
-fixedcurrent2cm proximity outputBexactly. Decoder expands oldsingle-segment
-family; no rigidpose/contactlegality claim. CPUall3arm4row3stepNumPygradient/
-AdamW and8currentfullsurfaceKDTree smokePASS. Prefitsharedsoftmaxbias removed,
-independentgeometryadvancedindex corrected BEFOREfit. GPUmain,900s512MiB,
-0newnative/actor,5fixedgates. Sameviewedholdoutdiagnostic, no subgrouprescue.
-[Card](experiments/probes/P-20261003-state-anchored-transport.md).
-r1FAILED frozenbase equality BEFOREanynewupdates: CPUinstead of originalGPU
-normalization produces5.79e-9m drift, samewinners. Preservefailedrecord;
-repairoriginalGPU arithmetic and rerunr2, samearchitecture/gates/1e-12tol.
-[Repair](activities/20261003-state-anchor-normalization-repair.md).
-
+Return to higher-levelphysicaltarget adequacy. Read-onlycode inspection:
+oldercontinuouscritic6Dtarget is translation+linearvelocity, omitsrotation/
+angularvelocity; current64pointflow DOESrepresentrotation. Saved2contact
+flags are SDKnetforce thresholds, not attributedhand-objectcontactpairs.
+Next cheapestprospective offlinefullmesh rotation/clearance adequacy screen
+onretainedcorrected episodes: distinguish representation issue from local
+head tweaks BEFORE newNN/native work. Separate exact metrics/gates/eligibility
+must be fixed beforedataanalysis. Ifrotation cannot alteractualtask-relevant
+clearance decisions enough, dropthiscandidate ratherthan repeat oldforce/
+measuredgeometry barrier models. These sourcefacts are not proven failure
+causes. Mission unchanged, goalACTIVE,journalNOTREADY.
+[Decision](decisions/D-20261003-after-state-anchored-transport.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
@@ -241,7 +249,7 @@ The causal hand-input blocker is provisionally qualified on current reused
 corrected episodes, not universally solved. Broad source prediction info does
 not directly transfer even with oracle handflow; completed calibration also
 fails. Preserve filterfix/all old evidence; newrigidendpointcapacity is
-promising, completed coefficient learning lacks matched advantage. No replay of closed
+promising; completed learnedgates fail despite smallstate-anchored gain. No replay of closed
 recipes or newfit without a separate prospective design.
 
 ## Preservation and debt
