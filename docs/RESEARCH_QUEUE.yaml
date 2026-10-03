@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-two-step-mpc
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-two-step-mpc.md
+    evidence: docs/experiments/probes/P-20261003-cm-two-step-mpc-results.json
+    outcome_boundary: "Held 512-row recursive two-step panel worsened RMSE by 3.788 versus direct-Q and changed first-action argmax on 82.8% of rows, failing the predeclared gates. Close recursive planning; no native, policy, horizon, action-panel, uncertainty, or model-weight scans."
   - id: P-20261003-cm-model-based-critic
     owner: current_session
     status: COMPLETED_EARLY

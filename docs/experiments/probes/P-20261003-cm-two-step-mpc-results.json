@@ -1,0 +1,19 @@
+{
+  "schema": "ref2dex.cm_two_step_mpc_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-two-step-mpc",
+  "checkpoint": "src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/models/tier_1000000.pt",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "rows": 512,
+  "held_episodes": 384,
+  "models": {
+    "direct": {"rmse": 31.029375076293945, "mae": 11.333978652954102, "row_spearman": 0.5534412014036337, "episode_spearman": 0.5540113998981038},
+    "mve_one": {"rmse": 31.188833236694336, "mae": 11.185443878173828, "row_spearman": 0.5525734098027123, "episode_spearman": 0.5602044374373346},
+    "mpc_two": {"rmse": 34.81749725341797, "mae": 11.274187088012695, "row_spearman": 0.5560093495537336, "episode_spearman": 0.5632986478603147}
+  },
+  "delta_mpc_two_vs_direct": {"rmse": 3.7881221771240234, "mae": -0.05979156494140625, "row_spearman": 0.0025681481500998693, "episode_spearman": 0.00928724796221092},
+  "first_action_argmax_changed_fraction": 0.828125,
+  "gates": {"rmse_improvement_at_least_0_5": false, "episode_spearman_loss_within_0_01": true, "argmax_change_between_0_05_and_0_60": false},
+  "probe_label": "UNPROMISING",
+  "decision": "Close recursive two-step planning; no native or policy follow-up."
+}

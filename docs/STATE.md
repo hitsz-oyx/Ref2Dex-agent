@@ -2,6 +2,24 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm two-step MPC planning Probe: closed
+
+为检验递归 planning 是否能把 Cm 的一步真实动作后果转成相对动作优势，冻结同一 physical
+ensemble，在 held transition 上递归想象两步局部候选动作；第二步仍从同一 bounded panel
+选择，direct-Q 提供 tail value，保留 hand q/dq 与 object orientation，不接 actor、success
+predictor 或 native simulator。预注册门为 RMSE 至少改善 `0.5`、episode Spearman 损失不超过
+`0.01`，且首动作 argmax 改变在 `5%–60%`。
+
+512 行/384 个 held episode 的 direct-Q RMSE/MAE/row Spearman/episode Spearman 为
+`31.029/11.334/0.553/0.554`；two-step MPC 为 `34.817/11.274/0.556/0.563`，RMSE 变差
+`3.788`，首动作 argmax 改变 `82.8%`。因此 RMSE 和 action-change 门均失败，Probe 为
+`UNPROMISING`；不做 native collection、policy training、horizon/action-panel/uncertainty
+扫描或更多 model-based critic 变体。该结果只关闭递归 two-step planning，不否定 Cm 作为
+一步真实动作后果预测器。见 [Probe card](experiments/probes/P-20261003-cm-two-step-mpc.md)、
+[结果](experiments/probes/P-20261003-cm-two-step-mpc-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-two-step-mpc.md)。当前 physical-value decision family 的后续若要
+继续，必须先提出新的 observation 或 control responsibility。
+
 ## 2026-10-03 Cm model-based critic augmentation: policy route closed
 
 为检验 Cm 是否能以 MBPO/value-equivalence 方式参与 critic 训练，而不改 actor 输入、动作、
