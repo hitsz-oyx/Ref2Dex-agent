@@ -1,12 +1,12 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected-physics sensitivity Probe completed.
+Goal ACTIVE; journal readiness NOT READY. Scale/cross-hand offline Probe prepared.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/response-actor`. Original user tree and old own contact-response tree
+`agent/cm-surface-prior` (retains `agent/response-actor` history). Original user tree and old own contact-response tree
 are read-only. No remote push, broker or unknown process control. User explicitly
 authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
