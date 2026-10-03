@@ -214,6 +214,39 @@ def _bootstrap_delta(base: Dict[str, object], variant: Dict[str, object], seed: 
     }
 
 
+def _episode_error_table(fitted: Dict[str, object]) -> List[Dict[str, object]]:
+    """Return a compact audit table for the held-out episode estimand.
+
+    The public report intentionally omits row-level predictions, but retaining
+    one row per held-out episode makes it possible to see whether an aggregate
+    MAE is being driven by a single episode or by a broad effect.  This table
+    is descriptive only; the predeclared episode-balanced MAE and bootstrap CI
+    remain the gate statistics.
+    """
+    source_run = fitted["test_source_run"].tolist()
+    episode_id = fitted["test_episode_id"].tolist()
+    prediction = fitted["test_predictions"]
+    target = fitted["test_targets"]
+    errors = torch.abs(prediction - target)
+    groups = sorted(set((int(run), int(ep)) for run, ep in zip(source_run, episode_id)))
+    table = []
+    for run, ep in groups:
+        mask = torch.tensor([(int(r), int(e)) == (run, ep)
+                             for r, e in zip(source_run, episode_id)], dtype=torch.bool)
+        group_target = target[mask]
+        group_errors = errors[mask]
+        table.append({
+            "source_run": run,
+            "episode_id": ep,
+            "rows": int(mask.sum()),
+            "return_to_go_mean": float(group_target.mean()),
+            "return_to_go_min": float(group_target.min()),
+            "return_to_go_max": float(group_target.max()),
+            "test_mae": float(group_errors.mean()),
+        })
+    return table
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, type=Path)
@@ -264,7 +297,10 @@ def main() -> None:
         fitted[name] = _fit_variant(name, standardized_blocks, target, aux, train, test, device,
                                      args.epochs, args.batch_size, args.seed,
                                      episode_id, source_run, noise_std, variant_defs)
-        report["variants"][name] = {k: v for k, v in fitted[name].items() if not isinstance(v, torch.Tensor)}
+        report["variants"][name] = {
+            k: v for k, v in fitted[name].items() if not isinstance(v, torch.Tensor)
+        }
+        report["variants"][name]["heldout_episode_error_table"] = _episode_error_table(fitted[name])
     for offset, name in enumerate(variant_defs):
         if name != "V_H":
             report["comparisons_vs_V_H"][name] = _bootstrap_delta(

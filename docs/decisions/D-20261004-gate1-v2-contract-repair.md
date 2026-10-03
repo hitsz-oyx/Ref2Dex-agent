@@ -18,3 +18,10 @@ episode-balanced MAE 计算，h16 在五个 split 都保持正向，改善约 `9
 加入未来 on-policy action control 后，五个 split 的 E/I 相对 `V_HF` 变化为
 `-9.2%`、`+10.8%`、`+27.5%`、`+15.9%`、`+23.3%`。因此 h16 方向值得继续
 验证，但仍不能升级为 Gate closeout 或 Cm 训练授权。
+
+随后用修正后的 episode-balanced 统计重跑 matched control，结果为
+`-9.0%`、`+10.9%`、`+28.9%`、`+19.7%`、`+23.2%`；只有 split 2、3 的
+episode bootstrap CI 排除零。held-out episode 审计还显示 split 1、2 的总增益
+分别约 94%、96% 来自单个 episode，移除该 episode 后平均增益仅约 0.11、0.20
+MAE。因此 root 维持“不启动 Cm、补充按 episode 类型和 success/drop 覆盖的
+Probe”这一行动，h16 仍是 `PROMISING` 诊断方向而不是 Gate closeout。

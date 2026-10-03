@@ -54,12 +54,31 @@ bootstrap CI 排除零，其余仍跨零。h3、h5、h10、h32 没有同样稳�
 `PROMISING` 方向性 Probe，尚未达到 Validation 或 Gate closeout。
 
 由于未来 `E/I` 仍来自 on-policy trajectory，额外加入 `future_action`
-作为诊断控制。五个 h16 split 的 `V_HFEI` 相对 `V_HF` 变化为
-`-9.2%`、`+10.8%`、`+27.5%`、`+15.9%`、`+23.3%`。这说明第一个 split
-的增益可由未来策略行为解释，但其余 split 仍显示 E/I 的额外信号；这些
-control CI 多数仍跨零。下一步若要形成正式结论，需要更多 success/drop
-覆盖、预注册 split 和 matched future-action control；当前不启动在线 Cm
-训练，也不把 h16 的方向性结果写成 `SUPPORTED`。
+作为诊断控制。使用同一 episode-balanced MAE 重新拟合的五个 h16 split 如下：
+
+| split | `V_HFEI` vs `V_HF` | episode bootstrap CI |
+| ---: | ---: | ---: |
+| 1 | -9.0% | [-1.69, 0.64] |
+| 2 | +10.9% | [0.11, 13.45] |
+| 3 | +28.9% | [0.76, 2.74] |
+| 4 | +19.7% | [-1.07, 5.06] |
+| 5 | +23.2% | [-0.49, 7.54] |
+
+这说明未来策略动作可以解释 split 1 的全部增益；其余 split 仍有 E/I 的额外
+方向性信号，但只有 split 2、3 的 CI 排除零。下一步若要形成正式结论，需要更多
+success/drop 覆盖、预注册 split 和 matched future-action control；当前不启动在线
+Cm 训练，也不把 h16 的方向性结果写成 `SUPPORTED`。
+
+### Held-out episode influence audit
+
+为检查 aggregate MAE 是否被少数 episode 主导，fit 报告现在保留每个 held-out
+episode 的 MAE（`heldout_episode_error_table`）。在五个 e260 h16 split 中，`V_HEI`
+相对 `V_H` 的 episode-level 正向 episode 数分别为 `6/11`、`7/11`、`10/11`、
+`9/11`、`8/11`；但总增益中最大单 episode 的占比分别约为 `94%`、`96%`、`20%`、
+`70%`、`67%`。移除该最大贡献 episode 后，前两个 split 的平均增益只剩约 `0.11`
+和 `0.20` MAE，说明它们不能被当作普遍改善。该审计不改变预先定义的 gate 统计量，
+但把 h16 的状态收紧为需要按 episode 类型和 success/drop 覆盖补样的
+`PROMISING` 诊断方向。
 
 ## Independent e420 diagnostic actor
 
