@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Scale/cross-hand offline Probe completed.
+Goal ACTIVE; journal readiness NOT READY. User-authorized granularity Probe prepared.
 
 ## Workspace and task
 
@@ -126,6 +126,16 @@ Detailed negative families, numerical corrections and run provenance remain
 in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
+
+User now explicitly authorizes the fixed-data fine-representation comparison.
+P-20261003-cm-granularity:64/256object context x4neighbor mean/detail, same
+2048train windows perhand, common23107parameters/init/1500updates and identical
+64supervised target points. Eight fixed fits, one freshly idle GPU,1800s/2GiB.
+Prospective10%own-hand EPE gates; no new data/threshold/checkpoint sweep.
+Independent preflight found no blocker, tiny frame/feature/isolation/update
+smoke passes. Complete this matrix, then revisit the causal-input blocker with
+its result. [Card](experiments/probes/P-20261003-cm-granularity.md),
+[preflight](activities/20261003-granularity-preflight.md).
 
 Core mission remains whether action-conditioned short physical transfers help
 train a self-trained manipulation policy. Existing experiments do not establish
