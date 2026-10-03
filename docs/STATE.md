@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling completed UNPROMISING.
+Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling completed UNPROMISING; state-anchored Probe prepared.
 
 ## Workspace and task
 
@@ -208,6 +208,17 @@ nativequalification/actortraining; learned gate is still failed. If the
 newobjective also fails, revisit higher-level representation/utility rather
 than indefinitely refine this local family. Mission unchanged, goalACTIVE.
 [Decision](decisions/D-20261003-after-rigid-coupling-learnability.md).
+
+P-20261003-state-anchored-transport prepared: frozen learnedstate23874param
+B shared across3new23808param/1500update heads, directpointEPE loss and14token
+convexmixture, zero/inertia correction control with SAME99commoninformation,
+TRAINflowshuffle4303. Sharedinit4301/schedule4302,4500newupdates; beyond
+fixedcurrent2cm proximity outputBexactly. Decoder expands oldsingle-segment
+family; no rigidpose/contactlegality claim. CPUall3arm4row3stepNumPygradient/
+AdamW and8currentfullsurfaceKDTree smokePASS. Prefitsharedsoftmaxbias removed,
+independentgeometryadvancedindex corrected BEFOREfit. GPUmain,900s512MiB,
+0newnative/actor,5fixedgates. Sameviewedholdoutdiagnostic, no subgrouprescue.
+[Card](experiments/probes/P-20261003-state-anchored-transport.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
