@@ -41,6 +41,7 @@
 - Gate 1 future-action control 的 episode-local index bug 已修复并重跑；旧 `V_HF/V_HFEI` artifacts 标记为 `INVALID_IMPLEMENTATION`，新结果见 [future-action index repair](../decisions/D-20261004-gate1-future-action-index-repair.md)。
 - Gate 1 h32 已补做 deterministic quaternion-sign canonicalization；qfix 后 e260 仍为 actor-local `PROMISING`，e420 仍未跨 actor 稳定，详见 [quaternion sign repair](../decisions/D-20261004-gate1-quaternion-sign-repair.md)。
 - 下一轮 Gate 1 多 actor Validation 的数据覆盖、分层 bootstrap 和判定门已冻结在 [multi-actor Validation design](../decisions/D-20261004-gate1-actor-validation-design.md)，当前尚未启动 Validation。
+- horizon sweep 选出的 h32 仍是当前 Validation 候选；h5 五 seed 不稳定，详见 [horizon sweep decision](../decisions/D-20261004-gate1-horizon-sweep.md)。
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->
