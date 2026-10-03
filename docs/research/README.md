@@ -18,6 +18,8 @@ same research branch/history with separate local Git metadata; old worktree read
 - [Corrected causal calibration result](20261003-surface-calibration-results.md):4800actualupdates, normal0.665mm vs persistence0.629/scratch0.633/shuffle0.618; onlyhandflow gate passes, UNPROMISING. Audit-only indexing repair preserves fits.
 - [Rigid transport oracle capacity](20261003-rigid-transport-capacity-results.md):causal0.294mm vs equally outcome-fitted state0.368,near20.507%gain; all3gates/audits pass, PROMISING capacity only, coefficients not deployable.
 
+- [Actual causal rigid coupling and fixed-weight diagnosis](20261003-rigid-coupling-learnability-results.md):4500matchedupdates, full0.558mm vsstate0.448; UNPROMISING, auditpassed; even oracle selection at fixedlearnedcoeff0.486 cannot recover overallgain.
+
 ## 当前独立工作树研究
 
 `agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见

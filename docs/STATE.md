@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling completed UNPROMISING.
 
 ## Workspace and task
 
@@ -32,6 +32,22 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-rigid-coupling-learnability-r1 COMPLETED/UNPROMISING at348302a:
+full0.558129mm vs matched learnedstate0.448096,shuffle0.731395,persistence
+0.629368. Persistence/shuffle gates pass; state10% and near5% gates fail
+(near gain4.614%). Same99common causalstate/geometry/command info in state
+control, not action-blind.3x1500updates/23874params/commoninit+schedule,
+4500actualtotal,244.564910s/286423899bytes,0newnativephysics. All12288rawrows,
+768geometry,184320TRAINcertificates/ALLheldNumPy+metrics/9earlyAdamWsteps
+pass; remaining4491not replayed. Independent review confirms all metrics,
+labels, schedules and causal isolation. Protectedinputs unchanged/PIDs absent.
+Separate c84f7bd saved-array diagnosis COMPLETED/UNPROMISING,3.441455sCPU,
+0updates: even true-error selector with fixedlearnedcoeff0.486083 loses to
+learnedstate0.448096. Coefficient and selection gaps are path-dependent
+oracle diagnostics, not independent causal contributions. Close bounded
+coefficient/confidence recipe; retain positive geometrycapacity/stateanchor.
+[Result](research/20261003-rigid-coupling-learnability-results.md).
 
 P-20261003-rigid-transport-capacity-r1 COMPLETED/PROMISING at69cc802 for
 oraclecapacity only. Causaltransport0.294084mm vs equally outcome-fitted
@@ -177,26 +193,21 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-Causal execution/negative surfacecalibration and positive rigidtransport
-capacity completed. Preserve actuator/correctedphysics,close bounded frozen
-surface-feature family and scale/density/calibration rescue. Next ONEcausal
-coupling/endpoint learnability screen on SAME15endpoint/scalar family,
-currentgeometry/state/commandfields only, disjointtrain/held episodes and
-matched learnedstate-only/information controls. Candidate/winner labels
-come from TRAINfutureoutcomes; HELDprediction must never fit or see outcomes.
-Fix exact architecture/degeneracy handling/updates/gates prospectively;
-capacity alone permits neither newnativequalification nor policytraining.
-[Decision](decisions/D-20261003-after-rigid-transport-capacity.md).
+Causal execution, negative surfacecalibration, positive rigidtransport capacity
+and negative learnedcoefficient/confidence screen are complete. Close this
+exact inference recipe; score-only repair cannot recover overallgain even
+with perfect future-outcome selection at fixedlearnedcoefficients. Do not
+rescan density/data/epochs/seeds/width or use near subgroup to rescue failure.
 
-P-20261003-rigid-coupling-learnability prepared:3matched1500-update predictors
-(4500total),23874parameters/commoninit4201/schedule4202; full,state-only,
-train-worldflowshuffle4203. Predictperendpointboundedcoef and ownprediction
-confidence,then hardselectsingleendpoint,exactfamilypreserved. State-only
-receives SAME99globalstate/geometry/command features,2endpointsreplicate15
-callswithbalancedloss.120causalfeatures,train-onlysharednormalizer.
-4rowCPUindependentfeature/NumPyAdamWsmokepass. MainGPU/900s/512MiB,
-no nativephysics/actor,4fixedgates beforefit. Previouslyviewedheldpanel remains
-diagnostic. [Card](experiments/probes/P-20261003-rigid-coupling-learnability.md).
+Next ONEdifferent state-anchored hand-correction/direct-flow-loss question,
+preserving the competitive learnedstate control instead of degrading its
+predictions with independent15candidate regression. Require a separate
+prospective design (exact objective, frozenanchor rule, matched information
+control, whole-panel gates) BEFOREfit. Current capacity does not authorize
+nativequalification/actortraining; learned gate is still failed. If the
+newobjective also fails, revisit higher-level representation/utility rather
+than indefinitely refine this local family. Mission unchanged, goalACTIVE.
+[Decision](decisions/D-20261003-after-rigid-coupling-learnability.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
@@ -214,7 +225,7 @@ The causal hand-input blocker is provisionally qualified on current reused
 corrected episodes, not universally solved. Broad source prediction info does
 not directly transfer even with oracle handflow; completed calibration also
 fails. Preserve filterfix/all old evidence; newrigidendpointcapacity is
-promising, learned causal identification remains unproved. No replay of closed
+promising, completed coefficient learning lacks matched advantage. No replay of closed
 recipes or newfit without a separate prospective design.
 
 ## Preservation and debt
