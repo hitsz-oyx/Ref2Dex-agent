@@ -26,6 +26,13 @@ success/drop coverage remains imbalanced, and the independent e420 actor did not
 replicate the direction. Preserve the artifacts and design a pre-registered
 actor/outcome-cluster Validation before any Cm training.
 
+The follow-up corrected horizon probe fixed the next Validation candidate at
+`H=32`: direct I+ across five seeds is `+16.4%`, `+22.6%`, `+35.3%`, `+47.2%`,
+`+33.7%`, with every episode and eight-source-run cluster CI positive; matched
+future-action control is `+34.8%`, `+25.4%`, `+38.7%`, `+45.2%`, `+36.8%`, also
+positive in every CI. H3 and h5 remain seed-sensitive, while h10 direct is only
+`+5.1%` in the screening seed (its action-inclusive arm is `+21.6%`).
+
 Artifacts: `tmp/e260_all8_h16_histfix.pt`,
 `tmp/e260_all8_h16_histfix_i_aug.pt`, the corresponding audit JSONs, and
 `tmp/gate1_split_rng/e260_all8_histfix_i_aug_fit_h16_[1-5].json` plus controls.

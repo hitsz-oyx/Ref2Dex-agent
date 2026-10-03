@@ -213,3 +213,17 @@ future-action control 的正向结果不能替代对 action/outcome 敏感性的
 状态是更强的 `PROMISING` coverage probe，而不是 `SUPPORTED`：扩展数据是在探索阶段
 决定的，success/drop 仍不平衡，正式 Gate 需要预注册 actor/outcome cluster、固定
 matched control 和独立验证集；在此之前不启动 Cm。
+
+## Corrected horizon follow-up
+
+在同一 8-run corrected 数据上，h3/h5/h10/h32 的单 seed screening direct I+
+分别为 `+11.7%`、`+15.0%`、`+5.1%`、`+16.4%`；h10 的 action-inclusive
+`V_HAEI` 为 `+21.6%`。按 decision memo 追加 h3、h5、h32 direct 多 seed：h3
+为 `+11.7%,-5.2%,+9.2%,+7.9%`，h5 为 `+15.0%,+10.6%,-6.6%,+19.0%`，
+均显示 seed 敏感；h32 五个 seed 为 `+16.4%`、`+22.6%`、`+35.3%`、`+47.2%`、
+`+33.7%`，每个 episode CI 和 8-source-run cluster CI 均排除零。
+
+h32 matched future-action control 五个 seed 为 `+34.8%`、`+25.4%`、`+38.7%`、
+`+45.2%`、`+36.8%`，episode 与 cluster CI 均为正。这个结果把后续正式
+Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数据扩展和 horizon
+选择发生在探索阶段，尚需独立、预注册的 actor/outcome cluster 验证；在此之前不启动 Cm。
