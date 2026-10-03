@@ -3,8 +3,8 @@
 
 The base v2 interaction already uses contemporaneous object-frame geometry,
 relative velocity, forces and contact masks.  This offline transform adds only
-quantities reconstructible from that tensor: relative acceleration, force
-increments, and contact on/off increments.  The first future slot is zeroed
+quantities reconstructible from that tensor: object-frame relative-velocity
+increments, force increments, and contact on/off increments.  The first future slot is zeroed
 because the preceding contact/force sample is not part of the assembled
 interaction sequence.  No target, split key or row order is changed.
 """
@@ -60,13 +60,13 @@ def augment(dataset: dict, control_dt: float | None = None) -> dict:
 
     # The first future slot has no preceding future interaction sample.  Keep
     # it zero rather than treating the current frame as an unrecorded label.
-    relative_acceleration = torch.zeros_like(rel_velocity)
+    relative_velocity_delta = torch.zeros_like(rel_velocity)
     hand_force_delta = torch.zeros_like(hand_force)
     object_force_delta = torch.zeros_like(object_force)
     hand_contact_delta = torch.zeros_like(hand_contact)
     object_contact_delta = torch.zeros_like(object_contact)
     if interaction.shape[1] > 1:
-        relative_acceleration[:, 1:] = (
+        relative_velocity_delta[:, 1:] = (
             rel_velocity[:, 1:] - rel_velocity[:, :-1]
         ) / control_dt
         hand_force_delta[:, 1:] = hand_force[:, 1:] - hand_force[:, :-1]
@@ -76,7 +76,7 @@ def augment(dataset: dict, control_dt: float | None = None) -> dict:
 
     augmented = torch.cat((
         interaction,
-        relative_acceleration,
+        relative_velocity_delta,
         hand_force_delta,
         object_force_delta,
         hand_contact_delta,
@@ -87,7 +87,7 @@ def augment(dataset: dict, control_dt: float | None = None) -> dict:
     out_metadata = dict(metadata)
     out_metadata["interaction_layout"] = (
         str(metadata.get("interaction_layout", "base interaction"))
-        + " + [relative_acceleration, hand_force_delta, object_force_delta, "
+        + " + [object_frame_relative_velocity_delta, hand_force_delta, object_force_delta, "
           "hand_contact_delta, object_contact_delta]"
     )
     out_metadata["interaction_augmentation"] = "temporal_deltas_from_base_v2"
@@ -109,6 +109,13 @@ def main() -> None:
     output = augment(dataset, args.control_dt)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(output, args.output)
+    row_keys = (
+        "state", "previous_action", "context", "history_state", "history_previous_action",
+        "history_context", "history_progress", "action", "reward", "reward_components",
+        "return_to_go", "effect", "future_action", "future_valid_mask", "episode_id", "step",
+        "motion_id", "noise_std", "source_run", "done_at_decision", "episode_auxiliary",
+    )
+    unchanged_keys = [key for key in row_keys if key in dataset and torch.equal(output[key], dataset[key])]
     report = {
         "schema": "ref2dex.gate1_interaction_augmentation.v1",
         "input": str(args.input.resolve()),
@@ -119,8 +126,8 @@ def main() -> None:
         "augmented_interaction_dim": int(output["interaction"].shape[-1]),
         "control_dt": output["metadata"]["interaction_augmentation_control_dt"],
         "first_slot_zeroed": True,
-        "target_unchanged": torch.equal(output["return_to_go"], dataset["return_to_go"]),
-        "episode_key_unchanged": torch.equal(output["episode_id"], dataset["episode_id"]),
+        "unchanged_row_keys": unchanged_keys,
+        "row_keys_unchanged": len(unchanged_keys) == len(row_keys),
     }
     args.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))

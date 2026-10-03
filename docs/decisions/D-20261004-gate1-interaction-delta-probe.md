@@ -11,8 +11,8 @@ split 上为 `+12.1%`、`+15.0%`、`-25.8%`、`+29.8%`、`+5.4%`，只有 2/5 CI
 不稳定归因于某一个缺失 interaction statistic。
 
 **root 选择的行动及理由。** 离线复制 112-episode h16 dataset，保留原 80 维
-interaction，并追加相对加速度、hand/object force increment、hand/object
-contact increment；第一 future slot 显式置零。target、episode key、split、
+interaction，并追加相邻 object-frame relative-velocity increment、hand/object
+force increment、hand/object contact increment；第一 future slot 显式置零。target、episode key、step/source_run/action 等 row key、split、
 GRU bridge 和训练 seed 全部不变。这个 A/B 只测试表示信息，不改变 Gate claim。
 
 **预计成本、成功/失败后的下一步和停止条件。** 只需 CPU tensor transform、一次
@@ -23,3 +23,25 @@ dataset audit 和最多五个 GPU fit。若 `I+` 在同一五个 split 上没有
 
 **外部授权边界。** 不重新采集、不修改 raw shard、checkpoint 或 baseline，
 不启动在线 policy/Cm training。
+
+**结果。** I+ dataset audit 通过，interaction 从 80 维扩展为 119 维，target、
+episode key 和首 slot zero contract 均保持不变。在 112-episode e260 cohort
+上，h16 的 `V_HEI` 相对 `V_H` 为 `+29.1%`、`+20.2%`、`-18.5%`、`+25.8%`、
+`+18.3%`；四个 split 的 CI 排除零，但 split 3 仍为负。future-action control
+为 `+34.6%`、`+13.9%`、`-6.4%`、`+12.9%`、`+10.9%`，所有 control CI
+跨零。
+
+同一 I+ 表示做 horizon sweep 后，五个 split 的点估计/CI 排除零数量为：
+
+| horizon | point estimates (%) | positive CI |
+| ---: | --- | ---: |
+| 3 | +2.9, +13.9, -22.4, +6.5, -2.9 | 1/5 |
+| 5 | +0.4, +17.5, +5.5, +21.3, +6.6 | 2/5 |
+| 10 | +19.7, +23.9, -35.7, +17.9, +4.8 | 1/5 |
+| 16 | +29.1, +20.2, -18.5, +25.8, +18.3 | 4/5 |
+| 32 | +36.1, +29.2, -8.7, +34.1, +16.7 | 3/5 |
+
+这显示好转主要在 h16/h32，但仍有一个 split 跨所有 horizon 反向。将该 split
+中唯一 success/drop episode 做后验敏感性分析后，h16 五个点估计均转为正；由于
+这是 post-hoc 排除，不能用于关闭 Gate，只说明 outcome coverage 是当前主要
+不确定性来源。当前状态为 `PROMISING` 诊断方向，不启动 Cm。

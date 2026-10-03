@@ -112,3 +112,26 @@ matched control 为 `+26.7%`、`+5.8%`、`-5.2%`、`+12.0%`、`+9.0%`，仅 1/5
 CI 排除零。样本量扩展没有消除 split 敏感性，因此停止继续扩大该 actor 的
 collector，仍不启动 Cm 训练。若进入正式 Validation，应预注册 actor/episode
 cluster bootstrap，并补充多个独立 success/drop outcome。
+
+## Interaction-delta representation diagnostic
+
+为回应 ref1 对 interaction 事件信息不足的担忧，在不重新采集的前提下，对四个
+e260 run 的 112-episode h16 dataset 做了离线 I+ 对照。I+ 保留原 80 维
+contemporaneous object-frame interaction，并追加可从已有 tensor 重建的相对
+object-frame relative-velocity increment、hand/object force increment 和 hand/object
+contact increment，得到 119
+维；target、split、GRU bridge 和 seed 不变。audit 与合成时序测试均通过。
+
+e260 的 h16 `V_HEI`/`V_H` 变化为 `+29.1%`、`+20.2%`、`-18.5%`、`+25.8%`、
+`+18.3%`，四个 split 的 CI 排除零；future-action control 为
+`+34.6%`、`+13.9%`、`-6.4%`、`+12.9%`、`+10.9%`，control CI 全部跨零。
+I+ horizon sweep 的正向点估计数为 h3 `3/5`、h5 `5/5`、h10 `4/5`、h16
+`4/5`、h32 `4/5`；排除零的 CI 数分别为 `1/5`、`2/5`、`1/5`、`4/5`、`3/5`。
+因此好转集中在 h16/h32，但仍有一个 split 跨 horizon 反向，不能形成 Gate
+closeout。
+
+最后在独立 e420 actor 上复用 I+ h16：直接变化为 `+19.4%`、`+3.5%`、`-8.5%`,
+`+23.6%`、`+4.0%`，matched control 为 `+14.4%`、`+2.4%`、`-6.6%`、
+`+21.2%`、`+4.8%`；两者均只有 2/5 CI 排除零。该跨 actor 结果支持继续设计
+正式 Validation，但不支持继续堆叠 feature 或启动 Cm；下一步应预注册
+actor/outcome cluster bootstrap，并增加多个独立 success/drop episode。

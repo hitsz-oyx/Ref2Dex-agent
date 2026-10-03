@@ -41,3 +41,11 @@ all intervals crossing zero. Combining all four e260 runs (112 episodes) still
 gave `+12.1%`, `+15.0%`, `-25.8%`, `+29.8%`, `+5.4%`; only two intervals excluded
 zero. The larger same-actor probe therefore did not meet Gate 1 stability and is
 closed without Cm training.
+
+**Interaction-delta diagnostic.** An offline I+ variant appended relative
+object-frame velocity increments, force increments and contact increments to the base interaction.
+On the 112-episode e260 cohort, h16 direct changes were
+`+29.1%`, `+20.2%`, `-18.5%`, `+25.8%`, `+18.3%`; the same variant on the
+independent e420 actor gave `+19.4%`, `+3.5%`, `-8.5%`, `+23.6%`, `+4.0%`.
+These are useful direction signals, but matched controls and intervals remain
+split-sensitive, so the probe stays `PROMISING` and does not authorize Cm.
