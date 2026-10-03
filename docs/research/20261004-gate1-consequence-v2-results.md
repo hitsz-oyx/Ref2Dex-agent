@@ -233,7 +233,7 @@ Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数
 为检查 h32 是否跨 actor 复现，使用 corrected e420 s286/s287 raw shards 组装了
 44 episodes、21,940 windows；base 与 interaction augmentation audit 均通过。
 五个 unique seed 的 direct I+ 改善为 `+4.0%`、`+22.6%`、`+30.1%`、`+3.9%`、
-`+2.2%`，只有一个 episode bootstrap CI 排除零；2-source-run cluster CI
+`+2.2%`，seed 1、3 的 episode bootstrap CI 排除零（2/5）；2-source-run cluster CI
 也只有部分 seed 为正。`V_HAEI` screening 为 `+2.9%`。所以 h32 没有在独立
 e420 actor 上稳定复现，h32 当前仍是 e260-local `PROMISING` candidate，正式
 Validation 必须重新采集并预注册 actor/outcome 覆盖；不启动 Cm。
