@@ -235,6 +235,11 @@ fits and r2verifiedaudit recovery;159222731unique bytes,60copiedfileSHAchecks
 andGitbundle verified,priorv11/r1--r14manifests unchanged.
 [Receipt](activities/20261003-surface-calibration-delivery.md).
 
+Supplement-r16 through7dabad3 preserves completed rigidtransport fields,
+196608oraclecoefficient/error/winner predictions and all audits/docs;
+438819510unique bytes,44fileSHA+Gitbundle verified,base/prior manifests
+unchanged. [Receipt](activities/20261003-rigid-transport-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
