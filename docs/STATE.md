@@ -2,6 +2,22 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm uncertainty-guided data Probe: promising local signal
+
+为区分“普通数据不足”与“模型在少数动力学 regime 上失真”，冻结 Cm ensemble，在
+209,788 held rows 上用 object translation/velocity/contact/reward/terminal 的 ensemble
+disagreement 作为 uncertainty，orientation head 排除。top-20% disagreement 的真实
+normalized physical error 是 bottom-50% 的 `7.03×`，承载 direct-Q absolute residual 的
+`32.5%`，覆盖全部 `384` held episodes；Spearman(uncertainty, physical error) 为 `0.535`，
+与 absolute Q residual 为 `0.058`。三个预注册 data-responsibility 门均通过，Probe 为
+`PROMISING`，但这只是 acquisition signal，不是 Cm policy utility。
+
+因此只授权一次固定 high-uncertainty fit/retraining Probe；在其完成前不扩大普通数据、
+不扫 threshold/seed/horizon、不启动 policy training。见 [Probe card]
+(experiments/probes/P-20261003-cm-uncertainty-acquisition.md)、[结果]
+(experiments/probes/P-20261003-cm-uncertainty-acquisition-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-uncertainty-acquisition.md)。
+
 ## 2026-10-03 Cm object-orientation consequence Probe: closed
 
 现有 conservative continuation 一直保留 observed object orientation；为检验是否丢弃了 Cm

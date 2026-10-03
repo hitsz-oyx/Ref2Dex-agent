@@ -1,0 +1,15 @@
+{
+  "schema": "ref2dex.cm_uncertainty_acquisition_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-uncertainty-acquisition",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "rows": 209788,
+  "held_episodes": 384,
+  "contract": {"uncertainty_outputs": "object translation/velocity/contact/reward/terminal", "orientation_included": false, "action_changed": false, "cm_refit": false, "success_predictor": false},
+  "quantiles": {"u50": 0.04481225088238716, "u80": 0.07167842239141464},
+  "top20": {"error_ratio_vs_bottom50": 7.02832555770874, "absolute_q_residual_mass": 0.3251267075538635, "episode_count": 384},
+  "spearman": {"uncertainty_vs_physical_error": 0.535247145818596, "uncertainty_vs_absolute_q_residual": 0.05764013110452853},
+  "gates": {"top20_error_ratio_at_least_1_25": true, "top20_residual_mass_at_least_0_30": true, "top20_spans_at_least_100_episodes": true},
+  "probe_label": "PROMISING",
+  "decision": "Authorize one fixed high-uncertainty acquisition/retraining Probe"
+}

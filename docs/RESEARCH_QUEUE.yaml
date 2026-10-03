@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-uncertainty-acquisition
+    owner: current_session
+    status: COMPLETED
+    label: PROMISING
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition.md
+    evidence: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition-results.json
+    outcome_boundary: "Held disagreement top20% had 7.03x bottom50% physical error, carried 32.5% of absolute direct-Q residual mass, and covered all384 episodes. This authorizes one fixed high-uncertainty fit/retraining Probe only; no policy claim yet."
   - id: P-20261003-cm-orientation-consequence
     owner: current_session
     status: COMPLETED
@@ -338,6 +345,19 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF28:
+    claim: C3
+    name: uncertainty_guided_consequence_data
+    status: PROMISING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 1
+    last_run_id: P-20261003-cm-uncertainty-acquisition
+    owner: current_session
+    authorization: "new data responsibility selected under the persistent Cm policy-utility goal; held screen passed and one fixed targeted fit/retraining Probe is within existing GPU/wall-time/storage limits"
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition.md
+    transition: "Information gate PROMISING: top20 disagreement has 7.03x physical error and 32.5% direct-Q residual mass. Use exactly one fixed high-uncertainty fit/retraining Probe; no ordinary data expansion or policy training before its result."
+
   HF27:
     claim: C3
     name: object_orientation_consequence_value
