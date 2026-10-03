@@ -338,6 +338,11 @@ all155904poses/155136transitions/audits/logs/source/card/results/decision;
 106913163unique bytes,46fileSHA/Gitbundle verified,base/r1--r18manifests
 unchanged. [Receipt](activities/20261003-rotational-clearance-delivery.md).
 
+Supplement-r20 throughf35d3c9 preserves completed contrastacquisition+
+paper12/rawaudits/nativePDF/source/visual/failedexport/106fileSHA/Gitbundle,
+102005649unique bytes,base/r1--r19manifests unchanged.
+[Receipt](activities/20261003-contrast-acquisition-paper-delivery.md).
+
 Manuscriptv12 is an audited native27page workingdraft with recent evidence;
 v11/older/firstfailedexport retained. No journal-ready or positiveCmclaim.
 Formal multi-training-seed utility Validation,
