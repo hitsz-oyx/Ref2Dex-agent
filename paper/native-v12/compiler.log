@@ -1,0 +1,33 @@
+note: Running TeX ...
+warning: manuscript-v12.tex:206: Overfull \hbox (0.78616pt too wide) in paragraph at lines 199--206
+note: downloading cmr9.tfm
+note: downloading cmmi9.tfm
+note: downloading cmsy9.tfm
+note: downloading cmex9.tfm
+warning: manuscript-v12.tex:1114: Overfull \hbox (3.9621pt too wide) in paragraph at lines 1108--1114
+note: downloading cmbx10.tfm
+note: downloading cmbx7.tfm
+note: downloading cmbx5.tfm
+note: downloading cmbx9.tfm
+note: downloading cmbx6.tfm
+warning: manuscript-v12.tex:1253: Underfull \hbox (badness 4647) in paragraph at lines 1252--1253
+note: Rerunning TeX because "manuscript-v12.aux" changed ...
+warning: manuscript-v12.tex:206: Overfull \hbox (0.78616pt too wide) in paragraph at lines 199--206
+warning: manuscript-v12.tex:850: Overfull \hbox (5.29214pt too wide) in paragraph at lines 841--850
+warning: manuscript-v12.tex:1114: Overfull \hbox (13.10211pt too wide) in paragraph at lines 1108--1114
+warning: manuscript-v12.tex:1253: Underfull \hbox (badness 4647) in paragraph at lines 1252--1253
+warning: warnings were issued by the TeX engine; use --print and/or --keep-logs for details.
+note: Running xdvipdfmx ...
+note: downloading cmr10.pfb
+note: downloading cmmi10.pfb
+note: downloading cmsy10.pfb
+note: downloading cmsy7.pfb
+note: downloading cmr7.pfb
+note: downloading cmmi7.pfb
+note: downloading cmex10.pfb
+note: downloading cmbx10.pfb
+note: downloading cmr6.pfb
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v12/manuscript-v12.aux` (15.98828125 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v12/manuscript-v12.out` (7.740234375 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v12/manuscript-v12.pdf` (251.234375 KiB)
+note: Writing `/tmp/Ref2Dex-contact-response-continuation/paper/native-v12/manuscript-v12.log` (13.5107421875 KiB)
