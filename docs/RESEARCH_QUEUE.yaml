@@ -330,12 +330,12 @@ historical_dispatches:
     note: "preserve failed runtime/artifact provenance; scientific conclusion NONE; do not rerun this old task"
 
 campaign:
-  name: cm_consequence_memory
+  name: cm_targeted_acquisition
   status: FROZEN
-  parent_campaign: cm_selective_causal_gate
-  previous_campaign: cm_selective_causal_gate
-  decision: docs/decisions/D-20261003-cm-consequence-memory.md
-  resume_requires: new_high_level_goal_budget_and_decision_checkpoint
+  parent_campaign: cm_consequence_memory
+  previous_campaign: cm_consequence_memory
+  decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
+  resume_requires: native_acquisition_probe_only
 
 # This file is search state, not an experiment-result log.  A Probe card owns
 # the evidence; this file only says which claim/family may consume the next
@@ -352,6 +352,19 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF30:
+    claim: C3
+    name: native_uncertainty_acquisition
+    status: AUTHORIZED
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 0
+    owner: current_session
+    authorization: "three-probe route review selected actual targeted transitions as the only new data responsibility within the persistent Cm policy-utility goal and existing native/GPU limits"
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition-native.md
+    decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
+    transition: "Run one guarded native acquisition screen: high-disagreement candidate versus baseline, complete provenance, >=32 targeted windows/8 groups, and <=5pp contact/drop degradation. Only a pass authorizes a fixed targeted fit."
+
   HF29:
     claim: C3
     name: uncertainty_guided_consequence_retraining
