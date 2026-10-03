@@ -55,8 +55,13 @@ def analyze(records: list[Path], output: Path, draws: int = 10000):
     required_provenance = ("simulator_seed", "panel_seed", "python_hash_seed", "episode_index")
     if any(any(key not in p for key in required_provenance) for p in payloads):
         raise ValueError("candidate advantage provenance is incomplete")
-    if any(p["simulator_seed"] != int(p["episode_id"][0].split("/")[0].removeprefix("sim"))
-           for p in payloads if p["episode_id"]):
+    def episode_seed(payload):
+        prefix = payload["episode_id"][0].split("/", 1)[0]
+        if not prefix.startswith("sim"):
+            raise ValueError("episode ids do not carry simulator seed")
+        return int(prefix[3:])
+
+    if any(p["simulator_seed"] != episode_seed(p) for p in payloads if p["episode_id"]):
         raise ValueError("episode ids do not carry simulator seed")
     checkpoint = payloads[0]["checkpoint_sha256"]
     if any(p["checkpoint_sha256"] != checkpoint for p in payloads):
@@ -161,18 +166,24 @@ def analyze(records: list[Path], output: Path, draws: int = 10000):
         interpretation="Known-propensity frozen-Cm candidate screen; not a stable grasp or trained-policy claim",
     )
     fallback = policy_reports["cm_uncertainty_fallback_2std"]
+    fallback_passed = (
+        result["support_gate"] and .05 <= fallback["changed_fraction"] <= .80
+        and fallback["delta_vs_fixed"]["lower90"] > 0
+        and policy_metric_reports["contact_last3"]["cm_uncertainty_fallback_2std"]["lower90"] >= -.05
+        and policy_metric_reports["clearance_last3"]["cm_uncertainty_fallback_2std"]["lower90"] >= -.05
+    )
+    fallback_label = (
+        "UNCLEAR" if not result["support_gate"]
+        else "PROMISING_LOCAL_SIGNAL" if fallback_passed
+        else "UNPROMISING"
+    )
     result["predeclared_selector_label"] = "UNPROMISING" if result["support_gate"] else "UNCLEAR"
     result["exploratory_uncertainty_fallback"] = dict(
-        label="PROMISING_LOCAL_SIGNAL" if (
-            result["support_gate"] and .05 <= fallback["changed_fraction"] <= .80
-            and fallback["delta_vs_fixed"]["lower90"] > 0
-            and policy_metric_reports["contact_last3"]["cm_uncertainty_fallback_2std"]["lower90"] >= -.05
-            and policy_metric_reports["clearance_last3"]["cm_uncertainty_fallback_2std"]["lower90"] >= -.05
-        ) else "UNCLEAR",
+        label=fallback_label,
         rule="fixed top score only when top-minus-fixed > 2 ensemble std, no candidate OOD, retention >= fixed-.05, release <= fixed+.05",
         scope="offline known-propensity screen on frozen Cm predictions; requires fresh native validation before training",
     )
-    result["probe_label"] = result["predeclared_selector_label"]
+    result["probe_label"] = fallback_label
     output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
 
