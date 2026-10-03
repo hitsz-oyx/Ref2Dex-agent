@@ -132,3 +132,8 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Finite prelift contact opportunity](20261003-prelift-contact-opportunity-results.md): UNPROMISING; randommotion0zero/256, full control/P0-restoration/native checks pass.
 
 - [Joint physical/Q prior-art boundary](20261003-budgeted-physical-critic-boundary.md).
+
+- [Equal-budget joint physical critic](20261003-budgeted-physical-critic-results.md):
+  UNPROMISING, Cm383/off399 per768; equal-budget block Cm183/labelQ220 per384.
+  All native/input/model/actor audits pass; pre-fit normalizer correction and
+  first valid short-panel inheritance preserved without duplicate collection.

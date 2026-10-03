@@ -296,3 +296,13 @@ indexed. Integrate these before any external manuscript/report; formatting
 work must not replace the search for actual matched Cm utility. Positive
 return-corrected learning would trigger formal Validation, specific novelty
 assessment and this manuscript update; negative probes remain negative.
+
+## Budgeted physical critic: validation is gated by a new positive route
+
+The frozen fresh equal-budget joint auxiliary Q Probe is UNPROMISING. Do not
+repay multi-seed/target-shuffle/forecast-attribution debts by repeating that
+failed fixed recipe. Any scientifically distinct positive route must retain
+matched initialization, resource accounting (including normalization data),
+actual trained policy evaluation and independent training-seed Validation.
+The new results belong in manuscript integration before any external report;
+they do not establish generic model failure or a journal-ready method.

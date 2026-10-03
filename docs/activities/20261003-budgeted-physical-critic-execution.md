@@ -30,3 +30,10 @@ new phases. Actual new interaction count excludes inherited77568ticks, while
 aggregate/per-method accounting includes them. Corrected command uses
 `--partial-data-source src/task/CmResidual/research/contact_response/output/P-20261003-budgeted-physical-critic-r1`
 and outputr2. No valid scientific rollout or optimizer step repeated.
+
+Closeout: r2 COMPLETED/UNPROMISING, implementation09e76ac,6000critic and
+4000actor updates,1059.607s/1757385080bytes. All eight panel/training audits
+pass; all owned PIDs are absent. Combined r1+r2 recorded wall1142.990s.
+Four primary gates fail; no Validation or local rescue scans. Result and
+higher-level decision recorded separately. Immutable supplemental delivery
+is the next preservation step; no remote push or original-tree mutation.
