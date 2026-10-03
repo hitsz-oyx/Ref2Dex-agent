@@ -5,21 +5,21 @@ threeairplane syntheticreferences/105task/nativephysics/originalspacing, no
 official/sourceactor calls, oldfittedCm/V/Q/actors/labels neverused for learning.
 Allthree motions remainin evaluation, including unsolvedmotion0.
 
-FRESH651short768env101nativecontrolticks,652commonlabeled768env202ticks,
-653extra-budgetlabeled384env202ticks. Balanced4arms/motion, zeroP0+duplicate and
-Gaussian+antithetic, same raw12/nativeprojection/scales/latePRElift-8 heldcontrol
-untilstop+30. IndependentXYplacements/privateassignments, no exactpairing assumed.
-384layout differs in origins because nativeenvironment count changes; same
-spacing/materials/physics, explicit, not claimed exactcoldstates. Short651ends
-before complete105judgment, labels unavailable rather than zero. Allobserved
-current/future at8ticks beforefirstcriterion. No model/actor at collection.
+PRELAUNCHamendment D-20261003-budget-layout-prelaunch replaces the initial384-
+environment extra panel before any scientific collection. ALLpanels remain768,
+same sceneorigins/layout as the evaluator. FRESH651/652short101controlticks,
+653commonlabeled202ticks,654extra-budgetlabeled202ticks. Balanced4arms/motion,
+zeroP0+duplicate andGaussian+antithetic, same raw12/nativeprojection/scales/
+PRElift-8 heldcontroluntilstop+30. Independent placements/privateassignments,
+no exactpairing. Bothshortpanels have no complete105label; never zero-filled.
+Allcurrent/future at8ticks beforefirstcriterion; no model/actor atcollection.
 
-Commonphysicalpool=651+652(1536current/future pairs), commonrewardpool652(768),
-budgetrewardpool652+653(1152). FITSDK80mean/std from current/futurephysicalpool
-ONLY, floor.001/clamp10, P0normfixed, current152. Physicaltargets=future[DYNAMIC]
-minuscurrent[DYNAMIC],131unknown coordinates; normalize targetdelta mean/std
-physicalpoolONLYfloor.001. Knownfuture21analytic excluded fromphysicaltargets.
-Extra653neverdefines normalizers/auxdata or feeds Cm/off/coldQ.
+Commonphysicalpool651/652/653=2304pairs; commonrewardpool653768; budgetrewardpool
+653/6541536. FITSDK80mean/std from current/futurephysicalpoolONLY, floor.001/
+clamp10, P0normfixed,current152. Targetdelta=future[DYNAMIC]-current[DYNAMIC],
+131unknown coordinates, targetmean/std physicalpoolONLYfloor.001. Knownfuture21
+analytic/excluded fromphysicaltargets. Extra654neverdefines normalizers/auxdata
+or feedsCm/off/coldQ. No oldsourcefit/tasklabels or pretrainedCm/Qmodels reused.
 
 Four commoninitialized critics seed3651:encoder164->64ReLU->64ReLU, sigmoid
 scalar taskhead, linear131physicalhead. Allweights common; physicalheadzeroinit.
@@ -29,26 +29,26 @@ weight0. Jointloss measuredterminal105BCE+.05normalizedphysicalMSE(Cm/off),
 BCEonlycold/budget; NOgenerated successor, Vcomposition, fictitiousreward or
 model-error intrinsicreward. ALLweights trainable forjointfit,1500Adam3e-4/
 weight_decay1e-4/gradclip10each. CommonsameprivateCPU3654rewardbatch256(on/off/cold);
-budgetsamealgorithm/private3654with1152pool. SharedphysCPU3652batch256acrossfour.
+budgetsamealgorithm/private3654with1536pool. SharedphysCPU3652batch256acrossfour.
 Eachcritic updates onceperstep:6000actualoptimizersteps TOTAL;3000aux-bearing
 updates are a SUBSETof6000, never doublecounted asadditionalphysicsupdates.
 No modelselection or intermediateforecastgate.
 
 Freezecritics beforeactors. Fourcurrent152->64ReLU->64ReLU->12tanhactors atEXACT
 common3555init,1000Adam3e-4/clip10steps EACH(4000actual), objective -taskQ+
-.05mean(raw^2). Commonprivate3556batch256on/off/cold from652; budgetsamealgorithm/
-3556from652+653. Policyfit nevercallsphysicaldecoder/predictedfuture. Finalactors
+.05mean(raw^2). Commonprivate3556batch256on/off/cold from653; budgetsamealgorithm/
+3556from653+654. Policyfit nevercallsphysicaldecoder/predictedfuture. Finalactors
 only deployed, exactnativecouplings/PD andsameheldoption timings. Retain actual
 critic1500/actor500/1000weights, optimizer/privategeneratorstates, no overwrites.
 
-CostperCm/off:768*101physical+768*202full=232704env-controlticks. BudgetQ:
-1152*202=232704exact. ColdQhas sameavailable shortdata but noauxobjective;
-report its ignoreddata/lesscompute, not an equalpretrainingusage claim. SourceP0
-pretraining cost separate, oldmodelhistory nofreepretraining. Nativecontrolfreq/
-substeps and episodecounts recorded; scalarenv-controlticks not mislabeled as
-solverintegrationsteps or a walltime saving. Report complete data/NN/wallcosts.
+CostperCm/off:1536*101physical+768*202full=310272env-controlticks. BudgetQ:
+1536*202=310272exact. ColdQhas sameavailable shortdata but noauxobjective;
+report ignoreddata/lesscompute, not equalpretrainingusage. SourceP0costseparate,
+oldhistory notfreepretraining. Actualaggregate trainingcollection=465408ticks,
+evaluation=620544ticks, total1085952. Nativecontrolfrequency/simulationdt/substeps
+recorded; scalarenv-controlticks not mislabeled as solversteps or walltime saving.
 
-Fresh654/655evalP0/Cm/off/coldQ;656/657evalP0/Cm/off/budgetQ.768env202ticks each,
+Fresh655/656evalP0/Cm/off/coldQ;657/658evalP0/Cm/off/budgetQ.768env202ticks each,
 64perarm/motion/seed. Cm/off/P0pooled768perarm; cold/budget384each inblocks.
 PROMISINGrequires: Cm>=5ppoffandP0pooled; CmblockA>=5ppcoldQ; CmblockB>=5pp
 budgetQ; eachseedCmnoninferiorALLpresentcontrols; motion1Cmno worseP0by>5pp

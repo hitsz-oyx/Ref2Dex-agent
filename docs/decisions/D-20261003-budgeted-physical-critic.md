@@ -16,17 +16,19 @@ All sharedencoder parameters are trained jointly on actual physical supervision
 and measured task returns; there is no pretrained encoder replacement or predicted
 future passed to V. Retain no-auxcoldQ and equalcost extra-labelQ strong controls.
 
-Collect FRESH:651768episodes stopped after101controlticks with no terminal105
-labels;652768full202episodes with labels;653384additionalfull202episodes for
-budgetQonly. Physics+commonlabels cost768*101+768*202=232704env-controlticks.
-Additional-labelQuses(768+384)*202=232704exactly. Short101=half202is selected for
-that exact accounting, not a task/transition-horizon scan. Model-responseh8fixed.
-All sourcephysical/Qfits/labels beyond P0foundation are excluded from training.
-Old sourceP0and unused construction heads/checkpoint provenance stay explicit.
+Prelaunch amendment D-20261003-budget-layout-prelaunch keeps ALLpanels at768
+nativeenvs to avoid layout/origin change. FRESH651/652each768episodes truncated
+at101ticks without terminal105labels;653768full202labels;654768extra-full202
+forbudgetQONLY. Physics+commonlabels cost1536*101+768*202=310272ticks. Additional-
+labelQuses1536*202=310272exactly. Short101=half202is for exactaccounting, not a
+response-horizon scan. Physicalpool651/652/6532304pairs; common653768labels;
+budget653/6541536labels. Extra654excluded from normalizers/auxpool/commonlearners.
+Old sourcefits/labels excluded, only ownP0foundation and unused construction
+metadata retained. No data or model has run under initial384extra design.
 
 Same model/actor initialization, jointcritics1500steps and actors1000steps;
 constantaux.05/groupnormalizedphysical131, no coefficient/epoch/labelbudgetscan.
-Fresh654/655evalP0/Cm/off/coldQand656/657P0/Cm/off/budgetQ, fulltask105unchanged.
+Fresh655/656evalP0/Cm/off/coldQand657/658P0/Cm/off/budgetQ, fulltask105unchanged.
 Cm must gain>=5ppover bothlearned alternatives in their respective blocks, off
 andP0pooled, allseed noninferiority and motion1safeguard. Everygate mandatory.
 No labels generated for truncated episodes or claimed free data/compute.
