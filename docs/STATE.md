@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Rigid transport capacity Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Rigid transport capacity Probe completed.
 
 ## Workspace and task
 
@@ -32,6 +32,18 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-rigid-transport-capacity-r1 COMPLETED/PROMISING at69cc802 for
+oraclecapacity only. Causaltransport0.294084mm vs equally outcome-fitted
+state-only0.368403 (20.173%gain), near1.879200vs2.363974 (20.507%),measured
+hand0.294313; all3gatespass.15endpoint/scalar segments,not fullcontacthull;
+oraclecoefficients/winners use actualfutureoutcome,not deployable/contact/
+policy evidence.6144raw/statefields/joints+384geometry+196608convexcertificates
+and12288SciPysolves/allmetrics audit pass,protectedinputs unchanged,PIDs
+absent.56.656s/353030828bytes,0newNNupdates/physics. Next SAMEfamily causal
+coefficient/endpoint learning with learnedstate-only/information controls,
+prospective architecture/gates beforefit,noactor/native until learnedgate.
+[Result](research/20261003-rigid-transport-capacity-results.md).
 
 P-20261003-surface-calibration-r2 COMPLETED/UNPROMISING at7709263; r1d47e1fe
 completed four fits then FAILED on independent audit NumPy index axis order.
@@ -165,25 +177,16 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-Causal execution and matched calibration completed. Hand bridge provisionally
-qualifies, but exact frozen direct transfer and calibrated pretrained features
-do not pass. Close this bounded surface-feature transfer family and all
-scale/density/calibration rescue. Next review an explicit action-conditioned
-rigid transport/coupling law with inertial baseline; ONEcheap candidate-
-capacity screen versus state-only candidates, prospective construction/gates
-before any execution. Oracle outcome-fitted coefficients are a capacity bound
-only. No newfit/collection/policy until that screen.
-[Decision](decisions/D-20261003-after-surface-calibration.md).
-
-P-20261003-rigid-transport-capacity prepared:6144retained held windows,
-13causal handrigid transports+2state endpoints, sameanchor and outcome-fitted
-single scalar/endpoint oracle. State-only oracle is equally outcome-fitted;
-measured-hand family diagnoses executiongap. Gates10%whole+near stateoracle
-and<=10%measuredhand gap. This is a permissive capacity bound, not a
-deployable Cm/contact validation/causal policy result.4stateCPUsmoke passes,
-mainoneGPU/300s/512MiB,0neural updates/physics,52convex bisections persegment,
-full numerical certificates+384independentgeometry/SciPysolves fixed.
-[Card](experiments/probes/P-20261003-rigid-transport-capacity.md).
+Causal execution/negative surfacecalibration and positive rigidtransport
+capacity completed. Preserve actuator/correctedphysics,close bounded frozen
+surface-feature family and scale/density/calibration rescue. Next ONEcausal
+coupling/endpoint learnability screen on SAME15endpoint/scalar family,
+currentgeometry/state/commandfields only, disjointtrain/held episodes and
+matched learnedstate-only/information controls. Candidate/winner labels
+come from TRAINfutureoutcomes; HELDprediction must never fit or see outcomes.
+Fix exact architecture/degeneracy handling/updates/gates prospectively;
+capacity alone permits neither newnativequalification nor policytraining.
+[Decision](decisions/D-20261003-after-rigid-transport-capacity.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
@@ -200,8 +203,9 @@ Validation launched from a failed Probe.
 The causal hand-input blocker is provisionally qualified on current reused
 corrected episodes, not universally solved. Broad source prediction info does
 not directly transfer even with oracle handflow; completed calibration also
-fails. Preserve filterfix/all old evidence and review representation/target;
-no replay of closed recipes or newfit without a separate prospective design.
+fails. Preserve filterfix/all old evidence; newrigidendpointcapacity is
+promising, learned causal identification remains unproved. No replay of closed
+recipes or newfit without a separate prospective design.
 
 ## Preservation and debt
 
