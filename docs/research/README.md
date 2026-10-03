@@ -8,6 +8,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 # Research 文档
 
+- [Independently supervised implementation review and confirmed native collision-filter bug](20261003-implementation-review.md).
+
 ## 当前独立工作树研究
 
 `agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见

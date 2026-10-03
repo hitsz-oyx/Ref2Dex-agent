@@ -1,13 +1,14 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. All current scientific jobs terminal.
+Goal ACTIVE; journal readiness NOT READY. Corrected-physics sensitivity Probe prepared.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
 `agent/response-actor`. Original user tree and old own contact-response tree
-are read-only. No remote push, subagents, broker or unknown process control.
+are read-only. No remote push, broker or unknown process control. User explicitly
+authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
 model fitting/native physics, CPU independent file/geometry audits. One-GPU
 ordinary Probe, 300GB total owned storage; deadline3October23:59Beijing.
@@ -31,6 +32,14 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+Independent implementation review confirmed a native collision-filter bug:
+body names were indexed by shape number despite25bodies/13shapes. Five hand
+shape filters were wrong. SDK ownership-based correction passes the actual
+method regression,5mismatches before and0after, same URDF. No confirmed neural
+label/frame/gradient bug found in inspected paths. Historical counts below
+remain legacy-physics observations; previous audits did not cover filters.
+Performance effect is currently unmeasured. [Review](research/20261003-implementation-review.md).
 
 P-20261003-budgeted-physical-critic-r2 COMPLETED/UNPROMISING. Frozen design22e47f5,
 scene-size amendment42e2cbd, implementation48f8d2b, pre-fit normalization
@@ -97,13 +106,12 @@ that claim. Close the exact joint auxiliary/data-allocation recipe, without
 coefficient/width/steps/seed/horizon/truncation/label-budget rescue. No formal
 Validation launched from a failed Probe.
 
-Next autonomous step: bounded read-only review of scratch P0 training,
-native control interface and existing full-task/reference evidence, to decide
-between an upstream policy-substrate blocker and a scientifically different
-physical learning role. This is a higher-level route review, not another fit
-on the closed held-option recipe. Any experiment follows a concrete hypothesis,
-matched control, minimal information budget and fixed stop condition.
-[Decision](decisions/D-20261003-after-budgeted-physical-critic.md).
+Next autonomous step: one corrected native655panel with retained P0/Cm/off/
+coldQ actors and old normalizers,768environments/202ticks, no model updates.
+Check every native hand/table filter and full105criterion. Prospective material
+signal: any arm pooled absolute change>=5pp or any motion0>=4/64. This is physics
+sensitivity, not Cm utility or exact native pairing. Stop after one seed and
+close the decision before any fresh training. [Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
 
 ## Preservation and debt
 

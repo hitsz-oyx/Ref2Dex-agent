@@ -20,13 +20,19 @@ class Dexplore_Inspire(DexploreTask):
     def _apply_collision_filter(self, env_ptr, humanoid_handle):
         props = self.gym.get_actor_rigid_shape_properties(env_ptr, humanoid_handle)
         names = self.gym.get_actor_rigid_body_names(env_ptr, humanoid_handle)
-        for p_idx in range(len(props)):
-            if 'thumb' in names[p_idx] and 'distal' in names[p_idx]:
-                props[p_idx].filter = 3
-            elif 'thumb' not in names[p_idx] and 'intermediate' in names[p_idx]:
-                props[p_idx].filter = 3
+        shape_ranges = self.gym.get_actor_rigid_body_shape_indices(env_ptr, humanoid_handle)
+        for name, shape_range in zip(names, shape_ranges):
+            if 'thumb' in name and 'distal' in name:
+                collision_filter = 3
+            elif 'thumb' not in name and 'intermediate' in name:
+                collision_filter = 3
             else:
-                props[p_idx].filter = 2
+                collision_filter = 2
+            # Some bodies have no collision shape; body and shape indices differ.
+            start = int(shape_range.start if hasattr(shape_range, 'start') else shape_range['start'])
+            count = int(shape_range.count if hasattr(shape_range, 'count') else shape_range['count'])
+            for shape_index in range(start, start + count):
+                props[shape_index].filter = collision_filter
         self.gym.set_actor_rigid_shape_properties(env_ptr, humanoid_handle, props)
 
     def _action_to_pd_targets(self, action):
