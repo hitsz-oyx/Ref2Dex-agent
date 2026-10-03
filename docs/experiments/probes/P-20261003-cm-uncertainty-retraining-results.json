@@ -1,0 +1,70 @@
+{
+  "schema": "ref2dex.cm_uncertainty_retraining_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-uncertainty-retraining",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "fit_rows": 120000,
+  "selected_high_uncertainty_rows": 24000,
+  "held_rows": 209788,
+  "held_episodes": 384,
+  "contract": {
+    "selection": "fit-only top20% frozen disagreement",
+    "updates": 600,
+    "orientation_included": false,
+    "actor_changed": false,
+    "reward_changed": false,
+    "ordinary_data_expanded": false
+  },
+  "fit_uncertainty_threshold": 0.06243336945772171,
+  "training_loss": {
+    "first": 0.9896265864372253,
+    "last": 0.8559115529060364,
+    "min": 0.5971491932868958
+  },
+  "held_physical": {
+    "original": {
+      "physical_rmse": 0.482033908367157,
+      "physical_mae": 0.1339266151189804,
+      "selected_rmse": 0.905605673789978,
+      "selected_mae": 0.28812339901924133
+    },
+    "adapted": {
+      "physical_rmse": 0.4667445421218872,
+      "physical_mae": 0.13946667313575745,
+      "selected_rmse": 0.8597341179847717,
+      "selected_mae": 0.2765015661716461
+    }
+  },
+  "held_value_target": {
+    "original": {
+      "rmse": 26.622386932373047,
+      "mae": 8.87254524230957,
+      "row_spearman": 0.5901596726263836,
+      "episode_spearman": 0.7403743938828796
+    },
+    "adapted": {
+      "rmse": 26.63262367248535,
+      "mae": 8.97440242767334,
+      "row_spearman": 0.5908584442871315,
+      "episode_spearman": 0.7471516733918824
+    }
+  },
+  "delta": {
+    "top_physical_rmse_relative": -0.05065290239761078,
+    "overall_physical_rmse_relative": -0.031718445486669224,
+    "value": {
+      "rmse": 0.010236740112304688,
+      "mae": 0.10185718536376953,
+      "row_spearman": 0.0006987716607479433,
+      "episode_spearman": 0.006777279509002754
+    }
+  },
+  "gates": {
+    "top_uncertainty_physical_rmse_improves_10pct": false,
+    "overall_physical_rmse_not_worse_2pct": true,
+    "value_target_rmse_improves_0_5": false,
+    "value_episode_spearman_loss_within_0_01": true
+  },
+  "probe_label": "UNPROMISING",
+  "decision": "Close targeted uncertainty retraining; no policy follow-up"
+}

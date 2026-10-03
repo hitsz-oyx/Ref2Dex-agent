@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-uncertainty-retraining
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-retraining.md
+    evidence: docs/experiments/probes/P-20261003-cm-uncertainty-retraining-results.json
+    outcome_boundary: "Fit-only top20% disagreement retraining improved selected held physical RMSE 5.1% and overall physical RMSE 3.2%, but missed the 10% top-regime gate and worsened conservative value-target RMSE by 0.010. Close targeted reweighting; no policy follow-up or ordinary data expansion."
   - id: P-20261003-cm-uncertainty-acquisition
     owner: current_session
     status: COMPLETED
@@ -345,6 +352,19 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF29:
+    claim: C3
+    name: uncertainty_guided_consequence_retraining
+    status: UNPROMISING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 1
+    last_run_id: P-20261003-cm-uncertainty-retraining
+    owner: current_session
+    authorization: "HF28 acquisition signal authorized one fixed fit-only high-uncertainty retraining Probe within existing GPU and wall-time limits"
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-retraining.md
+    transition: "Targeted existing-row retraining improved physical error modestly but did not improve the conservative task-value target. Close reweighting; future work requires actual targeted transitions or a new decision responsibility."
+
   HF28:
     claim: C3
     name: uncertainty_guided_consequence_data

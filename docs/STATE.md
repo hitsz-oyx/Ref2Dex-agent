@@ -2,6 +2,23 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm uncertainty-guided retraining Probe: closed
+
+按 HF28 的唯一授权，使用 fit-only top-20% frozen disagreement（120,000 fit rows 中
+24,000 rows）对三个 Cm dynamics member 各更新 600 次；held split 为 209,788 rows，
+direct-Q、actor、reward、success definition 和 orientation exclusion 均不变。高不确定性
+子集 physical RMSE 从 `0.905606` 降到 `0.859734`，改善 `5.1%`，但未达到预注册的 `10%`
+门；overall physical RMSE 从 `0.482034` 降到 `0.466745`。conservative one-step value-target
+RMSE 从 `26.622387` 变为 `26.632624`，episode Spearman 增加 `0.00678`，因此任务价值门
+失败。
+
+Probe 为 `UNPROMISING`：disagreement 确实定位了物理误差 regime，但在已有数据上重加权
+没有把它转成更好的 task-value target。不做 policy follow-up、普通数据扩充或 threshold/
+seed/horizon/model-weight 扫描；HF28 只保留为 data-local acquisition signal。见 [Probe card]
+(experiments/probes/P-20261003-cm-uncertainty-retraining.md)、[结果]
+(experiments/probes/P-20261003-cm-uncertainty-retraining-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-uncertainty-retraining.md)。
+
 ## 2026-10-03 Cm uncertainty-guided data Probe: promising local signal
 
 为区分“普通数据不足”与“模型在少数动力学 regime 上失真”，冻结 Cm ensemble，在
