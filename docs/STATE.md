@@ -134,8 +134,10 @@ supplements r1--r21 retain prior raw/code/model/audit/failure evidence.
 Latest r21 through59dc43a has337538542unique bytes, all copies/Gitbundle and
 base/prior manifests verified.
 [Receipt](activities/20261003-latent-load-delivery.md).
-Current terminal oracle and engineering outputs await the next immutable
-supplement; do not archive r2 while its collector/auditor is writing.
+Supplement r22 through8287529 now preserves all10terminal oracle engineering/
+science runs,9695600946unique bytes. All copied-file/Gitbundle checks and
+base/prior21manifest hashes pass.
+[Receipt](activities/20261003-oracle-capacity-delivery.md).
 
 [Manuscriptv12](../paper/manuscript-v12.pdf) is the last audited native27page
 working draft;29tables,6figures and55source hashes checked. Older/failed export
