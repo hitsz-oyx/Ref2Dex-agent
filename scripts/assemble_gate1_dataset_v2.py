@@ -83,6 +83,8 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
     parts = []
     metadata: Dict[str, object] = {}
     shard_hashes = []
+    timing_presence = []
+    timing_values = []
     for path in shards:
         raw = path.read_bytes()
         shard_hashes.append(hashlib.sha256(raw).hexdigest())
@@ -90,6 +92,9 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
         missing = REQUIRED.difference(item)
         if missing:
             raise ValueError(f"{path} missing required keys: {sorted(missing)}")
+        timing_presence.append("physical_timing" in item)
+        if "physical_timing" in item:
+            timing_values.append(item["physical_timing"])
         for key in ("schema", "gamma", "control_dt", "source_sha256", "physical_timing",
                     "effect_definition", "interaction_definition"):
             if key in item:
@@ -97,6 +102,12 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
                     raise ValueError(f"metadata mismatch for {key} in {path}")
                 metadata[key] = item[key]
         parts.append(item)
+    if any(timing_presence) and not all(timing_presence):
+        raise ValueError(
+            f"physical_timing must be present in every shard or absent from every shard in {run_dir}"
+        )
+    if timing_values and any(value != timing_values[0] for value in timing_values[1:]):
+        raise ValueError(f"physical_timing mismatch across shards in {run_dir}")
     keys = sorted(REQUIRED)
     merged = {key: torch.cat([part[key] for part in parts], dim=0) for key in keys}
     return merged, metadata, shard_hashes

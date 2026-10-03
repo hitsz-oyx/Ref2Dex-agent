@@ -22,8 +22,10 @@ decision/probe cards 和 `tmp/gate1_split_rng/` 中旧的 `V_HF`/`V_HFEI` 结果
 用于拒绝或支持 Gate 1。
 
 修正后的 collector 在 `env_step` 前保存物理量并写入
-`physical_timing=pre_env_step`。assembler 对没有该字段的旧 shard 采用显式
-`post_env_step_legacy` 一步回移，并从可对齐的窗口开始。future `E/I` 仍取
+`physical_timing=pre_env_step`。对没有该字段的旧 shard，assembler 默认拒绝；只有
+经过审计并显式传入 `--allow-legacy-timing-inference` 才采用
+`post_env_step_legacy` 一步回移，并从可对齐的窗口开始。一个 run 内的所有 shard
+必须共同声明相同的 `physical_timing`，混合缺失或不一致会 fail-closed。future `E/I` 仍取
 `t+1:t+H`，因此第一帧对应执行动作 `a_t` 后的状态。相对四元数沿时间轴做
 q/−q 连续化；world-frame hand/object force 在每个 future object frame 中旋转；
 contact mask 阈值与 live contact predicate 的 `0.1` 对齐。fit split 使用

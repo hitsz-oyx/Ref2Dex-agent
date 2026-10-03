@@ -114,3 +114,14 @@ def test_missing_physical_timing_fails_closed(tmp_path: Path) -> None:
         assemble_reference([run], horizon=3, history_length=10)
     with pytest.raises(ValueError, match="physical_timing missing"):
         assemble_vectorized([run], horizon=3, history_length=10)
+
+
+def test_mixed_physical_timing_shards_fail_closed(tmp_path: Path) -> None:
+    run = tmp_path / "mixed_timing"
+    _write_interleaved_run(run, "pre_env_step")
+    first = torch.load(run / "transitions_000.pt", map_location="cpu")
+    first.pop("physical_timing")
+    torch.save(first, run / "transitions_001.pt")
+    for assemble in (assemble_reference, assemble_vectorized):
+        with pytest.raises(ValueError, match="physical_timing.*every shard"):
+            assemble([run], horizon=3, history_length=10)

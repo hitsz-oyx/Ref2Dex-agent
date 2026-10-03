@@ -22,7 +22,8 @@ control）得到：
 | e420 | `+4.2,+25.8,+29.8,+3.9,+8.0%` | 3/5 / 4/5 | `+4.3,+27.3,+9.4,+4.5,+19.1%` | 4/5 / 4/5 |
 
 同时，commit `99061d8` 让缺失 `physical_timing` 的 shard 默认 fail-closed；只有显式
-legacy opt-in 才会执行历史 post-step 回移，避免未知 timing 被静默解释。
+legacy opt-in 才会执行历史 post-step 回移，避免未知 timing 被静默解释。当前修复还
+要求一个 run 的所有 shard 都声明相同 timing；混合缺失或值不一致会直接拒绝。
 
 因此 qfix 后 e260 h32 仍是 actor-local `PROMISING`，e420 仍未达到稳定跨 actor
 复现。qfix artifacts 位于 `tmp/e260_all8_h32_histfix_qfix*`、
