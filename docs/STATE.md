@@ -45,6 +45,15 @@ new corrected-native policy evidence. All18161source rows and geometry/neural/
 schedule/gate audits pass;15600updates,458.194s/273459235bytes, inputs unchanged,
 owned PIDs absent. [Result](research/20261003-cm-scale-cross-hand-results.md).
 
+Current-geometry granularity audit completed at927da81: MANO2048/Inspire10135
+raw hand points, but this prior uses64object queries with4averaged hand
+neighbors each. Full18161window audit finds zero selected near-hand queries
+in0.849%MANOeval/1.584%Inspireeval; all groups below prospective10%gate,
+UNCLEAR. Unsigned2cm proximity is not physical contact or complete local
+patch coverage. Fine aggregation/density performance effects remain untested;
+no new model fit and no change to the active causal-input blocker.
+[Result](research/20261003-surface-granularity-results.md).
+
 Independent implementation review confirmed a native collision-filter bug:
 body names were indexed by shape number despite25bodies/13shapes. Five hand
 shape filters were wrong. SDK ownership-based correction passes the actual

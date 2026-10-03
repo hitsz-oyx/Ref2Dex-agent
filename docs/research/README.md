@@ -12,6 +12,7 @@ same research branch/history with separate local Git metadata; old worktree read
 - [Completed fixed-policy sensitivity to corrected collision filters](20261003-inspire-filter-impact-results.md).
 - [Cm knowledge-prior data scale and coverage hypothesis](20261003-cm-data-scale-hypothesis.md): unresolved; proposed controlled design, no new run.
 - [Actual scale and MANO–Inspire prior transfer result](20261003-cm-scale-cross-hand-results.md):15600updates, all audits pass; complete gates fail, offline-input limitation remains.
+- [Raw hand points and actual query granularity](20261003-surface-granularity-results.md):2048/10135raw hand points;64query coverage audit completed, no demonstrated accuracy cause.
 
 ## 当前独立工作树研究
 
