@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport completed UNPROMISING; rotation/clearance screen prepared.
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; action-decision route review next.
 
 ## Workspace and task
 
@@ -32,6 +32,21 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-rotational-clearance-adequacy-r1 COMPLETED/UNPROMISING at13cbd0b.
+Held144eligiblewindows/113episodes: equalepisode flips1.9174%fails10%;
+weighted95throtation7.0397mm passes2mm, coveragepasses. Full105actual and
+persteptrue-translation diagnostics agree on ALL768episode labels,325successes
+(held154/384). Not a deployable/causal no-rotation trajectory; currentorientation
+is refreshed at EACH step and futuretranslation is privileged. Motion0 has
+noeligiblewindows. Current64pointflow alreadyhasrotation; do not attribute
+learnerfailure to old6Dtarget omission. ALL155904meshposes/155136transitions
+independently audited, geometry1.11e-16m/native5.61e-8m/metric2.09e-17max,
+source chronology/context/labels/split/full105task/gates PASS.37.967316s,
+19509015bytes,0NN/nativeupdates, GPU6geometry/CPUaudit,inputs unchanged,
+ownedPIDs absent. No subagent audit claimed for thisrun. Close rotation-only
+remedy on this panel; next action-decision-level route review before newfit.
+[Result](research/20261003-rotational-clearance-results.md).
 
 
 P-20261003-state-anchored-transport-r2 COMPLETED/UNPROMISING at171af9c:
@@ -132,7 +147,7 @@ raw hand points, but this prior uses64object queries with4averaged hand
 neighbors each. Full18161window audit finds zero selected near-hand queries
 in0.849%MANOeval/1.584%Inspireeval; all groups below prospective10%gate,
 UNCLEAR. Unsigned2cm proximity is not physical contact or complete local
-patch coverage. Fine aggregation/density performance effects remain untested;
+patch coverage. Subsequent fixed64/256context and mean/detail comparison failed allgates;
 no new model fit and no change to the active causal-input blocker.
 [Result](research/20261003-surface-granularity-results.md).
 
@@ -220,28 +235,20 @@ but overallmatchedstate advantage8.955%fails10%; boundedlocalheadfamily
 closed. No additionalsteps/seed/width/radius/objective/mixing rescans or
 subgroup rescue; no nativequalification/actortraining from this failedgate.
 
-Return to higher-levelphysicaltarget adequacy. Read-onlycode inspection:
-oldercontinuouscritic6Dtarget is translation+linearvelocity, omitsrotation/
-angularvelocity; current64pointflow DOESrepresentrotation. Saved2contact
-flags are SDKnetforce thresholds, not attributedhand-objectcontactpairs.
-Next cheapestprospective offlinefullmesh rotation/clearance adequacy screen
-onretainedcorrected episodes: distinguish representation issue from local
-head tweaks BEFORE newNN/native work. Separate exact metrics/gates/eligibility
-must be fixed beforedataanalysis. Ifrotation cannot alteractualtask-relevant
-clearance decisions enough, dropthiscandidate ratherthan repeat oldforce/
-measuredgeometry barrier models. These sourcefacts are not proven failure
-causes. Mission unchanged, goalACTIVE,journalNOTREADY.
-[Decision](decisions/D-20261003-after-state-anchored-transport.md).
+Full-mesh rotational target-adequacy screen is complete and fails its decision
+flip gate. Stop this candidate; no SE3 model or actor launched. Old6Dtarget
+omitsfutureorientation, current64pointflow includesit; no causal attribution
+of model failure to that omission. Netforce flags are not attributedcontact.
+[Card](experiments/probes/P-20261003-rotational-clearance-adequacy.md),
+[decision](decisions/D-20261003-after-rotational-clearance.md).
 
-P-20261003-rotational-clearance-adequacy prepared: all768x202retainednative
-transitions/203poses,25002vertexGPUfullmesh + ALLCPUindependentSciPy/NumPy
-geometry. FixedCURRENTeligibility=rootrise30mm/currentclearance15..25mm;
-futuretranslationoracle/persistedcurrentrotation decisionvsactual20mmplane.
-HELDmin128windows32episodes, equalepisodeflip>=10% and weighted95rotation
->=2mm; no subgrouprescue. Pureobservationalgeometry, not causalcontact or
-missingrotationasconfirmedlearnercause.0newNN/native,300s64MiB. FourposeCPU
-explicittranslation/rotationhybrid smokePASS/exactalgebra; independentmesh
-1.04e-17m. [Card](experiments/probes/P-20261003-rotational-clearance-adequacy.md).
+Next: bounded action-decision research review before another fit. Identify
+what physical information can change decisions beyond strongtask-Q, accounting
+for previouslyfailed observed-successor distribution and physical-feature-Q
+recipes; do not rename them as unexplored routes. Surface extractor explicitly
+requires30Hz/1/30s, same nativecontrol clock: no time-scale mismatch established.
+Realizedfuture-hand versus causalcommand and legacyphysics remain limitations,
+not newsolecauses. No new candidate/training commitment yet; missionunchanged.
 
 
 User-authorized fixed-data granularity comparison completed with all six

@@ -320,3 +320,15 @@ actualmatched trainedpolicy utility/multiple independenttrainingseeds.
 Recent scale/granularity/causalexecution/calibration/capacity/learnability
 results and retainedengineeringfailures must enter the manuscript before
 externalreport. No paperready claim follows currentpredictionimprovements.
+
+
+## Rotational response: broader evidence only after useful method qualification
+
+One-step observed clearance screen13cbd0b fails the fixed decision-flip gate;
+rotation95th7.04mm is not evidence of policy utility. It leaves longer-horizon,
+unseen-action and other-geometry rotational effects untested; motion0 had no
+eligible windows. Broad multi-object/seed causal Validation would be needed
+before any general rotation-irrelevance or target-sufficiency claim. Deferred:
+these evidence runs do not change the present decision to close rotation-only
+remedy on the reused panel. Do not replace the failed gate with a longer-horizon
+scan or call the true-future-translation diagnostic deployable.
