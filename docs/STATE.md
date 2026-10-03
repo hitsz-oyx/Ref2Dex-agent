@@ -2,6 +2,24 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm consequence-error memory Probe: closed
+
+在关闭 direct selection/MVE/critic/planning 家族后，新增 observation responsibility：Cm
+仍只预测真实一步动作后果，但下一决策额外读取上一动作的 observed-minus-Cm consequence
+error、ensemble disagreement 和 predecessor mask，测试它是否能表示接触/dynamics regime。
+held-only residual value head 不改变 actor、reward 或 success predictor，另设同架构 shuffled
+memory control。完整 screen 使用 `120,000` fit rows、`209,788` held rows、`1536/384`
+fit/held episodes，valid memory 为 `99.82%`。
+
+direct-Q held RMSE/MAE/row Spearman/episode Spearman 为 `26.833/9.108/0.589/0.743`；真实
+residual memory 为 `27.072/9.335/0.582/0.769`，shuffle 为 `27.670/10.075/0.558/0.772`。
+真实 residual 的 episode Spearman 增加 `0.026`，且 RMSE 比 shuffle 好 `0.598`，但相对
+direct-Q 的 RMSE 变差 `0.238`，未过预注册 `0.5` 改善门。因此 Probe 为 `UNPROMISING`，不
+做 native collection、policy training 或阈值/seed/horizon 扫描；episode-level 变化只保留
+为混合诊断线索。见 [Probe card](experiments/probes/P-20261003-cm-consequence-memory.md)、
+[结果](experiments/probes/P-20261003-cm-consequence-memory-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-consequence-memory.md)。
+
 ## 2026-10-03 Cm two-step MPC planning Probe: closed
 
 为检验递归 planning 是否能把 Cm 的一步真实动作后果转成相对动作优势，冻结同一 physical

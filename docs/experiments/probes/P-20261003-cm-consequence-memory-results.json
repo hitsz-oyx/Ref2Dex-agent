@@ -1,0 +1,47 @@
+{
+  "schema": "ref2dex.cm_consequence_memory_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-consequence-memory",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "rows": {"fit_used": 120000, "held": 209788},
+  "episodes": {"fit": 1536, "held": 384},
+  "valid_memory_fraction": 0.9981696009635925,
+  "contract": {
+    "memory": "previous observed-minus-Cm one-step consequence plus ensemble disagreement",
+    "current_transition_future_fields_used": false,
+    "success_predictor": false,
+    "actor_changed": false
+  },
+  "held_models": {
+    "frozen_direct_q": {
+      "rmse": 26.833181381225586,
+      "mae": 9.108014106750488,
+      "row_spearman": 0.5889916827063789,
+      "episode_spearman": 0.7429344969651758
+    },
+    "real_consequence_memory_residual": {
+      "rmse": 27.071561813354492,
+      "mae": 9.33466911315918,
+      "row_spearman": 0.5821334619456713,
+      "episode_spearman": 0.7687321979586993
+    },
+    "shuffled_consequence_memory_residual": {
+      "rmse": 27.669525146484375,
+      "mae": 10.074588775634766,
+      "row_spearman": 0.5577742379673332,
+      "episode_spearman": 0.772263148079075
+    }
+  },
+  "delta_vs_direct": {
+    "real": {"rmse": 0.23838043212890625, "mae": 0.2266550064086914, "row_spearman": -0.006858220760707634, "episode_spearman": 0.02579770099352352},
+    "shuffled": {"rmse": 0.8363437652587891, "mae": 0.9665746688842773, "row_spearman": -0.031217444739045752, "episode_spearman": 0.029328651113899262}
+  },
+  "gates": {
+    "real_rmse_improvement_at_least_0_5": false,
+    "episode_spearman_loss_within_0_01": true,
+    "valid_memory_fraction_at_least_0_80": true,
+    "real_beats_shuffled_by_0_2_rmse": true
+  },
+  "probe_label": "UNPROMISING",
+  "decision": "Close consequence-memory observation contract; no native or policy follow-up"
+}
