@@ -134,9 +134,8 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
             chunks["previous_action"].append(merged["previous_action"][current_pos].float())
             chunks["context"].append(merged["context"][current_pos].float())
             chunks["history_state"].append(merged["state"][history_idx].float())
-            history_action = merged["previous_action"][history_idx].float().clone()
-            history_action[:, 0].zero_()
-            chunks["history_previous_action"].append(history_action)
+            chunks["history_previous_action"].append(
+                merged["previous_action"][history_idx].float())
             chunks["history_context"].append(merged["context"][history_idx].float())
             chunks["history_progress"].append(merged["progress"][history_idx].float().unsqueeze(-1))
             chunks["action"].append(merged["action"][current_pos].float())
@@ -161,7 +160,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
         **metadata,
         "effect_layout": "future decision-object-frame [relative_xyz, relative_quaternion_xyzw, linear_velocity_xyz, angular_velocity_xyz]",
         "interaction_layout": "future contemporaneous-object-frame [hand_relative_xyz, hand_relative_quaternion_xyzw, relative_velocity_xyz, hand_force_xyz, object_force_xyz, hand_force_norm, object_force_norm, hand_contact_mask, object_contact_mask] per contact body",
-        "history_layout": "past contiguous [state, previous_action, context, progress]; first action slot is zero because it precedes the oldest state",
+        "history_layout": "past contiguous [state, factual preceding action, context, progress]; episode-initial preceding action remains the collector value",
         "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
         "split_unit": "(source_run, episode_id)",
         "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
