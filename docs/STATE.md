@@ -364,6 +364,11 @@ paper12/rawaudits/nativePDF/source/visual/failedexport/106fileSHA/Gitbundle,
 102005649unique bytes,base/r1--r19manifests unchanged.
 [Receipt](activities/20261003-contrast-acquisition-paper-delivery.md).
 
+Supplement-r21 through59dc43a preserves the completed fixed-density screen,
+all768native trajectories/free-body physics/metadata/causal decisions/audits/
+logs/source/card/results/decisions,337538542unique bytes; all copies/Gitbundle
+and base/r1--r20 manifests verified. [Receipt](activities/20261003-latent-load-delivery.md).
+
 Manuscriptv12 is an audited native27page workingdraft with recent evidence;
 v11/older/firstfailedexport retained. No journal-ready or positiveCmclaim.
 Formal multi-training-seed utility Validation,
