@@ -113,7 +113,11 @@ coefficient/width/steps/seed/horizon/truncation/label-budget rescue. No formal
 Validation launched from a failed Probe.
 
 Next autonomous step: design bounded corrected-environment baseline/data
-qualification. The measured fixed-policy sensitivity warrants substrate review
+qualification, then a fixed-definition Cm data-scale/coverage diagnostic.
+User raised Cm as a knowledge prior; broad compatible pretraining and controlled
+size/diversity curves remain untested on this independent track. Task-local
+negative fits do not resolve that hypothesis. [Scale note](research/20261003-cm-data-scale-hypothesis.md).
+The measured fixed-policy sensitivity warrants substrate review
 before further training claims; preserve the fix and old evidence. No replay
 of every closed recipe or new fit without a separate prospective design.
 [Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
