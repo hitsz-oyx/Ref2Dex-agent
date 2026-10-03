@@ -1,0 +1,316 @@
+{
+  "schema": "ref2dex.worktree_archive.v1",
+  "created_at": "2026-10-03T09:34:20.119353+00:00",
+  "repository": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+  "archive_dir": "/home2/wyy/oyx_ws/ai_ws/.ref2dex-branch-archive/20261003",
+  "removed_worktrees": [
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-accounts",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-adoption",
+    "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22-audit"
+  ],
+  "branch_policy": "worktree directories may be removed; branch refs and Git commits are retained",
+  "ignored_artifacts_policy": "ignored caches/runtime/output files are inventoried but not duplicated; dirty worktrees are retained",
+  "worktrees": [
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline",
+      "head": "bcf26377ba4236fca68e4a26b6653fb292b312b9",
+      "branch": "agent/grab-full-baseline",
+      "last_commit": {
+        "sha": "bcf26377ba4236fca68e4a26b6653fb292b312b9",
+        "committed_at": "2026-09-26T14:54:48+08:00",
+        "authored_at": "2026-09-26T14:54:48+08:00",
+        "subject": "docs: record full59 local residual probe"
+      },
+      "status_clean": false,
+      "tracked_change_count": 0,
+      "untracked_count": 5,
+      "ignored_count": 12626,
+      "directory_bytes": 78540282800,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__grab-full-baseline",
+      "copied_untracked": [
+        ".agents/skills/research-loop/SKILL.md",
+        "docs/CODEX_OVERLOAD_WATCHDOG.md",
+        "scripts/codex_overload_watchdog.py",
+        "src/task/CmResidual/tests/test_v121c_ranking.py",
+        "tests/test_codex_overload_watchdog.py"
+      ],
+      "skipped_untracked": [],
+      "disposition": "primary_git_store_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
+      "head": "15f24aa76d9022f6af67da5b727b45c6fcd5ebaf",
+      "branch": "agent/cm-residual-policy",
+      "last_commit": {
+        "sha": "15f24aa76d9022f6af67da5b727b45c6fcd5ebaf",
+        "committed_at": "2026-10-03T17:01:31+08:00",
+        "authored_at": "2026-10-03T17:01:31+08:00",
+        "subject": "docs: archive research records and worktrees"
+      },
+      "status_clean": false,
+      "tracked_change_count": 6,
+      "untracked_count": 51,
+      "ignored_count": 4018,
+      "directory_bytes": 22864619208,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__cm-residual-policy",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "active_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-cm",
+      "head": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237",
+      "branch": "agent/cm",
+      "last_commit": {
+        "sha": "a0ecee73db7bc7bf9ddb6b9016d028ba16943237",
+        "committed_at": "2026-09-28T01:48:58+08:00",
+        "authored_at": "2026-09-28T01:44:07+08:00",
+        "subject": "Fail closed on invalid broker bindings"
+      },
+      "status_clean": false,
+      "tracked_change_count": 0,
+      "untracked_count": 25,
+      "ignored_count": 4,
+      "directory_bytes": 231602076,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__cm",
+      "copied_untracked": [
+        "docs/decisions/D-20260928-cm-scratch-teacher-arbitration.md",
+        "docs/handoffs/CM_CALIBRATION_REPAIR_SCREEN_R1.py",
+        "docs/handoffs/CM_CALIBRATION_REPAIR_SCREEN_R1_20260930.json",
+        "docs/handoffs/CM_CALIBRATION_REPAIR_SCREEN_R1_CONFIG.json",
+        "docs/handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.json",
+        "docs/handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md",
+        "docs/handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.json",
+        "docs/handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md",
+        "docs/handoffs/CM_SCRATCH_SUPPORT_CONTRACT_AUDIT_20260928.md",
+        "docs/handoffs/CM_SCRATCH_SUPPORT_MANIFEST_20260928.json",
+        "docs/handoffs/CM_SCRATCH_TEACHER_ARBITRATION_20260928.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_INPUT_GUARDS_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_INPUT_GUARDS_20261001.md",
+        "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json",
+        "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.md",
+        "docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.json",
+        "docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md",
+        "scripts/audit_current_policy_value.py",
+        "scripts/audit_hf08_value_targets.py",
+        "scripts/audit_hf08_value_targets_r2.py",
+        "src/task/CmResidual/configs/cm_scratch_teacher_arbitration_v1.json",
+        "src/task/CmResidual/scratch_teacher_arbitration_contract.py",
+        "tests/test_current_policy_value_diagnostics.py"
+      ],
+      "skipped_untracked": [],
+      "disposition": "dirty_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response",
+      "head": "a25b56079f05e4b7d1b49391dff12b762a98d4cf",
+      "branch": "agent/contact-response-cm",
+      "last_commit": {
+        "sha": "a25b56079f05e4b7d1b49391dff12b762a98d4cf",
+        "committed_at": "2026-10-02T17:22:53+08:00",
+        "authored_at": "2026-10-02T17:22:53+08:00",
+        "subject": "Record verified live prospective response policy execution"
+      },
+      "status_clean": false,
+      "tracked_change_count": 1,
+      "untracked_count": 2,
+      "ignored_count": 2888,
+      "directory_bytes": 16159670015,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__contact-response-cm",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "active_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-infra",
+      "head": "52e9480e4ce4d2b2fef72a4ed2892c37e260416c",
+      "branch": "agent/infra",
+      "last_commit": {
+        "sha": "52e9480e4ce4d2b2fef72a4ed2892c37e260416c",
+        "committed_at": "2026-09-28T01:44:07+08:00",
+        "authored_at": "2026-09-28T01:44:07+08:00",
+        "subject": "Fail closed on invalid broker bindings"
+      },
+      "status_clean": false,
+      "tracked_change_count": 13,
+      "untracked_count": 12,
+      "ignored_count": 220,
+      "directory_bytes": 233380490,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__infra",
+      "copied_untracked": [
+        "docs/decisions/D-20260930-root-liveness-lease-identity.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_MAIN_INTEGRATION_PREP_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_MAIN_INTEGRATION_PREP_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_MAIN_STATE_CANDIDATE_20261001.md",
+        "docs/handoffs/HF08_AUDIT_STATE_LEDGER_SYNC_20261001.json",
+        "docs/handoffs/HF08_AUDIT_STATE_LEDGER_SYNC_20261001.md",
+        "docs/handoffs/HF08_MAIN_EVIDENCE_INTEGRATION_PREP_20261001.json",
+        "docs/handoffs/HF08_MAIN_EVIDENCE_INTEGRATION_PREP_20261001.md",
+        "docs/handoffs/HF08_MAIN_STATE_CANDIDATE_20261001.md",
+        "docs/handoffs/HF08_STATE_SYNC_20261001.md",
+        "src/task/CmResidual/six_expert_support_contract.py",
+        "tests/test_six_expert_support_contract.py"
+      ],
+      "skipped_untracked": [],
+      "disposition": "dirty_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+      "head": "d9de7059ddda76927fb3779de680d39652efb8b9",
+      "branch": "main",
+      "last_commit": {
+        "sha": "d9de7059ddda76927fb3779de680d39652efb8b9",
+        "committed_at": "2026-10-01T15:48:38+08:00",
+        "authored_at": "2026-10-01T15:48:38+08:00",
+        "subject": "Merge per-role account fallback and foreground root binding"
+      },
+      "status_clean": true,
+      "tracked_change_count": 0,
+      "untracked_count": 0,
+      "ignored_count": 20011,
+      "directory_bytes": 364382382,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/main",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "remove_clean_worktree",
+      "branch_ref_retained": true,
+      "worktree_removed": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl",
+      "head": "39d0615db896ee66befa41504f605e87a6f9d136",
+      "branch": "agent/rl",
+      "last_commit": {
+        "sha": "39d0615db896ee66befa41504f605e87a6f9d136",
+        "committed_at": "2026-09-28T18:48:41+08:00",
+        "authored_at": "2026-09-28T18:48:41+08:00",
+        "subject": "repair six-expert object lift axis provenance contract"
+      },
+      "status_clean": false,
+      "tracked_change_count": 1,
+      "untracked_count": 21,
+      "ignored_count": 176,
+      "directory_bytes": 1110646449,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__rl",
+      "copied_untracked": [
+        "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+        "docs/handoffs/CURRENT_POLICY_NATIVE_PLAYER_CONTRACT_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_NATIVE_PLAYER_CONTRACT_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_PREFLIGHT_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_PREFLIGHT_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.md",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R3_20261001.json",
+        "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R3_20261001.md",
+        "scripts/collect_current_policy_value.py",
+        "scripts/run_current_policy_value_environment.py",
+        "scripts/run_six_expert_distill_cpu.py",
+        "scripts/run_six_expert_distillation_cpu_probe.py",
+        "scripts/run_six_expert_support_collection.py",
+        "scripts/run_six_expert_trajectory_distillation.py",
+        "src/task/CmResidual/tests/test_support_collector_launcher.py",
+        "tests/test_current_policy_value_collection_contract.py"
+      ],
+      "skipped_untracked": [],
+      "disposition": "dirty_keep"
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-accounts",
+      "head": "e70198f0851910388d663470cb9911103b7c9ce2",
+      "branch": "agent/workflow-accounts",
+      "last_commit": {
+        "sha": "e70198f0851910388d663470cb9911103b7c9ce2",
+        "committed_at": "2026-10-01T11:59:51+08:00",
+        "authored_at": "2026-10-01T11:59:51+08:00",
+        "subject": "Record account routing and root bootstrap validation"
+      },
+      "status_clean": true,
+      "tracked_change_count": 0,
+      "untracked_count": 0,
+      "ignored_count": 443,
+      "directory_bytes": 242502899,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__workflow-accounts",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "remove_clean_worktree",
+      "branch_ref_retained": true,
+      "worktree_removed": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-adoption",
+      "head": "4f42f6549f429a09362f960ab9f525ec9b57f24d",
+      "branch": "agent/workflow-runtime-adoption",
+      "last_commit": {
+        "sha": "4f42f6549f429a09362f960ab9f525ec9b57f24d",
+        "committed_at": "2026-09-30T22:01:01+08:00",
+        "authored_at": "2026-09-30T22:01:01+08:00",
+        "subject": "Preserve pause, goal and GPU boundaries during task recovery"
+      },
+      "status_clean": true,
+      "tracked_change_count": 0,
+      "untracked_count": 0,
+      "ignored_count": 42181,
+      "directory_bytes": 560899440,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__workflow-runtime-adoption",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "remove_clean_worktree",
+      "branch_ref_retained": true,
+      "worktree_removed": true
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22-audit",
+      "head": "65f149e9cbe5f71f4a343cfc1d09e1e5fab3a01c",
+      "branch": "agent/root-goal-lifecycle-test-20260927",
+      "last_commit": {
+        "sha": "65f149e9cbe5f71f4a343cfc1d09e1e5fab3a01c",
+        "committed_at": "2026-09-27T23:57:34+08:00",
+        "authored_at": "2026-09-27T23:55:37+08:00",
+        "subject": "docs: audit dc4c217 workflow refactor"
+      },
+      "status_clean": true,
+      "tracked_change_count": 0,
+      "untracked_count": 0,
+      "ignored_count": 28,
+      "directory_bytes": 231308435,
+      "snapshot_dir": ".ref2dex-branch-archive/20261003/worktrees/agent__root-goal-lifecycle-test-20260927",
+      "copied_untracked": [],
+      "skipped_untracked": [],
+      "disposition": "remove_clean_worktree",
+      "branch_ref_retained": true,
+      "worktree_removed": true
+    }
+  ],
+  "standalone_copies": [
+    ".ref2dex-branch-archive/20261003/standalone/Ref2Dex-agent-workflow-v22/docs/handoffs/DC4C217_WORKFLOW_REFACTOR_AUDIT_20260927.md",
+    ".ref2dex-branch-archive/20261003/standalone/ai_ws/Ref2Dex-agent/outputs/CmResidual/agent_grab59_cm_margin_probe_on_s253/run_manifest.json",
+    ".ref2dex-branch-archive/20261003/standalone/ai_ws/Ref2Dex-agent/outputs/CmResidual/agent_grab59_cm_margin_probe_on_s253/results.json"
+  ],
+  "cleanup_completed_at": "2026-10-03T09:35:46.673818+00:00",
+  "removed_worktrees_verified": [
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+      "directory_exists": false
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-accounts",
+      "directory_exists": false
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-adoption",
+      "directory_exists": false
+    },
+    {
+      "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-workflow-v22-audit",
+      "directory_exists": false
+    }
+  ],
+  "remaining_worktrees": "worktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline\nHEAD bcf26377ba4236fca68e4a26b6653fb292b312b9\nbranch refs/heads/agent/grab-full-baseline\n\nworktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent\nHEAD 15f24aa76d9022f6af67da5b727b45c6fcd5ebaf\nbranch refs/heads/agent/cm-residual-policy\n\nworktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-cm\nHEAD a0ecee73db7bc7bf9ddb6b9016d028ba16943237\nbranch refs/heads/agent/cm\n\nworktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-contact-response\nHEAD a25b56079f05e4b7d1b49391dff12b762a98d4cf\nbranch refs/heads/agent/contact-response-cm\n\nworktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-infra\nHEAD 52e9480e4ce4d2b2fef72a4ed2892c37e260416c\nbranch refs/heads/agent/infra\n\nworktree /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-rl\nHEAD 39d0615db896ee66befa41504f605e87a6f9d136\nbranch refs/heads/agent/rl\n\n"
+}

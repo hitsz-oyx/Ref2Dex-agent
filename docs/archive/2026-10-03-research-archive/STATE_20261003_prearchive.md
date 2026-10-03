@@ -1,0 +1,972 @@
+# Ref2Dex Current Research State
+
+Updated: 2026-10-03
+
+## 2026-10-03 privileged action-value upper-bound Probe: UNPROMISING and closed
+
+按 `docs/ref.md` 先冻结 Cm/PPO，审计并拟合 privileged `Q_priv(s,a)`、`Q_state(s)` 和
+`Q_shuffle(s,a)`。旧 `P-20261003-cm-candidate-advantage-r1` 的 287 行记录通过结构审计：
+95 个 episode、25 个 motion/start group、`p=1/8` assignment、完整 10-step 非 terminal
+标签和 episode 内 metadata 一致；8 份 manifest 的 simulator/panel/assignment seed 一致。
+
+旧的高维 MLP fit 已被实现审计撤回：带 nuisance state 的合成回归测试漏检已知 `+100mm`
+动作效应，故旧结果是 `INVALID_IMPLEMENTATION`。修复 collector 的 launch-time hash provenance
+和 v2 episode ID 兼容性后，`seed624`–`seed632` 的显式 v2 数据共 354 行、24 个
+motion/start group，support gate 通过。corrected fit 为：`Q_priv/Q_state/Q_shuffle`
+RMSE `47.490/47.414/47.300mm`；privileged 相对 fixed Cup 的 IPS delta 均值 `-26.100mm`、
+90% 区间 `[-62.250,7.393]mm`，5 个 fold 仅 2 个为正。独立 Cm local selector fallback
+相对 fixed Cup 均值约 `-15.0mm`、90% 下界约 `-34.2mm`。因此当前 candidate-set
+privileged/local-planner 路线正式为 `UNPROMISING`；不进入长期 `Q^{pi_base}` 采集，不启动
+PPO，不把结果外推为 Cm 在所有任务上无效。证据见 [Probe card]
+(experiments/probes/P-20261003-privileged-action-value-upper-bound.md)、[v2 audit]
+(experiments/probes/P-20261003-privileged-action-value-upper-bound-v2-audit.json)、[v2 fit]
+(experiments/probes/P-20261003-privileged-action-value-upper-bound-v2-results.json) 和
+[candidate audit](experiments/probes/P-20261003-privileged-action-value-upper-bound-v2-candidate-audit.json)。
+
+## 2026-10-03 Cm targeted-transition fit Probe: closed
+
+HF31 只用 HF30 native acquisition 的 `36` 条 targeted 首步 transition，固定 600 updates，
+仅适配 Cm final output projection；direct-Q、actor、held rows 和普通数据均不变。训练 loss
+从 `0.579215` 降到 `0.111830`，但 held physical RMSE 从 `0.482034` 恶化到 `0.565057`
+（`+17.2%`），high-uncertainty 子集从 `0.905606` 到 `1.000025`（`+10.4%`）；conservative
+value-target RMSE 从 `26.622387` 到 `26.713272`，episode Spearman 增加 `0.00826`。
+
+Probe 为 `UNPROMISING`：真实 targeted transitions 能定位 disagreement regime，却不足以安全
+迁移 Cm，固定小样本 fit 明显 over-specialize。不做 policy follow-up、普通数据扩充或
+threshold/seed/horizon 扫描。见 [Probe card](experiments/probes/P-20261003-cm-targeted-transition-fit.md)、
+[结果](experiments/probes/P-20261003-cm-targeted-transition-fit-results.json) 和
+[Decision Memo](decisions/D-20261003-cm-route-review-targeted-acquisition.md)。
+
+## 2026-10-03 Cm native uncertainty-acquisition Probe: promising local signal
+
+HF30 在 native 96-env collector 中冻结六个 expert candidate 和 Cm ensemble，在接触状态
+按 translation/velocity/contact/reward/terminal disagreement 选择高不确定性候选；实际执行
+两步后回到 BASE_INDEX baseline。有效采集 `83` 个完整十步窗口，其中 targeted `36`、
+baseline `47`，targeted motion/start groups `28`。targeted disagreement `0.435071` 对
+baseline `0.431055`（`+0.004016`）；contact loss `16.94%` 对 `14.04%`（`+2.90pp`），
+两臂 drop rate 都为 `0%`。窗口、group、uncertainty、contact/drop 五个门全部通过，Probe
+为 `PROMISING`，但这仍只是 acquisition/executability signal。
+
+因此只授权一次固定 physical-consequence fit，使用这些实际 targeted transitions，再跑既有
+held task-value screen；不启动 policy training，不扩大普通数据，不扫描 threshold/seed/
+horizon。见 [Probe card](experiments/probes/P-20261003-cm-uncertainty-acquisition-native.md)、
+[结果](experiments/probes/P-20261003-cm-uncertainty-acquisition-native-results.json) 和
+[Decision Memo](decisions/D-20261003-cm-route-review-targeted-acquisition.md)。
+
+## 2026-10-03 Cm uncertainty-guided retraining Probe: closed
+
+按 HF28 的唯一授权，使用 fit-only top-20% frozen disagreement（120,000 fit rows 中
+24,000 rows）对三个 Cm dynamics member 各更新 600 次；held split 为 209,788 rows，
+direct-Q、actor、reward、success definition 和 orientation exclusion 均不变。高不确定性
+子集 physical RMSE 从 `0.905606` 降到 `0.859734`，改善 `5.1%`，但未达到预注册的 `10%`
+门；overall physical RMSE 从 `0.482034` 降到 `0.466745`。conservative one-step value-target
+RMSE 从 `26.622387` 变为 `26.632624`，episode Spearman 增加 `0.00678`，因此任务价值门
+失败。
+
+Probe 为 `UNPROMISING`：disagreement 确实定位了物理误差 regime，但在已有数据上重加权
+没有把它转成更好的 task-value target。不做 policy follow-up、普通数据扩充或 threshold/
+seed/horizon/model-weight 扫描；HF28 只保留为 data-local acquisition signal。见 [Probe card]
+(experiments/probes/P-20261003-cm-uncertainty-retraining.md)、[结果]
+(experiments/probes/P-20261003-cm-uncertainty-retraining-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-uncertainty-retraining.md)。
+
+## 2026-10-03 Cm uncertainty-guided data Probe: promising local signal
+
+为区分“普通数据不足”与“模型在少数动力学 regime 上失真”，冻结 Cm ensemble，在
+209,788 held rows 上用 object translation/velocity/contact/reward/terminal 的 ensemble
+disagreement 作为 uncertainty，orientation head 排除。top-20% disagreement 的真实
+normalized physical error 是 bottom-50% 的 `7.03×`，承载 direct-Q absolute residual 的
+`32.5%`，覆盖全部 `384` held episodes；Spearman(uncertainty, physical error) 为 `0.535`，
+与 absolute Q residual 为 `0.058`。三个预注册 data-responsibility 门均通过，Probe 为
+`PROMISING`，但这只是 acquisition signal，不是 Cm policy utility。
+
+因此只授权一次固定 high-uncertainty fit/retraining Probe；在其完成前不扩大普通数据、
+不扫 threshold/seed/horizon、不启动 policy training。见 [Probe card]
+(experiments/probes/P-20261003-cm-uncertainty-acquisition.md)、[结果]
+(experiments/probes/P-20261003-cm-uncertainty-acquisition-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-uncertainty-acquisition.md)。
+
+## 2026-10-03 Cm object-orientation consequence Probe: closed
+
+现有 conservative continuation 一直保留 observed object orientation；为检验是否丢弃了 Cm
+预测的旋转后果，冻结 hand q/dq，比较 observed orientation control 与使用 Cm predicted
+canonical quaternion 的一步 direct-Q continuation。209,788 held rows/384 episodes 上，
+direct-Q RMSE 为 `26.833`，observed-orientation control 为 `26.622`，Cm-predicted
+orientation 为 `26.642`；treatment 相对 control RMSE `+0.019`、episode Spearman `+0.0006`，
+未过预注册 `0.5` RMSE 改善门。Cm quaternion error 均值 `1.35 rad`、P90 `2.74 rad`。
+
+因此 Probe 为 `UNPROMISING`，不做 critic fine-tune、native collection 或 policy training；
+该结果只关闭 orientation consequence contract，不否定 Cm 的 translation/contact 预测。
+见 [Probe card](experiments/probes/P-20261003-cm-orientation-consequence.md)、[结果]
+(experiments/probes/P-20261003-cm-orientation-consequence-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-orientation-consequence.md)。
+
+## 2026-10-03 Cm consequence-error memory Probe: closed
+
+在关闭 direct selection/MVE/critic/planning 家族后，新增 observation responsibility：Cm
+仍只预测真实一步动作后果，但下一决策额外读取上一动作的 observed-minus-Cm consequence
+error、ensemble disagreement 和 predecessor mask，测试它是否能表示接触/dynamics regime。
+held-only residual value head 不改变 actor、reward 或 success predictor，另设同架构 shuffled
+memory control。完整 screen 使用 `120,000` fit rows、`209,788` held rows、`1536/384`
+fit/held episodes，valid memory 为 `99.82%`。
+
+direct-Q held RMSE/MAE/row Spearman/episode Spearman 为 `26.833/9.108/0.589/0.743`；真实
+residual memory 为 `27.072/9.335/0.582/0.769`，shuffle 为 `27.670/10.075/0.558/0.772`。
+真实 residual 的 episode Spearman 增加 `0.026`，且 RMSE 比 shuffle 好 `0.598`，但相对
+direct-Q 的 RMSE 变差 `0.238`，未过预注册 `0.5` 改善门。因此 Probe 为 `UNPROMISING`，不
+做 native collection、policy training 或阈值/seed/horizon 扫描；episode-level 变化只保留
+为混合诊断线索。见 [Probe card](experiments/probes/P-20261003-cm-consequence-memory.md)、
+[结果](experiments/probes/P-20261003-cm-consequence-memory-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-consequence-memory.md)。
+
+## 2026-10-03 Cm two-step MPC planning Probe: closed
+
+为检验递归 planning 是否能把 Cm 的一步真实动作后果转成相对动作优势，冻结同一 physical
+ensemble，在 held transition 上递归想象两步局部候选动作；第二步仍从同一 bounded panel
+选择，direct-Q 提供 tail value，保留 hand q/dq 与 object orientation，不接 actor、success
+predictor 或 native simulator。预注册门为 RMSE 至少改善 `0.5`、episode Spearman 损失不超过
+`0.01`，且首动作 argmax 改变在 `5%–60%`。
+
+512 行/384 个 held episode 的 direct-Q RMSE/MAE/row Spearman/episode Spearman 为
+`31.029/11.334/0.553/0.554`；two-step MPC 为 `34.817/11.274/0.556/0.563`，RMSE 变差
+`3.788`，首动作 argmax 改变 `82.8%`。因此 RMSE 和 action-change 门均失败，Probe 为
+`UNPROMISING`；不做 native collection、policy training、horizon/action-panel/uncertainty
+扫描或更多 model-based critic 变体。该结果只关闭递归 two-step planning，不否定 Cm 作为
+一步真实动作后果预测器。见 [Probe card](experiments/probes/P-20261003-cm-two-step-mpc.md)、
+[结果](experiments/probes/P-20261003-cm-two-step-mpc-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-two-step-mpc.md)。当前 physical-value decision family 的后续若要
+继续，必须先提出新的 observation 或 control responsibility。
+
+## 2026-10-03 Cm model-based critic augmentation: policy route closed
+
+为检验 Cm 是否能以 MBPO/value-equivalence 方式参与 critic 训练，而不改 actor 输入、动作、
+reward 或成功定义，冻结 physical ensemble 生成一步 conservative synthetic target：观测的
+hand q/dq 与 object orientation 保留，Cm 只提供 object translation/velocity/contact/events，
+并以 direct-Q continuation 计算 target。normalized ensemble disagreement `0.5` gate 保留
+`99.62%` 的 120,000 fit rows。固定 `0.25` model-target blend 微调 direct-Q 后，held 209,788
+rows 的 RMSE/MAE/row Spearman/episode Spearman 为 `25.712/8.377/0.606/0.774`，相对 frozen
+direct-Q `26.833/9.108/0.589/0.743`，因此 critic-only Probe `PROMISING`。
+
+按预注册门继续做唯一 matched policy Probe：source epoch260、train seed292、64 env、300
+epochs，原始 physical bundle 对照 model-based-Q bundle，eval seed293/294。seed293 的 96
+完整 episode 中，direct-Q 稳定成功 `10/96`，model-based-Q 仅 `4/96`（差 `-6`），违反每个
+seed 非负门；在 seed294 尚未完成前停止。该模型式 Q 策略接口 `UNPROMISING`，不扫 model
+weight、uncertainty threshold、seed、epoch 或数据；保留离线 critic 改善作为
+value-equivalence 线索，不能称为 Cm policy utility。见 [Probe card]
+(experiments/probes/P-20261003-cm-model-based-critic.md)、[结果]
+(experiments/probes/P-20261003-cm-model-based-critic-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-model-based-critic-augmentation.md)。
+
+因此当前 physical-value decision family 关闭：不再扫 Q target weight、uncertainty threshold、
+action-teacher、seed/epoch，不扩大普通候选数据或启动 PPO。offline value-equivalence 线索
+保留，但它不能升级为 policy utility；若后续继续，必须先改变 observation 或 planning
+contract。见 [路线复盘 Decision Memo]
+(decisions/D-20261003-cm-route-review-model-based.md)。
+
+## 2026-10-03 Cm task-value auxiliary policy Probe: closed
+
+为区分“Cm 直接改动作导致退化”和“Cm 任务价值目标能塑造策略表示”，新增了一个不改
+action/reward/observation 的 auxiliary 路线。Cm-on 与 Cm-off 都计算同一个冻结 target：
+direct-Q 加上由 Cm 物理后果预测驱动的 nonlinear residual MLP；唯一差异是固定 auxiliary
+loss coefficient `0.002` vs `0`。两臂 16-env epoch260→262 smoke 均通过，Cm-on head 梯度
+非零（`5.70e-4`）；matched 训练使用 seed287、64 env、epoch280，两个 checkpoint 都
+成功保存。
+
+按预注册的 per-seed nonnegative gate，seed290 的96个完整 episode 中 Cm-off 稳定成功
+`20/96`，Cm-on 仅 `1/96`，差值 `-19`。因此在启动 seed291 前提前停止；这条 task-value
+auxiliary 接口判定 `UNPROMISING`，不扫描系数、seed 或 target。Cm 仍保留真实动作后果预测
+职责，但该 target 没有转成策略收益。见 [Probe card]
+(experiments/probes/P-20261003-cm-task-value-aux-policy.md)、[结果]
+(experiments/probes/P-20261003-cm-task-value-aux-policy-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-task-value-aux.md)。
+
+## 2026-10-03 Cm task representation policy Probe: closed
+
+为检验“Cm 物理信息先进入非线性任务价值表征，再进入策略”是否能绕开线性 residual
+瓶颈，冻结 direct-Q 与 physical-value ensemble，训练了一个两层 SiLU residual MLP。
+它只接收 direct-Q、候选动作、当前状态，以及 Cm 预测的 object delta/velocity/contact/
+reward/terminal 均值和不确定性，不接收 future state，也不更新 actor。held 209,788 行上，
+Cm 表征相对 direct-Q 的 RMSE/MAE 为 `26.737/8.797`，row Spearman `0.615`；episode
+Spearman 从 `0.743` 降至 `0.731`。episode bootstrap 的 RMSE delta 均值 `-1.532`、90%
+区间 `[-1.851,-1.213]`，说明有局部 critic signal，但不足以构成 policy utility。
+
+按 Probe 优先原则，随后做了一个小规模 matched policy Probe：两臂从同一 epoch-260
+source、seed286、64 env、40 epochs 训练，在 seed288/289 各评估96个完整 episode。
+direct-Q 稳定成功 `23/192`，Cm 表征 `9/192`，差值 `-14`；成功后掉落为 `23/192`
+与 `8/192`。因此 Cm 表征策略接口判定 `UNPROMISING`，不追加 epoch、seed、普通数据或
+PPO；保留 MLP 作为离线 representation clue。见 [task-representation Probe]
+(experiments/probes/P-20261003-cm-task-representation.md) 和 [policy 结果]
+(experiments/probes/P-20261003-cm-task-representation-policy-results.json)。
+
+同批 411 行/45 组候选数据的 group-relative target 也完成了五折 group cross-fit。单一
+fit/held split 的 `+0.675mm` lower90 未复现；cross-fit score lower90 为 `-39.179mm`，
+retention/contact/clearance lower90 为 `-0.315/-0.344/-0.320`。该 target route 同样关闭，
+不把 split-specific 正值升级为动作优势。见 [group-relative Probe]
+(experiments/probes/P-20261003-cm-group-relative-target.md)。
+
+## 2026-10-03 candidate coverage and critic residual route: closed
+
+候选动作覆盖 Probe 已完成。先增加148行但 motion/start 组数仍为25，随后新增覆盖组，最终
+得到411行、45组，八个动作支持为 `[55,58,55,50,57,54,37,45]`，支持门通过。冻结同一
+Cm/direct-Q adapter 的 state/action+Cm held lower90 仍为 `-22.162mm`，Cm 增量均值仅
+`+1.189mm`；raw uncertainty fallback 和 raw-top selector 的 lower90 也分别为 `-2.02`
+和 `-11.54mm`。这排除了“普通候选数据不足”作为主要瓶颈，关闭继续扩数据，不启动 PPO。
+见 [coverage Probe](experiments/probes/P-20261003-cm-candidate-coverage.md) 和 [结果]
+(experiments/probes/P-20261003-cm-candidate-coverage-results.json)。
+
+随后完成离线 critic residual Probe：Cm 只提供冻结 ensemble 的 object delta/velocity/contact/
+reward/terminal 及不确定性，拟合 realized complete-return 相对 direct-Q 的 Ridge residual。
+held direct-Q 为 RMSE `26.833`、row Spearman `0.589`、episode Spearman `0.743`；加入 Cm 后
+episode Spearman 升至 `0.761`，但 RMSE `27.050`、MAE `9.589`、row Spearman `0.586` 均变差。
+这是混合的 critic-only 线索，不能支持策略训练或 Cm utility claim；关闭该线性 residual 接口，
+下一步若继续必须改变 representation 或 decision target，并预先定义 held criterion。见
+[critic residual Probe](experiments/probes/P-20261003-cm-critic-residual.md)、[Decision Memo]
+(decisions/D-20261003-cm-critic-residual.md) 和 [结果]
+(experiments/probes/P-20261003-cm-critic-residual-results.json)。
+
+最近三个 decision-interface Probe 均未改善 North-star：MVE 原生效用为负，覆盖门通过后
+Cm adapter lower90 仍为负，critic residual 只有混合的 episode-level 小信号。按三次无进展
+规则暂停这条 selector/MVE/线性 residual 细化线；不再扩大普通候选数据、不扫 Ridge 或阈值、
+不启动 PPO。下一条路线必须先改变 representation 或 decision target，并在执行前写明 held
+判定条件。见 [路线复盘 Decision Memo](decisions/D-20261003-cm-route-review-followup.md)。
+
+## 2026-10-03 direct-Q Cm MVE interface: closed
+
+按用户建议补做了严格的 direct-Q continuation：Cm 只提供 object translation/velocity/contact/events，保留当前 hand q/dq 与 object orientation，短期分数为 `local reward + gamma * direct-Q(predicted state, candidate action)`。held 209,788 rows 上 object-projected MVE 为 RMSE 26.60、row Spearman 0.591、episode Spearman 0.741，direct-Q 为 26.83、0.589、0.743；离线小信号没有 episode-level 改善。
+
+fresh native 五臂面板得到119个完整窗口、86个 env clusters，MVE 改变29次。相对 Cup 的 cluster-bootstrap 90% 下界为 height -34.02mm、local reward -0.173、contact -0.215、clearance -0.251；random arm 22行，MVE 高度/reward Spearman 0.360/0.503，低于 direct-Q 的 0.417/0.531。Probe 标记 `UNCLEAR`，关闭用户建议的 direct-Q MVE action interface；不启动 PPO、不扩大普通 Cm 数据。离线目标质量变化只保留为 critic-only 线索，不构成 policy utility。见 [Decision Memo](decisions/D-20261003-cm-direct-q-mve-interface.md)、[Probe card](experiments/probes/P-20261003-cm-direct-q-mve-object-projection.md) 和 [结果](experiments/probes/P-20261003-cm-direct-q-mve-object-projection-results.json)。
+
+## 2026-10-03 object-projected Cm MVE interface: closed
+
+为检验 full-state model error 是否阻塞 MVE，冻结同一 physical-value checkpoint，令 Cm
+只预测 object translation/velocity/contact/events，Q continuation 保留当前 hand q/dq 和
+object orientation。现有 held 209,788 rows 上，object-projected pessimistic MVE 的 RMSE
+为 26.05、row Spearman 0.605；direct-Q 为 26.83、0.589。这个 target-quality 局部信号
+没有转化成动作效用：fresh native 五臂 127 个完整窗口中 mve-object 改变25次，但相对
+Cup 的 motion/start cluster-bootstrap 90% 下界为 height -47.16mm、local reward -0.492、
+contact -0.324、clearance -0.324；random arm 仅23行，mve-object 的随机动作排序也低于
+direct-Q。Probe 标记 `UNCLEAR`（support boundary with negative utility screen），关闭该
+action-ranking 配方，不启动 short rollout/PPO，不扩大普通 Cm 数据。离线 target-quality
+改善保留为未来 critic-only MVE 线索，但不构成 Cm policy utility。见 [Decision Memo]
+(decisions/D-20261003-cm-mve-object-projection.md)、[Probe card]
+(experiments/probes/P-20261003-cm-mve-object-projection.md) 和 [结果]
+(experiments/probes/P-20261003-cm-mve-object-projection-results.json)。
+
+## 2026-10-03 learned binary macro policy: closed
+
+Raw Cm 3-tick macro 在 native score 上曾为正，但安全门控 macro 失败；随后完成一个
+无固定 action prior 的二元 PPO Probe。option 0 为 raw-top Cm candidate 3 tick 后
+fixed Cup 7 tick，option 1 为全程 fixed Cup；Cm-on 只输入冻结 consequence 的
+score/std/retention/release 与候选动作差，Cm-off 将同形 consequence 通道置零。
+两臂同一初始化、seed、4 个完整 96-env rollout、reward、optimizer 和两个 evaluation
+seed，训练与执行合同均通过。
+
+训练后 greedy option-ID 确实改变，且 consequence 通道明显改变选择分布：evaluation
+中 Cm-on option1 为 18/163（11.04%），Cm-off 为 212/272（77.94%）。但 stable
+success（45 tick 且无后续 drop）Cm-on 为 7/192（3.65%），Cm-off 为 11/192（5.73%），
+未通过 stable-hold 门；acquisition 后 release 差为 -0.06pp，contact-loss 门通过。
+因此该 learned-macro 配方判定 UNPROMISING 并关闭，不追加 epochs、rollouts、reward
+或 seed 扫描。这说明策略接口确实能使用 Cm 特征改变动作，不构成 Cm utility 的正式
+结论；C3 policy utility 仍 OPEN。见 [Probe card](experiments/probes/P-20261003-cm-learned-macro-policy.md)
+和 [结果](experiments/probes/P-20261003-cm-learned-macro-policy-results.json)。
+
+随后完成最小 `direct-Q + Cm-relative residual` 离线审计。它只允许使用
+decision-interface 的均匀 random arm 作 utility 标签，并按 motion/start 做 4:1
+组隔离；212 行中 random 仅42行，held-out 只有5行/4组，低于预注册的8行/5组支持门。
+因此结果为 `UNCLEAR`，没有拟合残差系数、动作排序或 native utility claim，也不启动 PPO。
+这与既有 native randomized candidate panel 的 fresh utility 门失败一致；不能通过小样本
+继续调系数。见 [Probe card](experiments/probes/P-20261003-cm-relative-direct-q.md)
+和 [结果](experiments/probes/P-20261003-cm-relative-direct-q-results.json)。
+
+随后尝试一个同热状态逐候选的 exact-paired action panel，以区分跨状态数据混杂和真实
+动作排序。单状态 smoke 触发了8候选面板；root/DOF 恢复为0，但 PhysX rigid-body
+tensor 恢复误差为8.4–40.5，超过固定 `1e-6` contract，Cup 以外候选均在产生效应前被拒绝。
+因此该配方为工程边界 `UNCLEAR`，不放宽容差、不解读为 Cm utility，也不进入 short rollout
+或 PPO。见 [Probe card](experiments/probes/P-20261003-cm-exact-paired-panel.md)
+和 [结果](experiments/probes/P-20261003-cm-exact-paired-panel-results.json)。
+
+## 2026-10-03 uncertainty fallback native validation: closed
+
+离线 known-propensity screen 中的 `cm_uncertainty_fallback_2std` 已在新 native 状态上
+做固定 A/B 验证：5 个 seed、190 个窗口，Cm/fixed Cup 各 95 个。支持门通过，但
+score 差为 `-2.79 mm`，90% motion/start cluster 区间 `[-15.74,+11.00] mm`；
+retention/contact/clearance 的区间下界分别为 `-0.290/-0.244/-0.295`。离线正信号
+没有迁移，当前 fallback 和 categorical PPO 入口关闭；不扫描 sigma/阈值/seed，不扩大
+普通 Cm 数据。Cm 一步物理预测信息仍保留，C3 policy utility 仍 OPEN，后续若继续需
+改写更高层 representation/planning 或动作优势合同。见 [原生结果卡]
+([experiments/probes/P-20261003-cm-uncertainty-native.md](experiments/probes/P-20261003-cm-uncertainty-native.md))。
+
+## 2026-10-03 route review: physical information exists, native task utility remains unproven
+
+HF16 的一步 motor-conditioned Cm 物理预测门仍成立，但两种相对任务价值接法都没有
+通过真实 native H10 效用门。回顾性 H10 摘要校准在 held 上取得 0.927 Spearman，
+但使用了干预后状态，严格决策时刻审计将其撤回；463 个 native 窗口的对应控制相对
+fixed-Cup 仅 +0.77 mm，90% 组级区间 [-12.43,+18.39]。
+
+修正后的 current-step head 只看触发时 Cm 候选预测和初始状态，离线 held 400/9 组
+通过 Spearman/RMSE Probe 门（0.429→0.691；56.37→41.03 mm）。随后 5-seed native
+matched panel 共 384 个窗口、6 个 arm，支持达到预设门；calibrated 相对 strong
+fixed-Cup 的点估计 +9.62 mm，但 90% 组级区间 [-8.14,+33.45] 跨零，joint/loss
+控制不能把它升级为正向效用。相对原 Cm 的 +34.37 mm 也因 joint 控制门失败而不采用。
+
+因此关闭回顾性和 current-step 两个 local-value conversion 配方，不扩大普通 Cm 数据，
+不扫描阈值/ridge/seed，不启动 PPO 或策略训练。当前最强事实是“Cm 有一步物理信息，
+但尚未转成相对 strong fixed-Cup 的可靠任务价值”；C3 policy utility 仍 OPEN。下一步
+必须换更高层 representation/planning 或重新定义可识别的动作优势实验，不能继续细化
+同一 native selector。
+证据见 [HF26 校准审计](experiments/probes/P-20261003-relative-task-value-causality-audit.json)、
+[HF26 native 结果](experiments/probes/P-20261003-relative-task-value-native-results.json)、
+[HF27 current-step 结果](experiments/probes/P-20261003-current-decision-task-value-results.json)、
+[HF27 native 结果](experiments/probes/P-20261003-current-decision-native-results.json) 和
+[候选 effect 排序审计](experiments/probes/P-20261003-native-candidate-effect-ranking.json)。
+
+本文件是新 agent 的默认入口。运行细节、seed、分数和失败路径只保留在
+对应 experiment card；搜索预算和 family 状态在
+[`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 中维护。
+
+## Current decision
+
+2026-10-02 用户准备开始新路线，当前随机化动作响应路线先封存，不自动恢复
+HF25设计或启动新的采集/训练。HF24、HD04原失败门与局部信号全部保留；
+HF25仅完成旧源支持预检：cal989、接触丢失16<24、真实clear→unclear29，
+未训练非线性模型。逐周期随机采集器仅为语法检查通过的未执行草稿，独立
+审计和原生GPU执行尚未完成。新路线尚待用户定义，最终Cm效用仍OPEN。
+见[当前路线封存](handoffs/CM_RANDOMIZED_MOTOR_ROUTE_CHECKPOINT_20261002.md)。
+
+2026-10-01 用户调整下一步方向：先检验接触阶段 Cm 的真实动作控制与短期后果排序，
+最终成功率仍是任务验收；不把 HF08 间接监督失败当作 Cm 核心思想反证。
+本次源码与旧数据审计已完成：HF08 不直接执行候选、评价仅运行 actor；旧 HF02
+已做六专家10步干预/20步观察，但每状态只有一个随机候选的真实后果。
+下一步先检验候选优势是否超过局部 base/base 噪声，再拟合任务相关动作条件 Cm，
+并验证直接执行与重新观察的作用链条。旧数据不能直接提供逐状态真实 regret。
+具体区别、最小 Probe、对照与停止条件见
+[接触后果机制决定](decisions/D-20261001-contact-consequence-mechanism.md)。
+HF09 候选机会 Probe 已完成12个真实 GPU 分支：二次重复的候选优势2.224mm、
+base重复噪声0.210mm，数值屏通过，但仅11/32完整近似配对有效，标签 UNCLEAR。
+不能把它称为可靠逐状态 oracle；也没有已抬升状态的掉落支持。
+随机后果 Probe 已完成1984个实际2+8窗口，含193个已抬升窗口/28次掉落。
+非线性 Cm 的留出后果误差低于 state-only/shuffled，但动作选择门 UNPROMISING：
+介入42/393，收益估计1.278mm低于base2.546mm。介入窗口只有6个所选动作、
+9个base真值，效应区间跨零，不能据此确认负效应；零匹配掉落也不能当零风险。
+HF09 slot3/3 已完成：3941窗口/547episodes，622个介入提议随机分为
+309Cm/313base；534episodes实际重新观察与决策。局部接触支持抬升增益
++5.106mm，frame-group描述性95%区间[+1.361,+8.850]，局部信号 PROMISING。
+但末3步接触下的保留抬升增益+2.901mm区间跨零，已抬升状态掉落11/140Cm
+vs4/122base；安全和四控制归因尚未通过，整体 utility 仍 UNCLEAR。
+HF09预算3/3完成，不调旧模型/阈值追门。下一步改进物理目标：预测高度/接触
+轨迹、显式相对base动作效果，以保留抬升和条件掉落风险选择动作；不进入 PPO。
+设计与结果见 [定向介入卡](experiments/probes/P-20261001-targeted-contact-interventions.md)。
+HF10 slot1已完成9个物理模型各1000GPU更新（51秒），但joint-contact MAE
+.239未通过原.20门；Brier优于constant，概率过度自信，utility仍UNCLEAR。
+HF10 slot2已完成3821个实际五推荐器窗口/534episodes，四项不同动作支持充分。
+校准物理Cm的保留支持高度vsbase +.413mm，frame90区间[−.152,+.978]；
+vsstate-only/shuffled +.279/+.060mm，vs最佳固定cup −.699mm，原收益门UNPROMISING。
+有用的新机制信号是已抬升状态释放标签vsbase −5.470pp，描述性frame90
+[−8.167,−2.774]pp；vsstate-only/shuffled也降低，但vs固定cup区间跨零。
+这支持转向局部防丢失/保留控制的研究判断，不是稳定抓取或最终Cm utility证明。
+提议8.846%，105次真实非base Cm匹配，523episodes重新决策；NN/actor/V均冻结。
+所有输入/PD执行合同通过，自有进程结束，GPU释放；包括setup共596.62秒/34.85MB。
+HF10预算2/2关闭，旧MAE门失败及新收益失败都保留，不扫阈值追抬升。
+下一步HF11已固定直接categorical片段策略的学习合同：Cm提供物理未来特征和
+明确动作先验，PPO使用实际片段选择概率，评价训练所得策略时继续调用Cm。
+HF11已完成matched训练：on/off各207123有效envsteps/840updates，
+初始权重及四批episode预算一致。独立stable45tick且无后续drop为17/384vs13/384，
+差+1.042pp，四eval seed描述性t95[−.872,+2.956]pp。关键学习门失败：
+on5065/off5014评价决策原始argmax相对冻结先验均0变化，故UNPROMISING，
+不能把数值差或trained6/96vsprior3/96称为RL收益。预算1/1关闭。
+GPU机械审计确认：固定先验log优势3.807，高于学到的最大相对分数1.283/1.612；
+网络学到了概率偏好，但贪心执行被固定先验压住。原生reward同时是参考轨迹
+imitation乘积，而非45tick保持/防掉落任务目标。下一步把Cm知识放入可学习
+动作评分参数，使用共同的接触支持保留reward，先验证学到的策略确实能执行
+不同物理动作。HF12已完成1/1：可学习guide+共同保留reward仍未带来
+Cm-on学到的执行改变，5130次评价命令相对初始推荐均0变化；off45/5144变化。
+On17/384vs off19/384（−.521pp，四eval-seed描述性t95[−7.220,+6.178]pp），
+原学习/收益门UNPROMISING，预算关闭，不做lambda/reward/epochs追门。
+GPU审计：on guide1.630、最大NN相对分数1.352，推荐仍胜出；参数确实可学习，
+不再是旧外部固定先验。候选片段占on控制帧4.952%、非base片段仅.485%；
+稀疏控制是下一步待检验的结构假设，不是已证实唯一原因。
+两组各207028有效步、四批episode预算/初始权重匹配，完整物理/MC/动作/标签
+复算通过，评价冷输入匹配；后三批训练obs差异保留，不把同seed当完整状态匹配。
+所有12phase终态/输入hash/冻结合同通过，自有进程退出，GPU释放；含工程34.03分钟/
+335.3MB。下一步先设计预测窗口内持续执行的专家/保持片段，实际验证保留机会，
+再训练与该新控制合同对应的Cm；不把旧2+8模型冒充10步持续控制预测。
+HF13已完成3404实际窗口/573episodes：留出已离桌536状态，hold204/base218
+匹配支持充分。固定当前关节姿态hold的保留支持高度−25.191mm，frame90
+[−33.629,−17.382]mm；几何失去离桌间隙+21.922pp，fit最佳合格固定候选
+仍base，原门UNPROMISING1/1关闭。PD/geometry/propensity全回放0误差，
+自有PIDs退出/GPU释放；含工程23.21分钟/37.7MB。不对该候选直接拟合Cm。
+已完成原始force单位工程核对：96env×60安静支撑帧，物体净接触力中位
+.025529N，约1.003倍实际重量；旧.1N代理在5760帧均不触发。旧false不能
+直接解释为真实接触丢失，旧结果继续按强力代理合同保留；HF13几何损失不变。
+下一步补测完全悬空负例，给新数据保存原始力/质量及归一化接触代理，再设计
+腕部保持/手指继续反馈的候选；不会回填旧bool标签或改旧失败门，C3仍OPEN。
+见 [原始力审计](experiments/probes/P-20261002-contact-force-units-r1-audit.json)。
+悬空负例亦通过：480帧rawforce全0；新重量归一化代理支撑5760/5760触发、
+悬空0/480触发，仅证明两个受控条件，不证明实际抓取接触识别。HF14已完成
+3964窗口/584episodes，原收益门UNPROMISING1/1关闭。留出777已离桌状态，
+fit选腕部保持/base指反馈，146候选/310base匹配，保留高度−7.985mm，
+frame90[−12.842,−4.179]；几何间隙丢失−6.435pp（posthocframe90
+[−11.787,−1.504]pp），是保留/继续抬升的取舍，不能算Cm收益。cup指反馈
+方案高度−12.387mm且几何损失+4.505pp。posthoc3cm局部阈值保留差
+−.644pp，区间宽跨零，不改旧失败门或视为新目标过门。1109腕部保持窗口
+手指确实持续变化；专家/rawforce/PD/geometry/propensity复算全0误差；
+输入未变，自有PIDs退出/GPU释放，含工程21.66分钟/278.2MB。下一步路线复盘
+控制的平移/旋转职责，保留负责抬升的平移反馈，不继续整腕冻结参数扫描。
+见 [新候选卡](experiments/probes/P-20261002-wrist-feedback-opportunity.md)。
+HF15已按控制职责复盘实现只稳定腕部旋转、保留专家XYZ/手指反馈，正在
+GPU工程检查通过：99窗口/47episodes、26旋转稳定程序的平移/手指保持反馈，
+全部复算0误差，工程111.24秒/10.14MB。HF15 slot1已完成3917窗口/587episodes，
+1409initiallyclear；fit选rotation_cup7、最佳固定也7。留出704clear状态，
+134候选/274base匹配，保留支持高度+26.509mm，frame90[19.241,32.794]、
+episode90[16.602,36.590]mm；几何丢失−4.972pp，joint-force−1.776pp。
+原收益/支持/风险门全部通过，局部候选机会PROMISING，不是Cm或稳定抓取收益。
+全12专家/rawforce/PD/XYZ/finger/geometry/propensity/hash检查通过，PIDs退出/
+GPU释放，含工程21.28分钟/274.7MB。下一步slot2用新H10数据实际拟合plan-Cm，
+与state-only固定程序头、shuffled、base和最佳固定7比较，再做新数据直接控制。
+Slot2已完成真实9模型×1000GPU更新（42.81秒）；Cm heldheightRMSE19.85mm，
+固定程序物理头17.79、shuffled22.57。校准Cm margin44.565mm，704heldclear
+状态0非base提议；修正评分/校准的集成一致性后gain gate仍0，原raw解码器
+直接控制UNPROMISING，不降低门槛。固定程序物理头255/704提议，但这只是
+预测提议，并非执行收益。该模型通过目录索引区分程序，本身也是程序条件Cm；
+已完成6对照模型各1000GPU更新（25.90秒），原目录Cm权重/校准完全复用。
+共享冻结选择规则下Cm255/704、局部收益策略279/704、head-shuffled0提议。
+新闭环已完成821实际H10窗口/161episodes/25初始组，支持和真实改变门通过。
+Cm170窗口中91不同于base、160不同于固定7，662/1700实际控制帧非base。
+vsbase保留高度+24.125mm、初始组90[13.704,31.583]；vshead-shuffled+23.538mm。
+但vsstate-policy−4.445mm区间跨零，vs固定7−27.651mm90[−34.701,−17.101]；
+原全四控制收益门UNPROMISING，HF15预算2/2关闭。所有12,315次模型决策/
+PD/专家及参考命令/rawforce/geometry/outcome回放通过，ownPIDs退出/GPU释放；
+含全部拟合/失败工程/采集/诊断25.19分钟/97.54MB。后验4105真实H2prefix
+高度RMSE8.733优于常速度10.748，但jointBrier.0204差于存在代理延续.0116。
+不是完全没物理信息，也没有超过强固定程序；原失败门不改，C3仍OPEN。
+HF16 slot1信息门已PROMISING：39170真实step，held已离桌6706/138ep/27组；
+Cm高度RMSE4.149 vsstate4.824/shuffled4.850mm，CLRMAE2.271 vs2.855/2.864mm，
+jointBrier.002318优于persist.002982。输入pre-state/rawforce/实际nativePD目标
+时序、联合height-support标签及fit-only归一化独立复算通过，9nets×1000GPU
+更新61.49秒。此为一步物理信息，不和旧两步/H10误差直接比较。
+HF16 slot2已终态完成903窗口/175ep/28组，Cm129/179窗口真实改变base、
+177改变fixed。IPW联合保留高度vs状态策略+28.284mm90[16.221,40.889]、
+vs动作打乱+37.218、vsbase+41.089，但vs强fixed7−1.67190区间跨0，
+几何风险+2.769pp未过门；vsbase/shuf净力存在代理也未过原−5pp门。
+原全四对照门UNPROMISING，预算2/2关闭；一步物理信息PROMISING保留。
+27,090模型决策/实际PD/原始力/geometry/标签独立回放通过，专家与模型
+冻结、所有本任务PID退出/GPU释放，累计25.30min/113.68MB。当前较弱base
+回退与八程序目录的机会不足是待测假设，不当作已经证实的失败原因。
+见 [HF16结果](experiments/probes/P-20261002-native-pd-direct-control-result.md)和
+[执行器条件设计](decisions/D-20261002-native-pd-consequence.md)。
+见 [对照边界复盘](decisions/D-20261002-catalog-consequence-controls.md)。
+不声称HF14已证明旋转是掉落原因。此为最后一轮腕部保持
+候选机会Probe；正向才拟合对应新Cm，失败转更高层候选生成，避免关节扫描。
+见 [旋转稳定卡](experiments/probes/P-20261002-orientation-feedback-opportunity.md)。
+见 [可学习恢复设计](decisions/D-20261001-trainable-recovery-guide.md)。
+现有物理NN/六专家未改；C3仍OPEN。
+见 [恢复策略设计](decisions/D-20261001-recovery-option-learning.md)。
+见 [轨迹模型卡](experiments/probes/P-20261001-contact-trajectory-model.md) 和
+[保留支持控制卡](experiments/probes/P-20261001-contact-supported-height-control.md)。
+见 [机会结果](experiments/probes/P-20261001-contact-consequence-opportunity-results.json)和
+[随机后果排序卡](experiments/probes/P-20261001-contact-consequence-ranking.md)。
+HF09 原数据/checkpoint hash未变，自有 GPU4进程已结束，不重开 HF08/HD02。
+当前授权以用户最新方向为准；旧 Goal 的“无新 Cm 接法”属于该已完成诊断的边界。
+MISSION claim 不变，baseline PARTIAL、Cm utility OPEN；旧结果与输入继续保留。
+
+2026-10-03 新 Cm residual policy Probe 已完成并关闭当前实现路线。冻结 HF15
+rotation-Cup trigger-anchor baseline，Cm 只输出 object-frame 3D translation residual，
+前两步执行后回到 baseline；Cm 与 matched shuffled ensemble 均由真实 native source
+拟合。原 calibrated margin 的五批三臂对照共1167窗口，held支持 baseline/residual/shuffled
+为103/130/130，但 residual 实际改写仅4个窗口（预设至少48），其余安全回退 baseline。
+随后只将预测提升 margin 从3.99mm降至0.5mm、保持 OOD/不确定性/接触/clearance gate 不变，
+再跑12批 native 对照；held共867窗口，实际改写55个，coverage gate通过，但 motion/start
+层 residual-baseline 高度差为-1.69mm，episode和motion/start 90% bootstrap下界分别为
+-1.39mm和-7.15mm，clearance-loss 增加分别为3.44和1.31个百分点。修正后的独立审计仍为
+UNPROMISING；当前不启动 PPO，不把该结果写成 Cm utility 结论。见 [Cm residual Probe]
+(experiments/probes/P-20261003-cm-residual-policy.md)、[初始审计]
+(experiments/probes/P-20261003-cm-residual-policy-results.json) 与 [margin诊断审计]
+(experiments/probes/P-20261003-cm-residual-policy-margin050-results.json)。
+
+2026-10-02 完成新的 Cm decision-interface Probe：冻结 rotation-Cup 为 pi0，在同一接触
+状态层构造 37 个局部候选动作，保存 direct-Q/Cm short-rollout 全面板分数，并随机执行
+Cup、direct-Q、Cm、shuffled、random 五臂的真实 10 步窗口。r1 共212个完整窗口，支持
+39/37/47/47/42；Cm 在47/47个 Cm 臂窗口改变动作，模型排序确实进入决策接口。但 Cm
+相对 Cup 的末三步最小正抬升 cluster-bootstrap 90% 下界为-38.27mm，局部 reward 下界
+为-0.965，clearance 也下降；因此排序/真实效用门失败，Probe 为 UNPROMISING。按预设
+停止条件不启动 PPO、不扩大普通 Cm 数据、不扫描阈值；North-star Cm utility 仍 OPEN。
+见 [decision-interface 实验卡](experiments/probes/P-20261002-cm-decision-interface.md)
+及 [结果](experiments/probes/P-20261002-cm-decision-interface-results.json)。
+
+以下为已完成的 HF08/HD02 处置事实。
+
+当前用户 Goal 已完成：paired evaluator 的完整冷初始状态、RNN、随机数、动作
+轨迹和成功后掉落合同通过审计；真实闭环 plain-off 重复性未通过预设门槛。
+两次成功为34/384和35/384，63个成功标签、61个掉落标签变化；平均成功率差
+仅0.26pp，不能掩盖逐 episode 的不稳定。Wilson95%标签分歧上界为20.44%/19.88%，
+超过5%门槛；这不是把标签分歧率当作净成功率噪声或正式统计功效结论。
+HD02 已关闭，当前 HF08 实现已停止（KILLED）；条件三臂推理阶段未启动。
+原 checkpoint、数据和结果均保留且 hash 未变，无 V/PPO 训练或新增 Cm 接法。
+Cm policy utility 仍未证明、C3 OPEN，self-trained baseline PARTIAL。单 GPU4
+累计22.02分钟/4.50GiB；自有进程结束，GPU释放。16项针对测试通过。
+不得继续本实现的调参、训练或策略实验；Objective A 后续须独立 baseline/curriculum
+路线，不能混入 Cm 诊断。
+见 [评价器分辨率决策](decisions/D-20261001-paired-evaluator-resolution.md) 和
+[HD02 固定实验卡](experiments/probes/P-20261001-paired-evaluator-resolution.md)。
+
+HF08 physical-value Probe 已完成：r7 的 48/48 native 评价完成，终点成功率为
+plain_off 41/384、direct_q 40/384、cm_value 33/384；原生 gate 为
+`UNPROMISING`。HF08 family 此前为 `PAUSED`，现因 HD02 评价分辨率门失败而
+停止当前实现（`KILLED`），Probe 预算 1/1 已用；不升级
+Validation，也不继续这条实现的局部调参。North-star scoreboard 不变，Cm policy
+utility 仍为 `OPEN`，最终因果解释受实验卡记录的同源重复性审计边界约束。
+
+此前 Mission-level Goal 的任务曾通过固定 Broker 运行；该旧工作流现已退役，当前会话直接
+承担后续研究、实现和验证。当前交付期限仍为 2026-10-03 23:59（Asia/Shanghai）；资源边界见
+`CAMPAIGN.md`。root 已验收 [HF08 R2 价值目标审计](handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.md)：
+合同和标签 provenance 通过，主成功为 15/1920、holdout 成功为 1/384；两个 e420
+在线 V 均实际完成 7680 次 optimizer update。结论仍为
+`UNCLEAR / TRAINING_SUFFICIENCY_OR_DISTRIBUTION_UNKNOWN`，不能写成需要重训或已收敛。
+用户随后明确要求 root 直接接管采集器修复及 V 诊断。现已完成：两个冻结 e420
+策略共 107584 行、192 个完整首回合，数据与 next-value/主成功/drop 合同通过。
+保存 V 对冻结 GAE 诊断目标的 RMSE 为 25.43，原 PPO critic 为 17.17；冻结 GAE
+与完整 realized MC 的 RMSE 为 95.35。7 个主成功 episode 均随后掉落；该稀有分层
+及单条 realized return 不支持校准、收敛或 bootstrap 偏差结论。当前 factual V 拟合
+与目标/回报差异均待区分，不预定增加 V 更新即可修复。完整证据见
+[直接接管诊断交接](handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_DIRECT_20261001.md)。
+采集器已修复 raw logstd/sigma 调用、435-D context 及完整 episode 导出；实际
+DExplore 原路径已有外置观测归一化，旧“漏掉归一化”归因已更正。24 项针对测试通过，
+所有自有 GPU 进程结束；本诊断无训练，不重置 HF08 的已用收益 Probe slot。
+
+用户随后授权有界 V 额外拟合，HD01 GPU Probe 已完成：一张 GPU、每个 V
+1000 次更新、约31秒。相同表示的 fit GAE RMSE 降低75.8%/70.3%，episode-disjoint
+holdout 降低18.1%/45.8%；s286 未过预设20%门，联合 gate 为 `UNPROMISING`。
+网络能够进一步拟合当前事实目标，但不能据此认定原在线训练不足或已收敛；留出集
+完整 realized MC 误差一升一降，主成功覆盖为 fit6/0、holdout0/1，稳定抓取价值的
+泛化仍未解决。HD01 预算1/1关闭，不增加更新/换 seed 追门槛，当时 HF08 为 PAUSED；当前处置见 HD02 关闭结果。
+结果见 [GPU V 拟合卡](experiments/probes/P-20261001-current-policy-v-fit.md)。
+GPU 已释放，源数据与 checkpoint 未修改；GPU 适合本次重复 GRU 训练，历史
+CPU-only 阶段限制不构成当前 GPU 禁止。North-star scoreboard 不变。
+
+用户于 2026-09-26 曾授权新的 HF05 goal；该 CPU-only selective causal gate
+已完成并判定 `UNPROMISING`。它只在 1/126 个 holdout 状态介入，held-lift
+没有超过 always-base，coverage/policy gate 失败。历史 HF01–HF05 仍保持冻结，
+但该历史处置不构成对所有后续 GPU 或新 Cm 路线的全局禁止。结果见
+[`P-20260926-selective-causal-gate.md`](experiments/probes/P-20260926-selective-causal-gate.md)，
+路线处置见 [`D-20260926-after-hf05-selective-gate.md`](decisions/D-20260926-after-hf05-selective-gate.md)。
+
+独立的 C1 六专家初始观测路由已完成五 seed matched Validation。10/10 native arm
+及输入/配对合同有效，全部预注册门槛通过；root 在用户委托路线选择后接受该
+**任务限定** `SUPPORTED` 结论，并冻结这一路由配置。它不解除上述 Cm 冻结。
+见 [C1 决策](decisions/D-20260927-c1-observation-route-validation.md) 与
+[Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
+
+2026-09-27 的后续 Decision Checkpoint 中，用户答复原文仅为 `A`。按当时
+Checkpoint 对选项的定义，Option A 表示继续冻结 Cm、保留 C1 substrate、本阶段
+使用 0 GPU，并等待一个可预声明且区别于 HF01–HF05 的新高层机制。这是历史路线处置，
+不是新增科学证据；阶段性 handoff 仍为 `UNCLEAR/NOT READY`。见
+[本次决定](decisions/D-20260927-cm-freeze-option-a.md)。
+
+2026-09-28 的后续授权已移除把 root 停在预设 Option A/Option B 之间的流程依赖。
+root 可以在 `MISSION`、`CAMPAIGN`、现有证据和安全边界内自主选择后续路线，并记录
+简短 decision memo；本授权不改写上述历史标签，也不把 C1 的任务限定证据升级为更强
+的科学结论。用户同时已授权六专家蒸馏与一条新的 Cm 探索路线；这两条路线仍须遵守
+`CAMPAIGN`、资源上限、preflight、matched control 和停止条件。r6 support collection
+已经完成并通过 root 审计：fit 189 行、holdout 186 行，六个随机 assignment 臂均有
+至少 30 行且 split episode 不重叠。第一阶段 CPU student Probe 随后判定
+`UNCLEAR`，因为两份数据的 C1 teacher label 全部为 `source_e260`，不能识别六专家
+蒸馏。North-star scoreboard 保持不变；scratch Cm CPU support/calibration gate
+随后以 `NO_GO` 结束，因为记录中没有可验证的 `object_lift_axis` 及其坐标系
+provenance。随后已在主分支修复该合约：新的 evaluator 会按触发时物体四元数将世界
+`+Z` 逆旋转到 `object_local_at_trigger_t`，并在每条记录、manifest 和 adapter 中保留
+单位轴及其 provenance；旧 r6 数据仍不具备该字段，不能回填或用于拟合。
+
+2026-09-30 root 曾在用户授权范围内并行派发 fit-only CPU 校准修复和独立六专家
+轨迹蒸馏；两者预算分别为 2 CPU/15 分钟/1 GiB 与 1 GPU/60 分钟/5 GiB，均不产生
+正式 Cm claim。旧 r2 只是 ridge 加 in-sample residual screen，不能据此否定设计
+MLP 或整条 Cm 路线；相关历史边界和交接记录继续保留作证据。
+
+## North-star scoreboard
+
+| 目标 | 当前状态 | 证据边界 |
+| --- | --- | --- |
+| Self-trained grasp | `PARTIAL` | 冻结六专家初始观测路由在限定 12-motion 任务上通过正式 C1 路由/held-lift 门槛；仍不是单一观测驱动 actor 的稳定结果。 |
+| Cm one-step information | `PARTIAL` | 随机动作干预中有可学物理效应；信息依赖表示、分布和目标。 |
+| Cm policy utility | `OPEN` | 尚无跨训练 seed 的 matched Cm-on > Cm-off 证据；effect-rank 正式 Validation 的正向主张已 `REFUTED`。 |
+| Generalization | `OPEN` | 未见物体和多轨迹上的 Cm 收益尚未建立。 |
+
+最终研究价值由第三项决定：在足够可用的 self-trained substrate 上证明 Cm
+对真实策略决策有因果增益，而不是只提高离线预测指标。
+
+当前阶段聚焦固定自训练任务分布内的 Cm policy utility；跨物体泛化暂不作为
+本阶段门槛。见 [目标重述](decisions/D-20260925-cm-goal-reframe.md)。
+
+## Confirmed long-term facts
+
+- 自训练六专家层级是当前任务内已验证的抓取 substrate。C1 观测臂仅由
+  初始 actor observation 选择专家；matched 固定参考臂使用特权物体身份。
+  五个 holdout seed 的初始专家选择一致为 311/320、cup 30/30，held-lift
+  为观测路由 123/320、固定参考 118/320；预注册联合门槛全过，窄范围
+  `SUPPORTED`。这不证明单一 GRAB actor、未见物体泛化、观测路由优于固定
+  参考或 Cm utility。详见
+  [Validation 卡](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
+- 均匀共享多轨迹 actor 与全池 actor 的近期 Probe 未形成稳定抓取底座；不再
+  继续在同一均匀续训方案上堆 epoch。
+- 初始动作 option-value、短时/持续接触切换、局部残差和 route-specific
+  progress reward 都没有通过预设的 policy-utility 门；不能把单 seed 或离线
+  择优结果升级为 Cm 结论。
+- 预测接触 pre-contact credit 在单组 gC 上有局部正向信号，但完整 route
+  仍为 Cm **14/128** 对 Cm-off **18/128**；该精确变体已停止，不再扫描同一
+  系数或门限。
+- 现有 matched 结果必须保留 Cm-off 对照；任何新 Cm Probe 都应复用同一专家
+  组合，并先做最小可判别实验。
+- 2026-09-28 six-expert support collection r6 的 fit/holdout 已通过 canonical
+  adapter 和 provenance 审计（189/186 行，六臂覆盖、`1/6` propensity、episode
+  disjoint）。其随机 candidate actions 可用于后续 support 检查，但 C1 router
+  teacher label 在两 split 均只覆盖 `source_e260`；CPU student Probe 因此只是
+  source-only 可预测性证据，不能升级为六专家结论。
+- 带 `object_lift_axis` 合约的 r7 fit/holdout 已完成同样的 canonical 审计（188/186 行，
+  六臂均至少 30 行，374 个 episode disjoint）。scratch CPU calibration 的 contract
+  通过，但 holdout contact q10 和 delta 区间覆盖均未过门槛，结论为
+  `UNPROMISING`；详细输入/输出 hash、离线 label 统计和边界见
+  [`CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
+- 允许的一次正确 cwd 工程 smoke 已完成：`agent_temporal_cm_smoke_20260926_r3`
+  在 GPU4 上成功加载 temporal 模块、写出 reward 日志并保存 checkpoint（代码
+  commit `2d5d0b5`）。它使用旧的五步历史/三条 airplane 输入，只证明 wiring，
+  不提供 HF02 的策略或离线预测证据。
+- HF02 substrate handoff 已接入 temporal 分支：唯一 canonical route 是
+  `src/task/CmResidual/configs/hf02_temporal_canonical_route.json`（SHA256
+  `afedfa54c8573096c4d2104d3328efba32b5daf11445323792f45eca19c04d16`），即六个
+  self-trained experts、三条 airplane motion、`simulator_object_id` 路由。
+  59-motion/十 expert 路线及旧 `3/64` Cm-off 证据不可混用。
+- HF02 slot-2 的 canonical offline Probe 已完成并判定 `UNPROMISING`：fit seed254
+  有 187 行（六臂最少 31），holdout seed255 有 186 行（六臂最少 30）；两份
+  payload 的 route/checkpoint/motion hash、first-episode boundary、start frame、
+  action equality、propensity 和 finite checks 均通过。CPU IPW held-lift 中，
+  `temporal_cm` 相对 `history_only` 为 `+12.903 pp`，但相对
+  `action_shuffled` 为 `-9.677 pp`，未达到双侧 `+5 pp` 门槛；supported-lift
+  非回归通过。HF02 已冻结，不启动 online/PPO，也不换 seed、horizon、metric 或
+  representation 重扫。完整 hash 与 run manifest 索引见
+  [`P-20260926-temporal-expert-credit-results.json`](experiments/probes/P-20260926-temporal-expert-credit-results.json)。
+- 59-motion six-expert 上的近期 Cm gate follow-up：stable gate matched seeds251–252
+  为 on 8/128、off 5/128，低于预设 +5pp continuation gate；当前 checkpoint
+  仍为 policy-utility `UNPROMISING`。见
+  [`P-20260926-cm-gate-followup.md`](experiments/probes/P-20260926-cm-gate-followup.md)。
+- 单一 airplane motion 的 baseline-owned contact-supported credit audit 未通过
+  预设 label/action gate；它与下述 HF03 跨 seed 的 post-action handflow audit
+  是不同的数据合同。见
+  [`HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md`](handoffs/HF03_CONTACT_SUPPORTED_CREDIT_AUDIT_20260926.md)。
+- 固定 airplane 接触后的 wrist-z 完整 episode value 路线在二臂和更严格的
+  三臂 Probe 中均未过预设门：三臂 held-out Cm-aware 离线策略价值 0.6809，
+  state-only 0.6667，差 1.42pp，低于 +5pp 门；没有启动 online Cm-on/off。
+  见 [三臂实验卡](experiments/probes/P-20260925-cm-postcontact-three-arm-value.md)。
+- HF03 `contact_supported_credit` 的 CPU-only retrospective audit 也已完成并判定
+  `UNPROMISING`：复用同一 self-trained `source_e260` airplane substrate 的
+  seed246/247 fit（123 行）和 seed248/249 holdout（122 行），只保留首次接触、
+  完整五步 followup 和首回合 held-lift 标签。动作后 `next_q`/`next_object_state`
+  handflow 相对 action-aware 与 post-handflow-shuffled 对照没有达到预设 5% 的
+  held-lift Brier + max-contact-lift RMSE 联合改进门槛（held Brier 分别
+  `-2.33%`、`-4.36%`；连续 lift RMSE 分别 `+1.86%`、`+4.85%`）。该记录只有
+  `motion_id=0`，不支持多轨迹或跨物体结论；HF03 已冻结，不启动新的 physical
+  collection、critic/PPO 或 online Probe。结果索引见
+  [`P-20260926-contact-supported-credit-results.json`](experiments/probes/P-20260926-contact-supported-credit-results.json)。
+- HF04 trajectory-level-credit 的 CPU screen 也为 `UNPROMISING`：121 行 fit、126 行
+  holdout；相对 pre-action，held-lift Brier 仅改善 0.29%，连续 lift RMSE
+  恶化 12.95%，未过预设的双侧 5% gate。见
+  [HF04 card](experiments/probes/P-20260926-trajectory-credit.md)。
+- 已停止的 `agent_temporal_cm_online_probe_20260926_on_s254_e280` 已在 manifest
+  中标为 `STOPPED/INVALID_IMPLEMENTATION`：KeyboardInterrupt，最后完成
+  `epoch 276/280`。原始 `train.log` 保留，运行不用于任何科学结论，也不消耗
+  HF02 slot。
+- 历史正式证据与边界见
+  [`VAL-20260923-CM-EFFECT-PPO`](experiments/validations/VAL-20260923-CM-EFFECT-PPO.md)
+  和相关 Probe cards，不在 STATE 中复制具体运行矩阵。
+
+## Active hypothesis families
+
+| Family | Claim | 状态 | 预算状态 | 分支 |
+| --- | --- | --- | --- | --- |
+| `HF19` contact-geometry action synthesis | `C3` | `UNPROMISING`（部分H10信息，条件选择无增益） | slot1后关闭，不启动slot2 | `agent/cm-contact-geometry-synthesis` |
+| `HF18` contact-to-lift macro-Cm | `C3` | `UNPROMISING`（early轨迹信息门失败） | slot1后关闭，不启动slot2 | `agent/cm-contact-to-lift-macro` |
+| `HF17` strong-reference corrections | `C3` | `UNPROMISING`（固定修正未过留出机会门） | slot1后关闭，不启动slot2 | `agent/cm-strong-reference-corrections` |
+| `HF16` native-PD/force-Cm | `C3` | `UNPROMISING`（一步信息正向，强控制门失败） | 2/2关闭 | `agent/cm-native-pd-consequence` |
+| `HF15` translation/orientation-plan-Cm | `C3` | `UNPROMISING`（候选机会正向，闭环未过强控制门） | 2/2关闭 | `agent/cm-executable-options` |
+| `HF14` wrist-anchored-finger-feedback | `C3` | `CLOSED UNPROMISING` | 1/1；保持/抬升取舍，旧门保留 | `agent/cm-executable-options` |
+| `HF13` executable-pose-hold | `C3` | `CLOSED UNPROMISING` | 1/1；固定整姿态失去几何保留 | `agent/cm-executable-options` |
+| `HF12` trainable-recovery-guide | `C3` | `CLOSED UNPROMISING` | 1/1；on贪心执行未学到改变 | `agent/cm-trainable-recovery` |
+| `HF11` recovery-option-learning | `C3` | `CLOSED UNPROMISING` | 1/1；固定先验压住执行 | `agent/cm-recovery-option-learning` |
+| `HF10` physical-trajectory-retention | `C3` | `CLOSED UNPROMISING` | 2/2；局部释放信号，收益未过门 | `agent/cm-contact-trajectory` |
+| `HF09` contact-consequence-direct-control | `C3` | `CLOSED UNCLEAR` | 3/3；局部抬升PROMISING，风险未过门 | `agent/cm-contact-consequence` |
+| `HF01` local-effect-ranking | `C3` | `KILLED` | 3/3，冻结 | `agent/cm-option-value` |
+| `HF02` temporal-cm | `C3` | `PAUSED`（slot-2 UNPROMISING） | 2/3 | `agent/cm-temporal` |
+| `HF03` contact-supported-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-contact-credit` |
+| `HF04` trajectory-level-credit | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-trajectory-credit` |
+| `HF05` selective-causal-intervention | `C3` | `KILLED`（Probe UNPROMISING） | 1/1，CPU gate failed | `agent/cm-selective-causal-gate` |
+| `HF06` scratch-offline-teacher-arbitration | `C3` | `KILLED`（teacher-envelope UNPROMISING） | 3/3，MLP coverage/stability gate failed | `agent/cm-scratch-mlp-policy-probe` |
+| `HF07` physical-prediction-inference-bottleneck | `C3` | `KILLED`（固定 BC 接法 UNPROMISING） | 1/1，真实策略 matched gate failed | `agent/cm-scratch-mlp-policy-probe` |
+| `HF08` physical-value | `C3` | `KILLED`（HD02 闭环重复性门失败，非 Cm 核心假设反证） | 1/1，预算已用 | `agent/cm-physical-value` |
+
+新 Probe 必须登记一个 family、递增 `probe_index_in_family`，并通过
+[`RESEARCH_QUEUE.yaml`](RESEARCH_QUEUE.yaml) 的预算门。family 用完预算仍无
+信息增益时，必须切换高层假设；换 metric、horizon 或 seed 不会重置预算。
+
+## Next step
+
+当前候选机会已过门：rotation_cup程序留出保留支持高度+26.509mm。真实H10
+物理模型拟合也已完成；raw动作张量解码器置信门下0提议，不能进入PPO。
+HF15/HF16均预算2/2关闭。HF16一步物理信息PROMISING且实际局部控制
+胜过state-policy/base/shuf，但未超过强rotation_cup，原风险门保留。
+HF17强参考修正1506窗口已完成：fit选中手指半修正，heldvsreference
+−9.227mm90[−23.722,+6.520]，机会门UNPROMISING；slot1后关闭，slot2不启动。
+全部实际PD/force/geometry/反馈审计通过，21.58min/110.68MB，本任务PID退出。
+HF18已完成4586窗口资格与9模型各1000更新，early held971/144ep/30组、
+41抬升正例，原监督支持门通过。Cm高度14.476 vsstate15.173/shuf15.208mm、
+CLR5.819 vs5.927/6.078mm，均未过对两控制改善至少5%的原门；形成抬升
+Brier与联合高度有信息增益但不替代失败门。UNPROMISING，slot1后关闭。
+全部pre/真实PD/控制律/34标签/fit归一化复算0误差，冻结hash/任务终态通过；
+GPU采集后当前执行环境CUDA不可用，记录后全部9个匹配拟合统一CPU125.73s，
+默认仍GPU。累计11.13min/65.47MB，未启动闭环/PPO。
+见 [HF18结果](experiments/probes/P-20261002-contact-to-lift-macro-result.md)。
+fit/cal接触作用检查已完成：端点净力不能直接当作周期平均力；cal5190
+动态帧Newton速度更新RMSE61.668m/s，常速度.2946；独立float64复算通过。
+具体原因未定位，不对力事后缩放。下一步监督实际速度增量或有效非重力
+冲量，不称已分离的手物力。相对几何工程亦通过29110个pre-step观测；
+下一步把各指动作与物体坐标下的几何绑定，设计可执行候选修正和相应物理
+预测合同，而非继续固定目录/门限扫描。
+见 [作用链条检查](experiments/probes/P-20261002-contact-impulse-observability-result.md)。
+具体下一路线见 [相对几何与动作生成决定](decisions/D-20261002-contact-geometry-action-synthesis.md)。
+随机组合采集器/有界工程启动器已实现；离线193状态/1158命令的专家范围、
+固定旋转和历史真实40base/20cup PD复现均通过，目标误差0。独立记录审计已实现并拒绝10类synthetic损坏，34输入hash核对，
+GPU访问已恢复：8张3090可见，实际CUDA矩阵运算通过；旧阻塞记录保留。
+GPU0有他人任务，当前使用空闲GPU1。新采集器原生工程已完成108个H10窗口、
+82episodes；1080步实际组合命令/PD/force/mesh标签、全部pre/post相对几何
+独立复算通过，专家回放误差0，原生与审计进程均exit0。首次目录检查失败
+已修正并保留，全部成本计入工程记录。HF19 slot1已完成3745个真实H10窗口、
+37450步、12个模型各1000次GPU更新；held857/243ep/22组。H10支持高度MAE
+15.656 vsstate18.250/shuf18.272mm约改善14.2%，但原一步dv/几何信息门失败。
+Cm离线改变固定参考158/857（18.44%），实际策略匹配154窗口；IPWvs强cup
+−.089mm90[−.645,+.404]，vs直接评分+.078mm区间跨0，原选择门未过。
+全部52标签/时序/PD/fit归一化/NN候选预测/IPW独立复算通过，任务均exit0。
+UNPROMISING，slot1后关闭，不启动slot2/PPO；不把部分H10信息解释成策略收益。
+见[HF19结果](experiments/probes/P-20261002-contact-geometry-action-information-result.md)。
+下一步让冻结Cm的H10后果预测主动生成受约束程序，先做梯度/可执行域工程，
+再固定真实候选机会检验，而非继续随机组合排序器的网络/门限扫描。
+动作生成原生工程已完成96H10窗口/78episodes/960实际步；79批完整规划
+和pre-only输入/分配RNG/32步梯度/完整NN回放均0，PD差1.19e-7、旋转/mesh/
+score标签差0，参数冻结，源与审计exit0。Cm71/96不同cup权重；实际7个Cm
+分配中6窗口/60步PD不同cup，尚不代表收益。240秒原生超时记录保留，同规则
+420秒重试完成；含失败853.32秒/20.05MiB，共享预训练另报。
+见[原生生成工程](experiments/probes/P-20261002-optimized-contact-native-engineering-result.md)。
+HF20 slot1已完成1273个实际H10窗口/12730步及全部独立物理/完整规划/统计
+审计；held334中Cm23匹配，低于固定24支持门，标签UNCLEAR。vs强cup
+HT支持高度−6.372mm，组90[−14.214,+.916]；原收益/噪声/接触联合门均未过。
+23个实际Cm中16窗口/160步PD不同cup，控制路径生效，但收益未证明；不补seed、
+不改门、不启动slot2/PPO。累计2981.63秒含工程900秒，源+审计101.58GPU分钟，
+共享预训练另报；全部任务exit0，资源释放。见[HF20结果](experiments/probes/P-20261002-optimized-contact-opportunity-result.md)。
+HD03已在GPU1完成cal306完整冻结网络后果重放及独立rawforce/算术审计。
+模型预测生成程序手保持更好，0个Fréchet明确joint下降；但55窗口的支持抬升
+概率高于必要接触概率，22窗口超5pp，独立任务头内部不一致。支持高度MAE
+23.940 vsstate24.863mm、预测增益2.216mm；不能仅加保持门推导真实收益。
+共12.04秒/5.93MiB，参数与输入冻结、任务exit0，原HF20标签/门保留。
+见[HD03结果](experiments/probes/P-20261002-generated-contact-consequence-diagnostic-result.md)。
+HF21结构化联合后果slot1已完成并通过固定信息门PROMISING：复用5018窗口，
+fit2532/cal1295/reused-held1191。Cm支持高度9.980 vsstate14.365/shuf14.516mm，
+joint-support Brier.06901 vs.08458/.08480；生成分布95事实窗口及物理非劣门通过。
+全部joint/rawforce/PD/世界物理标签/fit归一化/8候选完整NN和原门独立复算通过，
+完整NN差0、指标差1.56e-6。12模型各1000GPU更新，拟合及审计exit0；含工程/
+准备239.98秒/47.87MiB，旧源成本另报；reused-held不是新独立Validation。
+直接评分高度9.935mm略优，物理后果的独特控制收益仍未证明。见[HF21信息结果](experiments/probes/P-20261002-structured-contact-effects-result.md)。
+冻结新模型的受约束动作生成亦已通过排除seed590工程：54/96初始PD不同cup，
+32当前OOD均返回cup，完整NN/规划/PD复现0，参数冻结，6.07秒。预测增益不是
+真实收益。排除seed610原生工程亦已通过：72H10窗口/53ep/720步，47批完整
+current输入/RNG/32步优化/全NN/硬可行性均0；实际4/6Cm窗口/40步不同cup，
+原生PD差1.19e-7、旋转/mesh/任务标签0；参数/专家冻结，全部任务exit0/GPU释放。
+slot1累计554.09秒/63.00MiB，借用旧源另报。见[原生结构化结果](experiments/probes/P-20261002-structured-native-engineering-result.md)。
+HF21 slot2完整8seed已完成并判UNPROMISING：1245H10窗口/563ep，fit624/
+cal323/held298支持充分，全部native/完整审计exit0；原标签独立差0、统计差
+1.78e-14，原门不改。held45/73Cm窗口/450步改变Cup，99ep重复规划，但相对
+强Cup高度+3.420mm、group90[-3.325,9.280]，不足9.616mm噪声门；相对direct
+cal-3.164/held+3.487mm均区间跨0。相对base held高度+13.455mm但joint -27.92pp，
+不能升级为通过。累计2261.93秒/202.66MiB（旧slot1/共享源另报），所有自己
+任务exit0；当前GPU4新外部PID2768199不得干扰。见[真实机会结果](experiments/probes/P-20261002-structured-contact-opportunity-result.md)。
+作用链已经打通，强对照增益仍未建立，不启动本配方PPO/最终成功率矩阵。
+下一步新职责为生成分布适配与显式H10接触损失：当前几何loss与P111约束
+不能替代hand/object共同存在保护。只用新fit624事实转移适配，旧fit回放；
+新cal/held用于复用信息Probe、未来实际效用仍需独立源，绝不把预测当真值。
+见[新职责决定](decisions/D-20261002-generated-support-preserving-cm.md)。
+HF22适配及独立审计已完成，原门UNPROMISING：已知新held298，Cm高度
+11.027 vs旧11.242mm、生成subset12.685 vs12.986mm，改善1.92%/2.32%未达
+预设5%。接触loss Brier.10512 vsstate.13063/shuf.12720，joint Brier.11067
+vs.12694/.12099，两项动作信息子门与全部物理非劣/旧能力保持/包含关系通过。
+实际6263标签/PD/旧fitnorm/actual及8候选全NN/冻结旧Cm/原门独立审计通过：
+任务标签0、物理目标1.54e-4、NN0、统计2.59e-6。正式12成员x500GPU更新，
+fit与audit均exit0，累计预算511.60秒/66.10MiB；被停止的早期3000–3500更新
+另保留，精确墙钟未知、预算费用300秒，旧源/模型成本另报。无新真实收益证明。
+见[适配结果](experiments/probes/P-20261002-support-preserving-contact-effects-result.md)。
+接触风险约束工程已完成：排除623/33无接触约束介入，按固定覆盖修正加入
+排除590/96后，129状态中4个接触风险违规均改变PD，介入4/129（3.10%）。
+全NN与独立PD差0、state-only=无约束、参数冻结、未来字段不影响规划；GPU5
+exit0，累计16.456秒。接法有实际指令作用但覆盖稀疏，没有真实风险/收益证据。
+下一步固定独立真实执行Probe，检验介入是否减少接触丢失及抬升代价；采集成本
+须考虑低覆盖。HF22原门仍UNPROMISING，C3OPEN，当前不启动PPO。
+见[风险约束工程结果](experiments/probes/P-20261002-contact-risk-guard-engineering-result.md)。
+
+HF23独立8seed真实介入已完成UNPROMISING：5440检测/88H10窗口/76ep/40组，
+base/Cup/Cm/direct/shuf=4/6/34/33/11，primary支持充分；Cm34窗口/340PD步
+改变direct、12ep重复规划，但介入仅1.618%。Cm-vs-direct接触loss+1.385pp，
+group90[-12.269,+16.563]；支持高度-4.417mm，[-17.711,+8.471]，风险改善/
+高度保持/42.434pp零差噪声门未过。原HT方向有差别，不事后选择估计器；
+不是负因果效应证明。全部8native/8全检测NN与实际物理audit exit0，独立
+统计差6.44e-7、额外标量PD计数34/340完全一致。累计2731.752秒/174.51MiB，
+失败/强制工程/旧数据费用分开保留；forced数据明确排除科学与训练。
+fit无实际base，best-fixed无法按原规则选定；15个初始clear窗口不足drop比较，
+完整策略/学习及稳定抓取仍未证。HF23 1/1关闭，不补seed/调风险阈值或本配方PPO。
+下一步返回候选控制职责：接触阶段的对象相对位姿/速度反馈程序，先检验真正
+可执行的反馈作用与新的实际机会，再拟合对应Cm；不把旧固定权重H10模型当
+新反馈程序真值。C3保持OPEN，核心目标不变。
+见[真实介入结果](experiments/probes/P-20261002-contact-risk-interventions-result.md)。
+新的相对反馈工程完成：固定gain0.5保留Cup XYZ/手指与起始旋转，加入当前
+手物相对速度/位置平移反馈；URDF世界轴与native根/DOF核对通过。静态129旧
+排除窗口映射0/未来poison通过；排除669原生49H10/37ep/490步，实际速度6窗口/
+60步、位置7窗口/63步PD不同Cup，完整专家重放0、独立PD/接触/几何审计通过。
+首推理batch初始化错误已修复，失败42.010秒保留并计费；累计162.771秒/
+12.81MiB，全部自己任务exit0/GPU释放。这只是工程，不证明候选收益；不以
+工程后果调gain。下一步固定独立候选机会与base/Cup重复噪声，再学对应Cm。
+见[反馈执行工程](experiments/probes/P-20261002-contact-relative-feedback-engineering-result.md)。
+HF24独立机会6seed已完成UNPROMISING：982H10/438ep，fit420/cal222/held340，
+fit选速度反馈（亦best-fixed），held46速度/116Cup/115base支持充分且46实际PD
+改变Cup。相对base支持高度+22.434mm，group90[9.529,33.349]超过base重复1.395mm；
+相对强Cup+6.415mm[-1.784,16.164]、episode区间亦跨0，未达Cup重复21.952mm门。
+接触loss-9.783pp、geoloss-3.786pp、joint+10.682pp点非劣通过，局部base信号
+保留但不替代失败的强对照机会门。初始clear速度19/Cup27，drop仍UNCLEAR。
+全部6native/6完整物理审计exit0、独立标量统计最大差5.98e-7/原门一致；累计
+640.669秒/137.57MiB包含工程失败修正，全部自己源PIDterminal。HF24当前配方
+关闭1/3，不补seed/gain、不给此配方追加Cm/PPO；返回物理表示/控制职责复盘，
+不重复固定候选列表或风险阈值扫描。完整Cm效用/学习/稳定抓取仍未证，C3OPEN。
+见[反馈真实机会结果](experiments/probes/P-20261002-relative-feedback-opportunity-result.md)。
+动作增量表示已做HD04最小GPU资格：复用HF19第一周期fit1899/cal989，held857
+不构造目标；known随机化中心PD +几何条件线性响应，原门UNPROMISING。
+cal速度RMSE .32550 vsstate .33672/shuf .36088（state改善3.33%<10%），位移
+6.993 vs7.063mm、CLR5.018 vs4.903mm未过5%门；小幅速度信号保留，不否定
+非线性物理作用。加权候选预测中心误差9.24e-14，零动作精确state；独立raw
+物理/fitnorm/GPU正规方程/全部预测/原门审计最大1.65e-12通过。GPU5 fit/audit
+exit0，累计45.608秒/6.13MiB，旧源1415.783秒另报；HD04关闭1/1不扫ridge。
+当前没有新训练/采集在跑；下一步判断非线性接触依赖响应和观察信息是否足以
+生成物理动作修正，不再回到固定目录或仅拟合绝对收益。完整goal/C3仍OPEN。
+见[动作响应资格结果](experiments/probes/P-20261002-randomized-motor-response-result.md)。
+
+见[独立机会测量决定](decisions/D-20261002-structured-opportunity-measurement.md)。
+见[动作生成决定](decisions/D-20261002-cm-optimized-action-generation.md)。
+完整机制/收益与策略学习仍未完成，C3仍OPEN。
+见 [源采集工程状态](experiments/probes/P-20261002-contact-geometry-source-engineering.md)。
+不对旧目录或阈值继续扫描，不启动完整PPO/最终成功率矩阵。C3仍OPEN。
+近似配对的机会信号不能作为可靠反事实真值；继续用已知propensity和独立
+新数据测量收益，而非把单状态预测当全候选真值。
+排序与覆盖过门后才检验直接重新决策；不依赖长期 V、不启动
+完整 PPO 或终点成功率矩阵；模型计算与仿真默认单 GPU，先固定合同与有界预算。
+HF08 当前实现和 HD02 诊断已关闭，后续机制是独立路线，旧证据继续保留。
+完整 paired evaluator 证据保留在
+[HD02 结果索引](experiments/probes/P-20261001-paired-evaluator-resolution-results.json)。
+self-trained baseline 继续 PARTIAL；若后续补 Objective A，应另开明确预算、目标和
+停止条件的 baseline/curriculum 路线，不盲目堆 epoch，不混入 Cm 诊断。
+HF08/HD02 均已用满1/1，当前实现关闭不意味着 Cm 核心假设被否定。
+
+以下保留 HD02 前的历史路线背景；当前授权和处置以上述 HD02 终止结果为准。
+
+2026-10-01 完成了最小同源 e0 重复性审计：相同 `plain_off/t286/e0/seed288`
+条件下，原运行与重跑均为 96 个完整 episode，但 stable success 为 12/96 与
+10/96，18/96 个 episode 的 stable 标签不同，连续 lift/contact 轨迹也不一致。
+代码、source checkpoint、motion、assignment seed 和 simulator seed 均固定；有效
+重跑记录见 [HF08 e0 repeatability audit](handoffs/HF08_E0_REPEATABILITY_AUDIT_20261001.md)。
+因此 `plain_off 41/384` 对 `cm_value 33/384` 的约 2.1pp 差异不能升级为稳健的
+负因果结论，但也不构成继续 HF08 的理由。HF08 继续暂停；未来比较必须先使用
+可重复、成对且保留完整状态/动作 provenance 的评价合同。
+
+HF01–HF04 的实验卡、manifest、结果索引与 Git 提交已完成只读
+[closeout audit](handoffs/HF01_HF04_CLOSEOUT_AUDIT_20260926.md)；HF05 的唯一
+existing-record screen 已失败固定 policy/safety gate。训练期 Cm 表征的只读
+[路线复盘](handoffs/CM_REPRESENTATION_ROUTE_REVIEW_20260926.md)也确认旧 3D/H10
+auxiliary 未过升级门。HF01–HF05 与该 representation 路线均保持冻结，不登记新的
+representation Probe，也不更换 threshold、seed 或 target。
+
+主代理复核发现 baseline 注册 thread 在冻结决定之后再次发起 GPU 评估；
+相关提交暂不合入 `main`。见
+[监督审计](handoffs/BASELINE_POSTFREEZE_PROBE_AUDIT_20260926.md)。
+
+C1 的五 seed matched Validation 已完成；冻结已验证的六专家 checkpoint、
+初始观测分类器和评估协议，作为当前任务内的自训练层级 substrate。后验
+route-vs-downstream 分层显示初始路由不一致仅占 9/320，而路由一致环境中
+有 188 个 observation held-lift 失败；这只是描述性证据，不是机制或因果结论。
+见 [C1 分层交接](handoffs/C1_ROUTE_FAILURE_PARTITION_20260927.md)。此前的
+[Option A](decisions/D-20260927-cm-freeze-option-a.md) 是历史冻结处置，不是当前要求
+用户再次插入选择的门槛。六专家蒸馏与新的 Cm scratch 路线均应先记录区别于 HF01–HF05
+的高层机制、预算、停止条件和证据边界，再在现有授权内自主选择或请求缺失的资源授权；不得
+从该分层或 C1 结果推导 Cm 增益，也不得把历史冻结标签改写成新的实验结果。
+
+r6 support collection 和 source-only CPU distillation 已完成审计。固定 Cm-off
+teacher label 的六专家覆盖不足；`agent_cm` 的
+`CM-SCRATCH-TA-20260928` CPU-only contract/calibration gate 已按
+`UNVERIFIABLE_OBJECT_LIFT_AXIS`、`SCRATCH_CONTRACT_VALIDATION_BLOCKED` 和
+`NO_CM_CALIBRATION_AFTER_CONTRACT_STOP` 结束。它确认一步 delta、五步 contact、六臂
+assignment、`1/6` propensity 和 episode disjoint 均有效，但没有猜测缺失轴，也没有
+把 `source_e260` 当静态 fallback。正式 handoff 见
+[`CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md`](handoffs/CM_SCRATCH_CPU_CALIBRATION_R1_20260928.md)。
+主分支当前 CPU preflight 已返回 `READY_FOR_COLLECTION`，随后完成了新的带轴 fit/holdout
+support collection：fit 188 行、holdout 186 行，六臂均至少 30 行，374 个 episode 全局
+不重叠，axis finite/unit 和 provenance 均通过 root 独立复核。`agent_cm` 随后通过了
+scratch contract 并完成 CPU calibration，但 holdout contact q10 下界覆盖率只有 0.7688、
+delta 区间坐标覆盖率只有 0.2634，两个预设 gate 均失败，校准结论为 `UNPROMISING`。
+因此该历史 calibration slot 停止：不从此 artifact 生成可用于蒸馏的正式 Cm-on 标签，
+不启动该配方的 online/PPO/Cm 训练；后续新机制以本页最新路线决定和独立 Decision Memo 为准。
+
+## HF08 completed Probe
+
+HF08 physical-value 的 r7 native 执行已经完成 48/48 固定评价。终点每臂 384 个
+episode：plain_off 41、direct_q 40、cm_value 33；原生 gate 为 `UNPROMISING`。
+因此不启动 Validation，不继续该实现的局部调参，North-star Cm policy utility 保持
+`OPEN`。同源 checkpoint 的 e0 重复性审计仍是最终因果解释的边界；完整合同、输入
+输出 hash、评价矩阵和运行资源记录见
+[HF08 实验卡](experiments/probes/P-20260930-cm-physical-value.md)及其结果索引。
+
+R2 价值目标审计已由 root 验收：主成功 15/1920、holdout 1/384，两个 e420 V
+均有 7680 次 optimizer update；这些是已验收工程/标签事实，不构成 V 充分性、当前
+策略校准、策略效用或收敛结论。后续工程准备不改变 HF08 已用预算。
+
+## 2026-10-03 审查后的 Cm 结果边界
+
+审查确认旧 decision-interface 的 `shuffled` 臂只是对同一 score/candidate 面做同步排列，
+与 `direct_q` 的 `argmax` 相同；旧 residual policy 又把 object-local `z` 当成 world
+height，并在 reset 后复用 motion/start/rest 元数据，且没有记录真实 simulator seed。因此
+依赖这些条件的控制、世界高度和分组复现结论均冻结，旧 residual 的 `UNPROMISING` 结果不
+再作为科学证据。代码已切换到 v2 schema：统一 world-height 目标、trigger metadata 快照、
+显式 seed provenance，移除伪 `shuffled` 控制，并恢复缺失的 Cm dataset/data-tool 源码。
+修正后的 source/fit/native Probe 尚未运行；在新 Probe 通过 action ranking、coverage 和
+真实局部效用门之前，不启动 PPO 或扩大普通 Cm 数据。
+
+2026-10-03 HF32 uncertainty-weighted value allocation 已完成并关闭。固定 top-20% 不确定性
+权重为2.0时，held top-regime direct-Q RMSE 只改善0.20%，未达到预设5%门；不继续权重
+扫描或策略跟进。旧 candidate-advantage v1 的 uncertainty fallback 仍只保留为路线线索：
+离线已知 propensity screen 的 score lower90 为+6.98mm，但其 reset 后 motion/start/rest
+和 simulator seed provenance 不足，不能作为科研证据。
+
+已授权 HF33 `P-20261003-cm-uncertainty-gated-candidate-v2`。采集器现在在每个 trigger
+快照当前 episode 的 motion/start/rest，reset 后重新读取任务元数据，并分别记录 simulator
+seed、panel seed 和 `PYTHONHASHSEED`；审计器拒绝旧 v1。下一步只运行固定六 seed、8 候选、
+`p=1/8`、one-tick candidate 加 nine-tick fixed Cup 的 native Probe。若 fallback 的 score
+lower90、contact/clearance 风险和 coverage 门同时通过，才设计小型 option-policy；否则关闭
+该配方，不扩大普通 Cm 数据、不启动 PPO。
+
+HF33 `P-20261003-cm-uncertainty-gated-candidate-v2` 已完成并关闭。修正 provenance 后的
+6 个 simulator seed 产生 252 个窗口、22 个 motion/start groups，8 臂支持均达到门；但
+固定 uncertainty fallback 改变 119/252 个动作，score 相对 fixed Cup 的组 bootstrap
+lower90 为 `-30.69mm`，last-3 contact 与 clearance lower90 分别为 `-0.281` 和
+`-0.213`。因此 corrected native 结果为 `UNPROMISING`：不启动 option-policy/PPO，
+不扫描 sigma/阈值，也不扩大普通 Cm 数据。v1 离线正向信号不能与此结果合并为正向证据。
+完整记录见 [HF33 实验卡](experiments/probes/P-20261003-cm-uncertainty-gated-candidate-v2.md)
+和 [v2 审计](experiments/probes/P-20261003-cm-uncertainty-gated-candidate-v2-results.json)。
+
+HF34 `P-20261003-cm-corrected-residual-v2` 已完成并关闭。两个 v2 source seed 产生 384
+rows，固定 fit 使用 180/99/105 fit/cal/held rows；六个 native seed 产生 352 个 held rows，
+baseline/residual 支持为 160/192，支持与 provenance 门通过。但 residual 实际只改变
+1/192 个窗口，height motion/start delta 为 `-1.57mm`、lower90 为 `-7.99mm`，contact3
+lower90 为 `-0.093`，因此 corrected route 为 `UNPROMISING`。世界高度和 reset/seed
+修正成立，固定 residual actor 仍 fail-closed；不启动 PPO、不放宽 margin、不扫 seed/范围。
+HF32、HF33、HF34 连续没有 North-star 增益，当前 campaign 已关闭；下一步必须先做路线复盘，
+提出新的决策责任或表示方式，不能继续 residual/candidate threshold 扫描。
+完整记录见 [HF34 实验卡](experiments/probes/P-20261003-cm-corrected-residual-v2.md)
+和 [v2 审计](experiments/probes/P-20261003-cm-corrected-residual-v2-results.json)。
