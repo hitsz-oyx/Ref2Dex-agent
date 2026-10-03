@@ -104,6 +104,15 @@ policy training. [Decision](decisions/D-20261003-after-oracle-capacity.md).
 No seed/magnitude/horizon/epochs/width rescue, no mission/claim change and no
 formal Validation. Journal readiness NOT READY; core utility remains unproved.
 
+User-requested frozen training audit:279/768TRAINpositive labels (36.33%),
+but motion0has0/256in TRAINand original heldout. E/I/joint final train accuracy
+100%, BCE1.34e-4/1.87e-5/9.47e-6; state91.67%, BCE0.200. Gross failure to fit
+these training labels is excluded; generalization convergence is unqualified,
+with no checkpoint-wise heldout curves and explicit protocol shift. One
+decision plus learned terminal-success classification is NOT fully privileged
+actor training or a Cm upper bound. No new optimizer/physics updates.
+[Diagnostic](research/20261003-oracle-selector-training-audit.md).
+
 ## Important retained facts
 
 - Actual hand collision filters previously had5SDK ownership mismatches;
