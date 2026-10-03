@@ -24,6 +24,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 - [Full-mesh rotational clearance adequacy](20261003-rotational-clearance-results.md): all155904poses/155136transitions independently audited; held1.9174%flips fails10% despite7.0397mm rotation95th; full105task discordance0/768, UNPROMISING.
 
+- [Physical acquisition primary-source boundary](20261003-physical-acquisition-method-boundary.md): model-guided curiosity/contact replay established; prospective contrast-disagreement label-allocation screen, no new result yet.
+
 ## 当前独立工作树研究
 
 `agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见

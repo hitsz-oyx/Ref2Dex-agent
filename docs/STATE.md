@@ -1,12 +1,12 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; action-decision route review next.
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; fixed-budget contrast-acquisition Probe prepared.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/cm-rigid-coupling` (retains `agent/cm-surface-prior` and `agent/response-actor` history). Original user tree and old own contact-response tree
+`agent/cm-active-acquisition` (retains rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
 are read-only. No remote push, broker or unknown process control. User explicitly
 authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
@@ -242,13 +242,20 @@ of model failure to that omission. Netforce flags are not attributedcontact.
 [Card](experiments/probes/P-20261003-rotational-clearance-adequacy.md),
 [decision](decisions/D-20261003-after-rotational-clearance.md).
 
-Next: bounded action-decision research review before another fit. Identify
-what physical information can change decisions beyond strongtask-Q, accounting
-for previouslyfailed observed-successor distribution and physical-feature-Q
-recipes; do not rename them as unexplored routes. Surface extractor explicitly
-requires30Hz/1/30s, same nativecontrol clock: no time-scale mismatch established.
-Realizedfuture-hand versus causalcommand and legacyphysics remain limitations,
-not newsolecauses. No new candidate/training commitment yet; missionunchanged.
+Action-decision review chose a distinct use ofCm: training-label acquisition,
+not another auxiliary/feature/successor/head rescue. Generic worldmodel curiosity
+and contact-prioritized replay are priorart; specific contrast-disagreement
+novelty unestablished. Fixed-budget offline comparison prepared:512initial+
+512acquiredlabels perlearner,3bootstrap+3matchedfinalfits,4800updates,0physics,
+legacy3072FIT and independent-acquisition3072previouslyviewedIIDTESTwindows.
+Contrastdisagreement vs absolute-disagreement vs uniform selection; sixfixed
+relative causalrisk gates, wholepairedactor/envblocks. Allpoolinteractions
+alreadypaid; not online sampleefficiency or ownpolicyutility. Engineering
+cancellation/randomized-risk smokePASS; no metrics yet. Positive permits a
+separatelydesigned corrected-physics/native acquisition and learnedpolicy
+experiment, negative closes exactconstruction withoutlocalrescans.
+[Card](experiments/probes/P-20261003-contrast-acquisition.md),
+[decision](decisions/D-20261003-physical-acquisition-route.md).
 
 
 User-authorized fixed-data granularity comparison completed with all six
