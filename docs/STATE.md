@@ -1,6 +1,6 @@
 # Independent contact-response research state
 
-Updated 3 October 2026. User-authorized no-Cm effect+interaction oracle Probe RUNNING after native contact/prefix qualification.
+Updated 3 October 2026. No-Cm oracle r1 completed UNCLEAR; conditional-query isolation engineering continues.
 Research continues under the user's explicit continuation; journal readiness NOT READY. Latent-load fixed-density feasibility completed UNPROMISING; native manuscriptv12 remains the last compiled draft; core utility still unproved. Goal service's historical BLOCKED status was observed on resumption and cannot be changed to ACTIVE with available tools; it does not describe a current research obstacle.
 
 ## Workspace and task
@@ -250,12 +250,15 @@ short future SE3/twist/contact trajectories; existing SDK netforces are not
 contact pairs, and existing8tick oracle was valueprediction only. Native engineering qualification completed: CPU data + GPU PhysX contact
 pairs/force units pass; GPU data contact API silently returns empty arrays.
 Full48-env72-tick fresh-scene replay is bit-identical for all states/actions.
-P-20261003-effect-interaction-oracle-r1 is RUNNING at101a493: TRAIN761/EVAL762,
-96envs,8fixed options, common decision36,32tick real-future queries, four
-matched1500-update task-Q selectors followed by actual202-tick deployment.
-No learned Cm or official actor. Candidate prefix, mixed deployed futures,
-all105 mesh labels and independent final-Q inference audits remain required.
-Single scene pair, no scientific utility conclusion yet. Fixed density,
+P-20261003-effect-interaction-oracle-r1 COMPLETED/UNCLEAR at101a493: actual
+P0/state/E/I/joint counts28/58/62/59/59 per96, but mixed deployed32tick
+futures differ from same-option queries by up to162.6mm. Entire36tickprefix
+is exact; all20native/105mesh/PD/contact and final-Q/earlyoptimizer audits
+pass. These are execution records, NOT oracle gains or an oracle rejection.
+6000task-Q updates/1920trajectories; no Cm/actor/official weights. Persistent
+CPU PD target engineering control reproduces mismatch exactly, so lifetime
+is not the supported cause. CPU PhysX isolation control now running with
+CUDA P0 inference; no new fit before conditional-query qualification. Fixed density,
 oldheads/auxiliaryQ/allocator/horizon scans remainclosed. No missionchange.
 [Review](research/20261003-effect-interaction-oracle-review.md),
 [decision](decisions/D-20261003-effect-interaction-oracle.md),
