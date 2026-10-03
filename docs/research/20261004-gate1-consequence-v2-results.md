@@ -135,3 +135,17 @@ closeout。
 `+21.2%`、`+4.8%`；两者均只有 2/5 CI 排除零。该跨 actor 结果支持继续设计
 正式 Validation，但不支持继续堆叠 feature 或启动 Cm；下一步应预注册
 actor/outcome cluster bootstrap，并增加多个独立 success/drop episode。
+
+### Source-run cluster bootstrap audit
+
+为估计 actor/run 内 episode 相关性对不确定性的影响，新增脚本
+[`audit_gate1_actor_cluster_bootstrap.py`](../../scripts/audit_gate1_actor_cluster_bootstrap.py)
+对每个 fit report 的 held-out episode 表按 `source_run` 聚类重采样 10,000 次。
+这一步只审计不确定性，不改 primary fit。e260 四个 cluster 下，I+ h16 直接比较的
+五个 split 区间为 `[0.935, 7.905]`、`[0.888, 2.039]`、`[-16.167, 2.018]`、
+`[1.277, 3.803]`、`[0.646, 1.330]` MAE；future-action control 为
+`[-1.440, 13.241]`、`[0.359, 1.835]`、`[-8.423, 2.978]`、`[0.435, 1.824]`、
+`[-0.434, 1.466]`。e420 只有两个 cluster，直接比较在 split 1、3、4 跨方向，
+control 在 split 3、4 跨方向。由于 cluster 数仍很少，这不是正式 actor-level
+Validation，也不改变当前 `PROMISING` diagnostic 状态；正式 Gate 仍需预注册的
+多 actor、success/drop 覆盖和 matched control。

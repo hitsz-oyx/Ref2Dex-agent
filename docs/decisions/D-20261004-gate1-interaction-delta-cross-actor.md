@@ -28,3 +28,14 @@ baseline，不启动在线 policy/Cm training。
 `-6.6%`、`+21.2%`、`+4.8%`，其中 2/5 CI 排除零。I+ 在独立 actor 上保留
 方向性，但没有稳定 Gate 级复现，因此停止继续堆叠该 feature，转入更严格的
 actor/outcome cluster Validation 设计，不启动 Cm。
+
+**聚类不确定性审计。** 对每个 h16 fit report 的 held-out episode 表按
+`source_run` 聚类重采样（e260 4 clusters，e420 2 clusters，10,000 次），不改变
+原 episode-balanced MAE。e260 直接 I+ 的五个 split 的 cluster-bootstrap
+delta CI 分别为 `[0.935, 7.905]`、`[0.888, 2.039]`、`[-16.167, 2.018]`、
+`[1.277, 3.803]`、`[0.646, 1.330]` MAE；matched future-action control
+分别为 `[-1.440, 13.241]`、`[0.359, 1.835]`、`[-8.423, 2.978]`、
+`[0.435, 1.824]`、`[-0.434, 1.466]`。e420 只有两个 source-run cluster，
+直接 I+ 的 split 1、3、4 区间跨越方向，control 的 split 3、4 也跨越方向。
+这是保守的诊断审计，不是正式 actor-level Validation；它进一步说明需要预注册
+多个独立 actor 和 success/drop outcome 后才能判断 Gate。
