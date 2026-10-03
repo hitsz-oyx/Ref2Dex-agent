@@ -1,0 +1,37 @@
+{
+  "schema": "ref2dex.cm_model_based_critic_policy_probe.v1",
+  "run_status": "COMPLETED_EARLY",
+  "offline_probe": {
+    "schema": "ref2dex.cm_model_based_critic_probe.v1",
+    "result": "src/task/CmResidual/research/physical_value/output/P-20261003-cm-model-based-critic/r1/results.json",
+    "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+    "augmented_q_checkpoint": "src/task/CmResidual/research/physical_value/output/P-20261003-cm-model-based-critic/r1/augmented_direct_q.pt",
+    "augmented_q_checkpoint_sha256": "f004198f5463134c4bbb72cab52e79147886e5519912b946ffed4b9b375e9ad6",
+    "fit_rows": 120000,
+    "held_rows": 209788,
+    "fit_gate_fraction": 0.9962000250816345,
+    "held_direct_q": {"rmse": 26.83295249938965, "mae": 9.107863426208496, "row_spearman": 0.5889918038179501, "episode_spearman": 0.7429196619307585},
+    "held_model_based_q": {"rmse": 25.711963653564453, "mae": 8.376509666442871, "row_spearman": 0.6064830057944787, "episode_spearman": 0.7737850106812247},
+    "delta_vs_direct": {"rmse": -1.1209888458251953, "mae": -0.731353759765625, "row_spearman": 0.017491201976528536, "episode_spearman": 0.030865348750466204},
+    "probe_label": "PROMISING"
+  },
+  "policy_probe": {
+    "manifest": "src/task/CmResidual/research/physical_value/output/P-20261003-cm-model-based-critic/policy_probe_r1/run_manifest.json",
+    "source_sha256": "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f",
+    "physical_off_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+    "physical_on_sha256": "b3de9cbbb182b0553981e3f18c28cb47ff8b29a35f706338490692ca9473aa23",
+    "training_seed": 292,
+    "epochs": 300,
+    "train_envs": 64,
+    "eval_envs": 96,
+    "completed_eval_seed": 293,
+    "control": {"stable_success": 10, "drop_after_success": 9, "complete_episodes": 96},
+    "treatment": {"stable_success": 4, "drop_after_success": 4, "complete_episodes": 96},
+    "stable_success_delta": -6,
+    "drop_after_success_delta": -5,
+    "stopped_before_seed": 294,
+    "stop_reason": "treatment violated predeclared per-seed nonnegative stable-success gate",
+    "probe_label": "UNPROMISING"
+  },
+  "decision": "Close model-based-Q policy recipe; retain offline critic-only clue; no scans or extra data."
+}

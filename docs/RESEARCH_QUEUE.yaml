@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-model-based-critic
+    owner: current_session
+    status: COMPLETED_EARLY
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-model-based-critic.md
+    evidence: docs/experiments/probes/P-20261003-cm-model-based-critic-results.json
+    outcome_boundary: "Conservative Cm synthetic transitions improved held critic metrics (RMSE -1.121, MAE -0.731, episode Spearman +0.031) on 120k fit rows, but the matched model-based-Q policy arm produced 4/96 versus direct-Q 10/96 stable successes on the first evaluation seed. Stop before seed294; close this policy recipe and retain only the critic value-equivalence clue."
   - id: P-20261003-cm-task-value-aux-policy
     owner: current_session
     status: COMPLETED_EARLY

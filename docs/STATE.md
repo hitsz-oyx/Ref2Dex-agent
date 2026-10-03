@@ -2,6 +2,32 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm model-based critic augmentation: policy route closed
+
+为检验 Cm 是否能以 MBPO/value-equivalence 方式参与 critic 训练，而不改 actor 输入、动作、
+reward 或成功定义，冻结 physical ensemble 生成一步 conservative synthetic target：观测的
+hand q/dq 与 object orientation 保留，Cm 只提供 object translation/velocity/contact/events，
+并以 direct-Q continuation 计算 target。normalized ensemble disagreement `0.5` gate 保留
+`99.62%` 的 120,000 fit rows。固定 `0.25` model-target blend 微调 direct-Q 后，held 209,788
+rows 的 RMSE/MAE/row Spearman/episode Spearman 为 `25.712/8.377/0.606/0.774`，相对 frozen
+direct-Q `26.833/9.108/0.589/0.743`，因此 critic-only Probe `PROMISING`。
+
+按预注册门继续做唯一 matched policy Probe：source epoch260、train seed292、64 env、300
+epochs，原始 physical bundle 对照 model-based-Q bundle，eval seed293/294。seed293 的 96
+完整 episode 中，direct-Q 稳定成功 `10/96`，model-based-Q 仅 `4/96`（差 `-6`），违反每个
+seed 非负门；在 seed294 尚未完成前停止。该模型式 Q 策略接口 `UNPROMISING`，不扫 model
+weight、uncertainty threshold、seed、epoch 或数据；保留离线 critic 改善作为
+value-equivalence 线索，不能称为 Cm policy utility。见 [Probe card]
+(experiments/probes/P-20261003-cm-model-based-critic.md)、[结果]
+(experiments/probes/P-20261003-cm-model-based-critic-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-model-based-critic-augmentation.md)。
+
+因此当前 physical-value decision family 关闭：不再扫 Q target weight、uncertainty threshold、
+action-teacher、seed/epoch，不扩大普通候选数据或启动 PPO。offline value-equivalence 线索
+保留，但它不能升级为 policy utility；若后续继续，必须先改变 observation 或 planning
+contract。见 [路线复盘 Decision Memo]
+(decisions/D-20261003-cm-route-review-model-based.md)。
+
 ## 2026-10-03 Cm task-value auxiliary policy Probe: closed
 
 为区分“Cm 直接改动作导致退化”和“Cm 任务价值目标能塑造策略表示”，新增了一个不改
