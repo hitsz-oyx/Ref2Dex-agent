@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected-physics sensitivity Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Corrected-physics sensitivity Probe completed.
 
 ## Workspace and task
 
@@ -39,7 +39,13 @@ shape filters were wrong. SDK ownership-based correction passes the actual
 method regression,5mismatches before and0after, same URDF. No confirmed neural
 label/frame/gradient bug found in inspected paths. Historical counts below
 remain legacy-physics observations; previous audits did not cover filters.
-Performance effect is currently unmeasured. [Review](research/20261003-implementation-review.md).
+One fixed655panel completed: P0/Cm/off/coldQ before[65,96,101,95]/192,
+after[61,81,92,91]/192; Cm -7.813pp passes the absolute sensitivity gate.
+All motion0remain0. PROMISING is physics sensitivity, not improvement or Cm
+benefit. All768filters and independent actor/PD/fullmesh audits pass;70.962s,
+250472932bytes, inputs unchanged and own PIDs absent. One seed, no exact native
+pairing or retraining. [Review](research/20261003-implementation-review.md),
+[result](research/20261003-inspire-filter-impact-results.md).
 
 P-20261003-budgeted-physical-critic-r2 COMPLETED/UNPROMISING. Frozen design22e47f5,
 scene-size amendment42e2cbd, implementation48f8d2b, pre-fit normalization
@@ -106,12 +112,11 @@ that claim. Close the exact joint auxiliary/data-allocation recipe, without
 coefficient/width/steps/seed/horizon/truncation/label-budget rescue. No formal
 Validation launched from a failed Probe.
 
-Next autonomous step: one corrected native655panel with retained P0/Cm/off/
-coldQ actors and old normalizers,768environments/202ticks, no model updates.
-Check every native hand/table filter and full105criterion. Prospective material
-signal: any arm pooled absolute change>=5pp or any motion0>=4/64. This is physics
-sensitivity, not Cm utility or exact native pairing. Stop after one seed and
-close the decision before any fresh training. [Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
+Next autonomous step: design bounded corrected-environment baseline/data
+qualification. The measured fixed-policy sensitivity warrants substrate review
+before further training claims; preserve the fix and old evidence. No replay
+of every closed recipe or new fit without a separate prospective design.
+[Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
 
 ## Preservation and debt
 

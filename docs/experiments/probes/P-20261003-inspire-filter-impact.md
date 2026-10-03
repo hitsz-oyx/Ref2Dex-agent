@@ -16,3 +16,12 @@ otherwise UNPROMISING only for this fixed-policy sensitivity gate. All neural
 updates0; full current/actor/PD/native105audit; same P0/actors fingerprints.
 600s/512MiB, one idle GPU native and CPU independent audits. No further seeds
 or retraining until this decision is closed and a separate design is written.
+
+## Outcome
+
+r1 COMPLETED; codea3118de,70.962s/250472932bytes, owned PIDs absent. All768
+filter checks and independent native/actor/fullmesh audits pass. Before
+P0/Cm/off/coldQ[65,96,101,95]/192; after[61,81,92,91]/192. Motion0all0.
+Absolute sensitivity gate passes (Cm -7.813pp); motion0gate fails. PROMISING
+only for fixed-policy physics sensitivity, not improvement/Cm learning.
+[Full result](../../research/20261003-inspire-filter-impact-results.md).

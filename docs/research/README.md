@@ -9,6 +9,7 @@ same research branch/history with separate local Git metadata; old worktree read
 # Research 文档
 
 - [Independently supervised implementation review and confirmed native collision-filter bug](20261003-implementation-review.md).
+- [Completed fixed-policy sensitivity to corrected collision filters](20261003-inspire-filter-impact-results.md).
 
 ## 当前独立工作树研究
 
