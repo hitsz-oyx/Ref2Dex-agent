@@ -290,6 +290,11 @@ outputs/audits and separate saved-array diagnosis,372862110unique bytes,
 allcopiedfileSHA/Gitbundle verified,base/prior manifests unchanged.
 [Receipt](activities/20261003-rigid-coupling-delivery.md).
 
+Supplement-r18 through31d8705 preserves failedprefitnormalization r1 plus
+completed3state-anchored heads/r2/data/base/outputs/audits,163257183unique
+bytes, allcopiedSHA/Gitbundle verified,base/prior manifests unchanged.
+[Receipt](activities/20261003-state-anchored-transport-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
