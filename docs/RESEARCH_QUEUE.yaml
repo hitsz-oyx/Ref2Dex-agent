@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-orientation-consequence
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-orientation-consequence.md
+    evidence: docs/experiments/probes/P-20261003-cm-orientation-consequence-results.json
+    outcome_boundary: "Using Cm-predicted object orientation in the held one-step continuation changed RMSE from 26.622 to 26.642 and quaternion error was 1.35 rad mean; close this contract with no critic fine-tune or policy follow-up."
   - id: P-20261003-cm-consequence-memory
     owner: current_session
     status: COMPLETED
@@ -331,6 +338,19 @@ claims:
     status: OPEN
 
 hypotheses:
+  HF27:
+    claim: C3
+    name: object_orientation_consequence_value
+    status: UNPROMISING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 1
+    last_run_id: P-20261003-cm-orientation-consequence
+    owner: current_session
+    authorization: "new object-orientation consequence responsibility selected under the persistent Cm policy-utility goal; one held-only Probe within existing wall-time/GPU/storage limits"
+    card: docs/experiments/probes/P-20261003-cm-orientation-consequence.md
+    transition: "Closed UNPROMISING1/1. Predicted orientation did not improve the observed-orientation continuation (RMSE +0.019; mean quaternion error 1.35 rad). No critic fine-tune or policy follow-up; next route must change the decision target or data responsibility."
+
   HF26:
     claim: C3
     name: consequence_error_memory_observation

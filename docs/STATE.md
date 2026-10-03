@@ -2,6 +2,21 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm object-orientation consequence Probe: closed
+
+现有 conservative continuation 一直保留 observed object orientation；为检验是否丢弃了 Cm
+预测的旋转后果，冻结 hand q/dq，比较 observed orientation control 与使用 Cm predicted
+canonical quaternion 的一步 direct-Q continuation。209,788 held rows/384 episodes 上，
+direct-Q RMSE 为 `26.833`，observed-orientation control 为 `26.622`，Cm-predicted
+orientation 为 `26.642`；treatment 相对 control RMSE `+0.019`、episode Spearman `+0.0006`，
+未过预注册 `0.5` RMSE 改善门。Cm quaternion error 均值 `1.35 rad`、P90 `2.74 rad`。
+
+因此 Probe 为 `UNPROMISING`，不做 critic fine-tune、native collection 或 policy training；
+该结果只关闭 orientation consequence contract，不否定 Cm 的 translation/contact 预测。
+见 [Probe card](experiments/probes/P-20261003-cm-orientation-consequence.md)、[结果]
+(experiments/probes/P-20261003-cm-orientation-consequence-results.json) 和 [Decision Memo]
+(decisions/D-20261003-cm-orientation-consequence.md)。
+
 ## 2026-10-03 Cm consequence-error memory Probe: closed
 
 在关闭 direct selection/MVE/critic/planning 家族后，新增 observation responsibility：Cm

@@ -1,0 +1,19 @@
+{
+  "schema": "ref2dex.cm_orientation_consequence_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-orientation-consequence",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "rows": 209788,
+  "held_episodes": 384,
+  "contract": {"hand_q_dq_observed": true, "object_translation_velocity_cm": true, "object_orientation": "predicted_vs_observed", "actor_changed": false, "reward_changed": false, "success_predictor": false},
+  "held_models": {
+    "direct_q": {"rmse": 26.833181381225586, "mae": 9.108014106750488, "row_spearman": 0.5889916827063789, "episode_spearman": 0.7429344969651758},
+    "observed_orientation": {"rmse": 26.622386932373047, "mae": 8.87254524230957, "row_spearman": 0.5901596726263836, "episode_spearman": 0.7403743938828796},
+    "predicted_orientation": {"rmse": 26.641721725463867, "mae": 8.894752502441406, "row_spearman": 0.5899805335953874, "episode_spearman": 0.7409896239530704}
+  },
+  "delta_predicted_vs_observed": {"rmse": 0.019334793090820312, "mae": 0.022207260131835938, "row_spearman": -0.00017913903099620043, "episode_spearman": 0.0006152300701908198},
+  "orientation_error_rad": {"mean": 1.3481285572052002, "p90": 2.7384164333343506, "finite_fraction": 1.0},
+  "gates": {"rmse_improvement_at_least_0_5_vs_observed_orientation": false, "episode_spearman_loss_within_0_01": true, "finite_orientation_error": true},
+  "probe_label": "UNPROMISING",
+  "decision": "Close object-orientation consequence contract; no critic fine-tune or policy follow-up"
+}
