@@ -37,6 +37,11 @@ Fixed design before scientific collection:
   and second moments. All actual contact records retained without top-K
   truncation. This is a rich deterministic descriptor, not an information-
   preserving encoding of every contact manifold or certified friction cone.
+  Counts distinguish potential-contact records from positive-normal-force
+  records; force and geometry moments are averaged over two physics steps.
+  Position/twist are expressed relative to the object; effect position and
+  rotation are relative to the decision pose. I can implicitly contain some
+  effect information: these are input ablations, not independent causes.
 - Four identically shaped MLP task-Qs (64/64,ReLU), same shared initialization,
   TRAIN-only normalization, same minibatch order and AdamW schedule1500updates
   each, BCE on complete105-tick TRAIN success. Arms state+request, +E, +I,
@@ -46,6 +51,9 @@ Fixed design before scientific collection:
   selected per-env actions are actually re-executed in a new whole scene.
   Compare deployed short futures to selected queries at fixed position1e-6m,
   quaternion1e-6,velocity1e-5; violations invalidate conditional oracle claim.
+  Joint positions1e-6 and velocities1e-5; short descriptor max error1e-4
+  in its recorded scaled units. Independent NumPy final-Q probabilities
+  must match within5e-5 and reproduce ALL96 argmax choices per arm.
 - Primary outcome: actual full25002vertex clearance20mm and object-root rise
   30mm on ALL105 late/plateau/drop ticks. Report every episode/motion, P0 and
   all four selectors. No retrospective best-candidate success as control gain.
