@@ -1,6 +1,7 @@
 # P-20261004-gate1-split-rng
 
-Classification: **Decision Probe**, not Validation. Status: planned.
+Classification: **Decision Probe**, not Validation. Status: completed; `UNCLEAR`
+for Gate closeout and `PROMISING` only as a local h16 diagnostic.
 
 Question: Does the negative I+ h16 split 3 persist when the model/minibatch RNG
 changes while train/test episodes stay fixed? Previous runs changed split and
@@ -34,3 +35,22 @@ absolute standardized values up to 828.9 and I+ up to 120.5; split 1 H reaches
 Tiny CPU synthetic regression smoke gives bitwise identical old/new predictions
 with the default seed and finite per-epoch losses. CPU is used only for this
 32-row engineering smoke and tensor statistics.
+
+Result: with the original data and fixed splits, changing only the model seed
+kept split 1 positive (`+35.9%`, `+45.0%`) and split 3 negative (`-20.8%`,
+`-14.1%`). The disagreement is therefore not explained by initialization.
+The split-3 held-out episode `(source_run=2, episode_id=18640000018)` has
+`stable_success=1`, `drop_after_success=1`, return-to-go mean `805.6`, and
+drives a `-163.0`/`-139.1` MAE delta in the two model-seed fits. Split 1 is
+instead helped by episode `(2, 18640000020)` (`+109.7`/`+111.9` before the
+history repair). This is outcome coverage sensitivity, not a stable Gate result.
+
+The same probe also exposed and repaired a separate history contract bug: the
+assembler had zeroed the oldest preceding action in 99.8% of windows. After
+preserving factual preceding actions, the five h16 I+ direct changes were
+`+37.8%`, `+20.6%`, `-28.2%`, `+21.2%`, `+6.2%`; matched future-action controls
+were `+38.4%`, `+18.0%`, `-20.7%`, `+18.1%`, `+14.3%`. The corrected dataset
+passed audit, but split 3 remained negative and outcome sensitivity persisted.
+The corrected direct and control cluster-bootstrap diagnostics are archived in
+`tmp/gate1_split_rng/histfix_i_aug_actor_cluster.json` and
+`histfix_i_aug_ctrl_actor_cluster.json`; they are not formal Validation.

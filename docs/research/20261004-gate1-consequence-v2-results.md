@@ -151,3 +151,27 @@ Validation，也不改变当前 `PROMISING` diagnostic 状态；正式 Gate 仍�
 多 actor、success/drop 覆盖和 matched control。
 该审计按 source-run 等权形成 cluster mean，而 primary fit 按 episode 等权报告
 MAE；两者是不同 estimand，cluster 区间只用于揭示 run 内相关性带来的保守不确定性。
+
+## History preceding-action contract repair
+
+对照实验进一步显示，原始 assembler 在每个 history 窗口都把最老的
+`previous_action` 清零；四个 e260 raw run 中约 `99.8%` 的窗口该 factual action
+实际非零。这违反了 `H^-={s_{t-L+1:t},a_{t-L:t-1}}` 的合同，因此修复为保留
+collector 的 preceding action，并重新组装、audit 和 augmentation。旧数据没有被
+覆盖；修复后的 dataset 仍为 58,111 windows、112 episodes，audit 通过，除
+`history_previous_action` 外其余 row keys 与旧数据完全一致。
+
+在固定 split、固定 model seed 的 corrected h16 I+ fit 中，`V_HEI` 相对 `V_H`
+为 `+37.8%`、`+20.6%`、`-28.2%`、`+21.2%`、`+6.2%`，episode bootstrap CI
+分别为 `[1.326,15.160]`、`[0.467,2.455]`、`[-31.178,3.171]`、
+`[0.095,3.338]`、`[-1.027,1.538]`。matched future-action control
+`V_HFEI`/`V_HF` 为 `+38.4%`、`+18.0%`、`-20.7%`、`+18.1%`、`+14.3%`，
+CI 为 `[0.182,19.629]`、`[0.247,2.203]`、`[-26.570,3.128]`、
+`[0.076,3.026]`、`[0.172,1.495]`。
+
+修复没有消除 split 3 的反向结果。独立 model-seed 对照也确认 split 1 始终正向、
+split 3 始终反向；split 3 的高 return success/drop episode `(2,18640000018)`
+仍是主要负向影响，说明近期瓶颈是 outcome coverage 和 episode influence，而不是
+初始化随机性。该修复后的 I+ 仍只能标为 `PROMISING` diagnostic，不能升级为
+Gate closeout 或 `SUPPORTED`，下一步应增加独立 success/drop 覆盖并预注册
+actor/episode cluster Validation。
