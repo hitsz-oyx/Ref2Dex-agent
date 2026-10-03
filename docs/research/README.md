@@ -163,3 +163,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
   UNPROMISING, Cm383/off399 per768; equal-budget block Cm183/labelQ220 per384.
   All native/input/model/actor audits pass; pre-fit normalizer correction and
   first valid short-panel inheritance preserved without duplicate collection.
+
+- [Qualified fixed-background oracle r2](20261003-effect-interaction-oracle-r2-results.md): state/E/I/joint8/12; joint gains absent; finite action-bank capacity is next.

@@ -1,6 +1,6 @@
 # Independent contact-response research state
 
-Updated 3 October 2026. No-Cm effect/interaction oracle r2 is RUNNING.
+Updated 3 October 2026. Qualified no-Cm oracle r2 completed UNPROMISING; finite-bank capacity is next.
 Core Cm policy-training utility remains unproved; journal readiness NOT READY.
 
 ## Workspace and boundaries
@@ -62,31 +62,36 @@ controlled hand and11P0 backgrounds; query and full deployment reproduce
 ALLwhole-world states/forces/commands through68ticks bit-identically. This
 qualifies a protocol, not grasp utility.
 
-Scientific r2 RUNNING at443d844: all12subjects,84nonzero68tick queries;
-full202tick actual deployment for each unique selected subject/option. Same
-eight existing options, decision36/H32 and105tick outcome. Frozen r1TRAIN-only
-Q models/normalizers are reused by SHA:0new updates,6000inherited. Training
-used global-option96-instance worlds; fixed-background12-instance testing is
-a documented shared scene/behavior shift. No terminal query success is input
-to selection. Rich I uses all25hand-body relative poses/twists plus hand/table
-attributed normal-force/contact moments; not an information-preserving full
-manifold or mathematical upper bound. Independent CPU native audits accompany
-collection; a separate SciPy coordinate/protocol audit checks artifacts.
-[Decision](decisions/D-20261003-single-focal-oracle.md),
-[amended card](experiments/probes/P-20261003-effect-interaction-oracle-r2.md).
+Scientific r2 COMPLETED/UNPROMISING at443d844: P05/12, state/E/I/joint8/12,
+all motions0/1/2 counts0/4/4 for the four selectors.84nonzero short queries,
+26unique selected full202tick executions,0new updates/6000inherited. Joint
+incremental gates fail at0pp. ALLwhole-world68control and136physics frames
+match exactly;111native audits and independent SciPy features/full105labels/
+counts pass. Frozen TRAINglobal96-instance vs fixed-background12-instance
+shift remains explicit; rich I compresses normal-contact moments and omits
+unqualified friction. [Result](research/20261003-effect-interaction-oracle-r2-results.md).
+
+Confirmed ranking issue: float32 sigmoid saturates distinct logits to1.0.
+For I/joint subjects1/7, probability argmax0 vs raw-logit argmax3/4. State/E
+choices unchanged. Fix raw-logit ordering and validate only2new actions, no
+refit; old r2result stays unchanged. Both affected subjects already succeeded,
+so this does not explain missing incremental utility.
 
 ## Blocker and next decision
 
-Final oracle utility is pending actual selected-action rollouts and all
-query/deployment, full105mesh, contact, PD and neural checks. PROMISING requires
-joint>=state+5pp, joint>=effect+5pp and joint>=P0, with qualified oracle fidelity.
-Failure of fidelity is UNCLEAR. Qualified negative closes only this fixed
-frozen-selector/finite-options/protocol recipe, not all effect/contact priors.
-Positive is controller headroom, not matched RL-training gain or Validation.
+All8motion1/2subjects are solved; headroom is confined to4motion0subjects.
+Each has failed actual zero and3/6/7 alternatives. Next Decision Probe collects
+only16missing1/2/4/5 branches, after stable selector choices are locked.
+Retrospective finite-bank capacity is separate from actual selector utility.
+Capacity8/12 means change control class before more Cm fitting; capacity>8/12
+means diagnose short information/learning/selection with matched training.
+[Memo](decisions/D-20261003-oracle-candidate-capacity.md),
+[card](experiments/probes/P-20261003-oracle-candidate-capacity.md).
 
-Finish r2 and its independent checks; record the bounded result and select
-one next decision-changing experiment only after reviewing actual evidence.
-No mission or final-claim change is authorized or inferred.
+Budget<=900s/2GiB new data, one idle GPU,18new full worlds maximum,0new updates.
+No seed/horizon/options/density/model tuning or unselected terminal labels in
+selection. Universal Cm upper bound, RL-training benefit, formal Validation and
+journal claim remain unproved. No mission or claim change is inferred.
 
 ## Important retained facts
 

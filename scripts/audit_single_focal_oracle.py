@@ -190,7 +190,7 @@ def main():
         rows = json.loads((source/'rows.json').read_text())
         if observer['run_status'] != 'COMPLETED' or observer['scientific_run_status'] != 'COMPLETED':
             raise ValueError('terminal native artifact observer')
-        actual_panels = [source/'baseline']+sorted(p.parent for p in source.glob('deploy/*/results.json'))
+        actual_panels = [source/'baseline']+sorted(p.parent for p in source.glob('deploy/*/results.json'))+sorted(p.parent for p in source.glob('capacity/*/results.json'))
         labels = {}
         physics_fidelity = {}
         for panel in actual_panels:
@@ -242,6 +242,24 @@ def main():
         terminal_audit = dict(all_full105_labels_agree=True,counts=counts,gates=gates,
                               conclusion=expected_class,actual_native_worlds=len(actual_panels),
                               whole_world_first136_physics_frames=physics_fidelity)
+        capacity_path=source/'capacity-results.json'
+        if capacity_path.exists():
+            capacity=json.loads(capacity_path.read_text());capacity_rows=json.loads((source/'capacity-rows.json').read_text());table={}
+            for target in np.flatnonzero(motion==0):
+                candidate_rows=sorted((row for row in capacity_rows if row['subject']==target),key=lambda row:row['option'])
+                if [row['option'] for row in candidate_rows]!=list(range(8)):
+                    raise ValueError('all eight capacity alternatives')
+                truth=[]
+                for row in candidate_rows:
+                    success=labels[str(Path(row['actual_rollout']).resolve())][int(target)]
+                    if success!=row['success']:raise ValueError('independent capacity episode label')
+                    truth.append(success)
+                table[str(target)]=truth
+            available=sum(any(values) for values in table.values())
+            expected=dict(successes=8+available,episodes=12)
+            if table!=capacity['unsolved_candidate_success'] or expected!=capacity['observed_finite_candidate_ceiling'] or available!=capacity['extra_attainable_successes']:
+                raise ValueError('observed finite-bank capacity')
+            terminal_audit['capacity']=dict(all32_alternatives_agree=True,observed_finite_candidate_ceiling=expected,extra_attainable_successes=available,retrospective_capacity_only=True)
     result = dict(run_status='COMPLETED',partial=args.partial,query_panels=len(audits)-1,
                   all_zero_option_subjects_audited=True,terminal_audit=terminal_audit,
                   independent_scipy_geometry=True,independent_partner_grouping=True,
