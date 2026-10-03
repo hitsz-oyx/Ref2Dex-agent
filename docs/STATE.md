@@ -173,6 +173,10 @@ Supplement-r12through1530872 preserves filter red/green, fixed corrected655
 and complete scale/hand matrix;603791182unique bytes, copies/prior manifests
 SHAverified and Git bundle verified. [Receipt](activities/20261003-shape-filter-scale-delivery.md).
 
+Supplement-r13throughc479cb3 preserves the coverage audit and complete eight-
+model granularity Probe;456016084unique bytes, all copies/prior manifest SHA
+and Git bundle verified. [Receipt](activities/20261003-granularity-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
