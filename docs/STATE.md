@@ -1,12 +1,12 @@
 # Independent contact-response research state
 
-Updated 3 October 2026. User instruction: continue the previous research route.
+Updated 3 October 2026. User proposes oracle effect+interaction usefulness before more Cm learning; prioritized for qualification.
 Research continues under the user's explicit continuation; journal readiness NOT READY. Latent-load fixed-density feasibility completed UNPROMISING; native manuscriptv12 remains the last compiled draft; core utility still unproved. Goal service's historical BLOCKED status was observed on resumption and cannot be changed to ACTIVE with available tools; it does not describe a current research obstacle.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/cm-latent-load` (retains active-acquisition, rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
+`agent/cm-interaction-oracle` (retains latent-load, active-acquisition, rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
 are read-only. No remote push, broker or unknown process control. User explicitly
 authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
@@ -242,14 +242,18 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-The fixed hidden-density screen is now closed: heavy0/96primary means no
-history-adaptation investment on this particular new task. Longer observed
-contact/action history under nominal corrected physics is a remaining
-information-level candidate, beyond already-present previous-step features.
-Next inspect existing trace inputs and prior-art boundaries before any fixed
-learnability design. No new architecture/fit is selected or running; no
-continuation of closed local heads, auxiliary/Q or horizon/weight scans.
-[Decision](decisions/D-20261003-after-latent-load.md).
+User-proposed oracle effect+interaction ceiling is now the next priority,
+superseding the pending history-only route. Focused primary-source review
+supports testing relational/contact information, not guaranteed success or
+novelty. Distinguish current attributed contacts/geometry from action-query
+short future SE3/twist/contact trajectories; existing SDK netforces are not
+contact pairs, and existing8tick oracle was valueprediction only. First native
+engineering qualification of contact fields/units/GPU availability and any
+same-state future query, then prospective no-Cm baseline/E/I/E+I actual grasp
+comparison. No new experiment or neural model is running. Fixed density,
+oldheads/auxiliaryQ/allocator/horizon scans remainclosed. No missionchange.
+[Review](research/20261003-effect-interaction-oracle-review.md),
+[decision](decisions/D-20261003-effect-interaction-oracle.md).
 
 Causal execution, negative surfacecalibration, positive rigidtransport capacity
 and negative learnedcoefficient/confidence screen are complete. Close this
