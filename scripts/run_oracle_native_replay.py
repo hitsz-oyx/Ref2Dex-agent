@@ -21,6 +21,9 @@ def main():
     p.add_argument('--physics', choices=('cpu','gpu'), default='gpu')
     p.add_argument('--source', type=Path)
     p.add_argument('--options', type=Path)
+    p.add_argument('--decision', type=int)
+    p.add_argument('--oracle-horizon',type=int,default=32)
+    p.add_argument('--contact-window-only',action='store_true')
     args = p.parse_args()
     if args.output.exists() or ROOT not in args.output.resolve().parents or args.envs % 3:
         raise ValueError('unique owned balanced output')
@@ -52,6 +55,8 @@ def main():
     options = torch.tensor(options, dtype=torch.float32)
     stops = initial['phase_stop'][initial['motion']]
     steps = initial['lift_start'][initial['motion']]-8
+    if args.decision is not None:
+        steps = torch.full_like(steps,args.decision)
     mean = checkpoint['observation_mean'].to('cuda')
     std = checkpoint['observation_std'].to('cuda')
     asset = ROOT/'third_party/DExplore/dexplore/data/assets/mjcf/objects'
@@ -74,6 +79,8 @@ def main():
             force = gymtorch.wrap_tensor(session.gym.acquire_net_contact_force_tensor(session.sim)).reshape(args.envs,-1,3).clone()
             count = 0
             for env_index, env in enumerate(session.envs):
+                if args.contact_window_only and not int(steps[env_index]) <= len(trace['context']) < int(steps[env_index])+args.oracle_horizon:
+                    continue
                 raw = session.gym.get_env_rigid_contacts(env).copy()
                 raw_contacts.append(raw)
                 count += len(raw)
@@ -132,6 +139,8 @@ def main():
                       max_pd_goal_error=pd_error, no_official_actor_loaded=True,
                       no_state_writes_after_frame0=True, policy_sha256=sha(args.policy_checkpoint),
                       input_options_sha256=sha(args.options) if args.options else None,
+                      decision=args.decision,oracle_horizon=args.oracle_horizon,
+                      contact_window_only=args.contact_window_only,
                       wall_seconds=time.monotonic()-begin)
         (args.output/'results.json').write_text(json.dumps(result,indent=2)+'\n')
         print(json.dumps(result),flush=True)
