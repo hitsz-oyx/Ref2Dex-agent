@@ -50,8 +50,14 @@ def interval(delta):
 
 def analyze(records: list[Path], output: Path, draws: int = 10000):
     payloads = [torch.load(path, map_location="cpu", weights_only=False) for path in records]
-    if not payloads or any(p.get("schema") != "ref2dex.cm_candidate_advantage.v1" for p in payloads):
+    if not payloads or any(p.get("schema") != "ref2dex.cm_candidate_advantage.v2" for p in payloads):
         raise ValueError("candidate advantage schema mismatch")
+    required_provenance = ("simulator_seed", "panel_seed", "python_hash_seed", "episode_index")
+    if any(any(key not in p for key in required_provenance) for p in payloads):
+        raise ValueError("candidate advantage provenance is incomplete")
+    if any(p["simulator_seed"] != int(p["episode_id"][0].split("/")[0].removeprefix("sim"))
+           for p in payloads if p["episode_id"]):
+        raise ValueError("episode ids do not carry simulator seed")
     checkpoint = payloads[0]["checkpoint_sha256"]
     if any(p["checkpoint_sha256"] != checkpoint for p in payloads):
         raise ValueError("frozen Cm checkpoint drift")
@@ -80,6 +86,8 @@ def analyze(records: list[Path], output: Path, draws: int = 10000):
         raise ValueError("invalid assignment")
     groups = np.asarray([f"{m}/{s}" for m, s in zip(motion, start)])
     episodes = [episode for p in payloads for episode in p["episode_id"]]
+    if len(episodes) != len(set(episodes)):
+        raise ValueError("episode/window ids are not unique")
     metrics = {"score_mm": score, "first_delta_mm": first_delta, "retained": retained,
                "contact_last3": contact, "clearance_last3": clearance}
     supports = [int((assignment == k).sum()) for k in range(8)]
@@ -131,12 +139,15 @@ def analyze(records: list[Path], output: Path, draws: int = 10000):
     rank_observed = np.argsort(np.argsort(observed_arm_means))
     rank_spearman = float(np.corrcoef(rank_pred, rank_observed)[0, 1])
     result = dict(
-        schema="ref2dex.cm_candidate_advantage_audit.v1",
+        schema="ref2dex.cm_candidate_advantage_audit.v2",
         run_status="COMPLETED",
         records=[str(p.resolve()) for p in records],
         rows=len(score), groups=int(len(np.unique(groups))), episodes=int(len(set(episodes))),
         checkpoint_sha256=checkpoint, candidate_names=NAMES, supports=supports,
         episode_support=episode_support,
+        simulator_seeds=sorted({int(p["simulator_seed"]) for p in payloads}),
+        panel_seeds=sorted({int(p["panel_seed"]) for p in payloads}),
+        python_hash_seeds=sorted({p["python_hash_seed"] for p in payloads}),
         arm_score_mean_mm=arm_stats["score_mm"],
         arm_first_delta_mean_mm=arm_stats["first_delta_mm"],
         intervals_vs_fixed=intervals,

@@ -16,6 +16,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from collect_contact_consequences import build_player
 from run_paired_evaluator_resolution import sha
+from src.task.CmResidual.residual_probe_contract import (
+    simulator_seed_from_argv,
+    snapshot_window_metadata,
+)
 
 ASSETS = ROOT / "third_party/DExplore/dexplore/data/assets/mjcf"
 
@@ -71,10 +75,7 @@ def candidate_player(original, args, torch, gymtorch):
             motion = task.data_id.clone()
             start = task.start_times.clone()
             rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
-            held = torch.tensor([
-                int(hashlib.sha256(f"{args.coverage_salt}/{int(i)}/{int(j)}".encode()).hexdigest()[:8], 16) % 100 >= 70
-                for i, j in zip(motion, start)
-            ], device=self.device)
+            episode = torch.zeros(n, dtype=torch.long, device=self.device)
             mass = torch.tensor([
                 task.gym.get_actor_rigid_body_properties(e, h)[0].mass
                 for e, h in zip(task.envs, task._target_handles)
@@ -103,6 +104,10 @@ def candidate_player(original, args, torch, gymtorch):
                 return torch.zeros(n, w, *shape, dtype=dtype, device=self.device)
 
             trigger = torch.full((n, w), -1, dtype=torch.long, device=self.device)
+            window_episode = torch.full_like(trigger, -1)
+            window_motion = torch.full_like(trigger, -1)
+            window_start = torch.full_like(trigger, -1)
+            window_rest = torch.zeros(n, w, device=self.device)
             assignment = torch.full_like(trigger, -1)
             steps = torch.zeros_like(trigger)
             pre = zeros(49)
@@ -128,6 +133,13 @@ def candidate_player(original, args, torch, gymtorch):
                 if time.monotonic() - started > args.wall_seconds:
                     raise TimeoutError("bounded candidate-advantage execution")
                 obs = self.env_reset(reset)
+                motion = task.data_id.clone()
+                start = task.start_times.clone()
+                rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
+                held = torch.tensor([
+                    int(hashlib.sha256(f"{args.coverage_salt}/{int(i)}/{int(j)}".encode()).hexdigest()[:8], 16) % 100 >= 70
+                    for i, j in zip(motion, start)
+                ], device=self.device)
                 state = torch.cat((task._dof_pos.clone(), task._dof_vel.clone(), task._target_states.clone()), -1)
                 contact = contact_state()[0].float()
                 history = torch.cat((history[:, 1:], torch.cat((state, contact, previous), -1)[:, None]), 1)
@@ -167,6 +179,13 @@ def candidate_player(original, args, torch, gymtorch):
                     draw = torch.randint(8, (len(new),), device=self.device, generator=generator)
                     assignment[new, slot] = draw
                     trigger[new, slot] = tick
+                    trigger_motion, trigger_start, trigger_rest = snapshot_window_metadata(
+                        motion, start, rest, new
+                    )
+                    window_episode[new, slot] = episode[new]
+                    window_motion[new, slot] = trigger_motion
+                    window_start[new, slot] = trigger_start
+                    window_rest[new, slot] = trigger_rest
                     pre[new, slot] = state[new]
                     hist[new, slot] = history[new]
                     initial_clearance[new, slot] = clearance[new]
@@ -226,6 +245,7 @@ def candidate_player(original, args, torch, gymtorch):
                 cooldown = (cooldown - 1).clamp_min(0)
                 ended |= done
                 reset = done.nonzero().flatten()
+                episode[reset] += 1
                 previous = applied
                 if tick % 100 == 0:
                     print(json.dumps(dict(tick=tick, windows=int((steps == 10).sum()), held=int(held.sum()))), flush=True)
@@ -251,19 +271,28 @@ def candidate_player(original, args, torch, gymtorch):
             f = future[valid]
             contact_rows = future_contact[valid].all(-1)
             clear_rows = future_clearance[valid]
-            rest_rows = rest[:, None].expand(-1, w)[valid]
+            rest_rows = window_rest[valid]
+            motion_rows = window_motion[valid]
+            start_rows = window_start[valid]
+            episode_rows = window_episode[valid]
+            slot_rows = torch.arange(w, device=self.device).expand(n, -1)[valid]
             retention = (clear_rows[:, -3:] >= .002).all(-1) & contact_rows[:, -3:].all(-1)
             score = (
                 (f[:, -3:, 38].amin(-1) - rest_rows).clamp_min(0) * retention
                 - (state_rows[:, 38] - rest_rows).clamp_min(0)
             ) * 1000
             payload = dict(
-                schema="ref2dex.cm_candidate_advantage.v1",
-                seed=args.seed, assignment_seed=args.assignment_seed,
+                schema="ref2dex.cm_candidate_advantage.v2",
+                simulator_seed=args.simulator_seed, panel_seed=args.panel_seed,
+                python_hash_seed=os.environ.get("PYTHONHASHSEED"),
+                assignment_seed=args.assignment_seed,
                 coverage_salt=args.coverage_salt,
-                episode_id=[f"s{args.seed}/env{int(i)}/first" for i in env.cpu()],
-                env_id=env.cpu(), motion_id=motion[:, None].expand(-1, w)[valid].cpu(),
-                start_frame=start[:, None].expand(-1, w)[valid].cpu(), trigger=trigger[valid].cpu(),
+                episode_id=[
+                    f"sim{args.simulator_seed}/env{int(i)}/ep{int(e)}/slot{int(s)}"
+                    for i, e, s in zip(env.cpu(), episode_rows.cpu(), slot_rows.cpu())
+                ],
+                env_id=env.cpu(), episode_index=episode_rows.cpu(),
+                motion_id=motion_rows.cpu(), start_frame=start_rows.cpu(), trigger=trigger[valid].cpu(),
                 assignment=assignment[valid].cpu(), propensity=torch.full((int(valid.sum()),), 1 / 8),
                 state=state_rows.cpu(), history=hist[valid].cpu(),
                 initial_clearance=initial_clearance[valid].cpu(), rest_z=rest_rows.cpu(),
@@ -294,7 +323,9 @@ def candidate_player(original, args, torch, gymtorch):
                           arms=torch.bincount(payload["assignment"], minlength=8).tolist(),
                           elapsed_seconds=time.monotonic() - started,
                           record_sha256=sha(args.output / "records.pt"), frozen_cm=True, frozen_experts=True,
-                          complete_labels=True)
+                          complete_labels=True, simulator_seed=args.simulator_seed,
+                          panel_seed=args.panel_seed,
+                          python_hash_seed=os.environ.get("PYTHONHASHSEED"))
             (args.output / "results.json").write_text(json.dumps(result, indent=2) + "\n")
             print(json.dumps(result), flush=True)
 
@@ -305,7 +336,7 @@ def main():
     p = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     p.add_argument("--output-dir", dest="output", type=Path, required=True)
     p.add_argument("--native-pd-checkpoint", dest="checkpoint", type=Path, required=True)
-    p.add_argument("--panel-seed", dest="seed", type=int, required=True)
+    p.add_argument("--panel-seed", dest="panel_seed", type=int, required=True)
     p.add_argument("--assignment-seed", type=int, required=True)
     p.add_argument("--engineering-smoke", action="store_true")
     p.add_argument("--min-windows", type=int, default=12)
@@ -314,12 +345,16 @@ def main():
     p.add_argument("--wall-seconds", type=int, default=240)
     p.add_argument("--coverage-salt", type=int, default=9851)
     args, remaining = p.parse_known_args()
+    args.simulator_seed = simulator_seed_from_argv(remaining)
+    args.seed = args.simulator_seed
     base = (ROOT / "src/task/CmResidual/research/contact_consequence/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():
         raise ValueError("new owned output required")
     args.output.mkdir(parents=True, exist_ok=False)
     manifest = dict(run_status="STARTED", pid=os.getpid(), command=sys.argv,
                     gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
+                    simulator_seed=args.simulator_seed, panel_seed=args.panel_seed,
+                    python_hash_seed=os.environ.get("PYTHONHASHSEED"),
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     expert_training=False, cm_training=False, started=time.monotonic())
     manifest_path = args.output / "run_manifest.json"
