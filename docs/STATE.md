@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. User-authorized granularity Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. User-authorized granularity Probe completed.
 
 ## Workspace and task
 
@@ -32,6 +32,17 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-cm-granularity-r1 COMPLETED/UNPROMISING at3c19e61. Eight matched
+64/256context x4neighbor mean/detail fits; eachhand same2048windows/50objects,
+same23107params/commoninit/1500updates and64supervised target points. Own-hand
+EPE mean64/mean256/detail64/detail256: MANO3.456930/3.457202/3.465854/3.464157mm;
+Inspire4.392716/4.390056/4.399568/4.397399mm. All six10%gates fail; changes<0.3%.
+All6982raw rows and independent geometry/neural/metric/schedule audits pass;
+12000updates,156.272s/371854792bytes, protected inputs unchanged, own PIDs absent.
+Stop exact matrix; no useful fine-context/neighbor signal at fixed budget.
+Still offline future-hand input/globalmean Cm, not all fine representations
+or policy utility. [Result](research/20261003-cm-granularity-results.md).
 
 P-20261003-cm-scale-cross-hand-r1 COMPLETED/UNPROMISING. Shared22feature
 surface-motion prior,19651parameters, nested512/2048/7168windows perhand,
@@ -127,15 +138,11 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-User now explicitly authorizes the fixed-data fine-representation comparison.
-P-20261003-cm-granularity:64/256object context x4neighbor mean/detail, same
-2048train windows perhand, common23107parameters/init/1500updates and identical
-64supervised target points. Eight fixed fits, one freshly idle GPU,1800s/2GiB.
-Prospective10%own-hand EPE gates; no new data/threshold/checkpoint sweep.
-Independent preflight found no blocker, tiny frame/feature/isolation/update
-smoke passes. Complete this matrix, then revisit the causal-input blocker with
-its result. [Card](experiments/probes/P-20261003-cm-granularity.md),
-[preflight](activities/20261003-granularity-preflight.md).
+User-authorized fixed-data granularity comparison completed with all six
+gates failed. Close this exact matrix; do not sweep density, neighbor counts,
+seeds, capacity or steps to rescue it. Return to causal execution-input
+qualification. [Card](experiments/probes/P-20261003-cm-granularity.md),
+[closeout](activities/20261003-granularity-closeout.md).
 
 Core mission remains whether action-conditioned short physical transfers help
 train a self-trained manipulation policy. Existing experiments do not establish
