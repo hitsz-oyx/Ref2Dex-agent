@@ -111,7 +111,9 @@ Immutable `/home2/wyy/tmp/ref2dex-contact-response-20261002-v11` and supplements
 r1--r10 retain prior raw/code/model/audit/failure evidence. r10through22e47f5,
 573885579unique bytes, all copies and prior manifests SHAverified.
 [Latest receipt](activities/20261003-prelift-contact-delivery.md).
-Current joint-budget r1/r2 are complete for immutable supplemental preservation.
+Current joint-budget r1/r2 preserved in supplement-r11 through a3563d9,
+1960071139 unique bytes; all copies and prior manifests SHA verified.
+[Receipt](activities/20261003-budgeted-physical-critic-delivery.md).
 
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
