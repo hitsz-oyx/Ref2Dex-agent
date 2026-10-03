@@ -41,3 +41,14 @@ max600s/512MiB, owned process group guard, unique output, fixed code commit
 and protected-input SHA. Independent full native/PD/full-mesh label replay,
 all768 assignments/masses/inertias/nominal-feature weights, all causal152
 observations and trained-actor NumPy forwards. Any failure stops the run.
+
+## Terminal result
+
+r1 at2bd386b: COMPLETED/UNPROMISING, primarycoldQ32/96nominal,0/96heavy;
+2/3gatespass, nondegenerate-heavy gate fails.768newnative trajectories,
+155136controlticks,0NNupdates,85.621018s/251.27MB. Free-body linear/angular
+ratios50 verify GPU setter; complete independent native/feature/actor/PD/
+fullmesh/count/gate audits PASS. OwnedPIDsgone andprotectedinputsunchanged.
+Closeexactdensitycontrast, no weight/seed/checkpoint rescue or history fit.
+[Result](../../research/20261003-latent-load-feasibility-results.md),
+[decision](../../decisions/D-20261003-after-latent-load.md).

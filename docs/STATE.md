@@ -1,12 +1,12 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; contrast-acquisition completed UNPROMISING; native manuscriptv12 completed and audited; core utility still unproved.
+Research continues under the user's explicit continuation; journal readiness NOT READY. Latent-load fixed-density feasibility completed UNPROMISING; native manuscriptv12 remains the last compiled draft; core utility still unproved. Goal service's historical BLOCKED status was observed on resumption and cannot be changed to ACTIVE with available tools; it does not describe a current research obstacle.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/cm-active-acquisition` (retains rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
+`agent/cm-latent-load` (retains active-acquisition, rigid-coupling, surface-prior and response-actor branches/history). Original user tree and old own contact-response tree
 are read-only. No remote push, broker or unknown process control. User explicitly
 authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
@@ -29,9 +29,21 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Short physical information | Actual8tick successor oracle diagnostic PROMISING; oracle unavailable at deployment |
 | Matched Cm policy-training utility | NOT DEMONSTRATED; fixed actual learning recipes fail complete gates |
 | Distinctive method | Unestablished; generic auxiliary predictive features are prior art |
-| Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
+| Validation/generalization/hardware | Absent; native27-page manuscriptv12 is an audited working draft |
 
 ## Latest actual result
+
+P-20261003-latent-load-feasibility-r1 COMPLETED/UNPROMISING at2bd386b:
+fixed density20vs1000kg/m³, nominal2.594gvsheavy129.681g, mass/inertia×50
+beforeprepare; policyforcefeatures retainnominalweight, actualSDKphysics
+recordedseparately. Fresh768trajectories/seed701,105tickcriterion; primary
+coldQ32/96nominalvs0/96heavy,2/3gatespass butheavy10..80%fails. Otherarms
+P036/0,Cm36/2,off47/0 per96load. GPU free-body response ratios50 verifysetter;
+all768rawphysics/actorinputs/NumPy/PD/fullmeshlabelsandterminalcounts/gates
+auditsPASS.85.621018s/251.27MB,0NNupdates,protectedinputsunchanged,ownedPIDsgone.
+Closeexactdensitycontrast; no load/seed/checkpoint rescue or historyfitsfrom
+failedgate. Doesnotrefuteheavy-tasktrainabilityoralllatentCm.
+[Result](research/20261003-latent-load-feasibility-results.md).
 
 P-20261003-contrast-acquisition-r1 COMPLETED/UNPROMISING: same512initial+
 512extra labels,4800newupdates, contrastrelativecausalriskvsuniform+.362847mm²,
@@ -230,6 +242,15 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
+The fixed hidden-density screen is now closed: heavy0/96primary means no
+history-adaptation investment on this particular new task. Longer observed
+contact/action history under nominal corrected physics is a remaining
+information-level candidate, beyond already-present previous-step features.
+Next inspect existing trace inputs and prior-art boundaries before any fixed
+learnability design. No new architecture/fit is selected or running; no
+continuation of closed local heads, auxiliary/Q or horizon/weight scans.
+[Decision](decisions/D-20261003-after-latent-load.md).
+
 Causal execution, negative surfacecalibration, positive rigidtransport capacity
 and negative learnedcoefficient/confidence screen are complete. Close this
 exact inference recipe; score-only repair cannot recover overallgain even
@@ -348,4 +369,4 @@ v11/older/firstfailedexport retained. No journal-ready or positiveCmclaim.
 Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
 [Research Debt](RESEARCH_DEBT.md); no negative observation is upgraded to a
-formal scientific refutation. Goal ACTIVE.
+formal scientific refutation. Research goal remains incomplete; runtime-status caveat is recorded above.
