@@ -71,6 +71,9 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
             current_pos = idx[starts]
             history_idx = idx[history_pos]
             future_idx = physical_idx[future_pos]
+            # Actions remain decision-row indexed even for legacy shards;
+            # only the measured physical tensors receive the post-step shift.
+            future_action_idx = idx[future_pos]
             full_idx = physical_idx[full_pos]
             reward = merged["reward"][idx].float()
             returns = torch.zeros_like(reward)
@@ -144,7 +147,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
             chunks["return_to_go"].append(returns[starts])
             chunks["effect"].append(effect.float())
             chunks["interaction"].append(interaction.float())
-            chunks["future_action"].append(merged["action"][future_pos].float())
+            chunks["future_action"].append(merged["action"][future_action_idx].float())
             chunks["future_valid_mask"].append(torch.ones(rows, horizon, dtype=torch.bool))
             chunks["episode_id"].append(torch.full((rows,), episode, dtype=torch.long))
             chunks["step"].append(merged["step"][current_pos].long())

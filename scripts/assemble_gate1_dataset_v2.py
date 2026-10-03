@@ -337,6 +337,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
             "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
             "split_unit": "(source_run, episode_id)",
             "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
+            "assembly_impl": "reference_v2",
         },
     }
     report = {
