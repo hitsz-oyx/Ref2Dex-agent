@@ -30,3 +30,17 @@ release(top) <= release(fixed) + .05
 
 输出目录：
 `src/task/CmResidual/research/contact_consequence/output/P-20261003-cm-uncertainty-gated-candidate-v2/`
+
+## 结果
+
+6 个 simulator seed（710–715）完成 252 个窗口，22 个 motion/start groups；8 个 arm
+支持为 `[25,28,26,32,37,34,35,35]`，episode/window provenance 唯一，v2 seed 字段和
+trigger metadata 均通过审计。支持门通过，原始 Cm selector 仍然是 `UNPROMISING`。
+
+固定 uncertainty fallback 改变 119/252（47.2%）窗口，但相对 fixed Cup 的 score 组
+bootstrap 为 `-10.12 mm`，90% 区间 `[-30.69,+8.61] mm`；last-3 contact 为
+`+0.014`，区间 `[-0.281,+0.258]`，clearance 为 `+0.049`，区间
+`[-0.213,+0.277]`。score 区间跨零且两个风险下界均低于 `-.05`，因此本 corrected
+Probe 为 `UNPROMISING`，关闭该 fallback 配方，不启动 option-policy、PPO、阈值扫描或
+普通 Cm 数据扩展。完整 v2 审计见
+[`P-20261003-cm-uncertainty-gated-candidate-v2-results.json`](P-20261003-cm-uncertainty-gated-candidate-v2-results.json)。

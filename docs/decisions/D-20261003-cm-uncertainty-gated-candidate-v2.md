@@ -42,3 +42,10 @@ categorical option policy Probe，仍需另行固定 Cm-on/off matched 训练合
 
 最多 6 个单 GPU native 运行，每次 240 秒墙钟，使用现有 checkpoint 和 motion 数据，
 不覆盖旧目录、不修改外部 baseline。该行动不改变 MISSION 的核心问题或最终 claim。
+
+## 处置
+
+Probe 已完成。252 个窗口满足支持门，但 fallback score lower90 为 `-30.69 mm`，
+contact/clearance 风险门也失败，因此结果为 `UNPROMISING`。关闭该 fallback 配方；不启动
+小型 option policy，不扫描 2-sigma 规则，也不扩大普通 Cm 数据。v1 的离线正向信号保留
+为已撤回的路线线索，不能与本 v2 native 结果合并成正向证据。
