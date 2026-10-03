@@ -32,6 +32,13 @@ def install_cpu_task_source(output):
         if source.count(old) != 1:
             raise ValueError('CPU device-only source adaptation drift: '+old)
         source = source.replace(old, new)
+    # Table loading precedes BaseTask.device initialization; all twelve
+    # reference-data transfers are explicitly CPU for this CPU-only copy.
+    old, new = ".to('cuda')", ".to('cpu')"
+    if source.count(old) != 12:
+        raise ValueError('reference-data CUDA placement count drift')
+    source = source.replace(old, new)
+    replacements[old] = dict(replacement=new, occurrences=12)
     destination = output/'native_sources/base_dexplore_task.py'
     destination.parent.mkdir()
     destination.write_text(source)
