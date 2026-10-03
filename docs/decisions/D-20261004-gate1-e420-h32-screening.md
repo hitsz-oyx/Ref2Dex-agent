@@ -14,3 +14,10 @@ direct six-arm screening。此 probe 不改 raw 数据、不重采集、不启�
 **停止条件和下一步。** 若 h32 仍混合，停止 e420 horizon 扩展，保留 e260-local
 `PROMISING`，进入预注册多 actor Validation 设计；若 h32 正向，再追加 matched
 control 和多 seed。无论结果如何不把 single-seed screening 写成 Gate closeout。
+
+**结果。** corrected e420 h32 dataset 为 44 episodes、21,940 windows，base 与
+augmentation audit 通过。五个 unique model seeds 的 direct I+ 改善为
+`+4.0%`、`+22.6%`、`+30.1%`、`+3.9%`、`+2.2%`；只有 seed 3 的 episode CI
+排除零；e420 只有 2 source-run clusters，cluster CI 仅 seed 1、3、4
+为正。HAEI screening 为 `+2.9%`。因此 h32 也没有稳定跨 actor 复现，按停止条件
+停止 e420 horizon 扩展；h32 只保留为 e260-local `PROMISING` candidate，不启动 Cm。
