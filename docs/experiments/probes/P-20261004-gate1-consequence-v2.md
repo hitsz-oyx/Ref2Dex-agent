@@ -26,5 +26,10 @@ and the `tmp/fresh_pre_s86d*` outputs.
 
 **Follow-up.** Two additional corrected runs expanded the probe to 56 episodes.
 The h16 direction stayed positive across five composite splits, but future-action
-control and episode composition remained sensitive. This is still a directional
-`PROMISING` probe, not a Gate closeout or policy-utility result.
+control and episode composition remained sensitive. With the corrected
+episode-balanced control, `V_HFEI` versus `V_HF` was `-9.0%`, `+10.9%`, `+28.9%`,
+`+19.7%`, and `+23.2%`; only two intervals excluded zero. The held-out episode
+audit found that the first two split gains were about 94% and 96% attributable
+to one episode each. This is still a directional `PROMISING` probe, not a Gate
+closeout or policy-utility result; the next useful probe needs broader
+success/drop coverage and actor-level cluster uncertainty.
