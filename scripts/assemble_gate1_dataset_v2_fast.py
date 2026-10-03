@@ -22,7 +22,8 @@ from assemble_gate1_dataset_v2 import (
 )
 
 
-def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
+def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
+             allow_legacy_timing_inference: bool = False):
     if horizon < 1 or history_length < 1:
         raise ValueError("horizon and history_length must be positive")
     chunks: Dict[str, List[torch.Tensor]] = {key: [] for key in (
@@ -40,9 +41,16 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
         control_dt = float(run_meta.get("control_dt", 1.0))
         if "effect_definition" not in run_meta or "interaction_definition" not in run_meta:
             raise ValueError(f"explicit E/I definitions missing in {run_dir}")
+        timing_inferred = "physical_timing" not in run_meta
+        if timing_inferred and not allow_legacy_timing_inference:
+            raise ValueError(
+                f"physical_timing missing in {run_dir}; pass "
+                "allow_legacy_timing_inference=True only for audited legacy shards"
+            )
         metadata["runs"].append({
             "run_dir": str(run_dir), "shard_sha256": shard_hashes,
             "rows": int(merged["reward"].numel()), "gamma": gamma, "control_dt": control_dt,
+            "physical_timing_inferred": timing_inferred,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition") if k in run_meta},
         })
         physical_timing = str(run_meta.get("physical_timing", "post_env_step_legacy"))
@@ -187,10 +195,13 @@ def main() -> None:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--horizon", type=int, default=32)
     parser.add_argument("--history-length", type=int, default=10)
+    parser.add_argument("--allow-legacy-timing-inference", action="store_true",
+                        help="allow missing physical_timing as audited legacy post-step data")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
-    dataset, report = assemble(args.input, args.horizon, args.history_length)
+    dataset, report = assemble(args.input, args.horizon, args.history_length,
+                               args.allow_legacy_timing_inference)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(dataset, args.output)
     args.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")

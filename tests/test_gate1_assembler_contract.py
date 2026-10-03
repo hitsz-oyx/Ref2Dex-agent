@@ -19,7 +19,7 @@ from assemble_gate1_dataset_v2 import (  # noqa: E402
 from assemble_gate1_dataset_v2_fast import assemble as assemble_vectorized  # noqa: E402
 
 
-def _write_interleaved_run(path: Path, physical_timing: str) -> None:
+def _write_interleaved_run(path: Path, physical_timing: str | None) -> None:
     path.mkdir()
     steps = 20
     rows = steps * 2
@@ -52,10 +52,11 @@ def _write_interleaved_run(path: Path, physical_timing: str) -> None:
         "gamma": 0.99,
         "control_dt": 1.0,
         "source_sha256": "test",
-        "physical_timing": physical_timing,
         "effect_definition": "test",
         "interaction_definition": "test",
     }
+    if physical_timing is not None:
+        payload["physical_timing"] = physical_timing
     payload["done"][-1] = True
     torch.save(payload, path / "transitions_000.pt")
     (path / "results.json").write_text(json.dumps({
@@ -104,3 +105,12 @@ def test_quaternion_sign_is_stable_when_window_starts_with_equivalent_sign() -> 
         _canonicalize_quaternion_sequence(flipped),
         atol=1e-6,
     )
+
+
+def test_missing_physical_timing_fails_closed(tmp_path: Path) -> None:
+    run = tmp_path / "missing_timing"
+    _write_interleaved_run(run, None)
+    with pytest.raises(ValueError, match="physical_timing missing"):
+        assemble_reference([run], horizon=3, history_length=10)
+    with pytest.raises(ValueError, match="physical_timing missing"):
+        assemble_vectorized([run], horizon=3, history_length=10)

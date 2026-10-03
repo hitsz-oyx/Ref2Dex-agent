@@ -127,7 +127,8 @@ def _iter_episode_indices(merged: Dict[str, torch.Tensor]) -> Iterable[Tuple[int
         yield episode, idx
 
 
-def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tuple[Dict[str, object], Dict[str, object]]:
+def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
+             allow_legacy_timing_inference: bool = False) -> Tuple[Dict[str, object], Dict[str, object]]:
     if horizon < 1:
         raise ValueError("horizon must be positive")
     if history_length < 1:
@@ -165,12 +166,19 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
             raise ValueError(f"invalid gamma {gamma} in {run_dir}")
         if "effect_definition" not in run_meta or "interaction_definition" not in run_meta:
             raise ValueError(f"explicit E/I definitions missing in {run_dir}")
+        timing_inferred = "physical_timing" not in run_meta
+        if timing_inferred and not allow_legacy_timing_inference:
+            raise ValueError(
+                f"physical_timing missing in {run_dir}; pass "
+                "allow_legacy_timing_inference=True only for audited legacy shards"
+            )
         metadata["runs"].append({
             "run_dir": str(run_dir),
             "shard_sha256": shard_hashes,
             "rows": int(merged["reward"].numel()),
             "gamma": gamma,
             "control_dt": control_dt,
+            "physical_timing_inferred": timing_inferred,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition")
                if k in run_meta},
         })
@@ -372,10 +380,13 @@ def main() -> None:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--horizon", type=int, default=32)
     parser.add_argument("--history-length", type=int, default=10)
+    parser.add_argument("--allow-legacy-timing-inference", action="store_true",
+                        help="allow missing physical_timing as audited legacy post-step data")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(f"refusing to overwrite {args.output}")
-    dataset, report = assemble(args.input, args.horizon, args.history_length)
+    dataset, report = assemble(args.input, args.horizon, args.history_length,
+                               args.allow_legacy_timing_inference)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     torch.save(dataset, args.output)
     report_path = args.output.with_suffix(".json")
