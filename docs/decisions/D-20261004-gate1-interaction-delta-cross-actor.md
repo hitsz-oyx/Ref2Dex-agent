@@ -39,3 +39,5 @@ delta CI 分别为 `[0.935, 7.905]`、`[0.888, 2.039]`、`[-16.167, 2.018]`、
 直接 I+ 的 split 1、3、4 区间跨越方向，control 的 split 3、4 也跨越方向。
 这是保守的诊断审计，不是正式 actor-level Validation；它进一步说明需要预注册
 多个独立 actor 和 success/drop outcome 后才能判断 Gate。
+这里的 bootstrap 估计量是 source-run 等权的 cluster mean，与 primary 的
+episode 等权 MAE 不同，因此不能把两者的区间直接当作同一个总体参数的替代。

@@ -149,3 +149,5 @@ actor/outcome cluster bootstrap，并增加多个独立 success/drop episode。
 control 在 split 3、4 跨方向。由于 cluster 数仍很少，这不是正式 actor-level
 Validation，也不改变当前 `PROMISING` diagnostic 状态；正式 Gate 仍需预注册的
 多 actor、success/drop 覆盖和 matched control。
+该审计按 source-run 等权形成 cluster mean，而 primary fit 按 episode 等权报告
+MAE；两者是不同 estimand，cluster 区间只用于揭示 run 内相关性带来的保守不确定性。
