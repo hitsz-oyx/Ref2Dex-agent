@@ -196,6 +196,11 @@ Supplement-r13throughc479cb3 preserves the coverage audit and complete eight-
 model granularity Probe;456016084unique bytes, all copies/prior manifest SHA
 and Git bundle verified. [Receipt](activities/20261003-granularity-delivery.md).
 
+Supplement-r14 through3475ca1 preserves completed execution qualification,
+raw/geometry/coefficients/features/predictions/audits and decision records;
+334336017 unique bytes, all copied-file/prior manifest hashes and Git bundle
+verified. [Receipt](activities/20261003-surface-execution-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
