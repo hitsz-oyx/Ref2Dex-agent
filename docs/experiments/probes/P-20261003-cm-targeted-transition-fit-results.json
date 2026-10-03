@@ -22,6 +22,12 @@
     "last": 0.11183032393455505,
     "min": 0.07933920621871948
   },
+  "native_fit_screen": {
+    "physical_error_original": 0.5540246367454529,
+    "physical_error_adapted": 0.406263530254364,
+    "contact_bce_original": 0.2137390822172165,
+    "contact_bce_adapted": 0.029285511001944542
+  },
   "held_physical": {
     "original": {
       "physical_rmse": 0.482033908367157,

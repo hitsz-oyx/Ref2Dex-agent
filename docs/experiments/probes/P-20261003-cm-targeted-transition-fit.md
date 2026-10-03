@@ -25,6 +25,10 @@ physical RMSE worsened from `0.482034` to `0.565057` overall (`+17.2%`) and from
 to `1.000025` in the high-uncertainty subset (`+10.4%`). The conservative value-target RMSE
 worsened from `26.622387` to `26.713272`; episode Spearman changed by `+0.00826`.
 
+The same adapted ensemble fit the 36 native targeted rows more closely (physical error
+`0.554025` to `0.406264`, contact BCE `0.213739` to `0.029286`), confirming over-specialization
+rather than an under-trained screen.
+
 The Probe is `UNPROMISING`. The actual targeted transitions are useful for locating a
 disagreement regime, but this small fit over-specializes and transfers poorly to the held
 distribution. Close targeted fitting and do not start policy training, ordinary data
