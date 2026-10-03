@@ -53,8 +53,17 @@ def _quat_rotate(q: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 
 
 def _canonicalize_quaternion_sequence(q: torch.Tensor, time_dim: int = 0) -> torch.Tensor:
-    """Make equivalent q/-q samples continuous along one time dimension."""
+    """Make equivalent q/-q samples deterministic and continuous in time.
+
+    The first sample is sign-fixed by its largest-magnitude component before
+    continuity is propagated. This makes overlapping windows agree on the
+    sign of an equivalent orientation instead of inheriting each window's raw
+    quaternion sign.
+    """
     out = _quat_normalize(q).movedim(time_dim, 0).contiguous()
+    pivot = out[0].abs().argmax(dim=-1, keepdim=True)
+    sign = torch.where(out[0].gather(-1, pivot) < 0, -1.0, 1.0)
+    out[0] = out[0] * sign
     for step in range(1, out.shape[0]):
         dot = (out[step - 1] * out[step]).sum(dim=-1, keepdim=True)
         out[step] = out[step] * torch.where(dot < 0, -1.0, 1.0)
@@ -223,7 +232,10 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
                     _quat_conjugate(_quat_normalize(current_quaternion)),
                     future_object[:, :3] - object_window[0, :3],
                 )
-                effect_quaternion = _relative_quaternion(current_quaternion, future_object[:, 3:7])
+                effect_quaternion = _canonicalize_quaternion_sequence(
+                    _relative_quaternion(current_quaternion, future_object[:, 3:7]),
+                    time_dim=0,
+                )
                 object_linear_velocity = _quat_rotate(inverse_current_quaternion, future_object[:, 7:10])
                 object_angular_velocity = _quat_rotate(inverse_current_quaternion, future_object[:, 10:13])
                 effect = torch.cat((

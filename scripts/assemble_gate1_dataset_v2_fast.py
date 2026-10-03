@@ -94,7 +94,10 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
             inverse_current_q_h = inverse_current_q[:, None, :].expand(-1, horizon, -1)
             effect = torch.cat((
                 _quat_rotate(inverse_current_q_h, future_object[..., :3] - current_object[:, None, :3]),
-                _relative_quaternion(current_q[:, None, :].expand(-1, horizon, -1), future_object[..., 3:7]),
+                _canonicalize_quaternion_sequence(
+                    _relative_quaternion(current_q[:, None, :].expand(-1, horizon, -1), future_object[..., 3:7]),
+                    time_dim=1,
+                ),
                 _quat_rotate(inverse_current_q_h, future_object[..., 7:10]),
                 _quat_rotate(inverse_current_q_h, future_object[..., 10:13]),
             ), dim=-1)

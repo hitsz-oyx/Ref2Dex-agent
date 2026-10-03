@@ -12,7 +12,10 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from assemble_gate1_dataset_v2 import assemble as assemble_reference  # noqa: E402
+from assemble_gate1_dataset_v2 import (  # noqa: E402
+    _canonicalize_quaternion_sequence,
+    assemble as assemble_reference,
+)
 from assemble_gate1_dataset_v2_fast import assemble as assemble_vectorized  # noqa: E402
 
 
@@ -86,3 +89,18 @@ def test_reference_and_vectorized_preserve_episode_local_future_actions(
                     + torch.arange(1, 4, dtype=torch.long)[None, :]
                     + ep * 100).to(future.dtype)
         assert torch.equal(future[mask], expected)
+
+
+def test_quaternion_sign_is_stable_when_window_starts_with_equivalent_sign() -> None:
+    q = torch.tensor([
+        [0.0, 0.0, 0.6, 0.8],
+        [0.0, 0.0, 0.7, 0.71414286],
+        [0.0, 0.0, 0.8, 0.6],
+    ])
+    flipped = q.clone()
+    flipped[0] *= -1
+    assert torch.allclose(
+        _canonicalize_quaternion_sequence(q),
+        _canonicalize_quaternion_sequence(flipped),
+        atol=1e-6,
+    )
