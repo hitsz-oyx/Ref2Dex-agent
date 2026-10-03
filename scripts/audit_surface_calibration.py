@@ -103,7 +103,9 @@ def main():
     for start in range(0,len(ids),16):
         select=ids[start:start+16];base=pose(train['hand_root'][select]);current,hn,_=hand(train['q'][select],base)
         nxt,_,_=hand(bank['predicted_q'][select],base);_,_,measured=hand(train['next_q'][select],base)
-        sdk_error=float(np.abs(measured[:,[NAMES.index(n) for n in contact],:3,3]-train['sdk_next_positions'][select]).max());sdk_max=max(sdk_max,sdk_error);assert sdk_error<2e-4
+        measured_contact=measured[:,[NAMES.index(n) for n in contact]][:,:,:3,3]
+        assert measured_contact.shape==train['sdk_next_positions'][select].shape
+        sdk_error=float(np.abs(measured_contact-train['sdk_next_positions'][select]).max());sdk_max=max(sdk_max,sdk_error);assert sdk_error<2e-4
         po=pose(train['current_obj'][select]);rotation=po[:,:3,:3]
         def obj(key):
             p=pose(train[key][select]);return geometry['object_local'][None]@p[:,:3,:3].transpose(0,2,1)+p[:,None,:3,3]
