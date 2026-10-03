@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected execution-input Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Corrected execution-input Probe completed.
 
 ## Workspace and task
 
@@ -32,6 +32,20 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-surface-execution-input-r1 COMPLETED/UNCLEAR at169db6c.
+Reused corrected655data,384train/384held wholeepisodes,6144windows each.
+Causal54coefficient actuator handEPE0.899870mm vs velocity2.600907/stationary
+9.710036, execution gate passes. FrozenMANO/Inspire7168oracle objectEPE
+7.301355/6.725405mm vs persistence0.629373; causal7.346440/6.753861, all four
+prior gates fail. Near-hand oracle3.222090/3.160013 vs persistence2.823930.
+No subgroup rescue or solephysics attribution. Preserve actuator, close
+THISfrozen directtransfer combination; corrected-data feature/output
+calibration is next. All12288rawrows/fulljoint+NNaudits and384geometry checks
+pass, SDKbody originmax0.066mm;195.424s/249839074bytes, inputs unchanged,
+own PIDs absent; zero new physics/optimizer steps. Same-seed reusedepisode
+holdout and measuredq FK labels only, no policy utility.
+[Result](research/20261003-surface-execution-input-results.md).
 
 P-20261003-cm-granularity-r1 COMPLETED/UNPROMISING at3c19e61. Eight matched
 64/256context x4neighbor mean/detail fits; eachhand same2048windows/50objects,
@@ -138,20 +152,18 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-P-20261003-surface-execution-input prepared: reuse corrected655full traces,
-384train/384held wholeepisodes,16fixedticks/episode. Currentq/dq/senttarget
-closedactuator, action-removed control, then two frozen7168surface priors under
-five handflow conditions. No new physics/optimizer/policy training; mainFK/
-fit/batchinference GPU,900s/1GiB. Prospective execution/oracle/causal gates and
-independent geometry/code smoke fixed; existing supervisor finds no blocker.
-Keep earlier9/24actuator evidence as different legacy substrate. Run this
-qualification before more bulk data or corrected policy training.
-[Card](experiments/probes/P-20261003-surface-execution-input.md).
+Causal execution qualification completed: current command/state supports
+accurate hand prediction here, but frozen prior oracle also loses. Close
+exact directtransfer and actuator/density rescue. Next ONEmatched corrected-
+native causal calibration screen, useful-pretrained vs shuffled-pretrained vs
+scratch features, common persistence anchor/data/head/updates/gates fixed
+before fit. No fresh native collection or policy fit until information gate.
+[Decision](decisions/D-20261003-after-surface-execution.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
-seeds, capacity or steps to rescue it. Return to causal execution-input
-qualification. [Card](experiments/probes/P-20261003-cm-granularity.md),
+seeds, capacity or steps to rescue it. The subsequent causal execution-input
+qualification is now complete. [Card](experiments/probes/P-20261003-cm-granularity.md),
 [closeout](activities/20261003-granularity-closeout.md).
 
 Core mission remains whether action-conditioned short physical transfers help
@@ -160,14 +172,11 @@ that claim. Close the exact joint auxiliary/data-allocation recipe, without
 coefficient/width/steps/seed/horizon/truncation/label-budget rescue. No formal
 Validation launched from a failed Probe.
 
-Next autonomous step: design bounded command-to-realized-hand-motion input
-qualification on corrected native physics. The broad prior has offline
-predictive information but uses unavailable realized future hand movement;
-fixed small-data adaptation/scale gates fail. Separate execution-input mismatch
-from hand-domain transfer before more bulk data collection or policy fitting.
-Preserve the filter fix and old evidence; no replay of closed recipes or new
-fit without a separate prospective design.
-[Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
+The causal hand-input blocker is provisionally qualified on current reused
+corrected episodes, not universally solved. Broad source prediction info does
+not directly transfer even with oracle handflow. Preserve filterfix/all old
+evidence and test calibration once before reviewing representation/target;
+no replay of closed recipes or newfit without a separate prospective design.
 
 ## Preservation and debt
 
