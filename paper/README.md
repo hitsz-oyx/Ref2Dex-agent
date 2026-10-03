@@ -1,3 +1,13 @@
+Current working revision: [manuscript-v12.tex](manuscript-v12.tex), generated
+from immutable audited results. Native compilation and paper audit pending.
+Adds8tables/2figures: later policy comparisons, collision ownership correction,
+scale/hand/granularity, corrected transfer and rigid learnability, full-mesh
+rotation and physical contrast acquisition. All failed gates and legacy versus
+corrected physics are explicit. No matched Cm policy-training benefit or
+journal readiness. First export path failure and files retained under
+`prepare-v12-attempt1`; native-v11 PDF remains unchanged. Revisions below are
+preserved historical entries, not the current runtime/GPU state.
+
 Current: [manuscript-v10.tex](manuscript-v10.tex) and21-page
 [manuscript-v10.pdf](manuscript-v10.pdf), generated in the isolated writable
 continuation `/tmp/Ref2Dex-contact-response-continuation`. Adds1536fresh selective

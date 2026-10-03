@@ -1,0 +1,23 @@
+{
+  "run_status": "FAILED",
+  "reason": "v11 PDF root path absent; actual native PDF exists",
+  "stage": "source manifest finalization after all tables/figures/tex generated",
+  "files_sha256": {
+    "manuscript-v12.tex": "875f39263ad27c9333b7bbcd91a721ba6ca54796ecc578128eb5278800799911",
+    "tables-v12/rotation.tex": "2c632e950bebfbe3dc803d926c9f1bc4b0f413302344e155adf2cca23edb72a8",
+    "tables-v12/scale.tex": "1f1ddb5f1977858248310d5d76a6312ef86c16f6cd70c1cfbe19438ae62ca702",
+    "tables-v12/transport.tex": "1eab31f2ed484cc6e06b7181de7fb3958ce7f5f7bab08faf2cc2ecbee49a5afc",
+    "tables-v12/transfer.tex": "c102ed1998b3b399b3d986ca18295f52430e9d4b05c3a50c7ae5bf731f16de96",
+    "tables-v12/acquisition.tex": "40aba8f9810cf5fa52d678532852523456233bed48d8d47681b00161387c37d4",
+    "tables-v12/collision.tex": "7177c0380279fd05fb98857dc88b7176279a770c30a32e47ae8e0936aa6e9e0c",
+    "tables-v12/later-policy.tex": "a948ce5c4ef3b043018f3ebccf18c53eaf9b77974713f17eb2a3f900c232fdba",
+    "tables-v12/granularity.tex": "d178243a1d9cfdfcd87c884b1f52c90516dafcb6e962c10b7a375bb4a754b8f1",
+    "figures-v12/granularity.pdf": "9b96dcad0c852787e11d99734b9d253bef98e6ede853b69f02ec93d7acc866c5",
+    "figures-v12/granularity.png": "bd9f42595c001ae90dbb48fc8ccbd738a91e5640f7997e204d1e4214be70f073",
+    "figures-v12/acquisition.pdf": "2c8cb9d44357d13120be21b204d23d27302754943bbd6883b965342588d41b35",
+    "figures-v12/acquisition.png": "57ba50a2ea06ce770d6b85f8cc1e0fade32071385a4c0ceaa1810eba3c3c9197",
+    "table_data-v12.json": "2f52623f7d67e341673bcc648b0784da6e4a712be9d17eb682280fb40f33f08d",
+    "export_script.py": "f8e8d19da14a46772f2ae0a6c01b6c9e7b0fbb8d7c787ab385a94760ed33f5e7"
+  },
+  "no_experimental_retraining": true
+}

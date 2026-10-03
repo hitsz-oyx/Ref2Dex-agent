@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; fixed-budget contrast-acquisition Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; contrast-acquisition completed UNPROMISING; manuscriptv12 sources prepared.
 
 ## Workspace and task
 
@@ -32,6 +32,12 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-contrast-acquisition-r1 COMPLETED/UNPROMISING: same512initial+
+512extra labels,4800newupdates, contrastrelativecausalriskvsuniform+.362847mm²,
+vsabsolute-1.923996,vszero-2.988855;3/6gatespass, no nativefollowupfromfailure.
+AllnewauditsPASS;22.104057s/9.92MB,0native/actor, inputstable/ownedPIDsgone.
+[Result](research/20261003-contrast-acquisition-results.md).
 
 P-20261003-rotational-clearance-adequacy-r1 COMPLETED/UNPROMISING at13cbd0b.
 Held144eligiblewindows/113episodes: equalepisode flips1.9174%fails10%;
@@ -242,20 +248,25 @@ of model failure to that omission. Netforce flags are not attributedcontact.
 [Card](experiments/probes/P-20261003-rotational-clearance-adequacy.md),
 [decision](decisions/D-20261003-after-rotational-clearance.md).
 
-Action-decision review chose a distinct use ofCm: training-label acquisition,
-not another auxiliary/feature/successor/head rescue. Generic worldmodel curiosity
-and contact-prioritized replay are priorart; specific contrast-disagreement
-novelty unestablished. Fixed-budget offline comparison prepared:512initial+
-512acquiredlabels perlearner,3bootstrap+3matchedfinalfits,4800updates,0physics,
-legacy3072FIT and independent-acquisition3072previouslyviewedIIDTESTwindows.
-Contrastdisagreement vs absolute-disagreement vs uniform selection; sixfixed
-relative causalrisk gates, wholepairedactor/envblocks. Allpoolinteractions
-alreadypaid; not online sampleefficiency or ownpolicyutility. Engineering
-cancellation/randomized-risk smokePASS; no metrics yet. Positive permits a
-separatelydesigned corrected-physics/native acquisition and learnedpolicy
-experiment, negative closes exactconstruction withoutlocalrescans.
-[Card](experiments/probes/P-20261003-contrast-acquisition.md),
-[decision](decisions/D-20261003-physical-acquisition-route.md).
+Training-label acquisition Probe now COMPLETED/UNPROMISING at4baf9a7:
+contrast-minus-uniform+.362847mm²/upper2.202990fails; minusabsolute-1.923996/
+upper-.126221passes; minuszero-2.988855pointpasses.3/6gatespass, bothTESTseed
+uniformdifferences positive. Close exactallocator, no nativecollection/actor
+fit or seed/budget rescans. All6144rawresponses/newforward/ranks/selections/
+commoninit/scales/schedules/pairedrisk/bootstrap PASS;18manualAdamWupdates,
+4782notreplayed; contextgeometry inheritedbyauditedidentity.4800newupdates,
+22.104057s/9923571bytes,0physics/actor, protectedinputs unchanged/PIDsabsent.
+All3072FITpool+3072TESTnativewindowsalreadypaid, not1024onlineinteractions;
+legacyphysics/behavior and previouslyviewedtest, no corrected/nativepolicygain.
+[Result](research/20261003-contrast-acquisition-results.md),
+[decision](decisions/D-20261003-after-contrast-acquisition.md).
+
+Current work: integrate actuallaterpolicy/filter/data/hand/granularity/transfer/
+rigidcapacity-learnability/rotation/acquisition evidence into manuscriptv12.
+Eightnewgeneratedtables/twoscientificfigures; fulloldv11/assets preserved.
+FirstexportfinalizationmissingrootPDF assumption retained separately; corrected
+native-v11PDF path, no trainingrepeated. Nativecompile/independentpaper audit
+pending. Workingrevision only; not a changedclaim or journalcompletion.
 
 
 User-authorized fixed-data granularity comparison completed with all six

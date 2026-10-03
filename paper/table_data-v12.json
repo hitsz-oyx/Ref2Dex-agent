@@ -1,0 +1,247 @@
+{
+  "later-policy": {
+    "headers": [
+      "Recipe /384",
+      "P0",
+      "Cm",
+      "Off",
+      "Task Q"
+    ],
+    "rows": [
+      [
+        "Deterministic successor",
+        "129",
+        "172",
+        "174",
+        "222"
+      ],
+      [
+        "Observed successor distribution",
+        "126",
+        "188",
+        "188",
+        "222"
+      ],
+      [
+        "Physical encoder to Q",
+        "143",
+        "219",
+        "218",
+        "225"
+      ],
+      [
+        "Cold-Q budget block",
+        "129",
+        "200",
+        "198",
+        "189"
+      ],
+      [
+        "Equal-interaction budget block",
+        "115",
+        "183",
+        "201",
+        "220"
+      ]
+    ]
+  },
+  "collision": {
+    "headers": [
+      "Physics /192",
+      "P0",
+      "Cm",
+      "Off",
+      "Task Q"
+    ],
+    "rows": [
+      [
+        "Before ownership fix",
+        "65",
+        "96",
+        "101",
+        "95"
+      ],
+      [
+        "After ownership fix",
+        "61",
+        "81",
+        "92",
+        "91"
+      ]
+    ]
+  },
+  "scale": {
+    "headers": [
+      "Training windows / adaptation",
+      "MANO / prior",
+      "Inspire / scratch"
+    ],
+    "rows": [
+      [
+        "512",
+        "3.869332",
+        "4.743223"
+      ],
+      [
+        "2048",
+        "3.601316",
+        "4.416893"
+      ],
+      [
+        "7168",
+        "3.559204",
+        "4.432058"
+      ],
+      [
+        "256-label adaptation",
+        "4.726920",
+        "4.830451"
+      ]
+    ]
+  },
+  "granularity": {
+    "headers": [
+      "Context / neighbor aggregation",
+      "MANO EPE(mm)",
+      "Inspire EPE(mm)"
+    ],
+    "rows": [
+      [
+        "64 / mean",
+        "3.456930",
+        "4.392716"
+      ],
+      [
+        "256 / mean",
+        "3.457202",
+        "4.390056"
+      ],
+      [
+        "64 / detail",
+        "3.465854",
+        "4.399568"
+      ],
+      [
+        "256 / detail",
+        "3.464157",
+        "4.397399"
+      ]
+    ]
+  },
+  "transfer": {
+    "headers": [
+      "Forecast variant",
+      "EPE(mm)"
+    ],
+    "rows": [
+      [
+        "mano / oracle",
+        "7.301355"
+      ],
+      [
+        "mano / action velocity",
+        "7.346440"
+      ],
+      [
+        "inspire / oracle",
+        "6.725405"
+      ],
+      [
+        "inspire / action velocity",
+        "6.753861"
+      ],
+      [
+        "Calibrated / pretrained",
+        "0.665444"
+      ],
+      [
+        "Calibrated / scratch",
+        "0.633220"
+      ],
+      [
+        "Calibrated / shuffled",
+        "0.618116"
+      ],
+      [
+        "Object-flow persistence",
+        "0.629373"
+      ]
+    ]
+  },
+  "transport": {
+    "headers": [
+      "Different model families",
+      "Full EPE(mm)",
+      "Matched state(mm)"
+    ],
+    "rows": [
+      [
+        "Outcome-fitted segment oracle",
+        "0.294084",
+        "0.368403"
+      ],
+      [
+        "Learned coefficient / score",
+        "0.558129",
+        "0.448096"
+      ],
+      [
+        "State-anchored convex correction",
+        "0.395165",
+        "0.434032"
+      ]
+    ]
+  },
+  "rotation": {
+    "headers": [
+      "Split",
+      "Windows / episodes",
+      "Flips(\\%)",
+      "Rotation95th(mm)"
+    ],
+    "rows": [
+      [
+        "train",
+        "148 / 123",
+        "2.913279",
+        "8.502605"
+      ],
+      [
+        "held",
+        "144 / 113",
+        "1.917404",
+        "7.039685"
+      ],
+      [
+        "all",
+        "292 / 236",
+        "2.436441",
+        "7.685484"
+      ]
+    ]
+  },
+  "acquisition": {
+    "headers": [
+      "Contrast minus comparator",
+      "Risk(mm$^2$)",
+      "One-sided95\\%upper"
+    ],
+    "rows": [
+      [
+        "uniform",
+        "0.362847",
+        "2.202990"
+      ],
+      [
+        "absolute",
+        "-1.923996",
+        "-0.126221"
+      ],
+      [
+        "zero",
+        "-2.988855",
+        "-0.446212"
+      ]
+    ]
+  }
+}

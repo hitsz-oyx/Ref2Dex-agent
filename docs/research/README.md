@@ -24,7 +24,9 @@ same research branch/history with separate local Git metadata; old worktree read
 
 - [Full-mesh rotational clearance adequacy](20261003-rotational-clearance-results.md): all155904poses/155136transitions independently audited; held1.9174%flips fails10% despite7.0397mm rotation95th; full105task discordance0/768, UNPROMISING.
 
-- [Physical acquisition primary-source boundary](20261003-physical-acquisition-method-boundary.md): model-guided curiosity/contact replay established; prospective contrast-disagreement label-allocation screen, no new result yet.
+- [Physical acquisition primary-source boundary](20261003-physical-acquisition-method-boundary.md): model-guided curiosity/contact replay established; completed allocation screen indexed below; generic novelty still unestablished.
+
+- [Fixed-label-budget contrast acquisition](20261003-contrast-acquisition-results.md):4800updates/all audits pass; contrast-minus-uniform+.363mm² fails, minusabsolute-1.924passes,3/6gatespass; UNPROMISING, no native acquisition launched.
 
 ## 当前独立工作树研究
 
