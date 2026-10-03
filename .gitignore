@@ -88,3 +88,7 @@ data/processed_data/stage2
 # Per-machine recursive memory contains host-specific absolute paths,
 # interpreters, GPU details, mounts and proxy settings. Never commit it.
 **/docs/logs/machine_memory.md
+
+# Local workflow dependency installs and type-check caches.
+/tools/workflow_runtime/node_modules/
+.mypy_cache/

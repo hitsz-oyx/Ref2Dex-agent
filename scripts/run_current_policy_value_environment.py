@@ -27,7 +27,7 @@ from typing import Any
 WORKER_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = Path(os.environ.get("REF2DEX_SOURCE_ROOT", "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent")).resolve()
 SOURCE_RUNNER = SOURCE_ROOT / "scripts/run_cm_physical_value_environment.py"
-OUTPUT_BASE = WORKER_ROOT / "src/task/CmResidual/research/physical_value/output"
+OUTPUT_BASE = WORKER_ROOT / "outputs"
 RUNTIME_MAX_OUTPUT_BYTES = 2 * 1024**3
 MAX_ROWS_TOTAL = 192_000
 MAX_ROWS_PER_CHECKPOINT = 96_000
@@ -119,14 +119,6 @@ def _native_critic_value(player: Any, observation: Any) -> Any:
     import torch
     obs = _player_obs(player, observation)
     model = player.model
-    # Critic inspection is inference only; do not retain an autograd graph.
-    with torch.no_grad():
-        return _native_critic_from_preprocessed(player, obs)
-
-
-def _native_critic_from_preprocessed(player: Any, obs: Any) -> Any:
-    import torch
-    model = player.model
     normalized = model.norm_obs(obs) if hasattr(model, "norm_obs") else obs
     critic = getattr(model, "eval_critic", None)
     if critic is not None:
@@ -174,7 +166,7 @@ def _safe_run_root(root: Path, *, mock: bool = False) -> Path:
         return root
     base = OUTPUT_BASE.resolve()
     if root.parent.resolve() != base or root.is_symlink():
-        raise ValueError("run root must be a direct, non-symlink child of task research output")
+        raise ValueError("run root must be a direct, non-symlink child of worker outputs")
     if root.exists() and not root.is_dir():
         raise ValueError("run root is not a directory")
     return root
@@ -257,7 +249,7 @@ def _existing_rows(root: Path) -> int:
     return total
 
 
-def _mock_collect(run_root: Path, seed: int, steps: int = 33) -> dict[str, Any]:
+def _mock_collect(run_root: Path, seed: int) -> dict[str, Any]:
     """Exercise the real runtime loop with an Isaac-free vector-environment double."""
     import types
     torch = __import__("torch")
@@ -334,7 +326,7 @@ def _mock_collect(run_root: Path, seed: int, steps: int = 33) -> dict[str, Any]:
             task = env.task
             task.progress_buf += 1
             task._target_states[:, 2] = .03
-            done = task.progress_buf >= steps
+            done = task.progress_buf >= 33
             return torch.zeros(n_env, 1442), torch.ones(n_env), done, {"terminate": done.clone()}
 
     class MockBridge:
@@ -360,7 +352,7 @@ def _mock_collect(run_root: Path, seed: int, steps: int = 33) -> dict[str, Any]:
     mock_source.snapshot = lambda task, tracker: torch.cat(
         (task.progress_buf.float()[:, None].expand(-1, 39),
          torch.ones(n_env, 1), torch.zeros(n_env, 15)), dim=1)
-    mock_source.context = lambda task, tracker: torch.zeros(n_env, contract.CONTEXT_DIM)
+    mock_source.context = lambda task, tracker: torch.zeros(n_env, 605)
     mock_source.contacts = lambda task: torch.ones(n_env, 1)
 
     def reward(task, tracker, base, before_z, gap_before, gap_after, gamma, approach):
@@ -436,7 +428,6 @@ def _runtime_player_run(self):
     finished = torch.zeros(num, dtype=torch.bool, device=self.device)
     initial_object_z = task._target_states[:, 2].clone()
     max_lift = torch.zeros(num, device=self.device)
-    lift_sum = torch.zeros(num, device=self.device)
     contact_sum = torch.zeros(num, device=self.device)
     completed = []
     parts: dict[str, list[torch.Tensor]] = {}
@@ -530,7 +521,6 @@ def _runtime_player_run(self):
         # horizon_phase an actual 32-step phase.
         global_tick += 1
         max_lift = torch.maximum(max_lift, task._target_states[:, 2] - initial_object_z)
-        lift_sum += task._target_states[:, 2] - initial_object_z
         contact_sum += source.contacts(task).bool().all(-1).float()
         step += 1; previous_action = action.detach().clone()
         terminal_ids = (done & active).nonzero(as_tuple=False).reshape(-1)
@@ -541,13 +531,11 @@ def _runtime_player_run(self):
                               "stable_success": bool(tracker.stable[env_id]),
                               "drop_after_success": bool(tracker.drop_after_success[env_id]),
                               "max_hold_seconds": float(tracker.max_run[env_id]),
-                              "max_lift_meters": float(max_lift[env_id]),
-                              "mean_lift_meters": float(lift_sum[env_id] / step[env_id]),
+                              "mean_lift_meters": float(max_lift[env_id] / step[env_id]),
                               "contact_fraction": float(contact_sum[env_id] / step[env_id])})
         finished |= done
-        # This bounded panel fits in memory. Export only once all first
-        # episodes are complete, so the full-episode validator cannot receive
-        # a partial episode at an arbitrary row-count threshold.
+        if len(parts.get("state", [])) and sum(len(x) for x in parts["state"]) >= 32768:
+            flush()
         if finished.all():
             break
         done_indices = done.nonzero(as_tuple=False).reshape(-1).tolist()

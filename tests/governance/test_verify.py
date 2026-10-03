@@ -264,3 +264,10 @@ def test_historical_markdown_is_not_a_current_link_scope() -> None:
     assert VERIFY._is_historical("docs/logs/activity_log.md")
     assert VERIFY._is_historical("docs/archive/old.md")
     assert not VERIFY._is_historical("docs/experiments/P-001.md")
+
+
+def test_changed_test_rename_selects_only_existing_destination(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, 'ROOT', tmp_path)
+    destination = 'tests/integration/test_moved.py'
+    _write(tmp_path / destination, 'def test_ok(): pass\n')
+    assert VERIFY._select_tests({'tests/test_moved.py', destination}) == [destination]

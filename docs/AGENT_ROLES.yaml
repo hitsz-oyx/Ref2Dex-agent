@@ -1,0 +1,32 @@
+schema: ref2dex.agent_roles.v1
+version: 1
+purpose: Stable worker identities and research permissions. Only explicitly enrolled research sessions use these roles. Runtime bindings are local.
+dispatch_owner: root
+dynamic_creation: forbidden
+nested_delegation: forbidden
+roles:
+  - agent_key: root
+    kind: supervisor
+    branch: main
+    capabilities: [research_decision, task_dispatch, evidence_acceptance, main_integration]
+    resources: {gpu: 0, experiments: false}
+  - agent_key: agent_cm
+    kind: worker
+    branch: agent/cm
+    capabilities: [cm_research, representation, mechanism_analysis]
+    resources: {gpu: 0}
+  - agent_key: agent_rl
+    kind: worker
+    branch: agent/rl
+    capabilities: [rl_execution, d_explore, ppo]
+    resources: {gpu: governed}
+  - agent_key: agent_eval
+    kind: worker
+    branch: agent/eval
+    capabilities: [validation, statistics, provenance]
+    resources: {gpu: 0}
+  - agent_key: agent_infra
+    kind: worker
+    branch: agent/infra
+    capabilities: [repository, data_plumbing, tests, workflow]
+    resources: {gpu: 0, experiments: false}

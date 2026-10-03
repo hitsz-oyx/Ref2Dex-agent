@@ -1,0 +1,204 @@
+{
+  "task_id": "T-20261001-current-policy-diagnostic-main-integration-prep",
+  "status": "COMPLETED",
+  "decision": "BYTE_EXACT_ROOT_IMPORT",
+  "branch": "agent/infra",
+  "commit": null,
+  "main_base": {
+    "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-main",
+    "commit": "96c55c2d03b6d52a460ae1b3180f9cfb8b207f78",
+    "state_path": "docs/STATE.md",
+    "state_sha256": "25b686b7cd12862c1f4d4ca38c922ca7bdbbd98cc17f3fa822a50cea56cc7cb6",
+    "state_mode": "0664",
+    "state_size": 4534
+  },
+  "accepted_root": {
+    "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-root-value",
+    "commit": "e2c020ef234ae8cbfffff2963fa723e490b6541e"
+  },
+  "candidate": {
+    "path": "docs/handoffs/CURRENT_POLICY_VALUE_MAIN_STATE_CANDIDATE_20261001.md",
+    "sha256": "ba5ad0eae1ca6b0c0ca6be329aae543ffa912bc53c89ba6b47d9ce74b93310eb",
+    "mode": "0664",
+    "size": 4865,
+    "diff_from_actual_main": {
+      "additions": 6,
+      "removals": 2,
+      "unified_diff_lines": 17
+    }
+  },
+  "scientific_state_changes": [
+    "collector and V-diagnostic engineering is accepted; R1 nativecwd asset failure and R2 wrapper pre-GPU failure are engineering statuses only.",
+    "No new data and no V-sufficiency conclusion are added.",
+    "RL r3 recovery remains active within the remaining original 1200-second/2-GiB budget; CM is adding a real-input guard; neither R3 nor guard is accepted or imported.",
+    "HF08 remains UNPROMISING/PAUSED/slot 1-of-1 and Cm policy utility OPEN; one realized MC error is not called bias."
+  ],
+  "preserved_main": [
+    "North-star",
+    "research history",
+    "workflow text",
+    "main STATE layout"
+  ],
+  "integration_manifest": [
+    {
+      "kind": "accepted collector tool",
+      "source_path": "scripts/collect_current_policy_value.py",
+      "sha256": "4c5b4687491d9e784ca2ea3f271162114834965990f8c58c4a691aebbc0216de",
+      "mode": "0664",
+      "size": 18549,
+      "target_path": "scripts/collect_current_policy_value.py",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted collector tool",
+      "source_path": "scripts/run_current_policy_value_environment.py",
+      "sha256": "ffe1c061dbd9accb947e248a82cf7c01c2e6afa9229e2949080b9cfdeee474a7",
+      "mode": "0664",
+      "size": 28574,
+      "target_path": "scripts/run_current_policy_value_environment.py",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted collector contract test",
+      "source_path": "tests/test_current_policy_value_collection_contract.py",
+      "sha256": "17b0142cd5e1ce61dea63ad347a67b32c7f2d30f3661cf8c3824574c480c0da8",
+      "mode": "0664",
+      "size": 5007,
+      "target_path": "tests/test_current_policy_value_collection_contract.py",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted collector R2 runtime evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.md",
+      "sha256": "b9e5e1c217fe7480677f217d114954710659f56cab37804476ab9004d35b6b57",
+      "mode": "0664",
+      "size": 3313,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.md",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted collector R2 runtime evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.json",
+      "sha256": "b7ec1669c676ad66fa545017012854f596c544e90d2aec109a51e9e8ddc5c990",
+      "mode": "0664",
+      "size": 5615,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_COLLECTOR_RUNTIME_R2_20261001.json",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted value audit tool",
+      "source_path": "scripts/audit_current_policy_value.py",
+      "sha256": "ad82d5ac73b4d769fb19c6dc92c685c9939347ed93d247d0be3b1f982c256b4e",
+      "mode": "0664",
+      "size": 26653,
+      "target_path": "scripts/audit_current_policy_value.py",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted diagnostic contract test",
+      "source_path": "tests/test_current_policy_value_diagnostics.py",
+      "sha256": "34697d8dd138dd93c85a3d27c0099af61b25d8aa0e47f683e2337cef0c06ed78",
+      "mode": "0664",
+      "size": 5822,
+      "target_path": "tests/test_current_policy_value_diagnostics.py",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted diagnostic contract evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.md",
+      "sha256": "05b4efd6903b98833b48f8079c9f8c436a3c5536d3fa40b2a28b586a12d78703",
+      "mode": "0664",
+      "size": 3506,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.md",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "accepted diagnostic contract evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.json",
+      "sha256": "7131396c56eb229d6309a3752ff874a2e6d4c532bb9aea3d446f6015ff702239",
+      "mode": "0664",
+      "size": 16732,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_CONTRACT_20261001.json",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "latest diagnostic card",
+      "source_path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+      "sha256": "8fd86d2f629aa7bb7fa6b373272a638898e716883eccee5379fdca5c74f33909",
+      "mode": "0664",
+      "size": 5129,
+      "target_path": "docs/experiments/probes/P-20261001-current-policy-value-diagnostic.md",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "collection R1 evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.md",
+      "sha256": "d5f954b0e4652d63902829a9b59367b32e3b3612f8064750b3937ff3773368c6",
+      "mode": "0664",
+      "size": 4399,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.md",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "collection R1 evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.json",
+      "sha256": "8f7c4634e78c725a7362d4763f9895bd8bff169d061d659a167cfc0c789d33d4",
+      "mode": "0664",
+      "size": 13778,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R1_20261001.json",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "collection R2 evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.md",
+      "sha256": "efcc160e59c90a99578df0607f2804015803470f6fd17b0e2a9ac3af32c3d078",
+      "mode": "0664",
+      "size": 3006,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.md",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    },
+    {
+      "kind": "collection R2 evidence",
+      "source_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.json",
+      "sha256": "6af189f61dd7147132dce86170ea53cbdc26c001517bce9b826c5cf3a94ffcf3",
+      "mode": "0664",
+      "size": 8387,
+      "target_path": "docs/handoffs/CURRENT_POLICY_VALUE_DIAGNOSTIC_COLLECTION_R2_20261001.json",
+      "target_status": "ABSENT_READY_FOR_ROOT_IMPORT"
+    }
+  ],
+  "target_summary": {
+    "count": 14,
+    "exists_match": 0,
+    "absent_ready": 14,
+    "needs_help": 0
+  },
+  "excluded": [
+    "main/source/shared Git writes",
+    "workflow/identity/runtime/config/AGENTS changes",
+    "old long STATE/QUEUE replacement",
+    "active R3/CM guard changes",
+    "branch merge/cherry-pick",
+    "scientific scripts execution"
+  ],
+  "resources": {
+    "gpu": 0,
+    "cpu_threads": 2,
+    "experiments": false,
+    "training": false,
+    "scientific_analysis": false,
+    "main_written": false,
+    "source_written": false,
+    "shared_git_written": false,
+    "max_runtime_seconds": 600,
+    "max_output_gib": 0.1,
+    "processes_started": []
+  },
+  "verification": [
+    "actual main HEAD and STATE hash guarded",
+    "accepted-root file hashes captured",
+    "14-entry manifest target scan has zero NEEDS_HELP",
+    "candidate/JSON/MD format and trailing-whitespace checks passed"
+  ],
+  "recommended_next_action": "Root reviews and mechanically maps candidate to actual main/docs/STATE.md, then imports only ABSENT_READY_FOR_ROOT_IMPORT manifest entries after audit; do not merge this branch or import R3/guard."
+}

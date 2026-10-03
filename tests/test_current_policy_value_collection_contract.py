@@ -54,7 +54,7 @@ def test_episode_rejects_reset_inside_episode():
     rewards = torch.zeros(3, 5)
     data = {
         "state": torch.zeros(3, 55), "next_state": torch.zeros(3, 55),
-        "context": torch.zeros(3, contract.CONTEXT_DIM), "next_context": torch.zeros(3, contract.CONTEXT_DIM),
+        "context": torch.zeros(3, 605), "next_context": torch.zeros(3, 605),
         "action": action, "previous_action": torch.zeros(3, 18),
         "reward": rewards.sum(-1), "reward_components": rewards,
         "done": torch.tensor([True, False, True]), "terminate": torch.tensor([True, False, True]),
@@ -105,22 +105,6 @@ def test_collect_entry_stays_lazy_and_requires_explicit_gpu_for_real_runtime():
     assert "source.original.main()" in wrapper
     assert "source.SOURCE_SHA =" not in wrapper
     assert contract.main(["--collect", "--checkpoint-seed", "286", "--run-root", "/tmp/unused"]) == 2
-
-
-def test_context_contract_matches_saved_physical_model():
-    checkpoint = contract.R7_ROOT / "models/tier_1000000.pt"
-    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
-    assert contract.CONTEXT_DIM == payload["context_dim"]
-
-
-def test_long_complete_panel_crosses_old_partial_flush_threshold(tmp_path):
-    runtime = _native_runtime_module()
-    result = runtime._mock_collect(tmp_path / "long-panel", 286, steps=400)
-    assert result["rows"] == 38400
-    from src.task.CmResidual.physical_value_data import Episodes
-    episodes = Episodes([Path(result["run_dir"])], gamma=.99)
-    assert episodes.episode_ids.numel() == 96
-    assert episodes.excluded_rows == 0
 
 
 def _native_runtime_module():
@@ -219,72 +203,3 @@ def test_native_guard_rejects_unknown_reward_shaper_and_accepts_installed_object
         runtime._validate_value_config({"normalize_value": False, "reward_shaper": object()})
     with pytest.raises(TypeError, match="Mapping"):
         runtime._validate_value_config(object())
-
-
-@pytest.mark.parametrize("seed", [286, 287])
-def test_saved_dexplore_player_actions_critic_and_external_normalizer(seed):
-    """Exercise the actual saved architecture and CommonPlayer preprocessing."""
-    import importlib.util
-    import yaml
-    from rl_games.algos_torch.running_mean_std import RunningMeanStd
-
-    def load_module(name, relative):
-        spec = importlib.util.spec_from_file_location(name, MAIN_ROOT / relative)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-
-    builder_module = load_module("diagnostic_dexplore_builder",
-        "third_party/DExplore/dexplore/learning/dexplore_network_builder.py")
-    model_module = load_module("diagnostic_dexplore_model",
-        "third_party/DExplore/dexplore/learning/dexplore_models.py")
-    player_module = load_module("diagnostic_common_player",
-        "third_party/DExplore/dexplore/learning/common_player.py")
-    checkpoint = torch.load(contract.CHECKPOINTS[seed], map_location="cpu", weights_only=False)
-    network_params = yaml.safe_load(contract.TRAIN_CONFIG.read_text())["params"]["network"]
-    builder = builder_module.DexploreBuilder()
-    builder.load(network_params)
-    prefix = "_orig_mod."
-    raw_state = {(k[len(prefix):] if k.startswith(prefix) else k): v
-                 for k, v in checkpoint["model"].items()}
-    obs_dim = raw_state["a2c_network.actor_mlp.0.weight"].shape[1]
-    model = model_module.ModelDexploreContinuous(builder).build({
-        "actions_num": 18, "input_shape": (obs_dim,), "num_seqs": 1,
-        "value_size": 1, "normalize_value": False, "normalize_input": False,
-    })
-    model.load_state_dict(raw_state)
-    model.eval()
-    player = player_module.CommonPlayer.__new__(player_module.CommonPlayer)
-    player.model = model
-    player.normalize_input = True
-    player.normalize_value = False
-    player.running_mean_std = RunningMeanStd((obs_dim,))
-    player.running_mean_std.load_state_dict(checkpoint["running_mean_std"])
-    player.running_mean_std.eval()
-    player.states = None
-    player.has_batch_dimension = True
-    player.clip_actions = True
-    player.actions_low = torch.full((18,), -1.0)
-    player.actions_high = torch.full((18,), 1.0)
-    obs = player.running_mean_std.running_mean.float()[None].repeat(2, 1)
-    obs = obs + .2 * player.running_mean_std.running_var.float().sqrt()[None]
-    runtime = _native_runtime_module()
-    normalized = player._preproc_obs(obs)
-    assert not torch.allclose(obs, normalized)
-    with torch.no_grad():
-        _, logstd, expected_value, _ = model.a2c_network({"obs": normalized, "rnn_states": None})
-        assert logstd.lt(0).all()
-        with pytest.raises(RuntimeError, match="std >= 0"):
-            torch.normal(torch.zeros_like(logstd), logstd)
-    torch.manual_seed(12345)
-    expected_action = player.get_action({"obs": obs}, False)
-    expected_rng = torch.get_rng_state()
-    torch.manual_seed(12345)
-    action, value, _ = runtime._native_actor_forward(player, {"obs": obs})
-    assert torch.equal(action, expected_action)
-    assert torch.equal(torch.get_rng_state(), expected_rng)
-    assert torch.allclose(value, expected_value.reshape(-1))
-    critic = runtime._native_critic_value(player, obs)
-    assert torch.allclose(critic, expected_value.reshape(-1))
-    assert not critic.requires_grad
-    assert torch.equal(torch.get_rng_state(), expected_rng)

@@ -73,6 +73,8 @@ same research branch/history with separate local Git metadata; old worktree read
 | 论文后补实验 | [`RESEARCH_DEBT.md`](../RESEARCH_DEBT.md) |
 | 项目全局概览 | [`项目总览.md`](../项目总览.md) |
 
+[实验索引](../experiments/INDEX.md) 按路线生成，先看问题与结果，再按需读原卡和 manifest。
+
 研究记录已经按目录分开：
 
 * `decisions/`：Decision Checkpoint 和路线选择；

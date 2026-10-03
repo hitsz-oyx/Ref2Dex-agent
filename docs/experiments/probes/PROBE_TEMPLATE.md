@@ -2,71 +2,30 @@
 schema: ref2dex.probe.v2
 probe_id: P-YYYYMMDD-topic
 date: YYYY-MM-DD
-branch: agent/<hypothesis-family>
-git_commit: <commit-or-working-tree>
+branch: agent/<route>
+git_commit: <execution-commit-or-manifest-reference>
 claim_id: C3
 hypothesis_family: HF02
-decision_changed_if_positive: <the next route if the signal is positive>
-decision_changed_if_negative: <the next route if the signal is negative>
+decision_changed_if_positive: <next route>
+decision_changed_if_negative: <next route>
 probe_index_in_family: 1
 seed_pool: probe
 status: PLANNED
 ---
 
-# Probe: <short question>
+# Probe: <decision question>
 
-## Question
+## 最小方法与边界
 
-这次最小实验要区分什么假设？
+要区分的假设与最便宜的可判别方法；GPU/时间/磁盘预算和停止条件。
+本问题一个 experiment_id；对照、seed、技术重试放 run_id。设计修订明确留痕。
 
-## Hypothesis
+## 结果与下一步
 
-H1:
+PROMISING / UNPROMISING / UNCLEAR；最关键指标、有效性与结论范围。
+说明结果改变了哪个决策；无结果时保留 PLANNED，不预写结论。
 
-Alternative:
+## 证据
 
-## Decision
-
-如果 H1 成立：
-
-下一步：
-
-如果 H1 不成立：
-
-下一步：
-
-如果两种结果都不会改变下一步，不要运行该 Probe。
-
-## Minimal protocol
-
-只写区分假设所需的最小实验。
-
-## Budget
-
-GPU:
-
-wall time:
-
-storage:
-
-## Stop condition
-
-什么时候立即停止？
-
-## Result
-
-Status:
-
-`PROMISING` | `UNPROMISING` | `UNCLEAR`
-
-Key evidence:
-
-## Decision update
-
-实验以后路线如何变化？若 family 已耗尽预算，更新
-`docs/RESEARCH_QUEUE.yaml` 的状态并切换到更高层假设；不要只换 metric 或
-horizon 继续消费同一个 family。
-
-## Artifacts
-
-必要路径即可。
+manifest、结果表、代码提交和产物链接。命令、配置、输入哈希保存在 manifest。
+技术失败/无效执行保留且标明，不作为有效 Probe 或成功证据。

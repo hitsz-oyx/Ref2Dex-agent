@@ -1,0 +1,15 @@
+{
+  "task_id": "T-engineering-smoke",
+  "role": "agent_infra",
+  "objective": "Validate one engineering contract",
+  "decision_test": "One bounded CPU smoke distinguishes correct and broken wiring",
+  "gpu": 0,
+  "timeout_seconds": 30,
+  "stop_conditions": [
+    "Stop after the smoke or thirty seconds"
+  ],
+  "deliverables": [
+    "Final status, test output, commit and resource/process disposition"
+  ],
+  "kind": "engineering"
+}

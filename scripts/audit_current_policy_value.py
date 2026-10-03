@@ -381,8 +381,6 @@ def run_diagnostic(data: Mapping[str, Any], pv_value_at_state: torch.Tensor | No
     drop_mask = torch.tensor([primary_drop[group_lookup[i]] for i in range(len(value))])
     masks = {
         "overall": {"all": all_mask},
-        "checkpoint": {str(int(c)): contract["checkpoint_id"] == c
-                       for c in torch.unique(contract["checkpoint_id"]).tolist()},
         "primary": {"primary_success": success_mask, "primary_failure": ~success_mask,
                      "drop_after_primary": drop_mask, "no_drop_after_primary": ~drop_mask},
         "motion": {str(m): motion == m for m in sorted(set(motion.tolist()))},
@@ -413,10 +411,6 @@ def run_diagnostic(data: Mapping[str, Any], pv_value_at_state: torch.Tensor | No
             "checkpoint_provenance": contract["provenance"]},
         "rows": len(value), "episodes": len(groups), "lambda_meta": lambda_meta,
         "native_per_episode_checked": native_checked,
-        "lambda_vs_mc": {
-            name: _metric(lam[mask], mc[mask], episode[mask].tolist())
-            for name, mask in {"all": all_mask, **masks["checkpoint"]}.items()
-        },
         "metrics": metrics, "episode_metrics": episode_rows,
         "primary_episode_counts": {"success": int(sum(primary.values())), "drop_after_primary": int(sum(primary_drop.values()))},
     }

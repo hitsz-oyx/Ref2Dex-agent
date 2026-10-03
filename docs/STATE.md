@@ -1,154 +1,70 @@
-# Independent contact-response research state
+# Ref2Dex 当前研究状态
 
-Updated 3 October 2026. Qualified no-Cm oracle and observed finite-bank capacity both completed UNPROMISING.
-Core Cm policy-training utility remains unproved; journal readiness NOT READY.
+更新：2026-10-01。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
+不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 
-## Workspace and boundaries
-
-Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/cm-interaction-oracle`. Original user tree, old own contact-response tree
-and external Ref2Dex project are read-only. No remote push, broker or new
-agents; user-mandated single-session work. Existing branches/history retained.
-Native Python3.8 graspenv, IsaacGym, PyTorch2.4.1. One admitted idle GPU for
-native physics/model computation, CPU independent saved-artifact audits.
-Campaign: max4GPUs,300GB owned storage, deadline3October23:59Beijing.
-
-## North-star
-
-| Requirement | Current independent status |
+| North-star | 当前判断 |
 | --- | --- |
-| Own self-trained manipulation | PARTIAL: scratch P0 motion1; task-Q actors motion2 up to117/128; motion0 unsolved |
-| Short physical information | Actual8tick successor oracle diagnostic PROMISING; deployment utility does not follow |
-| Matched Cm policy-training utility | NOT DEMONSTRATED; tested actual learning recipes fail complete gates |
-| Distinctive method | Unestablished; generic joint predictive features are prior art |
-| Validation/generalization/hardware | Absent; native manuscriptv12 is an audited27page working draft |
+| Self-trained grasp | PARTIAL：限定 12-motion 的六专家初始观测路由已通过正式 C1 Validation；单一 actor 稳定结果仍未证。 |
+| Cm one-step information | PARTIAL：物理效应可学，但依赖表示、分布与目标。 |
+| Cm policy utility | OPEN：尚无跨训练 seed 的 matched Cm-on 优于 Cm-off 证据；effect-rank 正式 Validation 的正向主张已 REFUTED。 |
+| Generalization | OPEN：未见物体/多轨迹上的 Cm 收益尚未建立，本阶段先聚焦固定任务分布。 |
 
-The independent panel is one airplane and three synthetic references. It does
-not borrow user-track six-expert/twelve-motion evidence. Success: object-root
-rise>=30mm and full25002vertex tabletop clearance>=20mm on ALL105controlticks
-stop-74..stop+30 (last75plateau plus30drop checks).202ticks, stops[162,140,152],
-lift starts[63,44,55], control1/30s, simulation1/60s, substeps4. SDK body origins
-and net-force signals do not establish attributed contact or force closure.
+## 关键事实与边界
 
-## Current evidence and active hypothesis
+- C1 的任务限定 SUPPORTED 不证明单一 actor、未见物体泛化或 Cm utility；冻结已验收的
+  六专家 substrate。[正式验证](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
+- HF01–HF05 的已失败局部路线保持冻结，不靠换 seed/门槛重置预算；这不是所有未来 Cm/GPU
+  路线的全局禁止。[队列与路线预算](RESEARCH_QUEUE.yaml)。
+- 用户已授权边界内自主选路线，以及六专家蒸馏与新的 Cm 探索；历史标签不因此升级。
+- r6 support 的 teacher label 仅覆盖 source_e260，不能证明六专家蒸馏；其缺失轴字段不能回填。
+- r7 轴合约通过，但 contact q10 与 delta 覆盖未过 calibration gate，不生成正式 Cm-on 标签。
+  [校准证据](handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
 
-User proposed testing oracle effect plus interaction before learning Cm. This
-supersedes the pending history-only route. Primary-source review supports a
-relational/contact information test without promising success or novelty.
-[Review](research/20261003-effect-interaction-oracle-review.md).
+## 其他已有任务交付边界
 
-Native contact qualification: GPU data pipeline silently returns empty raw
-contact arrays; CPU data plus GPU PhysX provides attributed contacts. Raw
-lambda has force units and normal force acts on body0 along normal in this
-build. Friction fields remain unqualified and are excluded. Whole-scene
-48-env72tick fresh replay is bit-identical; object normal-force reconstruction
-max1.418e-6N. [Qualification](research/20261003-oracle-native-qualification.md).
+主分支已记录的两个旧系统受控任务：一次 fit-only CPU 校准修复，以及独立六专家逐步轨迹蒸馏。
+校准任务 2 CPU/15 分钟/1 GiB，蒸馏任务 1 GPU/60 分钟/5 GiB；均只形成 Probe 结论。
+旧系统任务的实际终态以各自交付为准，不由新工作流猜测或重新启动。
 
-First scientific oracle run r1 COMPLETED/UNCLEAR at101a493. Recorded actual
-P0/state/E/I/joint successes28/58/62/59/59 per96. These are execution records,
-NOT oracle gains or a negative information result: mixed selected actions
-failed to reproduce globally queried same-option futures (up to162.6mm).
-All36tick prefixes are exact;20native mesh/PD/contact audits and final-Q/
-earlyoptimizer checks pass.6000task-Q updates,1920trajectories, no Cm/actor/
-official weights. [Result](research/20261003-effect-interaction-oracle-r1-results.md).
+先验收实际交付，停止失败的局部 calibration tuning；蒸馏独立推进。新 Cm 路线须服务于
+真实策略因果增益，保留 matched Cm-off 对照。[实验索引](experiments/INDEX.md)按需检索。
+运行细节、失效执行、数值和哈希留在原卡/manifest；资源授权见 [CAMPAIGN](CAMPAIGN.md)。
 
-Persistent PD tensor storage reproduces the mismatch exactly; CPU PhysX
-also fails mixed isolation. Root cause is unconfirmed, not exclusively GPU.
-No cross-environment raw contact pairs were found. Do not scan backends,
-tolerances, seeds or horizons to rescue this invalid query protocol.
 
-Single-subject engineering at6dbe7df PASSES: seed763,12instances, only one
-controlled hand and11P0 backgrounds; query and full deployment reproduce
-ALLwhole-world states/forces/commands through68ticks bit-identically. This
-qualifies a protocol, not grasp utility.
+## 本轮 Cm 策略价值研究
 
-Scientific r2 COMPLETED/UNPROMISING at443d844: P05/12, state/E/I/joint8/12,
-all motions0/1/2 counts0/4/4 for the four selectors.84nonzero short queries,
-26unique selected full202tick executions,0new updates/6000inherited. Joint
-incremental gates fail at0pp. ALLwhole-world68control and136physics frames
-match exactly;111native audits and independent SciPy features/full105labels/
-counts pass. Frozen TRAINglobal96-instance vs fixed-background12-instance
-shift remains explicit; rich I compresses normal-contact moments and omits
-unqualified friction. [Result](research/20261003-effect-interaction-oracle-r2-results.md).
+用户授权先取得真实策略 matched Probe，正向则优先正式 Validation；期限为
+2026-10-03 23:59（Asia/Shanghai）。完整交互与短期物理预测结合长期价值，
+最终要求训练所得actor受益；瞬时物体位移不替代动作价值，跨数据集预训练可选。
 
-Confirmed ranking issue: float32 sigmoid saturates distinct logits to1.0.
-For I/joint subjects1/7, probability argmax0 vs raw-logit argmax3/4. State/E
-choices unchanged. Fix raw-logit ordering and validate only2new actions, no
-refit; old r2result stays unchanged. Both affected subjects already succeeded,
-so this does not explain missing incremental utility.
+HF06 teacher-envelope与HF07 BC物理预测输入实现均为UNPROMISING，保持关闭。
+HF08 physical-value已完成：公共池1041599转移、1920完整episode，fit831811行，
+开发holdout209788行；同一自训练source_e260、三条canonical airplane motion，
+六臂均追加160epoch/327680交互，全部48点actor-only评价完成。原生gate为
+UNPROMISING：终点Cm33/384，普通PPO41/384，直接Q40/384。这里只是Probe，
+不否定Cm核心假设；North-star policy utility仍OPEN。
 
-## Current decision and next step
+R2价值目标审计已由root验收：source主成功15/1920、holdout成功1/384，两个e420
+V checkpoint均实际完成7680 optimizer updates。结论为UNCLEAR：V训练充分性和当前
+策略校准仍未知；不据此宣称需要重训或已收敛。
 
-P-20261003-oracle-candidate-capacity-r1 COMPLETED/UNPROMISING at1c08b24:
-stable raw-logit state/E/I/joint all8/12, P05/12. Ranking fix changes only
-I/joint subjects1/7 options0->3/4; both actual alternatives succeed. All4motion0
-subjects now have all8actual outcomes, all fail. Observed finite-bank best is
-8/12, already attained by state and all oracle selectors; extra headroom0.
-This is retrospective finite-candidate capacity, never policy gain or a
-universal Cm/continuous-action upper bound. It does not explain all old
-negative learners. [Result](research/20261003-oracle-candidate-capacity-results.md).
+在线适配后物体位置误差降至0.78/0.86cm，仍弱于恒定线速度基线；姿态误差
+仍约1.34/1.36rad，明显弱于保持状态。模型不能称为已准确预测物理转移。
+同source checkpoint的e0重复评价有差异，原生配对只覆盖env/motion/start/时长/
+初始高度；初始完整state恢复审计此前已排除为当前阻塞，不以单次realized MC误差
+宣称bias。暂不升级Validation，不调参重扫HF08。
 
-18new full worlds,0new updates/6000inherited;683.810s/554139436terminal bytes,
-within900s/2GiB.129native audits, all32capacity labels and independent geometry/
-physics/105label/counts pass; whole-world68control/136physics frames maxerror0
-for ALL44selected/capacity nonzero branches. Input SHAs unchanged; owned
-collector/native-audit PIDs absent. CPU final audit26.511s, independent backend.
-
-Close this small held-residual bank before more Cm fitting. Next cheap
-exploration should change control class: an object-frame whole-grasp primitive
-from an actual successful own hand-object relation, audit its kinematic mapping,
-then one motion0reachability screen. A desired relation is a control target,
-not the future-I oracle or learned Cm contribution tested above. After useful
-action-bank headroom exists, revisit matched short effect/I information and
-policy training. [Decision](decisions/D-20261003-after-oracle-capacity.md).
-No seed/magnitude/horizon/epochs/width rescue, no mission/claim change and no
-formal Validation. Journal readiness NOT READY; core utility remains unproved.
-
-User-requested frozen training audit:279/768TRAINpositive labels (36.33%),
-but motion0has0/256in TRAINand original heldout. E/I/joint final train accuracy
-100%, BCE1.34e-4/1.87e-5/9.47e-6; state91.67%, BCE0.200. Gross failure to fit
-these training labels is excluded; generalization convergence is unqualified,
-with no checkpoint-wise heldout curves and explicit protocol shift. One
-decision plus learned terminal-success classification is NOT fully privileged
-actor training or a Cm upper bound. No new optimizer/physics updates.
-[Diagnostic](research/20261003-oracle-selector-training-audit.md).
-
-## Important retained facts
-
-- Actual hand collision filters previously had5SDK ownership mismatches;
-  corrected implementation has0. No confirmed neural label/frame/gradient
-  bug in reviewed old learners. Preserve the fix and old evidence.
-- Tested matched continuous auxiliary, successor, physical-critic and
-  equal-budget task-Q learning recipes did not establish Cm utility.
-- Broader source-data/hand-scale,64/256context granularity and frozen transfer
-  recipes failed their fixed gates. Causal54D actuator prediction qualified,
-  but direct object prediction still failed even with privileged hand flow.
-- Rigid transport has a positive oracle-capacity observation; learned
-  coefficients and state-anchored correction failed complete gates. This is
-  representation headroom, not a deployed policy result.
-- Latest fixed density20vs1000kg/m3 feasibility is UNPROMISING: coldQ32/96
-  nominalvs0/96heavy;0NNupdates, all actual physics/outcome checks pass.
-  Close exact density contrast without rejecting all latent-load learning.
-
-Exact closed families, numerical corrections and all run provenance remain
-in [research index](research/README.md), experiment cards and Git. Do not
-repeat their seeds/steps/widths/horizons/density or rescue failed gates with
-subgroups. Formal utility Validation and broader tasks remain
-[Research Debt](RESEARCH_DEBT.md).
-
-## Preservation and paper
-
-Immutable base `/home2/wyy/tmp/ref2dex-contact-response-20261002-v11` and
-supplements r1--r21 retain prior raw/code/model/audit/failure evidence.
-Latest r21 through59dc43a has337538542unique bytes, all copies/Gitbundle and
-base/prior manifests verified.
-[Receipt](activities/20261003-latent-load-delivery.md).
-Supplement r22 through8287529 now preserves all10terminal oracle engineering/
-science runs,9695600946unique bytes. All copied-file/Gitbundle checks and
-base/prior21manifest hashes pass.
-[Receipt](activities/20261003-oracle-capacity-delivery.md).
-
-[Manuscriptv12](../paper/manuscript-v12.pdf) is the last audited native27page
-working draft;29tables,6figures and55source hashes checked. Older/failed export
-artifacts retained. No positive Cm claim or journal completion.
-[Paper closeout](activities/20261003-paper-v12-closeout.md).
+collector与V诊断工程已验收；R1 nativecwd资产失败、R2 wrapper在GPU ownership前失败，
+两者均无新数据、无V充分性结论。R3/r3b也已FAILED并完成进程清理，均0行；
+CM真实输入守卫已验收、集成，main复验11项通过。
+当前执行原生Gaussian、frame-0、冻结策略的完整episode诊断，尚无完整采集数据或新训练。
+真实环境初始化暴露reward_shaper对象检查错误；修复后首个动作又因采集器误把logstd
+当sigma退出。原生model还负责观测归一化，raw网络直调不能替代它。错误属于采集器，
+不证明checkpoint标准差无效。root已派固定RL角色做CPU-only原生player合约修复；
+原恢复轮截止不延长，未来采集按实际累计成本另记有界预算。单次MC误差不单独证明bias；
+HF08 slot不重置。见[修复决策](decisions/D-20261001-native-player-collector-repair.md)。
+[HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)与
+[完整结果](experiments/probes/P-20260930-cm-physical-value-results.json)保留边界与数值。
+原始数据/checkpoint留在原研究工作树的research/output/P-20260930-cm-physical-value/r7，
+未提交Git，不因本次合并移动或删除。

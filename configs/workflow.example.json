@@ -1,0 +1,122 @@
+{
+  "command": [
+    "/absolute/node24",
+    "/absolute/repo/tools/workflow_runtime/node_modules/@backnotprop/orchestrator-cli/dist/cli.js"
+  ],
+  "state_dir": "/absolute/repo/.runtime/new-campaign",
+  "roles_file": "/absolute/repo/docs/AGENT_ROLES.yaml",
+  "campaign": {
+    "max_gpu": 1,
+    "allowed_workspace_roots": [
+      "/absolute/worktrees"
+    ]
+  },
+  "max_recovery_attempts": 3,
+  "recovery_backoff_seconds": 2,
+  "poll_seconds": 5,
+  "bindings": {
+    "root": {
+      "provider": "foreground-root",
+      "runtime": "codex",
+      "workspace": "/absolute/worktrees/root",
+      "store": "/absolute/repo/.runtime/stores/root",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": [],
+      "inherit_current_session": true
+    },
+    "agent_cm": {
+      "provider": "agent_cm-primary",
+      "runtime": "codex",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "workspace": "/absolute/worktrees/agent_cm",
+      "store": "/absolute/repo/.runtime/stores/agent_cm",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": [
+        {
+          "provider": "agent_cm-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_cm",
+          "store": "/absolute/repo/.runtime/stores/agent_cm-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
+    },
+    "agent_rl": {
+      "provider": "agent_rl-primary",
+      "runtime": "codex",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "workspace": "/absolute/worktrees/agent_rl",
+      "store": "/absolute/repo/.runtime/stores/agent_rl",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": [
+        {
+          "provider": "agent_rl-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_rl",
+          "store": "/absolute/repo/.runtime/stores/agent_rl-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
+    },
+    "agent_eval": {
+      "provider": "agent_eval-primary",
+      "runtime": "codex",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "workspace": "/absolute/worktrees/agent_eval",
+      "store": "/absolute/repo/.runtime/stores/agent_eval",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": [
+        {
+          "provider": "agent_eval-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_eval",
+          "store": "/absolute/repo/.runtime/stores/agent_eval-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
+    },
+    "agent_infra": {
+      "provider": "agent_infra-primary",
+      "runtime": "codex",
+      "codex_home": "/home2/wyy/oyx_ws/.codex_oyx",
+      "workspace": "/absolute/worktrees/agent_infra",
+      "store": "/absolute/repo/.runtime/stores/agent_infra",
+      "env": {
+        "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+      },
+      "fallbacks": [
+        {
+          "provider": "agent_infra-fallback",
+          "runtime": "codex",
+          "codex_home": "/home2/wyy/oyx_ws/.codex_oyx_frj",
+          "workspace": "/absolute/worktrees/agent_infra",
+          "store": "/absolute/repo/.runtime/stores/agent_infra-fallback",
+          "env": {
+            "PATH": "/absolute/node24-bin:/absolute/codex-bin:/usr/bin:/bin"
+          },
+          "verified": false
+        }
+      ]
+    }
+  }
+}

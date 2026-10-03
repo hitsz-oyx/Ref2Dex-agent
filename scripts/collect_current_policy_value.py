@@ -57,13 +57,12 @@ ENVS_PER_CHECKPOINT = 96
 MOTION_COUNTS = {0: 32, 1: 32, 2: 32}
 MAX_ROWS_TOTAL = 192_000
 MAX_ROWS_PER_CHECKPOINT = 96_000
-MAX_OUTPUT_BYTES = 2 * 1024**3
+MAX_OUTPUT_BYTES = int(0.1 * 1024**3)
 MAX_WALL_SECONDS = 20 * 60
 MAX_STEPS_PER_EPISODE = 700
 STATE_DIM = 55
 ACTION_DIM = 18
-# Seven phase/initial-height metadata fields plus the pinned 428-D reference.
-CONTEXT_DIM = 435
+CONTEXT_DIM = 605
 SCHEMA = "ref2dex.physical_value.v1"
 
 
@@ -313,7 +312,7 @@ def preflight(output_root: Path | None = None) -> dict[str, Any]:
         "max_output_bytes": MAX_OUTPUT_BYTES, "max_wall_seconds": MAX_WALL_SECONDS,
         "episode_id": "checkpoint-specific prefix s{training_seed}_e420_diag290_env{env_id}; globally disjoint",
         "storage": "Episodes-compatible tensors; export only after all 96 episodes are complete and finite",
-        "commands": [render_command(seed, output_root or (WORKER_ROOT / "src/task/CmResidual/research/physical_value/output/P-20261001-current-policy-value-r7")) for seed in (286, 287)],
+        "commands": [render_command(seed, output_root or (WORKER_ROOT / "outputs/P-20261001-current-policy-value-r7")) for seed in (286, 287)],
     }
     return {
         "status": "READY_FOR_ROOT_RUNTIME_TASK", "schema": SCHEMA,

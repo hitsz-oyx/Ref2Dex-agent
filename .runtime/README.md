@@ -1,15 +1,11 @@
-# Local runtime state
+# Local workflow state
 
-Files in this directory are machine-local and are not research evidence.
+New supervision uses a machine-local workflow.json, its configured state_dir/research.sqlite,
+supervisor/guardian process locks and logs, plus isolated external backend stores. These are
+not research evidence and are not committed. Commands and lifecycle are documented in
+[workflow README](../docs/workflow/README.md).
 
-The current workflow has one optional runtime helper:
-`session_capacity_watchdog/state.json` and its lock belong to
-`scripts/codex_research_supervisor.py`. The helper reads Codex metadata and
-rollouts, and queues one `继续` 60 seconds after a structured capacity failure.
-Ordinary text mentioning capacity does not trigger it, and a successful queue
-clears that recovery arm. It does not
-create agents, dispatch research tasks, manage leases, or change experiment
-state.
+Old AGENT_BINDINGS, leases, tasks.sqlite, AGENT_STATE and watchdog cursors remain drain-only.
+Do not copy them into the new executor or enable old/new dispatch owners together.
 
-Do not restore the retired Broker, role registry, root watchdog, pollers, or
-their lease files from old runtime artifacts.
+AUTONOMOUS_DECISIONS.md is a rebuildable view of consequential choices; use researchctl decisions --export to save a new reviewable research record. No credentials or experiment manifests belong in control exports.
