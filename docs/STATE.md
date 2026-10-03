@@ -1,12 +1,12 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Rigid transport capacity Probe completed.
+Goal ACTIVE; journal readiness NOT READY. Causal rigid coupling Probe prepared.
 
 ## Workspace and task
 
 Writable standalone clone `/tmp/Ref2Dex-contact-response-continuation`, branch
-`agent/cm-surface-prior` (retains `agent/response-actor` history). Original user tree and old own contact-response tree
+`agent/cm-rigid-coupling` (retains `agent/cm-surface-prior` and `agent/response-actor` history). Original user tree and old own contact-response tree
 are read-only. No remote push, broker or unknown process control. User explicitly
 authorized one read-only implementation-review subagent for this review only.
 Native Python3.8 graspenv / IsaacGym / PyTorch2.4.1. Idle GPU admission for
@@ -187,6 +187,16 @@ come from TRAINfutureoutcomes; HELDprediction must never fit or see outcomes.
 Fix exact architecture/degeneracy handling/updates/gates prospectively;
 capacity alone permits neither newnativequalification nor policytraining.
 [Decision](decisions/D-20261003-after-rigid-transport-capacity.md).
+
+P-20261003-rigid-coupling-learnability prepared:3matched1500-update predictors
+(4500total),23874parameters/commoninit4201/schedule4202; full,state-only,
+train-worldflowshuffle4203. Predictperendpointboundedcoef and ownprediction
+confidence,then hardselectsingleendpoint,exactfamilypreserved. State-only
+receives SAME99globalstate/geometry/command features,2endpointsreplicate15
+callswithbalancedloss.120causalfeatures,train-onlysharednormalizer.
+4rowCPUindependentfeature/NumPyAdamWsmokepass. MainGPU/900s/512MiB,
+no nativephysics/actor,4fixedgates beforefit. Previouslyviewedheldpanel remains
+diagnostic. [Card](experiments/probes/P-20261003-rigid-coupling-learnability.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
