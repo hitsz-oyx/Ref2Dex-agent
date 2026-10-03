@@ -175,3 +175,17 @@ split 3 始终反向；split 3 的高 return success/drop episode `(2,1864000001
 初始化随机性。该修复后的 I+ 仍只能标为 `PROMISING` diagnostic，不能升级为
 Gate closeout 或 `SUPPORTED`，下一步应增加独立 success/drop 覆盖并预注册
 actor/episode cluster Validation。
+
+## Corrected cross-actor replication
+
+因为 history preceding-action 修复也影响旧 e420 diagnostic，使用相同的 s286/s287
+raw shards 重新组装，得到 44 episodes、22,644 windows；base dataset audit 通过，
+[`audit_gate1_interaction_augmentation.py`](../../scripts/audit_gate1_interaction_augmentation.py)
+验证 interaction dim 119、首槽增量为零、target/episode/row-key 不变。
+corrected h16 direct I+ 的五个 split 为 `+3.0%`、`+7.4%`、`-19.8%`、`+3.1%`、
+`-22.8%`，episode bootstrap CI 只有 split 3 排除零；future-action control
+为 `+3.2%`、`+14.0%`、`-16.9%`、`+2.9%`、`-27.6%`，也没有稳定跨 split 的
+方向。source-run cluster bootstrap（2 clusters）同样显示 direct split 2、4
+跨方向，control split 3、4、5 跨方向。修复后 e420 仍不能复现 e260 的 I+ 方向，
+因此当前证据继续限定为局部 `PROMISING` diagnostic，不支持 Gate closeout 或
+`SUPPORTED`。

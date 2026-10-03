@@ -41,3 +41,13 @@ delta CI 分别为 `[0.935, 7.905]`、`[0.888, 2.039]`、`[-16.167, 2.018]`、
 多个独立 actor 和 success/drop outcome 后才能判断 Gate。
 这里的 bootstrap 估计量是 source-run 等权的 cluster mean，与 primary 的
 episode 等权 MAE 不同，因此不能把两者的区间直接当作同一个总体参数的替代。
+
+**history-contract 修复后的 e420 复核。** 为避免把未修复 e420 与修复后 e260
+混比，使用同一 s286/s287 raw shards 重新组装 factual preceding action，得到
+44 episodes、22,644 windows，base dataset audit 通过，augmentation report 的
+119 维和 row-key invariants 通过；独立 augmentation audit 也无 errors。corrected h16 I+ direct 点估计为
+`+3.0%`、`+7.4%`、`-19.8%`、`+3.1%`、`-22.8%`；episode CI 中只有 split 3
+排除零。matched control 为 `+3.2%`、`+14.0%`、`-16.9%`、`+2.9%`、`-27.6%`，
+没有稳定跨 split 的增益。两个 source-run cluster 下 direct cluster CI 在
+split 2、4、5 跨方向，control 在 split 3、4、5 跨方向。history 修复没有把
+I+ 方向推广到独立 actor，因此仍停止 feature 堆叠，不启动 Cm。
