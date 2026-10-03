@@ -284,6 +284,8 @@ def main() -> None:
         "device": str(device),
         "epochs": args.epochs,
         "batch_size": args.batch_size,
+        "seed": args.seed,
+        "future_action_control": args.future_action_control,
         "split_unit": "(source_run, episode_id)",
         "train_episodes": train_episodes,
         "test_episodes": test_episodes,
