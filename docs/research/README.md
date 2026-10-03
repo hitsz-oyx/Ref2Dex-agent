@@ -15,6 +15,7 @@ same research branch/history with separate local Git metadata; old worktree read
 - [Raw hand points and actual query granularity](20261003-surface-granularity-results.md):2048/10135raw hand points;64query coverage audit completed, no demonstrated accuracy cause.
 - [Fixed-data query/neighbor granularity result](20261003-cm-granularity-results.md): eight matched fits/12000updates, all audits pass; primary error changes<0.3%, all six gates fail.
 - [Corrected causal execution and frozen-prior result](20261003-surface-execution-input-results.md): handbridge0.900mm passes; frozenoracle6.725/7.301mm vs persistence0.629mm, all four prior gates fail; overallUNCLEAR.
+- [Corrected causal calibration result](20261003-surface-calibration-results.md):4800actualupdates, normal0.665mm vs persistence0.629/scratch0.633/shuffle0.618; onlyhandflow gate passes, UNPROMISING. Audit-only indexing repair preserves fits.
 
 ## 当前独立工作树研究
 

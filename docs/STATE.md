@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected causal calibration Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Corrected causal calibration Probe completed.
 
 ## Workspace and task
 
@@ -32,6 +32,19 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-surface-calibration-r2 COMPLETED/UNPROMISING at7709263; r1d47e1fe
+completed four fits then FAILED on independent audit NumPy index axis order.
+r2onlyCPUaudit inherits all data/checkpoints bySHA,0newupdates;4800actual
+updates total. Normal pretrained0.665444mm vs persistence0.629373,
+scratch0.633220,shuffled0.618116,hand-flow-removed0.790197. Onlyhandflow gate
+passes; all raw12288rows/train6144joints/384newgeometry/fullheldNumPy+metrics
+audit pass, encoders unchanged and12earlyoptimizersteps replayed.
+Combined77.598s/74346217unique bytes, protected inputs unchanged,PIDs absent.
+Close this bounded frozen-feature transfer family; next rigid transport/
+coupling representation-capacity screen BEFORE newfit/collection.
+Same-seed previously viewedholdout, no policy utility or genericCm rejection.
+[Result](research/20261003-surface-calibration-results.md).
 
 P-20261003-surface-execution-input-r1 COMPLETED/UNCLEAR at169db6c.
 Reused corrected655data,384train/384held wholeepisodes,6144windows each.
@@ -152,21 +165,15 @@ in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
 
-Causal execution qualification completed: current command/state supports
-accurate hand prediction here, but frozen prior oracle also loses. Close
-exact directtransfer and actuator/density rescue. Next ONEmatched corrected-
-native causal calibration screen, useful-pretrained vs shuffled-pretrained vs
-scratch features, common persistence anchor/data/head/updates/gates fixed
-before fit. No fresh native collection or policy fit until information gate.
-[Decision](decisions/D-20261003-after-surface-execution.md).
-
-P-20261003-surface-calibration prepared: four frozen-encoder arms, including
-predicted hand-flow removal; common new8451parameter residual head, initial
-output exactly persistence,1200updates each/4800total. Same384train/384held
-episodes and6144windows each, inherited train-only actuator and held bank.
-MainGPU/900s/1GiB; primary10%persistence+scratch,5%shuffled+handflow gates fixed.
-Tiny smoke/NumPy optimizer replay pass. This reused holdout is a diagnostic,
-not fresh validation. [Card](experiments/probes/P-20261003-surface-calibration.md).
+Causal execution and matched calibration completed. Hand bridge provisionally
+qualifies, but exact frozen direct transfer and calibrated pretrained features
+do not pass. Close this bounded surface-feature transfer family and all
+scale/density/calibration rescue. Next review an explicit action-conditioned
+rigid transport/coupling law with inertial baseline; ONEcheap candidate-
+capacity screen versus state-only candidates, prospective construction/gates
+before any execution. Oracle outcome-fitted coefficients are a capacity bound
+only. No newfit/collection/policy until that screen.
+[Decision](decisions/D-20261003-after-surface-calibration.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
@@ -182,8 +189,8 @@ Validation launched from a failed Probe.
 
 The causal hand-input blocker is provisionally qualified on current reused
 corrected episodes, not universally solved. Broad source prediction info does
-not directly transfer even with oracle handflow. Preserve filterfix/all old
-evidence and test calibration once before reviewing representation/target;
+not directly transfer even with oracle handflow; completed calibration also
+fails. Preserve filterfix/all old evidence and review representation/target;
 no replay of closed recipes or newfit without a separate prospective design.
 
 ## Preservation and debt
