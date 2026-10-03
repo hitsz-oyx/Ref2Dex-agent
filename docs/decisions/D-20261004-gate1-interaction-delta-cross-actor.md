@@ -21,3 +21,10 @@ feature，转向 actor/outcome cluster Validation；如果复现，只记录为 
 
 **外部授权边界。** 只读取已存在 e420 shards；不修改 raw 数据、checkpoint 或
 baseline，不启动在线 policy/Cm training。
+
+**结果。** e420 I+ audit 通过（44 episodes、22,644 windows、interaction dim
+119）。五个 h16 `V_HEI`/`V_H` 点估计为 `+19.4%`、`+3.5%`、`-8.5%`、`+23.6%`、
+`+4.0%`，其中 2/5 CI 排除零；matched `V_HFEI`/`V_HF` 为 `+14.4%`、`+2.4%`,
+`-6.6%`、`+21.2%`、`+4.8%`，其中 2/5 CI 排除零。I+ 在独立 actor 上保留
+方向性，但没有稳定 Gate 级复现，因此停止继续堆叠该 feature，转入更严格的
+actor/outcome cluster Validation 设计，不启动 Cm。
