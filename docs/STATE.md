@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Corrected execution-input Probe completed.
+Goal ACTIVE; journal readiness NOT READY. Corrected causal calibration Probe prepared.
 
 ## Workspace and task
 
@@ -159,6 +159,14 @@ native causal calibration screen, useful-pretrained vs shuffled-pretrained vs
 scratch features, common persistence anchor/data/head/updates/gates fixed
 before fit. No fresh native collection or policy fit until information gate.
 [Decision](decisions/D-20261003-after-surface-execution.md).
+
+P-20261003-surface-calibration prepared: four frozen-encoder arms, including
+predicted hand-flow removal; common new8451parameter residual head, initial
+output exactly persistence,1200updates each/4800total. Same384train/384held
+episodes and6144windows each, inherited train-only actuator and held bank.
+MainGPU/900s/1GiB; primary10%persistence+scratch,5%shuffled+handflow gates fixed.
+Tiny smoke/NumPy optimizer replay pass. This reused holdout is a diagnostic,
+not fresh validation. [Card](experiments/probes/P-20261003-surface-calibration.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
