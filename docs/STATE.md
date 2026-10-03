@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport completed UNPROMISING (4/5gates pass).
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport completed UNPROMISING; rotation/clearance screen prepared.
 
 ## Workspace and task
 
@@ -232,6 +232,17 @@ clearance decisions enough, dropthiscandidate ratherthan repeat oldforce/
 measuredgeometry barrier models. These sourcefacts are not proven failure
 causes. Mission unchanged, goalACTIVE,journalNOTREADY.
 [Decision](decisions/D-20261003-after-state-anchored-transport.md).
+
+P-20261003-rotational-clearance-adequacy prepared: all768x202retainednative
+transitions/203poses,25002vertexGPUfullmesh + ALLCPUindependentSciPy/NumPy
+geometry. FixedCURRENTeligibility=rootrise30mm/currentclearance15..25mm;
+futuretranslationoracle/persistedcurrentrotation decisionvsactual20mmplane.
+HELDmin128windows32episodes, equalepisodeflip>=10% and weighted95rotation
+>=2mm; no subgrouprescue. Pureobservationalgeometry, not causalcontact or
+missingrotationasconfirmedlearnercause.0newNN/native,300s64MiB. FourposeCPU
+explicittranslation/rotationhybrid smokePASS/exactalgebra; independentmesh
+1.04e-17m. [Card](experiments/probes/P-20261003-rotational-clearance-adequacy.md).
+
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
