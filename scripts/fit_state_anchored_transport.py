@@ -28,12 +28,16 @@ def main():
     with np.load(source_train) as f:train_gate=f['features'][...,15].min(-1)*.05<.02
     with np.load(a.execution_source/'qualified/features.npz') as f:held_gate=f['stationary'][...,15].min(-1)*.05<.02
     groups={};bases={};a.output.mkdir()
+    base_mean=torch.from_numpy(mean).to(device);base_std=torch.from_numpy(std).to(device)
     for group,fields,gate in [('train',train_fields,train_gate),('held',held_fields,held_gate)]:
         endpoints=fields['endpoints'] if group=='train' else fields['causal']
+        # Reproduce the frozen checkpoint's original GPU normalization arithmetic.
+        normalized=(torch.from_numpy(banks[group]).to(device)-base_mean)/base_std
+        state_inputs=normalized[:,torch.from_numpy(STATE_IDS).to(device)]
         parts={k:[] for k in ('coefficients','scores','winner','prediction')}
         with torch.no_grad():
             for start in range(0,6144,128):
-                x=torch.from_numpy(((banks[group][start:start+128]-mean)/std)[:,STATE_IDS]).to(device)
+                x=state_inputs[start:start+128]
                 y=deploy(base_model,x,torch.from_numpy(fields['anchor'][start:start+128]).to(device),torch.from_numpy(endpoints[start:start+128,STATE_IDS]).to(device))
                 for key,value in y.items():parts[key].append(value.cpu().numpy())
         bases[group]={k:np.concatenate(v) for k,v in parts.items()};np.savez(a.output/(group+'_base.npz'),**bases[group],gate=gate)

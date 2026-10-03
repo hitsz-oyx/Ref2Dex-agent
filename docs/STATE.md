@@ -219,6 +219,11 @@ AdamW and8currentfullsurfaceKDTree smokePASS. Prefitsharedsoftmaxbias removed,
 independentgeometryadvancedindex corrected BEFOREfit. GPUmain,900s512MiB,
 0newnative/actor,5fixedgates. Sameviewedholdoutdiagnostic, no subgrouprescue.
 [Card](experiments/probes/P-20261003-state-anchored-transport.md).
+r1FAILED frozenbase equality BEFOREanynewupdates: CPUinstead of originalGPU
+normalization produces5.79e-9m drift, samewinners. Preservefailedrecord;
+repairoriginalGPU arithmetic and rerunr2, samearchitecture/gates/1e-12tol.
+[Repair](activities/20261003-state-anchor-normalization-repair.md).
+
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
