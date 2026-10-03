@@ -15,6 +15,11 @@ CI excludes zero in 4/5 splits; control excludes zero in 5/5. Eight-source-run
 cluster bootstrap leaves only direct split 1 crossing zero, with all control
 intervals positive.
 
+The strict action-inclusive `V_HAEI` relative to `V_H` is
+`+13.7%`, `+9.8%`, `-3.2%`, `+24.8%`, `+18.2%`; its split 3 interval still
+crosses zero. Thus the control evidence is encouraging but does not erase the
+remaining action/outcome sensitivity.
+
 This is evidence that outcome coverage reduced the prior split-3 influence, not a
 formal causal result: data expansion was selected after exploratory diagnostics,
 success/drop coverage remains imbalanced, and the independent e420 actor did not

@@ -204,6 +204,9 @@ augmentation audit 均通过。
 `+15.9%`、`+18.9%`、`+25.3%`、`+25.3%`、`+40.7%`，5/5 CI 排除零。用 8 个
 source-run 做 cluster bootstrap 后，direct 只有 split 1 区间跨零，control 五个
 区间均为正。
+作为严格 action-inclusive 消融，`V_HAEI` 相对 `V_H` 为
+`+13.7%`、`+9.8%`、`-3.2%`、`+24.8%`、`+18.2%`；split 3 仍跨零，说明
+future-action control 的正向结果不能替代对 action/outcome 敏感性的正式检验。
 
 这表明增加独立普通失败和一个 stable-success 后，旧 split 3 的极端反向影响不再
 主导，I+ 的方向性显著更一致；同时 corrected e420 actor 仍未复现该方向。因此当前
