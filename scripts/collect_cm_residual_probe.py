@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a native baseline/Cm-residual/shuffled residual comparison."""
+"""Run a native baseline/Cm-residual comparison with auditable metadata."""
 from __future__ import annotations
 
 import argparse
@@ -21,6 +21,7 @@ ASSETS = ROOT / "third_party/DExplore/dexplore/data/assets/mjcf"
 
 def make_player(original, args, torch_module, gymtorch):
     from src.task.CmResidual.cm_residual_policy import FrozenResidualPolicy, context_features, apply_residual_action
+    from src.task.CmResidual.residual_probe_contract import snapshot_window_metadata
     from src.task.CmResidual.executable_contact_options import hold_target, obj_vertices, TableClearance
     from src.task.CmResidual.orientation_anchored_options import orientation_anchored_action
     from src.task.CmResidual.weight_normalized_contact import weight_normalized_contacts
@@ -58,9 +59,6 @@ def make_player(original, args, torch_module, gymtorch):
             if self.get_batch_size(observation["obs"], 1) != n or observation["obs"].shape[-1] != 1442:
                 raise ValueError("native observation shape contract")
             windows = args.windows_per_env
-            motion = task.data_id.clone()
-            start = task.start_times.clone()
-            rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             mass = torch.tensor([
                 task.gym.get_actor_rigid_body_properties(env, handle)[0].mass
                 for env, handle in zip(task.envs, task._target_handles)
@@ -78,10 +76,7 @@ def make_player(original, args, torch_module, gymtorch):
             ])
             policy = None
             if args.policy_checkpoint:
-                policy = {
-                    "residual": FrozenResidualPolicy(args.policy_checkpoint, self.device, "cm"),
-                    "shuffled": FrozenResidualPolicy(args.policy_checkpoint, self.device, "shuffled"),
-                }
+                policy = FrozenResidualPolicy(args.policy_checkpoint, self.device, "cm")
             history = torch.zeros(n, 10, 69, device=self.device)
             previous = torch.zeros(n, 18, device=self.device)
             count = torch.zeros(n, dtype=torch.long, device=self.device)
@@ -95,6 +90,9 @@ def make_player(original, args, torch_module, gymtorch):
             steps = torch.zeros_like(arm)
             pre = torch.zeros(n, windows, 49, device=self.device)
             hist = torch.zeros(n, windows, 10, 69, device=self.device)
+            window_motion = torch.full((n, windows), -1, dtype=torch.long, device=self.device)
+            window_start = torch.full_like(window_motion, -1)
+            window_rest = torch.zeros(n, windows, device=self.device)
             proposed = torch.zeros(n, windows, 3, device=self.device)
             executed = torch.zeros(n, windows, 3, device=self.device)
             accepted = torch.zeros(n, windows, dtype=torch.bool, device=self.device)
@@ -113,6 +111,9 @@ def make_player(original, args, torch_module, gymtorch):
                 if time.monotonic() - begin > args.wall_seconds:
                     raise TimeoutError("native residual probe budget")
                 observation = self.env_reset(reset)
+                motion = task.data_id.clone()
+                start = task.start_times.clone()
+                rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
                 state = torch.cat((task._dof_pos.clone(), task._dof_vel.clone(), task._target_states.clone()), -1)
                 contact, _ = contacts()
                 history = torch.cat((history[:, 1:], torch.cat((state, contact.float(), previous), -1)[:, None]), 1)
@@ -128,13 +129,18 @@ def make_player(original, args, torch_module, gymtorch):
                 rows = eligible.nonzero().flatten()
                 if len(rows):
                     slot = count[rows]
-                    arm[rows, slot] = torch.randint(0, 3, (len(rows),), device=self.device,
+                    arm[rows, slot] = torch.randint(0, 2, (len(rows),), device=self.device,
                                                       generator=assignment_generator)
                     anchor[rows] = hold_target(task._dof_pos[rows], task._pd_action_offset,
                                                task._pd_action_scale)
                     trigger[rows, slot] = tick
                     pre[rows, slot] = state[rows]
                     hist[rows, slot] = history[rows]
+                    saved_motion, saved_start, saved_rest = snapshot_window_metadata(
+                        motion, start, rest, rows)
+                    window_motion[rows, slot] = saved_motion
+                    window_start[rows, slot] = saved_start
+                    window_rest[rows, slot] = saved_rest
                     initial_clearance[rows, slot] = clearance[rows]
                     if policy is not None:
                         context = context_features(
@@ -143,16 +149,15 @@ def make_player(original, args, torch_module, gymtorch):
                             clearance[rows], rest[rows])
                         residual_rows = torch.zeros(len(rows), 3, device=self.device)
                         arm_rows = arm[rows, slot]
-                        for mode, mode_name in ((1, "residual"), (2, "shuffled")):
-                            selected = (arm_rows == mode).nonzero().flatten()
-                            if len(selected):
-                                residual_rows[selected], detail = policy[mode_name].choose(
-                                    history[rows[selected]], context[selected])
-                                proposed[rows[selected], slot[selected]] = detail["proposed"]
-                                accepted[rows[selected], slot[selected]] = detail["accepted"]
-                                ood[rows[selected], slot[selected]] = detail["ood"]
-                                score_mm[rows[selected], slot[selected]] = detail["score_mm"]
-                                zero_score_mm[rows[selected], slot[selected]] = detail["zero_score_mm"]
+                        selected = (arm_rows == 1).nonzero().flatten()
+                        if len(selected):
+                            residual_rows[selected], detail = policy.choose(
+                                history[rows[selected]], context[selected], state[rows[selected], 39:43])
+                            proposed[rows[selected], slot[selected]] = detail["proposed"]
+                            accepted[rows[selected], slot[selected]] = detail["accepted"]
+                            ood[rows[selected], slot[selected]] = detail["ood"]
+                            score_mm[rows[selected], slot[selected]] = detail["score_mm"]
+                            zero_score_mm[rows[selected], slot[selected]] = detail["zero_score_mm"]
                         executed[rows, slot] = residual_rows
                     elapsed[rows] = 0
                 live = (elapsed >= 0) & ~ended
@@ -208,15 +213,15 @@ def make_player(original, args, torch_module, gymtorch):
                 raise ValueError("frozen expert drift")
             idx = valid.nonzero(as_tuple=False)
             payload = dict(
-                schema="ref2dex.cm_residual_probe.v1", experiment_id="P-20261003-cm-residual-policy",
-                seed=args.seed, assignment_seed=args.assignment_seed,
+                schema="ref2dex.cm_residual_probe.v2", experiment_id="P-20261003-cm-residual-policy-corrected",
+                seed=args.seed, python_hash_seed=os.environ.get("PYTHONHASHSEED"), assignment_seed=args.assignment_seed,
                 env_id=idx[:, 0].cpu(), slot=idx[:, 1].cpu(), arm=arm[valid].cpu(),
-                motion_id=motion[idx[:, 0]].cpu(), start_frame=start[idx[:, 0]].cpu(),
+                motion_id=window_motion[valid].cpu(), start_frame=window_start[valid].cpu(),
                 trigger=trigger[valid].cpu(), state=pre[valid].cpu(), history=hist[valid].cpu(),
                 proposed_residual=proposed[valid].cpu(), executed_residual=executed[valid].cpu(),
                 accepted=accepted[valid].cpu(), ood=ood[valid].cpu(),
                 score_mm=score_mm[valid].cpu(), zero_score_mm=zero_score_mm[valid].cpu(),
-                initial_clearance=initial_clearance[valid].cpu(), rest_z=rest[idx[:, 0]].cpu(),
+                initial_clearance=initial_clearance[valid].cpu(), rest_z=window_rest[valid].cpu(),
                 future_state=future_state[valid].cpu(), future_contact=future_contact[valid].cpu(),
                 future_clearance=future_clearance[valid].cpu(), future_done=future_done[valid].cpu(),
                 residual_steps=2, execution="native baseline rotation-Cup feedback; accepted residual for first 2 steps; baseline H10",
@@ -225,11 +230,12 @@ def make_player(original, args, torch_module, gymtorch):
                 held_gate="split_group_bucket>=70 is calculated by audit from motion/start hash",
             )
             torch.save(payload, args.output / "records.pt")
-            result = dict(run_status="COMPLETED", rows=int(valid.sum()),
-                          arm_counts=torch.bincount(payload["arm"], minlength=3).tolist(),
-                          accepted_by_arm=[int(payload["accepted"][payload["arm"] == arm_id].sum()) for arm_id in range(3)],
-                          ood_by_arm=[int(payload["ood"][payload["arm"] == arm_id].sum()) for arm_id in range(3)],
-                          residual_changed_by_arm=[int((payload["executed_residual"][payload["arm"] == arm_id].abs().sum(-1) > 0).sum()) for arm_id in range(3)],
+            result = dict(run_status="COMPLETED", schema=payload["schema"], experiment_id=payload["experiment_id"],
+                          rows=int(valid.sum()),
+                          arm_counts=torch.bincount(payload["arm"], minlength=2).tolist(),
+                          accepted_by_arm=[int(payload["accepted"][payload["arm"] == arm_id].sum()) for arm_id in range(2)],
+                          ood_by_arm=[int(payload["ood"][payload["arm"] == arm_id].sum()) for arm_id in range(2)],
+                          residual_changed_by_arm=[int((payload["executed_residual"][payload["arm"] == arm_id].abs().sum(-1) > 0).sum()) for arm_id in range(2)],
                           record_sha256=sha(args.output / "records.pt"), elapsed_seconds=time.monotonic() - begin,
                           frozen_experts=True, policy_frozen=True)
             (args.output / "results.json").write_text(json.dumps(result, indent=2) + "\n")
@@ -243,19 +249,24 @@ def main():
     parser.add_argument("--output-dir", dest="output", type=Path, required=True)
     parser.add_argument("--policy-checkpoint", type=Path, required=True)
     parser.add_argument("--assignment-seed", type=int, required=True)
+    parser.add_argument("--seed", dest="simulator_seed", type=int, required=True)
     parser.add_argument("--windows-per-env", type=int, default=4)
     parser.add_argument("--max-steps", type=int, default=650)
     parser.add_argument("--wall-seconds", type=int, default=240)
     parser.add_argument("--engineering-smoke", action="store_true")
     args, remaining = parser.parse_known_args()
-    args.seed = int(os.environ.get("PYTHONHASHSEED", "0"))
+    args.seed = args.simulator_seed
+    # The outer collector owns these options, but DExplore must receive the
+    # exact same simulator seed when its evaluator is launched below.
+    remaining = ["--seed", str(args.simulator_seed), *remaining]
     base = (ROOT / "src/task/CmResidual/research/contact_consequence/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():
         raise ValueError("new owned residual probe output required")
     args.output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     manifest = dict(run_status="STARTED", pid=os.getpid(), command=sys.argv,
-                    experiment_id="P-20261003-cm-residual-policy", policy_checkpoint_sha256=sha(args.policy_checkpoint),
+                    experiment_id="P-20261003-cm-residual-policy-corrected", policy_checkpoint_sha256=sha(args.policy_checkpoint),
+                    simulator_seed=args.simulator_seed, python_hash_seed=os.environ.get("PYTHONHASHSEED"),
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
     (args.output / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     try:

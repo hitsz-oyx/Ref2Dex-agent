@@ -18,7 +18,8 @@ RESIDUAL_SCALE_M = (0.002, 0.002, 0.003)
 HISTORY_DIM = 69
 CONTEXT_DIM = 38
 TARGET_DIM = 6  # local dx/dy/dz in mm, joint contact, contact loss, clearance loss
-SCHEMA = "ref2dex.cm_residual_policy.v1"
+SCHEMA = "ref2dex.cm_residual_policy.v2"
+VALID_POLICY_MODES = ("cm",)
 
 
 def _finite(name: str, value: torch.Tensor) -> None:
@@ -53,6 +54,24 @@ def world_to_local(quaternion: torch.Tensor, world: torch.Tensor) -> torch.Tenso
         raise ValueError("world vectors must be [B,3]")
     _finite("world", world)
     return torch.einsum("bij,bj->bi", _quat_matrix(quaternion).transpose(-1, -2), world)
+
+
+def world_height_score_mm(object_quaternion: torch.Tensor, local_delta_mm: torch.Tensor) -> torch.Tensor:
+    """Return the world-frame z displacement used by the native utility metric."""
+    if object_quaternion.ndim != 2 or object_quaternion.shape[-1] != 4:
+        raise ValueError("object_quaternion must be [B,4]")
+    if local_delta_mm.ndim != 2 or local_delta_mm.shape != (len(object_quaternion), 3):
+        raise ValueError("local_delta_mm must be [B,3]")
+    return local_to_world(object_quaternion, local_delta_mm)[:, 2]
+
+
+def validate_policy_mode(mode: str) -> None:
+    """Reject the old candidate-order permutation masquerading as a control."""
+    if mode not in VALID_POLICY_MODES:
+        raise ValueError(
+            f"{mode!r} is not a valid residual policy control; shuffled candidate order "
+            "does not define an independent decision policy"
+        )
 
 
 def residual_scale(device: torch.device | str, dtype: torch.dtype = torch.float32) -> torch.Tensor:
@@ -243,13 +262,17 @@ class ResidualActor(nn.Module):
         return self.head(torch.cat((hidden[-1], self.context(context)), -1)).tanh()
 
 
-def consequence_score(output: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def consequence_score(
+    output: torch.Tensor, object_quaternion: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if output.ndim != 2 or output.shape[-1] != TARGET_DIM:
         raise ValueError("consequence output shape mismatch")
+    if object_quaternion.shape != (len(output), 4):
+        raise ValueError("object_quaternion shape mismatch")
     joint = output[:, 3].sigmoid()
     contact_loss = output[:, 4].sigmoid()
     clearance_loss = output[:, 5].sigmoid()
-    score_mm = output[:, 2] * joint * (1.0 - clearance_loss)
+    score_mm = world_height_score_mm(object_quaternion, output[:, :3]) * joint * (1.0 - clearance_loss)
     return score_mm, contact_loss, clearance_loss
 
 
@@ -260,8 +283,7 @@ class FrozenResidualPolicy:
         payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
         if payload.get("schema") != SCHEMA:
             raise ValueError("residual policy schema mismatch")
-        if mode not in ("cm", "shuffled"):
-            raise ValueError("mode must be cm or shuffled")
+        validate_policy_mode(mode)
         self.device = torch.device(device)
         self.mode = mode
         self.history_mean = payload["history_mean"].to(self.device)
@@ -271,6 +293,8 @@ class FrozenResidualPolicy:
         self.margin_mm = float(payload["margins_mm"][mode])
         self.uncertainty_mm = float(payload["uncertainty_mm"][mode])
         self.models = []
+        if set(payload["models"]) != set(VALID_POLICY_MODES):
+            raise ValueError("residual checkpoint must contain only an independent Cm policy")
         for state in payload["models"][mode]:
             model = ResidualConsequenceModel().to(self.device)
             model.load_state_dict(state, strict=True)
@@ -281,7 +305,11 @@ class FrozenResidualPolicy:
         self.actor.eval().requires_grad_(False)
 
     @torch.no_grad()
-    def choose(self, history: torch.Tensor, context: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    def choose(
+        self, history: torch.Tensor, context: torch.Tensor, object_quaternion: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        if object_quaternion.shape != (len(history), 4):
+            raise ValueError("object_quaternion shape mismatch")
         h_unscaled = (history - self.history_mean) / self.history_std
         c_unscaled = (context - self.context_mean) / self.context_std
         ood = (h_unscaled.abs() > 8).flatten(1).any(-1) | (c_unscaled.abs() > 8).any(-1)
@@ -297,8 +325,9 @@ class FrozenResidualPolicy:
             zero_predictions.append(model(h, c, zero))
         predicted = torch.stack(predictions)
         zero_predicted = torch.stack(zero_predictions)
-        score, loss, clearance_loss = consequence_score(predicted.flatten(0, 1))
-        zero_score, zero_loss, zero_clearance = consequence_score(zero_predicted.flatten(0, 1))
+        quaternion = object_quaternion[None].expand(len(self.models), -1, -1).reshape(-1, 4)
+        score, loss, clearance_loss = consequence_score(predicted.flatten(0, 1), quaternion)
+        zero_score, zero_loss, zero_clearance = consequence_score(zero_predicted.flatten(0, 1), quaternion)
         score = score.view(len(self.models), -1)
         loss = loss.view(len(self.models), -1)
         clearance_loss = clearance_loss.view(len(self.models), -1)

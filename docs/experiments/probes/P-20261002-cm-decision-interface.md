@@ -1,6 +1,7 @@
 # P-20261002-cm-decision-interface
 
-Family: CM decision interface；类型：Decision Probe；状态：COMPLETED；Probe 标签：UNPROMISING。
+Family: CM decision interface；类型：Decision Probe；状态：`INVALID_IMPLEMENTATION`（历史 v1，
+已冻结）；修正版 v2 尚未运行。
 
 这个 Probe 区分：Cm 的短期模型 rollout 能否提供 direct-Q/Cup 没有的**相对动作排序**。
 它不训练 actor、critic、V、Q 或 dynamics，也不启动 PPO。当前 baseline 是冻结的
@@ -47,3 +48,11 @@ Cup 的 90% 下界为 `-0.965`。Cm 的末三步共同接触比例较高（84.4%
 不扩大普通 Cm 数据，也不继续在该接口上扫描阈值。完整统计见
 [`results.json`](P-20261002-cm-decision-interface-results.json)，原始候选面和真实
 窗口保存在 `src/task/CmResidual/research/decision_interface/output/`。
+
+## 审查冻结（2026-10-03）
+
+这份 v1 记录不能再用于 `direct_q` 对 `shuffled` 的控制解释。采集器对同一候选面同时
+排列分数和候选索引后再取 `argmax`，因此 `shuffled` 与 `direct_q` 是同一个选择器（除非
+并列时改变 tie-break）。该控制、依赖它的统计和机制结论均冻结；不依赖 `shuffled` 的
+Cm-vs-Cup 描述性记录保留为工程历史。修正版采集器使用 v2 schema，移除该臆造控制，并
+重新快照每个窗口的 motion/start/rest provenance；修正版尚未重跑。

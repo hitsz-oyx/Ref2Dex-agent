@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from collect_contact_consequences import build_player
 from run_paired_evaluator_resolution import sha
+from src.task.CmResidual.residual_probe_contract import simulator_seed_from_argv
 
 ASSETS = ROOT / "third_party/DExplore/dexplore/data/assets/mjcf"
 CODEBOOK = ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (-1.0, 0.0, 0.0),
@@ -27,6 +28,7 @@ def make_player(original, args, torch, gymtorch):
     from src.task.CmResidual.cm_residual_policy import (
         RESIDUAL_SCALE_M, apply_residual_action,
     )
+    from src.task.CmResidual.residual_probe_contract import snapshot_window_metadata
     from src.task.CmResidual.executable_contact_options import hold_target, obj_vertices, TableClearance
     from src.task.CmResidual.orientation_anchored_options import orientation_anchored_action
     from src.task.CmResidual.paired_evaluation import fingerprint
@@ -63,8 +65,6 @@ def make_player(original, args, torch, gymtorch):
             observation = self.env_reset(ids)
             if self.get_batch_size(observation["obs"], 1) != n or observation["obs"].shape[-1] != 1442:
                 raise ValueError("native observation shape contract")
-            motion, start = task.data_id.clone(), task.start_times.clone()
-            rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             mass = torch.tensor([
                 task.gym.get_actor_rigid_body_properties(env, handle)[0].mass
                 for env, handle in zip(task.envs, task._target_handles)
@@ -97,6 +97,9 @@ def make_player(original, args, torch, gymtorch):
             steps = torch.zeros_like(trigger)
             pre = zeros(49)
             hist = zeros(10, 69)
+            window_motion = torch.full((n, windows), -1, dtype=torch.long, device=self.device)
+            window_start = torch.full_like(window_motion, -1)
+            window_rest = torch.zeros(n, windows, device=self.device)
             window_residual = zeros(3)
             initial_clearance = zeros()
             future_state = zeros(10, 49)
@@ -139,6 +142,9 @@ def make_player(original, args, torch, gymtorch):
                 if time.monotonic() - begin > args.wall_seconds:
                     raise TimeoutError("bounded residual source")
                 observation = self.env_reset(reset)
+                motion = task.data_id.clone()
+                start = task.start_times.clone()
+                rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
                 state = torch.cat((task._dof_pos.clone(), task._dof_vel.clone(), task._target_states.clone()), -1)
                 contact, ratio = contacts()
                 history = torch.cat((history[:, 1:], torch.cat((state, contact.float(), previous), -1)[:, None]), 1)
@@ -163,6 +169,11 @@ def make_player(original, args, torch, gymtorch):
                     trigger[rows, count[rows]] = tick
                     pre[rows, count[rows]] = state[rows]
                     hist[rows, count[rows]] = history[rows]
+                    saved_motion, saved_start, saved_rest = snapshot_window_metadata(
+                        motion, start, rest, rows)
+                    window_motion[rows, count[rows]] = saved_motion
+                    window_start[rows, count[rows]] = saved_start
+                    window_rest[rows, count[rows]] = saved_rest
                     initial_clearance[rows, count[rows]] = clearance[rows]
                     initial_hand[rows, count[rows]] = task._contact_forces[rows][:, body_ids]
                     initial_object[rows, count[rows]] = task._tar_contact_forces[rows]
@@ -235,16 +246,19 @@ def make_player(original, args, torch, gymtorch):
             env = ids[:, None].expand(-1, windows)[valid]
             residual_rows = window_residual[valid]
             payload = dict(
-                schema="ref2dex.cm_residual_source.v1", seed=args.seed,
+                schema="ref2dex.cm_residual_source.v2", experiment_id="P-20261003-cm-residual-policy-corrected", seed=args.simulator_seed,
+                panel_seed=args.panel_seed, simulator_seed=args.simulator_seed,
+                python_hash_seed=os.environ.get("PYTHONHASHSEED"),
                 assignment_seed=args.assignment_seed, codebook=codebook.cpu(),
                 residual_scale_m=residual_scale.cpu(),
-                episode_id=[f"s{args.seed}/env{int(i)}/first" for i in env.cpu()],
-                env_id=env.cpu(), motion_id=motion[env].cpu(), start_frame=start[env].cpu(),
+                episode_id=[f"s{args.simulator_seed}/env{int(i)}/slot{int(j)}" for i, j in zip(
+                    env.cpu().tolist(), torch.arange(windows, device=self.device).expand(n, -1)[valid].cpu().tolist())],
+                env_id=env.cpu(), motion_id=window_motion[valid].cpu(), start_frame=window_start[valid].cpu(),
                 trigger=trigger[valid].cpu(), assignment=assignment[valid].cpu(),
                 propensity=torch.full((int(valid.sum()),), 1 / len(CODEBOOK)),
                 state=pre[valid].cpu(), history=hist[valid].cpu(), residual=residual_rows.cpu(),
                 residual_id=assignment[valid].cpu(), initial_clearance=initial_clearance[valid].cpu(),
-                rest_z=rest[env].cpu(), future_state=future_state[valid].cpu(),
+                rest_z=window_rest[valid].cpu(), future_state=future_state[valid].cpu(),
                 future_contact=future_contact[valid].cpu(), future_clearance=future_clearance[valid].cpu(),
                 future_done=future_done[valid].cpu(), native_observation=native_obs[valid].cpu(),
                 baseline_action=baseline_action[valid].cpu(), actual_action=actual_action[valid].cpu(),
@@ -260,8 +274,8 @@ def make_player(original, args, torch, gymtorch):
                 contact_definition="normalized hand/object net-force presence > .1; pair identity unavailable",
                 split_group_seed=12651,
                 split_group_bucket=torch.tensor([
-                    int(hashlib.sha256(f"12651/{int(motion[i])}/{int(start[i])}".encode()).hexdigest()[:8], 16) % 100
-                    for i in env.cpu()
+                    int(hashlib.sha256(f"12651/{int(m)}/{int(s)}".encode()).hexdigest()[:8], 16) % 100
+                    for m, s in zip(window_motion[valid].cpu(), window_start[valid].cpu())
                 ]),
             )
             torch.save(payload, args.output / "records.pt")
@@ -288,6 +302,10 @@ def main():
     parser.add_argument("--wall-seconds", type=int, default=240)
     parser.add_argument("--engineering-smoke", action="store_true")
     args, remaining = parser.parse_known_args()
+    simulator_seed = simulator_seed_from_argv(remaining)
+    args.panel_seed = args.seed
+    args.simulator_seed = simulator_seed
+    args.seed = simulator_seed
     base = (ROOT / "src/task/CmResidual/research/contact_consequence/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():
         raise ValueError("new owned residual output required")
@@ -296,7 +314,9 @@ def main():
     manifest = dict(run_status="STARTED", pid=os.getpid(), command=sys.argv,
                     gpu=os.environ.get("CUDA_VISIBLE_DEVICES"), git_commit=subprocess.check_output(
                         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-                    experiment_id="P-20261003-cm-residual-policy", cm_training=False,
+                    experiment_id="P-20261003-cm-residual-policy-corrected", panel_seed=args.panel_seed,
+                    simulator_seed=simulator_seed, python_hash_seed=os.environ.get("PYTHONHASHSEED"),
+                    cm_training=False,
                     expert_training=False, residual_training=False)
     manifest_path = args.output / "run_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")

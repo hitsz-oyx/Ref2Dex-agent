@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 from src.task.CmResidual.cm_residual_policy import (
     CONTEXT_DIM, HISTORY_DIM, RESIDUAL_SCALE_M, SCHEMA,
     ResidualActor, ResidualConsequenceModel, consequence_score,
+    world_height_score_mm,
     context_features, residual_scale, two_step_targets,
 )
 
@@ -36,8 +37,11 @@ def load_rows(paths: list[Path], device: torch.device) -> dict[str, torch.Tensor
     payloads = []
     for path in paths:
         record = torch.load(path, map_location="cpu", weights_only=False)
-        if record.get("schema") != "ref2dex.cm_residual_source.v1":
+        if record.get("schema") != "ref2dex.cm_residual_source.v2":
             raise ValueError(f"source schema mismatch: {path}")
+        if (record.get("seed") is None or record.get("simulator_seed") is None
+                or int(record["seed"]) != int(record["simulator_seed"])):
+            raise ValueError(f"source simulator seed provenance mismatch: {path}")
         if record["future_done"].any() or record["residual_saturated"].any():
             raise ValueError(f"source contains incomplete or saturated rows: {path}")
         payloads.append(record)
@@ -59,6 +63,7 @@ def load_rows(paths: list[Path], device: torch.device) -> dict[str, torch.Tensor
         "context": context.double(),
         "residual": data["residual"].double() / residual_scale("cpu", torch.float64),
         "target": target.double(),
+        "object_quaternion": data["state"][:, 39:43].double(),
         "bucket": data["split_group_bucket"].long(),
         "motion_id": data["motion_id"].long(),
         "start_frame": data["start_frame"].long(),
@@ -120,7 +125,8 @@ def ensemble_predict(states, history, context, residuals, device):
 
 
 @torch.no_grad()
-def candidate_labels(states, history, context, device, uncertainty_limit: float | None = None):
+def candidate_labels(states, history, context, object_quaternion, device,
+                     uncertainty_limit: float | None = None):
     axis = torch.tensor((-1., 0., 1.), device=device)
     grid = torch.cartesian_prod(axis, axis, axis).reshape(-1, 3)
     n = len(history)
@@ -129,7 +135,8 @@ def candidate_labels(states, history, context, device, uncertainty_limit: float 
     c = context[:, None].expand(-1, len(grid), -1).reshape(-1, context.shape[-1])
     r = candidates.reshape(-1, 3)
     outputs = ensemble_predict(states, h, c, r, device).reshape(len(states), n, len(grid), -1)
-    score, loss, clearance = consequence_score(outputs.reshape(-1, outputs.shape[-1]))
+    quaternion = object_quaternion[None, :, :].expand(len(states), -1, -1).reshape(-1, 4)
+    score, loss, clearance = consequence_score(outputs.reshape(-1, outputs.shape[-1]), quaternion)
     score = score.reshape(len(states), n, len(grid))
     loss = loss.reshape(len(states), n, len(grid))
     clearance = clearance.reshape(len(states), n, len(grid))
@@ -193,19 +200,17 @@ def fit(args):
     cal_ids = cal_mask.nonzero().flatten()
     target = data["target"]
     residual = data["residual"]
-    shuffled_residual = residual.clone()
-    permutation = fit_ids[torch.randperm(len(fit_ids), generator=torch.Generator(device=device).manual_seed(16671), device=device)]
-    shuffled_residual[fit_ids] = residual[permutation]
     model_states, losses, actor_states, actor_losses = {}, {}, {}, {}
     label_reports = {}
-    for mode, model_residual in (("cm", residual), ("shuffled", shuffled_residual)):
+    for mode, model_residual in (("cm", residual),):
         states = []
         losses[mode] = []
         for seed in (17681, 17682, 17683):
             state, loss = train_model(history, context, model_residual, target, fit_ids, seed, args.model_updates, device)
             states.append(state); losses[mode].append(loss)
         model_states[mode] = states
-        labels, report = candidate_labels(states, history[fit_ids], context[fit_ids], device)
+        labels, report = candidate_labels(
+            states, history[fit_ids], context[fit_ids], data["object_quaternion"][fit_ids], device)
         fit_history, fit_context = history[fit_ids], context[fit_ids]
         actor_ids = torch.arange(len(fit_ids), device=device)
         actor_state, actor_loss = train_actor(
@@ -214,17 +219,19 @@ def fit(args):
         label_reports[mode] = dict(nonzero=int((labels.abs().sum(-1) > 0).sum()),
                                    rows=len(labels), grid_size=int(len(report["grid"])))
     margins, uncertainty, calibration = {}, {}, {}
-    for mode in ("cm", "shuffled"):
+    for mode in ("cm",):
         states = model_states[mode]
         zero = torch.zeros(len(cal_ids), 3, device=device)
         h, c, r = history[cal_ids], context[cal_ids], residual[cal_ids]
         out = ensemble_predict(states, h, c, r, device)
-        score, loss, clearance = consequence_score(out.flatten(0, 1))
+        quaternion = data["object_quaternion"][cal_ids][None].expand(len(states), -1, -1).reshape(-1, 4)
+        score, loss, clearance = consequence_score(out.flatten(0, 1), quaternion)
         score = score.reshape(len(states), -1); loss = loss.reshape(len(states), -1); clearance = clearance.reshape(len(states), -1)
         zero_out = ensemble_predict(states, h, c, zero, device)
-        zscore, zloss, zclearance = consequence_score(zero_out.flatten(0, 1))
+        zscore, zloss, zclearance = consequence_score(zero_out.flatten(0, 1), quaternion)
         zscore = zscore.reshape(len(states), -1); zloss = zloss.reshape(len(states), -1); zclearance = zclearance.reshape(len(states), -1)
-        target_score = target[cal_ids, 2] * target[cal_ids, 3] * (1 - target[cal_ids, 5])
+        target_height = world_height_score_mm(data["object_quaternion"][cal_ids], target[cal_ids, :3])
+        target_score = target_height * target[cal_ids, 3] * (1 - target[cal_ids, 5])
         error = (score.mean(0) - target_score).abs()
         margins[mode] = max(.5, float(torch.quantile(error, .75)))
         uncertainty[mode] = max(.25, float(torch.quantile(score.std(0, unbiased=False), .9)))
@@ -233,7 +240,7 @@ def fit(args):
                                  clearance_brier=float((clearance.mean(0) - target[cal_ids, 5]).square().mean()),
                                  zero_score_mm=float(zscore.mean()),
                                  residual_score_mm=float(score.mean()))
-    payload = dict(schema=SCHEMA, experiment_id="P-20261003-cm-residual-policy",
+    payload = dict(schema=SCHEMA, experiment_id="P-20261003-cm-residual-policy-corrected",
                    model_device=str(device), residual_scale_m=RESIDUAL_SCALE_M,
                    history_mean=norm["history_mean"].cpu(), history_std=norm["history_std"].cpu(),
                    context_mean=norm["context_mean"].cpu(), context_std=norm["context_std"].cpu(),

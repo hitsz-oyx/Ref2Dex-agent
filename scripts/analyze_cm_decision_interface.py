@@ -30,11 +30,16 @@ def bootstrap_cluster(values, arm, env, arms, seed, draws=2000):
 
 def analyze(record, output, bootstrap_draws=2000):
     data = torch.load(record, map_location="cpu", weights_only=False)
-    if data.get("schema") != "ref2dex.cm_decision_interface.v1":
-        raise ValueError("decision-interface schema mismatch")
+    if data.get("schema") != "ref2dex.cm_decision_interface.v2":
+        raise ValueError("decision-interface v1 is frozen; use corrected v2 records")
+    if data.get("simulator_seed") is None:
+        raise ValueError("corrected decision record must include simulator_seed")
     names = list(data["arm_names"])
     arm = data["assignment"].numpy()
-    env = data["env_id"].numpy()
+    # A corrected record may contain multiple windows per environment.  Keep
+    # each trigger slot as its own bootstrap cluster instead of merging stale
+    # episode metadata under one env id.
+    env = data["env_id"].numpy() * 16 + data["slot"].numpy()
     if not np.isfinite(data["state"].numpy()).all():
         raise ValueError("nonfinite pre-state")
     if (data["future_done"].any() or not torch.isfinite(data["future_state"]).all()
@@ -95,7 +100,7 @@ def analyze(record, output, bootstrap_draws=2000):
     label = "PROMISING" if support_ok and changed_ok and ranking_ok else (
         "UNCLEAR" if not (support_ok and changed_ok) else "UNPROMISING")
     result = {
-        "schema": "ref2dex.cm_decision_interface_audit.v1",
+        "schema": "ref2dex.cm_decision_interface_audit.v2",
         "run_status": "COMPLETED",
         "record": str(record.resolve()),
         "record_sha256": __import__("hashlib").sha256(record.read_bytes()).hexdigest(),

@@ -1,0 +1,515 @@
+"""Calibrate one rotation-invariant point-flow scale from Cm training data.
+
+The calibration deliberately reads *only* the train split.  It enumerates
+every legal current-frame/stride pair and always uses current-frame 5cm
+candidates, matching ``Stage4CmDataset`` sampling.
+
+Scene Cache V1.1 roots (``meta.json`` with schema ``ref2dex_cm_scene_v1_1``) are
+detected automatically (V1.md §23): the candidate population then covers the
+unified scene pool, so static environment points contribute their exactly-zero
+flow to the new target statistics.  The loss is unchanged; only the target
+normalization is recomputed.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+import numpy as np
+
+
+SCENE_SCHEMA_NAME = "ref2dex_cm_scene_v1_1"
+
+
+def _scalar(data: np.lib.npyio.NpzFile, key: str) -> str:
+    return str(np.asarray(data[key]).item())
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--train-path", required=True, type=Path, help="Cm Stage 4 train split root.")
+    parser.add_argument(
+        "--split-json-path",
+        type=Path,
+        default=None,
+        help="Restrict calibration to the descriptor's train split.",
+    )
+    parser.add_argument("--min-stride", type=int, default=1)
+    parser.add_argument("--max-stride", type=int, default=10)
+    parser.add_argument(
+        "--num-obj-points", type=int, default=512,
+        help="Maximum valid object points sampled per training pair.",
+    )
+    parser.add_argument(
+        "--include-inactive", action="store_false", dest="active_only", default=True,
+        help="Include non-contact current frames instead of the training default active-only filter.",
+    )
+    parser.add_argument(
+        "--statistics-split", choices=("train",), default="train",
+        help="Fixed to train to make accidental val/test calibration explicit.",
+    )
+    parser.add_argument(
+        "--metadata-path", type=Path, default=None,
+        help="Output JSON path; defaults to <train-path>/metadata.json.",
+    )
+    parser.add_argument("--dry-run", action="store_true", help="Print statistics without writing metadata.")
+    return parser.parse_args()
+
+
+def _load_existing_metadata(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{path} is not valid JSON; refusing to overwrite it.") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} must contain a JSON object.")
+    return value
+
+
+def _is_scene_root(train_path: Path) -> bool:
+    meta_path = train_path / "meta.json"
+    if not meta_path.is_file():
+        return False
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    return isinstance(payload, dict) and payload.get("schema_name") == SCENE_SCHEMA_NAME
+
+
+def _is_object_v2_root(train_path: Path) -> bool:
+    meta_path = train_path / "meta.json"
+    if meta_path.is_file():
+        try:
+            payload = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False
+        return isinstance(payload, dict) and payload.get("schema_name") == "ref2dex_cm_object_v2"
+    return bool(list(train_path.glob("**/shared/meta.json")))
+
+
+def object_v2_train_sequence_dirs(train_path: Path, split_json_path: Optional[Path]) -> List[Path]:
+    from src.task.Cm.dataset.object_v2 import _read_sequence_split, _sequence_dirs
+    if split_json_path is None:
+        return _sequence_dirs(train_path)
+    payload = json.loads(split_json_path.read_text(encoding="utf-8"))
+    value = payload.get("train_split")
+    if not value:
+        raise ValueError("Object-v2 split descriptor is missing train_split")
+    split_path = Path(value)
+    if not split_path.is_absolute():
+        split_path = split_json_path.parent / split_path
+    return _read_sequence_split(split_path.resolve(), train_path.resolve())
+
+
+def calibrate_flow_scale_object_v2(train_path: Path, *, min_stride: int, max_stride: int,
+                                   active_only: bool, num_obj_points: int = 512,
+                                   sequence_dirs: Optional[List[Path]] = None) -> Dict[str, Any]:
+    """Calibrate object-v2 flow scale over an auditable train sequence list."""
+    if min_stride <= 0 or max_stride < min_stride:
+        raise ValueError("Require 0 < min_stride <= max_stride.")
+    sequence_dirs = object_v2_train_sequence_dirs(train_path, None) if sequence_dirs is None else sequence_dirs
+    state = {"squared_sum": 0.0, "point_count": 0, "pair_count": 0,
+             "sequence_ids": set(), "hand_streams": 0,
+             "stride_counts": {s: {"pairs": 0, "points": 0, "squared_sum": 0.0}
+                               for s in range(min_stride, max_stride + 1)}}
+    for sequence in sequence_dirs:
+        obj = np.load(sequence / "shared" / "obj_points_world.npy", mmap_mode="r")
+        state["sequence_ids"].add(str(sequence.resolve()))
+        for side in ("left", "right"):
+            side_dir = sequence / side
+            if not (side_dir / "candidate_offsets.npy").exists():
+                continue
+            state["hand_streams"] += 1
+            offsets = np.load(side_dir / "candidate_offsets.npy", mmap_mode="r")
+            indices = np.load(side_dir / "candidate_indices.npy", mmap_mode="r")
+            for current in range(max(0, len(offsets) - 1 - max_stride)):
+                candidate = np.asarray(indices[offsets[current]:offsets[current + 1]], dtype=np.int64)
+                if candidate.size == 0 and active_only:
+                    continue
+                for stride in range(min_stride, max_stride + 1):
+                    if candidate.size == 0:
+                        continue
+                    flow = np.asarray(obj[current + stride, candidate] - obj[current, candidate], dtype=np.float64)
+                    squared = np.einsum("ij,ij->i", flow, flow)
+                    count = min(int(squared.size), int(num_obj_points))
+                    value = float(squared.mean(dtype=np.float64)) * count
+                    state["squared_sum"] += value; state["point_count"] += count; state["pair_count"] += 1
+                    entry = state["stride_counts"][stride]
+                    entry["pairs"] += 1; entry["points"] += count; entry["squared_sum"] += value
+    return _finalize(state, min_stride=min_stride, max_stride=max_stride,
+                     active_only=active_only, num_obj_points=num_obj_points,
+                     extra={"statistics_schema": "ref2dex_cm_object_v2",
+                            "statistics_num_sequences": len(state["sequence_ids"]),
+                            "statistics_num_hand_streams": state["hand_streams"],
+                            "statistics_num_pairs": state["pair_count"],
+                            "statistics_num_points": state["point_count"]})
+
+
+def _accumulate(
+    squared_norm: np.ndarray,
+    stride: int,
+    *,
+    num_obj_points: int,
+    state: Dict[str, Any],
+) -> None:
+    """Shared per-pair accumulation with the legacy population semantics."""
+    available_count = int(squared_norm.size)
+    if available_count == 0:
+        return
+    # Runtime sampling is uniform without replacement among candidates and
+    # caps each pair at num_obj_points.  Its expected mean-square flow is the
+    # candidate mean; use that expectation with the same effective pair weight.
+    count = min(available_count, int(num_obj_points))
+    sum_value = float(squared_norm.mean(dtype=np.float64)) * count
+    state["squared_sum"] += sum_value
+    state["point_count"] += count
+    state["pair_count"] += 1
+    state["stride_counts"][stride]["pairs"] += 1
+    state["stride_counts"][stride]["points"] += count
+    state["stride_counts"][stride]["squared_sum"] += sum_value
+
+
+def _finalize(
+    state: Dict[str, Any],
+    *,
+    min_stride: int,
+    max_stride: int,
+    active_only: bool,
+    num_obj_points: int,
+    extra: Dict[str, Any],
+) -> Dict[str, Any]:
+    if state["point_count"] == 0:
+        raise ValueError("No valid object-flow points were found for calibration.")
+    # Training samples the stride uniformly, not proportional to the number
+    # of valid pairs near a sequence boundary.  First average points within
+    # each stride, then give every stride equal weight.
+    per_stride_mean_square = [
+        values["squared_sum"] / values["points"]
+        for values in state["stride_counts"].values()
+        if values["points"] > 0
+    ]
+    if len(per_stride_mean_square) != len(state["stride_counts"]):
+        raise ValueError("At least one requested stride has no valid object-flow points.")
+    rms_m = float(np.sqrt(np.mean(per_stride_mean_square)))
+    if not np.isfinite(rms_m) or rms_m <= 0.0:
+        raise ValueError(f"Invalid flow RMS {rms_m!r}")
+    per_stride = {
+        str(stride): {
+            "num_pairs": int(values["pairs"]),
+            "num_points": int(values["points"]),
+            "flow_rms_m": float(np.sqrt(values["squared_sum"] / values["points"])) if values["points"] else None,
+        }
+        for stride, values in state["stride_counts"].items()
+    }
+    return {
+        "flow_target_rms_m": rms_m,
+        "flow_target_scale": float(1.0 / rms_m),
+        "statistics_split": "train",
+        "statistics_stride_distribution": f"uniform_{min_stride}_to_{max_stride}",
+        "statistics_stride_weighting": "equal_per_stride",
+        "statistics_active_only": bool(active_only),
+        "statistics_num_obj_points": int(num_obj_points),
+        "statistics_point_weighting": "per_pair_capped_at_num_obj_points",
+        "statistics_per_stride": per_stride,
+        **extra,
+    }
+
+
+def calibrate_flow_scale_scene(
+    train_path: Path,
+    *,
+    min_stride: int,
+    max_stride: int,
+    active_only: bool,
+    num_obj_points: int = 512,
+    sequence_dirs: Optional[List[Path]] = None,
+) -> Dict[str, Any]:
+    """Scene Cache V1 calibration over the unified object+environment pool.
+
+    与旧校准的统计语义完全一致：每个合法 (current, stride) 对按 5cm 候选点
+    计算 endpoint flow 的均方值（上限 num_obj_points），stride 等权平均。
+    唯一区别是候选集合来自 scene pool——static environment 点贡献恒零 flow，
+    这正是 Scene V1 的目标分布（V1.md §23）。
+    """
+    from src.task.Cm.dataset.cache_schema import SceneSequenceCache, iter_sequence_dirs
+
+    if min_stride <= 0 or max_stride < min_stride:
+        raise ValueError("Require 0 < min_stride <= max_stride.")
+    if num_obj_points <= 0:
+        raise ValueError("num_obj_points must be positive.")
+    train_path = train_path.resolve()
+    sequence_dirs = iter_sequence_dirs(train_path) if sequence_dirs is None else sorted(sequence_dirs)
+    if not sequence_dirs:
+        raise FileNotFoundError(f"No scene sequences found under {train_path}")
+
+    state: Dict[str, Any] = {
+        "squared_sum": 0.0,
+        "point_count": 0,
+        "pair_count": 0,
+        "sequence_ids": set(),
+        "hand_streams": 0,
+        "stride_counts": {
+            stride: {"pairs": 0, "points": 0, "squared_sum": 0.0}
+            for stride in range(min_stride, max_stride + 1)
+        },
+        "env_points": 0,
+        "env_candidate_points": 0,
+    }
+    for sequence_dir in sequence_dirs:
+        cache = SceneSequenceCache(sequence_dir)
+        state["sequence_ids"].add(str(cache.shared_meta.get("seq_id", sequence_dir.name)))
+        num_obj = cache.num_obj_pool
+        # Static environment points never move, so only the object half of the
+        # pool carries non-zero endpoint flow; env candidates contribute zero.
+        obj_points = np.asarray(cache.obj_points_world, dtype=np.float64)
+        state["env_points"] += cache.num_env_pool
+        for side in ("left", "right"):
+            if not (sequence_dir / side).is_dir():
+                continue
+            state["hand_streams"] += 1
+            side_arrays = cache.load_side(side)
+            offsets = np.asarray(side_arrays["candidate_offsets"])
+            counts = np.diff(offsets)
+            for current in range(cache.frame_count - max_stride):
+                if active_only and counts[current] <= 0:
+                    continue
+                candidate = cache.candidate_indices_at(side_arrays, current)
+                if candidate.size == 0:
+                    continue
+                obj_candidate = candidate[candidate < num_obj]
+                state["env_candidate_points"] += int(candidate.size - obj_candidate.size)
+                for stride in range(min_stride, max_stride + 1):
+                    # A current hand-root transform is rigid, so world-space
+                    # norms match the hand-root_t training targets exactly.
+                    flow = obj_points[current + stride, obj_candidate] - obj_points[current, obj_candidate]
+                    squared_norm = np.einsum("ij,ij->i", flow, flow)
+                    # Zero-flow environment candidates join the same pair.
+                    squared_norm = np.concatenate([
+                        squared_norm,
+                        np.zeros(int(candidate.size - obj_candidate.size), dtype=np.float64),
+                    ])
+                    _accumulate(squared_norm, stride, num_obj_points=num_obj_points, state=state)
+
+    return _finalize(
+        state,
+        min_stride=min_stride,
+        max_stride=max_stride,
+        active_only=active_only,
+        num_obj_points=num_obj_points,
+        extra={
+            "statistics_scene_schema": SCENE_SCHEMA_NAME,
+            "statistics_num_sequences": len(state["sequence_ids"]),
+            "statistics_num_hand_streams": state["hand_streams"],
+            "statistics_num_pairs": state["pair_count"],
+            "statistics_num_points": state["point_count"],
+            "statistics_scene_environment_points": state["env_points"],
+            "statistics_scene_environment_candidate_points": state["env_candidate_points"],
+        },
+    )
+
+
+def scene_train_sequence_dirs(train_path: Path, split_json_path: Path) -> List[Path]:
+    """Resolve the canonical train list to Scene Cache sequence directories."""
+    from src.base.data import read_split_json
+
+    train_path = train_path.resolve()
+    _, train_split, _, _ = read_split_json(split_json_path)
+    entries = [
+        line.strip()
+        for line in train_split.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    sequence_dirs: List[Path] = []
+    for entry in entries:
+        raw_frame_path = (train_path / entry).resolve()
+        try:
+            raw_frame_path.relative_to(train_path)
+        except ValueError as exc:
+            raise ValueError(f"Train split entry escapes Scene Cache root: {entry}") from exc
+        if raw_frame_path.name != "raw_frame_id.npy" or raw_frame_path.parent.name != "shared":
+            raise ValueError(f"Expected a shared/raw_frame_id.npy split entry, got {entry!r}")
+        if not raw_frame_path.is_file():
+            raise FileNotFoundError(f"Train split references missing file: {raw_frame_path}")
+        sequence_dirs.append(raw_frame_path.parent.parent)
+    if len(set(sequence_dirs)) != len(sequence_dirs):
+        raise ValueError("Train split contains duplicate Scene Cache sequences.")
+    return sorted(sequence_dirs)
+
+
+def calibrate_flow_scale(
+    train_path: Path,
+    *,
+    min_stride: int,
+    max_stride: int,
+    active_only: bool,
+    num_obj_points: int = 512,
+) -> Dict[str, Any]:
+    """Return RMS flow scale statistics over the exact stride population.
+
+    Each stride is fully enumerated for every legal current frame, so strides
+    receive equal weight when their valid-pair counts are equal (as they are
+    for a complete sequence with a fixed maximum stride).  Norms are computed
+    in world coordinates because a hand-root rigid transform preserves them.
+    """
+    if min_stride <= 0 or max_stride < min_stride:
+        raise ValueError("Require 0 < min_stride <= max_stride.")
+    if num_obj_points <= 0:
+        raise ValueError("num_obj_points must be positive.")
+    train_path = train_path.resolve()
+    hand_paths = sorted(
+        path for path in train_path.glob("**/*.npz") if path.name in {"left.npz", "right.npz"}
+    )
+    if not hand_paths:
+        raise FileNotFoundError(f"No Cm left/right NPZ files found under {train_path}")
+
+    squared_sum = 0.0
+    point_count = 0
+    pair_count = 0
+    sequence_ids: Set[str] = set()
+    stride_counts = {stride: {"pairs": 0, "points": 0, "squared_sum": 0.0} for stride in range(min_stride, max_stride + 1)}
+
+    for hand_path in hand_paths:
+        shared_path = hand_path.parent / "shared.npz"
+        if not shared_path.exists():
+            raise FileNotFoundError(f"{hand_path}: missing sibling shared.npz")
+        with np.load(shared_path, allow_pickle=False) as shared, np.load(hand_path, allow_pickle=False) as hand:
+            sequence_ids.add(_scalar(shared, "seq_id"))
+            obj_points = np.asarray(shared["obj_points_world"], dtype=np.float64)
+            candidate_mask = np.asarray(hand["obj_candidate_mask_5cm"], dtype=bool)
+            if obj_points.ndim != 3 or obj_points.shape[-1] != 3:
+                raise ValueError(f"{shared_path}: expected obj_points_world [T,N,3]")
+            if candidate_mask.shape != obj_points.shape[:2]:
+                raise ValueError(f"{hand_path}: candidate mask shape does not match object points")
+            frame_count = obj_points.shape[0]
+            # Match Stage4CmDataset: every sampled current frame must support
+            # every configured stride, including max_stride.
+            for current in range(frame_count - max_stride):
+                candidate = candidate_mask[current]
+                if active_only and not candidate.any():
+                    continue
+                for stride in range(min_stride, max_stride + 1):
+                    # A current hand-root transform is rigid, hence it leaves
+                    # ||O_{t+s} - O_t|| unchanged.  Avoiding the transform
+                    # makes this full calibration pass inexpensive.
+                    flow = obj_points[current + stride] - obj_points[current]
+                    # ``active_only`` determines whether an empty candidate
+                    # frame is retained; it never changes the runtime point
+                    # sampler, which always draws from 5cm candidates.
+                    flow = flow[candidate]
+                    squared_norm = np.einsum("ij,ij->i", flow, flow)
+                    available_count = int(squared_norm.size)
+                    if available_count == 0:
+                        continue
+                    # Runtime sampling is uniform without replacement among
+                    # candidates and caps each pair at num_obj_points.  Its
+                    # expected mean-square flow is the candidate mean; use
+                    # that expectation with the same effective pair weight.
+                    count = min(available_count, int(num_obj_points))
+                    sum_value = float(squared_norm.mean(dtype=np.float64)) * count
+                    squared_sum += sum_value
+                    point_count += count
+                    pair_count += 1
+                    stride_counts[stride]["pairs"] += 1
+                    stride_counts[stride]["points"] += count
+                    stride_counts[stride]["squared_sum"] += sum_value
+
+    if point_count == 0:
+        raise ValueError("No valid object-flow points were found for calibration.")
+    # Training samples the stride uniformly, not proportional to the number
+    # of valid pairs near a sequence boundary.  First average points within
+    # each stride, then give every stride equal weight.
+    per_stride_mean_square = [
+        values["squared_sum"] / values["points"]
+        for values in stride_counts.values()
+        if values["points"] > 0
+    ]
+    if len(per_stride_mean_square) != len(stride_counts):
+        raise ValueError("At least one requested stride has no valid object-flow points.")
+    rms_m = float(np.sqrt(np.mean(per_stride_mean_square)))
+    if not np.isfinite(rms_m) or rms_m <= 0.0:
+        raise ValueError(f"Invalid flow RMS {rms_m!r}")
+    per_stride = {
+        str(stride): {
+            "num_pairs": int(values["pairs"]),
+            "num_points": int(values["points"]),
+            "flow_rms_m": float(np.sqrt(values["squared_sum"] / values["points"])) if values["points"] else None,
+        }
+        for stride, values in stride_counts.items()
+    }
+    return {
+        "flow_target_rms_m": rms_m,
+        "flow_target_scale": float(1.0 / rms_m),
+        "statistics_split": "train",
+        "statistics_stride_distribution": f"uniform_{min_stride}_to_{max_stride}",
+        "statistics_stride_weighting": "equal_per_stride",
+        "statistics_active_only": bool(active_only),
+        "statistics_num_obj_points": int(num_obj_points),
+        "statistics_point_weighting": "per_pair_capped_at_num_obj_points",
+        "statistics_num_sequences": len(sequence_ids),
+        "statistics_num_hand_streams": len(hand_paths),
+        "statistics_num_pairs": pair_count,
+        "statistics_num_points": point_count,
+        "statistics_per_stride": per_stride,
+    }
+
+
+def main() -> None:
+    args = _parse_args()
+    train_path = args.train_path.resolve()
+    if _is_scene_root(train_path):
+        sequence_dirs = None
+        if args.split_json_path is not None:
+            sequence_dirs = scene_train_sequence_dirs(train_path, args.split_json_path)
+        result = calibrate_flow_scale_scene(
+            train_path,
+            min_stride=args.min_stride,
+            max_stride=args.max_stride,
+            active_only=args.active_only,
+            num_obj_points=args.num_obj_points,
+            sequence_dirs=sequence_dirs,
+        )
+        if args.split_json_path is not None:
+            result["statistics_split_json_path"] = str(args.split_json_path.resolve())
+    elif _is_object_v2_root(train_path):
+        sequence_dirs = object_v2_train_sequence_dirs(train_path, args.split_json_path)
+        result = calibrate_flow_scale_object_v2(
+            train_path, min_stride=args.min_stride, max_stride=args.max_stride,
+            active_only=args.active_only, num_obj_points=args.num_obj_points,
+            sequence_dirs=sequence_dirs,
+        )
+        if args.split_json_path is not None:
+            result["statistics_split_json_path"] = str(args.split_json_path.resolve())
+    else:
+        if args.split_json_path is not None:
+            raise ValueError("--split-json-path requires a Scene or object-v2 root.")
+        result = calibrate_flow_scale(
+            train_path,
+            min_stride=args.min_stride,
+            max_stride=args.max_stride,
+            active_only=args.active_only,
+            num_obj_points=args.num_obj_points,
+        )
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    if args.dry_run:
+        return
+    metadata_path = args.metadata_path or (train_path / "metadata.json")
+    metadata_path = metadata_path.resolve()
+    metadata = _load_existing_metadata(metadata_path)
+    metadata.update(result)
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"[cm-flow-scale] wrote {metadata_path}")
+    print(
+        "[cm-flow-scale] config values: "
+        f"meta.flow_target_rms_m={result['flow_target_rms_m']:.9g} "
+        f"meta.object_flow_target_scale={result['flow_target_scale']:.9g}"
+    )
+
+
+if __name__ == "__main__":
+    main()

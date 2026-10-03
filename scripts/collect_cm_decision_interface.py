@@ -3,7 +3,7 @@
 
 The physical-value bundle is frozen.  At eligible contact states we build the
 same 37 local action candidates used by the value teacher, score the full panel
-with direct-Q and short model rollout, then randomly execute one of five arms.
+with direct-Q and short model rollout, then randomly execute one of four arms.
 No actor, value, or dynamics parameter is updated in this script.
 """
 from __future__ import annotations
@@ -22,9 +22,12 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 from collect_contact_consequences import build_player
 from run_paired_evaluator_resolution import sha
+from src.task.CmResidual.residual_probe_contract import (
+    simulator_seed_from_argv, snapshot_window_metadata,
+)
 
 
-ARMS = ("cup", "direct_q", "cm_value", "shuffled", "random")
+ARMS = ("cup", "direct_q", "cm_value", "random")
 
 
 def _load_teacher(checkpoint, device):
@@ -112,8 +115,6 @@ def make_player(original, args, torch, gymtorch):
             tracker.reset(ids, task._target_states[:, 2])
             history = HistoryBuffer(task.num_envs, self.device)
             previous_action = torch.zeros(task.num_envs, 18, device=self.device)
-            motion, start_frame = task.data_id.clone(), task.start_times.clone()
-            rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             body_ids = task._contact_body_ids
             mass = torch.tensor([
                 task.gym.get_actor_rigid_body_properties(env, handle)[0].mass
@@ -160,6 +161,9 @@ def make_player(original, args, torch, gymtorch):
             future_reward = zeros(10)
             actual_action = zeros(10, 18)
             initial_clearance = zeros()
+            window_motion = torch.full((n, windows), -1, dtype=torch.long, device=self.device)
+            window_start = torch.full_like(window_motion, -1)
+            window_rest = torch.zeros(n, windows, device=self.device)
             allocation_generator = torch.Generator(device=self.device).manual_seed(args.assignment_seed)
             candidate_generator = torch.Generator(device=self.device).manual_seed(args.assignment_seed + 1)
             reset = ids[:0]
@@ -173,6 +177,9 @@ def make_player(original, args, torch, gymtorch):
                     history.reset(reset)
                     previous_action[reset] = 0
                     ended[reset] = False
+                motion = task.data_id.clone()
+                start_frame = task.start_times.clone()
+                rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
                 state = snapshot(task, tracker)
                 history.append(state, previous_action)
                 ctx = context(task, tracker)
@@ -213,18 +220,10 @@ def make_player(original, args, torch, gymtorch):
                                                  generator=candidate_generator)
                     random_index = torch.where(valid.gather(1, random_index[:, None]).squeeze(1),
                                                random_index, torch.zeros_like(random_index))
-                    # Shuffle is a score-permutation control with the same panel.
-                    permutation = torch.stack([
-                        torch.randperm(37, device=self.device, generator=candidate_generator)
-                        for _ in range(len(rows))
-                    ])
-                    shuffled_index = permutation.gather(
-                        1, d_scores.gather(1, permutation).masked_fill(~valid.gather(1, permutation), -torch.inf).argmax(1)[:, None]
-                    ).squeeze(1)
                     arm = torch.randint(len(ARMS), (len(rows),), device=self.device,
                                         generator=allocation_generator)
                     index_panel = torch.stack((torch.zeros_like(d_index), d_index, c_index,
-                                               shuffled_index, random_index), 1)
+                                               random_index), 1)
                     chosen_index = index_panel[torch.arange(len(rows), device=self.device), arm]
                     chosen = panel[torch.arange(len(rows), device=self.device), chosen_index]
                     slot = count[rows]
@@ -236,6 +235,11 @@ def make_player(original, args, torch, gymtorch):
                     pre_history_action[rows, slot] = ha[rows]
                     pre_history_mask[rows, slot] = hm[rows]
                     pre_context[rows, slot], next_context[rows, slot] = ctx[rows], nctx[rows]
+                    saved_motion, saved_start, saved_rest = snapshot_window_metadata(
+                        motion, start_frame, rest, rows)
+                    window_motion[rows, slot] = saved_motion
+                    window_start[rows, slot] = saved_start
+                    window_rest[rows, slot] = saved_rest
                     candidates[rows, slot] = panel
                     direct_scores[rows, slot], cm_scores[rows, slot] = d_scores, c_scores
                     direct_active[rows, slot], cm_active[rows, slot] = d_active, c_active
@@ -288,14 +292,16 @@ def make_player(original, args, torch, gymtorch):
                 raise ValueError("no complete decision windows")
             valid = valid_windows
             payload = dict(
-                schema="ref2dex.cm_decision_interface.v1", experiment_id=args.experiment_id,
-                panel_seed=args.seed, assignment_seed=args.assignment_seed,
-                arm_names=list(ARMS), motion_id=motion[:, None].expand(-1, windows)[valid].cpu(),
-                start_frame=start_frame[:, None].expand(-1, windows)[valid].cpu(),
+                schema="ref2dex.cm_decision_interface.v2", experiment_id=args.experiment_id,
+                panel_seed=args.panel_seed, simulator_seed=args.simulator_seed,
+                python_hash_seed=os.environ.get("PYTHONHASHSEED"), assignment_seed=args.assignment_seed,
+                arm_names=list(ARMS), motion_id=window_motion[valid].cpu(),
+                start_frame=window_start[valid].cpu(),
                 env_id=ids[:, None].expand(-1, windows)[valid].cpu(),
                 stratum=window_stratum[valid].cpu(),
                 trigger=trigger[valid].cpu(), assignment=assignment[valid].cpu(),
-                selected_index=selected_index[valid].cpu(), propensity=torch.full((int(valid.sum()),), 0.2),
+                selected_index=selected_index[valid].cpu(),
+                propensity=torch.full((int(valid.sum()),), 1 / len(ARMS)),
                 state=pre_state[valid].cpu(), history_state=pre_history_state[valid].cpu(),
                 history_action=pre_history_action[valid].cpu(), history_mask=pre_history_mask[valid].cpu(),
                 context=pre_context[valid].cpu(), next_context=next_context[valid].cpu(),
@@ -305,7 +311,7 @@ def make_player(original, args, torch, gymtorch):
                 actual_action=actual_action[valid].cpu(), future_state=future_state[valid].cpu(),
                 future_contact=future_contact[valid].cpu(), future_clearance=future_clearance[valid].cpu(),
                 future_done=future_done[valid].cpu(), future_reward=future_reward[valid].cpu(),
-                rest_z=rest[:, None].expand(-1, windows)[valid].cpu(), control_dt=task.dt,
+                rest_z=window_rest[valid].cpu(), control_dt=task.dt,
                 gamma=.99, checkpoint=str(args.value_checkpoint.resolve()),
                 checkpoint_sha256=sha(args.value_checkpoint), teacher_fingerprint=teacher_fingerprint,
                 model_training=False, actor_training=False,
@@ -329,13 +335,16 @@ def main():
     p = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     p.add_argument("--output-dir", dest="output", type=Path, required=True)
     p.add_argument("--value-checkpoint", type=Path, required=True)
-    p.add_argument("--experiment-id", default="P-20261002-cm-decision-interface")
+    p.add_argument("--experiment-id", default="P-20261003-cm-decision-interface-corrected")
     p.add_argument("--panel-seed", dest="seed", type=int, required=True)
     p.add_argument("--assignment-seed", type=int, required=True)
     p.add_argument("--windows-per-stratum", type=int, default=1)
     p.add_argument("--max-steps", type=int, default=650)
     p.add_argument("--wall-seconds", type=int, default=240)
     args, remaining = p.parse_known_args()
+    args.panel_seed = args.seed
+    args.simulator_seed = simulator_seed_from_argv(remaining)
+    args.seed = args.simulator_seed
     base = (ROOT / "src/task/CmResidual/research/decision_interface/output").resolve()
     if base not in args.output.resolve().parents or args.output.is_symlink():
         raise ValueError("new owned decision-interface output required")
@@ -344,7 +353,9 @@ def main():
                     gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     value_checkpoint=str(args.value_checkpoint.resolve()),
-                    value_checkpoint_sha256=sha(args.value_checkpoint), model_training=False, actor_training=False)
+                    value_checkpoint_sha256=sha(args.value_checkpoint), panel_seed=args.panel_seed,
+                    simulator_seed=args.simulator_seed, python_hash_seed=os.environ.get("PYTHONHASHSEED"),
+                    model_training=False, actor_training=False)
     (args.output / "run_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     started = time.monotonic()
     try:

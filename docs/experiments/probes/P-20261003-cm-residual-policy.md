@@ -1,6 +1,7 @@
 # P-20261003-cm-residual-policy
 
-**Status:** `UNPROMISING` Probe; close this implementation route before PPO or a larger policy claim.
+**Status:** `INVALID_IMPLEMENTATION` historical Probe; freeze its world-height and provenance
+claims until the corrected v2 route is rerun.
 
 **Decision question:** Can a Cm policy improve the frozen HF15 rotation-Cup controller by adding a small object-frame translation residual for two native control steps, while preserving contact and mesh-clearance safety?
 
@@ -37,3 +38,13 @@ were +3.44 and +1.31 percentage points respectively. The diagnostic is therefore
 The audit implementation now enforces the predeclared lift, bootstrap, contact, and clearance
 criteria instead of treating coverage alone as `PROMISING`. Do not lower the margin further or
 start PPO on this route.
+
+## 审查冻结（2026-10-03）
+
+这份记录的 residual 世界高度结论撤回并冻结为 `INVALID_IMPLEMENTATION`，不是新的
+`UNPROMISING` 证据：训练/选择评分把 object-local `z` 当成了 world `z`，而 native 指标
+使用 world `z`。同时，旧 collector 在 reset 后复用了旧 motion/start/rest 元数据，且把
+`PYTHONHASHSEED` 记成了 seed，因此相关分组和复现 provenance 不可信。修正版改为统一
+世界系高度目标、每个 trigger 快照 metadata、显式记录并传递 simulator seed，并移除
+`shuffled` residual control；修正版 source/fit/native Probe 使用新 experiment ID，尚未
+重跑。旧 checkpoint 和 records 保留作审计输入，不得用于 Cm utility claim。

@@ -42,10 +42,12 @@ def _predict(beta: np.ndarray, direct: np.ndarray, cm: np.ndarray,
 
 def analyze(record: Path, output: Path) -> None:
     data = torch.load(record, map_location="cpu", weights_only=False)
-    if data.get("schema") != "ref2dex.cm_decision_interface.v1":
-        raise ValueError("decision-interface schema mismatch")
+    if data.get("schema") != "ref2dex.cm_decision_interface.v2":
+        raise ValueError("decision-interface v1 is frozen; use corrected v2 records without shuffled control")
+    if data.get("simulator_seed") is None:
+        raise ValueError("corrected decision record must include simulator_seed")
     names = list(data["arm_names"])
-    if "random" not in names or "cup" not in names:
+    if "shuffled" in names or "random" not in names or "cup" not in names:
         raise ValueError("random and cup arms are required")
     random_arm, cup_arm = names.index("random"), names.index("cup")
 
@@ -87,9 +89,9 @@ def analyze(record: Path, output: Path) -> None:
     split_support_ok = bool(int(held.sum()) >= 8 and len(np.unique(group_names[held])) >= 5)
     if not split_support_ok:
         result = dict(
-            schema="ref2dex.cm_relative_direct_q_audit.v1",
+            schema="ref2dex.cm_relative_direct_q_audit.v2",
             run_status="COMPLETED",
-            experiment_id="P-20261003-cm-relative-direct-q",
+            experiment_id="P-20261003-cm-relative-direct-q-corrected",
             record=str(record.resolve()),
             record_sha256=hashlib.sha256(record.read_bytes()).hexdigest(),
             rows=int(len(assignment)), random_rows=int(random.sum()),
@@ -174,9 +176,9 @@ def analyze(record: Path, output: Path) -> None:
     label = "PROMISING" if support_ok and ranking_ok and coverage_ok else (
         "UNCLEAR" if not support_ok or not coverage_ok else "UNPROMISING")
     result = dict(
-        schema="ref2dex.cm_relative_direct_q_audit.v1",
+        schema="ref2dex.cm_relative_direct_q_audit.v2",
         run_status="COMPLETED",
-        experiment_id="P-20261003-cm-relative-direct-q",
+        experiment_id="P-20261003-cm-relative-direct-q-corrected",
         record=str(record.resolve()),
         record_sha256=hashlib.sha256(record.read_bytes()).hexdigest(),
         rows=int(len(assignment)), random_rows=int(random.sum()),

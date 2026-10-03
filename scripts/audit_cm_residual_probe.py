@@ -68,8 +68,11 @@ def audit(args: argparse.Namespace) -> None:
     for path in args.records:
         path = path.resolve()
         payload = torch.load(path, map_location="cpu", weights_only=False)
-        if payload.get("schema") != "ref2dex.cm_residual_probe.v1":
-            raise ValueError(f"schema mismatch: {path}")
+        if payload.get("schema") != "ref2dex.cm_residual_probe.v2":
+            raise ValueError(f"schema mismatch or frozen v1 record: {path}")
+        if (payload.get("seed") is None or payload.get("simulator_seed") is None
+                or int(payload["seed"]) != int(payload["simulator_seed"])):
+            raise ValueError(f"simulator seed provenance mismatch: {path}")
         source_hashes[str(path)] = sha(path)
         held = bucket(payload["motion_id"], payload["start_frame"]) >= 70
         for index in held.nonzero().flatten().tolist():
@@ -77,7 +80,7 @@ def audit(args: argparse.Namespace) -> None:
             rows.append(dict(
                 arm=arm,
                 run=path.parent.name,
-                episode=(path.parent.name, int(payload["env_id"][index])),
+                episode=(path.parent.name, int(payload["env_id"][index]), int(payload["slot"][index])),
                 motion=int(payload["motion_id"][index]),
                 start=int(payload["start_frame"][index]),
                 group=(int(payload["motion_id"][index]), int(payload["start_frame"][index])),
@@ -91,7 +94,7 @@ def audit(args: argparse.Namespace) -> None:
             ))
     if not rows:
         raise ValueError("no held rows")
-    names = ("baseline", "residual", "shuffled")
+    names = ("baseline", "residual")
     metrics = {}
     for arm, name in enumerate(names):
         subset = [row for row in rows if row["arm"] == arm]
@@ -156,7 +159,7 @@ def audit(args: argparse.Namespace) -> None:
                                    and criterion["safety_ok"])
     label = "UNCLEAR" if not supported else ("PROMISING" if criterion["promising"] else "UNPROMISING")
     report = dict(
-        schema="ref2dex.cm_residual_probe_audit.v1",
+        schema="ref2dex.cm_residual_probe_audit.v2",
         run_status="COMPLETED",
         label=label,
         decision="CLOSE_CURRENT_CM_RESIDUAL_POLICY_ROUTE" if label == "UNPROMISING" else "REQUIRES_FOLLOWUP",

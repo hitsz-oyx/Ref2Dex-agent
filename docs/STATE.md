@@ -872,3 +872,14 @@ episode：plain_off 41、direct_q 40、cm_value 33；原生 gate 为 `UNPROMISIN
 R2 价值目标审计已由 root 验收：主成功 15/1920、holdout 1/384，两个 e420 V
 均有 7680 次 optimizer update；这些是已验收工程/标签事实，不构成 V 充分性、当前
 策略校准、策略效用或收敛结论。后续工程准备不改变 HF08 已用预算。
+
+## 2026-10-03 审查后的 Cm 结果边界
+
+审查确认旧 decision-interface 的 `shuffled` 臂只是对同一 score/candidate 面做同步排列，
+与 `direct_q` 的 `argmax` 相同；旧 residual policy 又把 object-local `z` 当成 world
+height，并在 reset 后复用 motion/start/rest 元数据，且没有记录真实 simulator seed。因此
+依赖这些条件的控制、世界高度和分组复现结论均冻结，旧 residual 的 `UNPROMISING` 结果不
+再作为科学证据。代码已切换到 v2 schema：统一 world-height 目标、trigger metadata 快照、
+显式 seed provenance，移除伪 `shuffled` 控制，并恢复缺失的 Cm dataset/data-tool 源码。
+修正后的 source/fit/native Probe 尚未运行；在新 Probe 通过 action ranking、coverage 和
+真实局部效用门之前，不启动 PPO 或扩大普通 Cm 数据。
