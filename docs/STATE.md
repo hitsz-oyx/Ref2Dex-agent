@@ -2,6 +2,22 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm native uncertainty-acquisition Probe: promising local signal
+
+HF30 在 native 96-env collector 中冻结六个 expert candidate 和 Cm ensemble，在接触状态
+按 translation/velocity/contact/reward/terminal disagreement 选择高不确定性候选；实际执行
+两步后回到 BASE_INDEX baseline。有效采集 `83` 个完整十步窗口，其中 targeted `36`、
+baseline `47`，targeted motion/start groups `28`。targeted disagreement `0.435071` 对
+baseline `0.431055`（`+0.004016`）；contact loss `16.94%` 对 `14.04%`（`+2.90pp`），
+两臂 drop rate 都为 `0%`。窗口、group、uncertainty、contact/drop 五个门全部通过，Probe
+为 `PROMISING`，但这仍只是 acquisition/executability signal。
+
+因此只授权一次固定 physical-consequence fit，使用这些实际 targeted transitions，再跑既有
+held task-value screen；不启动 policy training，不扩大普通数据，不扫描 threshold/seed/
+horizon。见 [Probe card](experiments/probes/P-20261003-cm-uncertainty-acquisition-native.md)、
+[结果](experiments/probes/P-20261003-cm-uncertainty-acquisition-native-results.json) 和
+[Decision Memo](decisions/D-20261003-cm-route-review-targeted-acquisition.md)。
+
 ## 2026-10-03 Cm uncertainty-guided retraining Probe: closed
 
 按 HF28 的唯一授权，使用 fit-only top-20% frozen disagreement（120,000 fit rows 中

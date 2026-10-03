@@ -44,3 +44,12 @@ One GPU, one native 96-environment collection, at most 96 ten-step windows and 1
 including setup/audit; no unknown process is stopped and no external project is modified.
 This changes the data responsibility after the required route review, not the MISSION claim
 or the definition of Cm.
+
+## Outcome of the acquisition screen
+
+The fixed native run completed `83` windows, including `36` targeted windows across `28`
+motion/start groups. Targeted disagreement exceeded its baseline by `0.004016`; contact
+loss was `2.90pp` higher and drop rate was unchanged at zero, so every predeclared gate
+passed. The local result is `PROMISING` and authorizes one fixed fit on these actual
+targeted transitions followed by the existing held task-value screen. It does not authorize
+policy training or ordinary data expansion.

@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-uncertainty-acquisition-native
+    owner: current_session
+    status: COMPLETED
+    label: PROMISING
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition-native.md
+    evidence: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition-native-results.json
+    outcome_boundary: "Native acquisition produced 36 targeted and 47 baseline complete windows across 28 targeted motion/start groups. Targeted disagreement was +0.004016, contact-loss delta +2.90pp and drop delta 0; all local gates passed. This authorizes one fixed targeted physical fit only, not policy utility."
   - id: P-20261003-cm-uncertainty-retraining
     owner: current_session
     status: COMPLETED
@@ -352,18 +359,31 @@ claims:
     status: OPEN
 
 hypotheses:
-  HF30:
+  HF31:
     claim: C3
-    name: native_uncertainty_acquisition
+    name: targeted_transition_consequence_fit
     status: AUTHORIZED
     branch: agent/cm-residual-policy
     probe_budget: 1
     probes_used: 0
     owner: current_session
+    authorization: "HF30 native acquisition passed all predeclared local gates; one fixed fit on actual targeted transitions and the held task-value screen is authorized within existing GPU limits"
+    card: docs/experiments/probes/P-20261003-cm-targeted-transition-fit.md
+    decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
+    transition: "Fit frozen Cm dynamics once using the new native targeted transitions, keep actor/direct-Q/reward definition fixed, and close on the existing held conservative value-target gates. No policy follow-up unless the task-value gate passes."
+
+  HF30:
+    claim: C3
+    name: native_uncertainty_acquisition
+    status: PROMISING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 1
+    owner: current_session
     authorization: "three-probe route review selected actual targeted transitions as the only new data responsibility within the persistent Cm policy-utility goal and existing native/GPU limits"
     card: docs/experiments/probes/P-20261003-cm-uncertainty-acquisition-native.md
     decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
-    transition: "Run one guarded native acquisition screen: high-disagreement candidate versus baseline, complete provenance, >=32 targeted windows/8 groups, and <=5pp contact/drop degradation. Only a pass authorizes a fixed targeted fit."
+    transition: "Native acquisition passed: 83 complete windows, 36 targeted across 28 groups, uncertainty +0.004016, contact-loss delta +2.90pp, drop delta 0. This authorizes one fixed targeted fit; no policy claim yet."
 
   HF29:
     claim: C3
