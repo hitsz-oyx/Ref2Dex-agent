@@ -60,3 +60,14 @@ bootstrap CI 排除零，其余仍跨零。h3、h5、h10、h32 没有同样稳�
 control CI 多数仍跨零。下一步若要形成正式结论，需要更多 success/drop
 覆盖、预注册 split 和 matched future-action control；当前不启动在线 Cm
 训练，也不把 h16 的方向性结果写成 `SUPPORTED`。
+
+## Independent e420 diagnostic actor
+
+为检查 e260 actor 分布依赖，另外使用文档中已登记的 e420 `plain_off`
+s286/s287 checkpoint 做了明确隔离的 diagnostic Probe。两组 pre-step run
+合计 44 episodes、23.7k transitions，其中 s286 有 1 success/1 drop，s287
+没有 success。h16 的五个 composite split 中，`V_HEI` 相对 `V_H` 的
+episode-balanced MAE 变化为 `+2.9%`、`+2.8%`、`-18.2%`、`+24.4%`、
+`+3.7%`；只有一个 split 的 bootstrap CI 排除零。该 actor 上没有复现
+e260 的稳定 h16 方向，因此这个 diagnostic 分支停止扩展，并继续与 pinned
+e260 结果分开报告。
