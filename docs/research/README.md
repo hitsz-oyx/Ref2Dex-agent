@@ -165,3 +165,5 @@ or journal-readiness claim. Earlier revisions remain preserved.
   first valid short-panel inheritance preserved without duplicate collection.
 
 - [Qualified fixed-background oracle r2](20261003-effect-interaction-oracle-r2-results.md): state/E/I/joint8/12; joint gains absent; finite action-bank capacity is next.
+
+- [Stable oracle ranking and observed candidate capacity](20261003-oracle-candidate-capacity-results.md): numerical ordering fixed, four selectors8/12; all32unsolved alternatives fail, observed finite-bank capacity8/12.

@@ -1,6 +1,6 @@
 # Independent contact-response research state
 
-Updated 3 October 2026. Qualified no-Cm oracle r2 completed UNPROMISING; finite-bank capacity is next.
+Updated 3 October 2026. Qualified no-Cm oracle and observed finite-bank capacity both completed UNPROMISING.
 Core Cm policy-training utility remains unproved; journal readiness NOT READY.
 
 ## Workspace and boundaries
@@ -77,21 +77,32 @@ choices unchanged. Fix raw-logit ordering and validate only2new actions, no
 refit; old r2result stays unchanged. Both affected subjects already succeeded,
 so this does not explain missing incremental utility.
 
-## Blocker and next decision
+## Current decision and next step
 
-All8motion1/2subjects are solved; headroom is confined to4motion0subjects.
-Each has failed actual zero and3/6/7 alternatives. Next Decision Probe collects
-only16missing1/2/4/5 branches, after stable selector choices are locked.
-Retrospective finite-bank capacity is separate from actual selector utility.
-Capacity8/12 means change control class before more Cm fitting; capacity>8/12
-means diagnose short information/learning/selection with matched training.
-[Memo](decisions/D-20261003-oracle-candidate-capacity.md),
-[card](experiments/probes/P-20261003-oracle-candidate-capacity.md).
+P-20261003-oracle-candidate-capacity-r1 COMPLETED/UNPROMISING at1c08b24:
+stable raw-logit state/E/I/joint all8/12, P05/12. Ranking fix changes only
+I/joint subjects1/7 options0->3/4; both actual alternatives succeed. All4motion0
+subjects now have all8actual outcomes, all fail. Observed finite-bank best is
+8/12, already attained by state and all oracle selectors; extra headroom0.
+This is retrospective finite-candidate capacity, never policy gain or a
+universal Cm/continuous-action upper bound. It does not explain all old
+negative learners. [Result](research/20261003-oracle-candidate-capacity-results.md).
 
-Budget<=900s/2GiB new data, one idle GPU,18new full worlds maximum,0new updates.
-No seed/horizon/options/density/model tuning or unselected terminal labels in
-selection. Universal Cm upper bound, RL-training benefit, formal Validation and
-journal claim remain unproved. No mission or claim change is inferred.
+18new full worlds,0new updates/6000inherited;683.810s/554139436terminal bytes,
+within900s/2GiB.129native audits, all32capacity labels and independent geometry/
+physics/105label/counts pass; whole-world68control/136physics frames maxerror0
+for ALL44selected/capacity nonzero branches. Input SHAs unchanged; owned
+collector/native-audit PIDs absent. CPU final audit26.511s, independent backend.
+
+Close this small held-residual bank before more Cm fitting. Next cheap
+exploration should change control class: an object-frame whole-grasp primitive
+from an actual successful own hand-object relation, audit its kinematic mapping,
+then one motion0reachability screen. A desired relation is a control target,
+not the future-I oracle or learned Cm contribution tested above. After useful
+action-bank headroom exists, revisit matched short effect/I information and
+policy training. [Decision](decisions/D-20261003-after-oracle-capacity.md).
+No seed/magnitude/horizon/epochs/width rescue, no mission/claim change and no
+formal Validation. Journal readiness NOT READY; core utility remains unproved.
 
 ## Important retained facts
 
