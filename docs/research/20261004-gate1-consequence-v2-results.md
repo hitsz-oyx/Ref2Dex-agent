@@ -189,3 +189,24 @@ corrected h16 direct I+ 的五个 split 为 `+3.0%`、`+7.4%`、`-19.8%`、`+3.1
 跨方向，control split 3、4、5 跨方向。修复后 e420 仍不能复现 e260 的 I+ 方向，
 因此当前证据继续限定为局部 `PROMISING` diagnostic，不支持 Gate closeout 或
 `SUPPORTED`。
+
+## Corrected e260 outcome-coverage extension
+
+在 history contract 修复后，从同一 pinned e260 checkpoint 按相同 pre-step collector
+并行补采四个 run（namespaces 1866--1869），新增 56 episodes、60,756 rows；其中
+1 个 `stable_success`、0 个 `drop_after_success`。与前四个 corrected run 合并后，
+得到 224 episodes、116,067 h16 windows；base dataset 与独立 interaction
+augmentation audit 均通过。
+
+五个 fixed split 的 direct I+ `V_HEI`/`V_H` 改善为
+`+12.6%`、`+5.2%`、`+18.3%`、`+26.9%`、`+14.9%`，episode bootstrap CI 有
+4/5 排除零。matched future-action control `V_HFEI`/`V_HF` 为
+`+15.9%`、`+18.9%`、`+25.3%`、`+25.3%`、`+40.7%`，5/5 CI 排除零。用 8 个
+source-run 做 cluster bootstrap 后，direct 只有 split 1 区间跨零，control 五个
+区间均为正。
+
+这表明增加独立普通失败和一个 stable-success 后，旧 split 3 的极端反向影响不再
+主导，I+ 的方向性显著更一致；同时 corrected e420 actor 仍未复现该方向。因此当前
+状态是更强的 `PROMISING` coverage probe，而不是 `SUPPORTED`：扩展数据是在探索阶段
+决定的，success/drop 仍不平衡，正式 Gate 需要预注册 actor/outcome cluster、固定
+matched control 和独立验证集；在此之前不启动 Cm。
