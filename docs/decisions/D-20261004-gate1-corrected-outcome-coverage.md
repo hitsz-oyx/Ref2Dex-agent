@@ -1,0 +1,24 @@
+# Gate 1 corrected outcome-coverage probe
+
+**当前需要决定的问题。** history preceding-action 合同修复后，e260 的 h16 I+
+仍在 split 3 反向、corrected e420 也未复现；是否只是现有 success/drop outcome
+覆盖太稀疏。
+
+**关键证据。** corrected e260 direct h16 为 `+37.8,+20.6,-28.2,+21.2,+6.2%`，
+corrected e420 为 `+3.0,+7.4,-19.8,+3.1,-22.8%`。e260 split 3 的 held-out
+success/drop episode `(2,18640000018)` 单独造成约 `-231` MAE delta；现有 112
+episodes 中只有极少同时满足 stable-success/drop 的 episode。
+
+**root 选择的行动及理由。** 在同一 pinned e260 checkpoint、同一 collector、同一
+pre-step raw contract 下并行采集四个独立 run（seed namespaces 1866--1869，每个
+目标 14k rows），然后只做 history-fixed h16/I+ offline assembly、audit 和固定
+五个 split fit。这样增加 outcome 覆盖而不改变模型、目标或 Gate 定义。
+
+**预计成本、成功/失败后的下一步和停止条件。** 四 GPU 并行采集目标不超过 15 min，
+随后组装和 fit 约 10 min；不生成 policy checkpoint。若新增覆盖后 split 仍由单一
+episode 主导，停止扩大 e260 collector，转为正式 actor/outcome cluster Validation
+设计；若敏感性显著下降，只记录为 `PROMISING`，仍不启动 Cm，直到 matched actor
+Validation。
+
+**外部授权边界。** 只读取 pinned checkpoint、配置和 motion 数据，在项目 `tmp/`
+写入新 raw shards；不修改外部项目、已有 raw shards 或未知 GPU 进程。
