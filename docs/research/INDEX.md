@@ -39,6 +39,7 @@
 - [Gate 1 corrected outcome coverage](../experiments/probes/P-20261004-gate1-corrected-coverage.md)：修复 history contract 后扩展到 224 episodes，e260 h16 I+ direct/control 方向更一致，但仍是探索性 `PROMISING`，尚未进入正式 Validation。
 - corrected h32 在 e260 上跨 seed/cluster 稳定，但 e420 五 seed 未稳定复现；详见 [Gate 1 consequence results](../research/20261004-gate1-consequence-v2-results.md) 与 [e420 h32 screening decision](../decisions/D-20261004-gate1-e420-h32-screening.md)。
 - Gate 1 future-action control 的 episode-local index bug 已修复并重跑；旧 `V_HF/V_HFEI` artifacts 标记为 `INVALID_IMPLEMENTATION`，新结果见 [future-action index repair](../decisions/D-20261004-gate1-future-action-index-repair.md)。
+- Gate 1 h32 已补做 deterministic quaternion-sign canonicalization；qfix 后 e260 仍为 actor-local `PROMISING`，e420 仍未跨 actor 稳定，详见 [quaternion sign repair](../decisions/D-20261004-gate1-quaternion-sign-repair.md)。
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->

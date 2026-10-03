@@ -19,10 +19,13 @@ direct six-arm screening。此 probe 不改 raw 数据、不重采集、不启�
 control 和多 seed。无论结果如何不把 single-seed screening 写成 Gate closeout。
 
 **结果。** corrected e420 h32 dataset 为 44 episodes、21,940 windows，base 与
-augmentation audit 通过。五个 unique model seeds 的 direct I+ 改善为
-`+4.0%`、`+22.6%`、`+30.1%`、`+3.9%`、`+2.2%`；seed 1、3 的 episode CI
-排除零（2/5）；e420 只有 2 source-run clusters，cluster CI 仅 seed 1、3、4
-为正。修复后的 e420 h32 future-action control 为 `+3.9%`、`+6.6%`、`+16.8%`、
-`+4.8%`、`+12.0%`，episode CI 有 3/5、cluster CI 有 4/5 排除零。HAEI screening
+augmentation audit 通过。加入确定性 quaternion-sign 修复后，五个 unique model
+seeds 的 direct I+ 改善为 `+4.2%`、`+25.8%`、`+29.8%`、`+3.9%`、`+8.0%`；
+episode CI 有 3/5（seed 1、2、3）排除零，e420 只有 2 source-run clusters，
+cluster CI 有 4/5 为正。修复后的 e420 h32 future-action control 为 `+4.3%`、
+`+27.3%`、`+9.4%`、`+4.5%`、`+19.1%`，episode CI 有 4/5、cluster CI 有 4/5
+排除零。HAEI screening
 为 `+2.9%`。因此 h32 也没有稳定跨 actor 复现，按停止条件
 停止 e420 horizon 扩展；h32 只保留为 e260-local `PROMISING` candidate，不启动 Cm。
+旧版 h32 数字已由 [quaternion-sign repair memo](D-20261004-gate1-quaternion-sign-repair.md)
+取代。

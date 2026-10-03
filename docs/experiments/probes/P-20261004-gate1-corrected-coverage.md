@@ -28,10 +28,11 @@ replicate the direction. Preserve the artifacts and design a pre-registered
 actor/outcome-cluster Validation before any Cm training.
 
 The follow-up corrected horizon probe fixed the next Validation candidate at
-`H=32`: direct I+ across five seeds is `+16.4%`, `+22.6%`, `+35.3%`, `+47.2%`,
-`+33.7%`, with every episode and eight-source-run cluster CI positive; matched
-future-action control is `+29.0%`, `+17.4%`, `+18.9%`, `+31.2%`, `+33.8%`, also
-positive in every episode and cluster CI. H3 and h5 remain seed-sensitive, while h10 direct is only
+`H=32`: after deterministic quaternion-sign canonicalization, direct I+ across five
+seeds is `+7.7%`, `+24.7%`, `+34.9%`, `+45.9%`, `+35.6%`; episode CI excludes zero
+in 4/5 and source-run cluster CI in 4/5. The repaired future-action control is
+`+21.2%`, `+13.8%`, `+17.4%`, `+35.3%`, `+33.1%`, positive in every episode and
+cluster CI. H3 and h5 remain seed-sensitive, while h10 direct is only
 `+5.1%` in the screening seed (its action-inclusive arm is `+21.6%`).
 
 Artifacts: `tmp/e260_all8_h16_histfix_fastfix_i_aug.pt`, its base/augmentation audit

@@ -12,6 +12,10 @@ decision/probe cards 和 `tmp/gate1_split_rng/` 中旧的 `V_HF`/`V_HFEI` 结果
 修复后重组、audit 和五 seed fit 的新 control 数字只以该 memo 和本文末尾的
 `fastfix` artifacts 为准。
 
+随后又修复了窗口间 quaternion 首符号的确定性；本文 h32 的 direct/control 数字以
+`qfix` artifacts 和 [`D-20261004-gate1-quaternion-sign-repair`](../decisions/D-20261004-gate1-quaternion-sign-repair.md)
+为最终实现一致版本。
+
 这次 Probe 修正了旧 v2 的采集时序。旧 wrapper 在 `env_step` 之后保存
 `object_root`、hand pose 和 force；因此 row `t` 的物理量对应 `x_{t+1}`，而
 `return_to_go[t]` 仍从 `r_t` 开始。旧的 horizon 结果标记为历史实现产物，不能
@@ -228,14 +232,16 @@ matched control 和独立验证集；在此之前不启动 Cm。
 ## Corrected horizon follow-up
 
 在同一 8-run corrected 数据上，h3/h5/h10/h32 的单 seed screening direct I+
-分别为 `+11.7%`、`+15.0%`、`+5.1%`、`+16.4%`；h10 的 action-inclusive
+分别为 `+11.7%`、`+15.0%`、`+5.1%`、`+7.7%`；h10 的 action-inclusive
 `V_HAEI` 为 `+21.6%`。按 decision memo 追加 h3、h5、h32 direct 多 seed：h3
 为 `+11.7%,-5.2%,+9.2%,+7.9%`，h5 为 `+15.0%,+10.6%,-6.6%,+19.0%`，
-均显示 seed 敏感；h32 五个 seed 为 `+16.4%`、`+22.6%`、`+35.3%`、`+47.2%`、
-`+33.7%`，每个 episode CI 和 8-source-run cluster CI 均排除零。
+均显示 seed 敏感；在确定性 quaternion-sign 修复后的 h32 五个 seed 为
+`+7.7%`、`+24.7%`、`+34.9%`、`+45.9%`、`+35.6%`，episode CI 有 4/5、
+8-source-run cluster CI 有 4/5 排除零。
 
-h32 修复后的 matched future-action control 五个 seed 为 `+29.0%`、`+17.4%`、`+18.9%`、
-`+31.2%`、`+33.8%`，episode 与 cluster CI 均为正。这个结果把后续正式
+h32 在同一 quaternion-sign 修复后的 matched future-action control 五个 seed 为
+`+21.2%`、`+13.8%`、`+17.4%`、`+35.3%`、`+33.1%`，episode 与 cluster CI 均为正。
+这个结果把后续正式
 Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数据扩展和 horizon
 选择发生在探索阶段，尚需独立、预注册的 actor/outcome cluster 验证；在此之前不启动 Cm。
 
@@ -243,10 +249,10 @@ Validation 的候选 horizon 固定为 h32，但仍不等同于正式 Gate：数
 
 为检查 h32 是否跨 actor 复现，使用 corrected e420 s286/s287 raw shards 组装了
 44 episodes、21,940 windows；base 与 interaction augmentation audit 均通过。
-五个 unique seed 的 direct I+ 改善为 `+4.0%`、`+22.6%`、`+30.1%`、`+3.9%`、
-`+2.2%`，seed 1、3 的 episode bootstrap CI 排除零（2/5）；2-source-run cluster CI
-也只有部分 seed 为正。`V_HAEI` screening 为 `+2.9%`。所以 h32 没有在独立
+五个 unique seed 的 direct I+ 改善为 `+4.2%`、`+25.8%`、`+29.8%`、`+3.9%`、
+`+8.0%`，episode bootstrap CI 有 3/5 排除零（seed 1、2、3）；2-source-run
+cluster CI 有 4/5 排除零。`V_HAEI` screening 为 `+2.9%`。所以 h32 没有在独立
 e420 actor 上稳定复现。修复后的 future-action control 为
-`+3.9%`、`+6.6%`、`+16.8%`、`+4.8%`、`+12.0%`，episode CI 有 3/5、cluster CI
+`+4.3%`、`+27.3%`、`+9.4%`、`+4.5%`、`+19.1%`，episode CI 有 4/5、cluster CI
 有 4/5 排除零；h32 当前仍是 e260-local `PROMISING` candidate，正式
 Validation 必须重新采集并预注册 actor/outcome 覆盖；不启动 Cm。

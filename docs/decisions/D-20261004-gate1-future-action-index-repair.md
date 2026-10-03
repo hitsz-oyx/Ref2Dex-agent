@@ -25,8 +25,10 @@ interaction 维度为 80→119，row key、target 和 episode split 不变。
 | e260 / h32 | `+29.0,+17.4,+18.9,+31.2,+33.8%` | 5/5 | 5/5 |
 | e420 / h32 | `+3.9,+6.6,+16.8,+4.8,+12.0%` | 3/5 | 4/5 |
 
-因此修复没有改变 e260 h32 的 local `PROMISING` 边界，也没有把 e420 h32 变成稳定
-跨 actor 证据。旧 control JSON 和旧文档中的 future-action 数字不再作为证据；新的
-artifacts 位于 `tmp/gate1_split_rng/*fastfix*ctrl*.json` 及对应 cluster bootstrap
-JSON。正式 Validation 仍需预注册 actor/outcome cluster、success/drop 覆盖和固定
-表示合同；不启动 Cm。
+随后又完成 deterministic quaternion-sign canonicalization；h32 的最终 qfix direct /
+control 结果与边界见 [quaternion-sign repair memo](D-20261004-gate1-quaternion-sign-repair.md)。
+因此 future-action 修复没有改变 e260 h32 的 local `PROMISING` 边界，也没有把 e420
+h32 变成稳定跨 actor 证据。旧 control JSON 和旧文档中的 future-action 数字不再作为
+证据；最新 qfix artifacts 位于 `tmp/gate1_split_rng/*qfix*ctrl*.json` 及对应 cluster
+bootstrap JSON。正式 Validation 仍需预注册 actor/outcome cluster、success/drop 覆盖和
+固定表示合同；不启动 Cm。
