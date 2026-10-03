@@ -153,3 +153,13 @@ prior archives unchanged. [Receipt](activities/20261002-empirical-policy-deliver
 Supplement-r9 COMPLETED through756c05f,582812871unique bytes;
 physical-encoder actuallearning and original/corrected support evidence SHAverified,
 prior manifests unchanged. [Receipt](activities/20261002-physical-encoder-delivery.md).
+
+Supplement-r10 COMPLETED through22e47f5,573885579unique bytes; early native
+preparation raw/evaluation/audits and code SHAverified, all prior manifests
+unchanged. [Receipt](activities/20261003-prelift-contact-delivery.md).
+
+Fresh equal-budget physical critic Probe implementation is ready: all panels768,
+651/652short101,653common202,654extra202; equal310272env-controlticks. JointQ
+physicalaux Cm/off vs coldQ and extra-full-dataQ,6000critic+4000actor updates.
+Primary six gates fixed, actual trained actors655--658 to be independently evaluated.
+[Execution](activities/20261003-budgeted-physical-critic-execution.md).
