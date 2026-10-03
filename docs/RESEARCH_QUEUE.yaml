@@ -49,6 +49,13 @@ completed_engineering_tasks:
     outcome_boundary: "CPU diagnostic contract, then input guards; factual run completed by root"
 
 completed_diagnostics:
+  - id: P-20261003-cm-targeted-transition-fit
+    owner: current_session
+    status: COMPLETED
+    label: UNPROMISING
+    card: docs/experiments/probes/P-20261003-cm-targeted-transition-fit.md
+    evidence: docs/experiments/probes/P-20261003-cm-targeted-transition-fit-results.json
+    outcome_boundary: "A fixed 600-update fit on 36 native targeted transitions reduced fit loss but worsened held physical RMSE 17.2% overall and value-target RMSE by 0.091. Close targeted fitting; no policy follow-up or ordinary data expansion."
   - id: P-20261003-cm-uncertainty-acquisition-native
     owner: current_session
     status: COMPLETED
@@ -362,15 +369,15 @@ hypotheses:
   HF31:
     claim: C3
     name: targeted_transition_consequence_fit
-    status: AUTHORIZED
+    status: UNPROMISING
     branch: agent/cm-residual-policy
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "HF30 native acquisition passed all predeclared local gates; one fixed fit on actual targeted transitions and the held task-value screen is authorized within existing GPU limits"
     card: docs/experiments/probes/P-20261003-cm-targeted-transition-fit.md
     decision: docs/decisions/D-20261003-cm-route-review-targeted-acquisition.md
-    transition: "Fit frozen Cm dynamics once using the new native targeted transitions, keep actor/direct-Q/reward definition fixed, and close on the existing held conservative value-target gates. No policy follow-up unless the task-value gate passes."
+    transition: "Closed UNPROMISING: 36 targeted transitions and 600 final-projection updates worsened held physical RMSE 17.2% and value-target RMSE by 0.091. No policy follow-up or ordinary data expansion."
 
   HF30:
     claim: C3

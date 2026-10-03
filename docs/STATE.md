@@ -2,6 +2,20 @@
 
 Updated: 2026-10-03
 
+## 2026-10-03 Cm targeted-transition fit Probe: closed
+
+HF31 只用 HF30 native acquisition 的 `36` 条 targeted 首步 transition，固定 600 updates，
+仅适配 Cm final output projection；direct-Q、actor、held rows 和普通数据均不变。训练 loss
+从 `0.579215` 降到 `0.111830`，但 held physical RMSE 从 `0.482034` 恶化到 `0.565057`
+（`+17.2%`），high-uncertainty 子集从 `0.905606` 到 `1.000025`（`+10.4%`）；conservative
+value-target RMSE 从 `26.622387` 到 `26.713272`，episode Spearman 增加 `0.00826`。
+
+Probe 为 `UNPROMISING`：真实 targeted transitions 能定位 disagreement regime，却不足以安全
+迁移 Cm，固定小样本 fit 明显 over-specialize。不做 policy follow-up、普通数据扩充或
+threshold/seed/horizon 扫描。见 [Probe card](experiments/probes/P-20261003-cm-targeted-transition-fit.md)、
+[结果](experiments/probes/P-20261003-cm-targeted-transition-fit-results.json) 和
+[Decision Memo](decisions/D-20261003-cm-route-review-targeted-acquisition.md)。
+
 ## 2026-10-03 Cm native uncertainty-acquisition Probe: promising local signal
 
 HF30 在 native 96-env collector 中冻结六个 expert candidate 和 Cm ensemble，在接触状态

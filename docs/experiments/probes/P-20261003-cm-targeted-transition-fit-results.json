@@ -1,0 +1,71 @@
+{
+  "schema": "ref2dex.cm_targeted_transition_fit_probe.v1",
+  "run_status": "COMPLETED",
+  "experiment_id": "P-20261003-cm-targeted-transition-fit",
+  "checkpoint_sha256": "80879e69e160b7fca512d537a6f39429722eeccbd5deca5488b314390717df72",
+  "native_records_sha256": "1d6b4e367a062fcd2af637ec7a053323db1a43697df2700287c47763abf4aca6",
+  "targeted_fit_rows": 36,
+  "held_rows": 209788,
+  "held_episodes": 384,
+  "contract": {
+    "updates": 600,
+    "batch_size": 512,
+    "adapted_parameters": "final output projection only",
+    "orientation_included": false,
+    "actor_changed": false,
+    "direct_q_changed": false,
+    "ordinary_data_expanded": false,
+    "native_reward_target": "event reward derivable from state/contact; task shaping frozen"
+  },
+  "training_loss": {
+    "first": 0.5792148113250732,
+    "last": 0.11183032393455505,
+    "min": 0.07933920621871948
+  },
+  "held_physical": {
+    "original": {
+      "physical_rmse": 0.482033908367157,
+      "physical_mae": 0.1339266151189804,
+      "selected_rmse": 0.905605673789978,
+      "selected_mae": 0.28812339901924133
+    },
+    "adapted": {
+      "physical_rmse": 0.5650572180747986,
+      "physical_mae": 0.23419910669326782,
+      "selected_rmse": 1.0000245571136475,
+      "selected_mae": 0.39594337344169617
+    }
+  },
+  "held_value_target": {
+    "original": {
+      "rmse": 26.622386932373047,
+      "mae": 8.87254524230957,
+      "row_spearman": 0.5901596726263836,
+      "episode_spearman": 0.7403743938828796
+    },
+    "adapted": {
+      "rmse": 26.713272094726562,
+      "mae": 9.202484130859375,
+      "row_spearman": 0.5895679543836515,
+      "episode_spearman": 0.7486383557695568
+    }
+  },
+  "delta": {
+    "top_physical_rmse_relative": 0.10426048119655049,
+    "overall_physical_rmse_relative": 0.17223541387134983,
+    "value": {
+      "rmse": 0.09088516235351562,
+      "mae": 0.3299388885498047,
+      "row_spearman": -0.0005917182427320755,
+      "episode_spearman": 0.008263961886677218
+    }
+  },
+  "gates": {
+    "top_uncertainty_physical_rmse_improves_10pct": false,
+    "overall_physical_rmse_not_worse_2pct": false,
+    "value_target_rmse_improves_0_5": false,
+    "value_episode_spearman_loss_within_0_01": true
+  },
+  "probe_label": "UNPROMISING",
+  "decision": "Close targeted transition fit; no policy follow-up"
+}

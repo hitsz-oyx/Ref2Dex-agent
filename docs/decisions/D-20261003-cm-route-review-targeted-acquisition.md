@@ -53,3 +53,11 @@ loss was `2.90pp` higher and drop rate was unchanged at zero, so every predeclar
 passed. The local result is `PROMISING` and authorizes one fixed fit on these actual
 targeted transitions followed by the existing held task-value screen. It does not authorize
 policy training or ordinary data expansion.
+
+## Outcome of the targeted fit
+
+The fixed 600-update fit used the 36 targeted first-step transitions and adapted only the
+Cm final output projection. Although fit loss decreased to `0.111830`, held physical RMSE
+worsened by `17.2%` overall and `10.4%` in the high-uncertainty subset. The conservative
+value-target RMSE also worsened by `0.091` (`26.622387` to `26.713272`). The Probe is
+`UNPROMISING`; close targeted fitting and do not run a policy follow-up.

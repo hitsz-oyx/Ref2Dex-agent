@@ -2,7 +2,7 @@
 
 Date: 2026-10-03  
 Experiment ID: `P-20261003-cm-targeted-transition-fit`  
-Status: `AUTHORIZED`
+Status: `UNPROMISING`
 
 HF30 passed the native acquisition screen and authorized exactly this follow-up. The
 Probe will use only the `36` targeted first-step transitions from the completed native
@@ -16,3 +16,16 @@ held split. The predeclared gates are top-uncertainty physical RMSE improvement 
 at least `0.5`, and episode-Spearman loss no larger than `0.01`. A failure closes targeted
 transition fitting and authorizes no policy training. A pass authorizes at most one fixed
 matched policy Probe.
+
+## Result
+
+The fixed fit used all `36` targeted first-step transitions for `600` updates, adapting only
+the final output projection. Training loss fell from `0.579215` to `0.111830`, but the held
+physical RMSE worsened from `0.482034` to `0.565057` overall (`+17.2%`) and from `0.905606`
+to `1.000025` in the high-uncertainty subset (`+10.4%`). The conservative value-target RMSE
+worsened from `26.622387` to `26.713272`; episode Spearman changed by `+0.00826`.
+
+The Probe is `UNPROMISING`. The actual targeted transitions are useful for locating a
+disagreement regime, but this small fit over-specializes and transfers poorly to the held
+distribution. Close targeted fitting and do not start policy training, ordinary data
+expansion, or threshold/seed/horizon scans.
