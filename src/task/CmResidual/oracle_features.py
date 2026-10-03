@@ -22,7 +22,7 @@ def canonical(q):
 def load(path):
     return torch.load(path,map_location='cpu',weights_only=False)
 
-def descriptor(path,baseline,option):
+def descriptor(path,baseline,option,include_labels=True):
     trace=load(path/'trace.pt');init=load(path/'initial.pt');base=load(baseline/'trace.pt')
     n=len(init['motion']);end=DECISION+HORIZON
     # Entire scene must share one actual history before its one decision.
@@ -68,10 +68,12 @@ def descriptor(path,baseline,option):
     sums[...,9:15]/=np.maximum(total,1e-12)*.05**2
     interaction=np.concatenate((relative_pose.transpose(1,0,2,3).reshape(n,-1),sums.transpose(1,0,2,3).reshape(n,-1)),-1)
     features=np.concatenate((common,effect,interaction),-1).astype(np.float32)
-    mask=(torch.arange(len(trace['clearance']))[:,None]>=init['phase_stop'][init['motion']][None,:]-74)&(torch.arange(len(trace['clearance']))[:,None]<=init['phase_stop'][init['motion']][None,:]+30)
-    good=(trace['object_root'][:,:,2]-init['initial_height'][None,:]>=.03)&(trace['clearance']>=.02)
-    if not torch.equal(mask.sum(0),torch.full((n,),105)):raise ValueError('full105 evaluation')
-    labels=(good|~mask).all(0).numpy().astype(np.float32)
+    labels=None
+    if include_labels:
+        mask=(torch.arange(len(trace['clearance']))[:,None]>=init['phase_stop'][init['motion']][None,:]-74)&(torch.arange(len(trace['clearance']))[:,None]<=init['phase_stop'][init['motion']][None,:]+30)
+        good=(trace['object_root'][:,:,2]-init['initial_height'][None,:]>=.03)&(trace['clearance']>=.02)
+        if not torch.equal(mask.sum(0),torch.full((n,),105)):raise ValueError('full105 evaluation')
+        labels=(good|~mask).all(0).numpy().astype(np.float32)
     if not np.isfinite(features).all():raise ValueError('finite truth descriptor')
     return dict(features=features,labels=labels,motion=init['motion'].numpy(),common_dim=82,effect_dim=effect.shape[1],interaction_dim=interaction.shape[1],raw_contacts=len(raw),prefix_exact=True)
 
