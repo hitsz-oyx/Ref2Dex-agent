@@ -139,8 +139,10 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
     device_aux = y_aux.to(device)
     device_train_idx = train.nonzero(as_tuple=False).flatten().to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-5)
-    for _ in range(epochs):
+    training_history = []
+    for epoch in range(epochs):
         model.train()
+        loss_sums = torch.zeros(3, device=device)
         permutation = device_train_idx[torch.randperm(device_train_idx.numel(), device=device)]
         for start in range(0, permutation.numel(), batch_size):
             idx = permutation[start:start + batch_size]
@@ -153,6 +155,11 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
+            loss_sums += torch.stack((loss_return, loss_binary, loss_cont)).detach() * idx.numel()
+        epoch_losses = (loss_sums / permutation.numel()).cpu().tolist()
+        training_history.append(dict(zip(
+            ("return_mse_normalized", "binary_bce", "continuous_mse_normalized"), epoch_losses)))
+        training_history[-1]["epoch"] = epoch + 1
     model.eval()
     with torch.no_grad():
         predictions = []
@@ -170,6 +177,7 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
     ]).mean())
     return {
         "name": name,
+        "training_history": training_history,
         "input_dims": {key: list(blocks[key].shape[1:]) for key in variant_defs[name]},
         "train_rows": int(train.sum()),
         "test_rows": int(test.sum()),
@@ -257,10 +265,13 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--seed", type=int, default=20261004)
+    parser.add_argument("--model-seed", type=int, default=None,
+                        help="model/minibatch RNG seed; default uses --seed, which still defines the split")
     parser.add_argument("--num-threads", type=int, default=1)
     parser.add_argument("--future-action-control", action="store_true",
                         help="fit diagnostic V_HF and V_HFEI arms using on-policy future actions")
     args = parser.parse_args()
+    model_seed = args.seed if args.model_seed is None else args.model_seed
     if args.output.exists():
         raise FileExistsError(args.output)
     dataset = torch.load(args.input, map_location="cpu", weights_only=False)
@@ -285,6 +296,8 @@ def main() -> None:
         "epochs": args.epochs,
         "batch_size": args.batch_size,
         "seed": args.seed,
+        "split_seed": args.seed,
+        "model_seed": model_seed,
         "future_action_control": args.future_action_control,
         "split_unit": "(source_run, episode_id)",
         "train_episodes": train_episodes,
@@ -299,7 +312,7 @@ def main() -> None:
     fitted = {}
     for name in variant_defs:
         fitted[name] = _fit_variant(name, standardized_blocks, target, aux, train, test, device,
-                                     args.epochs, args.batch_size, args.seed,
+                                     args.epochs, args.batch_size, model_seed,
                                      episode_id, source_run, noise_std, variant_defs)
         report["variants"][name] = {
             k: v for k, v in fitted[name].items() if not isinstance(v, torch.Tensor)
