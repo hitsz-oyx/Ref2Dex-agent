@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. User-authorized granularity Probe completed.
+Goal ACTIVE; journal readiness NOT READY. Corrected execution-input Probe prepared.
 
 ## Workspace and task
 
@@ -137,6 +137,16 @@ Detailed negative families, numerical corrections and run provenance remain
 in [research index](research/README.md), experiment cards and Git.
 
 ## Active question and next step
+
+P-20261003-surface-execution-input prepared: reuse corrected655full traces,
+384train/384held wholeepisodes,16fixedticks/episode. Currentq/dq/senttarget
+closedactuator, action-removed control, then two frozen7168surface priors under
+five handflow conditions. No new physics/optimizer/policy training; mainFK/
+fit/batchinference GPU,900s/1GiB. Prospective execution/oracle/causal gates and
+independent geometry/code smoke fixed; existing supervisor finds no blocker.
+Keep earlier9/24actuator evidence as different legacy substrate. Run this
+qualification before more bulk data or corrected policy training.
+[Card](experiments/probes/P-20261003-surface-execution-input.md).
 
 User-authorized fixed-data granularity comparison completed with all six
 gates failed. Close this exact matrix; do not sweep density, neighbor counts,
