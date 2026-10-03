@@ -92,6 +92,12 @@ def create_session(args):
     task = Dexplore_Inspire(cfg, params, gymapi.SIM_PHYSX, 'cpu', 0, True)
     task._enable_early_termination = False
     task._adaptive_kappa_enabled = False
+    if getattr(args,'retain_pd_target',False):
+        def pre_physics(session,actions):
+            session.actions=actions.to(session.device).clone()
+            session._oracle_pd_target=session._action_to_pd_targets(session.actions)
+            session.gym.set_dof_position_target_tensor(session.sim,gymtorch.unwrap_tensor(session._oracle_pd_target))
+        task.pre_physics_step=types.MethodType(pre_physics,task)
     if str(task._dof_pos.device) != 'cpu' or abs(task.dt - 1/30.) > 1e-8:
         raise ValueError('CPU read pipeline / native control clock')
     native = task.gym
@@ -157,6 +163,7 @@ def create_session(args):
                    native_reference_q=task.hoi_refs[:,0,:int(stops.max())+1,119:137].clone(),
                    policy_sha256=sha(args.policy_checkpoint), p0_fingerprint=fingerprint(model.state_dict()))
     metadata = dict(cpu_data_pipeline=True, physics=args.physics, inference_device='cuda',
+                    retain_pd_target=getattr(args,'retain_pd_target',False),
                     hand_body_names=names, shape_owners=shape_owners, hand_shape_filters=filters,
                     actor_body_properties=body_metadata, source_adaptation=source_adaptation,
                     contact_collection='CC_ALL_SUBSTEPS', dt=task.dt, simulation_dt=params.dt,

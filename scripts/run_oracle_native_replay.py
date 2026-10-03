@@ -24,6 +24,7 @@ def main():
     p.add_argument('--decision', type=int)
     p.add_argument('--oracle-horizon',type=int,default=32)
     p.add_argument('--contact-window-only',action='store_true')
+    p.add_argument('--retain-pd-target',action='store_true')
     args = p.parse_args()
     if args.output.exists() or ROOT not in args.output.resolve().parents or args.envs % 3:
         raise ValueError('unique owned balanced output')
