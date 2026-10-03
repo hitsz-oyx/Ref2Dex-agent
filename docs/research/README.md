@@ -8,6 +8,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 # Research 文档
 
+- [Gate 1 consequence value bridge](20261003-gate1-consequence-value-results.md):
+  pinned and e420 data-coverage recipes both `UNPROMISING`; no Cm training follows.
 - [Oracle effect + interaction primary-source review](20261003-effect-interaction-oracle-review.md): user-proposed next priority; current contact versus future-query oracle distinguished; user-authorized actual Probe now running.
 - [No-Cm oracle r1 actual deployment / conditional-query failure](20261003-effect-interaction-oracle-r1-results.md):28/58/62/59/59 per96, UNCLEAR; mixed future mismatch prevents certified oracle utility claim.
 - [Actual contact API and full-prefix replay qualification](20261003-oracle-native-qualification.md): CPU read/GPU physics passes, all72 native ticks bit-identical; friction fields unavailable.

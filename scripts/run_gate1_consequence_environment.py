@@ -7,6 +7,7 @@ each transition; an offline assembler later forms grouped future windows.
 No model is trained in this phase.
 """
 from pathlib import Path
+import os
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,10 +37,19 @@ def build_source() -> str:
     if source.count(old_payload) != 1:
         raise ValueError("physical collector payload contract drift")
     source = source.replace(old_payload, new_payload)
+    old_guard = 'if ARGS.mode == "collect" and ARGS.checkpoint_sha256 != SOURCE_SHA:'
+    new_guard = ('if ARGS.mode == "collect" and ARGS.checkpoint_sha256 != SOURCE_SHA '
+                 'and not os.environ.get("REF2DEX_ALLOW_DIAGNOSTIC_SOURCE"):')
+    if source.count(old_guard) != 1:
+        raise ValueError("physical collector source guard drift")
+    source = source.replace(old_guard, new_guard)
     return source
 
 
 if __name__ == "__main__":
     sys.path.insert(0, str(ROOT))
+    if "--allow-diagnostic-source" in sys.argv:
+        sys.argv.remove("--allow-diagnostic-source")
+        os.environ["REF2DEX_ALLOW_DIAGNOSTIC_SOURCE"] = "1"
     exec(compile(build_source(), str(ROOT / "scripts/run_cm_physical_value_environment.py"), "exec"),
          {"__name__": "__main__", "__file__": str(ROOT / "scripts/run_cm_physical_value_environment.py")})

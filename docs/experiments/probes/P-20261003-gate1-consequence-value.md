@@ -10,7 +10,7 @@ held-out prediction error for exact simulator return-to-go `G`?
 
 **Decision.** Compare the strict ablations `V_H`, `V_HEI`, and `V_HAEI` on
 episode-grouped held-out data. A result is `PROMISING` only if the joint model
-reduces the primary held-out error by at least 10% against `V_H` with an
+reduces the primary held-out MAE by at least 10% against `V_H` with an
 episode-cluster bootstrap interval excluding zero, and the effect does not
 disappear after controlling for action residual/noise. Otherwise classify the
 Probe as `UNPROMISING` or `UNCLEAR`; this Probe cannot establish Cm policy
@@ -37,8 +37,9 @@ windows are split by episode so future frames cannot cross a split. Existing
 fixed-option `records.pt` data is excluded: its audit found no exact reward or
 explicit E/I definitions and therefore it cannot answer this Gate.
 
-**Resource boundary.** Probe uses one admitted idle GPU, a short collector run
-and offline GPU model fitting only after the data contract passes. It does not
+**Resource boundary.** Probe uses one admitted idle GPU for collection and up
+to four admitted idle GPUs for independent offline fits after the data
+contract passes. It does not
 modify the external baseline worktree, overwrite checkpoints, or start Cm
 online training. The output stays below the project experiment directory.
 
@@ -48,8 +49,14 @@ completed on GPU6 with six complete episodes and 3,362 transitions. Its shard
 contains exact reward, reward components, object root state, five contact-body
 poses/quaternions, hand/object forces, and explicit E/I definitions. The
 offline assembler produced 3,170 episode-grouped horizon-32 windows across six
-episodes. These are contract and wiring evidence only; no model fit or Gate 1
-classification has been run.
+episodes. The larger probe then produced 21,004 windows across 41 episodes and
+passed the same audit. Four GPU-parallel grouped split fits were run with the
+same fixed architecture and 40 epochs. `V_HEI` versus `V_H` held-out MAE
+relative changes were `-41.6%`, `+9.5%`, `-4.9%`, and `-4.0%`; the positive
+case did not have a bootstrap interval excluding zero. `V_HAEI` was similarly
+unstable. The predeclared 10% plus nonzero-CI gate therefore classifies this
+implementation/data recipe as **UNPROMISING** for Gate 1. This is not a claim
+that privileged interaction information is universally useless.
 
 **Artifacts.**
 
@@ -57,8 +64,21 @@ classification has been run.
 * Assembler: [`assemble_gate1_dataset.py`](../../../scripts/assemble_gate1_dataset.py)
 * Old-data audit: [`audit_gate1_data_contract.py`](../../../scripts/audit_gate1_data_contract.py)
 * Smoke output: `src/task/CmResidual/research/contact_consequence/output/P-20261003-gate1-consequence-value/smoke_s86_retry3/`
-* Assembled dataset audit: `gate1_dataset_h32_v2.audit.json` in that directory.
+* Assembled dataset audit: `gate1_dataset_h32.audit.json` in that directory.
+* Bridge fit reports: `gate1_value_bridge_seed20261004_gpu4.json` through
+  `gate1_value_bridge_seed20261007_gpu7.json` in the probe directory.
 
-**Next action.** Run the grouped bridge fit only after a fresh data-volume
-probe has enough independent episodes for the predeclared bootstrap. Report
-the ablation table and leakage/shape audit before considering any Cm route.
+**Data-coverage diagnostic.** A separate self-trained `plain_off` e420
+checkpoint was evaluated without mixing it into the pinned-source result. Its
+actor-only smoke had 2/6 historical five-step holds but 0/6 stable successes.
+The explicitly marked diagnostic collector then produced 14,081 transitions,
+26 episodes, 1 stable success and 1 drop-after-success. Four parallel bridge
+fits gave `V_HEI` relative MAE changes of `-25.5%`, `-6.9%`, `-11.3%`, and
+`+1.6%`; no split met the predeclared gate. This does not rescue the route and
+does not turn the diagnostic checkpoint into the pinned P0 source.
+
+**Next action.** Freeze this exact bridge recipe and do not spend Cm training
+budget on it. Close this Gate 1 route for the current actor/data distributions.
+Any future change to target, actor/data distribution, or interaction encoding
+requires a new Decision Memo and a separately identified Probe with a matched
+Cm-off policy-utility plan.
