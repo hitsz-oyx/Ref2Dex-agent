@@ -92,3 +92,23 @@ episode-balanced MAE 变化为 `+2.9%`、`+2.8%`、`-18.2%`、`+24.4%`、
 `+3.7%`；只有一个 split 的 bootstrap CI 排除零。该 actor 上没有复现
 e260 的稳定 h16 方向，因此这个 diagnostic 分支停止扩展，并继续与 pinned
 e260 结果分开报告。
+
+## Independent e260 coverage extension
+
+为检验单个 success/drop episode 的影响，又从同一 pinned e260 checkpoint 采集了
+两个独立 run（seed namespace 1864/1865），各 28 episodes，合计 29,111 个 h16
+windows。1864 有 1 个同时满足 stable-success 与 drop-after-success 的 episode，
+1865 没有这两类 outcome；dataset audit 通过。
+
+在这组独立数据上，五个固定 split 的 `V_HEI` 相对 `V_H` 变化为
+`+25.9%`、`+32.2%`、`+8.3%`、`-1.0%`、`-2.1%`，所有 episode bootstrap CI
+均跨零。future-action control 的 `V_HFEI` 相对 `V_HF` 为
+`+45.9%`、`+42.2%`、`+19.7%`、`+15.6%`、`+17.7%`；这只说明在该样本上 E/I
+相对未来动作仍有诊断信号，不能抵消直接 `V_HEI`/`V_H` 的不稳定。
+
+将四个 e260 run 合并为 112 episodes 做 exploratory fit，`V_HEI` 相对 `V_H`
+为 `+12.1%`、`+15.0%`、`-25.8%`、`+29.8%`、`+5.4%`，只有 2/5 CI 排除零；
+matched control 为 `+26.7%`、`+5.8%`、`-5.2%`、`+12.0%`、`+9.0%`，仅 1/5
+CI 排除零。样本量扩展没有消除 split 敏感性，因此停止继续扩大该 actor 的
+collector，仍不启动 Cm 训练。若进入正式 Validation，应预注册 actor/episode
+cluster bootstrap，并补充多个独立 success/drop outcome。

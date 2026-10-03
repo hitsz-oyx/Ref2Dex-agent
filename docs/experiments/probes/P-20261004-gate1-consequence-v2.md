@@ -33,3 +33,11 @@ audit found that the first two split gains were about 94% and 96% attributable
 to one episode each. This is still a directional `PROMISING` probe, not a Gate
 closeout or policy-utility result; the next useful probe needs broader
 success/drop coverage and actor-level cluster uncertainty.
+
+**Coverage extension.** Two additional independent e260 runs added 56 episodes.
+On that held-out cohort, direct h16 `V_HEI` versus `V_H` was
+`+25.9%`, `+32.2%`, `+8.3%`, `-1.0%`, `-2.1%` across the five fixed splits, with
+all intervals crossing zero. Combining all four e260 runs (112 episodes) still
+gave `+12.1%`, `+15.0%`, `-25.8%`, `+29.8%`, `+5.4%`; only two intervals excluded
+zero. The larger same-actor probe therefore did not meet Gate 1 stability and is
+closed without Cm training.

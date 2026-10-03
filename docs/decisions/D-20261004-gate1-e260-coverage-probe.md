@@ -23,3 +23,19 @@ success/drop episode 且方向保持，才考虑正式 Validation 方案。
 
 **外部授权边界。** 只读取 pinned checkpoint 和 motion 数据；不覆盖已有 shard
 或 checkpoint，不修改 baseline worktree，不启动在线 Cm/policy training。
+
+**结果。** 两个新 run 均完成 28 episodes；1864 有 1 个同时满足
+stable-success/drop-after-success 的 episode，1865 没有这两类 outcome。独立新
+数据合计 56 episodes、29,111 h16 windows，dataset audit 通过。五个固定 split
+的 `V_HEI` 相对 `V_H` 为 `+25.9%`、`+32.2%`、`+8.3%`、`-1.0%`、`-2.1%`，
+所有 CI 都跨零。matched future-action control 的 `V_HFEI` 相对 `V_HF` 为
+`+45.9%`、`+42.2%`、`+19.7%`、`+15.6%`、`+17.7%`，但这不挽救直接 gate，
+因为 `V_H` 基线本身在新 episode 集上不稳定。
+
+把四个同一 e260 actor run 合并为 112 episodes 的 exploratory fit 后，直接
+`V_HEI` 相对 `V_H` 为 `+12.1%`、`+15.0%`、`-25.8%`、`+29.8%`、`+5.4%`，
+只有 2/5 CI 排除零；matched control 为 `+26.7%`、`+5.8%`、`-5.2%`、
+`+12.0%`、`+9.0%`，仅 1/5 CI 排除零。样本量扩展没有消除 split 敏感性，
+因此停止继续扩大该 actor 的 collector，维持 Gate 1 `PROMISING` 诊断状态，
+不启动 Cm 训练。后续若要正式验证，应改为预注册 actor/episode cluster
+bootstrap，并增加独立 outcome 覆盖。
