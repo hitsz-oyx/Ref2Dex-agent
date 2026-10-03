@@ -883,3 +883,25 @@ height，并在 reset 后复用 motion/start/rest 元数据，且没有记录真
 显式 seed provenance，移除伪 `shuffled` 控制，并恢复缺失的 Cm dataset/data-tool 源码。
 修正后的 source/fit/native Probe 尚未运行；在新 Probe 通过 action ranking、coverage 和
 真实局部效用门之前，不启动 PPO 或扩大普通 Cm 数据。
+
+2026-10-03 HF32 uncertainty-weighted value allocation 已完成并关闭。固定 top-20% 不确定性
+权重为2.0时，held top-regime direct-Q RMSE 只改善0.20%，未达到预设5%门；不继续权重
+扫描或策略跟进。旧 candidate-advantage v1 的 uncertainty fallback 仍只保留为路线线索：
+离线已知 propensity screen 的 score lower90 为+6.98mm，但其 reset 后 motion/start/rest
+和 simulator seed provenance 不足，不能作为科研证据。
+
+已授权 HF33 `P-20261003-cm-uncertainty-gated-candidate-v2`。采集器现在在每个 trigger
+快照当前 episode 的 motion/start/rest，reset 后重新读取任务元数据，并分别记录 simulator
+seed、panel seed 和 `PYTHONHASHSEED`；审计器拒绝旧 v1。下一步只运行固定六 seed、8 候选、
+`p=1/8`、one-tick candidate 加 nine-tick fixed Cup 的 native Probe。若 fallback 的 score
+lower90、contact/clearance 风险和 coverage 门同时通过，才设计小型 option-policy；否则关闭
+该配方，不扩大普通 Cm 数据、不启动 PPO。
+
+HF33 `P-20261003-cm-uncertainty-gated-candidate-v2` 已完成并关闭。修正 provenance 后的
+6 个 simulator seed 产生 252 个窗口、22 个 motion/start groups，8 臂支持均达到门；但
+固定 uncertainty fallback 改变 119/252 个动作，score 相对 fixed Cup 的组 bootstrap
+lower90 为 `-30.69mm`，last-3 contact 与 clearance lower90 分别为 `-0.281` 和
+`-0.213`。因此 corrected native 结果为 `UNPROMISING`：不启动 option-policy/PPO，
+不扫描 sigma/阈值，也不扩大普通 Cm 数据。v1 离线正向信号不能与此结果合并为正向证据。
+完整记录见 [HF33 实验卡](experiments/probes/P-20261003-cm-uncertainty-gated-candidate-v2.md)
+和 [v2 审计](experiments/probes/P-20261003-cm-uncertainty-gated-candidate-v2-results.json)。

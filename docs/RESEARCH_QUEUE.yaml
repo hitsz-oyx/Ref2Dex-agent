@@ -344,12 +344,12 @@ historical_dispatches:
     note: "preserve failed runtime/artifact provenance; scientific conclusion NONE; do not rerun this old task"
 
 campaign:
-  name: cm_uncertainty_value_allocation
-  status: ACTIVE
+  name: cm_uncertainty_gated_candidate_consequence
+  status: CLOSED
   parent_campaign: cm_consequence_memory
   previous_campaign: cm_targeted_acquisition
-  decision: docs/decisions/D-20261003-cm-route-review-uncertainty-value-allocation.md
-  resume_requires: none
+  decision: docs/decisions/D-20261003-cm-uncertainty-gated-candidate-v2.md
+  resume_requires: "new Decision Memo with a different decision target or representation; do not resume ordinary candidate, threshold, or PPO scans"
 
 # This file is search state, not an experiment-result log.  A Probe card owns
 # the evidence; this file only says which claim/family may consume the next
@@ -369,15 +369,28 @@ hypotheses:
   HF32:
     claim: C3
     name: uncertainty_guided_value_allocation
-    status: RUNNING
+    status: UNPROMISING
     branch: agent/cm-residual-policy
     probe_budget: 1
-    probes_used: 0
+    probes_used: 1
     owner: current_session
     authorization: "route review changed Cm responsibility from consequence fitting to fixed real-return direct-Q loss allocation using the existing held uncertainty signal; no actor, reward, action or data-distribution change"
     card: docs/experiments/probes/P-20261003-cm-uncertainty-weighted-value.md
     decision: docs/decisions/D-20261003-cm-route-review-uncertainty-value-allocation.md
-    transition: "Running one fixed top-20% uncertainty weight=2.0 versus same-batch unweighted direct-Q refit; no scan or policy follow-up before held gates."
+    transition: "Closed UNPROMISING: fixed top-20% uncertainty weight=2.0 changed held top-regime RMSE by only 0.20% (gate 5%); no policy follow-up or weighting scan."
+
+  HF33:
+    claim: C3
+    name: uncertainty_gated_candidate_consequence
+    status: UNPROMISING
+    branch: agent/cm-residual-policy
+    probe_budget: 1
+    probes_used: 1
+    owner: current_session
+    authorization: "corrected native validation of the fixed uncertainty-gated candidate consequence selector after v1 reset/seed provenance audit"
+    card: docs/experiments/probes/P-20261003-cm-uncertainty-gated-candidate-v2.md
+    decision: docs/decisions/D-20261003-cm-uncertainty-gated-candidate-v2.md
+    transition: "Closed UNPROMISING: corrected six-seed native Probe had 252 windows and passed support, but fixed uncertainty fallback score lower90 was -30.69mm and contact/clearance risk gates failed. No policy follow-up, threshold scan, or ordinary data expansion."
 
   HF31:
     claim: C3
