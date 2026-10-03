@@ -37,6 +37,7 @@
 - [HF34 corrected residual v2](../experiments/probes/P-20261003-cm-corrected-residual-v2.md)：世界高度和 provenance 修正成立，但 residual 几乎不改变动作且 native 效用为负。
 - [Gate 1 consequence bridge v2 contract repair](../research/20261004-gate1-consequence-v2-results.md)：修复 pre-step 时序、四元数连续性、force frame、history preceding-action 和 composite split；I+ interaction-delta 在 h16/h32 有方向性好转，但同一 actor 扩展到 112 episodes、独立 e420 actor 后仍未达到 Gate 条件。
 - [Gate 1 corrected outcome coverage](../experiments/probes/P-20261004-gate1-corrected-coverage.md)：修复 history contract 后扩展到 224 episodes，e260 h16 I+ direct/control 方向更一致，但仍是探索性 `PROMISING`，尚未进入正式 Validation。
+- corrected h32 在 e260 上跨 seed/cluster 稳定，但 e420 五 seed 未稳定复现；详见 [Gate 1 consequence results](../research/20261004-gate1-consequence-v2-results.md) 与 [e420 h32 screening decision](../decisions/D-20261004-gate1-e420-h32-screening.md)。
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->
