@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. Scale/cross-hand offline Probe prepared.
+Goal ACTIVE; journal readiness NOT READY. Scale/cross-hand offline Probe completed.
 
 ## Workspace and task
 
@@ -32,6 +32,18 @@ No user-track six-expert/twelve-motion evidence is transferred.
 | Validation/generalization/hardware | Absent; manuscriptv11 is a historical draft |
 
 ## Latest actual result
+
+P-20261003-cm-scale-cross-hand-r1 COMPLETED/UNPROMISING. Shared22feature
+surface-motion prior,19651parameters, nested512/2048/7168windows perhand,
+50train objects perhand. MANOheld EPE3.869/3.601/3.559mm; Inspireheld
+4.743/4.417/4.432mm. Gains8.015%/6.560%fail10%gates. Fixed256window
+Inspireadaptation: MANOprior4.727 vs scratch4.830/shuffled4.840mm, gains
+2.143%/2.330%fail10%/5%. Frozen MANOzero-shot4.412mm, adaptation worsens
+7.141%. All complete gates fail; no scale/main-cause or pure hand-effect claim.
+Realized future hand movement is offline input; legacy-source physics, no
+new corrected-native policy evidence. All18161source rows and geometry/neural/
+schedule/gate audits pass;15600updates,458.194s/273459235bytes, inputs unchanged,
+owned PIDs absent. [Result](research/20261003-cm-scale-cross-hand-results.md).
 
 Independent implementation review confirmed a native collision-filter bug:
 body names were indexed by shape number despite25bodies/13shapes. Five hand
@@ -112,14 +124,13 @@ that claim. Close the exact joint auxiliary/data-allocation recipe, without
 coefficient/width/steps/seed/horizon/truncation/label-budget rescue. No formal
 Validation launched from a failed Probe.
 
-Next autonomous step: design bounded corrected-environment baseline/data
-qualification, then a fixed-definition Cm data-scale/coverage diagnostic.
-User raised Cm as a knowledge prior; broad compatible pretraining and controlled
-size/diversity curves remain untested on this independent track. Task-local
-negative fits do not resolve that hypothesis. [Scale note](research/20261003-cm-data-scale-hypothesis.md).
-The measured fixed-policy sensitivity warrants substrate review
-before further training claims; preserve the fix and old evidence. No replay
-of every closed recipe or new fit without a separate prospective design.
+Next autonomous step: design bounded command-to-realized-hand-motion input
+qualification on corrected native physics. The broad prior has offline
+predictive information but uses unavailable realized future hand movement;
+fixed small-data adaptation/scale gates fail. Separate execution-input mismatch
+from hand-domain transfer before more bulk data collection or policy fitting.
+Preserve the filter fix and old evidence; no replay of closed recipes or new
+fit without a separate prospective design.
 [Decision](decisions/D-20261003-inspire-shape-filter-impact.md).
 
 ## Preservation and debt

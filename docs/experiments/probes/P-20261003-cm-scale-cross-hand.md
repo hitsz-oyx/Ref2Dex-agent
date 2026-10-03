@@ -99,3 +99,12 @@ Prospective numerical bounds: source packet bytes exact; independently rebuilt
 features atol2e-5/rtol2e-6, network forward<2e-4normalized flow (2micrometers),
 parent metric<1e-4mm, current closest4distances<1e-5m, rigid point correspondence
 after own-frame transforms<1e-4m. These are engineering bounds, not task gates.
+
+## Actual outcome
+
+r1 COMPLETED/UNPROMISING, codebc6b576,458.194s/273459235bytes,15600updates,
+all own PIDs absent. All18161source rows and independent NumPy/geometry audits
+pass, inputs unchanged. Scale improvements8.015%MANO/6.560%Inspire<10%;
+adapted prior improves2.143%over scratch/2.330%over shuffled<10%/5%.
+All three complete gates fail. Zero-shot4.411876mm and adapted4.726920mm are
+retained; no favorable subgroup rescues status. [Full result](../../research/20261003-cm-scale-cross-hand-results.md).
