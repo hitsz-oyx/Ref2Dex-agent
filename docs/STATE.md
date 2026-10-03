@@ -143,6 +143,10 @@ Current joint-budget r1/r2 preserved in supplement-r11 through a3563d9,
 1960071139 unique bytes; all copies and prior manifests SHA verified.
 [Receipt](activities/20261003-budgeted-physical-critic-delivery.md).
 
+Supplement-r12through1530872 preserves filter red/green, fixed corrected655
+and complete scale/hand matrix;603791182unique bytes, copies/prior manifests
+SHAverified and Git bundle verified. [Receipt](activities/20261003-shape-filter-scale-delivery.md).
+
 Manuscriptv11 is an audited historical21page draft, not updated for recent
 experiments or journal-ready. Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
