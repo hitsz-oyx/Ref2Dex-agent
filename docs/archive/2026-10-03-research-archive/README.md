@@ -36,3 +36,7 @@ branch/ref 仍保留：
 baseline 目录是 Git common-dir，不属于可删除的普通 worktree。所有路径、HEAD、dirty
 状态和剩余 worktree 均以 `manifest.json` 为准。
 - [2026-10-03 worktree cleanup](./WORKTREE_CLEANUP_20261003.md)：旧 worktree 的状态快照、清理范围和分支保留记录。
+
+本次文档清理还删除了重复的根级 handoff/收尾文件，并将退役的工作流设计、验证记录、
+旧治理活动和旧 ADR 移入 `workflow-v1/`、`activities/governance-v1/` 与 `adr/`。
+对应的 Git 清理前快照为 `snapshot/oracle-before-doc-cleanup-20261003`。

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/ARCHITECTURE.md.
+# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/README.md.
 """Keep the root supervision turn live through the Agent Broker.
 
 With broker databases configured, the watchdog writes ``CONTROL`` messages and

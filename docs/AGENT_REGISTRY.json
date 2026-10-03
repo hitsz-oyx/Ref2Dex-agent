@@ -141,7 +141,7 @@
       "queue_db": "/home2/wyy/oyx_ws/.codex_oyx_NewAPI/queue_1.sqlite",
       "rollout_locator": "sessions/**/rollout-*-01a0e1ad-01de-7031-8749-8e55426bb9db.jsonl",
       "role": "全局主代理 / supervisor / mainline 集成负责人",
-      "operating_contract": "docs/ROOT_AGENT.md",
+      "operating_contract": "docs/archive/workflow-v1/ROOT_AGENT.md",
       "parent_agent_key": null,
       "worktree": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent",
       "branch": "main",

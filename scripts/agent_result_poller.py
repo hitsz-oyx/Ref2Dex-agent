@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/ARCHITECTURE.md.
+# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/README.md.
 """Watch registered child agents and coalesce state or turn completion changes."""
 
 import argparse

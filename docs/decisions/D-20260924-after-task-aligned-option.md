@@ -26,4 +26,4 @@ Decision outcome: 用户于 2026-09-24 确认 **Option A**。当前 campaign
 停止新增训练、仿真和模型 Probe，保留所有 checkpoint、运行 manifest 与
 实验报告。`MISSION.md` 中的 Cm policy-utility 目标仍未达成；这次决策
 没有把未经证实的 Cm 增益改写为已证实的 claim，也没有把局部失败外推为
-“所有 Cm 都无效”。阶段证据索引见 `docs/CM_CAMPAIGN_CLOSEOUT_20260924.md`。
+“所有 Cm 都无效”。阶段证据索引见 `docs/handoffs/CM_CAMPAIGN_CLOSEOUT_20260924.md`。

@@ -17,7 +17,7 @@ Cm-off 消融，不能把成功率归因于 Cm。Cm 对最终策略的独立、�
 仍未建立；当前实验只否定已测试的具体配方与动作族。跨物体抓取迁移
 仍弱，未见物体上的 Cm 策略收益也未建立。下一步仅保留未来若重启
 研究时重新设计时序 credit assignment 的方向；当前不执行。
-证据与边界集中记录于 `docs/CM_CAMPAIGN_CLOSEOUT_20260924.md`。
+证据与边界集中记录于 `docs/handoffs/CM_CAMPAIGN_CLOSEOUT_20260924.md`。
 
 ## 跨物体研究证据（当前阶段已收尾）
 

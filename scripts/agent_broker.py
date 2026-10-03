@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/ARCHITECTURE.md.
+# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/README.md.
 """Deterministic task broker for the fixed Ref2Dex worker pool.
 
 The broker is deliberately provider agnostic and contains no model or research

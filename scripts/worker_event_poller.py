@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/ARCHITECTURE.md.
+# DRAIN_ONLY: legacy workflow; new tasks use researchctl and docs/workflow/README.md.
 """Observe fixed worker runtimes and record bounded events in the Agent Broker.
 
 This daemon deliberately has no research policy and no Goal mutation path.  It
