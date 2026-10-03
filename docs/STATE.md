@@ -1,7 +1,7 @@
 # Independent contact-response research state
 
 Updated 3 October 2026. User instruction: continue the previous research route.
-Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; contrast-acquisition completed UNPROMISING; manuscriptv12 sources prepared.
+Goal ACTIVE; journal readiness NOT READY. State-anchored transport and full-mesh rotation/clearance completed UNPROMISING; contrast-acquisition completed UNPROMISING; native manuscriptv12 completed and audited; core utility still unproved.
 
 ## Workspace and task
 
@@ -261,12 +261,14 @@ legacyphysics/behavior and previouslyviewedtest, no corrected/nativepolicygain.
 [Result](research/20261003-contrast-acquisition-results.md),
 [decision](decisions/D-20261003-after-contrast-acquisition.md).
 
-Current work: integrate actuallaterpolicy/filter/data/hand/granularity/transfer/
+Completed paper integration: actuallaterpolicy/filter/data/hand/granularity/transfer/
 rigidcapacity-learnability/rotation/acquisition evidence into manuscriptv12.
 Eightnewgeneratedtables/twoscientificfigures; fulloldv11/assets preserved.
 FirstexportfinalizationmissingrootPDF assumption retained separately; corrected
-native-v11PDF path, no trainingrepeated. Nativecompile/independentpaper audit
-pending. Workingrevision only; not a changedclaim or journalcompletion.
+native-v11PDF path, no trainingrepeated. Native27pagecompile+independentpaper audit PASS: all29tables/6figures,55source
+hashes, newnumericcells and7680rawpolicycounts, PDFbounds/visualpages20--25
+verified. Workingrevision only; not a changedclaim or journalcompletion.
+[PDF](../paper/manuscript-v12.pdf), [closeout](activities/20261003-paper-v12-closeout.md).
 
 
 User-authorized fixed-data granularity comparison completed with all six
@@ -336,8 +338,9 @@ all155904poses/155136transitions/audits/logs/source/card/results/decision;
 106913163unique bytes,46fileSHA/Gitbundle verified,base/r1--r18manifests
 unchanged. [Receipt](activities/20261003-rotational-clearance-delivery.md).
 
-Manuscriptv11 is an audited historical21page draft, not updated for recent
-experiments or journal-ready. Formal multi-training-seed utility Validation,
+Manuscriptv12 is an audited native27page workingdraft with recent evidence;
+v11/older/firstfailedexport retained. No journal-ready or positiveCmclaim.
+Formal multi-training-seed utility Validation,
 broader tasks, specific novelty assessment and paper integration remain
 [Research Debt](RESEARCH_DEBT.md); no negative observation is upgraded to a
 formal scientific refutation. Goal ACTIVE.

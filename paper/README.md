@@ -1,5 +1,8 @@
-Current working revision: [manuscript-v12.tex](manuscript-v12.tex), generated
-from immutable audited results. Native compilation and paper audit pending.
+Current working revision: [manuscript-v12.pdf](manuscript-v12.pdf) and
+[manuscript-v12.tex](manuscript-v12.tex), native27-page LaTeX compilation.
+55source-input hashes checked, all29tables/6figures present, new policy table
+reaggregated from7680raw evaluation rows, allPDFtext bounds pass and pages20--25
+visually checked. Actual source results match immutable delivery hashes.
 Adds8tables/2figures: later policy comparisons, collision ownership correction,
 scale/hand/granularity, corrected transfer and rigid learnability, full-mesh
 rotation and physical contrast acquisition. All failed gates and legacy versus

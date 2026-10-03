@@ -28,6 +28,8 @@ same research branch/history with separate local Git metadata; old worktree read
 
 - [Fixed-label-budget contrast acquisition](20261003-contrast-acquisition-results.md):4800updates/all audits pass; contrast-minus-uniform+.363mm² fails, minusabsolute-1.924passes,3/6gatespass; UNPROMISING, no native acquisition launched.
 
+- [Native manuscript12 closeout](../activities/20261003-paper-v12-closeout.md):27pages,29tables/6figures,55source hashes/newtables/7680rawpolicycounts/PDFbounds/visualpages20--25 verified; working evidence record, not journal-ready.
+
 ## 当前独立工作树研究
 
 `agent/contact-response-cm` 的现状见 [STATE](../STATE.md)，首轮实际结果见
