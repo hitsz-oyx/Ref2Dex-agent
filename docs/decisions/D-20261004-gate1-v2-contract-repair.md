@@ -11,3 +11,10 @@
 **结果。** fresh pre-step 数据通过 state/next-state 对齐审计，包含 12 个 episode。最终同 seed fit 的 `V_HEI` 相对 `V_H` MAE 变化为：h3 `-16.2%`（CI [-5.20, 3.25]），h5 `+5.4%`（CI [-2.07, 2.79]），h10 `-18.9%`（CI [-2.56, 0.50]），h16 `-81.7%`（CI [-4.59, -3.65]），h32 `-14.8%`（CI [-2.49, 0.57]）。测试集只有 2 个 episode，因此这些数字只是 Probe 证据，不能作为 Gate 级结论；当前不支持继续 Cm 路线。
 
 **外部授权边界。** 只读取 baseline checkpoint 和 motion 数据；没有修改外部 worktree、覆盖 checkpoint 或启动在线 Cm/policy training。
+
+**后续 Probe 记录。** 随后两组 fresh run 合计 56 episodes、约 30k 可用窗口；以
+episode-balanced MAE 计算，h16 在五个 split 都保持正向，改善约 `9.8%`–`29.8%`，
+但只有部分 CI 排除零。
+加入未来 on-policy action control 后，五个 split 的 E/I 相对 `V_HF` 变化为
+`-9.2%`、`+10.8%`、`+27.5%`、`+15.9%`、`+23.3%`。因此 h16 方向值得继续
+验证，但仍不能升级为 Gate closeout 或 Cm 训练授权。

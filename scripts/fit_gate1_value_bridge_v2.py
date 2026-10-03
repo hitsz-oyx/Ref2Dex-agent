@@ -27,6 +27,11 @@ VARIANTS = {
     "V_HAEI": ["H", "A", "E", "I"],
 }
 
+FUTURE_ACTION_VARIANTS = {
+    "V_HF": ["H", "F"],
+    "V_HFEI": ["H", "F", "E", "I"],
+}
+
 
 class TemporalEncoder(nn.Module):
     def __init__(self, input_dim: int, hidden_dim: int = 64):
@@ -49,7 +54,9 @@ class TemporalBridge(nn.Module):
             self.effect_encoder = TemporalEncoder(effect_dim)
         if "I" in blocks:
             self.interaction_encoder = TemporalEncoder(interaction_dim)
-        fusion_dim = sum(64 if key in ("H", "E", "I") else action_dim for key in blocks)
+        if "F" in blocks:
+            self.future_action_encoder = TemporalEncoder(action_dim)
+        fusion_dim = sum(64 if key in ("H", "E", "I", "F") else action_dim for key in blocks)
         self.head = nn.Sequential(
             nn.Linear(fusion_dim, 128), nn.ReLU(),
             nn.Linear(128, 64), nn.ReLU(),
@@ -65,6 +72,8 @@ class TemporalBridge(nn.Module):
                 encoded.append(self.effect_encoder(blocks[key]))
             elif key == "I":
                 encoded.append(self.interaction_encoder(blocks[key]))
+            elif key == "F":
+                encoded.append(self.future_action_encoder(blocks[key]))
             else:
                 encoded.append(blocks[key])
         return self.head(torch.cat(encoded, dim=-1))
@@ -79,6 +88,7 @@ def _features(dataset: Dict[str, object]) -> Dict[str, torch.Tensor]:
         "A": dataset["action"].float(),
         "E": dataset["effect"].float(),
         "I": dataset["interaction"].float(),
+        **({"F": dataset["future_action"].float()} if "future_action" in dataset else {}),
     }
 
 
@@ -108,7 +118,8 @@ def _standardize(sequence: torch.Tensor, train: torch.Tensor) -> torch.Tensor:
 def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tensor,
                  aux: torch.Tensor, train: torch.Tensor, test: torch.Tensor,
                  device: torch.device, epochs: int, batch_size: int, seed: int,
-                 episode_id: torch.Tensor, noise_std: torch.Tensor) -> Dict[str, object]:
+                 episode_id: torch.Tensor, source_run: torch.Tensor, noise_std: torch.Tensor,
+                 variant_defs: Dict[str, List[str]]) -> Dict[str, object]:
     torch.manual_seed(seed)
     # Standardization is done once outside this function.  Recomputing the
     # large history tensor for every arm made the first v2 sweep CPU-bound.
@@ -121,9 +132,9 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
     aux_scale = aux[train, 2:].std(dim=0, unbiased=False).clamp_min(1e-6)
     y_aux = aux.clone()
     y_aux[:, 2:] = (y_aux[:, 2:] - aux_mean) / aux_scale
-    model = TemporalBridge(VARIANTS[name], blocks["H"].shape[-1], blocks["E"].shape[-1],
+    model = TemporalBridge(variant_defs[name], blocks["H"].shape[-1], blocks["E"].shape[-1],
                            blocks["I"].shape[-1], blocks["A"].shape[-1]).to(device)
-    device_blocks = {key: blocks[key].to(device) for key in VARIANTS[name]}
+    device_blocks = {key: blocks[key].to(device) for key in variant_defs[name]}
     device_return = y_return_norm.to(device)
     device_aux = y_aux.to(device)
     device_train_idx = train.nonzero(as_tuple=False).flatten().to(device)
@@ -133,7 +144,7 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
         permutation = device_train_idx[torch.randperm(device_train_idx.numel(), device=device)]
         for start in range(0, permutation.numel(), batch_size):
             idx = permutation[start:start + batch_size]
-            batch = {key: device_blocks[key][idx] for key in VARIANTS[name]}
+            batch = {key: device_blocks[key][idx] for key in variant_defs[name]}
             pred = model(batch)
             loss_return = nn.functional.mse_loss(pred[:, 0], device_return[idx])
             loss_binary = nn.functional.binary_cross_entropy_with_logits(pred[:, 1:3], device_aux[idx, :2])
@@ -147,45 +158,59 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
         predictions = []
         for start in range(0, target.shape[0], batch_size):
             idx = torch.arange(start, min(start + batch_size, target.shape[0]))
-            batch = {key: device_blocks[key][idx] for key in VARIANTS[name]}
+            batch = {key: device_blocks[key][idx] for key in variant_defs[name]}
             predictions.append(model(batch)[:, 0].cpu())
         prediction = torch.cat(predictions) * ret_scale + ret_mean
     errors = (prediction - target.float()).abs()
+    test_groups = list(zip(source_run[test].tolist(), episode_id[test].tolist()))
+    unique_test_groups = sorted(set(test_groups))
+    episode_balanced_mae = float(torch.stack([
+        errors[test][torch.tensor([group == g for group in test_groups])].mean()
+        for g in unique_test_groups
+    ]).mean())
     return {
         "name": name,
-        "input_dims": {key: list(blocks[key].shape[1:]) for key in VARIANTS[name]},
+        "input_dims": {key: list(blocks[key].shape[1:]) for key in variant_defs[name]},
         "train_rows": int(train.sum()),
         "test_rows": int(test.sum()),
         "train_mae": float(errors[train].mean()),
         "test_mae": float(errors[test].mean()),
+        "test_episode_balanced_mae": episode_balanced_mae,
         "test_rmse": float(torch.sqrt(((prediction[test] - target[test].float()) ** 2).mean())),
         "test_predictions": prediction[test],
         "test_targets": target[test].float(),
         "test_episode_id": episode_id[test],
+        "test_source_run": source_run[test],
         "test_noise_std": noise_std[test],
     }
 
 
 def _bootstrap_delta(base: Dict[str, object], variant: Dict[str, object], seed: int,
                      repeats: int = 1000) -> Dict[str, object]:
-    episodes = sorted(set(int(x) for x in base["test_episode_id"].tolist()))
+    groups = sorted(set((int(run), int(ep)) for run, ep in zip(
+        base["test_source_run"].tolist(), base["test_episode_id"].tolist())))
     base_errors = torch.abs(base["test_predictions"] - base["test_targets"])
     variant_errors = torch.abs(variant["test_predictions"] - variant["test_targets"])
-    base_by_episode = {e: base_errors[base["test_episode_id"] == e].mean() for e in episodes}
-    variant_by_episode = {e: variant_errors[variant["test_episode_id"] == e].mean() for e in episodes}
-    deltas = torch.tensor([float(base_by_episode[e] - variant_by_episode[e]) for e in episodes])
-    sampled = torch.randint(0, len(episodes), (repeats, len(episodes)), generator=torch.Generator().manual_seed(seed))
+    base_groups = list(zip(base["test_source_run"].tolist(), base["test_episode_id"].tolist()))
+    variant_groups = list(zip(variant["test_source_run"].tolist(), variant["test_episode_id"].tolist()))
+    base_by_group = {g: base_errors[torch.tensor([x == g for x in base_groups])].mean() for g in groups}
+    variant_by_group = {g: variant_errors[torch.tensor([x == g for x in variant_groups])].mean() for g in groups}
+    deltas = torch.tensor([float(base_by_group[g] - variant_by_group[g]) for g in groups])
+    sampled = torch.randint(0, len(groups), (repeats, len(groups)), generator=torch.Generator().manual_seed(seed))
     bootstrap = deltas[sampled].mean(dim=1)
     quantiles = torch.quantile(bootstrap, torch.tensor([0.025, 0.975]))
-    base_mae = float(base_errors.mean())
-    variant_mae = float(variant_errors.mean())
+    base_mae = float(torch.stack(list(base_by_group.values())).mean())
+    variant_mae = float(torch.stack(list(variant_by_group.values())).mean())
     return {
         "base_mae": base_mae,
         "variant_mae": variant_mae,
+        "row_weighted_base_mae": float(base_errors.mean()),
+        "row_weighted_variant_mae": float(variant_errors.mean()),
         "absolute_mae_reduction": base_mae - variant_mae,
         "relative_mae_reduction": (base_mae - variant_mae) / max(base_mae, 1e-8),
         "episode_bootstrap_delta_ci95": [float(quantiles[0]), float(quantiles[1])],
-        "episode_count": len(episodes),
+        "episode_count": len(groups),
+        "bootstrap_group_key": "(source_run, episode_id)",
     }
 
 
@@ -198,6 +223,8 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--seed", type=int, default=20261004)
     parser.add_argument("--num-threads", type=int, default=1)
+    parser.add_argument("--future-action-control", action="store_true",
+                        help="fit diagnostic V_HF and V_HFEI arms using on-policy future actions")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -208,6 +235,11 @@ def main() -> None:
     noise_std = dataset["noise_std"].float()
     train, test, train_episodes, test_episodes = _split(episode_id, source_run, args.seed)
     blocks = _features(dataset)
+    variant_defs = dict(VARIANTS)
+    if args.future_action_control:
+        if "F" not in blocks:
+            raise ValueError("--future-action-control requires future_action in the dataset")
+        variant_defs.update(FUTURE_ACTION_VARIANTS)
     target = dataset["return_to_go"].float()
     aux = dataset["episode_auxiliary"].float()
     device = torch.device(args.device if args.device != "cuda" or torch.cuda.is_available() else "cpu")
@@ -220,22 +252,28 @@ def main() -> None:
         "split_unit": "(source_run, episode_id)",
         "train_episodes": train_episodes,
         "test_episodes": test_episodes,
-        "primary_metric": "held-out episode-cluster MAE of exact return_to_go",
+        "primary_metric": "held-out episode-balanced MAE of exact return_to_go",
+        "secondary_metric": "row-weighted held-out MAE",
         "temporal_encoder": "GRU(hidden=64) for H/E/I; no sequence flattening",
         "variants": {},
         "comparisons_vs_V_H": {},
     }
     standardized_blocks = {key: _standardize(value, train) for key, value in blocks.items()}
     fitted = {}
-    for offset, name in enumerate(VARIANTS):
+    for name in variant_defs:
         fitted[name] = _fit_variant(name, standardized_blocks, target, aux, train, test, device,
                                      args.epochs, args.batch_size, args.seed,
-                                     episode_id, noise_std)
+                                     episode_id, source_run, noise_std, variant_defs)
         report["variants"][name] = {k: v for k, v in fitted[name].items() if not isinstance(v, torch.Tensor)}
-    for offset, name in enumerate(VARIANTS):
+    for offset, name in enumerate(variant_defs):
         if name != "V_H":
             report["comparisons_vs_V_H"][name] = _bootstrap_delta(
                 fitted["V_H"], fitted[name], args.seed + 1000 + offset)
+    if args.future_action_control:
+        report["comparisons_vs_V_HF"] = {
+            "V_HFEI": _bootstrap_delta(
+                fitted["V_HF"], fitted["V_HFEI"], args.seed + 2000)
+        }
     report["status"] = "FIT_COMPLETED"
     report["no_policy_training"] = True
     report["no_online_cm"] = True

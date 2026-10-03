@@ -141,6 +141,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
     sample_return: List[torch.Tensor] = []
     sample_effect: List[torch.Tensor] = []
     sample_interaction: List[torch.Tensor] = []
+    sample_future_action: List[torch.Tensor] = []
     sample_mask: List[torch.Tensor] = []
     sample_done: List[bool] = []
     sample_aux: List[List[float]] = []
@@ -300,6 +301,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
                 sample_return.append(returns[pos])
                 sample_effect.append(effect)
                 sample_interaction.append(interaction)
+                sample_future_action.append(merged["action"][future].float())
                 sample_mask.append(torch.ones(horizon, dtype=torch.bool))
                 sample_done.append(bool(merged["done"][current]))
                 sample_aux.append(aux)
@@ -320,6 +322,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
         "return_to_go": torch.stack(sample_return),
         "effect": torch.stack(sample_effect),
         "interaction": torch.stack(sample_interaction),
+        "future_action": torch.stack(sample_future_action),
         "future_valid_mask": torch.stack(sample_mask),
         "episode_id": torch.tensor(sample_episode, dtype=torch.long),
         "step": torch.tensor(sample_step, dtype=torch.long),
@@ -334,13 +337,14 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10) -> Tu
             "interaction_layout": "future contemporaneous-object-frame [hand_relative_xyz, hand_relative_quaternion_xyzw, relative_velocity_xyz, hand_force_xyz, object_force_xyz, hand_force_norm, object_force_norm, hand_contact_mask, object_contact_mask] per contact body",
             "history_layout": "past contiguous [state, previous_action, context, progress]; first action slot is zero because it precedes the oldest state",
             "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
-            "split_unit": "episode_id",
+            "split_unit": "(source_run, episode_id)",
+            "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
         },
     }
     report = {
         "runs": len(run_dirs),
         "samples": len(sample_episode),
-        "episodes": len(set(sample_episode)),
+        "episodes": len(set(zip(sample_run, sample_episode))),
         "horizon": horizon,
         "history_length": history_length,
         "effect_dim": int(dataset["effect"].shape[-1]),

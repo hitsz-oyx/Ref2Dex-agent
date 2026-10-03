@@ -29,6 +29,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
         "state", "previous_action", "context", "history_state", "history_previous_action",
         "history_context", "history_progress", "action", "reward", "reward_components",
         "return_to_go", "effect", "interaction", "future_valid_mask", "episode_id",
+        "future_action",
         "step", "motion_id", "noise_std", "source_run", "done_at_decision",
         "episode_auxiliary")}
     metadata: Dict[str, object] = {"horizon": horizon, "history_length": history_length, "runs": []}
@@ -144,6 +145,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
             chunks["return_to_go"].append(returns[starts])
             chunks["effect"].append(effect.float())
             chunks["interaction"].append(interaction.float())
+            chunks["future_action"].append(merged["action"][future_pos].float())
             chunks["future_valid_mask"].append(torch.ones(rows, horizon, dtype=torch.bool))
             chunks["episode_id"].append(torch.full((rows,), episode, dtype=torch.long))
             chunks["step"].append(merged["step"][current_pos].long())
@@ -161,11 +163,12 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10):
         "interaction_layout": "future contemporaneous-object-frame [hand_relative_xyz, hand_relative_quaternion_xyzw, relative_velocity_xyz, hand_force_xyz, object_force_xyz, hand_force_norm, object_force_norm, hand_contact_mask, object_contact_mask] per contact body",
         "history_layout": "past contiguous [state, previous_action, context, progress]; first action slot is zero because it precedes the oldest state",
         "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
-        "split_unit": "episode_id",
+        "split_unit": "(source_run, episode_id)",
+        "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
         "assembly_impl": "vectorized_v2",
     }
     report = {"runs": len(run_dirs), "samples": int(dataset["episode_id"].numel()),
-              "episodes": len(set(dataset["episode_id"].tolist())), "horizon": horizon,
+              "episodes": len(set(zip(dataset["source_run"].tolist(), dataset["episode_id"].tolist()))), "horizon": horizon,
               "history_length": history_length, "effect_dim": int(dataset["effect"].shape[-1]),
               "interaction_dim": int(dataset["interaction"].shape[-1]),
               "target_mean": float(dataset["return_to_go"].mean()),

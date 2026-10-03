@@ -23,3 +23,8 @@ before any formal conclusion.
 **Code and artifacts.** See
 [`20261004-gate1-consequence-v2-results.md`](../../research/20261004-gate1-consequence-v2-results.md)
 and the `tmp/fresh_pre_s86d*` outputs.
+
+**Follow-up.** Two additional corrected runs expanded the probe to 56 episodes.
+The h16 direction stayed positive across five composite splits, but future-action
+control and episode composition remained sensitive. This is still a directional
+`PROMISING` probe, not a Gate closeout or policy-utility result.
