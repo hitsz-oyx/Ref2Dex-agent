@@ -21,6 +21,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261004-recap-relative-action](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-recap-relative-action.md) | Can relative task outcome supervise a deployable action critic? | G0 label stability failed (train34.7%, test39.1%); counts/support and V-versus-zero checks pass; G1 not executed. | retain the relative-outcome direction but stop critic/Cm expansion on this unstable discrete label contract; no action-information or policy | probes/UNCLEAR |
+| [P-20261004-relative-action-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-relative-action-ranking.md) | Does current action improve ranking of frozen relative task advantage? | pending matched continuous/pairwise G1. | run H versus HaK1 directly; evaluate frozen target ranking stability without repeating discrete G0. | probes/RUNNING |
 
 ## HF02
 
