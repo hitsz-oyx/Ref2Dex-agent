@@ -10,6 +10,12 @@
 | [P-20260926-observation-router-reliability](probes/P-20260926-observation-router-reliability.md) | New-seed reliability of the observation-driven six-expert baseline | 见原卡 | 见原卡 | probes/PROMISING |
 | [VAL-20260926-observation-six-expert-c1](validations/VAL-20260926-observation-six-expert-c1.md) | Validation: frozen observation-driven six-expert C1 route | 见原卡 | 见原卡 | validations/COMPLETED |
 
+## HF-action-intervention
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261004-randomized-action-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md) | Can randomized current actions control task-relevant consequences? | Pending bounded physical intervention collection and held-out diagnostic. | Execute the ref3 control-information gate before any more RTG/value fitting. | probes/RUNNING |
+
 ## HF-pointflow-G
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
