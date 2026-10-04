@@ -35,10 +35,14 @@ The consequence predictor itself learned a modest signal. Cm1 effect RMSE was
 0.713 to 0.666 for Cm1 and ended at 0.677 for Cm8 (best 0.676), so this is not
 the previous 8-epoch flat-decoder underfit.
 
-The upstream value gate failed: GT eight-step consequences did not improve the
-H-only bridge. Because the oracle bridge itself is worse than H-only, the tiny
-Cm8-vs-Cm1 difference cannot be interpreted as evidence for or against action
-chunks preserving Gate 1 value.
+The long-return value gate failed: GT eight-step consequences did not improve
+the H-only bridge. A follow-up used the exact discounted local return over the
+same eight decision rows. There, GT E/I did carry information: H-only MAE was
+`1.229`, GT-E/I MAE was `0.883` (28.1% improvement). With the same local GT
+bridge frozen, the predictor outputs scored `1.235` for Cm1 and `1.248` for
+Cm8, preserving `-2.0%` and `-5.8%` of the GT gain. Thus K=8 consequence is
+locally informative, but neither current-action nor action-chunk prediction
+recovers that information.
 
 Artifacts:
 
@@ -46,12 +50,15 @@ Artifacts:
 - `tmp/P-20261004-gate2-action-chunk-k8-ns3.pt`
 - implementation commit `153beaa`
 
+Additional artifact:
+
+- `tmp/P-20261004-gate2-chunk-local-value-k8-ns3-with-cm.json`
+
 ## Decision
 
-**K=8 chunk route: UNPROMISING for the current long-return bridge, with no
-valid chunk comparison yet.** The Transformer removes the flat-output issue,
-but an eight-step consequence target does not carry the value signal under this
-bridge. Stop here instead of running n1 or sweeping K. The next design question
-is whether consequence duration and value target must be aligned, or whether a
-different bridge/objective should consume short chunks; this does not justify
-online Cm, PPO, or distillation.
+**K=8 oracle mechanism: PROMISING locally; current Cm predictability:
+UNPROMISING.** The Transformer removes the flat-output issue and GT E/I
+explains a short local return, but neither Cm1 nor Cm8 preserves it. Stop here
+instead of running n1 or sweeping K. The next design question is how to train a
+predictor against the value-relevant consequence rather than adding more
+action/chunk controls. This does not justify online Cm, PPO, or distillation.
