@@ -4,7 +4,7 @@
 
 Test whether the current Cm checkpoint can improve the frozen object-ID expert route when the contact gate is made less reactive. The predeclared continuation rule was: continue only if matched Cm-on gains at least 5 percentage points of lift success; otherwise freeze this checkpoint for policy-utility work.
 
-This is an exploratory Probe, not a Validation. The route, actor checkpoint, Cm checkpoint, seed, and motion inventory are pinned in [`HF02_CM_GATE_FOLLOWUP_20260926.json`](../../handoffs/HF02_CM_GATE_FOLLOWUP_20260926.json).
+This is an exploratory Probe, not a Validation. The route, actor checkpoint, Cm checkpoint, seed, and motion inventory are pinned in [`HF02_CM_GATE_FOLLOWUP_20260926.json`](../../archive/2026-10-04-research-governance/handoffs/HF02_CM_GATE_FOLLOWUP_20260926.json).
 
 ## Frozen substrate
 

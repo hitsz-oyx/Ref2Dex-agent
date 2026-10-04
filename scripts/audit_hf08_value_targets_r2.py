@@ -368,8 +368,8 @@ def main() -> None:
     model_results = MODEL_DIR / "results.json"
     checkpoint = MODEL_DIR / "tier_1000000.pt"
     collections = [RUN / "collect_s283", RUN / "collect_s284"]
-    r1_files = [ROOT / "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.md",
-                ROOT / "docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json",
+    r1_files = [ROOT / "docs/archive/2026-10-04-research-governance/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.md",
+                ROOT / "docs/archive/2026-10-04-research-governance/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json",
                 ROOT / "scripts/audit_hf08_value_targets.py"]
     r1_hashes_before = {str(p.relative_to(ROOT)): sha256(p) for p in r1_files}
     full = json.loads(full_audit.read_text())
@@ -489,7 +489,7 @@ def main() -> None:
             "policy_utility_claim": False,
             "loss_convergence_claim": False,
         },
-        "reproduction": {"command": "python3 scripts/audit_hf08_value_targets_r2.py --output docs/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.json", "threads": 2},
+        "reproduction": {"command": "python3 scripts/audit_hf08_value_targets_r2.py --output docs/archive/2026-10-04-research-governance/handoffs/HF08_VALUE_TARGET_AUDIT_R2_20261001.json", "threads": 2},
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True))

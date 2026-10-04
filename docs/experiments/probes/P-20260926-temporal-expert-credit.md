@@ -47,7 +47,7 @@ offline gate is evaluated.
 ## Baseline handoff and canonical choice
 
 The baseline handoff is
-`docs/handoffs/HF02_TEMPORAL_SUBSTRATE_HANDOFF_20260926.md`, introduced by
+`docs/archive/2026-10-04-research-governance/handoffs/HF02_TEMPORAL_SUBSTRATE_HANDOFF_20260926.md`, introduced by
 `8af61c6` and digest-pinned by `546f6f8`. It freezes one small diagnostic
 substrate; the machine-readable manifest is
 `src/task/CmResidual/configs/hf02_temporal_canonical_route.json` with SHA256

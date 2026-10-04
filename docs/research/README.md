@@ -80,7 +80,7 @@ same research branch/history with separate local Git metadata; old worktree read
 研究记录已经按用途分开：
 
 * `experiments/probes/`、`experiments/validations/`：实验卡和正式验证；
-* `handoffs/`：研究路线交接和证据审计；
+* `../archive/2026-10-04-research-governance/handoffs/`：旧研究路线交接和证据审计；
 * `archive/2026-10-04-research-governance/`：旧 decisions、activities、路线队列和延后事项；
 * `logs/`：只读历史资料，不是默认上下文。
 

@@ -6,7 +6,7 @@
 * [`workflow/README.md`](workflow/README.md)：单会话研究工作流、容量看门狗、暂停和恢复
   规则。旧 Broker、角色和迁移文档已移入 `archive/`，不再作为当前入口。
 * [`research/README.md`](research/README.md)：研究问题、当前状态、资源边界和实验索引。
-* [`handoffs/`](handoffs/)：worker 交接和审计记录。
+* [`archive/2026-10-04-research-governance/handoffs/`](archive/2026-10-04-research-governance/handoffs/)：旧交接和审计记录，仅供追溯。
 
 研究事实入口仍是 [`MISSION.md`](MISSION.md)、[`STATE.md`](STATE.md) 和
 [`CAMPAIGN.md`](CAMPAIGN.md)。`experiments/` 保存当前科学证据；旧的 decisions、activities、

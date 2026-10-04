@@ -19,7 +19,7 @@
 - 用户已授权边界内自主选路线，以及六专家蒸馏与新的 Cm 探索；历史标签不因此升级。
 - r6 support 的 teacher label 仅覆盖 source_e260，不能证明六专家蒸馏；其缺失轴字段不能回填。
 - r7 轴合约通过，但 contact q10 与 delta 覆盖未过 calibration gate，不生成正式 Cm-on 标签。
-  [校准证据](handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
+  [校准证据](archive/2026-10-04-research-governance/handoffs/CM_SCRATCH_CPU_CALIBRATION_R2_AXIS_20260928.md)。
 
 ## 其他已有任务交付边界
 

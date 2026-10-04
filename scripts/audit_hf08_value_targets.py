@@ -387,7 +387,7 @@ def main() -> None:
             "policy_utility_claim": False,
             "loss_convergence_claim": False,
         },
-        "reproduction": {"command": "python3 scripts/audit_hf08_value_targets.py --output docs/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json", "threads": 2},
+        "reproduction": {"command": "python3 scripts/audit_hf08_value_targets.py --output docs/archive/2026-10-04-research-governance/handoffs/HF08_VALUE_TARGET_AUDIT_20261001.json", "threads": 2},
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True))
