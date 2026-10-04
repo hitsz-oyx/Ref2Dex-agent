@@ -92,8 +92,9 @@ No bootstrap V, RTG, reward composition or future-action inference inputs.
 
 ## Offline diagnostic and decision gate
 
-Freeze episode-level split, stratified by motion and randomized arm, seed211;
-test is20%. All preprocessing fits train only. H includes full pre-action
+Freeze grouped physical-environment split across waves, stratified by motion,
+seed211; test is20% of environments (report arm balance, no outcome selection).
+All preprocessing fits train only. H includes full pre-action
 actor observation, physical history and current reference context; all arms
 receive identical H. Predictor target is E/I8; outcome target is Y16/32.
 Compare H state baseline, H+planned action direct critic, predicted E/I
@@ -115,7 +116,7 @@ tanh, init211, AdamW lr.002/decay.001,100 fullbatch epochs, gradient clip2;
 no architecture/epoch search. Physical targets26, task targets8, loss normalized
 MSE; drop loss conditional on risk and disabled if train-risk<20/test-risk<5.
 All other task heads enter the task error. Cm scorer uses three whole-episode
-stratified OOF predictor fits, fold-specific physical target normalization;
+environment-grouped OOF predictor fits, fold-specific physical target normalization;
 test predictions come from one full-train predictor. Training input PCA is
 shared and label-free; every scorer has identical capacity/init/protocol.
 
@@ -137,8 +138,9 @@ PROMISING requires action-conditioned consequence prediction improve≥5%
 held-out normalized MSE over H, randomized action permutation worsen it≥5%,
 GT short-consequence scorer improve≥5% task error and≥3pp task ranking over H,
 and predicted mediated scorer improve≥3pp ranking over H with useful action
-sensitivity (permutation drops task rank≥2pp). A matched direct critic is required; if direct is equally good,
-record no unique Cm benefit and do not claim policy utility. Report E and I
+sensitivity (permutation drops task rank≥2pp), plus mediated rank≥2pp above
+the matched direct critic. If direct is equally good, record no unique Cm
+benefit and do not enter a Cm selector on these fits. Report E and I
 separately, dose, randomized balance and per-arm actual outcomes. Fixed gates
 are Probe decisions, not statistical Validation; no core-route refutation.
 
@@ -176,3 +178,12 @@ The corrected launcher at202a1b1 uses project-local Torch extension build/cache.
 trials,20 complete32-step windows,70s simulation. This establishes executable
 collection and decision-region coverage only. Formal arm/outcome gates have
 not been judged on this debug sample; no seed/dose selection performed.
+
+Before formal fitting, root tightened the split to environment groups because
+the four waves reuse native environments; all trials from an environment
+remain in one partition/fold. This was done while collecting, before inspecting
+formal physical/outcome contrasts. Input dimension choice and model protocol
+remain fixed. Seven-arm assignment still occurs independently per episode.
+The new transition MLP is trained on randomized E/I targets; it is NOT the
+historical frozen point-flow checkpoint and its results cannot relabel that
+model's previous evidence. Predicted-Cm benefit over direct is an explicit gate.

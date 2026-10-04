@@ -52,16 +52,15 @@ def fit_model(x, target, ids, seed, mask=None):
         return model(x).detach(), model
 
 
-def split_stratified(motion, arm, seed):
+def split_stratified(motion, clusters, seed):
     rng = np.random.default_rng(seed)
     train, test = [], []
     for m in sorted(set(motion.tolist())):
-        for a in range(7):
-            group = np.flatnonzero((motion == m) & (arm == a))
-            rng.shuffle(group)
-            count = max(1, int(round(len(group)*.2))) if len(group) >= 2 else 0
-            test.extend(group[:count].tolist())
-            train.extend(group[count:].tolist())
+        group = np.unique(clusters[motion == m])
+        rng.shuffle(group)
+        count = max(1, int(round(len(group)*.2))) if len(group) >= 2 else 0
+        test.extend(np.flatnonzero(np.isin(clusters, group[:count]) & (motion == m)).tolist())
+        train.extend(np.flatnonzero(np.isin(clusters, group[count:]) & (motion == m)).tolist())
     return np.asarray(sorted(train)), np.asarray(sorted(test))
 
 
@@ -155,7 +154,16 @@ def main():
         if failures:
             result = dict(status="UNCLEAR", stopping_gate=failures, audit=audit)
         else:
-            train_np, test_np = split_stratified(p["motion_id"].numpy(), arm, args.seed)
+            collection_manifest = json.loads((args.dataset.parent / "manifest.json").read_text())
+            collect_cmd = collection_manifest["command"]
+            num_envs = int(collect_cmd[collect_cmd.index("--num_envs")+1])
+            clusters = p["episode_id"].numpy() % num_envs
+            for cluster in np.unique(clusters):
+                if len(np.unique(p["motion_id"].numpy()[clusters == cluster])) != 1:
+                    raise ValueError("environment motion changed across waves; split protocol invalid")
+            train_np, test_np = split_stratified(p["motion_id"].numpy(), clusters, args.seed)
+            if set(clusters[train_np]) & set(clusters[test_np]):
+                raise ValueError("environment crossed train/test boundary")
             train = torch.as_tensor(train_np, device=device)
             test = torch.as_tensor(test_np, device=device)
             h_raw = torch.cat((p["history"].flatten(1), p["actor_obs"], p["context"], p["base_action"]), -1).to(device)
@@ -199,10 +207,10 @@ def main():
             cm_oof = torch.zeros_like(z_norm)
             fold_ids = np.full(len(arm), -1, dtype=int)
             for m in range(3):
-                for a_id in range(7):
-                    rows = train_np[(p["motion_id"].numpy()[train_np] == m) & (arm[train_np] == a_id)]
-                    rng.shuffle(rows)
-                    fold_ids[rows] = np.arange(len(rows)) % 3
+                env_groups = np.unique(clusters[train_np[p["motion_id"].numpy()[train_np] == m]])
+                rng.shuffle(env_groups)
+                for index, cluster in enumerate(env_groups):
+                    fold_ids[train_np[clusters[train_np] == cluster]] = index % 3
             for fold in range(3):
                 fit_ids = torch.as_tensor(train_np[fold_ids[train_np] != fold], device=device)
                 hold_ids = torch.as_tensor(train_np[fold_ids[train_np] == fold], device=device)
@@ -239,17 +247,19 @@ def main():
             gt_rank_gain = metrics["GT"]["ranking"]["macro"]-h_rank
             mediated_rank_gain = metrics["mediated"]["ranking"]["macro"]-h_rank
             mediated_sensitivity = metrics["mediated"]["ranking"]["macro"]-metrics["mediated"]["permuted_ranking"]["macro"]
+            unique_gain = metrics["mediated"]["ranking"]["macro"]-metrics["direct"]["ranking"]["macro"]
             gates = dict(cm_gain=cm_gain>=.05, cm_action_sensitivity=cm_perm_loss>=.05,
                          gt_task_error=gt_gain>=.05, gt_task_rank=gt_rank_gain>=.03,
                          mediated_task_rank=mediated_rank_gain>=.03,
-                         mediated_action_sensitivity=mediated_sensitivity>=.02)
+                         mediated_action_sensitivity=mediated_sensitivity>=.02, unique_cm_rank_gain=unique_gain>=.02)
             result = dict(status="PROMISING" if all(gates.values()) else "UNPROMISING", audit=audit,
                           train_trials=len(train_np), test_trials=len(test_np), cm=cm_metrics, outcomes=metrics,
                           gate_values=dict(cm_gain=cm_gain, cm_perm_loss=cm_perm_loss, gt_error_gain=gt_gain,
                                            gt_rank_gain=gt_rank_gain, mediated_rank_gain=mediated_rank_gain,
                                            mediated_action_sensitivity=mediated_sensitivity), gates=gates,
-                          unique_cm_rank_gain=metrics["mediated"]["ranking"]["macro"]-metrics["direct"]["ranking"]["macro"])
-            torch.save(dict(train_ids=train.cpu(), test_ids=test.cpu(), groups=groups, perm=perm, fold_ids=fold_ids,
+                          unique_cm_rank_gain=unique_gain, split_unit="physical environment across waves",
+                          train_environments=len(set(clusters[train_np])), test_environments=len(set(clusters[test_np])))
+            torch.save(dict(train_ids=train.cpu(), test_ids=test.cpu(), clusters=clusters, groups=groups, perm=perm, fold_ids=fold_ids,
                             physical_target=effect, outcome=y, risk=risk, predictions=predictions,
                             cm_predictions={"H": cm_h.cpu(), "Ha": cm_a.cpu(), "Ha_permuted": cm_perm.cpu(), "OOF": cm_oof.cpu()},
                             z_norm=z_norm.cpu(), y_norm=y_norm.cpu(), y_mask=mask.cpu(),
