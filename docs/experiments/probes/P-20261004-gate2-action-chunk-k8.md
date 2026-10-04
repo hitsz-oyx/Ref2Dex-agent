@@ -86,3 +86,22 @@ weights, or start online Cm/PPO/distillation. The remaining decision is whether
 the consequence horizon itself must be shortened; any follow-up should be one
 minimal horizon test with a predeclared target, rather than another broad
 architecture or hyperparameter sweep.
+
+## Pre-registered short-horizon decision probe
+
+The next and only planned follow-up is a K=1 diagnostic on the same n3
+namespace holdout. It predicts only `(E,I)_{t+1}` from `(H_t,a_t)` with the
+same Transformer family, the same training-only local-return auxiliary head
+and fixed `lambda=0.5`; the auxiliary head is discarded at evaluation. The
+target is the stored immediate reward on row `t`, with no episode-tail
+aggregation. Because this reward contains the recorded shaping components
+(base/source, approach, held, progress and stable), a negative result is
+interpreted as failure to recover value through this consequence channel, not
+as a claim that every reward component is physically determined by E/I.
+
+The decision thresholds are fixed before running it: GT one-step E/I must
+reduce the H-only bridge MAE by at least 10% to show one-step value utility;
+the predicted-E/I bridge must then be below H-only and retain at least 25% of
+the GT gain. If either condition fails, stop Gate 2 consequence prediction
+without opening a Cm8/K sweep or online training. A positive result would only
+justify designing one short-horizon route; it would not be a formal validation.
