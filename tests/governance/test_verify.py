@@ -194,7 +194,7 @@ def test_governance_selection_is_narrow() -> None:
 
 
 def test_historical_markdown_is_not_a_current_link_scope() -> None:
-    assert VERIFY._is_historical("docs/logs/activity_log.md")
+    assert VERIFY._is_historical("docs/archive/2026-10-04-research-governance/logs/activity_log.md")
     assert VERIFY._is_historical("docs/archive/old.md")
     assert not VERIFY._is_historical("docs/experiments/P-001.md")
 

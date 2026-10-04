@@ -82,7 +82,7 @@ same research branch/history with separate local Git metadata; old worktree read
 * `experiments/probes/`、`experiments/validations/`：实验卡和正式验证；
 * `../archive/2026-10-04-research-governance/handoffs/`：旧研究路线交接和证据审计；
 * `archive/2026-10-04-research-governance/`：旧 decisions、activities、路线队列和延后事项；
-* `logs/`：只读历史资料，不是默认上下文。
+* `../archive/2026-10-04-research-governance/logs/`：只读历史资料，不是默认上下文。
 
 旧的根级 `plan/`、`指导/` 和多代理 workflow 规范已删除。Task 内部仍可能保留与历史
 实验绑定的计划或指导文件；它们只用于解释对应证据，不是仓库级运行规则。
