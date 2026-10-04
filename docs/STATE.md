@@ -154,3 +154,30 @@ North-star causal Cm-on/off训练所得策略utility仍OPEN。
 本轮GPU6 valid模型执行含smoke<49s，产物<8MB，全部任务结束。
 
 [冻结相对advantage排序实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-relative-action-ranking.md)。
+
+## Task ref3：真实随机动作干预
+
+固定自训练source_e260、airplane三motion，移除episode噪声，七臂随机分配
+四步feedback residual；336完整episode、320实际干预、320完整32步窗口。
+每臂37–54次、有效dose100%；全batch reset屏障，pre/post/PD/GT标签经独立review。
+全部decision为pre-lift（最高lift8.74mm），early-hold/drop-risk样本为0。
+
+- 按环境留出66train/18test，预测器及scorerOOF也隔离环境。H E/I MSE0.5748，
+  Ha0.5841；macro任务排序 H66.78%、direct66.14%、predicted65.17%、GT61.17%。
+  七项预设gate全部失败，当前合同UNPROMISING，不启动selector/teacher/policy。
+- GT保留contact-retention局部信息，但整体泛化弱；模型容量/OOF噪声差和少量
+  history瞬态限制归因。PCA总test能量异常主要由单行支配，典型样本保留率中位
+  86.96%，不是所有测试状态丢失93%；不删除outlier重判结果。
+- 最便宜的既有数据Decision诊断控制当前状态后，物体短期旋转有弱随机臂响应
+  （E/I家族探索性permutation tail0.045），任务窗口/完整episode证据仍不足。
+  手实际收到不同扰动不等于已建立任务相关可预测中介链。
+- Full summaries105/336达到45步hold、76随后drop；不同采样下的raw arm均值
+  不当作策略增益，也不修改旧baseline结论。motion symlink漏预先hash已补明确
+  post-run provenance，后续collector修复；原manifest/失败smoke保持可追溯。
+
+Root停止本pre-lift E/I8→Y16/32 PCA/MLP扩展，保留随机干预数据和物理control
+问题；不据此终止Cm核心路线。未来研究需要新的阶段/时域决策合同，不换seed/
+阈值/encoder继续拟合本合同。单GPU6，正式仿真222s、smoke70s、模型4.86s，
+统计1.12s，产物<13MB，进程均结束。North-star训练所得Cm策略utility仍OPEN。
+
+[真实随机动作干预实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md)。

@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import torch
+import numpy as np
 
 PATH = Path(__file__).resolve().parents[1] / "src/intervention.py"
 SPEC = importlib.util.spec_from_file_location("intervention", PATH)
@@ -39,3 +40,30 @@ def test_drop_is_conditional_and_six_step_loss_matters():
     assert outcomes[:, 3].tolist() == [0., 0., 1.]
     assert outcomes[0, 2] == 0
     assert outcomes[1, 2] == 11/16
+
+
+def test_repeated_environment_never_crosses_holdout_boundary():
+    path = Path(__file__).resolve().parents[1] / "tools/run/probe_interventions.py"
+    spec = importlib.util.spec_from_file_location("intervention_probe", path)
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    clusters = np.tile(np.arange(30), 4)
+    motion = clusters % 3
+    train, test = probe.split_stratified(motion, clusters, 211)
+    assert len(test) == 24
+    assert not set(clusters[train]) & set(clusters[test])
+    assert sorted(np.concatenate((train, test)).tolist()) == list(range(120))
+
+
+def test_drop_ranking_excludes_prelift_and_score_tie_gets_half_credit():
+    path = Path(__file__).resolve().parents[1] / "tools/run/probe_interventions.py"
+    spec = importlib.util.spec_from_file_location("intervention_probe_ranking", path)
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    target = np.zeros((2, 8))
+    target[1] = 1
+    prediction = np.zeros_like(target)
+    result = probe.ranking(prediction, target, np.arange(2), np.zeros(2, dtype=int), np.arange(2))
+    assert result["macro"] == .5
+    assert result["per_head"][3] is None
+    assert result["support"][3]["pairs"] == 0

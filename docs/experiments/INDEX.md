@@ -14,7 +14,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261004-randomized-action-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md) | Can randomized current actions control task-relevant consequences? | Pending bounded physical intervention collection and held-out diagnostic. | Execute the ref3 control-information gate before any more RTG/value fitting. | probes/RUNNING |
+| [P-20261004-randomized-action-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md) | Can randomized current actions control task-relevant consequences? | 320 actual randomized interventions; action-conditioned E/I8 and mediated task ranking fail all seven fixed gates under environment holdout. | Stop this pre-lift E/I8-to-Y16/32 PCA/MLP expansion after independent review; preserve weak object-rotation response and do not refute core  | probes/UNPROMISING |
 
 ## HF-pointflow-G
 

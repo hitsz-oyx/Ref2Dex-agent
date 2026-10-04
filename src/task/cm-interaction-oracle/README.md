@@ -35,3 +35,18 @@ Ranking run: `tools/run/probe_action_ranking.py`; independent raw-score audit:
 `tools/audit/audit_action_ranking.py`.
 [Ranking Probe](docs/experiments/probes/P-20261004-relative-action-ranking.md)
 records the conditional negative branch and deferred true candidate tests.
+
+Ref3's real randomized intervention Gate has now executed:320 assigned
+four-step residuals in336 complete deterministic self-trained airplane
+episodes, with full32-step windows and effective dose confirmed. Environment-
+grouped H/direct/predicted-Cm/GT comparison fails its seven gates; no selector
+or policy training launched. Retain the weak adjusted object-rotation response
+and localized GT contact-retention information. All decisions were pre-lift;
+early-hold/drop and global Cm utility remain untested/open.
+[Randomized intervention Probe](docs/experiments/probes/P-20261004-randomized-action-intervention.md)
+records the protocol, limits, independent review and root decision.
+Collection: `tools/run/run_intervention_collection.sh` and
+`tools/run/collect_interventions.py`; fitting: `tools/run/probe_interventions.py`;
+audits: `tools/audit/audit_interventions.py`,
+`tools/audit/audit_collection_provenance.py`,
+`tools/audit/diagnose_randomized_arm_effects.py`.

@@ -204,7 +204,11 @@ def main():
     for flag in ("--cfg_env", "--cfg_train"):
         paths.append(Path(remaining[remaining.index(flag)+1]))
     motion_root = Path(remaining[remaining.index("--motion_file")+1])
-    paths.extend(sorted(p for p in motion_root.rglob("*") if p.is_file()))
+    # Path.rglob does not descend through the canonical motion directory links.
+    for directory in sorted(motion_root.iterdir()):
+        motion = directory / "interaction_hand_inspire.pt"
+        if motion.is_file():
+            paths.append(motion.resolve())
     manifest = dict(run_status="STARTED", command=sys.argv, assignment_seed=ARGS.assignment_seed,
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         input_hashes={str(p): sha(p) for p in paths}, physical_gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
