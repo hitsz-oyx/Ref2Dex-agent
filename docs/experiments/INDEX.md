@@ -21,7 +21,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | Pending randomized K4/K8/K16 physical response; no learned model planned. | Test duration as the next missing action-control link before any Cm training. | probes/PLANNED |
+| [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | Pending randomized K4/K8/K16 physical response; no learned model planned. | Test duration as the next missing action-control link before any Cm training. | probes/RUNNING |
 
 ## HF-pointflow-G
 

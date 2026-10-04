@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [217, 218, 219]
 decision_changed_if_positive: retain a demonstrated duration-sensitive retention operator for later action-conditioned Cm work
 decision_changed_if_negative: stop duration extension without network fitting or additional seeds; distinguish clipping, insufficient support and valid local negative
-status: PLANNED
+status: RUNNING
 run_id: early-hold-duration-s217
 ---
 
@@ -157,3 +157,25 @@ baseline, and post-K PD offset is zero. All represented nonzero cells have
 signed dose1.0. This small debug sample is not used for scientific effect
 assessment or protocol tuning. Independent reviewer confirms assignment,
 native units/coupling, timing, eligibility, horizon and reset contract.
+Independent native PD reconstruction maximum error1.10e-7; no offset- or
+coupling-unit discrepancy. Smoke does not contain every cell; unit tests
+exercise full joint assignment and exact K boundaries, main support gate
+must still pass for all18 nonzero cells.
+
+## Formal collection and analysis entry
+
+ref5 guidance SHA256 `0e019f4ce34b0a837b14bef3e5306cb612119db4344c5ad2e39681ce3bf25475`;
+user-owned guidance files are not modified or staged. Collection commit422e081:
+
+```bash
+bash src/task/cm-interaction-oracle/tools/run/run_intervention_collection.sh early-hold-duration-s217 168 12 217 218 1200 early-hold "4 8 16"
+```
+
+Physics/dose analysis is `tools/audit/probe_duration_response.py`, with a new
+`early-hold-duration-response-s219` output directory. It audits all assigned
+actions and reconstructs PD differences from URDF limits/coupling before
+reporting coverage or randomized effects. Saved `diagnostic.pt`,
+`response_curves.json`, manifest and immutable results permit read-only
+recomputation. No supervised model fit or repeated learned inference.
+Analysis tests check crossing step16, preservation of early failures,
+both directions of duration response, late alignment and both wave halves.
