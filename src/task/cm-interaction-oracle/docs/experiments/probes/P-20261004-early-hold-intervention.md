@@ -24,14 +24,15 @@ Decision: Address the previously untested hold/drop regime before any further co
 
 ## Motivation, hypothesis and cheapest discriminator
 
-Decision Probe for Mission C3 under Task ref3. The completed pre-lift contract
+Decision Probe for Mission C3 under Task ref4 (explicit user selection after
+the initial ref3 continuation request). The completed pre-lift contract
 had no at-risk drop trials; localized GT retention information and weak object
 rotation responses do not establish a controllable task-relevant I. New
 hypothesis: once the object is lifted/contacted, randomized short actions can
 change the interaction variables which predict subsequent retention/drop.
 This is a different decision region, not a re-run of the failed pre-lift fit.
-The newly added, user-owned ref4 analysis is consistent with this missing
-question; it is not modified or automatically substituted for the requested ref3.
+The user-owned ref4 requests this A/B/C sequence; the guidance file itself
+is not edited or included in root's selective commits.
 
 Cheapest sequence: smoke42 environments once, then168 environments×6 waves
 (1,008 complete episodes maximum) to obtain the early-hold cohort. Check
@@ -64,8 +65,8 @@ zero, wristx±.01, wristz±.01, finger(6/8/10/12/15)±.1; four-step feedback
 operator, then baseline actor. Native units/coupling and actual PDtarget/dose
 audits preserved. Each arm is independently uniform at first eligible state.
 
-Eligibility BEFORE assignment:10 observation history, >33 reference steps
-remaining, reference-rest lift≥3cm AND net-force pair proxy for6 consecutive
+Eligibility BEFORE assignment:10 observation history, >33 steps remaining in
+BOTH reference and native rollout limits, reference-rest lift≥3cm AND net-force pair proxy for6 consecutive
 current observations, body-to-object surface proximity<6cm, and current
 headroom for ALL candidates. Record pre_hold_steps/current pose/history; no
 future success, survival or loss conditioning. At-risk status is now present
@@ -90,6 +91,11 @@ All assigned trials remain at risk from time0. The loss-contact run initializes
 from observed steps1..8 and continues into9..32; prior drop is also reported
 separately. This cannot make GT realization into a deployable control oracle.
 Full45-step held success/later-drop retained as later descriptive outcome.
+Combined failure is a height-or-contact-proxy event; physical height-loss and
+proxy-loss components, first failure step and any1..32 failure are saved
+separately. Already failed step8 trials are NEVER excluded; GT can predict
+failure persistence, which is post-intervention prognosis, not an unobserved
+pre-action causal advantage.
 
 ## Gates A/B/C
 
@@ -98,9 +104,12 @@ adjustment and conditional-block permutation reuse the reviewed audit method,
 with seed215/1999 permutations and within-family max-tail. Report all I14 axes,
 short1..8 contact fraction and late continuation outcomes separately. A useful
 Probe signal requires short contact fraction adjusted arm-minus-zero range≥.10
-and permutation tail≤.10; alternatively a predefined gap/force I axis family
-tail≤.05 accompanied by aligned later retention/drop contrast (task-family
-tail≤.10). No raw best-arm policy claim or formal statistical significance.
+and permutation tail≤.10; alternatively an existing body-surface-distance I
+axis family tail≤.05 accompanied by aligned later retention/drop contrast
+(task-family tail≤.10). Alignment means the same arm reduces distance vs zero
+AND increases continuation retention by≥.05 or reduces failure by≥.10.
+Force axes remain descriptive: more net force is not necessarily a better
+grasp. No raw best-arm policy claim or formal statistical significance.
 
 Gate B: grouped physical-environment train/test20%, stratified motion, seed215;
 train-only PCA32 and normalization unchanged, MLP64/32/tanh/AdamW.002/decay.001,
@@ -109,8 +118,8 @@ same capacity/init/training. Six targets (retention/held/drop16/32) normalized
 train only. Primary32-step retention and drop macro pair rank with fixed
 within-motion/reference-phase pairs from DIFFERENT arms, plus error calibration.
 GT must improve primary rank≥3pp and normalized task error≥5% over H, with
-test continuation-drop positives AND negatives≥10 each and ≥5 supported
-pair strata; otherwise B UNCLEAR for inadequate support or UNPROMISING for
+test continuation-failure positives AND negatives≥10 each and ≥3 supported
+pair strata (≥10 pairs per stratum per primary head); otherwise B UNCLEAR for inadequate support or UNPROMISING for
 a valid failed fit. Report per-head and cohort effects, no posthoc target swap.
 
 Gate C only if A+B pass: H→I vs H+planned action→I, same protocol, assigned
@@ -133,3 +142,17 @@ environment clusters stay in one split/fold; randomization diagnostic remains
 exploratory given carryover/coarse nuisance adjustment and multiple families.
 Final learned-policy Cm-on/off utility, multi-seed Validation and true paired
 contact/slip evidence remain future stages. Local negative is not core Cm refutation.
+
+## Engineering smoke and final pre-main contract
+
+`early-hold-smoke-s9`, code dfd4eaf:42 full episodes,18 early-hold interventions,
+18 complete32-step windows. Unique early-hold/geometry/headroom coverage all18;
+no saturated-action cohort loss in this debug sample. Simulator55s. No formal
+arm-effect or GT gate assessed on the debug sample. Review found a general
+native rollout-limit reset in addition to reference-limit reset; added its
+pre-assignment remaining-time guard before main. The pinned rollout2000
+was not binding in this smoke, so no assigned window was truncated.
+Before main, after user selected ref4, primary support is≥3 observed
+motion/phase strata, matching three fixed references without demanding extra
+phase spread. No support threshold changed using formal data or fitted test
+outcomes. All formal gates remain pending.

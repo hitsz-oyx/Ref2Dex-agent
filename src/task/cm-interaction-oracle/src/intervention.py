@@ -80,3 +80,39 @@ def window_outcomes(before, trajectory, rest_height):
                                pair[:, :horizon].float().mean(-1),
                                held.float().mean(-1), (dropped & risk).float()), -1))
     return torch.cat(ys, -1), risk
+
+
+def continuation_outcomes(before, trajectory, rest_height):
+    """Early-hold prognosis AFTER step8, retaining every early-failed trial.
+
+    Six heads: retention, held, height-or-proxy-loss failure at16 and32.
+    Report physical height loss and proxy loss independently. Lost-contact
+    run spans the step8 boundary. Neither is certified friction/slip.
+    """
+    if trajectory.shape[1] != WINDOW:
+        raise ValueError("expected all32 factual post-step observations")
+    risk = (before[:, 2]-rest_height >= .03) & (before[:, 71] > .5)
+    z, pair = trajectory[:, :, 2], trajectory[:, :, 71] > .5
+    lift = z-rest_height[:, None]
+    height_failure = lift < .02
+    lost = torch.zeros(len(before), device=z.device, dtype=torch.long)
+    loss_failure = torch.zeros_like(pair)
+    for index in range(WINDOW):
+        lost = torch.where(pair[:, index], 0, lost+1)
+        loss_failure[:, index] = lost >= 6
+    failures = (height_failure | loss_failure) & risk[:, None]
+    first = torch.where(failures.any(-1), failures.long().argmax(-1)+1, -1)
+    heads = []
+    for endpoint in (16, 32):
+        region = slice(8, endpoint)
+        heads.append(torch.stack((pair[:, region].float().mean(-1),
+            ((lift[:, region] >= .03) & pair[:, region]).float().mean(-1),
+            failures[:, region].any(-1).float()), -1))
+    details = dict(risk=risk, first_failure_step=first,
+        early_failure=failures[:, :8].any(-1),
+        all32_failure=failures.any(-1), height_failure32=(height_failure & risk[:, None]).any(-1),
+        proxy_loss_failure32=(loss_failure & risk[:, None]).any(-1),
+        late_height_failure=height_failure[:, 8:].any(-1) & risk,
+        late_proxy_loss_failure=loss_failure[:, 8:].any(-1) & risk,
+        short_contact_fraction=pair[:, :8].float().mean(-1))
+    return torch.cat(heads, -1), details

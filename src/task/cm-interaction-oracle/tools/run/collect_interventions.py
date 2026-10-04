@@ -115,6 +115,7 @@ class InterventionPlayer(original.EvalPlayer):
                 # Event trigger depends only on current state, before random draw.
                 eligible = (~terminal) & (arms < 0) & (tick >= HISTORY-1)
                 eligible &= (task.max_episode_length[task.data_id] - task.progress_buf > WINDOW + 1)
+                eligible &= (task.rollout_length - (task.progress_buf-task.start_times) > WINDOW + 1)
                 eligible &= phys[:, 71] > .5
                 eligibility_counts["force_proxy"] += int(eligible.sum())
                 if ARGS.decision_region == "early-hold":

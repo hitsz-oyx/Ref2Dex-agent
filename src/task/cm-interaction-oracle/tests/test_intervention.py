@@ -25,6 +25,22 @@ def test_early_hold_run_needs_lift_and_contact_and_resets_on_loss():
     assert result.tolist() == [6, 0, 0, 1]
 
 
+def test_continuation_keeps_early_failed_trials_and_lost_run_crosses_step8():
+    before = torch.zeros(3, 72)
+    before[:, 2] = .04
+    before[:, 71] = 1
+    trajectory = before[:, None].repeat(1, 32, 1)
+    trajectory[0, :, 2] = .01
+    trajectory[1, 4:10, 71] = 0
+    trajectory[2, :8, 71] = 0
+    outcomes, details = contract.continuation_outcomes(before, trajectory, torch.zeros(3))
+    assert details["first_failure_step"].tolist() == [1, 10, 6]
+    assert outcomes[:, 5].tolist() == [1., 1., 0.]
+    assert details["all32_failure"].tolist() == [True, True, True]
+    assert outcomes[2, 3] == 1
+    assert details["late_height_failure"].tolist() == [True, False, False]
+
+
 def test_rotation_target_ignores_quaternion_sign_and_has_short_axis_angle():
     before = torch.zeros(2, 72)
     before[:, 6] = 1
