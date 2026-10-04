@@ -18,6 +18,7 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -249,12 +250,20 @@ class ActionModel(nn.Module):
 
 class Cmv2Model(nn.Module):
     def __init__(self, cfg, k):
-        super().__init__(); self.k = k; self.base = ObjectInteractionCmv2V13Model(cfg); self.gru = nn.GRU(cfg.hidden_width, cfg.hidden_width, batch_first=True); self.context = nn.Sequential(nn.Linear(55 + 18, cfg.hidden_width), nn.SiLU(), nn.Linear(cfg.hidden_width, cfg.hidden_width)); self.i_head = nn.Linear(cfg.hidden_width * 2, I_DIM)
+        super().__init__(); self.k = k; self.base = ObjectInteractionCmv2V13Model(cfg); self.gru = nn.GRU(cfg.hidden_width, cfg.hidden_width, batch_first=True); self.context = nn.Sequential(nn.Linear(55 + 18, cfg.hidden_width), nn.SiLU(), nn.Linear(cfg.hidden_width, cfg.hidden_width)); self.field_context = nn.Sequential(nn.Linear(15, cfg.hidden_width), nn.SiLU(), nn.Linear(cfg.hidden_width, cfg.hidden_width)); self.i_head = nn.Linear(cfg.hidden_width * 3, I_DIM)
     def forward(self, batch):
         b, k = batch["hand_flow"].shape[:2]
         rep = lambda x: x[:, None].expand(-1, k, *x.shape[1:]).reshape(b*k, *x.shape[1:])
         flat = {"obj_points": rep(batch["obj_points"]), "obj_normals": rep(batch["obj_normals"]), "hand_points": rep(batch["hand_points"]), "hand_normals": rep(batch["hand_normals"]), "hand_flow": batch["hand_flow"].reshape(b*k, -1, 3), "hand_valid_mask": torch.ones((b*k, batch["hand_points"].shape[1]), dtype=torch.bool, device=batch["hand_flow"].device), "delta_time_s": torch.full((b*k,), DT, device=batch["hand_flow"].device)}
-        out = self.base(flat); z, _ = self.gru(out["fused_feature"].reshape(b, k, -1)); context = self.context(torch.cat((batch["state"][:, None].expand(-1, k, -1), batch["action"]), -1)); return out["delta_xi_root"].reshape(b, k, 6), self.i_head(torch.cat((z, context), -1))
+        out = self.base(flat); z, _ = self.gru(out["fused_feature"].reshape(b, k, -1)); context = self.context(torch.cat((batch["state"][:, None].expand(-1, k, -1), batch["action"]), -1))
+        object_points = flat["obj_points"]; object_normals = flat["obj_normals"]; hand_points = flat["hand_points"]; hand_flow = flat["hand_flow"]
+        distances = torch.cdist(object_points, hand_points); nearest = distances.argmin(-1); distance = distances.gather(-1, nearest[..., None])[..., 0]
+        contact = torch.sigmoid((0.02 - distance) / 0.005); weights = contact / contact.sum(-1, keepdim=True).clamp_min(1e-6)
+        centroid = (weights[..., None] * object_points).sum(1); flow = hand_flow.gather(1, nearest[..., None].expand(-1, -1, 3)); flow_mean = (weights[..., None] * flow).sum(1)
+        normals = F.normalize(object_normals, dim=-1, eps=1e-8); normal_speed = (flow * normals).sum(-1); tangent_speed = (flow - normal_speed[..., None] * normals).norm(dim=-1)
+        field = torch.cat((contact.mean(-1, keepdim=True), centroid, flow_mean, (weights * normal_speed).sum(-1, keepdim=True), (weights * tangent_speed).sum(-1, keepdim=True), out["delta_xi_root"]), -1).reshape(b, k, -1)
+        field = self.field_context(field.reshape(b * k, -1)).reshape(b, k, -1)
+        return out["delta_xi_root"].reshape(b, k, 6), self.i_head(torch.cat((z, context, field), -1))
 
 
 def evaluate(model, loader, device, kind, interaction_mean, interaction_scale):
