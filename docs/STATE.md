@@ -126,3 +126,31 @@ I/G容量扩展。任何改标签协议须重新明确假设和判定，不放�
 North-star Cm训练策略因果utility仍OPEN，不把离线标签工作算作policy进步。
 
 [相对任务advantage实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-recap-relative-action.md)。
+
+## Task ref2：冻结连续 advantage 的 action ranking
+
+ref2 明确授权新排序问题，未重跑V或放松旧三分类G0门槛。新 matched pairwise
+Probe完整执行 H / HaK1当前动作 / HaK4已记录feedback；同96,705参数、同init、
+同pairs/训练设置，既有90/22episode split、全部冻结advantage继续使用。
+
+- 正式测试 macro同motion/phase/noise pair accuracy：H59.712%、HaK1 59.617%、
+  K4 60.520%。K1增益−0.095pp；macroSpearman仅+0.0021；打乱当前动作仅降低
+  0.133pp，两个独立V target的增益均负；8/19可配对episode改善。UNPROMISING
+  针对当前fixed target/data/fit合同，不是物理动作信息或Cm被否定。
+- 新审计纠正ref2的排序前提：Pearson0.978并不证明rank稳。两套冻结advantage
+  的Spearman train0.363/test0.540，条件pair顺序一致约62.4%/66.8%。去三分类
+  boundary并未形成强排序监督；训练93%–95%而测试≈60%，泛化仍弱。
+- 配对实际覆盖19/22test episodes、64strata（2,432/2,816anchor queries）；
+  macroSpearman使用88strata，包含单episode无cross-pair组，分母明确分开。
+  去最大MC episode后K1+1.333pp是弱敏感性线索，未过整体门槛。
+- 当前动作进入网络且打乱score RMS0.991；独立review及root SciPy/rawscore
+  复算确认pair/input/normalization/target/hash/metrics正确，无进一步致命bug。
+  第一smoke仅path-hash metadata失败，修复留痕；正式执行commit1a64eab。
+
+Root按ref2负分支停止这份离线标签上的critic/predicted E/I扩展，未新采集或训练
+teacher/policy。下一研究决策应先建立可信物理action/outcome contrast，不能仅
+换V seed、width或threshold继续此数据拟合。保留E/I与relative action科学问题，
+North-star causal Cm-on/off训练所得策略utility仍OPEN。
+本轮GPU6 valid模型执行含smoke<49s，产物<8MB，全部任务结束。
+
+[冻结相对advantage排序实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-relative-action-ranking.md)。
