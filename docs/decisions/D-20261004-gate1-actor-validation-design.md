@@ -17,9 +17,19 @@
 - 只保留完整 future window；target 是 `gamma=0.99` 的 exact Monte-Carlo return。
 - primary arms 固定为 `V_H` 与 `V_HEI`；matched diagnostic control 固定为
   `V_HF` 与 `V_HFEI`；`V_HAEI` 作为 action-inclusive sensitivity arm。
-- split 以 `(actor/source_run, episode_id)` 为单位；所有 arms 使用相同 split、model
-  seed、epoch 和 episode-balanced MAE。actor/source-run cluster bootstrap 是主要
-  不确定性审计单位，不能用逐 window bootstrap 替代。
+- 每个 raw run 必须在每个 shard 提供一致的 `source_sha256`；缺失、混合或不一致时
+  assembler 直接失败。`source_sha256` 是 checkpoint actor namespace，`source_run`
+  只用于区分同一 checkpoint 的重复采样。
+- checkpoint namespace 不自动证明独立 actor；若 checkpoint 存在 continuation lineage，
+  正式 actor 不确定性应按预注册的 lineage/parent-checkpoint 归并，当前结果不得据此
+  宣称跨真实 actor 泛化。
+- split 以 `(source_sha256, source_run, episode_id)` 为单位；所有 arms 使用相同
+  split、model seed、epoch 和 episode-balanced MAE。主要不确定性审计按
+  `source_sha256` cluster bootstrap，`source_run` 只能作为次级敏感性分析，不能用
+  逐 window bootstrap 替代。
+- 随机 episode split 允许同一 checkpoint 同时出现在 train/test，因此只能支持 pooled
+  actor-population association。若要声称 unseen-actor generalization，必须另行预注册
+  leave-one-`source_sha256`-out 或等价的 actor holdout，并让所有 arms 共用该外层 split。
 
 **预注册数据要求。** 至少四个独立 actor/checkpoint namespaces，每个 actor 产生
 完整的普通失败、stable-success 和 drop-after-success 覆盖；每个 episode 只出现一次，

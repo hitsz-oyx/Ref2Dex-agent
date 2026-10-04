@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Audit Gate 1 deltas with source-run/actor cluster bootstrap.
+"""Audit Gate 1 deltas with checkpoint-namespace cluster bootstrap.
 
 Fit reports use episode-balanced MAE as the primary probe estimand.  This
-post-fit audit treats all episodes from one source run as one cluster, which
-is the conservative uncertainty unit needed for a future actor-level
+    post-fit audit treats all episodes from one checkpoint namespace as one
+    cluster, which is the conservative uncertainty unit needed for actor-level
 Validation.  It never replays a model or changes the primary fit result.
 """
 
@@ -26,7 +26,11 @@ def _table(report: Dict[str, object], name: str) -> Dict[tuple, Dict[str, object
         raise ValueError(f"variant {name} has no heldout episode table")
     out = {}
     for row in rows:
-        key = (int(row["source_run"]), int(row["episode_id"]))
+        key = (
+            int(row["source_namespace"]),
+            int(row["source_run"]),
+            int(row["episode_id"]),
+        )
         if key in out:
             raise ValueError(f"duplicate heldout episode {key}")
         out[key] = row
@@ -41,13 +45,13 @@ def audit(report: Dict[str, object], base_name: str, variant_name: str,
         raise ValueError("cluster bootstrap arms do not share heldout episodes")
     by_cluster: Dict[int, List[float]] = {}
     for key in sorted(base):
-        run, _ = key
-        by_cluster.setdefault(run, []).append(
+        namespace, _, _ = key
+        by_cluster.setdefault(namespace, []).append(
             float(base[key]["test_mae"]) - float(variant[key]["test_mae"])
         )
     clusters = sorted(by_cluster)
-    if len(clusters) < 2:
-        raise ValueError("actor cluster bootstrap requires at least two source runs")
+    if len(clusters) < 4:
+        raise ValueError("actor cluster bootstrap requires at least four source namespaces")
     cluster_delta = torch.tensor([
         sum(by_cluster[run]) / len(by_cluster[run]) for run in clusters
     ], dtype=torch.float64)
@@ -67,7 +71,7 @@ def audit(report: Dict[str, object], base_name: str, variant_name: str,
         "base_variant": f"{base_name}->{variant_name}",
         "seed": int(seed),
         "repeats": repeats,
-        "cluster_key": "source_run (actor/run namespace)",
+        "cluster_key": "source_namespace (checkpoint namespace)",
         "cluster_count": len(clusters),
         "cluster_ids": clusters,
         "episode_count": len(base),
@@ -75,7 +79,7 @@ def audit(report: Dict[str, object], base_name: str, variant_name: str,
         "episode_balanced_variant_mae": variant_mae,
         "episode_balanced_relative_reduction": (base_mae - variant_mae) / max(base_mae, 1e-8),
         "cluster_mean_delta": float(cluster_delta.mean()),
-        "cluster_delta_by_run": {str(run): float(delta) for run, delta in zip(clusters, cluster_delta)},
+        "cluster_delta_by_namespace": {str(namespace): float(delta) for namespace, delta in zip(clusters, cluster_delta)},
         "actor_cluster_bootstrap_delta_ci95": [float(quantiles[0]), float(quantiles[1])],
     }
 

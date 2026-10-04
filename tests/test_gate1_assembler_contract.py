@@ -19,7 +19,8 @@ from assemble_gate1_dataset_v2 import (  # noqa: E402
 from assemble_gate1_dataset_v2_fast import assemble as assemble_vectorized  # noqa: E402
 
 
-def _write_interleaved_run(path: Path, physical_timing: str | None) -> None:
+def _write_interleaved_run(path: Path, physical_timing: str | None,
+                           source_sha256: str = "test") -> None:
     path.mkdir()
     steps = 20
     rows = steps * 2
@@ -51,7 +52,7 @@ def _write_interleaved_run(path: Path, physical_timing: str | None) -> None:
         "schema": "test",
         "gamma": 0.99,
         "control_dt": 1.0,
-        "source_sha256": "test",
+        "source_sha256": source_sha256,
         "effect_definition": "test",
         "interaction_definition": "test",
     }
@@ -125,3 +126,25 @@ def test_mixed_physical_timing_shards_fail_closed(tmp_path: Path) -> None:
     for assemble in (assemble_reference, assemble_vectorized):
         with pytest.raises(ValueError, match="physical_timing.*every shard"):
             assemble([run], horizon=3, history_length=10)
+
+
+def test_missing_source_sha256_fails_closed(tmp_path: Path) -> None:
+    run = tmp_path / "missing_source_sha"
+    _write_interleaved_run(run, "pre_env_step")
+    payload = torch.load(run / "transitions_000.pt", map_location="cpu")
+    payload.pop("source_sha256")
+    torch.save(payload, run / "transitions_000.pt")
+    for assemble in (assemble_reference, assemble_vectorized):
+        with pytest.raises(ValueError, match="source_sha256"):
+            assemble([run], horizon=3, history_length=10)
+
+
+def test_source_namespace_mapping_is_input_order_invariant(tmp_path: Path) -> None:
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    _write_interleaved_run(first, "pre_env_step", "aaa")
+    _write_interleaved_run(second, "pre_env_step", "bbb")
+    ordered, _ = assemble_vectorized([first, second], horizon=3, history_length=10)
+    reversed_order, _ = assemble_vectorized([second, first], horizon=3, history_length=10)
+    assert ordered["metadata"]["source_namespace_keys"] == ["aaa", "bbb"]
+    assert reversed_order["metadata"]["source_namespace_keys"] == ["aaa", "bbb"]

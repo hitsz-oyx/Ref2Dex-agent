@@ -32,10 +32,15 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
         "return_to_go", "effect", "interaction", "future_valid_mask", "episode_id",
         "future_action",
         "step", "motion_id", "noise_std", "source_run", "done_at_decision",
-        "episode_auxiliary")}
+        "source_namespace", "episode_auxiliary")}
     metadata: Dict[str, object] = {"horizon": horizon, "history_length": history_length, "runs": []}
-    for run_index, run_dir in enumerate(run_dirs):
+    run_infos = []
+    for run_dir in run_dirs:
         merged, run_meta, shard_hashes = _load_shards(run_dir)
+        run_infos.append((run_dir, merged, run_meta, shard_hashes))
+    namespace_keys = sorted({str(run_meta["source_sha256"]) for _, _, run_meta, _ in run_infos})
+    namespace_ids = {key: index for index, key in enumerate(namespace_keys)}
+    for run_index, (run_dir, merged, run_meta, shard_hashes) in enumerate(run_infos):
         summaries = _episode_summaries(run_dir)
         gamma = float(run_meta.get("gamma", 0.99))
         control_dt = float(run_meta.get("control_dt", 1.0))
@@ -47,10 +52,13 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
                 f"physical_timing missing in {run_dir}; pass "
                 "allow_legacy_timing_inference=True only for audited legacy shards"
             )
+        namespace_key = str(run_meta["source_sha256"])
+        namespace_id = namespace_ids[namespace_key]
         metadata["runs"].append({
             "run_dir": str(run_dir), "shard_sha256": shard_hashes,
             "rows": int(merged["reward"].numel()), "gamma": gamma, "control_dt": control_dt,
             "physical_timing_inferred": timing_inferred,
+            "source_namespace": namespace_key,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition") if k in run_meta},
         })
         physical_timing = str(run_meta.get("physical_timing", "post_env_step_legacy"))
@@ -165,6 +173,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             chunks["motion_id"].append(merged["motion_id"][current_pos].long())
             chunks["noise_std"].append(merged["noise_std"][current_pos].float())
             chunks["source_run"].append(torch.full((rows,), run_index, dtype=torch.long))
+            chunks["source_namespace"].append(torch.full((rows,), namespace_id, dtype=torch.long))
             chunks["done_at_decision"].append(merged["done"][current_pos].bool())
             chunks["episode_auxiliary"].append(aux)
     if not chunks["episode_id"]:
@@ -176,7 +185,8 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
         "interaction_layout": "future contemporaneous-object-frame [hand_relative_xyz, hand_relative_quaternion_xyzw, relative_velocity_xyz, hand_force_xyz, object_force_xyz, hand_force_norm, object_force_norm, hand_contact_mask, object_contact_mask] per contact body",
         "history_layout": "past contiguous [state, factual preceding action, context, progress]; episode-initial preceding action remains the collector value",
         "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
-        "split_unit": "(source_run, episode_id)",
+        "split_unit": "(source_namespace, source_run, episode_id)",
+        "source_namespace_keys": namespace_keys,
         "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
         "assembly_impl": "vectorized_v2",
     }

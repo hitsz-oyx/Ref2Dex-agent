@@ -85,6 +85,8 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
     shard_hashes = []
     timing_presence = []
     timing_values = []
+    source_presence = []
+    source_values = []
     for path in shards:
         raw = path.read_bytes()
         shard_hashes.append(hashlib.sha256(raw).hexdigest())
@@ -95,6 +97,9 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
         timing_presence.append("physical_timing" in item)
         if "physical_timing" in item:
             timing_values.append(item["physical_timing"])
+        source_presence.append("source_sha256" in item)
+        if "source_sha256" in item:
+            source_values.append(item["source_sha256"])
         for key in ("schema", "gamma", "control_dt", "source_sha256", "physical_timing",
                     "effect_definition", "interaction_definition"):
             if key in item:
@@ -108,6 +113,16 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
         )
     if timing_values and any(value != timing_values[0] for value in timing_values[1:]):
         raise ValueError(f"physical_timing mismatch across shards in {run_dir}")
+    if any(source_presence) and not all(source_presence):
+        raise ValueError(
+            f"source_sha256 must be present in every shard or absent from every shard in {run_dir}"
+        )
+    if not all(source_presence):
+        raise ValueError(f"source_sha256 missing in {run_dir}; actor validation requires checkpoint identity")
+    if not source_values or any(value != source_values[0] for value in source_values[1:]):
+        raise ValueError(f"source_sha256 mismatch across shards in {run_dir}")
+    if not isinstance(source_values[0], str) or not source_values[0]:
+        raise ValueError(f"source_sha256 must be a non-empty string in {run_dir}")
     keys = sorted(REQUIRED)
     merged = {key: torch.cat([part[key] for part in parts], dim=0) for key in keys}
     return merged, metadata, shard_hashes
@@ -166,10 +181,19 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
     sample_mask: List[torch.Tensor] = []
     sample_done: List[bool] = []
     sample_aux: List[List[float]] = []
+    sample_namespace: List[int] = []
     metadata: Dict[str, object] = {"horizon": horizon, "history_length": history_length, "runs": []}
+    namespace_ids: Dict[str, int] = {}
+    namespace_keys: List[str] = []
 
-    for run_index, run_dir in enumerate(run_dirs):
+    run_infos = []
+    for run_dir in run_dirs:
         merged, run_meta, shard_hashes = _load_shards(run_dir)
+        run_infos.append((run_dir, merged, run_meta, shard_hashes))
+    namespace_keys = sorted({str(run_meta["source_sha256"]) for _, _, run_meta, _ in run_infos})
+    namespace_ids = {key: index for index, key in enumerate(namespace_keys)}
+
+    for run_index, (run_dir, merged, run_meta, shard_hashes) in enumerate(run_infos):
         summaries = _episode_summaries(run_dir)
         gamma = float(run_meta.get("gamma", 0.99))
         control_dt = float(run_meta.get("control_dt", 1.0))
@@ -183,6 +207,8 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
                 f"physical_timing missing in {run_dir}; pass "
                 "allow_legacy_timing_inference=True only for audited legacy shards"
             )
+        namespace_key = str(run_meta["source_sha256"])
+        namespace_id = namespace_ids[namespace_key]
         metadata["runs"].append({
             "run_dir": str(run_dir),
             "shard_sha256": shard_hashes,
@@ -190,6 +216,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             "gamma": gamma,
             "control_dt": control_dt,
             "physical_timing_inferred": timing_inferred,
+            "source_namespace": namespace_key,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition")
                if k in run_meta},
         })
@@ -317,6 +344,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
                 sample_motion.append(int(merged["motion_id"][current]))
                 sample_noise.append(float(merged["noise_std"][current]))
                 sample_run.append(run_index)
+                sample_namespace.append(namespace_id)
                 sample_action.append(merged["action"][current].float())
                 sample_state.append(merged["state"][current].float())
                 sample_previous_action.append(merged["previous_action"][current].float())
@@ -358,6 +386,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
         "motion_id": torch.tensor(sample_motion, dtype=torch.long),
         "noise_std": torch.tensor(sample_noise, dtype=torch.float32),
         "source_run": torch.tensor(sample_run, dtype=torch.long),
+        "source_namespace": torch.tensor(sample_namespace, dtype=torch.long),
         "done_at_decision": torch.tensor(sample_done, dtype=torch.bool),
         "episode_auxiliary": torch.tensor(sample_aux, dtype=torch.float32),
         "metadata": {
@@ -366,7 +395,8 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             "interaction_layout": "future contemporaneous-object-frame [hand_relative_xyz, hand_relative_quaternion_xyzw, relative_velocity_xyz, hand_force_xyz, object_force_xyz, hand_force_norm, object_force_norm, hand_contact_mask, object_contact_mask] per contact body",
             "history_layout": "past contiguous [state, factual preceding action, context, progress]; episode-initial preceding action remains the collector value",
             "target_definition": "exact Monte Carlo return-to-go from recorded simulator reward; no bootstrap",
-            "split_unit": "(source_run, episode_id)",
+            "split_unit": "(source_namespace, source_run, episode_id)",
+            "source_namespace_keys": namespace_keys,
             "future_action_layout": "on-policy actions at t+1:t+H; diagnostic control only",
             "assembly_impl": "reference_v2",
         },

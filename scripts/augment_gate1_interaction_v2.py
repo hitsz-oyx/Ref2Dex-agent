@@ -113,7 +113,7 @@ def main() -> None:
         "state", "previous_action", "context", "history_state", "history_previous_action",
         "history_context", "history_progress", "action", "reward", "reward_components",
         "return_to_go", "effect", "future_action", "future_valid_mask", "episode_id", "step",
-        "motion_id", "noise_std", "source_run", "done_at_decision", "episode_auxiliary",
+        "motion_id", "noise_std", "source_run", "source_namespace", "done_at_decision", "episode_auxiliary",
     )
     unchanged_keys = [key for key in row_keys if key in dataset and torch.equal(output[key], dataset[key])]
     report = {

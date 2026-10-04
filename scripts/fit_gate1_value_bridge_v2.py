@@ -92,19 +92,23 @@ def _features(dataset: Dict[str, object]) -> Dict[str, torch.Tensor]:
     }
 
 
-def _split(episode_id: torch.Tensor, source_run: torch.Tensor, seed: int):
-    # Episode numbers are only locally unique in a collector run.  Keep the
-    # run namespace in the split key so a multi-run dataset cannot leak an
-    # episode with the same integer id across train and test.
-    groups = sorted(set((int(run), int(ep)) for run, ep in zip(source_run.tolist(), episode_id.tolist())))
+def _split(episode_id: torch.Tensor, source_namespace: torch.Tensor,
+           source_run: torch.Tensor, seed: int):
+    # Keep checkpoint namespace and run namespace in the split key.  The
+    # former is the actor uncertainty unit; the latter prevents episode-id
+    # collisions between repeated runs of one checkpoint.
+    groups = sorted(set((int(namespace), int(run), int(ep))
+                        for namespace, run, ep in zip(
+                            source_namespace.tolist(), source_run.tolist(), episode_id.tolist())))
     rng = random.Random(seed)
     rng.shuffle(groups)
     n_test = max(1, round(len(groups) * 0.2))
     test_groups = sorted(groups[:n_test])
     train_groups = sorted(groups[n_test:])
     train_set = set(train_groups)
-    train = torch.tensor([(int(run), int(ep)) in train_set
-                          for run, ep in zip(source_run.tolist(), episode_id.tolist())], dtype=torch.bool)
+    train = torch.tensor([(int(namespace), int(run), int(ep)) in train_set
+                          for namespace, run, ep in zip(
+                              source_namespace.tolist(), source_run.tolist(), episode_id.tolist())], dtype=torch.bool)
     return train, ~train, train_groups, test_groups
 
 
@@ -118,7 +122,8 @@ def _standardize(sequence: torch.Tensor, train: torch.Tensor) -> torch.Tensor:
 def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tensor,
                  aux: torch.Tensor, train: torch.Tensor, test: torch.Tensor,
                  device: torch.device, epochs: int, batch_size: int, seed: int,
-                 episode_id: torch.Tensor, source_run: torch.Tensor, noise_std: torch.Tensor,
+                 episode_id: torch.Tensor, source_namespace: torch.Tensor,
+                 source_run: torch.Tensor, noise_std: torch.Tensor,
                  variant_defs: Dict[str, List[str]]) -> Dict[str, object]:
     torch.manual_seed(seed)
     # Standardization is done once outside this function.  Recomputing the
@@ -169,7 +174,7 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
             predictions.append(model(batch)[:, 0].cpu())
         prediction = torch.cat(predictions) * ret_scale + ret_mean
     errors = (prediction - target.float()).abs()
-    test_groups = list(zip(source_run[test].tolist(), episode_id[test].tolist()))
+    test_groups = list(zip(source_namespace[test].tolist(), source_run[test].tolist(), episode_id[test].tolist()))
     unique_test_groups = sorted(set(test_groups))
     episode_balanced_mae = float(torch.stack([
         errors[test][torch.tensor([group == g for group in test_groups])].mean()
@@ -188,6 +193,7 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
         "test_predictions": prediction[test],
         "test_targets": target[test].float(),
         "test_episode_id": episode_id[test],
+        "test_source_namespace": source_namespace[test],
         "test_source_run": source_run[test],
         "test_noise_std": noise_std[test],
     }
@@ -195,12 +201,13 @@ def _fit_variant(name: str, blocks: Dict[str, torch.Tensor], target: torch.Tenso
 
 def _bootstrap_delta(base: Dict[str, object], variant: Dict[str, object], seed: int,
                      repeats: int = 1000) -> Dict[str, object]:
-    groups = sorted(set((int(run), int(ep)) for run, ep in zip(
-        base["test_source_run"].tolist(), base["test_episode_id"].tolist())))
+    groups = sorted(set((int(namespace), int(run), int(ep)) for namespace, run, ep in zip(
+        base["test_source_namespace"].tolist(), base["test_source_run"].tolist(),
+        base["test_episode_id"].tolist())))
     base_errors = torch.abs(base["test_predictions"] - base["test_targets"])
     variant_errors = torch.abs(variant["test_predictions"] - variant["test_targets"])
-    base_groups = list(zip(base["test_source_run"].tolist(), base["test_episode_id"].tolist()))
-    variant_groups = list(zip(variant["test_source_run"].tolist(), variant["test_episode_id"].tolist()))
+    base_groups = list(zip(base["test_source_namespace"].tolist(), base["test_source_run"].tolist(), base["test_episode_id"].tolist()))
+    variant_groups = list(zip(variant["test_source_namespace"].tolist(), variant["test_source_run"].tolist(), variant["test_episode_id"].tolist()))
     if set(base_groups) != set(variant_groups):
         raise ValueError("bootstrap arms do not share the same held-out episode groups")
     base_by_group = {g: base_errors[torch.tensor([x == g for x in base_groups])].mean() for g in groups}
@@ -220,7 +227,7 @@ def _bootstrap_delta(base: Dict[str, object], variant: Dict[str, object], seed: 
         "relative_mae_reduction": (base_mae - variant_mae) / max(base_mae, 1e-8),
         "episode_bootstrap_delta_ci95": [float(quantiles[0]), float(quantiles[1])],
         "episode_count": len(groups),
-        "bootstrap_group_key": "(source_run, episode_id)",
+        "bootstrap_group_key": "(source_namespace, source_run, episode_id)",
     }
 
 
@@ -233,19 +240,22 @@ def _episode_error_table(fitted: Dict[str, object]) -> List[Dict[str, object]]:
     is descriptive only; the predeclared episode-balanced MAE and bootstrap CI
     remain the gate statistics.
     """
+    source_namespace = fitted["test_source_namespace"].tolist()
     source_run = fitted["test_source_run"].tolist()
     episode_id = fitted["test_episode_id"].tolist()
     prediction = fitted["test_predictions"]
     target = fitted["test_targets"]
     errors = torch.abs(prediction - target)
-    groups = sorted(set((int(run), int(ep)) for run, ep in zip(source_run, episode_id)))
+    groups = sorted(set((int(namespace), int(run), int(ep))
+                        for namespace, run, ep in zip(source_namespace, source_run, episode_id)))
     table = []
-    for run, ep in groups:
-        mask = torch.tensor([(int(r), int(e)) == (run, ep)
-                             for r, e in zip(source_run, episode_id)], dtype=torch.bool)
+    for namespace, run, ep in groups:
+        mask = torch.tensor([(int(ns), int(r), int(e)) == (namespace, run, ep)
+                             for ns, r, e in zip(source_namespace, source_run, episode_id)], dtype=torch.bool)
         group_target = target[mask]
         group_errors = errors[mask]
         table.append({
+            "source_namespace": namespace,
             "source_run": run,
             "episode_id": ep,
             "rows": int(mask.sum()),
@@ -277,9 +287,16 @@ def main() -> None:
     dataset = torch.load(args.input, map_location="cpu", weights_only=False)
     torch.set_num_threads(args.num_threads)
     episode_id = dataset["episode_id"].long()
-    source_run = dataset.get("source_run", torch.zeros_like(episode_id)).long()
+    if "source_namespace" not in dataset:
+        raise ValueError("dataset missing source_namespace; actor validation requires checkpoint identity")
+    source_namespace = dataset["source_namespace"].long()
+    source_run = dataset["source_run"].long()
+    source_namespace_keys = dataset.get("metadata", {}).get("source_namespace_keys")
+    if not isinstance(source_namespace_keys, list) or not source_namespace_keys:
+        raise ValueError("dataset metadata missing source_namespace_keys")
     noise_std = dataset["noise_std"].float()
-    train, test, train_episodes, test_episodes = _split(episode_id, source_run, args.seed)
+    train, test, train_episodes, test_episodes = _split(
+        episode_id, source_namespace, source_run, args.seed)
     blocks = _features(dataset)
     variant_defs = dict(VARIANTS)
     if args.future_action_control:
@@ -299,7 +316,8 @@ def main() -> None:
         "split_seed": args.seed,
         "model_seed": model_seed,
         "future_action_control": args.future_action_control,
-        "split_unit": "(source_run, episode_id)",
+        "split_unit": "(source_namespace, source_run, episode_id)",
+        "source_namespace_keys": source_namespace_keys,
         "train_episodes": train_episodes,
         "test_episodes": test_episodes,
         "primary_metric": "held-out episode-balanced MAE of exact return_to_go",
@@ -313,7 +331,7 @@ def main() -> None:
     for name in variant_defs:
         fitted[name] = _fit_variant(name, standardized_blocks, target, aux, train, test, device,
                                      args.epochs, args.batch_size, model_seed,
-                                     episode_id, source_run, noise_std, variant_defs)
+                                     episode_id, source_namespace, source_run, noise_std, variant_defs)
         report["variants"][name] = {
             k: v for k, v in fitted[name].items() if not isinstance(v, torch.Tensor)
         }

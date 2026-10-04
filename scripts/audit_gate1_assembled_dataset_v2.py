@@ -13,7 +13,7 @@ import torch
 REQUIRED = {
     "history_state", "history_previous_action", "history_context", "history_progress",
     "action", "effect", "interaction", "return_to_go", "future_valid_mask",
-    "future_action", "episode_id", "step", "source_run", "noise_std", "episode_auxiliary", "metadata",
+    "future_action", "episode_id", "step", "source_run", "source_namespace", "noise_std", "episode_auxiliary", "metadata",
 }
 
 
@@ -51,7 +51,8 @@ def main() -> None:
         "run_status": "COMPLETED",
         "input": str(args.input.resolve()),
         "rows": n,
-        "episodes": len(set(zip(data["source_run"].tolist(), data["episode_id"].tolist()))) if n and "source_run" in data else 0,
+        "episodes": len(set(zip(data["source_namespace"].tolist(), data["source_run"].tolist(), data["episode_id"].tolist()))) if n and "source_namespace" in data else 0,
+        "source_namespace_count": len(set(data["source_namespace"].tolist())) if n and "source_namespace" in data else 0,
         "history_shape": list(data["history_state"].shape) if "history_state" in data else None,
         "effect_shape": list(data["effect"].shape) if "effect" in data else None,
         "interaction_shape": list(data["interaction"].shape) if "interaction" in data else None,
