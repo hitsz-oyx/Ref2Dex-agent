@@ -130,6 +130,21 @@ improve primary rank≥3pp vs H and≥2pp vs direct, with intent permutation
 drop≥2pp. This remains a transition MLP, not the historical frozen point-flow
 model. No Cm/direct training if A or B fails. No seed/capacity/dose sweep.
 
+Before any C fitting, planned residual input normalization is explicitly
+train-only mean/std per native channel (inactive channels have scale floor.001).
+Wrist metres and finger normalized ranges therefore do not receive one common
+.1 divisor. This label-free unit normalization is fixed before formal model
+results; it does not change the actual simulator dose or create another arm.
+Scorers retain26 conditional slots and six outcome heads; GT/predicted I use
+first14 slots, direct action18 slots, H all zero. Stored unclamped regression
+scores define ranking/AUC; failure scores are not claimed calibrated probabilities.
+
+Implementation `tools/run/probe_early_hold.py` captures dataset/collection
+manifest and all executed code hashes. The A decision uses full randomized
+cohort; B/C generalization uses disjoint physical environments. Primary rank
+averages continuation-retention32 and height-or-proxy-loss-failure32, each
+macro over supported observed strata. No new labels used for H preprocessing.
+
 ## Artifacts and limitations
 
 Task-local collection tools retain old contact-region default; early-hold is

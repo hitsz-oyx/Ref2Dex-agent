@@ -91,3 +91,19 @@ def test_drop_ranking_excludes_prelift_and_score_tie_gets_half_credit():
     assert result["macro"] == .5
     assert result["per_head"][3] is None
     assert result["support"][3]["pairs"] == 0
+
+
+def test_early_hold_primary_rank_uses_retention_and_failure_after_step8():
+    path = Path(__file__).resolve().parents[1] / "tools/run/probe_early_hold.py"
+    spec = importlib.util.spec_from_file_location("early_hold_probe_ranking", path)
+    probe = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(probe)
+    target = np.zeros((2, 6))
+    target[1] = 1
+    groups, arms, ids = np.zeros(2, dtype=int), np.arange(2), np.arange(2)
+    scores = target.copy()
+    scores[:, 5] *= -1
+    result = probe.retention_ranking(scores, target, ids, groups, arms)
+    assert result["primary"] == .5
+    assert result["per_head"][3] == 1
+    assert result["per_head"][5] == 0
