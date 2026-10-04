@@ -8,9 +8,10 @@ namespaces (the 14 runs are not 14 independent actors):
 
 The frozen recipe is history length 10, horizon 32, deterministic quaternion
 sign repair, contemporaneous object-frame interaction, GRU temporal encoders,
-exact Monte-Carlo return, and episode-balanced MAE. Outcome coverage is 13
-stable-success and 10 drop-after-success episodes; the remainder are ordinary
-failures. No Cm or online policy training is used.
+exact Monte-Carlo return, and episode-balanced MAE. Outcome coverage is 14
+stable-success and 11 drop-after-success episodes (11 episodes belong to both
+sets); the remainder are ordinary failures. No Cm or online policy training is
+used.
 
 The collector environment/training configuration paths are identical across
 the 14 manifests, but the manifest `git_commit` fields are not all identical.
@@ -35,7 +36,19 @@ episode intervals excluded zero; the e300 namespace interval crossed zero
 (`[-5.49, 23.32]`). The paired incremental estimand
 `(H−HEI)−(HF−HFEI)` was `5.01`, `2.31`, `2.45`, `−1.36` and `3.70` MAE for
 the five held-out namespaces. Its five-namespace bootstrap mean was 2.42 MAE
-with CI `[0.39, 3.98]`, while one namespace remained directionally negative.
+with CI `[0.39, 3.98]` (the cross-fold aggregate is recorded in
+`tmp/VAL-20261004-gate1-namespace-holdout-paired-control-v3.json`), while one
+namespace remained directionally negative.
+
+**Outcome influence audit.** The assembled episodes contain 366 ordinary
+failures, 3 stable-success-only episodes and 11 stable-success episodes that
+later dropped. The paired gain is large on the latter outcome classes, whereas
+the 366 ordinary episodes have mean incremental gain 1.09 MAE with an
+episode-bootstrap CI `[-0.27, 3.10]` and a namespace-bootstrap CI
+`[-0.42, 1.84]`. The only held-out namespace with no success/drop coverage
+(e420 s287) is also the negative paired fold. This makes outcome coverage a
+primary uncertainty, rather than evidence that adding more interaction
+features would resolve the Gate.
 
 **Decision.** The corrected consequence representation is **PROMISING as a
 pooled and outer-namespace mechanism probe**, but the formal Gate 1 claim is
@@ -45,8 +58,9 @@ independent training lineages. The current split and reports do not establish
 unseen-real-actor generalization.
 
 Do not start online Cm or distillation from this result. Preserve the frozen
-bridge and the paired-control audit, then resolve provenance/lineage and repeat
-with predeclared lineage-disjoint actors if a formal Gate 1 claim is required.
+bridge and the paired-control audit, then collect predeclared,
+lineage-disjoint actors with balanced ordinary/stable/drop outcomes before
+repeating a formal Gate 1 claim.
 The artifacts are `tmp/gate1_validation_all14_h32_actorid.pt`, the
 `tmp/VAL-20261004-gate1-pooled-actorhash-h32-*.json` reports, and the
 `tmp/VAL-20261004-gate1-namespace-holdout-*.json` reports.

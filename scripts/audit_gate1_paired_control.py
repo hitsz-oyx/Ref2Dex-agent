@@ -22,11 +22,13 @@ def _table(report: Dict[str, object], variant: str) -> Dict[tuple, float]:
     rows = report.get("variants", {}).get(variant, {}).get("heldout_episode_error_table")
     if not isinstance(rows, list) or not rows:
         raise ValueError(f"variant {variant} has no heldout episode table")
-    return {
-        (int(row["source_namespace"]), int(row["source_run"]), int(row["episode_id"])):
-        float(row["test_mae"])
-        for row in rows
-    }
+    table = {}
+    for row in rows:
+        key = (int(row["source_namespace"]), int(row["source_run"]), int(row["episode_id"]))
+        if key in table:
+            raise ValueError(f"duplicate heldout episode {key}")
+        table[key] = float(row["test_mae"])
+    return table
 
 
 def _quantiles(values: torch.Tensor, seed: int, repeats: int) -> list[float]:
@@ -59,6 +61,9 @@ def compare(direct: Dict[str, object], control: Dict[str, object], seed: int,
     namespace_keys = direct.get("source_namespace_keys")
     if namespace_keys != control.get("source_namespace_keys"):
         raise ValueError("direct/control namespace mappings differ")
+    if (not isinstance(namespace_keys, list) or len(set(namespace_keys)) != len(namespace_keys)
+            or any(namespace < 0 or namespace >= len(namespace_keys) for namespace in namespace_ids)):
+        raise ValueError("invalid source namespace mapping")
     return {
         "episode_count": len(keys),
         "namespace_count": len(namespace_ids),
