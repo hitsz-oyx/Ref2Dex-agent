@@ -21,7 +21,16 @@ Inspire physical trace used by the corrected unified-E/I probe, not Gate2 or MAN
 The Cmv2 branch loads `tmp/P-20261004-cmv2-unified-ei-k1-v7.best1.pt`, freezes the
 existing V1.3 spatial E encoder and trains only a new token head. A state+action MLP/GRU
 predictor is the matched direct baseline. Both use train environments 0--15 and held
-out environments 16--23, 16 rows per environment, six epochs, and physical GPU 6.
+out environments 16--23, 16 rows per environment (256 train + 128 held-out = 384
+rows total), six epochs, and physical GPU 6. This is a single-seed Probe.
+
+The geometry audit follows the corrected DExplore actor ordering: hand root is actor 0
+and object root is actor 2. The K=1 input uses the recorded action at `t+1` to generate
+the causal command-derived hand flow. The label uses measured future hand actor 0 and
+future object actor 2 only, with both hand states transformed into the future object
+frame while object anchors remain in their canonical local frame. The checkpoint loader
+extracts the `base.*` keys, requires no missing or unexpected base parameters, and then
+sets every E parameter to `requires_grad=False` before fitting the new head.
 
 Command:
 
