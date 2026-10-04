@@ -104,6 +104,33 @@ its paired audit.json hashes source and cache. The run requires `--geometry-cach
 and checks source hash, cache hash and exact absolute source-row correspondence.
 Same total 20-minute/2GB budget; this technical retry does not reset it.
 
+`pointflow-g-k1-rootfix-s201` then failed before producing metrics because a
+helper insertion displaced the inference no-grad decorator. Restore it and
+require detached finite predictions; retain failed log. Valid retry is
+`pointflow-g-k1-rootfix2-s201`, with identical design and budget.
+
+## Predeclared bounded follow-up: GT E contract
+
+After valid K1 GT gain fails 5%, distinguish short-horizon/pose-only E from the
+original K8 full13 GT effect signal before adapting a predictor. This Decision
+diagnostic changes whether K4 point-flow deserves investment. Cheapest method:
+no geometry/model inference or new data, only five short same-capacity G fits.
+
+Run `gt-effect-contract-s201` uses identical subset/split/H/G/seed/optimizer/16
+epochs. Every arm has an 8-step 30D auxiliary branch: H constants; pose6 K1;
+pose6 K4; pose6 K8; full13 K8. Missing channels/horizons are standardized
+training-mean constants. Common train-only per-channel normalization and same
+parameter count and minibatch order; no new hyperparameter sweep.
+
+A contract is PROMISING only if MAE gain ≥5%, at least 12/22 episodes improve,
+and gain remains positive excluding the preidentified largest-|G| episode.
+This sensitivity requirement is predeclared for this follow-up, not a revised
+primary metric for the completed K1 probe. Choose smallest promising pose
+horizon; full13-only gain requires a twist-aware E contract before prediction.
+If none passes, do not fit a new E predictor into this G target. Remain within
+the original total resource budget. Multiple contracts are exploratory choices,
+not independent confirmations or formal validation.
+
 ## Limitations / future evidence
 
 No new policy, causal Cm utility or formal validation claim. More seeds and
