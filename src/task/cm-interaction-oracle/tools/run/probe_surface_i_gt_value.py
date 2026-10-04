@@ -30,6 +30,8 @@ from probe_surface_token_i import read_obj, axis_angle_from_rotation
 from assemble_gate1_dataset_v2 import _quat_rotate, _quat_conjugate, _quat_normalize
 from src.task.CmResidual.surface_execution import area_hand_samples
 from src.task.CmResidual.v118_planner import TorchInspireKinematics, QUERY_LINKS
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from probe_pointflow_g import pose_effect
 
 
 def sha(path):
@@ -103,6 +105,7 @@ def prepare(path, device, max_per_episode):
                      ("index_intermediate", "middle_intermediate", "pinky_intermediate", "ring_intermediate", "thumb_distal")]
     interaction, effects = torch.empty(len(subset), 8, 5), torch.empty(len(subset), 1, 6)
     audit = {"fk_position_max_error_m": 0., "state_alignment_max_error": 0.,
+             "state_object_root_max_error": 0., "reconstructed_E_max_error": 0.,
              "next_state_alignment_max_error": 0., "shards": [], "patch_anchor_counts": torch.bincount(labels).tolist(),
              "patch_center_anchor_indices": centers, "urdf_sha256": sha(urdf), "mesh_sha256": sha(mesh)}
     for info in source["metadata"]["runs"]:
@@ -129,6 +132,8 @@ def prepare(path, device, max_per_episode):
         next_error = (merged["next_state"][current] - merged["state"][future]).abs().max().item()
         audit["state_alignment_max_error"] = max(audit["state_alignment_max_error"], state_error)
         audit["next_state_alignment_max_error"] = max(audit["next_state_alignment_max_error"], next_error)
+        object_error = (merged["state"][current, 36:49] - merged["object_root"][current]).abs().max().item()
+        audit["state_object_root_max_error"] = max(audit["state_object_root_max_error"], object_error)
         if state_error > 1e-5:
             raise RuntimeError("assembled decision and shard state mismatch")
         for start in range(0, len(out_idx), 64):
@@ -137,20 +142,30 @@ def prepare(path, device, max_per_episode):
             q0, q1 = merged["state"][i0, :18].to(device), merged["state"][i1, :18].to(device)
             transforms0, transforms1 = fk.forward(q0[:, None])[:, 0], fk.forward(q1[:, None])[:, 0]
             for transforms, ii in ((transforms0, i0), (transforms1, i1)):
-                error = (transforms[:, contact_links, :3, 3].cpu() - merged["hand_body_position"][ii]).norm(dim=-1).max().item()
+                position_error = (transforms[:, contact_links, :3, 3].cpu() - merged["hand_body_position"][ii]).norm(dim=-1)
+                error = position_error.max().item()
+                if error > audit["fk_position_max_error_m"]:
+                    flat = int(position_error.argmax())
+                    bad = int(ii[flat // 5])
+                    audit["fk_worst"] = {"run_dir": info["run_dir"], "episode_id": int(merged["episode_id"][bad]),
+                                         "step": int(merged["step"][bad]), "contact_body_index": flat % 5,
+                                         "actual": merged["hand_body_position"][bad, flat % 5].tolist(),
+                                         "predicted": transforms[flat // 5, contact_links[flat % 5], :3, 3].cpu().tolist()}
                 audit["fk_position_max_error_m"] = max(audit["fk_position_max_error_m"], error)
             if audit["fk_position_max_error_m"] > 0.001:
-                raise RuntimeError(f"identity-root FK contract fails: {audit['fk_position_max_error_m']}m")
+                raise RuntimeError(json.dumps(audit))
             def surface(transforms):
                 return torch.einsum("bpij,pj->bpi", transforms[:, links, :3, :3], hand_points) + transforms[:, links, :3, 3]
             obj0, obj1 = merged["object_root"][i0].to(device), merged["object_root"][i1].to(device)
             interaction[where] = field(points, normals, surface(transforms0), surface(transforms1), obj0, obj1,
                                        labels, float(info["control_dt"])).cpu()
             translation = _quat_rotate(_quat_conjugate(_quat_normalize(obj0[:, 3:7])), obj1[:, :3] - obj0[:, :3])
-            # Use source relative quaternion to retain the exact assembled E contract.
-            from src.task.CmResidual.dexplore_cm_geometry import dexplore_root_pose
-            rotation0, rotation1 = dexplore_root_pose(obj0)[:, :3, :3], dexplore_root_pose(obj1)[:, :3, :3]
-            effects[where, 0] = torch.cat((translation, axis_angle_from_rotation(rotation0.transpose(-1, -2) @ rotation1)), -1).cpu()
+            from assemble_gate1_dataset_v2 import _relative_quaternion
+            relative = _relative_quaternion(obj0[:, 3:7], obj1[:, 3:7])
+            reconstructed = pose_effect(torch.cat((translation, relative), -1)).cpu()
+            source_effect = pose_effect(source["effect"][subset[where], :1])[:, 0]
+            audit["reconstructed_E_max_error"] = max(audit["reconstructed_E_max_error"], (reconstructed - source_effect).abs().max().item())
+            effects[where, 0] = source_effect
         audit["shards"].extend({"path": str(p), "sha256": h} for p, h in zip(shards, hashes))
     raw["E"], raw["I"] = effects, interaction.reshape(len(subset), 1, 40)
     audit["selected_rows"] = len(subset)
