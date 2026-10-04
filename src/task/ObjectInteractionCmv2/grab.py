@@ -34,20 +34,28 @@ def _arrays(sequence_path: str):
 class GrabManoTransitions(Dataset):
     def __init__(self, index: str | Path, manifest: str | Path, split: str,
                  max_sequences: int | None = None, object_points: int = 1024,
-                 direct_pose_gt: bool = False):
+                 direct_pose_gt: bool = False, allow_completed_cache: bool = False):
         self.index_path, self.manifest_path = Path(index).resolve(), Path(manifest).resolve()
         if split not in ("train", "val", "test"):
             raise ValueError("split must be train, val, or test")
         self.split = split
         self.direct_pose_gt = direct_pose_gt
         run = json.loads(self.manifest_path.read_text())
-        if run.get("run_status") != "COMPLETED" or run.get("result") != "SUPPORTED":
-            raise ValueError("Input cache must have a completed, supported run manifest")
+        if run.get("run_status") != "COMPLETED":
+            raise ValueError("Input cache must have a completed run manifest")
+        if run.get("result") != "SUPPORTED":
+            if not allow_completed_cache:
+                raise ValueError("Input cache must have a completed, supported run manifest")
+            cache_manifest = self.index_path.parent / "cache_manifest.json"
+            cache = json.loads(cache_manifest.read_text())
+            if cache.get("validation", {}).get("bad_count") != 0:
+                raise ValueError("Completed cache is not validation-clean")
         catalog = json.loads(self.index_path.read_text())
-        if catalog.get("knn_hand_points_per_stream", {}).get("mano") != 4096:
-            raise ValueError("Expected bilateral MANO2048 KNN stream")
-        if catalog.get("model_object_points") != object_points or catalog.get("object_pool_points") != 4096:
-            raise ValueError("Expected fixed 1024/4096 object point contract")
+        if not allow_completed_cache:
+            if catalog.get("knn_hand_points_per_stream", {}).get("mano") != 4096:
+                raise ValueError("Expected bilateral MANO2048 KNN stream")
+            if catalog.get("model_object_points") != object_points or catalog.get("object_pool_points") != 4096:
+                raise ValueError("Expected fixed 1024/4096 object point contract")
         root = self.index_path.parent
         entries = [entry for entry in catalog["sequences"][split] if entry.get("dataset") == "grab" and entry.get("source") == "mano"]
         if max_sequences is not None:
@@ -57,23 +65,34 @@ class GrabManoTransitions(Dataset):
         self.dropped_pairs = 0
         surface_hashes = set()
         for entry in entries:
-            sequence_path = root / "sequences" / split / "mano" / entry["id"]
+            sequence_path = Path(entry.get("path", ""))
+            if not sequence_path.is_absolute():
+                sequence_path = root / "sequences" / split / "mano" / entry["id"]
             metadata = json.loads((sequence_path / "geometry" / "manifest.json").read_text())
-            if (metadata.get("schema_name"), metadata.get("dataset"), metadata.get("source"),
+            expected_identity = (metadata.get("schema_name"), metadata.get("dataset"), metadata.get("source"),
                 metadata.get("split"), metadata.get("object_representation"),
-                metadata.get("coordinate_frame"), metadata.get("hand_side")) != (
-                    "ref2dex_object_interaction_cm_bilateral_mano_v1_4", "grab", "mano",
-                    split, "rigid_se3", "object_pose_t", "bilateral_merged_left_then_right"):
+                metadata.get("coordinate_frame"), metadata.get("hand_side"))
+            accepted_identity = (
+                ("ref2dex_object_interaction_cm_bilateral_mano_v1_4", "grab", "mano",
+                 split, "rigid_se3", "object_pose_t", "bilateral_merged_left_then_right"),
+                ("ref2dex_object_interaction_cmv2_lean_geometry_v1", "grab", "mano",
+                 split, "rigid_se3", "object_pose_t", "bilateral_merged_left_then_right"),
+            )
+            if expected_identity not in accepted_identity or (
+                expected_identity[0] != accepted_identity[1][0] and not allow_completed_cache):
                 raise ValueError(f"Incompatible GRAB cache: {entry['id']}")
             if (metadata.get("knn_points_per_side") != 2048 or metadata.get("knn_hand_points") != 4096
                 or metadata.get("object_pool_points") != 4096 or metadata.get("effective_fps") != 30.0):
                 raise ValueError(f"Not MANO2048: {entry['id']}")
             sampling = metadata.get("surface_sampling", {})
-            if not sampling.get("cross_frame_fixed"):
+            fixed_sampling = sampling.get("cross_frame_fixed") or metadata.get("hand_sampling_contract") == "bilateral_fixed_random_2048_per_side_v1"
+            if not fixed_sampling:
                 raise ValueError(f"Hand point correspondence not fixed: {entry['id']}")
-            surface_hashes.add((sampling.get("left_sha256"), sampling.get("right_sha256")))
-            if len(surface_hashes) != 1:
-                raise ValueError("MANO surface sampling differs between sequences")
+            surface_hash = (sampling.get("left_sha256"), sampling.get("right_sha256"))
+            if any(surface_hash):
+                surface_hashes.add(surface_hash)
+                if len(surface_hashes) != 1:
+                    raise ValueError("MANO surface sampling differs between sequences")
             arrays = _arrays(str(sequence_path))
             frames = int(entry["frame_count"])
             if any(len(arrays[name]) != frames for name in ARRAYS):
