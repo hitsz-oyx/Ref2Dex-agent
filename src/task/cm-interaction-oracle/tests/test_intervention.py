@@ -17,6 +17,14 @@ def test_headroom_checks_every_arm_before_assignment():
     assert contract.residuals()[:, [7, 9, 11, 13, 16, 17]].count_nonzero() == 0
 
 
+def test_early_hold_run_needs_lift_and_contact_and_resets_on_loss():
+    previous = torch.tensor([5, 5, 5, 0])
+    height = torch.tensor([.031, .029, .05, .04])
+    contact = torch.tensor([True, True, False, True])
+    result = contract.update_predecision_hold(previous, height, torch.zeros(4), contact)
+    assert result.tolist() == [6, 0, 0, 1]
+
+
 def test_rotation_target_ignores_quaternion_sign_and_has_short_axis_angle():
     before = torch.zeros(2, 72)
     before[:, 6] = 1

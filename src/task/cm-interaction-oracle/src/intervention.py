@@ -26,6 +26,12 @@ def all_arms_have_headroom(base, delta):
     return ((candidates >= -1) & (candidates <= 1)).all(-1).all(-1)
 
 
+def update_predecision_hold(previous_steps, height, rest_height, pair_proxy):
+    """Current-state-only early-hold screen, independent of future assignment."""
+    held = (height-rest_height >= .03) & pair_proxy.bool()
+    return torch.where(held, previous_steps+1, torch.zeros_like(previous_steps))
+
+
 def physical_targets(before, after):
     """E12 / I14 at step8, expressed in world axes (fixed airplane task).
 

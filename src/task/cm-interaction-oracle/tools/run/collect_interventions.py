@@ -21,7 +21,7 @@ from src.task.CmResidual.physical_value_contract import HoldTracker
 from src.task.CmResidual.physical_value_live import snapshot, context, contacts
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge, dexplore_root_pose
 sys.path.insert(0, str(ROOT / "src/task/cm-interaction-oracle/src"))
-from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom
+from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom, update_predecision_hold
 
 SOURCE_SHA = "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
 ARGS = None
@@ -75,6 +75,8 @@ class InterventionPlayer(original.EvalPlayer):
             terminal = torch.zeros(n, device=device, dtype=torch.bool)
             arms = torch.full((n,), -1, device=device, dtype=torch.long)
             decision_tick = torch.full_like(arms, -1)
+            hold_steps = torch.zeros_like(arms)
+            hold_steps_at = torch.zeros_like(arms)
             previous = torch.zeros(n, 18, device=device)
             history = torch.zeros(n, HISTORY, 139, device=device)
             initial = torch.zeros(n, 72, device=device)
@@ -92,13 +94,17 @@ class InterventionPlayer(original.EvalPlayer):
             pd_targets = torch.zeros_like(actual)
             pd_base_targets = torch.zeros_like(actual)
             valid_steps = torch.zeros(n, WINDOW, device=device, dtype=torch.bool)
-            eligibility_counts = dict(force_proxy=0, geometry=0, headroom=0, assigned=0)
+            eligibility_counts = dict(force_proxy=0, region=0, geometry=0, headroom=0, assigned=0)
+            region_seen = torch.zeros(n, device=device, dtype=torch.bool)
+            geometry_seen = torch.zeros_like(region_seen)
+            headroom_seen = torch.zeros_like(region_seen)
             for tick in range(ARGS.max_steps):
                 if time.monotonic() - started > ARGS.wall_seconds:
                     raise TimeoutError("bounded intervention collection deadline")
                 obs = self.env_reset(empty_ids)  # adapter only, no physical reset
                 state = snapshot(task, tracker)
                 phys = physical()
+                hold_steps = update_predecision_hold(hold_steps, phys[:, 2], rest, phys[:, 71] > .5)
                 compact = torch.cat((state, previous, task._humanoid_root_states.clone(),
                                      phys[:, 13:66]), -1)
                 if compact.shape[-1] != 139:
@@ -111,14 +117,21 @@ class InterventionPlayer(original.EvalPlayer):
                 eligible &= (task.max_episode_length[task.data_id] - task.progress_buf > WINDOW + 1)
                 eligible &= phys[:, 71] > .5
                 eligibility_counts["force_proxy"] += int(eligible.sum())
+                if ARGS.decision_region == "early-hold":
+                    eligible &= hold_steps >= 6
+                eligibility_counts["region"] += int(eligible.sum())
+                region_seen |= eligible
                 eligible &= phys[:, 66:71].amin(-1) < .06
                 eligibility_counts["geometry"] += int(eligible.sum())
+                geometry_seen |= eligible
                 eligible &= all_arms_have_headroom(base, delta)
                 eligibility_counts["headroom"] += int(eligible.sum())
+                headroom_seen |= eligible
                 chosen = eligible.nonzero(as_tuple=False).flatten()
                 if len(chosen):
                     arms[chosen] = torch.randint(7, (len(chosen),), generator=rng, device=device)
                     decision_tick[chosen] = tick
+                    hold_steps_at[chosen] = hold_steps[chosen]
                     initial[chosen], history_at[chosen] = phys[chosen], history[chosen]
                     obs_at[chosen], context_at[chosen] = obs["obs"][chosen], context(task, tracker)[chosen]
                     base_at[chosen], root_at[chosen] = base[chosen], task._humanoid_root_states[chosen]
@@ -168,14 +181,18 @@ class InterventionPlayer(original.EvalPlayer):
                           trajectory=outcomes, actions=actual, base_actions=bases, valid_steps=valid_steps,
                           pd_targets=pd_targets, pd_base_targets=pd_base_targets,
                           rest_height=rest, episode_id=full_ids + wave*n)
+            values["pre_hold_steps"] = hold_steps_at
             packets.append({key: value[selected].cpu() for key, value in values.items()})
             print(json.dumps(dict(wave_completed=wave, eligible_counts=eligibility_counts,
+                                  unique_region_envs=int(region_seen.sum()), unique_geometry_envs=int(geometry_seen.sum()),
+                                  unique_headroom_envs=int(headroom_seen.sum()),
                                   trials=len(selected), complete_windows=int(valid_steps[selected].all(-1).sum()))), flush=True)
             # Checkpoint bounded collection after every whole wave.
             payload = {key: torch.cat([p[key] for p in packets]) for key in values}
             payload.update(schema="ref2dex.randomized_intervention.v1", arm_names=ARM_NAMES,
                            delta=delta.cpu(), chunk=CHUNK, window=WINDOW, control_dt=task.dt,
                            motion_names=list(task.motion_file), source_sha256=SOURCE_SHA)
+            payload["decision_region"] = ARGS.decision_region
             torch.save(payload, ARGS.run_dir / "interventions.pt")
             (ARGS.run_dir / "episode_summary.json").write_text(json.dumps(summaries, indent=2)+"\n")
         result = dict(trials=len(payload["arm"]), episodes=len(summaries),
@@ -194,6 +211,7 @@ def main():
     parser.add_argument("--waves", type=int, default=4)
     parser.add_argument("--wall-seconds", type=int, default=1200)
     parser.add_argument("--max-steps", type=int, default=2000)
+    parser.add_argument("--decision-region", choices=("contact", "early-hold"), default="contact")
     ARGS, remaining = parser.parse_known_args()
     checkpoint = Path(remaining[remaining.index("--checkpoint")+1])
     if sha(checkpoint) != SOURCE_SHA:
@@ -214,6 +232,8 @@ def main():
         input_hashes={str(p): sha(p) for p in paths}, physical_gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
         created_at=datetime.now(timezone.utc).isoformat(), waves=ARGS.waves, wall_seconds=ARGS.wall_seconds,
         torch_version=torch.__version__, chunk_contract="four-step feedback residual; future base actions not available at decision")
+    manifest["decision_region"] = ARGS.decision_region
+    manifest["reset_contract"] = "full batch only; no assigned trial excluded after execution"
     def save():
         (ARGS.run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2)+"\n")
     save()
