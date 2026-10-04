@@ -36,7 +36,7 @@ def main():
     hashes.update({r['generated']: r['generated_sha256'] for r in generated['references']})
     sources = [Path(__file__), ROOT / 'scripts/run_support_response_environment.py',
         ROOT / 'src/task/CmResidual/research/contact_response/output/P-20261002-support-removal-witness-r1/results.json',
-        ROOT / 'docs/decisions/D-20261002-support-response-information.md',
+        ROOT / 'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-response-information.md',
         ROOT / 'scripts/audit_support_response_collection.py', old, references / 'run_manifest.json', ROOT / 'src/task/CmResidual/static_hold_feasibility.py', ROOT / 'src/task/CmResidual/reference_target_policy.py', ROOT / 'src/task/CmResidual/support_response.py',
         ROOT / 'docs/experiments/probes/P-20261002-support-response-information.md',
         ROOT / 'src/task/CmResidual/finger_preload.py', ROOT / 'src/task/CmResidual/frame0_tracking.py', ROOT / 'src/task/CmResidual/observation_hold_policy.py', ROOT / 'src/task/CmResidual/dexplore_bc_policy.py', ROOT / 'scripts/fit_support_response_information.py', ROOT / 'src/task/CmResidual/tabletop_clearance.py',

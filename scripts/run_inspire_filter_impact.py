@@ -35,7 +35,7 @@ def main():
     for name in subprocess.check_output(['git','ls-files','*.py'],cwd=ROOT,text=True).splitlines():hashes[str(ROOT/name)]=sha(ROOT/name)
     for name in ('scripts/run_inspire_filter_impact.py','scripts/run_inspire_filter_environment.py','scripts/audit_inspire_filter_panel.py'):
         hashes[str(ROOT/name)]=sha(ROOT/name)
-    for name in ('docs/decisions/D-20261003-inspire-shape-filter-impact.md','docs/experiments/probes/P-20261003-inspire-filter-impact.md'):hashes[str(ROOT/name)]=sha(ROOT/name)
+    for name in ('docs/archive/2026-10-04-research-governance/decisions/D-20261003-inspire-shape-filter-impact.md','docs/experiments/probes/P-20261003-inspire-filter-impact.md'):hashes[str(ROOT/name)]=sha(ROOT/name)
     base=Path(old['base_checkpoint']);heads=Path(old['panel_checkpoints']['655']['path']);actors=source/'fit/actors.pt'
     assert sha(base)==old['policy_sha256'] and sha(heads)==old['panel_checkpoints']['655']['sha256'] and sha(actors)==old['panel_actor_sha256']['655']
     def verify():

@@ -28,7 +28,7 @@ substrate unchanged.  It does not establish Cm utility.
 * Added the design-only configuration:
   `src/task/CmResidual/configs/cm_scratch_teacher_arbitration_v1.json`.
 * Added the decision record:
-  `docs/decisions/D-20260928-cm-scratch-teacher-arbitration.md`.
+  `docs/archive/2026-10-04-research-governance/decisions/D-20260928-cm-scratch-teacher-arbitration.md`.
 * `python3 -m py_compile` passed.
 * CPU contract smoke passed with 12 synthetic schema rows (six fit and six
   holdout episodes), deterministic arbitration, fallback, and a deliberate

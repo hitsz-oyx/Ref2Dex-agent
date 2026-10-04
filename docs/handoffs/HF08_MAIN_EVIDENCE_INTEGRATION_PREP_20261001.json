@@ -92,7 +92,7 @@
     },
     {
       "kind": "root decision memo",
-      "path": "docs/decisions/D-20260930-hf08-evaluation-throughput.md",
+      "path": "docs/archive/2026-10-04-research-governance/decisions/D-20260930-hf08-evaluation-throughput.md",
       "sha256": "9187b0b0c5ba1e4915e5698a936d5e10e73ba2f4d2d437044860d5c78c579ac0",
       "mode": "0664",
       "size": 1065,
@@ -104,7 +104,7 @@
     },
     {
       "kind": "root decision memo",
-      "path": "docs/decisions/D-20261001-after-hf08-value-audit.md",
+      "path": "docs/archive/2026-10-04-research-governance/decisions/D-20261001-after-hf08-value-audit.md",
       "sha256": "8497633a8b3730dc534207648b8bc81b193222f54fd4f891c27b3e7b34903ea4",
       "mode": "0664",
       "size": 5368,

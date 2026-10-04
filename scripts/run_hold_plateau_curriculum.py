@@ -30,7 +30,7 @@ def main():
     sources=[Path(__file__),ROOT/'scripts/train_hold_plateau_environment.py',ROOT/'scripts/analyze_hold_plateau_curriculum.py',
         ROOT/'src/task/CmResidual/hold_plateau_training.py',ROOT/'src/task/CmResidual/hold_plateau_agent.py',
         ROOT/'docs/experiments/probes/P-20261001-hold-plateau-curriculum.md',
-        ROOT/'docs/decisions/D-20261001-hold-plateau-curriculum.md',old/'analysis_correction_r1/trajectory_audit.json',
+        ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261001-hold-plateau-curriculum.md',old/'analysis_correction_r1/trajectory_audit.json',
         old/'analysis_correction_r1/results.json',ROOT/'src/task/CmResidual/tools/dexplore_cm_off_rank_bootstrap.py',
         ROOT/'src/task/CmResidual/tools/dexplore_ddp_rank_bootstrap.py',ROOT/'src/task/CmResidual/tools/dexplore_ddp_compat.py',
         ROOT/'src/task/CmResidual/dexplore_approach_agent.py',ROOT/'third_party/DExplore/dexplore/run.py',

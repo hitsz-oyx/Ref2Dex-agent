@@ -36,7 +36,7 @@ def main():
     hashes.update({r['generated']: r['generated_sha256'] for r in generated['references']})
     sources = [Path(__file__), ROOT / 'scripts/run_support_response_environment_v2.py',
         ROOT / 'src/task/CmResidual/research/contact_response/output/P-20261002-support-removal-witness-r1/results.json',
-        ROOT / 'docs/decisions/D-20261002-support-response-information.md',
+        ROOT / 'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-response-information.md',
         ROOT / 'scripts/audit_support_response_collection_v2.py', old, references / 'run_manifest.json', ROOT / 'src/task/CmResidual/static_hold_feasibility.py', ROOT / 'src/task/CmResidual/reference_target_policy.py', ROOT / 'src/task/CmResidual/support_response.py',
         ROOT / 'docs/experiments/probes/P-20261002-support-response-information.md',
         ROOT / 'src/task/CmResidual/finger_preload.py', ROOT / 'src/task/CmResidual/frame0_tracking.py', ROOT / 'src/task/CmResidual/observation_hold_policy.py', ROOT / 'src/task/CmResidual/dexplore_bc_policy.py', ROOT / 'scripts/fit_support_response_information.py', ROOT / 'src/task/CmResidual/tabletop_clearance.py',
@@ -44,7 +44,7 @@ def main():
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/table.urdf',
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/objects/table/table.obj']
     policy=old.parent/'fit/policy.pt'
-    sources.extend([policy,ROOT/'src/task/CmResidual/native_reset_transaction.py',ROOT/'docs/decisions/D-20261002-support-response-initialization-fix.md',Path('/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html')])
+    sources.extend([policy,ROOT/'src/task/CmResidual/native_reset_transaction.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-response-initialization-fix.md',Path('/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html')])
     hashes.update({str(p.resolve()): sha(p) for p in sources})
     if any(sha(Path(p)) != h for p,h in hashes.items()):
         raise ValueError('frozen input drift')

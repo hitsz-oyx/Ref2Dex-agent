@@ -21,7 +21,7 @@ This is the cheapest existing-data screen before paying for student
 collection/training/physical evaluation. It does not answer Cm policy utility.
 
 Protocol, input limits, and fixed gates are in
-[decision memo](../../decisions/D-20260930-cm-policy-utility-next.md).
+[decision memo](../../archive/2026-10-04-research-governance/decisions/D-20260930-cm-policy-utility-next.md).
 Only candidate action/identity and pre-action observation enter the model.
 No holdout tuning or method selection; only one final checkpoint. Existing
 holdout has been inspected, so a pass is exploratory, never formal Validation.

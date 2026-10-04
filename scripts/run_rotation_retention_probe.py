@@ -8,7 +8,7 @@ from scripts.resume_continuous_critic_policy import run_owned_child,bytes_in
 def main():
     p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();source=a.source.resolve();out=a.output.resolve();assert ROOT in out.parents and not out.exists()
     old=json.loads((source/'run_manifest.json').read_text());assert old['run_status']=='COMPLETED';hashes=dict(old['input_sha256'])
-    for f in ['scripts/run_rotation_retention_probe.py','scripts/run_rotation_retention_environment.py','scripts/audit_rotation_retention_feasibility.py','scripts/run_natural_retention_environment.py','scripts/audit_natural_retention_feedback.py','src/task/CmResidual/rotation_retention_feedback.py','docs/decisions/D-20261002-after-response-field-route-review.md','docs/experiments/probes/P-20261002-rotation-retention-feasibility.md', 'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf']:
+    for f in ['scripts/run_rotation_retention_probe.py','scripts/run_rotation_retention_environment.py','scripts/audit_rotation_retention_feasibility.py','scripts/run_natural_retention_environment.py','scripts/audit_natural_retention_feedback.py','src/task/CmResidual/rotation_retention_feedback.py','docs/archive/2026-10-04-research-governance/decisions/D-20261002-after-response-field-route-review.md','docs/experiments/probes/P-20261002-rotation-retention-feasibility.md', 'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf']:
         hashes[str(ROOT/f)]=sha(ROOT/f)
     hashes[str(source/'run_manifest.json')]=sha(source/'run_manifest.json')
     def verify():

@@ -1,6 +1,6 @@
 # Baseline 工作树的冻结后 Probe 复核（2026-09-26）
 
-本记录是监督审计，不更改 [Option A 冻结决定](../decisions/D-20260926-after-hf04-route-review.md) 或 Probe 的科学标签。
+本记录是监督审计，不更改 [Option A 冻结决定](../archive/2026-10-04-research-governance/decisions/D-20260926-after-hf04-route-review.md) 或 Probe 的科学标签。
 
 * `main` 的 Option A 冻结提交 `e1f75e0` 时间为 14:40:44（Asia/Shanghai）。
 * 注册为 CPU-only 的 `agent_baseline` 工作树在 `agent/grab-full-baseline` 分支产生了 local-residual Cm-on/off GPU 评估。两份 manifest 均记录 `gpu_count=1`、`run_status=COMPLETED`，完成时间分别为 14:45:09 和 14:45:14。

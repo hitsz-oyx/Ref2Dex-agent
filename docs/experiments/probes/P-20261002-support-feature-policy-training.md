@@ -1,7 +1,7 @@
 # P-20261002-support-feature-policy-training
 
 Decision Probe: freeze the design in
-[policy-training decision](../../decisions/D-20261002-support-feature-policy-training.md).
+[policy-training decision](../../archive/2026-10-04-research-governance/decisions/D-20261002-support-feature-policy-training.md).
 Actual physical105reward, frozen predictive features, matched state-only and
 privileged-global trained policies. No model reward or new predictor fitting.
 Macro policy learning is reference-conditioned contextual off-policy RL, not

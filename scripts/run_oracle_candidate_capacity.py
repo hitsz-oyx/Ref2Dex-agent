@@ -33,7 +33,7 @@ def main():
                  ROOT/'scripts/run_oracle_native_replay.py',ROOT/'src/task/CmResidual/oracle_native.py',
                  ROOT/'src/task/CmResidual/oracle_features.py',ROOT/'scripts/select_single_focal_oracle.py',
                  ROOT/'scripts/analyze_single_focal_oracle.py',ROOT/'scripts/analyze_oracle_candidate_capacity.py',
-                 ROOT/'docs/decisions/D-20261003-oracle-candidate-capacity.md',
+                 ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261003-oracle-candidate-capacity.md',
                  frozen/'fit/selector.pt',frozen/'options.npy',source/'run_manifest.json',
                  source/'results.json',source/'selection/feature_packet.pt',source/'protocol-audit-final.json']
     generation=json.loads(REFERENCES.read_text())

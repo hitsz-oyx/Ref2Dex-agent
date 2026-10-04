@@ -105,7 +105,7 @@ pretraining or policy fit, a cheap representation-capacity screen must ask
 whether causal hand-transport candidates can even explain additional measured
 object motion beyond matched state-only candidates. Oracle outcome-fitted
 weights would be a capacity bound only, not deployable Cm or causal evidence.
-[Decision](../decisions/D-20261003-after-surface-calibration.md).
+[Decision](../archive/2026-10-04-research-governance/decisions/D-20261003-after-surface-calibration.md).
 
 Evidence: contact_response/output/P-20261003-surface-calibration-r1 (all
 source-derived geometry,4800updates/checkpoints/predictions,failedaudit log)

@@ -1,0 +1,20 @@
+{
+  "schema": "ref2dex.research_archive.v1",
+  "archived_on": "2026-10-04",
+  "archive_root": "docs/archive/2026-10-04-research-governance",
+  "source_paths": [
+    "docs/RESEARCH_DEBT.md",
+    "docs/RESEARCH_QUEUE.yaml",
+    "docs/activities/",
+    "docs/decisions/",
+    "docs/research/INDEX.md",
+    "docs/experiments/probes/ENG-20261002-coherent-native-contract.md"
+  ],
+  "active_replacements": [
+    "docs/experiments/",
+    "docs/SEED_LEDGER.yaml",
+    "docs/STATE.md",
+    "tools/verify.py"
+  ],
+  "notes": "Historical records remain in Git and are not consumed by the active verification gate."
+}

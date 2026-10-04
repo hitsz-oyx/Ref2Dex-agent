@@ -44,8 +44,8 @@ run_status: STARTED | RUNNING | COMPLETED | FAILED | STOPPED | UNKNOWN
   `metrics.jsonl`/`train.log` 入口及失败或停止原因。
 - 恢复前确认同一 work_version、代码提交、配置、输入/cache manifest 和 checkpoint 解释仍然
   一致；否则停止并请用户确认，不得静默续跑或选择“最新 checkpoint”。
-- 运行终态及重要人工检查写入最近作用域的 Activity；科学 hypothesis、evidence 和
-  conclusion 写 experiment card。`run_status` 与 conclusion 必须分开。
+- 运行终态及重要人工检查写入 experiment card 或 run manifest；科学 hypothesis、evidence
+  和 conclusion 也写 experiment card。`run_status` 与 conclusion 必须分开。
 
 工程 smoke 只能证明接线或可运行性，不能证明研究效果。运行结束后按
 `research-experiment-workflow` 解释证据并交接。

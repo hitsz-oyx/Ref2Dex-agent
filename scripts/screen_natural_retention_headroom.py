@@ -85,7 +85,7 @@ def main():
     for p,digest in hashes.items():
         assert sha(Path(p)) == digest
     hashes[str(Path(__file__).resolve())] = sha(Path(__file__).resolve())
-    decision = ROOT/'docs/decisions/D-20261002-natural-retention-headroom.md'
+    decision = ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-headroom.md'
     hashes[str(decision)] = sha(decision)
     result = dict(run_status='COMPLETED', classification='DESCRIPTIVE_REUSED_DATA',
         trajectories=len(rows), training_seeds=list(range(529,541)), arm=0,

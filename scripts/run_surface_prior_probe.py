@@ -18,7 +18,7 @@ def main():
     index = Path('/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/object_interaction_cm_dexplore_rl_v1_3/index.json')
     hashes = {str(index): sha(index)}
     for relative in subprocess.check_output(['git','ls-files','*.py'],cwd=ROOT,text=True).splitlines(): hashes[str(ROOT/relative)] = sha(ROOT/relative)
-    for relative in ('docs/experiments/probes/P-20261003-cm-scale-cross-hand.md','docs/decisions/D-20261003-cm-scale-cross-hand.md'): hashes[str(ROOT/relative)] = sha(ROOT/relative)
+    for relative in ('docs/experiments/probes/P-20261003-cm-scale-cross-hand.md','docs/archive/2026-10-04-research-governance/decisions/D-20261003-cm-scale-cross-hand.md'): hashes[str(ROOT/relative)] = sha(ROOT/relative)
     for relative in ('scripts/run_surface_prior_probe.py','scripts/prepare_surface_prior_data.py','scripts/fit_surface_motion_prior.py','scripts/audit_surface_motion_prior.py','src/task/CmResidual/surface_motion_prior.py'): hashes[str(ROOT/relative)] = sha(ROOT/relative)
     begin = time.monotonic(); out.mkdir()
     manifest = dict(experiment_id='P-20261003-cm-scale-cross-hand',run_id=out.name,run_status='RUNNING',pid=os.getpid(),

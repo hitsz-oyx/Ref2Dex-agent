@@ -1,6 +1,6 @@
 # P-20261002-selective-finger-feasibility
 
-Decision Probe; [frozen design](../../decisions/D-20261002-selective-finger-feasibility.md).
+Decision Probe; [frozen design](../../archive/2026-10-04-research-governance/decisions/D-20261002-selective-finger-feasibility.md).
 Unique r1, fresh545/546,8arms32/motion/seed,1536total202-tick trajectories.
 Unchanged, common curl and6independent parent/yaw positive directions at one fixed
 pre-lift time; original physical105. Primary preselected motion2: a selective arm

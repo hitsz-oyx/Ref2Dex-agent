@@ -1,7 +1,7 @@
 # P-20261003-effect-interaction-oracle — fixed-background run r2
 
 Decision Probe, prospective protocol amendment recorded before launch in
-[D-20261003-single-focal-oracle](../../decisions/D-20261003-single-focal-oracle.md).
+[D-20261003-single-focal-oracle](../../archive/2026-10-04-research-governance/decisions/D-20261003-single-focal-oracle.md).
 The original experiment card and r1 observations are retained unchanged.
 
 **Question.** With a query that reproduces the actual executed short future,

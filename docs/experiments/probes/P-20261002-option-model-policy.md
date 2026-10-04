@@ -98,4 +98,4 @@ UNPROMISING, two of three gates fail. Full native/SDK/actor/model audits pass.
 Combined633.273s/997392487bytes, protected inputs unchanged, own jobs terminal.
 [Complete result](../../research/20261002-option-model-policy-results.md).
 Exact recipe closed without local scans. Next role review is
-[return-corrected learning](../../decisions/D-20261002-after-option-model-policy.md).
+[return-corrected learning](../../archive/2026-10-04-research-governance/decisions/D-20261002-after-option-model-policy.md).

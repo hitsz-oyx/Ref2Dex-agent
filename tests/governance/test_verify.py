@@ -16,23 +16,6 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def _queue() -> str:
-    return """
-schema: ref2dex.research_queue.v1
-claims:
-  C3:
-    name: cm_policy_utility
-    status: OPEN
-hypotheses:
-  HF02:
-    claim: C3
-    name: temporal_cm
-    status: ACTIVE
-    probe_budget: 3
-    probes_used: 1
-"""
-
-
 def _ledger() -> str:
     return """
 schema: ref2dex.seed_ledger.v1
@@ -143,9 +126,8 @@ def test_experiment_ids_are_unique_and_legacy_ids_are_inferred(tmp_path: Path, m
     assert any("实验 ID 重复 P-20260925-a" in failure for failure in failures)
 
 
-def test_v2_probe_schema_and_family_contract(tmp_path: Path, monkeypatch) -> None:
+def test_v2_probe_schema_and_seed_contract(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
         tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
@@ -153,54 +135,14 @@ def test_v2_probe_schema_and_family_contract(tmp_path: Path, monkeypatch) -> Non
     )
 
     failures: list[str] = []
-    VERIFY._check_research_queue(failures)
     VERIFY._check_seed_ledger(failures)
     VERIFY._check_experiment_cards(failures)
     VERIFY._check_card_seed_pools(failures)
     assert not failures
 
 
-def test_closed_family_keeps_completed_probe_but_rejects_new_probe(
-    tmp_path: Path, monkeypatch
-) -> None:
-    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue().replace("status: ACTIVE", "status: KILLED"))
-    card = tmp_path / "docs/experiments/probes/P-20260925-temporal.md"
-    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: UNPROMISING"))
-    failures: list[str] = []
-    VERIFY._check_experiment_cards(failures)
-    assert not failures
-
-    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: PLANNED"))
-    failures = []
-    VERIFY._check_experiment_cards(failures)
-    assert any("当前不可继续消费" in failure for failure in failures)
-
-
-def test_supported_family_is_valid_and_closed_to_unfinished_probes(
-    tmp_path: Path, monkeypatch
-) -> None:
-    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(
-        tmp_path / "docs/RESEARCH_QUEUE.yaml",
-        _queue().replace("status: ACTIVE", "status: SUPPORTED"),
-    )
-    card = tmp_path / "docs/experiments/probes/P-20260925-temporal.md"
-    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: PROMISING"))
-    failures: list[str] = []
-    VERIFY._check_research_queue(failures)
-    VERIFY._check_experiment_cards(failures)
-    assert not failures
-
-    _write(card, _valid_probe().replace("seed_pool: probe", "seed_pool: probe\nstatus: PLANNED"))
-    failures = []
-    VERIFY._check_experiment_cards(failures)
-    assert any("当前不可继续消费（SUPPORTED）" in failure for failure in failures)
-
-
 def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
         tmp_path / "docs/experiments/validations/VAL-20260925-temporal.md",
@@ -210,14 +152,6 @@ def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, mon
     VERIFY._check_experiment_cards(failures)
     VERIFY._check_card_seed_pools(failures)
     assert not failures
-
-
-def test_queue_rejects_exhausted_active_family(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue().replace("probes_used: 1", "probes_used: 3"))
-    failures: list[str] = []
-    VERIFY._check_research_queue(failures)
-    assert any("已耗尽预算" in failure for failure in failures)
 
 
 def test_seed_ledger_rejects_pool_overlap(tmp_path: Path, monkeypatch) -> None:
@@ -233,7 +167,6 @@ def test_seed_ledger_rejects_pool_overlap(tmp_path: Path, monkeypatch) -> None:
 
 def test_probe_cannot_reference_validation_holdout(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
-    _write(tmp_path / "docs/RESEARCH_QUEUE.yaml", _queue())
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
         tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
@@ -256,7 +189,7 @@ def test_seed_ledger_rejects_malformed_range(tmp_path: Path, monkeypatch) -> Non
 
 
 def test_governance_selection_is_narrow() -> None:
-    selected = VERIFY._select_tests({"AGENTS.md", "docs/RESEARCH_QUEUE.yaml"})
+    selected = VERIFY._select_tests({"AGENTS.md", "docs/SEED_LEDGER.yaml"})
     assert selected == ["tests/governance/test_verify.py"]
 
 

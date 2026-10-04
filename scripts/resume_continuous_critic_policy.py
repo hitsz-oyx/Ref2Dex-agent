@@ -158,7 +158,7 @@ def main():
     out.mkdir();begin=time.monotonic();limit=3600-OLD_RESERVE_SECONDS
     hashes=plan['hashes'];hashes[str(Path(__file__).resolve())]=sha(Path(__file__))
     hashes[str(a.stop_receipt.resolve())]=sha(a.stop_receipt)
-    hashes[str(ROOT/'docs/decisions/D-20261002-continuous-critic-resumption.md')]=sha(ROOT/'docs/decisions/D-20261002-continuous-critic-resumption.md')
+    hashes[str(ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-continuous-critic-resumption.md')]=sha(ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-continuous-critic-resumption.md')
     m=copy.deepcopy(plan['manifest']);m.update(run_id=out.name,run_status='RUNNING',pid=os.getpid(),
         isolated_worktree=str(ROOT),phases=[],input_sha256=hashes,panel_checkpoints={},
         source_run=str(plan['source']),source_manifest_sha256=plan['pinned'],source_stop_receipt=receipt,

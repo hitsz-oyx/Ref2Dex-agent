@@ -68,7 +68,7 @@ def main():
         ids=[m['pid']]+[q['pid'] for q in m['phases'] if q.get('pid') and q.get('run_status') in ('RUNNING','FAILED')]
         if any(Path('/proc/'+str(pid)).exists() for pid in ids):raise ValueError('source/reused PID visible; inspect before duplication')
     out.mkdir();begin=time.monotonic();hashes=plan['hashes'];limit=3600-PRIOR_SECONDS
-    for f in [Path(__file__),ROOT/'docs/decisions/D-20261002-continuous-gradient-branch-correction.md']:hashes[str(f.resolve())]=sha(f)
+    for f in [Path(__file__),ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-continuous-gradient-branch-correction.md']:hashes[str(f.resolve())]=sha(f)
     if a.inspect_only:
         report=dict(run_status='COMPLETED',engineering_only=True,protected_paths_verified=len(hashes),retained_updates=list(range(18)),retained_panels=list(range(547,564)),remaining_order=remaining_order(),gpu=gpu,same_hardware_model=model,previous_bytes=plan['previous_bytes'],prior_reserved_seconds=PRIOR_SECONDS,new_limit_seconds=limit,no_new_training_or_physics=True)
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report));return

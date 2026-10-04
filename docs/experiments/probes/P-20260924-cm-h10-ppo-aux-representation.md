@@ -70,4 +70,4 @@ Decision: stop this auxiliary target/coefficient. Do not tune on
 seeds 166/167. The next route, if pursued, must change the decision
 horizon or supervision alignment, rather than perform local coefficient
 search. A higher-cost sequence-conditioned Cm route remains a separate
-decision; see `docs/decisions/D-20260924-after-multiaxis-probe.md`.
+decision; see `docs/archive/2026-10-04-research-governance/decisions/D-20260924-after-multiaxis-probe.md`.

@@ -7,13 +7,13 @@
 decision/probe cards 和 `tmp/gate1_split_rng/` 中旧的 `V_HF`/`V_HFEI` 结果均为
 `INVALID_IMPLEMENTATION`，不再作为证据。direct `V_H`/`V_HEI`/`V_HAEI` 结果不读取
 该字段，不受影响。修复和回归测试记录在
-[`D-20261004-gate1-future-action-index-repair`](../decisions/D-20261004-gate1-future-action-index-repair.md)。
+[`D-20261004-gate1-future-action-index-repair`](../archive/2026-10-04-research-governance/decisions/D-20261004-gate1-future-action-index-repair.md)。
 
 修复后重组、audit 和五 seed fit 的新 control 数字只以该 memo 和本文末尾的
 `fastfix` artifacts 为准。
 
 随后又修复了窗口间 quaternion 首符号的确定性；本文 h32 的 direct/control 数字以
-`qfix` artifacts 和 [`D-20261004-gate1-quaternion-sign-repair`](../decisions/D-20261004-gate1-quaternion-sign-repair.md)
+`qfix` artifacts 和 [`D-20261004-gate1-quaternion-sign-repair`](../archive/2026-10-04-research-governance/decisions/D-20261004-gate1-quaternion-sign-repair.md)
 为最终实现一致版本。
 
 这次 Probe 修正了旧 v2 的采集时序。旧 wrapper 在 `env_step` 之后保存

@@ -9,7 +9,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--previous',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu-index',type=int,required=True);a=p.parse_args();previous=a.previous.resolve();out=a.output.resolve();assert ROOT in out.parents and not out.exists()
     pm=json.loads((previous/'run_manifest.json').read_text());assert pm['run_status']=='FAILED' and pm['experiment_id']=='P-20261002-measured-geometry-barriers' and "GPU occupied" in pm['error'];assert all(x['run_status']=='COMPLETED' for x in pm['phases']) and pm['phases'][-1]['name']=='s580_audit'
     original=Path(pm['prior_failed_run']);first=json.loads((original/'run_manifest.json').read_text());assert first['run_status']=='FAILED';carry=pm['conservative_cumulative_wall_seconds'];prior_bytes=bytes_in(original)+bytes_in(previous);hashes=dict(pm['input_sha256'])
-    for f in [previous/'run_manifest.json',ROOT/'scripts/finish_measured_geometry_barrier_fit.py',ROOT/'docs/decisions/D-20261002-geometry-fit-only-resume.md']:hashes[str(f)]=sha(f)
+    for f in [previous/'run_manifest.json',ROOT/'scripts/finish_measured_geometry_barrier_fit.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-geometry-fit-only-resume.md']:hashes[str(f)]=sha(f)
     for seed in (578,579,580):
         d=previous/f's{seed}';assert json.loads((d/'panel_audit.json').read_text())['run_status']=='COMPLETED'
         for f in d.iterdir():

@@ -108,7 +108,7 @@ ONEprospective matched corrected-native causal prediction comparison. That
 decision must precede any new policy training, large pretraining collection or
 formal claim. A predictive gain would still require fresh randomized native
 qualification and matched learned-policy benefit. Mission unchanged, journal
-NOTREADY, goal ACTIVE. [Decision](../decisions/D-20261003-after-surface-execution.md).
+NOTREADY, goal ACTIVE. [Decision](../archive/2026-10-04-research-governance/decisions/D-20261003-after-surface-execution.md).
 
 Evidence: `src/task/CmResidual/research/contact_response/output/`
 `P-20261003-surface-execution-input-r1`: manifest/logs/audit, selected raw

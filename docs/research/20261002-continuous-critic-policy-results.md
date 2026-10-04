@@ -45,7 +45,7 @@ branch. Same-GPU saved-batch replay reproduces ALL saved gradients/forward/losse
 exactly with zero updates; a separate witnessed-branch NumPy correction passes
 the SAME scalar tolerances (gradient1.2223e-6) after checking the FP32 rounding
 enclosure. It is explicitly retained separately, not a retroactive original pass.
-[Branch decision](../decisions/D-20261002-continuous-gradient-branch-correction.md).
+[Branch decision](../archive/2026-10-04-research-governance/decisions/D-20261002-continuous-gradient-branch-correction.md).
 
 GPU1native allocator failure leads to an explicitly recorded same-model GPU4
 migration. Initial packets agree; no cloned solver/trajectory claim follows.

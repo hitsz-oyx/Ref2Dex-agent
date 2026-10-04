@@ -36,17 +36,17 @@ def main():
     hashes.update({r['generated']: r['generated_sha256'] for r in generated['references']})
     sources = [Path(__file__), ROOT / 'scripts/run_continuous_critic_environment.py',
         ROOT / 'src/task/CmResidual/research/contact_response/output/P-20261002-support-removal-witness-r1/results.json',
-        ROOT / 'docs/decisions/D-20261002-continuous-critic-smoke.md',
+        ROOT / 'docs/archive/2026-10-04-research-governance/decisions/D-20261002-continuous-critic-smoke.md',
         ROOT / 'scripts/audit_continuous_critic_smoke.py', old, references / 'run_manifest.json', ROOT / 'src/task/CmResidual/static_hold_feasibility.py', ROOT / 'src/task/CmResidual/reference_target_policy.py', ROOT / 'src/task/CmResidual/support_response.py',
-        ROOT / 'docs/decisions/D-20261002-continuous-critic-cm.md',
+        ROOT / 'docs/archive/2026-10-04-research-governance/decisions/D-20261002-continuous-critic-cm.md',
         ROOT / 'src/task/CmResidual/finger_preload.py', ROOT / 'src/task/CmResidual/frame0_tracking.py', ROOT / 'src/task/CmResidual/observation_hold_policy.py', ROOT / 'src/task/CmResidual/dexplore_bc_policy.py', ROOT / 'scripts/fit_support_response_information.py', ROOT / 'src/task/CmResidual/tabletop_clearance.py',
         ROOT / 'scripts/analyze_static_hold_feasibility.py',
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/table.urdf',
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/objects/table/table.obj']
     policy=old.parent/'fit/policy.pt'
-    sources.extend([policy,ROOT/'src/task/CmResidual/native_reset_transaction.py',ROOT/'src/task/CmResidual/continuous_critic_cm.py',ROOT/'docs/decisions/D-20261002-support-response-initialization-fix.md',Path('/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html')])
-    sources += [ROOT/'docs/decisions/D-20261002-natural-retention-headroom.md',ROOT/'docs/research/20261002-natural-retention-headroom-results.md',ROOT/'src/task/CmResidual/research/contact_response/output/P-20261002-natural-retention-headroom-r1/results.json']
-    sources += [ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',ROOT/'docs/decisions/D-20261002-contact-action-representation-review.md']
+    sources.extend([policy,ROOT/'src/task/CmResidual/native_reset_transaction.py',ROOT/'src/task/CmResidual/continuous_critic_cm.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-response-initialization-fix.md',Path('/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html')])
+    sources += [ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-headroom.md',ROOT/'docs/research/20261002-natural-retention-headroom-results.md',ROOT/'src/task/CmResidual/research/contact_response/output/P-20261002-natural-retention-headroom-r1/results.json']
+    sources += [ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-contact-action-representation-review.md']
     sources += [ROOT/'src/task/CmResidual/research/contact_response/output/P-20261002-natural-retention-feedback-r1/results.json',ROOT/'docs/research/20261002-natural-retention-feedback-results.md']
     sources += [ROOT/'src/task/CmResidual/selective_finger_response.py',ROOT/'scripts/initialize_continuous_critic_cm.py']
     hashes.update({str(p.resolve()): sha(p) for p in sources})

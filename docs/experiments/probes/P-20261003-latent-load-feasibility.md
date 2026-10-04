@@ -51,4 +51,4 @@ ratios50 verify GPU setter; complete independent native/feature/actor/PD/
 fullmesh/count/gate audits PASS. OwnedPIDsgone andprotectedinputsunchanged.
 Closeexactdensitycontrast, no weight/seed/checkpoint rescue or history fit.
 [Result](../../research/20261003-latent-load-feasibility-results.md),
-[decision](../../decisions/D-20261003-after-latent-load.md).
+[decision](../../archive/2026-10-04-research-governance/decisions/D-20261003-after-latent-load.md).

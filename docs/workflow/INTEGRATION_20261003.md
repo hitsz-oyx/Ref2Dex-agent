@@ -15,11 +15,11 @@ Source commits reviewed:
 - `efdf2b4` — structured capacity-error detection and delayed watchdog recovery;
 - `d889e21` — final retired-agent skill wording.
 
-The integrated tree keeps the current `main` research records, archive index,
-skills, and registry for historical traceability. It does not import the
-residual-policy experiments or delete the historical Broker files. The active
-runtime is the single-session capacity watchdog; the old Broker files remain
-available only for historical inspection.
+The integrated tree kept the current `main` research records, archive index,
+and skills for historical traceability. It did not import the residual-policy
+experiments. The active runtime is the single-session capacity watchdog; the
+retired Broker source is preserved by Git history and the workflow archive,
+not as active runtime files.
 
 The pre-integration refs are preserved as:
 

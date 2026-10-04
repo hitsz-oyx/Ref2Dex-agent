@@ -10,7 +10,7 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--source',type=Path,required=True);p.add_argument('--engineering',action='store_true');p.add_argument('--baseline',type=Path);a=p.parse_args();out=a.output.resolve();source=a.source.resolve()
     if out.exists() or ROOT not in out.parents:raise ValueError('unique owned output')
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True):raise ValueError('clean fixed source')
-    paths=[CONFIG,REFERENCES,POLICY,Path(__file__).resolve(),ROOT/'scripts/run_oracle_native_replay.py',ROOT/'src/task/CmResidual/oracle_native.py',ROOT/'src/task/CmResidual/oracle_features.py',ROOT/'scripts/select_single_focal_oracle.py',ROOT/'scripts/analyze_single_focal_oracle.py',ROOT/'docs/decisions/D-20261003-single-focal-oracle.md',source/'options.npy',source/'fit/selector.pt',source/'fit/results.json',source/'run_manifest.json']
+    paths=[CONFIG,REFERENCES,POLICY,Path(__file__).resolve(),ROOT/'scripts/run_oracle_native_replay.py',ROOT/'src/task/CmResidual/oracle_native.py',ROOT/'src/task/CmResidual/oracle_features.py',ROOT/'scripts/select_single_focal_oracle.py',ROOT/'scripts/analyze_single_focal_oracle.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261003-single-focal-oracle.md',source/'options.npy',source/'fit/selector.pt',source/'fit/results.json',source/'run_manifest.json']
     if a.baseline:
         a.baseline=a.baseline.resolve();paths.extend(p for p in a.baseline.iterdir() if p.is_file())
     hashes={str(path):sha(path) for path in paths};out.mkdir();begin=time.monotonic();limit=300 if a.engineering else 3600;storage=(512<<20) if a.engineering else (6<<30)

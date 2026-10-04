@@ -22,7 +22,7 @@ def main():
         raise ValueError('unique isolated output required')
     files = [source/'dataset.pt', source/'results.json', source/'collection_audit.json',
              gradient/'analysis.pt', gradient/'results.json', gradient/'run_manifest.json',
-             Path(__file__), ROOT/'docs/decisions/D-20261002-support-state-dependence.md']
+             Path(__file__), ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-state-dependence.md']
     hashes = {str(f): sha(f) for f in files}
     out.mkdir()
     begin = time.monotonic()

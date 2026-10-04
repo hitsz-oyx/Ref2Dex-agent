@@ -19,7 +19,7 @@ def main():
     for seed in (603,604):
         for name in ('initial.pt','trace.pt','rows.json','results.json','panel_audit.json','physical_metadata.json'):
             p=source/f's{seed}'/name;protected[str(p)]=sha(p)
-    for p in (Path(__file__).resolve(),ROOT/'docs/decisions/D-20261002-late-option-support-review.md'):protected[str(p)]=sha(p)
+    for p in (Path(__file__).resolve(),ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-late-option-support-review.md'):protected[str(p)]=sha(p)
     if args.corrects:
         for name in ('results.json','run_manifest.json'):
             p=args.corrects.resolve()/name;protected[str(p)]=sha(p)

@@ -15,7 +15,7 @@
 - C1 的任务限定 SUPPORTED 不证明单一 actor、未见物体泛化或 Cm utility；冻结已验收的
   六专家 substrate。[正式验证](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
 - HF01–HF05 的已失败局部路线保持冻结，不靠换 seed/门槛重置预算；这不是所有未来 Cm/GPU
-  路线的全局禁止。[队列与路线预算](RESEARCH_QUEUE.yaml)。
+  路线的全局禁止。历史路线边界保存在归档实验记录中。
 - 用户已授权边界内自主选路线，以及六专家蒸馏与新的 Cm 探索；历史标签不因此升级。
 - r6 support 的 teacher label 仅覆盖 source_e260，不能证明六专家蒸馏；其缺失轴字段不能回填。
 - r7 轴合约通过，但 contact q10 与 delta 覆盖未过 calibration gate，不生成正式 Cm-on 标签。
@@ -63,7 +63,7 @@ CM真实输入守卫已验收、集成，main复验11项通过。
 当sigma退出。原生model还负责观测归一化，raw网络直调不能替代它。错误属于采集器，
 不证明checkpoint标准差无效。root已派固定RL角色做CPU-only原生player合约修复；
 原恢复轮截止不延长，未来采集按实际累计成本另记有界预算。单次MC误差不单独证明bias；
-HF08 slot不重置。见[修复决策](decisions/D-20261001-native-player-collector-repair.md)。
+HF08 slot不重置。见[修复记录](archive/2026-10-04-research-governance/decisions/D-20261001-native-player-collector-repair.md)。
 [HF08实验卡](experiments/probes/P-20260930-cm-physical-value.md)与
 [完整结果](experiments/probes/P-20260930-cm-physical-value-results.json)保留边界与数值。
 原始数据/checkpoint留在原研究工作树的research/output/P-20260930-cm-physical-value/r7，

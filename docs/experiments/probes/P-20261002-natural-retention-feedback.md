@@ -1,6 +1,6 @@
 # P-20261002-natural-retention-feedback
 
-Decision Probe; [frozen protocol](../../decisions/D-20261002-natural-retention-feedback.md).
+Decision Probe; [frozen protocol](../../archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-feedback.md).
 New run r1, evaluation543/544, four preassigned64/motion groups;1536total
 trajectories,202native ticks. Unchanged, early curl, slip-triggered curl and
 slip-triggered wrist XYZ arrest. Current-only five-tick acquisition and20mm/s

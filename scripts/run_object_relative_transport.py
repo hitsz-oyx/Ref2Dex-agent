@@ -13,7 +13,7 @@ def main():
     teacher=Path('/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/Dexplore/agent_v139_s3_backtrack_s70_e260/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth').resolve()
     teacher_sha='16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f'
     assert sha(teacher)==teacher_sha
-    for f in ['scripts/run_object_relative_transport.py','scripts/run_object_relative_transport_environment.py','scripts/audit_object_relative_transport_panel.py','scripts/analyze_object_relative_transport.py','scripts/run_self_trained_teacher_environment.py','scripts/audit_self_trained_teacher_panel.py','docs/experiments/probes/P-20261002-object-relative-transport.md','docs/decisions/D-20261002-object-relative-transport-opportunity.md']:
+    for f in ['scripts/run_object_relative_transport.py','scripts/run_object_relative_transport_environment.py','scripts/audit_object_relative_transport_panel.py','scripts/analyze_object_relative_transport.py','scripts/run_self_trained_teacher_environment.py','scripts/audit_self_trained_teacher_panel.py','docs/experiments/probes/P-20261002-object-relative-transport.md','docs/archive/2026-10-04-research-governance/decisions/D-20261002-object-relative-transport-opportunity.md']:
         hashes[str(ROOT/f)]=sha(ROOT/f)
     for f in [source/'run_manifest.json',heads,base,teacher]:hashes[str(f.resolve())]=sha(f)
     def verify():

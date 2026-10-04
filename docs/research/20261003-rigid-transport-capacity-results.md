@@ -121,7 +121,7 @@ native qualification before matched policy-training utility. Same-seed
 viewedholdout, object/tasks/morphology generalization, distinctiveness and
 formal multi-seed policy Validation remain unresolved. Mission unchanged,
 goal ACTIVE, journal NOTREADY.
-[Decision](../decisions/D-20261003-after-rigid-transport-capacity.md).
+[Decision](../archive/2026-10-04-research-governance/decisions/D-20261003-after-rigid-transport-capacity.md).
 
 Evidence: contact_response/output/P-20261003-rigid-transport-capacity-r1,
 capacity/{fields.npz,*_oracle.npz,results.json},audit.json,logs,runmanifest.

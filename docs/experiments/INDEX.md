@@ -139,6 +139,76 @@
 | [P-20260925-six-expert-observation-router](probes/P-20260925-six-expert-observation-router.md) | P-20260925-six-expert-observation-router | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20260926-cm-gate-followup](probes/P-20260926-cm-gate-followup.md) | P-20260926-cm-gate-followup | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20260930-cm-physical-value](probes/P-20260930-cm-physical-value.md) | P-20260930-cm-physical-value | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-actuation-effect-factorization](probes/P-20261001-actuation-effect-factorization.md) | P-20261001-actuation-effect-factorization | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-contact-response-resolution](probes/P-20261001-contact-response-resolution.md) | P-20261001-contact-response-resolution | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-contact-trigger-geometry](probes/P-20261001-contact-trigger-geometry.md) | P-20261001-contact-trigger-geometry | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-current-policy-v-fit](probes/P-20261001-current-policy-v-fit.md) | P-20261001-current-policy-v-fit | 见原卡 | close HD01 at1/1, retain HF08 PAUSED, do not add updates/seeds to chase | probes/见原卡 |
+| [P-20261001-current-policy-value-diagnostic](probes/P-20261001-current-policy-value-diagnostic.md) | P-20261001 current-policy value diagnostic | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-differential-response-learning](probes/P-20261001-differential-response-learning.md) | P-20261001-differential-response-learning | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-direct-randomized-response](probes/P-20261001-direct-randomized-response.md) | P-20261001-direct-randomized-response | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-fresh-causal-transfer](probes/P-20261001-fresh-causal-transfer.md) | P-20261001-fresh-causal-transfer | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-hold-plateau-curriculum](probes/P-20261001-hold-plateau-curriculum.md) | P-20261001-hold-plateau-curriculum | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-hold-plateau-substrate](probes/P-20261001-hold-plateau-substrate.md) | P-20261001-hold-plateau-substrate | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-null-action-recovery](probes/P-20261001-null-action-recovery.md) | P-20261001-null-action-recovery | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-paired-evaluator-resolution](probes/P-20261001-paired-evaluator-resolution.md) | P-20261001-paired-evaluator-resolution | 见原卡 | if noise cannot resolve5pp, close current route without new policy | probes/见原卡 |
+| [P-20261001-randomized-effect-risk](probes/P-20261001-randomized-effect-risk.md) | P-20261001-randomized-effect-risk | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-randomized-task-selection](probes/P-20261001-randomized-task-selection.md) | P-20261001-randomized-task-selection | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261001-static-hold-feasibility](probes/P-20261001-static-hold-feasibility.md) | P-20261001-static-hold-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-coherent-barrier-information](probes/P-20261002-coherent-barrier-information.md) | Coherent native execution and task-barrier action information | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-continuous-critic-policy](probes/P-20261002-continuous-critic-policy.md) | Fixed actual continuous PPO comparison | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-delayed-request-response](probes/P-20261002-delayed-request-response.md) | Fixed randomized-request object-response screen | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-empirical-successor-policy](probes/P-20261002-empirical-successor-policy.md) | Actual policy training with a learned observed-successor law | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-finger-preload-feasibility](probes/P-20261002-finger-preload-feasibility.md) | P-20261002-finger-preload-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-force-aware-impulse](probes/P-20261002-force-aware-impulse.md) | Force-aware action-conditioned non-gravity impulse information | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-frame0-tracking-feasibility](probes/P-20261002-frame0-tracking-feasibility.md) | P-20261002-frame0-tracking-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-measured-geometry-barriers](probes/P-20261002-measured-geometry-barriers.md) | Measured object-frame geometry and physical barrier information | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-natural-retention-feedback](probes/P-20261002-natural-retention-feedback.md) | P-20261002-natural-retention-feedback | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-object-relative-transport](probes/P-20261002-object-relative-transport.md) | Object-relative translation opportunity | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-observation-hold-aggregation](probes/P-20261002-observation-hold-aggregation.md) | P-20261002-observation-hold-aggregation | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-observation-hold-baseline](probes/P-20261002-observation-hold-baseline.md) | P-20261002-observation-hold-baseline | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-observed-support-task-value](probes/P-20261002-observed-support-task-value.md) | Current observed support information for eventual task value | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-option-model-policy](probes/P-20261002-option-model-policy.md) | Short successor Cm in actual offline option-policy training | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-paired-option-task-opportunity](probes/P-20261002-paired-option-task-opportunity.md) | Paired executed joint-option task opportunity | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-physical-encoder-critic](probes/P-20261002-physical-encoder-critic.md) | Actual task critic learning from physical pretrained encoders | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-physical-gradient-control](probes/P-20261002-physical-gradient-control.md) | Fresh measured-return gradient control variate Decision | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-prelift-contact-opportunity](probes/P-20261002-prelift-contact-opportunity.md) | Prelift contact preparation opportunity | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-reference-target-policy](probes/P-20261002-reference-target-policy.md) | P-20261002-reference-target-policy | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-request-execution-headroom](probes/P-20261002-request-execution-headroom.md) | Request innovation execution headroom | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-rotation-retention-feasibility](probes/P-20261002-rotation-retention-feasibility.md) | Independent rotation-only retention feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-selective-finger-feasibility](probes/P-20261002-selective-finger-feasibility.md) | P-20261002-selective-finger-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-self-trained-teacher-qualification-goal-alignment](probes/P-20261002-self-trained-teacher-qualification-goal-alignment.md) | Teacher qualification: engineering reference-goal alignment | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-self-trained-teacher-qualification](probes/P-20261002-self-trained-teacher-qualification.md) | Self-trained teacher qualification on current synthetic105task | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-state-response-field](probes/P-20261002-state-response-field.md) | State-conditioned immediate object response: fixed Decision Probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-successor-value-compatibility](probes/P-20261002-successor-value-compatibility.md) | Reused eight-step successor/value compatibility Decision | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-support-disturbance-feasibility](probes/P-20261002-support-disturbance-feasibility.md) | P-20261002-support-disturbance-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-support-feature-policy-training](probes/P-20261002-support-feature-policy-training.md) | P-20261002-support-feature-policy-training | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-support-removal-witness](probes/P-20261002-support-removal-witness.md) | P-20261002-support-removal-witness | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-support-response-information](probes/P-20261002-support-response-information.md) | P-20261002-support-response-information | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-task-outcome-determinacy](probes/P-20261002-task-outcome-determinacy.md) | TRAIN-only task outcome determinacy review | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261002-truth-successor-task-value](probes/P-20261002-truth-successor-task-value.md) | Truth-successor eventual task-value upperbound | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-budgeted-physical-critic](probes/P-20261003-budgeted-physical-critic.md) | Budgeted short physical information for actual policy learning | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-cm-granularity](probes/P-20261003-cm-granularity.md) | Fixed-data query and neighborhood granularity Decision Probe | 见原卡 | a >=10% same-hand held-parent gain prioritizes that representation | probes/见原卡 |
+| [P-20261003-cm-scale-cross-hand](probes/P-20261003-cm-scale-cross-hand.md) | Cm scale and cross-hand knowledge-prior Decision Probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-contrast-acquisition](probes/P-20261003-contrast-acquisition.md) | Fixed-budget physical action-contrast acquisition | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-effect-interaction-oracle-r2](probes/P-20261003-effect-interaction-oracle-r2.md) | P-20261003-effect-interaction-oracle — fixed-background run r2 | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-effect-interaction-oracle](probes/P-20261003-effect-interaction-oracle.md) | P-20261003-effect-interaction-oracle | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-gate1-consequence-value](probes/P-20261003-gate1-consequence-value.md) | P-20261003-gate1-consequence-value — Gate 1 data and bridge readiness | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-inspire-filter-impact](probes/P-20261003-inspire-filter-impact.md) | Corrected shape ownership: fixed-policy sensitivity | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-latent-load-feasibility](probes/P-20261003-latent-load-feasibility.md) | P-20261003-latent-load-feasibility | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-oracle-candidate-capacity](probes/P-20261003-oracle-candidate-capacity.md) | P-20261003-oracle-candidate-capacity | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-rigid-coupling-error-decomposition](probes/P-20261003-rigid-coupling-error-decomposition.md) | Fixed-weight coupling error decomposition | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-rigid-coupling-learnability](probes/P-20261003-rigid-coupling-learnability.md) | Learn causal coefficients inside the unchanged transport family | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-rigid-transport-capacity](probes/P-20261003-rigid-transport-capacity.md) | Oracle capacity of an inertial/rigid-transport coupling representation | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-rotational-clearance-adequacy](probes/P-20261003-rotational-clearance-adequacy.md) | Rotation contribution to actual full-mesh clearance decisions | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-state-anchored-transport](probes/P-20261003-state-anchored-transport.md) | State-anchored, proximity-gated direct-flow transport | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-surface-calibration](probes/P-20261003-surface-calibration.md) | Corrected causal surface-feature calibration | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-surface-execution-input](probes/P-20261003-surface-execution-input.md) | Corrected-physics causal execution input qualification | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261003-surface-granularity-audit](probes/P-20261003-surface-granularity-audit.md) | Current geometry coverage audit | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-gate1-consequence-v2](probes/P-20261004-gate1-consequence-v2.md) | P-20261004-gate1-consequence-v2 — corrected physical timing probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-gate1-corrected-coverage](probes/P-20261004-gate1-corrected-coverage.md) | P-20261004-gate1-corrected-coverage | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-gate1-split-rng](probes/P-20261004-gate1-split-rng.md) | P-20261004-gate1-split-rng | with the original data and fixed splits, changing only the model seed | if split 3 stays negative and split 1 stays positive across the same | probes/见原卡 |
+| [P-20261004-gate2-action-chunk-k8](probes/P-20261004-gate2-action-chunk-k8.md) | P-20261004 Gate 2 action chunk K=8 | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-gate2-predictability](probes/P-20261004-gate2-predictability.md) | P-20261004 Gate 2 consequence predictability | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT](probes/PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT.md) | Cm 效应头的动作对应关系 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-COMPONENTS](probes/PROBE-20260923-CM-WEIGHT-COMPONENTS.md) | Cm PPO 权重分量离线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |

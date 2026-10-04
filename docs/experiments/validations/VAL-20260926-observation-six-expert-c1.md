@@ -64,7 +64,7 @@ decision_status: `ACCEPTED`（2026-09-27）
 Root 提议 Option A；用户回复“你是主agent有最高权限，按照你的想法来”，将该
 Decision Checkpoint 的路线选择交由 root。Root 随后接受窄范围 `SUPPORTED`
 结论；决策与边界见
-[D-20260927-c1-observation-route-validation.md](../../decisions/D-20260927-c1-observation-route-validation.md)。
+[D-20260927-c1-observation-route-validation.md](../../archive/2026-10-04-research-governance/decisions/D-20260927-c1-observation-route-validation.md)。
 下述机器可读结果索引是在此决策**之前**生成的执行证据，其中
 `promotion_status: PENDING_DECISION_CHECKPOINT` 和
 `proposed_terminal_label: SUPPORTED` 是当时的历史状态；为保留原始分析指纹，

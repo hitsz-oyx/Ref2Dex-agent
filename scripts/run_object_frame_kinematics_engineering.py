@@ -11,7 +11,7 @@ def main():
     old=json.loads((source/'run_manifest.json').read_text());assert old['run_status']=='COMPLETED'
     heads=source/'u20/policy_heads.pt';base=Path(old['base_checkpoint']);hashes=dict(old['input_sha256'])
     for f in SCIENTIFIC_FILES:hashes[str(ROOT/f)]=sha(ROOT/f)
-    for f in ['scripts/run_object_frame_kinematics_engineering.py','scripts/audit_object_frame_native_panel.py','scripts/audit_object_frame_kinematics.py','scripts/run_object_frame_geometry_environment.py','src/task/CmResidual/object_frame_kinematics.py','docs/decisions/D-20261002-after-impulse-geometry-route-review.md']:
+    for f in ['scripts/run_object_frame_kinematics_engineering.py','scripts/audit_object_frame_native_panel.py','scripts/audit_object_frame_kinematics.py','scripts/run_object_frame_geometry_environment.py','src/task/CmResidual/object_frame_kinematics.py','docs/archive/2026-10-04-research-governance/decisions/D-20261002-after-impulse-geometry-route-review.md']:
         hashes[str(ROOT/f)]=sha(ROOT/f)
     for f in [source/'run_manifest.json',heads,base,*[source/'s547'/name for name in ('initial.pt','trace.pt','results.json','panel_audit.json')]]:hashes[str(f.resolve())]=sha(f)
     def verify():

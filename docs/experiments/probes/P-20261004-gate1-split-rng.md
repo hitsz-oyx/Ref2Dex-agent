@@ -6,7 +6,7 @@ for Gate closeout and `PROMISING` only as a local h16 diagnostic.
 > **Erratum (2026-10-04).** Future-action control values recorded in this historical
 > card used the pre-repair fast assembler and are `INVALID_IMPLEMENTATION`; direct
 > H/E/I results remain valid. Corrected controls are listed in
-> [the repair memo](../../decisions/D-20261004-gate1-future-action-index-repair.md).
+> [the repair memo](../../archive/2026-10-04-research-governance/decisions/D-20261004-gate1-future-action-index-repair.md).
 
 Question: Does the negative I+ h16 split 3 persist when the model/minibatch RNG
 changes while train/test episodes stay fixed? Previous runs changed split and

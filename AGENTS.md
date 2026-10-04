@@ -42,12 +42,13 @@ AI 的目标不是把每个可能的问题都研究完整，而是在资源和�
 2. `docs/MISSION.md`
 3. `docs/CAMPAIGN.md`
 4. `docs/README.md`
-5. 与当前问题直接相关的代码和活跃实验记录
+5. `docs/STATE.md`
+6. `docs/experiments/INDEX.md`
+7. 与当前问题直接相关的代码和活跃实验记录
 
 研究路线迁移或规范审计需要读取 `docs/ref.md`（如果存在）；它是设计输入，不替代本文件
-和当前状态。`docs/research/INDEX.md` 是当前研究事实和路线索引；`docs/research/README.md`
-是目录说明；历史 plan、指导、activity、log 和
-handoff 只有在需要核对证据时才追溯，不属于默认上下文。
+和当前状态。`docs/research/README.md` 是目录说明；历史 plan、指导、activity、decision、log
+和 handoff 只有在需要核对证据时才追溯，不属于默认上下文。
 
 
 ---
@@ -78,7 +79,7 @@ handoff 只有在需要核对证据时才追溯，不属于默认上下文。
 
 无论结果如何，当前近期路线都不会改变，但未来论文、复现或完整论证需要。
 
-处理方式：写入 `docs/RESEARCH_DEBT.md`，当前不做。
+处理方式：写入对应 experiment card 的 limitations/future evidence，当前不做。
 
 ### Curiosity
 
@@ -134,7 +135,8 @@ Validation 才要求 matched control、多 seed、固定 metric、预先定义�
 
 ## 5. Decision Checkpoint
 
-以下情况必须在继续前记录简短 Decision Memo，并重新核对证据、资源和安全边界：
+以下情况必须在继续前，在对应 experiment card 或 `docs/STATE.md` 中记录简短 Decision Note，
+并重新核对证据、资源和安全边界：
 
 1. 准备改变 `MISSION.md` 中的核心研究问题；
 2. 准备放弃一个核心研究假设；
@@ -145,7 +147,7 @@ Validation 才要求 matched control、多 seed、固定 metric、预先定义�
 7. 连续三个有效 Probe 都没有使 North-star scoreboard 获得进展，也没有排除重要路线；
 8. 准备把探索性观察升级为正式科学结论。
 
-Decision Memo 必须简短，只包含：
+Decision Note 必须简短，只包含：
 
 * 当前需要决定的问题；
 * 当前最关键证据；
@@ -317,7 +319,7 @@ Probe 只能形成：
 ---
 
 
-## 11. Research Debt
+## 11. 延后证据
 
 对于：
 
@@ -325,15 +327,13 @@ Probe 只能形成：
 * 当前不改变决策；
 * 但最终不能永久遗漏；
 
-的实验，写入：
+的实验，记录在对应 experiment card 的 limitations/future evidence 中。
 
-`docs/RESEARCH_DEBT.md`
-
-Research Debt 的存在意味着：
+延后证据记录意味着：
 
 > 这个实验没有被忘记，只是当前不值得占用探索预算。
 
-不要为了“严谨”而立即偿还所有 Research Debt。
+不要为了“严谨”而立即执行所有延后实验。
 
 ---
 

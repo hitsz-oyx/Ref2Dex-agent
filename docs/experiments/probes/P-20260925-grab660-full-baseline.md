@@ -75,7 +75,7 @@ Cm-off arm before any claim of Cm utility.
 
 The recommendation above was the local decision boundary for this baseline
 Probe. The later HF02 temporal Probe is `UNPROMISING`, and
-`docs/decisions/D-20260926-after-hf02-temporal.md` now freezes the Cm
+`docs/archive/2026-10-04-research-governance/decisions/D-20260926-after-hf02-temporal.md` now freezes the Cm
 policy-utility campaign. Therefore this card does not authorize a new Cm Probe;
 the specialist/hierarchical substrate remains provenance only until a separate
 HF03-style goal is created.

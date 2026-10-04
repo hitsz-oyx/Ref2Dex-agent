@@ -17,7 +17,7 @@ def main():
     m=json.loads((root/'run_manifest.json').read_text())
     if m['run_status']!='FAILED' or m['last_update']!=12:raise ValueError('preserved terminal run')
     if any(sha(Path(p))!=h for p,h in m['input_sha256'].items()):raise ValueError('protected parent input drift')
-    files=[root/'run_manifest.json',Path(__file__),ROOT/'docs/decisions/D-20261002-support-feature-evaluation-audit-fix.md']
+    files=[root/'run_manifest.json',Path(__file__),ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-feature-evaluation-audit-fix.md']
     files.extend(root/f's{s}'/f for s in (541,542) for f in ('audited.pt','trace.pt','decisions.pt','panel_audit.json','results.json'))
     hashes={str(p.resolve()):sha(p) for p in files}
     heads=root/'u12/policy_heads.pt';checkpoint=torch.load(heads,map_location='cpu',weights_only=False)

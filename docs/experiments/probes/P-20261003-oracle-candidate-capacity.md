@@ -1,6 +1,6 @@
 # P-20261003-oracle-candidate-capacity
 
-Decision Probe; prospective [memo](../../decisions/D-20261003-oracle-candidate-capacity.md).
+Decision Probe; prospective [memo](../../archive/2026-10-04-research-governance/decisions/D-20261003-oracle-candidate-capacity.md).
 
 **Question.** Do the existing eight alternatives have ANY additional actual
 success capacity beyond the qualified state/E/I/joint8/12 panel? All eight

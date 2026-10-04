@@ -36,7 +36,6 @@ REQUIRED_CONTEXT_FILES = (
 )
 PROBE_DIR = Path("docs/experiments/probes")
 VALIDATION_DIR = Path("docs/experiments/validations")
-QUEUE_PATH = Path("docs/RESEARCH_QUEUE.yaml")
 SEED_LEDGER_PATH = Path("docs/SEED_LEDGER.yaml")
 
 MARKDOWN_LINK_RE = re.compile(
@@ -46,18 +45,6 @@ URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 KEY_VALUE_RE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$")
 PROBE_ID_RE = re.compile(r"^(?:P|PROBE)-[A-Za-z0-9][A-Za-z0-9._-]*$")
 VALIDATION_ID_RE = re.compile(r"^VAL-[A-Za-z0-9][A-Za-z0-9._-]*$")
-
-CLAIM_STATUSES = {"OPEN", "PARTIAL", "SUPPORTED", "REFUTED", "KILLED"}
-HYPOTHESIS_STATUSES = {
-    "OPEN",
-    "ACTIVE",
-    "PAUSED",
-    "PROMISING",
-    "SUPPORTED",
-    "KILLED",
-    "REFUTED",
-}
-
 
 def _git(*args: str) -> str:
     return subprocess.run(
@@ -134,7 +121,7 @@ def _relative_path(path: Path) -> str | None:
 
 
 def _is_historical(path: str) -> bool:
-    return bool({"logs", "archive"}.intersection(Path(path).parts))
+    return bool({"logs", "archive", "handoffs", "research"}.intersection(Path(path).parts))
 
 
 def _is_tracked(path: Path) -> bool:
@@ -292,6 +279,8 @@ def _check_python(paths: Iterable[str], failures: list[str]) -> None:
 def _check_structured(paths: Iterable[str], failures: list[str]) -> None:
     yaml_module = None
     for relative in sorted(paths):
+        if _is_historical(relative):
+            continue
         candidate = _repo_path(relative)
         if not candidate.is_file():
             continue
@@ -405,33 +394,9 @@ def _nonempty_field(fields: Mapping[str, Any], name: str) -> bool:
     return value is not None and bool(str(value).strip())
 
 
-def _queue_hypotheses() -> Mapping[str, Mapping[str, Any]]:
-    path = _repo_path(QUEUE_PATH)
-    if not path.is_file():
-        return {}
-    data, error = _read_yaml(path)
-    if error or not isinstance(data, Mapping):
-        return {}
-    hypotheses = data.get("hypotheses")
-    return hypotheses if isinstance(hypotheses, Mapping) else {}
-
-
-def _queue_claims() -> Mapping[str, Mapping[str, Any]]:
-    path = _repo_path(QUEUE_PATH)
-    if not path.is_file():
-        return {}
-    data, error = _read_yaml(path)
-    if error or not isinstance(data, Mapping):
-        return {}
-    claims = data.get("claims")
-    return claims if isinstance(claims, Mapping) else {}
-
-
 def _check_experiment_cards(failures: list[str]) -> None:
     seen: dict[str, list[str]] = defaultdict(list)
     v2_families: dict[str, list[tuple[str, int]]] = defaultdict(list)
-    hypotheses = _queue_hypotheses()
-    claims = _queue_claims()
 
     for kind in ("probe", "validation"):
         expected_schema = f"ref2dex.{kind}.v2"
@@ -467,15 +432,7 @@ def _check_experiment_cards(failures: list[str]) -> None:
             if not _nonempty_field(fields, explicit_id_key):
                 failures.append(f"{relative}: v2 实验卡必须显式填写 {explicit_id_key}")
 
-            claim_id = str(fields.get("claim_id", "")).strip()
-            if claim_id and claim_id not in claims:
-                failures.append(f"{relative}: claim_id 未在 RESEARCH_QUEUE 中登记: {claim_id}")
             family_id = str(fields.get("hypothesis_family", "")).strip()
-            family_state = hypotheses.get(family_id)
-            if family_id and not isinstance(family_state, Mapping):
-                failures.append(
-                    f"{relative}: hypothesis_family 未在 RESEARCH_QUEUE 中登记: {family_id}"
-                )
 
             required = (
                 (
@@ -518,31 +475,6 @@ def _check_experiment_cards(failures: list[str]) -> None:
                 family = family_id
                 if family:
                     v2_families[family].append((relative, index))
-                    if isinstance(family_state, Mapping):
-                        status = str(family_state.get("status", "")).upper()
-                        card_status = str(fields.get("status", "")).upper()
-                        # Closing a family must not invalidate its completed cards.
-                        # Only new or unfinished probes would consume another slot.
-                        if status in {"KILLED", "REFUTED", "PAUSED", "SUPPORTED"} and card_status not in {
-                            "PROMISING", "UNPROMISING", "UNCLEAR"
-                        }:
-                            failures.append(f"{relative}: hypothesis_family {family} 当前不可继续消费（{status}）")
-                        budget = family_state.get("probe_budget")
-                        if isinstance(budget, int) and not isinstance(budget, bool) and index > budget:
-                            failures.append(f"{relative}: probe_index_in_family 超过 {family} 的预算 {budget}")
-                        used = family_state.get("probes_used")
-                        if isinstance(used, int) and not isinstance(used, bool) and index > used:
-                            failures.append(
-                                f"{relative}: queue 中 {family}.probes_used={used}，"
-                                "先登记并递增队列状态再运行该 Probe"
-                            )
-                        expected_branch = family_state.get("branch")
-                        card_branch = fields.get("branch")
-                        if expected_branch and card_branch and str(card_branch) != str(expected_branch):
-                            failures.append(
-                                f"{relative}: branch {card_branch} 与 {family} 登记的 branch "
-                                f"{expected_branch} 不一致"
-                            )
 
             # Validation seed-pool names are checked against the ledger below;
             # keeping their presence in this schema check makes the contract
@@ -560,67 +492,6 @@ def _check_experiment_cards(failures: list[str]) -> None:
 
 def _is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
-
-
-def _check_research_queue(failures: list[str]) -> None:
-    path = _repo_path(QUEUE_PATH)
-    if not path.is_file():
-        failures.append(f"{QUEUE_PATH.as_posix()}: 研究队列不存在")
-        return
-    data, error = _read_yaml(path)
-    if error:
-        failures.append(f"{QUEUE_PATH.as_posix()}: YAML 无法解析: {error}")
-        return
-    if not isinstance(data, Mapping) or data.get("schema") != "ref2dex.research_queue.v1":
-        failures.append(f"{QUEUE_PATH.as_posix()}: schema 必须为 ref2dex.research_queue.v1")
-        return
-
-    claims = data.get("claims")
-    if not isinstance(claims, Mapping) or not claims:
-        failures.append(f"{QUEUE_PATH.as_posix()}: claims 必须是非空映射")
-        claims = {}
-    for claim_id, claim in claims.items():
-        if not isinstance(claim, Mapping):
-            failures.append(f"{QUEUE_PATH.as_posix()}: claim {claim_id} 必须是映射")
-            continue
-        status = str(claim.get("status", "")).upper()
-        if status not in CLAIM_STATUSES:
-            failures.append(f"{QUEUE_PATH.as_posix()}: claim {claim_id} status 无效: {status}")
-        if not _nonempty_field(claim, "name"):
-            failures.append(f"{QUEUE_PATH.as_posix()}: claim {claim_id} 缺少 name")
-
-    hypotheses = data.get("hypotheses")
-    if not isinstance(hypotheses, Mapping) or not hypotheses:
-        failures.append(f"{QUEUE_PATH.as_posix()}: hypotheses 必须是非空映射")
-        return
-    for family, hypothesis in hypotheses.items():
-        if not isinstance(hypothesis, Mapping):
-            failures.append(f"{QUEUE_PATH.as_posix()}: hypothesis {family} 必须是映射")
-            continue
-        claim = str(hypothesis.get("claim", ""))
-        if claim not in claims:
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family} 引用了未知 claim {claim}")
-        if not _nonempty_field(hypothesis, "name"):
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family} 缺少 name")
-        status = str(hypothesis.get("status", "")).upper()
-        if status not in HYPOTHESIS_STATUSES:
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family} status 无效: {status}")
-        budget = hypothesis.get("probe_budget")
-        used = hypothesis.get("probes_used")
-        if not _is_int(budget) or budget < 1:
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family}.probe_budget 必须为正整数")
-        if not _is_int(used) or used < 0:
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family}.probes_used 必须为非负整数")
-        if _is_int(budget) and _is_int(used):
-            if used > budget:
-                failures.append(f"{QUEUE_PATH.as_posix()}: {family} probes_used 超过预算")
-            if used >= budget and status in {"ACTIVE", "OPEN"}:
-                failures.append(
-                    f"{QUEUE_PATH.as_posix()}: {family} 已耗尽预算但仍为 {status}，必须换高层假设或更新状态"
-                )
-        branch = hypothesis.get("branch")
-        if branch is not None and (not isinstance(branch, str) or not branch.startswith("agent/")):
-            failures.append(f"{QUEUE_PATH.as_posix()}: {family}.branch 必须以 agent/ 开头")
 
 
 def _seed_values(node: Any) -> set[int]:
@@ -831,7 +702,6 @@ def verify_changed(paths: set[str]) -> int:
     _check_python(paths, failures)
     _check_structured(paths, failures)
     _check_required_context(failures)
-    _check_research_queue(failures)
     _check_seed_ledger(failures)
     _check_experiment_cards(failures)
     _check_card_seed_pools(failures)

@@ -15,7 +15,7 @@
 - C1 的任务限定 SUPPORTED 不证明单一 actor、未见物体泛化或 Cm utility；冻结已验收的
   六专家 substrate。[正式验证](experiments/validations/VAL-20260926-observation-six-expert-c1.md)。
 - HF01–HF05 的已失败局部路线保持冻结，不靠换 seed/门槛重置预算；这不是所有未来 Cm/GPU
-  路线的全局禁止。[队列与路线预算](RESEARCH_QUEUE.yaml)。
+  路线的全局禁止。[队列与路线预算](../archive/2026-10-04-research-governance/RESEARCH_QUEUE.yaml)。
 - 用户已授权边界内自主选路线，以及六专家蒸馏与新的 Cm 探索；历史标签不因此升级。
 - r6 support 的 teacher label 仅覆盖 source_e260，不能证明六专家蒸馏；其缺失轴字段不能回填。
 - r7 轴合约通过，但 contact q10 与 delta 覆盖未过 calibration gate，不生成正式 Cm-on 标签。

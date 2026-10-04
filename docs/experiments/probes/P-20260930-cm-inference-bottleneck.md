@@ -16,7 +16,7 @@ status: UNPROMISING
 # Real-policy Probe: explicit physical prediction input
 
 Decision and frozen mechanism are in
-[memo](../../decisions/D-20260930-cm-inference-bottleneck.md).
+[memo](../../archive/2026-10-04-research-governance/decisions/D-20260930-cm-inference-bottleneck.md).
 
 Distinguish useful physical prediction input from no extra information,
 generic untrained projection, and extra teacher-action information. Same

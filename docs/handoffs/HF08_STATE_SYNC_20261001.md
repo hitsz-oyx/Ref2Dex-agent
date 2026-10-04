@@ -12,7 +12,7 @@ used as a replacement baseline.
 Input SHA256 (rechecked before handoff):
 
 - `docs/STATE.md`: `d81801a094c0a6bab8f805eebbc3ed0f4a4eb91b1a231143e237ffe46be9cb1d`
-- `docs/RESEARCH_QUEUE.yaml`: `99fe825275e36061890805ced954faca9a193ed6daa6b9b205cf3bc814e0e8b6`
+- `docs/archive/2026-10-04-research-governance/RESEARCH_QUEUE.yaml`: `99fe825275e36061890805ced954faca9a193ed6daa6b9b205cf3bc814e0e8b6`
 - `docs/experiments/probes/P-20260930-cm-physical-value.md`: `5db73733fe9b59722e1437b998c0805a9cc1436550c73ba9092506e75417737f`
 
 Exact `docs/STATE.md` diff from that source baseline:

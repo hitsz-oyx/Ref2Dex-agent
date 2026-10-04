@@ -8,9 +8,8 @@
 
 The canonical HF02 temporal expert-option Probe completed with a valid
 `UNPROMISING` result. Conditional next-step language in older experiment cards
-is historical protocol context and is superseded by
-`docs/decisions/D-20260926-after-hf02-temporal.md`: the current Cm
-policy-utility campaign is frozen. Do not start a new online Cm Probe, PPO
-continuation, or collector from those cards. A future contact-supported credit
-route requires a separate HF03-style goal, experiment ID, budget, and matched
-Cm-off substrate.
+is historical protocol context and is superseded by the archived 2026-09-26
+decision record: the current Cm policy-utility campaign is frozen. Do not start
+a new online Cm Probe, PPO continuation, or collector from those cards. A
+future contact-supported credit route requires a separate HF03-style goal,
+experiment ID, budget, and matched Cm-off substrate.

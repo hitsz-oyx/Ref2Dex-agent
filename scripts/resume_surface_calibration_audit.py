@@ -39,7 +39,7 @@ def main():
         if path.is_file():hashes[str(path.resolve())]=sha(path)
     for rel in subprocess.check_output(['git','ls-files','*.py'],cwd=ROOT,text=True).splitlines():hashes[str(ROOT/rel)]=sha(ROOT/rel)
     card=ROOT/'docs/experiments/probes/P-20261003-surface-calibration.md';hashes[str(card)]=sha(card)
-    recovery=ROOT/'docs/activities/20261003-surface-calibration-audit-recovery.md';hashes[str(recovery)]=sha(recovery)
+    recovery=ROOT/'docs/archive/2026-10-04-research-governance/activities/20261003-surface-calibration-audit-recovery.md';hashes[str(recovery)]=sha(recovery)
     def verify():
         for filename,digest in hashes.items():assert sha(Path(filename))==digest,'protected drift '+filename
     verify();out.mkdir();os.symlink(os.path.relpath(source/'data',out),out/'data');os.symlink(os.path.relpath(source/'fit',out),out/'fit')

@@ -23,7 +23,7 @@ def main():
         raise ValueError('clean fixed commit')
     begin = time.monotonic()
     paths = [ROOT/'scripts/smoke_oracle_contact_api.py', Path(__file__),
-             ROOT/'docs/decisions/D-20261003-effect-interaction-oracle.md',
+             ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261003-effect-interaction-oracle.md',
              Path('/home2/wyy/isaac-gym/isaacgym/docs/api/python/struct_py.html')]
     hashes = {str(path): sha(path) for path in paths}
     out.mkdir()

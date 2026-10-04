@@ -1,7 +1,7 @@
 # Cm 研究阶段收尾（2026-09-24）
 
 Branch: `agent/cm-cross-object`. Decision:
-`docs/decisions/D-20260924-after-task-aligned-option.md`，用户选择 Option A。
+`docs/archive/2026-10-04-research-governance/decisions/D-20260924-after-task-aligned-option.md`，用户选择 Option A。
 本阶段停止新增计算；既有运行目录、checkpoint 与报告保留。
 状态：阶段收尾与本地 Git checkpoint 已完成，当前无活跃实验。
 
@@ -10,7 +10,7 @@ Branch: `agent/cm-cross-object`. Decision:
 | 问题 | 证据 | 可陈述的边界 |
 | --- | --- | --- |
 | 自训练单轨迹抓取 | V1.28 固定整段路由在未见 seeds60–64 为 307/320（95.94%）；`src/task/CmResidual/docs/experiments/EXP-20260923-V128-ROBUST-SINGLE-TRAJECTORY.md` | 只覆盖 `s1_airplane_lift`；仿真器起始帧决定整段使用哪个 BC/PPO 专家，不是单一观测驱动网络。PPO 专家使用过 CmLite 奖励训练，且没有 matched 同路由 Cm-off 消融。 |
-| 早期 CmLite 奖励正向信号 | 同训练 seed 的 CmLite e140 与 Cm-off e180 在 seed49 为 35/64 对 19/64；CmLite e140 在 seeds49–53 合计 185/320；`src/task/CmResidual/docs/activities/ACT-20260922-V122-CMLITE.md` | checkpoint epoch 不同，seed49 用于选择最佳 checkpoint，且 Cm-off 缺少相同五 seed 网格；只可视为探索信号，不证明跨 seed 的 matched Cm 增益。 |
+| 早期 CmLite 奖励正向信号 | 同训练 seed 的 CmLite e140 与 Cm-off e180 在 seed49 为 35/64 对 19/64；CmLite e140 在 seeds49–53 合计 185/320；`src/task/CmResidual/docs/archive/2026-10-04-research-governance/activities/ACT-20260922-V122-CMLITE.md` | checkpoint epoch 不同，seed49 用于选择最佳 checkpoint，且 Cm-off 缺少相同五 seed 网格；只可视为探索信号，不证明跨 seed 的 matched Cm 增益。 |
 | 一步预测进展作为 PPO 奖励 | V1.46 matched Cm-on 262/640，Cm-off 399/640，差 −21.4pp；`src/task/CmResidual/docs/experiments/EXP-20260923-V146-CM-TRAIN-ONLY-REWARD.md` | 否定固定 V1.37 模型、0.1 系数、真实接触门的联合配方。 |
 | effect-rank PPO 配方 | `VAL-20260923-CM-EFFECT-PPO`：on 882/1536、off 789/1536、action-shuffled 1049/1536；`docs/experiments/validations/VAL-20260923-CM-EFFECT-PPO.md` | on−off +6.05pp，但训练 seed 间不稳、区间跨零；预注册联合正向主张 `REFUTED`，不能声称稳定 utility，也不能反向声称置乱显著更优。 |
 | 原始 ObjectInteractionCm V1.3 的跨对象动作信息 | 冻结 checkpoint、五对象线性头留一：action-aware AUC 0.6387，action-blind 0.6694，shuffled 0.6382；`outputs/CmResidual/agent_cmv13_object_loo_s249/report.json` | `P-20260924-cmv13-object-loo-representation` 未过动作信息门；预训练索引的 train split 已包含五个物体，故不是整个 Cm 对未见物体的测试。10135 点比 1538 点仅 +0.0025 AUC，这是该目标的密度诊断。 |

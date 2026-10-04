@@ -29,7 +29,7 @@ def main():
     m=json.loads((run/'run_manifest.json').read_text());assert m['run_status']=='COMPLETED'
     assert m['training_seeds']==list(range(547,567)) and m['evaluation_seeds']==[568,569]
     torch.set_num_threads(2);begin=time.monotonic();names=['cm','state_only','none'];summary={n:dict(n=0,meaningful=0,null_at1e7=0,coordinate_meaningful=np.zeros(12,dtype=np.int64),episode_fractions=[]) for n in names};sources={str(run/'run_manifest.json'):sha(run/'run_manifest.json')};panels=[];maximum=0.
-    for filename in ['docs/experiments/probes/P-20261002-request-execution-headroom.md','docs/decisions/D-20261002-after-continuous-policy-route-review.md','scripts/probe_request_execution_headroom.py','src/task/CmResidual/continuous_critic_cm.py','src/task/CmResidual/selective_finger_response.py']:
+    for filename in ['docs/experiments/probes/P-20261002-request-execution-headroom.md','docs/archive/2026-10-04-research-governance/decisions/D-20261002-after-continuous-policy-route-review.md','scripts/probe_request_execution_headroom.py','src/task/CmResidual/continuous_critic_cm.py','src/task/CmResidual/selective_finger_response.py']:
         sources[str(ROOT/filename)]=sha(ROOT/filename)
     out.mkdir();manifest=dict(run_status='STARTED',experiment_id='P-20261002-request-execution-headroom',source_run=str(run),training_only=True,no_models_or_native_rollouts=True,cpu_reason='file processing, deterministic command audit and statistics; no neural model computation',wall_limit_seconds=120,storage_limit_bytes=5<<20)
     (out/'run_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')

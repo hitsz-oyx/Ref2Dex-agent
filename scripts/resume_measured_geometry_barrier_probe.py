@@ -11,7 +11,7 @@ def main():
     assert pm['phases'][-1]['name']=='s579' and 'contention' in pm['phases'][-1]['error'] and not any((previous/'s579').iterdir())
     childpid=pm['phases'][-1]['pid'];assert not Path('/proc') .joinpath(str(childpid)).exists(),'old owned process remains live'
     prior_wall=pm['wall_seconds'];prior_bytes=bytes_in(previous);hashes.update(pm['input_sha256']);hashes[str(previous/'run_manifest.json')]=sha(previous/'run_manifest.json')
-    for f in ['scripts/resume_measured_geometry_barrier_probe.py','docs/decisions/D-20261002-geometry-barrier-device-resume.md']:hashes[str(ROOT/f)]=sha(ROOT/f)
+    for f in ['scripts/resume_measured_geometry_barrier_probe.py','docs/archive/2026-10-04-research-governance/decisions/D-20261002-geometry-barrier-device-resume.md']:hashes[str(ROOT/f)]=sha(ROOT/f)
     verify();gpu=admission(a.gpu_index);out.mkdir();(out/'s578').symlink_to(previous/'s578',target_is_directory=True);begin=time.monotonic()''',
         "m['wall_seconds']=time.monotonic()-begin;":"m['wall_seconds']=time.monotonic()-begin;m['conservative_cumulative_wall_seconds']=prior_wall+m['wall_seconds'];m['prior_failed_run']=str(previous);m['prior_run_manifest_sha256']=sha(previous/'run_manifest.json');",
         "time.monotonic()-begin>1200 or bytes_in(out)>1<<30":"time.monotonic()-begin+prior_wall>1200 or bytes_in(out)+prior_bytes>1<<30",

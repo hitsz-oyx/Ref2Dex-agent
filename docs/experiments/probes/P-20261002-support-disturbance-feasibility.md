@@ -1,7 +1,7 @@
 # P-20261002-support-disturbance-feasibility
 
 Classification: Decision / physical task calibration. Frozen specification in
-[decision memo](../../decisions/D-20261002-postlift-disturbance-feasibility.md).
+[decision memo](../../archive/2026-10-04-research-governance/decisions/D-20261002-postlift-disturbance-feasibility.md).
 The main journal objective remains unmet. All old30/105forecast and utility
 gates remain unchanged; this NEW recovery90 task allows a bounded recovery phase.
 

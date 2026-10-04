@@ -12,7 +12,7 @@ NEW_DATA=0
 
 This review uses only the canonical main documents at
 `3767988eb34a62b23e2c9fc36b106e5f18c85470` (the current `MISSION.md`,
-`STATE.md`, `CAMPAIGN.md`, and [Cm freeze Option A](../decisions/D-20260927-cm-freeze-option-a.md)).
+`STATE.md`, `CAMPAIGN.md`, and [Cm freeze Option A](../archive/2026-10-04-research-governance/decisions/D-20260927-cm-freeze-option-a.md)).
 The accepted C1 route is treated as a fixed self-trained substrate; it is not
 new Cm evidence. No code, registry, configuration, result, or existing
 experiment was changed.

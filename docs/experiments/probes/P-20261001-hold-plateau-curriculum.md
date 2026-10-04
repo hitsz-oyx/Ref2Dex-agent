@@ -1,7 +1,7 @@
 # P-20261001-hold-plateau-curriculum
 
 Decision/Blocker Probe, fixed by
-`docs/decisions/D-20261001-hold-plateau-curriculum.md`. H1: a small explicitly
+`docs/archive/2026-10-04-research-governance/decisions/D-20261001-hold-plateau-curriculum.md`. H1: a small explicitly
 task-specific reset curriculum and phase reward can produce a frame0 holding
 substrate. H0: this exact continuation remains unusable. The result selects
 whether to invest in a model-utility screen or reassess feasibility, not whether

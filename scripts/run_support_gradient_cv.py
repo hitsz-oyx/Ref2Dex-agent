@@ -12,7 +12,7 @@ def main():
     metadata=json.loads((source/'results.json').read_text());m=json.loads((source/'run_manifest.json').read_text())
     if m['run_status']!='COMPLETED' or metadata['label']!='UNPROMISING':raise ValueError('closed failed forecast design')
     files=[source/'run_manifest.json',source/'results.json',source/'collection_audit.json',source/'dataset.pt',source/'fit/predictions.pt',source/'fit/cm.pt',source/'fit/state_only.pt',
-        Path(__file__),ROOT/'src/task/CmResidual/support_gradient_cv.py',ROOT/'docs/decisions/D-20261002-support-gradient-control-variate.md']
+        Path(__file__),ROOT/'src/task/CmResidual/support_gradient_cv.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-gradient-control-variate.md']
     hashes={str(f):sha(f) for f in files};out.mkdir();begin=time.monotonic();manifest=dict(run_status='RUNNING',pid=os.getpid(),input_sha256=hashes,reused_test_data=True,no_training=True,no_new_physics=True,wall_limit_seconds=300,storage_limit_bytes=50<<20)
     try:
         gpu=admission(a.gpu);manifest['admission']=gpu;os.environ['CUDA_VISIBLE_DEVICES']=gpu['uuid'];os.environ['OMP_NUM_THREADS']='2';os.environ['MKL_NUM_THREADS']='2';os.environ['OPENBLAS_NUM_THREADS']='2'

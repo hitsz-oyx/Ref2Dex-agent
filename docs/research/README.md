@@ -1,9 +1,9 @@
-- [Exact resume implementation and current resource blocker](../activities/20261002-continuous-critic-resume-ready.md)
+- [Exact resume implementation and current resource blocker](../archive/2026-10-04-research-governance/activities/20261002-continuous-critic-resume-ready.md)
 Current independent continuation: `/tmp/Ref2Dex-contact-response-continuation`,
 same research branch/history with separate local Git metadata; old worktree read-only.
 - [Completed selective-finger negative](20261002-selective-finger-feasibility-results.md)
 - [Continuous method boundary](20261002-continuous-method-boundary.md)
-- [Actual training progress and GPU/runtime interruption](../activities/20261002-continuous-critic-runtime-change.md)
+- [Actual training progress and GPU/runtime interruption](../archive/2026-10-04-research-governance/activities/20261002-continuous-critic-runtime-change.md)
 - [Paper10source](../../paper/manuscript-v10.tex) / [reviewPDF](../../paper/manuscript-v10.pdf)
 
 # Research 文档
@@ -34,7 +34,7 @@ same research branch/history with separate local Git metadata; old worktree read
 
 - [Fixed-label-budget contrast acquisition](20261003-contrast-acquisition-results.md):4800updates/all audits pass; contrast-minus-uniform+.363mm² fails, minusabsolute-1.924passes,3/6gatespass; UNPROMISING, no native acquisition launched.
 
-- [Native manuscript12 closeout](../activities/20261003-paper-v12-closeout.md):27pages,29tables/6figures,55source hashes/newtables/7680rawpolicycounts/PDFbounds/visualpages20--25 verified; working evidence record, not journal-ready.
+- [Native manuscript12 closeout](../archive/2026-10-04-research-governance/activities/20261003-paper-v12-closeout.md):27pages,29tables/6figures,55source hashes/newtables/7680rawpolicycounts/PDFbounds/visualpages20--25 verified; working evidence record, not journal-ready.
 
 ## 当前独立工作树研究
 
@@ -62,28 +62,27 @@ same research branch/history with separate local Git metadata; old worktree read
 完整保留，单独离线修正。 [bounded closure](20261002-finger-preload-feasibility-results.md)
 有部分机械保持实例，但整体门槛仍失败，停止原静态剂量族；论文第五版报告全部结果。
 
-这里按用途索引研究事实；具体的当前文件暂时保留在 `docs/` 根目录，因为
-`tools/verify.py`、实验卡和已有交接把它们作为稳定入口。
+这里按用途索引研究事实；当前研究入口是 `MISSION.md`、`STATE.md`、`CAMPAIGN.md`、实验卡和
+`SEED_LEDGER.yaml`。旧路线队列、决策和延后事项只保留在归档中。
 
 | 类别 | 入口 |
 | --- | --- |
 | 研究问题 | [`MISSION.md`](../MISSION.md) |
 | 当前事实与 North-star | [`STATE.md`](../STATE.md) |
 | 机器和资源边界 | [`CAMPAIGN.md`](../CAMPAIGN.md) |
-| 当前可消费路线 | [`RESEARCH_QUEUE.yaml`](../RESEARCH_QUEUE.yaml) |
+| 历史路线队列 | [`RESEARCH_QUEUE.yaml`](../archive/2026-10-04-research-governance/RESEARCH_QUEUE.yaml) |
 | seed 归属 | [`SEED_LEDGER.yaml`](../SEED_LEDGER.yaml) |
-| 论文后补实验 | [`RESEARCH_DEBT.md`](../RESEARCH_DEBT.md) |
+| 历史延后事项 | [`RESEARCH_DEBT.md`](../archive/2026-10-04-research-governance/RESEARCH_DEBT.md) |
 | 项目全局概览 | [`项目总览.md`](../项目总览.md) |
 
 [实验索引](../experiments/INDEX.md) 按路线生成，先看问题与结果，再按需读原卡和 manifest。
 
-研究记录已经按目录分开：
+研究记录已经按用途分开：
 
-* `decisions/`：Decision Checkpoint 和路线选择；
 * `experiments/probes/`、`experiments/validations/`：实验卡和正式验证；
 * `handoffs/`：研究路线交接和证据审计；
-* `activities/`：跨 Task 研究活动；
-* `archive/`、`logs/`：只读历史资料，不是默认上下文。
+* `archive/2026-10-04-research-governance/`：旧 decisions、activities、路线队列和延后事项；
+* `logs/`：只读历史资料，不是默认上下文。
 
 旧的根级 `plan/`、`指导/` 和多代理 workflow 规范已删除。Task 内部仍可能保留与历史
 实验绑定的计划或指导文件；它们只用于解释对应证据，不是仓库级运行规则。
@@ -105,11 +104,11 @@ or journal-readiness claim. Earlier revisions remain preserved.
 - [Control-variate primary sources](20261002-physical-control-variate-literature.md) and [recovery novelty boundary](20261002-disturbance-recovery-literature.md).
 - [First actual matched policy-training result](20261002-support-feature-policy-results.md):9216training/1536evaluation, UNPROMISING; all three tested deterministic decision rules coincide.
 - [Full-text method boundaries](20261002-fulltext-method-boundary.md): generic contact prediction and frozen-feature adaptation are already occupied.
-- [Temporal decision review](../decisions/D-20261002-natural-retention-headroom.md): reused training-only natural loss counts, no recovery or policy-utility claim.
+- [Temporal decision review](../archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-headroom.md): reused training-only natural loss counts, no recovery or policy-utility claim.
 
 - [Natural feedback failure](20261002-natural-retention-feedback-results.md):1536fresh trajectories, both event arms trail unchanged; UNPROMISING.
 - [Predictive/reactive method boundaries](20261002-feedback-method-boundary.md): primary full-text sources, no novelty from generic slip alarms.
-- [Action representation review](../decisions/D-20261002-contact-action-representation-review.md): selective effective finger directions, next design pending.
+- [Action representation review](../archive/2026-10-04-research-governance/decisions/D-20261002-contact-action-representation-review.md): selective effective finger directions, next design pending.
 
 - [Complete continuous policy comparison](20261002-continuous-critic-policy-results.md):15360training/1536evaluation, Cm129/state129/no-aux147/384; UNPROMISING. Original failures, same-model GPU migration and separate witnessed ReLU audit correction retained; native manuscriptv11preserves all prior evidence.
 

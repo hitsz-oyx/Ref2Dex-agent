@@ -65,7 +65,7 @@ def main():
     hashes[str(source/'run_manifest.json')] = sha(source/'run_manifest.json')
     for name in subprocess.check_output(['git', 'ls-files', '*.py'], cwd=ROOT, text=True).splitlines():
         hashes[str(ROOT/name)] = sha(ROOT/name)
-    for name in ('docs/decisions/D-20261003-latent-load-feasibility.md',
+    for name in ('docs/archive/2026-10-04-research-governance/decisions/D-20261003-latent-load-feasibility.md',
                  'docs/experiments/probes/P-20261003-latent-load-feasibility.md'):
         hashes[str(ROOT/name)] = sha(ROOT/name)
     base = Path(old['base_checkpoint'])

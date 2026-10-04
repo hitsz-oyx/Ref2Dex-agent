@@ -36,7 +36,7 @@ def main():
     hashes.update({r['generated']: r['generated_sha256'] for r in generated['references']})
     sources = [Path(__file__), ROOT / 'scripts/run_support_removal_environment.py',
         ROOT / 'src/task/CmResidual/research/contact_response/output/P-20261002-frame0-tracking-feasibility-r1/continuation_r1/results.json',
-        ROOT / 'docs/decisions/D-20261002-support-removal-witness.md',
+        ROOT / 'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-removal-witness.md',
         ROOT / 'scripts/analyze_support_removal_witness.py', old, references / 'run_manifest.json', ROOT / 'src/task/CmResidual/static_hold_feasibility.py',
         ROOT / 'docs/experiments/probes/P-20261002-support-removal-witness.md',
         ROOT / 'src/task/CmResidual/finger_preload.py', ROOT / 'src/task/CmResidual/frame0_tracking.py', ROOT / 'src/task/CmResidual/support_removal.py', ROOT / 'src/task/CmResidual/tabletop_clearance.py',
