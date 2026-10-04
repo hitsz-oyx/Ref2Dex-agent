@@ -193,6 +193,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
+    if args.epochs <= 0 or args.batch_size <= 0 or args.value_loss_weight < 0:
+        raise ValueError("epochs and batch_size must be positive; value_loss_weight must be non-negative")
     torch.set_num_threads(args.num_threads)
     torch.manual_seed(args.seed)
     dataset = torch.load(args.input, map_location="cpu", weights_only=False)
@@ -248,6 +250,8 @@ def main() -> None:
         raise ValueError("local bridge report namespace mismatch")
     if bridge_report.get("chunk_length") != CHUNK_LENGTH:
         raise ValueError("local bridge report chunk length mismatch")
+    if Path(bridge_report["input"]).resolve() != args.input.resolve():
+        raise ValueError("local bridge report input mismatch")
     local_report = {
         "report": str(bridge_report_path.resolve()),
         "h_only_mae": float(bridge_report["h_only_episode_balanced_mae"]),
