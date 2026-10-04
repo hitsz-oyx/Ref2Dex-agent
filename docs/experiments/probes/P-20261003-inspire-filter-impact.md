@@ -24,4 +24,4 @@ filter checks and independent native/actor/fullmesh audits pass. Before
 P0/Cm/off/coldQ[65,96,101,95]/192; after[61,81,92,91]/192. Motion0all0.
 Absolute sensitivity gate passes (Cm -7.813pp); motion0gate fails. PROMISING
 only for fixed-policy physics sensitivity, not improvement/Cm learning.
-[Full result](../../research/20261003-inspire-filter-impact-results.md).
+[Full result](../../archive/2026-10-04-root-research/research/20261003-inspire-filter-impact-results.md).

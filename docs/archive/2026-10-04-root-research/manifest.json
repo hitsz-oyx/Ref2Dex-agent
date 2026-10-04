@@ -1,0 +1,549 @@
+{
+  "schema": "ref2dex.root_research_archive.v1",
+  "archived_at": "2026-10-04",
+  "source_directory": "docs/research",
+  "archive_directory": "docs/archive/2026-10-04-root-research",
+  "file_count": 90,
+  "files": [
+    {
+      "original_path": "docs/research/20261001-action-recovery-boundary.md",
+      "archived_path": "research/20261001-action-recovery-boundary.md",
+      "bytes": 2123,
+      "sha256": "b709c0fb02e51bd09aa3ea2d46ca33a222cce415510a30cb7b7056abd8361848"
+    },
+    {
+      "original_path": "docs/research/20261001-actuation-effect-results.md",
+      "archived_path": "research/20261001-actuation-effect-results.md",
+      "bytes": 1963,
+      "sha256": "e4bd9176916f38af50f16c81d13f273692bba9c9f92f95e2776365d3ec58e269"
+    },
+    {
+      "original_path": "docs/research/20261001-contact-response-literature.md",
+      "archived_path": "research/20261001-contact-response-literature.md",
+      "bytes": 4706,
+      "sha256": "4330be3687606939e081385c6ec0f805e4476b96520088389f27aafec96dbf31"
+    },
+    {
+      "original_path": "docs/research/20261001-contact-response-results.md",
+      "archived_path": "research/20261001-contact-response-results.md",
+      "bytes": 3469,
+      "sha256": "f0d1f9db6d3445fd50745c8c6a7acb20a28af4f56fb2f59cabe88c5b612e9dae"
+    },
+    {
+      "original_path": "docs/research/20261001-contact-retention-novelty-update.md",
+      "archived_path": "research/20261001-contact-retention-novelty-update.md",
+      "bytes": 2547,
+      "sha256": "697b344bf2c6d24d7aff2b5305e95b4dbff0133ade0515bfd7ac9ba2bfac03f3"
+    },
+    {
+      "original_path": "docs/research/20261001-direct-randomized-response-results.md",
+      "archived_path": "research/20261001-direct-randomized-response-results.md",
+      "bytes": 3737,
+      "sha256": "54dfe5e1f64882e69d8e44dc21df6480518920ae02e698f1a5c6baa6674e8af0"
+    },
+    {
+      "original_path": "docs/research/20261001-fresh-causal-transfer-results.md",
+      "archived_path": "research/20261001-fresh-causal-transfer-results.md",
+      "bytes": 2203,
+      "sha256": "d7598145d6270ae126c1a13ce5611044f208920fc72bb6e98ac4748b89f84e2c"
+    },
+    {
+      "original_path": "docs/research/20261001-hold-plateau-curriculum-results.md",
+      "archived_path": "research/20261001-hold-plateau-curriculum-results.md",
+      "bytes": 2604,
+      "sha256": "bab176069f6be9f09786878188a93e37131c71c7355110cb8789f50c82cca495"
+    },
+    {
+      "original_path": "docs/research/20261001-hold-plateau-substrate-results.md",
+      "archived_path": "research/20261001-hold-plateau-substrate-results.md",
+      "bytes": 1956,
+      "sha256": "27307717e5c78b4d73a0947ea46b3011f9073cef425446af0c95bb68cd1ed9c2"
+    },
+    {
+      "original_path": "docs/research/20261001-null-action-results.md",
+      "archived_path": "research/20261001-null-action-results.md",
+      "bytes": 1904,
+      "sha256": "8a76f8a3119147a45f33d0b3507cfdd694a64bfbc8c4c6f1b073054895b91d3e"
+    },
+    {
+      "original_path": "docs/research/20261001-randomized-effect-risk-results.md",
+      "archived_path": "research/20261001-randomized-effect-risk-results.md",
+      "bytes": 2680,
+      "sha256": "e230ae9a5c4d77d4796095eb520587832f569070a5cb619b4182725364de36b2"
+    },
+    {
+      "original_path": "docs/research/20261001-randomized-task-selection-results.md",
+      "archived_path": "research/20261001-randomized-task-selection-results.md",
+      "bytes": 3687,
+      "sha256": "5b2ea84141b7a53d446a0e6005a09f31eb624d75f2a13b8fa6d952507f15d6fc"
+    },
+    {
+      "original_path": "docs/research/20261002-coherent-barrier-information-results.md",
+      "archived_path": "research/20261002-coherent-barrier-information-results.md",
+      "bytes": 2471,
+      "sha256": "ad94ffbae0f4240f0370d9700a2dc688f693c4ef14b328ddf65a0b3fc2083e86"
+    },
+    {
+      "original_path": "docs/research/20261002-contact-response-novelty-update.md",
+      "archived_path": "research/20261002-contact-response-novelty-update.md",
+      "bytes": 2174,
+      "sha256": "d1b325c922a6c14f974f897a9fe4d95bff518fee688619e63b0e41dccaf347c9"
+    },
+    {
+      "original_path": "docs/research/20261002-continuous-critic-policy-results.md",
+      "archived_path": "research/20261002-continuous-critic-policy-results.md",
+      "bytes": 4650,
+      "sha256": "83420249b81286c99dc179306026975e401a877c26e41d450e82781e2901d7b3"
+    },
+    {
+      "original_path": "docs/research/20261002-continuous-method-boundary.md",
+      "archived_path": "research/20261002-continuous-method-boundary.md",
+      "bytes": 1968,
+      "sha256": "d6546ecb23d8bc6faa5c739c7419135a241e8310b57413a25201867c1eea1925"
+    },
+    {
+      "original_path": "docs/research/20261002-delayed-request-response-results.md",
+      "archived_path": "research/20261002-delayed-request-response-results.md",
+      "bytes": 1082,
+      "sha256": "875743547a964e39038419c644d5923edb82de90ddc30684c8452ebd51c38a3d"
+    },
+    {
+      "original_path": "docs/research/20261002-disturbance-recovery-literature.md",
+      "archived_path": "research/20261002-disturbance-recovery-literature.md",
+      "bytes": 1525,
+      "sha256": "871cc663c6f598e297db8f9d4dbb2181c861b8ff4258438d6bf26d91873b0787"
+    },
+    {
+      "original_path": "docs/research/20261002-empirical-successor-method-boundary.md",
+      "archived_path": "research/20261002-empirical-successor-method-boundary.md",
+      "bytes": 1513,
+      "sha256": "2eaacad2de41837af9380af75213541308df948cbecb145b39aca5e2f411f1bf"
+    },
+    {
+      "original_path": "docs/research/20261002-empirical-successor-policy-results.md",
+      "archived_path": "research/20261002-empirical-successor-policy-results.md",
+      "bytes": 4131,
+      "sha256": "8a715f98f2c16c6ba543a8d2c8dad69a60d1583963bb3deee97b9b224f19213a"
+    },
+    {
+      "original_path": "docs/research/20261002-feedback-method-boundary.md",
+      "archived_path": "research/20261002-feedback-method-boundary.md",
+      "bytes": 2636,
+      "sha256": "c2c0930b4e77b35b77e448d5eb7a91bcd9bb5479d65810d529a1ba663f292529"
+    },
+    {
+      "original_path": "docs/research/20261002-finger-preload-feasibility-results.md",
+      "archived_path": "research/20261002-finger-preload-feasibility-results.md",
+      "bytes": 2125,
+      "sha256": "fa037a2a857dcd5d451e98498f4924cbf422ffab61568a64416664cd63045c24"
+    },
+    {
+      "original_path": "docs/research/20261002-force-aware-impulse-results.md",
+      "archived_path": "research/20261002-force-aware-impulse-results.md",
+      "bytes": 2495,
+      "sha256": "7fe1af5cf1597e46ff526aa36e68646d9a5e2d786e19e97196c5f82db03addb0"
+    },
+    {
+      "original_path": "docs/research/20261002-frame0-tracking-feasibility-results.md",
+      "archived_path": "research/20261002-frame0-tracking-feasibility-results.md",
+      "bytes": 3888,
+      "sha256": "26eb415db416fd8f562802f81a8f95e559748834636a103bbc3aaf71b6484f7c"
+    },
+    {
+      "original_path": "docs/research/20261002-fulltext-method-boundary.md",
+      "archived_path": "research/20261002-fulltext-method-boundary.md",
+      "bytes": 3401,
+      "sha256": "61fca7449402e8b5f25dc746f38a15417d30188d0133c884370b9d3212868eb6"
+    },
+    {
+      "original_path": "docs/research/20261002-impulse-gradient-method-boundary.md",
+      "archived_path": "research/20261002-impulse-gradient-method-boundary.md",
+      "bytes": 1787,
+      "sha256": "72235f929b094a0b24bc399eb2b5f48b7e3e3be5c7f3a129b7a6f077364757ae"
+    },
+    {
+      "original_path": "docs/research/20261002-late-option-support-results.md",
+      "archived_path": "research/20261002-late-option-support-results.md",
+      "bytes": 3016,
+      "sha256": "3478cc2119f2e19aade37138d9a1a7e64883095ca627279326b6d5cdf00118b5"
+    },
+    {
+      "original_path": "docs/research/20261002-measured-geometry-barrier-results.md",
+      "archived_path": "research/20261002-measured-geometry-barrier-results.md",
+      "bytes": 2617,
+      "sha256": "42075b97161add6f87a13757fc2f44fd73c2b74d858950e6555d4131654d20a5"
+    },
+    {
+      "original_path": "docs/research/20261002-measured-geometry-method-boundary.md",
+      "archived_path": "research/20261002-measured-geometry-method-boundary.md",
+      "bytes": 2727,
+      "sha256": "6f30e82038304bd97dddb5b1602b112009900f7385c87d6cdd3898586180f5d0"
+    },
+    {
+      "original_path": "docs/research/20261002-model-value-interface-boundary.md",
+      "archived_path": "research/20261002-model-value-interface-boundary.md",
+      "bytes": 2086,
+      "sha256": "b1ff76ef6d6ba342c268ae46a2bfb9f2438cfb43e038daf80d8bc3da3f69b90f"
+    },
+    {
+      "original_path": "docs/research/20261002-natural-retention-feedback-results.md",
+      "archived_path": "research/20261002-natural-retention-feedback-results.md",
+      "bytes": 2649,
+      "sha256": "af648fd3db8f05835f8f9212d20acc472c881d9bb77f7a93e4810c0ef2357458"
+    },
+    {
+      "original_path": "docs/research/20261002-natural-retention-headroom-results.md",
+      "archived_path": "research/20261002-natural-retention-headroom-results.md",
+      "bytes": 1408,
+      "sha256": "5a5337fd269fe2e28082c79ccc3466fcd178adf1b9107ad3417ca685b548bc56"
+    },
+    {
+      "original_path": "docs/research/20261002-object-frame-binding-results.md",
+      "archived_path": "research/20261002-object-frame-binding-results.md",
+      "bytes": 1500,
+      "sha256": "cf6426c61c4f1e58ce086c4633bfc72ea2232a1f4c30a67b3c69e277023f26d4"
+    },
+    {
+      "original_path": "docs/research/20261002-object-relative-transport-results.md",
+      "archived_path": "research/20261002-object-relative-transport-results.md",
+      "bytes": 1926,
+      "sha256": "ef89c4844ac9d6c0d035b93ba0a5eeb413ea46f36c673d5ef1fdcb2668f6cfbb"
+    },
+    {
+      "original_path": "docs/research/20261002-observation-hold-aggregation-results.md",
+      "archived_path": "research/20261002-observation-hold-aggregation-results.md",
+      "bytes": 1493,
+      "sha256": "cf1027e464b30fc5d497c636bbcbb0ffa38c5bd365be9a6fe862484665a6254a"
+    },
+    {
+      "original_path": "docs/research/20261002-observation-hold-baseline-results.md",
+      "archived_path": "research/20261002-observation-hold-baseline-results.md",
+      "bytes": 1882,
+      "sha256": "325d425087c272d6e0cb087f4461bc7196dbce82d2967530450b1e40d8c02779"
+    },
+    {
+      "original_path": "docs/research/20261002-observed-support-task-value-results.md",
+      "archived_path": "research/20261002-observed-support-task-value-results.md",
+      "bytes": 1799,
+      "sha256": "97613516026076c173c311ebbc884720a5eb0423addf5a6283a1cc77d27647d5"
+    },
+    {
+      "original_path": "docs/research/20261002-option-model-policy-results.md",
+      "archived_path": "research/20261002-option-model-policy-results.md",
+      "bytes": 4619,
+      "sha256": "bfd333cba1beb5c94d874757d6731209df9decb087b7ccf5cc787c92f6dc4fcc"
+    },
+    {
+      "original_path": "docs/research/20261002-option-offline-method-boundary.md",
+      "archived_path": "research/20261002-option-offline-method-boundary.md",
+      "bytes": 1521,
+      "sha256": "5ad76ca69b1b3e2875dcb6e40552dbcdeb451cf5cddc99f4b922fa7f5dd206d8"
+    },
+    {
+      "original_path": "docs/research/20261002-paired-option-task-opportunity-results.md",
+      "archived_path": "research/20261002-paired-option-task-opportunity-results.md",
+      "bytes": 3079,
+      "sha256": "81272bdbdfdbb08b9cc08180ef6f680f844fc88c9e7e5a7e654594ec8c8c5fd0"
+    },
+    {
+      "original_path": "docs/research/20261002-physical-control-variate-literature.md",
+      "archived_path": "research/20261002-physical-control-variate-literature.md",
+      "bytes": 2488,
+      "sha256": "9a7f49125acb86f603de3a58f4c5ccdc8278da360127b9e3c39a27b20036aed0"
+    },
+    {
+      "original_path": "docs/research/20261002-physical-encoder-critic-results.md",
+      "archived_path": "research/20261002-physical-encoder-critic-results.md",
+      "bytes": 4023,
+      "sha256": "b8149369a2f1259b62155ffd33aa8defc67a1ce3259856d0c987b4ca1b594bbd"
+    },
+    {
+      "original_path": "docs/research/20261002-physical-encoder-transfer-boundary.md",
+      "archived_path": "research/20261002-physical-encoder-transfer-boundary.md",
+      "bytes": 1300,
+      "sha256": "1e319d508219e1a73c81375a64a192b2e36815dfaf662b4aecb210b0b8c03366"
+    },
+    {
+      "original_path": "docs/research/20261002-physical-gradient-control-results.md",
+      "archived_path": "research/20261002-physical-gradient-control-results.md",
+      "bytes": 3339,
+      "sha256": "ce77333c26fbe7e779484388ef1728ace6d00baec705e76049ea9ac586568733"
+    },
+    {
+      "original_path": "docs/research/20261002-reference-target-policy-results.md",
+      "archived_path": "research/20261002-reference-target-policy-results.md",
+      "bytes": 1966,
+      "sha256": "a9102520df4ee97a41f6a6de783a686495c6c844cba92f75a2ff26967c551ee8"
+    },
+    {
+      "original_path": "docs/research/20261002-request-execution-headroom-results.md",
+      "archived_path": "research/20261002-request-execution-headroom-results.md",
+      "bytes": 1886,
+      "sha256": "8daa51df182a62c42d6feb87177f43d659a85169174940d3a700c90b5df8f0a6"
+    },
+    {
+      "original_path": "docs/research/20261002-response-field-method-boundary.md",
+      "archived_path": "research/20261002-response-field-method-boundary.md",
+      "bytes": 1779,
+      "sha256": "993ced11bc91d7be78c8e49224b977fc1d388dba929ea44f42e193b4d07806a9"
+    },
+    {
+      "original_path": "docs/research/20261002-return-corrected-gradient-boundary.md",
+      "archived_path": "research/20261002-return-corrected-gradient-boundary.md",
+      "bytes": 2817,
+      "sha256": "2b6d53e04dc64f0093fb5f7111aee230800ed026dd005c2b805cd8e6e8456b1a"
+    },
+    {
+      "original_path": "docs/research/20261002-rotation-retention-feasibility-results.md",
+      "archived_path": "research/20261002-rotation-retention-feasibility-results.md",
+      "bytes": 1486,
+      "sha256": "8e61ebd801e851af6e859484761f3d676e0ed3f806aac221797d397871beee89"
+    },
+    {
+      "original_path": "docs/research/20261002-selective-finger-feasibility-results.md",
+      "archived_path": "research/20261002-selective-finger-feasibility-results.md",
+      "bytes": 2796,
+      "sha256": "c0690cdff991100ba0cdb8a2ec6af20bdb2619a6f33dd8446e132c056fc3d601"
+    },
+    {
+      "original_path": "docs/research/20261002-self-trained-teacher-qualification-results.md",
+      "archived_path": "research/20261002-self-trained-teacher-qualification-results.md",
+      "bytes": 2585,
+      "sha256": "4b2e8b7eb9ab3b77435d033d992a62c191dbe4c09f469152a57fb6b089a66167"
+    },
+    {
+      "original_path": "docs/research/20261002-source-e260-provenance.md",
+      "archived_path": "research/20261002-source-e260-provenance.md",
+      "bytes": 2141,
+      "sha256": "893fd38e05100606ea79928cc76a70d8daea0c7e51c0a2e546bc34dc396e9406"
+    },
+    {
+      "original_path": "docs/research/20261002-state-response-field-results.md",
+      "archived_path": "research/20261002-state-response-field-results.md",
+      "bytes": 1982,
+      "sha256": "0685df650eae31abc43bb13a5f4da50c0683d8d3cc6ab4d86a30ee8215907fb5"
+    },
+    {
+      "original_path": "docs/research/20261002-static-hold-feasibility-results.md",
+      "archived_path": "research/20261002-static-hold-feasibility-results.md",
+      "bytes": 2684,
+      "sha256": "d42b0afb4dde6efba2862826bcdda85ea5522190903e311fb1f6cb63821825d9"
+    },
+    {
+      "original_path": "docs/research/20261002-successor-value-compatibility-results.md",
+      "archived_path": "research/20261002-successor-value-compatibility-results.md",
+      "bytes": 2077,
+      "sha256": "564bf2a3358e84013ef91ba63073648419b634dea80b0ee7580a4bdd52976d9b"
+    },
+    {
+      "original_path": "docs/research/20261002-support-disturbance-feasibility-results.md",
+      "archived_path": "research/20261002-support-disturbance-feasibility-results.md",
+      "bytes": 2784,
+      "sha256": "27f2b068202e751e686a7a13b5be4ca8f577f52ef7b39e5491b488be0aaf3fff"
+    },
+    {
+      "original_path": "docs/research/20261002-support-feature-policy-results.md",
+      "archived_path": "research/20261002-support-feature-policy-results.md",
+      "bytes": 3912,
+      "sha256": "5ef6ed0bc817e36302fe0a9bd8cb631f332e2b0e170127bded81c5a70f46439f"
+    },
+    {
+      "original_path": "docs/research/20261002-support-gradient-and-headroom-results.md",
+      "archived_path": "research/20261002-support-gradient-and-headroom-results.md",
+      "bytes": 2657,
+      "sha256": "2a8e7b3354576f506785501fb354e75092a92cc0b8a6441054acb0ca57f41d05"
+    },
+    {
+      "original_path": "docs/research/20261002-support-removal-witness-results.md",
+      "archived_path": "research/20261002-support-removal-witness-results.md",
+      "bytes": 2655,
+      "sha256": "41e5a0c0aebbf69b2422fddaa339ec47d101b58e1f3a783f02d1f007b5ad699f"
+    },
+    {
+      "original_path": "docs/research/20261002-support-response-information-results.md",
+      "archived_path": "research/20261002-support-response-information-results.md",
+      "bytes": 2459,
+      "sha256": "9e1d04dd8a1efd8a5fe9a7bbc9b40a079dc65ee153eb6578aeab28824e0c7d27"
+    },
+    {
+      "original_path": "docs/research/20261002-task-outcome-determinacy-results.md",
+      "archived_path": "research/20261002-task-outcome-determinacy-results.md",
+      "bytes": 1862,
+      "sha256": "04071b2e4e9a3ca26eb1aa27676f5fb40fbb5d8df8f2357ecdb94d284b801dad"
+    },
+    {
+      "original_path": "docs/research/20261002-truth-successor-task-value-results.md",
+      "archived_path": "research/20261002-truth-successor-task-value-results.md",
+      "bytes": 3108,
+      "sha256": "473717ecf9144ca97010cddfae007203848f29c296b09f7378dd4bd686a0e5d0"
+    },
+    {
+      "original_path": "docs/research/20261003-budgeted-physical-critic-boundary.md",
+      "archived_path": "research/20261003-budgeted-physical-critic-boundary.md",
+      "bytes": 1357,
+      "sha256": "e68025bb79206a40ddd4eba7414db3e1954fff7bbab519d6e782d7f82797fe5f"
+    },
+    {
+      "original_path": "docs/research/20261003-budgeted-physical-critic-results.md",
+      "archived_path": "research/20261003-budgeted-physical-critic-results.md",
+      "bytes": 5076,
+      "sha256": "be11c2a5569aad46d8b508d2de0f223f9363ac631d74a3fdb7f9ca29836c6706"
+    },
+    {
+      "original_path": "docs/research/20261003-cm-data-scale-hypothesis.md",
+      "archived_path": "research/20261003-cm-data-scale-hypothesis.md",
+      "bytes": 4854,
+      "sha256": "79568df12a7bbb25712e8999228f79dc35c7ccbdd26f1c4553a7abdb1fdeca17"
+    },
+    {
+      "original_path": "docs/research/20261003-cm-granularity-results.md",
+      "archived_path": "research/20261003-cm-granularity-results.md",
+      "bytes": 5416,
+      "sha256": "a3bcf779601ac7b49eab1a70c1e7c0551b4f417a7a7889739780c135b29ef299"
+    },
+    {
+      "original_path": "docs/research/20261003-cm-scale-cross-hand-results.md",
+      "archived_path": "research/20261003-cm-scale-cross-hand-results.md",
+      "bytes": 5602,
+      "sha256": "63ba798391af85fe9143cc6c5c82d936a98ce5126ecd7edd5d401dab98d12d9c"
+    },
+    {
+      "original_path": "docs/research/20261003-contrast-acquisition-results.md",
+      "archived_path": "research/20261003-contrast-acquisition-results.md",
+      "bytes": 3602,
+      "sha256": "8cf73b9f10f604a3d7b4d775b867b8c1b2f8fd0f2789d43c77685e0a29b54c09"
+    },
+    {
+      "original_path": "docs/research/20261003-effect-interaction-oracle-r1-results.md",
+      "archived_path": "research/20261003-effect-interaction-oracle-r1-results.md",
+      "bytes": 2642,
+      "sha256": "304907f71e6e8b2571eb5218c0989dd264a72a38850b9f312285f1a2ea4f3b6d"
+    },
+    {
+      "original_path": "docs/research/20261003-effect-interaction-oracle-r2-results.md",
+      "archived_path": "research/20261003-effect-interaction-oracle-r2-results.md",
+      "bytes": 3671,
+      "sha256": "fe356c115ba2fbe64122e50cc5c4f25fa7430d84e4695c3a2752c4d8301f215c"
+    },
+    {
+      "original_path": "docs/research/20261003-effect-interaction-oracle-review.md",
+      "archived_path": "research/20261003-effect-interaction-oracle-review.md",
+      "bytes": 9595,
+      "sha256": "e665c19bb17efc3a1993b2f9b0fb64bcb6ac09c249b091aa1118b213825a3dd4"
+    },
+    {
+      "original_path": "docs/research/20261003-gate1-consequence-value-results.md",
+      "archived_path": "research/20261003-gate1-consequence-value-results.md",
+      "bytes": 1923,
+      "sha256": "9d628ce44a3393249203c31e7f6417608627a10feaefe67a9ac61906b5a33cb9"
+    },
+    {
+      "original_path": "docs/research/20261003-implementation-review.md",
+      "archived_path": "research/20261003-implementation-review.md",
+      "bytes": 4255,
+      "sha256": "2134150d8885d32be25c8177828164dce08d9e4bc17ac91709a706f2fe9ee9b2"
+    },
+    {
+      "original_path": "docs/research/20261003-inspire-filter-impact-results.md",
+      "archived_path": "research/20261003-inspire-filter-impact-results.md",
+      "bytes": 1749,
+      "sha256": "3f0c5ae468b3775cfc1c6926f2e40c79c5b1bd4c86bd589f8aec1f9f1431b77b"
+    },
+    {
+      "original_path": "docs/research/20261003-latent-load-feasibility-results.md",
+      "archived_path": "research/20261003-latent-load-feasibility-results.md",
+      "bytes": 3908,
+      "sha256": "ebbe8b1d309a8952234f72b38dbc57c7920be61097e3c2fd3a48a17f4106c1b4"
+    },
+    {
+      "original_path": "docs/research/20261003-oracle-candidate-capacity-results.md",
+      "archived_path": "research/20261003-oracle-candidate-capacity-results.md",
+      "bytes": 3521,
+      "sha256": "0c5ab5dfdbe29bd072ee0226e5ec6a2fccd6fc880d568c42a645d91fab32c835"
+    },
+    {
+      "original_path": "docs/research/20261003-oracle-native-qualification.md",
+      "archived_path": "research/20261003-oracle-native-qualification.md",
+      "bytes": 3103,
+      "sha256": "e112cc30a53a762d3962ff7e8fe18e1c948fa91949c98b435dc81c20e4c601c4"
+    },
+    {
+      "original_path": "docs/research/20261003-oracle-selector-training-audit.json",
+      "archived_path": "research/20261003-oracle-selector-training-audit.json",
+      "bytes": 6952,
+      "sha256": "852a3e476b1d1cf0cabe303336a86dfea509d4dbdfd121ce66bca2e927147362"
+    },
+    {
+      "original_path": "docs/research/20261003-oracle-selector-training-audit.md",
+      "archived_path": "research/20261003-oracle-selector-training-audit.md",
+      "bytes": 3970,
+      "sha256": "273dfebb10822b7fb157415833e82c56345be8f4815443b9b5aac3ca1e468873"
+    },
+    {
+      "original_path": "docs/research/20261003-physical-acquisition-method-boundary.md",
+      "archived_path": "research/20261003-physical-acquisition-method-boundary.md",
+      "bytes": 2569,
+      "sha256": "82a26c5fdec023fc75cc726e4322f4a74c0a711cdeae5d3846b861f14ff0fdf6"
+    },
+    {
+      "original_path": "docs/research/20261003-prelift-contact-opportunity-results.md",
+      "archived_path": "research/20261003-prelift-contact-opportunity-results.md",
+      "bytes": 2343,
+      "sha256": "02d121c4ce2772a220d6602fab6afa3d59e816b2ccc3ba56cea5a3c9196eef4b"
+    },
+    {
+      "original_path": "docs/research/20261003-rigid-coupling-learnability-results.md",
+      "archived_path": "research/20261003-rigid-coupling-learnability-results.md",
+      "bytes": 5147,
+      "sha256": "030db451317dc95953645e278816159192cfa616b3a3ce98ab1045e59dc69eb0"
+    },
+    {
+      "original_path": "docs/research/20261003-rigid-transport-capacity-results.md",
+      "archived_path": "research/20261003-rigid-transport-capacity-results.md",
+      "bytes": 7410,
+      "sha256": "7a45185e859e7166c97496fc892d4eb280b6107c1bda7170b9995a9879a3c082"
+    },
+    {
+      "original_path": "docs/research/20261003-rotational-clearance-results.md",
+      "archived_path": "research/20261003-rotational-clearance-results.md",
+      "bytes": 3607,
+      "sha256": "d4177281db9d1db43ee258af124f1325b4c3f5fa302c18b527c9651ad1b0afa0"
+    },
+    {
+      "original_path": "docs/research/20261003-state-anchored-transport-results.md",
+      "archived_path": "research/20261003-state-anchored-transport-results.md",
+      "bytes": 5664,
+      "sha256": "1b5ca5798fc58d76ae0f794dd9cd22bf5823ac5c0aa4b92980686c162c28a7aa"
+    },
+    {
+      "original_path": "docs/research/20261003-surface-calibration-results.md",
+      "archived_path": "research/20261003-surface-calibration-results.md",
+      "bytes": 6721,
+      "sha256": "a29660c96d65fa3949d4b8b20e7f31c84c68f7b3187ef3a11815df110b27f2a5"
+    },
+    {
+      "original_path": "docs/research/20261003-surface-execution-input-results.md",
+      "archived_path": "research/20261003-surface-execution-input-results.md",
+      "bytes": 6568,
+      "sha256": "9e36093eef7841a6f98e1c7a4f79c4da06bc0aa10ab834a06b7e86f649d9ea6c"
+    },
+    {
+      "original_path": "docs/research/20261003-surface-granularity-results.md",
+      "archived_path": "research/20261003-surface-granularity-results.md",
+      "bytes": 2872,
+      "sha256": "c1c30587b59c483e50257b56e9384d1d0dc77bc680702065c9e81b6c7a345b43"
+    },
+    {
+      "original_path": "docs/research/20261004-gate1-consequence-v2-results.md",
+      "archived_path": "research/20261004-gate1-consequence-v2-results.md",
+      "bytes": 16611,
+      "sha256": "d9f6174845037bf1e43d2a2d719951a6c6fd030d7b744352104409c95048c9ec"
+    },
+    {
+      "original_path": "docs/research/README.md",
+      "archived_path": "research/README.md",
+      "bytes": 15830,
+      "sha256": "f825458d869db48482afe3cae55cf62215734272f90e836ec128ac07270d3b9b"
+    }
+  ]
+}

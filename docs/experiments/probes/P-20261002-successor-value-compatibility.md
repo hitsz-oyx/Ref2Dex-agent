@@ -53,4 +53,4 @@ Whole<=180s/32MiB, one freshly idle GPU; zero new trajectories/updates.
 Execution9a0f873/r1 COMPLETED/PROMISING for representationDecision; all four
 gates pass. Brieroracle.084409/directQ.122460/meanCm.120472; fullSDK/NN/statistical
 audits pass,79.290s/9644276bytes, protected inputs unchanged, own PIDs terminal.
-[Results](../../research/20261002-successor-value-compatibility-results.md).
+[Results](../../archive/2026-10-04-root-research/research/20261002-successor-value-compatibility-results.md).

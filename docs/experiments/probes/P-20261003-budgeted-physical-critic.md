@@ -75,4 +75,4 @@ Outcome: r2 COMPLETED/UNPROMISING. Cm383/off399 per768, blockA Cm200/coldQ189
 per384, blockB Cm183/equal-budgetQ220 per384. Four of six frozen gates fail.
 All eight native and complete training audits pass. r1protected-code stop
 and inherited valid651panel are preserved; no repeated collection or fit.
-[Full result](../../research/20261003-budgeted-physical-critic-results.md).
+[Full result](../../archive/2026-10-04-root-research/research/20261003-budgeted-physical-critic-results.md).

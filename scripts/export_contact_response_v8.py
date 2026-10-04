@@ -206,20 +206,20 @@ def main():
         for metric in ('point_mm2','upper95_mm2'):
             if f"{summary['comparisons'][comparison][metric]:.3f}" not in source:
                 raise ValueError('secondary prose numeric mismatch')
-    inputs=[BASE/'P-20261002-frame0-tracking-feasibility-r1/continuation_r1/results.json',BASE/'P-20261002-frame0-tracking-feasibility-r1/s506/physical_metadata.json',ROOT/'docs/research/20261002-reference-target-policy-results.md',ROOT/'docs/research/20261002-observation-hold-aggregation-results.md',PAPER/'figures/support_removal.pdf',PAPER/'figures/support_removal.png',BASE/'P-20261002-support-removal-figure-r1/figure_manifest.json',BASE/'P-20261002-observation-hold-failure-audit-r1/results.json',ROOT/'docs/research/20261002-contact-response-novelty-update.md',sourcepath,Path(__file__).resolve(),ROOT/'scripts/export_contact_response_paper.py',secondary,PAPER/'figures/reference_hold.pdf',PAPER/'figures/reference_hold.png',BASE/'P-20261001-reference-hold-figure-r1/figure_manifest.json',PAPER/'figures/finger_preload.pdf',PAPER/'figures/finger_preload.png',BASE/'P-20261002-finger-preload-figure-r1/figure_manifest.json',BASE/'P-20261001-static-hold-feasibility-r1/tabletop_axis_correction_r1/results.json',BASE/'P-20261001-static-hold-feasibility-r1/joint_tracking_audit_r1/results.json',*paths.values(),*tables.values()]
+    inputs=[BASE/'P-20261002-frame0-tracking-feasibility-r1/continuation_r1/results.json',BASE/'P-20261002-frame0-tracking-feasibility-r1/s506/physical_metadata.json',ROOT/'docs/archive/2026-10-04-root-research/research/20261002-reference-target-policy-results.md',ROOT/'docs/archive/2026-10-04-root-research/research/20261002-observation-hold-aggregation-results.md',PAPER/'figures/support_removal.pdf',PAPER/'figures/support_removal.png',BASE/'P-20261002-support-removal-figure-r1/figure_manifest.json',BASE/'P-20261002-observation-hold-failure-audit-r1/results.json',ROOT/'docs/archive/2026-10-04-root-research/research/20261002-contact-response-novelty-update.md',sourcepath,Path(__file__).resolve(),ROOT/'scripts/export_contact_response_paper.py',secondary,PAPER/'figures/reference_hold.pdf',PAPER/'figures/reference_hold.png',BASE/'P-20261001-reference-hold-figure-r1/figure_manifest.json',PAPER/'figures/finger_preload.pdf',PAPER/'figures/finger_preload.png',BASE/'P-20261002-finger-preload-figure-r1/figure_manifest.json',BASE/'P-20261001-static-hold-feasibility-r1/tabletop_axis_correction_r1/results.json',BASE/'P-20261001-static-hold-feasibility-r1/joint_tracking_audit_r1/results.json',*paths.values(),*tables.values()]
     inputs += [BASE/'P-20261002-support-response-information-r2/run_manifest.json',
         BASE/'P-20261002-support-response-information-r2/collection_audit.json',
         BASE/'P-20261002-support-gradient-cv-r1/run_manifest.json',
         BASE/'P-20261002-support-state-dependence-r1/gradient_audit.json',
         BASE/'P-20261002-support-disturbance-feasibility-r1/collection_audit.json',
         BASE/'P-20261002-support-disturbance-feasibility-r1/run_manifest.json',
-        ROOT/'docs/research/20261002-support-response-information-results.md',
-        ROOT/'docs/research/20261002-support-gradient-and-headroom-results.md',
-        ROOT/'docs/research/20261002-physical-control-variate-literature.md',
-        ROOT/'docs/research/20261002-disturbance-recovery-literature.md',
-        ROOT/'docs/research/20261002-support-disturbance-feasibility-results.md',
+        ROOT/'docs/archive/2026-10-04-root-research/research/20261002-support-response-information-results.md',
+        ROOT/'docs/archive/2026-10-04-root-research/research/20261002-support-gradient-and-headroom-results.md',
+        ROOT/'docs/archive/2026-10-04-root-research/research/20261002-physical-control-variate-literature.md',
+        ROOT/'docs/archive/2026-10-04-root-research/research/20261002-disturbance-recovery-literature.md',
+        ROOT/'docs/archive/2026-10-04-root-research/research/20261002-support-disturbance-feasibility-results.md',
         BASE/'P-20261002-support-disturbance-feasibility-r1/response_audit.json']
-    inputs += [BASE/'P-20261002-support-feature-policy-training-r1/analysis_correction_r1/action_agreement_audit.json', BASE/'P-20261002-support-feature-policy-closeout-r1/results.json', ROOT/'docs/research/20261002-support-feature-policy-results.md', ROOT/'docs/research/20261002-fulltext-method-boundary.md']
+    inputs += [BASE/'P-20261002-support-feature-policy-training-r1/analysis_correction_r1/action_agreement_audit.json', BASE/'P-20261002-support-feature-policy-closeout-r1/results.json', ROOT/'docs/archive/2026-10-04-root-research/research/20261002-support-feature-policy-results.md', ROOT/'docs/archive/2026-10-04-root-research/research/20261002-fulltext-method-boundary.md']
     manifest=dict(run_status='COMPLETED',rendering='ReportLab review copy; not native TeX compilation',
         source_sha256={str(p.relative_to(ROOT)):sha(p) for p in inputs},output_sha256=sha(destination),
         scientific_labels={key:value.get('label',value.get('classification')) for key,value in records.items()},tables_generated_from_recorded_json=True)

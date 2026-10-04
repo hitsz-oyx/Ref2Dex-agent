@@ -57,4 +57,4 @@ none is claimed as new here. A possible contribution is a contact-conditioned
 measurement and learning protocol for differential action effects with explicit
 noise resolution and closed-loop evidence. Its novelty and benefit are unproven.
 
-Sources are recorded in docs/research/20261001-contact-response-literature.md.
+Sources are recorded in ../../archive/2026-10-04-root-research/research/20261001-contact-response-literature.md.

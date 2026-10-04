@@ -59,4 +59,4 @@ A positive Probe is controller headroom, not RL-training utility, multi-seed
 Validation, contact-force closure, cross-hand generalization or journal
 readiness.
 
-Terminal closeout: COMPLETED/UNPROMISING, all four selectors8/12 versusP05/12; independent geometry/physics/full105counts qualify the bounded result. [Results](../../research/20261003-effect-interaction-oracle-r2-results.md).
+Terminal closeout: COMPLETED/UNPROMISING, all four selectors8/12 versusP05/12; independent geometry/physics/full105counts qualify the bounded result. [Results](../../archive/2026-10-04-root-research/research/20261003-effect-interaction-oracle-r2-results.md).

@@ -72,5 +72,5 @@ zero new optimizer steps. Full parameter-gradient trace baseline8.2513/
 Cm32.5816/off11.9448/directQ14.0500; both mandatory gates fail, UNPROMISING.
 Allnative/input/critic-reverse/complete-actor-gradient/bootstrap audits pass.
 206.507s/391985146bytes, protected inputs unchanged, all own PIDs terminal.
-[Complete result](../../research/20261002-physical-gradient-control-results.md).
+[Complete result](../../archive/2026-10-04-root-research/research/20261002-physical-gradient-control-results.md).
 Do not launch corrected policy training or vary the control coefficient.

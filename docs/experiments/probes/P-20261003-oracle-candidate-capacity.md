@@ -45,4 +45,4 @@ arithmetic is deliberate. Stop on drift, contention, budget or fidelity failure.
 Single scene/model seed, one object/three synthetic references; no Validation,
 RL-training gain, universal infeasibility/Cm refutation or journal claim.
 
-Terminal: COMPLETED/UNPROMISING, stable selectors8/12 and observed bank capacity8/12; all32motion0outcomes fail and independent audits pass. [Results](../../research/20261003-oracle-candidate-capacity-results.md).
+Terminal: COMPLETED/UNPROMISING, stable selectors8/12 and observed bank capacity8/12; all32motion0outcomes fail and independent audits pass. [Results](../../archive/2026-10-04-root-research/research/20261003-oracle-candidate-capacity-results.md).

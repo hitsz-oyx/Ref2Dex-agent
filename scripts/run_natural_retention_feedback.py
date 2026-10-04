@@ -45,7 +45,7 @@ def main():
         ROOT / 'third_party/DExplore/dexplore/data/assets/mjcf/objects/table/table.obj']
     policy=old.parent/'fit/policy.pt'
     sources.extend([policy,ROOT/'src/task/CmResidual/native_reset_transaction.py',ROOT/'src/task/CmResidual/natural_retention_feedback.py',ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-support-response-initialization-fix.md',Path('/home2/wyy/isaac-gym/isaacgym/docs/programming/tensors.html')])
-    sources += [ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-headroom.md',ROOT/'docs/research/20261002-natural-retention-headroom-results.md',ROOT/'src/task/CmResidual/research/contact_response/output/P-20261002-natural-retention-headroom-r1/results.json']
+    sources += [ROOT/'docs/archive/2026-10-04-research-governance/decisions/D-20261002-natural-retention-headroom.md',ROOT/'docs/archive/2026-10-04-root-research/research/20261002-natural-retention-headroom-results.md',ROOT/'src/task/CmResidual/research/contact_response/output/P-20261002-natural-retention-headroom-r1/results.json']
     hashes.update({str(p.resolve()): sha(p) for p in sources})
     if any(sha(Path(p)) != h for p,h in hashes.items()):
         raise ValueError('frozen input drift')

@@ -26,7 +26,7 @@ with implementation repair complete and broader data coverage still required
 before any formal conclusion.
 
 **Code and artifacts.** See
-[`20261004-gate1-consequence-v2-results.md`](../../research/20261004-gate1-consequence-v2-results.md)
+[`20261004-gate1-consequence-v2-results.md`](../../archive/2026-10-04-root-research/research/20261004-gate1-consequence-v2-results.md)
 and the `tmp/fresh_pre_s86d*` outputs.
 
 **Follow-up.** Two additional corrected runs expanded the probe to 56 episodes.

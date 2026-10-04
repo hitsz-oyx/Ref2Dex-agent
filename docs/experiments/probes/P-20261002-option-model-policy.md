@@ -96,6 +96,6 @@ completed. r1 FAILED only final NumPy boolean JSON serialization; separate
 original failure retained. Cm172/off174/directQ222/P0129 per384; primary
 UNPROMISING, two of three gates fail. Full native/SDK/actor/model audits pass.
 Combined633.273s/997392487bytes, protected inputs unchanged, own jobs terminal.
-[Complete result](../../research/20261002-option-model-policy-results.md).
+[Complete result](../../archive/2026-10-04-root-research/research/20261002-option-model-policy-results.md).
 Exact recipe closed without local scans. Next role review is
 [return-corrected learning](../../archive/2026-10-04-research-governance/decisions/D-20261002-after-option-model-policy.md).
