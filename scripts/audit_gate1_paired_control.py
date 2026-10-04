@@ -94,6 +94,19 @@ def main() -> None:
         result["control_input"] = str(control_path.resolve())
         results.append(result)
     output = {"schema": "ref2dex.gate1_paired_control_audit.v1", "results": results}
+    # When each input is a distinct outer namespace holdout, summarize the
+    # held-out-namespace estimand separately from the within-fold episode CI.
+    if len(results) >= 2 and all(result["namespace_count"] == 1 for result in results):
+        values = torch.tensor(
+            [result["namespace_paired_delta_mean"] for result in results], dtype=torch.float64
+        )
+        output["outer_namespace_bootstrap"] = {
+            "namespace_count": len(results),
+            "mean_delta": float(values.mean()),
+            "ci95": _quantiles(values, 99001, args.repeats),
+            "delta_by_holdout": [float(value) for value in values],
+            "estimand": "outer leave-one-namespace paired incremental MAE reduction",
+        }
     if args.output.exists():
         raise FileExistsError(args.output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
