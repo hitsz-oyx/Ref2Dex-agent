@@ -3,7 +3,7 @@
 Family: HF08；probe_index_in_family: 1/1；类型：Decision Probe。
 执行状态：COMPLETED；原生gate：UNPROMISING；最终因果解释需初始评价一致性审计；分支 agent/cm-physical-value。
 
-用户已批准 [固定设计](../../superpowers/specs/2026-09-30-cm-physical-value-design.md)，并授权本轮暂时跳过代理工作流，root 直接推进研究。期限 2026-10-03 23:59 Asia/Shanghai。具体代码提交、命令、输入 hash 与阶段状态由原生 run_manifest 保存；工程 smoke 不消费科学 Probe slot。
+用户已批准 [固定设计](../../skill-artifacts/specs/2026-09-30-cm-physical-value-design.md)，并授权本轮暂时跳过代理工作流，root 直接推进研究。期限 2026-10-03 23:59 Asia/Shanghai。具体代码提交、命令、输入 hash 与阶段状态由原生 run_manifest 保存；工程 smoke 不消费科学 Probe slot。
 
 本实验区分：完整真实交互数据上的短期动作条件物理模型与长期价值结合，能否改善训练所得 actor，超过普通 PPO 及同形式的直接 Q 候选监督。正向后优先正式 Validation；完整有效负向则停止该实现；合同失败或预算未完成为 UNCLEAR。最便宜的有效检验是固定公共预训练池及单一三臂矩阵，不对数据规模分别做 RL sweep。
 
