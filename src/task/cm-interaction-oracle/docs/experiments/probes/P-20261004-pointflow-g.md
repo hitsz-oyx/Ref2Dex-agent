@@ -14,7 +14,7 @@ seeds: [201]
 decision_changed_if_positive: audit action sensitivity before a bounded action-improvement teacher probe
 decision_changed_if_negative: inspect E error and train/deployment mismatch; no online policy training or capacity sweep
 status: PLANNED
-run_id: pointflow-g-k1-s201
+run_id: pointflow-g-k1-rootfix-s201
 ---
 
 # Does real point-flow predicted E preserve E-to-G information?
@@ -36,8 +36,8 @@ Inputs to the spatial predictor are current object/hand geometry and nominal
 hand flow generated from current native q and current action by exact target
 mapping/FK. No realized future action, hand flow, object state or reward is an
 input. Source `physical_value_live.snapshot` fixes q at state[0:18] and object
-root at state[36:49]. The native trace confirms q equality and identity hand
-root; FK/body consistency is audited before interpreting the result.
+root at state[36:49]. The native trace confirms q equality, but its identity
+hand root does NOT transfer to the four G sources (see engineering correction).
 
 Use the same episode split key and split identifier 20261004 as ref4, with up
 to 64 evenly spaced rows per episode. Split/geometry identifier is a pinned
@@ -53,14 +53,19 @@ history and subsampling mean raw MAEs cannot be compared to old K8 results.
 - H+CM E swap: same GT-trained bridge, replace only held-out E.
 - H+CM E fit: train/evaluate on frozen CM predictions.
 - H+action: control for new current-action information, rather than E accuracy.
+- H+action+current hand root (HAR): control for the additional current root
+  observation required by valid point-flow geometry.
 
+All arms use the same 30D padded auxiliary branch (E6+24zero, action18+12zero,
+action18+root12, or 30zero), and identical parameter counts. Root12 is the
+observed 3x3 rotation and XYZ translation, standardized from training rows.
 All newly fit bridges use seed 201, the same train rows, minibatch order,
 optimizer and 16 epochs. Train-only H/E and G normalization. Primary metric is
 episode-balanced held-out MAE. Bootstrap over 22 held-out episodes is descriptive
 only; four source runs are not independent large-sample validation.
 
 PROMISING requires GT MAE reduction ≥5%, CM-fit reduction ≥3%, retention ≥25%
-of GT absolute gain, and CM-fit beating action control. If GT does not reach
+of GT absolute gain, and CM-fit beating HAR control. If GT does not reach
 5%, the probe is UNCLEAR about predictability-to-value. Otherwise failed CM
 conditions are UNPROMISING for this frozen checkpoint, not refutation of Cm.
 No online policy training follows an unresolved/negative result.
@@ -77,6 +82,27 @@ Implementation: `src/task/cm-interaction-oracle/tools/run/probe_pointflow_g.py`.
 Artifacts: `outputs/cm-interaction-oracle/<run_id>/result.json`, `bridge.pt`
 and `run.log`. Result records input/checkpoint/mesh/URDF/script hashes, actual
 execution commit, split, normalization, metrics and resource usage.
+
+## Engineering correction before valid Probe
+
+`pointflow-g-k1-s201` completed, but is invalid for research interpretation:
+it assumed identity actor root based on a different native trace. Cross-source
+FK audit found up to 2.23cm actor-base translation in the actual G sources.
+This run and its smoke remain evidence of the rejected assumption and do not
+count as an effective Probe. Its calculated `UNCLEAR` field is superseded here.
+
+For the valid retry, reconstruct the *current* actor root from current measured
+body pose and FK, then verify all five bodies. The cache audit found max residual
+5.35e-6m, state/object alignment error 1.19e-7 and reconstructed E discrepancy
+2.38e-7. Apply current root to both current and nominal-action FK, holding root
+fixed over that nominal step. Never load future roots into the predictor.
+An explicit current-root/action control is required because that observation
+was absent from original H. Do not attribute its information to physical E.
+
+Cache: `outputs/cm-interaction-oracle/surface_i_gt_rootcache_s202/geometry_cache.pt`;
+its paired audit.json hashes source and cache. The run requires `--geometry-cache`
+and checks source hash, cache hash and exact absolute source-row correspondence.
+Same total 20-minute/2GB budget; this technical retry does not reset it.
 
 ## Limitations / future evidence
 

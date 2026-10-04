@@ -57,7 +57,12 @@ def subset_rows(source, per_episode):
 
 
 @torch.no_grad()
-def predict_effect(source, checkpoint, device, batch_size, geometry_seed):
+def world_link_poses(local_links, current_roots):
+    """Keep sample and body axes separate when applying observed actor roots."""
+    return current_roots[:, None] @ local_links
+
+
+def predict_effect(source, checkpoint, device, batch_size, geometry_seed, current_roots):
     assets = ROOT / 'third_party/DExplore/dexplore/data/assets'
     urdf = assets / 'inspire_hand_new/inspire_hand_right.urdf'
     obj_path = assets / 'mjcf/objects/airplane/airplane.obj'
@@ -90,6 +95,9 @@ def predict_effect(source, checkpoint, device, batch_size, geometry_seed):
         native_links = fk.forward(q[:, None])[:, 0]
         target_q = dexplore_action_to_native_targets(action, q, lower, upper)
         future_links = fk.forward(target_q[:, None])[:, 0]
+        root = current_roots[start:start + batch_size].to(device)
+        native_links = world_link_poses(native_links, root)
+        future_links = world_link_poses(future_links, root)
 
         def hand(link_poses, points):
             return torch.einsum('bpij,pj->bpi', link_poses[:, links, :3, :3], points)
@@ -115,7 +123,7 @@ def predict_effect(source, checkpoint, device, batch_size, geometry_seed):
                                    'geometry_seed': geometry_seed, 'object_anchors': 256,
                                    'hand_surface_points': 512,
                                    'input_permission': 'current state + current action only; nominal FK sweep',
-                                   'root_contract': 'identity hand root, verified on native trace; no future state input'}
+                                   'root_contract': 'current observed hand root reconstructed/verified against five recorded body poses; no future root input'}
 
 
 def fit_bridge(history, consequence, target, train, device, epochs, batch_size, seed):
@@ -166,6 +174,7 @@ def main():
     parser.add_argument('--input', type=Path, default=ROOT / 'tmp/e260_all4_h16_histfix.pt')
     parser.add_argument('--checkpoint', type=Path, default=ROOT / 'tmp/P-20261004-cmv2-unified-ei-k1-v7.best1.pt')
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--geometry-cache', type=Path, required=True)
     parser.add_argument('--device', default='cuda:0')
     parser.add_argument('--rows-per-episode', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=16)
@@ -187,18 +196,43 @@ def main():
     data = {key: value[idx] if torch.is_tensor(value) and len(value) == len(source['state']) else value
             for key, value in source.items()}
     del source
+    cache = torch.load(args.geometry_cache, map_location='cpu', weights_only=False)
+    audit_path = args.geometry_cache.parent / 'audit.json'
+    audit_report = json.loads(audit_path.read_text())
+    if audit_report['input_sha256'] != sha256(args.input):
+        raise RuntimeError('geometry cache source hash mismatch')
+    if audit_report['audit']['geometry_cache_sha256'] != sha256(args.geometry_cache):
+        raise RuntimeError('geometry cache artifact hash mismatch')
+    cached_indices = cache['source_row_indices'].tolist()
+    if len(set(cached_indices)) != len(cached_indices):
+        raise RuntimeError('duplicate geometry cache rows')
+    lookup = {value: position for position, value in enumerate(cached_indices)}
+    positions = torch.tensor([lookup[int(value)] for value in idx])
+    current_roots = cache['current_hand_root'][positions]
+    if current_roots.shape != (len(idx), 4, 4) or not torch.isfinite(current_roots).all():
+        raise RuntimeError('invalid observed hand roots')
+    del cache
     raw = {'_namespace': data.get('source_namespace', torch.zeros_like(data['source_run'])),
            '_run': data['source_run'], '_episode': data['episode_id']}
     train, test, train_groups, test_groups = _split(raw, args.split_seed)
     keys = torch.stack([raw[k] for k in ('_namespace', '_run', '_episode')], -1)
     gt = pose_effect(data['effect'][:, :1])
-    pred, geometry = predict_effect(data, args.checkpoint, device, args.inference_batch_size, args.split_seed)
+    pred, geometry = predict_effect(data, args.checkpoint, device, args.inference_batch_size, args.split_seed, current_roots)
+    geometry.update({'cache_sha256': sha256(args.geometry_cache), 'audit_sha256': sha256(audit_path),
+                     'audit': audit_report['audit']})
     history_raw = torch.cat([data[k].float() for k in ('history_state', 'history_previous_action', 'history_context', 'history_progress')], -1)
     history = _standardize(history_raw, train)
     mean, scale = gt[train].mean((0, 1)), gt[train].std((0, 1), unbiased=False).clamp_min(1e-6)
     egt, epred = (gt - mean) / scale, (pred - mean) / scale
+    # All arms have identical 30D auxiliary slots and parameter count. HAR
+    # controls the extra *current* root observation used by the spatial model.
+    padded = lambda value: nn.functional.pad(value, (0, 30 - value.shape[-1]))
+    egt, epred = padded(egt), padded(epred)
+    action = _standardize(data['action'].float()[:, None], train)
+    root_features = torch.cat((current_roots[:, :3, :3].reshape(-1, 9), current_roots[:, :3, 3]), -1)[:, None]
+    root_features = _standardize(root_features, train)
     arms = {'H': torch.zeros_like(egt), 'HE_GT': egt, 'HE_CM_fit': epred,
-            'HA': _standardize(data['action'].float()[:, None], train)}
+            'HA': padded(action), 'HAR': torch.cat((action, root_features), -1)}
     target = data['return_to_go'].float()
     results, predictions, checkpoints = {}, {}, {}
     for name, consequence in arms.items():
@@ -220,12 +254,12 @@ def main():
                          'train_standardized_rmse': float((error / scale).square().mean().sqrt())}
     comparisons = {name: comparison(results['H'], results[name], args.seed)
                    for name in results if name != 'H'}
-    comparisons['HE_CM_fit_vs_HA'] = comparison(results['HA'], results['HE_CM_fit'], args.seed)
+    comparisons['HE_CM_fit_vs_HAR'] = comparison(results['HAR'], results['HE_CM_fit'], args.seed)
     gt_gain = comparisons['HE_GT']['relative_mae_reduction']
     cm_gain = comparisons['HE_CM_fit']['relative_mae_reduction']
     retained = comparisons['HE_CM_fit']['absolute_mae_reduction'] / max(comparisons['HE_GT']['absolute_mae_reduction'], 1e-8)
     status = ('PROMISING' if gt_gain >= .05 and cm_gain >= .03 and retained >= .25
-              and comparisons['HE_CM_fit_vs_HA']['relative_mae_reduction'] > 0
+              and comparisons['HE_CM_fit_vs_HAR']['relative_mae_reduction'] > 0
               else 'UNCLEAR' if gt_gain < .05 else 'UNPROMISING')
     report = {'schema': 'ref2dex.pointflow_g_probe.v1', 'status': status,
               'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
@@ -237,12 +271,13 @@ def main():
               'effect_metrics': metrics, 'arms': results, 'comparisons': comparisons,
               'gt_gain_retained': retained if gt_gain > 0 else None,
               'elapsed_seconds': time.monotonic() - start,
-              'decision_rule': 'GT>=5%, predicted-fit>=3%, retains>=25% GT gain and beats HA; otherwise do not enter policy training',
+              'decision_rule': 'GT>=5%, predicted-fit>=3%, retains>=25% GT gain and beats current action/root control HAR; otherwise do not enter policy training',
               'limitations': ['single model seed; descriptive episode bootstrap, four source runs',
                               'GT E is a future oracle; offline G is not policy utility',
                               'checkpoint chosen on a separate native trace; no new predictor tuning',
                               'K1 pose-only E, corrected history and subsample; not comparable to old K8 raw G MAEs',
-                              'H uses same HE architecture with constant E; HA has a larger action encoder']}
+                              'All arms share architecture/30D padded slots; HAR controls current action and reconstructed root observation',
+                              'Nominal FK holds current actor root fixed through the proposed one-step action']}
     (args.output_dir / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
     torch.save({'indices': idx, 'predicted_effect': pred, 'gt_effect': gt, 'test_predictions': predictions,
                 'target': target[test], 'test_keys': keys[test], 'checkpoints': checkpoints,

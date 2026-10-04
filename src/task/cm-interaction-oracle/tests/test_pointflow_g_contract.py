@@ -29,3 +29,14 @@ def test_subsample_preserves_every_source_episode_without_duplicate_rows():
               'episode_id': torch.tensor([1, 1, 1, 2, 1, 1])}
     idx = MOD.subset_rows(source, 2)
     assert idx.tolist() == [0, 2, 3, 4, 5]
+
+
+def test_observed_hand_roots_do_not_broadcast_between_samples():
+    links = torch.eye(4).expand(2, 5, 4, 4).clone()
+    roots = torch.eye(4).expand(2, 4, 4).clone()
+    roots[0, :3, 3] = torch.tensor([0., .02, 0.])
+    roots[1, :3, 3] = torch.tensor([.03, 0., 0.])
+    result = MOD.world_link_poses(links, roots)
+    assert result.shape == (2, 5, 4, 4)
+    assert torch.allclose(result[0, :, :3, 3], roots[0, :3, 3].expand(5, 3))
+    assert torch.allclose(result[1, :, :3, 3], roots[1, :3, 3].expand(5, 3))
