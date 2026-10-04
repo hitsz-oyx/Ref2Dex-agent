@@ -337,3 +337,24 @@ nuisance; repeated-environment dependence, uncertain true contact/slip and
 absence of exact counterfactual branching limit inference. A failed gate is
 not a confidence-bound equivalence test proving no smaller effect. Single
 cohort/wave halves are not independent-seed Validation.
+
+## ref5 completion audit
+
+The selected guidance is checked against current artifacts after delivery,
+not just the intended plan. The preceding goal turn made research progress:
+it implemented and executed the requested duration comparison and obtained
+a reviewed negative that stops its conditional Cm stage.
+
+| Guidance requirement | Authoritative completion evidence |
+| --- | --- |
+| Physics response before any new Cm/S/network/PPO fit | Analysis command/manifest and source305e635; result `neural_models_executed=false`; only frozen source actor used in GPU collection. |
+| Same early-hold region; K4/8/16 comparison or changed execution operator | Actual v2 packet contains all21 jointly randomized arm/duration cells; all1,006 decisions satisfy lift≥3cm/contact proxy/pre-hold≥6; all windows complete. The duration alternative was executed; fixed absolute targets remain untested. |
+| Directly measure interaction and retention/loss/drop | Packet-derived I16, common1..16/17..32 contact, independently separated physical height/proxy failures, all32 outcomes and all saved response curves. Independent labels and native PD reconstruction agree. |
+| Check dose growth, monotonic response and repetition | Registered same-direction K contrasts and first6/last6 wave coefficients, full/half ranks18, minimum cell32/13 and pooled zero148; no qualifying candidate, short-contact tail0.1645/I16 tail0.572. |
+| Enter Cm only after action-sensitive interaction response | Registered gate is valid UNPROMISING; the positive-only prerequisite is false and no model/selector stage was executed. More seeds, B support or network capacity cannot substitute for it. |
+| Interpret control versus prediction, with engineering review | Actual-dose/hand-motion evidence, independent full-data review and root jointOLS reconstruction; retain prior GT prognosis and distinguish possible compensation from an identified cancellation mechanism. No core Cm or policy-utility conclusion. |
+
+Collection and analysis manifests are COMPLETED, executed hashes/dataset SHA
+match, no Python process for either run ID remains and GPU6 is idle.
+ref5's requested physics Decision has a verified negative outcome; learning
+and policy work remain conditional future research, and Mission utility stays OPEN.
