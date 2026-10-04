@@ -44,6 +44,7 @@
 - horizon sweep 选出的 h32 仍是当前 Validation 候选；h5 五 seed 不稳定，详见 [horizon sweep decision](../decisions/D-20261004-gate1-horizon-sweep.md)。
 - [Gate 1 multi-actor validation result](../decisions/D-20261004-gate1-multi-actor-validation-results.md)：修复 namespace provenance 后，pooled 与外层 namespace holdout 均显示 V_HEI 的方向性增益；matched future-action 的 paired incremental gain 仍跨 namespace 混合，因此不把结果升级为 Gate 1 `SUPPORTED`。
 - [Gate 2 predictability probe](../experiments/probes/P-20261004-gate2-predictability.md)：all18 namespace holdouts n1/n3 show a local positive value-preservation signal when a small `(H,A) -> (E,I)` predictor replaces GT consequences, but only 22–48% of the GT gain is retained and H deployability/capacity remain unresolved; status `UNCLEAR`, no online Cm or distillation yet.
+- [Gate 2 action chunk K=8](../experiments/probes/P-20261004-gate2-action-chunk-k8.md)：Transformer per-step decoding improves raw consequence prediction modestly, but the GT K=8 bridge is worse than H-only on n3; stop the chunk sweep and revisit consequence/value horizon alignment.
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->
