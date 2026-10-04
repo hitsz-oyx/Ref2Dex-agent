@@ -38,6 +38,7 @@ PROBE_DIR = Path("docs/experiments/probes")
 VALIDATION_DIR = Path("docs/experiments/validations")
 TASK_ROOT = Path("src/task")
 SEED_LEDGER_PATH = Path("docs/SEED_LEDGER.yaml")
+EXCLUDED_MARKDOWN_PREFIXES = (".agents/skills/",)
 
 MARKDOWN_LINK_RE = re.compile(
     r"!?\[[^\]\n]*\]\(\s*(?:<([^>\n]+)>|([^\s)\n]+))"
@@ -125,6 +126,15 @@ def _is_historical(path: str) -> bool:
     return bool({"logs", "archive", "handoffs", "research"}.intersection(Path(path).parts))
 
 
+def _is_excluded_markdown(path: str) -> bool:
+    """Return whether a reusable document is outside project link checks."""
+
+    return any(
+        path == prefix.rstrip("/") or path.startswith(prefix)
+        for prefix in EXCLUDED_MARKDOWN_PREFIXES
+    )
+
+
 def _is_tracked(path: Path) -> bool:
     """Compatibility helper for callers that want to inspect Git tracking."""
 
@@ -169,7 +179,7 @@ def _active_markdown_files() -> set[str]:
         if ".git" in candidate.parts:
             continue
         relative = _relative_path(candidate)
-        if relative and not _is_historical(relative):
+        if relative and not _is_historical(relative) and not _is_excluded_markdown(relative):
             files.add(relative)
     return files
 
@@ -240,7 +250,12 @@ def _check_markdown(paths: Iterable[str], failures: list[str]) -> None:
     scope: set[str] = _workflow_markdown_files()
     for relative in paths:
         candidate = _repo_path(relative)
-        if candidate.is_file() and candidate.suffix.lower() == ".md" and not _is_historical(relative):
+        if (
+            candidate.is_file()
+            and candidate.suffix.lower() == ".md"
+            and not _is_historical(relative)
+            and not _is_excluded_markdown(relative)
+        ):
             scope.add(Path(relative).as_posix())
 
     for relative in sorted(scope):

@@ -118,6 +118,17 @@ def test_markdown_link_check_and_deleted_target_check(tmp_path: Path, monkeypatc
     assert any("目标已删除" in failure for failure in failures)
 
 
+def test_reusable_skill_markdown_is_outside_project_link_checks(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    path = ".agents/skills/example/SKILL.md"
+    _write(tmp_path / path, "[generic example](./hypothetical-project/file.md)\n")
+
+    failures: list[str] = []
+    VERIFY._check_markdown({path}, failures)
+    assert not failures
+    assert path not in VERIFY._active_markdown_files()
+
+
 def test_experiment_ids_are_unique_and_legacy_ids_are_inferred(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
     _write(tmp_path / "docs/experiments/probes/P-20260925-a.md", "# old card\n")
