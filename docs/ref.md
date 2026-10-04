@@ -1,490 +1,566 @@
-有，而且现在 GitHub 上已经出现了几套和你想法非常接近的项目。**没有一套和你现在定义的 Ref2Dex workflow 100% 一样，但已经不需要从零造 broker/runtime transport 了。**
+可以预测 \(G\)，而且我认为**用 \(G\) 比只预测“成功概率”更合理**。成功率应该保留，但作为终局指标，不应该承担全部监督。
 
-我按“接近你的目标程度”来看，最值得研究的是下面几套。
+把整条链固定下来，我建议以后不要再改定义：
 
-| 项目                                    | 和你需求的匹配点                                                                          | 主要差异                                                            |
-| ------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **zetbrush/multiagents**              | 多 provider、Broker daemon、SQLite、持久 session、Codex App Server、自动重启、agent 消息转发       | 默认偏动态 spawn team，不是固定员工池                                        |
-| **backnotprop/orchestrator**          | parent 决策、CLI 做确定性执行、durable task store、多 runtime、Codex persistent session/resume | 更偏 task-oriented orchestration，不自带你的 research state machine     |
-| **hyspacex/harness-cli**              | 固定 role、不同 role 可以绑定不同 provider、durable state、resume                              | 偏软件开发流水线，不是长期科研 supervisor                                      |
-| **formiat/multi-agent-orchestration** | Codex 主导、Claude/OpenCode 执行、session reuse、inbox/outbox handoff                    | 更像 workflow library，不是完整 daemon                                 |
-| **codex-mission-ledger**              | durable control plane、background research、worktree 隔离、层级 agent                    | 更偏 Codex native hierarchical agents，不符合你“固定跨 provider worker”目标 |
+\[
+\boxed{
+(s_t,a_t)
+\rightarrow
+C_t=(E_t,I_t)
+\rightarrow
+G_t
+\rightarrow
+\text{action improvement}
+}
+\]
 
-### 1. 最像你 runtime 层的是 `zetbrush/multiagents`
+其中：
 
-它已经有：
+- \(E_t\)：物体 effect；
+- \(I_t\)：interaction consequence；
+- \(G_t\)：从 \(t\) 到 episode 结束的真实 return-to-go。
 
-```text
-Claude Code
-Codex CLI
-Gemini CLI
-      │
-      ▼
-Broker Daemon
-SQLite + HTTP
-      │
-      ▼
-Orchestrator
-```
+我们现在首先验证的是中间这一段：
 
-而且 Codex 不是靠简单 CLI prompt，而是直接用 **Codex App Server**：
+\[
+\boxed{C_t^{GT}\rightarrow G_t}
+\]
 
-* persistent thread；
-* `turn/start`；
-* turn 中 `turn/steer`；
-* 卡住后 `turn/interrupt`；
-* broker 每几秒转发消息；
-* idle 时重新启动 turn；
-* session 重启后仍保留消息历史；
-* agent crash 后自动 restart + handoff。([GitHub][1])
-
-这其实已经解决了你现在自己最费劲的：
-
-> **Broker → runtime transport → 唤醒 Codex**
-
-这一整层。
-
-它和你最大的区别在这里：
-
-```text
-multiagents:
-orchestrator → spawn team dynamically
-```
-
-而你想要：
-
-```text
-root → 固定 agent_cm
-     → 固定 agent_rl
-     → 固定 agent_eval
-     → 固定 agent_infra
-```
-
-所以如果借它，我会保留其：
-
-```text
-Broker
-CodexDriver
-session persistence
-message delivery
-liveness
-```
-
-但把动态：
-
-```text
-create_team()
-spawn_agent()
-```
-
-换成固定：
-
-```text
-bind(agent_key)
-dispatch(agent_key)
-```
-
-[zetbrush/multiagents](https://github.com/zetbrush/multiagents?utm_source=chatgpt.com)
+而**蒸馏是这条链验证通过之后，如何把这些知识装进最终策略的工程路线**。两者不是一回事。
 
 ---
 
-## 2. 我认为最值得你直接借架构的是 `backnotprop/orchestrator`
+## 一、为什么我不建议只预测成功率
 
-这个项目的哲学和我们前面讨论的几乎一致：
+因为抓取成功：
 
-> **calling agent owns judgment；CLI owns process supervision and task state。**
+\[
+Y\in\{0,1\}
+\]
 
-也就是：
+太粗。
 
-```text
-root / parent agent
-        │
-        │ decides
-        ▼
-Orchestrator CLI
-        │
-        ├── Claude Code
-        ├── Codex
-        ├── Copilot
-        ├── Grok
-        ├── Pi
-        └── custom process
-```
-
-它明确把：
+例如下面三个轨迹可能都是失败：
 
 ```text
-研究/任务判断
+A：刚接触就掉了
+B：已经稳定抬起，最后一秒掉了
+C：一直抓稳，但最终高度差 2 mm 没过阈值
 ```
+
+如果只监督：
+
+\[
+P(success)
+\]
+
+三者标签全部是 0。
+
+这会浪费大量物理信息。
+
+所以主要监督应该是：
+
+\[
+\boxed{
+G_t=\sum_{k=t}^{T}\gamma^{k-t}r_k
+}
+\]
+
+这是完整真实 simulator trajectory 给出的 Monte-Carlo return，不 bootstrap，不用 TD。
+
+同时保留：
+
+\[
+Y_{\text{success}}
+\]
+
+作为第二个 head / 最终评价指标。
+
+也就是说最好：
+
+\[
+F(\cdot)
+\rightarrow
+(\hat G_t,\hat p_{\text{success}})
+\]
+
+而不是只有一个 success classifier。
+
+前提当然是你们现在 PPO reward 本身基本反映任务目标。如果 reward 与最终抓取严重错位，就需要同时报告 success、held-lift duration、drop 等，而不能只相信 \(G\)。
+
+---
+
+# 二、第一阶段：我们现在真正要验证什么
+
+数据来自正常的真实 PhysX rollout。
+
+对每个 \(t\) 保存：
+
+\[
+H_t=\text{过去一段状态/history}
+\]
+
+\[
+a_t=\text{实际动作}
+\]
+
+然后事后从未来轨迹提取：
+
+\[
+C_t^{GT}
+=
+(E_t^{GT},I_t^{GT})
+\]
+
+再计算：
+
+\[
+G_t
+\]
+
+所以一条数据就是：
+
+\[
+\boxed{
+(H_t,a_t,E_t^{GT},I_t^{GT},G_t,Y_t)
+}
+\]
+
+注意：这里完全没有 Cm。
+
+然后做严格消融：
+
+\[
+V_H(H)\rightarrow G
+\]
+
+\[
+V_{HA}(H,a)\rightarrow G
+\]
+
+\[
+V_{HE}(H,E^{GT})\rightarrow G
+\]
+
+\[
+V_{HI}(H,I^{GT})\rightarrow G
+\]
+
+\[
+V_{HEI}(H,E^{GT},I^{GT})\rightarrow G
+\]
+
+以及最关键的：
+
+\[
+V_{HAEI}(H,a,E^{GT},I^{GT})\rightarrow G
+\]
+
+这几个结果回答的是不同问题。
+
+### 关键判断 1
+
+如果：
+
+\[
+V_{HEI}\gg V_H
+\]
+
+说明：
+
+> 知道真实未来 effect+interaction 后，长期价值确实更容易判断。
+
+这证明 \(E+I\) 有 task-relevant information。
+
+### 关键判断 2
+
+如果：
+
+\[
+V_{HAEI}\approx V_{HEI}
+\]
+
+更重要。
+
+说明：
+
+> 已经知道 effect+interaction 后，原始 action 本身几乎不再提供额外信息。
+
+这才支持：
+
+\[
+a\rightarrow(E,I)\rightarrow G
+\]
+
+即 **\(E+I\) 是比较充分的 action consequence representation**。
+
+如果：
+
+\[
+V_{HAEI}\gg V_{HEI}
+\]
+
+那说明 \(E+I\) 仍然漏了东西。
+
+这时候继续训练 Cm 没意义，应该先改 Cm 的预测目标。
+
+---
+
+# 三、但预测 \(G\) 和“动作怎么变好”之间还差一步
+
+是的。
+
+单纯知道：
+
+\[
+C\rightarrow G
+\]
+
+还不能自动产生一个动作。
+
+最终需要的是：
+
+\[
+Q(H,a)\approx E[G\mid H,a]
+\]
+
+或者更适合 residual policy 的：
+
+\[
+\boxed{
+A(H,a)=Q(H,a)-V(H)
+}
+\]
+
+即：
+
+> 相比当前 baseline，在当前状态执行这个动作有多值得。
+
+这里 effect+interaction 起到的是**中间解释变量**：
+
+\[
+(H,a)
+\rightarrow
+(E,I)
+\rightarrow
+G
+\]
+
+而不是拿：
+
+\[
+-\|E-E_{ref}\|
+\]
+
+这种手工式子直接当 action score。
+
+---
+
+# 四、Cm 在这条链里的位置非常明确
+
+第一阶段证明 GT consequence 有价值以后，才训练真正的 Cm：
+
+\[
+\boxed{
+Cm(H,a)
+\rightarrow
+(\hat E,\hat I)
+}
+\]
+
+然后把第一阶段已经训练并冻结的 value bridge 接上：
+
+\[
+g(H,\hat E,\hat I)
+\rightarrow
+\hat G
+\]
+
+所以最终得到：
+
+\[
+\boxed{
+Q_{Cm}(H,a)
+=
+g(H,Cm(H,a))
+}
+\]
+
+这时候就可以非常干净地比较：
+
+\[
+g(H,E^{GT},I^{GT})
+\]
 
 和：
 
-```text
-process launch
-status
-logs
-resume
-interrupt
-task storage
-```
+\[
+g(H,\hat E,\hat I)
+\]
 
-分开。([GitHub][2])
+如果前者很好、后者差：
 
-这就是你现在的：
+> representation 是对的，Cm 预测是瓶颈。
 
-```text
-root
-+
-Agent Broker
-+
-runtime_bridge
-```
+如果两个都好，但实际策略不涨：
 
-只不过他们已经把后两者实现得比较成熟了。
+> action learning / policy integration 是瓶颈。
 
-尤其是它有一个机器级：
+如果 GT 的都不好：
 
-```text
-~/.orchestrator/tasks/
-```
+> idea/representation 本身有问题。
 
-作为 durable task store，而且每个 worker 都有：
-
-* task ID；
-* status；
-* logs；
-* output；
-* follow-up；
-* resume；
-* interrupt。([GitHub][2])
+这才是完整归因链。
 
 ---
 
-### 它对 Codex 的支持尤其值得我们借
+# 五、蒸馏到底是什么位置？
 
-它区分：
+**蒸馏在最后。**
 
-```text
-codex
-```
+它不是现在的验证方法。
 
-一次性任务，和：
+假设最终我们已经有：
 
-```text
-codex-app-server --session
-```
+\[
+Q_{Cm}(H,a)
+\]
 
-长期 session。
+或者更理想：
 
-persistent session 下，它管理 Codex thread，并支持继续给同一个 thread 发任务、follow-up、Goal 和 interrupt。([GitHub][3])
+\[
+A_{Cm}(H,a)
+\]
 
-这基本就是我们现在正在重新实现的：
+那么我们可以让一个 teacher 根据这个价值判断产生动作偏好。
 
-```text
-.runtime/AGENT_BINDINGS
-conversation_id
-resume
-wake
-goal
-```
+比如 actor 当前动作：
 
-所以我现在反而**不建议继续自己实现完整 Codex transport**。
+\[
+a_\pi
+\]
 
-可以让：
+teacher 找到一个更好的 correction：
 
-```text
-agent_cm
-→ orchestrator persistent session A
+\[
+a_T
+\]
 
-agent_rl
-→ orchestrator persistent session B
-```
+然后训练最终 actor：
 
-然后我们的 Broker 只记录：
+\[
+\pi_\theta(H)\rightarrow a_T
+\]
 
-```yaml
-agent_cm:
-  runtime: orchestrator
-  session: cm
+这叫：
 
-agent_rl:
-  runtime: orchestrator
-  session: rl
-```
+\[
+\boxed{\text{teacher-to-actor distillation}}
+\]
 
-这样 Goal/turn/session resume 这一层交给已有项目维护。
+部署时可以不跑 teacher，甚至不跑 Cm：
 
-[backnotprop/orchestrator](https://github.com/backnotprop/orchestrator?utm_source=chatgpt.com)
+\[
+H
+\rightarrow
+\pi_{\theta}
+\rightarrow
+a
+\]
 
----
+所以蒸馏解决的是：
 
-# 3. 它甚至已经支持我们需要的跨 provider
+> **已经有一套有用知识以后，怎么把它压进一个快速策略。**
 
-`backnotprop/orchestrator` 当前 runtime 包括：
+它不回答：
 
-```text
-claude-code
-codex
-codex-app-server
-copilot
-grok
-pi
-shell
-custom process
-```
-
-并且明确把 runtime registry 和 agent/model provider 分开。([GitHub][2])
-
-所以：
-
-```text
-root = subscription A Codex
-agent_cm = subscription B Codex
-agent_eval = Claude
-agent_rl = NewAPI/custom runtime
-```
-
-从架构上完全可以实现。
-
-NewAPI 如果没有现成 runtime，也可以作为：
-
-```text
-custom process runtime
-```
-
-接进去，而不用改整个 supervisor。
+> effect+interaction 本身是不是有用。
 
 ---
 
-# 4. `hyspacex/harness-cli` 有你想要的“固定角色绑定 provider”
+## 这和 V1.18 有什么区别？
 
-这个项目值得参考的点不是 runtime，而是：
+你们 V1.18 已经做过 planner-to-actor distillation 的框架。
 
-```json
-{
-  "provider": "claude-sdk",
-  "roleProviders": {
-    "planner": "codex",
-    "generator": "codex"
-  }
-}
-```
+但那里的 teacher 大致是：
 
-也就是说：
+\[
+Cm
+\rightarrow
+\hat E
+\rightarrow
+\text{reference-effect cost}
+\rightarrow
+a_T
+\]
 
-```text
-role
-→ provider
-```
+然后：
 
-是显式配置，而不是 parent 动态创建子 agent。([GitHub][4])
+\[
+\pi\leftarrow a_T
+\]
 
-而且它明确强调：
+也就是说 teacher 的“价值判断”很大程度来自**人工定义的 effect distance**。
 
-> durable state 属于 harness，而不是 model session。
+而现在如果前面的链成立，新的逻辑应该是：
 
-这和我们说的：
+\[
+Cm
+\rightarrow
+(\hat E,\hat I)
+\rightarrow
+\underbrace{g(\hat E,\hat I)}_{\text{由真实 }G\text{ 监督学到}}
+\rightarrow
+A/Q
+\rightarrow
+a_T
+\rightarrow
+\pi
+\]
 
-```text
-agent_key = identity
-thread = replaceable runtime
-```
+最大的区别就在中间：
 
-几乎完全一致。([GitHub][5])
+以前：
 
-这部分设计我会直接借：
+\[
+\boxed{\text{effect}\rightarrow\text{人工 score}}
+\]
 
-```yaml
-agent_cm:
-  provider: codex-a
+现在：
 
-agent_rl:
-  provider: newapi-b
+\[
+\boxed{\text{effect+interaction}\rightarrow\text{真实长期 return 学到的 value}}
+\]
 
-agent_eval:
-  provider: codex-c
-```
-
----
-
-# 5. `formiat/multi-agent-orchestration` 和你的 handoff 思路非常像
-
-它的架构是 Codex 作为 orchestrator，然后把 planning / investigation / implementation / review 派给 Claude 或 OpenCode。
-
-比较有意思的是它明确把：
-
-```text
-session binding
-dispatch
-request fingerprint
-cooldown
-result collection
-```
-
-标准化，而且优先 **reuse existing session**。
-
-跨 agent 的传输甚至就是：
-
-```text
-.codex/inbox.md
-.codex/outbox.md
-```
-
-这种非常简单的 transport。([GitHub][6])
-
-它说明了一个重要点：
-
-> 我们的 `TASK_DISPATCH/TASK_HANDOFF` 不需要设计得特别复杂。
-
-关键是 durable state 和 session binding，而不是协议本身有多少字段。
-
-[formiat/multi-agent-orchestration](https://github.com/formiat/multi-agent-orchestration?utm_source=chatgpt.com)
+所以这不是简单重复 V1.18。
 
 ---
 
-# 6. 还有一个和你“跨 provider Codex”直接相关的项目
+# 六、还有一条“直接蒸馏未来”的路线，但要和 Cm 路线分开
 
-`Gan-Xing/CodexProvider` 的目标就是：
+我们也可以训练一个拥有 GT future 的 teacher：
 
-> 让非 OpenAI 模型参与 Codex 原生 tool-call loop。
+\[
+T(H,a,E^{GT},I^{GT})\rightarrow G
+\]
 
-它让 Codex App Server 保持工具执行、approval、MCP 和 continuation，而把模型请求转发到：
+然后直接蒸馏成：
 
-```text
-DeepSeek
-OpenRouter
-Claude-compatible
-其他 OpenAI-compatible upstream
-```
+\[
+S(H,a)\rightarrow G
+\]
 
-([GitHub][7])
+甚至直接蒸馏 actor。
 
-这个对你的 NewAPI 特别有参考价值。
+这当然可能有效。
 
-因为你现在实际上想做的是：
+但必须注意：
 
-```text
-Codex harness
-     │
-     ▼
-不同 provider/account
-```
+\[
+\boxed{\text{它绕开了 Cm}}
+\]
 
-不一定需要为每个 provider 重写整个 worker runtime。
+如果这个 student 最后表现很好，我们只能说：
 
----
+> future privileged information 可以帮助训练策略。
 
-# 所以：你的系统并不是一个没人做过的方向
+不能说：
 
-现在社区里已经逐渐收敛成这样的模式：
+> OI-Cm 有用。
 
-```text
-             Parent / Supervisor Agent
-                       │
-                 judgment only
-                       │
-                       ▼
-              deterministic control
-              ┌─────────────────┐
-              │ task store      │
-              │ broker          │
-              │ session manager │
-              │ runtime drivers │
-              └─────────────────┘
-                 │      │      │
-               Codex Claude  others
-```
+所以我会把它定义成**独立 upper-bound/control experiment**，而不是主路线。
 
-你特殊的部分主要是上面再加了一层：
+它很有价值，因为它还能回答：
 
-```text
-MISSION
-RESEARCH_QUEUE
-hypothesis budget
-Probe / Validation
-matched causal evidence
-```
-
-也就是：
-
-> **现有项目主要解决“多 agent 工程 orchestration”；你真正需要自己保留的是“自主科研决策层”。**
+> 如果我不强制 student 显式预测 \(E,I\)，只要求它模仿 future-aware teacher，它最多能学到多少？
 
 ---
 
-## 如果现在重新设计 Ref2Dex，我不会再自己造完整 runtime
+# 七、因此整个研究链现在可以固定成四个 Gate
 
-我会考虑：
+### Gate 1：Representation sufficiency
 
-```text
-Ref2Dex Research Layer
-│
-├── MISSION
-├── STATE
-├── RESEARCH_QUEUE
-├── Probe / Validation
-└── root research policy
-          │
-          ▼
-    thin adapter
-          │
-          ▼
-backnotprop/orchestrator
-or zetbrush/multiagents
-          │
- ┌────────┼────────┐
- ▼        ▼        ▼
-cm       rl       eval
-```
+完全没有 Cm：
 
-其中我们自己保留的代码可能只剩：
+\[
+(E^{GT},I^{GT})\rightarrow G
+\]
 
-```text
-research_scheduler.py
-research_policy
-experiment contracts
-role bindings
-```
+问：
 
-而这些已经有人解决的问题：
+> GT effect+interaction 是否足以解释长期价值？
 
-```text
-Codex thread start/resume
-turn steering
-task store
-message delivery
-worker liveness
-process supervision
-provider adapter
-```
+**现在就做这个。**
 
-全部交给下层项目。
+---
 
-### 我的优先调查顺序
+### Gate 2：Cm predictability
 
-**第一：`backnotprop/orchestrator`**
+\[
+(H,a)\rightarrow(\hat E,\hat I)
+\]
 
-最符合：
+问：
 
-> root 决策、外部 deterministic harness 执行。
+> 部署时可用的当前信息，能否预测 Gate 1 所证明有价值的 consequence？
 
-**第二：`zetbrush/multiagents`**
+---
 
-最符合：
+### Gate 3：Value preservation
 
-> Broker + persistent agents + CodexDriver + 自动重启。
+同一个冻结 bridge：
 
-**第三：`hyspacex/harness-cli`**
+\[
+g(H,E^{GT},I^{GT})
+\]
 
-重点借：
+对比：
 
-> stable role → provider binding + harness owns durable state。
+\[
+g(H,\hat E,\hat I)
+\]
 
-所以结论是：**有，而且我们现在自己写的 orchestration 层已经和几个现有项目明显重复。比较合理的下一步不是继续修当前 Broker/watchdog，而是先做一次 build-vs-adopt audit，看看能不能直接把 runtime 层替换成 `orchestrator` 或 `multiagents`，只保留 Ref2Dex 特有的科研 supervisor。**
+问：
 
-[1]: https://github.com/zetbrush/multiagents?utm_source=chatgpt.com "GitHub - zetbrush/multiagents: Multi-agent orchestration for Claude Code, Codex CLI & Gemini CLI — spawn AI agent teams that communicate, review code, and coordinate via MCP · GitHub"
-[2]: https://github.com/backnotprop/orchestrator/blob/main/doc/operator-guide.md?utm_source=chatgpt.com "orchestrator/doc/operator-guide.md at main · backnotprop/orchestrator · GitHub"
-[3]: https://github.com/backnotprop/orchestrator/blob/main/doc/codex-app-server.md?utm_source=chatgpt.com "orchestrator/doc/codex-app-server.md at main · backnotprop/orchestrator · GitHub"
-[4]: https://github.com/hyspacex/harness-cli?utm_source=chatgpt.com "GitHub - hyspacex/harness-cli: CLI harness for long-running app development with Claude Agent SDK or Codex App Server · GitHub"
-[5]: https://github.com/hyspacex/harness-cli/blob/main/CLAUDE.md?utm_source=chatgpt.com "harness-cli/CLAUDE.md at main · hyspacex/harness-cli · GitHub"
-[6]: https://github.com/formiat/multi-agent-orchestration?utm_source=chatgpt.com "GitHub - formiat/multi-agent-orchestration: LLM-driven (Codex-centric) orchestration workflow library for delegated software engineering agents · GitHub"
-[7]: https://github.com/Gan-Xing/CodexProvider?utm_source=chatgpt.com "GitHub - Gan-Xing/CodexProvider · GitHub"
+> Cm 的预测误差到底损失了多少真正的长期价值信息？
+
+---
+
+### Gate 4：Policy transfer
+
+最后才比较：
+
+- 在线 `Cm + bridge`；
+- planner/selector；
+- actor distillation；
+- 或 advantage-weighted PPO auxiliary。
+
+问：
+
+> 已经证明有用的信息能否转换成最终 policy gain？
+
+---
+
+所以我现在明确的建议不是“马上做蒸馏”。
+
+**现在做 Gate 1。**
+
+而且 Gate 1 的主要 target 用：
+
+\[
+\boxed{G_t=\text{真实 Monte-Carlo return-to-go}}
+\]
+
+成功率作为辅助/最终 sanity check。
+
+只有当：
+
+\[
+(E^{GT},I^{GT})
+\]
+
+能够明显提高 \(G_t\) 的 held-out 预测，并且原始 action 在给定 \(E,I\) 后不再增加多少信息，我们才有理由说：
+
+> **OI-Cm 预测 effect+interaction 这个科学目标本身值得继续。**
+
+然后 Cm、bridge、蒸馏自然就顺着这一条链往下走，而不是再选一个接法碰运气。
