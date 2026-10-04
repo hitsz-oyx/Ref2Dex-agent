@@ -9,7 +9,8 @@
     "docs/decisions/",
     "docs/research/INDEX.md",
     "docs/experiments/probes/ENG-20261002-coherent-native-contract.md",
-    "docs/handoffs/"
+    "docs/handoffs/",
+    "docs/workflow/"
   ],
   "active_replacements": [
     "docs/experiments/",
@@ -17,5 +18,5 @@
     "docs/STATE.md",
     "tools/verify.py"
   ],
-  "notes": "Historical records remain in Git and are not consumed by the active verification gate. The former docs/handoffs directory is preserved under the archive root."
+  "notes": "Historical records remain in Git and are not consumed by the active verification gate. The former docs/handoffs directory is preserved under the archive root The former docs/workflow directory is preserved under the archive root."
 }

@@ -8,6 +8,7 @@ manifests:
 - `specs/`: reviewed design specifications created by the architectural path of the
   `brainstorming` skill;
 - `plans/`: implementation plans retained from the earlier planning workflow.
+- `agent-config/`: issue-tracker and triage configuration produced by the engineering skill setup.
 
 These files explain why a route or interface was chosen. They do not define the current
 research state or replace experiment evidence. The current research entry points remain

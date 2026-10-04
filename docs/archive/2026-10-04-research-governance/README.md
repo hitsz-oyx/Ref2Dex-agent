@@ -11,3 +11,6 @@ are intentionally not consumed by the active verification gate.
 The former `docs/handoffs/` directory is preserved at
 `docs/archive/2026-10-04-research-governance/handoffs/`. Its Markdown, JSON, and audit
 scripts are retained as historical provenance; no new worker handoffs should be added there.
+The former `docs/workflow/` directory is preserved at
+`docs/archive/2026-10-04-research-governance/workflow/`; it is no longer an active
+watchdog or research workflow entry point.

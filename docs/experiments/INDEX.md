@@ -206,6 +206,7 @@
 | [P-20261003-surface-granularity-audit](probes/P-20261003-surface-granularity-audit.md) | Current geometry coverage audit | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-cmv2-pointflow-chunk-k4](probes/P-20261004-cmv2-pointflow-chunk-k4.md) | P-20261004-cmv2-pointflow-chunk-k4 | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-cmv2-pointflow-single](probes/P-20261004-cmv2-pointflow-single.md) | P-20261004-cmv2-pointflow-single | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-cmv2-unified-ei](probes/P-20261004-cmv2-unified-ei.md) | P-20261004-cmv2-unified-ei | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-gate1-consequence-v2](probes/P-20261004-gate1-consequence-v2.md) | P-20261004-gate1-consequence-v2 — corrected physical timing probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-gate1-corrected-coverage](probes/P-20261004-gate1-corrected-coverage.md) | P-20261004-gate1-corrected-coverage | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-gate1-split-rng](probes/P-20261004-gate1-split-rng.md) | P-20261004-gate1-split-rng | with the original data and fixed splits, changing only the model seed | if split 3 stays negative and split 1 stays positive across the same | probes/见原卡 |
