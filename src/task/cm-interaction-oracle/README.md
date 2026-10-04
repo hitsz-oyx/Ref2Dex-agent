@@ -42,7 +42,7 @@ episodes, with full32-step windows and effective dose confirmed. Environment-
 grouped H/direct/predicted-Cm/GT comparison fails its seven gates; no selector
 or policy training launched. Retain the weak adjusted object-rotation response
 and localized GT contact-retention information. All decisions were pre-lift;
-early-hold/drop and global Cm utility remain untested/open.
+early-hold/drop was subsequently tested under ref4; global Cm utility remains open.
 [Randomized intervention Probe](docs/experiments/probes/P-20261004-randomized-action-intervention.md)
 records the protocol, limits, independent review and root decision.
 Collection: `tools/run/run_intervention_collection.sh` and
@@ -50,3 +50,15 @@ Collection: `tools/run/run_intervention_collection.sh` and
 audits: `tools/audit/audit_interventions.py`,
 `tools/audit/audit_collection_provenance.py`,
 `tools/audit/diagnose_randomized_arm_effects.py`.
+
+User-selected ref4's early-hold A/B gate is complete:494 randomized full
+windows from1,008 episodes. A UNPROMISING: no registered retention-I control
+contrast. B UNCLEAR: GT I improves test error49.6%, but only two sufficiently
+supported primary strata. Independent engineering review and factual
+recomputation pass; small pair strata inflate the original macro ranking.
+C, selector and policy training were not activated. Preserve GT I prognosis;
+close the current four-step residual/I8 contract without seed or fit retries.
+[Early-hold Probe](docs/experiments/probes/P-20261004-early-hold-intervention.md).
+Gate tool: `tools/run/probe_early_hold.py`; saved-data/statistics audit:
+`tools/audit/audit_early_hold.py`. Next control work must address the retention
+action/operator timescale rather than another predictor on this failed A gate.

@@ -181,3 +181,23 @@ Root停止本pre-lift E/I8→Y16/32 PCA/MLP扩展，保留随机干预数据和�
 统计1.12s，产物<13MB，进程均结束。North-star训练所得Cm策略utility仍OPEN。
 
 [真实随机动作干预实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md)。
+
+## Task ref4：early-hold interaction retention control
+
+按用户新增ref4，干预移到lift≥3cm且连续6步contact-proxy的early hold。
+1,008完整episodes产生494随机干预，全部32步窗口完整、剂量实际执行。
+后续214次失败中212有物理高度损失；98次早失败全部保留，不筛掉step8失败者。
+
+- A UNPROMISING：短接触比例调整后臂间范围5.68pp，tail0.1335；I14 family
+  tail0.5005，未建立预设action→retention-I可控链。
+- B UNCLEAR：GT I令后9..32预测误差改善49.6%，failure AUC0.899→0.949；
+  但两主目标均只有2充分支持分层，未达预设3层。原macro排序58.46→77.33%
+  受1–2pair小层放大；充分支持层描述性87.76→96.32%，不事后改gate。
+  未早失败的92个test trial也有预后改善，但这只是post-treatment描述性子集。
+- 独立工程review及root逐项复算通过。未启动C、selector或policy训练。
+
+Root关闭当前early-hold四步feedback residual→I8合同的继续拟合，保留GT I预后
+价值。缺口转为可操纵的保持控制变量/动作时域，不能靠更多seed、网络或补B支持
+绕过A失败；不否定Cm核心假设。单GPU6仿真约417s、模型2.31s、产物<18MiB，
+全部结束。North-star训练所得matched Cm-on/off策略utility仍OPEN。
+[early-hold实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-early-hold-intervention.md)。

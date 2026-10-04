@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [213, 214, 215, 216]
 decision_changed_if_positive: train an action-conditioned retention I predictor only after randomized contrast and GT retention information gates
 decision_changed_if_negative: stop this early-hold short-residual contract after review, with no seed or encoder retry
-status: RUNNING
+status: UNCLEAR
 run_id: early-hold-intervention-s213
 ---
 
 # Can actions manipulate interaction information useful for keeping a grasp?
 
-Result: Pending early-hold randomized intervention and retention information gates.
-Decision: Address the previously untested hold/drop regime before any further consequence predictor training.
+Result: 494 complete early-hold trials; A UNPROMISING, B UNCLEAR for insufficient strata despite 49.6% GT I error improvement; C not executed.
+Decision: Close this four-step residual contract; retain GT I prognosis, without more seeds, fitting or online selection.
 
 ## Motivation, hypothesis and cheapest discriminator
 
@@ -143,7 +143,10 @@ Implementation `tools/run/probe_early_hold.py` captures dataset/collection
 manifest and all executed code hashes. The A decision uses full randomized
 cohort; B/C generalization uses disjoint physical environments. Primary rank
 averages continuation-retention32 and height-or-proxy-loss-failure32, each
-macro over supported observed strata. No new labels used for H preprocessing.
+macro over ALL nonempty observed pair strata. The separate coverage gate
+requires three strata with at least10 pairs per primary head. Small strata
+can inflate the macro gain; they are not silently dropped from the registered
+metric. No new labels used for H preprocessing.
 
 ## Artifacts and limitations
 
@@ -170,4 +173,138 @@ was not binding in this smoke, so no assigned window was truncated.
 Before main, after user selected ref4, primary support is≥3 observed
 motion/phase strata, matching three fixed references without demanding extra
 phase spread. No support threshold changed using formal data or fitted test
-outcomes. All formal gates remain pending.
+outcomes. Formal execution and results follow below.
+
+## Execution and provenance
+
+User-selected ref4 SHA256:
+`f6ae8751ffea0e73f7cbfa41787e15ddeae70ded348ffd444710190b0b6c1906`.
+Collection code `eb16b2f`, gate code `d51ee60`; full SHAs and executed file
+hashes are in the immutable manifests. Collection command:
+
+```bash
+bash src/task/cm-interaction-oracle/tools/run/run_intervention_collection.sh early-hold-intervention-s213 168 6 213 214 1200 early-hold
+```
+
+Gate command used GPU6/cuda:0, seed215, project TMPDIR and a600s cap:
+
+```bash
+python src/task/cm-interaction-oracle/tools/run/probe_early_hold.py --dataset outputs/cm-interaction-oracle/early-hold-intervention-s213/interventions.pt --run-dir outputs/cm-interaction-oracle/early-hold-gates-s215 --seed 215
+```
+
+One1,008-episode cohort yielded494 assignments, arm counts
+59/59/79/75/78/76/68; all494 at risk with six pre-hold observations and complete
+32-step windows. Every wave's region/geometry/headroom unique counts agree:
+83/71/86/83/88/83. Thus the extra geometry/headroom screens did not remove
+environments reaching this early-hold decision region in this cohort.
+Each nonzero arm's executed dose ratio is1.0 (float rounding≤1.2e-7);
+zero-arm and post-chunk action error0. No assigned survivors discarded.
+
+Dataset SHA256 `a068bedbe2a858f1b42ec97910e86ec2cf3eab4499061c8dabd3d6edde249357`.
+Outputs: `outputs/cm-interaction-oracle/early-hold-intervention-s213/`
+(packet, manifest, result, complete episode summaries, run.log),
+`outputs/cm-interaction-oracle/early-hold-gates-s215/`
+(manifest, immutable result, randomized_arm_result, diagnostic, statistical_audit,
+run.log). Compact reviewed results are also retained beside this card in
+[results](P-20261004-early-hold-intervention-results.json).
+
+The cohort has214/494 any1..32 failures:212 physical height losses and99
+six-step proxy-contact losses, with overlap.98 fail within1..8, and all98
+also satisfy failure in9..32; there are zero early-only recovered failures.
+The target is therefore not driven only by a net-force label restatement.
+It still includes predicting persistence of an already-started failure.
+
+## Registered A/B results
+
+**A UNPROMISING:** short-contact adjusted arm range5.684pp versus required10pp,
+within-family permutation tail0.1335 versus required≤.10. I14 family max-tail
+0.5005, maximum partial explained variance2.736%; no distance-axis/later-task
+aligned arm passes. Continuation family tail0.0845 (held16), all32 failure
+tail0.2505; neither establishes the required action→retention-I control chain.
+This is not an equivalence test proving zero physical effect.
+
+**B UNCLEAR:** disjoint387 train/107 test trials from111/28 physical environments.
+Train motion counts238/124/25; test64/36/7. Test late failure41, nonfailure66,
+but each primary head has only TWO sufficiently supported strata instead of
+the required three. Coverage blocks the gate even though fitted gains are large.
+Same6054 parameters and initialization for both scorers:
+
+| Metric | H | H + GT I8 |
+| --- | ---: | ---: |
+| Normalized six-head test MSE | 0.355304 | 0.179191 |
+| Continuation-retention32 MAE | 0.138674 | 0.077525 |
+| Continuation-failure32 MAE | 0.220038 | 0.168772 |
+| Continuation-failure32 AUC | 0.899113 | 0.949372 |
+| Registered primary macro pair accuracy | 58.46% | 77.33% |
+
+Normalized error improves49.57%; registered rank improves18.86pp, but tiny
+strata with1–2 pairs count equally in this macro. Independent reviewer and
+root recompute the existing ≥10-pair strata descriptively:87.76%→96.32%,
+8.55pp. This does NOT replace the original denominator or repair the gate.
+Pairs compare different randomized arms at different factual states; this is
+prognostic ordering, not same-state candidate action ranking.
+
+Posthoc saved-prediction sensitivity (no refit):92 test trials have not failed
+in1..8,26 of them subsequently fail. Their normalized error0.303940→0.185413
+(39.0% gain), failure AUC0.86538→0.92016. GT signal therefore is not confined
+to already-failed cases. This subset conditions on post-treatment survival;
+it is descriptive prognosis, not a replacement causal cohort or registered gate.
+
+**C not executed.** Neither an I predictor, direct critic, mediated scorer,
+candidate selector nor policy training was launched. Overall Probe UNCLEAR
+reflects B's limited coverage; A's valid local negative remains UNPROMISING.
+
+## Independent engineering review and root attribution
+
+Read-only reviewer `ref5_engineering_review` checks actual packets, source and
+saved predictions. It confirms I/continuation/details reconstruction, contact
+loss across step8, zero environment split overlap, train-only preprocessing,
+matched6054 parameters/init, current-only nuisance, correct I distance8..12
+and continuation target18/20 indices, executed code hashes and C gating.
+No result-invalidating engineering defect was identified. It independently
+flags the tiny-stratum macro issue; root reproduces that sensitivity and does
+not alter registered results. Audit tool `tools/audit/audit_early_hold.py`
+independently loops factual labels, verifies dose/timing/split/hash and saved
+metrics; CPU is used for these file/statistical checks without inference.
+
+Root judgment: changing the decision phase exposes real retention/failure
+variation and preserves GT I prognostic information. The missing link is
+action controllability under this four-step feedback residual operator and
+I8 readout, not evidence that interaction information is inherently useless.
+Current data cannot distinguish cancellation by frozen feedback, response
+timescale, heterogeneous effects or insufficient measurement/dose. Fitting a
+larger Cm would bypass this unresolved prerequisite rather than resolve it.
+
+### Closing Decision Note
+
+- Question: does this early-hold action/I/continuation contract justify C?
+- Evidence: effective randomized dose and494 full windows; A fails both
+  registered control alternatives, B has strong error/prognostic signals but
+  only2 supported strata; independent engineering review passes.
+- Root action: stop this local contract and preserve the cohort. No extra
+  seed, arm/dose sweep, PCA/MLP expansion, feature search or best-arm selector.
+  Do not infer core Cm failure. The next substantive question must distinguish
+  a retention-relevant action/operator timescale from feedback cancellation;
+  another predictive fit or more B support alone cannot fix failed A.
+- Cost/stopping: oneGPU6, main simulation362.6s + smoke54.8s + models2.31s;
+  all new run artifacts<18MiB, neural peak37.1MB (simulation memory separate).
+  All processes completed, GPU6 idle. No additional cohort authorized by this
+  card after failed gates; reuse factual trajectories for a new decision only
+  if it separates a concrete control hypothesis at lower cost than simulation.
+- Boundary: Mission/Campaign/claim unchanged; no external authorization needed
+  for this closure. Trained-policy matched Cm-on/off utility remains OPEN.
+
+## Deferred evidence and completion
+
+Three-reference coverage, multi-seed validation, true hand-object contact/slip,
+same-state candidate value and trained-policy causal utility remain deferred.
+They are not supplied by this single-cohort prognosis. More support alone is
+Evidence for B while A fails, so no extra collection merely to pass B.
+Formal conclusions await Validation; this card only records Probe judgments.
+
+All21 Task tests pass, including early-hold eligibility, lost-contact boundary,
+early-failure preservation, environment isolation and primary rank semantics.
+`tools/verify.py --changed` PASS for both the branch and staged result/audit
+changes; generated index current and owned whitespace checks pass.
+Completed source/gate runs are pinned to their
+original commits; adding this audit/result record does not rewrite them.
