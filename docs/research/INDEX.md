@@ -5,7 +5,7 @@
 ## 当前研究位置
 
 - North-star：`C3 / Cm policy utility` 仍为 `OPEN`。目前只能说若干具体 Cm 配方失败，不能推出 Cm 整体无效。
-- 当前操作：先完成证据归档和实现/可复算性审计；在路线复盘完成前不新增 Cm family、PPO 或普通数据扩张。
+- 当前操作：Gate 1 的 pooled/namespace-holdout 结果已归档为 mechanism `PROMISING`、formal claim `INCONCLUSIVE`；在 lineage-disjoint actor 证据补齐前不启动在线 Cm 或蒸馏。
 - 最近的 corrected residual v2、uncertainty fallback v2 和 uncertainty-weighted value 均为路线级 `UNPROMISING`，但它们的实现状态、可复算性和预算处置必须分开记录。
 - 历史 `docs/STATE.md` 保留为 legacy snapshot，不再作为当前事实入口。
 
@@ -42,6 +42,7 @@
 - Gate 1 h32 已补做 deterministic quaternion-sign canonicalization；qfix 后 e260 仍为 actor-local `PROMISING`，e420 仍未跨 actor 稳定，详见 [quaternion sign repair](../decisions/D-20261004-gate1-quaternion-sign-repair.md)。
 - 下一轮 Gate 1 多 actor Validation 的数据覆盖、分层 bootstrap 和判定门已冻结在 [multi-actor Validation design](../decisions/D-20261004-gate1-actor-validation-design.md)，当前尚未启动 Validation。
 - horizon sweep 选出的 h32 仍是当前 Validation 候选；h5 五 seed 不稳定，详见 [horizon sweep decision](../decisions/D-20261004-gate1-horizon-sweep.md)。
+- [Gate 1 multi-actor validation result](../decisions/D-20261004-gate1-multi-actor-validation-results.md)：修复 namespace provenance 后，pooled 与外层 namespace holdout 均显示 V_HEI 的方向性增益；matched future-action 的 paired incremental gain 仍跨 namespace 混合，因此不把结果升级为 Gate 1 `SUPPORTED`。
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->

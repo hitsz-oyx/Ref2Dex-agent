@@ -38,7 +38,10 @@ def _table(report: Dict[str, object], name: str) -> Dict[tuple, Dict[str, object
 
 
 def audit(report: Dict[str, object], base_name: str, variant_name: str,
-          repeats: int = 10000, seed: int | None = None) -> Dict[str, object]:
+           repeats: int = 10000, seed: int | None = None) -> Dict[str, object]:
+    namespace_keys = report.get("source_namespace_keys")
+    if not isinstance(namespace_keys, list) or not namespace_keys:
+        raise ValueError("fit report missing source_namespace_keys")
     base = _table(report, base_name)
     variant = _table(report, variant_name)
     if set(base) != set(variant):
@@ -52,6 +55,8 @@ def audit(report: Dict[str, object], base_name: str, variant_name: str,
     clusters = sorted(by_cluster)
     if len(clusters) < 4:
         raise ValueError("actor cluster bootstrap requires at least four source namespaces")
+    if any(cluster < 0 or cluster >= len(namespace_keys) for cluster in clusters):
+        raise ValueError("heldout source namespace ID is outside source_namespace_keys")
     cluster_delta = torch.tensor([
         sum(by_cluster[run]) / len(by_cluster[run]) for run in clusters
     ], dtype=torch.float64)
@@ -74,6 +79,7 @@ def audit(report: Dict[str, object], base_name: str, variant_name: str,
         "cluster_key": "source_namespace (checkpoint namespace)",
         "cluster_count": len(clusters),
         "cluster_ids": clusters,
+        "cluster_sha256_by_id": {str(cluster): namespace_keys[cluster] for cluster in clusters},
         "episode_count": len(base),
         "episode_balanced_base_mae": base_mae,
         "episode_balanced_variant_mae": variant_mae,

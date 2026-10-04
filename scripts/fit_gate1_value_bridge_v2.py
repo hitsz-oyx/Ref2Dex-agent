@@ -112,6 +112,24 @@ def _split(episode_id: torch.Tensor, source_namespace: torch.Tensor,
     return train, ~train, train_groups, test_groups
 
 
+def _namespace_holdout_split(episode_id: torch.Tensor, source_namespace: torch.Tensor,
+                             source_run: torch.Tensor, heldout_namespace: int):
+    namespaces = sorted(set(int(value) for value in source_namespace.tolist()))
+    if heldout_namespace not in namespaces:
+        raise ValueError(
+            f"heldout source namespace {heldout_namespace} not present; available={namespaces}"
+        )
+    test = source_namespace == heldout_namespace
+    if not bool(test.any()) or bool(test.all()):
+        raise ValueError("namespace holdout must leave both train and test rows")
+    train = ~test
+    train_groups = sorted(set((int(namespace), int(run), int(ep)) for namespace, run, ep in zip(
+        source_namespace[train].tolist(), source_run[train].tolist(), episode_id[train].tolist())))
+    test_groups = sorted(set((int(namespace), int(run), int(ep)) for namespace, run, ep in zip(
+        source_namespace[test].tolist(), source_run[test].tolist(), episode_id[test].tolist())))
+    return train, test, train_groups, test_groups
+
+
 def _standardize(sequence: torch.Tensor, train: torch.Tensor) -> torch.Tensor:
     train_values = sequence[train].reshape(-1, sequence.shape[-1])
     mean = train_values.mean(dim=0)
@@ -280,6 +298,9 @@ def main() -> None:
     parser.add_argument("--num-threads", type=int, default=1)
     parser.add_argument("--future-action-control", action="store_true",
                         help="fit diagnostic V_HF and V_HFEI arms using on-policy future actions")
+    parser.add_argument("--split-mode", choices=("pooled", "namespace_holdout"), default="pooled")
+    parser.add_argument("--heldout-source-namespace", type=int,
+                        help="namespace ID to hold out when --split-mode=namespace_holdout")
     args = parser.parse_args()
     model_seed = args.seed if args.model_seed is None else args.model_seed
     if args.output.exists():
@@ -295,8 +316,16 @@ def main() -> None:
     if not isinstance(source_namespace_keys, list) or not source_namespace_keys:
         raise ValueError("dataset metadata missing source_namespace_keys")
     noise_std = dataset["noise_std"].float()
-    train, test, train_episodes, test_episodes = _split(
-        episode_id, source_namespace, source_run, args.seed)
+    if args.split_mode == "pooled":
+        train, test, train_episodes, test_episodes = _split(
+            episode_id, source_namespace, source_run, args.seed)
+        heldout_source_namespace = None
+    else:
+        if args.heldout_source_namespace is None:
+            raise ValueError("namespace_holdout requires --heldout-source-namespace")
+        train, test, train_episodes, test_episodes = _namespace_holdout_split(
+            episode_id, source_namespace, source_run, args.heldout_source_namespace)
+        heldout_source_namespace = args.heldout_source_namespace
     blocks = _features(dataset)
     variant_defs = dict(VARIANTS)
     if args.future_action_control:
@@ -317,6 +346,8 @@ def main() -> None:
         "model_seed": model_seed,
         "future_action_control": args.future_action_control,
         "split_unit": "(source_namespace, source_run, episode_id)",
+        "split_mode": args.split_mode,
+        "heldout_source_namespace": heldout_source_namespace,
         "source_namespace_keys": source_namespace_keys,
         "train_episodes": train_episodes,
         "test_episodes": test_episodes,
