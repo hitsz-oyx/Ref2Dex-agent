@@ -30,6 +30,7 @@ from probe_surface_token_i import read_obj, axis_angle_from_rotation
 from assemble_gate1_dataset_v2 import _quat_rotate, _quat_conjugate, _quat_normalize
 from src.task.CmResidual.surface_execution import area_hand_samples
 from src.task.CmResidual.v118_planner import TorchInspireKinematics, QUERY_LINKS
+from src.task.CmResidual.dexplore_cm_geometry import dexplore_root_pose
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from probe_pointflow_g import pose_effect
 
@@ -105,6 +106,7 @@ def prepare(path, device, max_per_episode):
                      ("index_intermediate", "middle_intermediate", "pinky_intermediate", "ring_intermediate", "thumb_distal")]
     interaction, effects = torch.empty(len(subset), 8, 5), torch.empty(len(subset), 1, 6)
     audit = {"fk_position_max_error_m": 0., "state_alignment_max_error": 0.,
+             "inferred_hand_root_translation_max_m": 0., "inferred_hand_root_rotation_from_identity_max": 0.,
              "state_object_root_max_error": 0., "reconstructed_E_max_error": 0.,
              "next_state_alignment_max_error": 0., "shards": [], "patch_anchor_counts": torch.bincount(labels).tolist(),
              "patch_center_anchor_indices": centers, "urdf_sha256": sha(urdf), "mesh_sha256": sha(mesh)}
@@ -132,7 +134,12 @@ def prepare(path, device, max_per_episode):
         next_error = (merged["next_state"][current] - merged["state"][future]).abs().max().item()
         audit["state_alignment_max_error"] = max(audit["state_alignment_max_error"], state_error)
         audit["next_state_alignment_max_error"] = max(audit["next_state_alignment_max_error"], next_error)
-        object_error = (merged["state"][current, 36:49] - merged["object_root"][current]).abs().max().item()
+        state_object = merged["state"][current, 36:49].clone()
+        shard_object = merged["object_root"][current].clone()
+        state_object[:, 3:7] = _quat_normalize(state_object[:, 3:7])
+        shard_object[:, 3:7] = _quat_normalize(shard_object[:, 3:7])
+        shard_object[:, 3:7] *= torch.where((state_object[:, 3:7] * shard_object[:, 3:7]).sum(-1, keepdim=True) < 0, -1., 1.)
+        object_error = (state_object - shard_object).abs().max().item()
         audit["state_object_root_max_error"] = max(audit["state_object_root_max_error"], object_error)
         if state_error > 1e-5:
             raise RuntimeError("assembled decision and shard state mismatch")
@@ -141,6 +148,22 @@ def prepare(path, device, max_per_episode):
             i0, i1 = current[start:start + 64], future[start:start + 64]
             q0, q1 = merged["state"][i0, :18].to(device), merged["state"][i1, :18].to(device)
             transforms0, transforms1 = fk.forward(q0[:, None])[:, 0], fk.forward(q1[:, None])[:, 0]
+            # Free actor root is absent from state55 and can move. Recover a
+            # common rigid root from one measured body solely for GT labels,
+            # then verify it against the other four independently stored bodies.
+            def correct_root(transforms, ii):
+                body = torch.cat((merged["hand_body_position"][ii, 0], merged["hand_body_quaternion"][ii, 0],
+                                  torch.zeros(len(ii), 6)), -1).to(device)
+                measured = dexplore_root_pose(body)
+                fk_body = transforms[:, contact_links[0]]
+                correction = torch.eye(4, device=device).expand(len(ii), 4, 4).clone()
+                correction[:, :3, :3] = measured[:, :3, :3] @ fk_body[:, :3, :3].transpose(-1, -2)
+                correction[:, :3, 3] = measured[:, :3, 3] - torch.einsum("bij,bj->bi", correction[:, :3, :3], fk_body[:, :3, 3])
+                audit["inferred_hand_root_translation_max_m"] = max(audit["inferred_hand_root_translation_max_m"], correction[:, :3, 3].norm(dim=-1).max().item())
+                audit["inferred_hand_root_rotation_from_identity_max"] = max(audit["inferred_hand_root_rotation_from_identity_max"],
+                                                                           (correction[:, :3, :3] - torch.eye(3, device=device)).abs().max().item())
+                return correction[:, None] @ transforms
+            transforms0, transforms1 = correct_root(transforms0, i0), correct_root(transforms1, i1)
             for transforms, ii in ((transforms0, i0), (transforms1, i1)):
                 position_error = (transforms[:, contact_links, :3, 3].cpu() - merged["hand_body_position"][ii]).norm(dim=-1)
                 error = position_error.max().item()
@@ -232,7 +255,7 @@ def main():
               "model_seed": args.model_seed, "split_seed": 20261004, "geometry_seed": 20261004,
               "audit": audit, "consequence_horizon": 1, "effect_dim": 6,
               "target": "stored exact Monte Carlo simulator reward return; no policy utility claim",
-              "I_contract": "8 spatial surface patches x 5 geometric quantities; GT future native q and object pose only diagnostic labels",
+              "I_contract": "8 spatial surface patches x 5 geometric quantities; GT future native q/object pose and common hand-root reconstructed from measured body pose only diagnostic labels",
               "decision_rule": ">=3% episode-balanced gain vs capacity-matched zero-I and positive bootstrap delta; otherwise do not train an I predictor"}
     (args.output_dir / "audit.json").write_text(json.dumps(report, indent=2) + "\n")
     if args.audit_only:
