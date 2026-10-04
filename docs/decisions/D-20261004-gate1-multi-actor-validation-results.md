@@ -12,6 +12,11 @@ exact Monte-Carlo return, and episode-balanced MAE. Outcome coverage is 13
 stable-success and 10 drop-after-success episodes; the remainder are ordinary
 failures. No Cm or online policy training is used.
 
+The collector environment/training configuration paths are identical across
+the 14 manifests, but the manifest `git_commit` fields are not all identical.
+Checkpoint SHA therefore provides a reproducible namespace, not proof that the
+namespaces are independent actor lineages.
+
 **Pooled actor-hash fit.** With the same composite episode split for all arms,
 `V_HEI` relative to `V_H` improved by 14.0%, 21.8%, 33.2%, 40.0% and 40.7%
 for five seeds. The five-namespace cluster bootstrap intervals were:
