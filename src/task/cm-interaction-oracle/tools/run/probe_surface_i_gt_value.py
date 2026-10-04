@@ -78,7 +78,7 @@ def field(points, normals, hand0, hand1, obj0, obj1, labels, dt):
     return torch.stack(patches, 1)
 
 
-def prepare(path, device, max_per_episode):
+def prepare(path, device, max_per_episode, output_dir):
     source = torch.load(path, map_location="cpu", weights_only=False, mmap=True)
     groups = sorted(set(zip(source["source_run"].tolist(), source["episode_id"].tolist())))
     selected = []
@@ -105,6 +105,7 @@ def prepare(path, device, max_per_episode):
     contact_links = [QUERY_LINKS.index(n) for n in
                      ("index_intermediate", "middle_intermediate", "pinky_intermediate", "ring_intermediate", "thumb_distal")]
     interaction, effects = torch.empty(len(subset), 8, 5), torch.empty(len(subset), 1, 6)
+    current_roots, future_roots = torch.empty(len(subset), 4, 4), torch.empty(len(subset), 4, 4)
     audit = {"fk_position_max_error_m": 0., "state_alignment_max_error": 0.,
              "inferred_hand_root_translation_max_m": 0., "inferred_hand_root_rotation_from_identity_max": 0.,
              "state_object_root_max_error": 0., "reconstructed_E_max_error": 0.,
@@ -162,8 +163,10 @@ def prepare(path, device, max_per_episode):
                 audit["inferred_hand_root_translation_max_m"] = max(audit["inferred_hand_root_translation_max_m"], correction[:, :3, 3].norm(dim=-1).max().item())
                 audit["inferred_hand_root_rotation_from_identity_max"] = max(audit["inferred_hand_root_rotation_from_identity_max"],
                                                                            (correction[:, :3, :3] - torch.eye(3, device=device)).abs().max().item())
-                return correction[:, None] @ transforms
-            transforms0, transforms1 = correct_root(transforms0, i0), correct_root(transforms1, i1)
+                return correction[:, None] @ transforms, correction
+            transforms0, root0 = correct_root(transforms0, i0)
+            transforms1, root1 = correct_root(transforms1, i1)
+            current_roots[where], future_roots[where] = root0.cpu(), root1.cpu()
             for transforms, ii in ((transforms0, i0), (transforms1, i1)):
                 position_error = (transforms[:, contact_links, :3, 3].cpu() - merged["hand_body_position"][ii]).norm(dim=-1)
                 error = position_error.max().item()
@@ -198,6 +201,12 @@ def prepare(path, device, max_per_episode):
     audit["positive_softcontact_fraction_gt_0_5"] = float((interaction[..., 0] > .5).float().mean())
     if not all(torch.isfinite(v).all() for v in (interaction, effects, raw["H"])):
         raise RuntimeError("nonfinite features")
+    cache = output_dir / "geometry_cache.pt"
+    torch.save({"source_row_indices": subset, "current_hand_root": current_roots, "future_hand_root": future_roots,
+                "I_surface_GT": interaction, "E_pose_GT": effects,
+                "future_permission": "GT labels only; never model/action-selection input"}, cache)
+    audit["geometry_cache_path"] = str(cache)
+    audit["geometry_cache_sha256"] = sha(cache)
     return raw, source["return_to_go"][subset], audit
 
 
@@ -249,7 +258,7 @@ def main():
     started = time.monotonic()
     torch.set_num_threads(2)
     device = torch.device(args.device)
-    raw, y, audit = prepare(args.input, device, args.rows_per_episode)
+    raw, y, audit = prepare(args.input, device, args.rows_per_episode, args.output_dir)
     report = {"schema": "ref2dex.gt_surface_i_value.v1", "code_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "input_sha256": sha(args.input), "script_sha256": sha(Path(__file__)), "argv": sys.argv,
               "model_seed": args.model_seed, "split_seed": 20261004, "geometry_seed": 20261004,
