@@ -45,6 +45,7 @@
 - [Gate 1 multi-actor validation result](../decisions/D-20261004-gate1-multi-actor-validation-results.md)：修复 namespace provenance 后，pooled 与外层 namespace holdout 均显示 V_HEI 的方向性增益；matched future-action 的 paired incremental gain 仍跨 namespace 混合，因此不把结果升级为 Gate 1 `SUPPORTED`。
 - [Gate 2 predictability probe](../experiments/probes/P-20261004-gate2-predictability.md)：all18 namespace holdouts n1/n3 show a local positive value-preservation signal when a small `(H,A) -> (E,I)` predictor replaces GT consequences, but only 22–48% of the GT gain is retained and H deployability/capacity remain unresolved; status `UNCLEAR`, no online Cm or distillation yet.
 - [Gate 2 action chunk K=8](../experiments/probes/P-20261004-gate2-action-chunk-k8.md)：GT K=8 E/I improves an aligned 8-step local return by 28.1%, but frozen Cm1/Cm8 predictors preserve -2.0%/-5.8% of that gain; local oracle is `PROMISING`, current Cm predictability `UNPROMISING`, with no chunk sweep or online Cm yet.
+- [Gate 2 value-aware K=8 follow-up](../experiments/probes/P-20261004-gate2-action-chunk-k8.md)：adding a fixed `lambda=0.5` local-return auxiliary head lowers neither Cm1 nor Cm8 frozen-bridge MAE (1.237/1.252 vs H-only 1.229); the auxiliary head learns a signal that does not survive through predicted E/I, so the route remains `UNPROMISING` and no loss-weight sweep is planned.
 - [历史验证和 Probe](../experiments/README.md)：原始卡、结果 JSON 和正式 Validation 的索引入口。
 
 <!-- BEGIN GENERATED EXPERIMENT INVENTORY -->

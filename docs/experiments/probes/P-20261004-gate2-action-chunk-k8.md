@@ -54,11 +54,35 @@ Additional artifact:
 
 - `tmp/P-20261004-gate2-chunk-local-value-k8-ns3-with-cm.json`
 
+## Value-aware follow-up
+
+Because the exact K=8 local return is predictable from GT E/I but neither Cm1
+nor Cm8 preserved that signal, a single diagnostic value-aware probe added a
+training-only local-return head to the shared K=8 Transformer decoder. The
+fixed auxiliary weight was `lambda=0.5`; at evaluation the auxiliary head was
+discarded and only predicted E/I was passed to the same frozen GT bridge.
+
+| Quantity | Value |
+| --- | ---: |
+| H-only local bridge MAE | 1.2286 |
+| GT E/I local bridge MAE | 0.8833 |
+| Value-aware Cm1 predicted E/I bridge MAE | 1.2369 |
+| Value-aware Cm8 predicted E/I bridge MAE | 1.2516 |
+| Cm1/Cm8 local-value-head test MAE | 1.2305 / 1.2200 |
+
+The auxiliary head learned a local-return signal, but that signal did not
+survive through the predicted E/I channel. The value-aware predictor is thus
+`UNPROMISING`; it does not justify sweeping auxiliary weights or adding online
+training. The predictor artifact is
+`tmp/P-20261004-gate2-value-aware-chunk-k8-ns3.json`.
+
 ## Decision
 
 **K=8 oracle mechanism: PROMISING locally; current Cm predictability:
 UNPROMISING.** The Transformer removes the flat-output issue and GT E/I
-explains a short local return, but neither Cm1 nor Cm8 preserves it. Stop here
-instead of running n1 or sweeping K. The next design question is how to train a
-predictor against the value-relevant consequence rather than adding more
-action/chunk controls. This does not justify online Cm, PPO, or distillation.
+explains a short local return, but neither ordinary MSE nor the value-aware
+auxiliary objective makes Cm1/Cm8 preserve it. Do not run n1, sweep auxiliary
+weights, or start online Cm/PPO/distillation. The remaining decision is whether
+the consequence horizon itself must be shortened; any follow-up should be one
+minimal horizon test with a predeclared target, rather than another broad
+architecture or hyperparameter sweep.
