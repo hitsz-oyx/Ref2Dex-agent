@@ -56,3 +56,8 @@ def test_auc_handles_tied_predictions():
     labels = torch.tensor([1, -1, 1, -1])
     metrics = module.classification_metrics(torch.zeros(4), labels)
     assert metrics == {"balanced_accuracy": .5, "auc": .5}
+
+
+def test_auc_excludes_neutral_rows_from_ranks():
+    metrics = module.classification_metrics(torch.tensor([-1., 0., 1.]), torch.tensor([-1, 0, 1]))
+    assert metrics == {"balanced_accuracy": 1., "auc": 1.}

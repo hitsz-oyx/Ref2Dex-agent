@@ -191,6 +191,8 @@ def crossfit_values(data, seed, device, epochs, emit):
 
 
 def classification_metrics(score, label):
+    extreme = label != 0
+    score, label = score[extreme], label[extreme]
     positive, negative = label == 1, label == -1
     if not positive.any() or not negative.any():
         return None
