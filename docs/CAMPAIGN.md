@@ -95,34 +95,6 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 不得停止、抢占或干扰未知进程。
 
----
-
-## Probe budget
-
-默认 Probe：
-
-* 优先单 GPU；
-* 优先少环境、小数据和短运行；
-* 单个 Probe 默认目标 wall time <= 60 min；
-* 能用离线分析回答的问题，不先启动完整训练。
-
-超过该范围仍可执行，但必须有明确理由。
-
----
-
-## Validation budget
-
-正式 Validation 可以使用：
-
-最多 4 GPU。
-
-如果预计：
-
-* 单一实验 wall time > 6 h；
-* 额外生成数据 > 50 GB；
-* 需要多组长训练；
-
-则触发 Decision Checkpoint。
 
 ---
 
@@ -155,10 +127,3 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 每条主要研究路线应存在明确 Git checkpoint。
 
----
-
-## Deadline
-
-2026-10-03 23:59（Asia/Shanghai，北京时间；用户于 2026-09-30 更新）
-
----

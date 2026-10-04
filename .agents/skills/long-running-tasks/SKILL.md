@@ -31,21 +31,4 @@ change/审批流程。
 实际交互输入（例如确认、换行或 Ctrl-C）应立即发送；长等待规则只适用于不发送内容的
 状态查询。
 
-## 状态、停止与恢复
 
-使用以下运行状态，且不要把它们当成科学结论：
-
-```text
-run_status: STARTED | RUNNING | COMPLETED | FAILED | STOPPED | UNKNOWN
-```
-
-- 启动后记录命令、run_id、输出目录、manifest、资源和当前状态。
-- 终态或需要人工决策时记录最后 step/epoch、best metric、关键 checkpoint（存在时）、
-  `metrics.jsonl`/`train.log` 入口及失败或停止原因。
-- 恢复前确认同一 work_version、代码提交、配置、输入/cache manifest 和 checkpoint 解释仍然
-  一致；否则停止并请用户确认，不得静默续跑或选择“最新 checkpoint”。
-- 运行终态及重要人工检查写入 experiment card 或 run manifest；科学 hypothesis、evidence
-  和 conclusion 也写 experiment card。`run_status` 与 conclusion 必须分开。
-
-工程 smoke 只能证明接线或可运行性，不能证明研究效果。运行结束后按
-`research-experiment-workflow` 解释证据并交接。
