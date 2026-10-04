@@ -291,7 +291,8 @@ def _fit_value_bridge(
         "oracle_gt_ei_episode_balanced_mae": episode_mae(oracle_prediction),
         "target_normalization_mean": float(target_mean),
         "target_normalization_scale": float(target_scale),
-    }, (history_mean, history_scale, effect_mean, effect_scale, interaction_mean, interaction_scale)
+    }, (history_mean, history_scale, effect_mean, effect_scale, interaction_mean, interaction_scale,
+        target_mean, target_scale)
 
 
 def _evaluate_bridge_predictions(
@@ -309,7 +310,8 @@ def _evaluate_bridge_predictions(
     device: torch.device,
     batch_size: int,
 ):
-    history_mean, history_scale, effect_mean, effect_scale, interaction_mean, interaction_scale = normalization
+    (history_mean, history_scale, effect_mean, effect_scale, interaction_mean, interaction_scale,
+     target_mean, target_scale) = normalization
     test_idx = test.nonzero(as_tuple=False).flatten()
     values = []
     bridge.eval()
@@ -322,7 +324,9 @@ def _evaluate_bridge_predictions(
                 "E": ((effect_test_aligned[local] - effect_mean.view(1, 1, -1)) / effect_scale.view(1, 1, -1)).to(device),
                 "I": ((interaction_test_aligned[local] - interaction_mean.view(1, 1, -1)) / interaction_scale.view(1, 1, -1)).to(device),
             }
-            values.append(bridge({key: inputs[key] for key in blocks})[:, 0].cpu())
+            # The return head is trained on standardized targets. Convert back to
+            # return units before comparing with the raw target tensor.
+            values.append(bridge({key: inputs[key] for key in blocks})[:, 0].cpu() * target_scale + target_mean)
     prediction = torch.cat(values)
     target_test = target[test_idx]
     groups = list(zip(source_namespace[test_idx].tolist(), source_run[test_idx].tolist(), episode_id[test_idx].tolist()))
