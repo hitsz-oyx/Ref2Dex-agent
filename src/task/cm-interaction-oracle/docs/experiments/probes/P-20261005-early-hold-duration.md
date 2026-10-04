@@ -32,7 +32,7 @@ action/operator contract for later Cm; no response stops investing in this
 duration extension. It does not establish global action ineffectiveness.
 
 Initial read-only factual check of the existing494-trial packet confirms PD
-offset ends after step4. Live baseline wrist targets change by centimetres
+offset ends after step4. Live baseline wrist offset commands change by centimetres
 over the next steps, including in zero arms. Raw drift across heterogeneous
 states does not establish compensatory feedback. Duration is selected over
 fixed absolute targets because it changes one factor and preserves reference
@@ -71,8 +71,10 @@ selection. Full-batch resets only between waves; terminal trials retained.
 Draw uniformly among21 duration×arm cells after eligibility. Zero residuals
 at all three nominal durations are the identical physical operator, so their
 data are pooled for effect estimation; duration tags remain in raw packets.
-Nonzero residuals are wristx/z±.01m and active finger synergy±.1 normalized
-joint range (native coupling preserved). For its assigned K, each trial uses
+Nonzero residuals are wristx/z±.01m and active finger synergy±.1 native action
+units, corresponding to±5% of physical joint range (native coupling preserved).
+Wrist residual is a per-step PD offset relative to current q, not an absolute
+world-position target. For its assigned K, each trial uses
 clipped pi(actual_current_obs)+delta, then baseline feedback. Save all32 actual
 and baseline actions, PDtargets and measured72D post-step trajectories.
 Clipping during treatment is audited, not filtered after assignment.
@@ -145,3 +147,13 @@ Formal multi-seed validation, exact-state candidate comparison, certified
 paired contacts/slip and trained-policy Cm-on/off utility remain deferred.
 One randomized cohort is a mechanism Probe. No formal conclusion or Mission
 completion follows from dose-response, predictive information or engineering tests.
+
+## Pre-main engineering smoke
+
+`early-hold-duration-smoke-s11`, code33303d9,84 complete episodes/40 assigned
+full windows,56.0s simulation. All three durations present; factual action
+equals clipped live baseline+assigned residual for exactly K steps, then
+baseline, and post-K PD offset is zero. All represented nonzero cells have
+signed dose1.0. This small debug sample is not used for scientific effect
+assessment or protocol tuning. Independent reviewer confirms assignment,
+native units/coupling, timing, eligibility, horizon and reset contract.
