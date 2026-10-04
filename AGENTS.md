@@ -337,14 +337,74 @@ Probe 只能形成：
 
 ---
 
-## 12. 单会话边界
-
-科研决策、代码修改、实验启动、验证和文档更新都由当前会话直接完成。需要并行能力时，先
-在本会话内拆分可逆的检查步骤；不得通过会话 API、Broker、旧 registry 或外部脚本派生新的
-Codex 子会话。
-
-当前会话不依赖外部看门狗；容量中断由用户或当前会话恢复，不自动发送研究指令。
-
-## 13. 关于tmp
+## 12. 关于tmp
 
 不要把任何输出放到/tmp，如果有必要，放在项目目录下的tmp，如果没有这个目录就新建。
+
+---
+
+
+## 13. Task 与研究路线目录
+
+新的研究方向必须在 `src/task/<TaskName>/` 下建立稳定的 Task 目录。Task 表示一条长期
+可复用的研究问题或代码边界，不按 seed、epoch、checkpoint 或单个超参数创建新 Task。
+Git branch 仍表示具体实现路线，例如 `agent/cm-interaction-oracle`；branch 名称和
+Task 名称分别记录，不互相替代。
+
+### 13.1 Task 目录结构
+
+推荐的 Task 结构为：
+
+```text
+src/task/<TaskName>/
+├── src/                  # 可复用的模型、数据合同和任务逻辑（若该 Task 采用 src 包）
+├── tools/
+│   ├── run/              # 采集、训练、评估和回放入口
+│   └── audit/            # 数据、manifest、标签和结果审计脚本
+├── tests/                # pytest 单元测试、接口测试和合同测试
+├── configs/
+└── docs/
+    └── experiments/
+        ├── probes/
+        └── validations/
+```
+
+已有 Task 的实际代码布局可以保持，不要求为了套用模板立即重排。真正属于 Task 的
+模型、数据和执行逻辑应放在 Task 目录；根级 `scripts/` 只保留跨 Task 的验证、索引和
+维护入口。实验专用脚本不得继续无条件堆积到根级 `scripts/`。
+
+### 13.2 Task-local 实验卡
+
+未来新建的实验卡原则上属于发起它的 Task，目标位置为：
+
+```text
+src/task/<TaskName>/docs/experiments/probes/
+src/task/<TaskName>/docs/experiments/validations/
+```
+
+卡片继续使用全局唯一的 `P-...` 或 `VAL-...` experiment ID，并明确记录：
+
+* `task`：所属 Task 名称；
+* `branch`：产生该实现的 Git branch；
+* `git_commit`：实际运行代码的提交；
+* `run_id`：一次具体运行的实例。
+
+根级 `docs/MISSION.md`、`docs/CAMPAIGN.md`、`docs/STATE.md` 和
+`docs/SEED_LEDGER.yaml` 仍是跨 Task 的研究目标、资源边界、当前总状态和 seed 归属，
+不能复制成 Task-local 版本。根级 `docs/experiments/INDEX.md` 是跨 Task 的自动生成总索引，
+不手工维护第二份实验卡。
+
+当前根级 `docs/experiments/probes/` 和 `docs/experiments/validations/` 中的历史卡不迁移。
+在 `tools/verify.py` 和 `tools/experiment_index.py` 支持递归发现 Task-local 卡片之前，
+新卡仍放在当前根级目录，避免实验卡绕过 schema、seed 和链接验证。工具支持递归发现后，
+新路线再按本节目标创建 Task-local 卡片。
+
+### 13.3 追溯和输出边界
+
+实验输出、checkpoint、cache 和运行日志使用 `outputs/<TaskName>/<run_id>/` 或
+实验卡声明的外部产物目录，不复制到 Task 文档目录。实验卡只保存协议、输入 hash、
+运行 manifest、结果摘要和回溯链接。Task-local 工具移动后必须同步更新实验卡、manifest
+和 README 中的路径；未确认没有引用前，不得批量移动根级脚本。
+
+
+---
