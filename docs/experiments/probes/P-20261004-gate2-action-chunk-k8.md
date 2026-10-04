@@ -91,9 +91,10 @@ architecture or hyperparameter sweep.
 
 The next and only planned follow-up is a K=1 diagnostic on the same n3
 namespace holdout. It predicts only `(E,I)_{t+1}` from `(H_t,a_t)` with the
-same Transformer family, the same training-only local-return auxiliary head
-and fixed `lambda=0.5`; the auxiliary head is discarded at evaluation. The
-target is the stored immediate reward on row `t`, with no episode-tail
+same Transformer family and the plain consequence MSE objective (`lambda=0`).
+Cm8 is not opened: K=1 is intended to isolate horizon/decoder aggregation,
+using the existing K=8 plain-MSE result as the training-objective reference.
+The target is the stored immediate reward on row `t`, with no episode-tail
 aggregation. Because this reward contains the recorded shaping components
 (base/source, approach, held, progress and stable), a negative result is
 interpreted as failure to recover value through this consequence channel, not
