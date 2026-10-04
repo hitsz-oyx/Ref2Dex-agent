@@ -11,7 +11,8 @@ from pathlib import Path
 
 import torch
 
-TASK = Path(__file__).resolve().parents[2]
+SCRIPT = Path(__file__).resolve()
+TASK = SCRIPT.parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK / "src"))
 from action_ranking import (compare_arms, conditional_pairs, fit_ranking,
@@ -62,8 +63,8 @@ def main():
                 "label_directory": str(labels), "labels_sha256": digest(labels / "labels.pt"),
                 "label_result_sha256": digest(labels / "result.json"), "label_manifest_sha256": digest(labels / "manifest.json"),
                 "code_sha256": {str(path.relative_to(ROOT)): digest(path) for path in
-                                [Path(__file__), TASK / "src/action_ranking.py", TASK / "src/relative_action.py",
-                                 Path(__file__).parent / "probe_relative_action_critic.py"]},
+                                [SCRIPT, TASK / "src/action_ranking.py", TASK / "src/relative_action.py",
+                                 SCRIPT.parent / "probe_relative_action_critic.py"]},
                 "loss": "mean softplus(-(C_i-C_j)*sign(A_i-A_j)); exact target ties skipped",
                 "horizon": 32, "action_chunk": {"H": 0, "HaK1": 1, "HaK4_realized": 4}}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
