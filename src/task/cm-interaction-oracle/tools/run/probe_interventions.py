@@ -147,7 +147,7 @@ def main():
             failures.append("insufficient randomized-arm support")
         if not p["valid_steps"].all():
             failures.append("assigned window truncated; no survivor filtering allowed")
-        if dose_ratio < .9 or untreated > 1e-7 or post > 1e-7:
+        if dose_ratio < .9 or any(r is None or r < .9 for r in dose_by_arm[1:]) or untreated > 1e-7 or post > 1e-7:
             failures.append("execution dose/zero control failure")
         if y[:, 0].std(unbiased=False) < .001 or max(float(y[:, 1].std(unbiased=False)), float(y[:, 2].std(unbiased=False))) < .05:
             failures.append("insufficient physical task outcome variation")
