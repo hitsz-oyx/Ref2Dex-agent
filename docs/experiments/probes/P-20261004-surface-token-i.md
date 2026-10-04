@@ -57,7 +57,11 @@ metric. At epoch 6:
 The frozen-E route is therefore `UNPROMISING` as a complete K=1 token predictor on this
 single probe: it is 6.9% worse in raw RMSE and 6.7% worse in normalized RMSE, despite a
 34.8% lower contact-mass RMSE. The distance and velocity components remain close to the
-direct baseline, while the aggregate gap is mainly from tangential velocity.
+direct baseline, while the aggregate gap is mainly from tangential velocity. This is not
+an architecture-level rejection of the E representation: the direct control has a
+hidden-128 state/action GRU with roughly 100k trainable parameters, while the frozen-E
+comparison trains only a roughly 6.5k-parameter token head. A capacity-matched control or
+small unfreezing study would be needed before attributing the gap to the representation.
 
 The prior 13-D reference was K=1 direct RMSE 0.10668 versus Cmv2 0.10625 (v7 seed 1),
 but those values are not numerically interchangeable because the target dimensionality

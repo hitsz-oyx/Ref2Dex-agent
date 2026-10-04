@@ -17,7 +17,7 @@ bootstrap. H is the ten-step history of state, previous action, context and
 progress. E and I are the stored object-frame consequence sequences.
 
 The split is fixed by `(source_namespace, source_run, episode_id)` with seed
-`20261004`: 22 held-out episode groups and 88 training episode groups (46,500
+`20261004`: 22 held-out episode groups and 90 training episode groups (46,500
 training rows; exact counts are recorded in the JSON artifact). Each arm uses the same
 episode split, a GRU encoder per block (hidden 48), and a two-layer MLP value
 head. Three arms are fit independently for 16 epochs on GPU 6:
@@ -45,12 +45,15 @@ Relative to H, H+E improves 12.7% (episode bootstrap delta CI95
 direct test of I's independent contribution, H+E+I versus H+E, is negative:
 `-0.699` MAE reduction, or `-3.27%`, with CI95 `[-4.242, 1.330]`.
 
-**Decision.** `PROMISING` for an E-to-G bridge direction on this split, but
-`UNPROMISING` for adding the current 80D interaction sequence after E. The
-result does not justify making I a core G input yet. Keep I as an auxiliary or
-diagnostic target while the I surface-token route is tested separately. Do not
-infer predicted-I utility, policy utility, or a formal validation claim from
-this single Probe.
+**Decision.** `PROMISING` only as a directional GT bridge signal on this split,
+but `UNPROMISING` for adding the current 80D interaction sequence after E. The
+bridge is a post-treatment oracle diagnostic: future E/I are not deployable
+inputs, and the 22 held-out episodes come from only four source runs, so the
+episode bootstrap is not a source-run-cluster validation. The H/HE/HEI arms
+also grow in capacity as blocks are added. The result does not justify making I
+a core G input yet. Keep I as an auxiliary or diagnostic target while the I
+surface-token route is tested separately. Do not infer predicted-I utility,
+policy utility, or a formal validation claim from this single Probe.
 
 **Artifacts.**
 
