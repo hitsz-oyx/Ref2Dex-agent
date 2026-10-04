@@ -88,8 +88,6 @@ def prepare(path, device, max_per_episode):
                           ("history_state", "history_previous_action", "history_context", "history_progress")], -1),
            "_namespace": torch.zeros(len(subset), dtype=torch.long),
            "_run": source["source_run"][subset], "_episode": source["episode_id"][subset]}
-    # source_run identifies sorted shard-hash tuples, not metadata list order.
-    run_ids = {tuple(hashes): i for i, hashes in enumerate(sorted(tuple(r["shard_sha256"]) for r in source["metadata"]["runs"]))}
     asset = ROOT / "third_party/DExplore/dexplore/data/assets"
     urdf = asset / "inspire_hand_new/inspire_hand_right.urdf"
     mesh = asset / "mjcf/objects/airplane/airplane.obj"
@@ -104,11 +102,10 @@ def prepare(path, device, max_per_episode):
     contact_links = [QUERY_LINKS.index(n) for n in
                      ("index_intermediate", "middle_intermediate", "pinky_intermediate", "ring_intermediate", "thumb_distal")]
     interaction, effects = torch.empty(len(subset), 8, 5), torch.empty(len(subset), 1, 6)
-    audit = {"fk_position_max_error_m": 0., "fk_quaternion_absdot_min": 1., "state_alignment_max_error": 0.,
+    audit = {"fk_position_max_error_m": 0., "state_alignment_max_error": 0.,
              "next_state_alignment_max_error": 0., "shards": [], "patch_anchor_counts": torch.bincount(labels).tolist(),
              "patch_center_anchor_indices": centers, "urdf_sha256": sha(urdf), "mesh_sha256": sha(mesh)}
     for info in source["metadata"]["runs"]:
-        run_id = run_ids[tuple(info["shard_sha256"])]
         shards = sorted((ROOT / info["run_dir"]).glob("transitions_*.pt"))
         hashes = [sha(p) for p in shards]
         if hashes != info["shard_sha256"]:
@@ -116,6 +113,14 @@ def prepare(path, device, max_per_episode):
         parts = [torch.load(p, map_location="cpu", weights_only=False, mmap=True) for p in shards]
         merged = {k: torch.cat([part[k] for part in parts]) for k in
                   ("state", "next_state", "object_root", "hand_body_position", "hand_body_quaternion", "episode_id", "step")}
+        # Historical file predates hash-sorted source_run IDs. Infer its run ID
+        # from globally unique recorded episode IDs, then verify every state.
+        shard_episodes = set(merged["episode_id"].tolist())
+        matching = torch.tensor([int(ep) in shard_episodes for ep in source["episode_id"]])
+        matching_runs = source["source_run"][matching].unique()
+        if len(matching_runs) != 1:
+            raise RuntimeError("ambiguous source run / episode identity")
+        run_id = int(matching_runs[0])
         lookup = {(int(ep), int(step)): i for i, (ep, step) in enumerate(zip(merged["episode_id"], merged["step"]))}
         out_idx = (raw["_run"] == run_id).nonzero().flatten()
         current = torch.tensor([lookup[(int(raw["_episode"][i]), int(source["step"][subset[i]]))] for i in out_idx])
