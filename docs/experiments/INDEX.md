@@ -10,6 +10,12 @@
 | [P-20260926-observation-router-reliability](probes/P-20260926-observation-router-reliability.md) | New-seed reliability of the observation-driven six-expert baseline | 见原卡 | 见原卡 | probes/PROMISING |
 | [VAL-20260926-observation-six-expert-c1](validations/VAL-20260926-observation-six-expert-c1.md) | Validation: frozen observation-driven six-expert C1 route | 见原卡 | 见原卡 | validations/COMPLETED |
 
+## HF-pointflow-G
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261004-pointflow-g](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md) | Does real point-flow predicted E preserve E-to-G information? | UNCLEAR for the valid K1 point-flow-to-G bridge; UNPROMISING for expanding a pose-only K4 predictor into this G regression from the fixed GT | keep E as the physical main route, freeze I head/K4 expansion and this frozen K1 G teacher; audit task-relevant hold/drop value evidence bef | probes/UNCLEAR |
+
 ## HF02
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -45,6 +51,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20260930-cm-inference-bottleneck](probes/P-20260930-cm-inference-bottleneck.md) | Real-policy Probe: explicit physical prediction input | `UNPROMISING`; execution `COMPLETED` on code | close HF07; no Validation and no local width/seed/step/target sweep. | probes/UNPROMISING |
+
+## REF5-SURFACE-I
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261004-ref5-surface-i-gt-value](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md) | Ref5: does GT spatial surface I add G information after H and E? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## 未分类历史记录
 

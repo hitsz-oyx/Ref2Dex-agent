@@ -158,7 +158,7 @@ Valid K1 run code: `0852c64cedc45c315a25f0ac9b9478bf4cbcfb50`, seed201,
 5,760 train / 1,408 test rows; 90 / 22 episode groups from four source runs.
 All six arms have 112,753 parameters. Duration 25.14 seconds, peak CUDA
 allocated 143,500,800 bytes. Actual source/checkpoint/code/geometry hashes
-are in the [run result](../../../../../../outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/result.json).
+are in the `outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/result.json`.
 
 | G input | Episode-balanced MAE | Relative improvement vs H |
 | --- | ---: | ---: |
@@ -173,7 +173,7 @@ CM-fit delta CI95 is `[-0.713, 2.457]`, descriptive only. The biggest-|G|
 episode contributes 70.54% of H error and 185.45% of total CM-fit improvement;
 excluding it, the remaining 21 episodes are 5.82% worse than H. Only 8/22
 episodes improve. HAR being worse than H does not make CM physically valid.
-See [statistical audit](../../../../../../outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/statistical_audit.json).
+See `outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/statistical_audit.json`.
 
 CM held-out translation RMSE is 19.33mm, versus zero flow 11.49mm and current
 twist persistence 4.92mm. Axis-angle RMSE is 0.1391rad versus persistence
@@ -200,7 +200,15 @@ a weak directional signal (MAE delta CI95 `[0.126,1.567]`), but
 does not reach the predeclared 5% practical gate. Full13's CI crosses zero and
 its gain does not survive the predeclared sensitivity check. None passes.
 Keep the K8 pose observation as deferred evidence, not permission for a broad
-predictor sweep. [GT contract result](../../../../../../outputs/cm-interaction-oracle/gt-effect-contract-s201/result.json).
+predictor sweep. `outputs/cm-interaction-oracle/gt-effect-contract-s201/result.json`.
+
+Right-alignment correction (`795c3790b2f66f793713c4012b7561a7b2cd4fe0`,
+13.46s) gives pose K1 **0.034%**, K4 **1.067%**, K8 **2.748%** improvement.
+K1/K4 improve on 13/22 and 14/22 episodes; K4 CI95 `[-0.0069,0.7010]`.
+H, K8 pose and K8 full13 results match the first contract run exactly, verifying
+that only short-sequence alignment changed. Still no contract reaches the fixed
+gate; do not use left-padding attenuation as a reason to expand the predictor.
+`outputs/cm-interaction-oracle/gt-effect-contract-right-s201/result.json`.
 
 Independent read-only reviewer `ref5_engineering_review` verified all 58,111
 assembled action/previous-action joins against pre-step shards (max error0),
@@ -218,11 +226,30 @@ Reviewer read-only episode coverage: 112 episodes contain just 2 successes,
 8.87-second maximum hold but also a later drop. Do not immediately train a
 success/drop G on this sparse sample, or interpret high RTG as stable grasp.
 Audit continuous hold/drop timing and label semantics before deciding a new fit.
+Root independently joined every assembled episode-final auxiliary label with
+its original `results.json` summary: all stable/drop and max-hold values match.
+Both of the two ever-45-step successes record a subsequent drop, so **zero**
+episodes in this dataset have success without a recorded later drop. This is
+a coverage diagnostic of source_e260, not a reassessment of the accepted
+six-expert baseline or a new formal success criterion.
+`outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/hold_drop_coverage.json`.
 
 ### Decision Note
 
 - Question: is there enough evidence to invest in K4 point-flow/G teacher or I prediction?
-- Evidence: valid K1 GT gain0.35%; pose K4 GT gain0.29%; K8 pose only2.75%; I and full13 RTG gains dominated by one episode; CM prediction loses to inertia persistence.
+- Evidence: valid K1 GT gain0.35%; padding-corrected pose K4 GT gain1.07%; K8 pose only2.75%; I and full13 RTG gains dominated by one episode; CM prediction loses to inertia persistence; both source dataset successes later drop.
 - Root choice: retain physical E route and corrected geometry, stop these local expansions. Next inexpensive decision should audit continuous hold/drop targets and action contrast, rather than improve average RTG regression unconditionally.
 - Cost/stopping: this round used two isolated GPUs, zero new interactions and <10MB outputs; all jobs finished within the fixed bound. Future audit is pure existing-data statistics first; a new fit needs its own predeclared task-relevant decision, no automatic budget reset.
 - Authorization: none newly required within current campaign; Mission/claim remains unchanged. Formal multi-seed causal Cm-on/off policy validation is still outstanding.
+
+## Artifact filesystem boundary
+
+The pre-existing repository `outputs` is a symlink to
+`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs`. This card explicitly
+declares the external artifact directory
+`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-baseline/outputs/cm-interaction-oracle/`.
+Only new uniquely named runs for this Task were created there, inside the
+Campaign-authorized ai_ws workspace; no existing artifacts/checkpoints were
+overwritten or moved. Preserve the existing symlink. Artifact paths above
+are literal repository aliases because link verification forbids symlink targets
+outside the Git root. This directory is run output, not baseline source code.

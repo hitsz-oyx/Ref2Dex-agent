@@ -1,6 +1,6 @@
 # Ref2Dex 当前研究状态
 
-更新：2026-10-01。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
+更新：2026-10-04。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 
 | North-star | 当前判断 |
@@ -68,3 +68,36 @@ HF08 slot不重置。见[修复记录](archive/2026-10-04-research-governance/de
 [完整结果](experiments/probes/P-20260930-cm-physical-value-results.json)保留边界与数值。
 原始数据/checkpoint留在原研究工作树的research/output/P-20260930-cm-physical-value/r7，
 未提交Git，不因本次合并移动或删除。
+
+## Ref5：point-flow E → G 与 surface I
+
+当前实现分支 `agent/cm-interaction-oracle`，新 Task 为
+`src/task/cm-interaction-oracle/`。新工具/卡已放入 Task；旧工具和历史卡逐步迁移，
+根级 Mission、Campaign、seed ledger 与状态保持唯一来源。
+
+- 真正冻结 point-flow K1 E → G 已跑 matched Probe：同容量 H MAE23.3652、
+  H+GT E23.2837、GT-trained bridge换预测E23.6477、预测E训练bridge22.8961。
+  判定 UNCLEAR：GT仅0.35%改善，预测fit2.01%且CI跨零，收益受单个高RTG episode
+  支配。去此episode剩余21个episode预测fit反而差5.82%。
+- 同容量GT合同检查（短序列右对齐，避免GRU补零冲淡）：pose K1/K4/K8改善
+  0.034%/1.067%/2.748%，full13 K8改善7.42%
+  但去高RTG episode后负1.66%；没有合同通过预设门槛。保留K8 pose弱方向性信号，
+  不据此扩大K4 predictor或进入policy teacher。
+- 8patch×5D GT surface I比同容量零I改善10.83%，CI跨零且约97%收益来自同一
+  高RTG episode；pooled I更好，未证明空间topology独立价值，不启动I head/K4 I。
+- 工程审计发现fresh shards手root平移最高22.33mm，旧identity-root假设不能迁移。
+  用当前measured body pose恢复共同root后，五body最大残差5.35微米；当前/未来root
+  cache分开。首轮G失效、no-grad技术失败均留痕；修复后独立review未见其他致命bug。
+  CM平移RMSE19.33mm，当前twist persistence4.92mm，不能称准确物理预测。
+- 原始episode summary与assembled labels逐条一致：112 episodes仅2次达到45步
+  held成功，两次随后都掉落；该source_e260数据的成功无后续掉落数为0。主导held-out
+  RTG episode即使最长保持8.87s也随后drop，高RTG不能直接视为最终稳定抓取。
+  这些统计不重判已验收六专家baseline，不据此直接训练稀疏success/drop二分类G。
+
+Root选择：保留E物理主路线与修正的几何合同，暂缓局部I/predictor扩展；下一次
+最便宜的决策应先核对持续hold/drop任务目标与action contrast。RTG回归不替代抓取、
+保持、掉落评价，更不替代matched Cm-on/off训练所得策略的因果收益。
+两路使用GPU6/7，均已结束、零新采集；本轮只给Probe判断，North-star Cm utility仍OPEN。
+
+[E→G实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md)，
+[surface I实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md)。
