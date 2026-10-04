@@ -40,7 +40,10 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
         run_infos.append((run_dir, merged, run_meta, shard_hashes))
     namespace_keys = sorted({str(run_meta["source_sha256"]) for _, _, run_meta, _ in run_infos})
     namespace_ids = {key: index for index, key in enumerate(namespace_keys)}
-    for run_index, (run_dir, merged, run_meta, shard_hashes) in enumerate(run_infos):
+    run_keys = sorted({tuple(shard_hashes) for _, _, _, shard_hashes in run_infos})
+    run_ids = {key: index for index, key in enumerate(run_keys)}
+    for run_dir, merged, run_meta, shard_hashes in run_infos:
+        source_run = run_ids[tuple(shard_hashes)]
         summaries = _episode_summaries(run_dir)
         gamma = float(run_meta.get("gamma", 0.99))
         control_dt = float(run_meta.get("control_dt", 1.0))
@@ -59,6 +62,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             "rows": int(merged["reward"].numel()), "gamma": gamma, "control_dt": control_dt,
             "physical_timing_inferred": timing_inferred,
             "source_namespace": namespace_key,
+            "source_run": source_run,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition") if k in run_meta},
         })
         physical_timing = str(run_meta.get("physical_timing", "post_env_step_legacy"))
@@ -172,7 +176,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             chunks["step"].append(merged["step"][current_pos].long())
             chunks["motion_id"].append(merged["motion_id"][current_pos].long())
             chunks["noise_std"].append(merged["noise_std"][current_pos].float())
-            chunks["source_run"].append(torch.full((rows,), run_index, dtype=torch.long))
+            chunks["source_run"].append(torch.full((rows,), source_run, dtype=torch.long))
             chunks["source_namespace"].append(torch.full((rows,), namespace_id, dtype=torch.long))
             chunks["done_at_decision"].append(merged["done"][current_pos].bool())
             chunks["episode_auxiliary"].append(aux)

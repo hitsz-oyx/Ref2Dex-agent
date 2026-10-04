@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
@@ -121,8 +122,9 @@ def _load_shards(run_dir: Path) -> Tuple[Dict[str, torch.Tensor], Dict[str, obje
         raise ValueError(f"source_sha256 missing in {run_dir}; actor validation requires checkpoint identity")
     if not source_values or any(value != source_values[0] for value in source_values[1:]):
         raise ValueError(f"source_sha256 mismatch across shards in {run_dir}")
-    if not isinstance(source_values[0], str) or not source_values[0]:
-        raise ValueError(f"source_sha256 must be a non-empty string in {run_dir}")
+    if (not isinstance(source_values[0], str)
+            or re.fullmatch(r"[0-9a-fA-F]{64}", source_values[0]) is None):
+        raise ValueError(f"source_sha256 must be a 64-character hex digest in {run_dir}")
     keys = sorted(REQUIRED)
     merged = {key: torch.cat([part[key] for part in parts], dim=0) for key in keys}
     return merged, metadata, shard_hashes
@@ -192,8 +194,11 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
         run_infos.append((run_dir, merged, run_meta, shard_hashes))
     namespace_keys = sorted({str(run_meta["source_sha256"]) for _, _, run_meta, _ in run_infos})
     namespace_ids = {key: index for index, key in enumerate(namespace_keys)}
+    run_keys = sorted({tuple(shard_hashes) for _, _, _, shard_hashes in run_infos})
+    run_ids = {key: index for index, key in enumerate(run_keys)}
 
-    for run_index, (run_dir, merged, run_meta, shard_hashes) in enumerate(run_infos):
+    for run_dir, merged, run_meta, shard_hashes in run_infos:
+        source_run = run_ids[tuple(shard_hashes)]
         summaries = _episode_summaries(run_dir)
         gamma = float(run_meta.get("gamma", 0.99))
         control_dt = float(run_meta.get("control_dt", 1.0))
@@ -217,6 +222,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
             "control_dt": control_dt,
             "physical_timing_inferred": timing_inferred,
             "source_namespace": namespace_key,
+            "source_run": source_run,
             **{k: run_meta[k] for k in ("schema", "source_sha256", "physical_timing", "effect_definition", "interaction_definition")
                if k in run_meta},
         })
@@ -343,7 +349,7 @@ def assemble(run_dirs: List[Path], horizon: int, history_length: int = 10,
                 sample_step.append(int(merged["step"][current]))
                 sample_motion.append(int(merged["motion_id"][current]))
                 sample_noise.append(float(merged["noise_std"][current]))
-                sample_run.append(run_index)
+                sample_run.append(source_run)
                 sample_namespace.append(namespace_id)
                 sample_action.append(merged["action"][current].float())
                 sample_state.append(merged["state"][current].float())

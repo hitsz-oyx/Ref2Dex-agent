@@ -20,7 +20,7 @@ from assemble_gate1_dataset_v2_fast import assemble as assemble_vectorized  # no
 
 
 def _write_interleaved_run(path: Path, physical_timing: str | None,
-                           source_sha256: str = "test") -> None:
+                           source_sha256: str = "a" * 64) -> None:
     path.mkdir()
     steps = 20
     rows = steps * 2
@@ -52,7 +52,7 @@ def _write_interleaved_run(path: Path, physical_timing: str | None,
         "schema": "test",
         "gamma": 0.99,
         "control_dt": 1.0,
-        "source_sha256": source_sha256,
+        "source_sha256": source_sha256 if len(source_sha256) == 64 else (source_sha256 * 64)[:64],
         "effect_definition": "test",
         "interaction_definition": "test",
     }
@@ -142,9 +142,13 @@ def test_missing_source_sha256_fails_closed(tmp_path: Path) -> None:
 def test_source_namespace_mapping_is_input_order_invariant(tmp_path: Path) -> None:
     first = tmp_path / "first"
     second = tmp_path / "second"
-    _write_interleaved_run(first, "pre_env_step", "aaa")
-    _write_interleaved_run(second, "pre_env_step", "bbb")
+    _write_interleaved_run(first, "pre_env_step", "a" * 64)
+    _write_interleaved_run(second, "pre_env_step", "b" * 64)
     ordered, _ = assemble_vectorized([first, second], horizon=3, history_length=10)
     reversed_order, _ = assemble_vectorized([second, first], horizon=3, history_length=10)
-    assert ordered["metadata"]["source_namespace_keys"] == ["aaa", "bbb"]
-    assert reversed_order["metadata"]["source_namespace_keys"] == ["aaa", "bbb"]
+    assert ordered["metadata"]["source_namespace_keys"] == ["a" * 64, "b" * 64]
+    assert reversed_order["metadata"]["source_namespace_keys"] == ["a" * 64, "b" * 64]
+    assert torch.equal(
+        ordered["source_run"].sort().values,
+        reversed_order["source_run"].sort().values,
+    )
