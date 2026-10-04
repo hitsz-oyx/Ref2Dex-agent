@@ -1,6 +1,6 @@
 # Ref2Dex 当前研究状态
 
-更新：2026-10-04。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
+更新：2026-10-05。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 
 | North-star | 当前判断 |
@@ -201,3 +201,21 @@ Root关闭当前early-hold四步feedback residual→I8合同的继续拟合，�
 绕过A失败；不否定Cm核心假设。单GPU6仿真约417s、模型2.31s、产物<18MiB，
 全部结束。North-star训练所得matched Cm-on/off策略utility仍OPEN。
 [early-hold实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-early-hold-intervention.md)。
+
+## Task ref5：延长 feedback residual 的物理响应
+
+仅做physics Decision，不训练Cm/S/PPO：在同一early-hold区随机分配7方向×K4/8/16，
+2,016完整episodes、1,006完整干预窗口。非零cell最少32、两半最少13、pooled zero148；
+全部剂量约1.0，native PD和独立标签/OLS/curve复算通过。
+
+结果UNPROMISING：短接触tail0.1645，K16最大绝对效应6.62pp，未达10pp；I16 family
+tail0.572，后17..32接触/高度失败tail0.581/0.244，未形成稳定duration→retention-I链。
+动作实际改变了手：wristx+在同一step16调整位移随K为4.51/10.47/21.92mm。
+部分反向baseline命令与补偿一致，但累计剂量/释放恢复时长同时变化，不能唯一识别
+feedback cancellation。secondary all32高度失败有弱tail0.085，不能救援I控制gate。
+
+Root关闭当前K≤16 feedback-residual合同，保留I预后信息及测得的反馈响应；不扩大网络、
+时长/幅度/seed扫描或补旧B支持。不否定其他operator、I/Cm核心思想；固定绝对target
+仍未测试，若以后推进须有能区分机制的新合同。GPU6仿真787s、CPU统计2.81s，产物
+<37MiB，全部结束；25 Task tests与变更检查通过。训练所得matched Cm策略utility仍OPEN。
+[duration实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md)。

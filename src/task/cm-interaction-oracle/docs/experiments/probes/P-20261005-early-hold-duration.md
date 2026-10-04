@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [217, 218, 219]
 decision_changed_if_positive: retain a demonstrated duration-sensitive retention operator for later action-conditioned Cm work
 decision_changed_if_negative: stop duration extension without network fitting or additional seeds; distinguish clipping, insufficient support and valid local negative
-status: RUNNING
+status: UNPROMISING
 run_id: early-hold-duration-s217
 ---
 
 # Does longer feedback-residual execution change grasp-retention information?
 
-Result: Pending randomized K4/K8/K16 physical response; no learned model planned.
-Decision: Test duration as the next missing action-control link before any Cm training.
+Result: 1006 full randomized windows; dose and support pass, but no duration-sensitive retention-I gate; hand displacement responds while I16/contact do not pass.
+Decision: Close K4/8/16 feedback-residual extension after independent review; no Cm fitting, extra duration/seed or selector.
 
 ## Motivation and cheapest discriminator
 
@@ -179,3 +179,161 @@ reporting coverage or randomized effects. Saved `diagnostic.pt`,
 recomputation. No supervised model fit or repeated learned inference.
 Analysis tests check crossing step16, preservation of early failures,
 both directions of duration response, late alignment and both wave halves.
+
+## Completed execution and provenance
+
+`early-hold-duration-s217` completed at code422e081, all2,016 native episodes
+and1,006 assigned32-step windows; simulation731.39s. Collection manifest
+captures8 pre-run hashes (collector/contract, checkpoint, two configs, three
+actual linked motion files). Dataset SHA256:
+`3bd64f6c9dccb8c6b7c87cf291e341b6b15b2fc35ea2b0d9e326773048e7e135`.
+All input hashes and code hashes independently match current unchanged files.
+New guidance files remain user-owned and unmodified.
+
+Cell counts, columns zero/x+/x−/z+/z−/finger+/finger−:
+
+| Duration | Counts |
+| --- | --- |
+| K4 | 59 / 40 / 38 / 50 / 51 / 51 / 57 |
+| K8 | 46 / 47 / 38 / 49 / 43 / 52 / 54 |
+| K16 | 43 / 59 / 32 / 51 / 54 / 50 / 42 |
+
+Minimum nonzero cell32, pooled zero148, minimum cell in either predeclared
+wave half13: coverage passes without extra collection. Motion counts598/309/99
+describe the eligibility-selected cohort, not motion-wide grasp performance.
+Current native risk and pre-hold screens pass for all assignments. Actual
+clipped action reconstructed exactly, post-K/zero action and PD offset zero,
+all nonzero dose ratios1.0 within float error1.2e-7; native PD mapping max
+error1.12e-7. No clipping explanation or missing-window exclusion is needed.
+
+Physics analysis command (code305e635, CPU statistics only):
+
+```bash
+python src/task/cm-interaction-oracle/tools/audit/probe_duration_response.py --dataset outputs/cm-interaction-oracle/early-hold-duration-s217/interventions.pt --run-dir outputs/cm-interaction-oracle/early-hold-duration-response-s219 --seed 219
+```
+
+Completed in2.81s; no learned model, critic, policy or selector executed.
+Outputs under the two run IDs contain immutable manifests/results, factual
+packet, complete episode summaries, diagnostic, engineering/statistical audit,
+all response curves and copied logs. Compact reviewed evidence is retained in
+[results](P-20261005-early-hold-duration-results.json) beside this card.
+
+Failure variation is real:478 any1..32 combined failures,475 with physical
+height loss,225 with six-step proxy loss (overlap).383 fail in1..16;
+7 early-only failures recover before the late window. All7 remain in the
+packet with all32failure=1 and late failure=0, correctly distinguishing
+"no late failure" from "never failed". Late combined failure471, height468.
+
+## Registered response result: UNPROMISING
+
+Current-state nuisance rank152,102 wave×motion×phase blocks, treatment rank18
+for full data and each wave half.1,999 conditional joint-cell permutations.
+Registered retained-response candidate list is empty.
+
+| Readout family | Max partial explained variance | Exploratory family-max tail |
+| --- | ---: | ---: |
+| Contact fraction1..16 (primary) | 2.825% | 0.1645 |
+| Contact fraction17..32 | 1.899% | 0.5810 |
+| Physical height failure17..32 | 2.578% | 0.2440 |
+| Combined failure17..32 | 2.660% | 0.2190 |
+| Physical height failure1..32 (secondary) | 3.125% | 0.0850 |
+| I14 at16 (secondary) | 3.098% | 0.5720 |
+
+Maximum K16 short-contact magnitude6.624pp, below10pp; primary tail also
+fails≤.10. Adjusted short-contact effects against pooled zero, in percentage
+points (all directions shown, not selected best arms):
+
+| Arm | K4 | K8 | K16 |
+| --- | ---: | ---: | ---: |
+| wrist x+ | −4.10 | −1.90 | −0.74 |
+| wrist x− | −3.40 | +1.58 | +1.88 |
+| wrist z+ | −5.78 | −0.27 | −6.62 |
+| wrist z− | −2.23 | +2.21 | −0.26 |
+| finger+ | −5.76 | +1.76 | −4.90 |
+| finger− | +1.05 | −2.03 | +0.08 |
+
+Neither a consistent duration-growth pattern nor aligned late retention/height
+effect passes. The secondary all32 height family has weak tail0.085,
+including K16 wristz− adjusted+15.24pp versus zero (K4+8.01pp, K8+0.72pp).
+This secondary harmful response is not ignored, but is nonmonotonic and does
+not establish the required interaction mediator. Tails are within-family,
+not corrected across six families; no formal significance or best-arm policy.
+
+## Physical response and feedback interpretation
+
+Measured hand body-centroid x displacement at the SAME step16, adjusted
+against zero, confirms motion changed with the duration of wristx+:
+
+| Duration | wristx+ vs zero | wristx+ minus wristx− |
+| --- | ---: | ---: |
+| K4 | +4.51mm | 9.35mm |
+| K8 | +10.47mm | 24.46mm |
+| K16 | +21.92mm | 43.56mm |
+
+These are measured body positions, not inferred PD motion. K16 wristx
+plus/minus displacement remains16.96mm atstep32, after release, rather than
+being completely erased. Thus "nothing was physically executed" is excluded,
+and a longer/larger hand response alone did not create a registered retention-I
+response for this candidate set.
+
+Some compensation is plausible: K16 wristz+ atstep16 has only+2.93mm handz
+effect against zero; its adjusted baseline action drift is−1.61 times the
+assigned+.01m residual at that time. The analogous K4/K8 end-K ratios are
+−0.52/−0.66. This post-treatment command response is consistent with the
+baseline opposing perturbation, and z+ displacement plateaus. However,
+duration changes cumulative dose and time since release, native wrist targets
+are relative to current q, and hand/object state feeds back into pi. These
+descriptions cannot uniquely establish cancellation as the cause of failed I
+control or rule out a fixed-target operator. No event-selected subset is used.
+
+## Independent review and root judgment
+
+Read-only `ref5_engineering_review` confirms actual21cell/half support, action
+and PD doses, all pre-run/code hashes, independent numpy labels and whole/half
+joint OLS, all response curves and baseline projection. Coefficients match
+to≤3.4e-14; curve differences only float32 construction≤4.4e-8. No engineering
+defect invalidating the local negative was found. Root independently
+reconstructs labels/I16 (I difference≤2.39e-7) and direct joint OLS (≤1.49e-14),
+checks all hashes and confirms seven recovered early failures are retained.
+
+Root attribution: extending the existing feedback-residual directions to16
+steps does increase a real hand response, but does not expose a stable
+retention-sensitive I14 pathway. Feedback opposition remains a plausible
+contributor, particularly for z+, not a resolved causal explanation. This
+shrinks the viable local contract; it does not show interaction information
+is inherently uncontrollable or that a Cm predictor failed. No predictor was
+trained. GT I's prior prognostic value remains, with its original Probe limits.
+
+### Closing Decision Note
+
+- Question: does extending this feedback-residual duration justify Cm fitting?
+- Evidence:1,006 windows, all execution/support checks pass; hand displacement
+  responds to K, but primary contact/I16 and aligned continuation gates fail;
+  independent engineering reconstruction passes.
+- Root action: close this K≤16 feedback-residual extension as UNPROMISING.
+  No additional seed, duration/amplitude sweep, network fit or selector.
+  Preserve the measured co-response/compensation traces. I14 remains useful
+  for prognosis; its role as a control mediator under these directions is
+  unestablished. Do not promote it into world-model action selection merely
+  because GT prediction was strong.
+- Cost/next/stops: GPU6 main731.4s plus56.0s smoke; CPU analysis2.81s;
+  total new run artifacts<37MiB. All processes finished, GPU6 idle. Any next
+  control Probe needs a genuinely different, justified operator or retention
+  direction that separates competing mechanisms; another duration fit or
+  supplement to old B coverage does not change this decision. Fixed absolute
+  targets are untested and would require their own matched zero-operator and
+  safety/dose contract, not a posthoc extension of this card.
+- Boundary: Mission/claim/Campaign unchanged, no external authorization needed
+  for closure. No core Cm refutation or trained-policy utility conclusion.
+
+## Verification and remaining limits
+
+All25 Task tests and `tools/verify.py --changed` (base previous delivery
+d7a72df) pass. Old K4/default tools remain compatible; mixed-duration packets
+are explicit v2. Full-run provenance and independent audit agree with saved
+statistics; only card/result/index/state records are added after execution.
+Exploratory permutation conditions on many coarse blocks and current linear
+nuisance; repeated-environment dependence, uncertain true contact/slip and
+absence of exact counterfactual branching limit inference. A failed gate is
+not a confidence-bound equivalence test proving no smaller effect. Single
+cohort/wave halves are not independent-seed Validation.

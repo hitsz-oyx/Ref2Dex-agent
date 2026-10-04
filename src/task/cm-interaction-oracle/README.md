@@ -62,3 +62,14 @@ close the current four-step residual/I8 contract without seed or fit retries.
 Gate tool: `tools/run/probe_early_hold.py`; saved-data/statistics audit:
 `tools/audit/audit_early_hold.py`. Next control work must address the retention
 action/operator timescale rather than another predictor on this failed A gate.
+
+Ref5's physics-only duration Probe is complete:1,006 full randomized windows
+from2,016 episodes, K4/8/16 jointly assigned across the same seven arms.
+All dose/support checks pass; primary contact tail0.1645 and maximum K16
+short-contact magnitude6.62pp fail the retained-response gate. UNPROMISING
+for this K≤16 feedback-residual extension. Measured wristx+ hand displacement
+atstep16 grows4.51→10.47→21.92mm, while retention-I response remains weak.
+Some opposing baseline commands are consistent with compensation; no unique
+cancellation explanation or global I/Cm refutation. No learned model fitted.
+[Duration Probe](docs/experiments/probes/P-20261005-early-hold-duration.md);
+physics analysis: `tools/audit/probe_duration_response.py`.
