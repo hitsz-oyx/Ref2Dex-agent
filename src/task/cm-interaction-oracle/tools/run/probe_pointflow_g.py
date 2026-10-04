@@ -56,12 +56,12 @@ def subset_rows(source, per_episode):
     return torch.cat(selected).sort().values
 
 
-@torch.no_grad()
 def world_link_poses(local_links, current_roots):
     """Keep sample and body axes separate when applying observed actor roots."""
     return current_roots[:, None] @ local_links
 
 
+@torch.no_grad()
 def predict_effect(source, checkpoint, device, batch_size, geometry_seed, current_roots):
     assets = ROOT / 'third_party/DExplore/dexplore/data/assets'
     urdf = assets / 'inspire_hand_new/inspire_hand_right.urdf'
@@ -115,8 +115,8 @@ def predict_effect(source, checkpoint, device, batch_size, geometry_seed, curren
                  'hand_valid_mask': torch.ones(count, len(hp), device=device, dtype=torch.bool),
                  'delta_time_s': torch.full((count,), 1 / 30, device=device)}
         prediction = model(batch)['delta_xi_root'].cpu()[:, None]
-        if not torch.isfinite(prediction).all():
-            raise ValueError('nonfinite Cmv2 E')
+        if prediction.requires_grad or not torch.isfinite(prediction).all():
+            raise ValueError('frozen Cmv2 E must be detached and finite')
         predictions.append(prediction)
     return torch.cat(predictions), {'urdf_sha256': sha256(urdf),
                                    'object_sha256': sha256(obj_path),
@@ -271,6 +271,7 @@ def main():
               'effect_metrics': metrics, 'arms': results, 'comparisons': comparisons,
               'gt_gain_retained': retained if gt_gain > 0 else None,
               'elapsed_seconds': time.monotonic() - start,
+              'peak_cuda_allocated_bytes': torch.cuda.max_memory_allocated(device),
               'decision_rule': 'GT>=5%, predicted-fit>=3%, retains>=25% GT gain and beats current action/root control HAR; otherwise do not enter policy training',
               'limitations': ['single model seed; descriptive episode bootstrap, four source runs',
                               'GT E is a future oracle; offline G is not policy utility',
