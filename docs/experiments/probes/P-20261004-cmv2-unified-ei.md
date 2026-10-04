@@ -23,19 +23,19 @@ It uses unordered hand surface points in the current/future object frame. It doe
 
 ## Results
 
-Run artifacts: `tmp/P-20261004-cmv2-unified-ei-k1-v3.json` and `tmp/P-20261004-cmv2-unified-ei-k4-v3.json`.
+Run artifacts: `tmp/P-20261004-cmv2-unified-ei-k1-v4.json` and `tmp/P-20261004-cmv2-unified-ei-k4-v4.json`; the context-conditioned follow-up is in `tmp/P-20261004-cmv2-unified-ei-k1-v6.json` and `...k4-v6.json`.
 
 The learned I head is evaluated separately from a derived audit. The derived audit uses the predicted E and the same command-derived hand flow, then applies the geometric field function; it is not the Cmv2 output.
 
-| Probe | Best direct action I RMSE | Best Cmv2 I RMSE | Cmv2 relative change | Cmv2 derived-I RMSE |
+| Probe | Direct baseline (v4) | Cmv2-only | Direct baseline (v6) | Cmv2 + state/action |
 |---|---:|---:|---:|---:|
-| K=1 | 0.4500 | 0.4442 | 1.3% lower | 3.2558 |
-| K=4 | 1.1203 | 1.1003 | 1.8% lower | 6.2118 |
+| K=1 | 0.1069 | 0.1695 (+58.6%) | 0.1083 | 0.1131 (+4.4%) |
+| K=4 | 0.3318 | 0.3990 (+20.3%) | 0.3753 | 0.3924 (+4.5%) |
 
-Cmv2 also has lower E RMSE in both probes, but the E target is a compact rigid effect and is not directly comparable to the previous 13D Gate2 effect metric.
+Cmv2 has lower E RMSE in both probes. The I labels have nonzero contact mass in 45.0% of held-out windows after using the correct actor order and batched geometry. The state/action-conditioned Cmv2 I head nearly closes the gap, but does not beat the direct baseline in this probe.
 
 ## Status and limits
 
-This is a `PROMISING` command-proxy feasibility signal for adding I to Cmv2. The learned I advantage is small and comes from one trace family, one object, one seed, and 16/8 environment splits. The label builder was corrected so current contact points are compared in the future object frame; the v3 artifacts are the reported results. The derived-I audit is much worse, so the current result supports a learned interaction head rather than “predict E, then directly calculate I”. It is not yet a cross-hand or policy-utility conclusion. A 64-transition MANO audit produced finite 13D labels with the same field contract (`tmp/P-20261004-cmv2-mano-i-audit.json`), but it did not train a MANO predictor. A larger multi-object Inspire split remains before formal claims.
+The corrected Cmv2-only probe is `UNPROMISING` for I. Per-dimension target normalization (`tmp/P-20261004-cmv2-unified-ei-k1-v5.json`, `...k4-v5.json`) did not close the gap. Adding causal global state/action conditioning makes the result `UNCLEAR`: it reaches near parity but shows no improvement over direct prediction. The earlier v3 results are invalid because the actor order and batched link broadcast were wrong. The derived-I audit is also poor, so “predict E, then directly calculate I” is not ready to adopt. A 64-transition MANO audit produced finite 13D labels with the same field contract (`tmp/P-20261004-cmv2-mano-i-audit.json`), but it did not train a MANO predictor. The next decision is whether to redesign the I target/head around explicit contact-field pooling or stop this route.
 
 The previous Cmv2 K4 result that compared a single-step checkpoint against cumulative flows is retired as an unfair comparison; both branches in this card were retrained for their own K.

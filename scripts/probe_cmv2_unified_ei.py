@@ -103,7 +103,8 @@ class UnifiedDataset(Dataset):
         run, t, env = self.rows[i]
         trace = run
         qall = trace["q"][:, env].to(self.device); roots = trace["root"][:, env].reshape(trace["root"].shape[0], 3, 13).to(self.device)
-        current_q = qall[t]; current_hand_root = roots[t, 2]; current_obj = roots[t, 1]
+        # DExplore actor order is humanoid hand=0, table=1, object=2.
+        current_q = qall[t]; current_hand_root = roots[t, 0]; current_obj = roots[t, 2]
         current_obj_pose = dexplore_root_pose(current_obj[None])[0]
         obj = self.object_points
         # Current actual hand geometry is an observation; future hand geometry is label only.
@@ -119,12 +120,12 @@ class UnifiedDataset(Dataset):
             pred_hp = self._surface(nominal_links, current_hand_root, self.hand_surface, self.hand_normals)[0]
             hand_flows.append(torch.einsum("ij,nj->ni", current_obj_pose[:3, :3].T, pred_hp - hp_world))
             future_q = qall[t + h]; future_roots = roots[t + h]
-            future_obj = dexplore_root_pose(future_roots[1][None])[0]
+            future_obj = dexplore_root_pose(future_roots[2][None])[0]
             delta_t = current_obj_pose[:3, :3].T @ (future_obj[:3, 3] - current_obj_pose[:3, 3])
             delta_r = current_obj_pose[:3, :3].T @ future_obj[:3, :3]
             effects.append(torch.cat((delta_t, axis_angle_from_rotation(delta_r[None])[0])))
             future_links = self.fk.forward(future_q[None, None])[0, 0]
-            future_hp = self._surface(future_links, future_roots[2], self.hand_surface, self.hand_normals)[0]
+            future_hp = self._surface(future_links, future_roots[0], self.hand_surface, self.hand_normals)[0]
             labels.append(field_label(obj[None], self.object_normals[None], hp_world[None], future_hp[None], current_obj_pose[None], future_obj[None])[0])
         state = trace["state"][t, env].to(self.device)
         result = {"state": state.float(), "action": torch.stack(actions), "obj_points": obj.float(),
@@ -159,15 +160,18 @@ def materialize(rows, k, trace, object_points, object_normals, hand_surface, han
     action_all = trace["action"].to(device); state_all = trace["state"].to(device)
     current_q = q_all[times, envs]
     current_roots = root_all[times, envs]
-    current_obj = dexplore_root_pose(current_roots[:, 1])
-    current_hand_root = current_roots[:, 2]
+    # DExplore actor order is humanoid hand=0, table=1, object=2.
+    current_obj = dexplore_root_pose(current_roots[:, 2])
+    current_hand_root = current_roots[:, 0]
     actions = torch.stack([action_all[times + h, envs] for h in range(1, k + 1)], 1)
     future_q = torch.stack([q_all[times + h, envs] for h in range(1, k + 1)], 1)
     future_roots = torch.stack([root_all[times + h, envs] for h in range(1, k + 1)], 1)
 
     def surface(links, roots):
         base = dexplore_root_pose(roots.reshape(-1, 13)).reshape(*roots.shape[:-1], 4, 4)
-        world_links = torch.matmul(base.unsqueeze(-3), links)
+        # Keep the sample and link axes separate; otherwise matmul broadcasts
+        # the leading sample axis across other samples when n > 1.
+        world_links = torch.matmul(base.unsqueeze(-3), links.unsqueeze(-4))
         rot = world_links[..., hand_links, :3, :3]
         trans = world_links[..., hand_links, :3, 3]
         points = torch.einsum("...pij,pj->...pi", rot, hand_surface) + trans
@@ -194,10 +198,10 @@ def materialize(rows, k, trace, object_points, object_normals, hand_surface, han
     actual_future = []
     for h in range(k):
         links = fk.forward(future_q[:, h:h + 1])[:, 0]
-        points, _ = surface(links, future_roots[:, h, 2:3])
+        points, _ = surface(links, future_roots[:, h, 0:1])
         actual_future.append(points[:, 0])
     actual_future = torch.stack(actual_future, 1)
-    future_obj = dexplore_root_pose(future_roots[..., 1, :].reshape(-1, 13)).reshape(n, k, 4, 4)
+    future_obj = dexplore_root_pose(future_roots[..., 2, :].reshape(-1, 13)).reshape(n, k, 4, 4)
     effects, labels = [], []
     for h in range(k):
         delta_t = obj_rot.transpose(-1, -2) @ (future_obj[:, h, :3, 3] - current_obj[:, :3, 3]).unsqueeze(-1)
@@ -245,19 +249,20 @@ class ActionModel(nn.Module):
 
 class Cmv2Model(nn.Module):
     def __init__(self, cfg, k):
-        super().__init__(); self.k = k; self.base = ObjectInteractionCmv2V13Model(cfg); self.gru = nn.GRU(cfg.hidden_width, cfg.hidden_width, batch_first=True); self.i_head = nn.Linear(cfg.hidden_width, I_DIM)
+        super().__init__(); self.k = k; self.base = ObjectInteractionCmv2V13Model(cfg); self.gru = nn.GRU(cfg.hidden_width, cfg.hidden_width, batch_first=True); self.context = nn.Sequential(nn.Linear(55 + 18, cfg.hidden_width), nn.SiLU(), nn.Linear(cfg.hidden_width, cfg.hidden_width)); self.i_head = nn.Linear(cfg.hidden_width * 2, I_DIM)
     def forward(self, batch):
         b, k = batch["hand_flow"].shape[:2]
         rep = lambda x: x[:, None].expand(-1, k, *x.shape[1:]).reshape(b*k, *x.shape[1:])
         flat = {"obj_points": rep(batch["obj_points"]), "obj_normals": rep(batch["obj_normals"]), "hand_points": rep(batch["hand_points"]), "hand_normals": rep(batch["hand_normals"]), "hand_flow": batch["hand_flow"].reshape(b*k, -1, 3), "hand_valid_mask": torch.ones((b*k, batch["hand_points"].shape[1]), dtype=torch.bool, device=batch["hand_flow"].device), "delta_time_s": torch.full((b*k,), DT, device=batch["hand_flow"].device)}
-        out = self.base(flat); z, _ = self.gru(out["fused_feature"].reshape(b, k, -1)); return out["delta_xi_root"].reshape(b, k, 6), self.i_head(z)
+        out = self.base(flat); z, _ = self.gru(out["fused_feature"].reshape(b, k, -1)); context = self.context(torch.cat((batch["state"][:, None].expand(-1, k, -1), batch["action"]), -1)); return out["delta_xi_root"].reshape(b, k, 6), self.i_head(torch.cat((z, context), -1))
 
 
-def evaluate(model, loader, device, kind):
+def evaluate(model, loader, device, kind, interaction_mean, interaction_scale):
     model.eval(); sums = torch.zeros(4); derived_sum = torch.zeros(1); count = 0
     with torch.no_grad():
         for batch in loader:
-            batch = {k: v.to(device) for k, v in batch.items()}; ep, it = model(batch["state"], batch["action"]) if kind == "action" else model(batch)
+            batch = {k: v.to(device) for k, v in batch.items()}; ep, it_norm = model(batch["state"], batch["action"]) if kind == "action" else model(batch)
+            it = it_norm * interaction_scale + interaction_mean
             derived = derived_interaction(ep, batch)
             sums[0] += (ep - batch["effect"]).abs().mean().cpu(); sums[1] += (it - batch["interaction"]).abs().mean().cpu(); sums[2] += (ep - batch["effect"]).pow(2).mean().sqrt().cpu(); sums[3] += (it - batch["interaction"]).pow(2).mean().sqrt().cpu(); count += 1
             derived_sum += (derived - batch["interaction"]).pow(2).mean().sqrt().cpu()
@@ -289,6 +294,8 @@ def main():
     train = CachedDataset(train_values); val = CachedDataset(val_values)
     def collate(samples): return {k: torch.stack([x[k] for x in samples]) for k in samples[0]}
     train_loader = DataLoader(train, batch_size=2, shuffle=True, num_workers=0, collate_fn=collate); val_loader = DataLoader(val, batch_size=2, shuffle=False, num_workers=0, collate_fn=collate)
+    interaction_mean = train_values["interaction"].mean(dim=(0, 1)).to(device)
+    interaction_scale = train_values["interaction"].std(dim=(0, 1)).clamp_min(1e-4).to(device)
     action_model = ActionModel(55, a.k).to(device); cfg = SimpleNamespace(hidden_width=64, num_tokens=8, use_residual=False, interaction_mode="swept", feature_scale_m=0.02, knn_k=16, interaction_radius_m=0.02, frame_dt_s=DT); cm_model = Cmv2Model(cfg, a.k).to(device)
     opts = [torch.optim.AdamW(action_model.parameters(), lr=3e-4), torch.optim.AdamW(cm_model.parameters(), lr=2e-4)]; best = [{"score": float("inf")}, {"score": float("inf")}]
     history=[]
@@ -296,12 +303,12 @@ def main():
         for model, opt, kind in ((action_model, opts[0], "action"), (cm_model, opts[1], "cm")):
             model.train()
             for batch in train_loader:
-                batch = {k: v.to(device) for k,v in batch.items()}; ep,it = model(batch["state"], batch["action"]) if kind=="action" else model(batch); loss = (ep-batch["effect"]).pow(2).mean() + 0.5*(it-batch["interaction"]).pow(2).mean(); opt.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
-        ar=evaluate(action_model,val_loader,device,"action"); cr=evaluate(cm_model,val_loader,device,"cm"); history.append({"epoch":epoch+1,"action":ar,"cmv2":cr}); print(json.dumps(history[-1]),flush=True)
+                batch = {k: v.to(device) for k,v in batch.items()}; ep,it_norm = model(batch["state"], batch["action"]) if kind=="action" else model(batch); interaction_target = (batch["interaction"] - interaction_mean) / interaction_scale; loss = (ep-batch["effect"]).pow(2).mean() + 0.5*(it_norm-interaction_target).pow(2).mean(); opt.zero_grad(set_to_none=True); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.step()
+        ar=evaluate(action_model,val_loader,device,"action",interaction_mean,interaction_scale); cr=evaluate(cm_model,val_loader,device,"cm",interaction_mean,interaction_scale); history.append({"epoch":epoch+1,"action":ar,"cmv2":cr}); print(json.dumps(history[-1]),flush=True)
         for model, metrics, slot in ((action_model,ar,0),(cm_model,cr,1)):
             score=metrics["effect_rmse"]+metrics["interaction_rmse"]
             if score < best[slot]["score"]: best[slot]={"score":score,"epoch":epoch+1}; torch.save(model.state_dict(), a.output.with_suffix(f".best{slot}.pt"))
-    report={"schema":"ref2dex.cmv2_unified_ei_probe.v1","run_id":f"P-20261004-cmv2-unified-ei-k{a.k}","code_commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),"trace":str(a.trace.resolve()),"device":str(device),"k":a.k,"i_definition":"object surface pooled [contact_mass, centroid3, covariance6, normal_approach, tangent_speed, q90_tangent_speed]","train_envs":train_env.tolist(),"val_envs":val_env.tolist(),"best":best,"history":history,"status":"PROMISING only if Cmv2 improves interaction RMSE over action baseline; command-proxy, not a final policy claim"}
+    report={"schema":"ref2dex.cmv2_unified_ei_probe.v1","run_id":f"P-20261004-cmv2-unified-ei-k{a.k}","code_commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),"trace":str(a.trace.resolve()),"device":str(device),"k":a.k,"i_definition":"object surface pooled [contact_mass, centroid3, covariance6, normal_approach, tangent_speed, q90_tangent_speed]","interaction_training_normalization":{"mean":interaction_mean.cpu().tolist(),"scale":interaction_scale.cpu().tolist()},"train_envs":train_env.tolist(),"val_envs":val_env.tolist(),"best":best,"history":history,"status":"PROMISING only if Cmv2 improves interaction RMSE over action baseline; command-proxy, not a final policy claim"}
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(report,indent=2)+"\n")
     print(json.dumps(report,indent=2))
 
