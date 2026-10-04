@@ -373,6 +373,7 @@ class ObjectInteractionCmv2V13Model(nn.Module):
                 "obj_flow_structured": structured_flow,
                 "obj_flow_residual": torch.zeros_like(points),
                 "obj_flow_pred": structured_flow,
+                "fused_feature": fused,
                 "contact_features": contact, "contact_active": active,
                 "tokens": tokens, "cm_tokens": cm_tokens,
                 "token_anchors": anchors, "token_normals": token_normals,
