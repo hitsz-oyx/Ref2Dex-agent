@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [203, 204, 205, 206]
 decision_changed_if_positive: add predicted consequence controls only after reliable labels and deployable K1 action information
 decision_changed_if_negative: stop critic and Cm expansion on this label/data contract; diagnose coverage versus implementation
-status: RUNNING
+status: UNCLEAR
 run_id: recap-relative-action-s203-s204
 ---
 
 # Can relative task outcome supervise a deployable action critic?
 
-Result: pending bounded G0/G1 gates.
-Decision: execute G0 first; G1 and predicted Cm are conditional, not automatic experiments.
+Result: G0 label stability failed (train34.7%, test39.1%); counts/support and V-versus-zero checks pass; G1 not executed.
+Decision: retain the relative-outcome direction but stop critic/Cm expansion on this unstable discrete label contract; no action-information or policy-utility conclusion.
 
 ## Decision question and cheapest method
 
@@ -139,3 +139,96 @@ candidate ranking. MC calibration and the 0.05 amplitude guard are exploratory
 choices. Distributional V, alternate horizons/rewards, formal multi-seed
 generalization, candidate ranking and Cm-on/off trained policy comparison are
 future evidence, not an automatic sweep after negative results.
+
+## Completed results and engineering audit
+
+Execution commit `9dd503d6374b430da029967f8f1fc657721cd424`, run
+`recap-relative-action-s203-s204`, gamma0.99; six V models from two base fits
+and three folds. 59,903 eligible ten-step histories, 11,520 train/2,816 test
+queries, 90/22 whole episodes, all96 motion/phase/noise threshold strata.
+Duration14.77s, peak allocated GPU330,649,088 bytes. Smoke at `58a4830` used
+one epoch/eight queries per episode (4.51s); it is engineering only. No new
+simulation, critic training, consequence fitting or threshold/seed retry.
+
+| G0 diagnostic | Train | Test | Predeclared requirement |
+| --- | ---: | ---: | --- |
+| V-fit extreme-union label agreement | 34.72% | 39.15% | ≥75% each |
+| Positive labels | 3,417 | 840 | ≥500 / ≥100 |
+| Negative labels | 3,453 | 710 | ≥500 / ≥100 |
+| Positive-label episode support | 90 | 22 | ≥12 test |
+| Negative-label episode support | 89 | 22 | ≥12 test |
+| Largest episode share of positive labels | 3.72% | 9.64% | ≤15% test |
+| Largest episode share of negative labels | 2.58% | 6.90% | ≤15% test |
+| Queries with nonzero real32-step task reward | 13.90% | 16.30% | Reported, not selection gate |
+
+Held-out MC MSE229.58 versus zero V324.80 passes the coarse value check; it
+does not establish accurate advantage derivatives or calibrated uncertainties.
+Primary average-fit test positives/negatives have real32-step reward coverage
+35.60%/11.41%; thus most supervised labels would come from bootstrap/V
+differences in intervals without observed local task reward.
+
+Root's read-only statistical audit distinguishes the failed discrete contract
+from a blanket negative conclusion. Continuous A Pearson is0.904 train/0.978
+test; excluding largest-|MC mean| test episode it remains0.952. Test
+agreement is82.39% on the intersection where BOTH fits label an extreme,
+but the registered union agreement is39.15%; 52.49% of that union disagrees
+between neutral/extreme, and8.37% has opposite signs. No changing the
+denominator or selecting only agreed labels to claim G0 passed.
+
+On test queries with real local reward, extreme-union agreement is78.02%;
+on zero-local-reward queries it is29.56%. Zero-reward A Pearson0.755 and
+median absolute inter-fit difference0.255 exceed the0.05 amplitude floor.
+This is not merely tiny numerical threshold jitter. The active subset is a
+post-hoc mechanism diagnostic using FUTURE outcome, not a deployable filter
+and not permission to train only favorable examples or redesign the gate.
+
+Independent read-only reviewer `ref5_engineering_review` found one clear
+engineering bug before the formal run: binary AUC initially included neutral
+rows in ranking. Fixed at `9dd503d`, with an explicit neutral regression test;
+this bug affected only unexecuted G1 metrics, never G0. Reviewer then checked
+all source/module hashes, all112 episode MC/local32 targets, source/current/
+future row joins, same-fold current/endpoint V, train-only thresholds and
+outer-test exclusion: exact matches, reconstruction error0. All817 terminal
+queries have zero discount/bootstrap. No further fatal implementation problem
+found in these checks. Root independently reproduced the advantage/fold/hash
+and stability diagnostics; audit tool is
+`src/task/cm-interaction-oracle/tools/audit/audit_relative_action.py`.
+
+Evidence: `outputs/cm-interaction-oracle/recap-relative-action-s203-s204/`
+contains immutable execution manifest/result, query label packet, six V
+checkpoints, run.log and `statistical_audit.json`. Post-run audit records the
+source gamma omitted from original manifest; source hashes and run.log also
+pin0.99. No rerun was needed for this metadata omission.
+
+### Closing Decision Note
+
+- Question: advance to action critic/Cm despite unstable advantage labels?
+- Evidence: only fit-label agreement fails G0; sparse local reward and
+  sizeable V-residual variation account for much disagreement; continuous
+  trends correlate even without the largest test episode; engineering audit
+  confirms targets and split rather than discovering a labeling join bug.
+- Root choice: stop this discrete-label pipeline before G1. Preserve
+  relative-outcome as a candidate; label/value reliability is the next decision
+  prerequisite, not more I/G capacity. This does not close the core Cm
+  hypothesis or prove absent action information. Any revised label/value
+  protocol must have a new explicit hypothesis/gate, rather than relaxing this
+  failed gate, selecting future-active test rows or replaying seeds.
+- Cost/stopping: <20s model execution including smoke, one GPU, <4GB artifact
+  limit, zero interaction; all processes finished. No evidence justifies G2/G3.
+- Boundary: no new authorization required; root Mission's causal trained-policy
+  Cm-on/off result remains OPEN. Formal claims and Validation are deferred.
+
+## Verification and deferred implementation details
+
+Task tests plus recursive index/governance tests:34 passed. Scoped
+`verify_changed` over this round's code/card/README/STATE/index:PASS. Full
+`tools/verify.py --changed` remains FAIL on three pre-existing example links
+in `.agents/skills/domain-modeling/GLOSSARY-FORMAT.md` (ordering/billing/
+fulfillment GLOSSARY paths). Unrelated skill templates were not changed.
+Formal run3.8MB and smoke2.2MB; GPU6 is idle after completion. Changes are
+local commits only; existing user changes/checkpoints are preserved.
+
+The G1 branch was not executed. Before an actual G1 run, report within-stratum
+metrics and the number of episodes containing BOTH classes for paired
+bootstrap; per-class≥12 support alone does not imply12 usable paired episodes.
+These are deferred G1 readiness details, not a reinterpretation of failed G0.

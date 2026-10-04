@@ -101,3 +101,28 @@ Root选择：保留E物理主路线与修正的几何合同，暂缓局部I/pred
 
 [E→G实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md)，
 [surface I实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md)。
+
+## Task ref1：RECAP-style 相对任务 advantage
+
+同一 Task/branch 已实现并执行 cross-fitted MC V → 32步 advantage 的有界
+Decision Probe；task reward 固定 `held/10 + lift_progress/5 + stable`，排除
+base/approach，所有模型显式控制 episode-fixed noise。历史90train/22test
+episode split、两次V拟合×三fold，gamma0.99，固定16epochs，不改变核心 Mission。
+
+- G0标签计数、episode支持、集中度均达标；held-out V MSE229.58低于zero324.80。
+  但独立fit标签一致率 train34.72%/test39.15%，远低于预设75%，结论UNCLEAR。
+  按门槛停止，G1 action critic、G2 predicted E/I、G3 selector均未执行。
+- 连续advantage test相关性0.978，去最大MC episode仍0.952，保留方向性线索。
+  真实32步task reward非零只覆盖16.3% test queries；该区标签一致78.0%，
+  零reward区29.6%。后者fit差中位数0.255大于0.05幅度floor，不只是微小量化抖动。
+  不能事后用未来reward active筛选测试样本或改一致率分母宣布通过。
+- 工程review修复neutral样本污染binary AUC的问题（正式运行前，G0不受影响）；
+  后续112 episode target/row/fold/threshold audit精确一致，无进一步致命问题。
+  当前暂停原因是标签/value合同可靠性不足，不能写成RECAP或动作信息被否定。
+
+Root Decision：保留相对任务后果方向，下一决策前提是可信标签/value；暂不投入
+I/G容量扩展。任何改标签协议须重新明确假设和判定，不放松本轮门槛或追加seed搜索。
+本轮GPU6 model执行含smoke<20s，零新采集，任务进程均结束；代码commit9dd503d。
+North-star Cm训练策略因果utility仍OPEN，不把离线标签工作算作policy进步。
+
+[相对任务advantage实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-recap-relative-action.md)。
