@@ -16,6 +16,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261004-pointflow-g](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md) | Does real point-flow predicted E preserve E-to-G information? | UNCLEAR for the valid K1 point-flow-to-G bridge; UNPROMISING for expanding a pose-only K4 predictor into this G regression from the fixed GT | keep E as the physical main route, freeze I head/K4 expansion and this frozen K1 G teacher; audit task-relevant hold/drop value evidence bef | probes/UNCLEAR |
 
+## HF-relative-action
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261004-recap-relative-action](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-recap-relative-action.md) | Can relative task outcome supervise a deployable action critic? | pending bounded G0/G1 gates. | execute G0 first; G1 and predicted Cm are conditional, not automatic experiments. | probes/RUNNING |
+
 ## HF02
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
