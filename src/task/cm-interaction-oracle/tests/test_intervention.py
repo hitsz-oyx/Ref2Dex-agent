@@ -17,6 +17,27 @@ def test_headroom_checks_every_arm_before_assignment():
     assert contract.residuals()[:, [7, 9, 11, 13, 16, 17]].count_nonzero() == 0
 
 
+def test_joint_assignment_covers_every_duration_arm_once():
+    arms, durations = contract.decode_assignment(torch.arange(21), [4, 8, 16])
+    assert arms.tolist() == list(range(7))*3
+    assert durations.tolist() == [4]*7+[8]*7+[16]*7
+    old_arms, old_durations = contract.decode_assignment(torch.arange(7), [4])
+    assert old_arms.tolist() == list(range(7)) and old_durations.tolist() == [4]*7
+
+
+def test_feedback_residual_ends_at_assigned_duration_and_clips_live_base():
+    base = torch.zeros(6, 18)
+    base[3, 6] = .95
+    arms = torch.tensor([1, 1, 1, 5, -1, 1])
+    ages = torch.tensor([3, 4, 8, 15, 0, 0])
+    durations = torch.tensor([4, 4, 16, 16, 0, 4])
+    terminal = torch.tensor([False]*5+[True])
+    result = contract.apply_feedback_residual(base, arms, ages, durations, terminal, contract.residuals())
+    assert torch.allclose(result[:3, 0], torch.tensor([.01, 0., .01]))
+    assert result[3, 6] == 1
+    assert torch.equal(result[4:], base[4:])
+
+
 def test_early_hold_run_needs_lift_and_contact_and_resets_on_loss():
     previous = torch.tensor([5, 5, 5, 0])
     height = torch.tensor([.031, .029, .05, .04])

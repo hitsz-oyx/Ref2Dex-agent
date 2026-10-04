@@ -17,6 +17,12 @@
 | [P-20261004-early-hold-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-early-hold-intervention.md) | Can actions manipulate interaction information useful for keeping a grasp? | 494 complete early-hold trials; A UNPROMISING, B UNCLEAR for insufficient strata despite 49.6% GT I error improvement; C not executed. | Close this four-step residual contract; retain GT I prognosis, without more seeds, fitting or online selection. | probes/UNCLEAR |
 | [P-20261004-randomized-action-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md) | Can randomized current actions control task-relevant consequences? | 320 actual randomized interventions; action-conditioned E/I8 and mediated task ranking fail all seven fixed gates under environment holdout. | Stop this pre-lift E/I8-to-Y16/32 PCA/MLP expansion after independent review; preserve weak object-rotation response and do not refute core  | probes/UNPROMISING |
 
+## HF-hold-duration-response
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | Pending randomized K4/K8/K16 physical response; no learned model planned. | Test duration as the next missing action-control link before any Cm training. | probes/PLANNED |
+
 ## HF-pointflow-G
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

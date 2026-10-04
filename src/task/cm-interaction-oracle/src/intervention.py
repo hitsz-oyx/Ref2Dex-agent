@@ -11,6 +11,19 @@ WINDOW = 32
 HISTORY = 10
 
 
+def decode_assignment(draw, duration_levels):
+    """One uniform joint arm/duration draw, after common eligibility."""
+    levels = torch.as_tensor(duration_levels, device=draw.device, dtype=torch.long)
+    return draw % len(ARM_NAMES), levels[draw // len(ARM_NAMES)]
+
+
+def apply_feedback_residual(base, arms, age, durations, terminal, delta):
+    treated = (arms >= 0) & (age >= 0) & (age < durations) & ~terminal
+    action = base.clone()
+    action[treated] = (base[treated]+delta[arms[treated]]).clamp(-1, 1)
+    return action
+
+
 def residuals(device="cpu"):
     delta = torch.zeros(7, 18, device=device)
     delta[1, 0], delta[2, 0] = .01, -.01

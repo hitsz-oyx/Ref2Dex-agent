@@ -21,7 +21,7 @@ from src.task.CmResidual.physical_value_contract import HoldTracker
 from src.task.CmResidual.physical_value_live import snapshot, context, contacts
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge, dexplore_root_pose
 sys.path.insert(0, str(ROOT / "src/task/cm-interaction-oracle/src"))
-from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom, update_predecision_hold
+from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom, update_predecision_hold, decode_assignment, apply_feedback_residual
 
 SOURCE_SHA = "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
 ARGS = None
@@ -74,6 +74,7 @@ class InterventionPlayer(original.EvalPlayer):
             rest = task.hoi_refs[task.data_id, task.ref_index, 0, 108].clone()
             terminal = torch.zeros(n, device=device, dtype=torch.bool)
             arms = torch.full((n,), -1, device=device, dtype=torch.long)
+            durations = torch.zeros_like(arms)
             decision_tick = torch.full_like(arms, -1)
             hold_steps = torch.zeros_like(arms)
             hold_steps_at = torch.zeros_like(arms)
@@ -130,7 +131,8 @@ class InterventionPlayer(original.EvalPlayer):
                 headroom_seen |= eligible
                 chosen = eligible.nonzero(as_tuple=False).flatten()
                 if len(chosen):
-                    arms[chosen] = torch.randint(7, (len(chosen),), generator=rng, device=device)
+                    draw = torch.randint(7*len(ARGS.durations), (len(chosen),), generator=rng, device=device)
+                    arms[chosen], durations[chosen] = decode_assignment(draw, ARGS.durations)
                     decision_tick[chosen] = tick
                     hold_steps_at[chosen] = hold_steps[chosen]
                     initial[chosen], history_at[chosen] = phys[chosen], history[chosen]
@@ -139,9 +141,7 @@ class InterventionPlayer(original.EvalPlayer):
                     motion_at[chosen], progress_at[chosen] = task.data_id[chosen], task.progress_buf[chosen]
                     eligibility_counts["assigned"] += len(chosen)
                 age = tick - decision_tick
-                treated = (arms >= 0) & (age < CHUNK) & ~terminal
-                action = base.clone()
-                action[treated] = (base[treated] + delta[arms[treated]]).clamp(-1, 1)
+                action = apply_feedback_residual(base, arms, age, durations, terminal, delta)
                 targets = task._action_to_pd_targets(action.clone()).clone()
                 base_targets = task._action_to_pd_targets(base.clone()).clone()
                 active_window = (arms >= 0) & (age < WINDOW) & ~terminal
@@ -176,7 +176,7 @@ class InterventionPlayer(original.EvalPlayer):
             else:
                 raise RuntimeError("wave budget ended before all native episodes terminated")
             selected = (arms >= 0).nonzero(as_tuple=False).flatten()
-            values = dict(arm=arms, decision_tick=decision_tick, before=initial, history=history_at,
+            values = dict(arm=arms, duration=durations, decision_tick=decision_tick, before=initial, history=history_at,
                           actor_obs=obs_at, context=context_at, base_action=base_at, hand_root=root_at,
                           motion_id=motion_at, progress=progress_at, start_frame=start_at,
                           trajectory=outcomes, actions=actual, base_actions=bases, valid_steps=valid_steps,
@@ -190,8 +190,9 @@ class InterventionPlayer(original.EvalPlayer):
                                   trials=len(selected), complete_windows=int(valid_steps[selected].all(-1).sum()))), flush=True)
             # Checkpoint bounded collection after every whole wave.
             payload = {key: torch.cat([p[key] for p in packets]) for key in values}
-            payload.update(schema="ref2dex.randomized_intervention.v1", arm_names=ARM_NAMES,
-                           delta=delta.cpu(), chunk=CHUNK, window=WINDOW, control_dt=task.dt,
+            payload.update(schema="ref2dex.randomized_intervention.v1" if ARGS.durations == [CHUNK] else "ref2dex.randomized_intervention.v2", arm_names=ARM_NAMES,
+                           delta=delta.cpu(), chunk=CHUNK if ARGS.durations == [CHUNK] else "per-trial",
+                           duration_levels=ARGS.durations, window=WINDOW, control_dt=task.dt,
                            motion_names=list(task.motion_file), source_sha256=SOURCE_SHA)
             payload["decision_region"] = ARGS.decision_region
             torch.save(payload, ARGS.run_dir / "interventions.pt")
@@ -213,7 +214,10 @@ def main():
     parser.add_argument("--wall-seconds", type=int, default=1200)
     parser.add_argument("--max-steps", type=int, default=2000)
     parser.add_argument("--decision-region", choices=("contact", "early-hold"), default="contact")
+    parser.add_argument("--durations", nargs="+", type=int, default=[CHUNK])
     ARGS, remaining = parser.parse_known_args()
+    if ARGS.durations != sorted(set(ARGS.durations)) or any(k not in (4, 8, 16) for k in ARGS.durations):
+        raise ValueError("durations must be a sorted unique subset of4/8/16")
     checkpoint = Path(remaining[remaining.index("--checkpoint")+1])
     if sha(checkpoint) != SOURCE_SHA:
         raise ValueError("must use pinned self-trained source_e260")
@@ -232,7 +236,8 @@ def main():
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         input_hashes={str(p): sha(p) for p in paths}, physical_gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
         created_at=datetime.now(timezone.utc).isoformat(), waves=ARGS.waves, wall_seconds=ARGS.wall_seconds,
-        torch_version=torch.__version__, chunk_contract="four-step feedback residual; future base actions not available at decision")
+        torch_version=torch.__version__, chunk_contract="per-trial assigned duration feedback residual; future base actions not available at decision",
+        duration_levels=ARGS.durations)
     manifest["decision_region"] = ARGS.decision_region
     manifest["reset_contract"] = "full batch only; no assigned trial excluded after execution"
     def save():
