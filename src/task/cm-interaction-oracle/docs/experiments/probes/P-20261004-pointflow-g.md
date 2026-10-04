@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [201]
 decision_changed_if_positive: audit action sensitivity before a bounded action-improvement teacher probe
 decision_changed_if_negative: inspect E error and train/deployment mismatch; no online policy training or capacity sweep
-status: PLANNED
-run_id: pointflow-g-k1-rootfix-s201
+status: UNCLEAR
+run_id: pointflow-g-k1-rootfix2-s201
 ---
 
 # Does real point-flow predicted E preserve E-to-G information?
@@ -131,6 +131,15 @@ If none passes, do not fit a new E predictor into this G target. Remain within
 the original total resource budget. Multiple contracts are exploratory choices,
 not independent confirmations or formal validation.
 
+Before closing this follow-up, independent review found that left padding leaves
+K1/K4 information followed by seven/four zero GRU steps before the final-state
+readout. Thus horizon comparisons also depend on memory decay through padding.
+Predeclare one controlled `gt-effect-contract-right-s201` repeat: only right-align
+K1/K4 to the final slots, retaining chronological order, all other arms/method/
+seed/capacity/gates unchanged. This resolves a specific engineering design
+confound before choosing whether to retain short-horizon E. It is not a new
+predictor search or budget reset. The original left-aligned results remain.
+
 ## Limitations / future evidence
 
 No new policy, causal Cm utility or formal validation claim. More seeds and
@@ -139,3 +148,81 @@ GT E is a future oracle. The predictor uses geometry rather than direct current
 object velocity, so rigid-motion persistence is a necessary diagnostic if errors
 are large. If only CM-fit works, audit geometric/action information and a matched
 feature control before using it as a physical consequence teacher.
+
+## Completed results and root decision
+
+Result: UNCLEAR for the valid K1 point-flow-to-G bridge; UNPROMISING for expanding a pose-only K4 predictor into this G regression from the fixed GT contract diagnostic.
+Decision: keep E as the physical main route, freeze I head/K4 expansion and this frozen K1 G teacher; audit task-relevant hold/drop value evidence before new predictor fitting or online training.
+
+Valid K1 run code: `0852c64cedc45c315a25f0ac9b9478bf4cbcfb50`, seed201,
+5,760 train / 1,408 test rows; 90 / 22 episode groups from four source runs.
+All six arms have 112,753 parameters. Duration 25.14 seconds, peak CUDA
+allocated 143,500,800 bytes. Actual source/checkpoint/code/geometry hashes
+are in the [run result](../../../../../../outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/result.json).
+
+| G input | Episode-balanced MAE | Relative improvement vs H |
+| --- | ---: | ---: |
+| H + constant E | 23.3652 | — |
+| H + GT E | 23.2837 | 0.35% |
+| H + CM E, GT-trained bridge swap | 23.6477 | -1.21% |
+| H + CM E, trained on predictions | 22.8961 | 2.01% |
+| H + current action | 24.2527 | -3.80% |
+| H + current action/root | 24.9192 | -6.65% |
+
+CM-fit delta CI95 is `[-0.713, 2.457]`, descriptive only. The biggest-|G|
+episode contributes 70.54% of H error and 185.45% of total CM-fit improvement;
+excluding it, the remaining 21 episodes are 5.82% worse than H. Only 8/22
+episodes improve. HAR being worse than H does not make CM physically valid.
+See [statistical audit](../../../../../../outputs/cm-interaction-oracle/pointflow-g-k1-rootfix2-s201/statistical_audit.json).
+
+CM held-out translation RMSE is 19.33mm, versus zero flow 11.49mm and current
+twist persistence 4.92mm. Axis-angle RMSE is 0.1391rad versus persistence
+0.0804rad. These units are reported separately, not fused into a physical
+error claim. The nominal root is held fixed; current inertia is not a direct
+input to this frozen spatial base. Even prediction-fit G benefit would not
+identify accurate E as its cause.
+
+GT contract follow-up code: `ae4ee11a7f36f165cc27764e85b136d8b5422f67`, same
+rows/seed/split; every arm is an 8-step 30D padded branch with 112,753
+parameters. Duration 14.58 seconds. Its newly trained H MAE is 23.5476;
+do not compare raw MAEs directly with the K1 bridge.
+
+| Oracle contract | Relative gain | Improving episodes | Gain excluding largest absolute-G episode |
+| --- | ---: | ---: | ---: |
+| Pose6 K1 | -0.03% | 12/22 | 0.78% |
+| Pose6 K4 | 0.29% | 14/22 | 0.74% |
+| Pose6 K8 | 2.75% | 17/22 | 3.01% |
+| Full13 K8 | 7.42% | 11/22 | -1.66% |
+
+The table above uses left-aligned short sequences; GRU padding can attenuate
+K1/K4, so it does not by itself establish the effect of horizon. Pose K8 has
+a weak directional signal (MAE delta CI95 `[0.126,1.567]`), but
+does not reach the predeclared 5% practical gate. Full13's CI crosses zero and
+its gain does not survive the predeclared sensitivity check. None passes.
+Keep the K8 pose observation as deferred evidence, not permission for a broad
+predictor sweep. [GT contract result](../../../../../../outputs/cm-interaction-oracle/gt-effect-contract-s201/result.json).
+
+Independent read-only reviewer `ref5_engineering_review` verified all 58,111
+assembled action/previous-action joins against pre-step shards (max error0),
+source/cache hashes, row-key alignment, strict spatial-base load, current-only
+root input and matched parameters/initialization/training order. No further
+fatal engineering defect found after the documented no-grad fix. Reviewer and
+root agree that these runs do not justify policy teacher or scientific utility
+claims. The existing supervised E/I checkpoint was jointly fitted to E/I;
+this probe freezes its spatial base and does not claim optimal E-only training.
+Full13 versus pose6 also changes quaternion versus axis-angle representation,
+so their difference does not isolate the contribution of future twist.
+
+Reviewer read-only episode coverage: 112 episodes contain just 2 successes,
+2 drops-after-success and 32 nonzero holds. The largest-|G| episode has an
+8.87-second maximum hold but also a later drop. Do not immediately train a
+success/drop G on this sparse sample, or interpret high RTG as stable grasp.
+Audit continuous hold/drop timing and label semantics before deciding a new fit.
+
+### Decision Note
+
+- Question: is there enough evidence to invest in K4 point-flow/G teacher or I prediction?
+- Evidence: valid K1 GT gain0.35%; pose K4 GT gain0.29%; K8 pose only2.75%; I and full13 RTG gains dominated by one episode; CM prediction loses to inertia persistence.
+- Root choice: retain physical E route and corrected geometry, stop these local expansions. Next inexpensive decision should audit continuous hold/drop targets and action contrast, rather than improve average RTG regression unconditionally.
+- Cost/stopping: this round used two isolated GPUs, zero new interactions and <10MB outputs; all jobs finished within the fixed bound. Future audit is pure existing-data statistics first; a new fit needs its own predeclared task-relevant decision, no automatic budget reset.
+- Authorization: none newly required within current campaign; Mission/claim remains unchanged. Formal multi-seed causal Cm-on/off policy validation is still outstanding.

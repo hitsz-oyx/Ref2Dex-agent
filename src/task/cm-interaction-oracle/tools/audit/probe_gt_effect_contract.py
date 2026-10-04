@@ -18,6 +18,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=Path, default=ROOT / 'tmp/e260_all4_h16_histfix.pt')
     parser.add_argument('--output-dir', type=Path, required=True)
+    parser.add_argument('--alignment', choices=['left', 'right'], default='left')
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -40,7 +41,8 @@ def main():
     arms = {'H': torch.zeros(len(idx), 8, 30)}
     for k in (1, 4, 8):
         value = torch.zeros(len(idx), 8, 30)
-        value[:, :k, :6] = pose[:, :k]
+        start = 0 if args.alignment == 'left' else 8 - k
+        value[:, start:start + k, :6] = pose[:, :k]
         arms['GT_pose_K%d' % k] = value
     arms['GT_full13_K8'] = F.pad(full, (0, 17))
     results = {}
@@ -69,6 +71,7 @@ def main():
               'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
               'input': str(args.input), 'input_sha256': sha256(args.input), 'script_sha256': sha256(__file__),
               'run_id': args.output_dir.name, 'seed': 201, 'split_identifier': 20261004,
+              'alignment': args.alignment,
               'train_rows': int(train.sum()), 'test_rows': int(test.sum()),
               'train_groups': train_groups, 'test_groups': test_groups,
               'arms': results, 'contrasts': contrasts,
