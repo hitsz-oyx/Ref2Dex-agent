@@ -212,6 +212,9 @@
 | [P-20261004-gate1-split-rng](probes/P-20261004-gate1-split-rng.md) | P-20261004-gate1-split-rng | with the original data and fixed splits, changing only the model seed | if split 3 stays negative and split 1 stays positive across the same | probes/见原卡 |
 | [P-20261004-gate2-action-chunk-k8](probes/P-20261004-gate2-action-chunk-k8.md) | P-20261004 Gate 2 action chunk K=8 | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261004-gate2-predictability](probes/P-20261004-gate2-predictability.md) | P-20261004 Gate 2 consequence predictability | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-ref4-g-bridge](probes/P-20261004-ref4-g-bridge.md) | P-20261004 Ref4 G bridge | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-ref4-g-predicted-e](probes/P-20261004-ref4-g-predicted-e.md) | P-20261004 Ref4 predicted-E bridge | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261004-surface-token-i](probes/P-20261004-surface-token-i.md) | P-20261004-surface-token-i | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT](probes/PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT.md) | Cm 效应头的动作对应关系 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-COMPONENTS](probes/PROBE-20260923-CM-WEIGHT-COMPONENTS.md) | Cm PPO 权重分量离线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |

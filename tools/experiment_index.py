@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import quote
@@ -10,14 +11,58 @@ from urllib.parse import quote
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+IGNORED_CARD_NAMES = {
+    "README.MD",
+    "INDEX.MD",
+    "PROBE_TEMPLATE.MD",
+    "VALIDATION_TEMPLATE.MD",
+}
+
+
+def _card_paths(directory: Path, kind: str) -> list[Path]:
+    """Find active cards below a root and its Task-local experiment trees.
+
+    A caller may pass an arbitrary standalone directory for a small index.  In
+    that case discovery stays local to that directory.  The repository-wide
+    ``docs/experiments`` index additionally includes each
+    ``src/task/<Task>/docs/experiments`` tree.
+    """
+
+    roots = [directory / kind]
+    if directory.name == "experiments" and directory.parent.name == "docs":
+        repo_root = directory.parent.parent
+        task_root = repo_root / "src" / "task"
+        if task_root.is_dir():
+            roots.extend(
+                task / "docs" / "experiments" / kind
+                for task in sorted(task_root.iterdir())
+                if task.is_dir()
+            )
+
+    cards: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        cards.extend(
+            path
+            for path in root.rglob("*.md")
+            if path.is_file()
+            and path.name.upper() not in IGNORED_CARD_NAMES
+            and "archive" not in path.relative_to(root).parts
+        )
+    return sorted(set(cards))
+
+
+def _relative_link(path: Path, directory: Path) -> str:
+    """Return a portable Markdown link from ``directory`` to ``path``."""
+
+    return Path(os.path.relpath(path, directory)).as_posix()
 
 
 def render(directory: Path) -> str:
     groups = defaultdict(list)
     for kind in ('probes', 'validations'):
-        for path in sorted((directory / kind).glob('*.md')):
-            if 'TEMPLATE' in path.name.upper():
-                continue
+        for path in _card_paths(directory, kind):
             text = path.read_text()
             metadata = {}
             if text.startswith('---\n'):
@@ -32,7 +77,7 @@ def render(directory: Path) -> str:
             state = str(metadata.get('status', '见原卡'))
             result = next((line.split(':', 1)[1].strip() for line in text.splitlines() if line.startswith('Result:')), '见原卡')
             next_step = next((line.split(':', 1)[1].strip() for line in text.splitlines() if line.startswith('Decision:')), '见原卡')
-            groups[family].append((path.relative_to(directory).as_posix(), str(identifier), title, state, kind, result, next_step))
+            groups[family].append((_relative_link(path, directory), str(identifier), title, state, kind, result, next_step))
     lines = ['# 实验阅读索引', '', '由 tools/experiment_index.py 生成；状态照录原卡，不重判科研结论。',
              '问题、结果与下一步见原卡开头；详细配置和执行版本见其 manifest。', '']
     for family, cards in sorted(groups.items()):

@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("ref2dex_verify", ROOT / "tools/verify.py")
@@ -126,11 +128,16 @@ def test_experiment_ids_are_unique_and_legacy_ids_are_inferred(tmp_path: Path, m
     assert any("实验 ID 重复 P-20260925-a" in failure for failure in failures)
 
 
-def test_v2_probe_schema_and_seed_contract(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("directory", [
+    "docs/experiments/probes",
+    "docs/experiments/probes/nested",
+    "src/task/TaskA/docs/experiments/probes/nested",
+])
+def test_v2_probe_schema_and_seed_contract(tmp_path: Path, monkeypatch, directory: str) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
-        tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
+        tmp_path / directory / "P-20260925-temporal.md",
         _valid_probe(),
     )
 
@@ -139,19 +146,30 @@ def test_v2_probe_schema_and_seed_contract(tmp_path: Path, monkeypatch) -> None:
     VERIFY._check_experiment_cards(failures)
     VERIFY._check_card_seed_pools(failures)
     assert not failures
+    assert len(VERIFY._card_files("probe")) == 1
 
 
-def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("directory", [
+    "docs/experiments/validations",
+    "src/task/TaskB/docs/experiments/validations/nested",
+])
+def test_v2_validation_requires_frozen_method_and_seed_pools(tmp_path: Path, monkeypatch, directory: str) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
-        tmp_path / "docs/experiments/validations/VAL-20260925-temporal.md",
+        tmp_path / directory / "VAL-20260925-temporal.md",
         _valid_validation(),
     )
     failures: list[str] = []
     VERIFY._check_experiment_cards(failures)
     VERIFY._check_card_seed_pools(failures)
     assert not failures
+    assert len(VERIFY._card_files("validation")) == 1
+
+    card = tmp_path / directory / "VAL-20260925-temporal.md"
+    card.write_text(_valid_validation().replace("frozen_method_commit: def456\n", ""))
+    VERIFY._check_experiment_cards(failures)
+    assert any("缺少 frozen_method_commit" in failure for failure in failures)
 
 
 def test_seed_ledger_rejects_pool_overlap(tmp_path: Path, monkeypatch) -> None:
@@ -165,16 +183,86 @@ def test_seed_ledger_rejects_pool_overlap(tmp_path: Path, monkeypatch) -> None:
     assert any("重叠" in failure for failure in failures)
 
 
-def test_probe_cannot_reference_validation_holdout(tmp_path: Path, monkeypatch) -> None:
+@pytest.mark.parametrize("directory", [
+    "docs/experiments/probes",
+    "src/task/TaskA/docs/experiments/probes/nested",
+])
+def test_probe_cannot_reference_validation_holdout(tmp_path: Path, monkeypatch, directory: str) -> None:
     monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
     _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
     _write(
-        tmp_path / "docs/experiments/probes/P-20260925-temporal.md",
+        tmp_path / directory / "P-20260925-temporal.md",
         _valid_probe().replace("seed_pool: probe", "seed_pool: validation.holdout"),
     )
     failures: list[str] = []
     VERIFY._check_card_seed_pools(failures)
     assert any("不得消费 validation" in failure for failure in failures)
+
+
+def test_duplicate_ids_across_root_and_tasks_are_rejected(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    paths = [
+        "docs/experiments/probes/nested/P-shared.md",
+        "src/task/TaskA/docs/experiments/probes/P-shared.md",
+        "src/task/TaskB/docs/experiments/probes/route/P-shared.md",
+    ]
+    for path in paths:
+        _write(tmp_path / path, "# Legacy card\n")
+    failures: list[str] = []
+    VERIFY._check_experiment_cards(failures)
+    assert len(failures) == 1
+    assert "实验 ID 重复 P-shared" in failures[0]
+    assert all(path in failures[0] for path in paths)
+
+
+def test_recursive_cards_exclude_templates_navigation_and_archives(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    card = "src/task/TaskA/docs/experiments/probes/topic/P-active.md"
+    _write(tmp_path / card, "# Active\n")
+    excluded = [
+        "docs/experiments/probes/PROBE_TEMPLATE.md",
+        "docs/experiments/probes/archive/P-old.md",
+        "docs/archive/experiments/probes/P-old.md",
+        "src/task/TaskA/docs/experiments/probes/topic/README.md",
+        "src/task/TaskA/docs/experiments/probes/topic/INDEX.md",
+        "src/task/TaskA/docs/experiments/probes/topic/PROBE_TEMPLATE.md",
+        "src/task/TaskA/docs/experiments/probes/archive/P-old.md",
+        "src/task/TaskA/docs/archive/experiments/probes/P-old.md",
+        "src/task/TaskA/research/trial/docs/experiments/probes/P-old.md",
+    ]
+    for path in excluded:
+        _write(tmp_path / path, "[not an active card](missing.md)\n")
+    assert VERIFY._card_files("probe") == [tmp_path / card]
+    failures: list[str] = []
+    VERIFY._check_experiment_cards(failures)
+    VERIFY._check_markdown(set(), failures)
+    assert not failures
+
+
+def test_task_card_links_are_checked_even_when_unchanged(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    card = "src/task/TaskA/docs/experiments/probes/topic/P-link.md"
+    _write(tmp_path / card, "# Probe\n[evidence](result.json)\n")
+    failures: list[str] = []
+    VERIFY._check_markdown(set(), failures)
+    assert any(card in failure and "目标不存在" in failure for failure in failures)
+    _write(tmp_path / card.replace("P-link.md", "result.json"), "{}")
+    failures = []
+    VERIFY._check_markdown(set(), failures)
+    assert not failures
+
+
+def test_task_validation_checks_global_seed_ledger(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(VERIFY, "ROOT", tmp_path)
+    _write(tmp_path / "docs/SEED_LEDGER.yaml", _ledger())
+    _write(
+        tmp_path / "src/task/TaskA/docs/experiments/validations/VAL-20260925-temporal.md",
+        _valid_validation().replace("validation_seed_pool: validation.holdout", "validation_seed_pool: unknown"),
+    )
+    failures: list[str] = []
+    VERIFY._check_card_seed_pools(failures)
+    assert any("未在 SEED_LEDGER 中登记" in failure for failure in failures)
+    assert any("必须指向 validation.holdout" in failure for failure in failures)
 
 
 def test_seed_ledger_rejects_malformed_range(tmp_path: Path, monkeypatch) -> None:

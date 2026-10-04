@@ -395,9 +395,8 @@ src/task/<TaskName>/docs/experiments/validations/
 不手工维护第二份实验卡。
 
 当前根级 `docs/experiments/probes/` 和 `docs/experiments/validations/` 中的历史卡不迁移。
-在 `tools/verify.py` 和 `tools/experiment_index.py` 支持递归发现 Task-local 卡片之前，
-新卡仍放在当前根级目录，避免实验卡绕过 schema、seed 和链接验证。工具支持递归发现后，
-新路线再按本节目标创建 Task-local 卡片。
+`tools/verify.py` 和 `tools/experiment_index.py` 会递归发现根级与 Task-local 卡片；新路线
+可以按本节目标创建 Task-local 卡片，并继续使用同一套 schema、seed 和链接验证。
 
 ### 13.3 追溯和输出边界
 

@@ -36,6 +36,7 @@ REQUIRED_CONTEXT_FILES = (
 )
 PROBE_DIR = Path("docs/experiments/probes")
 VALIDATION_DIR = Path("docs/experiments/validations")
+TASK_ROOT = Path("src/task")
 SEED_LEDGER_PATH = Path("docs/SEED_LEDGER.yaml")
 
 MARKDOWN_LINK_RE = re.compile(
@@ -177,13 +178,11 @@ def _workflow_markdown_files() -> set[str]:
     """Return current workflow docs whose links should always be live."""
 
     candidates = set(REQUIRED_CONTEXT_FILES) | {"AGENTS.md", "docs/README.md"}
-    for directory in (ROOT / PROBE_DIR, ROOT / VALIDATION_DIR):
-        if directory.is_dir():
-            candidates.update(
-                (_relative_path(path) or path.as_posix())
-                for path in directory.glob("*.md")
-                if not path.name.upper().endswith("_TEMPLATE.MD")
-            )
+    candidates.update(
+        (_relative_path(path) or path.as_posix())
+        for kind in ("probe", "validation")
+        for path in _card_files(kind)
+    )
     return {
         relative
         for relative in candidates
@@ -379,14 +378,35 @@ def _card_id(kind: str, path: Path, fields: Mapping[str, Any]) -> str | None:
 
 
 def _card_files(kind: str) -> list[Path]:
-    directory = ROOT / (PROBE_DIR if kind == "probe" else VALIDATION_DIR)
-    if not directory.is_dir():
-        return []
-    return sorted(
-        path
-        for path in directory.glob("*.md")
-        if path.name.upper() not in {"PROBE_TEMPLATE.MD", "VALIDATION_TEMPLATE.MD"}
-    )
+    relative_directory = PROBE_DIR if kind == "probe" else VALIDATION_DIR
+    directories: list[Path] = [ROOT / relative_directory]
+
+    task_root = ROOT / TASK_ROOT
+    if task_root.is_dir():
+        directories.extend(
+            task / "docs" / "experiments" / f"{kind}s"
+            for task in sorted(task_root.iterdir())
+            if task.is_dir()
+        )
+
+    excluded_names = {
+        "README.MD",
+        "INDEX.MD",
+        "PROBE_TEMPLATE.MD",
+        "VALIDATION_TEMPLATE.MD",
+    }
+    cards: list[Path] = []
+    for directory in directories:
+        if not directory.is_dir():
+            continue
+        cards.extend(
+            path
+            for path in directory.rglob("*.md")
+            if path.is_file()
+            and path.name.upper() not in excluded_names
+            and "archive" not in path.relative_to(directory).parts
+        )
+    return sorted(set(cards))
 
 
 def _nonempty_field(fields: Mapping[str, Any], name: str) -> bool:
@@ -670,6 +690,8 @@ def _select_tests(paths: Iterable[str]) -> list[str]:
         if path == "AGENTS.md" or path.startswith(
             ("docs/", ".agents/", ".github/")
         ) or path == "tools/verify.py":
+            needs_governance = True
+        if path.startswith("src/task/") and "/docs/experiments/" in path:
             needs_governance = True
     if needs_shared:
         candidate = "tests/test_run_manifest.py"
