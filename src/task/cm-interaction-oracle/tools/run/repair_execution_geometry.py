@@ -149,14 +149,14 @@ def main():
         # Reuse prior fixed State/Flow/Arm/Joint controls; do not refit exposed
         # baselines. Exact replay verifies identical inputs/scales beforehand.
         for name in ('State','Nominal','Arm','Joint'):
-            original='Flow' if name=='Nominal' else name
-            predictions[name]=d['full_predictions'][original]
+            source_variant='Flow' if name=='Nominal' else name
+            predictions[name]=d['full_predictions'][source_variant]
             a=a_blank;sa=zero
             if name=='Nominal':sa=actual
             elif name=='Arm':a=torch.nn.functional.pad(torch.nn.functional.one_hot(actual,15)[:,1:].float(),(0,18))
             elif name=='Joint':a=torch.nn.functional.pad(g['joint'][rows,actual]/.32,(0,14))
             restored=SpatialConsequence(h.shape[1],26).to(device)
-            restored.load_state_dict(d['states']['full_'+original]);restored.eval()
+            restored.load_state_dict(d['states']['full_'+source_variant]);restored.eval()
             replay=(evaluate(restored,h,a,blank,g,sa,rows)*scale+base).cpu().numpy()
             source_replay[name]=float(np.max(np.abs(replay-predictions[name])))
             assert source_replay[name]<1e-6
