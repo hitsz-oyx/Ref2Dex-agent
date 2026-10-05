@@ -184,3 +184,12 @@ Default paired helper behavior stays bit-exact for all prior callers/GPU.
 This documented initial-engine tolerance does not relax prefix/Y/Z acceptance.
 Regression rejects velocity differences,largepose/nonfinite. R5 CPU smoke now
 checks whether numerical setter allowance actually restores repeatedprefixes.
+
+CPU R5 repeat passed EXACTLY, including identical panel SHA, butonly1/24
+early-hold anchor (s3 only), so engineering proof alone gives insufficient
+scientific coverage. One minimal GPU PhysX +CPU tensorpipeline/single-thread
+smoke distinguishes GPU pipeline force-read variability while preserving GPU
+physics substrate. Same immutable table adapter and cold numerical allowance
+forCPU tensor views. Only ifpairing passes and adequate anchors exist expand
+main. Backend now records actual physx.use_gpu separately from tensor_device
+and actor_device; no pretending CPU tensor views mean CPU physics.

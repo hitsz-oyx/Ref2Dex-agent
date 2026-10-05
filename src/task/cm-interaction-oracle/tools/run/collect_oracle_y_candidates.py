@@ -221,7 +221,8 @@ class CandidatePlayer(original.EvalPlayer):
         result=dict(anchors=int(assigned.sum()),motion_counts=[int((assigned&(motion==k)).sum()) for k in range(3)],
             ticks=tick+1,candidate=ARGS.candidate,wall_seconds=time.monotonic()-begin,
             model_fingerprint=model_hash,rms_fingerprint=rms_hash,initial_fingerprint=initial_hash,
-            aligned_reference_tables=migrated_tables,physics_device=str(task.device),actor_device=str(next(self.model.parameters()).device),
+            aligned_reference_tables=migrated_tables,physics_use_gpu=bool(task.gym.get_sim_params(task.sim).physx.use_gpu),
+            tensor_device=str(task.device),actor_device=str(next(self.model.parameters()).device),
             actor_and_rms_unchanged=True,prefix_errors_max=errors[assigned].amax(0).cpu().tolist() if assigned.any() else [],
             output_sha256=sha(ARGS.run_dir/'panel.pt'))
         (ARGS.run_dir/'result.json').write_text(json.dumps(result,indent=2)+'\n'); print(json.dumps(result),flush=True)

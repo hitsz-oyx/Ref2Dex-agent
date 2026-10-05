@@ -9,6 +9,7 @@ args=()
 sim_device=cuda:0
 pipeline=gpu
 if [[ "${6:-gpu}" == cpu ]]; then sim_device=cpu; pipeline=cpu; args+=(--num_threads 1); fi
+if [[ "${6:-gpu}" == host ]]; then pipeline=cpu; args+=(--num_threads 1); fi
 if [[ "${5:-}" == diagnose ]]; then args+=(--diagnose-prefix); fi
 if [[ -n "$reference" ]]; then args+=(--reference "$root/outputs/cm-interaction-oracle/$reference"); fi
 mkdir -p "$root/tmp/ref13" "$root/tmp/torch_extensions"
