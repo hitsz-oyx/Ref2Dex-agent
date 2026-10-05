@@ -1,8 +1,8 @@
 # cm-interaction-oracle
 
 Task for action-conditioned physical consequence E/I and task-relative action
-quality. Current ref11 route uses `agent/cm-oracle-flow-planning`; prior
-execution route remains in `agent/cm-interaction-oracle`. Task, branch and
+quality, on the original branch `agent/cm-interaction-oracle`. The execution
+route is paused while ref11 proceeds on this same branch. Task, branch and
 experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
@@ -12,7 +12,7 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref11): stop native execution prediction and test
+Current user-directed route (ref11): pause native execution prediction and test
 oracle hand-flow as the planning action. Compare current State, actual endpoint
 flow and two measured trajectory chunks, with matched flow shuffles and E/I-only
 evaluation. Post-treatment oracle inputs do not establish a deployable control
@@ -278,7 +278,7 @@ closed-form ridge fits. UNPROMISING for this finite basis/scale/estimator:
 PhysicsContact I.98857 vs matchedState.98882/priorState.88370. Exact root and
 independent matrix replay passes; all action columns meet the scale floor, so
 equal ridge penalties do not establish equal effective shrinkage. Preserve
-the result and stop this execution branch per ref11. Tools are
+the result and pause the execution route per ref11. Tools are
 `tools/run/probe_contact_innovation.py` and `tools/audit/audit_contact_innovation.py`,
 both taking dataset, corrected forecast run and unique/completed output folder.
 No follow-on execution or contrast-stability fit was launched.

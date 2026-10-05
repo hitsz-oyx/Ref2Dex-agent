@@ -20,7 +20,7 @@ run_id: contact-innovation-s253
 # Does bounded surface-relative motion add information beyond joint/finger flow?
 
 Result: UNPROMISING for the fixed bounded basis / nuisance / ridge contract.
-Decision: Close and preserve this result; user ref11 redirects work to oracle hand-flow planning.
+Decision: Preserve the completed fixed-fit result; pause the old route while ref11 proceeds on the original branch.
 
 ## Root Decision Note / Decision experiment
 
@@ -183,10 +183,11 @@ Tiny matrix/statistics audit CPU avoids GPU startup/repeating root FK.
 Reviewmd/json plus root `review_provenance.json`, signed vectors and standalone
 `contact_innovation.png` bind evidence to the immutable main diagnostic.
 
-## User-directed closeout / next route
+## User-directed pause / next route
 
-User now explicitly stops the execution-predictor branch and directs ref11:
-separate planning from control. No planned contrast-stability diagnostic was
+User clarified that closeout means pausing the old execution route, not
+creating or switching a research branch. Continue ref11 on the original
+`agent/cm-interaction-oracle`: separate planning from control. No planned contrast-stability diagnostic was
 implemented or run. No additional basis, scale, nuisance or epoch fitting.
 Preserve all code/results; no task-owned GPU process remains.
 

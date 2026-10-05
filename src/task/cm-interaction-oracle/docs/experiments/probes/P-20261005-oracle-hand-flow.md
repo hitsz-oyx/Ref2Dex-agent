@@ -4,7 +4,7 @@ probe_id: P-20261005-oracle-hand-flow
 experiment_id: P-20261005-oracle-hand-flow
 date: 2026-10-05
 task: cm-interaction-oracle
-branch: agent/cm-oracle-flow-planning
+branch: agent/cm-interaction-oracle
 git_commit: pending
 claim_id: C3
 hypothesis_family: HF-oracle-hand-flow
@@ -20,11 +20,12 @@ run_id: oracle-hand-flow-s255
 # Ref11: oracle endpoint and temporal hand flow → E/I
 
 Result: UNCLEAR: protocol frozen, run pending.
-Decision: Separate oracle planning input from the stopped native execution route.
+Decision: Separate oracle planning input from the paused native execution route on the original branch.
 
 ## Root Decision Note / user-directed Decision
 
-User explicitly stops the execution branch and directs Task ref11. The final
+User pauses the old execution route and directs Task ref11 on the original
+`agent/cm-interaction-oracle` branch; no new branch is needed. The final
 Mission remains matched Cm-on/off trained-policy utility; this stage asks only
 whether actual hand motion predicts E/I. Prior RealizedSurface endpoint used
 V13 bottleneck, so it did not separate temporal information from representation.
