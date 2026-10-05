@@ -166,3 +166,8 @@ indices/tables. Task-local explicit immutable reference-table device adapter
 fixes this, leaves native engine-owned root/DOF/contact views and actor untouched,
 refuses unexpected device-mixed buffers. No external/native source alteration.
 CPU retry uses unique `oracle-y-cpu-smoke-s263-r2-*`.
+
+CPU retry2 preflight additionally identified immutable `object_points` loaded
+onCUDA; add that reference-surface table to the explicit adapter whitelist.
+Still0simulate. Retry3 uses unique outputs. All initial preflight errors remain
+engineering-only; no GateA result.

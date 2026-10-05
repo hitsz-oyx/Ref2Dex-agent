@@ -109,7 +109,7 @@ def align_native_reference_tables(task):
     if str(task.device) != 'cpu': return []
     names=('object_id','obj2motion','_env_initial_motion','max_episode_length',
            'start_contact_idx','hoi_data','hoi_refs','hoi_data_dict','table_data',
-           'ref_reward','ref_index','_motion_table_poses')
+           'ref_reward','ref_index','_motion_table_poses','object_points')
     def move(v):
         if isinstance(v,torch.Tensor): return v.to(task.device)
         if isinstance(v,dict): return {k:move(x) for k,x in v.items()}
