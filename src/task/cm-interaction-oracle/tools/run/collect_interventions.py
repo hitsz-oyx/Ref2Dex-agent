@@ -21,7 +21,7 @@ from src.task.CmResidual.physical_value_contract import HoldTracker
 from src.task.CmResidual.physical_value_live import snapshot, context, contacts
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge, dexplore_root_pose
 sys.path.insert(0, str(ROOT / "src/task/cm-interaction-oracle/src"))
-from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom, update_predecision_hold, decode_assignment, decode_amplitude_assignment, apply_feedback_residual
+from intervention import CHUNK, WINDOW, HISTORY, ARM_NAMES, residuals, all_arms_have_headroom, update_predecision_hold, decode_assignment, decode_amplitude_assignment, apply_feedback_residual, per_finger_residuals, PER_FINGER_ARM_NAMES
 
 SOURCE_SHA = "16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f"
 ARGS = None
@@ -42,12 +42,15 @@ class InterventionPlayer(original.EvalPlayer):
             raise ValueError("airplane motion/control interval drift")
         self.model.eval()
         n = task.num_envs
-        delta = residuals(device)
+        per_finger = ARGS.intervention_set == "per-finger-range"
+        arm_names = PER_FINGER_ARM_NAMES if per_finger else ARM_NAMES
+        delta = per_finger_residuals(ARGS.finger_range_fraction, device) if per_finger else residuals(device)
+        capture_geometry = per_finger or ARGS.amplitudes != [1.]
         rng = torch.Generator(device=device).manual_seed(ARGS.assignment_seed)
         asset = ROOT / "third_party/DExplore/dexplore/data/assets"
         bridge = DExploreCmv2GeometryBridge(hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
                                           object_urdf=asset / "mjcf/airplane.urdf", device=device)
-        if ARGS.amplitudes != [1.]:
+        if capture_geometry:
             sample = ARGS.run_dir / "object_surface_sample.pt"
             torch.save(dict(points=torch.as_tensor(bridge.geometry.object_local).cpu(),
                             normals=torch.as_tensor(bridge.geometry.object_normal).cpu(),
@@ -55,6 +58,9 @@ class InterventionPlayer(original.EvalPlayer):
             (ARGS.run_dir / "geometry_provenance.json").write_text(json.dumps(dict(
                 sample_sha256=sha(sample), seed=42, stride=8,
                 contract="local object visual surface; transformed by measured world object pose"), indent=2)+"\n")
+        tip_names = ("index_tip", "middle_tip", "pinky_tip", "ring_tip", "thumb_tip")
+        tip_ids = task._key_body_ids[[task.cfg["env"]["keyBodies"].index(name) for name in tip_names]]
+        hand_base_id = task._key_body_ids[task.cfg["env"]["keyBodies"].index("hand_base_link")]
         tracker = HoldTracker(n, device)
         started = time.monotonic()
         packets, summaries = [], []
@@ -102,6 +108,11 @@ class InterventionPlayer(original.EvalPlayer):
             outcomes = torch.zeros(n, WINDOW, 72, device=device)
             normals_at = torch.zeros(n, 5, 3, device=device)
             normal_trajectory = torch.zeros(n, WINDOW, 5, 3, device=device)
+            native_q = torch.zeros(n, WINDOW, 18, device=device)
+            tips_at = torch.zeros(n, 5, 3, device=device)
+            tip_trajectory = torch.zeros(n, WINDOW, 5, 3, device=device)
+            hand_base_at = torch.zeros(n, 7, device=device)
+            hand_base_trajectory = torch.zeros(n, WINDOW, 7, device=device)
             actual = torch.zeros(n, WINDOW, 18, device=device)
             bases = torch.zeros_like(actual)
             pd_targets = torch.zeros_like(actual)
@@ -148,13 +159,15 @@ class InterventionPlayer(original.EvalPlayer):
                         arms[chosen], amplitudes[chosen] = decode_amplitude_assignment(draw, ARGS.amplitudes)
                         durations[chosen] = ARGS.durations[0]
                     else:
-                        draw = torch.randint(7*len(ARGS.durations), (len(chosen),), generator=rng, device=device)
-                        arms[chosen], durations[chosen] = decode_assignment(draw, ARGS.durations)
+                        draw = torch.randint(len(arm_names)*len(ARGS.durations), (len(chosen),), generator=rng, device=device)
+                        arms[chosen], durations[chosen] = decode_assignment(draw, ARGS.durations, len(arm_names))
                         amplitudes[chosen] = ARGS.amplitudes[0]
                     decision_tick[chosen] = tick
                     hold_steps_at[chosen] = hold_steps[chosen]
                     initial[chosen], history_at[chosen] = phys[chosen], history[chosen]
                     normals_at[chosen] = normals[chosen]
+                    tips_at[chosen] = task._rigid_body_pos[chosen][:, tip_ids]
+                    hand_base_at[chosen] = torch.cat((task._rigid_body_pos[chosen, hand_base_id], task._rigid_body_rot[chosen, hand_base_id]), -1)
                     obs_at[chosen], context_at[chosen] = obs["obs"][chosen], context(task, tracker)[chosen]
                     base_at[chosen], root_at[chosen] = base[chosen], task._humanoid_root_states[chosen]
                     motion_at[chosen], progress_at[chosen] = task.data_id[chosen], task.progress_buf[chosen]
@@ -174,6 +187,9 @@ class InterventionPlayer(original.EvalPlayer):
                     offsets = age[env_ids]
                     outcomes[env_ids, offsets] = after[env_ids]
                     normal_trajectory[env_ids, offsets] = after_normals[env_ids]
+                    native_q[env_ids, offsets] = task._dof_pos[env_ids]
+                    tip_trajectory[env_ids, offsets] = task._rigid_body_pos[env_ids][:, tip_ids]
+                    hand_base_trajectory[env_ids, offsets] = torch.cat((task._rigid_body_pos[env_ids, hand_base_id], task._rigid_body_rot[env_ids, hand_base_id]), -1)
                     actual[env_ids, offsets], bases[env_ids, offsets] = action[env_ids], base[env_ids]
                     pd_targets[env_ids, offsets] = targets[env_ids]
                     pd_base_targets[env_ids, offsets] = base_targets[env_ids]
@@ -203,8 +219,11 @@ class InterventionPlayer(original.EvalPlayer):
                           pd_targets=pd_targets, pd_base_targets=pd_base_targets,
                           rest_height=rest, episode_id=full_ids + wave*n)
             values["pre_hold_steps"] = hold_steps_at
-            if ARGS.amplitudes != [1.]:
+            if capture_geometry:
                 values.update(amplitude=amplitudes, before_surface_normals=normals_at, surface_normals=normal_trajectory)
+            if per_finger:
+                values.update(native_q=native_q, before_fingertip_positions=tips_at, fingertip_positions=tip_trajectory,
+                              before_hand_base_pose=hand_base_at, hand_base_pose=hand_base_trajectory)
             packets.append({key: value[selected].cpu() for key, value in values.items()})
             print(json.dumps(dict(wave_completed=wave, eligible_counts=eligibility_counts,
                                   unique_region_envs=int(region_seen.sum()), unique_geometry_envs=int(geometry_seen.sum()),
@@ -212,19 +231,24 @@ class InterventionPlayer(original.EvalPlayer):
                                   trials=len(selected), complete_windows=int(valid_steps[selected].all(-1).sum()))), flush=True)
             # Checkpoint bounded collection after every whole wave.
             payload = {key: torch.cat([p[key] for p in packets]) for key in values}
-            payload.update(schema="ref2dex.randomized_intervention.v1" if ARGS.durations == [CHUNK] else "ref2dex.randomized_intervention.v2", arm_names=ARM_NAMES,
+            payload.update(schema="ref2dex.randomized_intervention.v1" if ARGS.durations == [CHUNK] else "ref2dex.randomized_intervention.v2", arm_names=arm_names,
                            delta=delta.cpu(), chunk=CHUNK if ARGS.durations == [CHUNK] else "per-trial",
                            duration_levels=ARGS.durations, window=WINDOW, control_dt=task.dt,
                            motion_names=list(task.motion_file), source_sha256=SOURCE_SHA)
             payload["decision_region"] = ARGS.decision_region
-            if ARGS.amplitudes != [1.]:
+            if capture_geometry:
                 payload.update(schema="ref2dex.randomized_intervention.v3", amplitude_levels=ARGS.amplitudes,
                     normal_contract="nearest sampled object-surface normal at measured hand body center; aggregate force projection, not paired contact")
+            if per_finger:
+                payload.update(schema="ref2dex.randomized_intervention.v4", intervention_set=ARGS.intervention_set,
+                    finger_range_fraction=ARGS.finger_range_fraction, fingertip_names=tip_names,
+                    contact_body_names=tuple(task.cfg["env"]["contactBodies"]),
+                    measured_motion_contract="native q radians; actual tip world positions; actual hand-base poses for local motion")
             torch.save(payload, ARGS.run_dir / "interventions.pt")
             (ARGS.run_dir / "episode_summary.json").write_text(json.dumps(summaries, indent=2)+"\n")
         result = dict(trials=len(payload["arm"]), episodes=len(summaries),
                       complete_windows=int(payload["valid_steps"].all(-1).sum()),
-                      arm_counts=torch.bincount(payload["arm"], minlength=7).tolist(),
+                      arm_counts=torch.bincount(payload["arm"], minlength=len(arm_names)).tolist(),
                       elapsed_seconds=time.monotonic()-started,
                       dataset_sha256=sha(ARGS.run_dir / "interventions.pt"))
         (ARGS.run_dir / "result.json").write_text(json.dumps(result, indent=2)+"\n")
@@ -241,7 +265,13 @@ def main():
     parser.add_argument("--decision-region", choices=("contact", "early-hold"), default="contact")
     parser.add_argument("--durations", nargs="+", type=int, default=[CHUNK])
     parser.add_argument("--amplitudes", nargs="+", type=float, default=[1.])
+    parser.add_argument("--intervention-set", choices=("synergy", "per-finger-range"), default="synergy")
+    parser.add_argument("--finger-range-fraction", type=float, default=.05)
     ARGS, remaining = parser.parse_known_args()
+    if ARGS.intervention_set == "per-finger-range":
+        per_finger_residuals(ARGS.finger_range_fraction)  # validate before loading native player
+        if ARGS.durations != [8] or ARGS.amplitudes != [1.]:
+            raise ValueError("per-finger range comparison fixes K8 and amplitude1; range fraction defines dose")
     if ARGS.durations != sorted(set(ARGS.durations)) or any(k not in (4, 8, 16) for k in ARGS.durations):
         raise ValueError("durations must be a sorted unique subset of4/8/16")
     if ARGS.amplitudes != sorted(set(ARGS.amplitudes)) or any(a not in (1., 2., 4.) for a in ARGS.amplitudes):
@@ -254,8 +284,12 @@ def main():
     ARGS.run_dir = ARGS.run_dir.resolve()
     ARGS.run_dir.mkdir(parents=True, exist_ok=False)
     paths = [SCRIPT, ROOT / "src/task/cm-interaction-oracle/src/intervention.py", checkpoint]
-    if ARGS.amplitudes != [1.]:
+    if ARGS.amplitudes != [1.] or ARGS.intervention_set != "synergy":
         paths.extend(ROOT / path for path in (
+            "src/task/CmResidual/physical_value_live.py",
+            "src/task/CmResidual/physical_value_contract.py",
+            "third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py",
+            "third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py",
             "src/task/CmResidual/dexplore_cm_geometry.py",
             "third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py",
             "third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf",
@@ -274,7 +308,8 @@ def main():
         input_hashes={str(p): sha(p) for p in paths}, physical_gpu=os.environ.get("CUDA_VISIBLE_DEVICES"),
         created_at=datetime.now(timezone.utc).isoformat(), waves=ARGS.waves, wall_seconds=ARGS.wall_seconds,
         torch_version=torch.__version__, chunk_contract="per-trial assigned duration feedback residual; future base actions not available at decision",
-        duration_levels=ARGS.durations, amplitude_levels=ARGS.amplitudes)
+        duration_levels=ARGS.durations, amplitude_levels=ARGS.amplitudes,
+        intervention_set=ARGS.intervention_set, finger_range_fraction=ARGS.finger_range_fraction)
     manifest["decision_region"] = ARGS.decision_region
     manifest["reset_contract"] = "full batch only; no assigned trial excluded after execution"
     def save():

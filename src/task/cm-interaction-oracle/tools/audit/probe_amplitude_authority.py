@@ -97,10 +97,10 @@ def useful_candidates(beta, tails, halves, families):
     return rows
 
 
-def audit_packet(p, dataset):
-    assert p['schema']=='ref2dex.randomized_intervention.v3'
+def audit_packet(p, dataset, expected_delta=None):
+    assert p['schema']==('ref2dex.randomized_intervention.v3' if expected_delta is None else 'ref2dex.randomized_intervention.v4')
     assert p['duration_levels']==[8] and (p['duration']==8).all()
-    assert p['decision_region']=='early-hold' and torch.equal(p['delta'],residuals())
+    assert p['decision_region']=='early-hold' and torch.equal(p['delta'],residuals() if expected_delta is None else expected_delta)
     for key,value in p.items():
         if isinstance(value,torch.Tensor): assert torch.isfinite(value).all(),key
     assert p['valid_steps'].all() and (p['pre_hold_steps']>=6).all()
@@ -159,7 +159,7 @@ def audit_packet(p, dataset):
     exact_error=torch.cat(exact_errors)
     cells=[]
     for alpha in p['amplitude_levels']:
-        for arm in range(7):
+        for arm in range(len(p['arm_names'])):
             keep=(p['amplitude']==alpha)&(p['arm']==arm); ratio=None
             if arm and keep.any():
                 d=p['delta'][arm]

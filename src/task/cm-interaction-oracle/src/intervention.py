@@ -6,15 +6,19 @@ import torch
 ARM_NAMES = ("zero", "wrist_x_plus", "wrist_x_minus", "wrist_z_plus",
              "wrist_z_minus", "finger_plus", "finger_minus")
 FINGER_INDICES = (6, 8, 10, 12, 15)
+INDEPENDENT_FINGER_NAMES = ("index", "middle", "pinky", "ring", "thumb_yaw", "thumb_pitch")
+INDEPENDENT_FINGER_INDICES = (6, 8, 10, 12, 14, 15)
+PER_FINGER_ARM_NAMES = ("zero",) + tuple(f"{name}_{sign}" for name in INDEPENDENT_FINGER_NAMES
+                                         for sign in ("plus", "minus")) + ("synergy_plus", "synergy_minus")
 CHUNK = 4
 WINDOW = 32
 HISTORY = 10
 
 
-def decode_assignment(draw, duration_levels):
+def decode_assignment(draw, duration_levels, n_arms=len(ARM_NAMES)):
     """One uniform joint arm/duration draw, after common eligibility."""
     levels = torch.as_tensor(duration_levels, device=draw.device, dtype=torch.long)
-    return draw % len(ARM_NAMES), levels[draw // len(ARM_NAMES)]
+    return draw % n_arms, levels[draw // n_arms]
 
 
 def decode_amplitude_assignment(draw, amplitude_levels):
@@ -44,6 +48,24 @@ def residuals(device="cpu"):
     delta[3, 2], delta[4, 2] = .01, -.01
     delta[5, list(FINGER_INDICES)] = .1
     delta[6, list(FINGER_INDICES)] = -.1
+    return delta
+
+
+def per_finger_residuals(range_fraction=.05, device="cpu"):
+    """Isolate each native independent DOF; coupling is applied by native PD.
+
+    Native finger targets have slope range/2, so delta_action=2*fraction
+    gives a signed fraction of that driver's physical range. Equal fractions
+    do NOT imply equal radians, mimic fractions or fingertip millimetres.
+    """
+    if not 0 < range_fraction <= .25:
+        raise ValueError("finger range fraction must be in (0,.25]")
+    delta = torch.zeros(len(PER_FINGER_ARM_NAMES), 18, device=device)
+    for finger, index in enumerate(INDEPENDENT_FINGER_INDICES):
+        delta[1+2*finger, index] = 2*range_fraction
+        delta[2+2*finger, index] = -2*range_fraction
+    delta[-2, list(FINGER_INDICES)] = 2*range_fraction
+    delta[-1, list(FINGER_INDICES)] = -2*range_fraction
     return delta
 
 
