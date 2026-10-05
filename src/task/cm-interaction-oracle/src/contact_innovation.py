@@ -55,10 +55,11 @@ def contact_inputs(p, bridge, geometry, q):
     contact context deliberately excludes uncertain future wrist/object motion.
     """
     wrist = p['history'][:, -1, :6].to(q.device)
+    causal = {key:p[key].to(q.device) for key in ('history','hand_root','before')}
     state, action = [], []
     ids = torch.arange(len(q), device=q.device)
     for chunk in ids.split(64):
-        local = {k: v[chunk] for k, v in p.items() if k in ('history', 'hand_root', 'before')}
+        local = {key:value[chunk] for key,value in causal.items()}
         shared = q[chunk].clone()
         shared[..., :6] = wrist[chunk, None]
         flow, _ = endpoint_flows(local, bridge, {'points':geometry['points'][chunk]}, shared)

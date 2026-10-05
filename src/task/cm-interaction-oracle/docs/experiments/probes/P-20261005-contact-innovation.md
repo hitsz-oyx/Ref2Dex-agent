@@ -115,3 +115,12 @@ fit_records, diagnostics (features/norms/tenridgeweights/predictions/candidates)
 result; replay, signed vectors and plot added without fitting. Source code,
 dataset, original/corrected forecast/source diagnostics/manifests/assets bind
 provenance. Preserve engineering smoke as UNCLEAR and any failed runs.
+
+## Engineering pre-fit failure
+
+First GPU6 smoke `contact-innovation-smoke-s253`, source8a04df7, fails before
+any ridge fit: GPU chunk index applied to CPU collector input. Repair transfers
+only whitelisted current history/root/before tensors to the candidate device
+before batching. Retain failed manifest/log, no scientific evidence. Targeted
+CPU-input/GPU-q regression checks the actual device boundary; no research
+variable/gate/budget change. Replacement smoke uses a new unique folder.

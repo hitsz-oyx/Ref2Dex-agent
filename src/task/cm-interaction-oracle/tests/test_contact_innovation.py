@@ -1,7 +1,9 @@
 """Surface-relative sign/frame, source-only preprocessing and future whitelist."""
 import sys
+import os
 from pathlib import Path
 import torch
+import pytest
 
 ROOT=Path(__file__).resolve().parents[4]
 sys.path[:0]=[str(ROOT),str(ROOT/'src/task/cm-interaction-oracle/src')]
@@ -35,15 +37,20 @@ def test_action_normalizer_source_only_and_bounded_design():
     assert x[:,:4].abs().max()<=8 and x[:,4:].abs().max()<=5
 
 
-def test_contact_input_ignores_future_and_predicted_wrist():
-    bridge=NominalSurfaceActions(ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf','cpu',seed=56)
+@pytest.mark.parametrize('device',['cpu','cuda:0'])
+def test_contact_input_ignores_future_and_predicted_wrist(device):
+    if device.startswith('cuda') and os.environ.get('REF2DEX_GPU_CONTRACT_TEST')!='1':
+        pytest.skip('GPU contract requires explicitly selected idle device')
+    bridge=NominalSurfaceActions(ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',device,seed=56)
     q=torch.zeros(1,15,18);q[...,6:]=.2;q[:,1,6]+=.05
     root=torch.zeros(1,13);root[:,6]=1
     history=torch.zeros(1,1,18);history[:,:,:]=q[:,:1]
     p=dict(history=history,before=root.clone(),hand_root=root.clone(),trajectory=torch.ones(1,32,72))
     from execution_geometry import endpoint_flows
-    raw,_=endpoint_flows(p,bridge,{'points':torch.zeros(1,120,3)},q[:,:1])
-    g=dict(points=raw[:,0],obj_points=torch.zeros(1,1,3),obj_normals=torch.tensor([[[1.,0.,0.]]]))
+    # Keep collector p on CPU, candidate q/geometry on selected model device.
+    q=q.to(device)
+    raw,_=endpoint_flows(p,bridge,{'points':torch.zeros(1,120,3,device=device)},q[:,:1])
+    g=dict(points=raw[:,0],obj_points=torch.zeros(1,1,3,device=device),obj_normals=torch.tensor([[[1.,0.,0.]]],device=device))
     first=contact_inputs(p,bridge,g,q)
     p['trajectory']*=100;other=q.clone();other[:,:,:6]+=10
     second=contact_inputs(p,bridge,g,other)
