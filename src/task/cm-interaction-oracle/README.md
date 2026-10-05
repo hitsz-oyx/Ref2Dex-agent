@@ -2,7 +2,7 @@
 
 Task for action-conditioned physical consequence E/I and task-relative action
 quality, on the original branch `agent/cm-interaction-oracle`. The execution
-route is paused while ref12 proceeds on this same branch. Task, branch and
+route is paused while ref13 proceeds on this same branch. Task, branch and
 experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
@@ -12,12 +12,14 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref12): oracle actual hand flow → environment-OOF
-predicted E/I → continuation Y. Compare shared current H, directflow, predicted
-E/I, GT E/I, hybrid and State-predicted E/I controls. Paired-data engineering
-and native execution prediction stay paused. Post-treatment oracle inputs do
-not establish attainable flow candidates or deployable planning; final matched
-trained-policy Cm utility remains open.
+Current user-directed route (ref13): same-prefix Oracle-Y Utility Gate.
+Execute a fixed seven-candidate early-hold panel after cold reset/full prefix
+replay; baseline repeatability screen precedes alternative branches. Compare
+perfect short continuation Y selection against longer stable-grasp Z. Noise
+sensitivity only after a positive gate, representation/execution/policy work
+only after qualified prior gates. Native execution prediction stays paused;
+final matched trained-policy Cm utility remains open.
+[Protocol](docs/experiments/probes/P-20261005-oracle-y-utility.md).
 
 Ref5 point-flow G and surface-I probes are completed; absolute RTG gains were
 weak or outlier-dependent. Task ref1's cross-fitted three-class advantage
@@ -28,8 +30,7 @@ accuracy, weak action permutation effect; UNPROMISING for this frozen contract.
 Actual between-V test Spearman0.540 contradicts using Pearson0.978 as evidence
 of strong sorting stability. Neither discrete G0 nor ranking G1 was rescued.
 
-Historical action/outcome contrast limitations are retained; user defers paired
-collection while ref12 tests the factual prediction chain on existing data.
+Historical action/outcome contrast limitations are retained; paired collection was deferred during ref12 and explicitly reenabled by ref13.
 Retain relative-outcome and physical E/I candidates; no core Cm refutation or
 policy utility claim.
 Do not select future-active/agreed test labels to rescue a failed gate.

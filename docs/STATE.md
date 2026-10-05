@@ -448,3 +448,10 @@ GPU6主11.72s；全部input/foldnormalizer/FK/权重/OOF/统计重放误差0，�
 不追加epoch/seed或进入planner；未来改变模型须另立可判别的Decision实验。
 全局matched训练策略Cm utility仍OPEN。
 [Oracle flow任务链实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md)。
+
+## ref13 当前行动
+
+用户 ref13 重新启用同前缀配对候选采集，先做 Oracle-Y Utility Gate：
+GT 短期 Y 选择是否改善独立稳定持有 Z。baseline 重复噪声检查先于候选干预，
+当前尚无新科学结果。进一步 predictor 调参、旧 execution forecast 和 PPO 暂停；
+E/I 暂不强制为瓶颈。参见 [实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md)。

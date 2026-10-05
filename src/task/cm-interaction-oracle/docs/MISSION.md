@@ -16,3 +16,8 @@ Y 沿用 ref8 continuation 合同；source E/I 必须为按环境 cross-fitted/O
 test 用 full-source 模型。保持 H、直接 flow、预测 E/I、GT E/I 和 hybrid matched
 对照。配对采集及其工程检查仍延后，native execution predictor 仍暂停。
 这一阶段只评价事后 oracle 表示链的任务预测信息，不升级为可部署 planner。
+
+用户 ref13 将当前路线改为逆向必要性检验：先做同前缀候选的 Oracle-Y Utility
+Gate，真实执行七个局部干预，区分短期 continuation Y 与稳定持有 Z。
+这重新启用配对采集；通过后才做噪声容忍度与表示比较。继续暂停旧 execution
+predictor、PPO 和进一步 Y/E/I MSE 调参，不强制 E/I 作为信息瓶颈。

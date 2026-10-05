@@ -72,6 +72,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-oracle-hand-flow](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md) | Ref11: oracle endpoint and temporal hand flow → E/I | UNPROMISING for the predeclared joint E/I gate at this fixed budget; Chunk E passes, I remains uncertain. | Retain the oracle flow E signal and I uncertainty; paired work is deferred and ref12 tests task-information transfer on the original branch. | probes/UNPROMISING |
 
+## HF-oracle-y-utility
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-oracle-y-utility](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md) | Ref13 Oracle-Y Utility Gate | pending, engineering pairing first; no scientific result yet. | Reverse necessity testing, starting with perfect-Y candidate selection. | probes/UNCLEAR |
+
 ## HF-per-finger-control
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
