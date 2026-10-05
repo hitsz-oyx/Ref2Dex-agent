@@ -33,7 +33,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Close and preserve this result; user ref11 redirects work to oracle hand-flow planning. | probes/UNPROMISING |
+| [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Preserve the completed fixed-fit result; pause the old route while ref11 proceeds on the original branch. | probes/UNPROMISING |
 
 ## HF-execution-geometry
 
@@ -64,7 +64,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-oracle-hand-flow](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md) | Ref11: oracle endpoint and temporal hand flow → E/I | UNCLEAR: protocol frozen, run pending. | Separate oracle planning input from the stopped native execution route. | probes/UNCLEAR |
+| [P-20261005-oracle-hand-flow](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md) | Ref11: oracle endpoint and temporal hand flow → E/I | UNPROMISING for the predeclared joint E/I gate at this fixed budget; Chunk E passes, I remains uncertain. | Retain the oracle flow E signal and investigate paired-state evidence; keep the native execution route paused on the original branch. | probes/UNPROMISING |
 
 ## HF-per-finger-control
 

@@ -405,7 +405,24 @@ Root重放0、独立saved-matrix/statistics复算通过，未见影响负结果�
 用户澄清“收尾”仅指暂停旧执行预测路线，继续在原分支
 `agent/cm-interaction-oracle` 按Task ref11推进，不另建分支：先以真实hand point-flow为
 oracle action，分离 `(H,F_hand)→E/I` 规划问题与以后 `joint→desired flow` 控制。
-下一项比较State、GT endpoint、GT0→4/4→8 chunks及matched shuffled flow，
+已完成State、GT endpoint、GT0→4/4→8 chunks及matched shuffled flow比较，
 先只看E/I；不继续execution、候选nativearm或任务Y拟合。实际flow是
 post-treatment信息，正向只能支持oracle表示Probe，不自动证明前瞻planning或
 同状态候选因果contrast。最终matched Cm-on/off训练策略utility仍OPEN。
+
+
+Ref11首个raw720oracle-flow Probe已完成（原分支，代码452d7e5）。同688/166
+windows和125/31environment split，五臂同59066参数/300updates。Chunk E.48968
+vsState.52895，改善7.42%（95%CI+.46..+14.04%），E门槛通过；I.55603
+vsState.60486，改善8.07%但CI−1.25..+17.62%，预设联合E/I gate为UNPROMISING。
+保留E的PROMISING探索信号与I不确定性，不据此关闭oracle flow路线。
+trained/frozen shuffle显示action敏感性；Chunk-vsEndpoint CI均跨零，时序优越性
+未建立。新H包含清晰current q/dq/geometry，旧State.8837与新State.6049不属
+同合同，跨run提升不能归因于flow。test0同状态配对，candidate contrast为UNCLEAR。
+完整GPU input/FK/weight/statistics重放误差0，69Task tests通过；GPU6主5.62s，
+零新仿真或policy训练。只读检查确认已有restore仅支持coldstate，不能恢复warm
+PhysX cache。用户明确暂不做配对数据及相关工程检查/采集，列入延后证据。
+独立CPU权重/源统计/bootstrap复算通过（归一化误差≤1.34e-6），报告归档；
+当前单seed预测Probe完成。不放松门槛、不追加seed/epoch，也不恢复旧execution
+预测支线；尚未完成多seed泛化Validation或真正flow-space planning。
+[Oracle flow实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md)。

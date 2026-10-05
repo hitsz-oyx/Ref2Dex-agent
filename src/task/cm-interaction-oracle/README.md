@@ -285,7 +285,7 @@ No follow-on execution or contrast-stability fit was launched.
 
 ### Ref11: measured endpoint and temporal oracle hand flow
 
-[Oracle hand-flow protocol](docs/experiments/probes/P-20261005-oracle-hand-flow.md)
+[Oracle hand-flow Probe](docs/experiments/probes/P-20261005-oracle-hand-flow.md)
 compares current State, full measured endpoint flow and two trajectory chunks,
 with trained/frozen flow-shuffle controls. All correspondences retained in720
 raw action slots; no execution forecast, PD/arm input, V13 pooling or Y scorer.
@@ -300,3 +300,22 @@ Actual flow is a post-treatment oracle input. Exact observable duplicate-state
 support is audited separately; donor-label substitution does not create true
 same-state candidate outcomes. Prospective planning and final policy utility
 remain later requirements.
+
+
+Completed main: Chunk E0.48968 vs State0.52895 (7.42% gain, CIpositive);
+I0.55603 vs0.60486 (8.07%, CIcrosseszero). E passes; the fixed joint E/I
+gate is UNPROMISING. Both trained/frozen flow shuffles support action sensitivity,
+but Chunk-vsEndpoint intervals crosszero and same-state pairs are absent.
+Retain the E signal and I uncertainty; no claim of temporal superiority or
+prospective flow-space ranking. New current-state preprocessing also improves
+State, so old-vs-new MSE differences cannot be attributed solely to flow.
+All input/FK/weights/bootstrap GPU replay differences are0;69Task tests pass.
+
+`tools/audit/audit_oracle_hand_flow.py` takes the same dataset/split-run and
+completed run-dir for GPU geometry/input/weight reconstruction, CPU statistics
+and standalone plot, without fitting; it refuses to overwrite an existing replay.
+Read-only inspection found only cold-state serialization: warm PhysX caches
+are not restorable. User defers paired-data collection and related parallel
+matched-history engineering/smoke. Independent saved-head/statistical review
+passes and is archived with provenance. Current prediction Probe is complete;
+same-state candidate evidence remains deferred. Native execution prediction stays paused.
