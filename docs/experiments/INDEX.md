@@ -60,6 +60,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | 1006 full randomized windows; dose and support pass, but no duration-sensitive retention-I gate; hand displacement responds while I16/contac | Close K4/8/16 feedback-residual extension after independent review; no Cm fitting, extra duration/seed or selector. | probes/UNPROMISING |
 
+## HF-oracle-flow-task
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-oracle-flow-task](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md) | Ref12: oracle hand flow → OOF predicted E/I → task Y | UNCLEAR: protocol frozen; runs pending. | Close the factual oracle prediction chain on existing data; paired-data and execution work remain paused. | probes/UNCLEAR |
+
 ## HF-oracle-hand-flow
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

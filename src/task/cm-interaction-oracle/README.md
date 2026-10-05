@@ -12,7 +12,7 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref11): pause native execution prediction and test
+Current user-directed route (ref12): retain the paused native execution route and extend
 oracle hand-flow as the planning action. Compare current State, actual endpoint
 flow and two measured trajectory chunks, with matched flow shuffles and E/I-only
 evaluation. Post-treatment oracle inputs do not establish a deployable control
@@ -319,3 +319,18 @@ are not restorable. User defers paired-data collection and related parallel
 matched-history engineering/smoke. Independent saved-head/statistical review
 passes and is archived with provenance. Current prediction Probe is complete;
 same-state candidate evidence remains deferred. Native execution prediction stays paused.
+
+
+### Ref12: oracle flow consequence task chain
+
+[Oracle flow task protocol](docs/experiments/probes/P-20261005-oracle-flow-task.md)
+compares shared H, direct raw flow, OOF predicted E/I, GT E/I and hybrid task
+readouts, plus a State-predicted E/I control. Source E/I preprocessing and
+models are fitted per environment fold; test uses immutable ref11 full-source
+weights. Y starts atstep9. Paired-state work remains explicitly deferred.
+
+`tools/run/probe_oracle_flow_task.py --dataset <ref7 interventions>
+--oracle-flow-run <oracle-hand-flow-s255> --run-dir <new-unique-folder>`
+(optional `--smoke`) runs on idleGPU6 within the card's bounded resources.
+Raw actualflow is post-treatment oracle information; chain gain/R does not
+establish prospective planning or unique Cm benefit versus directflow.

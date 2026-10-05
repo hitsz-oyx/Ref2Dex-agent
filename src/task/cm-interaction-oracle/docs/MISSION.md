@@ -9,3 +9,9 @@
 事后真实手运动可能包含物体响应，不能直接升级为前瞻因果planning结论。
 真正 flow-space planning、desired flow 执行、matched Cm-on/off 训练策略收益
 仍受根级 Mission 约束，在前置证据足够后分别推进。
+
+用户 ref12 将当前阶段推进到 oracle flow→predicted E12/I14→Y 的链路检验。
+Y 沿用 ref8 continuation 合同；source E/I 必须为按环境 cross-fitted/OOF 预测，
+test 用 full-source 模型。保持 H、直接 flow、预测 E/I、GT E/I 和 hybrid matched
+对照。配对采集及其工程检查仍延后，native execution predictor 仍暂停。
+这一阶段只评价事后 oracle 表示链的任务预测信息，不升级为可部署 planner。
