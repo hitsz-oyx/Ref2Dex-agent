@@ -131,7 +131,20 @@ def capture_initial(task, player, observation, physics_properties):
                 solver_contract='fresh process/simulator; no preceding simulate; solver cache empty')
 
 
-def restore_initial(task, player, saved, unwrap, physics_properties):
+def cold_root_matches(actual, expected, atol):
+    """CPU PhysX setter may round xyz/quaternion; velocities remain exact.
+
+    Only a predeclared small pose tolerance is allowed, never warm solver state.
+    """
+    if atol < 0 or atol > 2.5e-7 or actual.shape != expected.shape or actual.shape[-1] != 13:
+        return False
+    expected=expected.to(actual.device)
+    return bool(torch.isfinite(actual).all() and torch.isfinite(expected).all()
+                and (actual[..., :7]-expected[..., :7]).abs().max() <= atol
+                and torch.equal(actual[..., 7:],expected[..., 7:]))
+
+
+def restore_initial(task, player, saved, unwrap, physics_properties, *, cpu_pose_atol=0.):
     if saved['schema'] != SCHEMA or task.gym.get_frame_count(task.sim) != 0:
         raise ValueError('cannot restore a warm simulator')
     if fingerprint(physics_properties) != fingerprint(saved['physics_properties']):
@@ -157,7 +170,10 @@ def restore_initial(task, player, saved, unwrap, physics_properties):
     # Derived native buffers are reused at cold time0; validate root/DOF from
     # the engine before restoring observation/history/contact caches.
     for name in ('_root_states', '_dof_state'):
-        if fingerprint(getattr(task, name)) != fingerprint(saved['tensors'][name]):
+        exact = fingerprint(getattr(task, name)) == fingerprint(saved['tensors'][name])
+        allowed_cpu_pose = (name == '_root_states' and str(task.device) == 'cpu' and cpu_pose_atol > 0
+                            and cold_root_matches(getattr(task,name),saved['tensors'][name],cpu_pose_atol))
+        if not exact and not allowed_cpu_pose:
             raise ValueError('engine state restore mismatch: ' + name)
     for name, source in saved['tensors'].items():
         getattr(task, name).copy_(source.to(getattr(task, name).device))

@@ -175,3 +175,12 @@ engineering-only; no GateA result.
 CPU retry3 reaches reset but strict cold engine root hash rejects before first
 simulate. Next instrument root/DOF error axes to establish whether it is native
 normalization or substantive state change; no initial/prefix tolerance changed.
+
+CPU retry4 cold-restore difference is≤1.788e-7 (quaternion), position≤5.96e-8m,
+DOF/velocity EXACT. Native CPU pose setters round float32 bits. Bounded adapter
+allows CPU cold root xyz/quaternion≤2.5e-7 ONLY, with EXACT velocity/DOF and
+fresh-frame0, original task/property/RNG/cache fingerprints otherwise unchanged.
+Default paired helper behavior stays bit-exact for all prior callers/GPU.
+This documented initial-engine tolerance does not relax prefix/Y/Z acceptance.
+Regression rejects velocity differences,largepose/nonfinite. R5 CPU smoke now
+checks whether numerical setter allowance actually restores repeatedprefixes.

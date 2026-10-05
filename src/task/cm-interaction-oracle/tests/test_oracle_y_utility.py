@@ -30,3 +30,16 @@ def test_candidates_are_small_native_interventions_not_claimed_desired_flows():
     d=candidate_deltas();assert d.shape==(7,18) and not d[0].any()
     assert d[1,14]==.2 and d[2,14]==-.2 and d[3,8]==.2 and d[4,8]==-.2
     assert d[-1,2]==.01 and (d[-1,6:]==0).all()
+
+
+def test_cold_cpu_pose_rounding_never_allows_velocity_or_large_pose_mismatch():
+    from src.task.CmResidual.paired_evaluation import cold_root_matches
+    reference=torch.zeros(2,13);actual=reference.clone();actual[:,6]=1e-7
+    assert cold_root_matches(actual,reference,2.5e-7)
+    assert not cold_root_matches(actual,reference,0.)
+    actual[0,7]=1e-9
+    assert not cold_root_matches(actual,reference,2.5e-7)
+    actual=reference.clone();actual[0,0]=1e-5
+    assert not cold_root_matches(actual,reference,2.5e-7)
+    actual[0,0]=float('nan')
+    assert not cold_root_matches(actual,reference,2.5e-7)

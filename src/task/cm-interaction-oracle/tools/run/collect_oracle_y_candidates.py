@@ -67,7 +67,7 @@ class CandidatePlayer(original.EvalPlayer):
             triggers = trace['triggers'].to(device)
             length = int(triggers.max())+POST_WINDOW if (triggers>=0).any() else 1
         try:
-            obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties)
+            obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties,cpu_pose_atol=2.5e-7 if str(device)=='cpu' else 0.)
         except ValueError:
             differences={}
             for key in ('_root_states','_dof_state'):
