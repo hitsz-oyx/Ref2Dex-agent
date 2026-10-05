@@ -274,3 +274,25 @@ GT预后PROMISING：HEI主误差0.73135→0.39311（46.25%改善，环境bootstr
 本轮未训练Cm；训练所得matched Cm-on/off utility仍OPEN。
 GPU6固定拟合5.56s结束，首CUDA初始化前失败0.76s留存；新产物<4MiB、41tests通过。
 [GT consequence实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-gt-consequence-sufficiency.md)。
+
+
+## Task ref9：conditional consequence prediction 与 OOF 任务价值
+
+冻结ref7数据及ref8的688/166环境隔离划分，E12/I14、intended one-hot保持；
+21个固定1500epoch拟合，严格fold-only PCA/尺度/OOF，保存directHa和两个shuffle对照。
+总体UNCLEAR，预设A/B/C均未过。Ha I误差比H改善8.50%但区间跨零，E反而恶化20.79%；
+冻结Ha置换test动作使I误差增加11.96%(95%4.17–22.24%)，保留局部动作敏感性。
+同H候选I差分corr.293、方向62.29%、幅度比.369，未稳定保留动作差异。
+
+OOF后果P_Ha主MSE.6730，弱于directHa.6478；Ha+P_Ha .5995有7.45%改善点估计但
+CI跨零。GT同预算oracle .4080仍强；预测后果保留31.18%oracle gain（CI2.90–56.56%），
+不能等同超过directHa。跨half预测已做，83行子集GT contrast rank13/9记为NULL/UNCLEAR，
+未用伪逆制造逐臂结论。全部14臂预测／GT向量及逐指PD/q/true-tip幅度表在新卡。
+
+按用户要求独立review反常结果，root GPU全权重重放精确一致，无时域/OOF/尺度/shuffle bug。
+预测器明显劣于train-mean和persistence，train接近零而test高；末期loss下降不支持追加epoch。
+Shuffle较高原sign受共同zero偏移影响，中心化后corr−.076；不救援主结果。
+结束当前固定拟合，不selector/PPO；下一Decision应区分受控泛化训练与缺少信息，非更多
+memorization。没有关闭Cm核心假设，训练所得matched policy utility仍OPEN。
+GPU6主运行59.99s，smoke3.93s，审计仅inference，均结束；新增<12MiB、46tests通过。
+[conditional consequence实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md)。

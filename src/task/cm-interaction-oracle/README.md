@@ -130,3 +130,30 @@ CUDA_VISIBLE_DEVICES=6 TMPDIR="$PWD/tmp" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=
 `tools/audit/audit_gt_consequence_sufficiency.py` takes the same dataset/run-dir
 arguments for CPU file/statistical replay and a standalone plot; it refuses
 to replace an existing replay artifact. No Cm/selector/policy fitting occurs.
+
+
+### Ref9 conditional consequence prediction
+
+[Experiment card](docs/experiments/probes/P-20261005-conditional-consequence.md):
+UNCLEAR. Strict environment OOF, source-fold preprocessing and two action
+shuffle controls preserve ref8 data/representation. I predictions use actions,
+but this fixed fit does not preserve sufficient arm contrasts or stable extra
+task value over direct Ha. Mean/persistence outperform the predictors;
+independent abnormal-result review and GPU replay find no engineering error.
+Do not extend epochs or enter selector/PPO from these results.
+
+Fixed fit entry, after checking GPU ownership (use a new output directory):
+```bash
+CUDA_VISIBLE_DEVICES=6 TMPDIR="$PWD/tmp" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  timeout 600 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/cm-interaction-oracle/tools/run/probe_conditional_consequence.py \
+  --dataset outputs/cm-interaction-oracle/per-finger-control-s227/interventions.pt \
+  --oracle-run outputs/cm-interaction-oracle/gt-consequence-s231-r2 \
+  --run-dir outputs/cm-interaction-oracle/<new-unique-run-id>
+```
+`tools/audit/audit_conditional_consequence.py` uses the same arguments for
+GPU saved-weight replay and CPU statistics, without fitting. The report tool
+`tools/audit/report_conditional_consequence.py --run-dir <completed-run>`
+exports all14 signed arm vectors/units and a standalone plot. Both tools
+refuse to replace existing artifacts. Per-finger physical magnitudes remain
+in the card, including actual joints and true tips, separate from PD targets.
