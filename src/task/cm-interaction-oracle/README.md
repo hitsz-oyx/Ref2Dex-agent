@@ -235,3 +235,32 @@ arguments for explicitly post-treatment wrist/finger diagnosis; add
 overwrite. RMSE is XYZ-component average, with Euclidean counterpart disclosed.
 Current root/point identities/object frame and source-only normalizers are
 preserved. Slim repair artifacts require the original immutable run alongside.
+
+### Ref10 continuation: action fidelity and anatomical innovations
+
+[Spatial action fidelity](docs/experiments/probes/P-20261005-spatial-action-fidelity.md)
+uses frozen stages and24source-only linear decoders. Known finger motion is
+recoverable from raw intrinsic flow but weakly recovered from spatial latents.
+The14arm lookup already nearly solves these labels: this is neither continuous
+physical generalization nor an isolated radius-loss diagnosis. LocalFlow mean
+is a proxy that omits actual edge geometry. Independent review narrows scope.
+
+[Relative finger innovation](docs/experiments/probes/P-20261005-relative-finger-innovation.md)
+then tests seven matched heads: full anatomical mean/RMS flow vs joint input,
+ordinary vs candidate-centered residuals, nominal vs causal forecast, shuffled
+control. Four immutable State nuisance fits supply source environment-OOF and
+full-test baselines. All common inputs are shared. Fixed300updates produce
+UNPROMISING: predicted flow I.9124 vsState.8837/matched predictedJoint.9077;
+contrast corr.1565/sign56.57%, test shuffle penalty2.75% with CI crossing zero.
+Exact input/weight/candidate replay passes. Stop this fixed contract without
+epoch/seed retries; global physical action and Cm utility hypotheses remain open.
+
+Both run entries take `--dataset`, `--forecast-run <corrected execution run>`
+and a NEW `--run-dir`: `tools/run/probe_spatial_action_fidelity.py` and
+`tools/run/probe_relative_finger_innovation.py`. Check GPU ownership before
+using GPU6; freeze each protocol and stay within its resource cap. Corresponding
+`tools/audit/audit_spatial_action_fidelity.py` and
+`tools/audit/audit_relative_finger_innovation.py` take the same arguments for
+saved-weight/input GPU replay, signed-vector exports and figures without
+fitting. Reports refuse overwrite. Strict nested consequence OOF and matched
+trained-policy Cm-on/off are still required before claims of policy utility.

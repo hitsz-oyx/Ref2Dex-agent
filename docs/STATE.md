@@ -364,3 +364,29 @@ I contrast corr.152/sign50.86%/幅度.0235、testshuffle penalty.301%，五gate�
 Root停止反复拟合totalendpoint合同，保留可预测finger动作信号；后续区分共同腕部
 演化和finger相对几何，或检视spatial瓶颈。没有selector/PPO；全局Cm utility仍OPEN。
 [执行几何实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-execution-geometry.md)。
+
+## Task ref10 续接：动作传递与按手指残差
+
+冻结空间各阶段做24个source-only线性动作decoder：RawHandBase恢复已知输入
+nominal≈1.000/forecast.9987，trainedFused仅.3306/.3436；当前有接触支持的
+手指子集也只有.4122/.4275。该诊断只说明固定14arm线性恢复弱，不证明物理
+泛化或2cm半径丢失：arm均值lookup自己已≈1/.996，LocalFlow均值代理省略
+实际边的位置、法向、距离与个别flow。独立复算通过，root收紧结论范围。
+
+据此执行七头匹配factorial：完整按手指mean/RMS相对点流／相同forecast关节，
+普通／15候选均值中心化残差；共同H156，复用三环境OOF State，固定300update。
+本固定合同UNPROMISING：PredFingerCentered I.9124差于State.8837（gain−3.24%，
+CI−5.94..−.62%），也未优于匹配PredJointCentered.9077。测试动作打乱罚2.75%
+但CI跨零，I contrast corr.1565/sign56.57%/zeroMSEgain1.58%，三gate均失败。
+名义几何中心化相对plain改善3.91%但CI跨零；不把更大响应幅度当作方向正确。
+
+完整H/action/source-norm、四State和七新head/候选重放0；中心化均值约1e−7，
+独立review复算metrics/contrast0、bootstrap≤2.39e−7，未见影响负结果的实现错误；
+source-OOF/full-test nuisance差及中心化不能修正共同偏差保留为限制，未唯一归因。
+62Task tests通过。GPU6 fidelity主11.67s、factorial主9.30s，零新仿真或策略训练。
+Root停止这份mean/RMS+中心化fit，不追加epoch/seed；下轮须区分conditional
+response、state nuisance或详细contact信息，不能据此关闭全部空间Cm。
+两项都不提供strict nested consequence OOF或matched trained-policy utility；
+North-star Cm utility仍OPEN。
+[动作传递诊断](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-action-fidelity.md)，
+[按手指动作残差](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-relative-finger-innovation.md)。

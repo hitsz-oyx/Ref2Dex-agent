@@ -73,6 +73,18 @@
 | [P-20261004-recap-relative-action](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-recap-relative-action.md) | Can relative task outcome supervise a deployable action critic? | G0 label stability failed (train34.7%, test39.1%); counts/support and V-versus-zero checks pass; G1 not executed. | retain the relative-outcome direction but stop critic/Cm expansion on this unstable discrete label contract; no action-information or policy | probes/UNCLEAR |
 | [P-20261004-relative-action-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-relative-action-ranking.md) | Does current action improve ranking of frozen relative task advantage? | H macro pair59.71%, HaK1 59.62%, HaK4 realized60.52%; current-action ranking gate fails after independent implementation review. | stop critic/Cm expansion on this frozen target/data/fit contract; proxy ordering also lacks strong V-fit stability, so do not refute physica | probes/UNPROMISING |
 
+## HF-relative-finger-innovation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-relative-finger-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-relative-finger-innovation.md) | Can full finger flow learn action innovations over an OOF state forecast? | UNPROMISING for the fixed anatomical summary / OOF-state innovation contract. | Stop this fixed seven-head contract; retain the physical action and Cm hypotheses. | probes/UNPROMISING |
+
+## HF-spatial-action-fidelity
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-spatial-action-fidelity](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-action-fidelity.md) | Where does continuous finger action information survive? | UNPROMISING for linear action recovery from the fixed local/fused paths; interpretation restricted to the existing arm dictionary. | Preserve full per-finger motion and test a centered action-innovation objective; do not infer that the 2cm radius caused consequence failure | probes/UNPROMISING |
+
 ## HF-spatial-consequence
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
