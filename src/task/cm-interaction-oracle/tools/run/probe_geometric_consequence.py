@@ -61,7 +61,7 @@ def main():
     manifest = dict(run_status='STARTED', git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         command=sys.argv, physical_gpu=os.environ.get('CUDA_VISIBLE_DEVICES'), device='cuda:0', seeds=[241,242],
         dataset_sha256=sha(args.dataset), oracle_diagnostic_sha256=sha(args.oracle_run/'diagnostic.pt'),
-        hand_visual_sha256={str(p.relative_to(ROOT)):sha(p) for p in mesh_paths},
+        hand_visual_sha256={str(p):sha(p) for p in mesh_paths},
         code_sha256={str(p.relative_to(ROOT)):sha(p) for p in paths}, ridge=RIDGE,
         geometry_points=120, action_pca=32, state_geometry_pca=16, state_action_products=512,
         created_at=datetime.now(timezone.utc).isoformat())
@@ -246,7 +246,7 @@ def main():
             full_predictions=full,oof_predictions=cpu_tree(oof),candidate_arrays=candidates,GT_contrasts=beta,
             design=design,downstream_states=task_states,task_predictions=task_predictions,task_target_mean=ym.cpu(),task_target_scale=ys.cpu()),args.run_dir/'diagnostic.pt')
         assert sha(args.dataset)==EXPECTED_SHA and all(sha(ROOT/k)==v for k,v in manifest['code_sha256'].items())
-        assert all(sha(ROOT/k)==v for k,v in manifest['hand_visual_sha256'].items())
+        assert all(sha(Path(k))==v for k,v in manifest['hand_visual_sha256'].items())
         manifest['run_status']='COMPLETED'
         print(json.dumps(dict(status=status,gates=result['gates'],predictor_metrics=metrics,downstream_metrics=task_metrics),indent=2),flush=True)
     except BaseException as error:
