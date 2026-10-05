@@ -35,7 +35,8 @@ class CandidatePlayer(original.EvalPlayer):
         begin = time.monotonic(); torch.set_num_threads(2)
         torch.backends.cudnn.benchmark = False; torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.allow_tf32 = False; torch.backends.cuda.matmul.allow_tf32 = False
-        task, device = self.env.task, self.device
+        task = self.env.task
+        device = task.device
         task._enable_early_termination = False; task._adaptive_kappa_enabled = False
         task._hybrid_init_prob = .5
         self.model.eval()
@@ -114,7 +115,7 @@ class CandidatePlayer(original.EvalPlayer):
             if compact.shape[-1]!=139: raise ValueError('history contract drift')
             history = torch.cat((history[:,1:],compact[:,None]),1)
             if trace is not None: restore_rng(trace['rng'][tick]['before_action'])
-            r_action = capture_rng(); base = self.get_action(obs,True).clamp(-1,1).clone()
+            r_action = capture_rng(); base = self.get_action(obs,True).clamp(-1,1).to(device).clone()
             if trace is None:
                 eligible = (~terminal)&(triggers<0)&(tick>=HISTORY-1)&(hold>=6)&(phys[:,71]>.5)
                 eligible &= task.max_episode_length[task.data_id]-task.progress_buf>POST_WINDOW+1
@@ -145,7 +146,7 @@ class CandidatePlayer(original.EvalPlayer):
             chosen = (triggers==tick).nonzero(as_tuple=False).flatten()
             if len(chosen):
                 packet['before'][chosen] = phys[chosen]; packet['history'][chosen] = history[chosen]
-                packet['actor_obs'][chosen] = obs['obs'][chosen]; packet['hand_root'][chosen] = root[chosen]
+                packet['actor_obs'][chosen] = obs['obs'][chosen].to(device); packet['hand_root'][chosen] = root[chosen]
                 packet['before_fingertip_positions'][chosen] = task._rigid_body_pos[chosen][:,tip_ids]
                 packet['before_hand_base_pose'][chosen] = torch.cat((task._rigid_body_pos[chosen,base_id],task._rigid_body_rot[chosen,base_id]),-1)
                 if trace is not None:
@@ -208,6 +209,7 @@ class CandidatePlayer(original.EvalPlayer):
         result=dict(anchors=int(assigned.sum()),motion_counts=[int((assigned&(motion==k)).sum()) for k in range(3)],
             ticks=tick+1,candidate=ARGS.candidate,wall_seconds=time.monotonic()-begin,
             model_fingerprint=model_hash,rms_fingerprint=rms_hash,initial_fingerprint=initial_hash,
+            physics_device=str(task.device),actor_device=str(next(self.model.parameters()).device),
             actor_and_rms_unchanged=True,prefix_errors_max=errors[assigned].amax(0).cpu().tolist() if assigned.any() else [],
             output_sha256=sha(ARGS.run_dir/'panel.pt'))
         (ARGS.run_dir/'result.json').write_text(json.dumps(result,indent=2)+'\n'); print(json.dumps(result),flush=True)

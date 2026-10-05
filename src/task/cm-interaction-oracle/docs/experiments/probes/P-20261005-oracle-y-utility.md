@@ -146,3 +146,17 @@ GateA scientific result and no alternative arm collected. Add first-divergence
 replay diagnostic (≤64ticks, stop at first rawprefix1e-4 exceedance) to separate
 cold hidden-state/trace defects from numerical PhysX divergence. No threshold
 relaxation, candidate or target change. Overall≤2400s budget remains binding.
+
+## Decision Note: deterministic-physics pairing fallback
+
+R5 minimal replay first differs attick1 solely object-force-z (.012724N);
+q/dq/root/object/bodyposes exact. Separate R2/R4 fresh references first differ
+objectforce tick1 (.01950N), policyaction tick12, q/dq tick13. Consistent with
+contact-force numerical variability but not a proof of GPU PhysX root cause.
+Cheapest falsifier: single-thread CPU PhysX fresh reference/repeat, same assets,
+policy,30Hz/candidate/Y/Z/screen; actor inference remains GPU6. CPU geometry
+and task buffers follow physics backend to avoid cross-device simulator state.
+New CPU cold-reset RNG distribution and backend are disclosed; never mix GPU
+and CPU branches. Runprefix `oracle-y-cpu-smoke-s263-*`, then main CPU panel
+only ifrepeat screen passes. This is an engineering pairing repair, no label/
+threshold adjustment. Existing≤2400s totalwall/≤1.5GiB cap still applies.
