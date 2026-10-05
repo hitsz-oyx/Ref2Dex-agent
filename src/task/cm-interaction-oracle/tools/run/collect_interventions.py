@@ -47,6 +47,14 @@ class InterventionPlayer(original.EvalPlayer):
         asset = ROOT / "third_party/DExplore/dexplore/data/assets"
         bridge = DExploreCmv2GeometryBridge(hand_urdf=asset / "inspire_hand_new/inspire_hand_right.urdf",
                                           object_urdf=asset / "mjcf/airplane.urdf", device=device)
+        if ARGS.amplitudes != [1.]:
+            sample = ARGS.run_dir / "object_surface_sample.pt"
+            torch.save(dict(points=torch.as_tensor(bridge.geometry.object_local).cpu(),
+                            normals=torch.as_tensor(bridge.geometry.object_normal).cpu(),
+                            seed=42, stride=8), sample)
+            (ARGS.run_dir / "geometry_provenance.json").write_text(json.dumps(dict(
+                sample_sha256=sha(sample), seed=42, stride=8,
+                contract="local object visual surface; transformed by measured world object pose"), indent=2)+"\n")
         tracker = HoldTracker(n, device)
         started = time.monotonic()
         packets, summaries = [], []
@@ -246,6 +254,13 @@ def main():
     ARGS.run_dir = ARGS.run_dir.resolve()
     ARGS.run_dir.mkdir(parents=True, exist_ok=False)
     paths = [SCRIPT, ROOT / "src/task/cm-interaction-oracle/src/intervention.py", checkpoint]
+    if ARGS.amplitudes != [1.]:
+        paths.extend(ROOT / path for path in (
+            "src/task/CmResidual/dexplore_cm_geometry.py",
+            "third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py",
+            "third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf",
+            "third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf",
+            "third_party/DExplore/dexplore/data/assets/mjcf/objects/airplane/airplane.obj"))
     for flag in ("--cfg_env", "--cfg_train"):
         paths.append(Path(remaining[remaining.index(flag)+1]))
     motion_root = Path(remaining[remaining.index("--motion_file")+1])
