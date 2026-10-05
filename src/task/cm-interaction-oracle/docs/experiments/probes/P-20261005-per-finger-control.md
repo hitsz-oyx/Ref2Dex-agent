@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [227, 228, 229]
 decision_changed_if_positive: prioritize an isolated load-relevant control dimension before state-conditioned GT or Cm usefulness testing
 decision_changed_if_negative: preserve local response and close this single-DOF range contract without more amplitudes or network fitting
-status: PLANNED
+status: RUNNING
 run_id: per-finger-control-s227
 ---
 
 # Does separating the finger synergy expose task-related interaction control?
 
-Result: Pending isolated six-DOF comparison and finger-resolved physical audit.
+Result: Smoke43 full windows audited; main isolated six-DOF comparison collecting.
 Decision: Run one fixed physical-range fraction with matched synergy controls.
 
 ## Research decision and root interpretation
@@ -137,3 +137,11 @@ Before main, fix units metadata:smoke incorrectly labelled whole18D q as
 radians; numerical tensors/driver audit are unaffected, original smoke kept.
 Main explicitly annotates q0:3 metres and q3:18 radians. Measured finger
 angles and true tip millimetres still require delivered-data audit.
+
+Smoke `per-finger-smoke-s15`:43/84 complete32windows,15arm table/K8;
+expected action and nativePD exact (max error0), finite real q/tip arrays;
+geometry/sample replay PASS. Source commit for main `a81b36d`, seed227/228.
+Pre-main independent review confirms single-driver/coupling/post-state capture;
+pre-outcome audit/gate review and36 Task contracts including clean CLI entry
+and rigid-hand motion removal pass. Standalone audit root import repaired
+before main statistics; initial failure occurred before reading any dataset.

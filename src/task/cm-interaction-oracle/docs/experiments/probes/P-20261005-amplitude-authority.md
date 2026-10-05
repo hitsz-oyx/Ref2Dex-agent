@@ -272,3 +272,45 @@ CPU registered statistics29.92s; bounded artifacts<40MiB.
 All GPU collection ended. Conditional seeds224/225/226 unused. Deferred:
 matched multi-seed Validation, paired/contact load identity, same-state
 candidate comparison and trained-policy matched Cm-on/off utility.
+
+## Ref7 retrospective finger magnitude audit
+
+Read-only existing packet audit, no new simulation or scientific gate change.
+Artifact:`outputs/cm-interaction-oracle/amplitude-finger-audit-ref7-r2/`
+contains full joint min/mean/max targets, action/PD/range fractions, units
+and input/code/asset hashes. Original physical packet SHA stays
+`ce9ca9ce63b491ab58d2164249a8205720d76d71e8ede89a0028a2c02fa4ae53`.
+
+## Per-finger perturbation amplitude audit
+
+Units: native action dimensionless; PD targets/actual q radians; tip displacement mm.
+PD target changes are commanded, not actual executed joint angles. Driver table order: index, middle, pinky, ring, thumb-yaw, thumb-pitch. JSON PD/action arrays use all12 native joints6..17, including followers.
+
+| Driver | Native index | Physical range (rad) | Native mimic followers |
+| --- | --- | --- | --- |
+| index | 6 | 1.6000 | 7: ×1.05 |
+| middle | 8 | 1.6000 | 9: ×1.05 |
+| pinky | 10 | 1.6000 | 11: ×1.05 |
+| ring | 12 | 1.6000 | 13: ×1.05 |
+| thumb_yaw | 14 | 1.1500 | none |
+| thumb_pitch | 15 | 0.5500 | 16: ×0.6;17: ×0.8 |
+
+### Delivered PD target magnitude per arm
+
+Signed means over ALL active steps; min/max per joint and normalized range fractions are preserved in `finger_amplitudes.json`. Composite arms exclude thumb-yaw. Clip % counts active commanded finger coordinates.
+
+| alpha | Arm | n | index rad | middle rad | pinky rad | ring rad | yaw rad | pitch rad | clip % |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | zero | 40 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | finger_plus | 45 | +0.08000 | +0.08000 | +0.08000 | +0.08000 | +0.00000 | +0.02750 | 0.00 |
+| 1 | finger_minus | 38 | -0.08000 | -0.08000 | -0.08000 | -0.08000 | +0.00000 | -0.02750 | 0.00 |
+| 2 | zero | 47 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 2 | finger_plus | 57 | +0.16000 | +0.16000 | +0.16000 | +0.16000 | +0.00000 | +0.05500 | 0.00 |
+| 2 | finger_minus | 40 | -0.16000 | -0.16000 | -0.16000 | -0.16000 | +0.00000 | -0.05500 | 0.00 |
+| 4 | zero | 38 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 4 | finger_plus | 41 | +0.32000 | +0.32000 | +0.32000 | +0.32000 | +0.00000 | +0.11000 | 0.00 |
+| 4 | finger_minus | 41 | -0.32000 | -0.32000 | -0.32000 | -0.32000 | +0.00000 | -0.11000 | 0.00 |
+
+For composite ± at a20% driver range dose, intermediate followers6→7 etc receive ±0.336rad (10.70% of their3.14rad range); thumb-pitch followers receive ±0.066/0.088rad (2.10/2.80% of their ranges). At5% driver dose these are divided by4. Yaw has no target coupling.
+
+Actual post-step q and true tip motion are unavailable in the legacy packet; old contact-body positions are not substituted for tips.
