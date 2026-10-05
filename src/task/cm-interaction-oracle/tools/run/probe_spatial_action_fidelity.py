@@ -13,7 +13,7 @@ import torch
 
 ROOT=Path(__file__).resolve().parents[5];TASK=ROOT/'src/task/cm-interaction-oracle'
 sys.path[:0]=[str(ROOT),str(TASK/'src'),str(TASK/'tools/run'),str(TASK/'tools/audit')]
-from spatial_action_fidelity import intrinsic_finger_flow,current_finger_support,extract_stages,fit_decoder,replay_decoder
+from spatial_action_fidelity import intrinsic_finger_flow,current_finger_support,extract_stages,fit_decoder,replay_decoder,decoder_features
 from spatial_consequence import SpatialConsequence,SEED
 from geometric_consequence import NominalSurfaceActions
 from execution_geometry import endpoint_flows
@@ -113,15 +113,17 @@ def main():
         flows['Forecast']=endpoint_flows(p,bridge,g,qs['Forecast'])[0]
         targets={name:(q[ids,:,6:]-q[ids,:1,6:])/.32 for name,q in qs.items()}
         stats,decoder_states,predictions,hashes,engineering={}, {}, {}, {}, {}
-        feature_rms={}
+        feature_rms={};decoder_inputs={}
         for input_name in ('Nominal','Forecast'):
             stats[input_name]={};predictions[input_name]={};decoder_states[input_name]={};hashes[input_name]={};feature_rms[input_name]={}
+            decoder_inputs[input_name]={}
             raw={'RawObject':(flows[input_name][ids]-flows[input_name][ids,:1]).flatten(2)/.02,
                  'RawHandBase':intrinsic_finger_flow(p,bridge,g,qs[input_name])[ids].flatten(2)/.02}
             for name,value in raw.items():
                 pred,state=fit_decoder(value,targets[input_name],fit)
                 stats[input_name][name]=metrics(pred,targets[input_name],hold,clusters,support)
                 decoder_states[input_name][name]=cpu_tree(state);predictions[input_name][name]=pred.cpu()
+                decoder_inputs[input_name][name]=decoder_features(value,state['norm']).cpu()
                 hashes[input_name][name]=tensor_hash(value)
                 engineering[input_name+'_'+name]=float((replay_decoder(value,state)-pred).abs().max())
             for training in ('Initialized','Trained'):
@@ -146,6 +148,7 @@ def main():
                     pred,state=fit_decoder(value,targets[input_name],fit)
                     stats[input_name][name]=metrics(pred,targets[input_name],hold,clusters,support)
                     decoder_states[input_name][name]=cpu_tree(state);predictions[input_name][name]=pred.cpu()
+                    decoder_inputs[input_name][name]=decoder_features(value,state['norm']).cpu()
                     hashes[input_name][name]=tensor_hash(value)
                     feature_rms[input_name][name]=float(value[hold,1:].square().mean().sqrt())
                     engineering[input_name+'_'+name]=float((replay_decoder(value,state)-pred).abs().max())
@@ -161,7 +164,7 @@ def main():
         save('result.json',result)
         torch.save(dict(train=train,test=test,clusters=source['clusters'],ids=ids.cpu(),
             targets=cpu_tree(targets),support=support.cpu(),decoder_states=decoder_states,
-            predictions=predictions,feature_hashes=hashes),args.run_dir/'diagnostic.pt')
+            predictions=predictions,decoder_inputs=decoder_inputs,feature_hashes=hashes),args.run_dir/'diagnostic.pt')
         assert sha(args.dataset)==manifest['dataset_sha256']
         assert sha(args.forecast_run/'diagnostic.pt')==manifest['forecast_diagnostic_sha256']
         assert all(sha(ROOT/k)==v for k,v in manifest['code_sha256'].items())
