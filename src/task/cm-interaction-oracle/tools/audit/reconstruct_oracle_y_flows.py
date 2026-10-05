@@ -10,7 +10,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[5]
 sys.path[:0]=[str(ROOT),str(ROOT/'src/task/cm-interaction-oracle/src')]
 import torch
-from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge
+from geometric_consequence import NominalSurfaceActions
 from oracle_hand_flow import measured_flow_inputs
 from consequence_sufficiency import readouts
 from oracle_y_utility import stable_grasp_z
@@ -23,8 +23,7 @@ def main():
     begin=time.monotonic();torch.set_num_threads(2)
     if not torch.cuda.is_available(): raise ValueError('GPU FK required')
     asset=ROOT/'third_party/DExplore/dexplore/data/assets'
-    bridge=DExploreCmv2GeometryBridge(hand_urdf=asset/'inspire_hand_new/inspire_hand_right.urdf',
-        object_urdf=asset/'mjcf/airplane.urdf',device='cuda:0')
+    bridge=NominalSurfaceActions(asset/'inspire_hand_new/inspire_hand_right.urdf','cuda:0')
     batches=[];checks=[];hashes={}
     for batch in args.batches:
         result=json.loads(batch.read_text());screen=result['screen'];rows=torch.tensor(screen['indices'],dtype=torch.long)
