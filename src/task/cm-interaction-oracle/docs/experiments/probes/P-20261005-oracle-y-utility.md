@@ -171,3 +171,7 @@ CPU retry2 preflight additionally identified immutable `object_points` loaded
 onCUDA; add that reference-surface table to the explicit adapter whitelist.
 Still0simulate. Retry3 uses unique outputs. All initial preflight errors remain
 engineering-only; no GateA result.
+
+CPU retry3 reaches reset but strict cold engine root hash rejects before first
+simulate. Next instrument root/DOF error axes to establish whether it is native
+normalization or substantive state change; no initial/prefix tolerance changed.

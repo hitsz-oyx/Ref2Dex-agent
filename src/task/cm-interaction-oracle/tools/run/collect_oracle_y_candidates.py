@@ -66,7 +66,18 @@ class CandidatePlayer(original.EvalPlayer):
             trace = torch.load(ARGS.reference/'trace.pt',map_location='cpu',weights_only=False)
             triggers = trace['triggers'].to(device)
             length = int(triggers.max())+POST_WINDOW if (triggers>=0).any() else 1
-        obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties)
+        try:
+            obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties)
+        except ValueError:
+            differences={}
+            for key in ('_root_states','_dof_state'):
+                actual=getattr(task,key).cpu(); expected=initial['tensors'][key]
+                delta=(actual-expected).abs()
+                differences[key]=dict(max_abs=float(delta.max()),shape=list(actual.shape),
+                    changed_indices=(delta>0).nonzero().tolist()[:20],
+                    max_by_axis=delta.reshape(-1,delta.shape[-1]).amax(0).tolist())
+            (ARGS.run_dir/'cold_restore_diagnostic.json').write_text(json.dumps(differences,indent=2)+'\n')
+            raise
         initial_hash = fingerprint(initial)
         if trace is not None and trace['initial_fingerprint']!=initial_hash:
             raise ValueError('cold initial identity drift')
