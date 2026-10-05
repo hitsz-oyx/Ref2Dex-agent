@@ -31,7 +31,8 @@ def main():
     p=torch.load(args.dataset,map_location='cpu',weights_only=False)
     torch.set_num_threads(2);dev=torch.device('cuda:0')
     bridge=NominalSurfaceActions(ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',dev)
-    g={k:v.to(dev) for k,v in original['source_geometry'].items()}
+    g={k:v.to(dev) if isinstance(v,torch.Tensor) else v
+       for k,v in original['source_geometry'].items()}
     rows=torch.arange(len(d['arms']),device=dev);arms=torch.as_tensor(d['arms'],device=dev)
     real=p['native_q'][:,7].to(dev);pred=d['full_q']['Ha'].to(dev)[rows,arms]
     pred_wrist_real_finger=torch.cat((pred[:,:6],real[:,6:]),-1)
