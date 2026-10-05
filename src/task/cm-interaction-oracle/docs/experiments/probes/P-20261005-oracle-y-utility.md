@@ -223,3 +223,12 @@ wrapper only adds optional resetseed (default263); per-run manifests capture
 actualHEAD and allsourcehashes. Pooled gate/CI/noise uses SAME frozen formulas,
 not bestbatch selection. Backend/model/RMS exactidentity required within and
 acrosspanels exceptdifferent coldinit/seed.
+
+Frozen combinedcohort before ALL alternatives:46/46 accepted (39/4/3motions).
+Bothbaseline-repeat rawpanels byteidentical; screen noiseALL0. Mainbaseline
+code4e4ec36 (96), supplementarybaseline codefa71d50 (48), collector codehash
+identical; optionalCLIseed wrapper change only. Cohort timestamps/hashes
+`outputs/cm-interaction-oracle/oracle-y-utility-cohort.json`. Single sequential
+runner guardsGPU6 idle, aggregate≤2400s and everyalternativeprefix before next
+branch, refuses post-treatment discards. GPUFK/live replay archives actual
+0→4/4→8 pointflows after complete collection, no new predictor fits.
