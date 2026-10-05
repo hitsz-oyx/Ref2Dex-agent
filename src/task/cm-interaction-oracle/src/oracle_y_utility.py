@@ -99,3 +99,26 @@ def noise_curve(y, z, sigmas=(0,.025,.05,.1,.2,.4,.8), repeats=1000, seed=266):
                            retained_oracle_gain=float(delta.mean()/denominator) if denominator>0 else None))
     return dict(rows=result,repeats=repeats,seed=seed,noise='Independent raw-Y Gaussian components; unbounded/no clipping, common draws across sigma.',
                 limits='Synthetic within-panel sensitivity; not a universal accuracy threshold or trained-model generalization guarantee.')
+
+
+def align_native_reference_tables(task):
+    """Native loader pins motion tables toCUDA; align immutable tables forCPU PhysX.
+
+    Never move engine-owned root/DOF/contact views or the frozen actor model.
+    """
+    if str(task.device) != 'cpu': return []
+    names=('object_id','obj2motion','_env_initial_motion','max_episode_length',
+           'start_contact_idx','hoi_data','hoi_refs','hoi_data_dict','table_data',
+           'ref_reward','ref_index','_motion_table_poses')
+    def move(v):
+        if isinstance(v,torch.Tensor): return v.to(task.device)
+        if isinstance(v,dict): return {k:move(x) for k,x in v.items()}
+        if isinstance(v,list): return [move(x) for x in v]
+        if isinstance(v,tuple): return tuple(move(x) for x in v)
+        return v
+    changed=[]
+    for name in names:
+        if hasattr(task,name): setattr(task,name,move(getattr(task,name))); changed.append(name)
+    stray=[k for k,v in vars(task).items() if isinstance(v,torch.Tensor) and v.device.type!='cpu']
+    if stray: raise ValueError('unexpected nonCPU native buffers:'+str(stray))
+    return changed

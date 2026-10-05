@@ -160,3 +160,9 @@ New CPU cold-reset RNG distribution and backend are disclosed; never mix GPU
 and CPU branches. Runprefix `oracle-y-cpu-smoke-s263-*`, then main CPU panel
 only ifrepeat screen passes. This is an engineering pairing repair, no label/
 threshold adjustment. Existing≤2400s totalwall/≤1.5GiB cap still applies.
+
+CPU smoke1 failed before simulate due native loader hardcoded CUDA motion
+indices/tables. Task-local explicit immutable reference-table device adapter
+fixes this, leaves native engine-owned root/DOF/contact views and actor untouched,
+refuses unexpected device-mixed buffers. No external/native source alteration.
+CPU retry uses unique `oracle-y-cpu-smoke-s263-r2-*`.

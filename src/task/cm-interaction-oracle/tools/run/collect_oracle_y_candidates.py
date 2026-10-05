@@ -21,7 +21,7 @@ from src.task.CmResidual.physical_value_live import snapshot, contacts
 from src.task.CmResidual.dexplore_cm_geometry import DExploreCmv2GeometryBridge, dexplore_root_pose
 sys.path.insert(0, str(ROOT/'src/task/cm-interaction-oracle/src'))
 from intervention import HISTORY, all_arms_have_headroom, update_predecision_hold
-from oracle_y_utility import POST_WINDOW, CANDIDATES, candidate_deltas
+from oracle_y_utility import POST_WINDOW, CANDIDATES, candidate_deltas, align_native_reference_tables
 from collect_interventions import SOURCE_SHA
 ARGS = None
 
@@ -45,6 +45,7 @@ class CandidatePlayer(original.EvalPlayer):
             raise ValueError('motion/control interval drift')
         if not torch.allclose(task._pd_action_scale[:3], torch.ones(3,device=device)):
             raise ValueError('wrist scale drift')
+        migrated_tables=align_native_reference_tables(task)
         obs = self.env_reset(ids); self.get_batch_size(obs['obs'],1)
         if self.is_rnn: self.init_rnn()
         properties = []
@@ -209,7 +210,7 @@ class CandidatePlayer(original.EvalPlayer):
         result=dict(anchors=int(assigned.sum()),motion_counts=[int((assigned&(motion==k)).sum()) for k in range(3)],
             ticks=tick+1,candidate=ARGS.candidate,wall_seconds=time.monotonic()-begin,
             model_fingerprint=model_hash,rms_fingerprint=rms_hash,initial_fingerprint=initial_hash,
-            physics_device=str(task.device),actor_device=str(next(self.model.parameters()).device),
+            aligned_reference_tables=migrated_tables,physics_device=str(task.device),actor_device=str(next(self.model.parameters()).device),
             actor_and_rms_unchanged=True,prefix_errors_max=errors[assigned].amax(0).cpu().tolist() if assigned.any() else [],
             output_sha256=sha(ARGS.run_dir/'panel.pt'))
         (ARGS.run_dir/'result.json').write_text(json.dumps(result,indent=2)+'\n'); print(json.dumps(result),flush=True)
@@ -240,6 +241,7 @@ def main():
         'src/task/CmResidual/dexplore_cm_geometry.py',
         'third_party/DExplore/dexplore/evaluate.py',
         'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
+        'third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py',
         'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',
         'third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf')]
     motion_root=Path(remaining[remaining.index('--motion_file')+1])
