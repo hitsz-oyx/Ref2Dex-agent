@@ -64,13 +64,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-oracle-flow-task](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md) | Ref12: oracle hand flow → OOF predicted E/I → task Y | UNCLEAR: protocol frozen; runs pending. | Close the factual oracle prediction chain on existing data; paired-data and execution work remain paused. | probes/UNCLEAR |
+| [P-20261005-oracle-flow-task](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md) | Ref12: oracle hand flow → OOF predicted E/I → task Y | UNPROMISING for the registered fixed-fit chain; direct oracle flow task information is PROMISING, predicted E/I increment remains uncertain. | Preserve direct flow task information; stop this fixed chain fit without planner, paired data, execution or epoch/seed extensions. | probes/UNPROMISING |
 
 ## HF-oracle-hand-flow
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-oracle-hand-flow](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md) | Ref11: oracle endpoint and temporal hand flow → E/I | UNPROMISING for the predeclared joint E/I gate at this fixed budget; Chunk E passes, I remains uncertain. | Retain the oracle flow E signal and investigate paired-state evidence; keep the native execution route paused on the original branch. | probes/UNPROMISING |
+| [P-20261005-oracle-hand-flow](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md) | Ref11: oracle endpoint and temporal hand flow → E/I | UNPROMISING for the predeclared joint E/I gate at this fixed budget; Chunk E passes, I remains uncertain. | Retain the oracle flow E signal and I uncertainty; paired work is deferred and ref12 tests task-information transfer on the original branch. | probes/UNPROMISING |
 
 ## HF-per-finger-control
 

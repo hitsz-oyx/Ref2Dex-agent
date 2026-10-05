@@ -20,7 +20,7 @@ run_id: oracle-hand-flow-s255
 # Ref11: oracle endpoint and temporal hand flow → E/I
 
 Result: UNPROMISING for the predeclared joint E/I gate at this fixed budget; Chunk E passes, I remains uncertain.
-Decision: Retain the oracle flow E signal and investigate paired-state evidence; keep the native execution route paused on the original branch.
+Decision: Retain the oracle flow E signal and I uncertainty; paired work is deferred and ref12 tests task-information transfer on the original branch.
 
 ## Root Decision Note / user-directed Decision
 

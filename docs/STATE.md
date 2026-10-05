@@ -426,3 +426,25 @@ PhysX cache。用户明确暂不做配对数据及相关工程检查/采集，�
 当前单seed预测Probe完成。不放松门槛、不追加seed/epoch，也不恢复旧execution
 预测支线；尚未完成多seed泛化Validation或真正flow-space planning。
 [Oracle flow实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-hand-flow.md)。
+
+
+## Ref12：oracle flow → OOF E/I → Y 链路
+
+按用户ref12在原分支完成现有数据的matched任务预测Probe，配对数据/相关工程
+和execution predictor继续暂停。3环境fold的H/PCA/标签stats仅使用各fit环境；
+688source每行仅用hold预测，166test用冻结ref11 full-source模型。六新Cm fits
+300updates、六同容量Y heads500updates，E12/I14和ref8step9起Y8保持原义。
+
+直接actualflow→Y误差.45788 vsH.63951，改善28.40%（CI12.23..41.48%）；
+预测E/I→Y.54712，改善14.45%（CI−1.57..29.47%）；GT E/I.45440，改善
+28.95%（CI10.61..42.74%）。R.4991（CI−.0639..1.2790），固定链路gate
+UNPROMISING，保留直接flow与GT的PROMISING任务信息，不否定所有flow/Cm。
+Hybrid.43694相对直接flow改善4.57%但CI跨零，unique Cm增益UNCLEAR。
+OOF source Chunk I.61550 vsfull-source in-sample.39092，后者从未进入Y训练；
+OOF/full-test分布与有限优化预算保留为限制，不唯一归因于任何机制。
+GPU6主11.72s；全部input/foldnormalizer/FK/权重/OOF/统计重放误差0，零新仿真。
+独立CPU核对所有8个Y标签、sourcefold统计/权重/OOF/shuffle/bootstrap/R，
+归一化replay≤2.17e-6，未见影响结果的实现缺陷；72Task tests、仓库验证通过。
+不追加epoch/seed或进入planner；未来改变模型须另立可判别的Decision实验。
+全局matched训练策略Cm utility仍OPEN。
+[Oracle flow任务链实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md)。

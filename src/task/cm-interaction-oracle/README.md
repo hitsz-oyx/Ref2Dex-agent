@@ -2,7 +2,7 @@
 
 Task for action-conditioned physical consequence E/I and task-relative action
 quality, on the original branch `agent/cm-interaction-oracle`. The execution
-route is paused while ref11 proceeds on this same branch. Task, branch and
+route is paused while ref12 proceeds on this same branch. Task, branch and
 experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
@@ -12,11 +12,12 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref12): retain the paused native execution route and extend
-oracle hand-flow as the planning action. Compare current State, actual endpoint
-flow and two measured trajectory chunks, with matched flow shuffles and E/I-only
-evaluation. Post-treatment oracle inputs do not establish a deployable control
-mapping or paired candidate contrast; final policy utility remains open.
+Current user-directed route (ref12): oracle actual hand flow → environment-OOF
+predicted E/I → continuation Y. Compare shared current H, directflow, predicted
+E/I, GT E/I, hybrid and State-predicted E/I controls. Paired-data engineering
+and native execution prediction stay paused. Post-treatment oracle inputs do
+not establish attainable flow candidates or deployable planning; final matched
+trained-policy Cm utility remains open.
 
 Ref5 point-flow G and surface-I probes are completed; absolute RTG gains were
 weak or outlier-dependent. Task ref1's cross-fitted three-class advantage
@@ -27,9 +28,10 @@ accuracy, weak action permutation effect; UNPROMISING for this frozen contract.
 Actual between-V test Spearman0.540 contradicts using Pearson0.978 as evidence
 of strong sorting stability. Neither discrete G0 nor ranking G1 was rescued.
 
-Current prerequisite is physically credible action/outcome contrast, rather
-than another I/G architecture on these proxy labels. Retain relative-outcome
-and physical E/I as candidates; no core Cm refutation or policy utility claim.
+Historical action/outcome contrast limitations are retained; user defers paired
+collection while ref12 tests the factual prediction chain on existing data.
+Retain relative-outcome and physical E/I candidates; no core Cm refutation or
+policy utility claim.
 Do not select future-active/agreed test labels to rescue a failed gate.
 Neither offline oracle correlation nor prediction loss demonstrates the final
 matched Cm-on/off trained-policy utility.
@@ -334,3 +336,19 @@ weights. Y starts atstep9. Paired-state work remains explicitly deferred.
 (optional `--smoke`) runs on idleGPU6 within the card's bounded resources.
 Raw actualflow is post-treatment oracle information; chain gain/R does not
 establish prospective planning or unique Cm benefit versus directflow.
+
+
+Completed ref12: directflow primaryY MSE0.45788 vsH0.63951 (28.40% gain,
+CIpositive). OOF predictedE/I0.54712 (14.45%, CIcrosszero); GT0.45440.
+Oracle retained gainR0.4991 CI[-.0639,1.2790], fixedchainUNPROMISING.
+Hybrid0.43694 improves4.57% over directflow with CIcrosszero, unique Cm
+contributionUNCLEAR. Preserve directflow task information without planner claims.
+GPU fullgeometry/foldsource preprocessing/OOF/weight/statistical replay errors0.
+`tools/audit/audit_oracle_flow_task.py` takes the same dataset/oracle-flow-run
+and completedrun-dir to rebuild inputs/folds/weights onGPU and export a plot,
+without fitting; it refuses to overwrite existing replay artifacts.
+
+Independent read-only review reconstructs all8raw Y labels and source-only
+fold stats; saved-head normalizedCPU error≤2.17e-6 and bootstrap/R/gates agree.
+Reports/provenance are archived beside the main artifacts.72Task tests and
+scoped repository verification pass. This closes the current fixed-fit Probe.
