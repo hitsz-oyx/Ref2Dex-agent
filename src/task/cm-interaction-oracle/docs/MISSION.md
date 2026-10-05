@@ -21,3 +21,9 @@ test 用 full-source 模型。保持 H、直接 flow、预测 E/I、GT E/I 和 h
 Gate，真实执行七个局部干预，区分短期 continuation Y 与稳定持有 Z。
 这重新启用配对采集；通过后才做噪声容忍度与表示比较。继续暂停旧 execution
 predictor、PPO 和进一步 Y/E/I MSE 调参，不强制 E/I 作为信息瓶颈。
+
+
+用户 ref13_1 要求先纠正 one-shot 与 rolling short-Y 的适用范围：复用保存轨迹，
+保持短窗口标签/utility，检查时序分叉和到真实失败的提前量。完成条件是完整
+窗口、原标签精确重放与清晰的后续不同 H 边界；不得把轨迹查表/拼接写成滚动
+干预的可执行收益或上限。新 rolling 交互验证与预测模型属于后续独立阶段。

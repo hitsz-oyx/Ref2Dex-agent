@@ -377,3 +377,16 @@ Per-candidate co-treated groups may have shared solver artifacts; oracle mosaic
 selectedZ is not directly an executed mixed-arm batch. Anchorbootstrap does
 not cover sharedbatch numerical uncertainty. Positive qualifies boundedproxy
 utility only; no formal/per-env deployment/Cm policy claim.
+
+
+## Ref13_1 interpretation correction
+
+The one-shot GateA result above remainsUNPROMISING for itsfixedcontract.
+It does not test rolling/receding-horizon short-Y control. The separate
+[rolling GT-Y audit](P-20261005-rolling-gt-y.md) keeps theseinputs/Y/U/Z frozen:
+8anchors show scheduled delayedfactualpath separation; env36baseline/thumb−
+onlysplitatdense57/58, outside thelastrecordedscheduledwindow endpoint88.
+Rolling pathobservability isPROMISING; actualrolling controlgain isUNCLEAR.
+Nextpriority is a newsame-current-state rollingoracle Decisionexperiment,
+not automaticallylong-Y fitting orlargercandidate amplitude. No original
+label, gate, statistical conclusion orrawrun is revised bythisinterpretation.

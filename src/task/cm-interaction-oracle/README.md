@@ -24,6 +24,17 @@ mosaic/support limitations prevent broad Y/Cm or policy-utility conclusions.
 Actual corresponding hand flows/E/I/Y/Z and GPU FK/live checks are archived.
 [Protocol and completed evidence](docs/experiments/probes/P-20261005-oracle-y-utility.md).
 
+Ref13_1 corrects the interpretation with a saved-trajectory rolling GT-Y audit.
+Same local32step labels/U become correctly separated for46initiallytied
+Z-discordantpairs on8prefixes: PROMISING factual-path observability, not
+rolling-policy utility. Env36baseline/thumb− separates only atdense57/58;
+8stepcadence needs unrecordedfuture through96 fornextquery64. LaterbranchH
+differ, so no trajectory stitching can claim an executable rolling gain.
+Prefer a new same-current-state rolling oracle test before long-Y/model fitting.
+[Correction evidence](docs/experiments/probes/P-20261005-rolling-gt-y.md).
+Audit `tools/audit/audit_rolling_gt_y.py --source-run <ref13 completedrun>
+--run-dir <newuniquefolder>`; CPU recorded-label statistics, zero model/physics.
+
 Ref5 point-flow G and surface-I probes are completed; absolute RTG gains were
 weak or outlier-dependent. Task ref1's cross-fitted three-class advantage
 labels stopped at G0. Task ref2 then explicitly motivated a DIFFERENT

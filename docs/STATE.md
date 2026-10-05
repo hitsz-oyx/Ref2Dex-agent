@@ -473,3 +473,26 @@ GPU真实point-flow归档14panel FK/live最大tip误差1.714e−5m，Y/Z重建�
 共享solver四组mosaic、强s3条件群体、forcepair代理及短Z horizon仍限制外推，
 不把anchorCI当group数值独立或在线混合选择已验证。最终matched训练策略
 Cm utility仍OPEN。[实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md)。
+
+
+## Ref13_1 修正：滚动 GT-Y 可分性
+
+完成纯CPU保存轨迹审计，零新模型或仿真：32×7候选的原Y/Z和tau0标签精确
+重放，保持32步窗口、原utility、每8步cadence。124个Z不同的候选pair中50个
+初始utility平局；46个在滚动后正确区分，涉及8/32原前缀，提前29–47steps，
+记录路径可分性PROMISING。这些pair并非独立实验；8前缀中6个baseline本已
+成功，env33已由one-shot救回，不能写成8个新增rescue或rolling策略收益。
+
+env33 middle−/grip+在tau16分开、提前32steps；env36 baseline/thumb−在所有
+已保存每8步查询tau0..56仍平局，dense诊断tau57/58才差1、提前32/31steps。
+原90步记录的tau56窗口终点88，下一查询tau64需未来到96（缺6steps），不能
+补齐或把dense诊断当主cadence成功。后续候选H已不同，无法拼接反事实切换。
+
+因此ref13 one-shot no-go保留，明确不关闭rolling short-Y；后续优先新的共享
+当前状态rolling GT-Y干预证据，而非直接改long-Y/扩大authority或继续predictor。
+实际rolling收益/可执行上限仍UNCLEAR，原GT-Z25/32只是旧分支机会ceil。
+主审计1.43s、产物不足1MiB、14合同回归测试通过；源码/数据哈希和边界冻结。
+独立CPU全部rolling标签/risk/U、事件/提前量/统计复算一致；4pair缺后续查询，
+不额外声称持续性。去掉这4pair后的42pair仍覆盖全部8信号前缀。
+旧execution forecast/PPO和MSE调参继续暂停，最终matched训练策略Cm utility
+仍OPEN。[滚动审计卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-gt-y.md)。

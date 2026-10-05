@@ -107,7 +107,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-rolling-gt-y](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-gt-y.md) | Ref13_1 Rolling GT-Y audit | pending; protocol frozen before rolling outcome calculation. | Audit saved trajectories before any rolling intervention acquisition. | probes/UNCLEAR |
+| [P-20261005-rolling-gt-y](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-gt-y.md) | Ref13_1 Rolling GT-Y audit | PROMISING recorded-path rolling observability:46/50 initially tied discordantpairs separate correctly atscheduledqueries,8/32anchors; rollin | Retain short-Y and prioritize a new same-current-state rolling oracle test; no long-Y/predictor/PPO fitting or saved-trajectory policy-gain  | probes/PROMISING |
 
 ## HF-spatial-action-fidelity
 
