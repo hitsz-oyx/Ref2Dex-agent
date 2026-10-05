@@ -320,3 +320,22 @@ GPU6两主run最终manifest2.88s/1.19s，首启动hash路径错误在模型计�
 审计只inference；新增<85MiB，50Task tests通过，无剩余本轮GPU进程。
 [ref10主实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-innovation.md)，
 [归因实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-support.md)。
+
+## Task ref10 续接：局部 OI-CmV2 空间后果
+
+续读原会话后补上尚未测试的空间路线：复用V13局部交互/token/fusion模块，
+固定width32/4tokens/2cmKNN8，名义PD端点点流与persistence残差；全部854窗口，
+原688/166环境划分，严格三折OOF，20后果+8同预算直接/GT/预测后果task模型。
+
+本固定合同UNPROMISING：Flow I.8891，State.8837、Joint.8670、mean.8907；
+动作shuffle仅增加I误差.565%，I contrast corr.239/sign53.14%/幅度比.066。
+P_Flow主误差.5442与directFlow.5468接近且输P_State.5329，五gate均未过；
+GT仍改善主误差30.22%(CI11.98–43.15%)。误差稳定，无旧bilinear爆炸。
+全部28保存权重、OOF和15Flow候选重放精确一致；独立review与root核验通过。
+99.06%窗口有空间边，动作改变邻居/特征且梯度非零；不是动作未接入。
+
+Root停止这个固定fit，下一Decision需区分名义端点与可预测实际执行，不能靠更多
+epoch/seed重复弱动作通路。端点/实际tip运动已有明显描述性差距，但不能唯一归因
+反馈抵消或断言空间模型不可学。没有selector/PPO或正式科学结论；全局Cm策略
+utility仍OPEN。GPU6主162.62s、smoke6.17s、重放3.44s、review GPU.74s；新增约154MiB、53tests通过。
+[空间后果实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md)。

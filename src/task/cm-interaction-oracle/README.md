@@ -192,3 +192,21 @@ diagnostic. `tools/audit/report_geometric_consequence.py --run-dir <main-run>
 All entries preserve existing artifacts. Next modeling work should use local
 surface/contact structure and an explicit nominal-versus-realized execution
 contract, without extending this exposed-test PCA/ridge fitting route.
+
+### Ref10 continuation: reduced OI-CmV2 spatial Probe
+
+The [spatial consequence card](docs/experiments/probes/P-20261005-spatial-consequence.md)
+tests actual V13 local interaction/token/fusion modules, reduced width32,
+with compact E12/I14 persistence innovations and strict environment OOF.
+All28matched consequence/task fits complete: UNPROMISING for this fixed
+nominal-action contract. Flow I.8891 vs State.8837/Joint.8670; predicted
+consequences show no unique downstream gain. Saved-weight replay is exact.
+This is a from-scratch reduced adaptation, not original GRAB/MANO training
+or a refutation of spatial Cm. Future work must distinguish nominal endpoint
+from predictable realized execution before repeating geometry fits.
+
+Entry: `tools/run/probe_spatial_consequence.py`, with `--dataset`,
+`--oracle-run` and a NEW `--run-dir`. Audit: `tools/audit/audit_spatial_consequence.py`,
+with `--dataset` and completed `--run-dir`; GPU inference only, refuses to
+overwrite its replay report. Full signed vectors, standalone heatmap and
+PD/q/true-tip magnitude tables accompany the card and saved run.
