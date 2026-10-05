@@ -69,7 +69,7 @@ NOT20% of follower ranges. Delta action±.4; no direct residual on mimic DOFs.
 Yaw has no mimic followers; pitch still moves16/17 by0.6/0.8. Composite excludes
 yaw exactly as before; unrelated dimensions have zero DIRECT target difference.
 
-Explicit v4 payload adds all32 measured native joint positions (radians),
+Explicit v4 payload adds all32 measured native joint positions (q0:3 metres; q3:18 radians),
 five actual `*_tip` world positions and measured hand-base poses. Existing
 contact-body positions remain mostly intermediate bodies, thumb_distal; do
 not label these old points fingertip motion. Save actual geometry sample,
@@ -123,3 +123,17 @@ contacts. Source early-hold proxy does not certify an established stable grasp.
 Single cohort is a Probe; independent repeats, 5mm FK/Jacobian calibration,
 true paired contact identity and trained-policy matched Cm-on/off Validation
 remain deferred unless the decision signal justifies them.
+
+## Pre-main engineering record
+
+Collector commit741e18d engineering smoke completed; fixed source/15arm
+encoding/native PD/coupling/true tip-body names reviewed independently.
+Nominal driver20%range:four fingers±0.320rad (±18.335deg), followers±0.336rad
+(±19.251deg); yaw±0.230rad (±13.178deg); pitch±0.110rad (±6.303deg), followers
+±0.066/0.088rad (±3.782/5.042deg). Composite13/14 exactly matches ref6 alpha4
+finger± in native command space. No future capture added to actor input.
+
+Before main, fix units metadata:smoke incorrectly labelled whole18D q as
+radians; numerical tensors/driver audit are unaffected, original smoke kept.
+Main explicitly annotates q0:3 metres and q3:18 radians. Measured finger
+angles and true tip millimetres still require delivered-data audit.

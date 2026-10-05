@@ -243,7 +243,8 @@ class InterventionPlayer(original.EvalPlayer):
                 payload.update(schema="ref2dex.randomized_intervention.v4", intervention_set=ARGS.intervention_set,
                     finger_range_fraction=ARGS.finger_range_fraction, fingertip_names=tip_names,
                     contact_body_names=tuple(task.cfg["env"]["contactBodies"]),
-                    measured_motion_contract="native q radians; actual tip world positions; actual hand-base poses for local motion")
+                    native_q_units=("m",)*3+("rad",)*15,
+                    measured_motion_contract="native q0:3 metres, q3:18 radians; actual tip world positions metres; actual hand-base pose xyz metres/xyzw quaternion")
             torch.save(payload, ARGS.run_dir / "interventions.pt")
             (ARGS.run_dir / "episode_summary.json").write_text(json.dumps(summaries, indent=2)+"\n")
         result = dict(trials=len(payload["arm"]), episodes=len(summaries),
