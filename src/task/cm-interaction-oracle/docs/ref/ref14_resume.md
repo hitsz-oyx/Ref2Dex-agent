@@ -22,6 +22,16 @@ The original total cap remains7200s/4GiB, GPU6/7, four workers maximum.
 This recovery conservatively charged4549.996s before new work (original last
 checkpoint2865.251s plus the timestamp gap, including interruption downtime).
 This is stricter than cumulative active compute; it does not grant a new budget.
+Accounting correction `4e81788`: the shell-created recovery log timestamp had
+included idle downtime. Root interrupted only the owned recovery coordinator,
+retained its `KeyboardInterrupt` record and partial native attempt, and excluded
+1667.781s idle time. `resume_manifest-002.json` charges2882.215s original active
+work plus852.542s first-recovery work =3734.757s before the second recovery.
+Original7200s cumulative active-running cap and4GiB cap remain unchanged;
+all prior active work and interrupted native time are retained. The original
+conservative ledger and `resume_progress-001.json` remain immutable. Regression
+tests cover opening a new log without charging downtime, preserving prior work,
+and rejecting recovery after scientific/resource-check failures.
 The recovery manifest and `resume_progress.json` are current operational records;
 `progress.json` is the immutable pre-recovery record. A cap failure or incomplete
 cohort cannot become negative evidence about the controller.
