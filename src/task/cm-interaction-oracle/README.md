@@ -1,8 +1,9 @@
 # cm-interaction-oracle
 
 Task for action-conditioned physical consequence E/I and task-relative action
-quality, on branch `agent/cm-interaction-oracle`. The Task name is the branch
-suffix; Git branch and experiment identities remain separate.
+quality. Current ref11 route uses `agent/cm-oracle-flow-planning`; prior
+execution route remains in `agent/cm-interaction-oracle`. Task, branch and
+experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
 `ObjectInteractionCmv2` and native Inspire geometry in `CmResidual` are reused.
@@ -281,3 +282,21 @@ the result and stop this execution branch per ref11. Tools are
 `tools/run/probe_contact_innovation.py` and `tools/audit/audit_contact_innovation.py`,
 both taking dataset, corrected forecast run and unique/completed output folder.
 No follow-on execution or contrast-stability fit was launched.
+
+### Ref11: measured endpoint and temporal oracle hand flow
+
+[Oracle hand-flow protocol](docs/experiments/probes/P-20261005-oracle-hand-flow.md)
+compares current State, full measured endpoint flow and two trajectory chunks,
+with trained/frozen flow-shuffle controls. All correspondences retained in720
+raw action slots; no execution forecast, PD/arm input, V13 pooling or Y scorer.
+Frame0 object/root is fixed; actual wrist motion is included through native
+FK at0/4/8 with independent measured base/tip agreement checks. Current-only
+H preprocessing excludes previous controller actions and absolute world offsets.
+
+Entry `tools/run/probe_oracle_hand_flow.py --dataset <ref7 interventions>
+--split-run <gt-consequence-s231-r2> --run-dir <new-unique-folder>` (optional
+oneupdate `--smoke`). Check idleGPU6 ownership and protocol resource cap first.
+Actual flow is a post-treatment oracle input. Exact observable duplicate-state
+support is audited separately; donor-label substitution does not create true
+same-state candidate outcomes. Prospective planning and final policy utility
+remain later requirements.
