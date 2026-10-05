@@ -5,12 +5,12 @@ experiment_id: P-20261005-oracle-y-utility
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: 03a5a92a27e4ab99befd1b7f9db9a8b34053a9d3
+git_commit: 4e4ec36cc7c9b811e8870f0b2a89d2f37ffb2eef
 claim_id: C3
 hypothesis_family: HF-oracle-y-utility
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [263, 265, 266]
+seeds: [263, 264, 265, 266]
 decision_changed_if_positive: run synthetic Y noise tolerance before any paired representation fitting
 decision_changed_if_negative: stop the fixed short-Y selector and distinguish proxy mismatch from absent candidate opportunity
 status: UNCLEAR
@@ -205,3 +205,21 @@ dt/substeps/controlinterval/tensor+actordevices/PhysXGPU/threads/subscenes/solve
 iteration/contactoffset contract plus model/RMS hashes before replay and in
 rawpanels; refuse crossbackend/actor drift. Fresh mainreference required; old
 smoke remains immutable. CPU-only backend smoke had1anchor and is NOT main.
+
+## Pre-alternative sample adequacy supplement
+
+96env reference/repeat at4e4ec36 yields29/29 EXACT paired anchors,25s3/2s7/2s9;
+all29 observableH rows unique. Not enough for registered≥30anchor gate. Before
+ANY alternative outcome, freeze one extra48env reference/repeat atindependent
+Probe resetseed264; pool ALL accepted cohorts frombothbatches. No additional
+seed/batch ifstillinsufficient; no lowergate threshold or future-state rescue.
+Same seven candidates/utility/Z/physics/model contracts. Extra runprefix
+`oracle-y-utility-extra-s264-*`; eachcoldreference ownprefix replay, no cross
+initialState mix. Seeds belong sameexperiment, runIDs differentiate execution.
+Up to16 totalmainbranches (two baselines/two repeats/12alternatives), still
+aggregate≤2400s actualwall and≤1.5GiB INCLUDING engineering retries. Freeze
+cohort manifests before all12alternatives. Main core collector code4e4ec36;
+wrapper only adds optional resetseed (default263); per-run manifests capture
+actualHEAD and allsourcehashes. Pooled gate/CI/noise uses SAME frozen formulas,
+not bestbatch selection. Backend/model/RMS exactidentity required within and
+acrosspanels exceptdifferent coldinit/seed.

@@ -82,7 +82,7 @@ def evaluate(reference,branches,screen_path,output):
             prefix_max=p['prefix_errors'][rows].amax(0).tolist() if len(rows) else []))
     yy=torch.stack(y,1).numpy();zz=torch.stack(z,1).numpy();motion=p0['motion_id'][rows].numpy()
     result=oracle_gate(yy,zz,motion)
-    result.update(candidates=list(CANDIDATES),per_candidate=diagnostics,screen=frozen,
+    result.update(simulation_contract=p0.get('simulation_contract'),candidates=list(CANDIDATES),per_candidate=diagnostics,screen=frozen,
         input_sha256={str(p.resolve()):sha(p) for p in inputs},
         git_commit=__import__('subprocess').check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         utility_contract='height-held fraction32 + .25 contact32 - late height-failure32; ties baseline first',
