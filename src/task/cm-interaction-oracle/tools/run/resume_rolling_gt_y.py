@@ -45,9 +45,45 @@ class Resume(original.Campaign):
         self.resume_commit = subprocess.check_output(
             ['git', 'rev-parse', 'HEAD'], cwd=original.ROOT, text=True).strip()
         # Charge time after the last checkpoint, including interrupted workers.
-        latest = max(p.stat().st_mtime for p in self.root.rglob('*') if p.is_file())
-        tail = max(0., latest - (self.root / 'progress.json').stat().st_mtime)
-        self.charged_seconds = saved['elapsed_seconds'] + tail
+        prior_manifest = self.root / 'resume_manifest.json'
+        if prior_manifest.exists():
+            previous = json.loads((self.root/'resume_progress.json').read_text())
+            try:
+                os.kill(previous['pid'], 0)
+            except ProcessLookupError:
+                pass
+            else:
+                raise ValueError('previous recovery coordinator is still alive')
+            if previous['status'] == 'COMPLETED':
+                raise ValueError('completed run cannot resume')
+            if previous['status'] == 'FAILED' and previous['events'][-1].get('error') != 'KeyboardInterrupt()':
+                raise ValueError('failed scientific/resource checks cannot be bypassed')
+            if (self.root/'resume_manifest-002.json').exists():
+                raise ValueError('second recovery already exists')
+            prior = json.loads(prior_manifest.read_text())
+            # Recover the last ORIGINAL worker timestamp, before first recovery.
+            # Exclude recovery logs so merely opening a new log cannot charge downtime.
+            original_latest = max(p.stat().st_mtime for p in self.root.rglob('*')
+                                  if p.is_file() and not p.name.startswith('resume')
+                                  and p.stat().st_mtime < prior_manifest.stat().st_mtime)
+            original_tail = max(0., original_latest-(self.root/'progress.json').stat().st_mtime)
+            original_active = saved['elapsed_seconds'] + original_tail
+            first_recovery_active = previous['elapsed_seconds']-prior['charged_seconds']
+            self.charged_seconds = original_active + first_recovery_active
+            immutable_write(self.root/'resume_progress-001.json', previous)
+            accounting = dict(original_active_seconds=original_active,
+                              first_recovery_active_seconds=first_recovery_active,
+                              excluded_downtime_seconds=prior['charged_seconds']-original_active,
+                              old_conservative_elapsed=previous['elapsed_seconds'])
+            saved = previous
+            manifest_path = self.root/'resume_manifest-002.json'
+        else:
+            latest = max(p.stat().st_mtime for p in self.root.rglob('*')
+                         if p.is_file() and not p.name.startswith('resume'))
+            tail = max(0., latest - (self.root / 'progress.json').stat().st_mtime)
+            self.charged_seconds = saved['elapsed_seconds'] + tail
+            accounting = dict(excluded_downtime_seconds=0.)
+            manifest_path = prior_manifest
         self.begin = time.monotonic() - self.charged_seconds
         self.events = list(saved['events'])
         self.processes = {}
@@ -58,12 +94,12 @@ class Resume(original.Campaign):
             self.gpu_slots.put(gpu)
         self.checked_inputs = set()
         self.check()
-        immutable_write(self.root / 'resume_manifest.json', dict(
+        immutable_write(manifest_path, dict(
             original_commit=self.commit, resume_commit=self.resume_commit,
             resume_code_sha256=original.sha(Path(__file__)),
             original_progress_sha256=original.sha(self.root / 'progress.json'),
             charged_seconds=self.charged_seconds, wall_cap=args.wall_seconds,
-            storage_gib=args.storage_gib, protocol_unchanged=True))
+            storage_gib=args.storage_gib, protocol_unchanged=True, accounting=accounting))
         self.progress('RESUMED')
 
     def progress(self, stage, **kwargs):
@@ -134,9 +170,15 @@ class Resume(original.Campaign):
             archive = self.root / 'interrupted-attempts'
             archive.mkdir(exist_ok=True)
             if folder.exists():
-                folder.rename(archive/name)
+                target = archive/name
+                if target.exists():
+                    target = archive/(name+'-recovery1')
+                folder.rename(target)
             if log.exists():
-                log.rename(archive/log.name)
+                target = archive/log.name
+                if target.exists():
+                    target = archive/(name+'-recovery1.log')
+                log.rename(target)
         return super()._worker(name, reference, schedule, group, seed, offset,
                                candidate, window, record, plan, physical_gpu)
 
@@ -148,7 +190,6 @@ def main():
     parser.add_argument('--workers', type=int, default=4, choices=[1, 2, 3, 4])
     parser.add_argument('--wall-seconds', type=int, default=7200)
     parser.add_argument('--storage-gib', type=float, default=4)
-    parser.add_argument('--preflight-only', action='store_true')
     args = parser.parse_args()
     if args.wall_seconds > 7200 or args.storage_gib > 4:
         raise ValueError('resume cannot expand frozen resource caps')
@@ -159,9 +200,6 @@ def main():
         specs = [('oracle-y-utility-s263', 263, 0), ('oracle-y-utility-s263', 263, 1),
                  ('oracle-y-utility-extra-s264', 264, 0), ('oracle-y-utility-extra-s264', 264, 1)]
         controls = [campaign.repeated_control(*spec) for spec in specs]
-        if args.preflight_only:
-            campaign.progress('RESUME_PREFLIGHT_PASSED')
-            return
         for control in controls:
             campaign.run_group(control)
         campaign.finish()
