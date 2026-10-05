@@ -5,7 +5,7 @@ experiment_id: P-20261005-oracle-y-utility
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: pending
+git_commit: 82d210146c0346f45d4854df615409b02092d6e7
 claim_id: C3
 hypothesis_family: HF-oracle-y-utility
 probe_index_in_family: 1
@@ -117,3 +117,11 @@ point-flow execution and formal Validation are deferred. E/I auxiliary/parallel
 until it shows unique ranking/generalization/calibration/constraint value;
 no compulsory F→E/I→Y information bottleneck. Negative stops only this fixed
 panel/utility/target contract after implementation attribution review.
+
+## Engineering failure record
+
+`oracle-y-smoke-s263-reference` at82d2101 failed before first simulate: new
+collector used snapshot36 instead of the existing snapshot55 in139-wide history.
+No intervention data or scientific result. Restore existing55+18+13+53 layout;
+current model H still consumes only first36q/dq history as inherited. Failed
+manifest/initial retained. Retry uses unique `oracle-y-smoke-s263-r2-*` outputs.
