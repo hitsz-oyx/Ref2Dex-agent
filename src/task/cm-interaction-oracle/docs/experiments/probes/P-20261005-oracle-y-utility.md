@@ -232,3 +232,39 @@ identical; optionalCLIseed wrapper change only. Cohort timestamps/hashes
 runner guardsGPU6 idle, aggregate≤2400s and everyalternativeprefix before next
 branch, refuses post-treatment discards. GPUFK/live replay archives actual
 0→4/4→8 pointflows after complete collection, no new predictor fits.
+
+## Async candidate contamination / synchronous repair Decision Note
+
+Firstcandidate `oracle-y-utility-s263-candidate1` finished, butonly12/29
+pre-intervention prefixes passed; globalmaxphysical233/q-dq28/action.141.
+Entire asyncpanel rejected, no candidateY/Z efficacy inspected; not GateA
+negative. Baseline-repeat alone was insufficient because earlierenv candidates
+can change laterenv prefixes in sharedGPUPhysX computation; exactcause not
+proven, native collisiongroups are per-env and no obvious PD alias found.
+
+Repair: eachcandidateprocess treats ONE group atONE globaltick; allotherenvs
+replaybaseline forever. Thus BEFORE fork entireworld history isbaseline.
+Selecttwo DISJOINT groups peroriginalbatch solely maximizing current eligible
+support; second group includesa non-s3motion, earliestclock ties. Current
+earlyhold6≤run<45 (excludealreadyqualifiedstable),10history,forcepair/proximity/
+commonheadroom/nativehorizon unchanged. No futureY/Z or candidateeffects used.
+Seed263 clocks42/84 groups7/13; seed264 clocks62/136 groups9/3:32states,29s3/3s7.
+Original46cohort/failedcandidate remain immutable. Schedule hashes/source trace
+locks retained, no threshold/utility/Z/candidate/amplitude change. This is a
+CURRENT-prefix conditional cohort, not a representative earlyhold distribution.
+
+Freshre-anchored baseline/repeat before synchronouscandidatebranches. Baseline
+has bothgroups but NO intervention; rawreference records exactH ateachclock.
+Candidateprocess selectsonegroup, sharesitsentirecold prefix, and only that
+group gets K8 residual/ownfeedback. Assemble per-row rawpanels acrossgroups
+with explicit sourcehashes; no outcome/label transplant between differentH.
+All32states must have allseven validoutcomes; no treatment-specific exclusions.
+GateA ≥30/≥2motions,5pp/lower95>0 remains unchanged. Total24synchronous
+altbranches plusfourbaseline/repeat branches, still≤2400s aggregate actual
+wall incloldfailures and≤1.5GiB outputs; sequentialGPU6 only.
+
+Sync fixes pre-fork contamination, not certified post-fork numerical independence.
+Per-candidate co-treated groups may have shared solver artifacts; oracle mosaic
+selectedZ is not directly an executed mixed-arm batch. Anchorbootstrap does
+not cover sharedbatch numerical uncertainty. Positive qualifies boundedproxy
+utility only; no formal/per-env deployment/Cm policy claim.

@@ -73,6 +73,15 @@ class CandidatePlayer(original.EvalPlayer):
             if trace.get('simulation_contract') != simulation_contract:
                 raise ValueError('simulation backend/solver contract mismatch')
             triggers = trace['triggers'].to(device)
+            if ARGS.anchor_schedule is not None:
+                schedule=json.loads(ARGS.anchor_schedule.read_text())
+                triggers=torch.tensor(schedule['triggers'],device=device,dtype=torch.long)
+                if ARGS.group_id is not None:
+                    groups=torch.tensor(schedule['groups'],device=device,dtype=torch.long)
+                    triggers=torch.where(groups==ARGS.group_id,triggers,-1)
+                if triggers.shape!=(n,): raise ValueError('schedule dimensions')
+                if ARGS.candidate and len(triggers[triggers>=0].unique())!=1:
+                    raise ValueError('candidate must fork at one synchronous tick')
             length = int(triggers.max())+POST_WINDOW if (triggers>=0).any() else 1
         try:
             obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties,cpu_pose_atol=2.5e-7 if str(device)=='cpu' else 0.)
@@ -89,7 +98,8 @@ class CandidatePlayer(original.EvalPlayer):
         initial_hash = fingerprint(initial)
         if trace is not None and trace['initial_fingerprint']!=initial_hash:
             raise ValueError('cold initial identity drift')
-        if trace is None: torch.save(initial,ARGS.run_dir/'initial_state.pt')
+        record_trace=trace is None or ARGS.reanchor_baseline
+        if record_trace: torch.save(initial,ARGS.run_dir/'initial_state.pt')
         model_hash = fingerprint(self.model.state_dict())
         rms_hash = fingerprint(self.running_mean_std.state_dict()) if self.normalize_input else None
         if trace is not None and (trace['model_fingerprint']!=model_hash or trace['rms_fingerprint']!=rms_hash):
@@ -145,7 +155,6 @@ class CandidatePlayer(original.EvalPlayer):
                 eligible &= phys[:,66:71].amin(-1)<.06
                 eligible &= all_arms_have_headroom(base,delta)
                 triggers[eligible] = tick
-                logs['physical'].append(phys.cpu()); logs['dof'].append(dof.cpu()); logs['root'].append(root.cpu())
             else:
                 prefix = ((triggers<0)|(tick<=triggers))&~terminal
                 for column,(value,key) in enumerate(((phys,'physical'),(dof,'dof'),(root,'root'))):
@@ -153,6 +162,8 @@ class CandidatePlayer(original.EvalPlayer):
                     errors[prefix,column] = torch.maximum(errors[prefix,column],error[prefix])
                 shadow = (base-trace['action'][tick].to(device)).abs().amax(-1)
                 errors[prefix,5] = torch.maximum(errors[prefix,5],shadow[prefix])
+            if record_trace:
+                logs['physical'].append(phys.cpu()); logs['dof'].append(dof.cpu()); logs['root'].append(root.cpu())
             if ARGS.diagnose_prefix and trace is not None:
                 inspected=(triggers>=0)&(tick<=triggers)&~terminal
                 raw={key:float((value[inspected]-trace[key][tick].to(device)[inspected]).abs().max())
@@ -171,7 +182,7 @@ class CandidatePlayer(original.EvalPlayer):
                 packet['actor_obs'][chosen] = obs['obs'][chosen].to(device); packet['hand_root'][chosen] = root[chosen]
                 packet['before_fingertip_positions'][chosen] = task._rigid_body_pos[chosen][:,tip_ids]
                 packet['before_hand_base_pose'][chosen] = torch.cat((task._rigid_body_pos[chosen,base_id],task._rigid_body_rot[chosen,base_id]),-1)
-                if trace is not None:
+                if trace is not None and not ARGS.reanchor_baseline:
                     for column,key in ((3,'actor_obs'),(4,'history')):
                         error=(packet[key][chosen]-trace['anchors'][key][chosen.cpu()].to(device)).abs().flatten(1).amax(-1)
                         errors[chosen,column]=error
@@ -205,10 +216,10 @@ class CandidatePlayer(original.EvalPlayer):
                 packet['native_q'][ids32,offsets]=task._dof_pos[ids32]
                 packet['fingertip_positions'][ids32,offsets]=task._rigid_body_pos[ids32][:,tip_ids]
                 packet['hand_base_pose'][ids32,offsets]=torch.cat((task._rigid_body_pos[ids32,base_id],task._rigid_body_rot[ids32,base_id]),-1)
-            if trace is None:
+            if record_trace:
                 logs['action'].append(action.cpu()); logs['done'].append(done.cpu())
                 rng.append(dict(before_reset=r_reset,before_action=r_action,before_physics=r_physics))
-            else:
+            if trace is not None:
                 prefix=(triggers<0)|(tick<triggers)
                 errors[prefix,6]=torch.maximum(errors[prefix,6],(done!=trace['done'][tick].to(device))[prefix].float())
             terminal |= done; previous=action.clone()
@@ -222,7 +233,7 @@ class CandidatePlayer(original.EvalPlayer):
             prefix_errors=errors,clipped_steps=clipping,delta=delta,initial_fingerprint=initial_hash,
             candidate=ARGS.candidate,candidate_name=CANDIDATES[ARGS.candidate],control_dt=task.dt)
         packet=cpu_copy(packet); torch.save(packet,ARGS.run_dir/'panel.pt')
-        if trace is None:
+        if record_trace:
             value={k:torch.stack(v) for k,v in logs.items()}
             value.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,rng=rng,triggers=packet['triggers'],anchors={k:packet[k] for k in ('actor_obs','history')},initial_fingerprint=initial_hash)
             torch.save(value,ARGS.run_dir/'trace.pt')
@@ -245,7 +256,12 @@ def main():
     parser.add_argument('--candidate',type=int,default=0,choices=range(len(CANDIDATES)))
     parser.add_argument('--wall-seconds',type=int,default=180)
     parser.add_argument('--diagnose-prefix',action='store_true')
+    parser.add_argument('--anchor-schedule',type=Path)
+    parser.add_argument('--group-id',type=int,choices=(0,1))
+    parser.add_argument('--reanchor-baseline',action='store_true')
     ARGS,remaining=parser.parse_known_args()
+    if ARGS.reanchor_baseline and (ARGS.candidate!=0 or ARGS.reference is None or ARGS.anchor_schedule is None):
+        raise ValueError('reanchor requires baseline and original reference/schedule')
     if ARGS.reference is None and ARGS.candidate!=0: raise ValueError('reference is baseline')
     ARGS.run_dir.mkdir(parents=True,exist_ok=False)
     checkpoint=Path(remaining[remaining.index('--checkpoint')+1])
@@ -272,6 +288,7 @@ def main():
     paths += motions
     for flag in ('--cfg_env','--cfg_train'): paths.append(Path(remaining[remaining.index(flag)+1]))
     if ARGS.reference is not None: paths += [ARGS.reference/k for k in ('initial_state.pt','trace.pt','panel.pt')]
+    if ARGS.anchor_schedule is not None: paths.append(ARGS.anchor_schedule)
     inputs={str(p.resolve()):sha(p) for p in paths}
     manifest=dict(status='RUNNING',pid=os.getpid(),command=sys.argv,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=inputs,physical_gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),no_training=True,candidate=ARGS.candidate)

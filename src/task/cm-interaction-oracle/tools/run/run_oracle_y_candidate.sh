@@ -7,6 +7,10 @@ candidate=$3
 reference=${4:-}
 simulator_seed=${7:-263}
 args=()
+if [[ -n "${8:-}" ]]; then
+ args+=(--anchor-schedule "$root/outputs/cm-interaction-oracle/$8")
+ if [[ "${9:-}" == reanchor ]]; then args+=(--reanchor-baseline); else args+=(--group-id "$9"); fi
+fi
 sim_device=cuda:0
 pipeline=gpu
 if [[ "${6:-gpu}" == cpu ]]; then sim_device=cpu; pipeline=cpu; args+=(--num_threads 1); fi
