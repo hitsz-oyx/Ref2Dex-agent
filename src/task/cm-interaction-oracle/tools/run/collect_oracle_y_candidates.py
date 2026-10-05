@@ -40,6 +40,12 @@ class CandidatePlayer(original.EvalPlayer):
         task._enable_early_termination = False; task._adaptive_kappa_enabled = False
         task._hybrid_init_prob = .5
         self.model.eval()
+        params=task.gym.get_sim_params(task.sim)
+        simulation_contract=dict(dt=float(params.dt),substeps=int(params.substeps),
+            control_dt=float(task.dt),tensor_device=str(device),actor_device=str(self.device),
+            use_gpu_pipeline=bool(params.use_gpu_pipeline),
+            physx={k:getattr(params.physx,k) for k in ('use_gpu','num_threads','num_subscenes','solver_type',
+                'num_position_iterations','num_velocity_iterations','contact_offset','rest_offset')})
         n = task.num_envs; ids = torch.arange(n, device=device); empty = ids[:0]
         if abs(task.dt-1/30)>1e-8 or len(task.motion_file)!=3:
             raise ValueError('motion/control interval drift')
@@ -64,6 +70,8 @@ class CandidatePlayer(original.EvalPlayer):
         else:
             initial = torch.load(ARGS.reference/'initial_state.pt',map_location='cpu',weights_only=False)
             trace = torch.load(ARGS.reference/'trace.pt',map_location='cpu',weights_only=False)
+            if trace.get('simulation_contract') != simulation_contract:
+                raise ValueError('simulation backend/solver contract mismatch')
             triggers = trace['triggers'].to(device)
             length = int(triggers.max())+POST_WINDOW if (triggers>=0).any() else 1
         try:
@@ -84,6 +92,8 @@ class CandidatePlayer(original.EvalPlayer):
         if trace is None: torch.save(initial,ARGS.run_dir/'initial_state.pt')
         model_hash = fingerprint(self.model.state_dict())
         rms_hash = fingerprint(self.running_mean_std.state_dict()) if self.normalize_input else None
+        if trace is not None and (trace['model_fingerprint']!=model_hash or trace['rms_fingerprint']!=rms_hash):
+            raise ValueError('frozen actor/normalizer drift')
         asset = ROOT/'third_party/DExplore/dexplore/data/assets'
         bridge = DExploreCmv2GeometryBridge(hand_urdf=asset/'inspire_hand_new/inspire_hand_right.urdf',
             object_urdf=asset/'mjcf/airplane.urdf',device=device)
@@ -208,17 +218,17 @@ class CandidatePlayer(original.EvalPlayer):
             if trace is None: raise RuntimeError('baseline episodes exceed bounded trace')
         assigned=(triggers>=0)
         if not packet['valid_steps'][assigned].all(): raise ValueError('assigned anchor has incomplete outcome; no post-treatment filtering allowed')
-        packet.update(triggers=triggers,motion_id=motion,start_frame=start,rest_height=rest,
+        packet.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,triggers=triggers,motion_id=motion,start_frame=start,rest_height=rest,
             prefix_errors=errors,clipped_steps=clipping,delta=delta,initial_fingerprint=initial_hash,
             candidate=ARGS.candidate,candidate_name=CANDIDATES[ARGS.candidate],control_dt=task.dt)
         packet=cpu_copy(packet); torch.save(packet,ARGS.run_dir/'panel.pt')
         if trace is None:
             value={k:torch.stack(v) for k,v in logs.items()}
-            value.update(rng=rng,triggers=packet['triggers'],anchors={k:packet[k] for k in ('actor_obs','history')},initial_fingerprint=initial_hash)
+            value.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,rng=rng,triggers=packet['triggers'],anchors={k:packet[k] for k in ('actor_obs','history')},initial_fingerprint=initial_hash)
             torch.save(value,ARGS.run_dir/'trace.pt')
         if fingerprint(self.model.state_dict())!=model_hash: raise ValueError('actor updated')
         if self.normalize_input and fingerprint(self.running_mean_std.state_dict())!=rms_hash: raise ValueError('normalizer updated')
-        result=dict(anchors=int(assigned.sum()),motion_counts=[int((assigned&(motion==k)).sum()) for k in range(3)],
+        result=dict(simulation_contract=simulation_contract,anchors=int(assigned.sum()),motion_counts=[int((assigned&(motion==k)).sum()) for k in range(3)],
             ticks=tick+1,candidate=ARGS.candidate,wall_seconds=time.monotonic()-begin,
             model_fingerprint=model_hash,rms_fingerprint=rms_hash,initial_fingerprint=initial_hash,
             aligned_reference_tables=migrated_tables,physics_use_gpu=bool(task.gym.get_sim_params(task.sim).physx.use_gpu),

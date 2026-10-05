@@ -5,7 +5,7 @@ experiment_id: P-20261005-oracle-y-utility
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: 82d210146c0346f45d4854df615409b02092d6e7
+git_commit: 03a5a92a27e4ab99befd1b7f9db9a8b34053a9d3
 claim_id: C3
 hypothesis_family: HF-oracle-y-utility
 probe_index_in_family: 1
@@ -193,3 +193,15 @@ physics substrate. Same immutable table adapter and cold numerical allowance
 forCPU tensor views. Only ifpairing passes and adequate anchors exist expand
 main. Backend now records actual physx.use_gpu separately from tensor_device
 and actor_device; no pretending CPU tensor views mean CPU physics.
+
+## Main substrate selected after successful engineering gate
+
+Host smoke at03a5a92:GPU PhysX, CPU tensorpipeline, singlethread, actorGPU6.
+10/24anchors (8s3/2s7/0s9) passed EXACT prefix/H/Y/Z repetition; panel SHA
+d26de5e795fcabf3b8a03131fa7d799d09b4bee8ef20101ff0bebcd36b1f3eb7
+identical acrossbaseline/repeat. This supports engineering pairing here, not
+population noise guarantee or GateA. Main96 samebackend now adds explicit
+dt/substeps/controlinterval/tensor+actordevices/PhysXGPU/threads/subscenes/solver
+iteration/contactoffset contract plus model/RMS hashes before replay and in
+rawpanels; refuse crossbackend/actor drift. Fresh mainreference required; old
+smoke remains immutable. CPU-only backend smoke had1anchor and is NOT main.

@@ -31,6 +31,8 @@ def identity(a,b):
     for key in ('triggers','motion_id','start_frame','rest_height','delta'):
         if not torch.equal(a[key],b[key]): raise ValueError('identity drift:'+key)
     if a['initial_fingerprint']!=b['initial_fingerprint']: raise ValueError('initial drift')
+    for key in ('simulation_contract','model_fingerprint','rms_fingerprint'):
+        if key in a and a[key]!=b.get(key): raise ValueError('backend/actor identity drift:'+key)
     if not b['valid_steps'][b['triggers']>=0].all(): raise ValueError('incomplete assigned panel')
 
 
