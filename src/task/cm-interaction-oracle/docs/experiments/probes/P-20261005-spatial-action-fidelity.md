@@ -141,7 +141,7 @@ about56MiB; 59Task tests pass.
 | Trained_Fused | 0.3306 | 0.3436 | 0.4122 | 0.4275 |
 | Trained_Output | 0.2794 | 0.2877 | 0.3472 | 0.4625 |
 
-RawObject gains .8893(CI.8300–.9320) and .8853(CI.8102–.9395);
+RawObject gains .8893(CI.8304–.9317) and .8853(CI.8100–.9399);
 RawHandBase≈1/.9987. Trained Fused only .3306/.3436. Current pre-action
 support is index77.71%,middle84.94%,pinky33.13%,ring80.72%,thumb70.48%.
 Supported-finger Fused .4122/.4275 remains limited. Both registered branch
