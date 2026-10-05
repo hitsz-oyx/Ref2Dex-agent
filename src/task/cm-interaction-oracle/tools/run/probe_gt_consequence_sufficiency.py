@@ -113,6 +113,7 @@ def main():
             min(support_details['height_failure_test'], support_details['height_nonfailure_test']) >= 15)
         save('support.json', support_details)
         device = torch.device('cuda:0')
+        torch.cuda.set_device(device)
         torch.cuda.reset_peak_memory_stats(device)
         train = torch.as_tensor(train_np, device=device)
         h_raw = torch.cat((p['history'].flatten(1), p['actor_obs'], p['context'], p['base_action']), -1).to(device)

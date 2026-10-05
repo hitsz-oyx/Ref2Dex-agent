@@ -5,7 +5,7 @@ experiment_id: P-20261005-gt-consequence-sufficiency
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: pending
+git_commit: d8681aa
 claim_id: C3
 hypothesis_family: HF-gt-consequence-sufficiency
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [231, 232]
 decision_changed_if_positive: prioritize action-conditioned consequence prediction on this early-hold representation
 decision_changed_if_negative: distinguish GT prognosis from missing action-related information before further Cm fitting
 status: PLANNED
-run_id: gt-consequence-s231
+run_id: gt-consequence-s231-r2
 ---
 
 # Do GT physical consequences preserve task-relevant action information?
@@ -115,3 +115,12 @@ bridge may reflect noisy14-arm estimates or nonlinear/state-specific effects.
 A richer H, model-capacity/fit adequacy, independent validation, matched
 same-state candidate comparisons and trained-policy Cm causal utility remain
 future evidence if a concrete decision requires them; no sweep by default.
+
+## Engineering execution record
+
+Initial source d8681aa run `gt-consequence-s231` failed before ANY neural fit:
+CUDA memory-stat reset occurred before explicit device initialization (0.76s).
+CPU label/contrast/support outputs are preserved, no result/model generated.
+Explicit `torch.cuda.set_device(cuda:0)` smoke passes on GPU6; repair does not
+change scientific variables, labels, split, epoch budget or gate. Continue in
+new directory `gt-consequence-s231-r2`, never overwrite the failed attempt.
