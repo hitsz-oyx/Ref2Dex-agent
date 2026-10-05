@@ -237,7 +237,7 @@ def main():
     manifest=dict(run_status='STARTED',command=sys.argv,dataset=str(args.dataset.resolve()),
         dataset_sha256=sha(args.dataset),collection_manifest_sha256=sha(args.dataset.parent/'manifest.json'),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        code_sha256={str(path.relative_to(ROOT)):sha(path) for path in (SCRIPT,Path(__file__).with_name('probe_duration_response.py'),ROOT/'src/task/cm-interaction-oracle/src/intervention.py',ROOT/'src/task/CmResidual/dexplore_cm_geometry.py')},
+        code_sha256={str(path.relative_to(ROOT)):sha(path) for path in (SCRIPT,SCRIPT.with_name('probe_duration_response.py'),ROOT/'src/task/cm-interaction-oracle/src/intervention.py',ROOT/'src/task/CmResidual/dexplore_cm_geometry.py')},
         seed=args.seed,stage=args.stage,created_at=datetime.now(timezone.utc).isoformat(),
         device='CPU statistics and file analysis; no neural model')
     save('manifest.json',manifest)
