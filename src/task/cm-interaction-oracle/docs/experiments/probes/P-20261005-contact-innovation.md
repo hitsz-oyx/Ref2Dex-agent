@@ -5,7 +5,7 @@ experiment_id: P-20261005-contact-innovation
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: pending
+git_commit: 82ae2b699a77006fd8ca020d0efeb487872e006f
 claim_id: C3
 hypothesis_family: HF-contact-innovation
 probe_index_in_family: 1
@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [253]
 decision_changed_if_positive: qualify bounded contact-relative geometry for strict nested consequence OOF and downstream comparison
 decision_changed_if_negative: stop this surface-proxy and nuisance factorial without neural epoch or geometry sweeps
-status: UNCLEAR
+status: UNPROMISING
 run_id: contact-innovation-s253
 ---
 
 # Does bounded surface-relative motion add information beyond joint/finger flow?
 
-Result: UNCLEAR: protocol frozen, run pending.
-Decision: Ten closed-form source fits separate contact geometry from state-nuisance choice.
+Result: UNPROMISING for the fixed bounded basis / nuisance / ridge contract.
+Decision: Close and preserve this result; user ref11 redirects work to oracle hand-flow planning.
 
 ## Root Decision Note / Decision experiment
 
@@ -124,3 +124,75 @@ only whitelisted current history/root/before tensors to the candidate device
 before batching. Retain failed manifest/log, no scientific evidence. Targeted
 CPU-input/GPU-q regression checks the actual device boundary; no research
 variable/gate/budget change. Replacement smoke uses a new unique folder.
+
+## Completed results and independent review
+
+Main `contact-innovation-s253`, code82ae2b6, GPU6:3.185s model/run stage,
+3.337s complete manifest, peak318.26MiB. Ten closed-form fits; no neural,
+simulation, task or policy fitting. Replacement smoke3.10s is engineering-only
+UNCLEAR, not scientific evidence; original pre-fit failure remains intact.
+Main+smoke+failed artifacts about28MiB, below90MiB cap.
+
+| Nuisance / action | E test MSE | I test MSE |
+| --- | ---: | ---: |
+| Physics State | 1.382006 | .988822 |
+| Physics Joint | 1.391943 | .987559 |
+| Physics Finger | 1.405803 | .997014 |
+| Physics Contact | 1.390506 | .988571 |
+| Physics ContactShuffled | 1.385880 | .994332 |
+| OOFState State | .583821 | 1.034987 |
+| OOFState Joint | .583996 | 1.029396 |
+| OOFState Finger | .591395 | 1.046253 |
+| OOFState Contact | .568375 | 1.038838 |
+| OOFState ContactShuffled | .592439 | 1.044219 |
+| Prior frozen State | .501971 | .883696 |
+
+Primary PhysicsContact I gain vs matchedState.025%(95%CI−3.136..+2.651%),
+vsJoint−.103%(−2.747..+2.280%), vsFinger+.847%(−1.292..+2.847%),
+vs trainedshuffle+.579%(−2.593..+3.392%). Test-only shuffle penalty2.512%
+(+.279..+4.959%) is a measurable local action sensitivity but below the
+registered3% threshold. PhysicsContact is worse than priorState by11.868%.
+
+Primary raw Icontrast corr.4047/sign62.86%/zeroMSEgain9.946%/amplitude.1871;
+arm-centered gain14.407%, plus-minus corr.5369/gain25.067%/sign56.96%.
+These exploratory subset scores do not rescue B or the failed factual-MSE
+gate. Four main gates fail. Existing GT contrasts are current-state-adjusted
+estimates on the already exposed166test windows, not paired same-state outcomes.
+
+PhysicsContact versus OOFStateContact I gain4.84%(CI+.045..+8.64%) is a
+nuisance/stacking/estimator sensitivity, not a uniquely identified failure cause.
+Both allow common correction; imposing candidate-centering is not responsible
+for this fixed screen. Post-result I families: PhysicsContact handforce1.3804,
+objectforce1.5545,proximity.3516,proxy.5162; priorState1.1450/1.5245/.3088/.5289.
+Do not select proxy or another family to rescue the overall gate.
+
+Contact actions are nonzero. Predicted baseline soft-proximity means for five
+fingers are train.164/.210/.059/.149/.067, test.171/.218/.052/.150/.070.
+All30 action feature source candidate stds.00556.. .09039 fall below fixed.1
+floor: equalα32 does not mean equal effective action shrinkage. This deliberate
+basis/scale/regularizer restriction limits the negative; no floor/α search.
+
+Root full input/norm/FK/nuisance/weight/candidate/shuffle/metric replay errors0,
+normal-equation relative residual≤3.15e−15,3.38s including figure. Independent
+CPU saved-matrix/statistical review.54s: predictions0, normal equations≤4.61e−15,
+source-only stats and group/partition shuffle correct, metrics/contrasts0 and
+bootstrap≤1e−6. No implementation defect affecting the negative was found.
+Tiny matrix/statistics audit CPU avoids GPU startup/repeating root FK.
+66Task tests including explicit CPU-input/GPU-q regression pass.
+
+Reviewmd/json plus root `review_provenance.json`, signed vectors and standalone
+`contact_innovation.png` bind evidence to the immutable main diagnostic.
+
+## User-directed closeout / next route
+
+User now explicitly stops the execution-predictor branch and directs ref11:
+separate planning from control. No planned contrast-stability diagnostic was
+implemented or run. No additional basis, scale, nuisance or epoch fitting.
+Preserve all code/results; no task-owned GPU process remains.
+
+Next route tests State versus actual measured/FK endpoint hand-flow versus
+two trajectory chunks (0→4,4→8), with matched oracle-flow shuffle controls,
+E/I only. This is a post-treatment oracle planning-representation Probe; it
+does not deliver prospective joint control, paired candidate ground truth,
+causal plan validity or final trained-policy Cm utility. Native execution
+prediction is explicitly deferred. Global Mission claim remains unchanged.

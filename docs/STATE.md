@@ -390,3 +390,21 @@ response、state nuisance或详细contact信息，不能据此关闭全部空间
 North-star Cm utility仍OPEN。
 [动作传递诊断](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-action-fidelity.md)，
 [按手指动作残差](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-relative-finger-innovation.md)。
+
+## 执行支线收尾与 ref11 转向
+
+最后一个surface-relative/current-wrist物理basis × Physics/OOFState nuisance
+matched ridge32 Probe为UNPROMISING：PhysicsContact I.98857与同配置State.98882
+接近，输priorState.88370；OOFStateContact1.03884。动作shuffle罚2.512%
+(CI+.279..+4.959%)，raw Icontrast corr.4047/sign62.86%，四gate未过。
+Root重放0、独立saved-matrix/statistics复算通过，未见影响负结果的实现错误；
+动作scale floor导致不同有效shrinkage，current-wrist/采样normal/有限basis
+限制保留，不否定所有contact geometry。GPU6主3.34s，零新仿真或policy训练。
+[收尾实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md)。
+
+用户明确停止这条执行预测支线，按Task ref11推进：先以真实hand point-flow为
+oracle action，分离 `(H,F_hand)→E/I` 规划问题与以后 `joint→desired flow` 控制。
+下一项比较State、GT endpoint、GT0→4/4→8 chunks及matched shuffled flow，
+先只看E/I；不继续execution、候选nativearm或任务Y拟合。实际flow是
+post-treatment信息，正向只能支持oracle表示Probe，不自动证明前瞻planning或
+同状态候选因果contrast。最终matched Cm-on/off训练策略utility仍OPEN。

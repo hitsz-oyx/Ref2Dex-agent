@@ -11,6 +11,12 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
+Current user-directed route (ref11): stop native execution prediction and test
+oracle hand-flow as the planning action. Compare current State, actual endpoint
+flow and two measured trajectory chunks, with matched flow shuffles and E/I-only
+evaluation. Post-treatment oracle inputs do not establish a deployable control
+mapping or paired candidate contrast; final policy utility remains open.
+
 Ref5 point-flow G and surface-I probes are completed; absolute RTG gains were
 weak or outlier-dependent. Task ref1's cross-fitted three-class advantage
 labels stopped at G0. Task ref2 then explicitly motivated a DIFFERENT
@@ -264,3 +270,14 @@ using GPU6; freeze each protocol and stay within its resource cap. Corresponding
 saved-weight/input GPU replay, signed-vector exports and figures without
 fitting. Reports refuse overwrite. Strict nested consequence OOF and matched
 trained-policy Cm-on/off are still required before claims of policy utility.
+
+The closing [contact innovation Probe](docs/experiments/probes/P-20261005-contact-innovation.md)
+tests bounded surface-relative scalars and two nuisance baselines with ten
+closed-form ridge fits. UNPROMISING for this finite basis/scale/estimator:
+PhysicsContact I.98857 vs matchedState.98882/priorState.88370. Exact root and
+independent matrix replay passes; all action columns meet the scale floor, so
+equal ridge penalties do not establish equal effective shrinkage. Preserve
+the result and stop this execution branch per ref11. Tools are
+`tools/run/probe_contact_innovation.py` and `tools/audit/audit_contact_innovation.py`,
+both taking dataset, corrected forecast run and unique/completed output folder.
+No follow-on execution or contrast-stability fit was launched.

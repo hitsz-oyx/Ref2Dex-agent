@@ -33,7 +33,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNCLEAR: protocol frozen, run pending. | Ten closed-form source fits separate contact geometry from state-nuisance choice. | probes/UNCLEAR |
+| [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Close and preserve this result; user ref11 redirects work to oracle hand-flow planning. | probes/UNPROMISING |
 
 ## HF-execution-geometry
 
