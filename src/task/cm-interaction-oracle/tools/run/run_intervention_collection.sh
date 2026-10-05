@@ -10,6 +10,8 @@ budget=$6
 decision_region=${7:-contact}
 duration_spec=${8:-4}
 read -r -a duration_levels <<< "$duration_spec"
+amplitude_spec=${9:-1}
+read -r -a amplitude_levels <<< "$amplitude_spec"
 mkdir -p "$task_root/tmp/ref3" "$task_root/tmp/torch_extensions"
 export TMPDIR="$task_root/tmp"
 export TORCH_EXTENSIONS_DIR="$task_root/tmp/torch_extensions"
@@ -20,7 +22,7 @@ timeout "$((budget+90))s" /home2/wyy/miniconda3/envs/graspenv/bin/python \
   "$task_root/src/task/cm-interaction-oracle/tools/run/collect_interventions.py" \
   --run-dir "$task_root/outputs/cm-interaction-oracle/$run_id" \
   --assignment-seed "$assignment_seed" --waves "$waves" --wall-seconds "$budget" \
-  --decision-region "$decision_region" --durations "${duration_levels[@]}" \
+  --decision-region "$decision_region" --durations "${duration_levels[@]}" --amplitudes "${amplitude_levels[@]}" \
   --max-steps 2000 --task Dexplore_Inspire \
   --cfg_env "$task_root/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/environment.yaml" \
   --cfg_train "$task_root/src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7/training.yaml" \

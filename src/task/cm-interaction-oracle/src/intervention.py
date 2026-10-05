@@ -17,10 +17,24 @@ def decode_assignment(draw, duration_levels):
     return draw % len(ARM_NAMES), levels[draw // len(ARM_NAMES)]
 
 
-def apply_feedback_residual(base, arms, age, durations, terminal, delta):
+def decode_amplitude_assignment(draw, amplitude_levels):
+    levels = torch.as_tensor(amplitude_levels, device=draw.device, dtype=torch.float32)
+    return draw % len(ARM_NAMES), levels[draw // len(ARM_NAMES)]
+
+
+def surface_force_projection(force, normal):
+    """Geometric projection of aggregate body force, NOT paired friction/slip."""
+    normal = torch.nn.functional.normalize(normal, dim=-1)
+    signed_normal = (force*normal).sum(-1)
+    tangent = (force-signed_normal[..., None]*normal).norm(dim=-1)
+    return signed_normal, tangent
+
+
+def apply_feedback_residual(base, arms, age, durations, terminal, delta, amplitudes=None):
     treated = (arms >= 0) & (age >= 0) & (age < durations) & ~terminal
     action = base.clone()
-    action[treated] = (base[treated]+delta[arms[treated]]).clamp(-1, 1)
+    scale = 1 if amplitudes is None else amplitudes[treated, None]
+    action[treated] = (base[treated]+scale*delta[arms[treated]]).clamp(-1, 1)
     return action
 
 
