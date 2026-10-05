@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [221, 222, 223, 224, 225, 226]
 decision_changed_if_positive: independently compare directions at the lowest demonstrated interaction authority amplitude before any Cm fitting
 decision_changed_if_negative: distinguish inadequate delivered amplitude from weak interaction measurement; stop this amplitude contract without a larger sweep or network retry
-status: PLANNED
+status: RUNNING
 run_id: amplitude-authority-s221
 ---
 
 # Is there a task-related interaction threshold within larger feasible actions?
 
-Result: Pending fixed-K8 amplitude authority and conditional direction probes.
+Result: Main fixed-K8 amplitude authority collecting; conditional direction stage remains gated.
 Decision: Compare alpha1/2/4, preserving signed forces; train no neural model.
 
 ## Research decision and root reasoning
@@ -147,3 +147,27 @@ Multi-seed Validation, paired friction/slip sensing, counterfactual candidates
 and trained-policy Cm-on/off utility remain deferred. This small exploratory
 authority comparison cannot establish a universal stability threshold or
 abandon the core Cm hypothesis.
+
+## Pre-outcome engineering review
+
+Smoke `amplitude-smoke-s13`:46/84 complete32 windows; amplitude1/2/4,
+fixedK8 action mapping, nativePD reconstruction max error1.01e-7, finite
+unit world normals all PASS. Smoke does not supply scientific gate evidence.
+Collector execution commit `37be6b1` saves actual local surface sample,
+seed42/stride8 and SHA, bridge/SurfaceGeometry/URDF/object-mesh source hashes.
+
+Independent read-only review fixed two analysis guards before outcomes:
+Stage2 zero counts must also pass both half support; stored normals must
+match an actual nearest sampled point allowing numeric ties. Stage2, if
+activated, will retain alpha4 common headroom instead of narrowing the
+eligibility screen to alpha2. New threshold/distance/useful-control contract
+tests and all Task tests pass30/30. No formal effects used for these fixes.
+
+Partial geometric audit exposed float32 `cdist` MM cancellation near zero:
+max saved-versus-direct distance0.2255mm, q99 about0.0098mm; reviewer independently
+confirmed float64/direct difference only0.00013mm. This is not pose-frame drift.
+Audit uses a squared-distance roundoff bound
+`16*float32_eps*(||body||^2+max||surface_point||^2)` and records actual direct
+error against the unchanged3mm gate. Every stored normal must still match a
+real near-neighbor sample. Preserve original data and targets. Final complete
+packet is audited again; projections remain aggregate geometry proxies.

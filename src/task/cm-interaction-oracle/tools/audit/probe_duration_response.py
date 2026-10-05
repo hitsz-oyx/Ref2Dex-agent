@@ -60,22 +60,22 @@ def current_design(p, waves):
     return design, groups
 
 
-def residual_fit(design, labels, target):
+def residual_fit(design, labels, target, n_cells=18):
     u, singular, _ = np.linalg.svd(design, full_matrices=False)
     q = u[:, singular > singular[0]*1e-10]
     y = target-q@(q.T@target)
-    x = (labels[:, None] == np.arange(1, 19)[None]).astype(float)
+    x = (labels[:, None] == np.arange(1, n_cells+1)[None]).astype(float)
     x -= q@(q.T@x)
     coefficient = np.linalg.pinv(x, rcond=1e-10)@y
     return coefficient, q, y, int(np.linalg.matrix_rank(x))
 
 
-def randomization(design, labels, target, groups, seed):
-    coefficient, q, y, rank = residual_fit(design, labels, target)
+def randomization(design, labels, target, groups, seed, family_ids=None, n_cells=18):
+    coefficient, q, y, rank = residual_fit(design, labels, target, n_cells)
     energy = (y*y).sum(0)
     supported = energy > 1e-10
     def statistic(assignment):
-        x = (assignment[:, None] == np.arange(1, 19)[None]).astype(float)
+        x = (assignment[:, None] == np.arange(1, n_cells+1)[None]).astype(float)
         x -= q@(q.T@x)
         beta = np.linalg.pinv(x, rcond=1e-10)@y
         explained = (beta*((x.T@x)@beta)).sum(0)
@@ -89,7 +89,7 @@ def randomization(design, labels, target, groups, seed):
         for rows in rows_per_block:
             permuted[rows] = rng.permutation(labels[rows])
         null[index] = statistic(permuted)
-    family_ids = dict(short_contact=[0], continuation_contact=[1],
+    family_ids = family_ids or dict(short_contact=[0], continuation_contact=[1],
         continuation_height_failure=[2], continuation_combined_failure=[3],
         all32_height_failure=[4], I16=list(range(5, 19)))
     tails, families = np.ones(target.shape[1]), {}

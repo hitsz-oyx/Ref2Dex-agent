@@ -21,7 +21,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-amplitude-authority](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md) | Is there a task-related interaction threshold within larger feasible actions? | Pending fixed-K8 amplitude authority and conditional direction probes. | Compare alpha1/2/4, preserving signed forces; train no neural model. | probes/PLANNED |
+| [P-20261005-amplitude-authority](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md) | Is there a task-related interaction threshold within larger feasible actions? | Main fixed-K8 amplitude authority collecting; conditional direction stage remains gated. | Compare alpha1/2/4, preserving signed forces; train no neural model. | probes/RUNNING |
 
 ## HF-hold-duration-response
 
