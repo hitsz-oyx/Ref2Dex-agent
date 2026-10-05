@@ -41,7 +41,7 @@ def main():
     sample_path=args.dataset.parent/'object_surface_sample.pt'
     geometry_source=ROOT/'outputs/cm-interaction-oracle/geometric-innovation-s241-r2/manifest.json'
     source=json.loads(geometry_source.read_text())
-    paths=[Path(__file__),TASK/'src/spatial_consequence.py',TASK/'src/geometric_consequence.py',
+    paths=[Path(__file__).resolve(),TASK/'src/spatial_consequence.py',TASK/'src/geometric_consequence.py',
         TASK/'src/conditional_consequence.py',TASK/'src/consequence_sufficiency.py',TASK/'src/intervention.py',
         TASK/'tools/run/probe_conditional_consequence.py',TASK/'tools/run/probe_interventions.py',
         TASK/'tools/audit/probe_duration_response.py',TASK/'tools/audit/audit_finger_amplitudes.py',
@@ -184,6 +184,8 @@ def main():
             GT_contrasts=beta,task_predictions=task_predictions),args.run_dir/'diagnostic.pt')
         assert sha(args.dataset)==EXPECTED_SHA and sha(sample_path)==manifest['sample_sha256']
         assert all(sha(ROOT/k)==v for k,v in manifest['code_sha256'].items())
+        assert all(sha(Path(k))==v for k,v in manifest['hand_visual_sha256'].items())
+        assert all(sha(ROOT/k)==v for k,v in manifest['geometry_code_sha256'].items())
         manifest['run_status']='COMPLETED'
         print(json.dumps(result,indent=2),flush=True)
     except BaseException as error:
