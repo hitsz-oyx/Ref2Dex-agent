@@ -219,3 +219,22 @@ Root关闭当前K≤16 feedback-residual合同，保留I预后信息及测得的
 仍未测试，若以后推进须有能区分机制的新合同。GPU6仿真787s、CPU统计2.81s，产物
 <37MiB，全部结束；25 Task tests与变更检查通过。训练所得matched Cm策略utility仍OPEN。
 [duration实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md)。
+
+## Task ref6：固定 K8 的幅值与局部 interaction authority
+
+alpha1/2/4×七方向联合随机：1,680 episodes、863完整干预窗口，剂量、support、
+原生PD、输入哈希及独立/root复算全部通过。任务关联authority gate UNPROMISING：
+短接触tail0.8895、alpha4最大效应3.68pp；后9..32接触/高度失败tail0.554/0.1965，
+没有合格阈值候选，因此未启动条件性Stage2或神经模型。
+
+局部interaction响应PROMISING：I8、切向投影、ratio family tail均0.0005，主要由
+thumb_distal贡献；alpha4 finger−距离+22.95mm且力下降，finger+距离−8.44mm且力上升，
+两半同向。wristx+同step8手位移12.95→23.53→47.61mm确认动作authority。
+原force norm已捕捉信号，不能将缺少任务差异全部归因方向压缩；全手OR contact-proxy
+可掩盖单thumb变化，物理高度结果也未明确分化。只证明此合同的局部proxy可控，
+未识别抓持阈值、可用控制区间或Cm收益。
+
+Root保留局部action→I证据，停止本次幅值合同，不扩大幅值/seed/网络以重复authority；
+后续需区分可控局部接触是否实际参与承载。GPU6采集player累计671.48s，产物<40MiB，
+均已结束；North-star Cm utility仍OPEN。
+[幅值实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md)。

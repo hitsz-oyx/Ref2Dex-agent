@@ -73,3 +73,15 @@ Some opposing baseline commands are consistent with compensation; no unique
 cancellation explanation or global I/Cm refutation. No learned model fitted.
 [Duration Probe](docs/experiments/probes/P-20261005-early-hold-duration.md);
 physics analysis: `tools/audit/probe_duration_response.py`.
+
+Ref6 fixed-K8 amplitude1/2/4 Probe is complete:863 full randomized windows
+from1,680 episodes. Mechanical authority and localized thumb force/proximity
+response are clear exploratory signals (I8 family tail0.0005), while the
+registered task-aligned threshold gate is UNPROMISING (short-contact tail
+0.8895, alpha4 max effect3.68pp). No conditional Stage2 or model fitting.
+Preserve action→local-I evidence; do not equate it with useful load-bearing
+control or Cm policy utility. All dose/provenance/independent reconstruction
+checks pass, including numerical distance sensitivity.
+[Amplitude Probe](docs/experiments/probes/P-20261005-amplitude-authority.md);
+analysis:`tools/audit/probe_amplitude_authority.py`; descriptive direction
+facets:`tools/audit/plot_amplitude_direction_curves.py`.

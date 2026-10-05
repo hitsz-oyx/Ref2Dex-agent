@@ -5,7 +5,7 @@ experiment_id: P-20261005-amplitude-authority
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: actual execution commit in manifest.json
+git_commit: 37be6b1
 claim_id: C3
 hypothesis_family: HF-amplitude-authority
 probe_index_in_family: 1
@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [221, 222, 223, 224, 225, 226]
 decision_changed_if_positive: independently compare directions at the lowest demonstrated interaction authority amplitude before any Cm fitting
 decision_changed_if_negative: distinguish inadequate delivered amplitude from weak interaction measurement; stop this amplitude contract without a larger sweep or network retry
-status: RUNNING
+status: COMPLETED
 run_id: amplitude-authority-s221
 ---
 
 # Is there a task-related interaction threshold within larger feasible actions?
 
-Result: Main fixed-K8 amplitude authority collecting; conditional direction stage remains gated.
-Decision: Compare alpha1/2/4, preserving signed forces; train no neural model.
+Result: Task-aligned authority UNPROMISING; localized thumb interaction response PROMISING (Probe only).
+Decision: Preserve local thumb control evidence; no registered task-aligned threshold, so conditional Stage2 and neural fitting are not activated.
 
 ## Research decision and root reasoning
 
@@ -171,3 +171,104 @@ Audit uses a squared-distance roundoff bound
 error against the unchanged3mm gate. Every stored normal must still match a
 real near-neighbor sample. Preserve original data and targets. Final complete
 packet is audited again; projections remain aggregate geometry proxies.
+
+## Executed result and evidence
+
+Main `amplitude-authority-s221`, collector commit `37be6b1`:1,680 full
+episodes,863 assigned trials,863 complete32-step windows. Minimum nonzero
+cell29, minimum five-wave-half cell14, pooledzero125; treatment rank18 in
+full and both halves. Minimum delivered signed dose0.99999988; nativePD
+error1.12e-7. No trial removed after assignment. Current risk863, early
+failure185, all32 height failure423, combined failure425, late combined423;
+two early-failed recoveries retained. These are proxy/height labels, not
+certified object-hand separation or slip. All13 input hashes unchanged.
+
+Analysis `amplitude-authority-response-s223-r2`, commit `17d1af5`, seed223:
+
+| Registered family | Within-family max-tail | Largest partial explained fraction |
+| --- | --- | --- |
+| Contact1..8 |0.8895|0.01525|
+| Contact9..32 |0.5540|0.02310|
+| Late physical height failure |0.1965|0.03136|
+| Late combined failure |0.1705|0.03226|
+| All32 height failure |0.2045|0.03087|
+| I8 |0.0005|0.10163|
+| Signed18 force |0.0780|0.05096|
+| Surface projection10 |0.0005|0.09078|
+| Projection ratio5 |0.0005|0.08010|
+
+Primary task-aligned authority gate **UNPROMISING**:alpha4 maximum absolute
+short-contact contrast3.68pp, below15pp. No contact or distance candidate has
+registered late alignment and repetition. `selected_alpha=null`; no Stage2
+cohort collected. No late task family passes its0.10 gate. These family tails
+are exploratory, within-family conditional permutation summaries; they are
+not a cross-family formal Validation claim.
+
+Mechanical authority is real: at the SAME step8, measured wristx+ body-centroid
+dx grows12.95→23.53→47.61mm for alpha1/2/4; wristz+ dz13.74→23.13→49.35mm.
+
+Localized interaction authority is **PROMISING**:strongest I8 axes are
+`thumb_distal` distance and force norm (contactBodies order checked against
+actual hashed source config). At alpha4:
+
+| Direction | Thumb distance minus zero | Two half distance effects | log1p thumb-force norm contrast | Two half force effects |
+| --- | --- | --- | --- | --- |
+| finger+ |−8.44mm|−8.06/−7.33mm|+0.234|+0.367/+0.192|
+| finger− |+22.95mm|+14.09/+32.57mm|−0.578|−0.421/−0.756|
+
+Thumb also dominates the tangent projection/ratio response; signed normal
+projection alone is weak. Force values above are transformed contrasts,
+not a0.578N force difference. They demonstrate controllable local aggregate
+force/proximity, not friction margin or a force vector predictive advantage.
+Original norm-based I already captures this signal; loss of direction cannot
+by itself explain the missing task contrast. Global contact proxy is an OR
+across hand bodies AND object netforce, so it can hide changes in one thumb;
+independent physical height outcomes also remain weakly differentiated.
+
+## Final engineering audit and root interpretation
+
+Independent reviewer and root reconstruct targets/labels exactly and joint
+OLS to≤5.1e-14 including both halves, with the same empty candidate set. Root also reconstructs
+the global OR contact-proxy exactly from saved body/object force vectors.
+Complete packet geometry audit:direct distance max error0.2255mm/q99
+0.00966mm;29 normal ties across142,395 body observations match real sampled
+near-neighbors. Large normal-component replay discrepancy1.936 is attributable to
+tied nearest surfaces, not arbitrary normals. Independent direct-distance
+sensitivity changes the thumb coefficients by at most0.000518mm (all bodies
+0.002895mm); this cannot explain22.95mm response or the3mm gate. No affected
+scientific target was changed and no simulation was rerun.
+
+One analysis CLI attempt failed BEFORE statistical computation because a
+relative `__file__` was passed to source identity construction. Original
+empty output directory, failure.json and log retained; `17d1af5` fixes it and
+r2 uses the identical dataset/seed/protocol. This was not a scientific retry.
+
+Root Decision Note:the useful information is a split result, not another
+blanket failure of action→I. Alpha4 exposes local thumb force/geometry control,
+but no task-aligned threshold or useful interval has been identified. Thus
+neither the stable-basin explanation nor a universal absence of thresholds is
+established. Root follows the registered stop for Stage2; does not select
+alpha4 just because it makes the largest local change. Within this operator,
+next meaningful question is whether a controllable contact component is
+actually load-bearing/state-dependent for physical retention. More amplitude,
+seeds or predictor capacity to repeat motion authority are not the next
+Decision. A new operator/measurement question would need a new minimal
+contract, preserving this negative task gate. Global Cm policy utility stays
+OPEN; no core hypothesis or final claim is changed.
+
+Artifacts (all beneath `outputs/cm-interaction-oracle/`):
+- `amplitude-authority-s221/`:packet, actual geometry sample/provenance,
+  source-hash audit, collection manifest/result and full episode summary.
+- `amplitude-authority-response-s223-r2/`:full registered results, diagnostics,
+  engineering audit/review, mechanical/force response curves; standalone
+  `amplitude_adjusted.png`, `amplitude_raw.png`, `time_response_adjusted.png`,
+  `signed_force_response.png` and legible `direction_facets.png`.
+- Facets are descriptive thumb/global-outcome views, not new tests or gates;
+  separate `direction_plot_manifest.json` hashes plotting inputs/code.
+
+GPU6 player collection671.48s total (smoke56.00+main615.48; startup overhead
+in manifests:66.21s smoke+625.72s main including player initialization),
+CPU registered statistics29.92s; bounded artifacts<40MiB.
+All GPU collection ended. Conditional seeds224/225/226 unused. Deferred:
+matched multi-seed Validation, paired/contact load identity, same-state
+candidate comparison and trained-policy matched Cm-on/off utility.

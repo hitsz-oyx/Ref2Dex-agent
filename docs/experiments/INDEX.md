@@ -21,7 +21,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-amplitude-authority](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md) | Is there a task-related interaction threshold within larger feasible actions? | Main fixed-K8 amplitude authority collecting; conditional direction stage remains gated. | Compare alpha1/2/4, preserving signed forces; train no neural model. | probes/RUNNING |
+| [P-20261005-amplitude-authority](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md) | Is there a task-related interaction threshold within larger feasible actions? | Task-aligned authority UNPROMISING; localized thumb interaction response PROMISING (Probe only). | Preserve local thumb control evidence; no registered task-aligned threshold, so conditional Stage2 and neural fitting are not activated. | probes/COMPLETED |
 
 ## HF-hold-duration-response
 
