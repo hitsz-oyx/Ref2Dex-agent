@@ -29,6 +29,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-conditional-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md) | Can predicted action consequences retain oracle task information? | UNCLEAR: action-sensitive I predictions, but A/B/C fail; predicted consequences retain31.18% oracle gain without stable added value over dir | Preserve action sensitivity; stop this fixed fit without selector/PPO, diagnose generalization rather than append epochs or rescue with shuf | probes/UNCLEAR |
 
+## HF-contact-innovation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNCLEAR: protocol frozen, run pending. | Ten closed-form source fits separate contact geometry from state-nuisance choice. | probes/UNCLEAR |
+
 ## HF-execution-geometry
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
