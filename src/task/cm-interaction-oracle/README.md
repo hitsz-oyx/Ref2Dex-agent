@@ -108,3 +108,25 @@ bash src/task/cm-interaction-oracle/tools/run/run_intervention_collection.sh \
   early-hold "8" "1" per-finger-range .20
 ```
 Range fractions standardize driver PD targets, not realized tip travel.
+
+
+### Ref8 GT consequence sufficiency
+
+[Experiment card](docs/experiments/probes/P-20261005-gt-consequence-sufficiency.md)
+reuses the ref7 dataset: GT prognosis PROMISING, complete sufficiency UNCLEAR.
+Six matched main scorers and three declared signed-force extensions share an
+environment holdout; noisy arm contrasts transfer across halves/held arms.
+Remaining-action confidence bounds and fit/representation sensitivity prevent
+a causal sufficiency claim. Per-finger amplitude tables remain in the card.
+
+Frozen fit entry (unique output directory; check current GPU ownership first):
+```bash
+CUDA_VISIBLE_DEVICES=6 TMPDIR="$PWD/tmp" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  timeout 600 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/cm-interaction-oracle/tools/run/probe_gt_consequence_sufficiency.py \
+  --dataset outputs/cm-interaction-oracle/per-finger-control-s227/interventions.pt \
+  --run-dir outputs/cm-interaction-oracle/<new-unique-run-id>
+```
+`tools/audit/audit_gt_consequence_sufficiency.py` takes the same dataset/run-dir
+arguments for CPU file/statistical replay and a standalone plot; it refuses
+to replace an existing replay artifact. No Cm/selector/policy fitting occurs.

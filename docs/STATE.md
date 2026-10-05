@@ -254,3 +254,23 @@ Root保留局部action→I证据，停止本次幅值合同，不扩大幅值/se
 现有净力contact-proxy改善不等于可靠抓持；训练所得Cm-on/off utility仍OPEN。
 GPU6累计691.45s（含初始化），均已结束，36tests通过。
 [per-finger实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-per-finger-control.md)。
+
+
+## Task ref8：GT consequence 对任务信息的保留
+
+复用ref7的854随机窗口，不再采集；step8 E12/I14预测step9..32任务，
+688train/166test、125/31环境隔离，六主模型及三预先声明signed-force扩展同容量/init。
+GT预后PROMISING：HEI主误差0.73135→0.39311（46.25%改善，环境bootstrap95%
+34.02–57.03%），物理高度失败误差改善32.52%（11.24–49.92%）；H+a也有18.99%
+主误差改善。跨半包、留一臂PCA3/ridge1桥的EI接触/高度失败误差相对zero改善
+21.65/16.14%，相关0.550/0.723；是共享zero的有噪声边际估计，不是因果中介识别。
+
+完整充分性UNCLEAR：HEI再加a主/物理误差点gain−0.33/−0.93%，但one-sided95%
+上界7.96/9.64%仍超过预设5%，不能排除有意义的剩余action信息。Signed扩展下a
+又有8.68/12.91%增益，末50epochs loss仍降约40%，初始q/dq经PCA与泛化误差均限制判断。
+无泄漏/关键工程bug；root和独立审查复算通过，逐指PD/q/真实tip幅度表附新卡。
+下一项有决策价值的是独立冻结的conditional predictability（H+a→E/I，再与直接Ha
+比较预测consequence的task增益），不以GT预后或点估计等同链闭合，不立即selector/PPO。
+本轮未训练Cm；训练所得matched Cm-on/off utility仍OPEN。
+GPU6固定拟合5.56s结束，首CUDA初始化前失败0.76s留存；新产物<4MiB、41tests通过。
+[GT consequence实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-gt-consequence-sufficiency.md)。
