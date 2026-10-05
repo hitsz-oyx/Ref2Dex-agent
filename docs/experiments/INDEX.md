@@ -103,6 +103,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-relative-finger-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-relative-finger-innovation.md) | Can full finger flow learn action innovations over an OOF state forecast? | UNPROMISING for the fixed anatomical summary / OOF-state innovation contract. | Stop this fixed seven-head contract; retain the physical action and Cm hypotheses. | probes/UNPROMISING |
 
+## HF-rolling-gt-y
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-rolling-gt-y](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-gt-y.md) | Ref13_1 Rolling GT-Y audit | pending; protocol frozen before rolling outcome calculation. | Audit saved trajectories before any rolling intervention acquisition. | probes/UNCLEAR |
+
 ## HF-spatial-action-fidelity
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
