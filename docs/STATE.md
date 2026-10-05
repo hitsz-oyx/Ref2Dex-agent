@@ -339,3 +339,28 @@ epoch/seed重复弱动作通路。端点/实际tip运动已有明显描述性差
 反馈抵消或断言空间模型不可学。没有selector/PPO或正式科学结论；全局Cm策略
 utility仍OPEN。GPU6主162.62s、smoke6.17s、重放3.44s、review GPU.74s；新增约154MiB、53tests通过。
 [空间后果实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md)。
+
+
+## Task ref10 续接：真实／可预测执行几何
+
+固定8个ridge执行拟合、2个实测oracle与3个可预测空间后果臂；854窗口、原环境
+划分、执行训练输入严格source OOF，无新仿真。原全部18q裁剪发现实现错误：URDF
+腕部3角为continuous，±pi仅PD尺度fallback。root与独立review确认，保留原run，
+修复后重放8ridge、复用2oracle/4control，只重跑3个受影响300update空间臂。
+错误投影的预测结果不作为原定连续执行路线负证据。
+
+修正后Ha finger误差比H降低79.81%(CI75.70–83.48)，q18 .4793低于nominal .6090；
+但surface XYZ-component RMSE34.09mm vsnominal32.30mm。无拟合FK分解发现真实
+腕部+预测手指仅2.13mm，预测腕部+真实手指33.94mm，说明事实端点误差主要来自
+腕部；前5窗口贡献83.45%误差，未删样本。名义／当前腕部的因果替代分别32.15／
+50.92mm，没有取得oracle精度。不能据此宣称执行不可预测，也不能用oracle部署。
+
+本固定端点空间合同UNPROMISING：PredSurface I.8972差于State.8837/PredJoint.8620，
+I contrast corr.152/sign50.86%/幅度.0235、testshuffle penalty.301%，五gate均未过。
+实测Surface I.8913未胜nominal；实测Joint.8415比State改善4.77%(CI1.17–8.06)，
+仅post-treatment诊断，支持研究表示传递而非断言信息不存在。全部保存权重/候选
+重放0、ridge残差≤6.66e−16，独立review重建metrics/bootstrap/OOF一致；动作通路有效
+（99.30%窗口有边、test22.81active points），57tests通过，原+smoke+repair约154MiB。
+Root停止反复拟合totalendpoint合同，保留可预测finger动作信号；后续区分共同腕部
+演化和finger相对几何，或检视spatial瓶颈。没有selector/PPO；全局Cm utility仍OPEN。
+[执行几何实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-execution-geometry.md)。

@@ -210,3 +210,28 @@ Entry: `tools/run/probe_spatial_consequence.py`, with `--dataset`,
 with `--dataset` and completed `--run-dir`; GPU inference only, refuses to
 overwrite its replay report. Full signed vectors, standalone heatmap and
 PD/q/true-tip magnitude tables accompany the card and saved run.
+
+
+### Ref10 continuation: executed geometry versus causal forecast
+
+[Execution geometry card](docs/experiments/probes/P-20261005-execution-geometry.md)
+separates post-treatment actual-motion diagnostics from source/OOF execution
+forecasts. Original absolute ±pi wrist projection was incorrect: the URDF
+wrist is continuous. Preserve that run, replay eight unchanged execution
+weights, reuse valid oracle/control weights and repair only three affected
+spatial fits. Corrected endpoint spatial contract is UNPROMISING at the fixed
+budget; finger execution predictability is retained as a local positive signal.
+No-fit FK decomposition attributes most endpoint error to wrist, while actual
+joint oracle beats actual spatial oracle. No selector or policy fitting.
+
+`tools/run/repair_execution_geometry.py --dataset <original> --original-run
+<execution-geometry-s247> --run-dir <new-unique-folder>` preserves continuous
+angles and refuses overwrite. Main uses GPU6≤600s within the experiment cap;
+verify ownership first. `tools/audit/audit_execution_geometry.py --dataset
+<original> --run-dir <completed-run>` replays both original and repaired formats,
+without fitting. `tools/audit/decompose_execution_endpoint.py` takes those same
+arguments for explicitly post-treatment wrist/finger diagnosis; add
+`--causal-contracts` for separate decision-time substitutes. Reports refuse
+overwrite. RMSE is XYZ-component average, with Euclidean counterpart disclosed.
+Current root/point identities/object frame and source-only normalizers are
+preserved. Slim repair artifacts require the original immutable run alongside.
