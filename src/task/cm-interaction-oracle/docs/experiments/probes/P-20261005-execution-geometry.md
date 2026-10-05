@@ -200,3 +200,12 @@ actual fingers would prioritize finger execution. Neither hybrid is deployable
 input or causal utility evidence. GPU6≤30s; small JSON only. Also report top1/5
 error shares and median without dropping outliers. Primary surface RMSE is
 sqrt(mean squared XYZ component); show sqrt(3) Euclidean point RMSE separately.
+
+Decomposition root follow-up Decision: actual wrist replacement reduced
+endpoint RMSE34.09→2.127mm; actual fingers only34.09→33.94mm. Errors are
+concentrated (top5 83.45%), but no rows excluded. Next cheapest discriminator
+is no-fit fully decision-time alternatives: source nominal PD wrist + predicted
+fingers, or current wrist + predicted fingers. Same frozen full-test forecast
+and all166rows; actual q8 enters only metrics. GPU6≤30s and small JSON. Save
+separate causal_endpoint_contracts.json; keep original hybrid report unchanged.
+These endpoint errors alone do not qualify consequence or policy training.

@@ -19,7 +19,8 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset',type=Path,required=True)
     parser.add_argument('--run-dir',type=Path,required=True)
-    args=parser.parse_args();out=args.run_dir/'endpoint_decomposition.json'
+    parser.add_argument('--causal-contracts',action='store_true')
+    args=parser.parse_args();out=args.run_dir/('causal_endpoint_contracts.json' if args.causal_contracts else 'endpoint_decomposition.json')
     if out.exists():raise FileExistsError(out)
     manifest=json.loads((args.run_dir/'manifest.json').read_text())
     assert manifest['run_status']=='COMPLETED' and not manifest['smoke']
@@ -40,8 +41,15 @@ def main():
     # These hybrid inputs read q8: diagnosis only, never a causal feature.
     actual_flow,_=endpoint_flows(p,bridge,g,real[:,None])
     errors={};metrics={};test=d['test'];clusters=d['clusters'][test]
-    for name,q in (('Predicted',pred),('PredWrist_RealFinger',pred_wrist_real_finger),
-                   ('RealWrist_PredFinger',real_wrist_pred_finger),('Nominal',g['targets'][rows,arms])):
+    nominal=g['targets'][rows,arms]
+    variants=[('Predicted',pred),('PredWrist_RealFinger',pred_wrist_real_finger),
+              ('RealWrist_PredFinger',real_wrist_pred_finger),('Nominal',nominal)]
+    if args.causal_contracts:
+        current=p['history'][:,-1,:18].to(dev)
+        variants=[('Predicted',pred),('Nominal',nominal),
+            ('NomWrist_PredFinger',torch.cat((nominal[:,:6],pred[:,6:]),-1)),
+            ('CurrentWrist_PredFinger',torch.cat((current[:,:6],pred[:,6:]),-1))]
+    for name,q in variants:
         flow,_=endpoint_flows(p,bridge,g,q[:,None])
         error=(flow-actual_flow).square().mean((1,2,3)).cpu().numpy()[test]
         errors[name]=error
@@ -52,10 +60,11 @@ def main():
             median_window_component_rmse_mm=float(np.sqrt(np.median(error))*1000))
     assert abs(metrics['Predicted']['rmse_mm']-json.loads((args.run_dir/'result.json').read_text())['execution_metrics']['Ha']['surface_endpoint_rmse_mm'])<1e-5
     comparisons={name:cluster_gain(errors['Predicted'],errors[name],clusters,247)
-                 for name in ('PredWrist_RealFinger','RealWrist_PredFinger')}
+                 for name in metrics if name!='Predicted'}
     report=dict(status='DIAGNOSTIC',metrics=metrics,comparisons=comparisons,
         diagnostic_sha256=sha(args.run_dir/'diagnostic.pt'),code_sha256=sha(Path(__file__).resolve()),
-        scope='Post-result post-treatment FK ablations. No fit, row exclusion, selector, gate change, or physical counterfactual claim. RMSE primary averages squared XYZ components; Euclidean metric shown separately.')
+        causal_features=args.causal_contracts,
+        scope='Post-result no-fit endpoint diagnostic; hybrids are post-treatment unless causal_features=true. q8 used only as evaluation target. No row exclusion, selector, gate change, or physical counterfactual claim. RMSE primary averages squared XYZ components; Euclidean metric shown separately.')
     out.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n');print(json.dumps(report,indent=2))
 
 
