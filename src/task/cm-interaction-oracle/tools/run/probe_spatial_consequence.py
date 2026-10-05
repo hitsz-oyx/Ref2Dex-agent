@@ -44,6 +44,7 @@ def main():
     paths=[Path(__file__).resolve(),TASK/'src/spatial_consequence.py',TASK/'src/geometric_consequence.py',
         TASK/'src/conditional_consequence.py',TASK/'src/consequence_sufficiency.py',TASK/'src/intervention.py',
         TASK/'tools/run/probe_conditional_consequence.py',TASK/'tools/run/probe_interventions.py',
+        TASK/'tools/run/probe_geometric_consequence.py',TASK/'tools/run/probe_gt_consequence_sufficiency.py',
         TASK/'tools/audit/probe_duration_response.py',TASK/'tools/audit/audit_finger_amplitudes.py',
         ROOT/'src/task/ObjectInteractionCmv2/model.py',ROOT/'src/task/CmResidual/v118_planner.py',
         ROOT/'src/task/CmResidual/dexplore_cm_geometry.py',ROOT/'src/task/CmResidual/surface_execution.py']
@@ -168,7 +169,7 @@ def main():
         C=any(task_comparisons[name+'_vs_Flow']['primary']['gain']>=.05 and task_comparisons[name+'_vs_Flow']['primary']['lower95']>0 and task_comparisons[name+'_vs_Flow']['physical_failure']['gain']>=-.02 for name in ('P_Flow','Flow_P_Flow'))
         # An isolated win over a weak direct Flow is insufficient.
         unique=task_comparisons['P_Flow_vs_P_State']['primary']['gain']>=.05 and task_comparisons['P_Flow_vs_P_State']['primary']['lower95']>0
-        result=dict(status='PROMISING' if A and B and geometry_gain and C and unique else ('UNPROMISING' if rank==14 else 'UNCLEAR'),
+        result=dict(status='UNCLEAR' if args.smoke else ('PROMISING' if A and B and geometry_gain and C and unique else ('UNPROMISING' if rank==14 else 'UNCLEAR')),
             engineering_only=args.smoke,gates=dict(A=A,B=B,geometry_specific=geometry_gain,C=C,unique_over_state=unique),
             predictor_metrics=metrics,predictor_comparisons=comparisons,contrasts=contrasts,contrast_rank=rank,
             task_metrics=task_metrics,task_comparisons=task_comparisons,oracle_retention=retention,
