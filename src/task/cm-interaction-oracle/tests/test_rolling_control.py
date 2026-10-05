@@ -7,6 +7,7 @@ import torch
 ROOT=Path(__file__).resolve().parents[4]
 sys.path[:0]=[str(ROOT),str(ROOT/'src/task/cm-interaction-oracle/src')]
 from rolling_control import candidate_scores,mixed_plan,execution_z,control_gate
+from oracle_y_utility import utility
 
 
 def panel(k):
@@ -53,3 +54,13 @@ def test_gate_counts_harms_and_rescues_without_reusing_old_upper_bound():
     result=control_gate(baseline,rolling,np.arange(32)%2)
     assert result['rolling_count']==26 and result['rescued']==4 and result['harmed']==1
     assert result['status']=='UNPROMISING'  # uncertain paired gain, not a formal claim
+
+
+def test_saturated_baseline_certificate_preserves_exact_argmax():
+    y=torch.rand(256,7,8)
+    y[:,0,7]=1;y[:,0,3]=1;y[:,0,6]=0
+    # Failure heads are binary in the actual contract; all values are in [0,1].
+    score=utility(y)
+    assert (score<=1.25).all() and not score.argmax(1).any()
+    y[:,:,7]=1;y[:,:,3]=1;y[:,:,6]=0
+    assert not utility(y).argmax(1).any()  # even all-seven ties certify baseline

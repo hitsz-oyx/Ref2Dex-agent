@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
 import os
+import queue
 from pathlib import Path
 import subprocess
 import sys
@@ -35,6 +36,10 @@ class Campaign:
         self.args=args;self.begin=time.monotonic();self.root=args.run_dir.resolve()
         self.root.mkdir(parents=True,exist_ok=False)
         self.events=[];self.processes={};self.summaries=[]
+        self.gpu_slots=queue.Queue()
+        for gpu in args.gpus or [args.gpu]:
+            self.gpu_slots.put(gpu)
+            self.gpu_slots.put(gpu)
         self.commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
         paths=[Path(__file__),ROOT/'src/task/cm-interaction-oracle/tools/run/collect_oracle_y_candidates.py',
                ROOT/'src/task/cm-interaction-oracle/src/rolling_control.py',
@@ -48,7 +53,7 @@ class Campaign:
         event=dict(stage=stage,elapsed_seconds=time.monotonic()-self.begin,**kwargs)
         self.events.append(event)
         value=dict(status=stage,run_id=self.root.name,git_commit=self.commit,work_version=self.commit,
-                   pid=os.getpid(),physical_gpu=self.args.gpu,inputs=self.inputs,
+                   pid=os.getpid(),physical_gpus=self.args.gpus or [self.args.gpu],inputs=self.inputs,
                    elapsed_seconds=event['elapsed_seconds'],events=self.events)
         (self.root/'progress.json').write_text(json.dumps(value,indent=2)+'\n')
         print(json.dumps(event),flush=True)
@@ -59,9 +64,14 @@ class Campaign:
         if sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())>self.args.storage_gib*2**30:
             raise ValueError('campaign storage cap')
 
-    def worker(self,name,reference,schedule,group,seed,offset,candidate=0,window=32,record=False,plan=None):
+    def worker(self,*args,**kwargs):
+        gpu=self.gpu_slots.get()
+        try:return self._worker(*args,physical_gpu=gpu,**kwargs)
+        finally:self.gpu_slots.put(gpu)
+
+    def _worker(self,name,reference,schedule,group,seed,offset,candidate=0,window=32,record=False,plan=None,physical_gpu=6):
         self.check(); folder=self.root/name
-        env=os.environ.copy();env.update(CUDA_VISIBLE_DEVICES=str(self.args.gpu),TMPDIR=str(ROOT/'tmp'),
+        env=os.environ.copy();env.update(CUDA_VISIBLE_DEVICES=str(physical_gpu),TMPDIR=str(ROOT/'tmp'),
             TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/torch_extensions'),MAX_JOBS='2',OMP_NUM_THREADS='2',
             OPENBLAS_NUM_THREADS='2',LD_LIBRARY_PATH='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH',''))
         initial=load(reference/'initial_state.pt'); n=len(initial['tensors']['data_id'])
@@ -124,29 +134,41 @@ class Campaign:
         for offset in OFFSETS:
             self.check();prefix=f'{name}-t{offset:02d}'
             results=[None]*7
+            results[0]=self.worker(prefix+'-k0',reference,schedule,group,seed,offset,0,record=True)
+            p0=results[0][1]
+            baseline_y,_=short_y(p0['before'][rows,2],p0['before'][rows,71]>.5,
+                                p0['height'][rows],p0['pair'][rows],p0['rest_height'][rows])
+            baseline_score=utility(baseline_y)
+            certified=bool((baseline_score==1.25).all())
+            if certified:
+                # U<=1+.25 for EVERY candidate; exact ties prefer baseline.
+                # Store only the observed baseline Y, never invent other labels.
+                choices=torch.zeros(len(p0['triggers']),dtype=torch.long)
+                y=baseline_y[:,None];scores=baseline_score[:,None]
+                results=results[:1]
+            else:
+                with ThreadPoolExecutor(max_workers=self.args.workers) as pool:
+                    futures={pool.submit(self.worker,prefix+f'-k{k}',reference,schedule,group,seed,offset,k):k for k in range(1,7)}
+                    for future in as_completed(futures):results[futures[future]]=future.result()
+                panels=[r[1] for r in results]; y,scores=candidate_scores(panels,rows)
+                choices=mixed_plan(scores,rows,len(panels[0]['triggers']))
             # Only independent physical forks run concurrently. Choice/execution stays sequential.
-            with ThreadPoolExecutor(max_workers=self.args.workers) as pool:
-                futures={pool.submit(self.worker,prefix+f'-k{k}',reference,schedule,group,seed,offset,k):k for k in range(7)}
-                for future in as_completed(futures):results[futures[future]]=future.result()
-            panels=[r[1] for r in results]; y,scores=candidate_scores(panels,rows)
-            # Candidate0 replay of identical feedback continuation must reproduce the prior lookahead
-            # only at offset0; later previous suffix was hypothetical and is never used as truth.
-            choices=mixed_plan(scores,rows,len(panels[0]['triggers']))
             plan_path=self.root/(prefix+'-plan.json')
             write(plan_path,dict(offset=offset,choices=choices.tolist(),rows=rows.tolist(),
                 source_prefix_sha256=sha(reference/'trace.pt'),y=y.tolist(),utility=scores.tolist(),
                 candidate_panel_sha256={str(r[0]/'panel.pt'):sha(r[0]/'panel.pt') for r in results},
+                baseline_upper_bound_certificate=certified,
                 tie_rule='baseline first then fixed candidate order'))
-            actual,pa,_=self.worker(prefix+'-execute',reference,schedule,group,seed,offset,record=True,plan=plan_path)
+            actual,pa,_=results[0] if certified else self.worker(prefix+'-execute',reference,schedule,group,seed,offset,record=True,plan=plan_path)
             for key in ('before','history','actor_obs','hand_root'):
-                if not torch.allclose(pa[key][rows],panels[0][key][rows],atol=1e-4,rtol=0):
+                if not torch.allclose(pa[key][rows],p0[key][rows],atol=1e-4,rtol=0):
                     raise ValueError('actual execution current H mismatch')
-            if not torch.equal(pa['rolling_choices'],choices):raise ValueError('choice did not enter execution')
+            if not certified and not torch.equal(pa['rolling_choices'],choices):raise ValueError('choice did not enter execution')
             expected_base=pa['base_actions'][rows]
             expected=(expected_base+pa['delta'][choices[rows],None]).clamp(-1,1)
             if not torch.equal(pa['actions'][rows],expected):raise ValueError('native executed residual mismatch')
             gap=(scores.max(-1).values-scores[:,0])
-            chosen_first8_height=torch.stack([panels[int(choices[r])]['height'][r,:8] for r in rows])
+            chosen_first8_height=pa['height'][rows,:8] if certified else torch.stack([panels[int(choices[r])]['height'][r,:8] for r in rows])
             difference=(pa['height'][rows,:8]-chosen_first8_height).abs()
             decision=dict(offset=offset,choices=choices[rows].tolist(),utility_gain_over_zero=gap.tolist(),
                           clipped_steps=pa['clipped_steps'][rows].tolist(),actual_dir=str(actual),
@@ -155,7 +177,7 @@ class Campaign:
             decisions.append(decision);reference=actual
             self.progress('ROUND_EXECUTED',seed=seed,group=group,offset=offset,
                           selections=np.bincount(choices[rows],minlength=7).tolist(),
-                          first8_height_max=float(difference.max()))
+                          first8_height_max=float(difference.max()),baseline_max_certificate=certified)
         trace=load(reference/'trace.pt')
         rolling,detail=execution_z(trace,rows,control['origin'],torch.tensor(control['rest']))
         report=dict(**control,rolling=rolling.tolist(),decisions=decisions,
@@ -182,9 +204,13 @@ class Campaign:
 def main():
     p=argparse.ArgumentParser();p.add_argument('--run-dir',type=Path,required=True)
     p.add_argument('--protocol',type=Path,required=True);p.add_argument('--gpu',type=int,default=6)
+    p.add_argument('--gpus',type=int,nargs='+',help='Idle physical GPUs, at most2 workers/device and4 total')
     p.add_argument('--workers',type=int,default=4,choices=(1,2,3,4));p.add_argument('--wall-seconds',type=int,default=7200)
     p.add_argument('--storage-gib',type=float,default=4);p.add_argument('--smoke',action='store_true')
-    args=p.parse_args();torch.set_num_threads(2);campaign=Campaign(args)
+    args=p.parse_args()
+    if args.gpus and (len(args.gpus)>4 or len(set(args.gpus))!=len(args.gpus)):
+        raise ValueError('one to four distinct physical GPUs required')
+    torch.set_num_threads(2);campaign=Campaign(args)
     try:
         specifications=[('oracle-y-utility-s263',263,0),('oracle-y-utility-s263',263,1),
                         ('oracle-y-utility-extra-s264',264,0),('oracle-y-utility-extra-s264',264,1)]
