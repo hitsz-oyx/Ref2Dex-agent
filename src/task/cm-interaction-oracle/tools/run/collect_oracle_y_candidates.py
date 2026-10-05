@@ -138,7 +138,7 @@ class CandidatePlayer(original.EvalPlayer):
                 packet['before_hand_base_pose'][chosen] = torch.cat((task._rigid_body_pos[chosen,base_id],task._rigid_body_rot[chosen,base_id]),-1)
                 if trace is not None:
                     for column,key in ((3,'actor_obs'),(4,'history')):
-                        error=(packet[key][chosen]-trace['anchors'][key][chosen].to(device)).abs().flatten(1).amax(-1)
+                        error=(packet[key][chosen]-trace['anchors'][key][chosen.cpu()].to(device)).abs().flatten(1).amax(-1)
                         errors[chosen,column]=error
             age = tick-triggers
             active = (triggers>=0)&(age>=0)&(age<8)&~terminal
@@ -212,7 +212,25 @@ def main():
     ARGS.run_dir.mkdir(parents=True,exist_ok=False)
     checkpoint=Path(remaining[remaining.index('--checkpoint')+1])
     if sha(checkpoint)!=SOURCE_SHA: raise ValueError('pinned self-trained source_e260 required')
-    paths=[checkpoint,Path(__file__),ROOT/'src/task/cm-interaction-oracle/src/oracle_y_utility.py']
+    paths=[checkpoint,Path(__file__)]
+    paths += [ROOT/p for p in (
+        'src/task/cm-interaction-oracle/tools/run/collect_interventions.py',
+        'src/task/cm-interaction-oracle/tools/run/run_oracle_y_candidate.sh',
+        'src/task/cm-interaction-oracle/src/oracle_y_utility.py',
+        'src/task/cm-interaction-oracle/src/intervention.py',
+        'src/task/cm-interaction-oracle/src/consequence_sufficiency.py',
+        'src/task/CmResidual/paired_evaluation.py',
+        'src/task/CmResidual/physical_value_live.py',
+        'src/task/CmResidual/physical_value_contract.py',
+        'src/task/CmResidual/dexplore_cm_geometry.py',
+        'third_party/DExplore/dexplore/evaluate.py',
+        'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
+        'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',
+        'third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf')]
+    motion_root=Path(remaining[remaining.index('--motion_file')+1])
+    motions=sorted(p for p in motion_root.iterdir() if p.is_file())
+    if len(motions)!=3: raise ValueError('three pinned canonical motion files required')
+    paths += motions
     for flag in ('--cfg_env','--cfg_train'): paths.append(Path(remaining[remaining.index(flag)+1]))
     if ARGS.reference is not None: paths += [ARGS.reference/k for k in ('initial_state.pt','trace.pt','panel.pt')]
     inputs={str(p.resolve()):sha(p) for p in paths}

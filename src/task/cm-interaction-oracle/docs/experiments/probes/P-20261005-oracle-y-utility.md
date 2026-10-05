@@ -125,3 +125,10 @@ collector used snapshot36 instead of the existing snapshot55 in139-wide history.
 No intervention data or scientific result. Restore existing55+18+13+53 layout;
 current model H still consumes only first36q/dq history as inherited. Failed
 manifest/initial retained. Retry uses unique `oracle-y-smoke-s263-r2-*` outputs.
+
+R2 reference succeeded:24env,10anchors (6/2/2motions),652ticks,55.30s.
+R2 repeat failed at its first selected trigger because GPU indices were used
+on the saved CPU actor-history tensor. Correct explicit CPU indexing before
+device transfer; no outcome/label/threshold change. Preserve failed manifest.
+R3 smoke will repeat both branches at the fixed collector commit, with expanded
+source/config/URDF/three canonical motion hashes checked before/after each run.
