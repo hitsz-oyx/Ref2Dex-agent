@@ -91,7 +91,8 @@ def evaluate(reference,branches,screen_path,output):
         gate_c='NOT_RUN_REQUIRES_QUALIFIED_A_B_AND_SEPARATE_PAIRED_TRAIN_TEST_PROTOCOL',
         gate_d='NOT_RUN_REQUIRES_PREVIOUS_GATES')
     output.write_text(json.dumps(result,indent=2)+'\n')
-    np.savez_compressed(output.with_suffix('.npz'),y=yy,z=zz,motion=motion,rows=rows.numpy())
+    np.savez_compressed(output.with_suffix('.npz'),y=yy,z=zz,motion=motion,rows=rows.numpy(),
+                        trigger=p0['triggers'][rows].numpy())
     return result
 
 

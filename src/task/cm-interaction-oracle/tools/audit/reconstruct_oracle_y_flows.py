@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import time
+import numpy as np
 ROOT=Path(__file__).resolve().parents[5]
 sys.path[:0]=[str(ROOT),str(ROOT/'src/task/cm-interaction-oracle/src')]
 import torch
@@ -43,6 +44,12 @@ def main():
             checks.append(dict(panel=str(path),candidate=raw['candidate'],rows=len(rows),fk_checks=error))
         value=dict(flow=torch.stack(flows,1),ei=torch.stack(targets,1),y=torch.stack(outcomes,1),
             z=torch.stack(all_z,1),rows=rows,batch_result=str(batch.resolve()))
+        saved=np.load(batch.with_suffix('.npz'))
+        if not np.array_equal(value['y'].numpy(),saved['y']) or not np.array_equal(value['z'].numpy(),saved['z']):
+            raise ValueError('actual-flow archive Y/Z disagree with utility evaluation')
+        if not np.array_equal(rows.numpy(),saved['rows']): raise ValueError('frozen cohort row drift')
+        hashes[str(batch.resolve())]=hashlib.sha256(batch.read_bytes()).hexdigest()
+        hashes[str(batch.with_suffix('.npz').resolve())]=hashlib.sha256(batch.with_suffix('.npz').read_bytes()).hexdigest()
         batches.append(value)
     y=torch.cat([b['y'] for b in batches]).numpy();z=torch.cat([b['z'] for b in batches]).numpy()
     torch.save(dict(schema='ref2dex.paired_actual_flow.v1',batches=batches,
