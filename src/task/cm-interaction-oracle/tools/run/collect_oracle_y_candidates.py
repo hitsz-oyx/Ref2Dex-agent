@@ -130,6 +130,18 @@ class CandidatePlayer(original.EvalPlayer):
                     errors[prefix,column] = torch.maximum(errors[prefix,column],error[prefix])
                 shadow = (base-trace['action'][tick].to(device)).abs().amax(-1)
                 errors[prefix,5] = torch.maximum(errors[prefix,5],shadow[prefix])
+            if ARGS.diagnose_prefix and trace is not None:
+                inspected=(triggers>=0)&(tick<=triggers)&~terminal
+                raw={key:float((value[inspected]-trace[key][tick].to(device)[inspected]).abs().max())
+                     for value,key in ((phys,'physical'),(dof,'dof'),(root,'root'))}
+                if tick<4 or tick%20==0: print(json.dumps(dict(prefix_diagnostic_tick=tick,errors=raw)),flush=True)
+                if max(raw.values())>1e-4 or tick>=64:
+                    diagnose=dict(engineering_only=True,tick=tick,raw=raw,initial_fingerprint=initial_hash,
+                        q_position_max=float((dof[inspected,:18]-trace['dof'][tick].to(device)[inspected,:18]).abs().max()),
+                        q_velocity_max=float((dof[inspected,18:]-trace['dof'][tick].to(device)[inspected,18:]).abs().max()),
+                        physical_error_by_axis=(phys[inspected]-trace['physical'][tick].to(device)[inspected]).abs().amax(0).cpu().tolist())
+                    (ARGS.run_dir/'prefix_diagnostic.json').write_text(json.dumps(diagnose,indent=2)+'\n')
+                    return
             chosen = (triggers==tick).nonzero(as_tuple=False).flatten()
             if len(chosen):
                 packet['before'][chosen] = phys[chosen]; packet['history'][chosen] = history[chosen]
@@ -207,6 +219,7 @@ def main():
     parser.add_argument('--run-dir',type=Path,required=True); parser.add_argument('--reference',type=Path)
     parser.add_argument('--candidate',type=int,default=0,choices=range(len(CANDIDATES)))
     parser.add_argument('--wall-seconds',type=int,default=180)
+    parser.add_argument('--diagnose-prefix',action='store_true')
     ARGS,remaining=parser.parse_known_args()
     if ARGS.reference is None and ARGS.candidate!=0: raise ValueError('reference is baseline')
     ARGS.run_dir.mkdir(parents=True,exist_ok=False)

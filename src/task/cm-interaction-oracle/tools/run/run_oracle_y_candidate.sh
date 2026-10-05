@@ -6,6 +6,7 @@ envs=$2
 candidate=$3
 reference=${4:-}
 args=()
+if [[ "${5:-}" == diagnose ]]; then args+=(--diagnose-prefix); fi
 if [[ -n "$reference" ]]; then args+=(--reference "$root/outputs/cm-interaction-oracle/$reference"); fi
 mkdir -p "$root/tmp/ref13" "$root/tmp/torch_extensions"
 export TMPDIR="$root/tmp" TORCH_EXTENSIONS_DIR="$root/tmp/torch_extensions"

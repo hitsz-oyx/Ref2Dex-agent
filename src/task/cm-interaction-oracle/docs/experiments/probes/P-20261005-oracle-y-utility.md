@@ -137,3 +137,12 @@ R3 input-provenance preflight found canonical motion links are directories,
 not files;0simulate. Hash each linked `interaction_hand_inspire.pt` instead.
 R4 smoke is the fixed retry. Engineering accumulated native wall budget stays
 within480s; failed input preflight retained as empty directory plus log.
+
+## R4 pairing blocker / minimal diagnosis
+
+R4 cold/property fingerprint matched exactly, but9anchors/0accepted: prefix
+physical115.06, q/dq9.23, shadowaction.1063; Y max1; Z2discordant. Thus no
+GateA scientific result and no alternative arm collected. Add first-divergence
+replay diagnostic (≤64ticks, stop at first rawprefix1e-4 exceedance) to separate
+cold hidden-state/trace defects from numerical PhysX divergence. No threshold
+relaxation, candidate or target change. Overall≤2400s budget remains binding.
