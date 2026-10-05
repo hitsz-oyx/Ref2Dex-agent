@@ -5,7 +5,7 @@ experiment_id: P-20261005-execution-geometry
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: pending
+git_commit: c2baa30
 claim_id: C3
 hypothesis_family: HF-execution-geometry
 probe_index_in_family: 1
@@ -19,7 +19,7 @@ run_id: execution-geometry-s247
 
 # Is nominal execution the missing geometric action contract?
 
-Result: UNCLEAR: frozen Decision protocol, run pending.
+Result: UNCLEAR: original forecast projection invalid; affected-only repair frozen below.
 Decision: Compare actual-motion diagnostics and strictly cross-fitted execution predictions before new simulation.
 
 ## Motivation and root Decision Note
@@ -150,3 +150,40 @@ Cm-on/off remain deferred until they can change a decision.
 Engineering FK fixture in projecttmp: first attempt used ambiguous cuda alias
 and failed device guard before FK; corrected to cuda:0, unchanged inputs.
 This is an engineering invocation issue, not physical negative evidence.
+
+## Implementation defect and affected-only repair Decision Note
+
+Original main `execution-geometry-s247` completed on c2baa30. Preserve its
+manifest, labels, weights, predictions and nominal machine status verbatim.
+Its forecast-derived spatial negatives are **invalid evidence for the intended
+continuous-joint model**. Root introduced an all18 absolute clamp; URDF
+joint4/5/6 are continuous, with no lower/upper. Shared native_joint_limits
+falls back to ±pi for controller scale, not physical forecast bounds.
+Simulator front6 targets are currentq+scaledaction. q8 wrist ranges include
+[-4.811,3.162],[-6.075,1.225],[-2.071,4.781]rad. No q8−q0 rotation exceeds
+.575rad, so a wrap discontinuity is not the cause. Ha test q18scaled MSE
+increased from raw .483786 to 2.307839 after erroneous clipping.
+Independent reviewer confirmed this semantic defect. Regression with actual
+URDF FK and q=[pi+.3,-pi-.4,pi+.2] failed under old projection and passes
+when continuous coordinates retain their unwrapped simulator branch.
+
+Question: do corrected causal forecasts improve executed geometry and transfer
+to I? Reuse all8 source/OOF ridge weights; regenerate recipient15forecasts,
+project only truly bounded DOFs via URDF type mask, preserving indices3:6
+exactly. Reuse two valid realized-oracle fits and four source controls with
+exact replay. Only refit PredictedSurface/Joint/Shuffled (same245/246 seeds,
+300updates, no budget extension or threshold change). Recompute all original
+gates and errors, then saved-weight replay and independent review. No new
+experiment identity or seed: this repairs the same design. Fixed forecast
+projection code lives separately, leaving original and source hashes intact.
+
+New `run_id: execution-geometry-continuous-fix-s247`, run entry
+`tools/run/repair_execution_geometry.py`, helper `src/execution_projection.py`.
+GPU6, ≤600s, slim diagnostic references original immutable assets/weights to
+keep total smoke+original+repair outputs ≤200MiB. No extra repair smoke fit:
+regression test and exact source/oracle replay gate before affected training.
+Stop on nonfinite, changed hashes, leakage, replay drift or resource conflict.
+Success qualifies the original next decision; failure stops repeated endpoint
+spatial fitting at this capacity. No selector/PPO, claim change or external
+authorization. The two original realized oracles and all8 raw ridge fits are
+unaffected; their evidence scope remains post-treatment diagnostic/execution.
