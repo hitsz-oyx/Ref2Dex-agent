@@ -12,14 +12,17 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref13): same-prefix Oracle-Y Utility Gate.
-Execute a fixed seven-candidate early-hold panel after cold reset/full prefix
-replay; baseline repeatability screen precedes alternative branches. Compare
-perfect short continuation Y selection against longer stable-grasp Z. Noise
-sensitivity only after a positive gate, representation/execution/policy work
-only after qualified prior gates. Native execution prediction stays paused;
-final matched trained-policy Cm utility remains open.
-[Protocol](docs/experiments/probes/P-20261005-oracle-y-utility.md).
+Current user-directed route (ref13): completed same-prefix Oracle-Y Utility
+Gate. Four synchronous cold-replay groups provide32 complete seven-candidate
+prefix panels; baseline repeat and all alternative prefixes pass exactly.
+GPU PhysX/CPU tensor pipeline and frozen policy inference onGPU6.
+Fixed short-Y selection gives24/32 stable-grasp Z versus baseline23/32
+(+3.125pp,95%CI0..9.375); candidate GT-Z upper25/32. GateA UNPROMISING:
+stop this selector without predictor/PPO fitting; GatesB/C/D not activated.
+Short-Y ties hide one late-drop opportunity; boundedZ and shared-solver
+mosaic/support limitations prevent broad Y/Cm or policy-utility conclusions.
+Actual corresponding hand flows/E/I/Y/Z and GPU FK/live checks are archived.
+[Protocol and completed evidence](docs/experiments/probes/P-20261005-oracle-y-utility.md).
 
 Ref5 point-flow G and surface-I probes are completed; absolute RTG gains were
 weak or outlier-dependent. Task ref1's cross-fitted three-class advantage

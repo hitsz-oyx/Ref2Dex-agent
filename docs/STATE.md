@@ -449,9 +449,27 @@ GPU6主11.72s；全部input/foldnormalizer/FK/权重/OOF/统计重放误差0，�
 全局matched训练策略Cm utility仍OPEN。
 [Oracle flow任务链实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-flow-task.md)。
 
-## ref13 当前行动
+## ref13：Oracle-Y Utility Gate 已完成
 
-用户 ref13 重新启用同前缀配对候选采集，先做 Oracle-Y Utility Gate：
-GT 短期 Y 选择是否改善独立稳定持有 Z。baseline 重复噪声检查先于候选干预，
-当前尚无新科学结果。进一步 predictor 调参、旧 execution forecast 和 PPO 暂停；
-E/I 暂不强制为瓶颈。参见 [实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md)。
+用户 ref13 重新启用同前缀配对候选采集，在原分支完成逆向必要性 Probe。
+先修复 GPU pipeline/异步前缀污染：最终用GPU PhysX+CPU tensor pipeline、
+GPU6 frozen policy，四个同步fork组。32current-only前缀（29s3/3s7）在候选前
+冻结；fresh baseline/repeat字节一致，24候选branch前缀差0，32×7结果完整。
+原异步46cohort和失败候选保留为工程记录，不作GateA科学证据。
+
+GateA固定合同UNPROMISING：baseline稳定Z23/32，GT-Y选择24/32，gain3.125pp
+(anchor95%CI0..9.375)，未达≥5pp/lower95>0；GT-Z候选上限25/32。
+仅两处潜在rescue，其中一处由候选顺序平局选中；另一处全部短Y相同，baseline
+step89才越过掉落高度阈值，成功候选到step90也仅高于阈值1.838mm。
+因此停止当前短Y/固定七候选selector，不把小正点估计当正式控制收益，也不
+扩成全部Y、E/I或Cm无效。改变U系数不能拆开相同完整Y标签的候选。
+GateB加噪、GateC表示比较和GateD执行/PPO均未启动；旧execution forecast和
+进一步MSE调参继续暂停。未来需先冻结具有有意义长期机会的目标/候选合同。
+
+GPU真实point-flow归档14panel FK/live最大tip误差1.714e−5m，Y/Z重建完全一致；
+包含样点、代码/mesh和原始panel哈希。独立raw标签/组装/PD/selector/CI复算
+全部一致，仓库验证通过。零新fit/policytraining。native累计1679.61s，
+产物约420MiB，预算内；78Task/pairedsim+7coldcontract tests通过，1skip。
+共享solver四组mosaic、强s3条件群体、forcepair代理及短Z horizon仍限制外推，
+不把anchorCI当group数值独立或在线混合选择已验证。最终matched训练策略
+Cm utility仍OPEN。[实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md)。

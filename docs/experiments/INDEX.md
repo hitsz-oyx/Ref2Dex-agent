@@ -76,7 +76,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-oracle-y-utility](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md) | Ref13 Oracle-Y Utility Gate | pending, engineering pairing first; no scientific result yet. | Reverse necessity testing, starting with perfect-Y candidate selection. | probes/UNCLEAR |
+| [P-20261005-oracle-y-utility](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-oracle-y-utility.md) | Ref13 Oracle-Y Utility Gate | UNPROMISING for the fixed selector: baseline23/32 vs GT-Y24/32, +3.125pp [0,9.375]; GT-Z candidate upper25/32. | Stop this short-Y/seven-candidate selector; GatesB/C/D not activated, no predictor or PPO fitting. | probes/UNPROMISING |
 
 ## HF-per-finger-control
 

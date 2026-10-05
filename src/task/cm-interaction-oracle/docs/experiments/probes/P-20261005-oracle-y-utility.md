@@ -5,7 +5,7 @@ experiment_id: P-20261005-oracle-y-utility
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: 4e4ec36cc7c9b811e8870f0b2a89d2f37ffb2eef
+git_commit: 099b7f84fa914bc5a85e2c64620aa371541b43cd
 claim_id: C3
 hypothesis_family: HF-oracle-y-utility
 probe_index_in_family: 1
@@ -13,14 +13,123 @@ seed_pool: probe
 seeds: [263, 264, 265, 266]
 decision_changed_if_positive: run synthetic Y noise tolerance before any paired representation fitting
 decision_changed_if_negative: stop the fixed short-Y selector and distinguish proxy mismatch from absent candidate opportunity
-status: UNCLEAR
-run_id: oracle-y-utility-s263
+status: UNPROMISING
+run_id: oracle-y-utility-sync-s263-s264
 ---
 
 # Ref13 Oracle-Y Utility Gate
 
-Result: pending, engineering pairing first; no scientific result yet.
-Decision: Reverse necessity testing, starting with perfect-Y candidate selection.
+Result: UNPROMISING for the fixed selector: baseline23/32 vs GT-Y24/32, +3.125pp [0,9.375]; GT-Z candidate upper25/32.
+Decision: Stop this short-Y/seven-candidate selector; GatesB/C/D not activated, no predictor or PPO fitting.
+
+## Completed synchronous experiment — authoritative result
+
+The final evidence is the **synchronous** cohort, frozen before any synchronous
+alternative:32 prefixes in four disjoint cold-replay fork groups,20 from seed263
+and12 from264; motions29s3/3s7/0s9. Current-only group selection uses6≤early-hold
+run<45, common headroom/history/proximity/horizon. Clocks42/84 (groups7/13) and
+62/136 (groups9/3). This supersedes the original asynchronous first-eligible
+protocol below; its46-state cohort and failed candidate are retained but excluded.
+
+Fresh synchronous baseline/repeat panels are byte-identical in each batch:
+all32 prefixes/H/Y/Z differences0. All24 alternative processes passed every
+assigned prefix with differences0 and complete90-step outcomes. Seven actual
+outcomes per prefix,224 total; no treatment-specific row exclusions. Physics
+is GPU PhysX, single thread, CPU tensor pipeline, frozen policy inference on
+GPU6. Collector code099b7f84fa914bc5a85e2c64620aa371541b43cd;
+fixed gate analysis codeb06f1d464e6d1569412d1c194f46fdc6bec1cbe0.
+
+| Selector/readout | Stable-grasp Z | Gain over baseline |
+| --- | --- | --- |
+| Frozen baseline | 23/32 (71.875%) | — |
+| GT-Y fixed U selection | 24/32 (75.000%) | +3.125pp; anchor95%CI[0,9.375] |
+| Per-prefix GT-Z candidate upper | 25/32 (78.125%) | +6.250pp; anchor95%CI[0,15.625] |
+
+Registered≥30anchors/≥2motions support condition passes, but gain<5pp and
+lower95=0: **GateA UNPROMISING for this fixed conditional contract**.
+Separate batches20/12 are individuallyUNCLEAR by the same support rule;
+combined result uses both frozen batches, not a best-batch choice. All seven
+arm success counts in fixed order are23/18/20/17/21/16/20. GT-Y choices are
+25baseline,2thumb−,1middle+,4middle−; one rescue and no harmed baseline successes.
+There are16 prefixes with all seven utility values tied. Realized step8 tip
+changes average approximately7–18mm per alternative/batch, maxima18–52mm;
+all intervention clipped-step counts0. Interventions therefore entered physical
+execution; their long-target opportunity is small rather than absent.
+
+### Attribution and stopping decision
+
+Two baseline-failed prefixes have a successful candidate:
+
+* seed263/env33/clock84: middle− and grip+ have identical fullY8 and maximum
+  U=1.25 but differentZ (1/0). Fixed candidate-order tie break selects middle−,
+  accounting for the observed one rescue; Y itself does not resolve that tie.
+* seed263/env36/clock42: baseline and five alternatives have identical fullY8
+  and U=1.25. Thumb− hasZ1, baselineZ0; baseline-first tie rule misses it.
+  Baseline qualifies atstep45 and crosses the2cm no-drop height threshold at
+  step89, outside shortY steps9–32. Thumb− is still21.838mm above rest atstep90,
+  only1.838mm above the threshold and descending. This boundedZ-bit opportunity
+  is not evidence of durable success beyond the declared observation horizon.
+
+Thus the finite panel offers only two potential rescues, and the short labels
+cannot distinguish different longer outcomes within both relevant ties.
+Retuning U coefficients cannot separate candidates with identical fullY8;
+changing tie rules based on these outcomes would be post-hoc rescue. This does
+not establish globalY uselessness or select one unique explanation for all
+negative observations. Limited candidate authority/support, short-label
+saturation and longer-target boundary sensitivity remain distinct restrictions.
+
+Root decision: no more fits/epochs/seeds on this exposed selector. GateB is
+NOT_RUN because registeredGateA did not pass; GateC representations andGateD
+execution/PPO are NOT_RUN. If future work resumes utility design, first define
+and prospectively freeze a task outcome/candidate contract with meaningful
+long-horizon opportunity, then recheck oracle utility before learning it.
+Preserve ref12's actual-flow/GT-EI prognosis signals; E/I stays auxiliary/parallel,
+not a compulsory bottleneck. Final matched trained-policy Cm utility staysOPEN.
+
+### Artifacts, engineering verification and limits
+
+Primary output directory:
+`outputs/cm-interaction-oracle/oracle-y-utility-sync-s263-s264/`.
+`result.json/.npz/.png` and `batch-s263.json/.npz`, `batch-s264.json/.npz`
+contain decisions, every fixed panel label/selection, source hashes and facets.
+`opportunity_trace.json`, `missed_opportunity.png/.svg` show the late-drop tie.
+`paired_actual_flow.pt/.json` archives actual0→4/4→8 corresponding120point flows,
+E12/I14/Y8/Z90, samplepoints/seed241, source/mesh/panel hashes. All14panel GPU
+FK/live checks pass: max true-tip error1.714e−5m, base3.860e−6, chunk/endpoint
+identity9.537e−7; reconstructed Y/Z are bit-exact with utility evaluation.
+Flow-audit coded767a533837fb03409b9327ff5106409668c84c7. First archive attempt
+used a geometry adapter without the required surface `points` method; failed
+log `tmp/ref13/paired-actual-flow-audit.log` retained, then reused the same ref11
+`NominalSurfaceActions` sampler. This error affected archive generation only;
+no candidate acquisition, label, utility or gate changed.
+
+`resource_inventory.json` records47 native manifests including failures,
+1679.61s instrumented native wall; with300s reserved startup/analysis charge,
+1979.61s<2400s cap. The24candidate process chain itself took897.60s including
+its startup (do not add it again). All retained/derived oracle-y artifacts total
+about420.23MiB<1.5GiB; newfits0, policytraining0. GPU FK audit1.55s.
+78Task/paired-sim checks plus7cold-pair contract tests pass;1Task test skipped.
+Independent raw-result review PASS: `independent_implementation_review.md/.json`
+and `raw_stat_replay.json` archived beside outputs with `review_archive.json`.
+Independent CPU reconstruction confirms same-H/fulltensor source assembly,
+all rawY8/Z90, native residual/clipping/coupledPD (maxerror0), fixed selection,
+bootstrap and gate exactly. Root verified the opportunity traces and report.
+Scoped repository/index verification is recorded in `verification.log`.
+
+Scope: one self-trained source_e260 policy, one airplane object, two resetseeds,
+two representedmotions with29/32s3, four shared-solver fork groups and a
+current-prefix-selected population. SelectedZ is a mosaic of co-treated branch
+potential outcomes, not an actually executed mixed-arm policy. Prefix equality
+does not certify post-fork solver independence; anchorbootstrap intervals do
+not cover shared-group numerical uncertainty. Z is bounded height/aggregate
+force-pair stability, not full-episode success or certified hand-object contact.
+No formal validation/globalCm refutation follows from this no-go decision.
+
+## Original protocol and retained engineering history
+
+The following records explain the initially planned asynchronous collection and
+subsequent repairs. The completed synchronous protocol/result above governs
+interpretation; superseded cohorts/backends never enter finalGateA.
 
 ## Decision Note and purpose
 
