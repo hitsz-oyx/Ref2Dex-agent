@@ -296,3 +296,27 @@ Shuffle较高原sign受共同zero偏移影响，中心化后corr−.076；不救
 memorization。没有关闭Cm核心假设，训练所得matched policy utility仍OPEN。
 GPU6主运行59.99s，smoke3.93s，审计仅inference，均结束；新增<12MiB、46tests通过。
 [conditional consequence实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md)。
+
+## Task ref10：几何动作表示与物理残差
+
+按ref10将决策native q/PD指令经explicitroot×FK转成120surface对应点流，
+共同提供baseline nominal geometry，对比State/Arm/Joint/Flow和shuffle；
+fold-only PCA/尺度、严格environment OOF、固定α32ridge，无新仿真。
+原PCA/bilinear残差screen UNPROMISING：Flow I12.440明显崩溃，testshuffle反而
+降低误差。按用户要求独立review：无来源/标签/泄漏/单位/求解bug，root GPU全重放0误差。
+单窗口/前五窗口贡献57.84%/85.13% Ierror，state×flow乘积超出训练支持并放大输出。
+
+另预先冻结六fit尺度×乘法因子诊断（明确post-result、非独立确认）：移除products
+I1.254，固定20mm additive1.138；仍弱于State1.074/Arm1.055/Joint1.041/mean.891。
+当前PCA/ridge名义端点路线UNPROMISING，不能否定物理几何动作或OI-CmV2空间网络。
+独立NumPy复算六fits/bootstrap一致。GT仍改善task31.50%(CI8.32–51.03)，
+P_Flow .7149却输H .6540/P_State .6132，R−.2955；C=true仅胜崩溃directFlow，
+root明确不认作uniqueCm收益。不selector/PPO、追加epoch或删outliers。
+
+保留FK/continuous surface合同、OOF工具、14signedarm向量、逐指PD/实测q/true-tip
+及名义surface幅度表；后续若继续几何路线，应检验localcontact/sharedspatial归纳
+偏置与nominal→realized执行合同。全局matched trained-policy Cm utility仍OPEN。
+GPU6两主run最终manifest2.88s/1.19s，首启动hash路径错误在模型计算前终止并留存，
+审计只inference；新增<85MiB，50Task tests通过，无剩余本轮GPU进程。
+[ref10主实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-innovation.md)，
+[归因实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-support.md)。

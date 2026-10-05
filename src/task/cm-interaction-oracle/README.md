@@ -157,3 +157,38 @@ GPU saved-weight replay and CPU statistics, without fitting. The report tool
 exports all14 signed arm vectors/units and a standalone plot. Both tools
 refuse to replace existing artifacts. Per-finger physical magnitudes remain
 in the card, including actual joints and true tips, separate from PD targets.
+
+## Ref10: physical action representation and innovation
+
+[Geometric innovation card](docs/experiments/probes/P-20261005-geometric-innovation.md)
+converts current native q + intended PD commands to corresponding hand-surface
+flow, with explicit actor-root FK and persistence/constant-velocity innovations.
+Fixed train-only PCA/ridge controls compare categorical, joint and geometric
+actions. Geometry-only input is not the original OI-CmV2 spatial architecture.
+
+Both this screen and the [support factorial](docs/experiments/probes/P-20261005-geometric-support.md)
+are UNPROMISING for their fixed contract. Independent review identifies
+unconstrained state×action extrapolation, not future leakage/solver errors:
+Flow I12.44 falls to1.14 after removing products and physical rescaling,
+but still loses to additive Joint1.04. P_Flow does not beat the state control;
+do not enter selector/PPO or infer that spatial/point-flow Cm has failed.
+All14signed vectors, per-finger commanded/measured/nominal amplitudes and
+independent review evidence are preserved in the cards and output folders.
+
+After checking GPU ownership, reuse the bounded entry with a NEW output folder:
+```bash
+CUDA_VISIBLE_DEVICES=6 TMPDIR="$PWD/tmp" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  timeout 600 /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/cm-interaction-oracle/tools/run/probe_geometric_consequence.py \
+  --dataset outputs/cm-interaction-oracle/per-finger-control-s227/interventions.pt \
+  --oracle-run outputs/cm-interaction-oracle/gt-consequence-s231-r2 \
+  --run-dir outputs/cm-interaction-oracle/<new-unique-run-id>
+```
+`tools/audit/audit_geometric_consequence.py` takes `--dataset` and `--run-dir`
+for saved-weight GPU replay, without fitting. `tools/run/probe_geometric_support.py`
+takes `--dataset`, `--source-run` and a new `--run-dir` for the predeclared six-fit
+diagnostic. `tools/audit/report_geometric_consequence.py --run-dir <main-run>
+--support-run <support-run>` exports all arm vectors and a standalone figure.
+All entries preserve existing artifacts. Next modeling work should use local
+surface/contact structure and an explicit nominal-versus-realized execution
+contract, without extending this exposed-test PCA/ridge fitting route.
