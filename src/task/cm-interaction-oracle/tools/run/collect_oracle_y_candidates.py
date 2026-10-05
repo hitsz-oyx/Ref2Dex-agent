@@ -35,6 +35,8 @@ class CandidatePlayer(original.EvalPlayer):
         begin = time.monotonic(); torch.set_num_threads(2)
         torch.backends.cudnn.benchmark = False; torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.allow_tf32 = False; torch.backends.cuda.matmul.allow_tf32 = False
+        rolling = ARGS.rolling_offset is not None
+        post_window = ARGS.post_window
         task = self.env.task
         device = task.device
         task._enable_early_termination = False; task._adaptive_kappa_enabled = False
@@ -82,7 +84,18 @@ class CandidatePlayer(original.EvalPlayer):
                 if triggers.shape!=(n,): raise ValueError('schedule dimensions')
                 if ARGS.candidate and len(triggers[triggers>=0].unique())!=1:
                     raise ValueError('candidate must fork at one synchronous tick')
-            length = int(triggers.max())+POST_WINDOW if (triggers>=0).any() else 1
+            if rolling:
+                if ARGS.anchor_schedule is None or ARGS.group_id is None:
+                    raise ValueError('rolling requires a frozen synchronous group')
+                triggers = torch.where(triggers >= 0, triggers + ARGS.rolling_offset, triggers)
+                if len(triggers[triggers >= 0].unique()) != 1:
+                    raise ValueError('one common rolling decision clock required')
+                fork_tick = int(triggers.max())
+                if len(trace['action']) <= fork_tick:
+                    raise ValueError('reference must contain the common current state')
+                if self.is_rnn:
+                    raise ValueError('rolling replay currently requires a feedforward actor')
+            length = int(triggers.max())+post_window if (triggers>=0).any() else 1
         try:
             obs = restore_initial(task,self,initial,gymtorch.unwrap_tensor,properties,cpu_pose_atol=2.5e-7 if str(device)=='cpu' else 0.)
         except ValueError:
@@ -98,7 +111,7 @@ class CandidatePlayer(original.EvalPlayer):
         initial_hash = fingerprint(initial)
         if trace is not None and trace['initial_fingerprint']!=initial_hash:
             raise ValueError('cold initial identity drift')
-        record_trace=trace is None or ARGS.reanchor_baseline
+        record_trace=trace is None or ARGS.reanchor_baseline or ARGS.record_rolling_trace
         if record_trace: torch.save(initial,ARGS.run_dir/'initial_state.pt')
         model_hash = fingerprint(self.model.state_dict())
         rms_hash = fingerprint(self.running_mean_std.state_dict()) if self.normalize_input else None
@@ -128,17 +141,26 @@ class CandidatePlayer(original.EvalPlayer):
             native_q=torch.zeros(n,32,18,device=device),trajectory=torch.zeros(n,32,72,device=device),
             fingertip_positions=torch.zeros(n,32,5,3,device=device),hand_base_pose=torch.zeros(n,32,7,device=device),
             actions=torch.zeros(n,8,18,device=device),base_actions=torch.zeros(n,8,18,device=device),
-            pd_targets=torch.zeros(n,8,18,device=device),height=torch.zeros(n,POST_WINDOW,device=device),
-            pair=torch.zeros(n,POST_WINDOW,dtype=torch.bool,device=device),
-            valid_steps=torch.zeros(n,POST_WINDOW,dtype=torch.bool,device=device))
+            pd_targets=torch.zeros(n,8,18,device=device),height=torch.zeros(n,post_window,device=device),
+            pair=torch.zeros(n,post_window,dtype=torch.bool,device=device),
+            valid_steps=torch.zeros(n,post_window,dtype=torch.bool,device=device))
         # Raw per-environment pre-branch max errors. Units/tolerances are audited separately.
         errors = torch.zeros(n,7,device=device) # physical72, q/dq36, root13, obs, history, shadowaction, done
         logs = {k:[] for k in ('physical','dof','root','action','done')}; rng = []
+        if rolling and record_trace:
+            logs.update(base_action=[], after_physical=[])
+        decision_states = {}
+        plan = None
+        if ARGS.rolling_plan is not None:
+            plan = torch.tensor(json.loads(ARGS.rolling_plan.read_text())['choices'], device=device)
+            if plan.shape != (n,) or not ((plan >= 0) & (plan < len(CANDIDATES))).all():
+                raise ValueError('invalid per-environment rolling choices')
         clipping = torch.zeros(n,dtype=torch.long,device=device)
         motion = task.data_id.clone(); start = task.start_times.clone()
         for tick in range(length):
             if time.monotonic()-begin>ARGS.wall_seconds: raise TimeoutError('candidate branch deadline')
-            if trace is not None: restore_rng(trace['rng'][tick]['before_reset'])
+            replay_rng = trace is not None and (not rolling or tick <= fork_tick)
+            if replay_rng: restore_rng(trace['rng'][tick]['before_reset'])
             r_reset = capture_rng(); obs = self.env_reset(empty)
             phys = physical(); dof = torch.cat((task._dof_pos,task._dof_vel),-1).clone()
             root = task._humanoid_root_states.clone()
@@ -146,7 +168,7 @@ class CandidatePlayer(original.EvalPlayer):
             compact = torch.cat((snapshot(task,tracker),previous,root,phys[:,13:66]),-1)
             if compact.shape[-1]!=139: raise ValueError('history contract drift')
             history = torch.cat((history[:,1:],compact[:,None]),1)
-            if trace is not None: restore_rng(trace['rng'][tick]['before_action'])
+            if replay_rng: restore_rng(trace['rng'][tick]['before_action'])
             r_action = capture_rng(); base = self.get_action(obs,True).clamp(-1,1).to(device).clone()
             if trace is None:
                 eligible = (~terminal)&(triggers<0)&(tick>=HISTORY-1)&(hold>=6)&(phys[:,71]>.5)
@@ -156,12 +178,19 @@ class CandidatePlayer(original.EvalPlayer):
                 eligible &= all_arms_have_headroom(base,delta)
                 triggers[eligible] = tick
             else:
-                prefix = ((triggers<0)|(tick<=triggers))&~terminal
+                prefix = torch.full_like(terminal, tick <= fork_tick) if rolling else ((triggers<0)|(tick<=triggers))&~terminal
+                if rolling and tick > fork_tick:
+                    prefix[:] = False
                 for column,(value,key) in enumerate(((phys,'physical'),(dof,'dof'),(root,'root'))):
-                    error = (value-trace[key][tick].to(device)).abs().amax(-1)
-                    errors[prefix,column] = torch.maximum(errors[prefix,column],error[prefix])
-                shadow = (base-trace['action'][tick].to(device)).abs().amax(-1)
-                errors[prefix,5] = torch.maximum(errors[prefix,5],shadow[prefix])
+                    if prefix.any():
+                        error = (value-trace[key][tick].to(device)).abs().amax(-1)
+                        errors[prefix,column] = torch.maximum(errors[prefix,column],error[prefix])
+                if prefix.any():
+                    shadow_key = 'base_action' if rolling and 'base_action' in trace else 'action'
+                    shadow = (base-trace[shadow_key][tick].to(device)).abs().amax(-1)
+                    errors[prefix,5] = torch.maximum(errors[prefix,5],shadow[prefix])
+            if rolling and record_trace and tick in (fork_tick, fork_tick + 8):
+                decision_states[tick] = cpu_copy(dict(actor_obs=obs['obs'], history=history))
             if record_trace:
                 logs['physical'].append(phys.cpu()); logs['dof'].append(dof.cpu()); logs['root'].append(root.cpu())
             if ARGS.diagnose_prefix and trace is not None:
@@ -183,25 +212,28 @@ class CandidatePlayer(original.EvalPlayer):
                 packet['before_fingertip_positions'][chosen] = task._rigid_body_pos[chosen][:,tip_ids]
                 packet['before_hand_base_pose'][chosen] = torch.cat((task._rigid_body_pos[chosen,base_id],task._rigid_body_rot[chosen,base_id]),-1)
                 if trace is not None and not ARGS.reanchor_baseline:
+                    expected = trace['anchors']
+                    if rolling and ARGS.rolling_offset > 0:
+                        expected = trace['decision_states'][fork_tick]
                     for column,key in ((3,'actor_obs'),(4,'history')):
-                        error=(packet[key][chosen]-trace['anchors'][key][chosen.cpu()].to(device)).abs().flatten(1).amax(-1)
+                        error=(packet[key][chosen]-expected[key][chosen.cpu()].to(device)).abs().flatten(1).amax(-1)
                         errors[chosen,column]=error
             age = tick-triggers
             active = (triggers>=0)&(age>=0)&(age<8)&~terminal
             action = base.clone()
             if trace is not None:
-                prefix = (triggers<0)|(age<0)
-                action[prefix] = trace['action'][tick].to(device)[prefix]
-                intended = base[active]+delta[ARGS.candidate]
+                prefix = torch.full_like(terminal, tick < fork_tick) if rolling else (triggers<0)|(age<0)
+                if prefix.any(): action[prefix] = trace['action'][tick].to(device)[prefix]
+                intended = base[active]+(delta[plan[active]] if plan is not None else delta[ARGS.candidate])
                 clipping[active] += ((intended<-1)|(intended>1)).any(-1).long()
                 action[active] = intended.clamp(-1,1)
-            ids_post = ((triggers>=0)&(age>=0)&(age<POST_WINDOW)&~terminal).nonzero(as_tuple=False).flatten()
+            ids_post = ((triggers>=0)&(age>=0)&(age<post_window)&~terminal).nonzero(as_tuple=False).flatten()
             ids8 = ((triggers>=0)&(age>=0)&(age<8)&~terminal).nonzero(as_tuple=False).flatten()
             if len(ids8):
                 packet['actions'][ids8,age[ids8]]=action[ids8]
                 packet['base_actions'][ids8,age[ids8]]=base[ids8]
                 packet['pd_targets'][ids8,age[ids8]]=task._action_to_pd_targets(action.clone())[ids8]
-            if trace is not None: restore_rng(trace['rng'][tick]['before_physics'])
+            if replay_rng and (not rolling or tick < fork_tick): restore_rng(trace['rng'][tick]['before_physics'])
             r_physics = capture_rng()
             _,_,done,_ = self.env_step(self.env,action); done=done.bool().reshape(-1).to(device)
             tracker.step(task._target_states[:,2],contacts(task).bool().all(-1))
@@ -218,10 +250,12 @@ class CandidatePlayer(original.EvalPlayer):
                 packet['hand_base_pose'][ids32,offsets]=torch.cat((task._rigid_body_pos[ids32,base_id],task._rigid_body_rot[ids32,base_id]),-1)
             if record_trace:
                 logs['action'].append(action.cpu()); logs['done'].append(done.cpu())
+                if rolling:
+                    logs['base_action'].append(base.cpu()); logs['after_physical'].append(after.cpu())
                 rng.append(dict(before_reset=r_reset,before_action=r_action,before_physics=r_physics))
             if trace is not None:
-                prefix=(triggers<0)|(tick<triggers)
-                errors[prefix,6]=torch.maximum(errors[prefix,6],(done!=trace['done'][tick].to(device))[prefix].float())
+                prefix=torch.full_like(terminal, tick < fork_tick) if rolling else (triggers<0)|(tick<triggers)
+                if prefix.any(): errors[prefix,6]=torch.maximum(errors[prefix,6],(done!=trace['done'][tick].to(device))[prefix].float())
             terminal |= done; previous=action.clone()
             if tick%250==0: print(json.dumps(dict(tick=tick,anchors=int((triggers>=0).sum()),done=int(terminal.sum()),candidate=ARGS.candidate)),flush=True)
             if trace is None and terminal.all(): break
@@ -229,6 +263,13 @@ class CandidatePlayer(original.EvalPlayer):
             if trace is None: raise RuntimeError('baseline episodes exceed bounded trace')
         assigned=(triggers>=0)
         if not packet['valid_steps'][assigned].all(): raise ValueError('assigned anchor has incomplete outcome; no post-treatment filtering allowed')
+        if rolling:
+            tolerance = torch.tensor([1e-4]*5+[1e-5,0.], device=device)
+            if not (errors <= tolerance).all():
+                torch.save(cpu_copy(errors), ARGS.run_dir/'failed_prefix_errors.pt')
+                raise ValueError('rolling full-world prefix replay failed')
+            packet.update(rolling_offset=ARGS.rolling_offset, post_window=post_window,
+                          rolling_choices=plan, full_world_prefix_errors=errors)
         packet.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,triggers=triggers,motion_id=motion,start_frame=start,rest_height=rest,
             prefix_errors=errors,clipped_steps=clipping,delta=delta,initial_fingerprint=initial_hash,
             candidate=ARGS.candidate,candidate_name=CANDIDATES[ARGS.candidate],control_dt=task.dt)
@@ -236,6 +277,7 @@ class CandidatePlayer(original.EvalPlayer):
         if record_trace:
             value={k:torch.stack(v) for k,v in logs.items()}
             value.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,rng=rng,triggers=packet['triggers'],anchors={k:packet[k] for k in ('actor_obs','history')},initial_fingerprint=initial_hash)
+            if rolling: value['decision_states'] = decision_states
             torch.save(value,ARGS.run_dir/'trace.pt')
         if fingerprint(self.model.state_dict())!=model_hash: raise ValueError('actor updated')
         if self.normalize_input and fingerprint(self.running_mean_std.state_dict())!=rms_hash: raise ValueError('normalizer updated')
@@ -259,7 +301,18 @@ def main():
     parser.add_argument('--anchor-schedule',type=Path)
     parser.add_argument('--group-id',type=int,choices=(0,1))
     parser.add_argument('--reanchor-baseline',action='store_true')
+    parser.add_argument('--rolling-offset', type=int)
+    parser.add_argument('--rolling-plan', type=Path)
+    parser.add_argument('--post-window', type=int, choices=(32,90), default=90)
+    parser.add_argument('--record-rolling-trace', action='store_true')
     ARGS,remaining=parser.parse_known_args()
+    if ARGS.rolling_offset is not None:
+        if ARGS.reference is None or ARGS.rolling_offset not in range(0,89,8):
+            raise ValueError('rolling requires a reference and offsets 0..88 every8steps')
+        if ARGS.rolling_plan is not None and not ARGS.record_rolling_trace:
+            raise ValueError('actual mixed execution requires a recorded trace')
+    elif ARGS.rolling_plan is not None or ARGS.record_rolling_trace or ARGS.post_window != 90:
+        raise ValueError('rolling options require --rolling-offset')
     if ARGS.reanchor_baseline and (ARGS.candidate!=0 or ARGS.reference is None or ARGS.anchor_schedule is None):
         raise ValueError('reanchor requires baseline and original reference/schedule')
     if ARGS.reference is None and ARGS.candidate!=0: raise ValueError('reference is baseline')
@@ -289,6 +342,7 @@ def main():
     for flag in ('--cfg_env','--cfg_train'): paths.append(Path(remaining[remaining.index(flag)+1]))
     if ARGS.reference is not None: paths += [ARGS.reference/k for k in ('initial_state.pt','trace.pt','panel.pt')]
     if ARGS.anchor_schedule is not None: paths.append(ARGS.anchor_schedule)
+    if ARGS.rolling_plan is not None: paths.append(ARGS.rolling_plan)
     inputs={str(p.resolve()):sha(p) for p in paths}
     manifest=dict(status='RUNNING',pid=os.getpid(),command=sys.argv,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=inputs,physical_gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),no_training=True,candidate=ARGS.candidate)
