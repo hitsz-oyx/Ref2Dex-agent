@@ -33,7 +33,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-per-finger-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-per-finger-control.md) | Does separating the finger synergy expose task-related interaction control? | Smoke43 full windows audited; main isolated six-DOF comparison collecting. | Run one fixed physical-range fraction with matched synergy controls. | probes/RUNNING |
+| [P-20261005-per-finger-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-per-finger-control.md) | Does separating the finger synergy expose task-related interaction control? | 854 full windows; registered linked/useful gates UNPROMISING, with late-contact action response and yaw-minus/middle-minus clues retained. | Preserve physical magnitude tables and targeted task clues; no amplitude/seed sweep or Cm fitting from this completed contract. | probes/COMPLETED |
 
 ## HF-pointflow-G
 

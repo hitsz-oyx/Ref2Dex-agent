@@ -85,3 +85,26 @@ checks pass, including numerical distance sensitivity.
 [Amplitude Probe](docs/experiments/probes/P-20261005-amplitude-authority.md);
 analysis:`tools/audit/probe_amplitude_authority.py`; descriptive direction
 facets:`tools/audit/plot_amplitude_direction_curves.py`.
+
+Ref7 adds `--intervention-set per-finger-range`:six isolated native finger
+DOFs both signs, zero and matched composite controls (15arms). Includes yaw;
+`--finger-range-fraction` defaults0.05. The completed Probe fixes0.20 to match
+old alpha4, K8 and amplitude1. Explicit v4 additionally records native q
+(q0:3 metres, q3:18 radians), true tip positions and measured hand-base poses.
+Legacy seven-arm defaults/schema remain reproducible.
+
+854 complete windows:registered own-I+task/useful gates UNPROMISING, while
+late-contact response is present and yaw-minus/middle-minus task clues remain.
+No formal physical benefit or Cm utility is claimed. Full per-joint PD/mimic
+and measured six-driver/five-tip matrices are in the
+[per-finger card](docs/experiments/probes/P-20261005-per-finger-control.md).
+Audit:`tools/audit/audit_finger_amplitudes.py`; fixed-protocol statistics:
+`tools/audit/probe_per_finger_control.py`.
+
+Collector invocation pattern (unique run ID and bounded seeds/resources):
+```bash
+bash src/task/cm-interaction-oracle/tools/run/run_intervention_collection.sh \
+  <run_id> <num_envs> <waves> <assignment_seed> <sim_seed> <wall_seconds> \
+  early-hold "8" "1" per-finger-range .20
+```
+Range fractions standardize driver PD targets, not realized tip travel.

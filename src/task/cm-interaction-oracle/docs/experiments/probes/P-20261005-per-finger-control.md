@@ -5,7 +5,7 @@ experiment_id: P-20261005-per-finger-control
 date: 2026-10-05
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: actual execution commit in collection manifest
+git_commit: a81b36d
 claim_id: C3
 hypothesis_family: HF-per-finger-control
 probe_index_in_family: 1
@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [227, 228, 229]
 decision_changed_if_positive: prioritize an isolated load-relevant control dimension before state-conditioned GT or Cm usefulness testing
 decision_changed_if_negative: preserve local response and close this single-DOF range contract without more amplitudes or network fitting
-status: RUNNING
+status: COMPLETED
 run_id: per-finger-control-s227
 ---
 
 # Does separating the finger synergy expose task-related interaction control?
 
-Result: Smoke43 full windows audited; main isolated six-DOF comparison collecting.
-Decision: Run one fixed physical-range fraction with matched synergy controls.
+Result: 854 full windows; registered linked/useful gates UNPROMISING, with late-contact action response and yaw-minus/middle-minus clues retained.
+Decision: Preserve physical magnitude tables and targeted task clues; no amplitude/seed sweep or Cm fitting from this completed contract.
 
 ## Research decision and root interpretation
 
@@ -145,3 +145,179 @@ Pre-main independent review confirms single-driver/coupling/post-state capture;
 pre-outcome audit/gate review and36 Task contracts including clean CLI entry
 and rigid-hand motion removal pass. Standalone audit root import repaired
 before main statistics; initial failure occurred before reading any dataset.
+
+## Completed evidence and root decision
+
+Main `per-finger-control-s227`, commit `a81b36d`, seed227/228:854 complete
+32-step windows from1,680 full episodes. All15 arms have42–78 trials; both
+five-wave halves minimum17, full/half treatment rank14/14/14. All nonzero
+signed action dose ratios1.0; active driver coordinates clipping0%; nativePD
+replay exact.17 input hashes unchanged. Packet SHA:
+`138b99b21e5567616dbdb6556179cc87dc8b42b578cad7e127dc6d5590e17149`.
+
+Statistics/audit `per-finger-response-s229`, commit `30a0980`, seed229:
+
+| Family | Within-family max-tail | Largest partial explained fraction |
+| --- | --- | --- |
+| Short contact1..8 |0.1725|0.02538|
+| Late contact9..32 |0.0005|0.06370|
+| Late physical height failure |0.1535|0.02682|
+| Late combined failure |0.1185|0.02808|
+| All32 physical height failure |0.1440|0.02708|
+| I8 |0.0005|0.09776|
+| Signed18 force |0.0010|0.06593|
+| Surface projection10 |0.0005|0.07735|
+| Projection ratio5 |0.0005|0.07693|
+
+Registered own-I+late-task gate **UNPROMISING**, useful-direction gate
+**UNPROMISING**:no qualifying single-arm candidate. This does NOT mean no
+single-finger task response. Late contact response is present in this Probe;
+its global netforce proxy is not certified grasp stability. Height safety
+family does not meet0.10; no changed gate, new seed or predictor fitted.
+
+Two informative, nonqualifying directions are preserved:
+
+| Isolated direction | Late contact contrast | Two half contact contrasts | Late height failure contrast | Two half height contrasts | Gate limitation |
+| --- | --- | --- | --- | --- | --- |
+| middle− |−10.94pp|−8.46/−13.76pp|+6.23pp|+8.33/+4.17pp|own force−0.281 log1p(N)/distance+11.25mm repeat, but I-family tails0.131/0.324 fail |
+| thumb-yaw− |+10.76pp|+7.27/+9.08pp|−11.34pp|−5.02/−9.67pp|height family tail0.1535; own force−0.079/distance−1.15mm too small and half signs disagree |
+
+Composite− late contact−12.60pp repeats but cannot rescue a single-arm gate.
+These are exploratory point estimates, not validated individual contrasts.
+All854 are initially at risk;193 early failures,466 all32 combined failures,
+465 all32 physical height failures,462 late physical height failures and240
+proxy-loss failures retained. No survivor-only subset is used.
+
+Root interpretation: splitting synergy exposes real task-proxy differences,
+including the previously omitted yaw direction; marginal comparisons do not
+identify additive cancellation or prove any finger redundant/load-bearing.
+Equal20% commanded range produced markedly unequal realized motion: isolated
+index tips21.69/24.38mm (+/−), middle25.71/26.85, pinky15.19/17.56,
+ring27.62/29.06, thumb-yaw9.33/9.87 and thumb-pitch10.15/13.94mm. These are
+NORMS OF ADJUSTED VECTOR CONTRASTS in the measured hand-base frame, not every
+trial's travel or mean-travel differences. Thus thumb was not the largest
+moving tip; ref6's thumb-dominant force response cannot be explained solely
+by assuming greater thumb displacement. Joint response also varies relative
+to commandedPD; detailed tables below make that explicit. Nonperturbed
+fingers can move through contact/closed-loop feedback despite zero DIRECT PD
+offset; e.g index− has a6.85mm thumb contrast, middle+ changes ring4.12mm.
+
+Root Decision Note: retain yaw− as a possible beneficial direction and middle−
+as a harmful direction clue; keep the original gate negative. The next useful
+Decision is a narrowly targeted independent
+yaw−/zero comparison of physical height safety and legitimate retention,
+not another blanket amplitude/seed sweep or5mm calibration just for symmetry.
+The I8 norm/distance gate and weak height evidence do not yet establish a
+reliable interaction→height-safety chain or justify Cm training. A later
+new targeted protocol must distinguish a reproducible physical benefit from
+netforce-proxy improvement; it cannot retroactively rescue this gate.
+Global trained-policy Cm utility stays OPEN. No core claim changed.
+
+## Delivered-data engineering audit
+
+Independent reviewer and root reconstruct targets exactly and joint OLS to
+≤4.2e-14 including halves; registered candidate sets agree. Reviewer independently
+reconstructs range/2+mimic PD differences to2.09e-7, and actual q/tip tables
+using a separate NumPy quaternion transform to8.42e-6mm. Root's separate
+inverse-quaternion formula differs by only5.35e-6mm. Root also reconstructs
+all global contact-proxy flags exactly from recorded netforce vectors.
+
+Geometry replay:saved-versus-direct distance max0.1343mm/q99 0.00972mm;
+33 numerical normal ties match real nearest-surface samples. No code-frame,
+reset, dose or timing error explains the signals or unequal motion. Measurement
+limits remain:intermediate contact bodies differ from true tip points, total
+body force is not certified paired contact, and vector-contrast norm is a
+point estimate. Independent review cannot itself upgrade this Probe to
+Validation. No raw packet or prior scientific result changed.
+
+GPU6 smoke/main manifests68.05+623.40=691.45s including initialization,
+CPU analysis/audit/plot6.68s, new artifacts<40MiB. Collection ended;36 Task
+tests and scoped repository checks pass. No videos/checkpoint overwrite.
+
+Outputs:`outputs/cm-interaction-oracle/per-finger-control-s227/` for raw packet,
+source/geometry provenance and full episode summary; `per-finger-response-s229/`
+for immutable registered result/diagnostic, per-finger JSON/Markdown tables,
+response curves, standalone `per_finger_response.png`, engineering audit and
+`independent_engineering_review.json`. JSON includes all12 native finger joints
+6..17 with actual target min/mean/max, degrees, physical fractions, clipping,
+raw realized q/travel min/mean/max and adjusted driver/tip vectors.
+
+## Per-finger perturbation amplitude audit
+
+Units: native action dimensionless; PD targets/actual q radians; tip displacement mm.
+PD target changes are commanded, not actual executed joint angles. Driver table order: index, middle, pinky, ring, thumb-yaw, thumb-pitch. JSON PD/action arrays use all12 native joints6..17, including followers.
+
+| Driver | Native index | Physical range (rad) | Native mimic followers |
+| --- | --- | --- | --- |
+| index | 6 | 1.6000 | 7: ×1.05 |
+| middle | 8 | 1.6000 | 9: ×1.05 |
+| pinky | 10 | 1.6000 | 11: ×1.05 |
+| ring | 12 | 1.6000 | 13: ×1.05 |
+| thumb_yaw | 14 | 1.1500 | none |
+| thumb_pitch | 15 | 0.5500 | 16: ×0.6;17: ×0.8 |
+
+### Delivered PD target magnitude per arm
+
+Signed offsets per active step, not cumulative K-times angles. Finger targets are absolute native PD targets with a per-step baseline offset. Min/mean/max per joint, degrees and range fractions are preserved in `finger_amplitudes.json`. Composite arms exclude thumb-yaw. Clip % counts active commanded finger coordinates.
+
+| alpha | Arm | n | index rad | middle rad | pinky rad | ring rad | yaw rad | pitch rad | clip % |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | zero | 56 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | index_plus | 49 | +0.32000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | index_minus | 56 | -0.32000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | middle_plus | 51 | +0.00000 | +0.32000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | middle_minus | 63 | +0.00000 | -0.32000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | pinky_plus | 72 | +0.00000 | +0.00000 | +0.32000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | pinky_minus | 46 | +0.00000 | +0.00000 | -0.32000 | +0.00000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | ring_plus | 60 | +0.00000 | +0.00000 | +0.00000 | +0.32000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | ring_minus | 55 | +0.00000 | +0.00000 | +0.00000 | -0.32000 | +0.00000 | +0.00000 | 0.00 |
+| 1 | thumb_yaw_plus | 49 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.23000 | +0.00000 | 0.00 |
+| 1 | thumb_yaw_minus | 54 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | -0.23000 | +0.00000 | 0.00 |
+| 1 | thumb_pitch_plus | 78 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.11000 | 0.00 |
+| 1 | thumb_pitch_minus | 42 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | +0.00000 | -0.11000 | 0.00 |
+| 1 | synergy_plus | 62 | +0.32000 | +0.32000 | +0.32000 | +0.32000 | +0.00000 | +0.11000 | 0.00 |
+| 1 | synergy_minus | 61 | -0.32000 | -0.32000 | -0.32000 | -0.32000 | +0.00000 | -0.11000 | 0.00 |
+
+For composite ± at a20% driver range dose, intermediate followers6→7 etc receive ±0.336rad (10.70% of their3.14rad range); thumb-pitch followers receive ±0.066/0.088rad (2.10/2.80% of their ranges). At5% driver dose these are divided by4. Yaw has no target coupling.
+
+### Measured native driver response at step8
+
+Current-state-adjusted arm-minus-zero contrasts of actual q(step8)−q(before), radians. Not PD targets.
+
+| Arm | index | middle | pinky | ring | yaw | pitch |
+| --- | --- | --- | --- | --- | --- | --- |
+| index_plus | +0.12875 | +0.03508 | +0.01204 | +0.00308 | -0.00562 | -0.00613 |
+| index_minus | -0.15809 | -0.02648 | -0.00266 | +0.00306 | +0.00053 | -0.02202 |
+| middle_plus | +0.05977 | +0.16934 | +0.02540 | +0.06805 | -0.00172 | -0.01241 |
+| middle_minus | -0.03351 | -0.14832 | +0.00320 | -0.03896 | +0.00427 | -0.00623 |
+| pinky_plus | +0.01215 | +0.02435 | +0.26734 | -0.00121 | +0.00015 | -0.00239 |
+| pinky_minus | -0.00205 | +0.01421 | -0.26966 | -0.03733 | +0.00081 | +0.00415 |
+| ring_plus | +0.00987 | +0.04957 | +0.01291 | +0.23303 | -0.00184 | -0.00111 |
+| ring_minus | -0.00517 | -0.00878 | +0.00370 | -0.22309 | +0.00526 | -0.00427 |
+| thumb_yaw_plus | -0.02100 | -0.01908 | -0.00647 | -0.01102 | +0.21367 | -0.00504 |
+| thumb_yaw_minus | +0.00048 | +0.03201 | +0.00474 | +0.00392 | -0.20989 | -0.00512 |
+| thumb_pitch_plus | -0.02185 | +0.00034 | +0.00140 | -0.00016 | +0.00352 | +0.08702 |
+| thumb_pitch_minus | +0.01170 | +0.02278 | +0.00628 | -0.00391 | +0.00023 | -0.10148 |
+| synergy_plus | +0.20111 | +0.25448 | +0.29047 | +0.25572 | -0.01000 | +0.08441 |
+| synergy_minus | -0.21090 | -0.23692 | -0.30172 | -0.29002 | +0.00434 | -0.12145 |
+
+### Measured five-finger tip response at step8
+
+True tip positions in the measured hand-base frame. Values are norms of adjusted displacement vector contrasts (mm), not differences of average travel. Raw within-arm travel means are in JSON and include ordinary baseline evolution.
+
+| Arm | index mm | middle mm | pinky mm | ring mm | thumb mm |
+| --- | --- | --- | --- | --- | --- |
+| index_plus | 21.69 | 2.43 | 0.28 | 0.12 | 1.05 |
+| index_minus | 24.38 | 2.07 | 0.14 | 0.11 | 6.85 |
+| middle_plus | 4.03 | 25.71 | 0.80 | 4.12 | 2.96 |
+| middle_minus | 2.42 | 26.85 | 0.13 | 2.70 | 1.34 |
+| pinky_plus | 0.80 | 1.61 | 15.19 | 0.05 | 0.48 |
+| pinky_minus | 0.11 | 0.58 | 17.56 | 2.66 | 1.68 |
+| ring_plus | 0.74 | 3.27 | 0.45 | 27.62 | 0.96 |
+| ring_minus | 0.45 | 1.05 | 0.37 | 29.06 | 0.35 |
+| thumb_yaw_plus | 1.55 | 1.74 | 0.21 | 0.92 | 9.33 |
+| thumb_yaw_minus | 0.09 | 1.65 | 0.19 | 0.21 | 9.87 |
+| thumb_pitch_plus | 1.48 | 0.26 | 0.27 | 0.42 | 10.15 |
+| thumb_pitch_minus | 0.73 | 1.44 | 0.26 | 0.18 | 13.94 |
+| synergy_plus | 25.86 | 30.97 | 15.86 | 29.79 | 8.58 |
+| synergy_minus | 27.79 | 32.82 | 18.92 | 33.61 | 19.81 |

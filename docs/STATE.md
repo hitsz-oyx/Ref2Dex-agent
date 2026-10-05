@@ -238,3 +238,19 @@ Root保留局部action→I证据，停止本次幅值合同，不扩大幅值/se
 后续需区分可控局部接触是否实际参与承载。GPU6采集player累计671.48s，产物<40MiB，
 均已结束；North-star Cm utility仍OPEN。
 [幅值实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md)。
+
+## Task ref7：独立 finger DOF 与实际幅度审计
+
+拆为六独立DOF±（含thumb-yaw）、zero、匹配旧synergy±共15臂，固定K8/20%driver range。
+1,680episodes、854完整窗口，support/dose/nativePD/17input hashes及独立复算通过；
+各指PD rad/deg、mimic、实际q和真实tip矩阵已写入Task实验卡，ref6旧卡也补PD幅度表。
+同20%range并非同毫米：四指局部tip对照范数约15–29mm，thumb约9–14mm，未假定thumb
+运动最大或已知冗余/承载身份。
+
+预设own-I+late-task及useful gates均UNPROMISING；但后9..32contact family tail0.0005，
+不能概括单指控制无效。middle−保持−10.94pp两半重复；thumb-yaw−保持+10.76pp、高度
+失败−11.34pp，两半同向。后者height family tail0.1535及own-I幅度/半包一致性未达标，
+保留为下一项针对真实高度安全的窄对照候选，不靠改gate宣称有效或启动Cm训练。
+现有净力contact-proxy改善不等于可靠抓持；训练所得Cm-on/off utility仍OPEN。
+GPU6累计691.45s（含初始化），均已结束，36tests通过。
+[per-finger实验卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-per-finger-control.md)。
