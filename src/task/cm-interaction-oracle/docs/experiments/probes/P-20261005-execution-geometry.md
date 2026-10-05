@@ -187,3 +187,16 @@ Success qualifies the original next decision; failure stops repeated endpoint
 spatial fitting at this capacity. No selector/PPO, claim change or external
 authorization. The two original realized oracles and all8 raw ridge fits are
 unaffected; their evidence scope remains post-treatment diagnostic/execution.
+
+## Post-result no-fit execution decomposition protocol
+
+Decision: distinguish common wrist prediction error from finger response error
+before designing further geometric input. Frozen corrected full-test forecasts
+are compared with two post-treatment FK hybrids: predicted wrist6 + actual
+finger12, and actual wrist6 + predicted finger12. No fit, excluded rows or
+modified gates. Large improvement only after actual wrist would prioritize a
+separate common wrist versus finger action contract; improvement only after
+actual fingers would prioritize finger execution. Neither hybrid is deployable
+input or causal utility evidence. GPU6≤30s; small JSON only. Also report top1/5
+error shares and median without dropping outliers. Primary surface RMSE is
+sqrt(mean squared XYZ component); show sqrt(3) Euclidean point RMSE separately.
