@@ -56,7 +56,10 @@ def finger_audit(p, design=None, labels=None):
                     clipping_fraction=float(clipped[:,intended].float().mean()) if intended.any() else 0.)
                 if q_delta is not None:
                     row.update(raw_q_delta8_mean_rad=q_delta[keep,6:].mean(0).tolist(),
-                        raw_local_tip_travel8_mean_mm=(tip_delta[keep].norm(dim=-1).mean(0)*1000).tolist())
+                        raw_q_delta8_min_rad=q_delta[keep,6:].amin(0).tolist(),raw_q_delta8_max_rad=q_delta[keep,6:].amax(0).tolist(),
+                        raw_local_tip_travel8_mean_mm=(tip_delta[keep].norm(dim=-1).mean(0)*1000).tolist(),
+                        raw_local_tip_travel8_min_mm=(tip_delta[keep].norm(dim=-1).amin(0)*1000).tolist(),
+                        raw_local_tip_travel8_max_mm=(tip_delta[keep].norm(dim=-1).amax(0)*1000).tolist())
             rows.append(row)
     adjusted=[]
     if q_delta is not None and design is not None:
@@ -86,7 +89,7 @@ def markdown(audit):
     for name,index in zip(audit['driver_names'],drivers):
         lines.append(f'| {name} | {index} | {joints[index-6]["range_rad"]:.4f} | {follower[index]} |')
     lines+=['','### Delivered PD target magnitude per arm','',
-        'Signed means over ALL active steps; min/max per joint and normalized range fractions are preserved in `finger_amplitudes.json`. Composite arms exclude thumb-yaw. Clip % counts active commanded finger coordinates.', '',
+        'Signed offsets per active step, not cumulative K-times angles. Finger targets are absolute native PD targets with a per-step baseline offset. Min/mean/max per joint, degrees and range fractions are preserved in `finger_amplitudes.json`. Composite arms exclude thumb-yaw. Clip % counts active commanded finger coordinates.', '',
         '| alpha | Arm | n | index rad | middle rad | pinky rad | ring rad | yaw rad | pitch rad | clip % |',
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |']
     for row in audit['cells']:
