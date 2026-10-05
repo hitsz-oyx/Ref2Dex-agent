@@ -23,6 +23,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-amplitude-authority](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-amplitude-authority.md) | Is there a task-related interaction threshold within larger feasible actions? | Task-aligned authority UNPROMISING; localized thumb interaction response PROMISING (Probe only). | Preserve local thumb control evidence; no registered task-aligned threshold, so conditional Stage2 and neural fitting are not activated. | probes/COMPLETED |
 
+## HF-conditional-consequence
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261005-conditional-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md) | Can predicted action consequences retain oracle task information? | Pending fixed conditional-predictability and OOF task-transfer Probe. | Test action contrasts and value against direct Ha before candidate/policy integration. | probes/PLANNED |
+
 ## HF-gt-consequence-sufficiency
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
