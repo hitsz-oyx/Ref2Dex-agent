@@ -13,13 +13,17 @@ seed_pool: probe
 seeds: [263, 264, 268]
 decision_changed_if_positive: qualify rolling short-Y utility for a separately frozen noise-tolerance experiment
 decision_changed_if_negative: audit rolling execution and distinguish local utility failure from limited repeated-action authority
-status: RUNNING
+status: PROMISING
 run_id: rolling-oracle-control-s263-s264
 ---
 
 # Ref14_1: executed Rolling GT-Y Oracle Control
 
-Result: Pending fixed-protocol engineering and Decision Probe.
+Result: PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual
+same-current-state rolling GT-Y 27/32, 4 rescued, 0 harmed, gain +12.5pp
+(paired bootstrap 95% interval 3.125--25.0pp; lower bound 3.125pp).
+All four synchronous groups completed with exact baseline-repeat and prefix
+checks; the result remains a mechanism Probe on the exposed cohort.
 Decision: Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO.
 
 ## Decision Note / purpose
@@ -108,6 +112,23 @@ uncertainty is not covered. No scientific conclusion beyond Probe labels.
 Historical one-shot24/32 andfinitecandidate25/32 are comparisons, NOT rolling
 upperbounds. Actual GT-Z rolling upper unknown; no R_Y gain-retention ratio.
 Gate3 noise tolerance is deferred, not automatically run during this experiment.
+
+## Completed result and next decision
+
+The final immutable result is `outputs/cm-interaction-oracle/rolling-oracle-control-s263-s264/result.json`
+at code commit `337d3a6633b5ea83f921b9b873d7b7da15d6f46c`. It reports
+`status=PROMISING`, `adequate_support=true`, `baseline_count=23`,
+`rolling_count=27`, `rescued=4`, and `harmed=0`. The raw result and all four
+group records are retained; this does not convert the exposed mechanism cohort
+into a Validation or prove trained-policy Cm utility.
+
+Decision Note (2026-10-06): the positive fixed gate makes a separately frozen
+offline Y ranking/noise tolerance Probe the cheapest next decision. It will use
+only fully observed same-state candidate panels from the saved plans, with a
+predeclared channel-noise grid, and will report ranking/regret coverage. It will
+not infer closed-loop Z retention, alter Y/U, collect PhysX data, or train a
+predictor. A fresh rolling intervention is required before any claim about
+noisy-Y policy performance.
 
 ## Resources, provenance and stopping
 

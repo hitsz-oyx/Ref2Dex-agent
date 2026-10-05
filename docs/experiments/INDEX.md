@@ -113,7 +113,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | Pending fixed-protocol engineering and Decision Probe. | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/RUNNING |
+| [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING: 27/32 rolling vs 23/32 baseline; +12.5pp, 4 rescued, 0 harmed. | Freeze offline Y ranking/noise tolerance; defer predictor, execution forecasting and PPO until its contract is assessed. | probes/PROMISING |
+
+## HF-y-noise-tolerance
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261006-y-noise-tolerance](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-y-noise-tolerance.md) | How much fixed short-Y ranking noise can saved same-state panels tolerate? | PROMISING offline: median pairwise accuracy 0.758 at sigma .10; 0.696 at .20. | Set predictor screening target near 0.70 pairwise accuracy; require fresh rolling intervention for Z. | probes/PROMISING |
 
 ## HF-spatial-action-fidelity
 

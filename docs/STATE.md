@@ -496,3 +496,35 @@ env33 middle−/grip+在tau16分开、提前32steps；env36 baseline/thumb−在
 不额外声称持续性。去掉这4pair后的42pair仍覆盖全部8信号前缀。
 旧execution forecast/PPO和MSE调参继续暂停，最终matched训练策略Cm utility
 仍OPEN。[滚动审计卡](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-gt-y.md)。
+
+## Ref14 主链 / ref14_1 rolling oracle 已完成
+
+用户更新ref14_1，当前只推进真正same-current-state RollingGT-Y Oracle Control。
+保持32步Y/U、七个K8候选、每8步重规划与原稳定Z90；新的真实组合执行产生
+下一轮状态，禁止候选世界状态拼接。每次fresh冷重放整条实际动作前缀，
+PhysX solver历史由重放重建；旧25/32仅历史one-shot机会，不是rolling上限。
+原32anchor/四组、已有暴露cohort复用，属于机制Probe，不提供独立Validation。
+
+工程smoke163.16s完成：7anchor新baseline/repeat/旧状态历史动作90步结果
+EXACT；4个非零组合动作之后，两次下一状态重放仍EXACT。代码与协议已本地
+提交，主运行commit337d3a6，GPU6/7最多4进程（每卡2），<=7200s/4GiB。
+固定utility<=1.25，所有baseline达到上界时，baseline优先平局可精确省去
+六个候选，不改变选择，不编造其Y；其他情况完整同状态七候选。
+主实验外部中断后已由本会话恢复（恢复入口a949b62），原progress保留，当前
+进度见同run目录resume_progress.json；原短Y/候选/执行源码与协议哈希未变。
+固定32-anchor gate 已完成：baseline 23/32，实际 same-current-state rolling
+GT-Y 27/32，救回4、伤害0，净增益12.5pp；paired bootstrap 95%区间
+3.125--25.0pp，lower95为3.125pp，达到卡片预先固定的 PROMISING gate。
+四组全部完成，baseline repeat/prefix 和 actual mixed path 检查通过；这是暴露
+cohort上的机制 Probe，不是独立 Validation，也不能替代最终 trained-policy
+Cm-on/off。结果文件为
+`outputs/cm-interaction-oracle/rolling-oracle-control-s263-s264/result.json`。
+预测器、PPO尚未启动；离线 Y ranking/noise tolerance Probe 已完成：43个完整计划、
+339个同状态面板；sigma .10 的 median pairwise accuracy=0.758，sigma .20=0.696，
+离线筛选状态 PROMISING。它只提供预测器的排序门槛，不提供 noisy rolling Z
+retention；下一步仍需冻结 predictor 输入/输出并做真实 rolling intervention。
+原7200s/4GiB主实验预算不重置。
+用户授权ref14_2并行工作已完成并本地提交912aa1a：只读完成组数据资产、固定Y
+时序诊断、已有flow与tinyFK审计、ranking/noise评估合同；17新测试通过，无
+新仿真或训练。[并行交付](../src/task/cm-interaction-oracle/docs/ref/ref14_2_progress.md)。
+[固定协议与进度入口](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md)。
