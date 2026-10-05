@@ -228,7 +228,7 @@ def main():
         'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf',
         'third_party/DExplore/dexplore/data/assets/mjcf/airplane.urdf')]
     motion_root=Path(remaining[remaining.index('--motion_file')+1])
-    motions=sorted(p for p in motion_root.iterdir() if p.is_file())
+    motions=sorted(p/'interaction_hand_inspire.pt' for p in motion_root.iterdir() if p.is_dir())
     if len(motions)!=3: raise ValueError('three pinned canonical motion files required')
     paths += motions
     for flag in ('--cfg_env','--cfg_train'): paths.append(Path(remaining[remaining.index(flag)+1]))
