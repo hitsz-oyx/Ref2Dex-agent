@@ -107,7 +107,7 @@ distinguish hypotheses. This is route screening, not global Cm refutation.
 
 ## Resources, verification and stop rules
 
-Engineering smoke: one additional PPO epoch for each arm, ≤600s/1GiB total,
+Engineering smoke: one additional PPO epoch for each arm, ≤600s/2GiB total,
 source/dev seed42, no scientific results. Main four arms on idleGPUs1–4,
 one worker/GPU; ≤1800s wall and≤7200GPU-seconds. Evaluation/audit≤900s wall,
 ≤3600GPU-seconds, total≤8GiB. Frozen commits/input hashes before launches.
@@ -181,3 +181,11 @@ final C only cycles among valid windows at identical time, preserving conditiona
 action marginals and no reset-crossing donors. Fixed before scientific launch.
 Complete-MC diagnostic is finite-episode, timeout-truncated; PPO critic uses
 bootstrapping at timeout. Report this target mismatch, do not infer critic bias.
+
+R7 localizes remaining device mismatch: vendor create_rlgpu_env unconditionally
+sets args.device=cuda when --horovod is enabled, even with --pipeline cpu.
+Each arm is already one GPU/process; remove the legacy --horovod flag uniformly
+so tensor device remains CPU, while actor/decoder/geometry stay GPU. Source
+optimizer is restored intact; no actual distributed averaging is required.
+Engineering artifacts may retain up to2GiB within unchanged8GiB total, preserving
+failed runs and matched smoke checkpoints; global Campaign boundary unchanged.

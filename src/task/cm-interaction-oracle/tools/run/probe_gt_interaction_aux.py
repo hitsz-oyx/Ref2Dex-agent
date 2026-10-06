@@ -89,7 +89,7 @@ def training(root,gpus,smoke):
                  '--rl_device','cuda:0','--graphics_device_id','0','--pipeline','cpu',
                  '--num_threads','1','--num_envs','64',
                  '--horizon_length','32','--minibatch_size','256',
-                 '--max_iterations',str(end),'--seed',str(seed),'--horovod','--resume','1',
+                 '--max_iterations',str(end),'--seed',str(seed),'--resume','1',
                  '--checkpoint',str(CHECKPOINT.resolve())]
         jobs.append((command,gpus[i%len(gpus)],folder))
     return jobs
