@@ -40,3 +40,19 @@ def test_inspire_inplace_pd_fraction_is_inverted_without_changing_task():
     snapshot=task_action.clone()
     assert torch.allclose(normalized_executed_action(task_action),action,atol=2e-7,rtol=0)
     assert torch.equal(task_action,snapshot)
+
+
+def test_compiled_joint_graph_materializes_unused_branch_as_zero():
+    from torch import nn
+    class Branches(nn.Module):
+        def __init__(self):
+            super().__init__();self.actor=nn.Linear(4,4);self.critic=nn.Linear(4,4)
+        def forward(self,x):return self.actor(x),self.critic(x)
+    model=Branches();hidden=[]
+    model.actor.register_forward_hook(lambda m,i,o:hidden.append(o))
+    compiled=torch.compile(model,backend='aot_eager')
+    compiled(torch.ones(3,4))
+    ag,cg=torch.autograd.grad(hidden[0].square().mean(),
+        (model.actor.weight,model.critic.weight),allow_unused=True)
+    assert ag.norm()>0
+    assert cg is None or cg.norm()==0

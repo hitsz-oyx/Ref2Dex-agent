@@ -134,14 +134,15 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
             ag,cg=torch.autograd.grad(rows.mean(),(actor_parameter,critic_parameter),
                 retain_graph=True,allow_unused=True)
             actor_norm=0.0 if ag is None else float(ag.norm())
-            if cg is not None or ((self.gt_arm != 'stopgrad') != (actor_norm>0)):
+            critic_norm=0.0 if cg is None else float(cg.norm())
+            if critic_norm != 0 or ((self.gt_arm != 'stopgrad') != (actor_norm>0)):
                 raise RuntimeError('auxiliary enters wrong PPO trunk')
             should_reach = self.gt_arm != 'stopgrad'
             if should_reach != (norm > 0):
                 raise RuntimeError('auxiliary encoder gradient contract mismatch')
             print('REF2DEX_GT_GRAD '+json.dumps(dict(arm=self.gt_arm,
                 raw_latent_grad_norm=norm, raw_actor_weight_grad_norm=actor_norm,
-                auxiliary_critic_grad_is_none=True, applied_coef=self.gt_coef,
+                auxiliary_critic_grad_norm=critic_norm, applied_coef=self.gt_coef,
                 applied_latent_grad_norm=norm*self.gt_coef)), flush=True)
             self._gradient_checked = True
         result['critic_loss'] = result['critic_loss'] + (self.gt_coef/self.critic_coef)*rows

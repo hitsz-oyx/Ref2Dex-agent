@@ -142,3 +142,11 @@ inference tensor, incompatible with later native reset. Use no_grad instead
 (the original rollout semantics); no label/score/architecture change. Neither
 failed smoke reaches PPO optimization, outputs retained and costs charged to
 600s engineering cap.
+
+Third smoke at98128f2 reaches first PPO minibatch then audit stops: torch.compile
+joint actor/critic autograd materializes unused critic gradients as exact-zero
+tensors rather than None. Minimal two-independent-trunk aot_eager reproducer
+(tmp/reproduce-compiled-aux-gradient.py) shows nonzero actor grad/zero critic
+grad and fails the old None-only guard in3.07s. Check exact norm0 for critic,
+nonzero actor for B/C and zero actor for D; scientific gradient gate unchanged.
+No optimization or scientific result from the failed smoke.
