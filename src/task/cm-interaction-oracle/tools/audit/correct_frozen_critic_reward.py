@@ -48,7 +48,7 @@ def main():
     def read(path,expected=None):
         path=Path(path).resolve();h=sha(path)
         if expected is not None and h!=expected:raise ValueError('hash mismatch: '+str(path))
-        value=torch.load(path,map_location='cpu',weights_only=False) if path.suffix=='.pt' else json.loads(path.read_text())
+        value=torch.load(path,map_location='cpu',weights_only=False) if path.suffix in ('.pt','.pth') else json.loads(path.read_text())
         hashes[str(path)]=h;return value
     source_manifest=read(args.source_run/'manifest.json')
     if source_manifest['status']!='COMPLETED':raise ValueError('completed capture required')
