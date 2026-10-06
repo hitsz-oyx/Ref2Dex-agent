@@ -50,6 +50,7 @@ class GtAuxPlayer(original.EvalPlayer):
         tracker=HoldTracker(n,device);tracker.reset(ids,task._target_states[:,2])
         completed=torch.zeros(n,dtype=torch.bool,device=device)
         before_states=[];after_states=[];actions=[];dones=[];active_rows=[];rewards=[]
+        components=[];gaps=[]
         observations=[];sample_ticks=[];lengths=torch.zeros(n,dtype=torch.long,device=device)
         max_run=torch.zeros_like(lengths);legacy=torch.zeros_like(completed)
         for tick in range(int(task.max_episode_length.max())+2):
@@ -67,12 +68,16 @@ class GtAuxPlayer(original.EvalPlayer):
                 raise ValueError('native action capture mismatch')
             gap_after=gap();done=done.bool().flatten()
             pair=after[:,10:15].bool().any(-1)
-            reward=native.to(device).flatten()+2*potential_approach_reward(
-                gap_before,gap_after,done,gamma=.99,config=config)
+            base=native.to(device).flatten()
+            approach=2*potential_approach_reward(gap_before,gap_after,done,gamma=.99,config=config)
+            held=10*held_lift_reward(after[:,2],rest,pair,torch.ones_like(pair))
+            progress=5*contact_lift_progress_reward(before[:,2],after[:,2],pair,torch.ones_like(pair),done)
+            reward=base+approach
             reward=reward+torch.zeros_like(reward) # original no-link reward addition
-            reward=reward+10*held_lift_reward(after[:,2],rest,pair,torch.ones_like(pair))
-            reward=reward+5*contact_lift_progress_reward(before[:,2],after[:,2],pair,
-                                            torch.ones_like(pair),done)
+            reward=reward+held
+            reward=reward+progress
+            components.append(torch.stack((base,approach,held,progress),-1).cpu())
+            gaps.append(torch.stack((gap_before,gap_after),-1).cpu())
             gap_before=gap_after
             prev_events=tracker.events[completed].clone()
             prev_run=tracker.run_steps[completed].clone()
@@ -102,7 +107,8 @@ class GtAuxPlayer(original.EvalPlayer):
         payload=dict(schema='ref2dex.gt_aux_evaluation.v1',observations=torch.stack(observations),
             sample_ticks=ticks,gt_target=gt[ticks],action_chunks=chunks[ticks],
             target_mask=mask[ticks],active=active[ticks],mc_return=returns[ticks],
-            rewards=reward,dones=dones,active_full=active,before=before,after=after,
+            rewards=reward,reward_components=torch.stack(components),gaps=torch.stack(gaps),rest=rest.cpu(),
+            dones=dones,active_full=active,before=before,after=after,
             actions=actions,motion=motion.cpu(),lengths=lengths.cpu(),
             initial= {k:v.cpu() for k,v in initial.items()},initial_fingerprint=initial_hash,
             gamma=.99,model_fingerprint=model_hash,rms_fingerprint=rms_hash)

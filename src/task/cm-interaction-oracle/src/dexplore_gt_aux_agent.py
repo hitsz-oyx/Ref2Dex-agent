@@ -93,6 +93,11 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         before, after, actions, dones = [torch.stack([r[k] for r in self._rollout_records])
                                          for k in range(4)]
         target, chunks, mask = rollout_targets(before, after, actions, dones)
+        if not hasattr(self,'_first_rollout_logged'):
+            print('REF2DEX_GT_FIRST_ROLLOUT '+json.dumps(dict(
+                states=fingerprint((before,after)),actions=fingerprint(actions),
+                dones=fingerprint(dones),mask=fingerprint(mask))),flush=True)
+            self._first_rollout_logged=True
         if self.gt_arm == 'shuffle':
             # Whole chunks rotated between environments at the same rollout time;
             # no additional RNG draws; H and target remain aligned.

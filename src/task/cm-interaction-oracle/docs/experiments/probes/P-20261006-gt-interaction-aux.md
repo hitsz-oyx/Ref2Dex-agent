@@ -150,3 +150,13 @@ tensors rather than None. Minimal two-independent-trunk aot_eager reproducer
 grad and fails the old None-only guard in3.07s. Check exact norm0 for critic,
 nonzero actor for B/C and zero actor for D; scientific gradient gate unchanged.
 No optimization or scientific result from the failed smoke.
+
+R4 smoke completes all four e261 /2048frames /48updates in34.29s, matching
+initial source/RMS/decoder/physics hashes. B/C applied actor gradient>0, D=0,
+critic aux gradient0, all tensors finite. However A/D first-rollout valid mask
+differs before updates; final native states are not exact. Hypothesis: default
+torch.compile stochastic graph changes initial sampling schedule across cold
+processes (alternative GPU solver variability). Disable the official compile
+option uniformly, retain all study variables and use first-rollout hashes as
+a sharper paired smoke gate before scientific training. Cost charged to same
+600s smoke cap; no scientific method conclusion from these checks.

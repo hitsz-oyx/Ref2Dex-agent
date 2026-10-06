@@ -66,6 +66,7 @@ def training(root,gpus,smoke):
     count=1 if smoke else 64;seed=42 if smoke else 292
     source=json.loads((SOURCE/'config.json').read_text())
     cfg=yaml.safe_load((ROOT/'third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml').read_text())
+    cfg['params']['config']['torch_compile']=False
     cfg['params']['config']['save_intermediate']=False
     cfg['params']['config']['save_frequency']=100000
     traincfg=root/'training.yaml';traincfg.write_text(yaml.safe_dump(cfg,sort_keys=False))
