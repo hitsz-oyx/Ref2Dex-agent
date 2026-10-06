@@ -102,3 +102,15 @@ def test_real_gpu_interface_has_no_future_label_leak_and_masks_absent_actions():
     grad = model.action_mlp[0].weight.grad
     assert torch.isfinite(grad).all() and grad.abs().sum() > 0
     assert torch.isfinite(model.scene.stem[0].weight.grad).all()
+
+
+def test_physical_losses_use_vector_l1_and_radius_scaled_rotation():
+    from oakink_wm.model import losses
+    R = torch.eye(3).expand(1, 1, 24, 3, 3)
+    E = torch.eye(4).expand(1, 1, 24, 4, 4).clone()
+    batch = dict(effect=E, object_valid=torch.ones(1, 1, dtype=torch.bool),
+                 points=torch.zeros(1, 1, 512, 3), radius=torch.ones(1, 1)*.1)
+    loss, components = losses(dict(rotation=R, translation=torch.ones(1, 1, 24, 3)*.01), batch)
+    torch.testing.assert_close(components['translation'], torch.tensor(.03))
+    torch.testing.assert_close(components['point'], torch.tensor(.03))
+    torch.testing.assert_close(loss, torch.tensor(.06))

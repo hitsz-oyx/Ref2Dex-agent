@@ -32,7 +32,8 @@ def main():
     identity = dict(git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                     config_sha256=hashlib.sha256(args.config.read_bytes()).hexdigest(),
                     scripts={str(f): hashlib.sha256(f.read_bytes()).hexdigest() for f in
-                             [TASK / 'tools/run/train_oakink2_wm30.py', TASK / 'src/oakink_wm/data.py', TASK / 'src/oakink_wm/model.py']})
+                             [TASK / 'tools/run/train_oakink2_wm30.py', TASK / 'src/oakink_wm/data.py', TASK / 'src/oakink_wm/model.py',
+                              TASK / 'tools/audit/audit_wm30_splits.py', TASK / 'tools/run/evaluate_oakink2_wm30.py']})
     if state_path.exists(): raise FileExistsError('preserve existing group launch record')
     record(state_path, dict(status='WAITING_FOR_FULL_CORPUS', pid=os.getpid(), identity=identity, waiting_since=start))
     while not (root / 'processed/manifest.json').exists():
@@ -52,6 +53,7 @@ def main():
         raise ValueError('queued config drift')
     for name, digest in identity['scripts'].items():
         if hashlib.sha256(Path(name).read_bytes()).hexdigest() != digest: raise ValueError('queued code drift')
+    subprocess.run([sys.executable, str(TASK / 'tools/audit/audit_wm30_splits.py'), '--data', str(root)], check=True)
     smi = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used', '--format=csv,noheader,nounits'], text=True)
     usage = {int(line.split(',')[0]): int(line.split(',')[1]) for line in smi.splitlines()}
     if any(usage[gpu] > 512 for gpu in (0, 1, 2)):
@@ -84,6 +86,14 @@ def main():
         results = {k: json.loads((root / ('train-'+k) / 'progress.json').read_text()) for k in procs}
         steps = {k: v.get('step') for k, v in results.items()}
         status = 'FAILED' if any(c != 0 for c in codes.values()) else ('BUDGET_STOP' if any(v.get('status') == 'BUDGET_STOP' for v in results.values()) else 'COMPLETED')
+        if status == 'COMPLETED' and time.time() + 120 < deadline:
+            record(state_path, dict(status='TEST_EVALUATION', identity=identity, deadline=deadline))
+            for arm in procs:
+                env = dict(os.environ, CUDA_VISIBLE_DEVICES='0', TMPDIR=str((Path.cwd() / 'tmp').resolve()))
+                subprocess.run([sys.executable, str(TASK / 'tools/run/evaluate_oakink2_wm30.py'),
+                                '--data', str(root), '--checkpoint', str(root / ('train-'+arm) / 'final.pt'),
+                                '--output', str(root / ('train-'+arm) / 'test_result.json')],
+                               env=env, check=True, timeout=max(1, deadline-time.time()))
         record(state_path, dict(status=status,
                                identity=identity, exit_codes=codes, steps=steps,
                                matched_updates=len(set(steps.values())) == 1, deadline=deadline))
@@ -92,4 +102,14 @@ def main():
         for log in logs: log.close()
 
 
-if __name__ == '__main__': raise SystemExit(main())
+if __name__ == '__main__':
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        if '--data' in sys.argv:
+            location = Path(sys.argv[sys.argv.index('--data')+1]) / 'group_status.json'
+            try: previous = json.loads(location.read_text())
+            except (FileNotFoundError, json.JSONDecodeError): previous = {}
+            previous.update(status='FAILED', error=str(exc))
+            record(location, previous)
+        raise

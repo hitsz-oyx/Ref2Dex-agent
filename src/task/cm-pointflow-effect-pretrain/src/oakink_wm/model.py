@@ -130,12 +130,12 @@ def losses(pred, batch):
     truthR, truthT = gt[..., :3, :3], gt[..., :3, 3]
     mask = batch['object_valid'][:, :, None].expand_as(truthT[..., 0]).float()
     denom = mask.sum().clamp_min(1)
-    trans = (pred['translation'] - truthT).abs().mean(-1)
+    trans = (pred['translation'] - truthT).abs().sum(-1)
     angle = geodesic(pred['rotation'], truthR)
     rotation = angle * batch['radius'][:, :, None]
     predicted = rigid_points(pred['rotation'], pred['translation'], batch['points'])
     actual = rigid_points(truthR, truthT, batch['points'])
-    point = (predicted - actual).abs().mean((-1, -2))
+    point = (predicted - actual).abs().sum(-1).mean(-1)
     components = {k: (v * mask).sum() / denom for k, v in
                   [('translation', trans), ('rotation_metric', rotation), ('point', point)]}
     return sum(components.values()), components
