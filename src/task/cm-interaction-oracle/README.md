@@ -12,18 +12,25 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref14/ref14_1): real receding-horizon GT-Y oracle
-control from the same actual current state. Preserve shortY/U/seven candidates/Z,
-replan every8steps and measure a contiguous executed mixed path. Fresh cold
-replay rebuilds solver history for every fork; selected future-world states
-are never stitched. Baseline U=1.25 exactly certifies baseline-first choice
-without six extra lookaheads, with missing candidateYs left unknown. Models,
-long-Y, native execution forecasting and PPO remain later gated work.
+Current user-directed route (ref14_3): actual hand flow → learned Y ranking,
+matched direct / nested OOF E-I bottleneck / hybrid. Completed offline Probe:
+57.38% /57.82% /57.95% held-anchor strict pair accuracy, below the frozen70%
+screen. UNPROMISING for this fixed fit; unique E/I gain UNCLEAR. Flow sensitivity
+is positive, but no real learned-Y rolling control is launched. Full32anchor
+packaging/FK and saved-weight replay PASS; all inputs remain post-treatment oracle.
+[Predictor protocol and results](docs/experiments/probes/P-20261006-actual-flow-y-ranking.md).
+Run entry `tools/run/probe_actual_flow_ranking.py`; no-fit audit
+`tools/audit/audit_actual_flow_ranking.py`; parameter/tie/figure exporter
+`tools/audit/report_actual_flow_ranking.py`. Each takes `--asset-run`, `--dense-run`,
+`--run-dir`. Reuse immutable completed artifacts; new training requires a new
+frozen Decision, not unregistered epoch/seed retries.
+
+Preceding ref14_1 rolling GT-Y has27/32stable Z versus23/32baseline,4rescued,
+0harmed; PROMISING exposed-cohort mechanism Probe. Original shortY/U/seven
+candidates/Z and true current-state fork/contiguous execution remain fixed.
+Noisy offline ranking supplies the .70screen, not a guarantee of learned control.
+Native execution forecasting, desired flow and PPO remain later gated work.
 [Rolling oracle protocol](docs/experiments/probes/P-20261005-rolling-oracle-control.md).
-Run `tools/run/run_rolling_gt_y.py --run-dir <new-unique-folder> --protocol
-<card> --gpus 6 7 --workers 4`; inspect idleGPU/processes and the fixed resource
-budget first. Add `--smoke` for mixed-action next-state replay engineering.
-No-fit raw audit: `tools/audit/audit_rolling_control.py --run-dir <completed-run>`.
 
 Previously completed route (ref13): same-prefix Oracle-Y Utility
 Gate. Four synchronous cold-replay groups provide32 complete seven-candidate

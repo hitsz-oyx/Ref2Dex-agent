@@ -21,7 +21,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261006-actual-flow-y-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-actual-flow-y-ranking.md) | Ref14_3: actual hand flow to same-state Y ranking | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261006-actual-flow-y-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-actual-flow-y-ranking.md) | Ref14_3: actual hand flow to same-state Y ranking | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-amplitude-authority
 

@@ -127,3 +127,10 @@ export HTTPS_PROXY=http://127.0.0.1:7897
 
 每条主要研究路线应存在明确 Git checkpoint。
 
+
+
+用户ref14_3在rollingGT-Y和noise gates之后授权actual hand flow→Y ranking
+predictor阶段：保持Y/U，比较Direct、严格source-OOF E/I bottleneck与Hybrid，
+按anchor隔离并检查shuffle；actualflow仍是事后oracle。离线gate未过不得进入
+rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改变Mission claim，
+不重开execution、desiredflow、PPO/critic/reward，也不外推为E/I无效。

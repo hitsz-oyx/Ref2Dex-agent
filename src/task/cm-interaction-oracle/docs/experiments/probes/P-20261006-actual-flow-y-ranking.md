@@ -5,7 +5,7 @@ experiment_id: P-20261006-actual-flow-y-ranking
 date: 2026-10-06
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: 1c155e4949401f5e2e58d8a250aa1f8917990bc6
+git_commit: b324e1e6abd82a612725407aeb693bfb2fb76eae
 claim_id: C3
 hypothesis_family: HF-actual-flow-y-ranking
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [271, 272, 273, 274]
 decision_changed_if_positive: qualify the passing oracle representation for a separately frozen real rolling learned-Y probe
 decision_changed_if_negative: retain GT-Y utility and diagnose the fixed predictor contract without PPO or execution forecasting
-status: PLANNED
+status: UNPROMISING
 run_id: actual-flow-y-ranking-s271
 ---
 
@@ -95,3 +95,65 @@ validity. OOF/source-full distribution mismatch, finite training budget, model
 class and single optimizer seed remain limits. Future independent multi-seed
 Validation and prospective flow availability, real rolling learned-Y Z, then
 matched trained-policy Cm-on/off are still required by Mission.
+
+## Completed result and root decision
+
+Main code commit `b324e1e`, run `actual-flow-y-ranking-s271`: four-fold held
+predictions on339complete panels/32anchors (2373candidate rows),2276strict
+pairs and4843GT-tied pairs. 25anchors provide strict pairs. GPU0 main30.79s;
+36fixed fits (16consequence,20Y); zero new PhysX. Models30,392,909bytes.
+Full asset packaging and dense FK passed on all four groups; no partial snapshot
+or unobserved candidate imputation enters fitting.
+
+| Arm | Held pair accuracy | Shuffled | Mean top1 regret | Median regret |
+| --- | ---: | ---: | ---: | ---: |
+| H | .499780 | .499780 | .040653 | 0 |
+| Direct | .573814 | .498682 | .129394 | 0 |
+| Bottleneck | .578207 | .483304 | .107147 | 0 |
+| Hybrid | .579525 | .499121 | .126690 | 0 |
+| GT_EI diagnostic | .673550 | .673550 | .081828 | 0 |
+
+All three candidate arms fail the frozen .70accuracy screen: UNPROMISING for
+this model/budget/support contract. They use flow: shuffle degradation is
++.07513[.02053,.13331],+.09490[.03553,.15226],+.08040[.02096,.14415].
+Bottleneck−Direct=.00439 CI[-.06238,.06863]; Hybrid−Direct=.00571
+CI[-.02899,.04507]. Unique predicted E/I contribution remains UNCLEAR.
+The bootstrap is anchor-descriptive, not four-group independent Validation.
+Each Y head has60,136parameters; consequence head59,066; bottleneck/hybrid
+inference pipeline119,202, with16extra consequence fits shared between them.
+All median regrets are zero on tie-heavy support; mean regrets reveal that the
+learned selectors currently underperform baseline-first H in offline regret.
+No deployment or actual rolling Z is inferred from these numbers.
+
+Saved-weight GPU replay PASS in3.95s: H/label normalizers, full nested OOF,
+held predictions, shuffle outputs and all summaries exactly reconstructed
+(max errors0). Source Y-head training strict accuracy: Direct .653–.701,
+Bottleneck .585–.666, Hybrid .676–.711, GT_EI .691–.705. Source fit is already
+modest and held performance drops; these observations cannot uniquely identify
+objective mismatch, underfitting or limited generalization. They do NOT establish
+that additional epochs, a ranking loss or physical information would solve it.
+
+Independent read-only code/CPU/NumPy review agrees on split identities,
+input equality, strict pairs, labels, regret and shuffle. One small numerical
+issue: seven-candidate panel329 crosses predict's256-row final batch boundary;
+identical H produces utility spread1.1921e−7 and5pseudo-ranked strict pairs.
+Other2271H strict pairs are exact predicted ties; all main candidate/GT_EI
+strict pairs have no prediction ties. Original H .499780 is retained, not
+silently rounded in raw evidence. Future inference should align chunks to seven
+candidates; no training or control conclusion is affected by this tiny defect.
+
+Root decision: do not launch real rolling learned-Y or execution/PPO. Preserve
+rolling GT-Y utility and the positive action-sensitivity signal; stop this fixed
+fit, without calling actual-flow/E/I globally ineffective. The next cheapest
+Decision is to preregister a source-only panel-ranking objective comparison
+against these immutable heads, checking whether source ranking can improve and
+transfer before spending on simulation. No extra epoch/seed retries occurred.
+A new ranking-objective Probe must freeze its objective and gates before fitting;
+independent held support and final matched training-policy Validation remain due.
+
+Artifacts in `outputs/cm-interaction-oracle/actual-flow-y-ranking-s271/`:
+`protocol.md` freezes pre-run card bytes; `manifest.json`, `models.pt`,
+`result.json`, `replay.json`, `report.json`, `ranking.png` and
+`independent_review.json` preserve provenance, signed comparisons, per-fold/
+per-anchor metrics, parameters, ties, source-fit diagnostics and review.
+110Task tests pass,1skipped; repository changed verification passes.

@@ -528,3 +528,22 @@ retention；下一步仍需冻结 predictor 输入/输出并做真实 rolling in
 时序诊断、已有flow与tinyFK审计、ranking/noise评估合同；17新测试通过，无
 新仿真或训练。[并行交付](../src/task/cm-interaction-oracle/docs/ref/ref14_2_progress.md)。
 [固定协议与进度入口](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md)。
+
+
+## Ref14_3：actual-flow learned-Y ranking 已完成
+
+按用户ref14_3进入预测器阶段：已有完整32anchor/fourgroup输出重新打包，
+GPU FK重建120点两段actualflow，无新PhysX。四折anchor隔离，source内三折
+E/I OOF，matched H/Direct/Bottleneck/Hybrid/GT_EI；保持原Y8和U。
+339complete panels/2276strict pairs：Direct57.38%、Bottleneck57.82%、
+Hybrid57.95%，均未过冻结70%离线gate，固定合同UNPROMISING。GT_EI67.36%。
+三臂flowshuffle退化CI均正，保留动作敏感信号；Bottleneck/Hybrid相对Direct
+仅+.44/+.57pp，CI跨零，unique E/I contribution UNCLEAR。
+GPU0训练30.79s、savedweight重放3.95s且误差0；独立只读CPU/NumPy核查一致。
+H约50%的微小偏差来自跨batch的1.19e−7舍入，仅5strictpairs，原始证据保留。
+110Task tests/1skip与仓库changed验证通过。无新增rolling learned-Y、execution
+或PPO；不将当前模型、预算、selectedoracle support的负结果升级为全局否定。
+Source ranking也仅约.585–.711，下一步最小Decision可另行冻结source-panel
+ranking objective比较以区分拟合/泛化问题；不直接扩epoch/seed或消耗仿真。
+[Ref14_3协议与结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-actual-flow-y-ranking.md)。
+最终trainedpolicy matched Cm-on/off utility仍OPEN。

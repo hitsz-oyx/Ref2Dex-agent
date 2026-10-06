@@ -37,3 +37,10 @@ utility与Z，每8步重新fork评估并实际执行组合选择，保存其真�
 当前属于Probe，不能把旧one-shot候选Z上限当rolling上限；不得先改long-Y、
 重开executionforecast、训练预测器或PPO。正向才为下一阶段噪声容忍度提供依据，
 不自动完成全局Cm对训练所得策略的因果收益要求。
+
+
+用户ref14_3在rollingGT-Y和noise gates之后授权actual hand flow→Y ranking
+predictor阶段：保持Y/U，比较Direct、严格source-OOF E/I bottleneck与Hybrid，
+按anchor隔离并检查shuffle；actualflow仍是事后oracle。离线gate未过不得进入
+rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改变Mission claim，
+不重开execution、desiredflow、PPO/critic/reward，也不外推为E/I无效。

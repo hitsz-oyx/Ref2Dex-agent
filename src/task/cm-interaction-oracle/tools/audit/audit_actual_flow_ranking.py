@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[5]
 sys.path[:0] = [str(ROOT), str(ROOT/'src/task/cm-interaction-oracle/src'), str(ROOT/'src/task/cm-interaction-oracle/tools/run'), str(Path(__file__).parent)]
 from package_rolling_oracle_asset import Snapshot, sha
 from probe_actual_flow_ranking import load_data, summarize
-from actual_flow_ranking import ARMS, Head, h_inputs, anchor_folds, rows_for, partition, predict, readout_input
+from actual_flow_ranking import ARMS, Head, h_inputs, anchor_folds, rows_for, partition, predict, readout_input, ranking
 from geometric_consequence import standardize_fit, normalize
 
 
@@ -63,7 +63,7 @@ def main():
     folds = anchor_folds(cpu['panel_keys'],4,271)
     if not np.array_equal(folds,saved['outer_folds']):
         raise ValueError('outer split mismatch')
-    checks = []; preds = {a:torch.full_like(cpu['y'],float('nan')) for a in ARMS}
+    source_diagnostics = {}; checks = []; preds = {a:torch.full_like(cpu['y'],float('nan')) for a in ARMS}
     shuf = {a:torch.full_like(cpu['y'],float('nan')) for a in ARMS}
     rng = np.random.default_rng(272)
     perm = torch.tensor(np.stack([rng.permutation(7) for _ in cpu['panel_keys']]),device='cuda:0')
@@ -96,6 +96,7 @@ def main():
                 checks.append(max_error(value,stored))
             _,hn = h_inputs(data,tr); checks.append(max_error(hn,artifact['h_norms']))
             sp = predict(pm,torch.cat((h,sf),-1))*tn['scale']+tn['mean']
+            source_diagnostics[str(f)] = {}
             for arm in ARMS:
                 ei = normalize(data['ei'],gn) if arm == 'GT_EI' else normalize(feat,pn)
                 x = readout_input(h,data['flow'],ei,arm)
@@ -105,6 +106,7 @@ def main():
                 si = ei if arm == 'GT_EI' else normalize(sp,pn)
                 s = predict(model,readout_input(h,sf,si,arm))*yn['scale']+yn['mean']
                 preds[arm][te.cpu()] = p[te].cpu(); shuf[arm][te.cpu()] = s[te].cpu()
+                source_diagnostics[str(f)][arm] = ranking(data['y'][tr],p[tr])
     prediction_error = max(float((preds[a]-saved['predictions'][a].cpu()).abs().max()) for a in ARMS)
     shuffle_error = max(float((shuf[a]-saved['shuffled'][a].cpu()).abs().max()) for a in ARMS)
     result = summarize(cpu,preds,shuf,folds)
@@ -113,8 +115,9 @@ def main():
     report = dict(status='PASS' if max(checks+[prediction_error,shuffle_error]) <= 1e-6 and exact else 'FAIL',
                   normalizer_max_error=max(checks),prediction_max_error=prediction_error,
                   shuffle_max_error=shuffle_error,exact_summary_replay=exact,
-                  elapsed_seconds=time.monotonic()-start, no_fitting_or_simulation=True)
-    output.write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
+                  elapsed_seconds=time.monotonic()-start, no_fitting_or_simulation=True,
+                  source_training_diagnostics=source_diagnostics)
+    output.write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps({k:v for k,v in report.items() if k != "source_training_diagnostics"},indent=2))
     if report['status'] != 'PASS':
         raise ValueError('saved weight replay mismatch')
 
