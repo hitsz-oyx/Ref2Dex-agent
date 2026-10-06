@@ -21,6 +21,9 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
         align_native_reference_tables(self._cm_task())
+        if (self.approach_reward_coef,self.held_lift_reward_coef,self.lift_progress_reward_coef,
+            self.grasp_link_reward_coef,self.min_grasp_links)!=(2.,10.,5.,0.,0):
+            raise ValueError('source2/10/5 reward contract drift')
         self.gt_arm = os.environ['REF2DEX_GT_AUX_ARM']
         self.gt_coef = 0.0 if self.gt_arm == 'plain' else .05
         self.gt_decoder = None

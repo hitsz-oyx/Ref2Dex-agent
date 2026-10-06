@@ -97,6 +97,9 @@ class GtAuxPlayer(original.EvalPlayer):
                  (dones,done|completed),(active_rows,active),(rewards,reward)):
                 store.append(value.cpu().clone())
             completed|=done
+            if tick%64==0:
+                progress=dict(tick=tick,completed=int(completed.sum()),total=n,elapsed_seconds=time.monotonic()-start)
+                Path(self.output_file).with_name('progress.json').write_text(json.dumps(progress)+'\n')
             if completed.all():break
         if not completed.all():raise ValueError('incomplete episodes')
         before,after,actions,dones,active,reward=[torch.stack(v) for v in
