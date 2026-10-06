@@ -57,8 +57,8 @@ Read-only original ref13 four synchronous solver groups,32current-only anchors,
 seven candidates and unchanged32step Y/90step Z. Source runs:
 `oracle-y-utility-s263-sync-reference`, `oracle-y-utility-extra-s264-sync-reference`,
 their existing schedules and `*-sync-g<group>-candidate<k>` panels.
-Capture28short32step candidate replays, including all four group baselines.
-Match currentH, actions/PD, fullphysical32/q/tips/base<=1e-4; height/pair/valid32
+Capture28original-mode90step candidate replays, including all four group baselines.
+Match currentH, actions/PD, fullphysical32/q/tips/base<=1e-4; height/pair/valid90
 must replay EXACT. Inherited full-world prefix<=1e-4 and shadowactor<=1e-5.
 Never infer new90step Z from short replay: use the corresponding original
 candidate90, joined by seed/group/row/candidate, only after matching first32.
@@ -111,3 +111,23 @@ worker path and reward-shaper object API), repaired before physics/scientific
 results; not negative method evidence. Combined smoke elapsed<240s.
 GPU0 now belongs to another process; main uses idleGPU1/2, one worker each.
 112Task tests pass,1skip. Main code/config/protocol hashes fixed before launch.
+
+## Replay-contract correction before scientific completion
+
+Original main `frozen-critic-ranking-source-e260` atdb0d9ab FAILED after125.08s;
+5completion events, no final scientific result. s263/g0/grip+ first8physical and
+actions EXACT, but poststep11microdifference and step18+physical divergence;
+height max.004599m, q.09873rad,3pair discrepancies, Y/U differs. Root and
+independent review identify that --rolling-offset0 changed postfork RNG replay:
+oldref13 restores reference RNG throughout90; rolling stops afterfork. Old90Z
+cannot be joined under the registered first32gate. Preserve all failed outputs;
+none are negative critic evidence. Do not relax thresholds or overwrite data.
+
+Restore original nonrolling90step collection; capture only eight rewards and
+endpointV, verify physical32 and entire height/pair/valid90 exactly as above.
+Use failing grip+ as the one-variable engineering regression (sameGPU2), then
+new run_id `frozen-critic-ranking-source-e260-r2` for complete repaired capture.
+Prior125.09seconds charged to original1200main cap, leaving1074.91seconds;
+engineering attempts stay within shared240second smoke cap. No score, candidate,
+label or checkpoint changes. Independent review of repaired outputs precedes
+method interpretation. Model/optimizer source and PPO reward remain unchanged.

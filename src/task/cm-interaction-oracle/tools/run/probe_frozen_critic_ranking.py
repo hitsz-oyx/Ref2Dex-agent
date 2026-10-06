@@ -75,7 +75,7 @@ def assemble(root):
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--run-dir',type=Path,required=True);ap.add_argument('--gpus',type=int,nargs='+',default=[0,1]);ap.add_argument('--smoke',action='store_true')
+    ap.add_argument('--run-dir',type=Path,required=True);ap.add_argument('--gpus',type=int,nargs='+',default=[0,1]);ap.add_argument('--smoke',action='store_true');ap.add_argument('--smoke-candidate',type=int,default=0,choices=range(7));ap.add_argument('--spent-seconds',type=float,default=0)
     args=ap.parse_args();args.run_dir=args.run_dir.resolve();torch.set_num_threads(2)
     if len(args.gpus)>2 or len(set(args.gpus))!=len(args.gpus):raise ValueError('one or two distinct GPUs required')
     args.run_dir.mkdir(parents=True,exist_ok=False);start=time.monotonic();slots=queue.Queue()
@@ -84,7 +84,7 @@ def main():
            ROOT/'src/task/cm-interaction-oracle/src/critic_ranking.py',PROTOCOL,CHECKPOINT]
     inputs={str(p.resolve()):sha(p) for p in paths}
     manifest=dict(status='STARTED',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-                  run_id=args.run_dir.name,input_sha256=inputs,gpus=args.gpus,no_training=True,budget_seconds=240 if args.smoke else 1200,smoke=args.smoke)
+                  run_id=args.run_dir.name,input_sha256=inputs,gpus=args.gpus,no_training=True,budget_seconds=240 if args.smoke else 1200-args.spent_seconds,prior_spent_seconds=args.spent_seconds,smoke=args.smoke)
     (args.run_dir/'protocol.md').write_bytes(PROTOCOL.read_bytes())
     (args.run_dir/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     events=[]
@@ -101,7 +101,7 @@ def main():
                 MAX_JOBS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',LD_LIBRARY_PATH='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH',''))
             cmd=[PYTHON,str(Path(__file__).resolve().with_name('collect_critic_candidates.py')),'--expected-panel',str(old),
                 '--run-dir',str(folder),'--reference',str(reference),'--anchor-schedule',str(schedule),'--group-id',str(group),
-                '--rolling-offset','0','--candidate',str(k),'--post-window','32','--wall-seconds','180','--num_threads','1',
+                '--candidate',str(k),'--post-window','90','--wall-seconds','180','--num_threads','1',
                 '--task','Dexplore_Inspire','--cfg_env',str(config/'environment.yaml'),'--cfg_train',str(config/'training.yaml'),
                 '--checkpoint',str(CHECKPOINT),'--motion_file',str(MOTIONS),'--headless','--num_envs',str(len(initial['tensors']['data_id'])),
                 '--seed',str(seed),'--sim_device','cuda:0','--rl_device','cuda:0','--graphics_device_id','0','--pipeline','cpu',
@@ -120,7 +120,7 @@ def main():
             return dict(name=name,gpu=gpu,elapsed_seconds=time.monotonic()-start)
         finally:slots.put(gpu)
     jobs=[(base,seed,g,k) for base,seed in [('oracle-y-utility-s263',263),('oracle-y-utility-extra-s264',264)] for g in range(2) for k in range(7)]
-    if args.smoke:jobs=jobs[:1]
+    if args.smoke:jobs=[('oracle-y-utility-s263',263,0,args.smoke_candidate)]
     try:
         with ThreadPoolExecutor(max_workers=len(args.gpus)) as pool:
             futures=[pool.submit(worker,*job) for job in jobs]

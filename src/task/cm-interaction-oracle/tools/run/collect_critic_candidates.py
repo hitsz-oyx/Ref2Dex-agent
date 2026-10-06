@@ -49,6 +49,9 @@ class CriticCandidatePlayer(original.CandidatePlayer):
         for key in ('height','pair','valid_steps'):
             if not torch.equal(panel[key][ids,:32],expected[key][ids,:32]):
                 raise ValueError('old candidate outcome identity drift: '+key)
+        for key in ('height','pair','valid_steps'):
+            if panel[key].shape[1] == 90 and not torch.equal(panel[key][ids],expected[key][ids]):
+                raise ValueError('original90 candidate identity drift: '+key)
         if max(errors.values()) > 1e-4:
             raise ValueError('original candidate physical/action drift')
         raw_checkpoint = torch.load(self.critic_checkpoint,map_location='cpu',weights_only=False)
