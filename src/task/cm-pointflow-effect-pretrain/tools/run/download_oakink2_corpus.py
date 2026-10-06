@@ -68,10 +68,16 @@ def main():
             if remaining <= 0: raise TimeoutError('acquisition deadline')
             part = path.with_name(path.name + '.part')
             url = 'https://huggingface.co/datasets/kelvin34501/OakInk-v2/resolve/' + revision + '/' + name
-            subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
-                            '--connect-timeout', '15', '--max-time', str(min(600, int(remaining))),
-                            '--max-filesize', str(item['size']), '--output', str(part), url],
-                           check=True, timeout=remaining)
+            for attempt in range(3):
+                remaining = args.seconds - (time.monotonic() - start)
+                if remaining <= 0: raise TimeoutError('acquisition deadline')
+                result = subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2',
+                                         '--connect-timeout', '15', '--max-time', str(min(600, int(remaining))),
+                                         '--max-filesize', str(item['size']), '--output', str(part), url],
+                                        timeout=remaining, capture_output=True, text=True)
+                if result.returncode == 0 and part.stat().st_size == item['size'] and digest(part) == item['lfs']['oid']:
+                    break
+                if attempt == 2: raise RuntimeError(name + ': ' + result.stderr[-500:])
             if part.stat().st_size != item['size'] or digest(part) != item['lfs']['oid']:
                 raise ValueError('download checksum mismatch: ' + name)
             part.rename(path)
@@ -93,7 +99,7 @@ def main():
                 manifest.write_text(json.dumps(record, indent=2) + '\n')
                 print(json.dumps({'completed': len(record['files']), 'total': len(jobs), 'elapsed_seconds': record['elapsed_seconds']}), flush=True)
         if errors:
-            raise RuntimeError('Acquisition errors: ' + '; '.join(errors))
+            raise RuntimeError(str(len(errors)) + ' acquisition errors: ' + '; '.join(errors[:5]))
         record['status'] = 'COMPLETED'
     except BaseException as exc:
         record.update(status='FAILED', error=str(exc))
