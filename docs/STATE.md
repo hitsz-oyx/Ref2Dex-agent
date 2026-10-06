@@ -625,3 +625,17 @@ cm-pointflow-effect-pretrain分支；使用index-only read-tree，未checkout或
 数据工程可用不等于可学性、因果effect或策略utility。Git已独立恢复，但历史产物
 删除仍影响6个旧测试；新OakInk2流程不依赖这些路径。
 [结果与下一步](../src/task/cm-pointflow-effect-pretrain/docs/OAKINK2_DATA_RESULTS.md)。
+
+
+## 2026-10-07 WM30/K24 架构实现与接口完成
+
+用户指定架构并确认program锚点+0.5m局部物体、三组独立训练及B验证shuffle、
+全627条标注/最多4GPU/整组24h。完成1cm稀疏卷积64/128/256、384维8层场景/
+4层动作/6层dynamics Transformer、多物体24步SE(3)及解析点损失，37208777参数。
+局部选择已核实使用当前mesh几何中心，避免部分标注原点偏离>20cm导致选错。
+6项合同测试及12条现有数据三组6步GPU smoke通过，初始化hash一致，checkpoint
+保存/恢复/独立推理接口通过。属于工程检查，不作模型质量或policy utility结论。
+全量下载（HTTP range续传）与GPU3预处理运行中；627完整校验及split审计后自动
+启动GPU0/1/2三组，每组40000更新、有效batch16，共享24h截止时间。不启动PPO。
+[实现与运行入口](../src/task/cm-pointflow-effect-pretrain/docs/WM30_INTERFACE.md)；
+[固定实验协议](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-oakink2-wm30-k24.md)。

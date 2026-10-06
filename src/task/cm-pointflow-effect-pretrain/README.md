@@ -1,27 +1,32 @@
 # cm-pointflow-effect-pretrain
 
 Current user-directed route on branch `cm-pointflow-effect-pretrain`: OakInk2
-observed human hand trajectory -> object effect. Keep single and both hands in
-fixed right/left slots, 11 semantic points per hand with validity masks, and
-512 canonical object surface points. No RGB, dataset mixing or PPO training.
-Observed future hands provide predictive supervision; they do not establish
-causal intervention or policy utility.
+30Hz /24-step action-conditioned multi-object world model. Program anchor plus
+0.5m current geometry-center local objects; fixed right/left11semantic points
+and masks;512canonical object surface points. Predict every local object's
+24-step SE(3) and analytical point trajectory. No RGB, KNN, Policy/Evaluator/Y.
 
-The annotation-only 100-sequence engineering audit is documented in
-[frozen OakInk2 protocol](docs/OAKINK2_DATA_PREFLIGHT.md) and
-[completed results and next decision](docs/OAKINK2_DATA_RESULTS.md).
-Runtime data and caches use the declared artifact root
+[User architecture](docs/user/架构.md), [frozen implementation contract](docs/WM30_DESIGN.md),
+[completed code and real-data interface checks](docs/WM30_INTERFACE.md),
+[matched full-corpus experiment](docs/experiments/probes/P-20261007-oakink2-wm30-k24.md).
+
+Data acquisition and full627 preparation are running in
+`outputs/cm-pointflow-effect-pretrain/oakink2-wm30-k24-20261006/`.
+Three independent H/H+A/H+shuffle(A) arms use the same initialization and
+40000updates, GPU0/1/2, effective batch16 and shared24h cap. H+A additionally
+receives validation/test shuffle. The launcher waits for all verified data,
+processed split integrity and free GPUs. Runtime stage/PIDs/deadline are in
+`group_status.json`; each arm writes `progress.json`, manifests and checkpoints.
+Full training has not started while the corpus gate is pending.
+
+Earlier annotation-only100sequence readiness audit:
+[frozen protocol](docs/OAKINK2_DATA_PREFLIGHT.md) and
+[results](docs/OAKINK2_DATA_RESULTS.md). Artifacts remain in
 `artifacts/cm-pointflow-effect-pretrain/oakink2-data-preflight-20261006/`.
-Audit code is in `tools/audit/audit_oakink2_sequences.py`; cached continuity and
-filter overlap checks are in `tools/audit/summarize_oakink2_continuity.py`.
-Download code is in `tools/run/download_oakink2_audit.py`. Its run directory
-requires pinned Hugging Face `dataset_info.json`, `anno_tree.json`, and
-`root_tree.json` metadata before acquisition. Run identities and checksums are
-saved in manifests; reruns use fresh output/manifest directories.
-
-OakInk2 mocap is120Hz: eight consecutive frames cover66.7ms. Sequence-level
-holdout and interaction/static balancing must precede predictor training.
-Root Mission/Campaign remain authoritative. No large pretraining has started.
+That audit used120Hz h8; the new architecture deliberately switches to30Hz
+K24=.8s. Real-data engineering checks use12existing sequences and are separate
+from full training. Observed future hands provide predictive supervision, not
+causal intervention or demonstrated robot policy utility.
 
 ## Earlier SPIDER feasibility work
 

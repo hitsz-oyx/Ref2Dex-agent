@@ -78,6 +78,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | 1006 full randomized windows; dose and support pass, but no duration-sensitive retention-I gate; hand displacement responds while I16/contac | Close K4/8/16 feedback-residual extension after independent review; no Cm fitting, extra duration/seed or selector. | probes/UNPROMISING |
 
+## HF-oakink2-action-effect-wm30
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261007-oakink2-wm30-k24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-oakink2-wm30-k24.md) | OakInk2 observational action-conditioned multi-object WM | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-oracle-flow-task
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
