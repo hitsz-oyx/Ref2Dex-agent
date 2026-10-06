@@ -611,3 +611,17 @@ cm-pointflow-effect-pretrain分支；使用index-only read-tree，未checkout或
 被删除的checkpoint、rollout和结果数组未恢复；此前实验卡所指原始输出现不可访问，
 不能把已保留的文档摘要当作原始证据仍可复算。Git恢复不是数据恢复。
 本轮OakInk2产物使用Task声明的artifacts/cm-pointflow-effect-pretrain目录。
+
+
+## 2026-10-06 OakInk2 annotation-only 100-sequence audit
+
+按用户ref2，本Task当前只推进OakInk2，不混入SPIDER/其他数据。100条固定序列及
+五个资产包已校验下载，6.29GB；GPU0完成双手11点/物体512点/SE(3)审计877.62s。
+646565手帧、477序列物体对，无缺失mesh、无效rigid pose或帧号缺口。
+4961958重叠窗口原始静止90.40%；program筛选731579窗口，运动384679，
+静止47.42%，支持继续小规模预测Probe。120Hz的h8只有66.67ms，不能沿用30Hz解释。
+发现少量相邻物体跳变，影响1344个program窗口；训练前检查并屏蔽跨异常窗口，
+按sequence划分、运动/静止平衡，再决定大规模投入。尚未开始预训练/PPO；
+数据工程可用不等于可学性、因果effect或策略utility。Git已独立恢复，但历史产物
+删除仍影响6个旧测试；新OakInk2流程不依赖这些路径。
+[结果与下一步](../src/task/cm-pointflow-effect-pretrain/docs/OAKINK2_DATA_RESULTS.md)。
