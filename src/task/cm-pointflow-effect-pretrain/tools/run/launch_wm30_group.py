@@ -54,11 +54,18 @@ def main():
     for name, digest in identity['scripts'].items():
         if hashlib.sha256(Path(name).read_bytes()).hexdigest() != digest: raise ValueError('queued code drift')
     subprocess.run([sys.executable, str(TASK / 'tools/audit/audit_wm30_splits.py'), '--data', str(root)], check=True)
-    smi = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used', '--format=csv,noheader,nounits'], text=True)
-    usage = {int(line.split(',')[0]): int(line.split(',')[1]) for line in smi.splitlines()}
-    if any(usage[gpu] > 512 for gpu in (0, 1, 2)):
-        record(state_path, dict(status='GPU_CONFLICT', usage=usage, identity=identity)); return 1
     deadline = time.time() + config['group_seconds']
+    while True:
+        smi = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used', '--format=csv,noheader,nounits'], text=True)
+        usage = {int(line.split(',')[0]): int(line.split(',')[1]) for line in smi.splitlines()}
+        conflicts = {gpu: usage.get(gpu, -1) for gpu in (0, 1, 2) if usage.get(gpu, -1) > 512}
+        if not conflicts:
+            break
+        if time.time() >= deadline:
+            record(state_path, dict(status='GPU_CONFLICT', usage=usage, identity=identity)); return 1
+        record(state_path, dict(status='WAITING_FOR_GPUS', conflicts=conflicts, usage=usage,
+                                identity=identity, deadline=deadline))
+        time.sleep(60)
     procs, logs = {}, []
     try:
         for gpu, arm in enumerate(('history', 'action', 'shuffle')):
