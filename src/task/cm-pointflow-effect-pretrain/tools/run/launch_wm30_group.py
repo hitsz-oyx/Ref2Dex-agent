@@ -58,17 +58,20 @@ def main():
     while True:
         smi = subprocess.check_output(['nvidia-smi', '--query-gpu=index,memory.used', '--format=csv,noheader,nounits'], text=True)
         usage = {int(line.split(',')[0]): int(line.split(',')[1]) for line in smi.splitlines()}
+        available = [gpu for gpu in sorted(usage) if usage[gpu] <= 512]
         conflicts = {gpu: usage.get(gpu, -1) for gpu in (0, 1, 2) if usage.get(gpu, -1) > 512}
-        if not conflicts:
+        if len(available) >= 3:
             break
         if time.time() >= deadline:
             record(state_path, dict(status='GPU_CONFLICT', usage=usage, identity=identity)); return 1
-        record(state_path, dict(status='WAITING_FOR_GPUS', conflicts=conflicts, usage=usage,
+        record(state_path, dict(status='WAITING_FOR_GPUS', conflicts=conflicts, available_gpus=available,
+                                usage=usage,
                                 identity=identity, deadline=deadline))
         time.sleep(60)
+    selected_gpus = available[:3]
     procs, logs = {}, []
     try:
-        for gpu, arm in enumerate(('history', 'action', 'shuffle')):
+        for gpu, arm in zip(selected_gpus, ('history', 'action', 'shuffle')):
             output = root / ('train-' + arm)
             output.mkdir(exist_ok=False)
             log = (output / 'console.log').open('w')
@@ -79,6 +82,7 @@ def main():
                             '--arm', arm, '--deadline', str(deadline)], stdout=log, stderr=subprocess.STDOUT,
                             env=env, start_new_session=True)
         record(state_path, dict(status='TRAINING', deadline=deadline, identity=identity,
+                               gpus=selected_gpus,
                                processes={k: p.pid for k, p in procs.items()}, updates=config['updates']))
         while any(proc.poll() is None for proc in procs.values()):
             failed = any(proc.poll() not in (None, 0) for proc in procs.values())
@@ -96,7 +100,7 @@ def main():
         if status == 'COMPLETED' and time.time() + 120 < deadline:
             record(state_path, dict(status='TEST_EVALUATION', identity=identity, deadline=deadline))
             for arm in procs:
-                env = dict(os.environ, CUDA_VISIBLE_DEVICES='0', TMPDIR=str((Path.cwd() / 'tmp').resolve()))
+                env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(selected_gpus[0]), TMPDIR=str((Path.cwd() / 'tmp').resolve()))
                 subprocess.run([sys.executable, str(TASK / 'tools/run/evaluate_oakink2_wm30.py'),
                                 '--data', str(root), '--checkpoint', str(root / ('train-'+arm) / 'final.pt'),
                                 '--output', str(root / ('train-'+arm) / 'test_result.json')],
