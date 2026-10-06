@@ -18,6 +18,7 @@ class CriticCandidatePlayer(original.CandidatePlayer):
     @torch.no_grad()
     def run(self):
         args = original.ARGS
+        expected_hash = original.sha(EXPECTED)
         schedule = json.loads(args.anchor_schedule.read_text())
         triggers = torch.tensor(schedule['triggers'])
         groups = torch.tensor(schedule['groups'])
@@ -36,6 +37,8 @@ class CriticCandidatePlayer(original.CandidatePlayer):
         folder = args.run_dir
         panel = torch.load(folder/'panel.pt',map_location='cpu',weights_only=False)
         expected = torch.load(EXPECTED,map_location='cpu',weights_only=False)
+        if original.sha(EXPECTED) != expected_hash:
+            raise ValueError('original candidate input drift')
         ids = (self.critic_triggers>=0).nonzero().flatten()
         if not self.critic_seen[ids].all() or self.critic_dones[ids].any():
             raise ValueError('missing reward/endpoint or terminal within block')

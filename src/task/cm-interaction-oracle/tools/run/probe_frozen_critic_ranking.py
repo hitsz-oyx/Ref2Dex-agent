@@ -76,7 +76,7 @@ def assemble(root):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--run-dir',type=Path,required=True);ap.add_argument('--gpus',type=int,nargs='+',default=[0,1]);ap.add_argument('--smoke',action='store_true')
-    args=ap.parse_args();torch.set_num_threads(2)
+    args=ap.parse_args();args.run_dir=args.run_dir.resolve();torch.set_num_threads(2)
     if len(args.gpus)>2 or len(set(args.gpus))!=len(args.gpus):raise ValueError('one or two distinct GPUs required')
     args.run_dir.mkdir(parents=True,exist_ok=False);start=time.monotonic();slots=queue.Queue()
     for gpu in args.gpus:slots.put(gpu)
@@ -99,7 +99,7 @@ def main():
             config=ROOT/'src/task/CmResidual/research/physical_value/output/P-20260930-cm-physical-value/r7'
             env=os.environ.copy();env.update(CUDA_VISIBLE_DEVICES=str(gpu),TMPDIR=str(ROOT/'tmp'),TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/torch_extensions'),
                 MAX_JOBS='2',OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='2',LD_LIBRARY_PATH='/home2/wyy/miniconda3/envs/graspenv/lib:'+env.get('LD_LIBRARY_PATH',''))
-            cmd=[PYTHON,str(Path(__file__).with_name('collect_critic_candidates.py')),'--expected-panel',str(old),
+            cmd=[PYTHON,str(Path(__file__).resolve().with_name('collect_critic_candidates.py')),'--expected-panel',str(old),
                 '--run-dir',str(folder),'--reference',str(reference),'--anchor-schedule',str(schedule),'--group-id',str(group),
                 '--rolling-offset','0','--candidate',str(k),'--post-window','32','--wall-seconds','180','--num_threads','1',
                 '--task','Dexplore_Inspire','--cfg_env',str(config/'environment.yaml'),'--cfg_train',str(config/'training.yaml'),
