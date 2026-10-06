@@ -27,3 +27,13 @@ predictor、PPO 和进一步 Y/E/I MSE 调参，不强制 E/I 作为信息瓶颈
 保持短窗口标签/utility，检查时序分叉和到真实失败的提前量。完成条件是完整
 窗口、原标签精确重放与清晰的后续不同 H 边界；不得把轨迹查表/拼接写成滚动
 干预的可执行收益或上限。新 rolling 交互验证与预测模型属于后续独立阶段。
+
+用户 ref14 固定逆向闭环必要性主链：Z → GT-Z候选机会 → rollingGT-Y
+控制 → Y精度容忍度 → 直接Y/物理瓶颈/hybrid → actualflow预测 → desiredflow
+执行 → learnedplanner → 后续蒸馏/PPO。每个前置环节须先有决策价值。
+更新后的 ref14_1 当前只推进真正same-current-state rollingGT-Y：保持原短Y、
+utility与Z，每8步重新fork评估并实际执行组合选择，保存其真实动作前缀继续。
+允许数学上等价的baseline最大utility剪枝；未模拟候选标签不补齐。
+当前属于Probe，不能把旧one-shot候选Z上限当rolling上限；不得先改long-Y、
+重开executionforecast、训练预测器或PPO。正向才为下一阶段噪声容忍度提供依据，
+不自动完成全局Cm对训练所得策略的因果收益要求。

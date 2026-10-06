@@ -648,3 +648,365 @@ ref13 做的是：
 > **先完成 rolling GT-Y oracle experiment。**
 
 它一旦通过，后面的每一环就都有非常清楚的必要性和验收标准。
+
+
+
+
+如果这次真正证明：
+
+\[
+\boxed{\text{rolling GT-Y}\rightarrow Z\uparrow}
+\]
+
+那整条路线就正式成立了一半。接下来不要立刻上 PPO，而应该继续严格从后往前，一层一层替换 Oracle。
+
+最合理的顺序是：
+
+\[
+\boxed{
+GT\text{-}Y
+\rightarrow
+\text{noisy }Y
+\rightarrow
+\hat Y(F^{actual})
+\rightarrow
+\hat Y(F^{planned})
+\rightarrow
+\text{learned rolling planner}
+}
+\]
+
+具体来说。
+
+### 第一步：先测“Y 要多准才有用”
+
+这是最先做的。
+
+现在 GT-Y 是完美信息。人为给它加误差：
+
+\[
+\tilde Y=Y+\epsilon
+\]
+
+或者更直接地破坏 candidate ranking。
+
+然后重新做 rolling selection，画：
+
+\[
+\text{Y quality}
+\rightarrow
+Z.
+\]
+
+我们真正关心的不是 MSE，而是：
+
+\[
+\text{pairwise ranking accuracy}
+\]
+
+\[
+\text{top-1 regret}
+\]
+
+\[
+\text{oracle gain retention}.
+\]
+
+例如最终得到：
+
+\[
+75\%\text{ ranking accuracy}
+\Rightarrow
+70\%\text{ oracle gain retained}.
+\]
+
+这就变成后面模型的**硬验收指标**。
+
+否则你训出一个 predictor，MSE 看着不错，我们还是不知道够不够用。
+
+---
+
+### 第二步：用真实 actual flow 预测 Y
+
+这时候才训练：
+
+\[
+\boxed{
+(H_t,F_t^{actual})\rightarrow\hat Y_t
+}
+\]
+
+因为 ref12 已经说明 actual flow 对 Y 有很强信息。
+
+这里先不要碰 execution problem。
+
+只问：
+
+> 如果我已经知道真实未来 hand flow，我们能不能把 Y 预测到第一步要求的精度？
+
+如果做不到：
+
+\[
+\text{actual flow}\rightarrow Y
+\]
+
+都不够，那么应该继续研究 Y representation / 数据，而不是控制。
+
+如果做到了，就继续。
+
+---
+
+### 第三步：比较 E/I 到底有没有必要
+
+这时做 matched comparison：
+
+\[
+(H,F)\rightarrow\hat Y
+\]
+
+vs
+
+\[
+(H,F)\rightarrow(\hat E,\hat I)\rightarrow\hat Y
+\]
+
+vs
+
+\[
+(H,F)\rightarrow(\hat E,\hat I,\hat Y).
+\]
+
+评价标准仍然不是单纯预测误差，而是：
+
+\[
+\boxed{\text{rolling action ranking}\rightarrow Z}
+\]
+
+如果 direct \(F\to Y\) 最好：
+
+> E/I 就是辅助解释、约束或正则。
+
+如果 E/I 明显提高跨状态/跨物体 ranking：
+
+> 才把 E/I 提升成核心世界模型表示。
+
+这一关可以真正回答我们现在一直争论的：
+
+\[
+F\rightarrow E/I\rightarrow Y
+\]
+
+是不是必要链。
+
+---
+
+### 第四步：从 actual flow 换成 prospective / planned flow
+
+这是整条路线最难的一关。
+
+因为真正规划时没有：
+
+\[
+F^{actual}.
+\]
+
+只有：
+
+\[
+F^{candidate}.
+\]
+
+所以要验证：
+
+\[
+\boxed{
+(H,F^{planned})\rightarrow\hat Y
+}
+\]
+
+是否还能保持足够的 ranking。
+
+这里有两种路线：
+
+1. 直接预测
+
+\[
+(H,F^{planned})\rightarrow Y
+\]
+
+2. 显式建执行/交互链
+
+\[
+F^{planned}
+\rightarrow
+F^{actual}
+\rightarrow
+E/I
+\rightarrow
+Y.
+\]
+
+到底哪一个更好，用实验决定。
+
+---
+
+### 第五步：解决 flow → robot action
+
+只有到这里才值得认真做：
+
+\[
+F^{desired}\rightarrow a.
+\]
+
+比如：
+
+\[
+a_t=a_t^{base}+\delta a_t.
+\]
+
+可以先用 Jacobian / optimization：
+
+\[
+\delta q^*
+=
+\arg\min_{\delta q}
+\|J(q)\delta q-\delta F\|^2
++\lambda\|\delta q\|^2.
+\]
+
+不一定非得先训练 execution predictor。
+
+然后验证：
+
+\[
+F^{desired}\approx F^{actual}
+\]
+
+到什么误差范围时，planner 的 Z gain 还能保持。
+
+---
+
+### 第六步：完整 learned rolling planner
+
+这时候系统才真正变成：
+
+\[
+H_t
+\rightarrow
+\{F_t^k\}
+\]
+
+\[
+(H_t,F_t^k)
+\rightarrow
+\hat Y_t^k
+\]
+
+\[
+F_t^*
+=
+\arg\max_k U(\hat Y_t^k)
+\]
+
+\[
+F_t^*\rightarrow a_t
+\]
+
+执行几步得到：
+
+\[
+H_{t+\Delta}
+\]
+
+然后重新规划。
+
+也就是：
+
+\[
+\boxed{
+H_t
+\rightarrow
+F_t^*
+\rightarrow
+a_t
+\rightarrow
+H_{t+\Delta}
+\rightarrow
+F_{t+\Delta}^*
+\rightarrow\cdots
+}
+\]
+
+最后比较：
+
+\[
+Z_{\text{learned planner}}
+\]
+
+和：
+
+\[
+Z_{\text{GT-Y oracle}},\quad Z_{\text{base}}.
+\]
+
+最重要的指标可以定义成：
+
+\[
+R=
+\frac{
+Z_{\text{learned}}-Z_{\text{base}}
+}{
+Z_{\text{GT-Y}}-Z_{\text{base}}
+}.
+\]
+
+这就是 learned system 保留了多少 Oracle 上限。
+
+---
+
+### 最后才是 PPO / distillation
+
+如果 planner 已经证明：
+
+\[
+Z_{\text{planner}}>Z_{\text{base}},
+\]
+
+再考虑：
+
+\[
+\pi_{\text{planner}}
+\rightarrow
+\pi_{\text{student}}.
+\]
+
+或者让 planner 给 PPO：
+
+- teacher action；
+- advantage target；
+- critic target；
+- auxiliary supervision。
+
+这样就不会再回到以前：
+
+> “换一个接法看看 PPO 会不会涨。”
+
+而是明确知道：
+
+\[
+\text{这个 teacher 本身已经能改善 Z}.
+\]
+
+---
+
+所以如果这次 GT-Y→Z 成功，我认为**紧接着的第一件事不是训练 Cm，而是做 Y 的 noise/ranking tolerance**。
+
+它回答一个决定性问题：
+
+\[
+\boxed{
+\text{我们究竟需要一个多好的 Y predictor？}
+}
+\]
+
+有了这个门槛以后，后面每一个模型都有明确的 pass/fail 标准。

@@ -2,7 +2,7 @@
 
 Task for action-conditioned physical consequence E/I and task-relative action
 quality, on the original branch `agent/cm-interaction-oracle`. The execution
-route is paused while ref13 proceeds on this same branch. Task, branch and
+route is paused while ref14_1 proceeds on this same branch. Task, branch and
 experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
@@ -12,7 +12,20 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Current user-directed route (ref13): completed same-prefix Oracle-Y Utility
+Current user-directed route (ref14/ref14_1): real receding-horizon GT-Y oracle
+control from the same actual current state. Preserve shortY/U/seven candidates/Z,
+replan every8steps and measure a contiguous executed mixed path. Fresh cold
+replay rebuilds solver history for every fork; selected future-world states
+are never stitched. Baseline U=1.25 exactly certifies baseline-first choice
+without six extra lookaheads, with missing candidateYs left unknown. Models,
+long-Y, native execution forecasting and PPO remain later gated work.
+[Rolling oracle protocol](docs/experiments/probes/P-20261005-rolling-oracle-control.md).
+Run `tools/run/run_rolling_gt_y.py --run-dir <new-unique-folder> --protocol
+<card> --gpus 6 7 --workers 4`; inspect idleGPU/processes and the fixed resource
+budget first. Add `--smoke` for mixed-action next-state replay engineering.
+No-fit raw audit: `tools/audit/audit_rolling_control.py --run-dir <completed-run>`.
+
+Previously completed route (ref13): same-prefix Oracle-Y Utility
 Gate. Four synchronous cold-replay groups provide32 complete seven-candidate
 prefix panels; baseline repeat and all alternative prefixes pass exactly.
 GPU PhysX/CPU tensor pipeline and frozen policy inference onGPU6.
