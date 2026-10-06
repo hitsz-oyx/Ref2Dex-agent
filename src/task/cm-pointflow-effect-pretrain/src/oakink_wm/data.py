@@ -24,8 +24,11 @@ def relative_effect(anchor_now, object_now, object_future):
     return future @ np.linalg.inv(now)
 
 
-def local_objects(poses, valid, anchor):
-    return np.flatnonzero(valid & (np.linalg.norm(poses[:, :3, 3] - poses[anchor, :3, 3], axis=-1) <= .5))
+def local_objects(poses, valid, anchor, canonical_centers=None):
+    centers = poses[:, :3, 3]
+    if canonical_centers is not None:
+        centers = np.einsum('mij,mj->mi', poses[:, :3, :3], canonical_centers) + centers
+    return np.flatnonzero(valid & (np.linalg.norm(centers - centers[anchor], axis=-1) <= .5))
 
 
 class Windows(Dataset):
@@ -43,14 +46,14 @@ class Windows(Dataset):
         path = self.root / 'processed/sequences' / seq
         meta = json.loads((path / 'meta.json').read_text())
         arrays = {key: np.load(path / (key + '.npy'), mmap_mode='r') for key in
-                  ('hand', 'hand_valid', 'poses', 'pose_valid', 'program', 'near', 'frame_ids')}
+                  ('hand', 'hand_valid', 'poses', 'pose_valid', 'program', 'near', 'frame_ids', 'centers')}
         arrays['objects'] = meta['objects']
         return arrays
 
     @lru_cache(maxsize=256)
     def canonical(self, obj):
         with np.load(self.root / 'processed/canonical' / (obj + '.npz')) as f:
-            return f['points'].copy(), f['normals'].copy(), float(f['radius'])
+            return f['points'].copy(), f['normals'].copy(), float(f['radius']), f['center'].copy()
 
     def __len__(self): return len(self.rows)
 
@@ -61,7 +64,7 @@ class Windows(Dataset):
         hist = np.arange(tick - 3, tick + 1)
         future = np.arange(tick + 1, tick + 25)
         poses = d['poses']
-        selected = local_objects(poses[tick], d['pose_valid'][tick], anchor)
+        selected = local_objects(poses[tick], d['pose_valid'][tick], anchor, d['centers'])
         assert anchor in selected
         assert np.array_equal(d['frame_ids'][np.arange(tick-3, tick+25)], d['frame_ids'][tick] + 4*np.arange(-3, 25))
         assert d['pose_valid'][tick-3:tick+25, selected].all()
@@ -83,7 +86,7 @@ class Windows(Dataset):
         scene_xyz, scene_feat, scene_obj = [], [], []
         pointsets, radius, objfeat = [], [], []
         for slot, objidx in enumerate(selected):
-            p, normal, r = self.canonical(d['objects'][objidx])
+            p, normal, r, center = self.canonical(d['objects'][objidx])
             ph = transform_points(p[None], history[:, slot])
             now = ph[-1]
             n = normal @ current[slot, :3, :3].T
@@ -100,7 +103,7 @@ class Windows(Dataset):
             scene_obj.append(np.full(len(p), slot, np.int64))
             pointsets.append(now)
             radius.append(r)
-            objfeat.append(np.concatenate((current[slot, :3, 3], current[slot, :3, :3].reshape(-1),
+            objfeat.append(np.concatenate((current[slot, :3, :3] @ center + current[slot, :3, 3], current[slot, :3, :3].reshape(-1),
                                            [r, target, slot / 32])))
         hv = (handhist[-1] - handhist[-2]) * 30
         ha = (handhist[-1] - 2 * handhist[-2] + handhist[-3]) * 900

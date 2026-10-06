@@ -53,7 +53,7 @@ def canonical(dataset, obj, out):
     points = chosen[:, 0] * (1-u[:, None]) + chosen[:, 1] * (u*(1-v))[:, None] + chosen[:, 2] * (u*v)[:, None]
     normals = cross[faces] / area[faces, None]
     radius = np.sqrt(np.mean(np.sum((points - points.mean(0))**2, axis=-1)))
-    np.savez_compressed(path, points=points.astype('float32'), normals=normals.astype('float32'), radius=radius, mesh_path=str(matches[0]))
+    np.savez_compressed(path, points=points.astype('float32'), normals=normals.astype('float32'), radius=radius, center=np.asarray(mesh.centroid, 'float32'), mesh_path=str(matches[0]))
 
 
 def process_sequence(root, name, layers, device, reuse):
@@ -88,6 +88,7 @@ def process_sequence(root, name, layers, device, reuse):
     program = np.zeros((n, m), bool)
     near = np.zeros((n, m), bool)
     anchors, jump_count = [], 0
+    centers = np.zeros((m, 3), np.float32)
     for j, obj in enumerate(objects):
         canonical(root / 'dataset', obj, root / 'processed/canonical')
         T = np.full((len(rawids), 4, 4), np.nan)
@@ -108,7 +109,9 @@ def process_sequence(root, name, layers, device, reuse):
         if pm.any(): anchors.append(j)
         program[:, j] = pm
         jump_count += int((jump & edgevalid).sum())
-        with np.load(root / 'processed/canonical' / (obj + '.npz')) as f: points = f['points']
+        with np.load(root / 'processed/canonical' / (obj + '.npz')) as f:
+            points = f['points']
+            centers[j] = f['center']
         for b in range(0, n, 128):
             rt = torch.as_tensor(poses[b:b+128, j, :3, :3], device=device)
             tt = torch.as_tensor(poses[b:b+128, j, :3, 3], device=device)
@@ -128,7 +131,7 @@ def process_sequence(root, name, layers, device, reuse):
             if idp[t+24] != idp[t-3] or hp[t+25] != hp[t-2]: continue
             if not valid[t].any() or not (valid[t-3:t+25] == valid[t]).all(): continue
             if not pose_valid[t, anchor]: continue
-            local = local_objects(poses[t], pose_valid[t], anchor)
+            local = local_objects(poses[t], pose_valid[t], anchor, centers)
             # clean[t-3] includes preceding irrelevant edge; check exact28 frames
             # pose validity and only edges connecting the selected28 frames.
             if not pose_valid[t-3:t+25, local].all(): continue
@@ -141,10 +144,10 @@ def process_sequence(root, name, layers, device, reuse):
             rows.append([anchor, t, category])
     dest.mkdir(parents=True, exist_ok=True)
     for key, value in dict(hand=hand, hand_valid=valid, poses=poses, pose_valid=pose_valid,
-                           program=program, near=near, frame_ids=ids).items(): np.save(dest / (key + '.npy'), value)
+                           program=program, near=near, frame_ids=ids, centers=centers).items(): np.save(dest / (key + '.npy'), value)
     rows = np.asarray(rows, dtype=np.int32).reshape(-1, 3)
     np.save(dest / 'rows.npy', rows)
-    result = dict(sequence=seq, objects=objects, frames=n, windows=len(rows),
+    result = dict(schema='oakink.wm30.geometry-centers.v2', sequence=seq, objects=objects, frames=n, windows=len(rows),
                   strata=np.bincount(rows[:, 2], minlength=3).tolist(), object_jump_steps=jump_count,
                   anchors=anchors, source_sha256=hashlib.sha256((root / 'download' / name).read_bytes()).hexdigest())
     write_json(dest / 'meta.json', result)
@@ -206,7 +209,7 @@ def main():
         np.save(out / ('index_' + split + '.npy'), combined)
         stats[split] = dict(sequences=len(split_sequences[split]), windows=len(combined),
                             strata=np.bincount(combined[:, 3], minlength=3).tolist())
-    manifest = dict(status='COMPLETED', fps=30, horizon=24, history=4, source_fps=120,
+    manifest = dict(schema='oakink.wm30.geometry-centers.v2', status='COMPLETED', fps=30, horizon=24, history=4, source_fps=120,
                     source_revision=download['revision'], sequences=sequence_names, split_sequences=split_sequences,
                     statistics=stats, elapsed_seconds=time.monotonic()-start,
                     script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

@@ -13,7 +13,7 @@ remain masked in right/left11-point slots. Keep observed distant hands.
 Anchor candidates are objects mentioned in program intervals anywhere in that
 sequence. Current program activity informs the interaction stratum, not scene
 features or object inclusion through future labels. Local object selection uses
-current centers only, distance<=0.5m, including anchor. Current normal/velocity,
+current transformed mesh surface centroids only (not annotation-frame origins), distance<=0.5m, including anchor. Current normal/velocity,
 three past displacements, target flag, historical-static flag, point/hand/keypoint
 and local object instance IDs enter H. No future-derived flag enters H.
 

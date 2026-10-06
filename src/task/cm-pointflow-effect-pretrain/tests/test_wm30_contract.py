@@ -33,6 +33,8 @@ def test_one_current_frame_matches_direct_future_points_and_global_invariance():
 def test_local_selection_current_distance_includes_boundary_and_excludes_invalid():
     T = np.stack([pose(), pose(shift=(.5, 0, 0)), pose(shift=(.501, 0, 0)), pose()])
     assert local_objects(T, np.array([1, 1, 1, 0], bool), 0).tolist() == [0, 1]
+    centers = np.zeros((4, 3)); centers[1, 0] = .02; centers[2, 0] = -.02
+    assert local_objects(T, np.array([1, 1, 1, 0], bool), 0, centers).tolist() == [0, 2]
 
 
 def test_rotation6d_is_rigid_and_identity_geodesic_gradient_is_finite():
@@ -58,3 +60,45 @@ def test_shuffle_preserves_entire_donor_chunks_masks_and_hand_groups():
     singleton = {k: v[:1] for k, v in batch.items()}
     _, available = shuffle_action(singleton, 11)
     assert not available.any()  # Must not silently count an unchanged chunk as shuffled.
+
+
+def test_real_gpu_interface_has_no_future_label_leak_and_masks_absent_actions():
+    import os
+    import pytest
+    from oakink_wm.data import Windows, collate
+    from oakink_wm.model import WorldModel, losses
+    root = os.environ.get('WM30_INTERFACE_DATA')
+    if not root or not torch.cuda.is_available():
+        pytest.skip('Set WM30_INTERFACE_DATA for real cached GPU interface contract')
+    dataset = Windows(Path(root), 'train')
+    batch = {k: v.cuda() for k, v in collate([dataset[int(dataset.groups[0][0])], dataset[int(dataset.groups[1][0])]]).items()}
+    torch.manual_seed(9)
+    model = WorldModel().cuda().eval()
+    with torch.no_grad():
+        original = model(batch)
+        class NoLabels(dict):
+            def __getitem__(self, key):
+                if key == 'effect': raise AssertionError('GT effect accessed during forward')
+                return super().__getitem__(key)
+        changed = NoLabels(batch)
+        repeated = model(changed)
+        torch.testing.assert_close(original['translation'], repeated['translation'], rtol=0, atol=1e-6)
+        torch.testing.assert_close(original['rotation'], repeated['rotation'], rtol=0, atol=1e-6)
+        masked = dict(batch)
+        masked['action_valid'] = batch['action_valid'].clone()
+        masked['action_valid'][:, :, 11:] = False
+        base = model(masked)
+        altered = dict(masked)
+        altered['action'] = masked['action'].clone()
+        altered['action'][:, :, 11:] += 1000
+        ignored = model(altered)
+        torch.testing.assert_close(base['translation'], ignored['translation'], rtol=0, atol=1e-6)
+        altered['action'] = batch['action'] + .1
+        changed_action = model(altered)
+        assert not torch.allclose(base['translation'], changed_action['translation'], rtol=0, atol=1e-8)
+    model.train()
+    loss, _ = losses(model(batch), batch)
+    loss.backward()
+    grad = model.action_mlp[0].weight.grad
+    assert torch.isfinite(grad).all() and grad.abs().sum() > 0
+    assert torch.isfinite(model.scene.stem[0].weight.grad).all()
