@@ -43,11 +43,11 @@ class GtAuxPlayer(original.EvalPlayer):
         rms_hash=fingerprint(self.running_mean_std.state_dict())
         assets=ROOT/'third_party/DExplore/dexplore/data/assets'
         bridge=DExploreCmv2GeometryBridge(hand_urdf=assets/'inspire_hand_new/inspire_hand_right.urdf',
-                object_urdf=assets/'mjcf/airplane.urdf',device=device,seed=42)
+                object_urdf=assets/'mjcf/airplane.urdf',device=self.device,seed=42)
         config=ApproachConfig()
         def gap():
-            geo=bridge.current(task._dof_pos,task._target_states)
-            return sampled_surface_gap(geo.hand_points,geo.object_points,config)
+            geo=bridge.current(task._dof_pos.to(self.device),task._target_states.to(self.device))
+            return sampled_surface_gap(geo.hand_points,geo.object_points,config).to(device)
         gap_before=gap();rest=task.hoi_refs[motion,task.ref_index,0,108].clone()
         tracker=HoldTracker(n,device);tracker.reset(ids,task._target_states[:,2])
         completed=torch.zeros(n,dtype=torch.bool,device=device)

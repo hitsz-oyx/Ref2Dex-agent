@@ -195,3 +195,11 @@ Gaussian action hash are EXACT across all four arms. It stops at later reset
 because PPO done_indices live onGPU while task reference tables are CPU.
 Convert only env_reset indices to native task device before delegating; reward,
 actions, reference and epoch contracts unchanged. No optimizer update.
+
+R9 completed at a28cd30 in29.13s: all four first-action input (fullsim/history/
+obs/reference/CPU+CUDA RNG), first requested action and entire32step first
+rollout states/actions/dones/masks EXACT. Independent training audit PASS:
+all e261/2048frames/48updates, source model/RMS/decoder initialization equal,
+B/C actor aux weight-gradient nonzero, D0, critic aux0; A/D entire native model
+and RMS EXACT after optimization. This passes wiring AND pairing. All earlier
+GPU-pipeline smoke comparisons excluded from scientific interpretation.

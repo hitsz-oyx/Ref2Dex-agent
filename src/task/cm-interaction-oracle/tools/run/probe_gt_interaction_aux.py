@@ -126,7 +126,8 @@ def main():
                 '--disable-early-termination','--headless','--sim_device','cuda:0',
                 '--rl_device','cuda:0','--graphics_device_id','0','--pipeline','cpu',
                 '--num_threads','1','--num_envs','96',
-                '--seed','293','--output',str(folder/'results.json')]
+                '--seed','293','--output',str(folder/'results.json'),
+                '--output_path',str(folder/'native')]
             jobs.append((command,a.gpus[i%4],folder))
     paths=[PROTOCOL,Path(__file__),TASK/'src/gt_interaction_aux.py',TASK/'src/dexplore_gt_aux_agent.py',
            TASK/'tools/run/gt_aux_bootstrap.py',CHECKPOINT,SOURCE/'config.json',

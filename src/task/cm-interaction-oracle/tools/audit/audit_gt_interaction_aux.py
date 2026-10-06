@@ -77,7 +77,11 @@ def training_contract(root, smoke=False):
             raise ValueError('wrong auxiliary trunk or RNG')
         if (grad['applied_latent_grad_norm']>0)!=(arm in ('conditioned','shuffle')):
             raise ValueError('wrong applied encoder gradient')
-        raw.append((init['source_model'],init['rms'],init['decoder'],physics))
+        first_input=events('REF2DEX_GT_FIRST_ACTION_INPUT ')[0]
+        first_action=events('REF2DEX_GT_FIRST_ACTION ')[0]
+        first_rollout=events('REF2DEX_GT_FIRST_ROLLOUT ')[0]
+        raw.append((init['source_model'],init['rms'],init['decoder'],physics,
+                    first_input,first_action,first_rollout))
         files=list((root/arm/'train').rglob('GRAB.pth'))
         if len(files)!=1:raise ValueError('checkpoint missing/ambiguous')
         ckpt=torch.load(files[0],map_location='cpu',weights_only=False);checkpoints[arm]=files[0]
@@ -94,6 +98,7 @@ def training_contract(root, smoke=False):
     d=torch.load(checkpoints['stopgrad'],map_location='cpu',weights_only=False)
     # Whole native models and normalizers, not decoder states.
     equal=fingerprint(a['model'])==fingerprint(d['model']) and fingerprint(a['running_mean_std'])==fingerprint(d['running_mean_std'])
+    if not equal:raise ValueError('plain/stopgrad native model or RMS diverged')
     return reports,checkpoints,equal
 
 
