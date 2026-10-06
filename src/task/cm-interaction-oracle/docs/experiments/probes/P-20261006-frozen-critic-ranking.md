@@ -140,3 +140,25 @@ nonrolling RNG semantics as the effective fix, with no relaxed match gate.
 Original failed scores remain excluded; repaired main uses all28fresh candidate
 replays and source90labels, no model fit or extra candidate/resets. Main budget
 passes `--spent-seconds125.09` and uses original remaining1074.91seconds.
+
+
+## Source reward identity correction (no new simulation)
+
+Completed r2 capture/replay is geometrically valid, but its original Q8 label
+used native reward only. Source runconfig.json explicitly trains
+DExploreApproachAgent with native+2approach+10held_lift+5lift_progress, no
+link reward. V-only ranking is unaffected; native-only Q8 is not a source-PPO
+bootstrap and its original result is preserved as that diagnostic, not negative
+evidence for the intended original-reward score. Root found the mismatch from
+score scale, checked source config and reward implementation; independent review
+agrees. No coefficient search or sign flip is allowed.
+
+Repair only scoring from already matched raw rewards and original candidate
+q0/q1..8/object13/contact forces/rest_height. Reproduce exact source bridge seed42,
+ApproachConfig, omitted hand_root convention, force ANY threshold.1,
+held .03m scale, signed progress .003m clamp, float32 reward-addition order.
+Do not add the later physical-value tracker stable bonus. No new PhysX or model
+fit. GPU1 correction<=120s/50MiB, original checkpoint/hash/assets checked;
+new run `frozen-critic-ranking-source-reward-corrected` preserves original r2.
+Primary becomes original PPO reward8+gamma^8V; source-reward-only diagnostic
+also repaired. Independent component/choice/statistical replay before closure.
