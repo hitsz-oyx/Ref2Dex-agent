@@ -47,6 +47,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-execution-geometry](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-execution-geometry.md) | Is nominal execution the missing geometric action contract? | UNPROMISING for the corrected fixed endpoint spatial contract. Original forecast-derived negatives are invalid. | Stop repeated fitting of this total-endpoint spatial contract; retain predictable finger execution and separate common wrist motion in the n | probes/UNPROMISING |
 
+## HF-frozen-critic-ranking
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261006-frozen-critic-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-frozen-critic-ranking.md) | Can frozen PPO critic replace short-Y candidate ranking? | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-geometric-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
