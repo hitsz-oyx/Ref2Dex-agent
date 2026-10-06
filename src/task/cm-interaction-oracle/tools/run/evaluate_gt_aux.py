@@ -119,7 +119,7 @@ class GtAuxPlayer(original.EvalPlayer):
             initial= {k:v.cpu() for k,v in initial.items()},initial_fingerprint=initial_hash,
             gamma=.99,model_fingerprint=model_hash,rms_fingerprint=rms_hash)
         sustained=tracker.stable & ~tracker.drop_after_success
-        result=dict(episodes=n,seed=293,initial_fingerprint=initial_hash,
+        result=dict(episodes=n,seed=int(original.args.seed),initial_fingerprint=initial_hash,
             motion_counts=counts.cpu().tolist(),stable45=int(tracker.stable.sum()),
             drop_after_success=int(tracker.drop_after_success.sum()),
             sustained_success=int(sustained.sum()),legacy5=int(legacy.sum()),

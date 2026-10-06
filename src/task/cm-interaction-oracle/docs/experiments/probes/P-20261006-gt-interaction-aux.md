@@ -215,3 +215,15 @@ Full-episode smoke r2 reaches first native step then detects mixed-device done:
 player returns done on RL GPU while evaluator reward/tracker state use CPU
 native tensors. Explicitly move done to native task device for physical
 statistics; actor and geometry remain GPU. No completed scientific evaluation.
+
+Final smoke r10 atf091625 completes28.41s, preserving exact first action/input/
+rollout pairing; independent training audit PASS and A/D native model+RMS EXACT.
+First native rollout now archives before/after/actions/dones/GT/mask and original
+reward components/gaps/rest height for independent no-simulation reward replay.
+Full actor-only episode smoke r3 atcb4a98f completes96episodes(32per motion),
+487–652ticks, first frame0,87.69s native/103.06s process. All complete GT/MC
+rows and tracker outcomes saved. Initial result seed field was hardcoded293
+although smoke CLIseed42; seed_correction.json preserves the original and
+records42; final evaluator reads actual CLI seed. Production seed remains293.
+Engineering stage elapsed accounting is retained in all manifests; science
+results exclude smoke metrics.117Task tests pass,1skip.
