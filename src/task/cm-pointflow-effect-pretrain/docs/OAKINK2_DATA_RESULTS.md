@@ -3,7 +3,7 @@
 Engineering audit completed; annotation-only OakInk2 supports the requested
 bimanual semantic-hand/SE(3)-effect data extraction. Predictor learnability,
 causal action utility and policy transfer remain untested. No pretraining/PPO
-has started. [Frozen protocol](OAKINK2_DATA_PREFLIGHT.md), user [ref2](ref/ref2.md).
+has started. [Frozen protocol](OAKINK2_DATA_PREFLIGHT.md), user [ref2](user/ref/ref2.md).
 
 ## Identity and resources
 

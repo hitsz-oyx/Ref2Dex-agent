@@ -6,6 +6,7 @@ import json
 import math
 import os
 import random
+import signal
 import subprocess
 import sys
 import time
@@ -93,6 +94,8 @@ def save_checkpoint(path, model, optimizer, step, config, dataset_hash, best, id
 
 
 def run(args):
+    stop_requested = [False]
+    signal.signal(signal.SIGUSR1, lambda signum, frame: stop_requested.__setitem__(0, True))
     config = json.loads(args.config.read_text())
     if args.steps is not None: config['updates'] = args.steps
     if args.smoke:
@@ -114,8 +117,10 @@ def run(args):
     identity = dict(git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                     dataset_hash=dataset_hash, config_hash=digest(config_path), arm=args.arm, smoke=args.smoke,
                     parameters=sum(p.numel() for p in model.parameters()), device=os.environ.get('CUDA_VISIBLE_DEVICES', ''),
-                    script_sha256=digest(Path(__file__)), architecture_sha256=digest(TASK / 'docs/user/架构.md'))
+                    script_sha256=digest(Path(__file__)), model_sha256=digest(TASK / 'src/oakink_wm/model.py'),
+                    data_sha256=digest(TASK / 'src/oakink_wm/data.py'), architecture_sha256=digest(TASK / 'docs/user/架构.md'))
     atomic_json(out / 'input_manifest.json', identity)
+    initial_hash = hashlib.sha256(b''.join(p.detach().cpu().numpy().tobytes() for p in model.parameters())).hexdigest()
     step, best = 0, float('inf')
     if args.resume:
         state = torch.load(args.resume, map_location='cuda', weights_only=False)
@@ -125,7 +130,6 @@ def run(args):
         step, best = state['step'], state['best']
         torch.set_rng_state(state['torch_rng'].cpu()); torch.cuda.set_rng_state(state['cuda_rng'].cpu())
         np.random.set_state(state['numpy_rng']); random.setstate(state['python_rng'])
-    initial_hash = hashlib.sha256(b''.join(p.detach().cpu().numpy().tobytes() for p in model.parameters())).hexdigest()
     identity['initial_parameter_sha256'] = initial_hash
     atomic_json(out / 'input_manifest.json', identity)
     effective = config['microbatch'] * config['accumulation']
@@ -140,7 +144,7 @@ def run(args):
     optimizer.zero_grad(set_to_none=True)
     trainlog = (out / 'train.jsonl').open('a')
     try:
-        while step < config['updates'] and time.time() < deadline:
+        while step < config['updates'] and time.time() < deadline and not stop_requested[0]:
             update_start = time.monotonic()
             if step < config['warmup_updates']: scale = (step+1) / config['warmup_updates']
             else: scale = .1 + .9 * .5 * (1 + math.cos(math.pi * (step-config['warmup_updates']) / max(1, config['updates']-config['warmup_updates'])))
@@ -164,7 +168,7 @@ def run(args):
             trainlog.write(json.dumps(row)+'\n'); trainlog.flush()
             if step == 1 or step % 20 == 0 or args.smoke: print(json.dumps(row), flush=True)
             atomic_json(out / 'progress.json', dict(status='RUNNING', **row))
-            if step % config['validation_interval'] == 0 or step == config['updates']:
+            if (step % config['validation_interval'] == 0 or step == config['updates']) and time.time() < deadline and not stop_requested[0]:
                 measured = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'])
                 score = measured['model/cat0/h24/point_epe']
                 atomic_json(out / 'validation_latest.json', dict(step=step, metrics=measured))
@@ -176,11 +180,15 @@ def run(args):
         save_checkpoint(out / 'latest.pt', model, optimizer, step, config, dataset_hash, best, identity)
         save_checkpoint(out / 'final.pt', model, optimizer, step, config, dataset_hash, best, identity)
         final = dict(status='COMPLETED' if step == config['updates'] else 'BUDGET_STOP', step=step,
-                     elapsed_seconds=time.time()-start, best_moving_h24_epe=best,
-                     natural=evaluate(model, val, natural, args.arm, config['microbatch'], config['amp']),
-                     balanced=evaluate(model, val, validation, args.arm, config['microbatch'], config['amp']))
-        if args.arm == 'action':
-            final['validation_shuffle'] = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'], True)
+                     elapsed_seconds=time.time()-start,
+                     best_moving_h24_epe=best if math.isfinite(best) else None)
+        if time.time() < deadline and not stop_requested[0]:
+            final['natural'] = evaluate(model, val, natural, args.arm, config['microbatch'], config['amp'])
+            final['balanced'] = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'])
+            if args.arm == 'action':
+                final['validation_shuffle'] = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'], True)
+        else:
+            final['metrics_deferred_due_budget'] = True
         if args.smoke:
             state = torch.load(out / 'final.pt', map_location='cpu', weights_only=False)
             for key, value in model.state_dict().items():
