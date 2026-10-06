@@ -98,6 +98,14 @@ def main():
                                identity=identity, exit_codes=codes, steps=steps,
                                matched_updates=len(set(steps.values())) == 1, deadline=deadline))
         return 0 if all(c == 0 for c in codes.values()) else 1
+    except BaseException:
+        for proc in procs.values():
+            if proc.poll() is None: os.kill(proc.pid, signal.SIGUSR1)
+        for proc in procs.values():
+            if proc.poll() is None:
+                try: proc.wait(timeout=120)
+                except subprocess.TimeoutExpired: os.killpg(proc.pid, signal.SIGTERM)
+        raise
     finally:
         for log in logs: log.close()
 
