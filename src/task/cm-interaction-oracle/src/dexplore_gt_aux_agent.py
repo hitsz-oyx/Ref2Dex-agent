@@ -7,6 +7,10 @@ from rl_games.common import a2c_common
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 from src.task.CmResidual.physical_value_contract import private_initialization
 from src.task.CmResidual.paired_evaluation import fingerprint
+from oracle_y_utility import align_native_reference_tables
+from learning.dexplore_agent import DexploreAgent
+from src.task.CmResidual.dexplore_approach import sampled_surface_gap, potential_approach_reward
+from src.task.CmResidual.dexplore_grasp_reward import held_lift_reward, contact_lift_progress_reward
 from gt_interaction_aux import (InteractionDecoder, physical_state, rollout_targets,
                                 auxiliary_rows, normalized_executed_action)
 import learning.common_agent as common_agent
@@ -15,6 +19,7 @@ import learning.common_agent as common_agent
 class DExploreGtAuxAgent(DExploreApproachAgent):
     def __init__(self, base_name, params):
         super().__init__(base_name, params)
+        align_native_reference_tables(self._cm_task())
         self.gt_arm = os.environ['REF2DEX_GT_AUX_ARM']
         self.gt_coef = 0.0 if self.gt_arm == 'plain' else .05
         self.gt_decoder = None
@@ -66,7 +71,28 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
     def env_step(self, actions):
         task = self._cm_task()
         before = physical_state(task).to(self.ppo_device) if self._capture_rollout else None
-        result = super().env_step(actions)
+        # Native GPU PhysX with reproducible CPU tensors; keep model/geometry GPU.
+        q=task._dof_pos.to(self.ppo_device)
+        obj=task._target_states.to(self.ppo_device)
+        geo=self.approach_bridge.current(q,obj)
+        gap0=sampled_surface_gap(geo.hand_points,geo.object_points,self.approach_config)
+        z0=obj[:,2].clone()
+        result = DexploreAgent.env_step(self,actions)
+        obs,reward,done,info=result
+        q=task._dof_pos.to(self.ppo_device)
+        obj=task._target_states.to(self.ppo_device)
+        geo=self.approach_bridge.current(q,obj)
+        gap1=sampled_surface_gap(geo.hand_points,geo.object_points,self.approach_config)
+        pair=((task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)&
+              (task._tar_contact_forces.norm(dim=-1)>.1)).to(self.ppo_device)
+        rest=task.hoi_refs[task.data_id,task.ref_index,0,108].to(self.ppo_device)
+        reward=reward+2*potential_approach_reward(gap0,gap1,done.bool(),gamma=self.gamma,
+                    config=self.approach_config)[:,None]
+        reward=reward+torch.zeros_like(reward)
+        reward=reward+10*held_lift_reward(obj[:,2],rest,pair,torch.ones_like(pair))[:,None]
+        reward=reward+5*contact_lift_progress_reward(z0,obj[:,2],pair,torch.ones_like(pair),
+                                                   done.bool())[:,None]
+        result=(obs,reward,done,info)
         if self._capture_rollout:
             after = physical_state(task).to(self.ppo_device)
             executed = normalized_executed_action(task.actions).to(self.ppo_device)

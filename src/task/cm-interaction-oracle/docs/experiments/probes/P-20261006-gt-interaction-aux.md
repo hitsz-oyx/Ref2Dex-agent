@@ -160,3 +160,13 @@ processes (alternative GPU solver variability). Disable the official compile
 option uniformly, retain all study variables and use first-rollout hashes as
 a sharper paired smoke gate before scientific training. Cost charged to same
 600s smoke cap; no scientific method conclusion from these checks.
+
+R5 eager smoke completes in31.16s but first-rollout states/actions/dones hashes
+still differ across arms before optimization; disabling compile does not remove
+the problem. Therefore use already validated native GPU PhysX/CPU tensor
+pipeline, one PhysX CPU thread, aligned immutable reference tables, GPU
+actor/decoder/geometry. This is a uniform simulator execution-contract repair
+for reproducible pairing, not an auxiliary variable. Source2/10/5 formula
+explicitly moves physical arguments to GPU before computing identical bonuses;
+no source tracker/drop shaping. Evaluate under the same tensor pipeline. Check
+all four first-rollout hashes and A/D final native weights/RMS before main.

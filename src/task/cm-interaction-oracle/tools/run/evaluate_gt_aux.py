@@ -10,6 +10,7 @@ sys.path[:0]=[str(ROOT),str(ROOT/'third_party/DExplore/dexplore'),
 from isaacgym import gymtorch
 import torch
 import evaluate as original
+from oracle_y_utility import align_native_reference_tables
 from gt_interaction_aux import physical_state, normalized_executed_action, rollout_targets
 from src.task.CmResidual.paired_evaluation import fingerprint
 from src.task.CmResidual.physical_value_contract import HoldTracker
@@ -23,6 +24,7 @@ class GtAuxPlayer(original.EvalPlayer):
     def run(self):
         start=time.monotonic();torch.set_num_threads(2)
         task=self.env.task;device=task.device
+        align_native_reference_tables(task)
         task._enable_early_termination=False;task._adaptive_kappa_enabled=False
         task._hybrid_init_prob=1.0
         n=task.num_envs;ids=torch.arange(n,device=device);empty=ids[:0]

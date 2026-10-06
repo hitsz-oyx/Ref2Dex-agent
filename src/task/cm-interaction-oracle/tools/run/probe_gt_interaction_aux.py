@@ -86,7 +86,8 @@ def training(root,gpus,smoke):
                  '--task','Dexplore_Inspire','--cfg_env','dexplore/data/cfg/inspire.yaml',
                  '--cfg_train',str(traincfg),'--motion_file',str(MOTIONS.resolve()),
                  '--output_path',str(folder/'train'),'--headless','--sim_device','cuda:0',
-                 '--rl_device','cuda:0','--graphics_device_id','0','--num_envs','64',
+                 '--rl_device','cuda:0','--graphics_device_id','0','--pipeline','cpu',
+                 '--num_threads','1','--num_envs','64',
                  '--horizon_length','32','--minibatch_size','256',
                  '--max_iterations',str(end),'--seed',str(seed),'--horovod','--resume','1',
                  '--checkpoint',str(CHECKPOINT.resolve())]
@@ -123,7 +124,8 @@ def main():
                 '--cfg_train','dexplore/data/cfg/train/rlg/inspire.yaml',
                 '--motion_file',str(MOTIONS.resolve()),'--checkpoint',str(checkpoint.resolve()),
                 '--disable-early-termination','--headless','--sim_device','cuda:0',
-                '--rl_device','cuda:0','--graphics_device_id','0','--num_envs','96',
+                '--rl_device','cuda:0','--graphics_device_id','0','--pipeline','cpu',
+                '--num_threads','1','--num_envs','96',
                 '--seed','293','--output',str(folder/'results.json')]
             jobs.append((command,a.gpus[i%4],folder))
     paths=[PROTOCOL,Path(__file__),TASK/'src/gt_interaction_aux.py',TASK/'src/dexplore_gt_aux_agent.py',
