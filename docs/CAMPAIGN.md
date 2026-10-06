@@ -141,3 +141,8 @@ rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改�
 比较Q8=sum discountedreward+gamma^8V与原GT-Y，零模型/策略训练。先在已有
 32anchor七候选的同前缀Z上作offline mosaic screen；不把它写成真实rolling收益。
 正向才另行冻结真实rolling critic Probe；预算与范围见Task-local实验卡。
+
+2026-10-06用户ref15授权新的training-only GT interaction auxiliary PPO Probe，
+替代该路线的PPO暂停：h8真实rollout监督actor z，普通/条件/shuffle/stopgrad四臂，
+source_e260恢复，保持原奖励与actor推理结构。单seed短训练、同z独立return诊断及
+完整episode评价，资源预算与停止条件见Task卡P-20261006-gt-interaction-aux。

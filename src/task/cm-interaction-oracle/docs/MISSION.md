@@ -51,3 +51,10 @@ rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改�
 比较Q8=sum discountedreward+gamma^8V与原GT-Y，零模型/策略训练。先在已有
 32anchor七候选的同前缀Z上作offline mosaic screen；不把它写成真实rolling收益。
 正向才另行冻结真实rolling critic Probe；预算与范围见Task-local实验卡。
+
+用户ref15将近期路线改为training-only GT interaction supervision：先检验真实
+动作条件未来监督是否使actor z的决策信息与PPO策略成功同时改善，GT不进入推理。
+允许有界matched PPO普通/条件/shuffle/stopgrad Probe；固定h8，不再fork候选或
+以未来辅助loss下降替代策略收益。当前实现保留native separate critic，同z的
+value检查为独立固定池readout；不称为shared-critic PPO。正式任务utility仍需
+matched训练策略验证，方法与边界见P-20261006-gt-interaction-aux实验卡。

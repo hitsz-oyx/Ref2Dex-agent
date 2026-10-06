@@ -66,6 +66,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-gt-consequence-sufficiency](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-gt-consequence-sufficiency.md) | Do GT physical consequences preserve task-relevant action information? | GT prognosis PROMISING (46.25% primary error gain); held-arm EI bridge positive; full sufficiency UNCLEAR because remaining-action uncertain | Preserve task-relevant E/I evidence and qualify the next conditional-predictability question; no claim of identified sufficiency, online sel | probes/UNCLEAR |
 
+## HF-gt-interaction-aux
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-hold-duration-response
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
