@@ -33,7 +33,7 @@ def main():
                   rotation_steps_over_02rad=0)
     arms = {k: {"windows": 0, "moving": 0} for k in
             ("all", "program", "near", "program_and_near", "program_or_near")}
-    sequences = []
+    sequences, anomalies = [], []
     for trial in result["trials"]:
         seq = trial["sequence"]
         with np.load(root / "audit/sequences" / (seq + ".npz")) as data:
@@ -64,6 +64,15 @@ def main():
             rotation_steps.append(angle)
             totals["object_steps_over_5cm"] += int((shift > .05).sum())
             totals["rotation_steps_over_02rad"] += int((angle > .2).sum())
+            jump_indices = np.flatnonzero(adjacent)[(shift > .05) | (angle > .2)]
+            if len(jump_indices):
+                crossing = np.zeros(len(good), dtype=bool)
+                for tick in jump_indices:
+                    crossing[max(0, tick - 7):min(len(good), tick + 1)] = True
+                anomalies.append(dict(sequence=seq, object=obj["object"],
+                                      frame_pairs=[[int(ids[t]), int(ids[t+1])] for t in jump_indices],
+                                      affected_valid_windows=int((crossing & good).sum()),
+                                      affected_program_windows=int((crossing & program).sum())))
             displacement = np.linalg.norm(T[8:, :3, 3] - T[:-8, :3, 3], axis=-1)
             relative = T[8:, :3, :3] @ T[:-8, :3, :3].transpose(0, 2, 1)
             h8angle = np.arccos(np.clip((np.trace(relative, axis1=1, axis2=2) - 1) / 2, -1, 1))
@@ -86,10 +95,10 @@ def main():
                   adjacent_object_translation_m=distribution(object_steps),
                   adjacent_object_rotation_rad=distribution(rotation_steps),
                   sequences_with_interaction_motion=sum(s["interaction_moving_windows"] > 0 for s in sequences),
-                  sequences=sequences,
+                  sequences=sequences, object_jump_locations=anomalies,
                   limitation="Jump thresholds are diagnostics, not validated rejection rules. Overlapping windows are not independent samples.")
     (root / "audit/continuity.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
-    print(json.dumps({k: v for k, v in report.items() if k != "sequences"}, indent=2))
+    print(json.dumps({k: v for k, v in report.items() if k not in ("sequences", "object_jump_locations")}, indent=2))
 
 
 if __name__ == "__main__":
