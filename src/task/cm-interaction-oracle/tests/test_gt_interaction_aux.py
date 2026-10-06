@@ -56,3 +56,12 @@ def test_compiled_joint_graph_materializes_unused_branch_as_zero():
         (model.actor.weight,model.critic.weight),allow_unused=True)
     assert ag.norm()>0
     assert cg is None or cg.norm()==0
+
+
+def test_shuffle_never_uses_invalid_cross_reset_donor():
+    from gt_interaction_aux import shuffle_valid_chunks
+    chunks=torch.arange(5).float()[None,:,None,None].expand(2,5,8,18).clone()
+    mask=torch.tensor([1,0,1,0,1])[None,:,None].expand(2,-1,-1)
+    result=shuffle_valid_chunks(chunks,mask)
+    assert result[0,:,0,0].tolist()==[4,1,0,3,2]
+    assert torch.equal(result[:,[1,3]],chunks[:,[1,3]])

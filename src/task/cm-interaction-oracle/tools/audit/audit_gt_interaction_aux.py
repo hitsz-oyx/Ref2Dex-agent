@@ -12,7 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 ROOT=Path(__file__).resolve().parents[5]
 sys.path[:0]=[str(ROOT),str(ROOT/'src/task/cm-interaction-oracle/src')]
-from gt_interaction_aux import InteractionDecoder, rollout_targets
+from gt_interaction_aux import InteractionDecoder, rollout_targets, shuffle_valid_chunks
 from critic_ranking import FrozenCritic
 from src.task.CmResidual.paired_evaluation import fingerprint
 
@@ -129,7 +129,7 @@ def main():
     readouts={};arrays={};future={};critic={}
     initial_decoder=None
     # Common held-out actual chunks, then same-time env-rotated chunks.
-    full_shuffled=pool['action_chunks'].roll(1,dims=1).reshape(-1,8,18)[mask].to(a.device)
+    full_shuffled=shuffle_valid_chunks(pool['action_chunks'],pool['target_mask']).reshape(-1,8,18)[mask].to(a.device)
     for arm in ARMS:
         ckpt=torch.load(checkpoints[arm],map_location='cpu',weights_only=False)
         encoder=Latent(ckpt).to(a.device)
@@ -146,7 +146,7 @@ def main():
         model_v=FrozenCritic(ckpt).to(a.device)
         vv=torch.cat([model_v(x) for x in raw.split(512)])
         critic[arm]=dict(source_policy_mc_mse=float((vv[test]-returns[test]).square().mean()),
-                         policy_mismatch=True)
+                         policy_mismatch=True,terminal_truncation_target_mismatch=True)
         arrays[arm+'_critic']=vv.cpu().numpy()
         if arm=='plain':initial_decoder=ckpt['gt_interaction_decoder']
     # B's same z but initial source decoder is a separate before-learning diagnostic.
@@ -167,6 +167,7 @@ def main():
                  results['conditioned']['stable45']>=results[arm]['stable45'] for arm in ('plain','shuffle','stopgrad'))
     positive=positive and all(readouts['conditioned']['mse'][0]<=.95*readouts[arm]['mse'][0] for arm in ('plain','shuffle'))
     learned=future['conditioned']['heldout_smooth_l1']<=.95*initial_loss
+    positive=positive and learned
     result=dict(status='PROMISING' if positive else ('UNPROMISING' if learned else 'UNCLEAR'),
         training=reports,plain_stopgrad_native_model_rms_exact=ad_equal,
         evaluation={k:{kk:vv for kk,vv in v.items() if kk!='per_episode'} for k,v in results.items()},
@@ -175,7 +176,7 @@ def main():
             pool_sha256=sha(poolpath),initial_decoder_gt_loss=initial_loss),
         latent_readouts=readouts,gt_future=future,native_critic_mc=critic,
         learned=learned,elapsed_seconds=time.monotonic()-start,
-        scope='Single-seed bounded PPO Probe; actor-only independent episodes. Latent readout targets source-policy MC, not current PPO advantage.')
+        scope='Single-seed bounded PPO Probe. Latent readout targets finite source-policy episode MC, not current PPO advantage; native critic also has timeout bootstrap target mismatch.')
     arrays.update(targets=y.cpu().numpy(),train=train.cpu().numpy(),test=test.cpu().numpy(),env_id=envs.numpy(),gt=target.cpu().numpy(),valid=valid.cpu().numpy())
     np.savez_compressed(root/'readouts.npz',**arrays)
     (root/'result.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')

@@ -77,3 +77,12 @@ def auxiliary_rows(prediction, target, mask):
     rows = F.smooth_l1_loss(prediction, target, reduction='none').mean(-1)
     weights = mask.squeeze(-1)
     return rows * weights / weights.mean().clamp_min(1e-6)
+
+
+def shuffle_valid_chunks(chunks,mask):
+    """Cycle whole chunks among valid donors at the same clock; no RNG draws."""
+    result=chunks.clone()
+    for tick in range(len(chunks)):
+        ids=mask[tick,:,0].bool().nonzero().flatten()
+        if len(ids)>1:result[tick,ids]=chunks[tick,ids.roll(1)]
+    return result

@@ -34,13 +34,13 @@ architecture and source reward/optimizer identity rather than introducing a new
 actor architecture. Shared z is existing actor512 latent shared with auxiliary;
 native PPO critic remains a separate trunk. Same-z value diagnostic is a frozen
 readout on a common source-policy pool, NOT shared-critic PPO or a claim about
-current policy advantage accuracy. Source-policy MC vs trained critic is
-policy-mismatched and reported only as a separate diagnostic.
+current policy advantage accuracy. Source-policy finite-episode MC vs trained critic is
+policy-mismatched and truncates timeouts where PPO bootstraps and reported only as a separate diagnostic.
 
 ## Frozen four-arm contract
 
 A plain PPO(lambda0); B conditioned GT auxiliary(lambda.05); C same auxiliary
-with whole action chunks rotated between environments at identical rollout
+with whole action chunks cycled between valid same-episode windows at identical rollout
 clock; D same B with z detached from auxiliary. All four construct identical
 512+144→128→19 decoder in private CPU RNG context, without altering CPU/CUDA
 rollout RNG. Decoders do not enter actor inference/model state_dict. D trains
@@ -62,8 +62,8 @@ Targets/action chunks/masks aligned through env-major flatten and PPO dataset;
 chunks use task.actions after actual step, invert its in-place finger [0,1] mapping
 back to normalized requests, checked against clipped Gaussian
 request, not actor mu or unclipped PPO sample. No reset/rollout stitching.
-C retains H/GT/masks and action marginals, rotates entire8×18chunks by one
-between envs per rollout; mapping reused for all six mini-epochs, no RNG draws.
+C retains H/GT/masks and action marginals, cycles entire8×18chunks by one
+between valid envs per rollout; no invalid/cross-reset donor is used; mapping reused for all six mini-epochs, no RNG draws.
 Feedback chunks are post-treatment; prediction quality does not prove causal
 counterfactual understanding. B>C alone also cannot rule out shuffle label noise.
 
@@ -100,7 +100,7 @@ fitting on evaluation pool. Complete pool and protocol frozen before comparison.
 
 PROMISING only if B primary sustained success≥A/C/D+3episodes, B stable45≥each,
 and same-z heldout MC readout MSE improves≥5% vs A and C, with valid nonzero
-encoder intervention. Otherwise UNPROMISING for this fixed recipe if training
+encoder intervention and the ≥5%heldout GT-learning gate below. Otherwise UNPROMISING for this fixed recipe if training
 and auxiliary have demonstrably learned (heldout B GT loss below its source
 initial decoder, ≥5%); UNCLEAR if short training/coverage/diagnostics cannot
 distinguish hypotheses. This is route screening, not global Cm refutation.
@@ -170,3 +170,14 @@ for reproducible pairing, not an auxiliary variable. Source2/10/5 formula
 explicitly moves physical arguments to GPU before computing identical bonuses;
 no source tracker/drop shaping. Evaluate under the same tensor pipeline. Check
 all four first-rollout hashes and A/D final native weights/RMS before main.
+
+R6 stops during initial training reset before source restore: task native loader
+keeps reference tables onGPU even with CPU tensor pipeline. Align immutable
+tables before native reset, including constructor reset, using a process-local
+wrapper around the existing initializer. Engine-owned buffers are not moved.
+Move info terminate to PPO device as an adapter. All original outputs retained.
+Independent design review also identified invalid donor windows in naive C.roll;
+final C only cycles among valid windows at identical time, preserving conditional
+action marginals and no reset-crossing donors. Fixed before scientific launch.
+Complete-MC diagnostic is finite-episode, timeout-truncated; PPO critic uses
+bootstrapping at timeout. Report this target mismatch, do not infer critic bias.

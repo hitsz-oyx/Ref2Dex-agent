@@ -12,7 +12,7 @@ from learning.dexplore_agent import DexploreAgent
 from src.task.CmResidual.dexplore_approach import sampled_surface_gap, potential_approach_reward
 from src.task.CmResidual.dexplore_grasp_reward import held_lift_reward, contact_lift_progress_reward
 from gt_interaction_aux import (InteractionDecoder, physical_state, rollout_targets,
-                                auxiliary_rows, normalized_executed_action)
+                                auxiliary_rows, normalized_executed_action, shuffle_valid_chunks)
 import learning.common_agent as common_agent
 
 
@@ -68,6 +68,20 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         return weights
 
     @torch.no_grad()
+    def get_action_values(self,obs_dict,rand_action_probs):
+        if not hasattr(self,'_first_action_logged'):
+            task=self._cm_task()
+            initial=dict(obs=obs_dict['obs'],root=task._root_states,dof=task._dof_state,
+                history=task._hist_obs,reference=task.hoi_data,
+                cpu_rng=torch.get_rng_state(),cuda_rng=torch.cuda.get_rng_state())
+            print('REF2DEX_GT_FIRST_ACTION_INPUT '+json.dumps(dict(hash=fingerprint(initial))),flush=True)
+            result=super().get_action_values(obs_dict,rand_action_probs)
+            print('REF2DEX_GT_FIRST_ACTION '+json.dumps(dict(hash=fingerprint(result['actions']))),flush=True)
+            self._first_action_logged=True
+            return result
+        return super().get_action_values(obs_dict,rand_action_probs)
+
+    @torch.no_grad()
     def env_step(self, actions):
         task = self._cm_task()
         before = physical_state(task).to(self.ppo_device) if self._capture_rollout else None
@@ -79,6 +93,8 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         z0=obj[:,2].clone()
         result = DexploreAgent.env_step(self,actions)
         obs,reward,done,info=result
+        info=dict(info)
+        if "terminate" in info:info["terminate"]=info["terminate"].to(self.ppo_device)
         q=task._dof_pos.to(self.ppo_device)
         obj=task._target_states.to(self.ppo_device)
         geo=self.approach_bridge.current(q,obj)
@@ -127,7 +143,7 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         if self.gt_arm == 'shuffle':
             # Whole chunks rotated between environments at the same rollout time;
             # no additional RNG draws; H and target remain aligned.
-            chunks = chunks.roll(1, dims=1)
+            chunks = shuffle_valid_chunks(chunks,mask)
         for key, value in (('gt_target',target),('gt_chunk',chunks),('gt_mask',mask)):
             batch[key] = a2c_common.swap_and_flatten01(value)
         self._rollout_records = []
