@@ -135,3 +135,10 @@ without changing actual actions, PPO likelihoods or labels. All failed outputs
 retained. Also explicitly choose ref14's three canonical motions for all arms;
 first smoke used the one-motion source training root and supplies no scientific
 comparison. New smoke uses the final three-motion contract.
+
+Second smoke at701aa32 captures correct actual actions, then stops on the first
+reset: wrapping live env_step in inference_mode turned mutable history into an
+inference tensor, incompatible with later native reset. Use no_grad instead
+(the original rollout semantics); no label/score/architecture change. Neither
+failed smoke reaches PPO optimization, outputs retained and costs charged to
+600s engineering cap.

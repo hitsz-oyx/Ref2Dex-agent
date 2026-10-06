@@ -62,7 +62,7 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
             weights['gt_interaction_arm'] = self.gt_arm
         return weights
 
-    @torch.inference_mode()
+    @torch.no_grad()
     def env_step(self, actions):
         task = self._cm_task()
         before = physical_state(task).to(self.ppo_device) if self._capture_rollout else None
