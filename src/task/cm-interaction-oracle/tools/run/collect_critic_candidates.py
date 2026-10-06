@@ -31,7 +31,8 @@ class CriticCandidatePlayer(original.CandidatePlayer):
         self.critic_v8 = torch.full((n,),float('nan'))
         if self.normalize_value:
             raise ValueError('source_e260 contract requires normalize_value=false')
-        if float(self.config['gamma']) != .99 or self.config['reward_shaper']['scale_value'] != 1:
+        shaper = self.config['reward_shaper']
+        if float(self.config['gamma']) != .99 or shaper.scale_value != 1 or shaper.shift_value != 0 or shaper.log_val or shaper.min_val != -float('inf') or shaper.max_val != float('inf'):
             raise ValueError('PPO gamma/reward units drift')
         super().run()
         folder = args.run_dir
