@@ -44,3 +44,10 @@ predictor阶段：保持Y/U，比较Direct、严格source-OOF E/I bottleneck与H
 按anchor隔离并检查shuffle；actualflow仍是事后oracle。离线gate未过不得进入
 rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改变Mission claim，
 不重开execution、desiredflow、PPO/critic/reward，也不外推为E/I无效。
+
+
+2026-10-06用户明确授权source_e260 frozen PPO critic candidate ranking诊断，
+本项替代此前critic实验暂停：固定GT future observation与native PPO reward，
+比较Q8=sum discountedreward+gamma^8V与原GT-Y，零模型/策略训练。先在已有
+32anchor七候选的同前缀Z上作offline mosaic screen；不把它写成真实rolling收益。
+正向才另行冻结真实rolling critic Probe；预算与范围见Task-local实验卡。

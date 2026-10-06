@@ -86,7 +86,7 @@ no sign flip, coeff search, new critic fitting or frozen-score retuning.
 ## Resource and stop boundaries
 
 SameGPU PhysX/CPU tensor pipeline, GPU actor/critic. Smoke onebaseline group:
-<=240s/0.25GiB; main<=1200s/2GiB, two idleGPU0/1, one worker perGPU,2concurrent.
+<=240s/0.25GiB; main<=1200s/2GiB, two idleGPU1/2, one worker perGPU,2concurrent.
 Each worker180s internal/240s process cap. Saved-weight audit<=120s GPU.
 Preflight freeGPU/disk; existing outputs/checkpoints remain immutable. New output
 `outputs/cm-interaction-oracle/frozen-critic-ranking-source-e260/`; fixedcode
@@ -100,3 +100,14 @@ counts. Exact candidate replay is not a real composed selector-policy run.
 Even a positive screen needs fresh same-current-state rolling critic execution
 vs matched baseline/GT-Y before replacement claims. Prospective Cm→predicted
 state→V and final matched trained-policy Cm-on/off remain separate questions.
+
+## Engineering smoke and frozen main choice
+
+Smoke r3 at42c5731 passes:7anchor first synchronous group, currentH/history,
+first8actions/PD and physical32/q/tips/base all EXACT against old baseline;
+height/pair/valid32 EXACT; live and independent checkpoint critic error0.
+Elapsed28.69s. Earlier startup failures retained in smoke/r2 folders (relative
+worker path and reward-shaper object API), repaired before physics/scientific
+results; not negative method evidence. Combined smoke elapsed<240s.
+GPU0 now belongs to another process; main uses idleGPU1/2, one worker each.
+112Task tests pass,1skip. Main code/config/protocol hashes fixed before launch.
