@@ -126,7 +126,7 @@ class GtAuxPlayer(original.EvalPlayer):
             inference='actor-only, no GT or decoder',elapsed_seconds=time.monotonic()-start,
             per_episode=[dict(env_id=i,motion=int(motion[i]),start=0,steps=int(lengths[i]),
                  stable45=bool(tracker.stable[i]),drop=bool(tracker.drop_after_success[i]),
-                 sustained=bool(sustained[i]),legacy5=bool(legacy[i]),max_run=int(tracker.max_run[i]*30))
+                 sustained=bool(sustained[i]),legacy5=bool(legacy[i]),max_run=int(round(float(tracker.max_run[i]*30))))
                  for i in range(n)])
         if fingerprint(self.model.state_dict())!=model_hash or fingerprint(self.running_mean_std.state_dict())!=rms_hash:
             raise ValueError('actor/RMS changed during evaluation')
