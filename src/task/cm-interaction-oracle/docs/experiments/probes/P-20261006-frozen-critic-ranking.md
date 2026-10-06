@@ -131,3 +131,12 @@ Prior125.09seconds charged to original1200main cap, leaving1074.91seconds;
 engineering attempts stay within shared240second smoke cap. No score, candidate,
 label or checkpoint changes. Independent review of repaired outputs precedes
 method interpretation. Model/optimizer source and PPO reward remain unchanged.
+
+
+Regression `frozen-critic-ranking-grip-regression` atd8ead1e completes37.26s:
+same failing candidate5/group0/GPU2, entire physical32/q/tips/base/action/currentH
+EXACT, fullheight/pair/valid90 EXACT, critic replay error0. This isolates restored
+nonrolling RNG semantics as the effective fix, with no relaxed match gate.
+Original failed scores remain excluded; repaired main uses all28fresh candidate
+replays and source90labels, no model fit or extra candidate/resets. Main budget
+passes `--spent-seconds125.09` and uses original remaining1074.91seconds.
