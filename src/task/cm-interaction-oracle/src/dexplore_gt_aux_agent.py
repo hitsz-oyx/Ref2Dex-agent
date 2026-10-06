@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import os
+from pathlib import Path
 import torch
 from rl_games.common import a2c_common
 from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
@@ -27,6 +28,7 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         self._hidden = None
         self._capture_rollout = False
         self._rollout_records = []
+        self._reward_records = []
         self._epoch_aux = []
         self._gradient_checked = False
         self._initial_physics_logged = False
@@ -107,12 +109,17 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         pair=((task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)&
               (task._tar_contact_forces.norm(dim=-1)>.1)).to(self.ppo_device)
         rest=task.hoi_refs[task.data_id,task.ref_index,0,108].to(self.ppo_device)
-        reward=reward+2*potential_approach_reward(gap0,gap1,done.bool(),gamma=self.gamma,
-                    config=self.approach_config)[:,None]
+        native=reward[:,0].clone()
+        approach=2*potential_approach_reward(gap0,gap1,done.bool(),gamma=self.gamma,config=self.approach_config)
+        held=10*held_lift_reward(obj[:,2],rest,pair,torch.ones_like(pair))
+        progress=5*contact_lift_progress_reward(z0,obj[:,2],pair,torch.ones_like(pair),done.bool())
+        reward=reward+approach[:,None]
         reward=reward+torch.zeros_like(reward)
-        reward=reward+10*held_lift_reward(obj[:,2],rest,pair,torch.ones_like(pair))[:,None]
-        reward=reward+5*contact_lift_progress_reward(z0,obj[:,2],pair,torch.ones_like(pair),
-                                                   done.bool())[:,None]
+        reward=reward+held[:,None]
+        reward=reward+progress[:,None]
+        if self._capture_rollout:
+            self._reward_records.append(dict(components=torch.stack((native,approach,held,progress),-1),
+                gaps=torch.stack((gap0,gap1),-1),rest=rest,actual=reward[:,0].clone()))
         result=(obs,reward,done,info)
         if self._capture_rollout:
             after = physical_state(task).to(self.ppo_device)
@@ -130,6 +137,7 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
 
     def play_steps(self):
         self._rollout_records = []
+        self._reward_records = []
         self._capture_rollout = True
         try:
             batch = super().play_steps()
@@ -144,6 +152,11 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
             print('REF2DEX_GT_FIRST_ROLLOUT '+json.dumps(dict(
                 states=fingerprint((before,after)),actions=fingerprint(actions),
                 dones=fingerprint(dones),mask=fingerprint(mask))),flush=True)
+            reward_fields={k:torch.stack([r[k] for r in self._reward_records]).cpu()
+                           for k in ('components','gaps','rest','actual')}
+            torch.save(dict(before=before.cpu(),after=after.cpu(),actions=actions.cpu(),
+                dones=dones.cpu(),target=target.cpu(),mask=mask.cpu(),**reward_fields),
+                Path(self.nn_dir)/'gt_first_rollout.pt')
             self._first_rollout_logged=True
         if self.gt_arm == 'shuffle':
             # Whole chunks rotated between environments at the same rollout time;
@@ -151,7 +164,11 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
             chunks = shuffle_valid_chunks(chunks,mask)
         for key, value in (('gt_target',target),('gt_chunk',chunks),('gt_mask',mask)):
             batch[key] = a2c_common.swap_and_flatten01(value)
+        component_mean=torch.stack([r['components'] for r in self._reward_records]).mean((0,1))
+        print('REF2DEX_GT_REWARD '+json.dumps(dict(epoch=self.epoch_num,
+            native_approach_held_progress=component_mean.cpu().tolist())),flush=True)
         self._rollout_records = []
+        self._reward_records = []
         return batch
 
     def prepare_dataset(self, batch):
