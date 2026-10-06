@@ -8,7 +8,7 @@ from src.task.CmResidual.dexplore_approach_agent import DExploreApproachAgent
 from src.task.CmResidual.physical_value_contract import private_initialization
 from src.task.CmResidual.paired_evaluation import fingerprint
 from gt_interaction_aux import (InteractionDecoder, physical_state, rollout_targets,
-                                auxiliary_rows)
+                                auxiliary_rows, normalized_executed_action)
 import learning.common_agent as common_agent
 
 
@@ -69,8 +69,8 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
         result = super().env_step(actions)
         if self._capture_rollout:
             after = physical_state(task).to(self.ppo_device)
-            executed = task.actions.to(self.ppo_device).clone()
-            if not torch.equal(executed, actions.to(self.ppo_device).clamp(-1, 1)):
+            executed = normalized_executed_action(task.actions).to(self.ppo_device)
+            if not torch.allclose(executed, actions.to(self.ppo_device).clamp(-1, 1),atol=2e-7,rtol=0):
                 raise RuntimeError('native executed action differs from normalized request')
             if not self._initial_physics_logged:
                 print('REF2DEX_GT_INITIAL_PHYSICS '+json.dumps(dict(

@@ -16,6 +16,7 @@ PYTHON=Path('/home2/wyy/miniconda3/envs/graspenv/bin/python')
 TASK=ROOT/'src/task/cm-interaction-oracle'
 SOURCE=ROOT/'outputs/Dexplore/agent_v139_s3_backtrack_s70_e260'
 CHECKPOINT=SOURCE/'train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000260.pth'
+MOTIONS=ROOT/'outputs/CmResidual/agent_contact_option_airplane_motions'
 SOURCE_SHA='16fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf47d6a78f'
 ARMS=('plain','conditioned','shuffle','stopgrad')
 PROTOCOL=TASK/'docs/experiments/probes/P-20261006-gt-interaction-aux.md'
@@ -29,7 +30,8 @@ def launch(command, gpu, folder, deadline):
     folder.mkdir(parents=True,exist_ok=False)
     env=os.environ.copy()
     env.update(CUDA_VISIBLE_DEVICES=str(gpu),OMP_NUM_THREADS='2',
-               TMPDIR=str(ROOT/'tmp'),PYTHONPATH=':'.join((str(ROOT),str(TASK/'src'),str(ROOT/'src/task/CmResidual/tools'),env.get('PYTHONPATH',''))))
+               TMPDIR=str(ROOT/'tmp'),TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/torch_extensions'),
+               TORCHINDUCTOR_CACHE_DIR=str(ROOT/'tmp/torchinductor'),PYTHONPATH=':'.join((str(ROOT),str(TASK/'src'),str(ROOT/'src/task/CmResidual/tools'),env.get('PYTHONPATH',''))))
     started=time.monotonic()
     record=dict(command=command,gpu=gpu,status='RUNNING',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip())
     write(folder/'manifest.json',record)
@@ -81,7 +83,7 @@ def training(root,gpus,smoke):
                  '--lift-fraction','.25','--curriculum-backtrack-start','180',
                  '--curriculum-backtrack-end','220',
                  '--task','Dexplore_Inspire','--cfg_env','dexplore/data/cfg/inspire.yaml',
-                 '--cfg_train',str(traincfg),'--motion_file',source['motion_root'],
+                 '--cfg_train',str(traincfg),'--motion_file',str(MOTIONS.resolve()),
                  '--output_path',str(folder/'train'),'--headless','--sim_device','cuda:0',
                  '--rl_device','cuda:0','--graphics_device_id','0','--num_envs','64',
                  '--horizon_length','32','--minibatch_size','256',
@@ -118,7 +120,7 @@ def main():
             command=[str(PYTHON),str(TASK/'tools/run/evaluate_gt_aux.py'),
                 '--task','Dexplore_Inspire','--cfg_env','dexplore/data/cfg/inspire.yaml',
                 '--cfg_train','dexplore/data/cfg/train/rlg/inspire.yaml',
-                '--motion_file',source['motion_root'],'--checkpoint',str(checkpoint.resolve()),
+                '--motion_file',str(MOTIONS.resolve()),'--checkpoint',str(checkpoint.resolve()),
                 '--disable-early-termination','--headless','--sim_device','cuda:0',
                 '--rl_device','cuda:0','--graphics_device_id','0','--num_envs','96',
                 '--seed','293','--output',str(folder/'results.json')]
@@ -128,6 +130,7 @@ def main():
            ROOT/'third_party/DExplore/dexplore/data/cfg/inspire.yaml',
            ROOT/'third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml']
     if a.stage=='eval':paths.append(TASK/'tools/run/evaluate_gt_aux.py')
+    paths += sorted(MOTIONS.rglob('*.pt'))
     inputs={str(v.resolve()):sha(v) for v in paths}
     record=dict(status='RUNNING',stage=a.stage,smoke=a.smoke,run_id=root.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),

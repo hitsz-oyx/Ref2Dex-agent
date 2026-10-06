@@ -8,6 +8,13 @@ HORIZON = 8
 TARGET_DIM = 19
 
 
+def normalized_executed_action(task_actions):
+    # Inspire _action_to_pd_targets mutates task.actions fingers in place.
+    result=task_actions.clone()
+    result[...,6:]=2*result[...,6:]-1
+    return result
+
+
 def physical_state(task):
     """Object xyz/xyzw, hand contact-link centroid, five force-gated contacts."""
     links = task._contact_body_ids

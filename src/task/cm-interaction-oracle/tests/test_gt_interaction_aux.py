@@ -31,3 +31,12 @@ def test_stopgradient_cuts_only_encoder_and_shuffled_chunk_changes_decoder():
     loss.backward()
     assert decoder.net[0].weight.grad.norm()>0
     assert not torch.equal(prediction,decoder(z,a.roll(1,0)))
+
+
+def test_inspire_inplace_pd_fraction_is_inverted_without_changing_task():
+    from gt_interaction_aux import normalized_executed_action
+    action=torch.linspace(-1,1,18)[None].expand(3,-1).clone()
+    task_action=action.clone();task_action[:,6:]=(1+task_action[:,6:])/2
+    snapshot=task_action.clone()
+    assert torch.allclose(normalized_executed_action(task_action),action,atol=2e-7,rtol=0)
+    assert torch.equal(task_action,snapshot)

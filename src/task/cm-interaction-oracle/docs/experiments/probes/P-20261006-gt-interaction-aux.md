@@ -59,7 +59,8 @@ No hand FK/learned Cm or privileged GT at inference.
 Masked mean SmoothL1 loss, equal dimensions and fixed physical scales.
 Discard any window touching done (including endpoint), and last7rollout ticks.
 Targets/action chunks/masks aligned through env-major flatten and PPO dataset;
-chunks use task.actions after actual step, checked against clipped Gaussian
+chunks use task.actions after actual step, invert its in-place finger [0,1] mapping
+back to normalized requests, checked against clipped Gaussian
 request, not actor mu or unclipped PPO sample. No reset/rollout stitching.
 C retains H/GT/masks and action marginals, rotates entire8×18chunks by one
 between envs per rollout; mapping reused for all six mini-epochs, no RNG draws.
@@ -72,7 +73,9 @@ Source checkpoint SHA25616fd261b4b2de4cbdb257b09f1c7b363b384153103901ff831c825cf
 source_e260. Four single-seed292 arms, each64additionalepochs(e260→e324),
 64env×32horizon=131072fresh transitions/arm, mini256×6updates/epoch=3072updates.
 Same source PPO gamma.99/tau.95/clip.2/critic5/bounds10, LR1e−5; source2approach,
-10held_lift,5progress/no link bonus, original source env and three motions.
+10held_lift,5progress/no link bonus, original source env and the three ref14 canonical airplane motions.
+Source_e260 itself was trained on one motion; this is the same three-motion
+continuation distribution for all four arms, not identical source data scope.
 Reuse completed contact backtrack schedule180→220, fractions.5contact/.25lift,
 window±3, already progress1. No added hold/drop reward. Only final checkpoint
 and standard latest copy, no best-model selection, no epoch/horizon/λ sweep.
@@ -120,3 +123,15 @@ If positive, longer matched PPO and multiple-seed independent Validation remain
 required. Final matched trained-policy Cm-on/off utility remains OPEN.
 If negative, independent implementation review precedes closure; no λ sweep,
 new learned Cm or continuation just to improve auxiliary loss.
+
+
+## Engineering repair before scientific execution
+
+First smoke at88a0eb9 stops before any optimizer update after47.20s: native
+Inspire mutates task.actions[:,6:] into [0,1] PD fractions. Stored PPO requests
+remain normalized[-1,1]. Correct capture inverts this known mapping after step
+and checks against clipped PPO requests (atol2e−7, float32 inverse rounding),
+without changing actual actions, PPO likelihoods or labels. All failed outputs
+retained. Also explicitly choose ref14's three canonical motions for all arms;
+first smoke used the one-motion source training root and supplies no scientific
+comparison. New smoke uses the final three-motion contract.
