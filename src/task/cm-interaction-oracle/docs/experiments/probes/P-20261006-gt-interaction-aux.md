@@ -203,3 +203,9 @@ all e261/2048frames/48updates, source model/RMS/decoder initialization equal,
 B/C actor aux weight-gradient nonzero, D0, critic aux0; A/D entire native model
 and RMS EXACT after optimization. This passes wiring AND pairing. All earlier
 GPU-pipeline smoke comparisons excluded from scientific interpretation.
+
+Full-episode smoke first attempt fails before stepping: player's symbolic
+CUDA device has no index whereas live tensors report cuda:0; geometry bridge
+requires exact device identity. Construct it using actual model parameter
+device and move state there. This preserves GPU geometry and source formulas.
+Training already uses indexed ppo_device and is unaffected.

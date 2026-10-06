@@ -41,12 +41,13 @@ class GtAuxPlayer(original.EvalPlayer):
         initial_hash=fingerprint(initial)
         self.model.eval();model_hash=fingerprint(self.model.state_dict())
         rms_hash=fingerprint(self.running_mean_std.state_dict())
+        geometry_device=next(self.model.parameters()).device
         assets=ROOT/'third_party/DExplore/dexplore/data/assets'
         bridge=DExploreCmv2GeometryBridge(hand_urdf=assets/'inspire_hand_new/inspire_hand_right.urdf',
-                object_urdf=assets/'mjcf/airplane.urdf',device=self.device,seed=42)
+                object_urdf=assets/'mjcf/airplane.urdf',device=geometry_device,seed=42)
         config=ApproachConfig()
         def gap():
-            geo=bridge.current(task._dof_pos.to(self.device),task._target_states.to(self.device))
+            geo=bridge.current(task._dof_pos.to(geometry_device),task._target_states.to(geometry_device))
             return sampled_surface_gap(geo.hand_points,geo.object_points,config).to(device)
         gap_before=gap();rest=task.hoi_refs[motion,task.ref_index,0,108].clone()
         tracker=HoldTracker(n,device);tracker.reset(ids,task._target_states[:,2])
