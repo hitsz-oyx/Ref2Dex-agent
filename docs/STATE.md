@@ -585,3 +585,29 @@ Decision核实aux可学性/独立覆盖；不把训练reward或loss升级为util
 测试通过/1skip及changed验证PASS，原始失败smoke和完整证据保留。
 [协议与完整结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md)。
 最终trained-policy matched Cm-on/off utility仍OPEN。
+
+
+## 新路线：cm-pointflow-effect-pretrain 数据预检
+
+用户明确指定新分支`cm-pointflow-effect-pretrain`，先按Task ref1检查SPIDER
+retarget_full是否可用于点流/effect预训练。四来源各一条Inspire，120文件checksum
+通过；750帧qpos/qvel/ctrl/time及portable MuJoCo模型加载/FK点流工程检查PASS。
+完整Inspire清单1946条，当前只下载4条及全部依赖。尚未开始大规模训练或PPO。
+
+下载SSL EOF已用curl解决。Python3.12/MuJoCo3.7隔离环境可加载原始场景；
+原Isaac环境未改。SPIDER18维ctrl不等于现有PPO action，实际轨迹违反当前native
+耦合最大约1.017rad，因此native control replay仍需适配/漂移检查，不能假定直接
+可用。数据支持样本级离线几何点流提取，不代表Isaac dynamics或策略utility。
+[预检及后续数据合同](../src/task/cm-pointflow-effect-pretrain/docs/DATASET_PREFLIGHT.md)。
+
+
+## 2026-10-06 主工作树删除后的恢复边界
+
+用户确认删除了Ref2Dex-agent-baseline，当前工作树原.git和outputs均指向该目录。
+从远程Ref2Dex-agent恢复至1afe075的历史，创建当前目录独立.git并保留
+cm-pointflow-effect-pretrain分支；使用index-only read-tree，未checkout或覆盖工作文件。
+当前Task未push的提交对象身份未找回，但代码/文档文件还在，保存为恢复快照。
+旧.git指针和outputs链接在artifacts/git-recovery-20261006保留，新outputs为本地空目录。
+被删除的checkpoint、rollout和结果数组未恢复；此前实验卡所指原始输出现不可访问，
+不能把已保留的文档摘要当作原始证据仍可复算。Git恢复不是数据恢复。
+本轮OakInk2产物使用Task声明的artifacts/cm-pointflow-effect-pretrain目录。

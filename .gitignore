@@ -92,3 +92,6 @@ data/processed_data/stage2
 # Local workflow dependency installs and type-check caches.
 /tools/workflow_runtime/node_modules/
 .mypy_cache/
+
+# Task-declared local data and repository recovery records.
+/artifacts/
