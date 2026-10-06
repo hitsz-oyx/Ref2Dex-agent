@@ -1,6 +1,6 @@
 # Ref2Dex 当前研究状态
 
-更新：2026-10-05。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
+更新：2026-10-06。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 
 | North-star | 当前判断 |
@@ -547,3 +547,20 @@ Source ranking也仅约.585–.711，下一步最小Decision可另行冻结sourc
 ranking objective比较以区分拟合/泛化问题；不直接扩epoch/seed或消耗仿真。
 [Ref14_3协议与结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-actual-flow-y-ranking.md)。
 最终trainedpolicy matched Cm-on/off utility仍OPEN。
+
+
+## Ref14 baseline source_e260：冻结 critic 排序已完成
+
+用户指定先比较critic与Y，使用同一source_e260 PPO checkpoint，无新模型训练。
+原ref13的32anchor/七候选/fourgroup面板完整冷重放，28候选执行与原H、
+动作、physical32以及整个height/pair/valid90 EXACT；独立critic replay误差0。
+原PPO奖励含2approach/10held_lift/5lift_progress，已按源公式从保存状态离线
+重建；最初遗漏shaping的评分保留为诊断，不作为原PPO评分证据。
+同one-shot面板baseline23/32、GT-Y24/32；reward8+gamma^8V8为20/32，
+救回1、伤害4；V-only19/32。原冻结gate UNPROMISING，暂不推进这个critic
+评分的rolling执行或Cm→V，不改系数寻找正结果。独立组件/排名/统计复算通过，
+112Task tests/1skip。重放RNG错误的旧运行保留并排除；修复后总主采集690.254s，
+低于原1200s cap。这里只是one-shot潜在结果组合，不能与实际rolling GT-Y27/32
+当作同协议对照，也不否定所有critic或全局Cm假设。
+[协议、修复和完整结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-frozen-critic-ranking.md)。
+最终trained-policy matched Cm-on/off utility仍OPEN。

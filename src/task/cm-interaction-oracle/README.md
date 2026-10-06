@@ -12,6 +12,19 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
+Latest user-directed comparison: frozen ref14 baseline source_e260 PPO critic
+on real eight-step candidate states, with original source PPO reward shaping.
+Completed paired one-shot Probe: baseline23/32, GT-Y24/32, reward8+gamma^8V8
+20/32(rescue1/harm4), V-only19/32. UNPROMISING for this fixed score; no critic
+rolling or Cm→V follows. All28 replay panels match exactly; independent reward,
+value, choice and statistics checks pass. This is a potential-outcome mosaic,
+separate from actual rolling GT-Y27/32. [Protocol and results](docs/experiments/probes/P-20261006-frozen-critic-ranking.md).
+Capture `tools/run/probe_frozen_critic_ranking.py`; raw saved-weight audit
+`tools/audit/audit_frozen_critic_ranking.py`; source reward reconstruction
+`tools/audit/correct_frozen_critic_reward.py`; figure exporter
+`tools/audit/report_frozen_critic_ranking.py`. Reuse immutable artifacts; original
+native-only score omits source shaping and is retained only as a diagnostic.
+
 Current user-directed route (ref14_3): actual hand flow → learned Y ranking,
 matched direct / nested OOF E-I bottleneck / hybrid. Completed offline Probe:
 57.38% /57.82% /57.95% held-anchor strict pair accuracy, below the frozen70%

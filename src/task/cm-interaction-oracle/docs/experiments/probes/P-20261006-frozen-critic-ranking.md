@@ -5,7 +5,7 @@ experiment_id: P-20261006-frozen-critic-ranking
 date: 2026-10-06
 task: cm-interaction-oracle
 branch: agent/cm-interaction-oracle
-git_commit: b94686556267249ddf402e3f66fbf38af9340f22
+git_commit: ade2ab3a3c22141e8dd5e8e6e2b402ea794930fe
 claim_id: C3
 hypothesis_family: HF-frozen-critic-ranking
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [263, 264, 281]
 decision_changed_if_positive: qualify a separately frozen real rolling critic comparison against GT-Y
 decision_changed_if_negative: retain Y and do not feed Cm predicted states into this frozen critic
-status: PLANNED
-run_id: frozen-critic-ranking-source-e260
+status: UNPROMISING
+run_id: frozen-critic-ranking-source-reward-corrected-r2
 ---
 
 # Can frozen PPO critic replace short-Y candidate ranking?
@@ -43,12 +43,14 @@ normalize_value=false; no value de-normalization. Critic and actor stay frozen.
 
 Primary score `S=sum(j=0..7,gamma^j*r[t+j])+gamma^8*V(s[t+8])`.
 The actual eight feedback actions and resulting native future observation are
-used, including intervention. Capture each environment reward AFTER its action;
+used, including intervention. Capture each native environment reward AFTER its action; reconstruct the source
+agent additions with the original 2/10/5 coefficients as detailed below;
 endpoint AFTER the eighth action, before a reset/next action. Abort if a done
 occurs in that block; do not bootstrap a reset observation. Reward-only and
 V-only rankings are predeclared diagnostics, not post-hoc replacements for S.
 Preserve source reward units, reference/time features and baseline-first ties.
-Native PPO reward reflects imitation/energy/contact terms, not necessarily Z;
+Source PPO reward includes native imitation/energy/contact and original
+approach/held-lift/progress shaping, not necessarily Z;
 V is policy-dependent. No Cm/predicted future state enters this experiment.
 
 ## Paired data, checks and evaluation
@@ -159,6 +161,73 @@ ApproachConfig, omitted hand_root convention, force ANY threshold.1,
 held .03m scale, signed progress .003m clamp, float32 reward-addition order.
 Do not add the later physical-value tracker stable bonus. No new PhysX or model
 fit. GPU1 correction<=120s/50MiB, original checkpoint/hash/assets checked;
-new run `frozen-critic-ranking-source-reward-corrected` preserves original r2.
+new run `frozen-critic-ranking-source-reward-corrected-r2` preserves original r2.
+The first correction folder retains an empty startup attempt (.pth dispatch
+error, fixed atade2ab3 before any result); no original artifacts overwritten.
 Primary becomes original PPO reward8+gamma^8V; source-reward-only diagnostic
 also repaired. Independent component/choice/statistical replay before closure.
+
+
+## Completed paired Probe and independent review
+
+Valid raw capture `frozen-critic-ranking-source-e260-r2`, code35dcc3d, finishes
+28/28 original candidate replays in565.164s. All currentH, actions/PD,
+physical32/q/tips/base errors0; entire height/pair/valid90 EXACT. Model and RMS
+fingerprints unchanged. Saved-weight audit PASS in1.360s: raw endpoint critic,
+score arrays and statistics replay error0. Failed main125.09s plus valid
+main565.164s stay within original1200s cap. Source reward correction atade2ab3
+finishes4.928s onGPU1, no simulation/training; checkpoint-value replay error0.
+
+| Fixed arm | Selected stable Z90 | Rescue | Harm |
+| --- | ---: | ---: | ---: |
+| Baseline | 23/32 | 0 | 0 |
+| GT-Y | 24/32 | 1 | 0 |
+| Source PPO reward8 + gamma^8 V8 (primary) | 20/32 | 1 | 4 |
+| V8 only | 19/32 | 1 | 5 |
+| Source PPO reward8 only | 20/32 | 0 | 3 |
+| Finite candidate GT-Z ceiling | 25/32 | — | — |
+
+Primary minus baseline:−9.375pp, anchor-bootstrap95%CI[−21.875,+3.125]pp;
+minus GT-Y:−12.5pp, CI[−25,−3.125]pp. Shared solver groups limit independence;
+these are descriptive paired intervals, not formal Validation. Primary strict
+Z-discordant ranking74.194%(124pairs), GT-Y79.839%; primary strict Y-ranking
+agreement74.123%(228pairs), mean top1 Y regret.089518. Average pair accuracy
+cannot substitute for top1 safety: primary harms4original baseline successes.
+Do not borrow ref14 predictor/noise70% gate to qualify critic control.
+
+Rescue: seed263/row33/group1 chooses middle− (same GT-Y). Harms:
+seed263/row69 androw78 choose thumb+; seed264/row36 chooses middle+;
+seed264/row25 chooses grip+. First two have worse short-Y than baseline;
+last two tie baseline short-Y. The other rescue opportunity(seed263/row36)
+is missed: critic chooses middle−, while thumb− is the only successful Z;
+GT-Y also misses this late-drop opportunity. Full choices/components and
+case-level U/Z are preserved in scores.npz/components.pt/diagnostic_cases.json.
+
+Independent read-only reviewer `/root/review_ref14_3` verifies original source
+reward/geometry files unchanged relative training commit18ffe09, source formula,
+seed42, identity hand-root convention, forceANY gate, coefficients and float32
+addition. Independent CPU/NumPy bonuses/reward error<=9.54e−7 and total Qscore
+error<=2.32e−6 from CPU/GPU float32 division rounding; all choices/outcomes and
+paired bootstrap EXACT. From saved float32 rewards, independent float64
+discounted components, total scores and strict pair rankings are EXACT.
+V replay error0; V-only selections unchanged by reward repair. Review archived
+as independent_review.json;112Task tests pass,1skip.
+
+## Final Decision and artifacts
+
+**UNPROMISING** for this source_e260 frozen critic score on the exposed original
+32-anchor one-shot panels. Retain Y and do not advance this score to rolling
+control or Cm→predicted-state→V. This rules out this bounded next step; it does
+not refute critics generally, Cm utility, or a calibrated/trained new critic.
+No reward retuning, sign flip, extra seed/epoch sweep or new simulation follows.
+A new critic/calibration method would require its own frozen Decision Probe.
+
+Primary artifacts: `outputs/cm-interaction-oracle/frozen-critic-ranking-source-reward-corrected-r2/`
+(result.json, manifest.json, scores.npz, components.pt, comparison.png,
+diagnostic_cases.json, independent_review.json). Original matched raw capture
+and replay: `outputs/cm-interaction-oracle/frozen-critic-ranking-source-e260-r2/`.
+The original native-only Q8=19/32 is retained as an omitted-shaping diagnostic;
+it is not evidence for the intended source-PPO reward score. Actual rolling
+GT-Y27/32 belongs to a different execution protocol and is not this paired
+comparison. Future real rolling critic execution remains deferred because this
+fixed one-shot screening gate failed; final trained-policy Cm-on/off stays OPEN.
