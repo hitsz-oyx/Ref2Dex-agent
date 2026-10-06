@@ -43,7 +43,7 @@ class SparseScene(nn.Module):
         self.encoder = nn.TransformerEncoder(nn.TransformerEncoderLayer(d, 6, 1536, dropout=0,
                                                 activation='gelu', batch_first=True, norm_first=True), layers,
                                                 enable_nested_tensor=False)
-        self.type = nn.Parameter(torch.zeros(d))
+        self.world_type = nn.Parameter(torch.zeros(d))
 
     def forward(self, batch):
         xyz, features, valid = batch['xyz'], batch['features'], batch['point_valid']
@@ -68,7 +68,7 @@ class SparseScene(nn.Module):
             pcoords, pinverse = torch.unique(patch, dim=0, return_inverse=True)
             pooled = mean_groups(stem, pinverse, len(pcoords))
             positions = mean_groups((unique[:, 1:].float() + .5) * .01, pinverse, len(pcoords))
-        tokens = self.projection(pooled) + self.position(positions) + self.type
+        tokens = self.projection(pooled) + self.position(positions) + self.world_type
         counts = torch.bincount(pcoords[:, 0], minlength=B)
         maximum = int(counts.max())
         packed = tokens.new_zeros((B, maximum, tokens.shape[-1]))

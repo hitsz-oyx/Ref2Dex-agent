@@ -63,6 +63,8 @@ class Windows(Dataset):
         poses = d['poses']
         selected = local_objects(poses[tick], d['pose_valid'][tick], anchor)
         assert anchor in selected
+        assert np.array_equal(d['frame_ids'][np.arange(tick-3, tick+25)], d['frame_ids'][tick] + 4*np.arange(-3, 25))
+        assert d['pose_valid'][tick-3:tick+25, selected].all()
         C = np.linalg.inv(poses[tick, anchor])
         # This matrix alone is used for history, observed action and GT effect.
         current = C @ poses[tick, selected]
