@@ -67,6 +67,11 @@ class DExploreGtAuxAgent(DExploreApproachAgent):
             weights['gt_interaction_arm'] = self.gt_arm
         return weights
 
+    def env_reset(self,env_ids=None):
+        if isinstance(env_ids,torch.Tensor):
+            env_ids=env_ids.to(self._cm_task().device)
+        return super().env_reset(env_ids)
+
     @torch.no_grad()
     def get_action_values(self,obs_dict,rand_action_probs):
         if not hasattr(self,'_first_action_logged'):

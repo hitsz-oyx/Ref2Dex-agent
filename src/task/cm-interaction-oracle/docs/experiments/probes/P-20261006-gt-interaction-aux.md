@@ -189,3 +189,9 @@ so tensor device remains CPU, while actor/decoder/geometry stay GPU. Source
 optimizer is restored intact; no actual distributed averaging is required.
 Engineering artifacts may retain up to2GiB within unchanged8GiB total, preserving
 failed runs and matched smoke checkpoints; global Campaign boundary unchanged.
+
+R8 first full-state/history/obs/reference plus CPU/CUDA RNG hash and first
+Gaussian action hash are EXACT across all four arms. It stops at later reset
+because PPO done_indices live onGPU while task reference tables are CPU.
+Convert only env_reset indices to native task device before delegating; reward,
+actions, reference and epoch contracts unchanged. No optimizer update.
