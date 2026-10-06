@@ -1,9 +1,9 @@
 # cm-interaction-oracle
 
 Task for action-conditioned physical consequence E/I and task-relative action
-quality, on the original branch `agent/cm-interaction-oracle`. Ref15 GT auxiliary
-implementation lives on `agent/cm-gt-interaction-aux`; its bounded Probe is
-complete. Task, branch and experiment identities remain separate.
+quality, on branch `agent/cm-interaction-oracle`. Ref15 GT auxiliary implementation
+and completed bounded Probe are retained on this same branch. Task, branch and
+experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
 `ObjectInteractionCmv2` and native Inspire geometry in `CmResidual` are reused.

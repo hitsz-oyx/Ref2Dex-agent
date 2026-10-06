@@ -314,3 +314,13 @@ runs remain excluded. Four simultaneous GPUs maximum, GPUs1..4, source eval
 follows onGPU1, unrelated GPU0 untouched. All retained route artifacts remain
 within8GiB (engineering within2GiB). `resource_summary.json` records exact bytes
 and execution costs.117Task tests pass/1skip; repository changed verification PASS.
+
+
+## Branch placement correction
+
+After closeout e54b577, user explicitly requests keeping work on the original
+`agent/cm-interaction-oracle` branch. Its tip was fast-forwarded from a63c7ef to
+e54b577, preserving all executed commit identities and user uncommitted changes;
+the extra local `agent/cm-gt-interaction-aux` branch was removed. Future work
+stays on `agent/cm-interaction-oracle`. The front-matter branch and frozen run
+protocol retain the historical execution identity, not an active branch pointer.
