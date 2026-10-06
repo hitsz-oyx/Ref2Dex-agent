@@ -70,15 +70,25 @@ def evaluate(model, dataset, indices, arm, batch_size, amp, intervention=False):
                      rotation=torch.eye(3, device='cuda').expand_as(pred['rotation'])))
         for name, result in views.items():
             values = metrics(result, batch)
-            for category in (-1, 0, 1, 2):
-                selected = batch['object_valid'] & ((batch['category'] == category)[:, None] if category >= 0 else True)
-                count = int(selected.sum())
-                if not count: continue
-                for horizon in (1, 4, 8, 12, 24):
-                    for metric, value in values.items():
-                        key = '%s/cat%s/h%s/%s' % (name, category, horizon, metric)
-                        totals[key] = totals.get(key, 0.) + float(value[..., horizon-1][selected].sum())
-                        counts[key] = counts.get(key, 0) + count
+            center = batch['points'].mean(-2)
+            truth = batch['effect']
+            centers_future = torch.einsum('bmtij,bmj->bmti', truth[..., :3, :3], center) + truth[..., :3, 3]
+            moved = (torch.linalg.vector_norm(centers_future-center[:, :, None], dim=-1) > .002).any(-1)
+            from oakink_wm.model import geodesic
+            moved |= (geodesic(torch.eye(3, device='cuda').expand_as(truth[..., :3, :3]), truth[..., :3, :3]) > .02).any(-1)
+            scopes = {'scene': batch['object_valid'],
+                      'anchor': batch['object_valid'] & (batch['object_features'][..., 13] > .5),
+                      'moving_objects': batch['object_valid'] & moved}
+            for scope, scope_mask in scopes.items():
+                for category in (-1, 0, 1, 2):
+                    selected = scope_mask & ((batch['category'] == category)[:, None] if category >= 0 else True)
+                    count = int(selected.sum())
+                    if not count: continue
+                    for horizon in (1, 4, 8, 12, 24):
+                        for metric, value in values.items():
+                            key = '%s/%s/cat%s/h%s/%s' % (name, scope, category, horizon, metric)
+                            totals[key] = totals.get(key, 0.) + float(value[..., horizon-1][selected].sum())
+                            counts[key] = counts.get(key, 0) + count
     model.train()
     return {key: totals[key] / counts[key] for key in totals}
 
@@ -170,7 +180,7 @@ def run(args):
             atomic_json(out / 'progress.json', dict(status='RUNNING', **row))
             if (step % config['validation_interval'] == 0 or step == config['updates']) and time.time() < deadline and not stop_requested[0]:
                 measured = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'])
-                score = measured['model/cat0/h24/point_epe']
+                score = measured['model/anchor/cat0/h24/point_epe']
                 atomic_json(out / 'validation_latest.json', dict(step=step, metrics=measured))
                 if score < best:
                     best, best_metrics = score, measured
