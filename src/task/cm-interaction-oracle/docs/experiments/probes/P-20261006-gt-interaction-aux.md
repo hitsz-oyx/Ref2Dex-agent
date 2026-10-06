@@ -5,7 +5,7 @@ experiment_id: P-20261006-gt-interaction-aux
 date: 2026-10-06
 task: cm-interaction-oracle
 branch: agent/cm-gt-interaction-aux
-git_commit: a63c7ef
+git_commit: 9ccb9ac10373d44935c166b1bf6bb989884846d3
 claim_id: C3
 hypothesis_family: HF-gt-interaction-aux
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [292, 293, 294]
 decision_changed_if_positive: advance training-only action-conditioned representation to longer matched Probe
 decision_changed_if_negative: stop this fixed auxiliary recipe without new Cm fitting or tuning
-status: PLANNED
+status: UNCLEAR
 run_id: gt-interaction-aux-s292
 ---
 
@@ -227,3 +227,90 @@ although smoke CLIseed42; seed_correction.json preserves the original and
 records42; final evaluator reads actual CLI seed. Production seed remains293.
 Engineering stage elapsed accounting is retained in all manifests; science
 results exclude smoke metrics.117Task tests pass,1skip.
+
+
+## Completed scientific Probe and root closeout
+
+Training commit `9ccb9ac10373d44935c166b1bf6bb989884846d3`; actor-only evaluation
+commit `3ad5a1d7d208b3d5620d9a6bda023b6d84ae24c5`. Immutable pre-run protocol is
+`outputs/cm-interaction-oracle/gt-interaction-aux-s292/protocol.md`; this card's
+post-run status/results are not retroactive protocol changes. All four arms
+completed e261..324, 131072 fresh transitions, 3072 minibatch updates, restored
+source Adam history. Training audit PASS: initial model/RMS/decoder/RNG/full
+physical+observation input and entire first rollout EXACT; A/D final whole native
+model and RMS EXACT. Applied encoder gradient is positive only B/C, critic aux
+norm0. Scientific initial valid962/2048 for every arm. GT labels, actual action
+chunks, endpoint masks, valid-only shuffle and source rewards independently
+recomputed. No implementation defect found in the executed comparison.
+
+Each final actor and the source checkpoint completes the same96 new first
+frame0 episodes, seed293,32 per motion, full initial fingerprint EXACT.
+This is NOT the previous32anchor one-shot/rolling Y evaluation.
+
+| Arm | Stable >=45 ticks | Subsequent drop | Sustained primary | Legacy >=5 ticks |
+| --- | ---: | ---: | ---: | ---: |
+| Source e260 (no continuation) | 19/96 | 16/96 | 3/96 | 31/96 |
+| A plain PPO e324 | 68/96 | 6/96 | 62/96 | 78/96 |
+| B action-conditioned GT e324 | 45/96 | 24/96 | 21/96 | 77/96 |
+| C shuffled chunk e324 | 69/96 | 18/96 | 51/96 | 80/96 |
+| D stop-gradient e324 | 68/96 | 6/96 | 62/96 | 78/96 |
+
+B minus A/D primary=-42.708pp, descriptive paired95% bootstrap[-55.208,-28.125]pp,
+11 rescues/52 harms. B minus C=-31.25pp, CI[-41.667,-20.833]pp,
+3 rescues/33 harms. Fixed cohorts and all finite MC/GT/primary/drop statistics
+independently audited; these intervals describe this single-seed Probe, not
+cross-seed uncertainty. Primary by motion A/D=[16,23,23], B=[21,0,0], C=[24,0,27].
+Motion counts/mapping are correct. B training reward being higher does not
+establish success: source2/10/5 reward has no sustained45/drop term. The loss
+of stability and later drops are observed; their causal origin is not established.
+
+Common independent source-policy pool6752 observations, split72train/24test envs
+(5064/1688 rows),1664 valid test h8 targets. Frozen standardized ridge .01;
+no PPO/decoder fitting on this pool. Source+initial decoder GT SmoothL1=.22522409.
+
+| Arm | Held-out GT SmoothL1 | Shuffled-input GT loss | z MC return MSE | z MC-sourceV residual MSE |
+| --- | ---: | ---: | ---: | ---: |
+| A | .22526854 | .22528213 | 36794.00 | 32284.23 |
+| B | .22018284 | .22315267 | 35865.42 | 34064.43 |
+| C | .22284687 | .22260894 | 31980.47 | 31498.83 |
+| D | .22189645 | .22465929 | 36794.00 | 32284.23 |
+
+B GT loss improves only2.238% from the frozen initial decoder, below5%learning
+gate. MC readout improves2.524% vs A, below5%, and is12.148% worse than C;
+residual MSE is worse than both controls. B input-shuffle loss rises1.349%, a
+small sensitivity diagnostic, not action-quality proof. Native separate critic
+MSE on source finite MC: A/D40318.58, B37800.59, C47100.56. Native critic and
+same-z readout are different objects; policy mismatch and timeout truncation
+vs PPO bootstrap prevent interpreting these numbers as current advantage error.
+
+**Fixed status UNCLEAR**, not UNPROMISING: actor utility gate fails clearly on
+this cohort, but >=5% independent heldout auxiliary-learning gate also fails.
+Thus this run does not test an already accurately learned GT dynamics-aware
+representation. Training loss decrease or gradients alone do not satisfy that
+gate. Source pool is policy-dependent and may differ from each continued actor's
+on-policy data; short training, learnability, coverage and loss scales remain
+unresolved. This cannot refute the full training-only Cm hypothesis.
+
+Root Decision Note: retain paired implementation and evidence, stop this fixed
+h8/lambda.05/64epoch recipe without horizon/epoch/seed/lambda tuning, learned Cm
+teacher or Validation. Reopening would require a new bounded Decision establishing
+GT auxiliary learnability on matched independent episodes before interpreting
+policy utility; no such new run is authorized by this closeout. No core Mission
+or claim change. Future multi-seed Validation remains deferred because this
+Probe provides no positive utility signal.
+
+Artifacts under `outputs/cm-interaction-oracle/gt-interaction-aux-s292/`:
+`train_manifest.json`, `eval_manifest.json` (input SHA256 and executed commands),
+`training_audit.json`, `result.json`, `readouts.npz`, `comparison.png`,
+`independent_review.json`; per-arm final checkpoints, first-rollout replay and
+full evaluation pools remain in their original folders. No checkpoint overwrite.
+Independent review checks first-rollout contracts, rewards/GT/action/mask, final
+A/D weights/RMS, full episode MC, primary/drop/motion and saved readout statistics.
+
+Main training429.279s wall /1701.868 GPU-worker seconds; evaluation222.438s
+wall /552.892 GPU-worker seconds; GPU audit4.206s. Engineering train/eval
+attempts440.012s total manifest wall (includes failed runs), within600s; failed
+runs remain excluded. Four simultaneous GPUs maximum, GPUs1..4, source eval
+follows onGPU1, unrelated GPU0 untouched. All retained route artifacts remain
+within8GiB (engineering within2GiB). `resource_summary.json` records exact bytes
+and execution costs.117Task tests pass/1skip; repository changed verification PASS.

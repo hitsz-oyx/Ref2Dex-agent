@@ -564,3 +564,24 @@ ranking objective比较以区分拟合/泛化问题；不直接扩epoch/seed或�
 当作同协议对照，也不否定所有critic或全局Cm假设。
 [协议、修复和完整结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-frozen-critic-ranking.md)。
 最终trained-policy matched Cm-on/off utility仍OPEN。
+
+
+## Ref15：training-only GT auxiliary 有界 Probe 已完成
+
+用户授权以source_e260 PPO为起点，让GT真实h8交互loss直接塑造actor z，
+推理仍仅actor；四臂均追加64epoch/131072交互/3072更新。完整96新frame0
+episode持续45tick且以后不drop：PPO62、条件GT21、shuffle51、stopgrad62；
+source本身3。条件GT较PPO差42.71pp，更多后续掉落。该cohort不同于旧32anchor
+GT-Y/critic，不能跨协议比较。A/D整native权重/RMS与逐episode结果EXACT，
+独立GT/action/mask/reward/MC/成功统计审计通过，未见实现缺陷导致负结果。
+
+冻结gate为UNCLEAR：条件GT heldout loss仅改善2.24%，未达到5%学习门槛；
+同z return readout较PPO改善2.52%，弱于shuffle。原生critic独立于actor z；
+readout针对finite source-policy MC与MC-sourceV residual，不是当前策略advantage。
+本轮无策略收益，但不能否定已充分学会GT监督的路线。停止固定h8/lambda.05
+短配方，不扩epoch/seed/系数、不拟合Cm、不进入Validation。若重开先另冻最小
+Decision核实aux可学性/独立覆盖；不把训练reward或loss升级为utility。
+训练429.28s/1701.87GPU-worker秒，评价222.44s/552.89GPU-worker秒；117Task
+测试通过/1skip及changed验证PASS，原始失败smoke和完整证据保留。
+[协议与完整结果](../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md)。
+最终trained-policy matched Cm-on/off utility仍OPEN。

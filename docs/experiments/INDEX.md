@@ -70,7 +70,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-hold-duration-response
 

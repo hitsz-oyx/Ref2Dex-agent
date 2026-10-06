@@ -1,9 +1,9 @@
 # cm-interaction-oracle
 
 Task for action-conditioned physical consequence E/I and task-relative action
-quality, on the original branch `agent/cm-interaction-oracle`. The execution
-route is paused while ref14_1 proceeds on this same branch. Task, branch and
-experiment identities remain separate.
+quality, on the original branch `agent/cm-interaction-oracle`. Ref15 GT auxiliary
+implementation lives on `agent/cm-gt-interaction-aux`; its bounded Probe is
+complete. Task, branch and experiment identities remain separate.
 
 New execution and audit tools live here. Existing reusable spatial models in
 `ObjectInteractionCmv2` and native Inspire geometry in `CmResidual` are reused.
@@ -12,7 +12,23 @@ New cards live under `docs/experiments/`; outputs use
 `outputs/cm-interaction-oracle/<run_id>/`. Mission, campaign, state and seed
 ownership remain in the repository-wide docs.
 
-Latest user-directed comparison: frozen ref14 baseline source_e260 PPO critic
+Latest user-directed route (ref15): training-only GT interaction supervision
+of actor z, actor-only inference. Fixed source_e260 continuation, h8/lambda.05,
+64extraepochs, four matched arms. Completed Probe **UNCLEAR**: sustained45
+with no later drop is A PPO62/96, B conditioned21/96, C shuffle51/96,
+D stopgrad62/96. B heldout GT prediction improves only2.24% (below5%learning
+gate), z source-return readout improves2.52% vs A and is worse than C.
+A/D full native weights/RMS and evaluation are EXACT; independent replay
+checks pass. Stop this fixed recipe; no claim against sufficiently learned GT
+auxiliary, no parameter sweep or Validation. Native critic remains separate;
+same-z diagnostic is finite source-policy MC, not current PPO advantage.
+[Protocol and results](docs/experiments/probes/P-20261006-gt-interaction-aux.md).
+Train/eval `tools/run/probe_gt_interaction_aux.py`; GPU readout/GT audit
+`tools/audit/audit_gt_interaction_aux.py`; plot
+`tools/audit/report_gt_interaction_aux.py`. Immutable outputs and failed
+engineering runs retain full provenance.
+
+Preceding user-directed comparison: frozen ref14 baseline source_e260 PPO critic
 on real eight-step candidate states, with original source PPO reward shaping.
 Completed paired one-shot Probe: baseline23/32, GT-Y24/32, reward8+gamma^8V8
 20/32(rescue1/harm4), V-only19/32. UNPROMISING for this fixed score; no critic
@@ -25,7 +41,7 @@ Capture `tools/run/probe_frozen_critic_ranking.py`; raw saved-weight audit
 `tools/audit/report_frozen_critic_ranking.py`. Reuse immutable artifacts; original
 native-only score omits source shaping and is retained only as a diagnostic.
 
-Current user-directed route (ref14_3): actual hand flow → learned Y ranking,
+Preceding user-directed route (ref14_3): actual hand flow → learned Y ranking,
 matched direct / nested OOF E-I bottleneck / hybrid. Completed offline Probe:
 57.38% /57.82% /57.95% held-anchor strict pair accuracy, below the frozen70%
 screen. UNPROMISING for this fixed fit; unique E/I gain UNCLEAR. Flow sensitivity
