@@ -17,6 +17,12 @@
 | [P-20261004-early-hold-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-early-hold-intervention.md) | Can actions manipulate interaction information useful for keeping a grasp? | 494 complete early-hold trials; A UNPROMISING, B UNCLEAR for insufficient strata despite 49.6% GT I error improvement; C not executed. | Close this four-step residual contract; retain GT I prognosis, without more seeds, fitting or online selection. | probes/UNCLEAR |
 | [P-20261004-randomized-action-intervention](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-randomized-action-intervention.md) | Can randomized current actions control task-relevant consequences? | 320 actual randomized interventions; action-conditioned E/I8 and mediated task ranking fail all seven fixed gates under environment holdout. | Stop this pre-lift E/I8-to-Y16/32 PCA/MLP expansion after independent review; preserve weak object-rotation response and do not refute core  | probes/UNPROMISING |
 
+## HF-actual-flow-y-ranking
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261006-actual-flow-y-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-actual-flow-y-ranking.md) | Ref14_3: actual hand flow to same-state Y ranking | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-amplitude-authority
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -113,13 +119,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING: 27/32 rolling vs 23/32 baseline; +12.5pp, 4 rescued, 0 harmed. | Freeze offline Y ranking/noise tolerance; defer predictor, execution forecasting and PPO until its contract is assessed. | probes/PROMISING |
-
-## HF-y-noise-tolerance
-
-| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
-| --- | --- | --- | --- | --- |
-| [P-20261006-y-noise-tolerance](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-y-noise-tolerance.md) | How much fixed short-Y ranking noise can saved same-state panels tolerate? | PROMISING offline: median pairwise accuracy 0.758 at sigma .10; 0.696 at .20. | Set predictor screening target near 0.70 pairwise accuracy; require fresh rolling intervention for Z. | probes/PROMISING |
+| [P-20261005-rolling-oracle-control](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-rolling-oracle-control.md) | Ref14_1: executed Rolling GT-Y Oracle Control | PROMISING on the predeclared 32-anchor gate: baseline 23/32, actual | Execute same-current-state rolling oracle before any new predictor, long-Y, execution forecasting or PPO. | probes/PROMISING |
 
 ## HF-spatial-action-fidelity
 
@@ -132,6 +132,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-spatial-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md) | Does shared local spatial structure preserve intended action consequences? | UNPROMISING: reduced spatial encoding remains stable but preserves too little intended action contrast; OOF consequences show no unique task | Stop this fixed nominal spatial fit; retain GT prognosis and examine the nominal-to-realized execution contract before further geometry lear | probes/UNPROMISING |
+
+## HF-y-noise-tolerance
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261006-y-noise-tolerance](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-y-noise-tolerance.md) | Gate 3: offline short-Y ranking/noise tolerance | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF02
 
