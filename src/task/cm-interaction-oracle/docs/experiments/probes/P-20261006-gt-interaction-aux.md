@@ -149,7 +149,8 @@ tensors rather than None. Minimal two-independent-trunk aot_eager reproducer
 (tmp/reproduce-compiled-aux-gradient.py) shows nonzero actor grad/zero critic
 grad and fails the old None-only guard in3.07s. Check exact norm0 for critic,
 nonzero actor for B/C and zero actor for D; scientific gradient gate unchanged.
-No optimization or scientific result from the failed smoke.
+Only D completed its single epoch; other arms stopped before optimization.
+No scientific result from the failed campaign.
 
 R4 smoke completes all four e261 /2048frames /48updates in34.29s, matching
 initial source/RMS/decoder/physics hashes. B/C applied actor gradient>0, D=0,
@@ -209,3 +210,8 @@ CUDA device has no index whereas live tensors report cuda:0; geometry bridge
 requires exact device identity. Construct it using actual model parameter
 device and move state there. This preserves GPU geometry and source formulas.
 Training already uses indexed ppo_device and is unaffected.
+
+Full-episode smoke r2 reaches first native step then detects mixed-device done:
+player returns done on RL GPU while evaluator reward/tracker state use CPU
+native tensors. Explicitly move done to native task device for physical
+statistics; actor and geometry remain GPU. No completed scientific evaluation.

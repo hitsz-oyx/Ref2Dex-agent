@@ -69,7 +69,7 @@ class GtAuxPlayer(original.EvalPlayer):
             executed=normalized_executed_action(task.actions)
             if not torch.allclose(executed,action.clamp(-1,1),atol=2e-7,rtol=0):
                 raise ValueError('native action capture mismatch')
-            gap_after=gap();done=done.bool().flatten()
+            gap_after=gap();done=done.to(device).bool().flatten()
             pair=after[:,10:15].bool().any(-1)
             base=native.to(device).flatten()
             approach=2*potential_approach_reward(gap_before,gap_after,done,gamma=.99,config=config)
