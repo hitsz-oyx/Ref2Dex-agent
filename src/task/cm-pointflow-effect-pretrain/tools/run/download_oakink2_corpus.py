@@ -68,7 +68,7 @@ def main():
             if remaining <= 0: raise TimeoutError('acquisition deadline')
             part = path.with_name(path.name + '.part')
             url = 'https://huggingface.co/datasets/kelvin34501/OakInk-v2/resolve/' + revision + '/' + name
-            subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location', '--retry', '2',
+            subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
                             '--connect-timeout', '15', '--max-time', str(min(600, int(remaining))),
                             '--max-filesize', str(item['size']), '--output', str(part), url],
                            check=True, timeout=remaining)
@@ -81,12 +81,19 @@ def main():
 
     try:
         with ThreadPoolExecutor(max_workers=6) as pool:
+            errors = []
             for future in as_completed([pool.submit(fetch, job) for job in jobs]):
-                name, info = future.result()
+                try:
+                    name, info = future.result()
+                except Exception as exc:
+                    errors.append(str(exc))
+                    continue
                 record['files'][name] = info
                 record['elapsed_seconds'] = time.monotonic() - start
                 manifest.write_text(json.dumps(record, indent=2) + '\n')
                 print(json.dumps({'completed': len(record['files']), 'total': len(jobs), 'elapsed_seconds': record['elapsed_seconds']}), flush=True)
+        if errors:
+            raise RuntimeError('Acquisition errors: ' + '; '.join(errors))
         record['status'] = 'COMPLETED'
     except BaseException as exc:
         record.update(status='FAILED', error=str(exc))
