@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import pickle
+import random
 from dataclasses import dataclass
 
 import numpy as np
@@ -35,6 +36,75 @@ REQUIRED_NATIVE_STATE_KEYS = frozenset({
 REQUIRED_STATE_META_KEYS = frozenset({'controller_state', 'rnn_state', 'observation',
                                       'scalars', 'reset_ids'})
 REQUIRED_RNG_KEYS = frozenset({'python', 'numpy', 'torch_cpu', 'torch_cuda'})
+
+
+def capture_native_rng(torch_module=None):
+    """Capture the process RNG streams used by a native player/simulator.
+
+    The function intentionally accepts Torch as an argument.  This keeps the
+    contract module importable before Isaac Gym/Torch initialization while
+    still making the native CUDA stream part of the branch identity once the
+    collector is running.
+    """
+    result = dict(python=random.getstate(), numpy=np.random.get_state(),
+                  torch_cpu=None, torch_cuda=[])
+    if torch_module is None:
+        raise ValueError('native twin capture requires the initialized torch module')
+    result['torch_cpu'] = _cpu(torch_module.get_rng_state())
+    if result['torch_cpu'] is None:
+        raise ValueError('native torch CPU RNG state is unavailable')
+    if bool(torch_module.cuda.is_available()):
+        result['torch_cuda'] = [_cpu(value) for value in torch_module.cuda.get_rng_state_all()]
+    return result
+
+
+def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
+                      physics_properties, history_contract, controller_identity,
+                      physics_dt):
+    """Build the immutable provenance record for a fresh prefix replay.
+
+    ``prefix_states`` and ``prefix_actions`` are the complete common-prefix
+    traces, not just the final pose.  The native caller must create a fresh
+    simulator for each arm and report the frame error observed while replaying
+    that trace; this helper only records and hashes those facts.
+    """
+    states = _cpu(prefix_states)
+    actions = _cpu(prefix_actions)
+    try:
+        steps = len(actions)
+        state_frames = len(states)
+    except TypeError as error:
+        raise ValueError('prefix actions must be a finite sequence') from error
+    if not finite_tree(states) or not finite_tree(actions):
+        raise ValueError('prefix replay traces must be finite')
+    if (isinstance(steps, bool) or not isinstance(steps, (int, np.integer))
+            or steps < 0):
+        raise ValueError('prefix replay length must be a nonnegative integer')
+    if state_frames != steps + 1:
+        raise ValueError('prefix state trace must contain initial plus one frame per action')
+    error = replay_max_abs_error
+    if (isinstance(error, (bool, np.bool_)) or not isinstance(error, (int, float, np.number))
+            or not np.isfinite(error) or error < 0 or error > 1e-3):
+        raise ValueError('fresh prefix replay error exceeds the 1e-3 contract')
+    dt = physics_dt
+    if (isinstance(dt, (bool, np.bool_)) or not isinstance(dt, (int, float, np.number))
+            or not np.isfinite(dt) or not np.isclose(dt, 1 / 30, atol=1e-8, rtol=0)):
+        raise ValueError('native twin physics dt must be exactly 1/30')
+    return dict(
+        prefix_hash=fingerprint(states),
+        prefix_state_count=int(state_frames),
+        prefix_steps=int(steps),
+        prefix_action_hash=fingerprint(actions),
+        prefix_action_count=int(steps),
+        fresh_simulator=True,
+        initial_frame_count=0,
+        final_frame_count=int(steps),
+        replay_max_abs_error=float(error),
+        physics_properties_hash=fingerprint(physics_properties),
+        history_contract_hash=fingerprint(history_contract),
+        controller_identity_hash=fingerprint(controller_identity),
+        physics_dt=float(dt),
+    )
 
 
 def _cpu(value):
@@ -90,7 +160,7 @@ def _is_rigid_pose(value, atol=2e-3):
 def _valid_replay_provenance(value):
     if not isinstance(value, dict):
         return False
-    required = {'prefix_hash', 'prefix_steps', 'prefix_action_hash',
+    required = {'prefix_hash', 'prefix_steps', 'prefix_state_count', 'prefix_action_hash',
                 'prefix_action_count', 'fresh_simulator', 'initial_frame_count',
                 'final_frame_count', 'replay_max_abs_error', 'physics_properties_hash',
                 'history_contract_hash', 'controller_identity_hash', 'physics_dt'}
@@ -101,11 +171,13 @@ def _valid_replay_provenance(value):
     if any(not isinstance(value[name], str) or len(value[name]) != 64
            or any(char not in '0123456789abcdef' for char in value[name]) for name in hashes):
         return False
-    count_names = ('prefix_steps', 'prefix_action_count', 'initial_frame_count', 'final_frame_count')
+    count_names = ('prefix_steps', 'prefix_state_count', 'prefix_action_count',
+                   'initial_frame_count', 'final_frame_count')
     if any(isinstance(value[name], (bool, np.bool_)) or not isinstance(value[name], (int, np.integer))
            for name in count_names):
         return False
-    if (value['prefix_steps'] < 0 or value['prefix_action_count'] != value['prefix_steps']
+    if (value['prefix_steps'] < 0 or value['prefix_state_count'] != value['prefix_steps'] + 1
+            or value['prefix_action_count'] != value['prefix_steps']
             or value['initial_frame_count'] != 0 or value['final_frame_count'] != value['prefix_steps']
             or value['fresh_simulator'] is not True):
         return False
@@ -208,9 +280,33 @@ def capture_snapshot(pair_id, tick, state, rng, history, object_pose, hand_keypo
     if missing:
         raise ValueError('twin snapshot missing native/controller state: ' + ','.join(sorted(missing)))
     return TwinSnapshot(pair_id=pair_id, tick=int(tick), state=state, rng=_cpu(rng),
-                        history=_cpu(np.asarray(history)), object_pose=_cpu(np.asarray(object_pose)),
-                        hand_keypoints=_cpu(np.asarray(hand_keypoints)),
+                        history=np.asarray(_cpu(history)), object_pose=np.asarray(_cpu(object_pose)),
+                        hand_keypoints=np.asarray(_cpu(hand_keypoints)),
                         replay_provenance=_cpu(replay_provenance))
+
+
+def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
+                            observation, scalars, reset_ids, history, object_pose,
+                            hand_keypoints, torch_module, replay):
+    """Adapt one initialized native task/player boundary to ``TwinSnapshot``.
+
+    The adapter is intentionally explicit about the metadata that does not
+    live on the Isaac task object (policy/RNN buffers and controller identity).
+    It copies every required native tensor by its canonical attribute name and
+    refuses a partial or pose-only capture before either branch is run.
+    """
+    state = {}
+    for name in REQUIRED_NATIVE_STATE_KEYS:
+        if not hasattr(task, name):
+            raise ValueError('native task missing twin state: ' + name)
+        state[name] = getattr(task, name)
+    state.update(controller_state=controller_state, rnn_state=rnn_state,
+                 observation=observation, scalars=scalars, reset_ids=reset_ids)
+    required = REQUIRED_NATIVE_STATE_KEYS | REQUIRED_STATE_META_KEYS
+    return capture_snapshot(
+        pair_id, tick, state, capture_native_rng(torch_module), history,
+        object_pose, hand_keypoints, required_state_keys=required,
+        replay_provenance=replay)
 
 
 @dataclass(frozen=True)

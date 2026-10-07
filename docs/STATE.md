@@ -118,6 +118,12 @@ replay provenance、刚体物体位姿和双分支第0帧锚点。它尚未连�
 也没有真实 twin branch 产物；这部分仍是下一项实现 blocker，不能把合同测试升级为
 科学证据。Task tests 在本轮代码审查后继续作为工程回归，不改变 North-star claim。
 
+2026-10-08 native twin 工程推进：`consequence_evaluator.twin` 新增不依赖 Isaac 导入的
+native capture adapter、完整 prefix trace hash/帧数检查和 Python/NumPy/Torch RNG 捕获。
+它现在能把初始化后的 native task/controller 边界转成 v1 snapshot，但尚未接入连续
+collector 的 fresh-simulator 双分支执行，也没有真实 twin branch 产物；因此 blocker
+从“缺少 adapter”收窄为“缺少 native branch runner 与真实覆盖”，不升级为科学证据。
+
 更新：2026-10-06。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 

@@ -3,7 +3,9 @@ import numpy as np
 import pytest
 
 from consequence_evaluator.contracts import K
-from consequence_evaluator.twin import TwinBranch, capture_snapshot, validate_pair
+from consequence_evaluator.twin import (TwinBranch, capture_native_snapshot,
+                                        capture_snapshot, replay_provenance,
+                                        validate_pair)
 
 
 REQUIRED = ('_root_states', '_dof_state', '_rigid_body_state', '_contact_forces',
@@ -16,7 +18,8 @@ RNG = dict(python=('state',), numpy=('MT19937',), torch_cpu=np.zeros(4, dtype='u
 
 
 def provenance(tick=40):
-    return dict(prefix_hash='a' * 64, prefix_steps=tick, prefix_action_hash='b' * 64,
+    return dict(prefix_hash='a' * 64, prefix_steps=tick, prefix_state_count=tick + 1,
+                prefix_action_hash='b' * 64,
                 prefix_action_count=tick, fresh_simulator=True, initial_frame_count=0,
                 final_frame_count=tick, replay_max_abs_error=0., physics_properties_hash='c' * 64,
                 history_contract_hash='d' * 64, controller_identity_hash='e' * 64, physics_dt=1/30)
@@ -101,3 +104,40 @@ def test_twin_rejects_nonintegral_tick_and_out_of_range_actual_action():
         TwinBranch(snap.state_hash, snap.pair_id, 'a', np.zeros((K, 18)), actions,
                    np.tile(np.eye(4), (K + 1, 1, 1)),
                    np.zeros((K + 1, 11, 3)), np.zeros(K, dtype=bool), snap.common_prefix_hash)
+
+
+def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
+    class NativeTask:
+        pass
+
+    task = NativeTask()
+    for name in REQUIRED:
+        if name not in ('controller_state', 'rnn_state', 'observation', 'scalars', 'reset_ids'):
+            setattr(task, name, np.zeros((2, 3), dtype='float32'))
+    task._root_states[:, 0] = 0
+    class TorchStub:
+        class cuda:
+            @staticmethod
+            def is_available():
+                return False
+
+        @staticmethod
+        def get_rng_state():
+            return np.zeros(4, dtype='uint8')
+
+    replay = replay_provenance(
+        [np.zeros((2, 3), dtype='float32')] * 6,
+        np.zeros((5, 18), dtype='float32'),
+        replay_max_abs_error=2e-5, physics_properties={'dt': 1 / 30},
+        history_contract={'shape': [4, 6]}, controller_identity={'sha256': 'actor'},
+        physics_dt=1 / 30)
+    snap = capture_native_snapshot(
+        'native-p0', 5, task, controller_state={'policy': np.zeros(1)},
+        rnn_state=np.zeros(1), observation=np.zeros(6), scalars={'dt': 1 / 30},
+        reset_ids={'default': np.zeros(1)}, history=np.zeros((4, 6)),
+        object_pose=np.eye(4, dtype='float32'), hand_keypoints=np.zeros((11, 3)),
+        torch_module=TorchStub, replay=replay)
+    assert snap.tick == 5
+    assert snap.replay_provenance['prefix_action_count'] == 5
+    assert snap.state_hash == snap.state_hash
+    assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}

@@ -106,5 +106,7 @@ authorized from it.
 `consequence_evaluator.twin` is a strict Isaac-free v1 contract for a future
 collector. It checks the canonical native state inventory, Python/NumPy/Torch
 RNG provenance, fresh-simulator prefix replay metadata, rigid object poses and
-branch starting anchors. It does not run Isaac Gym or create twin branches;
-the native replay collector and its branch manifest remain unfinished.
+branch starting anchors. A native capture adapter now emits this snapshot from
+an initialized task/controller boundary and rejects incomplete prefix traces;
+it still does not run Isaac Gym or create twin branches. The native replay
+collector and its branch manifest remain unfinished.

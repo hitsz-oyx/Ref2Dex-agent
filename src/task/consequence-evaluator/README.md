@@ -50,8 +50,10 @@ route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 o
 同一 current state 的双分支由 `src/consequence_evaluator/twin.py` 定义
 `ref2dex.consequence-evaluator.twin.v1` 合同：必须保存完整 native task/controller
 buffer、Python/NumPy/Torch RNG、fresh simulator prefix replay provenance 和双分支第0帧
-锚点。当前模块是 Isaac-free contract-only CPU 校验，尚未接入 native collector，也没有
-真实 twin branch 产物；合同测试不能作为 twin coverage 或 evaluator 科学证据。
+锚点。当前已提供不导入 Isaac 的 native capture adapter，可把初始化后的 task、controller
+buffer 和完整 prefix trace 转为该合同；它会拒绝缺失字段、非 fresh replay、状态帧数不匹配
+或超出 1/30 与 1e-3 误差门槛的记录。adapter 尚未接入连续 native collector 的双分支执行，
+也没有真实 twin branch 产物；合同测试不能作为 twin coverage 或 evaluator 科学证据。
 
 ## 连续 episode 输入
 

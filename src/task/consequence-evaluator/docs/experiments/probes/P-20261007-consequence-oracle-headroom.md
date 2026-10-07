@@ -308,3 +308,9 @@ the 216 new raw episodes and label output, and records the result as UNCLEAR.
 No E0/Eoracle ranking or world-model conclusion is drawn. Future work needs
 explicit twin current-state branches rather than more generic waves or a
 post-hoc hand RMS relaxation.
+
+Engineering follow-up: the Twin v1 module now includes a native capture
+adapter and constructor for fresh-prefix provenance (complete state/RNG
+inventory, prefix frame count/hash, and 30 Hz replay error checks). This only
+reduces the integration gap; no native twin branch run or scientific result
+has been produced.
