@@ -191,5 +191,5 @@ GPU0目前为他人进程，用户暂不能协调；先完成合同修订，不�
 几何接触约束和当前状态配对。GPU1的8env×128步真实Isaac geometry smoke通过（24.24s），712个forceproxy帧及568个抬升proxy帧均有≤1cm采样距离；
 仍缺其他物体/桌面反例和完整采集，不能视为精确contact GT。
 四源PointWorld已保存停止step14250；用户要求三源主监督（Oak/GRAB/ARCTIC），
-ContactPose仅列为刚性运输辅助，EPIC保持candidate_only。三源以最新权重初始化，
+ContactPose仅列为刚性运输辅助，EPIC保持candidate_only。三源已于23:20启动，GPU1/2每卡64，以latest14250权重初始化，
 fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合预训练卡。

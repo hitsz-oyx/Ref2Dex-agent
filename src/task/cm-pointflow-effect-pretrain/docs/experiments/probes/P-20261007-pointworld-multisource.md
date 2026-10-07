@@ -321,3 +321,18 @@ pointworld-main3-smoke-20261007，9e1da03，20.87s update阶段；
 14,406MiB/reserved20,636MiB。首步12.12s含编译，后11步平均.6242s/update，
 正式val/save还需额外时间；不把20秒总时长线性当作训练ETA。smoke权重不进入
 production，production重新从四源latest14250导入模型。
+
+## 三源正式运行已启动
+
+run pointworld-main3-20261007，commit9019fd467c2803888e031b43eda5c505b14e4021，
+supervisor1411132/torchrun1411144/workers1411207,1411208，
+GPU1/2、perrank64/global128；2026-10-07 23:20:24启动，50000updates，
+harddeadline1791424800（2026-10-08 10:00）。初始化parent_step14250、
+weights_only=true，optimizer/schedule/draw reset=true；新初始参数与parent
+rankhash一致。生产未读取smoke final权重。首步loss.63287/grad2.55545有限，
+第2步.6219s；首步含编译，不能当作稳定ETA。
+新step0固定moving-anchor h24 panel：Oak15.9166/GRAB36.1329/ARCTIC
+51.3909mm，三源macro34.4801mm。新panel与旧四源末次不同，不因Oak
+新step0较旧末值大就判断切换退化；后续仅与本panel自己的step0比较。
+每250updates val并保存latest/best；deadline自动保存退出。源hash守卫运行中
+不编辑实际训练源码、配置、stats或manifest。
