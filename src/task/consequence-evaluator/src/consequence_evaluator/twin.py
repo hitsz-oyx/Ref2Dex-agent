@@ -93,6 +93,17 @@ def _numeric_trace(value):
     return False
 
 
+def _present_contract(value):
+    """Reject absent/empty provenance before it is reduced to a hash."""
+    if value is None:
+        return False
+    if isinstance(value, (str, bytes, dict, list, tuple, set, frozenset)):
+        return bool(value)
+    if isinstance(value, np.ndarray):
+        return bool(value.size)
+    return True
+
+
 def capture_native_rng(torch_module=None):
     """Capture the process RNG streams used by a native player/simulator.
 
@@ -126,6 +137,11 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
     simulator for each arm and report the frame error observed while replaying
     that trace; this helper only records and hashes those facts.
     """
+    for name, value in (('physics properties', physics_properties),
+                        ('history contract', history_contract),
+                        ('controller identity', controller_identity)):
+        if not _present_contract(value):
+            raise ValueError(name + ' provenance must be nonempty')
     states = _cpu(prefix_states)
     actions = _cpu(prefix_actions)
     try:

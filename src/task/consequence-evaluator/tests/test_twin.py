@@ -189,29 +189,42 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
 def test_replay_provenance_rejects_non_numeric_prefix_trace(states, actions):
     with pytest.raises(ValueError, match='finite'):
         replay_provenance(states, actions, replay_max_abs_error=0,
-                          physics_properties={}, history_contract={},
-                          controller_identity={}, physics_dt=1 / 30)
+                          physics_properties={'dt': 1 / 30}, history_contract={'shape': [1]},
+                          controller_identity={'id': 'test'}, physics_dt=1 / 30)
 
 
 def test_replay_provenance_requires_native_action_shape():
     with pytest.raises(ValueError, match='shape'):
         replay_provenance(np.zeros((2, 1)), np.zeros((1, 17)),
-                          replay_max_abs_error=0, physics_properties={},
-                          history_contract={}, controller_identity={}, physics_dt=1 / 30)
+                          replay_max_abs_error=0, physics_properties={'dt': 1 / 30},
+                          history_contract={'shape': [1]}, controller_identity={'id': 'test'},
+                          physics_dt=1 / 30)
 
 
 def test_zero_step_replay_accepts_natural_empty_action_list():
     result = replay_provenance([np.zeros((2, 3), dtype='float32')], [],
-                               replay_max_abs_error=0, physics_properties={},
-                               history_contract={}, controller_identity={}, physics_dt=1 / 30)
+                               replay_max_abs_error=0, physics_properties={'dt': 1 / 30},
+                               history_contract={'shape': [1]}, controller_identity={'id': 'test'},
+                               physics_dt=1 / 30)
     assert result['prefix_steps'] == 0 and result['prefix_state_count'] == 1
 
 
 def test_zero_step_replay_rejects_explicit_wrong_width():
     with pytest.raises(ValueError, match='shape'):
         replay_provenance([np.zeros((2, 3), dtype='float32')], np.zeros((0, 17)),
-                          replay_max_abs_error=0, physics_properties={},
-                          history_contract={}, controller_identity={}, physics_dt=1 / 30)
+                          replay_max_abs_error=0, physics_properties={'dt': 1 / 30},
+                          history_contract={'shape': [1]}, controller_identity={'id': 'test'},
+                          physics_dt=1 / 30)
+
+
+@pytest.mark.parametrize('field', ['physics_properties', 'history_contract', 'controller_identity'])
+def test_replay_provenance_rejects_missing_contract(field):
+    kwargs = dict(physics_properties={'dt': 1 / 30}, history_contract={'shape': [1]},
+                  controller_identity={'id': 'test'}, physics_dt=1 / 30)
+    kwargs[field] = None
+    with pytest.raises(ValueError, match='provenance'):
+        replay_provenance([np.zeros((2, 3), dtype='float32')], [], replay_max_abs_error=0,
+                          **kwargs)
 
 
 def test_twin_rejects_unwrapped_rnn_state():
