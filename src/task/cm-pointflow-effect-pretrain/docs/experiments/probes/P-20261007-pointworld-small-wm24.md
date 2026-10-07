@@ -127,6 +127,17 @@ The upstream PointWorld source is now also recorded as a proper Git submodule
 at the already-used commit; this repository bookkeeping does not alter any
 running source bytes or the original runtime identity `f507f18`.
 
+At the second matched checkpoint (2000 updates), moving-anchor h24 EPE is
+23.375mm /22.770mm /23.606mm for H/H+A/H+shuffle(A), versus static26.125mm.
+H+A improves2.590%/3.540% against the controls and12.843% against static;
+this is an early directional improvement, below the frozen final10% control
+gate. Mean normalized training losses at updates1901–2000 are respectively
+2.21997/2.06547/2.23021. Prediction EPE has improved in all arms since update1000.
+No inference-shuffle check or final test verdict is inferred from this panel;
+judgment remains UNCLEAR and the original run continues unchanged. Complete
+metrics and live-process observation are in the run's
+`monitor/validation-2000-observed.json`.
+
 ## Limitations / future evidence
 
 Observed future hands are post-treatment geometry, not counterfactual commands.
