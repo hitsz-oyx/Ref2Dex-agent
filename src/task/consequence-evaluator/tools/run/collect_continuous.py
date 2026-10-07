@@ -54,8 +54,8 @@ def native_motion_files(root):
         tensor = folder/'interaction_hand_inspire.pt'
         if not tensor.is_file():
             raise FileNotFoundError('missing native sequence tensor: ' + str(tensor))
-        files.append(tensor.resolve())
-    if not files or len(set(files)) != len(files):
+        files.append(tensor.absolute())
+    if not files or len({path.resolve() for path in files}) != len(files):
         raise ValueError('native motion directory needs distinct sequence tensors')
     return files
 
@@ -124,7 +124,9 @@ def main():
              ROOT/'third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py',
              *sorted(p for p in (ROOT/'third_party/DExplore/dexplore/data/assets').rglob('*') if p.is_file())]
     for path in files:
-        frozen[str(path.resolve())] = digest(path)
+        # Keep runtime aliases: retargeting a sequence/assets link must also
+        # change the checked input, even when its previous target still exists.
+        frozen[str(path.absolute())] = digest(path)
     if bool(a.observation_router_model) != bool(a.observation_router_sha256):
         p.error('observation router path/hash must be supplied together')
     if a.observation_router_model:

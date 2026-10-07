@@ -213,3 +213,9 @@ coverage completion without adding future feedback to requested plans.
 The first real collection will choose env/wave counts from measured cost
 and recorded motion coverage; the old144episode cap is not evidence that
 every motion/phase was covered. No collector or evaluator has run yet.
+
+Source inventory keeps the actual runtime alias paths, not just resolved
+old targets: retargeting a native motion/assets link is detected even if
+its previous file still exists. The real linked-input regression checks
+that drift, missing/broken tensors and duplicate aliases.83Task tests pass,
+with14collector tests; real six-expert collection remains pending.

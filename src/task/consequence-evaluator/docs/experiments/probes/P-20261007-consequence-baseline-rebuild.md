@@ -515,3 +515,10 @@ explicit unqualified<=40continuation remains limited to unchangeds3.
 This does not pre-authorize all runs or override per-run Decision Notes.
 GPU0 was reoccupied by a foreign zyc job; check another idle GPU afresh
 with at most3total owned GPUs, never stop that job.
+
+Fresh80epoch duck queue started at1386d51 onGPU0 after it again became
+free: outputs/consequence-evaluator/baseline-transfer-duck-20261008-r1/,
+queuePID1496208/fitworker1497950, qualifier queue1497869. Discarded
+2epochsmoke passes and full64env fit is live at274; this is a verified
+wait on the actual owned process, not a completed specialist. The endpoint
+qualification will execute only after successful terminal training.

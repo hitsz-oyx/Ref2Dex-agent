@@ -28,10 +28,21 @@ def test_native_motion_inventory_follows_sequence_links_without_recursive_walk(t
     root.mkdir()
     (root/'s1_duck_lift').symlink_to(source, target_is_directory=True)
     assert list(root.rglob('*.pt')) == []  # the previous preflight missed this input
-    assert inventory(root) == [tensor.resolve()]
+    alias = root/'s1_duck_lift/interaction_hand_inspire.pt'
+    assert inventory(root) == [alias.absolute()]
     (source/'unrelated_nested').mkdir()
     (source/'unrelated_nested/irrelevant.pt').write_bytes(b'ignored')
-    assert inventory(root) == [tensor.resolve()]
+    assert inventory(root) == [alias.absolute()]
+    digest = runpy.run_path(str(TASK/'tools/run/collect_continuous.py'))['digest']
+    frozen = digest(inventory(root)[0])
+    other = tmp_path/'other_source'
+    other.mkdir()
+    (other/'interaction_hand_inspire.pt').write_bytes(b'different native tensor')
+    (root/'s1_duck_lift').unlink()
+    (root/'s1_duck_lift').symlink_to(other, target_is_directory=True)
+    assert digest(alias) != frozen  # original source remains, runtime alias drift is caught
+    (root/'s1_duck_lift').unlink()
+    (root/'s1_duck_lift').symlink_to(source, target_is_directory=True)
     (root/'duplicate_alias').symlink_to(source, target_is_directory=True)
     with pytest.raises(ValueError, match='distinct'):
         inventory(root)
