@@ -11,6 +11,8 @@ import time
 
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
+sys.path.insert(0, str(TASK/'src'))
+from consequence_evaluator.contracts import is_within
 
 
 def main():
@@ -21,7 +23,7 @@ def main():
     parser.add_argument('--reset-mode', choices=['native', 'batched'], default='native')
     a = parser.parse_args()
     output = a.output.resolve()
-    if not output.is_relative_to(ROOT/'outputs/consequence-evaluator') or output.exists():
+    if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         parser.error('fresh task-owned output required')
     trained = json.loads((a.run_dir/'run_manifest.json').read_text())
     config = json.loads((a.run_dir/'config.json').read_text())
