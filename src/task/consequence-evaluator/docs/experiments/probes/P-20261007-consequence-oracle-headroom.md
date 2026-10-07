@@ -173,3 +173,25 @@ false-positive examples, other objects, full episodes or collision-pair truth
 were tested. Full collection should retain per-route audits; six-expert fit
 and genuine three-arm data remain pending.74Task tests pass after both native
 loop fixes. Failed r1/r2 are preserved as engineering records.
+
+## Duck geometry precheck and probe contract correction
+
+Duck r1 fails before geometry at a post-physics FK velocity residual gate:
+4.084mm/s and11.340mrad/s, despite body position2.429micrometers,
+quaternion6.97e-7 and object first-step2.864mm. These are measured after
+a full PhysX/TGS step, not at submitted reset. There was no calibrated
+contract requiring solver body twist to equal differential FK at the
+new integrated q; this gate cannot establish a reset bug. Preserve r1.
+
+Independent read-only review identified this timing distinction. Root
+keeps strict post-step pose/persistence/subset checks and gates velocities
+at the submitted reset cache. Post-physics velocity residuals remain in
+the report as diagnostics, without claiming their cause resolved. Fresh
+r2 repeats the same8env×128duck geometry check,<=180s/1MiB; no physics,
+reset implementation, expert checkpoint, labels or PPO recipe changes.
+
+Collector native input inventory also repairs immediate directory links
+(the old rglob missed every staged tensor), with broken/missing/duplicate
+sequence rejection. Frozen dependencies now include shared geometry,
+planner, oracle table alignment, native common_player and surface loader.
+This is engineering readiness, not oracle headroom evidence.

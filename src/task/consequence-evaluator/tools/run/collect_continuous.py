@@ -42,6 +42,24 @@ def write(path, data):
     temporary.replace(path)
 
 
+def native_motion_files(root):
+    """Freeze the immediate native sequence directories, including owned links."""
+    root = Path(root)
+    files = []
+    for folder in sorted(root.iterdir()):
+        if folder.is_symlink() and not folder.exists():
+            raise FileNotFoundError('broken native motion link: ' + str(folder))
+        if not folder.is_dir():
+            continue
+        tensor = folder/'interaction_hand_inspire.pt'
+        if not tensor.is_file():
+            raise FileNotFoundError('missing native sequence tensor: ' + str(tensor))
+        files.append(tensor.resolve())
+    if not files or len(set(files)) != len(files):
+        raise ValueError('native motion directory needs distinct sequence tensors')
+    return files
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--route-config', type=Path, required=True)
@@ -88,9 +106,7 @@ def main():
         frozen.update(ancestral)
     if not a.motions.is_dir():
         raise FileNotFoundError(a.motions)
-    motion_files = sorted(a.motions.rglob('*.pt')) + sorted(a.motions.rglob('*.npy'))
-    if not motion_files:
-        raise ValueError('native motion directory has no .pt/.npy inputs')
+    motion_files = native_motion_files(a.motions)
     files = [a.cfg_env, a.cfg_train, *motion_files,
              *sorted((TASK/'src/consequence_evaluator').glob('*.py')),
              ROOT/'third_party/DExplore/dexplore/evaluate.py',
@@ -101,6 +117,11 @@ def main():
              ROOT/'third_party/DExplore/dexplore/env/tasks/vec_task_wrappers.py',
              ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
              ROOT/'third_party/DExplore/dexplore/learning/dexplore_players.py',
+             ROOT/'third_party/DExplore/dexplore/learning/common_player.py',
+             ROOT/'src/task/CmResidual/dexplore_cm_geometry.py',
+             ROOT/'src/task/CmResidual/v118_planner.py',
+             ROOT/'src/task/cm-interaction-oracle/src/oracle_y_utility.py',
+             ROOT/'third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py',
              *sorted(p for p in (ROOT/'third_party/DExplore/dexplore/data/assets').rglob('*') if p.is_file())]
     for path in files:
         frozen[str(path.resolve())] = digest(path)

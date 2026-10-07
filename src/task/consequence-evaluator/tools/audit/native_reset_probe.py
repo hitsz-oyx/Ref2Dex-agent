@@ -105,11 +105,15 @@ def main():
                 initial_q = task._dof_pos.clone()
                 initial_body = task._rigid_body_pos.clone()
                 initial_progress = task.progress_buf.clone()
+                fk = task_kinematics(task)
+                reset_expected = fk.states(task._dof_pos, task._dof_vel, task._humanoid_root_states)
+                reset_measured = task._rigid_body_state.view(task.num_envs,-1,13)[:,:task.num_bodies].clone()
+                reset_linear_error = (reset_expected[:,:,7:10]-reset_measured[:,:,7:10]).norm(dim=-1).max().item()
+                reset_angular_error = (reset_expected[:,:,10:13]-reset_measured[:,:,10:13]).norm(dim=-1).max().item()
                 action = inspire_reference_action(task, 1)
                 obs,_,_,_=self.env_step(self.env, action)
                 after = task._target_states.clone()
                 displacement = (after[:,:3]-before[:,:3]).norm(dim=-1)
-                fk = task_kinematics(task)
                 computed = fk.states(task._dof_pos, task._dof_vel, task._humanoid_root_states)
                 bodies = task._rigid_body_state.view(task.num_envs,-1,13)[:,:task.num_bodies].clone()
                 fk_position_error = (computed[:,:,:3]-bodies[:,:,:3]).norm(dim=-1).max().item()
@@ -127,6 +131,9 @@ def main():
                               fk_quaternion_error=fk_rotation_error,
                               fk_velocity_error_m_s=(computed[:,:,7:10]-bodies[:,:,7:10]).norm(dim=-1).max().item(),
                               fk_angular_velocity_error_rad_s=(computed[:,:,10:13]-bodies[:,:,10:13]).norm(dim=-1).max().item(),
+                              reset_cache_velocity_error_m_s=reset_linear_error,
+                              reset_cache_angular_velocity_error_rad_s=reset_angular_error,
+                              velocity_contract='pre-step reset cache; post-PhysX FK/solver velocity residuals are diagnostics',
                               pass_reset_persistence=bool((displacement < .1).all()),
                               limitation='first native step only; no grasp or policy qualification')
                 (output/'reset_check.json').write_text(json.dumps(report, indent=2)+'\n')
@@ -136,9 +143,8 @@ def main():
                     raise AssertionError('reset object teleported on first PhysX step')
                 if fk_position_error > .0005 or fk_rotation_error > .0005:
                     raise AssertionError('URDF reset FK disagrees with measured native body poses')
-                if (report['fk_velocity_error_m_s'] > .001
-                        or report['fk_angular_velocity_error_rad_s'] > .005):
-                    raise AssertionError('reset FK velocity disagrees with measured PhysX state')
+                if a.reset_mode == 'batched' and (reset_linear_error > .001 or reset_angular_error > .005):
+                    raise AssertionError('submitted reset FK velocity disagrees with reset cache')
                 if a.geometry_steps:
                     geometry=PhysicalGeometry(task,assets)
                     gaps, proxies, heights = [], [], []

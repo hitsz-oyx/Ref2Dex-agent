@@ -18,6 +18,36 @@ sys.path.insert(0, str(TASK/'src'))
 from consequence_evaluator.collection import Episode, Perturbations, pose_matrix, smooth_residual, PHASES
 
 
+def test_native_motion_inventory_follows_sequence_links_without_recursive_walk(tmp_path):
+    inventory = runpy.run_path(str(TASK/'tools/run/collect_continuous.py'))['native_motion_files']
+    source = tmp_path/'source'
+    source.mkdir()
+    tensor = source/'interaction_hand_inspire.pt'
+    tensor.write_bytes(b'engineering fixture; inventory does not load tensors')
+    root = tmp_path/'motions'
+    root.mkdir()
+    (root/'s1_duck_lift').symlink_to(source, target_is_directory=True)
+    assert list(root.rglob('*.pt')) == []  # the previous preflight missed this input
+    assert inventory(root) == [tensor.resolve()]
+    (source/'unrelated_nested').mkdir()
+    (source/'unrelated_nested/irrelevant.pt').write_bytes(b'ignored')
+    assert inventory(root) == [tensor.resolve()]
+    (root/'duplicate_alias').symlink_to(source, target_is_directory=True)
+    with pytest.raises(ValueError, match='distinct'):
+        inventory(root)
+
+
+def test_native_motion_inventory_rejects_broken_links_and_missing_tensor(tmp_path):
+    inventory = runpy.run_path(str(TASK/'tools/run/collect_continuous.py'))['native_motion_files']
+    (tmp_path/'sequence').symlink_to(tmp_path/'missing', target_is_directory=True)
+    with pytest.raises(FileNotFoundError, match='broken native motion link'):
+        inventory(tmp_path)
+    (tmp_path/'sequence').unlink()
+    (tmp_path/'sequence').mkdir()
+    with pytest.raises(FileNotFoundError, match='missing native sequence tensor'):
+        inventory(tmp_path)
+
+
 def root_state(z=0.):
     state = np.zeros(13, dtype='float32')
     state[2], state[6] = z, 1
