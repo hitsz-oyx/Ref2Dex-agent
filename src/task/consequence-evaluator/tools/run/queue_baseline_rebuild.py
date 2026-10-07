@@ -45,7 +45,9 @@ def smoke_env_count(spec, env_config):
     expanded = len(names)
     if hard_oversampling:
         expanded += sum(any(obj in name for obj in hard_objects) for name in names)
-    return max(8, expanded)
+    # The rollout uses horizon_length=32 and minibatch_size=256, so the
+    # chosen environment count must also be a multiple of eight.
+    return max(8, ((expanded + 7) // 8) * 8)
 
 
 def write(path, record):
