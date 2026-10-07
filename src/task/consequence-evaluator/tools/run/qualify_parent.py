@@ -91,6 +91,8 @@ def main():
         import dexplore_ddp_rank_bootstrap
         import evaluate as native
         from env.tasks.base_dexplore_task import DexploreTask
+        from consequence_evaluator.native_reset import install_reset_patch
+        install_reset_patch()
         from consequence_evaluator.qualification import qualify_transitions
         import torch
     except BaseException as error:
@@ -125,6 +127,7 @@ def main():
                     sources=frozen, seconds_budget=a.seconds, output_budget_bytes=2**30,
                     full_frame0=True, early_termination_disabled=True, command=argv,
                     reference_action_lead=a.reference_action_lead)
+    manifest['reset_contract'] = 'batched_actor_roots_urdf_fk_no_extra_physics_step'
     write(output/'run_manifest.json',manifest)
     started, old_argv, old_cwd = time.monotonic(), sys.argv, Path.cwd()
     old_signal = signal.getsignal(signal.SIGALRM)

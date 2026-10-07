@@ -3,11 +3,38 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 
+class _Quaternion:
+    def __init__(self, torch):
+        self.torch = torch
+
+    def quat_mul(self, a, b):
+        t=self.torch
+        av,bv=a[...,:3],b[...,:3]
+        xyz=a[...,3:4]*bv+b[...,3:4]*av+t.cross(av,bv,dim=-1)
+        w=a[...,3:4]*b[...,3:4]-(av*bv).sum(-1,keepdim=True)
+        return t.cat((xyz,w),dim=-1)
+
+    def quat_rotate(self, q, v):
+        t=self.torch
+        uv=t.cross(q[...,:3],v,dim=-1)
+        return v+2*(q[...,3:4]*uv+t.cross(q[...,:3],uv,dim=-1))
+
+    def quat_from_angle_axis(self, angle, axis):
+        return self.torch.cat((axis*(angle/2).sin()[...,None],
+                               (angle/2).cos()[...,None]),dim=-1)
+
+    def quat_from_euler_xyz(self, x, y, z):
+        cx,sx=(x/2).cos(),(x/2).sin()
+        cy,sy=(y/2).cos(),(y/2).sin()
+        cz,sz=(z/2).cos(),(z/2).sin()
+        return self.torch.stack((sx*cy*cz-cx*sy*sz,cx*sy*cz+sx*cy*sz,
+                                cx*cy*sz-sx*sy*cz,cx*cy*cz+sx*sy*sz),dim=-1)
+
+
 class ResetKinematics:
     def __init__(self, urdf, dof_names, body_names, device):
         import torch
-        from isaacgym import torch_utils
-        self.torch, self.quat = torch, torch_utils
+        self.torch, self.quat = torch, _Quaternion(torch)
         xml = ET.parse(Path(urdf)).getroot()
         self.body_names = tuple(body_names)
         self.dof_names = tuple(dof_names)
@@ -23,7 +50,7 @@ class ResetKinematics:
                 return torch.tensor([float(v) for v in value.split()], device=device)
             position = vector(origin, 'xyz', '0 0 0')
             rpy = vector(origin, 'rpy', '0 0 0')
-            rotation = torch_utils.quat_from_euler_xyz(rpy[0], rpy[1], rpy[2])
+            rotation = self.quat.quat_from_euler_xyz(rpy[0], rpy[1], rpy[2])
             direction = vector(axis, 'xyz', '1 0 0')
             if kind != 'fixed':
                 if kind not in ('prismatic', 'revolute', 'continuous') or name not in self.dof_names:

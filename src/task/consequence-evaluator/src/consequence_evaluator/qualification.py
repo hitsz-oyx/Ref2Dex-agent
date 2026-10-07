@@ -49,6 +49,9 @@ def qualify_transitions(payload, episodes, count=64):
         motion = arrays['data_id'][:length, env, 0]
         before = arrays['object_state'][:length, env]
         after = arrays['next_object_state'][:length, env]
+        first_displacement = float(np.linalg.norm(after[0,:3]-before[0,:3]))
+        if first_displacement > .1:
+            raise ValueError('unphysical first-step reset displacement exceeds10cm')
         if (row['start_frame'] != 0 or row['steps'] != length
                 or not np.array_equal(progress, np.arange(length))
                 or not (motion == row['motion_id']).all()
@@ -65,6 +68,7 @@ def qualify_transitions(payload, episodes, count=64):
         quality, _, _, completion = expert_anchor(
             trace, dict(assigned_phase='clean', perturbation_tick=-1))
         results.append(dict(env_id=env, motion_id=row['motion_id'], steps=length,
+                            first_step_displacement_m=first_displacement,
                             qualified=quality == 'expert_success',
                             completion_tick=completion,
                             dropped_after_hold=bool(completion is not None

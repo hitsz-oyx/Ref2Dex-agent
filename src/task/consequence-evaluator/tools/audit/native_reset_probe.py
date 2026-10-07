@@ -100,6 +100,8 @@ def main():
                               post_body=task._rigid_body_pos.cpu().tolist(),
                               fk_position_error_m=fk_position_error,
                               fk_quaternion_error=fk_rotation_error,
+                              fk_velocity_error_m_s=(computed[:,:,7:10]-bodies[:,:,7:10]).norm(dim=-1).max().item(),
+                              fk_angular_velocity_error_rad_s=(computed[:,:,10:13]-bodies[:,:,10:13]).norm(dim=-1).max().item(),
                               pass_reset_persistence=bool((displacement < .1).all()),
                               limitation='first native step only; no grasp or policy qualification')
                 (output/'reset_check.json').write_text(json.dumps(report, indent=2)+'\n')

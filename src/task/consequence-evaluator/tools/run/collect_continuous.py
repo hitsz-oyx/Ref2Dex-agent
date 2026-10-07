@@ -120,6 +120,8 @@ def main():
     import evaluate_object_router as router
     import torch
     from env.tasks.base_dexplore_task import DexploreTask
+    from consequence_evaluator.native_reset import install_reset_patch
+    install_reset_patch()
     from oracle_y_utility import align_native_reference_tables
     original_reset = DexploreTask._reset_ref_state_init
     def aligned_reset(task, ids):

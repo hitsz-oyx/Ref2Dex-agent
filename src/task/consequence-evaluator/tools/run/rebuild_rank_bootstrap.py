@@ -13,6 +13,9 @@ def main():
     import dexplore_cm_off_rank_bootstrap
     # Isaac Gym must load before Torch; the actor still trains on CUDA.
     from isaacgym import torch_utils
+    sys.path.insert(0, str(ROOT/'src/task/consequence-evaluator/src'))
+    from consequence_evaluator.native_reset import install_reset_patch
+    install_reset_patch()
     from env.tasks.base_dexplore_task import DexploreTask
     from oracle_y_utility import align_native_reference_tables
     original = DexploreTask._reset_ref_state_init

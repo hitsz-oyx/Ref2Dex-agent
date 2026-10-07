@@ -44,11 +44,12 @@ def test_drop_after_qualification_cannot_count_as_success():
     assert all(x['dropped_after_hold'] for x in r['per_episode'][:60])
 
 
-@pytest.mark.parametrize('kind',['clock','pose','missing_done','start'])
+@pytest.mark.parametrize('kind',['clock','pose','missing_done','start','teleport'])
 def test_gate_rejects_broken_native_first_episode_contract(kind):
     arrays,episodes=native_trace()
     if kind=='clock':arrays['progress'][64,0]=5
     if kind=='pose':arrays['object_state'][64,0]+=1
     if kind=='missing_done':arrays['done'][::64]=False
     if kind=='start':episodes[0]['start_frame']=1
+    if kind=='teleport':arrays['object_state'][0,0]+=1.5
     with pytest.raises(ValueError):qualify_transitions(arrays,episodes)
