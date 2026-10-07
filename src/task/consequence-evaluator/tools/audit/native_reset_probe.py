@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -21,12 +22,14 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--reset-mode', choices=['native', 'batched'], default='native')
+    parser.add_argument('--motion-root', type=Path, help='explicit reference-only diagnostic input override')
     a = parser.parse_args()
     output = a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         parser.error('fresh task-owned output required')
     trained = json.loads((a.run_dir/'run_manifest.json').read_text())
     config = json.loads((a.run_dir/'config.json').read_text())
+    motions = a.motion_root.resolve() if a.motion_root else Path(config['motion_root'])
     checkpoint = Path(trained['checkpoint'])
     if hashlib.sha256(checkpoint.read_bytes()).hexdigest() != trained['checkpoint_sha256']:
         raise ValueError('checkpoint changed')
@@ -34,6 +37,13 @@ def main():
                  '--query-compute-apps=pid', '--format=csv,noheader'], text=True).strip()
     if occupied:
         raise RuntimeError('GPU occupied: '+occupied)
+    if shutil.disk_usage(ROOT).free < 20*2**30:
+        raise RuntimeError('free disk below20GiB reserve')
+    sources = [Path(__file__), a.run_dir/'config.json', a.run_dir/'run_manifest.json',
+               Path(config['cfg_env']), checkpoint,
+               *sorted(motions.glob('*/interaction_hand_inspire.pt')),
+               *sorted((TASK/'src/consequence_evaluator').glob('*.py'))]
+    frozen = {str(p.resolve()):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     output.mkdir(parents=True)
     scratch = ROOT/'tmp/consequence-reset-probe'
     scratch.mkdir(parents=True, exist_ok=True)
@@ -47,6 +57,7 @@ def main():
     manifest = dict(status='INITIALIZING', run_id=output.name, pid=os.getpid(),
                     physical_gpu=a.gpu, seed=17, reset_mode=a.reset_mode,
                     seconds_budget=180, output_budget_bytes=2**20,
+                    sources=frozen, motion_root=str(motions),
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())
     started = time.monotonic()
     def save():
@@ -111,6 +122,9 @@ def main():
                     raise AssertionError('reset object teleported on first PhysX step')
                 if fk_position_error > .0005 or fk_rotation_error > .0005:
                     raise AssertionError('URDF reset FK disagrees with measured native body poses')
+                if (report['fk_velocity_error_m_s'] > .001
+                        or report['fk_angular_velocity_error_rad_s'] > .005):
+                    raise AssertionError('reset FK velocity disagrees with measured PhysX state')
                 if a.reset_mode == 'batched':
                     subset_checks=[]
                     for offset in (0,1,0):
@@ -141,7 +155,7 @@ def main():
         native.EvalPlayer = ResetProbePlayer
         sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', config['cfg_env'],
                     '--cfg_train', str(native_root/'data/cfg/train/rlg/inspire.yaml'),
-                    '--motion_file', config['motion_root'], '--checkpoint', str(checkpoint),
+                    '--motion_file', str(motions), '--checkpoint', str(checkpoint),
                     '--headless', '--sim_device', 'cuda:0', '--rl_device', 'cuda:0',
                     '--pipeline', 'gpu', '--graphics_device_id', '0', '--num_envs', '8',
                     '--seed', '17', '--output_path', str(output/'native-runtime')]
@@ -149,6 +163,10 @@ def main():
         save()
         os.chdir(ROOT/'third_party/DExplore')
         native.main()
+        if any(hashlib.sha256(Path(p).read_bytes()).hexdigest()!=digest for p,digest in frozen.items()):
+            raise RuntimeError('reset probe input/source drift')
+        if sum(p.stat().st_size for p in output.rglob('*') if p.is_file()) > 2**20:
+            raise RuntimeError('reset probe exceeded1MiB output budget')
         manifest.update(status='COMPLETED')
     except BaseException as error:
         manifest.update(status='FAILED', error=repr(error))
