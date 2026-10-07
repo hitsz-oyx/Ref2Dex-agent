@@ -62,6 +62,7 @@ def main():
         import evaluate as native
         from env.tasks.base_dexplore_task import DexploreTask
         from utils.reference_action import inspire_reference_action
+        from consequence_evaluator.reset_kinematics import task_kinematics
         import torch
         if a.reset_mode == 'batched':
             from consequence_evaluator.native_reset import install_reset_patch
@@ -83,6 +84,13 @@ def main():
                 self.env_step(self.env, action)
                 after = task._target_states.clone()
                 displacement = (after[:,:3]-before[:,:3]).norm(dim=-1)
+                fk = task_kinematics(task)
+                computed = fk.states(task._dof_pos, task._dof_vel, task._humanoid_root_states)
+                bodies = task._rigid_body_state.view(task.num_envs,-1,13)[:,:task.num_bodies].clone()
+                fk_position_error = (computed[:,:,:3]-bodies[:,:,:3]).norm(dim=-1).max().item()
+                fk_rotation_error = torch.minimum(
+                    (computed[:,:,3:7]-bodies[:,:,3:7]).norm(dim=-1),
+                    (computed[:,:,3:7]+bodies[:,:,3:7]).norm(dim=-1)).max().item()
                 report = dict(before=before.cpu().tolist(), after=after.cpu().tolist(),
                               displacement_m=displacement.cpu().tolist(),
                               initial_progress=initial_progress.cpu().tolist(),
@@ -90,6 +98,8 @@ def main():
                               initial_q=initial_q.cpu().tolist(),
                               initial_body=initial_body.cpu().tolist(),
                               post_body=task._rigid_body_pos.cpu().tolist(),
+                              fk_position_error_m=fk_position_error,
+                              fk_quaternion_error=fk_rotation_error,
                               pass_reset_persistence=bool((displacement < .1).all()),
                               limitation='first native step only; no grasp or policy qualification')
                 (output/'reset_check.json').write_text(json.dumps(report, indent=2)+'\n')
@@ -97,6 +107,35 @@ def main():
                       ('displacement_m','pass_reset_persistence')}), flush=True)
                 if not report['pass_reset_persistence']:
                     raise AssertionError('reset object teleported on first PhysX step')
+                if fk_position_error > .0005 or fk_rotation_error > .0005:
+                    raise AssertionError('URDF reset FK disagrees with measured native body poses')
+                if a.reset_mode == 'batched':
+                    subset_checks=[]
+                    for offset in (0,1,0):
+                        ids=torch.arange(offset,task.num_envs,2,device=task._dof_pos.device)
+                        untouched=torch.ones(task.num_envs,dtype=torch.bool,device=ids.device)
+                        untouched[ids]=False
+                        roots_before=task._root_states.clone()
+                        body_before=task._rigid_body_state.clone()
+                        progress_before=task.progress_buf.clone()
+                        self.env_reset(ids)
+                        expected=fk.states(task._dof_pos[ids],task._dof_vel[ids],
+                                           task._humanoid_root_states[ids])
+                        cached=task._rigid_body_state.view(task.num_envs,-1,13)
+                        roots=task._root_states.view(task.num_envs,-1,13)
+                        if (not torch.equal(roots[untouched],roots_before.view_as(roots)[untouched])
+                                or not torch.equal(cached[untouched],body_before.view_as(cached)[untouched])
+                                or not torch.equal(task.progress_buf[untouched],progress_before[untouched])
+                                or not torch.allclose(cached[ids,:task.num_bodies],expected,atol=1e-6)):
+                            raise AssertionError('subset reset changed unrelated state or has stale FK')
+                        target=task._target_states[ids].clone()
+                        self.env_step(self.env,inspire_reference_action(task,1))
+                        moved=(task._target_states[ids,:3]-target[:,:3]).norm(dim=-1)
+                        subset_checks.append(dict(ids=ids.cpu().tolist(),displacement_m=moved.cpu().tolist()))
+                        if not bool((moved < .1).all()):
+                            raise AssertionError('repeated subset reset lost target state')
+                    report['subset_checks']=subset_checks
+                    (output/'reset_check.json').write_text(json.dumps(report,indent=2)+'\n')
         native.EvalPlayer = ResetProbePlayer
         sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', config['cfg_env'],
                     '--cfg_train', str(native_root/'data/cfg/train/rlg/inspire.yaml'),
