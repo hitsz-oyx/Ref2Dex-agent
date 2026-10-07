@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-ref4-input-loss-audit
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: ce39282
+git_commit: efea21b
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 2
@@ -20,6 +20,8 @@ run_id: pointworld-ref4-audit-20261007-masked-weights
 # Ref4 action-voxel and motion-weight diagnosis
 
 Decision: diagnose input-time identity and relative motion-weight exposure while preserving the live three-arm run.
+
+Result: substantial cross-time action merging; low raw selector weights do not imply uniform supervision suppression after normalization.
 
 Follow [user ref4](../../user/ref/ref4.md) without changing or stopping the live three-arm
 [PointWorld Probe](P-20261007-pointworld-small-wm24.md).
@@ -89,6 +91,53 @@ The original trainer applies the mask correctly and is unchanged. Add that
 mask to the audit and require valid-window normalized shares to sum to one for
 every real microbatch. Repeat the affected diagnostic under the same overall
 300second budget, same512indices and seed; no training or model rerun.
+
+## Corrected results and Decision Note
+
+Corrected runtime `efea21b`:512unique train windows/229sequences,35.27seconds;
+the preserved initial run took33.67seconds. Both fit within the same300second
+budget. All512sample IDs, action voxel counts and raw anchor weight means agree
+with the initial output. Every one of256microbatches conserves valid-window
+normalized shares (max error3.10e-7). Original data/model/stat hashes remain
+unchanged. A two-window GPU3 parity check uses32.7MB peak allocated memory:
+CPU/CUDA unique keys exactly match(2007voxels), selector max difference1.12e-8.
+Result,512window records and `cpu_gpu_parity.json` are in the corrected run.
+
+Temporal merging is substantial:528valid action points become mean160.55
+distinct action-containing voxels (p10/p50/p90=52/130.5/288), retaining30.41%.
+Distinguishing timestamps in the diagnostic voxel count gives mean527.80,
+showing most merging is across time. This is a counting counterfactual, not a
+proposed working4D sparse adapter.83.70%of valid points share a voxel with
+another timestamp of the same(hand,keypoint); wrist+MCP84.53%,fingertips82.71%.
+The same-keypoint collision fraction is85.44%in moving windows and81.05%in
+static windows. Per-hand/keypoint and all24timestamp statistics are saved.
+All512windows are bimanual; the single-hand stratum has zero samples and no
+empirical estimate. Mean scene/action shared voxel count is19.66perwindow.
+
+| Anchor stratum | Windows | Raw point weight p10/p50/p90 | Median per-window raw mean | Median coefficient relative to uniform valid-label supervision |
+| --- | ---: | --- | ---: | ---: |
+| Moving | 309 | .006992/.012877/.721150 | .021000 | 1.2170 |
+| Program | 262 | .006965/.013692/.809626 | .021191 | 1.1918 |
+| Moving+program | 201 | .007822/.024081/.925156 | .047183 | 2.0043 |
+| Rotation-dominant | 10 | .006863/.009852/.051090 | .025255 | .5122 |
+| Rotating with <=2mm origin translation | 85 | .006809/.007529/.012343 | .008265 | .3894 |
+
+Only12.90%of moving-anchor point/frame displacements exceed5mm. The moving
+relative coefficient p10/p50/p90 is.1514/1.2170/7.2962;98/309anchors receive
+less than.5×uniform weight,47/309less than.2×. Thus relative exposure varies
+widely, but the assertion that all moving windows have merely2%–3%total
+supervision is not justified. The coefficient is not a measured gradient;
+actual errors/Jacobians also matter. Surface displacement includes rotation;
+the selector is not rotation-blind, although small/slow rotations can be
+relatively downweighted. Rotation-dominant10window evidence remains limited.
+
+Root decision: prioritize preservation of input time identity when designing
+the next adapter, retain the current three-arm recipe unchanged, and assess
+motion weighting separately rather than infer gradient collapse from raw
+weights. This diagnosis establishes an interface risk, not that it caused
+validation error or that future hands lack information. Method quality remains
+UNCLEAR pending the original equal-update final test and inference shuffle.
+No additional long training is launched by this diagnostic request.
 
 ## Limitations / future evidence
 

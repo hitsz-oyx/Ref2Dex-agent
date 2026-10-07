@@ -118,7 +118,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-pointworld-ref4-input-loss-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-ref4-input-loss-audit.md) | Ref4 action-voxel and motion-weight diagnosis | 见原卡 | diagnose input-time identity and relative motion-weight exposure while preserving the live three-arm run. | probes/UNCLEAR |
+| [P-20261007-pointworld-ref4-input-loss-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-ref4-input-loss-audit.md) | Ref4 action-voxel and motion-weight diagnosis | substantial cross-time action merging; low raw selector weights do not imply uniform supervision suppression after normalization. | diagnose input-time identity and relative motion-weight exposure while preserving the live three-arm run. | probes/UNCLEAR |
 | [P-20261007-pointworld-small-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md) | Unified spatial hand/action-to-rigid-effect Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-relative-action

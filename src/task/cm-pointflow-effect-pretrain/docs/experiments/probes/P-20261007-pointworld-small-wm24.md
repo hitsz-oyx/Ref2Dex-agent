@@ -138,6 +138,14 @@ judgment remains UNCLEAR and the original run continues unchanged. Complete
 metrics and live-process observation are in the run's
 `monitor/validation-2000-observed.json`.
 
+Matched update3000 moving-anchor h24 EPE is22.951/21.008/23.392mm for
+H/H+A/H+shuffle(A), static26.125mm; this remains intermediate validation.
+The read-only [ref4 input/loss diagnosis](P-20261007-pointworld-ref4-input-loss-audit.md)
+confirms substantial action cross-time voxel merging and heterogeneous motion
+weight exposure. It does not attribute the validation error or change this
+running protocol. Its own padding-mask audit correction and original outputs
+are preserved separately; no training implementation defect was found there.
+
 ## Limitations / future evidence
 
 Observed future hands are post-treatment geometry, not counterfactual commands.

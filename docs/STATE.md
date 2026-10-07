@@ -674,3 +674,10 @@ matched最终比较；原始产物保留。当前分支不变，Mission/claim不
 6个依赖已删除baseline产物的历史测试失败（另102项通过），不影响新路线输入。
 不启动PPO；最终trained-policy matched Cm-on/off utility仍OPEN。
 [协议及证据](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md)。
+
+ref4只读诊断已完成：229训练序列/512窗口，528action点平均合为160.55个空间voxel，
+同手同关键点跨时间碰撞影响83.70%的点，下一版优先保留时间身份。5mm逐帧selector
+原始权重偏低，但归一化后moving-anchor相对均匀监督系数中位1.217，不能据此声称
+所有moving监督仅剩2%–3%；部分旋转样本仍被相对降权。审计自身遗漏padding mask
+的初次归一化份额已排除并修正，原训练mask正确；三组继续原配方/原预算，结论仍UNCLEAR。
+[诊断协议、结果和修正边界](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-ref4-input-loss-audit.md)。
