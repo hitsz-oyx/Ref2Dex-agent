@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-action-ddp
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 28732d3
+git_commit: 4f2d9d5
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 4
@@ -20,7 +20,7 @@ run_id: pointworld-action-ddp-20261007
 # User-directed action-only three-GPU warm start
 
 Decision: use the current action latest model weights to start a fresh, faster
-three-rank pretraining recipe. Result: batch selection and launch pending.
+three-rank pretraining recipe. Result: batch64per rank completes200real-data engineering updates; user-directed production config uses global192. Native restore/validation checks precede launch.
 
 ## Motivation and Decision Note
 
@@ -124,3 +124,87 @@ they will coordinate the third card and provide its index. GPUs1/2are available;
 no foreign process is signaled or shared. Three-rank selection and the new full
 run are therefore not launched until the third allocation is confirmed. No
 automatic device substitution or two-rank production training is performed.
+
+
+## Three-card allocation and measured selection (2026-10-07)
+
+User confirms GPUs0/1/2may now be used. All three were checked empty (about2MiB
+each, no compute process) before the bounded selector launched. Runtime source
+commit4f2d9d5, identical imported step12163parameter hash for all configurations.
+All45updates/configuration completed, losses/gradients remained finite, and final
+parameter hashes were identical across all three ranks. Excluding the first15
+updates from timing gives:
+
+| Microbatch per rank | Global batch | Median update seconds | Windows/second | Peak allocator reserve GiB | Maximum sampled total VRAM GiB | Eligible |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 16 | 48 | 0.277 | 173.5 | 5.80 | 6.24 | yes |
+| 32 | 96 | 0.420 | 228.5 | 12.06 | 12.49 | yes; selected |
+| 64 | 192 | 0.728 | 263.6 | 23.24 | 23.20 | no; exceeds75%reserve boundary |
+
+The larger64case finishes, but has insufficient headroom. Choose32instead of
+chasing utilization or filling VRAM. Measured timing includes real-data loading
+and DDP communication; data-fetch median for32is0.51ms after prefetch warmup.
+45updates are an engineering sample, not a guarantee of long-run throughput or
+all-window peak memory. Larger-batch loss values do not retain the old2x8meaning.
+
+Frozen proposed production config is
+[pointworld_action_ddp_wm24.json](../../../configs/pointworld_action_ddp_wm24.json):
+per-rank32, global accumulation3/local1, global96, workers4/rank, lr1e-4,
+100warmup, cosine floor.1, clip1, BF16 forward/FP32 physical loss, maximum10000
+new updates, checkpoint/validation250, fixed evaluation microbatch2. The original
+absolute deadline still applies. No test data was accessed. Raw logs, source
+identities, utilization samples and selection rule are in selection.json under
+the declared selection output. Actual production code commit/PIDs will be
+recorded in the launch and input manifests.
+
+
+## User-directed batch64check
+
+User explicitly requests trying64per GPU despite the conservative allocator-
+reserve selection. Decision Note: retain the same three cards and run200actual
+training updates at microbatch64/global192, unchanged data/architecture, lr1e-4
+and100warmup. The45-update case already finishes; allocator peak live allocation
+is16.19GiB while reserved cache reaches23.24GiB. Reserved but unused allocator
+cache is reclaimable and is not equivalent to live tensor memory; record both
+without asserting a25%headroom guarantee. This check serves the concrete batch
+selection decision, bounded by5minutes and the existing storage/time campaign.
+On finite completion, validate checkpoint serialization/native3-rank restore and
+use64for the requested production run; on OOM keep its evidence and fall back
+to32rather than overwrite previous checkpoints or preempt another GPU job.
+Output: pointworld-action-ddp-batch64-check-20261007. These engineering updates
+are discarded for production initialization, which remains the original12163
+latest model. No test split is accessed.
+
+
+## Final selected batch after extended check
+
+The200-update64per-rank probe finishes in169.33seconds including startup/data
+loading and final serialization, with median measured update0.72601seconds
+(264.46windows/second), maximum live allocation16626.67MiB (16.24GiB) and
+maximum allocator reserve23794MiB (23.24GiB). All three final parameter hashes
+match6696713f19230ee0787e0144736c32bfc6e4f372c4b000090453e2f71636d1c1.
+All losses/gradients finite, no OOM. The earlier32choice is superseded by the
+user-directed64check and its successful outcome; the previous75%allocator-
+reserve heuristic is not asserted for this choice. Live-memory reserve is
+substantial, but allocator cache/sparse-workspace peaks vary, so future OOM
+remains an explicit stopping condition, not a claim ruled out by this short test.
+
+Production config now uses64per rank/global192with one synchronized backward
+per rank/update. Other parameters retain the proposed lr1e-4/100warmup/10000
+updates/250validation and checkpoint intervals/fixed evaluation batch2. The
+engineering200updates are not imported: full training starts again from the
+retained original12163model and a new optimizer/draw. The prior32check also
+verifies actual three-rank native continuation:1to2optimizer updates, exact
+resume starting parameters, changing trained weights, advanced CUDA RNG on all
+ranks, and rank-synchronized final weights; its verification.json is under
+pointworld-action-ddp-resume-check-20261007.
+
+
+Batch64native restore also passes at step200: every model and optimizer tensor,
+optimizer parameter-group settings and all three Torch/CUDA RNG states are
+exactly equal after restore/serialization; unwrapped keys retain the existing
+model contract. Twelve held-out validation windows can be read/evaluated at
+fixed microbatch2, with480finite metric entries and no source drift. This is
+engineering validation readability, not a predictive quality conclusion. Raw
+proofs are native-restore-verification.json and validation-read-check.json under
+the batch64check output. All short-check GPU processes exit before production.
