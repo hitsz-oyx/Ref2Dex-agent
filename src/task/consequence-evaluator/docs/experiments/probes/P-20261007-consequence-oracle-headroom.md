@@ -139,3 +139,12 @@ with training_allowed=false. Parent50 and s336 are NOT geometry-audited evaluato
 labels. Six experts, native geometry smoke and actual contact audit remain
 pending; GPU0 unavailable. Current73tests are finite CPU engineering checks,
 not a CPU substitute for real evaluator fitting.
+
+Blocker engineering check: while GPU1 is temporarily idle during three-source
+file/statistics preparation, run native_reset_probe --reset-mode batched
+--geometry-steps128 on8env/originals1 self-trained parent; <=180s/1MiB.
+This checks actual measured body/keypoint/surface wiring and records bounded
+force-near/far/elevated agreement, before any data expansion. No PPO/collector
+fit, no expert substitution, no success or scientific gain claim. GPU2 may
+compute file-derived physical statistics concurrently; max2ownedGPU. Preserve
+all raw/checkpoint/input hashes and stop on nonfinite/teleport/early completion.

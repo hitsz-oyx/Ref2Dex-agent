@@ -23,7 +23,11 @@ def main():
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--reset-mode', choices=['native', 'batched'], default='native')
     parser.add_argument('--motion-root', type=Path, help='explicit reference-only diagnostic input override')
+    parser.add_argument('--geometry-steps', type=int, default=0,
+                        help='At most128 frozen-policy steps to check measured hand/object geometry')
     a = parser.parse_args()
+    if not 0 <= a.geometry_steps <= 128:
+        parser.error('geometry engineering check is bounded to128 steps')
     output = a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         parser.error('fresh task-owned output required')
@@ -43,6 +47,12 @@ def main():
                Path(config['cfg_env']), checkpoint,
                *sorted(motions.glob('*/interaction_hand_inspire.pt')),
                *sorted((TASK/'src/consequence_evaluator').glob('*.py'))]
+    if a.geometry_steps:
+        sources += [ROOT/'src/task/CmResidual/dexplore_cm_geometry.py',
+                    ROOT/'src/task/CmResidual/v118_planner.py',
+                    ROOT/'third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py']
+        assets=ROOT/'third_party/DExplore/dexplore/data/assets'
+        sources += [p for p in assets.rglob('*') if p.is_file()]
     frozen = {str(p.resolve()):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     output.mkdir(parents=True)
     scratch = ROOT/'tmp/consequence-reset-probe'
@@ -75,6 +85,8 @@ def main():
         from utils.reference_action import inspire_reference_action
         from consequence_evaluator.reset_kinematics import task_kinematics
         import torch
+        if a.geometry_steps:
+            from consequence_evaluator.physical_geometry import PhysicalGeometry
         if a.reset_mode == 'batched':
             from consequence_evaluator.native_reset import install_reset_patch
             install_reset_patch()
@@ -86,13 +98,13 @@ def main():
                 task._hybrid_init_prob = 1.
                 task._adaptive_kappa_enabled = False
                 task._enable_early_termination = False
-                self.env_reset()
+                obs=self.env_reset()
                 before = task._target_states.clone()
                 initial_q = task._dof_pos.clone()
                 initial_body = task._rigid_body_pos.clone()
                 initial_progress = task.progress_buf.clone()
                 action = inspire_reference_action(task, 1)
-                self.env_step(self.env, action)
+                obs,_,_,_=self.env_step(self.env, action)
                 after = task._target_states.clone()
                 displacement = (after[:,:3]-before[:,:3]).norm(dim=-1)
                 fk = task_kinematics(task)
@@ -125,6 +137,31 @@ def main():
                 if (report['fk_velocity_error_m_s'] > .001
                         or report['fk_angular_velocity_error_rad_s'] > .005):
                     raise AssertionError('reset FK velocity disagrees with measured PhysX state')
+                if a.geometry_steps:
+                    geometry=PhysicalGeometry(task,assets)
+                    gaps, proxies, heights = [], [], []
+                    for _ in range(a.geometry_steps):
+                        points,gap=geometry.measure(task)
+                        if (points.shape!=(task.num_envs,11,3) or not torch.isfinite(points).all()
+                                or not torch.isfinite(gap).all() or bool((gap<0).any())):
+                            raise AssertionError('invalid measured hand/object geometry')
+                        force=(task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)
+                        force &= task._tar_contact_forces.norm(dim=-1)>.1
+                        gaps.append(gap.cpu());proxies.append(force.cpu())
+                        heights.append((task._target_states[:,2]-before[:,2]).cpu())
+                        obs,_,done,_=self.env_step(self.env,self.get_action(obs,True))
+                        if bool(done.any()):
+                            raise AssertionError('geometry smoke crossed first episode boundary')
+                    gap=torch.stack(gaps);proxy=torch.stack(proxies);height=torch.stack(heights)
+                    report['geometry_check']=dict(steps=a.geometry_steps,frames=gap.numel(),
+                        gap_min_m=float(gap.min()),gap_median_m=float(gap.median()),
+                        force_proxy_frames=int(proxy.sum()),
+                        force_and_near_frames=int((proxy&(gap<=.01)).sum()),
+                        force_far_frames=int((proxy&(gap>.03)).sum()),
+                        elevated_force_frames=int((proxy&(height>=.03)).sum()),
+                        elevated_force_near_frames=int((proxy&(height>=.03)&(gap<=.01)).sum()),
+                        limitation='bounded frozen-policy geometry smoke; sampled unsigned proximity, no pairwise contact GT')
+                    (output/'reset_check.json').write_text(json.dumps(report,indent=2)+'\n')
                 if a.reset_mode == 'batched':
                     subset_checks=[]
                     for offset in (0,1,0):
