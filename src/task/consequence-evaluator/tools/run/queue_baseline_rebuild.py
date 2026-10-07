@@ -37,7 +37,7 @@ def main():
     p.add_argument('--learning-rate', type=float, default=1e-5)
     p.add_argument('--source-run', type=Path,
                    help='completed owned self-trained run for a bounded transfer')
-    p.add_argument('--expert', choices=['parent_s1','airplane_base'], default='parent_s1')
+    p.add_argument('--expert', choices=['parent_s1','airplane_base','mixed12','train5','balanced5','duck','cup'], default='parent_s1')
     p.add_argument('--target-epoch', type=int, default=200)
     p.add_argument('--continue-unqualified', action='store_true',
                    help='explicit same-input s3 continuation after a failed readiness gate; <=40epochs')
@@ -46,6 +46,8 @@ def main():
     a = p.parse_args()
     if a.gpu < 0 or a.seed < 0 or not math.isfinite(a.learning_rate) or a.learning_rate <= 0:
         p.error('nonnegative GPU/seed and finite positive learning rate required')
+    if a.continue_unqualified and a.expert!='airplane_base':
+        p.error('unqualified continuation remains limited to the explicit same-input s3 protocol')
     inputs, output = a.inputs.resolve(), a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         p.error('fresh task-owned output required')
@@ -72,8 +74,8 @@ def main():
         source = json.loads((source_run/'run_manifest.json').read_text())
         source_epoch = endpoint_epoch(source)
         extra = 40 if a.continue_unqualified else 20
-        if a.expert != 'airplane_base' or not source_epoch < a.target_epoch <= min(500,source_epoch + extra):
-            p.error('s3 transfer is bounded to20epochs; explicit same-input continuation to40')
+        if a.expert == 'parent_s1' or not source_epoch < a.target_epoch <= min(500,source_epoch + extra):
+            p.error('qualified-source expert transfer is bounded to20epochs; explicit same-input s3 continuation to40')
         qualification_dir = source_run.parent/'qualification-s290'
         qualification_manifest = json.loads((qualification_dir/'run_manifest.json').read_text())
         qualification = json.loads((qualification_dir/'qualification.json').read_text())
@@ -107,7 +109,9 @@ def main():
     if shutil.disk_usage(ROOT).free < 20*2**30:
         raise RuntimeError('disk below20GiB reserve')
     output.mkdir(parents=True)
-    source_paths = [Path(__file__), env_config,*sorted((TASK/'src/consequence_evaluator').glob('*.py')),
+    source_paths = [Path(__file__), env_config,inputs/('specs/'+a.expert+'.json'),
+                    *[TASK/'src/consequence_evaluator'/name for name in (
+                        'contracts.py','provenance.py','native_reset.py','reset_kinematics.py','native_approach.py')],
                     TASK/'tools/run/rebuild_train.py', TASK/'tools/run/rebuild_rank_bootstrap.py',
                     ROOT/'src/task/cm-interaction-oracle/src/oracle_y_utility.py',
                     ROOT/'src/task/CmResidual/tools/run_multitrajectory_baseline_probe.py',
@@ -115,7 +119,8 @@ def main():
                     ROOT/'src/task/CmResidual/tools/dexplore_cm_off_rank_bootstrap.py',
                     *[ROOT/'src/task/CmResidual'/name for name in (
                         'dexplore_approach.py','dexplore_approach_agent.py','dexplore_cm_geometry.py',
-                        'dexplore_contact_curriculum.py','dexplore_grasp_reward.py')],
+                        'dexplore_contact_curriculum.py','dexplore_grasp_reward.py','v118_planner.py')],
+                    ROOT/'third_party/IsaacGymEnvs/isaacgymenvs/tasks/cm_residual/cm_geometry.py',
                     *sorted((ROOT/'third_party/DExplore/dexplore').rglob('*.py'))]
     source_paths += [ROOT/'third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml',
                     *sorted(p for p in (ROOT/'third_party/DExplore/dexplore/data/assets').rglob('*') if p.is_file())]
@@ -123,11 +128,12 @@ def main():
     frozen.update({record['path']:record['sha256'] for record in stage['motion_inputs']})
     frozen.update({str(inputs/path):value for key in ('assets','configs') for path,value in stage[key].items()})
     frozen[str(inputs/'manifest.json')] = sha(inputs/'manifest.json')
+    frozen.update(stage.get('recovery_dependencies',{}))
     frozen.update(ancestry)
     record = dict(status='WAITING', task='consequence-evaluator', run_id=output.name, pid=os.getpid(),
                   parent_pid=parent_pid, physical_gpu=a.gpu, sources=frozen, seed=a.seed,
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
-                  scope='bounded s3 transfer from qualified self-trained parent' if source else
+                  scope='bounded expert transfer from qualified self-trained source' if source else
                         'new parent_s1 scratch PPO; native smoke first; further six-expert training pending parent evaluation',
                   trained_run_dir=str(output/a.expert), expert=a.expert,
                   source_run=str(a.source_run.resolve()) if a.source_run else None,

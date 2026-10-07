@@ -425,3 +425,21 @@ user, and the user cannot coordinate its release; no foreign jobs are stopped.
 While waiting, ref2 repairs plans/three arms/contact/pairing, ref3 separates
 PointWorld data-source semantics. Next expert recipes need actual multi-object
 approach geometry rather than an implicitly fixed airplane surface.
+
+## GPU0 空闲后的下一专家 Decision Note
+
+23:26 GPU0外部任务自然退出，用户已授权双管齐下，root继续基线重建。
+当前关键证据为新parent50/64、s3endpoint260为36/64，corrected12输入
+全部恢复。下一步先duck单motion20epoch（260→280），同source/RMS/
+optimizer/LR1e-5、原anneal40→80；先8env2epoch丢弃smoke，再64env完整
+正式端点并seed290固定64frame0资格。修复非airplane approach几何选择，
+保留原采样/奖励公式，不把airplane mesh用于duck。mixed12/train5/
+balanced5/cup输入和有界入口同时准备，未因输入就绪当作已训练。
+
+这区分已有s3策略是否能低成本产生另一物体的稳定数据。单GPU0，
+smoke<=300s/fit<=900s/5GiB、资格<=900s/1GiB；与PointWorld1/2合计
+3GPU，仍受4GPU/300GB/free20GiB限制。GPU冲突、source/input漂移、
+非有限、超时或cap立即只停止owned进程。若duck达到8/64，继续下一
+角色独立有界20epoch；否则先核对该物体reset/控制/接触，不自动堆步数
+或用单权重冒充六专家。五角色最多依次短fit，不立即领取新的长训练预算。
+不改变Mission/claim、不改PointWorld活跃输入和源码、不停止他人进程。
