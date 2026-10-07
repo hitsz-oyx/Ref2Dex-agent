@@ -41,7 +41,8 @@ def parameter_hash(model):
 def source_identity():
     sources = base.implementation_sources()
     for p in (Path(__file__).resolve(), TASK/'src/oakink_wm/distributed.py',
-              TASK/'src/oakink_wm/pointworld_performance.py', TASK/'src/oakink_wm/continuation.py'):
+              TASK/'src/oakink_wm/pointworld_performance.py', TASK/'src/oakink_wm/continuation.py',
+              TASK/'src/oakink_wm/multisource.py'):
         sources[str(p.relative_to(TASK))] = base.digest(p)
     return sources
 
@@ -163,10 +164,18 @@ def run(args):
         if args.fused_hilbert:
             from oakink_wm.pointworld_performance import install_fused_hilbert
             install_fused_hilbert()
-        train, val = Windows(args.data, 'train'), Windows(args.data, 'val')
+        if args.mixed_data:
+            from oakink_wm.multisource import MixedWindows, mixed_indices, validate_pretrained
+            train, val = MixedWindows(args.data, 'train'), MixedWindows(args.data, 'val')
+            draw = mixed_indices
+        else:
+            train, val = Windows(args.data, 'train'), Windows(args.data, 'val')
+            draw = balanced_indices
         dataset_hash = base.digest(args.data/'processed/manifest.json')
         stats = json.loads(args.stats.read_text())
-        if stats['split']!='train' or stats['input_manifest_sha256']!=dataset_hash:
+        stats_dataset_hash = train.meta['normalization_source_manifest_sha256'] if args.mixed_data else dataset_hash
+        if (stats['split']!='train' or stats['input_manifest_sha256']!=stats_dataset_hash
+                or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])):
             raise ValueError('normalization identity mismatch')
         model = model_from_config(stats, config).to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
@@ -184,6 +193,9 @@ def run(args):
             initial_parameter_sha256=initial_hash,
             pointworld_commit=subprocess.check_output(['git','-C',str(VENDOR),'rev-parse','HEAD'],text=True).strip(),
             vendor_sources={str(f.relative_to(VENDOR)):base.digest(f) for f in (VENDOR/'ptv3').rglob('*') if f.suffix in ('.py','.yaml')})
+        if args.mixed_data:
+            identity.update(mixed_data=True, source_manifest=train.meta,
+                            normalization_source_manifest_sha256=stats_dataset_hash)
         gathered = [None]*world
         dist.all_gather_object(gathered, dict(rank=rank, pid=os.getpid(), local_rank=local_rank,
              visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES',''), initial_hash=initial_hash,
@@ -200,7 +212,8 @@ def run(args):
         step, best = 0, float('inf')
         if args.init_weights:
             state = torch.load(args.init_weights, map_location='cpu', weights_only=False, mmap=True)
-            identity['initialization'] = initialize_weights(state, model, config, identity)
+            identity['initialization'] = (validate_pretrained(state, model, config, identity, base.implementation_sources())
+                if args.mixed_data else initialize_weights(state, model, config, identity))
             identity['parent_checkpoint_sha256'] = base.digest(args.init_weights)
             identity['parent_checkpoint_path'] = str(args.init_weights.resolve())
             del state
@@ -229,12 +242,13 @@ def run(args):
         model = DDP(model, device_ids=[local_rank], output_device=local_rank,
                     broadcast_buffers=False, find_unused_parameters=args.arm=='history')
         raw_model = model.module
-        all_indices = balanced_indices(train, config['updates']*effective, seed+1)
+        all_indices = draw(train, config['updates']*effective, seed+1)
         indices = rank_indices(all_indices, config['microbatch'], config['accumulation'], rank, world, step)
         identity['global_draw_sha256'] = hashlib.sha256(all_indices.tobytes()).hexdigest()
         if rank == 0:
             base.atomic_json(out/'input_manifest.json', identity)
-        validation = balanced_indices(val, config['validation_samples'], config['validation_seed'])
+        validation = (mixed_indices(val, config['validation_samples'], config['validation_seed'], equal_sources=True)
+                      if args.mixed_data else balanced_indices(val, config['validation_samples'], config['validation_seed']))
         natural = np.random.default_rng(config['natural_validation_seed']).choice(
             len(val), config['validation_samples'], replace=len(val)<config['validation_samples'])
         if rank == 0:
@@ -249,6 +263,25 @@ def run(args):
         if rank == 0:
             trainlog = (out/'train.jsonl').open('a')
         evaluation_batch = config.get('validation_microbatch', config['microbatch'])
+        if args.mixed_data:
+            standard_evaluate = base.evaluate
+            def mixed_evaluate(net, dataset, ids, arm, batch_size, amp, intervention=False):
+                measured = standard_evaluate(net, dataset, ids, arm, batch_size, amp, intervention)
+                primary = []
+                for source_id, desc in enumerate(dataset.meta['sources']):
+                    selected = ids[(ids >= dataset.offsets[source_id]) & (ids < dataset.offsets[source_id+1])]
+                    if not len(selected): continue
+                    metrics = standard_evaluate(net, dataset, selected, arm, batch_size, amp, intervention)
+                    for key, value in metrics.items(): measured['source/'+desc['name']+'/'+key] = value
+                    key = 'model/anchor/cat0/h24/point_epe'
+                    if key in metrics: primary.append(metrics[key])
+                measured['pooled/model/anchor/cat0/h24/point_epe'] = measured.get('model/anchor/cat0/h24/point_epe')
+                if len(primary) == 4:
+                    measured['model/anchor/cat0/h24/point_epe'] = sum(primary)/4
+                elif not intervention and dataset is val and np.array_equal(ids, validation):
+                    raise ValueError('fixed source validation panel missing moving anchors')
+                return measured
+            base.evaluate = mixed_evaluate
         engineering = args.smoke or args.engineering or args.benchmark
         if (args.init_weights or args.continue_from) and not engineering:
             measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
@@ -375,6 +408,7 @@ def main():
     p.add_argument('--stop-after', type=int)
     p.add_argument('--fused-hilbert', action='store_true')
     p.add_argument('--engineering', action='store_true', help='Keep requested batch, save final checkpoint, skip evaluation')
+    p.add_argument('--mixed-data', action='store_true', help='Use frozen four-source manifest and source-balanced draws')
     p.add_argument('--benchmark', action='store_true', help='Engineering throughput only; skip checkpoints and validation')
     group = p.add_mutually_exclusive_group()
     group.add_argument('--resume', type=Path)

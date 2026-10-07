@@ -56,6 +56,7 @@ def main():
     parent.add_argument('--continue-from', type=Path)
     p.add_argument('--gpus', default='0,1,2')
     p.add_argument('--deadline', type=float, required=True)
+    p.add_argument('--mixed-data', action='store_true')
     a = p.parse_args()
     gpus = [int(x) for x in a.gpus.split(',')]
     config = json.loads(a.config.read_text())
@@ -74,6 +75,7 @@ def main():
     files = [Path(__file__).resolve(), a.config.resolve(), a.stats.resolve(), a.data.resolve()/'processed/manifest.json',
              TASK/'src/oakink_wm/distributed.py', TASK/'src/oakink_wm/pointworld_performance.py',
              TASK/'src/oakink_wm/continuation.py',
+             TASK/'src/oakink_wm/multisource.py',
              TASK/'src/oakink_wm/pointworld_temporal.py', TASK/'src/oakink_wm/pointworld.py',
              TASK/'src/oakink_wm/data.py', TASK/'src/oakink_wm/model.py',
              TASK/'tools/run/train_oakink2_pointworld_ddp.py', TASK/'tools/run/train_oakink2_pointworld_temporal.py',
@@ -89,6 +91,14 @@ def main():
                '--continue-from' if a.continue_from else '--init-weights',
                str((a.continue_from or a.init_weights).resolve()),'--fused-hilbert','--deadline',str(a.deadline),
                '--output',str(root/'train-action')]
+    if a.mixed_data:
+        if a.continue_from: raise ValueError('mixed data uses model-only initialization, not optimizer migration')
+        command.append('--mixed-data')
+        manifest = json.loads((a.data/'processed/manifest.json').read_text())
+        for source in manifest['sources']:
+            for entry in source['indices'].values():
+                sources[entry['path']] = entry['sha256']
+            sources[str(Path(source['root'])/'processed/manifest.json')] = source['manifest_sha256']
     status = dict(status='LAUNCHING',pid=os.getpid(),gpus=gpus,deadline=a.deadline,started_at=time.time(),
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   sources=sources,command=command)
