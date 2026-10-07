@@ -73,9 +73,13 @@ def main():
         ancestry = self_trained_ancestry(source_run, ROOT/'outputs/consequence-evaluator')
         source = json.loads((source_run/'run_manifest.json').read_text())
         source_epoch = endpoint_epoch(source)
-        extra = 40 if a.continue_unqualified else 20
+        # Historical specialist recovery used80epochs; the20epoch duck
+        # readiness probe is not evidence against that bounded recipe.
+        role_budget = dict(airplane_base=20, mixed12=40, train5=20,
+                           balanced5=40, duck=80, cup=80)
+        extra = 40 if a.continue_unqualified else role_budget[a.expert]
         if a.expert == 'parent_s1' or not source_epoch < a.target_epoch <= min(500,source_epoch + extra):
-            p.error('qualified-source expert transfer is bounded to20epochs; explicit same-input s3 continuation to40')
+            p.error('transfer exceeds its fixed role recipe; explicit same-input s3 continuation <=40epochs')
         qualification_dir = source_run.parent/'qualification-s290'
         qualification_manifest = json.loads((qualification_dir/'run_manifest.json').read_text())
         qualification = json.loads((qualification_dir/'qualification.json').read_text())

@@ -193,3 +193,17 @@ GPU0目前为他人进程，用户暂不能协调；先完成合同修订，不�
 四源PointWorld已保存停止step14250；用户要求三源主监督（Oak/GRAB/ARCTIC），
 ContactPose仅列为刚性运输辅助，EPIC保持candidate_only。三源已于23:20启动，GPU1/2每卡64，以latest14250权重初始化，
 fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合预训练卡。
+
+## 最新执行状态与 ref2 完成边界
+
+2026-10-07晚：GPU0恢复可用，duck260→280短迁移完成，固定资格0/64；
+5条曾保持45帧后出现drop。原生duck几何smoke1024帧/533forceproxy帧
+均有<=1cm采样gap，reset/FK/子集检查通过；尚未获得桌面假阳性或
+完整几何标签验证。六角色中airplane_base已达36/64，duck未过门槛，
+其余四角色待训练，真实evaluator数据/三臂fit仍未开始。
+
+修复collector读取native motion目录软链接和遗漏source依赖冻结，
+按实际motion跨wave轮转clean及五阶段，记录assigned/triggered覆盖；
+不能再用全局env序号分阶段并假设每对象都有clean。单元和fake-driver
+测试只验证工程合同，不代替真实collect和标签审计。
+三源PointWorld同panel验证会波动，完整状态以混合预训练卡为准。

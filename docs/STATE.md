@@ -3,9 +3,9 @@
 ## 2026-10-07 ref2/ref3 最新状态
 
 新随机自训练s1 parent200资格50/64；s3 bounded220→260固定资格36/64，
-恢复Probe PROMISING。十条剩余reference全部恢复；六专家只有airplane_base完成，
+恢复Probe PROMISING。十条剩余reference全部恢复；六角色airplane_base已过资格，duck280已训练但资格0/64（5条保持后掉落），其余四角色待训练，
 尚无真实evaluator数据/fit。GPU0已自然空闲，duck首轮smoke因缺mesh在PPO前失败；
-owned资产补齐并按原预算重试。ref2改用执行前已知24×18
+owned资产补齐；duck真实1024帧geometry smoke通过，533forceproxy帧均有<=1cm gap。ref2改用执行前已知24×18
 请求残差计划，三臂E0/object/EI，同容量、几何接触约束、同expert/motion/current
 物体手状态配对；79工程测试通过（含mesh readiness回归）；GPU1真实8env×128步几何smoke通过，712forceproxy帧均有≤1cm采样gap，
 但尚未验证其他物体/桌面反例或完整真实数据，不升级为精确contact GT。
@@ -16,7 +16,8 @@ Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm；best/latest保留。
 latest14250模型初始化/fresh优化器，50000新更新，
 用户指定截止2026-10-08 10:00。新step0同panel EPE为Oak15.92/GRAB36.13/ARCTIC51.39mm，
 不同于旧四源panel，不直接横比。首次250val宏34.48→37.16mm，早期退化，
-step1500同panel为Oak11.65/GRAB33.09/ARCTIC44.90mm，宏29.88mm，已超过初始化；
+step1500宏29.88mm曾改善，但step2500宏35.87mm再次高于初始化34.48；
+短期波动，不认定稳定改善或平台；
 每250步保存latest/best；含val/save实测.744s/update，50000预计09:41，硬截止不变。
 ContactPose仅刚性运输辅助；EPIC仍candidate_only，
 独立修订坐标约定、双手有效性、gap及OF overlap质量，未开放训练。

@@ -10,6 +10,31 @@ from .contracts import K
 PHASES = ('approach', 'contact', 'grasp', 'lift', 'hold')
 
 
+class PhaseAssignments:
+    """Rotate clean/intervention assignments within each actual motion.
+
+    Counts persist across waves. Grouping avoids aliasing the native object's
+    environment layout with a global modulo-six phase schedule. This records
+    intended coverage only: an assigned state may never be reached.
+    """
+    def __init__(self, seed):
+        self.rng = np.random.default_rng(seed)
+        self.counts = {}
+
+    def assign(self, motions):
+        motions = np.asarray(motions)
+        if motions.ndim != 1 or not len(motions):
+            raise ValueError('one current motion identity per environment required')
+        result = np.empty(len(motions), dtype='int64')
+        for motion in np.unique(motions):
+            ids = self.rng.permutation(np.flatnonzero(motions == motion))
+            key = str(motion)
+            start = self.counts.get(key, 0)
+            result[ids] = (start + np.arange(len(ids))) % (len(PHASES)+1)
+            self.counts[key] = start+len(ids)
+        return result
+
+
 def pose_matrix(states):
     """Native xyz/xyzw root-state layout, retaining its stationary world frame."""
     states = np.asarray(states)
@@ -50,9 +75,13 @@ def smooth_residual(rng, amplitude):
 
 class Perturbations:
     """One assigned phase and at most one complete 24-step residual per episode."""
-    def __init__(self, count, seed, amplitude=.08, wave=0):
+    def __init__(self, count, seed, amplitude=.08, wave=0, assignment=None):
         self.rng = np.random.default_rng(seed)
-        self.assignment = (np.arange(count) + wave) % 6  # clean then five phases
+        self.assignment = ((np.arange(count) + wave) % 6 if assignment is None
+                           else np.asarray(assignment).copy())
+        if (self.assignment.shape != (count,) or self.assignment.dtype.kind not in 'iu'
+                or (self.assignment < 0).any() or (self.assignment > len(PHASES)).any()):
+            raise ValueError('one clean/phase assignment in0..5 per environment required')
         self.chunks = np.stack([smooth_residual(self.rng, amplitude) for _ in range(count)])
         self.started = np.full(count, -1, dtype='int64')
         self.contact_run = np.zeros(count, dtype='int64')

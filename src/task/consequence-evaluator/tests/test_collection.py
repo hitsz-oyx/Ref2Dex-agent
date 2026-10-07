@@ -15,7 +15,7 @@ import torch
 TASK = Path(__file__).resolve().parents[1]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK/'src'))
-from consequence_evaluator.collection import Episode, Perturbations, pose_matrix, smooth_residual, PHASES
+from consequence_evaluator.collection import Episode, Perturbations, PhaseAssignments, pose_matrix, smooth_residual, PHASES
 
 
 def test_native_motion_inventory_follows_sequence_links_without_recursive_walk(tmp_path):
@@ -52,6 +52,30 @@ def root_state(z=0.):
     state = np.zeros(13, dtype='float32')
     state[2], state[6] = z, 1
     return state
+
+
+def test_phase_schedule_breaks_object_layout_aliasing_and_covers_each_motion():
+    motions = np.arange(24) % 10
+    old = np.concatenate([(np.arange(24)+wave)%6 for wave in range(2)])
+    assert 0 not in old[np.tile(motions==9,2)]
+    schedule = PhaseAssignments(292)
+    draws = np.stack([schedule.assign(motions) for _ in range(3)])
+    for motion in range(10):
+        assert set(draws[:,motions==motion].ravel()) == set(range(6))
+    repeat = PhaseAssignments(292)
+    assert np.array_equal(draws, np.stack([repeat.assign(motions) for _ in range(3)]))
+    other = PhaseAssignments(293)
+    assert not np.array_equal(draws, np.stack([other.assign(motions) for _ in range(3)]))
+
+
+def test_phase_rotation_tracks_actual_motion_changes_without_future_state():
+    schedule = PhaseAssignments(5)
+    first = schedule.assign([0,0,1])
+    second = schedule.assign([1,1,0])
+    assert set(first[:2]) == {0,1} and first[2] == 0
+    assert set(second[:2]) == {1,2} and second[2] == 2
+    with pytest.raises(ValueError,match='assignment'):
+        Perturbations(3,5,assignment=[0,1,6])
 
 
 def test_native_xyzw_translation_and_rotation():
@@ -189,6 +213,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
         def __init__(self,*args):pass
         def measure(self,task):return torch.zeros(n,11,3),torch.full((n,),.001)
     namespace=dict(torch=torch,np=np,Path=Path,router=SimpleNamespace(RoutedPlayer=Base),a=a,ROOT=ROOT,
+                   PhaseAssignments=PhaseAssignments,
                    PhysicalGeometry=Geometry,
                    DexploreTask=SimpleNamespace(StateInit=SimpleNamespace(Start='Start')),frozen=frozen,
                    output=tmp_path,check=lambda:None,manifest=manifest,Episode=Episode,Perturbations=Perturbations,
@@ -205,7 +230,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
             assert packet['history'][-1,0]==65+env
             assert np.array_equal(packet['action'],np.stack([v[env].numpy() for v in controls[:65+env]]))
             assert not packet['progress_mask'].any()
-        if env==0:
+        if record['assigned_phase']=='clean':
             assert record['perturbation_tick']==-1
         else:
             assert record['perturbation_tick']>=1

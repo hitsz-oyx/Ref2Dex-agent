@@ -19,7 +19,7 @@ ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
-from consequence_evaluator.collection import Episode, Perturbations, PHASES
+from consequence_evaluator.collection import Episode, Perturbations, PhaseAssignments, PHASES
 from consequence_evaluator.contracts import is_within, EPISODE_SCHEMA, ACTION_SEMANTICS, HAND_LINKS
 from consequence_evaluator.provenance import self_trained_ancestry
 
@@ -214,6 +214,7 @@ def main():
                 return dict(q=task._dof_pos.detach().cpu().numpy().copy(),
                             hand_keypoints=points.cpu().numpy(),surface_gap=gap.cpu().numpy(),
                             hand_root=task._humanoid_root_states.detach().cpu().numpy().copy())
+            assignments = PhaseAssignments(a.seed)
             for wave in range(a.waves):
                 check()
                 if self.observation_router is not None:
@@ -230,10 +231,11 @@ def main():
                 measured = kinematics()
                 episodes = [Episode(history[i], states[i], contact[i], a.max_steps,
                                     {name:values[i] for name,values in measured.items()}) for i in range(a.num_envs)]
-                perturb = Perturbations(a.num_envs, a.seed+wave, a.amplitude, wave)
                 active = np.ones(a.num_envs, dtype=bool)
                 initial_height = states[:,2].copy()
                 motion = task.data_id.cpu().numpy().copy()
+                perturb = Perturbations(a.num_envs, a.seed+wave, a.amplitude, wave,
+                                        assignment=assignments.assign(motion))
                 object_names = [task.object_name[int(task.object_id[int(index)])] for index in motion]
                 for tick in range(a.max_steps):
                     check()
@@ -286,6 +288,16 @@ def main():
                         expert= self.expert_names[int(self.last_teacher_choice[env])],
                         assigned_phase='clean' if perturb.assignment[env]==0 else PHASES[perturb.assignment[env]-1],
                         perturbation_tick=int(perturb.started[env]), steps=len(episode.actions)))
+                coverage = {}
+                for record in manifest['episodes']:
+                    key = record['expert']+'|'+record['motion']
+                    group = coverage.setdefault(key, {'assigned': {}, 'triggered': {}})
+                    phase = record['assigned_phase']
+                    group['assigned'][phase] = group['assigned'].get(phase,0)+1
+                    if record['perturbation_tick'] >= 0:
+                        group['triggered'][phase] = group['triggered'].get(phase,0)+1
+                manifest['assignment_semantics'] = 'seeded per-current-motion rotation across waves'
+                manifest['phase_coverage'] = coverage
                 write(output/'manifest.json', manifest)
     native = ['--task','Dexplore_Inspire','--cfg_env',str(a.cfg_env.resolve()),
               '--cfg_train',str(a.cfg_train.resolve()),'--motion_file',str(a.motions.resolve()),

@@ -19,7 +19,7 @@ run_id: oracle-headroom-20261007
 
 # Does physical future add ranking information to decision-known residual plans?
 
-Result: Ref2 contract and74synthetic engineering tests pass; no real six-expert data or matched fit yet.
+Result: Ref2 contracts pass; native s1 and duck geometry wiring verified, collection input/coverage defects repaired. Real six-expert rollout and matched evaluator fit remain pending.
 Decision: Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched Probe.
 
 ## Purpose and decision
@@ -195,3 +195,21 @@ Collector native input inventory also repairs immediate directory links
 sequence rejection. Frozen dependencies now include shared geometry,
 planner, oracle table alignment, native common_player and surface loader.
 This is engineering readiness, not oracle headroom evidence.
+
+Duck geometry r2 at4e17253 COMPLETED25.625s:1024frames,533forceproxy
+frames all corroborated by<=1cm sampled gap, median2.238mm; no elevated
+frames and no proxy-far>3cm examples. Reset cache velocity errors0, strict
+post-step pose/persistence and subset checks pass. This confirms wiring
+for another actual object, not reliable hold/contact truth or a full audit.
+
+Independent review also exposed global env-index modulo6 phase assignments
+aliasing native object layouts: default24env×2waves gave cup/waterbottle
+no clean episodes, and changing seeds did not change assignments. New
+collector rotates clean+5phases within actual motion across waves, with
+seeded env permutations and explicit intended/triggered coverage by
+expert/motion. Missing reached stages remain missing; no outcomes choose
+assignment. This protects clean progress anchors and directs later
+coverage completion without adding future feedback to requested plans.
+The first real collection will choose env/wave counts from measured cost
+and recorded motion coverage; the old144episode cap is not evidence that
+every motion/phase was covered. No collector or evaluator has run yet.

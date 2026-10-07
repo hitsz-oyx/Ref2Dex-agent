@@ -358,3 +358,21 @@ Includes validation/save, step50→1595 averages.7444s/update;50000newupdates
 ETA2026-10-08~09:41, with user-authorized10:00hard deadline unchanged.
 Latest checkpoints are saved every250updates; best is selected from this
 three-source panel only. No test evaluation or Cm utility claim.
+
+### Ref3 completion audit and transient validation
+
+Independent read-only review confirms the production main source exclusion,
+train-only2048 loss statistics, actual trainer physical_loss branch and
+all frozen dependency hashes. Keep the model's forward Oak normalization
+to preserve imported weights; do not claim full domain scale correction.
+Because initialization is the former four-source14250 model, previous
+ContactPose knowledge persists. Exclusion in this run is not a clean
+ContactPose-free ablation; separate auxiliary training remains future
+evidence until it changes the next decision. EPIC r3 still has0valid
+4+24windows and substantial world-motion mismatch, so OF+EPIC usable
+training pairs are not delivered and the candidate guard remains closed.
+
+Step2500 same panel moving-anchor h24: Oak17.742/GRAB39.673/ARCTIC50.179mm,
+macro35.865 versus initialization34.480. The1500 positive observation
+was transient; do not report stable improvement or convergence yet.
+Training continues under the user's50000update/10:00deadline protocol.

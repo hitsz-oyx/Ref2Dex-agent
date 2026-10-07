@@ -1,17 +1,18 @@
 # cm-pointflow-effect-pretrain
 
-2026-10-07 current execution: the corrected three independent arms were stopped
-on user request at H12661/action12163/shuffle11774, preserving all checkpoints.
-The user now requests three-GPU action-only training initialized from action
-latest model weights, with batch chosen by measured throughput/memory. Three-rank action training is now running on GPUs0/1/2with per-rank batch64,
-global192, fresh AdamW lr1e-4/100warmup and maximum10000new updates under the
-original deadline. The imported fixed validation baseline is14.067mm moving-
-anchor h24point EPE.200-update batch64checks and native checkpoint restore pass;
-validation/checkpoint cadence is250updates. See the
-[action DDP experiment](docs/experiments/probes/P-20261007-pointworld-action-ddp.md).
-The paragraphs below retain the route's original acquisition/execution context.
+Current execution (2026-10-07): user ref3 uses OakInk2/GRAB/ARCTIC main
+supervision only, on GPUs1/2 with per-rank batch64/global128. The stopped
+four-source latest14250 initializes model weights; AdamW/schedule/draw reset.
+Maximum50000new updates, hard deadline2026-10-08 10:00 Asia/Shanghai;
+checkpoints/validation every250updates. ContactPose is excluded from new
+main sampling/loss, but its earlier learning history remains in the imported
+parent. This is not a clean ContactPose-free causal ablation. Separate
+ContactPose auxiliary and weak-data training are deferred evidence. EPIC
+remains candidate_only after coordinate/validity/dual-hand/gap audits.
+See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
+for per-source moving-anchor metrics, exact artifacts and frozen identities.
 
-Current user-directed route on branch `cm-pointflow-effect-pretrain`: ref3
+Current implementation branch: `consequence-evaluator`. Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus
 0.5m current geometry-center local objects; fixed right/left11semantic points

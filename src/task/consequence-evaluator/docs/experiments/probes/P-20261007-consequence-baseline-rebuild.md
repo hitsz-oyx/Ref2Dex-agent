@@ -487,3 +487,31 @@ policy that can lift but cannot retain. No PPO, newlabels or reward change.
 If wiring passes, choose the next independent expert from qualifieds3260,
 and record a separate bounded recipe decision; do not use duck280 as
 qualified ancestry. Preserve all failed staging/launch/qualification outputs.
+
+## Recovery recipe Decision Note after duck audit
+
+Question: does20epoch duck failure justify closing specialist recovery?
+Evidence: duck reset/actual geometry wiring passes and5/64episodes already
+hold45frames but drop later. The old successful duck and cup recipes used
+80epochs from s3e260, not20 (P-20260924-duck-specialist and
+P-20260925-cup-specialist). Current corrected input/newparent are different
+and the old results cannot be inherited. A20epoch gate alone does not
+implement the historical specialist training budget.
+
+Root chooses one fresh duck260→340 run from the qualified s3260 source,
+not the failed duck endpoint. SameLR1e-5/reward2/10/5/anneal40→80/seed289,
+8env2epoch discarded smoke,64env80epoch fit, fixed64frame0seed290 gate.
+Retain the original <=300s smoke/900s fit/5GiB and<=900s/1GiB qualification
+caps; observed20epoch runtime fits the80epoch ceiling. This separates
+insufficient transfer duration from inability to retain, without reward
+or heldout-tuned threshold changes. Stop on drift/nonfinite/GPU conflict/
+time/cap. If negative, preserve and inspect reference/control opportunities;
+no automatic extra epochs beyond340. If positive, freeze as newduck role.
+
+The queue's initial-role caps now reflect separate recipes: mixed12<=40,
+train5<=20, balanced5<=40, duck/cup<=80, airplane_base<=20. All initial
+sources still need qualified owned random-self-trained ancestry. The
+explicit unqualified<=40continuation remains limited to unchangeds3.
+This does not pre-authorize all runs or override per-run Decision Notes.
+GPU0 was reoccupied by a foreign zyc job; check another idle GPU afresh
+with at most3total owned GPUs, never stop that job.
