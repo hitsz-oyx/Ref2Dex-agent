@@ -7,7 +7,7 @@
 尚无真实evaluator数据/fit。GPU0已自然空闲，duck首轮smoke因缺mesh在PPO前失败；
 owned资产补齐并按原预算重试。ref2改用执行前已知24×18
 请求残差计划，三臂E0/object/EI，同容量、几何接触约束、同expert/motion/current
-物体手状态配对；77工程测试通过，另2项mesh readiness回归通过；GPU1真实8env×128步几何smoke通过，712forceproxy帧均有≤1cm采样gap，
+物体手状态配对；79工程测试通过（含mesh readiness回归）；GPU1真实8env×128步几何smoke通过，712forceproxy帧均有≤1cm采样gap，
 但尚未验证其他物体/桌面反例或完整真实数据，不升级为精确contact GT。
 
 按用户ref3，四源PointWorld正常保存停止step14250，moving-anchor h24验证

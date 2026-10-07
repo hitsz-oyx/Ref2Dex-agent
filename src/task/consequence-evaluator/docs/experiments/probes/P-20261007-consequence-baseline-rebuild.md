@@ -462,3 +462,9 @@ seed289, LR1e-5 and smoke/fit/qualification budgets from the Decision Note.
 No failed checkpoint is used, no PointWorld source/input changes, and no
 external assets are modified. Stop on actual geometry/reset issues rather
 than treating staging alone as evidence of successful learning.
+
+The fresh duck r2 launcher detected a transient GPU0 PID1449244 and exited
+before creating a smoke child; preserve its FAILED record and do not kill
+that process. On recheck the PID had naturally exited. Fresh duck r3 at
+9294db0 uses the same staged r2inputs/source260/budgets and has entered
+SMOKE; qualification-s290 is queued for its successful endpoint only.
