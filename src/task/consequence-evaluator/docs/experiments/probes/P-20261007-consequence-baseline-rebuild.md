@@ -260,6 +260,32 @@ nonfinite updates, device conflict, deadline or output cap.
 Staging: `outputs/consequence-evaluator/baseline-original-inputs-20261007-r1/`;
 run: `outputs/consequence-evaluator/baseline-rebuild-original-20261007-r1/`.
 
+The new queue starts at commit567c909. Native two-epoch8env smoke completes
+36.18s, endpointSHA2b8e2b8150ddd61754ec9343503f862a2200bd047e9b300908d420d404b20582;
+real contact proxy19.1%/held-lift-positive9.4% at the first rollout, confirming
+that the intervention reaches physical task dynamics. Fresh parent then
+starts separately; earlyepoch9 totalFPS476, approximately14minutes remaining.
+GPU0 uses18.25GiB, sampled utilization0/42/39%; native stepping/synchronization
+leaves the GPU intermittent. Preserve frozen probe hyperparameters for this
+bounded fit rather than mix a throughput experiment into its learning result.
+GPU1/2 mixed pretraining is not interrupted. Telemetry is retained in the run.
+
+Parallel blocker work recovers the original s3 corrected-reference pipeline:
+`tools/run/recover_native_motion.py` reuses the unchanged original adapter and
+converter, restores2170native-contact frames before nearest-index conversion
+to543frames, then applies the right-wrist/object inverse-X90 translation
+correction. No distance-contact mode, interpolation, extra retarget passes or
+external writes. Bounded single-sequence CPU conversion<=900s/2GiB because
+GPU0 runs the parent,1/2 run PointWorld and3-7 belong to other jobs. Source,
+URDF/model/dependency hashes are recorded. Both[543,598] tensors must be
+finite, right-wrist/object and object/table relative errors<=1e-5m. This is
+reference data reconstruction, not robot rollout or grasp evidence.
+Erratum: original s1 right-contact-1 labels come from geometric noncontact
+classification; they are not proof of missing annotation. The native reward
+only activates reference-contact supervision for values>0.01. The original
+staging metadata's word `unknown` is retained as frozen historical metadata;
+the numerical labels are copied unchanged and this interpretation supersedes it.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;
