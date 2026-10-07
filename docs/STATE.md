@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-07 ref2/ref3 最新状态
+
+新随机自训练s1 parent200资格50/64；s3 bounded220→260固定资格36/64，
+恢复Probe PROMISING。十条剩余reference全部恢复；六专家只有airplane_base完成，
+尚无真实evaluator数据/fit。GPU0他人占用，先做代码。ref2改用执行前已知24×18
+请求残差计划，三臂E0/object/EI，同容量、几何接触约束、同expert/motion/current
+物体手状态配对；73工程测试通过，新增native几何尚待GPU smoke和标签一致性审计。
+
+按用户ref3，四源PointWorld正常保存停止step14250，moving-anchor h24验证
+Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm；best/latest保留。
+准备三源Oak/GRAB/ARCTIC主监督，新latest模型初始化/fresh优化器，50000新更新，
+用户指定截止2026-10-08 10:00。ContactPose仅刚性运输辅助；EPIC仍candidate_only，
+独立修订坐标约定、双手有效性、gap及OF overlap质量，未开放训练。
+旧四源结果不升级为同质监督或Cm收益结论，最终matched trained-policy utility仍OPEN。
+
 ## 2026-10-07 用户指定 consequence-evaluator 路线
 
 用户要求将当前PointWorld与数据处理代码合并到本地main，再创建`consequence-evaluator`。

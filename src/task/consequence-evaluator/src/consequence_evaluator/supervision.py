@@ -10,7 +10,7 @@ import numpy as np
 
 from .contracts import K, K_EXEC
 
-RULE = 'sustained-lift-local-events-v1'
+RULE = 'geometry-corroborated-state-matched-residual-events-v2'
 CONTACT_SEMANTICS = 'native_hand_and_object_net_force_proxy'
 
 
@@ -22,7 +22,7 @@ def consecutive(mask):
     return result
 
 
-def physical_trace(packet, diagnostics):
+def physical_trace(packet, diagnostics, *, require_geometry=True):
     """Validate post-action diagnostics before they may generate supervision."""
     steps = len(packet['action'])
     pose = packet['object_pose']
@@ -33,9 +33,17 @@ def physical_trace(packet, diagnostics):
             or valid[0] or not np.isclose(float(diagnostics['initial_height']), pose[0, 2, 3], atol=1e-5)):
         raise ValueError('invalid physical-label diagnostics or initial contact validity')
     height = pose[:, 2, 3] - pose[0, 2, 3]
-    held = valid & contact & (height >= .03)
-    lost = consecutive(valid & ~contact)
-    return dict(height=height, contact=contact, valid=valid, held=held,
+    gap=None
+    corroborated=contact
+    if require_geometry:
+        gap=np.asarray(diagnostics.get('surface_gap'))
+        if gap.shape!=(steps+1,) or not np.isfinite(gap).all() or (gap<0).any():
+            raise ValueError('measured hand/object sampled-surface gap required for event labels')
+        corroborated=contact & (gap<=.01)
+    held = valid & corroborated & (height >= .03)
+    lost = consecutive(valid & ~corroborated)
+    return dict(height=height, contact=corroborated, valid=valid, held=held,
+                force_proxy=contact,surface_gap=gap,
                 held_run=consecutive(held), drop=(height < .02) | (lost >= 6))
 
 
@@ -86,6 +94,22 @@ def order_key(window):
     return hashlib.sha256(identity.encode()).hexdigest()
 
 
+def states_match(first,second):
+    """Current states only: <=3cm object translation, <=15deg rotation, <=2cm hand RMS.
+
+    Full object z additionally matches within1cm. Same motion/reference supplies
+    the shared reset height; this is observational matching, never a fork.
+    """
+    a,b=np.asarray(first['object_pose']),np.asarray(second['object_pose'])
+    pa,pb=np.asarray(first['hand_keypoints']),np.asarray(second['hand_keypoints'])
+    if (a.shape!=(4,4) or b.shape!=(4,4) or pa.shape!=(11,3) or pb.shape!=(11,3)
+            or not all(np.isfinite(v).all() for v in (a,b,pa,pb))):
+        raise ValueError('current object pose and measured11-point hand geometry required')
+    angle=np.arccos(np.clip((np.trace(a[:3,:3].T@b[:3,:3])-1)/2,-1,1))
+    return (np.linalg.norm(a[:3,3]-b[:3,3])<=.03 and abs(a[2,3]-b[2,3])<=.01
+            and angle<=np.deg2rad(15) and np.sqrt(np.mean(np.sum((pa-pb)**2,axis=-1)))<=.02)
+
+
 def local_preferences(windows, per_stratum=64):
     """Deterministic, capped, cross-episode phase-matched comparisons.
 
@@ -97,7 +121,7 @@ def local_preferences(windows, per_stratum=64):
         raise ValueError('at most64 preferences per split/task/phase/event stratum')
     buckets = {}
     for window in windows:
-        key = (window['split'], window['task'], window['phase'])
+        key = (window['split'], window['task'],window['expert'],window['motion'], window['phase'])
         buckets.setdefault(key, []).append(window)
     pairs = []
     for key, group in sorted(buckets.items()):
@@ -117,10 +141,12 @@ def local_preferences(windows, per_stratum=64):
                         break
                     if chosen['episode'] == rejected['episode'] or counts.get(identity, 0) >= 2:
                         continue
+                    if not states_match(chosen,rejected):continue
                     pairs.append(dict(chosen={k: chosen[k] for k in ('episode', 'tick')},
                                       rejected={k: rejected[k] for k in ('episode', 'tick')},
                                       annotation=f'{RULE}: {good_event}>{bad_event}; actual t..t+24; '
-                                                 'native contact proxy; current relative height within1cm'))
+                                                 'force proxy corroborated by<=1cm sampled surface gap; '
+                                                 'same expert/motion; current object3cm/15deg and hand2cm RMS match'))
                     counts[identity] = counts.get(identity, 0) + 1
                     count += 1
                     break

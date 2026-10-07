@@ -3,13 +3,14 @@ import time
 
 import numpy as np
 import torch
+from .supervision import states_match
 
 
 def future_donors(data, ids, seed):
     """Sample with replacement from other test episodes in the same stratum.
 
     This is a reassignment diagnostic, not an action-conditioned simulator and
-    not a bijective permutation. H, executed A and labels are never reassigned.
+    not a bijective permutation. H, requested residual plan and labels are never reassigned.
     """
     a = data.arrays
     if (a['split'][ids] != 'test').any():
@@ -19,7 +20,11 @@ def future_donors(data, ids, seed):
     for index in ids:
         eligible = np.flatnonzero((a['split'] == 'test') & (a['task'] == a['task'][index])
                                   & (a['phase'] == a['phase'][index])
+                                  & (a['expert']==a['expert'][index]) & (a['motion']==a['motion'][index])
                                   & (a['episode'] != a['episode'][index]))
+        eligible=np.asarray([other for other in eligible if states_match(
+            dict(object_pose=a['current_object'][index],hand_keypoints=a['current_hand'][index]),
+            dict(object_pose=a['current_object'][other],hand_keypoints=a['current_hand'][other]))],dtype='int64')
         if not len(eligible):
             raise ValueError('no cross-episode future donor in the test stratum')
         donors.append(rng.choice(eligible))
@@ -106,7 +111,9 @@ def summarize(data, ids, predictions):
     def panel(selected):
         result = {name: ranking_metrics(value[selected], a['episode'][pairs[selected]])
                   for name, value in margins.items()}
-        result['oracle_minus_baseline'] = compare(margins['baseline'][selected], margins['oracle'][selected])
+        result['object_minus_baseline'] = compare(margins['baseline'][selected], margins['oracle_object'][selected])
+        result['interaction_minus_object'] = compare(margins['oracle_object'][selected], margins['oracle_interaction'][selected])
+        result['interaction_minus_baseline'] = compare(margins['baseline'][selected], margins['oracle_interaction'][selected])
         return result
 
     by_task, by_task_phase, by_quality = [], [], []
@@ -124,6 +131,8 @@ def summarize(data, ids, predictions):
                   by_task=by_task, by_task_phase=by_task_phase, by_quality=by_quality,
                   progress_on_reliable_frames=progress,
                   interpretation='descriptive single-seed probe; overlapping windows are not independent')
-    if 'oracle_reassigned_future' in margins:
-        report['aligned_minus_reassigned'] = compare(margins['oracle_reassigned_future'], margins['oracle'])
+    report['aligned_minus_reassigned']={}
+    for arm in ('oracle_object','oracle_interaction'):
+        if arm+'_reassigned_future' in margins:
+            report['aligned_minus_reassigned'][arm]=compare(margins[arm+'_reassigned_future'],margins[arm])
     return report

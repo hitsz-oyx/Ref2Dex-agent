@@ -18,7 +18,7 @@ import torch
 
 from consequence_evaluator.data import Windows, sha
 from consequence_evaluator.model import Evaluator, matched_loss
-from consequence_evaluator.contracts import is_within
+from consequence_evaluator.contracts import is_within,ARMS,future_mode
 
 
 def write(path, data):
@@ -96,7 +96,7 @@ def main():
     torch.set_num_threads(2)
     shape = data.arrays['history'].shape[1:]
     initial = Evaluator(int(np.prod(shape)), width=a.width)
-    models = {name: copy.deepcopy(initial).to(device) for name in ('baseline', 'oracle')}
+    models = {name: copy.deepcopy(initial).to(device) for name in ARMS}
     statistics = {key: tuple(item.to(device) for item in value)
                   for key, value in data.normalization().items()}
     optimizers = {name: torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=.01)
@@ -105,7 +105,7 @@ def main():
     expert_draws = np.random.default_rng(a.seed + 2).choice(expert_ids, (a.updates, a.batch))
     torch.save(dict(model=initial.state_dict(), statistics=data.normalization()), output / 'initial.pt')
     manifest = dict(status='RUNNING', task='consequence-evaluator', run_id=output.name,
-                    work_version='consequence-evaluator-ref1',
+                    work_version='consequence-evaluator-ref2',arms=list(ARMS),
                     git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                     physical_gpu=a.gpu, pid=os.getpid(), seed=a.seed,
                     window_manifest_sha256=sha(a.data / 'manifest.json'),
@@ -134,10 +134,10 @@ def main():
             record = dict(step=step)
             for name, model in models.items():
                 optimizers[name].zero_grad(set_to_none=True)
-                loss, terms = matched_loss(model(**left, use_future=name == 'oracle'),
-                                           model(**right, use_future=name == 'oracle'),
+                loss, terms = matched_loss(model(**left, use_future=future_mode(name)),
+                                           model(**right, use_future=future_mode(name)),
                                            left_labels, right_labels,
-                                           model(**expert, use_future=name == 'oracle'), expert_labels)
+                                           model(**expert, use_future=future_mode(name)), expert_labels)
                 if not torch.isfinite(loss):
                     raise FloatingPointError('nonfinite matched evaluator loss')
                 loss.backward()
@@ -149,7 +149,7 @@ def main():
                 stream.write(json.dumps(record, allow_nan=False) + '\n')
             if step % 100 == 0 or step == a.updates:
                 validation = dict(step=step, **{name: evaluate(model, data, data.pair_ids['val'], device,
-                                                            statistics, name == 'oracle', a.batch)
+                                                            statistics, future_mode(name), a.batch)
                                                for name, model in models.items()})
                 with (output / 'validation.jsonl').open('a') as stream:
                     stream.write(json.dumps(validation) + '\n')

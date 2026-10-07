@@ -64,7 +64,9 @@ def qualify_transitions(payload, episodes, count=64):
                            contact_valid=np.r_[False, np.ones(length, dtype=bool)],
                            initial_height=float(poses[0, 2, 3]))
         packet = dict(action=arrays['action'][:length, env], object_pose=poses)
-        trace = physical_trace(packet, diagnostics)
+        # Preserve the original operational gate. These traces lack measured
+        # geometry and are explicitly forbidden as evaluator training data.
+        trace = physical_trace(packet, diagnostics, require_geometry=False)
         quality, _, _, completion = expert_anchor(
             trace, dict(assigned_phase='clean', perturbation_tick=-1))
         results.append(dict(env_id=env, motion_id=row['motion_id'], steps=length,

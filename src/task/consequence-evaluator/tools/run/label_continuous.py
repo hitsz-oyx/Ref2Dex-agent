@@ -34,7 +34,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
         raise ValueError('bounded label preparation: <=600 seconds')
     started = time.monotonic()
     expected_experts = json.loads(Path(route_config).read_text())['experts']
-    if len(expected_experts) != 6:
+    if len(expected_experts) != 6 or len({v['sha256'] for v in expected_experts.values()})!=6:
         raise ValueError('fixed six self-trained experts required')
     expected_hashes = {item['sha256'] for item in expected_experts.values()}
     output.mkdir(parents=True)
@@ -42,7 +42,8 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                   rule_sha256=sha(TASK / 'src/consequence_evaluator/supervision.py'),
                   producer_sha256=sha(Path(__file__)), source_manifests=[], episode_anchors={},
                   event_counts={}, abstention_counts={}, sources_cpu_reason='file/label statistics only; no model computation')
-    manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v1', status='LABELING',
+    from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS
+    manifest = dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS, status='LABELING',
                     rollout_kind='continuous', fps=30, units='m', training_allowed=False,
                     contact_semantics=CONTACT_SEMANTICS, episodes=[], label_rule=RULE)
     records, windows, groups, episode_ids, phases = {}, [], {}, set(), {}
@@ -52,6 +53,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
             m = json.loads(source_manifest.read_text())
             if (m.get('schema') != manifest['schema'] or m.get('status') != 'COMPLETED'
                     or m.get('rollout_kind') != 'continuous' or m.get('training_allowed') is not True
+                    or m.get('action_semantics')!=ACTION_SEMANTICS
                     or m.get('fps') != 30 or m.get('units') != 'm' or not m.get('history_contract')
                     or m.get('contact_semantics') != CONTACT_SEMANTICS
                     or not expected_hashes.issubset(set(m.get('sources', {}).values()))):
@@ -78,14 +80,14 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                 if sha(path) != record['sha256'] or sha(sidecar) != record['diagnostics_sha256']:
                     raise ValueError('raw episode or physical diagnostic identity changed')
                 with np.load(path, allow_pickle=False) as packet:
-                    expected = {'history', 'action', 'object_pose', 'timestamps', 'phase', 'progress', 'progress_mask'}
+                    expected = {'history', 'action','residual_plan','plan_known','hand_keypoints', 'object_pose', 'timestamps', 'phase', 'progress', 'progress_mask'}
                     if set(packet.files) != expected:
                         raise ValueError('raw episode whitelist mismatch')
                     arrays = {key: packet[key].copy() for key in packet.files}
                 with np.load(sidecar, allow_pickle=False) as packet:
                     diagnostics = {key: packet[key].copy() for key in packet.files}
                 steps = len(arrays['action'])
-                if (not K <= steps <= 600 or arrays['action'].shape != (steps, 18)
+                if (not K <= steps <= 1200 or arrays['action'].shape != (steps, 18)
                         or len(arrays['history']) != steps+1 or arrays['phase'].shape != (steps,)
                         or arrays['timestamps'].shape != (steps+1,)
                         or not np.allclose(np.diff(arrays['timestamps']), 1/30, atol=1e-6, rtol=0)
@@ -94,17 +96,37 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                         or np.abs(arrays['action']).max() > 1+1e-6):
                     raise ValueError('invalid raw continuous observation/action/clock or preexisting dense labels')
                 validate_rigid(arrays['object_pose'])
+                if (arrays['residual_plan'].shape!=(steps,K,18) or arrays['plan_known'].shape!=(steps,)
+                        or arrays['plan_known'].dtype!=np.bool_
+                        or not np.isfinite(arrays['residual_plan']).all()
+                        or np.abs(arrays['residual_plan']).max()>.2+1e-6
+                        or arrays['hand_keypoints'].shape!=(steps+1,11,3)
+                        or not np.isfinite(arrays['hand_keypoints']).all()):
+                    raise ValueError('decision-known residual plan fields required')
                 trace = physical_trace(arrays, diagnostics)
+                audit=report.setdefault('force_proxy_geometry_audit',dict(valid_frames=0,proxy_frames=0,
+                    proxy_and_near_frames=0,proxy_far_frames=0,elevated_proxy_frames=0,elevated_proxy_near_frames=0))
+                valid=trace['valid'];force=trace['force_proxy'];near=trace['surface_gap']<=.01
+                audit['valid_frames']+=int(valid.sum());audit['proxy_frames']+=int((valid&force).sum())
+                audit['proxy_and_near_frames']+=int((valid&force&near).sum())
+                audit['proxy_far_frames']+=int((valid&force&(trace['surface_gap']>.03)).sum())
+                audit['elevated_proxy_frames']+=int((valid&force&(trace['height']>=.03)).sum())
+                audit['elevated_proxy_near_frames']+=int((valid&force&near&(trace['height']>=.03)).sum())
                 quality, progress, mask, completion = expert_anchor(trace, record)
                 arrays['progress'], arrays['progress_mask'] = progress, mask
                 # 8-step sample cadence; K stays24. Every chosen sample is a full window.
-                ticks = list(range(0, steps-K+1, K_EXEC))
+                ticks = [t for t in range(0, steps-K+1, K_EXEC) if arrays['plan_known'][t]]
+                trigger=record['perturbation_tick']
+                if 0<=trigger<=steps-K and arrays['plan_known'][trigger]:
+                    ticks=sorted(set(ticks)|{trigger})
                 for tick in ticks:
                     if len(windows) >= 20000:
                         raise ValueError('at most20000 selected windows; explicitly subset source episodes')
                     phase = str(arrays['phase'][tick])
                     event = local_event(trace, phase, tick)
                     window = dict(episode=episode, tick=tick, split=split, task=record['task'], phase=phase,
+                                  expert=record['expert'],motion=record['motion'],
+                                  object_pose=arrays['object_pose'][tick],hand_keypoints=arrays['hand_keypoints'][tick],
                                   initial_relative_height=float(trace['height'][tick]), event=event)
                     windows.append(window)
                     counts = report['event_counts'] if event else report['abstention_counts']
@@ -120,7 +142,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                 phases[episode] = arrays['phase'].copy()
                 manifest['episodes'].append(new_record)
                 report['episode_anchors'][episode] = dict(quality=quality, verified_completion_tick=completion,
-                    progress_frames=int(mask.sum()), criterion='45 consecutive elevated-contact-proxy frames; no later drop',
+                    progress_frames=int(mask.sum()), criterion='45 elevated force-proxy+<=1cm surface-gap frames; no later drop',
                     raw_episode_sha256=record['sha256'], diagnostics_sha256=record['diagnostics_sha256'])
                 if sum(p.stat().st_size for p in output.glob('*') if p.is_file()) > 2*2**30:
                     raise ValueError('label output exceeded2GiB')
@@ -152,9 +174,18 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
             chosen, rejected = pair['chosen'], pair['rejected']
             left, right = lookup[chosen['episode']], lookup[rejected['episode']]
             if (left['episode'] == right['episode'] or left['split'] != right['split'] or left['task'] != right['task']
+                    or left['expert']!=right['expert'] or left['motion']!=right['motion']
                     or phases[left['episode']][chosen['tick']] != phases[right['episode']][rejected['tick']]
                     or not str(pair.get('annotation', '')).strip()):
                 raise ValueError('invalid cross-episode local preference')
+            from consequence_evaluator.supervision import states_match
+            current=[]
+            for record,endpoint in [(left,chosen),(right,rejected)]:
+                with np.load(output/record['path'],allow_pickle=False) as packet:
+                    tick=endpoint['tick']
+                    if not packet['plan_known'][tick]:raise ValueError('unknown residual schedule in local preference')
+                    current.append(dict(object_pose=packet['object_pose'][tick],hand_keypoints=packet['hand_keypoints'][tick]))
+            if not states_match(*current):raise ValueError('local preference current physical states differ')
             identity = ((chosen['episode'], chosen['tick']), (rejected['episode'], rejected['tick']))
             if identity[::-1] in seen:
                 raise ValueError('contradictory local preference directions')

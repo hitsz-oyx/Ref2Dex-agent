@@ -13,6 +13,7 @@ sys.path.insert(0, str(TASK / 'src'))
 sys.path.insert(0, str(TASK / 'tools/run'))
 from consequence_evaluator.data import K, Windows, object_effect, sha
 from consequence_evaluator.model import Evaluator, matched_loss, progress_loss
+from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS,FUTURE_DIM
 from prepare_windows import prepare
 
 
@@ -27,6 +28,8 @@ def fixture(root, mutation=None):
             pose = np.broadcast_to(np.eye(4), (steps + 1, 4, 4)).copy()
             pose[:, 2, 3] = np.arange(steps + 1) / 1000
             packet = dict(history=np.ones((steps + 1, 6), dtype='float32'),
+                          residual_plan=np.zeros((steps,K,18),dtype='float32'),plan_known=np.ones(steps,dtype=bool),
+                          hand_keypoints=np.zeros((steps+1,11,3),dtype='float32'),
                           action=np.zeros((steps, 18), dtype='float32'), object_pose=pose,
                           timestamps=np.arange(steps + 1) / 30,
                           phase=np.asarray(['lift'] * steps),
@@ -37,11 +40,11 @@ def fixture(root, mutation=None):
             path = root / (episode + '.npz')
             np.savez_compressed(path, **packet)
             records.append(dict(episode=episode, split=split, split_group=episode,
-                                quality=quality, task='airplane', path=path.name, sha256=sha(path)))
+                                quality=quality, task='airplane',expert='synthetic',motion='fixture', path=path.name, sha256=sha(path)))
         pairs.append(dict(chosen=dict(episode=split + '_expert_success', tick=0),
                           rejected=dict(episode=split + '_failure', tick=0),
                           annotation='synthetic-local-event-engineering-only'))
-    manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v1', rollout_kind='continuous',
+    manifest = dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS, rollout_kind='continuous',
                     status='COMPLETED',
                     training_allowed=True, fps=30, units='m', history_contract='synthetic current observation only',
                     episodes=records)
@@ -121,7 +124,7 @@ def test_normalization_uses_training_inputs_only(tmp_path):
     original = Windows(out).normalization()
     def change(a):
         a['history'][a['split'] != 'train'] = 9000
-        a['action'][a['split'] != 'train'] = .9
+        a['action'][a['split'] != 'train'] = .19
     change_arrays(out, change)
     modified = Windows(out).normalization()
     assert all(torch.equal(old, new) for key in original
@@ -174,7 +177,7 @@ def test_baseline_future_invariance_identical_capacity_and_initialization():
     first = Evaluator(6, width=8, layers=1)
     second = copy.deepcopy(first)
     assert all(torch.equal(v, second.state_dict()[k]) for k, v in first.state_dict().items())
-    h, action, future = torch.randn(2, 6), torch.randn(2, K, 18), torch.randn(2, K, 12)
+    h, action, future = torch.randn(2, 6), torch.randn(2, K, 18), torch.randn(2, K, FUTURE_DIM)
     zero = first(h, action, future, use_future=False)
     changed = first(h, action, future + 100, use_future=False)
     assert torch.equal(zero['score'], changed['score'])

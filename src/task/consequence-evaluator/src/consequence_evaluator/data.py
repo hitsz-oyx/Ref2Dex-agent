@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .contracts import K, K_EXEC, SCHEMA
+from .contracts import K, K_EXEC, SCHEMA, ACTION_SEMANTICS, HAND_LINKS
 SPLITS = ('train', 'val', 'test')
 
 
@@ -40,6 +40,15 @@ def validate_rigid(poses):
         raise ValueError('nonrigid or nonfinite object effects')
 
 
+def interaction_future(poses,points):
+    """Measured future hand keypoints expressed in each future object frame."""
+    if np.shape(points)!=(K+1,len(HAND_LINKS),3) or not np.isfinite(points).all():
+        raise ValueError('current plus24 measured hand keypoint frames required')
+    validate_rigid(poses)
+    inverse=np.linalg.inv(poses[1:])
+    return (np.einsum('tij,tkj->tki',inverse[:,:3,:3],points[1:])+inverse[:,:3,3][:,None]).astype('float32')
+
+
 class Windows:
     """Read explicitly annotated local preferences, with episode-separated splits.
 
@@ -55,8 +64,8 @@ class Windows:
         required = dict(schema=SCHEMA, horizon=K, execution_horizon=K_EXEC,
                         fps=30, units='m', rollout_kind='continuous',
                         preference_scope='local_window', progress_scope='episode_absolute',
-                        action_semantics='executed_native_control',
-                        future_semantics='current_anchor_frame_rigid_effect',
+                        action_semantics=ACTION_SEMANTICS,
+                        future_semantics='object_effect_and_measured_hand_object_relative_keypoints',
                         training_allowed=True)
         if any(m.get(key) != value for key, value in required.items()):
             raise ValueError('data contract mismatch; forked or unlabeled data cannot be fitted')
@@ -66,24 +75,30 @@ class Windows:
         if sha(path) != m.get('windows_sha256'):
             raise ValueError('window input identity changed')
         with np.load(path, allow_pickle=False) as source:
-            required_arrays = {'history', 'action', 'effect', 'progress', 'progress_mask',
+            required_arrays = {'history', 'action', 'effect','interaction','current_object','current_hand', 'progress', 'progress_mask',
                                'episode', 'split', 'task', 'phase', 'quality', 'pairs',
-                               'pair_annotation'}
+                               'pair_annotation','expert','motion'}
             if set(source.files) != required_arrays:
                 raise ValueError('array whitelist mismatch')
             self.arrays = {name: source[name].copy() for name in source.files}
         a = self.arrays
         n = len(a['history'])
         if not n or a['history'].ndim < 2 or a['action'].shape != (n, K, 18):
-            raise ValueError('H or executed action shape mismatch')
+            raise ValueError('H or requested residual plan shape mismatch')
         if a['effect'].shape != (n, K, 4, 4):
             raise ValueError('expected 24 rigid-anchor effects')
         validate_rigid(a['effect'])
+        if a['interaction'].shape!=(n,K,len(HAND_LINKS),3) or not np.isfinite(a['interaction']).all():
+            raise ValueError('invalid measured interaction future')
+        if a['current_object'].shape!=(n,4,4) or a['current_hand'].shape!=(n,len(HAND_LINKS),3):
+            raise ValueError('current physical-state matching metadata required')
+        validate_rigid(a['current_object'])
+        if not np.isfinite(a['current_hand']).all():raise ValueError('invalid current hand geometry')
         for name in ('history', 'action'):
             if not np.isfinite(a[name]).all():
                 raise ValueError('nonfinite model input')
-        if np.abs(a['action']).max() > 1 + 1e-6:
-            raise ValueError('executed native controls outside [-1,1]')
+        if np.abs(a['action']).max() > .2 + 1e-6:
+            raise ValueError('requested residual plans outside allowed amplitude')
         if a['progress'].shape != (n, K) or a['progress_mask'].shape != (n, K):
             raise ValueError('progress shape mismatch')
         if a['progress_mask'].dtype != np.bool_:
@@ -92,7 +107,7 @@ class Windows:
         if (not np.isfinite(a['progress'][valid]).all()
                 or ((a['progress'][valid] < 0) | (a['progress'][valid] > 1)).any()):
             raise ValueError('invalid absolute episode progress')
-        for name in ('episode', 'split', 'task', 'phase', 'quality'):
+        for name in ('episode', 'split', 'task', 'phase', 'quality','expert','motion'):
             if a[name].shape != (n,) or a[name].dtype.kind not in 'US':
                 raise ValueError('per-window string metadata required: ' + name)
         if not set(a['split']).issubset(SPLITS):
@@ -111,11 +126,16 @@ class Windows:
         if any(not str(value).strip() for value in a['pair_annotation']):
             raise ValueError('unattributed local preference')
         chosen, rejected = pairs.T
-        for name in ('split', 'task', 'phase'):
+        for name in ('split', 'task', 'phase','expert','motion'):
             if (a[name][chosen] != a[name][rejected]).any():
-                raise ValueError('preference must match split, task and current phase')
+                raise ValueError('preference must match split, task, expert, motion and current phase')
         if (a['episode'][chosen] == a['episode'][rejected]).any():
             raise ValueError('cross-episode phase-matched preferences required')
+        from .supervision import states_match
+        if any(not states_match(dict(object_pose=a['current_object'][i],hand_keypoints=a['current_hand'][i]),
+                                dict(object_pose=a['current_object'][j],hand_keypoints=a['current_hand'][j]))
+               for i,j in pairs):
+            raise ValueError('preference current object/hand states do not match')
         if len(set(map(tuple, pairs.tolist()))) != len(pairs):
             raise ValueError('duplicate preference pairs')
         self.pair_ids = {split: np.flatnonzero(a['split'][chosen] == split) for split in SPLITS}
@@ -125,7 +145,8 @@ class Windows:
         a = self.arrays
         inputs = dict(history=torch.as_tensor(a['history'][ids], device=device).float().flatten(1),
                       action=torch.as_tensor(a['action'][ids], device=device).float(),
-                      future=torch.as_tensor(a['effect'][ids, :, :3, :], device=device).float().flatten(2))
+                      future=torch.cat((torch.as_tensor(a['effect'][ids, :, :3, :], device=device).float().flatten(2),
+                                        torch.as_tensor(a['interaction'][ids],device=device).float().flatten(2)),dim=-1))
         mask = a['progress_mask'][ids]
         progress = np.where(mask, a['progress'][ids], 0)
         labels = dict(progress=torch.as_tensor(progress, device=device).float(),

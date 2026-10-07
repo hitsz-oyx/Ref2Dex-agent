@@ -14,7 +14,7 @@ sys.path.insert(0, str(TASK / 'src'))
 import numpy as np
 import torch
 
-from consequence_evaluator.contracts import is_within
+from consequence_evaluator.contracts import is_within,ARMS,future_mode
 from consequence_evaluator.data import Windows, sha
 from consequence_evaluator.evaluation import future_donors, predict, summarize
 from consequence_evaluator.model import Evaluator
@@ -31,6 +31,8 @@ def load_frozen(fit, data, data_root):
     manifest = json.loads((fit / 'run_manifest.json').read_text())
     if manifest.get('status') != 'COMPLETED' or manifest.get('task') != 'consequence-evaluator':
         raise ValueError('only a completed matched fit can enter test evaluation')
+    if manifest.get('arms')!=list(ARMS):
+        raise ValueError('ref2 requires three matched evaluator arms')
     if (manifest['window_manifest_sha256'] != sha(data_root / 'manifest.json')
             or manifest['windows_sha256'] != data.manifest['windows_sha256']
             or manifest['initial_weights_sha256'] != sha(fit / 'initial.pt')):
@@ -45,7 +47,7 @@ def load_frozen(fit, data, data_root):
     expected_stats = data.normalization()
     models, statistics, selections = {}, {}, {}
     history_dim = int(np.prod(data.arrays['history'].shape[1:]))
-    for arm in ('baseline', 'oracle'):
+    for arm in ARMS:
         accuracies = [item[arm]['strict_accuracy'] for item in records]
         if not all(isinstance(v, (float, int)) and np.isfinite(v) and 0 <= v <= 1 for v in accuracies):
             raise ValueError('invalid validation selection metrics')
@@ -55,7 +57,7 @@ def load_frozen(fit, data, data_root):
         payload = torch.load(path, map_location='cpu', weights_only=True)
         if payload['arm'] != arm or payload['step'] != selected['step']:
             raise ValueError('checkpoint does not match validation-only selection')
-        for key in ('windows_sha256', 'window_manifest_sha256', 'initial_weights_sha256',
+        for key in ('arms', 'windows_sha256', 'window_manifest_sha256', 'initial_weights_sha256',
                     'training_pair_draw_sha256', 'width', 'layers', 'updates', 'pairs_per_update'):
             if payload['manifest'][key] != manifest[key]:
                 raise ValueError('checkpoint matched-fit identity mismatch: ' + key)
@@ -123,7 +125,7 @@ def main():
         raise ValueError('bounded evaluation supports at most 20000 unique test windows')
     models, statistics, selections = load_frozen(fit, data, a.data)
     donors = future_donors(data, ids, a.seed)
-    protocol = dict(schema='ref2dex.consequence-evaluator.test-protocol.v1',
+    protocol = dict(schema='ref2dex.consequence-evaluator.test-protocol.v2', arms=list(ARMS),
                     fit_manifest_sha256=sha(fit / 'run_manifest.json'),
                     validation_log_sha256=sha(fit / 'validation.jsonl'),
                     windows_sha256=data.manifest['windows_sha256'],
@@ -131,7 +133,7 @@ def main():
                     selection='first maximum of validation strict accuracy, independently per arm',
                     checkpoints=selections, seed=a.seed, batch=a.batch,
                     primary_metric='test strict preference accuracy; ties count as incorrect',
-                    future_control='same task/phase, other test episode, sampling with replacement',
+                    future_control='same task/expert/motion/phase, matched current object/hand, other test episode, sampling with replacement',
                     sources={str(path.relative_to(ROOT)): sha(path) for path in
                              [Path(__file__), TASK / 'src/consequence_evaluator/evaluation.py']})
     freeze_protocol(fit, protocol)
@@ -142,13 +144,13 @@ def main():
     write(output / 'report.json', report)
     try:
         predictions = {}
-        for arm in ('baseline', 'oracle'):
+        for arm in ARMS:
             model = models[arm].to(device)
-            predictions[arm] = predict(model, data, ids, statistics[arm], device, arm == 'oracle',
+            predictions[arm] = predict(model, data, ids, statistics[arm], device, future_mode(arm),
                                        a.batch, deadline=deadline)
-            if arm == 'oracle':
-                predictions['oracle_reassigned_future'] = predict(model, data, ids, statistics[arm], device,
-                                                                  True, a.batch, donors, deadline)
+            if arm != 'baseline':
+                predictions[arm+'_reassigned_future'] = predict(model, data, ids, statistics[arm], device,
+                                                               future_mode(arm), a.batch, donors, deadline)
             model.cpu()
         report.update(summarize(data, ids, predictions))
         # Preserve per-window predictions and donor identities for independent recomputation.

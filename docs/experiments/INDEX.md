@@ -39,25 +39,19 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | Reset-repaired original-s1 Cm-off parent completes200epochs;50/64full-frame0 episodes meet the fixed45-frame/no-later-drop gate. The six exp | Proceed to a bounded20epoch s3 transfer from this self-trained parent, then independently qualify its fixed endpoint before expanding other  | probes/PROMISING |
 
 ## HF-consequence-oracle-headroom
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does observed physical future add ranking information to recorded robot actions? | Implementation and44synthetic engineering tests pass; no real six-expert data or matched fit yet. | Qualify the newly trained parent, rebuild six distinct experts, then collect continuous episodes and run the bounded matched Probe. | probes/UNCLEAR |
+| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Ref2 contract and73synthetic engineering tests pass; no real six-expert data or matched fit yet. | Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched P | probes/UNCLEAR |
 
 ## HF-contact-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Preserve the completed fixed-fit result; pause the old route while ref11 proceeds on the original branch. | probes/UNPROMISING |
-
-## HF-epic-contact-overlap
-
-| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
-| --- | --- | --- | --- | --- |
-| [P-20261007-epic-contact-overlap](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-epic-contact-overlap.md) | Same-clip EPIC-Contact and ObjectForesight bridge | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-execution-geometry
 
@@ -136,7 +130,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Four-source physical prediction with an OakInk2 warm start | Full four-source corpus and two-rank engineering checks pass; production started, step500 macro moving-anchor h24 EPE52.56→45.74mm, with ear | Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel. | probes/UNCLEAR |
+| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Four-source physical prediction with an OakInk2 warm start | Full four-source corpus and two-rank engineering checks pass; production running, step9000 macro moving-anchor h24 EPE52.56→35.17mm, with fl | Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel. | probes/UNCLEAR |
 
 ## HF-pointworld-unified-action-effect
 

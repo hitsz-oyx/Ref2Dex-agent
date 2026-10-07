@@ -9,7 +9,8 @@ TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
-from consequence_evaluator.data import K, K_EXEC, SCHEMA, Windows, object_effect, sha
+from consequence_evaluator.data import K, K_EXEC, SCHEMA, Windows, object_effect, interaction_future, sha
+from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS,HAND_LINKS
 
 
 def prepare(source, preferences, output, max_windows=20000, seconds=600):
@@ -20,7 +21,7 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
         raise ValueError('bounded preparation: <=20000 windows and <=600 seconds')
     started = time.monotonic()
     manifest = json.loads((source / 'manifest.json').read_text())
-    if (manifest.get('schema') != 'ref2dex.consequence-evaluator.episodes.v1'
+    if (manifest.get('schema') != EPISODE_SCHEMA or manifest.get('action_semantics')!=ACTION_SEMANTICS
             or manifest.get('status') != 'COMPLETED'
             or manifest.get('rollout_kind') != 'continuous'
             or manifest.get('training_allowed') is not True
@@ -30,8 +31,8 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
     pairs = json.loads(preferences.read_text())
     if pairs.get('scope') != 'local_window' or not pairs.get('label_provenance'):
         raise ValueError('explicit local-window annotations required; do not inherit episode outcomes')
-    windows = {key: [] for key in ('history', 'action', 'effect', 'progress', 'progress_mask',
-                                  'episode', 'split', 'task', 'phase', 'quality')}
+    windows = {key: [] for key in ('history', 'action', 'effect','interaction','current_object','current_hand', 'progress', 'progress_mask',
+                                  'episode', 'split', 'task', 'phase', 'quality','expert','motion')}
     lookup, groups, source_hashes = {}, {}, {}
     for record in manifest['episodes']:
         episode = record['episode']
@@ -46,7 +47,7 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
             raise ValueError('episode source identity changed')
         source_hashes[episode] = dict(path=str(path), sha256=record['sha256'], split_group=group)
         with np.load(path, allow_pickle=False) as packet:
-            expected = {'history', 'action', 'object_pose', 'timestamps', 'phase', 'progress', 'progress_mask'}
+            expected = {'history', 'action','residual_plan','plan_known','hand_keypoints', 'object_pose', 'timestamps', 'phase', 'progress', 'progress_mask'}
             if set(packet.files) != expected:
                 raise ValueError('episode array whitelist mismatch')
             a = {name: packet[name] for name in packet.files}
@@ -58,6 +59,9 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
                 or a['progress'].shape != (steps + 1,)
                 or a['progress_mask'].shape != (steps + 1,)):
             raise ValueError('pre/post action alignment mismatch')
+        if (a['residual_plan'].shape!=(steps,K,18) or a['plan_known'].shape!=(steps,)
+                or a['plan_known'].dtype!=np.bool_ or a['hand_keypoints'].shape!=(steps+1,len(HAND_LINKS),3)):
+            raise ValueError('requested-plan or measured interaction contract mismatch')
         if not np.allclose(np.diff(a['timestamps']), 1 / 30, atol=1e-6, rtol=0):
             raise ValueError('episode clock is not contiguous 30 Hz')
         ticks = record.get('window_ticks', list(range(steps - K + 1)))
@@ -66,18 +70,22 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
                 or len(set(ticks)) != len(ticks)):
             raise ValueError('invalid explicit full-window selection')
         for tick in sorted(ticks):
+            if not a['plan_known'][tick]:
+                raise ValueError('unknown state-triggered intervention schedule cannot enter evaluator')
             if len(windows['history']) >= max_windows:
                 raise ValueError('window budget exhausted; explicitly subset source episodes')
             if time.monotonic() - started >= seconds:
                 raise TimeoutError('bounded episode preparation deadline')
             index = len(windows['history'])
             lookup[(episode, tick)] = index
-            values = dict(history=a['history'][tick], action=a['action'][tick:tick + K],
+            values = dict(history=a['history'][tick], action=a['residual_plan'][tick],
                           effect=object_effect(a['object_pose'][tick:tick + K + 1]),
+                          interaction=interaction_future(a['object_pose'][tick:tick+K+1],a['hand_keypoints'][tick:tick+K+1]),
+                          current_object=a['object_pose'][tick],current_hand=a['hand_keypoints'][tick],
                           progress=a['progress'][tick + 1:tick + K + 1],
                           progress_mask=a['progress_mask'][tick + 1:tick + K + 1],
                           episode=episode, split=record['split'], task=record['task'],
-                          phase=str(a['phase'][tick]), quality=record['quality'])
+                          phase=str(a['phase'][tick]), quality=record['quality'],expert=record['expert'],motion=record['motion'])
             for key, value in values.items():
                 windows[key].append(value)
     indices, annotations = [], []
@@ -97,8 +105,9 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
     output_manifest = dict(schema=SCHEMA, horizon=K, execution_horizon=K_EXEC,
                            fps=30, units='m', rollout_kind='continuous', training_allowed=True,
                            preference_scope='local_window', progress_scope='episode_absolute',
-                           action_semantics='executed_native_control',
-                           future_semantics='current_anchor_frame_rigid_effect',
+                           action_semantics=ACTION_SEMANTICS,
+                           future_semantics='object_effect_and_measured_hand_object_relative_keypoints',
+                           hand_keypoint_links=list(HAND_LINKS),
                            history_contract=manifest['history_contract'],
                            label_provenance=pairs['label_provenance'],
                            windows_sha256=sha(target), source_episodes=source_hashes,

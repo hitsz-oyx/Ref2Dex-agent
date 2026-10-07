@@ -79,15 +79,16 @@ def test_clipped_executed_action_and_residual_are_recorded_separately():
 
 
 def test_episode_alignment_and_no_second_episode_append():
-    episode = Episode(np.zeros(6), root_state(), False)
+    episode = Episode(np.zeros(6), root_state(), False,kinematics={'hand_keypoints':np.zeros((11,3))})
     for tick in range(24):
         episode.append(np.full(18,tick/100), 'approach', np.full(6,tick+1),
-                       root_state((tick+1)/1000), False, np.zeros(18), np.zeros(18,bool), tick==23)
+                       root_state((tick+1)/1000), False, np.zeros(18), np.zeros(18,bool), tick==23,
+                       kinematics={'hand_keypoints':np.zeros((11,3))})
     arrays = episode.arrays()
     assert arrays['history'].shape == (25,6) and arrays['action'].shape == (24,18)
     assert arrays['object_pose'][1,2,3] == pytest.approx(.001)
     assert not arrays['progress_mask'].any() and np.isnan(arrays['progress']).all()
-    assert set(arrays) == {'history','action','object_pose','timestamps','phase','progress','progress_mask'}
+    assert set(arrays) == {'history','action','residual_plan','plan_known','hand_keypoints','object_pose','timestamps','phase','progress','progress_mask'}
     with pytest.raises(ValueError,match='second episode'):
         episode.append(np.zeros(18),'approach',np.zeros(6),root_state(),False,np.zeros(18),np.zeros(18,bool),False)
 
@@ -105,6 +106,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
                            _dof_pos=torch.zeros(n,18),_humanoid_root_states=torch.as_tensor(np.stack([root_state()]*n)),
                            progress_buf=torch.zeros(n,dtype=torch.long),data_id=torch.zeros(n,dtype=torch.long),
                            object_name=['fixture'],object_id=torch.zeros(1,dtype=torch.long),
+                           motion_file=['fixture'],
                            max_episode_length=torch.full((1,),80,dtype=torch.long),rollout_length=80)
     def native_pd(actions):
         actions[:,6:]=(1+actions[:,6:])/2
@@ -146,7 +148,11 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
     (tmp_path/'diagnostics').mkdir()
     def write(path,data):path.write_text(json.dumps(data))
     from hashlib import sha256
-    namespace=dict(torch=torch,np=np,router=SimpleNamespace(RoutedPlayer=Base),a=a,ROOT=ROOT,
+    class Geometry:
+        def __init__(self,*args):pass
+        def measure(self,task):return torch.zeros(n,11,3),torch.full((n,),.001)
+    namespace=dict(torch=torch,np=np,Path=Path,router=SimpleNamespace(RoutedPlayer=Base),a=a,ROOT=ROOT,
+                   PhysicalGeometry=Geometry,
                    DexploreTask=SimpleNamespace(StateInit=SimpleNamespace(Start='Start')),frozen=frozen,
                    output=tmp_path,check=lambda:None,manifest=manifest,Episode=Episode,Perturbations=Perturbations,
                    PHASES=PHASES,digest=lambda p:sha256(Path(p).read_bytes()).hexdigest(),write=write)

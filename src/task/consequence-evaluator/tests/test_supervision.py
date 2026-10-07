@@ -17,6 +17,7 @@ from consequence_evaluator.supervision import (
 from label_continuous import label
 from prepare_windows import prepare
 from train_matched import require_supervision
+from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS
 
 
 def packet(drop=None, steps=100):
@@ -27,11 +28,14 @@ def packet(drop=None, steps=100):
         pose[drop:,2,3] = 0
         contact[drop:] = False
     arrays = dict(history=np.zeros((steps+1,6),dtype='float32'),
+                  residual_plan=np.zeros((steps,24,18),dtype='float32'),plan_known=np.ones(steps,dtype=bool),
+                  hand_keypoints=np.zeros((steps+1,11,3),dtype='float32'),
                   action=np.zeros((steps,18),dtype='float32'), object_pose=pose,
                   timestamps=np.arange(steps+1)/30, phase=np.asarray(['hold']*steps),
                   progress=np.full(steps+1,np.nan,dtype='float32'),
                   progress_mask=np.zeros(steps+1,dtype=bool))
     diagnostics = dict(contact=contact,contact_valid=np.r_[False,np.ones(steps,dtype=bool)],
+                       surface_gap=np.full(steps+1,.001),
                        initial_height=0.)
     return arrays,diagnostics
 
@@ -72,6 +76,7 @@ def test_reset_contact_or_invalid_post_action_contact_cannot_label_windows():
 
 def test_local_preferences_only_compare_other_episodes_same_split_task_phase_height():
     good = dict(episode='good',tick=8,split='train',task='airplane',phase='hold',
+                expert='fixture',motion='fixture',object_pose=np.eye(4),hand_keypoints=np.zeros((11,3)),
                 initial_relative_height=.04,event='maintained_hold')
     bad = dict(good,episode='bad',event='unrecovered_drop')
     invalid = [dict(bad,episode='val',split='val'),dict(bad,episode='duck',task='duck'),
@@ -116,10 +121,10 @@ def collection_fixture(root,route,anchors=True):
             path=root/(ep+'.npz');sidecar=root/(ep+'-diag.npz')
             np.savez_compressed(path,**arrays);np.savez_compressed(sidecar,**diagnostics)
             records.append(dict(episode=ep,split=split,split_group='seed:'+split,
-                quality='unlabeled',task='airplane',expert='0',assigned_phase=assigned,
+                quality='unlabeled',task='airplane',expert='0',motion='fixture',assigned_phase=assigned,
                 perturbation_tick=perturbation,path=path.name,sha256=sha(path),
                 diagnostics=sidecar.name,diagnostics_sha256=sha(sidecar)))
-    (root/'manifest.json').write_text(json.dumps(dict(schema='ref2dex.consequence-evaluator.episodes.v1',
+    (root/'manifest.json').write_text(json.dumps(dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS,
         status='COMPLETED',rollout_kind='continuous',training_allowed=True,fps=30,units='m',
         history_contract='synthetic engineering fixture',contact_semantics=CONTACT_SEMANTICS,
         sources={str(i):str(i)*64 for i in range(6)},episodes=records)))

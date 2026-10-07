@@ -20,7 +20,8 @@ sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
 from consequence_evaluator.collection import Episode, Perturbations, PHASES
-from consequence_evaluator.contracts import is_within
+from consequence_evaluator.contracts import is_within, EPISODE_SCHEMA, ACTION_SEMANTICS, HAND_LINKS
+from consequence_evaluator.provenance import self_trained_ancestry
 
 
 class CollectionDeadline(BaseException):
@@ -57,17 +58,17 @@ def main():
     p.add_argument('--waves', type=int, default=2)
     p.add_argument('--num-envs', type=int, default=24)
     p.add_argument('--seconds', type=int, default=900)
-    p.add_argument('--max-steps', type=int, default=600)
+    p.add_argument('--max-steps', type=int, default=1200)
     p.add_argument('--amplitude', type=float, default=.08)
     a = p.parse_args()
     if (not 1 <= a.waves <= 4 or not 6 <= a.num_envs <= 64 or not 1 <= a.seconds <= 900
-            or not 24 <= a.max_steps <= 600 or not 0 < a.amplitude <= .2):
-        p.error('bounded collection: <=4waves, <=64envs, <=900s, <=600steps')
+            or not 24 <= a.max_steps <= 1200 or not 0 < a.amplitude <= .2):
+        p.error('bounded collection: <=4waves, <=64envs, <=900s, <=1200steps')
     output = a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         p.error('fresh task-owned output directory required')
     config = json.loads(a.route_config.read_text())
-    if len(config['experts']) != 6:
+    if len(config['experts']) != 6 or len({s['sha256'] for s in config['experts'].values()})!=6:
         raise ValueError('fixed six-expert route required')
     frozen = {str(a.route_config.resolve()): digest(a.route_config),
               str(Path(__file__).resolve()): digest(__file__)}
@@ -79,6 +80,12 @@ def main():
             raise ValueError('expert checkpoint identity mismatch: ' + str(path))
         spec['checkpoint'] = str(path)
         frozen[str(path)] = spec['sha256']
+        source_run=Path(spec['training_run']).resolve()
+        ancestral=self_trained_ancestry(source_run,ROOT/'outputs/consequence-evaluator')
+        trained=json.loads((source_run/'run_manifest.json').read_text())
+        if Path(trained['checkpoint']).resolve()!=path:
+            raise ValueError('expert route does not match its owned training endpoint')
+        frozen.update(ancestral)
     if not a.motions.is_dir():
         raise FileNotFoundError(a.motions)
     motion_files = sorted(a.motions.rglob('*.pt')) + sorted(a.motions.rglob('*.npy'))
@@ -94,7 +101,7 @@ def main():
              ROOT/'third_party/DExplore/dexplore/env/tasks/vec_task_wrappers.py',
              ROOT/'third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py',
              ROOT/'third_party/DExplore/dexplore/learning/dexplore_players.py',
-             ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf']
+             *sorted(p for p in (ROOT/'third_party/DExplore/dexplore/data/assets').rglob('*') if p.is_file())]
     for path in files:
         frozen[str(path.resolve())] = digest(path)
     if bool(a.observation_router_model) != bool(a.observation_router_sha256):
@@ -119,6 +126,7 @@ def main():
     # Importing the native router imports Isaac Gym before Torch.
     import evaluate_object_router as router
     import torch
+    from consequence_evaluator.physical_geometry import PhysicalGeometry
     from env.tasks.base_dexplore_task import DexploreTask
     from consequence_evaluator.native_reset import install_reset_patch
     install_reset_patch()
@@ -133,12 +141,14 @@ def main():
     output.mkdir(parents=True)
     (output/'diagnostics').mkdir()
     started = time.monotonic()
-    manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v1', status='RUNNING',
+    manifest = dict(schema=EPISODE_SCHEMA, status='RUNNING',
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
-                    work_version='consequence-evaluator-ref1', run_id=output.name, pid=os.getpid(),
+                    work_version='consequence-evaluator-ref2', run_id=output.name, pid=os.getpid(),
                     task='consequence-evaluator', rollout_kind='continuous', training_allowed=True,
                     fps=30, units='m', horizon=24, execution_horizon=8, seed=a.seed, split=a.split,
                     physical_gpu=a.gpu, sources=frozen, seconds_budget=a.seconds, waves=a.waves,
+                    max_steps=a.max_steps,action_semantics=ACTION_SEMANTICS,
+                    hand_keypoint_links=list(HAND_LINKS),
                     num_envs=a.num_envs, amplitude=a.amplitude, episodes=[],
                     route_mode='observation' if router.MODEL_PATH else 'fixed_object_route',
                     progress_labels='unknown and masked pending reliable expert annotation',
@@ -173,12 +183,15 @@ def main():
                 return native_pre_physics(actions)
             task.pre_physics_step = capture_executed
             full = torch.arange(task.num_envs, device=task.device)
+            geometry=PhysicalGeometry(task,ROOT/'third_party/DExplore/dexplore/data/assets')
             def physical():
                 hand = (task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)
                 obj = task._tar_contact_forces.norm(dim=-1)>.1
                 return task._target_states.detach().cpu().numpy().copy(), (hand&obj).cpu().numpy()
             def kinematics():
+                points,gap=geometry.measure(task)
                 return dict(q=task._dof_pos.detach().cpu().numpy().copy(),
+                            hand_keypoints=points.cpu().numpy(),surface_gap=gap.cpu().numpy(),
                             hand_root=task._humanoid_root_states.detach().cpu().numpy().copy())
             for wave in range(a.waves):
                 check()
@@ -207,6 +220,7 @@ def main():
                                               task.rollout_length-1-(task.progress_buf-task.start_times)).cpu().numpy()
                     control, phases, diagnostic = perturb.apply(base_control, states[:,2], contact,
                                                                  initial_height, tick, remaining, active)
+                    planned,plan_known=perturb.known_plan(tick)
                     control[~active] = 0
                     # Native Inspire mutates its action tensor in PD conversion.
                     # Keep the logged normalized control separate from that buffer.
@@ -224,7 +238,8 @@ def main():
                         episodes[env].append(executed_control[env], phases[env], history[env], states[env], contact[env],
                                              executed_control[env]-base_control[env],
                                              diagnostic['clipped'][env] | (np.abs(executed_control[env]-control[env])>1e-7), ended[env],
-                                             {name:values[env] for name,values in measured.items()})
+                                             {name:values[env] for name,values in measured.items()},
+                                             plan=planned[env],plan_known=plan_known[env])
                     active &= ~ended
                     if not active.any():
                         break
@@ -240,6 +255,7 @@ def main():
                         split=a.split, task=object_names[env], quality='unlabeled', path=path.name,
                         sha256=digest(path), diagnostics=str(sidecar.relative_to(output)),
                         diagnostics_sha256=digest(sidecar), motion_id=int(motion[env]),
+                        motion=Path(task.motion_file[int(motion[env])]).name,
                         expert= self.expert_names[int(self.last_teacher_choice[env])],
                         assigned_phase='clean' if perturb.assignment[env]==0 else PHASES[perturb.assignment[env]-1],
                         perturbation_tick=int(perturb.started[env]), steps=len(episode.actions)))

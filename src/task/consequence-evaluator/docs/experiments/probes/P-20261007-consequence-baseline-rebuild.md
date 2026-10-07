@@ -402,3 +402,26 @@ checkpoint. The six-expert route, continuous phase-targeted perturbations,
 reliable absolute progress, local preferences and matched E0/Eoracle training
 still need actual execution and auditing. Later WM/proposal work remains
 conditional on useful oracle headroom.
+
+## Fixed s3 endpoint260 and recovered references
+
+Run baseline-transfer-s3-20261007-r2, commit507091e, completes8env220→222
+smoke35.28s and independent64env220→260 fit254.911s (queue311.837s).
+Qualification-s290 completes54.103s:36/64 (56.25%) retain the45frame/no-later-drop
+operational criterion; mean maximum lift540.077mm and contact fraction.614132.
+The fixed8/64gate passes: PROMISING for this s3 data substrate. EndpointSHA256
+8882fabd2d83c56312ca90e3b27ea145f628dc1ddcedafbcc751303a27d52871.
+These native net-force traces remain training_allowed=false and lack the new
+ref2 sampled-proximity corroboration; they are not evaluator labels or formal
+Validation. Parent50/64 and airplane_base36/64 do not constitute six experts.
+
+The sequential remaining-reference batch at50ad2d2 completes270.591s: ten
+references,481–1062frames, all left-contact0, right native-contact0/1, relative
+geometry maximum error<=3.576e-7m. Manifest is
+outputs/consequence-evaluator/expert-reference-recovery-20261007-r1/run_manifest.json.
+Together with recovered s3 and cup, all12selected original-style inputs exist.
+Five further experts remain untrained. GPU0 is currently occupied by another
+user, and the user cannot coordinate its release; no foreign jobs are stopped.
+While waiting, ref2 repairs plans/three arms/contact/pairing, ref3 separates
+PointWorld data-source semantics. Next expert recipes need actual multi-object
+approach geometry rather than an implicitly fixed airplane surface.

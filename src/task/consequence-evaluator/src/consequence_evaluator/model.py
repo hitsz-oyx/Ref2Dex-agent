@@ -4,6 +4,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from .data import K
+from .contracts import FUTURE_DIM
 
 
 class Evaluator(nn.Module):
@@ -11,7 +12,7 @@ class Evaluator(nn.Module):
         super().__init__()
         self.history = nn.Linear(history_dim, width)
         self.action = nn.Linear(18, width)
-        self.future = nn.Linear(12, width)
+        self.future = nn.Linear(FUTURE_DIM, width)
         self.time = nn.Parameter(torch.zeros(1, K + 1, width))
         block = nn.TransformerEncoderLayer(width, 4, width * 4, dropout=0,
                                            batch_first=True, norm_first=True)
@@ -20,10 +21,14 @@ class Evaluator(nn.Module):
         self.score = nn.Linear(width, 1)
 
     def forward(self, history, action, future, use_future=True):
-        if action.shape[1:] != (K, 18) or future.shape[1:] != (K, 12):
+        if action.shape[1:] != (K, 18) or future.shape[1:] != (K, FUTURE_DIM):
             raise ValueError('24-step action/future contract required')
+        if use_future not in (False,True,'object','interaction'):
+            raise ValueError('unknown future arm')
         if not use_future:
             future = torch.zeros_like(future)
+        elif use_future == 'object':
+            future=torch.cat((future[...,:12],torch.zeros_like(future[...,12:])),dim=-1)
         chunk = self.action(action) + self.future(future)
         tokens = torch.cat((self.history(history)[:, None], chunk), dim=1) + self.time
         encoded = self.encoder(tokens)

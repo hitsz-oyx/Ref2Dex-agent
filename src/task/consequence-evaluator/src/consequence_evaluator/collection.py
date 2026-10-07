@@ -58,6 +58,22 @@ class Perturbations:
         self.contact_run = np.zeros(count, dtype='int64')
         self.hold_run = np.zeros(count, dtype='int64')
 
+    def known_plan(self, tick):
+        """Requested residual schedule known now, before executing this action.
+
+        A pending state-triggered intervention has an unknown future start;
+        do not invent its future schedule. Once triggered, the remaining
+        schedule (including zeros after the one chunk) is immutable. Actual
+        clipping/noise remains a separate post-execution diagnostic.
+        """
+        known = (self.assignment == 0) | (self.started >= 0)
+        plans = np.zeros((len(self.assignment), K, 18), dtype='float32')
+        for index in np.flatnonzero(self.started >= 0):
+            age = tick-self.started[index]+np.arange(K)
+            active = (age >= 0) & (age < K)
+            plans[index,active] = self.chunks[index,age[active]]
+        return plans,known
+
     def apply(self, base, height, contact, initial_height, tick, remaining, active):
         base = np.asarray(base)
         if base.shape != (len(self.assignment), 18) or not np.isfinite(base).all():
@@ -102,10 +118,12 @@ class Episode:
         self.actions, self.phases, self.actual_residual, self.clipped = [], [], [], []
         self.max_steps = max_steps
         self.finished = False
+        self.plans,self.plan_valid=[],[]
         self.kinematics = {name: [np.asarray(value, dtype='float32').copy()]
                            for name, value in (kinematics or {}).items()}
 
-    def append(self, action, phase, history, object_state, contact, residual, clipped, done, kinematics=None):
+    def append(self, action, phase, history, object_state, contact, residual, clipped, done, kinematics=None,
+               plan=None,plan_known=False):
         if self.finished:
             raise ValueError('cannot append a reset/second episode to a completed episode')
         if len(self.actions) >= self.max_steps:
@@ -117,6 +135,10 @@ class Episode:
         if not np.isfinite(action).all() or np.abs(action).max() > 1+1e-6 or phase not in PHASES:
             raise ValueError('invalid executed control/current phase')
         self.actions.append(action.copy())
+        plan=np.zeros((K,18),dtype='float32') if plan is None else np.asarray(plan,dtype='float32')
+        if plan.shape!=(K,18) or not np.isfinite(plan).all() or np.abs(plan).max()>.2+1e-6:
+            raise ValueError('invalid requested residual plan')
+        self.plans.append(plan.copy());self.plan_valid.append(bool(plan_known))
         self.phases.append(str(phase))
         self.history.append(history.copy())
         self.poses.append(pose_matrix(object_state))
@@ -136,7 +158,11 @@ class Episode:
         if not self.finished or len(self.actions) < K:
             raise ValueError('complete episode with at least 24 actions required')
         steps = len(self.actions)
+        if 'hand_keypoints' not in self.kinematics:
+            raise ValueError('measured hand keypoints required; do not invent interaction future')
         return dict(history=np.asarray(self.history), action=np.asarray(self.actions),
+                    residual_plan=np.asarray(self.plans),plan_known=np.asarray(self.plan_valid),
+                    hand_keypoints=np.asarray(self.kinematics['hand_keypoints']),
                     object_pose=np.asarray(self.poses), timestamps=np.arange(steps+1)/30,
                     phase=np.asarray(self.phases), progress=np.full(steps+1, np.nan, dtype='float32'),
                     progress_mask=np.zeros(steps+1, dtype=bool))
@@ -146,4 +172,4 @@ class Episode:
         return dict(contact=np.asarray(self.contact), contact_valid=np.asarray([False]+[True]*len(self.actions)),
                     actual_residual=np.asarray(self.actual_residual), clipped=np.asarray(self.clipped),
                     initial_height=float(self.poses[0][2, 3]),
-                    **{name: np.asarray(values) for name, values in self.kinematics.items()})
+                    **{name: np.asarray(values) for name, values in self.kinematics.items() if name!='hand_keypoints'})

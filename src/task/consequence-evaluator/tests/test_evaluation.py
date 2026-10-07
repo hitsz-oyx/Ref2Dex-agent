@@ -12,6 +12,7 @@ from prepare_windows import prepare
 from consequence_evaluator.data import Windows, sha
 from consequence_evaluator.evaluation import future_donors, predict, summarize
 from consequence_evaluator.model import Evaluator
+from consequence_evaluator.contracts import ARMS
 from evaluate_matched import freeze_protocol, load_frozen
 
 
@@ -73,8 +74,10 @@ def test_paired_metrics_masks_groups_and_ties_are_recomputed(tmp_path):
     data, _ = prepared(tmp_path)
     pairs = data.arrays['pairs'][data.pair_ids['test']]
     ids = np.unique(pairs)
-    scores = dict(baseline=np.zeros(4), oracle=np.array([2., 2., 1., 1.]),
-                  oracle_reassigned_future=np.array([1., 1., 2., 2.]))
+    scores = dict(baseline=np.zeros(4), oracle_object=np.array([2., 2., 1., 1.]),
+                  oracle_interaction=np.array([2., 2., 1., 1.]),
+                  oracle_object_reassigned_future=np.array([1., 1., 2., 2.]),
+                  oracle_interaction_reassigned_future=np.array([1., 1., 2., 2.]))
     predictions = {name: dict(score=value, progress=data.arrays['progress'][ids].copy())
                    for name, value in scores.items()}
     # Invalid failure labels must not contribute even if the prediction is poor.
@@ -83,11 +86,11 @@ def test_paired_metrics_masks_groups_and_ties_are_recomputed(tmp_path):
     report = summarize(data, ids, predictions)
     assert report['metrics']['baseline']['ties'] == 2
     assert report['metrics']['baseline']['strict_accuracy'] == 0
-    assert report['metrics']['oracle']['strict_accuracy'] == 1
-    assert report['metrics']['oracle']['episode_pair_groups'] == 1
-    assert report['metrics']['oracle_minus_baseline']['oracle_only_correct'] == 2
-    assert report['aligned_minus_reassigned']['accuracy_gain'] == 1
-    assert report['progress_on_reliable_frames']['oracle'] == dict(labeled_frames=48, unique_windows=2, mae=0.)
+    assert report['metrics']['oracle_object']['strict_accuracy'] == 1
+    assert report['metrics']['oracle_object']['episode_pair_groups'] == 1
+    assert report['metrics']['object_minus_baseline']['oracle_only_correct'] == 2
+    assert report['aligned_minus_reassigned']['oracle_object']['accuracy_gain'] == 1
+    assert report['progress_on_reliable_frames']['oracle_object'] == dict(labeled_frames=48, unique_windows=2, mae=0.)
     assert len(report['by_task_phase']) == 1
     assert report['by_quality'][0]['chosen'] == 'expert_success'
     with pytest.raises(ValueError, match='exactly'):
@@ -99,17 +102,17 @@ def fake_fit(fit, data, root):
     statistics = data.normalization()
     model = Evaluator(6, width=8, layers=1)
     torch.save(dict(model=model.state_dict(), statistics=statistics), fit / 'initial.pt')
-    manifest = dict(status='COMPLETED', task='consequence-evaluator', width=8, layers=1,
+    manifest = dict(arms=list(ARMS),status='COMPLETED', task='consequence-evaluator', width=8, layers=1,
                     updates=10, pairs_per_update=2, windows_sha256=data.manifest['windows_sha256'],
                     window_manifest_sha256=sha(root / 'manifest.json'),
                     initial_weights_sha256=sha(fit / 'initial.pt'), training_pair_draw_sha256='engineering-only',
                     parameters=sum(v.numel() for v in model.parameters()), sources={})
     (fit / 'run_manifest.json').write_text(json.dumps(manifest))
     # Equal later validation accuracy must retain the first best checkpoint.
-    records = [dict(step=step, baseline=dict(strict_accuracy=.75), oracle=dict(strict_accuracy=1.))
+    records = [dict(step=step, baseline=dict(strict_accuracy=.75), oracle_object=dict(strict_accuracy=1.), oracle_interaction=dict(strict_accuracy=1.))
                for step in (5, 10)]
     (fit / 'validation.jsonl').write_text('\n'.join(json.dumps(r) for r in records) + '\n')
-    for arm in ('baseline', 'oracle'):
+    for arm in ARMS:
         torch.save(dict(arm=arm, step=5, manifest=manifest, statistics=statistics,
                         model=model.state_dict()), fit / (arm + '-best.pt'))
 
@@ -120,8 +123,8 @@ def test_frozen_loader_rejects_unfinished_drift_or_test_based_selection(tmp_path
     fit = tmp_path / 'fit'
     fake_fit(fit, data, root)
     models, statistics, selections = load_frozen(fit, data, root)
-    assert set(models) == set(statistics) == set(selections) == {'baseline', 'oracle'}
-    assert selections['oracle']['step'] == 5
+    assert set(models) == set(statistics) == set(selections) == set(ARMS)
+    assert selections['oracle_object']['step'] == 5
     if problem == 'unfinished':
         path = fit / 'run_manifest.json'
         m = json.loads(path.read_text())
@@ -131,7 +134,7 @@ def test_frozen_loader_rejects_unfinished_drift_or_test_based_selection(tmp_path
         with (fit / 'initial.pt').open('ab') as stream:
             stream.write(b'drift')
     else:
-        path = fit / 'oracle-best.pt'
+        path = fit / 'oracle_object-best.pt'
         payload = torch.load(path, weights_only=True)
         if problem == 'statistics':
             payload['statistics']['history'][0].add_(1)
