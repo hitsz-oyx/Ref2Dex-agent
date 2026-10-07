@@ -384,6 +384,15 @@ table-relativeerror1.19e-7m, left-active0/rawcontact0/1. TensorSHA256:
 94aab2e4c88f2f7bcafd95fda2a2b15ee7c3ea999b27120f39bd6a0a0bba85f1.
 This is a reference input only; no cup policy or rollout is trained.
 
+Remaining reference preparation is an independent Blocker, not expert fit:
+ten original conversions, same source/contact/retarget/alignment contracts,
+one sequentialCPU batch<=600s/4GiB and<=180s per sequence, no GPU/model fit.
+The frozen helper and each child record raw/native/converter/dependency hashes;
+stop the batch on any child failure, drift, deadline or output cap. Output:
+`expert-reference-recovery-20261007-r1/`, entry `tools/run/recover_expert_references.py`.
+Geometry checks and actual output counts must pass before any new expert uses
+these references. Input preparation does not bypass the s3 readiness gate.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;
