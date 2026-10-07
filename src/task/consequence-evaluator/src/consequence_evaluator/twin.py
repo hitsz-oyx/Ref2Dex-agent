@@ -127,6 +127,36 @@ def capture_native_rng(torch_module=None):
     return result
 
 
+def restore_native_rng(rng, torch_module=None):
+    """Restore the captured process RNG streams before launching a branch.
+
+    Isaac/PhysX and any per-generator streams remain the native runner's
+    responsibility.  This helper only restores the streams that
+    ``capture_native_rng`` records, and refuses a device-count mismatch rather
+    than silently running a branch with a different CUDA RNG topology.
+    """
+    saved = _cpu(rng)
+    if not _valid_rng_state(saved):
+        raise ValueError('native twin RNG state has an invalid format')
+    if torch_module is None:
+        raise ValueError('native twin restore requires the initialized torch module')
+    cuda = torch_module.cuda
+    available = bool(cuda.is_available())
+    device_count = int(cuda.device_count()) if available else 0
+    saved_count = int(saved.get('torch_cuda_device_count', len(saved['torch_cuda'])))
+    if device_count != saved_count:
+        raise ValueError('native twin CUDA RNG device count mismatch')
+    random.setstate(saved['python'])
+    np.random.set_state(saved['numpy'])
+    torch_module.set_rng_state(
+        torch_module.tensor(saved['torch_cpu'], dtype=torch_module.uint8, device='cpu'))
+    if saved_count:
+        cuda.set_rng_state_all([
+            torch_module.tensor(state, dtype=torch_module.uint8, device='cpu')
+            for state in saved['torch_cuda']
+        ])
+
+
 def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
                       physics_properties, history_contract, controller_identity,
                       physics_dt):

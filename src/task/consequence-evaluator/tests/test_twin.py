@@ -8,7 +8,7 @@ import pytest
 from consequence_evaluator.contracts import K
 from consequence_evaluator.twin import (TwinBranch, capture_native_snapshot,
                                         capture_snapshot, replay_provenance,
-                                        validate_pair)
+                                        restore_native_rng, validate_pair)
 
 
 REQUIRED = ('_root_states', '_dof_state', '_rigid_body_state', '_contact_forces',
@@ -179,6 +179,67 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         object_pose=np.eye(4, dtype='float32'), hand_keypoints=np.zeros((11, 3)),
         torch_module=TorchStub, replay=replay, is_rnn=False)
     assert no_rnn.state['rnn_state'] == {'is_rnn': False, 'state': None}
+
+
+def test_restore_native_rng_restores_cpu_streams_with_stub_torch():
+    class TorchStub:
+        uint8 = np.dtype('uint8')
+        restored = None
+
+        @staticmethod
+        def tensor(value, dtype=None, device=None):
+            assert dtype == np.dtype('uint8')
+            assert device == 'cpu'
+            return np.asarray(value, dtype='uint8')
+
+        @staticmethod
+        def set_rng_state(value):
+            TorchStub.restored = value.copy()
+
+        class cuda:
+            @staticmethod
+            def is_available():
+                return False
+
+            @staticmethod
+            def device_count():
+                return 0
+
+    python_state, numpy_state = random.getstate(), np.random.get_state()
+    try:
+        restore_native_rng(RNG, TorchStub)
+        assert np.array_equal(TorchStub.restored, RNG['torch_cpu'])
+    finally:
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+
+
+def test_restore_native_rng_rejects_cuda_topology_mismatch():
+    class TorchStub:
+        uint8 = np.dtype('uint8')
+
+        @staticmethod
+        def tensor(value, dtype=None, device=None):
+            assert device == 'cpu'
+            return np.asarray(value, dtype='uint8')
+
+        @staticmethod
+        def set_rng_state(value):
+            pass
+
+        class cuda:
+            @staticmethod
+            def is_available():
+                return False
+
+            @staticmethod
+            def device_count():
+                return 0
+
+    bad = dict(RNG, torch_cuda=[np.zeros(4, dtype='uint8')],
+               torch_cuda_device_count=1, torch_cuda_device_order=[0])
+    with pytest.raises(ValueError, match='device count'):
+        restore_native_rng(bad, TorchStub)
 
 
 @pytest.mark.parametrize('states, actions', [
