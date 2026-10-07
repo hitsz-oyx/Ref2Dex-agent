@@ -18,6 +18,7 @@ import torch
 
 from consequence_evaluator.data import Windows, sha
 from consequence_evaluator.model import Evaluator, matched_loss
+from consequence_evaluator.contracts import is_within
 
 
 def write(path, data):
@@ -66,7 +67,7 @@ def main():
         p.error('width must be a positive multiple of four')
     owned = (ROOT / 'outputs/consequence-evaluator').resolve()
     output = a.output.resolve()
-    if not output.is_relative_to(owned):
+    if not is_within(output, owned):
         p.error('output must be under outputs/consequence-evaluator')
     if output.exists():
         raise FileExistsError('choose a fresh output directory')

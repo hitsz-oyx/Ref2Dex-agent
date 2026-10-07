@@ -6,7 +6,8 @@
 数据扩充提交a620375已合并，实验索引跟进9c555d1；当前新分支继承oracle与PointWorld。
 按Task ref1固定K24/Kexec8，先检验连续六专家rollout上的E0(H,A)与Eoracle(H,A,Z_GT)，
 暂不推进WM适配或在线proposal。论文原文/源码已核对；独立scalar BT是Robometer改编。
-窗口合同、标签mask、两臂模型和有界训练入口已实现，当前只完成CPU工程测试，未采集或拟合真实数据。
+窗口合同、标签mask、两臂模型、有界训练入口与六专家连续采集驱动已实现；CPU测试覆盖真实驱动循环，
+但未在真实Isaac Gym上验证，也未采集或拟合真实数据。采集副产物保留measured q/root与扰动审计，标签仍需核验。
 旧oracle outputs、六专家权重及motion未找到；外部仿真资产可只读引用，当前GPU均占用。
 PointWorld原三卡训练保持运行，源码hash未变；新实验等待有身份的输入与空闲GPU。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。

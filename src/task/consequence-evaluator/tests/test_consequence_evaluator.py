@@ -42,6 +42,7 @@ def fixture(root, mutation=None):
                           rejected=dict(episode=split + '_failure', tick=0),
                           annotation='synthetic-local-event-engineering-only'))
     manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v1', rollout_kind='continuous',
+                    status='COMPLETED',
                     training_allowed=True, fps=30, units='m', history_contract='synthetic current observation only',
                     episodes=records)
     (root / 'manifest.json').write_text(json.dumps(manifest))
@@ -136,6 +137,26 @@ def test_seed_group_cannot_cross_splits(tmp_path):
     (source / 'manifest.json').write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match='group crosses'):
         prepare(source, labels, tmp_path / 'out')
+
+
+def test_unfinished_rollout_or_window_export_cannot_feed_training(tmp_path):
+    source, out = tmp_path/'source', tmp_path/'out'
+    labels = fixture(source)
+    path=source/'manifest.json'
+    manifest=json.loads(path.read_text())
+    manifest['status']='RUNNING'
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError,match='provenance'):
+        prepare(source, labels, out)
+    manifest['status']='COMPLETED'
+    path.write_text(json.dumps(manifest))
+    prepare(source, labels, out)
+    path=out/'manifest.json'
+    manifest=json.loads(path.read_text())
+    manifest['status']='PREPARED'
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError,match='completed'):
+        Windows(out)
 
 
 def test_effect_invariant_to_stationary_world_coordinate_change():

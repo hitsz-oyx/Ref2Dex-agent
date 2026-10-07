@@ -6,9 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-K = 24
-K_EXEC = 8
-SCHEMA = 'ref2dex.consequence-evaluator.windows.v1'
+from .contracts import K, K_EXEC, SCHEMA
 SPLITS = ('train', 'val', 'test')
 
 
@@ -48,10 +46,12 @@ class Windows:
     No automatic episode-outcome-to-window label conversion is permitted.
     The producer must supply annotation provenance for each preference pair.
     """
-    def __init__(self, root):
+    def __init__(self, root, require_complete=True):
         root = Path(root)
         self.manifest = json.loads((root / 'manifest.json').read_text())
         m = self.manifest
+        if require_complete and m.get('status') != 'CONTRACT_PASS':
+            raise ValueError('prepared data have not completed contract validation')
         required = dict(schema=SCHEMA, horizon=K, execution_horizon=K_EXEC,
                         fps=30, units='m', rollout_kind='continuous',
                         preference_scope='local_window', progress_scope='episode_absolute',

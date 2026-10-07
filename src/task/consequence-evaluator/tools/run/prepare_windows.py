@@ -21,6 +21,7 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
     started = time.monotonic()
     manifest = json.loads((source / 'manifest.json').read_text())
     if (manifest.get('schema') != 'ref2dex.consequence-evaluator.episodes.v1'
+            or manifest.get('status') != 'COMPLETED'
             or manifest.get('rollout_kind') != 'continuous'
             or manifest.get('training_allowed') is not True
             or manifest.get('fps') != 30 or manifest.get('units') != 'm'
@@ -101,7 +102,7 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
                            producer_sha256=sha(Path(__file__)), status='PREPARED')
     metadata = output / 'manifest.json'
     metadata.write_text(json.dumps(output_manifest, indent=2) + '\n')
-    data = Windows(output)
+    data = Windows(output, require_complete=False)
     output_manifest.update(status='CONTRACT_PASS', windows=len(arrays['history']),
                            pairs={name: len(ids) for name, ids in data.pair_ids.items()})
     metadata.write_text(json.dumps(output_manifest, indent=2) + '\n')

@@ -11,6 +11,7 @@
 ## 已实现的最小合同与训练入口
 
 - [窗口准备](tools/run/prepare_windows.py)：episode/seed group 先 split，再切完整24步窗口。
+- [连续采集](tools/run/collect_continuous.py)：复用原生六专家player，分阶段单次24步平滑扰动，完整episode导出。
 - [数据合同](src/consequence_evaluator/data.py)：严格输入白名单、完整时钟、刚体效应、标签 mask 与 split 检查。
 - [两臂模型](src/consequence_evaluator/model.py)：同容量两层128维 Transformer，24步 progress 分布与独立标量分支评分。
 - [训练](tools/run/train_matched.py)：相同初始化、抽样、优化器和更新预算；只在训练集拟合归一化，用 val 保存最佳权重。
@@ -36,7 +37,7 @@ Progress 用10-bin soft CE，只监督可靠 `expert_success` 的绝对 episode 
 ```json
 {
   "schema": "ref2dex.consequence-evaluator.episodes.v1",
-  "rollout_kind": "continuous", "training_allowed": true,
+  "status": "COMPLETED", "rollout_kind": "continuous", "training_allowed": true,
   "fps": 30, "units": "m",
   "history_contract": "采集策略的观测/历史 schema、维度与来源 SHA256",
   "episodes": [{
@@ -60,8 +61,34 @@ Progress 用10-bin soft CE，只监督可靠 `expert_success` 的绝对 episode 
 | progress_mask | `[T+1]`，bool；失败/次优全部false |
 
 其中 `action[t]` 把 `object_pose[t]` 变成 `object_pose[t+1]`。
-episode 文件必须完整，不能把 reset 后的另一条轨迹拼进来。尚未具备真实、已核验的采集导出器。
-已有 collector 代码可复用，但新24步平滑扰动/阶段采样和上述源格式仍需接入、实测。
+episode 文件必须完整，不能把 reset 后的另一条轨迹拼进来。
+采集驱动已经接入；真实Isaac Gym加载和物理rollout仍待备份与空闲GPU恢复后验证。
+CPU测试实际执行驱动中的采集循环，覆盖不同env先后done、原生in-place action转换、
+零partial reset、T控制/T+1状态对齐和恢复专家控制；它不能证明真实物理响应或阶段质量。
+
+采集模板（权重必须匹配路由配置SHA；本地native仿真资产和配置也须就绪）：
+
+```bash
+python src/task/consequence-evaluator/tools/run/collect_continuous.py \
+  --route-config src/task/CmResidual/configs/multitrajectory_object_router_with_cup_probe.json \
+  --asset-root <restored-checkpoint-root> --motions <native-motion-directory> \
+  --cfg-env <native-environment.yaml> --cfg-train <native-player.yaml> \
+  --output outputs/consequence-evaluator/<continuous-run> \
+  --gpu <idle-gpu> --seed <registered-collection-seed> --split train
+```
+
+默认24env/2waves/每episode最多600步/总900秒/产物2GiB。开始前核对输入hash、GPU PID与20GiB磁盘余量。
+六专家始终用原生RMS和动作接口；可传入原观测路由模型及SHA，否则使用明确记录的固定object route。
+每episode分配clean或approach/contact/grasp/lift/hold，阶段达到且剩余至少24步才启动一次残差。
+平滑残差使用四结点插值和零边界taper，腕平移缩小至四分之一，native coupling覆盖的6个distal通道不加残差。
+阶段定义是当前contact force proxy、3步contact、3cm lift与5步held的工程启发式，不能称为论文原版阶段。
+目标阶段未达到的episode保留未触发状态，不计作扰动覆盖；完成一段扰动后完全恢复专家。
+原生实现的`hybridInitProb=1`选择参考第0帧；运行时强制并核对完整起始帧。不同episode只在wave边界统一reset。
+在sidecar记录真实q、hand root、contact及validity、实际残差/裁剪，供后续几何适配与标签审查；均不进入Z。
+`A_GT`从原生`pre_physics_step`入口捕获：wrapper裁剪及domain action noise已执行，Inspire手指/PD转换尚未执行。
+不把请求的动作冒充实际指令；原生噪声若使真实归一化指令越过[-1,1]，合同检查直接拒绝该运行。
+reset瞬间的contact force可能残留，标为无效，不用于阶段计数。采集progress保持未知且全mask，
+不会根据最终结局自动生成局部preference。可靠专家progress与窗口内事件排序必须在独立监督步骤核验后提供。
 
 偏好文件单独记录 `scope: local_window`、`label_provenance`，以及 `pairs`。
 每对包含 `chosen` / `rejected` 的 `{episode, tick}` 与 `annotation`。
