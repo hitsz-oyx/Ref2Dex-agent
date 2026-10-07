@@ -157,7 +157,7 @@ task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计�
 task-local修复已接入三个native入口；同环境真实8env测试首步位移1.48m→1.43mm，
 初始手FK和重复子集reset检查通过，51项工程测试通过。r4不作为有效训练负证据。
 旧新均使用graspenv解释器/Dexplore_Inspire任务；已找回原s1 corrected tensor，
-其q与接触合同区别于r4canonical。正在检查原输入的真实reset，缺失CmLite权重仍需重建，
+其q与接触合同区别于r4canonical。原输入真实reset/FK/三次子集检查已通过，缺失CmLite权重仍需重建，
 不将临时随机Cm-off路线称为原母策略复现。
 
 Recorded reactive future A 已受未来反馈影响；Eoracle−E0 只度量在这种A条件下的额外信息。

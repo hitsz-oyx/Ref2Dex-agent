@@ -229,6 +229,10 @@ and its old transitions remain absent from the directly checked roots. Native
 s3 corrected input also needs reconstruction. Exact recovery is not claimed.
 Commit23074d3 starts bounded `reset-original-s1-20261007-r1` onGPU0 using
 the original read-only s1 tensor, before selecting the next training recipe.
+It completes15.78s: eight first-step displacements1.4347..1.4352mm,
+maxFK position error2.46um/linear velocity error4.16e-5m/s/angular error
+3.58e-4rad/s; all three alternating subset resets pass. This validates reset
+compatibility with recovered original inputs, not a learned grasp policy.
 
 ## Limitations / future evidence
 

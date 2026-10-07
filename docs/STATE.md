@@ -39,7 +39,8 @@ OakInk2新固定panel9.79→10.49mm，较step250略恢复，其他三源改善�
 task-local修复后同环境降到1.43mm，重复子集reset/FK物理检查通过，51项工程测试通过；
 原r4训练和0/64不能用于判断正确实现的学习效果。已找回原s1 corrected tensor，
 与r4 canonical在q/坐标/contact上并不等价；旧新均用graspenv+Dexplore_Inspire。
-原s1数据物理预检正在GPU0执行；原CmLite权重/转移与s3 corrected输入仍需重建。
+原s1数据GPU物理预检已通过（15.78s，首步位移1.43mm，三次子集reset通过）；
+原CmLite权重/转移与s3 corrected输入仍需重建。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
