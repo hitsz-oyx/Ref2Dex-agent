@@ -111,6 +111,17 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         pass
 
     task = NativeTask()
+    class Gym:
+        @staticmethod
+        def get_frame_count(sim):
+            assert sim is not None
+            return 5
+
+    task.gym = Gym()
+    task.sim = object()
+    task.dr_randomizations = {}
+    task.projtype = 'None'
+    task._motion_sampler = None
     for name in REQUIRED:
         if name not in ('controller_state', 'rnn_state', 'observation', 'scalars', 'reset_ids'):
             setattr(task, name, np.zeros((2, 3), dtype='float32'))
@@ -141,3 +152,22 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
     assert snap.replay_provenance['prefix_action_count'] == 5
     assert snap.state_hash == snap.state_hash
     assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}
+
+
+@pytest.mark.parametrize('states, actions', [
+    ([None, None], np.zeros((1, 18), dtype='float32')),
+    (['bad', 'bad'], np.zeros((1, 18), dtype='float32')),
+    ([{}, {}], np.zeros((1, 18), dtype='float32')),
+])
+def test_replay_provenance_rejects_non_numeric_prefix_trace(states, actions):
+    with pytest.raises(ValueError, match='finite'):
+        replay_provenance(states, actions, replay_max_abs_error=0,
+                          physics_properties={}, history_contract={},
+                          controller_identity={}, physics_dt=1 / 30)
+
+
+def test_replay_provenance_requires_native_action_shape():
+    with pytest.raises(ValueError, match='shape'):
+        replay_provenance(np.zeros((2, 1)), np.zeros((1, 17)),
+                          replay_max_abs_error=0, physics_properties={},
+                          history_contract={}, controller_identity={}, physics_dt=1 / 30)

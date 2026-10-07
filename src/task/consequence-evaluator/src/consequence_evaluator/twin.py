@@ -38,6 +38,22 @@ REQUIRED_STATE_META_KEYS = frozenset({'controller_state', 'rnn_state', 'observat
 REQUIRED_RNG_KEYS = frozenset({'python', 'numpy', 'torch_cpu', 'torch_cuda'})
 
 
+def _numeric_trace(value):
+    """Finite numeric tree used for prefix traces (metadata is not a trace)."""
+    if isinstance(value, np.ndarray):
+        return bool(value.dtype.kind in 'biufc' and np.isfinite(value).all())
+    if isinstance(value, np.generic):
+        return bool(value.dtype.kind in 'biufc' and np.isfinite(value))
+    if isinstance(value, (bool, int, float, complex)):
+        return bool(np.isfinite(value))
+    if isinstance(value, dict):
+        return bool(value) and all(isinstance(k, str) and _numeric_trace(v)
+                                   for k, v in value.items())
+    if isinstance(value, (tuple, list)):
+        return bool(value) and all(_numeric_trace(v) for v in value)
+    return False
+
+
 def capture_native_rng(torch_module=None):
     """Capture the process RNG streams used by a native player/simulator.
 
@@ -47,7 +63,8 @@ def capture_native_rng(torch_module=None):
     collector is running.
     """
     result = dict(python=random.getstate(), numpy=np.random.get_state(),
-                  torch_cpu=None, torch_cuda=[])
+                  torch_cpu=None, torch_cuda=[], torch_cuda_device_count=0,
+                  torch_cuda_device_order=[])
     if torch_module is None:
         raise ValueError('native twin capture requires the initialized torch module')
     result['torch_cpu'] = _cpu(torch_module.get_rng_state())
@@ -55,6 +72,8 @@ def capture_native_rng(torch_module=None):
         raise ValueError('native torch CPU RNG state is unavailable')
     if bool(torch_module.cuda.is_available()):
         result['torch_cuda'] = [_cpu(value) for value in torch_module.cuda.get_rng_state_all()]
+        result['torch_cuda_device_count'] = len(result['torch_cuda'])
+        result['torch_cuda_device_order'] = list(range(result['torch_cuda_device_count']))
     return result
 
 
@@ -75,8 +94,11 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
         state_frames = len(states)
     except TypeError as error:
         raise ValueError('prefix actions must be a finite sequence') from error
-    if not finite_tree(states) or not finite_tree(actions):
+    if not _numeric_trace(states) or (steps > 0 and not _numeric_trace(actions)):
         raise ValueError('prefix replay traces must be finite')
+    actions = np.asarray(actions)
+    if actions.ndim != 2 or actions.shape[1] != 18:
+        raise ValueError('prefix actions must have shape [steps,18]')
     if (isinstance(steps, bool) or not isinstance(steps, (int, np.integer))
             or steps < 0):
         raise ValueError('prefix replay length must be a nonnegative integer')
@@ -231,6 +253,8 @@ class TwinSnapshot:
                 or not _numeric_finite(self.state['observation'])
                 or not self.state['observation'].size):
             raise ValueError('controller/RNN/observation provenance is incomplete')
+        if self.state['rnn_state'] is None or self.state['reset_ids'] is None:
+            raise ValueError('RNN and reset-id state must be explicit, including non-RNN players')
         if not isinstance(self.rng, dict) or not REQUIRED_RNG_KEYS.issubset(self.rng):
             missing = sorted(REQUIRED_RNG_KEYS - set(self.rng)) if isinstance(self.rng, dict) else sorted(REQUIRED_RNG_KEYS)
             raise ValueError('twin snapshot missing RNG state: ' + ','.join(missing))
@@ -295,11 +319,41 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
     It copies every required native tensor by its canonical attribute name and
     refuses a partial or pose-only capture before either branch is run.
     """
+    if not hasattr(task, 'gym') or not hasattr(task, 'sim'):
+        raise ValueError('native task must expose gym/sim for fresh replay verification')
+    if not hasattr(task.gym, 'get_frame_count'):
+        raise ValueError('native gym frame counter is required for twin capture')
+    frame_count = task.gym.get_frame_count(task.sim)
+    if (isinstance(frame_count, (bool, np.bool_))
+            or not isinstance(frame_count, (int, np.integer))
+            or frame_count != tick):
+        raise ValueError('native frame count does not match the replay prefix tick')
+    if getattr(task, 'dr_randomizations', None):
+        raise ValueError('native randomization state must be disabled for twin replay')
+    if getattr(task, 'projtype', 'None') not in (None, '', 'None'):
+        raise ValueError('native projectile/randomization state is unsupported for twin replay')
+    if getattr(task, '_motion_sampler', None) is not None:
+        raise ValueError('native motion sampler state is unsupported for twin replay')
+    if (not isinstance(replay, dict) or replay.get('fresh_simulator') is not True
+            or replay.get('prefix_steps') != tick
+            or replay.get('final_frame_count') != frame_count):
+        raise ValueError('fresh prefix replay provenance does not match native task state')
     state = {}
     for name in REQUIRED_NATIVE_STATE_KEYS:
         if not hasattr(task, name):
             raise ValueError('native task missing twin state: ' + name)
         state[name] = getattr(task, name)
+    tensor_names = []
+    extra_tensors = {}
+    for name, value in vars(task).items():
+        if isinstance(value, np.ndarray) or (hasattr(value, 'detach') and hasattr(value, 'cpu')):
+            tensor_names.append(str(name))
+            if name not in REQUIRED_NATIVE_STATE_KEYS:
+                extra_tensors[str(name)] = value
+    if not REQUIRED_NATIVE_STATE_KEYS.issubset(tensor_names):
+        raise ValueError('native task tensor inventory is missing canonical state')
+    state['native_tensor_inventory'] = tuple(sorted(tensor_names))
+    state['native_extra_tensors'] = extra_tensors
     state.update(controller_state=controller_state, rnn_state=rnn_state,
                  observation=observation, scalars=scalars, reset_ids=reset_ids)
     required = REQUIRED_NATIVE_STATE_KEYS | REQUIRED_STATE_META_KEYS
