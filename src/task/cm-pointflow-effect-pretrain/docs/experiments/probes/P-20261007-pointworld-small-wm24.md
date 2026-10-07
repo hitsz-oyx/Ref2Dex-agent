@@ -10,7 +10,7 @@ claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [210, 212, 213, 214, 215, 216, 217]
+seeds: [210, 212, 213, 214, 215, 216, 217, 218]
 decision_changed_if_positive: continue unified spatial effect pretraining and design robot adaptation
 decision_changed_if_negative: inspect learning and action use before additional training
 status: UNCLEAR

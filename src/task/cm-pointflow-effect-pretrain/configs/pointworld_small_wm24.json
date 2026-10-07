@@ -2,6 +2,8 @@
   "schema": "pointworld-small-wm24.v1",
   "seed": 217,
   "split_seed": 210,
+  "validation_seed": 212,
+  "natural_validation_seed": 213,
   "hidden": 128,
   "patch_size": 128,
   "microbatch": 2,

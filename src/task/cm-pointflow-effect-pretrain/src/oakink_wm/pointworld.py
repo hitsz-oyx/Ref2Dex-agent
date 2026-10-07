@@ -74,6 +74,15 @@ class PointWorldWM(nn.Module):
                     'rotation_scale', 'scene_mean', 'scene_std', 'action_mean', 'action_std'):
             self.register_buffer(key, torch.tensor(stats[key], dtype=torch.float32))
 
+    def train(self, mode=True):
+        super().train(mode)
+        # Fixed serialization orders at evaluation make action interventions
+        # comparable without unrelated random order perturbations.
+        for module in self.backbone.modules():
+            if hasattr(module, 'shuffle_orders'):
+                module.shuffle_orders = mode
+        return self
+
     def forward(self, batch, arm='action'):
         xyz, valid = batch['xyz'], batch['point_valid']
         B, N = valid.shape
@@ -97,10 +106,19 @@ class PointWorldWM(nn.Module):
         allb = torch.arange(B, device=xyz.device)[:, None].expand_as(exists)
         # PTv3 sparse convolutions require float32, as in the existing CUDA stem.
         with torch.autocast('cuda', enabled=False):
-            point = self.backbone(dict(coord=coord[exists].float(), feat=feat[exists].float(),
-                                       batch=allb[exists], grid_size=.01))
+            coords, inputs = coord[exists].float(), feat[exists].float()
+            grid = torch.floor((coords-coords.amin(0))/.01).long()
+            keys = torch.cat((allb[exists][:, None], grid), -1)
+            unique, inverse = torch.unique(keys, dim=0, return_inverse=True)
+            # SparseConv requires ONE row per (batch, voxel). Coincident scene
+            # and future-hand points otherwise yield nondeterministic kernels.
+            # Pool only for PTv3, then restore every original point's identity;
+            # scene skip features and full rigid supervision stay unpooled.
+            point = self.backbone(dict(coord=mean_groups(coords, inverse, len(unique)),
+                                       feat=mean_groups(inputs, inverse, len(unique)),
+                                       grid_coord=unique[:, 1:].int(), batch=unique[:, 0], grid_size=.01))
         packed = point.feat.new_zeros((*exists.shape, 128))
-        packed[exists] = point.feat
+        packed[exists] = point.feat[inverse]
         summary = packed.new_zeros((B, 128))
         if arm != 'history':
             hand = packed[:, N:].masked_fill(~av[..., None], -torch.inf).amax(1)

@@ -152,8 +152,8 @@ def run(args):
     atomic_json(out / 'input_manifest.json', identity)
     effective = config['microbatch'] * config['accumulation']
     indices = balanced_indices(train, config['updates'] * effective, seed + 1)
-    validation = balanced_indices(val, config['validation_samples'], seed + 2)
-    natural = np.random.default_rng(seed+3).choice(len(val), config['validation_samples'], replace=len(val)<config['validation_samples'])
+    validation = balanced_indices(val, config['validation_samples'], config['validation_seed'])
+    natural = np.random.default_rng(config['natural_validation_seed']).choice(len(val), config['validation_samples'], replace=len(val)<config['validation_samples'])
     np.save(out / 'validation_balanced.npy', validation); np.save(out / 'validation_natural.npy', natural)
     batches = iter(loader(train, indices[step*effective:], config['microbatch'], config['workers']))
     start = time.time()

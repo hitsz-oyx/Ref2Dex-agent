@@ -25,6 +25,14 @@ current object geometry and24 horizon embeddings, and use a small MLP producing
 translation and continuous6D rigid rotations. No action Transformer or dynamics
 Transformer. H excludes future hands from geometry AND summary.
 
+Before PTv3, average coincident unified features/coordinates into one row per
+(batch,1cm voxel), passing explicit grid coordinates. Broadcast decoded voxel
+features back to the original scene/action point identities. This satisfies
+SparseConv's unique-coordinate contract; original unpooled scene skip features,
+semantic action embeddings and all512 supervision points remain available.
+Disable serialization-order shuffling in ALL PTv3 pooling stages at evaluation;
+training retains released order shuffling and stochastic depth.
+
 Freeze normalization from4096 balanced TRAIN windows, seed216, GPU, before any
 training. Per-horizon per-axis means/stds for translation and analytical point
 flow; std floors1mm. Rotation uses train RMS angle with floor0.02rad. Scene/action

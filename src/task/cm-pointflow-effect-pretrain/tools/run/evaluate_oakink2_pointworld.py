@@ -21,16 +21,17 @@ def main():
     p.add_argument('--data',type=Path,required=True);p.add_argument('--checkpoint',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--samples',type=int,default=256)
     p.add_argument('--engineering-only',action='store_true')
+    p.add_argument('--split',choices=['val','test'],default='test')
     a=p.parse_args();torch.set_num_threads(2)
     state=torch.load(a.checkpoint,map_location='cpu',weights_only=False)
     if state['dataset_hash']!=trainer.digest(a.data/'processed/manifest.json'):raise ValueError('dataset mismatch')
     c=state['config'];arm=state['identity']['arm']
     model=PointWorldWM(state['identity']['stats'], c['patch_size']).cuda()
     model.load_state_dict(state['model'])
-    test=Windows(a.data,'test')
-    balanced=balanced_indices(test,a.samples,214)
-    natural=np.random.default_rng(215).choice(len(test),a.samples,replace=len(test)<a.samples)
-    result=dict(split='test',checkpoint_sha256=trainer.digest(a.checkpoint),step=state['step'],arm=arm,
+    test=Windows(a.data,a.split)
+    balanced=balanced_indices(test,a.samples,214 if a.split=='test' else 212)
+    natural=np.random.default_rng(215 if a.split=='test' else 213).choice(len(test),a.samples,replace=len(test)<a.samples)
+    result=dict(split=a.split,checkpoint_sha256=trainer.digest(a.checkpoint),step=state['step'],arm=arm,
                 engineering_only=a.engineering_only,
                 balanced=trainer.evaluate(model,test,balanced,arm,c['microbatch'],c['amp']),
                 natural=trainer.evaluate(model,test,natural,arm,c['microbatch'],c['amp']))
