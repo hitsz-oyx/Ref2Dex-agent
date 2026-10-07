@@ -181,6 +181,55 @@ grasping; audit those before production training. Stop on input drift,
 occupied GPU, deadline, nonfinite states or unphysical displacement. No new
 external authorization is needed within the existing user-authorized rebuild.
 
+The red command was `graspenv/bin/python -B tools/audit/native_reset_probe.py
+--run-dir <r4>/parent_s1 --output <owned>/reset-native-20261007-r1 --gpu0`
+(actual arguments are frozen in the run manifest). It completed35.31s with an
+assertion: all8first-step displacements1.4824..1.4842m. Same inputs/seed/GPU
+with batched roots and no immediate refresh complete14.86s, displacements
+1.4346..1.4353mm. This fixes a real physics reset defect, not merely a mock.
+
+Process-local implementation is in `src/consequence_evaluator/native_reset.py`.
+It retains int32 actor IDs, submits all changed roots once, reconstructs the
+initial hand bodies using actual native DOF/body names and URDF FK, resets old
+contact caches, and preserves unrelated env roots during native subset resets.
+It does not add a settling physics tick. FK velocities use native body COMs
+because PhysX linear velocity is measured at COM. At commitc6775e1, GPU check
+`reset-fk-20261007-r3` completes with max measured/FK position error3.16um,
+quaternion error9.9e-7, linear-velocity error8.48e-5m/s and angular error
+8.11e-4rad/s. Alternating subset resets[0,2,4,6]/[1,3,5,7]/[0,2,4,6]
+preserve unrelated caches and pass real first-step persistence. The patch is
+wired into training, qualification and continuous collection. Qualification
+now rejects a frame0first-step displacement>10cm.51CPU contract/geometry
+tests pass; these and short physics checks do not certify parent grasping.
+
+Historical reconstruction audit also finds the original s1 input still exists:
+`/home2/wyy/oyx_ws/Ref2Dex/data/processed_data/dexplore_reconstructed_v120_coordfix_v4/converted_attempt1/s1_airplane_lift/interaction_hand_inspire.pt`,
+SHA305dfd16d9bac0e93a95de5b6fa8b9e721d1edfee6946e49100fe231760a205b.
+It is[432,598], but is not equivalent to the canonical tensor used in r4.
+Original frame0object(.01824,-.08290,.91826) differs from canonical
+(-.02165,-1.18536,.91826); q also differs by up to1.316m wrist translation,
+1.779rad wrist rotation and3.142rad finger angle. Original right-contact
+labels are-1, whereas canonical has1068active entries. Matching relative
+right-wrist/object displacement alone therefore does not preserve the recipe.
+
+Old and current training both use `/home2/wyy/miniconda3/envs/graspenv/bin/python`,
+`Dexplore_Inspire` and the same installed `isaacgym/_bindings/.../gym_38.so`
+path. Current Python3.8.20/Torch2.4.1+cu121/NumPy1.24.4/rl-games1.6.5 are
+recorded, but historical binary/dependency hashes are not available. The
+separate `dexplore_v120_data` interpreter was for conversion, not PPO training.
+Current staged object-balanced env config differs from the old default.
+
+The original chain is s1 CmLite scratch e140→s3 Cm-off e160→e180→backtrack
+e260. The original s1 command is recoverable in09/22session01a0c738 line3122:
+CmLitecoef5/predicted-contact/max-gap.1,64env/h32/mb256,200epochs,seed45,
+approach2/held10/lift-progress5,contact±3/fractions.5/.25,anneal40→80,
+save10; noLRoverride (historical records sayconstant2e-5/mini-epochs6).
+CmLite checkpointSHA d5de89b895d272e85ee72ee5ffddd76e6af3a4a0734115426074ad817c55bc52
+and its old transitions remain absent from the directly checked roots. Native
+s3 corrected input also needs reconstruction. Exact recovery is not claimed.
+Commit23074d3 starts bounded `reset-original-s1-20261007-r1` onGPU0 using
+the original read-only s1 tensor, before selecting the next training recipe.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;

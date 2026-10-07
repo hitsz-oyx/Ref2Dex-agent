@@ -35,6 +35,11 @@ OakInk2新固定panel9.79→10.49mm，较step250略恢复，其他三源改善�
 固定64条frame0/45帧保持无后续drop资格检查完成（c0b10fb）：0/64合格，
 不扩展六专家，先同初始状态参考动作回放诊断；这不构成evaluator/world-model负结论。新增局部物理事件标签、独立专家progress抽样和资格检查共44项工程测试通过；
 尚未获得真实evaluator数据或oracle headroom结论。
+后续真实物理诊断确认r4存在GPU reset提交/刷新缺陷：首步物体跳1.48m。
+task-local修复后同环境降到1.43mm，重复子集reset/FK物理检查通过，51项工程测试通过；
+原r4训练和0/64不能用于判断正确实现的学习效果。已找回原s1 corrected tensor，
+与r4 canonical在q/坐标/contact上并不等价；旧新均用graspenv+Dexplore_Inspire。
+原s1数据物理预检正在GPU0执行；原CmLite权重/转移与s3 corrected输入仍需重建。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
