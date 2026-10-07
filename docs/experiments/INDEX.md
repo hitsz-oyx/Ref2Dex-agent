@@ -130,7 +130,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Source-aware physical prediction with an OakInk2 warm start | Four-source run saved/stopped at14250; moving-anchor h24 Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm. Ref3 main three-source code and s | Exclude ContactPose transport from main dynamics; restart from latest model weights with three-source train-only loss scales and a new fixed | probes/UNCLEAR |
+| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Source-aware physical prediction with an OakInk2 warm start | Four-source14250 preserved; three-source production RUNNING, first250val macro moving-anchor h24 EPE34.48→37.16mm, latest/best saved. Ref2 n | Continue the bounded three-source run to50000updates or2026-10-08 10:00; judge against its own step0 panel, keep EPIC non-training. | probes/UNCLEAR |
 
 ## HF-pointworld-unified-action-effect
 

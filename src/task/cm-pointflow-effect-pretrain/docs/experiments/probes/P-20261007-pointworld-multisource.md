@@ -23,8 +23,8 @@ User pauses the unlaunched two-rank OakInk optimizer continuation and requests
 GRAB,ContactPose,ARCTIC and OakInk2 jointly trained from the completed latest
 model weights, with a fresh optimizer/schedule. The Task subgoal is observed
 future-hand conditioned physical prediction; robot policy utility is untested.
-Result: Four-source run saved/stopped at14250; moving-anchor h24 Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm. Ref3 main three-source code and strict EPIC candidate masks prepared.
-Decision: Exclude ContactPose transport from main dynamics; restart from latest model weights with three-source train-only loss scales and a new fixed step0 panel.
+Result: Four-source14250 preserved; three-source production RUNNING, first250val macro moving-anchor h24 EPE34.48→37.16mm, latest/best saved. Ref2 native geometry and41ref3 contract tests pass.
+Decision: Continue the bounded three-source run to50000updates or2026-10-08 10:00; judge against its own step0 panel, keep EPIC non-training.
 
 No new branch or remote push. ref6 is background design input; this run does
 not add ObjectForesight/EgoDex/HOT3D to the four explicitly requested sources.
@@ -336,3 +336,14 @@ rankhash一致。生产未读取smoke final权重。首步loss.63287/grad2.55545
 新step0较旧末值大就判断切换退化；后续仅与本panel自己的step0比较。
 每250updates val并保存latest/best；deadline自动保存退出。源hash守卫运行中
 不编辑实际训练源码、配置、stats或manifest。
+
+首个250update阶段验证及保存已完成；23:24进度305/50000，RUNNING。
+新固定moving-anchor h24：Oak15.9166→16.5042mm，GRAB36.1329→
+42.7453mm，ARCTIC51.3909→52.2425mm；macro34.4801→37.1640mm。
+首轮验证退化，不能以loss或checkpoint继承断言新方案已改善；保持预设配方
+继续观察，尚不足以定平台或关闭路线。新loss尺度与旧loss不同，不横比绝对loss。
+step50..305含一次val/save实测.74171s/update，预计50000约2026-10-08
+09:39，初期估计有不确定性，10:00硬截止保持。最新weight checkpoint250，
+best为新panel的初始化step0；两者均保留。peakallocated15,128MiB/
+reserved23,392MiB，perrank64未OOM。磁盘审计outputs101G/artifacts.9G/
+tmp125G，仍在300GB产物限制内，未删除其他agent产物。

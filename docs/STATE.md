@@ -14,7 +14,9 @@ Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm；best/latest保留。
 三源Oak/GRAB/ARCTIC主监督已于23:20启动，commit9019fd4/GPU1/2每卡64，
 latest14250模型初始化/fresh优化器，50000新更新，
 用户指定截止2026-10-08 10:00。新step0同panel EPE为Oak15.92/GRAB36.13/ARCTIC51.39mm，
-不同于旧四源panel，不直接横比。ContactPose仅刚性运输辅助；EPIC仍candidate_only，
+不同于旧四源panel，不直接横比。首次250val宏34.48→37.16mm，早期退化，
+latest250/best0保留；含val/save实测.742s/update，50000初估09:39，硬截止不变。
+ContactPose仅刚性运输辅助；EPIC仍candidate_only，
 独立修订坐标约定、双手有效性、gap及OF overlap质量，未开放训练。
 旧四源结果不升级为同质监督或Cm收益结论，最终matched trained-policy utility仍OPEN。
 
