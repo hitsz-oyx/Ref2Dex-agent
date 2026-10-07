@@ -80,3 +80,15 @@ def test_unknown_native_topology_fails(mismatch,urdf):
     if mismatch=='dof':names[-1]='unknown_joint'
     else:bodies.append('unknown_body')
     with pytest.raises(ValueError):ResetKinematics(urdf,names,bodies,'cpu')
+
+
+def test_measured_com_velocity_includes_angular_transport(urdf):
+    names,bodies,q,qdot,root=fixture(urdf)
+    fk=ResetKinematics(urdf,names,bodies,'cpu')
+    origin=fk.states(q,qdot,root)
+    fk.com_offsets=torch.tensor([[.01,.02,.03]]*len(bodies))
+    measured=fk.states(q,qdot,root)
+    offset=(quaternion_matrix(origin[:,:,3:7])@fk.com_offsets[None,:,:,None]).squeeze(-1)
+    assert torch.allclose(measured[:,:,7:10],
+           origin[:,:,7:10]+torch.cross(origin[:,:,10:13],offset,dim=-1),atol=1e-6)
+    assert torch.equal(measured[:,:,:7],origin[:,:,:7])

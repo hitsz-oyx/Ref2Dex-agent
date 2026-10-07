@@ -91,7 +91,14 @@ class ResetKinematics:
                 states[child] = (pp+delta, cr, cv, cw)
                 visit(child)
         visit(self.root)
-        return torch.stack([torch.cat(states[name], dim=-1) for name in self.body_names], dim=1)
+        result = torch.stack([torch.cat(states[name], dim=-1) for name in self.body_names], dim=1)
+        if hasattr(self, 'com_offsets'):
+            # PhysX reports linear velocity at each body's COM; the link pose
+            # remains the URDF body origin. Transport the velocity accordingly.
+            offset = quat.quat_rotate(result[:,:,3:7].reshape(-1,4),
+                       self.com_offsets[None].expand(batch,-1,-1).reshape(-1,3)).view(batch,-1,3)
+            result[:,:,7:10] += torch.cross(result[:,:,10:13],offset,dim=-1)
+        return result
 
 
 def task_kinematics(task):
@@ -100,4 +107,7 @@ def task_kinematics(task):
         dofs = task.gym.get_actor_dof_names(task.envs[0], task.humanoid_handles[0])
         urdf = Path(task.cfg['env']['asset']['assetRoot'])/task.robot_type
         task._consequence_reset_fk = ResetKinematics(urdf, dofs, names, task._dof_pos.device)
+        properties = task.gym.get_actor_rigid_body_properties(task.envs[0],task.humanoid_handles[0])
+        task._consequence_reset_fk.com_offsets = task._consequence_reset_fk.torch.tensor(
+            [[p.com.x,p.com.y,p.com.z] for p in properties],device=task._dof_pos.device)
     return task._consequence_reset_fk
