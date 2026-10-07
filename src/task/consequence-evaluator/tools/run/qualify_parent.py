@@ -37,11 +37,14 @@ def main():
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--seed', type=int, default=290)
     p.add_argument('--seconds', type=int, default=900)
+    p.add_argument('--reference-action-lead', type=int,
+                   help='diagnostic reference replay; never qualifies the learned parent')
     a = p.parse_args()
     output, run = a.output.resolve(), a.run_dir.resolve()
     if (not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists()
             or not is_within(run, ROOT/'outputs/consequence-evaluator')
-            or not 1 <= a.seconds <= 900 or a.gpu < 0 or a.seed < 0):
+            or not 1 <= a.seconds <= 900 or a.gpu < 0 or a.seed < 0
+            or (a.reference_action_lead is not None and a.reference_action_lead < 0)):
         p.error('fresh task-owned output, native run, GPU and <=900s required')
     trained = json.loads((run/'run_manifest.json').read_text())
     config = json.loads((run/'config.json').read_text())
@@ -81,11 +84,18 @@ def main():
     sys.dont_write_bytecode = True
     sys.path[:0] = [str(native_root), str(ROOT), str(ROOT/'src/task/CmResidual/tools')]
     # Install NumPy aliases without Torch, then let the native player load Isaac.
-    import dexplore_ddp_rank_bootstrap
-    import evaluate as native
-    from env.tasks.base_dexplore_task import DexploreTask
-    from consequence_evaluator.qualification import qualify_transitions
-    import torch
+    initializing = dict(status='INITIALIZING',pid=os.getpid(),physical_gpu=a.gpu,
+                        checkpoint_sha256=sha(checkpoint),sources=frozen)
+    write(output/'run_manifest.json',initializing)
+    try:
+        import dexplore_ddp_rank_bootstrap
+        import evaluate as native
+        from env.tasks.base_dexplore_task import DexploreTask
+        from consequence_evaluator.qualification import qualify_transitions
+        import torch
+    except BaseException as error:
+        write(output/'run_manifest.json',dict(initializing,status='FAILED',error=repr(error)))
+        raise
     base = native.EvalPlayer
     class FullStartPlayer(base):
         def run(self):
@@ -106,12 +116,15 @@ def main():
             '--num_envs','64','--seed',str(a.seed),'--output',str(output/'native-results.json'),
             '--output_path',str(output/'native-runtime'),
             '--transition-output',str(output/'transitions.pt')]
+    if a.reference_action_lead is not None:
+        argv += ['--reference-action-lead',str(a.reference_action_lead)]
     manifest = dict(status='RUNNING', task='consequence-evaluator', run_id=output.name,
                     pid=os.getpid(), physical_gpu=a.gpu, seed=a.seed, episodes=64,
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                     training_commit=trained['git_commit'], checkpoint_sha256=sha(checkpoint),
                     sources=frozen, seconds_budget=a.seconds, output_budget_bytes=2**30,
-                    full_frame0=True, early_termination_disabled=True, command=argv)
+                    full_frame0=True, early_termination_disabled=True, command=argv,
+                    reference_action_lead=a.reference_action_lead)
     write(output/'run_manifest.json',manifest)
     started, old_argv, old_cwd = time.monotonic(), sys.argv, Path.cwd()
     old_signal = signal.getsignal(signal.SIGALRM)
@@ -126,6 +139,10 @@ def main():
         payload = torch.load(output/'transitions.pt',map_location='cpu',weights_only=False)
         episodes = json.loads((output/'native-results.json').read_text())['per_episode']
         result=qualify_transitions(payload,episodes)
+        if a.reference_action_lead is not None:
+            result.update(status='ENGINEERING_REPLAY',data_readiness_pass=False,
+                          reference_action_lead=a.reference_action_lead,
+                          limitation='reference control replay only; does not qualify the learned actor or six experts')
         if any(sha(path)!=value for path,value in frozen.items()):
             raise RuntimeError('qualification source/input drift')
         if sum(f.stat().st_size for f in output.rglob('*') if f.is_file()) > 2**30:
