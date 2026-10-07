@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-small-wm24
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: ce6fcb4
+git_commit: d1700a3
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 1
@@ -45,7 +45,7 @@ No external authorization boundary is crossed and Mission claim stays unchanged.
 Run output: `outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007/`.
 Input: completed `outputs/cm-pointflow-effect-pretrain/oakink2-wm30-k24-20261006/`.
 Actual runtime commit and source/stat/config hashes are authoritative in manifests;
-frontmatter commit is the pre-implementation checkpoint until reconciled.
+frontmatter commit is the verified implementation checkpoint.
 
 ## Evaluation / decision
 
@@ -60,7 +60,19 @@ Engineering smoke is only interface/learnability evidence, not the test screen.
 
 ## Current status
 
-Implementation underway; no new predictive or policy conclusion.
+Implementation and real-GPU engineering gate complete:50,495,881 parameters,
+7tests passed/1optional old-model GPU test skipped. Three6-update independent
+arms share identical initial weights and exact checkpoint roundtrip. Resume
+loads and standalone validation inference pass. Corrected80-update repeated
+batch loss3.01555→0.22490 and anchor EPE44.335→16.382mm show plumbing/fit only.
+Train-only4096-window normalization is frozen; old workers saved/stopped by
+explicit user request. Full three-arm training is ready for launch.
+
+During engineering, duplicate sparse coordinates caused nondeterministic CPE
+outputs; corrected with unique unified1cm voxels and inverse restoration, plus
+fixed eval serialization at every pooling stage. Failed logs and early smoke
+remain; invalid adapter outputs do not count as negative ref3 evidence.
+[Full interface record](../../POINTWORLD_INTERFACE.md).
 
 ## Limitations / future evidence
 

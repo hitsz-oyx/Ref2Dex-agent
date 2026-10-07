@@ -650,3 +650,23 @@ GPU1/2/3三组训练已运行约5h17m；H33310、H+A27796、shuffle28943/40000�
 四个验证窗口的checkpoint核对确认实际近零预测（GT最大90mm、预测最大约0.05mm），
 标签非零、A梯度存在，FP32同样近零；不足以确定优化原因或否定方法。保持当前实验
 到固定matched更新数，不改活跃配置/不追加预算；原始中间检查记录保留在Task产物。
+
+## 2026-10-07 用户指定 ref3 PointWorld-small 替换
+
+用户指定参考本地PointWorld、按Task ref3换架构并启动训练，随后明确授权停止旧训练。
+旧三组均保存checkpoint/正常退出，H40000、H+A33464、shuffle34823，不能形成
+matched最终比较；原始产物保留。当前分支不变，Mission/claim不变。
+
+新实现直接使用PointWorld PTv3-small、128维/patch128/1cm，统一场景与24步双手
+点输入、object pooling+SE(3)小head，逐时域train-only归一化和官方逐帧运动soft权重。
+实测50,495,881参数，完整监督保持每物体512点。重复栅格的SparseConv不稳定问题
+在正式运行前修复：唯一voxel聚合+inverse恢复，评估全部层固定序列化顺序。
+7合同测试通过/1旧模型可选GPU测试skip；三组6步smoke初始化相同且checkpoint精确
+保存恢复，独立val推理/恢复加载通过。80步重复运动batch loss3.016→0.225、
+末端anchor EPE44.3→16.4mm，只证明学习链路/小batch拟合，不作泛化结论。
+
+复用627条完整数据及原sequence split，GPU0/1/2三组独立40000更新、有效batch16、
+共享24h上限。运行目录outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007，
+启动前统计已冻结、接口已验收；实时进程/进度/运行提交见group_status.json。
+不启动PPO；最终trained-policy matched Cm-on/off utility仍OPEN。
+[协议及证据](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md)。

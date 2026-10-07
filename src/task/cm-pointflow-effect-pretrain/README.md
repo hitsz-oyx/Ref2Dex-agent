@@ -1,23 +1,25 @@
 # cm-pointflow-effect-pretrain
 
-Current user-directed route on branch `cm-pointflow-effect-pretrain`: OakInk2
-30Hz /24-step action-conditioned multi-object world model. Program anchor plus
+Current user-directed route on branch `cm-pointflow-effect-pretrain`: ref3
+PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
+action-conditioned multi-object world model. Program anchor plus
 0.5m current geometry-center local objects; fixed right/left11semantic points
 and masks;512canonical object surface points. Predict every local object's
 24-step SE(3) and analytical point trajectory. No RGB, KNN, Policy/Evaluator/Y.
 
-[User architecture](docs/user/架构.md), [frozen implementation contract](docs/WM30_DESIGN.md),
-[completed code and real-data interface checks](docs/WM30_INTERFACE.md),
-[matched full-corpus experiment](docs/experiments/probes/P-20261007-oakink2-wm30-k24.md).
+[User ref3](docs/user/ref/ref3.md), [PointWorld design](docs/POINTWORLD_WM24_DESIGN.md),
+[implementation and GPU checks](docs/POINTWORLD_INTERFACE.md),
+[new matched experiment](docs/experiments/probes/P-20261007-pointworld-small-wm24.md).
 
-Data acquisition and full627 preparation are running in
+Full627 acquisition and preparation completed in
 `outputs/cm-pointflow-effect-pretrain/oakink2-wm30-k24-20261006/`.
-Three independent H/H+A/H+shuffle(A) arms use the same initialization and
-40000updates, GPU0/1/2, effective batch16 and shared24h cap. H+A additionally
-receives validation/test shuffle. The launcher waits for all verified data,
-processed split integrity and free GPUs. Runtime stage/PIDs/deadline are in
-`group_status.json`; each arm writes `progress.json`, manifests and checkpoints.
-Full training has not started while the corpus gate is pending.
+Old WM30 workers saved and stopped on user request: H40000/H+A33464/shuffle34823,
+so no matched final comparison is claimed. Original checkpoints remain.
+New ref3 outputs use `outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007/`.
+Three independent H/H+A/H+shuffle(A) arms use identical initialization,
+40000updates,effective batch16 and shared24h cap. H+A additionally receives
+validation/test shuffle. Runtime stage/PIDs/deadline are in `group_status.json`;
+each arm writes `progress.json`,source/stat manifests and checkpoints.
 
 Earlier annotation-only100sequence readiness audit:
 [frozen protocol](docs/OAKINK2_DATA_PREFLIGHT.md) and
@@ -66,6 +68,6 @@ outputs/cm-pointflow-effect-pretrain/spider-data-preflight-20261006/.venv/bin/py
   --run-dir outputs/cm-pointflow-effect-pretrain/spider-data-preflight-20261006
 ```
 
-Only data acquisition and engineering checks have run. No pretraining or PPO
-training has started. Root Mission/Campaign remain authoritative; future model
-training uses available GPUs within the global four-GPU boundary.
+Earlier SPIDER work was acquisition/engineering only. OakInk2 now has its own
+training route above. Root Mission/Campaign remain authoritative; training uses
+available GPUs within the global four-GPU boundary. No PPO is started.
