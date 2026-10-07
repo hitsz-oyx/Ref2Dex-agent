@@ -25,6 +25,9 @@ MIN_REALIZED_ACTION_L2 = .01
 SOLVER_CONTRACT = 'fresh_simulator_prefix_replay'
 RESIDUAL_PLAN_SEMANTICS = 'decision_known_requested_residual_plan'
 EXECUTED_ACTION_SEMANTICS = 'native_post_noise_pre_physics_control'
+NATIVE_CONTROL_DT = 1 / 30
+NATIVE_PHYSICS_DT = 1 / 60
+NATIVE_SIM_STEPS_PER_CONTROL = 2
 
 # This is the minimum inventory captured by the existing native cold-start
 # contract in ``CmResidual/paired_evaluation.py``.  A caller may add task
@@ -205,7 +208,7 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
     if (isinstance(control_dt, (bool, np.bool_))
             or not isinstance(control_dt, (int, float, np.number))
             or not np.isfinite(control_dt)
-            or not np.isclose(control_dt, 1 / 30, atol=1e-8, rtol=0)):
+            or not np.isclose(control_dt, NATIVE_CONTROL_DT, atol=1e-8, rtol=0)):
         raise ValueError('native twin control dt must be exactly 1/30')
     dt = physics_dt
     if (isinstance(dt, (bool, np.bool_)) or not isinstance(dt, (int, float, np.number))
@@ -327,7 +330,7 @@ def _valid_replay_provenance(value):
             and not isinstance(value['control_dt'], (bool, np.bool_))
             and isinstance(value['control_dt'], (int, float, np.number))
             and np.isfinite(value['control_dt'])
-            and np.isclose(value['control_dt'], 1 / 30, atol=1e-8, rtol=0)
+            and np.isclose(value['control_dt'], NATIVE_CONTROL_DT, atol=1e-8, rtol=0)
             and np.isclose(value['physics_dt'] * value['sim_steps_per_control'],
                            value['control_dt'], atol=1e-8, rtol=0))
 
@@ -459,11 +462,14 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
     decimation = getattr(task, 'control_freq_inv', None)
     if (isinstance(decimation, (bool, np.bool_))
             or not isinstance(decimation, (int, np.integer))
-            or decimation != replay['sim_steps_per_control']):
+            or decimation != replay['sim_steps_per_control']
+            or decimation != NATIVE_SIM_STEPS_PER_CONTROL):
         raise ValueError('native simulation decimation does not match replay')
     if (not hasattr(task, 'dt') or not hasattr(task, 'sim_params')
             or not np.isclose(task.dt, replay['control_dt'], atol=1e-8, rtol=0)
-            or not np.isclose(task.sim_params.dt, replay['physics_dt'], atol=1e-8, rtol=0)):
+            or not np.isclose(task.sim_params.dt, replay['physics_dt'], atol=1e-8, rtol=0)
+            or not np.isclose(task.dt, NATIVE_CONTROL_DT, atol=1e-8, rtol=0)
+            or not np.isclose(task.sim_params.dt, NATIVE_PHYSICS_DT, atol=1e-8, rtol=0)):
         raise ValueError('native physics/control clock does not match replay')
     frame_count = task.gym.get_frame_count(task.sim)
     if (isinstance(frame_count, (bool, np.bool_))

@@ -56,6 +56,8 @@ physics frame（按 `control_freq_inv` 核对帧数）、拒绝缺失字段、�
 或超出 replay 误差门槛的记录，并冻结 task 的直接 tensor/scalar inventory、禁用随机化和
 motion sampler。通用 snapshot 要求显式 `{'is_rnn': ..., 'state': ...}` sentinel，并校验
 Python/NumPy/Torch RNG 的具体格式，并提供对应的 CPU/GPU Torch RNG restore helper。
+native DExplore adapter 进一步固定 `control_freq_inv=2`、`sim_params.dt=1/60`；PhysX
+`substeps` 必须由 caller 放入 physics provenance hash，但不计入 Gym frame count。
 adapter 尚未接入连续 native collector 的双分支执行，
 也没有真实 twin branch 产物；非RNN controller 也必须显式记录空 RNN sentinel。合同测试不能
 作为 twin coverage 或 evaluator 科学证据。
