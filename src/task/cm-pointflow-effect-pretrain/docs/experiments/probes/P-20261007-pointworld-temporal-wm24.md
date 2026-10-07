@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-temporal-wm24
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 616d413
+git_commit: 26c669c
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 3
@@ -21,7 +21,7 @@ run_id: pointworld-temporal-wm24-20261007
 
 Decision: evaluate observed-action predictive benefit after the user-requested ref4 correction.
 
-Result: engineering gates passed; corrected three-arm training is being launched.
+Result: corrected three-arm training is running with verified common initialization and finite updates.
 
 ## Decision Note and motivation
 
@@ -99,3 +99,8 @@ option permits a later decision-relevant ablation, which is deferred here.
 Single-seed observational predictive benefit is not causal robot command evidence
 or trained-policy Cm-on/off utility. Future matched multi-seed validation and
 robot adaptation remain necessary. Interrupted V1 is not a full-run control.
+
+Startup at runtime26c669c is verified in `startup_verified.json`: launcher4156044,
+workers4156111/4156112/4156113 on GPUs0/1/2. Data/config/stats/initial parameter
+hashes match and all arms perform finite updates; original monitored source
+hashes remain frozen. Isolated DDP implementation starts only after this check.
