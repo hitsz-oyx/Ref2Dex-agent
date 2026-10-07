@@ -16,6 +16,11 @@ ROOT=TASK.parents[2]
 sys.path.insert(0,str(TASK/'src'))
 from consequence_evaluator.contracts import is_within
 
+SEQUENCES = ('s3_airplane_lift','s7_airplane_lift_Retake','s9_airplane_lift',
+             's7_apple_lift','s1_mug_lift','s1_toothpaste_lift','s1_alarmclock_lift',
+             's1_cubesmall_lift','s1_cup_lift','s1_duck_lift','s1_phone_lift',
+             's1_waterbottle_lift')
+
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -23,14 +28,14 @@ def digest(path):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--sequence',default='s3_airplane_lift')
+    parser.add_argument('--sequence',choices=SEQUENCES,default='s3_airplane_lift')
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--seconds',type=int,default=900)
     a=parser.parse_args()
     output=a.output.resolve()
     if (not is_within(output,ROOT/'outputs/consequence-evaluator') or output.exists()
-            or a.sequence!='s3_airplane_lift' or not 1<=a.seconds<=900):
-        parser.error('fresh task-owned s3 output and <=900s required')
+            or not 1<=a.seconds<=900):
+        parser.error('fresh task-owned reference output and <=900s required')
     if shutil.disk_usage(ROOT).free<20*2**30:
         raise RuntimeError('disk below20GiB reserve')
     source=Path('/home2/wyy/oyx_ws/Ref2Dex')
@@ -42,9 +47,17 @@ def main():
     models=source/'data/raw_data/ARCTIC/arctic/models'
     skeletons=Path('/home2/wyy/oyx_ws/InterAct/simulation/intermimic/data/assets/smplx')
     robots=Path('/home2/wyy/oyx_ws/_external/dex_urdf_official_v120/robots/hands')
+    import numpy as np
+    subject,remainder=a.sequence.split('_',1)
+    object_name=remainder.split('_',1)[0]
+    with np.load(legacy/a.sequence/'motion.npz',allow_pickle=True) as payload:
+        subject_mesh=raw/str(payload['body'].item()['vtemp'])
+        frames=int(payload['n_frames'])
+    if not is_within(subject_mesh,raw) or not 28<=frames<=2000:
+        raise ValueError('bounded native subject mesh and reference length required')
     files=[Path(__file__),builder,reference,legacy/a.sequence/'motion.npz',legacy/a.sequence/'object.npz',
-           raw/'grab/s3/airplane_lift.npz',raw/'objects/airplane/mesh.obj',
-           raw/'tools/subject_meshes/female/s3.ply',skeletons/'smplx_grab_s3.xml',
+           raw/'grab'/subject/(remainder+'.npz'),raw/'objects'/object_name/'mesh.obj',
+           subject_mesh,skeletons/('smplx_grab_'+subject+'.xml'),
            *sorted(p for p in converter.parent.rglob('*') if p.is_file() and p.suffix in ('.py','.json')),
            *sorted(p for p in models.rglob('*') if p.is_file()),
            *sorted(p for p in robots.rglob('*') if p.is_file())]
@@ -57,7 +70,7 @@ def main():
     record=dict(status='INITIALIZING',task='consequence-evaluator',run_id=output.name,pid=os.getpid(),
                 git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 sources=frozen,seconds_budget=a.seconds,output_budget_bytes=2*2**30,
-                device='cpu',cpu_reason='GPU0 trains the parent; GPUs1/2 train PointWorld and3-7 are foreign. One bounded geometry conversion avoids competing for parent GPU memory.',
+                device='cpu',cpu_reason='Bounded reference file/geometry reconstruction, no neural model fit. GPU0 is reserved for experts/qualification and GPUs1/2 for PointWorld.',
                 sequence=a.sequence,exact_historical_bytes=False)
     record['python']=sys.executable
     record['dependencies']={name:importlib.metadata.version(name) for name in ('torch','numpy','smplx','dex-retargeting','sapien','pin')}
@@ -105,7 +118,7 @@ def main():
         import torch
         corrected=output/'corrected_converted'/a.sequence/'interaction_hand_inspire.pt'
         b,c,r=[torch.load(p,map_location='cpu',weights_only=True) for p in (baseline,corrected,reference)]
-        if any(x.shape!=(543,598) or x.dtype!=torch.float32 or not torch.isfinite(x).all() for x in (b,c,r)):
+        if any(x.shape!=(frames,598) or x.dtype!=torch.float32 or not torch.isfinite(x).all() for x in (b,c,r)):
             raise ValueError('native corrected tensor shape/dtype/finite mismatch')
         relative_error=((c[:,51:54]-c[:,198:201])-(r[:,51:54]-r[:,198:201])).abs().max().item()
         table_error=((c[:,198:201]-c[:,238:241])-(b[:,198:201]-b[:,238:241])).abs().max().item()
