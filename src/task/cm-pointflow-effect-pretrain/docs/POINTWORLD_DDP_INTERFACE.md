@@ -101,3 +101,35 @@ model/trainer/config/evaluator sources. Outputs use
 The source may also be launched through a multi-node torchrun rendezvous with
 explicit resources; current verification covers a single node. Multi-node speed,
 scaling and matched science comparisons are deferred evidence.
+
+
+## Executed checks
+
+Implementation runtime `8dc508c`. All6CPU/Gloo regression checks passed in
+13.18seconds. GPU artifacts and checkpoint assertions are in
+`outputs/cm-pointflow-effect-pretrain/pointworld-ddp-smoke-20261007/verification.json`.
+
+Two-rank NCCL action smoke stops after update1under an unchanged two-update
+config, then native resume performs update2. AdamW state counters advance1to2,
+weights change, CUDA RNG advances, and both ranks have identical parameter
+hashes after each phase. Both rank RNG states are saved and distinct. The history
+arm also completes a two-rank update, exercising its unused action parameters.
+These are real prepared train windows with BF16 forward and FP32 physical losses.
+The smoke uses global batch8to bound cost; the unmodified production config
+still uses global batch16at every supported world size.
+
+A world1import of the retained single-GPU temporal smoke checkpoint restores
+step3with exact model and optimizer tensors. This is a serialization/import
+check with no additional update, not a test of multi-rank stochastic continuation.
+The independent temporal evaluator reads the native two-rank checkpoint and
+opens only the12-sample validation panels. Cross-process metric differences
+are small but not bitwise zero: max point EPE0.0503mm, translation0.00356mm,
+rotation0.000393rad. No scientific predictive-quality conclusion is drawn.
+
+All artifacts total about2.26GiB, within the4GiB engineering cap, and completed within
+the10minute GPU-smoke budget. GPU0/1smoke processes exit afterward, leaving only
+the ongoing corrected three arms. GPU3 is untouched. Active training's source
+hashes remain identical to launch26c669c, and its workers continue finite updates.
+No full DDP run or migration was launched. Only1/2rank GPU execution is verified;
+4rank scheduling has CPU coverage, while4GPU/multi-node execution and throughput
+are future evidence. Use the separate DDP entry when explicitly transitioning.

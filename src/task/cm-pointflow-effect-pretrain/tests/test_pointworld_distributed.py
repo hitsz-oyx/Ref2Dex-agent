@@ -20,7 +20,7 @@ from oakink_wm.distributed import (rank_indices, local_accumulation, sync_contex
 
 
 @pytest.mark.parametrize('world', [1, 2, 4])
-def test_rank_schedule_preserves_reference_pairs_donors_and_resume(world):
+def test_rank_schedule_preserves_reference_pairs_and_resume(world):
     draw = np.arange(5*16)
     shards = [rank_indices(draw, 2, 8, rank, world).reshape(5, 8//world, 2) for rank in range(world)]
     reference = draw.reshape(5, 8, 2)
@@ -30,7 +30,6 @@ def test_rank_schedule_preserves_reference_pairs_donors_and_resume(world):
             for micro in range(8//world):
                 global_micro = micro*world+rank
                 reconstructed[global_micro] = shards[rank][step, micro]
-                assert 217+step*8+global_micro == 217+step*8+micro*world+rank
         np.testing.assert_array_equal(reconstructed, reference[step])
     for rank in range(world):
         np.testing.assert_array_equal(rank_indices(draw, 2, 8, rank, world, 3), shards[rank][3:].reshape(-1))
