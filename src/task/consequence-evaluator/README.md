@@ -207,3 +207,17 @@ fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合�
 不能再用全局env序号分阶段并假设每对象都有clean。单元和fake-driver
 测试只验证工程合同，不代替真实collect和标签审计。
 三源PointWorld同panel验证会波动，完整状态以混合预训练卡为准。
+
+### 重建后生成新的固定路由
+
+六个实际角色训练并完成各自qualification后，用
+`tools/run/prepare_expert_route.py --run airplane_base=<training-run> ...
+--run cup=<training-run> --output outputs/consequence-evaluator/<run>/route.json`。
+必须提供airplane_base/mixed12/train5/balanced5/duck/cup全部六角色；
+脚本核对owned随机自训练祖先、每角色训练身份、六个不同checkpoint、
+完整frame0资格及原始trace哈希，默认airplane必须过8/64门槛。
+其余弱角色的实际资格数显式保留，不能因路由就绪宣称六专家都可靠。
+固定object route沿用既有映射，不从新的测试结果重选。
+collector再次核对/冻结这些路由证据，真实progress和preference仍须
+独立label检查；路由本身training_allowed=false。此工具不训练模型，
+不会用一个actor替代六个角色，也不恢复旧Validation身份。

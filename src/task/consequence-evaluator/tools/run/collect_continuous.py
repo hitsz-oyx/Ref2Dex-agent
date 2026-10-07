@@ -90,6 +90,11 @@ def main():
         raise ValueError('fixed six-expert route required')
     frozen = {str(a.route_config.resolve()): digest(a.route_config),
               str(Path(__file__).resolve()): digest(__file__)}
+    for path, expected in config.get('sources', {}).items():
+        if (not is_within(Path(path).resolve(), ROOT/'outputs/consequence-evaluator')
+                or digest(path) != expected):
+            raise ValueError('generated route evidence identity mismatch: '+str(path))
+        frozen[path] = expected
     for spec in config['experts'].values():
         path = (a.asset_root/spec['checkpoint']).resolve()
         if not path.is_file():

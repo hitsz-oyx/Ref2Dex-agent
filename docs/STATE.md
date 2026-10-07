@@ -3,11 +3,11 @@
 ## 2026-10-07 ref2/ref3 最新状态
 
 新随机自训练s1 parent200资格50/64；s3 bounded220→260固定资格36/64，
-恢复Probe PROMISING。十条剩余reference全部恢复；六角色airplane_base已过资格，duck280已训练但资格0/64（5条保持后掉落），其余四角色待训练，
+恢复Probe PROMISING。十条剩余reference全部恢复；六角色airplane_base已过资格，duck340固定资格8/64，保留旧duck280的0/64记录；其余四角色待训练，
 尚无真实evaluator数据/fit。GPU0已自然空闲，duck首轮smoke因缺mesh在PPO前失败；
 owned资产补齐；duck真实1024帧geometry smoke通过，533forceproxy帧均有<=1cm gap。
 短20epoch不足以复现历史80epoch specialist预算；GPU0重新空闲后，
-1386d51从合格s3260启动新duck260→340（最多900sfit），端点资格已排队。ref2改用执行前已知24×18
+1386d51从合格s3260完成新duck260→340，端点资格8/64；下一步cup80epoch独立迁移。ref2改用执行前已知24×18
 请求残差计划，三臂E0/object/EI，同容量、几何接触约束、同expert/motion/current
 物体手状态配对；83工程测试通过（含motion软链、阶段覆盖与native driver回归）；GPU1真实8env×128步几何smoke通过，712forceproxy帧均有≤1cm采样gap，
 但尚未验证其他物体/桌面反例或完整真实数据，不升级为精确contact GT。

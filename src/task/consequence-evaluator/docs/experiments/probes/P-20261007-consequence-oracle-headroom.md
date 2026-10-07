@@ -219,3 +219,13 @@ old targets: retargeting a native motion/assets link is detected even if
 its previous file still exists. The real linked-input regression checks
 that drift, missing/broken tensors and duplicate aliases.83Task tests pass,
 with14collector tests; real six-expert collection remains pending.
+
+New route artifact entry prepare_expert_route.py requires six actual distinct
+owned trained roles and their completed64frame0 qualification traces. It
+freezes ancestry/qualification/rawtrace hashes and preserves failed-role
+readiness explicitly. Default airplane readiness remains required; failures
+may be observational suboptimal examples, not reliable progress experts.
+Collector rechecks/fixes these generated provenance dependencies, while
+labeling still refuses missing actual clean progress or per-split pairs.
+Six new route-contract regressions pass; this does not yet produce a real
+six-expert route, as four further role checkpoints remain missing.

@@ -522,3 +522,22 @@ queuePID1496208/fitworker1497950, qualifier queue1497869. Discarded
 2epochsmoke passes and full64env fit is live at274; this is a verified
 wait on the actual owned process, not a completed specialist. The endpoint
 qualification will execute only after successful terminal training.
+
+## Duck fixed endpoint340 passes; next cup recovery decision
+
+80epoch duck260→340 completes489.068s at1386d51;
+fixed64frame0seed290 qualification completes48.919s:
+8/64passes the predeclared8/64operational gate. PROMISING for this role's
+data substrate, still weak and not a robust success/oldValidation claim.
+New endpointSHA256:22ae9f6fa15f61ba0793b866b7a53cf44caca1b2761d86d6f80e6fe8f5086eee. Preserve the20epoch
+0/64result and distinguish the longer, fresh-source training run.
+
+Next Decision: cup uses separately recovered934frame canonical input and
+the original80epoch specialist budget from qualifieds3260. SameLR1e-5,
+reward2/10/5, seed289, anneal40→80; fresh cup260→340, discarded8env2epoch
+smoke→64envfit→fixed64frame0seed290qualification. OneGPU0, <=300ssmoke/
+900sfit/5GiB plus<=900s/1GiBqual; at most3owned GPUs including PointWorld.
+Stop on conflicts/drift/nonfinite/caps. Positive freezes thiscup role;
+negative inspect geometry/control, without automatically appending epochs.
+This asks whether another genuine corrected-object specialist can restore
+clean/phase coverage before constructing the full six-role dataset.
