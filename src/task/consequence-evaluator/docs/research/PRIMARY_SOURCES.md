@@ -1,0 +1,54 @@
+# Consequence evaluator: primary-source reading and first probe
+
+Read on 2026-10-07 for `src/task/consequence-evaluator/docs/user/ref/ref1.md`. This note distinguishes paper facts from proposed adaptations. It does not authorize a new scientific claim or GPU allocation.
+
+## What the original papers actually establish
+
+### Robometer
+
+The model takes an instruction and one or two videos. Causal progress tokens read only current/past frames of the first video; a preference token reads both videos. Its preference head is a **joint pair classifier trained with BCE**, not an independent per-trajectory scalar difference. Expert progress is interpolated across the successful episode, projected to 10 bins, and trained with soft-target cross entropy. Success is a separate head. Pairs include same-task differing expertise, instruction mismatch, and rewound expert video; both trajectories are subsampled to the same length to avoid length shortcuts. Appendix B.2.b explicitly masks dense progress when the first trajectory is failed/suboptimal. Appendix B.2.d compares joint BCE against Bradley–Terry; the paper favors joint comparison. Retrieval aggregates comparisons into a win matrix. These are episode/subtrajectory comparisons, not evidence that an episode outcome may label every arbitrary local action window. [Original paper, §§III.B–D and Appendix B.2](https://robometer.github.io/assets/robometer.pdf)
+
+The available implementation was inspected at commit `352d160389daa964788de1ec933d1925f3a6de4f`. `_compute_preference_loss` actually applies `binary_cross_entropy_with_logits` to the preference head despite its misleading Bradley–Terry docstring. Progress supervision uses `target_progress_*_mask`. Success uses its own validity mask and may supervise all frames of failed/suboptimal trajectories as zero; the progress mask is not applied to it. Thus **masking progress does not imply masking success**. [Trainer source, lines 1849–1930 and 2439–2499](https://github.com/robometer/robometer/blob/352d160389daa964788de1ec933d1925f3a6de4f/robometer/trainers/rbm_heads_trainer.py)
+
+### DenseReward
+
+Its five phases are reach, grasp, lift, move, place. Boundaries use simulator state. Targeted failure generation changes collision planning, offsets grasp targets, rotates motions during transport, adds Gaussian joint jitter, or replans after collision. Reward curves are generated for specific modes: success increases; miss/collision/fall decrease after failure; recovery can decrease then increase. Its failure-inclusive dense reward recipe is therefore different from Robometer's preference-first treatment of unlabeled failures. Our approach/contact/grasp/lift/hold stages and smooth 24-step residuals are task-specific adaptations of phase-targeted collection, not literal copies of DenseReward's labels or perturbations. [Original paper, §§3.1–3.3](https://arxiv.org/html/2607.13033v1)
+
+The officially linked repository currently has zero files (`size=0` in its GitHub API metadata), so there is no released implementation to audit or reuse at this observation time. [Official code repository](https://github.com/dense-reward/dense-reward)
+
+### Motus2
+
+The factorization is policy `p(A|c)`, simulator `p(Z|c,A)`, evaluator `p(Y|c,A,Z)`; ranking uses the evaluator's conditional expected categorical value. Its action-first mask prevents action tokens reading current future-video/value tokens; the value query reads action and future. Evaluation training uses clean recorded action and video with only value loss active. Failed/suboptimal trajectories are valid dynamics/value evidence but not action imitation targets. Its **actual value labels** are relative progress `+Δt/(T−t)` for successful segments and `−Δt/(T−t)` for failed/irrelevant segments. This is not Robometer's dual progress/preference objective. Planning proposes, simulates, scores, executes, and replans. The supplied paper does not establish our exact K=24/Kexec=8 or the proposed matched E0 versus Eoracle headroom test; those are our experiment choices. [Original paper, §§3.1–3.3](https://arxiv.org/html/2608.30237v2)
+
+Its official code repository currently contains only README.md at `284be703eba1d70f3a1ea6874099f7150e9b7d7a`; the paper's training/masking implementation is not publicly inspectable there. [Official repository at inspected revision](https://github.com/shengshu-ai/Motus2/tree/284be703eba1d70f3a1ea6874099f7150e9b7d7a)
+
+## Implementation implications for ref1
+
+These are our deductions and proposed safeguards, not additional paper claims:
+
+1. Freeze **K=24** and **Kexec=8**, and inherit H from the current policy contract. Native human motion datasets can support world-model pretraining, but without executed robot actions and trustworthy task-quality labels they do not directly supervise this evaluator.
+2. Each sample must retain episode ID, task/object/seed group, stage, t, 24 executed actions, and 24 post-action physical states. Define alignment explicitly: action at t changes state t into state t+1. Do not pad short terminal windows into seemingly complete 24-step physics; exclude them or use explicit validity masks shared by both arms.
+3. Build Z using **exactly the fields that the intended PointWorld output can supply**. If the output is object point-flow, derive oracle point-flow from the same canonical points and current reference pose. Reward, final outcome, perturbation type, policy quality, episode length, time-to-success, and future event flags belong in labels/metadata, never evaluator inputs. Future contact flags are also excluded unless the WM is designed to predict them.
+4. Successful reliable demonstrations can anchor progress at original episode indices relative to a verified completion cutoff. **Do not restart progress from 0 to 1 inside every 24-step slice.** Perturbed/recovery/suboptimal episodes should retain masked dense progress unless a trustworthy explicit annotation exists. A success head, if included, predicts actual completion-at-frame, not eventual episode success pasted onto every frame.
+5. Episode-level `success > failure` is not automatically a valid **local 24-step** preference. A doomed episode can have a good grasp before a later drop, and a successful recovery episode can include a bad chunk. Use same-task, comparable-stage windows whose observed local event/order is defensible; leave ambiguous comparisons unlabeled. Collect stage-targeted events when old data lack them. Quality indicators used to derive labels must not be added to Z as flags.
+6. Ref1 requests an independent scalar s per branch. The cheapest implementation is a **Robometer-inspired adaptation**: masked expert progress CE plus `BCEWithLogits(s_chosen − s_rejected, 1)`. Declare the scalar Bradley–Terry adaptation explicitly. Literal Robometer requires a two-branch comparison head and, for candidate ordering, pairwise aggregation; that is an alternative if scalar scoring fails, not a prerequisite to start.
+7. E0 and Eoracle must share architecture, parameter count, initialization, batches, labels, optimizer budget, and split. Keep an identical future slot/module; replace its content with a fixed zero/null representation for E0 and real Z for Eoracle. Inputs may differ only in physical future content; both keep the same action and current/past history.
+8. Split **episodes/seed groups before extracting windows or pairing**. No overlapping windows from the same episode across train/validation/test; no pair spanning splits. Evaluate preference accuracy and ordering per task/stage and quality type. Future-shuffle controls must draw Z from different episodes within a matching task/stage stratum, not nearby overlapping windows.
+9. Recorded future actions from a **reactive** policy depend on future observations. Therefore E0 already contains information from future behavior. The first experiment tests additional predictive information in Z conditional on this recorded A. Cross-episode phase-matched ranking is not same-state counterfactual action selection. Both limitations must appear on the card; no fork is required for this first association probe.
+10. Strong oracle gains show useful information under the selected labels and representation, not that a deployable WM already captures it. Weak gains mean no measured headroom **in this experiment**; they cannot alone refute world models in general. A null result first calls for checking labels, future coverage, matching, and model fit.
+
+## Smallest useful E0 / Eoracle probe
+
+**Question:** on held-out, phase-matched local trajectory comparisons, does real 24-step object evolution improve ranking beyond current/history and the executed action sequence?
+
+**Decision:** PROMISING headroom justifies adapting PointWorld to these robot rollouts and later measuring EWM. UNCLEAR headroom triggers a targeted label/representation/fit check; clearly absent headroom after that check stops this particular integration before online proposal engineering.
+
+**Cheapest sequence:** audit existing oracle rollout schemas and provenance first; reuse complete continuous recordings with executed controls and object poses. Reuse collector/environment/policy loading code from `cm-interaction-oracle`, but do not silently reuse forked branch labels or old Y. If necessary, collect only missing phase/failure combinations as bounded continuous episodes, applying one smooth residual chunk and allowing experts to recover afterward.
+
+Use one paired seed, one small shared evaluator, and a bounded single-GPU fit once resources are explicitly available. A few hundred to roughly 1,000 updates is an initial budget, not a guaranteed convergence claim. Train the two arms on exactly the same pair list and held-out groups. Check that the tiny training subset can be fit, progress masking works, and the Z slot never receives label metadata. Report primary held-out pair accuracy and per-stage breakdown, plus calibration/progress only on genuinely labeled frames. Add shuffled-Z evaluation to check whether oracle benefit tracks correctly aligned consequences. GPU utilization, peak memory, measured update time, and completion ETA should be recorded after warm-up.
+
+An offline Probe result supports only PROMISING / UNPROMISING / UNCLEAR. Online same-state action selection, recovery of oracle gains by EWM, and multi-seed matched validation remain later evidence.
+
+## Source/reproducibility observations
+
+Primary sources only were used. Robometer's PDF was downloaded and text-extracted because the browsing tool rejects its 15 MB PDF; the decisive masking/comparison claims were checked in its appendix and pinned public code. Temporary input copies are under project `tmp/consequence-paper-inputs-20261007/`. GitHub repository availability was queried directly, not inferred from project-page release promises. No code, ref document, git state, process, or GPU job was changed by this research.
