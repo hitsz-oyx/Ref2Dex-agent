@@ -103,6 +103,21 @@ train/val/test=0/0/2；独立 proxy/gap 几何审计通过。按 Decision Note �
 再堆 generic waves 或把 hand RMS 放宽后重判。North-star matched Cm-on/off
 policy utility 仍 OPEN。
 
+当前实现审查把这项 gate 固化为规则
+`geometry-corroborated-H-matched-state-residual-events-v3`：偏好端点必须同时
+匹配历史 `H`、当前物体位姿和11点手状态，历史相对RMS上限为0.25；train/val/test
+还必须分别拥有至少8/4/4个不同的无序 episode pair。collector 只把该要求冻结进
+source manifest；labeler、window 准备、`Windows` 和 `train_matched.py` 均拒绝不满足
+的生产 fit 数据。上面的历史
+2/1/5 产物因此只保留为 observational audit，不能作为 evaluator fit 输入；当前
+route 仍是 `all_experts_operationally_qualified=false`、`training_allowed=false`。
+
+新增的 `consequence_evaluator.twin` 是严格的 Isaac-free v1 合同测试：要求完整
+native task/controller buffer、Python/NumPy/Torch RNG、fresh simulator prefix
+replay provenance、刚体物体位姿和双分支第0帧锚点。它尚未连接 native collector，
+也没有真实 twin branch 产物；这部分仍是下一项实现 blocker，不能把合同测试升级为
+科学证据。Task tests 在本轮代码审查后继续作为工程回归，不改变 North-star claim。
+
 更新：2026-10-06。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 

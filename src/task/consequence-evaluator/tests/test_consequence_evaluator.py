@@ -13,7 +13,9 @@ sys.path.insert(0, str(TASK / 'src'))
 sys.path.insert(0, str(TASK / 'tools/run'))
 from consequence_evaluator.data import K, Windows, object_effect, sha
 from consequence_evaluator.model import Evaluator, matched_loss, progress_loss
-from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS,FUTURE_DIM
+from consequence_evaluator.contracts import (EPISODE_SCHEMA, ACTION_SEMANTICS, FUTURE_DIM,
+                                             HISTORY_MATCH_MAX_RELATIVE_RMS)
+from consequence_evaluator.supervision import CONTACT_SEMANTICS, RULE
 from prepare_windows import prepare
 
 
@@ -46,11 +48,17 @@ def fixture(root, mutation=None):
                           annotation='synthetic-local-event-engineering-only'))
     manifest = dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS, rollout_kind='continuous',
                     status='COMPLETED',
-                    training_allowed=True, fps=30, units='m', history_contract='synthetic current observation only',
+                    training_allowed=True, pair_coverage_required=False, fps=30, units='m', history_contract='synthetic current observation only',
+                    contact_semantics=CONTACT_SEMANTICS, label_rule=RULE,
                     episodes=records)
     (root / 'manifest.json').write_text(json.dumps(manifest))
     labels = root / 'preferences.json'
-    labels.write_text(json.dumps(dict(scope='local_window', label_provenance='engineering fixture only', pairs=pairs)))
+    labels.write_text(json.dumps(dict(scope='local_window', label_provenance=dict(
+        rule=RULE, contact_semantics=CONTACT_SEMANTICS,
+        rule_sha256=sha(TASK/'src/consequence_evaluator/supervision.py'),
+        contracts_sha256=sha(TASK/'src/consequence_evaluator/contracts.py'),
+        history_match_relative_rms=HISTORY_MATCH_MAX_RELATIVE_RMS,
+        minimum_pair_coverage={'train': 8, 'val': 4, 'test': 4}), pairs=pairs)))
     return labels
 
 
@@ -115,6 +123,29 @@ def test_changed_data_rejected_even_when_shapes_remain_valid(tmp_path):
         stream.write(b'input drift')
     with pytest.raises(ValueError, match='identity'):
         Windows(out)
+
+
+def test_reverse_preference_direction_is_rejected(tmp_path):
+    source = tmp_path / 'source'
+    labels = fixture(source)
+    document = json.loads(labels.read_text())
+    original = document['pairs'][0]
+    document['pairs'].append(dict(
+        chosen=original['rejected'], rejected=original['chosen'],
+        annotation='synthetic contradictory direction'))
+    labels.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match='contradictory'):
+        prepare(source, labels, tmp_path / 'out')
+
+
+def test_fractional_preference_tick_is_rejected_without_coercion(tmp_path):
+    source = tmp_path / 'source'
+    labels = fixture(source)
+    document = json.loads(labels.read_text())
+    document['pairs'][0]['chosen']['tick'] = 0.5
+    labels.write_text(json.dumps(document))
+    with pytest.raises(ValueError, match='tick'):
+        prepare(source, labels, tmp_path / 'out')
 
 
 def test_normalization_uses_training_inputs_only(tmp_path):

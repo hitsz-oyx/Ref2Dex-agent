@@ -18,7 +18,7 @@ import torch
 
 from consequence_evaluator.data import Windows, sha
 from consequence_evaluator.model import Evaluator, matched_loss
-from consequence_evaluator.contracts import is_within,ARMS,future_mode
+from consequence_evaluator.contracts import is_within, ARMS, future_mode, MIN_PREFERENCE_PAIRS
 
 
 def write(path, data):
@@ -35,8 +35,18 @@ def normalized(data, ids, device, statistics):
 
 
 def require_supervision(data):
-    if not len(data.pair_ids['train']) or not len(data.pair_ids['val']):
-        raise ValueError('train and development preference pairs required')
+    if data.manifest.get('pair_coverage_required') is not True:
+        raise ValueError('fit requires a production pair-coverage manifest; engineering audit data are not trainable')
+    groups = {split: set() for split in ('train', 'val', 'test')}
+    for split in groups:
+        for pair_id in data.pair_ids[split]:
+            left, right = data.arrays['pairs'][pair_id]
+            groups[split].add(tuple(sorted((str(data.arrays['episode'][left]),
+                                             str(data.arrays['episode'][right])))))
+    counts = {split: len(values) for split, values in groups.items()}
+    if any(counts[split] < minimum for split, minimum in MIN_PREFERENCE_PAIRS.items()):
+        raise ValueError('minimum local preference coverage required: '
+                         + json.dumps({'observed': counts, 'minimum': MIN_PREFERENCE_PAIRS}, sort_keys=True))
     expert_ids = np.flatnonzero((data.arrays['split'] == 'train') & data.arrays['progress_mask'].any(axis=1))
     if not len(expert_ids):
         raise ValueError('reliable train expert progress anchors required for the joint objective')

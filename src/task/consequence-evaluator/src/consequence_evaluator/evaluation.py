@@ -23,8 +23,10 @@ def future_donors(data, ids, seed):
                                   & (a['expert']==a['expert'][index]) & (a['motion']==a['motion'][index])
                                   & (a['episode'] != a['episode'][index]))
         eligible=np.asarray([other for other in eligible if states_match(
-            dict(object_pose=a['current_object'][index],hand_keypoints=a['current_hand'][index]),
-            dict(object_pose=a['current_object'][other],hand_keypoints=a['current_hand'][other]))],dtype='int64')
+            dict(history=a['history'][index], object_pose=a['current_object'][index],
+                 hand_keypoints=a['current_hand'][index]),
+            dict(history=a['history'][other], object_pose=a['current_object'][other],
+                 hand_keypoints=a['current_hand'][other]), require_history=True)],dtype='int64')
         if not len(eligible):
             raise ValueError('no cross-episode future donor in the test stratum')
         donors.append(rng.choice(eligible))

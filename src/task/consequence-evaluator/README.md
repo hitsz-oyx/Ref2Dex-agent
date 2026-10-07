@@ -38,6 +38,21 @@ Progress 用10-bin soft CE，只监督可靠 `expert_success` 的绝对 episode 
 模糊的miss/recovery比较不标。可靠clean轨迹的45帧保持且之后不掉落用于绝对progress锚点；
 perturbed/失败/次优精确progress均mask。三臂另抽相同的train专家窗口，保证progress锚点不依赖偏好配对覆盖。
 
+### 当前 fit gate
+
+局部偏好必须同时匹配历史 `H`、当前物体位姿和11点手状态。`H` 的相对RMS上限为
+25%，物体/手的几何阈值仍按上面的固定合同执行。每个 split 还必须有至少
+8/4/4 个不同的无序 episode pair（train/val/test）；同一对 episode 的重复窗口不能
+充数。collector 只把该要求写入来源 manifest；labeler、prepare、`Windows` 和 train
+会实际核对配对数量以及当前规则、合同和来源 hash。六个专家全部通过固定资格并且
+route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 observational-only。
+
+同一 current state 的双分支由 `src/consequence_evaluator/twin.py` 定义
+`ref2dex.consequence-evaluator.twin.v1` 合同：必须保存完整 native task/controller
+buffer、Python/NumPy/Torch RNG、fresh simulator prefix replay provenance 和双分支第0帧
+锚点。当前模块是 Isaac-free contract-only CPU 校验，尚未接入 native collector，也没有
+真实 twin branch 产物；合同测试不能作为 twin coverage 或 evaluator 科学证据。
+
 ## 连续 episode 输入
 
 源目录的 `manifest.json`：
@@ -219,7 +234,8 @@ fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合�
 其余弱角色的实际资格数显式保留，不能因路由就绪宣称六专家都可靠。
 固定object route沿用既有映射，不从新的测试结果重选。
 collector再次核对/冻结这些路由证据，真实progress和preference仍须
-独立label检查；路由本身training_allowed=false。此工具不训练模型，
+独立label检查；当前 route 实例的 `training_allowed=false`，而路由工具会按六个角色的
+资格结果动态设置该字段。此工具不训练模型，
 不会用一个actor替代六个角色，也不恢复旧Validation身份。
 
 2026-10-08最新：duck260→340的80epoch迁移完成489.07s，固定64条

@@ -11,6 +11,10 @@ HAND_LINKS = ('hand_base_link','thumb_proximal_base','thumb_tip',
               'ring_proximal','ring_tip','pinky_proximal','pinky_tip')
 FUTURE_DIM = 12 + 3 * len(HAND_LINKS)
 ARMS = ('baseline','oracle_object','oracle_interaction')
+# Probe gates: avoid fitting three arms from one or two repeatedly sampled pairs.
+# These are engineering data-sufficiency thresholds, not statistical power claims.
+MIN_PREFERENCE_PAIRS = {'train': 8, 'val': 4, 'test': 4}
+HISTORY_MATCH_MAX_RELATIVE_RMS = .25
 
 
 def future_mode(arm):

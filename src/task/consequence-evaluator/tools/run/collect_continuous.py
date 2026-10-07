@@ -20,7 +20,8 @@ sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
 from consequence_evaluator.collection import Episode, Perturbations, PhaseAssignments, PHASES
-from consequence_evaluator.contracts import is_within, EPISODE_SCHEMA, ACTION_SEMANTICS, HAND_LINKS
+from consequence_evaluator.contracts import (is_within, EPISODE_SCHEMA, ACTION_SEMANTICS,
+                                             HAND_LINKS, MIN_PREFERENCE_PAIRS)
 from consequence_evaluator.provenance import self_trained_ancestry
 
 
@@ -88,6 +89,9 @@ def main():
     config = json.loads(a.route_config.read_text())
     if len(config['experts']) != 6 or len({s['sha256'] for s in config['experts'].values()})!=6:
         raise ValueError('fixed six-expert route required')
+    if (config.get('training_allowed') is not True
+            or config.get('all_experts_operationally_qualified') is not True):
+        raise ValueError('expert route is observational-only; all six experts must be operationally qualified before collection')
     frozen = {str(a.route_config.resolve()): digest(a.route_config),
               str(Path(__file__).resolve()): digest(__file__)}
     for path, expected in config.get('sources', {}).items():
@@ -173,10 +177,14 @@ def main():
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
                     work_version='consequence-evaluator-ref2', run_id=output.name, pid=os.getpid(),
                     task='consequence-evaluator', rollout_kind='continuous', training_allowed=True,
+                    route_sha256=digest(a.route_config),
+                    all_experts_operationally_qualified=True,
                     fps=30, units='m', horizon=24, execution_horizon=8, seed=a.seed, split=a.split,
                     physical_gpu=a.gpu, sources=frozen, seconds_budget=a.seconds, waves=a.waves,
                     max_steps=a.max_steps,action_semantics=ACTION_SEMANTICS,
                     hand_keypoint_links=list(HAND_LINKS),
+                    minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
+                    pair_coverage_required=True,
                     num_envs=a.num_envs, amplitude=a.amplitude, episodes=[],
                     route_mode='observation' if router.MODEL_PATH else 'fixed_object_route',
                     progress_labels='unknown and masked pending reliable expert annotation',

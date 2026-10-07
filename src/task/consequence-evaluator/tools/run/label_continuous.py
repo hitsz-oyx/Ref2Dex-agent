@@ -12,10 +12,12 @@ sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
 
-from consequence_evaluator.contracts import K, K_EXEC, is_within
+from consequence_evaluator.contracts import (K, K_EXEC, is_within, MIN_PREFERENCE_PAIRS,
+                                             HISTORY_MATCH_MAX_RELATIVE_RMS)
 from consequence_evaluator.data import sha, validate_rigid
 from consequence_evaluator.supervision import (
-    CONTACT_SEMANTICS, RULE, expert_anchor, local_event, local_preferences, physical_trace,
+    CONTACT_SEMANTICS, RULE, expert_anchor, local_event, local_preferences, pair_coverage_ready,
+    physical_trace,
 )
 
 
@@ -33,14 +35,32 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
     if not 1 <= seconds <= 600:
         raise ValueError('bounded label preparation: <=600 seconds')
     started = time.monotonic()
-    expected_experts = json.loads(Path(route_config).read_text())['experts']
+    route = json.loads(Path(route_config).read_text())
+    if (route.get('training_allowed') is not True
+            or route.get('all_experts_operationally_qualified') is not True):
+        raise ValueError('expert route is observational-only; labeling for evaluator training is blocked')
+    expected_experts = route['experts']
+    pair_coverage_required = route.get('pair_coverage_required', True)
+    route_digest = sha(Path(route_config))
+    rule_digest = sha(TASK / 'src/consequence_evaluator/supervision.py')
+    contracts_digest = sha(TASK / 'src/consequence_evaluator/contracts.py')
+    producer_digest = sha(Path(__file__))
+    expected_annotation_provenance = dict(
+        rule=RULE, contact_semantics=CONTACT_SEMANTICS,
+        rule_sha256=rule_digest, contracts_sha256=contracts_digest,
+        history_match_relative_rms=HISTORY_MATCH_MAX_RELATIVE_RMS,
+        minimum_pair_coverage=MIN_PREFERENCE_PAIRS, route_sha256=route_digest,
+        all_experts_operationally_qualified=True)
     if len(expected_experts) != 6 or len({v['sha256'] for v in expected_experts.values()})!=6:
         raise ValueError('fixed six self-trained experts required')
     expected_hashes = {item['sha256'] for item in expected_experts.values()}
     output.mkdir(parents=True)
     report = dict(status='RUNNING', rule=RULE, contact_semantics=CONTACT_SEMANTICS,
-                  rule_sha256=sha(TASK / 'src/consequence_evaluator/supervision.py'),
-                  producer_sha256=sha(Path(__file__)), source_manifests=[], episode_anchors={},
+                  rule_sha256=rule_digest,
+                  contracts_sha256=contracts_digest,
+                  producer_sha256=producer_digest,
+                  route_sha256=route_digest, route_training_allowed=True,
+                  source_manifests=[], episode_anchors={},
                   event_counts={}, abstention_counts={}, sources_cpu_reason='file/label statistics only; no model computation')
     from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS
     manifest = dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS, status='LABELING',
@@ -53,6 +73,8 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
             m = json.loads(source_manifest.read_text())
             if (m.get('schema') != manifest['schema'] or m.get('status') != 'COMPLETED'
                     or m.get('rollout_kind') != 'continuous' or m.get('training_allowed') is not True
+                    or m.get('route_sha256') != route_digest
+                    or m.get('all_experts_operationally_qualified') is not True
                     or m.get('action_semantics')!=ACTION_SEMANTICS
                     or m.get('fps') != 30 or m.get('units') != 'm' or not m.get('history_contract')
                     or m.get('contact_semantics') != CONTACT_SEMANTICS
@@ -125,7 +147,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                     phase = str(arrays['phase'][tick])
                     event = local_event(trace, phase, tick)
                     window = dict(episode=episode, tick=tick, split=split, task=record['task'], phase=phase,
-                                  expert=record['expert'],motion=record['motion'],
+                                  expert=record['expert'],motion=record['motion'], history=arrays['history'][tick],
                                   object_pose=arrays['object_pose'][tick],hand_keypoints=arrays['hand_keypoints'][tick],
                                   initial_relative_height=float(trace['height'][tick]), event=event)
                     windows.append(window)
@@ -149,7 +171,10 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
         pairs = local_preferences(windows)
         if extra_preferences:
             extra = json.loads(Path(extra_preferences).read_text())
-            if extra.get('scope') != 'local_window' or not extra.get('label_provenance'):
+            extra_provenance = extra.get('label_provenance') or {}
+            if (extra.get('scope') != 'local_window'
+                    or any(extra_provenance.get(key) != value
+                           for key, value in expected_annotation_provenance.items())):
                 raise ValueError('additional local preference provenance required')
             report['extra_preferences'] = dict(path=str(Path(extra_preferences).resolve()),
                                                sha256=sha(extra_preferences), provenance=extra['label_provenance'])
@@ -168,6 +193,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                 pairs.append(pair)
         lookup = {episode: record for episode, record in records.items()}
         split_pairs = dict(train=0, val=0, test=0)
+        pair_groups = {split: set() for split in ('train', 'val', 'test')}
         seen = set()
         unique = []
         for pair in pairs:
@@ -184,24 +210,34 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                 with np.load(output/record['path'],allow_pickle=False) as packet:
                     tick=endpoint['tick']
                     if not packet['plan_known'][tick]:raise ValueError('unknown residual schedule in local preference')
-                    current.append(dict(object_pose=packet['object_pose'][tick],hand_keypoints=packet['hand_keypoints'][tick]))
-            if not states_match(*current):raise ValueError('local preference current physical states differ')
+                    current.append(dict(history=packet['history'][tick],
+                                        object_pose=packet['object_pose'][tick],
+                                        hand_keypoints=packet['hand_keypoints'][tick]))
+            if not states_match(*current, require_history=True):
+                raise ValueError('local preference current H/object/hand states differ')
             identity = ((chosen['episode'], chosen['tick']), (rejected['episode'], rejected['tick']))
             if identity[::-1] in seen:
                 raise ValueError('contradictory local preference directions')
             if identity in seen:
                 continue
             seen.add(identity)
-            split_pairs[left['split']] += 1
+            split = left['split']
+            split_pairs[split] += 1
+            pair_groups[split].add(tuple(sorted((left['episode'], right['episode']))))
             unique.append(pair)
         selected_windows = sum(len(r['window_ticks']) for r in records.values())
         if selected_windows > 20000:
             raise ValueError('additional annotations exceeded the20000-window budget')
         train_anchors = sum(report['episode_anchors'][r['episode']]['progress_frames']
                             for r in records.values() if r['split'] == 'train')
-        report.update(status='READY' if all(split_pairs.values()) else 'INSUFFICIENT_PREFERENCES',
+        unique_pair_counts = {split: len(groups) for split, groups in pair_groups.items()}
+        ready = pair_coverage_ready(unique_pair_counts) if pair_coverage_required else bool(all(split_pairs.values()))
+        report.update(status='READY' if ready else 'INSUFFICIENT_PREFERENCES',
                       pairs=split_pairs, episodes=len(records), selected_windows=selected_windows,
                       train_progress_anchor_frames=train_anchors,
+                      unique_episode_pair_groups=unique_pair_counts,
+                      minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
+                      pair_coverage_required=pair_coverage_required,
                       limitation='automatic preferences cover unambiguous held/drop and grasp/lift events only; '
                                  'approach, miss and recovery comparisons need separately grounded local annotations')
         if not train_anchors:
@@ -213,12 +249,22 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
             if (sha(record['raw_episode_path']) != record['raw_episode_sha256']
                     or sha(record['diagnostics']) != record['diagnostics_sha256']):
                 raise RuntimeError('raw episode or diagnostic drift during labeling')
-        manifest.update(status='COMPLETED', training_allowed=report['status'] == 'READY', label_report_sha256=None)
+        if (sha(Path(route_config)) != route_digest
+                or sha(TASK / 'src/consequence_evaluator/supervision.py') != rule_digest
+                or sha(TASK / 'src/consequence_evaluator/contracts.py') != contracts_digest
+                or sha(Path(__file__)) != producer_digest):
+            raise RuntimeError('labeling route or implementation inputs changed during labeling')
+        manifest.update(status='COMPLETED', training_allowed=report['status'] == 'READY',
+                        minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
+                        pair_coverage_required=pair_coverage_required,
+                        route_sha256=route_digest, label_report_sha256=None)
         report['elapsed_s'] = time.monotonic() - started
         write(output / 'label_report.json', report)
         manifest['label_report_sha256'] = sha(output / 'label_report.json')
-        write(output / 'preferences.json', dict(scope='local_window', label_provenance=dict(rule=RULE,
-              contact_semantics=CONTACT_SEMANTICS, report_sha256=manifest['label_report_sha256']), pairs=unique))
+        provenance = dict(expected_annotation_provenance,
+                          report_sha256=manifest['label_report_sha256'])
+        write(output / 'preferences.json', dict(scope='local_window',
+              label_provenance=provenance, pairs=unique))
         write(output / 'manifest.json', manifest)
     except BaseException as error:
         report.update(status='TIMED_OUT' if isinstance(error, TimeoutError) else 'FAILED', error=repr(error),

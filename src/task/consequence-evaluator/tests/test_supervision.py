@@ -77,6 +77,7 @@ def test_reset_contact_or_invalid_post_action_contact_cannot_label_windows():
 def test_local_preferences_only_compare_other_episodes_same_split_task_phase_height():
     good = dict(episode='good',tick=8,split='train',task='airplane',phase='hold',
                 expert='fixture',motion='fixture',object_pose=np.eye(4),hand_keypoints=np.zeros((11,3)),
+                history=np.zeros(6),
                 initial_relative_height=.04,event='maintained_hold')
     bad = dict(good,episode='bad',event='unrecovered_drop')
     invalid = [dict(bad,episode='val',split='val'),dict(bad,episode='duck',task='duck'),
@@ -86,6 +87,16 @@ def test_local_preferences_only_compare_other_episodes_same_split_task_phase_hei
     assert len(pairs) == 1 and pairs[0]['rejected']['episode'] == 'bad'
     many = [dict(good,tick=i) for i in range(20)] + [dict(bad,tick=i) for i in range(20)]
     assert len(local_preferences(many)) == 2
+
+
+def test_local_preferences_reject_history_confounds_even_when_pose_matches():
+    good = dict(episode='good',tick=8,split='train',task='airplane',phase='hold',
+                expert='fixture',motion='fixture',object_pose=np.eye(4),
+                hand_keypoints=np.zeros((11,3)), history=np.zeros(6),
+                initial_relative_height=.04,event='maintained_hold')
+    history_confounded = dict(good, episode='bad', event='unrecovered_drop',
+                              history=np.array([0., 0., 0., 0., 0., 10.]))
+    assert local_preferences([good, history_confounded]) == []
 
 
 def test_expert_progress_is_trained_even_when_both_preference_endpoints_are_masked():
@@ -108,25 +119,31 @@ def test_expert_progress_is_trained_even_when_both_preference_endpoints_are_mask
 
 def collection_fixture(root,route,anchors=True):
     """Synthetic traces with explicit test provenance, never physical evidence."""
-    route.write_text(json.dumps(dict(experts={str(i):dict(sha256=str(i)*64) for i in range(6)})))
+    route.write_text(json.dumps(dict(experts={str(i):dict(sha256=str(i)*64) for i in range(6)},
+                                     training_allowed=True,
+                                     all_experts_operationally_qualified=True,
+                                     pair_coverage_required=True)))
     records=[]
     for split in ('train','val','test'):
-        for name,drop in [('clean',None),('drop',20)]:
-            arrays,diagnostics=packet(drop)
-            if name == 'clean' and not anchors:
-                assigned,perturbation='hold',8
-            else:
-                assigned,perturbation=('clean',-1) if name == 'clean' else ('hold',8)
-            ep=split+'_'+name
-            path=root/(ep+'.npz');sidecar=root/(ep+'-diag.npz')
-            np.savez_compressed(path,**arrays);np.savez_compressed(sidecar,**diagnostics)
-            records.append(dict(episode=ep,split=split,split_group='seed:'+split,
-                quality='unlabeled',task='airplane',expert='0',motion='fixture',assigned_phase=assigned,
-                perturbation_tick=perturbation,path=path.name,sha256=sha(path),
-                diagnostics=sidecar.name,diagnostics_sha256=sha(sidecar)))
+        for pair_index in range(8):
+            for name,drop in [('clean',None),('drop',20)]:
+                arrays,diagnostics=packet(drop)
+                if name == 'clean' and not anchors:
+                    assigned,perturbation='hold',8
+                else:
+                    assigned,perturbation=('clean',-1) if name == 'clean' else ('hold',8)
+                ep=split+'_'+name+('_'+str(pair_index) if pair_index else '')
+                path=root/(ep+'.npz');sidecar=root/(ep+'-diag.npz')
+                np.savez_compressed(path,**arrays);np.savez_compressed(sidecar,**diagnostics)
+                records.append(dict(episode=ep,split=split,split_group='seed:'+split+':'+str(pair_index),
+                    quality='unlabeled',task='airplane',expert='0',motion='fixture',assigned_phase=assigned,
+                    perturbation_tick=perturbation,path=path.name,sha256=sha(path),
+                    diagnostics=sidecar.name,diagnostics_sha256=sha(sidecar)))
     (root/'manifest.json').write_text(json.dumps(dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS,
         status='COMPLETED',rollout_kind='continuous',training_allowed=True,fps=30,units='m',
         history_contract='synthetic engineering fixture',contact_semantics=CONTACT_SEMANTICS,
+        route_sha256=sha(route), all_experts_operationally_qualified=True,
+        pair_coverage_required=True,
         sources={str(i):str(i)*64 for i in range(6)},episodes=records)))
 
 
@@ -143,7 +160,7 @@ def test_label_prepare_and_train_selection_preserve_raw_inputs_and_absolute_scal
     data=Windows(data_root);ids=require_supervision(data)
     assert (data.arrays['split'][ids] == 'train').all()
     # No selected dense progress anchors depend on whether they appear in a pair.
-    assert set(data.arrays['episode'][ids]) == {'train_clean'}
+    assert set(data.arrays['episode'][ids]) == {'train_clean' + (('_' + str(i)) if i else '') for i in range(8)}
     masks=data.arrays['progress_mask'];targets=data.arrays['progress']
     assert np.all(targets[masks]>=0) and np.all(targets[masks]<=1)
 

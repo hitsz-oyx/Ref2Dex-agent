@@ -133,7 +133,7 @@ def main():
                     selection='first maximum of validation strict accuracy, independently per arm',
                     checkpoints=selections, seed=a.seed, batch=a.batch,
                     primary_metric='test strict preference accuracy; ties count as incorrect',
-                    future_control='same task/expert/motion/phase, matched current object/hand, other test episode, sampling with replacement',
+                    future_control='same task/expert/motion/phase, matched current H/object/hand, other test episode, sampling with replacement',
                     sources={str(path.relative_to(ROOT)): sha(path) for path in
                              [Path(__file__), TASK / 'src/consequence_evaluator/evaluation.py']})
     freeze_protocol(fit, protocol)

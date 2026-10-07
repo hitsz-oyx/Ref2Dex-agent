@@ -10,7 +10,9 @@ sys.path.insert(0, str(TASK / 'src'))
 
 import numpy as np
 from consequence_evaluator.data import K, K_EXEC, SCHEMA, Windows, object_effect, interaction_future, sha
-from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS,HAND_LINKS
+from consequence_evaluator.contracts import (EPISODE_SCHEMA, ACTION_SEMANTICS, HAND_LINKS,
+                                             MIN_PREFERENCE_PAIRS, HISTORY_MATCH_MAX_RELATIVE_RMS)
+from consequence_evaluator.supervision import CONTACT_SEMANTICS, RULE, pair_coverage_ready, states_match
 
 
 def prepare(source, preferences, output, max_windows=20000, seconds=600):
@@ -20,17 +22,37 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
     if not 1 <= max_windows <= 20000 or not 1 <= seconds <= 600:
         raise ValueError('bounded preparation: <=20000 windows and <=600 seconds')
     started = time.monotonic()
-    manifest = json.loads((source / 'manifest.json').read_text())
+    source_manifest_path = source / 'manifest.json'
+    source_manifest_sha = sha(source_manifest_path)
+    preferences_sha = sha(preferences)
+    manifest = json.loads(source_manifest_path.read_text())
     if (manifest.get('schema') != EPISODE_SCHEMA or manifest.get('action_semantics')!=ACTION_SEMANTICS
             or manifest.get('status') != 'COMPLETED'
             or manifest.get('rollout_kind') != 'continuous'
             or manifest.get('training_allowed') is not True
             or manifest.get('fps') != 30 or manifest.get('units') != 'm'
-            or not manifest.get('history_contract')):
+            or not manifest.get('history_contract')
+            or manifest.get('contact_semantics') != CONTACT_SEMANTICS
+            or manifest.get('label_rule') != RULE):
         raise ValueError('continuous, real 30Hz robot episode provenance required')
     pairs = json.loads(preferences.read_text())
-    if pairs.get('scope') != 'local_window' or not pairs.get('label_provenance'):
+    provenance = pairs.get('label_provenance') or {}
+    if pairs.get('scope') != 'local_window' or not provenance:
         raise ValueError('explicit local-window annotations required; do not inherit episode outcomes')
+    if (provenance.get('rule') != RULE or provenance.get('contact_semantics') != CONTACT_SEMANTICS
+            or provenance.get('rule_sha256') != sha(TASK / 'src/consequence_evaluator/supervision.py')
+            or provenance.get('contracts_sha256') != sha(TASK / 'src/consequence_evaluator/contracts.py')
+            or provenance.get('history_match_relative_rms') != HISTORY_MATCH_MAX_RELATIVE_RMS
+            or provenance.get('minimum_pair_coverage') != MIN_PREFERENCE_PAIRS):
+        raise ValueError('preference annotation provenance is stale for the current H-matched rule')
+    pair_coverage_required = manifest.get('pair_coverage_required', True)
+    if pair_coverage_required:
+        if (not manifest.get('route_sha256')
+                or provenance.get('route_sha256') != manifest['route_sha256']):
+            raise ValueError('preference route provenance does not match source route')
+        if (not manifest.get('label_report_sha256')
+                or provenance.get('report_sha256') != manifest['label_report_sha256']):
+            raise ValueError('preference report provenance does not match source label report')
     windows = {key: [] for key in ('history', 'action', 'effect','interaction','current_object','current_hand', 'progress', 'progress_mask',
                                   'episode', 'split', 'task', 'phase', 'quality','expert','motion')}
     lookup, groups, source_hashes = {}, {}, {}
@@ -89,16 +111,46 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
             for key, value in values.items():
                 windows[key].append(value)
     indices, annotations = [], []
+    pair_directions = {}
     for pair in pairs['pairs']:
+        endpoints = {}
+        for name in ('chosen', 'rejected'):
+            endpoint = pair.get(name, {})
+            tick = endpoint.get('tick')
+            if (isinstance(tick, bool) or not isinstance(tick, int)
+                    or (endpoint.get('episode'), tick) not in lookup):
+                raise ValueError('annotation tick must be an integer selected full-window endpoint')
+            endpoints[name] = (endpoint['episode'], tick)
         try:
-            indices.append([lookup[(pair[name]['episode'], int(pair[name]['tick']))]
-                            for name in ('chosen', 'rejected')])
+            current_indices = [lookup[endpoints[name]]
+                               for name in ('chosen', 'rejected')]
         except KeyError as error:
             raise ValueError('annotation refers to a missing/incomplete 24-step window') from error
+        key = tuple(sorted(current_indices))
+        direction = tuple(current_indices)
+        previous = pair_directions.get(key)
+        if previous is not None and previous != direction:
+            raise ValueError('contradictory local preference directions')
+        pair_directions[key] = direction
+        indices.append(current_indices)
         annotations.append(pair['annotation'])
     arrays = {key: np.asarray(values) for key, values in windows.items()}
     arrays.update(pairs=np.asarray(indices, dtype='int64').reshape(-1, 2),
                   pair_annotation=np.asarray(annotations, dtype='U'))
+    pair_groups = {split: set() for split in ('train', 'val', 'test')}
+    for left, right in arrays['pairs']:
+        split = str(arrays['split'][left])
+        pair_groups[split].add(tuple(sorted((str(arrays['episode'][left]), str(arrays['episode'][right])))))
+    pair_counts = {split: len(groups) for split, groups in pair_groups.items()}
+    if pair_coverage_required and not pair_coverage_ready(pair_counts):
+        raise ValueError('insufficient unique local preference coverage: '
+                         + json.dumps({'observed': pair_counts, 'minimum': MIN_PREFERENCE_PAIRS}, sort_keys=True))
+    for left, right in arrays['pairs']:
+        if not states_match(dict(history=arrays['history'][left], object_pose=arrays['current_object'][left],
+                                 hand_keypoints=arrays['current_hand'][left]),
+                            dict(history=arrays['history'][right], object_pose=arrays['current_object'][right],
+                                 hand_keypoints=arrays['current_hand'][right]), require_history=True):
+            raise ValueError('preference current H/object/hand states do not match')
     output.mkdir(parents=True)
     target = output / 'windows.npz'
     np.savez_compressed(target, **arrays)
@@ -111,12 +163,19 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
                            history_contract=manifest['history_contract'],
                            label_provenance=pairs['label_provenance'],
                            windows_sha256=sha(target), source_episodes=source_hashes,
-                           source_manifest_sha256=sha(source / 'manifest.json'),
-                           preference_annotations_sha256=sha(preferences),
+                           source_manifest_sha256=source_manifest_sha,
+                           preference_annotations_sha256=preferences_sha,
+                           route_sha256=provenance.get('route_sha256'),
+                           label_report_sha256=provenance.get('report_sha256'),
+                           minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
+                           pair_coverage_required=pair_coverage_required,
+                           unique_episode_pair_groups=pair_counts,
                            producer_sha256=sha(Path(__file__)), status='PREPARED')
     metadata = output / 'manifest.json'
     metadata.write_text(json.dumps(output_manifest, indent=2) + '\n')
     data = Windows(output, require_complete=False)
+    if sha(source_manifest_path) != source_manifest_sha or sha(preferences) != preferences_sha:
+        raise RuntimeError('source manifest or preference annotation changed during preparation')
     output_manifest.update(status='CONTRACT_PASS', windows=len(arrays['history']),
                            pairs={name: len(ids) for name, ids in data.pair_ids.items()})
     metadata.write_text(json.dumps(output_manifest, indent=2) + '\n')

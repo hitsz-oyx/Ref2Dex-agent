@@ -72,11 +72,14 @@ def prepare(runs, owned_root):
         raise ValueError('six distinct self-trained endpoints required; no weight substitution')
     if not experts['airplane_base']['data_readiness_pass']:
         raise ValueError('the default learned expert must pass operational readiness')
-    return dict(description='New self-trained observational route; failed roles are explicitly suboptimal candidates',
+    all_operational = all(e['data_readiness_pass'] for e in experts.values())
+    return dict(description='New self-trained route; failed roles are explicitly suboptimal candidates',
                 default_expert='airplane_base', experts=experts, object_route=OBJECT_ROUTE.copy(),
-                all_experts_operationally_qualified=all(e['data_readiness_pass'] for e in experts.values()),
-                training_allowed=False, sources=frozen,
-                limitation='route provenance only; measured collection and label readiness still required')
+                all_experts_operationally_qualified=all_operational,
+                training_allowed=all_operational, sources=frozen,
+                limitation=('all six operational qualification passed; measured collection and pair coverage remain required'
+                            if all_operational else
+                            'route provenance only; failed/suboptimal experts are observational candidates'))
 
 
 def main():

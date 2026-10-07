@@ -8,9 +8,9 @@ import hashlib
 
 import numpy as np
 
-from .contracts import K, K_EXEC
+from .contracts import K, K_EXEC, HISTORY_MATCH_MAX_RELATIVE_RMS
 
-RULE = 'geometry-corroborated-state-matched-residual-events-v2'
+RULE = 'geometry-corroborated-H-matched-state-residual-events-v3'
 CONTACT_SEMANTICS = 'native_hand_and_object_net_force_proxy'
 
 
@@ -94,11 +94,13 @@ def order_key(window):
     return hashlib.sha256(identity.encode()).hexdigest()
 
 
-def states_match(first,second):
-    """Current states only: <=3cm object translation, <=15deg rotation, <=2cm hand RMS.
+def states_match(first,second, *, require_history=False):
+    """Match current physical state and, when present, the full policy history H.
 
     Full object z additionally matches within1cm. Same motion/reference supplies
-    the shared reset height; this is observational matching, never a fork.
+    the shared reset height; this is observational matching, never a fork. A
+    relative history gate prevents velocity/contact-memory confounds from being
+    silently used by the baseline arm.
     """
     a,b=np.asarray(first['object_pose']),np.asarray(second['object_pose'])
     pa,pb=np.asarray(first['hand_keypoints']),np.asarray(second['hand_keypoints'])
@@ -106,8 +108,29 @@ def states_match(first,second):
             or not all(np.isfinite(v).all() for v in (a,b,pa,pb))):
         raise ValueError('current object pose and measured11-point hand geometry required')
     angle=np.arccos(np.clip((np.trace(a[:3,:3].T@b[:3,:3])-1)/2,-1,1))
-    return (np.linalg.norm(a[:3,3]-b[:3,3])<=.03 and abs(a[2,3]-b[2,3])<=.01
-            and angle<=np.deg2rad(15) and np.sqrt(np.mean(np.sum((pa-pb)**2,axis=-1)))<=.02)
+    physical = (np.linalg.norm(a[:3,3]-b[:3,3])<=.03 and abs(a[2,3]-b[2,3])<=.01
+                and angle<=np.deg2rad(15) and np.sqrt(np.mean(np.sum((pa-pb)**2,axis=-1)))<=.02)
+    if not physical:
+        return False
+    if require_history and (('history' not in first) or ('history' not in second)):
+        return False
+    if ('history' in first) != ('history' in second):
+        return False
+    if 'history' not in first:
+        return True
+    ha, hb = np.asarray(first['history']), np.asarray(second['history'])
+    if ha.shape != hb.shape or not np.isfinite(ha).all() or not np.isfinite(hb).all():
+        return False
+    scale = np.maximum(1., np.maximum(np.abs(ha), np.abs(hb)))
+    relative_rms = float(np.sqrt(np.mean(((ha - hb) / scale) ** 2)))
+    return relative_rms <= HISTORY_MATCH_MAX_RELATIVE_RMS
+
+
+def pair_coverage_ready(counts):
+    """Check the minimum unique local preferences required for a Probe fit."""
+    from .contracts import MIN_PREFERENCE_PAIRS
+    return all(int(counts.get(split, 0)) >= minimum
+               for split, minimum in MIN_PREFERENCE_PAIRS.items())
 
 
 def local_preferences(windows, per_stratum=64):
@@ -141,12 +164,13 @@ def local_preferences(windows, per_stratum=64):
                         break
                     if chosen['episode'] == rejected['episode'] or counts.get(identity, 0) >= 2:
                         continue
-                    if not states_match(chosen,rejected):continue
+                    if not states_match(chosen,rejected, require_history=True):continue
                     pairs.append(dict(chosen={k: chosen[k] for k in ('episode', 'tick')},
                                       rejected={k: rejected[k] for k in ('episode', 'tick')},
                                       annotation=f'{RULE}: {good_event}>{bad_event}; actual t..t+24; '
                                                  'force proxy corroborated by<=1cm sampled surface gap; '
-                                                 'same expert/motion; current object3cm/15deg and hand2cm RMS match'))
+                                                 'same expert/motion; current object3cm/15deg and hand2cm RMS; '
+                                                 'history relative RMS<=25% match'))
                     counts[identity] = counts.get(identity, 0) + 1
                     count += 1
                     break

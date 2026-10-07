@@ -6,7 +6,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .contracts import K, K_EXEC, SCHEMA, ACTION_SEMANTICS, HAND_LINKS
+from .contracts import (K, K_EXEC, SCHEMA, ACTION_SEMANTICS, HAND_LINKS,
+                        MIN_PREFERENCE_PAIRS, HISTORY_MATCH_MAX_RELATIVE_RMS)
+from .supervision import CONTACT_SEMANTICS, RULE
 SPLITS = ('train', 'val', 'test')
 
 
@@ -71,6 +73,22 @@ class Windows:
             raise ValueError('data contract mismatch; forked or unlabeled data cannot be fitted')
         if not m.get('history_contract') or not m.get('label_provenance'):
             raise ValueError('policy H contract and label provenance are required')
+        provenance = m['label_provenance']
+        if (provenance.get('rule') != RULE or provenance.get('contact_semantics') != CONTACT_SEMANTICS
+                or provenance.get('rule_sha256') != sha(Path(__file__).with_name('supervision.py'))
+                or provenance.get('contracts_sha256') != sha(Path(__file__).with_name('contracts.py'))
+                or provenance.get('minimum_pair_coverage') != MIN_PREFERENCE_PAIRS
+                or provenance.get('history_match_relative_rms') != HISTORY_MATCH_MAX_RELATIVE_RMS):
+            raise ValueError('label provenance is stale for the current H-matched rule')
+        if m.get('pair_coverage_required', True):
+            if (not m.get('route_sha256')
+                    or provenance.get('route_sha256') != m['route_sha256']):
+                raise ValueError('prepared route provenance is inconsistent')
+            if (not m.get('label_report_sha256')
+                    or provenance.get('report_sha256') != m['label_report_sha256']):
+                raise ValueError('prepared label report provenance is inconsistent')
+        if m.get('pair_coverage_required', True) and m.get('minimum_pair_coverage') != MIN_PREFERENCE_PAIRS:
+            raise ValueError('minimum local preference coverage contract is missing or changed')
         path = root / 'windows.npz'
         if sha(path) != m.get('windows_sha256'):
             raise ValueError('window input identity changed')
@@ -126,18 +144,37 @@ class Windows:
         if any(not str(value).strip() for value in a['pair_annotation']):
             raise ValueError('unattributed local preference')
         chosen, rejected = pairs.T
+        pair_directions = {}
+        for left, right in pairs:
+            key = tuple(sorted((int(left), int(right))))
+            direction = (int(left), int(right))
+            previous = pair_directions.get(key)
+            if previous is not None and previous != direction:
+                raise ValueError('contradictory local preference directions')
+            pair_directions[key] = direction
         for name in ('split', 'task', 'phase','expert','motion'):
             if (a[name][chosen] != a[name][rejected]).any():
                 raise ValueError('preference must match split, task, expert, motion and current phase')
         if (a['episode'][chosen] == a['episode'][rejected]).any():
             raise ValueError('cross-episode phase-matched preferences required')
         from .supervision import states_match
-        if any(not states_match(dict(object_pose=a['current_object'][i],hand_keypoints=a['current_hand'][i]),
-                                dict(object_pose=a['current_object'][j],hand_keypoints=a['current_hand'][j]))
+        if any(not states_match(dict(history=a['history'][i], object_pose=a['current_object'][i],
+                                    hand_keypoints=a['current_hand'][i]),
+                                dict(history=a['history'][j], object_pose=a['current_object'][j],
+                                    hand_keypoints=a['current_hand'][j]), require_history=True)
                for i,j in pairs):
-            raise ValueError('preference current object/hand states do not match')
+            raise ValueError('preference current H/object/hand states do not match')
         if len(set(map(tuple, pairs.tolist()))) != len(pairs):
             raise ValueError('duplicate preference pairs')
+        groups = {split: set() for split in SPLITS}
+        for i, j in pairs:
+            split = str(a['split'][i])
+            groups[split].add(tuple(sorted((str(a['episode'][i]), str(a['episode'][j])))))
+        observed_groups = {split: len(values) for split, values in groups.items()}
+        if (m.get('pair_coverage_required', True)
+                and any(observed_groups[split] < minimum
+                        for split, minimum in MIN_PREFERENCE_PAIRS.items())):
+            raise ValueError('minimum unique episode-pair coverage is not met')
         self.pair_ids = {split: np.flatnonzero(a['split'][chosen] == split) for split in SPLITS}
 
     def batch(self, ids, device):

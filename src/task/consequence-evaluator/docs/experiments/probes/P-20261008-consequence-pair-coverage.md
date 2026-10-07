@@ -19,11 +19,14 @@ run_id: pair-coverage-20261008-r1
 
 # Can repeated waves recover strict current-state preference coverage?
 
-Result: Three-wave train/val/test collection is `READY` under the unchanged
-contract, with only 2/1/5 train/val/test pairs; physical geometry remains
-valid, but the sample is too small for a decision-useful evaluator fit.
-Decision: Stop before fitting and design explicit twin current-state branches;
-do not relax hand RMS or add generic waves.
+Result: The historical three-wave label report was `READY` under the then-current
+nonempty-split rule, with only 2/1/5 train/val/test pairs. Under the current
+contract it is observational-only: pair matching also requires history `H`, and
+fit requires at least 8/4/4 distinct episode pairs. Physical geometry remains
+valid, but the sample is not fit-ready.
+Decision: Stop before fitting and keep the route gate closed; specify explicit
+twin current-state branches before collecting another evaluator dataset. Do not
+relax hand RMS or add generic waves.
 
 ## Purpose and decision
 
@@ -86,3 +89,22 @@ The next useful experiment is a new targeted collector that creates explicitly
 paired current states (same reset/history and two residual branches), followed
 by a fresh fit Decision Note. Generic waves and automatic specialist epochs
 are closed for this route until that protocol is specified.
+
+## Post-run contract audit (2026-10-08)
+
+The implementation now uses rule
+`geometry-corroborated-H-matched-state-residual-events-v3`. A local preference
+must match `H` within relative RMS `0.25`, in addition to the existing object
+and hand geometry thresholds. Labeling, window preparation, `Windows`, and
+`train_matched.py` count unique unordered episode pairs and enforce
+`train=8`, `val=4`, `test=4` whenever `pair_coverage_required=true`. The
+historical label artifact remains preserved for audit but cannot pass these
+fit gates. Its route also records `all_experts_operationally_qualified=false`
+and `training_allowed=false`, so no new production collection or fit is
+authorized from it.
+
+`consequence_evaluator.twin` is a strict Isaac-free v1 contract for a future
+collector. It checks the canonical native state inventory, Python/NumPy/Torch
+RNG provenance, fresh-simulator prefix replay metadata, rigid object poses and
+branch starting anchors. It does not run Isaac Gym or create twin branches;
+the native replay collector and its branch manifest remain unfinished.

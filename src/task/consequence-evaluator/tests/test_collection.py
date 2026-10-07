@@ -262,7 +262,7 @@ def test_real_cli_rejects_missing_expert_before_gpu_or_isaac_import(tmp_path):
              '--output',str(output),'--gpu','3','--seed','42','--split','train']
     env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',TMPDIR=str(tmp_path))
     result=subprocess.run(command,capture_output=True,text=True,env=env,timeout=10)
-    assert result.returncode!=0 and 'missing self-trained expert' in result.stderr
+    assert result.returncode!=0 and 'observational-only' in result.stderr
     assert 'AttributeError' not in result.stderr and not output.exists()
 
 
