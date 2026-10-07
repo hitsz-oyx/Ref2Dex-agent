@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-action-ddp
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending-runtime-manifest
+git_commit: 28732d3
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 4
@@ -47,7 +47,7 @@ conclusion or test access occurs in the selection. Choose the smallest batch
 within5%of fastest measured throughput with allocator reserve below75%of VRAM.
 The engineering selection cap is15minutes; stop on device conflict or failure.
 
-Resource boundary: only assigned GPUs0/1/2, <=4task GPUs in total; outputs plus
+Resource boundary: three explicitly assigned GPUs, <=4task GPUs in total; outputs plus
 temporary artifacts remain <=300GB. Retain the original absolute training
 deadline1791424717.7631629 (2026-10-08 09:58:37 Asia/Shanghai), without a new24h
 allocation. Stop on user request, nonfinite values, source drift, worker failure,
@@ -99,6 +99,9 @@ Run output: `outputs/cm-pointflow-effect-pretrain/pointworld-action-ddp-20261007
 Selection: `outputs/cm-pointflow-effect-pretrain/pointworld-action-ddp-selection-20261007/`.
 Entries: [DDP trainer](../../../tools/run/train_oakink2_pointworld_ddp.py),
 [batch selection](../../../tools/audit/select_pointworld_ddp_batch.py).
+[Launch supervisor](../../../tools/run/launch_pointworld_action_ddp.py) refuses
+occupied devices, records runtime sources/PIDs/deadline, detects foreign GPU
+processes and requests checkpoint-preserving stop only from its own workers.
 
 ## Engineering checks
 
@@ -107,4 +110,17 @@ three-rank masked objective/gradient averaging, RNG and collective stop, strict
 native resume rejection, and model-only initialization permitting recipe changes
 while rejecting altered horizon or normalization identity. CPU is used for this
 small distributed mathematical contract; real network timing uses the GPUs.
-GPU execution, exact initialization evidence and selected hyperparameters pending.
+Actual retained step12163checkpoint initialization was checked on GPU1: all model
+tensors, including normalization buffers, match the parent exactly. Parameter
+SHA256 is6bb8c7dfa7d02bcfe3e19b73006c1d70110cc6e426e0b568222ed00d6aaf3d28;
+parent file SHA25658397295bdd4fd2bebae4cd6089046f52369637a4010a572789c92deafb2d6d2.
+Evidence: `outputs/cm-pointflow-effect-pretrain/pointworld-action-ddp-init-check-20261007/verification.json`.
+Only initialization was checked; no optimization/validation took place in that
+check, and its GPU process exited afterward.
+
+Resource checkpoint: after old workers exited, GPU0was newly occupied by a
+PointMotus process538081outside this repo, and GPUs3-7had other jobs. User states
+they will coordinate the third card and provide its index. GPUs1/2are available;
+no foreign process is signaled or shared. Three-rank selection and the new full
+run are therefore not launched until the third allocation is confirmed. No
+automatic device substitution or two-rank production training is performed.

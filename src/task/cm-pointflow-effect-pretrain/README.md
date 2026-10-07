@@ -1,5 +1,14 @@
 # cm-pointflow-effect-pretrain
 
+2026-10-07 current execution: the corrected three independent arms were stopped
+on user request at H12661/action12163/shuffle11774, preserving all checkpoints.
+The user now requests three-GPU action-only training initialized from action
+latest model weights, with batch chosen by measured throughput/memory. Implementation
+and exact weight-import checks pass; the user is coordinating the third GPU.
+No new production training has started yet. See the
+[action DDP experiment](docs/experiments/probes/P-20261007-pointworld-action-ddp.md).
+The paragraphs below retain the route's original acquisition/execution context.
+
 Current user-directed route on branch `cm-pointflow-effect-pretrain`: ref3
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus
