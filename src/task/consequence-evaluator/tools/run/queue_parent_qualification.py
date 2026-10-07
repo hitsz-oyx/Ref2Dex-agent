@@ -28,8 +28,11 @@ def main():
     initial=json.loads((parent/'run_manifest.json').read_text())
     pid=initial['pid'];cmdline=Path('/proc')/str(pid)/'cmdline'
     queue_path=str(TASK/'tools/run/queue_baseline_rebuild.py')
-    if cmdline.exists() and queue_path not in cmdline.read_bytes().decode().replace('\0',' '):
-        raise ValueError('parent PID is not this task queue')
+    if cmdline.exists():
+        arguments=cmdline.read_bytes().decode().split('\0')
+        parent_cwd=(cmdline.parent/'cwd').resolve()
+        if not any(str((parent_cwd/arg).resolve())==queue_path for arg in arguments if arg.endswith('.py')):
+            raise ValueError('parent PID is not this task queue')
     qualifier=TASK/'tools/run/qualify_parent.py'
     frozen=hashlib.sha256(qualifier.read_bytes()).hexdigest()
     status_path=output.with_name(output.name+'-queue.json')
