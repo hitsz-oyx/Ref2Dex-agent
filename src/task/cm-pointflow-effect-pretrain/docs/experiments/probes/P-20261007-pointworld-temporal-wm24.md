@@ -145,3 +145,19 @@ Startup at runtime26c669c is verified in `startup_verified.json`: launcher415604
 workers4156111/4156112/4156113 on GPUs0/1/2. Data/config/stats/initial parameter
 hashes match and all arms perform finite updates; original monitored source
 hashes remain frozen. Isolated DDP implementation starts only after this check.
+
+
+## User-directed stop and action-only DDP transition (2026-10-07)
+
+Decision Note: user explicitly requests stopping the current three independent arms
+and using the action latest checkpoint as model initialization for a new three-GPU
+DDP run, selecting batch/schedule by memory and throughput. Retain all old artifacts;
+no matched 40000-update final comparison or TEST claim is made for this interrupted
+Probe. Evidence: action validation improves over early checkpoints, whereas controls
+are near a plateau; current small-microbatch execution underuses the three GPUs.
+The new run changes batch/objective normalization and starts a fresh optimizer and
+schedule, so it is a separate run rather than exact continuation. Preserve the
+original absolute deadline1791424717.7631629 and four-GPU/global storage boundaries.
+Stop on resource conflict, nonfinite values, source drift or user/deadline request.
+The cheapest selection is a bounded real-data DDP engineering throughput probe;
+no additional external authorization boundary is crossed.

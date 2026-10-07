@@ -1,5 +1,19 @@
 # Distributed temporal PointWorld training
 
+2026-10-07 update: user now authorizes stopping the three independent arms and
+starting an action-only three-rank warm start. Three ranks are supported when
+global accumulation is divisible by3; the old accumulation8still rejects3.
+`--init-weights` explicitly loads only a single-GPU temporal model, verifies
+data/stats/architecture/source identities, and permits a fresh batch/optimizer/
+schedule/draw. `--fused-hilbert` enables the tested process-local integer fusion.
+`validation_microbatch` pins evaluation batching independently of training.
+Validation rows are appended to validation.jsonl; step0records the imported
+checkpoint baseline. `--benchmark` is bounded engineering throughput with no
+checkpoints/evaluation; `--engineering` keeps requested batch and saves only final
+checkpoint for resume checks. See the
+[new experiment](experiments/probes/P-20261007-pointworld-action-ddp.md).
+The sections below describe the original implementation and its frozen checks.
+
 User requests DDP implementation after corrected single-GPU three-arm training
 starts. The three live workers remain on frozen source commit26c669c. This DDP
 entry and its helpers are separate files, do not alter those sources, and do not

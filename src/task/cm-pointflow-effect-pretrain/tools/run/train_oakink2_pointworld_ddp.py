@@ -40,7 +40,8 @@ def parameter_hash(model):
 
 def source_identity():
     sources = base.implementation_sources()
-    for p in (Path(__file__).resolve(), TASK/'src/oakink_wm/distributed.py'):
+    for p in (Path(__file__).resolve(), TASK/'src/oakink_wm/distributed.py',
+              TASK/'src/oakink_wm/pointworld_performance.py'):
         sources[str(p.relative_to(TASK))] = base.digest(p)
     return sources
 
@@ -74,7 +75,8 @@ def load_checkpoint(state, model, optimizer, config, identity, rank, world_size,
     same = (state['config']==config and state['dataset_hash']==identity['dataset_hash'] and
             state['identity']['arm']==identity['arm'] and
             state['identity']['stats_sha256']==identity['stats_sha256'] and
-            state['identity']['vendor_sources']==identity['vendor_sources'])
+            state['identity']['vendor_sources']==identity['vendor_sources'] and
+            state['identity'].get('performance_backend', 'reference')==identity.get('performance_backend', 'reference'))
     expected = base.implementation_sources() if import_single else identity['implementation_sources']
     if not same or state['identity'].get('implementation_sources') != expected:
         raise ValueError('checkpoint input/config/implementation mismatch')
@@ -96,6 +98,29 @@ def load_checkpoint(state, model, optimizer, config, identity, rank, world_size,
     else:
         restore_rng(state['rank_rngs'][rank])
     return state['step'], state['best']
+
+
+def initialize_weights(state, model, config, identity):
+    """New recipe: import model only, preserving the data/architecture contract."""
+    recipe_keys = {'seed', 'microbatch', 'accumulation', 'updates', 'learning_rate',
+                   'weight_decay', 'warmup_updates', 'clip_grad', 'validation_samples',
+                   'validation_interval', 'validation_seed', 'natural_validation_seed',
+                   'checkpoint_interval', 'workers', 'group_seconds', 'validation_microbatch'}
+    previous = state['identity']
+    if (state['dataset_hash'] != identity['dataset_hash'] or
+            previous['arm'] != identity['arm'] or
+            previous['stats_sha256'] != identity['stats_sha256'] or
+            previous['vendor_sources'] != identity['vendor_sources'] or
+            previous.get('implementation_sources') != base.implementation_sources()):
+        raise ValueError('initialization checkpoint data/arm/stats/source mismatch')
+    for key in set(config) | set(state['config']):
+        if key not in recipe_keys and config.get(key) != state['config'].get(key):
+            raise ValueError('initialization changes model/data semantics: '+key)
+    model.load_state_dict(state['model'], strict=True)
+    return dict(parent_step=state['step'], weights_only=True,
+                optimizer_reset=True, schedule_reset=True, draw_reset=True,
+                changed_recipe={key: dict(previous=state['config'].get(key), current=config.get(key))
+                                for key in recipe_keys if state['config'].get(key)!=config.get(key)})
 
 
 def run(args):
@@ -121,7 +146,7 @@ def run(args):
                           validation_samples=12, validation_interval=3, checkpoint_interval=3)
         accumulation = local_accumulation(config['accumulation'], world)
         effective = config['microbatch']*config['accumulation']
-        if args.stop_after is not None and not args.smoke:
+        if args.stop_after is not None and not (args.smoke or args.engineering):
             raise ValueError('--stop-after is an engineering-smoke control')
         out = args.output.resolve()
         if rank == 0:
@@ -135,6 +160,9 @@ def run(args):
         seed = config['seed']
         random.seed(seed); np.random.seed(seed); torch.manual_seed(seed); torch.cuda.manual_seed(seed)
         base.configure_numerics()
+        if args.fused_hilbert:
+            from oakink_wm.pointworld_performance import install_fused_hilbert
+            install_fused_hilbert()
         train, val = Windows(args.data, 'train'), Windows(args.data, 'val')
         dataset_hash = base.digest(args.data/'processed/manifest.json')
         stats = json.loads(args.stats.read_text())
@@ -148,7 +176,9 @@ def run(args):
             input_config_sha256=base.digest(args.config), arm=args.arm, smoke=args.smoke,
             parameters=sum(p.numel() for p in model.parameters()), world_size=world,
             microbatch_per_rank=config['microbatch'], accumulation_per_rank=accumulation,
-            global_effective_batch=effective, objective='mean of unchanged normalized microbatch losses',
+            global_effective_batch=effective, objective='mean of per-microbatch normalized losses; larger microbatches change reference objective',
+            performance_backend='integer-exact-triton-hilbert' if args.fused_hilbert else 'reference',
+            engineering_only=args.smoke or args.engineering or args.benchmark,
             script_sha256=base.digest(Path(__file__)), model_sha256=base.digest(TASK/'src/oakink_wm/pointworld_temporal.py'),
             stats_sha256=base.digest(args.stats), stats=stats, implementation_sources=source_identity(),
             initial_parameter_sha256=initial_hash,
@@ -168,6 +198,12 @@ def run(args):
             torch.manual_seed(seed+rank); torch.cuda.manual_seed(seed+rank)
             np.random.seed(seed+rank); random.seed(seed+rank)
         step, best = 0, float('inf')
+        if args.init_weights:
+            state = torch.load(args.init_weights, map_location='cpu', weights_only=False, mmap=True)
+            identity['initialization'] = initialize_weights(state, model, config, identity)
+            identity['parent_checkpoint_sha256'] = base.digest(args.init_weights)
+            identity['parent_checkpoint_path'] = str(args.init_weights.resolve())
+            del state
         checkpoint = args.resume or args.import_single_checkpoint
         if checkpoint:
             state = torch.load(checkpoint, map_location=device, weights_only=False)
@@ -177,6 +213,12 @@ def run(args):
             identity['imported_single_checkpoint'] = bool(args.import_single_checkpoint)
             identity['exact_rng_continuation'] = not args.import_single_checkpoint or world == 1
             del state
+        identity['random_initial_parameter_sha256'] = initial_hash
+        identity['initial_parameter_sha256'] = parameter_hash(model)
+        hashes = [None]*world
+        dist.all_gather_object(hashes, identity['initial_parameter_sha256'])
+        if len(set(hashes)) != 1:
+            raise ValueError('initialized rank parameters differ')
         model = DDP(model, device_ids=[local_rank], output_device=local_rank,
                     broadcast_buffers=False, find_unused_parameters=args.arm=='history')
         raw_model = model.module
@@ -199,6 +241,20 @@ def run(args):
         optimizer.zero_grad(set_to_none=True)
         if rank == 0:
             trainlog = (out/'train.jsonl').open('a')
+        evaluation_batch = config.get('validation_microbatch', config['microbatch'])
+        engineering = args.smoke or args.engineering or args.benchmark
+        if args.init_weights and not engineering:
+            measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
+            score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
+            dist.broadcast_object_list(score, src=0)
+            best = score[0]
+            if rank == 0:
+                baseline = dict(step=0, parent_step=identity['initialization']['parent_step'], metrics=measured)
+                base.atomic_json(out/'validation_initial.json', baseline)
+                with (out/'validation.jsonl').open('a') as f:
+                    f.write(json.dumps(baseline)+'\n')
+            save_checkpoint(out/'best.pt', raw_model, optimizer, step, config, best, identity, rank, world)
+        torch.cuda.reset_peak_memory_stats(device)
         reason = None
         while step < config['updates']:
             drift = rank == 0 and step % 20 == 0 and sources_drifted(identity, args.config, args.stats)
@@ -213,9 +269,12 @@ def run(args):
                 scale = .1+.9*.5*(1+math.cos(math.pi*(step-config['warmup_updates'])/max(1,config['updates']-config['warmup_updates'])))
             for group in optimizer.param_groups:
                 group['lr'] = config['learning_rate']*scale
-            update_loss = 0.
+            update_loss, input_seconds = 0., 0.
             for micro in range(accumulation):
-                batch = base.device_batch(next(batches))
+                fetch_started = time.monotonic()
+                cpu_batch = next(batches)
+                input_seconds += time.monotonic()-fetch_started
+                batch = base.device_batch(cpu_batch)
                 global_micro = micro*world+rank
                 donor_seed = seed+step*config['accumulation']+global_micro
                 use = base.shuffled_with_donors(batch, train, donor_seed) if args.arm=='shuffle' else batch
@@ -230,10 +289,18 @@ def run(args):
             grad = torch.nn.utils.clip_grad_norm_(model.parameters(), config['clip_grad'], error_if_nonfinite=True)
             optimizer.step(); optimizer.zero_grad(set_to_none=True)
             step += 1
-            average = torch.tensor(update_loss, device=device)
-            dist.all_reduce(average)
-            row = dict(step=step, loss=float(average/world), gradient_norm=float(grad),
-                       seconds=time.monotonic()-before, elapsed_seconds=time.time()-started,
+            torch.cuda.synchronize(device)
+            values = torch.tensor([update_loss, time.monotonic()-before,
+                                   torch.cuda.max_memory_allocated(device)/1048576,
+                                   torch.cuda.max_memory_reserved(device)/1048576, input_seconds], device=device)
+            all_values = [torch.empty_like(values) for _ in range(world)]
+            dist.all_gather(all_values, values)
+            values_cpu = torch.stack(all_values).cpu().tolist()
+            row = dict(step=step, loss=sum(x[0] for x in values_cpu)/world, gradient_norm=float(grad),
+                       seconds=max(x[1] for x in values_cpu), elapsed_seconds=time.time()-started,
+                       peak_allocated_mib=max(x[2] for x in values_cpu),
+                       peak_reserved_mib=max(x[3] for x in values_cpu),
+                       input_seconds=max(x[4] for x in values_cpu),
                        learning_rate=optimizer.param_groups[0]['lr'], world_size=world, global_effective_batch=effective)
             if rank == 0:
                 trainlog.write(json.dumps(row)+'\n');trainlog.flush()
@@ -241,34 +308,37 @@ def run(args):
                 if step == 1 or step % 20 == 0 or args.smoke:
                     print(json.dumps(row), flush=True)
             can_evaluate = not any_rank(stop[0] or time.time()>=deadline, device)
-            if can_evaluate and (step % config['validation_interval']==0 or step==config['updates']):
-                measured = base.evaluate(raw_model, val, validation, args.arm, config['microbatch'], config['amp']) if rank==0 else None
+            if can_evaluate and not (args.benchmark or args.engineering) and (step % config['validation_interval']==0 or step==config['updates']):
+                measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
                 score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
                 dist.broadcast_object_list(score, src=0)
                 if rank == 0:
                     base.atomic_json(out/'validation_latest.json', dict(step=step, metrics=measured))
+                    with (out/'validation.jsonl').open('a') as f:
+                        f.write(json.dumps(dict(step=step, metrics=measured))+'\n')
                 if score[0] < best:
                     best = score[0]
                     if not args.smoke:
                         save_checkpoint(out/'best.pt', raw_model, optimizer, step, config, best, identity, rank, world)
-            if not args.smoke and step % config['checkpoint_interval']==0:
+            if not engineering and step % config['checkpoint_interval']==0:
                 save_checkpoint(out/'latest.pt', raw_model, optimizer, step, config, best, identity, rank, world)
         hashes = [None]*world
         dist.all_gather_object(hashes, parameter_hash(raw_model))
         if len(set(hashes))!=1:
             raise AssertionError('rank parameters diverged')
-        if not args.smoke:
+        if not engineering:
             save_checkpoint(out/'latest.pt', raw_model, optimizer, step, config, best, identity, rank, world)
-        save_checkpoint(out/'final.pt', raw_model, optimizer, step, config, best, identity, rank, world)
+        if not args.benchmark:
+            save_checkpoint(out/'final.pt', raw_model, optimizer, step, config, best, identity, rank, world)
         if rank == 0:
             final = dict(status='COMPLETED' if step==config['updates'] else 'BUDGET_STOP', step=step,
                          elapsed_seconds=time.time()-started, reason=reason, world_size=world,
-                         rank_parameter_hashes=hashes, rank_parameters_identical=True, engineering_only=args.smoke)
-            if time.time()<deadline and not stop[0]:
-                final['balanced'] = base.evaluate(raw_model, val, validation, args.arm, config['microbatch'], config['amp'])
-                final['natural'] = base.evaluate(raw_model, val, natural, args.arm, config['microbatch'], config['amp'])
+                         rank_parameter_hashes=hashes, rank_parameters_identical=True, engineering_only=engineering)
+            if time.time()<deadline and not stop[0] and not (args.benchmark or args.engineering):
+                final['balanced'] = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp'])
+                final['natural'] = base.evaluate(raw_model, val, natural, args.arm, evaluation_batch, config['amp'])
                 if args.arm=='action':
-                    final['validation_shuffle'] = base.evaluate(raw_model, val, validation, args.arm, config['microbatch'], config['amp'], True)
+                    final['validation_shuffle'] = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp'], True)
             base.atomic_json(out/'result.json', final)
             base.atomic_json(out/'progress.json', {k:v for k,v in final.items() if k not in ('balanced','natural','validation_shuffle')})
             print(json.dumps({k:v for k,v in final.items() if k not in ('balanced','natural','validation_shuffle')}), flush=True)
@@ -294,9 +364,13 @@ def main():
     p.add_argument('--deadline', type=float)
     p.add_argument('--smoke', action='store_true')
     p.add_argument('--stop-after', type=int)
+    p.add_argument('--fused-hilbert', action='store_true')
+    p.add_argument('--engineering', action='store_true', help='Keep requested batch, save final checkpoint, skip evaluation')
+    p.add_argument('--benchmark', action='store_true', help='Engineering throughput only; skip checkpoints and validation')
     group = p.add_mutually_exclusive_group()
     group.add_argument('--resume', type=Path)
     group.add_argument('--import-single-checkpoint', type=Path)
+    group.add_argument('--init-weights', type=Path, help='New recipe initialized from single-GPU model weights only')
     run(p.parse_args())
 
 

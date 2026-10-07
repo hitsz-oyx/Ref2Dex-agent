@@ -19,20 +19,20 @@ from oakink_wm.distributed import (rank_indices, local_accumulation, sync_contex
                                   gather_rng, restore_rng, any_rank)
 
 
-@pytest.mark.parametrize('world', [1, 2, 4])
-def test_rank_schedule_preserves_reference_pairs_and_resume(world):
-    draw = np.arange(5*16)
-    shards = [rank_indices(draw, 2, 8, rank, world).reshape(5, 8//world, 2) for rank in range(world)]
-    reference = draw.reshape(5, 8, 2)
+@pytest.mark.parametrize('world,microbatch,accumulation', [(1,2,8),(2,2,8),(4,2,8),(3,16,3),(3,32,6)])
+def test_rank_schedule_preserves_reference_pairs_and_resume(world, microbatch, accumulation):
+    draw = np.arange(5*microbatch*accumulation)
+    shards = [rank_indices(draw, microbatch, accumulation, rank, world).reshape(5, accumulation//world, microbatch) for rank in range(world)]
+    reference = draw.reshape(5, accumulation, microbatch)
     for step in range(5):
-        reconstructed = np.empty((8, 2), dtype=np.int64)
+        reconstructed = np.empty((accumulation, microbatch), dtype=np.int64)
         for rank in range(world):
-            for micro in range(8//world):
+            for micro in range(accumulation//world):
                 global_micro = micro*world+rank
                 reconstructed[global_micro] = shards[rank][step, micro]
         np.testing.assert_array_equal(reconstructed, reference[step])
     for rank in range(world):
-        np.testing.assert_array_equal(rank_indices(draw, 2, 8, rank, world, 3), shards[rank][3:].reshape(-1))
+        np.testing.assert_array_equal(rank_indices(draw, microbatch, accumulation, rank, world, 3), shards[rank][3:].reshape(-1))
 
 
 def test_invalid_world_size_and_incomplete_draw_are_rejected():
@@ -53,23 +53,23 @@ class Toy(nn.Module):
         return self.weight*x
 
 
-def _gloo_worker(rank, store, output):
+def _gloo_worker(rank, store, output, world=2):
     torch.set_num_threads(1)
-    dist.init_process_group('gloo', init_method='file://'+store, rank=rank, world_size=2)
+    dist.init_process_group('gloo', init_method='file://'+store, rank=rank, world_size=world)
     try:
         model = DDP(Toy(), find_unused_parameters=True)
-        x = torch.arange(1., 9.)
-        mask = torch.tensor([1., 1., 1., 0., 1., 1., 0., 1.])
-        draw = np.arange(8)
-        groups = rank_indices(draw, 2, 4, rank, 2).reshape(2, 2)
+        x = torch.arange(1., world*4+1)
+        mask = torch.tensor([1., 1., 1., 0., 1., 1., 0., 1.] * 2)[:world*4]
+        draw = np.arange(world*4)
+        groups = rank_indices(draw, 2, world*2, rank, world).reshape(2, 2)
         for micro, indices in enumerate(groups):
             with sync_context(model, micro, 2):
                 loss = (model(x[indices]).square()*mask[indices]).sum()/mask[indices].sum()
                 (loss/2).backward()
         reference = Toy()
-        objective = sum((reference(x[i:i+2]).square()*mask[i:i+2]).sum()/mask[i:i+2].sum() for i in range(0, 8, 2))/4
+        objective = sum((reference(x[i:i+2]).square()*mask[i:i+2]).sum()/mask[i:i+2].sum() for i in range(0, world*4, 2))/(world*2)
         objective.backward()
-        torch.testing.assert_close(model.module.weight.grad, reference.weight.grad, rtol=0, atol=2e-6)
+        torch.testing.assert_close(model.module.weight.grad, reference.weight.grad, rtol=0, atol=5e-6)
         assert model.module.unused.grad is None
         # A single normalization over all valid labels changes the reference
         # objective when pair masks differ; preserving pairs matters.
@@ -79,7 +79,7 @@ def _gloo_worker(rank, store, output):
         optimizer = torch.optim.SGD(model.parameters(), lr=.01, momentum=.9)
         optimizer.step()
         torch.manual_seed(100+rank); np.random.seed(100+rank); random.seed(100+rank)
-        rngs = gather_rng(2)
+        rngs = gather_rng(world)
         expected = (torch.rand(4), np.random.rand(4), random.random())
         restore_rng(rngs[rank])
         torch.testing.assert_close(torch.rand(4), expected[0], rtol=0, atol=0)
@@ -93,11 +93,13 @@ def _gloo_worker(rank, store, output):
         dist.destroy_process_group()
 
 
-def test_two_rank_gloo_matches_masked_reference_objective_and_rng(tmp_path):
-    mp.spawn(_gloo_worker, args=(str(tmp_path/'store'), str(tmp_path)), nprocs=2, join=True)
-    states = [torch.load(tmp_path/('rank%d.pt'%rank), weights_only=False) for rank in range(2)]
-    for key,value in states[0]['model'].items():
-        torch.testing.assert_close(value, states[1]['model'][key], rtol=0, atol=0)
+@pytest.mark.parametrize('world', [2,3])
+def test_gloo_matches_masked_reference_objective_and_rng(tmp_path, world):
+    mp.spawn(_gloo_worker, args=(str(tmp_path/'store'), str(tmp_path), world), nprocs=world, join=True)
+    states = [torch.load(tmp_path/('rank%d.pt'%rank), weights_only=False) for rank in range(world)]
+    for state in states[1:]:
+        for key,value in states[0]['model'].items():
+            torch.testing.assert_close(value, state['model'][key], rtol=0, atol=0)
     assert not torch.equal(states[0]['rngs'][0]['torch'], states[0]['rngs'][1]['torch'])
 
 
@@ -116,3 +118,25 @@ def test_checkpoint_resume_rejects_different_world_or_implementation():
     state['identity'] = dict(identity, implementation_sources={'old.py': 'wrong'})
     with pytest.raises(ValueError, match='implementation mismatch'):
         trainer.load_checkpoint(state, model, optimizer, config, identity, 0, 2)
+
+
+def test_weights_initialization_allows_new_recipe_but_rejects_semantic_drift():
+    spec = importlib.util.spec_from_file_location('ddp_weight_init_contract', TASK/'tools/run/train_oakink2_pointworld_ddp.py')
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    identity = dict(dataset_hash='data', arm='action', stats_sha256='stats', vendor_sources={})
+    source = Toy()
+    with torch.no_grad():
+        source.weight.fill_(.7)
+    state = dict(config={'seed':217,'microbatch':2,'accumulation':8,'horizon':24},
+                 step=12163, model=source.state_dict(), dataset_hash='data',
+                 identity=dict(identity, implementation_sources=trainer.base.implementation_sources()))
+    target = Toy()
+    config = dict(state['config'], seed=219, microbatch=64, accumulation=3)
+    result = trainer.initialize_weights(state, target, config, identity)
+    assert result['weights_only'] and result['optimizer_reset'] and result['parent_step']==12163
+    torch.testing.assert_close(target.weight, source.weight, rtol=0, atol=0)
+    with pytest.raises(ValueError, match='semantics'):
+        trainer.initialize_weights(state, target, dict(config, horizon=12), identity)
+    with pytest.raises(ValueError, match='mismatch'):
+        trainer.initialize_weights(state, target, config, dict(identity, stats_sha256='different'))
