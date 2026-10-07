@@ -460,4 +460,4 @@ src/task/<TaskName>/docs/experiments/validations/
 
 ## 15. git提交
 
-ref文档的变更默认可以提交
+ref文档的变更默认可以提交,ai不得私自往ref目录下添加新文件，新建分支需要用户同意

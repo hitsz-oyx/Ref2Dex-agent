@@ -99,6 +99,34 @@ The first pending snapshot confirms all four processes live after~230updates.
 This adds final-result audit readiness; it does not change the active training
 code/config/data, protocol, resource budget or current UNCLEAR conclusion.
 
+## First matched validation: update 1000
+
+All three arms reached the same first validation checkpoint. The fixed balanced
+256-window validation panel gives the following moving-anchor (cat0) point EPE;
+distances are millimeters. This is intermediate validation, not the held-out
+final test screen.
+
+| Arm | h1 | h4 | h8 | h12 | h24 (0.8s) | Mean training loss, updates 901–1000 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| History | 1.12 | 4.08 | 8.19 | 12.41 | 25.51 | 2.3383 |
+| History + future hands | 1.41 | 4.86 | 9.03 | 13.44 | 26.31 | 2.2853 |
+| History + shuffled future hands | 1.21 | 4.11 | 8.25 | 11.99 | 23.99 | 2.4097 |
+| Static prediction | 1.69 | 5.95 | 11.04 | 15.33 | 26.13 | — |
+
+Training loss is dimensionless and normalized; a lower training loss is not a
+lower physical prediction error. Short-horizon predictions beat static in this
+panel, but at h24 the true future-hand arm does not yet beat either control or
+static. Current judgment remains UNCLEAR: this early checkpoint does not
+establish an action benefit or close the route. Continue the frozen 40000-update
+run without changing active sources/configuration or extending the budget.
+
+The complete first-validation metrics and live-process evidence are preserved
+in `outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007/first_validation_observed.json`;
+the mean losses are from each arm's `train.jsonl`, updates 901–1000 inclusive.
+The upstream PointWorld source is now also recorded as a proper Git submodule
+at the already-used commit; this repository bookkeeping does not alter any
+running source bytes or the original runtime identity `f507f18`.
+
 ## Limitations / future evidence
 
 Observed future hands are post-treatment geometry, not counterfactual commands.

@@ -11,6 +11,11 @@ and masks;512canonical object surface points. Predict every local object's
 [implementation and GPU checks](docs/POINTWORLD_INTERFACE.md),
 [new matched experiment](docs/experiments/probes/P-20261007-pointworld-small-wm24.md).
 
+The upstream encoder source is pinned as the `third_party/PointWorld` Git
+submodule at `05484826dfef74cbe278a3974179a5a16705d35d`. After cloning this
+repository, run `git submodule update --init third_party/PointWorld` to obtain
+the required source. Its nested DINOv3 dependency is not used by this route.
+
 Full627 acquisition and preparation completed in
 `outputs/cm-pointflow-effect-pretrain/oakink2-wm30-k24-20261006/`.
 Old WM30 workers saved and stopped on user request: H40000/H+A33464/shuffle34823,
