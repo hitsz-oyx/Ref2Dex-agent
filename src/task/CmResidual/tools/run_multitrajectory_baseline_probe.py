@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -67,8 +68,11 @@ def main() -> None:
     parser.add_argument("--contact-fraction", type=float, default=.5)
     parser.add_argument("--lift-fraction", type=float, default=.25)
     parser.add_argument("--save-frequency", type=int, default=20)
+    parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error("learning rate must be finite and positive")
     if not args.source_epoch < args.target_epoch <= 500:
         parser.error("target epoch must exceed source and be <=500")
     if (args.anneal_start is None) != (args.anneal_end is None):
@@ -112,7 +116,7 @@ def main() -> None:
         "--actual-epochs", str(args.target_epoch), "--approach-reward-coef", "2.0",
         "--held-lift-reward-coef", "10.0", "--lift-progress-reward-coef", "5.0",
         "--grasp-link-reward-coef", "0.0", "--min-grasp-links", "0",
-        "--learning-rate", "1e-05", "--contact-before", "3", "--contact-after", "3",
+        "--learning-rate", str(args.learning_rate), "--contact-before", "3", "--contact-after", "3",
         "--contact-fraction", str(args.contact_fraction), "--lift-fraction", str(args.lift_fraction),
         "--save-frequency", str(args.save_frequency), "--task", "Dexplore_Inspire",
         "--cfg_env", str(cfg_env),
@@ -165,6 +169,7 @@ def main() -> None:
         "env_config": str(cfg_env), "env_config_sha256": sha256(cfg_env),
         "object_sampling": "see pinned env config; all requested inputs retained or fail loudly",
         "initialization": "random_scratch" if args.from_scratch else "pinned_scratch_resume",
+        "learning_rate": args.learning_rate,
         "budget": {"gpu_count": 1, "wall_minutes": 60, "output_gb": 5},
         "stop_rule": "input drift, GPU conflict, non-finite training, >60 min, or missing endpoint checkpoint",
     }

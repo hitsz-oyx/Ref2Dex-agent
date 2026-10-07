@@ -1,7 +1,8 @@
-"""Wait for the owned PointWorld launcher, then run native smoke and parent fit."""
+"""Bounded native smoke/parent fit; optionally wait for an owned launcher."""
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -29,19 +30,23 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--inputs', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--wait-status', type=Path, required=True)
+    p.add_argument('--wait-status', type=Path)
+    p.add_argument('--env-config', type=Path)
+    p.add_argument('--learning-rate', type=float, default=1e-5)
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--seed', type=int, required=True)
     a = p.parse_args()
+    if a.gpu < 0 or a.seed < 0 or not math.isfinite(a.learning_rate) or a.learning_rate <= 0:
+        p.error('nonnegative GPU/seed and finite positive learning rate required')
     inputs, output = a.inputs.resolve(), a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         p.error('fresh task-owned output required')
-    if not is_within(a.wait_status.resolve(), ROOT/'outputs/cm-pointflow-effect-pretrain'):
+    if a.wait_status and not is_within(a.wait_status.resolve(), ROOT/'outputs/cm-pointflow-effect-pretrain'):
         raise ValueError('wait status must belong to the owned PointWorld task')
-    parent = json.loads(a.wait_status.read_text())
+    parent = json.loads(a.wait_status.read_text()) if a.wait_status else dict(pid=None,status='COMPLETED',exit_code=0,progress=dict(status='COMPLETED'))
     parent_pid = parent['pid']
     cmdline = Path('/proc')/str(parent_pid)/'cmdline'
-    live_parent = (cmdline.is_file() and
+    live_parent = (a.wait_status is not None and cmdline.is_file() and
         str(ROOT/'src/task/cm-pointflow-effect-pretrain/tools/run/launch_pointworld_action_ddp.py')
         in cmdline.read_bytes().decode().replace('\0',' '))
     completed_parent = (parent.get('status') == 'COMPLETED' and parent.get('exit_code') == 0
@@ -49,10 +54,11 @@ def main():
     if not live_parent and not completed_parent:
         raise ValueError('wait target must be a live owned launcher or its successful terminal record')
     stage = json.loads((inputs/'manifest.json').read_text())
+    env_config = a.env_config.resolve() if a.env_config else inputs/'cfg/inspire_object_balanced.yaml'
     if stage['status'] != 'STAGED_CPU_CONTRACT_PASS':
         raise ValueError('staged input validation is incomplete')
     output.mkdir(parents=True)
-    source_paths = [Path(__file__), TASK/'src/consequence_evaluator/contracts.py',
+    source_paths = [Path(__file__), env_config,*sorted((TASK/'src/consequence_evaluator').glob('*.py')),
                     TASK/'tools/run/rebuild_train.py', TASK/'tools/run/rebuild_rank_bootstrap.py',
                     ROOT/'src/task/cm-interaction-oracle/src/oracle_y_utility.py',
                     ROOT/'src/task/CmResidual/tools/run_multitrajectory_baseline_probe.py',
@@ -62,6 +68,8 @@ def main():
                         'dexplore_approach.py','dexplore_approach_agent.py','dexplore_cm_geometry.py',
                         'dexplore_contact_curriculum.py','dexplore_grasp_reward.py')],
                     *sorted((ROOT/'third_party/DExplore/dexplore').rglob('*.py'))]
+    source_paths += [ROOT/'third_party/DExplore/dexplore/data/cfg/train/rlg/inspire.yaml',
+                    *sorted(p for p in (ROOT/'third_party/DExplore/dexplore/data/assets').rglob('*') if p.is_file())]
     frozen = {str(path):sha(path) for path in source_paths}
     frozen.update({record['path']:record['sha256'] for record in stage['motion_inputs']})
     frozen.update({str(inputs/path):value for key in ('assets','configs') for path,value in stage[key].items()})
@@ -70,6 +78,7 @@ def main():
                   parent_pid=parent_pid, physical_gpu=a.gpu, sources=frozen, seed=a.seed,
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
                   scope='new parent_s1 scratch PPO; native smoke first; further six-expert training pending parent evaluation',
+                  learning_rate=a.learning_rate, env_config=str(env_config),
                   wait_budget_s=3600, fit_budget_s=3600, output_budget_bytes=5*2**30)
     path = output/'run_manifest.json'
     write(path,record)
@@ -84,7 +93,7 @@ def main():
             if time.monotonic()-started > 3600:
                 raise TimeoutError('fixed wait deadline')
             time.sleep(20)
-        terminal = json.loads(a.wait_status.read_text())
+        terminal = json.loads(a.wait_status.read_text()) if a.wait_status else parent
         if terminal['status'] != 'COMPLETED':
             raise RuntimeError('PointWorld did not complete; inspect its terminal state before reuse')
         occupied = subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid',
@@ -103,7 +112,7 @@ def main():
             command = [sys.executable,str(TASK/'tools/run/rebuild_train.py'),
                 '--output',str(output/phase),'--gpu',str(a.gpu),'--from-scratch','--source-epoch','0',
                 '--target-epoch',str(epochs),'--spec',str(inputs/'specs/parent_s1.json'),
-                '--cfg-env',str(inputs/'cfg/inspire_object_balanced.yaml'),
+                '--cfg-env',str(env_config),'--learning-rate',str(a.learning_rate),
                 '--num-envs',str(count),'--minibatch-size','256','--seed',str(seed),
                 '--save-frequency','2' if phase=='smoke' else '20',*anneal]
             record.update(status=phase.upper(), command=command)

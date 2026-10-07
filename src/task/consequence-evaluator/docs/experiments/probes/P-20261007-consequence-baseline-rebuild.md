@@ -234,6 +234,32 @@ maxFK position error2.46um/linear velocity error4.16e-5m/s/angular error
 3.58e-4rad/s; all three alternating subset resets pass. This validates reset
 compatibility with recovered original inputs, not a learned grasp policy.
 
+Original-reference full-frame0 replay at commit1b96a4e also completes all64
+episodes in40.18s, mean maxlift6.7mm/contactlift6.4mm,0qualified. This is
+close to the historical6.5mm reference replay and is engineering evidence
+that reference following alone is insufficient, not a learned-policy result.
+Artifacts: `outputs/consequence-evaluator/reference-original-s1-20261007-r1/`.
+
+Decision Note: recover useful self-trained data cheaply before rebuilding a
+missing CmLite dependency. A corrected-input Cm-off parent is a cheaper first
+probe than recreating four lost Cm-off/Cmv2 rollout sources and then CmLite.
+Historical same-input Cm-off scratch had partial success; r4 supplied no valid
+negative evidence because reset and reference inputs were wrong. Choose one
+200epoch Cm-off fit using recovered s1SHA305dfd16, original single-motion
+inspire.yaml, LR2e-5/constant/mini-epochs6,64env/h32/mb256, the old geometry
+rewards2/10/5 and contact/lift curriculum. Anneal40→80,save20,seed289;
+this is an explicit new recipe without the old learned CmLite reward, not exact
+reproduction. Two-epoch8env/seed17 smoke<=300s, then fresh parent<=3600s;
+oneGPU0/total5GiB. Stable frame0 evaluation uses seed290/45frame/no-later-drop
+criterion and the same operational8/64 gate. Positive permits s3 transfer and
+actual normalized-action rollout data for CmLite/evaluator; negative first
+audits contact, learning, intended target and recovered input semantics before
+choosing informed initialization or rebuilt CmLite. No checkpoint scan or new
+six-expert budget is activated merely by declining PPO loss. Stop on drift,
+nonfinite updates, device conflict, deadline or output cap.
+Staging: `outputs/consequence-evaluator/baseline-original-inputs-20261007-r1/`;
+run: `outputs/consequence-evaluator/baseline-rebuild-original-20261007-r1/`.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;
