@@ -39,7 +39,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | Reset-repaired original-s1 Cm-off parent completes200epochs;50/64full-frame0 episodes meet the fixed45-frame/no-later-drop gate. The six exp | Proceed to a bounded20epoch s3 transfer from this self-trained parent, then independently qualify its fixed endpoint before expanding other  | probes/PROMISING |
+| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | New parent50/64, airplane_base36/64 and duck3408/64 pass operational readiness; cup recovery is live. Six-role rollout and evaluator fitting | Finish the separately bounded specialist/mixed roles, freeze genuine new routes, then audit continuous physical labels before matched evalua | probes/PROMISING |
 
 ## HF-consequence-oracle-headroom
 

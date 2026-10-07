@@ -221,3 +221,9 @@ fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合�
 collector再次核对/冻结这些路由证据，真实progress和preference仍须
 独立label检查；路由本身training_allowed=false。此工具不训练模型，
 不会用一个actor替代六个角色，也不恢复旧Validation身份。
+
+2026-10-08最新：duck260→340的80epoch迁移完成489.07s，固定64条
+frame0资格8/64，达到运营门槛但仍较弱。GPU0已接cup260→340，
+2epoch工程检查通过，64env正式迁移和端点资格继续；mixed12/train5/
+balanced5三角色仍未训练。全Task89项工程测试通过，真实evaluator
+采集/三臂训练未开始，不把路由工具就绪当作数据或科学结论。

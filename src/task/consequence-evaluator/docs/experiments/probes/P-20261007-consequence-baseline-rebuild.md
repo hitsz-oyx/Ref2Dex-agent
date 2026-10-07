@@ -19,8 +19,8 @@ run_id: baseline-rebuild-original-20261007-r1
 
 # Rebuild a self-trained rollout substrate after asset loss
 
-Result: Reset-repaired original-s1 Cm-off parent completes200epochs;50/64full-frame0 episodes meet the fixed45-frame/no-later-drop gate. The six experts and evaluator dataset are not yet complete.
-Decision: Proceed to a bounded20epoch s3 transfer from this self-trained parent, then independently qualify its fixed endpoint before expanding other experts.
+Result: New parent50/64, airplane_base36/64 and duck3408/64 pass operational readiness; cup recovery is live. Six-role rollout and evaluator fitting remain incomplete.
+Decision: Finish the separately bounded specialist/mixed roles, freeze genuine new routes, then audit continuous physical labels before matched evaluator fitting.
 
 ## Motivation and Decision Note
 
@@ -541,3 +541,8 @@ Stop on conflicts/drift/nonfinite/caps. Positive freezes thiscup role;
 negative inspect geometry/control, without automatically appending epochs.
 This asks whether another genuine corrected-object specialist can restore
 clean/phase coverage before constructing the full six-role dataset.
+
+Cup queue is live at4c71462:baseline-transfer-cup-20261008-r1, queue
+PID1519563, with fixedseed290qualification queued.89Task tests pass
+after route-contract additions, including20collector/route tests.
+No new expert success or real evaluator result is inferred from these tests.
