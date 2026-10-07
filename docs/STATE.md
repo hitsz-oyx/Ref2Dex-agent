@@ -639,3 +639,14 @@ cm-pointflow-effect-pretrain分支；使用index-only read-tree，未checkout或
 启动GPU0/1/2三组，每组40000更新、有效batch16，共享24h截止时间。不启动PPO。
 [实现与运行入口](../src/task/cm-pointflow-effect-pretrain/docs/WM30_INTERFACE.md)；
 [固定实验协议](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-oakink2-wm30-k24.md)。
+
+
+## 2026-10-07 WM30 全量训练中间状态
+
+627条全部下载/预处理完成，5060616窗口，501/70/56序列划分。实际运行提交ec4d918，
+GPU1/2/3三组训练已运行约5h17m；H33310、H+A27796、shuffle28943/40000，
+最慢组估计还需2.3–2.5h，仍在24h预算内。数值/进程正常，但最近运动锚点h24验证
+点EPE三组均约28.17mm，与静止基线几乎一致，尚无A收益。不同更新数仅是中间观察。
+四个验证窗口的checkpoint核对确认实际近零预测（GT最大90mm、预测最大约0.05mm），
+标签非零、A梯度存在，FP32同样近零；不足以确定优化原因或否定方法。保持当前实验
+到固定matched更新数，不改活跃配置/不追加预算；原始中间检查记录保留在Task产物。
