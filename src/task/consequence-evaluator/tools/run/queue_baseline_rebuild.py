@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import signal
 import shutil
@@ -20,6 +21,31 @@ from consequence_evaluator.provenance import endpoint_epoch, self_trained_ancest
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def smoke_env_count(spec, env_config):
+    """Count a conservative native motion expansion for the smoke run.
+
+    DExplore duplicates hard-object motions when hard-object oversampling is
+    enabled.  The fit uses 64 environments, but the old eight-environment
+    smoke can fail before its first update for a multi-motion role.  Native
+    contact filtering may remove entries later, so an overestimate is safe.
+    """
+    names = [Path(motion).name for motion in spec['motions']]
+    names = [name for name in names if 'doorknob' not in name]
+    config_text = Path(env_config).read_text()
+    if re.search(r'^\s*objectMotionSampling:\s*true\s*$', config_text,
+                 re.MULTILINE | re.IGNORECASE):
+        return 8
+    hard_objects = ('pan', 'flute', 'knife', 'scissors', 'toothbrush',
+                    'teapot', 'small', 'watch')
+    hard_oversampling = not re.search(
+        r'^\s*hardObjectOversampling:\s*false\s*$', config_text,
+        re.MULTILINE | re.IGNORECASE)
+    expanded = len(names)
+    if hard_oversampling:
+        expanded += sum(any(obj in name for obj in hard_objects) for name in names)
+    return max(8, expanded)
 
 
 def write(path, record):
@@ -64,6 +90,7 @@ def main():
     if not live_parent and not completed_parent:
         raise ValueError('wait target must be a live owned launcher or its successful terminal record')
     stage = json.loads((inputs/'manifest.json').read_text())
+    spec = json.loads((inputs/('specs/'+a.expert+'.json')).read_text())
     env_config = a.env_config.resolve() if a.env_config else inputs/'cfg/inspire_object_balanced.yaml'
     if stage['status'] != 'STAGED_CPU_CONTRACT_PASS':
         raise ValueError('staged input validation is incomplete')
@@ -174,7 +201,7 @@ def main():
         for name, digest in frozen.items():
             if sha(name) != digest:
                 raise RuntimeError('queued input/source drift: '+name)
-        phases = [('smoke',source_epoch+2,17,8,
+        phases = [('smoke',source_epoch+2,17,smoke_env_count(spec, env_config),
                    ['--anneal-start','40','--anneal-end','80'] if source else []),
                   (a.expert,a.target_epoch,a.seed,64,['--anneal-start','40','--anneal-end','80'])]
         for phase, epochs, seed, count, anneal in phases:
