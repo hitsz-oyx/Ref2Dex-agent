@@ -99,6 +99,8 @@ def main():
                 task._adaptive_kappa_enabled = False
                 task._enable_early_termination = False
                 obs=self.env_reset()
+                if self.get_batch_size(obs['obs'],1)!=task.num_envs:
+                    raise AssertionError('native player batch initialization failed')
                 before = task._target_states.clone()
                 initial_q = task._dof_pos.clone()
                 initial_body = task._rigid_body_pos.clone()

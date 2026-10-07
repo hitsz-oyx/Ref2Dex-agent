@@ -198,6 +198,8 @@ def main():
                 if self.observation_router is not None:
                     self.initial_expert_names = None
                 obs = self.env_reset(full)
+                if self.get_batch_size(obs['obs'],1)!=task.num_envs:
+                    raise ValueError('native player observation batch differs from env count')
                 if (task.start_times != 0).any():
                     raise ValueError('full reference-start episodes required')
                 states, contact = physical()
@@ -226,11 +228,11 @@ def main():
                     # Keep the logged normalized control separate from that buffer.
                     action = torch.tensor(control, device=self.device)
                     executed_control = None
-                obs, _, done, info = self.env_step(self.env, action)
-                # Native tensor-pipeline env_step returns a raw observation,
-                # unlike env_reset. Wrap without resetting or normalizing it.
-                if not isinstance(obs,dict):
-                    obs={'obs':obs}
+                    obs, _, done, info = self.env_step(self.env, action)
+                    # Native tensor-pipeline env_step returns a raw observation,
+                    # unlike env_reset. Wrap without resetting or normalizing it.
+                    if not isinstance(obs,dict):
+                        obs={'obs':obs}
                     if executed_control is None or executed_control.shape != control.shape:
                         raise ValueError('native pre-physics command capture did not run')
                     states, contact = physical()

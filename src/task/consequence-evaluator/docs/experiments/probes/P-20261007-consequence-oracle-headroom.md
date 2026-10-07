@@ -156,3 +156,9 @@ that assumption). Preserve failed r1; repair by wrapping the already measured
 tensor without env_reset or re-normalization. Add both raw-tensor/dictionary
 driver regressions; retry same128step engineering check in fresh r2. This is
 an implementation issue before data collection, not evaluator negative evidence.
+
+Native r2 then exposed the custom run loop omitting get_batch_size before
+policy inference, yielding1×11536 vs1442×1024 instead of an8-env batch.
+Repair both probe and collector to call the released batch initialization,
+with explicit env-count assertion; driver regression now requires it before
+get_action. Preserve r2 and retry r3 under the original bounded geometry scope.

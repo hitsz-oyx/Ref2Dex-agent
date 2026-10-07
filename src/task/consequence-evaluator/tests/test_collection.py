@@ -124,7 +124,12 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
             reset_calls.append(ids.clone())
             task.progress_buf.zero_()
             return {'obs':torch.zeros(n,6)}
+        def get_batch_size(self, observation, initial):
+            assert observation.shape==(n,6)
+            self.batch_size=n
+            return n
         def get_action(self, obs, deterministic):
+            assert self.batch_size==n
             self.last_teacher_choice=torch.zeros(n,dtype=torch.long)
             return torch.zeros(n,18)
         def env_step(self, env, action):
