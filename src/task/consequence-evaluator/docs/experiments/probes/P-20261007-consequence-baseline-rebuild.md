@@ -156,6 +156,31 @@ replay fails, inspect measured/reference q, object and contact before more PPO.
 Stop on clock/state mismatch, input drift, timeout or output cap; no further
 external authorization boundary is crossed.
 
+## Reset implementation blocker (2026-10-07)
+
+Both the learned-parent qualification and the reference-action replay have
+64/64 first-step object displacements of1.4823..1.4841m. Objects start at the
+requested reference position(-.02165,-1.18536,.91826), but the first measured
+post-step state is near the native asset creation position(0,0,.025), with
+near-zero velocities. This is an implementation blocker; these runs cannot
+establish whether an executable parent recipe learns the intended task.
+The original artifacts are retained. The historical CmLite initialization
+chain must also be restored rather than equated with new Cm-off scratch PPO.
+
+Decision Note: first isolate reset persistence in one real GPU physics step,
+before spending another parent or six-expert training budget. Ranked causes:
+setter-after-refresh state loss, repeated GPU root setters, and index lifetime.
+NVIDIA's installed tensor documentation requires a single call per setter
+between simulate calls and refresh before setters. The native reset violates
+both timing constraints. The task-local `tools/audit/native_reset_probe.py`
+uses eight envs/seed17/reference control on GPU0,180s/1MiB per fresh run.
+First run the unchanged native path as a red regression; then test a process-
+local batched reset without touching native/shared training code. A successful
+first-step check alone does not certify initial hand FK, partial resets or
+grasping; audit those before production training. Stop on input drift,
+occupied GPU, deadline, nonfinite states or unphysical displacement. No new
+external authorization is needed within the existing user-authorized rebuild.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;
