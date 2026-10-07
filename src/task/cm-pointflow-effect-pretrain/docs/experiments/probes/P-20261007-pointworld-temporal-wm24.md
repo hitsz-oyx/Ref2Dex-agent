@@ -119,6 +119,15 @@ Training loss and engineering smoke do not establish quality or global utility.
 
 ## Engineering evidence and limitations
 
+2026-10-07工程性能诊断：独立Hilbert融合模块及训练入口已实现，未改变当前运行
+源码、配置、进程或数据。整数编码/排序逐位一致，三臂BF16预测/loss/梯度在
+记录的工程界限内，CPU/CUDA RNG严格一致。相同缓存窗口的2×8短测吞吐约
+提升24%–32%；较大实际batch的吞吐更高，但改变逐pair归一化、体素原点和
+随机布局，不作为原配方等价恢复。checkpoint导入与native resume保持step3，
+原工程checkpoint的模型/optimizer/RNG严格保留。记录、命令及限制见
+[性能优化说明](../../POINTWORLD_PERFORMANCE.md)。本工程测量不改变Probe的
+UNCLEAR状态，也没有将正式三臂切换到新的执行后端。
+
 Before launch:13GPU semantic checks passed/1historical optional test skipped;
 6CPU regressions passed;3update corrected-entry smoke, exact model and optimizer
 checkpoint load, independent val-only evaluation within explicit numerical
