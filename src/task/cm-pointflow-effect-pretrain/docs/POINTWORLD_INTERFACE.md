@@ -81,3 +81,19 @@ data/config/stats/arm and `--resume PATH` with the single-arm trainer; preserve
 original artifacts in a fresh output directory. Frozen evaluator reconstructs
 normalization from checkpoint, supports validation engineering inference and
 default test inference. No PPO is launched.
+
+## Full-run launch
+
+Runtime commit `f507f18`,launcher3942111,workers3942116/3942117/3942118 on
+GPU0/1/2. All have performed non-smoke updates and passed cross-arm checks for
+initial parameter,data,normalization,config and code identity. Peak observed GPU
+reservations at startup approximately1.64/1.66/1.66GB; steps about1.2–1.4s.
+24h shared deadline,40000updates remain the limits. `startup_verified.json`
+captures this initial observation; `group_status.json`/arm progress stay live.
+
+Current-route verification from `ce6fcb4` passes. Whole recovered branch checking
+finds102passed/6legacy failures from deleted baseline artifacts,matching the
+pre-existing recovery boundary. Representative missing motion root:
+`Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions`.
+New ref3 checks/run do not depend on it. Verification log:
+`verify_current_route.log`.

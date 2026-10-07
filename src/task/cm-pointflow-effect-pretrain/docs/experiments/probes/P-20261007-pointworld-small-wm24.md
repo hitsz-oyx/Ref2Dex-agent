@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-small-wm24
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: d1700a3
+git_commit: f507f18
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 1
@@ -66,7 +66,21 @@ arms share identical initial weights and exact checkpoint roundtrip. Resume
 loads and standalone validation inference pass. Corrected80-update repeated
 batch loss3.01555→0.22490 and anchor EPE44.335→16.382mm show plumbing/fit only.
 Train-only4096-window normalization is frozen; old workers saved/stopped by
-explicit user request. Full three-arm training is ready for launch.
+explicit user request. Full three-arm training launched on GPUs0/1/2 at
+runtime commit `f507f18`;launcher PID3942111 and workers3942116/3942117/3942118.
+All arms have completed initial updates with finite losses/gradients. Actual
+normalization/config/data/initial parameter hashes match across the three arms.
+Deadline is the shared24h timestamp in group_status.json; first observed steady
+updates take approximately1.2–1.4s,roughly14–16h for40000 before longer-run
+throughput is established. No held-out predictive conclusion yet: UNCLEAR.
+Runtime identity/progress checks are saved in `startup_verified.json`.
+
+Current-route `VERIFY_BASE=ce6fcb4 tools/verify.py --changed` passes, including
+schema/links/seed checks and selected governance tests. Default whole-branch
+verification includes restored history and reports102passed/6failed; those six
+legacy tests require deleted baseline checkpoint/data artifacts. Representative
+preflight fails on absent `Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions`.
+These are the already recorded recovery limitation, not a ref3 dependency.
 
 During engineering, duplicate sparse coordinates caused nondeterministic CPE
 outputs; corrected with unique unified1cm voxels and inverse restoration, plus

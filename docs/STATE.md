@@ -668,5 +668,9 @@ matched最终比较；原始产物保留。当前分支不变，Mission/claim不
 复用627条完整数据及原sequence split，GPU0/1/2三组独立40000更新、有效batch16、
 共享24h上限。运行目录outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007，
 启动前统计已冻结、接口已验收；实时进程/进度/运行提交见group_status.json。
+实际运行提交f507f18，launcher3942111，worker3942116/3942117/3942118；三组均已
+完成正式更新，loss/梯度有限、初始化/data/stats/config身份一致。早期每步约1.2–1.4s，
+40000步粗估14–16h，共享24h上限不变。本次改动范围verify通过；全恢复分支仍有
+6个依赖已删除baseline产物的历史测试失败（另102项通过），不影响新路线输入。
 不启动PPO；最终trained-policy matched Cm-on/off utility仍OPEN。
 [协议及证据](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md)。
