@@ -39,6 +39,8 @@ def main():
     p.add_argument('--seconds', type=int, default=900)
     p.add_argument('--reference-action-lead', type=int,
                    help='diagnostic reference replay; never qualifies the learned parent')
+    p.add_argument('--reference-motion-root', type=Path,
+                   help='explicit reference-only input override; never evaluates the parent on changed inputs')
     a = p.parse_args()
     output, run = a.output.resolve(), a.run_dir.resolve()
     if (not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists()
@@ -46,6 +48,8 @@ def main():
             or not 1 <= a.seconds <= 900 or a.gpu < 0 or a.seed < 0
             or (a.reference_action_lead is not None and a.reference_action_lead < 0)):
         p.error('fresh task-owned output, native run, GPU and <=900s required')
+    if a.reference_motion_root is not None and a.reference_action_lead is None:
+        p.error('input override is permitted only for reference-controller diagnosis')
     trained = json.loads((run/'run_manifest.json').read_text())
     config = json.loads((run/'config.json').read_text())
     if (trained.get('run_status') != 'COMPLETED' or trained.get('cm_enabled') is not False
@@ -74,6 +78,13 @@ def main():
         if sha(path) != item['tensor_sha256']:
             raise ValueError('native motion identity changed')
         files.append(path)
+    motion_root = config['motion_root']
+    if a.reference_motion_root is not None:
+        motion_root = str(a.reference_motion_root.resolve())
+        actual_inputs = sorted(Path(motion_root).glob('*/interaction_hand_inspire.pt'))
+        if not actual_inputs:
+            raise ValueError('reference override has no native motion tensors')
+        files += actual_inputs
     frozen = {str(path.resolve()):sha(path) for path in files}
     output.mkdir(parents=True)
     scratch = ROOT/'tmp/consequence-parent-qualification'
@@ -112,7 +123,7 @@ def main():
     native.EvalPlayer = FullStartPlayer
     argv = ['--task','Dexplore_Inspire','--cfg_env',config['cfg_env'],
             '--cfg_train',str(native_root/'data/cfg/train/rlg/inspire.yaml'),
-            '--motion_file',config['motion_root'],'--checkpoint',str(checkpoint),
+            '--motion_file',motion_root,'--checkpoint',str(checkpoint),
             '--disable-early-termination','--headless','--sim_device','cuda:0',
             '--rl_device','cuda:0','--pipeline','gpu','--graphics_device_id','0',
             '--num_envs','64','--seed',str(a.seed),'--output',str(output/'native-results.json'),
@@ -128,6 +139,7 @@ def main():
                     full_frame0=True, early_termination_disabled=True, command=argv,
                     reference_action_lead=a.reference_action_lead)
     manifest['reset_contract'] = 'batched_actor_roots_urdf_fk_no_extra_physics_step'
+    manifest['reference_motion_root_override'] = str(a.reference_motion_root.resolve()) if a.reference_motion_root else None
     write(output/'run_manifest.json',manifest)
     started, old_argv, old_cwd = time.monotonic(), sys.argv, Path.cwd()
     old_signal = signal.getsignal(signal.SIGALRM)
