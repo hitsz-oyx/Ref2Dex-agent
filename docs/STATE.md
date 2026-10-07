@@ -82,6 +82,27 @@ cup参考输入CPU恢复通过（934帧/相对误差<3e-7m），不是cup抓取�
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
 
+### consequence-evaluator 2026-10-08 续跑
+
+六个新 endpoint 已冻结为不同 hash：airplane_base36/64、duck8/64、cup63/64
+通过固定资格门；mixed12/train5/balanced5 为0/5/4，保留为 observational
+候选。route.json 明确 `all_experts_operationally_qualified=false` 和
+`training_allowed=false`，不恢复旧六专家 Validation 结论。queue smoke 的
+hard-object oversampling 与 minibatch divisibility 修复已提交
+`3b4305b`、`e62dd08`。
+
+首轮三 split 原始采集 144 episodes 后，严格 local-state label 为
+train/val/test=0/0/2；独立 proxy/gap 几何审计通过。按 Decision Note 追加
+296/297/298 三波次、216 episodes，仍使用 24 步 decision-known residual 和
+2 cm hand RMS。追加标签在未改合同下变为 `READY`、pair=2/1/5，审计为
+149,841 valid frames、49,388 native proxy、45,984 proxy-near、仅1 proxy-far。
+但 2 train/1 val 不足以支撑 32-pair/update 的 evaluator fit；继续训练只会
+重复采样并在一个 validation pair 上选模，故本轮不启动 `prepare_windows` 或
+`train_matched`，也不放宽阈值。原始、label 和 coverage diagnostic 均保留；
+下一步若继续，需设计同一 current state 的 twin residual branches，而不是
+再堆 generic waves 或把 hand RMS 放宽后重判。North-star matched Cm-on/off
+policy utility 仍 OPEN。
+
 更新：2026-10-06。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
 不纳入其他独立会话尚未交付的结果。完整旧摘要见[状态快照](archive/research/STATE-20260930-before-workflow-simplification.md)。
 

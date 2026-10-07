@@ -39,13 +39,14 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | New parent50/64, airplane_base36/64 and duck3408/64 pass operational readiness; cup recovery is live. Six-role rollout and evaluator fitting | Finish the separately bounded specialist/mixed roles, freeze genuine new routes, then audit continuous physical labels before matched evalua | probes/PROMISING |
+| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | Three roles pass the operational gate (airplane_base36/64, duck8/64, cup63/64); mixed12/train5/balanced5 remain weak at 0/5/4. A six-hash ob | Freeze the six endpoint hashes and preserve weak-role runs as observational candidates; do not append unbounded specialist epochs. Keep eval | probes/PROMISING |
 
 ## HF-consequence-oracle-headroom
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Ref2 contracts pass; native s1 and duck geometry wiring verified, collection input/coverage defects repaired. Real six-expert rollout and ma | Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched P | probes/UNCLEAR |
+| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Six-route continuous collection completed, but strict state-matched labels are insufficient for fitting: train/val/test contain 0/0/2 local  | Repeated waves make the label gate READY at 2/1/5 train/val/test pairs, but this is too sparse for a useful fit; stop before evaluator train | probes/UNCLEAR |
+| [P-20261008-consequence-pair-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md) | Can repeated waves recover strict current-state preference coverage? | Three-wave train/val/test collection is `READY` under the unchanged | Stop before fitting and design explicit twin current-state branches; | probes/UNCLEAR |
 
 ## HF-contact-innovation
 

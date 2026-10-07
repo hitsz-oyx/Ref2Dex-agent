@@ -19,8 +19,8 @@ run_id: oracle-headroom-20261007
 
 # Does physical future add ranking information to decision-known residual plans?
 
-Result: Ref2 contracts pass; native s1 and duck geometry wiring verified, collection input/coverage defects repaired. Real six-expert rollout and matched evaluator fit remain pending.
-Decision: Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched Probe.
+Result: Six-route continuous collection completed, but strict state-matched labels are insufficient for fitting: train/val/test contain 0/0/2 local preference pairs. The physical geometry audit passes; no evaluator fit was started.
+Decision: Repeated waves make the label gate READY at 2/1/5 train/val/test pairs, but this is too sparse for a useful fit; stop before evaluator training and design paired current-state branches.
 
 ## Purpose and decision
 
@@ -229,3 +229,82 @@ Collector rechecks/fixes these generated provenance dependencies, while
 labeling still refuses missing actual clean progress or per-split pairs.
 Six new route-contract regressions pass; this does not yet produce a real
 six-expert route, as four further role checkpoints remain missing.
+
+## Six-role route and first continuous collection (2026-10-08)
+
+The fresh specialist endpoints are frozen in
+`outputs/consequence-evaluator/expert-route-20261008-r1/route.json` with six
+distinct endpoint hashes. Fixed qualification counts are airplane_base36/64,
+duck8/64, cup63/64, mixed12 0/64, train5 5/64 and balanced5 4/64. The route
+therefore remains `training_allowed=false` and the three weak roles are kept as
+observational candidates only; this does not recreate the old six-expert
+Validation substrate.
+
+The route nevertheless passed the native provenance checks for a bounded raw
+collection. Three runs (`continuous-20261008-{train,val,test}-r1`) completed
+48 episodes each (144 total; 24 environments, two waves, 30 Hz, 1200-step
+cap). Raw episodes retain only H, executed A, decision-known residual plans,
+measured hand keypoints, object poses and clocks; physical contact/gap fields
+remain diagnostics. All source manifests completed and their hashes were
+accepted by the labeler.
+
+The label output is
+`outputs/consequence-evaluator/labeled-continuous-20261008-r1/label_report.json`.
+It has 144 episodes and 11,733 selected windows, but status
+`INSUFFICIENT_PREFERENCES`, with pairs train/val/test = 0/0/2. The event
+windows contain 2,530 unambiguous local events (maintained hold 2,005,
+grasp lost 404, lift achieved 74, unrecovered drop 47). The independent
+geometry audit reports 99,894 valid frames, 31,297 native proxy frames and
+29,115 proxy-and-near frames; only one proxy frame is farther than 3 cm. The
+immediate blocker is state coverage rather than a failed geometry wire.
+
+The reproducible matching audit is
+`outputs/consequence-evaluator/pair-coverage-diagnostic-20261008-r1/coverage.json`.
+At the declared object/height/rotation/hand limits, pair counts are 0/0/2;
+diagnostic hand limits of 3/5/8 cm give 1/1/3, 2/1/4 and 2/1/5. These relaxed
+counts are not labels and do not change the protocol. No matched evaluator
+fit or test evaluation was launched, because `training_allowed` is false.
+
+### Decision Note: repeated-wave state coverage
+
+Question: can the missing train/val pairs be obtained by repeating the same
+motion/phase assignments while leaving the physical-state contract unchanged?
+
+Evidence: the first collection has ample raw windows and corroborated gap
+measurements, but only 2 test pairs under the fixed current-state match. A
+larger hand threshold would be a semantic change and still leaves train/val
+nearly empty.
+
+Root action: run a separate bounded Probe with three waves per split (seeds
+296/297/298), the same route, motions, residual amplitude, 24-step plan and
+2 cm hand RMS/object-state thresholds. This adds repeated current states while
+preserving the old 144-episode artifact. Do not merge the new sources into
+training unless the labeler produces nonempty train and val pairs under the
+unchanged rule.
+
+Cost and stop: at most 72 episodes per split, one GPU at a time, 900 s and
+2 GiB per collector, 600 s CPU labeling, and the existing 2 GiB/20 GiB output
+caps. Stop without fitting if either train or val remains empty, if source
+provenance drifts, or if geometry diagnostics become invalid. A positive
+coverage result only permits a fresh fit decision; it is not an oracle-headroom
+claim.
+
+Implementation checkpoint: queue smoke sizing now accounts for hard-object
+oversampling and minibatch divisibility (`3b4305b`, `e62dd08`).
+
+## Repeated-wave coverage result (2026-10-08)
+
+The follow-up card `P-20261008-consequence-pair-coverage` completed its three
+bounded collectors (seeds296/297/298, 72 episodes per split). The unchanged
+label rule now produces `READY` with train/val/test = 2/1/5, and the sampled
+geometry audit remains corroborated (149,841 valid frames; one proxy-far
+frame). This resolves the original empty train/val gate as a data-contract
+check, but not as useful evaluator supervision.
+
+The pair count is still too small for the declared 32-pair/update fit: every
+training update would resample two comparisons and validation would select on
+one. Root therefore stops before `prepare_windows.py`/`train_matched.py`, keeps
+the 216 new raw episodes and label output, and records the result as UNCLEAR.
+No E0/Eoracle ranking or world-model conclusion is drawn. Future work needs
+explicit twin current-state branches rather than more generic waves or a
+post-hoc hand RMS relaxation.

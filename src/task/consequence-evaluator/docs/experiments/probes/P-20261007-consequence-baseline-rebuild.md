@@ -19,8 +19,8 @@ run_id: baseline-rebuild-original-20261007-r1
 
 # Rebuild a self-trained rollout substrate after asset loss
 
-Result: New parent50/64, airplane_base36/64 and duck3408/64 pass operational readiness; cup recovery is live. Six-role rollout and evaluator fitting remain incomplete.
-Decision: Finish the separately bounded specialist/mixed roles, freeze genuine new routes, then audit continuous physical labels before matched evaluator fitting.
+Result: Three roles pass the operational gate (airplane_base36/64, duck8/64, cup63/64); mixed12/train5/balanced5 remain weak at 0/5/4. A six-hash observational route and raw continuous collection exist, but evaluator fitting is still blocked by state-matched label coverage.
+Decision: Freeze the six endpoint hashes and preserve weak-role runs as observational candidates; do not append unbounded specialist epochs. Keep evaluator fitting paused until paired current-state branches are designed.
 
 ## Motivation and Decision Note
 
@@ -546,3 +546,51 @@ Cup queue is live at4c71462:baseline-transfer-cup-20261008-r1, queue
 PID1519563, with fixedseed290qualification queued.89Task tests pass
 after route-contract additions, including20collector/route tests.
 No new expert success or real evaluator result is inferred from these tests.
+
+## Completed role recovery and route boundary (2026-10-08)
+
+The cup transfer from the qualified s3 endpoint completed independently at
+epoch340. Its fixed seed290 qualification is 63/64 and PROMISING for this
+role's data substrate; endpoint hash is
+`ec326702a3efd85579d4d853801a23361c6198e648de58bbe1a1edcea1dd290c`.
+
+The remaining bounded fits also completed. `mixed12` (epoch300) is 0/64,
+`train5` (epoch280) is 5/64 and `balanced5` (epoch300) is 4/64; all three
+qualification manifests are `training_allowed=false` and status UNCLEAR.
+Their native traces are retained, but none is promoted to a reliable expert.
+The mixed12 smoke exposed an environment-count bug caused by hard-object
+oversampling (13 motions from an 8-env smoke) and then a minibatch divisibility
+constraint. The queue now sizes smoke environments conservatively and keeps
+the PPO minibatch contract (`3b4305b`, `e62dd08`); the failed r1/r2 artifacts
+remain preserved.
+
+`prepare_expert_route.py` generated
+`outputs/consequence-evaluator/expert-route-20261008-r1/route.json` with six
+distinct owned checkpoint hashes and explicit per-role qualification evidence.
+Because only airplane_base, duck and cup meet the 8/64 gate, the route records
+`all_experts_operationally_qualified=false` and `training_allowed=false`.
+It is suitable for a bounded observational rollout and provenance testing,
+not for claiming that the old six-expert substrate has been restored.
+
+### Decision Note: specialist stopping condition
+
+Question: should the three weak roles receive automatic extra epochs before
+the continuous data contract is repaired?
+
+Evidence: the separate longer cup and duck recipes recover their role gates,
+whereas mixed12/train5/balanced5 remain below 8/64 after their declared
+bounded recipes. The first raw collection already shows that the immediate
+evaluator blocker is strict current-state pair coverage, and more specialist
+epochs would not repair that contract by themselves.
+
+Root action: freeze all six endpoint hashes and stop automatic specialist
+continuations. Keep the weak-role traces as observational candidates and run
+the separately recorded repeated-wave coverage Probe. Any new specialist
+recipe requires a fresh Decision Note with a concrete role-specific failure
+hypothesis; it cannot inherit this card's budget.
+
+The repeated-wave Probe completed with 216 additional raw episodes and a
+valid `READY` label manifest, but only 2 train and 1 val state-matched pairs.
+This confirms that the route and native diagnostics are usable while leaving
+the evaluator fit underdetermined. No specialist endpoint is promoted and no
+evaluator/world-model negative result is assigned to the weak role outcomes.
