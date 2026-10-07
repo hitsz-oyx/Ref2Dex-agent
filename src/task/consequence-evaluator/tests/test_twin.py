@@ -86,6 +86,11 @@ def test_twin_rejects_early_done():
 
 
 def test_twin_rejects_nonintegral_tick_and_out_of_range_actual_action():
+    bad_provenance = provenance(); bad_provenance['prefix_steps'] = 40.0
+    with pytest.raises(ValueError, match='provenance'):
+        capture_snapshot('p', 40, snapshot().state, RNG, np.zeros(1), np.eye(4),
+                         np.zeros((11, 3)), required_state_keys=REQUIRED,
+                         replay_provenance=bad_provenance)
     with pytest.raises(ValueError, match='tick'):
         capture_snapshot('p', 3.7, snapshot().state, RNG, np.zeros(1), np.eye(4),
                          np.zeros((11, 3)), required_state_keys=REQUIRED,

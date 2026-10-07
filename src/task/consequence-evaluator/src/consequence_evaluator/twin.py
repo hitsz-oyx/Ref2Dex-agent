@@ -99,8 +99,11 @@ def _valid_replay_provenance(value):
     if any(not isinstance(value[name], str) or len(value[name]) != 64
            or any(char not in '0123456789abcdef' for char in value[name]) for name in hashes):
         return False
-    if (isinstance(value['prefix_steps'], bool) or not isinstance(value['prefix_steps'], int)
-            or value['prefix_steps'] < 0 or value['prefix_action_count'] != value['prefix_steps']
+    count_names = ('prefix_steps', 'prefix_action_count', 'initial_frame_count', 'final_frame_count')
+    if any(isinstance(value[name], (bool, np.bool_)) or not isinstance(value[name], (int, np.integer))
+           for name in count_names):
+        return False
+    if (value['prefix_steps'] < 0 or value['prefix_action_count'] != value['prefix_steps']
             or value['initial_frame_count'] != 0 or value['final_frame_count'] != value['prefix_steps']
             or value['fresh_simulator'] is not True):
         return False
@@ -110,7 +113,8 @@ def _valid_replay_provenance(value):
             and np.isfinite(error) and error >= 0 and error <= 1e-3
             and not isinstance(value['physics_dt'], (bool, np.bool_))
             and isinstance(value['physics_dt'], (int, float, np.number))
-            and np.isfinite(value['physics_dt']) and value['physics_dt'] > 0)
+            and np.isfinite(value['physics_dt'])
+            and np.isclose(value['physics_dt'], 1 / 30, atol=1e-8, rtol=0))
 
 
 @dataclass(frozen=True)
