@@ -26,6 +26,11 @@ from oakink_wm.pointworld_temporal import model_from_config, capped_collate as c
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def configure_numerics():
+    torch.set_num_threads(2)
+    torch.backends.cuda.matmul.allow_tf32 = True
+
+
 def implementation_sources():
     return {str(f.relative_to(TASK)): digest(f) for f in (
         Path(__file__).resolve(), TASK/'tools/run/evaluate_oakink2_pointworld_temporal.py',
@@ -128,8 +133,7 @@ def run(args):
     atomic_json(config_path, config)
     seed = config['seed']
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed); torch.cuda.manual_seed_all(seed)
-    torch.set_num_threads(2)
-    torch.backends.cuda.matmul.allow_tf32 = True
+    configure_numerics()
     train, val = Windows(args.data, 'train'), Windows(args.data, 'val')
     dataset_hash = digest(args.data / 'processed/manifest.json')
     stats = json.loads(args.stats.read_text())

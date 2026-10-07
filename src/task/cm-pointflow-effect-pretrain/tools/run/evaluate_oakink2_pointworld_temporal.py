@@ -22,7 +22,7 @@ def main():
     p.add_argument('--output',type=Path,required=True);p.add_argument('--samples',type=int,default=256)
     p.add_argument('--engineering-only',action='store_true')
     p.add_argument('--split',choices=['val','test'],default='test')
-    a=p.parse_args();torch.set_num_threads(2)
+    a=p.parse_args();trainer.configure_numerics()
     state=torch.load(a.checkpoint,map_location='cpu',weights_only=False)
     if state['dataset_hash']!=trainer.digest(a.data/'processed/manifest.json'):raise ValueError('dataset mismatch')
     sources=state['identity'].get('implementation_sources', {})

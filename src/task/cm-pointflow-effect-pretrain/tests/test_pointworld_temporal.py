@@ -142,6 +142,13 @@ def test_training_identity_accepts_relative_script_invocation(monkeypatch):
     monkeypatch.setattr(trainer, '__file__', os.path.relpath(path))
     assert trainer.implementation_sources() == expected
     assert len(expected) == 6
+    previous = torch.backends.cuda.matmul.allow_tf32
+    try:
+        torch.backends.cuda.matmul.allow_tf32 = False
+        trainer.configure_numerics()
+        assert torch.backends.cuda.matmul.allow_tf32
+    finally:
+        torch.backends.cuda.matmul.allow_tf32 = previous
 
 
 def test_real_cuda_time_identity_masks_gradients_and_checkpoint():
