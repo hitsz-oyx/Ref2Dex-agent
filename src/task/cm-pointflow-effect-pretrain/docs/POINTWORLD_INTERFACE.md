@@ -97,3 +97,26 @@ pre-existing recovery boundary. Representative missing motion root:
 `Ref2Dex-agent-baseline/outputs/CmResidual/agent_contact_option_airplane_motions`.
 New ref3 checks/run do not depend on it. Verification log:
 `verify_current_route.log`.
+
+## Frozen screen audit
+
+`tools/audit/summarize_pointworld_screen.py` reads progress while training is
+live, and refuses a final numeric screen until all three arms finish equal
+updates with non-engineering TEST results from their actual final checkpoints.
+It checks shared identities/source hashes, checkpoints and a CPU-only replay
+of the fixed256-window test primary label/static panel; the replay additionally
+reports primary window and sequence coverage. No test labels are opened while
+training is pending. PASS/FAIL refers only to the predeclared10%/10%/static/5%
+screen; the scientific conclusion remains UNCLEAR until root reviews attribution.
+Synthetic arithmetic boundary checks are engineering only. Pending artifact:
+`screen-pending-first.json` verified all four own process command lines live.
+
+```bash
+TMPDIR="$PWD/tmp" python \
+  src/task/cm-pointflow-effect-pretrain/tools/audit/summarize_pointworld_screen.py \
+  --run outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007 \
+  --data outputs/cm-pointflow-effect-pretrain/oakink2-wm30-k24-20261006 \
+  --output outputs/cm-pointflow-effect-pretrain/pointworld-small-wm24-20261007/final-screen.json
+```
+
+Use that output name after completion; an existing report is never overwritten.

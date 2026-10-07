@@ -88,6 +88,17 @@ fixed eval serialization at every pooling stage. Failed logs and early smoke
 remain; invalid adapter outputs do not count as negative ref3 evidence.
 [Full interface record](../../POINTWORLD_INTERFACE.md).
 
+Final reporting now has a read-only Task audit entry,
+`tools/audit/summarize_pointworld_screen.py`. It holds the numeric screen at
+NOT_READY until equal-update final TEST evaluation is complete, checks original
+identities/checkpoint hashes and replays the fixed test static label panel on
+CPU. Gate arithmetic tests include exact10%/5% boundaries, nonfinite errors,
+unequal updates and missing test output. While training is live it checks the
+own process command lines and reads progress only; no test panel is opened.
+The first pending snapshot confirms all four processes live after~230updates.
+This adds final-result audit readiness; it does not change the active training
+code/config/data, protocol, resource budget or current UNCLEAR conclusion.
+
 ## Limitations / future evidence
 
 Observed future hands are post-treatment geometry, not counterfactual commands.
