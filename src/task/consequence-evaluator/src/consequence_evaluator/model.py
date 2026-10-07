@@ -43,11 +43,18 @@ def progress_loss(logits, progress, mask):
             - logp.gather(-1, hi[:, None]).squeeze(-1) * upper).mean()
 
 
-def matched_loss(chosen, rejected, chosen_labels, rejected_labels):
+def matched_loss(chosen, rejected, chosen_labels, rejected_labels, expert=None, expert_labels=None):
     """Independent scalar BT is an explicit adaptation, not Robometer's joint head."""
     rank = F.softplus(rejected['score'] - chosen['score']).mean()
-    logits = torch.cat((chosen['progress_logits'], rejected['progress_logits']))
-    target = torch.cat((chosen_labels['progress'], rejected_labels['progress']))
-    mask = torch.cat((chosen_labels['progress_mask'], rejected_labels['progress_mask']))
+    logits = [chosen['progress_logits'], rejected['progress_logits']]
+    target = [chosen_labels['progress'], rejected_labels['progress']]
+    mask = [chosen_labels['progress_mask'], rejected_labels['progress_mask']]
+    if (expert is None) != (expert_labels is None):
+        raise ValueError('expert predictions and labels must be provided together')
+    if expert is not None:
+        logits.append(expert['progress_logits'])
+        target.append(expert_labels['progress'])
+        mask.append(expert_labels['progress_mask'])
+    logits, target, mask = torch.cat(logits), torch.cat(target), torch.cat(mask)
     progress = progress_loss(logits, target, mask)
     return rank + progress, dict(preference=rank, progress=progress)

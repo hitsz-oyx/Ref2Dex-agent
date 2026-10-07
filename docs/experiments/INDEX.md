@@ -41,11 +41,23 @@
 | --- | --- | --- | --- | --- |
 | [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-consequence-oracle-headroom
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does observed physical future add ranking information to recorded robot actions? | Implementation and44synthetic engineering tests pass; no real six-expert data or matched fit yet. | Qualify the newly trained parent, rebuild six distinct experts, then collect continuous episodes and run the bounded matched Probe. | probes/UNCLEAR |
+
 ## HF-contact-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Preserve the completed fixed-fit result; pause the old route while ref11 proceeds on the original branch. | probes/UNPROMISING |
+
+## HF-epic-contact-overlap
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261007-epic-contact-overlap](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-epic-contact-overlap.md) | Same-clip EPIC-Contact and ObjectForesight bridge | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-execution-geometry
 

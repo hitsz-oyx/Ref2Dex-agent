@@ -5,7 +5,7 @@ experiment_id: P-20261007-consequence-baseline-rebuild
 date: 2026-10-07
 task: consequence-evaluator
 branch: consequence-evaluator
-git_commit: 76fdd8c
+git_commit: 7c85d5df67af2f4e814c62e2b8d2c080a4a64999
 claim_id: C3
 hypothesis_family: HF-consequence-baseline-rebuild
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [289, 290]
 decision_changed_if_positive: promote the newly trained parent to s3 transfer and the remaining expert recipe
 decision_changed_if_negative: diagnose native geometry and learning before spending the six-expert budget
 status: UNCLEAR
-run_id: baseline-rebuild-20261007-r2
+run_id: baseline-rebuild-20261007-r4
 ---
 
 # Rebuild a self-trained rollout substrate after asset loss
@@ -100,6 +100,29 @@ are retained. Next retry is baseline-rebuild-20261007-r4, GPU0only, the same
 staged inputs and2/200epoch caps. User explicitly allocates GPUs1/2to separate
 OakInk2 continuation; this expert run never shares those devices. No physics
 success claim follows from fixing tensor placement.
+
+## Resumed GPU0 execution
+
+User resumes consequence-evaluator while the four-source PointWorld fit runs
+on GPU1/2. GPU0 was confirmed empty; launch source commit7c85d5d, queue1004318.
+The native GPU-pipeline smoke completes2PPO epochs in51.07s with endpoint
+`smoke/train/inspire_slow_slow_energy_reset_contact_table_adjust_parameter_2/nn/GRAB_00000002.pth`.
+This resolves the r3 first-reset device failure in the actual integration;
+it proves updates/checkpoint saving, not successful grasping. Fresh parent_s1
+seed289/64env starts separately, child1007162, fixed200epochs/3600s. Sources
+and staged inputs remain frozen; original failed r2/r3 logs are retained.
+Artifacts: `outputs/consequence-evaluator/baseline-rebuild-20261007-r4/`.
+
+Qualification entry is `tools/run/qualify_parent.py`: reuse the native player
+with GPU tensor pipeline, force and verify all64first episodes start at frame0,
+disable early termination, capture step-major physical transitions, and compute
+the predeclared45-frame/no-later-drop gate independently of the player's weaker
+5-frame lift indicator. First-done truncation excludes later resets, and pre/
+post-state and progress clocks are checked. Seed290,<=900s/1GiB, fresh output.
+Qualification transition actions can be native-mutated PD values; these are
+diagnostic traces, explicitly not promoted to evaluator training examples.
+Six synthetic gate tests cover45-frame hold, later drops/resets, missing done,
+shifted clocks/poses and nonzero starts. Real parent qualification is pending.
 
 ## Limitations / future evidence
 

@@ -143,6 +143,7 @@ def main():
                     phase_definitions='approach;contact;3-contact-step-grasp;3cm-lift;5-held-step-hold',
                     perturbation_channels='native independent controls; coupled distal residuals zero',
                     diagnostic_only_fields=['contact','contact_valid','actual_residual','clipped','q','hand_root'])
+    manifest['contact_semantics'] = 'native_hand_and_object_net_force_proxy'
     write(output/'manifest.json', manifest)
     def check():
         if time.monotonic()-started >= a.seconds:
@@ -244,7 +245,7 @@ def main():
     native = ['--task','Dexplore_Inspire','--cfg_env',str(a.cfg_env.resolve()),
               '--cfg_train',str(a.cfg_train.resolve()),'--motion_file',str(a.motions.resolve()),
               '--checkpoint',config['experts'][config['default_expert']]['checkpoint'],
-              '--headless','--sim_device','cuda:0','--rl_device','cuda:0','--pipeline','cpu',
+              '--headless','--sim_device','cuda:0','--rl_device','cuda:0','--pipeline','gpu',
               '--graphics_device_id','0','--num_threads','1','--num_envs',str(a.num_envs),
               '--seed',str(a.seed),'--output',str(output/'native-player-unused.json'),
               '--output_path',str(output/'native-runtime'),'--disable-early-termination']

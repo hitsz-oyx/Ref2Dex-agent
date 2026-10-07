@@ -29,7 +29,10 @@
 Robometer 原版使用联合两轨迹 preference head；独立 `s` 的 Bradley–Terry loss 是明确改编。
 Progress 用10-bin soft CE，只监督可靠 `expert_success` 的绝对 episode 进度，失败/次优 mask。
 不把每个窗口重新标成0→1，也不把 episode 最终失败直接继承为全部局部窗口失败。
-首版要求显式局部偏好 annotation；不自动产生旧Y或从窗口外结局伪造局部排序。
+首版要求可审计的局部偏好 annotation；不自动产生旧Y或从窗口外结局伪造局部排序。
+[监督准备](tools/run/label_continuous.py)只对明确的保持/掉落和抬升/失抓窗口给出偏好，
+模糊的miss/recovery比较不标。可靠clean轨迹的45帧保持且之后不掉落用于绝对progress锚点；
+perturbed/失败/次优精确progress均mask。两臂另抽相同的train专家窗口，保证progress锚点不依赖偏好配对覆盖。
 
 ## 连续 episode 输入
 
@@ -63,7 +66,7 @@ Progress 用10-bin soft CE，只监督可靠 `expert_success` 的绝对 episode 
 
 其中 `action[t]` 把 `object_pose[t]` 变成 `object_pose[t+1]`。
 episode 文件必须完整，不能把 reset 后的另一条轨迹拼进来。
-采集驱动已经接入；真实Isaac Gym加载和物理rollout仍待备份与空闲GPU恢复后验证。
+采集驱动已经接入，使用CUDA PhysX tensor pipeline；真实六专家连续采集仍待新权重资格检查后执行。
 CPU测试实际执行驱动中的采集循环，覆盖不同env先后done、原生in-place action转换、
 零partial reset、T控制/T+1状态对齐和恢复专家控制；它不能证明真实物理响应或阶段质量。
 
@@ -141,10 +144,13 @@ task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计�
 并做完整frame0检查，再迁移s3、mixed12/train5/balanced5及duck/cup，最终生成新六专家route/hash。
 [重建协议](docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)保留成本、资格检查和下一步。
 
-2026-10-07：旧 oracle 原始 outputs 与六专家checkpoint未在当前仓库找到；外部只读项目中
-存在仿真资产，但扫描外部旧 DExplore outputs 未找到这六个固定自训练权重。
-当前GPU0/1/2仍运行PointWorld，其他卡均有任务，因此没有启动新采集或真实拟合。
-新的重建任务已按用户授权排队；先核对新策略抓取与阶段覆盖，再采集/生成局部监督并拟合evaluator。
+2026-10-07：旧 oracle 原始 outputs 与六专家checkpoint未在当前仓库找到。
+用户恢复本Task后，GPU0已启动baseline-rebuild-20261007-r4；2epoch原生GPU smoke通过，
+64env/200epoch随机初始化s1母策略正在训练，GPU1/2继续四源PointWorld混合拟合。
+[母策略资格检查](tools/run/qualify_parent.py)固定64条frame0完整episode，核对45帧保持/之后不掉落，
+通过后才扩展六专家与连续采集。当前44项CPU工程测试覆盖采集、标签、progress独立抽样、
+两臂训练合同、独立评价和资格指标，不代表真实oracle headroom。
+后续协议见[Oracle Probe](docs/experiments/probes/P-20261007-consequence-oracle-headroom.md)。
 
 Recorded reactive future A 已受未来反馈影响；Eoracle−E0 只度量在这种A条件下的额外信息。
 正向才值得进行EWM与后续在线规划；负向先查数据/监督/拟合，不能直接判世界模型无用。

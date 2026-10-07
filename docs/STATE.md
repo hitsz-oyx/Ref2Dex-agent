@@ -30,7 +30,10 @@ ContactPose真实世界位姿/30Hz及gap屏蔽已接入，参与者train/val/tes
 OakInk2/GRAB/ARCTIC/ContactPose采样50/20/20/10；原latest只加载模型，优化器/调度重置。
 训练窗口总4794229，固定64val窗口/source，step500运动anchor h24宏平均52.56→45.74mm；
 OakInk2新固定panel9.79→10.49mm，较step250略恢复，其他三源改善，早期遗忘/适配取舍仍UNCLEAR。
-沿用原deadline2026-10-08 09:58:37，最多40000新更新，不追加24h。GPU0空闲，r4仍未启动。
+沿用原deadline2026-10-08 09:58:37，最多40000新更新，不追加24h。用户随后恢复consequence-evaluator：GPU0启动r4重建，2epoch GPU smoke通过，
+64env/200epoch s1 scratch母策略训练中。待固定64条frame0/45帧保持无后续drop资格检查，
+再扩展六专家采集。新增局部物理事件标签、独立专家progress抽样和资格检查共44项工程测试通过；
+尚未获得真实evaluator数据或oracle headroom结论。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。

@@ -34,6 +34,15 @@ def normalized(data, ids, device, statistics):
     return inputs, labels
 
 
+def require_supervision(data):
+    if not len(data.pair_ids['train']) or not len(data.pair_ids['val']):
+        raise ValueError('train and development preference pairs required')
+    expert_ids = np.flatnonzero((data.arrays['split'] == 'train') & data.arrays['progress_mask'].any(axis=1))
+    if not len(expert_ids):
+        raise ValueError('reliable train expert progress anchors required for the joint objective')
+    return expert_ids
+
+
 @torch.no_grad()
 def evaluate(model, data, pair_ids, device, statistics, use_future, batch):
     model.eval()
@@ -79,8 +88,7 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = str(a.gpu)
     device = torch.device('cuda:0')
     data = Windows(a.data)
-    if not len(data.pair_ids['train']) or not len(data.pair_ids['val']):
-        raise ValueError('train and development preference pairs required')
+    expert_ids = require_supervision(data)
     output.mkdir(parents=True)
     source = {str(path.relative_to(ROOT)): sha(path) for path in
               [Path(__file__), *sorted((TASK / 'src/consequence_evaluator').glob('*.py'))]}
@@ -94,6 +102,7 @@ def main():
     optimizers = {name: torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=.01)
                   for name, model in models.items()}
     draws = np.random.default_rng(a.seed + 1).choice(data.pair_ids['train'], (a.updates, a.batch))
+    expert_draws = np.random.default_rng(a.seed + 2).choice(expert_ids, (a.updates, a.batch))
     torch.save(dict(model=initial.state_dict(), statistics=data.normalization()), output / 'initial.pt')
     manifest = dict(status='RUNNING', task='consequence-evaluator', run_id=output.name,
                     work_version='consequence-evaluator-ref1',
@@ -102,10 +111,12 @@ def main():
                     window_manifest_sha256=sha(a.data / 'manifest.json'),
                     windows_sha256=data.manifest['windows_sha256'], sources=source,
                     updates=a.updates, pairs_per_update=a.batch, seconds_budget=a.seconds,
+                    expert_windows_per_update=a.batch,
                     parameters=sum(v.numel() for v in initial.parameters()), width=a.width, layers=2,
                     split='train/val only', preference_objective='adapted_independent_scalar_BT',
                     initial_weights_sha256=sha(output / 'initial.pt'),
-                    training_pair_draw_sha256=hashlib.sha256(draws.tobytes()).hexdigest())
+                    training_pair_draw_sha256=hashlib.sha256(draws.tobytes()).hexdigest(),
+                    training_expert_draw_sha256=hashlib.sha256(expert_draws.tobytes()).hexdigest())
     started = time.monotonic()
     best = {name: -1. for name in models}
     step = 0
@@ -119,12 +130,14 @@ def main():
             pairs = data.arrays['pairs'][pair_ids]
             left, left_labels = normalized(data, pairs[:, 0], device, statistics)
             right, right_labels = normalized(data, pairs[:, 1], device, statistics)
+            expert, expert_labels = normalized(data, expert_draws[step-1], device, statistics)
             record = dict(step=step)
             for name, model in models.items():
                 optimizers[name].zero_grad(set_to_none=True)
                 loss, terms = matched_loss(model(**left, use_future=name == 'oracle'),
                                            model(**right, use_future=name == 'oracle'),
-                                           left_labels, right_labels)
+                                           left_labels, right_labels,
+                                           model(**expert, use_future=name == 'oracle'), expert_labels)
                 if not torch.isfinite(loss):
                     raise FloatingPointError('nonfinite matched evaluator loss')
                 loss.backward()

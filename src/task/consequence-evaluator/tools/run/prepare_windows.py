@@ -60,7 +60,12 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
             raise ValueError('pre/post action alignment mismatch')
         if not np.allclose(np.diff(a['timestamps']), 1 / 30, atol=1e-6, rtol=0):
             raise ValueError('episode clock is not contiguous 30 Hz')
-        for tick in range(steps - K + 1):
+        ticks = record.get('window_ticks', list(range(steps - K + 1)))
+        if (not isinstance(ticks, list) or any(isinstance(t, bool) or not isinstance(t, int)
+                                             or t < 0 or t > steps-K for t in ticks)
+                or len(set(ticks)) != len(ticks)):
+            raise ValueError('invalid explicit full-window selection')
+        for tick in sorted(ticks):
             if len(windows['history']) >= max_windows:
                 raise ValueError('window budget exhausted; explicitly subset source episodes')
             if time.monotonic() - started >= seconds:

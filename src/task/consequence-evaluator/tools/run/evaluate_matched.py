@@ -59,6 +59,9 @@ def load_frozen(fit, data, data_root):
                     'training_pair_draw_sha256', 'width', 'layers', 'updates', 'pairs_per_update'):
             if payload['manifest'][key] != manifest[key]:
                 raise ValueError('checkpoint matched-fit identity mismatch: ' + key)
+        for key in ('training_expert_draw_sha256', 'expert_windows_per_update'):
+            if payload['manifest'].get(key) != manifest.get(key):
+                raise ValueError('checkpoint expert-progress sampling identity mismatch: ' + key)
         stats = payload['statistics']
         if (set(stats) != set(expected_stats)
                 or any(len(stats[key]) != 2 or not all(torch.equal(old.cpu(), new)
