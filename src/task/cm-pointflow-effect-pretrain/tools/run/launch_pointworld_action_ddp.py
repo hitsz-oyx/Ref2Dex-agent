@@ -57,6 +57,7 @@ def main():
     p.add_argument('--gpus', default='0,1,2')
     p.add_argument('--deadline', type=float, required=True)
     p.add_argument('--mixed-data', action='store_true')
+    p.add_argument('--loss-stats', type=Path)
     a = p.parse_args()
     gpus = [int(x) for x in a.gpus.split(',')]
     config = json.loads(a.config.read_text())
@@ -76,12 +77,16 @@ def main():
              TASK/'src/oakink_wm/distributed.py', TASK/'src/oakink_wm/pointworld_performance.py',
              TASK/'src/oakink_wm/continuation.py',
              TASK/'src/oakink_wm/multisource.py',
+             TASK/'src/oakink_wm/loss_normalization.py',
              TASK/'src/oakink_wm/pointworld_temporal.py', TASK/'src/oakink_wm/pointworld.py',
              TASK/'src/oakink_wm/data.py', TASK/'src/oakink_wm/model.py',
              TASK/'tools/run/train_oakink2_pointworld_ddp.py', TASK/'tools/run/train_oakink2_pointworld_temporal.py',
              TASK/'tools/run/evaluate_oakink2_pointworld_temporal.py']
     files += [x for x in (REPO/'third_party/PointWorld/ptv3').rglob('*') if x.suffix in ('.py','.yaml')]
     sources = {str(x):digest(x) for x in files}
+    if a.loss_stats:
+        if not a.mixed_data: raise ValueError('loss statistics require mixed main dynamics')
+        sources[str(a.loss_stats.resolve())] = digest(a.loss_stats.resolve())
     env = dict(os.environ,CUDA_VISIBLE_DEVICES=a.gpus,TMPDIR=str(REPO/'tmp'),
                TRITON_CACHE_DIR=str(REPO/'tmp/triton-pointworld-action-ddp-20261007'),
                OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='2')
@@ -99,6 +104,7 @@ def main():
             for entry in source['indices'].values():
                 sources[entry['path']] = entry['sha256']
             sources[str(Path(source['root'])/'processed/manifest.json')] = source['manifest_sha256']
+    if a.loss_stats: command.extend(['--loss-stats', str(a.loss_stats.resolve())])
     status = dict(status='LAUNCHING',pid=os.getpid(),gpus=gpus,deadline=a.deadline,started_at=time.time(),
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   sources=sources,command=command)

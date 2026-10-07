@@ -42,7 +42,7 @@ def source_identity():
     sources = base.implementation_sources()
     for p in (Path(__file__).resolve(), TASK/'src/oakink_wm/distributed.py',
               TASK/'src/oakink_wm/pointworld_performance.py', TASK/'src/oakink_wm/continuation.py',
-              TASK/'src/oakink_wm/multisource.py'):
+              TASK/'src/oakink_wm/multisource.py', TASK/'src/oakink_wm/loss_normalization.py'):
         sources[str(p.relative_to(TASK))] = base.digest(p)
     return sources
 
@@ -52,7 +52,9 @@ def sources_drifted(identity, config_path, stats_path):
         return (any(base.digest(TASK/key)!=h for key,h in identity['implementation_sources'].items()) or
                 any(base.digest(VENDOR/key)!=h for key,h in identity['vendor_sources'].items()) or
                 base.digest(config_path)!=identity['input_config_sha256'] or
-                base.digest(stats_path)!=identity['stats_sha256'])
+                base.digest(stats_path)!=identity['stats_sha256'] or
+                (identity.get('loss_stats_path') is not None and
+                 base.digest(Path(identity['loss_stats_path']))!=identity['loss_stats_sha256']))
     except FileNotFoundError:
         return True
 
@@ -76,6 +78,7 @@ def load_checkpoint(state, model, optimizer, config, identity, rank, world_size,
     same = (state['config']==config and state['dataset_hash']==identity['dataset_hash'] and
             state['identity']['arm']==identity['arm'] and
             state['identity']['stats_sha256']==identity['stats_sha256'] and
+            state['identity'].get('loss_stats_sha256')==identity.get('loss_stats_sha256') and
             state['identity']['vendor_sources']==identity['vendor_sources'] and
             state['identity'].get('performance_backend', 'reference')==identity.get('performance_backend', 'reference'))
     expected = base.implementation_sources() if import_single else identity['implementation_sources']
@@ -178,6 +181,15 @@ def run(args):
                 or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])):
             raise ValueError('normalization identity mismatch')
         model = model_from_config(stats, config).to(device)
+        loss_scales = None
+        if args.loss_stats:
+            if not args.mixed_data: raise ValueError('separate physical loss statistics require mixed main dynamics')
+            from oakink_wm.loss_normalization import validate_loss_statistics, physical_loss
+            loss_scales = validate_loss_statistics(json.loads(args.loss_stats.read_text()), dataset_hash,
+                                                  [d['name'] for d in train.meta['sources']])
+            loss_scales = {key: value.to(device) for key, value in loss_scales.items()}
+        if args.mixed_data and train.meta.get('supervision') == 'measured_dynamic_hand_main' and loss_scales is None:
+            raise ValueError('three-source main dynamics requires explicit train-only --loss-stats')
         optimizer = torch.optim.AdamW(model.parameters(), lr=config['learning_rate'], weight_decay=config['weight_decay'])
         initial_hash = parameter_hash(model)
         identity = dict(git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -190,6 +202,9 @@ def run(args):
             engineering_only=args.smoke or args.engineering or args.benchmark,
             script_sha256=base.digest(Path(__file__)), model_sha256=base.digest(TASK/'src/oakink_wm/pointworld_temporal.py'),
             stats_sha256=base.digest(args.stats), stats=stats, implementation_sources=source_identity(),
+            loss_stats_sha256=base.digest(args.loss_stats) if args.loss_stats else None,
+            loss_stats_path=str(args.loss_stats.resolve()) if args.loss_stats else None,
+            loss_normalization='main-source train-only residual scales' if args.loss_stats else 'forward statistics reused for loss',
             initial_parameter_sha256=initial_hash,
             pointworld_commit=subprocess.check_output(['git','-C',str(VENDOR),'rev-parse','HEAD'],text=True).strip(),
             vendor_sources={str(f.relative_to(VENDOR)):base.digest(f) for f in (VENDOR/'ptv3').rglob('*') if f.suffix in ('.py','.yaml')})
@@ -201,8 +216,9 @@ def run(args):
              visible_devices=os.environ.get('CUDA_VISIBLE_DEVICES',''), initial_hash=initial_hash,
              dataset_hash=dataset_hash, config_hash=identity['config_hash'],
              stats_hash=identity['stats_sha256'], sources=identity['implementation_sources'],
+             loss_stats_hash=identity['loss_stats_sha256'],
              vendor_sources=identity['vendor_sources']))
-        for k in ('initial_hash','dataset_hash','config_hash','stats_hash','sources','vendor_sources'):
+        for k in ('initial_hash','dataset_hash','config_hash','stats_hash','loss_stats_hash','sources','vendor_sources'):
             if any(x[k]!=gathered[0][k] for x in gathered):
                 raise ValueError('rank identity mismatch: '+k)
         identity['ranks'] = gathered
@@ -275,10 +291,10 @@ def run(args):
                     source_metrics.append(metrics)
                     for key, value in metrics.items(): measured['source/'+desc['name']+'/'+key] = value
                 key = 'model/anchor/cat0/h24/point_epe'
-                if len(source_metrics) == 4 and all(key in m for m in source_metrics):
+                if len(source_metrics) == len(dataset.sources) and all(key in m for m in source_metrics):
                     for common in set.intersection(*(set(m) for m in source_metrics)):
                         measured['pooled/'+common] = measured[common]
-                        measured[common] = sum(m[common] for m in source_metrics)/4
+                        measured[common] = sum(m[common] for m in source_metrics)/len(source_metrics)
                 elif not intervention and dataset is val and np.array_equal(ids, validation):
                     raise ValueError('fixed source validation panel missing moving anchors')
                 return measured
@@ -324,7 +340,8 @@ def run(args):
                 with sync_context(model, micro, accumulation):
                     with torch.autocast('cuda', dtype=torch.bfloat16, enabled=config['amp']):
                         pred = model(use, args.arm)
-                    loss, _ = raw_model.loss(pred, batch)
+                    loss, _ = (physical_loss(raw_model, pred, batch, loss_scales) if loss_scales is not None
+                               else raw_model.loss(pred, batch))
                     if any_rank(not bool(torch.isfinite(loss)), device):
                         raise FloatingPointError('a rank produced nonfinite loss')
                     (loss/accumulation).backward()
@@ -401,6 +418,7 @@ def main():
     p.add_argument('--data', type=Path, required=True)
     p.add_argument('--config', type=Path, default=TASK/'configs/pointworld_temporal_wm24.json')
     p.add_argument('--stats', type=Path, required=True)
+    p.add_argument('--loss-stats', type=Path, help='Separate main-source train-only physical loss scales; preserves pretrained forward buffers')
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--arm', choices=['history','action','shuffle'], required=True)
     p.add_argument('--steps', type=int)
@@ -409,7 +427,7 @@ def main():
     p.add_argument('--stop-after', type=int)
     p.add_argument('--fused-hilbert', action='store_true')
     p.add_argument('--engineering', action='store_true', help='Keep requested batch, save final checkpoint, skip evaluation')
-    p.add_argument('--mixed-data', action='store_true', help='Use frozen four-source manifest and source-balanced draws')
+    p.add_argument('--mixed-data', action='store_true', help='Use frozen registered-source manifest and source-balanced draws')
     p.add_argument('--benchmark', action='store_true', help='Engineering throughput only; skip checkpoints and validation')
     group = p.add_mutually_exclusive_group()
     group.add_argument('--resume', type=Path)

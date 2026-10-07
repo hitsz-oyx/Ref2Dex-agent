@@ -11,6 +11,8 @@ from .data import Windows
 
 SOURCE_NAMES = ('oakink2', 'grab', 'arctic', 'contactpose')
 SOURCE_WEIGHTS = (.5, .2, .2, .1)
+MAIN_SOURCE_NAMES = SOURCE_NAMES[:3]
+MAIN_SOURCE_WEIGHTS = (5/9, 2/9, 2/9)
 
 
 def sha(path):
@@ -73,8 +75,11 @@ class MixedWindows(Dataset):
             raise ValueError('mixed corpus not frozen')
         if (self.meta.get('fps'), self.meta.get('history'), self.meta.get('horizon')) != (30, 4, 24):
             raise ValueError('mixed temporal contract mismatch')
-        if tuple(d['name'] for d in self.meta['sources']) != SOURCE_NAMES:
-            raise ValueError('expected all four registered sources')
+        names = tuple(d['name'] for d in self.meta['sources'])
+        if names not in (SOURCE_NAMES, MAIN_SOURCE_NAMES):
+            raise ValueError('expected registered four-source or main three-source corpus')
+        if names == MAIN_SOURCE_NAMES and self.meta.get('supervision') != 'measured_dynamic_hand_main':
+            raise ValueError('three-source main supervision must exclude rigid-transport auxiliary')
         self.sources = [SourceWindows(d, split) for d in self.meta['sources']]
         self.offsets = np.cumsum([0]+[len(s) for s in self.sources])
         self.sequence_offsets = np.cumsum([0]+[len(s.sequences) for s in self.sources])
@@ -117,12 +122,13 @@ def source_draw(source, count, rng):
 
 def mixed_indices(dataset, count, seed, equal_sources=False):
     rng = np.random.default_rng(seed)
+    n_sources = len(dataset.sources)
     if equal_sources:
-        if count % 4: raise ValueError('validation count must divide into four equal panels')
-        sources = np.repeat(np.arange(4), count//4)
+        if count % n_sources: raise ValueError('validation count must divide into equal source panels')
+        sources = np.repeat(np.arange(n_sources), count//n_sources)
         rng.shuffle(sources)
     else:
-        sources = rng.choice(4, count, p=dataset.source_weights)
+        sources = rng.choice(n_sources, count, p=dataset.source_weights)
     out = np.empty(count, dtype=np.int64)
     for source_id, source in enumerate(dataset.sources):
         mask = sources == source_id
@@ -133,7 +139,23 @@ def mixed_indices(dataset, count, seed, equal_sources=False):
 def validate_pretrained(state, model, config, identity, expected_model_sources):
     """New mixed corpus, same coordinate/model/normalization contract; model only."""
     previous = state['identity']
-    if (state['dataset_hash'] != identity['normalization_source_manifest_sha256']
+    parent_data_matches = state['dataset_hash'] == identity['normalization_source_manifest_sha256']
+    if previous.get('mixed_data'):
+        old = previous.get('source_manifest', {})
+        new = identity.get('source_manifest', {})
+        old_sources = {d['name']: d for d in old.get('sources', [])}
+        new_names = tuple(d['name'] for d in new.get('sources', []))
+        parent_data_matches = (
+            state['dataset_hash'] == previous.get('dataset_hash')
+            and previous.get('normalization_source_manifest_sha256') == identity['normalization_source_manifest_sha256']
+            and tuple(d['name'] for d in old.get('sources', [])) in (SOURCE_NAMES, MAIN_SOURCE_NAMES)
+            and new_names == MAIN_SOURCE_NAMES
+            and old.get('normalization_stats_sha256') == new.get('normalization_stats_sha256')
+            and all(d['name'] in old_sources and d['kind'] == old_sources[d['name']]['kind']
+                    and d['manifest_sha256'] == old_sources[d['name']]['manifest_sha256']
+                    and all(d['indices'][split]['sha256'] == old_sources[d['name']]['indices'][split]['sha256']
+                            for split in ('train', 'val', 'test')) for d in new.get('sources', [])))
+    if (not parent_data_matches
             or previous['stats_sha256'] != identity['stats_sha256'] or previous['arm'] != 'action'
             or identity['arm'] != 'action' or previous['vendor_sources'] != identity['vendor_sources']
             or any(previous['implementation_sources'].get(k) != v for k, v in expected_model_sources.items())):
@@ -147,4 +169,4 @@ def validate_pretrained(state, model, config, identity, expected_model_sources):
     model.load_state_dict(state['model'], strict=True)
     return dict(parent_step=state['step'], weights_only=True, optimizer_reset=True,
                 schedule_reset=True, draw_reset=True, mixed_data=True,
-                normalization='reuse unchanged train-only OakInk parent statistics')
+                normalization='preserve parent input/output statistics; physical loss scales may be separate train-only statistics')

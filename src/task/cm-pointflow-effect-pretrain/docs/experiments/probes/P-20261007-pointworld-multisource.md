@@ -17,14 +17,14 @@ status: UNCLEAR
 run_id: pointworld-multisource-20261007
 ---
 
-# Four-source physical prediction with an OakInk2 warm start
+# Source-aware physical prediction with an OakInk2 warm start
 
 User pauses the unlaunched two-rank OakInk optimizer continuation and requests
 GRAB,ContactPose,ARCTIC and OakInk2 jointly trained from the completed latest
 model weights, with a fresh optimizer/schedule. The Task subgoal is observed
 future-hand conditioned physical prediction; robot policy utility is untested.
-Result: Full four-source corpus and two-rank engineering checks pass; production started, step500 macro moving-anchor h24 EPE52.56→45.74mm, with early OakInk degradation.
-Decision: Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel.
+Result: Four-source run saved/stopped at14250; moving-anchor h24 Oak9.24/GRAB38.86/ARCTIC51.24/ContactPose27.15mm. Ref3 main three-source code and strict EPIC candidate masks prepared.
+Decision: Exclude ContactPose transport from main dynamics; restart from latest model weights with three-source train-only loss scales and a new fixed step0 panel.
 
 No new branch or remote push. ref6 is background design input; this run does
 not add ObjectForesight/EgoDex/HOT3D to the four explicitly requested sources.
@@ -205,6 +205,39 @@ latest/best checkpoint files are both present after the first validation;
 checkpoint interval250updates. Supervisor saves latest periodically and on graceful stop; old run checkpoints
 remain intact. GPU0 is free after conversion; consequence r4 remains unlaunched.
 
+## Stage 9000, observed 2026-10-07 21:56 Asia/Shanghai
+
+The production run remains RUNNING at approximately 9100/40000 fresh updates.
+On the same fixed64windows/source moving-anchor h24 panel (0.8s, mm):
+
+| Source | Imported model, step0 | Step9000 | Error change |
+| --- | ---: | ---: | ---: |
+| OakInk2 | 9.7872 | 11.3297 | +15.76% |
+| GRAB | 84.3269 | 42.3978 | -49.72% |
+| ARCTIC | 76.0066 | 57.2700 | -24.65% |
+| ContactPose | 40.1089 | 29.6910 | -25.97% |
+| Equal-source macro | 52.5574 | 35.1721 | -33.08% |
+
+Step9000 is the best observed macro checkpoint so far. The macro curve is
+noisy: step7000/8000/8750/9000 gives36.035/38.180/36.686/35.172mm;
+these observations do not establish a plateau. Mean train loss falls from
+2.382 over the first500updates to approximately1.65 over the latest500.
+OakInk remains a retention concern: step8250 nearly recovers its initialization
+(9.815mm), while step9000 worsens again. Do not interpret the macro improvement
+as improvement on every domain. Continue the existing bounded recipe; retain
+the UNCLEAR classification for joint adaptation/retention until later evidence.
+
+Recent1000updates take approximately0.75s/update including validation and
+checkpoint overhead, estimating40000updates around2026-10-08 04:23 if this
+speed holds. The hard deadline remains09:58:37. GPU1/2 are still the training
+devices, per-rank64/global128, with approximately21.0/20.5GiB device memory.
+Two spot samples show utilization96/97% and71/96%; these are instantaneous
+observations, not a sustained average. No performance conclusion follows from
+them. Both latest.pt and best.pt exist at the step9000 save. Runtime evidence:
+`outputs/cm-pointflow-effect-pretrain/pointworld-multisource-20261007/stage-09000.json`
+plus the original progress, validation and training logs. Live code, inputs and
+sampling probabilities are unchanged.
+
 ## Limitations and future evidence
 
 ContactPose global motion is reconstructed from native pose plus fixed hand
@@ -214,3 +247,62 @@ Official splits differ across datasets; report their scope, not generic unseen
 object/subject generalization. Missing ARCTICtest must not be backfilled fromval.
 Matched controls, independent tests, robot domain adaptation and trained-policy
 Cm-on/off utility remain future work; this Probe does not settle those claims.
+
+## 2026-10-07 ref3 Decision Note：停止四源主训练，准备三源主监督
+
+用户要求同时推进 consequence-evaluator ref2/ref3。ContactPose future hand 由
+固定手形及逐帧物体/手刚体变换构造，属于刚性抓持运输，不能与测量动态手形的
+OakInk2/GRAB/ARCTIC 等价解释。root 选择先保存并停止当前四源运行，保留其
+latest/best及验证记录，然后新运行仅抽样 OakInk2/GRAB/ARCTIC；ContactPose
+保留为独立辅助/历史诊断，不删除数据。三源以停止后的 latest 模型权重初始化，
+重新建立优化器和抽样状态。修订训练源统计/损失尺度并验证 warm-start 的物理
+输出合同，禁止只改统计量却让已有权重解释发生不透明变化。
+
+最多继续使用 GPU1/2、每卡64，原截止时间2026-10-08 09:58:37保持不变，
+不重新领取24h；现有和新增产物合计仍受300GB限制。数值不有限、数据/源码
+漂移、外来GPU进程或deadline触发保存退出。三源近期 moving-anchor 物理EPE
+决定是否值得下一轮投入；当前没有 ContactPose 因果影响或 normalization 原因
+的正式结论，不立即运行 auxiliary ablation。EPIC保持候选审计，未授权突破外部
+只读/GPU权限边界。
+
+## Ref3 三源实现、训练预算及候选审计
+
+四源run于23:00左右保存正常退出，step14250，rank参数哈希一致。
+latest与best保留；四源macro moving-anchor h24为31.63mm，末次Oak9.2367/
+GRAB38.8630/ARCTIC51.2378/ContactPose27.1500mm。此次结果包含ContactPose
+刚性运输，不能解释为四源等价的动作条件因果监督；监督差异是确定的数据合同，
+但未实验证明它造成Oak遗忘。
+
+新run_id为pointworld-main3-20261007，数据manifest main-wm30-20261007：
+Oak/GRAB/ARCTIC=5/9,2/9,2/9（保留旧主三源相对比例），ContactPose无抽样、
+无主loss，不删除其产物。categories不伪造program/background；native .6/.2/.2
+在真实moving/static strata归一化为.75/.25。主要指标仍moving-anchor，
+新固定验证panel每源64/共192，与旧256panel不同，必须从新step0对比。
+
+停止后的latest14250仅初始化模型；新AdamW、scheduler、抽样和步数重置。
+forward input/output保持checkpoint已学习的Oak训练统计；另外冻结2048个
+三源训练窗口、seed216/sourceweighted的flow/translation/rotation loss尺度，
+按物理残差计算Huber，不改模型buffer或前向物理输出。归一化统计来自train
+而非val/test；保留shared source-weighted目标，不能把sampling比例当作严格
+梯度贡献比例，也不能声称input domain mismatch已经全部消失。
+
+用户追加授权50000新更新，GPU1/2每卡64/global128，明早2026-10-08 10:00
+硬截止（替代原09:58:37）；按旧含val/save的.76s/update约10.5h，启动后重估。
+最多2GPU/现有总300GB/free20GiB；stats<=600s/1MiB，新双卡12update
+engineering smoke<=300s，不复用smoke优化器。deadline/source drift/非有限/
+外来GPU进程触发保存退出。初始化严格核对旧四源到三源的manifest/index子集、
+不变模型源码/vendor和统计身份，不单纯放开dataset hash。
+
+EPIC ref3独立CPU文件审计产物：
+outputs/cm-pointflow-effect-pretrain/epic-contact-ref3-audit-20261007-r3/audit.json。
+读取ObjectForesight官方逐clip convention，w2c取逆；按非连续frame_ids
+匹配独立物体pose，保留双手及源side/joint/high-confidence/gap掩码。
+P03_03样本源右手有效20/30，30Hz右17/31、物体27/31，4个跨gap点无效；
+完整4+24有效窗口从旧未屏蔽4降为0。OF匹配30/30，但共同world中
+anchor-relative运动差median1.544m、rotation45.04°，单scale诊断残差
+RMS50.68mm；scale未注入数据。手物相对表面gap median3.35mm，不足以
+证明动态可信：官方非中央帧由固定手物相对关系传播，绝对位置近似。
+仍CANDIDATE_ONLY/training_allowed=false，不新增弱源训练。
+官方依据：[ObjectForesight](https://huggingface.co/datasets/raivn/ObjectForesight-EPIC#camera--pose-conventions)、
+[EPIC datasheet](https://huggingface.co/datasets/Sid2697/epic-contact/blob/0df7796dba1acdc4d0260b69662524916e9f7079/DATASET.md)。
+新audit6tests+原ref5共22通过；三源训练/scale相关18tests通过，均为工程检查。

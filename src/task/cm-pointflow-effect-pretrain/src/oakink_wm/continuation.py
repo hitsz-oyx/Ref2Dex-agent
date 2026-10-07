@@ -15,6 +15,7 @@ def continue_optimizer(state, model, optimizer, config, identity, rank, world):
     legacy_sources = dict(current_sources)
     legacy_sources.pop(SELF)
     legacy_sources.pop('src/oakink_wm/multisource.py', None)
+    legacy_sources.pop('src/oakink_wm/loss_normalization.py', None)
     legacy_sources[ENTRY] = LEGACY_ENTRY_SHA256
     if (state.get('checkpoint_kind') != 'pointworld-temporal.ddp.v1'
             or state.get('world_size') not in (2, 3) or world != 2

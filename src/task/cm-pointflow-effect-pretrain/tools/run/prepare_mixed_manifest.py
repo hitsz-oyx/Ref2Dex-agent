@@ -9,10 +9,11 @@ import numpy as np
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK/'src'))
-from oakink_wm.multisource import MixedWindows, SOURCE_NAMES, SOURCE_WEIGHTS, sha
+from oakink_wm.multisource import (MixedWindows, SOURCE_NAMES, SOURCE_WEIGHTS,
+                                  MAIN_SOURCE_NAMES, MAIN_SOURCE_WEIGHTS, sha)
 
 
-def prepare(roots, output, stats):
+def prepare(roots, output, stats, main_dynamics=False):
     if output.exists(): raise FileExistsError('fresh mixed manifest output required')
     try:
         output.resolve().relative_to((ROOT/'outputs/cm-pointflow-effect-pretrain').resolve())
@@ -20,7 +21,10 @@ def prepare(roots, output, stats):
         raise ValueError('mixed manifest must stay in owned Task outputs')
     processed = output/'processed'; processed.mkdir(parents=True)
     descriptors = []
-    for name, root, weight in zip(SOURCE_NAMES, roots, SOURCE_WEIGHTS):
+    names = MAIN_SOURCE_NAMES if main_dynamics else SOURCE_NAMES
+    weights = MAIN_SOURCE_WEIGHTS if main_dynamics else SOURCE_WEIGHTS
+    if len(roots) != len(names): raise ValueError('one root per declared source required')
+    for name, root, weight in zip(names, roots, weights):
         root = root.resolve(); manifest = root/'processed/manifest.json'
         meta = json.loads(manifest.read_text())
         if meta['status'] != 'COMPLETED': raise ValueError(name+' source incomplete')
@@ -49,8 +53,11 @@ def prepare(roots, output, stats):
     meta = dict(schema='pointworld-multisource.wm30.v1', status='COMPLETED', fps=30, history=4, horizon=24,
                 sources=descriptors, normalization_stats_sha256=sha(stats),
                 normalization_source_manifest_sha256=descriptors[0]['manifest_sha256'],
-                sampling='source .5/.2/.2/.1; source-internal .6/.2/.2 renormalized over real strata',
+                sampling='source '+('/'.join(str(w) for w in weights))+'; source-internal .6/.2/.2 renormalized over real strata',
                 validation='64 fixed balanced windows/source; no TEST access for tuning',
+                supervision='measured_dynamic_hand_main' if main_dynamics else 'mixed_dynamic_and_rigid_transport',
+                excluded_auxiliary_sources=['contactpose'] if main_dynamics else [],
+                normalization_role='forward_input_output_warmstart',
                 category_mapping='OakInk unchanged; native moving1->0/near-static2->1; no program fabrication')
     path = processed/'manifest.json'; path.write_text(json.dumps(meta, indent=2)+'\n')
     try:
@@ -68,11 +75,16 @@ def prepare(roots, output, stats):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    for name in SOURCE_NAMES: p.add_argument('--'+name, type=Path, required=True)
+    for name in MAIN_SOURCE_NAMES: p.add_argument('--'+name, type=Path, required=True)
+    p.add_argument('--contactpose', type=Path)
+    p.add_argument('--main-dynamics', action='store_true', help='Exclude ContactPose rigid transport from main dynamics supervision')
     p.add_argument('--stats', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     a = p.parse_args()
-    prepare([getattr(a, name) for name in SOURCE_NAMES], a.output, a.stats)
+    if a.main_dynamics and a.contactpose: p.error('main dynamics excludes ContactPose')
+    if not a.main_dynamics and not a.contactpose: p.error('four-source corpus requires --contactpose')
+    names = MAIN_SOURCE_NAMES if a.main_dynamics else SOURCE_NAMES
+    prepare([getattr(a, name) for name in names], a.output, a.stats, a.main_dynamics)
     print(json.dumps(dict(status='COMPLETED', output=str(a.output))))
 
 
