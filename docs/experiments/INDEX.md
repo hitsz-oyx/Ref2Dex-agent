@@ -124,7 +124,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Four-source physical prediction with an OakInk2 warm start | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Four-source physical prediction with an OakInk2 warm start | Full four-source corpus and two-rank engineering checks pass; production started, step250 macro moving-anchor h24 EPE52.56→48.10mm, with ear | Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel. | probes/UNCLEAR |
 
 ## HF-pointworld-unified-action-effect
 

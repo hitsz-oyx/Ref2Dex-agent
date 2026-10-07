@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-multisource
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: consequence-evaluator
-git_commit: 5be7edf
+git_commit: 384f860631c1c436129d692d4d81a50c6219f13a
 claim_id: C3
 hypothesis_family: HF-pointworld-multisource
 probe_index_in_family: 1
@@ -23,6 +23,9 @@ User pauses the unlaunched two-rank OakInk optimizer continuation and requests
 GRAB,ContactPose,ARCTIC and OakInk2 jointly trained from the completed latest
 model weights, with a fresh optimizer/schedule. The Task subgoal is observed
 future-hand conditioned physical prediction; robot policy utility is untested.
+Result: Full four-source corpus and two-rank engineering checks pass; production started, step250 macro moving-anchor h24 EPE52.56→48.10mm, with early OakInk degradation.
+Decision: Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel.
+
 No new branch or remote push. ref6 is background design input; this run does
 not add ObjectForesight/EgoDex/HOT3D to the four explicitly requested sources.
 
@@ -104,8 +107,8 @@ human future-hand dependence establishes robot action causality or policy gain.
 
 Small native official reindex passes26755category/clock/rigid-target checks;
 ContactPose9grasp/26segment engineering pack passes the actual loader. These
-are engineering readiness checks. Full conversion and mixed fitting are pending;
-actual runtime commit/PIDs/identities/timing will be added after launch.
+are engineering readiness checks. Full conversion and mixed fitting subsequently
+started; actual full-corpus counts and runtime identities follow below.
 
 Full preparation launched at source commitd6fb20f: native supervisor936433,
 ContactPose CPU936434. Each uses the bounds above. The actual mixed-interface
@@ -131,8 +134,69 @@ engineering updates on the full corpus before production launch. Failure
 halts the queue and preserves logs. Queue artifacts:
 `outputs/cm-pointflow-effect-pretrain/multisource-queue-20261007/`;
 full-corpus engineering artifacts: `pointworld-multisource-full-check-20261007/`.
-GPU usage samples are recorded throughout production. The queue is a pending
-execution arrangement; it is not a claim that full training has begun.
+GPU usage samples are recorded throughout production. The queue was initially
+a pending arrangement; the following actual runtime record supersedes that state.
+
+## Full-corpus launch and first validation
+
+Actual production starts2026-10-07 19:57:29Asia/Shanghai at source commit
+384f860631c1c436129d692d4d81a50c6219f13a. Queue976793 launches supervisor980674
+and torchrun980684 on GPU1/2. Input manifest records50,495,881parameters,
+per-rank64/one accumulation/global128 and the original latest's exact parameter
+hash495bdc2aacf5fbbc8188ab7ebdd992f69075ec8f29b6a82c41968d34b8dbc83f.
+Initialization explicitly records parent_step10000, weights_only and optimizer/
+schedule/draw reset. Production starts at step0; full engineering weights are
+not imported. Deadline remains2026-10-08 09:58:37Asia/Shanghai.
+
+Full GRAB/ARCTIC conversion finishes in1079.65s:1335/301sequences,619322windows;
+audit ENGINEERING_PASS, maximum rigid correspondence error8.95e-8m.
+ContactPose audits all1591unique grasps in1010.50s;61lack a valid contiguous
+28-frame segment and are excluded. Remaining1530grasps produce5168segments.
+Participant counts37/6/5 have disjoint train/val/test membership. This is our
+participant split, not an official ContactPose benchmark split.
+
+| Source | Train windows | Val windows | Test windows | Sampling probability |
+| --- | ---: | ---: | ---: | ---: |
+| OakInk2 | 3860393 | 656368 | 543855 | 0.50 |
+| GRAB | 207179 | 18291 | 41916 | 0.20 |
+| ARCTIC | 310906 | 41030 | 0, local officialtest missing | 0.20 |
+| ContactPose | 415751 | 74193 | 40646 | 0.10 |
+
+Frozen mixed manifest SHA256:
+5ebace706378315b2f6cfe1a8b46d8ca7d84f6c5d5d953269015d8859622ac6d.
+All source/index identities are in the runtime input manifest. Test counts are
+metadata audits only; test tensors are not used for training or model selection.
+Full-corpus two-rank engineering check completes12fresh updates in21.80s;
+rank parameter hashes identical, all logged losses/gradients finite. Median
+update excludingfirst0.601s, peak live13.45GiB/reserved18.38GiB. This proves
+wiring/readiness, not predictive quality.
+
+Production fixed64windows/source validation, moving-anchor h24point EPE inmm:
+
+| Source | Imported model, step0 | Step250 |
+| --- | ---: | ---: |
+| OakInk2 | 9.7872 | 10.622 |
+| GRAB | 84.3269 | 72.637 |
+| ARCTIC | 76.0066 | 73.394 |
+| ContactPose | 40.1089 | 35.750 |
+| Equal-source macro | 52.5574 | 48.101 |
+
+These early results suggest new-domain adaptation with possible OakInk forgetting;
+250updates do not settle the tradeoff. The new OakInk panel differs from the
+previous256-window OakInk panel, so9.7872mm is not a direct comparison with
+that run's11.1342mm. Keep this run UNCLEAR until later per-source evidence.
+At step250 median recorded update time is0.632s; peak live13.98GiB/reserved
+23.13GiB. First250updates take205.64s before the first~26s validation. A rough
+40000-update estimate is8–9h including periodic validation, subject to corpus
+I/O, variable object count and resource guards; the original deadline wins.
+GPU snapshots during the first update block show40–42%utilization, so this
+run does not claim to have solved the earlier GPU utilization issue.
+
+Evidence: `pointworld-multisource-20261007/{group_status.json,console.log}`,
+`train-action/{input_manifest.json,validation_initial.json,validation.jsonl,train.jsonl,best.pt}`;
+`native-official-full-20261007/audit.json` and both source processed manifests.
+Supervisor saves latest periodically and on graceful stop; old run checkpoints
+remain intact. GPU0 is free after conversion; consequence r4 remains unlaunched.
 
 ## Limitations and future evidence
 

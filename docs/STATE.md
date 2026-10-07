@@ -24,8 +24,14 @@ GPU0用于consequence专家/rollout。r3重建smoke在首次reset发现CPU/CUDA�
 task-local入口改用CUDA PhysX tensor pipeline后，按原输入/预算执行r4预检。
 启动前用户暂停以上续训安排，优先混合OakInk2/GRAB/ARCTIC/ContactPose，原latest仅作模型初始化，
 新优化器/训练从头开始。两卡续训与r4预检均未启动；当前无本会话GPU进程需要停止。
-新数据整合进行中：GRAB/ARCTIC已有r6窗口可复用，但来源内类别及ARCTIC官方split需重索引；
-ContactPose原始逐帧位姿/时间戳存在，必须恢复真实全局坐标并屏蔽长gap。
+四源全量整合和双卡12步工程检查已完成；GRAB/ARCTIC官方split、原生类别映射，
+ContactPose真实世界位姿/30Hz及gap屏蔽已接入，参与者train/val/test隔离。
+2026-10-07 19:57:29开始混合训练，运行提交384f860，GPU1/2每卡64/global128，
+OakInk2/GRAB/ARCTIC/ContactPose采样50/20/20/10；原latest只加载模型，优化器/调度重置。
+训练窗口总4794229，固定64val窗口/source，step250运动anchor h24宏平均52.56→48.10mm；
+OakInk2新固定panel9.79→10.62mm，其他三源改善，早期遗忘/适配取舍仍UNCLEAR。
+沿用原deadline2026-10-08 09:58:37，最多40000新更新，不追加24h。GPU0空闲，r4仍未启动。
+详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
 
