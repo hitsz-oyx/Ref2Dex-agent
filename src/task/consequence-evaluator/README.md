@@ -144,7 +144,7 @@ task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计�
 2026-10-07：旧 oracle 原始 outputs 与六专家checkpoint未在当前仓库找到；外部只读项目中
 存在仿真资产，但扫描外部旧 DExplore outputs 未找到这六个固定自训练权重。
 当前GPU0/1/2仍运行PointWorld，其他卡均有任务，因此没有启动新采集或真实拟合。
-等待备份路径，先核对连续数据可用性、局部标签、阶段覆盖，再冻结小规模实验卡与seed。
+新的重建任务已按用户授权排队；先核对新策略抓取与阶段覆盖，再采集/生成局部监督并拟合evaluator。
 
 Recorded reactive future A 已受未来反馈影响；Eoracle−E0 只度量在这种A条件下的额外信息。
 正向才值得进行EWM与后续在线规划；负向先查数据/监督/拟合，不能直接判世界模型无用。

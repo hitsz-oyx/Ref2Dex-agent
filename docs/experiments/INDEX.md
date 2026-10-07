@@ -35,6 +35,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-conditional-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md) | Can predicted action consequences retain oracle task information? | UNCLEAR: action-sensitive I predictions, but A/B/C fail; predicted consequences retain31.18% oracle gain without stable added value over dir | Preserve action sensitivity; stop this fixed fit without selector/PPO, diagnose generalization rather than append epochs or rescue with shuf | probes/UNCLEAR |
 
+## HF-consequence-baseline-rebuild
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-contact-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

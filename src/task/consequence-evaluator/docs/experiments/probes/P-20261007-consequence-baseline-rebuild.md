@@ -5,7 +5,7 @@ experiment_id: P-20261007-consequence-baseline-rebuild
 date: 2026-10-07
 task: consequence-evaluator
 branch: consequence-evaluator
-git_commit: 43beedc
+git_commit: 76fdd8c
 claim_id: C3
 hypothesis_family: HF-consequence-baseline-rebuild
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [289, 290]
 decision_changed_if_positive: promote the newly trained parent to s3 transfer and the remaining expert recipe
 decision_changed_if_negative: diagnose native geometry and learning before spending the six-expert budget
 status: UNCLEAR
-run_id: baseline-rebuild-20261007
+run_id: baseline-rebuild-20261007-r2
 ---
 
 # Rebuild a self-trained rollout substrate after asset loss
@@ -73,7 +73,10 @@ and claim the old substrate is restored.
 ## Artifacts and current status
 
 - Inputs: `outputs/consequence-evaluator/baseline-inputs-20261007-r2/manifest.json`.
-- Queue: `outputs/consequence-evaluator/baseline-rebuild-20261007/run_manifest.json`.
+- Queue: `outputs/consequence-evaluator/baseline-rebuild-20261007-r2/run_manifest.json`.
+- Detached queue PID870294 confirmed live, initially WAITING for PointWorld.
+  First shell-background attempt lost its process before any GPU stage;
+  `baseline-rebuild-20261007/startup-check.json` records this execution failure.
 - Preserve initial failed preparation in `baseline-inputs-20261007`; it copied
   assets before encountering the broken data symlink and never ran simulation.
 - First native GPU smoke and learning evaluation are pending. No real robot
