@@ -146,8 +146,9 @@ task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计�
 
 2026-10-07：旧 oracle 原始 outputs 与六专家checkpoint未在当前仓库找到。
 用户恢复本Task后，GPU0已启动baseline-rebuild-20261007-r4；2epoch原生GPU smoke通过，
-64env/200epoch随机初始化s1母策略正在训练，GPU1/2继续四源PointWorld混合拟合。
+64env/200epoch随机初始化s1母策略已完成，GPU1/2继续四源PointWorld混合拟合。
 [母策略资格检查](tools/run/qualify_parent.py)固定64条frame0完整episode，核对45帧保持/之后不掉落，
+此次0/64达到稳定抬升，先同输入回放参考动作以区分优化问题与参考/控制/几何问题；
 通过后才扩展六专家与连续采集。当前44项CPU工程测试覆盖采集、标签、progress独立抽样、
 两臂训练合同、独立评价和资格指标，不代表真实oracle headroom。
 后续协议见[Oracle Probe](docs/experiments/probes/P-20261007-consequence-oracle-headroom.md)。

@@ -122,7 +122,39 @@ post-state and progress clocks are checked. Seed290,<=900s/1GiB, fresh output.
 Qualification transition actions can be native-mutated PD values; these are
 diagnostic traces, explicitly not promoted to evaluator training examples.
 Six synthetic gate tests cover45-frame hold, later drops/resets, missing done,
-shifted clocks/poses and nonzero starts. Real parent qualification is pending.
+shifted clocks/poses and nonzero starts. The entry also accepts a separately
+marked reference-controller replay, which can never qualify the learned actor.
+
+Parent completes200epochs in1114.91s at training commit7c85d5d; endpointSHA256
+69d7e32ccfa4a89cecbc2f0703ed42a8fa21528cd4b365cb2efa46d1ea6933ca.
+The parent queue completes in1193.65s including smoke/supervision intervals.
+Last training contact/held-lift statistics remain0, despite improving negative
+reward; no grasp quality is inferred from PPO reward. Pure CPU reference FK
+geometry at contact/lift frames57..82 has sampled gap0.49..1.62mm, vs1.43m at
+frame0 (`reference-surface-audit.json`); this does not prove executable physics.
+
+Actual qualification starts at codecommitc0b10fb, GPU0,seed290,PID1048746.
+Output `baseline-rebuild-20261007-r4/qualification-s290/`, log adjacent
+`qualification-s290.log`. The bounded owned wait/launch record is
+`tmp/consequence-baseline-rebuild/qualification-queue-r4.json`. Native GPU
+qualification completes all64first episodes,431steps each:0/64qualified,
+no3cm lift, mean contact proxy fraction0.0001. Qualification saysUNCLEAR and
+data_readiness_pass=false, below the operational8/64 gate. No six-expert
+expansion or evaluator fit has been started. This is insufficient substrate
+readiness, not evidence against the evaluator or world-model hypothesis.
+
+Decision Note: distinguish weak new scratch learning from an unexecutable
+reference/control/geometry setup before paying for six experts. Ranked
+hypotheses: (1) missing historical CmLite initialization/insufficient PPO fit;
+(2) native reset/control-frame integration mismatch; (3) canonical retargeted
+references have geometric proximity but cannot hold the real object. Cheapest
+probe is one same-seed290/64env/frame0 reference-controller replay with lead1,
+same checkpoint/environment/45-frame audit, GPU0<=900s/1GiB and a fresh output.
+Only action source changes; replay never qualifies the learned parent. If
+replay holds, prioritize a bounded informed initialization/learning check; if
+replay fails, inspect measured/reference q, object and contact before more PPO.
+Stop on clock/state mismatch, input drift, timeout or output cap; no further
+external authorization boundary is crossed.
 
 ## Limitations / future evidence
 
