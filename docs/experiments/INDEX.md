@@ -45,7 +45,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Ref2 contract and73synthetic engineering tests pass; no real six-expert data or matched fit yet. | Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched P | probes/UNCLEAR |
+| [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Ref2 contract and74synthetic engineering tests pass; no real six-expert data or matched fit yet. | Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched P | probes/UNCLEAR |
 
 ## HF-contact-innovation
 

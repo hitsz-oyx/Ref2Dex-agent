@@ -19,7 +19,7 @@ run_id: oracle-headroom-20261007
 
 # Does physical future add ranking information to decision-known residual plans?
 
-Result: Ref2 contract and73synthetic engineering tests pass; no real six-expert data or matched fit yet.
+Result: Ref2 contract and74synthetic engineering tests pass; no real six-expert data or matched fit yet.
 Decision: Parent50/64 and s3 endpoint36/64 qualify; rebuild the remaining five experts, then collect continuous episodes and run the bounded matched Probe.
 
 ## Purpose and decision
@@ -121,7 +121,7 @@ not sufficient to refute all world models. No formal Validation claim here.
 Raw, labeled, window, fit and evaluation outputs belong under
 `outputs/consequence-evaluator/`, each fresh run ID and runtime source hashes.
 Real paths/PIDs/counts/metrics will be recorded after the expert gate. Current
-73tests are synthetic engineering checks, not empirical oracle headroom.
+74tests are synthetic engineering checks, not empirical oracle headroom.
 Expert coverage, original backup recovery, PointWorld native-control to hand
 point-flow adaptation, EWM, a deployable24step proposal policy and multi-seed
 matched trained-policy Cm-on/off utility remain pending.
@@ -137,7 +137,7 @@ because restored references include1062frames; <=900s/2GiB remain unchanged.
 Qualification intentionally retains its historical net-force operational gate,
 with training_allowed=false. Parent50 and s336 are NOT geometry-audited evaluator
 labels. Six experts, native geometry smoke and actual contact audit remain
-pending; GPU0 unavailable. Current73tests are finite CPU engineering checks,
+pending; GPU0 unavailable. Current74tests are finite CPU engineering checks,
 not a CPU substitute for real evaluator fitting.
 
 Blocker engineering check: while GPU1 is temporarily idle during three-source
@@ -162,3 +162,14 @@ policy inference, yielding1×11536 vs1442×1024 instead of an8-env batch.
 Repair both probe and collector to call the released batch initialization,
 with explicit env-count assertion; driver regression now requires it before
 get_action. Preserve r2 and retry r3 under the original bounded geometry scope.
+
+Native geometry retry r3 at9e1da03 completes24.24s on GPU1:8env×128steps,
+1024 measured frames, finite11keypoints and sampled gaps. Forceproxy712frames
+all have<=1cm gap; elevated force568frames likewise all near; proxy-far>3cm=0.
+Median gap.772mm. Reset persistence, FK and repeated subset checks pass.
+Output: outputs/consequence-evaluator/ref2-native-geometry-20261007-r3/.
+This establishes original-s1 wiring and bounded consistency only; no table
+false-positive examples, other objects, full episodes or collision-pair truth
+were tested. Full collection should retain per-route audits; six-expert fit
+and genuine three-arm data remain pending.74Task tests pass after both native
+loop fixes. Failed r1/r2 are preserved as engineering records.

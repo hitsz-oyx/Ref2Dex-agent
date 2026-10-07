@@ -306,3 +306,18 @@ RMS50.68mm；scale未注入数据。手物相对表面gap median3.35mm，不足�
 官方依据：[ObjectForesight](https://huggingface.co/datasets/raivn/ObjectForesight-EPIC#camera--pose-conventions)、
 [EPIC datasheet](https://huggingface.co/datasets/Sid2697/epic-contact/blob/0df7796dba1acdc4d0260b69662524916e9f7079/DATASET.md)。
 新audit6tests+原ref5共22通过；三源训练/scale相关18tests通过，均为工程检查。
+
+三源manifest已完成，train4,378,478窗口：Oak3,860,393/GRAB207,179/
+ARCTIC310,906。2048个train统计样本1124/476/448，GPU2实际9.595s，
+无neural fit；h24 flow std约40.6/43.5/40.9mm，translation std42.4/46.1/
+42.8mm，rotation RMS.35524rad。固定loss_stats.json绑定新manifest/hash。
+所有41项ref3相关合同测试通过，仓库changed验证通过；代码提交cdb0d68。
+
+正式启动前两卡12update工程检查完成：
+pointworld-main3-smoke-20261007，9e1da03，20.87s update阶段；
+初始参数哈希1bfa9a70c10bf1c33dd1fc6576182fb1e929898f98f28f8fe3d1199aa107069d
+与停止14250的两个rank完全一致，最新模型成功导入；optimizer/schedule/draw
+明确重置。末步loss.48334/grad1.91334有限，rank最终参数一致；峰值allocated
+14,406MiB/reserved20,636MiB。首步12.12s含编译，后11步平均.6242s/update，
+正式val/save还需额外时间；不把20秒总时长线性当作训练ETA。smoke权重不进入
+production，production重新从四源latest14250导入模型。
