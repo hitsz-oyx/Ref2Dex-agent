@@ -147,11 +147,18 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         rnn_state=np.zeros(1), observation=np.zeros(6), scalars={'dt': 1 / 30},
         reset_ids={'default': np.zeros(1)}, history=np.zeros((4, 6)),
         object_pose=np.eye(4, dtype='float32'), hand_keypoints=np.zeros((11, 3)),
-        torch_module=TorchStub, replay=replay)
+        torch_module=TorchStub, replay=replay, is_rnn=True)
     assert snap.tick == 5
     assert snap.replay_provenance['prefix_action_count'] == 5
     assert snap.state_hash == snap.state_hash
     assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}
+    no_rnn = capture_native_snapshot(
+        'native-p0-no-rnn', 5, task, controller_state={'policy': np.zeros(1)},
+        rnn_state=None, observation=np.zeros(6), scalars={'dt': 1 / 30},
+        reset_ids={'default': np.zeros(1)}, history=np.zeros((4, 6)),
+        object_pose=np.eye(4, dtype='float32'), hand_keypoints=np.zeros((11, 3)),
+        torch_module=TorchStub, replay=replay, is_rnn=False)
+    assert no_rnn.state['rnn_state'] == {'is_rnn': False, 'state': None}
 
 
 @pytest.mark.parametrize('states, actions', [

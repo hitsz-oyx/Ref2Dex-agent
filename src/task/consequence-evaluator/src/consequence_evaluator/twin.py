@@ -255,6 +255,10 @@ class TwinSnapshot:
             raise ValueError('controller/RNN/observation provenance is incomplete')
         if self.state['rnn_state'] is None or self.state['reset_ids'] is None:
             raise ValueError('RNN and reset-id state must be explicit, including non-RNN players')
+        if (isinstance(self.state['rnn_state'], dict)
+                and self.state['rnn_state'].get('is_rnn') is False
+                and 'state' not in self.state['rnn_state']):
+            raise ValueError('non-RNN sentinel must explicitly carry state=None')
         if not isinstance(self.rng, dict) or not REQUIRED_RNG_KEYS.issubset(self.rng):
             missing = sorted(REQUIRED_RNG_KEYS - set(self.rng)) if isinstance(self.rng, dict) else sorted(REQUIRED_RNG_KEYS)
             raise ValueError('twin snapshot missing RNG state: ' + ','.join(missing))
@@ -311,7 +315,7 @@ def capture_snapshot(pair_id, tick, state, rng, history, object_pose, hand_keypo
 
 def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
                             observation, scalars, reset_ids, history, object_pose,
-                            hand_keypoints, torch_module, replay):
+                            hand_keypoints, torch_module, replay, is_rnn=False):
     """Adapt one initialized native task/player boundary to ``TwinSnapshot``.
 
     The adapter is intentionally explicit about the metadata that does not
@@ -338,6 +342,13 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
             or replay.get('prefix_steps') != tick
             or replay.get('final_frame_count') != frame_count):
         raise ValueError('fresh prefix replay provenance does not match native task state')
+    if not isinstance(is_rnn, (bool, np.bool_)):
+        raise ValueError('native controller is_rnn flag must be boolean')
+    if bool(is_rnn) and rnn_state is None:
+        raise ValueError('RNN native controller state is missing')
+    if not bool(is_rnn) and rnn_state is not None:
+        raise ValueError('non-RNN native controller must use an explicit None state')
+    rnn_state = {'is_rnn': False, 'state': None} if not bool(is_rnn) else rnn_state
     state = {}
     for name in REQUIRED_NATIVE_STATE_KEYS:
         if not hasattr(task, name):
