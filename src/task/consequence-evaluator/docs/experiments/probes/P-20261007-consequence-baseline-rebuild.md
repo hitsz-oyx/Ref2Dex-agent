@@ -443,3 +443,22 @@ smoke<=300s/fit<=900s/5GiB、资格<=900s/1GiB；与PointWorld1/2合计
 角色独立有界20epoch；否则先核对该物体reset/控制/接触，不自动堆步数
 或用单权重冒充六专家。五角色最多依次短fit，不立即领取新的长训练预算。
 不改变Mission/claim、不改PointWorld活跃输入和源码、不停止他人进程。
+
+## Duck r1 smoke asset failure and bounded retry
+
+At325517b duck r1 failed before the first PPO update: native URDFs existed,
+but the owned legacy assets contained only airplane/table object meshes.
+Preserve failed smoke/queue logs; this is invalid input readiness, not a
+duck learning result. Staging now copies complete owned assets and adds
+9missing canonical GRAB object meshes byte-for-byte from recovered inputs.
+All canonical/raw/staged hashes agree, all URDF visual/collision origins and
+scales are identity, all native mesh dependencies resolve;147assets and
+38recovery dependencies are frozen. Two readiness regression tests pass.
+Runtime assets symlink is repaired reversibly, previous target saved in
+corrected-expert-inputs-20261007-r2/previous-native-assets-link.
+
+Fresh baseline-transfer-duck-20261007-r2 retries the same source260→280,
+seed289, LR1e-5 and smoke/fit/qualification budgets from the Decision Note.
+No failed checkpoint is used, no PointWorld source/input changes, and no
+external assets are modified. Stop on actual geometry/reset issues rather
+than treating staging alone as evidence of successful learning.

@@ -347,3 +347,14 @@ step50..305含一次val/save实测.74171s/update，预计50000约2026-10-08
 best为新panel的初始化step0；两者均保留。peakallocated15,128MiB/
 reserved23,392MiB，perrank64未OOM。磁盘审计outputs101G/artifacts.9G/
 tmp125G，仍在300GB产物限制内，未删除其他agent产物。
+
+### Main-three step1500 follow-up
+
+At23:41 the production run is healthy onGPU1/2, per-rank64/global128.
+Fixed same-panel moving-anchor h24 EPE at1500: Oak11.647/GRAB33.089/
+ARCTIC44.896mm; source macro29.877mm versus initial34.480mm.
+The early250 degradation has reversed on this panel, still a Probe observation.
+Includes validation/save, step50→1595 averages.7444s/update;50000newupdates
+ETA2026-10-08~09:41, with user-authorized10:00hard deadline unchanged.
+Latest checkpoints are saved every250updates; best is selected from this
+three-source panel only. No test evaluation or Cm utility claim.

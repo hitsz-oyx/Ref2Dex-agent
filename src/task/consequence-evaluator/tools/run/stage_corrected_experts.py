@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 import sys
+import xml.etree.ElementTree as ET
 
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
@@ -26,6 +27,47 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def mesh_readiness(assets, objects):
+    """Resolve actual native URDF dependencies before declaring staging ready."""
+    import numpy as np
+    import trimesh
+    assets = Path(assets)
+    urdfs = [assets/'inspire_hand_new/inspire_hand_right.urdf', assets/'mjcf/table.urdf']
+    urdfs += [assets/('mjcf/'+name+'.urdf') for name in sorted(set(objects))]
+    measured = {}
+    for urdf in urdfs:
+        robot = ET.parse(urdf).getroot()
+        for mesh in robot.findall('.//mesh'):
+            filename = mesh.get('filename')
+            if not filename or filename.startswith('package://'):
+                raise ValueError('unsupported native mesh path: '+str(urdf))
+            path = (urdf.parent/filename).resolve()
+            if not is_within(path, assets.resolve()) or not path.is_file():
+                raise FileNotFoundError('native URDF mesh is missing: '+str(path))
+        if urdf.parent.name == 'mjcf' and urdf.stem != 'table':
+            expected = 'objects/'+urdf.stem+'/'+urdf.stem+'.obj'
+            for element in robot.findall('.//visual') + robot.findall('.//collision'):
+                mesh = element.find('./geometry/mesh')
+                origin = element.find('origin')
+                scale = np.fromstring(mesh.get('scale', '1 1 1'), sep=' ')
+                xyz = np.fromstring(origin.get('xyz', '0 0 0') if origin is not None else '0 0 0', sep=' ')
+                rpy = np.fromstring(origin.get('rpy', '0 0 0') if origin is not None else '0 0 0', sep=' ')
+                if (mesh.get('filename') != expected or scale.shape != (3,) or
+                        not np.array_equal(scale, np.ones(3)) or not np.array_equal(xyz, np.zeros(3))
+                        or not np.array_equal(rpy, np.zeros(3))):
+                    raise ValueError('native object URDF is not the untransformed canonical mesh: '+str(urdf))
+            path = urdf.parent/expected
+            geometry = trimesh.load(path, force='mesh', process=False)
+            bounds = np.asarray(geometry.bounds)
+            if (len(geometry.vertices) < 3 or not len(geometry.faces) or bounds.shape != (2, 3)
+                    or not np.isfinite(geometry.vertices).all() or not np.isfinite(bounds).all()
+                    or not ((bounds[1]-bounds[0]) > 0).all()):
+                raise ValueError('native object mesh has invalid dimensions: '+str(path))
+            measured[urdf.stem] = dict(bounds_m=bounds.tolist(), dimensions_m=(bounds[1]-bounds[0]).tolist(),
+                                       vertices=len(geometry.vertices), faces=len(geometry.faces))
+    return measured
+
+
 def prepare(output, assets_input, airplane, cup, batch):
     import torch
     output = Path(output).resolve()
@@ -36,7 +78,7 @@ def prepare(output, assets_input, airplane, cup, batch):
     if shutil.disk_usage(ROOT).free < 20*2**30:
         raise RuntimeError('disk below 20 GiB reserve')
     assets_input, airplane, cup, batch = sources
-    files, dependencies = {}, {}
+    files, dependencies, recovered_meshes = {}, {}, {}
     def recovery(directory, name):
         manifest_path, audit_path = directory/'run_manifest.json', directory/'audit.json'
         manifest = json.loads(manifest_path.read_text())
@@ -52,6 +94,21 @@ def prepare(output, assets_input, airplane, cup, batch):
             raise ValueError('reference geometry audit failed: '+name)
         dependencies.update({str(manifest_path): sha(manifest_path), str(audit_path): sha(audit_path)})
         files[name] = path
+        corrected_manifest = directory/'corrected_input_manifest.json'
+        corrected = json.loads(corrected_manifest.read_text())
+        mesh_record = corrected['outputs']['object_mesh']
+        raw_record = corrected['inputs']['raw_object_mesh']
+        mesh_path = Path(mesh_record['path']).resolve()
+        if (not is_within(mesh_path, directory) or sha(mesh_path) != mesh_record['sha256']
+                or mesh_record['sha256'] != raw_record['sha256']
+                or sha(raw_record['path']) != raw_record['sha256']):
+            raise ValueError('canonical object mesh identity failed: '+name)
+        object_name = name.split('_')[1]
+        if object_name in recovered_meshes and recovered_meshes[object_name]['sha256'] != mesh_record['sha256']:
+            raise ValueError('same object has inconsistent canonical meshes: '+object_name)
+        recovered_meshes[object_name] = dict(path=str(mesh_path), sha256=mesh_record['sha256'],
+                                           raw_path=raw_record['path'], raw_sha256=raw_record['sha256'])
+        dependencies[str(corrected_manifest)] = sha(corrected_manifest)
     recovery(airplane, 's3_airplane_lift')
     recovery(cup, 's1_cup_lift')
     batch_manifest = batch/'run_manifest.json'
@@ -83,7 +140,19 @@ def prepare(output, assets_input, airplane, cup, batch):
             raise ValueError('native motion tensor contract failed: '+name)
         records.append(dict(sequence=name, path=str(files[name]), sha256=sha(files[name]), frames=len(tensor)))
     output.mkdir(parents=True)
-    (output/'assets').symlink_to(assets_input/'assets', target_is_directory=True)
+    shutil.copytree(assets_input/'assets', output/'assets')
+    for name, source in recovered_meshes.items():
+        destination = output/('assets/mjcf/objects/'+name+'/'+name+'.obj')
+        if destination.exists():
+            if sha(destination) != source['sha256']:
+                raise ValueError('existing native mesh differs from canonical recovery: '+name)
+        else:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source['path'], destination)
+        source['staged_path'] = str(destination)
+    measured = mesh_readiness(output/'assets', recovered_meshes)
+    for name, source in recovered_meshes.items():
+        source.update(measured[name], transformation='none; byte-for-byte canonical mesh copy')
     shutil.copytree(assets_input/'cfg', output/'cfg')
     (output/'specs').mkdir()
     for role, names in SETS.items():
@@ -100,7 +169,9 @@ def prepare(output, assets_input, airplane, cup, batch):
                     raw_motion_role='imitation references; not evaluator examples or grasp evidence',
                     cpu_reason='file/tensor contract inspection only; no model fit',
                     motion_inputs=records, recovery_dependencies=dependencies,
-                    assets=old['assets'], configs={str(p.relative_to(output)):sha(p)
+                    assets={str(p.relative_to(output)):sha(p) for p in (output/'assets').rglob('*') if p.is_file()},
+                    source_meshes=recovered_meshes,
+                    configs={str(p.relative_to(output)):sha(p)
                                                    for p in (output/'cfg').rglob('*') if p.is_file()},
                     source_mode='READ_ONLY', source_assets=str(assets_input/'assets'),
                     maximum_source_frames=max(r['frames'] for r in records),

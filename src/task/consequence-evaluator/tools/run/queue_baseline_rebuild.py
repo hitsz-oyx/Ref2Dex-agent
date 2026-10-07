@@ -129,6 +129,8 @@ def main():
     frozen.update({str(inputs/path):value for key in ('assets','configs') for path,value in stage[key].items()})
     frozen[str(inputs/'manifest.json')] = sha(inputs/'manifest.json')
     frozen.update(stage.get('recovery_dependencies',{}))
+    for mesh in stage.get('source_meshes',{}).values():
+        frozen.update({mesh['path']:mesh['sha256'], mesh['raw_path']:mesh['raw_sha256']})
     frozen.update(ancestry)
     record = dict(status='WAITING', task='consequence-evaluator', run_id=output.name, pid=os.getpid(),
                   parent_pid=parent_pid, physical_gpu=a.gpu, sources=frozen, seed=a.seed,
