@@ -8,6 +8,8 @@
 暂不推进WM适配或在线proposal。论文原文/源码已核对；独立scalar BT是Robometer改编。
 窗口合同、标签mask、两臂模型、有界训练入口与六专家连续采集驱动已实现；CPU测试覆盖真实驱动循环，
 但未在真实Isaac Gym上验证，也未采集或拟合真实数据。采集副产物保留measured q/root与扰动审计，标签仍需核验。
+独立test评价入口已实现：冻结val选择的权重，报告配对排序与任务/阶段汇总、跨episode未来替换诊断；
+31项工程测试通过，不代表真实oracle headroom，也不把重叠窗口当独立样本。
 旧oracle outputs、六专家权重及motion未找到；外部仿真资产可只读引用，当前GPU均占用。
 PointWorld原三卡训练保持运行，源码hash未变；新实验等待有身份的输入与空闲GPU。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。

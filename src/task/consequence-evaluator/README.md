@@ -15,6 +15,7 @@
 - [数据合同](src/consequence_evaluator/data.py)：严格输入白名单、完整时钟、刚体效应、标签 mask 与 split 检查。
 - [两臂模型](src/consequence_evaluator/model.py)：同容量两层128维 Transformer，24步 progress 分布与独立标量分支评分。
 - [训练](tools/run/train_matched.py)：相同初始化、抽样、优化器和更新预算；只在训练集拟合归一化，用 val 保存最佳权重。
+- [独立评价](tools/run/evaluate_matched.py)：冻结val所选checkpoint后，报告test排序、任务/阶段分组及跨episode未来替换对照。
 - [资产预检](tools/audit/preflight.py)：核对六专家、motion、旧 rollout 和当前 GPU 占用。
 - [研究原文](docs/research/PRIMARY_SOURCES.md)与[代码/数据复用核对](docs/DATA_REUSE.md)。
 
@@ -107,9 +108,29 @@ python src/task/consequence-evaluator/tools/run/train_matched.py \
   --gpu <idle-gpu> --seed <registered-probe-seed> --updates 1000 --batch 32 --seconds 1800
 ```
 
-训练不读取 test pairs；当前只报告 val开发指标。独立、冻结后 heldout 评价及分任务/阶段汇总
-仍待实现，不能用 val 最佳分数冒充正式测试结果。保存两臂 initial/latest/best、训练/验证JSONL、
+训练不使用 test pairs；训练入口只报告 val开发指标。保存两臂 initial/latest/best、训练/验证JSONL、
 输入/源码hash、显存、吞吐与ETA。当前入口尚未在真实GPU数据上验证，CPU小模型检查只证明工程合同。
+
+独立评价入口要求训练已经COMPLETED，核对原始输入/初始化/源码hash、train-only归一化和
+验证日志中首次最佳的checkpoint。两臂采用相同选择规则，可以选中不同更新步；不会根据test重选。
+第一次推理前在fit目录冻结`test_protocol.json`，之后不能通过换权重、诊断seed或batch重扫test。
+保存每个参与test偏好对的唯一窗口分数/progress、偏好对索引和未来donor索引，便于独立复算。
+
+```bash
+python src/task/consequence-evaluator/tools/run/evaluate_matched.py \
+  --data outputs/consequence-evaluator/<prepared-run> \
+  --fit outputs/consequence-evaluator/<fit-run> \
+  --output outputs/consequence-evaluator/<test-run> \
+  --gpu <idle-gpu> --seed <fixed-diagnostic-seed>
+```
+
+主指标是test strict preference accuracy，tie计错；报告配对gain、两臂救回/损失的偏好对数量、
+task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计明确可靠的masked帧，
+同一窗口在多对出现不重复计算。另用相同oracle权重替换Z：同task、同当前phase、其他test episode
+有放回抽取，H/A/labels均保持原样。这是未来对齐敏感性的诊断，不是严格置换检验或可执行候选。
+窗口重叠，不把pair数量当独立样本数；当前汇总不提供独立pair CI，也不自动升级Validation。
+默认最多128窗口/batch、300秒；GPU占用检查在加载模型前完成。31项微型CPU测试通过，
+原因是当前GPU均占用，测试只验证数据合同/保存加载/评价逻辑；真实GPU采集、拟合与评价仍未运行。
 
 ## 当前判断与下一步
 
