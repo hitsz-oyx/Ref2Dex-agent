@@ -134,6 +134,13 @@ task/phase/quality分组和episode-pair macro accuracy。Progress MAE只统计�
 
 ## 当前判断与下一步
 
+用户在2026-10-07明确允许重新训练专家并重新rollout。已找到外部read-only的canonical
+几何motion和native资产，13条motion完成CPU合同检查。资产复制到
+`outputs/consequence-evaluator/baseline-inputs-20261007-r2/`；原DExplore data失效链接已保留。
+这只恢复训练输入，不恢复旧checkpoint或robot rollout。历史s3直接scratch曾失败，先新训s1 parent
+并做完整frame0检查，再迁移s3、mixed12/train5/balanced5及duck/cup，最终生成新六专家route/hash。
+[重建协议](docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)保留成本、资格检查和下一步。
+
 2026-10-07：旧 oracle 原始 outputs 与六专家checkpoint未在当前仓库找到；外部只读项目中
 存在仿真资产，但扫描外部旧 DExplore outputs 未找到这六个固定自训练权重。
 当前GPU0/1/2仍运行PointWorld，其他卡均有任务，因此没有启动新采集或真实拟合。

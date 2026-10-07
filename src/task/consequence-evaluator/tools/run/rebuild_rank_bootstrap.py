@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[5]
 sys.path[:0] = [str(ROOT), str(ROOT/'third_party/DExplore/dexplore'),
                str(ROOT/'src/task/CmResidual/tools'), str(ROOT/'src/task/cm-interaction-oracle/src')]
 

@@ -10,8 +10,11 @@
 但未在真实Isaac Gym上验证，也未采集或拟合真实数据。采集副产物保留measured q/root与扰动审计，标签仍需核验。
 独立test评价入口已实现：冻结val选择的权重，报告配对排序与任务/阶段汇总、跨episode未来替换诊断；
 31项工程测试通过，不代表真实oracle headroom，也不把重叠窗口当独立样本。
-旧oracle outputs、六专家权重及motion未找到；外部仿真资产可只读引用，当前GPU均占用。
-PointWorld原三卡训练保持运行，源码hash未变；新实验等待有身份的输入与空闲GPU。
+旧oracle outputs、六专家权重未找到，原motion输出缺失。用户已授权重训专家并重新rollout；
+外部canonical几何motion与仿真资产可用，13条motion完成CPU合同检查，已复制/软链接到owned输出。
+DExplore指向已删除baseline的失效data链接已保留并修复。先新训s1 parent，再检查frame0抓取后迁移s3与其余专家；
+新权重不继承旧六专家Validation结论。PointWorld原三卡训练保持运行，源码hash未变；重建入口等待其完成及GPU0空闲。
+见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
 
 更新：2026-10-06。本摘要整合已交付的主分支与本轮Cm研究事实，不产生正式科研结论，
