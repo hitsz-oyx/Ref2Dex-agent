@@ -812,5 +812,5 @@ ref4只读诊断已完成：229训练序列/512窗口，528action点平均合为
 action 仍核对 18 维；RNN 必须使用显式 `is_rnn/state` sentinel；Python/NumPy/Torch RNG
 格式、非空 physics/history/controller provenance 均在入口拒绝缺失值；native adapter
 自动冻结 direct tensor、scalar 和 Enum（包括 `_state_init`）inventory，并提供 CPU/GPU
-Torch RNG restore helper。Task tests 为 114 passed，compileall 与 diff-check 通过。当前仍没有 native branch runner、
+Torch RNG restore helper。Task tests 为 114 passed，compileall 与 diff-check 通过。当前仍没有 native branch runner
 和真实 twin branch 数据，不能把合同测试当作 twin coverage 或 evaluator 科学证据。
