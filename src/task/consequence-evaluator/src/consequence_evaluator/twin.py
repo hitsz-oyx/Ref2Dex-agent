@@ -21,6 +21,8 @@ BRANCHES = ('a', 'b')
 MIN_PLAN_L2 = .01
 MIN_REALIZED_ACTION_L2 = .01
 SOLVER_CONTRACT = 'fresh_simulator_prefix_replay'
+RESIDUAL_PLAN_SEMANTICS = 'decision_known_requested_residual_plan'
+EXECUTED_ACTION_SEMANTICS = 'native_post_noise_pre_physics_control'
 
 # This is the minimum inventory captured by the existing native cold-start
 # contract in ``CmResidual/paired_evaluation.py``.  A caller may add task
@@ -294,6 +296,8 @@ def validate_pair(snapshot_a, snapshot_b, branch_a, branch_b, *, atol=1e-6):
                 state_hash=snapshot_a.state_hash, rng_hash=snapshot_a.rng_hash,
                 residual_plan_l2=distance, realized_action_l2=realized_distance, actions=K,
                 solver_contract=snapshot_a.solver_contract,
+                residual_plan_semantics=RESIDUAL_PLAN_SEMANTICS,
+                executed_action_semantics=EXECUTED_ACTION_SEMANTICS,
                 prefix_hash=snapshot_a.replay_provenance['prefix_hash'],
                 plan_a_hash=fingerprint(branch_a.residual_plan),
                 plan_b_hash=fingerprint(branch_b.residual_plan))
