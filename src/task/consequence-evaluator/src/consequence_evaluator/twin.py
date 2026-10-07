@@ -159,7 +159,7 @@ def restore_native_rng(rng, torch_module=None):
 
 def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
                       physics_properties, history_contract, controller_identity,
-                      physics_dt):
+                      physics_dt, control_dt=1 / 30, sim_steps_per_control=1):
     """Build the immutable provenance record for a fresh prefix replay.
 
     ``prefix_states`` and ``prefix_actions`` are the complete common-prefix
@@ -198,10 +198,20 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
     if (isinstance(error, (bool, np.bool_)) or not isinstance(error, (int, float, np.number))
             or not np.isfinite(error) or error < 0 or error > 1e-3):
         raise ValueError('fresh prefix replay error exceeds the 1e-3 contract')
+    if (isinstance(sim_steps_per_control, (bool, np.bool_))
+            or not isinstance(sim_steps_per_control, (int, np.integer))
+            or sim_steps_per_control < 1):
+        raise ValueError('native twin simulation steps per control must be a positive integer')
+    if (isinstance(control_dt, (bool, np.bool_))
+            or not isinstance(control_dt, (int, float, np.number))
+            or not np.isfinite(control_dt)
+            or not np.isclose(control_dt, 1 / 30, atol=1e-8, rtol=0)):
+        raise ValueError('native twin control dt must be exactly 1/30')
     dt = physics_dt
     if (isinstance(dt, (bool, np.bool_)) or not isinstance(dt, (int, float, np.number))
-            or not np.isfinite(dt) or not np.isclose(dt, 1 / 30, atol=1e-8, rtol=0)):
-        raise ValueError('native twin physics dt must be exactly 1/30')
+            or not np.isfinite(dt) or dt <= 0
+            or not np.isclose(dt * sim_steps_per_control, control_dt, atol=1e-8, rtol=0)):
+        raise ValueError('native twin physics dt and decimation must match control dt')
     return dict(
         prefix_hash=fingerprint(states),
         prefix_state_count=int(state_frames),
@@ -210,12 +220,14 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
         prefix_action_count=int(steps),
         fresh_simulator=True,
         initial_frame_count=0,
-        final_frame_count=int(steps),
+        final_frame_count=int(steps * sim_steps_per_control),
         replay_max_abs_error=float(error),
         physics_properties_hash=fingerprint(physics_properties),
         history_contract_hash=fingerprint(history_contract),
         controller_identity_hash=fingerprint(controller_identity),
         physics_dt=float(dt),
+        control_dt=float(control_dt),
+        sim_steps_per_control=int(sim_steps_per_control),
     )
 
 
@@ -283,7 +295,8 @@ def _valid_replay_provenance(value):
     required = {'prefix_hash', 'prefix_steps', 'prefix_state_count', 'prefix_action_hash',
                 'prefix_action_count', 'fresh_simulator', 'initial_frame_count',
                 'final_frame_count', 'replay_max_abs_error', 'physics_properties_hash',
-                'history_contract_hash', 'controller_identity_hash', 'physics_dt'}
+                'history_contract_hash', 'controller_identity_hash', 'physics_dt',
+                'control_dt', 'sim_steps_per_control'}
     if not required.issubset(value):
         return False
     hashes = ('prefix_hash', 'prefix_action_hash', 'physics_properties_hash',
@@ -292,13 +305,15 @@ def _valid_replay_provenance(value):
            or any(char not in '0123456789abcdef' for char in value[name]) for name in hashes):
         return False
     count_names = ('prefix_steps', 'prefix_state_count', 'prefix_action_count',
-                   'initial_frame_count', 'final_frame_count')
+                   'initial_frame_count', 'final_frame_count', 'sim_steps_per_control')
     if any(isinstance(value[name], (bool, np.bool_)) or not isinstance(value[name], (int, np.integer))
            for name in count_names):
         return False
     if (value['prefix_steps'] < 0 or value['prefix_state_count'] != value['prefix_steps'] + 1
             or value['prefix_action_count'] != value['prefix_steps']
-            or value['initial_frame_count'] != 0 or value['final_frame_count'] != value['prefix_steps']
+            or value['sim_steps_per_control'] < 1
+            or value['initial_frame_count'] != 0
+            or value['final_frame_count'] != value['prefix_steps'] * value['sim_steps_per_control']
             or value['fresh_simulator'] is not True):
         return False
     error = value['replay_max_abs_error']
@@ -308,7 +323,13 @@ def _valid_replay_provenance(value):
             and not isinstance(value['physics_dt'], (bool, np.bool_))
             and isinstance(value['physics_dt'], (int, float, np.number))
             and np.isfinite(value['physics_dt'])
-            and np.isclose(value['physics_dt'], 1 / 30, atol=1e-8, rtol=0))
+            and value['physics_dt'] > 0
+            and not isinstance(value['control_dt'], (bool, np.bool_))
+            and isinstance(value['control_dt'], (int, float, np.number))
+            and np.isfinite(value['control_dt'])
+            and np.isclose(value['control_dt'], 1 / 30, atol=1e-8, rtol=0)
+            and np.isclose(value['physics_dt'] * value['sim_steps_per_control'],
+                           value['control_dt'], atol=1e-8, rtol=0))
 
 
 @dataclass(frozen=True)
@@ -433,10 +454,21 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
         raise ValueError('native task must expose gym/sim for fresh replay verification')
     if not hasattr(task.gym, 'get_frame_count'):
         raise ValueError('native gym frame counter is required for twin capture')
+    if not _valid_replay_provenance(replay):
+        raise ValueError('fresh prefix replay provenance is incomplete')
+    decimation = getattr(task, 'control_freq_inv', None)
+    if (isinstance(decimation, (bool, np.bool_))
+            or not isinstance(decimation, (int, np.integer))
+            or decimation != replay['sim_steps_per_control']):
+        raise ValueError('native simulation decimation does not match replay')
+    if (not hasattr(task, 'dt') or not hasattr(task, 'sim_params')
+            or not np.isclose(task.dt, replay['control_dt'], atol=1e-8, rtol=0)
+            or not np.isclose(task.sim_params.dt, replay['physics_dt'], atol=1e-8, rtol=0)):
+        raise ValueError('native physics/control clock does not match replay')
     frame_count = task.gym.get_frame_count(task.sim)
     if (isinstance(frame_count, (bool, np.bool_))
             or not isinstance(frame_count, (int, np.integer))
-            or frame_count != tick):
+            or frame_count != tick * decimation):
         raise ValueError('native frame count does not match the replay prefix tick')
     if getattr(task, 'dr_randomizations', None):
         raise ValueError('native randomization state must be disabled for twin replay')

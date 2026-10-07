@@ -1,6 +1,7 @@
 """CPU contracts for exact full-state twin branches."""
 import random
 from enum import Enum
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -26,7 +27,8 @@ def provenance(tick=40):
                 prefix_action_hash='b' * 64,
                 prefix_action_count=tick, fresh_simulator=True, initial_frame_count=0,
                 final_frame_count=tick, replay_max_abs_error=0., physics_properties_hash='c' * 64,
-                history_contract_hash='d' * 64, controller_identity_hash='e' * 64, physics_dt=1/30)
+                history_contract_hash='d' * 64, controller_identity_hash='e' * 64,
+                physics_dt=1/30, control_dt=1/30, sim_steps_per_control=1)
 
 
 def snapshot(pair='p0'):
@@ -120,13 +122,16 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         @staticmethod
         def get_frame_count(sim):
             assert sim is not None
-            return 5
+            return 10
 
     task.gym = Gym()
     task.sim = object()
     task.dr_randomizations = {}
     task.projtype = 'None'
     task._motion_sampler = None
+    task.control_freq_inv = 2
+    task.dt = 1 / 30
+    task.sim_params = SimpleNamespace(dt=1 / 60)
     task._enable_early_termination = False
     task._adaptive_kappa_enabled = False
     task.rollout_length = 1200
@@ -152,7 +157,7 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         np.zeros((5, 18), dtype='float32'),
         replay_max_abs_error=2e-5, physics_properties={'dt': 1 / 30},
         history_contract={'shape': [4, 6]}, controller_identity={'sha256': 'actor'},
-        physics_dt=1 / 30)
+        physics_dt=1 / 60, sim_steps_per_control=2)
     snap = capture_native_snapshot(
         'native-p0', 5, task, controller_state={'policy': np.zeros(1)},
         rnn_state=np.zeros(1), observation=np.zeros(6), scalars={'dt': 1 / 30},
@@ -161,6 +166,7 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
         torch_module=TorchStub, replay=replay, is_rnn=True)
     assert snap.tick == 5
     assert snap.replay_provenance['prefix_action_count'] == 5
+    assert snap.replay_provenance['final_frame_count'] == 10
     assert snap.state_hash == snap.state_hash
     assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}
     inventory = snap.state['native_scalar_inventory']

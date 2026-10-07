@@ -808,7 +808,8 @@ ref4只读诊断已完成：229训练序列/512窗口，528action点平均合为
 
 ## 2026-10-08 consequence twin contract hardening
 
-在独立工程复核后，twin v1 继续收紧：zero-step replay 只接受自然的空列表，显式空二维
+在独立工程复核后，twin v1 继续收紧：native prefix 按 30 Hz control tick 与 60 Hz
+physics frame 分离计数；zero-step replay 只接受自然的空列表，显式空二维
 action 仍核对 18 维；RNN 必须使用显式 `is_rnn/state` sentinel；Python/NumPy/Torch RNG
 格式、非空 physics/history/controller provenance 均在入口拒绝缺失值；native adapter
 自动冻结 direct tensor、scalar 和 Enum（包括 `_state_init`）inventory，并提供 CPU/GPU

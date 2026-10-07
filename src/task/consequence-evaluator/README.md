@@ -51,8 +51,9 @@ route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 o
 `ref2dex.consequence-evaluator.twin.v1` 合同：必须保存完整 native task/controller
 buffer、Python/NumPy/Torch RNG、fresh simulator prefix replay provenance 和双分支第0帧
 锚点。当前已提供不导入 Isaac 的 native capture adapter，可把初始化后的 task、controller
-buffer 和完整 prefix trace 转为该合同；它会拒绝缺失字段、非 fresh replay、状态帧数不匹配
-或超出 1/30 与 1e-3 误差门槛的记录，并冻结 task 的直接 tensor/scalar inventory、禁用随机化和
+buffer 和完整 prefix trace 转为该合同；它会区分 30 Hz control tick 与原生 60 Hz
+physics frame（按 `control_freq_inv` 核对帧数）、拒绝缺失字段、非 fresh replay、状态帧数不匹配
+或超出 replay 误差门槛的记录，并冻结 task 的直接 tensor/scalar inventory、禁用随机化和
 motion sampler。通用 snapshot 要求显式 `{'is_rnn': ..., 'state': ...}` sentinel，并校验
 Python/NumPy/Torch RNG 的具体格式，并提供对应的 CPU/GPU Torch RNG restore helper。
 adapter 尚未接入连续 native collector 的双分支执行，

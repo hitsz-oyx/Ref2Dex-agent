@@ -311,6 +311,6 @@ post-hoc hand RMS relaxation.
 
 Engineering follow-up: the Twin v1 module now includes a native capture
 adapter and constructor for fresh-prefix provenance (complete state/RNG
-inventory, prefix frame count/hash, and 30 Hz replay error checks). This only
+inventory, prefix control-tick/60-Hz physics-frame count/hash, and replay error checks). This only
 reduces the integration gap; no native twin branch run or scientific result
 has been produced.
