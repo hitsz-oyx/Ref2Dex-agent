@@ -1,5 +1,6 @@
 """CPU contracts for exact full-state twin branches."""
 import random
+from enum import Enum
 
 import numpy as np
 import pytest
@@ -129,6 +130,9 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
     task._enable_early_termination = False
     task._adaptive_kappa_enabled = False
     task.rollout_length = 1200
+    class StateInit(Enum):
+        Start = 1
+    task._state_init = StateInit.Start
     for name in REQUIRED:
         if name not in ('controller_state', 'rnn_state', 'observation', 'scalars', 'reset_ids'):
             setattr(task, name, np.zeros((2, 3), dtype='float32'))
@@ -159,11 +163,14 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
     assert snap.replay_provenance['prefix_action_count'] == 5
     assert snap.state_hash == snap.state_hash
     assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}
-    assert snap.state['native_scalar_inventory'] == {
-        '_enable_early_termination': False,
-        '_adaptive_kappa_enabled': False,
-        'projtype': 'None',
-        'rollout_length': 1200,
+    inventory = snap.state['native_scalar_inventory']
+    assert inventory['_enable_early_termination'] is False
+    assert inventory['_adaptive_kappa_enabled'] is False
+    assert inventory['projtype'] == 'None'
+    assert inventory['rollout_length'] == 1200
+    assert inventory['_state_init'] == {
+        'enum_type': StateInit.__module__ + '.' + StateInit.__qualname__,
+        'name': 'Start', 'value': 1,
     }
     no_rnn = capture_native_snapshot(
         'native-p0-no-rnn', 5, task, controller_state={'policy': np.zeros(1)},

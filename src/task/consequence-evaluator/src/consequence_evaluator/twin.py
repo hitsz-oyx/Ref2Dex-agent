@@ -12,6 +12,7 @@ import hashlib
 import pickle
 import random
 from dataclasses import dataclass
+from enum import Enum
 
 import numpy as np
 
@@ -184,6 +185,14 @@ def _cpu(value):
     if hasattr(value, 'detach') and hasattr(value, 'cpu'):
         return np.ascontiguousarray(value.detach().cpu().numpy().copy())
     return copy.deepcopy(value)
+
+
+def _native_scalar(value):
+    """Make task scalar-like control metadata stable and serializable."""
+    if isinstance(value, Enum):
+        return dict(enum_type=value.__class__.__module__ + '.' + value.__class__.__qualname__,
+                    name=value.name, value=_cpu(value.value))
+    return _cpu(value)
 
 
 def fingerprint(value):
@@ -418,8 +427,8 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
     state['native_tensor_inventory'] = tuple(sorted(tensor_names))
     state['native_extra_tensors'] = extra_tensors
     state['native_scalar_inventory'] = {
-        str(name): _cpu(value) for name, value in vars(task).items()
-        if isinstance(value, (str, bool, int, float, np.generic))
+        str(name): _native_scalar(value) for name, value in vars(task).items()
+        if isinstance(value, (str, bool, int, float, np.generic, Enum))
     }
     state.update(controller_state=controller_state, rnn_state=rnn_state,
                  observation=observation, scalars=scalars, reset_ids=reset_ids)
