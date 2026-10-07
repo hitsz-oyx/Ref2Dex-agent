@@ -345,6 +345,45 @@ recorded after implementation checks and commit. Inputs are the previously
 audited `baseline-transfer-inputs-20261007-r1/`; output is the fresh
 `baseline-transfer-s3-20261007-r1/`. Other six-expert fits remain pending.
 
+## First s3 transfer result and bounded continuation
+
+Run `baseline-transfer-s3-20261007-r1`, commitdf77ed0, queue1278541/GPU0,
+8env2epoch smoke completes37.12s, then64env200→220 completes145.10s.
+Both load parent200 independently. The actual native log confirms LR1e-5,
+restored epoch200 and anneal40→80scale0 at epochs210/220. EndpointSHA256:
+16ea1c2eb5b9f87d8434edbaf6ec31fac90b50ab69a974c112e52d7c752859cb.
+Qualification seed290 completes64first-frame0 episodes,542steps each:
+2/64reliably qualify;4ever reach45frames and2later drop. Weaker5frame
+lift is16/64, mean maxlift76.73mm/contactfraction.1967/mean maxhold14.61frames.
+Maximum first-step displacement1.717mm; no reset teleport. This endpoint fails
+the8/64gate. Keep the positive parent result scoped to s1; the s3 result is
+UNCLEAR and does not permit five more experts or evaluator collection.
+
+Implementation check: ancestry/RMS/optimizer/absolute epoch/load hashes and
+single s3 input are correct; both engineering and actual execution use the
+specified LR and completed anneal. Training contact rises from~5% at early
+updates to~26% by epoch213 and episodic reward rises4.74→55.5, but neither
+proves stable success. Full-start qualification has actual lifts and holds,
+so the immediate question is whether additional fitting develops retention.
+
+Decision Note: one bounded40epoch continuation220→260, from the frozen new
+s3 endpoint, same seed289/LR1e-5/input/config/rewards/anneal. Separate8env2epoch
+smoke220→222 is discarded;64env fit reloads220. Then qualify fixed260 once,
+seed290/same64frame0/45frame/no-later-drop/8success gate. <=300s smoke/900s fit/
+5GiB plus<=900s/1GiB evaluation, oneGPU0. This is explicitly a continuation
+of an unqualified actor, not authorization to expand experts; its exact motion,
+environment and learning rate must match the failed run. Stop on drift,
+nonfinite, GPU conflict or budget. Positive permits the next recipe; negative
+inspect measured control/contact/drop timing and curriculum before further
+epochs, rather than automatically appending more fitting. Artifacts are the
+fresh `baseline-transfer-s3-20261007-r2/` under task outputs.
+
+Independent CPU blocker preparation also recovers the cup corrected tensor
+in27.83s at053b7ff:934frames, right-wrist/object relativeerror2.98e-7m,
+table-relativeerror1.19e-7m, left-active0/rawcontact0/1. TensorSHA256:
+94aab2e4c88f2f7bcafd95fda2a2b15ee7c3ea999b27120f39bd6a0a0bba85f1.
+This is a reference input only; no cup policy or rollout is trained.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;

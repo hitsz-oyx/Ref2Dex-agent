@@ -39,6 +39,8 @@ def main():
                    help='completed owned self-trained run for a bounded transfer')
     p.add_argument('--expert', choices=['parent_s1','airplane_base'], default='parent_s1')
     p.add_argument('--target-epoch', type=int, default=200)
+    p.add_argument('--continue-unqualified', action='store_true',
+                   help='explicit same-input s3 continuation after a failed readiness gate; <=40epochs')
     p.add_argument('--gpu', type=int, required=True)
     p.add_argument('--seed', type=int, required=True)
     a = p.parse_args()
@@ -69,20 +71,38 @@ def main():
         ancestry = self_trained_ancestry(source_run, ROOT/'outputs/consequence-evaluator')
         source = json.loads((source_run/'run_manifest.json').read_text())
         source_epoch = endpoint_epoch(source)
-        if a.expert != 'airplane_base' or not source_epoch < a.target_epoch <= source_epoch + 20:
-            p.error('first s3 transfer is bounded to20additional epochs')
+        extra = 40 if a.continue_unqualified else 20
+        if a.expert != 'airplane_base' or not source_epoch < a.target_epoch <= min(500,source_epoch + extra):
+            p.error('s3 transfer is bounded to20epochs; explicit same-input continuation to40')
         qualification_dir = source_run.parent/'qualification-s290'
         qualification_manifest = json.loads((qualification_dir/'run_manifest.json').read_text())
         qualification = json.loads((qualification_dir/'qualification.json').read_text())
         if (qualification_manifest.get('status') != 'COMPLETED' or
                 qualification_manifest.get('checkpoint_sha256') != source['checkpoint_sha256'] or
                 qualification_manifest.get('reference_action_lead') is not None or
-                not qualification.get('data_readiness_pass') or
-                qualification.get('qualified_episodes',0) < 8):
+                qualification.get('episodes') != 64 or
+                len(qualification.get('per_episode',[])) != 64 or
+                qualification.get('qualified_episodes') != sum(e['qualified'] for e in qualification['per_episode'])):
             raise ValueError('source needs its own completed learned-policy qualification')
+        if a.continue_unqualified:
+            if qualification.get('data_readiness_pass') or source.get('run_id') != a.expert:
+                raise ValueError('unqualified continuation is only for the evaluated same s3 expert')
+            if a.learning_rate != source.get('learning_rate'):
+                raise ValueError('unqualified continuation preserves the evaluated learning rate')
+            spec=json.loads((inputs/('specs/'+a.expert+'.json')).read_text())
+            previous_inputs=json.loads(Path(source['input_manifest']).read_text())
+            current={str((ROOT/Path(item)).resolve()):sha(ROOT/Path(item)/'interaction_hand_inspire.pt')
+                     for item in spec['motions']}
+            previous={str(Path(item['path']).resolve()):item['tensor_sha256']
+                      for item in previous_inputs['motions']}
+            if current != previous or sha(env_config) != source['env_config_sha256']:
+                raise ValueError('unqualified continuation cannot change motion inputs/environment')
+            ancestry[str(Path(source['input_manifest']).resolve())]=sha(source['input_manifest'])
+        elif not qualification.get('data_readiness_pass') or qualification.get('qualified_episodes',0) < 8:
+            raise ValueError('initial transfer source must pass the operational readiness gate')
         ancestry.update({str(qualification_dir/name):sha(qualification_dir/name)
                          for name in ['run_manifest.json','qualification.json']})
-    elif a.expert != 'parent_s1' or a.target_epoch != 200:
+    elif a.expert != 'parent_s1' or a.target_epoch != 200 or a.continue_unqualified:
         p.error('scratch queue is fixed to the200epoch parent')
     if shutil.disk_usage(ROOT).free < 20*2**30:
         raise RuntimeError('disk below20GiB reserve')
@@ -111,6 +131,7 @@ def main():
                         'new parent_s1 scratch PPO; native smoke first; further six-expert training pending parent evaluation',
                   trained_run_dir=str(output/a.expert), expert=a.expert,
                   source_run=str(a.source_run.resolve()) if a.source_run else None,
+                  continue_unqualified=a.continue_unqualified,
                   source_epoch=source_epoch, target_epoch=a.target_epoch,
                   learning_rate=a.learning_rate, env_config=str(env_config),
                   wait_budget_s=3600, smoke_budget_s=300,

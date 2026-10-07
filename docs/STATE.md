@@ -49,6 +49,9 @@ CPU已恢复s3 corrected reference（23.17s，几何相对误差<3e-7m，左cont
 超过预设8/64数据准备门槛，重建Probe PROMISING（不继承旧Validation或证明Cm收益）。
 GPU0下一步从新自训练parent200迁移s3到220，先2epoch工程检查、再20epoch正式Probe部分，
 最后固定端点资格检查；权重祖先/RMS/优化器/epoch均核对，LR显式1e-5，保留已结束anneal40→80。
+s3首轮200→220已完成，但固定64frame0资格只有2/64通过（未达8），首步位移1.72mm内正常，
+有16/64短抬升且训练接触上升。下一步同输入/配方有界续训220→260并再评固定端点；不扩展其他专家。
+cup参考输入CPU恢复通过（934帧/相对误差<3e-7m），不是cup抓取证据。
 其他专家和连续六专家数据仍未完成；尚未训练E0/Eoracle。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
