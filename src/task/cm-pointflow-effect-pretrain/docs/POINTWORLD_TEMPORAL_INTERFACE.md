@@ -91,7 +91,54 @@ the same DATA/STATS, the temporal config, a fresh run directory under
 and an absolute deadline. Resume is checked in a separate output subdirectory.
 Independent evaluator is restricted to `--split val --engineering-only` here.
 
-Results will be recorded after executing the checks. Predictive quality and the
-benefit of cumulative weighting require a later matched comparison. The current
+Predictive quality and the benefit of cumulative weighting require a later
+matched comparison. The current
 V1 run remains a control; its raw training loss is not directly comparable to
 this different weighted recipe.
+
+
+## Executed engineering results
+
+Model correction commit `eb47ae8`; relative-script identity correction `c16d00e`;
+final train/evaluate numerical-settings commit and smoke runtime `616d413`.
+Final artifacts are in
+`outputs/cm-pointflow-effect-pretrain/pointworld-temporal-smoke-20261007/`,
+with the final checks in `verification-r2.json`. Source/stat/vendor hashes are
+recorded by the new trainer; every original V1 monitored source remains unchanged.
+
+The GPU semantic suite passed13tests with1unconfigured historical WM30 GPU
+contract skipped. Six CPU regression tests subsequently passed, including the
+relative invocation identity and shared numerical-settings check. The24action
+records plus scene in one spatial voxel now produce25distinct temporal tokens;
+all four encoder pooling levels preserve time identity. Real CUDA hooks verify
+unique SparseConv indices and all25time identities per physical sample, with
+physical attention offsets preserved. Masks, future-label exclusion, action
+record/time sensitivity, history isolation, rigid rotations and finite BF16
+forward/FP32 loss/action-and-time gradients passed. Parameter count stays
+50,495,881; the initialized parameter hash equals the original V1 hash.
+
+The final new-entry action smoke completed3optimizer updates in8.93seconds
+including validation/checkpoint work (see its actual result.json for elapsed
+seconds). Checkpoint model roundtrip is exact. A separate resumed invocation
+restored step3with exact model and all474optimizer states; it does not add an
+optimizer update and is a load/lifecycle check. Independent evaluation opens
+12validation samples per panel, no test labels. Trainer and independent
+evaluator share TF32 settings. Metrics are within engineering numerical
+tolerance: max point EPE difference0.03142mm, translation0.00387mm and rotation
+0.000226rad. They are not bitwise-identical across processes; no scientific
+quality claim is inferred from the tolerance or the short smoke's metrics.
+
+The first relative-path invocation failed before training; its log/config are
+preserved. An earlier smoke identified differing train/evaluator TF32 defaults,
+now unified. Its final checkpoint/results remain; duplicate engineering-only
+best/latest/resumed checkpoint copies were pruned after exact state verification
+to respect the4GiB bound. The final run uses fresh `train-action-r2` and
+`resume-action-r2` directories. GPU3 is released after the checks; original V1
+GPU0/1/2 workers continue under their unchanged group budget.
+
+Parallel-agent coordination is in `tmp/pointworld-temporal-agent-ownership.json`.
+This agent owns the listed temporal correction files and this document only;
+shared README/STATE/index and another agent's ref5 file are left to their owners.
+Future complete three-arm temporal training needs a frozen matched protocol;
+use the temporal train/evaluate entries linked above. The existing V1 launcher
+continues to run its original model and is not a temporal launcher.
