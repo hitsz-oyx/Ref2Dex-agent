@@ -8,11 +8,13 @@ sys.path[:0] = [str(ROOT), str(ROOT/'third_party/DExplore/dexplore'),
 
 
 def main():
+    # Install the native NumPy aliases before Isaac Gym imports torch_utils.
+    # This bootstrap imports no Torch at module scope.
+    import dexplore_cm_off_rank_bootstrap
     # Isaac Gym must load before Torch; the actor still trains on CUDA.
     from isaacgym import torch_utils
     from env.tasks.base_dexplore_task import DexploreTask
     from oracle_y_utility import align_native_reference_tables
-    import dexplore_cm_off_rank_bootstrap
     original = DexploreTask._reset_ref_state_init
     def reset(task, ids):
         align_native_reference_tables(task)

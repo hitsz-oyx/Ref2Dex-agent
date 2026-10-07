@@ -36,12 +36,18 @@ def main():
     inputs, output = a.inputs.resolve(), a.output.resolve()
     if not is_within(output, ROOT/'outputs/consequence-evaluator') or output.exists():
         p.error('fresh task-owned output required')
+    if not is_within(a.wait_status.resolve(), ROOT/'outputs/cm-pointflow-effect-pretrain'):
+        raise ValueError('wait status must belong to the owned PointWorld task')
     parent = json.loads(a.wait_status.read_text())
     parent_pid = parent['pid']
     cmdline = Path('/proc')/str(parent_pid)/'cmdline'
-    if (not cmdline.is_file() or str(ROOT/'src/task/cm-pointflow-effect-pretrain/tools/run/launch_pointworld_action_ddp.py')
-            not in cmdline.read_bytes().decode().replace('\0',' ')):
-        raise ValueError('wait target is not a confirmed live owned PointWorld launcher')
+    live_parent = (cmdline.is_file() and
+        str(ROOT/'src/task/cm-pointflow-effect-pretrain/tools/run/launch_pointworld_action_ddp.py')
+        in cmdline.read_bytes().decode().replace('\0',' '))
+    completed_parent = (parent.get('status') == 'COMPLETED' and parent.get('exit_code') == 0
+                        and parent.get('progress', {}).get('status') == 'COMPLETED')
+    if not live_parent and not completed_parent:
+        raise ValueError('wait target must be a live owned launcher or its successful terminal record')
     stage = json.loads((inputs/'manifest.json').read_text())
     if stage['status'] != 'STAGED_CPU_CONTRACT_PASS':
         raise ValueError('staged input validation is incomplete')
@@ -74,7 +80,7 @@ def main():
     env = dict(os.environ, TMPDIR=str(scratch), TORCH_EXTENSIONS_DIR=str(scratch/'torch-extensions'),
                PYTHONDONTWRITEBYTECODE='1', OMP_NUM_THREADS='2')
     try:
-        while cmdline.is_file():
+        while live_parent and cmdline.is_file():
             if time.monotonic()-started > 3600:
                 raise TimeoutError('fixed wait deadline')
             time.sleep(20)

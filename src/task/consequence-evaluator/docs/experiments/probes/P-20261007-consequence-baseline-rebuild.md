@@ -74,12 +74,22 @@ and claim the old substrate is restored.
 
 - Inputs: `outputs/consequence-evaluator/baseline-inputs-20261007-r2/manifest.json`.
 - Queue: `outputs/consequence-evaluator/baseline-rebuild-20261007-r2/run_manifest.json`.
-- Detached queue PID870294 confirmed live, initially WAITING for PointWorld.
+- Detached queue PID870294 was confirmed live, initially WAITING for PointWorld.
   First shell-background attempt lost its process before any GPU stage;
   `baseline-rebuild-20261007/startup-check.json` records this execution failure.
 - Preserve initial failed preparation in `baseline-inputs-20261007`; it copied
   assets before encountering the broken data symlink and never ran simulation.
-- First native GPU smoke and learning evaluation are pending. No real robot
+- PointWorld completed normally. The r2 native smoke then failed before any
+  PPO update: Isaac Gym imported torch_utils before the existing native NumPy
+  alias compatibility shim, raising AttributeError for np.float. The wrapper
+  now imports the Torch-free native bootstrap first; no installed library or
+  external project is modified. Original smoke logs/FAILED manifest remain.
+- Next attempt is `baseline-rebuild-20261007-r3`, on the now-empty GPU0 with the
+  same staged inputs,2-epoch smoke then200-epoch parent and original fit/output
+  caps. The queue also accepts its owned PointWorld COMPLETED/exit0 record;
+  GPU occupancy is still checked before every stage. r2 produced no model
+  updates and does not consume a scientific Probe or justify changing recipes.
+- Native GPU smoke completion and learning evaluation are pending. No real robot
   examples, expert qualification or oracle headroom claim exists yet.
 
 ## Limitations / future evidence

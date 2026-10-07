@@ -13,14 +13,16 @@ seed_pool: probe
 seeds: [210, 212, 213, 216, 217, 219, 220]
 decision_changed_if_positive: retain efficient action-only DDP pretraining and its improved validation checkpoint
 decision_changed_if_negative: diagnose larger-batch optimization before extending training
-status: UNCLEAR
+status: PROMISING
 run_id: pointworld-action-ddp-20261007
 ---
 
 # User-directed action-only three-GPU warm start
 
-Decision: use the current action latest model weights to start a fresh, faster
-three-rank pretraining recipe. Result: batch64per rank completes200real-data engineering updates; user-directed production config uses global192. Production launched successfully; fixed baseline recorded and finite updates progressing.
+Decision: retain the improved action checkpoint. The user-directed three-rank
+recipe completed all10000fresh updates at global batch192. Fixed balanced
+validation improves20.85%from the imported checkpoint; this is a pretraining
+Probe signal, with robot policy utility still untested.
 
 ## Motivation and Decision Note
 
@@ -227,3 +229,51 @@ status UNCLEAR. The fixed deadline and maximum10000new updates are unchanged.
 Actual identities/config/draw hashes and current process status are in the
 production input_manifest.json/group_status.json rather than inferred from
 later documentation-only commits.
+
+## Completed production run and convergence check (2026-10-07)
+
+The owned launcher and all three ranks finish normally (exit0), with10000fresh
+updates in8305.38seconds (2h18m25s). All three final parameter hashes match;
+all runtime source/input hashes still match the launch manifest. No test split
+was used. This run retains the627-sequence OakInk2 corpus and original split;
+it does not train on the separate in-progress dataset expansion.
+
+Primary metric is moving-anchor h24 point EPE on the same256-window balanced
+validation panel throughout (30Hz,24steps=0.8s):
+
+| Fresh update | Primary EPE (mm) |
+| --- | ---: |
+| 0 (imported old action latest, step12163) | 14.0672 |
+| 2500 | 12.3408 |
+| 5000 | 12.0379 |
+| 7500 | 11.5370 |
+| 9500 (best) | 11.1026 |
+| 10000 (final/latest) | 11.1342 |
+
+Final improves20.85%over initialization; best improves21.07%. The last2500
+updates still improve3.49%, although per-update gains have slowed. The last
+two1000-update mean training losses are0.93067and0.93668; this small increase
+alone does not establish convergence. Assessment: diminishing returns and
+training-loss flattening, but the fixed validation curve has not established
+a complete plateau. This cosine schedule also ends at lr1e-5, so a slow final
+segment does not prove that a different continuation cannot improve.
+
+Final balanced moving-anchor h8 EPE is3.6783mm; h24 rotation error is0.15862rad.
+The natural256-window panel gives moving-anchor h24 EPE12.7213mm (static
+baseline39.4330mm), versus balanced11.1342mm (static26.1252mm). These panels
+have different composition and should not be compared as a training trend.
+Final validation-only action shuffle raises balanced h24 EPE to32.7580mm:
+the model depends on the observed future-hand input. This does not establish
+causal action effects or robot policy usefulness.
+
+Checkpoint metadata was actually loaded on CPU for inspection (no model
+inference): best.pt is step9500, latest.pt/final.pt are step10000, each about
+0.565GiB including optimizer/RNG state. Retain best for subsequent adaptation;
+do not automatically extend the expired10000-update recipe or reset its budget.
+Future evidence: independent test evaluation, matched controls/multiple seeds,
+robot transfer and eventual matched trained-policy Cm-on/off utility.
+
+Evidence in the declared run's train-action directory: result.json,
+validation.jsonl (41fixed-panel measurements), completion_summary.json
+(recomputed trends and inspected checkpoint identities), convergence.png,
+best.pt/latest.pt/final.pt. Existing initial/raw records are preserved.

@@ -13,7 +13,11 @@
 旧oracle outputs、六专家权重未找到，原motion输出缺失。用户已授权重训专家并重新rollout；
 外部canonical几何motion与仿真资产可用，13条motion完成CPU合同检查，已复制/软链接到owned输出。
 DExplore指向已删除baseline的失效data链接已保留并修复。先新训s1 parent，再检查frame0抓取后迁移s3与其余专家；
-新权重不继承旧六专家Validation结论。PointWorld原三卡训练保持运行，源码hash未变；重建入口等待其完成及GPU0空闲。
+新权重不继承旧六专家Validation结论。PointWorld原三卡训练已正常完成10000新更新，源码hash未变；
+固定balanced运动anchor h24 EPE14.0672→11.1342mm，best为step9500的11.1026mm，
+预训练Probe PROMISING；末尾2500更新仍改善3.49%，仅能判断收益减慢，不能认定完全平台。
+best/latest/final均保留，未开启test或新训练预算。专家重建r2的native smoke在首次PPO更新前
+因NumPy别名兼容导入顺序失败，原日志保留；调整bootstrap导入顺序后重试原预算内预检。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
 
