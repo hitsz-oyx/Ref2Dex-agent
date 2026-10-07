@@ -23,7 +23,7 @@ User pauses the unlaunched two-rank OakInk optimizer continuation and requests
 GRAB,ContactPose,ARCTIC and OakInk2 jointly trained from the completed latest
 model weights, with a fresh optimizer/schedule. The Task subgoal is observed
 future-hand conditioned physical prediction; robot policy utility is untested.
-Result: Full four-source corpus and two-rank engineering checks pass; production started, step250 macro moving-anchor h24 EPE52.56→48.10mm, with early OakInk degradation.
+Result: Full four-source corpus and two-rank engineering checks pass; production started, step500 macro moving-anchor h24 EPE52.56→45.74mm, with early OakInk degradation.
 Decision: Continue the bounded mixed-source Probe and track each source against its own fixed step0 panel.
 
 No new branch or remote push. ref6 is background design input; this run does
@@ -173,16 +173,19 @@ wiring/readiness, not predictive quality.
 
 Production fixed64windows/source validation, moving-anchor h24point EPE inmm:
 
-| Source | Imported model, step0 | Step250 |
-| --- | ---: | ---: |
-| OakInk2 | 9.7872 | 10.622 |
-| GRAB | 84.3269 | 72.637 |
-| ARCTIC | 76.0066 | 73.394 |
-| ContactPose | 40.1089 | 35.750 |
-| Equal-source macro | 52.5574 | 48.101 |
+| Source | Imported model, step0 | Step250 | Step500 |
+| --- | ---: | ---: | ---: |
+| OakInk2 | 9.7872 | 10.622 | 10.487 |
+| GRAB | 84.3269 | 72.637 | 68.384 |
+| ARCTIC | 76.0066 | 73.394 | 69.343 |
+| ContactPose | 40.1089 | 35.750 | 34.756 |
+| Equal-source macro | 52.5574 | 48.101 | 45.742 |
 
 These early results suggest new-domain adaptation with possible OakInk forgetting;
-250updates do not settle the tradeoff. The new OakInk panel differs from the
+500updates do not settle the tradeoff. OakInk partially recovers between250/500
+but remains7.15%above its imported-model error; keep source sampling unchanged
+while collecting later validation. Step500 macro improves12.97%vsstep0.
+The new OakInk panel differs from the
 previous256-window OakInk panel, so9.7872mm is not a direct comparison with
 that run's11.1342mm. Keep this run UNCLEAR until later per-source evidence.
 At step250 median recorded update time is0.632s; peak live13.98GiB/reserved
@@ -195,7 +198,11 @@ run does not claim to have solved the earlier GPU utilization issue.
 Evidence: `pointworld-multisource-20261007/{group_status.json,console.log}`,
 `train-action/{input_manifest.json,validation_initial.json,validation.jsonl,train.jsonl,best.pt}`;
 `native-official-full-20261007/audit.json` and both source processed manifests.
-Supervisor saves latest periodically and on graceful stop; old run checkpoints
+Stage500 evidence is independently summarized in
+`pointworld-multisource-20261007/stage-00500.json`, with runtime identity,
+per-source moving errors/static baselines/rotation and recent loss/speed.
+latest/best checkpoint files are both present after the first validation;
+checkpoint interval250updates. Supervisor saves latest periodically and on graceful stop; old run checkpoints
 remain intact. GPU0 is free after conversion; consequence r4 remains unlaunched.
 
 ## Limitations and future evidence

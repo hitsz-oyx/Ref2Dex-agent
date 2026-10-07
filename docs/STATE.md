@@ -28,8 +28,8 @@ task-local入口改用CUDA PhysX tensor pipeline后，按原输入/预算执行r
 ContactPose真实世界位姿/30Hz及gap屏蔽已接入，参与者train/val/test隔离。
 2026-10-07 19:57:29开始混合训练，运行提交384f860，GPU1/2每卡64/global128，
 OakInk2/GRAB/ARCTIC/ContactPose采样50/20/20/10；原latest只加载模型，优化器/调度重置。
-训练窗口总4794229，固定64val窗口/source，step250运动anchor h24宏平均52.56→48.10mm；
-OakInk2新固定panel9.79→10.62mm，其他三源改善，早期遗忘/适配取舍仍UNCLEAR。
+训练窗口总4794229，固定64val窗口/source，step500运动anchor h24宏平均52.56→45.74mm；
+OakInk2新固定panel9.79→10.49mm，较step250略恢复，其他三源改善，早期遗忘/适配取舍仍UNCLEAR。
 沿用原deadline2026-10-08 09:58:37，最多40000新更新，不追加24h。GPU0空闲，r4仍未启动。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
