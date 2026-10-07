@@ -1,4 +1,6 @@
 """CPU contracts for exact full-state twin branches."""
+import random
+
 import numpy as np
 import pytest
 
@@ -13,7 +15,8 @@ REQUIRED = ('_root_states', '_dof_state', '_rigid_body_state', '_contact_forces'
             'start_times', '_curr_obs', 'contact_reset', '_terminate_buf',
             'controller_state', 'rnn_state', 'observation', 'scalars', 'reset_ids')
 
-RNG = dict(python=('state',), numpy=('MT19937',), torch_cpu=np.zeros(4, dtype='uint8'),
+RNG = dict(python=random.getstate(), numpy=np.random.get_state(),
+           torch_cpu=np.zeros(4, dtype='uint8'),
            torch_cuda=[])
 
 
@@ -27,7 +30,8 @@ def provenance(tick=40):
 
 def snapshot(pair='p0'):
     state = {name: np.zeros((2, 3), dtype='float32') for name in REQUIRED}
-    state.update(controller_state={'policy': np.zeros(1)}, rnn_state=np.zeros(1),
+    state.update(controller_state={'policy': np.zeros(1)},
+                 rnn_state={'is_rnn': True, 'state': np.zeros(1)},
                  observation=np.zeros(6), scalars={'dt': 1/30}, reset_ids={'default': np.zeros(1)})
     return capture_snapshot(pair, 40, state, RNG, np.zeros((4, 6)),
                             np.eye(4, dtype='float32'), np.zeros((11, 3), dtype='float32'),
@@ -122,6 +126,9 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
     task.dr_randomizations = {}
     task.projtype = 'None'
     task._motion_sampler = None
+    task._enable_early_termination = False
+    task._adaptive_kappa_enabled = False
+    task.rollout_length = 1200
     for name in REQUIRED:
         if name not in ('controller_state', 'rnn_state', 'observation', 'scalars', 'reset_ids'):
             setattr(task, name, np.zeros((2, 3), dtype='float32'))
@@ -152,6 +159,12 @@ def test_native_adapter_captures_full_task_and_fresh_prefix_provenance():
     assert snap.replay_provenance['prefix_action_count'] == 5
     assert snap.state_hash == snap.state_hash
     assert set(snap.rng) >= {'python', 'numpy', 'torch_cpu', 'torch_cuda'}
+    assert snap.state['native_scalar_inventory'] == {
+        '_enable_early_termination': False,
+        '_adaptive_kappa_enabled': False,
+        'projtype': 'None',
+        'rollout_length': 1200,
+    }
     no_rnn = capture_native_snapshot(
         'native-p0-no-rnn', 5, task, controller_state={'policy': np.zeros(1)},
         rnn_state=None, observation=np.zeros(6), scalars={'dt': 1 / 30},
@@ -185,6 +198,35 @@ def test_zero_step_replay_accepts_natural_empty_action_list():
                                replay_max_abs_error=0, physics_properties={},
                                history_contract={}, controller_identity={}, physics_dt=1 / 30)
     assert result['prefix_steps'] == 0 and result['prefix_state_count'] == 1
+
+
+def test_zero_step_replay_rejects_explicit_wrong_width():
+    with pytest.raises(ValueError, match='shape'):
+        replay_provenance([np.zeros((2, 3), dtype='float32')], np.zeros((0, 17)),
+                          replay_max_abs_error=0, physics_properties={},
+                          history_contract={}, controller_identity={}, physics_dt=1 / 30)
+
+
+def test_twin_rejects_unwrapped_rnn_state():
+    state = snapshot().state
+    state = dict(state, rnn_state=np.zeros(1))
+    with pytest.raises(ValueError, match='explicit is_rnn'):
+        capture_snapshot('legacy-rnn', 40, state, RNG, np.zeros((4, 6)),
+                         np.eye(4), np.zeros((11, 3)), required_state_keys=REQUIRED,
+                         replay_provenance=provenance())
+
+
+@pytest.mark.parametrize('bad_rng', [
+    {'python': None, 'numpy': None, 'torch_cpu': None, 'torch_cuda': []},
+    {**RNG, 'torch_cpu': np.zeros(4, dtype='float32')},
+    {**RNG, 'torch_cuda': [np.zeros(4, dtype='uint8')] ,
+     'torch_cuda_device_count': 0},
+])
+def test_twin_rejects_malformed_rng_state(bad_rng):
+    with pytest.raises(ValueError, match='RNG state'):
+        capture_snapshot('bad-rng', 40, snapshot().state, bad_rng, np.zeros((4, 6)),
+                         np.eye(4), np.zeros((11, 3)), required_state_keys=REQUIRED,
+                         replay_provenance=provenance())
 
 
 def test_twin_rejects_malformed_rnn_sentinel():

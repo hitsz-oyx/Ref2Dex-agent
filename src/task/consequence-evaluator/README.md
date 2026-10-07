@@ -52,8 +52,9 @@ route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 o
 buffer、Python/NumPy/Torch RNG、fresh simulator prefix replay provenance 和双分支第0帧
 锚点。当前已提供不导入 Isaac 的 native capture adapter，可把初始化后的 task、controller
 buffer 和完整 prefix trace 转为该合同；它会拒绝缺失字段、非 fresh replay、状态帧数不匹配
-或超出 1/30 与 1e-3 误差门槛的记录，并冻结 task 的直接 tensor inventory、禁用随机化和
-motion sampler。adapter 尚未接入连续 native collector 的双分支执行，
+或超出 1/30 与 1e-3 误差门槛的记录，并冻结 task 的直接 tensor/scalar inventory、禁用随机化和
+motion sampler。通用 snapshot 要求显式 `{'is_rnn': ..., 'state': ...}` sentinel，并校验
+Python/NumPy/Torch RNG 的具体格式。adapter 尚未接入连续 native collector 的双分支执行，
 也没有真实 twin branch 产物；非RNN controller 也必须显式记录空 RNN sentinel。合同测试不能
 作为 twin coverage 或 evaluator 科学证据。
 

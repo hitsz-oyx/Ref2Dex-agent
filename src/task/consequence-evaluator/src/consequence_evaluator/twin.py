@@ -38,6 +38,44 @@ REQUIRED_STATE_META_KEYS = frozenset({'controller_state', 'rnn_state', 'observat
 REQUIRED_RNG_KEYS = frozenset({'python', 'numpy', 'torch_cpu', 'torch_cuda'})
 
 
+def _valid_rng_state(value):
+    """Validate the concrete RNG state formats emitted by native capture."""
+    if not isinstance(value, dict) or not REQUIRED_RNG_KEYS.issubset(value):
+        return False
+    try:
+        python_rng = random.Random()
+        python_rng.setstate(value['python'])
+    except (TypeError, ValueError, RuntimeError, OverflowError, IndexError):
+        return False
+    try:
+        numpy_rng = np.random.RandomState()
+        numpy_rng.set_state(value['numpy'])
+    except (TypeError, ValueError, RuntimeError, OverflowError, IndexError):
+        return False
+
+    torch_cpu = value['torch_cpu']
+    if (not isinstance(torch_cpu, np.ndarray) or torch_cpu.ndim != 1
+            or torch_cpu.size == 0 or torch_cpu.dtype != np.dtype('uint8')):
+        return False
+    torch_cuda = value['torch_cuda']
+    if not isinstance(torch_cuda, (tuple, list)):
+        return False
+    if any(not isinstance(state, np.ndarray) or state.ndim != 1 or state.size == 0
+           or state.dtype != np.dtype('uint8') for state in torch_cuda):
+        return False
+    if 'torch_cuda_device_count' in value:
+        count = value['torch_cuda_device_count']
+        if (isinstance(count, (bool, np.bool_)) or not isinstance(count, (int, np.integer))
+                or count != len(torch_cuda)):
+            return False
+    if 'torch_cuda_device_order' in value:
+        order = value['torch_cuda_device_order']
+        if (not isinstance(order, (tuple, list))
+                or list(order) != list(range(len(torch_cuda)))):
+            return False
+    return True
+
+
 def _numeric_trace(value):
     """Finite numeric tree used for prefix traces (metadata is not a trace)."""
     if isinstance(value, np.ndarray):
@@ -97,7 +135,10 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
     if not _numeric_trace(states) or (steps > 0 and not _numeric_trace(actions)):
         raise ValueError('prefix replay traces must be finite')
     actions = np.asarray(actions)
-    if steps == 0 and actions.size == 0:
+    # Accept the natural ``[]`` spelling for a zero-step trace, but do not
+    # silently reinterpret an explicitly shaped empty array with the wrong
+    # native action width.
+    if steps == 0 and actions.ndim == 1 and actions.size == 0:
         actions = np.zeros((0, 18), dtype='float32')
     if actions.ndim != 2 or actions.shape[1] != 18:
         raise ValueError('prefix actions must have shape [steps,18]')
@@ -258,19 +299,20 @@ class TwinSnapshot:
         if self.state['rnn_state'] is None or self.state['reset_ids'] is None:
             raise ValueError('RNN and reset-id state must be explicit, including non-RNN players')
         rnn_state = self.state['rnn_state']
-        if isinstance(rnn_state, dict) and 'is_rnn' in rnn_state:
-            if type(rnn_state['is_rnn']) is not bool:
-                raise ValueError('RNN sentinel is_rnn flag must be a bool')
-            if rnn_state['is_rnn'] is False:
-                if 'state' not in rnn_state or rnn_state['state'] is not None:
-                    raise ValueError('non-RNN sentinel must explicitly carry state=None')
-            elif 'state' not in rnn_state or not _numeric_trace(rnn_state['state']):
-                raise ValueError('RNN sentinel must carry a finite numeric state')
-        elif not _numeric_trace(rnn_state):
-            raise ValueError('RNN state must be a finite numeric tree or explicit sentinel')
-        if not isinstance(self.rng, dict) or not REQUIRED_RNG_KEYS.issubset(self.rng):
+        if not isinstance(rnn_state, dict) or 'is_rnn' not in rnn_state:
+            raise ValueError('RNN state must use an explicit is_rnn sentinel')
+        if type(rnn_state['is_rnn']) is not bool:
+            raise ValueError('RNN sentinel is_rnn flag must be a bool')
+        if rnn_state['is_rnn'] is False:
+            if 'state' not in rnn_state or rnn_state['state'] is not None:
+                raise ValueError('non-RNN sentinel must explicitly carry state=None')
+        elif 'state' not in rnn_state or not _numeric_trace(rnn_state['state']):
+            raise ValueError('RNN sentinel must carry a finite numeric state')
+        if not _valid_rng_state(self.rng):
             missing = sorted(REQUIRED_RNG_KEYS - set(self.rng)) if isinstance(self.rng, dict) else sorted(REQUIRED_RNG_KEYS)
-            raise ValueError('twin snapshot missing RNG state: ' + ','.join(missing))
+            if missing:
+                raise ValueError('twin snapshot missing RNG state: ' + ','.join(missing))
+            raise ValueError('twin snapshot RNG state has an invalid format')
         if not finite_tree(self.state) or not finite_tree(self.rng):
             raise ValueError('nonfinite twin state or RNG')
         if not _valid_replay_provenance(self.replay_provenance):
@@ -375,6 +417,10 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
         raise ValueError('native task tensor inventory is missing canonical state')
     state['native_tensor_inventory'] = tuple(sorted(tensor_names))
     state['native_extra_tensors'] = extra_tensors
+    state['native_scalar_inventory'] = {
+        str(name): _cpu(value) for name, value in vars(task).items()
+        if isinstance(value, (str, bool, int, float, np.generic))
+    }
     state.update(controller_state=controller_state, rnn_state=rnn_state,
                  observation=observation, scalars=scalars, reset_ids=reset_ids)
     required = REQUIRED_NATIVE_STATE_KEYS | REQUIRED_STATE_META_KEYS
