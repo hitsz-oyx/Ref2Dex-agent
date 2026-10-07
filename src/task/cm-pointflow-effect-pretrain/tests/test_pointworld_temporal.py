@@ -1,5 +1,6 @@
 """Regression contracts for time identity and slow/rotational effect weighting."""
 import json
+import importlib.util
 import os
 import sys
 from pathlib import Path
@@ -130,6 +131,17 @@ def test_legacy_selector_matches_actual_v1_loss_and_padding_is_inert():
 def test_temporal_entry_rejects_legacy_config():
     with pytest.raises(ValueError, match='temporal configuration'):
         model_from_config({}, {'schema': 'pointworld-small-wm24.v1'})
+
+
+def test_training_identity_accepts_relative_script_invocation(monkeypatch):
+    path = TASK/'tools/run/train_oakink2_pointworld_temporal.py'
+    spec = importlib.util.spec_from_file_location('temporal_trainer_contract', path)
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    expected = trainer.implementation_sources()
+    monkeypatch.setattr(trainer, '__file__', os.path.relpath(path))
+    assert trainer.implementation_sources() == expected
+    assert len(expected) == 6
 
 
 def test_real_cuda_time_identity_masks_gradients_and_checkpoint():

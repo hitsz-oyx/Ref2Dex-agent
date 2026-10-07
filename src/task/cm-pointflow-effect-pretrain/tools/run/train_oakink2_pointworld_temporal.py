@@ -26,6 +26,13 @@ from oakink_wm.pointworld_temporal import model_from_config, capped_collate as c
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def implementation_sources():
+    return {str(f.relative_to(TASK)): digest(f) for f in (
+        Path(__file__).resolve(), TASK/'tools/run/evaluate_oakink2_pointworld_temporal.py',
+        TASK/'src/oakink_wm/pointworld_temporal.py', TASK/'src/oakink_wm/pointworld.py',
+        TASK/'src/oakink_wm/model.py', TASK/'src/oakink_wm/data.py')}
+
+
 def atomic_json(path, data):
     temp = path.with_suffix('.json.part')
     temp.write_text(json.dumps(data, indent=2, allow_nan=False) + '\n')
@@ -138,10 +145,7 @@ def run(args):
                     stats_sha256=digest(args.stats), stats=stats,
                     pointworld_commit=subprocess.check_output(['git', '-C', str(VENDOR), 'rev-parse', 'HEAD'], text=True).strip(),
                     vendor_sources={str(f.relative_to(VENDOR)): digest(f) for f in (VENDOR/'ptv3').rglob('*') if f.suffix in ('.py','.yaml')})
-    identity['implementation_sources'] = {str(f.relative_to(TASK)): digest(f) for f in (
-        Path(__file__), TASK/'tools/run/evaluate_oakink2_pointworld_temporal.py',
-        TASK/'src/oakink_wm/pointworld_temporal.py', TASK/'src/oakink_wm/pointworld.py',
-        TASK/'src/oakink_wm/model.py', TASK/'src/oakink_wm/data.py')}
+    identity['implementation_sources'] = implementation_sources()
     atomic_json(out / 'input_manifest.json', identity)
     initial_hash = hashlib.sha256(b''.join(p.detach().cpu().numpy().tobytes() for p in model.parameters())).hexdigest()
     step, best = 0, float('inf')
