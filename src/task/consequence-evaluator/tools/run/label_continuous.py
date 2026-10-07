@@ -257,7 +257,9 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
         manifest.update(status='COMPLETED', training_allowed=report['status'] == 'READY',
                         minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
                         pair_coverage_required=pair_coverage_required,
-                        route_sha256=route_digest, label_report_sha256=None)
+                        route_sha256=route_digest,
+                        all_experts_operationally_qualified=True,
+                        label_report_sha256=None)
         report['elapsed_s'] = time.monotonic() - started
         write(output / 'label_report.json', report)
         manifest['label_report_sha256'] = sha(output / 'label_report.json')

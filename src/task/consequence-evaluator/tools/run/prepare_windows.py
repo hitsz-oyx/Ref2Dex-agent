@@ -47,6 +47,9 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
         raise ValueError('preference annotation provenance is stale for the current H-matched rule')
     pair_coverage_required = manifest.get('pair_coverage_required', True)
     if pair_coverage_required:
+        if (manifest.get('all_experts_operationally_qualified') is not True
+                or provenance.get('all_experts_operationally_qualified') is not True):
+            raise ValueError('qualified six-expert route provenance is required')
         if (not manifest.get('route_sha256')
                 or provenance.get('route_sha256') != manifest['route_sha256']):
             raise ValueError('preference route provenance does not match source route')
@@ -167,6 +170,7 @@ def prepare(source, preferences, output, max_windows=20000, seconds=600):
                            preference_annotations_sha256=preferences_sha,
                            route_sha256=provenance.get('route_sha256'),
                            label_report_sha256=provenance.get('report_sha256'),
+                           all_experts_operationally_qualified=provenance.get('all_experts_operationally_qualified'),
                            minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
                            pair_coverage_required=pair_coverage_required,
                            unique_episode_pair_groups=pair_counts,

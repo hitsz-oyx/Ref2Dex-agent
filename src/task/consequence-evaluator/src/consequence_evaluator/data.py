@@ -81,6 +81,9 @@ class Windows:
                 or provenance.get('history_match_relative_rms') != HISTORY_MATCH_MAX_RELATIVE_RMS):
             raise ValueError('label provenance is stale for the current H-matched rule')
         if m.get('pair_coverage_required', True):
+            if (m.get('all_experts_operationally_qualified') is not True
+                    or provenance.get('all_experts_operationally_qualified') is not True):
+                raise ValueError('prepared six-expert qualification provenance is missing')
             if (not m.get('route_sha256')
                     or provenance.get('route_sha256') != m['route_sha256']):
                 raise ValueError('prepared route provenance is inconsistent')
