@@ -5,7 +5,7 @@ experiment_id: P-20261007-consequence-baseline-rebuild
 date: 2026-10-07
 task: consequence-evaluator
 branch: consequence-evaluator
-git_commit: 7c85d5df67af2f4e814c62e2b8d2c080a4a64999
+git_commit: 567c9091c642f3b6c21c36b830d0a171437231ca
 claim_id: C3
 hypothesis_family: HF-consequence-baseline-rebuild
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [289, 290]
 decision_changed_if_positive: promote the newly trained parent to s3 transfer and the remaining expert recipe
 decision_changed_if_negative: diagnose native geometry and learning before spending the six-expert budget
 status: UNCLEAR
-run_id: baseline-rebuild-20261007-r4
+run_id: baseline-rebuild-original-20261007-r1
 ---
 
 # Rebuild a self-trained rollout substrate after asset loss
@@ -265,7 +265,7 @@ The new queue starts at commit567c909. Native two-epoch8env smoke completes
 real contact proxy19.1%/held-lift-positive9.4% at the first rollout, confirming
 that the intervention reaches physical task dynamics. Fresh parent then
 starts separately; earlyepoch9 totalFPS476, approximately14minutes remaining.
-GPU0 uses18.25GiB, sampled utilization0/42/39%; native stepping/synchronization
+GPU0 uses18251MiB(17.82GiB), sampled utilization0/42/39%; native stepping/synchronization
 leaves the GPU intermittent. Preserve frozen probe hyperparameters for this
 bounded fit rather than mix a throughput experiment into its learning result.
 GPU1/2 mixed pretraining is not interrupted. Telemetry is retained in the run.
@@ -285,6 +285,20 @@ classification; they are not proof of missing annotation. The native reward
 only activates reference-contact supervision for values>0.01. The original
 staging metadata's word `unknown` is retained as frozen historical metadata;
 the numerical labels are copied unchanged and this interpretation supersedes it.
+
+The s3 reconstruction completes23.17s onCPU at commite98d0e2. Corrected
+tensorSHAf8ce89f6df8bdc24a38d8f2e41df65402d4deb78ffaebca974abddffb36bdbf4;
+baselineSHA658c5d2ff591a4303ffe440d3e8a95125003c5234537e5383c84dbfb9b4a708d.
+Wrist/object relative maxerror2.384e-7m, object/table error1.192e-7m,
+contact values0/1,left-active0,right-active2911. All historical geometric
+invariants pass. It is still a new conversion, not proof of historical byte
+identity. Artifacts: `outputs/consequence-evaluator/s3-corrected-rebuild-20261007-r1/`.
+
+The parent endpoint qualification is explicitly queued by
+`tools/run/queue_parent_qualification.py`: wait only for this task's owned
+successful parent supervisor<=3600s; then run the frozen endpoint once at
+seed290/GPU0,<=900s/1GiB. Preserve qualified and failed episodes alike.
+Queueing does not start six-expert expansion or select among checkpoints.
 
 ## Limitations / future evidence
 

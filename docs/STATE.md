@@ -41,6 +41,11 @@ task-local修复后同环境降到1.43mm，重复子集reset/FK物理检查通�
 与r4 canonical在q/坐标/contact上并不等价；旧新均用graspenv+Dexplore_Inspire。
 原s1数据GPU物理预检已通过（15.78s，首步位移1.43mm，三次子集reset通过）；
 原CmLite权重/转移与s3 corrected输入仍需重建。
+当前推进：567c909启动原s1输入/修复reset/Cm-off新重建，GPU0、64env/h32/mb256、
+LR2e-5/mini-epochs6、anneal40→80、200epoch；smoke36.18s通过，前80epoch有真实接触/抬升奖励，
+训练吞吐约500FPS、显存18251MiB。缺失CmLite奖励未启用，不称原配方精确复现。
+CPU已恢复s3 corrected reference（23.17s，几何相对误差<3e-7m，左contact0），迁移仍待母策略资格。
+已准备端点自动资格检查；尚未采集六专家数据或训练E0/Eoracle。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。

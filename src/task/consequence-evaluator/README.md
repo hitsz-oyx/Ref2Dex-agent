@@ -159,6 +159,9 @@ task-local修复已接入三个native入口；同环境真实8env测试首步位
 旧新均使用graspenv解释器/Dexplore_Inspire任务；已找回原s1 corrected tensor，
 其q与接触合同区别于r4canonical。原输入真实reset/FK/三次子集检查已通过，缺失CmLite权重仍需重建，
 不将临时随机Cm-off路线称为原母策略复现。
+新一轮已经使用原s1tensor/原single-motion config和修复reset，在GPU0执行有界200epoch Cm-off Probe，
+2epoch smoke通过；训练过程中同时完成s3 corrected input恢复。端点将自动做64条完整episode资格检查。
+缺失CmLite奖励尚未启用，六专家扩展和真实evaluator拟合仍待门禁。
 
 Recorded reactive future A 已受未来反馈影响；Eoracle−E0 只度量在这种A条件下的额外信息。
 正向才值得进行EWM与后续在线规划；负向先查数据/监督/拟合，不能直接判世界模型无用。
