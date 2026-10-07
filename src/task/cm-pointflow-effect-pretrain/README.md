@@ -3,9 +3,11 @@
 2026-10-07 current execution: the corrected three independent arms were stopped
 on user request at H12661/action12163/shuffle11774, preserving all checkpoints.
 The user now requests three-GPU action-only training initialized from action
-latest model weights, with batch chosen by measured throughput/memory. Implementation
-and exact weight-import checks pass; the user is coordinating the third GPU.
-No new production training has started yet. See the
+latest model weights, with batch chosen by measured throughput/memory. Three-rank action training is now running on GPUs0/1/2with per-rank batch64,
+global192, fresh AdamW lr1e-4/100warmup and maximum10000new updates under the
+original deadline. The imported fixed validation baseline is14.067mm moving-
+anchor h24point EPE.200-update batch64checks and native checkpoint restore pass;
+validation/checkpoint cadence is250updates. See the
 [action DDP experiment](docs/experiments/probes/P-20261007-pointworld-action-ddp.md).
 The paragraphs below retain the route's original acquisition/execution context.
 

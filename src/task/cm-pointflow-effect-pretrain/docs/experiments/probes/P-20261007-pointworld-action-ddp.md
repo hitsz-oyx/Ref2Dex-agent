@@ -5,7 +5,7 @@ experiment_id: P-20261007-pointworld-action-ddp
 date: 2026-10-07
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 4f2d9d5
+git_commit: 06933b3
 claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 4
@@ -20,7 +20,7 @@ run_id: pointworld-action-ddp-20261007
 # User-directed action-only three-GPU warm start
 
 Decision: use the current action latest model weights to start a fresh, faster
-three-rank pretraining recipe. Result: batch64per rank completes200real-data engineering updates; user-directed production config uses global192. Native restore/validation checks precede launch.
+three-rank pretraining recipe. Result: batch64per rank completes200real-data engineering updates; user-directed production config uses global192. Production launched successfully; fixed baseline recorded and finite updates progressing.
 
 ## Motivation and Decision Note
 
@@ -208,3 +208,22 @@ fixed microbatch2, with480finite metric entries and no source drift. This is
 engineering validation readability, not a predictive quality conclusion. Raw
 proofs are native-restore-verification.json and validation-read-check.json under
 the batch64check output. All short-check GPU processes exit before production.
+
+
+## Production launch record
+
+Actual source/config runtime commit06933b3b7b773655e433e5c73537dbb6f71ba1b5;
+launcher592221, torchrun592237, rank PIDs592274,592275,592276 on assigned0/1/2.
+Initial imported parameter hash matches the retained original12163checkpoint
+exactly. All workers are alive, sources show no drift. Fixed balanced256
+validation at new step0gives moving-anchor h24point EPE14.06723mm; this is the
+imported model baseline before new optimization, not an improvement claim.
+The initial best.pt is retained at step0and new best/latest/final policies are
+active. Full rows are retained in validation.jsonl.
+
+Startup check at new step99 shows finite loss1.050297, gradient norm0.555811,
+update0.7138seconds, global192and no OOM. Training remains in progress and
+status UNCLEAR. The fixed deadline and maximum10000new updates are unchanged.
+Actual identities/config/draw hashes and current process status are in the
+production input_manifest.json/group_status.json rather than inferred from
+later documentation-only commits.
