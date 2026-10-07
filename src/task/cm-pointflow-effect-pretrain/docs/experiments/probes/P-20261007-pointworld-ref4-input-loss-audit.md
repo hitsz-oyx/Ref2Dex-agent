@@ -14,7 +14,7 @@ seeds: [216]
 decision_changed_if_positive: retain PTv3 and prioritize temporal input identity and relative motion weighting for the next recipe
 decision_changed_if_negative: retain the frozen current recipe and inspect other action learning explanations
 status: UNCLEAR
-run_id: pointworld-ref4-audit-20261007
+run_id: pointworld-ref4-audit-20261007-masked-weights
 ---
 
 # Ref4 action-voxel and motion-weight diagnosis
@@ -43,7 +43,7 @@ adapter inputs, with no learned PTv3 execution; GPU startup offers little
 benefit for the file/statistics workload. Model, data, audit source, normalization,
 manifest and train-index SHA256 are recorded and rechecked; actual runtime
 commit is in result.json. Outputs:
-`outputs/cm-pointflow-effect-pretrain/pointworld-ref4-audit-20261007/`.
+`outputs/cm-pointflow-effect-pretrain/pointworld-ref4-audit-20261007-masked-weights/`.
 Stop on input drift, nonfinite values, budget exhaustion or output conflict.
 
 Report valid action points, distinct action voxels, time-separated voxel count,
@@ -76,6 +76,19 @@ selector mean0.03445. The normalized slow-only point loss equals its unweighted
 counterpart: raw3.4% does not imply a3.4%total-gradient multiplier. Relative
 competition between samples/frames remains to be measured in real microbatches.
 No existing hard geometry contract is reclassified as invalid by this diagnosis.
+
+## Audit implementation correction
+
+The initial512-window run at `f4f612e` is preserved in
+`outputs/cm-pointflow-effect-pretrain/pointworld-ref4-audit-20261007/`.
+Independent valid-window share conservation failed: the sigmoid capture seam
+precedes the real loss's object-valid mask, and the audit omitted that later
+mask in its denominator. The initial normalized microbatch shares are
+INVALID_IMPLEMENTATION; voxel counts and raw anchor weights are unaffected.
+The original trainer applies the mask correctly and is unchanged. Add that
+mask to the audit and require valid-window normalized shares to sum to one for
+every real microbatch. Repeat the affected diagnostic under the same overall
+300second budget, same512indices and seed; no training or model rerun.
 
 ## Limitations / future evidence
 

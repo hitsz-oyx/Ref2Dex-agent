@@ -159,7 +159,9 @@ def audit(args):
         assert len(captured) == len(captured_weights) == 1
         keys, unique_keys, inverse = [x.numpy() for x in captured[0]]
         assert np.array_equal(unique_keys[:, 1:], model.backbone.inputs[0]['grid_coord'].numpy())
-        weight = captured_weights[0].numpy()
+        # The sigmoid hook is BEFORE the model's supervision mask. Match its
+        # next operation exactly; padded objects must not enter denominators.
+        weight = (captured_weights[0] * batch['object_valid'][:, :, None, None]).numpy()
         N = batch['point_valid'].shape[1]
         av = batch['action_valid'].numpy().reshape(2, 24, 2, 11)
         exists = np.concatenate((batch['point_valid'].numpy(), av.reshape(2, 528)), 1)
@@ -167,6 +169,7 @@ def audit(args):
         raw_batch = np.broadcast_to(np.arange(2)[:, None], exists.shape)[exists]
         batch_weight = float(weight.sum())
         batch_labels = int(batch['object_valid'].sum()) * 24 * 512
+        batch_record_start = len(records)
         for i, sample in enumerate(samples):
             mask = raw_batch == i
             aid, inv = raw_action[mask], inverse[mask]
@@ -242,6 +245,13 @@ def audit(args):
             records.append(record)
             anchor_weights.append(w.reshape(-1))
             anchor_steps.append(step.reshape(-1))
+        current = records[batch_record_start:]
+        # Conservation catches accidentally counting padded objects in the
+        # normalization denominator, even when raw anchor weights look right.
+        object_count = sum(r['objects'] for r in current)
+        normalized_share = sum(r['window_relative_uniform_weight']*r['objects']/object_count for r in current)
+        if not abs(normalized_share-1) < 2e-6:
+            raise AssertionError('Valid-window normalized supervision shares must sum to one')
         if begin % 64 == 0:
             print(json.dumps(dict(windows=len(records), seconds=time.monotonic()-started)), flush=True)
     if any(hashlib.sha256(Path(p).read_bytes()).hexdigest()!=h for p,h in hashes.items()):
