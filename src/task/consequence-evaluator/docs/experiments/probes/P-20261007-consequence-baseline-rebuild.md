@@ -468,3 +468,22 @@ before creating a smoke child; preserve its FAILED record and do not kill
 that process. On recheck the PID had naturally exited. Fresh duck r3 at
 9294db0 uses the same staged r2inputs/source260/budgets and has entered
 SMOKE; qualification-s290 is queued for its successful endpoint only.
+
+## Duck endpoint280: readiness fails, audit before extra fitting
+
+Duck r3 at9294db0 completed20epoch transfer260→280. Fixed seed290
+64frame0 qualification:0/64 stable/no-later-drop,8/64 lift>=3cm,5/64
+maximum elevated proxy-held runs>=45frames (maximum303), mean max lift
+33.57mm and contact fraction.31864. First-step displacement<=2.869mm,
+no old reset teleport. This is UNCLEAR substrate readiness and not an
+evaluator/world-model negative result. Do not automatically append epochs.
+
+Blocker audit:8env×128frozen duck-policy steps with actual duck URDF,
+measured11keypoints and independently sampled hand/object gaps; same
+native_reset_probe budget<=180s/1MiB onGPU0. Compare force-proxy/near
+agreement and inspect full savedqualification drop/hold traces via CPU
+statistics. This distinguishes broken geometry/contact/reset from a
+policy that can lift but cannot retain. No PPO, newlabels or reward change.
+If wiring passes, choose the next independent expert from qualifieds3260,
+and record a separate bounded recipe decision; do not use duck280 as
+qualified ancestry. Preserve all failed staging/launch/qualification outputs.
