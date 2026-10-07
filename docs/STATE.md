@@ -805,3 +805,12 @@ ref4只读诊断已完成：229训练序列/512窗口，528action点平均合为
 所有moving监督仅剩2%–3%；部分旋转样本仍被相对降权。审计自身遗漏padding mask
 的初次归一化份额已排除并修正，原训练mask正确；三组继续原配方/原预算，结论仍UNCLEAR。
 [诊断协议、结果和修正边界](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-ref4-input-loss-audit.md)。
+
+## 2026-10-08 consequence twin contract hardening
+
+在独立工程复核后，twin v1 继续收紧：zero-step replay 只接受自然的空列表，显式空二维
+action 仍核对 18 维；RNN 必须使用显式 `is_rnn/state` sentinel；Python/NumPy/Torch RNG
+格式、非空 physics/history/controller provenance 均在入口拒绝缺失值；native adapter
+自动冻结 direct tensor、scalar 和 Enum（包括 `_state_init`）inventory。Task tests 为
+112 passed，compileall 与 diff-check 通过。当前仍没有 native branch runner、RNG restore
+和真实 twin branch 数据，不能把合同测试当作 twin coverage 或 evaluator 科学证据。
