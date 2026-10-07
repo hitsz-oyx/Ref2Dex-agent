@@ -21,7 +21,7 @@ run_id: pointworld-temporal-wm24-20261007
 
 Decision: evaluate observed-action predictive benefit after the user-requested ref4 correction.
 
-Result: corrected three-arm training is running with verified common initialization and finite updates.
+Result: at matched6000-update validation, H+A moving-anchor h24 point EPE is15.63mm versus H21.81mm and shuffled-action21.90mm; training and final TEST are incomplete, so status remains UNCLEAR.
 
 ## Decision Note and motivation
 
@@ -84,6 +84,38 @@ requires moving-anchor h24 test EPE>=10%lower than BOTH H and shuffled-action
 controls, beats static, and inference shuffle of H+A degrades>=5%. A valid
 matched failure is UNPROMISING; incomplete/insufficient evidence is UNCLEAR.
 Training loss and engineering smoke do not establish quality or global utility.
+
+## 阶段性验证记录（2026-10-07）
+
+以下为同一训练步数、固定 balanced256 验证窗口上的对比。指标是
+`model/anchor/cat0/h24/point_epe`，即运动锚物体未来24帧（0.8秒）的点位置
+误差，表中单位为mm；不是训练loss，也不是TEST结果。
+
+| 验证步数 | 仅历史 H | 历史＋真实动作 H+A | 历史＋打乱动作 | 静止预测 |
+| --- | ---: | ---: | ---: | ---: |
+| 3000 | 21.88 | 16.42 | 21.75 | 26.13 |
+| 6000 | 21.81 | 15.63 | 21.90 | 26.13 |
+
+第6000步动作组误差比H低28.3%、比打乱动作低28.6%，比静止预测低40.2%。
+相对第3000步的16.42mm，动作组误差进一步下降到15.63mm，两个对照变化较小。
+但第6000步的运动锚物体旋转误差仍约10.2°，接近静止基线；当前改善主要体现在
+位置预测。这里只记录继续完成当前Probe的正向信号，不升级为正式科学结论，
+也不提前授予最终PROMISING标签。
+
+14:15（Asia/Shanghai）运行检查：H/H+A/shuffle分别6903/6641/6400步，
+最近100步平均训练loss分别1.22/1.01/1.21；三个worker运行中，监控源码hash
+无漂移。按当时近期更新耗时，三组完成还需约13h，仅作运行估计。
+继续原定40000步训练；当前验证结果不改变数据、模型、预算或最终判定门槛。
+
+追溯产物：运行目录下`stage-snapshots/interim-3000-6000.json`保存两次已读取的
+匹配阶段指标摘要、运行commit，以及归档时仍可读取的完整验证JSON和其SHA256。
+第3000步和第6000步的数值此前直接读取自各组`validation_latest.json`，
+当时未归档完整JSON；该文件会滚动覆盖。补记录时H已进入第7000步验证，故归档
+的完整原始文件为H7000/H+A6000/shuffle6000，明确保留各自step，不能作为
+匹配比较，也不能冒充第3000/6000步完整指标的重建。历史阶段仅保留上述实测摘要。
+
+结论仍为**UNCLEAR（训练中）**。最终仍需等步数40000的三臂TEST及动作组的
+推理时shuffle干预，才能按既定门槛判断本Probe；阶段性验证不证明全局C3或策略收益。
 
 ## Engineering evidence and limitations
 
