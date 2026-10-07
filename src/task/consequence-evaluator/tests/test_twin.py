@@ -178,3 +178,19 @@ def test_replay_provenance_requires_native_action_shape():
         replay_provenance(np.zeros((2, 1)), np.zeros((1, 17)),
                           replay_max_abs_error=0, physics_properties={},
                           history_contract={}, controller_identity={}, physics_dt=1 / 30)
+
+
+def test_zero_step_replay_accepts_natural_empty_action_list():
+    result = replay_provenance([np.zeros((2, 3), dtype='float32')], [],
+                               replay_max_abs_error=0, physics_properties={},
+                               history_contract={}, controller_identity={}, physics_dt=1 / 30)
+    assert result['prefix_steps'] == 0 and result['prefix_state_count'] == 1
+
+
+def test_twin_rejects_malformed_rnn_sentinel():
+    snap = snapshot()
+    state = dict(snap.state, rnn_state={'is_rnn': False, 'state': 123})
+    with pytest.raises(ValueError, match='state=None'):
+        capture_snapshot('bad-rnn', snap.tick, state, snap.rng, snap.history,
+                         snap.object_pose, snap.hand_keypoints,
+                         required_state_keys=REQUIRED, replay_provenance=provenance())

@@ -97,6 +97,8 @@ def replay_provenance(prefix_states, prefix_actions, *, replay_max_abs_error,
     if not _numeric_trace(states) or (steps > 0 and not _numeric_trace(actions)):
         raise ValueError('prefix replay traces must be finite')
     actions = np.asarray(actions)
+    if steps == 0 and actions.size == 0:
+        actions = np.zeros((0, 18), dtype='float32')
     if actions.ndim != 2 or actions.shape[1] != 18:
         raise ValueError('prefix actions must have shape [steps,18]')
     if (isinstance(steps, bool) or not isinstance(steps, (int, np.integer))
@@ -255,10 +257,17 @@ class TwinSnapshot:
             raise ValueError('controller/RNN/observation provenance is incomplete')
         if self.state['rnn_state'] is None or self.state['reset_ids'] is None:
             raise ValueError('RNN and reset-id state must be explicit, including non-RNN players')
-        if (isinstance(self.state['rnn_state'], dict)
-                and self.state['rnn_state'].get('is_rnn') is False
-                and 'state' not in self.state['rnn_state']):
-            raise ValueError('non-RNN sentinel must explicitly carry state=None')
+        rnn_state = self.state['rnn_state']
+        if isinstance(rnn_state, dict) and 'is_rnn' in rnn_state:
+            if type(rnn_state['is_rnn']) is not bool:
+                raise ValueError('RNN sentinel is_rnn flag must be a bool')
+            if rnn_state['is_rnn'] is False:
+                if 'state' not in rnn_state or rnn_state['state'] is not None:
+                    raise ValueError('non-RNN sentinel must explicitly carry state=None')
+            elif 'state' not in rnn_state or not _numeric_trace(rnn_state['state']):
+                raise ValueError('RNN sentinel must carry a finite numeric state')
+        elif not _numeric_trace(rnn_state):
+            raise ValueError('RNN state must be a finite numeric tree or explicit sentinel')
         if not isinstance(self.rng, dict) or not REQUIRED_RNG_KEYS.issubset(self.rng):
             missing = sorted(REQUIRED_RNG_KEYS - set(self.rng)) if isinstance(self.rng, dict) else sorted(REQUIRED_RNG_KEYS)
             raise ValueError('twin snapshot missing RNG state: ' + ','.join(missing))
@@ -348,7 +357,8 @@ def capture_native_snapshot(pair_id, tick, task, *, controller_state, rnn_state,
         raise ValueError('RNN native controller state is missing')
     if not bool(is_rnn) and rnn_state is not None:
         raise ValueError('non-RNN native controller must use an explicit None state')
-    rnn_state = {'is_rnn': False, 'state': None} if not bool(is_rnn) else rnn_state
+    rnn_state = ({'is_rnn': False, 'state': None} if not bool(is_rnn)
+                 else {'is_rnn': True, 'state': rnn_state})
     state = {}
     for name in REQUIRED_NATIVE_STATE_KEYS:
         if not hasattr(task, name):
