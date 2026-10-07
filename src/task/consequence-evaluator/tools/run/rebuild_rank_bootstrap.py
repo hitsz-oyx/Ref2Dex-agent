@@ -1,4 +1,4 @@
-"""Native Cm-off bootstrap with process-local CPU reference-table alignment."""
+"""Native Cm-off bootstrap using CUDA PhysX and CUDA tensor views."""
 from pathlib import Path
 import sys
 
@@ -22,7 +22,7 @@ def main():
     DexploreTask._reset_ref_state_init = reset
     argv = sys.argv[1:]
     if '--pipeline' not in argv:
-        argv += ['--pipeline', 'cpu']
+        argv += ['--pipeline', 'gpu']
     dexplore_cm_off_rank_bootstrap.main(argv)
 
 

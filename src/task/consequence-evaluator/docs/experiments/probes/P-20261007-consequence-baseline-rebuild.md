@@ -92,6 +92,15 @@ and claim the old substrate is restored.
 - Native GPU smoke completion and learning evaluation are pending. No real robot
   examples, expert qualification or oracle headroom claim exists yet.
 
+r3 passed the NumPy import but failed in the first environment reset, before
+PPO updates: the CPU PhysX tensor pipeline was mixed with native CUDA reference
+indices/tensors. The task-local wrapper now selects the GPU pipeline explicitly
+to keep native simulation views, references and actor on CUDA. Original r3 logs
+are retained. Next retry is baseline-rebuild-20261007-r4, GPU0only, the same
+staged inputs and2/200epoch caps. User explicitly allocates GPUs1/2to separate
+OakInk2 continuation; this expert run never shares those devices. No physics
+success claim follows from fixing tensor placement.
+
 ## Limitations / future evidence
 
 New motion references differ in provenance from the deleted corrected outputs;

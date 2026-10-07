@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Supervise one warm-start action model on three assigned GPUs."""
+"""Supervise one action model on explicitly assigned GPUs."""
 import argparse
 import hashlib
 import json
@@ -49,15 +49,20 @@ def belongs_to(pid, parent):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    for name in ('data','stats','config','init-weights','output'):
+    for name in ('data','stats','config','output'):
         p.add_argument('--'+name, type=Path, required=True)
+    parent = p.add_mutually_exclusive_group(required=True)
+    parent.add_argument('--init-weights', type=Path)
+    parent.add_argument('--continue-from', type=Path)
     p.add_argument('--gpus', default='0,1,2')
     p.add_argument('--deadline', type=float, required=True)
     a = p.parse_args()
     gpus = [int(x) for x in a.gpus.split(',')]
     config = json.loads(a.config.read_text())
-    if len(gpus)!=3 or len(set(gpus))!=3 or config['accumulation']%3:
-        raise ValueError('need three unique GPUs and accumulation divisible by3')
+    if not 1 <= len(gpus) <= 4 or len(set(gpus)) != len(gpus) or config['accumulation']%len(gpus):
+        raise ValueError('need1--4unique GPUs and accumulation divisible by rank count')
+    if a.continue_from and len(gpus) != 2:
+        raise ValueError('optimizer-preserving recipe migration is limited to two ranks')
     if not time.time()<a.deadline<=time.time()+min(86400,config['group_seconds']):
         raise ValueError('deadline must be future and within authorized24h cap')
     if gpu_processes(gpus):
@@ -68,6 +73,7 @@ def main():
     root.mkdir(parents=True, exist_ok=False)
     files = [Path(__file__).resolve(), a.config.resolve(), a.stats.resolve(), a.data.resolve()/'processed/manifest.json',
              TASK/'src/oakink_wm/distributed.py', TASK/'src/oakink_wm/pointworld_performance.py',
+             TASK/'src/oakink_wm/continuation.py',
              TASK/'src/oakink_wm/pointworld_temporal.py', TASK/'src/oakink_wm/pointworld.py',
              TASK/'src/oakink_wm/data.py', TASK/'src/oakink_wm/model.py',
              TASK/'tools/run/train_oakink2_pointworld_ddp.py', TASK/'tools/run/train_oakink2_pointworld_temporal.py',
@@ -77,10 +83,11 @@ def main():
     env = dict(os.environ,CUDA_VISIBLE_DEVICES=a.gpus,TMPDIR=str(REPO/'tmp'),
                TRITON_CACHE_DIR=str(REPO/'tmp/triton-pointworld-action-ddp-20261007'),
                OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='2')
-    command = [sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node=3',
+    command = [sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node='+str(len(gpus)),
                str(TASK/'tools/run/train_oakink2_pointworld_ddp.py'),'--data',str(a.data.resolve()),
                '--stats',str(a.stats.resolve()),'--config',str(a.config.resolve()),'--arm','action',
-               '--init-weights',str(a.init_weights.resolve()),'--fused-hilbert','--deadline',str(a.deadline),
+               '--continue-from' if a.continue_from else '--init-weights',
+               str((a.continue_from or a.init_weights).resolve()),'--fused-hilbert','--deadline',str(a.deadline),
                '--output',str(root/'train-action')]
     status = dict(status='LAUNCHING',pid=os.getpid(),gpus=gpus,deadline=a.deadline,started_at=time.time(),
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),

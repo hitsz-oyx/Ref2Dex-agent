@@ -18,6 +18,14 @@ DExplore指向已删除baseline的失效data链接已保留并修复。先新训
 预训练Probe PROMISING；末尾2500更新仍改善3.49%，仅能判断收益减慢，不能认定完全平台。
 best/latest/final均保留，未开启test或新训练预算。专家重建r2的native smoke在首次PPO更新前
 因NumPy别名兼容导入顺序失败，原日志保留；调整bootstrap导入顺序后重试原预算内预检。
+随后用户授权OakInk2继续：GPU1/2、每卡64/global128，从原latest保留AdamW动量，
+沿用末尾lr约1e-5追加最多10000更新，仍受原绝对deadline约束；这是显式两卡迁移，非逐位resume。
+GPU0用于consequence专家/rollout。r3重建smoke在首次reset发现CPU/CUDA混用，未发生PPO更新；
+task-local入口改用CUDA PhysX tensor pipeline后，按原输入/预算执行r4预检。
+启动前用户暂停以上续训安排，优先混合OakInk2/GRAB/ARCTIC/ContactPose，原latest仅作模型初始化，
+新优化器/训练从头开始。两卡续训与r4预检均未启动；当前无本会话GPU进程需要停止。
+新数据整合进行中：GRAB/ARCTIC已有r6窗口可复用，但来源内类别及ARCTIC官方split需重索引；
+ContactPose原始逐帧位姿/时间戳存在，必须恢复真实全局坐标并屏蔽长gap。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。
 

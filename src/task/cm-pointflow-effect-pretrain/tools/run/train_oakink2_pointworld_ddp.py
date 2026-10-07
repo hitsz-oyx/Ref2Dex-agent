@@ -41,7 +41,7 @@ def parameter_hash(model):
 def source_identity():
     sources = base.implementation_sources()
     for p in (Path(__file__).resolve(), TASK/'src/oakink_wm/distributed.py',
-              TASK/'src/oakink_wm/pointworld_performance.py'):
+              TASK/'src/oakink_wm/pointworld_performance.py', TASK/'src/oakink_wm/continuation.py'):
         sources[str(p.relative_to(TASK))] = base.digest(p)
     return sources
 
@@ -204,6 +204,13 @@ def run(args):
             identity['parent_checkpoint_sha256'] = base.digest(args.init_weights)
             identity['parent_checkpoint_path'] = str(args.init_weights.resolve())
             del state
+        if args.continue_from:
+            from oakink_wm.continuation import continue_optimizer
+            state = torch.load(args.continue_from, map_location='cpu', weights_only=False, mmap=True)
+            identity['initialization'] = continue_optimizer(state, model, optimizer, config, identity, rank, world)
+            identity['parent_checkpoint_sha256'] = base.digest(args.continue_from)
+            identity['parent_checkpoint_path'] = str(args.continue_from.resolve())
+            del state
         checkpoint = args.resume or args.import_single_checkpoint
         if checkpoint:
             state = torch.load(checkpoint, map_location=device, weights_only=False)
@@ -243,7 +250,7 @@ def run(args):
             trainlog = (out/'train.jsonl').open('a')
         evaluation_batch = config.get('validation_microbatch', config['microbatch'])
         engineering = args.smoke or args.engineering or args.benchmark
-        if args.init_weights and not engineering:
+        if (args.init_weights or args.continue_from) and not engineering:
             measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
             score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
             dist.broadcast_object_list(score, src=0)
@@ -263,7 +270,9 @@ def run(args):
                 reason = 'source_drift' if drift else 'stop_or_budget'
                 break
             before = time.monotonic()
-            if step < config['warmup_updates']:
+            if config.get('learning_rate_schedule', 'cosine') == 'constant':
+                scale = 1.
+            elif step < config['warmup_updates']:
                 scale = (step+1)/config['warmup_updates']
             else:
                 scale = .1+.9*.5*(1+math.cos(math.pi*(step-config['warmup_updates'])/max(1,config['updates']-config['warmup_updates'])))
@@ -371,6 +380,7 @@ def main():
     group.add_argument('--resume', type=Path)
     group.add_argument('--import-single-checkpoint', type=Path)
     group.add_argument('--init-weights', type=Path, help='New recipe initialized from single-GPU model weights only')
+    group.add_argument('--continue-from', type=Path, help='Two-rank recipe migration retaining trained AdamW moments')
     run(p.parse_args())
 
 

@@ -10,7 +10,7 @@ claim_id: C3
 hypothesis_family: HF-pointworld-unified-action-effect
 probe_index_in_family: 4
 seed_pool: probe
-seeds: [210, 212, 213, 216, 217, 219, 220]
+seeds: [210, 212, 213, 216, 217, 219, 220, 221, 222]
 decision_changed_if_positive: retain efficient action-only DDP pretraining and its improved validation checkpoint
 decision_changed_if_negative: diagnose larger-batch optimization before extending training
 status: PROMISING
@@ -277,3 +277,49 @@ Evidence in the declared run's train-action directory: result.json,
 validation.jsonl (41fixed-panel measurements), completion_summary.json
 (recomputed trends and inspected checkpoint identities), convergence.png,
 best.pt/latest.pt/final.pt. Existing initial/raw records are preserved.
+
+## User-authorized two-rank continuation (2026-10-07)
+
+Decision Note: user requests reserving one GPU for consequence-evaluator and
+continuing OakInk2 on the other two, with unchanged per-GPU batch. Assign0to
+expert reconstruction/rollout; assign1/2to the action model, microbatch64each,
+global batch128(one backward/rank). This tests whether more training can still
+improve fixed held-out physical prediction after the slower late segment.
+Cheapest discriminator is one bounded continuation on the existing validation
+panel. Retain an improved checkpoint; if there is little further progress,
+do not assume indefinitely increasing steps is useful. A2%improvement over
+the previous best11.1026mm is an operational meaningful-progress threshold,
+not statistical validation or a formal convergence test.
+
+New run: `outputs/cm-pointflow-effect-pretrain/pointworld-action-ddp2-continue-20261007/`.
+Initialize from the original latest.pt at step10000, retaining model buffers,
+every AdamW moment and per-parameter optimizer step. Keep the saved endpoint
+learning rate (about1e-5) constant, without a new warmup or high-rate restart.
+The two remaining ranks inherit original rank0/1 RNG states. New draw seed222
+(config seed221), new global batch and rank count mean this is an explicit
+recipe migration, not a bitwise exact distributed resume. Stage steps start
+at0while AdamW step starts at10000; completion adds10000updates and1.28million
+sampled windows. The parent checkpoint and all original outputs are retained.
+
+Migration validates the old frozen trainer SHA256 explicitly and requires
+unchanged other source identities, model/data/normalization/vendor/backend and
+per-GPU batch. Native strict resume is unchanged and still requires the same
+world/config/implementation; this migration is a separate --continue-from mode.
+The initial checkpoint is reevaluated on the same balanced256panel at batch2;
+best/latest/final and full optimizer/RNG are saved in the new directory. Same
+validation250cadence, final natural256and action shuffle; no TEST split.
+
+Budget: at most10000additional updates, bounded by the original absolute
+deadline1791424717.7631629; no fresh24h allocation. Total simultaneous use is
+three GPUs, below the global4cap. Expected output below3GiB; stop on source
+drift, worker failure, nonfinite/OOM, deadline, or foreign GPU process. Learning
+curves across the two stage boundaries must account for global192→128; loss
+values are not an unchanged reference objective. Runtime commit, parent SHA,
+restored AdamW state and actual timing/VRAM will be recorded after launch.
+
+Before launch, user pauses this continuation and requests a fresh mixed
+OakInk2/GRAB/ARCTIC/ContactPose recipe initialized from the retained latest
+weights. No two-rank GPU check or continuation was launched. The tested
+optimizer-migration mode is retained as an engineering tool, not evidence
+of further training. The mixed recipe will have a separate experiment card,
+fresh optimizer/schedule/draws and independently frozen data identities.

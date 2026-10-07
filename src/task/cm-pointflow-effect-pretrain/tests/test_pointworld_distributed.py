@@ -140,3 +140,47 @@ def test_weights_initialization_allows_new_recipe_but_rejects_semantic_drift():
         trainer.initialize_weights(state, target, dict(config, horizon=12), identity)
     with pytest.raises(ValueError, match='mismatch'):
         trainer.initialize_weights(state, target, config, dict(identity, stats_sha256='different'))
+
+
+def test_two_rank_continuation_keeps_adamw_moments_and_next_update():
+    import copy
+    from oakink_wm.continuation import continue_optimizer, ENTRY, SELF, LEGACY_ENTRY_SHA256
+    from oakink_wm.distributed import capture_rng
+    source = nn.Linear(2, 1)
+    parent_optimizer = torch.optim.AdamW(source.parameters(), lr=1e-5, weight_decay=.01)
+    x = torch.tensor([[.5, -.3], [-.7, 1.]])
+    for _ in range(3):
+        source(x).square().mean().backward()
+        parent_optimizer.step(); parent_optimizer.zero_grad()
+    config = dict(seed=221, microbatch=64, accumulation=2, updates=10000,
+                  learning_rate=1e-5, learning_rate_schedule='constant', warmup_updates=0, horizon=24)
+    sources = {ENTRY: 'current', SELF: 'new', 'model.py': 'unchanged'}
+    identity = dict(dataset_hash='data', arm='action', stats_sha256='stats',
+                    vendor_sources={}, implementation_sources=sources)
+    legacy = {ENTRY: LEGACY_ENTRY_SHA256, 'model.py': 'unchanged'}
+    state = dict(checkpoint_kind='pointworld-temporal.ddp.v1', world_size=3, step=3,
+                 model=copy.deepcopy(source.state_dict()), optimizer=copy.deepcopy(parent_optimizer.state_dict()),
+                 dataset_hash='data', config=dict(config, seed=219, accumulation=3),
+                 identity=dict(identity, implementation_sources=legacy), rank_rngs=[capture_rng() for _ in range(3)])
+    target = nn.Linear(2, 1)
+    migrated = torch.optim.AdamW(target.parameters(), lr=1e-4, weight_decay=.01)
+    result = continue_optimizer(state, target, migrated, config, identity, 1, 2)
+    assert not result['optimizer_reset'] and not result['weights_only']
+    assert result['parent_optimizer_steps'] == [3, 3]
+    for previous, actual in zip(parent_optimizer.state.values(), migrated.state.values()):
+        for key in ('step', 'exp_avg', 'exp_avg_sq'):
+            torch.testing.assert_close(previous[key], actual[key], rtol=0, atol=0)
+    # The migrated actor must take exactly the next AdamW update of its parent.
+    for actor, opt in [(source, parent_optimizer), (target, migrated)]:
+        actor(x).square().mean().backward(); opt.step(); opt.zero_grad()
+    for previous, actual in zip(source.parameters(), target.parameters()):
+        torch.testing.assert_close(previous, actual, rtol=0, atol=0)
+    with pytest.raises(ValueError, match='batch semantics'):
+        continue_optimizer(state, target, migrated, dict(config, microbatch=32), identity, 0, 2)
+    with pytest.raises(ValueError, match='endpoint learning rate'):
+        continue_optimizer(state, target, migrated, dict(config, learning_rate=1e-4), identity, 0, 2)
+    with pytest.raises(ValueError, match='source/backend/world'):
+        continue_optimizer(state, target, migrated, config,
+                           dict(identity, implementation_sources=dict(sources, **{'model.py': 'drift'})), 0, 2)
+    with pytest.raises(ValueError, match='source/backend/world'):
+        continue_optimizer(state, target, migrated, config, identity, 0, 3)
