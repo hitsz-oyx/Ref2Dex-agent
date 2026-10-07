@@ -141,6 +141,8 @@ def main():
                     geometry=PhysicalGeometry(task,assets)
                     gaps, proxies, heights = [], [], []
                     for _ in range(a.geometry_steps):
+                        if not isinstance(obs,dict):
+                            obs={'obs':obs}
                         points,gap=geometry.measure(task)
                         if (points.shape!=(task.num_envs,11,3) or not torch.isfinite(points).all()
                                 or not torch.isfinite(gap).all() or bool((gap<0).any())):

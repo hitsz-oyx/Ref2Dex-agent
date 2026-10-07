@@ -93,7 +93,8 @@ def test_episode_alignment_and_no_second_episode_append():
         episode.append(np.zeros(18),'approach',np.zeros(6),root_state(),False,np.zeros(18),np.zeros(18,bool),False)
 
 
-def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(tmp_path):
+@pytest.mark.parametrize('tensor_step_observation',[False,True])
+def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(tmp_path,tensor_step_observation):
     """Run the actual Collector class extracted without GPU-only module imports."""
     path = TASK/'tools/run/collect_continuous.py'
     tree = ast.parse(path.read_text())
@@ -139,7 +140,8 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
             if tick>=20:
                 task._target_states[:,2]=.04
             done=task.progress_buf>=torch.arange(65,71)
-            return {'obs':torch.full((n,6),float(tick))},torch.zeros(n),done,{}
+            observation=torch.full((n,6),float(tick))
+            return observation if tensor_step_observation else {'obs':observation},torch.zeros(n),done,{}
         def _post_step(self, info):
             pass
     a=SimpleNamespace(num_envs=n, waves=1,seed=7,amplitude=.08,max_steps=100,split='train')

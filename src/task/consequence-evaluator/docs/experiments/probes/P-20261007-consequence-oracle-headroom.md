@@ -148,3 +148,11 @@ force-near/far/elevated agreement, before any data expansion. No PPO/collector
 fit, no expert substitution, no success or scientific gain claim. GPU2 may
 compute file-derived physical statistics concurrently; max2ownedGPU. Preserve
 all raw/checkpoint/input hashes and stop on nonfinite/teleport/early completion.
+
+First native geometry smoke r1 exposed tensor-pipeline env_step returning a
+raw observation tensor whereas env_reset returns an obs dictionary. The new
+continuous loop previously assumed both were dictionaries (fake tests modeled
+that assumption). Preserve failed r1; repair by wrapping the already measured
+tensor without env_reset or re-normalization. Add both raw-tensor/dictionary
+driver regressions; retry same128step engineering check in fresh r2. This is
+an implementation issue before data collection, not evaluator negative evidence.

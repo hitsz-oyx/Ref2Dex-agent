@@ -226,7 +226,11 @@ def main():
                     # Keep the logged normalized control separate from that buffer.
                     action = torch.tensor(control, device=self.device)
                     executed_control = None
-                    obs, _, done, info = self.env_step(self.env, action)
+                obs, _, done, info = self.env_step(self.env, action)
+                # Native tensor-pipeline env_step returns a raw observation,
+                # unlike env_reset. Wrap without resetting or normalizing it.
+                if not isinstance(obs,dict):
+                    obs={'obs':obs}
                     if executed_control is None or executed_control.shape != control.shape:
                         raise ValueError('native pre-physics command capture did not run')
                     states, contact = physical()
