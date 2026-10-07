@@ -14,6 +14,7 @@ TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK/'src'))
 from consequence_evaluator.contracts import is_within
+from consequence_evaluator.provenance import self_trained_ancestry
 
 
 class QualificationDeadline(BaseException):
@@ -52,9 +53,7 @@ def main():
         p.error('input override is permitted only for reference-controller diagnosis')
     trained = json.loads((run/'run_manifest.json').read_text())
     config = json.loads((run/'config.json').read_text())
-    if (trained.get('run_status') != 'COMPLETED' or trained.get('cm_enabled') is not False
-            or trained.get('initialization') != 'random_scratch'):
-        raise ValueError('completed self-trained Cm-off scratch parent required')
+    ancestry = self_trained_ancestry(run, ROOT/'outputs/consequence-evaluator')
     checkpoint = Path(trained['checkpoint'])
     if sha(checkpoint) != trained['checkpoint_sha256']:
         raise ValueError('parent checkpoint identity changed')
@@ -86,6 +85,7 @@ def main():
             raise ValueError('reference override has no native motion tensors')
         files += actual_inputs
     frozen = {str(path.resolve()):sha(path) for path in files}
+    frozen.update(ancestry)
     output.mkdir(parents=True)
     scratch = ROOT/'tmp/consequence-parent-qualification'
     scratch.mkdir(parents=True, exist_ok=True)

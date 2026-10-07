@@ -78,8 +78,9 @@ def main() -> None:
     if (args.anneal_start is None) != (args.anneal_end is None):
         parser.error("anneal start and end must be supplied together")
     if args.anneal_start is not None and not (
-            args.source_epoch <= args.anneal_start < args.anneal_end <= args.target_epoch):
-        parser.error("anneal window must lie within the continuation")
+            0 <= args.anneal_start < args.anneal_end <= args.target_epoch and
+            (args.anneal_end <= args.source_epoch or args.source_epoch <= args.anneal_start)):
+        parser.error("anneal window must be completed before, or lie within, the continuation")
     output = args.output.resolve()
     if output.exists():
         parser.error("new output directory required")
@@ -132,6 +133,13 @@ def main() -> None:
         insert_at = command.index("--learning-rate")
         command[insert_at:insert_at] = ["--scratch-resume-checkpoint", str(source),
                                         "--scratch-resume-sha256", args.source_sha256]
+    if args.anneal_start is None:
+        command[command.index("--save-frequency"):command.index("--save-frequency")] = [
+            "--curriculum-backtrack-start", "180", "--curriculum-backtrack-end", "220"]
+    else:
+        command[command.index("--save-frequency"):command.index("--save-frequency")] = [
+            "--curriculum-anneal-start", str(args.anneal_start),
+            "--curriculum-anneal-end", str(args.anneal_end)]
     if args.dry_run:
         print(json.dumps({"command": command, "output": str(output),
                           "motion_count": len(inputs), "input_classification": input_classification},
@@ -144,13 +152,6 @@ def main() -> None:
     write(input_manifest, {"classification": input_classification,
                            "source_spec": str(spec_path), "source_spec_sha256": sha256(spec_path),
                            "motions": inputs})
-    if args.anneal_start is None:
-        command[command.index("--save-frequency"):command.index("--save-frequency")] = [
-            "--curriculum-backtrack-start", "180", "--curriculum-backtrack-end", "220"]
-    else:
-        command[command.index("--save-frequency"):command.index("--save-frequency")] = [
-            "--curriculum-anneal-start", str(args.anneal_start),
-            "--curriculum-anneal-end", str(args.anneal_end)]
     manifest_path = output / "run_manifest.json"
     manifest = {
         "manifest_schema": "ref2dex.run.v1", "run_status": "STARTED",

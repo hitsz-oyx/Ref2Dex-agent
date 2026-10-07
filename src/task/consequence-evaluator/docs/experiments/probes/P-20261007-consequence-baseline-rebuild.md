@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [289, 290]
 decision_changed_if_positive: promote the newly trained parent to s3 transfer and the remaining expert recipe
 decision_changed_if_negative: diagnose native geometry and learning before spending the six-expert budget
-status: UNCLEAR
+status: PROMISING
 run_id: baseline-rebuild-original-20261007-r1
 ---
 
 # Rebuild a self-trained rollout substrate after asset loss
+
+Result: Reset-repaired original-s1 Cm-off parent completes200epochs;50/64full-frame0 episodes meet the fixed45-frame/no-later-drop gate. The six experts and evaluator dataset are not yet complete.
+Decision: Proceed to a bounded20epoch s3 transfer from this self-trained parent, then independently qualify its fixed endpoint before expanding other experts.
 
 ## Motivation and Decision Note
 
@@ -299,6 +302,48 @@ The parent endpoint qualification is explicitly queued by
 successful parent supervisor<=3600s; then run the frozen endpoint once at
 seed290/GPU0,<=900s/1GiB. Preserve qualified and failed episodes alike.
 Queueing does not start six-expert expansion or select among checkpoints.
+
+## Original-s1 parent qualification and bounded s3 decision
+
+The original-input parent completes200epochs in1123.50s at training commit
+567c9091c642f3b6c21c36b830d0a171437231ca. The queue (smoke plus parent) takes
+1168.33s. EndpointSHA256:
+50a028eba1b4aaaf66ea5d669e14c8b2e31847b8820bd23938d694fb2c26f330.
+Qualification at commit053e8dc finishes64full-frame0 first episodes of431steps;
+50/64(78.125%) satisfy >=3cm/contact-proxy hold for45consecutive frames with
+no subsequent drop. Independently counted per-episode flags agree with50.
+First-step displacement remains approximately1.43mm. The weaker native5-frame
+metric is59/64; it is not the qualification criterion. These positive Probe
+observations permit data preparation; they do not restore the old Validation
+or demonstrate Cm utility. Qualification exports remain diagnostic only,
+training_allowed=false because native PD actions can be mutated.
+
+Evidence: `baseline-rebuild-original-20261007-r1/parent_s1/run_manifest.json`,
+`qualification-s290/{qualification.json,run_manifest.json,native-results.json,transitions.pt}`
+and `qualification-s290-queue.json`, all under `outputs/consequence-evaluator/`.
+No missing CmLite weight is needed to proceed with this qualifying Cm-off
+substrate; the historical exact recipe remains unreproduced.
+
+Decision Note: Test whether the recovered s3 motion can inherit this useful
+parent before paying for the remaining five experts. Cheapest useful fit is
+8env/two resumed epochs (200→202, debug17), then a separate64env20epoch fit
+(200→220, seed289), both loading the same frozen parent200, not smoke202.
+Keep h32/mb256/mini6/rewards2/10/5 and LR1e-5; restore model/RMS/optimizer/
+epoch state, explicitly override LR. Preserve the already completed anneal
+40→80 (scale0 at epoch200), so no implicit180→220backtrack enters the recipe.
+OneGPU0, <=300s smoke/900s fit/5GiB, then <=900s/1GiB fixed64frame0 qualification
+with seed290 and the same8/64gate. GPU1/2 mixed pretraining remains independent.
+Stop on nonfinite, source/input drift, GPU conflict, timeout or output cap.
+Positive permits the next expert recipe; negative audits s3 control/contact
+and transfer learning before further spending. No new claim or external write.
+
+The queue verifies completed owned Cm-off checkpoint ancestry back to random
+initialization and freezes every ancestral checkpoint/manifest. Qualification
+uses the same ancestry check, so transferred self-trained actors are accepted
+without accepting an official imported actor. Actual runtime identity is
+recorded after implementation checks and commit. Inputs are the previously
+audited `baseline-transfer-inputs-20261007-r1/`; output is the fresh
+`baseline-transfer-s3-20261007-r1/`. Other six-expert fits remain pending.
 
 ## Limitations / future evidence
 

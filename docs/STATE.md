@@ -45,7 +45,11 @@ task-local修复后同环境降到1.43mm，重复子集reset/FK物理检查通�
 LR2e-5/mini-epochs6、anneal40→80、200epoch；smoke36.18s通过，前80epoch有真实接触/抬升奖励，
 训练吞吐约500FPS、显存18251MiB。缺失CmLite奖励未启用，不称原配方精确复现。
 CPU已恢复s3 corrected reference（23.17s，几何相对误差<3e-7m，左contact0），迁移仍待母策略资格。
-已准备端点自动资格检查；尚未采集六专家数据或训练E0/Eoracle。
+该新母策略200epoch已完成（1123.50s）；独立64条frame0完整episode中50条通过45帧保持/无后续drop，
+超过预设8/64数据准备门槛，重建Probe PROMISING（不继承旧Validation或证明Cm收益）。
+GPU0下一步从新自训练parent200迁移s3到220，先2epoch工程检查、再20epoch正式Probe部分，
+最后固定端点资格检查；权重祖先/RMS/优化器/epoch均核对，LR显式1e-5，保留已结束anneal40→80。
+其他专家和连续六专家数据仍未完成；尚未训练E0/Eoracle。
 详见[混合预训练卡](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md)。
 见[重建Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md)。
 见[任务入口](../src/task/consequence-evaluator/README.md)。不改变最终matched Cm-on/off策略utility要求。

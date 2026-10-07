@@ -59,7 +59,10 @@ def main():
             if time.monotonic()-started>3600:raise TimeoutError('fixed parent wait deadline')
             if hashlib.sha256(qualifier.read_bytes()).hexdigest()!=frozen:raise RuntimeError('qualification code drift')
             time.sleep(10)
-        command=[sys.executable,str(qualifier),'--run-dir',str(parent/'parent_s1'),
+        trained_run=Path(state.get('trained_run_dir', str(parent/'parent_s1'))).resolve()
+        if not is_within(trained_run,parent):
+            raise ValueError('trained endpoint must belong to the owned queue')
+        command=[sys.executable,str(qualifier),'--run-dir',str(trained_run),
                  '--output',str(output),'--gpu',str(a.gpu),'--seed',str(a.seed),'--seconds','900']
         record.update(status='RUNNING',command=command);save()
         with output.with_name(output.name+'.log').open('w') as log:
