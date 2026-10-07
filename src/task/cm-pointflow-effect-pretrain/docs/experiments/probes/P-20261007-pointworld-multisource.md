@@ -107,6 +107,33 @@ ContactPose9grasp/26segment engineering pack passes the actual loader. These
 are engineering readiness checks. Full conversion and mixed fitting are pending;
 actual runtime commit/PIDs/identities/timing will be added after launch.
 
+Full preparation launched at source commitd6fb20f: native supervisor936433,
+ContactPose CPU936434. Each uses the bounds above. The actual mixed-interface
+pilot (full OakInk plus official-reindexed40native sequences and9ContactPose
+grasps) passes CPU source sampling/clock/category/identity contracts.13root
+contract tests pass, including strict model-only scale/source checking and the
+existing distributed objective/resume/RNG checks. No future label is replaced
+to satisfy the sampler.
+
+Two-rank real-data engineering check at commit00fa494 completes12fresh updates
+in25.02s, with initial parameter hash495bdc2aacf5fbbc8188ab7ebdd992f69075ec8f29b6a82c41968d34b8dbc83f,
+exactly the original latest model. Both final rank hashes match; serialized
+AdamW steps are12, confirming the new optimizer. Median update excludingfirst
+is0.615s, peak live allocation13.53GiB/reserve17.46GiB. These short-run values
+do not guarantee full-corpus peak VRAM or production speed. Evidence:
+`mixed-interface-ddp2-check-20261007/{input_manifest.json,result.json,verification.json,final.pt}`.
+The engineering weights are discarded; production imports the original latest.
+
+Queued entry: `tools/run/queue_multisource_training.py`. It waits for both
+owned bounded conversions to finish and permit fitting, detects source/input
+drift, freezes a new mixed manifest, checks empty GPUs1/2, and repeats12real
+engineering updates on the full corpus before production launch. Failure
+halts the queue and preserves logs. Queue artifacts:
+`outputs/cm-pointflow-effect-pretrain/multisource-queue-20261007/`;
+full-corpus engineering artifacts: `pointworld-multisource-full-check-20261007/`.
+GPU usage samples are recorded throughout production. The queue is a pending
+execution arrangement; it is not a claim that full training has begun.
+
 ## Limitations and future evidence
 
 ContactPose global motion is reconstructed from native pose plus fixed hand

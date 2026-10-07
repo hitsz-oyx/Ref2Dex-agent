@@ -267,17 +267,18 @@ def run(args):
             standard_evaluate = base.evaluate
             def mixed_evaluate(net, dataset, ids, arm, batch_size, amp, intervention=False):
                 measured = standard_evaluate(net, dataset, ids, arm, batch_size, amp, intervention)
-                primary = []
+                source_metrics = []
                 for source_id, desc in enumerate(dataset.meta['sources']):
                     selected = ids[(ids >= dataset.offsets[source_id]) & (ids < dataset.offsets[source_id+1])]
                     if not len(selected): continue
                     metrics = standard_evaluate(net, dataset, selected, arm, batch_size, amp, intervention)
+                    source_metrics.append(metrics)
                     for key, value in metrics.items(): measured['source/'+desc['name']+'/'+key] = value
-                    key = 'model/anchor/cat0/h24/point_epe'
-                    if key in metrics: primary.append(metrics[key])
-                measured['pooled/model/anchor/cat0/h24/point_epe'] = measured.get('model/anchor/cat0/h24/point_epe')
-                if len(primary) == 4:
-                    measured['model/anchor/cat0/h24/point_epe'] = sum(primary)/4
+                key = 'model/anchor/cat0/h24/point_epe'
+                if len(source_metrics) == 4 and all(key in m for m in source_metrics):
+                    for common in set.intersection(*(set(m) for m in source_metrics)):
+                        measured['pooled/'+common] = measured[common]
+                        measured[common] = sum(m[common] for m in source_metrics)/4
                 elif not intervention and dataset is val and np.array_equal(ids, validation):
                     raise ValueError('fixed source validation panel missing moving anchors')
                 return measured
