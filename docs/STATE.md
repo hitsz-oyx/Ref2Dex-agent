@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 DExplore 官方数据生成器筛查
+
+用户授权尝试归档官方策略。官方 `inspire.pth` SHA8f6823db… 已核对并跑通；
+可用完整运行时为 `.runtime_envs/dexplore_v120_train`（Torch2.0.1+cu118、
+rl_games1.1.4），conda Torch2.2.2 环境存在依赖/扩展ABI缺口。采用进程内旧版
+factory、单次外部RMS及严格compiled-key适配，不修改外部权重或环境。
+同s3 airplane输入/seed239各64条完整episode：官方lift5/hold45为64/64、64/64，
+自训为56/64、24/64；保持后直到episode结束不掉落为官方0/64、自训18/64。
+原reference末帧回到初始高度+0.5mm，完整片段包含放回，与全程保持的S标签
+存在任务终点冲突。源数据定义的放回前tick481仅作事后prefix诊断（63/64 vs18/64），
+不能替代原门槛或新固定reference评估。用户明确选择完整reference并把受控正常放回
+计为Task成功；新几何标签另行验证，不裁剪reference、不把落桌都计为成功。未启动fit，
+官方权重仅为数据生成候选，不替代Mission的自训练最终策略。评估已结束且GPU释放。
+记录：[官方生成器Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-official-generator-screen.md)。
+
 ## 2026-10-08 HOCap 外部测试数据获取
 
 用户指定 HOCap 为外部测试候选。官方 Box 的 calibration/models/poses 三包已下载，

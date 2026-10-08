@@ -3,6 +3,12 @@
 用户方案：[ref1](docs/user/ref/ref1.md)，当前合同按[ref2](docs/user/ref/ref2.md)修订；数据分级按[ref3](docs/user/ref/ref3.md)。实现分支：`consequence-evaluator`。
 当前工作只建立离线 oracle headroom 检验，不改变根级 Mission 的最终 Cm 策略收益要求。
 
+2026-10-08：[官方DExplore生成器筛查](docs/experiments/probes/P-20261008-official-generator-screen.md)
+已跑通归档的完整运行时，并完成官方/自训各64条同输入评估。官方45帧保持覆盖64/64，
+但原reference末尾放回与全程保持S标签冲突。用户已选择完整reference，正常受控放回
+计为Task成功；[新几何数据Pilot](docs/experiments/probes/P-20261008-full-reference-value-data.md)
+先检查此语义，native诊断输出不直接接入训练。权重只用于明确标识来源的数据生成。
+
 第一阶段固定 `K=24`、`K_exec=8`，H 沿用采集策略当前观测/历史的原始合同。
 先采连续六专家 rollout，单次24步平滑扰动后让专家继续到 episode 结束；不 fork。
 比较 `E0(H,δ)`、`Eoracle-E(H,δ,Z_object)` 和 `Eoracle-EI(H,δ,Z_object,Z_interaction)`。
