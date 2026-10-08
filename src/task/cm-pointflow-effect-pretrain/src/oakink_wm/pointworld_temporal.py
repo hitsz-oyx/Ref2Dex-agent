@@ -10,7 +10,8 @@ import spconv.pytorch as spconv
 from torch import nn
 import torch.nn.functional as F
 
-from .pointworld import PointWorldWM, capped_collate, VENDOR
+from .pointworld import (DEFAULT_VOXEL_ORIGIN_M, DEFAULT_VOXEL_SIZE_M,
+                          PointWorldWM, capped_collate, fixed_workspace_grid, VENDOR)
 from .model import mean_groups, rotation6d, rigid_points, geodesic
 from ptv3.structure import Point
 from ptv3.ptv3 import GridPooling
@@ -95,12 +96,15 @@ class TemporalBackbone(nn.Module):
 
 class TemporalPointWorldWM(PointWorldWM):
     def __init__(self, stats, patch_size=128, *, motion_weighting='cumulative_effect',
-                 motion_tau_m=.002, rotation_tau_rad=.02, motion_temperature=5., motion_floor=.1):
+                 motion_tau_m=.002, rotation_tau_rad=.02, motion_temperature=5., motion_floor=.1,
+                 voxel_origin_m=DEFAULT_VOXEL_ORIGIN_M,
+                 voxel_size_m=DEFAULT_VOXEL_SIZE_M):
         if motion_weighting not in ('cumulative_effect', 'released_incremental'):
             raise ValueError('unknown motion weighting')
         if motion_tau_m <= 0 or rotation_tau_rad <= 0 or motion_temperature <= 0 or not 0 < motion_floor <= 1:
             raise ValueError('invalid motion selector parameters')
-        super().__init__(stats, patch_size)
+        super().__init__(stats, patch_size, voxel_origin_m=voxel_origin_m,
+                         voxel_size_m=voxel_size_m)
         self.backbone = TemporalBackbone(self.backbone)
         self.motion_weighting = motion_weighting
         self.motion_tau_m, self.rotation_tau_rad = motion_tau_m, rotation_tau_rad
@@ -129,13 +133,15 @@ class TemporalPointWorldWM(PointWorldWM):
         allb = torch.arange(B, device=xyz.device)[:, None].expand_as(exists)
         with torch.autocast('cuda', enabled=False):
             coords, inputs = coord[exists].float(), feat[exists].float()
-            grid = torch.floor((coords-coords.amin(0))/.01).long()
+            grid_all = fixed_workspace_grid(coord, exists, self.voxel_origin_m,
+                                            self.voxel_size_m)
+            grid = grid_all[exists]
             keys = torch.cat((allb[exists][:, None], times[exists][:, None], grid), -1)
             unique, inverse = torch.unique(keys, dim=0, return_inverse=True)
             point = self.backbone(dict(coord=mean_groups(coords, inverse, len(unique)),
                                        feat=mean_groups(inputs, inverse, len(unique)),
                                        grid_coord=unique[:, 2:].int(), batch=unique[:, 0],
-                                       time_id=unique[:, 1], grid_size=.01))
+                                       time_id=unique[:, 1], grid_size=self.voxel_size_m))
         packed = point.feat.new_zeros((*exists.shape, 128))
         packed[exists] = point.feat[inverse]
         summary = packed.new_zeros((B, 24, 128))
@@ -202,4 +208,6 @@ def model_from_config(stats, config):
     return TemporalPointWorldWM(stats, config['patch_size'],
         motion_weighting=config['motion_weighting'], motion_tau_m=config['motion_tau_m'],
         rotation_tau_rad=config['rotation_tau_rad'], motion_temperature=config['motion_temperature'],
-        motion_floor=config['motion_floor'])
+        motion_floor=config['motion_floor'],
+        voxel_origin_m=config.get('voxel_origin_m', DEFAULT_VOXEL_ORIGIN_M),
+        voxel_size_m=config.get('voxel_m', DEFAULT_VOXEL_SIZE_M))

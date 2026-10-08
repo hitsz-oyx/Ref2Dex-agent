@@ -1,5 +1,22 @@
 # Ref3 implementation and engineering checks
 
+## Fixed workspace voxel contract (ref8 repair)
+
+Encoder coordinates stay in the current anchor frame and use the fixed
+configuration `voxel_origin_m=[-1.0,-1.0,-1.0]` with `voxel_m=0.01`:
+
+```text
+grid = floor((x_anchor - voxel_origin_m) / voxel_m)
+```
+
+The grid is computed per physical point, before batch/action concatenation. It
+never uses another sample or a future candidate action to choose an origin.
+Valid coordinates must be finite and each integer coordinate must lie in
+`0..65535`, the pinned PTv3/Hilbert 16-bit-per-axis contract; violations fail
+fast. Existing checkpoints remain readable for explicitly labelled repair
+sensitivity probes, but their original batch-relative voxelization is not
+treated as numerically equivalent to this implementation.
+
 Implemented on `cm-pointflow-effect-pretrain`, code checkpoint `d1700a3`, using
 the user's unchanged local PointWorld clone, commit
 `05484826dfef74cbe278a3974179a5a16705d35d`. Exact small blueprint/128dim/128patch,

@@ -5,6 +5,10 @@ import torch.nn.functional as F
 import spconv.pytorch as spconv
 
 
+MOTION_TRANSLATION_THRESHOLD_M = 0.002
+MOTION_ROTATION_THRESHOLD_RAD = 0.02
+
+
 def rotation6d(x):
     a = F.normalize(x[..., :3], dim=-1, eps=1e-6)
     b = F.normalize(x[..., 3:] - (a * x[..., 3:]).sum(-1, keepdim=True) * a, dim=-1, eps=1e-6)
@@ -123,6 +127,25 @@ class WorldModel(nn.Module):
 
 def rigid_points(rotation, translation, points):
     return torch.einsum('bmtij,bmnj->bmtni', rotation, points) + translation[..., None, :]
+
+
+def object_motion_masks(batch, translation_threshold=MOTION_TRANSLATION_THRESHOLD_M,
+                        rotation_threshold=MOTION_ROTATION_THRESHOLD_RAD):
+    """Return complementary moving/static object masks from the GT effect.
+
+    The thresholds are the evaluator's existing contract.  Both masks include
+    only valid objects, and the motion-loss floor never enters this diagnostic.
+    """
+    gt = batch['effect'].float()
+    center = batch['points'].float().mean(-2)
+    centers_future = torch.einsum(
+        'bmtij,bmj->bmti', gt[..., :3, :3], center) + gt[..., :3, 3]
+    moved = (torch.linalg.vector_norm(centers_future-center[:, :, None], dim=-1)
+             > translation_threshold).any(-1)
+    identity = torch.eye(3, device=gt.device, dtype=gt.dtype).expand_as(gt[..., :3, :3])
+    moved |= (geodesic(identity, gt[..., :3, :3]) > rotation_threshold).any(-1)
+    valid = batch['object_valid'].bool()
+    return valid & moved, valid & ~moved
 
 
 def losses(pred, batch):

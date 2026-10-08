@@ -16,6 +16,50 @@ sys.path.insert(0, str(VENDOR))
 from ptv3.ptv3 import PointTransformerV3
 
 
+DEFAULT_VOXEL_ORIGIN_M = (-1.0, -1.0, -1.0)
+DEFAULT_VOXEL_SIZE_M = 0.01
+# The pinned PTv3 serializer encodes three coordinates with at most 16 bits
+# each (48 bits total).  Keep this contract explicit instead of allowing an
+# out-of-range coordinate to wrap in the Hilbert/Z-order implementation.
+MAX_SERIALIZED_GRID_COORD = (1 << 16) - 1
+
+
+def fixed_workspace_grid(coord, valid, origin=DEFAULT_VOXEL_ORIGIN_M,
+                         voxel_size=DEFAULT_VOXEL_SIZE_M):
+    """Map anchor-frame coordinates to a fixed, bounded integer workspace.
+
+    The grid origin is deliberately independent of the batch and of future
+    action points.  Invalid padding is ignored when checking the physical
+    bounds, but valid non-finite or out-of-range points fail closed.
+    """
+    if coord.ndim != 3 or coord.shape[-1] != 3:
+        raise ValueError('coord must have shape (batch, points, 3)')
+    if valid.shape != coord.shape[:2] or valid.dtype != torch.bool:
+        raise ValueError('valid must be a boolean (batch, points) mask')
+    if not np.isfinite(float(voxel_size)) or float(voxel_size) <= 0:
+        raise ValueError('voxel_size must be positive and finite')
+    origin = torch.as_tensor(origin, device=coord.device, dtype=torch.float32)
+    if origin.shape != (3,) or not torch.isfinite(origin).all():
+        raise ValueError('origin must be three finite coordinates')
+    points = coord.float()
+    selected = points[valid]
+    if not selected.numel():
+        raise ValueError('fixed workspace requires at least one valid point')
+    if not torch.isfinite(selected).all():
+        raise ValueError('valid point coordinates must be finite')
+    grid = torch.floor((points - origin) / float(voxel_size)).long()
+    used = grid[valid]
+    bad = (used < 0).any(-1) | (used > MAX_SERIALIZED_GRID_COORD).any(-1)
+    if bad.any():
+        lo = used.min(0).values.tolist()
+        hi = used.max(0).values.tolist()
+        raise ValueError(
+            'valid point outside fixed PTv3 workspace: '
+            f'grid_min={lo}, grid_max={hi}, '
+            f'allowed=[0,{MAX_SERIALIZED_GRID_COORD}]')
+    return grid
+
+
 def capped_collate(samples):
     """Cap encoder points without dropping any supervised object or its identity."""
     capped = []
@@ -43,8 +87,16 @@ def capped_collate(samples):
 
 
 class PointWorldWM(nn.Module):
-    def __init__(self, stats, patch_size=128):
+    def __init__(self, stats, patch_size=128, *,
+                 voxel_origin_m=DEFAULT_VOXEL_ORIGIN_M,
+                 voxel_size_m=DEFAULT_VOXEL_SIZE_M):
         super().__init__()
+        self.voxel_size_m = float(voxel_size_m)
+        # This is a fixed coordinate contract, not a learned/statistical
+        # buffer.  Non-persistent keeps old checkpoints loadable for an
+        # explicitly labelled pre/post-repair sensitivity probe.
+        self.register_buffer('voxel_origin_m', torch.as_tensor(
+            voxel_origin_m, dtype=torch.float32), persistent=False)
         d = 128
         cfg = yaml.safe_load((VENDOR / 'ptv3/ptv3_arch.yaml').read_text())['sizes']['small']
         channels = lambda key: tuple(d if x == 'channels' else x for x in cfg[key])
@@ -107,7 +159,9 @@ class PointWorldWM(nn.Module):
         # PTv3 sparse convolutions require float32, as in the existing CUDA stem.
         with torch.autocast('cuda', enabled=False):
             coords, inputs = coord[exists].float(), feat[exists].float()
-            grid = torch.floor((coords-coords.amin(0))/.01).long()
+            grid_all = fixed_workspace_grid(coord, exists, self.voxel_origin_m,
+                                            self.voxel_size_m)
+            grid = grid_all[exists]
             keys = torch.cat((allb[exists][:, None], grid), -1)
             unique, inverse = torch.unique(keys, dim=0, return_inverse=True)
             # SparseConv requires ONE row per (batch, voxel). Coincident scene
@@ -116,7 +170,8 @@ class PointWorldWM(nn.Module):
             # scene skip features and full rigid supervision stay unpooled.
             point = self.backbone(dict(coord=mean_groups(coords, inverse, len(unique)),
                                        feat=mean_groups(inputs, inverse, len(unique)),
-                                       grid_coord=unique[:, 1:].int(), batch=unique[:, 0], grid_size=.01))
+                                       grid_coord=unique[:, 1:].int(), batch=unique[:, 0],
+                                       grid_size=self.voxel_size_m))
         packed = point.feat.new_zeros((*exists.shape, 128))
         packed[exists] = point.feat[inverse]
         summary = packed.new_zeros((B, 128))

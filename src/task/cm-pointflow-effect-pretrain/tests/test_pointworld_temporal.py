@@ -15,21 +15,49 @@ TASK = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TASK/'src'))
 from oakink_wm.pointworld_temporal import (
     TemporalPoint, TemporalGridPooling, TemporalPointWorldWM, model_from_config)
-from oakink_wm.pointworld import PointWorldWM, capped_collate
+from oakink_wm.pointworld import (PointWorldWM, capped_collate,
+                                  fixed_workspace_grid, MAX_SERIALIZED_GRID_COORD)
 from oakink_wm.data import Windows
+from oakink_wm.model import object_motion_masks
 from ptv3.ptv3 import GridPooling
 
 
-def selector_model(mode='cumulative_effect'):
+def selector_model(mode='cumulative_effect', motion_floor=.1):
     # Selector/loss-only checks do not allocate a 50M-parameter backbone.
     m = TemporalPointWorldWM.__new__(TemporalPointWorldWM)
     nn.Module.__init__(m)
     m.motion_weighting, m.motion_tau_m, m.rotation_tau_rad = mode, .002, .02
-    m.motion_temperature, m.motion_floor = 5., .1
+    m.motion_temperature, m.motion_floor = 5., motion_floor
     m.flow_mean = m.translation_mean = torch.zeros(24, 3)
     m.flow_std = m.translation_std = torch.ones(24, 3)*.02
     m.rotation_scale = torch.ones(24)
     return m
+
+
+def test_fixed_workspace_grid_is_batch_and_action_invariant():
+    target = torch.tensor([[[0.00, 0.00, 0.00], [0.20, 0.00, 0.00],
+                           [0.10, 0.04, 0.00]]])
+    partner = torch.tensor([[[-0.30, 0.00, 0.00], [0.20, 0.00, 0.00],
+                             [0.12, 0.04, 0.00]]])
+    valid = torch.ones(1, 3, dtype=torch.bool)
+    solo = fixed_workspace_grid(target, valid)
+    paired = fixed_workspace_grid(torch.cat((target, partner)),
+                                  torch.ones(2, 3, dtype=torch.bool))
+    partner_changed = partner + torch.tensor([[[0.25, -0.1, 0.0]]])
+    paired_changed = fixed_workspace_grid(torch.cat((target, partner_changed)),
+                                          torch.ones(2, 3, dtype=torch.bool))
+    torch.testing.assert_close(solo[0], paired[0], rtol=0, atol=0)
+    torch.testing.assert_close(paired[0], paired_changed[0], rtol=0, atol=0)
+    assert solo[0, 0].tolist() == [100, 100, 100]
+
+
+def test_fixed_workspace_grid_fails_outside_ptv3_hilbert_bounds():
+    valid = torch.ones(1, 1, dtype=torch.bool)
+    with pytest.raises(ValueError, match='outside fixed PTv3 workspace'):
+        fixed_workspace_grid(torch.tensor([[[-1.01, 0., 0.]]]), valid)
+    upper = -1.0 + (.01 * (MAX_SERIALIZED_GRID_COORD + 1))
+    with pytest.raises(ValueError, match='outside fixed PTv3 workspace'):
+        fixed_workspace_grid(torch.tensor([[[upper, 0., 0.]]]), valid)
 
 
 def labels():
@@ -67,7 +95,7 @@ def test_adapter_retains_24_action_times_in_one_spatial_voxel():
         model(dict(batch, action=action.flip(1)))
     assert len(original['feat']) == 25
     assert original['time_id'].tolist() == list(range(25))
-    assert original['grid_coord'].count_nonzero() == 0
+    assert torch.equal(original['grid_coord'], torch.full_like(original['grid_coord'], 100))
     assert not torch.allclose(original['feat'], capture.data['feat'])
 
 
@@ -108,6 +136,26 @@ def test_cumulative_slow_motion_rotation_and_invalid_padding():
     assert m.motion_weights(b)[0, 0].mean() > .99
     b = labels()
     assert m.motion_weights(b)[0, 0].min() >= .1
+
+
+def test_motion_floor_is_monotonic_and_masks_are_complementary():
+    b = labels()
+    b['effect'][0, 0, :, 0, 3] = .01
+    moving, static = object_motion_masks(b)
+    assert moving.tolist() == [[True, False]]
+    assert static.tolist() == [[False, False]]
+
+    static_batch = labels()
+    expected_moving, expected_static = object_motion_masks(static_batch)
+    assert expected_moving.tolist() == [[False, False]]
+    assert expected_static.tolist() == [[True, False]]
+    weights = [selector_model(motion_floor=f).motion_weights(static_batch)[0, 0].mean()
+               for f in (.1, .5, 1.0)]
+    assert float(weights[2]) > float(weights[1]) > float(weights[0])
+    for floor in (.1, .5, 1.0):
+        moving_again, static_again = object_motion_masks(static_batch)
+        torch.testing.assert_close(moving_again, expected_moving, rtol=0, atol=0)
+        torch.testing.assert_close(static_again, expected_static, rtol=0, atol=0)
 
 
 def test_legacy_selector_matches_actual_v1_loss_and_padding_is_inert():
@@ -151,6 +199,23 @@ def test_training_identity_accepts_relative_script_invocation(monkeypatch):
         torch.backends.cuda.matmul.allow_tf32 = previous
 
 
+def test_validation_selection_requires_and_averages_moving_static_metrics():
+    path = TASK/'tools/run/train_oakink2_pointworld_temporal.py'
+    spec = importlib.util.spec_from_file_location('temporal_selection_contract', path)
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+    measured = {
+        trainer.MOVING_SELECTION_KEY: .03,
+        trainer.STATIC_SELECTION_KEY: .01,
+    }
+    selection = trainer.validation_selection(measured)
+    assert selection['score'] == pytest.approx(.02)
+    assert selection['moving_anchor_h24'] == pytest.approx(.03)
+    assert selection['static_object_h24'] == pytest.approx(.01)
+    with pytest.raises(ValueError, match='selection strata missing'):
+        trainer.validation_selection({trainer.MOVING_SELECTION_KEY: .03})
+
+
 def test_real_cuda_time_identity_masks_gradients_and_checkpoint():
     data, stats = os.environ.get('POINTWORLD_DATA'), os.environ.get('POINTWORLD_STATS')
     if not data or not stats or not torch.cuda.is_available():
@@ -187,6 +252,20 @@ def test_real_cuda_time_identity_masks_gradients_and_checkpoint():
     assert len(seen) == 10
     for h in handles:
         h.remove()
+    with torch.no_grad():
+        # The target sample must not depend on batch composition or on an
+        # unrelated partner's candidate action trajectory.
+        target = {key: value[:1].clone() for key, value in b.items()}
+        solo = model(NoLabels(target))
+        paired = model(NoLabels(b))
+        torch.testing.assert_close(solo['translation'], paired['translation'][:1],
+                                   rtol=2e-4, atol=2e-5)
+        partner_action = b['action'].clone()
+        partner_action[1] += .25
+        altered = dict(b, action=partner_action)
+        altered_pair = model(NoLabels(altered))
+        torch.testing.assert_close(paired['translation'][:1], altered_pair['translation'][:1],
+                                   rtol=2e-4, atol=2e-5)
     with torch.no_grad():
         masked = dict(b, action_valid=b['action_valid'].clone())
         masked['action_valid'][:, :, 11:] = False

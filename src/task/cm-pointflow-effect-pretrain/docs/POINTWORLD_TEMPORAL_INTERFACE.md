@@ -1,5 +1,22 @@
 # PointWorld temporal-preserving correction
 
+## Fixed workspace and static-object selection repair
+
+The temporal adapter shares the fixed anchor-frame voxel contract from
+`POINTWORLD_INTERFACE.md`: `grid=floor((x-anchor_origin)/0.01)` with origin
+`[-1,-1,-1]`, independent of batch partners and future action points, and
+fail-fast bounds `0..65535` on every valid coordinate. The evaluator reports
+the existing moving-object mask and its strict complement `static_objects`
+(translation `>2mm` or rotation `>.02rad` at any horizon). New checkpoints use
+the fixed selection score
+
+```text
+(model/anchor/cat0/h24/point_epe +
+ model/static_objects/cat-1/h24/point_epe) / 2
+```
+
+while preserving both raw components in validation records.
+
 User ref4 diagnosis established substantial action time merging, and the user
 subsequently requested implementation. Keep the running V1 three-arm sources,
 configs, statistics and checkpoints frozen. This revision is a separate model,

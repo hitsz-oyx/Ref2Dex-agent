@@ -302,11 +302,13 @@ def run(args):
         engineering = args.smoke or args.engineering or args.benchmark
         if (args.init_weights or args.continue_from) and not engineering:
             measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
-            score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
+            selection = base.validation_selection(measured) if rank==0 else None
+            score = [selection['score'] if rank==0 else None]
             dist.broadcast_object_list(score, src=0)
             best = score[0]
             if rank == 0:
-                baseline = dict(step=0, parent_step=identity['initialization']['parent_step'], metrics=measured)
+                baseline = dict(step=0, parent_step=identity['initialization']['parent_step'],
+                                metrics=measured, selection=selection)
                 base.atomic_json(out/'validation_initial.json', baseline)
                 with (out/'validation.jsonl').open('a') as f:
                     f.write(json.dumps(baseline)+'\n')
@@ -370,12 +372,15 @@ def run(args):
             can_evaluate = not any_rank(stop[0] or time.time()>=deadline, device)
             if can_evaluate and not (args.benchmark or args.engineering) and (step % config['validation_interval']==0 or step==config['updates']):
                 measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
-                score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
+                selection = base.validation_selection(measured) if rank==0 else None
+                score = [selection['score'] if rank==0 else None]
                 dist.broadcast_object_list(score, src=0)
                 if rank == 0:
-                    base.atomic_json(out/'validation_latest.json', dict(step=step, metrics=measured))
+                    base.atomic_json(out/'validation_latest.json',
+                                     dict(step=step, metrics=measured, selection=selection))
                     with (out/'validation.jsonl').open('a') as f:
-                        f.write(json.dumps(dict(step=step, metrics=measured))+'\n')
+                        f.write(json.dumps(dict(step=step, metrics=measured,
+                                                selection=selection))+'\n')
                 if score[0] < best:
                     best = score[0]
                     if not args.smoke:
@@ -393,7 +398,9 @@ def run(args):
         if rank == 0:
             final = dict(status='COMPLETED' if step==config['updates'] else 'BUDGET_STOP', step=step,
                          elapsed_seconds=time.time()-started, reason=reason, world_size=world,
-                         rank_parameter_hashes=hashes, rank_parameters_identical=True, engineering_only=engineering)
+                         rank_parameter_hashes=hashes, rank_parameters_identical=True,
+                         engineering_only=engineering,
+                         best_validation_score=best if math.isfinite(best) else None)
             if time.time()<deadline and not stop[0] and not (args.benchmark or args.engineering):
                 final['balanced'] = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp'])
                 final['natural'] = base.evaluate(raw_model, val, natural, args.arm, evaluation_batch, config['amp'])

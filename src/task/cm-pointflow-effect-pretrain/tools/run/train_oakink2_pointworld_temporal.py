@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader, Subset
 TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK / 'src'))
 from oakink_wm.data import Windows, balanced_indices, shuffle_action
-from oakink_wm.model import metrics
+from oakink_wm.model import metrics, object_motion_masks
 from oakink_wm.pointworld_temporal import model_from_config, capped_collate as collate, VENDOR
 
 
@@ -71,6 +71,29 @@ def loader(dataset, indices, batch_size, workers=0):
                       persistent_workers=workers > 0, generator=generator)
 
 
+MOVING_SELECTION_KEY = 'model/anchor/cat0/h24/point_epe'
+STATIC_SELECTION_KEY = 'model/static_objects/cat-1/h24/point_epe'
+
+
+def validation_selection(measured):
+    """Select checkpoints with a fixed moving/static macro score.
+
+    Keep the two physical components visible in every validation record.  A
+    missing stratum is a protocol error rather than an implicit fallback to a
+    moving-only score.
+    """
+    keys = (MOVING_SELECTION_KEY, STATIC_SELECTION_KEY)
+    if any(key not in measured for key in keys):
+        missing = [key for key in keys if key not in measured]
+        raise ValueError('validation selection strata missing: ' + ', '.join(missing))
+    moving, static = (float(measured[key]) for key in keys)
+    if not all(math.isfinite(value) and value >= 0 for value in (moving, static)):
+        raise ValueError('validation selection metrics must be finite and nonnegative')
+    return dict(score=(moving + static) / 2,
+                moving_anchor_h24=moving, static_object_h24=static,
+                moving_key=MOVING_SELECTION_KEY, static_key=STATIC_SELECTION_KEY)
+
+
 @torch.no_grad()
 def evaluate(model, dataset, indices, arm, batch_size, amp, intervention=False):
     model.eval()
@@ -83,15 +106,11 @@ def evaluate(model, dataset, indices, arm, batch_size, amp, intervention=False):
                      rotation=torch.eye(3, device='cuda').expand_as(pred['rotation'])))
         for name, result in views.items():
             values = metrics(result, batch)
-            center = batch['points'].mean(-2)
-            truth = batch['effect']
-            centers_future = torch.einsum('bmtij,bmj->bmti', truth[..., :3, :3], center) + truth[..., :3, 3]
-            moved = (torch.linalg.vector_norm(centers_future-center[:, :, None], dim=-1) > .002).any(-1)
-            from oakink_wm.model import geodesic
-            moved |= (geodesic(torch.eye(3, device='cuda').expand_as(truth[..., :3, :3]), truth[..., :3, :3]) > .02).any(-1)
+            moving_objects, static_objects = object_motion_masks(batch)
             scopes = {'scene': batch['object_valid'],
                       'anchor': batch['object_valid'] & (batch['object_features'][..., 13] > .5),
-                      'moving_objects': batch['object_valid'] & moved}
+                      'moving_objects': moving_objects,
+                      'static_objects': static_objects}
             for scope, scope_mask in scopes.items():
                 for category in (-1, 0, 1, 2):
                     selected = scope_mask & ((batch['category'] == category)[:, None] if category >= 0 else True)
@@ -204,8 +223,10 @@ def run(args):
             atomic_json(out / 'progress.json', dict(status='RUNNING', **row))
             if (step % config['validation_interval'] == 0 or step == config['updates']) and time.time() < deadline and not stop_requested[0]:
                 measured = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'])
-                score = measured['model/anchor/cat0/h24/point_epe']
-                atomic_json(out / 'validation_latest.json', dict(step=step, metrics=measured))
+                selection = validation_selection(measured)
+                score = selection['score']
+                atomic_json(out / 'validation_latest.json',
+                            dict(step=step, metrics=measured, selection=selection))
                 if score < best:
                     best, best_metrics = score, measured
                     save_checkpoint(out / 'best.pt', model, optimizer, step, config, dataset_hash, best, identity)
@@ -215,7 +236,9 @@ def run(args):
         save_checkpoint(out / 'final.pt', model, optimizer, step, config, dataset_hash, best, identity)
         final = dict(status='COMPLETED' if step == config['updates'] else 'BUDGET_STOP', step=step,
                      elapsed_seconds=time.time()-start, stop_requested=stop_requested[0],
-                     best_moving_h24_epe=best if math.isfinite(best) else None)
+                     best_validation_score=best if math.isfinite(best) else None)
+        if best_metrics is not None:
+            final['best_selection'] = validation_selection(best_metrics)
         if time.time() < deadline and not stop_requested[0]:
             final['natural'] = evaluate(model, val, natural, args.arm, config['microbatch'], config['amp'])
             final['balanced'] = evaluate(model, val, validation, args.arm, config['microbatch'], config['amp'])
