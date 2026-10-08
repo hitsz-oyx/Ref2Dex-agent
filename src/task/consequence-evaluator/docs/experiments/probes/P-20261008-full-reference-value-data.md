@@ -14,7 +14,7 @@ seeds: [230, 244]
 decision_changed_if_positive: use the identified official actor for a subsequent phase-conditioned intervention dataset under the full-reference task
 decision_changed_if_negative: repair generator or physical-label semantics before collecting intervention/value training data
 status: RUNNING
-run_id: official-value-nominal-20261008-r1
+run_id: official-value-nominal-20261008-r2
 ---
 
 # Full-reference outcome supervision with controlled normal placing
@@ -94,6 +94,13 @@ changes, no overwritten checkpoint, no new branch/push. Collection exports
 complete measured states and known zero plans; it is not evaluator training.
 
 ## Limitations and future evidence
+
+R1 stopped before output/physics because the optional native router imports
+joblib eagerly, absent from the archived venv. R2 adds user-site packages as
+the **last** fallback, preserving archived Torch/NumPy/rl_games precedence,
+and reuses the already compiled compatible gymtorch extension. The failed
+log remains `tmp/consequence-official-generator/value-nominal-r1.log`.
+R2 is capped at800s within the original900s collection budget.
 
 Point-sampled proximity and tabletop bounding support are weak physical labels,
 not exact collision pairs. One reference and one train seed cannot establish

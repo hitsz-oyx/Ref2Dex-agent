@@ -198,10 +198,14 @@ def main():
     scratch = ROOT/'tmp/consequence-evaluator-collect'
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu), TMPDIR=str(scratch), PYTHONDONTWRITEBYTECODE='1',
-                      OMP_NUM_THREADS='2', TORCH_EXTENSIONS_DIR=str(scratch/('torch201-extensions' if a.official_generator else 'torch-extensions')))
+                      OMP_NUM_THREADS='2', TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/consequence-official-generator/torch201-extensions' if a.official_generator else scratch/'torch-extensions'))
     sys.dont_write_bytecode = True
     sys.path[:0] = [str(ROOT/'third_party/DExplore/dexplore'), str(ROOT),
                    str(ROOT/'src/task/cm-interaction-oracle/src')]
+    if a.official_generator:
+        # Optional router/geometry dependencies missing in the preserved venv
+        # are fallback-only; its compatible Torch/NumPy/rl_games stay first.
+        sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
     # Importing the native router imports Isaac Gym before Torch.
     import evaluate_object_router as router
     import torch
