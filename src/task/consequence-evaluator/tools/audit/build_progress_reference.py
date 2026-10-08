@@ -31,10 +31,14 @@ def main():
     manifest_path = source / 'manifest.json'
     raw = json.loads(manifest_path.read_text())
     motion, urdf = args.motion.resolve(), args.urdf.resolve()
+    def frozen_original(path):
+        # Collection records the owned symlink path; CLI inputs are resolved.
+        # Require the same canonical file AND hash, not spelling equality.
+        matches = [value for name, value in raw['sources'].items() if Path(name).resolve() == path]
+        return bool(matches) and all(value == sha(path) for value in matches)
     if (raw.get('status') != 'COMPLETED' or raw.get('fps') != 30
             or raw.get('rollout_kind') != 'continuous'
-            or raw['sources'].get(str(motion)) != sha(motion)
-            or raw['sources'].get(str(urdf)) != sha(urdf)):
+            or not frozen_original(motion) or not frozen_original(urdf)):
         raise ValueError('reference must be the frozen original motion/URDF used by collection')
     frozen = {str(p): sha(p) for p in (motion, urdf, manifest_path, Path(__file__).resolve())}
     helper = ROOT / 'src/task/CmResidual/object_frame_kinematics.py'
