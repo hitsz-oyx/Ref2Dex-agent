@@ -23,7 +23,8 @@ from consequence_evaluator.gate1 import (SEEDS, QUERY_TICKS, CANDIDATES, candida
     choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action,
     legacy_group_actor_action)
 from consequence_evaluator.provenance import self_trained_ancestry, sha
-from consequence_evaluator.twin import REQUIRED_NATIVE_STATE_KEYS, capture_native_rng, fingerprint
+from consequence_evaluator.twin import (REQUIRED_NATIVE_STATE_KEYS, capture_native_rng,
+    fingerprint, restore_native_rng)
 from consequence_evaluator.native_backend import BACKENDS, canonical_device, resolve_legacy_backend
 
 NATIVE_PYTHON = '/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python'
@@ -725,6 +726,271 @@ def native_worker(a):
                 packets['object_pose'][:, index, 2, 3] - packets['object_pose'][0, index, 2, 3]))
                              for index in range(count)}))
 
+    def engineering_serial_replay_run(player, task):
+        """Replay baseline, two zero repeats, and two candidates sequentially after reset.
+
+        This is an engineering diagnostic for reset/cache repeatability.  It
+        deliberately does not claim a fresh-simulator twin: PhysX solver
+        caches are not serializable and the simulator frame counter remains
+        process-local across resets.
+        """
+        if (player.is_rnn or task.num_envs != 1 or abs(task.dt - 1 / 30) > 1e-8
+                or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2):
+            raise ValueError('serial replay requires one fixed nonrecurrent native environment')
+        if int(task.num_motions) != 1:
+            raise ValueError('serial replay requires one repeated motion')
+        task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.
+        task._adaptive_kappa_enabled = False; task._enable_early_termination = False
+        if task.dr_randomizations or task._motion_sampler is not None or task.projtype != 'None':
+            raise ValueError('randomized/sampler/projectile serial replay unsupported')
+        geometry = PhysicalGeometry(task, native_root / 'data/assets')
+        table = TableSupport(native_root / 'data/assets', task.device)
+        env_ids = torch.arange(1, device=task.device)
+        horizon = 24; query = 48; stop = a.engineering_steps or query + horizon
+        if stop < query + horizon or stop > 542:
+            raise ValueError('serial replay requires query tick48 plus24 steps and <=542 steps')
+        total = int(task.max_episode_length[task.data_id[0]]) - 1
+        if total != 542:
+            raise ValueError('frozen full543state reference required')
+        # Keep the required native inventory and add task/controller buffers whose
+        # reset semantics can affect the first post-reset step.  This remains an
+        # engineering trace; it does not claim that every PhysX cache is visible.
+        mutable_names = REQUIRED_NATIVE_STATE_KEYS | {
+            'reset_buf', 'actions', 'real_pd_tar', '_dof_force_tensor', 'rew_buf',
+            '_reset_ig', 'metric_1', 'metric_2', '_curr_ref_obs', 'ref_index',
+            'curr_obj_points', '_kappa',
+        }
+        missing = sorted(name for name in REQUIRED_NATIVE_STATE_KEYS
+                         if not isinstance(getattr(task, name, None), torch.Tensor))
+        if missing:
+            raise ValueError('serial replay missing required task tensors: %s' % missing)
+        state_keys = sorted(name for name in mutable_names
+                            if isinstance(getattr(task, name, None), torch.Tensor))
+        fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
+                  'dof_position', 'dof_velocity', 'object_velocity', 'history',
+                  'native_contact_forces', 'native_object_contact_forces')
+        original_pre = task.pre_physics_step; executed = None; obs = None
+
+        physics = {'sim_params': normalize_properties(task.gym.get_sim_params(task.sim)), 'actors': []}
+        for env in task.envs:
+            actors = []
+            for actor_index in range(task.gym.get_actor_count(env)):
+                handle = task.gym.get_actor_handle(env, actor_index)
+                actors.append(dict(name=task.gym.get_actor_name(env, actor_index),
+                    shape=normalize_properties(task.gym.get_actor_rigid_shape_properties(env, handle)),
+                    body=normalize_properties(task.gym.get_actor_rigid_body_properties(env, handle)),
+                    dof=normalize_properties(task.gym.get_actor_dof_properties(env, handle))))
+            physics['actors'].append(actors)
+        controller = dict(model={k: v.cpu().numpy().copy() for k, v in player.model.state_dict().items()},
+            normalize_input=bool(player.normalize_input), checkpoint_sha256=trained['checkpoint_sha256'])
+        for key, normalizer in [('rms', getattr(player, 'running_mean_std', None)),
+                                ('amp_rms', getattr(player, '_amp_input_mean_std', None))]:
+            controller[key] = None if normalizer is None else {
+                k: v.cpu().numpy().copy() for k, v in normalizer.state_dict().items()}
+        params = task.gym.get_sim_params(task.sim)
+        actual_backend = dict(name=backend.name, sim_device=backend.sim_device,
+            pipeline='gpu' if bool(params.use_gpu_pipeline) else 'cpu',
+            physx_use_gpu=bool(params.physx.use_gpu),
+            physx_num_threads=int(params.physx.num_threads),
+            tensor_device=canonical_device(task.device), actor_device=canonical_device(player.device))
+        expected_backend = backend.as_dict()
+        for key in ('pipeline', 'physx_use_gpu', 'physx_num_threads', 'tensor_device', 'actor_device'):
+            if actual_backend[key] != expected_backend[key]:
+                raise ValueError('native backend contract drift for %s: expected %r, got %r' %
+                                 (key, expected_backend[key], actual_backend[key]))
+        identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller),
+                        backend=actual_backend)
+        if int(task.gym.get_frame_count(task.sim)) != 0:
+            raise ValueError('serial replay requires a fresh unstepped simulator')
+        reset_rng_anchor = None
+
+        def capture(control):
+            nonlocal executed
+            executed = control.detach().cpu().numpy().copy()
+            return original_pre(control)
+
+        task.pre_physics_step = capture
+        def reset_episode():
+            nonlocal obs, reset_rng_anchor
+            if reset_rng_anchor is None:
+                reset_rng_anchor = capture_native_rng(torch)
+            else:
+                restore_native_rng(reset_rng_anchor, torch)
+            pre_frame = int(task.gym.get_frame_count(task.sim))
+            pre_rng_hash = fingerprint(capture_native_rng(torch))
+            obs = player.env_reset(env_ids)
+            player.get_batch_size(obs['obs'], 1)
+            if task.start_times[0].item() != 0 or task.progress_buf[0].item() != 0:
+                raise ValueError('serial reset did not return to reference tick0')
+            frame0 = int(task.gym.get_frame_count(task.sim))
+            if frame0 != pre_frame:
+                raise ValueError('serial reset advanced the simulator frame counter')
+            state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
+            points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
+            values = dict(object_pose=pose_matrix(task._target_states[0].cpu().numpy()),
+                          hand_keypoints=points[0].cpu().numpy().copy(),
+                          surface_gap=gap[0].cpu().numpy().copy(),
+                          support_gap=support[0].cpu().numpy().copy(),
+                          table_footprint=footprint[0].cpu().numpy().copy(),
+                          dof_position=task._dof_pos[0].cpu().numpy().copy(),
+                          dof_velocity=task._dof_vel[0].cpu().numpy().copy(),
+                          object_velocity=task._target_states[0, 7:13].cpu().numpy().copy(),
+                          history=obs['obs'][0].cpu().numpy().copy(),
+                          native_contact_forces=task._contact_forces[0].cpu().numpy().copy(),
+                          native_object_contact_forces=task._tar_contact_forces[0].cpu().numpy().copy())
+            post_rng_hash = fingerprint(capture_native_rng(torch))
+            return dict(pre_frame=pre_frame, frame=frame0, state=state, values=values,
+                        pre_rng_hash=pre_rng_hash, post_rng_hash=post_rng_hash)
+
+        def run_episode(name, replay_actions=None, candidate=None):
+            nonlocal obs, executed
+            reset = reset_episode()
+            frame0, initial_state = reset['frame'], reset['state']
+            initial_values, initial_rng = reset['values'], reset['post_rng_hash']
+            rows = {key: [np.asarray(value).copy()] for key, value in initial_values.items()}
+            states = [initial_state]; state_hashes = [fingerprint(initial_state)]
+            rng_hashes = [initial_rng]; actions = []; ended = []
+            for tick in range(stop):
+                if time.monotonic() - started > 240:
+                    raise TimeoutError('serial replay deadline')
+                if replay_actions is None:
+                    control = legacy_batched_actor_action(player, obs).clamp(-1, 1)
+                else:
+                    control = torch.as_tensor(replay_actions[tick], dtype=torch.float32,
+                                              device=player.device).view(1, -1)
+                if candidate in (1, 2) and query <= tick < query + horizon:
+                    residual = torch.as_tensor(candidate_plan(candidate)[tick - query],
+                                               device=player.device).view(1, -1)
+                    control = (control + residual).clamp(-1, 1)
+                executed = None
+                obs, _, done, info = player.env_step(player.env, control.clone())
+                if not isinstance(obs, dict): obs = {'obs': obs}
+                player._post_step(info)
+                if executed is None or executed.shape != (1, 18) or not np.isfinite(executed).all():
+                    raise ValueError('serial replay captured invalid executed control')
+                actions.append(executed[0].copy()); ended.append(bool(done[0].item()))
+                points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
+                values = dict(object_pose=pose_matrix(task._target_states[0].cpu().numpy()),
+                              hand_keypoints=points[0].cpu().numpy().copy(),
+                              surface_gap=gap[0].cpu().numpy().copy(),
+                              support_gap=support[0].cpu().numpy().copy(),
+                              table_footprint=footprint[0].cpu().numpy().copy(),
+                              dof_position=task._dof_pos[0].cpu().numpy().copy(),
+                              dof_velocity=task._dof_vel[0].cpu().numpy().copy(),
+                              object_velocity=task._target_states[0, 7:13].cpu().numpy().copy(),
+                              history=obs['obs'][0].cpu().numpy().copy(),
+                              native_contact_forces=task._contact_forces[0].cpu().numpy().copy(),
+                              native_object_contact_forces=task._tar_contact_forces[0].cpu().numpy().copy())
+                for key, value in values.items(): rows[key].append(np.asarray(value).copy())
+                state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
+                states.append(state); state_hashes.append(fingerprint(state))
+                rng_hashes.append(fingerprint(capture_native_rng(torch)))
+                if int(task.gym.get_frame_count(task.sim)) != frame0 + (tick + 1) * task.control_freq_inv:
+                    raise ValueError('serial replay frame counter advanced unexpectedly')
+                if done.any() and tick < stop - 1:
+                    raise ValueError('serial replay episode terminated before requested window')
+            packet = {key: np.asarray(value) for key, value in rows.items()}
+            packet.update(actions=np.asarray(actions), done=np.asarray(ended), state_traces=states,
+                          state_hashes=state_hashes, rng_hashes=rng_hashes,
+                          timestamps=np.arange(stop + 1) / 30, role=name,
+                          reset_frame=frame0, pre_reset_frame=reset['pre_frame'],
+                          reset_state=initial_state, reset_rng_hash=initial_rng,
+                          pre_reset_rng_hash=reset['pre_rng_hash'],
+                          post_reset_rng_hash=reset['post_rng_hash'])
+            packet['outcome'] = episode_outcome(packet)
+            return packet
+
+        baseline = run_episode('baseline')
+        baseline_actions = baseline['actions'].copy()
+        repeats = [run_episode('zero_repeat_1', baseline_actions, None),
+                   run_episode('zero_repeat_2', baseline_actions, None),
+                   run_episode('positive', baseline_actions, 1),
+                   run_episode('negative', baseline_actions, 2)]
+        all_packets = [baseline] + repeats
+        reset_reference = baseline['reset_state']
+        reset_diagnostics = []
+        for packet in all_packets:
+            differences = {}
+            for key, expected in reset_reference.items():
+                actual = packet['reset_state'][key]
+                differences[key] = float(np.max(np.abs(np.asarray(actual, dtype=np.float64)
+                                                       - np.asarray(expected, dtype=np.float64))))
+            reset_diagnostics.append(dict(role=packet['role'], pre_reset_frame=packet['pre_reset_frame'],
+                                          reset_frame=packet['reset_frame'],
+                                          reset_frame_unchanged=packet['pre_reset_frame'] == packet['reset_frame'],
+                                          pre_reset_rng_hash=packet['pre_reset_rng_hash'],
+                                          post_reset_rng_hash=packet['post_reset_rng_hash'],
+                                          reset_rng_equal=packet['reset_rng_hash'] == baseline['reset_rng_hash'],
+                                          state_max_abs=differences, state_exact=all(value == 0 for value in differences.values())))
+        def trace_diff(left, right):
+            if len(left) != len(right):
+                return dict(lengths=(len(left), len(right)))
+            first = None; max_by_key = {}
+            for tick, (left_state, right_state) in enumerate(zip(left, right)):
+                for key in sorted(set(left_state) | set(right_state)):
+                    if key not in left_state or key not in right_state:
+                        max_by_key[key] = float('inf')
+                        first = first or dict(tick=tick, field=key)
+                        continue
+                    delta = np.asarray(left_state[key], dtype=np.float64) - np.asarray(right_state[key], dtype=np.float64)
+                    value = float(np.max(np.abs(delta))) if delta.size else 0.
+                    max_by_key[key] = max(max_by_key.get(key, 0.), value)
+                    if value != 0. and first is None:
+                        first = dict(tick=tick, field=key, max_abs=value)
+            return dict(first_divergence=first, max_abs_by_field=max_by_key,
+                        exact=first is None)
+        repeat_mismatch = []
+        for key in fields + ('actions', 'done'):
+            if not np.array_equal(baseline[key], repeats[0][key]):
+                repeat_mismatch.append(key)
+        state_diff = trace_diff(baseline['state_traces'], repeats[0]['state_traces'])
+        zero2_diff = trace_diff(repeats[0]['state_traces'], repeats[1]['state_traces'])
+        if not state_diff['exact']:
+            repeat_mismatch.append('state_traces')
+        if baseline['rng_hashes'] != repeats[0]['rng_hashes']:
+            repeat_mismatch.append('rng_hashes')
+        control_prefix_exact = all(np.array_equal(baseline_actions[:query], packet['actions'][:query])
+                                   for packet in repeats)
+        def action_delta_summary(packet):
+            delta = np.asarray(packet['actions']) - baseline_actions
+            nonzero = np.flatnonzero(np.any(delta != 0., axis=1))
+            return dict(max_abs=float(np.max(np.abs(delta))),
+                        l2=float(np.linalg.norm(delta)),
+                        first_nonzero_tick=None if len(nonzero) == 0 else int(nonzero[0]))
+        candidate_deltas = {packet['role']: action_delta_summary(packet) for packet in all_packets}
+        result = dict(schema='ref2dex.consequence-gate1.gpu-serial-replay.v1', engineering_only=True,
+                      training_allowed=False, serial_replay=True, group_mode='same_process_same_env_reset',
+                      roles=[p['role'] for p in all_packets], group_envs=1,
+                      query_tick=query, horizon=horizon, steps=stop, seed=a.seed,
+                      source_backend=actual_backend, replay_identity=identity,
+                      reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
+                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
+                      baseline_repeat_rng_exact=baseline['rng_hashes'] == repeats[0]['rng_hashes'],
+                      control_prefix_exact=control_prefix_exact,
+                      candidate_plan_sha256={str(candidate): fingerprint(candidate_plan(candidate)) for candidate in (0, 1, 2)},
+                      candidate_actual_action_delta=candidate_deltas,
+                      baseline_outcome=baseline['outcome'], role_outcomes={p['role']: p['outcome'] for p in all_packets},
+                      candidate_effect='candidate residuals applied to recorded baseline controls at tick48 for24 steps',
+                      note='engineering reset/cache diagnostic; serial reset is not a fresh-simulator twin')
+        packet = dict(schema=result['schema'], engineering_only=True, training_allowed=False,
+                      **{key: np.stack([p[key] for p in all_packets]) for key in fields + ('actions', 'done')},
+                      state_traces=[p['state_traces'] for p in all_packets],
+                      state_hashes=[p['state_hashes'] for p in all_packets],
+                      rng_hashes=[p['rng_hashes'] for p in all_packets],
+                      timestamps=baseline['timestamps'],
+                      requested_residual=np.stack([np.zeros_like(baseline['actions']),
+                          np.zeros_like(baseline['actions']), np.zeros_like(baseline['actions']),
+                          np.pad(candidate_plan(1), ((query, stop-query-horizon), (0, 0))) if stop >= query + horizon else np.zeros_like(baseline['actions']),
+                          np.pad(candidate_plan(2), ((query, stop-query-horizon), (0, 0))) if stop >= query + horizon else np.zeros_like(baseline['actions'])]),
+                      roles=result['roles'], query_tick=query, horizon=horizon, steps=stop,
+                      seed=a.seed, source_backend=actual_backend, replay_identity=identity,
+                      reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
+                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
+                      control_prefix_exact=control_prefix_exact,
+                      role_outcomes=result['role_outcomes'])
+        save(a.worker_output, packet)
+        write(a.worker_output.with_suffix('.json'), result)
+
     class GatePlayer(base):
         def restore(self, filename):
             value = native.torch_ext.load_checkpoint(filename)
@@ -743,6 +1009,9 @@ def native_worker(a):
             if fingerprint(self.model.state_dict()) != self._gate_restored_model_hash:
                 raise ValueError('actor weights changed after checkpoint restore')
             task = self.env.task
+            if a.engineering_serial_replay:
+                engineering_serial_replay_run(self, task)
+                return
             if a.engineering_group_envs:
                 engineering_group_run(self, task)
                 return
@@ -950,6 +1219,8 @@ def main():
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
     p.add_argument('--engineering-group-envs', type=int, default=0,
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
+    p.add_argument('--engineering-serial-replay', action='store_true',
+                   help='native worker only: same-process one-env reset/replay diagnostic, never GT scoring')
     p.add_argument('--zero-env-pair', type=int, nargs=2, default=(0, 1), metavar=('LEFT', 'RIGHT'),
                    help='engineering group only: the two non-candidate env roles used for zero-noise calibration')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
@@ -992,6 +1263,10 @@ def main():
         p.error('engineering step cap requires native baseline worker and24..542steps')
     if a.engineering_group_envs and (not a.worker or not a.finish or not 4 <= a.engineering_group_envs <= 96):
         p.error('engineering group requires native baseline worker and4..96 environments')
+    if a.engineering_serial_replay and (not a.worker or not a.finish or a.engineering_group_envs):
+        p.error('serial replay requires a native worker without a synchronous group')
+    if a.engineering_serial_replay and (a.engineering_steps < 72 or a.engineering_steps > 542):
+        p.error('serial replay requires query tick48 plus24 steps and <=542 steps')
     if a.engineering_group_envs and not a.engineering_steps:
         p.error('engineering group requires an explicit bounded --engineering-steps value')
     if a.engineering_group_envs and a.engineering_steps < 72:
