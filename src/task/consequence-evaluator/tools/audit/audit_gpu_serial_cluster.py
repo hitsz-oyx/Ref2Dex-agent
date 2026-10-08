@@ -16,6 +16,21 @@ import numpy as np
 
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
+import sys
+sys.path[:0] = [str(ROOT), str(TASK / 'src')]
+from consequence_evaluator.gate1 import candidate_plan
+from consequence_evaluator.twin import fingerprint
+
+FIELD_FLOORS = {
+    'object_pose': 1e-3,
+    'hand_keypoints': 2e-3,
+    'surface_gap': 1e-3,
+    'support_gap': 1e-3,
+    'table_footprint': 1e-3,
+    'dof_position': 2e-3,
+    'dof_velocity': 5e-2,
+    'object_velocity': 5e-2,
+}
 
 
 def sha(path):
@@ -51,15 +66,25 @@ def load_packet(path):
     roles = list(packet.get('roles') or [])
     zero_roles = list(packet.get('zero_roles') or [])
     candidate_roles = list(packet.get('candidate_roles') or [])
-    if not roles or roles[0] != packet.get('teacher_role') or len(zero_roles) != 5 \
-            or len(candidate_roles) != 4 or len(set(roles)) != len(roles):
+    teacher = packet.get('teacher_role')
+    expected_zero_roles = {f'frozen_zero_{index}' for index in range(1, 6)}
+    expected_candidate_roles = {f'positive_{index}' for index in range(1, 3)} | {
+        f'negative_{index}' for index in range(1, 3)}
+    if (not roles or roles[0] != teacher or teacher in zero_roles or teacher in candidate_roles
+            or len(zero_roles) != 5 or len(candidate_roles) != 4
+            or set(zero_roles) != expected_zero_roles or set(candidate_roles) != expected_candidate_roles
+            or len(set(roles)) != len(roles)
+            or set(zero_roles) & set(candidate_roles)
+            or set(zero_roles) | set(candidate_roles) != set(roles[1:])
+            or set(packet.get('execution_order') or []) != set(roles)
+            or len(packet.get('execution_order') or []) != len(roles)):
         raise ValueError('teacher/zero/candidate role contract required')
     if packet.get('control_prefix_exact') is not True:
         raise ValueError('shared teacher prefix contract required')
     query = int(packet.get('query_tick', -1)); horizon = int(packet.get('horizon', -1))
     steps = int(packet.get('steps', -1))
-    if query != 48 or horizon != 24 or steps < query + horizon or steps > 542:
-        raise ValueError('cluster must contain query tick48 plus24 steps')
+    if query != 48 or horizon != 24 or steps != 72:
+        raise ValueError('cluster is fixed to the query tick48 plus24 step window')
     actions = np.asarray(packet.get('actions'))
     done = np.asarray(packet.get('done'))
     arms = len(roles)
@@ -75,7 +100,8 @@ def load_packet(path):
         if value.shape[0] != arms or value.shape[1] != steps + 1 or not np.isfinite(value).all():
             raise ValueError('cluster field shape/nonfinite mismatch: %s' % key)
     timestamps = np.asarray(packet.get('timestamps'))
-    if timestamps.shape != (steps + 1,) or not np.isfinite(timestamps).all():
+    if (timestamps.shape != (steps + 1) or not np.isfinite(timestamps).all()
+            or not np.allclose(np.diff(timestamps), 1. / 30., atol=1e-8, rtol=0)):
         raise ValueError('cluster timestamp shape mismatch')
     residual = np.asarray(packet.get('requested_residual'))
     if residual.shape != actions.shape or not np.isfinite(residual).all():
@@ -89,22 +115,37 @@ def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
     teacher = actions[0]
     prefix = all(np.array_equal(actions[index, :query], teacher[:query])
                  for index in range(1, len(roles)))
+    suffix = all(np.array_equal(actions[index, query + horizon:], teacher[query + horizon:])
+                 for index in range(1, len(roles)))
     expected_errors = {}
+    residual_errors = {}
     for index, role in enumerate(roles):
         if role in zero_roles:
             expected = teacher
+            residual_errors[role] = float(np.max(np.abs(np.asarray(packet['requested_residual'])[index])))
         else:
             expected = teacher.copy()
             expected[query:query + horizon] = np.clip(
                 expected[query:query + horizon] + residual[index, query:query + horizon], -1., 1.)
+            candidate = 1 if role.startswith('positive') else 2
+            residual_errors[role] = float(np.max(np.abs(
+                residual[index] - np.pad(candidate_plan(candidate),
+                                         ((query, actions.shape[1] - query - horizon), (0, 0))))))
         expected_errors[role] = float(np.max(np.abs(actions[index] - expected)))
     zero_exact = all(expected_errors[role] == 0. for role in zero_roles)
     candidate_exact = all(expected_errors[role] <= 1e-6 for role in candidate_roles)
-    return dict(control_prefix_exact=bool(prefix), zero_replay_exact=bool(zero_exact),
-                candidate_action_contract_exact=bool(candidate_exact),
+    return dict(control_prefix_exact=bool(prefix), control_suffix_exact=bool(suffix),
+                zero_replay_exact=bool(zero_exact), candidate_action_contract_exact=bool(candidate_exact),
+                requested_residual_contract_exact=bool(all(value == 0. for role, value in residual_errors.items()
+                                                          if role in zero_roles)
+                                                       and all(value <= 1e-7 for role, value in residual_errors.items()
+                                                               if role in candidate_roles)),
                 max_abs_error_by_role=expected_errors,
-                teacher_action_sha256=hashlib.sha256(np.asarray(teacher).tobytes()).hexdigest(),
-                packet_teacher_action_sha256=packet.get('teacher_action_sha256'))
+                residual_max_abs_error_by_role=residual_errors,
+                teacher_action_sha256=fingerprint(np.asarray(teacher)),
+                packet_teacher_action_sha256=packet.get('teacher_action_sha256'),
+                teacher_action_hash_exact=bool(fingerprint(np.asarray(teacher)) == packet.get('teacher_action_sha256')),
+                schedule_hash_exact=bool(fingerprint(packet['execution_order']) == packet.get('schedule_sha256')))
 
 
 def noise_table(packet, roles, zero_roles, candidate_roles, query, steps, fields):
@@ -137,10 +178,12 @@ def noise_table(packet, roles, zero_roles, candidate_roles, query, steps, fields
                 item['post_query_displacement_p95']['p95']
                 for item in pairwise[key]['pairs']]))
             effects = [item['effect_p95']['p95'] for item in against]
+            declared_floor = float(FIELD_FLOORS.get(key, 1e-3))
+            denominator = max(zero_floor, declared_floor)
             candidate_effect[role][key] = dict(
                 against_zero=against, zero_pair_median_p95=zero_floor,
-                effect_to_zero_median=(quantiles(np.asarray(effects) / zero_floor)
-                                       if zero_floor > 0 else None))
+                declared_field_floor=declared_floor, ratio_denominator=denominator,
+                effect_to_zero_median=quantiles(np.asarray(effects) / denominator))
     return dict(zero_pair_noise=pairwise, candidate_effect_vs_zero=candidate_effect)
 
 
@@ -182,6 +225,26 @@ def tcc_values(packet, reference, encoder, device):
                 encoder_checkpoint_sha256=encoder_manifest['checkpoint_sha256'])
 
 
+def reset_contract(diagnostics):
+    physical_keys = ('_contact_forces', '_dof_state', '_hist_obs', '_rigid_body_state',
+                     '_root_states', '_tar_contact_forces', 'contact_reset', 'data_id',
+                     'progress_buf', 'ref_index', 'start_times')
+    failures = []
+    for item in diagnostics or []:
+        role = item.get('role')
+        if item.get('reset_frame_unchanged') is not True:
+            failures.append(dict(role=role, check='frame_unchanged'))
+        if item.get('reset_rng_equal') is not True:
+            failures.append(dict(role=role, check='rng_anchor_equal'))
+        state = item.get('state_max_abs') or {}
+        for key in physical_keys:
+            if float(state.get(key, float('inf'))) != 0.:
+                failures.append(dict(role=role, check='reset_state_exact', field=key,
+                                     max_abs=float(state.get(key, float('inf')))))
+    return dict(physical_keys=list(physical_keys), passed=not failures, failures=failures,
+                derived_buffers_allowed=['_curr_obs', 'rew_buf', '_reset_ig'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--packet', type=Path, required=True)
@@ -195,6 +258,10 @@ def main():
         raise ValueError('fresh task-owned audit directory required')
     args.output_dir.mkdir(parents=True)
     contract = action_contract(packet, roles, zero_roles, candidate_roles, query, horizon)
+    contract['passed'] = bool(all(contract[key] for key in (
+        'control_prefix_exact', 'control_suffix_exact', 'zero_replay_exact',
+        'candidate_action_contract_exact', 'requested_residual_contract_exact',
+        'teacher_action_hash_exact', 'schedule_hash_exact')))
     result = dict(schema='ref2dex.consequence-gate1.gpu-serial-cluster-audit.v1',
                   engineering_only=True, training_allowed=False,
                   packet=str(packet_path), packet_sha256=sha(packet_path),
@@ -204,6 +271,7 @@ def main():
                   horizon=horizon, steps=steps, outcome_complete=bool(packet.get('outcome_complete')),
                   source_backend=packet.get('source_backend'), replay_identity=packet.get('replay_identity'),
                   contract=contract,
+                  reset_contract=reset_contract(packet.get('reset_diagnostics')),
                   reset_diagnostics=packet.get('reset_diagnostics'),
                   teacher_max_lift_m=float(np.max(np.asarray(packet['object_pose'])[0, :, 2, 3]
                                                  - np.asarray(packet['object_pose'])[0, 0, 2, 3])),

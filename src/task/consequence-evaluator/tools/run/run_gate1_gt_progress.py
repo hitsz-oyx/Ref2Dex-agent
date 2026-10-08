@@ -769,6 +769,8 @@ def native_worker(a):
         horizon = 24; query = 48; stop = a.engineering_steps or query + horizon
         if stop < query + horizon or stop > 542:
             raise ValueError('serial replay requires query tick48 plus24 steps and <=542 steps')
+        if a.engineering_serial_cluster and stop != 72:
+            raise ValueError('serial cluster is fixed to the 72-step short-window contract')
         total = int(task.max_episode_length[task.data_id[0]]) - 1
         if total != 542:
             raise ValueError('frozen full543state reference required')
@@ -991,12 +993,25 @@ def native_worker(a):
         for key in fields + ('actions', 'done'):
             if not np.array_equal(baseline[key], zero1[key]):
                 repeat_mismatch.append(key)
-        state_diff = trace_diff(baseline['state_traces'], zero1['state_traces'])
-        zero2_diff = trace_diff(zero1['state_traces'], zero2['state_traces'])
-        if not state_diff['exact']:
-            repeat_mismatch.append('state_traces')
-        if baseline['rng_hashes'] != zero1['rng_hashes']:
-            repeat_mismatch.append('rng_hashes')
+        teacher_mismatch = list(repeat_mismatch)
+        teacher_state_diff = trace_diff(baseline['state_traces'], zero1['state_traces'])
+        zero_state_diff = trace_diff(zero1['state_traces'], zero2['state_traces'])
+        if a.engineering_serial_cluster:
+            repeat_mismatch = []
+            for key in fields + ('actions', 'done'):
+                if not np.array_equal(zero1[key], zero2[key]):
+                    repeat_mismatch.append(key)
+            if not zero_state_diff['exact']:
+                repeat_mismatch.append('state_traces')
+            if zero1['rng_hashes'] != zero2['rng_hashes']:
+                repeat_mismatch.append('rng_hashes')
+            state_diff = zero_state_diff
+        else:
+            if not teacher_state_diff['exact']:
+                repeat_mismatch.append('state_traces')
+            if baseline['rng_hashes'] != zero1['rng_hashes']:
+                repeat_mismatch.append('rng_hashes')
+            state_diff = teacher_state_diff
         control_prefix_exact = all(np.array_equal(baseline_actions[:query], packet['actions'][:query])
                                    for packet in repeats)
         def action_delta_summary(packet):
@@ -1018,14 +1033,22 @@ def native_worker(a):
                       query_tick=query, horizon=horizon, steps=stop, seed=a.seed,
                       outcome_complete=bool(stop >= 542),
                       source_backend=actual_backend, replay_identity=identity,
-                      reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
-                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
-                      baseline_repeat_rng_exact=baseline['rng_hashes'] == zero1['rng_hashes'],
+                      reset_diagnostics=reset_diagnostics,
+                      baseline_repeat_mismatches=None if a.engineering_serial_cluster else repeat_mismatch,
+                      teacher_vs_zero_mismatches=teacher_mismatch if a.engineering_serial_cluster else None,
+                      teacher_vs_zero_state_diff=teacher_state_diff if a.engineering_serial_cluster else None,
+                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero_state_diff,
+                      baseline_repeat_rng_exact=(zero1['rng_hashes'] == zero2['rng_hashes']
+                                                 if a.engineering_serial_cluster
+                                                 else baseline['rng_hashes'] == zero1['rng_hashes']),
                       serial_arm_order=None if a.engineering_serial_cluster else a.engineering_serial_order,
                       control_prefix_exact=control_prefix_exact,
                       candidate_plan_sha256={str(candidate): fingerprint(candidate_plan(candidate)) for candidate in (0, 1, 2)},
                       candidate_actual_action_delta=candidate_deltas,
-                      baseline_outcome=baseline['outcome'], role_outcomes={p['role']: p['outcome'] for p in all_packets},
+                      baseline_outcome=None if a.engineering_serial_cluster else baseline['outcome'],
+                      teacher_outcome=baseline['outcome'],
+                      role_outcomes=(None if a.engineering_serial_cluster
+                                     else {p['role']: p['outcome'] for p in all_packets}),
                       teacher_role=teacher_role, zero_roles=zero_roles, candidate_roles=candidate_roles,
                       replay_source='reactive_teacher_executed_actions' if a.engineering_serial_cluster else 'baseline_executed_actions',
                       teacher_action_sha256=fingerprint(baseline_actions),
@@ -1051,15 +1074,18 @@ def native_worker(a):
                       outcome_complete=bool(stop >= 542),
                       serial_cluster=bool(a.engineering_serial_cluster),
                       group_mode=result['group_mode'],
-                      reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
-                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
+                      reset_diagnostics=reset_diagnostics,
+                      baseline_repeat_mismatches=None if a.engineering_serial_cluster else repeat_mismatch,
+                      teacher_vs_zero_mismatches=teacher_mismatch if a.engineering_serial_cluster else None,
+                      teacher_vs_zero_state_diff=teacher_state_diff if a.engineering_serial_cluster else None,
+                      zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero_state_diff,
                       control_prefix_exact=control_prefix_exact,
                       serial_arm_order=None if a.engineering_serial_cluster else a.engineering_serial_order,
                       execution_order=execution_order, teacher_role=teacher_role,
                       zero_roles=zero_roles, candidate_roles=candidate_roles,
                       replay_source=result['replay_source'], schedule_sha256=result['schedule_sha256'],
                       teacher_action_sha256=result['teacher_action_sha256'],
-                      role_outcomes=result['role_outcomes'])
+                      teacher_outcome=result['teacher_outcome'], role_outcomes=result['role_outcomes'])
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), result)
 
@@ -1354,6 +1380,8 @@ def main():
         p.error('serial cluster requires a native worker without group or serial replay mode')
     if a.engineering_serial_cluster and (a.engineering_steps < 72 or a.engineering_steps > 542):
         p.error('serial cluster requires query tick48 plus24 steps and <=542 steps')
+    if a.engineering_serial_cluster and a.engineering_steps != 72:
+        p.error('serial cluster is fixed to the 72-step short-window contract')
     if a.engineering_group_envs and not a.engineering_steps:
         p.error('engineering group requires an explicit bounded --engineering-steps value')
     if a.engineering_group_envs and a.engineering_steps < 72:
