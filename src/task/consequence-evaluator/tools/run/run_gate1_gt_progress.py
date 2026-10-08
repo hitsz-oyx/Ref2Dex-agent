@@ -1307,7 +1307,10 @@ def native_worker(a):
                 if proposal_cache is None:
                     raise RuntimeError('single ACT action chunk was not initialized at tick48')
                 control = proposal_cache[:, tick - query]
-            requested_controls.append(control.detach().cpu().numpy().copy())
+            requested = control.detach().cpu().numpy()
+            if requested.shape != (1, 18):
+                raise ValueError('single ACT requested control shape changed')
+            requested_controls.append(requested[0].copy())
             obs, _, done, info = player.env_step(player.env, control.clone())
             if not isinstance(obs, dict):
                 obs = {'obs': obs}
