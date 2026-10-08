@@ -5,7 +5,7 @@ experiment_id: P-20261008-epic-scene-flow-p03-03
 date: 2026-10-08
 task: cm-pointflow-effect-pretrain
 branch: agent/epic-scene-flow
-git_commit: 22efbe2
+git_commit: fcfe844
 claim_id: C1
 hypothesis_family: HF-epic-scene-flow
 probe_index_in_family: 1
