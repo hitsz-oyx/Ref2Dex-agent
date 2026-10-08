@@ -60,11 +60,17 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-full-reference-value-data](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-full-reference-value-data.md) | Full-reference outcome supervision with controlled normal placing | Completed64nominal episodes; geometry weak labels give62success/2failure, | The user explicitly chose complete reference and normal placing as | probes/PROMISING |
 
+## HF-consequence-value-dose
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-value-dose-calibration](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-dose-calibration.md) | Can larger native-bounded residual doses support outcome learning? | Pending fixed64train episode dose calibration. | Separately calibrate requested dose after0.2error replay failed | probes/RUNNING |
+
 ## HF-consequence-value-interventions
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-value-contact-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-contact-interventions.md) | Is initial contact more informative than already stable holding? | Pending first64train episodes. | Both placing and stable-held empirical banks reached physics but | probes/RUNNING |
+| [P-20261008-value-contact-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-contact-interventions.md) | Is initial contact more informative than already stable holding? | Train coverage passed (59success/5failure), but val64/0and test63/1 | Both placing and stable-held empirical banks reached physics but | probes/UNCLEAR |
 | [P-20261008-value-place-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-place-interventions.md) | Can empirical placing deviations supply informative outcome supervision? | Completed64episodes; clean32/32success, placing31/32success. All32plans | The user authorized continuing targeted data collection. Keep the | probes/UNPROMISING |
 | [P-20261008-value-policy-error-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-policy-error-interventions.md) | Does same-H learner/expert control error supply outcome negatives? | Same-H replay passed;64episodes completed, clean31/32success and hold | Continue the authorized data-generation task with a measured policy | probes/UNPROMISING |
 

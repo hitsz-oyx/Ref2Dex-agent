@@ -9,6 +9,7 @@ sys.path.insert(0,str(TASK/'src'))
 from consequence_evaluator.collection import Perturbations,PhaseAssignments
 from consequence_evaluator.value_perturbations import (ValuePhaseTracker,VALUE_PHASES,
     BANK_SCHEMA,COUPLED,error_chunk,sample_bank)
+from consequence_evaluator.value_outcomes import validate_plan_execution
 
 
 def test_empirical_candidates_preserve_signs_and_ignore_overwritten_channels():
@@ -61,3 +62,24 @@ def test_empirical_placing_executes_once_and_known_plan_matches_request():
     short.apply(np.zeros((6,18)),np.ones(6),np.ones(6,bool),np.zeros(6),10,
                 np.full(6,23),np.ones(6,bool),phase_code=np.full(6,5,np.int64))
     assert (short.started==-1).all()
+
+
+def test_stronger_registered_plan_keeps_requests_separate_from_native_clipping():
+    chunk=error_chunk(np.full((24,18),.4),4.,residual_bound=.5)
+    bank=dict(schema=BANK_SCHEMA,source_split='train',phase='contact',chunks=[chunk.tolist()],
+              limits=dict(residual=.5))
+    chunks,_=sample_bank(bank,1,251)
+    with pytest.raises(ValueError,match='bounded'):
+        Perturbations(1,251,assignment=np.array([2]),chunks=chunks)
+    p=Perturbations(1,251,assignment=np.array([2]),chunks=chunks,residual_bound=.5)
+    plans=[];actions=[]
+    for tick in range(30):
+        action,_,info=p.apply(np.full((1,18),.9),np.zeros(1),np.zeros(1,bool),np.zeros(1),
+            tick,np.full(1,60-tick),np.ones(1,bool),phase_code=np.ones(1,np.int64))
+        plan,known=p.known_plan(tick);plans.append(plan[0]);actions.append(action[0])
+        if tick==12:assert info['clipped'].any() and info['residual'].max()>.4
+    packet=dict(action=np.asarray(actions),residual_plan=np.asarray(plans),plan_known=np.array([False]+[True]*29))
+    with pytest.raises(ValueError,match='invalid'):
+        validate_plan_execution(packet,dict(perturbation_tick=1))
+    validate_plan_execution(packet,dict(perturbation_tick=1),residual_bound=.5)
+    assert np.array_equal(packet['residual_plan'][1],np.asarray([x[0] for x in packet['residual_plan'][1:25]]))

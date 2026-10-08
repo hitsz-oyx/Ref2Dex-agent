@@ -30,7 +30,10 @@ def main():
     p.add_argument('--learner',type=Path,required=True);p.add_argument('--learner-sha',required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,required=True)
     p.add_argument('--phase',choices=('hold','contact'),default='hold')
+    p.add_argument('--residual-bound',type=float,choices=(.2,.5),default=.2)
+    p.add_argument('--gains',type=float,nargs=3,default=[.25,.5,1.])
     a=p.parse_args();out=a.output.resolve();raw=a.source.resolve();started=time.monotonic()
+    if not all(0<g<=4. for g in a.gains):p.error('three fixed positive gains no greater than4 required')
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not is_within(raw,ROOT/'outputs/consequence-evaluator'):
         p.error('task-owned source and fresh bank file required')
     if (digest(a.expert)!=a.expert_sha or digest(a.learner)!=a.learner_sha):raise ValueError('actor identity drift')
@@ -95,8 +98,8 @@ def main():
     if replay_error>1e-5:raise ValueError('native policy projection replay failed: '+str(replay_error))
     chunks=[];indices=[]
     for member,e in zip(members,errors):
-        for gain in (.25,.5,1.):
-            chunks.append(error_chunk(e,gain).tolist());indices.append(dict(member,gain=gain))
+        for gain in a.gains:
+            chunks.append(error_chunk(e,gain,a.residual_bound).tolist());indices.append(dict(member,gain=gain))
     for name in ('value_perturbations.py','value_outcomes.py','collection.py'):
         path=TASK/'src/consequence_evaluator'/name;frozen[str(path)]=digest(path)
     if any(digest(path)!=value for path,value in frozen.items()):raise ValueError('same-H source drift')
@@ -104,8 +107,8 @@ def main():
     bank=dict(schema=BANK_SCHEMA,phase=a.phase,source_split='train',source_seed=m['seed'],
         source_actor_sha256=a.expert_sha,learner_sha256=a.learner_sha,sources=frozen,chunks=chunks,members=indices,
         semantics='same-observation learner minus expert normalized control; bounded stage-conditioned empirical replay candidates',
-        covariance_fitted=False,causal_failure_direction_established=False,gains=[.25,.5,1.],
-        limits=dict(residual=.2,wrist_translation=.05),
+        covariance_fitted=False,causal_failure_direction_established=False,gains=a.gains,
+        limits=dict(residual=a.residual_bound,wrist_translation=.05),
         sampling='uniform member with replacement, same train-derived bank for independent groups',
         replay_max_abs_error=replay_error,same_h_error_rms=float(np.sqrt(np.mean(errors**2))),
         physical_gpu=a.gpu,elapsed_s=time.monotonic()-started,

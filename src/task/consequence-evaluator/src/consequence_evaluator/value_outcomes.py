@@ -92,12 +92,13 @@ def suffix_success(trace, tick):
     return int(trace['task_success'])
 
 
-def validate_plan_execution(packet, record):
+def validate_plan_execution(packet, record,residual_bound=.2):
     """Every accepted plan is preknown, executes24steps and has fixed continuation."""
+    if not .2<=residual_bound<=.5:raise ValueError('registered bounded intervention required')
     steps = len(packet['action'])
     plans,known = packet['residual_plan'],packet['plan_known']
     if (plans.shape != (steps,K,18) or known.shape != (steps,) or known.dtype != np.bool_
-            or not np.isfinite(plans).all() or np.abs(plans).max() > .2+1e-6):
+            or not np.isfinite(plans).all() or np.abs(plans).max() > residual_bound+1e-6):
         raise ValueError('invalid decision-known residual schedule')
     trigger = int(record['perturbation_tick'])
     if trigger >= 0 and trigger+K > steps:

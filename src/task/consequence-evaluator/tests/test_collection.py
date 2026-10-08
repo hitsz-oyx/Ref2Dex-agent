@@ -235,7 +235,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
         def _post_step(self, info):
             pass
     a=SimpleNamespace(num_envs=n, waves=1,seed=7,amplitude=.08,max_steps=100,split='train',target_phase=target_phase,
-                      value_outcomes=False,clean_only=False)
+                      value_outcomes=False,clean_only=False,residual_bound=.2)
     manifest={'episodes':[]}
     frozen={str((ROOT/'third_party/DExplore/dexplore/evaluate.py').resolve()):'engineering-only'}
     (tmp_path/'diagnostics').mkdir()

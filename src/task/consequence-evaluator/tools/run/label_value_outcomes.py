@@ -37,7 +37,7 @@ def main():
     arrays={name:[] for name in ('history','action','effect','interaction','current_object','current_hand',
             'success','progress','progress_mask','stage','progress_summary','margin','episode',
             'split','split_group','task','expert','motion','phase','tick')}
-    seen=set();groups={};episode_stats=[];contracts=[]
+    seen=set();groups={};episode_stats=[];contracts=[];residual_bounds=[]
     for source in a.source:
         source=source.resolve();path=source/'manifest.json';m=json.loads(path.read_text())
         if (m.get('schema')!=RAW_SCHEMA or m.get('status')!='COMPLETED'
@@ -47,6 +47,7 @@ def main():
                 or m.get('rollout_kind')!='continuous' or m.get('fps')!=30 or m.get('units')!='m'):
             raise ValueError('only completed independent full-reference value sources are eligible')
         frozen[str(path)]=sha(path);contracts.append(m['history_contract'])
+        residual_bounds.append(m.get('requested_residual_bound',.2))
         if any(sha(key)!=value for key,value in m['sources'].items()):
             raise ValueError('source controller/reference/implementation drift')
         frozen.update(m['sources'])
@@ -74,7 +75,7 @@ def main():
                     or not np.allclose(packet['timestamps'],np.arange(steps+1)/30,atol=1e-9,rtol=0)):
                 raise ValueError('history/full30Hz source clock mismatch')
             validate_rigid(packet['object_pose']);validate_rigid(diagnostics['reference_object_pose'])
-            validate_plan_execution(packet,record)
+            validate_plan_execution(packet,record,m.get('requested_residual_bound',.2))
             trace=task_trace(packet,diagnostics)
             ticks=set(range(0,steps-K+1,a.stride))
             if record['perturbation_tick']>=0:
@@ -143,6 +144,7 @@ def main():
         history_contract=contracts[0],horizon=K,execution_horizon=K,fps=30,units='m',
         source_inputs=frozen,windows_sha256=sha(out/'windows.npz'),label_rule=RULE,label_parameters=PARAMETERS,
         source_schema=RAW_SCHEMA,counts=counts,preference_counts=coverage,episode_audit=episode_stats,
+        source_residual_bounds=residual_bounds,
         preference_scope='same split/task/reference/controller; cross-episode S/P/M; no H matching',
         outcome_scope='whole-task factual outcome under fixed controller including completed past stages',
         main_label_force_proxy_used=False,elapsed_s=time.monotonic()-started)

@@ -80,7 +80,8 @@ def smooth_residual(rng, amplitude):
 class Perturbations:
     """One assigned phase and at most one complete 24-step residual per episode."""
     def __init__(self, count, seed, amplitude=.08, wave=0, assignment=None,
-                 phase_names=PHASES, chunks=None):
+                 phase_names=PHASES, chunks=None,residual_bound=.2):
+        if not .2<=residual_bound<=.5:raise ValueError('registered residual bound in0.2..0.5 required')
         self.rng = np.random.default_rng(seed)
         self.assignment = ((np.arange(count) + wave) % 6 if assignment is None
                            else np.asarray(assignment).copy())
@@ -91,7 +92,7 @@ class Perturbations:
         self.chunks = (np.stack([smooth_residual(self.rng, amplitude) for _ in range(count)])
                        if chunks is None else np.asarray(chunks,dtype='float32').copy())
         if (self.chunks.shape!=(count,K,18) or not np.isfinite(self.chunks).all()
-                or np.abs(self.chunks).max()>.2+1e-6 or np.any(self.chunks[:,[0,-1]])):
+                or np.abs(self.chunks).max()>residual_bound+1e-6 or np.any(self.chunks[:,[0,-1]])):
             raise ValueError('bounded immutable24step chunks with zero boundaries required')
         self.started = np.full(count, -1, dtype='int64')
         self.contact_run = np.zeros(count, dtype='int64')
@@ -155,7 +156,9 @@ class Perturbations:
 
 class Episode:
     """T controls and T+1 states; append the actual post-action observation."""
-    def __init__(self, history, object_state, contact, max_steps=600, kinematics=None):
+    def __init__(self, history, object_state, contact, max_steps=600, kinematics=None,residual_bound=.2):
+        if not .2<=residual_bound<=.5:raise ValueError('registered residual bound in0.2..0.5 required')
+        self.residual_bound=residual_bound
         self.history = [np.asarray(history, dtype='float32').copy()]
         self.poses = [pose_matrix(object_state)]
         self.contact = [bool(contact)]
@@ -180,7 +183,7 @@ class Episode:
             raise ValueError('invalid executed control/current phase')
         self.actions.append(action.copy())
         plan=np.zeros((K,18),dtype='float32') if plan is None else np.asarray(plan,dtype='float32')
-        if plan.shape!=(K,18) or not np.isfinite(plan).all() or np.abs(plan).max()>.2+1e-6:
+        if plan.shape!=(K,18) or not np.isfinite(plan).all() or np.abs(plan).max()>self.residual_bound+1e-6:
             raise ValueError('invalid requested residual plan')
         self.plans.append(plan.copy());self.plan_valid.append(bool(plan_known))
         self.phases.append(str(phase))

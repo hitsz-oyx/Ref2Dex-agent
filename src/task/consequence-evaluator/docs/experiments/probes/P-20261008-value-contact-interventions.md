@@ -5,7 +5,7 @@ experiment_id: P-20261008-value-contact-interventions
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: b3c6d78
+git_commit: 2ba0b37
 claim_id: C3
 hypothesis_family: HF-consequence-value-interventions
 probe_index_in_family: 3
@@ -13,13 +13,14 @@ seed_pool: probe
 seeds: [251, 252, 253, 254]
 decision_changed_if_positive: prepare independent outcome groups with the frozen measured contact-error sampler
 decision_changed_if_negative: close this bounded error-sampling recipe and record the unresolved negative-coverage decision
-status: RUNNING
+status: UNCLEAR
 run_id: official-value-contact-train-20261008-r1
 ---
 
 # Is initial contact more informative than already stable holding?
 
-Result: Pending first64train episodes.
+Result: Train coverage passed (59success/5failure), but val64/0and test63/1
+failed the frozen4/2/2class gate.192episodes are labeled but not training-ready.
 Decision: Both placing and stable-held empirical banks reached physics but
 failed negative coverage. Test initial geometric contact before stable holding,
 using newly computed learner/expert errors at that same phase and unchanged
@@ -65,3 +66,24 @@ collection and freeze/check all source hashes. Stop on occupancy, drift,
 incomplete plans/episodes, nonfinite geometry or budget. No external writes,
 checkpoint/environment changes, branch or push. Sampled geometry/support and
 one-object/reference weakness remain; no formal utility/generalization claim.
+
+## Completed result and next decision
+
+GPU bank inference4.646s, replay max error5.960e-7, same-H learner/expert
+control RMS0.29023. Collection commits2ba0b37, train115.534s; all32contact
+interventions fired, median requested/actual L2=1.26595/projection1.0.
+Trainclean31/32success, perturbed28/32; four perturbed negatives include one
+episode never reaching45held frames (maximum26), one with later loss after93
+held frames and two failing placing. Training gate allowed the frozen groups.
+Val/test outcomes showed poor negative support even without sampler tuning.
+
+All3groups: `outputs/consequence-evaluator/official-value-contact-labeled-20261008-r1/`;
+192episodes/11904windows/768preferences,26.914s CPU preparation, source/hash
+guards passed. `training_allowed=false`. Original unsuccessful dataset and
+sampler are retained; no fit and no repeated held-out search for favorable seeds.
+
+Decision: stop this0.2dose recipe; it produces some task failures but fails
+split-disjoint coverage. Next is a separately registered larger **requested
+residual** dose calibration from the same train-only error observations, while
+native executed controls stay[-1,1], translation remains capped0.05, task label
+rules and full reference stay fixed. This changes sampling, not success labels.

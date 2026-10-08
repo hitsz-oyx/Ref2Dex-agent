@@ -82,6 +82,8 @@ def main():
     p.add_argument('--seconds', type=int, default=900)
     p.add_argument('--max-steps', type=int, default=1200)
     p.add_argument('--amplitude', type=float, default=.08)
+    p.add_argument('--residual-bound',type=float,choices=(.2,.5),default=.2,
+                   help='explicit registered bank residual limit; execution remains native [-1,1]')
     p.add_argument('--audit-only', action='store_true',
                    help='collect observational diagnostics; output can never be used for fitting')
     p.add_argument('--value-outcomes', action='store_true',
@@ -104,6 +106,8 @@ def main():
         p.error('empirical bank requires official value mode, bank stage, and clean/intervention allocation')
     if a.target_phase=='place' and not a.perturbation_bank:
         p.error('placing stage requires an empirical perturbation bank')
+    if a.residual_bound>.2 and not a.perturbation_bank:
+        p.error('larger bounded calibration requires an explicit value candidate bank')
     if a.target_phase != 'all' and not (a.audit_only or a.value_outcomes):
         p.error('focused stage allocation requires --audit-only')
     if (not 1 <= a.waves <= 4 or not 6 <= a.num_envs <= 64 or not 1 <= a.seconds <= 900
@@ -148,6 +152,7 @@ def main():
             raise ValueError('task-owned empirical bank required')
         bank=json.loads(bank_path.read_text());sample_bank(bank,1,a.seed)
         if bank['phase']!=a.target_phase:raise ValueError('bank phase differs from the actual target phase')
+        if bank['limits']['residual']!=a.residual_bound:raise ValueError('bank dose differs from explicit collection bound')
         if bank.get('source_actor_sha256')!=config['experts'][baseline]['sha256']:
             raise ValueError('bank policy source differs from the fixed continuation')
         frozen[str(bank_path)]=digest(bank_path)
@@ -283,7 +288,9 @@ def main():
         if bank is not None:
             manifest.update(perturbation_bank=str(a.perturbation_bank.resolve()),
                             perturbation_bank_sha256=digest(a.perturbation_bank),
-                            perturbation_sampling=bank['sampling'],perturbation_covariance_fitted=False)
+                            perturbation_sampling=bank['sampling'],perturbation_covariance_fitted=False,
+                            requested_residual_bound=a.residual_bound,
+                            amplitude_semantics='amplitude ignored for bank mode; bank controls actual dose')
     write(output/'manifest.json', manifest)
     last_resource_check = [0.]
     def check():
@@ -363,7 +370,8 @@ def main():
                     shape=list(history.shape[1:]), player_sha256=frozen[str((ROOT/'third_party/DExplore/dexplore/evaluate.py').resolve())])
                 measured = kinematics()
                 episodes = [Episode(history[i], states[i], contact[i], a.max_steps,
-                                    {name:values[i] for name,values in measured.items()}) for i in range(a.num_envs)]
+                                    {name:values[i] for name,values in measured.items()},
+                                    residual_bound=a.residual_bound) for i in range(a.num_envs)]
                 active = np.ones(a.num_envs, dtype=bool)
                 initial_height = states[:,2].copy()
                 motion = task.data_id.cpu().numpy().copy()
@@ -372,7 +380,7 @@ def main():
                     chunks,chunk_ids=sample_bank(bank,a.num_envs,a.seed+wave)
                 perturb = Perturbations(a.num_envs, a.seed+wave, a.amplitude, wave,
                                         assignment=np.zeros(a.num_envs,np.int64) if a.clean_only else assignments.assign(motion),
-                                        phase_names=phase_names,chunks=chunks)
+                                        phase_names=phase_names,chunks=chunks,residual_bound=a.residual_bound)
                 if a.value_outcomes:
                     reference=task.hoi_data[task.data_id,:,108].detach().cpu().numpy()
                     raised=reference-reference[:,:1]>=.03
@@ -428,7 +436,7 @@ def main():
                     if a.value_outcomes:
                         if self.expert_names[int(self.last_teacher_choice[env])] != baseline:
                             raise ValueError('fixed continuation expert changed')
-                        validate_plan_execution(packet,dict(perturbation_tick=int(perturb.started[env])))
+                        validate_plan_execution(packet,dict(perturbation_tick=int(perturb.started[env])),a.residual_bound)
                     identity = f's{a.seed}_w{wave}_e{env}_{object_names[env]}'
                     path = output/(identity+'.npz')
                     np.savez_compressed(path, **packet)
