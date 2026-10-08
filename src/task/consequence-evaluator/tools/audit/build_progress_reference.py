@@ -51,9 +51,9 @@ def main():
     # Compare FK with independently measured native bodies at startup and
     # after actual controls, in two train episodes. Do not inspect test data.
     errors = []
-    records = [r for r in raw['episodes'] if r['split'] == 'train'][:2]
+    records = [r for r in raw['episodes'] if r['split'] == 'train' and r['assigned_phase'] == 'clean'][:2]
     if len(records) != 2:
-        raise ValueError('two train-only episodes needed for the native FK audit')
+        raise ValueError('two assigned-clean train episodes needed for the native FK mapping audit')
     for record in records:
         files = [source / record['path'], source / record['diagnostics']]
         for path, key in zip(files, ('sha256', 'diagnostics_sha256')):
@@ -68,14 +68,34 @@ def main():
                 raise ValueError('actual/reference initial object frames disagree')
     if max(errors) > 1e-5 or any(sha(p) != value for p, value in frozen.items()):
         raise ValueError('native FK link/joint mapping failed or source drifted')
+    perturbed = next((r for r in raw['episodes'] if r['split'] == 'train' and r['perturbation_tick'] >= 0), None)
+    constraint_audit = None
+    if perturbed:
+        files = [source / perturbed['path'], source / perturbed['diagnostics']]
+        for path, key in zip(files, ('sha256', 'diagnostics_sha256')):
+            if not is_within(path, source) or sha(path) != perturbed[key]:
+                raise ValueError('perturbed audit packet drift')
+            frozen[str(path)] = perturbed[key]
+        with np.load(files[0], allow_pickle=False) as packet, np.load(files[1], allow_pickle=False) as diagnostics:
+            computed = reconstruct_points(diagnostics['q'], diagnostics['hand_root'], urdf)
+            physical_error = np.max(np.abs(computed - packet['hand_keypoints']), axis=(1, 2))
+            constraint_audit = dict(episode=perturbed['episode'],
+                maximum_coordinate_error_m=float(physical_error.max()),
+                frames_above_10micrometres=int(np.sum(physical_error > 1e-5)),
+                interpretation='ideal FK can differ from measured PhysX articulation; actual labels use measured points')
+    if any(sha(p) != value for p, value in frozen.items()):
+        raise ValueError('reference/audit source changed')
     out.mkdir(parents=True)
     np.savez_compressed(out / 'reference.npz', **reference)
+    if constraint_audit is not None:
+        np.savez_compressed(out / 'perturbed-fk-diagnostic.npz', coordinate_error_m=physical_error)
     manifest = dict(schema=REFERENCE_SCHEMA, status='COMPLETED', origin='original_successful_retargeted_motion',
         task=records[0]['task'], motion=records[0]['motion'], fps=30, units='m',
         hand_links=list(HAND_LINKS), dof_names=list(NATIVE_DOF_NAMES), actor_root='identity; wrist pose in q[:6]',
         reference_joint_semantics='original retargeted q, no PD action conversion or human-keypoint substitution',
         success_semantics='user-specified successful motion reference; FK audit is not physics success validation',
         samples=len(reference['timestamps']), native_fk_max_coordinate_error_m=max(errors),
+        native_mapping_audit_episodes=[r['episode'] for r in records], perturbed_fk_diagnostic=constraint_audit,
         sources=frozen, reference_sha256=sha(out / 'reference.npz'),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         elapsed_s=time.monotonic() - started,

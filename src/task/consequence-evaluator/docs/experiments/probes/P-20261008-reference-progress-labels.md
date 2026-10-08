@@ -51,9 +51,13 @@ Original reference: complete s3_airplane_lift, 543 frames at30Hz, retargeted
 robot q373:391 plus object position198:201/quaternion201:205. Reuse native
 URDF FK with explicitly named Gym joint order and identity actor root; wrist
 world pose is carried by q[:6]. Preserve original q without PD conversion or
-human keypoint substitution. Audit12train state frames against measured11
+human keypoint substitution. Audit12assigned-clean train state frames against measured11
 native link positions; coordinate error must be<=10micrometres. Also check
 initial actual/reference object pose matches and freeze input hashes.
+Separately retain the first assigned-perturbed trajectory's full FK-versus-
+measured discrepancy. FK mapping agreement in clean states does not guarantee
+PhysX constraint agreement in a violently perturbed articulation; all actual
+label features always use independently measured hand points.
 
 Common90D features: initial-object-registered position and rotation matrix,
 11 current-object-frame hand points, object translation/rotation backward
