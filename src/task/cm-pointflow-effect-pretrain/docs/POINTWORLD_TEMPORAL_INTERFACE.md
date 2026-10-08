@@ -4,7 +4,7 @@
 
 The temporal adapter shares the fixed anchor-frame voxel contract from
 `POINTWORLD_INTERFACE.md`: `grid=floor((x-anchor_origin)/0.01)` with origin
-`[-1,-1,-1]`, independent of batch partners and future action points, and
+`[-2,-2,-2]`, independent of batch partners and future action points, and
 fail-fast bounds `0..65535` on every valid coordinate. The evaluator reports
 the existing moving-object mask and its strict complement `static_objects`
 (translation `>2mm` or rotation `>.02rad` at any horizon). New checkpoints use

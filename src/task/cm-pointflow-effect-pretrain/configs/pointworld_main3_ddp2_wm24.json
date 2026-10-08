@@ -23,7 +23,7 @@
   "history": 4,
   "horizon": 24,
   "voxel_m": 0.01,
-  "voxel_origin_m": [-1.0, -1.0, -1.0],
+  "voxel_origin_m": [-2.0, -2.0, -2.0],
   "max_scene_points": 4096,
   "local_radius_m": 0.5,
   "object_points": 512,

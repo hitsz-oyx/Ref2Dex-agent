@@ -16,7 +16,10 @@ sys.path.insert(0, str(VENDOR))
 from ptv3.ptv3 import PointTransformerV3
 
 
-DEFAULT_VOXEL_ORIGIN_M = (-1.0, -1.0, -1.0)
+# The anchor-frame corpus reaches slightly below -1m on validation windows.
+# Keep a generous, fixed margin while retaining the explicit 16-bit PTv3
+# workspace contract; never recenter this origin from a batch or action.
+DEFAULT_VOXEL_ORIGIN_M = (-2.0, -2.0, -2.0)
 DEFAULT_VOXEL_SIZE_M = 0.01
 # The pinned PTv3 serializer encodes three coordinates with at most 16 bits
 # each (48 bits total).  Keep this contract explicit instead of allowing an

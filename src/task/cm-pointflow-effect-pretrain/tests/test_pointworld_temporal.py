@@ -48,14 +48,14 @@ def test_fixed_workspace_grid_is_batch_and_action_invariant():
                                           torch.ones(2, 3, dtype=torch.bool))
     torch.testing.assert_close(solo[0], paired[0], rtol=0, atol=0)
     torch.testing.assert_close(paired[0], paired_changed[0], rtol=0, atol=0)
-    assert solo[0, 0].tolist() == [100, 100, 100]
+    assert solo[0, 0].tolist() == [200, 200, 200]
 
 
 def test_fixed_workspace_grid_fails_outside_ptv3_hilbert_bounds():
     valid = torch.ones(1, 1, dtype=torch.bool)
     with pytest.raises(ValueError, match='outside fixed PTv3 workspace'):
-        fixed_workspace_grid(torch.tensor([[[-1.01, 0., 0.]]]), valid)
-    upper = -1.0 + (.01 * (MAX_SERIALIZED_GRID_COORD + 1))
+        fixed_workspace_grid(torch.tensor([[[-2.01, 0., 0.]]]), valid)
+    upper = -2.0 + (.01 * (MAX_SERIALIZED_GRID_COORD + 1))
     with pytest.raises(ValueError, match='outside fixed PTv3 workspace'):
         fixed_workspace_grid(torch.tensor([[[upper, 0., 0.]]]), valid)
 
@@ -95,7 +95,7 @@ def test_adapter_retains_24_action_times_in_one_spatial_voxel():
         model(dict(batch, action=action.flip(1)))
     assert len(original['feat']) == 25
     assert original['time_id'].tolist() == list(range(25))
-    assert torch.equal(original['grid_coord'], torch.full_like(original['grid_coord'], 100))
+    assert torch.equal(original['grid_coord'], torch.full_like(original['grid_coord'], 200))
     assert not torch.allclose(original['feat'], capture.data['feat'])
 
 
