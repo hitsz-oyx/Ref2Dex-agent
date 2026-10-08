@@ -1377,8 +1377,10 @@ replay identity。
 小 spacing 诊断也没有恢复行为或 noise gate（且会改变 broadphase，只保留为诊断）。
 8-env、256 actor rows 下把 zero pair 改为非零 origin 的 `[1,4]` 后，选中 pair 的
 geometry p95 通过但 pairwise gate 和行为筛查失败；更稳定的 `[4,6]` pair geometry
-接近 exact、baseline `0.234 m`，candidate effect 与 pairwise gate 仍失败。结论是
-group role/layout route 关闭；这些 packet 不能进入 strict Gate1。证据见
+接近 exact、72 步 baseline `0.234 m`，candidate effect 与 pairwise gate 仍失败。
+预先限定的 full 542-step `[4,6]` confirmation 最终只有 `0.153 m/9 held`，行为、
+pairwise 和 candidate-effect gates 全部失败。结论是 group role/layout route 关闭；这些
+packet 不能进入 strict Gate1。证据见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md`
 及 `outputs/consequence-evaluator/gate1-gpu-precontact-group-20261009-r1/`、
 `gate1-gpu-spacing-group-20261009-r1/` 和

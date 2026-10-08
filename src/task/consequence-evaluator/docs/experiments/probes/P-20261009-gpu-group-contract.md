@@ -69,6 +69,11 @@ engineering calibration and never enters the strict Gate1 scorer.
    `outputs/consequence-evaluator/gate1-gpu-nonzero-pair-group-20261009-r1/group-contract-audit.json`
    and
    `outputs/consequence-evaluator/gate1-gpu-nonzero-pair-group-20261009-r2/group-contract-audit.json`.
+   The predeclared full-horizon confirmation with `[4,6]` reached only
+   `0.153 m` and `9` held frames; its selected zero pair stayed mechanically
+   exact before query, but the full behavior, pairwise, and effect gates all
+   failed. Audit:
+   `outputs/consequence-evaluator/gate1-gpu-nonzero-pair-group-20261009-r3/group-contract-audit.json`.
 
 ## Decision
 
