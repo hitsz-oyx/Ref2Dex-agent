@@ -20,11 +20,13 @@ def test_physics_enum_does_not_recurse_into_its_own_members():
 
     value = BoundEnum()
     BoundEnum.ALL = value  # dir(value) exposes a self-reference, as pybind does.
-    props = SimpleNamespace(contact_collection=value, substeps=2)
+    props = SimpleNamespace(contact_collection=value, substeps=2,
+                            gravity=SimpleNamespace(dtype=np.dtype('float32'), x=0., y=0., z=-9.81))
     result = RUNNER['normalize_properties'](props)
     assert result['contact_collection']['value'] == 2
     assert result['contact_collection']['name'] == 'ALL'
     assert result['substeps'] == 2
+    assert result['gravity']['dtype'] == 'float32'
 
 
 @pytest.mark.parametrize('field', ['residual_plan', 'actions', 'object_poses',

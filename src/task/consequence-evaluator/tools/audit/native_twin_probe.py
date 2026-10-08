@@ -53,17 +53,21 @@ def trace_error(actual, expected):
     return error
 
 
-def normalize_properties(value):
+def normalize_properties(value, depth=0):
     # Isaac structured arrays have unspecified alignment padding. Serialize
     # named fields, preserving physical values rather than padding bytes.
+    if depth > 8:
+        raise ValueError('unsupported recursive physical property: ' + str(type(value)))
+    if isinstance(value, np.dtype):
+        return str(value)
     if isinstance(value, np.ndarray) and value.dtype.names:
-        return {name: normalize_properties(value[name]) for name in value.dtype.names}
+        return {name: normalize_properties(value[name], depth + 1) for name in value.dtype.names}
     if isinstance(value, dict):
-        return {key: normalize_properties(item) for key, item in value.items()}
+        return {key: normalize_properties(item, depth + 1) for key, item in value.items()}
     if isinstance(value, (tuple, list)):
-        return [normalize_properties(item) for item in value]
+        return [normalize_properties(item, depth + 1) for item in value]
     if isinstance(value, np.generic):
-        return normalize_properties(value.item())
+        return normalize_properties(value.item(), depth + 1)
     if isinstance(value, (bool, int, float, str, np.ndarray)):
         return value
     # Pybind enums (e.g. PhysX ContactCollection) expose their members again
@@ -71,7 +75,7 @@ def normalize_properties(value):
     if hasattr(type(value), '__members__'):
         return {'enum_type': type(value).__module__ + '.' + type(value).__qualname__,
                 'name': value.name, 'value': int(value)}
-    fields = {name: normalize_properties(getattr(value, name)) for name in dir(value)
+    fields = {name: normalize_properties(getattr(value, name), depth + 1) for name in dir(value)
               if not name.startswith('_') and not callable(getattr(value, name))}
     if not fields:
         raise ValueError('unsupported native physical property: ' + str(type(value)))
