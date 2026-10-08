@@ -58,7 +58,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-full-reference-value-data](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-full-reference-value-data.md) | Full-reference outcome supervision with controlled normal placing | Pending geometry-audited nominal collection. | The user explicitly chose complete reference and normal placing as | probes/RUNNING |
+| [P-20261008-full-reference-value-data](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-full-reference-value-data.md) | Full-reference outcome supervision with controlled normal placing | Completed64nominal episodes; geometry weak labels give62success/2failure, | The user explicitly chose complete reference and normal placing as | probes/PROMISING |
 
 ## HF-contact-innovation
 

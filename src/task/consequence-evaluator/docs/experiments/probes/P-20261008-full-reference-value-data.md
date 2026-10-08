@@ -5,7 +5,7 @@ experiment_id: P-20261008-full-reference-value-data
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: 3b31457
+git_commit: 9ced94d
 claim_id: C3
 hypothesis_family: HF-consequence-value-data
 probe_index_in_family: 1
@@ -13,13 +13,14 @@ seed_pool: probe
 seeds: [230, 244]
 decision_changed_if_positive: use the identified official actor for a subsequent phase-conditioned intervention dataset under the full-reference task
 decision_changed_if_negative: repair generator or physical-label semantics before collecting intervention/value training data
-status: RUNNING
+status: PROMISING
 run_id: official-value-nominal-20261008-r2
 ---
 
 # Full-reference outcome supervision with controlled normal placing
 
-Result: Pending geometry-audited nominal collection.
+Result: Completed64nominal episodes; geometry weak labels give62success/2failure,
+4160legal24frame windows and256S/P/M preferences. Training readiness remains false.
 Decision: The user explicitly chose complete reference and normal placing as
 task success. Retain that task; first audit nominal physical outcomes before
 estimating targeted perturbations. No evaluator or policy training here.
@@ -92,6 +93,46 @@ collision, input drift, unsupported table geometry, nonfinite/incomplete
 episodes, missing diagnostics or fixed budget. No installed environment/source
 changes, no overwritten checkpoint, no new branch/push. Collection exports
 complete measured states and known zero plans; it is not evaluator training.
+
+## Completed nominal pilot
+
+R2 ran at9ced94d on GPU2 for115.057s;64episodes each contain542controls and
+543measured states. Requested residual plans were known zeros throughout;
+no intervention or fork was used. Source/implementation hash guards passed,
+the process exited normally and GPU2 was released. Observed GPU memory was
+about18.4GB and sampled utilization about45%; this short geometry-export
+collector is not a neural training throughput benchmark.
+
+Raw: `outputs/consequence-evaluator/official-value-nominal-20261008-r2/`
+(140.53MiB). Label preparation took9.280s on CPU for file/statistical work.
+Windows: `outputs/consequence-evaluator/official-value-labeled-20261008-r1/`
+(24.26MiB including the subsequent automatic geometry audit). Its manifest
+has `training_allowed=false`: train-only seed230,62success/2failure episodes,
+no validation/test groups, and fewer than4train failures. No fit was started.
+
+All62positive episodes achieved45frame geometric holding and finished with
+sampled bottom/table gap between-1.774mm and+0.349mm, over the table footprint,
+at settled velocity; all62ended released from near-hand geometry. Thus normal
+table placing is admitted even after hand release. Negative episodes
+`s230_w0_e7_airplane` and `s230_w0_e24_airplane` also achieved45frame holding,
+but lost geometric control/support during final placing and ended with bottom
+gap-45.574mm/-692.715mm. The second still had1.357m/s linear speed. These are
+numeric weak-label checks, not manually confirmed collision/video outcomes;
+in particular, penetration/support proxy errors remain a possible limitation.
+See labeled `geometry-audit.json` for every episode's measured checks.
+
+Each episode contributed65windows (stride8, full24step future). Preferences:
+24success,120progress,112margin, with at most one sampled comparison per
+unordered episode pair and no H-match requirement. Most comparisons distinguish
+stages/margins rather than binary outcome; this is not evidence that the future
+oracle improves a trained evaluator or that residual actions cause a benefit.
+
+Decision: PROMISING for the **data-generator and label pipeline** only. Nominal
+failures are sparse and appear at placing. Next collect a bounded stage-targeted
+intervention Probe retaining clean controls, then independent held-out seed
+groups if labels remain plausible. Do not fit these train-only windows or
+reinterpret nominal zero plans as action-effect coverage. Manual weak-label
+spot checks remain future evidence before upgrading to a formal comparison.
 
 ## Limitations and future evidence
 

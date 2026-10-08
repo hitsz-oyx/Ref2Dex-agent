@@ -15,6 +15,15 @@ factory、单次外部RMS及严格compiled-key适配，不修改外部权重或�
 官方权重仅为数据生成候选，不替代Mission的自训练最终策略。评估已结束且GPU释放。
 记录：[官方生成器Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-official-generator-screen.md)。
 
+按用户的完整reference/受控放回定义，9ced94d在GPU2完成64条nominal连续episode，
+115.057秒、约140.53MiB；S/P/M几何弱标签为62成功/2失败、4160窗口、256偏好。
+62条正例末尾均已离手且在桌面proxy上静止；两条负例在放回阶段失去几何控制/支撑。
+这是自动数值核查，未人工确认视频或精确collision pair。独立value schema不放宽旧
+H匹配验证合同；只有train seed230且负例不足，labeled `training_allowed=false`。
+未开始evaluator fit，采集进程已退出/GPU2释放。下一步为保留clean的阶段定向扰动
+Probe，再考虑独立held-out seed组，不能用nominal零计划声称动作收益。
+记录：[完整参考value数据Pilot](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-full-reference-value-data.md)。
+
 ## 2026-10-08 HOCap 外部测试数据获取
 
 用户指定 HOCap 为外部测试候选。官方 Box 的 calibration/models/poses 三包已下载，

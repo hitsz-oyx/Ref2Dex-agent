@@ -9,6 +9,12 @@
 计为Task成功；[新几何数据Pilot](docs/experiments/probes/P-20261008-full-reference-value-data.md)
 先检查此语义，native诊断输出不直接接入训练。权重只用于明确标识来源的数据生成。
 
+新Pilot已完成64条nominal完整episode：几何弱标签62成功/2失败，4160窗口、
+256个自动S/P/M偏好；仅train组且负例不足，尚不可训练。独立新入口为
+`collect_continuous.py --value-outcomes --official-generator --clean-only` 与
+[value标签准备](tools/run/label_value_outcomes.py)，K/K_exec均为24；它们使用独立
+value schema。以下旧H匹配局部偏好管线继续作为独立验证合同，不读取新schema。
+
 第一阶段固定 `K=24`、`K_exec=8`，H 沿用采集策略当前观测/历史的原始合同。
 先采连续六专家 rollout，单次24步平滑扰动后让专家继续到 episode 结束；不 fork。
 比较 `E0(H,δ)`、`Eoracle-E(H,δ,Z_object)` 和 `Eoracle-EI(H,δ,Z_object,Z_interaction)`。
