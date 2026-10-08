@@ -14,6 +14,11 @@
 四条clean最终P仍仅0.262..0.437且有较多回退，UNCLEAR/不可训练。固定R不变，
 转向[TCC对齐编码器Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-tcc-phase-alignment.md)，
 只用source230train拟合geometry embedding，source261仍作已暴露开发检查。
+TCC在ef9a770完成固定1000步（GPU1/10.84秒），8条496窗口标签重放9.69秒。
+四条clean末尾P提高到0.932..0.994；self/static/因果检查通过，但累计回退
+0.249..0.368均超过预设0.2门槛，局部Y仍UNCLEAR。再次抬升与末尾放回附近
+出现负Y；固定checkpoint和标签保留、training_allowed=false，GPU1释放。
+下一步核查已有局部阶段证据，不以低cycle loss或末尾P代替候选排序正确性。
 用户完整链路要求标签过后先直接GT-value同状态滚动Gate1，不先训练evaluator；
 允许fresh simulator完整prefix replay，禁止mid-state PhysX restore。Gate1成功
 定义为完成稳定抓取并正常放回，允许中途恢复；中途失抓另统计。旧32anchor脚本

@@ -6,8 +6,10 @@ P由原始成功参考与真实3D历史clip的因果匹配定义，不用episode
 先用[原始参考重建](tools/audit/build_progress_reference.py)核验FK，再用
 [离线标签Probe](tools/run/label_reference_progress.py)检验nominal及扰动轨迹；
 [实验卡](docs/experiments/probes/P-20261008-reference-progress-labels.md)固定协议。
-几何标签的8条Probe已完成，但nominal仍有严重阶段错配；先运行
+几何标签的8条Probe已完成；随后完成
 [独立TCC对齐编码器Probe](docs/experiments/probes/P-20261008-tcc-phase-alignment.md)。
+TCC将四条nominal末尾P提高到0.932..0.994，但局部回退仍未过固定门槛；
+当前UNCLEAR、不可训练，先核查再次抬升和放回段的局部Y。
 标签通过后按[完整链路](docs/user/完整链路.md)先做直接GT-value的Gate1，
 再考虑evaluator；新schema独立于旧S/P/M和旧局部H匹配标签。
 

@@ -5,7 +5,7 @@ experiment_id: P-20261008-tcc-phase-alignment
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: 43e7bc0
+git_commit: ef9a770
 claim_id: C3
 hypothesis_family: HF-consequence-tcc-phase
 probe_index_in_family: 1
@@ -13,15 +13,16 @@ seed_pool: probe
 seeds: [230, 261, 281]
 decision_changed_if_positive: freeze the temporal matcher and prepare direct GT-value Gate1 without evaluator training
 decision_changed_if_negative: retain alignment uncertainty and do not train an evaluator or claim Gate1 failure
-status: RUNNING
-run_id: tcc-phase-encoder-20261008-r1
+status: UNCLEAR
+run_id: tcc-phase-encoder-20261008-r2
 ---
 
 # Can a learned TCC geometry embedding recover useful reference progress?
 
-Result: Small phase-only encoder implemented; no training result yet.
-Decision: Fixed geometry distance fails actual-rollout phase validation; test
-upstream temporal cycle learning before spending resources on an evaluator.
+Result: Learned alignment recovers all four clean final phases, but local
+regressions exceed the frozen development gate. No evaluator fit or Gate1.
+Decision: Preserve the fixed checkpoint and labels; inspect repeated-lift and
+placing phase ambiguity before using local Y to select candidates.
 
 ## Decision Note
 
@@ -96,6 +97,69 @@ four clean finals>=0.85and backwards progress total<=0.2before declaring this
 phase matcher promising. Inspect contact/failure event values separately:
 positive progress during a physically failed transition or confident OOD phase
 mapping can still block Gate1 despite nominal coverage. No value-head fitting.
+
+## Observed result at ef9a770
+
+The first encoder attempt `tcc-phase-encoder-20261008-r1` stopped in preflight,
+before training: the nominal source manifest froze three Python files at its
+collection commit9ced94d, while the live checkout had later legitimate code
+changes. The correction verifies each recorded old source against its exact
+Git blob and separately freezes current execution hashes. All254source entries
+were checked; only those three historical Python files differed. Data, original
+motion, assets and weights matched their frozen hashes. This exception does
+not accept changed data or unverified source drift; four regression tests
+cover the distinction. The failed log is retained.
+
+Encoder r2 completed its fixed1000updates on GPU1 in10.840s, peak allocated
+41,701,376bytes. Final100update mean TCC loss0.0001506223 establishes fitting
+only. Unique checkpoint `encoder_step_1000.pt` SHA256
+`d9dbf5857293e09c3754f9f111983ac44c442ac0c33f8c5572ec214943759902`.
+No checkpoint selection or appended epochs used source261.
+
+Frozen transfer run `reference-progress-tcc-labels-20261008-r1` completed
+8episodes/496windows in9.694s on GPU1, peak allocated14,541,312bytes. Reference
+self finalP0.993479, indexMAE0.001734; stationary finalP0.004652; actual prefix
+distribution error0; posterior step bound4/542holds. Fixed64row padded encoder
+batches preserve prefix numerics without introducing cross-frame information.
+
+| Clean episode | Geometric r2 finalP | Learned finalP | Learned total backwards progress |
+| --- | ---: | ---: | ---: |
+| e0 | 0.3188 | 0.9937 | 0.3675 |
+| e3 | 0.4168 | 0.9932 | 0.2729 |
+| e6 | 0.2621 | 0.9435 | 0.2494 |
+| e7 | 0.4374 | 0.9316 | 0.2814 |
+
+All four finalP values exceed0.85; **none satisfies backwards total<=0.2**.
+This sum is accumulated negative per-frame phase increments, not a failure
+rate or the magnitude of one regression. Clean episodes have5/6/6/8negative
+K24windows at epsilon0.01. A bounded CPU audit of existing train packets found
+all four at tick176 have Y−0.0233..−0.0251, while measured object height rises
+from approximately6.1–6.3cm to29.8–30.4cm. Some final placing windows also have
+negativeY. These observations require local reference-phase/event review;
+height alone does not establish full task progress or prove a labeling defect.
+Removing regression permission or adding an actual clock would violate the
+intended signed, causal target and was not attempted.
+
+Contact e1 drops below the tabletop, remains physically failed, and endsP0.0258
+with interventionY−0.01232. Other contact finals0.7200/0.9552/0.8788 show that
+not every intervention is a failure. The inherited diagnostic distance cutoff
+`max_cost=1` marks all four intervention windows invalid; this cutoff is **not
+calibrated learned-embedding confidence**, so it cannot certify OOD rejection
+or an operational abstention rule. No same-state preference pairs were generated.
+
+Artifacts under `outputs/consequence-evaluator/`: encoder r2 manifest/checkpoint/
+loss log; learned-label r1 manifest/labels/phase distributions/
+`train-progress-examples.png`; `reference-progress-tcc-audit-20261008-r1/negative-window-audit.json`.
+Preserve original reference and all previous geometric runs. GPU1 released.
+The label manifest remains `training_allowed=false`; completion is engineering
+completion, not semantic approval. Probe result **UNCLEAR** for local signed
+utility. This neither establishes nor fails Gate1, which has not run.
+
+Next decision is whether remaining local regressions are phase-matching
+ambiguities or physically meaningful departures from R. Use the existing
+event traces first; do not relax the frozen gate post hoc or launch an evaluator
+to hide label uncertainty. Any later encoder revision gets its own bounded
+protocol and untouched evidence before a formal claim.
 
 Original32anchor cold-replay scripts remain but their old outputs directory is
 absent. New Gate1 must use fresh simulator complete-prefix replay; mid-state

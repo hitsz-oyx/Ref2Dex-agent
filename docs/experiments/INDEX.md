@@ -64,7 +64,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-tcc-phase-alignment](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-tcc-phase-alignment.md) | Can a learned TCC geometry embedding recover useful reference progress? | Small phase-only encoder implemented; no training result yet. | Fixed geometry distance fails actual-rollout phase validation; test | probes/RUNNING |
+| [P-20261008-tcc-phase-alignment](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-tcc-phase-alignment.md) | Can a learned TCC geometry embedding recover useful reference progress? | Learned alignment recovers all four clean final phases, but local | Preserve the fixed checkpoint and labels; inspect repeated-lift and | probes/UNCLEAR |
 
 ## HF-consequence-value-data
 
