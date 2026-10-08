@@ -138,6 +138,10 @@ def main():
         parser.error('invalid bounded action-chunk training budget or existing output')
     if args.allow_audit_only and args.output.name.find('engineering') < 0:
         parser.error('audit-only source outputs must include engineering in the run id')
+    if args.clean_only and args.history_rms is None:
+        parser.error('clean-only native deployment fit requires --history-rms')
+    if args.clean_only and (not args.expert or len(args.expert) != 1):
+        parser.error('clean-only native deployment fit requires exactly one --expert')
     np.random.seed(args.seed); torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
@@ -150,11 +154,14 @@ def main():
     history_rms_source_match = None
     if args.history_rms is not None:
         history_rms_sha256 = sha(args.history_rms)
-        source_hashes = {str(value) for value in source_manifest.get('sources', {}).values()
-                         if isinstance(value, str)}
+        selected_expert = args.expert[0] if args.expert and len(args.expert) == 1 else None
+        source_hashes = {
+            str(value) for path, value in source_manifest.get('sources', {}).items()
+            if isinstance(value, str) and selected_expert is not None
+            and ('/' + selected_expert + '/') in str(path) and str(path).endswith('.pth')}
         history_rms_source_match = history_rms_sha256 in source_hashes
         if args.clean_only and not history_rms_source_match:
-            parser.error('clean-only source does not contain the supplied history RMS checkpoint')
+            parser.error('clean-only source does not contain the supplied history RMS for the selected expert')
     train = batches.get('train')
     if train is None or not _nonempty(train):
         parser.error('selected source has no train action chunks')
@@ -252,6 +259,7 @@ def main():
                     history_rms=None if args.history_rms is None else str(args.history_rms),
                     history_rms_sha256=history_rms_sha256,
                     history_rms_source_match=history_rms_source_match,
+                    history_rms_expert=(args.expert[0] if args.expert and len(args.expert) == 1 else None),
                     history_dim=int(train.history.shape[-1]), model=dict(width=args.width, layers=args.layers),
                     device=str(device), seed=args.seed, requested_steps=args.steps,
                     completed_steps=len(events) and events[-1].get('step', 0), elapsed_s=time.monotonic() - started,
