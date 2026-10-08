@@ -117,7 +117,8 @@ def load_packet(path):
 
 
 def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
-    actions = np.asarray(packet['actions'], dtype=np.float64)
+    raw_actions = np.asarray(packet['actions'])
+    actions = np.asarray(raw_actions, dtype=np.float64)
     done = np.asarray(packet['done'])
     residual = np.asarray(packet['requested_residual'], dtype=np.float64)
     teacher = actions[0]
@@ -130,7 +131,10 @@ def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
     expected_errors = {}
     residual_errors = {}
     for index, role in enumerate(roles):
-        if role in zero_roles:
+        if role == roles[0]:
+            residual_errors[role] = 0.
+            expected = teacher
+        elif role in zero_roles:
             expected = teacher
             residual_errors[role] = float(np.max(np.abs(np.asarray(packet['requested_residual'])[index])))
         else:
@@ -153,9 +157,9 @@ def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
                                                                if role in candidate_roles)),
                 max_abs_error_by_role=expected_errors,
                 residual_max_abs_error_by_role=residual_errors,
-                teacher_action_sha256=fingerprint(np.asarray(teacher)),
+                teacher_action_sha256=fingerprint(np.asarray(raw_actions[0])),
                 packet_teacher_action_sha256=packet.get('teacher_action_sha256'),
-                teacher_action_hash_exact=bool(fingerprint(np.asarray(teacher)) == packet.get('teacher_action_sha256')),
+                teacher_action_hash_exact=bool(fingerprint(np.asarray(raw_actions[0])) == packet.get('teacher_action_sha256')),
                 schedule_hash_exact=bool(fingerprint(packet['execution_order']) == packet.get('schedule_sha256')))
 
 
