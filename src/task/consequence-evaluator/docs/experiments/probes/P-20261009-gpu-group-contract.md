@@ -13,7 +13,7 @@ seeds: [282]
 decision_changed_if_positive: retain a same-process GPU group only if a nonzero-origin zero pair also preserves native behavior and candidate margin
 decision_changed_if_negative: close environment-role/layout adjustments and require a different replay contract
 status: UNPROMISING
-run_id: gate1-gpu-precontact-group-20261009-r1, gate1-gpu-spacing-group-20261009-r1, gate1-gpu-nonzero-pair-group-20261009-r1-r2
+run_id: gate1-gpu-precontact-group-20261009-r1, gate1-gpu-spacing-group-20261009-r1, gate1-gpu-nonzero-pair-group-20261009-r1-r3
 ---
 
 # Native GPU group role/layout contract
