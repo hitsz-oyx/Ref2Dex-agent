@@ -615,13 +615,23 @@ def native_worker(a):
                     max_p95_threshold_ratio=max(threshold_ratios.values()),
                     passed=all(threshold_ratios[key] <= 1. for key in calibration_fields)))
         best_common_pair = min(common_pairs, key=lambda item: item['max_p95_threshold_ratio'], default=None)
+        common_pair_scores = [item['max_p95_threshold_ratio'] for item in common_pairs]
+        passing_pair_count = sum(1 for item in common_pairs if item['passed'])
+        pair_pass_fraction = (float(passing_pair_count) / len(common_pairs)
+                              if common_pairs else 0.)
         pairwise_zero_gate = dict(
             zero_roles=zero_role_indices,
             p95_thresholds=zero_pair_p95_thresholds,
             best_fieldwise_p95={key: value['best_p95_abs'] for key, value in pairwise_zero_noise.items()},
             best_common_pair=best_common_pair,
-            passed=bool(best_common_pair is not None and best_common_pair['passed']),
-            rule='one common zero-zero pair must meet every field p95 tolerance; fieldwise minima are diagnostic')
+            passing_pair_count=passing_pair_count, pair_count=len(common_pairs),
+            pair_pass_fraction=pair_pass_fraction, required_pair_pass_fraction=.8,
+            pair_score_quantiles=(dict(zip(('p50', 'p80', 'p90', 'p95', 'max'),
+                                           [float(value) for value in np.quantile(
+                                               common_pair_scores, [.5, .8, .9, .95, 1.])]))
+                                  if common_pair_scores else {}),
+            passed=bool(common_pairs and pair_pass_fraction >= .8),
+            rule='at least 80% of common zero-zero pairs must meet every field p95 tolerance; fieldwise minima are diagnostic')
         candidate_margin = dict()
         for name in ('positive', 'negative'):
             candidate_margin[name] = {
@@ -640,7 +650,8 @@ def native_worker(a):
             rule='candidate nominal must retain the full native GPU hold behavior before calibration')
         candidate_calibration_valid = bool(
             (not proposal_enabled or proposal_roles != 'candidate')
-            or (zero_pair_gate['passed'] and effect_margin_gate['passed'] and behavior_gate['passed']))
+            or (zero_pair_gate['passed'] and pairwise_zero_gate['passed']
+                and effect_margin_gate['passed'] and behavior_gate['passed']))
         candidate_roles = ['baseline', 'zero_repeat', 'positive', 'negative']
         if proposal_enabled:
             nominal_text = ('recorded native nominal chunk' if a.action_chunk_replay is not None
