@@ -5,7 +5,7 @@ experiment_id: P-20261008-gate1-gt-progress
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: 6842da0
+git_commit: d603153
 claim_id: C3
 hypothesis_family: HF-consequence-gate1-gt-progress
 probe_index_in_family: 1
@@ -19,7 +19,8 @@ run_id: gate1-gt-progress-20261008-r1
 
 # Does causal physical-reference GT value improve real rolling control?
 
-Result: Protocol and runner implemented; real native replay checks pending.
+Result: Actor batch-path defect repaired; CPU-PhysX/GPU-actor72step zero replay
+is bitwise exact for73state/RNG frames and all controls. Research pairs pending.
 Decision: Run bounded early-contact Gate1 Probe using the owned self-trained actor.
 
 ## Decision Note and purpose
@@ -38,7 +39,9 @@ Do not claim a formal Gate1 pass from four episodes.
 
 Actor: owned self-trained airplane_base e260 checkpoint, random-scratch ancestry,
 Cm off; the official actor only generated bank references and is not the
-controlled baseline. Same543state full reference and native30Hz/PhysX60Hz.
+controlled baseline. Same543state full reference and native30Hz/PhysX60Hz. Initial research run
+uses CPU-PhysX for both arms and GPU64row actor/phase inference, after GPU
+force/history replay failed. This is not a comparison with oldGPU success rates.
 References/encoder are completed physical-reference-bank-20261008-r1 and
 physical-bank-tcc-20261008-r1, with fixed uniform bank weights and unchanged
 matching parameters. No evaluator, actor updates, endpoint value or PPO critic.
@@ -122,3 +125,31 @@ baselines share this adapter and its64row native model/RNG calls. Verify actual
 control against CPU/manual checkpoint forward and fresh full-prefix replay
 before research control. CPU is used only for the tiny one-frame engineering
 reference calculation; all simulator and campaign inference remain GPU.
+
+
+Contact-stage exact replay remains an engineering blocker after the inference
+repair. R3/r4 force cache diverges at tick44 despite identical physical tensors,
+obs and RNG; an explicitly engineering-only inspection finds different contact
+flags in history by tick47 (maxhistory1), so it is not admitted as harmless
+rounding. R5 explicit GPU completion barrier also fails tick44 and is abandoned.
+Strict research replay remains unchanged; diagnostic traces are rejected by
+GT scoring and cannot become value examples.
+
+Decision Note: Try a<=180s single-environment CPU-PhysX exact-replay preflight
+with the same GPU64row actor, fixed30Hz/60Hz and known controls. GPU contact
+readback fails the required same-state contract, which is the concrete reason
+for testing CPU simulation; neural inference still uses GPU. If CPU passes,
+record this backend explicitly for both arms of the bounded initial Gate1 run;
+it is not a comparison against the historical GPU success rates. If CPU fails,
+stop these repeated preflight runs and record the remaining replay blocker
+before redesigning execution. No tolerance relaxation or policy/label training.
+
+
+R6 CPU-PhysX/GPU64row actor preflight completed: independent72step baseline
+and zero candidate (48prefix+24future) have bitwise equal73canonical-state
+hashes,73RNG hashes, all72controls and measured traces, including contacts.
+Each worker took~10.5s. Audit: outputs/consequence-evaluator/
+gate1-engineering-20261008-r6/exact-replay-audit.json. This is engineering
+readiness for the first window, not whole-episode replay evidence or Gate1 pass.
+Initial scientific campaign remains one seed282/four replans under900s; every
+later chosen prefix, repeat-zero and full continuation must pass the same checks.

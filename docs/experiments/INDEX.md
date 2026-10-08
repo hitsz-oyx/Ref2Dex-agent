@@ -45,7 +45,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-gate1-gt-progress](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md) | Does causal physical-reference GT value improve real rolling control? | Protocol and runner implemented; real native replay checks pending. | Run bounded early-contact Gate1 Probe using the owned self-trained actor. | probes/PLANNED |
+| [P-20261008-gate1-gt-progress](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md) | Does causal physical-reference GT value improve real rolling control? | Actor batch-path defect repaired; CPU-PhysX/GPU-actor72step zero replay | Run bounded early-contact Gate1 Probe using the owned self-trained actor. | probes/PLANNED |
 
 ## HF-consequence-official-generator
 

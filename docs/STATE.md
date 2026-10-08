@@ -1,5 +1,17 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 Gate1 执行入口预检
+
+旧自训e260的64env评估记录与checkpoint保留有效：短时lift56/64、hold45的24/64、
+hold后无laterdrop18/64；不是新正常放回成功率。新单envGate1入口触发归档Torch2.0.1
+GPU batch1前向异常，d603153改成固定64相同观测行、只执行首行，权重/RMS不变。
+GPU完整baseline恢复483步连续hold，第一控制与旧记录一致。GPU接触期重放仍有
+force/history差异，不通过放宽容差放行；同步等待不能解决。CPU-PhysX+GPU actor
+的72步工程预检中73帧canonical/RNG与72控制完全一致，准备同后端matched Gate1
+seed282四次滚动Probe；两臂均CPU物理/GPU模型，不与旧GPU成功率直接比较。
+尚无研究对照收益或正式Gate1结论，未训练evaluator。记录见
+[Gate1卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md)。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

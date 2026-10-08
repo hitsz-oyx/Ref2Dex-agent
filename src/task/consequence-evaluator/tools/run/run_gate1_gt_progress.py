@@ -145,20 +145,22 @@ def native_worker(a):
             for key, normalizer in [('rms', getattr(self, 'running_mean_std', None)),
                                     ('amp_rms', getattr(self, '_amp_input_mean_std', None))]:
                 controller[key] = None if normalizer is None else {k: v.cpu().numpy().copy() for k, v in normalizer.state_dict().items()}
-            identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller))
+            identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), physics_device=a.physics_device)
             if expected is not None and expected['replay_identity'] != identity:
                 raise ValueError('native physics/controller identity changed')
             state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar') if isinstance(getattr(task, k, None), torch.Tensor)})
             fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap',
-                      'table_footprint', 'object_velocity', 'history')
-            rows = {k: [] for k in fields}; hashes = []; state_field_hashes = []; rng_hashes = []; actions = []; ended = []
+                      'table_footprint', 'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces')
+            rows = {k: [] for k in fields}; replay_mismatches = []; hashes = []; state_field_hashes = []; rng_hashes = []; actions = []; ended = []
             def observe():
                 points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
                 values = dict(object_pose=pose_matrix(task._target_states[0].cpu().numpy()),
                     hand_keypoints=points[0].cpu().numpy(), surface_gap=gap[0].cpu().numpy(),
                     support_gap=support[0].cpu().numpy(), table_footprint=footprint[0].cpu().numpy(),
                     object_velocity=task._target_states[0, 7:13].cpu().numpy(),
-                    history=obs['obs'][0].cpu().numpy())
+                    history=obs['obs'][0].cpu().numpy(),
+                    native_contact_forces=task._contact_forces[0].cpu().numpy(),
+                    native_object_contact_forces=task._tar_contact_forces[0].cpu().numpy())
                 for k, v in values.items(): rows[k].append(np.asarray(v).copy())
                 state = {k: getattr(task, k).cpu().numpy().copy() for k in state_keys}
                 state_field_hashes.append({k: fingerprint(v) for k,v in state.items()})
@@ -171,9 +173,19 @@ def native_worker(a):
                         diagnostic = dict(tick=index, state_equal=hashes[-1]==expected['state_hashes'][index], rng_equal=rng_hashes[-1]==expected['rng_hashes'][index],
                             changed_state_fields=[k for k,h in state_field_hashes[-1].items() if 'state_field_hashes' in expected and h!=expected['state_field_hashes'][index][k]],
                             measurement_max_abs_errors={k:float(np.max(np.abs(np.asarray(rows[k][-1],dtype=float)-np.asarray(expected[k][index],dtype=float)))) for k in fields})
-                        write(a.worker_output.with_suffix('.mismatch.json'), diagnostic)
-                        raise ValueError('declared native/RNG prefix replay mismatch at tick%d: %s' % (index, diagnostic))
+                        force_only = (a.diagnostic_force_cache and diagnostic['rng_equal'] and
+                            bool(diagnostic['changed_state_fields']) and
+                            set(diagnostic['changed_state_fields']) <= {'_contact_forces', '_tar_contact_forces'} and
+                            all(v == 0 for k,v in diagnostic['measurement_max_abs_errors'].items() if k not in ('native_contact_forces','native_object_contact_forces')))
+                        if force_only:
+                            replay_mismatches.append(diagnostic)
+                        else:
+                            save(a.worker_output.with_suffix('.mismatch.pkl'), {k:np.asarray(v) for k,v in rows.items()})
+                            write(a.worker_output.with_suffix('.mismatch.json'), diagnostic)
+                            raise ValueError('declared native/RNG prefix replay mismatch at tick%d: %s' % (index, diagnostic))
                     for k in fields:
+                        if a.diagnostic_force_cache and k in ('native_contact_forces','native_object_contact_forces'):
+                            continue
                         if not np.array_equal(rows[k][-1], expected[k][index]):
                             raise ValueError('measured prefix replay differs at tick%d: %s' % (index, k))
             executed = None; original_pre = task.pre_physics_step
@@ -183,7 +195,7 @@ def native_worker(a):
                 return original_pre(control)
             task.pre_physics_step = capture
             observe(); plan = candidate_plan(a.candidate)
-            stop = total if a.finish else query + K
+            stop = (a.engineering_steps or total) if a.finish else query + K
             for tick in range(stop):
                 if time.monotonic() - started > 150:
                     raise TimeoutError('bounded native worker deadline')
@@ -210,10 +222,12 @@ def native_worker(a):
                 state_hashes=hashes, state_field_hashes=state_field_hashes, rng_hashes=rng_hashes, timestamps=np.arange(stop + 1) / 30,
                 seed=a.seed, query_tick=query, candidate=a.candidate, residual_plan=plan,
                 checkpoint_sha256=trained['checkpoint_sha256'], fresh_prefix_replay=True,
-                replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=64)
+                replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=64,
+                engineering_only=bool(a.diagnostic_force_cache or a.engineering_steps or (expected is not None and expected.get('engineering_only'))), replay_mismatches=replay_mismatches)
             save(a.worker_output, packet)
             write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop,
-                prefix_steps=query, all_prefix_native_rng_and_measurements_exact=True,
+                prefix_steps=query, all_prefix_native_rng_and_measurements_exact=not replay_mismatches,
+                engineering_only=bool(a.diagnostic_force_cache or a.engineering_steps or (expected is not None and expected.get('engineering_only'))), replay_mismatches=replay_mismatches,
                 elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                 outcome=episode_outcome(packet) if a.finish else None))
     native.EvalPlayer = GatePlayer
@@ -221,7 +235,7 @@ def native_worker(a):
         '--cfg_train', str(native_root / 'data/cfg/train/rlg/inspire.yaml'),
         '--motion_file', config['motion_root'], '--checkpoint', trained['checkpoint'],
         '--headless', '--disable-early-termination', '--num_envs', '1', '--seed', str(a.seed),
-        '--sim_device', 'cuda:0', '--rl_device', 'cuda:0', '--pipeline', 'gpu', '--graphics_device_id', '0',
+        '--sim_device', 'cpu' if a.physics_device == 'cpu' else 'cuda:0', '--rl_device', 'cuda:0', '--pipeline', a.physics_device, '--graphics_device_id', '0',
         '--output', str(a.worker_output.with_suffix('.unused.json')),
         '--output_path', str(a.worker_output.with_suffix('.runtime'))]
     os.chdir(ROOT / 'third_party/DExplore'); native.main()
@@ -245,7 +259,10 @@ def score_worker(a):
         raise ValueError('frozen phase model/reference source drift')
     references, _ = load_reference_features(a.reference, meta)
     matcher = LearnedReferenceProgress(references, torch.load(checkpoint, map_location='cpu', weights_only=False), 'cuda:0')
-    packets = [load(p) for p in a.score_inputs]; values = []; progress_start = []
+    packets = [load(p) for p in a.score_inputs]
+    if any(p.get('engineering_only') for p in packets):
+        raise ValueError('engineering traces cannot enter GT scoring')
+    values = []; progress_start = []
     for packet in packets:
         trace = matcher.align(trajectory_features(packet['object_pose'], packet['hand_keypoints'], packet['timestamps']))
         tick = packet['query_tick']; end = tick + K
@@ -268,6 +285,7 @@ def main():
     p.add_argument('--encoder', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
+    p.add_argument('--physics-device', choices=('gpu', 'cpu'), default='gpu')
     p.add_argument('--seconds', type=int, default=900)
     p.add_argument('--episodes', type=int, default=4)
     p.add_argument('--worker', action='store_true')
@@ -277,6 +295,8 @@ def main():
     p.add_argument('--seed', type=int, default=282)
     p.add_argument('--candidate', type=int, default=0)
     p.add_argument('--finish', action='store_true')
+    p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
+    p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--score-inputs', type=Path, nargs='+')
     p.add_argument('--score-output', type=Path)
     a = p.parse_args()
@@ -286,6 +306,10 @@ def main():
             p.error('all inputs/outputs must be task-owned')
     if not 0 <= a.gpu <= 7 or not 1 <= a.episodes <= 4 or not 30 <= a.seconds <= 900:
         p.error('bounded one-GPU/<=4episode/<=900s Probe required')
+    if a.engineering_steps and (not a.worker or not a.finish or not 24 <= a.engineering_steps <= 542):
+        p.error('engineering step cap requires native baseline worker and24..542steps')
+    if a.diagnostic_force_cache and not a.worker:
+        p.error('force-cache diagnostic is only available to a native engineering worker')
     if a.worker:
         native_worker(a); return
     if a.score_inputs:
@@ -316,7 +340,7 @@ def main():
     manifest = dict(schema='ref2dex.consequence-gate1.gt-progress.v1', status='RUNNING',
         experiment_id='P-20261008-gate1-gt-progress', run_id=a.output.name, pid=os.getpid(),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-        sources=frozen, physical_gpu=a.gpu, seconds_budget=a.seconds, training_allowed=False,
+        sources=frozen, physical_gpu=a.gpu, physics_device=a.physics_device, seconds_budget=a.seconds, training_allowed=False,
         seeds=list(SEEDS[:a.episodes]), candidates=list(CANDIDATES), query_ticks=list(QUERY_TICKS),
         horizon=K, execution_horizon=K_EXEC, scope='four early-contact rolling decisions then full actor continuation',
         actor_role='owned self-trained Cm-off actor, not official reference generator',
@@ -330,7 +354,7 @@ def main():
         if any(sha(k) != v for k, v in frozen.items()):
             raise ValueError('Gate1 source/input drift during execution')
     common = ['--run-dir', str(a.run_dir), '--reference', str(a.reference), '--encoder', str(a.encoder),
-              '--output', str(a.output), '--gpu', str(a.gpu)]
+              '--output', str(a.output), '--gpu', str(a.gpu), '--physics-device', a.physics_device]
     def launch(name, args, native=True):
         check(); command = [NATIVE_PYTHON if native else sys.executable, str(Path(__file__).resolve()), *common, *args]
         env = os.environ.copy(); env.update(PYTHONDONTWRITEBYTECODE='1',
@@ -383,7 +407,7 @@ def main():
                     if key in ('actions', 'done'): committed[key] = value[:stop].copy()
                     elif key in ('state_hashes', 'state_field_hashes', 'rng_hashes'): committed[key] = value[:stop + 1]
                     elif key in ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap',
-                                 'table_footprint', 'object_velocity', 'history', 'timestamps'):
+                                 'table_footprint', 'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces', 'timestamps'):
                         committed[key] = value[:stop + 1].copy()
                     else: committed[key] = value
                 prefix_path = a.output / ('s%d-committed-through%d.pkl' % (seed, stop)); save(prefix_path, committed)
