@@ -98,3 +98,18 @@ def legacy_batched_actor_action(player, observation):
     if actions.shape != (64, 18):
         raise ValueError('archived actor batch shape changed')
     return actions[:1].clone()
+
+
+def legacy_group_actor_action(player, observation, copies=64):
+    """Run a synchronous group through fixed-size deterministic actor blocks."""
+    raw = observation['obs']
+    if raw.ndim != 2 or raw.shape[0] < 2 or player.is_rnn:
+        raise ValueError('synchronous actor group requires a nonrecurrent batch')
+    if not isinstance(copies, int) or copies < 1:
+        raise ValueError('actor copies must be a positive integer')
+    envs = raw.shape[0]
+    repeated = raw[:, None, :].expand(envs, copies, raw.shape[-1]).reshape(envs * copies, -1)
+    actions = player.get_action(dict(observation, obs=repeated), True)
+    if actions.shape != (envs * copies, 18):
+        raise ValueError('archived actor group batch shape changed')
+    return actions.reshape(envs, copies, 18)[:, 0].clone()

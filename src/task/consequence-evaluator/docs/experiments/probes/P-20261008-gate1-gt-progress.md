@@ -157,6 +157,61 @@ Initial scientific campaign remains one seed282/four replans under900s; every
 later chosen prefix, repeat-zero and full continuation must pass the same checks.
 
 
+## Host pipeline engineering probe
+
+The ref13 execution contract was restored explicitly on commit `8a18151`:
+GPU PhysX (`sim_device=cuda:0`), CPU tensor pipeline (`pipeline=cpu`),
+`physx.num_threads=1`, and GPU actor inference. Runs
+`gate1-host-engineering-20261008-r1..r3` used seed282. The first two runs
+preserve their startup/path failures; r3 is the accepted bounded result.
+
+The r3 fresh 72-step baseline and fresh 48-prefix plus 24-step zero candidate
+were exact across 73 states and 72 controls. State hashes, field hashes, all
+Torch/Python/NumPy/CUDA RNG hashes, observations, geometry, history, native
+contact forces, object contact forces, executed controls, and done flags all
+matched. The audit is
+`outputs/consequence-evaluator/gate1-host-engineering-20261008-r3/host-backend-audit.json`.
+
+The contract did not preserve the one-environment policy behavior: host full
+baseline reached only 0.154892 m and held for 8 frames, versus the matched GPU
+pipeline reference at 0.815144 m and 483 held frames. CPU PhysX was still worse
+(about 0.0074 m, zero held frames). This is an execution-distribution failure,
+not evidence against the reference-bank Y value. No host trace enters Gate1
+scoring or evaluator training.
+
+### Decision Note
+
+The current decision is whether `num_envs=1` is the source of the host behavior
+change. The key evidence is exact single-environment replay together with a
+large behavior gap, while historical ref13 used synchronous multi-environment
+groups under the same host contract. Root therefore stops the single-process
+Gate1 route and runs one bounded synchronous group replay probe, retaining
+GPU PhysX, CPU tensor exchange, one PhysX thread, the same checkpoint and Y
+contract. A group that restores behavior and gives exact within-process
+baseline/zero prefixes can carry Gate1; otherwise the host route is closed and
+the remaining investigation is simulator execution provenance. Cost is one
+idle GPU and at most 180 seconds; no CPU seed expansion, training, or Y changes.
+
+The synchronous group probe also failed the behavior gate. A four-environment
+group completed 542 steps in 51.2 s: baseline reached 0.079110 m and held for
+2 frames. A ref13-sized 96-environment group completed the bounded first 72
+steps in 47.6 s and reached only 0.073761 m/3 held frames. In both groups the
+baseline and zero-repeat controls were identical by construction, but the
+parallel env instances were not bitwise twins: initial state fields differed,
+sub-micro position/observation drift appeared immediately, and contact-force
+drift reached about `5.7e-5` at tick44. The full packets and mismatch diagnostics
+are in `outputs/consequence-evaluator/gate1-host-group-engineering-20261009-r6/`
+and `...-r7/`.
+
+This closes the host/group route for the current policy. The 96-env historical
+execution size does not restore the original GPU baseline, and the observed
+contact-stage drift still violates the same-state contract. No formal Gate1,
+candidate scoring, evaluator fitting, or CPU seed expansion is allowed from
+these traces. The remaining route is a fresh GPU execution-contract diagnosis
+or a redesign that preserves the original GPU behavior; Y, reference-bank
+labels, and policy weights remain frozen.
+
+
 ## Completed matched pair and attribution
 
 Actual executing commit64522f1, run_idgate1-gt-progress-20261008-r1, seed282,

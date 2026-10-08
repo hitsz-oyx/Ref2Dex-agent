@@ -17,6 +17,26 @@ canonical/RNG/控制/观测重放。tick48选positive，Y0.031013对baseline0.01
 GPU2已释放。完整结果、实验动机与限制见
 [Gate1卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md)。
 
+随后按历史 ref13 合同加入并验证 `gpu_physx_cpu_pipeline` backend：GPU PhysX、
+CPU tensor pipeline、`num_threads=1`、GPU actor。seed282 的 fresh72-step baseline
+与 fresh48+24 zero candidate 在73个状态、73个RNG、72个control及contact/history
+字段上全部 exact；但单环境 host full baseline 只抬升15.49cm/held8，仍远低于
+匹配 GPU pipeline 的81.51cm/held483，因此没有进入 Gate1，也不能把该差异归因于
+Y。详见 host audit
+`outputs/consequence-evaluator/gate1-host-engineering-20261008-r3/host-backend-audit.json`。
+当前 Decision Note：停止单环境 host Gate1，下一步在相同 host 合同下做一次同步
+多环境 group replay，检查历史 ref13 的 solver 排程是否是行为保持所需条件。
+
+同步 group probe 已完成：4-env host full542 最高7.91cm/held2；按 ref13 主组规模
+96-env 的 bounded72-step 最高7.38cm/held3，均未恢复原 GPU baseline 的81.51cm/483
+held。两组都保持同一控制流，但不同 env 间初始/动力学字段并非 bitwise exact，
+tick44 contact-force drift 约5.7e-5。结论是 host 单环境与同步 group 都不能承载
+当前策略的 Gate1，同步路线关闭；不跑正式 Gate1、不扩 CPU seed、不改 Y/标签/权重。
+完整 group packet 与 mismatch audit 保留在
+`outputs/consequence-evaluator/gate1-host-group-engineering-20261009-r6/` 和
+`gate1-host-group-engineering-20261009-r7/`。下一步只保留原 GPU 行为下的执行合同诊断
+或新的可证明重放设计。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

@@ -91,6 +91,21 @@ def test_legacy_actor_batch_preserves_observation_and_only_first_control():
     assert torch.equal(raw, original)
 
 
+def test_legacy_group_actor_batch_contract():
+    import torch
+    from consequence_evaluator.gate1 import legacy_group_actor_action
+    raw = torch.arange(2 * 18, dtype=torch.float32).reshape(2, 18)
+    class Player:
+        is_rnn = False
+        def get_action(self, observation, deterministic):
+            assert deterministic is True
+            assert observation['obs'].shape == (8, 18)
+            return observation['obs']
+    result = legacy_group_actor_action(Player(), {'obs': raw}, copies=4)
+    assert result.shape == (2, 18)
+    assert torch.equal(result, raw)
+
+
 def test_host_backend_separates_gpu_physx_from_cpu_tensor_pipeline():
     backend = resolve_backend('host')
     assert backend.name == 'gpu_physx_cpu_pipeline'

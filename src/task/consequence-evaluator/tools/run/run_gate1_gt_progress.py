@@ -19,7 +19,9 @@ import numpy as np
 TASK = Path(__file__).resolve().parents[2]; ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import HAND_LINKS, K, K_EXEC, is_within
-from consequence_evaluator.gate1 import SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan, choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action
+from consequence_evaluator.gate1 import (SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan,
+    choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action,
+    legacy_group_actor_action)
 from consequence_evaluator.provenance import self_trained_ancestry, sha
 from consequence_evaluator.twin import REQUIRED_NATIVE_STATE_KEYS, capture_native_rng, fingerprint
 from consequence_evaluator.native_backend import BACKENDS, canonical_device, resolve_legacy_backend
@@ -98,6 +100,203 @@ def native_worker(a):
     base = native.EvalPlayer
     started = time.monotonic()
 
+    def engineering_group_run(player, task):
+        """Run baseline/zero/+/- in one synchronous host-pipeline process.
+
+        Isaac Gym reports separate environment origins, but DExplore's native
+        tensors and task geometry are already expressed in each environment's
+        local frame. The packet retains the reported origins as provenance and
+        compares those local tensors directly. The first two environments are
+        both baseline controls; their prefix is measured with strict hashes and
+        retained drift diagnostics through the complete bounded window.
+        """
+        count = int(a.engineering_group_envs)
+        if player.is_rnn or task.num_envs != count or abs(task.dt - 1 / 30) > 1e-8 \
+                or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2:
+            raise ValueError('fixed nonrecurrent synchronous group contract required')
+        task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.
+        task._adaptive_kappa_enabled = False; task._enable_early_termination = False
+        if task.dr_randomizations or task._motion_sampler is not None or task.projtype != 'None':
+            raise ValueError('randomized/sampler/projectile replay unsupported')
+        geometry = PhysicalGeometry(task, native_root / 'data/assets')
+        table = TableSupport(native_root / 'data/assets', task.device)
+        env_ids = torch.arange(count, device=task.device)
+        obs = player.env_reset(env_ids)
+        player.get_batch_size(obs['obs'], count)
+        if task.gym.get_frame_count(task.sim) != 0 or (task.start_times != 0).any():
+            raise ValueError('fresh unstepped group reset required')
+        total = int(task.max_episode_length[task.data_id[0]]) - 1
+        if total != 542:
+            raise ValueError('frozen full543state reference required')
+        origins = []
+        for env in task.envs:
+            origin = task.gym.get_env_origin(env)
+            origins.append((origin.x, origin.y, origin.z))
+        origins = torch.as_tensor(origins, dtype=torch.float32, device=task.device)
+
+        physics = {'sim_params': normalize_properties(task.gym.get_sim_params(task.sim)), 'actors': []}
+        for env in task.envs:
+            actors = []
+            for actor_index in range(task.gym.get_actor_count(env)):
+                handle = task.gym.get_actor_handle(env, actor_index)
+                actors.append(dict(name=task.gym.get_actor_name(env, actor_index),
+                    shape=normalize_properties(task.gym.get_actor_rigid_shape_properties(env, handle)),
+                    body=normalize_properties(task.gym.get_actor_rigid_body_properties(env, handle)),
+                    dof=normalize_properties(task.gym.get_actor_dof_properties(env, handle))))
+            physics['actors'].append(actors)
+        controller = dict(model={k: v.cpu().numpy().copy() for k, v in player.model.state_dict().items()},
+            normalize_input=bool(player.normalize_input), checkpoint_sha256=trained['checkpoint_sha256'])
+        for key, normalizer in [('rms', getattr(player, 'running_mean_std', None)),
+                                ('amp_rms', getattr(player, '_amp_input_mean_std', None))]:
+            controller[key] = None if normalizer is None else {k: v.cpu().numpy().copy() for k, v in normalizer.state_dict().items()}
+        params = task.gym.get_sim_params(task.sim)
+        actual_backend = dict(name=backend.name, sim_device=backend.sim_device,
+            pipeline='gpu' if bool(params.use_gpu_pipeline) else 'cpu',
+            physx_use_gpu=bool(params.physx.use_gpu), physx_num_threads=int(params.physx.num_threads),
+            tensor_device=canonical_device(task.device), actor_device=canonical_device(player.device))
+        expected_backend = backend.as_dict()
+        for key in ('pipeline', 'physx_use_gpu', 'physx_num_threads', 'tensor_device', 'actor_device'):
+            if actual_backend[key] != expected_backend[key]:
+                raise ValueError('native backend contract drift for %s: expected %r, got %r' %
+                                 (key, expected_backend[key], actual_backend[key]))
+        identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), backend=actual_backend)
+        state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar')
+                                                           if isinstance(getattr(task, k, None), torch.Tensor)})
+        fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
+                  'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces')
+        rows = {k: [] for k in fields}; actions=[]; ended=[]; hashes=[]; canonical_hashes=[]
+        state_field_hashes=[]; canonical_state_field_hashes=[]; rng_hashes=[]
+
+        def canonical_state(state, index):
+            # DExplore exposes these tensors in environment-local coordinates;
+            # do not subtract Gym's scene-origin bookkeeping a second time.
+            return {key: value[index].copy() for key, value in state.items()}
+
+        def observe():
+            points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
+            object_pose = pose_matrix(task._target_states.cpu().numpy())
+            points_np = points.detach().cpu().numpy().copy()
+            values = dict(object_pose=object_pose, hand_keypoints=points_np,
+                surface_gap=gap.cpu().numpy().copy(), support_gap=support.cpu().numpy().copy(),
+                table_footprint=footprint.cpu().numpy().copy(),
+                object_velocity=task._target_states[:, 7:13].cpu().numpy().copy(),
+                history=obs['obs'].cpu().numpy().copy(),
+                native_contact_forces=task._contact_forces.cpu().numpy().copy(),
+                native_object_contact_forces=task._tar_contact_forces.cpu().numpy().copy())
+            for key, value in values.items(): rows[key].append(np.asarray(value).copy())
+            state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
+            per_state=[]; per_canonical=[]; per_fields=[]; per_canonical_fields=[]
+            for index in range(count):
+                raw = {key: value[index] for key, value in state.items()}
+                local = canonical_state(state, index)
+                per_state.append(fingerprint(raw)); per_canonical.append(fingerprint(local))
+                per_fields.append({key: fingerprint(value) for key, value in raw.items()})
+                per_canonical_fields.append({key: fingerprint(value) for key, value in local.items()})
+            hashes.append(per_state); canonical_hashes.append(per_canonical)
+            state_field_hashes.append(per_fields); canonical_state_field_hashes.append(per_canonical_fields)
+            rng_hashes.append(fingerprint(capture_native_rng(torch)))
+            index = len(hashes) - 1
+            if task.gym.get_frame_count(task.sim) != index * task.control_freq_inv:
+                raise ValueError('unexpected simulator step count at group tick%d' % index)
+
+        executed = None; original_pre = task.pre_physics_step
+        def capture(control):
+            nonlocal executed
+            executed = control.detach().cpu().numpy().copy()
+            return original_pre(control)
+        task.pre_physics_step = capture
+        observe()
+        query = 48; horizon = 24
+        positive = torch.as_tensor(candidate_plan(1), device=player.device)
+        negative = torch.as_tensor(candidate_plan(2), device=player.device)
+        stop = a.engineering_steps or query + horizon
+        if stop > total:
+            raise ValueError('group probe exceeds frozen reference')
+        for tick in range(stop):
+            if time.monotonic() - started > 150:
+                raise TimeoutError('bounded synchronous group deadline')
+            actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+            # Keep baseline, zero-repeat, and both candidate arms on the same
+            # control stream through the query. This removes tiny row-wise GEMM
+            # differences and makes the group test an execution-contract probe.
+            base_action = actor_actions[:1].expand(count, -1).clone()
+            control = base_action.clone()
+            if query <= tick < query + horizon:
+                offset = tick - query
+                control[2] = (control[2] + positive[offset]).clamp(-1, 1)
+                control[3] = (control[3] + negative[offset]).clamp(-1, 1)
+            obs, _, done, info = player.env_step(player.env, control.clone())
+            if not isinstance(obs, dict): obs = {'obs': obs}
+            player._post_step(info)
+            if executed is None or not np.isfinite(executed).all() or np.abs(executed).max() > 1 + 1e-6:
+                raise ValueError('nonfinite/out-of-bounds group control')
+            actions.append(executed.copy()); ended.append(done.detach().cpu().numpy().reshape(-1).astype(bool))
+            observe()
+            if done.any() and tick < stop - 1:
+                raise ValueError('group episode terminated before requested window')
+
+        packets = {key: np.asarray(value) for key, value in rows.items()}
+        packets.update(actions=np.asarray(actions), done=np.asarray(ended), state_hashes=hashes,
+            canonical_state_hashes=canonical_hashes, state_field_hashes=state_field_hashes,
+            canonical_state_field_hashes=canonical_state_field_hashes, rng_hashes=rng_hashes,
+            timestamps=np.arange(stop + 1) / 30)
+        # env0 baseline and env1 zero-repeat must share the same local state,
+        # contact/history and control at every tick; candidates are allowed to diverge.
+        exact_keys = ['canonical_state_hashes', 'canonical_state_field_hashes', 'actions', 'done',
+                      'object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
+                      'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces']
+        mismatches=[]
+        for key in exact_keys:
+            value=packets[key]
+            for tick in range(len(value)):
+                if not np.array_equal(value[tick][0], value[tick][1]):
+                    mismatches.append(dict(field=key, tick=tick)); break
+        if mismatches:
+            diagnostics=[]
+            for mismatch in mismatches[:12]:
+                key, tick = mismatch['field'], mismatch['tick']
+                value = packets[key]
+                left, right = value[tick][0], value[tick][1]
+                detail = dict(field=key, tick=tick)
+                if isinstance(left, dict) and isinstance(right, dict):
+                    detail['different_keys'] = [name for name in left if left.get(name) != right.get(name)]
+                else:
+                    try:
+                        left_array = np.asarray(left); right_array = np.asarray(right)
+                        detail['shapes'] = [list(left_array.shape), list(right_array.shape)]
+                        if left_array.dtype.kind in 'biufc' and right_array.dtype.kind in 'biufc':
+                            detail['max_abs'] = float(np.max(np.abs(left_array.astype(np.float64) - right_array.astype(np.float64))))
+                            detail['different_indices'] = np.argwhere(left_array != right_array)[:10].tolist()
+                    except (TypeError, ValueError):
+                        detail['left_repr'] = repr(left)[:200]; detail['right_repr'] = repr(right)[:200]
+                diagnostics.append(detail)
+            save(a.worker_output.with_suffix('.mismatch.pkl'), packets)
+            write(a.worker_output.with_suffix('.mismatch.json'), dict(mismatches=mismatches, diagnostics=diagnostics,
+                origins=origins.detach().cpu().numpy().tolist()))
+            # Parallel environments are a solver-schedule probe, not a claim
+            # that two different world instances are bitwise twins. Preserve
+            # the drift diagnostics and continue to measure whether the
+            # host-policy behavior is restored. Fresh-process exact replay is
+            # still required by the production Gate1 worker.
+        baseline_packet={key: value[:,0] for key,value in packets.items() if key in fields}
+        baseline_packet['timestamps']=packets['timestamps']
+        outcome=episode_outcome(baseline_packet) if stop >= 45 else None
+        packet=dict(**packets, seed=a.seed, query_tick=query, candidate_roles=['baseline','zero_repeat','positive','negative'],
+            candidate_plan_semantics='baseline/zero/positive/negative; positive and negative fork at tick48 for24 steps',
+            replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=count * 64,
+            engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
+            control_prefix_exact=bool(np.array_equal(packets['actions'][:,0], packets['actions'][:,1])
+                                      and np.array_equal(packets['done'][:,0], packets['done'][:,1])),
+            exact_fields=exact_keys,
+            baseline_outcome=outcome, baseline_max_lift_m=float(np.max(packets['object_pose'][:,0,2,3] - packets['object_pose'][0,0,2,3])),
+            zero_repeat_max_lift_m=float(np.max(packets['object_pose'][:,1,2,3] - packets['object_pose'][0,1,2,3])),
+            source_backend=actual_backend)
+        save(a.worker_output, packet)
+        write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop, group_envs=count,
+            baseline_zero_exact=not mismatches, mismatches=mismatches, engineering_only=True,
+            elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(), outcome=outcome,
+            baseline_max_lift_m=packet['baseline_max_lift_m']))
+
     class GatePlayer(base):
         def restore(self, filename):
             value = native.torch_ext.load_checkpoint(filename)
@@ -116,6 +315,9 @@ def native_worker(a):
             if fingerprint(self.model.state_dict()) != self._gate_restored_model_hash:
                 raise ValueError('actor weights changed after checkpoint restore')
             task = self.env.task
+            if a.engineering_group_envs:
+                engineering_group_run(self, task)
+                return
             if (self.is_rnn or task.num_envs != 1 or abs(task.dt - 1 / 30) > 1e-8
                     or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2):
                 raise ValueError('fixed single-environment30Hz deterministic policy required')
@@ -252,7 +454,7 @@ def native_worker(a):
     sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', config['cfg_env'],
         '--cfg_train', str(native_root / 'data/cfg/train/rlg/inspire.yaml'),
         '--motion_file', config['motion_root'], '--checkpoint', trained['checkpoint'],
-        '--headless', '--disable-early-termination', '--num_envs', '1', '--seed', str(a.seed),
+        '--headless', '--disable-early-termination', '--num_envs', str(a.engineering_group_envs or 1), '--seed', str(a.seed),
         *backend.argv(), '--graphics_device_id', '0',
         '--output', str(a.worker_output.with_suffix('.unused.json')),
         '--output_path', str(a.worker_output.with_suffix('.runtime'))]
@@ -318,6 +520,8 @@ def main():
     p.add_argument('--candidate', type=int, default=0)
     p.add_argument('--finish', action='store_true')
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
+    p.add_argument('--engineering-group-envs', type=int, default=0,
+                   help='native worker only: synchronous host group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--score-inputs', type=Path, nargs='+')
     p.add_argument('--score-output', type=Path)
@@ -334,6 +538,10 @@ def main():
         p.error('bounded one-GPU/<=4episode/<=900s Probe required')
     if a.engineering_steps and (not a.worker or not a.finish or not 24 <= a.engineering_steps <= 542):
         p.error('engineering step cap requires native baseline worker and24..542steps')
+    if a.engineering_group_envs and (not a.worker or not a.finish or not 2 <= a.engineering_group_envs <= 96):
+        p.error('engineering group requires native baseline worker and2..96 environments')
+    if a.engineering_group_envs and not a.engineering_steps:
+        p.error('engineering group requires an explicit bounded --engineering-steps value')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
     if a.worker:
