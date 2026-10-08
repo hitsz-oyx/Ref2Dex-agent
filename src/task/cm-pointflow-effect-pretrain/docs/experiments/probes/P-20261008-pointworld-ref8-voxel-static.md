@@ -67,3 +67,7 @@ that either arm has better held-out quality. It does justify retaining the
 fixed contract and re-evaluating any future checkpoint under it before
 starting the deferred `motion_floor` ablation. No training was launched and no
 historical checkpoint was overwritten.
+The panel and an additional 2,000-window validation sample found no points
+outside this contract; the sampled range was approximately
+`[-1.428,-1.303,-1.330]` to `[1.297,1.324,1.508]` m. The bounded audit is
+recorded in `outputs/cm-pointflow-effect-pretrain/P-20261008-pointworld-ref8-voxel-static/workspace_scan.json`.
