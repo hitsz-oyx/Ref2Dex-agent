@@ -171,6 +171,11 @@ p95为1.96/1.74，history为1.55/1.81）；r21只有一个zero pair，object pos
 不同，不能称为candidate≫noise，也没有形成Gate1证据。审计输出在
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r24/`。
 
+对保留完整hold的r19再做同一审计（r26）：zero-pair object pose displacement p95为
+0.1195m，正/负candidate增量比为4.28/1.95；但history为1.42/0.81、q velocity为
+1.27/0.93，且current state仍不exact。因此即使成功hold的单次launch也没有跨字段的
+candidate≫noise分离，不能作为Gate1候选排序。
+
 为隔离group-size actor GEMM的可能影响，曾在提交`949a163`临时把group actor改成
 固定env0/64-row推理后广播；r25使用原生GPU PhysX/GPU pipeline、seed282、4 env、
 542 steps，但baseline最高抬升只有0.0473m/held4，而旧r19为0.8262m/held481，

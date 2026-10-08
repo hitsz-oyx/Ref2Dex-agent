@@ -262,6 +262,13 @@ These ratios use candidate incremental displacement over the all-pair median;
 they are not the runner's selected-pair effect-margin statistic and do not
 establish candidate ≫ solver noise.
 
+The same audit on the full-behavior r19 packet (one zero pair) gave object-pose
+noise p95 `0.1195 m`, with positive/negative ratios `4.28`/`1.95`; history was
+`1.42`/`0.81`, and joint velocity was `1.27`/`0.93`. Thus even the one launch
+that preserves the native hold does not separate both residual arms across all
+physical fields. Its diagnostic is in
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r26/`.
+
 The audit therefore confirms that the proposed synchronous group has a
 measurable noise floor, but the current residual effects are not uniformly
 separated from it. No formal Gate1, evaluator fit, PointWorld ranking, or
