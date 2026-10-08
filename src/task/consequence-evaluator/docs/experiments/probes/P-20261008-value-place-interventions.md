@@ -5,7 +5,7 @@ experiment_id: P-20261008-value-place-interventions
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: ba82c33
+git_commit: 8245f53
 claim_id: C3
 hypothesis_family: HF-consequence-value-interventions
 probe_index_in_family: 1
@@ -13,13 +13,14 @@ seed_pool: probe
 seeds: [231, 232, 233, 245]
 decision_changed_if_positive: freeze the bounded train-derived sampler and prepare independent value training and held-out outcome windows
 decision_changed_if_negative: preserve failed sampling evidence and inspect intervention authority or physical labels before expanding collection
-status: RUNNING
+status: UNPROMISING
 run_id: official-value-place-train-20261008-r1
 ---
 
 # Can empirical placing deviations supply informative outcome supervision?
 
-Result: Pending first64episode train Probe.
+Result: Completed64episodes; clean32/32success, placing31/32success. All32plans
+triggered at482and executed completely; only one train negative. Coverage gate failed.
 Decision: The user authorized continuing targeted data collection. Keep the
 full-reference grasp/lift/controlled-place task and fixed geometric label rule.
 No evaluator training or change to the Mission's final policy claim here.
@@ -87,6 +88,28 @@ source drift, nonfinite/missing diagnostics, partial chunk or exhausted budget.
 No environment/checkpoint modification, external writes, new branch or push.
 
 ## Limitations and future evidence
+
+R1 completed at8245f53/GPU2 in117.478s. Raw output:
+`outputs/consequence-evaluator/official-value-place-train-20261008-r1/`.
+Label preparation took7.081s;2240windows (clean65each, placing5each),
+256preferences (6success/164progress/86margin). Labeled output:
+`outputs/consequence-evaluator/official-value-place-train-labeled-20261008-r1/`,
+`training_allowed=false`. No held-out expansion or fit was started.
+
+Intervention audit found0/32already-supported at trigger; requested peak
+0.0526..0.1726, median chunk L2=0.48257. Logged actual delta matched requested
+plans exactly for this run; median projection1.0. Thus this is not an absent
+trigger, overwritten distal-channel or clipping implementation failure.
+The single negative ended settled on the table but had unsafe unsupported
+hand loss during placing, so settling alone did not falsely promote S to1.
+The same-reference, bounded placing-error sampler is UNPROMISING for producing
+the required negative coverage; this does not refute the evaluator/Cm route.
+
+Decision: preserve R1 and stop val/test expansion. Next Probe estimates actual
+same-H learner/expert action error on nominal train holding observations and
+uses a separate frozen bounded holding bank. This is stage-conditioned
+DART-inspired empirical replay, not a claimed fitted CARE failure law or full
+DART algorithm. Previous source hashes/labels remain historical and unchanged.
 
 Only one object/reference and a two-negative bank. This cannot establish optimal
 Q, generalization, action-causal utility, or a trained evaluator's oracle benefit.

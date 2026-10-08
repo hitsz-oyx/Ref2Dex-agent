@@ -100,8 +100,8 @@ def main():
     if a.official_generator and a.observation_router_model:
         p.error('official generator requires a fixed controller')
     if a.perturbation_bank and (not a.value_outcomes or not a.official_generator
-                               or a.clean_only or a.target_phase!='place'):
-        p.error('empirical bank requires official value mode, placing stage, and clean/intervention allocation')
+                               or a.clean_only or a.target_phase not in ('place','hold')):
+        p.error('empirical bank requires official value mode, bank stage, and clean/intervention allocation')
     if a.target_phase=='place' and not a.perturbation_bank:
         p.error('placing stage requires an empirical perturbation bank')
     if a.target_phase != 'all' and not (a.audit_only or a.value_outcomes):
@@ -147,6 +147,7 @@ def main():
         if not is_within(bank_path,ROOT/'outputs/consequence-evaluator'):
             raise ValueError('task-owned empirical bank required')
         bank=json.loads(bank_path.read_text());sample_bank(bank,1,a.seed)
+        if bank['phase']!=a.target_phase:raise ValueError('bank phase differs from the actual target phase')
         if bank.get('source_actor_sha256')!=config['experts'][baseline]['sha256']:
             raise ValueError('bank policy source differs from the fixed continuation')
         frozen[str(bank_path)]=digest(bank_path)
