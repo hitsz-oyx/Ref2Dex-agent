@@ -13,6 +13,15 @@ Range/ZIP64 取得全部64条序列元数据及一相机连续32帧标签，不�
 `test_ready=false`，尚未转换为30Hz H4/K24正式测试或运行模型评价。
 [官方合同与待确认项](../src/task/cm-pointflow-effect-pretrain/docs/research/HOCAP_TEST_PREFLIGHT.md)。
 
+按用户要求，8f857ae已在GPU0完成固定latest50000的HOCap帧序列Probe，49.425秒。
+全部64序列/9主体，128运动窗口第24帧点EPE17.805mm vs静止63.704mm（降低72.05%）；
+64序列均衡near-hand自然窗口20.346 vs54.985mm。但其中17近静止窗口模型22.160mm
+vs基线0.356mm，存在明显虚假运动；不能用总体均值掩盖。源码/数据1318项哈希通过，
+手21点与32帧发布标签通过10微米门槛；3项合同测试通过。原始FPS仍未核实，
+仅以数组帧索引H4/K24和nominal30/900特征尺度进行无拟合评估，UNCLEAR/test_ready=false。
+未调参、未换checkpoint；进程已退出/GPU0释放。
+[协议与分层误差](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md)。
+
 ## 2026-10-08 迁入 main 开发
 
 用户授权将 consequence-evaluator 的已提交历史和当前用户/并行 agent 修改一起

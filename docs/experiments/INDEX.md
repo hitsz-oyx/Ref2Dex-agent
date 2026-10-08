@@ -101,7 +101,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-hocap-frame-generalization](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md) | Can the fixed main-three model predict HOCap beyond a static baseline? | Acquisition/geometry checks pass; model evaluation is pending under an explicitly unverified source clock. | Run one bounded no-fit frame-index Probe; preserve HOCap as test-only and do not select hyperparameters or checkpoints from its errors. | probes/UNCLEAR |
+| [P-20261008-hocap-frame-generalization](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md) | Can the fixed main-three model predict HOCap beyond a static baseline? | Fixed latest50000 completes192windows: moving128 h24 model17.805mm vs static63.704mm; natural64 model20.346mm vs54.985mm, but its17near-stat | Preserve motion gain and near-static false-motion failure separately; keep this frame-index Probe UNCLEAR, resolve the original clock before | probes/UNCLEAR |
 
 ## HF-hold-duration-response
 

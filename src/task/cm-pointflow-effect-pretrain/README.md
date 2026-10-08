@@ -30,6 +30,13 @@ and masks;512canonical object surface points. Predict every local object's
 [implementation and GPU checks](docs/POINTWORLD_INTERFACE.md),
 [new matched experiment](docs/experiments/probes/P-20261007-pointworld-small-wm24.md).
 
+External HOCap frame-index [Probe](docs/experiments/probes/P-20261008-hocap-frame-generalization.md)
+completed192windows across64sequences/9subjects with fixed latest50000:
+moving h24 point EPE17.805mm vs persistence63.704mm; sampled near-static
+anchors22.160mm vs0.356mm. Keep these outcomes separate. Source FPS is still
+unverified; this is no-fit nominal-clock inference, not a formal0.8second
+external test. HOCap remains outside training/statistics/checkpoint selection.
+
 The upstream encoder source is pinned as the `third_party/PointWorld` Git
 submodule at `05484826dfef74cbe278a3974179a5a16705d35d`. After cloning this
 repository, run `git submodule update --init third_party/PointWorld` to obtain

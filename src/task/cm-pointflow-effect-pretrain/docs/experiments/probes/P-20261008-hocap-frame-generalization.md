@@ -5,7 +5,7 @@ experiment_id: P-20261008-hocap-frame-generalization
 date: 2026-10-08
 task: cm-pointflow-effect-pretrain
 branch: main
-git_commit: 1239e52
+git_commit: 8f857ae6585354380882709587a1c599c9f9572c
 claim_id: C3
 hypothesis_family: HF-hocap-frame-generalization
 probe_index_in_family: 1
@@ -19,8 +19,8 @@ run_id: hocap-frame-eval-20261008-r1
 
 # Can the fixed main-three model predict HOCap beyond a static baseline?
 
-Result: Acquisition/geometry checks pass; model evaluation is pending under an explicitly unverified source clock.
-Decision: Run one bounded no-fit frame-index Probe; preserve HOCap as test-only and do not select hyperparameters or checkpoints from its errors.
+Result: Fixed latest50000 completes192windows: moving128 h24 model17.805mm vs static63.704mm; natural64 model20.346mm vs54.985mm, but its17near-static anchors worsen22.160mm vs0.356mm. Clock remains unverified.
+Decision: Preserve motion gain and near-static false-motion failure separately; keep this frame-index Probe UNCLEAR, resolve the original clock before formal testing, and do not tune on HOCap.
 
 ## Motivation and frozen comparison
 
@@ -88,3 +88,54 @@ persistence, verify this adapter and distribution first; do not tune on HOCap,
 silently change the checkpoint, or call all external generalization refuted.
 Cross-domain mesh/subject overlap remains unaudited; inherited pretraining
 included ContactPose. Multi-seed/policy utility are future evidence.
+
+## Actual execution and results
+
+Run `hocap-frame-eval-20261008-r1` used code `8f857ae`, GPU0, PID2769220,
+seed228 and the original latest50000 checkpoint trained at `9019fd4`.
+COMPLETED in49.425seconds, process exited normally and GPU0 is empty.
+No weights, normalization or checkpoint choice changed. All1318frozen
+input/source identities passed final hashes. Output43MiB; CUDA allocator
+peak244.85MiB/reserved274MiB, excluding driver/context memory. This is
+inference, not training; preparation includes CPU geometry work.
+
+All64sequences have candidates:6275moving/2626near-static at fixed8frame
+anchor cadence. Panels have128moving windows (2per sequence) and64remaining
+natural eligible windows (1per sequence),9subjects each, no duplicate window
+between panels. Natural has47moving/17near-static. Runtime MANO/camera check
+passes32frames with mean6.54e-6m/max9.83e-6m under configured CUDA numerics;
+earlier engineering under default numerics has max8.20e-8m. Both satisfy the
+predeclared1e-5m gate; these are internal consistency errors, not annotation
+accuracy. Schema/coverage regression tests pass3/3.
+
+Moving-anchor surface EPE, millimetres:
+
+| Future frame | Fixed model | Static persistence |
+| --- | ---: | ---: |
+| 1 | 1.052 | 3.470 |
+| 4 | 3.134 | 13.151 |
+| 8 | 5.696 | 25.289 |
+| 12 | 8.484 | 36.155 |
+| 24 | 17.805 | 63.704 |
+
+Moving endpoint reduction72.05%; center error15.462mm and rotation
+error10.672degrees. Natural endpoint20.346mm vs54.985mm (63.00%lower),
+but pooling conceals a failure:
+
+| Natural category | Windows | Model h24 EPE mm | Static h24 EPE mm |
+| --- | ---: | ---: | ---: |
+| moving | 47 | 19.690 | 74.744 |
+| near-static | 17 | 22.160 | 0.356 |
+
+The model predicts substantial motion for objects whose released trajectory
+is nearly stationary. Do not describe it as uniformly accurate. This is an
+external frame-index observation, not proof of correct source clock, unseen
+objects, formally established generalization or robot utility. No follow-up
+tuning, extra checkpoints or repeated test selection occurred.
+
+Evidence: run `result.json`, `moving_metrics.json`, `natural_metrics.json`,
+`moving_panel.npy`, `natural_panel.npy`, `processed/index_test.npy` and
+`input_manifest.json`; launch/stdout/stderr in
+`tmp/hocap-frame-eval-20261008-r1.log`. Physical metrics are in JSON. Input
+derivatives scale nominally by30/900; horizons remain original array frame
+indices with `source_fps_verified=false` and `test_ready=false`.
