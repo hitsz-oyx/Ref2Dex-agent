@@ -1252,3 +1252,20 @@ contact/history 分层结果以及描述性 TCC/Y 对比，不计算置信区间
 两类 candidate 没有任一重复在主要机械字段达到约 `2x` zero floor，则关闭这条
 统计工程路线。无论结果如何，packet 保持 `engineering_only`，不进入 strict
 Gate1/evaluator/PointWorld，不修改 reference bank、Y 或 policy。
+
+r33 已按该合同完成（代码 `e1c71b4`，packet 为
+`outputs/consequence-evaluator/gate1-gpu-serial-cluster-20261009-r33/serial-cluster.pkl`）。
+teacher tick72 最高抬升 `0.2706m`；action、done、reset frame/RNG、schedule 和
+executed residual 合同审计全部通过。五个 frozen zero 的 object/hand/gap/q/dq/
+object-velocity query-relative p95 均为 `0`；contact/history 仍单独出现隐藏状态
+噪声。两次 positive 和两次 negative 的机械轨迹分别重复一致，candidate 相对 zero
+的机械 effect 明显超过声明的 field floor；contact-force effect/noise 约为
+`1.6--2.5x`。physical-bank/TCC 只读值为 teacher/zero `0.0051948`，positive
+`-0.0117869`，negative `-0.0129771`，progress-start range 为 `0`；这只是
+固定 executed stream 的影响诊断，不是 candidate utility 选择。
+
+r33 因此通过 cluster 的短窗口继续条件，但不通过 strict Gate1。按预注册上限，
+下一步最多再做一个完全相同的 fresh r34 launch，用于检查 launch-level teacher
+行为和 paired effect 是否能重复；r34 若 teacher <`0.20m`、机械 zero 不再 exact，
+或 candidate effect 不再重复，则关闭 serial-statistical route。无论 r34 结果如何，
+不跑 evaluator/PointWorld、不改 Y/reference/policy，也不把十个 arm 当独立样本。

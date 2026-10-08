@@ -466,3 +466,24 @@ repeat-consistent candidate effect reaching roughly `2x` the zero floor on a
 primary mechanical field. A pass would justify at most one additional launch
 cluster for launch-level evidence; it would not open strict Gate1, evaluator
 training, PointWorld, or a reference/Y/policy change.
+
+### r33 result and bounded follow-up
+
+The r33 launch ran at commit `e1c71b4` and passed the execution contract. The
+teacher reached `0.2706 m` by tick72. Prefix/suffix controls, done flags,
+requested residuals, teacher-action hash, fixed schedule, reset frame/RNG
+anchors, and the visible reset contract all passed audit. Five frozen zeros had
+zero query-relative p95 on object pose, hand geometry, gaps, q/dq, and object
+velocity; contact/history remained a separate hidden-state noise channel.
+
+Both positive repeats and both negative repeats were mechanically repeat-
+consistent and separated from the zero floor. The physical-bank/TCC diagnostic
+gave teacher/zero `0.0051948`, positive `-0.0117869`, and negative `-0.0129771`,
+with zero progress-start range. This is an open-loop residual effect diagnostic;
+it does not select a candidate or establish a reactive-policy GT utility.
+
+Because the teacher and mechanical zero/effect screens passed, one fresh r34
+cluster is predeclared to test launch-level repeatability. It keeps the exact
+r33 schedule and 72-step limit. A failure closes the serial-statistical route;
+a pass still remains engineering-only and cannot start evaluator, PointWorld, or
+strict Gate1 work.
