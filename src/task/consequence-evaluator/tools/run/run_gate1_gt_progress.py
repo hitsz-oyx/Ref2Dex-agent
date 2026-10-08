@@ -734,6 +734,8 @@ def native_worker(a):
         caches are not serializable and the simulator frame counter remains
         process-local across resets.
         """
+        if backend.name != 'gpu_physx_gpu_pipeline':
+            raise ValueError('serial replay is defined only for native GPU PhysX/GPU pipeline')
         if (player.is_rnn or task.num_envs != 1 or abs(task.dt - 1 / 30) > 1e-8
                 or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2):
             raise ValueError('serial replay requires one fixed nonrecurrent native environment')
