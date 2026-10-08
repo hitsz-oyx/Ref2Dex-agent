@@ -37,6 +37,12 @@ tick44 contact-force drift 约5.7e-5。结论是 host 单环境与同步 group �
 `gate1-host-group-engineering-20261009-r7/`。下一步只保留原 GPU 行为下的执行合同诊断
 或新的可证明重放设计。
 
+作为对照，同一4-env synchronous harness切回原 GPU PhysX/GPU tensor pipeline 后，
+baseline 恢复到最高81.28cm、held480、first stable tick107，说明 group 排程本身
+没有毁掉原策略；但初始 state/history 已不同，tick44 contact-stage 仍不满足严格
+same-state contract。因此保留该行为对照，但不放宽 exact replay，也不进入 Gate1。
+审计见 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r1/`。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

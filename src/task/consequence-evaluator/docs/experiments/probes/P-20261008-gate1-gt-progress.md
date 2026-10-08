@@ -211,6 +211,13 @@ these traces. The remaining route is a fresh GPU execution-contract diagnosis
 or a redesign that preserves the original GPU behavior; Y, reference-bank
 labels, and policy weights remain frozen.
 
+As a control, the same four-env synchronous harness with the original GPU
+PhysX/GPU tensor pipeline preserved the policy behavior: 0.812772 m maximum
+lift, 480 held frames, and first stable tick107. It still failed strict group
+identity immediately (initial state fields and tick1 history differed, with
+contact-stage differences at tick44), so this is not Gate1 readiness. Audit:
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r1/group-audit.json`.
+
 
 ## Completed matched pair and attribution
 
