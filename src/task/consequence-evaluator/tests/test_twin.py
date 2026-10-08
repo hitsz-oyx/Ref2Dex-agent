@@ -1,15 +1,20 @@
 """CPU contracts for exact full-state twin branches."""
 import random
+import pickle
+from pathlib import Path
+import sys
 from enum import Enum
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+
 from consequence_evaluator.contracts import K
 from consequence_evaluator.twin import (TwinBranch, capture_native_snapshot,
                                         capture_snapshot, replay_provenance,
-                                        restore_native_rng, validate_pair)
+                                        restore_native_rng, validate_pair, fingerprint)
 
 
 REQUIRED = ('_root_states', '_dof_state', '_rigid_body_state', '_contact_forces',
@@ -20,6 +25,23 @@ REQUIRED = ('_root_states', '_dof_state', '_rigid_body_state', '_contact_forces'
 RNG = dict(python=random.getstate(), numpy=np.random.get_state(),
            torch_cpu=np.zeros(4, dtype='uint8'),
            torch_cuda=[])
+
+
+def test_content_identity_ignores_string_and_dtype_object_sharing():
+    value = 'a_long_noninterned_string_123456789'
+    shared = {'a': value, 'b': value}
+    separate = {'a': value, 'b': ''.join([value[:-1], value[-1]])}
+    assert fingerprint(shared) == fingerprint(separate)
+    tree = {'first': np.arange(4, dtype='float32'), 'second': np.arange(4, dtype='float32')}
+    assert fingerprint(tree) == fingerprint(pickle.loads(pickle.dumps(tree, protocol=4)))
+
+
+def test_serialized_native_snapshot_retains_branch_content_identity():
+    snap = snapshot()
+    first, second = branch(snap, 'a', .02), branch(snap, 'b', -.02)
+    loaded = pickle.loads(pickle.dumps((snap, first, second), protocol=4))
+    assert loaded[0].common_prefix_hash == snap.common_prefix_hash
+    assert validate_pair(loaded[0], loaded[0], loaded[1], loaded[2])
 
 
 def provenance(tick=40):

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import pickle
 import random
+import struct
 from dataclasses import dataclass
 from enum import Enum
 
@@ -257,8 +257,56 @@ def _native_scalar(value):
 
 
 def fingerprint(value):
-    """Stable content identity for a captured state or RNG tree."""
-    return hashlib.sha256(pickle.dumps(_cpu(value), protocol=4)).hexdigest()
+    """Content identity independent of pickle memoization and object aliases.
+
+    Pickle encodes shared strings and NumPy dtype objects as backreferences.
+    Those identities can change on a save/load round trip without changing
+    physical state. Frame each value separately and hash array bytes directly.
+    """
+    digest = hashlib.sha256()
+
+    def frame(tag, payload=b''):
+        digest.update(tag)
+        digest.update(struct.pack('>Q', len(payload)))
+        digest.update(payload)
+
+    def visit(node):
+        if isinstance(node, np.ndarray):
+            if node.dtype.hasobject:
+                raise ValueError('object arrays cannot define native content identity')
+            frame(b'A', repr(node.dtype.descr).encode('utf8'))
+            visit(tuple(node.shape))
+            frame(b'D', np.ascontiguousarray(node).tobytes())
+        elif isinstance(node, np.generic):
+            visit(np.asarray(node))
+        elif isinstance(node, dict):
+            frame(b'M', str(len(node)).encode('ascii'))
+            for key in sorted(node):
+                visit(key)
+                visit(node[key])
+        elif isinstance(node, (tuple, list)):
+            frame(b'T' if isinstance(node, tuple) else b'L', str(len(node)).encode('ascii'))
+            for item in node:
+                visit(item)
+        elif node is None:
+            frame(b'N')
+        elif isinstance(node, bool):
+            frame(b'B', b'1' if node else b'0')
+        elif isinstance(node, int):
+            frame(b'I', str(node).encode('ascii'))
+        elif isinstance(node, float):
+            frame(b'F', struct.pack('>d', node))
+        elif isinstance(node, complex):
+            frame(b'C', struct.pack('>dd', node.real, node.imag))
+        elif isinstance(node, str):
+            frame(b'S', node.encode('utf8'))
+        elif isinstance(node, bytes):
+            frame(b'Y', node)
+        else:
+            raise ValueError('unsupported native content identity: ' + str(type(node)))
+
+    visit(_cpu(value))
+    return digest.hexdigest()
 
 
 def finite_tree(value):
