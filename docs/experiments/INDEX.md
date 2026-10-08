@@ -54,6 +54,12 @@
 | [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Six-route continuous collection completed, but strict state-matched labels are insufficient for fitting: train/val/test contain 0/0/2 local  | Repeated waves make the label gate READY at 2/1/5 train/val/test pairs, but this is too sparse for a useful fit; stop before evaluator train | probes/UNCLEAR |
 | [P-20261008-consequence-pair-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md) | Can repeated waves recover strict current-state preference coverage? | The historical three-wave label report was `READY` under the then-current | Stop before fitting and keep the route gate closed. The user has | probes/UNCLEAR |
 
+## HF-consequence-reference-progress
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-reference-progress-labels](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-reference-progress-labels.md) | Can original-reference temporal progress label executed candidates causally? | Implementation and six engineering tests pass; real reference/rollout | Follow user ref4_1; label validation precedes model fitting. | probes/RUNNING |
+
 ## HF-consequence-value-data
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

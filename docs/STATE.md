@@ -1,5 +1,16 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 Reference-conditioned delta-progress 监督
+
+用户ref4_1替换airplane-specific S/P/M：Y=P[t+24]-P[t]，P来自原始成功参考
+与实际3D历史的因果clip匹配；不是episode的t/T。用户确认reference使用原始
+成功动作，按Inspire URDF重建同定义11机器人手点。复用固定Google XIRL的
+距离/因果context helper，增加允许前进、停滞、回退的有界历史prior；不使用
+全episode OT、反向cycle或窗口之后的恢复。旧数据/标签不改，S恢复问题不再
+阻塞新路线。六项因果/重复阶段/停滞/回退工程测试通过，先做train-only8条
+离线标签Probe再判断是否训练；未启动evaluator。当前在main开发，不push。
+[标签Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-reference-progress-labels.md)。
+
 ## 2026-10-08 DExplore 官方数据生成器筛查
 
 用户授权尝试归档官方策略。官方 `inspire.pth` SHA8f6823db… 已核对并跑通；
@@ -32,7 +43,7 @@ test36/28；11904窗口/768偏好、来源组261/262/263互斥，机械数据门
 裁剪后请求，逐episode物理标签重算通过。输出约421MiB raw+69MiB窗口，GPU2释放。
 仅生成数据，旧local-event trainer仍不接受新schema。样例出现“中途失抓后恢复放回”
 的语义边界，已向用户提问，当前S会判失败；原标签保留，未启动evaluator fit。
-下一步明确该恢复成功定义，再适配success/progress/preference训练入口并跑小Probe。
+历史下一步原为明确恢复成功定义再适配S/P/M训练；当前已被上述ref4_1路线替代。
 记录：[value强度校准](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-dose-calibration.md)。
 
 ## 2026-10-08 HOCap 外部测试数据获取

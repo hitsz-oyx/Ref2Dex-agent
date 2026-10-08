@@ -1,0 +1,84 @@
+"""Reconstruct original motion and audit native DOF/FK correspondence."""
+import argparse
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+import numpy as np
+
+TASK = Path(__file__).resolve().parents[2]
+ROOT = TASK.parents[2]
+sys.path[:0] = [str(ROOT), str(TASK / 'src')]
+from consequence_evaluator.contracts import HAND_LINKS, is_within
+from consequence_evaluator.data import sha, validate_rigid
+from consequence_evaluator.reference_motion import (REFERENCE_SCHEMA, NATIVE_DOF_NAMES,
+                                                     original_reference, reconstruct_points)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--motion', type=Path, required=True)
+    parser.add_argument('--urdf', type=Path, required=True)
+    parser.add_argument('--audit-source', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    out = args.output.resolve()
+    if out.exists() or not is_within(out, ROOT / 'outputs/consequence-evaluator'):
+        parser.error('fresh task-owned reference output required')
+    started = time.monotonic()
+    source = args.audit_source.resolve()
+    manifest_path = source / 'manifest.json'
+    raw = json.loads(manifest_path.read_text())
+    motion, urdf = args.motion.resolve(), args.urdf.resolve()
+    if (raw.get('status') != 'COMPLETED' or raw.get('fps') != 30
+            or raw.get('rollout_kind') != 'continuous'
+            or raw['sources'].get(str(motion)) != sha(motion)
+            or raw['sources'].get(str(urdf)) != sha(urdf)):
+        raise ValueError('reference must be the frozen original motion/URDF used by collection')
+    frozen = {str(p): sha(p) for p in (motion, urdf, manifest_path, Path(__file__).resolve())}
+    helper = ROOT / 'src/task/CmResidual/object_frame_kinematics.py'
+    frozen[str(helper)] = sha(helper)
+    for name in ('reference_motion.py', 'reset_kinematics.py', 'contracts.py'):
+        path = TASK / 'src/consequence_evaluator' / name
+        frozen[str(path)] = sha(path)
+    reference = original_reference(motion, urdf)
+    validate_rigid(reference['object_pose'])
+    # Compare FK with independently measured native bodies at startup and
+    # after actual controls, in two train episodes. Do not inspect test data.
+    errors = []
+    records = [r for r in raw['episodes'] if r['split'] == 'train'][:2]
+    if len(records) != 2:
+        raise ValueError('two train-only episodes needed for the native FK audit')
+    for record in records:
+        files = [source / record['path'], source / record['diagnostics']]
+        for path, key in zip(files, ('sha256', 'diagnostics_sha256')):
+            if not is_within(path, source) or sha(path) != record[key]:
+                raise ValueError('source packet drift/path escape')
+            frozen[str(path)] = record[key]
+        with np.load(files[0], allow_pickle=False) as packet, np.load(files[1], allow_pickle=False) as diagnostics:
+            indices = np.array([0, 1, 8, 24, 64, len(packet['object_pose']) - 1])
+            points = reconstruct_points(diagnostics['q'][indices], diagnostics['hand_root'][indices], urdf)
+            errors.append(float(np.max(np.abs(points - packet['hand_keypoints'][indices]))))
+            if not np.allclose(packet['object_pose'][0], reference['object_pose'][0], atol=1e-5):
+                raise ValueError('actual/reference initial object frames disagree')
+    if max(errors) > 1e-5 or any(sha(p) != value for p, value in frozen.items()):
+        raise ValueError('native FK link/joint mapping failed or source drifted')
+    out.mkdir(parents=True)
+    np.savez_compressed(out / 'reference.npz', **reference)
+    manifest = dict(schema=REFERENCE_SCHEMA, status='COMPLETED', origin='original_successful_retargeted_motion',
+        task=records[0]['task'], motion=records[0]['motion'], fps=30, units='m',
+        hand_links=list(HAND_LINKS), dof_names=list(NATIVE_DOF_NAMES), actor_root='identity; wrist pose in q[:6]',
+        reference_joint_semantics='original retargeted q, no PD action conversion or human-keypoint substitution',
+        success_semantics='user-specified successful motion reference; FK audit is not physics success validation',
+        samples=len(reference['timestamps']), native_fk_max_coordinate_error_m=max(errors),
+        sources=frozen, reference_sha256=sha(out / 'reference.npz'),
+        git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        elapsed_s=time.monotonic() - started,
+        device_reason='CPU: bounded URDF geometry reconstruction and file audit, no neural inference')
+    (out / 'manifest.json').write_text(json.dumps(manifest, indent=2, allow_nan=False) + '\n')
+    print(json.dumps({k: manifest[k] for k in ('samples', 'native_fk_max_coordinate_error_m', 'elapsed_s')}))
+
+
+if __name__ == '__main__':
+    main()

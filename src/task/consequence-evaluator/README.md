@@ -1,6 +1,16 @@
 # Consequence evaluator
 
-用户方案：[ref1](docs/user/ref/ref1.md)，当前合同按[ref2](docs/user/ref/ref2.md)修订；数据分级按[ref3](docs/user/ref/ref3.md)。实现分支：`consequence-evaluator`。
+当前监督按用户 [ref4_1](docs/user/ref/ref4_1.md)：`Y_t=P_(t+24)-P_t`，
+P由原始成功参考与真实3D历史clip的因果匹配定义，不用episode时钟或最终结局。
+用户已选择用原始参考机器人关节与URDF重建11个手点。开发分支为`main`。
+先用[原始参考重建](tools/audit/build_progress_reference.py)核验FK，再用
+[离线标签Probe](tools/run/label_reference_progress.py)检验nominal及扰动轨迹；
+[实验卡](docs/experiments/probes/P-20261008-reference-progress-labels.md)固定协议。
+当前不训练evaluator；新schema独立于旧S/P/M和旧局部H匹配标签。
+
+## 历史路线与保留证据
+
+早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。
 当前工作只建立离线 oracle headroom 检验，不改变根级 Mission 的最终 Cm 策略收益要求。
 
 2026-10-08：[官方DExplore生成器筛查](docs/experiments/probes/P-20261008-official-generator-screen.md)
@@ -19,7 +29,7 @@ value schema。以下旧H匹配局部偏好管线继续作为独立验证合同�
 192episode：train41/23、val38/26、test36/28（成功/失败），11904窗口/768偏好。
 同H官方/自训策略误差只用train来源估计；新采样请求残差上限0.5需显式bank与
 `--residual-bound0.5`匹配，实际原生控制仍[-1,1]、平移仍0.05。0.2默认和旧合同保留。
-机械覆盖通过，尚未fit；“失抓后恢复并正常放回”的S语义正向用户确认，原标签不改。
+机械覆盖通过，尚未fit；原S恢复语义问题现由ref4_1的局部因果delta-progress方案替代，原标签不改。
 [数值复核和训练样例图](tools/audit/audit_value_outcomes.py)供人工弱标签检查。
 
 第一阶段固定 `K=24`、`K_exec=8`，H 沿用采集策略当前观测/历史的原始合同。
