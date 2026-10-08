@@ -22,6 +22,7 @@ import argparse
 from dataclasses import dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import threading
@@ -32,7 +33,7 @@ import numpy as np
 
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
-DEFAULT_DATA_ROOT = REPO_ROOT / "outputs/cm-pointflow-effect-pretrain/mixed-wm30-20261007"
+DEFAULT_DATA_RELATIVE = Path("outputs/cm-pointflow-effect-pretrain/mixed-wm30-20261007")
 DOMAIN_NAMES = ("oakink2", "grab", "arctic", "contactpose")
 EXPECTED_MIXED_SCHEMA = "pointworld-multisource.wm30.v1"
 EXPECTED_SOURCE_SCHEMA = "ref2dex.native-wm30.v1"
@@ -64,6 +65,28 @@ def _sha256(path: Path) -> str:
 
 def _json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _default_data_root() -> Path:
+    """Find the shared output root when this code lives in a worktree.
+
+    Git worktrees contain the source tree but generally do not contain the
+    ignored ``outputs/`` directory.  Prefer an explicit environment override,
+    then the current worktree, then sibling Ref2Dex-agent worktrees.
+    """
+
+    override = os.environ.get("REF2DEX_POINTWORLD_DATA_ROOT")
+    if override:
+        return Path(override).expanduser().resolve()
+    candidates = [REPO_ROOT / DEFAULT_DATA_RELATIVE]
+    for sibling in sorted(REPO_ROOT.parent.glob("Ref2Dex-agent*")):
+        candidates.append(sibling / DEFAULT_DATA_RELATIVE)
+    for candidate in candidates:
+        if (candidate / "processed" / "manifest.json").is_file():
+            return candidate.resolve()
+    # Keep the first path in the error message if acquisition has not been
+    # prepared yet; DomainCatalog will report the missing manifest clearly.
+    return candidates[0].resolve()
 
 
 def _resolve(path: str | Path, base: Path) -> Path:
@@ -598,7 +621,10 @@ def run_server(args: argparse.Namespace, catalog: DomainCatalog) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT, help="mixed-wm30 output root")
+    parser.add_argument(
+        "--data-root", type=Path, default=None,
+        help="mixed-wm30 output root (default: REF2DEX_POINTWORLD_DATA_ROOT or an existing sibling worktree output)",
+    )
     parser.add_argument("--source", choices=DOMAIN_NAMES, default="oakink2")
     parser.add_argument("--split", choices=("all", "train", "val", "test"), default="train")
     parser.add_argument("--sequence", default=None, help="exact sequence id")
@@ -617,7 +643,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    catalog = DomainCatalog(args.data_root)
+    data_root = args.data_root.expanduser().resolve() if args.data_root is not None else _default_data_root()
+    print(f"[visualize] loading mixed manifest: {data_root}", flush=True)
+    catalog = DomainCatalog(data_root)
+    print(f"[visualize] indexed four domains: {', '.join(DOMAIN_NAMES)}", flush=True)
     if args.check_only:
         run_check(catalog, args.split, args.sequence_index, args.frame)
         return
