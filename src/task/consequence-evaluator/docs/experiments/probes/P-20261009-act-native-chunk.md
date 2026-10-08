@@ -402,3 +402,21 @@ The arm-order question is therefore `UNCLEAR`, and no further order-only runs
 are planned without a frozen baseline control stream. Serial reset remains a
 single-run frozen-control calibration container, not a fresh-process twin or a
 formal Gate1 route.
+
+## 8-env GPU group decision note
+
+The next execution-contract probe uses the native `gpu_physx_gpu_pipeline` only. It
+will run two fresh 72-step launches with eight environments: env0 is the nominal
+baseline, env2/env3 receive the positive/negative residual, and the remaining
+environments are zero roles. Actor inference remains on the legacy 256-row contract
+by using 32 copies per environment, so group size and actor GEMM rows are not changed
+together.
+
+This is a decision probe, not a relaxed Gate1. A launch is useful only if its initial
+semantic state is exact, all roles receive the same prefix controls and done flags,
+and env0 reaches a clearly nontrivial query-window lift. If either launch collapses
+near zero, group expansion stops and the route returns to serial frozen-control
+calibration. Passing the short screen would justify four full542-step launch clusters;
+it would still require launch-level paired statistics before candidate ranking. Hidden
+PhysX state remains outside the public Isaac Gym API, so these packets cannot enter the
+strict scorer.

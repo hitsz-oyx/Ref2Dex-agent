@@ -1200,3 +1200,22 @@ baseline/zero `0.0437091`、positive `0.0189845`、negative `-0.0122399`，仍�
 engineering-only label diagnostic。该 order Probe 标记 `UNCLEAR`，serial 只保留为
 单次 frozen-control field/noise calibration 容器；后续若没有冻结 baseline action stream，
 不再追加 order-only launch。
+
+## 2026-10-09 8-env GPU group decision note
+
+当前决定问题：同步 GPU group 是否还能在不改变原生 GPU pipeline 行为的前提下，提供
+可用于候选统计配对的短窗口执行容器。
+
+关键证据：4-env group 的 r19 在一次 launch 中达到 `0.8262m/481`，但 r27 同合同
+只有 `0.0891m/5`；因此把 env pair 当独立样本或直接进入 Gate1 都不成立。serial
+r29/r30 的冻结 executed stream 两个 zero arm 在 object/q/dq 上可重复，但 contact
+与 history 仍暴露隐藏 solver 状态。SDK 审查也未发现 GPU PhysX hidden-state clone/
+restore API，不能用公开 setter 构造严格 twin。
+
+root 选择先做一次低成本 8-env、72-step engineering Probe：env0 baseline，env2/3
+候选，其他 env 为 zero roles；actor 总推理行数固定为 256（每 env 32 copies），
+避免把 group size 与 actor GEMM 行数同时改变。先跑两次 fresh seed282 launch；若
+两次 env0 都不能达到短窗口原生行为，停止 group 扩展并回到 serial frozen-control
+统计设计；若两次通过，再决定是否跑四次完整542-step cluster Probe。所有结果仍为
+`engineering_only`，不修改 Y/reference/policy，也不能替代 docs/user/完整链路.md
+规定的 strict same-state Gate1。

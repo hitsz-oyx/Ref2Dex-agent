@@ -116,6 +116,9 @@ def native_worker(a):
         retained drift diagnostics through the complete bounded window.
         """
         count = int(a.engineering_group_envs)
+        actor_copies = int(a.engineering_actor_copies)
+        if actor_copies < 1:
+            raise ValueError('engineering group actor copies must be positive')
         if player.is_rnn or task.num_envs != count or abs(task.dt - 1 / 30) > 1e-8 \
                 or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2:
             raise ValueError('fixed nonrecurrent synchronous group contract required')
@@ -354,7 +357,7 @@ def native_worker(a):
                     control = torch.as_tensor(prefix_actions[tick], dtype=torch.float32,
                                               device=player.device).view(1, -1).expand(count, -1).clone()
                 else:
-                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
                     control = actor_actions[:1].expand(count, -1).clone()
             elif proposal_enabled:
                 # Generate a complete chunk only at the declared replanning
@@ -382,7 +385,7 @@ def native_worker(a):
                 if proposal_roles == 'candidate':
                     control = proposal_cache[0, chunk_offset].expand(count, -1).clone()
                 else:
-                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
                     base_action = actor_actions[:1].expand(count, -1).clone()
                     control = base_action.clone()
                     control[1] = proposal_cache[1, chunk_offset]
@@ -395,7 +398,7 @@ def native_worker(a):
                 # Keep baseline, zero-repeat, and both candidate arms on the same
                 # control stream through the query. This removes tiny row-wise
                 # GEMM differences and makes the group test an execution-contract probe.
-                actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
                 base_action = actor_actions[:1].expand(count, -1).clone()
                 control = base_action.clone()
             if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
@@ -445,7 +448,8 @@ def native_worker(a):
                           action_chunk_replan_period=proposal_period,
                           action_chunk_semantics='one-shot native18 action chunk; no mid-chunk observation feedback',
                           replay_identity=identity, canonical_state_keys=state_keys,
-                          actor_inference_batch=count, engineering_only=True,
+                          actor_inference_batch=count * actor_copies,
+                          actor_inference_copies=actor_copies, engineering_only=True,
                           group_envs=count, initial_semantic_gap=initial_semantic_gap,
                           initial_semantic_exact=initial_semantic_exact, env_origins=origin_np.tolist(),
                           source_backend=actual_backend, pair_drift=pair_drift,
@@ -682,7 +686,8 @@ def native_worker(a):
             action_chunk_prefix_source=(str(a.prefix) if prefix_actions is not None else None),
             action_chunk_prefix_source_sha256=(sha(a.prefix) if prefix_actions is not None else None),
             replay_identity=identity, canonical_state_keys=state_keys,
-            actor_inference_batch=(1 if proposal_enabled else count * 64),
+            actor_inference_batch=(1 if proposal_enabled else count * actor_copies),
+            actor_inference_copies=(None if proposal_enabled else actor_copies),
             engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
             zero_env_pair=[zero_left, zero_right],
             control_prefix_exact=bool(np.array_equal(packets['actions'][:,zero_left], packets['actions'][:,zero_right])
@@ -708,6 +713,8 @@ def native_worker(a):
         write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop, group_envs=count,
             baseline_zero_exact=not mismatches, mismatches=mismatches, engineering_only=True,
             group_mode=packet['group_mode'], action_chunk_roles=packet['action_chunk_roles'],
+            actor_inference_batch=packet['actor_inference_batch'],
+            actor_inference_copies=packet['actor_inference_copies'],
             elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(), outcome=outcome,
             baseline_max_lift_m=packet['baseline_max_lift_m'], zero_noise_calibration=zero_noise,
             candidate_effect_calibration=candidate_effect, action_calibration=action_calibration,
@@ -1235,6 +1242,8 @@ def main():
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
     p.add_argument('--engineering-group-envs', type=int, default=0,
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
+    p.add_argument('--engineering-actor-copies', type=int, default=64,
+                   help='engineering group only: fixed actor copies per env (4x64 is the legacy 256-row contract)')
     p.add_argument('--engineering-serial-replay', action='store_true',
                    help='native worker only: same-process one-env reset/replay diagnostic, never GT scoring')
     p.add_argument('--engineering-serial-order', choices=('zero-first', 'candidate-first'), default='zero-first',
@@ -1281,6 +1290,8 @@ def main():
         p.error('engineering step cap requires native baseline worker and24..542steps')
     if a.engineering_group_envs and (not a.worker or not a.finish or not 4 <= a.engineering_group_envs <= 96):
         p.error('engineering group requires native baseline worker and4..96 environments')
+    if a.engineering_group_envs and a.engineering_actor_copies < 1:
+        p.error('engineering group actor copies must be positive')
     if a.engineering_serial_replay and (not a.worker or not a.finish or a.engineering_group_envs):
         p.error('serial replay requires a native worker without a synchronous group')
     if a.engineering_serial_replay and (a.engineering_steps < 72 or a.engineering_steps > 542):
