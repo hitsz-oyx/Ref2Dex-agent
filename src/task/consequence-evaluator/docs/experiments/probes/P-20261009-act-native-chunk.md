@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 4064a46
+git_commit: 429d9ff
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: act-native-chunk-engineering-20261009-r15
+run_id: gate1-gpu-group-engineering-20261009-r18
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -155,3 +155,40 @@ The next probe must first pass both gates with a recorded prefix/chunk and
 source hashes. If a nominal chunk cannot retain behavior or a zero pair cannot
 stay within the declared noise tolerances, the ACT candidate route remains
 closed and no PointWorld/evaluator fitting or formal Gate1 ranking is started.
+
+## Multi-zero GPU group follow-up
+
+To test whether a larger same-process group supplies a usable noise floor, r17
+ran the native `gpu_physx_gpu_pipeline` contract with 16 environments for the
+72-step engineering window. The fourteen nominal roles were env0, env1, and
+env4--env15; env2/env3 were reserved for candidates. The saved packet is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r17/group.pkl`.
+Its env0 nominal reached only `0.2536 m` and held 10 frames, so this launch did
+not restore the full GPU grasp behavior.
+
+The follow-up r18 replayed a recorded reactive nominal chunk from that exact
+16-env prefix, selected env1/env4 as the reported zero pair, and added the
+positive/negative residuals only after tick48. The packet is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r18/group.pkl`.
+The selected nominal roles reached `0.2743 m`/12 frames and `0.2617 m`/10
+frames; positive and negative candidate roles reached about `0.253 m`/13 and
+`0.259 m`/9 in the same bounded window. The behavior gate was not evaluated
+for a 72-step packet and `candidate_calibration_valid=false`; these numbers do
+not show behavior parity or candidate success.
+
+The selected pair had small pre-query p95 drift (object pose
+`1.83e-5`, hand `3.29e-6`, q position `8.89e-6`, q velocity `1.43e-3`, and
+history `3.91e-5` in their native units), but max/contact spikes remained. The
+runner now records a common-pair p95 summary rather than combining the best
+pair independently for each field, and requires at least 80% of the common
+zero pairs to meet the field tolerances before a multi-zero gate can pass.
+Offline recomputation of the saved r18 packet gives 62/91 all-field pairs
+(68.1%), so its multi-zero gate is diagnostic/failed. The current packet still
+has selected-pair post-query ratios only; a future multi-zero candidate probe
+must add post-query query-relative noise for every zero pair before it can
+support a candidate comparison.
+
+This keeps the native GPU group as an engineering container, but closes the
+16-env candidate interpretation for this launch. No formal Gate1, GT scoring,
+evaluator fitting, Y/reference-bank change, or policy-weight change follows
+from r17/r18.

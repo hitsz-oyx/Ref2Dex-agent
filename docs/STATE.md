@@ -123,6 +123,20 @@ tick0即不同，之后仍有contact/trajectory drift。短窗口baseline最高2
 不产生仿真结论；r8审计见
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r8/`。
 
+随后做了16-env native GPU multi-zero follow-up。r17的72-step nominal group只达到
+0.2536m/held10；r18用同一16-env prefix录制的reactive nominal chunk，在选定zero
+pair env1/env4下达到0.2743m/12和0.2617m/10，positive/negative约0.253m/13与
+0.259m/9。行为gate在72步没有评估为full542，`candidate_calibration_valid=false`，
+所以这些数不能称baseline保持或candidate成功。选定pair的query前p95较小
+（object1.83e-5、hand3.29e-6、q位置8.89e-6、q速度1.43e-3、history3.91e-5），
+但max/contact仍有尖峰。runner随后改成同一个common pair的p95汇总，并要求至少
+80%的zero pairs同时通过各字段阈值；离线重算r18为62/91=68.1%，multi-zero gate
+失败，只作诊断。当前pairwise仍只含query前统计，尚未形成所有zero pair的post-query
+displacement noise floor；因此不跑正式Gate1、不fit evaluator、不改Y/reference bank/
+policy weights。完整packet见
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r17/`和
+`...-r18/`，实现提交为`429d9ff`（common-pair p95为`e4a97d6`）。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功
