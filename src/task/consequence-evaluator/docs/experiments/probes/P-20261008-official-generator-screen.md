@@ -14,7 +14,7 @@ seeds: [239]
 decision_changed_if_positive: admit the identified official actor as an additional data generator for a separate bounded geometry-audited rollout collection
 decision_changed_if_negative: retain the self-trained expert as the primary generator without an unbounded official-policy search
 status: RUNNING
-run_id: official-generator-screen-20261008-r1
+run_id: official-generator-screen-20261008-r2
 ---
 
 # Can the archived DExplore actor supply useful airplane rollouts?
@@ -66,9 +66,10 @@ Cost: One currently idle GPU0; maximum900s and1GiB per arm (1800s/2GiB total),
 plus one native extension build in repository `tmp/`. Stop on occupied GPU,
 source/checkpoint drift, nonfinite/incomplete clocks, invalid resets or budget.
 No external environment/library/source modifications; no new branch or push.
-The runtime is `dexplore_repro_py38_torch222_cu121` with Torch2.2.2 loaded before
-user-site package fallback. Isaac Gym is supplied via its existing package path;
-installed rl_games1.6.5 is explicitly recorded rather than called upstream1.1.4.
+The working archived runtime is `.runtime_envs/dexplore_v120_train`, with
+Torch2.0.1+cu118, rl_games1.1.4 and compatible torch_cluster. User-site loading is
+disabled. Isaac Gym is supplied via its existing package path. All installed
+environments remain unmodified.
 
 ## Execution and provenance
 
@@ -78,11 +79,22 @@ actor identity, resource bounds and checkpoint hashes are frozen separately in
 each output `run_manifest.json`. The protocol's base commit above precedes the
 diagnostic entry; actual code identity is the runtime manifest's commit.
 
-Run IDs: `official-generator-screen-20261008-r1` and
-`self-trained-generator-screen-20261008-r1`, under `outputs/consequence-evaluator/`.
+Run IDs: `official-generator-screen-20261008-r2` and
+`self-trained-generator-screen-20261008-r2`, under `outputs/consequence-evaluator/`.
 Native transition exports are diagnostic-only and have `training_allowed=false`;
 native actions can be mutated by PD conversion and lack the geometry/known-plan
 contract required by ref4 evaluator examples.
+
+The preserved r1 attempt failed before physics: the user-site rl_games1.6.5
+imports `torch.amp.GradScaler`, unavailable in dedicated Torch2.2.2. The archived
+plan V1.17 identified older dedicated runtimes. Import probes further showed
+the native distillation-task import eagerly requires torch_cluster, whose
+available extension has an incompatible ABI with Torch2.2.2. The preserved
+`.runtime_envs/dexplore_v120_train` provides the complete Torch2.0.1+cu118 /
+rl_games1.1.4 / torch_cluster stack; r2 executes that environment directly.
+Import probe logs are preserved in `tmp/consequence-official-generator/`.
+No r1 episodes were generated. Each r2 arm is capped at800s, keeping the retry group
+within1800s including the failed r1 import/extension-build cost.
 
 ## Limitations and future evidence
 

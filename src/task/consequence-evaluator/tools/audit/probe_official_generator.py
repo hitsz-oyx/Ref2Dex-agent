@@ -19,8 +19,9 @@ TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 OFFICIAL = Path('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/inspire.pth')
 OFFICIAL_SHA = '8f6823db752288f1bddd6d042981d33514e29dac5a68e58726e76215fea6d553'
-RUNTIME = Path('/home2/wyy/miniconda3/envs/dexplore_repro_py38_torch222_cu121')
+RUNTIME = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
 ISAAC = Path('/home2/wyy/isaac-gym/isaacgym/python')
+PACKAGES = RUNTIME/'lib/python3.8/site-packages'
 
 
 class Deadline(BaseException):
@@ -82,16 +83,16 @@ def main():
         raise RuntimeError('disk below20GiB reserve')
     native_root = ROOT/'third_party/DExplore/dexplore'
     helper = ROOT/'src/task/cm-interaction-oracle/tools'
-    # Runtime package precedence is explicit: Torch must come from this conda
-    # environment; user packages are only a fallback for missing rl_games/gym.
+    # The preserved runtime includes a mutually compatible Torch/rl_games/
+    # torch_cluster stack. PYTHONNOUSERSITE prevents newer user packages
+    # shadowing it; neither installed environment is modified.
     sys.dont_write_bytecode = True
     sys.path[:0] = [str(ISAAC),str(native_root),str(ROOT),
                    str(ROOT/'src/task/CmResidual/tools'),str(helper)]
-    sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
     scratch = ROOT/'tmp/consequence-official-generator'
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),
-                      TORCH_EXTENSIONS_DIR=str(scratch/'torch222-extensions'),
+                      TORCH_EXTENSIONS_DIR=str(scratch/'torch201-extensions'),
                       PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2')
     files = [Path(__file__), checkpoint,run/'run_manifest.json',run/'config.json',
              Path(config['input_manifest']),Path(config['cfg_env']),*motions,
@@ -99,6 +100,7 @@ def main():
              *sorted(native_root.rglob('*.py')),
              *sorted(p for p in (native_root/'data/assets').rglob('*') if p.is_file()),
              *sorted((TASK/'src/consequence_evaluator').glob('*.py')),
+             *sorted((PACKAGES/'rl_games').rglob('*.py')),
              ROOT/'src/task/CmResidual/tools/dexplore_ddp_rank_bootstrap.py']
     frozen = {str(path.absolute()): sha(path) for path in files}
     frozen.update(ancestry)
@@ -123,9 +125,13 @@ def main():
         import dexplore_ddp_rank_bootstrap
         import evaluate as native
         import torch
-        if (torch.__version__.split('+')[0] != '2.2.2'
+        if (torch.__version__ != '2.0.1+cu118'
                 or not is_within(Path(torch.__file__),RUNTIME)):
-            raise RuntimeError('dedicated Torch2.2.2 runtime was shadowed')
+            raise RuntimeError('archived Torch2.0.1+cu118 runtime was shadowed')
+        import rl_games
+        if (importlib.metadata.version('rl_games') != '1.1.4'
+                or not is_within(Path(rl_games.__file__),RUNTIME)):
+            raise RuntimeError('archived rl_games1.1.4 runtime was shadowed')
         from consequence_evaluator.native_reset import install_reset_patch
         from consequence_evaluator.qualification import qualify_transitions
         from env.tasks.base_dexplore_task import DexploreTask
@@ -144,6 +150,7 @@ def main():
         native.EvalPlayer = FullStartPlayer
         manifest['runtime'] = dict(python=sys.executable,torch=torch.__version__,
                                    torch_path=torch.__file__,rl_games=importlib.metadata.version('rl_games'),
+                                   rl_games_path=rl_games.__file__,
                                    numpy=importlib.metadata.version('numpy'))
         argv = ['--task','Dexplore_Inspire','--cfg_env',config['cfg_env'],
                 '--cfg_train',str(native_root/'data/cfg/train/rlg/inspire.yaml'),
