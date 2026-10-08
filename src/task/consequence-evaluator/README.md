@@ -48,6 +48,11 @@ perturbed/失败/次优精确progress均mask。三臂另抽相同的train专家�
 route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 observational-only。
 当前 collector 会拒绝不合格路由。已有原始连续数据可用 labeler 的
 `--audit-only` 重算标签与覆盖率；审计输出始终 `training_allowed=false`，不能 prepare/fit。
+collector 同样支持显式 `--audit-only`，仍验证全部六权重的自训练来源和输入hash，
+并强制产物不可训练。审计模式可加 `--target-phase hold`（或其他已有阶段），
+在每个实际motion内跨wave均衡分配clean/目标阶段；完整episode、单次24步残差、
+专家后续反馈和不fork的合同不变。生产模式保留六阶段分配和全部六角色资格门槛。
+用户已明确twin只作工程诊断；后续正式数据始终用ref2连续rollout。
 
 同一 current state 的双分支由 `src/consequence_evaluator/twin.py` 定义
 `ref2dex.consequence-evaluator.twin.v1` 合同：必须保存完整 native task/controller

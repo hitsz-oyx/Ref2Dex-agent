@@ -17,7 +17,11 @@ class PhaseAssignments:
     environment layout with a global modulo-six phase schedule. This records
     intended coverage only: an assigned state may never be reached.
     """
-    def __init__(self, seed):
+    def __init__(self, seed, phases=PHASES):
+        phases = tuple(phases)
+        if not phases or len(set(phases)) != len(phases) or any(p not in PHASES for p in phases):
+            raise ValueError('distinct supported target phases required')
+        self.codes = np.asarray([0, *(PHASES.index(p)+1 for p in phases)], dtype='int64')
         self.rng = np.random.default_rng(seed)
         self.counts = {}
 
@@ -30,7 +34,7 @@ class PhaseAssignments:
             ids = self.rng.permutation(np.flatnonzero(motions == motion))
             key = str(motion)
             start = self.counts.get(key, 0)
-            result[ids] = (start + np.arange(len(ids))) % (len(PHASES)+1)
+            result[ids] = self.codes[(start + np.arange(len(ids))) % len(self.codes)]
             self.counts[key] = start+len(ids)
         return result
 

@@ -10,7 +10,10 @@ consequence-evaluator 用户新增的H匹配、最小唯一配对覆盖和重放
 低于8/4/4；没有启动evaluator fit。独立native twin r4（a7d5146/GPU0）通过：
 三fresh进程同前缀状态/RNG精确一致、repeat全部future/action/done/native状态一致，
 请求/实际control L2分别0.75865/1.14996。它是engineering_only且不可训练，
-不改变ref2 continuous schema或科学结论；下一步仍需单独固定配对采集协议。
+不改变ref2 continuous schema或科学结论。用户明确保留连续rollout、不fork；
+twin只作工程诊断。对全部可比较窗口穷举后，物理匹配候选4/1/3、加H仍为1/1/1，
+配对选择器未漏掉合格episode pair。下一步只做不可训练的连续保持阶段定向诊断，
+核对合格飞机专家的局部反例和匹配覆盖，不放宽生产资格或状态阈值。
 124项Task测试及verify通过；原始失败run、用户其他修改均保留。
 GPU1/2的三源PointWorld继续原冻结配方与50000步/10:00绝对截止预算。
 详见[配对覆盖卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md)。

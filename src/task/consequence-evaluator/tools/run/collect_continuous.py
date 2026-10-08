@@ -79,7 +79,13 @@ def main():
     p.add_argument('--seconds', type=int, default=900)
     p.add_argument('--max-steps', type=int, default=1200)
     p.add_argument('--amplitude', type=float, default=.08)
+    p.add_argument('--audit-only', action='store_true',
+                   help='collect observational diagnostics; output can never be used for fitting')
+    p.add_argument('--target-phase', choices=('all', *PHASES), default='all',
+                   help='audit-only clean/target-stage allocation; all retains the production schedule')
     a = p.parse_args()
+    if a.target_phase != 'all' and not a.audit_only:
+        p.error('focused stage allocation requires --audit-only')
     if (not 1 <= a.waves <= 4 or not 6 <= a.num_envs <= 64 or not 1 <= a.seconds <= 900
             or not 24 <= a.max_steps <= 1200 or not 0 < a.amplitude <= .2):
         p.error('bounded collection: <=4waves, <=64envs, <=900s, <=1200steps')
@@ -89,7 +95,7 @@ def main():
     config = json.loads(a.route_config.read_text())
     if len(config['experts']) != 6 or len({s['sha256'] for s in config['experts'].values()})!=6:
         raise ValueError('fixed six-expert route required')
-    if (config.get('training_allowed') is not True
+    if not a.audit_only and (config.get('training_allowed') is not True
             or config.get('all_experts_operationally_qualified') is not True):
         raise ValueError('expert route is observational-only; all six experts must be operationally qualified before collection')
     frozen = {str(a.route_config.resolve()): digest(a.route_config),
@@ -176,9 +182,10 @@ def main():
     manifest = dict(schema=EPISODE_SCHEMA, status='RUNNING',
                     git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
                     work_version='consequence-evaluator-ref2', run_id=output.name, pid=os.getpid(),
-                    task='consequence-evaluator', rollout_kind='continuous', training_allowed=True,
+                    task='consequence-evaluator', rollout_kind='continuous', training_allowed=not a.audit_only,
+                    audit_only=a.audit_only, target_phase=a.target_phase,
                     route_sha256=digest(a.route_config),
-                    all_experts_operationally_qualified=True,
+                    all_experts_operationally_qualified=config.get('all_experts_operationally_qualified') is True,
                     fps=30, units='m', horizon=24, execution_horizon=8, seed=a.seed, split=a.split,
                     physical_gpu=a.gpu, sources=frozen, seconds_budget=a.seconds, waves=a.waves,
                     max_steps=a.max_steps,action_semantics=ACTION_SEMANTICS,
@@ -229,7 +236,8 @@ def main():
                 return dict(q=task._dof_pos.detach().cpu().numpy().copy(),
                             hand_keypoints=points.cpu().numpy(),surface_gap=gap.cpu().numpy(),
                             hand_root=task._humanoid_root_states.detach().cpu().numpy().copy())
-            assignments = PhaseAssignments(a.seed)
+            selected_phases = PHASES if a.target_phase == 'all' else (a.target_phase,)
+            assignments = PhaseAssignments(a.seed, phases=selected_phases)
             for wave in range(a.waves):
                 check()
                 if self.observation_router is not None:
@@ -311,7 +319,8 @@ def main():
                     group['assigned'][phase] = group['assigned'].get(phase,0)+1
                     if record['perturbation_tick'] >= 0:
                         group['triggered'][phase] = group['triggered'].get(phase,0)+1
-                manifest['assignment_semantics'] = 'seeded per-current-motion rotation across waves'
+                manifest['assignment_semantics'] = 'seeded per-current-motion clean/target-phase rotation across waves'
+                manifest['assignment_phases'] = ['clean', *selected_phases]
                 manifest['phase_coverage'] = coverage
                 write(output/'manifest.json', manifest)
     native = ['--task','Dexplore_Inspire','--cfg_env',str(a.cfg_env.resolve()),

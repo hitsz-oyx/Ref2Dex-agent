@@ -10,7 +10,7 @@ claim_id: C3
 hypothesis_family: HF-consequence-oracle-headroom
 probe_index_in_family: 2
 seed_pool: probe
-seeds: [296, 297, 298]
+seeds: [296, 297, 298, 299]
 decision_changed_if_positive: use the unchanged local-state preference contract for a fresh matched evaluator fit
 decision_changed_if_negative: keep evaluator fitting paused and redesign collection around explicitly repeated current states
 status: UNCLEAR
@@ -24,9 +24,10 @@ nonempty-split rule, with only 2/1/5 train/val/test pairs. Under the current
 contract it is observational-only: pair matching also requires history `H`, and
 fit requires at least 8/4/4 distinct episode pairs. Physical geometry remains
 valid, but the sample is not fit-ready.
-Decision: Stop before fitting and keep the route gate closed; specify explicit
-twin current-state branches before collecting another evaluator dataset. Do not
-relax hand RMS or add generic waves.
+Decision: Stop before fitting and keep the route gate closed. The user has
+explicitly retained ref2 continuous rollout without forks; twin is engineering
+diagnosis only. Diagnose continuous phase coverage without relaxing state
+thresholds or adding generic waves.
 
 ## Purpose and decision
 
@@ -178,3 +179,41 @@ schema conversion, evaluator fitting or further generic waves occurred.
 formal collection; twin remains engineering diagnosis only. Subsequent work
 must address continuous observational coverage and may not switch these data
 to twin supervision.
+
+## Continuous phase-capacity audit and focused Decision Note
+
+The CPU-only exhaustive diagnostic is
+`outputs/consequence-evaluator/continuous-phase-capacity-20261008-r1/report.json`.
+It pins the existing label manifest and inspects every selected, unambiguous
+event window with the current fixed state rule. Physical matches allow 4/1/3
+unique episode pairs, but adding H leaves exactly 1/1/1, equal to the labeler's
+selected coverage. Thus the selector did not discard additional eligible
+episode pairs. The audit finishes in 7.24 s; it is diagnostic-only and cannot
+authorize a fit.
+
+Question: does focused continuous allocation to a qualified airplane expert's
+hold stage create comparable positive/negative windows, or is independent
+rollout matching still too sparse? This serves the ref2 oracle-headroom input
+blocker, not an online Cm claim. If coverage appears, specify fresh production
+collection with its qualification scope intact; if it does not, inspect the
+recorded phase reach/dose/state mismatches before spending more rollout budget.
+
+Root decision: one bounded, **audit-only** continuous run on the restored
+`s3_airplane_lift` motion, existing six-role route and unchanged owned weights.
+Use idle GPU 0, seed 299 (Probe pool), 24 environments, two waves, amplitude
+0.08, <=1200 steps/episode, <=900 s and <=2 GiB output. Within the actual
+motion, half the episodes are clean and half receive one hold-triggered
+24-step smooth residual; all run independently from reference frame zero
+through termination with expert feedback, never fork/replay a branch. Keep
+geometry, H, events and abstention thresholds fixed. Six actor hashes and
+ancestry are still mandatory; the unqualified route and all audit outputs
+remain `training_allowed=false`. No new expert training, model fit or
+qualification bypass in production is authorized.
+
+Fresh raw output:
+`outputs/consequence-evaluator/continuous-hold-audit-20261008-r1/`.
+Read-only labeling output:
+`outputs/consequence-evaluator/labeled-hold-audit-20261008-r1/`.
+Stop on input drift, foreign GPU use, budget exhaustion, partial episode or
+failed native geometry. Training and formal data gates stay closed regardless
+of this diagnostic's pair count; there is no new external permission boundary.

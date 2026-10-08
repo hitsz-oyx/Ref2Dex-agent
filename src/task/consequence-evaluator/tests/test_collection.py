@@ -89,6 +89,25 @@ def test_phase_rotation_tracks_actual_motion_changes_without_future_state():
         Perturbations(3,5,assignment=[0,1,6])
 
 
+def test_hold_focus_uses_native_hold_code_and_balances_each_motion_across_waves():
+    schedule = PhaseAssignments(299, phases=('hold',))
+    first = schedule.assign([0,0,0,1])
+    second = schedule.assign([0,0,0,1])
+    assert set(first) <= {0,5} and set(second) <= {0,5}
+    assert sorted(np.concatenate((first[:3],second[:3]))) == [0,0,0,5,5,5]
+    assert {first[-1],second[-1]} == {0,5}
+    for phases in ((), ('hold','hold'), ('unknown',)):
+        with pytest.raises(ValueError,match='target phases'):
+            PhaseAssignments(299,phases=phases)
+    perturb = Perturbations(2,299,assignment=[0,5])
+    for tick in range(6):
+        _, _, info = perturb.apply(np.zeros((2,18)),np.full(2,.04),np.ones(2,bool),
+                                  np.zeros(2),tick,np.full(2,100),np.ones(2,bool))
+        if tick < 5:
+            assert not info['perturbing'].any()
+    assert perturb.started.tolist() == [-1,5]
+
+
 def test_native_xyzw_translation_and_rotation():
     state = root_state(.3)
     state[3:7] = [0, 0, np.sqrt(.5), np.sqrt(.5)]
@@ -159,7 +178,8 @@ def test_episode_alignment_and_no_second_episode_append():
 
 
 @pytest.mark.parametrize('tensor_step_observation',[False,True])
-def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(tmp_path,tensor_step_observation):
+@pytest.mark.parametrize('target_phase',['all','hold'])
+def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(tmp_path,tensor_step_observation,target_phase):
     """Run the actual Collector class extracted without GPU-only module imports."""
     path = TASK/'tools/run/collect_continuous.py'
     tree = ast.parse(path.read_text())
@@ -214,7 +234,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
             return observation if tensor_step_observation else {'obs':observation},torch.zeros(n),done,{}
         def _post_step(self, info):
             pass
-    a=SimpleNamespace(num_envs=n, waves=1,seed=7,amplitude=.08,max_steps=100,split='train')
+    a=SimpleNamespace(num_envs=n, waves=1,seed=7,amplitude=.08,max_steps=100,split='train',target_phase=target_phase)
     manifest={'episodes':[]}
     frozen={str((ROOT/'third_party/DExplore/dexplore/evaluate.py').resolve()):'engineering-only'}
     (tmp_path/'diagnostics').mkdir()
@@ -233,6 +253,8 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
     namespace['Collector']().run()
     assert len(reset_calls)==1 and len(controls)==70
     assert len(manifest['episodes'])==6
+    if target_phase == 'hold':
+        assert sorted(r['assigned_phase'] for r in manifest['episodes']) == ['clean']*3+['hold']*3
     assert task._hybrid_init_prob==1.
     for env, record in enumerate(manifest['episodes']):
         with np.load(tmp_path/record['path']) as packet:
@@ -264,6 +286,23 @@ def test_real_cli_rejects_missing_expert_before_gpu_or_isaac_import(tmp_path):
     result=subprocess.run(command,capture_output=True,text=True,env=env,timeout=10)
     assert result.returncode!=0 and 'observational-only' in result.stderr
     assert 'AttributeError' not in result.stderr and not output.exists()
+
+
+def test_audit_collection_still_checks_all_six_checkpoint_hashes_before_native_import(tmp_path):
+    route=tmp_path/'route.json'
+    route.write_text(json.dumps(dict(training_allowed=False,all_experts_operationally_qualified=False,
+        experts={str(i):dict(checkpoint='missing-'+str(i),sha256=str(i)*64) for i in range(6)})))
+    output=ROOT/'outputs/consequence-evaluator'/('audit-missing-expert-'+tmp_path.name)
+    command=[sys.executable,str(TASK/'tools/run/collect_continuous.py'),
+        '--route-config',str(route),'--asset-root',str(tmp_path),
+        '--motions',str(tmp_path/'missing-motion'),'--cfg-env',str(tmp_path/'missing-env.yaml'),
+        '--cfg-train',str(tmp_path/'missing-train.yaml'),'--output',str(output),
+        '--gpu','0','--seed','299','--split','train','--target-phase','hold']
+    rejected=subprocess.run(command,capture_output=True,text=True,timeout=10)
+    assert rejected.returncode!=0 and 'requires --audit-only' in rejected.stderr
+    audited=subprocess.run([*command,'--audit-only'],capture_output=True,text=True,timeout=10)
+    assert audited.returncode!=0 and 'missing self-trained expert' in audited.stderr
+    assert not output.exists() and 'isaacgym' not in audited.stderr
 
 
 def test_real_training_entry_rejects_occupied_gpu_before_data_or_model(tmp_path,monkeypatch):
