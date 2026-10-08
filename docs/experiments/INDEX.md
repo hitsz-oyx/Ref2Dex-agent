@@ -35,6 +35,13 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-conditional-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-conditional-consequence.md) | Can predicted action consequences retain oracle task information? | UNCLEAR: action-sensitive I predictions, but A/B/C fail; predicted consequences retain31.18% oracle gain without stable added value over dir | Preserve action sensitivity; stop this fixed fit without selector/PPO, diagnose generalization rather than append epochs or rescue with shuf | probes/UNCLEAR |
 
+## HF-consequence-act-proposal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261009-act-deployment-conditioned](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-deployment-conditioned.md) | Does deployment-conditioned history improve the native 24-step proposal? | 见原卡 | 见原卡 | probes/PROMISING |
+| [P-20261009-act-native-chunk](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-native-chunk.md) | Does a one-shot native 24-step proposal have a usable behavior contract? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-consequence-baseline-rebuild
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -158,6 +165,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-early-hold-duration](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-early-hold-duration.md) | Does longer feedback-residual execution change grasp-retention information? | 1006 full randomized windows; dose and support pass, but no duration-sensitive retention-I gate; hand displacement responds while I16/contac | Close K4/8/16 feedback-residual extension after independent review; no Cm fitting, extra duration/seed or selector. | probes/UNPROMISING |
+
+## HF-native-gpu-execution-contract
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261009-gpu-cuda-sync](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-cuda-sync.md) | CUDA synchronisation as a native GPU replay probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-oakink2-action-effect-wm30
 
@@ -473,4 +486,5 @@
 | [PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT](probes/PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT.md) | Cm 效应头的动作对应关系 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-COMPONENTS](probes/PROBE-20260923-CM-WEIGHT-COMPONENTS.md) | Cm PPO 权重分量离线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

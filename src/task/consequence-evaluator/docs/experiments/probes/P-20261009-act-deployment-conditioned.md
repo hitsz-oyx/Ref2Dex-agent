@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-deployment-conditioned
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: 94ef7df
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 2
@@ -14,7 +14,7 @@ seeds: [20261009, 20261010]
 decision_changed_if_positive: collect more native reactive-deployment episodes before any ACT behavior screen
 decision_changed_if_negative: close the direct ACT proposal route until a new execution contract exists
 status: PROMISING
-run_id: act-native-chunk-deployment-20261009-r2
+run_id: act-native-chunk-deployment-20261009-r3
 ---
 
 # Does deployment-conditioned history improve the native 24-step proposal?
@@ -49,13 +49,13 @@ train the evaluator, or authorize any Gate1--Gate5 claim.
 ## Results
 
 The bounded GPU2 fit completed in about 21 seconds per two-fold run without
-foreign GPU interference. The corrected-provenance run is
-`outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r2/`.
+foreign GPU interference. The corrected, no-validation-leakage run is
+`outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r3/`.
 
 | train launch | held-out launch | fitted MSE | fitted first-action MAE | clean checkpoint MSE | route-s3 checkpoint MSE |
 | --- | --- | ---: | ---: | ---: | ---: |
-| r33 | r34 | `1.776e-4` | `0.00582` | `2.017e-3` | `3.963e-4` |
-| r34 | r33 | `1.726e-4` | `0.00609` | `1.932e-3` | `3.532e-4` |
+| r33 | r34 | `1.902e-4` | `0.00542` | `2.017e-3` | `3.963e-4` |
+| r34 | r33 | `1.827e-4` | `0.00521` | `1.932e-3` | `3.532e-4` |
 
 The fitted proposal beats both fixed references and the train-launch mean
 baseline on both held-out launches. The result is `PROMISING` for
@@ -80,7 +80,7 @@ execution contract or an explicitly approved change of claim.
 python3 src/task/consequence-evaluator/tools/audit/fit_deployment_action_chunk.py \
   --packet outputs/consequence-evaluator/gate1-gpu-serial-cluster-20261009-r33/serial-cluster.pkl \
   --packet outputs/consequence-evaluator/gate1-gpu-serial-cluster-20261009-r34/serial-cluster.pkl \
-  --output outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r2 \
+  --output outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r3 \
   --gpu 2 --steps 1200 \
   --reference outputs/consequence-evaluator/act-native-chunk-clean-airplane-base-20261009-r1/action_chunk.pt \
   --reference outputs/consequence-evaluator/act-native-chunk-route-s3-engineering-20261009-r1/action_chunk.pt

@@ -1300,6 +1300,22 @@ checkpoint，下一步才值得收集更多 reactive deployment distribution；�
 关闭该 route-conditioned proposal 路线。该 Probe 不运行仿真、不改变 Y/reference/
 policy、不训练 evaluator，结果仍为 engineering-only。
 
+该离线 Probe 已完成，代码提交 `94ef7df`，产物为
+`outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r3/`。使用 r33/r34
+两个 serial-cluster 的 `reactive_teacher`，每个 launch 13 个 stride-4、非跨 episode
+窗口；每折只在另一个 launch 上评估，standardizer 只由训练 launch 拟合，模型选择也只看
+训练 launch（修复了初版用 held-out MSE 选 checkpoint 的 validation leakage）。r33→r34
+held-out MSE `1.902e-4`、first-action MAE `0.00542`，r34→r33 为
+`1.827e-4`/`0.00521`；均优于 clean checkpoint 的 `1.932--2.017e-3` 和
+route-s3 checkpoint 的 `3.532--3.963e-4`。两次 launch 的 physics/controller/backend
+identity 与 arm schedule 均显式相同，GPU2 运行约21秒、显存约361--369MiB。
+
+因此 deployment-conditioned proposal 在动作空间标为 `PROMISING`，但每折只有一个
+launch、13 个重叠窗口，不能形成泛化、行为、utility 或 Gate1 证据。该结果只保留“未来
+若获得预算，先收集更多 native reactive-deployment episodes 再拟合 proposal”的工程
+方向；不启动新的 ACT candidate/serial simulation，不fit evaluator，不进入 PointWorld。
+严格 Gate1 仍等待可验证的 PhysX hidden-state fork/restore 或新的执行合同。
+
 ### Clean-only continuous source audit
 
 上一条 offline Probe 暴露了 continuous loader 的来源漏洞：`unlabeled` episode 也可能
