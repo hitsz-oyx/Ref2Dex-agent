@@ -36,6 +36,11 @@ moving h24 point EPE17.805mm vs persistence63.704mm; sampled near-static
 anchors22.160mm vs0.356mm. Keep these outcomes separate. Source FPS is still
 unverified; this is no-fit nominal-clock inference, not a formal0.8second
 external test. HOCap remains outside training/statistics/checkpoint selection.
+On the exact same frozen panels, the earlier Oak-only latest10000 gives
+moving h24 EPE22.421mm versus mixed17.805mm (20.59% reduction), while
+near-static worsens8.039→22.160mm. This historical endpoint comparison
+confounds mixed data with64250additional updates and batch/loss changes;
+it does not isolate data-mixture benefit. Both fixed endpoints are preserved.
 
 The upstream encoder source is pinned as the `third_party/PointWorld` Git
 submodule at `05484826dfef74cbe278a3974179a5a16705d35d`. After cloning this

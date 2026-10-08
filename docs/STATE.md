@@ -22,6 +22,16 @@ vs基线0.356mm，存在明显虚假运动；不能用总体均值掩盖。源�
 未调参、未换checkpoint；进程已退出/GPU0释放。
 [协议与分层误差](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md)。
 
+同一HOCap冻结192窗口补测Oak-only latest10000与混合latest50000：
+GPU1/a3139fb的r3在40.990秒完成，1323输入哈希通过，混合版复现此前结果，
+全部进程退出。128运动窗口h24点EPE22.421→17.805mm（降低20.59%）；
+自然64窗口24.675→20.346mm（降低17.55%），但其中17近静止窗口
+8.039→22.160mm（2.756倍），虚假运动加重。保留运动收益与近静止退化分别汇报。
+两版相同模型/归一化；混合版额外64250更新及loss/batch变化，不能把差异单独
+归因于混合数据。原始FPS仍未知，仅帧索引Probe/UNCLEAR，不证明Cm策略收益。
+两次工程复现阈值失败原样保留；GPU亚微米数值波动修正为1微米/1微弧度复现检查，
+没有改预测、拟合、调参或选择checkpoint；5项合同/回放测试及verify通过。
+
 ## 2026-10-08 迁入 main 开发
 
 用户授权将 consequence-evaluator 的已提交历史和当前用户/并行 agent 修改一起

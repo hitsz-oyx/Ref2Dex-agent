@@ -13,7 +13,7 @@ spec.loader.exec_module(comparison)
 sys.path.pop(0)
 
 
-def test_replay_tolerates_small_rotation_roundoff_without_relaxing_point_error():
+def test_replay_allows_roundoff_but_rejects_material_distance_or_angle_drift():
     point = 'model/anchor/cat0/h24/point_epe'
     angle = 'model/anchor/cat0/h12/rotation'
     original = {point: .017804544, angle: .105076998}

@@ -101,7 +101,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-hocap-frame-generalization](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md) | Can the fixed main-three model predict HOCap beyond a static baseline? | Fixed latest50000 completes192windows: moving128 h24 model17.805mm vs static63.704mm; natural64 model20.346mm vs54.985mm, but its17near-stat | Preserve motion gain and near-static false-motion failure separately; keep this frame-index Probe UNCLEAR, resolve the original clock before | probes/UNCLEAR |
+| [P-20261008-hocap-frame-generalization](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md) | Can the fixed main-three model predict HOCap beyond a static baseline? | Fixed mixed endpoint improves moving h24 EPE22.421→17.805mm versus Oak-only (20.59%), but near-static worsens8.039→22.160mm. Same192windows; | Preserve moving-window endpoint benefit and near-static regression separately; no causal data-mixture claim due to extra training/loss chang | probes/UNCLEAR |
 
 ## HF-hold-duration-response
 

@@ -19,8 +19,8 @@ run_id: hocap-frame-eval-20261008-r1
 
 # Can the fixed main-three model predict HOCap beyond a static baseline?
 
-Result: Fixed latest50000 completes192windows: moving128 h24 model17.805mm vs static63.704mm; natural64 model20.346mm vs54.985mm, but its17near-static anchors worsen22.160mm vs0.356mm. Clock remains unverified.
-Decision: Preserve motion gain and near-static false-motion failure separately; keep this frame-index Probe UNCLEAR, resolve the original clock before formal testing, and do not tune on HOCap.
+Result: Fixed mixed endpoint improves moving h24 EPE22.421→17.805mm versus Oak-only (20.59%), but near-static worsens8.039→22.160mm. Same192windows; clock unverified.
+Decision: Preserve moving-window endpoint benefit and near-static regression separately; no causal data-mixture claim due to extra training/loss changes. Keep HOCap frozen and resolve clock before formal testing.
 
 ## Motivation and frozen comparison
 
@@ -151,6 +151,59 @@ r2 FAILED. A1micrometre/1microradian replay tolerance is appropriate for
 this millimetre-scale endpoint comparison; freeze it for r3, retaining the
 original deadline. This numerical gate correction does not change datasets,
 weights, reported metrics or the moving-versus-static interpretation.
+
+### Completed Oak-only versus mixed comparison
+
+Run `hocap-oak-vs-mixed-20261008-r3` at code
+`a3139fb864e9c0b9e876b38ef6141457409775ab`, GPU1/PID2822122, completes
+in40.990seconds within the original r1deadline. Both checkpoints strictly
+load; same inference configuration and training-only normalization. All1323
+input/source hashes pass final verification; static controls match exactly.
+Mixed replay maximum distance difference9.70e-8m and angular2.09e-7rad,
+well within the1micrometre/1microradian check. Primary moving and natural
+h24 point means match the first HOCap evaluation exactly. Five schema/replay
+tests and changed-file verification pass. Process exits/GPU1 is released.
+
+Moving128windows, same64sequences/9subjects, anchor512surface EPE in mm:
+
+| Future frame | Oak-only latest10000 | Mixed latest50000 | Error reduction |
+| --- | ---: | ---: | ---: |
+| 1 | 1.161 | 1.052 | 9.44% |
+| 4 | 4.025 | 3.134 | 22.14% |
+| 8 | 6.922 | 5.696 | 17.72% |
+| 12 | 10.500 | 8.484 | 19.20% |
+| 24 | 22.421 | 17.805 | 20.59% |
+
+Natural64windows, frozen near-hand sequence-balanced sample:
+
+| Stratum, h24 | Windows | Oak-only mm | Mixed mm | Persistence mm |
+| --- | ---: | ---: | ---: | ---: |
+| All | 64 | 24.675 | 20.346 | 54.985 |
+| Moving | 47 | 30.692 | 19.690 | 74.744 |
+| Near-static | 17 | 8.039 | 22.160 | 0.356 |
+
+Overall natural error falls17.55%; its moving subset falls35.85%, but the
+near-static error rises175.65% (2.756times). Near-static is worse at every
+reported horizon, not just the endpoint. Both models underperform persistence
+there. Moving endpoint center error17.488→15.462mm, rotation16.084→10.672deg;
+the point improvement combines translation and rotation gains.
+
+Interpretation: the current mixed-trained endpoint is PROMISING for moving
+external hand-object prediction, with a clear near-static false-motion
+regression. Overall experiment stays UNCLEAR because the original clock is
+unverified. The historical contrast cannot separate adding GRAB/ARCTIC/earlier
+ContactPose from64250additional updates, changed effective batch and physical
+loss normalization. It provides no robot-policy/Cm utility claim. No fitting,
+hyperparameter/threshold selection for model inference or test-based checkpoint
+choice took place. The numerical replay gate was corrected transparently;
+all failed runs and raw metrics remain available.
+
+Observed GPU1 sampled driver memory peak713MiB and utilization15–26% during
+inference, returning to2MiB/0% after exit. Microbatch2, workers0 and guarded
+CPU loading make this small fixed-panel inference low-utilization; this is not
+a training-throughput benchmark. CUDA allocator peak378.80MiB/reserved390MiB.
+Full metrics, identities and GPU samples:
+`outputs/cm-pointflow-effect-pretrain/hocap-oak-vs-mixed-20261008-r3/`.
 
 Run `hocap-frame-eval-20261008-r1` used code `8f857ae`, GPU0, PID2769220,
 seed228 and the original latest50000 checkpoint trained at `9019fd4`.
