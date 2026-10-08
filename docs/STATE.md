@@ -1219,3 +1219,14 @@ root 选择先做一次低成本 8-env、72-step engineering Probe：env0 baseli
 统计设计；若两次通过，再决定是否跑四次完整542-step cluster Probe。所有结果仍为
 `engineering_only`，不修改 Y/reference/policy，也不能替代 docs/user/完整链路.md
 规定的 strict same-state Gate1。
+
+该 Probe 已在 `01c085a` 下运行一次（r31），使用原生 GPU PhysX/GPU pipeline、seed282、
+8 env、32 copies/env（总 actor rows=256）、72 steps。初始 semantic state exact，所有
+角色 query 前 controls/done exact，但 env0 最高仅 `0.1439m`、held8；env1 zero 为
+`0.1537m`、held8，候选角色几乎不抬升。相同 packet 的 zero-role query 前 object
+p95 约 `9.37e-4m`，q velocity p95 约 `0.151`，history p95 `0.0231`；query 后
+object displacement p95 约 `0.200m`，candidate effect 未形成稳定 margin。TCC 只读审计
+的 progress-start range 为 `1.86e-4`，严格 contract 失败，deadzone 选择 baseline。
+因为单次短窗口已低于预设 `0.20m` 筛查线，按停止条件不再跑第二个 8-env launch，关闭
+group 扩展；r31 及其 audit 仅保留 engineering evidence，下一步回到 serial
+frozen-control/launch-level statistical design 的决策，不进入 formal Gate1/evaluator。

@@ -420,3 +420,23 @@ calibration. Passing the short screen would justify four full542-step launch clu
 it would still require launch-level paired statistics before candidate ranking. Hidden
 PhysX state remains outside the public Isaac Gym API, so these packets cannot enter the
 strict scorer.
+
+### r31 short screen
+
+The fixed-row implementation was run once at commit `01c085a` with seed282,
+eight environments, 32 actor copies per environment, and a 72-step bounded
+window. The initial semantic tensors were exact and every role received the
+same prefix controls and done flags. That did not preserve the usable native
+behavior: env0 reached only `0.1439 m` maximum lift and held 8 frames; the
+selected zero env reached `0.1537 m`/8, while candidate roles were essentially
+flat. Query-relative zero noise was already large (object pose displacement
+p95 about `0.200 m`, q velocity p95 about `0.151`, history p95 `0.0231`).
+The frozen TCC audit had progress-start range `1.86e-4` and selected baseline
+after the deadzone. The packet and read-only audits are in
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r31/`
+and its `r31-audit` sibling.
+
+This launch crossed the predeclared stop line (`tick72` lift below `0.20 m`),
+so no second 8-env launch or 542-step group panel was run. The group expansion
+is closed; the result is engineering evidence only and does not enter strict
+Gate1, evaluator training, or PointWorld.
