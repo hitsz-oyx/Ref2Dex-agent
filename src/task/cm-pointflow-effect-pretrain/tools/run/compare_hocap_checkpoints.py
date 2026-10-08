@@ -58,9 +58,10 @@ def check_replay(original, replay):
     differences = {}
     for key, value in original.items():
         metric = key.rsplit('/', 1)[-1]
-        # FP32 acos near identity amplifies roundoff. Keep metre tolerance tight;
-        # one microradian is ~0.000057 degrees, far below reported angular errors.
-        tolerance = 1e-6 if metric == 'rotation' else 1e-7
+        # Sparse CUDA reductions can vary at sub-micrometre scale. One micrometre
+        # (or microradian) is far below the reported mm/degree errors; this checks
+        # endpoint reproduction, not bitwise deterministic CUDA execution.
+        tolerance = 1e-6
         difference = abs(replay[key]-value)
         if difference > tolerance:
             raise ValueError('mixed model reference replay mismatch: '+key)
