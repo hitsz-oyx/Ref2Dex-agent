@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import pickle
+import re
 import shutil
 import subprocess
 import sys
@@ -97,6 +98,19 @@ def native_worker(a):
     normalize_properties = properties_module.normalize_properties
     config = json.loads((a.run_dir / 'config.json').read_text())
     trained = json.loads((a.run_dir / 'run_manifest.json').read_text())
+    cfg_env = Path(config['cfg_env']).resolve()
+    if a.engineering_env_spacing is not None:
+        text = cfg_env.read_text()
+        replacement, count = re.subn(
+            r'(?m)^(\s*envSpacing:\s*)[-+0-9.eE]+(\s*(?:#.*)?$)',
+            r'\g<1>%s\g<2>' % format(a.engineering_env_spacing, '.9g'), text)
+        if count != 1:
+            raise ValueError('engineering env-spacing override expected one envSpacing entry, got %d' % count)
+        spacing_root = ROOT / 'tmp/consequence-official-generator'
+        spacing_root.mkdir(exist_ok=True, parents=True)
+        cfg_env = spacing_root / ('inspire-engineering-spacing-%s.yaml' %
+                                  format(a.engineering_env_spacing, '.9g').replace('.', '_'))
+        cfg_env.write_text(replacement)
     expected = load(a.prefix) if a.prefix else None
     replay_chunk_packet = load(a.action_chunk_replay) if a.action_chunk_replay else None
     query = a.query_tick
@@ -151,7 +165,11 @@ def native_worker(a):
         if a.action_chunk_replay is not None:
             proposal_roles = a.action_chunk_roles
         proposal_trace = []
-        query = 48
+        # The historical group probe used tick48, but exposing the query
+        # boundary lets an engineering probe test a prefix that ends before
+        # the first native contact-cache divergence.  A zero CLI value keeps
+        # the established tick48 contract.
+        query = int(a.query_tick or 48)
         if a.action_chunk_checkpoint is not None:
             from consequence_evaluator.action_chunk import EXECUTED_ACTION_SEMANTICS, NativeActionChunkProposal
             payload = torch.load(a.action_chunk_checkpoint, map_location='cpu')
@@ -258,6 +276,9 @@ def native_worker(a):
                 raise ValueError('native backend contract drift for %s: expected %r, got %r' %
                                  (key, expected_backend[key], actual_backend[key]))
         identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), backend=actual_backend)
+        identity['environment'] = dict(cfg_env_sha256=sha(cfg_env),
+                                       env_spacing_override=a.engineering_env_spacing)
+        identity['query_tick'] = query
         identity['actor_execution'] = dict(
             layout='environment_rows_then_fixed_copies',
             copies=actor_copies,
@@ -269,6 +290,8 @@ def native_worker(a):
                     or replay_identity.get('controller_hash') != identity['controller_hash']
                     or replay_identity.get('physics_hash') != identity['physics_hash']
                     or replay_identity.get('backend') != identity['backend']
+                    or replay_identity.get('environment') != identity['environment']
+                    or replay_identity.get('query_tick') != identity['query_tick']
                     or replay_identity.get('actor_execution') != identity['actor_execution']
                     or replay_chunk_packet.get('seed') != a.seed):
                 raise ValueError('native action-chunk replay provenance does not match current actor/backend')
@@ -281,6 +304,8 @@ def native_worker(a):
                     or prefix_identity.get('controller_hash') != identity['controller_hash']
                     or prefix_identity.get('physics_hash') != identity['physics_hash']
                     or prefix_identity.get('backend') != identity['backend']
+                    or prefix_identity.get('environment') != identity['environment']
+                    or prefix_identity.get('query_tick') != identity['query_tick']
                     or prefix_identity.get('actor_execution') != identity['actor_execution']):
                 raise ValueError('candidate prefix provenance does not match current native actor/backend')
             if (not np.isfinite(prefix_actions).all() or np.abs(prefix_actions).max() > 1 + 1e-6):
@@ -672,11 +697,11 @@ def native_worker(a):
                             else 'env0 ACT open-loop24 proposal')
             candidate_plan_semantics = (
                 'baseline/zero/positive/negative; %s is broadcast to all envs, '
-                'then positive/negative residuals fork at tick48 for24 steps' % nominal_text)
+                'then positive/negative residuals fork at tick%d for24 steps' % (nominal_text, query))
         else:
             candidate_plan_semantics = (
                 'baseline/zero/positive/negative; env0 actor control is broadcast to all envs, '
-                'then positive/negative fork at tick48 for24 steps')
+                'then positive/negative fork at tick%d for24 steps' % query)
         packet=dict(**packets, proposal_chunks=np.asarray(proposal_trace) if proposal_enabled else None,
             seed=a.seed, query_tick=query, candidate_roles=candidate_roles,
             candidate_plan_semantics=candidate_plan_semantics,
@@ -1246,7 +1271,7 @@ def native_worker(a):
                 elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                 outcome=episode_outcome(packet) if a.finish else None))
     native.EvalPlayer = GatePlayer
-    sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', config['cfg_env'],
+    sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', str(cfg_env),
         '--cfg_train', str(native_root / 'data/cfg/train/rlg/inspire.yaml'),
         '--motion_file', config['motion_root'], '--checkpoint', trained['checkpoint'],
         '--headless', '--disable-early-termination', '--num_envs', str(a.engineering_group_envs or 1), '--seed', str(a.seed),
@@ -1319,6 +1344,8 @@ def main():
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--engineering-actor-copies', type=int, default=64,
                    help='engineering group only: fixed actor copies per env (4x64 is the legacy 256-row contract)')
+    p.add_argument('--engineering-env-spacing', type=float, default=None,
+                   help='engineering group only: override envSpacing to reduce world-origin float drift')
     p.add_argument('--engineering-serial-replay', action='store_true',
                    help='native worker only: same-process one-env reset/replay diagnostic, never GT scoring')
     p.add_argument('--engineering-serial-cluster', action='store_true',
@@ -1371,10 +1398,20 @@ def main():
         p.error('engineering group actor copies must be positive')
     if a.engineering_group_envs and a.engineering_group_envs * a.engineering_actor_copies != 256:
         p.error('engineering group must keep the fixed 256-row actor contract')
+    if a.engineering_env_spacing is not None and (
+            not a.engineering_group_envs or not np.isfinite(a.engineering_env_spacing)
+            or a.engineering_env_spacing <= 0 or a.engineering_env_spacing > 100):
+        p.error('engineering env-spacing requires a positive finite synchronous group override <=100')
+    if a.worker and (a.query_tick < 0 or a.query_tick > 542 - K):
+        p.error('worker query tick must leave a complete 24-step horizon')
+    if (a.engineering_env_spacing is not None and a.native_backend.name != 'gpu_physx_gpu_pipeline'):
+        p.error('engineering env-spacing is only defined for native GPU PhysX/GPU pipeline')
     if a.engineering_serial_replay and (not a.worker or not a.finish or a.engineering_group_envs):
         p.error('serial replay requires a native worker without a synchronous group')
     if a.engineering_serial_replay and (a.engineering_steps < 72 or a.engineering_steps > 542):
         p.error('serial replay requires query tick48 plus24 steps and <=542 steps')
+    if a.engineering_serial_replay and a.query_tick not in (0, 48):
+        p.error('serial replay requires the established query tick48 contract')
     if a.engineering_serial_cluster and (a.engineering_serial_replay or not a.worker or not a.finish
                                         or a.engineering_group_envs):
         p.error('serial cluster requires a native worker without group or serial replay mode')
@@ -1382,10 +1419,16 @@ def main():
         p.error('serial cluster requires query tick48 plus24 steps and <=542 steps')
     if a.engineering_serial_cluster and a.engineering_steps != 72:
         p.error('serial cluster is fixed to the 72-step short-window contract')
+    if a.engineering_serial_cluster and a.query_tick not in (0, 48):
+        p.error('serial cluster requires the established query tick48 contract')
     if a.engineering_group_envs and not a.engineering_steps:
         p.error('engineering group requires an explicit bounded --engineering-steps value')
-    if a.engineering_group_envs and a.engineering_steps < 72:
-        p.error('engineering group requires at least query tick48 plus24 candidate steps')
+    if a.engineering_group_envs:
+        group_query = int(a.query_tick or 48)
+        if group_query < 0 or group_query + K > a.engineering_steps:
+            p.error('engineering group requires --engineering-steps after query tick plus24 candidate steps')
+        if group_query > 542 - K:
+            p.error('engineering group query tick must leave a complete 24-step horizon')
     if len(a.zero_env_pair) != 2 or a.zero_env_pair[0] == a.zero_env_pair[1]:
         p.error('--zero-env-pair requires two distinct environment indices')
     if a.engineering_group_envs and any(index < 0 or index >= a.engineering_group_envs
@@ -1411,6 +1454,8 @@ def main():
         p.error('action-chunk candidate calibration requires query tick48 plus24 steps')
     if a.action_chunk_roles == 'candidate' and a.engineering_steps != 72:
         p.error('action-chunk candidate calibration is currently bounded to exactly 72 steps')
+    if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and a.query_tick not in (0, 48):
+        p.error('action-chunk group probes require the established query tick48 contract')
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
             a.action_chunk_roles == 'behavior' and a.engineering_group_envs != 4):
         p.error('action-chunk behavior roles require exactly four group environments')
