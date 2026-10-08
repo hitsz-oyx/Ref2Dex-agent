@@ -144,7 +144,6 @@ def native_worker(a):
         if a.action_chunk_replay is not None:
             proposal_roles = a.action_chunk_roles
         proposal_trace = []
-        actor_inference_calls = 0
         query = 48
         if a.action_chunk_checkpoint is not None:
             from consequence_evaluator.action_chunk import EXECUTED_ACTION_SEMANTICS, NativeActionChunkProposal
@@ -354,13 +353,12 @@ def native_worker(a):
                                               device=player.device).view(1, -1).expand(count, -1).clone()
                 else:
                     # Keep the archived actor on its verified single-env/64-row
-                    # inference contract.  Feeding envs*64 rows can introduce
-                    # group-size-dependent GEMM roundoff, so isolate that
-                    # factor before attributing a behavior difference to the
-                    # PhysX execution schedule.
+                    # inference contract.  Feeding envs*64 rows makes the
+                    # GEMM shape depend on group size (r17 and r19 then use
+                    # different policy numerics), which changes the native
+                    # behavior before any candidate is applied.
                     actor_action = legacy_batched_actor_action(
                         player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                    actor_inference_calls += 1
                     control = actor_action.expand(count, -1).clone()
             elif proposal_enabled:
                 # Generate a complete chunk only at the declared replanning
@@ -390,7 +388,6 @@ def native_worker(a):
                 else:
                     actor_action = legacy_batched_actor_action(
                         player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                    actor_inference_calls += 1
                     base_action = actor_action.expand(count, -1).clone()
                     control = base_action.clone()
                     control[1] = proposal_cache[1, chunk_offset]
@@ -405,7 +402,6 @@ def native_worker(a):
                 # GEMM differences and makes the group test an execution-contract probe.
                 actor_action = legacy_batched_actor_action(
                     player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                actor_inference_calls += 1
                 base_action = actor_action.expand(count, -1).clone()
                 control = base_action.clone()
             if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
@@ -455,9 +451,7 @@ def native_worker(a):
                           action_chunk_replan_period=proposal_period,
                           action_chunk_semantics='one-shot native18 action chunk; no mid-chunk observation feedback',
                           replay_identity=identity, canonical_state_keys=state_keys,
-                          actor_inference_batch=64, actor_inference_calls=actor_inference_calls,
-                          actor_source_env=0, actor_broadcast=True,
-                          engineering_only=True,
+                          actor_inference_batch=count, engineering_only=True,
                           group_envs=count, initial_semantic_gap=initial_semantic_gap,
                           initial_semantic_exact=initial_semantic_exact, env_origins=origin_np.tolist(),
                           source_backend=actual_backend, pair_drift=pair_drift,
@@ -470,8 +464,6 @@ def native_worker(a):
                 status='COMPLETED', steps=stop, group_envs=count, engineering_only=True,
                 action_chunk_mode=a.action_chunk_mode, role_names=role_names,
                 elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
-                actor_inference_batch=64, actor_inference_calls=actor_inference_calls,
-                actor_source_env=0, actor_broadcast=True,
                 initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact,
                 pair_drift=pair_drift, role_outcomes=role_outcomes,
                 role_max_lift_m=packet['role_max_lift_m']))
@@ -696,8 +688,7 @@ def native_worker(a):
             action_chunk_prefix_source=(str(a.prefix) if prefix_actions is not None else None),
             action_chunk_prefix_source_sha256=(sha(a.prefix) if prefix_actions is not None else None),
             replay_identity=identity, canonical_state_keys=state_keys,
-            actor_inference_batch=64, actor_inference_calls=actor_inference_calls,
-            actor_source_env=0, actor_broadcast=True,
+            actor_inference_batch=(1 if proposal_enabled else count * 64),
             engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
             zero_env_pair=[zero_left, zero_right],
             control_prefix_exact=bool(np.array_equal(packets['actions'][:,zero_left], packets['actions'][:,zero_right])
@@ -724,8 +715,6 @@ def native_worker(a):
             baseline_zero_exact=not mismatches, mismatches=mismatches, engineering_only=True,
             group_mode=packet['group_mode'], action_chunk_roles=packet['action_chunk_roles'],
             elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(), outcome=outcome,
-            actor_inference_batch=64, actor_inference_calls=actor_inference_calls,
-            actor_source_env=0, actor_broadcast=True,
             baseline_max_lift_m=packet['baseline_max_lift_m'], zero_noise_calibration=zero_noise,
             candidate_effect_calibration=candidate_effect, action_calibration=action_calibration,
             zero_pair_gate=zero_pair_gate, effect_margin_gate=effect_margin_gate,
