@@ -45,7 +45,17 @@ class LearnedReferenceProgress:
     @torch.inference_mode()
     def embed(self, features):
         clips = context_clips(self.normalizer.apply(features))
-        return self.encoder(torch.as_tensor(clips, dtype=torch.float32, device=self.device))
+        # Fixed-size batches keep CUDA GEMM rounding identical when an actual
+        # prefix is truncated. Padding never enters the retained rows and this
+        # encoder has no batch statistics or cross-row attention.
+        results = []
+        for start in range(0, len(clips), 64):
+            block = clips[start:start + 64]
+            padded = np.zeros((64, 720), np.float32)
+            padded[:len(block)] = block
+            encoded = self.encoder(torch.as_tensor(padded, device=self.device))
+            results.append(encoded[:len(block)])
+        return torch.cat(results, dim=0)
 
     @torch.inference_mode()
     def align(self, features):

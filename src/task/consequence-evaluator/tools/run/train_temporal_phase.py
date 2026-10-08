@@ -12,6 +12,7 @@ TASK = Path(__file__).resolve().parents[2]; ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import is_within
 from consequence_evaluator.data import sha
+from consequence_evaluator.historical_sources import verify_collection_sources
 from consequence_evaluator.reference_progress import FeatureScale, trajectory_features
 from consequence_evaluator.temporal_phase import ENCODER_SCHEMA, TemporalPhaseEncoder, context_clips
 from consequence_evaluator.value_outcomes import RAW_SCHEMA, task_trace
@@ -38,7 +39,7 @@ def main():
     import torch
     torch.set_num_threads(1); torch.manual_seed(281); np.random.seed(281)
     started = time.monotonic(); frozen = {str(Path(__file__).resolve()): sha(__file__)}
-    for name in ('temporal_phase.py', 'xirl_tcc_loss.py', 'reference_progress.py', 'xirl_alignment.py', 'value_outcomes.py', 'data.py', 'contracts.py'):
+    for name in ('temporal_phase.py', 'xirl_tcc_loss.py', 'reference_progress.py', 'xirl_alignment.py', 'value_outcomes.py', 'data.py', 'contracts.py', 'historical_sources.py'):
         path = TASK / 'src/consequence_evaluator' / name; frozen[str(path)] = sha(path)
     source = args.source.resolve(); reference = args.reference.resolve()
     raw_path = source / 'manifest.json'; ref_path = reference / 'manifest.json'
@@ -46,7 +47,8 @@ def main():
     if raw.get('schema') != RAW_SCHEMA or raw.get('status') != 'COMPLETED' or raw.get('seed') != 230:
         raise ValueError('fixed independent nominal train230 source required')
     ref_file = reference / 'reference.npz'
-    frozen.update(raw['sources']); frozen.update(meta['sources'])
+    live_sources, historical = verify_collection_sources(raw['sources'], raw['git_commit'], ROOT)
+    frozen.update(live_sources); frozen.update(meta['sources'])
     frozen.update({str(raw_path): sha(raw_path), str(ref_path): sha(ref_path), str(ref_file): meta['reference_sha256']})
     if any(sha(p) != h for p, h in frozen.items()):
         raise ValueError('fixed alignment train/reference sources drifted')
@@ -81,6 +83,8 @@ def main():
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, seed=281, updates=args.updates, seconds_budget=args.seconds,
         role='temporal alignment encoder only; not evaluator or actor', sources=frozen,
+        collection_sources=dict(git_commit=raw['git_commit'], recorded=raw['sources'],
+                                verified_historical_code=historical),
         reference=str(reference), reference_sha256=meta['reference_sha256'],
         standardizer=scaler.dictionary(), training_demonstrations=selected, training_source_seed=230,
         evaluation_group='independent preserved train261; never fitted or used for checkpoint selection',
