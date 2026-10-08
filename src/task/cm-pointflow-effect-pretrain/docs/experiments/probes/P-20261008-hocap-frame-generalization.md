@@ -91,6 +91,46 @@ included ContactPose. Multi-seed/policy utility are future evidence.
 
 ## Actual execution and results
 
+### Frozen Oak-only endpoint comparison (registered before execution)
+
+User requests checking whether mixed pretraining helps relative to the earlier
+OakInk2-only version. Reuse this experiment, seed228, the exact existing
+processed tensors/canonical surfaces and128moving/64natural panel indices;
+do not regenerate or select windows. Run both fixed endpoints on the same
+empty GPU1, microbatch2/BF16/TF32 and identical per-panel random seeds.
+Oak-only endpoint is `pointworld-action-ddp-20261007/train-action/latest.pt`,
+step10000, trained at06933b3. Mixed endpoint remains the originally fixed
+`pointworld-main3-20261007/train-action/latest.pt`, step50000. Both use the
+same temporal architecture, model/data/evaluation/vendor sources and embedded
+normalization SHA6190e0e9. Oak's DDP training-entry hash differs from current
+code; its exact recorded hash is verified against Git06933b3 and this
+training-only file is not used for inference. Other source drift fails closed.
+
+Decision Probe: does the current mixed endpoint improve moving-window external
+prediction, and does it reduce or increase near-static false motion? If the
+current endpoint wins only moving windows, preserve that partial benefit and
+keep false-motion calibration as a limitation. A regression motivates checking
+the training recipe and distribution before further scaling. The cheapest
+discriminating experiment is192existing windows with no fitting or new data.
+
+This is a historical endpoint comparison, not a matched data-mixture causal
+ablation: mixed training starts from this Oak-only endpoint, adds14250four-source
+updates and50000main-three updates, changes global batch192→128 and later
+uses physical loss normalization. Oak endpoint itself inherited the earlier
+Oak temporal checkpoint step12163. Preserve each counter's stage meaning.
+Report all frozen1/4/8/12/24horizons, natural moving/near-static strata and
+persistence. Replayed mixed metrics must match the prior run within1e-7
+absolute metric units; static controls must match between checkpoints within
+1e-12. Same unknown source clock and observed future hand limitations apply.
+
+Run ID: `hocap-oak-vs-mixed-20261008-r1`. Entry:
+`tools/run/compare_hocap_checkpoints.py`. Fresh output:
+`outputs/cm-pointflow-effect-pretrain/hocap-oak-vs-mixed-20261008-r1/`.
+Bounds: one empty GPU1,600seconds,100MiB new output,20GiB free reserve;
+stop on source/panel/checkpoint drift, foreign GPU use or deadline. Verify
+the prior run's1318input hashes and new checkpoint/script before and after
+inference; no optimizer, parameter/normalization update or checkpoint selection.
+
 Run `hocap-frame-eval-20261008-r1` used code `8f857ae`, GPU0, PID2769220,
 seed228 and the original latest50000 checkpoint trained at `9019fd4`.
 COMPLETED in49.425seconds, process exited normally and GPU0 is empty.
