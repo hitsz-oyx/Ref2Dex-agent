@@ -1314,3 +1314,13 @@ policy、不训练 evaluator，结果仍为 engineering-only。
 这只支持一次 episode-held-out 的 offline chunk fit，不支持 route-specific 泛化或 native
 行为结论。下一步最多使用 train split 内的 episode holdout，并在独立 val/test manifest
 上报告动作空间误差；在行为 screen 通过前，不启动 GT ranking、evaluator 或 PointWorld。
+
+该 bounded fit 已完成，产物为
+`outputs/consequence-evaluator/act-native-chunk-clean-airplane-base-20261009-r1/`。
+训练使用 6 条 train episode，2 条 train episode 做 holdout；独立 clean val/test 各 8 条
+episode、1204 windows。新 chunk 的 val/test MSE 为 `2.405e-4`/`3.397e-4`，低于只用
+train target mean 的 `5.855e-4`/`7.483e-4`，也低于旧 clean checkpoint 的
+`7.905e-4`/`8.857e-4`；first-action MAE 为 `0.0118`/`0.0125`。因此该动作空间
+Probe 标为 `PROMISING`，但不外推为 native 行为、utility 或泛化结论。下一步只做一次
+`open_loop24` native behavior screen；不跑 `receding8`、candidate ranking、evaluator
+或 PointWorld。

@@ -129,6 +129,10 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
                 or (motions is not None and record.get('motion') not in set(motions))):
             continue
         perturbation_tick = record.get('perturbation_tick', -1)
+        if record.get('quality') == 'expert_success' and (
+                record.get('assigned_phase') != 'clean'
+                or perturbation_tick is None or int(perturbation_tick) != -1):
+            raise ValueError('expert_success must be an unperturbed clean episode')
         if clean_only:
             # ``unlabeled`` is the normal quality for continuous collection, so
             # quality alone cannot prove that a trajectory was never intervened
@@ -140,10 +144,6 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
                 continue
             if clean_tick != -1 or record.get('assigned_phase') != 'clean':
                 continue
-        if record.get('quality') == 'expert_success' and (
-                record.get('assigned_phase') != 'clean'
-                or perturbation_tick is None or int(perturbation_tick) != -1):
-            raise ValueError('expert_success must be an unperturbed clean episode')
         if episode in seen:
             raise ValueError('duplicate selected episode')
         seen.add(episode)
@@ -165,7 +165,9 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
                 residual = data['residual_plan']
                 if (residual.shape != (len(action), K, ACTION_DIM) or not np.isfinite(residual).all()
                         or np.abs(residual).max() > 1e-7):
-                    raise ValueError('clean episode contains nonzero or malformed residual plan: ' + episode)
+                    label = 'clean' if clean_only else 'expert_success'
+                    raise ValueError(label + ' episode contains nonzero or malformed residual plan: ' + episode)
+            if clean_only:
                 known = data['plan_known']
                 if known.shape != (len(action),) or known.dtype.kind != 'b' or not known.all():
                     raise ValueError('clean episode has unknown residual-plan entries: ' + episode)

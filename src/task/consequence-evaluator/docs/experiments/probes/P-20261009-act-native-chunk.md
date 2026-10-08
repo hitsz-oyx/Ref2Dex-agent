@@ -541,3 +541,17 @@ This is provenance evidence, not a behavior or utility result. It justifies one
 small episode-held-out offline fit across the clean airplane-base episodes; it
 does not justify route-specific generalization, a new simulator launch, or
 evaluator/PointWorld/Gate1 work.
+
+## Clean-only offline fit
+
+The bounded fit used six clean train episodes and held out two train episodes;
+the independent clean val/test manifests each supplied eight episodes and 1204
+windows. The resulting chunk reached MSE `2.405e-4` on val and `3.397e-4` on
+test, below the train-target mean baselines `5.855e-4` and `7.483e-4`, and below
+the prior clean checkpoint's `7.905e-4` and `8.857e-4`. First-action MAE was
+`0.0118`/`0.0125`. The audit is stored in
+`outputs/consequence-evaluator/act-native-chunk-clean-airplane-base-20261009-r1/independent-clean-audit.json`.
+
+This is `PROMISING` action-space evidence only. The next bounded step is one
+native `open_loop24` behavior screen; `receding8`, candidate ranking, evaluator,
+and PointWorld remain closed.
