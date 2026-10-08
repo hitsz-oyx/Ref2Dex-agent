@@ -159,6 +159,27 @@ engineering contract evidence，不进入strict score worker或Gate1 utility cla
 在`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r22/`，工具提交
 为`10ae238`。
 
+随后补齐了同步GPU group的query-relative post-query noise审计。只读工具
+`src/task/consequence-evaluator/tools/audit/audit_gpu_group_noise.py`（提交
+`110cd13`）拒绝非candidate-role packet，检查所有role的prefix controls/done、状态
+时间轴和zero-role集合，并对每个zero pair报告query-relative displacement。r18的14个
+nominal role共有91个zero pair：object pose的post-query displacement p50/p90/p95为
+0.2522/0.5375/0.5645m，q velocity为5.47/9.85/9.87，history为0.853/1.424/1.524。
+候选增量相对所有zero pair median p95的描述性比值只有约1--2倍（object pose正/负
+p95为1.96/1.74，history为1.55/1.81）；r21只有一个zero pair，object pose正/负
+为2.02/0.86、history为1.21/0.87。该比值口径与runner selected-pair effect-margin
+不同，不能称为candidate≫noise，也没有形成Gate1证据。审计输出在
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r24/`。
+
+为隔离group-size actor GEMM的可能影响，曾在提交`949a163`临时把group actor改成
+固定env0/64-row推理后广播；r25使用原生GPU PhysX/GPU pipeline、seed282、4 env、
+542 steps，但baseline最高抬升只有0.0473m/held4，而旧r19为0.8262m/held481，
+behavior gate失败。该改动已由`b0c4b33`/`ecc4def`回退；r25只作为负的工程Probe，
+不能解释旧r17/r19差异，也不能作为新的执行backend。当前保持reference bank/TCC、Y、
+policy weights不变，不跑正式Gate1、不fit evaluator、不进PointWorld。下一步需要真正
+的同一隐藏状态fork，或有足够重复数的baseline/candidate统计设计；同步group仍只作
+工程容器。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

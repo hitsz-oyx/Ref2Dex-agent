@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 10ae238
+git_commit: 949a163
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: gate1-gpu-group-engineering-20261009-r22
+run_id: gate1-gpu-group-engineering-20261009-r25
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -240,3 +240,47 @@ deadzone selector chose baseline in both cases. This is useful contract
 evidence—the current native GPU residual arms do not produce a reproducible
 non-baseline GT-value choice—but it is not a Gate1 utility result because the
 same-state and nominal behavior contracts are still not jointly satisfied.
+
+## Post-query zero-noise audit
+
+The missing multi-zero diagnostic was added as the read-only
+`tools/audit/audit_gpu_group_noise.py` tool (`110cd13`). It validates the
+candidate-role packet, the shared prefix controls/done signals, native 30 Hz
+timestamps, and all zero-role pairs before reporting query-relative state
+displacements. The output is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r24/noise-audit.json`.
+
+For r18 (14 nominal roles, 91 pairs), the median zero-pair post-query p95 was
+`0.2522 m` for object pose, `0.2621` for joint position, `5.472` for joint
+velocity, and `0.8532` for history; the corresponding p90 values were
+`0.5375 m`, `0.5151`, `9.851`, and `1.4236`. Candidate-vs-zero incremental
+p95 divided by the all-pair median was only descriptive: the positive and
+negative object-pose ratios were `1.96`/`1.74`, while history was `1.55`/`1.81`.
+For r21 there was only one zero pair; its object-pose noise p95 was `0.2579 m`,
+with positive/negative ratios `2.02`/`0.86` and history ratios `1.21`/`0.87`.
+These ratios use candidate incremental displacement over the all-pair median;
+they are not the runner's selected-pair effect-margin statistic and do not
+establish candidate ≫ solver noise.
+
+The audit therefore confirms that the proposed synchronous group has a
+measurable noise floor, but the current residual effects are not uniformly
+separated from it. No formal Gate1, evaluator fit, PointWorld ranking, or
+reference/Y change follows from r24.
+
+## Fixed actor-batch contract follow-up
+
+To isolate a possible group-size-dependent actor GEMM shape, r25 temporarily
+changed the group runner to infer env0 with the verified single-env/64-row
+actor call and broadcast that action. The native backend and seed stayed fixed
+(GPU PhysX/GPU tensor pipeline, seed282, four environments, 542 steps). This
+did not preserve the behavior contract: the baseline reached only `0.0473 m`
+and held 4 frames, versus r19's `0.8262 m` and 481 frames under the prior
+group execution. The packet records `actor_inference_batch=64` and is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r25/group.pkl`.
+
+The fixed-batch change was reverted in `b0c4b33`/`ecc4def`; r25 remains a
+negative engineering probe. Its contact-stage divergence means actor batch
+shape and PhysX scheduling were not cleanly separable, so it cannot explain
+the old r17/r19 difference or justify a new backend. The native GPU group
+remains an engineering container only; a same-state fork or a statistically
+powered repeated-baseline/candidate design is still required before Gate1.
