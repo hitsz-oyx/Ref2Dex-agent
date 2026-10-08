@@ -69,3 +69,22 @@ def test_runner_import_does_not_initialize_torch_before_isaac():
     import subprocess
     code = "import sys,runpy;runpy.run_path(%r);assert 'torch' not in sys.modules" % str(TASK / 'tools/run/run_gate1_gt_progress.py')
     subprocess.run([sys.executable, '-c', code], check=True)
+
+
+def test_legacy_actor_batch_preserves_observation_and_only_first_control():
+    import torch
+    from consequence_evaluator.gate1 import legacy_batched_actor_action
+    raw = torch.arange(1442, dtype=torch.float32)[None]
+    original = raw.clone()
+    class Player:
+        is_rnn = False
+        def get_action(self, observation, deterministic):
+            assert deterministic is True
+            assert observation['obs'].shape == (64, 1442)
+            assert torch.equal(observation['obs'], original.repeat(64, 1))
+            output = torch.arange(64 * 18, dtype=torch.float32).reshape(64, 18)
+            return output
+    control = legacy_batched_actor_action(Player(), {'obs': raw})
+    assert control.shape == (1, 18)
+    assert torch.equal(control, torch.arange(18, dtype=torch.float32)[None])
+    assert torch.equal(raw, original)

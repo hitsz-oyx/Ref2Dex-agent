@@ -43,7 +43,10 @@ References/encoder are completed physical-reference-bank-20261008-r1 and
 physical-bank-tcc-20261008-r1, with fixed uniform bank weights and unchanged
 matching parameters. No evaluator, actor updates, endpoint value or PPO critic.
 
-Seeds282/283/284/285, one native environment per fresh process. Exactly four
+Registered seeds282/283/284/285; initial campaign uses seed282 only after
+engineering timing (~48s full baseline/~15s short worker) predicts four seeds
+would exceed900s. Expand after this cheapest decision signal, with remaining
+seeds in a later bounded run. One native environment per fresh process. Exactly four
 replans at full-episode ticks48/56/64/72; each candidate lasts24steps for scoring,
 first8controls executed, then replan. After the fourth query, continue the same
 actor to full episode end. This is an early-contact intervention Probe, not
@@ -81,7 +84,7 @@ stable grasp must avoid6unsupported loss frames or unheld fall faster than
 count them separately. These are weak geometric proxies, not exact contact-pair
 or human-confirmed success. Neither P nor Y enters episode success.
 
-One idle GPU1, <=900s campaign, <=1GiB artifacts,20GiB free disk reserve. CPU for
+One idle GPU (initialGPU1, fallbackGPU2 if occupied), <=900s campaign, <=1GiB artifacts,20GiB free disk reserve. CPU for
 orchestration/hash/stat/outcome only; native simulation and phase inference use
 GPU in separate sequential processes. Engineering preflight gets separate bounded
 outputs, no scientific utility conclusion. Monitor GPU/process state and worker
@@ -98,3 +101,24 @@ homogeneous outcome panel reduce effective coverage. Four seeds and one motion
 are not formal scientific support. Later matched multi-seed/broader stage controls,
 ACT chunk candidates, arbitrary-state calibration, delayed hazards and formal
 validation are deferred until this minimal Probe changes a decision.
+
+
+## Engineering failure and repair (not method evidence)
+
+At commitc77aeaf, native single-environment r1 completed a baseline but emitted
+incorrect GPU policy means; zero-prefix replay failed at tick45. This run is
+invalid as a policy/value result and remains under gate1-engineering-20261008-r1.
+The actor/RMS/checkpoint identities match the previously working64env generator.
+A hooked24step r2 and CPU recomputation verify matching raw/normalized inputs
+and unchanged weights; native GPU outputs disagree sharply with CPU. A direct
+archived Torch2.0.1 GPU reproduction without Isaac shows batch1 wrong, batch64
+matching CPU and historical baseline controls. This identifies the inference
+batch path as the actionable defect; the underlying GPU/library cause remains
+unassigned. Do not modify RMS, retrain actor or treat this as a Y failure.
+
+Repair: fixed64identical observation rows in deterministic nonrecurrent
+get_action, retain first command for the single simulator. All candidates and
+baselines share this adapter and its64row native model/RNG calls. Verify actual
+control against CPU/manual checkpoint forward and fresh full-prefix replay
+before research control. CPU is used only for the tiny one-frame engineering
+reference calculation; all simulator and campaign inference remain GPU.

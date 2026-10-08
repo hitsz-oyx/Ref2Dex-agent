@@ -19,7 +19,7 @@ import numpy as np
 TASK = Path(__file__).resolve().parents[2]; ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import HAND_LINKS, K, K_EXEC, is_within
-from consequence_evaluator.gate1 import SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan, choose_candidate, episode_outcome, paired_counts
+from consequence_evaluator.gate1 import SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan, choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action
 from consequence_evaluator.provenance import self_trained_ancestry, sha
 from consequence_evaluator.twin import REQUIRED_NATIVE_STATE_KEYS, capture_native_rng, fingerprint
 
@@ -99,6 +99,7 @@ def native_worker(a):
     class GatePlayer(base):
         def restore(self, filename):
             value = native.torch_ext.load_checkpoint(filename)
+            self._gate_restored_model_hash = fingerprint(compat.model_state(value['model']))
             self.model.load_state_dict(compat.model_state(value['model']), strict=True)
             if self.normalize_input:
                 self.running_mean_std.load_state_dict(value['running_mean_std'], strict=True)
@@ -108,6 +109,10 @@ def native_worker(a):
         @torch.no_grad()
         def run(self):
             self.is_deterministic = self.is_determenistic
+            torch.backends.cudnn.benchmark = False; torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.allow_tf32 = False; torch.backends.cuda.matmul.allow_tf32 = False
+            if fingerprint(self.model.state_dict()) != self._gate_restored_model_hash:
+                raise ValueError('actor weights changed after checkpoint restore')
             task = self.env.task
             if (self.is_rnn or task.num_envs != 1 or abs(task.dt - 1 / 30) > 1e-8
                     or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2):
@@ -146,7 +151,7 @@ def native_worker(a):
             state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar') if isinstance(getattr(task, k, None), torch.Tensor)})
             fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap',
                       'table_footprint', 'object_velocity', 'history')
-            rows = {k: [] for k in fields}; hashes = []; rng_hashes = []; actions = []; ended = []
+            rows = {k: [] for k in fields}; hashes = []; state_field_hashes = []; rng_hashes = []; actions = []; ended = []
             def observe():
                 points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
                 values = dict(object_pose=pose_matrix(task._target_states[0].cpu().numpy()),
@@ -156,13 +161,18 @@ def native_worker(a):
                     history=obs['obs'][0].cpu().numpy())
                 for k, v in values.items(): rows[k].append(np.asarray(v).copy())
                 state = {k: getattr(task, k).cpu().numpy().copy() for k in state_keys}
+                state_field_hashes.append({k: fingerprint(v) for k,v in state.items()})
                 hashes.append(fingerprint(state)); rng_hashes.append(fingerprint(capture_native_rng(torch)))
                 index = len(hashes) - 1
                 if task.gym.get_frame_count(task.sim) != index * task.control_freq_inv:
                     raise ValueError('unexpected simulator step count at tick%d' % index)
                 if expected is not None and index <= query:
                     if hashes[-1] != expected['state_hashes'][index] or rng_hashes[-1] != expected['rng_hashes'][index]:
-                        raise ValueError('declared native/RNG prefix replay mismatch at tick%d' % index)
+                        diagnostic = dict(tick=index, state_equal=hashes[-1]==expected['state_hashes'][index], rng_equal=rng_hashes[-1]==expected['rng_hashes'][index],
+                            changed_state_fields=[k for k,h in state_field_hashes[-1].items() if 'state_field_hashes' in expected and h!=expected['state_field_hashes'][index][k]],
+                            measurement_max_abs_errors={k:float(np.max(np.abs(np.asarray(rows[k][-1],dtype=float)-np.asarray(expected[k][index],dtype=float)))) for k in fields})
+                        write(a.worker_output.with_suffix('.mismatch.json'), diagnostic)
+                        raise ValueError('declared native/RNG prefix replay mismatch at tick%d: %s' % (index, diagnostic))
                     for k in fields:
                         if not np.array_equal(rows[k][-1], expected[k][index]):
                             raise ValueError('measured prefix replay differs at tick%d: %s' % (index, k))
@@ -177,7 +187,7 @@ def native_worker(a):
             for tick in range(stop):
                 if time.monotonic() - started > 150:
                     raise TimeoutError('bounded native worker deadline')
-                control = self.get_action(obs, True).clamp(-1, 1)
+                control = legacy_batched_actor_action(self, obs).clamp(-1, 1)
                 if tick < query:
                     control = torch.as_tensor(expected['actions'][tick:tick + 1], device=self.device)
                 elif not a.finish:
@@ -197,10 +207,10 @@ def native_worker(a):
                     raise ValueError('native episode terminated before full requested window')
             packet = {k: np.asarray(v) for k, v in rows.items()}
             packet.update(actions=np.asarray(actions), done=np.asarray(ended),
-                state_hashes=hashes, rng_hashes=rng_hashes, timestamps=np.arange(stop + 1) / 30,
+                state_hashes=hashes, state_field_hashes=state_field_hashes, rng_hashes=rng_hashes, timestamps=np.arange(stop + 1) / 30,
                 seed=a.seed, query_tick=query, candidate=a.candidate, residual_plan=plan,
                 checkpoint_sha256=trained['checkpoint_sha256'], fresh_prefix_replay=True,
-                replay_identity=identity, canonical_state_keys=state_keys)
+                replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=64)
             save(a.worker_output, packet)
             write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop,
                 prefix_steps=query, all_prefix_native_rng_and_measurements_exact=True,
@@ -371,7 +381,7 @@ def main():
                 committed = {}
                 for key, value in chosen.items():
                     if key in ('actions', 'done'): committed[key] = value[:stop].copy()
-                    elif key in ('state_hashes', 'rng_hashes'): committed[key] = value[:stop + 1]
+                    elif key in ('state_hashes', 'state_field_hashes', 'rng_hashes'): committed[key] = value[:stop + 1]
                     elif key in ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap',
                                  'table_footprint', 'object_velocity', 'history', 'timestamps'):
                         committed[key] = value[:stop + 1].copy()
