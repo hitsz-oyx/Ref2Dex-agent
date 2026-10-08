@@ -46,13 +46,25 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Six-route continuous collection completed, but strict state-matched labels are insufficient for fitting: train/val/test contain 0/0/2 local  | Repeated waves make the label gate READY at 2/1/5 train/val/test pairs, but this is too sparse for a useful fit; stop before evaluator train | probes/UNCLEAR |
-| [P-20261008-consequence-pair-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md) | Can repeated waves recover strict current-state preference coverage? | Three-wave train/val/test collection is `READY` under the unchanged | Stop before fitting and design explicit twin current-state branches; | probes/UNCLEAR |
+| [P-20261008-consequence-pair-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md) | Can repeated waves recover strict current-state preference coverage? | The historical three-wave label report was `READY` under the then-current | Stop before fitting and keep the route gate closed. The user has | probes/UNCLEAR |
 
 ## HF-contact-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-contact-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-contact-innovation.md) | Does bounded surface-relative motion add information beyond joint/finger flow? | UNPROMISING for the fixed bounded basis / nuisance / ridge contract. | Preserve the completed fixed-fit result; pause the old route while ref11 proceeds on the original branch. | probes/UNPROMISING |
+
+## HF-contactpose-transport-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
+
+## HF-epic-contact-overlap
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261007-epic-contact-overlap](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-epic-contact-overlap.md) | Same-clip EPIC-Contact and ObjectForesight bridge | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-execution-geometry
 
@@ -131,7 +143,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Source-aware physical prediction with an OakInk2 warm start | Four-source14250 preserved; three-source production RUNNING, first250val macro moving-anchor h24 EPE34.48→37.16mm, latest/best saved. Ref2 n | Continue the bounded three-source run to50000updates or2026-10-08 10:00; judge against its own step0 panel, keep EPIC non-training. | probes/UNCLEAR |
+| [P-20261007-pointworld-multisource](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-multisource.md) | Source-aware physical prediction with an OakInk2 warm start | Four-source14250 preserved; main-three COMPLETED50000, fixed-panel macro moving-anchor h24 EPE34.480→27.126mm; latest/final50000 and best460 | Preserve the completed main checkpoint; run the separate bounded history-only ContactPose auxiliary ablation, keeping EPIC non-training. | probes/UNCLEAR |
 
 ## HF-pointworld-unified-action-effect
 

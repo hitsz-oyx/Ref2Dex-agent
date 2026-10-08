@@ -19,8 +19,8 @@ run_id: contactpose-transport-auxiliary-20261008-r1
 
 # Does a separate rigid-transport auxiliary help measured dynamic prediction?
 
-Result: Main-three completed; native two-update auxiliary engineering r2 passes; the separate300-update matched Probe is next.
-Decision: Run one bounded matched Probe with ContactPose future hands excluded from auxiliary inputs.
+Result: Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112, so no matched auxiliary result exists.
+Decision: Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged.
 
 ## Motivation and fixed comparison
 
@@ -86,6 +86,17 @@ and `outputs/cm-pointflow-effect-pretrain/contactpose-transport-auxiliary-202610
 The new standalone runner never edits or resumes the original training process.
 
 ## Engineering acceptance repair
+
+Production run `contactpose-transport-auxiliary-20261008-r1` used commit
+`681340a7e56986452e89dcc39dead97472196584` and failed after109.965s:
+`RuntimeError: DataLoader worker (pid2641366) is killed by signal: Aborted`.
+The control log contains112 completed updates; neither arm has a completed
+final comparison. The process exited and the GPU was released. Peak live
+CUDA allocation was7854.98MiB, so the recorded failure is not a CUDA OOM.
+The original progress/input manifests and training log remain in the run
+directory. This is an execution failure, not negative evidence for the
+auxiliary hypothesis. The worker-abort cause still needs diagnosis; no
+automatic retry or extension of the original group deadline was launched.
 
 At implementation `0303ed8`, engineering r1 completes both two-update arms,
 finite main/auxiliary backward and final checkpoints. Initial model hashes

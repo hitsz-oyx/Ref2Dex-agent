@@ -1,5 +1,12 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 迁入 main 开发
+
+用户授权将 consequence-evaluator 的已提交历史和当前用户/并行 agent 修改一起
+提交并合并到本地 main，后续直接在 main 开发；不推送远程。
+合并前 main 是本分支的祖先，可快进保留完整历史；实验卡中的 branch/git_commit
+继续表示实际运行身份，不随当前开发分支更名。
+
 ## 2026-10-08 用户修改审查与当前 blocker
 
 consequence-evaluator 用户新增的H匹配、最小唯一配对覆盖和重放状态合同保留。
@@ -27,7 +34,10 @@ macro27.126mm（初始化34.480）；best46000为26.786mm。
 latest/final50000及best46000均可加载，含优化器和双rank RNG；未开启新预算。
 ref3的独立ContactPose auxiliary ablation另设300步matched短Probe，非主训练续跑。
 两臂同latest50000模型/fresh优化器、三源main样本及CP辅助计算；仅loss系数0/0.05不同。
-CP前向只允许history几何，future手/effect/label字段均不进入前向；真实小工程检查进行中。
+CP前向只允许history几何，future手/effect/label字段均不进入前向；小工程r2通过。
+正式短Probe在681340a运行，control第112步后DataLoader worker因Aborted退出，
+状态FAILED且进程已退出；无完整对照结果，不能据此判断auxiliary有效性。
+原始产物保留，数据加载故障待修复；没有自动重启或扩展预算。
 详见[配对覆盖卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md)。
 
 ## 2026-10-07 ref2/ref3 运行记录（历史）
