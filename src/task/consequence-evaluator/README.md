@@ -1,17 +1,18 @@
 # Consequence evaluator
 
-当前监督按用户 [ref4_1](docs/user/ref/ref4_1.md)：`Y_t=P_(t+24)-P_t`，
-P由原始成功参考与真实3D历史clip的因果匹配定义，不用episode时钟或最终结局。
-用户已选择用原始参考机器人关节与URDF重建11个手点。开发分支为`main`。
-先用[原始参考重建](tools/audit/build_progress_reference.py)核验FK，再用
-[离线标签Probe](tools/run/label_reference_progress.py)检验nominal及扰动轨迹；
-[实验卡](docs/experiments/probes/P-20261008-reference-progress-labels.md)固定协议。
-几何标签的8条Probe已完成；随后完成
-[独立TCC对齐编码器Probe](docs/experiments/probes/P-20261008-tcc-phase-alignment.md)。
-TCC将四条nominal末尾P提高到0.932..0.994，但局部回退仍未过固定门槛；
-当前UNCLEAR、不可训练，先核查再次抬升和放回段的局部Y。
+当前按用户 [ref4_2](docs/user/ref/ref4_2.md)修订 [ref4_1](docs/user/ref/ref4_1.md)：
+保留`Y_t=P_(t+24)-P_t`，P改由成功真实机器人reference bank与实际3D因果历史匹配；
+不用episode时钟或最终结局。开发分支为`main`。
+[物理reference bank Probe](docs/experiments/probes/P-20261008-physical-reference-bank.md)
+在既有source230前8条成功轨迹上固定1000步TCC，同source261四clean/四contact检查：
+clean tick176 Y转正、负窗口全0、累计回退<=0.002428，既定开发门槛通过，PROMISING。
+bank由[构建工具](tools/audit/build_physical_reference_bank.py)冻结实测11手点/物体姿态；
+[标签工具](tools/run/label_reference_progress.py)对8个独立prior固定等权平均。
+旧[原始参考几何Probe](docs/experiments/probes/P-20261008-reference-progress-labels.md)
+和[原始R TCC Probe](docs/experiments/probes/P-20261008-tcc-phase-alignment.md)完整保留。
 标签通过后按[完整链路](docs/user/完整链路.md)先做直接GT-value的Gate1，
-再考虑evaluator；新schema独立于旧S/P/M和旧局部H匹配标签。
+再考虑evaluator；当前Gate1未运行，延迟失抓和候选排序仍待检验，不启动evaluator。
+新schema独立于旧S/P/M和旧局部H匹配标签。
 
 ## 历史路线与保留证据
 

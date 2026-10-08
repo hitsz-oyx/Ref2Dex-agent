@@ -58,7 +58,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-physical-reference-bank](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-physical-reference-bank.md) | Does measured successful robot reference geometry fix local phase delta? | Pending bounded bank/encoder/label Probe; no evaluator fit. | Follow user ref4_2 using existing successful physical trajectories, | probes/PLANNED |
+| [P-20261008-physical-reference-bank](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-physical-reference-bank.md) | Does measured successful robot reference geometry fix local phase delta? | All four clean tick176 windows become positive; clean negative windows | Retain physical reference bank for a same-state GT-value Gate1 Probe; | probes/PROMISING |
 
 ## HF-consequence-reference-progress
 

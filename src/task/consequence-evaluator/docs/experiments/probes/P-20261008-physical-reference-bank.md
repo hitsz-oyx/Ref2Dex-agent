@@ -5,7 +5,7 @@ experiment_id: P-20261008-physical-reference-bank
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: 1b24c5b
+git_commit: 340b847
 claim_id: C3
 hypothesis_family: HF-consequence-physical-reference
 probe_index_in_family: 1
@@ -13,15 +13,16 @@ seed_pool: probe
 seeds: [230, 261, 281]
 decision_changed_if_positive: retain physical references and prepare fresh same-state GT-value Gate1 after event checks
 decision_changed_if_negative: stop using phase delta as primary GT and probe transition alignment from causal current phase
-status: PLANNED
+status: PROMISING
 run_id: physical-bank-tcc-20261008-r1
 ---
 
 # Does measured successful robot reference geometry fix local phase delta?
 
-Result: Pending bounded bank/encoder/label Probe; no evaluator fit.
-Decision: Follow user ref4_2 using existing successful physical trajectories,
-without tuning the original matcher parameters or collecting new data.
+Result: All four clean tick176 windows become positive; clean negative windows
+drop to zero and every frozen development check passes. No evaluator fit.
+Decision: Retain physical reference bank for a same-state GT-value Gate1 Probe;
+do not switch to transition alignment based on this positive development panel.
 
 ## Decision Note and purpose
 
@@ -92,3 +93,56 @@ Bank members are weakly qualified, not manually verified, and share one motion,
 embodiment and generator. Multi-seed/generalization/calibrated confidence and
 same-state candidate utility remain future evidence. Failed bank phase delta
 does not refute TCC as a current-phase conditioner for transition alignment.
+
+## Observed result and next decision
+
+All three runs use code340b847: `physical-reference-bank-20261008-r1`,
+`physical-bank-tcc-20261008-r1`, `physical-bank-progress-labels-20261008-r1`.
+Bank construction is CPU file/weak-qualification work,1.379s. Measured geometry
+retains the planned eight source230members; no fresh rollout or test inspection.
+Encoder fixed1000updates completed in10.116s on GPU1; final100update mean loss
+0.0000780253, peak allocated40,137,216bytes. Unique final checkpoint SHA256
+`ce9ecaa8d1a8e0ee08e8e057fb0f19b21d4aebddad38562de377982035c1a0c6`.
+Label replay8episodes/496windows completed in27.379s, peak allocated17,875,456bytes.
+GPU1 was released. These are short alignment jobs, not long policy training.
+
+| Clean episode | Original-R tick176 Y | Physical-bank tick176 Y | Old backwards total | New backwards total | Old/new negative windows |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| e0 | −0.025145 | +0.043161 | 0.367527 | 0.002428 | 5/0 |
+| e3 | −0.023862 | +0.043681 | 0.272944 | 0.000000 | 6/0 |
+| e6 | −0.023319 | +0.043790 | 0.249442 | 0.002245 | 6/0 |
+| e7 | −0.023619 | +0.044150 | 0.281448 | 0.001499 | 8/0 |
+
+Clean finalP0.993818..0.994876. All260clean K24windows have positiveY>epsilon,
+including the normal placing suffix; this is observed on the fixed panel,
+not a monotonic constraint. Self finalP0.992555/indexMAE0.002442, stationary
+finalP0.001965, actual prefix distribution error0. Each member and aggregate
+obey the4/542step bound. Report verifies the exact same eight IDs and frozen
+raw-source manifest across old/new runs. The original-R/physical-execution
+gap hypothesis is **PROMISING as a route decision**, not formally SUPPORTED.
+
+Contact e1 physically falls below initial support−3cm at tick89, then remains
+on the floor and endsP0.023337 instead of reaching the end. Its requested
+intervention window is tick51→75: object height at75 is still+38.775cm, surface
+gap1.197cm, and Y is+0.010590. The major fall occurs after the label horizon;
+do not use later failure to rewrite this causal local value. Endpoint separation
+already starts within the window, however, so this positive Y is **not proof
+that the action is safe or better than a same-state baseline**. Embedding OOD
+distance is not calibrated: very late failed states can have distance<1.
+Other contact finals0.935656/0.994994/0.621422 retain varied recovery/stagnation.
+
+Artifacts: each run's manifest and source hashes; label traces with per-member
+progress and `train-progress-examples.png`; CPU-derived
+`physical-bank-progress-audit-20261008-r1/report.json` with all gate checks and
+tick176/failure-window numbers. Existing original-reference runs remain intact.
+44 relevant tests and repository verification pass. Only the successful
+physical-reference route is retained; no parameter sweep or appended fit.
+
+The specific normal-lift/placing local regression defect is resolved in this
+small exposed development panel. Next is fresh complete-prefix same-state
+candidate selection with independent recoverable grasp/normal-place outcomes.
+**Gate1 has not run**; labels remain `training_allowed=false`, no evaluator or
+policy trained, no success-rate improvement claimed. A short-horizon local
+phase value can miss delayed hazards; Gate1 is the decision test for whether
+relative candidate ranking still helps. Switch to transition alignment if that
+test or a new fixed semantic panel reveals persistent local-value errors.

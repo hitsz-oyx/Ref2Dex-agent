@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 ref4_2 成功机器人 reference bank
+
+用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功
+机器人rollout bank检验物理执行gap。340b847完成固定8参考、1000步TCC、同8条
+source261开发标签对照，未调temperature/max_step/epsilon。四条clean tick176
+Y由−0.0233..−0.0251变为+0.0432..+0.0442；负窗口5/6/6/8→全0，累计回退
+0.249..0.368→0..0.002428，全部既定开发检查通过。Probe **PROMISING**，保留
+物理reference路线；不是正式任务价值/策略收益结论。旧原始R结果保留。
+失败e1末尾P0.0233；其tick51→75窗口仍在抬升，严重落下在之后，不能用later
+failure污染局部Y；窗口内已开始分离，延迟风险和OOD仍待同状态候选排序验证。
+GPU1完成训练10.12秒/标签27.38秒并释放，44测试通过。下一步按完整链路做
+fresh simulator完整prefix replay的GT-value Gate1；当前未运行Gate1，未fit
+evaluator，标签training_allowed=false。结果与限制见
+[物理reference bank Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-physical-reference-bank.md)。
+
 ## 2026-10-08 Reference-conditioned delta-progress 监督
 
 用户ref4_1替换airplane-specific S/P/M：Y=P[t+24]-P[t]，P来自原始成功参考
