@@ -27,7 +27,7 @@ def write(path, value):
     temporary.replace(path)
 
 
-def label(sources, output, route_config, extra_preferences=None, seconds=600):
+def label(sources, output, route_config, extra_preferences=None, seconds=600, *, audit_only=False):
     """Preserve raw H/A/poses and split groups; only supervision is replaced."""
     output = Path(output)
     if output.exists():
@@ -36,8 +36,9 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
         raise ValueError('bounded label preparation: <=600 seconds')
     started = time.monotonic()
     route = json.loads(Path(route_config).read_text())
-    if (route.get('training_allowed') is not True
-            or route.get('all_experts_operationally_qualified') is not True):
+    qualified = route.get('all_experts_operationally_qualified') is True
+    route_trainable = route.get('training_allowed') is True and qualified
+    if not audit_only and not route_trainable:
         raise ValueError('expert route is observational-only; labeling for evaluator training is blocked')
     expected_experts = route['experts']
     pair_coverage_required = route.get('pair_coverage_required', True)
@@ -50,7 +51,7 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
         rule_sha256=rule_digest, contracts_sha256=contracts_digest,
         history_match_relative_rms=HISTORY_MATCH_MAX_RELATIVE_RMS,
         minimum_pair_coverage=MIN_PREFERENCE_PAIRS, route_sha256=route_digest,
-        all_experts_operationally_qualified=True)
+        all_experts_operationally_qualified=qualified)
     if len(expected_experts) != 6 or len({v['sha256'] for v in expected_experts.values()})!=6:
         raise ValueError('fixed six self-trained experts required')
     expected_hashes = {item['sha256'] for item in expected_experts.values()}
@@ -59,22 +60,30 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                   rule_sha256=rule_digest,
                   contracts_sha256=contracts_digest,
                   producer_sha256=producer_digest,
-                  route_sha256=route_digest, route_training_allowed=True,
+                  route_sha256=route_digest, route_training_allowed=route_trainable,
+                  audit_only=bool(audit_only),
                   source_manifests=[], episode_anchors={},
                   event_counts={}, abstention_counts={}, sources_cpu_reason='file/label statistics only; no model computation')
     from consequence_evaluator.contracts import EPISODE_SCHEMA,ACTION_SEMANTICS
     manifest = dict(schema=EPISODE_SCHEMA,action_semantics=ACTION_SEMANTICS, status='LABELING',
                     rollout_kind='continuous', fps=30, units='m', training_allowed=False,
-                    contact_semantics=CONTACT_SEMANTICS, episodes=[], label_rule=RULE)
+                    contact_semantics=CONTACT_SEMANTICS, episodes=[], label_rule=RULE,
+                    audit_only=bool(audit_only))
     records, windows, groups, episode_ids, phases = {}, [], {}, set(), {}
     try:
         for directory in map(Path, sources):
             source_manifest = directory / 'manifest.json'
             m = json.loads(source_manifest.read_text())
+            # Older raw runs pinned the route in sources rather than a named
+            # route_sha256 field. Accept that identity only for read-only audit.
+            source_route_hash = m.get('route_sha256')
+            if audit_only and source_route_hash is None:
+                source_route_hash = m.get('sources', {}).get(str(Path(route_config).resolve()))
             if (m.get('schema') != manifest['schema'] or m.get('status') != 'COMPLETED'
-                    or m.get('rollout_kind') != 'continuous' or m.get('training_allowed') is not True
-                    or m.get('route_sha256') != route_digest
-                    or m.get('all_experts_operationally_qualified') is not True
+                    or m.get('rollout_kind') != 'continuous'
+                    or (not audit_only and (m.get('training_allowed') is not True
+                                            or m.get('all_experts_operationally_qualified') is not True))
+                    or source_route_hash != route_digest
                     or m.get('action_semantics')!=ACTION_SEMANTICS
                     or m.get('fps') != 30 or m.get('units') != 'm' or not m.get('history_contract')
                     or m.get('contact_semantics') != CONTACT_SEMANTICS
@@ -254,11 +263,12 @@ def label(sources, output, route_config, extra_preferences=None, seconds=600):
                 or sha(TASK / 'src/consequence_evaluator/contracts.py') != contracts_digest
                 or sha(Path(__file__)) != producer_digest):
             raise RuntimeError('labeling route or implementation inputs changed during labeling')
-        manifest.update(status='COMPLETED', training_allowed=report['status'] == 'READY',
+        report['training_allowed'] = not audit_only and route_trainable and report['status'] == 'READY'
+        manifest.update(status='COMPLETED', training_allowed=report['training_allowed'],
                         minimum_pair_coverage=MIN_PREFERENCE_PAIRS,
                         pair_coverage_required=pair_coverage_required,
                         route_sha256=route_digest,
-                        all_experts_operationally_qualified=True,
+                        all_experts_operationally_qualified=qualified,
                         label_report_sha256=None)
         report['elapsed_s'] = time.monotonic() - started
         write(output / 'label_report.json', report)
@@ -285,12 +295,15 @@ def main():
     p.add_argument('--route-config', type=Path, default=ROOT/'src/task/CmResidual/configs/multitrajectory_object_router_with_cup_probe.json')
     p.add_argument('--extra-preferences', type=Path)
     p.add_argument('--seconds', type=int, default=600)
+    p.add_argument('--audit-only', action='store_true',
+                   help='audit existing continuous raw episodes; output is never trainable')
     a = p.parse_args()
     if not is_within(a.output, ROOT/'outputs/consequence-evaluator'):
         p.error('output must be under outputs/consequence-evaluator')
     if shutil.disk_usage(ROOT).free < 20*2**30:
         raise RuntimeError('free disk below20GiB preparation reserve')
-    print(json.dumps(label(a.sources, a.output, a.route_config, a.extra_preferences, a.seconds), indent=2))
+    print(json.dumps(label(a.sources, a.output, a.route_config, a.extra_preferences, a.seconds,
+                          audit_only=a.audit_only), indent=2))
 
 
 if __name__ == '__main__':

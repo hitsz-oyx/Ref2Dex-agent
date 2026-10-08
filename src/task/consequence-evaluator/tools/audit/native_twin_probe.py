@@ -62,7 +62,32 @@ def normalize_properties(value):
         return {key: normalize_properties(item) for key, item in value.items()}
     if isinstance(value, (tuple, list)):
         return [normalize_properties(item) for item in value]
-    return value
+    if isinstance(value, np.generic):
+        return normalize_properties(value.item())
+    if isinstance(value, (bool, int, float, str, np.ndarray)):
+        return value
+    # Pybind enums (e.g. PhysX ContactCollection) expose their members again
+    # through dir(). Treat them as enum values before walking public fields.
+    if hasattr(type(value), '__members__'):
+        return {'enum_type': type(value).__module__ + '.' + type(value).__qualname__,
+                'name': value.name, 'value': int(value)}
+    fields = {name: normalize_properties(getattr(value, name)) for name in dir(value)
+              if not name.startswith('_') and not callable(getattr(value, name))}
+    if not fields:
+        raise ValueError('unsupported native physical property: ' + str(type(value)))
+    return fields
+
+
+def repeat_checks(first, repeat):
+    """Check every measured future used by either oracle, including done."""
+    result = {'repeat_common_prefix_equal':
+              first['snapshot'].common_prefix_hash == repeat['snapshot'].common_prefix_hash}
+    for field in ('residual_plan', 'actions', 'object_poses', 'hand_keypoints', 'done'):
+        result['repeat_' + field + '_equal'] = np.array_equal(
+            getattr(first['branch'], field), getattr(repeat['branch'], field))
+    result['repeat_native_states_equal'] = (
+        fingerprint(first['branch_states']) == fingerprint(repeat['branch_states']))
+    return result
 
 
 def ensure_gpu_free(gpu):
@@ -92,7 +117,6 @@ def worker(a, output, run, trained, config):
     from env.tasks.base_dexplore_task import DexploreTask
     import torch
     from consequence_evaluator.native_reset import install_reset_patch
-    from src.task.CmResidual.paired_evaluation import physical_property_value
 
     install_reset_patch()
     sys.path.insert(0, str(ROOT / 'src/task/cm-interaction-oracle/src'))
@@ -184,16 +208,16 @@ def worker(a, output, run, trained, config):
             error = trace_error(trace, reference['prefix_states']) if reference is not None else 0.
             prefix_trace = reference['prefix_states'] if reference is not None else trace
             prefix_controls = reference['prefix_actions'] if reference is not None else controls
-            physics = {'sim_params': physical_property_value(task.gym.get_sim_params(task.sim)), 'actors': []}
+            physics = {'sim_params': normalize_properties(task.gym.get_sim_params(task.sim)), 'actors': []}
             for env in task.envs:
                 actors = []
                 for index in range(task.gym.get_actor_count(env)):
                     handle = task.gym.get_actor_handle(env, index)
                     actors.append({
                         'name': task.gym.get_actor_name(env, index),
-                        'shape': physical_property_value(task.gym.get_actor_rigid_shape_properties(env, handle)),
-                        'body': physical_property_value(task.gym.get_actor_rigid_body_properties(env, handle)),
-                        'dof': physical_property_value(task.gym.get_actor_dof_properties(env, handle)),
+                        'shape': normalize_properties(task.gym.get_actor_rigid_shape_properties(env, handle)),
+                        'body': normalize_properties(task.gym.get_actor_rigid_body_properties(env, handle)),
+                        'dof': normalize_properties(task.gym.get_actor_dof_properties(env, handle)),
                     })
                 physics['actors'].append(actors)
             physics = normalize_properties(physics)
@@ -224,6 +248,7 @@ def worker(a, output, run, trained, config):
             if a.worker_arm == 'b':
                 plan = -plan
             actions, poses, hands, ended = [], [pose], [hand], []
+            branch_states = [canonical()]
             for tick in range(K):
                 base_control = self.get_action(obs, True).clamp(-1, 1)
                 residual = torch.tensor(plan[tick], device=self.device).expand_as(base_control)
@@ -233,6 +258,7 @@ def worker(a, output, run, trained, config):
                 poses.append(pose)
                 hands.append(hand)
                 ended.append(done[0])
+                branch_states.append(canonical())
                 if done.any() and tick < K - 1:
                     raise ValueError('episode ended before the complete branch')
             branch = TwinBranch(snapshot.state_hash, pair_id,
@@ -242,7 +268,8 @@ def worker(a, output, run, trained, config):
             arm_output = output / a.worker_arm
             arm_output.mkdir()
             payload = {'snapshot': snapshot, 'branch': branch,
-                       'prefix_states': trace, 'prefix_actions': controls}
+                       'prefix_states': trace, 'prefix_actions': controls,
+                       'branch_states': branch_states}
             with (arm_output / 'payload.pkl').open('wb') as stream:
                 pickle.dump(payload, stream, protocol=4)
             write(arm_output / 'summary.json', {
@@ -335,14 +362,12 @@ def main():
         result = {'engineering_only': True, 'training_allowed': False,
                   'changed_state_fields': [name for name in first['snapshot'].state
                       if fingerprint(first['snapshot'].state[name]) != fingerprint(second['snapshot'].state[name])],
-                  'repeat_common_prefix_equal': first['snapshot'].common_prefix_hash == repeat['snapshot'].common_prefix_hash,
-                  'repeat_actions_equal': np.array_equal(first['branch'].actions, repeat['branch'].actions),
-                  'repeat_object_poses_equal': np.array_equal(first['branch'].object_poses, repeat['branch'].object_poses)}
+                  **repeat_checks(first, repeat)}
         try:
             result['pair_contract'] = validate_pair(first['snapshot'], second['snapshot'],
                                                    first['branch'], second['branch'])
-            result['status'] = 'ENGINEERING_PASS' if all(result[name] for name in (
-                'repeat_common_prefix_equal', 'repeat_actions_equal', 'repeat_object_poses_equal')) else 'REPEAT_NOT_EXACT'
+            result['status'] = 'ENGINEERING_PASS' if all(
+                value for name, value in result.items() if name.startswith('repeat_')) else 'REPEAT_NOT_EXACT'
         except ValueError as error:
             result.update(status='REPLAY_NOT_EXACT', error=str(error))
         write(output / 'result.json', result)

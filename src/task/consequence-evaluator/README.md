@@ -46,6 +46,8 @@ perturbed/失败/次优精确progress均mask。三臂另抽相同的train专家�
 充数。collector 只把该要求写入来源 manifest；labeler、prepare、`Windows` 和 train
 会实际核对配对数量以及当前规则、合同和来源 hash。六个专家全部通过固定资格并且
 route 的 `training_allowed=true` 之前，连续采集和真实 fit 都保持 observational-only。
+当前 collector 会拒绝不合格路由。已有原始连续数据可用 labeler 的
+`--audit-only` 重算标签与覆盖率；审计输出始终 `training_allowed=false`，不能 prepare/fit。
 
 同一 current state 的双分支由 `src/consequence_evaluator/twin.py` 定义
 `ref2dex.consequence-evaluator.twin.v1` 合同：必须保存完整 native task/controller
@@ -239,7 +241,7 @@ fresh优化器/调度，50000新更新、2026-10-08 10:00截止，另见混合�
 --run cup=<training-run> --output outputs/consequence-evaluator/<run>/route.json`。
 必须提供airplane_base/mixed12/train5/balanced5/duck/cup全部六角色；
 脚本核对owned随机自训练祖先、每角色训练身份、六个不同checkpoint、
-完整frame0资格及原始trace哈希，默认airplane必须过8/64门槛。
+完整frame0资格及原始trace哈希；生产采集/fit要求六角色全部过8/64门槛。
 其余弱角色的实际资格数显式保留，不能因路由就绪宣称六专家都可靠。
 固定object route沿用既有映射，不从新的测试结果重选。
 collector再次核对/冻结这些路由证据，真实progress和preference仍须
@@ -247,8 +249,9 @@ collector再次核对/冻结这些路由证据，真实progress和preference仍�
 资格结果动态设置该字段。此工具不训练模型，
 不会用一个actor替代六个角色，也不恢复旧Validation身份。
 
-2026-10-08最新：duck260→340的80epoch迁移完成489.07s，固定64条
-frame0资格8/64，达到运营门槛但仍较弱。GPU0已接cup260→340，
-2epoch工程检查通过，64env正式迁移和端点资格继续；mixed12/train5/
-balanced5三角色仍未训练。全Task89项工程测试通过，真实evaluator
-采集/三臂训练未开始，不把路由工具就绪当作数据或科学结论。
+2026-10-08最新：六角色均已完成有界训练/资格检查，airplane/duck/cup分别
+36/8/63条通过（各64条），mixed12/train5/balanced5为0/5/4，路由保持不可训练。
+已有两轮连续采集共360条原始episode；第二轮216条在旧规则下只有2/1/5
+train/val/test偏好，尚未拟合evaluator。新增H匹配和最小8/4/4唯一episode-pair
+门槛后，需要单独审计，不能沿用旧READY标记。native twin runner是独立工程检查，
+不进入连续数据schema；真实重放是否一致仍以其产物为准。

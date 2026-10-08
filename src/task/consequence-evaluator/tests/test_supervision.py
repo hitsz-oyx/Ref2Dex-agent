@@ -171,3 +171,25 @@ def test_missing_clean_experts_prevent_training_instead_of_inventing_progress(tm
     out=tmp_path/'labels';report=label([source],out,route)
     assert report['status'] == 'INSUFFICIENT_EXPERT_PROGRESS'
     assert json.loads((out/'manifest.json').read_text())['training_allowed'] is False
+
+
+def test_unqualified_legacy_collection_can_be_audited_but_never_prepared_for_fit(tmp_path):
+    source=tmp_path/'source';source.mkdir();route=tmp_path/'route.json'
+    collection_fixture(source,route)
+    config=json.loads(route.read_text())
+    config.update(training_allowed=False, all_experts_operationally_qualified=False)
+    route.write_text(json.dumps(config))
+    manifest=json.loads((source/'manifest.json').read_text())
+    manifest.pop('route_sha256')
+    manifest.pop('all_experts_operationally_qualified')
+    manifest['sources'][str(route.resolve())]=sha(route)
+    (source/'manifest.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='observational-only'):
+        label([source],tmp_path/'blocked',route)
+    out=tmp_path/'audit'
+    report=label([source],out,route,audit_only=True)
+    assert report['status'] == 'READY' and report['audit_only']
+    assert report['training_allowed'] is False
+    assert json.loads((out/'manifest.json').read_text())['training_allowed'] is False
+    with pytest.raises(ValueError, match='provenance required'):
+        prepare(out,out/'preferences.json',tmp_path/'windows')
