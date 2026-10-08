@@ -5,7 +5,7 @@ experiment_id: P-20261008-gate1-gt-progress
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: d603153
+git_commit: 64522f1
 claim_id: C3
 hypothesis_family: HF-consequence-gate1-gt-progress
 probe_index_in_family: 1
@@ -13,15 +13,17 @@ seed_pool: probe
 seeds: [282, 283, 284, 285]
 decision_changed_if_positive: expand fresh-replay GT-value rolling comparison before fitting an evaluator
 decision_changed_if_negative: distinguish candidate coverage from phase-value utility before spending on later Gates
-status: PLANNED
+status: UNCLEAR
 run_id: gate1-gt-progress-20261008-r1
 ---
 
 # Does causal physical-reference GT value improve real rolling control?
 
-Result: Actor batch-path defect repaired; CPU-PhysX/GPU-actor72step zero replay
-is bitwise exact for73state/RNG frames and all controls. Research pairs pending.
-Decision: Run bounded early-contact Gate1 Probe using the owned self-trained actor.
+Result: One matched pair completed in314.94s; all exact replay checks passed.
+One of four decisions intervened. Baseline/rolling0/1, rescues0, harms0.
+CPU baseline maxlift0.74cm versus GPU preflight81.51cm/483held frames.
+Decision: UNCLEAR. Stop CPU panel expansion and evaluator fit; restore
+representative GPU execution before deciding GT policy utility.
 
 ## Decision Note and purpose
 
@@ -153,3 +155,51 @@ gate1-engineering-20261008-r6/exact-replay-audit.json. This is engineering
 readiness for the first window, not whole-episode replay evidence or Gate1 pass.
 Initial scientific campaign remains one seed282/four replans under900s; every
 later chosen prefix, repeat-zero and full continuation must pass the same checks.
+
+
+## Completed matched pair and attribution
+
+Actual executing commit64522f1, run_idgate1-gt-progress-20261008-r1, seed282,
+CPU-PhysX and GPU2 actor/phase inference. Completed in314.936s and GPU released.
+All12candidates, repeated first-zero, each chosen8step mixed-prefix replay and
+full542step rolling continuation passed canonical state/RNG/control/measurement
+checks. Every candidate at each query shares identical P[t]. No source drift,
+evaluator, learning update or candidate evidence beyondt+24. The as-run frozen
+protocol is archived in the output directory before updating this card.
+
+| query tick | baseline Y | positive-finger Y | negative-finger Y | choice |
+| --- | ---: | ---: | ---: | --- |
+|48|0.018941|0.031013|0.016742|positive, +0.012072 over baseline|
+|56|−0.001289|−0.036174|−0.001869|baseline|
+|64|−0.014890|−0.015896|−0.013714|baseline, improvement<epsilon0.01|
+|72|0.005263|−0.025038|0.004583|baseline|
+
+Independent full-episode outcomes: baseline0/1, rolling0/1, rescue0, harm0.
+Both maximum held runs are0 and intermediate loss counts0. Maximum elevation:
+baseline0.007417m, rolling0.024780m, both below3cm. Final settled frames95/157
+without a prior stable grasp do not count as task success. Increased maximum
+elevation is not a success or utility claim. Single initial state, only four
+early-contact decisions; this panel cannot adjudicate the method.
+
+The restored GPU engineering baseline (same seed/checkpoint) had483consecutive
+held frames and0.815144m elevation. CPU/GPU first controls agree within~2e−7
+and initial history within9.54e−7, but first-step hand coordinates differ up
+to3.40mm/history0.281, growing to contact-stage trajectory divergence. Hence
+the CPU backend removes the exact-replay blocker while materially changing
+policy behavior. This was not caused by weight/RMS updates; its physical/control
+backend cause still needs diagnosis. The CPU matched pair is valid only for
+that backend and is not negative evidence about the originally working GPU
+policy or the new Y. No formal Gate1 pass andtraining_allowed=false.
+
+Decision Note: This run changes the next investment decision: do not spend the
+remaining registered seeds on CPU, and do not train an evaluator yet. Prioritize
+restoring a representative native GPU baseline with a defensible same-state
+GT rollout protocol, keeping weights and Y fixed. First cheap evidence should
+compare identical executed controls across the contact-stage replay; stop on
+uncertified decision-state drift. Candidate coverage, longer rolling stages and
+formal success comparison remain deferred until execution readiness is restored.
+
+Artifacts: outputs/consequence-evaluator/gate1-gt-progress-20261008-r1/
+manifest.json, result.json, analysis.json, protocol-as-run.md, full baseline/
+rolling packets and all branch/score logs. Historical GPU/CPU preflights remain
+under gate1-engineering-20261008-r1..r6; no failed artifact was overwritten.

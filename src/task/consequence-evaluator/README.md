@@ -13,7 +13,9 @@ bank由[构建工具](tools/audit/build_physical_reference_bank.py)冻结实测1
 标签通过后按[完整链路](../../../docs/user/完整链路.md)先做直接GT-value的Gate1，
 再考虑evaluator；[Gate1入口](docs/experiments/probes/P-20261008-gate1-gt-progress.md)
 已修复单样本GPU actor前向，CPU-PhysX/GPU actor的72步零分支重放完全一致。
-当前研究对照尚待运行，延迟失抓和候选排序仍待检验，不启动evaluator。
+首轮1个配对episode已完成：严格滚动重放通过，任务成功0/1对0/1，结论UNCLEAR。
+CPU后端baseline未抓起，GPU预检同策略hold483步；先恢复代表性GPU执行，
+暂不扩大CPU样本或训练evaluator。
 新schema独立于旧S/P/M和旧局部H匹配标签。
 
 ## 历史路线与保留证据

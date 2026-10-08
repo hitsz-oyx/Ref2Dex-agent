@@ -1,15 +1,20 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-08 Gate1 执行入口预检
+## 2026-10-08 Gate1 首轮完成：工程通过，任务收益 UNCLEAR
 
-旧自训e260的64env评估记录与checkpoint保留有效：短时lift56/64、hold45的24/64、
-hold后无laterdrop18/64；不是新正常放回成功率。新单envGate1入口触发归档Torch2.0.1
-GPU batch1前向异常，d603153改成固定64相同观测行、只执行首行，权重/RMS不变。
-GPU完整baseline恢复483步连续hold，第一控制与旧记录一致。GPU接触期重放仍有
-force/history差异，不通过放宽容差放行；同步等待不能解决。CPU-PhysX+GPU actor
-的72步工程预检中73帧canonical/RNG与72控制完全一致，准备同后端matched Gate1
-seed282四次滚动Probe；两臂均CPU物理/GPU模型，不与旧GPU成功率直接比较。
-尚无研究对照收益或正式Gate1结论，未训练evaluator。记录见
+64522f1在CPU-PhysX/GPU2模型执行1个paired episode（seed282），314.94秒完成。
+12候选、重复零分支、4次chosen8step混合prefix及全542步rolling均通过严格
+canonical/RNG/控制/观测重放。tick48选positive，Y0.031013对baseline0.018941；
+其余3次维持baseline。独立成功baseline0/1、rolling0/1、rescue0、harm0；
+最高抬升0.74cm/2.48cm、held0，未过Gate1，不训练evaluator。
+
+关键限制：CPU baseline未能抓起，而同seed/同权重的GPU预检连续hold483步，
+最高抬升81.51cm；首步控制几乎相同，首步物理/观测即开始偏离。CPU后端解决
+严格重放，却改变策略表现，不能据此否定原GPU策略或新Y。保留原e260的
+64env历史56/64 lift、24/64 hold45、18/64 hold后无laterdrop结果（不同指标）。
+单样本GPU推理异常已由d603153修复；GPU接触force/history重放仍待解决，
+不放宽容差。下一步恢复代表性GPU执行与同状态GT合同，暂不扩大CPU seed。
+GPU2已释放。完整结果、实验动机与限制见
 [Gate1卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md)。
 
 ## 2026-10-08 ref4_2 成功机器人 reference bank
