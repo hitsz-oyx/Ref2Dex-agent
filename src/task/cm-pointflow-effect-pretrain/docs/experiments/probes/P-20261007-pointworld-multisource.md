@@ -395,3 +395,16 @@ model process or add updates. Adoption is bounded by the existing deadline
 plus the original 180-second shutdown grace. An adopted process is not a child,
 so terminal state comes from trainer output and process exit, not an invented
 exit code. Two CPU process-identity/signaling regression tests pass.
+
+### Fixed-panel late-training snapshot (2026-10-08 09:39)
+
+The production run remains live on GPU 1/2, with the original 50000-update and
+10:00 absolute deadline. Same-panel moving-anchor h24 EPE at step 49000 is
+Oak 14.265 / GRAB 28.214 / ARCTIC 38.002 mm; equal-source macro 26.827 mm,
+versus initialization 34.480 mm. Best through this snapshot is step 46000,
+26.786 mm. Mean macro over updates (35000,40000], (40000,45000] and
+(45000,49000] is 27.904, 27.581 and 27.410 mm respectively. Gains have slowed
+but these logs do not establish a complete plateau. This is a Probe panel
+observation, not test performance or Cm utility. The bounded log-only summary
+is `outputs/cm-pointflow-effect-pretrain/main3-phase-summary-20261008-r1/report.json`;
+no extra model evaluation or optimizer change was introduced.

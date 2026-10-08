@@ -217,3 +217,32 @@ Read-only labeling output:
 Stop on input drift, foreign GPU use, budget exhaustion, partial episode or
 failed native geometry. Training and formal data gates stay closed regardless
 of this diagnostic's pair count; there is no new external permission boundary.
+
+### Focused continuous run result
+
+Commit `7389d05`, seed 299, GPU 0: the collector completes 48 independent
+episodes in 115.86 s, 103.20 MiB. Allocation is 24 clean / 24 hold;
+23 hold interventions actually trigger. All frozen sources still match;
+the native process exits and GPU 0 is released. No fork was used.
+Read-only labeling takes 7.32 s with 2881 selected windows and 11403 reliable
+train progress-anchor frames. Event windows include 2040 maintained holds,
+22 unrecovered drops in hold, 48 lift achievements and 30 grasp losses.
+Geometry records 26016 valid frames, 19022 force-proxy frames, 18788
+proxy-and-near frames and one proxy-far frame; force is still only a proxy.
+
+`outputs/consequence-evaluator/hold-phase-capacity-20261008-r1/report.json`
+pins all labeled episode/diagnostic and implementation hashes. Among 456
+event-direction-compatible episode pairs, only one has a current physical
+match under the fixed thresholds, and the same one also passes H. The labeler
+selected that one train pair; val/test were intentionally not collected in
+this single-split diagnostic. All outputs remain untrainable. This does not
+establish that continuous rollouts are ineffective; the current event/window
+sample cannot support the planned evaluator fit.
+
+Next cheapest diagnosis: use the same immutable raw episodes, current event
+rule and thresholds, but inspect every decision-known full-window start
+instead of the labeler's eight-tick cadence. The audit tool's `--all-ticks`
+option creates only a capacity report; it changes no labels, model inputs,
+fit gate or sampling contract. Stop within 600 s / 20000 event windows.
+This distinguishes cadence loss from genuinely sparse comparable states
+before allocating any further GPU rollout.
