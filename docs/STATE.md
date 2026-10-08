@@ -1,6 +1,21 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-07 ref2/ref3 最新状态
+## 2026-10-08 用户修改审查与当前 blocker
+
+consequence-evaluator 用户新增的H匹配、最小唯一配对覆盖和重放状态合同保留。
+修复repeat验收遗漏未来手/done、生产门槛误封只读审计、native物理枚举/dtype
+序列化，以及pickle对象共享导致内容哈希在save/load后变化的问题。
+六角色airplane/duck/cup资格36/8/63（各64条），mixed12/train5/balanced5为0/5/4；
+生产route仍不可训练。216条旧连续episode经H匹配重新审计，唯一pair=1/1/1，
+低于8/4/4；没有启动evaluator fit。独立native twin r4（a7d5146/GPU0）通过：
+三fresh进程同前缀状态/RNG精确一致、repeat全部future/action/done/native状态一致，
+请求/实际control L2分别0.75865/1.14996。它是engineering_only且不可训练，
+不改变ref2 continuous schema或科学结论；下一步仍需单独固定配对采集协议。
+124项Task测试及verify通过；原始失败run、用户其他修改均保留。
+GPU1/2的三源PointWorld继续原冻结配方与50000步/10:00绝对截止预算。
+详见[配对覆盖卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md)。
+
+## 2026-10-07 ref2/ref3 运行记录（历史）
 
 新随机自训练s1 parent200资格50/64；s3 bounded220→260固定资格36/64，
 恢复Probe PROMISING。十条剩余reference全部恢复；六角色airplane_base已过资格，duck340固定资格8/64，保留旧duck280的0/64记录；cup正训练，其余三角色待训练，

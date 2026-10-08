@@ -124,3 +124,52 @@ state/RNG/input drift; do not relax exact identity after observing the result.
 The result decides whether the native adapter needs repair before a separate
 collection design. It creates no training dataset, changes no ref2 contract,
 and does not authorize additional specialist training or evaluator fitting.
+
+### Review and repairs
+
+Standards review found stale qualification and execution status in the Task
+README; these now match the actual endpoints and raw collections. Spec review
+found that native repeat acceptance omitted hand futures and termination, and
+that the production qualification gate also prevented read-only relabeling.
+Repeat checks now cover residual plans, executed controls, object poses, hand
+keypoints, done and the complete canonical native future trace. The explicit
+labeler `--audit-only` path preserves source/route hashes and always emits
+`training_allowed=false`; production gates remain closed. Twin collection
+remains a scope addition separate from ref2 continuous observational data.
+
+Real native execution exposed two additional implementation defects. Run r1
+failed serializing PhysX enums; r2 exposed recursive vector dtype metadata.
+The serializer now handles enum values, dtype metadata and named structured
+fields, with a recursion bound. Run r3 reproduced the physical traces exactly
+but failed branch provenance after payload deserialization: whole-tree pickle
+hashing depends on shared string/dtype object identities. Commit `a7d5146`
+replaces it with framed content hashing; identity survives save/load without
+weakening state equality. Original failure logs and artifacts remain intact.
+
+### Measured results and limits
+
+`outputs/consequence-evaluator/label-history-audit-20261008-r1/` rechecks the
+216 existing episodes at commit `08c3ac3`, without GPU/model computation.
+It completes in 40.83 s with 14,117 windows, window pairs 1/1/2 and unique
+episode pairs **1/1/1** (train/val/test). It is
+`INSUFFICIENT_PREFERENCES` and never trainable; H matching therefore does not
+repair the observational coverage blocker.
+
+`outputs/consequence-evaluator/native-twin-engineering-20261008-r4/` executes
+commit `a7d5146` on idle physical GPU 0, seed 17, one environment, eight
+control-prefix ticks / sixteen physics frames, then two opposite 24-step
+decision-known residual plans and a repeated positive branch. All three
+prefix state/RNG hashes agree, measured replay error is zero, and every
+repeat check passes. The pair contract reports requested-plan L2 0.75865 and
+executed-control L2 1.14996. Result: **ENGINEERING_PASS**, not a scientific
+Probe conclusion, qualification or preference label. The driver stays below
+its 900 s / 1 GiB limit (67.44 s, 99.1 MiB); PyTorch peak allocation is about 141 MiB, while
+observed total native-process GPU memory reaches about 16 GiB including
+PhysX. GPU 0 is released on completion.
+
+CPU regressions: 124 Task tests pass, including serialization identity,
+interaction/done repeat failures, physical enum/dtype handling and audit-only
+fit rejection; `tools/verify.py --changed` also passes against `e0861bd`.
+Next decision remains a separately specified collection protocol with enough
+independent paired states and train progress anchors. No twin-to-continuous
+schema conversion, evaluator fitting or further generic waves occurred.

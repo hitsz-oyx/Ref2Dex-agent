@@ -60,9 +60,11 @@ motion sampler。通用 snapshot 要求显式 `{'is_rnn': ..., 'state': ...}` se
 Python/NumPy/Torch RNG 的具体格式，并提供对应的 CPU/GPU Torch RNG restore helper。
 native DExplore adapter 进一步固定 `control_freq_inv=2`、`sim_params.dt=1/60`；PhysX
 `substeps` 必须由 caller 放入 physics provenance hash，但不计入 Gym frame count。
-adapter 尚未接入连续 native collector 的双分支执行，
-也没有真实 twin branch 产物；非RNN controller 也必须显式记录空 RNN sentinel。合同测试不能
-作为 twin coverage 或 evaluator 科学证据。
+非RNN controller 也必须显式记录空 RNN sentinel。
+[native 工程检查](tools/audit/native_twin_probe.py)现在独立执行三个 fresh simulator，
+完成同前缀双残差及重复分支。2026-10-08 r4 精确状态/RNG及物体、手、done、完整
+native future 重放均通过；内容哈希也通过保存/加载一致性检查。该输出始终不可训练，
+不接入连续数据schema，不作为 twin coverage 或 evaluator 科学证据。
 
 ## 连续 episode 输入
 
@@ -252,6 +254,6 @@ collector再次核对/冻结这些路由证据，真实progress和preference仍�
 2026-10-08最新：六角色均已完成有界训练/资格检查，airplane/duck/cup分别
 36/8/63条通过（各64条），mixed12/train5/balanced5为0/5/4，路由保持不可训练。
 已有两轮连续采集共360条原始episode；第二轮216条在旧规则下只有2/1/5
-train/val/test偏好，尚未拟合evaluator。新增H匹配和最小8/4/4唯一episode-pair
-门槛后，需要单独审计，不能沿用旧READY标记。native twin runner是独立工程检查，
-不进入连续数据schema；真实重放是否一致仍以其产物为准。
+train/val/test偏好，尚未拟合evaluator。新增H匹配审计得到窗口pair=1/1/2、唯一
+episode-pair=1/1/1，低于8/4/4门槛，不沿用旧READY标记。
+native twin r4已通过独立工程检查，但不进入连续数据schema。
