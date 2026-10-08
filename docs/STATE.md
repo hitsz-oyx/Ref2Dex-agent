@@ -150,6 +150,15 @@ role的post-query displacement分布，或改造replay contract。r19/r21 packet
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r19/`和
 `...-r21/`，仍不跑正式Gate1或evaluator fit。
 
+随后新增只读审计入口`tools/audit/audit_gpu_group_gt_values.py`，用冻结的物理
+reference bank/TCC encoder复算r19/r21的24步GT progress。两次progress-start
+range都为4.90e-6，超过严格same-state的1e-9；r19四角色Y为
+0.041369/0.042313/0.017920/0.041562，r21为0.042281/0.044033/0.040786/0.016099。
+两次raw argmax都是zero-repeat，按固定0.01 deadzone都选择baseline。审计只作为
+engineering contract evidence，不进入strict score worker或Gate1 utility claim；输出
+在`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r22/`，工具提交
+为`10ae238`。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 429d9ff
+git_commit: 10ae238
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: gate1-gpu-group-engineering-20261009-r18
+run_id: gate1-gpu-group-engineering-20261009-r22
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -221,3 +221,22 @@ candidate window across fresh processes. The next implementation step is to
 record post-query zero displacement for every zero role and compare each arm
 against that distribution, or redesign the replay contract; formal Gate1 and
 evaluator fitting remain stopped.
+
+## Physical-bank GT-value audit
+
+The engineering packets were then scored with the frozen physical-reference
+bank and TCC phase encoder using
+`tools/audit/audit_gpu_group_gt_values.py`. This audit accepts engineering
+packets only, records the current-progress spread, and never feeds them to the
+strict score worker. Its output is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r22/gt-value-audit.json`.
+
+For r19, the four role values were
+`[0.041369, 0.042313, 0.017920, 0.041562]`; for r21 they were
+`[0.042281, 0.044033, 0.040786, 0.016099]`. In both packets the progress
+start range was `4.90e-6`, above the strict `1e-9` same-state tolerance. The
+raw argmax was the zero-repeat role in both cases, while the frozen `0.01`
+deadzone selector chose baseline in both cases. This is useful contract
+evidence—the current native GPU residual arms do not produce a reproducible
+non-baseline GT-value choice—but it is not a Gate1 utility result because the
+same-state and nominal behavior contracts are still not jointly satisfied.
