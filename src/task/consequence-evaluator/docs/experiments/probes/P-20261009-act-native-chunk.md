@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: bf96546
+git_commit: 79cdbf3
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: gate1-gpu-serial-engineering-20261009-r29
+run_id: gate1-gpu-serial-engineering-20261009-r30
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -369,10 +369,36 @@ label-contract diagnostic, not a Gate1 utility result: contact/history state is
 not a strict twin and only one serial launch was run.
 
 The serial route is therefore retained as an engineering harness for frozen
-control and field-specific noise measurements, with baseline behavior preserved
-in this Probe. It does not satisfy the strict same-state Gate1 contract and
+control and field-specific noise measurements; the r29 single launch preserved
+the native baseline behavior. It does not satisfy the strict same-state Gate1 contract and
 cannot justify reactive-policy candidate ranking. The next route must either
 fork/restore the hidden PhysX contact state or use a predeclared repeated
 same-process statistical design that treats contact/history as noise; reference
 bank, Y labels, evaluator training, PointWorld, and policy weights remain
 unchanged.
+
+### Arm-order follow-up (r30)
+
+To test whether the serial result was tied to the warm-cache arm order, commit
+`79cdbf3` added an explicit `candidate-first` schedule. A fresh process ran
+`baseline → positive → negative → zero_repeat_1 → zero_repeat_2`, while the
+saved packet remains in canonical role order and records `execution_order`.
+The packet and read-only audits are in
+`outputs/consequence-evaluator/gate1-gpu-serial-engineering-20261009-r30/`.
+
+The comparison is not valid as a causal order test: the fresh r30 baseline did
+not match r29's baseline despite identical seed, checkpoint, backend, and reset
+contract. r29 reached `0.8241 m`/484 held frames; r30 reached `0.8281 m`/483,
+with action and physical divergence before the candidate window. Thus any r29
+versus r30 candidate/noise difference is confounded by the known fresh-process
+GPU reactive baseline spread. Within r30, the two fixed-control zero arms still
+had zero post-query p95 on the geometric fields, while contact/history remained
+non-exact. Its frozen-bank values were baseline/zero
+`0.0437091`, positive `0.0189845`, and negative `-0.0122399`, with zero
+progress-start range and baseline selected; this remains an engineering label
+diagnostic only.
+
+The arm-order question is therefore `UNCLEAR`, and no further order-only runs
+are planned without a frozen baseline control stream. Serial reset remains a
+single-run frozen-control calibration container, not a fresh-process twin or a
+formal Gate1 route.

@@ -1189,3 +1189,14 @@ serial GT-value audit 位于
 `outputs/consequence-evaluator/gate1-gpu-serial-engineering-20261009-r29/`；不修改
 reference bank、Y、policy weights。下一步需要 hidden PhysX state fork/restore，或预先
 声明 field-specific noise 与重复数的 statistical paired design，再决定是否重启 Gate1。
+
+为检查 serial arm 顺序，又在提交 `79cdbf3` 下做了 candidate-first fresh launch
+（`baseline → positive → negative → zero_repeat_1 → zero_repeat_2`，r30）。与 r29
+相同 seed/checkpoint/backend 的 baseline parity 失败：r29 为 `0.8241 m`/484 held，
+r30 为 `0.8281 m`/483，action 在 tick47、物理轨迹在 tick48 已出现差异。因此不能
+用 r29↔r30 的候选或 noise 差异归因于 warm-cache arm order。r30 内部两个固定控制
+zero 仍保持机械字段 exact，而 contact/history divergent；其物理-bank Y 为
+baseline/zero `0.0437091`、positive `0.0189845`、negative `-0.0122399`，仍是
+engineering-only label diagnostic。该 order Probe 标记 `UNCLEAR`，serial 只保留为
+单次 frozen-control field/noise calibration 容器；后续若没有冻结 baseline action stream，
+不再追加 order-only launch。
