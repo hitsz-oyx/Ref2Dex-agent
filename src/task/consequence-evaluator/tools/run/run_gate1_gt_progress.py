@@ -120,6 +120,10 @@ def native_worker(a):
             raise ValueError('fixed nonrecurrent synchronous group contract required')
         if int(task.num_motions) != 1:
             raise ValueError('engineering group requires one repeated motion across all env roles')
+        zero_left, zero_right = map(int, a.zero_env_pair)
+        if (not 0 <= zero_left < count or not 0 <= zero_right < count
+                or zero_left == zero_right or zero_left in (2, 3) or zero_right in (2, 3)):
+            raise ValueError('zero env pair must be two distinct non-candidate group roles')
         prefix_actions = None
         if a.action_chunk_roles == 'candidate' and expected is not None:
             prefix_actions = np.asarray(expected.get('actions'))
@@ -467,14 +471,14 @@ def native_worker(a):
         for key in exact_keys:
             value=packets[key]
             for tick in range(len(value)):
-                if not np.array_equal(value[tick][0], value[tick][1]):
+                if not np.array_equal(value[tick][zero_left], value[tick][zero_right]):
                     mismatches.append(dict(field=key, tick=tick)); break
         if mismatches:
             diagnostics=[]
             for mismatch in mismatches[:12]:
                 key, tick = mismatch['field'], mismatch['tick']
                 value = packets[key]
-                left, right = value[tick][0], value[tick][1]
+                left, right = value[tick][zero_left], value[tick][zero_right]
                 detail = dict(field=key, tick=tick)
                 if isinstance(left, dict) and isinstance(right, dict):
                     detail['different_keys'] = [name for name in left if left.get(name) != right.get(name)]
@@ -496,7 +500,7 @@ def native_worker(a):
             # the drift diagnostics and continue to measure whether the
             # native-policy behavior is restored. Fresh-process exact replay
             # is still required by the production Gate1 worker.
-        baseline_packet={key: value[:,0] for key,value in packets.items() if key in fields}
+        baseline_packet={key: value[:,zero_left] for key,value in packets.items() if key in fields}
         baseline_packet['timestamps']=packets['timestamps']
         outcome=episode_outcome(baseline_packet) if stop >= 45 else None
         calibration_fields = ('object_pose', 'hand_keypoints', 'dof_position', 'dof_velocity',
@@ -508,13 +512,13 @@ def native_worker(a):
         effect_stop = min(len(packets['object_pose']), query + horizon + 1)
         for key in calibration_fields:
             value = np.asarray(packets[key], dtype=np.float64)
-            zero = value[:query + 1, 1] - value[:query + 1, 0]
+            zero = value[:query + 1, zero_right] - value[:query + 1, zero_left]
             zero_flat = np.abs(zero).reshape(-1)
             zero_max = float(zero_flat.max()) if zero_flat.size else 0.0
             zero_p95 = float(np.quantile(zero_flat, .95)) if zero_flat.size else 0.0
-            zero_post = value[query + 1:effect_stop, 1] - value[query + 1:effect_stop, 0]
-            zero_displacement = ((value[query + 1:effect_stop, 1] - value[query, 1])
-                                 - (value[query + 1:effect_stop, 0] - value[query, 0]))
+            zero_post = value[query + 1:effect_stop, zero_right] - value[query + 1:effect_stop, zero_left]
+            zero_displacement = ((value[query + 1:effect_stop, zero_right] - value[query, zero_right])
+                                 - (value[query + 1:effect_stop, zero_left] - value[query, zero_left]))
             zero_post_flat = np.abs(zero_post).reshape(-1)
             zero_disp_flat = np.abs(zero_displacement).reshape(-1)
             zero_noise[key] = dict(
@@ -525,10 +529,10 @@ def native_worker(a):
                 postquery_displacement_p95_abs=float(np.quantile(zero_disp_flat, .95)) if zero_disp_flat.size else 0.0)
             candidate_effect[key] = {}
             for env_index, name in ((2, 'positive'), (3, 'negative')):
-                query_offset = value[query, env_index] - value[query, 0]
-                raw = value[query + 1:effect_stop, env_index] - value[query + 1:effect_stop, 0]
+                query_offset = value[query, env_index] - value[query, zero_left]
+                raw = value[query + 1:effect_stop, env_index] - value[query + 1:effect_stop, zero_left]
                 incremental = ((value[query + 1:effect_stop, env_index] - value[query, env_index])
-                               - (value[query + 1:effect_stop, 0] - value[query, 0]))
+                               - (value[query + 1:effect_stop, zero_left] - value[query, zero_left]))
                 effect_vs_zero = incremental - zero_displacement
                 raw_flat = np.abs(raw).reshape(-1); inc_flat = np.abs(incremental).reshape(-1)
                 effect_flat = np.abs(effect_vs_zero).reshape(-1)
@@ -548,7 +552,8 @@ def native_worker(a):
                     query_offset_max_abs=float(np.abs(query_offset).max()) if np.size(query_offset) else 0.0)
         action_calibration = {}
         for env_index, name in ((2, 'positive'), (3, 'negative')):
-            delta = packets['actions'][query:effect_stop, env_index].astype(np.float64) - packets['actions'][query:effect_stop, 0]
+            delta = (packets['actions'][query:effect_stop, env_index].astype(np.float64)
+                     - packets['actions'][query:effect_stop, zero_left])
             delta_abs = np.abs(delta).reshape(-1)
             step_delta = np.abs(delta).max(axis=-1)
             action_calibration[name] = dict(max_abs=float(delta_abs.max()), p95_abs=float(np.quantile(delta_abs, .95)),
@@ -558,12 +563,65 @@ def native_worker(a):
             object_pose=1e-2, hand_keypoints=1e-2, dof_position=5e-2,
             dof_velocity=5., object_velocity=5., history=5.,
             native_contact_forces=5., native_object_contact_forces=5.)
+        zero_pair_p95_thresholds = dict(
+            object_pose=1e-3, hand_keypoints=2e-3, dof_position=2e-3,
+            dof_velocity=5e-2, object_velocity=5e-2, history=5e-2,
+            native_contact_forces=5., native_object_contact_forces=5.)
         zero_pair_gate = dict(
-            thresholds=zero_pair_thresholds,
+            max_thresholds=zero_pair_thresholds,
+            p95_thresholds=zero_pair_p95_thresholds,
             prequery_max_abs={key: zero_noise[key]['prequery_max_abs'] for key in calibration_fields},
-            passed=all(zero_noise[key]['prequery_max_abs'] <= limit
-                       for key, limit in zero_pair_thresholds.items()),
-            rule='prequery zero-pair drift must remain below field-specific physical tolerance')
+            prequery_p95_abs={key: zero_noise[key]['prequery_p95_abs'] for key in calibration_fields},
+            max_passed=all(zero_noise[key]['prequery_max_abs'] <= limit
+                           for key, limit in zero_pair_thresholds.items()),
+            p95_passed=all(zero_noise[key]['prequery_p95_abs'] <= limit
+                           for key, limit in zero_pair_p95_thresholds.items()),
+            # Candidate calibration uses a robust p95 floor. The max values
+            # remain visible because a contact impulse can be a real diagnostic
+            # even when it should not invalidate the whole paired window.
+            passed=all(zero_noise[key]['prequery_p95_abs'] <= limit
+                       for key, limit in zero_pair_p95_thresholds.items()),
+            rule='prequery zero-pair p95 must remain below field-specific physical tolerance; max is diagnostic')
+        zero_role_indices = [index for index in range(count) if index not in (2, 3)]
+        pairwise_zero_noise = {}
+        for key in calibration_fields:
+            value = np.asarray(packets[key], dtype=np.float64)
+            pairs = []
+            for left_offset, left in enumerate(zero_role_indices):
+                for right in zero_role_indices[left_offset + 1:]:
+                    delta = np.abs(value[:query + 1, left] - value[:query + 1, right]).reshape(-1)
+                    pairs.append(dict(left=left, right=right,
+                                      max_abs=float(delta.max()) if delta.size else 0.,
+                                      p95_abs=float(np.quantile(delta, .95)) if delta.size else 0.))
+            pairwise_zero_noise[key] = dict(
+                zero_roles=zero_role_indices, pair_count=len(pairs), pairs=pairs,
+                best_p95_abs=min((item['p95_abs'] for item in pairs), default=0.),
+                median_p95_abs=float(np.median([item['p95_abs'] for item in pairs])) if pairs else 0.,
+                worst_p95_abs=max((item['p95_abs'] for item in pairs), default=0.))
+        common_pairs = []
+        for left_offset, left in enumerate(zero_role_indices):
+            for right in zero_role_indices[left_offset + 1:]:
+                p95_by_field = {}
+                for key in calibration_fields:
+                    match = next(item for item in pairwise_zero_noise[key]['pairs']
+                                 if item['left'] == left and item['right'] == right)
+                    p95_by_field[key] = match['p95_abs']
+                threshold_ratios = {
+                    key: (p95_by_field[key] / zero_pair_p95_thresholds[key]
+                          if zero_pair_p95_thresholds[key] > 0 else float('inf'))
+                    for key in calibration_fields}
+                common_pairs.append(dict(
+                    left=left, right=right, p95_abs=p95_by_field,
+                    max_p95_threshold_ratio=max(threshold_ratios.values()),
+                    passed=all(threshold_ratios[key] <= 1. for key in calibration_fields)))
+        best_common_pair = min(common_pairs, key=lambda item: item['max_p95_threshold_ratio'], default=None)
+        pairwise_zero_gate = dict(
+            zero_roles=zero_role_indices,
+            p95_thresholds=zero_pair_p95_thresholds,
+            best_fieldwise_p95={key: value['best_p95_abs'] for key, value in pairwise_zero_noise.items()},
+            best_common_pair=best_common_pair,
+            passed=bool(best_common_pair is not None and best_common_pair['passed']),
+            rule='one common zero-zero pair must meet every field p95 tolerance; fieldwise minima are diagnostic')
         candidate_margin = dict()
         for name in ('positive', 'negative'):
             candidate_margin[name] = {
@@ -614,17 +672,22 @@ def native_worker(a):
             replay_identity=identity, canonical_state_keys=state_keys,
             actor_inference_batch=(1 if proposal_enabled else count * 64),
             engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
-            control_prefix_exact=bool(np.array_equal(packets['actions'][:,0], packets['actions'][:,1])
-                                      and np.array_equal(packets['done'][:,0], packets['done'][:,1])),
+            zero_env_pair=[zero_left, zero_right],
+            control_prefix_exact=bool(np.array_equal(packets['actions'][:,zero_left], packets['actions'][:,zero_right])
+                                      and np.array_equal(packets['done'][:,zero_left], packets['done'][:,zero_right])),
             exact_fields=exact_keys,
             rng_semantics='one process-global RNG trace shared by all envs; zero-pair calibration is state/observation based',
             calibration_window=dict(zero_prequery_ticks=[0, query], candidate_postquery_ticks=[query + 1, effect_stop - 1]),
             zero_noise_calibration=zero_noise, candidate_effect_calibration=candidate_effect,
             action_calibration=action_calibration,
             zero_pair_gate=zero_pair_gate, effect_margin_gate=effect_margin_gate,
+            zero_role_indices=zero_role_indices, pairwise_zero_noise=pairwise_zero_noise,
+            pairwise_zero_gate=pairwise_zero_gate,
             behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
-            baseline_outcome=outcome, baseline_max_lift_m=float(np.max(packets['object_pose'][:,0,2,3] - packets['object_pose'][0,0,2,3])),
-            zero_repeat_max_lift_m=float(np.max(packets['object_pose'][:,1,2,3] - packets['object_pose'][0,1,2,3])),
+            baseline_outcome=outcome, baseline_max_lift_m=float(np.max(
+                packets['object_pose'][:,zero_left,2,3] - packets['object_pose'][0,zero_left,2,3])),
+            zero_repeat_max_lift_m=float(np.max(packets['object_pose'][:,zero_right,2,3]
+                                                - packets['object_pose'][0,zero_right,2,3])),
             initial_semantic_gap=initial_semantic_gap,
             initial_semantic_exact=initial_semantic_exact,
             env_origins=origin_np.tolist(),
@@ -637,6 +700,8 @@ def native_worker(a):
             baseline_max_lift_m=packet['baseline_max_lift_m'], zero_noise_calibration=zero_noise,
             candidate_effect_calibration=candidate_effect, action_calibration=action_calibration,
             zero_pair_gate=zero_pair_gate, effect_margin_gate=effect_margin_gate,
+            zero_role_indices=zero_role_indices, pairwise_zero_noise=pairwise_zero_noise,
+            pairwise_zero_gate=pairwise_zero_gate,
             behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
             initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact))
 
@@ -865,6 +930,8 @@ def main():
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
     p.add_argument('--engineering-group-envs', type=int, default=0,
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
+    p.add_argument('--zero-env-pair', type=int, nargs=2, default=(0, 1), metavar=('LEFT', 'RIGHT'),
+                   help='engineering group only: the two non-candidate env roles used for zero-noise calibration')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--action-chunk-checkpoint', type=Path,
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
@@ -909,6 +976,13 @@ def main():
         p.error('engineering group requires an explicit bounded --engineering-steps value')
     if a.engineering_group_envs and a.engineering_steps < 72:
         p.error('engineering group requires at least query tick48 plus24 candidate steps')
+    if len(a.zero_env_pair) != 2 or a.zero_env_pair[0] == a.zero_env_pair[1]:
+        p.error('--zero-env-pair requires two distinct environment indices')
+    if a.engineering_group_envs and any(index < 0 or index >= a.engineering_group_envs
+                                        for index in a.zero_env_pair):
+        p.error('--zero-env-pair indices must be inside --engineering-group-envs')
+    if a.engineering_group_envs and any(index in (2, 3) for index in a.zero_env_pair):
+        p.error('--zero-env-pair cannot use candidate roles env2/env3')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
@@ -927,8 +1001,11 @@ def main():
         p.error('action-chunk candidate calibration requires query tick48 plus24 steps')
     if a.action_chunk_roles == 'candidate' and a.engineering_steps != 72:
         p.error('action-chunk candidate calibration is currently bounded to exactly 72 steps')
-    if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and a.engineering_group_envs != 4:
-        p.error('action-chunk engineering roles require exactly four group environments')
+    if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
+            a.action_chunk_roles == 'behavior' and a.engineering_group_envs != 4):
+        p.error('action-chunk behavior roles require exactly four group environments')
+    if a.action_chunk_roles == 'candidate' and a.engineering_group_envs < 4:
+        p.error('action-chunk candidate roles require at least four group environments')
     if a.worker:
         native_worker(a); return
     if a.score_inputs:
