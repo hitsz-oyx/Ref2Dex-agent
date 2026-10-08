@@ -20,7 +20,8 @@ TASK = Path(__file__).resolve().parents[2]; ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import HAND_LINKS, K, K_EXEC, is_within
 from consequence_evaluator.gate1 import (SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan,
-    choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action)
+    choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action,
+    legacy_group_actor_action)
 from consequence_evaluator.provenance import self_trained_ancestry, sha
 from consequence_evaluator.twin import REQUIRED_NATIVE_STATE_KEYS, capture_native_rng, fingerprint
 from consequence_evaluator.native_backend import BACKENDS, canonical_device, resolve_legacy_backend
@@ -352,14 +353,8 @@ def native_worker(a):
                     control = torch.as_tensor(prefix_actions[tick], dtype=torch.float32,
                                               device=player.device).view(1, -1).expand(count, -1).clone()
                 else:
-                    # Keep the archived actor on its verified single-env/64-row
-                    # inference contract.  Feeding envs*64 rows makes the
-                    # GEMM shape depend on group size (r17 and r19 then use
-                    # different policy numerics), which changes the native
-                    # behavior before any candidate is applied.
-                    actor_action = legacy_batched_actor_action(
-                        player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                    control = actor_action.expand(count, -1).clone()
+                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    control = actor_actions[:1].expand(count, -1).clone()
             elif proposal_enabled:
                 # Generate a complete chunk only at the declared replanning
                 # boundary.  Every intervening control is read from that
@@ -386,9 +381,8 @@ def native_worker(a):
                 if proposal_roles == 'candidate':
                     control = proposal_cache[0, chunk_offset].expand(count, -1).clone()
                 else:
-                    actor_action = legacy_batched_actor_action(
-                        player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                    base_action = actor_action.expand(count, -1).clone()
+                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    base_action = actor_actions[:1].expand(count, -1).clone()
                     control = base_action.clone()
                     control[1] = proposal_cache[1, chunk_offset]
                     # Keep the repeated ACT arm on the same frozen chunk. The
@@ -400,9 +394,8 @@ def native_worker(a):
                 # Keep baseline, zero-repeat, and both candidate arms on the same
                 # control stream through the query. This removes tiny row-wise
                 # GEMM differences and makes the group test an execution-contract probe.
-                actor_action = legacy_batched_actor_action(
-                    player, {'obs': obs['obs'][:1]}).clamp(-1, 1)
-                base_action = actor_action.expand(count, -1).clone()
+                actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                base_action = actor_actions[:1].expand(count, -1).clone()
                 control = base_action.clone()
             if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
                 offset = tick - query
