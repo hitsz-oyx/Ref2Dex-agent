@@ -1404,6 +1404,8 @@ def main():
         p.error('engineering env-spacing requires a positive finite synchronous group override <=100')
     if a.worker and (a.query_tick < 0 or a.query_tick > 542 - K):
         p.error('worker query tick must leave a complete 24-step horizon')
+    if not a.worker and not a.score_inputs and a.query_tick != 0:
+        p.error('--query-tick is restricted to native engineering workers')
     if (a.engineering_env_spacing is not None and a.native_backend.name != 'gpu_physx_gpu_pipeline'):
         p.error('engineering env-spacing is only defined for native GPU PhysX/GPU pipeline')
     if a.engineering_serial_replay and (not a.worker or not a.finish or a.engineering_group_envs):
