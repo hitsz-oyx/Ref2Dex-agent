@@ -110,3 +110,17 @@ branch starting anchors. A native capture adapter now emits this snapshot from
 an initialized task/controller boundary and rejects incomplete prefix traces;
 it still does not run Isaac Gym or create twin branches. The native replay
 collector and its branch manifest remain unfinished.
+
+## Native replay engineering check (2026-10-08)
+
+The user requested review and repair of the new twin implementation. Before
+changing the continuous observational collection protocol, run the supplied
+`tools/audit/native_twin_probe.py` against the qualified self-trained airplane
+endpoint. This is a Blocker engineering check: do three fresh native processes
+reproduce an eight-control-step prefix exactly, and does the repeated positive
+residual branch reproduce its measured trajectory? Use one idle GPU, one
+environment, at most 900 seconds and 1 GiB in a fresh owned output. Reject
+state/RNG/input drift; do not relax exact identity after observing the result.
+The result decides whether the native adapter needs repair before a separate
+collection design. It creates no training dataset, changes no ref2 contract,
+and does not authorize additional specialist training or evaluator fitting.
