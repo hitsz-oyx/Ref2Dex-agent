@@ -58,7 +58,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-reference-progress-labels](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-reference-progress-labels.md) | Can original-reference temporal progress label executed candidates causally? | Implementation and six engineering tests pass; real reference/rollout | Follow user ref4_1; label validation precedes model fitting. | probes/RUNNING |
+| [P-20261008-reference-progress-labels](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-reference-progress-labels.md) | Can original-reference temporal progress label executed candidates causally? | Causal geometry labels pass self/static/prefix checks, but corrected | Preserve both label runs; test learned TCC alignment before Gate1. | probes/UNCLEAR |
+
+## HF-consequence-tcc-phase
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-tcc-phase-alignment](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-tcc-phase-alignment.md) | Can a learned TCC geometry embedding recover useful reference progress? | Small phase-only encoder implemented; no training result yet. | Fixed geometry distance fails actual-rollout phase validation; test | probes/RUNNING |
 
 ## HF-consequence-value-data
 

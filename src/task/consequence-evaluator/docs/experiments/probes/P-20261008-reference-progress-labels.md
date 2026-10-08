@@ -5,7 +5,7 @@ experiment_id: P-20261008-reference-progress-labels
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: e99d02e
+git_commit: 43e7bc0
 claim_id: C3
 hypothesis_family: HF-consequence-reference-progress
 probe_index_in_family: 1
@@ -13,15 +13,15 @@ seed_pool: probe
 seeds: [261]
 decision_changed_if_positive: retain causal delta-progress supervision and prepare an independent scalar evaluator Probe
 decision_changed_if_negative: diagnose reference alignment before fitting rather than extending old S/P/M supervision
-status: RUNNING
-run_id: reference-progress-labels-20261008-r1
+status: UNCLEAR
+run_id: reference-progress-labels-20261008-r2
 ---
 
 # Can original-reference temporal progress label executed candidates causally?
 
-Result: Implementation and six engineering tests pass; real reference/rollout
-alignment not yet evaluated. No evaluator training.
-Decision: Follow user ref4_1; label validation precedes model fitting.
+Result: Causal geometry labels pass self/static/prefix checks, but corrected
+eight-episode replay still misaligns all four nominal trajectories. No fit.
+Decision: Preserve both label runs; test learned TCC alignment before Gate1.
 
 ## Decision Note and purpose
 
@@ -156,3 +156,29 @@ but does not yet validate full-reference geometry progress. Further temperature
 checks on this one train example reach at most0.516and do not justify a change
 to the fixed replay or held-out evaluation. Diagnostic artifacts are in
 outputs/consequence-evaluator/reference-progress-diagnostic-20261008-r1.
+
+## Corrected replay result and next decision
+
+R2at43e7bc0 completed8episodes/496windows in9.799s, with the same GPU1peak
+allocation24.18MB/reservation44.04MB and exact prefix invariance. All owned GPU
+processes exited. Clean finals are0.319/0.417/0.262/0.437, valid-cost window
+fractions86.2/86.2/78.5/70.8%, and backwards totals0.790/0.774/0.828/0.871.
+Thus numerical/causal correctness improved, but nominal phase semantics remain
+**UNCLEAR** and training remains disallowed. Four contact intervention endpoints
+have invalid fit confidence; a failure's positive delta cannot be treated as
+validated task advancement. Neither Gate1 nor evaluator fitting was run.
+
+Bounded one-example diagnostics changing only context16/32yield finalP0.344/
+0.486. Larger max step8/16 yields0.385/0.828but more backwards total1.037/1.300;
+this is not a fix or a frozen setting change. Discounted history and separate
+latent/raw versus projected state also do not restore valid nominal progress.
+Independent review verifies original object references within0.4micrometres,
+while actual intermediate held states and end hand/object placement differ
+from literal R. Reference native-clamp/coupling mismatch is recorded rather
+than silently changing original R. No more geometric/prior sweeps are planned.
+
+Next: [TCC alignment encoder Probe](P-20261008-tcc-phase-alignment.md), using
+independent nominal source230train views but original R as the only progress
+anchor. The user's full chain moves direct GT-value Gate1 before evaluator
+fitting. This does not retroactively turn old23/32→27/32rolling evidence into
+new reference-progress evidence.

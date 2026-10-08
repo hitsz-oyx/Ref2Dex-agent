@@ -28,6 +28,7 @@ def main():
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--episode-limit', type=int, default=8)
     parser.add_argument('--seconds', type=int, default=180)
+    parser.add_argument('--phase-encoder', type=Path, help='completed frozen TCC alignment run; never an evaluator')
     args = parser.parse_args()
     out = args.output.resolve(); source = args.source.resolve(); ref_dir = args.reference.resolve()
     if (out.exists() or not is_within(out, ROOT / 'outputs/consequence-evaluator')
@@ -69,6 +70,24 @@ def main():
         ref_features = trajectory_features(reference['object_pose'], reference['hand_keypoints'], reference['timestamps'])
         ref_height = reference['object_pose'][:, 2, 3].copy()
     config = AlignmentConfig(); matcher = ReferenceProgress(ref_features, config, 'cuda:0')
+    if args.phase_encoder is not None:
+        from consequence_evaluator.temporal_phase import ENCODER_SCHEMA, LearnedReferenceProgress
+        run = args.phase_encoder.resolve(); path = run / 'manifest.json'
+        trained = json.loads(path.read_text())
+        checkpoint = Path(trained['checkpoint']).resolve()
+        if (not is_within(run, ROOT / 'outputs/consequence-evaluator') or not is_within(checkpoint, run)
+                or trained.get('schema') != ENCODER_SCHEMA or trained.get('status') != 'COMPLETED'
+                or trained.get('training_source_seed') != 230 or raw.get('seed') == 230
+                or trained.get('reference_sha256') != ref_meta['reference_sha256']):
+            raise ValueError('independent frozen phase-only encoder and exact original reference required')
+        frozen.update(trained['sources']); frozen[str(path)] = sha(path)
+        frozen[str(checkpoint)] = trained['checkpoint_sha256']
+        for name in ('temporal_phase.py', 'xirl_tcc_loss.py'):
+            file = TASK / 'src/consequence_evaluator' / name; frozen[str(file)] = sha(file)
+        if any(sha(p) != h for p, h in frozen.items()):
+            raise ValueError('trained phase encoder/source drift')
+        matcher = LearnedReferenceProgress(ref_features, torch.load(checkpoint, map_location='cpu', weights_only=False), 'cuda:0')
+        config = matcher.config
     self_trace = matcher.align(ref_features)
     stationary = np.repeat(ref_features[:1], len(ref_features), axis=0)
     stationary[:, 45:] = 0  # all motion channels are zero
@@ -179,6 +198,7 @@ def main():
         alignment=config.dictionary(), features=[list(group) for group in GROUPS],
         filter='log-domain bounded transitions; minimum-KL posterior mean-step projection',
         standardizer=matcher.normalizer.dictionary(), upstream_xirl_commit=UPSTREAM_COMMIT,
+        phase_encoder=str(args.phase_encoder.resolve()) if args.phase_encoder else None,
         reference=str(ref_dir), sources=frozen, episode_audit=audits, control_audit=controls,
         labels_sha256=sha(out / 'labels.npz'),
         counts=dict(episodes=len(audits), windows=len(windows), preferences=0),

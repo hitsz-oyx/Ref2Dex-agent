@@ -10,6 +10,14 @@
 阻塞新路线。六项因果/重复阶段/停滞/回退工程测试通过，先做train-only8条
 离线标签Probe再判断是否训练；未启动evaluator。当前在main开发，不push。
 [标签Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-reference-progress-labels.md)。
+几何标签r1/r2已完成8条/496窗口，因果截断误差0；修复早期prior支路丢弃后，
+四条clean最终P仍仅0.262..0.437且有较多回退，UNCLEAR/不可训练。固定R不变，
+转向[TCC对齐编码器Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-tcc-phase-alignment.md)，
+只用source230train拟合geometry embedding，source261仍作已暴露开发检查。
+用户完整链路要求标签过后先直接GT-value同状态滚动Gate1，不先训练evaluator；
+允许fresh simulator完整prefix replay，禁止mid-state PhysX restore。Gate1成功
+定义为完成稳定抓取并正常放回，允许中途恢复；中途失抓另统计。旧32anchor脚本
+仍在但原输出目录缺失；旧23/32→27/32不能替代新Y验证。未运行新Gate1。
 
 ## 2026-10-08 DExplore 官方数据生成器筛查
 
