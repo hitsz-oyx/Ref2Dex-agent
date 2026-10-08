@@ -30,6 +30,9 @@ FIELD_FLOORS = {
     'dof_position': 2e-3,
     'dof_velocity': 5e-2,
     'object_velocity': 5e-2,
+    'history': 5e-2,
+    'native_contact_forces': 5.,
+    'native_object_contact_forces': 5.,
 }
 
 
@@ -111,12 +114,15 @@ def load_packet(path):
 
 def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
     actions = np.asarray(packet['actions'], dtype=np.float64)
+    done = np.asarray(packet['done'])
     residual = np.asarray(packet['requested_residual'], dtype=np.float64)
     teacher = actions[0]
     prefix = all(np.array_equal(actions[index, :query], teacher[:query])
                  for index in range(1, len(roles)))
     suffix = all(np.array_equal(actions[index, query + horizon:], teacher[query + horizon:])
                  for index in range(1, len(roles)))
+    done_exact = all(np.array_equal(done[index], done[0]) for index in range(1, len(roles)))
+    done_no_early = not bool(done[:, :-1].any())
     expected_errors = {}
     residual_errors = {}
     for index, role in enumerate(roles):
@@ -135,6 +141,7 @@ def action_contract(packet, roles, zero_roles, candidate_roles, query, horizon):
     zero_exact = all(expected_errors[role] == 0. for role in zero_roles)
     candidate_exact = all(expected_errors[role] <= 1e-6 for role in candidate_roles)
     return dict(control_prefix_exact=bool(prefix), control_suffix_exact=bool(suffix),
+                done_exact=bool(done_exact), done_no_early=bool(done_no_early),
                 zero_replay_exact=bool(zero_exact), candidate_action_contract_exact=bool(candidate_exact),
                 requested_residual_contract_exact=bool(all(value == 0. for role, value in residual_errors.items()
                                                           if role in zero_roles)
@@ -225,11 +232,17 @@ def tcc_values(packet, reference, encoder, device):
                 encoder_checkpoint_sha256=encoder_manifest['checkpoint_sha256'])
 
 
-def reset_contract(diagnostics):
+def reset_contract(diagnostics, roles):
     physical_keys = ('_contact_forces', '_dof_state', '_hist_obs', '_rigid_body_state',
                      '_root_states', '_tar_contact_forces', 'contact_reset', 'data_id',
                      'progress_buf', 'ref_index', 'start_times')
     failures = []
+    if not isinstance(diagnostics, list) or len(diagnostics) != len(roles):
+        return dict(physical_keys=list(physical_keys), passed=False,
+                    failures=[dict(check='diagnostic_role_coverage')],
+                    derived_buffers_allowed=['_curr_obs', 'rew_buf', '_reset_ig'])
+    if {item.get('role') for item in diagnostics} != set(roles):
+        failures.append(dict(check='diagnostic_role_set'))
     for item in diagnostics or []:
         role = item.get('role')
         if item.get('reset_frame_unchanged') is not True:
@@ -260,8 +273,11 @@ def main():
     contract = action_contract(packet, roles, zero_roles, candidate_roles, query, horizon)
     contract['passed'] = bool(all(contract[key] for key in (
         'control_prefix_exact', 'control_suffix_exact', 'zero_replay_exact',
-        'candidate_action_contract_exact', 'requested_residual_contract_exact',
+        'done_exact', 'done_no_early', 'candidate_action_contract_exact',
+        'requested_residual_contract_exact',
         'teacher_action_hash_exact', 'schedule_hash_exact')))
+    reset = reset_contract(packet.get('reset_diagnostics'), roles)
+    audit_contract_passed = bool(contract['passed'] and reset['passed'])
     result = dict(schema='ref2dex.consequence-gate1.gpu-serial-cluster-audit.v1',
                   engineering_only=True, training_allowed=False,
                   packet=str(packet_path), packet_sha256=sha(packet_path),
@@ -271,7 +287,8 @@ def main():
                   horizon=horizon, steps=steps, outcome_complete=bool(packet.get('outcome_complete')),
                   source_backend=packet.get('source_backend'), replay_identity=packet.get('replay_identity'),
                   contract=contract,
-                  reset_contract=reset_contract(packet.get('reset_diagnostics')),
+                  reset_contract=reset,
+                  audit_contract_passed=audit_contract_passed,
                   reset_diagnostics=packet.get('reset_diagnostics'),
                   teacher_max_lift_m=float(np.max(np.asarray(packet['object_pose'])[0, :, 2, 3]
                                                  - np.asarray(packet['object_pose'])[0, 0, 2, 3])),
