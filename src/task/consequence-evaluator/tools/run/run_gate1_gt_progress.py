@@ -256,12 +256,18 @@ def native_worker(a):
                 raise ValueError('native backend contract drift for %s: expected %r, got %r' %
                                  (key, expected_backend[key], actual_backend[key]))
         identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), backend=actual_backend)
+        identity['actor_execution'] = dict(
+            layout='environment_rows_then_fixed_copies',
+            copies=actor_copies,
+            total_rows=count * actor_copies,
+        )
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
                     or replay_identity.get('controller_hash') != identity['controller_hash']
                     or replay_identity.get('physics_hash') != identity['physics_hash']
                     or replay_identity.get('backend') != identity['backend']
+                    or replay_identity.get('actor_execution') != identity['actor_execution']
                     or replay_chunk_packet.get('seed') != a.seed):
                 raise ValueError('native action-chunk replay provenance does not match current actor/backend')
             if (a.prefix is None or replay_chunk_packet.get('source_prefix_packet_sha256') != sha(a.prefix)):
@@ -272,7 +278,8 @@ def native_worker(a):
                     or expected.get('seed') != a.seed or not isinstance(prefix_identity, dict)
                     or prefix_identity.get('controller_hash') != identity['controller_hash']
                     or prefix_identity.get('physics_hash') != identity['physics_hash']
-                    or prefix_identity.get('backend') != identity['backend']):
+                    or prefix_identity.get('backend') != identity['backend']
+                    or prefix_identity.get('actor_execution') != identity['actor_execution']):
                 raise ValueError('candidate prefix provenance does not match current native actor/backend')
             if (not np.isfinite(prefix_actions).all() or np.abs(prefix_actions).max() > 1 + 1e-6):
                 raise ValueError('candidate prefix contains invalid native controls')
