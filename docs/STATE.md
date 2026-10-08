@@ -1384,4 +1384,4 @@ packet 不能进入 strict Gate1。证据见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md`
 及 `outputs/consequence-evaluator/gate1-gpu-precontact-group-20261009-r1/`、
 `gate1-gpu-spacing-group-20261009-r1/` 和
-`gate1-gpu-nonzero-pair-group-20261009-r1/`、`r2/`。
+`gate1-gpu-nonzero-pair-group-20261009-r1/`、`r2/`、`r3/`。
