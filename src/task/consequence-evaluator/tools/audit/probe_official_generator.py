@@ -42,6 +42,18 @@ def write(path, value):
     temporary.replace(path)
 
 
+def install_legacy_player_compat(native, common_player, base_player):
+    """Translate the repo's newer player entry to the archived1.1.4 contract.
+
+    The legacy BasePlayer already applies external observation RMS. Keeping
+    our newer compatibility override would incorrectly normalize twice.
+    """
+    def create_player(runner):
+        return runner.player_factory.create(runner.algo_name, params=runner.config)
+    native.Runner.create_player = create_player
+    common_player.CommonPlayer._preproc_obs = base_player.BasePlayer._preproc_obs
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--actor', choices=('official', 'self-trained'), required=True)
@@ -135,10 +147,14 @@ def main():
         from consequence_evaluator.native_reset import install_reset_patch
         from consequence_evaluator.qualification import qualify_transitions
         from env.tasks.base_dexplore_task import DexploreTask
+        from learning import common_player
+        from rl_games.common import player as base_player
+        install_legacy_player_compat(native,common_player,base_player)
         install_reset_patch()
         base = native.EvalPlayer
         class FullStartPlayer(base):
             def run(self):
+                self.is_deterministic = self.is_determenistic
                 task = self.env.task
                 if abs(task.dt-1/30)>1e-8 or task.num_envs != 64 or self.is_rnn:
                     raise ValueError('fixed30Hz/64env/nonrecurrent screen required')
@@ -160,6 +176,7 @@ def main():
                 '--num_envs','64','--seed',str(a.seed),'--output',str(output/'native-results.json'),
                 '--output_path',str(output/'native-runtime'),'--transition-output',str(output/'transitions.pt')]
         manifest.update(status='RUNNING',command=argv,
+                        player_compatibility='legacy_flat_config_single_external_observation_rms_deterministic_alias',
                         reset_contract='batched_actor_roots_urdf_fk_no_extra_physics_step')
         write(output/'run_manifest.json',manifest)
         os.chdir(ROOT/'third_party/DExplore')

@@ -14,7 +14,7 @@ seeds: [239]
 decision_changed_if_positive: admit the identified official actor as an additional data generator for a separate bounded geometry-audited rollout collection
 decision_changed_if_negative: retain the self-trained expert as the primary generator without an unbounded official-policy search
 status: RUNNING
-run_id: official-generator-screen-20261008-r2
+run_id: official-generator-screen-20261008-r3
 ---
 
 # Can the archived DExplore actor supply useful airplane rollouts?
@@ -79,8 +79,8 @@ actor identity, resource bounds and checkpoint hashes are frozen separately in
 each output `run_manifest.json`. The protocol's base commit above precedes the
 diagnostic entry; actual code identity is the runtime manifest's commit.
 
-Run IDs: `official-generator-screen-20261008-r2` and
-`self-trained-generator-screen-20261008-r2`, under `outputs/consequence-evaluator/`.
+Run IDs: `official-generator-screen-20261008-r3` and
+`self-trained-generator-screen-20261008-r3`, under `outputs/consequence-evaluator/`.
 Native transition exports are diagnostic-only and have `training_allowed=false`;
 native actions can be mutated by PD conversion and lack the geometry/known-plan
 contract required by ref4 evaluator examples.
@@ -95,6 +95,15 @@ rl_games1.1.4 / torch_cluster stack; r2 executes that environment directly.
 Import probe logs are preserved in `tmp/consequence-official-generator/`.
 No r1 episodes were generated. Each r2 arm is capped at800s, keeping the retry group
 within1800s including the failed r1 import/extension-build cost.
+
+The preserved r2 attempt also stopped before physics: the repo's newer native
+evaluation factory expects `params` while rl_games1.1.4 passes `config`.
+The r3 process-local facade forwards the same flat, already-built legacy config,
+aliases the deterministic flag, and restores the old BasePlayer preprocessing
+so external observation RMS is applied exactly once (the newer repo override
+would otherwise apply it twice). A regression check covers factory invocation
+and single normalization. This affects both matched arms equally; neither
+vendor nor installed library files are edited. Each r3 arm retains the800s cap.
 
 ## Limitations and future evidence
 
