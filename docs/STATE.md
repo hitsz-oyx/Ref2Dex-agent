@@ -1429,3 +1429,20 @@ packet 不能进入 strict Gate1。证据见
 及 `outputs/consequence-evaluator/gate1-gpu-precontact-group-20261009-r1/`、
 `gate1-gpu-spacing-group-20261009-r1/` 和
 `gate1-gpu-nonzero-pair-group-20261009-r1/`、`r2/`、`r3/`。
+
+### Native PhysX binary hidden-state audit
+
+在 Python surface 审计之后又做了归档 Isaac Gym/PhysX native binary 的只读符号检查。
+`libcarb.gym.plugin.so` 确实包含 `PxCloneDynamic`、`PxCloneStatic`、`PxCloneShape`
+以及 PhysX object/RepX serializer helper，但没有可调用的 `PxSerialization` scene
+collection create/serialize entrypoint、`PxCollectionExt` 场景收集器，或 contact-manifold、
+warm-start、solver-island、GPU cache 的 fork/restore boundary；`libPhysXGpu_64.so`
+也只有内部 contact/solver/cache routines。actor clone 只复制公开 actor 属性，不能复制
+scene membership、joints、sleep timer 或 hidden solver state；RepX/object serialization
+也不是 live solver snapshot。原始 symbol/hash 清单在
+`outputs/consequence-evaluator/hidden-physx-binary-api-audit-20261009-r1/audit.json`，
+实验卡为
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hidden-physx-binary-api-audit.md`。
+因此 strict Gate1 blocker 已从“可能遗漏 Python wrapper”收窄为当前 runtime 没有可调用
+的 hidden-state 执行合同；不重复 group/serial/CUDA/CPU/host，也不启动 evaluator 或
+PointWorld，等待新 runtime/API 合同或明确的 claim Decision Checkpoint。
