@@ -262,6 +262,40 @@ mismatch path after the native process changed directory; those engineering
 failures produced no simulation conclusion and were fixed by resolving
 worker/prefix/score paths and creating the task-owned output parent.
 
+### Decision Note: complete the GPU-group behavior gate
+
+The remaining question is whether the same native GPU group that supplies the
+zero-pair noise floor also preserves the original policy's full grasp
+behavior. The key evidence is the r1--r4 spread of native GPU launches and the
+r8 short-window result: the group contract is executable, but t=72 cannot
+distinguish a normal lift from an early failure. Root therefore runs one
+bounded 4-env, 542-step synchronous group with the frozen seed282 actor and
+original GPU PhysX/GPU tensor pipeline. Env0 is the broadcast baseline, env1 is
+the zero repeat, and env2/env3 receive the fixed candidates only after the
+query. The result changes only the engineering decision: a normal env0 lift
+keeps this group/noise route available for a later ACT-like contract; an early
+failure closes it for the current reactive policy and moves implementation to
+the frozen ACT-like proposal. No GT score, evaluator fit, or tolerance
+relaxation is allowed from this run. Cost is one idle GPU and at most 180 s;
+stop on a foreign process, source drift, early done, or the worker deadline.
+
+The complete behavior gate completed on GPU2 in 55.3 s. Env0 reached
+0.799920 m, first stable tick106, and a 481-frame held run through the end;
+its terminal placement geometry was controlled, although the weak success
+proxy still lacked the required terminal settled window. Env0/env1 controls
+were byte-identical and the initial semantic gaps were all zero. The measured
+zero-pair was not an exact twin: world-frame/native hashes differed at tick0,
+derived geometry differed from tick1, and contact/support differences appeared
+around tick44. In the post-query window, candidate effects were not uniformly
+larger than the zero displacement (for example object-pose p95 ratios were
+0.55/1.49 and history p95 ratios 0.68/0.70 for positive/negative), so this
+packet remains calibration only. The full packet and mismatch audit are in
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r9/`.
+The behavior gate therefore passes for retaining the native GPU group harness,
+while the exact same-state Gate1 contract remains closed. The next route is a
+frozen ACT-like native-action chunk, with this group retained for behavior
+parity and later zero-noise measurement.
+
 ### Decision Note
 
 The synchronous native-GPU group does preserve the original behavior in most

@@ -61,6 +61,60 @@ candidate\(\gg\)solver-noise margin。该组只作为工程校准，不是正式
 下一步在新执行合同前
 先评估冻结ACT-like 24-step proposal baseline，或提出新的native GPU replay contract。
 
+随后补做原生GPU group完整行为 gate：4-env、542 steps、seed282、同一
+`gpu_physx_gpu_pipeline`。env0 baseline达到0.799920m、first stable tick106、
+连续held481帧并保持到终点，行为保持 gate 通过；env0/env1控制完全相同，初始
+object/q/dq/hand/gap/history/contact semantic gap全为0。状态仍非exact twin：
+hidden hash首帧不同，derived geometry从tick1漂移，tick44附近contact/support
+差异放大。候选相对zero displacement的后查询p95比值仍不一致（object pose
+0.55/1.49、history0.68/0.70正/负示例），因此该结果仅是engineering/noise
+calibration，不能进入GT scoring。完整产物见
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r9/`。
+原生GPU group保留为行为容器；exact same-state Gate1仍关闭，下一步落实冻结
+ACT-like native-action chunk，再在该容器中重测。
+
+## 2026-10-09 ACT-like native action chunk engineering
+
+新增 `consequence_evaluator.action_chunk` 和
+`tools/run/train_action_chunk.py`：输入 raw `history[t]`，一次输出未来24个
+18-D native executed controls；目标取 `pre_physics_step` 捕获的 `action`，不取
+`residual_plan`，不生成hand-flow。合同测试5项通过。labeled hold-audit中21条
+同一`s3_airplane_lift`/`airplane_base` clean `expert_success`仅作engineering
+数据（manifest仍`training_allowed=false`，显式`--allow-audit-only`，输出强制
+`engineering_only`）；冻结当前checkpoint `running_mean_std`。17/4 episode holdout
+的stride8 fit把chunk MSE从均值基线9.38e-4降到1.61e-4，first-action MAE0.01090，
+只构成action-space PROMISING信号。
+
+GPU group 542-step行为 screen（seed282）将reactive teacher、ACT、reactive repeat、
+ACT repeat放入同一原生GPU进程。`open_loop24`中ACT最高0.7939m/held478，teacher
+0.8134m/held483，均完成受控末端几何；23个chunk均一次生成后原样送入native
+pre-physics。产物
+`outputs/consequence-evaluator/act-native-chunk-engineering-20261009-r2/`。
+但最终所需`receding8`在同一checkpoint下held0、未抬升；将21条全部用于fit把离线
+MSE进一步降到4.53e-5仍然held0（r5），说明失败不是单纯holdout拟合误差，而是
+每8步重规划将直接模仿proposal带出其action/state分布。r3/r5均仅engineering，
+不进入GT scoring。
+
+因此当前只保留`open_loop24`作为ACT-like行为基线，关闭该直接模仿checkpoint的
+4--8步receding route；Y、reference bank和policy weights保持不变。下一步可在
+query处用带prefix provenance的记录nominal chunk测候选效应，或先采集专门的
+reactive deployment distribution后再训练route-conditioned proposal。详见
+[ACT chunk Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-native-chunk.md)。
+
+后续 candidate engineering probe 已保持原生 GPU PhysX/GPU pipeline，并把四个
+env的 tick0--47 controls 统一为同一已成功 packet，tick48--71 广播一个冻结 chunk，
+再只给 env2/env3 加正/负残差。学习 proposal 的 r6--r8 在 reactive query state
+上没有保住 nominal grasp（最高约0--0.012m），且 zero pair 在 query 前已经出现
+约0.0786m object drift、20级 q velocity 和26--32级 history drift；这不是可解释的
+candidate effect。修正原生 RMS `sqrt(var+1e-5)` 与 `[-5,5]` clipping 后的拟合和
+542-step screen 保存在 `act-native-chunk-engineering-20261009-r10/r11/`，ACT
+仍未抬升。用成功 r9 reactive prefix 的 recorded nominal chunk 重放（r15）最高
+0.240m、held11，zero-pair object displacement p95仍约0.338m；显式
+`zero_pair_gate` 和 nominal behavior gate 均失败。r6--r15 全部保持
+`engineering_only`，不进入GT scoring；candidate effect不作价值证据。下一步先
+解决 recorded prefix/chunk 的行为与zero-pair gate，再决定是否收集部署分布重训，
+不跑正式Gate1、不fit evaluator、不改Y/标签/权重。
+
 随后用空闲GPU2完成r8的72-step runner guard validation（18.2秒）：初始
 object/q/dq/hand/gap/history/contact semantic gap全为0，env0/env1 control exact，
 且state packet确实包含tick49--72的完整candidate窗口；但hidden world-frame hash在

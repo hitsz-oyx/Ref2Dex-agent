@@ -97,6 +97,7 @@ def native_worker(a):
     config = json.loads((a.run_dir / 'config.json').read_text())
     trained = json.loads((a.run_dir / 'run_manifest.json').read_text())
     expected = load(a.prefix) if a.prefix else None
+    replay_chunk_packet = load(a.action_chunk_replay) if a.action_chunk_replay else None
     query = a.query_tick
     if expected is not None and query > len(expected['actions']):
         raise ValueError('missing committed prefix controls')
@@ -119,12 +120,71 @@ def native_worker(a):
             raise ValueError('fixed nonrecurrent synchronous group contract required')
         if int(task.num_motions) != 1:
             raise ValueError('engineering group requires one repeated motion across all env roles')
+        prefix_actions = None
+        if a.action_chunk_roles == 'candidate' and expected is not None:
+            prefix_actions = np.asarray(expected.get('actions'))
+            if prefix_actions.ndim == 3:
+                prefix_actions = prefix_actions[:, 0]
+            if prefix_actions.ndim != 2 or prefix_actions.shape[1] != 18 or len(prefix_actions) < 48:
+                raise ValueError('candidate group prefix must contain a native [T,18] action stream')
         task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.
         task._adaptive_kappa_enabled = False; task._enable_early_termination = False
         if task.dr_randomizations or task._motion_sampler is not None or task.projtype != 'None':
             raise ValueError('randomized/sampler/projectile replay unsupported')
         geometry = PhysicalGeometry(task, native_root / 'data/assets')
         table = TableSupport(native_root / 'data/assets', task.device)
+        proposal_model = None
+        proposal_replay = None
+        proposal_mean = proposal_scale = None
+        proposal_period = None
+        proposal_roles = a.action_chunk_roles if a.action_chunk_checkpoint is not None else None
+        if a.action_chunk_replay is not None:
+            proposal_roles = a.action_chunk_roles
+        proposal_trace = []
+        query = 48
+        if a.action_chunk_checkpoint is not None:
+            from consequence_evaluator.action_chunk import EXECUTED_ACTION_SEMANTICS, NativeActionChunkProposal
+            payload = torch.load(a.action_chunk_checkpoint, map_location='cpu')
+            if (payload.get('schema') != 'ref2dex.consequence-evaluator.native-action-chunks.v1'
+                    or payload.get('chunk') != K or payload.get('action_dim') != 18
+                    or payload.get('history_dim') != int(task.num_obs)
+                    or payload.get('executed_action_semantics') != EXECUTED_ACTION_SEMANTICS):
+                raise ValueError('native action-chunk checkpoint contract mismatch')
+            standardizer = payload.get('history_standardizer')
+            if (not isinstance(standardizer, dict) or len(standardizer.get('mean', [])) != int(task.num_obs)
+                    or len(standardizer.get('scale', [])) != int(task.num_obs)):
+                raise ValueError('native action-chunk history standardizer mismatch')
+            proposal_mean = torch.as_tensor(standardizer['mean'], dtype=torch.float32, device=player.device)
+            proposal_scale = torch.as_tensor(standardizer['scale'], dtype=torch.float32, device=player.device)
+            proposal_clip = standardizer.get('clip')
+            if (proposal_mean.ndim != 1 or proposal_scale.ndim != 1
+                    or proposal_mean.numel() != int(task.num_obs) or proposal_scale.numel() != int(task.num_obs)
+                    or not torch.isfinite(proposal_mean).all() or not torch.isfinite(proposal_scale).all()
+                    or (proposal_scale <= 0).any()
+                    or (proposal_clip is not None and (not np.isfinite(proposal_clip) or float(proposal_clip) <= 0))):
+                raise ValueError('native action-chunk history standardizer is invalid')
+            proposal_model = NativeActionChunkProposal(
+                int(payload['history_dim']), width=int(payload['width']), layers=int(payload['layers'])).to(player.device)
+            proposal_model.load_state_dict(payload['state_dict'], strict=True); proposal_model.eval()
+            proposal_period = 24 if a.action_chunk_mode == 'open_loop24' else 8
+        if replay_chunk_packet is not None:
+            role_names = list(replay_chunk_packet.get('role_names') or [])
+            if (replay_chunk_packet.get('engineering_only') is not True
+                    or replay_chunk_packet.get('action_chunk_mode') != 'open_loop24'
+                    or replay_chunk_packet.get('group_mode') != 'synchronous_same_process_act_behavior'
+                    or replay_chunk_packet.get('source_prefix_role') != 'reactive_teacher'
+                    or 'act_chunk' not in role_names):
+                raise ValueError('native action-chunk replay packet contract mismatch')
+            chunks = np.asarray(replay_chunk_packet.get('proposal_chunks'))
+            replay_index = int(replay_chunk_packet.get('proposal_index', query // 24))
+            role_index = role_names.index('act_chunk')
+            if (chunks.ndim != 4 or chunks.shape[1] <= role_index or chunks.shape[2:] != (24, 18)
+                    or replay_index >= chunks.shape[0]
+                    or not np.isfinite(chunks).all() or np.abs(chunks).max() > 1 + 1e-6):
+                raise ValueError('native action-chunk replay proposal shape/range mismatch')
+            proposal_replay = torch.as_tensor(chunks[replay_index, role_index], dtype=torch.float32,
+                                               device=player.device).unsqueeze(0)
+            proposal_period = 24
         env_ids = torch.arange(count, device=task.device)
         obs = player.env_reset(env_ids)
         player.get_batch_size(obs['obs'], count)
@@ -188,6 +248,26 @@ def native_worker(a):
                 raise ValueError('native backend contract drift for %s: expected %r, got %r' %
                                  (key, expected_backend[key], actual_backend[key]))
         identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), backend=actual_backend)
+        if replay_chunk_packet is not None:
+            replay_identity = replay_chunk_packet.get('replay_identity')
+            if (not isinstance(replay_identity, dict)
+                    or replay_identity.get('controller_hash') != identity['controller_hash']
+                    or replay_identity.get('physics_hash') != identity['physics_hash']
+                    or replay_identity.get('backend') != identity['backend']
+                    or replay_chunk_packet.get('seed') != a.seed):
+                raise ValueError('native action-chunk replay provenance does not match current actor/backend')
+            if (a.prefix is None or replay_chunk_packet.get('source_prefix_packet_sha256') != sha(a.prefix)):
+                raise ValueError('native action-chunk replay prefix does not match the supplied control prefix')
+        if prefix_actions is not None:
+            prefix_identity = expected.get('replay_identity') if isinstance(expected, dict) else None
+            if (not isinstance(expected, dict) or expected.get('engineering_only') is not True
+                    or expected.get('seed') != a.seed or not isinstance(prefix_identity, dict)
+                    or prefix_identity.get('controller_hash') != identity['controller_hash']
+                    or prefix_identity.get('physics_hash') != identity['physics_hash']
+                    or prefix_identity.get('backend') != identity['backend']):
+                raise ValueError('candidate prefix provenance does not match current native actor/backend')
+            if (not np.isfinite(prefix_actions).all() or np.abs(prefix_actions).max() > 1 + 1e-6):
+                raise ValueError('candidate prefix contains invalid native controls')
         state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar')
                                                            if isinstance(getattr(task, k, None), torch.Tensor)})
         fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
@@ -252,22 +332,68 @@ def native_worker(a):
             return original_pre(control)
         task.pre_physics_step = capture
         observe()
-        query = 48; horizon = 24
+        horizon = 24
         positive = torch.as_tensor(candidate_plan(1), device=player.device)
         negative = torch.as_tensor(candidate_plan(2), device=player.device)
         stop = a.engineering_steps or query + horizon
         if stop > total:
             raise ValueError('group probe exceeds frozen reference')
+        proposal_enabled = proposal_model is not None or proposal_replay is not None
         for tick in range(stop):
             if time.monotonic() - started > 150:
                 raise TimeoutError('bounded synchronous group deadline')
-            actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
-            # Keep baseline, zero-repeat, and both candidate arms on the same
-            # control stream through the query. This removes tiny row-wise GEMM
-            # differences and makes the group test an execution-contract probe.
-            base_action = actor_actions[:1].expand(count, -1).clone()
-            control = base_action.clone()
-            if query <= tick < query + horizon:
+            if proposal_enabled and proposal_roles == 'candidate' and tick < query:
+                # Preserve the native policy's approach/contact prefix.  Only
+                # the 24-step scoring window is frozen into a nominal chunk.
+                if prefix_actions is not None:
+                    control = torch.as_tensor(prefix_actions[tick], dtype=torch.float32,
+                                              device=player.device).view(1, -1).expand(count, -1).clone()
+                else:
+                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    control = actor_actions[:1].expand(count, -1).clone()
+            elif proposal_enabled:
+                # Generate a complete chunk only at the declared replanning
+                # boundary.  Every intervening control is read from that
+                # frozen chunk; no future observation is fed back mid-chunk.
+                proposal_boundary = tick == query if proposal_roles == 'candidate' else tick % proposal_period == 0
+                if proposal_boundary:
+                    # Candidate mode deliberately uses one proposal generated
+                    # from env0 and broadcasts that frozen nominal chunk to
+                    # all roles.  This keeps the zero pair on one action
+                    # stream and makes the only post-query intervention the
+                    # requested residual candidate.
+                    if proposal_replay is not None:
+                        proposal_cache = proposal_replay
+                    else:
+                        proposal_input = (obs['obs'][:1] - proposal_mean) / proposal_scale \
+                            if proposal_roles == 'candidate' else (obs['obs'] - proposal_mean) / proposal_scale
+                        if proposal_clip is not None:
+                            proposal_input = proposal_input.clamp(-float(proposal_clip), float(proposal_clip))
+                        proposal_cache = proposal_model(proposal_input).clamp(-1, 1)
+                    proposal_trace.append(proposal_cache.detach().cpu().numpy().copy())
+                if 'proposal_cache' not in locals():
+                    raise RuntimeError('action-chunk cache was not initialized')
+                chunk_offset = tick - query if proposal_roles == 'candidate' else tick % proposal_period
+                if proposal_roles == 'candidate':
+                    control = proposal_cache[0, chunk_offset].expand(count, -1).clone()
+                else:
+                    actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                    base_action = actor_actions[:1].expand(count, -1).clone()
+                    control = base_action.clone()
+                    control[1] = proposal_cache[1, chunk_offset]
+                    # Keep the repeated ACT arm on the same frozen chunk. The
+                    # earlier behavior probe used an independently inferred
+                    # env3 chunk, which mixed policy sensitivity into its
+                    # solver-drift diagnostic.
+                    control[3] = proposal_cache[1, chunk_offset]
+            else:
+                # Keep baseline, zero-repeat, and both candidate arms on the same
+                # control stream through the query. This removes tiny row-wise
+                # GEMM differences and makes the group test an execution-contract probe.
+                actor_actions = legacy_group_actor_action(player, obs).clamp(-1, 1)
+                base_action = actor_actions[:1].expand(count, -1).clone()
+                control = base_action.clone()
+            if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
                 offset = tick - query
                 control[2] = (control[2] + positive[offset]).clamp(-1, 1)
                 control[3] = (control[3] + negative[offset]).clamp(-1, 1)
@@ -286,6 +412,51 @@ def native_worker(a):
             canonical_state_hashes=canonical_hashes, state_field_hashes=state_field_hashes,
             canonical_state_field_hashes=canonical_state_field_hashes, rng_hashes=rng_hashes,
             timestamps=np.arange(stop + 1) / 30)
+        if proposal_enabled and proposal_roles == 'behavior':
+            # This is a behavior-only packet: role pairs are reactive teacher /
+            # repeated teacher and open-loop ACT / repeated ACT.  It deliberately
+            # bypasses the zero/candidate calibration fields below.
+            role_names = ['reactive_teacher', 'act_chunk', 'reactive_repeat', 'act_chunk_repeat']
+            pair_drift = {}
+            for left, right, name in ((0, 2, 'reactive_pair'), (1, 3, 'act_pair')):
+                pair_drift[name] = {}
+                for field in fields:
+                    value = np.asarray(packets[field], dtype=np.float64)
+                    delta = np.abs(value[:, left] - value[:, right]).reshape(len(value), -1)
+                    pair_drift[name][field] = dict(
+                        max_abs=float(delta.max()) if delta.size else 0.0,
+                        p95_abs=float(np.quantile(delta, .95)) if delta.size else 0.0,
+                        prequery_max_abs=float(delta[:query + 1].max()) if delta[:query + 1].size else 0.0)
+            role_outcomes = {}
+            for index, name in enumerate(role_names):
+                role_packet = {key: value[:, index] for key, value in packets.items() if key in fields}
+                role_packet['timestamps'] = packets['timestamps']
+                role_outcomes[name] = episode_outcome(role_packet) if stop >= 45 else None
+            packet = dict(**packets, proposal_chunks=np.asarray(proposal_trace), seed=a.seed,
+                          role_names=role_names, group_mode='synchronous_same_process_act_behavior',
+                          action_chunk_checkpoint=str(a.action_chunk_checkpoint),
+                          action_chunk_checkpoint_sha256=sha(a.action_chunk_checkpoint),
+                          action_chunk_mode=a.action_chunk_mode,
+                          action_chunk_replan_period=proposal_period,
+                          action_chunk_semantics='one-shot native18 action chunk; no mid-chunk observation feedback',
+                          replay_identity=identity, canonical_state_keys=state_keys,
+                          actor_inference_batch=count, engineering_only=True,
+                          group_envs=count, initial_semantic_gap=initial_semantic_gap,
+                          initial_semantic_exact=initial_semantic_exact, env_origins=origin_np.tolist(),
+                          source_backend=actual_backend, pair_drift=pair_drift,
+                          role_outcomes=role_outcomes,
+                          role_max_lift_m={name: float(np.max(packets['object_pose'][:, i, 2, 3]
+                                                             - packets['object_pose'][0, i, 2, 3]))
+                                          for i, name in enumerate(role_names)})
+            save(a.worker_output, packet)
+            write(a.worker_output.with_suffix('.json'), dict(
+                status='COMPLETED', steps=stop, group_envs=count, engineering_only=True,
+                action_chunk_mode=a.action_chunk_mode, role_names=role_names,
+                elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact,
+                pair_drift=pair_drift, role_outcomes=role_outcomes,
+                role_max_lift_m=packet['role_max_lift_m']))
+            return
         # env0 baseline and env1 zero-repeat must share the same local state,
         # contact/history and control at every tick; candidates are allowed to diverge.
         exact_keys = ['canonical_state_hashes', 'canonical_state_field_hashes', 'actions', 'done',
@@ -383,10 +554,65 @@ def native_worker(a):
             action_calibration[name] = dict(max_abs=float(delta_abs.max()), p95_abs=float(np.quantile(delta_abs, .95)),
                                             nonzero_steps=int(np.count_nonzero(step_delta > 1e-7)),
                                             nonzero_elements=int(np.count_nonzero(delta_abs > 1e-7)))
-        packet=dict(**packets, seed=a.seed, query_tick=query, candidate_roles=['baseline','zero_repeat','positive','negative'],
-            candidate_plan_semantics='baseline/zero/positive/negative; env0 actor control is broadcast to all envs, then positive/negative fork at tick48 for24 steps',
-            group_mode='synchronous_same_process_noise_calibration',
-            replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=count * 64,
+        zero_pair_thresholds = dict(
+            object_pose=1e-2, hand_keypoints=1e-2, dof_position=5e-2,
+            dof_velocity=5., object_velocity=5., history=5.,
+            native_contact_forces=5., native_object_contact_forces=5.)
+        zero_pair_gate = dict(
+            thresholds=zero_pair_thresholds,
+            prequery_max_abs={key: zero_noise[key]['prequery_max_abs'] for key in calibration_fields},
+            passed=all(zero_noise[key]['prequery_max_abs'] <= limit
+                       for key, limit in zero_pair_thresholds.items()),
+            rule='prequery zero-pair drift must remain below field-specific physical tolerance')
+        candidate_margin = dict()
+        for name in ('positive', 'negative'):
+            candidate_margin[name] = {
+                key: candidate_effect[key][name]['effect_vs_zero_to_postquery_displacement_p95_ratio']
+                for key in calibration_fields}
+        effect_margin_gate = dict(
+            minimum_ratio=1., ratios=candidate_margin,
+            passed=all(ratio is None or ratio >= 1.
+                       for values in candidate_margin.values() for ratio in values.values()),
+            rule='candidate-vs-zero p95 effect must reach the post-query zero displacement p95')
+        behavior_gate = dict(
+            evaluated=bool(stop >= total),
+            passed=bool(stop >= total and outcome is not None
+                        and outcome['maximum_held_frames'] >= 45
+                        and outcome['controlled_final_place']),
+            rule='candidate nominal must retain the full native GPU hold behavior before calibration')
+        candidate_calibration_valid = bool(
+            (not proposal_enabled or proposal_roles != 'candidate')
+            or (zero_pair_gate['passed'] and effect_margin_gate['passed'] and behavior_gate['passed']))
+        candidate_roles = ['baseline', 'zero_repeat', 'positive', 'negative']
+        if proposal_enabled:
+            nominal_text = ('recorded native nominal chunk' if a.action_chunk_replay is not None
+                            else 'env0 ACT open-loop24 proposal')
+            candidate_plan_semantics = (
+                'baseline/zero/positive/negative; %s is broadcast to all envs, '
+                'then positive/negative residuals fork at tick48 for24 steps' % nominal_text)
+        else:
+            candidate_plan_semantics = (
+                'baseline/zero/positive/negative; env0 actor control is broadcast to all envs, '
+                'then positive/negative fork at tick48 for24 steps')
+        packet=dict(**packets, proposal_chunks=np.asarray(proposal_trace) if proposal_enabled else None,
+            seed=a.seed, query_tick=query, candidate_roles=candidate_roles,
+            candidate_plan_semantics=candidate_plan_semantics,
+            group_mode=('synchronous_same_process_act_candidate_noise'
+                        if proposal_enabled else 'synchronous_same_process_noise_calibration'),
+            action_chunk_checkpoint=(str(a.action_chunk_checkpoint) if a.action_chunk_checkpoint is not None else None),
+            action_chunk_checkpoint_sha256=(sha(a.action_chunk_checkpoint) if a.action_chunk_checkpoint is not None else None),
+            action_chunk_replay_source=(str(a.action_chunk_replay) if a.action_chunk_replay is not None else None),
+            action_chunk_replay_source_sha256=(sha(a.action_chunk_replay) if a.action_chunk_replay is not None else None),
+            action_chunk_mode=(a.action_chunk_mode if proposal_enabled else None),
+            action_chunk_roles=(a.action_chunk_roles if proposal_enabled else None),
+            action_chunk_replan_period=(proposal_period if proposal_enabled else None),
+            action_chunk_semantics=(
+                'one-shot native18 action chunk; env0 proposal is frozen and broadcast; candidate residual is added only at query'
+                if proposal_enabled else None),
+            action_chunk_prefix_source=(str(a.prefix) if prefix_actions is not None else None),
+            action_chunk_prefix_source_sha256=(sha(a.prefix) if prefix_actions is not None else None),
+            replay_identity=identity, canonical_state_keys=state_keys,
+            actor_inference_batch=(1 if proposal_enabled else count * 64),
             engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
             control_prefix_exact=bool(np.array_equal(packets['actions'][:,0], packets['actions'][:,1])
                                       and np.array_equal(packets['done'][:,0], packets['done'][:,1])),
@@ -395,6 +621,8 @@ def native_worker(a):
             calibration_window=dict(zero_prequery_ticks=[0, query], candidate_postquery_ticks=[query + 1, effect_stop - 1]),
             zero_noise_calibration=zero_noise, candidate_effect_calibration=candidate_effect,
             action_calibration=action_calibration,
+            zero_pair_gate=zero_pair_gate, effect_margin_gate=effect_margin_gate,
+            behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
             baseline_outcome=outcome, baseline_max_lift_m=float(np.max(packets['object_pose'][:,0,2,3] - packets['object_pose'][0,0,2,3])),
             zero_repeat_max_lift_m=float(np.max(packets['object_pose'][:,1,2,3] - packets['object_pose'][0,1,2,3])),
             initial_semantic_gap=initial_semantic_gap,
@@ -404,9 +632,12 @@ def native_worker(a):
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop, group_envs=count,
             baseline_zero_exact=not mismatches, mismatches=mismatches, engineering_only=True,
+            group_mode=packet['group_mode'], action_chunk_roles=packet['action_chunk_roles'],
             elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(), outcome=outcome,
             baseline_max_lift_m=packet['baseline_max_lift_m'], zero_noise_calibration=zero_noise,
             candidate_effect_calibration=candidate_effect, action_calibration=action_calibration,
+            zero_pair_gate=zero_pair_gate, effect_margin_gate=effect_margin_gate,
+            behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
             initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact))
 
     class GatePlayer(base):
@@ -635,6 +866,14 @@ def main():
     p.add_argument('--engineering-group-envs', type=int, default=0,
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
+    p.add_argument('--action-chunk-checkpoint', type=Path,
+                   help='engineering worker only: frozen native 24-step proposal checkpoint')
+    p.add_argument('--action-chunk-replay', type=Path,
+                   help='engineering candidate worker only: replay a recorded native proposal chunk packet')
+    p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8'), default='open_loop24',
+                   help='action-chunk behavior worker replanning schedule')
+    p.add_argument('--action-chunk-roles', choices=('behavior', 'candidate'), default='behavior',
+                   help='engineering worker role layout: behavior parity or ACT candidate/zero calibration')
     p.add_argument('--score-inputs', type=Path, nargs='+')
     p.add_argument('--score-output', type=Path)
     a = p.parse_args()
@@ -653,6 +892,13 @@ def main():
             if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
                 p.error('all optional outputs/inputs must be task-owned')
             setattr(a, name, value)
+    for name in ('action_chunk_checkpoint', 'action_chunk_replay'):
+        value = getattr(a, name, None)
+        if value is not None:
+            value = value.resolve()
+            if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
+                p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
+            setattr(a, name, value)
     if not 0 <= a.gpu <= 7 or not 1 <= a.episodes <= 4 or not 30 <= a.seconds <= 900:
         p.error('bounded one-GPU/<=4episode/<=900s Probe required')
     if a.engineering_steps and (not a.worker or not a.finish or not 24 <= a.engineering_steps <= 542):
@@ -665,6 +911,24 @@ def main():
         p.error('engineering group requires at least query tick48 plus24 candidate steps')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
+    if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
+            not a.worker or not a.finish or not a.engineering_group_envs
+            or a.engineering_steps < 24):
+        p.error('action-chunk behavior requires a bounded native engineering group worker')
+    if a.action_chunk_checkpoint is not None and a.action_chunk_replay is not None:
+        p.error('choose one action-chunk checkpoint or recorded replay packet')
+    if a.action_chunk_roles == 'candidate' and a.action_chunk_checkpoint is None and a.action_chunk_replay is None:
+        p.error('action-chunk candidate roles require a checkpoint or recorded replay packet')
+    if a.action_chunk_roles == 'candidate' and a.action_chunk_mode != 'open_loop24':
+        p.error('action-chunk candidate calibration currently requires --action-chunk-mode open_loop24')
+    if a.action_chunk_replay is not None and a.action_chunk_roles != 'candidate':
+        p.error('recorded action-chunk replay is only valid for candidate roles')
+    if a.action_chunk_roles == 'candidate' and a.engineering_steps < 72:
+        p.error('action-chunk candidate calibration requires query tick48 plus24 steps')
+    if a.action_chunk_roles == 'candidate' and a.engineering_steps != 72:
+        p.error('action-chunk candidate calibration is currently bounded to exactly 72 steps')
+    if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and a.engineering_group_envs != 4:
+        p.error('action-chunk engineering roles require exactly four group environments')
     if a.worker:
         native_worker(a); return
     if a.score_inputs:

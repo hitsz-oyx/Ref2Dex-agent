@@ -18,6 +18,24 @@ CPU后端baseline未抓起，GPU预检同策略hold483步；先恢复代表性GP
 暂不扩大CPU样本或训练evaluator。
 新schema独立于旧S/P/M和旧局部H匹配标签。
 
+### ACT-like native proposal engineering route
+
+`src/consequence_evaluator/action_chunk.py` defines a separate engineering
+contract for `H_t -> action[t:t+24]`: the target is the 18-D control captured at
+the native `pre_physics_step` boundary, while `residual_plan` and hand flow
+remain excluded. `tools/run/train_action_chunk.py` enforces episode-separated
+windows, clean `expert_success` provenance, train-only/frozen observation
+normalization, and an explicit audit-only mode. Its outputs are marked
+`engineering_only` and cannot be passed to evaluator fitting.
+
+The native group behavior harness accepts the resulting checkpoint through
+`--action-chunk-checkpoint`. `open_loop24` is the retained behavior screen;
+`receding8` for the direct imitation checkpoint fails before lift. Candidate
+mode additionally accepts a provenance-checked recorded chunk through
+`--action-chunk-replay`, but its nominal behavior and zero-pair gates must pass
+before any candidate effect is usable. The evidence and stopping decision are
+recorded in [P-20261009-act-native-chunk](docs/experiments/probes/P-20261009-act-native-chunk.md).
+
 ## 历史路线与保留证据
 
 早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。
