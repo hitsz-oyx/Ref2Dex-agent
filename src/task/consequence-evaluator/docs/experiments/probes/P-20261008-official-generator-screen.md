@@ -81,6 +81,14 @@ diagnostic entry; actual code identity is the runtime manifest's commit.
 
 Run IDs: `official-generator-screen-20261008-r3` and
 `self-trained-generator-screen-20261008-r3`, under `outputs/consequence-evaluator/`.
+The actual self-trained rerun is `self-trained-generator-screen-20261008-r4`:
+GPU0/1 became occupied by another user's jobs after the official arm finished,
+so the control uses the idle same-model RTX3090 GPU2. The first control attempt
+on GPU0 refused occupancy before creating output. The GPU2 r3 control stopped
+before stepping because our modern PPO checkpoint uniformly wraps model keys
+in `_orig_mod.` (torch.compile). R4 strips this wrapper in memory and loads all
+model/RMS tensors strictly, without modifying the checkpoint. This adapter
+does not alter the official actor's parameter names or preprocessing.
 Native transition exports are diagnostic-only and have `training_allowed=false`;
 native actions can be mutated by PD conversion and lack the geometry/known-plan
 contract required by ref4 evaluator examples.

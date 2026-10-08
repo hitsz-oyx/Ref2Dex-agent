@@ -1,5 +1,6 @@
 """Regression checks for the actual legacy runner/RMS integration seam."""
 import importlib.util
+import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -45,3 +46,14 @@ def test_legacy_factory_and_observation_normalizer():
     player.running_mean_std = rms
     assert player._preproc_obs(3) == 4
     assert normalizations == [3]
+
+
+def test_compiled_checkpoint_translation_is_strict():
+    tensor = object()
+    state = {'_orig_mod.a2c_network.mu.weight':tensor}
+    assert entry().model_state(state) == {'a2c_network.mu.weight':tensor}
+    assert next(iter(entry().model_state(state).values())) is tensor
+    ordinary = {'a2c_network.mu.weight':tensor}
+    assert entry().model_state(ordinary) is ordinary
+    with pytest.raises(ValueError,match='mixed'):
+        entry().model_state(dict(state,another=tensor))

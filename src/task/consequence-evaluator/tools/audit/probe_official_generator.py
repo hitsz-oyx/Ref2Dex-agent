@@ -54,6 +54,14 @@ def install_legacy_player_compat(native, common_player, base_player):
     common_player.CommonPlayer._preproc_obs = base_player.BasePlayer._preproc_obs
 
 
+def model_state(state):
+    """Remove only the uniform torch.compile wrapper; keep strict tensor loading."""
+    compiled = [key.startswith('_orig_mod.') for key in state]
+    if any(compiled) and not all(compiled):
+        raise ValueError('mixed compiled/uncompiled checkpoint keys')
+    return {key[len('_orig_mod.'):]:value for key,value in state.items()} if all(compiled) else state
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--actor', choices=('official', 'self-trained'), required=True)
@@ -153,6 +161,16 @@ def main():
         install_reset_patch()
         base = native.EvalPlayer
         class FullStartPlayer(base):
+            def restore(self, filename):
+                payload = native.torch_ext.load_checkpoint(filename)
+                self.model.load_state_dict(model_state(payload['model']),strict=True)
+                if self.normalize_input:
+                    self.running_mean_std.load_state_dict(payload['running_mean_std'],strict=True)
+                if self._normalize_amp_input:
+                    self._amp_input_mean_std.load_state_dict(payload['amp_input_mean_std'],strict=True)
+                manifest['compiled_key_translation'] = all(key.startswith('_orig_mod.') for key in payload['model'])
+                write(output/'run_manifest.json',manifest)
+
             def run(self):
                 self.is_deterministic = self.is_determenistic
                 task = self.env.task
