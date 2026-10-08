@@ -408,3 +408,29 @@ but these logs do not establish a complete plateau. This is a Probe panel
 observation, not test performance or Cm utility. The bounded log-only summary
 is `outputs/cm-pointflow-effect-pretrain/main3-phase-summary-20261008-r1/report.json`;
 no extra model evaluation or optimizer change was introduced.
+
+### Main-three terminal result (2026-10-08)
+
+`pointworld-main3-20261007/train-action/result.json` reports **COMPLETED**,
+50000 updates, 37705.41 s through final saves, original runtime commit
+`9019fd467c2803888e031b43eda5c505b14e4021`. Both rank parameter hashes are
+`bbf2fe180f29895a5aafa127e3c6a4c1718ae7f00998dc3b55aedd41cedb7a95`.
+The recovered group monitor also reports COMPLETED; torchrun, both workers
+and monitor have exited. GPU 1/2 are empty; GPU 0's continuous diagnostic
+has also exited. No extra updates or deadline extension occurred.
+
+Final equal-source balanced moving-anchor h24 EPE is Oak 13.778 / GRAB
+27.795 / ARCTIC 39.804 mm, macro **27.126 mm**, versus initialization
+34.480 mm (21.3% lower on this fixed Probe panel). Natural-panel source
+macro is 28.308 mm. Same balanced-panel action-shuffle diagnostic is
+125.442 mm; this tests dependence on action conditioning, not online policy
+benefit or a matched Cm-on/off trained-policy claim. No test split evaluation
+was added. Late block means above show slower remaining improvement; no
+claim of a fully reached plateau.
+
+`latest.pt` and `final.pt` deserialize at step 50000; `best.pt` at step 46000
+(fixed-panel macro 26.786 mm). All are complete two-rank DDP checkpoints,
+578.5 MiB each, retaining model, optimizer, identity and both rank RNG states.
+CPU deserialization verifies file integrity/metadata only, with no model
+evaluation. Original full checkpoints are preserved; no continuation is
+automatically scheduled.

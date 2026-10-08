@@ -246,3 +246,38 @@ option creates only a capacity report; it changes no labels, model inputs,
 fit gate or sampling contract. Stop within 600 s / 20000 event windows.
 This distinguishes cadence loss from genuinely sparse comparable states
 before allocating any further GPU rollout.
+
+### All-tick audit and current-state attribution
+
+At commit `93dde07`,
+`outputs/consequence-evaluator/hold-all-ticks-capacity-20261008-r1/report.json`
+checks 17053 unambiguous event windows in 7.69 s. Event-compatible unique
+episode pairs increase to 463, but physical and H-matched capacity remain
+one train pair. Thus neither capped selection nor eight-tick cadence explains
+the missing independent coverage. Val/test are absent by design in this pilot.
+
+The read-only dose diagnostic
+`outputs/consequence-evaluator/hold-dose-diagnostic-20261008-r1/report.json`
+records 21/24 reliable clean successes; among 23 triggered interventions,
+15 trigger-start windows maintain hold, seven have an unrecovered drop and
+one abstains. There are 13 negative event windows during the residual plan
+and 19 after it, so the intervention does create local negative events; the
+blocker is not simply that no perturbation changes a local outcome.
+
+`outputs/consequence-evaluator/hold-state-mismatch-20261008-r1/report.json`
+inspects the closest positive selected window for each of 12 episodes with
+hold/drop negatives, minimizing the largest normalized physical-threshold
+violation. Eleven nearest comparisons exceed the 2 cm hand RMS limit and
+ten exceed the 15-degree object rotation limit; only one meets all limits.
+This explains why event diversity does not yield state-matched comparisons.
+The diagnostic explicitly checks agreement with the actual geometry rule;
+its distances are not labels or a proposal to relax thresholds.
+
+Current decision: keep fit and production-route gates closed. Do not collect
+additional val/test waves for this pilot or promote twin data. Further
+continuous data need an explicit design that produces comparable current
+states or separately grounded local annotations; generic waves, unqualified
+specialist epochs and outcome-derived preference labels remain closed.
+The broader oracle-headroom question is still `UNCLEAR`, not refuted by this
+coverage-limited sample. All 130 Task tests pass; user/parallel-agent changes
+remain untouched.
