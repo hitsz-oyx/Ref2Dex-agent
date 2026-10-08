@@ -376,3 +376,22 @@ Step2500 same panel moving-anchor h24: Oak17.742/GRAB39.673/ARCTIC50.179mm,
 macro35.865 versus initialization34.480. The1500 positive observation
 was transient; do not report stable improvement or convergence yet.
 Training continues under the user's50000update/10:00deadline protocol.
+
+### Recover adopted monitoring (2026-10-08)
+
+The original launcher PID 1411132 is no longer live and its group summary is
+stale at step 4702. Torchrun 1411144 and ranks 1411207/1411208 are confirmed
+live, still write the original console/progress logs and carry the original
+absolute deadline; worker-side deadline and implementation-drift guards remain
+active. All 38 launch-frozen source/input hashes match. Do not restart training
+or reset optimizer/sampling state.
+
+The new `tools/run/adopt_pointworld_monitor.py` adopts only those verified owned
+process identities, including process start ticks to reject PID reuse. It
+preserves the old group record before updating it, keeps the same deadline and
+GPU set, restores source/foreign-process checks and requests checkpoint saving
+only from verified ranks when a stop condition occurs. It does not create a
+model process or add updates. Adoption is bounded by the existing deadline
+plus the original 180-second shutdown grace. An adopted process is not a child,
+so terminal state comes from trainer output and process exit, not an invented
+exit code. Two CPU process-identity/signaling regression tests pass.

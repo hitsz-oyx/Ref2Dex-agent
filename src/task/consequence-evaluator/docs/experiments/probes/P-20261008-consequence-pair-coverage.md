@@ -173,3 +173,8 @@ fit rejection; `tools/verify.py --changed` also passes against `e0861bd`.
 Next decision remains a separately specified collection protocol with enough
 independent paired states and train progress anchors. No twin-to-continuous
 schema conversion, evaluator fitting or further generic waves occurred.
+
+2026-10-08 user clarification: retain ref2 continuous rollout and no forks for
+formal collection; twin remains engineering diagnosis only. Subsequent work
+must address continuous observational coverage and may not switch these data
+to twin supervision.
