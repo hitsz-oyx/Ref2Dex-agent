@@ -1345,3 +1345,22 @@ checkpoint 为 `1.985e-4`，train-mean 为 `9.207e-4`，first-action MAE 为
 `0.01136`。这是约 10% 的动作空间改善，样本来自同一 hold-audit wave，仍只标为
 `PROMISING/UNCLEAR`，不构成行为证据。由于 group baseline contract 已失败，暂不再
 启动 native chunk screen；ACT 只保留旧 r2 的 open-loop24 行为工程基线。
+
+### Native GPU CUDA synchronisation probe
+
+旧 ref13 的原始 binary panel 已确认不在当前工作区或历史 baseline worktree；当前只剩
+`tmp/ref13` 的日志和 `raw_stat_replay.json`。历史 panel 虽可由源码确认有 32 步
+trajectory/native-q，但没有完整 24 步 candidate controls、现行 `object_pose`/11 点手坐标/
+timestamps，也属于 GPU PhysX + CPU tensor pipeline，不能重标为当前 Gate1 packet。
+
+为区分 fresh native GPU 行为波动是否主要来自 host/kernel 异步排程，在不改变 backend、
+seed、checkpoint、Y 或 reference bank 的情况下做了 `CUDA_LAUNCH_BLOCKING=1` Probe。
+两个 fresh 单环境 baseline 都达到约 `0.79m/483 held`，行为 spread 明显比之前的
+full-to-zero launch 小；但接触 buffer 仍在 tick44 分叉，完整 state 只在 `44/543` 个
+hash 相同，不能声称 same-state replay。相同设置的 4-env group env0 只有
+`0.186m/10 held`，zero-pair hand/q/velocity/object-velocity 噪声门也失败。结论是
+同步设置可能改善单环境行为稳定性，却没有形成候选执行合同；关闭 synchronisation-only
+route，不启动正式 Gate1/evaluator/PointWorld。审计见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-cuda-sync.md`，
+摘要产物在 `outputs/consequence-evaluator/gate1-gpu-sync-probe-20261009-r1/` 和
+`gate1-gpu-sync-group-20261009-r1/`。
