@@ -1114,6 +1114,241 @@ def native_worker(a):
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), result)
 
+    def engineering_single_act_run(player, task):
+        """Screen one native GPU episode with one frozen open-loop ACT chunk.
+
+        This is deliberately a behavior-only diagnostic.  The reactive native
+        actor supplies controls through tick47.  At tick48 the current native
+        observation is transformed once and decoded by the frozen action-chunk
+        checkpoint; the resulting 24 controls are then fed directly through
+        the native pre-physics boundary without reading a later observation.
+        No candidate residual, second environment, or serial reset is involved.
+        """
+        if backend.name != 'gpu_physx_gpu_pipeline':
+            raise ValueError('single ACT behavior requires native GPU PhysX/GPU pipeline')
+        if (player.is_rnn or task.num_envs != 1 or abs(task.dt - 1 / 30) > 1e-8
+                or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2):
+            raise ValueError('single ACT behavior requires one fixed nonrecurrent native environment')
+        if int(task.num_motions) != 1:
+            raise ValueError('single ACT behavior requires one repeated motion')
+        if a.engineering_steps != 72 or not a.finish:
+            raise ValueError('single ACT behavior requires the fixed 72-step finished screen')
+        if a.query_tick not in (0, 48):
+            raise ValueError('single ACT behavior requires the established query tick48 contract')
+        if a.action_chunk_checkpoint is None or a.action_chunk_replay is not None:
+            raise ValueError('single ACT behavior requires a checkpoint and no replay packet')
+        query = 48
+        horizon = 24
+        stop = 72
+
+        task._state_init = DexploreTask.StateInit.Start
+        task._hybrid_init_prob = 1.
+        task._adaptive_kappa_enabled = False
+        task._enable_early_termination = False
+        if task.dr_randomizations or task._motion_sampler is not None or task.projtype != 'None':
+            raise ValueError('randomized/sampler/projectile single ACT behavior unsupported')
+        geometry = PhysicalGeometry(task, native_root / 'data/assets')
+        table = TableSupport(native_root / 'data/assets', task.device)
+
+        from consequence_evaluator.action_chunk import EXECUTED_ACTION_SEMANTICS, NativeActionChunkProposal
+        payload = torch.load(a.action_chunk_checkpoint, map_location='cpu')
+        if (payload.get('schema') != 'ref2dex.consequence-evaluator.native-action-chunks.v1'
+                or payload.get('chunk') != K or payload.get('action_dim') != 18
+                or payload.get('history_dim') != int(task.num_obs)
+                or payload.get('executed_action_semantics') != EXECUTED_ACTION_SEMANTICS):
+            raise ValueError('native action-chunk checkpoint contract mismatch')
+        standardizer = payload.get('history_standardizer')
+        if (not isinstance(standardizer, dict)
+                or len(standardizer.get('mean', [])) != int(task.num_obs)
+                or len(standardizer.get('scale', [])) != int(task.num_obs)):
+            raise ValueError('native action-chunk history standardizer mismatch')
+        proposal_mean = torch.as_tensor(standardizer['mean'], dtype=torch.float32, device=player.device)
+        proposal_scale = torch.as_tensor(standardizer['scale'], dtype=torch.float32, device=player.device)
+        proposal_clip = standardizer.get('clip')
+        if (proposal_mean.ndim != 1 or proposal_scale.ndim != 1
+                or proposal_mean.numel() != int(task.num_obs)
+                or proposal_scale.numel() != int(task.num_obs)
+                or not torch.isfinite(proposal_mean).all()
+                or not torch.isfinite(proposal_scale).all()
+                or (proposal_scale <= 0).any()
+                or (proposal_clip is not None
+                    and (not np.isfinite(proposal_clip) or float(proposal_clip) <= 0))):
+            raise ValueError('native action-chunk history standardizer is invalid')
+        proposal_model = NativeActionChunkProposal(
+            int(payload['history_dim']), width=int(payload['width']),
+            layers=int(payload['layers'])).to(player.device)
+        proposal_model.load_state_dict(payload['state_dict'], strict=True)
+        proposal_model.eval()
+
+        env_ids = torch.arange(1, device=task.device)
+        obs = player.env_reset(env_ids)
+        player.get_batch_size(obs['obs'], 1)
+        if task.gym.get_frame_count(task.sim) != 0 or (task.start_times != 0).any():
+            raise ValueError('fresh unstepped single ACT reset required')
+        total = int(task.max_episode_length[task.data_id[0]]) - 1
+        if total != 542:
+            raise ValueError('frozen full543state reference required')
+
+        physics = {'sim_params': normalize_properties(task.gym.get_sim_params(task.sim)), 'actors': []}
+        for env in task.envs:
+            actors = []
+            for actor_index in range(task.gym.get_actor_count(env)):
+                handle = task.gym.get_actor_handle(env, actor_index)
+                actors.append(dict(
+                    name=task.gym.get_actor_name(env, actor_index),
+                    shape=normalize_properties(task.gym.get_actor_rigid_shape_properties(env, handle)),
+                    body=normalize_properties(task.gym.get_actor_rigid_body_properties(env, handle)),
+                    dof=normalize_properties(task.gym.get_actor_dof_properties(env, handle))))
+            physics['actors'].append(actors)
+        controller = dict(
+            model={k: v.cpu().numpy().copy() for k, v in player.model.state_dict().items()},
+            normalize_input=bool(player.normalize_input),
+            checkpoint_sha256=trained['checkpoint_sha256'])
+        for key, normalizer in [('rms', getattr(player, 'running_mean_std', None)),
+                                ('amp_rms', getattr(player, '_amp_input_mean_std', None))]:
+            controller[key] = None if normalizer is None else {
+                k: v.cpu().numpy().copy() for k, v in normalizer.state_dict().items()}
+        params = task.gym.get_sim_params(task.sim)
+        actual_backend = dict(
+            name=backend.name, sim_device=backend.sim_device,
+            pipeline='gpu' if bool(params.use_gpu_pipeline) else 'cpu',
+            physx_use_gpu=bool(params.physx.use_gpu),
+            physx_num_threads=int(params.physx.num_threads),
+            tensor_device=canonical_device(task.device),
+            actor_device=canonical_device(player.device))
+        expected_backend = backend.as_dict()
+        for key in ('pipeline', 'physx_use_gpu', 'physx_num_threads', 'tensor_device', 'actor_device'):
+            if actual_backend[key] != expected_backend[key]:
+                raise ValueError('native backend contract drift for %s: expected %r, got %r' %
+                                 (key, expected_backend[key], actual_backend[key]))
+        identity = dict(
+            physics_hash=fingerprint(physics), controller_hash=fingerprint(controller),
+            backend=actual_backend,
+            environment=dict(cfg_env_sha256=sha(cfg_env), env_spacing_override=None),
+            query_tick=query,
+            actor_execution=dict(layout='single_environment_64row_inference', copies=64, total_rows=64))
+
+        state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {
+            key for key in ('reset_buf', 'actions', 'real_pd_tar')
+            if isinstance(getattr(task, key, None), torch.Tensor)})
+        fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap',
+                  'table_footprint', 'dof_position', 'dof_velocity', 'object_velocity',
+                  'history', 'native_contact_forces', 'native_object_contact_forces')
+        rows = {key: [] for key in fields}
+        actions = []
+        ended = []
+        state_hashes = []
+        state_field_hashes = []
+        rng_hashes = []
+
+        def observe():
+            points, gap = geometry.measure(task)
+            support, footprint = table.measure(task, geometry)
+            values = dict(
+                object_pose=pose_matrix(task._target_states[0].cpu().numpy()),
+                hand_keypoints=points[0].cpu().numpy().copy(),
+                surface_gap=gap[0].cpu().numpy().copy(),
+                support_gap=support[0].cpu().numpy().copy(),
+                table_footprint=footprint[0].cpu().numpy().copy(),
+                dof_position=task._dof_pos[0].cpu().numpy().copy(),
+                dof_velocity=task._dof_vel[0].cpu().numpy().copy(),
+                object_velocity=task._target_states[0, 7:13].cpu().numpy().copy(),
+                history=obs['obs'][0].cpu().numpy().copy(),
+                native_contact_forces=task._contact_forces[0].cpu().numpy().copy(),
+                native_object_contact_forces=task._tar_contact_forces[0].cpu().numpy().copy())
+            for key, value in values.items():
+                rows[key].append(np.asarray(value).copy())
+            state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
+            state_hashes.append(fingerprint(state))
+            state_field_hashes.append({key: fingerprint(value) for key, value in state.items()})
+            rng_hashes.append(fingerprint(capture_native_rng(torch)))
+            index = len(state_hashes) - 1
+            if task.gym.get_frame_count(task.sim) != index * task.control_freq_inv:
+                raise ValueError('unexpected simulator step count at single ACT tick%d' % index)
+
+        executed = None
+        original_pre = task.pre_physics_step
+
+        def capture(control):
+            nonlocal executed
+            executed = control.detach().cpu().numpy().copy()
+            return original_pre(control)
+
+        task.pre_physics_step = capture
+        observe()
+        proposal_cache = None
+        proposal_input = None
+        proposal_trace = []
+        for tick in range(stop):
+            if time.monotonic() - started > 150:
+                raise TimeoutError('bounded single ACT behavior deadline')
+            if tick < query:
+                control = legacy_batched_actor_action(player, obs).clamp(-1, 1)
+            elif tick == query:
+                proposal_input = (obs['obs'] - proposal_mean) / proposal_scale
+                if proposal_clip is not None:
+                    proposal_input = proposal_input.clamp(-float(proposal_clip), float(proposal_clip))
+                proposal_cache = proposal_model(proposal_input).clamp(-1, 1)
+                proposal_trace.append(proposal_cache.detach().cpu().numpy().copy())
+                control = proposal_cache[:, 0]
+            else:
+                if proposal_cache is None:
+                    raise RuntimeError('single ACT action chunk was not initialized at tick48')
+                control = proposal_cache[:, tick - query]
+            obs, _, done, info = player.env_step(player.env, control.clone())
+            if not isinstance(obs, dict):
+                obs = {'obs': obs}
+            player._post_step(info)
+            if (executed is None or executed.shape != (1, 18)
+                    or not np.isfinite(executed).all() or np.abs(executed).max() > 1 + 1e-6):
+                raise ValueError('nonfinite/out-of-bounds single ACT native command')
+            actions.append(executed[0].copy())
+            ended.append(bool(done[0].item()))
+            observe()
+            if done.any() and tick < stop - 1:
+                raise ValueError('single ACT episode terminated before the 72-step screen')
+
+        packet = {key: np.asarray(value) for key, value in rows.items()}
+        packet.update(
+            actions=np.asarray(actions), done=np.asarray(ended), state_hashes=state_hashes,
+            state_field_hashes=state_field_hashes, rng_hashes=rng_hashes,
+            timestamps=np.arange(stop + 1) / 30,
+            schema='ref2dex.consequence-gate1.native-single-act-behavior.v1',
+            engineering_only=True, training_allowed=False,
+            single_act_behavior=True, group_envs=1,
+            role='single_env_open_loop24_act',
+            prefix_role='reactive_native_policy', query_tick=query, horizon=horizon, steps=stop,
+            prefix_semantics='reactive native actor controls through tick47',
+            action_chunk_mode='open_loop24',
+            action_chunk_semantics='one-shot native18 chunk at tick48; no future observation feedback',
+            proposal_generated_tick=query, proposal_model_calls=1,
+            future_observation_feedback=False,
+            frozen_action_ticks=[query, query + horizon - 1],
+            action_chunk_checkpoint=str(a.action_chunk_checkpoint),
+            action_chunk_checkpoint_sha256=sha(a.action_chunk_checkpoint),
+            proposal_chunks=np.asarray(proposal_trace)[:, 0],
+            proposal_chunk=proposal_cache[0].detach().cpu().numpy().copy(),
+            proposal_input=proposal_input.detach().cpu().numpy().copy(),
+            replay_identity=identity, canonical_state_keys=state_keys,
+            actor_inference_batch=64, actor_inference_copies=64,
+            source_backend=actual_backend)
+        packet['outcome'] = episode_outcome(packet)
+        packet['max_lift_m'] = float(np.max(
+            packet['object_pose'][:, 2, 3] - packet['object_pose'][0, 2, 3]))
+        save(a.worker_output, packet)
+        write(a.worker_output.with_suffix('.json'), dict(
+            status='COMPLETED', schema=packet['schema'], engineering_only=True,
+            single_act_behavior=True, role=packet['role'], steps=stop,
+            query_tick=query, horizon=horizon, action_chunk_mode='open_loop24',
+            proposal_generated_tick=query, proposal_model_calls=1,
+            future_observation_feedback=False,
+            action_chunk_checkpoint=str(a.action_chunk_checkpoint),
+            action_chunk_checkpoint_sha256=packet['action_chunk_checkpoint_sha256'],
+            elapsed_s=time.monotonic() - started,
+            peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+            outcome=packet['outcome'], max_lift_m=packet['max_lift_m'],
+            replay_identity=identity))
+
     class GatePlayer(base):
         def restore(self, filename):
             value = native.torch_ext.load_checkpoint(filename)
@@ -1132,6 +1367,9 @@ def native_worker(a):
             if fingerprint(self.model.state_dict()) != self._gate_restored_model_hash:
                 raise ValueError('actor weights changed after checkpoint restore')
             task = self.env.task
+            if a.engineering_single_act:
+                engineering_single_act_run(self, task)
+                return
             if a.engineering_serial_replay or a.engineering_serial_cluster:
                 engineering_serial_replay_run(self, task)
                 return
@@ -1340,6 +1578,8 @@ def main():
     p.add_argument('--candidate', type=int, default=0)
     p.add_argument('--finish', action='store_true')
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
+    p.add_argument('--engineering-single-act', action='store_true',
+                   help='native worker only: one-env reactive-prefix/open-loop24 ACT behavior screen, never GT scoring')
     p.add_argument('--engineering-group-envs', type=int, default=0,
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--engineering-actor-copies', type=int, default=64,
@@ -1440,10 +1680,32 @@ def main():
         p.error('--zero-env-pair cannot use candidate roles env2/env3')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
+    if a.engineering_single_act and (
+            not a.worker or not a.finish or a.engineering_group_envs
+            or a.engineering_serial_replay or a.engineering_serial_cluster):
+        p.error('single ACT behavior requires a finished native worker without group or serial mode')
+    if a.engineering_single_act and a.native_backend.name != 'gpu_physx_gpu_pipeline':
+        p.error('single ACT behavior requires --backend gpu_physx_gpu_pipeline')
+    if a.engineering_single_act and a.engineering_steps != 72:
+        p.error('single ACT behavior requires exactly --engineering-steps 72')
+    if a.engineering_single_act and a.query_tick not in (0, 48):
+        p.error('single ACT behavior requires the established query tick48 contract')
+    if a.engineering_single_act and a.prefix is not None:
+        p.error('single ACT behavior starts from a fresh prefix and does not accept --prefix')
+    if a.engineering_single_act and a.action_chunk_checkpoint is None:
+        p.error('single ACT behavior requires --action-chunk-checkpoint')
+    if a.engineering_single_act and a.action_chunk_replay is not None:
+        p.error('single ACT behavior does not accept --action-chunk-replay')
+    if a.engineering_single_act and a.action_chunk_mode != 'open_loop24':
+        p.error('single ACT behavior requires --action-chunk-mode open_loop24')
+    if a.engineering_single_act and a.action_chunk_roles != 'behavior':
+        p.error('single ACT behavior requires --action-chunk-roles behavior')
+    if a.engineering_single_act and a.diagnostic_force_cache:
+        p.error('single ACT behavior does not accept force-cache diagnostics')
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
-            not a.worker or not a.finish or not a.engineering_group_envs
+            not a.worker or not a.finish or not (a.engineering_group_envs or a.engineering_single_act)
             or a.engineering_steps < 24):
-        p.error('action-chunk behavior requires a bounded native engineering group worker')
+        p.error('action-chunk behavior requires a bounded native engineering worker')
     if a.action_chunk_checkpoint is not None and a.action_chunk_replay is not None:
         p.error('choose one action-chunk checkpoint or recorded replay packet')
     if a.action_chunk_roles == 'candidate' and a.action_chunk_checkpoint is None and a.action_chunk_replay is None:
@@ -1459,7 +1721,8 @@ def main():
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and a.query_tick not in (0, 48):
         p.error('action-chunk group probes require the established query tick48 contract')
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
-            a.action_chunk_roles == 'behavior' and a.engineering_group_envs != 4):
+            a.action_chunk_roles == 'behavior' and not a.engineering_single_act
+            and a.engineering_group_envs != 4):
         p.error('action-chunk behavior roles require exactly four group environments')
     if a.action_chunk_roles == 'candidate' and a.engineering_group_envs < 4:
         p.error('action-chunk candidate roles require at least four group environments')
