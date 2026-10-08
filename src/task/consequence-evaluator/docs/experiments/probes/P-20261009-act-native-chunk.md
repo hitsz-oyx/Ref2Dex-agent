@@ -487,3 +487,23 @@ cluster is predeclared to test launch-level repeatability. It keeps the exact
 r33 schedule and 72-step limit. A failure closes the serial-statistical route;
 a pass still remains engineering-only and cannot start evaluator, PointWorld, or
 strict Gate1 work.
+
+### r34 result and route closure
+
+The fresh r34 launch passed the same packet and audit contracts. The teacher
+reached `0.3001 m` by tick72 and held 13 frames; this clears the short-window
+screen but is not a grasp-success result. All five frozen zeros again had zero
+query-relative p95 on the primary mechanical fields. Contact buffers retained
+hidden-state noise, while the two positive and two negative repeats reproduced
+their respective mechanical effects. The descriptive TCC values were zero
+`-0.0094461`, positive `-0.0117899`, and negative `-0.0131493`; neither
+candidate exceeded the zero value.
+
+The predeclared serial-statistical budget is now exhausted. The route is closed
+as an engineering calibration: it demonstrates repeatable visible mechanical
+replay for one frozen executed stream across two fresh launches, but it does not
+restore PhysX hidden state or satisfy strict same-state Gate1. No evaluator,
+PointWorld, Execution Bridge, or MPC work follows from r33/r34. The next route
+must supply a new verifiable execution contract, such as an ACT/open-loop chunk
+design or a native hidden-state fork/restore; Y, reference-bank labels, and
+policy weights remain frozen.

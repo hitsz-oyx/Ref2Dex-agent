@@ -1269,3 +1269,20 @@ r33 因此通过 cluster 的短窗口继续条件，但不通过 strict Gate1。
 行为和 paired effect 是否能重复；r34 若 teacher <`0.20m`、机械 zero 不再 exact，
 或 candidate effect 不再重复，则关闭 serial-statistical route。无论 r34 结果如何，
 不跑 evaluator/PointWorld、不改 Y/reference/policy，也不把十个 arm 当独立样本。
+
+r34 已完成并通过同一 audit（packet 为
+`outputs/consequence-evaluator/gate1-gpu-serial-cluster-20261009-r34/serial-cluster.pkl`，
+read-only audit 为其 `gate1-gpu-serial-cluster-20261009-r34-audit/audit.json`）。
+teacher tick72 最高抬升 `0.3001m`、held13，超过短窗口线但不构成抓取成功；action,
+done, reset, schedule, residual 和 hash 合同均通过。五个 frozen zero 的主要机械
+字段 query-relative p95 仍全为 `0`，contact hidden noise 继续存在；positive/negative
+各两次重复的 mechanical effect 一致。TCC 只读值为 zero `-0.0094461`、positive
+`-0.0117899`、negative `-0.0131493`，两类 candidate 都低于 zero，因此没有
+candidate utility 信号。
+
+按预注册上限关闭 serial-statistical cluster。它证明了同一 executed action stream
+下可见机械 replay 在两个 fresh launch 中可重复，并量化了 contact/history hidden
+noise；它没有恢复 PhysX hidden state，也没有把 strict same-state Gate1 变成统计
+替代。Gate1、evaluator、PointWorld、Execution Bridge 和 MPC 仍未开始。下一步回到
+可验证执行合同设计：优先评估 ACT/open-loop chunk 或原生 PhysX hidden-state
+fork/restore 的可行性；在其通过前不改 Y/reference/policy，不fit evaluator。
