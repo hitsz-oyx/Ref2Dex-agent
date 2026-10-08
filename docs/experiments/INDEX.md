@@ -54,6 +54,12 @@
 | [P-20261007-consequence-oracle-headroom](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-oracle-headroom.md) | Does physical future add ranking information to decision-known residual plans? | Six-route continuous collection completed, but strict state-matched labels are insufficient for fitting: train/val/test contain 0/0/2 local  | Repeated waves make the label gate READY at 2/1/5 train/val/test pairs, but this is too sparse for a useful fit; stop before evaluator train | probes/UNCLEAR |
 | [P-20261008-consequence-pair-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md) | Can repeated waves recover strict current-state preference coverage? | The historical three-wave label report was `READY` under the then-current | Stop before fitting and keep the route gate closed. The user has | probes/UNCLEAR |
 
+## HF-consequence-physical-reference
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-physical-reference-bank](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-physical-reference-bank.md) | Does measured successful robot reference geometry fix local phase delta? | Pending bounded bank/encoder/label Probe; no evaluator fit. | Follow user ref4_2 using existing successful physical trajectories, | probes/PLANNED |
+
 ## HF-consequence-reference-progress
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

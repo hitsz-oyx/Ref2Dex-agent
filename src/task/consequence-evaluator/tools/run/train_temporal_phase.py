@@ -13,6 +13,7 @@ sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import is_within
 from consequence_evaluator.data import sha
 from consequence_evaluator.historical_sources import verify_collection_sources
+from consequence_evaluator.reference_bank import BANK_SCHEMA, load_reference_features
 from consequence_evaluator.reference_progress import FeatureScale, trajectory_features
 from consequence_evaluator.temporal_phase import ENCODER_SCHEMA, TemporalPhaseEncoder, context_clips
 from consequence_evaluator.value_outcomes import RAW_SCHEMA, task_trace
@@ -39,7 +40,7 @@ def main():
     import torch
     torch.set_num_threads(1); torch.manual_seed(281); np.random.seed(281)
     started = time.monotonic(); frozen = {str(Path(__file__).resolve()): sha(__file__)}
-    for name in ('temporal_phase.py', 'xirl_tcc_loss.py', 'reference_progress.py', 'xirl_alignment.py', 'value_outcomes.py', 'data.py', 'contracts.py', 'historical_sources.py'):
+    for name in ('temporal_phase.py', 'xirl_tcc_loss.py', 'reference_progress.py', 'reference_bank.py', 'xirl_alignment.py', 'value_outcomes.py', 'data.py', 'contracts.py', 'historical_sources.py'):
         path = TASK / 'src/consequence_evaluator' / name; frozen[str(path)] = sha(path)
     source = args.source.resolve(); reference = args.reference.resolve()
     raw_path = source / 'manifest.json'; ref_path = reference / 'manifest.json'
@@ -52,10 +53,13 @@ def main():
     frozen.update({str(raw_path): sha(raw_path), str(ref_path): sha(ref_path), str(ref_file): meta['reference_sha256']})
     if any(sha(p) != h for p, h in frozen.items()):
         raise ValueError('fixed alignment train/reference sources drifted')
-    with np.load(ref_file, allow_pickle=False) as f:
-        features = trajectory_features(f['object_pose'], f['hand_keypoints'], f['timestamps'])
-    scaler = FeatureScale([features]); views = [features]; selected = []
-    for record in raw['episodes']:
+    references, _ = load_reference_features(reference, meta)
+    bank = meta['schema'] == BANK_SCHEMA
+    if bank and (meta['source'] != str(source) or meta['source_manifest_sha256'] != sha(raw_path)):
+        raise ValueError('physical bank must come from this exact nominal train source')
+    scaler = FeatureScale(references); views = list(references)
+    selected = [m['episode'] for m in meta['members']] if bank else []
+    for record in ([] if bank else raw['episodes']):
         if len(selected) >= 8:
             break
         if record['split'] != 'train' or record['assigned_phase'] != 'clean':
@@ -86,6 +90,8 @@ def main():
         collection_sources=dict(git_commit=raw['git_commit'], recorded=raw['sources'],
                                 verified_historical_code=historical),
         reference=str(reference), reference_sha256=meta['reference_sha256'],
+        reference_origin=meta['origin'], reference_count=len(references),
+        training_pairing='random distinct physical bank pair' if bank else 'original R plus random physical train view',
         standardizer=scaler.dictionary(), training_demonstrations=selected, training_source_seed=230,
         evaluation_group='independent preserved train261; never fitted or used for checkpoint selection',
         loss='upstream deterministic TCC regression_mse; normalized cycle-back indices only in train loss',
@@ -98,12 +104,11 @@ def main():
         for step in range(1, args.updates + 1):
             if time.monotonic() - started > args.seconds:
                 raise TimeoutError('fixed TCC Probe deadline')
-            other = int(rng.integers(1, len(clips)))
-            # Always include original R, with one train-only physical view.
-            ids = [np.sort(rng.choice(len(clips[v]), 256, replace=False)) for v in (0, other)]
-            embeddings = torch.stack([encoder(clips[v][torch.as_tensor(i, device='cuda:0')]) for v, i in zip((0, other), ids)])
+            pair = tuple(rng.choice(len(clips), 2, replace=False)) if bank else (0, int(rng.integers(1, len(clips))))
+            ids = [np.sort(rng.choice(len(clips[v]), 256, replace=False)) for v in pair]
+            embeddings = torch.stack([encoder(clips[v][torch.as_tensor(i, device='cuda:0')]) for v, i in zip(pair, ids)])
             loss = compute_tcc_loss(embeddings, torch.as_tensor(np.stack(ids), device='cuda:0'),
-                torch.tensor([len(clips[0]), len(clips[other])], device='cuda:0'),
+                torch.tensor([len(clips[v]) for v in pair], device='cuda:0'),
                 stochastic_matching=False, normalize_embeddings=True, loss_type='regression_mse',
                 similarity_type='l2', temperature=.1, normalize_indices=True)
             if not torch.isfinite(loss):

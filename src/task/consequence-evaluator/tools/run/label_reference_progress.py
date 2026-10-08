@@ -13,6 +13,8 @@ ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
 from consequence_evaluator.contracts import HAND_LINKS, K, is_within
 from consequence_evaluator.data import sha
+from consequence_evaluator.historical_sources import verify_collection_sources
+from consequence_evaluator.reference_bank import BANK_SCHEMA, load_reference_features
 from consequence_evaluator.reference_motion import REFERENCE_SCHEMA
 from consequence_evaluator.reference_progress import (SCHEMA, RULE, GROUPS, AlignmentConfig,
     ReferenceProgress, trajectory_features, label_window)
@@ -43,7 +45,7 @@ def main():
     torch.set_num_threads(1)
     started = time.monotonic()
     frozen = {str(Path(__file__).resolve()): sha(__file__)}
-    for name in ('reference_progress.py', 'xirl_alignment.py', 'reference_motion.py', 'data.py', 'contracts.py', 'value_outcomes.py'):
+    for name in ('reference_progress.py', 'reference_bank.py', 'historical_sources.py', 'xirl_alignment.py', 'reference_motion.py', 'data.py', 'contracts.py', 'value_outcomes.py'):
         path = TASK / 'src/consequence_evaluator' / name; frozen[str(path)] = sha(path)
     raw_path = source / 'manifest.json'; ref_path = ref_dir / 'manifest.json'
     raw = json.loads(raw_path.read_text()); ref_meta = json.loads(ref_path.read_text())
@@ -51,12 +53,15 @@ def main():
             or raw.get('rollout_kind') != 'continuous' or raw.get('audit_only') is not False
             or raw.get('horizon') != K or raw.get('execution_horizon') != K
             or raw.get('fps') != 30 or raw.get('units') != 'm'
-            or ref_meta.get('schema') != REFERENCE_SCHEMA or ref_meta.get('status') != 'COMPLETED'
-            or ref_meta.get('origin') != 'original_successful_retargeted_motion'
+            or ref_meta.get('schema') not in (REFERENCE_SCHEMA, BANK_SCHEMA) or ref_meta.get('status') != 'COMPLETED'
             or ref_meta.get('hand_links') != list(HAND_LINKS)):
-        raise ValueError('completed original-reference/full continuous raw contracts required')
+        raise ValueError('completed frozen reference/full continuous raw contracts required')
+    bank = ref_meta['schema'] == BANK_SCHEMA
+    if bank and args.phase_encoder is None:
+        raise ValueError('physical bank Probe requires its matching frozen TCC encoder')
     frozen.update({str(raw_path): sha(raw_path), str(ref_path): sha(ref_path)})
-    frozen.update(raw['sources']); frozen.update(ref_meta['sources'])
+    live, historical = verify_collection_sources(raw['sources'], raw['git_commit'], ROOT)
+    frozen.update(live); frozen.update(ref_meta['sources'])
     file = ref_dir / 'reference.npz'; frozen[str(file)] = ref_meta['reference_sha256']
     if any(sha(p) != value for p, value in frozen.items()):
         raise ValueError('reference/controller/source drift')
@@ -66,9 +71,8 @@ def main():
         seconds_budget=args.seconds, source=str(source), reference=str(ref_dir),
         physical_gpu=args.gpu, sources=frozen,
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()), indent=2) + '\n')
-    with np.load(file, allow_pickle=False) as reference:
-        ref_features = trajectory_features(reference['object_pose'], reference['hand_keypoints'], reference['timestamps'])
-        ref_height = reference['object_pose'][:, 2, 3].copy()
+    references, ref_height = load_reference_features(ref_dir, ref_meta)
+    ref_features = references[0]
     config = AlignmentConfig(); matcher = ReferenceProgress(ref_features, config, 'cuda:0')
     if args.phase_encoder is not None:
         from consequence_evaluator.temporal_phase import ENCODER_SCHEMA, LearnedReferenceProgress
@@ -79,14 +83,15 @@ def main():
                 or trained.get('schema') != ENCODER_SCHEMA or trained.get('status') != 'COMPLETED'
                 or trained.get('training_source_seed') != 230 or raw.get('seed') == 230
                 or trained.get('reference_sha256') != ref_meta['reference_sha256']):
-            raise ValueError('independent frozen phase-only encoder and exact original reference required')
+            raise ValueError('independent frozen phase-only encoder and exact reference required')
         frozen.update(trained['sources']); frozen[str(path)] = sha(path)
         frozen[str(checkpoint)] = trained['checkpoint_sha256']
         for name in ('temporal_phase.py', 'xirl_tcc_loss.py'):
             file = TASK / 'src/consequence_evaluator' / name; frozen[str(file)] = sha(file)
         if any(sha(p) != h for p, h in frozen.items()):
             raise ValueError('trained phase encoder/source drift')
-        matcher = LearnedReferenceProgress(ref_features, torch.load(checkpoint, map_location='cpu', weights_only=False), 'cuda:0')
+        matcher = LearnedReferenceProgress(references if bank else ref_features,
+            torch.load(checkpoint, map_location='cpu', weights_only=False), 'cuda:0')
         config = matcher.config
     self_trace = matcher.align(ref_features)
     stationary = np.repeat(ref_features[:1], len(ref_features), axis=0)
@@ -149,6 +154,8 @@ def main():
             negative_windows=sum(v['value'] < -config.epsilon for v in local))
         if record['perturbation_tick'] >= 0:
             audit['intervention_value'] = label_window(trace, record['perturbation_tick'], config)
+        if bank and record['assigned_phase'] == 'clean':
+            audit['focus_tick176_value'] = label_window(trace, 176, config)
         audits.append(audit); traces.append((record['episode'], trace))
         plots.append((record, packet['object_pose'][:, 2, 3], trace))
         print(json.dumps(audit), flush=True)
@@ -180,7 +187,7 @@ def main():
         axes[0, column].set_title(record['episode'] + '\n' + record['assigned_phase'], fontsize=8)
         axes[1, column].plot(seconds, height - height[0], label='measured object height')
         axes[1, column].plot(np.arange(len(ref_height)) / 30, ref_height - ref_height[0], alpha=.5,
-                             label='original ref height (diagnostic only)')
+                             label='physical bank member0 height (diagnostic only)' if bank else 'original ref height (diagnostic only)')
         for ax in axes[:, column]:
             if record['perturbation_tick'] >= 0:
                 tick = record['perturbation_tick']; ax.axvspan(tick / 30, (tick + K) / 30, color='orange', alpha=.2)
@@ -199,11 +206,14 @@ def main():
         filter='log-domain bounded transitions; minimum-KL posterior mean-step projection',
         standardizer=matcher.normalizer.dictionary(), upstream_xirl_commit=UPSTREAM_COMMIT,
         phase_encoder=str(args.phase_encoder.resolve()) if args.phase_encoder else None,
+        reference_origin=ref_meta['origin'], reference_count=len(references),
+        reference_aggregation='fixed_uniform_mean' if bank else 'single_original_reference',
+        collection_sources=dict(git_commit=raw['git_commit'], verified_historical_code=historical),
         reference=str(ref_dir), sources=frozen, episode_audit=audits, control_audit=controls,
         labels_sha256=sha(out / 'labels.npz'),
         counts=dict(episodes=len(audits), windows=len(windows), preferences=0),
         ranking='difference > epsilon; abstain ties; no unmatched-state pair generation',
-        semantic_gate='pending inspection of nominal/failure trajectories against original reference',
+        semantic_gate='pending inspection of nominal/failure trajectories against frozen references',
         resource=dict(elapsed_s=time.monotonic() - started,
                       gpu_peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                       gpu_peak_reserved_bytes=torch.cuda.max_memory_reserved()))

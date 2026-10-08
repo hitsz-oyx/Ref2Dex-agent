@@ -28,19 +28,23 @@ def context_clips(standardized_features):
 
 
 class LearnedReferenceProgress:
-    """Freeze trained encoder, retain original R as the sole progress anchor."""
+    """Freeze encoder and references; bank weights never depend on actual future."""
     def __init__(self, reference_features, bundle, device):
         if bundle.get('schema') != ENCODER_SCHEMA:
             raise ValueError('alignment encoder checkpoint required, not evaluator weights')
         self.device = device
         self.config = AlignmentConfig(temperature=.1)
-        self.normalizer = FeatureScale([reference_features])
+        references = reference_features if isinstance(reference_features, list) else [reference_features]
+        if len({len(r) for r in references}) != 1:
+            raise ValueError('this bank Probe requires equal full reference lengths')
+        self.normalizer = FeatureScale(references)
         if self.normalizer.dictionary() != bundle['standardizer']:
-            raise ValueError('encoder must use this exact original-reference standardizer')
+            raise ValueError('encoder must use this exact frozen reference standardizer')
         self.encoder = TemporalPhaseEncoder().to(device)
         self.encoder.load_state_dict(bundle['model'], strict=True)
         self.encoder.eval()
-        self.reference = self.embed(reference_features)
+        self.references = [self.embed(r) for r in references]
+        self.reference = self.references[0]
 
     @torch.inference_mode()
     def embed(self, features):
@@ -62,5 +66,19 @@ class LearnedReferenceProgress:
         # Each embedding already contains8causal frames. No additional context
         # sampling, actual-frame index, reverse cycle or actual future at inference.
         encoded = self.embed(features)
-        cost = -get_scaled_similarity(encoded.double(), self.reference.double(), 'l2', 1., False)
-        return track_cost(cost.cpu().numpy(), self.config)
+        traces = []
+        for reference in self.references:
+            cost = -get_scaled_similarity(encoded.double(), reference.double(), 'l2', 1., False)
+            traces.append(track_cost(cost.cpu().numpy(), self.config))
+        if len(traces) == 1:
+            return traces[0]
+        # Each reference has its own causal prior. Equal weights are fixed
+        # before evaluating any actual trajectory or candidate suffix.
+        q = np.mean([t['distribution'] for t in traces], axis=0)
+        index = np.arange(q.shape[1], dtype=np.float64)
+        progress = q @ (index / (len(index) - 1))
+        return dict(progress=progress, distribution=q,
+            member_progress=np.stack([t['progress'] for t in traces], axis=1),
+            index_std=np.sqrt(np.sum(q * (index[None] - progress[:, None] * (len(index) - 1)) ** 2, axis=1)),
+            matched_cost=np.mean([t['matched_cost'] for t in traces], axis=0),
+            unconstrained_index=np.mean([t['unconstrained_index'] for t in traces], axis=0))
