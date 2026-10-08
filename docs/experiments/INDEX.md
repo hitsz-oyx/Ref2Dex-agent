@@ -97,6 +97,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-hocap-frame-generalization
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-hocap-frame-generalization](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-hocap-frame-generalization.md) | Can the fixed main-three model predict HOCap beyond a static baseline? | Acquisition/geometry checks pass; model evaluation is pending under an explicitly unverified source clock. | Run one bounded no-fit frame-index Probe; preserve HOCap as test-only and do not select hyperparameters or checkpoints from its errors. | probes/UNCLEAR |
+
 ## HF-hold-duration-response
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
