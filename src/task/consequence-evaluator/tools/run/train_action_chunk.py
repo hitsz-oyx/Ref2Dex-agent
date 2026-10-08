@@ -146,6 +146,15 @@ def main():
         args.data, qualities=qualities, stride=args.stride,
         experts=args.expert, tasks=args.task, motions=args.motion,
         allow_audit_only=args.allow_audit_only, clean_only=args.clean_only)
+    history_rms_sha256 = None
+    history_rms_source_match = None
+    if args.history_rms is not None:
+        history_rms_sha256 = sha(args.history_rms)
+        source_hashes = {str(value) for value in source_manifest.get('sources', {}).values()
+                         if isinstance(value, str)}
+        history_rms_source_match = history_rms_sha256 in source_hashes
+        if args.clean_only and not history_rms_source_match:
+            parser.error('clean-only source does not contain the supplied history RMS checkpoint')
     train = batches.get('train')
     if train is None or not _nonempty(train):
         parser.error('selected source has no train action chunks')
@@ -241,6 +250,8 @@ def main():
                     history_normalization='frozen_checkpoint_running_mean_std' if args.history_rms else 'train_episode_standardizer',
                     history_normalization_epsilon=NATIVE_RMS_EPSILON,
                     history_rms=None if args.history_rms is None else str(args.history_rms),
+                    history_rms_sha256=history_rms_sha256,
+                    history_rms_source_match=history_rms_source_match,
                     history_dim=int(train.history.shape[-1]), model=dict(width=args.width, layers=args.layers),
                     device=str(device), seed=args.seed, requested_steps=args.steps,
                     completed_steps=len(events) and events[-1].get('step', 0), elapsed_s=time.monotonic() - started,

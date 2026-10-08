@@ -104,6 +104,11 @@ def test_loader_clean_only_skips_unlabeled_intervention(tmp_path):
     batches, _ = load_action_chunk_batches(root, qualities=('unlabeled',), clean_only=True,
                                            stride=4, splits=('train',))
     assert batches['train'].action.shape == (0, K, 18)
+    manifest['episodes'][0].update(assigned_phase='clean', perturbation_tick=-1.5)
+    (root / 'manifest.json').write_text(json.dumps(manifest))
+    batches, _ = load_action_chunk_batches(root, qualities=('unlabeled',), clean_only=True,
+                                           stride=4, splits=('train',))
+    assert batches['train'].action.shape == (0, K, 18)
 
 
 def test_loader_clean_only_validates_unlabeled_zero_plan(tmp_path):
@@ -161,5 +166,11 @@ def test_default_expert_loader_keeps_unknown_plan_compatibility(tmp_path):
     (root / 'manifest.json').write_text(json.dumps(manifest))
     batches, _ = load_action_chunk_batches(root, stride=4, splits=('train',))
     assert batches['train'].action.shape == (1, K, 18)
+    manifest['episodes'][0]['perturbation_tick'] = -1.5
+    (root / 'manifest.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='unperturbed clean'):
+        load_action_chunk_batches(root, stride=4, splits=('train',))
+    manifest['episodes'][0]['perturbation_tick'] = -1
+    (root / 'manifest.json').write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match='unknown residual-plan'):
         load_action_chunk_batches(root, clean_only=True, stride=4, splits=('train',))

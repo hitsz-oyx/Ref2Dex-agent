@@ -129,20 +129,25 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
                 or (motions is not None and record.get('motion') not in set(motions))):
             continue
         perturbation_tick = record.get('perturbation_tick', -1)
-        if record.get('quality') == 'expert_success' and (
-                record.get('assigned_phase') != 'clean'
-                or perturbation_tick is None or int(perturbation_tick) != -1):
-            raise ValueError('expert_success must be an unperturbed clean episode')
+        if record.get('quality') == 'expert_success':
+            try:
+                success_tick = float(perturbation_tick)
+            except (TypeError, ValueError):
+                raise ValueError('expert_success must be an unperturbed clean episode')
+            if (record.get('assigned_phase') != 'clean' or not np.isfinite(success_tick)
+                    or success_tick != -1.0):
+                raise ValueError('expert_success must be an unperturbed clean episode')
         if clean_only:
             # ``unlabeled`` is the normal quality for continuous collection, so
             # quality alone cannot prove that a trajectory was never intervened
             # on.  This is a filter: non-clean records are skipped, while a
             # record that claims to be clean is checked against its arrays below.
             try:
-                clean_tick = int(perturbation_tick)
+                clean_tick = float(perturbation_tick)
             except (TypeError, ValueError):
                 continue
-            if clean_tick != -1 or record.get('assigned_phase') != 'clean':
+            if (not np.isfinite(clean_tick) or clean_tick != -1.0
+                    or record.get('assigned_phase') != 'clean'):
                 continue
         if episode in seen:
             raise ValueError('duplicate selected episode')
@@ -150,6 +155,9 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
         path = root / str(record.get('path'))
         if not _within(path, root) or not path.exists():
             raise ValueError('episode path escapes or is missing: ' + str(path))
+        if clean_only and (not isinstance(record.get('sha256'), str)
+                           or len(record['sha256']) != 64):
+            raise ValueError('clean-only episode requires a sha256 manifest entry: ' + episode)
         if record.get('sha256') and _sha(path) != record['sha256']:
             raise ValueError('episode file hash drift: ' + episode)
         with np.load(path, allow_pickle=False) as data:
