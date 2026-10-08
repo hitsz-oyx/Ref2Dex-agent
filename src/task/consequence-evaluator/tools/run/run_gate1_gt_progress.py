@@ -714,7 +714,16 @@ def native_worker(a):
             zero_role_indices=zero_role_indices, pairwise_zero_noise=pairwise_zero_noise,
             pairwise_zero_gate=pairwise_zero_gate,
             behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
-            initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact))
+            initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact,
+            zero_env_pair=[zero_left, zero_right],
+            action_chunk_prefix_source=packet['action_chunk_prefix_source'],
+            action_chunk_prefix_source_sha256=packet['action_chunk_prefix_source_sha256'],
+            action_chunk_replay_source=packet['action_chunk_replay_source'],
+            action_chunk_replay_source_sha256=packet['action_chunk_replay_source_sha256'],
+            replay_identity=identity,
+            role_max_lift_m={str(index): float(np.max(
+                packets['object_pose'][:, index, 2, 3] - packets['object_pose'][0, index, 2, 3]))
+                             for index in range(count)}))
 
     class GatePlayer(base):
         def restore(self, filename):
