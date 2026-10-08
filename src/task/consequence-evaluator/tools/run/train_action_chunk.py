@@ -113,6 +113,8 @@ def main():
     parser.add_argument('--expert', action='append')
     parser.add_argument('--task', action='append')
     parser.add_argument('--motion', action='append')
+    parser.add_argument('--clean-only', action='store_true',
+                        help='select only metadata-clean episodes with zero, fully-known residual plans')
     parser.add_argument('--history-rms', type=Path,
                         help='optional native checkpoint whose running_mean_std is frozen')
     parser.add_argument('--allow-audit-only', action='store_true',
@@ -143,7 +145,7 @@ def main():
     batches, source_manifest = load_action_chunk_batches(
         args.data, qualities=qualities, stride=args.stride,
         experts=args.expert, tasks=args.task, motions=args.motion,
-        allow_audit_only=args.allow_audit_only)
+        allow_audit_only=args.allow_audit_only, clean_only=args.clean_only)
     train = batches.get('train')
     if train is None or not _nonempty(train):
         parser.error('selected source has no train action chunks')
@@ -231,7 +233,8 @@ def main():
                     source_manifest=str(args.data / 'manifest.json'), source_manifest_sha256=sha(args.data / 'manifest.json'),
                     source_files=source_files, source_training_allowed=source_manifest.get('training_allowed'),
                     allow_audit_only=bool(args.allow_audit_only), qualities=list(qualities),
-                    expert_filter=args.expert, task_filter=args.task, motion_filter=args.motion,
+                    clean_only=bool(args.clean_only), expert_filter=args.expert,
+                    task_filter=args.task, motion_filter=args.motion,
                     selected_episodes=selected_episodes, train_episodes=sorted(set(train.episode.tolist())),
                     val_episodes=sorted(set(val.episode.tolist())), test_episodes=sorted(set(test.episode.tolist())),
                     stride=args.stride, chunk=K, action_dim=18, executed_action_semantics=EXECUTED_ACTION_SEMANTICS,

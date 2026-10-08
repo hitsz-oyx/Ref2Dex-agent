@@ -75,3 +75,61 @@ def test_loader_selects_clean_success_only(tmp_path):
     (root / 'manifest.json').write_text(json.dumps(manifest))
     batches, _ = load_action_chunk_batches(root, stride=4, splits=('train',))
     assert batches['train'].action.shape == (2, K, 18)
+
+
+def test_loader_clean_only_skips_unlabeled_intervention(tmp_path):
+    root = tmp_path / 'run'; root.mkdir()
+    t = 24
+    history = np.zeros((t + 1, 1442), dtype='float32')
+    action = np.zeros((t, 18), dtype='float32')
+    residual = np.zeros((t, K, 18), dtype='float32')
+    common = dict(history=history, action=action, residual_plan=residual,
+                  plan_known=np.ones(t, dtype=bool), hand_keypoints=np.zeros((t+1,11,3), dtype='float32'),
+                  object_pose=np.tile(np.eye(4, dtype='float32'), (t+1,1,1)),
+                  timestamps=np.arange(t+1, dtype='float32') / 30,
+                  phase=np.full(t, 'hold'), progress=np.full(t+1, np.nan, dtype='float32'),
+                  progress_mask=np.zeros(t+1, dtype=bool))
+    path = root / 'episode.npz'; np.savez_compressed(path, **common)
+    import hashlib
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v2', status='COMPLETED',
+                    rollout_kind='continuous', action_semantics='decision_known_requested_residual_plan',
+                    fps=30, units='m', training_allowed=True,
+                    history_contract={'source': 'raw native policy observation; per-expert RMS remains inside player',
+                                      'shape': [1442]},
+                    episodes=[dict(episode='e', split='train', quality='unlabeled',
+                                   assigned_phase='approach', perturbation_tick=1,
+                                   path='episode.npz', sha256=digest)])
+    (root / 'manifest.json').write_text(json.dumps(manifest))
+    batches, _ = load_action_chunk_batches(root, qualities=('unlabeled',), clean_only=True,
+                                           stride=4, splits=('train',))
+    assert batches['train'].action.shape == (0, K, 18)
+
+
+def test_loader_clean_only_validates_unlabeled_zero_plan(tmp_path):
+    root = tmp_path / 'run'; root.mkdir()
+    t = 24
+    arrays = dict(history=np.zeros((t + 1, 1442), dtype='float32'),
+                  action=np.zeros((t, 18), dtype='float32'),
+                  residual_plan=np.zeros((t, K, 18), dtype='float32'),
+                  plan_known=np.ones(t, dtype=bool),
+                  hand_keypoints=np.zeros((t+1,11,3), dtype='float32'),
+                  object_pose=np.tile(np.eye(4, dtype='float32'), (t+1,1,1)),
+                  timestamps=np.arange(t+1, dtype='float32') / 30,
+                  phase=np.full(t, 'hold'), progress=np.full(t+1, np.nan, dtype='float32'),
+                  progress_mask=np.zeros(t+1, dtype=bool))
+    path = root / 'episode.npz'; np.savez_compressed(path, **arrays)
+    import hashlib
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest = dict(schema='ref2dex.consequence-evaluator.episodes.v2', status='COMPLETED',
+                    rollout_kind='continuous', action_semantics='decision_known_requested_residual_plan',
+                    fps=30, units='m', training_allowed=True,
+                    history_contract={'source': 'raw native policy observation; per-expert RMS remains inside player',
+                                      'shape': [1442]},
+                    episodes=[dict(episode='e', split='train', quality='unlabeled',
+                                   assigned_phase='clean', perturbation_tick=-1,
+                                   path='episode.npz', sha256=digest)])
+    (root / 'manifest.json').write_text(json.dumps(manifest))
+    batches, _ = load_action_chunk_batches(root, qualities=('unlabeled',), clean_only=True,
+                                            stride=4, splits=('train',))
+    assert batches['train'].action.shape == (1, K, 18)

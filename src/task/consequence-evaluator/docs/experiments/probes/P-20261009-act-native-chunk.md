@@ -507,3 +507,37 @@ PointWorld, Execution Bridge, or MPC work follows from r33/r34. The next route
 must supply a new verifiable execution contract, such as an ACT/open-loop chunk
 design or a native hidden-state fork/restore; Y, reference-bank labels, and
 policy weights remain frozen.
+
+## Deployment-conditioned proposal Probe
+
+The existing clean hold-audit proposal has a deployment-distribution gap: when
+its frozen checkpoint is evaluated on the r33/r34 reactive-teacher query
+histories, 24-step chunk MSE is approximately `4.2e-4--6.3e-4`, compared with
+`1.6e-4` on its clean holdout. The next bounded offline Probe uses the two
+serial-cluster teachers as launch-level episodes and performs leave-one-launch-
+out fitting with the same native 24-step decoder. The standardizer is fit only
+on the training launch, and evaluation reports full-chunk, first-action, and
+mean-baseline-relative error on the held-out launch.
+
+This tests deployment coverage only. It does not restore hidden PhysX state,
+run a new simulation, alter Y/reference/policy, or authorize evaluator,
+PointWorld, or formal Gate1 work. A positive result justifies collecting more
+reactive-deployment episodes; a negative result closes this proposal route until
+a different execution contract is available.
+
+## Clean-only source audit
+
+The continuous manifest labels ordinary rollouts as `unlabeled`, so selecting
+that quality alone can mix in intervention episodes. The implementation adds an
+opt-in `clean_only` filter and verifies `assigned_phase=clean`,
+`perturbation_tick=-1`, a zero finite residual plan, and fully-known plan
+entries. On `continuous-20261008-{train,val,test}-r1`, filtering to
+`expert=airplane_base` yields 8 clean episodes and 1204 windows per split; the
+exact `s3_airplane_lift` motion contributes only 1 episode per split. The
+manifest source entry for the frozen `GRAB_00000260.pth` also matches the SHA
+used for the history RMS.
+
+This is provenance evidence, not a behavior or utility result. It justifies one
+small episode-held-out offline fit across the clean airplane-base episodes; it
+does not justify route-specific generalization, a new simulator launch, or
+evaluator/PointWorld/Gate1 work.

@@ -89,7 +89,7 @@ class ActionChunkBatch:
 
 def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEFAULT_STRIDE,
                               splits=('train', 'val', 'test'), experts=None, tasks=None,
-                              motions=None, allow_audit_only=False):
+                              motions=None, allow_audit_only=False, clean_only=False):
     """Load episode-separated clean native chunks from a labeled continuous run.
 
     The manifest's historical ``action_semantics`` describes the evaluator's
@@ -129,6 +129,17 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
                 or (motions is not None and record.get('motion') not in set(motions))):
             continue
         perturbation_tick = record.get('perturbation_tick', -1)
+        if clean_only:
+            # ``unlabeled`` is the normal quality for continuous collection, so
+            # quality alone cannot prove that a trajectory was never intervened
+            # on.  This is a filter: non-clean records are skipped, while a
+            # record that claims to be clean is checked against its arrays below.
+            try:
+                clean_tick = int(perturbation_tick)
+            except (TypeError, ValueError):
+                continue
+            if clean_tick != -1 or record.get('assigned_phase') != 'clean':
+                continue
         if record.get('quality') == 'expert_success' and (
                 record.get('assigned_phase') != 'clean'
                 or perturbation_tick is None or int(perturbation_tick) != -1):
@@ -150,11 +161,14 @@ def load_action_chunk_batches(root, *, qualities=('expert_success',), stride=DEF
             if history.shape[1] != int(history_contract['shape'][0]):
                 raise ValueError('episode history dimension disagrees with manifest contract')
             # Clean demonstrations must not secretly carry a requested residual.
-            if record.get('quality') == 'expert_success':
+            if clean_only or record.get('quality') == 'expert_success':
                 residual = data['residual_plan']
                 if (residual.shape != (len(action), K, ACTION_DIM) or not np.isfinite(residual).all()
                         or np.abs(residual).max() > 1e-7):
-                    raise ValueError('expert_success episode contains nonzero residual plan')
+                    raise ValueError('clean episode contains nonzero or malformed residual plan: ' + episode)
+                known = data['plan_known']
+                if known.shape != (len(action),) or known.dtype.kind != 'b' or not known.all():
+                    raise ValueError('clean episode has unknown residual-plan entries: ' + episode)
         h, a = chunk_windows(history, action, stride=stride)
         batches.setdefault(split, []).append((episode, h, a))
     result = {}

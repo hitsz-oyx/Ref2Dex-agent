@@ -1286,3 +1286,31 @@ noise；它没有恢复 PhysX hidden state，也没有把 strict same-state Gate
 替代。Gate1、evaluator、PointWorld、Execution Bridge 和 MPC 仍未开始。下一步回到
 可验证执行合同设计：优先评估 ACT/open-loop chunk 或原生 PhysX hidden-state
 fork/restore 的可行性；在其通过前不改 Y/reference/policy，不fit evaluator。
+
+### ACT deployment-conditioned chunk Decision Note
+
+当前问题是 clean hold-audit 上的 ACT-like chunk 是否覆盖原生 GPU deployment
+state。现有 checkpoint 在 clean holdout 上 chunk MSE 约 `1.6e-4`，但直接喂给
+r33/r34 teacher query history 时 MSE 为约 `4.2e-4--6.3e-4`，说明存在
+deployment-distribution gap。root 先做最便宜的离线判别实验：以 r33/r34 的
+`reactive_teacher` history/action 为两个 launch-level episodes，leave-one-launch-
+out 训练一个同结构 native 24-step proposal，冻结 train-only standardizer，并在
+另一 launch 上评估 full chunk/first-action error。若跨 launch 仍优于现有 clean
+checkpoint，下一步才值得收集更多 reactive deployment distribution；若不优于，
+关闭该 route-conditioned proposal 路线。该 Probe 不运行仿真、不改变 Y/reference/
+policy、不训练 evaluator，结果仍为 engineering-only。
+
+### Clean-only continuous source audit
+
+上一条 offline Probe 暴露了 continuous loader 的来源漏洞：`unlabeled` episode 也可能
+带有 intervention。新增的 `clean_only` 合同只保留 manifest 中
+`assigned_phase=clean`、`perturbation_tick=-1` 且数组中 residual plan 全零、
+`plan_known` 全真的 episode；默认 loader 行为保持不变。用
+`continuous-20261008-{train,val,test}-r1` 和 `expert=airplane_base` 审计后，三个 split
+各有 8 条 clean episode、1204 个 24-step windows；精确 `s3_airplane_lift` 每个 split
+只有 1 条。所有入选数组通过零 residual/finite/known 检查，来源 manifest 中冻结的
+`GRAB_00000260.pth` SHA 与当前 history RMS 一致。
+
+这只支持一次 episode-held-out 的 offline chunk fit，不支持 route-specific 泛化或 native
+行为结论。下一步最多使用 train split 内的 episode holdout，并在独立 val/test manifest
+上报告动作空间误差；在行为 screen 通过前，不启动 GT ranking、evaluator 或 PointWorld。
