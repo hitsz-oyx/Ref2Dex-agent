@@ -116,6 +116,19 @@ serial ACT cluster；结果保持UNCLEAR engineering evidence，不升级为策�
 Gate1负结论，reference bank/TCC/Y和policy weights保持不变。详见
 [单环境ACT Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-single-open-loop-behavior.md)。
 
+在该 screen 之后做了只读的 Isaac Gym API feasibility audit（无 simulator、无 GPU）。
+归档 Torch2.0.1 runtime 的 `gymapi.Gym` filtered surface 只有 actor root/DOF/rigid-body
+state、net contact-force/force-sensor tensor、rigid-contact query 和 sim rigid-body
+getter/setter；没有 contact-manifold、warm-start、solver-island、hidden-cache 或
+serialize/snapshot/restore API。Task twin contract 的 `SOLVER_CONTRACT` 也固定为
+`fresh_simulator_prefix_replay`，拒绝 warm PhysX restore；公开 tensor 加 Python/NumPy/
+Torch RNG restore 不能冒充 hidden-state twin。审计产物在
+`outputs/consequence-evaluator/hidden-physx-api-audit-20261009-r1/audit.json`，卡片见
+[PhysX state API audit](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hidden-physx-state-api-audit.md)。
+因此当前没有值得重复的 synchronous group、serial noise、CUDA synchronisation 或
+deployment-fit 仿真；严格 Gate1 blocker 已收窄为需要新的可验证执行合同，或在
+Decision Checkpoint 明确改变 Gate1 claim。
+
 后续 candidate engineering probe 已保持原生 GPU PhysX/GPU pipeline，并把四个
 env的 tick0--47 controls 统一为同一已成功 packet，tick48--71 广播一个冻结 chunk，
 再只给 env2/env3 加正/负残差。学习 proposal 的 r6--r8 在 reactive query state
