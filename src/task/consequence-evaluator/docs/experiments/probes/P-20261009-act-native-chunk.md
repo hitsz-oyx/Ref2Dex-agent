@@ -555,3 +555,29 @@ the prior clean checkpoint's `7.905e-4` and `8.857e-4`. First-action MAE was
 This is `PROMISING` action-space evidence only. The next bounded step is one
 native `open_loop24` behavior screen; `receding8`, candidate ranking, evaluator,
 and PointWorld remain closed.
+
+The first behavior launch did not satisfy its baseline prerequisite. In the
+four-environment group the reactive teacher reached only `0.129 m`/7 held
+frames, while the reactive repeat reached `0.637 m`/237; an independent
+single-environment native baseline in the same campaign reached `0.8165 m`/485.
+The group packet is therefore `INVALID_IMPLEMENTATION` for chunk attribution,
+and its zero-lift ACT role is not a method-level negative result. Motion-specific
+offline evaluation also shows that the broad fit is weak on the target
+`s3_airplane_lift`: val/test MSE `5.823e-4`/`6.669e-4`, versus
+`2.962e-4`/`2.054e-4` for the prior clean checkpoint.
+
+The next bounded decision uses the 24 clean, audit-only
+`airplane_base/s3_airplane_lift` episodes in
+`continuous-hold-audit-20261008-r1` for a route-specific offline fit. A behavior
+screen is allowed only after both that fit and the native group baseline
+contract are valid.
+
+The route-specific fit used 20 audit-only training episodes and four held-out
+episodes. On the held-out episodes it reached MSE `1.783e-4`, compared with
+`1.985e-4` for the prior clean checkpoint and `9.207e-4` for the train-mean
+baseline; first-action MAE was `0.01136`. This is a roughly ten-percent
+action-space improvement on one hold-audit wave, so the result remains
+`PROMISING/UNCLEAR` engineering evidence. Because the native group baseline
+contract failed, no second chunk behavior launch is authorized by this Probe.
+The prior r2 `open_loop24` packet remains the only retained ACT behavior
+baseline.

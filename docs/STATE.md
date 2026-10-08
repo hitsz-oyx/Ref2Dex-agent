@@ -1324,3 +1324,24 @@ train target mean 的 `5.855e-4`/`7.483e-4`，也低于旧 clean checkpoint 的
 Probe 标为 `PROMISING`，但不外推为 native 行为、utility 或泛化结论。下一步只做一次
 `open_loop24` native behavior screen；不跑 `receding8`、candidate ranking、evaluator
 或 PointWorld。
+
+首次 behavior screen 的 4-env group 没有满足 baseline 前提：reactive teacher 只有
+`0.129m/7`，reactive repeat 为 `0.637m/237`；同一提交下独立单环境 baseline 恢复到
+`0.8165m/485`，因此该 group packet 标为 `INVALID_IMPLEMENTATION`，不能作为 chunk
+负证据。进一步按 motion 分层后，当前 broad fit 在真正的 `s3_airplane_lift` clean
+val/test 上 MSE 为 `5.823e-4`/`6.669e-4`，旧 clean checkpoint 为
+`2.962e-4`/`2.054e-4`。这说明 aggregate windows 的改善没有覆盖当前抓取路线。
+
+下一步 Decision：利用已有 `continuous-hold-audit-20261008-r1` 中 24 条同一
+`airplane_base/s3_airplane_lift` clean episode，在显式 audit-only、冻结 expert RMS 的
+合同下做一次 route-specific offline fit；若 episode-held-out 仍不优于 train mean/旧
+checkpoint，则关闭该 proposal route；即使优于，也必须先解决 group baseline contract
+才可做行为 screen。
+
+route-specific fit 已在 audit-only source 上完成，产物为
+`outputs/consequence-evaluator/act-native-chunk-route-s3-engineering-20261009-r1/`。
+20 条 episode 训练、4 条 episode holdout；holdout MSE `1.783e-4`，旧 clean
+checkpoint 为 `1.985e-4`，train-mean 为 `9.207e-4`，first-action MAE 为
+`0.01136`。这是约 10% 的动作空间改善，样本来自同一 hold-audit wave，仍只标为
+`PROMISING/UNCLEAR`，不构成行为证据。由于 group baseline contract 已失败，暂不再
+启动 native chunk screen；ACT 只保留旧 r2 的 open-loop24 行为工程基线。
