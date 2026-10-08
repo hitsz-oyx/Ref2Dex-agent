@@ -19,7 +19,7 @@ remains candidate_only after coordinate/validity/dual-hand/gap audits.
 See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
 for per-source moving-anchor metrics, exact artifacts and frozen identities.
 
-Current implementation branch: `consequence-evaluator`. Architecture:
+Current development branch: `main` (integrated from `consequence-evaluator`). Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus
 0.5m current geometry-center local objects; fixed right/left11semantic points

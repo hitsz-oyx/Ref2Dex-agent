@@ -1,5 +1,18 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-08 HOCap 外部测试数据获取
+
+用户指定 HOCap 为外部测试候选。官方 Box 的 calibration/models/poses 三包已下载，
+SHA256 与第三方 HF 镜像对应 LFS 身份一致，ZIP CRC 校验/解压通过；通过 HTTP
+Range/ZIP64 取得全部64条序列元数据及一相机连续32帧标签，不下载整套 RGB-D。
+9主体/64序列/72944帧/64物体；shape/mesh引用/手侧/-1缺失值/四元数检查通过。
+样本128次物体-帧比较中，相机标签转世界与原生pose平移最大差4.57e-8m，
+仅证明发布数据内部坐标一致。新增磁盘约246MiB，全部获取任务已结束，未用GPU。
+输出：`outputs/cm-pointflow-effect-pretrain/hocap-test-preflight-20261008-r1/`。
+保留test-only：不加入训练、归一化或checkpoint选择；原始FPS/时钟仍未核实，
+`test_ready=false`，尚未转换为30Hz H4/K24正式测试或运行模型评价。
+[官方合同与待确认项](../src/task/cm-pointflow-effect-pretrain/docs/research/HOCAP_TEST_PREFLIGHT.md)。
+
 ## 2026-10-08 迁入 main 开发
 
 用户授权将 consequence-evaluator 的已提交历史和当前用户/并行 agent 修改一起
