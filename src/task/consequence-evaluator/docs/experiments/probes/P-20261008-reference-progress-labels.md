@@ -69,9 +69,11 @@ available condition, not an actual-episode future.
 Reuse pinned Google XIRL helpers for squared L2 and dimension scaling; adapt
 its explicitly causal trailing-context sampling to eight frames. First-stage
 soft match is combined with an unbiased stay/forward/backward historical
-transition, offsets[-4,4], exp(-abs(offset)/1.5). Hard posterior support within
-four frames of the previous soft index prevents rare distant tails from
-creating a far expectation jump. Temperature0.01; P=q·index/(N-1). Start at
+transition, offsets[-4,4], exp(-abs(offset)/1.5). The original r1 hard support
+around the soft index trapped matching in an early local minimum. The corrected
+filter preserves reachable alternatives in log space and projects posterior
+mean steps to<=4frames by exponential tilting (minimum KL change), without
+retroactive smoothing. Temperature0.01; P=q·index/(N-1). Start at
 reference0 because these raw episodes start at reference0. No episode clock,
 monotonic clamp, reverse cycle, OT smoothing or episode-wide normalization.
 [Source/code boundaries](../../research/REFERENCE_PROGRESS_SOURCES.md).
@@ -103,6 +105,8 @@ Probe source: outputs/consequence-evaluator/official-value-dose-train-20261008-r
 (seed261, frozen original collection98ceb76). Prepared reference expected at
 outputs/consequence-evaluator/reference-progress-original-20261008-r1.
 Output labels: outputs/consequence-evaluator/reference-progress-labels-20261008-r1.
+Corrected replay uses reference-progress-labels-20261008-r2 with the same
+eight assigned train episodes and unchanged reference/features/temperature.
 `training_allowed=false` throughout this label validation. Existing trainer
 schemas remain unchanged and must not accept these labels by accident.
 
@@ -116,3 +120,39 @@ than a meaningful negative. Feature floors/temperature/transition/deadzone are
 exploratory defaults, not tuned on held-out data. No multi-seed scientific
 conclusion, same-state action intervention comparison, evaluator headroom,
 learned temporal embedding or online Cm-on/off evidence yet.
+
+## Initial execution and implementation diagnosis
+
+Reference reconstruction at96366c6 completed543frames in0.245s; the12assigned-
+clean FK comparisons have max coordinate discrepancy2.228micrometres. The
+first assigned-contact trajectory's full FK diagnostic reaches25.509mm over
+159frames above10micrometres. The measured actual points are retained; these
+states do not justify loosening the clean mapping gate or replacing actual
+measurements with ideal FK. A prior preflight spelling mismatch for the owned
+motion symlink was fixed by requiring canonical identity **and** frozen hash.
+
+R1at96366c6 completed8episodes/496known-plan windows in7.738s, GPU1peak
+allocation24.18MB/reservation44.04MB, allowned processes exited. Reference self
+ends0.999845with indexMAE0.000073; stationary initial ends0.000160. Truncated
+actual prefixes match exactly, and bounded progress checks pass. Nevertheless,
+all4clean episodes end near0.032; only3.1%of their windows pass even the loose
+fit-cost diagnostic. This is **not usable supervision**.
+
+Single clean replay distinguishes geometric data absence from tracker trapping:
+global8frame matches reach late reference phases, reference-frame hand/relative-
+motion median standardized distances are0.024/0.029, and global best clip cost
+median0.259. The filter loses alternative phase paths at early approach. Raising
+only temperature0.01→0.03/0.1/0.3/1does not recover nominal progress and degrades
+the original filter's self-control. Preserve this diagnostic, do not select a
+favorable temperature or fit the failed labels.
+
+Correct the identified irreversible-support-pruning defect, keeping the same
+transition bound. Log-domain filtering preserves small alternative phase
+probabilities; exponential tilting bounds the posterior mean without deleting
+paths. A late-evidence regression test now requires reachable-phase recovery
+as well as the step bound. Same clean trajectory ends0.319at unchanged0.01;
+self/stationary remain0.999845/0.000161. This fixes a real implementation defect
+but does not yet validate full-reference geometry progress. Further temperature
+checks on this one train example reach at most0.516and do not justify a change
+to the fixed replay or held-out evaluation. Diagnostic artifacts are in
+outputs/consequence-evaluator/reference-progress-diagnostic-20261008-r1.

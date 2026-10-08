@@ -110,9 +110,12 @@ def track_cost(cost, config=AlignmentConfig()):
     """Filter q_t with an unbiased stay/forward/backward transition and clips.
 
     Start at reference zero because these collectors start at reference zero.
-    All updates are forward filtering, never retrospective smoothing. A hard
-    gate around the previous soft index prevents distant low-probability tails
-    from suddenly capturing the posterior. Neither prior nor gate uses t/N.
+    All updates are forward filtering, never retrospective smoothing. Preserve
+    alternative reachable phases in log space. If the observation would move
+    the soft index more than max_step, project the posterior by exponential
+    tilting onto that mean constraint (minimum KL change). Hard truncation
+    around the mean would irreversibly delete alternative phase paths and can
+    lock an otherwise useful matcher in an early local minimum. No t/N input.
     Backward motion is allowed, and there is no monotonic progress clamp.
     """
     cost = np.asarray(cost, np.float64)
@@ -128,19 +131,44 @@ def track_cost(cost, config=AlignmentConfig()):
         normalizer += weight * ((index + offset >= 0) & (index + offset < count))
     q = np.zeros((length, count), np.float64)
     q[0, 0] = 1.
-    for tick in range(1, length):
-        previous = q[tick - 1]
-        center = float(previous @ index)
-        prior = np.zeros(count)
-        for offset, weight in zip(offsets, weights):
-            source = np.flatnonzero((index + offset >= 0) & (index + offset < count))
-            prior[source + offset] += weight * previous[source] / normalizer[source]
-        permitted = (np.abs(index - center) <= config.max_step + 1e-10) & (prior > 0)
-        logits = np.full(count, -np.inf)
-        logits[permitted] = np.log(prior[permitted]) - cost[tick, permitted] / config.temperature
+    log_previous = np.full(count, -np.inf)
+    log_previous[0] = 0.
+
+    def posterior(logits):
         peak = np.max(logits)
         probability = np.exp(logits - peak)
-        q[tick] = probability / probability.sum()
+        probability /= probability.sum()
+        return probability, float(probability @ index)
+
+    for tick in range(1, length):
+        center = float(q[tick - 1] @ index)
+        log_prior = np.full(count, -np.inf)
+        for offset, weight in zip(offsets, weights):
+            source = np.flatnonzero((index + offset >= 0) & (index + offset < count))
+            destination = source + offset
+            log_prior[destination] = np.logaddexp(log_prior[destination],
+                log_previous[source] + np.log(weight) - np.log(normalizer[source]))
+        logits = log_prior - cost[tick] / config.temperature
+        probability, mean = posterior(logits)
+        target = float(np.clip(mean, max(0., center - config.max_step),
+                               min(count - 1., center + config.max_step)))
+        if abs(mean - target) > 1e-10:
+            lower, upper = -1., 1.
+            while posterior(logits + lower * index)[1] > target:
+                lower *= 2
+            while posterior(logits + upper * index)[1] < target:
+                upper *= 2
+            for _ in range(55):
+                tilt = (lower + upper) / 2
+                if posterior(logits + tilt * index)[1] < target:
+                    lower = tilt
+                else:
+                    upper = tilt
+            logits = logits + (lower + upper) / 2 * index
+            probability, _ = posterior(logits)
+        peak = np.max(logits)
+        log_previous = logits - peak - np.log(np.exp(logits - peak).sum())
+        q[tick] = probability
     progress = q @ (index / (count - 1))
     mean_index = progress * (count - 1)
     return dict(progress=progress, distribution=q,

@@ -177,6 +177,7 @@ def main():
         label_definition='Y_t=P(H_0:t+24|R)-P(H_0:t|R)', horizon=K,
         action_semantics='decision-known requested24 residual, frozen controller feedback during execution',
         alignment=config.dictionary(), features=[list(group) for group in GROUPS],
+        filter='log-domain bounded transitions; minimum-KL posterior mean-step projection',
         standardizer=matcher.normalizer.dictionary(), upstream_xirl_commit=UPSTREAM_COMMIT,
         reference=str(ref_dir), sources=frozen, episode_audit=audits, control_audit=controls,
         labels_sha256=sha(out / 'labels.npz'),

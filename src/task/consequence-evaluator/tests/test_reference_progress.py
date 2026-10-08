@@ -64,6 +64,8 @@ def test_phase_can_stagnate_and_regress_without_distant_posterior_jump():
     cost[30:, :99] = 1000
     jumped = track_cost(cost)
     assert np.max(np.abs(np.diff(jumped['progress']))) <= 4 / 99 + 1e-10
+    # Recover reachable alternative phases without a sudden expectation jump.
+    assert jumped['progress'][-1] > .95
 
 
 def test_stationary_history_does_not_become_episode_clock():
