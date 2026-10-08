@@ -22,6 +22,7 @@ from consequence_evaluator.contracts import HAND_LINKS, K, K_EXEC, is_within
 from consequence_evaluator.gate1 import SEEDS, QUERY_TICKS, CANDIDATES, candidate_plan, choose_candidate, episode_outcome, paired_counts, legacy_batched_actor_action
 from consequence_evaluator.provenance import self_trained_ancestry, sha
 from consequence_evaluator.twin import REQUIRED_NATIVE_STATE_KEYS, capture_native_rng, fingerprint
+from consequence_evaluator.native_backend import BACKENDS, canonical_device, resolve_legacy_backend
 
 NATIVE_PYTHON = '/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python'
 
@@ -50,6 +51,7 @@ def ensure_free(gpu):
 
 def native_worker(a):
     ensure_free(a.gpu)
+    backend = a.native_backend
     helper = TASK / 'tools/audit/probe_official_generator.py'
     spec = importlib.util.spec_from_file_location('official_runtime_compat', helper)
     compat = importlib.util.module_from_spec(spec); spec.loader.exec_module(compat)
@@ -145,7 +147,23 @@ def native_worker(a):
             for key, normalizer in [('rms', getattr(self, 'running_mean_std', None)),
                                     ('amp_rms', getattr(self, '_amp_input_mean_std', None))]:
                 controller[key] = None if normalizer is None else {k: v.cpu().numpy().copy() for k, v in normalizer.state_dict().items()}
-            identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller), physics_device=a.physics_device)
+            params = task.gym.get_sim_params(task.sim)
+            actual_backend = dict(
+                name=backend.name,
+                sim_device=backend.sim_device,
+                pipeline='gpu' if bool(params.use_gpu_pipeline) else 'cpu',
+                physx_use_gpu=bool(params.physx.use_gpu),
+                physx_num_threads=int(params.physx.num_threads),
+                tensor_device=canonical_device(task.device),
+                actor_device=canonical_device(self.device),
+            )
+            expected_backend = backend.as_dict()
+            for key in ('pipeline', 'physx_use_gpu', 'physx_num_threads', 'tensor_device', 'actor_device'):
+                if actual_backend[key] != expected_backend[key]:
+                    raise ValueError('native backend contract drift for %s: expected %r, got %r' %
+                                     (key, expected_backend[key], actual_backend[key]))
+            identity = dict(physics_hash=fingerprint(physics), controller_hash=fingerprint(controller),
+                backend=actual_backend)
             if expected is not None and expected['replay_identity'] != identity:
                 raise ValueError('native physics/controller identity changed')
             state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar') if isinstance(getattr(task, k, None), torch.Tensor)})
@@ -235,7 +253,7 @@ def native_worker(a):
         '--cfg_train', str(native_root / 'data/cfg/train/rlg/inspire.yaml'),
         '--motion_file', config['motion_root'], '--checkpoint', trained['checkpoint'],
         '--headless', '--disable-early-termination', '--num_envs', '1', '--seed', str(a.seed),
-        '--sim_device', 'cpu' if a.physics_device == 'cpu' else 'cuda:0', '--rl_device', 'cuda:0', '--pipeline', a.physics_device, '--graphics_device_id', '0',
+        *backend.argv(), '--graphics_device_id', '0',
         '--output', str(a.worker_output.with_suffix('.unused.json')),
         '--output_path', str(a.worker_output.with_suffix('.runtime'))]
     os.chdir(ROOT / 'third_party/DExplore'); native.main()
@@ -285,7 +303,11 @@ def main():
     p.add_argument('--encoder', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
-    p.add_argument('--physics-device', choices=('gpu', 'cpu'), default='gpu')
+    backend_choices = tuple(sorted(BACKENDS))
+    p.add_argument('--backend', choices=backend_choices,
+                   help='native execution contract; host/gpu_physx_cpu_pipeline keeps GPU PhysX with CPU tensor exchange')
+    p.add_argument('--physics-device', choices=backend_choices, default=None,
+                   help='deprecated alias for --backend; retained for old commands')
     p.add_argument('--seconds', type=int, default=900)
     p.add_argument('--episodes', type=int, default=4)
     p.add_argument('--worker', action='store_true')
@@ -300,6 +322,10 @@ def main():
     p.add_argument('--score-inputs', type=Path, nargs='+')
     p.add_argument('--score-output', type=Path)
     a = p.parse_args()
+    try:
+        a.native_backend = resolve_legacy_backend(a.backend, a.physics_device)
+    except ValueError as error:
+        p.error(str(error))
     for name in ('run_dir', 'reference', 'encoder', 'output'):
         setattr(a, name, getattr(a, name).resolve())
         if not is_within(getattr(a, name), ROOT / 'outputs/consequence-evaluator'):
@@ -340,7 +366,8 @@ def main():
     manifest = dict(schema='ref2dex.consequence-gate1.gt-progress.v1', status='RUNNING',
         experiment_id='P-20261008-gate1-gt-progress', run_id=a.output.name, pid=os.getpid(),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-        sources=frozen, physical_gpu=a.gpu, physics_device=a.physics_device, seconds_budget=a.seconds, training_allowed=False,
+        sources=frozen, physical_gpu=a.gpu, physics_device=a.native_backend.sim_device,
+        backend=a.native_backend.as_dict(), seconds_budget=a.seconds, training_allowed=False,
         seeds=list(SEEDS[:a.episodes]), candidates=list(CANDIDATES), query_ticks=list(QUERY_TICKS),
         horizon=K, execution_horizon=K_EXEC, scope='four early-contact rolling decisions then full actor continuation',
         actor_role='owned self-trained Cm-off actor, not official reference generator',
@@ -354,7 +381,7 @@ def main():
         if any(sha(k) != v for k, v in frozen.items()):
             raise ValueError('Gate1 source/input drift during execution')
     common = ['--run-dir', str(a.run_dir), '--reference', str(a.reference), '--encoder', str(a.encoder),
-              '--output', str(a.output), '--gpu', str(a.gpu), '--physics-device', a.physics_device]
+              '--output', str(a.output), '--gpu', str(a.gpu), '--backend', a.native_backend.name]
     def launch(name, args, native=True):
         check(); command = [NATIVE_PYTHON if native else sys.executable, str(Path(__file__).resolve()), *common, *args]
         env = os.environ.copy(); env.update(PYTHONDONTWRITEBYTECODE='1',
