@@ -188,6 +188,13 @@ history为1.11/1.68。它与旧r19的0.8262m/held481形成鲜明差异，说明�
 packet和noise audit在`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r27/`；
 不把r27或r19升级为Gate1、GT utility、evaluator或PointWorld证据。
 
+用冻结physical-reference/TCC bank复算r19、r21、r27的GT progress后，r27四角色Y为
+0.016152/−0.000431/0.020753/0.036116，progress-start range为1.72e-6；raw argmax和
+固定0.01 deadzone都选择negative residual（相对baseline +0.019965），而r19/r21都选
+baseline。三组都超过1e-9 strict same-state容差，因此该choice flip只说明执行敏感性，
+不是GT utility或candidate成功。审计输出在
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r28/`。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

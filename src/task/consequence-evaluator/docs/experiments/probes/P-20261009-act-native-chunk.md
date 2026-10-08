@@ -297,3 +297,13 @@ the candidate comparison signal, and r27 is engineering evidence of an
 unstable GPU contact execution distribution, not a candidate result. Its
 packet and noise audit are in
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r27/`.
+
+The frozen physical-bank audit was extended to r27 with
+`tools/audit/audit_gpu_group_gt_values.py`; output is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r28/gt-value-audit.json`.
+Its four role values were `[0.016152, -0.000431, 0.020753, 0.036116]`, with
+progress-start range `1.72e-6`. The raw argmax and frozen `0.01` selector both
+chose the negative residual (`+0.019965` over baseline), whereas r19 and r21
+both selected baseline after their zero-repeat role won the raw argmax. Because
+all three packets violate the strict same-state contract, this choice flip is
+evidence of execution sensitivity, not a GT-value or utility result.
