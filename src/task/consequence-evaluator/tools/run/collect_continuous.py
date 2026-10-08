@@ -25,6 +25,7 @@ from consequence_evaluator.contracts import (is_within, EPISODE_SCHEMA, ACTION_S
                                              HAND_LINKS, MIN_PREFERENCE_PAIRS)
 from consequence_evaluator.provenance import self_trained_ancestry
 from consequence_evaluator.value_outcomes import RAW_SCHEMA as VALUE_EPISODE_SCHEMA, validate_plan_execution
+from consequence_evaluator.value_perturbations import VALUE_PHASES,ValuePhaseTracker,sample_bank
 
 
 class CollectionDeadline(BaseException):
@@ -88,7 +89,8 @@ def main():
     p.add_argument('--official-generator',action='store_true',
                    help='explicit pinned official source, only for the independent value dataset')
     p.add_argument('--clean-only',action='store_true',help='value-data nominal failure audit before fitting perturbation distributions')
-    p.add_argument('--target-phase', choices=('all', *PHASES), default='all',
+    p.add_argument('--perturbation-bank',type=Path,help='frozen train-derived placing control-error candidates')
+    p.add_argument('--target-phase', choices=('all', *VALUE_PHASES), default='all',
                    help='audit-only clean/target-stage allocation; all retains the production schedule')
     a = p.parse_args()
     if a.value_outcomes and a.audit_only:
@@ -97,6 +99,11 @@ def main():
         p.error('official source and nominal pilot are exclusive to the independent value contract')
     if a.official_generator and a.observation_router_model:
         p.error('official generator requires a fixed controller')
+    if a.perturbation_bank and (not a.value_outcomes or not a.official_generator
+                               or a.clean_only or a.target_phase!='place'):
+        p.error('empirical bank requires official value mode, placing stage, and clean/intervention allocation')
+    if a.target_phase=='place' and not a.perturbation_bank:
+        p.error('placing stage requires an empirical perturbation bank')
     if a.target_phase != 'all' and not (a.audit_only or a.value_outcomes):
         p.error('focused stage allocation requires --audit-only')
     if (not 1 <= a.waves <= 4 or not 6 <= a.num_envs <= 64 or not 1 <= a.seconds <= 900
@@ -134,6 +141,18 @@ def main():
         raise ValueError('expert route is observational-only; all six experts must be operationally qualified before collection')
     frozen = {str(a.route_config.resolve()): digest(a.route_config),
               str(Path(__file__).resolve()): digest(__file__)}
+    bank=None
+    if a.perturbation_bank:
+        bank_path=a.perturbation_bank.resolve()
+        if not is_within(bank_path,ROOT/'outputs/consequence-evaluator'):
+            raise ValueError('task-owned empirical bank required')
+        bank=json.loads(bank_path.read_text());sample_bank(bank,1,a.seed)
+        if bank.get('source_actor_sha256')!=config['experts'][baseline]['sha256']:
+            raise ValueError('bank policy source differs from the fixed continuation')
+        frozen[str(bank_path)]=digest(bank_path)
+        for path,expected in bank['sources'].items():
+            if digest(path)!=expected:raise ValueError('empirical bank source drift: '+path)
+            frozen[path]=expected
     for path, expected in config.get('sources', {}).items():
         if (not is_within(Path(path).resolve(), ROOT/'outputs/consequence-evaluator')
                 or digest(path) != expected):
@@ -259,6 +278,11 @@ def main():
             fixed_continuation='same frozen expert after one immutable24step requested residual plan',
             labels_pending=True, outcome_semantics='whole-task outcome after decision-known plan and fixed-policy suffix through first episode end')
         manifest['diagnostic_only_fields'] += ['reference_object_pose','object_velocity','support_gap','table_footprint']
+        manifest['phase_definitions']='geometric near-hand;3near frames;unsupported3cm lift;45held frames;reference-aligned placing after held45'
+        if bank is not None:
+            manifest.update(perturbation_bank=str(a.perturbation_bank.resolve()),
+                            perturbation_bank_sha256=digest(a.perturbation_bank),
+                            perturbation_sampling=bank['sampling'],perturbation_covariance_fitted=False)
     write(output/'manifest.json', manifest)
     last_resource_check = [0.]
     def check():
@@ -320,8 +344,9 @@ def main():
                                     object_velocity=task._target_states[:,7:13].cpu().numpy().copy(),
                                     support_gap=support.cpu().numpy(),table_footprint=footprint.cpu().numpy())
                 return measured
-            selected_phases = PHASES if a.target_phase == 'all' else (a.target_phase,)
-            assignments = PhaseAssignments(a.seed, phases=selected_phases)
+            phase_names=VALUE_PHASES if a.value_outcomes else PHASES
+            selected_phases = phase_names if a.target_phase == 'all' else (a.target_phase,)
+            assignments = PhaseAssignments(a.seed, phases=selected_phases,phase_names=phase_names)
             for wave in range(a.waves):
                 check()
                 if self.observation_router is not None:
@@ -341,8 +366,18 @@ def main():
                 active = np.ones(a.num_envs, dtype=bool)
                 initial_height = states[:,2].copy()
                 motion = task.data_id.cpu().numpy().copy()
+                chunk_ids=np.full(a.num_envs,-1,np.int64);chunks=None
+                if bank is not None:
+                    chunks,chunk_ids=sample_bank(bank,a.num_envs,a.seed+wave)
                 perturb = Perturbations(a.num_envs, a.seed+wave, a.amplitude, wave,
-                                        assignment=np.zeros(a.num_envs,np.int64) if a.clean_only else assignments.assign(motion))
+                                        assignment=np.zeros(a.num_envs,np.int64) if a.clean_only else assignments.assign(motion),
+                                        phase_names=phase_names,chunks=chunks)
+                if a.value_outcomes:
+                    reference=task.hoi_data[task.data_id,:,108].detach().cpu().numpy()
+                    raised=reference-reference[:,:1]>=.03
+                    if not raised.any(axis=1).all():raise ValueError('full reference lacks lift phase')
+                    place_start=np.where(raised,np.arange(reference.shape[1])[None,:],-1).max(axis=1)+1
+                    phase_tracker=ValuePhaseTracker(place_start)
                 object_names = [task.object_name[int(task.object_id[int(index)])] for index in motion]
                 if a.value_outcomes and set(object_names) != {'airplane'}:
                     raise ValueError('ref4 first Probe supports airplane only')
@@ -352,8 +387,12 @@ def main():
                     base_control = base.detach().cpu().numpy().copy()
                     remaining = torch.minimum(task.max_episode_length[task.data_id]-1-task.progress_buf,
                                               task.rollout_length-1-(task.progress_buf-task.start_times)).cpu().numpy()
+                    phase_code=None
+                    if a.value_outcomes:
+                        phase_code=phase_tracker.measure(states[:,2],initial_height,measured['surface_gap'],
+                            measured['support_gap'],measured['table_footprint'],tick,active)
                     control, phases, diagnostic = perturb.apply(base_control, states[:,2], contact,
-                                                                 initial_height, tick, remaining, active)
+                                                                 initial_height, tick, remaining, active,phase_code=phase_code)
                     planned,plan_known=perturb.known_plan(tick)
                     control[~active] = 0
                     # Native Inspire mutates its action tensor in PD conversion.
@@ -400,8 +439,10 @@ def main():
                         diagnostics_sha256=digest(sidecar), motion_id=int(motion[env]),
                         motion=Path(task.motion_file[int(motion[env])]).name,
                         expert= self.expert_names[int(self.last_teacher_choice[env])],
-                        assigned_phase='clean' if perturb.assignment[env]==0 else PHASES[perturb.assignment[env]-1],
+                        assigned_phase='clean' if perturb.assignment[env]==0 else phase_names[perturb.assignment[env]-1],
                         perturbation_tick=int(perturb.started[env]), steps=len(episode.actions)))
+                    if bank is not None:
+                        manifest['episodes'][-1]['bank_member']=int(chunk_ids[env]) if perturb.assignment[env]>0 else -1
                 coverage = {}
                 for record in manifest['episodes']:
                     key = record['expert']+'|'+record['motion']

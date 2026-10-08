@@ -249,7 +249,7 @@ def test_actual_driver_never_resets_partial_done_envs_and_exports_full_episodes(
                    PhysicalGeometry=Geometry,
                    DexploreTask=SimpleNamespace(StateInit=SimpleNamespace(Start='Start')),frozen=frozen,
                    output=tmp_path,check=lambda:None,manifest=manifest,Episode=Episode,Perturbations=Perturbations,
-                   PHASES=PHASES,digest=lambda p:sha256(Path(p).read_bytes()).hexdigest(),write=write)
+                   PHASES=PHASES,bank=None,digest=lambda p:sha256(Path(p).read_bytes()).hexdigest(),write=write)
     exec(compile(ast.Module(body=[cls],type_ignores=[]),str(path),'exec'),namespace)
     namespace['Collector']().run()
     assert len(reset_calls)==1 and len(controls)==70

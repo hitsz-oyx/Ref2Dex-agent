@@ -17,11 +17,11 @@ class PhaseAssignments:
     environment layout with a global modulo-six phase schedule. This records
     intended coverage only: an assigned state may never be reached.
     """
-    def __init__(self, seed, phases=PHASES):
+    def __init__(self, seed, phases=PHASES, phase_names=PHASES):
         phases = tuple(phases)
-        if not phases or len(set(phases)) != len(phases) or any(p not in PHASES for p in phases):
+        if not phases or len(set(phases)) != len(phases) or any(p not in phase_names for p in phases):
             raise ValueError('distinct supported target phases required')
-        self.codes = np.asarray([0, *(PHASES.index(p)+1 for p in phases)], dtype='int64')
+        self.codes = np.asarray([0, *(phase_names.index(p)+1 for p in phases)], dtype='int64')
         self.rng = np.random.default_rng(seed)
         self.counts = {}
 
@@ -79,14 +79,20 @@ def smooth_residual(rng, amplitude):
 
 class Perturbations:
     """One assigned phase and at most one complete 24-step residual per episode."""
-    def __init__(self, count, seed, amplitude=.08, wave=0, assignment=None):
+    def __init__(self, count, seed, amplitude=.08, wave=0, assignment=None,
+                 phase_names=PHASES, chunks=None):
         self.rng = np.random.default_rng(seed)
         self.assignment = ((np.arange(count) + wave) % 6 if assignment is None
                            else np.asarray(assignment).copy())
         if (self.assignment.shape != (count,) or self.assignment.dtype.kind not in 'iu'
-                or (self.assignment < 0).any() or (self.assignment > len(PHASES)).any()):
-            raise ValueError('one clean/phase assignment in0..5 per environment required')
-        self.chunks = np.stack([smooth_residual(self.rng, amplitude) for _ in range(count)])
+                or (self.assignment < 0).any() or (self.assignment > len(phase_names)).any()):
+            raise ValueError('one supported clean/phase assignment per environment required')
+        self.phase_names = tuple(phase_names)
+        self.chunks = (np.stack([smooth_residual(self.rng, amplitude) for _ in range(count)])
+                       if chunks is None else np.asarray(chunks,dtype='float32').copy())
+        if (self.chunks.shape!=(count,K,18) or not np.isfinite(self.chunks).all()
+                or np.abs(self.chunks).max()>.2+1e-6 or np.any(self.chunks[:,[0,-1]])):
+            raise ValueError('bounded immutable24step chunks with zero boundaries required')
         self.started = np.full(count, -1, dtype='int64')
         self.contact_run = np.zeros(count, dtype='int64')
         self.hold_run = np.zeros(count, dtype='int64')
@@ -107,7 +113,7 @@ class Perturbations:
             plans[index,active] = self.chunks[index,age[active]]
         return plans,known
 
-    def apply(self, base, height, contact, initial_height, tick, remaining, active):
+    def apply(self, base, height, contact, initial_height, tick, remaining, active, phase_code=None):
         base = np.asarray(base)
         if base.shape != (len(self.assignment), 18) or not np.isfinite(base).all():
             raise ValueError('invalid expert action')
@@ -126,6 +132,11 @@ class Perturbations:
         phase[self.hold_run >= 5] = 4
         if tick == 0:
             phase[:] = 0
+        if phase_code is not None:
+            phase = np.asarray(phase_code)
+            if (phase.shape!=(len(base),) or phase.dtype.kind not in 'iu'
+                    or (phase<0).any() or (phase>=len(self.phase_names)).any()):
+                raise ValueError('invalid pre-action measured phase')
         trigger = (active & (self.assignment > 0) & (self.started < 0)
                    & (self.assignment - 1 == phase) & (tick >= 1)
                    & (np.asarray(remaining) >= K))
@@ -137,7 +148,7 @@ class Perturbations:
         residual[ids] = self.chunks[ids, age[ids]]
         unclipped = base + residual
         action = np.clip(unclipped, -1, 1)
-        return action, np.asarray(PHASES)[phase], dict(
+        return action, np.asarray(self.phase_names)[phase], dict(
             residual=residual, actual_residual=action-base,
             clipped=np.abs(unclipped-action) > 1e-7, perturbing=selected)
 
@@ -165,7 +176,7 @@ class Episode:
         history = np.asarray(history, dtype='float32')
         if action.shape != (18,) or history.shape != self.history[0].shape or not np.isfinite(history).all():
             raise ValueError('policy observation/control contract drift')
-        if not np.isfinite(action).all() or np.abs(action).max() > 1+1e-6 or phase not in PHASES:
+        if not np.isfinite(action).all() or np.abs(action).max() > 1+1e-6 or phase not in (*PHASES,'place'):
             raise ValueError('invalid executed control/current phase')
         self.actions.append(action.copy())
         plan=np.zeros((K,18),dtype='float32') if plan is None else np.asarray(plan,dtype='float32')
