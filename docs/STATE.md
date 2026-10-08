@@ -1364,3 +1364,22 @@ route，不启动正式 Gate1/evaluator/PointWorld。审计见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-cuda-sync.md`，
 摘要产物在 `outputs/consequence-evaluator/gate1-gpu-sync-probe-20261009-r1/` 和
 `gate1-gpu-sync-group-20261009-r1/`。
+
+### Native GPU group role/layout probe
+
+进一步审计发现，4/8-env 组把 env0 的世界原点/首行路径与非零 origin env
+配对时，固定 controls 下 tick1 就出现约 `3.46 mm` hand、`0.0116` joint-position
+漂移；这早于 tick44 的显著 contact-force 分叉。新增的工程入口支持 bounded
+`--query-tick`、非默认 `--zero-env-pair`，并把 query 和 scene-layout hash 纳入
+replay identity。
+
+一次 tick32 pre-contact query 仍在 tick1 漂移，4-env baseline 只有 `0.245 m`；一次
+小 spacing 诊断也没有恢复行为或 noise gate（且会改变 broadphase，只保留为诊断）。
+8-env、256 actor rows 下把 zero pair 改为非零 origin 的 `[1,4]` 后，选中 pair 的
+geometry p95 通过但 pairwise gate 和行为筛查失败；更稳定的 `[4,6]` pair geometry
+接近 exact、baseline `0.234 m`，candidate effect 与 pairwise gate 仍失败。结论是
+group role/layout route 关闭；这些 packet 不能进入 strict Gate1。证据见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md`
+及 `outputs/consequence-evaluator/gate1-gpu-precontact-group-20261009-r1/`、
+`gate1-gpu-spacing-group-20261009-r1/` 和
+`gate1-gpu-nonzero-pair-group-20261009-r1/`、`r2/`。
