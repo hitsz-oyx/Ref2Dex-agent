@@ -41,6 +41,7 @@
 | --- | --- | --- | --- | --- |
 | [P-20261009-act-deployment-conditioned](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-deployment-conditioned.md) | Does deployment-conditioned history improve the native 24-step proposal? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261009-act-native-chunk](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-native-chunk.md) | Does a one-shot native 24-step proposal have a usable behavior contract? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261009-act-single-open-loop-behavior](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-single-open-loop-behavior.md) | Can a single native GPU environment execute one frozen ACT chunk? | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-consequence-baseline-rebuild
 

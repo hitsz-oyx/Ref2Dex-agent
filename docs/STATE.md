@@ -101,6 +101,21 @@ query处用带prefix provenance的记录nominal chunk测候选效应，或先采
 reactive deployment distribution后再训练route-conditioned proposal。详见
 [ACT chunk Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-native-chunk.md)。
 
+随后补做了单环境 native GPU `open_loop24` 行为 screen（seed282、72步、tick48
+一次生成24步chunk）。runner在`706f0a2`补齐了proposal manifest认证、实际/请求
+control逐tick审计、prefix/RNG provenance和engineering-only边界。修正后的r2 packet
+`outputs/consequence-evaluator/gate1-act-single-open-loop-20261009-r2/`控制合同完全通过
+（actual-requested最大差`0.0`、proposal只调用1次、无未来observation feedback），
+但对象72步最高抬升`0.0m`、held`0`，终点高度`-0.001388m`，未过预注册的`0.20m`
+行为阈值。相同seed/backend的reactive-only 72-step fresh control
+`outputs/consequence-evaluator/gate1-act-single-reactive-20261009-r1/`达到`0.2915m`、
+held`13`；不过两次fresh process在tick44起contact/history和state/RNG hash已分叉，
+不能把它们当作same-state ACT对照。首次r1因requested-control shape广播bug在运行时中止，
+已保留并标为实现错误。当前单环境 reactive-prefix+frozen-chunk 执行合同关闭，不跑
+serial ACT cluster；结果保持UNCLEAR engineering evidence，不升级为策略、GT value或
+Gate1负结论，reference bank/TCC/Y和policy weights保持不变。详见
+[单环境ACT Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-single-open-loop-behavior.md)。
+
 后续 candidate engineering probe 已保持原生 GPU PhysX/GPU pipeline，并把四个
 env的 tick0--47 controls 统一为同一已成功 packet，tick48--71 广播一个冻结 chunk，
 再只给 env2/env3 加正/负残差。学习 proposal 的 r6--r8 在 reactive query state

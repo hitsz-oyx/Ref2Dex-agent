@@ -10,7 +10,9 @@ claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 2
 seed_pool: probe
-seeds: [20261009, 20261010]
+seeds: [282]
+fit_seeds: [20261009, 20261010]
+source_rollout_seeds: [282]
 decision_changed_if_positive: collect more native reactive-deployment episodes before any ACT behavior screen
 decision_changed_if_negative: close the direct ACT proposal route until a new execution contract exists
 status: PROMISING
@@ -51,6 +53,8 @@ train the evaluator, or authorize any Gate1--Gate5 claim.
 The bounded GPU2 fit completed in about 21 seconds per two-fold run without
 foreign GPU interference. The corrected, no-validation-leakage run is
 `outputs/consequence-evaluator/act-native-chunk-deployment-20261009-r3/`.
+The source rollouts were both seed282; `fit_seeds` records the two local
+fold-training seeds separately from the rollout seed.
 
 | train launch | held-out launch | fitted MSE | fitted first-action MAE | clean checkpoint MSE | route-s3 checkpoint MSE |
 | --- | --- | ---: | ---: | ---: | ---: |
