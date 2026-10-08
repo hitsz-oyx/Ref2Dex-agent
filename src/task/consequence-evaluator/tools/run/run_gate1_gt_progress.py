@@ -904,11 +904,19 @@ def native_worker(a):
 
         baseline = run_episode('baseline')
         baseline_actions = baseline['actions'].copy()
-        repeats = [run_episode('zero_repeat_1', baseline_actions, None),
-                   run_episode('zero_repeat_2', baseline_actions, None),
-                   run_episode('positive', baseline_actions, 1),
-                   run_episode('negative', baseline_actions, 2)]
-        all_packets = [baseline] + repeats
+        arm_specs = ([('zero_repeat_1', None), ('zero_repeat_2', None),
+                      ('positive', 1), ('negative', 2)]
+                     if a.engineering_serial_order == 'zero-first' else
+                     [('positive', 1), ('negative', 2),
+                      ('zero_repeat_1', None), ('zero_repeat_2', None)])
+        repeats = [run_episode(name, baseline_actions, candidate) for name, candidate in arm_specs]
+        execution_packets = [baseline] + repeats
+        execution_order = [packet['role'] for packet in execution_packets]
+        for execution_index, packet in enumerate(execution_packets):
+            packet['execution_index'] = execution_index
+        by_role = {packet['role']: packet for packet in execution_packets}
+        canonical_roles = ['baseline', 'zero_repeat_1', 'zero_repeat_2', 'positive', 'negative']
+        all_packets = [by_role[role] for role in canonical_roles]
         reset_reference = baseline['reset_state']
         reset_diagnostics = []
         for packet in all_packets:
@@ -941,15 +949,16 @@ def native_worker(a):
                         first = dict(tick=tick, field=key, max_abs=value)
             return dict(first_divergence=first, max_abs_by_field=max_by_key,
                         exact=first is None)
+        zero1, zero2 = by_role['zero_repeat_1'], by_role['zero_repeat_2']
         repeat_mismatch = []
         for key in fields + ('actions', 'done'):
-            if not np.array_equal(baseline[key], repeats[0][key]):
+            if not np.array_equal(baseline[key], zero1[key]):
                 repeat_mismatch.append(key)
-        state_diff = trace_diff(baseline['state_traces'], repeats[0]['state_traces'])
-        zero2_diff = trace_diff(repeats[0]['state_traces'], repeats[1]['state_traces'])
+        state_diff = trace_diff(baseline['state_traces'], zero1['state_traces'])
+        zero2_diff = trace_diff(zero1['state_traces'], zero2['state_traces'])
         if not state_diff['exact']:
             repeat_mismatch.append('state_traces')
-        if baseline['rng_hashes'] != repeats[0]['rng_hashes']:
+        if baseline['rng_hashes'] != zero1['rng_hashes']:
             repeat_mismatch.append('rng_hashes')
         control_prefix_exact = all(np.array_equal(baseline_actions[:query], packet['actions'][:query])
                                    for packet in repeats)
@@ -962,33 +971,38 @@ def native_worker(a):
         candidate_deltas = {packet['role']: action_delta_summary(packet) for packet in all_packets}
         result = dict(schema='ref2dex.consequence-gate1.gpu-serial-replay.v1', engineering_only=True,
                       training_allowed=False, serial_replay=True, group_mode='same_process_same_env_reset',
-                      roles=[p['role'] for p in all_packets], group_envs=1,
+                      roles=canonical_roles, execution_order=execution_order, group_envs=1,
                       query_tick=query, horizon=horizon, steps=stop, seed=a.seed,
                       source_backend=actual_backend, replay_identity=identity,
                       reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
                       zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
-                      baseline_repeat_rng_exact=baseline['rng_hashes'] == repeats[0]['rng_hashes'],
+                      baseline_repeat_rng_exact=baseline['rng_hashes'] == zero1['rng_hashes'],
+                      serial_arm_order=a.engineering_serial_order,
                       control_prefix_exact=control_prefix_exact,
                       candidate_plan_sha256={str(candidate): fingerprint(candidate_plan(candidate)) for candidate in (0, 1, 2)},
                       candidate_actual_action_delta=candidate_deltas,
                       baseline_outcome=baseline['outcome'], role_outcomes={p['role']: p['outcome'] for p in all_packets},
                       candidate_effect='candidate residuals applied to recorded baseline controls at tick48 for24 steps',
                       note='engineering reset/cache diagnostic; serial reset is not a fresh-simulator twin')
+        def requested_trace(role):
+            trace = np.zeros_like(baseline['actions'])
+            candidate = {'positive': 1, 'negative': 2}.get(role)
+            if candidate is not None:
+                trace[query:query + horizon] = candidate_plan(candidate)
+            return trace
         packet = dict(schema=result['schema'], engineering_only=True, training_allowed=False,
                       **{key: np.stack([p[key] for p in all_packets]) for key in fields + ('actions', 'done')},
                       state_traces=[p['state_traces'] for p in all_packets],
                       state_hashes=[p['state_hashes'] for p in all_packets],
                       rng_hashes=[p['rng_hashes'] for p in all_packets],
                       timestamps=baseline['timestamps'],
-                      requested_residual=np.stack([np.zeros_like(baseline['actions']),
-                          np.zeros_like(baseline['actions']), np.zeros_like(baseline['actions']),
-                          np.pad(candidate_plan(1), ((query, stop-query-horizon), (0, 0))) if stop >= query + horizon else np.zeros_like(baseline['actions']),
-                          np.pad(candidate_plan(2), ((query, stop-query-horizon), (0, 0))) if stop >= query + horizon else np.zeros_like(baseline['actions'])]),
+                      requested_residual=np.stack([requested_trace(p['role']) for p in all_packets]),
                       roles=result['roles'], query_tick=query, horizon=horizon, steps=stop,
                       seed=a.seed, source_backend=actual_backend, replay_identity=identity,
                       reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
                       zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
                       control_prefix_exact=control_prefix_exact,
+                      serial_arm_order=a.engineering_serial_order, execution_order=execution_order,
                       role_outcomes=result['role_outcomes'])
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), result)
@@ -1223,6 +1237,8 @@ def main():
                    help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--engineering-serial-replay', action='store_true',
                    help='native worker only: same-process one-env reset/replay diagnostic, never GT scoring')
+    p.add_argument('--engineering-serial-order', choices=('zero-first', 'candidate-first'), default='zero-first',
+                   help='serial replay arm order after baseline; candidate-first is a warm-cache order probe')
     p.add_argument('--zero-env-pair', type=int, nargs=2, default=(0, 1), metavar=('LEFT', 'RIGHT'),
                    help='engineering group only: the two non-candidate env roles used for zero-noise calibration')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
