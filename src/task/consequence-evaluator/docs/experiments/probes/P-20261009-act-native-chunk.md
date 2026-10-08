@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 873d802
+git_commit: 4064a46
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
