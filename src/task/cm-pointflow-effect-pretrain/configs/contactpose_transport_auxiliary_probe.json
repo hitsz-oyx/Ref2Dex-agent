@@ -1,0 +1,11 @@
+{
+  "seed": 227,
+  "updates": 300,
+  "main_batch": 32,
+  "aux_batch": 8,
+  "seconds": 1800,
+  "auxiliary_weight": 0.05,
+  "learning_rate": 0.00001,
+  "aux_validation_samples": 64,
+  "validation_microbatch": 2
+}
