@@ -180,6 +180,14 @@ policy weights不变，不跑正式Gate1、不fit evaluator、不进PointWorld�
 的同一隐藏状态fork，或有足够重复数的baseline/candidate统计设计；同步group仍只作
 工程容器。
 
+在旧group actor合同下又做了一个seed283、4-env、542-step复核（r27）。该次env0最高
+抬升仅0.0891m/held5，negative role为0.5663m/398；zero pair的post-query object
+pose displacement p95为0.8247m，正/负candidate-vs-zero incremental比值为0.82/1.29，
+history为1.11/1.68。它与旧r19的0.8262m/held481形成鲜明差异，说明原生GPU接触执行
+分布在fresh process/seed间本身不稳定，candidate effect没有超过这种运行级波动。r27
+packet和noise audit在`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r27/`；
+不把r27或r19升级为Gate1、GT utility、evaluator或PointWorld证据。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

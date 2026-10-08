@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 949a163
+git_commit: c45d4a4
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: gate1-gpu-group-engineering-20261009-r25
+run_id: gate1-gpu-group-engineering-20261009-r27
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -284,3 +284,16 @@ shape and PhysX scheduling were not cleanly separable, so it cannot explain
 the old r17/r19 difference or justify a new backend. The native GPU group
 remains an engineering container only; a same-state fork or a statistically
 powered repeated-baseline/candidate design is still required before Gate1.
+
+The old group contract was then repeated for seed283 (r27), without the
+fixed-batch change. It also failed the full behavior screen: env0 reached only
+`0.0891 m` and held 5 frames, while the negative residual role reached
+`0.5663 m`/398 frames. The zero pair's post-query object-pose displacement p95
+was `0.8247 m`; positive/negative candidate-vs-zero incremental ratios were
+`0.82`/`1.29` for object pose and `1.11`/`1.68` for history. This contrasts
+with r19's successful env0 (`0.8262 m`/481 frames) under the same nominal
+contract. The fresh-process behavior spread is therefore itself larger than
+the candidate comparison signal, and r27 is engineering evidence of an
+unstable GPU contact execution distribution, not a candidate result. Its
+packet and noise audit are in
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r27/`.
