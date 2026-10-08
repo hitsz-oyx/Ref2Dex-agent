@@ -119,6 +119,8 @@ def native_worker(a):
         actor_copies = int(a.engineering_actor_copies)
         if actor_copies < 1:
             raise ValueError('engineering group actor copies must be positive')
+        if count * actor_copies != 256:
+            raise ValueError('engineering group must keep the fixed 256-row actor contract')
         if player.is_rnn or task.num_envs != count or abs(task.dt - 1 / 30) > 1e-8 \
                 or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2:
             raise ValueError('fixed nonrecurrent synchronous group contract required')
@@ -1299,6 +1301,8 @@ def main():
         p.error('engineering group requires native baseline worker and4..96 environments')
     if a.engineering_group_envs and a.engineering_actor_copies < 1:
         p.error('engineering group actor copies must be positive')
+    if a.engineering_group_envs and a.engineering_group_envs * a.engineering_actor_copies != 256:
+        p.error('engineering group must keep the fixed 256-row actor contract')
     if a.engineering_serial_replay and (not a.worker or not a.finish or a.engineering_group_envs):
         p.error('serial replay requires a native worker without a synchronous group')
     if a.engineering_serial_replay and (a.engineering_steps < 72 or a.engineering_steps > 542):
