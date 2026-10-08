@@ -67,13 +67,17 @@ def load_packet(path):
     if packet.get('group_mode') != 'same_process_same_env_reset_frozen_control_cluster':
         raise ValueError('frozen-control cluster mode required')
     roles = list(packet.get('roles') or [])
+    expected_schedule = ['reactive_teacher', 'frozen_zero_1', 'positive_1',
+                         'frozen_zero_2', 'negative_1', 'frozen_zero_3',
+                         'negative_2', 'frozen_zero_4', 'positive_2', 'frozen_zero_5']
     zero_roles = list(packet.get('zero_roles') or [])
     candidate_roles = list(packet.get('candidate_roles') or [])
     teacher = packet.get('teacher_role')
     expected_zero_roles = {f'frozen_zero_{index}' for index in range(1, 6)}
     expected_candidate_roles = {f'positive_{index}' for index in range(1, 3)} | {
         f'negative_{index}' for index in range(1, 3)}
-    if (not roles or roles[0] != teacher or teacher in zero_roles or teacher in candidate_roles
+    if (roles != expected_schedule or packet.get('execution_order') != expected_schedule
+            or teacher != 'reactive_teacher' or teacher in zero_roles or teacher in candidate_roles
             or len(zero_roles) != 5 or len(candidate_roles) != 4
             or set(zero_roles) != expected_zero_roles or set(candidate_roles) != expected_candidate_roles
             or len(set(roles)) != len(roles)
@@ -103,7 +107,7 @@ def load_packet(path):
         if value.shape[0] != arms or value.shape[1] != steps + 1 or not np.isfinite(value).all():
             raise ValueError('cluster field shape/nonfinite mismatch: %s' % key)
     timestamps = np.asarray(packet.get('timestamps'))
-    if (timestamps.shape != (steps + 1) or not np.isfinite(timestamps).all()
+    if (timestamps.shape != (steps + 1,) or not np.isfinite(timestamps).all()
             or not np.allclose(np.diff(timestamps), 1. / 30., atol=1e-8, rtol=0)):
         raise ValueError('cluster timestamp shape mismatch')
     residual = np.asarray(packet.get('requested_residual'))
