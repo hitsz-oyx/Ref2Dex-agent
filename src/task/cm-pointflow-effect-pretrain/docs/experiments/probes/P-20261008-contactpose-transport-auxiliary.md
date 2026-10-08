@@ -84,3 +84,16 @@ Outputs:
 `outputs/cm-pointflow-effect-pretrain/contactpose-transport-auxiliary-engineering-20261008-r1/`
 and `outputs/cm-pointflow-effect-pretrain/contactpose-transport-auxiliary-20261008-r1/`.
 The new standalone runner never edits or resumes the original training process.
+
+## Engineering acceptance repair
+
+At implementation `0303ed8`, engineering r1 completes both two-update arms,
+finite main/auxiliary backward and final checkpoints. Initial model hashes
+match. Initial macro/Oak/transport EPE are bitwise equal; an ancillary GRAB
+h12 rotation metric differs by1.52e-5rad from CUDA floating-point reduction
+and acos sensitivity. The blanket JSON equality assertion therefore marks
+the run FAILED. Preserve the original log/checkpoints; this is not a Probe
+result. Eligibility now checks all primary and per-source h24 EPE within
+1micrometre, while model/data/RNG identity remains exact. This does not
+change the3%/5%/10% scientific screen. A regression rejects actual primary
+metric drift. Re-run the same bounded engineering budget before production.

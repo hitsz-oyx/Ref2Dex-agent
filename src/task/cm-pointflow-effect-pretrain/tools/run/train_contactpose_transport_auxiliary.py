@@ -20,7 +20,7 @@ TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0,str(TASK/'src'))
 from oakink_wm.transport_auxiliary import (history_inputs,validate_transport_source,
-                                         validate_auxiliary_config,classify_auxiliary,HISTORY_INPUTS)
+                                         validate_auxiliary_config,classify_auxiliary,HISTORY_INPUTS,initial_primary_deltas)
 
 
 def sha(path):
@@ -259,12 +259,12 @@ def main():
             del main_batches,cp_batches,optimizer,model;torch.cuda.empty_cache()
         check(full=True)
         if len(set(initial_hashes))!=1:raise AssertionError('matched initial weights differ')
-        if initial_metrics[0] != initial_metrics[1]:raise AssertionError('matched initial validation differs')
+        primary_deltas=initial_primary_deltas(*initial_metrics)
         manifest.update(status='COMPLETED',elapsed_seconds=time.time()-started)
         verdict='ENGINEERING_PASS' if args.engineering else classify_auxiliary(completed['main-only'],completed['transport-auxiliary'])
         result=dict(status='COMPLETED',verdict=verdict,engineering_only=args.engineering,
                     initial_weights_identical=True,updates_per_arm=config['updates'],arms=completed,
-                    initial_validation_identical=True,
+                    initial_validation_primary_matched=True,initial_primary_delta_mm=primary_deltas,
                     elapsed_seconds=time.time()-started,training_allowed=False,
                     limitation='incremental transport auxiliary Probe; not hand-action dynamics or robot policy utility')
         write(out/'result.json',result);write(out/'progress.json',dict(status='COMPLETED',verdict=verdict))

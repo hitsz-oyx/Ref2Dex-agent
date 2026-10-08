@@ -52,3 +52,20 @@ def classify_auxiliary(control, auxiliary):
             and auxiliary['transport_mm'] <= control['transport_mm']*.90):
         return 'PROMISING'
     return 'UNCLEAR'
+
+
+def initial_primary_deltas(first, second):
+    """Check matching metric initialization without bitwise CUDA acos equality.
+
+    Fixed inputs/RNG/model hashes are exact. Primary EPE roundoff may differ
+    by at most one micrometre, far below the predeclared 3% Probe threshold.
+    Ancillary rotation errors near acos(1) do not define matching eligibility.
+    """
+    delta = {key:abs(first[key]-second[key])
+             for key in ('main_macro_mm','oakink2_mm','transport_mm')}
+    for source in ('oakink2','grab','arctic'):
+        key='model/anchor/cat0/h24/point_epe'
+        delta[source+'_h24_mm']=abs(first['main_metrics'][source][key]-second['main_metrics'][source][key])*1000
+    if any(not math.isfinite(v) or v > .001 for v in delta.values()):
+        raise ValueError('matched initial primary EPE differs by more than1micrometre')
+    return delta

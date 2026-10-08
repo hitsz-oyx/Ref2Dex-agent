@@ -9,7 +9,7 @@ import torch
 TASK=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(TASK/'src'))
 from oakink_wm.transport_auxiliary import (HISTORY_INPUTS,history_inputs,
-    validate_transport_source,validate_auxiliary_config,classify_auxiliary)
+    validate_transport_source,validate_auxiliary_config,classify_auxiliary,initial_primary_deltas)
 
 
 def test_auxiliary_forward_has_no_future_hands_effects_or_outcome_metadata():
@@ -46,3 +46,13 @@ def test_auxiliary_probe_budget_and_predeclared_screen():
     assert classify_auxiliary(control,dict(main_macro_mm=29.,oakink2_mm=10.2,transport_mm=35.))=='PROMISING'
     assert classify_auxiliary(control,dict(main_macro_mm=32.,oakink2_mm=10.,transport_mm=35.))=='UNPROMISING'
     assert classify_auxiliary(control,dict(main_macro_mm=30.,oakink2_mm=10.,transport_mm=40.))=='UNCLEAR'
+
+
+def test_matching_primary_metrics_rejects_real_drift_but_allows_ancillary_acos_roundoff():
+    first=dict(main_macro_mm=30.,oakink2_mm=10.,transport_mm=40.,
+               main_metrics={s:{'model/anchor/cat0/h24/point_epe':.03,'rotation':.167731255}
+                             for s in ('oakink2','grab','arctic')})
+    second=copy.deepcopy(first);second['main_metrics']['grab']['rotation']-=1.52e-5
+    assert not any(initial_primary_deltas(first,second).values())
+    second['main_macro_mm']+=.002
+    with pytest.raises(ValueError,match='1micrometre'):initial_primary_deltas(first,second)
