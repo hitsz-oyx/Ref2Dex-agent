@@ -12,19 +12,22 @@ consequence-evaluator 用户新增的H匹配、最小唯一配对覆盖和重放
 请求/实际control L2分别0.75865/1.14996。它是engineering_only且不可训练，
 不改变ref2 continuous schema或科学结论。用户明确保留连续rollout、不fork；
 twin只作工程诊断。对全部可比较窗口穷举后，物理匹配候选4/1/3、加H仍为1/1/1，
-配对选择器未漏掉合格episode pair。下一步只做不可训练的连续保持阶段定向诊断，
-核对合格飞机专家的局部反例和匹配覆盖，不放宽生产资格或状态阈值。
+配对选择器未漏掉合格episode pair。随后完成不可训练的连续保持阶段定向诊断，
+核对合格飞机专家的局部反例和匹配覆盖，生产资格和状态阈值未放宽。
 连续hold审计7389d05已完成48条episode（24clean/24hold，23实际触发），
 有11403可靠progress帧，但仅1个train唯一pair。93dde07逐帧审计17053事件窗口，
 463事件可比较episode pair仍仅1个物理/H匹配；不是8步采样漏配。
 12条带hold负事件episode的最近正样本中，11条超过手RMS、10条超过物体旋转阈值。
 诊断产物均不可训练，不补采val/test、不启动fit，也不将此解释成Cm无效。
-124项Task测试及verify通过；原始失败run、用户其他修改均保留。
+130项Task测试及verify通过；原始失败run、用户其他修改均保留。
 GPU1/2三源PointWorld已按原冻结配方完成50000步，group/trainer均COMPLETED，
 两rank参数哈希相同，全部自有进程退出，GPU0/1/2释放。
 最终固定balanced moving-anchor h24：Oak13.778/GRAB27.795/ARCTIC39.804mm，
 macro27.126mm（初始化34.480）；best46000为26.786mm。
 latest/final50000及best46000均可加载，含优化器和双rank RNG；未开启新预算。
+ref3的独立ContactPose auxiliary ablation另设300步matched短Probe，非主训练续跑。
+两臂同latest50000模型/fresh优化器、三源main样本及CP辅助计算；仅loss系数0/0.05不同。
+CP前向只允许history几何，future手/effect/label字段均不进入前向；真实小工程检查进行中。
 详见[配对覆盖卡](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-consequence-pair-coverage.md)。
 
 ## 2026-10-07 ref2/ref3 运行记录（历史）

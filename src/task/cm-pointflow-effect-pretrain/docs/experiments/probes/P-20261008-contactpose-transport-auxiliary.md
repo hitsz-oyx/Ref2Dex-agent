@@ -5,7 +5,7 @@ experiment_id: P-20261008-contactpose-transport-auxiliary
 date: 2026-10-08
 task: cm-pointflow-effect-pretrain
 branch: consequence-evaluator
-git_commit: 79e5247
+git_commit: 163160c
 claim_id: C3
 hypothesis_family: HF-contactpose-transport-auxiliary
 probe_index_in_family: 1
@@ -19,7 +19,7 @@ run_id: contactpose-transport-auxiliary-20261008-r1
 
 # Does a separate rigid-transport auxiliary help measured dynamic prediction?
 
-Result: Main-three training completed; the separate ref3 auxiliary comparison is not yet run.
+Result: Main-three completed; native two-update auxiliary engineering r2 passes; the separate300-update matched Probe is next.
 Decision: Run one bounded matched Probe with ContactPose future hands excluded from auxiliary inputs.
 
 ## Motivation and fixed comparison
@@ -97,3 +97,10 @@ result. Eligibility now checks all primary and per-source h24 EPE within
 1micrometre, while model/data/RNG identity remains exact. This does not
 change the3%/5%/10% scientific screen. A regression rejects actual primary
 metric drift. Re-run the same bounded engineering budget before production.
+
+Engineering r2 at `163160c` completes in24.72s with ENGINEERING_PASS.
+Both arms start with identical model hashes and all primary/per-source h24
+initial EPE deltas are exactly zero. Main and auxiliary backward are finite;
+both full checkpoints save successfully. Peak live CUDA allocation at the
+two-example engineering batch is1.01/1.27GiB. It does not predict production
+batch32 peaks or provide an auxiliary utility verdict. GPU0 is released.

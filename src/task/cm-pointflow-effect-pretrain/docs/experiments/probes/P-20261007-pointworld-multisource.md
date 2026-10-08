@@ -23,8 +23,8 @@ User pauses the unlaunched two-rank OakInk optimizer continuation and requests
 GRAB,ContactPose,ARCTIC and OakInk2 jointly trained from the completed latest
 model weights, with a fresh optimizer/schedule. The Task subgoal is observed
 future-hand conditioned physical prediction; robot policy utility is untested.
-Result: Four-source14250 preserved; three-source production RUNNING, first250val macro moving-anchor h24 EPE34.48→37.16mm, latest/best saved. Ref2 native geometry and41ref3 contract tests pass.
-Decision: Continue the bounded three-source run to50000updates or2026-10-08 10:00; judge against its own step0 panel, keep EPIC non-training.
+Result: Four-source14250 preserved; main-three COMPLETED50000, fixed-panel macro moving-anchor h24 EPE34.480→27.126mm; latest/final50000 and best46000 saved.
+Decision: Preserve the completed main checkpoint; run the separate bounded history-only ContactPose auxiliary ablation, keeping EPIC non-training.
 
 No new branch or remote push. ref6 is background design input; this run does
 not add ObjectForesight/EgoDex/HOT3D to the four explicitly requested sources.

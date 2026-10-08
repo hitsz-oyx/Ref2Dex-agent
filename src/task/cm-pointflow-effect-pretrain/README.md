@@ -1,13 +1,20 @@
 # cm-pointflow-effect-pretrain
 
-Current execution (2026-10-07): user ref3 uses OakInk2/GRAB/ARCTIC main
+Main training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
 supervision only, on GPUs1/2 with per-rank batch64/global128. The stopped
 four-source latest14250 initializes model weights; AdamW/schedule/draw reset.
-Maximum50000new updates, hard deadline2026-10-08 10:00 Asia/Shanghai;
-checkpoints/validation every250updates. ContactPose is excluded from new
+All50000new updates completed before2026-10-08 10:00 Asia/Shanghai;
+latest/final50000 and best46000 are preserved. Fixed-panel source macro
+moving-anchor h24 EPE34.480→27.126mm (best26.786mm). Both ranks agree;
+workers and recovered monitor exited. ContactPose is excluded from new
 main sampling/loss, but its earlier learning history remains in the imported
 parent. This is not a clean ContactPose-free causal ablation. Separate
-ContactPose auxiliary and weak-data training are deferred evidence. EPIC
+ContactPose auxiliary now has a separate [matched Probe](docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md)
+and [bounded runner](tools/run/train_contactpose_transport_auxiliary.py).
+Both arms share main/transport batches; only the history-only transport loss
+coefficient differs. Future ContactPose hand chunks are absent from auxiliary
+forward inputs; this tests incremental rigid-transport utility from the same
+parent. Weak-data training remains deferred. EPIC
 remains candidate_only after coordinate/validity/dual-hand/gap audits.
 See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
 for per-source moving-anchor metrics, exact artifacts and frozen identities.
