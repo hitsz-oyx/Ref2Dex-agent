@@ -1157,6 +1157,17 @@ def native_worker(a):
                 or payload.get('history_dim') != int(task.num_obs)
                 or payload.get('executed_action_semantics') != EXECUTED_ACTION_SEMANTICS):
             raise ValueError('native action-chunk checkpoint contract mismatch')
+        checkpoint_manifest = a.action_chunk_checkpoint.parent / 'manifest.json'
+        if not checkpoint_manifest.exists():
+            raise ValueError('single ACT behavior requires a sibling proposal manifest')
+        proposal_manifest = json.loads(checkpoint_manifest.read_text())
+        manifest_checkpoint = proposal_manifest.get('checkpoint')
+        if (manifest_checkpoint is None
+                or Path(manifest_checkpoint).resolve() != a.action_chunk_checkpoint.resolve()
+                or proposal_manifest.get('checkpoint_sha256') != sha(a.action_chunk_checkpoint)
+                or proposal_manifest.get('engineering_only') is not True
+                or proposal_manifest.get('training_allowed') is not False):
+            raise ValueError('single ACT behavior proposal manifest does not authenticate the checkpoint')
         standardizer = payload.get('history_standardizer')
         if (not isinstance(standardizer, dict)
                 or len(standardizer.get('mean', [])) != int(task.num_obs)
@@ -1236,6 +1247,7 @@ def native_worker(a):
                   'history', 'native_contact_forces', 'native_object_contact_forces')
         rows = {key: [] for key in fields}
         actions = []
+        requested_controls = []
         ended = []
         state_hashes = []
         state_field_hashes = []
@@ -1295,6 +1307,7 @@ def native_worker(a):
                 if proposal_cache is None:
                     raise RuntimeError('single ACT action chunk was not initialized at tick48')
                 control = proposal_cache[:, tick - query]
+            requested_controls.append(control.detach().cpu().numpy().copy())
             obs, _, done, info = player.env_step(player.env, control.clone())
             if not isinstance(obs, dict):
                 obs = {'obs': obs}
@@ -1309,8 +1322,16 @@ def native_worker(a):
                 raise ValueError('single ACT episode terminated before the 72-step screen')
 
         packet = {key: np.asarray(value) for key, value in rows.items()}
+        requested_controls = np.asarray(requested_controls)
+        captured_actions = np.asarray(actions)
+        action_delta = np.abs(captured_actions - requested_controls)
+        action_delta_max = float(action_delta.max()) if action_delta.size else 0.0
+        if not np.isfinite(action_delta).all() or action_delta_max > 1e-7:
+            raise ValueError('native captured actions differ from requested single ACT controls')
         packet.update(
-            actions=np.asarray(actions), done=np.asarray(ended), state_hashes=state_hashes,
+            actions=captured_actions, requested_controls=requested_controls,
+            native_action_max_abs_delta=action_delta_max,
+            native_action_contract_exact=True, done=np.asarray(ended), state_hashes=state_hashes,
             state_field_hashes=state_field_hashes, rng_hashes=rng_hashes,
             timestamps=np.arange(stop + 1) / 30,
             schema='ref2dex.consequence-gate1.native-single-act-behavior.v1',
@@ -1331,7 +1352,10 @@ def native_worker(a):
             proposal_input=proposal_input.detach().cpu().numpy().copy(),
             replay_identity=identity, canonical_state_keys=state_keys,
             actor_inference_batch=64, actor_inference_copies=64,
-            source_backend=actual_backend)
+            source_backend=actual_backend,
+            prefix_action_sha256=fingerprint(captured_actions[:query]),
+            rng_semantics='native torch/python/numpy RNG captured per tick; no future observation feedback',
+            outcome_complete=False)
         packet['outcome'] = episode_outcome(packet)
         packet['max_lift_m'] = float(np.max(
             packet['object_pose'][:, 2, 3] - packet['object_pose'][0, 2, 3]))
@@ -1344,6 +1368,8 @@ def native_worker(a):
             future_observation_feedback=False,
             action_chunk_checkpoint=str(a.action_chunk_checkpoint),
             action_chunk_checkpoint_sha256=packet['action_chunk_checkpoint_sha256'],
+            native_action_max_abs_delta=packet['native_action_max_abs_delta'],
+            native_action_contract_exact=True,
             elapsed_s=time.monotonic() - started,
             peak_allocated_bytes=torch.cuda.max_memory_allocated(),
             outcome=packet['outcome'], max_lift_m=packet['max_lift_m'],
@@ -1700,6 +1726,8 @@ def main():
         p.error('single ACT behavior requires --action-chunk-mode open_loop24')
     if a.engineering_single_act and a.action_chunk_roles != 'behavior':
         p.error('single ACT behavior requires --action-chunk-roles behavior')
+    if a.engineering_single_act and a.engineering_actor_copies != 64:
+        p.error('single ACT behavior requires the verified 64-row actor inference contract')
     if a.engineering_single_act and a.diagnostic_force_cache:
         p.error('single ACT behavior does not accept force-cache diagnostics')
     if (a.action_chunk_checkpoint is not None or a.action_chunk_replay is not None) and (
