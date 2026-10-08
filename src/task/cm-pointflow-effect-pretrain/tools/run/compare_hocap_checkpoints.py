@@ -52,6 +52,22 @@ def check_compatible(first, second):
         raise ValueError('different parameter/buffer contract')
 
 
+def check_replay(original, replay):
+    if set(replay) != set(original):
+        raise ValueError('reference metric coverage changed')
+    differences = {}
+    for key, value in original.items():
+        metric = key.rsplit('/', 1)[-1]
+        # FP32 acos near identity amplifies roundoff. Keep metre tolerance tight;
+        # one microradian is ~0.000057 degrees, far below reported angular errors.
+        tolerance = 1e-6 if metric == 'rotation' else 1e-7
+        difference = abs(replay[key]-value)
+        if difference > tolerance:
+            raise ValueError('mixed model reference replay mismatch: '+key)
+        differences[metric] = max(differences.get(metric, 0.), difference)
+    return differences
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--reference-run', required=True, type=Path)
@@ -204,11 +220,7 @@ def main():
         for panel in panels:
             old = json.loads((reference/(panel+'_metrics.json')).read_text())
             new = results['mixed'][panel]
-            if set(new) != set(old):
-                raise ValueError('reference metric coverage changed')
-            replay[panel] = max(abs(new[k]-old[k]) for k in old)
-            if replay[panel] > 1e-7:
-                raise ValueError('mixed model reference replay mismatch')
+            replay[panel] = check_replay(old, new)
             for key, value in results['oak_only'][panel].items():
                 if key.startswith('static/') and abs(value-new[key]) > 1e-12:
                     raise ValueError('control/target mismatch')

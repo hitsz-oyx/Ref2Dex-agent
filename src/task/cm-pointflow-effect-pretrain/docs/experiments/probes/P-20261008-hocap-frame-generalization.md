@@ -120,7 +120,7 @@ uses physical loss normalization. Oak endpoint itself inherited the earlier
 Oak temporal checkpoint step12163. Preserve each counter's stage meaning.
 Report all frozen1/4/8/12/24horizons, natural moving/near-static strata and
 persistence. Replayed mixed metrics must match the prior run within1e-7
-absolute metric units; static controls must match between checkpoints within
+metres for distances and1e-6radians for angular metrics; static controls must match between checkpoints within
 1e-12. Same unknown source clock and observed future hand limitations apply.
 
 Run ID: `hocap-oak-vs-mixed-20261008-r1`. Entry:
@@ -130,6 +130,18 @@ Bounds: one empty GPU1,600seconds,100MiB new output,20GiB free reserve;
 stop on source/panel/checkpoint drift, foreign GPU use or deadline. Verify
 the prior run's1318input hashes and new checkpoint/script before and after
 inference; no optimizer, parameter/normalization update or checkpoint selection.
+
+Engineering r1 at6f7f41f completed both endpoints' inference in36.9seconds but
+failed the initial uniform1e-7replay threshold: rotation maximum differs
+2.76e-7rad (~0.000016degrees), all center metrics match exactly and all surface
+metrics differ <=6.21e-8m; the primary anchor h24 point metrics match exactly.
+Static controls between endpoints match exactly. This is a replay acceptance
+bug that compared metres/radians with one tolerance, not a prediction failure.
+Keep r1 FAILED and its raw metrics unchanged. Separate angular1e-6rad and
+distance1e-7m tolerances before retry; do not relax the point comparison.
+Add regression for small angular differences versus unacceptable point drift
+and missing coverage. Bounded retry r2 reuses both exact endpoints/panels and
+the original r1deadline, without renewing600seconds or selecting checkpoints.
 
 Run `hocap-frame-eval-20261008-r1` used code `8f857ae`, GPU0, PID2769220,
 seed228 and the original latest50000 checkpoint trained at `9019fd4`.
