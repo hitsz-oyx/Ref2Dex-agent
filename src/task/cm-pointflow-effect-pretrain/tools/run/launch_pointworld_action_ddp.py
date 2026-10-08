@@ -54,6 +54,7 @@ def main():
     parent = p.add_mutually_exclusive_group(required=True)
     parent.add_argument('--init-weights', type=Path)
     parent.add_argument('--continue-from', type=Path)
+    parent.add_argument('--random-init', action='store_true')
     p.add_argument('--gpus', default='0,1,2')
     p.add_argument('--deadline', type=float, required=True)
     p.add_argument('--mixed-data', action='store_true')
@@ -93,9 +94,11 @@ def main():
     command = [sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node='+str(len(gpus)),
                str(TASK/'tools/run/train_oakink2_pointworld_ddp.py'),'--data',str(a.data.resolve()),
                '--stats',str(a.stats.resolve()),'--config',str(a.config.resolve()),'--arm','action',
-               '--continue-from' if a.continue_from else '--init-weights',
-               str((a.continue_from or a.init_weights).resolve()),'--fused-hilbert','--deadline',str(a.deadline),
-               '--output',str(root/'train-action')]
+               '--continue-from' if a.continue_from else ('--init-weights' if a.init_weights else '--random-init')]
+    if a.continue_from or a.init_weights:
+        command.append(str((a.continue_from or a.init_weights).resolve()))
+    command.extend(['--fused-hilbert','--deadline',str(a.deadline),
+                    '--output',str(root/'train-action')])
     if a.mixed_data:
         if a.continue_from: raise ValueError('mixed data uses model-only initialization, not optimizer migration')
         command.append('--mixed-data')

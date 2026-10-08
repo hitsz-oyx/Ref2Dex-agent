@@ -23,6 +23,27 @@ def sha(path):
     return h.hexdigest()
 
 
+def normalization_source_identity(meta):
+    """Hash the source/index contract used to estimate shared train stats.
+
+    Paths and normalization fields are intentionally excluded so a derived
+    mixed manifest can point at copied index files and the stats can still be
+    bound to the same physical source windows without a circular hash.
+    """
+    sources = []
+    for source in meta.get('sources', []):
+        sources.append(dict(
+            name=source['name'], kind=source['kind'], weight=source['weight'],
+            manifest_sha256=source['manifest_sha256'],
+            indices={split: dict(sha256=source['indices'][split]['sha256'],
+                                 windows=source['indices'][split]['windows'])
+                     for split in ('train', 'val', 'test')}))
+    payload = dict(schema='pointworld-multisource.normalization-source.v1',
+                   sources=sources)
+    encoded = json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
 class SourceWindows(Windows):
     def __init__(self, descriptor, split):
         self.root = Path(descriptor['root'])

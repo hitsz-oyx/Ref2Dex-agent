@@ -178,7 +178,11 @@ def run(args):
         stats = json.loads(args.stats.read_text())
         stats_dataset_hash = train.meta['normalization_source_manifest_sha256'] if args.mixed_data else dataset_hash
         if (stats['split']!='train' or stats['input_manifest_sha256']!=stats_dataset_hash
-                or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])):
+                or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])
+                or (args.mixed_data and train.meta.get('normalization_mode')
+                    and stats.get('normalization_mode') != train.meta['normalization_mode'])
+                or (args.mixed_data and config.get('normalization_mode')
+                    and config.get('normalization_mode') != train.meta.get('normalization_mode'))):
             raise ValueError('normalization identity mismatch')
         model = model_from_config(stats, config).to(device)
         loss_scales = None
@@ -240,6 +244,10 @@ def run(args):
             identity['parent_checkpoint_sha256'] = base.digest(args.continue_from)
             identity['parent_checkpoint_path'] = str(args.continue_from.resolve())
             del state
+        if args.random_init:
+            identity['initialization'] = dict(random_init=True, optimizer_reset=True,
+                                               schedule_reset=True, draw_reset=True,
+                                               normalization='shared multisource train-union forward statistics')
         checkpoint = args.resume or args.import_single_checkpoint
         if checkpoint:
             state = torch.load(checkpoint, map_location=device, weights_only=False)
@@ -441,6 +449,7 @@ def main():
     group.add_argument('--import-single-checkpoint', type=Path)
     group.add_argument('--init-weights', type=Path, help='New recipe initialized from single-GPU model weights only')
     group.add_argument('--continue-from', type=Path, help='Two-rank recipe migration retaining trained AdamW moments')
+    group.add_argument('--random-init', action='store_true', help='Start a fresh model with the configured seed')
     run(p.parse_args())
 
 
