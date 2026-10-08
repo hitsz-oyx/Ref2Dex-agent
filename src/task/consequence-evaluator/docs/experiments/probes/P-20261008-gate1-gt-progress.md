@@ -218,6 +218,64 @@ identity immediately (initial state fields and tick1 history differed, with
 contact-stage differences at tick44), so this is not Gate1 readiness. Audit:
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r1/group-audit.json`.
 
+## Native GPU group noise calibration
+
+The host route is closed, so the next bounded engineering probe kept the
+original `gpu_physx_gpu_pipeline` contract and moved all four roles into one
+GPU process: env0 baseline, env1 zero repeat, env2 positive residual, and env3
+negative residual. Env0's actor control was broadcast to every role through
+the common prefix; only env2/env3 received their fixed ±0.2 residual on the
+`t=48` transition through the next 24 action ticks. This makes the run a
+solver/readback noise calibration, not a
+formal candidate replay: process-global RNG is recorded once, and a
+zero-pair is compared by measured state and observation fields rather than
+declared bitwise identical.
+
+Four fresh 4-env full-baseline controls show that the native policy itself is
+not stable across these launches: r1/r2/r3 reached 0.8128/0.8239/0.7535 m and
+480/484/484 held frames, while r4 reached only 0.1301 m and 7 held frames.
+The latest r4 24-step calibration therefore cannot be interpreted as a
+candidate result. Its candidate-effect-to-zero-displacement p95 ratios were
+about 2.17/1.34 (positive/negative) for object pose, 2.87/1.80 for hand
+points, and 2.46/2.76 for joint position, but only 0.38/0.36 for joint
+velocity, 1.12/0.82 for object velocity, 0.68/0.57 for history, and
+1.18/1.17 for contact force. The effect is consequently not separated from
+the solver/readback noise across the state needed by a reactive policy.
+
+The runner now records flattened native tensors after per-environment reshape,
+explicit q/dq and contact fields, and rejects non-identical initial semantic
+states (1e-7 tolerance) before computing calibration ratios. It also records
+the query-relative zero displacement and both pre-query and post-query noise
+ratios. Those checks make future calibration packets auditable; they do not retroactively
+make the r1--r4 packets exact twins. The full r4 audit is
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r4/gpu-group-noise-audit.json`.
+
+A follow-up 72-step worker on idle GPU2 (`r8`) completed in 18.2 s with all
+initial semantic gaps exactly zero, exact env0/env1 controls, and the full
+`t=48` through `t=72` state window present. It still showed the expected
+world-frame hidden-state hash mismatch at tick0 and contact/trajectory drift
+later in the group; the short baseline reached 0.2417 m and held 10 frames,
+which is too short to judge full-episode behavior. The r8 packet and audit are
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r8/`.
+Two earlier direct-worker attempts (`r6`/`r7`) exited while saving a relative
+mismatch path after the native process changed directory; those engineering
+failures produced no simulation conclusion and were fixed by resolving
+worker/prefix/score paths and creating the task-owned output parent.
+
+### Decision Note
+
+The synchronous native-GPU group does preserve the original behavior in most
+fresh launches, but it does not provide a stable baseline or a uniform
+candidate-over-noise margin. There is only one zero pair in this four-env
+layout, so env2/env3's own pre-query drift is an additional limitation. Root
+therefore does not run formal Gate1, rank
+candidates, fit an evaluator, or change Y/reference-bank labels or policy
+weights from this probe. The next implementation decision is between a
+frozen ACT-like 24-step proposal baseline, which removes reactive action
+amplification during the scoring window, and a new native GPU replay contract.
+Until that decision is implemented and rechecked, the r1--r4 group packets are
+engineering evidence only and the scientific status remains `UNCLEAR`.
+
 
 ## Completed matched pair and attribution
 

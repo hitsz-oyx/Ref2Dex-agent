@@ -43,6 +43,32 @@ baseline 恢复到最高81.28cm、held480、first stable tick107，说明 group 
 same-state contract。因此保留该行为对照，但不放宽 exact replay，也不进入 Gate1。
 审计见 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r1/`。
 
+随后在原生 GPU PhysX/GPU pipeline 内完成了4-env同步 zero-pair 噪声校准：env0
+baseline、env1 zero repeat、env2/3在t=48 transition起的24个action tick分别加入
+正/负固定残差，所有角色在query前共享env0控制。四次fresh full-baseline分别为81.28cm/480、82.39cm/484、
+75.35cm/484、13.01cm/7，说明reactive policy的跨启动行为本身有大幅波动。最新
+r4的24步候选效应相对同窗口zero displacement p95比值在object/hand/q位置约
+1.34--2.87，但q速度、history和contact多为约0.36--1.18；没有形成一致的
+candidate\(\gg\)solver-noise margin。该组只作为工程校准，不是正式Gate1或候选
+价值证据。审计见
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r4/`
+及实验卡的 Native GPU group noise calibration 小节。
+
+当前不跑正式Gate1、不fit evaluator、不扩CPU/host seed，也不改Y、reference bank
+或policy weights。runner已补上flattened native tensor按env reshape、q/dq/contact
+字段、初始semantic role guard（不一致即停止校准）及query-relative noise ratio；
+当前4-env只有一个zero pair，candidate env2/3各自的query前漂移仍未被独立配对。
+下一步在新执行合同前
+先评估冻结ACT-like 24-step proposal baseline，或提出新的native GPU replay contract。
+
+随后用空闲GPU2完成r8的72-step runner guard validation（18.2秒）：初始
+object/q/dq/hand/gap/history/contact semantic gap全为0，env0/env1 control exact，
+且state packet确实包含tick49--72的完整candidate窗口；但hidden world-frame hash在
+tick0即不同，之后仍有contact/trajectory drift。短窗口baseline最高24.17cm、held10，
+不能判断full-episode抓取行为。r6/r7仅是native worker相对路径保存错误，已修复且
+不产生仿真结论；r8审计见
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r8/`。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

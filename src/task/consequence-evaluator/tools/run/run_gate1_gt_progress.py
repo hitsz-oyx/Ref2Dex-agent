@@ -53,6 +53,9 @@ def ensure_free(gpu):
 
 def native_worker(a):
     ensure_free(a.gpu)
+    if a.worker_output is None:
+        raise ValueError('native worker requires --worker-output')
+    a.worker_output.parent.mkdir(parents=True, exist_ok=True)
     backend = a.native_backend
     helper = TASK / 'tools/audit/probe_official_generator.py'
     spec = importlib.util.spec_from_file_location('official_runtime_compat', helper)
@@ -101,7 +104,7 @@ def native_worker(a):
     started = time.monotonic()
 
     def engineering_group_run(player, task):
-        """Run baseline/zero/+/- in one synchronous host-pipeline process.
+        """Run baseline/zero/+/- in one synchronous native-pipeline process.
 
         Isaac Gym reports separate environment origins, but DExplore's native
         tensors and task geometry are already expressed in each environment's
@@ -114,6 +117,8 @@ def native_worker(a):
         if player.is_rnn or task.num_envs != count or abs(task.dt - 1 / 30) > 1e-8 \
                 or abs(task.sim_params.dt - 1 / 60) > 1e-8 or task.control_freq_inv != 2:
             raise ValueError('fixed nonrecurrent synchronous group contract required')
+        if int(task.num_motions) != 1:
+            raise ValueError('engineering group requires one repeated motion across all env roles')
         task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.
         task._adaptive_kappa_enabled = False; task._enable_early_termination = False
         if task.dr_randomizations or task._motion_sampler is not None or task.projtype != 'None':
@@ -125,6 +130,10 @@ def native_worker(a):
         player.get_batch_size(obs['obs'], count)
         if task.gym.get_frame_count(task.sim) != 0 or (task.start_times != 0).any():
             raise ValueError('fresh unstepped group reset required')
+        for name in ('data_id', 'progress_buf', 'start_times', 'ref_index'):
+            value = getattr(task, name).detach().cpu().numpy()
+            if not np.array_equal(value, np.broadcast_to(value[0], value.shape)):
+                raise ValueError('group semantic initial state differs for %s' % name)
         total = int(task.max_episode_length[task.data_id[0]]) - 1
         if total != 542:
             raise ValueError('frozen full543state reference required')
@@ -133,6 +142,25 @@ def native_worker(a):
             origin = task.gym.get_env_origin(env)
             origins.append((origin.x, origin.y, origin.z))
         origins = torch.as_tensor(origins, dtype=torch.float32, device=task.device)
+        initial_points, initial_gap = geometry.measure(task)
+        initial_support, initial_footprint = table.measure(task, geometry)
+        initial_history = obs['obs'].detach()
+        initial_semantic_gap = dict(
+            object_state_max_abs=float((task._target_states - task._target_states[0]).abs().max().item()),
+            dof_position_max_abs=float((task._dof_pos - task._dof_pos[0]).abs().max().item()),
+            dof_velocity_max_abs=float((task._dof_vel - task._dof_vel[0]).abs().max().item()),
+            hand_keypoints_max_abs=float((initial_points - initial_points[0]).abs().max().item()),
+            surface_gap_max_abs=float((initial_gap - initial_gap[0]).abs().max().item()),
+            support_gap_max_abs=float((initial_support - initial_support[0]).abs().max().item()),
+            history_max_abs=float((initial_history - initial_history[0]).abs().max().item()),
+            contact_force_max_abs=float((task._contact_forces - task._contact_forces[0]).abs().max().item()),
+            object_contact_force_max_abs=float((task._tar_contact_forces - task._tar_contact_forces[0]).abs().max().item()),
+            footprint_mismatch_count=int((initial_footprint != initial_footprint[0]).sum().item()))
+        initial_semantic_exact = bool(
+            max(value for key, value in initial_semantic_gap.items() if key.endswith('_max_abs')) <= 1e-7
+            and initial_semantic_gap['footprint_mismatch_count'] == 0)
+        if not initial_semantic_exact:
+            raise ValueError('group semantic initial state differs: %r' % initial_semantic_gap)
 
         physics = {'sim_params': normalize_properties(task.gym.get_sim_params(task.sim)), 'actors': []}
         for env in task.envs:
@@ -163,14 +191,30 @@ def native_worker(a):
         state_keys = sorted(REQUIRED_NATIVE_STATE_KEYS | {k for k in ('reset_buf', 'actions', 'real_pd_tar')
                                                            if isinstance(getattr(task, k, None), torch.Tensor)})
         fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
-                  'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces')
+                  'dof_position', 'dof_velocity', 'object_velocity', 'history',
+                  'native_contact_forces', 'native_object_contact_forces')
         rows = {k: [] for k in fields}; actions=[]; ended=[]; hashes=[]; canonical_hashes=[]
         state_field_hashes=[]; canonical_state_field_hashes=[]; rng_hashes=[]
 
+        origin_np = origins.detach().cpu().numpy()
+        def env_value(key, value, index):
+            if key == '_root_states' and value.ndim >= 2 and value.shape[0] != count:
+                return value.reshape(count, -1, value.shape[-1])[index].copy()
+            if key == '_dof_state' and value.ndim >= 2 and value.shape[0] != count:
+                return value.reshape(count, -1, value.shape[-1])[index].copy()
+            if key == '_rigid_body_state' and value.ndim >= 2 and value.shape[0] != count:
+                return value.reshape(count, -1, value.shape[-1])[index].copy()
+            return value[index].copy()
+
         def canonical_state(state, index):
-            # DExplore exposes these tensors in environment-local coordinates;
-            # do not subtract Gym's scene-origin bookkeeping a second time.
-            return {key: value[index].copy() for key, value in state.items()}
+            # DExplore's native state views are already environment-local (the
+            # flattened tensors are only reshaped here). Keep Gym origins as
+            # provenance rather than subtracting them a second time.
+            result = {}
+            for key, value in state.items():
+                item = env_value(key, value, index)
+                result[key] = item
+            return result
 
         def observe():
             points, gap = geometry.measure(task); support, footprint = table.measure(task, geometry)
@@ -179,6 +223,8 @@ def native_worker(a):
             values = dict(object_pose=object_pose, hand_keypoints=points_np,
                 surface_gap=gap.cpu().numpy().copy(), support_gap=support.cpu().numpy().copy(),
                 table_footprint=footprint.cpu().numpy().copy(),
+                dof_position=task._dof_pos.cpu().numpy().copy(),
+                dof_velocity=task._dof_vel.cpu().numpy().copy(),
                 object_velocity=task._target_states[:, 7:13].cpu().numpy().copy(),
                 history=obs['obs'].cpu().numpy().copy(),
                 native_contact_forces=task._contact_forces.cpu().numpy().copy(),
@@ -187,7 +233,7 @@ def native_worker(a):
             state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
             per_state=[]; per_canonical=[]; per_fields=[]; per_canonical_fields=[]
             for index in range(count):
-                raw = {key: value[index] for key, value in state.items()}
+                raw = {key: env_value(key, value, index) for key, value in state.items()}
                 local = canonical_state(state, index)
                 per_state.append(fingerprint(raw)); per_canonical.append(fingerprint(local))
                 per_fields.append({key: fingerprint(value) for key, value in raw.items()})
@@ -244,7 +290,8 @@ def native_worker(a):
         # contact/history and control at every tick; candidates are allowed to diverge.
         exact_keys = ['canonical_state_hashes', 'canonical_state_field_hashes', 'actions', 'done',
                       'object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
-                      'object_velocity', 'history', 'native_contact_forces', 'native_object_contact_forces']
+                      'dof_position', 'dof_velocity', 'object_velocity', 'history',
+                      'native_contact_forces', 'native_object_contact_forces']
         mismatches=[]
         for key in exact_keys:
             value=packets[key]
@@ -272,30 +319,95 @@ def native_worker(a):
                 diagnostics.append(detail)
             save(a.worker_output.with_suffix('.mismatch.pkl'), packets)
             write(a.worker_output.with_suffix('.mismatch.json'), dict(mismatches=mismatches, diagnostics=diagnostics,
-                origins=origins.detach().cpu().numpy().tolist()))
+                origins=origin_np.tolist()))
             # Parallel environments are a solver-schedule probe, not a claim
             # that two different world instances are bitwise twins. Preserve
             # the drift diagnostics and continue to measure whether the
-            # host-policy behavior is restored. Fresh-process exact replay is
-            # still required by the production Gate1 worker.
+            # native-policy behavior is restored. Fresh-process exact replay
+            # is still required by the production Gate1 worker.
         baseline_packet={key: value[:,0] for key,value in packets.items() if key in fields}
         baseline_packet['timestamps']=packets['timestamps']
         outcome=episode_outcome(baseline_packet) if stop >= 45 else None
+        calibration_fields = ('object_pose', 'hand_keypoints', 'dof_position', 'dof_velocity',
+                              'object_velocity', 'history', 'native_contact_forces',
+                              'native_object_contact_forces')
+        zero_noise = {}; candidate_effect = {}
+        # State packets have one more sample than the executed-control packet:
+        # include the state at t+24 when a 72-step bounded run ends there.
+        effect_stop = min(len(packets['object_pose']), query + horizon + 1)
+        for key in calibration_fields:
+            value = np.asarray(packets[key], dtype=np.float64)
+            zero = value[:query + 1, 1] - value[:query + 1, 0]
+            zero_flat = np.abs(zero).reshape(-1)
+            zero_max = float(zero_flat.max()) if zero_flat.size else 0.0
+            zero_p95 = float(np.quantile(zero_flat, .95)) if zero_flat.size else 0.0
+            zero_post = value[query + 1:effect_stop, 1] - value[query + 1:effect_stop, 0]
+            zero_displacement = ((value[query + 1:effect_stop, 1] - value[query, 1])
+                                 - (value[query + 1:effect_stop, 0] - value[query, 0]))
+            zero_post_flat = np.abs(zero_post).reshape(-1)
+            zero_disp_flat = np.abs(zero_displacement).reshape(-1)
+            zero_noise[key] = dict(
+                prequery_max_abs=zero_max, prequery_p95_abs=zero_p95,
+                postquery_max_abs=float(zero_post_flat.max()) if zero_post_flat.size else 0.0,
+                postquery_p95_abs=float(np.quantile(zero_post_flat, .95)) if zero_post_flat.size else 0.0,
+                postquery_displacement_max_abs=float(zero_disp_flat.max()) if zero_disp_flat.size else 0.0,
+                postquery_displacement_p95_abs=float(np.quantile(zero_disp_flat, .95)) if zero_disp_flat.size else 0.0)
+            candidate_effect[key] = {}
+            for env_index, name in ((2, 'positive'), (3, 'negative')):
+                query_offset = value[query, env_index] - value[query, 0]
+                raw = value[query + 1:effect_stop, env_index] - value[query + 1:effect_stop, 0]
+                incremental = ((value[query + 1:effect_stop, env_index] - value[query, env_index])
+                               - (value[query + 1:effect_stop, 0] - value[query, 0]))
+                effect_vs_zero = incremental - zero_displacement
+                raw_flat = np.abs(raw).reshape(-1); inc_flat = np.abs(incremental).reshape(-1)
+                effect_flat = np.abs(effect_vs_zero).reshape(-1)
+                inc_max = float(inc_flat.max()) if inc_flat.size else 0.0
+                candidate_effect[key][name] = dict(
+                    raw_max_abs=float(raw_flat.max()) if raw_flat.size else 0.0,
+                    incremental_max_abs=inc_max,
+                    incremental_p95_abs=float(np.quantile(inc_flat, .95)) if inc_flat.size else 0.0,
+                    effect_vs_zero_max_abs=float(effect_flat.max()) if effect_flat.size else 0.0,
+                    effect_vs_zero_p95_abs=float(np.quantile(effect_flat, .95)) if effect_flat.size else 0.0,
+                    effect_vs_zero_to_prequery_max_ratio=(float(effect_flat.max()) / zero_max if zero_max > 0 else None),
+                    effect_vs_zero_to_prequery_p95_ratio=(float(np.quantile(effect_flat, .95)) / zero_p95 if zero_p95 > 0 else None),
+                    effect_vs_zero_to_postquery_displacement_max_ratio=(float(effect_flat.max()) / zero_noise[key]['postquery_displacement_max_abs']
+                        if zero_noise[key]['postquery_displacement_max_abs'] > 0 else None),
+                    effect_vs_zero_to_postquery_displacement_p95_ratio=(float(np.quantile(effect_flat, .95)) / zero_noise[key]['postquery_displacement_p95_abs']
+                        if zero_noise[key]['postquery_displacement_p95_abs'] > 0 else None),
+                    query_offset_max_abs=float(np.abs(query_offset).max()) if np.size(query_offset) else 0.0)
+        action_calibration = {}
+        for env_index, name in ((2, 'positive'), (3, 'negative')):
+            delta = packets['actions'][query:effect_stop, env_index].astype(np.float64) - packets['actions'][query:effect_stop, 0]
+            delta_abs = np.abs(delta).reshape(-1)
+            step_delta = np.abs(delta).max(axis=-1)
+            action_calibration[name] = dict(max_abs=float(delta_abs.max()), p95_abs=float(np.quantile(delta_abs, .95)),
+                                            nonzero_steps=int(np.count_nonzero(step_delta > 1e-7)),
+                                            nonzero_elements=int(np.count_nonzero(delta_abs > 1e-7)))
         packet=dict(**packets, seed=a.seed, query_tick=query, candidate_roles=['baseline','zero_repeat','positive','negative'],
-            candidate_plan_semantics='baseline/zero/positive/negative; positive and negative fork at tick48 for24 steps',
+            candidate_plan_semantics='baseline/zero/positive/negative; env0 actor control is broadcast to all envs, then positive/negative fork at tick48 for24 steps',
+            group_mode='synchronous_same_process_noise_calibration',
             replay_identity=identity, canonical_state_keys=state_keys, actor_inference_batch=count * 64,
             engineering_only=True, group_envs=count, group_prefix_exact=(not mismatches),
             control_prefix_exact=bool(np.array_equal(packets['actions'][:,0], packets['actions'][:,1])
                                       and np.array_equal(packets['done'][:,0], packets['done'][:,1])),
             exact_fields=exact_keys,
+            rng_semantics='one process-global RNG trace shared by all envs; zero-pair calibration is state/observation based',
+            calibration_window=dict(zero_prequery_ticks=[0, query], candidate_postquery_ticks=[query + 1, effect_stop - 1]),
+            zero_noise_calibration=zero_noise, candidate_effect_calibration=candidate_effect,
+            action_calibration=action_calibration,
             baseline_outcome=outcome, baseline_max_lift_m=float(np.max(packets['object_pose'][:,0,2,3] - packets['object_pose'][0,0,2,3])),
             zero_repeat_max_lift_m=float(np.max(packets['object_pose'][:,1,2,3] - packets['object_pose'][0,1,2,3])),
+            initial_semantic_gap=initial_semantic_gap,
+            initial_semantic_exact=initial_semantic_exact,
+            env_origins=origin_np.tolist(),
             source_backend=actual_backend)
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop, group_envs=count,
             baseline_zero_exact=not mismatches, mismatches=mismatches, engineering_only=True,
             elapsed_s=time.monotonic() - started, peak_allocated_bytes=torch.cuda.max_memory_allocated(), outcome=outcome,
-            baseline_max_lift_m=packet['baseline_max_lift_m']))
+            baseline_max_lift_m=packet['baseline_max_lift_m'], zero_noise_calibration=zero_noise,
+            candidate_effect_calibration=candidate_effect, action_calibration=action_calibration,
+            initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact))
 
     class GatePlayer(base):
         def restore(self, filename):
@@ -521,7 +633,7 @@ def main():
     p.add_argument('--finish', action='store_true')
     p.add_argument('--engineering-steps', type=int, default=0, help='native worker only: bounded diagnostic baseline, never GT scoring')
     p.add_argument('--engineering-group-envs', type=int, default=0,
-                   help='native worker only: synchronous host group (baseline/zero/+/-), never GT scoring')
+                   help='native worker only: synchronous same-process group (baseline/zero/+/-), never GT scoring')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--score-inputs', type=Path, nargs='+')
     p.add_argument('--score-output', type=Path)
@@ -534,14 +646,23 @@ def main():
         setattr(a, name, getattr(a, name).resolve())
         if not is_within(getattr(a, name), ROOT / 'outputs/consequence-evaluator'):
             p.error('all inputs/outputs must be task-owned')
+    for name in ('worker_output', 'prefix', 'score_output'):
+        value = getattr(a, name, None)
+        if value is not None:
+            value = value.resolve()
+            if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
+                p.error('all optional outputs/inputs must be task-owned')
+            setattr(a, name, value)
     if not 0 <= a.gpu <= 7 or not 1 <= a.episodes <= 4 or not 30 <= a.seconds <= 900:
         p.error('bounded one-GPU/<=4episode/<=900s Probe required')
     if a.engineering_steps and (not a.worker or not a.finish or not 24 <= a.engineering_steps <= 542):
         p.error('engineering step cap requires native baseline worker and24..542steps')
-    if a.engineering_group_envs and (not a.worker or not a.finish or not 2 <= a.engineering_group_envs <= 96):
-        p.error('engineering group requires native baseline worker and2..96 environments')
+    if a.engineering_group_envs and (not a.worker or not a.finish or not 4 <= a.engineering_group_envs <= 96):
+        p.error('engineering group requires native baseline worker and4..96 environments')
     if a.engineering_group_envs and not a.engineering_steps:
         p.error('engineering group requires an explicit bounded --engineering-steps value')
+    if a.engineering_group_envs and a.engineering_steps < 72:
+        p.error('engineering group requires at least query tick48 plus24 candidate steps')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
     if a.worker:
