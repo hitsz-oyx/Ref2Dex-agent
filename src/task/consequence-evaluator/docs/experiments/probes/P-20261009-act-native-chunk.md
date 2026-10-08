@@ -440,3 +440,29 @@ This launch crossed the predeclared stop line (`tick72` lift below `0.20 m`),
 so no second 8-env launch or 542-step group panel was run. The group expansion
 is closed; the result is engineering evidence only and does not enter strict
 Gate1, evaluator training, or PointWorld.
+
+## Serial frozen-control cluster decision note
+
+The first serial 72-step follow-up (r32) reached `0.2724 m` teacher lift, above
+the `0.20 m` short-window screen. Its five-arm packet still showed exact
+geometric zero-pair replay through the query window, while exposed contact
+buffers and history diverged. This separates a useful frozen action stream from
+the hidden-state problem, but does not establish same-state twins.
+
+Commit `8f935b8` therefore adds one bounded cluster Probe. A reactive teacher
+first produces the executed `[72,18]` stream. One process then resets and
+replays the stream in the fixed order
+`frozen_zero_1, positive_1, frozen_zero_2, negative_1, frozen_zero_3,
+negative_2, frozen_zero_4, positive_2, frozen_zero_5`. Zero arms replay all
+teacher actions; candidates use the clipped residual only at ticks 48--71.
+The teacher is stored separately and is never treated as a counterfactual zero.
+The packet and audit remain engineering-only; they report descriptive zero-pair
+noise and candidate-versus-zero effects without treating arms as independent
+samples or calling `choose_candidate`.
+
+The hard stops are teacher lift below `0.20 m`, failed reset/action/provenance
+contracts, mechanical zero noise above the existing field thresholds, or no
+repeat-consistent candidate effect reaching roughly `2x` the zero floor on a
+primary mechanical field. A pass would justify at most one additional launch
+cluster for launch-level evidence; it would not open strict Gate1, evaluator
+training, PointWorld, or a reference/Y/policy change.

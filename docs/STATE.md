@@ -1230,3 +1230,25 @@ object displacement p95 约 `0.200m`，candidate effect 未形成稳定 margin�
 因为单次短窗口已低于预设 `0.20m` 筛查线，按停止条件不再跑第二个 8-env launch，关闭
 group 扩展；r31 及其 audit 仅保留 engineering evidence，下一步回到 serial
 frozen-control/launch-level statistical design 的决策，不进入 formal Gate1/evaluator。
+
+group 关闭后的下一步 Decision Note：为区分“group solver 退化”和“固定控制下候选
+标签本身无信号”，再做一个单进程 serial 72-step frozen-control Probe。该 Probe
+只记录 baseline executed stream，随后重放同一 prefix 到 tick48 并运行两个 zero
+repeat 与 ±candidate 到 tick72；它不评估完整 hold/place，不进入 strict scorer。
+若 serial 的 zero Y 仍一致且候选选择稳定为 baseline，近期停止继续仿真，保留
+strict Gate1 blocker；若选择不稳定，则只记录为 execution-noise evidence，不把它
+升级成 utility 结论。
+
+在 r32 结果出来后，新增一次且仅一次的 serial-cluster Decision Note。r32 的
+reactive teacher 在 72 步内抬升约 `0.272m`，超过 `0.20m` 短窗口线；两个 frozen
+zero 的 object/hand/q/dq/velocity 几何字段仍 exact，但 contact/history 继续漂移。
+因此下一 Probe 使用 native `gpu_physx_gpu_pipeline` 的同进程单 env，先运行一个
+`reactive_teacher` 保存 executed action stream，再按固定交错顺序重放
+`frozen_zero_1..5`、`positive_1..2`、`negative_1..2` 到 tick72。候选只在
+tick48--71 使用 `clip(teacher_action + residual)`，zero 臂全程重放 teacher
+action；teacher 不作为 counterfactual zero。审计只报告 paired noise、机械字段与
+contact/history 分层结果以及描述性 TCC/Y 对比，不计算置信区间、p 值或选择器结果。
+若 teacher lift <`0.20m`、action/reset 合同失败、机械 zero noise 超预设阈值，或
+两类 candidate 没有任一重复在主要机械字段达到约 `2x` zero floor，则关闭这条
+统计工程路线。无论结果如何，packet 保持 `engineering_only`，不进入 strict
+Gate1/evaluator/PointWorld，不修改 reference bank、Y 或 policy。
