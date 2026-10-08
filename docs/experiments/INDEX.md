@@ -41,6 +41,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | Three roles pass the operational gate (airplane_base36/64, duck8/64, cup63/64); mixed12/train5/balanced5 remain weak at 0/5/4. A six-hash ob | Freeze the six endpoint hashes and preserve weak-role runs as observational candidates; do not append unbounded specialist epochs. Keep eval | probes/PROMISING |
 
+## HF-consequence-gate1-gt-progress
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-gate1-gt-progress](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md) | Does causal physical-reference GT value improve real rolling control? | Protocol and runner implemented; real native replay checks pending. | Run bounded early-contact Gate1 Probe using the owned self-trained actor. | probes/PLANNED |
+
 ## HF-consequence-official-generator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

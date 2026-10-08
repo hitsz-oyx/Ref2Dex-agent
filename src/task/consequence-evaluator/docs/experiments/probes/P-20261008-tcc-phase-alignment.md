@@ -27,7 +27,7 @@ placing phase ambiguity before using local Y to select candidates.
 ## Decision Note
 
 Purpose is to support user ref4_1's causal24step delta-progress labels and the
-[full chain](../../user/完整链路.md) Gate1, which directly uses GT futures for
+[full chain](../../../../../../docs/user/完整链路.md) Gate1, which directly uses GT futures for
 same-state candidate selection before an evaluator exists. The core Mission
 claim and original reference remain fixed. User confirmed that final stable
 grasp/normal placing counts as success even after recovery; intermediate loss
