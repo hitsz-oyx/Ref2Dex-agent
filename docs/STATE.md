@@ -137,6 +137,19 @@ policy weights。完整packet见
 `outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r17/`和
 `...-r18/`，实现提交为`429d9ff`（common-pair p95为`e4a97d6`）。
 
+按用户建议再做了当前代码下的4-env复核：r19原生GPU group完整542步恢复了行为，
+env0达到0.8262m、held481，behavior gate通过；但env0/env1 query前p95在hand、
+q位置、q速度和object velocity仍超过robust阈值。用r19 prefix和tick48--71
+recorded nominal chunk做candidate r21时，fresh72-step nominal只达到0.2607m/held11，
+behavior gate未评估且`candidate_calibration_valid=false`。positive/negative相对
+selected zero displacement的p95比值在object pose为2.52/1.10、hand为2.06/1.33、
+q位置为5.20/1.72，但q速度为1.07/0.79、history为1.14/0.69，contact也低于1，
+effect margin gate失败。结论是4-env process可以保留full reactive behavior，但不能
+把fresh candidate window当成稳定nominal或GT候选证据；下一步若继续，只补齐所有zero
+role的post-query displacement分布，或改造replay contract。r19/r21 packet分别在
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r19/`和
+`...-r21/`，仍不跑正式Gate1或evaluator fit。
+
 ## 2026-10-08 ref4_2 成功机器人 reference bank
 
 用户ref4_2明确替换原始运动作为唯一value时间轴的选择，先用已有source230成功

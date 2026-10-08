@@ -192,3 +192,32 @@ This keeps the native GPU group as an engineering container, but closes the
 16-env candidate interpretation for this launch. No formal Gate1, GT scoring,
 evaluator fitting, Y/reference-bank change, or policy-weight change follows
 from r17/r18.
+
+## Four-env behavior and candidate follow-up
+
+The original four-env GPU group was rechecked after the pair-selection and
+audit-metadata changes. In r19 the env0 nominal reached `0.8262 m`, held 481
+frames, and passed the full native behavior gate; this keeps the four-env GPU
+process as a usable behavior container. The env0/env1 pair still had
+pre-query p95 drift above the declared robust tolerances for hand/q/velocity,
+so behavior parity did not become a same-state contract.
+
+Using r19's tick0--47 prefix and its recorded nominal tick48--71 chunk, r21
+ran the four-env candidate window with the selected zero pair env0/env1. The
+nominal role reached only `0.2607 m`/11 frames in this fresh 72-step process;
+the behavior gate was therefore unevaluated and `candidate_calibration_valid`
+was false. Candidate-vs-zero post-query p95 ratios were positive/negative
+`2.52/1.10` for object pose, `2.06/1.33` for hand points, and `5.20/1.72`
+for joint position, but only `1.07/0.79` for joint velocity and `1.14/0.69`
+for history; contact ratios were also below one for both arms. The effect
+margin gate failed, so r21 remains an engineering noise probe rather than
+candidate value evidence. Packets are in
+`outputs/consequence-evaluator/gate1-gpu-group-engineering-20261009-r19/` and
+`...-r21/`.
+
+The native GPU group can preserve the reactive behavior in a successful
+four-env launch, but the same prefix/chunk does not provide a stable nominal
+candidate window across fresh processes. The next implementation step is to
+record post-query zero displacement for every zero role and compare each arm
+against that distribution, or redesign the replay contract; formal Gate1 and
+evaluator fitting remain stopped.
