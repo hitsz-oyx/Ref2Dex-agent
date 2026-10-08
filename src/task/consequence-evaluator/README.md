@@ -15,6 +15,13 @@
 [value标签准备](tools/run/label_value_outcomes.py)，K/K_exec均为24；它们使用独立
 value schema。以下旧H匹配局部偏好管线继续作为独立验证合同，不读取新schema。
 
+[固定dose采集](docs/experiments/probes/P-20261008-value-dose-calibration.md)现已完成
+192episode：train41/23、val38/26、test36/28（成功/失败），11904窗口/768偏好。
+同H官方/自训策略误差只用train来源估计；新采样请求残差上限0.5需显式bank与
+`--residual-bound0.5`匹配，实际原生控制仍[-1,1]、平移仍0.05。0.2默认和旧合同保留。
+机械覆盖通过，尚未fit；“失抓后恢复并正常放回”的S语义正向用户确认，原标签不改。
+[数值复核和训练样例图](tools/audit/audit_value_outcomes.py)供人工弱标签检查。
+
 第一阶段固定 `K=24`、`K_exec=8`，H 沿用采集策略当前观测/历史的原始合同。
 先采连续六专家 rollout，单次24步平滑扰动后让专家继续到 episode 结束；不 fork。
 比较 `E0(H,δ)`、`Eoracle-E(H,δ,Z_object)` 和 `Eoracle-EI(H,δ,Z_object,Z_interaction)`。

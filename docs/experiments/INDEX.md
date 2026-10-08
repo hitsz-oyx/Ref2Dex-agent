@@ -64,7 +64,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261008-value-dose-calibration](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-dose-calibration.md) | Can larger native-bounded residual doses support outcome learning? | Pending fixed64train episode dose calibration. | Separately calibrate requested dose after0.2error replay failed | probes/RUNNING |
+| [P-20261008-value-dose-calibration](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-dose-calibration.md) | Can larger native-bounded residual doses support outcome learning? | Completed192episodes, class counts41/23train,38/26val,36/28test, | Separately calibrate requested dose after0.2error replay failed | probes/PROMISING |
 
 ## HF-consequence-value-interventions
 

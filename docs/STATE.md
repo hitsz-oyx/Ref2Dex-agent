@@ -24,6 +24,17 @@ H匹配验证合同；只有train seed230且负例不足，labeled `training_all
 Probe，再考虑独立held-out seed组，不能用nominal零计划声称动作收益。
 记录：[完整参考value数据Pilot](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-full-reference-value-data.md)。
 
+后续已完成经验placing、同H策略误差holding/contact及0.5dose采集。0.2contact
+三组59/5、64/0、63/1，独立负例不足，原样保留且未fit。新的固定0.5dose（平移仍
+0.05，原生实际控制仍[-1,1]）在98ceb76完成192条完整episode：train41/23、val38/26、
+test36/28；11904窗口/768偏好、来源组261/262/263互斥，机械数据门槛通过。
+官方/自训同H动作投影复现最大误差5.96e-7；所有96计划真实触发，实际命令符合
+裁剪后请求，逐episode物理标签重算通过。输出约421MiB raw+69MiB窗口，GPU2释放。
+仅生成数据，旧local-event trainer仍不接受新schema。样例出现“中途失抓后恢复放回”
+的语义边界，已向用户提问，当前S会判失败；原标签保留，未启动evaluator fit。
+下一步明确该恢复成功定义，再适配success/progress/preference训练入口并跑小Probe。
+记录：[value强度校准](../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-dose-calibration.md)。
+
 ## 2026-10-08 HOCap 外部测试数据获取
 
 用户指定 HOCap 为外部测试候选。官方 Box 的 calibration/models/poses 三包已下载，
