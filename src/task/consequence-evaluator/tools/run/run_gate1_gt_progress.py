@@ -743,12 +743,14 @@ def native_worker(a):
                              for index in range(count)}))
 
     def engineering_serial_replay_run(player, task):
-        """Replay baseline, two zero repeats, and two candidates sequentially after reset.
+        """Replay frozen controls after one reactive teacher run.
 
         This is an engineering diagnostic for reset/cache repeatability.  It
         deliberately does not claim a fresh-simulator twin: PhysX solver
         caches are not serializable and the simulator frame counter remains
-        process-local across resets.
+        process-local across resets.  The optional cluster schedule keeps the
+        reactive teacher separate from frozen zero and candidate arms so its
+        policy-driven trajectory is never used as a counterfactual zero.
         """
         if backend.name != 'gpu_physx_gpu_pipeline':
             raise ValueError('serial replay is defined only for native GPU PhysX/GPU pipeline')
@@ -918,20 +920,34 @@ def native_worker(a):
             packet['outcome'] = episode_outcome(packet)
             return packet
 
-        baseline = run_episode('baseline')
+        teacher_role = 'reactive_teacher' if a.engineering_serial_cluster else 'baseline'
+        baseline = run_episode(teacher_role)
         baseline_actions = baseline['actions'].copy()
-        arm_specs = ([('zero_repeat_1', None), ('zero_repeat_2', None),
-                      ('positive', 1), ('negative', 2)]
-                     if a.engineering_serial_order == 'zero-first' else
-                     [('positive', 1), ('negative', 2),
-                      ('zero_repeat_1', None), ('zero_repeat_2', None)])
+        if a.engineering_serial_cluster:
+            # The teacher is a behavior screen and action-stream source.  All
+            # subsequent arms replay that exact stream; candidate arms modify
+            # only the query window.  Interleaving reduces a simple warm-cache
+            # confound without pretending that reset restores hidden PhysX state.
+            arm_specs = [('frozen_zero_1', None), ('positive_1', 1),
+                         ('frozen_zero_2', None), ('negative_1', 2),
+                         ('frozen_zero_3', None), ('negative_2', 2),
+                         ('frozen_zero_4', None), ('positive_2', 1),
+                         ('frozen_zero_5', None)]
+        else:
+            arm_specs = ([('zero_repeat_1', None), ('zero_repeat_2', None),
+                          ('positive', 1), ('negative', 2)]
+                         if a.engineering_serial_order == 'zero-first' else
+                         [('positive', 1), ('negative', 2),
+                          ('zero_repeat_1', None), ('zero_repeat_2', None)])
         repeats = [run_episode(name, baseline_actions, candidate) for name, candidate in arm_specs]
         execution_packets = [baseline] + repeats
         execution_order = [packet['role'] for packet in execution_packets]
         for execution_index, packet in enumerate(execution_packets):
             packet['execution_index'] = execution_index
         by_role = {packet['role']: packet for packet in execution_packets}
-        canonical_roles = ['baseline', 'zero_repeat_1', 'zero_repeat_2', 'positive', 'negative']
+        canonical_roles = (['reactive_teacher'] + [name for name, _ in arm_specs]
+                           if a.engineering_serial_cluster else
+                           ['baseline', 'zero_repeat_1', 'zero_repeat_2', 'positive', 'negative'])
         all_packets = [by_role[role] for role in canonical_roles]
         reset_reference = baseline['reset_state']
         reset_diagnostics = []
@@ -965,7 +981,12 @@ def native_worker(a):
                         first = dict(tick=tick, field=key, max_abs=value)
             return dict(first_divergence=first, max_abs_by_field=max_by_key,
                         exact=first is None)
-        zero1, zero2 = by_role['zero_repeat_1'], by_role['zero_repeat_2']
+        zero_roles = ([name for name, candidate in arm_specs if candidate is None]
+                      if a.engineering_serial_cluster else
+                      ['zero_repeat_1', 'zero_repeat_2'])
+        candidate_roles = ([name for name, candidate in arm_specs if candidate is not None]
+                           if a.engineering_serial_cluster else ['positive', 'negative'])
+        zero1, zero2 = by_role[zero_roles[0]], by_role[zero_roles[1]]
         repeat_mismatch = []
         for key in fields + ('actions', 'done'):
             if not np.array_equal(baseline[key], zero1[key]):
@@ -985,24 +1006,36 @@ def native_worker(a):
                         l2=float(np.linalg.norm(delta)),
                         first_nonzero_tick=None if len(nonzero) == 0 else int(nonzero[0]))
         candidate_deltas = {packet['role']: action_delta_summary(packet) for packet in all_packets}
-        result = dict(schema='ref2dex.consequence-gate1.gpu-serial-replay.v1', engineering_only=True,
-                      training_allowed=False, serial_replay=True, group_mode='same_process_same_env_reset',
+        schema = ('ref2dex.consequence-gate1.gpu-serial-cluster.v1'
+                  if a.engineering_serial_cluster else
+                  'ref2dex.consequence-gate1.gpu-serial-replay.v1')
+        result = dict(schema=schema, engineering_only=True,
+                      training_allowed=False, serial_replay=True,
+                      serial_cluster=bool(a.engineering_serial_cluster),
+                      group_mode=('same_process_same_env_reset_frozen_control_cluster'
+                                  if a.engineering_serial_cluster else 'same_process_same_env_reset'),
                       roles=canonical_roles, execution_order=execution_order, group_envs=1,
                       query_tick=query, horizon=horizon, steps=stop, seed=a.seed,
+                      outcome_complete=bool(stop >= 542),
                       source_backend=actual_backend, replay_identity=identity,
                       reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
                       zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
                       baseline_repeat_rng_exact=baseline['rng_hashes'] == zero1['rng_hashes'],
-                      serial_arm_order=a.engineering_serial_order,
+                      serial_arm_order=None if a.engineering_serial_cluster else a.engineering_serial_order,
                       control_prefix_exact=control_prefix_exact,
                       candidate_plan_sha256={str(candidate): fingerprint(candidate_plan(candidate)) for candidate in (0, 1, 2)},
                       candidate_actual_action_delta=candidate_deltas,
                       baseline_outcome=baseline['outcome'], role_outcomes={p['role']: p['outcome'] for p in all_packets},
-                      candidate_effect='candidate residuals applied to recorded baseline controls at tick48 for24 steps',
+                      teacher_role=teacher_role, zero_roles=zero_roles, candidate_roles=candidate_roles,
+                      replay_source='reactive_teacher_executed_actions' if a.engineering_serial_cluster else 'baseline_executed_actions',
+                      teacher_action_sha256=fingerprint(baseline_actions),
+                      schedule_sha256=fingerprint(execution_order),
+                      candidate_effect='candidate residuals applied to recorded teacher controls at tick48 for24 steps',
                       note='engineering reset/cache diagnostic; serial reset is not a fresh-simulator twin')
         def requested_trace(role):
             trace = np.zeros_like(baseline['actions'])
-            candidate = {'positive': 1, 'negative': 2}.get(role)
+            candidate = (1 if role.startswith('positive') else
+                         2 if role.startswith('negative') else None)
             if candidate is not None:
                 trace[query:query + horizon] = candidate_plan(candidate)
             return trace
@@ -1015,10 +1048,17 @@ def native_worker(a):
                       requested_residual=np.stack([requested_trace(p['role']) for p in all_packets]),
                       roles=result['roles'], query_tick=query, horizon=horizon, steps=stop,
                       seed=a.seed, source_backend=actual_backend, replay_identity=identity,
+                      outcome_complete=bool(stop >= 542),
+                      serial_cluster=bool(a.engineering_serial_cluster),
+                      group_mode=result['group_mode'],
                       reset_diagnostics=reset_diagnostics, baseline_repeat_mismatches=repeat_mismatch,
                       zero_repeat_state_diff=state_diff, zero_pair_state_diff=zero2_diff,
                       control_prefix_exact=control_prefix_exact,
-                      serial_arm_order=a.engineering_serial_order, execution_order=execution_order,
+                      serial_arm_order=None if a.engineering_serial_cluster else a.engineering_serial_order,
+                      execution_order=execution_order, teacher_role=teacher_role,
+                      zero_roles=zero_roles, candidate_roles=candidate_roles,
+                      replay_source=result['replay_source'], schedule_sha256=result['schedule_sha256'],
+                      teacher_action_sha256=result['teacher_action_sha256'],
                       role_outcomes=result['role_outcomes'])
         save(a.worker_output, packet)
         write(a.worker_output.with_suffix('.json'), result)
@@ -1041,7 +1081,7 @@ def native_worker(a):
             if fingerprint(self.model.state_dict()) != self._gate_restored_model_hash:
                 raise ValueError('actor weights changed after checkpoint restore')
             task = self.env.task
-            if a.engineering_serial_replay:
+            if a.engineering_serial_replay or a.engineering_serial_cluster:
                 engineering_serial_replay_run(self, task)
                 return
             if a.engineering_group_envs:
@@ -1255,6 +1295,8 @@ def main():
                    help='engineering group only: fixed actor copies per env (4x64 is the legacy 256-row contract)')
     p.add_argument('--engineering-serial-replay', action='store_true',
                    help='native worker only: same-process one-env reset/replay diagnostic, never GT scoring')
+    p.add_argument('--engineering-serial-cluster', action='store_true',
+                   help='native worker only: teacher plus interleaved frozen-control serial cluster, never GT scoring')
     p.add_argument('--engineering-serial-order', choices=('zero-first', 'candidate-first'), default='zero-first',
                    help='serial replay arm order after baseline; candidate-first is a warm-cache order probe')
     p.add_argument('--zero-env-pair', type=int, nargs=2, default=(0, 1), metavar=('LEFT', 'RIGHT'),
@@ -1307,6 +1349,11 @@ def main():
         p.error('serial replay requires a native worker without a synchronous group')
     if a.engineering_serial_replay and (a.engineering_steps < 72 or a.engineering_steps > 542):
         p.error('serial replay requires query tick48 plus24 steps and <=542 steps')
+    if a.engineering_serial_cluster and (a.engineering_serial_replay or not a.worker or not a.finish
+                                        or a.engineering_group_envs):
+        p.error('serial cluster requires a native worker without group or serial replay mode')
+    if a.engineering_serial_cluster and (a.engineering_steps < 72 or a.engineering_steps > 542):
+        p.error('serial cluster requires query tick48 plus24 steps and <=542 steps')
     if a.engineering_group_envs and not a.engineering_steps:
         p.error('engineering group requires an explicit bounded --engineering-steps value')
     if a.engineering_group_envs and a.engineering_steps < 72:
