@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-native-chunk
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: c45d4a4
+git_commit: bf96546
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [282]
 decision_changed_if_positive: run a native GPU open-loop chunk behavior screen before returning to GT candidate ranking
 decision_changed_if_negative: keep the reactive policy as the only behavior baseline and defer PointWorld/chunk candidates
 status: UNCLEAR
-run_id: gate1-gpu-group-engineering-20261009-r27
+run_id: gate1-gpu-serial-engineering-20261009-r29
 ---
 
 # Does a one-shot native 24-step proposal have a usable behavior contract?
@@ -314,3 +314,65 @@ chose the negative residual (`+0.019965` over baseline), whereas r19 and r21
 both selected baseline after their zero-repeat role won the raw argmax. Because
 all three packets violate the strict same-state contract, this choice flip is
 evidence of execution sensitivity, not a GT-value or utility result.
+
+## Same-process serial reset/replay follow-up
+
+### Decision Note
+
+The current decision was whether a single native GPU simulator could provide a
+cheaper paired execution contract by resetting one environment in place and
+replaying the recorded executed controls. The key evidence was that fresh
+GPU-process group behavior varied from full grasp to near-zero lift, while the
+strict same-state requirement rejected even small contact-stage drift. I ran one
+bounded engineering Probe at seed 282 with five serial arms (baseline, two zero
+repeats, and positive/negative residuals), keeping the original GPU PhysX/GPU
+tensor pipeline and the 542-step behavior screen. A failure would close serial
+reset as a useful engineering container; a successful behavior/zero-geometry
+replay would retain it for field-specific noise calibration. No formal Gate1 or
+external resource boundary was involved.
+
+The implementation was run at commit `bf96546` (the current serial worker also
+guards this mode to `gpu_physx_gpu_pipeline` in `11fd62d`). The raw packet is
+`outputs/consequence-evaluator/gate1-gpu-serial-engineering-20261009-r29/serial.pkl`.
+The derived, read-only diagnostics are
+`serial-noise-audit.json` and `serial-gt-value-audit.json` in the same
+directory. Both are engineering artifacts and are rejected by the strict score
+worker.
+
+The native GPU baseline reached `0.8241 m` maximum lift and held 484 frames;
+both fixed-control zero repeats produced the same held/lift outcome and the
+same action stream. Positive and negative residual arms reached `0.7971 m` /
+485 frames and `0.6489 m` / 310 frames respectively. These outcome numbers are
+behavior diagnostics only; all five arms failed the terminal settle criterion,
+so they do not form a success claim. The reset setter did not advance the
+absolute simulator frame (`0`, `1084`, `2168`, `3252`, `4336` before and after
+the five resets), and the visible RNG streams were restored to the same reset
+anchor for every arm.
+
+The zero pair was exact over the recorded geometric execution fields: object
+pose, hand points, surface/support gaps, table footprint, q position/q velocity,
+and object velocity all had zero post-query p95 displacement. The exposed
+contact buffers did not match: zero-pair post-query p95 was `15.82` for hand
+contact force and `17.15` for object contact force. The task observation/history
+buffers also differed immediately after reset (the first state trace difference
+was stale `_curr_obs` at tick 0; history zero-pair p95 was `2.0`). The native
+root/dof/rigid-body state views remained equal, but these measurements do not
+cover PhysX warm-start, contact-manifold, or island caches. The baseline versus
+zero RNG trace also includes the actor-inference RNG consumption; the two
+fixed-control zero arms share the reset anchor and are the relevant pair.
+
+The frozen physical-bank/TCC audit assigned identical `Y=0.0411695` to
+baseline and both zero repeats. Positive and negative residuals scored
+`-0.0145127` and `0.0044708`, respectively; the deadzone selector chose
+baseline and the progress-start range was exactly zero. This is a useful
+label-contract diagnostic, not a Gate1 utility result: contact/history state is
+not a strict twin and only one serial launch was run.
+
+The serial route is therefore retained as an engineering harness for frozen
+control and field-specific noise measurements, with baseline behavior preserved
+in this Probe. It does not satisfy the strict same-state Gate1 contract and
+cannot justify reactive-policy candidate ranking. The next route must either
+fork/restore the hidden PhysX contact state or use a predeclared repeated
+same-process statistical design that treats contact/history as noise; reference
+bank, Y labels, evaluator training, PointWorld, and policy weights remain
+unchanged.

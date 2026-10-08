@@ -1161,3 +1161,31 @@ action 仍核对 18 维；RNN 必须使用显式 `is_rnn/state` sentinel；Pytho
 自动冻结 direct tensor、scalar 和 Enum（包括 `_state_init`）inventory，并提供 CPU/GPU
 Torch RNG restore helper。Task tests 为 114 passed，compileall 与 diff-check 通过。当前仍没有 native branch runner
 和真实 twin branch 数据，不能把合同测试当作 twin coverage 或 evaluator 科学证据。
+
+## 2026-10-09 native GPU serial reset/replay Probe
+
+为区分“GPU fresh process 行为不稳定”和“同一 simulator 内固定控制能否配对”，新增
+`engineering_serial_replay` worker（实现提交 `bf96546`；随后在 `11fd62d` 中强制该
+模式只能使用 `gpu_physx_gpu_pipeline`）。在 seed282、原生 GPU PhysX/GPU pipeline、
+单环境、同一进程内依次 reset 五个 arms：baseline、zero_repeat_1、zero_repeat_2、
+positive、negative；baseline 的执行控制被完整记录，其他 arms 在 tick48--71 重放并
+只给候选加固定 residual。实现通过 `tools/verify.py --changed`、py_compile 和
+consequence-evaluator 171 tests。
+
+r29 baseline 最高抬升 `0.8241 m`、held484；两个 zero replay 轨迹和 outcome 完全相同，
+candidate positive/negative 分别为 `0.7971 m`/485 与 `0.6489 m`/310。每次 reset 前后
+absolute frame 保持不变，reset RNG anchor 相同。object pose、hand points、gap、q/dq
+和 object velocity 的 zero-pair query-relative p95 均为零；但 contact force p95 仍为
+约15.82/17.15，history p95为2.0，首个 task-buffer divergence 是 reset 后 stale
+`_curr_obs`。这些 trace 没有覆盖 PhysX warm-start/contact-manifold/island cache，不能
+称 full-state twin。冻结 physical-bank/TCC 的只读审计给 baseline 与两个 zero 同一
+`Y=0.0411695`，positive/negative 为 `-0.0145127`/`0.0044708`；该结果只说明本次
+固定控制下 label 可复现，不是 Gate1 utility 证据。
+
+因此 serial reset/replay 保留为 frozen-control 的工程噪声校准容器，确认它可以保持
+GPU baseline 行为，但 strict same-state Gate1、reactive-policy candidate ranking、
+evaluator/PointWorld 和正式 utility claim 仍关闭。raw packet、serial noise audit 和
+serial GT-value audit 位于
+`outputs/consequence-evaluator/gate1-gpu-serial-engineering-20261009-r29/`；不修改
+reference bank、Y、policy weights。下一步需要 hidden PhysX state fork/restore，或预先
+声明 field-specific noise 与重复数的 statistical paired design，再决定是否重启 Gate1。
