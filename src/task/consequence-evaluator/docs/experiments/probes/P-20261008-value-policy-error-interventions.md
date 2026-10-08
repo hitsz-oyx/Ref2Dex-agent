@@ -5,7 +5,7 @@ experiment_id: P-20261008-value-policy-error-interventions
 date: 2026-10-08
 task: consequence-evaluator
 branch: main
-git_commit: 8245f53
+git_commit: b3c6d78
 claim_id: C3
 hypothesis_family: HF-consequence-value-interventions
 probe_index_in_family: 2
@@ -13,13 +13,14 @@ seed_pool: probe
 seeds: [236, 237, 238, 246]
 decision_changed_if_positive: prepare a split-disjoint outcome dataset using the frozen learner-error holding sampler
 decision_changed_if_negative: stop this action-error sampler and diagnose action authority or labeling before further collection
-status: RUNNING
+status: UNPROMISING
 run_id: official-value-policy-error-train-20261008-r1
 ---
 
 # Does same-H learner/expert control error supply outcome negatives?
 
-Result: Pending same-H GPU replay check and bounded train collection.
+Result: Same-H replay passed;64episodes completed, clean31/32success and hold
+32/32success. Only one negative, from a nominal episode; coverage gate failed.
 Decision: Continue the authorized data-generation task with a measured policy
 error sampler after the [placing sampler](P-20261008-value-place-interventions.md)
 failed coverage (32clean successes,31/32perturbed successes).
@@ -69,6 +70,23 @@ occupancy/memory and stop on drift, collision, incomplete/nonfinite data or
 exhausted budget. No external writes/checkpoint/environment changes or push.
 
 ## Limitations and future evidence
+
+R1 bank inference completed in4.794s,55.4MiB peak Torch allocations;
+expert replay max error4.768e-7 and learner/expert normalized control RMS0.31373.
+R1 collection completed atb3c6d78/GPU2 in115.779s. All32holding plans triggered
+after45measured held frames. Median requested/actual chunk L2 both1.37289,
+median actual projection0.99999994; maximum hand-object gap during intervention
+3.330mm. The added controls reached physics; the sampled stable grasps persisted.
+Raw: `outputs/consequence-evaluator/official-value-policy-error-train-20261008-r1/`.
+Labels: `outputs/consequence-evaluator/official-value-policy-error-train-labeled-20261008-r1/`;
+9.414s preparation,3776windows,256preferences, `training_allowed=false`.
+No independent val/test expansion or evaluator fit.
+
+Decision: UNPROMISING for this bounded **stable-holding sampler's negative
+coverage**, not for evaluator utility or all DART-inspired perturbations.
+Next smallest discriminator is applying newly measured same-H errors at initial
+geometric contact before stable lifting/holding, without raising residual caps.
+That test addresses whether timing, rather than wiring, is the coverage blocker.
 
 This samples32nominal observations from one train seed/object/reference and
 one weaker frozen learner; it is an empirical policy-error basis, not a fitted

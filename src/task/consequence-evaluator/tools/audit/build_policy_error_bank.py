@@ -29,6 +29,7 @@ def main():
     p.add_argument('--expert',type=Path,required=True);p.add_argument('--expert-sha',required=True)
     p.add_argument('--learner',type=Path,required=True);p.add_argument('--learner-sha',required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,required=True)
+    p.add_argument('--phase',choices=('hold','contact'),default='hold')
     a=p.parse_args();out=a.output.resolve();raw=a.source.resolve();started=time.monotonic()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not is_within(raw,ROOT/'outputs/consequence-evaluator'):
         p.error('task-owned source and fresh bank file required')
@@ -75,14 +76,16 @@ def main():
             frozen[str(path)]=r[key]
         with np.load(files[0],allow_pickle=False) as f:packet={k:f[k] for k in f.files}
         with np.load(files[1],allow_pickle=False) as f:d={k:f[k] for k in f.files}
-        trace=task_trace(packet,d);ticks=np.flatnonzero(trace['held_run']>=PARAMETERS['stable_frames'])
+        trace=task_trace(packet,d)
+        ticks=np.flatnonzero(trace['held_run']>=PARAMETERS['stable_frames'] if a.phase=='hold'
+                             else trace['near']&~trace['held'])
         if not len(ticks):continue
         tick=int(ticks[0])
         if tick+K>=trace['place_start']:continue
         observations.append(packet['history'][tick:tick+K])
         expected.append(packet['action'][tick:tick+K]-d['actual_residual'][tick:tick+K])
-        members.append(dict(episode=r['episode'],source_control_begin=tick,source_control_end=tick+K,phase='hold'))
-    if len(members)!=32:raise ValueError('need32complete geometrically held train observation chunks')
+        members.append(dict(episode=r['episode'],source_control_begin=tick,source_control_end=tick+K,phase=a.phase))
+    if len(members)!=32:raise ValueError('need32complete measured train observation chunks at the requested phase')
     h=torch.as_tensor(np.concatenate(observations),device='cuda',dtype=torch.float32)
     with torch.inference_mode():
         teacher=expert(expert_rms(h)).clamp(-1,1)
@@ -98,7 +101,7 @@ def main():
         path=TASK/'src/consequence_evaluator'/name;frozen[str(path)]=digest(path)
     if any(digest(path)!=value for path,value in frozen.items()):raise ValueError('same-H source drift')
     if time.monotonic()-started>120:raise TimeoutError('fixed120s GPU inference budget')
-    bank=dict(schema=BANK_SCHEMA,phase='hold',source_split='train',source_seed=m['seed'],
+    bank=dict(schema=BANK_SCHEMA,phase=a.phase,source_split='train',source_seed=m['seed'],
         source_actor_sha256=a.expert_sha,learner_sha256=a.learner_sha,sources=frozen,chunks=chunks,members=indices,
         semantics='same-observation learner minus expert normalized control; bounded stage-conditioned empirical replay candidates',
         covariance_fitted=False,causal_failure_direction_established=False,gains=[.25,.5,1.],

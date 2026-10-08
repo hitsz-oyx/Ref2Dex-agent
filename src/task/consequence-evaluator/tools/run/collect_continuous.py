@@ -100,7 +100,7 @@ def main():
     if a.official_generator and a.observation_router_model:
         p.error('official generator requires a fixed controller')
     if a.perturbation_bank and (not a.value_outcomes or not a.official_generator
-                               or a.clean_only or a.target_phase not in ('place','hold')):
+                               or a.clean_only or a.target_phase not in ('place','hold','contact')):
         p.error('empirical bank requires official value mode, bank stage, and clean/intervention allocation')
     if a.target_phase=='place' and not a.perturbation_bank:
         p.error('placing stage requires an empirical perturbation bank')

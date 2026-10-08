@@ -64,8 +64,9 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261008-value-contact-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-contact-interventions.md) | Is initial contact more informative than already stable holding? | Pending first64train episodes. | Both placing and stable-held empirical banks reached physics but | probes/RUNNING |
 | [P-20261008-value-place-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-place-interventions.md) | Can empirical placing deviations supply informative outcome supervision? | Completed64episodes; clean32/32success, placing31/32success. All32plans | The user authorized continuing targeted data collection. Keep the | probes/UNPROMISING |
-| [P-20261008-value-policy-error-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-policy-error-interventions.md) | Does same-H learner/expert control error supply outcome negatives? | Pending same-H GPU replay check and bounded train collection. | Continue the authorized data-generation task with a measured policy | probes/RUNNING |
+| [P-20261008-value-policy-error-interventions](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-value-policy-error-interventions.md) | Does same-H learner/expert control error supply outcome negatives? | Same-H replay passed;64episodes completed, clean31/32success and hold | Continue the authorized data-generation task with a measured policy | probes/UNPROMISING |
 
 ## HF-contact-innovation
 

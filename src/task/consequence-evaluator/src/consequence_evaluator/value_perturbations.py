@@ -31,8 +31,8 @@ def error_chunk(errors, gain=1.):
 
 def sample_bank(bank,count,seed):
     if (bank.get('schema')!=BANK_SCHEMA or bank.get('source_split')!='train'
-            or bank.get('phase') not in ('place','hold')):
-        raise ValueError('train-derived placing/holding candidate bank required')
+            or bank.get('phase') not in ('place','hold','contact')):
+        raise ValueError('train-derived task-stage candidate bank required')
     chunks=np.asarray(bank['chunks'],dtype='float32')
     if (chunks.ndim!=3 or chunks.shape[1:]!=(K,18) or not len(chunks)
             or not np.isfinite(chunks).all() or np.abs(chunks).max()>.2+1e-6
