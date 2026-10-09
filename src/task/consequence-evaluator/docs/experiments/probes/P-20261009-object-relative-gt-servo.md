@@ -242,7 +242,7 @@ for this IsaacGym/controller setup; native net-body-force norm is not the
 calibrated pair contact/joint effort those methods require.
 
 
-r8 at9ae83f3, full542/71.78s: teacher485/world484, late measured fingers
+r8 at9ae83f3, full542/71.67s: teacher485/world484, late measured fingers
 without/with median preload both483, zero clips/loss. At switch120 both
 candidates are lifted .237/.241m with1.15mm surface gap and unsupported.
 Thus r6's failure cannot justify a general claim that measured finger
@@ -262,3 +262,22 @@ explains the wrist negative. If positive, combine post-grasp geometry; if
 negative, keep wrist dynamics as blocker. No future joint-state read for
 the reconstructed wrist, but privileged future geometry/source fingers remain.
 Stop these local launches after12 or if no discriminating hypothesis remains.
+
+
+r9 atba32296, full542/61.07s: teacher292/world483, post-grasp11-point
+wrist inverse without/with velocity compensation both483, zero clips/loss.
+World hand coordinateRMSE20.88/5.14mm, object-local46.79/32.54mm; compensation
+improves tracking here without being necessary for holding. Independent
+wrist reconstruction vs source q: maxposition5.96e-7m, matrix1.97e-6;
+future wrist targets read11-point geometry only after reset calibration.
+
+Decision at11:26UTC: combine post-grasp wrist and fingers, and distinguish
+privileged measured finger q from a true11-point coupled inverse. Build
+a GPU inverse artifact using only future geometry, static FK and reset q.
+Two fixed reset/midrange starts with300 iterations, <=110s and<100MB; select
+by geometry error only, never native outcome/future-q labels. r10 will
+retain source commands before120, compare future measured finger q with
+this geometry-only inverse; both use11-point wrist+.1s velocity feedforward
+after120. If the combo holds, investigate cold contact establishment next;
+if not, identify whether combination or coupled geometric projection breaks
+the independently positive partial controllers. No old R training.

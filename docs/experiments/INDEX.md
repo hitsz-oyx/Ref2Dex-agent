@@ -200,7 +200,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261009-object-relative-gt-servo](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md) | Does transporting GT wrist targets with the live object preserve grasp? | UNCLEAR: diagnostic and execution pending. | Follow user ref7_1 for a two-hour autonomous investigation; retain paused ACT/G/H-to-V/neural-retargeter training. | probes/UNCLEAR |
+| [P-20261009-object-relative-gt-servo](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md) | Does transporting GT wrist targets with the live object preserve grasp? | UNCLEAR overall: bounded source-command transport and post-grasp finger geometry are PROMISING; cold-start geometry control remains blocked. | Follow user ref7_1 for a two-hour autonomous investigation; retain paused ACT/G/H-to-V/neural-retargeter training. | probes/UNCLEAR |
 
 ## HF-old-utility-evaluator
 
