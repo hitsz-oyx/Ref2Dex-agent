@@ -281,3 +281,11 @@ this geometry-only inverse; both use11-point wrist+.1s velocity feedforward
 after120. If the combo holds, investigate cold contact establishment next;
 if not, identify whether combination or coupled geometric projection breaks
 the independently positive partial controllers. No old R training.
+
+
+Geometry-only inverse artifact at e50762c takes12.31s onGPU2 and reaches
+1.078mm coordinateRMSE (thumb tip5.071mm), matching the favorable truth-init
+fit without any future q/action labels. The static coupled-pose mismatch
+therefore persists beyond initialization. Artifact and runtime provenance
+are source/hash/reset/geometry checked. r10 uses the frozen artifact; its
+geometry arm reads no source finger actions/q after the known grasp prefix.
