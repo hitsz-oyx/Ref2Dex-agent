@@ -196,6 +196,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261007-oakink2-wm30-k24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-oakink2-wm30-k24.md) | OakInk2 observational action-conditioned multi-object WM | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-object-relative-gt-servo
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261009-object-relative-gt-servo](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md) | Does transporting GT wrist targets with the live object preserve grasp? | UNCLEAR: diagnostic and execution pending. | Follow user ref7_1 for a two-hour autonomous investigation; retain paused ACT/G/H-to-V/neural-retargeter training. | probes/UNCLEAR |
+
 ## HF-old-utility-evaluator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

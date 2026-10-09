@@ -300,6 +300,10 @@ def native_worker(a):
             from consequence_evaluator.retarget_execution import GTRetargetExecution
             retarget = GTRetargetExecution(a.retargeter_checkpoint, a.retargeter_source,
                                          task, player, identity)
+        elif a.object_relative_source is not None:
+            from consequence_evaluator.object_relative_servo import ObjectRelativeGTExecution
+            retarget = ObjectRelativeGTExecution(a.object_relative_source, task, player,
+                                                identity, a.object_relative_anchor)
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
@@ -331,6 +335,8 @@ def native_worker(a):
         fields = ('object_pose', 'hand_keypoints', 'surface_gap', 'support_gap', 'table_footprint',
                   'dof_position', 'dof_velocity', 'object_velocity', 'history',
                   'native_contact_forces', 'native_object_contact_forces')
+        if a.object_relative_source is not None:
+            fields += ('native_rigid_body_states',)
         rows = {k: [] for k in fields}; actions=[]; ended=[]; hashes=[]; canonical_hashes=[]
         state_field_hashes=[]; canonical_state_field_hashes=[]; rng_hashes=[]
 
@@ -367,6 +373,8 @@ def native_worker(a):
                 history=obs['obs'].cpu().numpy().copy(),
                 native_contact_forces=task._contact_forces.cpu().numpy().copy(),
                 native_object_contact_forces=task._tar_contact_forces.cpu().numpy().copy())
+            if a.object_relative_source is not None:
+                values['native_rigid_body_states'] = task._rigid_body_state.view(count, -1, 13).cpu().numpy().copy()
             for key, value in values.items(): rows[key].append(np.asarray(value).copy())
             state = {key: getattr(task, key).cpu().numpy().copy() for key in state_keys}
             per_state=[]; per_canonical=[]; per_fields=[]; per_canonical_fields=[]
@@ -1736,6 +1744,8 @@ def main():
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
     p.add_argument('--retargeter-checkpoint', type=Path, help='engineering only: GT-hand learned retargeter')
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
+    p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
+    p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
     p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',
@@ -1760,13 +1770,20 @@ def main():
             if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
                 p.error('all optional outputs/inputs must be task-owned')
             setattr(a, name, value)
-    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source'):
+    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source', 'object_relative_source'):
         value = getattr(a, name, None)
         if value is not None:
             value = value.resolve()
             if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
                 p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
             setattr(a, name, value)
+    if a.object_relative_source is not None:
+        if (not a.worker or not a.finish or a.engineering_group_envs != 4
+                or a.engineering_steps != 542 or a.action_chunk_checkpoint is not None
+                or a.action_chunk_replay is not None or a.retargeter_checkpoint is not None
+                or a.retargeter_source is not None or a.prefix is not None
+                or a.native_backend.name != 'gpu_physx_gpu_pipeline'):
+            p.error('object-relative oracle requires native GPU/four roles/full542 and excludes ACT/model/prefix')
     if a.retargeter_checkpoint is not None or a.retargeter_source is not None:
         if (a.retargeter_checkpoint is None or a.retargeter_source is None
                 or not a.worker or not a.finish or a.engineering_group_envs != 4
