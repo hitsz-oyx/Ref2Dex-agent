@@ -75,29 +75,28 @@ def main():
         raise RuntimeError("GPU occupied: " + occupied)
     cfg = json.loads(args.inputs.read_text())
     source = load_source(args.source.resolve())
-    payload = __import__("torch").load(args.checkpoint, map_location="cpu", weights_only=False)
-    if payload.get("schema") != SCHEMA or payload.get("manifest", {}).get("target_contract") != (
-            "captured full native action A_t:t+24, no actor action at inference"):
-        raise ValueError("full-action retarget checkpoint contract mismatch")
-
     scratch = ROOT / "tmp/hand-action-retarget"
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(args.gpu), TMPDIR=str(scratch),
                       TORCH_EXTENSIONS_DIR=str(scratch / "torch-extensions"),
                       TRITON_CACHE_DIR=str(scratch / "triton"), PYTHONDONTWRITEBYTECODE="1",
                       OMP_NUM_THREADS="2")
+    from isaacgym import gymtorch  # noqa: F401  # imports before torch/native modules
     import torch
     if torch.__version__ != "2.4.1+cu121":
         raise ValueError("pinned graspenv runtime required")
     torch.set_num_threads(2); torch.backends.cuda.matmul.allow_tf32 = False
     device = torch.device("cuda:0")
+    payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
+    if payload.get("schema") != SCHEMA or payload.get("manifest", {}).get("target_contract") != (
+            "captured full native action A_t:t+24, no actor action at inference"):
+        raise ValueError("full-action retarget checkpoint contract mismatch")
     model = HandActionRetargeter(payload["width"]).to(device).eval()
     model.load_state_dict(payload["state_dict"], strict=True)
     stats = {key: Standardizer(**value) for key, value in payload["statistics"].items()}
     source_hand = np.asarray(source["hand_keypoints"][:, 0], dtype="float32")
     source_sha = sha(args.source.resolve()); checkpoint_sha = sha(args.checkpoint.resolve())
 
-    from isaacgym import gymtorch  # noqa: F401  # imports before the native evaluator
     import evaluate as native
     from env.tasks.base_dexplore_task import DexploreTask
     from consequence_evaluator.native_reset import install_reset_patch
