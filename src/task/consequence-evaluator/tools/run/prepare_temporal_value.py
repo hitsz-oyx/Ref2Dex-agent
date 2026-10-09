@@ -47,6 +47,10 @@ def main():
             if time.monotonic()-start>120:
                 raise TimeoutError('weak label preparation120s budget')
             name=r['episode']
+            # Provenance also includes ancestor/calibration episodes, which
+            # must be hashed but must not enter this fixed 192-episode split.
+            if name not in old:
+                continue
             if name in outcomes:
                 raise ValueError('duplicate episode')
             with np.load(path.parent/r['path'],allow_pickle=False) as f:
