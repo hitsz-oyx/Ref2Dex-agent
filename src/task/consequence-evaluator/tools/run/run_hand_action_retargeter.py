@@ -86,18 +86,27 @@ def main():
     from isaacgym import gymtorch  # noqa: F401  # imports before torch/native modules
     import torch
     from consequence_evaluator.hand_action_retargeter import (
-        HandActionRetargeter, Standardizer, chunk_offset, trajectory_input)
+        CONTEXT_SCHEMA, HandActionRetargeter, ContextHandActionRetargeter,
+        Standardizer, chunk_offset, hand_object_context, trajectory_input)
     if torch.__version__ != "2.4.1+cu121":
         raise ValueError("pinned graspenv runtime required")
     torch.set_num_threads(2); torch.backends.cuda.matmul.allow_tf32 = False
     device = torch.device("cuda:0")
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-    if payload.get("schema") != SCHEMA or payload.get("manifest", {}).get("target_contract") != (
+    checkpoint_schema = payload.get("schema")
+    if checkpoint_schema not in (SCHEMA, CONTEXT_SCHEMA) or payload.get("manifest", {}).get("target_contract") != (
             "captured full native action A_t:t+24, no actor action at inference"):
         raise ValueError("full-action retarget checkpoint contract mismatch")
-    model = HandActionRetargeter(payload["width"]).to(device).eval()
+    if checkpoint_schema == CONTEXT_SCHEMA:
+        model = ContextHandActionRetargeter(payload["width"]).to(device).eval()
+        required_statistics = {"hand", "state", "context", "action"}
+    else:
+        model = HandActionRetargeter(payload["width"]).to(device).eval()
+        required_statistics = {"hand", "state", "action"}
     model.load_state_dict(payload["state_dict"], strict=True)
     stats = {key: Standardizer(**value) for key, value in payload["statistics"].items()}
+    if set(stats) != required_statistics:
+        raise ValueError("checkpoint statistics do not match model schema")
     source_hand = np.asarray(source["hand_keypoints"][:, 0], dtype="float32")
     source_sha = sha(args.source.resolve()); checkpoint_sha = sha(args.checkpoint.resolve())
 
@@ -143,10 +152,14 @@ def main():
                     seed=args.seed, num_envs=args.envs, physical_gpu=args.gpu, budget_s=args.seconds,
                     source=str(args.source.resolve()), source_sha256=source_sha,
                     checkpoint=str(args.checkpoint.resolve()), checkpoint_sha256=checkpoint_sha,
-                    input_sha256=frozen, query_period=args.query_period,
+                    input_sha256=frozen, query_period=args.query_period, model_schema=checkpoint_schema,
                     roles=["reactive_teacher", "retarget_gt_hand", "retarget_gt_hand_repeat",
                            "retarget_gt_hand_repeat2"],
-                    privileged_input="frozen source teacher future hand geometry; current q,dq and live hand",
+                    privileged_input=("frozen source teacher future hand geometry; current q,dq and live hand"
+                                      if checkpoint_schema == SCHEMA else
+                                      "frozen source teacher future hand geometry; current q,dq, live hand/object and previous command"),
+                    context_contract=(None if checkpoint_schema == SCHEMA else
+                                      "query-time hand points in object frame plus previous native command; zero at tick 0"),
                     claim="GT-hand execution upper-bound Probe; no deployability or Cm claim")
     write(output / "manifest.json", manifest)
 
@@ -167,10 +180,11 @@ def main():
             # geometry may still use the player's CUDA device internally.
             support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
             active = np.ones(n, dtype=bool); lengths = np.zeros(n, dtype=np.int64)
-            actions = []; clips = []; queries = []; chunks = []; inputs = []
+            actions = []; requested_actions = []; clips = []; queries = []; chunks = []; inputs = []
             logs = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                         "table_footprint", "object_velocity", "dof_position", "dof_velocity", "done")}
             predicted = np.zeros((n, HORIZON, 18), dtype=np.float32)
+            previous_command = np.zeros((n, 18), dtype=np.float32)
             last_query_tick = None
             capture = None; original_pre = task.pre_physics_step
             def pre(value):
@@ -208,13 +222,24 @@ def main():
                     hand = trajectory_input(current, np.broadcast_to(future, (n, HORIZON, 11, 3)))
                     state = np.concatenate((q, dq), axis=-1).astype("float32")
                     with torch.no_grad():
-                        model_output = model(
-                            torch.as_tensor(stats["hand"].encode(hand), device=self.device),
-                            torch.as_tensor(stats["state"].encode(state), device=self.device))
+                        hand_tensor = torch.as_tensor(stats["hand"].encode(hand), device=self.device)
+                        state_tensor = torch.as_tensor(stats["state"].encode(state), device=self.device)
+                        if checkpoint_schema == CONTEXT_SCHEMA:
+                            context = hand_object_context(
+                                current, measured["object_pose"].detach().cpu().numpy(), previous_command)
+                            context_tensor = torch.as_tensor(stats["context"].encode(context), device=self.device)
+                            model_output = model(hand_tensor, state_tensor, context_tensor)
+                        else:
+                            model_output = model(hand_tensor, state_tensor)
                         predicted = stats["action"].decode(model_output.cpu().numpy())
                     queries.append(tick); chunks.append(predicted.copy())
-                    inputs.append(dict(current_hand=current.copy(), future_hand=future.copy(),
-                                       source_future=source_future.copy(), state=state.copy()))
+                    query_input = dict(current_hand=current.copy(), future_hand=future.copy(),
+                                       source_future=source_future.copy(), state=state.copy())
+                    if checkpoint_schema == CONTEXT_SCHEMA:
+                        query_input.update(
+                            object_pose=measured["object_pose"].detach().cpu().numpy().copy(),
+                            previous_command=previous_command.copy(), context=context.copy())
+                    inputs.append(query_input)
                     last_query_tick = tick
                 offset = chunk_offset(tick, last_query_tick)
                 command = base.detach().cpu().numpy().copy()
@@ -224,7 +249,9 @@ def main():
                 if not isinstance(obs, dict): obs = {"obs": obs}
                 if capture is None or not np.allclose(capture, command, atol=1e-7, rtol=0):
                     raise ValueError("native executed action differs from requested action")
-                actions.append(capture.copy()); clips.append((np.abs(intended - command) > 1e-7).any(-1))
+                actions.append(capture.copy()); requested_actions.append(command.copy())
+                clips.append((np.abs(intended - command) > 1e-7).any(-1))
+                previous_command = capture.copy()
                 logs["done"].append(done.detach().cpu().numpy().reshape(-1).astype(bool))
                 measured = measure(); self._post_step(info)
                 lengths[active] += 1; active &= ~done.detach().cpu().numpy().reshape(-1).astype(bool)
@@ -232,7 +259,8 @@ def main():
             if active.any():
                 raise ValueError("retarget episode ended before 542 steps")
             arrays = {key: np.stack(value) for key, value in logs.items()}
-            arrays.update(actions=np.asarray(actions), clipped=np.asarray(clips), lengths=lengths)
+            arrays.update(actions=np.asarray(actions), requested_actions=np.asarray(requested_actions),
+                          clipped=np.asarray(clips), lengths=lengths)
             outcomes = {}
             for env, name in enumerate(manifest["roles"]):
                 packet = {key: arrays[key][:, env] for key in ("object_pose", "surface_gap", "support_gap",
@@ -243,7 +271,7 @@ def main():
             gate = {name: bool(teacher >= 45 and outcomes[name]["maximum_held_frames"] >= .9 * teacher
                                and hand_error[index] < 40.) for index, name in enumerate(manifest["roles"])}
             manifest.update(status="COMPLETED", elapsed_s=time.monotonic() - started,
-                            action_max_abs_error=float(np.max(np.abs(arrays["actions"][0] - arrays["actions"][0]))),
+                            action_max_abs_error=float(np.max(np.abs(arrays["actions"] - arrays["requested_actions"]))),
                             clipping_counts=np.sum(arrays["clipped"], axis=0).tolist(),
                             outcomes=outcomes, hand_coordinate_rmse_mm=hand_error.tolist(), gate=gate,
                             query_ticks=queries, teacher_source_outcome=source["role_outcomes"]["reactive_teacher"])
