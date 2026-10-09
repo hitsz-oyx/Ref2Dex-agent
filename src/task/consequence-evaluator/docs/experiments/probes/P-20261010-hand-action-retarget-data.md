@@ -112,6 +112,16 @@ new fitted arm or a contact-conditioned result: no checkpoint or output was
 written, and the numbers only provide a matched reference for a future
 current-state-only contact Spike.
 
+A second read-only information audit fitted a train-only standardized Ridge
+proxy for the horizon-0 command, keeping the episode split fixed. The existing
+87-D R input gave test finger MAE `.006134`; adding the nine non-label contact
+proxies (gap, support gap, object velocity, footprint) gave `.006069` (about
+1.1% lower), while adding `pair` alone gave no improvement. This cheap linear
+proxy is not the nonlinear retargeter and is neither a Spike result nor a
+native-behavior claim; it lowers the prior that contact proxies alone will
+resolve preload and keeps the proposed Spike subject to a substantial,
+pre-registered held-out improvement threshold.
+
 ## Artifacts
 
 Collection outputs belong under
