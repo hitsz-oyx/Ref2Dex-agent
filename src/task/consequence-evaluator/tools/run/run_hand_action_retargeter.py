@@ -91,6 +91,8 @@ def main():
     parser.add_argument("--seed", type=int, default=282)
     parser.add_argument("--envs", type=int, default=4)
     parser.add_argument("--query-period", type=int, default=HORIZON)
+    parser.add_argument("--fixed-wrist-pd-inverse", type=Path,
+                        help="freeze train-only analytic wrist decoder and retain learned finger actions")
     parser.add_argument("--source-per-env", action="store_true",
                         help="diagnostic: use each source env's own teacher future")
     parser.add_argument("--seconds", type=int, default=300)
@@ -118,6 +120,10 @@ def main():
     from consequence_evaluator.hand_action_retargeter import (
         CONTEXT_SCHEMA, HandActionRetargeter, ContextHandActionRetargeter,
         Standardizer, chunk_offset, hand_object_context, trajectory_input)
+    if args.fixed_wrist_pd_inverse is not None:
+        from consequence_evaluator.fixed_wrist_decoder import (
+            load_pd_statistics, recover_wrist_sequence,
+            replace_wrist_action, root_template)
     if torch.__version__ != "2.4.1+cu121":
         raise ValueError("pinned graspenv runtime required")
     torch.set_num_threads(2); torch.backends.cuda.matmul.allow_tf32 = False
@@ -127,6 +133,12 @@ def main():
     if checkpoint_schema not in (SCHEMA, CONTEXT_SCHEMA) or payload.get("manifest", {}).get("target_contract") != (
             "captured full native action A_t:t+24, no actor action at inference"):
         raise ValueError("full-action retarget checkpoint contract mismatch")
+    if args.fixed_wrist_pd_inverse is not None and checkpoint_schema != CONTEXT_SCHEMA:
+        raise ValueError("fixed-wrist Spike requires the contextual v2 checkpoint")
+    fixed_wrist_coefficients = fixed_wrist_metadata = None
+    if args.fixed_wrist_pd_inverse is not None:
+        fixed_wrist_coefficients, fixed_wrist_metadata = load_pd_statistics(
+            args.fixed_wrist_pd_inverse)
     if checkpoint_schema == CONTEXT_SCHEMA:
         model = ContextHandActionRetargeter(payload["width"]).to(device).eval()
         required_statistics = {"hand", "state", "context", "action"}
@@ -142,6 +154,8 @@ def main():
     if args.source_per_env and source_hands.shape[1] != args.envs:
         raise ValueError("per-env source requires one complete teacher trajectory per environment")
     source_sha = sha(args.source.resolve()); checkpoint_sha = sha(args.checkpoint.resolve())
+    fixed_wrist_sha = (sha(args.fixed_wrist_pd_inverse.resolve())
+                       if args.fixed_wrist_pd_inverse is not None else None)
 
     import evaluate as native
     from env.tasks.base_dexplore_task import DexploreTask
@@ -174,6 +188,10 @@ def main():
               str(Path(__file__).resolve()): sha(Path(__file__).resolve()),
               str((TASK / "src/consequence_evaluator/hand_action_retargeter.py").resolve()):
                   sha(TASK / "src/consequence_evaluator/hand_action_retargeter.py")}
+    if args.fixed_wrist_pd_inverse is not None:
+        frozen[str(args.fixed_wrist_pd_inverse.resolve())] = fixed_wrist_sha
+        frozen[str((TASK / "src/consequence_evaluator/fixed_wrist_decoder.py").resolve())] = sha(
+            TASK / "src/consequence_evaluator/fixed_wrist_decoder.py")
     frozen.update(cfg["input_sha256"])
     if any(sha(path) != expected for path, expected in frozen.items()):
         raise ValueError("frozen retarget execution input drift")
@@ -195,6 +213,14 @@ def main():
                                       "frozen source teacher future hand geometry; current q,dq, live hand/object and previous command"),
                     context_contract=(None if checkpoint_schema == SCHEMA else
                                       "query-time hand points in object frame plus previous native command; zero at tick 0"),
+                    fixed_wrist_decoder=(None if args.fixed_wrist_pd_inverse is None else dict(
+                        schema="ref2dex.fixed-wrist-decoder.v1",
+                        coefficients=str(args.fixed_wrist_pd_inverse.resolve()),
+                        coefficients_sha256=fixed_wrist_sha,
+                        root_contract="reset-calibrated 11-point wrist roots",
+                        control_contract="current live q/dq plus future hand geometry only",
+                        excluded_inputs=["future q", "future dq", "future force", "future command"],
+                        train_statistics_scope=fixed_wrist_metadata.get("statistics_scope"))),
                     source_hand_contract=("per-env source hand future for matched-layout diagnostic"
                                           if args.source_per_env else "env0 source hand future broadcast to R envs"),
                     contact_capture=dict(
@@ -222,11 +248,14 @@ def main():
             # geometry may still use the player's CUDA device internally.
             support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
             active = np.ones(n, dtype=bool); lengths = np.zeros(n, dtype=np.int64)
-            actions = []; requested_actions = []; clips = []; queries = []; chunks = []; inputs = []
+            actions = []; requested_actions = []; clips = []; clip_elements = []
+            queries = []; chunks = []; inputs = []
             logs = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                         "table_footprint", "object_velocity", "dof_position", "dof_velocity",
                                         "native_contact_forces", "native_object_contact_forces", "pair", "done")}
             predicted = np.zeros((n, HORIZON, 18), dtype=np.float32)
+            fixed_wrist_goals = None
+            fixed_wrist_goal_chunks = []
             previous_command = np.zeros((n, 18), dtype=np.float32)
             last_query_tick = None
             capture = None; original_pre = task.pre_physics_step
@@ -291,6 +320,12 @@ def main():
                         else:
                             model_output = model(hand_tensor, state_tensor)
                         predicted = stats["action"].decode(model_output.cpu().numpy())
+                    if args.fixed_wrist_pd_inverse is not None:
+                        fixed_wrist_goals = recover_wrist_sequence(
+                            future_batch,
+                            root_template(source_hand[0], source["dof_position"][0, 0]),
+                            q)
+                        fixed_wrist_goal_chunks.append(fixed_wrist_goals.copy())
                     queries.append(tick); chunks.append(predicted.copy())
                     query_input = dict(current_hand=current.copy(), future_hand=future.copy(),
                                        source_future=source_future.copy(), state=state.copy())
@@ -303,13 +338,19 @@ def main():
                 offset = chunk_offset(tick, last_query_tick)
                 command = base.detach().cpu().numpy().copy()
                 command[1:] = predicted[1:, offset]
+                if fixed_wrist_goals is not None:
+                    hybrid = replace_wrist_action(
+                        predicted[:, offset], q, dq, fixed_wrist_goals[:, offset],
+                        fixed_wrist_coefficients)
+                    command[1:, :6] = hybrid[1:, :6]
                 intended = command.copy(); command = np.clip(command, -1, 1); command[~active] = 0
                 obs, _, done, info = self.env_step(self.env, torch.as_tensor(command, device=self.device))
                 if not isinstance(obs, dict): obs = {"obs": obs}
                 if capture is None or not np.allclose(capture, command, atol=1e-7, rtol=0):
                     raise ValueError("native executed action differs from requested action")
                 actions.append(capture.copy()); requested_actions.append(command.copy())
-                clips.append((np.abs(intended - command) > 1e-7).any(-1))
+                clip_mask = np.abs(intended - command) > 1e-7
+                clips.append(clip_mask.any(-1)); clip_elements.append(clip_mask)
                 previous_command = capture.copy()
                 logs["done"].append(done.detach().cpu().numpy().reshape(-1).astype(bool))
                 measured = measure(); self._post_step(info)
@@ -319,7 +360,7 @@ def main():
                 raise ValueError("retarget episode ended before 542 steps")
             arrays = {key: np.stack(value) for key, value in logs.items()}
             arrays.update(actions=np.asarray(actions), requested_actions=np.asarray(requested_actions),
-                          clipped=np.asarray(clips), lengths=lengths)
+                          clipped=np.asarray(clips), clipped_elements=np.asarray(clip_elements), lengths=lengths)
             outcomes = {}
             for env, name in enumerate(manifest["roles"]):
                 packet = {key: arrays[key][:, env] for key in ("object_pose", "surface_gap", "support_gap",
@@ -329,22 +370,31 @@ def main():
             hand_error = np.sqrt(np.mean((arrays["hand_keypoints"] - source_target) ** 2,
                                          axis=(0, 2, 3))) * 1000
             teacher = outcomes["reactive_teacher"]["maximum_held_frames"]
-            gate = {name: bool(teacher >= 45 and outcomes[name]["maximum_held_frames"] >= .9 * teacher
+            reference_held = max(teacher, source["role_outcomes"]["reactive_teacher"]["maximum_held_frames"])
+            gate = {name: bool(teacher >= 45 and outcomes[name]["maximum_held_frames"] >= .9 * reference_held
                                and hand_error[index] < 40.) for index, name in enumerate(manifest["roles"])}
             manifest.update(status="COMPLETED", elapsed_s=time.monotonic() - started,
                             action_max_abs_error=float(np.max(np.abs(arrays["actions"] - arrays["requested_actions"]))),
                             clipping_counts=np.sum(arrays["clipped"], axis=0).tolist(),
+                            clipping_wrist_counts=np.sum(arrays["clipped_elements"][..., :6], axis=(0, 2)).tolist(),
+                            clipping_finger_counts=np.sum(arrays["clipped_elements"][..., 6:], axis=(0, 2)).tolist(),
+                            reference_held=reference_held,
                             outcomes=outcomes, hand_coordinate_rmse_mm=hand_error.tolist(), gate=gate,
                             query_ticks=queries, teacher_source_outcome=source["role_outcomes"]["reactive_teacher"])
             with (output / "execution.pkl").open("wb") as stream:
                 pickle.dump(dict(schema=manifest["schema"], manifest=manifest, arrays=arrays,
                                  source_hand=(source_hands if args.source_per_env else source_hand),
                                  query_ticks=np.asarray(queries),
-                                 predicted_chunks=np.asarray(chunks), retarget_inputs=inputs), stream, protocol=4)
+                                 predicted_chunks=np.asarray(chunks), retarget_inputs=inputs,
+                                 fixed_wrist_goal_chunks=(np.asarray(fixed_wrist_goal_chunks)
+                                                          if fixed_wrist_goal_chunks else None)), stream, protocol=4)
             write(output / "manifest.json", manifest)
             write(output / "result.json", dict(status="PROMISING" if all(gate.values()) else "UNCLEAR",
                                                 outcomes=outcomes, hand_coordinate_rmse_mm=hand_error.tolist(),
                                                 gate=gate, clipping_counts=np.sum(arrays["clipped"], axis=0).tolist(),
+                                                clipping_wrist_counts=np.sum(arrays["clipped_elements"][..., :6], axis=(0, 2)).tolist(),
+                                                clipping_finger_counts=np.sum(arrays["clipped_elements"][..., 6:], axis=(0, 2)).tolist(),
+                                                reference_held=reference_held,
                                                 claim=manifest["claim"]))
 
     native.EvalPlayer = Player

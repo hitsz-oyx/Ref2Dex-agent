@@ -9,6 +9,9 @@ from consequence_evaluator.hand_action_retargeter import (
     CONTEXT_DIM, CONTEXT_SCHEMA, HORIZON, ContextHandActionRetargeter,
     HandActionRetargeter, Standardizer, chunk_offset, contact_context_features,
     hand_object_context, trajectory_input)
+from consequence_evaluator.fixed_wrist_decoder import (
+    pd_inverse_wrist_action, recover_wrist_sequence, replace_wrist_action,
+    root_template)
 from consequence_evaluator.retarget_collection import (
     MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
     validate_residual_family)
@@ -67,6 +70,37 @@ def test_receding_chunk_offset_is_relative_to_latest_query():
     assert chunk_offset(24, 24) == 0
     with np.testing.assert_raises(ValueError):
         chunk_offset(24, 0)
+
+
+def test_fixed_wrist_decoder_uses_only_future_geometry_and_live_state():
+    rng = np.random.default_rng(242)
+    source_q = rng.normal(size=18).astype("float32")
+    source_hand = rng.normal(size=(11, 3)).astype("float32")
+    template = root_template(source_hand, source_q)
+    current_q = rng.normal(size=(3, 18)).astype("float32")
+    current_dq = rng.normal(size=(3, 18)).astype("float32")
+    future = rng.normal(size=(3, HORIZON, 11, 3)).astype("float32")
+    goals = recover_wrist_sequence(future, template, current_q)
+    assert goals.shape == (3, HORIZON, 18)
+    coefficients = np.ones((6, 2), dtype="float32")
+    action = pd_inverse_wrist_action(current_q, current_dq, goals[:, 0], coefficients)
+    assert action.shape == (3, ACTION_DIM)
+    assert np.isfinite(action).all()
+    np.testing.assert_array_equal(action[:, 6:], np.zeros((3, ACTION_DIM - 6), dtype="float32"))
+    with np.testing.assert_raises(ValueError):
+        recover_wrist_sequence(future, template, current_q[:, :6])
+
+    model_action = rng.uniform(-1., 1., size=(3, ACTION_DIM)).astype("float32")
+    hybrid = replace_wrist_action(model_action, current_q, current_dq, goals[:, 0], coefficients)
+    np.testing.assert_allclose(hybrid[:, 6:], model_action[:, 6:], atol=0, rtol=0)
+    changed_model = model_action.copy(); changed_model[:, :6] = rng.normal(size=(3, 6))
+    np.testing.assert_allclose(
+        replace_wrist_action(changed_model, current_q, current_dq, goals[:, 0], coefficients)[:, :6],
+        hybrid[:, :6], atol=0, rtol=0)
+    changed_fingers = model_action.copy(); changed_fingers[:, 6:] = rng.normal(size=(3, ACTION_DIM - 6))
+    assert not np.array_equal(
+        replace_wrist_action(changed_fingers, current_q, current_dq, goals[:, 0], coefficients)[:, 6:],
+        hybrid[:, 6:])
 
 
 def test_context_contract_keeps_query_geometry_and_previous_command_local():
