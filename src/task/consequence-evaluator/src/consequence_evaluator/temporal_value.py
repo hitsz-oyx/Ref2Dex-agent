@@ -10,7 +10,7 @@ from .supervision import consecutive
 from .value_outcomes import PARAMETERS
 
 SCHEMA='ref2dex.consequence-temporal-value.v1'
-LABEL_RULE='final-controlled-completion-signed-relative-time-positive-recovery-mask-v1'
+LABEL_RULE='final-controlled-completion-signed-relative-time-positive-recovery-mask-v2'
 
 
 def episode_labels(trace, velocity):
@@ -27,8 +27,15 @@ def episode_labels(trace, velocity):
     place=int(trace['place_start']); clock=np.arange(len(valid))
     stable=trace['held_run']>=PARAMETERS['stable_frames']
     completions=np.flatnonzero(stable & (clock<place))
-    unsafe=(consecutive(valid & ~near & ~support)>=PARAMETERS['lost_geometry_frames'])
+    missing=valid & ~near & ~support
+    loss_run=consecutive(missing)
+    unsafe=(loss_run>=PARAMETERS['lost_geometry_frames'])
     unsafe |= valid & ~near & ~support & (velocity[:,2]<-PARAMETERS['unheld_fall_mps'])
+    # Once a sustained loss is confirmed, mask its entire onset, not only
+    # the sixth frame at which the persistence criterion becomes true.
+    confirmed_loss=np.zeros(len(valid),bool)
+    for tick in np.flatnonzero(loss_run>=PARAMETERS['lost_geometry_frames']):
+        confirmed_loss[tick-PARAMETERS['lost_geometry_frames']+1:tick+1]=True
     success=False
     if len(completions):
         last=int(completions[-1])
@@ -38,7 +45,7 @@ def episode_labels(trace, velocity):
     grasp=(consecutive(near)>=PARAMETERS['grasp_frames']) & (trace['height']>=PARAMETERS['lift_m']) & ~support
     for tick in range(len(valid)):
         # Supported, intended final release is part of the successful task.
-        failure=bool(unsafe[tick] or (tick<place and trace['drop'][tick]))
+        failure=bool(confirmed_loss[tick] or unsafe[tick] or (tick<place and trace['drop'][tick]))
         if grasped and failure:
             uncertain=True
         if uncertain and stable[tick]:

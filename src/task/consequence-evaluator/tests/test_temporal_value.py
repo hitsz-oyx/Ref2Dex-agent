@@ -34,6 +34,15 @@ def test_settling_without_restabilizing_does_not_make_failure_success():
     assert episode_labels(trace,velocity)[0]==0
 
 
+def test_confirmed_loss_masks_onset_before_the_six_frame_confirmation():
+    trace,velocity=recovery_trace()
+    trace['height'][62:70]=.1
+    trace['drop']=consecutive(~trace['near'])>=6
+    success,mask=episode_labels(trace,velocity)
+    assert success==1
+    assert mask[62:114].all() and not mask[61] and not mask[114]
+
+
 def test_relative_labels_use_only_outcome_and_remaining_complete_horizon():
     y=relative_time_labels([1,0,1],[0,0,518],[542,542,542])
     assert np.allclose(y,[24/542,-24/542,1])
