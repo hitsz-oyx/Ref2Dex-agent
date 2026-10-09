@@ -5,7 +5,7 @@ experiment_id: P-20261009-hand-execution-bridge
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 111c2b5
+git_commit: 2d8c3ba
 claim_id: C3
 hypothesis_family: HF-hand-execution-bridge
 probe_index_in_family: 1
@@ -19,7 +19,7 @@ run_id: hand-execution-20261009-r1
 
 # Can ordinary e260 interventions bridge plans to useful future hand geometry?
 
-Result: Pending bounded Probe requested by user ref5.
+Result: Prospective G->PW->C1 rolling chain completed; policy utility UNCLEAR.
 Decision: Stop expanding fork panels and observed-hand-only C2a. Freeze old
 U32, actor e260, PointWorld best46000 and C1 step1000. Learn only a prospective
 hand execution bridge from ordinary random intervention rollouts.
@@ -176,6 +176,70 @@ state filtering or seed search. <=3600s cumulative control including reruns,
 within original whole Probe5400s/4GiB. This repairs pseudo-replication; it is
 not an outcome-driven method retry or formal Validation. New folders are
 baseline296r2/planner296r3/baseline297r2/planner297r2; earlier arrays preserved.
+
+## Completed prospective results and next decision
+
+Val-only bridge selection retains r1HAstep200: val point MSE .0087220
+versus r2.0088181. Plan and SHA are frozen in
+`outputs/consequence-evaluator/hand-execution-online-plan-20261009-r1.json`.
+No control outcome selects a model. r2hand fit's new298test remains separate
+from295; no matched claim is made by comparing those two raw RMSE numbers.
+
+Common-C1 waterfall on960single realized298plans completes31.41s. U32teacher
+RMSE for C1GT/C2aGT-hand+PW/C2bpred-hand+PW is .34452/.39038/.38288;
+score RMSE relative to C1GT is0/.15058/.16290. These are ordinary single-plan
+regression diagnostics, not a new same-H ranking panel. C1GT transfer error
+already exists, so do not attribute the entire planner failure to G or PW.
+
+Four repaired prospective paths complete at2d8c3ba in53.71/120.09/55.93/
+121.04s. Both models use only decision-time measurements; no physical future
+fork, GT future hand/object, future force, outcome or realized future action
+enters selection. Each planner records944decisions (59per episode); selection
+argmax, seven known schedules, four past geometry frames, zero clipping,
+PWrepeatability, full542step terminal coverage and frozen inputs pass.
+Matched actor/RMS/current-q/object fingerprints pass. Array hashes distinguish
+the two seed worlds; unlike the first unperturbed run, these are not repetitions.
+They remain exploratory shared-world16env batches, not formal Validation.
+
+| Full episode metric,32per arm | Baseline | G+PW+sameC1 planner |
+| --- | ---: | ---: |
+| Final grasp/controlled-placement completion | 0 | 0 |
+| Stable geometric lift45frames at any point | 24 | 26 |
+| Loss/recovery after stable45 | 1 | 8 |
+| Episodes with any loss/recovery | 9 | 14 |
+| Mean nonzero interventions | 0 | 55.96875 |
+| Clipped steps | 0 | 0 |
+
+Each seed's final task score is0/16in both arms; matched-ID task rescue/harm0/0
+is uninformative because all fail. Stable-lift matched-ID rescue/harm is7/5;
+post-stable-loss new/worsened8versus recovered1. These are matched episode-ID
+descriptions, not bitwise physical counterfactual effects. Stable45alone does
+not qualify sustained safe grasp or full placement. Baseline failures are
+23final-not-settled,1loss-before-place and8no-stable-preplace; planner18/8/6.
+Identical all-zero endpoint bootstrap intervals do not certify zero causal gain.
+
+Status remains **UNCLEAR**. The first executable prospective chain is retained,
+but useful candidate-specific hand prediction and task benefit are not proven.
+No hundred-episode expansion, actor/PW/C1 retraining, Y redefinition, or RL
+transition follows. The old oracle/ranking claims remain separate. Root's next
+decision priorities are action-sensitive/wrist-rotation-relative-shape prediction
+(relative error41.94mm exceeds persistence39.83mm), C1's e260 source transfer,
+and the baseline's controlled-placement deficit. Correcting units alone has
+already been excluded; more identical epochs/fork panels are not the next step.
+Full-task placement readiness must be separated from grasp/lift-only ability.
+
+Artifacts, all retained under `outputs/consequence-evaluator/`:
+- `hand-execution-inputs-20261009-r1/`, smoke-r2 and failed smoke-r1log;
+- `hand-execution-{train,val,test}-20261009-r1/`, test-r2 (new298);
+- `hand-execution-fit-20261009-{r1,r2}/`, frozenHA/Hmodels and test predictions;
+- `hand-execution-waterfall-20261009-r1/` and online-plan-r1JSON;
+- all original/repaired baseline/planner folders declared above, including FAILED
+  planner296r1; `hand-execution-control-20261009-{r1,r2}.json` and logs.
+
+14focused bridge/old-teacher/recovery tests pass. GPU2released. All inference/
+collection/control remains within fixed budgets, new artifacts below4GiB.
+No checkpoint overwrite, external project write, new branch, remote push,
+new ref document or actor/C1/PW training occurred.
 
 Frozen-policy planner utility is a Mission mechanism Probe, not RL training
 benefit or formal Gate1. s3/full-start differs from earlier hybrid25anchorZ90.

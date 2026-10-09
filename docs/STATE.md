@@ -1,5 +1,40 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref5 prospective hand execution bridge and rolling control
+
+用户ref5取代继续扩fork-panel/C2a路线：普通e260随机干预rollout训练
+`G(H,A)->24x11hand`，再用冻结PWbest46000和同C1step1000在线选7候选。
+旧U32继续冻结，只作teacher；真实目标为任务成功和持续稳定，不是旧U排序。
+本轮没有新fork、future-GT部署输入、actor/PW/C1训练或RL收益声明。
+
+自训重建e260SHA8882fabd/s3/full-frame0采集96train293、64val294、64test295，
+3360决策窗口；首次桥HA/H各2000步，val选step200，测试点RMSE63.05/63.10mm，
+persistence116.73、nominalFK102.71mm。Zero-A活跃窗口MSE仅增加.2747%，
+未过额外1%动作gate。仅改变固定native请求单位的匹配r2，用新64episode298测试，
+HA/H67.45/67.29mm，zero-A变化-.0403%；量纲调整没有建立动作敏感性。
+旧/新test不同，不能把两次RMSE作matched比较。总数据4320窗口，所有episode542步。
+
+Root按ref5的实际任务目标缩小端到端Probe，保留未过动作gate，不用代理指标
+宣布桥有效。只按val误差冻结原r1HA200(.008722vs.008818)，同C1三层普通单计划
+waterfall teacherRMSE.34452/.39038/.38288，C2a/C2b与C1GT分数差.15058/.16290。
+GT本身存在e260迁移误差，不能把控制结果全归因于G/PW。没有新same-H排序结果。
+
+初始两seed296/297完整轨迹各臂bitwise重复，16env重复不能算32独立episode；
+已保留并纠正记录。随后只修复评估支持：固定1mm/5mrad/10mrad初始q扰动，
+匹配baseline/planner且不同seed实际轨迹不同。最终32episode/arm任务均0，
+stable45baseline24/planner26，稳定后失抓1/8，any recovery9/14，干预0/55.97。
+稳定抬升匹配IDrescue/harm7/5；完整任务0/0因全失败没有判别力，不是零收益证明。
+baseline有23final-placement-not-settled、1中途丢失和8未稳定；planner18/8/6。
+
+2d8c3ba实际路径通过初态actor/RMS/q/object匹配、评分argmax/请求计划、四帧
+过去几何、PW重复性、零裁剪和完整542步检查。状态UNCLEAR，不扩百级episode。
+代码首次实现无futureGT的G->PW->C1每8步真实replan，但任务收益未证明。
+下一步是动作敏感/显式wrist rotation与相对手形预测、C1/source迁移和受控放回
+能力边界的区分，避免继续改Y、同样加epoch或扩fork。未放弃核心Cm假设/claim。
+14相关合同测试通过，GPU2已释放。实验卡：
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hand-execution-bridge.md`；
+最终结果：`outputs/consequence-evaluator/hand-execution-control-20261009-r2.json`。
+
 ## 2026-10-09 ref4_4 old-U evaluator and actual one-shot screen
 
 用户明确冻结旧`U32=Y7+.25Y3-Y6`作为teacher，不再定义新Y，推进C0(H+A)、

@@ -155,6 +155,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-hand-execution-bridge
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261009-hand-execution-bridge](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hand-execution-bridge.md) | Can ordinary e260 interventions bridge plans to useful future hand geometry? | Prospective G->PW->C1 rolling chain completed; policy utility UNCLEAR. | Stop expanding fork panels and observed-hand-only C2a. Freeze old | probes/UNCLEAR |
+
 ## HF-hocap-frame-generalization
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

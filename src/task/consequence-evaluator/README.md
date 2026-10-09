@@ -12,7 +12,11 @@
 各2000步，保持同模型/采样/val选择，仅第二次改变固定native请求单位。
 手轨迹预测明显优于persistence/nominal FK，但zero-A误差没有达到预设1%门槛，
 因此不把桥称为可靠的candidate execution predictor。选模型仅用val误差，
-保留第一版step200；普通单计划的同C1 waterfall和小规模prospective控制另行记录。
+保留第一版step200。同C1 waterfall已完成；初始seed重复已修复为匹配初始q扰动。
+真实32episode/arm中baseline/planner完整受控放回均0，stable45为24/26，
+稳定后失抓1/8，平均非零干预0/55.97。在线选择/过去几何/完整542步合同通过，
+但控制收益UNCLEAR；不扩百级episode，不把stable45当完整任务或安全保持成功。
+下一步须区分动作敏感性、C1跨actor迁移和baseline放回阶段不足，旧Y继续冻结。
 工具：[采集/在线执行](tools/run/run_hand_bridge_rollout.py)、
 [桥训练](tools/run/train_hand_execution.py)、
 [三层误差审计](tools/audit/audit_hand_bridge_waterfall.py)、
