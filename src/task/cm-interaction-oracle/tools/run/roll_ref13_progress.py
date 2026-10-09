@@ -1,4 +1,4 @@
-"""Execute four real eight-step replans per Y, with a shared initial panel."""
+"""Execute three real eight-step replans per Y, with a shared initial panel."""
 import argparse
 import json
 from pathlib import Path
@@ -49,7 +49,7 @@ def main():
         cache={}; outcomes={}
         for arm in ('old','new'):
             reference=root/'reanchor-r2'
-            for offset in (0,8,16,24):
+            for offset in (0,8,16):
                 key=(str(reference),offset)
                 if offset==0:
                     scored=first
@@ -71,7 +71,9 @@ def main():
                 if mixed_key in outcomes:
                     name=outcomes[mixed_key]
                 else:
-                    fork(name,reference,offset,plan=plan,window=90 if offset==24 else 32)
+                    # The initial actual90 path also supplies a complete
+                    # one-shot outcome. Later replans replay only its first8.
+                    fork(name,reference,offset,plan=plan,window=90 if offset in (0,16) else 32)
                     outcomes[mixed_key]=name
                 records.append(dict(arm=arm,offset=offset,actual_path=name,choices=choices,
                     differing_choices=scored['differing_choices']))

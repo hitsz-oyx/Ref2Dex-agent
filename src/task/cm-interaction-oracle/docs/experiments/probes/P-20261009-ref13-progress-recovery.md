@@ -61,7 +61,7 @@ replication, and no old23/32 expectation is imposed on the new baseline.
    the old U<=1.25 shortcut for new-Y selection. Exact score ties use baseline
    then candidate order for both arms; report any different deadzone separately.
 5. Only valid candidates can feed separate real mixed execution and subsequent
-   eight-step replans. Initial bounded rolling screen has four replans on one
+   eight-step replans. Initial bounded rolling screen has three replans on one
    group, with old Z90 unchanged across baseline/old-Y/new-Y. This is a Probe
    of Y substitution, not full-episode Gate1, formal Validation or Cm utility.
 
@@ -107,6 +107,15 @@ Startup failures are preserved: r1 hit Python3.8 Path.is_relative_to, r2 had a
 relative worker path, and reanchor first attempted a rolling-only record flag.
 These failed before simulation and do not count as valid scientific Probes.
 Fix commitsb9f1c22/96e7770/ead0dc5; all actual workers record their exact commit.
+
+Budget adaptation: observed native worker shell cost35--41s and frozen
+reference scoring cost roughly10s/candidate. Four replans for both Y arms
+would exceed the2400s total wall budget. Root reduces the matched screen to
+three decisions at offsets0/8/16, retains actual90 continuation at the first
+decision to report one-shot independently, and actual90 at the final decision
+for rolling Z. This preserves the initial Y comparison and complete outcomes;
+a fourth replan is deferred unless the smaller screen changes the decision.
+No resource boundary, Y, actor, candidate or outcome threshold is changed.
 
 Decision: historical baseline-repeat screen passes; continue the already
 authorized bounded seven-candidate/new-Y comparison. Keep status UNCLEAR and
