@@ -1,6 +1,23 @@
 # Consequence evaluator
 
-当前按用户 [ref4_2](docs/user/ref/ref4_2.md)修订 [ref4_1](docs/user/ref/ref4_1.md)：
+当前按用户 [ref4_3](docs/user/ref/ref4_3.md)尝试 learned `Q(H,A,Zgt)`：
+episode 最终抓稳并受控放回为 success，成功轨迹中的失抓/recovery 窗口 mask；
+重新稳定45帧后恢复正监督。标签为 `±24/(T-t)`，时钟和 outcome 只作监督，
+模型只输入原生 H、预知24步残差计划 A 和实测 future Z，不使用 TCC/S/P/M value。
+开发分支仍为 `main`。
+
+[首轮弱时序 Probe](docs/experiments/probes/P-20261009-weak-temporal-value.md)已完成：
+192完整episode，HA/HAZ同初始化各1200步，GPU2用时26.66秒。
+冻结测试排序为88.42%/89.67%，future打乱后84.32%；额外收益1.24pp未达3pp screen，
+状态UNCLEAR，尚未进入完整任务GT候选控制/Gate1。训练窗口仅3.23%含非零计划，
+没有成功recovery训练样例；下一步优先补决策时刻、同H候选及恢复覆盖，而非增加epoch。
+复用旧25锚点的缓存仅做评分迁移审计，没有完整任务结局，不作成功率证据。
+[标签准备](tools/run/prepare_temporal_value.py)、[训练](tools/run/train_temporal_value.py)和
+[冻结审计](tools/audit/audit_temporal_value.py)使用独立 temporal-value schema。
+
+## 保留的 reference-progress 路线
+
+之前按用户 [ref4_2](docs/user/ref/ref4_2.md)修订 [ref4_1](docs/user/ref/ref4_1.md)：
 保留`Y_t=P_(t+24)-P_t`，P改由成功真实机器人reference bank与实际3D因果历史匹配；
 不用episode时钟或最终结局。开发分支为`main`。
 [物理reference bank Probe](docs/experiments/probes/P-20261008-physical-reference-bank.md)
@@ -39,7 +56,7 @@ recorded in [P-20261009-act-native-chunk](docs/experiments/probes/P-20261009-act
 ## 历史路线与保留证据
 
 早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。
-当前工作只建立离线 oracle headroom 检验，不改变根级 Mission 的最终 Cm 策略收益要求。
+历史离线 oracle headroom 检验与当前弱时序 Probe 都不改变根级 Mission 的最终 Cm 策略收益要求。
 
 2026-10-08：[官方DExplore生成器筛查](docs/experiments/probes/P-20261008-official-generator-screen.md)
 已跑通归档的完整运行时，并完成官方/自训各64条同输入评估。官方45帧保持覆盖64/64，

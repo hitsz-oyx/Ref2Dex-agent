@@ -115,6 +115,66 @@ than more epochs. Existing raw results/checkpoints remain unchanged.
 Artifacts: `outputs/consequence-evaluator/weak-temporal-labels-20261009-r1/`,
 `outputs/consequence-evaluator/weak-temporal-value-20261009-r1/` and its `.log`.
 
+## Audit result / next decision
+
+Frozen audit completed in2.85s. Only128/3968train windows contain a nonzero
+requested plan (3.23%); val/test coverage is similarly3.1%. Training contains
+no positive recovery episode. Most rows train prognosis under zero residual
+continuation, so high global ranking does not demonstrate corrective choice.
+In the diagnostic tick48--143 slice, exhaustive same-time ranking is
+HA.93429/HAZ.94164/shuffle.81796; beforetick48 it is near chance. Future is
+used, but additional advantage over native H remains small. These post-freeze
+strata are diagnostic and do not replace the predeclared global screen.
+
+The cached same-H audit verified25anchors x7candidate identities, exact H and
+object/hand geometry prefixes, full24future coverage, valid historical prefix
+contract, no terminal transition and no clipping. HA selectsgrip+25/25; HAZ
+selectsgrip+18, thumb-yaw-minus3, middle-plus3, middle-minus1, changing7choices.
+No full-task outcome is available for these choices; no mixed path was run.
+Candidate A has normalized abs-p99=10.52/max=43.07, compared with training
+statistics. A coordinate-coverage check finds72/3024unique candidate-plan
+entries outside the train coordinate minima/maxima, affecting5/7arms. Train
+active-plan abs-p99 is16.58 (all-window p99.49), so a large standardized p99
+alone is not proof of unsupported actions; the explicit range check and changed
+8-step/24-step plan shape establish the transfer limitation. Details are in
+`action-coverage.json`. Scoring differences do not establish benefit or harm.
+
+Root decision: retain the learned temporal route as UNCLEAR and preserve
+frozen weights; do not increase epochs, substitute predicted futures, or run
+full-task learned control based on this screen. The next useful Probe should
+improve decision-time plan coverage and same-H candidate/outcome evidence,
+with success/recovery examples, before asking a model to generalize to the
+old control bank. This is a data/evaluation limitation, not a method refutation.
+
+### Loss-onset mask correction and numerical equivalence
+
+Post-run review found that confirmed six-frame unsupported loss should mask
+its onset, including the preceding five frames. Commit`d02f45b` fixes this
+general boundary and adds a test where the object stays elevated during loss.
+The original run used mask-v1; do not silently rewrite its manifest or weights.
+Reprepared `weak-temporal-labels-20261009-r2` uses mask-v2. For this cohort,
+all11904sampled rows/arrays are bitwise identical to r1, including recovery
+masks and labels: windows SHA`93d3fed993ff510b8ccce768f6a459d93c80093260c9a7b143a3dcd63524c329`.
+`TemporalValue`, relative labels, soft-bin targets and loss are AST-identical
+to the actual training commit. Val selection and test evidence are therefore
+unaffected; no redundant identical fit is run. `label-v2-equivalence.json`
+records old/new rule, data identity and unchanged computation. The generic
+v1 mask omission remains documented even though it changes no sampled row.
+Ten relevant contract/outcome tests pass; GPU2 is released. Preparation
+ancestry filtering was also fixed before the successful fit (`5d13cf1`).
+
+Reproduce label-v2 with:
+```bash
+python3 src/task/consequence-evaluator/tools/run/prepare_temporal_value.py \
+  --data outputs/consequence-evaluator/official-value-dose-labeled-20261008-r1 \
+  --output outputs/consequence-evaluator/weak-temporal-labels-<fresh-run-id>
+```
+Original training/audit commands and hashes are retained in run manifests and
+`audit.json`. Replaying the original source requires its pinned Git commit;
+current label-v2 can be trained in a fresh output directory if a later decision
+actually requires new fitting. The numerical equivalence is not extra evidence
+about hypothesis validity or recovery generalization.
+
 ## Limitations / future evidence
 
 Single-source groups, overlapping windows and cross-episode ranking cannot

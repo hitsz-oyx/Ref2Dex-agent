@@ -1,5 +1,31 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref4_3 learned temporal evaluator
+
+按用户ref4_3授权恢复 learned `Q(H,A,Zgt)` 路线，先用最终任务结果和
+`±24/(T-t)`作弱监督，不再直接规定value为TCC/reference delta-progress。
+用户明确：最终重新抓稳并受控放回的episode为success；其局部失抓/下落/recovery
+窗口mask，重新稳定抓持后恢复正监督。物理阈值只用于binary outcome/mask审计。
+
+复用192完整episode，重新标注train41/23、val38/26、test37/27（成功/失败），
+其中test一条恢复成功轨迹由failure改为success；成功recovery窗口mask共48个。
+提交5d13cf1在GPU2完成匹配HA/HAZ各1200步，26.66秒、显存约561MiB，
+val均选step400。冻结test同时间跨episode排序88.42%/89.67%，future打乱后84.32%；
+future gain1.24pp未达预设3pp screen，保持UNCLEAR，不进入完整任务GT control/Gate1。
+
+关键数据限制：训练3968窗口仅128含非零请求计划（3.23%），没有成功recovery训练样例。
+模型利用future的信号存在，但这还是结局预测，未验证同H候选排序的任务收益。
+旧ref13七候选缓存的25锚点评分审计只用于检查迁移：HA全选grip+，HAZ改变7个选择；
+候选A有72/3024个计划元素越出训练坐标范围，涉及5/7个候选臂；分布覆盖不足，
+不能解释为控制成功或失败。
+下一步信息应来自决策窗口、同H候选和恢复样例，而非延长训练或提前接PointWorld。
+
+提交d02f45b补齐确认失抓前5帧的mask边界，10项相关测试通过。重新准备r2后，
+所有数组及windows SHA与r1完全一致，模型/目标代码未变；因此保留冻结权重和测试，
+不重复相同训练。原始运行、修正规则与等价审计都保留。GPU2已释放。
+实验卡：`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-weak-temporal-value.md`；
+产物：`outputs/consequence-evaluator/weak-temporal-value-20261009-r1/`。
+
 ## 2026-10-09 ref13 whole-world replay recovery
 
 按用户要求重新检查历史 ref13 方法。近期 host/group 诊断的 Torch2.0.1、强制

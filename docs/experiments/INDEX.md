@@ -280,7 +280,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261009-weak-temporal-value](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-weak-temporal-value.md) | Can outcome/time supervision learn useful GT consequence value? | pending. | user ref4_3 authorizes a bounded learned evaluator Probe, replacing | probes/UNCLEAR |
+| [P-20261009-weak-temporal-value](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-weak-temporal-value.md) | Can outcome/time supervision learn useful GT consequence value? | initial offline screen UNCLEAR; completed matched 1200-step fit. | user ref4_3 authorizes a bounded learned evaluator Probe, replacing | probes/UNCLEAR |
 
 ## HF-y-noise-tolerance
 
