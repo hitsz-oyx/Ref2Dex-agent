@@ -92,6 +92,22 @@ scale 4 仍未达到 observed bank 的量级且 H24 error 从 77.90mm 略升至 
 .70 且只有 5 个 informative anchors。该量纲对照关闭了“uniform plan unit 单独导致
 候选塌缩”的解释，不解锁 selector、PW online、R execution 或 MPC。
 
+为判断现有 ref7_2 结构化 rollout 是否至少能提供后续候选库，完成只读审计
+`P-20261010-structured-candidate-bank-audit`（输出
+`outputs/consequence-evaluator/structured-candidate-bank-audit-20261010-r1/`）。
+96/64/64 train/val/test episode 的 reset frame 在 object pose、hand keypoints、q、dq
+和 pair proxy 上逐项 bitwise 一致，三 split 零 clipping。以 hand RMS≤3mm、q RMS≤.03
+作近当前 proxy，在 tick16–32 多个 split 同时有非塌缩的 current-object-frame tau
+spread 和严格 U32 label 差异：train tick16 为 18.69mm/410 near pairs/133 strict
+pairs，val tick32 为 19.20mm/46/41，test tick32 为 25.62mm/57/52；tick8 的 label
+仍全部为 tie。这个结果支持“值得补采集候选 panel”的工程信号，但不构成 H-matched
+candidate bank：原 trajectory packet 没有保存 actor observation/history，近当前规则
+也只检查 hand 与 q，未覆盖完整 H/隐藏 PhysX state。Probe 保持 `UNCLEAR`，不启动
+evaluator fit、deadzone、selector、PW online、MPC 或 R native gate；若继续，只做一次
+有界采集/回放，保存每个 query 的 exact H、q/dq、future hand、command 和 episode ID，
+然后按完整 H 合同重审候选库。卡片见
+[`P-20261010-structured-candidate-bank-audit`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-structured-candidate-bank-audit.md)。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

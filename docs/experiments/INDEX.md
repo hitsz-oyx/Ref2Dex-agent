@@ -316,6 +316,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261010-structured-candidate-bank-audit](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-structured-candidate-bank-audit.md) | Can the existing structured rollouts support a nontrivial candidate bank? | `UNCLEAR`. The frozen structured rollouts contain useful candidate | 见原卡 | probes/UNCLEAR |
 | [P-20261010-trajectory-utility](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-trajectory-utility.md) | Does a real hand trajectory interface retain consequence ranking information? | `UNCLEAR`. C0 (`H+tau`) has 62.82% strict pair accuracy; C1 | 见原卡 | probes/UNCLEAR |
 
 ## HF-weak-temporal-value
