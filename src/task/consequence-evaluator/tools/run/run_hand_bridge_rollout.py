@@ -35,6 +35,8 @@ def main():
     p.add_argument('--mode',choices=('random','baseline','planner','retarget'),required=True)
     p.add_argument('--smoke',action='store_true');p.add_argument('--bridge',type=Path)
     p.add_argument('--initial-jitter',action='store_true',help='fixed small seeded q perturbation for distinct matched episodes')
+    p.add_argument('--save-actor-observation',action='store_true',
+                   help='save the actor observation at every retained frame for H-matched audits')
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
     if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
@@ -71,7 +73,20 @@ def main():
         if all(compiled):state=dict(state,model={k[10:]:v for k,v in state['model'].items()})
         return state
     native.torch_ext.load_checkpoint=load
-    hashes={str(a.inputs.resolve()):sha(a.inputs),str(Path(__file__).resolve()):sha(__file__)}
+    # The original input manifest predates this optional observation field.  A
+    # history-preserving probe is a new capture contract, so refresh only the
+    # runner hash in memory and record the override instead of mutating the
+    # frozen input JSON on disk.
+    runner_key = str(Path(__file__).resolve())
+    runner_hash_override = None
+    if a.save_actor_observation:
+        declared_runner_hash = cfg.get('input_sha256', {}).get(runner_key)
+        actual_runner_hash = sha(__file__)
+        if declared_runner_hash != actual_runner_hash:
+            cfg = dict(cfg, input_sha256=dict(cfg.get('input_sha256', {})))
+            cfg['input_sha256'][runner_key] = actual_runner_hash
+            runner_hash_override = dict(declared=declared_runner_hash, actual=actual_runner_hash)
+    hashes={str(a.inputs.resolve()):sha(a.inputs),runner_key:sha(__file__)}
     hashes.update(cfg['input_sha256'])
     for path in (TASK/'src/consequence_evaluator').glob('*.py'):hashes[str(path)]=sha(path)
     if a.bridge:hashes[str(a.bridge.resolve())]=sha(a.bridge)
@@ -84,6 +99,10 @@ def main():
         mode=a.mode,seed=a.seed,num_envs=a.envs,physical_gpu=a.gpu,budget_s=a.seconds,smoke=a.smoke,
         input_sha256=hashes,actor_sha256=cfg['actor_sha256'],rollout_kind='ordinary single-world feedback, no forks',
         action_semantics=action_semantics,
+        actor_observation_saved=bool(a.save_actor_observation),
+        actor_observation_contract=('obs["obs"] at every reset/state frame, aligned with trajectory frame t'
+                                    if a.save_actor_observation else None),
+        runner_hash_override=runner_hash_override,
         initialization='full-reference frame0 with fixed seeded q jitter' if a.initial_jitter else 'full-reference frame0',
         initial_jitter=a.initial_jitter,fps=30,old_Y_unchanged=True,
         contact_capture=dict(hand_field='native_contact_forces', object_field='native_object_contact_forces',
@@ -139,6 +158,8 @@ def main():
             logs={k:[] for k in ('object_pose','hand_keypoints','surface_gap','support_gap','table_footprint',
                 'object_velocity','reference_object_pose','pair','native_contact_forces',
                 'native_object_contact_forces','dof_position','dof_velocity','done')}
+            if a.save_actor_observation:
+                logs['actor_observation'] = []
             plan=np.zeros((n,24,18),np.float32);ages=np.full(n,32);counts=np.zeros(n,int)
             structured=np.zeros((n,18),np.float32)
             structured_modes=np.full(n,-1,np.int8)
@@ -169,6 +190,8 @@ def main():
                 for k,v in values.items():logs[k].append(v.cpu().numpy().copy())
                 return values
             measured=measure()
+            if a.save_actor_observation:
+                logs['actor_observation'].append(obs['obs'].detach().cpu().numpy().copy())
             for tick in range(700 if not a.smoke else 96):
                 if time.monotonic()-begin>a.seconds:raise TimeoutError('rollout deadline')
                 if tick%64==0:
@@ -226,6 +249,8 @@ def main():
                     retarget_phases.append(phase_code(tick))
                 ended=done.cpu().numpy().astype(bool).reshape(-1);logs['done'].append(ended.copy())
                 measured=measure();self._post_step(info)
+                if a.save_actor_observation:
+                    logs['actor_observation'].append(obs['obs'].detach().cpu().numpy().copy())
                 lengths[active]+=1;active&=~ended;ages+=1
                 if not active.any():break
                 # Do not call env_reset after a terminal row. Its first episode
