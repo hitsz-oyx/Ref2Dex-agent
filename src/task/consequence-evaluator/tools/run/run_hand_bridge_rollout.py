@@ -186,6 +186,10 @@ def main():
             manifest.update(episodes=n,steps=lengths.tolist(),windows=len(windows),interventions=counts.tolist(),
                 clipped_steps=int(arrays['clipped'].sum()),trajectory_sha256=sha(out/'trajectory.npz'))
             if windows:manifest['decisions_sha256']=sha(out/'decisions.npz')
+            if planner is not None:
+                planner.verify()
+                manifest['planner_input_sha256']=planner.hashes
+                manifest['PW_repeat_checked']=planner.first_repeat_checked
             write(out/'manifest.json',manifest)
     native.EvalPlayer=Player
     argv=['--task','Dexplore_Inspire','--cfg_env',cfg['cfg_env'],'--cfg_train',cfg['cfg_train'],
