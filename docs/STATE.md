@@ -170,6 +170,23 @@ contact-proxy sweep。r1 的 manifest 保留旧 HEAD `19a646d` 与 trainer hash�
 evaluator、selector、MPC 或 Cm；卡片见
 [`P-20261010-hand-action-contact-context`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-contact-context.md)。
 
+为落实 ref7_2 “先固定 wrist、再隔离 finger/contact command decoder”的下一最小
+问题，完成 `P-20261010-hand-action-fixed-wrist-finger` 的 corrected r2 native
+Probe。v2 contextual R 保留 `6:18` finger 输出，只有 `0:6` 替换为当前 source
+packet reset-calibrated 的 11-point root inverse + train-only one-step PD；当前每个
+dispatch tick 显式读取 live `q/dq`，不读 future joint/force/command label。source-matched
+CPU packet、seed282、GPU2、四角色、542 controls 全部完成，requested=applied，整体/
+wrist/finger clipping 均为零；finger coordinates 与 v2 输出逐项一致。live teacher held480、
+source teacher481，reference floor432.9，但三个 hybrid 角色只 held4/6/8，hand RMSE
+7.87/7.82/7.86mm。结论是 wrist 几何跟踪准确而 learned finger branch 未保持接触，
+该单 source/seed Probe `UNPROMISING`；不把它升级为所有 finger representation 的正式
+反证，也不再做同一 decoder 的 epoch/threshold/native sweep。r1 因 runner 未显式保证
+chunk 内 live-state contract 而保留为 `INVALID_IMPLEMENTATION`，r2 才是可用记录；卡片见
+[`P-20261010-hand-action-fixed-wrist-finger`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-finger.md)。
+当前仍不解锁 H-to-hand、PointWorld、evaluator、selector、MPC 或 Cm；下一步若继续，
+只能转向明确的 commanded-finger/contact state labeling 或审计后续链路，不能把该结果
+当作 wrist 或完整 R 的部署上界。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，
