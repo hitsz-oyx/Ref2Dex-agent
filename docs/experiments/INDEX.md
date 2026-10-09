@@ -173,6 +173,7 @@
 | [P-20261010-hand-action-fixed-wrist-teacher-finger](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-teacher-finger.md) | Can live teacher fingers rescue the fixed-wrist native execution? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-hand-action-retarget-data](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-retarget-data.md) | Structured full-action rollouts and hand retargeter | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-hand-action-teacher-action-reference](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-teacher-action-reference.md) | Can same-process test envs replay the complete live teacher action? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-serial-finger-pulse-prefix](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-serial-finger-pulse-prefix.md) | Can a deterministic serial prefix capture a commanded-finger contact perturbation? | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-hand-execution-bridge
 
