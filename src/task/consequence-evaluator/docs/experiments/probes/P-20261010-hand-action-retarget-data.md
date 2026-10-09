@@ -195,8 +195,9 @@ object net-force norms are already zero, while the source teacher pair is
 still true. This is a descriptive timing separation between the live R
 rollouts and the teacher source, not a same-state causal comparison.
 
-The force fields are configured-body hand net forces (five bodies) and a
-target net force that may include non-hand contacts. The pair rule is only
+The force fields are configured-body hand net forces (the ordered five bodies
+`index_intermediate`, `middle_intermediate`, `pinky_intermediate`,
+`ring_intermediate`, and `thumb_distal`) and a target net force that may include non-hand contacts. The pair rule is only
 `hand norm > .1` for any configured body AND object norm > .1; frame 0 is a
 reset cache and is marked invalid. These arrays therefore improve
 observability but do not recover a hand-object collision pair, normal force,

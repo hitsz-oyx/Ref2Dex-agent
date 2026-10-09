@@ -133,8 +133,10 @@ source teacher/env0 的阈值 pair 为真 498 帧（首个真帧 tick45）。三
 而此时 R hand/object net-force 已为零、source pair 仍为真。这只说明 live R 与
 teacher source 的观测时序不同，不能构成 same-state 因果比较。
 
-接触字段是五个 configured hand bodies 的 net force 与可能包含非手部接触的
-target net force，pair 只是 `hand norm>.1 any AND object norm>.1` 代理；reset
+接触字段是按配置顺序 `index_intermediate, middle_intermediate,
+pinky_intermediate, ring_intermediate, thumb_distal` 五个 hand body 的 net force
+与可能包含非手部接触的 target net force，pair 只是
+`hand norm>.1 any AND object norm>.1` 代理；reset
 frame0 标为无效。它没有恢复碰撞 pair、法向力、冲量或 preload，也不改变
 `ref7_2` Probe `UNCLEAR` / native retarget gate `UNPROMISING` 的判断。当前仍
 不启动 H-to-hand、PointWorld、evaluator 或 Cm 集成；相关运行代码的 future
