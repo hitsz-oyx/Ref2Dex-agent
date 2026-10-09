@@ -303,7 +303,9 @@ def native_worker(a):
         elif a.object_relative_source is not None:
             from consequence_evaluator.object_relative_servo import ObjectRelativeGTExecution
             retarget = ObjectRelativeGTExecution(a.object_relative_source, task, player,
-                                                identity, a.object_relative_anchor, a.object_relative_layout, a.object_relative_preload, a.object_relative_inverse)
+                                                identity, a.object_relative_anchor, a.object_relative_layout,
+                                                preload_path=a.object_relative_preload, inverse_path=a.object_relative_inverse,
+                                                pd_inverse_path=a.object_relative_pd_inverse)
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
@@ -1746,8 +1748,9 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
-    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'finger_preload_late', 'wrist_geometry_late', 'geometry_inverse_late', 'geometry_inverse_relative_late', 'geometry_inverse_repeat', 'geometry_load_delta_late', 'geometry_pd'), default='command_vs_measured')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'finger_preload_late', 'wrist_geometry_late', 'geometry_inverse_late', 'geometry_inverse_relative_late', 'geometry_inverse_repeat', 'geometry_load_delta_late', 'geometry_pd_inverse', 'geometry_pd'), default='command_vs_measured')
     p.add_argument('--object-relative-inverse', type=Path)
+    p.add_argument('--object-relative-pd-inverse', type=Path)
     p.add_argument('--object-relative-preload', type=Path, help='engineering only: train-only fixed contact preload statistics')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
@@ -1773,7 +1776,7 @@ def main():
             if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
                 p.error('all optional outputs/inputs must be task-owned')
             setattr(a, name, value)
-    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source', 'object_relative_source', 'object_relative_preload', 'object_relative_inverse'):
+    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source', 'object_relative_source', 'object_relative_preload', 'object_relative_inverse', 'object_relative_pd_inverse'):
         value = getattr(a, name, None)
         if value is not None:
             value = value.resolve()
@@ -1783,9 +1786,11 @@ def main():
     if a.object_relative_layout in ('finger_preload','finger_preload_late','geometry_pd') and (
             a.object_relative_source is None or a.object_relative_preload is None):
         p.error('preload diagnostics require oracle source and frozen preload statistics')
-    if a.object_relative_layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late') and (
+    if a.object_relative_layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd_inverse') and (
             a.object_relative_source is None or a.object_relative_inverse is None):
         p.error('geometry inverse diagnostic requires source and inverse artifact')
+    if a.object_relative_layout=='geometry_pd_inverse' and a.object_relative_pd_inverse is None:
+        p.error('cold geometry dynamics requires train-only PD calibration')
     if a.object_relative_source is not None:
         if (not a.worker or not a.finish or a.engineering_group_envs != 4
                 or a.engineering_steps != 542 or a.action_chunk_checkpoint is not None

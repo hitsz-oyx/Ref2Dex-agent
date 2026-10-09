@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path[:0] = [str(ROOT), str(TASK / 'src')]
-from consequence_evaluator.retargeter import commanded_targets, wrist_rotation, ACTIVE_FINGERS
+from consequence_evaluator.retargeter import commanded_targets, wrist_rotation, closest_euler, ACTIVE_FINGERS
 from consequence_evaluator.object_relative_servo import local_points
 from consequence_evaluator.contracts import HAND_LINKS, is_within
 
@@ -61,14 +61,28 @@ def main():
         assert hashlib.sha256(path.read_bytes()).hexdigest()==p['preload_statistics_sha256']
         preload=json.loads(path.read_text())
     inverse_q=None
-    if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
+    if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd_inverse'):
         inverse_path=Path(p['geometry_inverse_path'])/'inverse.npz'
         assert hashlib.sha256(inverse_path.read_bytes()).hexdigest()==p['geometry_inverse_sha256']
         with np.load(inverse_path) as data:
             inverse_q=data['q'].copy()
             np.testing.assert_array_equal(data['target_points'],source['hand_keypoints'][:,0])
+    if layout=='geometry_pd_inverse':
+        calibration_path=Path(p['pd_inverse_path'])
+        assert hashlib.sha256(calibration_path.read_bytes()).hexdigest()==p['pd_inverse_sha256']
+        calibration=json.loads(calibration_path.read_text())
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
+        if layout=='geometry_pd_inverse':
+            independent=np.asarray(calibration['independent_dofs'])
+            indices=independent[:6] if role==2 else independent
+            coefficient=np.asarray(calibration['coefficients'],dtype='float32')[:len(indices)]
+            goal=inverse_q[1:].copy();current=p['dof_position'][:-1,role]
+            goal[:,3:6]=closest_euler(wrist_rotation(goal),current[:,3:6])
+            values=targets.copy()
+            values[:,indices]=current[:,indices]+coefficient[:,0]*(goal[:,indices]-current[:,indices])+coefficient[:,1]*p['dof_velocity'][:-1,role][:,indices]
+            expect=pose(values)
+            np.testing.assert_allclose(desired[:,role-1][:,ACTIVE_FINGERS],values[:,ACTIVE_FINGERS],atol=1e-6)
         if layout in ('wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
             assert p['geometry_switch_tick']==120
             values=targets.copy()
@@ -134,7 +148,7 @@ def main():
         error = float(np.max(np.abs(expect-pose(desired[:, role-1]))))
         if error > 3e-5:
             raise ValueError('SE(3) matrix transport mismatch: %s' % error)
-        if layout not in ('finger_preload','finger_preload_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd'):
+        if layout not in ('finger_preload','finger_preload_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd_inverse','geometry_pd'):
             np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
         errors.append(error)
     if layout=='geometry_inverse_repeat':
