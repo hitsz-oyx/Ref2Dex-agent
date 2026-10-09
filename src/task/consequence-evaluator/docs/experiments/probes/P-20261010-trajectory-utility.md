@@ -102,6 +102,32 @@ OOD diagnostic because the evaluator was fit on observed tau, not generated
 bridge outputs; it is evidence that the current H-to-tau proposal diversity
 is insufficient for a meaningful selector, not a new task-control result.
 
+## Frozen planner-chain wiring audit
+
+The next bounded audit (output
+`outputs/consequence-evaluator/trajectory-planner-panel-audit-20261010-r4/`)
+connects the frozen HA bridge, PointWorld checkpoint, and C2 trajectory
+evaluator on one complete 25-anchor panel. Each anchor supplies one measured
+current state; the planner expands it to seven fixed bridge proposals,
+predicts one PointWorld effect per proposal, and scores the result with C2.
+The PointWorld repeat call is bitwise stable. This verifies the shape/frame/
+hash contract for `H -> tau -> E_PW -> Q`, but does not make the bridge a
+direct trajectory policy.
+
+The generated bank has the same small spread as the prior audit (mean/max RMS
+`1.09/1.40 mm`), and its point RMSE against the observed panel trajectories is
+`34.37 mm` (H24 `44.97 mm`). The OOD C2 selections achieve `56.41%` strict
+pairwise accuracy, `20%` top-1 agreement, and mean regret `.01625`; 92% of
+anchors nevertheless fall in a teacher tie set. The selected candidates are
+concentrated on candidate 5 (10/25). These numbers are not a ranking claim:
+the evaluator was fit on observed tau and the generated bank is both narrow
+and bridge-induced. They only show that the complete offline adapter is
+executable and that candidate-bank diversity remains the dominant blocker.
+
+Three audit attempts before r4 were preserved: r1 passed a directory instead
+of `C2.pt`, r2 exposed a panel-indexing error, and r3 exposed a stale shape
+assertion. None reached a scientific result; r4 is the corrected run.
+
 ## Attribution and next step
 
 The implementation contract is valid: C0/C1/C2 receive distinct tau/effect

@@ -24,6 +24,17 @@ evaluator 训练于 observed τ、生成 τ 属于 OOD 的诊断，不是任务�
 个低成本 blocker 具体化为“先获得有足够候选多样性且非 tie 的 H→τ bank”，而不是
 继续加 evaluator epoch。
 
+随后完成冻结离线 `H→τ→PointWorld→C2` planner-chain wiring audit（输出
+`outputs/consequence-evaluator/trajectory-planner-panel-audit-20261010-r4/`，GPU2）。
+每个同-H anchor 只取一份当前状态，再由 HA bridge 展开7个候选；PointWorld
+重复推理 bitwise 稳定，shape/frame/hash 合同通过。生成 bank 的候选 spread 仍为
+1.09/1.40 mm，和观测 τ 的 point/H24 RMSE 为34.37/44.97mm；OOD C2 在25×7
+panel 的 strict pair accuracy 56.41%、top-1 agreement 20%、mean regret .01625，
+且选择集中到 candidate5（10/25）。20/25 anchor 属于 teacher tie set（tie-set
+coverage 92%），因此这些数不能写成排序或控制收益；它只证明完整离线适配器可执行，
+并再次定位“独立且足够多样的 H→τ candidate bank”是当前 blocker。r1/r2/r3 的参数、
+索引和断言工程失败均保留，未形成科学结果。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小
