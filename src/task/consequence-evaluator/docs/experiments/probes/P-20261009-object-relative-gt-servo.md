@@ -155,3 +155,17 @@ anchor, same finger commanded preload, no model. Primary gate remains
 held>=90%teacher, no intermediate loss; localRMSE reported separately.
 Do not transition to a learned retargeter merely because a bounded oracle
 that uses source commands holds. First isolate geometry inverse and preload.
+
+r4 atca555c3: teacher243/one loss, world484, query24-full365/no counted loss,
+query24-bounded271/one loss. Low-rate anchoring reduced runaway versusr1
+but neither reaches>=90%source484. Old recorded gate uses only live teacher,
+so query-full is marked passing its original relative floor219; this is not
+accepted as the user-requested near484 upper bound. Preserve that raw gate.
+
+Decision at10:48UTC: strengthen follow-up confirmation floor to90% of
+max(live teacher,source teacher), without rewriting historical packet gates.
+Teacher>=45 alone must not allow a weak live rollout to lower required
+holding far below430. r5 repeats r3's bounded-every-step layout unchanged,
+testing whether its positive signal recurs. Data-only gate/metadata edits
+also correctly identify24-step target freezing and saved20mm/.15rad caps.
+Then isolate measured finger shape vs PD preload; no model training yet.

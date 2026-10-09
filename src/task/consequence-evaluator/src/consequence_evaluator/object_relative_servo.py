@@ -150,26 +150,30 @@ class ObjectRelativeGTExecution:
                 contact_stage_local_rmse_mm=float(np.sqrt(np.mean(relative[59:200]**2))*1000),
                 max_lift_m=float(np.max(role['object_pose'][:, 2, 3]-role['object_pose'][0, 2, 3])))
         teacher = outcomes[self.roles[0]]['maximum_held_frames']
-        passes = {name: bool(teacher >= 45 and metrics[name]['maximum_held_frames'] >= .9*teacher
+        reference_held = max(teacher, self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'])
+        passes = {name: bool(teacher >= 45 and metrics[name]['maximum_held_frames'] >= .9*reference_held
                             and outcomes[name]['intermediate_loss_events'] == 0)
                   for name in self.roles[1:]}
         primary = {'transport_ablation':'bounded_se3_gt_command',
                    'chunk_alignment':'query24_bounded_gt_command'}.get(self.layout, 'object_gt_command')
-        gate = dict(teacher_held=teacher, held_fraction=.9, role_passes=passes,
+        gate = dict(teacher_held=teacher, source_held=self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'],
+                    reference_held=reference_held, held_fraction=.9, role_passes=passes,
                     passed=passes[primary], primary_role=primary, engineering_only=True,
                     secondary_local_rmse_threshold_mm=40)
         extra = dict(schema='ref2dex.object-relative-gt-servo.v1', role_names=self.roles,
             group_mode='synchronous_object_relative_gt_servo', training_allowed=False, engineering_only=True,
             requested_controls=np.asarray(requested), desired_pd_targets=np.asarray(self.desired),
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
-            servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout == 'transport_ablation' else None),
-            rotation_feedback_cap_rad=(.15 if self.layout == 'transport_ablation' else None),
+            servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
+            rotation_feedback_cap_rad=(.15 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
             alignment_query_ticks=self.query_ticks, alignment_query_poses=self.query_poses,
             alignment_query_chunks=self.query_chunks,
             clipped_coordinate_counts=np.asarray(self.clip_counts), commanded_target_max_abs_error=np.asarray(self.errors),
             gt_source=str(self.source), gt_source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
             privileged_future_geometry=True, native_body_names=self.body_names,
             source_outcome=self.packet['role_outcomes']['reactive_teacher'],
-            target_semantics='every-step analytic object-conditioned wrist transport; independent source fingers',
+            target_semantics=('query24 frozen analytic object-conditioned target chunks; current-q mechanical adapter each step'
+                              if self.layout == 'chunk_alignment' else
+                              'every-step analytic object-conditioned wrist transport; independent source fingers'),
             replay_identity=identity, metrics=metrics, role_outcomes=outcomes, gate=gate, **metadata)
         return dict(**packets, **extra)
