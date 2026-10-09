@@ -17,6 +17,7 @@ sys.path.insert(0, str(TASK / 'src'))
 from consequence_evaluator.retargeter import (SCHEMA, HandTrajectoryRetargeter,
     Standardizer, commanded_targets, relative_targets, absolute_targets,
     native_control, trajectory_input, ACTIVE_FINGERS, DOF_NAMES)
+from consequence_evaluator.contracts import is_within
 
 SOURCES = [
     'act-native-chunk-engineering-20261009-r2',
@@ -84,7 +85,7 @@ def main():
     if occupied:
         raise RuntimeError('GPU occupied: '+occupied)
     output = args.output.resolve()
-    if output.exists() or not output.is_relative_to(ROOT / 'outputs/consequence-evaluator'):
+    if output.exists() or not is_within(output, ROOT / 'outputs/consequence-evaluator'):
         raise ValueError('fresh task-owned output required')
     output.mkdir(parents=True)
     torch.set_num_threads(2)
