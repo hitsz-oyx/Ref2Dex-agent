@@ -192,8 +192,15 @@ def main():
                     raise TimeoutError("retarget execution deadline")
                 base = self.get_action(obs, True).clamp(-1, 1).to(self.device)
                 if tick % HORIZON == 0:
-                    future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
+                    source_future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
+                    # The model was trained on future hand displacement from
+                    # the query hand.  Preserve that source trajectory delta
+                    # while anchoring it to each live environment's current
+                    # hand; feeding source absolute coordinates would inject
+                    # an unregistered initial-frame offset into R.
                     current = measured["hand_keypoints"].detach().cpu().numpy()
+                    source_delta = source_future - source_hand[tick][None]
+                    future = current[:, None] + source_delta[None]
                     q = task._dof_pos.detach().cpu().numpy()
                     dq = task._dof_vel.detach().cpu().numpy()
                     hand = trajectory_input(current, np.broadcast_to(future, (n, HORIZON, 11, 3)))
@@ -204,7 +211,8 @@ def main():
                             torch.as_tensor(stats["state"].encode(state), device=self.device))
                         predicted = stats["action"].decode(model_output.cpu().numpy())
                     queries.append(tick); chunks.append(predicted.copy())
-                    inputs.append(dict(current_hand=current.copy(), future_hand=future.copy(), state=state.copy()))
+                    inputs.append(dict(current_hand=current.copy(), future_hand=future.copy(),
+                                       source_future=source_future.copy(), state=state.copy()))
                 offset = tick % HORIZON
                 command = base.detach().cpu().numpy().copy()
                 command[1:] = predicted[1:, offset]
