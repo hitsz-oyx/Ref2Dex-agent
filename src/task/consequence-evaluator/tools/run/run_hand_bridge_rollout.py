@@ -15,7 +15,8 @@ sys.path[:0]=[str(TASK/'src'),str(ROOT),str(ROOT/'third_party/DExplore/dexplore'
               str(ROOT/'src/task/cm-interaction-oracle/src')]
 from consequence_evaluator.contracts import is_within, HAND_LINKS
 from consequence_evaluator.retarget_collection import (
-    MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
+    ACTIVE_FINGERS, MODE_NAMES, PHASE_NAMES, STRUCTURED_PROFILE_NAMES,
+    finger_pulse_residual, phase_code, sample_structured_residual,
     validate_residual_family)
 
 
@@ -37,11 +38,24 @@ def main():
     p.add_argument('--initial-jitter',action='store_true',help='fixed small seeded q perturbation for distinct matched episodes')
     p.add_argument('--save-actor-observation',action='store_true',
                    help='save the actor observation at every retained frame for H-matched audits')
+    p.add_argument('--structured-profile',choices=STRUCTURED_PROFILE_NAMES,default='random',
+                   help='retarget residual schedule; finger-pulse is a serial diagnostic only')
+    p.add_argument('--pulse-start-tick',type=int,default=50)
+    p.add_argument('--pulse-end-tick',type=int,default=51)
+    p.add_argument('--pulse-finger-index',type=int,choices=tuple(int(i) for i in ACTIVE_FINGERS),default=6)
+    p.add_argument('--pulse-value',type=float,default=.08)
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
     if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
         raise ValueError('fresh bounded rollout required')
     if a.mode=='planner' and a.bridge is None:raise ValueError('frozen hand bridge required')
+    if a.structured_profile != 'random' and a.mode != 'retarget':
+        raise ValueError('structured profile is only valid for retarget mode')
+    if a.structured_profile == 'finger-pulse':
+        if not 0 <= a.pulse_start_tick < a.pulse_end_tick <= 542:
+            raise ValueError('finger-pulse interval must lie within the 542 commands')
+        if not np.isfinite(a.pulse_value) or abs(a.pulse_value) > .120001:
+            raise ValueError('finger-pulse value exceeds the registered bound')
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
         raise RuntimeError('GPU occupied')
     scratch=ROOT/'tmp/hand-execution';scratch.mkdir(parents=True,exist_ok=True)
@@ -92,7 +106,7 @@ def main():
     if a.bridge:hashes[str(a.bridge.resolve())]=sha(a.bridge)
     if any(sha(path)!=h for path,h in hashes.items()):raise ValueError('frozen input drift')
     out.mkdir(parents=True);begin=time.monotonic()
-    action_semantics = ('captured full native action: actor action plus bounded structured residual; '
+    action_semantics = (f'captured full native action: actor action plus {a.structured_profile} structured residual; '
                         'retarget model input excludes actor action' if a.mode == 'retarget' else
                         'requested24x18 residual, first8nonzero then16zero; replanning every8only in planner')
     manifest=dict(schema=SCHEMA,status='RUNNING',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -109,13 +123,21 @@ def main():
                              pair_rule='hand force norm>.1 any AND object force norm>.1'))
     if a.mode == 'retarget':
         manifest.update(structured_residual_schema='ref2dex.structured-residual.v1',
+                        structured_profile=a.structured_profile,
+                        structured_pulse=(dict(start_tick=a.pulse_start_tick,
+                                               end_tick=a.pulse_end_tick,
+                                               finger_index=a.pulse_finger_index,
+                                               value=a.pulse_value)
+                                         if a.structured_profile == 'finger-pulse' else None),
                         structured_modes=list(MODE_NAMES), structured_phases=list(PHASE_NAMES),
                         phase_boundaries={'approach_end_tick':120, 'contact_end_tick':240},
                         residual_bounds={'wrist_translation':[0.01, 0.01, 0.015],
                                          'wrist_rotation':[0.035, 0.035, 0.05],
                                          'active_finger':0.12},
                         saved_state_fields=['dof_position','dof_velocity'],
-                        target_field='action[t:t+24] captured after actor+residual composition')
+                        target_field='action[t:t+24] captured after actor+residual composition',
+                        native_pd_target_field=('task.real_pd_tar captured during pre_physics_step; '
+                                                'Inspire active order [14,15,6,8,12,10]'))
     write(out/'manifest.json',manifest)
     class Player(native.EvalPlayer):
         @torch.no_grad()
@@ -155,6 +177,7 @@ def main():
             delta=candidate_deltas(device);rng=np.random.default_rng(a.seed)
             active=np.ones(n,bool);lengths=np.zeros(n,int);commands=[];clipping=[];decisions=[]
             retarget_residuals=[];retarget_base=[];retarget_modes=[];retarget_phases=[]
+            native_pd_targets=[]
             logs={k:[] for k in ('object_pose','hand_keypoints','surface_gap','support_gap','table_footprint',
                 'object_velocity','reference_object_pose','pair','native_contact_forces',
                 'native_object_contact_forces','dof_position','dof_velocity','done')}
@@ -163,11 +186,16 @@ def main():
             plan=np.zeros((n,24,18),np.float32);ages=np.full(n,32);counts=np.zeros(n,int)
             structured=np.zeros((n,18),np.float32)
             structured_modes=np.full(n,-1,np.int8)
-            capture=None;original_pre=task.pre_physics_step
+            capture=None;capture_pd=None;original_pre=task.pre_physics_step
             def pre(actions):
-                nonlocal capture
+                nonlocal capture,capture_pd
                 capture=actions.detach().cpu().numpy().copy()
-                return original_pre(actions)
+                result=original_pre(actions)
+                pd_target=getattr(task, 'real_pd_tar', None)
+                if pd_target is None:
+                    raise ValueError('native PD target capture failed')
+                capture_pd=pd_target.detach().cpu().numpy().copy()
+                return result
             task.pre_physics_step=pre
             planner=None
             if a.mode=='planner':
@@ -202,9 +230,19 @@ def main():
                     print(json.dumps(dict(tick=tick,elapsed_s=round(time.monotonic()-begin,1),active=int(active.sum()),gpu=gpu)),flush=True)
                 base=self.get_action(obs,True).clamp(-1,1).to(device).clone()
                 base_np=base.cpu().numpy()
-                if a.mode == 'retarget' and tick % 16 == 0:
-                    phase = phase_code(tick)
-                    structured, structured_modes = sample_structured_residual(rng, n, phase)
+                if a.mode == 'retarget':
+                    if a.structured_profile == 'random' and tick % 16 == 0:
+                        phase = phase_code(tick)
+                        structured, structured_modes = sample_structured_residual(rng, n, phase)
+                    elif a.structured_profile == 'zero':
+                        structured.fill(0.)
+                        structured_modes.fill(-1)
+                    elif a.structured_profile == 'finger-pulse':
+                        structured.fill(0.)
+                        structured_modes.fill(-1)
+                        if a.pulse_start_tick <= tick < a.pulse_end_tick:
+                            structured[:] = finger_pulse_residual(
+                                n, a.pulse_finger_index, a.pulse_value)
                 decide=tick>=40 and ((tick-40)%(8 if a.mode=='planner' else 32)==0)
                 remaining=(task.max_episode_length[task.data_id]-1-task.progress_buf).cpu().numpy()
                 selected=np.flatnonzero(active&(remaining>=32)) if decide else np.array([],int)
@@ -241,7 +279,10 @@ def main():
                 if not isinstance(obs,dict):obs={'obs':obs}
                 if capture is None or capture.shape!=command.shape:raise ValueError('command capture failed')
                 if not np.allclose(capture,command,atol=1e-7,rtol=0):raise ValueError('native action noise/command mutation')
+                if capture_pd is None or capture_pd.shape[0] != n or not np.isfinite(capture_pd).all():
+                    raise ValueError('native PD target capture failed')
                 commands.append(capture.copy());clipping.append((np.abs(intended-command)>1e-7).any(-1)&active)
+                native_pd_targets.append(capture_pd.copy())
                 if a.mode == 'retarget':
                     retarget_residuals.append(requested.copy())
                     retarget_base.append(base_np.copy())
@@ -256,7 +297,9 @@ def main():
                 # Do not call env_reset after a terminal row. Its first episode
                 # remains frozen for slicing even as the single world advances.
             if active.any() and not a.smoke:raise ValueError('incomplete full-reference episode')
-            arrays={k:np.stack(v) for k,v in logs.items()};arrays.update(action=np.stack(commands),clipped=np.stack(clipping),length=lengths,interventions=counts)
+            arrays={k:np.stack(v) for k,v in logs.items()};arrays.update(
+                action=np.stack(commands), native_pd_target=np.stack(native_pd_targets),
+                clipped=np.stack(clipping),length=lengths,interventions=counts)
             if a.mode == 'retarget':
                 arrays.update(structured_residual=np.stack(retarget_residuals),
                               actor_action=np.stack(retarget_base), structured_mode=np.stack(retarget_modes),

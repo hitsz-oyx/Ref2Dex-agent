@@ -13,8 +13,8 @@ from consequence_evaluator.fixed_wrist_decoder import (
     pd_inverse_wrist_action, recover_wrist_sequence, replace_wrist_action,
     root_template)
 from consequence_evaluator.retarget_collection import (
-    MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
-    validate_residual_family)
+    ACTIVE_FINGERS, MODE_NAMES, PHASE_NAMES, finger_pulse_residual,
+    phase_code, sample_structured_residual, validate_residual_family)
 from consequence_evaluator.trajectory_utility import (
     OBJECT_EFFECT_DIM, SCHEMA as TRAJECTORY_SCHEMA, TRAJECTORY_DIM,
     TrajectoryUtility)
@@ -46,6 +46,19 @@ def test_structured_residual_family_is_bounded_and_covers_modes():
     assert phase_code(0) == 0 and phase_code(119) == 0
     assert phase_code(120) == 1 and phase_code(239) == 1 and phase_code(240) == 2
     assert len(PHASE_NAMES) == 3
+
+
+def test_serial_finger_pulse_is_one_independent_bounded_channel():
+    residual = finger_pulse_residual(3, int(ACTIVE_FINGERS[0]), .08)
+    assert residual.shape == (3, 18)
+    assert np.flatnonzero(residual[0]).tolist() == [int(ACTIVE_FINGERS[0])]
+    np.testing.assert_array_equal(residual[:, int(ACTIVE_FINGERS[0])],
+                                  np.full(3, .08, dtype="float32"))
+    assert validate_residual_family(residual[None])
+    with np.testing.assert_raises(ValueError):
+        finger_pulse_residual(1, 7, .08)
+    with np.testing.assert_raises(ValueError):
+        finger_pulse_residual(1, int(ACTIVE_FINGERS[0]), .13)
 
 
 def test_full_action_model_and_horizon_action_normalization_contract():

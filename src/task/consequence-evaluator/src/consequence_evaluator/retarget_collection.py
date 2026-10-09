@@ -18,6 +18,30 @@ MODE_NAMES = (
     "wrist_finger",
 )
 ACTIVE_FINGERS = np.asarray([6, 8, 10, 12, 14, 15], dtype=np.int64)
+STRUCTURED_PROFILE_NAMES = ("random", "zero", "finger-pulse")
+
+
+def finger_pulse_residual(count, finger_index, value):
+    """Build a one-channel diagnostic residual without sampling other joints.
+
+    This is intentionally separate from :func:`sample_structured_residual`:
+    the pulse profile is used only by the serial paired-capture diagnostic,
+    while the ordinary structured rollout keeps its registered random family.
+    ``finger_index`` names one of the six independently commanded native
+    finger coordinates; the environment applies its coupled coordinates.
+    """
+    count = int(count)
+    finger_index = int(finger_index)
+    value = float(value)
+    if count < 1:
+        raise ValueError("positive residual count required")
+    if finger_index not in set(int(index) for index in ACTIVE_FINGERS):
+        raise ValueError("finger pulse must use an independently commanded finger")
+    if not np.isfinite(value) or abs(value) > .120001:
+        raise ValueError("finger pulse exceeds the registered residual bound")
+    residual = np.zeros((count, 18), dtype=np.float32)
+    residual[:, finger_index] = np.float32(value)
+    return residual
 
 
 def phase_code(tick, contact_tick=120, hold_tick=240):
