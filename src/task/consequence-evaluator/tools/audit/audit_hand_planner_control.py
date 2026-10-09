@@ -3,6 +3,8 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import hashlib
+import subprocess
 import numpy as np
 
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
@@ -13,12 +15,24 @@ from consequence_evaluator.temporal_value import episode_labels
 from oracle_y_utility import paired_bootstrap
 
 
+def verify_runtime_inputs(manifest):
+    """Artifacts stay immutable; earlier source blobs are checked at their commit."""
+    for path,digest in manifest['input_sha256'].items():
+        if sha(path)==digest:continue
+        source=Path(path)
+        try:relative=source.resolve().relative_to(ROOT)
+        except ValueError:raise ValueError('external immutable input drift: '+path)
+        if source.suffix!='.py':raise ValueError('immutable artifact drift: '+path)
+        blob=subprocess.check_output(['git','show',manifest['git_commit']+':'+str(relative)],cwd=ROOT)
+        if hashlib.sha256(blob).hexdigest()!=digest:raise ValueError('unrecoverable runtime source drift: '+path)
+
+
 def summarize(folder):
     m=json.loads((folder/'manifest.json').read_text())
     if m['status']!='COMPLETED' or m['smoke'] or m['mode'] not in ('baseline','planner'):
         raise ValueError('complete prospective policy run required')
     if sha(folder/'trajectory.npz')!=m['trajectory_sha256']:raise ValueError('trajectory drift')
-    if any(sha(p)!=h for p,h in m['input_sha256'].items()):raise ValueError('runtime inputs drift')
+    verify_runtime_inputs(m)
     if m['mode']=='planner':
         if not m['PW_repeat_checked']:raise ValueError('PW repeatability missing')
         if any(sha(p)!=h for p,h in m['planner_input_sha256'].items()):raise ValueError('planner weights/source drift')

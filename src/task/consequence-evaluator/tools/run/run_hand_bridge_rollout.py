@@ -32,6 +32,7 @@ def main():
     p.add_argument('--mode',choices=('random','baseline','planner'),required=True)
     p.add_argument('--smoke',action='store_true');p.add_argument('--bridge',type=Path)
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
+    if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
         raise ValueError('fresh bounded rollout required')
     if a.mode=='planner' and a.bridge is None:raise ValueError('frozen hand bridge required')

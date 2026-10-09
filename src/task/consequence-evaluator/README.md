@@ -1,6 +1,26 @@
 # Consequence evaluator
 
-当前按用户 [ref4_4](docs/user/ref/ref4_4.md)冻结旧 `U32=Y7+.25Y3-Y6` 为 teacher，
+当前按用户 [ref5](docs/user/ref/ref5.md)推进普通随机干预 rollout 的手执行桥：
+`G(H,A) -> 24x11x3 hand -> frozen PointWorld -> frozen C1 -> 每8步选择7候选`。
+不扩大 fork panel，旧 `U32=Y7+.25Y3-Y6` 仍只作为 evaluator teacher。
+自训 e260、PW best46000 和 C1 step1000 全部冻结；在线选择只读当前/过去几何，
+不接实测未来手轨迹。分支保持 `main`。
+
+[手执行桥与在线 Probe](docs/experiments/probes/P-20261009-hand-execution-bridge.md)
+完成96train/64val/64test和另一个64episode新test，全部完整542步；
+原始96/64/64数据共3360窗口，另一个test960窗口。两次匹配HA/H-only训练
+各2000步，保持同模型/采样/val选择，仅第二次改变固定native请求单位。
+手轨迹预测明显优于persistence/nominal FK，但zero-A误差没有达到预设1%门槛，
+因此不把桥称为可靠的candidate execution predictor。选模型仅用val误差，
+保留第一版step200；普通单计划的同C1 waterfall和小规模prospective控制另行记录。
+工具：[采集/在线执行](tools/run/run_hand_bridge_rollout.py)、
+[桥训练](tools/run/train_hand_execution.py)、
+[三层误差审计](tools/audit/audit_hand_bridge_waterfall.py)、
+[完整任务对照审计](tools/audit/audit_hand_planner_control.py)。
+
+## 保留的旧 U evaluator 实验
+
+之前按用户 [ref4_4](docs/user/ref/ref4_4.md)冻结旧 `U32=Y7+.25Y3-Y6` 为 teacher，
 推进 C0(H+A)、C1(H+A+GT24)、C2(H+A+PW24) evaluator；future均只有24步几何，
 force-pair/contact只生成32步标签。C2按用户选择使用实测未来手轨迹条件，替换物体
 future，是离线oracle，尚不能作为可部署planner。分支仍为`main`。
@@ -11,7 +31,8 @@ future，是离线oracle，尚不能作为可部署planner。分支仍为`main`�
 GT信息screen为PROMISING，PW retention screen未过。真实one-shot Z90为
 baseline20、C019、C120、C221（25锚点），C2 rescue1/harm0，控制收益UNCLEAR。
 同C1权重换PW的离线诊断为73.08%，提示还需区分world-model误差和evaluator拟合。
-下一步冻结共同C1，在独立候选/新cohort上比较GT/PW；不再定义新Y，不直接进入RL。
+当时建议冻结共同C1，在独立cohort比较GT/PW；ref5现在用普通rollout执行桥
+取代继续扩fork数据。不再定义新Y，不直接进入RL。
 旧teacher rolling23/25与本次one-shot分开保存，不能据单次选择关闭rolling路线。
 [标签准备](tools/run/prepare_old_utility.py)、[PW推理](tools/run/predict_old_utility_future.py)、
 [匹配训练](tools/run/train_old_utility.py)、[执行/权重复核](tools/audit/report_old_utility.py)。

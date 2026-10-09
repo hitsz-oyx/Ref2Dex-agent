@@ -148,6 +148,13 @@ waterfall and task evidence. At most900s per owned run, no budget increase.
 The original1%gate remains failed throughout. No user or global boundary is
 changed; irreversible/hardware deployment is outside this simulation scope.
 
+The first planner296r1 fails before any candidate execution: native main
+changes cwd and a relative bridge checkpoint path no longer resolves. Preserve
+its FAILED manifest/log; resolve the bridge to absolute before native startup
+and rerun only planner296 in a fresh r2 folder. Baseline296completed remains
+valid. Audits resolve old committed source hashes via the recorded Git blob,
+while data/config/weight hashes must still match immutable files exactly.
+
 Frozen-policy planner utility is a Mission mechanism Probe, not RL training
 benefit or formal Gate1. s3/full-start differs from earlier hybrid25anchorZ90.
 The bridge may model conditional mean and miss contact multimodality. Nominal
