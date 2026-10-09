@@ -42,7 +42,7 @@
 | [P-20261009-act-deployment-conditioned](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-deployment-conditioned.md) | Does deployment-conditioned history improve the native 24-step proposal? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261009-act-native-chunk](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-native-chunk.md) | Does a one-shot native 24-step proposal have a usable behavior contract? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261009-act-single-open-loop-behavior](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-single-open-loop-behavior.md) | Can a single native GPU environment execute one frozen ACT chunk? | 见原卡 | 见原卡 | probes/UNCLEAR |
-| [P-20261009-act-temporal-ensemble](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-temporal-ensemble.md) | Does inference-only temporal aggregation recover ACT grasp behavior? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261009-act-temporal-ensemble](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-temporal-ensemble.md) | Does inference-only temporal aggregation recover ACT grasp behavior? | UNPROMISING aggregation-only remedy: held478 open_loop24; held0 receding8/overlap8/temporal1, with passing native execution checks. | Keep tested inference modes; prioritize deployment-history diagnosis without further aggregation-only launches or retraining in this Probe. | probes/UNPROMISING |
 
 ## HF-consequence-baseline-rebuild
 

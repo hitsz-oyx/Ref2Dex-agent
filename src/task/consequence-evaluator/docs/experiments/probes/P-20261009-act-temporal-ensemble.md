@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-temporal-ensemble
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: f98ce40
+git_commit: 6751843
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 4
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [282]
 decision_changed_if_positive: retain causal temporal aggregation as an ACT behavior route before any retraining
 decision_changed_if_negative: retain the implementation but diagnose deployment coverage rather than claiming hard switching is the sole cause
-status: UNCLEAR
+status: UNPROMISING
 run_id: act-temporal-ensemble-20261009-r1
 ---
 
 # Does inference-only temporal aggregation recover ACT grasp behavior?
+
+Result: UNPROMISING aggregation-only remedy: held478 open_loop24; held0 receding8/overlap8/temporal1, with passing native execution checks.
+Decision: Keep tested inference modes; prioritize deployment-history diagnosis without further aggregation-only launches or retraining in this Probe.
 
 ## Decision and scope
 
@@ -92,9 +95,105 @@ Tools:
 - [Executor tests](../../../tests/test_action_chunk_execution.py)
 
 Outputs: `outputs/consequence-evaluator/act-temporal-ensemble-20261009-r1/`
-for offline audit and frozen run manifest; separate child run directories
+for frozen screen manifest; separate run directories
 `act-temporal-{open_loop24,receding8,overlap8,temporal1}-20261009-r1/`
 preserve native packets and logs.
+
+## Results
+
+The native execution source was frozen at `6751843`; its hashes and exact
+commands are retained in the screen manifest. Audit improvements are committed
+through `c29ea82`. Four full542-step workers completed in about328s total wall
+time, on GPU2 (roughly18.2GB memory, observed19--21% utilization). No actor or
+proposal training occurred. GPU2 was released after the screens.
+
+### Offline overlap and horizon checks
+
+Retained audit/figure:
+`outputs/consequence-evaluator/act-temporal-offline-20261009-r4/`.
+All11,937 stride1 windows and the separately marked stride8 query grid were
+evaluated. On four held-out clean episodes:
+
+| query grid | windows | whole-chunk MSE | horizon0--7 MSE | horizon8--23 MSE |
+| --- | ---: | ---: | ---: | ---: |
+| every step | 2076 | 2.02935e-4 | 2.12462e-4 | 1.98171e-4 |
+| every8, actual receding8 grid | 260 | 1.60673e-4 | 1.59940e-4 | 1.61040e-4 |
+
+The stride8 total reproduces the original held-out MSE. The first-eight
+average is approximately equal to the remaining horizons on the actual query
+grid; a roughly7% difference on every-step inputs must not be used to explain
+receding8. Temporal1 also queries observations outside the original training
+stride8 grid, which is an additional limitation of that arm.
+
+At stride8 query boundaries, the held-out mean same-absolute-time wrist
+translation disagreement is15.40mm (17.86mm over the first120 ticks), versus
+15.48mm natural consecutive teacher-control change at those boundaries. Wrist
+rotation disagreement is0.0383rad; active-finger normalized L2 is0.02148,
+versus teacher change0.01688. These are control/prediction differences, not
+measured hand displacement or a stand-alone root-cause verdict. Stride1
+overlaps yield18.92mm and are kept separately in the audit.
+
+The first offline r1 attempt completed numeric inference but stopped on a
+missing matplotlib dependency in the archived runtime. It is preserved as an
+engineering failure. r2--r4 used the existing Torch2.4 GPU environment with the
+same weights/normalizer; original stride8 metrics reproduce to numerical
+precision. No dependency was installed or historical artifact replaced.
+
+### Native behavior and execution checks
+
+Independent native-dispatch audit:
+`outputs/consequence-evaluator/act-temporal-final-audit-20261009-r1/audit.json`.
+
+| mode | queries | max covering chunks | ACT max lift m | ACT held frames | teacher held frames | early120 wrist change at8-step boundaries mm |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| open_loop24 | 23 | 1 | 0.59524 | 478 | 484 | 30.10 |
+| receding8 | 68 | 1 | 0.00000 | 0 | 297 | 33.56 |
+| overlap8 | 68 | 3 | 0.00000 | 0 | 484 | 19.23 |
+| temporal1 | 542 | 24 | 0.00000 | 0 | 484 | 8.58 |
+
+Every arm completed542 controls with no early done. Requested versus captured
+native control difference is exactly0 in all four launches. Independent NumPy
+reconstruction of the covering-chunk weighted ACT action differs by at most
+`2.24e-8`; raw query histories match the recorded pre-action frame exactly.
+ACT/repeated-ACT streams are identical; repeated ACT also held478/0/0/0.
+All four teacher arms pass held45. Initial ACT raw history, first8 controls,
+and hand geometry through tick8 are exactly equal between open_loop24,
+receding8 and overlap8; the checkpoint/backend/controller remain fixed. This
+does not establish equality of unexposed PhysX solver state.
+
+All ACT **full-task outcomes are false**, including open_loop24, which lifts
+and holds but lacks terminal settle15. Held478 is not full task success. The
+recorded symptom assertion goes green for open_loop24 and remains red for
+receding8/overlap8; native history/weight/action checks pass independently of
+that behavior failure.
+
+## Decision after the screen
+
+Temporal aggregation was missing from the previous inference implementation;
+the new timestamp-based executor fixes that omission and demonstrably reduces
+executed boundary changes. **Aggregation alone does not recover grasp for this
+frozen checkpoint.** The bounded remedy is `UNPROMISING`; the underlying cause
+of receding grasp failure remains `UNCLEAR`. Do not describe the result as a
+general ACT negative, proof of inadequate capacity, or proof of deployment
+distribution as the sole cause.
+
+Keep the tested inference modes and audit tools. Preserve open_loop24 as the
+behavior baseline; do not promote either ensemble arm or repeat inference-only
+launches without a new discriminating hypothesis. The next priority is a
+deployment-history diagnostic and explicitly bounded deployment-conditioned
+proposal work, using the already observed serial-deployment coverage gap as
+motivation. No retraining or candidate/Cm/Gate1 work was started in this Probe.
+
+Example retained offline command (use a new output run ID to reproduce):
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/consequence-evaluator/tools/audit/audit_action_chunk_execution.py \
+  --checkpoint outputs/consequence-evaluator/act-native-chunk-engineering-20261009-r1/action_chunk.pt \
+  --teacher-packet outputs/consequence-evaluator/act-native-chunk-engineering-20261009-r2/act.pkl \
+  --teacher-packet outputs/consequence-evaluator/act-native-chunk-engineering-20261009-r3/act.pkl \
+  --gpu 2 --output outputs/consequence-evaluator/act-temporal-offline-20261009-r4
+```
 
 ## Limitations / future evidence
 

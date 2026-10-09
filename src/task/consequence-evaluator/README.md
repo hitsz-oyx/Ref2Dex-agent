@@ -96,6 +96,15 @@ mode additionally accepts a provenance-checked recorded chunk through
 before any candidate effect is usable. The evidence and stopping decision are
 recorded in [P-20261009-act-native-chunk](docs/experiments/probes/P-20261009-act-native-chunk.md).
 
+The ref6 inference diagnosis additionally supports `overlap8` (query every8,
+combine overlapping chunks) and `temporal1` (query and combine every step),
+with absolute-tick expiry and official oldest-first exponential weighting.
+Both reduce executed control changes but still fail to grasp with the frozen
+historical checkpoint. The actual stride8 query-grid horizon errors do not
+show a disproportionately weak first8-token average. See the
+[temporal aggregation Probe](docs/experiments/probes/P-20261009-act-temporal-ensemble.md)
+and [horizon/dispatch audit tool](tools/audit/audit_action_chunk_execution.py).
+
 ## 历史路线与保留证据
 
 早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。

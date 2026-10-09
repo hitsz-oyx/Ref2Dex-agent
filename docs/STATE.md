@@ -1,5 +1,29 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref6 ACT inference diagnosis
+
+冻结历史ACT checkpoint `ed26abd5`与其原归一化，不重训。`6751843`补齐按绝对tick
+聚合的`overlap8`与`temporal1`，显式时间戳有效性、过期/reset和合法零动作保留。
+四个seed282原生GPU group完整542步：open_loop24 held478/最高抬升0.595m，
+receding8/overlap8/temporal1均held0；teacher分别held484/297/484/484。
+前120步的8步边界wrist控制变化由33.56mm降到19.23/8.58mm，仍未恢复抓取。
+四组actual-requested控制差均0，独立加权重建误差至多2.24e-8，query H因果对齐，
+各自最多1/1/3/24个chunk、调用23/68/68/542次，重复ACT控制流一致。
+
+真正stride8查询网格的四条val episode上，前8/后16 token MSE分别1.5994e-4/
+1.6104e-4，没有前8平均误差特别差的证据；逐帧网格的7%差异不能用于解释receding8。
+真实查询网格的同绝对时刻wrist预测差15.40mm，与teacher自然控制变化15.48mm
+同量级。时间融合缺失已补齐，但当前checkpoint的抓取失败未解决：本次仅融合
+remedy为UNPROMISING，根因仍UNCLEAR，不再默认把硬切换或部署分布说成唯一原因。
+open_loop24仍只是抬升/持握基线，最终任务success=false，不能写成完整任务成功。
+
+保留推理/审计工具与失败证据，下一优先级为deployment-history诊断，不扩融合
+仿真、不在本轮重训或进入candidate/Cm/Gate1。严格same-state边界仍未改变。
+13项相关测试通过，GPU2已释放。证据与命令见
+[ACT时间融合Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-temporal-ensemble.md)，
+产物`outputs/consequence-evaluator/act-temporal-ensemble-20261009-r1/`、
+`act-temporal-offline-20261009-r4/`和`act-temporal-final-audit-20261009-r1/`。
+
 ## 2026-10-09 ref5 prospective hand execution bridge and rolling control
 
 用户ref5取代继续扩fork-panel/C2a路线：普通e260随机干预rollout训练
@@ -248,8 +272,9 @@ ACT repeat放入同一原生GPU进程。`open_loop24`中ACT最高0.7939m/held478
 pre-physics。产物
 `outputs/consequence-evaluator/act-native-chunk-engineering-20261009-r2/`。
 但最终所需`receding8`在同一checkpoint下held0、未抬升；将21条全部用于fit把离线
-MSE进一步降到4.53e-5仍然held0（r5），说明失败不是单纯holdout拟合误差，而是
-每8步重规划将直接模仿proposal带出其action/state分布。r3/r5均仅engineering，
+MSE进一步降到4.53e-5仍然held0（r5），说明降低该离线拟合误差不足以恢复行为；
+当时尚未区分chunk硬切换与部署分布误差。后续ref6推理诊断见
+[时间融合Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-temporal-ensemble.md)。r3/r5均仅engineering，
 不进入GT scoring。
 
 因此当前只保留`open_loop24`作为ACT-like行为基线，关闭该直接模仿checkpoint的
