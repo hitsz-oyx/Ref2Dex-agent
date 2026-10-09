@@ -20,6 +20,14 @@ def trajectory_input(current_hand, future_hand):
     return (future_hand - current_hand[..., None, :, :]).astype("float32")
 
 
+def chunk_offset(tick, query_tick, horizon=HORIZON):
+    """Return the action offset relative to the chunk's query tick."""
+    offset = int(tick) - int(query_tick)
+    if offset < 0 or offset >= int(horizon):
+        raise ValueError("tick is outside the active action chunk")
+    return offset
+
+
 class Standardizer:
     """Train-only per-coordinate statistics, including horizon coordinates."""
 

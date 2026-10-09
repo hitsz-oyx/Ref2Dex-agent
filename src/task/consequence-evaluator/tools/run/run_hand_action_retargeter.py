@@ -62,12 +62,13 @@ def main():
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--seed", type=int, default=282)
     parser.add_argument("--envs", type=int, default=4)
+    parser.add_argument("--query-period", type=int, default=HORIZON)
     parser.add_argument("--seconds", type=int, default=300)
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists() or not is_within(output, ROOT / "outputs/consequence-evaluator"):
         raise ValueError("fresh task-owned execution output required")
-    if args.envs != 4 or not 1 <= args.seconds <= 900:
+    if args.envs != 4 or not 1 <= args.seconds <= 900 or not 1 <= args.query_period <= HORIZON:
         raise ValueError("the fixed four-role upper-bound contract is required")
     occupied = subprocess.check_output([
         "nvidia-smi", "-i", str(args.gpu), "--query-compute-apps=pid", "--format=csv,noheader"],
@@ -85,7 +86,7 @@ def main():
     from isaacgym import gymtorch  # noqa: F401  # imports before torch/native modules
     import torch
     from consequence_evaluator.hand_action_retargeter import (
-        HandActionRetargeter, Standardizer, trajectory_input)
+        HandActionRetargeter, Standardizer, chunk_offset, trajectory_input)
     if torch.__version__ != "2.4.1+cu121":
         raise ValueError("pinned graspenv runtime required")
     torch.set_num_threads(2); torch.backends.cuda.matmul.allow_tf32 = False
@@ -142,7 +143,7 @@ def main():
                     seed=args.seed, num_envs=args.envs, physical_gpu=args.gpu, budget_s=args.seconds,
                     source=str(args.source.resolve()), source_sha256=source_sha,
                     checkpoint=str(args.checkpoint.resolve()), checkpoint_sha256=checkpoint_sha,
-                    input_sha256=frozen, query_period=HORIZON,
+                    input_sha256=frozen, query_period=args.query_period,
                     roles=["reactive_teacher", "retarget_gt_hand", "retarget_gt_hand_repeat",
                            "retarget_gt_hand_repeat2"],
                     privileged_input="frozen source teacher future hand geometry; current q,dq and live hand",
@@ -170,6 +171,7 @@ def main():
             logs = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                         "table_footprint", "object_velocity", "dof_position", "dof_velocity", "done")}
             predicted = np.zeros((n, HORIZON, 18), dtype=np.float32)
+            last_query_tick = None
             capture = None; original_pre = task.pre_physics_step
             def pre(value):
                 nonlocal capture
@@ -191,7 +193,7 @@ def main():
                 if time.monotonic() - started > args.seconds:
                     raise TimeoutError("retarget execution deadline")
                 base = self.get_action(obs, True).clamp(-1, 1).to(self.device)
-                if tick % HORIZON == 0:
+                if last_query_tick is None or tick - last_query_tick >= args.query_period:
                     source_future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
                     # The model was trained on future hand displacement from
                     # the query hand.  Preserve that source trajectory delta
@@ -213,7 +215,8 @@ def main():
                     queries.append(tick); chunks.append(predicted.copy())
                     inputs.append(dict(current_hand=current.copy(), future_hand=future.copy(),
                                        source_future=source_future.copy(), state=state.copy()))
-                offset = tick % HORIZON
+                    last_query_tick = tick
+                offset = chunk_offset(tick, last_query_tick)
                 command = base.detach().cpu().numpy().copy()
                 command[1:] = predicted[1:, offset]
                 intended = command.copy(); command = np.clip(command, -1, 1); command[~active] = 0

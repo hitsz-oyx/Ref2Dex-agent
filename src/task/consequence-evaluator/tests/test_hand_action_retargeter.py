@@ -2,7 +2,8 @@ import numpy as np
 import torch
 
 from consequence_evaluator.hand_action_retargeter import (
-    ACTION_DIM, HORIZON, HandActionRetargeter, Standardizer, trajectory_input)
+    ACTION_DIM, HORIZON, HandActionRetargeter, Standardizer, chunk_offset,
+    trajectory_input)
 from consequence_evaluator.retarget_collection import (
     MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
     validate_residual_family)
@@ -38,3 +39,11 @@ def test_full_action_model_and_horizon_action_normalization_contract():
     output = model(torch.from_numpy(hand_stats.encode(hand)), torch.zeros(5, 36))
     assert output.shape == (5, HORIZON, ACTION_DIM)
     assert torch.isfinite(output).all()
+
+
+def test_receding_chunk_offset_is_relative_to_latest_query():
+    assert chunk_offset(0, 0) == 0
+    assert chunk_offset(23, 0) == 23
+    assert chunk_offset(24, 24) == 0
+    with np.testing.assert_raises(ValueError):
+        chunk_offset(24, 0)
