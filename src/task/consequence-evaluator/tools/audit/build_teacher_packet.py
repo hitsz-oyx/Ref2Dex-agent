@@ -53,6 +53,18 @@ def main():
     if not all(np.isfinite(arrays[key]).all() for key in
                ("object_pose", "hand_keypoints", "dof_position", "dof_velocity", "action")):
         raise ValueError("nonfinite baseline tensor")
+    force_keys = {"native_contact_forces", "native_object_contact_forces", "pair"}
+    has_force_capture = force_keys.issubset(arrays)
+    if has_force_capture:
+        if (arrays["native_contact_forces"].shape[:2] != (543, n)
+                or arrays["native_contact_forces"].shape[-1] != 3
+                or arrays["native_object_contact_forces"].shape != (543, n, 3)
+                or arrays["pair"].shape != (543, n)
+                or arrays["pair"].dtype != np.bool_):
+            raise ValueError("invalid native contact-force capture")
+        if not np.isfinite(arrays["native_contact_forces"]).all() or not np.isfinite(
+                arrays["native_object_contact_forces"]).all():
+            raise ValueError("nonfinite native contact-force capture")
     outcomes = {}
     for env in range(n):
         packet = {key: arrays[key][:, env] for key in
@@ -82,7 +94,12 @@ def main():
         source_backend=backend, replay_identity=replay_identity,
         source_rollout=str(rollout), source_rollout_sha256=sha(rollout / "trajectory.npz"),
         target_semantics="captured actor native action under CPU tensor pipeline",
+        contact_capture=has_force_capture,
         provenance_note="teacher packet for source/backend isolation; not a new independent seed")
+    if has_force_capture:
+        packet.update(native_contact_forces=arrays["native_contact_forces"].astype("float32"),
+                      native_object_contact_forces=arrays["native_object_contact_forces"].astype("float32"),
+                      pair=arrays["pair"].astype(bool))
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("wb") as stream:
         pickle.dump(packet, stream, protocol=4)

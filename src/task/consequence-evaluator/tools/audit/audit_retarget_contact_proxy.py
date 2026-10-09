@@ -1,8 +1,9 @@
 """Audit contact/preload proxies in an existing same-CPU retarget packet.
 
-This is a CPU-only attribution audit.  Isaac contact forces were not saved in
-the packet, so pair, surface gap, support gap, object velocity, and q/dq are
-reported as proxies rather than force recovery or contact-dynamics labels.
+This is a CPU-only attribution audit.  Older packets have only pair, surface
+gap, support gap, object velocity, and q/dq proxies; newer packets may also
+carry native hand/object force vectors.  Even saved net-force vectors are
+diagnostics, not force recovery, impulses, or a preload mechanism.
 """
 
 import argparse
@@ -48,7 +49,8 @@ def first_near_run(actual_surface_gap, threshold=.01):
     )
 
 
-def state_metrics(actual, source, source_hand, env, event):
+def state_metrics(actual, source, source_hand, env, event, actual_force_capture,
+                  source_force_capture):
     hand_error_broadcast = actual["hand_keypoints"][:, env] - source_hand
     hand_error_same_env = actual["hand_keypoints"][:, env] - source["hand_keypoints"][:, env]
     out = dict(
@@ -89,6 +91,27 @@ def state_metrics(actual, source, source_hand, env, event):
         dq_error_same_env_teacher_at_geometry_near_exit=rms(
             actual["dof_velocity"][tick, env] - source["dof_velocity"][tick, env]),
     )
+    if actual_force_capture:
+        current.update(
+            actual_pair_at_geometry_near_onset=bool(actual["pair"][near_onset, env]),
+            actual_pair_at_geometry_near_exit=bool(actual["pair"][tick, env]),
+            actual_pair_true_frames=int(actual["pair"][:, env].sum()),
+            actual_hand_force_sum_n=float(np.linalg.norm(
+                actual["native_contact_forces"][tick, env], axis=-1).sum()),
+            actual_hand_force_max_n=float(np.linalg.norm(
+                actual["native_contact_forces"][tick, env], axis=-1).max()),
+            actual_object_force_norm_n=float(np.linalg.norm(
+                actual["native_object_contact_forces"][tick, env])),
+        )
+    if source_force_capture:
+        current.update(
+            source_hand_force_sum_n=float(np.linalg.norm(
+                source["native_contact_forces"][tick, env], axis=-1).sum()),
+            source_hand_force_max_n=float(np.linalg.norm(
+                source["native_contact_forces"][tick, env], axis=-1).max()),
+            source_object_force_norm_n=float(np.linalg.norm(
+                source["native_object_contact_forces"][tick, env])),
+        )
     out.update(current)
     if tick < len(actual["requested_actions"]):
         out["requested_action_error_current_frame_same_env_teacher"] = rms(
@@ -157,11 +180,32 @@ def main():
     if source_hand.shape != (543, 11, 3):
         raise ValueError("unexpected broadcast source hand shape")
 
+    def validate_force_capture(arrays, label):
+        keys = {"native_contact_forces", "native_object_contact_forces", "pair"}
+        present = keys.intersection(arrays)
+        if present and present != keys:
+            raise ValueError(f"partial {label} force capture")
+        if not present:
+            return False
+        hand_force = arrays["native_contact_forces"]
+        object_force = arrays["native_object_contact_forces"]
+        if (hand_force.shape[:2] != (543, 4) or hand_force.shape[-1] != 3
+                or object_force.shape != (543, 4, 3)
+                or arrays["pair"].shape != (543, 4)
+                or arrays["pair"].dtype != np.bool_):
+            raise ValueError(f"invalid {label} force capture shape")
+        if not np.isfinite(hand_force).all() or not np.isfinite(object_force).all():
+            raise ValueError(f"nonfinite {label} force capture")
+        return True
+
+    actual_force_capture = validate_force_capture(actual, "execution")
+    source_force_capture = validate_force_capture(source, "source")
     roles = packet["manifest"].get("roles", ["teacher", "R1", "R2", "R3"])
     reports = []
     for env in range(1, 4):
         event = first_near_run(actual["surface_gap"][:, env])
-        report = state_metrics(actual, source, source_hand, env, event)
+        report = state_metrics(actual, source, source_hand, env, event,
+                               actual_force_capture, source_force_capture)
         report["role"] = roles[env] if env < len(roles) else "retarget_env" + str(env)
         report["source_pair_true_frames"] = int(source["pair"][:, env].sum())
         report["surface_gap_near_frames_le_10mm"] = int((actual["surface_gap"][:, env] <= .01).sum())
@@ -185,6 +229,10 @@ def main():
             "support_gap": "support_gap", "object_velocity": "object_velocity",
             "dof_position": "dof_position", "dof_velocity": "dof_velocity",
         }
+        if source_force_capture:
+            packet_pairs.update({"native_contact_forces": "native_contact_forces",
+                                 "native_object_contact_forces": "native_object_contact_forces",
+                                 "pair": "pair"})
         source_packet_consistency = {}
         for trajectory_key, packet_key in packet_pairs.items():
             source_packet_consistency[trajectory_key] = float(np.max(np.abs(
@@ -209,8 +257,12 @@ def main():
         roles=reports,
         source_hand_contract="broadcast env0 teacher hand; same-env teacher metrics are separate",
         source_packet_consistency_max_abs=source_packet_consistency,
+        force_capture=dict(execution=actual_force_capture, source=source_force_capture,
+                           semantics="native net-force vectors; no impulse/preload recovery"),
         contact_proxy_fields=["source_pair", "surface_gap", "table_support_proxy",
-                              "object_velocity"],
+                              "object_velocity"] + (["native_contact_forces",
+                              "native_object_contact_forces"]
+                              if actual_force_capture else []),
         state_diagnostic_fields=["hand_error", "q_error", "dq_error", "action_error"],
         near_gap_definition=("first contiguous sampled surface-gap run <=10mm; no hysteresis "
                              "or minimum-duration claim"),
@@ -219,8 +271,11 @@ def main():
         action_frame_contract=("state[t] is after command[t-1] and before command[t]; preceding "
                                "action is transition-associated and current action is the state-t "
                                "policy output, but neither proves a contact mechanism"),
-        limitation=("No per-body contact force/impulse was persisted; these measurements cannot "
-                    "recover preload or prove a contact-dynamics mechanism."))
+        limitation=(("Native hand/object net-force vectors are persisted, but they remain "
+                     "diagnostics and do not recover impulse, preload, or a contact mechanism.")
+                    if actual_force_capture else
+                    ("No per-body contact force/impulse was persisted; these measurements cannot "
+                     "recover preload or prove a contact-dynamics mechanism.")))
     output.mkdir(parents=True)
     write(output / "result.json", result)
     write(output / "manifest.json", result)

@@ -169,6 +169,11 @@ def main():
                                       "query-time hand points in object frame plus previous native command; zero at tick 0"),
                     source_hand_contract=("per-env source hand future for matched-layout diagnostic"
                                           if args.source_per_env else "env0 source hand future broadcast to R envs"),
+                    contact_capture=dict(
+                        hand_field="native_contact_forces: task._contact_forces[:, task._contact_body_ids]",
+                        object_field="native_object_contact_forces: task._tar_contact_forces",
+                        pair_rule="hand force norm>.1 any AND object force norm>.1",
+                        state_alignment="measured at frame t after command t-1, before command t"),
                     claim="GT-hand execution upper-bound Probe; no deployability or Cm claim")
     write(output / "manifest.json", manifest)
 
@@ -191,7 +196,8 @@ def main():
             active = np.ones(n, dtype=bool); lengths = np.zeros(n, dtype=np.int64)
             actions = []; requested_actions = []; clips = []; queries = []; chunks = []; inputs = []
             logs = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
-                                        "table_footprint", "object_velocity", "dof_position", "dof_velocity", "done")}
+                                        "table_footprint", "object_velocity", "dof_position", "dof_velocity",
+                                        "native_contact_forces", "native_object_contact_forces", "pair", "done")}
             predicted = np.zeros((n, HORIZON, 18), dtype=np.float32)
             previous_command = np.zeros((n, 18), dtype=np.float32)
             last_query_tick = None
@@ -204,10 +210,19 @@ def main():
 
             def measure():
                 hand, gap = geometry.measure(task); sup, foot = support.measure(task, geometry)
+                contact = task._contact_forces[:, task._contact_body_ids]
+                object_contact = task._tar_contact_forces
+                if (contact.ndim != 3 or contact.shape[-1] != 3
+                        or object_contact.shape != (n, 3)):
+                    raise ValueError("unexpected native contact-force tensor shape")
+                pair = ((contact.norm(dim=-1) > .1).any(-1)
+                        & (object_contact.norm(dim=-1) > .1))
                 value = dict(object_pose=poses(task._target_states), hand_keypoints=hand, surface_gap=gap,
                              support_gap=sup, table_footprint=foot,
                              object_velocity=task._target_states[:, 7:13],
-                             dof_position=task._dof_pos, dof_velocity=task._dof_vel)
+                             dof_position=task._dof_pos, dof_velocity=task._dof_vel,
+                             native_contact_forces=contact, native_object_contact_forces=object_contact,
+                             pair=pair)
                 for key, item in value.items(): logs[key].append(item.detach().cpu().numpy().copy())
                 return value
 

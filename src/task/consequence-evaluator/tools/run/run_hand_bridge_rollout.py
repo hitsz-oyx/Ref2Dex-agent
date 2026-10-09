@@ -85,7 +85,9 @@ def main():
         input_sha256=hashes,actor_sha256=cfg['actor_sha256'],rollout_kind='ordinary single-world feedback, no forks',
         action_semantics=action_semantics,
         initialization='full-reference frame0 with fixed seeded q jitter' if a.initial_jitter else 'full-reference frame0',
-        initial_jitter=a.initial_jitter,fps=30,old_Y_unchanged=True)
+        initial_jitter=a.initial_jitter,fps=30,old_Y_unchanged=True,
+        contact_capture=dict(hand_field='native_contact_forces', object_field='native_object_contact_forces',
+                             pair_rule='hand force norm>.1 any AND object force norm>.1'))
     if a.mode == 'retarget':
         manifest.update(structured_residual_schema='ref2dex.structured-residual.v1',
                         structured_modes=list(MODE_NAMES), structured_phases=list(PHASE_NAMES),
@@ -135,7 +137,8 @@ def main():
             active=np.ones(n,bool);lengths=np.zeros(n,int);commands=[];clipping=[];decisions=[]
             retarget_residuals=[];retarget_base=[];retarget_modes=[];retarget_phases=[]
             logs={k:[] for k in ('object_pose','hand_keypoints','surface_gap','support_gap','table_footprint',
-                'object_velocity','reference_object_pose','pair','dof_position','dof_velocity','done')}
+                'object_velocity','reference_object_pose','pair','native_contact_forces',
+                'native_object_contact_forces','dof_position','dof_velocity','done')}
             plan=np.zeros((n,24,18),np.float32);ages=np.full(n,32);counts=np.zeros(n,int)
             structured=np.zeros((n,18),np.float32)
             structured_modes=np.full(n,-1,np.int8)
@@ -153,10 +156,15 @@ def main():
                 hand,gap=geometry.measure(task);sup,foot=support.measure(task,geometry)
                 ref=task.hoi_data[task.data_id,task.progress_buf.clamp_max(task.hoi_data.shape[1]-1)]
                 ref_state=torch.zeros(n,13,device=device);ref_state[:,:3]=ref[:,106:109];ref_state[:,3:7]=ref[:,109:113]
-                pair=(task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)&(task._tar_contact_forces.norm(dim=-1)>.1)
+                contact=task._contact_forces[:,task._contact_body_ids]
+                object_contact=task._tar_contact_forces
+                if contact.ndim != 3 or contact.shape[-1] != 3 or object_contact.shape != (n,3):
+                    raise ValueError('unexpected native contact-force tensor shape')
+                pair=(contact.norm(dim=-1)>.1).any(-1)&(object_contact.norm(dim=-1)>.1)
                 values=dict(object_pose=poses(task._target_states),hand_keypoints=hand,surface_gap=gap,
                     support_gap=sup,table_footprint=foot,object_velocity=task._target_states[:,7:13],
                     reference_object_pose=poses(ref_state),pair=pair,
+                    native_contact_forces=contact,native_object_contact_forces=object_contact,
                     dof_position=task._dof_pos,dof_velocity=task._dof_vel)
                 for k,v in values.items():logs[k].append(v.cpu().numpy().copy())
                 return values

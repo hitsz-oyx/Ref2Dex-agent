@@ -172,3 +172,21 @@ or another hidden simulator state caused it. Result and hashes:
 `outputs/consequence-evaluator/ref7_2-contact-proxy-audit-20261010-r14/`.
 No new native run, force claim, H-to-hand integration, PointWorld inference,
 or evaluator training is justified by this proxy-only result.
+
+## Decision note: source-matched force capture
+
+The remaining blocker is observability rather than another R architecture
+sweep. The Isaac task already exposes hand-body `_contact_forces` and target
+`_tar_contact_forces`, but the existing R packet discarded them. One bounded
+follow-up is authorized: replay the same CPU-pipeline/direct-actor layout,
+seed, source future, checkpoint, query period, and four-env control flow while
+also saving those vectors and an R-side force-pair boolean. The output changes
+only logging, not the requested commands or policy.
+
+Success means the arrays are finite, state-aligned (543 state frames/542
+commands), shape-checked, and exact action capture remains intact; then the
+force/pair transition can be compared descriptively with the existing gap
+exit. Failure or a mismatched source/backend stops this branch. The run is
+CPU tensor exchange with GPU PhysX, bounded to one 542-step execution and
+less than 300 seconds/2 GiB. It cannot by itself establish a preload
+mechanism or authorize H-to-hand/evaluator integration.
