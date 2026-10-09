@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-panel-trajectory-utility
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending-clean-commit
+git_commit: c976094
 claim_id: C3
 hypothesis_family: HF-trajectory-conditioned-evaluator
 probe_index_in_family: 4
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [412, 413, 414, 415]
 decision_changed_if_positive: retain the trajectory evaluator as a useful offline ranking component and audit its matched controls
 decision_changed_if_negative: keep evaluator/selector/PW online integration frozen and return to candidate-bank design
-status: PLANNED
+status: UNCLEAR
 run_id: history-panel-trajectory-utility-20261010-r1
 ---
 
@@ -73,5 +73,31 @@ Panel audit:
 Fit entry point:
 `src/task/consequence-evaluator/tools/run/train_history_candidate_utility.py`.
 Planned panel and fit outputs are
-`outputs/consequence-evaluator/history-candidate-panel-20261010-r1/` and
-`outputs/consequence-evaluator/history-panel-trajectory-utility-20261010-r1/`.
+`outputs/consequence-evaluator/history-candidate-panel-20261010-r2/` and
+`outputs/consequence-evaluator/history-panel-trajectory-utility-20261010-r2/`.
+
+## Result
+
+The clean replay panel packet is
+`history-candidate-panel-20261010-r2/`: 25/12/18 train/val/test panels
+(385 rows), with all candidates within the recorded H/state tolerances. The
+panel audit is
+`history-candidate-panel-audit-20261010-r2/`; composition used no labels.
+
+The matched-initialization C0/C1 fit completed 1200 GPU2 steps in about 21 s
+with finite values. On the 18 held test panels (137 strict pairs across only 7
+informative panels):
+
+| arm | strict pair accuracy | tau-shuffle accuracy | mean regret |
+| --- | ---: | ---: | ---: |
+| C0 H+tau | .6569 | .4234 | .00463 |
+| C1 H+tau+E_GT | .5839 | .5693 | .09433 |
+
+C0's shuffle drop is 23.36pp, an engineering indication that this small
+approximate-H fit uses tau. The C1 gain over C0 is -7.30pp and its shuffle
+drop is only 1.46pp; the preregistered exploratory screen is false. The fit is
+therefore `UNCLEAR`, not support for GT-effect information or a deployable
+selector. C2/PointWorld, deadzones, online planning, and native R execution
+remain closed. The panel's approximate-H tolerance and seven informative
+test panels are evidence limitations; do not treat the C0 number as a formal
+trajectory-ranking claim.

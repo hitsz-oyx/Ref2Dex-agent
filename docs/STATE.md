@@ -108,6 +108,38 @@ evaluator fit、deadzone、selector、PW online、MPC 或 R native gate；若继
 然后按完整 H 合同重审候选库。卡片见
 [`P-20261010-structured-candidate-bank-audit`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-structured-candidate-bank-audit.md)。
 
+按该正向数据屏幕补采了一次 history-preserving structured rollout（seed411、64
+env），再扩成 train/val/test 的 96/64/64 episode split（seeds412/413/414）。新
+字段 `actor_observation[t] = obs["obs"]` 与 trajectory frame 逐项对齐，三 split
+542 controls、requested=applied、zero clipping，runtime 仍为 CPU tensor/GPU PhysX。
+完整 H RMS≤.03 且 hand RMS≤3mm、q RMS≤.03 的近 pair 在每个 split 都保留了非 tie
+U32 label：例如 train tick16 为 369 pairs/43 strict，val tick32 为33/30，test
+tick32 为46/43。该结果只说明有必要做一次离线 approximate-H panel，不等价于隐藏
+PhysX state fork。
+
+基于这些 split 构造了 25/12/18 个 train/val/test 七候选 panel（输出
+`history-candidate-panel-20261010-r2/`，label 未参与候选选择），并完成 matched-init
+C0/C1 trajectory utility fit（输出
+`history-panel-trajectory-utility-20261010-r2/`，GPU2，1200 steps，约21s）。18个
+test panels 中只有7个 informative anchors/137 strict pairs；C0 `H+tau` strict
+为 `.6569`，tau shuffle 为 `.4234`（drop23.36pp），C1 `H+tau+E_GT` 为 `.5839`，
+shuffle `.5693`（drop1.46pp），C1 相对 C0 为 -7.30pp，approximate-H evaluator
+screen 为 false。C0 shuffle 只作“tau branch 被使用”的工程指示，不能升级为正式
+ranking claim；C1 GT-information 不成立。按 Decision Note 停止 C2/PW、deadzone、
+selector、online planner/MPC 和 native R 接线，保留 panel/fit 作为后续若需扩大
+数据或改进 H 合同的证据。
+
+### Decision Note — history panel evaluator screen (executed)
+
+当前需要决定的是：history-preserving split 是否足以把主线推进到 PW/C2 或在线
+selector。关键证据是三 split 的近 H pair 仍有 label variation，但 held panel 只有
+7个 informative anchors；C0 tau shuffle drop 为23.36pp，C1 加 GT effect 反而低于
+C0 且 shuffle drop 仅1.46pp。root 选择保留 C0 tau-use 作为 `UNCLEAR` engineering
+signal，关闭 C1/PW/selector/online/native expansion。理由是 full-H data screen
+说明候选库不是塌缩，但 approximate-H/稀疏 informative panels 尚不足以支持 effect
+information 或可部署排序。下一步若继续，只能先扩大严格 H-matched panel 或修正
+H/label 合同；不追加 evaluator epoch 及不把单 seed/small panel 结果写成科学结论。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

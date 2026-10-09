@@ -73,7 +73,7 @@ identical and clipping was zero; the manifest records CPU tensor exchange with
 GPU PhysX and the runner-hash refresh used for this optional field.
 
 The read-only audit
-`outputs/consequence-evaluator/history-candidate-bank-audit-20261010-r1/`
+`outputs/consequence-evaluator/history-candidate-bank-audit-20261010-r2/`
 used the feed-forward actor observation as the H distance, plus the preceding
 hand/q near-state rule. At H RMS `<=0.03`, it found:
 
