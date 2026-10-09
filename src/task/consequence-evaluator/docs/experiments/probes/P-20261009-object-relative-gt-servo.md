@@ -192,3 +192,25 @@ If preload is useful, r7 geometry_pd will test measured future wrist q plus
 versus measured fingers+fixed preload. These are analytic privileged controls;
 future q is a stronger oracle than11 hand points until inverse is checked.
 No neural training or H-to-V transition follows solely from command-based hold.
+
+
+r6 at9030005: teacher483/world484, measured fingers no preload36 and fixed
+train-median preload0. World hand RMSE4.38/5.52mm remains small despite
+failed grasp. Independent audit PASS; no/preload clipped coordinates3/0.
+A constant lifted-stage preload applied throughout approach is not an
+effective controller; do not infer contact force is intrinsically unknowable.
+
+r7 atc95eda8: teacher484/world83 (4.19mm world hand error), measured future
+wrist plus .1s forward-velocity compensation with source fingers0 and with
+fixed preload0. Both candidate native targets are exact within1.2e-7 and
+zero clips; this simple analytic dynamic inverse is UNPROMISING. The world
+command control itself varies strongly across fresh contact simulations.
+No formal sufficiency/necessity or same-state causal claim follows.
+
+Decision at11:05UTC: before spending another native launch or training, use
+a bounded GPU kinematic audit to distinguish inverse observability from
+control effort. Compute the11-point Jacobian for full18 measured joints and
+for12 coupled control coordinates; compare measured coupling deviations and
+the best coupled pose fit. This cheapest offline diagnostic changes whether
+to implement a geometry inverse or contact/dynamic state augmentation.
+Allow <=120s GPU audit / <100MB fresh outputs. No additional neural training.
