@@ -140,7 +140,7 @@ def load_teacher_windows(path, stride):
     data = dict(hand=np.asarray(hands, dtype="float32"), state=np.asarray(states, dtype="float32"),
                 action=np.asarray(targets, dtype="float32"), tick=np.asarray(ticks, dtype=np.int32),
                 episode=np.asarray(episodes), phase=np.asarray(phases, dtype=np.int8))
-    manifest = dict(run_id="teacher-anchor:" + path.stem, actor_sha256=None,
+    manifest = dict(run_id="teacher-anchor:" + path.parent.name, actor_sha256=None,
                     seed=int(packet["seed"]), source=str(path), anchor=True,
                     role_outcome=packet["role_outcomes"]["reactive_teacher"])
     return data, manifest, {str(path): sha(path)}
