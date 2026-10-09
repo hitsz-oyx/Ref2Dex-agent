@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-preserving-candidate-bank
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending-clean-commit
+git_commit: e780523
 claim_id: C3
 hypothesis_family: HF-trajectory-conditioned-evaluator
 probe_index_in_family: 3
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [411]
 decision_changed_if_positive: audit the saved actor-H panels under the full H contract before any evaluator fit
 decision_changed_if_negative: close this candidate-bank collection route and keep evaluator/selector integration frozen
-status: PLANNED
+status: PROMISING
 run_id: history-preserving-candidate-bank-20261010-r1
 ---
 
@@ -63,3 +63,28 @@ The collection entry point is
 `src/task/consequence-evaluator/tools/run/run_hand_bridge_rollout.py`
 with `--mode retarget --save-actor-observation`. The planned output is
 `outputs/consequence-evaluator/history-preserving-candidate-bank-20261010-r1/`.
+
+## r1 result
+
+The bounded launch completed 64 frame-0 episodes (seed 411), each with 542
+commands. The saved actor input has shape `(543, 64, 1442)` and is aligned
+one-for-one with the trajectory frames. Native requested/actual commands were
+identical and clipping was zero; the manifest records CPU tensor exchange with
+GPU PhysX and the runner-hash refresh used for this optional field.
+
+The read-only audit
+`outputs/consequence-evaluator/history-candidate-bank-audit-20261010-r1/`
+used the feed-forward actor observation as the H distance, plus the preceding
+hand/q near-state rule. At H RMS `<=0.03`, it found:
+
+| tick | H/state-near pairs | strict U32 label pairs | mean tau spread (mm) |
+| ---: | ---: | ---: | ---: |
+| 16 | 205 | 30 | 15.53 |
+| 24 | 44 | 10 | 11.21 |
+| 32 | 52 | 49 | 21.26 |
+
+This is `PROMISING` only for collecting a larger episode-split history-
+preserving panel. It is not evidence that the evaluator ranks candidates or
+that the native R execution gate is recoverable. The next bounded action is to
+repeat the same capture for train/validation/test seeds; if those splits lose
+the full-H near-pair coverage, close the candidate-bank route.
