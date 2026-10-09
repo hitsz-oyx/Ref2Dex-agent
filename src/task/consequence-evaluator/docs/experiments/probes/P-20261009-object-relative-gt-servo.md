@@ -214,3 +214,29 @@ for12 coupled control coordinates; compare measured coupling deviations and
 the best coupled pose fit. This cheapest offline diagnostic changes whether
 to implement a geometry inverse or contact/dynamic state augmentation.
 Allow <=120s GPU audit / <100MB fresh outputs. No additional neural training.
+
+
+GPU geometry audit r1 at6bd097c took11.16s. FKmaxerror8.34e-7m; sampled
+full18 Jacobian rank17 vs coupled12 rank12 at all9 inspected poses. Actual
+dependent-joint coupling residualRMSE [.288,.124,.053,.093,.297,.058]rad;
+truth-initialized/fixed-real-wrist coupled local fit reduces11-point
+coordinateRMSE3.36 to1.08mm but thumb tip point-distanceRMSE5.07mm and
+index3.01mm. This favorable local fit is not a globally optimal or deployable
+inverse, and geometric observability does not determine contact effort.
+
+Decision at11:16UTC: r8 finger_preload_late freezes original source commanded
+targets through tick119, switches only finger targets at120 to measured
+next-q versus next-q+fixed train-median preload, and retains source wrist
+commands. This isolates sustained-grasp maintenance from premature closure
+during approach in r6. Report each candidate's physical state at the switch;
+without a stable incoming grasp, its maintenance result is not interpretable.
+This is the eighth bounded launch; no model training or global claim change.
+
+Relevant primary-source boundary: [adaptive feedforward/impedance grasping]
+(https://arxiv.org/html/2107.08996v2) treats mapped joint geometry separately
+from adaptive control using joint tracking errors (not tactile sensing in
+that setup). [Contact transfer across dexterous hands]
+(https://arxiv.org/html/2606.15516v1) uses calibrated torque/contact information
+with pose and force-limited compliance. Neither paper proves effectiveness
+for this IsaacGym/controller setup; native net-body-force norm is not the
+calibrated pair contact/joint effort those methods require.

@@ -1746,7 +1746,7 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
-    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'geometry_pd'), default='command_vs_measured')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'finger_preload_late', 'geometry_pd'), default='command_vs_measured')
     p.add_argument('--object-relative-preload', type=Path, help='engineering only: train-only fixed contact preload statistics')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
@@ -1779,7 +1779,7 @@ def main():
             if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
                 p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
             setattr(a, name, value)
-    if a.object_relative_layout in ('finger_preload','geometry_pd') and (
+    if a.object_relative_layout in ('finger_preload','finger_preload_late','geometry_pd') and (
             a.object_relative_source is None or a.object_relative_preload is None):
         p.error('preload diagnostics require oracle source and frozen preload statistics')
     if a.object_relative_source is not None:

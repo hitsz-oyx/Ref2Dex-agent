@@ -82,6 +82,8 @@ class ObjectRelativeGTExecution:
             self.roles = ['reactive_teacher', 'world_gt_command', 'query24_se3_gt_command', 'query24_bounded_gt_command']
         elif layout == 'finger_preload':
             self.roles = ['reactive_teacher', 'world_gt_command', 'measured_finger_no_preload', 'measured_finger_fixed_preload']
+        elif layout == 'finger_preload_late':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'late_measured_finger_no_preload', 'late_measured_finger_fixed_preload']
         elif layout == 'geometry_pd':
             self.roles = ['reactive_teacher', 'world_gt_command', 'geometry_wrist_ff_source_fingers', 'geometry_wrist_ff_fixed_finger_preload']
         self.preload_path=preload_path
@@ -133,7 +135,7 @@ class ObjectRelativeGTExecution:
                 self.query_chunks.append(chunks)
             desired = np.stack((self.source_targets[tick], self.cached_chunks[0][tick % 24],
                                 self.cached_chunks[1][tick % 24]))
-        elif self.layout in ('finger_preload','geometry_pd'):
+        elif self.layout in ('finger_preload','finger_preload_late','geometry_pd'):
             if self.preload is None:
                 raise ValueError('geometry/preload diagnostic requires frozen training statistics')
             no_preload=self.source_targets[tick].copy()
@@ -150,6 +152,9 @@ class ObjectRelativeGTExecution:
             for value in (no_preload,fixed):
                 for dst,src,ratio in ((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)):
                     value[dst]=value[src]*ratio
+            if self.layout == 'finger_preload_late' and tick < 120:
+                no_preload = self.source_targets[tick].copy()
+                fixed = no_preload.copy()
             desired=np.stack((self.source_targets[tick],no_preload,fixed))
         raw = native_control(desired, q[1:])
         clipped = np.clip(raw, -1, 1)
@@ -192,6 +197,7 @@ class ObjectRelativeGTExecution:
         primary = {'transport_ablation':'bounded_se3_gt_command',
                    'chunk_alignment':'query24_bounded_gt_command',
                    'finger_preload':'measured_finger_fixed_preload',
+                   'finger_preload_late':'late_measured_finger_fixed_preload',
                    'geometry_pd':'geometry_wrist_ff_fixed_finger_preload'}.get(self.layout, 'object_gt_command')
         gate = dict(teacher_held=teacher, source_held=self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'],
                     reference_held=reference_held, held_fraction=.9, role_passes=passes,
@@ -202,6 +208,7 @@ class ObjectRelativeGTExecution:
             requested_controls=np.asarray(requested), desired_pd_targets=np.asarray(self.desired),
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
             servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
+            geometry_switch_tick=(120 if self.layout == 'finger_preload_late' else None),
             rotation_feedback_cap_rad=(.15 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
             alignment_query_ticks=self.query_ticks, alignment_query_poses=self.query_poses,
             alignment_query_chunks=self.query_chunks,
@@ -214,7 +221,7 @@ class ObjectRelativeGTExecution:
             target_semantics=('query24 frozen analytic object-conditioned target chunks; current-q mechanical adapter each step'
                               if self.layout == 'chunk_alignment' else
                               'source commanded wrist; measured future finger geometry with train-only preload ablation'
-                              if self.layout == 'finger_preload' else
+                              if self.layout in ('finger_preload','finger_preload_late') else
                               'measured future wrist geometry plus forward velocity damping compensation; source/fixed-preload fingers'
                               if self.layout == 'geometry_pd' else
                               'every-step analytic object-conditioned wrist transport; independent source fingers'),

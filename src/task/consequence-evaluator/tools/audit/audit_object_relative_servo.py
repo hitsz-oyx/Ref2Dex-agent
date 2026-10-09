@@ -56,16 +56,19 @@ def main():
     layout = p.get('servo_layout', 'command_vs_measured')
     query_indices = np.arange(542)//24*24 if layout == 'chunk_alignment' else np.arange(542)
     preload=None
-    if layout in ('finger_preload','geometry_pd'):
+    if layout in ('finger_preload','finger_preload_late','geometry_pd'):
         path=Path(p['preload_statistics_path'])
         assert hashlib.sha256(path.read_bytes()).hexdigest()==p['preload_statistics_sha256']
         preload=json.loads(path.read_text())
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
-        if layout in ('finger_preload','geometry_pd'):
+        if layout in ('finger_preload','finger_preload_late','geometry_pd'):
             values=targets.copy()
             fingers=source['dof_position'][1:,0][:,ACTIVE_FINGERS].copy()
             if role==3:fingers+=np.asarray(preload['finger_preload_median_rad'],dtype='float32')
+            if layout=='finger_preload_late':
+                assert p['geometry_switch_tick']==120
+                fingers[:120]=targets[:120,ACTIVE_FINGERS]
             if layout=='geometry_pd':
                 qnext=source['dof_position'][1:,0,:6]
                 qfollowing=source['dof_position'][np.minimum(np.arange(1,543)+1,542),0,:6]
@@ -90,7 +93,7 @@ def main():
         error = float(np.max(np.abs(expect-pose(desired[:, role-1]))))
         if error > 3e-5:
             raise ValueError('SE(3) matrix transport mismatch: %s' % error)
-        if layout not in ('finger_preload','geometry_pd'):
+        if layout not in ('finger_preload','finger_preload_late','geometry_pd'):
             np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
         errors.append(error)
     if layout == 'chunk_alignment':
