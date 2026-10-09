@@ -199,10 +199,10 @@ def main():
                     hand = trajectory_input(current, np.broadcast_to(future, (n, HORIZON, 11, 3)))
                     state = np.concatenate((q, dq), axis=-1).astype("float32")
                     with torch.no_grad():
-                        output = model(
+                        model_output = model(
                             torch.as_tensor(stats["hand"].encode(hand), device=self.device),
                             torch.as_tensor(stats["state"].encode(state), device=self.device))
-                        predicted = stats["action"].decode(output.cpu().numpy())
+                        predicted = stats["action"].decode(model_output.cpu().numpy())
                     queries.append(tick); chunks.append(predicted.copy())
                     inputs.append(dict(current_hand=current.copy(), future_hand=future.copy(), state=state.copy()))
                 offset = tick % HORIZON
