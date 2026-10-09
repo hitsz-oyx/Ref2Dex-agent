@@ -81,8 +81,11 @@ def main():
     parser.add_argument('--name')
     args = parser.parse_args()
     root = args.run_dir.resolve()
-    if (not root.is_relative_to(ROOT/'outputs/cm-interaction-oracle')
-            or not 100 <= args.seed <= 299 or args.offset not in range(0,89,8)):
+    try:
+        root.relative_to(ROOT/'outputs/cm-interaction-oracle')
+    except ValueError:
+        raise ValueError('task-owned output required')
+    if not 100 <= args.seed <= 299 or args.offset not in range(0,89,8):
         raise ValueError('task-owned output and frozen Probe seed/offset required')
     root.mkdir(parents=True, exist_ok=True)
     inputs = prepare(root)
