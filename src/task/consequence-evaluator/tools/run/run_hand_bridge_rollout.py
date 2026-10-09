@@ -14,6 +14,9 @@ TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path[:0]=[str(TASK/'src'),str(ROOT),str(ROOT/'third_party/DExplore/dexplore'),
               str(ROOT/'src/task/cm-interaction-oracle/src')]
 from consequence_evaluator.contracts import is_within, HAND_LINKS
+from consequence_evaluator.retarget_collection import (
+    MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
+    validate_residual_family)
 
 
 def sha(path):
@@ -29,7 +32,7 @@ def main():
     p.add_argument('--inputs',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,required=True);p.add_argument('--seed',type=int,required=True)
     p.add_argument('--envs',type=int,default=64);p.add_argument('--seconds',type=int,default=300)
-    p.add_argument('--mode',choices=('random','baseline','planner'),required=True)
+    p.add_argument('--mode',choices=('random','baseline','planner','retarget'),required=True)
     p.add_argument('--smoke',action='store_true');p.add_argument('--bridge',type=Path)
     p.add_argument('--initial-jitter',action='store_true',help='fixed small seeded q perturbation for distinct matched episodes')
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
@@ -74,12 +77,24 @@ def main():
     if a.bridge:hashes[str(a.bridge.resolve())]=sha(a.bridge)
     if any(sha(path)!=h for path,h in hashes.items()):raise ValueError('frozen input drift')
     out.mkdir(parents=True);begin=time.monotonic()
+    action_semantics = ('captured full native action: actor action plus bounded structured residual; '
+                        'retarget model input excludes actor action' if a.mode == 'retarget' else
+                        'requested24x18 residual, first8nonzero then16zero; replanning every8only in planner')
     manifest=dict(schema=SCHEMA,status='RUNNING',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
         mode=a.mode,seed=a.seed,num_envs=a.envs,physical_gpu=a.gpu,budget_s=a.seconds,smoke=a.smoke,
         input_sha256=hashes,actor_sha256=cfg['actor_sha256'],rollout_kind='ordinary single-world feedback, no forks',
-        action_semantics='requested24x18 residual, first8nonzero then16zero; replanning every8only in planner',
+        action_semantics=action_semantics,
         initialization='full-reference frame0 with fixed seeded q jitter' if a.initial_jitter else 'full-reference frame0',
         initial_jitter=a.initial_jitter,fps=30,old_Y_unchanged=True)
+    if a.mode == 'retarget':
+        manifest.update(structured_residual_schema='ref2dex.structured-residual.v1',
+                        structured_modes=list(MODE_NAMES), structured_phases=list(PHASE_NAMES),
+                        phase_boundaries={'approach_end_tick':120, 'contact_end_tick':240},
+                        residual_bounds={'wrist_translation':[0.01, 0.01, 0.015],
+                                         'wrist_rotation':[0.035, 0.035, 0.05],
+                                         'active_finger':0.12},
+                        saved_state_fields=['dof_position','dof_velocity'],
+                        target_field='action[t:t+24] captured after actor+residual composition')
     write(out/'manifest.json',manifest)
     class Player(native.EvalPlayer):
         @torch.no_grad()
@@ -118,9 +133,12 @@ def main():
             fk=task_kinematics(task);key_ids=geometry.key_ids
             delta=candidate_deltas(device);rng=np.random.default_rng(a.seed)
             active=np.ones(n,bool);lengths=np.zeros(n,int);commands=[];clipping=[];decisions=[]
+            retarget_residuals=[];retarget_base=[];retarget_modes=[];retarget_phases=[]
             logs={k:[] for k in ('object_pose','hand_keypoints','surface_gap','support_gap','table_footprint',
-                'object_velocity','reference_object_pose','pair','done')}
+                'object_velocity','reference_object_pose','pair','dof_position','dof_velocity','done')}
             plan=np.zeros((n,24,18),np.float32);ages=np.full(n,32);counts=np.zeros(n,int)
+            structured=np.zeros((n,18),np.float32)
+            structured_modes=np.full(n,-1,np.int8)
             capture=None;original_pre=task.pre_physics_step
             def pre(actions):
                 nonlocal capture
@@ -138,7 +156,8 @@ def main():
                 pair=(task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)&(task._tar_contact_forces.norm(dim=-1)>.1)
                 values=dict(object_pose=poses(task._target_states),hand_keypoints=hand,surface_gap=gap,
                     support_gap=sup,table_footprint=foot,object_velocity=task._target_states[:,7:13],
-                    reference_object_pose=poses(ref_state),pair=pair)
+                    reference_object_pose=poses(ref_state),pair=pair,
+                    dof_position=task._dof_pos,dof_velocity=task._dof_vel)
                 for k,v in values.items():logs[k].append(v.cpu().numpy().copy())
                 return values
             measured=measure()
@@ -151,10 +170,14 @@ def main():
                     gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
                     print(json.dumps(dict(tick=tick,elapsed_s=round(time.monotonic()-begin,1),active=int(active.sum()),gpu=gpu)),flush=True)
                 base=self.get_action(obs,True).clamp(-1,1).to(device).clone()
+                base_np=base.cpu().numpy()
+                if a.mode == 'retarget' and tick % 16 == 0:
+                    phase = phase_code(tick)
+                    structured, structured_modes = sample_structured_residual(rng, n, phase)
                 decide=tick>=40 and ((tick-40)%(8 if a.mode=='planner' else 32)==0)
                 remaining=(task.max_episode_length[task.data_id]-1-task.progress_buf).cpu().numpy()
                 selected=np.flatnonzero(active&(remaining>=32)) if decide else np.array([],int)
-                if len(selected) and a.mode!='baseline':
+                if len(selected) and a.mode in ('random','planner'):
                     if a.mode=='random':
                         choices=(np.arange(n)+rng.integers(0,7,n))%7
                         plan[:]=0;plan[:,:8]=delta[torch.tensor(choices,device=device)].cpu().numpy()[:,None]
@@ -177,14 +200,22 @@ def main():
                             nominal=np.stack(nominal)[:,env],candidate=int(choices[env]))
                         if scores is not None:record['scores']=scores[env]
                         decisions.append(record)
-                requested=np.zeros((n,18),np.float32)
-                rows=np.flatnonzero(active&(ages<8));requested[rows]=plan[rows,ages[rows]]
-                intended=base.cpu().numpy()+requested;command=np.clip(intended,-1,1);command[~active]=0
+                if a.mode == 'retarget':
+                    requested=structured.copy()
+                else:
+                    requested=np.zeros((n,18),np.float32)
+                    rows=np.flatnonzero(active&(ages<8));requested[rows]=plan[rows,ages[rows]]
+                intended=base_np+requested;command=np.clip(intended,-1,1);command[~active]=0
                 obs,_,done,info=self.env_step(self.env,torch.tensor(command,device=self.device))
                 if not isinstance(obs,dict):obs={'obs':obs}
                 if capture is None or capture.shape!=command.shape:raise ValueError('command capture failed')
                 if not np.allclose(capture,command,atol=1e-7,rtol=0):raise ValueError('native action noise/command mutation')
                 commands.append(capture.copy());clipping.append((np.abs(intended-command)>1e-7).any(-1)&active)
+                if a.mode == 'retarget':
+                    retarget_residuals.append(requested.copy())
+                    retarget_base.append(base_np.copy())
+                    retarget_modes.append(structured_modes.copy())
+                    retarget_phases.append(phase_code(tick))
                 ended=done.cpu().numpy().astype(bool).reshape(-1);logs['done'].append(ended.copy())
                 measured=measure();self._post_step(info)
                 lengths[active]+=1;active&=~ended;ages+=1
@@ -193,6 +224,11 @@ def main():
                 # remains frozen for slicing even as the single world advances.
             if active.any() and not a.smoke:raise ValueError('incomplete full-reference episode')
             arrays={k:np.stack(v) for k,v in logs.items()};arrays.update(action=np.stack(commands),clipped=np.stack(clipping),length=lengths,interventions=counts)
+            if a.mode == 'retarget':
+                arrays.update(structured_residual=np.stack(retarget_residuals),
+                              actor_action=np.stack(retarget_base), structured_mode=np.stack(retarget_modes),
+                              structured_phase=np.asarray(retarget_phases,dtype=np.int8))
+                validate_residual_family(arrays['structured_residual'])
             np.savez_compressed(out/'trajectory.npz',**arrays)
             windows=[]
             for r in decisions:

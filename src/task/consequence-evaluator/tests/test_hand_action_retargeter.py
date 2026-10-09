@@ -1,0 +1,40 @@
+import numpy as np
+import torch
+
+from consequence_evaluator.hand_action_retargeter import (
+    ACTION_DIM, HORIZON, HandActionRetargeter, Standardizer, trajectory_input)
+from consequence_evaluator.retarget_collection import (
+    MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
+    validate_residual_family)
+
+
+def test_structured_residual_family_is_bounded_and_covers_modes():
+    rng = np.random.default_rng(22)
+    rows = []
+    modes = []
+    for phase in range(3):
+        value, mode = sample_structured_residual(rng, 256, phase)
+        rows.append(value); modes.append(mode)
+    value = np.concatenate(rows, axis=0)
+    mode = np.concatenate(modes)
+    assert validate_residual_family(value[None])
+    assert set(mode.tolist()) == set(range(len(MODE_NAMES)))
+    assert phase_code(0) == 0 and phase_code(119) == 0
+    assert phase_code(120) == 1 and phase_code(239) == 1 and phase_code(240) == 2
+    assert len(PHASE_NAMES) == 3
+
+
+def test_full_action_model_and_horizon_action_normalization_contract():
+    rng = np.random.default_rng(23)
+    current = rng.normal(size=(5, 11, 3)).astype("float32")
+    future = current[:, None] + rng.normal(size=(5, HORIZON, 11, 3)).astype("float32")
+    hand = trajectory_input(current, future)
+    target = rng.uniform(-1, 1, size=(5, HORIZON, ACTION_DIM)).astype("float32")
+    action_stats = Standardizer.fit(target[:3])
+    hand_stats = Standardizer.fit(hand[:3])
+    np.testing.assert_allclose(action_stats.decode(action_stats.encode(target)), target, atol=2e-6)
+    assert action_stats.mean.shape == (HORIZON, ACTION_DIM)
+    model = HandActionRetargeter(32)
+    output = model(torch.from_numpy(hand_stats.encode(hand)), torch.zeros(5, 36))
+    assert output.shape == (5, HORIZON, ACTION_DIM)
+    assert torch.isfinite(output).all()
