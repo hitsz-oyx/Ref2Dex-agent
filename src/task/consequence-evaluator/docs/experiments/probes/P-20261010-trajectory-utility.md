@@ -102,6 +102,31 @@ OOD diagnostic because the evaluator was fit on observed tau, not generated
 bridge outputs; it is evidence that the current H-to-tau proposal diversity
 is insufficient for a meaningful selector, not a new task-control result.
 
+## Recovered rolling same-H panel screen
+
+To test whether the five informative anchors were only a panel-size artifact,
+the frozen ref13 recovery packets were read offline (no new simulation). The
+held bank is deliberately one route cluster: the initial reanchor panel at
+query 71 plus `new-o8` (parent `new-o0-actual`, query 79) and `new-o16`
+(parent `new-o8-actual`, query 87), 25 synchronized anchors x 7 candidates
+each. For every candidate the script uses its own `trace.pt` post-query
+geometry, converts the 11 measured links into the current-object frame, and
+rechecks exact H/prefix/valid32/zero-clipping contracts. The rolling cohorts
+are treatment-conditioned views of one reconstructed e260 actor/motion run,
+not 75 independent environments or Validation data.
+
+Output: `outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r7/`.
+The bank has 13 informative anchors and 163 strict pairs. Candidate trajectory
+spread is non-collapsed in the observed bank (initial mean/max RMS
+`9.37/61.35 mm`, new-o8 `8.48/65.02 mm`, new-o16 `10.31/225.73 mm`). With
+the frozen ordinary-data C0/C1 checkpoints, C1 reaches `63.19%` strict pair
+accuracy versus C0 `57.06%` (+6.13pp), but its within-panel tau shuffle is
+`61.96%` (only +1.23pp drop); mean regret is `.02958` versus `.03528`. The
+fixed GT-information screen therefore remains false: C1 is below `.70` and
+the tau-use control is below the `.03` drop threshold. This is held offline
+evidence, not a supported ranking or control result. No C2/PointWorld pass was
+started after this negative screen.
+
 ## Frozen planner-chain wiring audit
 
 The next bounded audit (output

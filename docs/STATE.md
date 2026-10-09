@@ -24,6 +24,23 @@ evaluator 训练于 observed τ、生成 τ 属于 OOD 的诊断，不是任务�
 个低成本 blocker 具体化为“先获得有足够候选多样性且非 tie 的 H→τ bank”，而不是
 继续加 evaluator epoch。
 
+为区分 panel 太小与候选本身塌缩，随后只读重建 ref13 recovery 的单一路径
+`initial + new-o8 + new-o16` bank（输出
+`outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r7/`）：
+75 个同-H panels、13 个 informative anchors、163 strict pairs；每个候选使用
+自己的 post-query `trace.pt` geometry，H/prefix/valid32/zero-clipping 合同通过。
+观测 τ 的 candidate spread 为 initial 9.37/61.35mm、new-o8 8.48/65.02mm、
+new-o16 10.31/225.73mm（mean/max RMS），所以该 bank 并非 HA bridge 的1mm塌缩，
+但三个 cohort 是同一 reconstructed e260 actor/motion 的 treatment-conditioned
+时间视图，不是75个独立环境。
+
+冻结 ordinary-data C0/C1 在该 bank 上为 .5706/.6319 strict pair accuracy，
+C1 相对 C0 +6.13pp、mean regret .03528→.02958；然而 C1 τ-shuffle .6196，
+只下降1.23pp，且 C1<.70，固定 GT-information screen 仍为 false。因而没有启动
+C2/PW inference 或在线控制；该结果只说明扩大 observed bank 仍不足以证明稳健的
+τ-conditioned ranking。parent run/offset 已写入 manifest，r1–r6 的构建工程失败保留，
+未形成科学结果。
+
 随后完成冻结离线 `H→τ→PointWorld→C2` planner-chain wiring audit（输出
 `outputs/consequence-evaluator/trajectory-planner-panel-audit-20261010-r4/`，GPU2）。
 每个同-H anchor 只取一份当前状态，再由 HA bridge 展开7个候选；PointWorld
