@@ -20,8 +20,6 @@ from consequence_evaluator.retargeter import (SCHEMA, HandTrajectoryRetargeter,
 from consequence_evaluator.contracts import is_within
 
 SOURCES = [
-    'act-native-chunk-engineering-20261009-r2',
-    'act-native-chunk-engineering-20261009-r3',
     'act-temporal-open_loop24-20261009-r1',
     'act-temporal-receding8-20261009-r1',
     'act-temporal-overlap8-20261009-r1',
@@ -97,7 +95,7 @@ def main():
         if row['identity'] != rows[0]['identity']:
             raise ValueError('teacher controller/backend/environment identity mismatch')
     # Freeze complete-launch splits before any statistics or optimization.
-    split = dict(train=rows[:5], val=rows[5:6], test=rows[6:])
+    split = dict(train=rows[:3], val=rows[3:4], test=rows[4:])
     arrays = {part: {key: np.concatenate([row[key] for row in group])
                     for key in ('hand', 'state', 'target')} for part, group in split.items()}
     stats = {key: Standardizer.fit(arrays['train'][key]) for key in ('hand', 'state', 'target')}

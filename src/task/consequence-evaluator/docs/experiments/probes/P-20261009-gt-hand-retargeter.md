@@ -31,7 +31,8 @@ intermediate action representation; if no, diagnose retarget/control before
 investing in H-to-hand prediction, PointWorld or evaluator integration.
 
 Existing seven full native teacher launches have q/dq, 11-point geometry and
-captured controls. Reuse these rather than collecting new fork panels. Their
+captured controls. Two earliest packets lack environment/actor-batch identity;
+exclude those before fitting, retaining five fully identified launches. Their
 full-task success is false (terminal settle absent), so this is a sustained-hold
 upper-bound Probe, not a complete manipulation success demonstration.
 
@@ -42,7 +43,7 @@ Stop on provenance, control mapping or timing mismatch; preserve failed runs.
 
 ## Frozen protocol
 
-Teacher role0 only, full-launch split: train native-chunk r2/r3, temporal
+Teacher role0 only, full-launch split: train temporal
 open_loop24/receding8/overlap8; val temporal1; test receding1. All seed282,
 same actor/controller/backend/environment. Fit seed292, stride4 complete24
 windows, no reset crossing or padding. Train statistics only, per-horizon
@@ -83,7 +84,7 @@ scientific comparison. Offline action/target error cannot pass the gate.
 
 ## Limitations / future evidence
 
-Seven same-seed launches are correlated engineering data; no task, object or
+Five same-seed launches are correlated engineering data; no task, object or
 seed generalization. No complete task-success demonstrations. Fixed GT source
 and live teacher can drift under unexposed PhysX state. Learned repeat arms
 are solver-drift diagnostics, not independent seeds. Formal multi-seed tests,
