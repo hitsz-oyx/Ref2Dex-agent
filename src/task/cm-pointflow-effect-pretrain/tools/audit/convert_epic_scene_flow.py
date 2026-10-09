@@ -459,7 +459,13 @@ def main():
     target_frames = np.arange(WINDOW, dtype=np.int64) * 2
     if target_frames[-1] >= n_frames:
         raise ValueError('clip is shorter than one 4+24 30-Hz window')
-    diagnostic = static_convention_diagnostic(depths, Ks, raw_extrinsics, target_frames)
+    # Convention is a clip-level property.  Use the full clip (bounded to 64
+    # evenly spaced frames) rather than the short training window, because a
+    # low-motion 0.9 s window can make both directions look deceptively close.
+    diagnostic_frames = np.unique(np.linspace(
+        0, n_frames - 1, min(n_frames, 64), dtype=np.int64))
+    diagnostic = static_convention_diagnostic(
+        depths, Ks, raw_extrinsics, diagnostic_frames)
     inference = infer_extrinsics_convention(
         diagnostic, min_ratio=args.convention_min_separation)
     selected_convention = (inference['convention'] if args.extrinsics_convention == 'auto'
@@ -514,6 +520,7 @@ def main():
             metadata_mismatch=(args.metadata_convention is not None
                                and args.metadata_convention != inference['convention']),
             min_separation=float(args.convention_min_separation),
+            diagnostic_frame_count=int(len(diagnostic_frames)),
             median_residual_m=inference['median_residual_m']),
         extrinsics_provenance='ObjectForesight-Data step9_spatracker.py saves inverse(c2w_traj)',
         upstream_source='https://raw.githubusercontent.com/RustinS/ObjectForesight-Data/main/step9_spatracker.py',

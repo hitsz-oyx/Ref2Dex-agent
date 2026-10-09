@@ -69,6 +69,23 @@ result. The exact release-generation step that created the stale `c2w` labels
 is not recoverable from the published artifacts, so the metadata is preserved
 for audit rather than overwritten.
 
+## Multi-clip follow-up
+
+The available P01_03, P03_03 and P03_13 shards contain 34 clips, and all 34
+metadata rows say `c2w`. Full-clip depth reprojection classifies 33 as `w2c`;
+32 have at least a 5x separation and two are conservatively ambiguous
+(`P01_03_3` at 1.51x and `P03_03_20` at 3.87x). The one empirical `c2w` result
+is the low-motion `P01_03_3`, so it is not evidence that the metadata is
+correct for the other clips.
+
+The second complete Contact/ObjectForesight pair, `P03_13_12`, converts to
+8,192 static points and 86 moved-object points with 5.8 mm/14.0 mm static
+reprojection median/p95. Its Contact rows are spaced about six source frames
+apart, leaving only 1 right-hand target frame valid and no H4+K24 window. This
+separates the remaining blocker from the camera issue: the scene branch is
+usable, while the Contact hand clock is too sparse for the current 30 Hz
+window contract.
+
 ## Decision and limits
 
 The scene-flow route is `PROMISING` for further conversion: this clip yields a
