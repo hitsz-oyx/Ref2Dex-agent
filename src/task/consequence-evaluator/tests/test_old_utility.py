@@ -5,6 +5,13 @@ import pytest
 import torch
 sys.path.insert(0,str(Path(__file__).parents[1]/'src'))
 from consequence_evaluator.old_utility import teacher,OldUtility,pw_sample,future_from_prediction,panel_metrics,PW_ORDER
+from consequence_evaluator.old_utility import deterministic_group_mean
+
+
+def test_deterministic_mean_preserves_groups_and_empty_groups():
+    x=torch.tensor([[2.,6.],[1.,3.],[4.,8.]])
+    actual=deterministic_group_mean(x,torch.tensor([1,0,1]),3)
+    assert torch.equal(actual,torch.tensor([[1.,3.],[3.,7.],[0.,0.]]))
 
 
 def test_frozen_teacher_uses32future_states_and_post8_regions():

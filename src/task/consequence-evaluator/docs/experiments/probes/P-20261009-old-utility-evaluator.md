@@ -112,6 +112,21 @@ after these comparisons resolve the useful next step.
 
 ## Limitations / future evidence
 
+### Engineering repeatability repair before evaluator fitting
+
+The first PW inference run stops before generating usable futures: CUDA atomic
+`mean_groups(index_add_)` differs between identical native-geometry batches.
+Measured batch8 AMP translation max171.5micrometres and rotation-entry max.000300;
+RNG reset does not fix it, eval shuffle is off and input tensors are unchanged.
+FP32 alone also leaves variation. A bounded1/8batch AMP/FP32 feedback loop
+isolates unordered group accumulation. Process-local sorted CSR arithmetic
+mean removes differences exactly in all four cases, preserving frozen weights,
+coordinate definitions, feature/parameter shapes and untouched PW source files.
+Group/empty-group test passes. Use this deterministic evaluation backend for
+r2; preserve failed r1, original/stable diagnostics and their numerical data.
+No teacher, actor, model objective or PW training changes. This is a Blocker
+repair, not a negative result for the research method.
+
 Human-to-robot PW domain shift, official-to-e260 actor/backend/plan-shape shift,
 only five informative test anchors, shared PhysX world and ties limit this
 Probe. Local U32 and Z90 do not equal full controlled placement success.

@@ -28,7 +28,7 @@ def main():
                       TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/torch_extensions'))
     import torch
     import trimesh
-    from consequence_evaluator.old_utility import SCHEMA,pw_sample,future_from_prediction
+    from consequence_evaluator.old_utility import SCHEMA,pw_sample,future_from_prediction,deterministic_group_mean
     PW=ROOT/'src/task/cm-pointflow-effect-pretrain';sys.path.insert(0,str(PW/'src'))
     from oakink_wm.pointworld_temporal import model_from_config,capped_collate,VENDOR
     from oakink_wm.pointworld_performance import install_fused_hilbert
@@ -49,6 +49,11 @@ def main():
             path=(base/name).resolve()
             if sha(path)!=digest:raise ValueError('PW implementation identity drift: '+str(path))
             hashes[str(path)]=digest
+    # CUDA index_add uses unordered atomic sums. The same mathematical group
+    # mean is evaluated with sorted CSR without changing files or weights.
+    import oakink_wm.pointworld as spatial
+    import oakink_wm.pointworld_temporal as temporal
+    spatial.mean_groups=temporal.mean_groups=deterministic_group_mean
     checkpoint_step=state['step']
     model=model_from_config(state['identity']['stats'],state['config']).cuda().eval();model.load_state_dict(state['model'])
     del state
@@ -61,6 +66,7 @@ def main():
     out.mkdir(parents=True);np.savez_compressed(out/'canonical.npz',**canonical)
     manifest=dict(schema=SCHEMA,status='RUNNING',checkpoint=str(checkpoint),checkpoint_sha256=hashes[str(checkpoint)],
         checkpoint_step=checkpoint_step,oracle_observed_hand=True,deployable_planner=False,physical_gpu=a.gpu,
+        group_mean_backend='process-local deterministic sorted CSR; frozen weights and arithmetic mean',
         input_sha256=hashes,windows_sha256=m['windows_sha256'],rows=len(d['label']),batch=a.batch,budget_s=a.seconds,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');future=np.zeros_like(d['future'])

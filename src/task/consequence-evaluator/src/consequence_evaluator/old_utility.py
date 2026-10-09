@@ -16,6 +16,15 @@ SCHEMA = 'ref2dex.consequence-old-utility.v1'
 PW_ORDER = [0, 1, 3, 5, 7, 9, 2, 4, 6, 8, 10]
 
 
+def deterministic_group_mean(values, inverse, count):
+    """Evaluation-only equivalent mean using sorted deterministic CSR sums."""
+    from torch_scatter import segment_csr
+    order=torch.argsort(inverse,stable=True)
+    counts=torch.bincount(inverse,minlength=count)
+    ptr=torch.cat((counts.new_zeros(1),counts.cumsum(0)))
+    return segment_csr(values[order],ptr,reduce='mean')
+
+
 def teacher(current_height, current_pair, height, pair, rest):
     tensors = [torch.as_tensor(x) for x in (current_height, current_pair, height, pair, rest)]
     y, _ = short_y(*tensors)
