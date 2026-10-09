@@ -17,7 +17,8 @@ repeat未保存完整trace，不能把这些字段的一致升级为所有隐藏
 
 冻结的current-only同步s3组为tick71的25个env，重采baseline Z90为20/25；
 reanchor的记录前缀误差为0。正在采七候选并比较原U与冻结物理bank的
-P[t+24]-P[t]，随后在同一组上各做四次真实8步重规划，保留原Z90评价。
+P[t+24]-P[t]。首轮新旧选择有21/25不同；原U选3次非baseline，新Y选22次。
+按实测预算，在同一组上各做三次真实8步重规划并保留one-shot与原Z90评价。
 本组只有一个motion，不满足旧>=30锚点/>=2motions收益门槛。
 实验卡：`src/task/cm-interaction-oracle/docs/experiments/probes/P-20261009-ref13-progress-recovery.md`；
 产物：`outputs/cm-interaction-oracle/ref13-progress-recovery-20261009-r3/`。
