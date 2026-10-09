@@ -31,6 +31,7 @@ def main():
     p.add_argument('--envs',type=int,default=64);p.add_argument('--seconds',type=int,default=300)
     p.add_argument('--mode',choices=('random','baseline','planner'),required=True)
     p.add_argument('--smoke',action='store_true');p.add_argument('--bridge',type=Path)
+    p.add_argument('--initial-jitter',action='store_true',help='fixed small seeded q perturbation for distinct matched episodes')
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
     if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
@@ -77,7 +78,8 @@ def main():
         mode=a.mode,seed=a.seed,num_envs=a.envs,physical_gpu=a.gpu,budget_s=a.seconds,smoke=a.smoke,
         input_sha256=hashes,actor_sha256=cfg['actor_sha256'],rollout_kind='ordinary single-world feedback, no forks',
         action_semantics='requested24x18 residual, first8nonzero then16zero; replanning every8only in planner',
-        initialization='full-reference frame0',fps=30,old_Y_unchanged=True)
+        initialization='full-reference frame0 with fixed seeded q jitter' if a.initial_jitter else 'full-reference frame0',
+        initial_jitter=a.initial_jitter,fps=30,old_Y_unchanged=True)
     write(out/'manifest.json',manifest)
     class Player(native.EvalPlayer):
         @torch.no_grad()
@@ -89,6 +91,23 @@ def main():
             obs=self.env_reset(ids);self.get_batch_size(obs['obs'],1)
             if self.is_rnn:raise ValueError('feedforward frozen actor required')
             if (task.start_times!=0).any() or len(task.motion_file)!=1:raise ValueError('one full frame0 motion required')
+            if a.initial_jitter:
+                # Native Start alone has no seed-dependent task variation.
+                # Apply known, matched perturbations before the first physics
+                # step. The reset FK keeps caches/observations coherent.
+                gen=np.random.default_rng(a.seed)
+                scale=np.array([.001]*3+[.005]*3+[.01]*12,np.float32)
+                noise=torch.from_numpy(gen.uniform(-1,1,(n,18)).astype('float32')*scale).to(device)
+                q=task._dof_pos.clone()+noise;velocity=task._dof_vel.clone()
+                task._set_env_state(ids,q,velocity)
+                task._reset_env_tensors(ids)
+                reset_fk=task_kinematics(task)
+                bodies=task._rigid_body_state.view(n,-1,13)
+                bodies[:,:task.num_bodies]=reset_fk.states(task._dof_pos,task._dof_vel,task._humanoid_root_states)
+                task._contact_forces[:]=0;task._tar_contact_forces[:]=0
+                task._compute_observations(ids)
+                obs={'obs':task.obs_buf.to(self.device).clone()}
+                manifest['initial_jitter_request_scale']=scale.tolist()
             manifest.update(actor_fingerprint=fingerprint(self.model.state_dict()),
                 rms_fingerprint=fingerprint(self.running_mean_std.state_dict()),
                 initial_q_sha256=fingerprint(task._dof_pos),initial_object_sha256=fingerprint(task._target_states),

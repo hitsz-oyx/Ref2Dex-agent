@@ -155,6 +155,28 @@ and rerun only planner296 in a fresh r2 folder. Baseline296completed remains
 valid. Audits resolve old committed source hashes via the recorded Git blob,
 while data/config/weight hashes must still match immutable files exactly.
 
+### Independence audit repair
+
+Original two-seed control completes0/32vs0/32task,30/32vs28/32held45,
+2vs6post-stable loss,4vs10recovery and planner56.125interventions/episode.
+Both seed worlds' entire trajectory arrays are bitwise identical within each
+arm: seed changes alone do not randomize full Start. Thus these are16distinct
+env trajectories repeated, not32independent episodes; no statistical gain or
+closure can be inferred. Preserve original report and append this limitation.
+
+Root fixes only evaluation support, not the learned method or metric: repeat
+two16envmatched worlds with fixed seed-dependent initial-q uniform perturbation
+scales1mmprismatic/5mradangular/10mradfinger. Native bounds/coupling apply;
+root/table/object/reference stay fixed. Submit q via native reset setters,
+rebuild measured reset bodies with URDF FK and refresh current observation
+before any physics/action. Same initial-q/object/actor fingerprints required
+between baseline/planner, distinct trajectory-array hashes required across
+seeds. Models stay frozen and selected by val. No outcome-dependent initial
+state filtering or seed search. <=3600s cumulative control including reruns,
+within original whole Probe5400s/4GiB. This repairs pseudo-replication; it is
+not an outcome-driven method retry or formal Validation. New folders are
+baseline296r2/planner296r3/baseline297r2/planner297r2; earlier arrays preserved.
+
 Frozen-policy planner utility is a Mission mechanism Probe, not RL training
 benefit or formal Gate1. s3/full-start differs from earlier hybrid25anchorZ90.
 The bridge may model conditional mean and miss contact multimodality. Nominal

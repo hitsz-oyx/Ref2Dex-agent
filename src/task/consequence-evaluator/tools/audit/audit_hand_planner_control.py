@@ -94,6 +94,7 @@ def main():
     if a.output.exists():raise FileExistsError(a.output)
     if len(a.baseline)!=len(a.planner):raise ValueError('matched seed runs required')
     comparisons=[];allbase=[];allplan=[];hashes={str(Path(__file__).resolve()):sha(__file__)}
+    trajectory_hashes={'baseline':[],'planner':[]}
     for b,p in zip(a.baseline,a.planner):
         bm,br=summarize(b);pm,pr=summarize(p)
         for key in ('seed','num_envs','actor_sha256','actor_fingerprint','rms_fingerprint','initial_q_sha256','initial_object_sha256','native_reference_steps','initialization'):
@@ -104,6 +105,11 @@ def main():
             descriptive_gain=paired_bootstrap(x-y,seed=291),online_selection_contract=pm['online_selection_contract'],
             decision_windows=pm['decision_windows'],candidate_counts=pm['candidate_counts']))
         allbase.extend(br);allplan.extend(pr)
+        for arm,folder in (('baseline',b),('planner',p)):
+            with np.load(folder/'trajectory.npz') as f:
+                content=hashlib.sha256()
+                for key in sorted(f.files):content.update(key.encode());content.update(f[key].tobytes())
+                trajectory_hashes[arm].append(content.hexdigest())
         for folder in (b,p):
             for name in ('manifest.json','trajectory.npz'):hashes[str(folder/name)]=sha(folder/name)
     def aggregate(rows):
@@ -117,7 +123,9 @@ def main():
     base=aggregate(allbase);plan=aggregate(allplan)
     gains=np.array([c['planner_success']/c['episodes']-c['baseline_success']/c['episodes'] for c in comparisons])
     status='PROMISING' if (plan['success_rate']-base['success_rate']>=.05 and (gains>0).all()) else 'UNCLEAR'
-    result=dict(status=status,baseline=base,planner=plan,per_seed=comparisons,baseline_episodes=allbase,planner_episodes=allplan,
+    distinct=all(len(set(v))==len(v) for v in trajectory_hashes.values())
+    result=dict(status=status if distinct else 'UNCLEAR',baseline=base,planner=plan,per_seed=comparisons,baseline_episodes=allbase,planner_episodes=allplan,
+        distinct_seed_trajectory_arrays=distinct,trajectory_array_sha256=trajectory_hashes,
         task_rule='inherited final controlled completion with recovery allowed; same45/15frame thresholds',
         old_Y_unchanged=True,formal_Gate1=False,RL_benefit=False,input_sha256=hashes,
         scope='two exploratory seed worlds; matched initial episode IDs, not bitwise physical counterfactual rescue/harm')
