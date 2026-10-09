@@ -63,6 +63,8 @@ def main():
     parser.add_argument("--seed", type=int, default=282)
     parser.add_argument("--envs", type=int, default=4)
     parser.add_argument("--query-period", type=int, default=HORIZON)
+    parser.add_argument("--source-per-env", action="store_true",
+                        help="diagnostic: use each source env's own teacher future")
     parser.add_argument("--seconds", type=int, default=300)
     args = parser.parse_args()
     output = args.output.resolve()
@@ -108,6 +110,9 @@ def main():
     if set(stats) != required_statistics:
         raise ValueError("checkpoint statistics do not match model schema")
     source_hand = np.asarray(source["hand_keypoints"][:, 0], dtype="float32")
+    source_hands = np.asarray(source["hand_keypoints"], dtype="float32")
+    if args.source_per_env and source_hands.shape[1] != args.envs:
+        raise ValueError("per-env source requires one complete teacher trajectory per environment")
     source_sha = sha(args.source.resolve()); checkpoint_sha = sha(args.checkpoint.resolve())
 
     import evaluate as native
@@ -160,6 +165,8 @@ def main():
                                       "frozen source teacher future hand geometry; current q,dq, live hand/object and previous command"),
                     context_contract=(None if checkpoint_schema == SCHEMA else
                                       "query-time hand points in object frame plus previous native command; zero at tick 0"),
+                    source_hand_contract=("per-env source hand future for matched-layout diagnostic"
+                                          if args.source_per_env else "env0 source hand future broadcast to R envs"),
                     claim="GT-hand execution upper-bound Probe; no deployability or Cm claim")
     write(output / "manifest.json", manifest)
 
@@ -208,14 +215,21 @@ def main():
                     raise TimeoutError("retarget execution deadline")
                 base = self.get_action(obs, True).clamp(-1, 1).to(self.device)
                 if last_query_tick is None or tick - last_query_tick >= args.query_period:
-                    source_future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
+                    if args.source_per_env:
+                        source_future = np.transpose(
+                            source_hands[np.minimum(tick + np.arange(1, HORIZON + 1), 542)],
+                            (1, 0, 2, 3))
+                        source_current = source_hands[tick]
+                    else:
+                        source_future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
+                        source_current = source_hand[tick][None]
                     # The model was trained on future hand displacement from
                     # the query hand.  Preserve that source trajectory delta
                     # while anchoring it to each live environment's current
                     # hand; feeding source absolute coordinates would inject
                     # an unregistered initial-frame offset into R.
                     current = measured["hand_keypoints"].detach().cpu().numpy()
-                    source_delta = source_future - source_hand[tick][None]
+                    source_delta = source_future - source_current[:, None]
                     future = current[:, None] + source_delta[None]
                     q = task._dof_pos.detach().cpu().numpy()
                     dq = task._dof_vel.detach().cpu().numpy()
@@ -266,7 +280,9 @@ def main():
                 packet = {key: arrays[key][:, env] for key in ("object_pose", "surface_gap", "support_gap",
                                                                   "table_footprint", "object_velocity")}
                 outcomes[name] = episode_outcome(packet)
-            hand_error = np.sqrt(np.mean((arrays["hand_keypoints"] - source_hand[:, None]) ** 2, axis=(0, 2, 3))) * 1000
+            source_target = source_hands if args.source_per_env else source_hand[:, None]
+            hand_error = np.sqrt(np.mean((arrays["hand_keypoints"] - source_target) ** 2,
+                                         axis=(0, 2, 3))) * 1000
             teacher = outcomes["reactive_teacher"]["maximum_held_frames"]
             gate = {name: bool(teacher >= 45 and outcomes[name]["maximum_held_frames"] >= .9 * teacher
                                and hand_error[index] < 40.) for index, name in enumerate(manifest["roles"])}
@@ -277,7 +293,8 @@ def main():
                             query_ticks=queries, teacher_source_outcome=source["role_outcomes"]["reactive_teacher"])
             with (output / "execution.pkl").open("wb") as stream:
                 pickle.dump(dict(schema=manifest["schema"], manifest=manifest, arrays=arrays,
-                                 source_hand=source_hand, query_ticks=np.asarray(queries),
+                                 source_hand=(source_hands if args.source_per_env else source_hand),
+                                 query_ticks=np.asarray(queries),
                                  predicted_chunks=np.asarray(chunks), retarget_inputs=inputs), stream, protocol=4)
             write(output / "manifest.json", manifest)
             write(output / "result.json", dict(status="PROMISING" if all(gate.values()) else "UNCLEAR",
