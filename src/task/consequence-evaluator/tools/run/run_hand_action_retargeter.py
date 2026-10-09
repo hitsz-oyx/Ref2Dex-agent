@@ -156,6 +156,8 @@ def main():
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     seed=args.seed, num_envs=args.envs, physical_gpu=args.gpu, budget_s=args.seconds,
                     source=str(args.source.resolve()), source_sha256=source_sha,
+                    source_backend=source.get("source_backend"),
+                    source_actor_execution=source.get("replay_identity", {}).get("actor_execution"),
                     checkpoint=str(args.checkpoint.resolve()), checkpoint_sha256=checkpoint_sha,
                     input_sha256=frozen, query_period=args.query_period, model_schema=checkpoint_schema,
                     roles=["reactive_teacher", "retarget_gt_hand", "retarget_gt_hand_repeat",
