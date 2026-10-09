@@ -1,5 +1,30 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 GPU synchronous group Value-noise follow-up
+
+在提交`4258adf`中修正了同步GPU group的角色合同：baseline、zero、positive、
+negative现在由显式`role_index_map`绑定，`candidate_calibration_valid`不再在
+reactive packet失败时无条件为true；runner和离线审计同时记录p99、峰值tick和首次
+非零tick，避免接触脉冲被展平p95掩盖。旧r18的非默认zero pair没有角色元数据，新的
+审计会拒绝它，之前按env0 baseline解释的r18 Value摘要不再采用。
+
+按用户建议在原生`gpu_physx_gpu_pipeline`中做了两个4-env、seed282、query48、72-step
+工程Probe。默认布局`zero=[0,1], candidate=[2,3]`的短窗baseline最高抬升0.2585m、
+held15，物理bank Y为`[.043592,.043215,.022880,.024176]`，zero-pair标量中位噪声
+`.000378`，正/负对baseline为`-.020713/-.019416`。交换布局
+`zero=[2,3], candidate=[0,1]`的短窗baseline为0.1530m/held9，按角色映射后的Y为
+baseline`.035543`、positive`.039070`、negative`.020899`，zero中位噪声`.002624`，
+正/负对baseline为`+.003527/-.014644`。positive对比随角色布局变号且量级明显变化，
+因此不能视为稳定的candidate effect；两包都保持engineering-only，没有进入Gate1。
+
+两次zero pair的raw contact-force差异都在tick44首次出现；flattened p95可为0，但峰值
+约8.1/26.2，说明p95-only gate不足。结论：关闭这条role-permutation scalar-Y
+noise route，保留原生GPU group作为行为容器；不扩rolling Probe、不fit evaluator、
+不进入PointWorld，不改Y、reference bank、TCC或policy weights。实验卡与产物：
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md`、
+`outputs/consequence-evaluator/gpu-group-value-noise-audit-20261009-r1/`和
+`outputs/consequence-evaluator/gpu-group-noise-audit-20261009-r1/`。
+
 ## 2026-10-08 Gate1 首轮完成：工程通过，任务收益 UNCLEAR
 
 64522f1在CPU-PhysX/GPU2模型执行1个paired episode（seed282），314.94秒完成。
