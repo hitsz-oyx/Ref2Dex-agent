@@ -97,7 +97,7 @@ def main():
     if folder.exists():
         raise FileExistsError(folder)
     config = Path(inputs['config_root'])
-    cmd = [str(PYTHON), str(Path(__file__).with_name('ref13_progress_worker.py')),
+    cmd = [str(PYTHON), str(Path(__file__).resolve().with_name('ref13_progress_worker.py')),
            '--run-dir', str(folder), '--candidate', str(args.candidate),
            '--capture-progress-geometry', '--expected-checkpoint-sha256', EXPECTED_SHA,
            '--wall-seconds', '180', '--num_threads', '1', '--task', 'Dexplore_Inspire',
