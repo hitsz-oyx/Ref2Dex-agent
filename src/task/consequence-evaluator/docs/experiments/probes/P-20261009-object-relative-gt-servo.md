@@ -344,3 +344,23 @@ contact preload/pose offset without reading future PD target or force labels.
 It is a120step bootstrap oracle, not cold geometry sufficiency or a calibrated
 force controller. If positive, test cold-start dynamics; if negative, inspect
 which anchored target/clip breaks contact and stop this adaptation.
+
+
+r13 atd999ca7, full542/70.19s: teacher484/world31; absolute inverse483 and
+command-anchored inverse483, zero clips. The retained offset includes finger
+index+.169/middle+.217/thumb pitch-.215rad and wrist millimetre offsets.
+Independent before-switch targets match r12, but observed physical state
+DOF/objects differs from tick53 (force44), so the improvement over old role3
+250 is a PROMISING signal, not a matched causal proof of preload retention.
+
+Decision at11:49UTC: cold-start geometry dynamics remains the immediate
+blocker. r14 replaces equilibrium/forward-velocity heuristics with a small
+identified one-step PD inverse u=q+a*(qdesired_next-q)+b*dq using live q/dq.
+Fit2 coefficients per12 independent joints from the existing3train launches'
+first40 approach frames only (small CPU statistics, no neural model).
+Both arms use the11-point wrist inverse from tick0; role2 keeps source
+commanded fingers to isolate wrist dynamics, role3 also uses geometry-only
+fingers and the calibrated inverse. No source future q/dq or wrist commands
+enter either candidate wrist; role3 has no recorded command bootstrap.
+If wrist-only holds, target remaining finger/contact load; if both fail,
+inspect contact-stage model error before adding feedback. <=150s/worker.
