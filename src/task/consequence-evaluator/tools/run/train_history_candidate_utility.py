@@ -148,7 +148,7 @@ def main():
     }
     initial = TrajectoryUtility().to(device)
     initial_state = copy.deepcopy(initial.state_dict())
-    models = {arm: copy.deepcopy(initial) for arm in ("B", "C0", "C1")}
+    models = {arm: copy.deepcopy(initial) for arm in ("B", "T", "C0", "C1")}
     optimizers = {arm: torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
                   for arm, model in models.items()}
     batches = panel_batches(rows, split_ids["train"], args.steps, args.batch, args.seed)
@@ -167,7 +167,7 @@ def main():
                         seconds_cap=args.seconds, batch=args.batch,
                         architecture=dict(history_dim=1442, trajectory_dim=TRAJECTORY_DIM,
                                           object_effect_dim=EFFECT_DIM, width=128, layers=2),
-                        arms={"B": "H-only", "C0": "H+tau", "C1": "H+tau+E_GT"},
+                        arms={"B": "H-only", "T": "tau-only", "C0": "H+tau", "C1": "H+tau+E_GT"},
                         panel_contract="7 candidates with H RMS<=.03, hand RMS<=3mm, q RMS<=.03 to anchor",
                         approximate_h_match=True, train_panels=int(len(split_ids["train"])),
                         val_panels=int(len(split_ids["val"])), test_panels=int(len(split_ids["test"])),
@@ -183,7 +183,9 @@ def main():
             with torch.inference_mode():
                 trajectory_input = (torch.zeros_like(tensors["trajectory"][tau_index])
                                     if arm == "B" else tensors["trajectory"][tau_index])
-                values.append(model(tensors["history"][index], trajectory_input,
+                history_input = (torch.zeros_like(tensors["history"][index])
+                                 if arm == "T" else tensors["history"][index])
+                values.append(model(history_input, trajectory_input,
                                     tensors["effect"][index], arm == "C1").cpu().numpy())
         return np.concatenate(values)
 
@@ -197,7 +199,9 @@ def main():
             model.train(); optimizers[arm].zero_grad(set_to_none=True)
             trajectory_input = (torch.zeros_like(tensors["trajectory"][batch])
                                 if arm == "B" else tensors["trajectory"][batch])
-            score = model(tensors["history"][batch], trajectory_input,
+            history_input = (torch.zeros_like(tensors["history"][batch])
+                             if arm == "T" else tensors["history"][batch])
+            score = model(history_input, trajectory_input,
                           tensors["effect"][batch], arm == "C1")
             loss = ((score - tensors["label"][batch]) ** 2).mean()
             if not torch.isfinite(loss):
@@ -247,15 +251,18 @@ def main():
         metrics[arm] = panel_metrics(target, predictions[arm])
     shuffle_metrics = {arm: panel_metrics(target, shuffled[arm]) for arm in models}
     b_gain = metrics["C0"]["pairwise_accuracy"] - metrics["B"]["pairwise_accuracy"]
+    t_gain = metrics["T"]["pairwise_accuracy"] - metrics["B"]["pairwise_accuracy"]
     gain = metrics["C1"]["pairwise_accuracy"] - metrics["C0"]["pairwise_accuracy"]
     b_drop = metrics["B"]["pairwise_accuracy"] - shuffle_metrics["B"]["pairwise_accuracy"]
+    t_drop = metrics["T"]["pairwise_accuracy"] - shuffle_metrics["T"]["pairwise_accuracy"]
     c0_drop = metrics["C0"]["pairwise_accuracy"] - shuffle_metrics["C0"]["pairwise_accuracy"]
     drop = metrics["C1"]["pairwise_accuracy"] - shuffle_metrics["C1"]["pairwise_accuracy"]
     screen_gate = bool(metrics["C1"]["pairwise_accuracy"] >= .70 and gain >= .03
                        and drop >= .03 and metrics["C1"]["mean_regret"] <= metrics["C0"]["mean_regret"])
     result = dict(status="PROMISING" if screen_gate else "UNCLEAR",
                   screen_gate=screen_gate, metrics=metrics, shuffle_metrics=shuffle_metrics,
-                  C0_gain_vs_H_only=float(b_gain), B_tau_shuffle_drop=float(b_drop),
+                  C0_gain_vs_H_only=float(b_gain), tau_only_gain_vs_H_only=float(t_gain),
+                  B_tau_shuffle_drop=float(b_drop), T_tau_shuffle_drop=float(t_drop),
                   C0_tau_shuffle_drop=float(c0_drop), C1_gain_vs_C0=float(gain),
                   C1_tau_shuffle_drop=float(drop),
                   selected_steps=selected, completed_steps=completed,
@@ -265,7 +272,8 @@ def main():
                   input_sha256=frozen, panel_rows=test_rows.tolist(), donor=donor.tolist())
     np.savez_compressed(output / "panel-predictions.npz", target=target,
                         panel_rows=test_rows, donor=donor, **predictions,
-                        B_tau_shuffle=shuffled["B"], C0_tau_shuffle=shuffled["C0"],
+                        B_tau_shuffle=shuffled["B"], T_tau_shuffle=shuffled["T"],
+                        C0_tau_shuffle=shuffled["C0"],
                         C1_tau_shuffle=shuffled["C1"])
     write(output / "result.json", result)
     fit_manifest.update(status="COMPLETED", completed_steps=completed,
@@ -274,7 +282,8 @@ def main():
     write(output / "manifest.json", fit_manifest)
     print(json.dumps({key: result[key] for key in (
         "status", "screen_gate", "metrics", "shuffle_metrics",
-        "C0_gain_vs_H_only", "B_tau_shuffle_drop", "C0_tau_shuffle_drop",
+        "C0_gain_vs_H_only", "tau_only_gain_vs_H_only", "B_tau_shuffle_drop",
+        "T_tau_shuffle_drop", "C0_tau_shuffle_drop",
         "C1_gain_vs_C0", "C1_tau_shuffle_drop")}, indent=2), flush=True)
 
 
