@@ -5,7 +5,7 @@ experiment_id: P-20261009-weak-temporal-value
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 0fdd3c5
+git_commit: 5d13cf1
 claim_id: C3
 hypothesis_family: HF-weak-temporal-value
 probe_index_in_family: 1
@@ -19,7 +19,7 @@ run_id: weak-temporal-value-20261009-r1
 
 # Can outcome/time supervision learn useful GT consequence value?
 
-Result: pending.
+Result: initial offline screen UNCLEAR; completed matched 1200-step fit.
 Decision: user ref4_3 authorizes a bounded learned evaluator Probe, replacing
 direct delta-progress as the value definition. The previous no-evaluator-fit
 decision applies to that earlier progress pipeline, not this authorized route.
@@ -86,6 +86,34 @@ offline usefulness are checked; conditional GT control gets a separately
 recorded bounded budget. Stop on drift, nonfinite tensors, missing complete
 windows, split leakage or resource conflict. No new branch, remote push,
 external writes, checkpoint overwrite, reward engineering or actor training.
+
+## Initial results and bounded audit
+
+Training commit `5d13cf1`, runtime Torch2.4.1+cu121, physical GPU2, 26.66s,
+peak reported memory561MiB. Val selected step400 for both arms; all1200updates
+completed. Prepared labels preserve train41/23 and val38/26; test becomes37/27
+after `s263_w1_e28_airplane` recovers and completes. Masked positive recovery
+windows: train0, val31, test17. All711 source hashes remained frozen.
+
+| Frozen test metric | HA | HAZ | HAZ future-shuffle |
+| --- | ---: | ---: | ---: |
+| Same-time cross-episode ranking | .88423 | .89666 | .84316 |
+| Balanced outcome sign accuracy | .88247 | .88738 | .83588 |
+| Episode-average MSE | .011396 | .011044 | .028155 |
+
+Future gain1.24pp misses the frozen3pp screen, despite a5.35pp shuffle drop.
+Do not promote this to Gate1 or expand training. A post-freeze semantic audit
+checks time strata, active-plan coverage and positive recovery support. It may
+also score the already cached first seven same-H GT forks (25anchors) with
+frozen checkpoints: one idle GPU2, <=60s, no simulation, no model selection,
+no extra fitting or online execution. The cached forks have only32-step future
+coverage and a different self-trained actor/backend; their scores have no
+full-task outcome ground truth and cannot override the failed offline screen.
+This audit decides whether the next useful information needs better data rather
+than more epochs. Existing raw results/checkpoints remain unchanged.
+
+Artifacts: `outputs/consequence-evaluator/weak-temporal-labels-20261009-r1/`,
+`outputs/consequence-evaluator/weak-temporal-value-20261009-r1/` and its `.log`.
 
 ## Limitations / future evidence
 
