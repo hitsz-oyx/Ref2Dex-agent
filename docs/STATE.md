@@ -23,6 +23,8 @@ strict pairs，当前不扩 epoch、不改 gate、不进入可部署 planner；�
 C0/C1/C2 `.6282/.6538/.5897`，C1 增益 `.0256`、τ-shuffle drop `0`；GT
 information 与 PW retention gates 均为 false。该实现修复后的结果仍只覆盖5个
 informative anchors/78 strict pairs，故不扩 candidate bank、不启动 C2/PW 在线链路。
+随后在 clean commit `15ca96f` 复播同一配置为 `trajectory-utility-fit-20261010-r3`；
+初始与三臂 checkpoint hash 和 r2 byte-identical，确认 r2 数值不是脏工作树偶然产物。
 
 随后对冻结 `H.pt`/`HA.pt` 做只读 candidate-bank audit（commit `e0b8e2f`）：H-only
 七候选完全相同（candidate RMS 0），HA 虽有动作条件，但 panel 候选差异仅约
@@ -89,7 +91,7 @@ hand variation，不能把它解释为同-state验证。当前停止 query/model
 产物与失败 run，后续接触/preload 工作需 source-matched replay 和 contact-force proxy。
 
 同一 source-matched CPU packet 上完成只读 contact-proxy audit
-(`ref7_2-contact-proxy-audit-20261010-r13`)：R 三角色的 `surface_gap<=10 mm`
+(`ref7_2-contact-proxy-audit-20261010-r14`)：R 三角色的 `surface_gap<=10 mm`
 首段均从 tick43 开始，早于 teacher `pair` proxy 的 tick45；几何近段分别在
 67/70/136 结束，随后 gap 为 15.87/14.07/11.76mm，而 teacher pair 仍为真。
 全轨迹 hand RMSE 为61.43/75.83/77.40mm，近段退出时 wrist/finger误差为

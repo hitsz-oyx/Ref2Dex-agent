@@ -94,10 +94,13 @@ This was a blocker for the intended decision, so one bounded correction was
 run before expanding the candidate bank. It kept the exact data, split,
 seed, sampler, batch, 1200-step cap, and gate, but deep-copied one shared
 `initial_state` into all three arms and saved that same state as `initial.pt`.
-The old r1 directory was not overwritten. The corrected fit is
-`outputs/consequence-evaluator/trajectory-utility-fit-20261010-r2/` and
-completed on GPU2 in 32.2 seconds with shared initialization recorded in its
-manifest.
+The old r1 directory was not overwritten. The corrected fit was first
+recorded as `outputs/consequence-evaluator/trajectory-utility-fit-20261010-r2/`
+and then replayed once after committing the fix as
+`outputs/consequence-evaluator/trajectory-utility-fit-20261010-r3/`. The clean
+replay completed on GPU2 in 31.1 seconds; its initial and C0/C1/C2 checkpoint
+hashes are byte-identical to r2, while the manifest records commit `15ca96f`.
+Shared initialization is explicit in both manifests.
 
 | Arm | Matched panel strict accuracy | Tau-shuffle accuracy | Mean regret |
 | --- | ---: | ---: | ---: |

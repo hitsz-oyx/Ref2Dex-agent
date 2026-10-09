@@ -169,6 +169,6 @@ This audit makes the next blocker more specific but does not identify a
 mechanism: the saved geometry proxy shows a short near-gap interval followed
 by divergence, while the packet cannot tell whether preload, contact manifold,
 or another hidden simulator state caused it. Result and hashes:
-`outputs/consequence-evaluator/ref7_2-contact-proxy-audit-20261010-r13/`.
+`outputs/consequence-evaluator/ref7_2-contact-proxy-audit-20261010-r14/`.
 No new native run, force claim, H-to-hand integration, PointWorld inference,
 or evaluator training is justified by this proxy-only result.
