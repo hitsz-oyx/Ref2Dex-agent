@@ -1,30 +1,35 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-09 ref7_1 物体系 GT servo / 接触上界诊断（推进中）
+## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
-当前按用户 ref7_1 自主推进两小时，ACT/G/H->V 和旧 neural R 重训保持暂停。
-旧Y及全局Cm claim保持，仍在main。历史 tick160..176 审计：固定世界GT手误差
-7.60mm，而手物相对误差65mm；失抓后相对误差462mm。原生net body force与
-采样visual mesh gap不能确定唯一手物接触对。
+按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，
+每组542步，源码/运行manifest/失败packet完整保留。分支main，旧Y与全局Cm claim
+保持；旧R、ACT/G/H->V训练仍暂停。所有16组独立执行审计PASS，18项合同测试通过。
 
-原始每步完整SE3修正 held105 并出现反馈放大；未来物体帧锚定改变运动语义。
-围绕source世界nominal限制修正至20mm/.15rad，两次新launch held484/483、
-相对手误差30.46/31.40mm且无裁剪/中途失抓，命令级上界信号PROMISING。
-同run世界命令通常484，另一次83；接触结果存在launch/角色敏感性，没有
-严格same-state或表示有效性结论。query24固定修正 held365/271 未达固定source
-484的90%门槛；不能用较弱live teacher降低所需门槛。
+历史tick160..176世界GT手误差7.60mm、手物相对误差65mm，失抓后相对462mm。
+但物体系每步完整SE3反馈会放大运动：命令臂held105、物体抬升峰6.63m。围绕
+world nominal有界20mm/.15rad修正两次held484/483，无裁剪/中途失抓，仅说明
+保留source PD预载的命令级控制PROMISING。固定世界命令fresh结果31..484，
+角色即使执行同一绝对目标流，接触后也能held483对250；不存在严格same-state因果结论。
 
-保留source腕命令、只换实测手指q得到held36；加train3固定预载held0。
-未来实测腕q+.1s速度补偿两臂均held0，无裁剪。GPU几何审计对coupled12的
-11点Jacobian在9姿态均满秩，但实测18关节只有17秩，受载后偏离理想耦合；
-有利初值与真实腕姿态下coupled拟合仍有thumb tip~5mm误差。当前在区分
-几何逆解、接触预载和动态控制，不因失败扩大旧R训练。
+11点fixed-root解析腕逆解位置误差<1um。GPU审计coupled12 Jacobian满秩，但
+实际18关节rank17、受载关节偏离理想耦合；静态coupled逆解thumb tip约5mm误差。
+校准train3前40帧的两系数一步PD逆控制，只读当前q/dq与未来几何。保留source
+finger命令时，冷启动腕控制两次held483，worldRMSE2.91/3.77mm，无裁剪；腕部信号
+PROMISING。完整11点控制首轮held485却live teacher17未过行为门槛，重复238，
+因此完整几何gate仍未通过。源未来q/命令污染的实际分支依赖测试通过，不是输入泄漏。
 
-一次live teacher被原指标记为完整放回（held305/terminal settled151帧），已
-核对桌面末态并保留，仍是单条弱代理结果。当前第8组在抓稳后tick120才切换
-几何手指目标，检查维持抓持与初始接触建立的区别。执行与独立审计工具、所有
-失败packet均保留；16项相关合同测试通过。后续细节与资源见
-[物体系GT上界Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。
+最终将finger目标换成特权实测next-q，未加/加因果过去PD负载EMA均held0，手误差
+3.57/3.61mm、378/391次裁剪。该简单逆控制负信号有效，不能升级为几何表示无效。
+当前完整路线UNCLEAR，关键缺口是finger几何/实际受载姿态与commanded PD
+目标/接触预载的映射。下一最小问题：固定解析腕部，单独检验finger命令解码与
+当前机械/手物状态；保留geometry-only和past-command对照。未重训旧R或推进H->V。
+
+一次teacher被旧代理指标记为放回（held305/settled151），已核对桌面末态但未
+迁移新控制器；不是完整任务可靠性证据。所有重复角色、不同布局及弱teacher运行
+均保持原始gate，不计为独立seed或Cm增益。产物新增约0.35GB，GPU2已释放。
+证据：[物体系GT上界Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md)，
+汇总`outputs/consequence-evaluator/object-relative-gt-campaign-20261009-r1/`。
 
 ## 2026-10-09 ref7 GT-hand retarget/control upper-bound Probe
 

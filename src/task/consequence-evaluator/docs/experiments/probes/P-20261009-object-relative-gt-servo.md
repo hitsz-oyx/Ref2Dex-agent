@@ -17,10 +17,10 @@ status: UNCLEAR
 run_id: object-relative-gt-servo-20261009-r1
 ---
 
-# Does transporting GT wrist targets with the live object preserve grasp?
+# Object-relative GT geometry and state-conditioned PD control
 
-Result: UNCLEAR overall: bounded source-command transport and post-grasp finger geometry are PROMISING; cold-start geometry control remains blocked.
-Decision: Follow user ref7_1 for a two-hour autonomous investigation; retain paused ACT/G/H-to-V/neural-retargeter training.
+Result: UNCLEAR: wrist geometry with calibrated dynamics is PROMISING; full11-point cold control does not confirm, and native finger/contact decoding remains blocked.
+Decision: Freeze the promising analytic wrist decoder; next isolate commanded finger/contact targets. Keep old R, ACT, G and H-to-V training paused pending a repeatable full-control gate.
 
 ## Motivation and Decision Note
 
@@ -82,7 +82,7 @@ that limit and add actual rigid-link recording for subsequent runs.
 One source and correlated role layouts, unexposed PhysX solver/cache state;
 oracle feedback every tick is not a deployable24-step geometry policy.
 No formal representation sufficiency/necessity claim from this Probe.
-No complete placing success source. Frozen source-time replay can retain
+One weak-proxy placing teacher (r5) is retained but not transferred in this Probe. Frozen source-time replay can retain
 oracle motion despite object correction; explicitly audit anchor/time usage.
 
 ## Initial results and adaptive decision
@@ -407,3 +407,45 @@ blocker; if only memory helps, causal effort retention matters; if neither
 holds, defer new learning and redesign physical tracking/contact control.
 This completes the <=16 launch budget; remaining time is for independent
 execution/label audit, evidence synthesis and recording the next decision.
+
+
+r16 atec7ff2b, full542/72.24s: teacher479/world483; privileged measured
+next-finger-q with identified PD dynamics0, plus causal EMA load memory0.
+World handRMSE3.57/3.61mm but local252/253mm;378/391 clips. Both are valid
+negative signals for these specific simple controllers, not proof that
+geometry or load-aware control is impossible. Independent source/load/
+actual-dispatch reconstruction PASS. No further native launches this budget.
+
+## Final synthesis and next decision
+
+- Historical ref7 world tracking remains accurate while contact-relative
+  drift grows; the full SE3 intervention can itself amplify movement.
+- Bounded recorded-command transport484/483 is PROMISING but still carries
+  oracle finger PD preload. It does not establish11-point-only sufficiency.
+- A reset-calibrated11-point wrist inverse and train-only state-conditioned
+  one-step dynamics deliver held483 twice when source finger commands are
+  retained (r14/r15), with~2.91/3.77mm world error and no clipping.
+- Full geometry-only control is not confirmed: r14 held485 has an invalid
+  live-teacher control; valid r15 holds238. Current simple loaded-q/memory
+  alternatives in r16 fail despite3.6mm tracking. Keep overallUNCLEAR.
+- Sixteen542step native launches, all16 independent audits PASS,18 focused
+  tests PASS. Campaign report/CSV/plot: `outputs/consequence-evaluator/`
+  `object-relative-gt-campaign-20261009-r1/`. Replicas are not independent seeds.
+
+Next minimum question is how to decode intended finger closure/contact
+commands, with the wrist decoder fixed. Predicting the actual loaded next
+finger posture is different from commanding a PD equilibrium/preload;
+source commanded targets must be explicit supervised labels. A future
+state-conditioned finger decoder may use current q/dq, its own past commands
+and current hand-object information, and must not read future force/PD
+labels at execution. Compare against geometry-only and zero-geometry/past-
+command controls before attributing any gain to geometry. The11-point
+Jacobian is rank17 for actual18 joints; current mechanical priors can help
+resolve ambiguity. Do not conclude that adding force action or another
+keypoint is necessary without testing that narrower hypothesis.
+
+Deferred evidence: matched physical-state controls, new scenes/seeds/source
+trajectories, independent sustained-hold/drop checks, finger target/noise
+robustness, placement-source transfer, and prospective learned geometry
+policies. These currently do not justify expanding the16run investigation
+or entering PointWorld/evaluator/H-to-V. No formal Cm/RL gain claim.

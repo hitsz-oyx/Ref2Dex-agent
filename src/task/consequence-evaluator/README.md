@@ -1,18 +1,22 @@
 # Consequence evaluator
 
-当前按用户 [ref7_1](docs/user/ref/ref7_1.md)推进物体系 GT servo 与接触诊断，
-ACT/G/H->V 和旧 ref7 neural retargeter 重训继续暂停。分支保持 `main`。
-协议及滚动证据见 [物体系 GT 上界 Probe](docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。
-所有 source 未来 geometry/q/actions 都是特权 oracle，尚不能部署或宣称 Cm 增益。
+当前按用户 [ref7_1](docs/user/ref/ref7_1.md)完成16组物体系 GT servo/接触诊断，
+整体 **UNCLEAR**，完整几何控制gate未通过；旧R、ACT/G/H->V训练继续暂停。
+分支保持 `main`。所有未来 geometry/q/actions 都是特权 oracle，尚不能部署或宣称 Cm 增益。
+协议与逐轮证据见 [物体系 GT 上界 Probe](docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。
 
-每步完整物体SE3反馈会放大运动；围绕世界nominal有界20mm/.15rad修正两次
-held484/483且无裁剪/中途失抓，命令级信号PROMISING。但它保留了source PD
-预载，同run世界命令也常484，不能说明11点几何独自确定抓持。query24、实测
-finger q、固定train预载和简单腕速度补偿尚未达到上界门槛。
-GPU审计区分coupled12几何可观测与受载实际18关节/接触effort；当前先检查
-抓稳后切换几何目标的保持能力，不扩大旧R训练或接PointWorld/evaluator。
+有界物体系命令修正 held484/483，但保留了source finger PD预载；完整SE3反馈会
+放大运动。11点解析腕逆解+train-only一步动态逆控制，在source finger命令下两次
+held483、约3mm手误差，腕部信号PROMISING。完整11点控制一次held485但live
+teacher未过行为门槛，重复仅238；实测next-finger-q及过去命令负载EMA两臂均0。
+小世界系手误差仍不能保证接触。静态coupled逆解不能精确表示受载实际关节，
+当前优先固定腕部、单独检验finger commanded PD target与接触状态解码。
+
+16组执行/时序/矩阵/负载重建独立审计PASS，18项合同测试通过。相同目标流的
+物理角色仍可在接触前后分叉，尚不具备strict same-state因果比较。
+汇总CSV/图在 `outputs/consequence-evaluator/object-relative-gt-campaign-20261009-r1/`。
 原 [GT-hand retargeter](docs/experiments/probes/P-20261009-gt-hand-retargeter.md)
-held117/42/0的历史失败与执行审计完整保留，不将旧world replay称为geometry inverse。
+held117/42/0历史失败保留，不将旧world replay称为geometry inverse。
 
 ## 暂停的手执行桥路线
 
