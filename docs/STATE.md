@@ -21,7 +21,8 @@ PROMISING。完整11点控制首轮held485却live teacher17未过行为门槛，
 
 最终将finger目标换成特权实测next-q，未加/加因果过去PD负载EMA均held0，手误差
 3.57/3.61mm、378/391次裁剪。该简单逆控制负信号有效，不能升级为几何表示无效。
-当前完整路线UNCLEAR，关键缺口是finger几何/实际受载姿态与commanded PD
+离线接触阶段审计发现free-approach模型食指目标误差由.013rad升至.578rad，
+它不是精确接触动力学逆解。当前完整路线UNCLEAR，关键缺口是finger几何/实际受载姿态与commanded PD
 目标/接触预载的映射。下一最小问题：固定解析腕部，单独检验finger命令解码与
 当前机械/手物状态；保留geometry-only和past-command对照。未重训旧R或推进H->V。
 

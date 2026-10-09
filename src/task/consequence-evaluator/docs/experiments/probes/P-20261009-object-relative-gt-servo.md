@@ -449,3 +449,15 @@ trajectories, independent sustained-hold/drop checks, finger target/noise
 robustness, placement-source transfer, and prospective learned geometry
 policies. These currently do not justify expanding the16run investigation
 or entering PointWorld/evaluator/H-to-V. No formal Cm/RL gain claim.
+
+
+Final contact-stage calibration audit (CPU statistics, no fitting): on the
+held-out source, measured-next-q/free-approach PD inverse finger-index target
+RMSE is.0126rad before40, .578rad at40..59 contact onset, .229rad at60..119
+and.255rad in120..541 holding. Thumb-pitch onset residual.255rad. Full
+phase results/provenance are in campaign `contact_stage_model_error.json`
+and `contact_stage_diagnostic_provenance.json`. These calibrations are NOT
+an exact inverse of native contact dynamics. Their negative results cannot
+refute11-point geometry or prove a force-action augmentation necessary.
+The next decision remains to model/label commanded finger closure and
+contact state while retaining the successful wrist controller.
