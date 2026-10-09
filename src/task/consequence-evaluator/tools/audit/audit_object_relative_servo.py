@@ -54,9 +54,27 @@ def main():
         actual_requested_max_abs=0., anchor=p['object_anchor'], gate=p['gate'])
     errors = []
     query_indices = np.arange(542)//24*24 if layout == 'chunk_alignment' else np.arange(542)
+    preload=None
+    if layout in ('finger_preload','geometry_pd'):
+        path=Path(p['preload_statistics_path'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest()==p['preload_statistics_sha256']
+        preload=json.loads(path.read_text())
     layout = p.get('servo_layout', 'command_vs_measured')
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
+        if layout in ('finger_preload','geometry_pd'):
+            values=targets.copy()
+            fingers=source['dof_position'][1:,0,ACTIVE_FINGERS].copy()
+            if role==3:fingers+=np.asarray(preload['finger_preload_median_rad'],dtype='float32')
+            if layout=='geometry_pd':
+                qnext=source['dof_position'][1:,0,:6]
+                qfollowing=source['dof_position'][np.minimum(np.arange(1,543)+1,542),0,:6]
+                velocity=(qfollowing-qnext)*30
+                velocity[-1]=(source['dof_position'][-1,0,:6]-source['dof_position'][-2,0,:6])*30
+                values[:,:6]=qnext+.1*velocity
+                if role==2:fingers=targets[:,ACTIVE_FINGERS]
+            expect=pose(values)
+            np.testing.assert_allclose(desired[:,role-1,ACTIVE_FINGERS],fingers,atol=1e-6)
         if layout == 'transport_ablation' and role == 2:
             expect = pose(target)
             expect[:, :3, 3] += p['object_pose'][:-1, role, :3, 3]-source['object_pose'][anchor:anchor+542, 0, :3, 3]
@@ -72,7 +90,8 @@ def main():
         error = float(np.max(np.abs(expect-pose(desired[:, role-1]))))
         if error > 3e-5:
             raise ValueError('SE(3) matrix transport mismatch: %s' % error)
-        np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
+        if layout not in ('finger_preload','geometry_pd'):
+            np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
         errors.append(error)
     if layout == 'chunk_alignment':
         np.testing.assert_array_equal(p['alignment_query_ticks'], np.arange(0, 542, 24))

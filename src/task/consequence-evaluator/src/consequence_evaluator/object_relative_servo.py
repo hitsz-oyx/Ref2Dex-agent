@@ -1,5 +1,6 @@
 """Analytic GT wrist transport; oracle experiment, no learned inverse."""
 import hashlib
+import json
 import pickle
 
 import numpy as np
@@ -47,7 +48,7 @@ def bounded_transport(target, corrected, translation_cap=.02, rotation_cap=.15):
 class ObjectRelativeGTExecution:
     roles = ['reactive_teacher', 'world_gt_command', 'object_gt_command', 'object_gt_measured_nextq']
 
-    def __init__(self, source, task, player, identity, anchor='current', layout='command_vs_measured'):
+    def __init__(self, source, task, player, identity, anchor='current', layout='command_vs_measured', preload_path=None):
         with source.open('rb') as stream:
             packet = pickle.load(stream)
         if (packet.get('engineering_only') is not True or task.num_envs != 4
@@ -79,6 +80,22 @@ class ObjectRelativeGTExecution:
             self.roles = ['reactive_teacher', 'world_gt_command', 'translation_gt_command', 'bounded_se3_gt_command']
         elif layout == 'chunk_alignment':
             self.roles = ['reactive_teacher', 'world_gt_command', 'query24_se3_gt_command', 'query24_bounded_gt_command']
+        elif layout == 'finger_preload':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'measured_finger_no_preload', 'measured_finger_fixed_preload']
+        elif layout == 'geometry_pd':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'geometry_wrist_ff_source_fingers', 'geometry_wrist_ff_fixed_finger_preload']
+        self.preload_path=preload_path
+        self.preload=None
+        if preload_path is not None:
+            self.preload=json.loads(preload_path.read_text())
+            if (self.preload.get('schema')!='ref2dex.gt-preload-statistics.v1'
+                    or self.preload.get('active_fingers')!=ACTIVE_FINGERS.tolist()
+                    or self.preload.get('statistics_scope')!='frozen_ref7_train_launches_only'):
+                raise ValueError('train-only preload statistics mismatch')
+            for record in self.preload['sources']:
+                from pathlib import Path
+                if hashlib.sha256(Path(record['source']).read_bytes()).hexdigest()!=record['sha256']:
+                    raise ValueError('preload training source hash drift')
         self.device = player.device
         self.desired, self.clip_counts, self.errors, self.live_poses = [], [], [], []
         self.query_ticks, self.query_poses, self.query_chunks = [], [], []
@@ -116,6 +133,24 @@ class ObjectRelativeGTExecution:
                 self.query_chunks.append(chunks)
             desired = np.stack((self.source_targets[tick], self.cached_chunks[0][tick % 24],
                                 self.cached_chunks[1][tick % 24]))
+        elif self.layout in ('finger_preload','geometry_pd'):
+            if self.preload is None:
+                raise ValueError('geometry/preload diagnostic requires frozen training statistics')
+            no_preload=self.source_targets[tick].copy()
+            no_preload[ACTIVE_FINGERS]=self.source_q[tick+1,ACTIVE_FINGERS]
+            fixed=no_preload.copy()
+            fixed[ACTIVE_FINGERS]+=np.asarray(self.preload['finger_preload_median_rad'],dtype='float32')
+            if self.layout=='geometry_pd':
+                forward = min(tick+2,542)
+                velocity=(self.source_q[forward,:6]-self.source_q[tick+1,:6])*30
+                if tick==541:velocity=(self.source_q[542,:6]-self.source_q[541,:6])*30
+                wrist=self.source_q[tick+1,:6]+.1*velocity
+                no_preload[:6]=wrist;fixed[:6]=wrist
+                no_preload[ACTIVE_FINGERS]=self.source_targets[tick,ACTIVE_FINGERS]
+            for value in (no_preload,fixed):
+                for dst,src,ratio in ((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)):
+                    value[dst]=value[src]*ratio
+            desired=np.stack((self.source_targets[tick],no_preload,fixed))
         raw = native_control(desired, q[1:])
         clipped = np.clip(raw, -1, 1)
         result = teacher_control.clone()
@@ -155,7 +190,9 @@ class ObjectRelativeGTExecution:
                             and outcomes[name]['intermediate_loss_events'] == 0)
                   for name in self.roles[1:]}
         primary = {'transport_ablation':'bounded_se3_gt_command',
-                   'chunk_alignment':'query24_bounded_gt_command'}.get(self.layout, 'object_gt_command')
+                   'chunk_alignment':'query24_bounded_gt_command',
+                   'finger_preload':'measured_finger_fixed_preload',
+                   'geometry_pd':'geometry_wrist_ff_fixed_finger_preload'}.get(self.layout, 'object_gt_command')
         gate = dict(teacher_held=teacher, source_held=self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'],
                     reference_held=reference_held, held_fraction=.9, role_passes=passes,
                     passed=passes[primary], primary_role=primary, engineering_only=True,
@@ -168,12 +205,18 @@ class ObjectRelativeGTExecution:
             rotation_feedback_cap_rad=(.15 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
             alignment_query_ticks=self.query_ticks, alignment_query_poses=self.query_poses,
             alignment_query_chunks=self.query_chunks,
+            preload_statistics_path=(str(self.preload_path) if self.preload_path is not None else None),
+            preload_statistics_sha256=(hashlib.sha256(self.preload_path.read_bytes()).hexdigest() if self.preload_path is not None else None),
             clipped_coordinate_counts=np.asarray(self.clip_counts), commanded_target_max_abs_error=np.asarray(self.errors),
             gt_source=str(self.source), gt_source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
             privileged_future_geometry=True, native_body_names=self.body_names,
             source_outcome=self.packet['role_outcomes']['reactive_teacher'],
             target_semantics=('query24 frozen analytic object-conditioned target chunks; current-q mechanical adapter each step'
                               if self.layout == 'chunk_alignment' else
+                              'source commanded wrist; measured future finger geometry with train-only preload ablation'
+                              if self.layout == 'finger_preload' else
+                              'measured future wrist geometry plus forward velocity damping compensation; source/fixed-preload fingers'
+                              if self.layout == 'geometry_pd' else
                               'every-step analytic object-conditioned wrist transport; independent source fingers'),
             replay_identity=identity, metrics=metrics, role_outcomes=outcomes, gate=gate, **metadata)
         return dict(**packets, **extra)

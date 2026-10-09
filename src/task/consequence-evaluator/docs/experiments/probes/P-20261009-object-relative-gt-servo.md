@@ -169,3 +169,26 @@ holding far below430. r5 repeats r3's bounded-every-step layout unchanged,
 testing whether its positive signal recurs. Data-only gate/metadata edits
 also correctly identify24-step target freezing and saved20mm/.15rad caps.
 Then isolate measured finger shape vs PD preload; no model training yet.
+
+r5 at225c33a confirms bounded per-step control: held483/local31.40mm,
+zero clips/loss, maxlift.851m; world484. Teacher305 is a rare complete task
+success under the unchanged recoverable-hold/controlled-place/settle metric,
+so retain its full q/dq/geometry packet as a second, placement-capable source
+for later oracle transfer checks; independently inspect before relying on it.
+Two fresh bounded signals are PROMISING for the command-based controller,
+not a multi-seed efficacy claim or proof of keypoint-only sufficiency.
+
+Decision at10:56UTC: distinguish measured geometry from commanded effort
+without training R. Frozen train3-only preload statistics use lifted near
+object unsupported samples; no test-source calibration. Median active-finger
+PD-target-minus-next-measured-q is [.22347,.05182,-.00051,-.00421,.00298,-.03126]
+rad. Wrist residual slopes versus next measured velocity are.0898..1005s,
+near native damping/stiffness .1s. Source-specific dynamics remain imperfect.
+r6 finger_preload keeps the exact source wrist commands and compares source
+measured next-finger q without/with fixed train-median preload; teacher/world
+command controls unchanged. This isolates preload from wrist/object transport.
+If preload is useful, r7 geometry_pd will test measured future wrist q plus
+.1s forward-difference velocity compensation, with source commanded fingers
+versus measured fingers+fixed preload. These are analytic privileged controls;
+future q is a stronger oracle than11 hand points until inverse is checked.
+No neural training or H-to-V transition follows solely from command-based hold.

@@ -303,7 +303,7 @@ def native_worker(a):
         elif a.object_relative_source is not None:
             from consequence_evaluator.object_relative_servo import ObjectRelativeGTExecution
             retarget = ObjectRelativeGTExecution(a.object_relative_source, task, player,
-                                                identity, a.object_relative_anchor, a.object_relative_layout)
+                                                identity, a.object_relative_anchor, a.object_relative_layout, a.object_relative_preload)
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
@@ -1746,7 +1746,8 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
-    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment'), default='command_vs_measured')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'geometry_pd'), default='command_vs_measured')
+    p.add_argument('--object-relative-preload', type=Path, help='engineering only: train-only fixed contact preload statistics')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
     p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',
@@ -1771,13 +1772,16 @@ def main():
             if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
                 p.error('all optional outputs/inputs must be task-owned')
             setattr(a, name, value)
-    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source', 'object_relative_source'):
+    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source', 'object_relative_source', 'object_relative_preload'):
         value = getattr(a, name, None)
         if value is not None:
             value = value.resolve()
             if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
                 p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
             setattr(a, name, value)
+    if a.object_relative_layout in ('finger_preload','geometry_pd') and (
+            a.object_relative_source is None or a.object_relative_preload is None):
+        p.error('preload diagnostics require oracle source and frozen preload statistics')
     if a.object_relative_source is not None:
         if (not a.worker or not a.finish or a.engineering_group_envs != 4
                 or a.engineering_steps != 542 or a.action_chunk_checkpoint is not None
