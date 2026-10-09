@@ -1,0 +1,206 @@
+"""Ordinary random-plan rollouts and prospective rolling planning; never fork."""
+import argparse
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+import numpy as np
+
+TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
+sys.path[:0]=[str(TASK/'src'),str(ROOT),str(ROOT/'third_party/DExplore/dexplore'),
+              str(ROOT/'src/task/cm-interaction-oracle/src')]
+from consequence_evaluator.data import sha
+from consequence_evaluator.contracts import is_within, HAND_LINKS
+
+
+def write(path, value):
+    path.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n')
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--inputs',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--gpu',type=int,required=True);p.add_argument('--seed',type=int,required=True)
+    p.add_argument('--envs',type=int,default=64);p.add_argument('--seconds',type=int,default=300)
+    p.add_argument('--mode',choices=('random','baseline','planner'),required=True)
+    p.add_argument('--smoke',action='store_true');p.add_argument('--bridge',type=Path)
+    a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
+    if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
+        raise ValueError('fresh bounded rollout required')
+    if a.mode=='planner' and a.bridge is None:raise ValueError('frozen hand bridge required')
+    if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
+        raise RuntimeError('GPU occupied')
+    scratch=ROOT/'tmp/hand-execution';scratch.mkdir(parents=True,exist_ok=True)
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),TORCH_EXTENSIONS_DIR=str(scratch/'torch-extensions'),
+                      TRITON_CACHE_DIR=str(scratch/'triton'),PYTHONDONTWRITEBYTECODE='1',OMP_NUM_THREADS='2')
+    from isaacgym import gymtorch
+    import torch
+    import evaluate as native
+    from env.tasks.base_dexplore_task import DexploreTask
+    from consequence_evaluator.native_reset import install_reset_patch
+    from consequence_evaluator.reset_kinematics import task_kinematics
+    from consequence_evaluator.physical_geometry import PhysicalGeometry,poses
+    from consequence_evaluator.value_geometry import TableSupport
+    from consequence_evaluator.hand_execution import SCHEMA
+    from oracle_y_utility import candidate_deltas,align_native_reference_tables
+    from src.task.CmResidual.paired_evaluation import fingerprint
+    if torch.__version__!='2.4.1+cu121':raise ValueError('pinned graspenv runtime required')
+    torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=False
+    install_reset_patch()
+    reset=DexploreTask._reset_ref_state_init
+    def aligned(task,ids):
+        align_native_reference_tables(task)
+        return reset(task,ids)
+    DexploreTask._reset_ref_state_init=aligned
+    loader=native.torch_ext.load_checkpoint
+    def load(path):
+        state=loader(path);keys=list(state['model']);compiled=[k.startswith('_orig_mod.') for k in keys]
+        if any(compiled) and not all(compiled):raise ValueError('mixed compiled keys')
+        if all(compiled):state=dict(state,model={k[10:]:v for k,v in state['model'].items()})
+        return state
+    native.torch_ext.load_checkpoint=load
+    hashes={str(a.inputs.resolve()):sha(a.inputs),str(Path(__file__).resolve()):sha(__file__)}
+    hashes.update(cfg['input_sha256'])
+    for path in (TASK/'src/consequence_evaluator').glob('*.py'):hashes[str(path)]=sha(path)
+    if a.bridge:hashes[str(a.bridge.resolve())]=sha(a.bridge)
+    if any(sha(path)!=h for path,h in hashes.items()):raise ValueError('frozen input drift')
+    out.mkdir(parents=True);begin=time.monotonic()
+    manifest=dict(schema=SCHEMA,status='RUNNING',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        mode=a.mode,seed=a.seed,num_envs=a.envs,physical_gpu=a.gpu,budget_s=a.seconds,smoke=a.smoke,
+        input_sha256=hashes,actor_sha256=cfg['actor_sha256'],rollout_kind='ordinary single-world feedback, no forks',
+        action_semantics='requested24x18 residual, first8nonzero then16zero; replanning every8only in planner',
+        initialization='full-reference frame0',fps=30,old_Y_unchanged=True)
+    write(out/'manifest.json',manifest)
+    class Player(native.EvalPlayer):
+        @torch.no_grad()
+        def run(self):
+            task=self.env.task;device=task.device;n=task.num_envs
+            task._enable_early_termination=False;task._adaptive_kappa_enabled=False
+            task._state_init=DexploreTask.StateInit.Start;task._hybrid_init_prob=1.
+            self.model.eval();ids=torch.arange(n,device=device)
+            obs=self.env_reset(ids);self.get_batch_size(obs['obs'],1)
+            if self.is_rnn:raise ValueError('feedforward frozen actor required')
+            if (task.start_times!=0).any() or len(task.motion_file)!=1:raise ValueError('one full frame0 motion required')
+            manifest.update(actor_fingerprint=fingerprint(self.model.state_dict()),
+                rms_fingerprint=fingerprint(self.running_mean_std.state_dict()),
+                initial_q_sha256=fingerprint(task._dof_pos),initial_object_sha256=fingerprint(task._target_states),
+                native_reference_steps=int(task.max_episode_length[task.data_id].max()-1),
+                pipeline=str(device),physics_gpu=bool(task.gym.get_sim_params(task.sim).physx.use_gpu))
+            geometry=PhysicalGeometry(task,ROOT/'third_party/DExplore/dexplore/data/assets')
+            support=TableSupport(ROOT/'third_party/DExplore/dexplore/data/assets',device)
+            fk=task_kinematics(task);key_ids=geometry.key_ids
+            delta=candidate_deltas(device);rng=np.random.default_rng(a.seed)
+            active=np.ones(n,bool);lengths=np.zeros(n,int);commands=[];clipping=[];decisions=[]
+            logs={k:[] for k in ('object_pose','hand_keypoints','surface_gap','support_gap','table_footprint',
+                'object_velocity','reference_object_pose','pair','done')}
+            plan=np.zeros((n,24,18),np.float32);ages=np.full(n,32);counts=np.zeros(n,int)
+            capture=None;original_pre=task.pre_physics_step
+            def pre(actions):
+                nonlocal capture
+                capture=actions.detach().cpu().numpy().copy()
+                return original_pre(actions)
+            task.pre_physics_step=pre
+            planner=None
+            if a.mode=='planner':
+                from consequence_evaluator.hand_planner import HandPlanner
+                planner=HandPlanner(a.bridge,cfg['C1'],cfg['PW'],cfg['canonical'])
+            def measure():
+                hand,gap=geometry.measure(task);sup,foot=support.measure(task,geometry)
+                ref=task.hoi_data[task.data_id,task.progress_buf.clamp_max(task.hoi_data.shape[1]-1)]
+                ref_state=torch.zeros(n,13,device=device);ref_state[:,:3]=ref[:,106:109];ref_state[:,3:7]=ref[:,109:113]
+                pair=(task._contact_forces[:,task._contact_body_ids].norm(dim=-1)>.1).any(-1)&(task._tar_contact_forces.norm(dim=-1)>.1)
+                values=dict(object_pose=poses(task._target_states),hand_keypoints=hand,surface_gap=gap,
+                    support_gap=sup,table_footprint=foot,object_velocity=task._target_states[:,7:13],
+                    reference_object_pose=poses(ref_state),pair=pair)
+                for k,v in values.items():logs[k].append(v.cpu().numpy().copy())
+                return values
+            measured=measure()
+            for tick in range(700 if not a.smoke else 96):
+                if time.monotonic()-begin>a.seconds:raise TimeoutError('rollout deadline')
+                if tick%64==0:
+                    pids=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).split()
+                    if any(int(pid)!=os.getpid() for pid in pids):raise RuntimeError('foreign GPU process')
+                    if sum(x.stat().st_size for x in out.rglob('*') if x.is_file())>2*2**30:raise RuntimeError('artifact cap')
+                    gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
+                    print(json.dumps(dict(tick=tick,elapsed_s=round(time.monotonic()-begin,1),active=int(active.sum()),gpu=gpu)),flush=True)
+                base=self.get_action(obs,True).clamp(-1,1).to(device).clone()
+                decide=tick>=40 and ((tick-40)%(8 if a.mode=='planner' else 32)==0)
+                remaining=(task.max_episode_length[task.data_id]-1-task.progress_buf).cpu().numpy()
+                selected=np.flatnonzero(active&(remaining>=32)) if decide else np.array([],int)
+                if len(selected) and a.mode!='baseline':
+                    if a.mode=='random':
+                        choices=(np.arange(n)+rng.integers(0,7,n))%7
+                        plan[:]=0;plan[:,:8]=delta[torch.tensor(choices,device=device)].cpu().numpy()[:,None]
+                        scores=None
+                    else:
+                        choices,scores=planner.choose(obs['obs'].cpu().numpy(),np.stack(logs['object_pose'][-4:]),np.stack(logs['hand_keypoints'][-4:]),selected)
+                        plan[:]=0;plan[:,:8]=delta[torch.tensor(choices,device=device)].cpu().numpy()[:,None]
+                    ages[selected]=0;counts[selected]+=choices[selected]!=0
+                    # Nominal FK uses only current actor command held constant,
+                    # current q/root and the known plan; no future feedback action.
+                    nominal=[];current_q=task._dof_pos.clone();root=task._humanoid_root_states.clone()
+                    for h in range(24):
+                        control=(base+torch.tensor(plan[:,h],device=device)).clamp(-1,1)
+                        native_q=task._action_to_pd_targets(control.clone())
+                        nominal.append(fk.states(native_q,torch.zeros_like(native_q),root)[:,key_ids,:3].cpu().numpy())
+                    for env in selected:
+                        record=dict(tick=tick,env=int(env),history=obs['obs'][env].cpu().numpy().copy(),
+                            action=plan[env].copy(),object_history=np.stack(logs['object_pose'][-4:])[:,env],
+                            hand_history=np.stack(logs['hand_keypoints'][-4:])[:,env],
+                            nominal=np.stack(nominal)[:,env],candidate=int(choices[env]))
+                        if scores is not None:record['scores']=scores[env]
+                        decisions.append(record)
+                requested=np.zeros((n,18),np.float32)
+                rows=np.flatnonzero(active&(ages<8));requested[rows]=plan[rows,ages[rows]]
+                intended=base.cpu().numpy()+requested;command=np.clip(intended,-1,1);command[~active]=0
+                obs,_,done,info=self.env_step(self.env,torch.tensor(command,device=self.device))
+                if not isinstance(obs,dict):obs={'obs':obs}
+                if capture is None or capture.shape!=command.shape:raise ValueError('command capture failed')
+                if not np.allclose(capture,command,atol=1e-7,rtol=0):raise ValueError('native action noise/command mutation')
+                commands.append(capture.copy());clipping.append((np.abs(intended-command)>1e-7).any(-1)&active)
+                ended=done.cpu().numpy().astype(bool).reshape(-1);logs['done'].append(ended.copy())
+                measured=measure();self._post_step(info)
+                lengths[active]+=1;active&=~ended;ages+=1
+                if not active.any():break
+                # Do not call env_reset after a terminal row. Its first episode
+                # remains frozen for slicing even as the single world advances.
+            if active.any() and not a.smoke:raise ValueError('incomplete full-reference episode')
+            arrays={k:np.stack(v) for k,v in logs.items()};arrays.update(action=np.stack(commands),clipped=np.stack(clipping),length=lengths,interventions=counts)
+            np.savez_compressed(out/'trajectory.npz',**arrays)
+            windows=[]
+            for r in decisions:
+                t,e=r['tick'],r['env']
+                if t+24>lengths[e]:continue
+                r['hand_future']=arrays['hand_keypoints'][t+1:t+25,e]
+                r['object_future']=arrays['object_pose'][t+1:t+25,e]
+                windows.append(r)
+            if windows:
+                np.savez_compressed(out/'decisions.npz',**{k:np.stack([r[k] for r in windows]) for k in windows[0]})
+            manifest.update(episodes=n,steps=lengths.tolist(),windows=len(windows),interventions=counts.tolist(),
+                clipped_steps=int(arrays['clipped'].sum()),trajectory_sha256=sha(out/'trajectory.npz'))
+            if windows:manifest['decisions_sha256']=sha(out/'decisions.npz')
+            write(out/'manifest.json',manifest)
+    native.EvalPlayer=Player
+    argv=['--task','Dexplore_Inspire','--cfg_env',cfg['cfg_env'],'--cfg_train',cfg['cfg_train'],
+        '--checkpoint',cfg['actor'],'--motion_file',cfg['motions'],'--headless','--num_envs',str(a.envs),
+        '--seed',str(a.seed),'--sim_device','cuda:0','--rl_device','cuda:0','--pipeline','cpu',
+        '--graphics_device_id','0','--num_threads','1','--disable-early-termination',
+        '--output',str(out/'native-unused.json'),'--output_path',str(out/'native')]
+    sys.argv=[sys.argv[0],*argv];cwd=Path.cwd()
+    def deadline(signum,frame):raise KeyboardInterrupt('owned bounded rollout deadline')
+    previous=signal.signal(signal.SIGALRM,deadline);signal.alarm(a.seconds)
+    try:
+        os.chdir(ROOT/'third_party/DExplore');native.main()
+        if any(sha(path)!=h for path,h in hashes.items()):raise ValueError('rollout input drift')
+        manifest.update(status='SMOKE_COMPLETED' if a.smoke else 'COMPLETED')
+    except BaseException as error:
+        manifest.update(status='FAILED',error=repr(error));raise
+    finally:
+        signal.alarm(0);signal.signal(signal.SIGALRM,previous);os.chdir(cwd)
+        manifest['elapsed_s']=time.monotonic()-begin;write(out/'manifest.json',manifest)
+
+
+if __name__=='__main__':main()
