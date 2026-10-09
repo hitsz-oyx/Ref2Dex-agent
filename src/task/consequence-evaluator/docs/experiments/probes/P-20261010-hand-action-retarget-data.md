@@ -102,6 +102,16 @@ route `UNPROMISING` for the hard gate. No H-to-hand, PointWorld, evaluator, or
 Cm claim is authorized from these results; the next work returns to the
 ref7_1 finger/contact-command diagnosis.
 
+As a read-only baseline sanity check for that diagnosis, the r2 contextual
+checkpoint was re-scored on the pure structured test split (16,640 windows,
+without its teacher anchors), using the query-time `pair` and `surface_gap`
+fields only for stratification. Overall L1/finger MAE was `.015839/.019061`;
+pair-positive and pair-negative finger MAE were `.018168/.020086`, and the
+hold-stage finger MAE was `.020981` (gap `>5 cm`: `.021003`). This is not a
+new fitted arm or a contact-conditioned result: no checkpoint or output was
+written, and the numbers only provide a matched reference for a future
+current-state-only contact Spike.
+
 ## Artifacts
 
 Collection outputs belong under
