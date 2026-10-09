@@ -161,7 +161,10 @@ def main():
             obs = self.env_reset(ids); self.get_batch_size(obs["obs"], 1)
             geometry = PhysicalGeometry(task, ROOT / "third_party/DExplore/dexplore/data/assets",
                                         distance_device=self.device)
-            support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", self.device)
+            # The native route uses GPU PhysX with CPU tensor exchange; table
+            # support must follow the task tensor device, while dense hand
+            # geometry may still use the player's CUDA device internally.
+            support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
             active = np.ones(n, dtype=bool); lengths = np.zeros(n, dtype=np.int64)
             actions = []; clips = []; queries = []; chunks = []; inputs = []
             logs = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
