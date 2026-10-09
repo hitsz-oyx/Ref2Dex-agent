@@ -24,7 +24,8 @@ def main():
         raise ValueError('fresh bounded PW inference required')
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
         raise RuntimeError('GPU occupied')
-    os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TRITON_CACHE_DIR=str(ROOT/'tmp/triton_old_utility'),
+                      TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/torch_extensions'))
     import torch
     import trimesh
     from consequence_evaluator.old_utility import SCHEMA,pw_sample,future_from_prediction
@@ -48,6 +49,7 @@ def main():
             path=(base/name).resolve()
             if sha(path)!=digest:raise ValueError('PW implementation identity drift: '+str(path))
             hashes[str(path)]=digest
+    checkpoint_step=state['step']
     model=model_from_config(state['identity']['stats'],state['config']).cuda().eval();model.load_state_dict(state['model'])
     del state
     mesh=trimesh.load(meshpath,force='mesh',process=False);tri=np.asarray(mesh.triangles);rng=np.random.default_rng(292)
@@ -58,7 +60,7 @@ def main():
         center=np.asarray(mesh.centroid,'float32'),radius=float(np.sqrt(np.mean(np.sum((points-points.mean(0))**2,-1)))))
     out.mkdir(parents=True);np.savez_compressed(out/'canonical.npz',**canonical)
     manifest=dict(schema=SCHEMA,status='RUNNING',checkpoint=str(checkpoint),checkpoint_sha256=hashes[str(checkpoint)],
-        checkpoint_step=46000,oracle_observed_hand=True,deployable_planner=False,physical_gpu=a.gpu,
+        checkpoint_step=checkpoint_step,oracle_observed_hand=True,deployable_planner=False,physical_gpu=a.gpu,
         input_sha256=hashes,windows_sha256=m['windows_sha256'],rows=len(d['label']),batch=a.batch,budget_s=a.seconds,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n');future=np.zeros_like(d['future'])
