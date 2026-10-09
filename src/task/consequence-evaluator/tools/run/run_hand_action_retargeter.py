@@ -20,8 +20,9 @@ sys.path[:0] = [str(TASK / "src"), str(ROOT), str(ROOT / "third_party/DExplore/d
 
 from consequence_evaluator.contracts import is_within
 from consequence_evaluator.gate1 import episode_outcome
-from consequence_evaluator.hand_action_retargeter import (
-    HORIZON, SCHEMA, HandActionRetargeter, Standardizer, trajectory_input)
+
+HORIZON = 24
+SCHEMA = "ref2dex.hand-action-retargeter.v1"
 
 
 def sha(path):
@@ -83,6 +84,8 @@ def main():
                       OMP_NUM_THREADS="2")
     from isaacgym import gymtorch  # noqa: F401  # imports before torch/native modules
     import torch
+    from consequence_evaluator.hand_action_retargeter import (
+        HandActionRetargeter, Standardizer, trajectory_input)
     if torch.__version__ != "2.4.1+cu121":
         raise ValueError("pinned graspenv runtime required")
     torch.set_num_threads(2); torch.backends.cuda.matmul.allow_tf32 = False
