@@ -18,12 +18,13 @@ class PhysicalGeometry:
     Native body poses are measured, including finger and floating-wrist motion.
     The surface gap is unsigned sampled proximity, not an exact collision pair.
     """
-    def __init__(self, task, assets):
+    def __init__(self, task, assets, distance_device=None):
         from src.task.CmResidual.v118_planner import QUERY_LINKS
         from src.task.CmResidual.dexplore_cm_geometry import _surface_geometry_class
         names=task.gym.get_actor_rigid_body_names(task.envs[0],task.humanoid_handles[0])
         self.query_ids=[names.index(name) for name in QUERY_LINKS]
         self.key_ids=[names.index(name) for name in HAND_LINKS]
+        self.distance_device = distance_device or task.device
         self.surfaces={}
         for name in task.object_name:
             self.surfaces[name]=_surface_geometry_class()(
@@ -47,5 +48,10 @@ class PhysicalGeometry:
             center=object_pose[ids,:3,3][:,None]
             obj=center+(obj-center)*task.ball_size
             # Dense diagnostic samples, independently of the force proxy.
-            gaps[ids]=torch.cdist(hand,obj).amin(dim=(1,2))
+            # A CPU simulator tensor interface need not put dense proximity
+            # arithmetic on CPU. Bound temporary pairwise matrices to16envs.
+            for begin in range(0,len(ids),16):
+                chunk=slice(begin,begin+16)
+                value=torch.cdist(hand[chunk].to(self.distance_device),obj[chunk].to(self.distance_device)).amin(dim=(1,2))
+                gaps[ids[chunk]]=value.to(task.device)
         return bodies[:,self.key_ids,:3].clone(),gaps

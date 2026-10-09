@@ -5,7 +5,7 @@ experiment_id: P-20261009-hand-execution-bridge
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: 111c2b5
 claim_id: C3
 hypothesis_family: HF-hand-execution-bridge
 probe_index_in_family: 1
@@ -35,6 +35,7 @@ Use airplane s3 only, full reference frame0, fixed self-trained recovered e260
 SHA8882fabd, native GPU PhysX/CPU tensor pipeline as inherited compatible runtime.
 Actor, bridge, PW and evaluator neural computations all use GPU2. CPU tensors
 are the preserved simulator interface, not a switch to CPU model fitting.
+Dense surface-gap diagnostics also use GPU, in bounded16env chunks.
 Explicit process-local reset compatibility and native reference alignment apply
 identically to collection and evaluation. Native hybrid probability1 selects
 frame0; require start_times=0. One immutable checkpoint/config/motion bundle.

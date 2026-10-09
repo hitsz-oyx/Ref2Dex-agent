@@ -93,7 +93,7 @@ def main():
                 initial_q_sha256=fingerprint(task._dof_pos),initial_object_sha256=fingerprint(task._target_states),
                 native_reference_steps=int(task.max_episode_length[task.data_id].max()-1),
                 pipeline=str(device),physics_gpu=bool(task.gym.get_sim_params(task.sim).physx.use_gpu))
-            geometry=PhysicalGeometry(task,ROOT/'third_party/DExplore/dexplore/data/assets')
+            geometry=PhysicalGeometry(task,ROOT/'third_party/DExplore/dexplore/data/assets',distance_device=self.device)
             support=TableSupport(ROOT/'third_party/DExplore/dexplore/data/assets',device)
             fk=task_kinematics(task);key_ids=geometry.key_ids
             delta=candidate_deltas(device);rng=np.random.default_rng(a.seed)
