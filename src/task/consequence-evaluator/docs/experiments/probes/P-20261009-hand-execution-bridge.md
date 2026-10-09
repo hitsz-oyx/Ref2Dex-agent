@@ -107,7 +107,9 @@ Overall motion accuracy alone does not resolve action-conditioned execution.
 Next Decision: distinguish input-scale suppression from insufficient usable
 action signal. The uniform.5normalization makes wrist-z request.01only.02,
 while standardized state channels have unit scale. Change ONLY fixed plan
-units to [.01m]*3+[.1rad]*15 (no data-std amplification), keeping samples,
+units to [.01]*3+[.1]*15 in native request coordinates (no data-std
+amplification); translation requests map to metres, wrist angular requests
+map through pi and fingers through the native PD scale/2. Keep samples,
 backbone, init, batches, optimizer, updates, teacher and val rule unchanged.
 This is a method hypothesis, not a confirmed implementation bug. Retain r1.
 Use one new independent ordinary64episode seed298 test before r2 fitting;
