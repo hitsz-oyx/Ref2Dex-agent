@@ -169,13 +169,19 @@ def native_worker(a):
         if a.action_chunk_replay is not None:
             proposal_roles = a.action_chunk_roles
         proposal_trace = []
+        proposal_ticks = []
+        proposal_inputs = []
+        requested_controls = []
+        active_chunk_counts = []
+        proposal_executor = None
         # The historical group probe used tick48, but exposing the query
         # boundary lets an engineering probe test a prefix that ends before
         # the first native contact-cache divergence.  A zero CLI value keeps
         # the established tick48 contract.
         query = int(a.query_tick or 48)
         if a.action_chunk_checkpoint is not None:
-            from consequence_evaluator.action_chunk import EXECUTED_ACTION_SEMANTICS, NativeActionChunkProposal
+            from consequence_evaluator.action_chunk import (EXECUTED_ACTION_SEMANTICS,
+                NativeActionChunkProposal, ActionChunkExecutor)
             payload = torch.load(a.action_chunk_checkpoint, map_location='cpu')
             if (payload.get('schema') != 'ref2dex.consequence-evaluator.native-action-chunks.v1'
                     or payload.get('chunk') != K or payload.get('action_dim') != 18
@@ -198,7 +204,8 @@ def native_worker(a):
             proposal_model = NativeActionChunkProposal(
                 int(payload['history_dim']), width=int(payload['width']), layers=int(payload['layers'])).to(player.device)
             proposal_model.load_state_dict(payload['state_dict'], strict=True); proposal_model.eval()
-            proposal_period = 24 if a.action_chunk_mode == 'open_loop24' else 8
+            proposal_executor = ActionChunkExecutor(a.action_chunk_mode)
+            proposal_period = proposal_executor.period
         if replay_chunk_packet is not None:
             role_names = list(replay_chunk_packet.get('role_names') or [])
             if (replay_chunk_packet.get('engineering_only') is not True
@@ -417,21 +424,28 @@ def native_worker(a):
                             proposal_input = proposal_input.clamp(-float(proposal_clip), float(proposal_clip))
                         proposal_cache = proposal_model(proposal_input).clamp(-1, 1)
                     proposal_trace.append(proposal_cache.detach().cpu().numpy().copy())
+                    proposal_ticks.append(tick)
+                    if proposal_model is not None:
+                        proposal_inputs.append(obs['obs'].detach().cpu().numpy().copy())
+                    if proposal_roles == 'behavior':
+                        proposal_executor.add(tick, proposal_cache)
                 if 'proposal_cache' not in locals():
                     raise RuntimeError('action-chunk cache was not initialized')
                 chunk_offset = tick - query if proposal_roles == 'candidate' else tick % proposal_period
                 if proposal_roles == 'candidate':
                     control = proposal_cache[0, chunk_offset].expand(count, -1).clone()
                 else:
+                    proposal_control = proposal_executor.action(tick)
                     actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
                     base_action = actor_actions[:1].expand(count, -1).clone()
                     control = base_action.clone()
-                    control[1] = proposal_cache[1, chunk_offset]
+                    control[1] = proposal_control[1]
                     # Keep the repeated ACT arm on the same frozen chunk. The
                     # earlier behavior probe used an independently inferred
                     # env3 chunk, which mixed policy sensitivity into its
                     # solver-drift diagnostic.
-                    control[3] = proposal_cache[1, chunk_offset]
+                    control[3] = proposal_control[1]
+                    active_chunk_counts.append(proposal_executor.active_count)
             else:
                 # Keep baseline, zero-repeat, and both candidate arms on the same
                 # control stream through the query. This removes tiny row-wise
@@ -443,6 +457,7 @@ def native_worker(a):
                 offset = tick - query
                 control[positive_env] = (control[positive_env] + positive[offset]).clamp(-1, 1)
                 control[negative_env] = (control[negative_env] + negative[offset]).clamp(-1, 1)
+            requested_controls.append(control.detach().cpu().numpy().copy())
             obs, _, done, info = player.env_step(player.env, control.clone())
             if not isinstance(obs, dict): obs = {'obs': obs}
             player._post_step(info)
@@ -479,12 +494,22 @@ def native_worker(a):
                 role_packet['timestamps'] = packets['timestamps']
                 role_outcomes[name] = episode_outcome(role_packet) if stop >= 45 else None
             packet = dict(**packets, proposal_chunks=np.asarray(proposal_trace), seed=a.seed,
+                          proposal_query_ticks=np.asarray(proposal_ticks),
+                          proposal_input_history=np.asarray(proposal_inputs),
+                          requested_controls=np.asarray(requested_controls),
+                          active_chunk_counts=np.asarray(active_chunk_counts),
                           role_names=role_names, group_mode='synchronous_same_process_act_behavior',
                           action_chunk_checkpoint=str(a.action_chunk_checkpoint),
                           action_chunk_checkpoint_sha256=sha(a.action_chunk_checkpoint),
                           action_chunk_mode=a.action_chunk_mode,
                           action_chunk_replan_period=proposal_period,
-                          action_chunk_semantics='one-shot native18 action chunk; no mid-chunk observation feedback',
+                          action_chunk_semantics=(
+                              'causal overlapping native18 chunks; exponential weights oldest-first'
+                              if a.action_chunk_mode in ('overlap8', 'temporal1') else
+                              'one-shot native18 action chunk; no mid-chunk observation feedback'),
+                          temporal_aggregation_decay=proposal_executor.decay,
+                          temporal_aggregation_order='oldest_covering_prediction_first',
+                          training_allowed=False,
                           replay_identity=identity, canonical_state_keys=state_keys,
                           actor_inference_batch=count * actor_copies,
                           actor_inference_copies=actor_copies, engineering_only=True,
@@ -1690,7 +1715,7 @@ def main():
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
-    p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8'), default='open_loop24',
+    p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'overlap8', 'temporal1'), default='open_loop24',
                    help='action-chunk behavior worker replanning schedule')
     p.add_argument('--action-chunk-roles', choices=('behavior', 'candidate'), default='behavior',
                    help='engineering worker role layout: behavior parity or ACT candidate/zero calibration')

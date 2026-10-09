@@ -25,6 +25,64 @@ ACTION_DIM = 18
 EXECUTED_ACTION_SEMANTICS = 'native_post_noise_pre_physics_control'
 DEFAULT_STRIDE = 4
 NATIVE_RMS_EPSILON = 1e-5
+ACTION_CHUNK_MODES = ('open_loop24', 'receding8', 'overlap8', 'temporal1')
+
+
+class ActionChunkExecutor:
+    """Dispatch native controls from causal, absolute-tick chunk predictions.
+
+    ``overlap8`` changes aggregation only relative to ``receding8``;
+    ``temporal1`` also queries every step. Exponential weights follow the
+    official ACT implementation: oldest covering prediction first, weight
+    exp(-decay * rank). Membership uses timestamps, never a zero sentinel.
+    One executor belongs to one synchronous episode; reset before reuse.
+    """
+
+    def __init__(self, mode, *, decay=.01):
+        if mode not in ACTION_CHUNK_MODES or not np.isfinite(decay) or decay < 0:
+            raise ValueError('invalid action chunk execution mode/decay')
+        self.mode = mode
+        self.decay = float(decay)
+        self.period = {'open_loop24': 24, 'receding8': 8,
+                       'overlap8': 8, 'temporal1': 1}[mode]
+        self.reset()
+
+    def reset(self):
+        self._chunks = []
+        self._last_query = -1
+        self.active_count = 0
+
+    def should_query(self, tick):
+        return tick >= 0 and tick % self.period == 0
+
+    def add(self, tick, prediction):
+        if not self.should_query(tick) or tick <= self._last_query:
+            raise ValueError('chunk query must be on schedule and strictly increasing')
+        if (prediction.ndim != 3 or prediction.shape[1:] != (K, ACTION_DIM)
+                or not torch.isfinite(prediction).all() or prediction.abs().max() > 1+1e-6):
+            raise ValueError('finite bounded [N,24,18] native chunk required')
+        if self._chunks and prediction.shape != self._chunks[-1][1].shape:
+            raise ValueError('chunk batch changed within episode')
+        if self.mode in ('open_loop24', 'receding8'):
+            self._chunks.clear()
+        self._chunks.append((int(tick), prediction.detach().clone()))
+        self._last_query = int(tick)
+
+    def action(self, tick):
+        # At most24 predictions are retained even for arbitrarily long episodes.
+        self._chunks = [(start, plan) for start, plan in self._chunks if start+K > tick]
+        covering = [(start, plan) for start, plan in self._chunks if start <= tick]
+        self.active_count = len(covering)
+        if not covering:
+            raise RuntimeError('no causal action chunk covers tick%d' % tick)
+        if self.mode in ('open_loop24', 'receding8'):
+            start, plan = covering[-1]
+            return plan[:, tick-start].clone()
+        values = torch.stack([plan[:,tick-start] for start, plan in covering])
+        weights = torch.exp(-self.decay * torch.arange(
+            len(covering), device=values.device, dtype=values.dtype))
+        weights = weights / weights.sum()
+        return (values * weights[:,None,None]).sum(0)
 
 
 def _sha(path):
