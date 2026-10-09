@@ -99,6 +99,12 @@ def audit_behavior(path):
         assert np.array_equal(packet['proposal_input_history'],packet['history'][ticks]), 'future/stale query history'
     checkpoint = Path(packet['action_chunk_checkpoint'])
     assert _sha(checkpoint) == packet['action_chunk_checkpoint_sha256'], 'checkpoint drift'
+    boundaries = np.arange(8,min(121,len(actions)),8)
+    control_changes = {}
+    for role,index in [('act',1),('teacher',0)]:
+        control_changes[role] = dict(
+            first120_all_steps=norm_stats(np.diff(actions[:121,index],axis=0)),
+            first120_eight_step_boundaries=norm_stats(actions[boundaries,index]-actions[boundaries-1,index]))
     return dict(path=str(path), sha256=_sha(path), mode=mode, steps=len(actions),
                 proposal_queries=len(ticks), max_covering_chunks=max(active),
                 aggregation_native_max_abs_delta=delta,
@@ -108,6 +114,7 @@ def audit_behavior(path):
                 role_max_lift_m=packet['role_max_lift_m'], role_outcomes=packet['role_outcomes'],
                 pair_drift=packet['pair_drift'], replay_identity=packet['replay_identity'],
                 online_overlap8=overlap_metrics(chunks[:,1],ticks),
+                control_changes=control_changes,
                 engineering_only=True, training_allowed=False)
 
 
@@ -193,22 +200,25 @@ def main():
         result['episodes'] = details
         result['groups'] = {key:horizon_metrics(np.concatenate([v[0] for v in rows]),
                                                np.concatenate([v[1] for v in rows])) for key,rows in grouped.items()}
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        fig,axes = plt.subplots(1,2,figsize=(11,4))
-        for key,metrics in result['groups'].items():
-            axes[0].plot(np.arange(24),metrics['horizon_mse'],label=key)
-        axes[0].axvspan(-.5,7.5,color='gray',alpha=.15)
-        axes[0].set(xlabel='Chunk horizon k',ylabel='Native action MSE',yscale='log')
-        axes[0].legend(fontsize=7)
-        for key in grouped:
-            ds=[d for d in details if d['split']==key]
-            values=[d['overlap8']['boundary_disagreement']['wrist_translation_mm']['mean_l2'] for d in ds]
-            axes[1].scatter([key]*len(values),values,s=15)
-        axes[1].set(ylabel='Mean same-time wrist prediction disagreement (mm)')
-        axes[1].tick_params(axis='x',labelrotation=30,labelsize=7)
-        fig.tight_layout(); fig.savefig(a.output/'horizon-overlap.png',dpi=160); plt.close(fig)
+        try:
+            import matplotlib
+        except ImportError:
+            print('Plot skipped: this runtime has no matplotlib; numeric audit is retained.',flush=True)
+        else:
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            fig,axes = plt.subplots(1,2,figsize=(11,4))
+            for key,metrics in result['groups'].items():
+                label = key if key in ('train','val') else 'teacher '+key.rsplit('-',1)[-1]
+                axes[0].plot(np.arange(24),metrics['horizon_mse'],label=label)
+                ds=[d for d in details if d['split']==key]
+                values=[d['overlap8']['boundary_disagreement']['wrist_translation_mm']['mean_l2'] for d in ds]
+                axes[1].scatter([label]*len(values),values,s=15)
+            axes[0].axvspan(-.5,7.5,color='gray',alpha=.15)
+            axes[0].set(xlabel='Chunk horizon k',ylabel='Native action MSE',yscale='log')
+            axes[0].legend(fontsize=8)
+            axes[1].set(ylabel='Wrist disagreement (mm)')
+            fig.tight_layout(); fig.savefig(a.output/'horizon-overlap.png',dpi=160); plt.close(fig)
     result['elapsed_s'] = time.monotonic()-started
     (a.output/'audit.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     if a.require_held45:
