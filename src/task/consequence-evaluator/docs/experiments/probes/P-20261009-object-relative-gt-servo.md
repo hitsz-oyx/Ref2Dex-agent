@@ -383,3 +383,27 @@ controller must ignore these labels while remaining sensitive to geometry
 and live mechanical velocity. If confirmed, use the last16th launch to
 transfer the same controller to the independently retained placing source
 from r5; no parameter/label changes or old-neural R training.
+
+
+r15 at31906a7, full542/72.50s: teacher355/world484; cold wrist geometry
+with source fingers483, full11-point inverse238/world4.01mm/local222.08mm,
+308 finger clips. The full arm does not confirm r14; raw gate=false. Wrist
+dynamics is PROMISING over two launches, full coupled geometry controller
+robustness remains UNCLEAR. Actual-branch dependency test passes: future
+q labels can be NaN and source command labels altered without changing the
+full geometry arm; changing geometry/live velocity changes control.
+
+Decision at12:08UTC: do not transfer to placement or train V/R yet, since
+full geometry confirmation failed. Final r16 isolates finger geometric
+projection from dynamic contact compensation. Both arms use the confirmed
+11-point wrist+identified dynamics; replace fingers with privileged measured
+source next-q, compare no load memory versus causal EMA of own previous
+PDtarget-currentq-.1*dq. EMA alpha=dt/(D/K)=1/3, bounded by train-only lifted
+p10/p90 residuals enlarged only to include reset zero. This uses future
+joint labels and is explicitly NOT11-point geometry-only or deployable.
+No fresh training/calibration or future force/PD command label is used.
+If measured-q solves it, state-conditioned loaded inverse is the next
+blocker; if only memory helps, causal effort retention matters; if neither
+holds, defer new learning and redesign physical tracking/contact control.
+This completes the <=16 launch budget; remaining time is for independent
+execution/label audit, evidence synthesis and recording the next decision.

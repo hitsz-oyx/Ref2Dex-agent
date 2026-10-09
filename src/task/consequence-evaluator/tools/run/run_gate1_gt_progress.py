@@ -1748,7 +1748,7 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
-    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'finger_preload_late', 'wrist_geometry_late', 'geometry_inverse_late', 'geometry_inverse_relative_late', 'geometry_inverse_repeat', 'geometry_load_delta_late', 'geometry_pd_inverse', 'geometry_pd'), default='command_vs_measured')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment', 'finger_preload', 'finger_preload_late', 'wrist_geometry_late', 'geometry_inverse_late', 'geometry_inverse_relative_late', 'geometry_inverse_repeat', 'geometry_load_delta_late', 'geometry_pd_inverse', 'measured_pd_load_memory', 'geometry_pd'), default='command_vs_measured')
     p.add_argument('--object-relative-inverse', type=Path)
     p.add_argument('--object-relative-pd-inverse', type=Path)
     p.add_argument('--object-relative-preload', type=Path, help='engineering only: train-only fixed contact preload statistics')
@@ -1783,13 +1783,13 @@ def main():
             if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
                 p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
             setattr(a, name, value)
-    if a.object_relative_layout in ('finger_preload','finger_preload_late','geometry_pd') and (
+    if a.object_relative_layout in ('finger_preload','finger_preload_late','geometry_pd','measured_pd_load_memory') and (
             a.object_relative_source is None or a.object_relative_preload is None):
         p.error('preload diagnostics require oracle source and frozen preload statistics')
-    if a.object_relative_layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd_inverse') and (
+    if a.object_relative_layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd_inverse','measured_pd_load_memory') and (
             a.object_relative_source is None or a.object_relative_inverse is None):
         p.error('geometry inverse diagnostic requires source and inverse artifact')
-    if a.object_relative_layout=='geometry_pd_inverse' and a.object_relative_pd_inverse is None:
+    if a.object_relative_layout in ('geometry_pd_inverse','measured_pd_load_memory') and a.object_relative_pd_inverse is None:
         p.error('cold geometry dynamics requires train-only PD calibration')
     if a.object_relative_source is not None:
         if (not a.worker or not a.finish or a.engineering_group_envs != 4
