@@ -93,8 +93,8 @@ scale 4 仍未达到 observed bank 的量级且 H24 error 从 77.90mm 略升至 
 候选塌缩”的解释，不解锁 selector、PW online、R execution 或 MPC。
 
 为判断现有 ref7_2 结构化 rollout 是否至少能提供后续候选库，完成只读审计
-`P-20261010-structured-candidate-bank-audit`（输出
-`outputs/consequence-evaluator/structured-candidate-bank-audit-20261010-r1/`）。
+`P-20261010-structured-candidate-bank-audit`（clean replay 输出
+`outputs/consequence-evaluator/structured-candidate-bank-audit-20261010-r2/`）。
 96/64/64 train/val/test episode 的 reset frame 在 object pose、hand keypoints、q、dq
 和 pair proxy 上逐项 bitwise 一致，三 split 零 clipping。以 hand RMS≤3mm、q RMS≤.03
 作近当前 proxy，在 tick16–32 多个 split 同时有非塌缩的 current-object-frame tau
