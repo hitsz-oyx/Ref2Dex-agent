@@ -40,7 +40,7 @@ def current_masks(panel, trace, initial, *, s3_only=False, future=122):
     return torch.stack(masks)
 
 
-def compare(first, second, first_trace, second_trace):
+def compare(first, second, first_trace, second_trace=None):
     keys = ('initial_fingerprint','simulation_contract','model_fingerprint','rms_fingerprint')
     if any(first[key]!=second[key] for key in keys):
         raise ValueError('paired provenance mismatch')
@@ -55,12 +55,16 @@ def compare(first, second, first_trace, second_trace):
         diffs[key] = dict(exact=bool(torch.equal(a,b)),
                          max_abs=float((a.double()-b.double()).abs().max()) if a.numel() else 0.)
     traces = {}
-    length = min(len(first_trace['action']),len(second_trace['action']))
+    length = min(len(first_trace['action']),len(second_trace['action'])) if second_trace is not None else 0
     for key in ('physical','dof','root','action','done'):
+        if second_trace is None:
+            break
         a,b=first_trace[key][:length],second_trace[key][:length]
         traces[key] = dict(exact=bool(torch.equal(a,b)),max_abs=float((a.double()-b.double()).abs().max()))
     geometry = {}
     for key in ('object_pose','hand_keypoints'):
+        if second_trace is None:
+            break
         a=first_trace['progress_geometry'][key][:length+1]
         b=second_trace['progress_geometry'][key][:length+1]
         geometry[key] = dict(exact=bool(torch.equal(a,b)),max_abs=float((a.double()-b.double()).abs().max()))
@@ -82,6 +86,7 @@ def compare(first, second, first_trace, second_trace):
     return dict(anchors=int(selected.sum()),baseline_z=int(z0.sum()),repeat_z=int(z1.sum()),
                 z_exact=bool(torch.equal(z0,z1)),mechanical_prefix_pass=mechanical,
                 paired_fields=diffs,full_world_trace=traces,progress_geometry=geometry,
+                repeat_trace_available=second_trace is not None,
                 all_recorded_fields_exact=all(x['exact'] for group in (diffs,traces,geometry) for x in group.values()),
                 historical_repeat_screen=screen,old_contract_pass=screen['passed'])
 
@@ -105,7 +110,8 @@ def main():
                 best_current_only_s3_clock=clock,s3_group_rows=rows,s3_group_size=len(rows))
     repeat=root/'repeat/panel.pt'
     if repeat.exists():
-        result['repeat']=compare(panel,load(repeat),trace,load(root/'repeat/trace.pt'))
+        repeat_trace=root/'repeat/trace.pt'
+        result['repeat']=compare(panel,load(repeat),trace,load(repeat_trace) if repeat_trace.exists() else None)
     with (root/'engineering-audit.json').open('w') as stream:
         json.dump(result,stream,indent=2,allow_nan=False)
     print(json.dumps(result,indent=2))
