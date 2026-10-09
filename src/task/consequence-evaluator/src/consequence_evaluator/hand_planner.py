@@ -23,7 +23,8 @@ class HandPlanner:
         self.bridge_path=Path(bridge);g=torch.load(bridge,map_location='cpu',weights_only=False)
         if g['schema']!=SCHEMA or g['arm']!='HA':raise ValueError('action-conditioned frozen bridge required')
         self.g=HandExecution(**g['architecture']).cuda().eval();self.g.load_state_dict(g['model'])
-        self.gstats=tuple(x.cuda() for x in g['statistics']);self.gunit=g['output_unit_m'];self.plan_unit=g['plan_unit']
+        self.gstats=tuple(x.cuda() for x in g['statistics']);self.gunit=g['output_unit_m']
+        self.plan_unit=torch.as_tensor(g['plan_unit'],device='cuda')
         q=torch.load(evaluator,map_location='cpu',weights_only=False)
         if q['arm']!='C1':raise ValueError('same frozen C1 evaluator required')
         self.q=OldUtility(**q['architecture']).cuda().eval();self.q.load_state_dict(q['model'])

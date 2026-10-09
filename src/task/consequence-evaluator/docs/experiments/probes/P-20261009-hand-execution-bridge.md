@@ -10,7 +10,7 @@ claim_id: C3
 hypothesis_family: HF-hand-execution-bridge
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [291, 293, 294, 295, 296, 297]
+seeds: [291, 293, 294, 295, 296, 297, 298]
 decision_changed_if_positive: connect the frozen bridge to PW and C1 for prospective rolling task control
 decision_changed_if_negative: isolate common wrist or candidate sensitivity failures before spending online control budget
 status: UNCLEAR
@@ -92,6 +92,30 @@ No actor/C1/PW fitting, new branch, remote push, external writes, overwrite of
 existing runs, or change to old Y. Save code before every actual execution phase.
 
 ## Limitations / future evidence
+
+### First bridge result and bounded follow-up Decision Note
+
+Train96/val64/test64 complete in87.84/75.57/78.24s,1440/960/960windows,
+all542steps and zero clipping. Smoke8env96steps completes19.47s; initial
+Torch-before-Isaac import failure is preserved and fixed before usable data.
+Fit commit4615f1b,2000updates per arm,25.04s/425MiB, val selects step200both.
+Held295HA/H/persistence/nominalFK all-step point RMSE is63.05/63.10/116.73/
+102.71mm; HA wrist67.74mm, relative41.94mm, h24=97.27mm. Zero-A active MSE
+increases only.2747%, missing the1%action gate; do not deploy this checkpoint.
+Overall motion accuracy alone does not resolve action-conditioned execution.
+
+Next Decision: distinguish input-scale suppression from insufficient usable
+action signal. The uniform.5normalization makes wrist-z request.01only.02,
+while standardized state channels have unit scale. Change ONLY fixed plan
+units to [.01m]*3+[.1rad]*15 (no data-std amplification), keeping samples,
+backbone, init, batches, optimizer, updates, teacher and val rule unchanged.
+This is a method hypothesis, not a confirmed implementation bug. Retain r1.
+Use one new independent ordinary64episode seed298 test before r2 fitting;
+no seed search, old test tuning, fork, epoch increase, PW/C1 training or
+lowering of the1%gate. Additional collection<=300s, totalcollection<=1200s;
+two matched fits remain within600s aggregate. Online budget unchanged.
+Failure stops automatic deployment; success authorizes the existing planned
+waterfall and prospective control. Training data and old Y remain unchanged.
 
 Frozen-policy planner utility is a Mission mechanism Probe, not RL training
 benefit or formal Gate1. s3/full-start differs from earlier hybrid25anchorZ90.

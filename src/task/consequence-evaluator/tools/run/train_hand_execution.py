@@ -43,6 +43,7 @@ def main():
     for split in ('train','val','test'):p.add_argument('--'+split,type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,required=True)
     p.add_argument('--steps',type=int,default=2000);p.add_argument('--seconds',type=int,default=600)
+    p.add_argument('--plan-units',choices=('uniform','physical'),default='uniform')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.steps<=2000 or not 1<=a.seconds<=600:
         raise ValueError('fresh bounded fit required')
@@ -58,8 +59,9 @@ def main():
     hashes[str(Path(__file__).resolve())]=sha(__file__)
     source=TASK/'src/consequence_evaluator/hand_execution.py';hashes[str(source)]=sha(source)
     tr=torch.from_numpy(data['train']['state']);mean=tr.mean(0);std=tr.std(0,unbiased=False).clamp_min(1e-4)
+    plan_unit=torch.tensor([.01]*3+[.1]*15) if a.plan_units=='physical' else torch.full((18,),.5)
     tensors={split:{'state':((torch.from_numpy(d['state'])-mean)/std).cuda(),
-        'action':torch.from_numpy(d['action']).cuda()/.5,'current':torch.from_numpy(d['current']).cuda(),
+        'action':(torch.from_numpy(d['action'])/plan_unit).cuda(),'current':torch.from_numpy(d['current']).cuda(),
         'target':torch.from_numpy(d['target']).cuda()} for split,d in data.items()}
     initial=HandExecution();models={arm:copy.deepcopy(initial).cuda() for arm in ('HA','H')}
     opts={arm:torch.optim.AdamW(m.parameters(),lr=3e-4,weight_decay=1e-4) for arm,m in models.items()}
@@ -68,7 +70,7 @@ def main():
     manifest=dict(schema=SCHEMA,status='RUNNING',seed=291,physical_gpu=a.gpu,input_sha256=hashes,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),sources=meta,
         steps_cap=a.steps,seconds_cap=a.seconds,source_actor_sha256=meta['train']['actor_sha256'],
-        test_used_for_selection=False,architecture=dict(width=256),common_motion='explicit wrist translation plus relative finger changes',
+        test_used_for_selection=False,architecture=dict(width=256),plan_units=a.plan_units,common_motion='explicit wrist translation plus relative finger changes',
         input_whitelist=['raw_current_H1442','four_past_current_hand_points_in_fixed_current_object_frame','known_residual_plan24x18'])
     write(out/'manifest.json',manifest);best={arm:float('inf') for arm in models};selected={}
     @torch.inference_mode()
@@ -99,7 +101,7 @@ def main():
                 if val<best[arm]:
                     best[arm]=val;selected[arm]=step
                     torch.save(dict(schema=SCHEMA,model=model.state_dict(),statistics=(mean,std),architecture=dict(width=256),
-                        output_unit_m=.01,plan_unit=.5,step=step,arm=arm,actor_sha256=meta['train']['actor_sha256']),out/(arm+'.pt'))
+                        output_unit_m=.01,plan_unit=plan_unit,step=step,arm=arm,actor_sha256=meta['train']['actor_sha256']),out/(arm+'.pt'))
             elapsed=time.monotonic()-start;gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
             row=dict(step=step,elapsed_s=elapsed,eta_s=elapsed/step*(a.steps-step),loss=losses,val_episode_mse=vals,gpu=gpu)
             print(json.dumps(row),flush=True)
