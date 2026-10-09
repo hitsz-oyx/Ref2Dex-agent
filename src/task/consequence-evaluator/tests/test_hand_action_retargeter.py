@@ -207,6 +207,18 @@ def test_broadcast_and_per_env_future_anchor_shapes_are_distinct_and_causal():
         per_env[2], live_current[2] + per_env_source[2] - source_hands[48, 2], atol=1e-6)
 
 
+def test_teacher_finger_reference_only_replaces_test_env_fingers():
+    command = np.arange(4 * 18, dtype="float32").reshape(4, 18)
+    teacher = np.linspace(-1., 1., 18, dtype="float32")
+    result = _runner.replace_with_teacher_fingers(command, teacher)
+    np.testing.assert_array_equal(result[0], command[0])
+    np.testing.assert_array_equal(result[:, :6], command[:, :6])
+    np.testing.assert_array_equal(result[1:, 6:], np.broadcast_to(teacher[6:], (3, 12)))
+    np.testing.assert_array_equal(command, np.arange(4 * 18, dtype="float32").reshape(4, 18))
+    with np.testing.assert_raises(ValueError):
+        _runner.replace_with_teacher_fingers(command, teacher[:17])
+
+
 def test_trajectory_utility_separates_tau_and_object_effect_arms():
     rng = np.random.default_rng(25)
     history = torch.zeros(4, 1442)
