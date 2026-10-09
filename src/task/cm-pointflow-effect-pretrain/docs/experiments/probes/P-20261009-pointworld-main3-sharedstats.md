@@ -55,5 +55,28 @@ score and preserves both components.
 
 ## Result
 
-To be filled from the run manifest, progress, validation records, and final
-checkpoint after completion or an authorized stop.
+### Interim snapshot (training still running)
+
+This snapshot was recorded at approximately step `42984/50000`; it is not a
+final result and does not close the Probe.
+
+- run state: `TRAINING`; two-rank DDP on GPUs `0,1`; no nonfinite loss, OOM,
+  source/hash drift, or fixed-workspace violation observed;
+- latest training record: loss `0.1948`, gradient norm `2.041`,
+  `0.715 s/step`, elapsed `32388 s`, learning rate `1.4320e-5`;
+- latest completed validation: step `42750`, moving-anchor h24 point EPE
+  `23.785 mm`, static-object h24 point EPE `3.949 mm`, balanced macro score
+  `13.867 mm`;
+- best validation point seen so far: step `33000`, moving-anchor h24
+  `24.393 mm`, static-object h24 `3.098 mm`, balanced macro score
+  `13.745 mm`;
+- current checkpoints: `outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/training-r1/train-action/best.pt`
+  and `latest.pt`; `final.pt` and the final result manifest are pending;
+- resource snapshot: GPU0/GPU1 memory `24211/24576 MiB` and
+  `22703/24576 MiB`; utilization remained active and the reserved-memory
+  watermark stayed stable.
+
+The curve has entered a validation plateau after roughly step 33000, with
+normal sampling fluctuations around the best score. Continue to step 50000,
+then replace this interim section with the final checkpoint and result
+manifest audit before assigning the Probe conclusion label.
