@@ -1715,7 +1715,7 @@ def main():
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
-    p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'overlap8', 'temporal1'), default='open_loop24',
+    p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',
                    help='action-chunk behavior worker replanning schedule')
     p.add_argument('--action-chunk-roles', choices=('behavior', 'candidate'), default='behavior',
                    help='engineering worker role layout: behavior parity or ACT candidate/zero calibration')

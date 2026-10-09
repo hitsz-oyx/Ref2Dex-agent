@@ -82,7 +82,7 @@ def audit_behavior(path):
     active = []
     for tick in range(len(actions)):
         covering = np.where((ticks<=tick)&(ticks+24>tick))[0]
-        if mode in ('open_loop24','receding8'):
+        if mode in ('open_loop24','receding8','receding1'):
             covering = covering[-1:]
         values = np.stack([chunks[i,1,tick-ticks[i]] for i in covering])
         weights = np.exp(-float(packet.get('temporal_aggregation_decay',.01))*np.arange(len(covering)))

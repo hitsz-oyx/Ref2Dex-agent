@@ -40,7 +40,7 @@ def test_every_step_uses_absolute_horizon_and_expires_after24():
     assert torch.equal(runner.action(0), torch.zeros(2,18))
 
 
-@pytest.mark.parametrize('mode,period', [('open_loop24',24), ('receding8',8)])
+@pytest.mark.parametrize('mode,period', [('open_loop24',24), ('receding8',8), ('receding1',1)])
 def test_legacy_modes_preserve_hard_switch(mode, period):
     runner = ActionChunkExecutor(mode)
     for tick in range(49):
