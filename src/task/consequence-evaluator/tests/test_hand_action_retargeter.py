@@ -1,12 +1,14 @@
+import json
 import numpy as np
 import torch
 import importlib.util
 from pathlib import Path
 
 from consequence_evaluator.hand_action_retargeter import (
-    ACTION_DIM, CONTEXT_DIM, CONTEXT_SCHEMA, HORIZON, ContextHandActionRetargeter,
-    HandActionRetargeter, Standardizer, chunk_offset, hand_object_context,
-    trajectory_input)
+    ACTION_DIM, CONTACT_CONTEXT_DIM, CONTACT_CONTEXT_FIELDS, CONTACT_CONTEXT_SCHEMA,
+    CONTEXT_DIM, CONTEXT_SCHEMA, HORIZON, ContextHandActionRetargeter,
+    HandActionRetargeter, Standardizer, chunk_offset, contact_context_features,
+    hand_object_context, trajectory_input)
 from consequence_evaluator.retarget_collection import (
     MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
     validate_residual_family)
@@ -19,6 +21,12 @@ _runner_spec = importlib.util.spec_from_file_location(
     Path(__file__).resolve().parents[1] / "tools/run/run_hand_action_retargeter.py")
 _runner = importlib.util.module_from_spec(_runner_spec)
 _runner_spec.loader.exec_module(_runner)
+
+_train_spec = importlib.util.spec_from_file_location(
+    "hand_action_retarget_fit", Path(__file__).resolve().parents[1] /
+    "tools/run/train_hand_action_retargeter.py")
+_train = importlib.util.module_from_spec(_train_spec)
+_train_spec.loader.exec_module(_train)
 
 
 def test_structured_residual_family_is_bounded_and_covers_modes():
@@ -75,6 +83,75 @@ def test_context_contract_keeps_query_geometry_and_previous_command_local():
     output = model(hand, state, torch.from_numpy(context))
     assert output.shape == (5, HORIZON, ACTION_DIM)
     assert torch.isfinite(output).all()
+
+
+def test_contact_context_is_query_time_only_and_matches_v2_zero_branch():
+    rng = np.random.default_rng(241)
+    pair = np.asarray([True, False, True, False, True])
+    footprint = np.asarray([False, True, False, True, False])
+    gap = rng.uniform(0., 1., size=5).astype("float32")
+    support = rng.uniform(0., 1., size=5).astype("float32")
+    velocity = rng.normal(size=(5, 6)).astype("float32")
+    contact = contact_context_features(pair, gap, support, velocity, footprint)
+    assert contact.shape == (5, CONTACT_CONTEXT_DIM)
+    assert CONTACT_CONTEXT_SCHEMA.endswith("v3")
+    assert CONTACT_CONTEXT_FIELDS[0] == "pair" and CONTACT_CONTEXT_FIELDS[-1] == "table_footprint"
+    np.testing.assert_array_equal(contact[:, 0], pair.astype("float32"))
+    np.testing.assert_array_equal(contact[:, -1], footprint.astype("float32"))
+
+    base = ContextHandActionRetargeter(32)
+    augmented = ContextHandActionRetargeter(32, contact_dim=CONTACT_CONTEXT_DIM)
+    missing, unexpected = augmented.load_state_dict(base.state_dict(), strict=False)
+    assert set(missing) == {"contact.weight", "contact.bias"} and not unexpected
+    hand = torch.zeros(5, HORIZON, 11, 3)
+    state = torch.zeros(5, 36)
+    context = torch.zeros(5, CONTEXT_DIM)
+    base_output = base(hand, state, context)
+    augmented_output = augmented(hand, state, context, torch.zeros(5, CONTACT_CONTEXT_DIM))
+    torch.testing.assert_close(base_output, augmented_output, rtol=0, atol=0)
+
+    with np.testing.assert_raises(ValueError):
+        contact_context_features(pair.astype("float32"), gap, support, velocity, footprint)
+    with np.testing.assert_raises(ValueError):
+        augmented(hand, state, context)
+
+
+def test_contact_loader_uses_query_tick_and_skips_reset_frame(tmp_path):
+    root = tmp_path / "structured"
+    root.mkdir()
+    frames, envs = 30, 1
+    action = np.zeros((frames - 1, envs, ACTION_DIM), dtype="float32")
+    for tick in range(frames - 1):
+        action[tick, 0] = tick / 40.
+    pair = np.zeros((frames, envs), dtype=bool)
+    pair[1, 0] = True
+    pair[2, 0] = False
+    arrays = dict(
+        hand_keypoints=np.zeros((frames, envs, 11, 3), dtype="float32"),
+        object_pose=np.tile(np.eye(4, dtype="float32"), (frames, envs, 1, 1)),
+        dof_position=np.zeros((frames, envs, ACTION_DIM), dtype="float32"),
+        dof_velocity=np.zeros((frames, envs, ACTION_DIM), dtype="float32"),
+        action=action, done=np.zeros((frames - 1, envs), dtype=bool),
+        length=np.asarray([frames - 1], dtype=np.int64),
+        structured_residual=np.zeros_like(action), actor_action=np.zeros_like(action),
+        structured_mode=np.zeros((frames - 1, envs), dtype=np.int8),
+        structured_phase=np.zeros(frames - 1, dtype=np.int8),
+        pair=pair, surface_gap=np.arange(frames, dtype="float32")[:, None],
+        support_gap=np.zeros((frames, envs), dtype="float32"),
+        object_velocity=np.zeros((frames, envs, 6), dtype="float32"),
+        table_footprint=np.zeros((frames, envs), dtype=bool),
+    )
+    np.savez_compressed(root / "trajectory.npz", **arrays)
+    (root / "manifest.json").write_text(json.dumps(dict(
+        status="COMPLETED", mode="retarget",
+        structured_residual_schema="ref2dex.structured-residual.v1", seed=777)))
+    windows, _, _ = _train.load_windows(root, stride=1, include_contact=True, skip_reset=True)
+    assert windows["tick"][0] == 1
+    assert windows["contact"][0, 0] == 1.
+    assert windows["contact"][0, 1] == 1.
+    np.testing.assert_array_equal(windows["action"][0, 0], action[1, 0])
+    np.testing.assert_array_equal(windows["action"][0, 1], action[2, 0])
+    assert not np.any(windows["tick"] == 0)
 
 
 def test_broadcast_and_per_env_future_anchor_shapes_are_distinct_and_causal():

@@ -20,7 +20,7 @@ sys.path.insert(0, str(TASK / "src"))
 from consequence_evaluator.contracts import is_within
 from consequence_evaluator.hand_action_retargeter import (
     ACTION_DIM, HORIZON, SCHEMA, HandActionRetargeter, Standardizer,
-    hand_object_context, trajectory_input)
+    contact_context_features, hand_object_context, trajectory_input)
 
 
 def sha(path):
@@ -35,7 +35,7 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
 
 
-def load_windows(root, stride):
+def load_windows(root, stride, include_contact=False, skip_reset=False):
     root = Path(root).resolve()
     manifest_path = root / "manifest.json"
     trajectory_path = root / "trajectory.npz"
@@ -46,6 +46,8 @@ def load_windows(root, stride):
     with np.load(trajectory_path, allow_pickle=False) as data:
         required = {"hand_keypoints", "object_pose", "dof_position", "dof_velocity", "action", "done", "length",
                     "structured_residual", "actor_action", "structured_mode", "structured_phase"}
+        if include_contact:
+            required.update({"pair", "surface_gap", "support_gap", "object_velocity", "table_footprint"})
         missing = required.difference(data.files)
         if missing:
             raise ValueError("retarget rollout missing fields %s" % sorted(missing))
@@ -59,6 +61,16 @@ def load_windows(root, stride):
         residual = np.asarray(data["structured_residual"], dtype="float32")
         mode = np.asarray(data["structured_mode"], dtype=np.int8)
         phase = np.asarray(data["structured_phase"], dtype=np.int8)
+        if include_contact:
+            raw_pair = np.asarray(data["pair"])
+            raw_table_footprint = np.asarray(data["table_footprint"])
+            if raw_pair.dtype != np.bool_ or raw_table_footprint.dtype != np.bool_:
+                raise ValueError("pair/table footprint must be stored as boolean fields")
+            pair = raw_pair.copy()
+            surface_gap = np.asarray(data["surface_gap"], dtype="float32")
+            support_gap = np.asarray(data["support_gap"], dtype="float32")
+            object_velocity = np.asarray(data["object_velocity"], dtype="float32")
+            table_footprint = raw_table_footprint.copy()
     if (hand.ndim != 4 or hand.shape[2:] != (11, 3)
             or object_pose.shape != (len(hand), q.shape[1], 4, 4) or q.shape[2:] != (18,)
             or dq.shape != q.shape or action.shape != (len(q) - 1, q.shape[1], ACTION_DIM)
@@ -66,8 +78,18 @@ def load_windows(root, stride):
             or mode.shape != action.shape[:2] or phase.shape != (len(action),)
             or len(lengths) != q.shape[1]):
         raise ValueError("retarget rollout tensor shape mismatch")
+    if include_contact and (pair.shape != q.shape[:2] or surface_gap.shape != q.shape[:2]
+                            or support_gap.shape != q.shape[:2]
+                            or object_velocity.shape != q.shape[:2] + (6,)
+                            or table_footprint.shape != q.shape[:2]):
+        raise ValueError("contact proxy tensor shape mismatch")
     if not all(np.isfinite(value).all() for value in (hand, q, dq, action, residual)):
         raise ValueError("nonfinite retarget rollout tensor")
+    if include_contact and not all(np.isfinite(value).all()
+                                   for value in (surface_gap, support_gap, object_velocity)):
+        raise ValueError("nonfinite contact proxy tensor")
+    if include_contact and pair[0].any():
+        raise ValueError("frame 0 contact pair must be reset-invalid/false")
     if np.abs(action).max() > 1.00001 or np.abs(residual).max() > .12001:
         raise ValueError("retarget rollout action/residual bound mismatch")
     if np.any(done[:-1] & (np.arange(len(done) - 1)[:, None] < lengths[None] - 1)):
@@ -77,6 +99,7 @@ def load_windows(root, stride):
     states = []
     contexts = []
     targets = []
+    contacts = []
     ticks = []
     episodes = []
     phases = []
@@ -84,12 +107,17 @@ def load_windows(root, stride):
     for env, length in enumerate(lengths.tolist()):
         if length < HORIZON:
             continue
-        for tick in range(0, int(length) - HORIZON + 1, int(stride)):
+        first_tick = 1 if skip_reset else 0
+        for tick in range(first_tick, int(length) - HORIZON + 1, int(stride)):
             hands.append(trajectory_input(hand[tick, env], hand[tick + 1:tick + 1 + HORIZON, env]))
             states.append(np.concatenate((q[tick, env], dq[tick, env])))
             previous = action[tick - 1, env] if tick else np.zeros(ACTION_DIM, dtype="float32")
             contexts.append(hand_object_context(hand[tick, env], object_pose[tick, env], previous))
             targets.append(action[tick:tick + HORIZON, env])
+            if include_contact:
+                contacts.append(contact_context_features(
+                    pair[tick, env], surface_gap[tick, env], support_gap[tick, env],
+                    object_velocity[tick, env], table_footprint[tick, env]))
             ticks.append(tick)
             episodes.append("%s:%d" % (manifest["seed"], env))
             phases.append(int(phase[tick]))
@@ -99,15 +127,18 @@ def load_windows(root, stride):
                   context=np.asarray(contexts, dtype="float32"),
                   action=np.asarray(targets, dtype="float32"), tick=np.asarray(ticks, dtype=np.int32),
                   episode=np.asarray(episodes), phase=np.asarray(phases, dtype=np.int8))
+    if include_contact:
+        arrays["contact"] = np.asarray(contacts, dtype="float32")
     return arrays, manifest, {str(manifest_path): sha(manifest_path), str(trajectory_path): sha(trajectory_path)}
 
 
-def concat_split(paths, stride):
+def concat_split(paths, stride, include_contact=False, skip_reset=False):
     chunks = []
     manifests = []
     hashes = {}
     for path in paths:
-        chunk, manifest, frozen = load_windows(path, stride)
+        chunk, manifest, frozen = load_windows(
+            path, stride, include_contact=include_contact, skip_reset=skip_reset)
         chunks.append(chunk); manifests.append(manifest); hashes.update(frozen)
     result = {key: np.concatenate([part[key] for part in chunks], axis=0)
               for key in chunks[0]}

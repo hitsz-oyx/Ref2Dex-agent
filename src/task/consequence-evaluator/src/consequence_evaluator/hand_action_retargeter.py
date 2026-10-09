@@ -7,9 +7,47 @@ from torch import nn
 
 SCHEMA = "ref2dex.hand-action-retargeter.v1"
 CONTEXT_SCHEMA = "ref2dex.hand-action-retargeter.v2"
+CONTACT_CONTEXT_SCHEMA = "ref2dex.hand-action-retargeter.v3"
 HORIZON = 24
 ACTION_DIM = 18
 CONTEXT_DIM = 11 * 3 + ACTION_DIM
+CONTACT_CONTEXT_DIM = 10
+CONTACT_CONTEXT_FIELDS = (
+    "pair", "surface_gap", "support_gap", "object_velocity_linear_x",
+    "object_velocity_linear_y", "object_velocity_linear_z",
+    "object_velocity_angular_x", "object_velocity_angular_y",
+    "object_velocity_angular_z", "table_footprint")
+
+
+def contact_context_features(pair, surface_gap, support_gap, object_velocity,
+                             table_footprint):
+    """Pack query-time contact proxies without exposing a future label.
+
+    The returned order is fixed by ``CONTACT_CONTEXT_FIELDS``. Callers must
+    pass fields measured at query state ``t``; the window loader skips the
+    reset frame because its contact buffer is not a physical measurement.
+    """
+    pair = np.asarray(pair)
+    surface_gap = np.asarray(surface_gap)
+    support_gap = np.asarray(support_gap)
+    object_velocity = np.asarray(object_velocity)
+    table_footprint = np.asarray(table_footprint)
+    prefix = pair.shape
+    if pair.dtype != np.bool_ or table_footprint.dtype != np.bool_:
+        raise ValueError("pair and table footprint must be boolean query-state fields")
+    if (surface_gap.shape != prefix or support_gap.shape != prefix
+            or table_footprint.shape != prefix
+            or object_velocity.shape != prefix + (6,)):
+        raise ValueError("contact proxy batch shapes must share a 6-D velocity suffix")
+    values = np.concatenate((
+        pair.astype("float32")[..., None],
+        surface_gap.astype("float32")[..., None],
+        support_gap.astype("float32")[..., None],
+        object_velocity.astype("float32"),
+        table_footprint.astype("float32")[..., None]), axis=-1)
+    if values.shape[-1] != CONTACT_CONTEXT_DIM or not np.isfinite(values).all():
+        raise ValueError("contact proxy values must be finite 10-D features")
+    return values.astype("float32")
 
 
 def trajectory_input(current_hand, future_hand):
@@ -101,13 +139,25 @@ class HandActionRetargeter(nn.Module):
 
 
 class ContextHandActionRetargeter(nn.Module):
-    """Full-action retargeter with controller-history/contact geometry context."""
+    """Full-action retargeter with optional query-time contact context.
 
-    def __init__(self, width=128):
+    ``contact_dim=0`` is the frozen v2 architecture. A positive contact
+    branch is initialized to zero so it can be matched to a v2 checkpoint
+    without changing the shared hand/state/context computation.
+    """
+
+    def __init__(self, width=128, contact_dim=0):
         super().__init__()
         self.width = int(width)
+        self.contact_dim = int(contact_dim)
+        if self.contact_dim < 0:
+            raise ValueError("contact_dim must be nonnegative")
         self.hand = nn.Sequential(nn.Linear(33, width), nn.SiLU(), nn.Linear(width, width))
         self.state = nn.Sequential(nn.Linear(36 + CONTEXT_DIM, width), nn.SiLU(), nn.Linear(width, width))
+        self.contact = nn.Linear(self.contact_dim, width) if self.contact_dim else None
+        if self.contact is not None:
+            nn.init.zeros_(self.contact.weight)
+            nn.init.zeros_(self.contact.bias)
         self.time = nn.Parameter(torch.randn(1, HORIZON, width) * .02)
         self.query = nn.Parameter(torch.randn(1, HORIZON, width) * .02)
         layer = nn.TransformerDecoderLayer(width, 4, width * 4, dropout=0., batch_first=True,
@@ -115,15 +165,25 @@ class ContextHandActionRetargeter(nn.Module):
         self.decoder = nn.TransformerDecoder(layer, 2)
         self.output = nn.Sequential(nn.LayerNorm(width), nn.Linear(width, ACTION_DIM))
 
-    def forward(self, hand, state, context):
+    def forward(self, hand, state, context, contact=None):
         if hand.ndim != 4 or tuple(hand.shape[1:]) != (HORIZON, 11, 3):
             raise ValueError("hand input must be [N,24,11,3]")
         if (state.ndim != 2 or tuple(state.shape[1:]) != (36,) or len(state) != len(hand)
                 or context.ndim != 2 or tuple(context.shape[1:]) != (CONTEXT_DIM,)
                 or len(context) != len(hand)):
             raise ValueError("context retarget input shape mismatch")
+        if self.contact_dim:
+            if (contact is None or contact.ndim != 2
+                    or tuple(contact.shape[1:]) != (self.contact_dim,)
+                    or len(contact) != len(hand)):
+                raise ValueError("contact context input shape mismatch")
+        elif contact is not None:
+            raise ValueError("contact input requires a positive contact_dim")
         state_context = torch.cat((state, context), -1)
+        state_encoded = self.state(state_context)
+        if self.contact is not None:
+            state_encoded = state_encoded + self.contact(contact)
         encoded = torch.cat((self.hand(hand.flatten(2)) + self.time,
-                             self.state(state_context)[:, None]), dim=1)
+                             state_encoded[:, None]), dim=1)
         decoded = self.decoder((self.query + self.time).expand(len(hand), -1, -1), encoded)
         return self.output(decoded)
