@@ -5,7 +5,7 @@ experiment_id: P-20261009-object-relative-gt-servo
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: 46b06cf
 claim_id: C3
 hypothesis_family: HF-object-relative-gt-servo
 probe_index_in_family: 1
@@ -84,3 +84,56 @@ oracle feedback every tick is not a deployable24-step geometry policy.
 No formal representation sufficiency/necessity claim from this Probe.
 No complete placing success source. Frozen source-time replay can retain
 oracle motion despite object correction; explicitly audit anchor/time usage.
+
+## Initial results and adaptive decision
+
+Historical audit `object-relative-contact-20261009-r1` matches ref7_1's
+prediction: GT replay t160..176 world-hand RMSE7.60mm but object-local65.0mm,
+object position difference52.7mm and angle difference1.49rad; after176 local
+error461.8mm and aggregate finger net force nearly zero. The proxy cannot
+name a unique hand-object pair loss: multiple fingers decline around168..177,
+little-finger signal diverged earlier. This is drift correlation, not causality.
+
+First intervention r1 at46b06cf, current-object-t anchor: full542/70.77s,
+teacher481; matched world command484/6.06mmworld/33.20mmlocal; full SE(3)
+relative command105 with one loss, unstable wrist/object motion (peak
+object lift6.63m/tick222, firstclip167,782clipped coords); measured-nextq38.
+All full-task success=false. World replay can hold in another role/launch;
+the old held117 is not a repeatable fixed-source failure or matched causal
+comparison with this run. Never promote fixed-world-frame error to the sole
+explanation. Actual wrist q_xyz vs measured hand-base point maxerror5.96e-7m.
+
+Decision at10:34UTC: before changing representation or learning, distinguish
+recursive motion amplification from contact insufficiency. Run r2 with the
+already-implemented source-object t+1 anchor, changing only source anchor
+time. It cancels measured source object motion and preserves only commanded
+preload in the command arm; measured-q arm has no global object progression.
+If runaway is reduced but lift disappears, geometry action must specify
+desired object motion plus relative hand shape, rather than silently erase
+transport. If still unstable, next isolate object rotation feedback and
+bounded/slower corrections. This is the second of <=8 initial launches;
+same one GPU/resource boundaries. No training.
+
+r2, future anchor, full542/70.08s: teacher14 (behavior control failed; invalid
+for gate comparison), world command483; transported command104/one loss,
+transported measured125/maxlift.155m. Relative next-q tracks local geometry
+24.38mm while world geometry250.50mm; motion cancellation remains relevant.
+Do not treat teacher failure or source-time change as a formal method negative.
+First teacher drift from r1 occurs at force tick44, history45, q46; no initial
+state/control difference or unrequested control intervention found.
+
+Decision at10:40UTC: isolate full-rotation feedback and its unbounded
+amplitude. r3 layout transport_ablation uses teacher/world GT command /
+translation-only GT command / bounded SE(3) GT command. Keep current-t
+anchor and source commanded finger preload. Bound the latter's wrist
+correction to20mm and.15rad about the world nominal; preserve nominal future
+transport motion. Translation-only remains unbounded as a diagnostic. This
+tests whether recursive full-pose correction, rather than relative geometry
+itself, explains the runaway. No parameter sweep or network training.
+
+Independent r1 matrix/native audit PASS, max transform errors9.69e-7/5.98e-7;
+source FK vs measured11 points max3.68e-7m. Reconstructed historical link
+poses are therefore usable for sampled visual-surface gaps. Native finger
+net force cannot name an object-contact loss: source pinky has positive net
+force despite ~17mm average object visual-surface gap in140..200; self-contact
+or mesh/collision differences can contribute. Retain this qualification.

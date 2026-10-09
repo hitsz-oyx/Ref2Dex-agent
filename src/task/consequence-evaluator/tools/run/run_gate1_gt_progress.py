@@ -303,7 +303,7 @@ def native_worker(a):
         elif a.object_relative_source is not None:
             from consequence_evaluator.object_relative_servo import ObjectRelativeGTExecution
             retarget = ObjectRelativeGTExecution(a.object_relative_source, task, player,
-                                                identity, a.object_relative_anchor)
+                                                identity, a.object_relative_anchor, a.object_relative_layout)
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
@@ -1746,6 +1746,7 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation'), default='command_vs_measured')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
     p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',

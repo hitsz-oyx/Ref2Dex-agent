@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
-from consequence_evaluator.object_relative_servo import transport_wrist
+from consequence_evaluator.object_relative_servo import transport_wrist, bounded_transport
 from consequence_evaluator.retargeter import wrist_rotation
 
 
@@ -23,3 +23,15 @@ def test_identity_transport_and_current_anchor_preserve_next_step_motion():
     future=source.copy();future[2,3]+=.01
     cancelled=transport_wrist(nextq,future,source,q)
     np.testing.assert_allclose(cancelled[:3],q[:3],atol=1e-7)
+
+
+def test_bounded_transport_preserves_nominal_motion_and_limits_feedback():
+    target=np.array([.1,.2,.9,.2,.3,-.1]+[.5]*12,dtype='float32')
+    corrected=target.copy();corrected[:3]+=[.3,-.2,.4];corrected[3:6]+=[1.,.3,-.2]
+    result=bounded_transport(target,corrected)
+    assert np.linalg.norm(result[:3]-target[:3])<=.020001
+    delta=wrist_rotation(result)@wrist_rotation(target).T
+    assert Rotation.from_matrix(delta).magnitude()<=.150001
+    np.testing.assert_array_equal(result[6:],target[6:])
+    shift=target.copy();shift[:3]+=[.1,.2,.3]
+    np.testing.assert_allclose(bounded_transport(shift,shift),shift,atol=1e-7)

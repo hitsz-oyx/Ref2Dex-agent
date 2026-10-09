@@ -4,6 +4,7 @@ import pickle
 
 import numpy as np
 import torch
+from scipy.spatial.transform import Rotation
 
 from .retargeter import (DOF_NAMES, ACTIVE_FINGERS, FINGER_SCALE,
                         wrist_rotation, closest_euler, commanded_targets, native_control)
@@ -31,10 +32,22 @@ def local_points(hand, object_pose):
                      hand-object_pose[..., None, :3, 3])
 
 
+def bounded_transport(target, corrected, translation_cap=.02, rotation_cap=.15):
+    """Bound feedback about the world nominal, retaining its planned motion."""
+    result = corrected.copy()
+    delta = corrected[:3]-target[:3]
+    result[:3] = target[:3]+delta*min(1., translation_cap/max(float(np.linalg.norm(delta)), 1e-12))
+    delta_rot = wrist_rotation(corrected) @ wrist_rotation(target).T
+    rv = Rotation.from_matrix(delta_rot).as_rotvec()
+    rv *= min(1., rotation_cap/max(float(np.linalg.norm(rv)), 1e-12))
+    result[3:6] = closest_euler(Rotation.from_rotvec(rv).as_matrix() @ wrist_rotation(target), target[3:6])
+    return result.astype('float32')
+
+
 class ObjectRelativeGTExecution:
     roles = ['reactive_teacher', 'world_gt_command', 'object_gt_command', 'object_gt_measured_nextq']
 
-    def __init__(self, source, task, player, identity, anchor='current'):
+    def __init__(self, source, task, player, identity, anchor='current', layout='command_vs_measured'):
         with source.open('rb') as stream:
             packet = pickle.load(stream)
         if (packet.get('engineering_only') is not True or task.num_envs != 4
@@ -61,6 +74,9 @@ class ObjectRelativeGTExecution:
         self.source_q = packet['dof_position'][:, 0]
         self.source_targets = commanded_targets(self.source_q[:-1], packet['actions'][:, 0])
         self.anchor = anchor
+        self.layout = layout
+        if layout == 'transport_ablation':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'translation_gt_command', 'bounded_se3_gt_command']
         self.device = player.device
         self.desired, self.clip_counts, self.errors, self.live_poses = [], [], [], []
 
@@ -76,6 +92,12 @@ class ObjectRelativeGTExecution:
         for dst, src, ratio in ((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)):
             relative_measured[dst] = relative_measured[src]*ratio
         desired = np.stack((self.source_targets[tick], relative_command, relative_measured))
+        if self.layout == 'transport_ablation':
+            translation = self.source_targets[tick].copy()
+            translation[:3] += live[2, :3, 3]-source_pose[:3, 3]
+            corrected = transport_wrist(self.source_targets[tick], source_pose, live[3], q[3])
+            bounded = bounded_transport(self.source_targets[tick], corrected)
+            desired = np.stack((self.source_targets[tick], translation, bounded))
         raw = native_control(desired, q[1:])
         clipped = np.clip(raw, -1, 1)
         result = teacher_control.clone()
@@ -113,13 +135,16 @@ class ObjectRelativeGTExecution:
         passes = {name: bool(teacher >= 45 and metrics[name]['maximum_held_frames'] >= .9*teacher
                             and outcomes[name]['intermediate_loss_events'] == 0)
                   for name in self.roles[1:]}
+        primary = 'bounded_se3_gt_command' if self.layout == 'transport_ablation' else 'object_gt_command'
         gate = dict(teacher_held=teacher, held_fraction=.9, role_passes=passes,
-                    passed=passes['object_gt_command'], engineering_only=True,
+                    passed=passes[primary], primary_role=primary, engineering_only=True,
                     secondary_local_rmse_threshold_mm=40)
         extra = dict(schema='ref2dex.object-relative-gt-servo.v1', role_names=self.roles,
             group_mode='synchronous_object_relative_gt_servo', training_allowed=False, engineering_only=True,
             requested_controls=np.asarray(requested), desired_pd_targets=np.asarray(self.desired),
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
+            servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout == 'transport_ablation' else None),
+            rotation_feedback_cap_rad=(.15 if self.layout == 'transport_ablation' else None),
             clipped_coordinate_counts=np.asarray(self.clip_counts), commanded_target_max_abs_error=np.asarray(self.errors),
             gt_source=str(self.source), gt_source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
             privileged_future_geometry=True, native_body_names=self.body_names,
