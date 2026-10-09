@@ -492,4 +492,5 @@
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-value-noise](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md) | Native GPU synchronous group Value-noise calibration | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261009-gpu-pipeline-threads1](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-pipeline-threads1.md) | GPU pipeline with one PhysX task thread | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

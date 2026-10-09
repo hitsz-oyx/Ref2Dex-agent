@@ -25,6 +25,14 @@ noise route，保留原生GPU group作为行为容器；不扩rolling Probe、�
 `outputs/consequence-evaluator/gpu-group-value-noise-audit-20261009-r1/`和
 `outputs/consequence-evaluator/gpu-group-noise-audit-20261009-r1/`。
 
+随后做了一个仅改变`physx.num_threads=1`的原生GPU pipeline Probe（提交`98cec12`），
+仍为GPU PhysX、GPU tensor、GPU actor、seed282、4-env、72步。baseline最高抬升
+0.2740m/held13，object zero p95为`8.36e-4m`；raw contact差异仍在tick44首次
+出现，contact p95为0但max约19.5。物理bank Y为
+`[-.011617,.011970,-.016655,.015730]`，zero标量噪声`.023587`，噪声大于候选
+对比并把negative误选为最高。单线程调度没有恢复执行合同，关闭该backend变体，不跑
+full542确认；strict Gate1、evaluator、PointWorld和policy/reference/Y仍保持冻结。
+
 ## 2026-10-08 Gate1 首轮完成：工程通过，任务收益 UNCLEAR
 
 64522f1在CPU-PhysX/GPU2模型执行1个paired episode（seed282），314.94秒完成。
