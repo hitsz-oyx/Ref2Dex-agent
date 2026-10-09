@@ -44,7 +44,7 @@ def load_packet(path):
     return packet
 
 
-def summarize_value_noise(values, base_roles, zero_roles):
+def summarize_value_noise(values, base_roles, zero_roles, role_indices=None):
     """Return stable role names and descriptive scalar-Y pair noise.
 
     The four candidate roles are fixed at indices 0--3.  Extra environments in
@@ -54,26 +54,37 @@ def summarize_value_noise(values, base_roles, zero_roles):
     values = np.asarray(values, dtype=np.float64)
     base_roles = list(base_roles)
     zero_roles = [int(index) for index in zero_roles]
+    if role_indices is None:
+        role_indices = dict(baseline=0, zero_repeat=1, positive=2, negative=3)
+    else:
+        role_indices = {str(name): int(index) for name, index in role_indices.items()}
+    required = ('baseline', 'zero_repeat', 'positive', 'negative')
     if (values.ndim != 1 or values.size < 4
-            or base_roles[:4] != ['baseline', 'zero_repeat', 'positive', 'negative']
+            or base_roles[:4] != list(required)
+            or any(name not in role_indices for name in required)
+            or len(set(role_indices[name] for name in required)) != 4
+            or any(role_indices[name] < 0 or role_indices[name] >= values.size for name in required)
             or len(set(zero_roles)) != len(zero_roles)
             or any(index < 0 or index >= values.size for index in zero_roles)
-            or any(index in (2, 3) for index in zero_roles)):
+            or any(index in (role_indices['positive'], role_indices['negative']) for index in zero_roles)):
         raise ValueError('native group value-noise role contract mismatch')
-    roles = list(base_roles[:4]) + [
-        'zero_role_%d' % index for index in range(4, values.size)]
+    roles = ['zero_role_%d' % index for index in range(values.size)]
+    for name, index in role_indices.items():
+        if name in required:
+            roles[index] = name
     zero_pair_deltas = []
     for left_offset, left in enumerate(zero_roles):
         for right in zero_roles[left_offset + 1:]:
             zero_pair_deltas.append(dict(left=left, right=right,
                                          delta_y=float(values[right] - values[left])))
     zero_pair_abs = np.asarray([abs(item['delta_y']) for item in zero_pair_deltas], dtype=np.float64)
-    baseline_zero_deltas = [dict(role=role, delta_y=float(values[role] - values[0]))
-                            for role in zero_roles if role != 0]
+    baseline_index = role_indices['baseline']
+    baseline_zero_deltas = [dict(role=role, delta_y=float(values[role] - values[baseline_index]))
+                            for role in zero_roles if role != baseline_index]
     baseline_zero_abs = np.asarray([abs(item['delta_y']) for item in baseline_zero_deltas], dtype=np.float64)
-    candidate_deltas = [dict(role=role, candidate=CANDIDATES[role - 1],
-                             delta_y=float(values[role] - values[0]))
-                       for role in (2, 3)]
+    candidate_deltas = [dict(role=role_indices[name], candidate=CANDIDATES[offset],
+                             delta_y=float(values[role_indices[name]] - values[baseline_index]))
+                       for offset, name in enumerate(('positive', 'negative'), start=1)]
     zero_pair_median = float(np.median(zero_pair_abs)) if zero_pair_abs.size else 0.0
     baseline_zero_median = float(np.median(baseline_zero_abs)) if baseline_zero_abs.size else 0.0
     for item in candidate_deltas:
@@ -82,6 +93,7 @@ def summarize_value_noise(values, base_roles, zero_roles):
         item['abs_over_baseline_zero_median'] = (
             float(abs(item['delta_y']) / baseline_zero_median) if baseline_zero_median > 0 else None)
     return roles, dict(
+        role_indices=role_indices,
         zero_pair_deltas=zero_pair_deltas,
         zero_pair_abs_median=zero_pair_median,
         baseline_relative_zero_deltas=baseline_zero_deltas,
@@ -119,8 +131,18 @@ def audit_packet(packet, packet_path, reference, encoder, device):
     base_roles = list(packet.get('candidate_roles') or
                       ('baseline', 'zero_repeat', 'positive', 'negative'))
     zero_roles = [int(index) for index in packet.get('zero_role_indices', (0, 1))]
-    roles, value_noise = summarize_value_noise(values, base_roles, zero_roles)
-    candidate_values = values[[0, 2, 3]]
+    role_indices = packet.get('role_index_map') or packet.get('role_indices')
+    if role_indices is None:
+        candidate_env_pair = packet.get('candidate_env_pair', [2, 3])
+        zero_pair = packet.get('zero_env_pair', [0, 1])
+        if list(zero_pair) != [0, 1] or list(candidate_env_pair) != [2, 3]:
+            raise ValueError('swapped group role metadata is required for Value audit')
+        role_indices = dict(baseline=0, zero_repeat=1, positive=2, negative=3)
+    roles, value_noise = summarize_value_noise(values, base_roles, zero_roles, role_indices)
+    baseline_index = int(role_indices['baseline'])
+    positive_index = int(role_indices['positive'])
+    negative_index = int(role_indices['negative'])
+    candidate_values = values[[baseline_index, positive_index, negative_index]]
     frozen_choice = choose_candidate(candidate_values)
     return dict(
         schema='ref2dex.consequence-gate1.gpu-group-gt-value-audit.v1',
@@ -128,17 +150,19 @@ def audit_packet(packet, packet_path, reference, encoder, device):
         packet=str(Path(packet_path).resolve()),
         packet_sha256=sha(packet_path),
         group_mode=packet.get('group_mode'), group_envs=int(packet['group_envs']),
-        query_tick=query, horizon=K, roles=roles[:4],
+        query_tick=query, horizon=K, roles=roles,
         values=values.tolist(), progress_start=start.tolist(),
         progress_start_range=float(start.max() - start.min()),
         strict_same_state=bool(start.max() - start.min() <= 1e-9),
         strict_progress_start_tolerance=1e-9,
         role_names=roles, zero_role_indices=zero_roles,
+        role_indices=role_indices,
+        candidate_env_pair=[positive_index, negative_index],
         argmax_role=roles[int(np.argmax(values))],
         frozen_choice=int(frozen_choice),
         frozen_choice_role=CANDIDATES[int(frozen_choice)],
         frozen_deadzone=.01,
-        chosen_vs_baseline=float(values[[0, 2, 3]][frozen_choice] - values[0]),
+        chosen_vs_baseline=float(candidate_values[frozen_choice] - values[baseline_index]),
         value_noise=value_noise,
         reference_sha256=meta['reference_sha256'],
         encoder_checkpoint_sha256=trained['checkpoint_sha256'],

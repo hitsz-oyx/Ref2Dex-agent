@@ -141,9 +141,13 @@ def native_worker(a):
         if int(task.num_motions) != 1:
             raise ValueError('engineering group requires one repeated motion across all env roles')
         zero_left, zero_right = map(int, a.zero_env_pair)
+        positive_env, negative_env = map(int, a.candidate_env_pair)
+        candidate_envs = (positive_env, negative_env)
         if (not 0 <= zero_left < count or not 0 <= zero_right < count
-                or zero_left == zero_right or zero_left in (2, 3) or zero_right in (2, 3)):
-            raise ValueError('zero env pair must be two distinct non-candidate group roles')
+                or not 0 <= positive_env < count or not 0 <= negative_env < count
+                or zero_left == zero_right or positive_env == negative_env
+                or set((zero_left, zero_right)) & set(candidate_envs)):
+            raise ValueError('zero and candidate env pairs must be distinct in-range roles')
         prefix_actions = None
         if a.action_chunk_roles == 'candidate' and expected is not None:
             prefix_actions = np.asarray(expected.get('actions'))
@@ -392,7 +396,7 @@ def native_worker(a):
                                               device=player.device).view(1, -1).expand(count, -1).clone()
                 else:
                     actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
-                    control = actor_actions[:1].expand(count, -1).clone()
+                    control = actor_actions[zero_left:zero_left + 1].expand(count, -1).clone()
             elif proposal_enabled:
                 # Generate a complete chunk only at the declared replanning
                 # boundary.  Every intervening control is read from that
@@ -433,12 +437,12 @@ def native_worker(a):
                 # control stream through the query. This removes tiny row-wise
                 # GEMM differences and makes the group test an execution-contract probe.
                 actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
-                base_action = actor_actions[:1].expand(count, -1).clone()
+                base_action = actor_actions[zero_left:zero_left + 1].expand(count, -1).clone()
                 control = base_action.clone()
             if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
                 offset = tick - query
-                control[2] = (control[2] + positive[offset]).clamp(-1, 1)
-                control[3] = (control[3] + negative[offset]).clamp(-1, 1)
+                control[positive_env] = (control[positive_env] + positive[offset]).clamp(-1, 1)
+                control[negative_env] = (control[negative_env] + negative[offset]).clamp(-1, 1)
             obs, _, done, info = player.env_step(player.env, control.clone())
             if not isinstance(obs, dict): obs = {'obs': obs}
             player._post_step(info)
@@ -545,6 +549,25 @@ def native_worker(a):
         calibration_fields = ('object_pose', 'hand_keypoints', 'dof_position', 'dof_velocity',
                               'object_velocity', 'history', 'native_contact_forces',
                               'native_object_contact_forces')
+
+        def delta_summary(delta, tick_offset=0):
+            """Summarize pair drift without hiding a rare contact impulse."""
+            array = np.asarray(delta, dtype=np.float64)
+            if array.size == 0:
+                return dict(max_abs=0., p95_abs=0., p99_abs=0.,
+                            peak_tick=None, first_nonzero_tick=None,
+                            tick_max_abs=[])
+            flat = np.abs(array).reshape(array.shape[0], -1)
+            tick_max = flat.max(axis=1)
+            nonzero = np.flatnonzero(tick_max > 1e-12)
+            return dict(
+                max_abs=float(tick_max.max()),
+                p95_abs=float(np.quantile(flat.reshape(-1), .95)),
+                p99_abs=float(np.quantile(flat.reshape(-1), .99)),
+                peak_tick=int(tick_offset + np.argmax(tick_max)),
+                first_nonzero_tick=(int(tick_offset + nonzero[0]) if nonzero.size else None),
+                tick_max_abs=tick_max.tolist())
+
         zero_noise = {}; candidate_effect = {}
         # State packets have one more sample than the executed-control packet:
         # include the state at t+24 when a 72-step bounded run ends there.
@@ -552,36 +575,55 @@ def native_worker(a):
         for key in calibration_fields:
             value = np.asarray(packets[key], dtype=np.float64)
             zero = value[:query + 1, zero_right] - value[:query + 1, zero_left]
+            zero_summary = delta_summary(zero)
             zero_flat = np.abs(zero).reshape(-1)
-            zero_max = float(zero_flat.max()) if zero_flat.size else 0.0
-            zero_p95 = float(np.quantile(zero_flat, .95)) if zero_flat.size else 0.0
+            zero_max = zero_summary['max_abs']
+            zero_p95 = zero_summary['p95_abs']
             zero_post = value[query + 1:effect_stop, zero_right] - value[query + 1:effect_stop, zero_left]
             zero_displacement = ((value[query + 1:effect_stop, zero_right] - value[query, zero_right])
                                  - (value[query + 1:effect_stop, zero_left] - value[query, zero_left]))
+            zero_post_summary = delta_summary(zero_post, query + 1)
+            zero_disp_summary = delta_summary(zero_displacement, query + 1)
             zero_post_flat = np.abs(zero_post).reshape(-1)
             zero_disp_flat = np.abs(zero_displacement).reshape(-1)
             zero_noise[key] = dict(
                 prequery_max_abs=zero_max, prequery_p95_abs=zero_p95,
-                postquery_max_abs=float(zero_post_flat.max()) if zero_post_flat.size else 0.0,
-                postquery_p95_abs=float(np.quantile(zero_post_flat, .95)) if zero_post_flat.size else 0.0,
-                postquery_displacement_max_abs=float(zero_disp_flat.max()) if zero_disp_flat.size else 0.0,
-                postquery_displacement_p95_abs=float(np.quantile(zero_disp_flat, .95)) if zero_disp_flat.size else 0.0)
+                prequery_p99_abs=zero_summary['p99_abs'],
+                prequery_peak_tick=zero_summary['peak_tick'],
+                prequery_first_nonzero_tick=zero_summary['first_nonzero_tick'],
+                prequery_tick_max_abs=zero_summary['tick_max_abs'],
+                postquery_max_abs=zero_post_summary['max_abs'],
+                postquery_p95_abs=zero_post_summary['p95_abs'],
+                postquery_p99_abs=zero_post_summary['p99_abs'],
+                postquery_peak_tick=zero_post_summary['peak_tick'],
+                postquery_displacement_max_abs=zero_disp_summary['max_abs'],
+                postquery_displacement_p95_abs=zero_disp_summary['p95_abs'],
+                postquery_displacement_p99_abs=zero_disp_summary['p99_abs'],
+                postquery_displacement_peak_tick=zero_disp_summary['peak_tick'],
+                postquery_displacement_tick_max_abs=zero_disp_summary['tick_max_abs'])
             candidate_effect[key] = {}
-            for env_index, name in ((2, 'positive'), (3, 'negative')):
+            for env_index, name in ((positive_env, 'positive'), (negative_env, 'negative')):
                 query_offset = value[query, env_index] - value[query, zero_left]
                 raw = value[query + 1:effect_stop, env_index] - value[query + 1:effect_stop, zero_left]
                 incremental = ((value[query + 1:effect_stop, env_index] - value[query, env_index])
                                - (value[query + 1:effect_stop, zero_left] - value[query, zero_left]))
                 effect_vs_zero = incremental - zero_displacement
+                raw_summary = delta_summary(raw, query + 1)
+                inc_summary = delta_summary(incremental, query + 1)
+                effect_summary = delta_summary(effect_vs_zero, query + 1)
                 raw_flat = np.abs(raw).reshape(-1); inc_flat = np.abs(incremental).reshape(-1)
                 effect_flat = np.abs(effect_vs_zero).reshape(-1)
-                inc_max = float(inc_flat.max()) if inc_flat.size else 0.0
+                inc_max = inc_summary['max_abs']
                 candidate_effect[key][name] = dict(
-                    raw_max_abs=float(raw_flat.max()) if raw_flat.size else 0.0,
+                    raw_max_abs=raw_summary['max_abs'],
+                    raw_p99_abs=raw_summary['p99_abs'], raw_peak_tick=raw_summary['peak_tick'],
                     incremental_max_abs=inc_max,
-                    incremental_p95_abs=float(np.quantile(inc_flat, .95)) if inc_flat.size else 0.0,
-                    effect_vs_zero_max_abs=float(effect_flat.max()) if effect_flat.size else 0.0,
-                    effect_vs_zero_p95_abs=float(np.quantile(effect_flat, .95)) if effect_flat.size else 0.0,
+                    incremental_p95_abs=inc_summary['p95_abs'], incremental_p99_abs=inc_summary['p99_abs'],
+                    incremental_peak_tick=inc_summary['peak_tick'],
+                    effect_vs_zero_max_abs=effect_summary['max_abs'],
+                    effect_vs_zero_p95_abs=effect_summary['p95_abs'],
+                    effect_vs_zero_p99_abs=effect_summary['p99_abs'],
+                    effect_vs_zero_peak_tick=effect_summary['peak_tick'],
                     effect_vs_zero_to_prequery_max_ratio=(float(effect_flat.max()) / zero_max if zero_max > 0 else None),
                     effect_vs_zero_to_prequery_p95_ratio=(float(np.quantile(effect_flat, .95)) / zero_p95 if zero_p95 > 0 else None),
                     effect_vs_zero_to_postquery_displacement_max_ratio=(float(effect_flat.max()) / zero_noise[key]['postquery_displacement_max_abs']
@@ -590,7 +632,7 @@ def native_worker(a):
                         if zero_noise[key]['postquery_displacement_p95_abs'] > 0 else None),
                     query_offset_max_abs=float(np.abs(query_offset).max()) if np.size(query_offset) else 0.0)
         action_calibration = {}
-        for env_index, name in ((2, 'positive'), (3, 'negative')):
+        for env_index, name in ((positive_env, 'positive'), (negative_env, 'negative')):
             delta = (packets['actions'][query:effect_stop, env_index].astype(np.float64)
                      - packets['actions'][query:effect_stop, zero_left])
             delta_abs = np.abs(delta).reshape(-1)
@@ -621,7 +663,7 @@ def native_worker(a):
             passed=all(zero_noise[key]['prequery_p95_abs'] <= limit
                        for key, limit in zero_pair_p95_thresholds.items()),
             rule='prequery zero-pair p95 must remain below field-specific physical tolerance; max is diagnostic')
-        zero_role_indices = [index for index in range(count) if index not in (2, 3)]
+        zero_role_indices = [index for index in range(count) if index not in candidate_envs]
         pairwise_zero_noise = {}
         for key in calibration_fields:
             value = np.asarray(packets[key], dtype=np.float64)
@@ -687,11 +729,19 @@ def native_worker(a):
                         and outcome['maximum_held_frames'] >= 45
                         and outcome['controlled_final_place']),
             rule='candidate nominal must retain the full native GPU hold behavior before calibration')
+        # This packet is engineering-only.  A failed calibration must never be
+        # represented as valid merely because it used the reactive (rather than
+        # ACT proposal) execution path; downstream audits use this field as a
+        # promotion guard before any candidate value is considered.
         candidate_calibration_valid = bool(
-            (not proposal_enabled or proposal_roles != 'candidate')
-            or (zero_pair_gate['passed'] and pairwise_zero_gate['passed']
-                and effect_margin_gate['passed'] and behavior_gate['passed']))
+            zero_pair_gate['passed'] and pairwise_zero_gate['passed']
+            and effect_margin_gate['passed'] and behavior_gate['passed'])
         candidate_roles = ['baseline', 'zero_repeat', 'positive', 'negative']
+        role_indices = dict(baseline=zero_left, zero_repeat=zero_right,
+                            positive=positive_env, negative=negative_env)
+        role_names = ['zero_role_%d' % index for index in range(count)]
+        for name, index in role_indices.items():
+            role_names[index] = name
         if proposal_enabled:
             nominal_text = ('recorded native nominal chunk' if a.action_chunk_replay is not None
                             else 'env0 ACT open-loop24 proposal')
@@ -704,6 +754,11 @@ def native_worker(a):
                 'then positive/negative fork at tick%d for24 steps' % query)
         packet=dict(**packets, proposal_chunks=np.asarray(proposal_trace) if proposal_enabled else None,
             seed=a.seed, query_tick=query, candidate_roles=candidate_roles,
+            candidate_env_pair=[positive_env, negative_env], role_indices=role_indices,
+            role_index_map=role_indices, baseline_env_index=zero_left,
+            zero_repeat_env_index=zero_right,
+            candidate_env_indices=[positive_env, negative_env],
+            role_names=role_names,
             candidate_plan_semantics=candidate_plan_semantics,
             group_mode=('synchronous_same_process_act_candidate_noise'
                         if proposal_enabled else 'synchronous_same_process_noise_calibration'),
@@ -758,6 +813,11 @@ def native_worker(a):
             behavior_gate=behavior_gate, candidate_calibration_valid=candidate_calibration_valid,
             initial_semantic_gap=initial_semantic_gap, initial_semantic_exact=initial_semantic_exact,
             zero_env_pair=[zero_left, zero_right],
+            candidate_env_pair=[positive_env, negative_env], role_indices=role_indices,
+            role_index_map=role_indices, baseline_env_index=zero_left,
+            zero_repeat_env_index=zero_right,
+            candidate_env_indices=[positive_env, negative_env],
+            role_names=role_names,
             action_chunk_prefix_source=packet['action_chunk_prefix_source'],
             action_chunk_prefix_source_sha256=packet['action_chunk_prefix_source_sha256'],
             action_chunk_replay_source=packet['action_chunk_replay_source'],
@@ -1623,6 +1683,8 @@ def main():
                    help='serial replay arm order after baseline; candidate-first is a warm-cache order probe')
     p.add_argument('--zero-env-pair', type=int, nargs=2, default=(0, 1), metavar=('LEFT', 'RIGHT'),
                    help='engineering group only: the two non-candidate env roles used for zero-noise calibration')
+    p.add_argument('--candidate-env-pair', type=int, nargs=2, default=(2, 3), metavar=('POSITIVE', 'NEGATIVE'),
+                   help='engineering group only: environment roles receiving the positive/negative residuals')
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--action-chunk-checkpoint', type=Path,
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
@@ -1702,11 +1764,16 @@ def main():
             p.error('engineering group query tick must leave a complete 24-step horizon')
     if len(a.zero_env_pair) != 2 or a.zero_env_pair[0] == a.zero_env_pair[1]:
         p.error('--zero-env-pair requires two distinct environment indices')
+    if len(a.candidate_env_pair) != 2 or a.candidate_env_pair[0] == a.candidate_env_pair[1]:
+        p.error('--candidate-env-pair requires two distinct environment indices')
     if a.engineering_group_envs and any(index < 0 or index >= a.engineering_group_envs
                                         for index in a.zero_env_pair):
         p.error('--zero-env-pair indices must be inside --engineering-group-envs')
-    if a.engineering_group_envs and any(index in (2, 3) for index in a.zero_env_pair):
-        p.error('--zero-env-pair cannot use candidate roles env2/env3')
+    if a.engineering_group_envs and any(index < 0 or index >= a.engineering_group_envs
+                                        for index in a.candidate_env_pair):
+        p.error('--candidate-env-pair indices must be inside --engineering-group-envs')
+    if a.engineering_group_envs and set(a.zero_env_pair) & set(a.candidate_env_pair):
+        p.error('--zero-env-pair and --candidate-env-pair must be disjoint')
     if a.diagnostic_force_cache and not a.worker:
         p.error('force-cache diagnostic is only available to a native engineering worker')
     if a.engineering_single_act and (

@@ -26,9 +26,15 @@ def _sha256(path):
 
 
 def _p95_abs(array):
-    flat = np.abs(np.asarray(array, dtype=np.float64)).reshape(-1)
+    value = np.abs(np.asarray(array, dtype=np.float64))
+    flat = value.reshape(-1)
+    per_tick = value.reshape(value.shape[0], -1).max(axis=1) if value.size else np.asarray([])
+    nonzero = np.flatnonzero(per_tick > 1e-12)
     return dict(max_abs=float(flat.max()) if flat.size else 0.,
-                p95_abs=float(np.quantile(flat, .95)) if flat.size else 0.)
+                p95_abs=float(np.quantile(flat, .95)) if flat.size else 0.,
+                p99_abs=float(np.quantile(flat, .99)) if flat.size else 0.,
+                peak_tick=(int(np.argmax(per_tick)) if per_tick.size else None),
+                first_nonzero_tick=(int(nonzero[0]) if nonzero.size else None))
 
 
 def _quantiles(values):
@@ -48,6 +54,22 @@ def load_packet(path):
         raise ValueError('native group query-tick48 packet required')
     if packet.get('candidate_roles') != ['baseline', 'zero_repeat', 'positive', 'negative']:
         raise ValueError('candidate/noise role contract required')
+    role_indices = packet.get('role_index_map') or packet.get('role_indices')
+    if role_indices is None:
+        candidate_env_pair = packet.get('candidate_env_pair', [2, 3])
+        zero_pair = packet.get('zero_env_pair', [0, 1])
+        if list(candidate_env_pair) != [2, 3] or list(zero_pair) != [0, 1]:
+            raise ValueError('swapped group role metadata is required for noise audit')
+        role_indices = dict(baseline=0, zero_repeat=1, positive=2, negative=3)
+    try:
+        role_indices = {str(name): int(index) for name, index in role_indices.items()}
+        candidate_envs = (role_indices['positive'], role_indices['negative'])
+        baseline = role_indices['baseline']
+    except (KeyError, TypeError, ValueError):
+        raise ValueError('complete candidate/noise role metadata required')
+    if (len(set(role_indices.values())) != 4
+            or any(index < 0 or index >= count for index in role_indices.values())):
+        raise ValueError('candidate/noise role metadata indices are invalid')
     if packet.get('group_mode') not in {
             'synchronous_same_process_act_candidate_noise',
             'synchronous_same_process_noise_calibration'}:
@@ -65,11 +87,11 @@ def load_packet(path):
     except (TypeError, ValueError):
         raise ValueError('valid candidate/noise zero-role set required')
     if (len(zero_roles) < 2 or len(set(zero_roles)) != len(zero_roles)
-            or any(index < 0 or index >= count or index in (2, 3) for index in zero_roles)):
+            or any(index < 0 or index >= count or index in candidate_envs for index in zero_roles)):
         raise ValueError('valid candidate/noise zero-role set required')
     for index in range(count):
-        if (not np.array_equal(actions[:query, index], actions[:query, 0])
-                or not np.array_equal(done[:query, index], done[:query, 0])):
+        if (not np.array_equal(actions[:query, index], actions[:query, baseline])
+                or not np.array_equal(done[:query, index], done[:query, baseline])):
             raise ValueError('all group roles must share the recorded prefix controls/done')
     for key in FIELDS:
         value = np.asarray(packet.get(key))
@@ -89,8 +111,14 @@ def load_packet(path):
 def audit_packet(packet, packet_path):
     count = int(packet['group_envs']); query = int(packet['query_tick'])
     stop = min(len(packet['object_pose']), query + 25)
+    role_indices = packet.get('role_index_map') or packet.get('role_indices')
+    if role_indices is None:
+        role_indices = dict(baseline=0, zero_repeat=1, positive=2, negative=3)
+    role_indices = {str(name): int(index) for name, index in role_indices.items()}
+    candidate_envs = (role_indices['positive'], role_indices['negative'])
     roles = [int(index) for index in packet['zero_role_indices']]
-    if len(roles) < 2 or len(set(roles)) != len(roles) or any(i < 0 or i >= count for i in roles):
+    if (len(roles) < 2 or len(set(roles)) != len(roles)
+            or any(i < 0 or i >= count or i in candidate_envs for i in roles)):
         raise ValueError('invalid nominal zero-role set')
     pair_list = list(itertools.combinations(roles, 2))
     pairwise = {}
@@ -111,7 +139,8 @@ def audit_packet(packet, packet_path):
                              postquery_displacement_p95_quantiles=_quantiles(pair_post))
 
     candidate_effect = {}
-    for env_index, name in ((2, 'positive'), (3, 'negative')):
+    for env_index, name in ((role_indices['positive'], 'positive'),
+                            (role_indices['negative'], 'negative')):
         candidate_effect[name] = {}
         for key in FIELDS:
             value = np.asarray(packet[key], dtype=np.float64)
@@ -138,6 +167,7 @@ def audit_packet(packet, packet_path):
         group_mode=packet.get('group_mode'), group_envs=count, query_tick=query,
         source_backend=packet.get('source_backend'), replay_identity=packet.get('replay_identity'),
         horizon=24, zero_roles=roles, selected_zero_pair=packet.get('zero_env_pair'),
+        role_indices=role_indices, candidate_env_pair=list(candidate_envs),
         pairwise_zero_noise=pairwise, candidate_effect_vs_zero=candidate_effect,
         note='pre/post-query engineering noise summary; no strict same-state or Gate1 claim',
     )

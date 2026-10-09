@@ -30,3 +30,15 @@ def test_value_noise_rejects_candidate_as_zero_role():
             [.10, .11, .07, .04],
             ['baseline', 'zero_repeat', 'positive', 'negative'],
             [0, 2])
+
+
+def test_swapped_role_map_keeps_baseline_and_candidate_labels_attached_to_envs():
+    roles, noise = MODULE.summarize_value_noise(
+        [.07, .04, .10, .11, .105, .095],
+        ['baseline', 'zero_repeat', 'positive', 'negative'],
+        [2, 3, 4, 5],
+        {'baseline': 2, 'zero_repeat': 3, 'positive': 0, 'negative': 1})
+    assert roles[:4] == ['positive', 'negative', 'baseline', 'zero_repeat']
+    assert noise['candidate_deltas_vs_baseline'][0]['role'] == 0
+    assert noise['candidate_deltas_vs_baseline'][0]['delta_y'] == pytest.approx(-0.03)
+    assert noise['baseline_relative_zero_deltas'][0]['role'] == 3
