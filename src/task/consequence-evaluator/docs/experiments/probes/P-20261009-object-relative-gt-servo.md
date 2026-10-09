@@ -289,3 +289,19 @@ fit without any future q/action labels. The static coupled-pose mismatch
 therefore persists beyond initialization. Artifact and runtime provenance
 are source/hash/reset/geometry checked. r10 uses the frozen artifact; its
 geometry arm reads no source finger actions/q after the known grasp prefix.
+
+
+r10 at16e2c9d, full542/74.76s: teacher484/world484, combined measured
+geometry124/one loss; true11-point inverse250. Both world hand errors
+~5.1..5.3mm despite eventual loss. Independent partial maintenance positives
+do not imply joint wrist/finger sufficiency; do not declare cold contact
+establishment the sole blocker. Retain raw packet and inspect local drift.
+
+Decision at11:36UTC: r11 geometry_inverse_relative_late compares the same
+full11-point inverse/world nominal with bounded live-object wrist correction
+(20mm/.15rad, fixed prior caps). Both retain the known command prefix before120;
+only wrist object feedback differs thereafter, finger geometry is identical.
+This tests the combined controller's relative-drift explanation and the
+ref7_1 intervention without giving it source finger commands after120.
+If positive, use r12 to check cold-start relative inverse; otherwise audit
+load/geometry mismatch rather than train old R. Same GPU/time/output bounds.
