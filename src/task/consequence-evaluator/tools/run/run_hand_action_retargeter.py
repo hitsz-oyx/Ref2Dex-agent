@@ -230,7 +230,7 @@ def main():
                     # an unregistered initial-frame offset into R.
                     current = measured["hand_keypoints"].detach().cpu().numpy()
                     source_delta = source_future - source_current[:, None]
-                    future = current[:, None] + source_delta[None]
+                    future = current[:, None] + (source_delta if args.source_per_env else source_delta[None])
                     q = task._dof_pos.detach().cpu().numpy()
                     dq = task._dof_vel.detach().cpu().numpy()
                     future_batch = future if args.source_per_env else np.broadcast_to(
