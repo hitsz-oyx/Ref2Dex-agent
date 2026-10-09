@@ -295,6 +295,11 @@ def native_worker(a):
             copies=actor_copies,
             total_rows=count * actor_copies,
         )
+        retarget = None
+        if a.retargeter_checkpoint is not None:
+            from consequence_evaluator.retarget_execution import GTRetargetExecution
+            retarget = GTRetargetExecution(a.retargeter_checkpoint, a.retargeter_source,
+                                         task, player, identity)
         if replay_chunk_packet is not None:
             replay_identity = replay_chunk_packet.get('replay_identity')
             if (not isinstance(replay_identity, dict)
@@ -395,7 +400,11 @@ def native_worker(a):
         for tick in range(stop):
             if time.monotonic() - started > 150:
                 raise TimeoutError('bounded synchronous group deadline')
-            if proposal_enabled and proposal_roles == 'candidate' and tick < query:
+            if retarget is not None:
+                teacher_controls = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
+                points, _ = geometry.measure(task)
+                control = retarget.control(tick, task, points, teacher_controls)
+            elif proposal_enabled and proposal_roles == 'candidate' and tick < query:
                 # Preserve the native policy's approach/contact prefix.  Only
                 # the 24-step scoring window is frozen into a nominal chunk.
                 if prefix_actions is not None:
@@ -453,7 +462,7 @@ def native_worker(a):
                 actor_actions = legacy_group_actor_action(player, obs, copies=actor_copies).clamp(-1, 1)
                 base_action = actor_actions[zero_left:zero_left + 1].expand(count, -1).clone()
                 control = base_action.clone()
-            if (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
+            if retarget is None and (not proposal_enabled or proposal_roles == 'candidate') and query <= tick < query + horizon:
                 offset = tick - query
                 control[positive_env] = (control[positive_env] + positive[offset]).clamp(-1, 1)
                 control[negative_env] = (control[negative_env] + negative[offset]).clamp(-1, 1)
@@ -473,6 +482,18 @@ def native_worker(a):
             canonical_state_hashes=canonical_hashes, state_field_hashes=state_field_hashes,
             canonical_state_field_hashes=canonical_state_field_hashes, rng_hashes=rng_hashes,
             timestamps=np.arange(stop + 1) / 30)
+        if retarget is not None:
+            packet = retarget.finish(packets, identity, requested_controls, dict(
+                seed=a.seed, source_backend=actual_backend, initial_semantic_gap=initial_semantic_gap,
+                initial_semantic_exact=initial_semantic_exact, env_origins=origin_np.tolist(),
+                actor_inference_batch=count * actor_copies, actor_inference_copies=actor_copies))
+            save(a.worker_output, packet)
+            write(a.worker_output.with_suffix('.json'), dict(status='COMPLETED', steps=stop,
+                elapsed_s=time.monotonic()-started, peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                metrics=packet['metrics'], role_outcomes=packet['role_outcomes'], gate=packet['gate'],
+                clipped_coordinate_counts_total=np.asarray(packet['clipped_coordinate_counts']).sum(0).tolist(),
+                commanded_target_max_abs_error=np.asarray(packet['commanded_target_max_abs_error']).max(0).tolist()))
+            return
         if proposal_enabled and proposal_roles == 'behavior':
             # This is a behavior-only packet: role pairs are reactive teacher /
             # repeated teacher and open-loop ACT / repeated ACT.  It deliberately
@@ -1713,6 +1734,8 @@ def main():
     p.add_argument('--diagnostic-force-cache', action='store_true', help='engineering only: inspect derived force differences; all other prefix fields remain strict')
     p.add_argument('--action-chunk-checkpoint', type=Path,
                    help='engineering worker only: frozen native 24-step proposal checkpoint')
+    p.add_argument('--retargeter-checkpoint', type=Path, help='engineering only: GT-hand learned retargeter')
+    p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
     p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',
@@ -1737,13 +1760,20 @@ def main():
             if not is_within(value, ROOT / 'outputs/consequence-evaluator'):
                 p.error('all optional outputs/inputs must be task-owned')
             setattr(a, name, value)
-    for name in ('action_chunk_checkpoint', 'action_chunk_replay'):
+    for name in ('action_chunk_checkpoint', 'action_chunk_replay', 'retargeter_checkpoint', 'retargeter_source'):
         value = getattr(a, name, None)
         if value is not None:
             value = value.resolve()
             if (not is_within(value, ROOT / 'outputs/consequence-evaluator') or not value.exists()):
                 p.error('%s must be an existing task-owned output' % name.replace('_', '-'))
             setattr(a, name, value)
+    if a.retargeter_checkpoint is not None or a.retargeter_source is not None:
+        if (a.retargeter_checkpoint is None or a.retargeter_source is None
+                or not a.worker or not a.finish or a.engineering_group_envs != 4
+                or a.engineering_steps != 542 or a.action_chunk_checkpoint is not None
+                or a.action_chunk_replay is not None or a.prefix is not None
+                or a.native_backend.name != 'gpu_physx_gpu_pipeline'):
+            p.error('GT retarget requires checkpoint+source, native GPU worker, four roles/full542, no ACT/prefix')
     if not 0 <= a.gpu <= 7 or not 1 <= a.episodes <= 4 or not 30 <= a.seconds <= 900:
         p.error('bounded one-GPU/<=4episode/<=900s Probe required')
     if a.engineering_steps and (not a.worker or not a.finish or not 24 <= a.engineering_steps <= 542):
