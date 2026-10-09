@@ -16,6 +16,14 @@ shuffle 从 .6282 降至 .3718，说明新 τ 分支确实被使用；但 C1 增
 strict pairs，当前不扩 epoch、不改 gate、不进入可部署 planner；保留为主线第7–8步
 的接口与证据，下一步需要非平凡同-H candidate bank/H→τ proposal 审计。
 
+随后对冻结 `H.pt`/`HA.pt` 做只读 candidate-bank audit（commit `e0b8e2f`）：H-only
+七候选完全相同（candidate RMS 0），HA 虽有动作条件，但 panel 候选差异仅约
+1.09 mm mean / 1.40 mm max，observed-τ point RMSE 约59.53 mm。将 HA 生成 τ
+喂入冻结 evaluator 后 C0 严格 pair 仅29.49%，且选择集中在 candidate 2/4；这是
+evaluator 训练于 observed τ、生成 τ 属于 OOD 的诊断，不是任务控制结果。它把下一
+个低成本 blocker 具体化为“先获得有足够候选多样性且非 tie 的 H→τ bank”，而不是
+继续加 evaluator epoch。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

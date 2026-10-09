@@ -87,6 +87,21 @@ control, and C1-vs-C2 retention is therefore not interpretable as a positive
 PW result. Ordinary held-out test RMSE is recorded in `result.json`; it is not
 used as a panel selection claim.
 
+## Frozen H-to-tau candidate-bank audit
+
+The follow-up read-only audit (`e0b8e2f`, output
+`outputs/consequence-evaluator/trajectory-candidate-bank-audit-20261010-r5/`)
+feeds the existing H-only and action-conditioned (`HA`) bridge checkpoints to
+the same panel. H-only proposals are identical across all seven candidates
+(mean/max candidate RMS `0/0`), so H alone cannot form a candidate bank. HA
+proposals vary, but only by mean/max RMS `1.09/1.40 mm`; its panel point RMSE
+against observed tau is `59.53 mm` (H `59.54 mm`). Feeding these generated
+proposals into the frozen trajectory evaluator gives C0 strict accuracy
+`29.49%`, with selections concentrated on candidates 2 and 4. This is an
+OOD diagnostic because the evaluator was fit on observed tau, not generated
+bridge outputs; it is evidence that the current H-to-tau proposal diversity
+is insufficient for a meaningful selector, not a new task-control result.
+
 ## Attribution and next step
 
 The implementation contract is valid: C0/C1/C2 receive distinct tau/effect
