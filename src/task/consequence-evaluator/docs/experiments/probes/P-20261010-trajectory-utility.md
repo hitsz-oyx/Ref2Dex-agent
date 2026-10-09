@@ -162,6 +162,15 @@ held offline Probe evidence, not a supported ranking or control result. No
 C2/PointWorld pass or online control was started after this corrected negative
 screen.
 
+A read-only selector-margin audit of the r8 `panel-predictions.npz` found no
+exact C1 score ties, but the top-two score margin was at most `.01` on 35/75
+panels and at most `.03` on 53/75. The teacher top-two margin was at most
+`.02` on 70/75 panels. Tau shuffling changed raw C1 scores (maximum absolute
+change about `.110`) without changing strict pair accuracy. These margins do
+not justify a deadzone or an online selector: candidate selection remains
+blocked by the failed matched information screen and the tie-heavy teacher
+labels.
+
 ## Frozen planner-chain wiring audit
 
 The next bounded audit (output

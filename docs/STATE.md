@@ -58,6 +58,11 @@ GT-information screen 继续为 false；没有启动 C2/PW inference、selector 
 该 bank 的 parent/offset、r3 checkpoint hash 与审计脚本 hash 已写入 r8 manifest，
 r1–r6 的构建工程失败继续保留，未形成科学结果。
 
+r8 的只读 score-margin 审计没有 exact tie，但 C1 top-two margin ≤.01/.03 的
+panel 分别为 35/75、53/75，teacher top margin ≤.02 的为 70/75；shuffle 改变
+raw score 却不改变 strict accuracy。因此没有定义 deadzone 或 online selector，
+第 9 步继续冻结。
+
 随后完成冻结离线 `H→τ→PointWorld→C2` planner-chain wiring audit（输出
 `outputs/consequence-evaluator/trajectory-planner-panel-audit-20261010-r4/`，GPU2）。
 每个同-H anchor 只取一份当前状态，再由 HA bridge 展开7个候选；PointWorld
