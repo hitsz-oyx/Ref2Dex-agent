@@ -117,3 +117,30 @@ diagnostic. The collection entry point is
 The r3 pre-alignment run is retained as implementation evidence only. All
 later runs verify input hashes, exact native dispatch, no clipping, and the
 teacher behavior screen; none is a formal task-success or Cm validation.
+
+## Source/backend isolation follow-up
+
+The contextual checkpoint was then tested against a fresh teacher packet made
+with the same CPU tensor pipeline and direct four-env actor layout as the
+retarget runner. The packet is
+`outputs/consequence-evaluator/ref7_2-same-cpu-teacher-packet-20261010-r1.pkl`;
+its source rollout kept all four baseline roles for 481--484 held frames and
+records the CPU/GPU-PhysX provenance explicitly.
+
+With the source env0 future broadcast (the original runner contract), the
+contextual R roles held `6/9/76` frames and had hand RMSE
+`61.43/75.83/77.40 mm`. This is materially better than the frozen GPU-source
+run (`0/0/0`, `109.03/111.12/113.91 mm`), so the source backend/layout mismatch
+was a real confound; it is still far from the `>=90%` and `<40 mm` gate.
+
+A single matched-layout diagnostic used each source env's own future instead
+of broadcasting env0. It produced R held `0/0/0` and RMSE
+`117.23/101.24/81.34 mm`, with no clipping. The same CPU teacher packet itself
+has 26--37 mm hand variation between envs, and repeated baseline env0 has
+about 42 mm RMSE against the saved source, so this is not a same-state causal
+validation. It does show that a per-env future substitution is not a rescue.
+
+The follow-up therefore remains `UNCLEAR` for attribution and `UNPROMISING`
+for the native execution gate. No further query-period or contextual-fit
+sweep is warranted; future contact/preload work must use source-matched replay
+and record native contact-force proxies before making a representation claim.

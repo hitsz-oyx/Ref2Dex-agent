@@ -44,6 +44,14 @@ ref7_1 的 finger commanded-PD/contact-preload 诊断。证据卡：
 [P-20261010-hand-action-retarget-data](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-retarget-data.md)，
 产物位于 `outputs/consequence-evaluator/ref7_2-hand-action-*`。
 
+随后做了 source/backend isolation：同 CPU tensor pipeline、同 4-env direct actor
+layout 的 teacher packet 使 contextual R 在 env0 future broadcast 下 held=6/9/76、
+hand RMSE=61.4/75.8/77.4mm（冻结 GPU source 为0/0/0、109–114mm），确认旧执行失败
+混入 source/backend mismatch，但仍未过 gate。用每个 source env 自己 future 的单次
+诊断反而 held=0/0/0、RMSE=117.2/101.2/81.3mm；同 CPU teacher env 间本身已有26–37mm
+hand variation，不能把它解释为同-state验证。当前停止 query/model sweep，保留隔离
+产物与失败 run，后续接触/preload 工作需 source-matched replay 和 contact-force proxy。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，
