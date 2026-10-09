@@ -5,12 +5,12 @@ experiment_id: P-20261009-old-utility-evaluator
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: 76e03db
+git_commit: edccfe1
 claim_id: C3
 hypothesis_family: HF-old-utility-evaluator
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [261, 262, 263, 288, 289, 290, 292]
+seeds: [261, 262, 263, 265, 288, 289, 290, 292]
 decision_changed_if_positive: quantify frozen PointWorld value gap and screen actual learned GT-selector execution
 decision_changed_if_negative: audit source fit and horizon or interaction coverage without redefining old Y
 status: PROMISING
@@ -140,6 +140,11 @@ Actual artifacts are declared under the existing replay root
 in fresh `evaluator-c0-one-shot`, `evaluator-c1-one-shot`,
 `evaluator-c2-one-shot` folders/status/logs. New choices and the summary stay
 in the consequence-evaluator run; existing replay data/manifests are preserved.
+
+The final frozen audit uses <=60s GPU inference to replay saved panel scores
+and source training fit. A post-freeze C1-with-PW-future swap holds its weights
+fixed to diagnose the future/fit gap. It does not change any selector, gate or
+actual execution; report it as a diagnostic, not a fourth tuned comparison.
 
 ### Engineering repeatability repair before evaluator fitting
 

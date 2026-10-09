@@ -38,7 +38,7 @@ def main():
     for path in (root/'reanchor-r2/panel.pt',root/'reanchor-r2/trace.pt'):hashes[str(path)]=sha(path)
     data_meta=json.loads((a.data/'manifest.json').read_text());rows=torch.tensor(data_meta['panel_rows']);origin=data_meta['panel_query']
     z0=stable_grasp_z(baseline['height'][rows],baseline['pair'][rows],baseline['rest_height'][rows])[0].numpy().astype(int)
-    counts={'baseline':int(z0.sum())};outcomes={'baseline':z0};prediction_errors={};source_fit={};checks={};metrics_replay={}
+    counts={'baseline':int(z0.sum())};outcomes={'baseline':z0};prediction_errors={};source_fit={};checks={};metrics_replay={};swap_metric=None
     for arm in ('C0','C1','C2'):
         ck=run/(arm+'.pt');hashes[str(ck)]=sha(ck)
         if hashes[str(ck)]!=result['checkpoint_sha256'][arm]:raise ValueError('weights changed')
@@ -58,6 +58,11 @@ def main():
         if error>1e-6:raise ValueError('saved prediction replay differs')
         metric=panel_metrics(pred['target'],q);metrics_replay[arm]=metric
         if metric['choices']!=result['metrics'][arm]['choices']:raise ValueError('selector changed')
+        if arm=='C1':
+            gt_input=inputs['future'];mean,std=saved['statistics']['future']
+            inputs['future']=((torch.from_numpy(pw).float()-mean)/std).cuda()
+            swap_metric=panel_metrics(pred['target'],predict(flat).reshape(25,7))
+            inputs['future']=gt_input
         tr=np.flatnonzero(d['split']=='train');fit=predict(tr)
         source_fit[arm]=dict(rmse=float(np.sqrt(np.mean((fit-d['label'][tr])**2))),mae=float(np.abs(fit-d['label'][tr]).mean()))
         folder=root/('evaluator-'+arm.lower()+'-one-shot');status_path=root/(folder.name+'-status.json')
@@ -90,6 +95,7 @@ def main():
         scope='frozen selector actual one-shot Z90,25exposed s3 anchors; not rolling/full task/RL',counts=counts,
         comparisons=comparisons,checks=checks,outcomes={k:v.tolist() for k,v in outcomes.items()},
         saved_prediction_max_error=prediction_errors,source_train_fit=source_fit,metrics_replay=metrics_replay,
+        C1_PW_swap_diagnostic=swap_metric,swap_scope='post-freeze same-weight diagnostic; no selection changes or execution',
         C2_oracle_observed_hand=True,deployable_planner=False,full_task_gate1=False,
         input_sha256=hashes,elapsed_s=time.monotonic()-start)
     output.write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
