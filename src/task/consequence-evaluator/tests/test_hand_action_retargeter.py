@@ -219,6 +219,17 @@ def test_teacher_finger_reference_only_replaces_test_env_fingers():
         _runner.replace_with_teacher_fingers(command, teacher[:17])
 
 
+def test_teacher_action_reference_replaces_only_test_env_rows():
+    command = np.arange(4 * 18, dtype="float32").reshape(4, 18)
+    teacher = np.linspace(-1., 1., 18, dtype="float32")
+    result = _runner.replace_with_teacher_action(command, teacher)
+    np.testing.assert_array_equal(result[0], command[0])
+    np.testing.assert_array_equal(result[1:], np.broadcast_to(teacher, (3, 18)))
+    np.testing.assert_array_equal(command, np.arange(4 * 18, dtype="float32").reshape(4, 18))
+    with np.testing.assert_raises(ValueError):
+        _runner.replace_with_teacher_action(command, teacher[:17])
+
+
 def test_runtime_source_identity_reads_backend_and_direct_row_layout():
     class Physx:
         use_gpu = True

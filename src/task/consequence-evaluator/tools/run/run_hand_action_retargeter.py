@@ -122,6 +122,23 @@ def replace_with_teacher_fingers(command, teacher_action, first_env=1):
     return result
 
 
+def replace_with_teacher_action(command, teacher_action, first_env=1):
+    """Broadcast the current live env-0 teacher action to test envs."""
+    value = np.asarray(command, dtype="float32")
+    teacher = np.asarray(teacher_action, dtype="float32")
+    if value.ndim != 2 or value.shape[1] != 18:
+        raise ValueError("command must have shape [N,18]")
+    if teacher.shape != (18,):
+        raise ValueError("teacher_action must have shape [18]")
+    if not 0 <= int(first_env) < value.shape[0]:
+        raise ValueError("first_env is outside command batch")
+    result = value.copy()
+    result[int(first_env):] = teacher
+    if not np.isfinite(result).all():
+        raise ValueError("nonfinite teacher action")
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, required=True)
@@ -136,6 +153,8 @@ def main():
                         help="freeze train-only analytic wrist decoder and retain learned finger actions")
     parser.add_argument("--teacher-finger-reference", action="store_true",
                         help="attribution audit: replace test-env fingers with live env-0 teacher fingers")
+    parser.add_argument("--teacher-action-reference", action="store_true",
+                        help="attribution audit: replace test-env actions with the live env-0 teacher action")
     parser.add_argument("--source-per-env", action="store_true",
                         help="diagnostic: use each source env's own teacher future")
     parser.add_argument("--seconds", type=int, default=300)
@@ -180,6 +199,10 @@ def main():
         raise ValueError("fixed-wrist Spike requires the contextual v2 checkpoint")
     if args.teacher_finger_reference and args.fixed_wrist_pd_inverse is None:
         raise ValueError("teacher-finger reference requires the fixed-wrist decoder")
+    if args.teacher_finger_reference and args.teacher_action_reference:
+        raise ValueError("teacher-finger and full teacher-action references are exclusive")
+    if args.teacher_action_reference and args.fixed_wrist_pd_inverse is not None:
+        raise ValueError("full teacher-action reference cannot also replace the wrist")
     fixed_wrist_coefficients = fixed_wrist_metadata = None
     if args.fixed_wrist_pd_inverse is not None:
         fixed_wrist_coefficients, fixed_wrist_metadata = load_pd_statistics(
@@ -269,6 +292,9 @@ def main():
                     teacher_finger_reference=(
                         "current live env-0 teacher action 6:18 broadcast to test envs"
                         if args.teacher_finger_reference else None),
+                    teacher_action_reference=(
+                        "current live env-0 teacher action 0:18 broadcast to test envs"
+                        if args.teacher_action_reference else None),
                     source_hand_contract=("per-env source hand future for matched-layout diagnostic"
                                           if args.source_per_env else "env0 source hand future broadcast to R envs"),
                     contact_capture=dict(
@@ -394,7 +420,9 @@ def main():
                 offset = chunk_offset(tick, last_query_tick)
                 command = base.detach().cpu().numpy().copy()
                 command[1:] = predicted[1:, offset]
-                if args.teacher_finger_reference:
+                if args.teacher_action_reference:
+                    command = replace_with_teacher_action(command, command[0])
+                elif args.teacher_finger_reference:
                     command = replace_with_teacher_fingers(command, command[0])
                 if fixed_wrist_goals is not None:
                     # The model query state is frozen for the chunk, but the
