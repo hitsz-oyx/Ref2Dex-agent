@@ -26,6 +26,7 @@ SCHEMA = "ref2dex.hand-action-retargeter.v1"
 SOURCE_BACKEND = dict(name="cpu_pipeline", pipeline="cpu", sim_device="cuda:0",
                       tensor_device="cuda:0", physx_use_gpu=True)
 SOURCE_ACTOR_EXECUTION = dict(layout="environment_rows_direct", copies=1)
+BACKEND_CONTRACT_KEYS = ("name", "pipeline", "sim_device", "physx_use_gpu")
 
 
 def sha(path):
@@ -312,12 +313,20 @@ def main():
             if n != args.envs or self.is_rnn or len(task.motion_file) != 1:
                 raise ValueError("fixed four-env feedforward full-reference contract required")
             runtime_backend, runtime_actor_execution = runtime_source_identity(task, n)
-            if runtime_backend != source["source_backend"]:
-                raise ValueError("runtime backend differs from source packet")
+            source_backend = source["source_backend"]
+            if any(runtime_backend[key] != source_backend[key]
+                   for key in BACKEND_CONTRACT_KEYS):
+                raise ValueError("runtime backend differs from source packet contract: "
+                                 f"actual={runtime_backend!r} expected={source_backend!r}")
             expected_actor = source["replay_identity"]["actor_execution"]
             if runtime_actor_execution != expected_actor:
-                raise ValueError("runtime actor execution differs from source packet")
+                raise ValueError("runtime actor execution differs from source packet: "
+                                 f"actual={runtime_actor_execution!r} expected={expected_actor!r}")
             manifest["runtime_backend"] = runtime_backend
+            manifest["source_backend_declared"] = source_backend
+            manifest["runtime_backend_contract_keys"] = list(BACKEND_CONTRACT_KEYS)
+            manifest["runtime_backend_metadata_note"] = (
+                "source packet tensor_device is legacy metadata; CPU pipeline runtime task.device is cpu")
             manifest["runtime_actor_execution"] = runtime_actor_execution
             task._enable_early_termination = False; task._adaptive_kappa_enabled = False
             task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.

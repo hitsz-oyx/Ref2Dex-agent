@@ -246,10 +246,12 @@ def test_runtime_source_identity_reads_backend_and_direct_row_layout():
     class Task:
         gym = Gym()
         sim = "sim"
-        device = "cuda:0"
+        device = "cpu"
 
     backend, actor = _runner.runtime_source_identity(Task(), 4)
-    assert backend == _runner.SOURCE_BACKEND
+    assert backend["tensor_device"] == "cpu"
+    for key in _runner.BACKEND_CONTRACT_KEYS:
+        assert backend[key] == _runner.SOURCE_BACKEND[key]
     assert actor == dict(_runner.SOURCE_ACTOR_EXECUTION, total_rows=4)
 
 
