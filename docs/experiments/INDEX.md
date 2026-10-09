@@ -155,7 +155,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261009-gt-hand-retargeter](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gt-hand-retargeter.md) | GT hand geometry to learned native control | UNCLEAR: execution pending. | Pause ACT inference and action-to-hand bridge per user ref7; first test GT-hand retarget/control only. | probes/UNCLEAR |
+| [P-20261009-gt-hand-retargeter](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gt-hand-retargeter.md) | GT hand geometry to learned native control | UNCLEAR: the execution gate failed; recorded GT-target servo tracks within4.35mm but held117 versus teacher484, while the frozen learned ret | Keep ACT/G paused and do not train H-to-hand or connect PW/evaluator; diagnose contact execution and the learned inverse separately before r | probes/UNCLEAR |
 
 ## HF-gt-interaction-aux
 

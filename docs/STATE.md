@@ -1,5 +1,33 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref7 GT-hand retarget/control upper-bound Probe
+
+用户暂停 ACT 推理和 G(H,A)->hand 路线，改按 ref7 先做几何 action retargeter。
+旧Y/U及全局Cm claim保持；尚未训练H->V或接PW/evaluator。main实现两层decoder，
+输入GT24x11未来手位移+当前q18/dq18，预测相对查询状态的commanded PD targets。
+显式intrinsic XYZ/原生DOF索引、6独立finger及逐horizon归一化；原生wrist为增量，
+固定24步绝对目标每tick用机械q反馈转回控制，R仍仅每24步query。
+
+复用完整身份的5条teacher持握轨迹（3train/1val/1test，390/130/130窗口）；
+不是完整任务success数据。GPU2拟合2400步27.97秒，val选step1600，test相对位置
+目标RMSE27.17mm，不能代替真实手跟踪。首次native preflight因描述性ring/pinky
+名称颠倒中止，c28d9eb修复；数值索引/标签/权重不受影响，原checkpoint保留。
+
+修复后4env/64copies/seed282完整542步81.48秒：teacher held484；直接GT PD目标
+servo held117/手coordinate RMSE4.35mm；learned R held42/135.89mm，重复目标臂
+held0/136.05mm。held>=90%teacher且RMSE<40mm门槛未过，所有完整任务success=false。
+GT servo无裁剪，commanded target误差<=5.96e-8，仍在tick176后失抓；说明这次
+固定source轨迹贴近不保证抓持。learned前120帧RMSE70.25mm且无裁剪，首次裁剪
+tick265，不能把初期失败归因于后期349次finger裁剪。重复臂并非独立seed。
+
+执行审计PASS：23次query，actual=requested bitwise；未来几何t+1、当前q/dq/手
+对齐；只读几何和当前状态的checkpoint GPU重放误差6.11e-7；目标转换/重复流一致。
+当前冻结learned inverse为UNPROMISING，整条几何retarget/control仍UNCLEAR，
+GT command servo也未过持握gate，不能将全局负结果仅归因于R。下一优先级是直接
+GT servo失抓窗口的接触/执行诊断及已有packet上的source/live-state inverse复核，
+暂不扩大训练或推进H->V。13项相关测试通过，GPU2已释放，新输出<25MB。
+证据：[GT-hand retargeter Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gt-hand-retargeter.md)。
+
 ## 2026-10-09 ACT newest-action receding1 follow-up
 
 用户提出每次只执行一步。新增`receding1`每tick重新预测，执行最新chunk的horizon0，

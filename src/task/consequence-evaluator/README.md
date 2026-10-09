@@ -1,6 +1,20 @@
 # Consequence evaluator
 
-当前按用户 [ref5](docs/user/ref/ref5.md)推进普通随机干预 rollout 的手执行桥：
+当前按用户 [ref7](docs/user/ref/ref7.md)暂停 ACT 推理诊断及 action-to-hand bridge，
+先做 `GT future hand + current q/dq -> learned retargeter -> native Gym` 上界 Probe。
+模型训练和真实执行合同见 [GT-hand retargeter](docs/experiments/probes/P-20261009-gt-hand-retargeter.md)。
+当前只检验几何跟踪与持续持握；GT future 是特权输入，尚不能部署，完整放回成功也未证明。
+在 retarget/control gate 通过前不训练 `H -> V`，不扩 G，不接 PointWorld/evaluator。
+分支保持 `main`。
+
+首轮门槛未过：teacher held484；直接GT PD目标servo轨迹RMSE4.35mm但held117，
+learned retargeter135.89mm/held42，重复目标臂held0。控制转换/GT时序/GPU推理重放
+审计通过；直接GT也失抓，不能只归因于模型。当前先诊断接触执行和learned inverse，
+不把低离线目标误差升级为控制成功。完整放回各臂均false。
+
+## 暂停的手执行桥路线
+
+之前按用户 [ref5](docs/user/ref/ref5.md)推进普通随机干预 rollout 的手执行桥：
 `G(H,A) -> 24x11x3 hand -> frozen PointWorld -> frozen C1 -> 每8步选择7候选`。
 不扩大 fork panel，旧 `U32=Y7+.25Y3-Y6` 仍只作为 evaluator teacher。
 自训 e260、PW best46000 和 C1 step1000 全部冻结；在线选择只读当前/过去几何，
