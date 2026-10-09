@@ -200,7 +200,8 @@ def main():
             grouped_stride8.setdefault(split,[]).append((predictions[mask],targets[mask]))
             detail = dict(split=split,episode=name,horizon=horizon_metrics(predictions,targets),
                           horizon_stride8=horizon_metrics(predictions[mask],targets[mask]),
-                          overlap8=overlap_metrics(predictions,ticks,target=act))
+                          overlap8=overlap_metrics(predictions,ticks,target=act),
+                          overlap8_query_grid=overlap_metrics(predictions[mask],ticks[mask],target=act))
             details.append(detail)
             print(json.dumps(dict(episode=name,split=split,mse=detail['horizon']['mse'])),flush=True)
         result['episodes'] = details
@@ -223,6 +224,9 @@ def main():
                 ds=[d for d in details if d['split']==key]
                 values=[d['overlap8']['boundary_disagreement']['wrist_translation_mm']['mean_l2'] for d in ds]
                 axes[1].scatter([label]*len(values),values,s=15)
+            metrics8 = result['groups_stride8'].get('val')
+            if metrics8 is not None:
+                axes[0].plot(np.arange(24),metrics8['horizon_mse'],'--',label='val: query8 grid')
             axes[0].axvspan(-.5,7.5,color='gray',alpha=.15)
             axes[0].set(xlabel='Chunk horizon k',ylabel='Native action MSE',yscale='log')
             axes[0].legend(fontsize=8)
