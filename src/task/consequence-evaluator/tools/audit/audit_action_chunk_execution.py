@@ -40,6 +40,8 @@ def horizon_metrics(prediction, target):
                 horizon_mse=np.mean(error**2,axis=(0,2)).tolist(),
                 horizon_mae=np.mean(np.abs(error),axis=(0,2)).tolist(),
                 horizon_bias=np.mean(error,axis=0).tolist(),
+                horizon_wrist_translation_rmse_mm=(np.sqrt(np.mean(error[...,:3]**2,axis=(0,2)))*1000).tolist(),
+                horizon_active_finger_mse=np.mean(error[...,[6,8,10,12,14,15]]**2,axis=(0,2)).tolist(),
                 first8_mse=float(np.mean(error[:,:8]**2)),
                 last16_mse=float(np.mean(error[:,8:]**2)))
 
@@ -180,6 +182,7 @@ def main():
             assert packet['role_names'][0]=='reactive_teacher' and packet['engineering_only']
             episodes.append((path.parent.name,'reactive_teacher',packet['history'][:,0],packet['actions'][:,0]))
         grouped = {}
+        grouped_stride8 = {}
         details = []
         for split,name,h,act in episodes:
             if time.monotonic()-started>180:
@@ -193,13 +196,19 @@ def main():
             predictions = np.concatenate(predictions)
             targets = np.stack([act[t:t+24] for t in ticks])
             grouped.setdefault(split,[]).append((predictions,targets))
+            mask = ticks % 8 == 0
+            grouped_stride8.setdefault(split,[]).append((predictions[mask],targets[mask]))
             detail = dict(split=split,episode=name,horizon=horizon_metrics(predictions,targets),
+                          horizon_stride8=horizon_metrics(predictions[mask],targets[mask]),
                           overlap8=overlap_metrics(predictions,ticks,target=act))
             details.append(detail)
             print(json.dumps(dict(episode=name,split=split,mse=detail['horizon']['mse'])),flush=True)
         result['episodes'] = details
         result['groups'] = {key:horizon_metrics(np.concatenate([v[0] for v in rows]),
                                                np.concatenate([v[1] for v in rows])) for key,rows in grouped.items()}
+        result['groups_stride8'] = {key:horizon_metrics(np.concatenate([v[0] for v in rows]),
+                                                       np.concatenate([v[1] for v in rows]))
+                                   for key,rows in grouped_stride8.items()}
         try:
             import matplotlib
         except ImportError:
