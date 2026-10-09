@@ -71,7 +71,10 @@ def loader(dataset, indices, batch_size, workers=0):
                       persistent_workers=workers > 0, generator=generator)
 
 
-MOVING_SELECTION_KEY = 'model/anchor/cat0/h24/point_epe'
+# The selection strata are complementary object populations.  Both use
+# category -1 (all categories) so that the macro score cannot mix a target
+# anchor numerator with an all-object static denominator.
+MOVING_SELECTION_KEY = 'model/moving_objects/cat-1/h24/point_epe'
 STATIC_SELECTION_KEY = 'model/static_objects/cat-1/h24/point_epe'
 
 
@@ -90,7 +93,7 @@ def validation_selection(measured):
     if not all(math.isfinite(value) and value >= 0 for value in (moving, static)):
         raise ValueError('validation selection metrics must be finite and nonnegative')
     return dict(score=(moving + static) / 2,
-                moving_anchor_h24=moving, static_object_h24=static,
+                moving_objects_h24=moving, static_objects_h24=static,
                 moving_key=MOVING_SELECTION_KEY, static_key=STATIC_SELECTION_KEY)
 
 

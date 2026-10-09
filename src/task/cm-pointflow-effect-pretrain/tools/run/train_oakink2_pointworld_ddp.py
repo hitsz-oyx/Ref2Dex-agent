@@ -298,7 +298,7 @@ def run(args):
                     metrics = standard_evaluate(net, dataset, selected, arm, batch_size, amp, intervention)
                     source_metrics.append(metrics)
                     for key, value in metrics.items(): measured['source/'+desc['name']+'/'+key] = value
-                key = 'model/anchor/cat0/h24/point_epe'
+                key = base.MOVING_SELECTION_KEY
                 if len(source_metrics) == len(dataset.sources) and all(key in m for m in source_metrics):
                     for common in set.intersection(*(set(m) for m in source_metrics)):
                         measured['pooled/'+common] = measured[common]

@@ -210,8 +210,10 @@ def test_validation_selection_requires_and_averages_moving_static_metrics():
     }
     selection = trainer.validation_selection(measured)
     assert selection['score'] == pytest.approx(.02)
-    assert selection['moving_anchor_h24'] == pytest.approx(.03)
-    assert selection['static_object_h24'] == pytest.approx(.01)
+    assert trainer.MOVING_SELECTION_KEY == 'model/moving_objects/cat-1/h24/point_epe'
+    assert trainer.STATIC_SELECTION_KEY == 'model/static_objects/cat-1/h24/point_epe'
+    assert selection['moving_objects_h24'] == pytest.approx(.03)
+    assert selection['static_objects_h24'] == pytest.approx(.01)
     with pytest.raises(ValueError, match='selection strata missing'):
         trainer.validation_selection({trainer.MOVING_SELECTION_KEY: .03})
 
@@ -265,6 +267,11 @@ def test_real_cuda_time_identity_masks_gradients_and_checkpoint():
         altered = dict(b, action=partner_action)
         altered_pair = model(NoLabels(altered))
         torch.testing.assert_close(paired['translation'][:1], altered_pair['translation'][:1],
+                                   rtol=2e-4, atol=2e-5)
+        partner_xyz = b['xyz'].clone()
+        partner_xyz[1] += .25
+        altered_geometry = model(NoLabels(dict(b, xyz=partner_xyz)))
+        torch.testing.assert_close(paired['translation'][:1], altered_geometry['translation'][:1],
                                    rtol=2e-4, atol=2e-5)
     with torch.no_grad():
         masked = dict(b, action_valid=b['action_valid'].clone())

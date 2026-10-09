@@ -2,9 +2,10 @@
 
 - `task`: cm-pointflow-effect-pretrain
 - `branch`: agent/pointworld-ref8-fix
-- `git_commit`: 40229e47adef1dcabaf7a8ef668fbff0ff440f5d
+- `git_commit`: 285fd74517e1a363866572bcaefa39fa6bb840b9
 - `class`: Decision
-- `status`: RUNNING
+- `status`: COMPLETED
+- `conclusion`: PROMISING (single-seed Probe only; not a formal cross-domain claim)
 - `question`: Does a three-domain shared train-union forward normalization provide a clean fixed statistical interface for repaired PointWorld training?
 - `hypothesis`: One shared OakInk2+GRAB+ARCTIC train-union normalization preserves physical comparability across domains better than retaining OakInk2-only forward statistics, while the existing mixed-domain loss scales remain valid.
 - `decision_note`: For this run, choose shared multisource stats because the feature-group constants required by fixed physical-scale normalization have not been specified. Defer physical-scale normalization as a separate design route rather than inventing scales during a 50000-step comparison.
@@ -50,15 +51,17 @@ This is a single 50000-step training Probe, not a formal cross-domain
 validation. It does not compare fixed physical-scale normalization or make a
 zero-shot robot claim. Stop and preserve a bounded checkpoint if source/hash
 drift, nonfinite loss, GPU conflict, out-of-bound coordinates, or the campaign
-deadline occurs. Checkpoint selection uses the repaired moving/static macro
-score and preserves both components.
+deadline occurs. During this run, checkpoint selection used the then-active
+moving-anchor/static-object macro score and preserved both components. The
+post-run contract repair uses complementary all-object moving/static strata;
+it is covered by the tests below and does not trigger a retrain.
 
 ## Result
 
-### Interim snapshot (training still running)
+### Interim snapshot (superseded by final audit)
 
-This snapshot was recorded at approximately step `42984/50000`; it is not a
-final result and does not close the Probe.
+This snapshot was recorded at approximately step `42984/50000`; it is kept as
+an intermediate trace and is superseded by the final audit below.
 
 - run state: `TRAINING`; two-rank DDP on GPUs `0,1`; no nonfinite loss, OOM,
   source/hash drift, or fixed-workspace violation observed;
@@ -76,7 +79,33 @@ final result and does not close the Probe.
   `22703/24576 MiB`; utilization remained active and the reserved-memory
   watermark stayed stable.
 
-The curve has entered a validation plateau after roughly step 33000, with
-normal sampling fluctuations around the best score. Continue to step 50000,
-then replace this interim section with the final checkpoint and result
-manifest audit before assigning the Probe conclusion label.
+The curve entered a validation plateau after roughly step 33000, with normal
+sampling fluctuations around the best score.
+
+### Final run audit
+
+The run completed at step `50000` in `37754.35 s` with two identical DDP
+parameter hashes. The run's original selection contract chose the historical
+`anchor/cat0` moving stratum and `static_objects/cat-1` static stratum; its
+saved `best.pt` is therefore step `33000`, with `24.393 mm` moving-anchor,
+`3.098 mm` static-object, and `13.745 mm` macro score. The final checkpoint's
+balanced validation is `23.689 mm` moving-anchor and `4.321 mm` static-object.
+On the symmetric post-run population, the same final checkpoint is
+`21.896 mm` moving objects and `4.321 mm` static objects, or `13.109 mm`
+macro.
+
+For the post-run contract, selection is now defined symmetrically as
+`moving_objects/cat-1` and `static_objects/cat-1`. Recomputing that score from
+the recorded validation history gives a best observed point at step `40000`
+(`21.951 mm` moving objects, `3.902 mm` static objects, `12.926 mm` macro),
+but no new checkpoint is produced and no retraining is implied by this
+selection-contract repair. The three saved checkpoints retain the shared
+forward-stat hash
+`536ca8e4a628dfbaf3965aba959d3cd3c9e2f56222437fb07232322c58d318d4` and
+loss-stat hash
+`07a258088ae52083f4b2f1547b5d46f9d4472db18794afaf7c989e9357b815ea`;
+`final.pt` and `result.json` are present. The full Task CPU contract suite
+passes (`80 passed, 6 skipped`), and the real CUDA model-level
+batch-composition/gradient/checkpoint contract passes (`1 passed`). The
+`motion_floor` remains `0.1`, and no HOCap or static-loss ablation was run, so
+the Probe does not close the static-dynamics question.
