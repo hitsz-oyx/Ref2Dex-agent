@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 主线 τ-conditioned evaluator Probe
+
+为继续 `docs/user/完整链路.md` 的第 7–8 步，新增真实 hand-trajectory 接口的
+离线 evaluator，而不是复用旧 `[24,18]` native-action branch。C0 输入 `H+τ`，
+C1 输入 `H+τ+E_GT`，C2 输入 `H+τ+E_PW`；τ 使用 `pw_hand_future` 当前查询物体坐标系，
+对象 effect 单独取 GT/PW 的前12维。GPU2 的 1200-step fit 在约31秒完成，输入、同-H
+25x7 panel、train/val/test split 和 checkpoint hash 均记录在
+`outputs/consequence-evaluator/trajectory-utility-fit-20261010-r1/`。
+
+结果为 `UNCLEAR`：C0/C1/C2 严格 pair accuracy 为 .6282/.6410/.7692；C0 的 τ
+shuffle 从 .6282 降至 .3718，说明新 τ 分支确实被使用；但 C1 增益仅1.28pp（gate
+要求3pp），C1 τ-shuffle drop 也仅1.28pp。C2 的 τ-shuffle 为 .7821，高于未打乱的
+.7692，不能把其 raw 分数写成 PW 保留能力。panel 仅5/25锚点有严格 label 差异、78
+strict pairs，当前不扩 epoch、不改 gate、不进入可部署 planner；保留为主线第7–8步
+的接口与证据，下一步需要非平凡同-H candidate bank/H→τ proposal 审计。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小
