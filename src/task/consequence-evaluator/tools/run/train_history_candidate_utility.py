@@ -133,7 +133,7 @@ def main():
                  for name in ("train", "val", "test")}
     if any(not len(value) for value in split_ids.values()):
         raise ValueError("train/val/test panel splits must all be nonempty")
-    flat_train = rows[split_by_panel[rows[:, 0]] == "train"].reshape(-1)
+    flat_train = rows[split_by_panel == "train"].reshape(-1)
     stats = {
         "history": fit_stats(data["history"][flat_train]),
         "trajectory": fit_stats(data["pw_hand_future"][flat_train].reshape(-1, HORIZON, TRAJECTORY_DIM)),
