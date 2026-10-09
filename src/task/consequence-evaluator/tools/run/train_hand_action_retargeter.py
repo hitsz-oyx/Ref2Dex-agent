@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import pickle
 import subprocess
 import time
 
@@ -107,6 +108,48 @@ def concat_split(paths, stride):
     return result, manifests, hashes
 
 
+def load_teacher_windows(path, stride):
+    """Load one preserved full teacher launch as a motion-rich anchor set."""
+    path = Path(path).resolve()
+    with path.open("rb") as stream:
+        packet = pickle.load(stream)
+    if (packet.get("engineering_only") is not True or packet.get("role_names", [None])[0] != "reactive_teacher"
+            or packet.get("seed") is None or packet["hand_keypoints"].shape != (543, 4, 11, 3)
+            or packet["dof_position"].shape != (543, 4, 18)
+            or packet["dof_velocity"].shape != (543, 4, 18)
+            or packet["actions"].shape != (542, 4, ACTION_DIM)
+            or packet["done"][:-1].any()):
+        raise ValueError("complete teacher anchor packet required: " + str(path))
+    hand = np.asarray(packet["hand_keypoints"][:, 0], dtype="float32")
+    q = np.asarray(packet["dof_position"][:, 0], dtype="float32")
+    dq = np.asarray(packet["dof_velocity"][:, 0], dtype="float32")
+    action = np.asarray(packet["actions"][:, 0], dtype="float32")
+    if not all(np.isfinite(value).all() for value in (hand, q, dq, action)):
+        raise ValueError("nonfinite teacher anchor tensor")
+    hands = []; states = []; targets = []; ticks = []; episodes = []; phases = []
+    for tick in range(0, len(action) - HORIZON + 1, int(stride)):
+        hands.append(trajectory_input(hand[tick], hand[tick + 1:tick + 1 + HORIZON]))
+        states.append(np.concatenate((q[tick], dq[tick])))
+        targets.append(action[tick:tick + HORIZON])
+        # The same packet filename (``act.pkl``) is used by several retained
+        # teacher launches.  Split identity must include the launch directory;
+        # otherwise train/val/test anchor packets look like one leaked episode.
+        episode_id = "teacher:%s:0" % path.parent.name
+        ticks.append(tick); episodes.append(episode_id)
+        phases.append(0 if tick < 120 else (1 if tick < 240 else 2))
+    data = dict(hand=np.asarray(hands, dtype="float32"), state=np.asarray(states, dtype="float32"),
+                action=np.asarray(targets, dtype="float32"), tick=np.asarray(ticks, dtype=np.int32),
+                episode=np.asarray(episodes), phase=np.asarray(phases, dtype=np.int8))
+    manifest = dict(run_id="teacher-anchor:" + path.stem, actor_sha256=None,
+                    seed=int(packet["seed"]), source=str(path), anchor=True,
+                    role_outcome=packet["role_outcomes"]["reactive_teacher"])
+    return data, manifest, {str(path): sha(path)}
+
+
+def append_data(base, extra):
+    return {key: np.concatenate((base[key], extra[key]), axis=0) for key in base}
+
+
 def episode_disjoint(splits):
     seen = {}
     for name, data in splits.items():
@@ -143,6 +186,9 @@ def main():
     parser.add_argument("--train", type=Path, nargs="+", required=True)
     parser.add_argument("--val", type=Path, nargs="+", required=True)
     parser.add_argument("--test", type=Path, nargs="+", required=True)
+    parser.add_argument("--teacher-train", type=Path, nargs="*", default=[])
+    parser.add_argument("--teacher-val", type=Path, nargs="*", default=[])
+    parser.add_argument("--teacher-test", type=Path, nargs="*", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--steps", type=int, default=2400)
@@ -175,9 +221,16 @@ def main():
                   sha(TASK / "src/consequence_evaluator/hand_action_retargeter.py")}
     for name in ("train", "val", "test"):
         value, meta, hashes = concat_split(getattr(args, name), args.stride)
+        teacher_paths = getattr(args, "teacher_" + name)
+        for teacher_path in teacher_paths:
+            anchor, anchor_meta, anchor_hashes = load_teacher_windows(teacher_path, args.stride)
+            value = append_data(value, anchor)
+            meta.append(anchor_meta); hashes.update(anchor_hashes)
         splits[name] = value; manifests[name] = meta; frozen.update(hashes)
     episode_disjoint(splits)
-    if len({m["actor_sha256"] for group in manifests.values() for m in group}) != 1:
+    actor_hashes = {m["actor_sha256"] for group in manifests.values() for m in group
+                    if m.get("actor_sha256") is not None}
+    if len(actor_hashes) != 1:
         raise ValueError("all splits must use one frozen actor")
 
     train = splits["train"]
@@ -199,6 +252,8 @@ def main():
                                       episodes=int(len(np.unique(splits[name]["episode"]))),
                                       windows=int(len(splits[name]["hand"])))
                             for name in splits},
+                    teacher_anchor_sources={name: [m["source"] for m in manifests[name] if m.get("anchor")]
+                                            for name in splits},
                     input_sha256=frozen, input_contract="future hand displacement t+1:t+24 plus q_t,dq_t",
                     target_contract="captured full native action A_t:t+24, no actor action at inference",
                     normalization="train-only per horizon x action coordinate; hand/state likewise",
