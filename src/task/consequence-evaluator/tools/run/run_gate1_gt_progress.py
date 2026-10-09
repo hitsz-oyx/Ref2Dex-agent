@@ -1746,7 +1746,7 @@ def main():
     p.add_argument('--retargeter-source', type=Path, help='engineering only: held-out full teacher GT hand packet')
     p.add_argument('--object-relative-source', type=Path, help='engineering only: analytic GT wrist transport teacher source')
     p.add_argument('--object-relative-anchor', choices=('current', 'future'), default='current')
-    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation'), default='command_vs_measured')
+    p.add_argument('--object-relative-layout', choices=('command_vs_measured', 'transport_ablation', 'chunk_alignment'), default='command_vs_measured')
     p.add_argument('--action-chunk-replay', type=Path,
                    help='engineering candidate worker only: replay a recorded native proposal chunk packet')
     p.add_argument('--action-chunk-mode', choices=('open_loop24', 'receding8', 'receding1', 'overlap8', 'temporal1'), default='open_loop24',

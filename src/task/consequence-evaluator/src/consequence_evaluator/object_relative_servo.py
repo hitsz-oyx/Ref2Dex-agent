@@ -77,8 +77,11 @@ class ObjectRelativeGTExecution:
         self.layout = layout
         if layout == 'transport_ablation':
             self.roles = ['reactive_teacher', 'world_gt_command', 'translation_gt_command', 'bounded_se3_gt_command']
+        elif layout == 'chunk_alignment':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'query24_se3_gt_command', 'query24_bounded_gt_command']
         self.device = player.device
         self.desired, self.clip_counts, self.errors, self.live_poses = [], [], [], []
+        self.query_ticks, self.query_poses, self.query_chunks = [], [], []
 
     def control(self, tick, task, points, teacher_control):
         from .collection import pose_matrix
@@ -98,6 +101,21 @@ class ObjectRelativeGTExecution:
             corrected = transport_wrist(self.source_targets[tick], source_pose, live[3], q[3])
             bounded = bounded_transport(self.source_targets[tick], corrected)
             desired = np.stack((self.source_targets[tick], translation, bounded))
+        elif self.layout == 'chunk_alignment':
+            if tick % 24 == 0:
+                chunks = []
+                for role in (2, 3):
+                    values = []
+                    for future_tick in range(tick, min(tick+24, 542)):
+                        nominal = self.source_targets[future_tick]
+                        corrected = transport_wrist(nominal, source_pose, live[role], q[role])
+                        values.append(corrected if role == 2 else bounded_transport(nominal, corrected))
+                    chunks.append(np.stack(values))
+                self.cached_chunks = chunks
+                self.query_ticks.append(tick); self.query_poses.append(live.copy())
+                self.query_chunks.append(chunks)
+            desired = np.stack((self.source_targets[tick], self.cached_chunks[0][tick % 24],
+                                self.cached_chunks[1][tick % 24]))
         raw = native_control(desired, q[1:])
         clipped = np.clip(raw, -1, 1)
         result = teacher_control.clone()
@@ -135,7 +153,8 @@ class ObjectRelativeGTExecution:
         passes = {name: bool(teacher >= 45 and metrics[name]['maximum_held_frames'] >= .9*teacher
                             and outcomes[name]['intermediate_loss_events'] == 0)
                   for name in self.roles[1:]}
-        primary = 'bounded_se3_gt_command' if self.layout == 'transport_ablation' else 'object_gt_command'
+        primary = {'transport_ablation':'bounded_se3_gt_command',
+                   'chunk_alignment':'query24_bounded_gt_command'}.get(self.layout, 'object_gt_command')
         gate = dict(teacher_held=teacher, held_fraction=.9, role_passes=passes,
                     passed=passes[primary], primary_role=primary, engineering_only=True,
                     secondary_local_rmse_threshold_mm=40)
@@ -145,6 +164,8 @@ class ObjectRelativeGTExecution:
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
             servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout == 'transport_ablation' else None),
             rotation_feedback_cap_rad=(.15 if self.layout == 'transport_ablation' else None),
+            alignment_query_ticks=self.query_ticks, alignment_query_poses=self.query_poses,
+            alignment_query_chunks=self.query_chunks,
             clipped_coordinate_counts=np.asarray(self.clip_counts), commanded_target_max_abs_error=np.asarray(self.errors),
             gt_source=str(self.source), gt_source_sha256=hashlib.sha256(self.source.read_bytes()).hexdigest(),
             privileged_future_geometry=True, native_body_names=self.body_names,

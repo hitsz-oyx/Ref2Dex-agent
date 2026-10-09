@@ -53,13 +53,14 @@ def main():
         packet_sha256=hashlib.sha256(args.packet.read_bytes()).hexdigest(),
         actual_requested_max_abs=0., anchor=p['object_anchor'], gate=p['gate'])
     errors = []
+    query_indices = np.arange(542)//24*24 if layout == 'chunk_alignment' else np.arange(542)
     layout = p.get('servo_layout', 'command_vs_measured')
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
-        expect = p['object_pose'][:-1, role].astype('float64') @ inverse @ pose(target)
+        expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
         if layout == 'transport_ablation' and role == 2:
             expect = pose(target)
             expect[:, :3, 3] += p['object_pose'][:-1, role, :3, 3]-source['object_pose'][anchor:anchor+542, 0, :3, 3]
-        elif layout == 'transport_ablation' and role == 3:
+        elif layout in ('transport_ablation', 'chunk_alignment') and role == 3:
             nominal = pose(target)
             delta = expect[:, :3, 3]-nominal[:, :3, 3]
             delta *= np.minimum(1., .02/np.maximum(np.linalg.norm(delta, axis=-1), 1e-12))[:, None]
@@ -73,6 +74,12 @@ def main():
             raise ValueError('SE(3) matrix transport mismatch: %s' % error)
         np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
         errors.append(error)
+    if layout == 'chunk_alignment':
+        np.testing.assert_array_equal(p['alignment_query_ticks'], np.arange(0, 542, 24))
+        np.testing.assert_array_equal(p['alignment_query_poses'], p['object_pose'][np.arange(0, 542, 24)])
+        for tick in range(542):
+            for arm in (0, 1):
+                np.testing.assert_array_equal(desired[tick, arm+1], p['alignment_query_chunks'][tick//24][arm][tick % 24])
     report['transport_matrix_max_abs'] = errors
     rebuilt = commanded_targets(p['dof_position'][:-1, 1:], p['actions'][:, 1:])
     error = np.max(np.abs(rebuilt-desired), -1)

@@ -137,3 +137,21 @@ poses are therefore usable for sampled visual-surface gaps. Native finger
 net force cannot name an object-contact loss: source pinky has positive net
 force despite ~17mm average object visual-surface gap in140..200; self-contact
 or mesh/collision differences can contribute. Retain this qualification.
+
+r3 at8a76649, transport_ablation/current-t: teacher484/world484;
+translation-only483/localRMSE36.17mm but peaklift2.244m versus source.827m;
+boundedSE3 held484/local30.46mm/world10.82mm/peaklift.876m, zero clips, zero
+intermediate loss. This bounded recorded-command control screen is PROMISING,
+not proof that11 measured keypoints alone specify commands or that relative
+correction improves teacher/world performance (both already near ceiling).
+
+Decision at10:44UTC: test query-anchored24-step trajectory transport. At each
+query q=0,24,..., use live object(q) and source object(q) to transform all
+recorded targets q..q+23, freeze the transformed target chunk, then native
+mechanical-q adapter each step. This preserves desired future object/wrist
+motion and avoids per-frame phase-locking to source/live object rotation.
+r4 roles teacher/world/query24 full SE3/query24 bounded SE3; current-t
+anchor, same finger commanded preload, no model. Primary gate remains
+held>=90%teacher, no intermediate loss; localRMSE reported separately.
+Do not transition to a learned retargeter merely because a bounded oracle
+that uses source commands holds. First isolate geometry inverse and preload.
