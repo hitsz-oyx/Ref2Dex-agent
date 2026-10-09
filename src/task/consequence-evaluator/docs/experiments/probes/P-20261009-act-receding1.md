@@ -5,7 +5,7 @@ experiment_id: P-20261009-act-receding1
 date: 2026-10-09
 task: consequence-evaluator
 branch: main
-git_commit: b880148
+git_commit: 493efc8
 claim_id: C3
 hypothesis_family: HF-consequence-act-proposal
 probe_index_in_family: 5
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [282]
 decision_changed_if_positive: retain newest-first-action replanning and diagnose temporal mixing as a behavior confound
 decision_changed_if_negative: rule out executing only one newest action as a remedy for this frozen checkpoint and prioritize deployment-history diagnosis
-status: UNCLEAR
+status: UNPROMISING
 run_id: act-receding1-20261009-r1
 ---
 
 # Can one newest ACT action per query recover grasp?
+
+Result: UNPROMISING: newest horizon0 control every step still held0/lift0; teacher held484 with exact native dispatch.
+Decision: Keep receding1 as a diagnostic mode; prioritize deployment-history diagnosis, with no retraining or further inference screens in this Probe.
 
 ## Motivation and decision
 
@@ -64,6 +67,34 @@ the screening signal and full-task success is reported separately.
 Run: `outputs/consequence-evaluator/act-receding1-20261009-r1/`, with immutable
 command/source/checkpoint manifest, native packet and worker log. Audit:
 `outputs/consequence-evaluator/act-receding1-audit-20261009-r1/`.
+
+## Results and attribution
+
+The worker ran at `493efc8` and completed542 steps in67.16s wall time on
+GPU2 (observed34% utilization,18.2GB memory); GPU2 was released afterwards.
+The frozen proposal still had **max lift0m and held0**, and its repeat held0.
+The reactive teacher reached0.82686m/held484; the reactive repeat
+reached0.94229m/held483. ACT full-task success is false.
+
+The independent audit passes: exactly542 queries, exactly1 active chunk,
+current raw history at each query, and bitwise
+`actions[t,1] == proposal_chunks[t,1,0]` for every executed tick. Requested versus
+captured native controls and independent latest-chunk reconstruction have
+maximum absolute difference0. ACT/repeat actions are identical; no early done.
+The first120 eight-step-boundary wrist-control change is18.06mm, but grasp
+still does not recover. The14 focused executor/action-data tests pass.
+
+This is the proposed single-step execution test, distinct from the previous
+`temporal1` weighted mixture. It provides `UNPROMISING` evidence for this
+frozen-checkpoint remedy: shortening execution to1 and removing temporal mixing
+did not recover behavior. It does not show that1-step receding control is
+generally ineffective or establish a unique root cause. The earlier
+open_loop24 held478 remains a sustained-hold engineering baseline; current
+ACT inference failure remains unresolved.
+
+No additional inference launches or proposal training follow from this result.
+The next discriminating question concerns latest-action accuracy on actual
+deployment histories, including the states caused by the learned proposal.
 
 ## Limitations / future evidence
 

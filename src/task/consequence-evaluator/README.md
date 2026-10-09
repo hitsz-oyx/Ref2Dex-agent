@@ -105,6 +105,11 @@ show a disproportionately weak first8-token average. See the
 [temporal aggregation Probe](docs/experiments/probes/P-20261009-act-temporal-ensemble.md)
 and [horizon/dispatch audit tool](tools/audit/audit_action_chunk_execution.py).
 
+`receding1` queries every step and executes only the latest horizon0 control,
+discarding previous chunks. It also fails to lift with this frozen checkpoint
+(held0, while the teacher held484), despite bitwise latest-action/native
+dispatch checks. See the [one-step Probe](docs/experiments/probes/P-20261009-act-receding1.md).
+
 ## 历史路线与保留证据
 
 早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。

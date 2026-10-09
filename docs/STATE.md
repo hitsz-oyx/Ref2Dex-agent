@@ -1,5 +1,17 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ACT newest-action receding1 follow-up
+
+用户提出每次只执行一步。新增`receding1`每tick重新预测，执行最新chunk的horizon0，
+不混合历史预测，区别于`temporal1`。冻结同一checkpoint/归一化、seed282和4env
+native GPU合同，单次542步67.16秒：ACT最高抬升0m/held0、重复ACT held0；
+teacher0.827m/held484，repeat held483。542次query、最多1个chunk，逐tick
+`action[t]=proposal[t,0]` bitwise成立，native/requested差0，无early done。
+14项相关测试通过，GPU2已释放。该冻结checkpoint的one-step remedy为UNPROMISING，
+未解决ACT抓取失败，不据此确定唯一根因；下一步仍优先deployment-history诊断。
+证据：[receding1 Probe](../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-act-receding1.md)，
+产物`outputs/consequence-evaluator/act-receding1-20261009-r1/`。
+
 ## 2026-10-09 ref6 ACT inference diagnosis
 
 冻结历史ACT checkpoint `ed26abd5`与其原归一化，不重训。`6751843`补齐按绝对tick
