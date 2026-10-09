@@ -8,6 +8,9 @@ from consequence_evaluator.hand_action_retargeter import (
 from consequence_evaluator.retarget_collection import (
     MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
     validate_residual_family)
+from consequence_evaluator.trajectory_utility import (
+    OBJECT_EFFECT_DIM, SCHEMA as TRAJECTORY_SCHEMA, TRAJECTORY_DIM,
+    TrajectoryUtility)
 
 
 def test_structured_residual_family_is_bounded_and_covers_modes():
@@ -64,3 +67,17 @@ def test_context_contract_keeps_query_geometry_and_previous_command_local():
     output = model(hand, state, torch.from_numpy(context))
     assert output.shape == (5, HORIZON, ACTION_DIM)
     assert torch.isfinite(output).all()
+
+
+def test_trajectory_utility_separates_tau_and_object_effect_arms():
+    rng = np.random.default_rng(25)
+    history = torch.zeros(4, 1442)
+    tau = torch.from_numpy(rng.normal(size=(4, HORIZON, TRAJECTORY_DIM)).astype("float32"))
+    effect = torch.from_numpy(rng.normal(size=(4, HORIZON, OBJECT_EFFECT_DIM)).astype("float32"))
+    model = TrajectoryUtility(width=32, layers=1)
+    c0 = model(history, tau, effect, False)
+    c1 = model(history, tau, effect, True)
+    assert TRAJECTORY_SCHEMA.endswith("trajectory-utility.v1")
+    assert c0.shape == c1.shape == (4,)
+    assert torch.isfinite(c0).all() and torch.isfinite(c1).all()
+    assert not torch.allclose(c0, c1)
