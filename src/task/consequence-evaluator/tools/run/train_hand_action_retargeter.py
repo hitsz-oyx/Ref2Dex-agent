@@ -20,7 +20,7 @@ sys.path.insert(0, str(TASK / "src"))
 from consequence_evaluator.contracts import is_within
 from consequence_evaluator.hand_action_retargeter import (
     ACTION_DIM, HORIZON, SCHEMA, HandActionRetargeter, Standardizer,
-    trajectory_input)
+    hand_object_context, trajectory_input)
 
 
 def sha(path):
@@ -44,12 +44,13 @@ def load_windows(root, stride):
             or manifest.get("structured_residual_schema") != "ref2dex.structured-residual.v1"):
         raise ValueError("completed structured retarget rollout required: " + str(root))
     with np.load(trajectory_path, allow_pickle=False) as data:
-        required = {"hand_keypoints", "dof_position", "dof_velocity", "action", "done", "length",
+        required = {"hand_keypoints", "object_pose", "dof_position", "dof_velocity", "action", "done", "length",
                     "structured_residual", "actor_action", "structured_mode", "structured_phase"}
         missing = required.difference(data.files)
         if missing:
             raise ValueError("retarget rollout missing fields %s" % sorted(missing))
         hand = np.asarray(data["hand_keypoints"], dtype="float32")
+        object_pose = np.asarray(data["object_pose"], dtype="float32")
         q = np.asarray(data["dof_position"], dtype="float32")
         dq = np.asarray(data["dof_velocity"], dtype="float32")
         action = np.asarray(data["action"], dtype="float32")
@@ -58,7 +59,8 @@ def load_windows(root, stride):
         residual = np.asarray(data["structured_residual"], dtype="float32")
         mode = np.asarray(data["structured_mode"], dtype=np.int8)
         phase = np.asarray(data["structured_phase"], dtype=np.int8)
-    if (hand.ndim != 4 or hand.shape[2:] != (11, 3) or q.shape[2:] != (18,)
+    if (hand.ndim != 4 or hand.shape[2:] != (11, 3)
+            or object_pose.shape != (len(hand), q.shape[1], 4, 4) or q.shape[2:] != (18,)
             or dq.shape != q.shape or action.shape != (len(q) - 1, q.shape[1], ACTION_DIM)
             or done.shape != action.shape[:2] or residual.shape != action.shape
             or mode.shape != action.shape[:2] or phase.shape != (len(action),)
@@ -73,6 +75,7 @@ def load_windows(root, stride):
 
     hands = []
     states = []
+    contexts = []
     targets = []
     ticks = []
     episodes = []
@@ -84,6 +87,8 @@ def load_windows(root, stride):
         for tick in range(0, int(length) - HORIZON + 1, int(stride)):
             hands.append(trajectory_input(hand[tick, env], hand[tick + 1:tick + 1 + HORIZON, env]))
             states.append(np.concatenate((q[tick, env], dq[tick, env])))
+            previous = action[tick - 1, env] if tick else np.zeros(ACTION_DIM, dtype="float32")
+            contexts.append(hand_object_context(hand[tick, env], object_pose[tick, env], previous))
             targets.append(action[tick:tick + HORIZON, env])
             ticks.append(tick)
             episodes.append("%s:%d" % (manifest["seed"], env))
@@ -91,6 +96,7 @@ def load_windows(root, stride):
     if not hands:
         raise ValueError("no complete 24-step windows in " + str(root))
     arrays = dict(hand=np.asarray(hands, dtype="float32"), state=np.asarray(states, dtype="float32"),
+                  context=np.asarray(contexts, dtype="float32"),
                   action=np.asarray(targets, dtype="float32"), tick=np.asarray(ticks, dtype=np.int32),
                   episode=np.asarray(episodes), phase=np.asarray(phases, dtype=np.int8))
     return arrays, manifest, {str(manifest_path): sha(manifest_path), str(trajectory_path): sha(trajectory_path)}
@@ -115,21 +121,25 @@ def load_teacher_windows(path, stride):
         packet = pickle.load(stream)
     if (packet.get("engineering_only") is not True or packet.get("role_names", [None])[0] != "reactive_teacher"
             or packet.get("seed") is None or packet["hand_keypoints"].shape != (543, 4, 11, 3)
+            or packet["object_pose"].shape != (543, 4, 4, 4)
             or packet["dof_position"].shape != (543, 4, 18)
             or packet["dof_velocity"].shape != (543, 4, 18)
             or packet["actions"].shape != (542, 4, ACTION_DIM)
             or packet["done"][:-1].any()):
         raise ValueError("complete teacher anchor packet required: " + str(path))
     hand = np.asarray(packet["hand_keypoints"][:, 0], dtype="float32")
+    object_pose = np.asarray(packet["object_pose"][:, 0], dtype="float32")
     q = np.asarray(packet["dof_position"][:, 0], dtype="float32")
     dq = np.asarray(packet["dof_velocity"][:, 0], dtype="float32")
     action = np.asarray(packet["actions"][:, 0], dtype="float32")
     if not all(np.isfinite(value).all() for value in (hand, q, dq, action)):
         raise ValueError("nonfinite teacher anchor tensor")
-    hands = []; states = []; targets = []; ticks = []; episodes = []; phases = []
+    hands = []; states = []; contexts = []; targets = []; ticks = []; episodes = []; phases = []
     for tick in range(0, len(action) - HORIZON + 1, int(stride)):
         hands.append(trajectory_input(hand[tick], hand[tick + 1:tick + 1 + HORIZON]))
         states.append(np.concatenate((q[tick], dq[tick])))
+        previous = action[tick - 1] if tick else np.zeros(ACTION_DIM, dtype="float32")
+        contexts.append(hand_object_context(hand[tick], object_pose[tick], previous))
         targets.append(action[tick:tick + HORIZON])
         # The same packet filename (``act.pkl``) is used by several retained
         # teacher launches.  Split identity must include the launch directory;
@@ -138,6 +148,7 @@ def load_teacher_windows(path, stride):
         ticks.append(tick); episodes.append(episode_id)
         phases.append(0 if tick < 120 else (1 if tick < 240 else 2))
     data = dict(hand=np.asarray(hands, dtype="float32"), state=np.asarray(states, dtype="float32"),
+                context=np.asarray(contexts, dtype="float32"),
                 action=np.asarray(targets, dtype="float32"), tick=np.asarray(ticks, dtype=np.int32),
                 episode=np.asarray(episodes), phase=np.asarray(phases, dtype=np.int8))
     manifest = dict(run_id="teacher-anchor:" + path.parent.name, actor_sha256=None,

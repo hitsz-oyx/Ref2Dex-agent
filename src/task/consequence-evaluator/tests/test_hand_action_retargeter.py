@@ -2,7 +2,8 @@ import numpy as np
 import torch
 
 from consequence_evaluator.hand_action_retargeter import (
-    ACTION_DIM, HORIZON, HandActionRetargeter, Standardizer, chunk_offset,
+    ACTION_DIM, CONTEXT_DIM, CONTEXT_SCHEMA, HORIZON, ContextHandActionRetargeter,
+    HandActionRetargeter, Standardizer, chunk_offset, hand_object_context,
     trajectory_input)
 from consequence_evaluator.retarget_collection import (
     MODE_NAMES, PHASE_NAMES, phase_code, sample_structured_residual,
@@ -47,3 +48,19 @@ def test_receding_chunk_offset_is_relative_to_latest_query():
     assert chunk_offset(24, 24) == 0
     with np.testing.assert_raises(ValueError):
         chunk_offset(24, 0)
+
+
+def test_context_contract_keeps_query_geometry_and_previous_command_local():
+    rng = np.random.default_rng(24)
+    current = rng.normal(size=(5, 11, 3)).astype("float32")
+    pose = np.broadcast_to(np.eye(4, dtype="float32"), (5, 4, 4)).copy()
+    pose[:, :3, 3] = rng.normal(size=(5, 3)).astype("float32")
+    previous = rng.uniform(-1, 1, size=(5, ACTION_DIM)).astype("float32")
+    context = hand_object_context(current, pose, previous)
+    assert CONTEXT_SCHEMA.endswith("v2") and context.shape == (5, CONTEXT_DIM)
+    model = ContextHandActionRetargeter(32)
+    hand = torch.zeros(5, HORIZON, 11, 3)
+    state = torch.zeros(5, 36)
+    output = model(hand, state, torch.from_numpy(context))
+    assert output.shape == (5, HORIZON, ACTION_DIM)
+    assert torch.isfinite(output).all()
