@@ -1,5 +1,27 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref13 whole-world replay recovery
+
+按用户要求重新检查历史 ref13 方法。近期 host/group 诊断的 Torch2.0.1、强制
+frame0/hybrid probability1 与跨 env broadcast 控制，不等价于原先 Torch2.4.1、
+hybrid probability0.5、每个 env 自身反馈、跨 fresh world 对应 env 的重放。
+因此下文的 host 关闭判断仅适用于那些具体实现，不能排除完整的旧 ref13 方法。
+
+本次恢复 Torch2.4.1+cu121、96env、GPU PhysX/CPU tensor pipeline、单线程、
+seed263 和原 r7 配置。原 checkpoint SHA16fd261b 与完整 panel 未找回；使用固定
+的自训重建 e260 SHA8882fabd 和目前保留的三条转换 motion，不宣称原权重复现。
+baseline 采到45锚点，fresh zero repeat 的45/45均通过旧筛选，记录的 before、
+history、actor observation、control、PD target、height/pair 完全一致，Z90均33/45。
+repeat未保存完整trace，不能把这些字段的一致升级为所有隐藏状态/几何的exact证明。
+当前只恢复了旧执行筛选，不代表正式Gate1通过。
+
+冻结的current-only同步s3组为tick71的25个env，重采baseline Z90为20/25；
+reanchor的记录前缀误差为0。正在采七候选并比较原U与冻结物理bank的
+P[t+24]-P[t]，随后在同一组上各做四次真实8步重规划，保留原Z90评价。
+本组只有一个motion，不满足旧>=30锚点/>=2motions收益门槛。
+实验卡：`src/task/cm-interaction-oracle/docs/experiments/probes/P-20261009-ref13-progress-recovery.md`；
+产物：`outputs/cm-interaction-oracle/ref13-progress-recovery-20261009-r3/`。
+
 ## 2026-10-09 GPU synchronous group Value-noise follow-up
 
 在提交`4258adf`中修正了同步GPU group的角色合同：baseline、zero、positive、

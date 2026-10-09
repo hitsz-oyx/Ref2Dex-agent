@@ -5,7 +5,7 @@ experiment_id: P-20261009-ref13-progress-recovery
 date: 2026-10-09
 task: cm-interaction-oracle
 branch: main
-git_commit: 2ba4116
+git_commit: 96e7770
 claim_id: C3
 hypothesis_family: HF-ref13-progress-recovery
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [263]
 decision_changed_if_positive: compare old utility and frozen physical-reference delta-progress in actual rolling control under the recovered contract
 decision_changed_if_negative: retain execution or baseline failure without treating it as negative evidence for either Y
 status: UNCLEAR
-run_id: ref13-progress-recovery-20261009-r1
+run_id: ref13-progress-recovery-20261009-r3
 ---
 
 # Recover ref13 whole-world cold replay before replacing Y
@@ -85,5 +85,29 @@ does not satisfy the old>=30anchors/>=2motions screen; smaller results remain
 UNCLEAR or engineering-only. Independent cohorts, broader successful reference
 banks, full-episode outcome and formal Cm-on/off training remain later work.
 
-Result: pending engineering execution.
-Decision: run baseline/zero-repeat before candidate scoring.
+## Engineering results
+
+At run commit96e7770, baseline completed652ticks in118.43s shell/100.85s
+native and collected45anchors (31s3/14s7/0s9). Repeat completed in91.30s shell:
+45/45 accepted by the unchanged historical screen (prefix tolerance, Y max
+difference<=.05 and matching Z; acceptance>=80%). Actual before/history,
+actor observation, hand root, height, pair, first8controls and PD targets are
+bitwise equal, Y maximum difference0, Z disagreement0 and Z90 both33/45.
+The repeat path did not retain a full trace, so full-world geometry/hidden-state
+identity is not claimed. Each rolling worker separately enforces its full-world
+prefix contract and scoring checks measured geometry through the query.
+
+Current-only synchronous support selects25s3envs at tick71, retaining>122future
+steps. Reanchor-r2 has zero recorded prefix errors and baseline Z90=20/25.
+GPU2 observed approximately7.45GiB and21--38% GPU utilization. No training.
+The first two native candidates also have zero prefix errors; remaining scoring
+and real rolling execution are pending.
+
+Startup failures are preserved: r1 hit Python3.8 Path.is_relative_to, r2 had a
+relative worker path, and reanchor first attempted a rolling-only record flag.
+These failed before simulation and do not count as valid scientific Probes.
+Fix commitsb9f1c22/96e7770/ead0dc5; all actual workers record their exact commit.
+
+Decision: historical baseline-repeat screen passes; continue the already
+authorized bounded seven-candidate/new-Y comparison. Keep status UNCLEAR and
+do not infer formal Gate1 or Cm policy utility from this recovery.

@@ -231,7 +231,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261009-ref13-progress-recovery](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261009-ref13-progress-recovery.md) | Recover ref13 whole-world cold replay before replacing Y | pending engineering execution. | run baseline/zero-repeat before candidate scoring. | probes/UNCLEAR |
+| [P-20261009-ref13-progress-recovery](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261009-ref13-progress-recovery.md) | Recover ref13 whole-world cold replay before replacing Y | 见原卡 | historical baseline-repeat screen passes; continue the already | probes/UNCLEAR |
 
 ## HF-ref5-data-expansion
 
