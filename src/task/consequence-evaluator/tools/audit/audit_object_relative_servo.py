@@ -62,6 +62,17 @@ def main():
         preload=json.loads(path.read_text())
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
+        if layout=='wrist_geometry_late':
+            assert p['geometry_switch_tick']==120
+            values=targets.copy()
+            values[120:,:6]=source['dof_position'][121:,0,:6]
+            if role==3:
+                qnext=source['dof_position'][1:,0,:6]
+                qfollowing=source['dof_position'][np.minimum(np.arange(1,543)+1,542),0,:6]
+                velocity=(qfollowing-qnext)*30
+                velocity[-1]=(qnext[-1]-qnext[-2])*30
+                values[120:,:6]+=.1*velocity[120:]
+            expect=pose(values)
         if layout in ('finger_preload','finger_preload_late','geometry_pd'):
             values=targets.copy()
             fingers=source['dof_position'][1:,0][:,ACTIVE_FINGERS].copy()

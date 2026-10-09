@@ -1,16 +1,18 @@
 # Consequence evaluator
 
-当前按用户 [ref7](docs/user/ref/ref7.md)暂停 ACT 推理诊断及 action-to-hand bridge，
-先做 `GT future hand + current q/dq -> learned retargeter -> native Gym` 上界 Probe。
-模型训练和真实执行合同见 [GT-hand retargeter](docs/experiments/probes/P-20261009-gt-hand-retargeter.md)。
-当前只检验几何跟踪与持续持握；GT future 是特权输入，尚不能部署，完整放回成功也未证明。
-在 retarget/control gate 通过前不训练 `H -> V`，不扩 G，不接 PointWorld/evaluator。
-分支保持 `main`。
+当前按用户 [ref7_1](docs/user/ref/ref7_1.md)推进物体系 GT servo 与接触诊断，
+ACT/G/H->V 和旧 ref7 neural retargeter 重训继续暂停。分支保持 `main`。
+协议及滚动证据见 [物体系 GT 上界 Probe](docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。
+所有 source 未来 geometry/q/actions 都是特权 oracle，尚不能部署或宣称 Cm 增益。
 
-首轮门槛未过：teacher held484；直接GT PD目标servo轨迹RMSE4.35mm但held117，
-learned retargeter135.89mm/held42，重复目标臂held0。控制转换/GT时序/GPU推理重放
-审计通过；直接GT也失抓，不能只归因于模型。当前先诊断接触执行和learned inverse，
-不把低离线目标误差升级为控制成功。完整放回各臂均false。
+每步完整物体SE3反馈会放大运动；围绕世界nominal有界20mm/.15rad修正两次
+held484/483且无裁剪/中途失抓，命令级信号PROMISING。但它保留了source PD
+预载，同run世界命令也常484，不能说明11点几何独自确定抓持。query24、实测
+finger q、固定train预载和简单腕速度补偿尚未达到上界门槛。
+GPU审计区分coupled12几何可观测与受载实际18关节/接触effort；当前先检查
+抓稳后切换几何目标的保持能力，不扩大旧R训练或接PointWorld/evaluator。
+原 [GT-hand retargeter](docs/experiments/probes/P-20261009-gt-hand-retargeter.md)
+held117/42/0的历史失败与执行审计完整保留，不将旧world replay称为geometry inverse。
 
 ## 暂停的手执行桥路线
 

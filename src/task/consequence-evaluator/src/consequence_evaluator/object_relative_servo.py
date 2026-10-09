@@ -33,6 +33,29 @@ def local_points(hand, object_pose):
                      hand-object_pose[..., None, :3, 3])
 
 
+def recover_wrist(hand, root_template, reference_q):
+    """Recover the native wrist from palm and five fixed finger-root points.
+
+    Joint rotations do not move their proximal-link origins. A calibrated
+    URDF rest template therefore determines the rigid wrist transform without
+    reading future joint states. Euler branch selection uses a supplied prior.
+    """
+    indices = [0, 1, 3, 5, 7, 9]
+    template = np.asarray(root_template)[indices]
+    observed = np.asarray(hand)[...,indices,:]
+    a = template-template.mean(0)
+    b = observed-observed.mean(-2,keepdims=True)
+    u, _, vh = np.linalg.svd(np.einsum('pi,...pj->...ij',a,b))
+    v = np.swapaxes(vh,-1,-2)
+    correction = np.broadcast_to(np.eye(3),v.shape).copy()
+    correction[...,2,2] = np.linalg.det(v@np.swapaxes(u,-1,-2))
+    rotation = v@correction@np.swapaxes(u,-1,-2)
+    result = np.asarray(reference_q).copy()
+    result[...,:3] = observed.mean(-2)-np.einsum('...ij,j->...i',rotation,template.mean(0))
+    result[...,3:6] = closest_euler(rotation,result[...,3:6])
+    return result.astype('float32')
+
+
 def bounded_transport(target, corrected, translation_cap=.02, rotation_cap=.15):
     """Bound feedback about the world nominal, retaining its planned motion."""
     result = corrected.copy()
@@ -73,6 +96,14 @@ class ObjectRelativeGTExecution:
         self.source_pose = packet['object_pose'][:, 0]
         self.source_hand = packet['hand_keypoints'][:, 0]
         self.source_q = packet['dof_position'][:, 0]
+        rest = np.einsum('ij,pj->pi',wrist_rotation(self.source_q[0]).T,
+                         self.source_hand[0]-self.source_q[0,:3])
+        # Root geometry is calibrated from the known reset, then every future
+        # wrist comes only from its 11 recorded keypoints and continuity.
+        reconstructed = [self.source_q[0].copy()]
+        for hand in self.source_hand[1:]:
+            reconstructed.append(recover_wrist(hand,rest,reconstructed[-1]))
+        self.geometry_wrist_q = np.stack(reconstructed)
         self.source_targets = commanded_targets(self.source_q[:-1], packet['actions'][:, 0])
         self.anchor = anchor
         self.layout = layout
@@ -84,6 +115,8 @@ class ObjectRelativeGTExecution:
             self.roles = ['reactive_teacher', 'world_gt_command', 'measured_finger_no_preload', 'measured_finger_fixed_preload']
         elif layout == 'finger_preload_late':
             self.roles = ['reactive_teacher', 'world_gt_command', 'late_measured_finger_no_preload', 'late_measured_finger_fixed_preload']
+        elif layout == 'wrist_geometry_late':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'late_geometry_wrist_no_ff', 'late_geometry_wrist_velocity_ff']
         elif layout == 'geometry_pd':
             self.roles = ['reactive_teacher', 'world_gt_command', 'geometry_wrist_ff_source_fingers', 'geometry_wrist_ff_fixed_finger_preload']
         self.preload_path=preload_path
@@ -135,6 +168,16 @@ class ObjectRelativeGTExecution:
                 self.query_chunks.append(chunks)
             desired = np.stack((self.source_targets[tick], self.cached_chunks[0][tick % 24],
                                 self.cached_chunks[1][tick % 24]))
+        elif self.layout == 'wrist_geometry_late':
+            measured = self.source_targets[tick].copy()
+            compensated = measured.copy()
+            if tick >= 120:
+                measured[:6] = self.geometry_wrist_q[tick+1,:6]
+                velocity = (self.geometry_wrist_q[min(tick+2,542),:6]-self.geometry_wrist_q[tick+1,:6])*30
+                if tick == 541:
+                    velocity = (self.geometry_wrist_q[542,:6]-self.geometry_wrist_q[541,:6])*30
+                compensated[:6] = measured[:6]+.1*velocity
+            desired = np.stack((self.source_targets[tick],measured,compensated))
         elif self.layout in ('finger_preload','finger_preload_late','geometry_pd'):
             if self.preload is None:
                 raise ValueError('geometry/preload diagnostic requires frozen training statistics')
@@ -198,6 +241,7 @@ class ObjectRelativeGTExecution:
                    'chunk_alignment':'query24_bounded_gt_command',
                    'finger_preload':'measured_finger_fixed_preload',
                    'finger_preload_late':'late_measured_finger_fixed_preload',
+                   'wrist_geometry_late':'late_geometry_wrist_velocity_ff',
                    'geometry_pd':'geometry_wrist_ff_fixed_finger_preload'}.get(self.layout, 'object_gt_command')
         gate = dict(teacher_held=teacher, source_held=self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'],
                     reference_held=reference_held, held_fraction=.9, role_passes=passes,
@@ -208,7 +252,8 @@ class ObjectRelativeGTExecution:
             requested_controls=np.asarray(requested), desired_pd_targets=np.asarray(self.desired),
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
             servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
-            geometry_switch_tick=(120 if self.layout == 'finger_preload_late' else None),
+            geometry_switch_tick=(120 if self.layout in ('finger_preload_late','wrist_geometry_late') else None),
+            wrist_inverse_source=('11-point fixed roots with reset calibration' if self.layout == 'wrist_geometry_late' else None),
             rotation_feedback_cap_rad=(.15 if self.layout in ('transport_ablation', 'chunk_alignment') else None),
             alignment_query_ticks=self.query_ticks, alignment_query_poses=self.query_poses,
             alignment_query_chunks=self.query_chunks,
@@ -222,6 +267,8 @@ class ObjectRelativeGTExecution:
                               if self.layout == 'chunk_alignment' else
                               'source commanded wrist; measured future finger geometry with train-only preload ablation'
                               if self.layout in ('finger_preload','finger_preload_late') else
+                              '11-point wrist inverse after source-command grasp prefix; with/without velocity compensation'
+                              if self.layout == 'wrist_geometry_late' else
                               'measured future wrist geometry plus forward velocity damping compensation; source/fixed-preload fingers'
                               if self.layout == 'geometry_pd' else
                               'every-step analytic object-conditioned wrist transport; independent source fingers'),

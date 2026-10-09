@@ -19,7 +19,7 @@ run_id: object-relative-gt-servo-20261009-r1
 
 # Does transporting GT wrist targets with the live object preserve grasp?
 
-Result: UNCLEAR: diagnostic and execution pending.
+Result: UNCLEAR overall: bounded source-command transport and post-grasp finger geometry are PROMISING; cold-start geometry control remains blocked.
 Decision: Follow user ref7_1 for a two-hour autonomous investigation; retain paused ACT/G/H-to-V/neural-retargeter training.
 
 ## Motivation and Decision Note
@@ -240,3 +240,25 @@ that setup). [Contact transfer across dexterous hands]
 with pose and force-limited compliance. Neither paper proves effectiveness
 for this IsaacGym/controller setup; native net-body-force norm is not the
 calibrated pair contact/joint effort those methods require.
+
+
+r8 at9ae83f3, full542/71.78s: teacher485/world484, late measured fingers
+without/with median preload both483, zero clips/loss. At switch120 both
+candidates are lifted .237/.241m with1.15mm surface gap and unsupported.
+Thus r6's failure cannot justify a general claim that measured finger
+geometry cannot maintain an established grasp. Its cold-start/approach
+controller differs materially from grasp-maintenance control. Audit PASS.
+
+Decision at11:22UTC: extend exploratory budget from8 to <=12 native launches
+(<=150s each, one idle GPU, same2GB output/global bounds), within the user's
+two-hour authorization. New positive maintenance signal changes the next
+decision: r9 wrist_geometry_late retains exact source commands before120
+and source commanded fingers throughout; after120 compare11-point analytic
+wrist inverse without/with .1s velocity compensation. Calibrate fixed root
+geometry only at the known reset, recover later wrist transforms with
+Kabsch from palm/five root points and previous reconstructed Euler branch.
+This tests if initial contact establishment, rather than steady tracking,
+explains the wrist negative. If positive, combine post-grasp geometry; if
+negative, keep wrist dynamics as blocker. No future joint-state read for
+the reconstructed wrist, but privileged future geometry/source fingers remain.
+Stop these local launches after12 or if no discriminating hypothesis remains.

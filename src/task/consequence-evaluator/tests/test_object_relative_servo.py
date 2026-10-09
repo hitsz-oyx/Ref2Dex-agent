@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
-from consequence_evaluator.object_relative_servo import transport_wrist, bounded_transport
+from consequence_evaluator.object_relative_servo import transport_wrist, bounded_transport, recover_wrist
 from consequence_evaluator.retargeter import wrist_rotation
 
 
@@ -35,3 +35,15 @@ def test_bounded_transport_preserves_nominal_motion_and_limits_feedback():
     np.testing.assert_array_equal(result[6:],target[6:])
     shift=target.copy();shift[:3]+=[.1,.2,.3]
     np.testing.assert_allclose(bounded_transport(shift,shift),shift,atol=1e-7)
+
+
+def test_fixed_root_inverse_recovers_wrist_independently_of_fingertips():
+    template=np.random.default_rng(9).normal(size=(11,3))*.07
+    target=np.array([.2,-.1,.8,.7,1.9,-.6]+[.2]*12,dtype='float32')
+    points=template@wrist_rotation(target).T+target[:3]
+    points[[2,4,6,8,10]]+=.4  # Arbitrary finger articulation changes tips.
+    prior=target.copy();prior[:3]=0;prior[3:6]+=[.1,-.1,.1]
+    actual=recover_wrist(points,template,prior)
+    np.testing.assert_allclose(actual[:3],target[:3],atol=1e-7)
+    np.testing.assert_allclose(wrist_rotation(actual),wrist_rotation(target),atol=1e-6)
+    np.testing.assert_array_equal(actual[6:],prior[6:])
