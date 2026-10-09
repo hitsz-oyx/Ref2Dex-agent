@@ -120,7 +120,7 @@ target net force，pair 只是 `hand norm>.1 any AND object norm>.1` 代理；re
 frame0 标为无效。它没有恢复碰撞 pair、法向力、冲量或 preload，也不改变
 `ref7_2` Probe `UNCLEAR` / native retarget gate `UNPROMISING` 的判断。当前仍
 不启动 H-to-hand、PointWorld、evaluator 或 Cm 集成；相关运行代码的 future
-anchor 广播维度修复和布尔一致性审计修复已由测试覆盖，待提交为工程修复。
+anchor 广播维度修复和布尔一致性审计修复已由测试覆盖，并在 `053a4bb` 提交。
 
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
