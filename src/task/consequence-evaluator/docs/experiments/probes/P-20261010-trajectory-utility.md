@@ -142,17 +142,25 @@ rechecks exact H/prefix/valid32/zero-clipping contracts. The rolling cohorts
 are treatment-conditioned views of one reconstructed e260 actor/motion run,
 not 75 independent environments or Validation data.
 
-Output: `outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r7/`.
+The first replay was recorded as
+`outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r7/`.
 The bank has 13 informative anchors and 163 strict pairs. Candidate trajectory
 spread is non-collapsed in the observed bank (initial mean/max RMS
-`9.37/61.35 mm`, new-o8 `8.48/65.02 mm`, new-o16 `10.31/225.73 mm`). With
-the frozen ordinary-data C0/C1 checkpoints, C1 reaches `63.19%` strict pair
-accuracy versus C0 `57.06%` (+6.13pp), but its within-panel tau shuffle is
-`61.96%` (only +1.23pp drop); mean regret is `.02958` versus `.03528`. The
-fixed GT-information screen therefore remains false: C1 is below `.70` and
-the tau-use control is below the `.03` drop threshold. This is held offline
-evidence, not a supported ranking or control result. No C2/PointWorld pass was
-started after this negative screen.
+`9.37/61.35 mm`, new-o8 `8.48/65.02 mm`, new-o16 `10.31/225.73 mm`). A
+provenance audit then found that r7 loaded C0/C1 from the unmatched
+`trajectory-utility-fit-20261010-r1` run. Its `.5706/.6319` comparison and
+`+6.13pp` difference are therefore initialization-confounded engineering
+evidence, not a matched-arm result; r7 is retained for traceability only.
+
+The corrected replay
+`outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r8/`
+uses the matched-init r3 C0/C1 checkpoints on the identical bank and contracts:
+C0 is `57.06%`, C1 is `65.03%` (`+7.98pp`), and C1 mean regret improves
+`.03528` to `.03153`. However, the C1 tau shuffle is also `65.03%`, so the
+tau-use drop is `0pp`; C1 remains below `.70` and `screen_gate=false`. This is
+held offline Probe evidence, not a supported ranking or control result. No
+C2/PointWorld pass or online control was started after this corrected negative
+screen.
 
 ## Frozen planner-chain wiring audit
 

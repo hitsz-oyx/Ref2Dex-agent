@@ -44,12 +44,19 @@ new-o16 10.31/225.73mm（mean/max RMS），所以该 bank 并非 HA bridge 的1m
 但三个 cohort 是同一 reconstructed e260 actor/motion 的 treatment-conditioned
 时间视图，不是75个独立环境。
 
-冻结 ordinary-data C0/C1 在该 bank 上为 .5706/.6319 strict pair accuracy，
-C1 相对 C0 +6.13pp、mean regret .03528→.02958；然而 C1 τ-shuffle .6196，
-只下降1.23pp，且 C1<.70，固定 GT-information screen 仍为 false。因而没有启动
-C2/PW inference 或在线控制；该结果只说明扩大 observed bank 仍不足以证明稳健的
-τ-conditioned ranking。parent run/offset 已写入 manifest，r1–r6 的构建工程失败保留，
-未形成科学结果。
+随后发现 r7 manifest 实际加载的是未匹配初始化的
+`trajectory-utility-fit-20261010-r1/C0.pt` 与 `C1.pt`；其 .5706/.6319 及
+6.13pp 增益只能作为 provenance-confounded engineering evidence，不能作为
+matched-arm 结果。保留 r7 产物，不覆盖、不删除。
+
+在相同 bank 和合同上，以 matched-init r3 C0/C1 重播
+`outputs/consequence-evaluator/trajectory-rolling-panel-audit-20261010-r8/`：
+C0/C1 strict pair accuracy 为 .5706/.6503（+7.98pp），mean regret
+.03528→.03153，但 C1 τ-shuffle 仍为 .6503，drop=0pp；C1<.70 且
+`screen_gate=false`。因此扩大 observed bank 仍未证明稳健 τ-conditioned ranking，
+GT-information screen 继续为 false；没有启动 C2/PW inference、selector 或在线控制。
+该 bank 的 parent/offset、r3 checkpoint hash 与审计脚本 hash 已写入 r8 manifest，
+r1–r6 的构建工程失败继续保留，未形成科学结果。
 
 随后完成冻结离线 `H→τ→PointWorld→C2` planner-chain wiring audit（输出
 `outputs/consequence-evaluator/trajectory-planner-panel-audit-20261010-r4/`，GPU2）。
