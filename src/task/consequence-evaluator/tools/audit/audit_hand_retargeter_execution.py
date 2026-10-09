@@ -90,6 +90,13 @@ def audit(path, gpu):
         metrics[name] = dict(hand_coordinate_rmse_mm=rmse,
             approach_rmse_mm=float(np.sqrt(np.mean(delta[:120]**2))*1000),
             post_approach_rmse_mm=float(np.sqrt(np.mean(delta[120:]**2))*1000))
+        metrics[name]['phase_rmse_mm'] = {
+            '%s:%s' % (left, right): float(np.sqrt(np.mean(delta[left:right]**2))*1000)
+            for left, right in ((0, 60), (60, 120), (120, 176), (176, 299), (299, 542))}
+        if role:
+            clips = packet['clipped_coordinate_counts'][:, role-1]
+            metrics[name]['first_clip_tick'] = int(np.flatnonzero(clips)[0]) if clips.any() else None
+            metrics[name]['clips_first120'] = int(clips[:120].sum())
     return dict(status='PASS', packet_sha256=sha(path), query_count=len(ticks),
         requested_native_max_abs=0., replay_relative_max_abs=replay_error,
         target_conversion_max_abs=desired_error.max(0).tolist(),
