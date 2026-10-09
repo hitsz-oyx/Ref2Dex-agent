@@ -62,6 +62,17 @@ coverage 92%），因此这些数不能写成排序或控制收益；它只证�
 并再次定位“独立且足够多样的 H→τ candidate bank”是当前 blocker。r1/r2/r3 的参数、
 索引和断言工程失败均保留，未形成科学结果。
 
+为区分 HA 候选塌缩是 plan 分支失效还是 plan 幅度过小，完成了冻结 bridge 的
+CPU-only plan-sensitivity audit：输出
+`outputs/consequence-evaluator/trajectory-bridge-plan-scale-audit-20261010-r1/`，
+固定同一 25x7 panel 和 HA checkpoint，仅将输入 plan 缩放为 0/.25/.5/1/2/4。
+bridge 对 plan 有近似线性响应，非 baseline candidate spread（panel 24x11x3
+RMS）约为 0/.30/.60/1.18/2.31/4.39 mm，最大值约 0/.56/1.11/2.18/4.20/7.82 mm；
+scale 4 仍未达到 observed bank 的量级且 H24 error 从 77.90mm 略升至 78.28mm。
+因此此前的 1mm bank 不是 wiring failure，但也不能用放大系数补成可部署候选；该
+审计为 `UNCLEAR`，停止 amplitude sweep，不改变 OOD/无 ranking 或 control claim 的
+边界。下一步若继续只应构造有独立、非 tie consequence 的 H→τ proposal bank。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

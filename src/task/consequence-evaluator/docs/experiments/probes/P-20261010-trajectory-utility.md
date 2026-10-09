@@ -180,6 +180,31 @@ Three audit attempts before r4 were preserved: r1 passed a directory instead
 of `C2.pt`, r2 exposed a panel-indexing error, and r3 exposed a stale shape
 assertion. None reached a scientific result; r4 is the corrected run.
 
+## Frozen bridge plan-sensitivity audit
+
+The candidate-collapse blocker has two plausible explanations: the HA bridge
+may be ignoring the known plan, or the fixed residual plan amplitude may be
+too small for its output to show useful trajectory diversity. A CPU-only,
+inference-only audit held the observed 25 x 7 same-H panel and HA checkpoint
+fixed, then multiplied the panel plan by `0/0.25/0.5/1/2/4`. It did not run
+Gym, alter the checkpoint, or treat scaled plans as valid controls.
+
+Output: `outputs/consequence-evaluator/trajectory-bridge-plan-scale-audit-20261010-r1/`.
+The bridge is responsive: mean non-baseline candidate spread (RMS over the
+panel's 24 x 11 x 3 points) is approximately `0/0.30/0.60/1.18/2.31/4.39
+mm`; the corresponding maximum is `0/0.56/1.11/2.18/4.20/7.82 mm`. The
+original scale-1 bridge error remains about `59.53 mm`, and scale 4 slightly
+worsens H24 error (`77.90` to `78.28 mm`). Thus the prior narrow bank is not a
+shape/wiring failure—the plan branch has a measurable, roughly linear
+response—but simply amplifying the residual does not reach the observed
+trajectory spread and leaves the proposal out of distribution.
+
+This is an attribution `UNCLEAR` result, not a route rescue. Do not insert a
+scale multiplier into the online planner or claim candidate ranking/control
+benefit. The next useful route remains an explicit H-to-tau proposal/candidate
+bank with non-tied same-H consequences, or a separately justified data
+collection change; further evaluator epochs and amplitude sweeps are stopped.
+
 ## Attribution and next step
 
 The implementation contract is valid: C0/C1/C2 receive distinct tau/effect
