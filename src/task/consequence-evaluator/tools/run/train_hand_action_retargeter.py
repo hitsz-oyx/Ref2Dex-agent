@@ -165,7 +165,8 @@ def main():
     torch.set_num_threads(2)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    device = torch.device("cuda:%d" % args.gpu)
+    # CUDA_VISIBLE_DEVICES remaps the selected physical GPU to logical index 0.
+    device = torch.device("cuda:0")
 
     splits = {}
     manifests = {}
