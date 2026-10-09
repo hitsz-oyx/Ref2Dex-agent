@@ -53,18 +53,18 @@ def main():
         packet_sha256=hashlib.sha256(args.packet.read_bytes()).hexdigest(),
         actual_requested_max_abs=0., anchor=p['object_anchor'], gate=p['gate'])
     errors = []
+    layout = p.get('servo_layout', 'command_vs_measured')
     query_indices = np.arange(542)//24*24 if layout == 'chunk_alignment' else np.arange(542)
     preload=None
     if layout in ('finger_preload','geometry_pd'):
         path=Path(p['preload_statistics_path'])
         assert hashlib.sha256(path.read_bytes()).hexdigest()==p['preload_statistics_sha256']
         preload=json.loads(path.read_text())
-    layout = p.get('servo_layout', 'command_vs_measured')
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
         if layout in ('finger_preload','geometry_pd'):
             values=targets.copy()
-            fingers=source['dof_position'][1:,0,ACTIVE_FINGERS].copy()
+            fingers=source['dof_position'][1:,0][:,ACTIVE_FINGERS].copy()
             if role==3:fingers+=np.asarray(preload['finger_preload_median_rad'],dtype='float32')
             if layout=='geometry_pd':
                 qnext=source['dof_position'][1:,0,:6]
@@ -74,7 +74,7 @@ def main():
                 values[:,:6]=qnext+.1*velocity
                 if role==2:fingers=targets[:,ACTIVE_FINGERS]
             expect=pose(values)
-            np.testing.assert_allclose(desired[:,role-1,ACTIVE_FINGERS],fingers,atol=1e-6)
+            np.testing.assert_allclose(desired[:,role-1][:,ACTIVE_FINGERS],fingers,atol=1e-6)
         if layout == 'transport_ablation' and role == 2:
             expect = pose(target)
             expect[:, :3, 3] += p['object_pose'][:-1, role, :3, 3]-source['object_pose'][anchor:anchor+542, 0, :3, 3]
