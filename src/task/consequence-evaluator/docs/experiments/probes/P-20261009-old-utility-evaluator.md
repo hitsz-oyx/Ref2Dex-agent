@@ -146,6 +146,79 @@ and source training fit. A post-freeze C1-with-PW-future swap holds its weights
 fixed to diagnose the future/fit gap. It does not change any selector, gate or
 actual execution; report it as a diagnostic, not a fourth tuned comparison.
 
+## Completed results and next decision
+
+Preparation commit70f40dd completes in19.67s,1024ordinary windows per split
+plus175held candidates. Active ordinary windows128/1024per split. PW r2 uses
+commit edccfe1 and frozen best46000,39.38s,peak allocated254.76MiB; all3247rows
+complete. Same geometry and actual-hand oracle contracts apply to both arms.
+Matched evaluator commit edccfe1 completes1200updates each in31.50s; reported
+GPU memory485MiB. Val selects C0step800/C1step1000/C2step1200 before test.
+
+| Metric on frozen25x7panel | C0 H+A | C1 GT24 | C2 PW24 oracle |
+| --- | ---: | ---: | ---: |
+| Strict pair accuracy (78pairs/5informative anchors) | .60256 | .75641 | .69231 |
+| Same-H future-shuffle pair accuracy | — | .51282 | .56410 |
+| Exact baseline-first teacher top1 agreement | .00 | .12 | .24 |
+| Teacher tied-maximum set agreement | .84 | .88 | .92 |
+| Mean regret | .07083 | .05667 | .06333 |
+| Informative-anchor mean regret | .35417 | .28333 | .31667 |
+| Informative Spearman | .24779 | .56862 | .44260 |
+| Ordinary source263 test RMSE | .28352 | .25495 | .28293 |
+| Ordinary source263 test Spearman | .80882 | .83604 | .79768 |
+
+All median regrets are0 because20anchors are teacher-tied. Exact top1 is
+especially sensitive to baseline-first teacher ties; report tie-set agreement
+and regret alongside it. GT ranking screen passes (+15.38pp vsC0,24.36pp
+shuffle loss). PW retention screen does not (69.23%,6.41pp belowC1). This
+is PROMISING for GT-geometry teacher ranking, not formal Gate1 or Cm benefit.
+
+| Actual one-shot Z90 | Count/25 | Rescue vsbaseline | Harm vsbaseline |
+| --- | ---: | ---: | ---: |
+| Frozen actor baseline | 20 | — | — |
+| C0 | 19 | 0 | 1 |
+| C1 GT oracle | 20 | 0 | 0 |
+| C2 observed-hand PW oracle | 21 | 1 | 0 |
+
+Three actual mixed paths complete in39.70/39.60/40.95s. All prefix contracts,
+raw model-H exactness, object/hand geometry prefixes, frozen requested plans,
+zero clipping and complete90nonterminal samples pass. Saved evaluator scores
+replay exactly (all maxerrors0), audit1.93s. C2 gain is4pp with descriptive
+paired bootstrap CI[0,12]pp; C1 vsbaseline0; C0−4pp CI[−12,0]. Outcome support
+is single exposed shared-world cohort; actual control benefit remains UNCLEAR.
+These are one-shot paths, not the old teacher's three-replan23/25result.
+
+Post-freeze diagnostic: the **same C1 weights** given PW futures achieve
+.73077pair accuracy and .05958mean regret, versus .69231/.06333 for separately
+PW-trained C2. This diagnostic was not used to choose a checkpoint or execute
+a fourth policy. It prevents attributing the entire6.41pp gap uniquely to PW
+accuracy. Source-train RMSE is .03527/.02758/.02192 versus ordinary test
+.28352/.25495/.28293; source-to-held generalization remains a concern despite
+the clear held candidate GT signal. PW candidate h24 translation/rotation
+error is32.76mm/.409rad; source ordinary errors are larger.
+
+Root decision: keep **U32 fully frozen** and preserve the useful GT evaluator
+and PW artifacts. Do not restart Y definition, automatically extend epochs,
+declare PW inadequate, or advance to deployable planning/RL from these data.
+The next cheapest discriminating comparison is an independently frozen test
+using one common C1 evaluator with GT vsPW futures, keeping oracle-hand and
+source/actor boundaries explicit. New independent candidate/cohort support is
+needed before upgrading the post-freeze swap signal or choosing a planner.
+Rolling control remains future evidence: the lack of one-shot C1 rescue does
+not close a route whose old teacher evidence came from repeated replanning.
+
+Artifacts:
+- `outputs/consequence-evaluator/old-utility-data-20261009-r1/`
+- `outputs/consequence-evaluator/old-utility-pw-20261009-r1/` (failed engineering,
+  retained diagnostics) and `old-utility-pw-20261009-r2/` (completed)
+- `outputs/consequence-evaluator/old-utility-evaluator-20261009-r1/`: frozen
+  models, manifest/result, panel scores, fixed plans and `control-result.json`.
+- Three actual paths/status/logs at the replay root declared above.
+
+Five focused unit/interface tests pass; all runs remain below budgets.
+Total new evidence output is below512MiB; GPU2 is released. No external writes,
+PW/actor fitting, new branch, remote push or checkpoint overwrite occurred.
+
 ### Engineering repeatability repair before evaluator fitting
 
 The first PW inference run stops before generating usable futures: CUDA atomic

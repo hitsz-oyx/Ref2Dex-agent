@@ -186,7 +186,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261009-old-utility-evaluator](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-old-utility-evaluator.md) | Can GT and frozen PointWorld geometry recover the old teacher's action ranking? | pending. | user ref4_4 freezes old U32 and authorizes matched C0/C1/C2 evaluator | probes/UNCLEAR |
+| [P-20261009-old-utility-evaluator](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-old-utility-evaluator.md) | Can GT and frozen PointWorld geometry recover the old teacher's action ranking? | GT ranking screen PROMISING; C1.75641 versus C0.60256, C2.69231. | user ref4_4 freezes old U32 and authorizes matched C0/C1/C2 evaluator | probes/PROMISING |
 
 ## HF-oracle-flow-task
 

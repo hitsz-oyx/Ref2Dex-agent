@@ -1,5 +1,34 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-09 ref4_4 old-U evaluator and actual one-shot screen
+
+用户明确冻结旧`U32=Y7+.25Y3-Y6`作为teacher，不再定义新Y，推进C0(H+A)、
+C1(H+A+GT24)、C2(H+A+PW24)。contact仅生成32步标签，future只有24步几何。
+C2按用户确认使用实测未来手轨迹作为PW条件，只替换物体未来；是离线oracle，
+不能表述为可部署native-control planner。现存192完整扰动episode用于监督，
+25x7恢复ref13候选整体不进入拟合/归一化/val选择。历史删除数据未被假装复用。
+
+提交edccfe1完成三臂各1200步，val选800/1000/1200，耗时31.50秒。冻结same-H
+候选排序C0/C1/C2为60.26%/75.64%/69.23%，C1 future shuffle为51.28%；
+GT增益15.38pp、regret .07083→.05667，GT ranking screen PROMISING。
+PW比GT低6.41pp，未过原retention screen。仅78严格pairs/5有效anchors，
+不是正式支持或Gate1。PW best46000推理39.38秒；修复CUDA原子group-mean的
+重复漂移，采用数学等价的确定性CSR求均值，冻结权重/源码不改；失败运行保留。
+
+继续执行三条冻结one-shot真实90步混合路径（各约40秒）：baseline20/25，
+C019/25（harm1），C120/25（rescue0/harm0），C221/25（rescue1/harm0）。
+所有评分/执行H exact、几何prefix exact、原prefix合同、实际计划、零裁剪和完整Z90
+检查通过；saved scores GPU重放误差0。C2 gain CI含0，控制收益UNCLEAR。
+这不是旧teacher的三次replan23/25，也不是完整受控放回或RL学习收益。
+
+同一C1权重直接换PW future的post-freeze离线诊断为73.08%，优于独立拟合C2的
+69.23%；未用这个诊断改selector或补跑第四控制臂。因此不能把6.41pp差距全归因于
+PW精度。下一步保留旧U和共同C1，在新独立候选/cohort上冻结比较GT/PW信息保留；
+不自动加epoch、重训PW、定义新Y或进入可部署planner/RL。Rolling仍属后续证据。
+GPU2已释放。实验卡：
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261009-old-utility-evaluator.md`；
+产物：`outputs/consequence-evaluator/old-utility-evaluator-20261009-r1/`。
+
 ## 2026-10-09 ref4_3 learned temporal evaluator
 
 按用户ref4_3授权恢复 learned `Q(H,A,Zgt)` 路线，先用最终任务结果和
