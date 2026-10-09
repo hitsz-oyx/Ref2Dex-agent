@@ -167,7 +167,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-finger-command-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-finger-command-coverage.md) | Do the structured rollouts identify commanded finger/contact labels? | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261010-finger-command-coverage](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-finger-command-coverage.md) | Do the structured rollouts identify commanded finger/contact labels? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-hand-action-contact-context](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-contact-context.md) | Can current-state contact proxies improve full-action retargeting? | `UNPROMISING`. A matched v2 contextual baseline and v3 contact arm | 见原卡 | probes/UNPROMISING |
 | [P-20261010-hand-action-fixed-wrist-finger](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-finger.md) | Does a fixed wrist decoder expose a viable learned finger command branch? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-hand-action-fixed-wrist-teacher-finger](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-teacher-finger.md) | Can live teacher fingers rescue the fixed-wrist native execution? | 见原卡 | 见原卡 | probes/UNPROMISING |

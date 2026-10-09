@@ -167,6 +167,30 @@ baseline 向 PointWorld、selector、online planner、MPC 或 native R 的接线
 split transfer 缺口。预计成本为零（仅保留已有 7 秒 fit 产物）；若未来获得新的、独立且
 合同一致的 H→τ 数据，再另起有界 Probe，仍需重新通过 held split screen。
 
+随后完成 ref7_2 后续的 commanded-finger label coverage audit
+(`P-20261010-finger-command-coverage`)。现有 history-preserving structured packet 的
+96/64/64 episode 均完整有限、零 clipping，且保存的 action 与
+`clip(actor_action + structured_residual)` 逐项一致；saved `pair` 也与 native force-pair
+proxy 完全一致。三阶段都包含全部五种 structured residual mode，finger action 标准差
+约 `.0374--.0516`，所以“没有 commanded-finger label variation”被排除。
+
+但按预注册的 current-object-frame hand≤3mm、q≤.03、dq≤.10 且 same-pair 的 near-state
+合同，contact 阶段 train/val/test 只有 `0/0/12` 对，hold 阶段只有 `26/5/38` 对；其中
+非平凡 finger-action 差异（RMS>.05）最多2对，远低于每阶段50个 near/10个 nontrivial
+门槛。也就是说当前 packet 有 command coverage，却没有 matched contact/hold state 来
+检验 preload 是否可由 geometry+q/dq 识别。该 Probe 保持 `UNCLEAR`，这是证据不足而非
+对所有 state-conditioned decoder 的正式反证；不启动新 decoder 训练或 native execution。
+
+### Decision Note — commanded-finger label coverage (executed)
+
+当前需要决定的是：现有结构化 rollout 是否已经足够支持下一次 commanded-finger/contact
+decoder。关键证据是 action composition、force proxy、episode split 和 finite 合同均通过，
+但 contact/hold near-state 对几乎不存在。root 选择保留 packet 作为 command-variation
+工程证据，同时关闭当前 decoder/native 扩展；理由是继续训练只会在未匹配的物理状态上拟合
+混合标签，无法改变已知的 contact-preload blocker。若以后重新打开这条路线，最小新增数据
+必须在保持 contact/state 的条件下施加成对的 finger command perturbation，并保存对应
+的 contact/state provenance；在此之前不接 H→τ、PointWorld、selector、MPC 或 Cm。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

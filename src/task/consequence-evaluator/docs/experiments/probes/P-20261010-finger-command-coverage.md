@@ -5,7 +5,7 @@ experiment_id: P-20261010-finger-command-coverage
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending-clean-commit
+git_commit: 6b44966
 claim_id: C3
 hypothesis_family: HF-hand-action-retarget
 probe_index_in_family: 6
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [412, 413, 414]
 decision_changed_if_positive: retain the structured packets as a basis for a narrow commanded-finger/contact decoder design
 decision_changed_if_negative: keep native R and H-to-hand integration frozen and require new contact-stage data before decoder work
-status: PLANNED
+status: UNCLEAR
 run_id: finger-command-coverage-20261010-r1
 ---
 
@@ -74,4 +74,27 @@ Output:
 
 ## Result
 
-Pending read-only audit.
+All three packets passed the read-only contract: 96/64/64 complete episodes,
+finite arrays, zero clipping, exact `action == clip(actor_action +
+structured_residual)`, and exact agreement between the saved `pair` field and
+the native force-pair proxy. Every phase contains thousands of rows and all
+five structured residual modes.
+
+The command-coverage screen is positive. Mean finger-action standard deviation
+is `.0374--.0516` normalized units across splits/phases, while residual
+standard deviation is `.0158--.0280`; contact pair rates are `.604--.665` and
+hold rates are `.452--.482`.
+
+The state-ambiguity screen is false. With the pre-registered hand/q/dq/same-
+pair thresholds, approach has many near pairs, but contact near-pair counts
+are `0/0/12` and hold counts are `26/5/38` for train/val/test. There are at
+most two nontrivial (`> .05`) finger-command differences in any held contact or
+hold split, far below the required 50 near and 10 nontrivial pairs per phase.
+
+Thus the packets contain commanded-finger variation, but they do not provide
+matched contact/hold states with which to test whether geometry and q/dq
+identify preload. The Probe remains `UNCLEAR` because this is evidence
+insufficiency, not a formal negative result for a state-conditioned decoder.
+Do not fit a new decoder or run native execution from this packet; any future
+follow-up must first collect contact-stage matched-state command perturbations
+and preserve the relevant contact/state contract.
