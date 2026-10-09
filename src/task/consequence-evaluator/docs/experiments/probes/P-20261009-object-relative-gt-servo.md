@@ -305,3 +305,20 @@ This tests the combined controller's relative-drift explanation and the
 ref7_1 intervention without giving it source finger commands after120.
 If positive, use r12 to check cold-start relative inverse; otherwise audit
 load/geometry mismatch rather than train old R. Same GPU/time/output bounds.
+
+
+r11 at0ab1100, full542/70.53s: teacher484/world484; world11-point inverse
+483/local32.25mm, bounded object-relative inverse181/local226.21mm. Thus
+relative feedback is not a universal remedy for geometry-only control. Same
+world inverse held250 in r10 role3 but483 here role2; role-specific physical
+state/contact dynamics complicate a direct causal explanation. Both are
+post-grasp oracles with a120step recorded-command bootstrap, not cold policies.
+
+Decision at11:40UTC: r12 geometry_inverse_repeat puts the identical world
+11-point inverse into both roles2/3 after120, and checks their absolute PD
+target streams bitwise. This discriminates observable role/contact
+sensitivity from an unintended arm-implementation difference, with no
+additional model or target variation. Record state/force divergence before
+the switch and actual control conversion. These are replicas, not two seeds.
+If both hold, geometry maintenance is PROMISING but cold contact remains
+blocked; if divergent, retain UNCLEAR and localize the physical divergence.
