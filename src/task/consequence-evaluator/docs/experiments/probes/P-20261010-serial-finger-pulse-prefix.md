@@ -5,7 +5,7 @@ experiment_id: P-20261010-serial-finger-pulse-prefix
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: b9a7a95
 claim_id: C3
 hypothesis_family: HF-hand-action-retarget
 probe_index_in_family: 7
