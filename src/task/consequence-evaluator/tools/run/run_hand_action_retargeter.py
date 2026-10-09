@@ -339,8 +339,13 @@ def main():
                 command = base.detach().cpu().numpy().copy()
                 command[1:] = predicted[1:, offset]
                 if fixed_wrist_goals is not None:
+                    # The model query state is frozen for the chunk, but the
+                    # analytic one-step inverse must use the live state at
+                    # every dispatch tick (not q/dq from the query boundary).
+                    live_q = measured["dof_position"].detach().cpu().numpy()
+                    live_dq = measured["dof_velocity"].detach().cpu().numpy()
                     hybrid = replace_wrist_action(
-                        predicted[:, offset], q, dq, fixed_wrist_goals[:, offset],
+                        predicted[:, offset], live_q, live_dq, fixed_wrist_goals[:, offset],
                         fixed_wrist_coefficients)
                     command[1:, :6] = hybrid[1:, :6]
                 intended = command.copy(); command = np.clip(command, -1, 1); command[~active] = 0

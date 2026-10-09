@@ -55,6 +55,15 @@ def load_pd_statistics(path):
         raise ValueError("unexpected wrist PD statistics schema")
     if value.get("engineering_only") is not True:
         raise ValueError("wrist PD statistics must be engineering-only")
+    if value.get("statistics_scope") != "frozen_ref7_train_launches_only":
+        raise ValueError("wrist statistics must use the frozen train-launch scope")
+    sources = value.get("sources")
+    if not isinstance(sources, list) or len(sources) != 3:
+        raise ValueError("wrist statistics must retain the three frozen sources")
+    for source in sources:
+        if (not isinstance(source, dict) or len(source.get("sha256", "")) != 64
+                or source.get("ticks") != [0, 39]):
+            raise ValueError("wrist statistics source provenance is incomplete")
     if tuple(value.get("independent_dofs", ()))[:WRIST_DOF] != EXPECTED_INDEPENDENT_DOFS:
         raise ValueError("wrist coefficients must lead with DOFs 0..5")
     coefficients = np.asarray(value.get("coefficients"), dtype="float32")
