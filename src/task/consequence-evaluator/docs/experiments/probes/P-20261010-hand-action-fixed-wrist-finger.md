@@ -105,10 +105,14 @@ independent packet audit confirms that dispatched finger coordinates `6:18`
 are exactly the v2 output and that all wrist coordinates are replaced by the
 analytic decoder.
 
-The wrist tracking therefore remains geometrically accurate, but the learned
-finger command branch does not preserve contact in this source-matched native
-execution. Probe status is `UNPROMISING` for this one source/seed contract.
-Do not interpret it as a formal refutation of every finger representation.
+The wrist tracking remains geometrically accurate, but the learned-finger
+combination does not preserve contact in this source-matched native execution.
+Probe status is `UNPROMISING` for this one source/seed contract. A follow-up
+same-process attribution audit replaced only test-env finger coordinates with
+the live env-0 teacher command and still held `8/10/9` frames; therefore the
+r2 result cannot be causally attributed to the learned finger branch alone.
+Do not interpret either run as a formal refutation of every finger
+representation or as proof that the fixed wrist mapping is the sole cause.
 
 ## Limitations / stop rule
 
@@ -130,6 +134,9 @@ the launch fails.
 - valid r2 packet: `outputs/consequence-evaluator/ref7_2-hand-action-fixed-wrist-finger-20261010-r2/`
 - contract/unit tests: `217` Task tests passed; fixed-wrist composition audit passed
 
-The earlier source-matched full-v2 execution (`6/9/76` held in a separate
-launch) is retained only as a directional engineering reference; it is not a
-same-process matched control for r2.
+The same-process teacher-finger attribution audit is recorded in
+[`P-20261010-hand-action-fixed-wrist-teacher-finger`](P-20261010-hand-action-fixed-wrist-teacher-finger.md)
+and does not change the stop rule. The earlier source-matched full-v2
+execution (`6/9/76` held in a separate launch) is retained only as a
+directional engineering reference; it is not a same-process matched control
+for r2.

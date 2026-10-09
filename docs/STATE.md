@@ -187,6 +187,27 @@ chunk 内 live-state contract 而保留为 `INVALID_IMPLEMENTATION`，r2 才是�
 只能转向明确的 commanded-finger/contact state labeling 或审计后续链路，不能把该结果
 当作 wrist 或完整 R 的部署上界。
 
+随后完成唯一一次同进程 teacher-finger attribution audit：保持相同 fixed-wrist
+decoder，把 env0 当前 live teacher 的 `6:18` action 广播给 env1--3。四个角色均完成
+542 controls，requested=applied、各类 clipping 均为零；teacher held `482`，三个
+fixed-wrist/teacher-finger 角色仍仅 held `8/10/9`，hand RMSE `7.81/7.87/7.85 mm`。
+独立 packet 审计确认 test env finger dispatch 逐 tick 与 env0 teacher 完全一致，wrist
+仍由解析 decoder 替换。因此 r2 的失败不能归因于 learned finger branch 单独失效，当前
+应把它视作 fixed-wrist/source-state 组合级负结果；不再做 native finger sweep、系数或
+阈值 sweep。卡片见
+[`P-20261010-hand-action-fixed-wrist-teacher-finger`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-teacher-finger.md)。
+
+### Decision Note — fixed-wrist teacher-finger attribution audit (executed)
+
+当前需要决定的是：r2 的接触失败是否至少可归因于 learned finger branch，还是 fixed
+wrist/source-state 映射本身已足以破坏接触。关键证据是 r2 wrist RMSE 仅
+`7.87/7.82/7.86 mm` 但 held `4/6/8`，而 offline finger action 差异不足以单独定位
+接触原因。root 选择做一次最小同进程对照：保持 fixed-wrist decoder，把 env0 当前
+live teacher 的 `6:18` action 广播给 env1--3；不训练、不改系数、不加 future label。
+该 542-step run 已完成，oracle 仍只 held `8/10/9`，因此关闭“learned finger branch
+单独导致失败”的解释，并保留组合级负结果。该 oracle 仅用于归因，不解锁 H-to-hand、
+PW、evaluator 或 Cm；仍无外部授权边界。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，
