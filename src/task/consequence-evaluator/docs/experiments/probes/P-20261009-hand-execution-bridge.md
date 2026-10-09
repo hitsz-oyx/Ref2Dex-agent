@@ -119,6 +119,35 @@ two matched fits remain within600s aggregate. Online budget unchanged.
 Failure stops automatic deployment; success authorizes the existing planned
 waterfall and prospective control. Training data and old Y remain unchanged.
 
+### Follow-up result and smaller end-to-end Decision Note
+
+Physical-unit r2 completes2000matched updates in23.60s, same val step200.
+New298test960windows: HA/H/persistence/nominalFK RMSE67.45/67.29/121.58/
+102.68mm; active zero-A MSE changes-.0403%. The action gate remains FAILED;
+scaling alone does not establish useful candidate sensitivity. No claim that
+the bridge gate passed, and no further epochs/units search. Original r1 and
+r2 test cohorts differ; their RMSE cannot be interpreted as matched gain/loss.
+
+Root revisits the deployment stop in light of the explicit ref5 objective:
+the user requires clear hand accuracy gains before connecting the chain;
+both models satisfy that requirement, while the additional1%action screen
+was root-imposed. It is useful to distinguish a weak bridge from an actual
+prospective selector failure rather than stop solely on this aggregate proxy.
+Keep the failed action gate as a limitation and change the NEXT experiment's
+budget, not its result: run the common-C1 waterfall, then ONLY16full episodes
+per arm/seed296and297 (32baseline/32planner), not128per arm initially.
+Choose the bridge using the recorded val episode MSE only; never choose it
+from old/new test or execution outcomes. Freeze that choice before inference.
+This is an explicitly bounded end-to-end mechanism Probe; no deployability
+or accuracy certification follows from wiring. No GT future inputs or forks.
+
+Expansion to the already budgeted64per arm/seed requires both seeds improve
+and pooled task gain>=5pp, with pooled matched-ID harm no greater than rescue.
+Otherwise stop larger prospective runs and preserve the entire failed/unclear
+waterfall and task evidence. At most900s per owned run, no budget increase.
+The original1%gate remains failed throughout. No user or global boundary is
+changed; irreversible/hardware deployment is outside this simulation scope.
+
 Frozen-policy planner utility is a Mission mechanism Probe, not RL training
 benefit or formal Gate1. s3/full-start differs from earlier hybrid25anchorZ90.
 The bridge may model conditional mean and miss contact multimodality. Nominal
