@@ -154,6 +154,22 @@ frame0 标为无效。它没有恢复碰撞 pair、法向力、冲量或 preload
 不启动 H-to-hand、PointWorld、evaluator 或 Cm 集成；相关运行代码的 future
 anchor 广播维度修复和布尔一致性审计修复已由测试覆盖，并在 `053a4bb` 提交。
 
+随后完成唯一一次 matched offline contact-conditioned decoder Spike
+(`P-20261010-hand-action-contact-context`, run
+`ref7_2-contact-context-fit-20261010-r1`)：同一 96/64/64 split、stride 2、
+reset-excluded windows、seed406、GPU2、3000 updates 下，v2 contextual baseline
+与零初始化 contact branch 的 v3 共用初始化和 batches。10 个 query-time 字段只含
+当前 `pair/surface_gap/support_gap/world object velocity/table footprint`，窗口数为
+24864/16576/16576；没有 future contact 或 teacher-anchor 混入。test finger MAE
+从 .0190543 到 .0188270（1.19%），pair=true/near-gap 分层分别改善 1.29%/1.34%，
+但 contact-onset 恶化 0.25%，未达到运行时 10% gate，故 Probe 为 `UNPROMISING`。
+mean-contact 与 shuffled-contact ablation 说明分支使用了输入，但不足以支持继续
+contact-proxy sweep。r1 的 manifest 保留旧 HEAD `19a646d` 与 trainer hash；后提交
+`221af42` 只补 fail-closed contract/test/metadata，未改写该数值结果。已停止该路线的
+更多 epoch、threshold sweep 和 native execution，不解锁 H-to-hand、PointWorld、
+evaluator、selector、MPC 或 Cm；卡片见
+[`P-20261010-hand-action-contact-context`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-contact-context.md)。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，
