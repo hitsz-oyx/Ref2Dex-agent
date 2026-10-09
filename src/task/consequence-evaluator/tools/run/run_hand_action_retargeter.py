@@ -23,6 +23,9 @@ from consequence_evaluator.gate1 import episode_outcome
 
 HORIZON = 24
 SCHEMA = "ref2dex.hand-action-retargeter.v1"
+SOURCE_BACKEND = dict(name="cpu_pipeline", pipeline="cpu", sim_device="cuda:0",
+                      tensor_device="cuda:0", physx_use_gpu=True)
+SOURCE_ACTOR_EXECUTION = dict(layout="environment_rows_direct", copies=1)
 
 
 def sha(path):
@@ -48,9 +51,25 @@ def load_source(path):
             or packet["actions"].shape != (542, 4, 18)
             or packet["done"][:-1].any()):
         raise ValueError("complete held-out teacher source required")
+    if packet.get("source_backend") != SOURCE_BACKEND:
+        raise ValueError("source backend does not match the fixed CPU-pipeline contract")
+    actor_execution = packet.get("replay_identity", {}).get("actor_execution", {})
+    if (actor_execution.get("layout") != SOURCE_ACTOR_EXECUTION["layout"]
+            or actor_execution.get("copies") != SOURCE_ACTOR_EXECUTION["copies"]
+            or actor_execution.get("total_rows") != 4):
+        raise ValueError("source actor execution does not match direct environment rows")
     if packet["role_outcomes"]["reactive_teacher"]["maximum_held_frames"] < 45:
         raise ValueError("source teacher does not pass the sustained-hold behavior screen")
     return packet
+
+
+def runtime_source_identity(task, env_count):
+    """Read the native runtime identity used by the source-matched contract."""
+    params = task.gym.get_sim_params(task.sim)
+    backend = dict(SOURCE_BACKEND, physx_use_gpu=bool(params.physx.use_gpu),
+                   tensor_device=str(task.device))
+    actor_execution = dict(SOURCE_ACTOR_EXECUTION, total_rows=int(env_count))
+    return backend, actor_execution
 
 
 def anchored_future_batch(source_hands, source_hand, live_current, tick,
@@ -266,6 +285,14 @@ def main():
             task = self.env.task; n = task.num_envs
             if n != args.envs or self.is_rnn or len(task.motion_file) != 1:
                 raise ValueError("fixed four-env feedforward full-reference contract required")
+            runtime_backend, runtime_actor_execution = runtime_source_identity(task, n)
+            if runtime_backend != source["source_backend"]:
+                raise ValueError("runtime backend differs from source packet")
+            expected_actor = source["replay_identity"]["actor_execution"]
+            if runtime_actor_execution != expected_actor:
+                raise ValueError("runtime actor execution differs from source packet")
+            manifest["runtime_backend"] = runtime_backend
+            manifest["runtime_actor_execution"] = runtime_actor_execution
             task._enable_early_termination = False; task._adaptive_kappa_enabled = False
             task._state_init = DexploreTask.StateInit.Start; task._hybrid_init_prob = 1.
             self.model.eval(); ids = torch.arange(n, device=task.device)

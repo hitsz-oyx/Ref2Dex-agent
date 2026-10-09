@@ -219,6 +219,29 @@ def test_teacher_finger_reference_only_replaces_test_env_fingers():
         _runner.replace_with_teacher_fingers(command, teacher[:17])
 
 
+def test_runtime_source_identity_reads_backend_and_direct_row_layout():
+    class Physx:
+        use_gpu = True
+
+    class Params:
+        physx = Physx()
+
+    class Gym:
+        @staticmethod
+        def get_sim_params(sim):
+            assert sim == "sim"
+            return Params()
+
+    class Task:
+        gym = Gym()
+        sim = "sim"
+        device = "cuda:0"
+
+    backend, actor = _runner.runtime_source_identity(Task(), 4)
+    assert backend == _runner.SOURCE_BACKEND
+    assert actor == dict(_runner.SOURCE_ACTOR_EXECUTION, total_rows=4)
+
+
 def test_trajectory_utility_separates_tau_and_object_effect_arms():
     rng = np.random.default_rng(25)
     history = torch.zeros(4, 1442)
