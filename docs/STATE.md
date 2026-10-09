@@ -1,5 +1,25 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 ref7_2 full-action hand retarget follow-up
+
+按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小
+判别 Probe：GPU2 采集 96/64/64 条结构化 retarget rollout（每条 542 步），
+覆盖 wrist 平移/旋转、finger 开合/预载、联合动作及 approach/contact/hold；
+action capture、q/dq/hand 对齐、episode split、残差边界和零 clipping 全部通过。
+第一轮离线 full-action fit 的 test L1 为 0.01637；加入三条 train、 一条 val 和
+一条 held-out teacher motion anchor 后为 0.01596，仍仅是 engineering fit 证据。
+
+GT future hand→R→native Gym 的首个对齐复核（teacher held481）中，R 三角色
+held10/30/21、hand RMSE44.68/43.59/57.71mm，未达到 held≥90% 且 RMSE<40mm；
+native requested/actual 完全一致且零 clipping。query_period=1 的 receding 诊断
+同样失败（teacher482，R held0/0/8，RMSE177.12/226.69/207.27mm）。这排除了
+“只要缩短 24 步 dispatch 就能通过”的充分解释，但不把结果升级为所有 hand
+geometry 无效的正式结论。Probe 总状态 `UNCLEAR`，当前 retarget execution gate
+`UNPROMISING`；不进入 H→hand、PointWorld、evaluator 或 Cm claim，返回
+ref7_1 的 finger commanded-PD/contact-preload 诊断。证据卡：
+[P-20261010-hand-action-retarget-data](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-retarget-data.md)，
+产物位于 `outputs/consequence-evaluator/ref7_2-hand-action-*`。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，

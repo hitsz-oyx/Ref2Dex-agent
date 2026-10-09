@@ -163,6 +163,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261006-gt-interaction-aux](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-gt-interaction-aux.md) | GT interaction supervision of PPO actor representation | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-hand-action-retarget
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-hand-action-retarget-data](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-retarget-data.md) | Structured full-action rollouts and hand retargeter | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-hand-execution-bridge
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
