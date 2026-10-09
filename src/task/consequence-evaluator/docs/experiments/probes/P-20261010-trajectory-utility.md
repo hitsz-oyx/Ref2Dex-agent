@@ -205,6 +205,15 @@ benefit. The next useful route remains an explicit H-to-tau proposal/candidate
 bank with non-tied same-H consequences, or a separately justified data
 collection change; further evaluator epochs and amplitude sweeps are stopped.
 
+As a separate frozen configuration check, the existing `physical` plan-unit
+bridge (`hand-execution-fit-20261009-r2`) was evaluated on the same panel in
+`outputs/consequence-evaluator/trajectory-candidate-bank-audit-20261010-r6/`.
+Its HA spread rose only to `1.59/2.12 mm` mean/max, with point RMSE
+`59.45 mm`; the matched C1/C2 evaluator screens were `.6795/.5256` strict
+accuracy on the same 5 informative anchors/78 pairs, both below the fixed
+`.70` screen. This closes the simple uniform-vs-physical plan-unit
+explanation without creating ranking or control evidence.
+
 ## Attribution and next step
 
 The implementation contract is valid: C0/C1/C2 receive distinct tau/effect

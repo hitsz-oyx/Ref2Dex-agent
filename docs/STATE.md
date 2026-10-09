@@ -73,6 +73,13 @@ scale 4 仍未达到 observed bank 的量级且 H24 error 从 77.90mm 略升至 
 审计为 `UNCLEAR`，停止 amplitude sweep，不改变 OOD/无 ranking 或 control claim 的
 边界。下一步若继续只应构造有独立、非 tie consequence 的 H→τ proposal bank。
 
+另用同一 panel 只读检查已有 `physical` plan-unit bridge
+(`hand-execution-fit-20261009-r2`，输出
+`trajectory-candidate-bank-audit-20261010-r6`)：HA spread 仅升至
+1.59/2.12mm，point RMSE 59.45mm；C1/C2 strict 为 .6795/.5256，仍低于
+.70 且只有 5 个 informative anchors。该量纲对照关闭了“uniform plan unit 单独导致
+候选塌缩”的解释，不解锁 selector、PW online、R execution 或 MPC。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小
