@@ -12,7 +12,8 @@ sys.path[:0]=[str(TASK/'src'),str(ROOT/'src/task/cm-interaction-oracle/src')]
 from consequence_evaluator.data import sha
 from consequence_evaluator.value_outcomes import task_trace,PARAMETERS
 from consequence_evaluator.temporal_value import episode_labels
-from oracle_y_utility import paired_bootstrap
+from consequence_evaluator.supervision import consecutive
+from oracle_y_utility import paired_bootstrap,candidate_deltas
 
 
 def verify_runtime_inputs(manifest):
@@ -37,6 +38,18 @@ def summarize(folder):
         if not m['PW_repeat_checked']:raise ValueError('PW repeatability missing')
         if any(sha(p)!=h for p,h in m['planner_input_sha256'].items()):raise ValueError('planner weights/source drift')
     with np.load(folder/'trajectory.npz',allow_pickle=False) as f:d={k:f[k] for k in f.files}
+    if m['mode']=='planner':
+        if sha(folder/'decisions.npz')!=m['decisions_sha256']:raise ValueError('online decision drift')
+        with np.load(folder/'decisions.npz',allow_pickle=False) as f:q={k:f[k] for k in f.files}
+        if not np.isfinite(q['scores']).all() or not np.array_equal(q['candidate'],q['scores'].argmax(1)):
+            raise ValueError('executed candidate differs from frozen scores')
+        delta=candidate_deltas().numpy()[q['candidate']]
+        if not np.array_equal(q['action'][:,:8],np.repeat(delta[:,None],8,axis=1)) or q['action'][:,8:].any():
+            raise ValueError('requested24plan does not match selected candidate')
+        for i,(tick,e) in enumerate(zip(q['tick'],q['env'])):
+            if not np.array_equal(q['object_history'][i],d['object_pose'][tick-3:tick+1,e]):raise ValueError('PW past object geometry mismatch')
+            if not np.array_equal(q['hand_history'][i],d['hand_keypoints'][tick-3:tick+1,e]):raise ValueError('bridge past hand geometry mismatch')
+        m=dict(m,online_selection_contract=True,decision_windows=len(q['tick']),candidate_counts=np.bincount(q['candidate'],minlength=7).tolist())
     rows=[]
     for e,n in enumerate(d['length']):
         s=slice(0,n+1);valid=np.ones(n+1,bool);valid[0]=False
@@ -52,8 +65,22 @@ def summarize(folder):
         # Recovery windows exclude intended supported final release, inherited
         # from the user-confirmed outcome/mask rule; no evaluator labels change.
         had_recovery=bool(recovery.any());loss_after_stable=bool(len(first) and recovery[first[0]+1:].any())
+        completion=np.flatnonzero((trace['held_run']>=PARAMETERS['stable_frames']) & (np.arange(n+1)<trace['place_start']))
+        failure_reason=None
+        if not success:
+            if not len(completion):failure_reason='no_stable_hold_before_place'
+            else:
+                last=int(completion[-1]);place=int(trace['place_start'])
+                missing=trace['valid']&~trace['near']&~trace['supported']
+                unsafe=(consecutive(missing)>=PARAMETERS['lost_geometry_frames'])
+                unsafe|=missing&(diagnostics['object_velocity'][:,2]<-PARAMETERS['unheld_fall_mps'])
+                if trace['drop'][last+1:place].any():failure_reason='lost_between_last_stable_and_place'
+                elif unsafe[max(last+1,place):].any():failure_reason='unsafe_unheld_placing'
+                else:failure_reason='final_placement_not_settled'
         rows.append(dict(env=e,success=int(success),stable_lift45=stable,recovery=had_recovery,
             loss_after_stable=loss_after_stable,recovered_success=bool(success and had_recovery),
+            task_failure_reason=failure_reason,final_supported=bool(trace['supported'][-1]),
+            settled_tail_frames=int(consecutive(trace['settled'])[-1]),place_start=int(trace['place_start']),
             maximum_held_frames=int(trace['held_run'].max()),interventions=int(d['interventions'][e]),
             clipped_steps=int(d['clipped'][:n,e].sum())))
     return m,rows
@@ -74,7 +101,8 @@ def main():
         x=np.array([r['success'] for r in pr]);y=np.array([r['success'] for r in br])
         comparisons.append(dict(seed=bm['seed'],episodes=len(x),baseline_success=int(y.sum()),planner_success=int(x.sum()),
             matched_ID_rescue=int(((x==1)&(y==0)).sum()),matched_ID_harm=int(((x==0)&(y==1)).sum()),
-            descriptive_gain=paired_bootstrap(x-y,seed=291)))
+            descriptive_gain=paired_bootstrap(x-y,seed=291),online_selection_contract=pm['online_selection_contract'],
+            decision_windows=pm['decision_windows'],candidate_counts=pm['candidate_counts']))
         allbase.extend(br);allplan.extend(pr)
         for folder in (b,p):
             for name in ('manifest.json','trajectory.npz'):hashes[str(folder/name)]=sha(folder/name)
@@ -83,6 +111,8 @@ def main():
             success_rate=float(np.mean([r['success'] for r in rows])),stable_lift45=sum(r['stable_lift45'] for r in rows),
             recovery=sum(r['recovery'] for r in rows),loss_after_stable=sum(r['loss_after_stable'] for r in rows),
             recovered_success=sum(r['recovered_success'] for r in rows),
+            task_failure_reasons={reason:sum(r['task_failure_reason']==reason for r in rows)
+                for reason in sorted({r['task_failure_reason'] for r in rows if r['task_failure_reason'] is not None})},
             mean_interventions=float(np.mean([r['interventions'] for r in rows])),clipped_steps=sum(r['clipped_steps'] for r in rows))
     base=aggregate(allbase);plan=aggregate(allplan)
     gains=np.array([c['planner_success']/c['episodes']-c['baseline_success']/c['episodes'] for c in comparisons])
