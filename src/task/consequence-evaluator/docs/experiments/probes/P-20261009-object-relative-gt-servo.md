@@ -364,3 +364,22 @@ fingers and the calibrated inverse. No source future q/dq or wrist commands
 enter either candidate wrist; role3 has no recorded command bootstrap.
 If wrist-only holds, target remaining finger/contact load; if both fail,
 inspect contact-stage model error before adding feedback. <=150s/worker.
+
+
+r14 atbcec32d, full542/71.34s: teacher17 (behavior gate invalid), world484;
+cold geometry wrist+source fingers483/world2.91mm/local24.88mm, full cold
+11-point geometry PD inverse485/world2.42mm/local48.96mm/no loss. The
+full arm has161 clips: index4, thumb yaw8, thumb pitch149; it is explicitly
+a saturated native-envelope controller, not exact equilibrium matching.
+No source commands/bootstrap or future joint labels enter that full arm.
+Retain raw gate=false because live teacher<45, do not retrospectively
+change the screen. This cold-start signal is PROMISING pending confirmation.
+
+Decision at11:58UTC: r15 repeats exactly the r14 cold dynamics protocol and
+frozen coefficients/artifact. Recheck teacher/world behavior and positive
+full-geometry holding; add a dependency test exercising the actual control
+branch with poisoned future q and altered future command labels. The
+controller must ignore these labels while remaining sensitive to geometry
+and live mechanical velocity. If confirmed, use the last16th launch to
+transfer the same controller to the independently retained placing source
+from r5; no parameter/label changes or old-neural R training.

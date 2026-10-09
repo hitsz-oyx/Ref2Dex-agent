@@ -1,7 +1,8 @@
 import numpy as np
+import torch
 from scipy.spatial.transform import Rotation
-from consequence_evaluator.object_relative_servo import transport_wrist, bounded_transport, recover_wrist
-from consequence_evaluator.retargeter import wrist_rotation
+from consequence_evaluator.object_relative_servo import transport_wrist, bounded_transport, recover_wrist, ObjectRelativeGTExecution
+from consequence_evaluator.retargeter import wrist_rotation, commanded_targets
 
 
 def test_transport_preserves_object_local_wrist_pose_and_fingers():
@@ -47,3 +48,40 @@ def test_fixed_root_inverse_recovers_wrist_independently_of_fingertips():
     np.testing.assert_allclose(actual[:3],target[:3],atol=1e-7)
     np.testing.assert_allclose(wrist_rotation(actual),wrist_rotation(target),atol=1e-6)
     np.testing.assert_array_equal(actual[6:],prior[6:])
+
+
+def test_cold_full_geometry_control_ignores_future_q_and_command_labels():
+    # Exercise the actual execution branch with poisoned future joint labels
+    # and altered future PD commands, including the native clipping seam.
+    class Task:
+        _dof_pos=torch.full((4,18),.2)
+        _dof_vel=torch.full((4,18),.1)
+        _target_states=torch.zeros(4,13)
+        _target_states[:,6]=1
+
+        def _action_to_pd_targets(self,control):
+            return torch.as_tensor(commanded_targets(self._dof_pos.numpy(),control.numpy()))
+
+    def execution(command):
+        value=ObjectRelativeGTExecution.__new__(ObjectRelativeGTExecution)
+        value.layout='geometry_pd_inverse';value.anchor='current'
+        value.source_targets=np.full((542,18),command,dtype='float32')
+        value.source_q=np.full((543,18),np.nan,dtype='float32')
+        value.source_pose=np.broadcast_to(np.eye(4),(543,4,4))
+        value.inverse_q=np.full((543,18),.3,dtype='float32')
+        value.pd_inverse=np.tile([2.,.02],(12,1)).astype('float32')
+        value.device='cpu';value.desired=[];value.live_poses=[];value.clip_counts=[];value.errors=[]
+        return value
+
+    task=Task();teacher=torch.zeros(4,18)
+    first=execution(.1);second=execution(.9)
+    a=first.control(0,task,None,teacher)
+    b=second.control(0,task,None,teacher)
+    np.testing.assert_array_equal(a[3].numpy(),b[3].numpy())
+    np.testing.assert_array_equal(first.desired[0][2],second.desired[0][2])
+    second.inverse_q[1,:3]+=.02
+    c=second.control(0,task,None,teacher)
+    assert not torch.equal(a[3,:3],c[3,:3])
+    task._dof_vel[3,:3]+=.2
+    d=second.control(0,task,None,teacher)
+    assert not torch.equal(c[3,:3],d[3,:3])
