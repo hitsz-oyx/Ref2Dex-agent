@@ -233,7 +233,9 @@ def main():
                     future = current[:, None] + source_delta[None]
                     q = task._dof_pos.detach().cpu().numpy()
                     dq = task._dof_vel.detach().cpu().numpy()
-                    hand = trajectory_input(current, np.broadcast_to(future, (n, HORIZON, 11, 3)))
+                    future_batch = future if args.source_per_env else np.broadcast_to(
+                        future, (n, HORIZON, 11, 3))
+                    hand = trajectory_input(current, future_batch)
                     state = np.concatenate((q, dq), axis=-1).astype("float32")
                     with torch.no_grad():
                         hand_tensor = torch.as_tensor(stats["hand"].encode(hand), device=self.device)
