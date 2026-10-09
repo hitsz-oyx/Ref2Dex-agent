@@ -123,6 +123,8 @@ class ObjectRelativeGTExecution:
             self.roles = ['reactive_teacher', 'world_gt_command', 'late_inverse_world', 'late_inverse_bounded_se3']
         elif layout == 'geometry_inverse_repeat':
             self.roles = ['reactive_teacher', 'world_gt_command', 'late_inverse_world', 'late_inverse_world_replica']
+        elif layout == 'geometry_load_delta_late':
+            self.roles = ['reactive_teacher', 'world_gt_command', 'late_inverse_world', 'late_inverse_command_anchor']
         elif layout == 'geometry_pd':
             self.roles = ['reactive_teacher', 'world_gt_command', 'geometry_wrist_ff_source_fingers', 'geometry_wrist_ff_fixed_finger_preload']
         self.preload_path=preload_path
@@ -157,6 +159,8 @@ class ObjectRelativeGTExecution:
         self.device = player.device
         self.desired, self.clip_counts, self.errors, self.live_poses = [], [], [], []
         self.query_ticks, self.query_poses, self.query_chunks = [], [], []
+        self.last_applied = None
+        self.command_anchor_offset = None
 
     def control(self, tick, task, points, teacher_control):
         from .collection import pose_matrix
@@ -191,7 +195,7 @@ class ObjectRelativeGTExecution:
                 self.query_chunks.append(chunks)
             desired = np.stack((self.source_targets[tick], self.cached_chunks[0][tick % 24],
                                 self.cached_chunks[1][tick % 24]))
-        elif self.layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat'):
+        elif self.layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
             if self.inverse_q is None:
                 raise ValueError('full geometry inverse requires provenance-checked artifact')
             measured = self.source_targets[tick].copy()
@@ -211,6 +215,14 @@ class ObjectRelativeGTExecution:
                     inverse = bounded_transport(inverse,corrected)
                 elif self.layout == 'geometry_inverse_repeat':
                     measured = inverse.copy()
+                elif self.layout == 'geometry_load_delta_late':
+                    measured = inverse.copy()
+                    if tick == 120:
+                        equilibrium = self.inverse_q[tick].copy()
+                        equilibrium[:6] = self.geometry_wrist_q[tick,:6]+.1*(
+                            self.geometry_wrist_q[tick+1,:6]-self.geometry_wrist_q[tick,:6])*30
+                        self.command_anchor_offset = self.last_applied[2]-equilibrium
+                    inverse += self.command_anchor_offset
             desired = np.stack((self.source_targets[tick],measured,inverse))
         elif self.layout == 'wrist_geometry_late':
             measured = self.source_targets[tick].copy()
@@ -249,6 +261,7 @@ class ObjectRelativeGTExecution:
         result[1:] = torch.as_tensor(clipped, dtype=torch.float32, device=self.device)
         native = task._action_to_pd_targets(result.clone()).detach().cpu().numpy()
         rebuilt = commanded_targets(q[1:], clipped)
+        self.last_applied = rebuilt.copy()
         if np.max(np.abs(native[1:]-rebuilt)) > 2e-5:
             raise ValueError('actual native PD target conversion mismatch')
         if not np.isfinite(desired).all():
@@ -289,6 +302,7 @@ class ObjectRelativeGTExecution:
                    'geometry_inverse_late':'late_full_geometry_inverse',
                    'geometry_inverse_relative_late':'late_inverse_bounded_se3',
                    'geometry_inverse_repeat':'late_inverse_world',
+                   'geometry_load_delta_late':'late_inverse_command_anchor',
                    'geometry_pd':'geometry_wrist_ff_fixed_finger_preload'}.get(self.layout, 'object_gt_command')
         gate = dict(teacher_held=teacher, source_held=self.packet['role_outcomes']['reactive_teacher']['maximum_held_frames'],
                     reference_held=reference_held, held_fraction=.9, role_passes=passes,
@@ -299,8 +313,9 @@ class ObjectRelativeGTExecution:
             requested_controls=np.asarray(requested), desired_pd_targets=np.asarray(self.desired),
             live_object_query_poses=np.asarray(self.live_poses), object_anchor=self.anchor,
             servo_layout=self.layout, translation_feedback_cap_m=(.02 if self.layout in ('transport_ablation', 'chunk_alignment','geometry_inverse_relative_late') else None),
-            geometry_switch_tick=(120 if self.layout in ('finger_preload_late','wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat') else None),
-            wrist_inverse_source=('11-point fixed roots with reset calibration' if self.layout in ('wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat') else None),
+            geometry_switch_tick=(120 if self.layout in ('finger_preload_late','wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late') else None),
+            wrist_inverse_source=('11-point fixed roots with reset calibration' if self.layout in ('wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late') else None),
+            command_anchor_offset=self.command_anchor_offset,
             geometry_inverse_path=(str(self.inverse_path) if self.inverse_path is not None else None),
             geometry_inverse_sha256=(hashlib.sha256((self.inverse_path/'inverse.npz').read_bytes()).hexdigest() if self.inverse_path is not None else None),
             rotation_feedback_cap_rad=(.15 if self.layout in ('transport_ablation', 'chunk_alignment','geometry_inverse_relative_late') else None),
@@ -324,6 +339,8 @@ class ObjectRelativeGTExecution:
                               if self.layout == 'geometry_inverse_relative_late' else
                               'same full11-point inverse in two physical roles after grasp prefix; replicas are not independent seeds'
                               if self.layout == 'geometry_inverse_repeat' else
+                              'geometry increments anchored to the controllers own last applied PD target at120; no future command/preload labels'
+                              if self.layout == 'geometry_load_delta_late' else
                               'measured future wrist geometry plus forward velocity damping compensation; source/fixed-preload fingers'
                               if self.layout == 'geometry_pd' else
                               'every-step analytic object-conditioned wrist transport; independent source fingers'),

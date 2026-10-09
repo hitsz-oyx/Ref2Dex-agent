@@ -61,7 +61,7 @@ def main():
         assert hashlib.sha256(path.read_bytes()).hexdigest()==p['preload_statistics_sha256']
         preload=json.loads(path.read_text())
     inverse_q=None
-    if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat'):
+    if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
         inverse_path=Path(p['geometry_inverse_path'])/'inverse.npz'
         assert hashlib.sha256(inverse_path.read_bytes()).hexdigest()==p['geometry_inverse_sha256']
         with np.load(inverse_path) as data:
@@ -69,22 +69,31 @@ def main():
             np.testing.assert_array_equal(data['target_points'],source['hand_keypoints'][:,0])
     for role, target in ((2, targets), (3, source['dof_position'][1:, 0] if layout == 'command_vs_measured' else targets)):
         expect = p['object_pose'][query_indices, role].astype('float64') @ inverse[query_indices] @ pose(target)
-        if layout in ('wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat'):
+        if layout in ('wrist_geometry_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
             assert p['geometry_switch_tick']==120
             values=targets.copy()
             values[120:,:6]=source['dof_position'][121:,0,:6]
-            if role==3 or layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat'):
+            if role==3 or layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
                 qnext=source['dof_position'][1:,0,:6]
                 qfollowing=source['dof_position'][np.minimum(np.arange(1,543)+1,542),0,:6]
                 velocity=(qfollowing-qnext)*30
                 velocity[-1]=(qnext[-1]-qnext[-2])*30
                 values[120:,:6]+=.1*velocity[120:]
+            if layout=='geometry_load_delta_late' and role==3:
+                current=inverse_q[120].copy()
+                current[:6]=source['dof_position'][120,0,:6]+.1*(source['dof_position'][121,0,:6]-source['dof_position'][120,0,:6])*30
+                previous=commanded_targets(p['dof_position'][119,3],p['actions'][119,3])
+                offset=previous-current
+                np.testing.assert_allclose(p['command_anchor_offset'],offset,atol=1e-5)
+                values[120:,:6]+=offset[:6]
             expect=pose(values)
-            if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat'):
+            if layout in ('geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late'):
                 finger_q=source['dof_position'][:,0] if role==2 and layout=='geometry_inverse_late' else inverse_q
                 fingers=targets[:,ACTIVE_FINGERS].copy()
                 fingers[120:]=finger_q[121:][:,ACTIVE_FINGERS]
-                np.testing.assert_array_equal(desired[:,role-1][:,ACTIVE_FINGERS],fingers)
+                if layout=='geometry_load_delta_late' and role==3:
+                    fingers[120:]+=p['command_anchor_offset'][ACTIVE_FINGERS]
+                np.testing.assert_allclose(desired[:,role-1][:,ACTIVE_FINGERS],fingers,atol=1e-6)
             if layout=='geometry_inverse_relative_late' and role==3:
                 nominal=expect[120:].copy()
                 corrected=p['object_pose'][120:-1,role].astype('float64')@inverse[120:]@nominal
@@ -125,7 +134,7 @@ def main():
         error = float(np.max(np.abs(expect-pose(desired[:, role-1]))))
         if error > 3e-5:
             raise ValueError('SE(3) matrix transport mismatch: %s' % error)
-        if layout not in ('finger_preload','finger_preload_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_pd'):
+        if layout not in ('finger_preload','finger_preload_late','geometry_inverse_late','geometry_inverse_relative_late','geometry_inverse_repeat','geometry_load_delta_late','geometry_pd'):
             np.testing.assert_array_equal(desired[:, role-1, ACTIVE_FINGERS], target[:, ACTIVE_FINGERS])
         errors.append(error)
     if layout=='geometry_inverse_repeat':

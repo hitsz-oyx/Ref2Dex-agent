@@ -322,3 +322,25 @@ additional model or target variation. Record state/force divergence before
 the switch and actual control conversion. These are replicas, not two seeds.
 If both hold, geometry maintenance is PROMISING but cold contact remains
 blocked; if divergent, retain UNCLEAR and localize the physical divergence.
+
+
+r12 atecaa368, full542/71.40s: teacher353/world242; identical inverse
+absolute target streams give held483 vs250, local32.65 vs220.28mm. Target
+streams bitwise equal, q position diverges around45/native force44, before
+switch120. Tiny velocity/object rounding differences start earlier. Role3
+repeats r10 role3 metrics exactly. Physical grasp state, not two different
+inverse implementations, explains the replica difference; strict same-state
+causal comparison remains unavailable. Conditional geometry maintenance
+has repeated positive signal in role2, overall robustness remains UNCLEAR.
+
+Decision at11:46UTC: retain the role/contact sensitivity rather than expand
+old neural R. Extend budget to<=16 native launches (<=150s/worker), within
+remaining user2h and unchanged oneGPU/2GB bounds. r13 tests causal command
+anchoring: at120 take own actual last PD target u119, subtract the geometry
+equilibrium g120 (wrist includes .1s velocity), then add this fixed offset
+to subsequent g(t+1). Roles compare absolute geometry inverse versus
+geometry increments anchored to that already-applied command. This retains
+contact preload/pose offset without reading future PD target or force labels.
+It is a120step bootstrap oracle, not cold geometry sufficiency or a calibrated
+force controller. If positive, test cold-start dynamics; if negative, inspect
+which anchored target/clip breaks contact and stop this adaptation.
