@@ -53,6 +53,34 @@ def load_source(path):
     return packet
 
 
+def anchored_future_batch(source_hands, source_hand, live_current, tick,
+                          source_per_env, horizon=HORIZON):
+    """Anchor a source displacement future to each live environment.
+
+    Broadcast mode carries one env-0 future with shape ``[T,11,3]``; matched
+    mode carries one future per env with shape ``[N,T,11,3]``.  Keeping the
+    two branches explicit prevents an accidental extra batch axis in the
+    broadcast path.
+    """
+    source_hands = np.asarray(source_hands)
+    source_hand = np.asarray(source_hand)
+    live_current = np.asarray(live_current)
+    indices = np.minimum(int(tick) + np.arange(1, int(horizon) + 1), 542)
+    if source_per_env:
+        source_future = np.transpose(source_hands[indices], (1, 0, 2, 3))
+        source_current = source_hands[int(tick)]
+        source_delta = source_future - source_current[:, None]
+        future = live_current[:, None] + source_delta
+    else:
+        source_future = source_hand[indices]
+        source_current = source_hand[int(tick)]
+        source_delta = source_future - source_current
+        future = live_current[:, None] + source_delta[None]
+    if future.shape != (live_current.shape[0], int(horizon), 11, 3):
+        raise ValueError("anchored future batch shape mismatch")
+    return source_future, future
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, required=True)
@@ -233,21 +261,19 @@ def main():
                 base = self.get_action(obs, True).clamp(-1, 1).to(self.device)
                 if last_query_tick is None or tick - last_query_tick >= args.query_period:
                     if args.source_per_env:
-                        source_future = np.transpose(
-                            source_hands[np.minimum(tick + np.arange(1, HORIZON + 1), 542)],
-                            (1, 0, 2, 3))
-                        source_current = source_hands[tick]
+                        source_future, future = anchored_future_batch(
+                            source_hands, source_hand, measured["hand_keypoints"].detach().cpu().numpy(),
+                            tick, True)
                     else:
-                        source_future = source_hand[np.minimum(tick + np.arange(1, HORIZON + 1), 542)]
-                        source_current = source_hand[tick][None]
+                        source_future, future = anchored_future_batch(
+                            source_hands, source_hand, measured["hand_keypoints"].detach().cpu().numpy(),
+                            tick, False)
                     # The model was trained on future hand displacement from
-                    # the query hand.  Preserve that source trajectory delta
+                    # the query hand.  The helper preserves that displacement
                     # while anchoring it to each live environment's current
                     # hand; feeding source absolute coordinates would inject
                     # an unregistered initial-frame offset into R.
                     current = measured["hand_keypoints"].detach().cpu().numpy()
-                    source_delta = source_future - source_current[:, None]
-                    future = current[:, None] + (source_delta if args.source_per_env else source_delta[None])
                     q = task._dof_pos.detach().cpu().numpy()
                     dq = task._dof_vel.detach().cpu().numpy()
                     future_batch = future if args.source_per_env else np.broadcast_to(

@@ -235,8 +235,14 @@ def main():
                                  "pair": "pair"})
         source_packet_consistency = {}
         for trajectory_key, packet_key in packet_pairs.items():
-            source_packet_consistency[trajectory_key] = float(np.max(np.abs(
-                source[trajectory_key] - np.asarray(source_packet[packet_key]))))
+            trajectory_value = np.asarray(source[trajectory_key])
+            packet_value = np.asarray(source_packet[packet_key])
+            if trajectory_value.dtype == np.bool_ or packet_value.dtype == np.bool_:
+                source_packet_consistency[trajectory_key] = float(
+                    np.count_nonzero(trajectory_value != packet_value))
+            else:
+                source_packet_consistency[trajectory_key] = float(np.max(np.abs(
+                    trajectory_value - packet_value)))
         source_packet_consistency["action"] = float(np.max(np.abs(
             source["action"] - np.asarray(source_packet["actions"]))))
         source_packet_consistency["broadcast_source_hand"] = float(np.max(np.abs(
@@ -258,7 +264,13 @@ def main():
         source_hand_contract="broadcast env0 teacher hand; same-env teacher metrics are separate",
         source_packet_consistency_max_abs=source_packet_consistency,
         force_capture=dict(execution=actual_force_capture, source=source_force_capture,
-                           semantics="native net-force vectors; no impulse/preload recovery"),
+                           semantics="native net-force vectors; no impulse/preload recovery",
+                           hand_body_count=(int(actual["native_contact_forces"].shape[-2])
+                                             if actual_force_capture else None),
+                           reset_frame_valid=False,
+                           hand_scope="configured task._contact_body_ids only",
+                           object_scope="task._tar_contact_forces net force; may include non-hand contacts",
+                           pair_scope="hand norm>.1 any AND object norm>.1; not a collision-pair label"),
         contact_proxy_fields=["source_pair", "surface_gap", "table_support_proxy",
                               "object_velocity"] + (["native_contact_forces",
                               "native_object_contact_forces"]

@@ -102,6 +102,26 @@ contact-loss 机制；同-env q/dq/action 对比也不是 same-state 因果验�
 该审计只收紧了后续 source-matched replay 的观测需求，没有恢复 retarget gate，
 不启动新的 R sweep、H-to-hand、PointWorld 或 evaluator 训练。
 
+随后按该 Decision Note 完成了唯一一次 bounded source-matched native force
+capture：`ref7_2-same-cpu-teacher-contact-20261010-r1` 与
+`ref7_2-hand-action-context-contact-exec-20261010-r2`。两份数据均有限、543
+帧状态/542 条命令、requested=applied 且零 clipping；source trajectory 与
+packet 的 hand/object net-force、pair、state、action 字段逐项一致。新审计为
+`outputs/consequence-evaluator/ref7_2-contact-force-audit-20261010-r2/`。
+
+source teacher/env0 的阈值 pair 为真 498 帧（首个真帧 tick45）。三个 R 角色的
+几何 near-gap 首段仍从 tick43 开始，但 R-side force-pair 只持续 23/27/93 帧，
+分别在 tick66/70/136 变假；几何 near-gap 首段在 tick68/71/137 才采样退出，
+而此时 R hand/object net-force 已为零、source pair 仍为真。这只说明 live R 与
+teacher source 的观测时序不同，不能构成 same-state 因果比较。
+
+接触字段是五个 configured hand bodies 的 net force 与可能包含非手部接触的
+target net force，pair 只是 `hand norm>.1 any AND object norm>.1` 代理；reset
+frame0 标为无效。它没有恢复碰撞 pair、法向力、冲量或 preload，也不改变
+`ref7_2` Probe `UNCLEAR` / native retarget gate `UNPROMISING` 的判断。当前仍
+不启动 H-to-hand、PointWorld、evaluator 或 Cm 集成；相关运行代码的 future
+anchor 广播维度修复和布尔一致性审计修复已由测试覆盖，待提交为工程修复。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，

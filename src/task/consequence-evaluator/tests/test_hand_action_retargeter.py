@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import importlib.util
+from pathlib import Path
 
 from consequence_evaluator.hand_action_retargeter import (
     ACTION_DIM, CONTEXT_DIM, CONTEXT_SCHEMA, HORIZON, ContextHandActionRetargeter,
@@ -11,6 +13,12 @@ from consequence_evaluator.retarget_collection import (
 from consequence_evaluator.trajectory_utility import (
     OBJECT_EFFECT_DIM, SCHEMA as TRAJECTORY_SCHEMA, TRAJECTORY_DIM,
     TrajectoryUtility)
+
+_runner_spec = importlib.util.spec_from_file_location(
+    "hand_action_retarget_runner",
+    Path(__file__).resolve().parents[1] / "tools/run/run_hand_action_retargeter.py")
+_runner = importlib.util.module_from_spec(_runner_spec)
+_runner_spec.loader.exec_module(_runner)
 
 
 def test_structured_residual_family_is_bounded_and_covers_modes():
@@ -67,6 +75,25 @@ def test_context_contract_keeps_query_geometry_and_previous_command_local():
     output = model(hand, state, torch.from_numpy(context))
     assert output.shape == (5, HORIZON, ACTION_DIM)
     assert torch.isfinite(output).all()
+
+
+def test_broadcast_and_per_env_future_anchor_shapes_are_distinct_and_causal():
+    rng = np.random.default_rng(26)
+    source_hands = rng.normal(size=(543, 4, 11, 3)).astype("float32")
+    source_hand = source_hands[:, 0]
+    live_current = rng.normal(size=(4, 11, 3)).astype("float32")
+    source_future, broadcast = _runner.anchored_future_batch(
+        source_hands, source_hand, live_current, 48, False)
+    assert source_future.shape == (HORIZON, 11, 3)
+    assert broadcast.shape == (4, HORIZON, 11, 3)
+    np.testing.assert_allclose(
+        broadcast[2], live_current[2] + source_future - source_hand[48], atol=1e-6)
+    per_env_source, per_env = _runner.anchored_future_batch(
+        source_hands, source_hand, live_current, 48, True)
+    assert per_env_source.shape == (4, HORIZON, 11, 3)
+    assert per_env.shape == (4, HORIZON, 11, 3)
+    np.testing.assert_allclose(
+        per_env[2], live_current[2] + per_env_source[2] - source_hands[48, 2], atol=1e-6)
 
 
 def test_trajectory_utility_separates_tau_and_object_effect_arms():

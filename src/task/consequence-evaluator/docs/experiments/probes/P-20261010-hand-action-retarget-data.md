@@ -173,6 +173,37 @@ or another hidden simulator state caused it. Result and hashes:
 No new native run, force claim, H-to-hand integration, PointWorld inference,
 or evaluator training is justified by this proxy-only result.
 
+## Source-matched native net-force capture
+
+The bounded follow-up kept the same CPU-tensor/GPU-PhysX backend, direct
+four-env actor layout, seed 282, source packet, contextual checkpoint,
+24-step query period, and command path, while persisting the native net-force
+fields. The source trajectory and packet contain finite
+`native_contact_forces` with shape `(543,4,5,3)`,
+`native_object_contact_forces` with shape `(543,4,3)`, and the threshold pair
+proxy; the R execution contains the same fields, exact requested/applied
+actions, and zero clipping. The fresh audit is
+`outputs/consequence-evaluator/ref7_2-contact-force-audit-20261010-r2/` and
+its source trajectory/packet consistency checks are all zero.
+
+The teacher/env0 pair proxy is true for 498 sampled frames (first true tick
+45). For the three R roles, the geometry-near run still starts at tick 43,
+but the direct force-pair proxy is true only for 23/27/93 frames (ticks
+43--65, 43--69, and 43--135); it turns false at ticks 66/70/136, before the
+sampled gap exits at 68/71/137. At each sampled gap exit the R-side hand and
+object net-force norms are already zero, while the source teacher pair is
+still true. This is a descriptive timing separation between the live R
+rollouts and the teacher source, not a same-state causal comparison.
+
+The force fields are configured-body hand net forces (five bodies) and a
+target net force that may include non-hand contacts. The pair rule is only
+`hand norm > .1` for any configured body AND object norm > .1; frame 0 is a
+reset cache and is marked invalid. These arrays therefore improve
+observability but do not recover a hand-object collision pair, normal force,
+impulse, preload, or a contact mechanism. The contextual retarget route
+remains `UNPROMISING` for the native execution gate and the Probe remains
+`UNCLEAR`; no H-to-hand, PointWorld, evaluator, or Cm integration is opened.
+
 ## Decision note: source-matched force capture
 
 The remaining blocker is observability rather than another R architecture
@@ -189,4 +220,6 @@ force/pair transition can be compared descriptively with the existing gap
 exit. Failure or a mismatched source/backend stops this branch. The run is
 CPU tensor exchange with GPU PhysX, bounded to one 542-step execution and
 less than 300 seconds/2 GiB. It cannot by itself establish a preload
-mechanism or authorize H-to-hand/evaluator integration.
+mechanism or authorize H-to-hand/evaluator integration. The execution and
+audit succeeded; the resulting evidence is still diagnostic only under the
+scope and limitations above.
