@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-to-tau
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending-clean-commit
+git_commit: 1aa4d1b
 claim_id: C3
 hypothesis_family: HF-trajectory-conditioned-evaluator
 probe_index_in_family: 5
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [412, 413, 414, 416]
 decision_changed_if_positive: retain an offline H-to-tau baseline for later integration audit
 decision_changed_if_negative: keep H-to-tau, PointWorld, selector, and native execution frozen
-status: PLANNED
+status: UNCLEAR
 run_id: history-to-tau-20261010-r1
 ---
 
@@ -60,9 +60,27 @@ Model:
 `src/task/consequence-evaluator/src/consequence_evaluator/history_to_tau.py`.
 Fit entry point:
 `src/task/consequence-evaluator/tools/run/train_history_to_tau.py`.
-Planned output:
+Output:
 `outputs/consequence-evaluator/history-to-tau-20261010-r1/`.
 
 ## Result
 
-Pending bounded GPU fit.
+The bounded fit completed on GPU2 in 7.29 s at the 1200-step cap. The
+history, current-hand, and target arrays were finite; the actor hash was
+identical across the three episode splits, and the test split was not used for
+checkpoint selection. The packet contains 6144/4096/4096 train/validation/test
+windows.
+
+| split | predicted point RMSE | persistence point RMSE | predicted H24 RMSE | persistence H24 RMSE |
+| --- | ---: | ---: | ---: | ---: |
+| train | .04328 m | .20065 m | .07022 m | .31118 m |
+| validation | .06698 m | .19587 m | .10205 m | .30542 m |
+| test | .30280 m | .26214 m | .47161 m | .40719 m |
+
+The exploratory test screen is false: on the held seed-414 split, the model is
+15.5% worse than persistence in point RMSE and 15.8% worse at H24. Training
+and validation improve over persistence, but that does not transfer to the
+held episode split. The input/episode/hash contracts and finite-value checks
+passed, so this is retained as an `UNCLEAR` single-Probe result rather than a
+formal negative claim about all H-to-tau policies. The offline baseline is not
+carried into PointWorld, selector, online control, or native R execution.

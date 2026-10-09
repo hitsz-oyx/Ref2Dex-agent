@@ -145,6 +145,28 @@ C1/PW/selector/online/native expansion。理由是 full-H data screen 说明候�
 panel 或修正 H/label 合同；不追加 evaluator epoch 及不把单 seed/small panel 结果写成
 科学结论。
 
+随后按主线后续的 H→τ 链路做了一次独立的 bounded offline Probe
+(`P-20261010-history-to-tau`)：输入 history-preserving rollout 的
+`actor_observation[t]` 与当前 hand，目标为当前物体坐标系下的实测
+`t+1:t+24` hand trajectory。width-256 MLP 在 GPU2 以 1200 steps 完成，训练/验证/测试
+窗口为 6144/4096/4096，三 split actor hash 相同，test 未参与 checkpoint 选择，所有
+输入和输出有限。训练/验证 point RMSE 为 `.04328/.06698 m`，相对 persistence 的
+`.20065/.19587 m` 有改善；但 held seed-414 test 为 `.30280 m`，高于 persistence
+`.26214 m`，H24 为 `.47161 m`，也高于 `.40719 m`，test screen=false。该结果更像
+episode split 下的迁移不足，当前没有证据把它归咎于输入/执行实现错误；单次 Probe 保持
+`UNCLEAR`，不写成 H→τ 方法的正式负结论。
+
+### Decision Note — H→τ offline predictor screen (executed)
+
+当前需要决定的是：H→τ baseline 是否足以继续接入 PW/selector 或 native control。关键
+证据是 bounded fit 的数据、hash、finite 和 episode-split 合同均通过，但 held test 的
+point/H24 RMSE 分别比 persistence 高约15.5%/15.8%，而 train/validation 的改善没有
+迁移到 test。root 选择保留 packet 作为失败边界和后续数据审计依据，关闭这条 H→τ
+baseline 向 PointWorld、selector、online planner、MPC 或 native R 的接线；理由是
+当前没有跨 split 的可用预测信号，继续加 epoch、换 gate 或在线放大都不能解决已观测的
+split transfer 缺口。预计成本为零（仅保留已有 7 秒 fit 产物）；若未来获得新的、独立且
+合同一致的 H→τ 数据，再另起有界 Probe，仍需重新通过 held split screen。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小
