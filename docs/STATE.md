@@ -208,6 +208,24 @@ live teacher 的 `6:18` action 广播给 env1--3；不训练、不改系数、�
 单独导致失败”的解释，并保留组合级负结果。该 oracle 仅用于归因，不解锁 H-to-hand、
 PW、evaluator 或 Cm；仍无外部授权边界。
 
+随后完成 full teacher-action same-process clone audit。r3 运行时实际为
+`cpu` tensor device、GPU PhysX、direct environment rows；source packet 的
+`tensor_device: cuda:0` 被记录为 legacy metadata，不再作为拒绝条件。env0 teacher
+held `482`，完整 `0:18` action 广播到 env1--3 后 held `482/318/482`，无 clipping 且
+requested=applied；但四个 env 在 reset 相同后于 tick1 的 q/hand/object 已分叉。该结果
+只证明部分 row 可复现 teacher，不是严格 same-state A/B；结合前一轮 teacher-finger
+`8/10/9`，fixed-wrist replacement 仍是主要实践嫌疑，但不能作隐藏 PhysX state 之外的
+因果归因。native route 在组合/合同层面继续关闭。
+
+### Decision Note — full teacher-action same-process clone audit (executed)
+
+teacher-finger 对照仍失败后，当前需要区分 fixed-wrist replacement 与多环境执行合同。
+root 选择一次更便宜的 bounded control：不替换 wrist、不使用 R 输出，把同一 tick 的
+env0 teacher 完整 `0:18` action 广播到 env1--3；仍为 542-step/GPU2，只看 teacher hold、
+requested/applied 与 finite/clipping 合同。r3 已完成，结果为 `482/318/482`，且 tick1
+即出现 row-level state divergence；因此只保留 fixed-wrist 的实践嫌疑，不作严格因果归因，
+也不再做 native sweep。
+
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 
 按用户授权持续自主推进两小时，完成16组4env/64copies/seed282原生GPU Probe，

@@ -72,7 +72,10 @@ wrist dispatch differed from the model wrist output as intended.
 The teacher-finger oracle therefore did not rescue the fixed-wrist native
 execution. This makes the preceding r2 failure a combination-level negative;
 it does **not** isolate or refute the learned finger decoder. The narrow native
-finger-decoder sweep remains stopped.
+finger-decoder sweep remains stopped. A subsequent complete-teacher control
+held `482/318/482` in the three test rows, with immediate state divergence at
+tick 1 even under identical actions; this supports the contract-level caveat
+and prevents a strict causal attribution to the fixed wrist.
 
 ## Artifacts
 
