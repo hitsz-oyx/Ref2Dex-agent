@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
 
@@ -36,3 +37,18 @@ def test_camera_world_roundtrip_uses_row_points():
     np.testing.assert_allclose(
         converter.camera_to_world(converter.world_to_camera(points, w2c), w2c),
         points, atol=1e-7)
+
+
+def test_infer_extrinsics_convention_requires_clear_reprojection_winner():
+    diagnostic = {
+        'as_c2w': {'median_m': .088, 'p95_m': .27},
+        'as_w2c': {'median_m': .0034, 'p95_m': .028},
+    }
+    result = converter.infer_extrinsics_convention(diagnostic, min_ratio=5.)
+    assert result['convention'] == 'w2c'
+    assert result['separation_ratio'] > 20
+    with pytest.raises(ValueError, match='ambiguous'):
+        converter.infer_extrinsics_convention({
+            'as_c2w': {'median_m': .01, 'p95_m': .02},
+            'as_w2c': {'median_m': .012, 'p95_m': .03},
+        }, min_ratio=5.)

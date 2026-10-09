@@ -57,6 +57,18 @@ The run used `P03_03_23` and the verified
   interpreted as `w2c` (3.4 mm median versus 88.6 mm as `c2w`). The upstream
   `step9_spatracker.py` source records that it saves `inverse(c2w_traj)`.
 
+A sixteen-clip audit found the same direction for 15 clips, while their
+metadata rows all say `c2w`; one low-motion clip is only 1.52x separated and
+is left ambiguous. This is a release-level metadata/artifact mismatch, not a
+failure of the P03_03 trajectory itself. The converter now supports
+`--extrinsics-convention auto`: it selects the lower static-depth reprojection
+residual only when the two directions differ by at least 5x, otherwise it
+refuses the clip. On the P03_03 run, auto selected `w2c`, recorded
+`metadata_mismatch=true`, and reproduced the same 28/28 hand and one-window
+result. The exact release-generation step that created the stale `c2w` labels
+is not recoverable from the published artifacts, so the metadata is preserved
+for audit rather than overwritten.
+
 ## Decision and limits
 
 The scene-flow route is `PROMISING` for further conversion: this clip yields a

@@ -410,13 +410,35 @@ def static_convention_diagnostic(depths, Ks, extrinsics, target_frames):
     return result
 
 
+def infer_extrinsics_convention(diagnostic, min_ratio=5.0):
+    """Choose the matrix direction only when static depth makes it clear."""
+    medians = {
+        'c2w': float(diagnostic['as_c2w']['median_m']),
+        'w2c': float(diagnostic['as_w2c']['median_m']),
+    }
+    if not all(np.isfinite(v) and v > 0 for v in medians.values()):
+        raise ValueError('cannot infer extrinsics convention from invalid residuals')
+    winner = min(medians, key=medians.get)
+    loser = 'w2c' if winner == 'c2w' else 'c2w'
+    ratio = medians[loser] / medians[winner]
+    if ratio < min_ratio:
+        raise ValueError(
+            'ambiguous extrinsics convention: reprojection separation '
+            f'{ratio:.3g}x is below the {min_ratio:.3g}x threshold')
+    return dict(convention=winner, separation_ratio=float(ratio),
+                median_residual_m=medians)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--scene-dir', type=Path, required=True)
     p.add_argument('--contact-npz', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--start-frame', type=int, required=True)
-    p.add_argument('--extrinsics-convention', choices=('w2c', 'c2w'), required=True)
+    p.add_argument('--extrinsics-convention', choices=('auto', 'w2c', 'c2w'),
+                   default='auto')
+    p.add_argument('--metadata-convention', choices=('w2c', 'c2w'))
+    p.add_argument('--convention-min-separation', type=float, default=5.0)
     p.add_argument('--max-static-points', type=int, default=8192)
     p.add_argument('--max-object-points', type=int, default=512)
     args = p.parse_args()
@@ -428,11 +450,6 @@ def main():
         raw_extrinsics = np.asarray(z['extrinsics'], dtype='float32')
     if not rigid_valid(raw_extrinsics).all():
         raise ValueError('invalid SpaTracker extrinsics')
-    # Output files are produced by the upstream SpaTracker script as inverse
-    # c2w matrices; source provenance and the selected convention are recorded.
-    w2cs = raw_extrinsics if args.extrinsics_convention == 'w2c' else np.linalg.inv(raw_extrinsics)
-    if not rigid_valid(w2cs).all():
-        raise ValueError('selected camera convention is not rigid')
     n_frames, h, w = depths.shape
     gray = read_video(scene / 'action.mp4', (w, h))
     if len(gray) != n_frames:
@@ -442,6 +459,17 @@ def main():
     target_frames = np.arange(WINDOW, dtype=np.int64) * 2
     if target_frames[-1] >= n_frames:
         raise ValueError('clip is shorter than one 4+24 30-Hz window')
+    diagnostic = static_convention_diagnostic(depths, Ks, raw_extrinsics, target_frames)
+    inference = infer_extrinsics_convention(
+        diagnostic, min_ratio=args.convention_min_separation)
+    selected_convention = (inference['convention'] if args.extrinsics_convention == 'auto'
+                           else args.extrinsics_convention)
+    # Output files are produced by the upstream SpaTracker script as inverse
+    # c2w matrices; source provenance and the selected convention are recorded.
+    w2cs = (raw_extrinsics if selected_convention == 'w2c'
+            else np.linalg.inv(raw_extrinsics))
+    if not rigid_valid(w2cs).all():
+        raise ValueError('selected camera convention is not rigid')
     static, static_valid, static_audit = static_tracks(
         depths, Ks, w2cs, object_masks, hand_masks, target_frames,
         max_points=args.max_static_points)
@@ -459,7 +487,6 @@ def main():
     point_kind = np.concatenate((np.zeros(static.shape[1], np.int8),
                                  np.ones(moved.shape[1], np.int8)))
     c2ws = np.linalg.inv(w2cs)
-    diagnostic = static_convention_diagnostic(depths, Ks, raw_extrinsics, target_frames)
     out_npz = args.output / 'scene_flow_candidate.npz'
     np.savez_compressed(
         out_npz, scene_points_world=scene_points.astype('float32'),
@@ -478,7 +505,16 @@ def main():
             'twohands_masks.npz': sha(scene / 'egohos/twohands_masks.npz')},
         contact_npz_sha256=sha(args.contact_npz),
         coordinate_frame='SpaTracker world from explicit camera convention',
-        extrinsics_convention=args.extrinsics_convention,
+        extrinsics_convention=selected_convention,
+        convention_inference=dict(
+            requested=args.extrinsics_convention,
+            metadata=args.metadata_convention,
+            inferred=inference['convention'],
+            separation_ratio=inference['separation_ratio'],
+            metadata_mismatch=(args.metadata_convention is not None
+                               and args.metadata_convention != inference['convention']),
+            min_separation=float(args.convention_min_separation),
+            median_residual_m=inference['median_residual_m']),
         extrinsics_provenance='ObjectForesight-Data step9_spatracker.py saves inverse(c2w_traj)',
         upstream_source='https://raw.githubusercontent.com/RustinS/ObjectForesight-Data/main/step9_spatracker.py',
         forbidden_supervision=['FoundationPose T_c_o', 'TRELLIS mesh', 'propagated object pose'],
