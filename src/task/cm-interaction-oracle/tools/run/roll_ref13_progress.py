@@ -23,7 +23,11 @@ def main():
         size=sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
         if size>4*1024**3:
             raise RuntimeError('conditional artifact budget exhausted')
-        subprocess.run(command,check=True,timeout=min(250,max(1,deadline-time.time())))
+        if 'ref13_progress_fork.py' in ' '.join(command):
+            command+=['--wall-cap',str(min(240,int(deadline-time.time())-15))]
+            subprocess.run(command,check=True)
+        else:
+            subprocess.run(command,check=True,timeout=min(250,max(1,deadline-time.time())))
     def fork(name,reference,offset,candidate=0,plan=None,window=32):
         cmd=[sys.executable,str(task/'tools/run/ref13_progress_fork.py'),
             '--run-dir',str(root),'--gpu',str(args.gpu),'--name',name,
@@ -39,8 +43,7 @@ def main():
         return json.loads((root/(name+'.json')).read_text())
     records=[]
     try:
-        first=score(['initial-k'+str(k) for k in range(7)],'initial-scores')
-        shared={0:('reanchor-r2',first)}
+        first=json.loads((root/'initial-scores.json').read_text()) if (root/'initial-scores.json').exists() else score(['initial-k'+str(k) for k in range(7)],'initial-scores')
         # Cache only identical actual reference paths. Each arm otherwise gets
         # its own physically executed prefix, never a mosaic of future forks.
         cache={}; outcomes={}
