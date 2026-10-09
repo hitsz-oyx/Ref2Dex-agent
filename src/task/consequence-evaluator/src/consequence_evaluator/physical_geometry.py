@@ -52,6 +52,7 @@ class PhysicalGeometry:
             # arithmetic on CPU. Bound temporary pairwise matrices to16envs.
             for begin in range(0,len(ids),16):
                 chunk=slice(begin,begin+16)
-                value=torch.cdist(hand[chunk].to(self.distance_device),obj[chunk].to(self.distance_device)).amin(dim=(1,2))
+                distance_device = getattr(self, "distance_device", task.device)
+                value=torch.cdist(hand[chunk].to(distance_device),obj[chunk].to(distance_device)).amin(dim=(1,2))
                 gaps[ids[chunk]]=value.to(task.device)
         return bodies[:,self.key_ids,:3].clone(),gaps
