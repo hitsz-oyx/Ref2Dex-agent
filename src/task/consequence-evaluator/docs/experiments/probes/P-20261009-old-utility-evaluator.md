@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [261, 262, 263, 288, 289, 290, 292]
 decision_changed_if_positive: quantify frozen PointWorld value gap and screen actual learned GT-selector execution
 decision_changed_if_negative: audit source fit and horizon or interaction coverage without redefining old Y
-status: UNCLEAR
+status: PROMISING
 run_id: old-utility-evaluator-20261009-r1
 ---
 
 # Can GT and frozen PointWorld geometry recover the old teacher's action ranking?
 
-Result: pending.
+Result: GT ranking screen PROMISING; C1.75641 versus C0.60256, C2.69231.
 Decision: user ref4_4 freezes old U32 and authorizes matched C0/C1/C2 evaluator
 training and held-panel ranking. Stop the Y-definition detour. The previous
 temporal-label Probe remains separate; its model/label are not reused here.
@@ -111,6 +111,35 @@ full-task suffixes, PointWorld adaptation/execution bridge and RL follow only
 after these comparisons resolve the useful next step.
 
 ## Limitations / future evidence
+
+### Conditional actual selector Decision Note
+
+The frozen fit completes1200updates each, val-selected steps C0=800/C1=1000/
+C2=1200. On78strict pairs, C1 improves15.38pp and same-H future-shuffle loses
+24.36pp; mean regret improves .07083→.05667. GT screen passes. C2 loses6.41pp
+against C1 and misses the fixed .70/5pp retention screen; retain the model gap.
+The informative support is only5anchors. A larger fit or claim is not warranted.
+
+Root action: execute the already frozen first-query choices, each as one real
+contiguous90step mixed path, to distinguish ranking-only signal from bounded
+grasp rescue/harm. No new choice rule, extra fitting or model selection. Use
+the existing pinned cold whole-world runner, recovered actor, query71,
+96solver envs/25selected s3 rows and first8residual/then frozen feedback. C0,
+C1 and observed-hand-oracle C2 all get the same budget. No new rolling queries.
+
+Budget: one idleGPU2, <=240s per owned fork, <=720s total; outputs<=256MiB
+additional. Exact historical prefix/geometry checks and full Z90/no-terminal
+coverage must pass. Stop on mismatch, process/resource conflict or incomplete
+continuation. Positive execution supports a new independent control Probe;
+no benefit keeps the ranking signal but defers planner/bridge/RL. C2 cannot
+be described as prospective or deployable. No external authorization needed
+within current user/mission/campaign boundaries.
+
+Actual artifacts are declared under the existing replay root
+`outputs/cm-interaction-oracle/ref13-progress-recovery-20261009-r3/`
+in fresh `evaluator-c0-one-shot`, `evaluator-c1-one-shot`,
+`evaluator-c2-one-shot` folders/status/logs. New choices and the summary stay
+in the consequence-evaluator run; existing replay data/manifests are preserved.
 
 ### Engineering repeatability repair before evaluator fitting
 
