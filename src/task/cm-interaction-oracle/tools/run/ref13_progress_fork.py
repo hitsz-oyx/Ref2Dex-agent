@@ -49,13 +49,13 @@ def main():
                       ('--output_path',folder/'native'),('--candidate',args.candidate)):
         cmd[cmd.index(key)+1]=str(value)
     cmd+=['--reference',str(args.reference.resolve()),'--anchor-schedule',str(args.schedule.resolve()),
-          '--group-id','0','--record-rolling-trace']
+          '--group-id','0']
     if args.reanchor:
         if args.candidate!=0 or args.plan is not None or args.offset!=0:
             raise ValueError('baseline reanchor only')
         cmd+=['--reanchor-baseline']
     else:
-        cmd+=['--rolling-offset',str(args.offset),'--post-window',str(args.window)]
+        cmd+=['--rolling-offset',str(args.offset),'--post-window',str(args.window),'--record-rolling-trace']
         if args.plan is not None:
             cmd+=['--rolling-plan',str(args.plan.resolve())]
     env=os.environ.copy()
