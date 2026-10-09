@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-panel-trajectory-utility
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 70b916a
+git_commit: 309d18d
 claim_id: C3
 hypothesis_family: HF-trajectory-conditioned-evaluator
 probe_index_in_family: 4
@@ -14,7 +14,7 @@ seeds: [412, 413, 414, 415]
 decision_changed_if_positive: retain the trajectory evaluator as a useful offline ranking component and audit its matched controls
 decision_changed_if_negative: keep evaluator/selector/PW online integration frozen and return to candidate-bank design
 status: UNCLEAR
-run_id: history-panel-trajectory-utility-20261010-r3
+run_id: history-panel-trajectory-utility-20261010-r4
 ---
 
 # Does an episode-split approximate-H panel let tau retain U32 ranking signal?
@@ -48,9 +48,10 @@ farthest-point diversity in the 24-step current-object-frame hand trajectory;
 U32 labels are not used for composition. The panel packet retains H, tau,
 measured 24-step object effect, labels, panel IDs, and all match distances.
 
-The fit has three matched-initialization arms:
+The fit has four matched-initialization arms:
 
 * B: `H` only (tau input zeroed);
+* T: `tau` only (H input zeroed);
 * C0: `H + tau`;
 * C1: `H + tau + E_GT`.
 
@@ -85,23 +86,25 @@ The clean replay panel packet is
 panel audit is
 `history-candidate-panel-audit-20261010-r2/`; composition used no labels.
 
-The matched-initialization B/C0/C1 fit completed 1200 GPU2 steps in about 31 s
+The matched-initialization B/T/C0/C1 fit completed 1200 GPU2 steps in about 40 s
 with finite values. On the 18 held test panels (137 strict pairs across only 7
 informative panels):
 
 | arm | strict pair accuracy | tau-shuffle accuracy | mean regret |
 | --- | ---: | ---: | ---: |
 | B H-only | .7226 | .7226 | .07234 |
+| T tau-only | .7007 | .4599 | .00637 |
 | C0 H+tau | .6569 | .4234 | .00463 |
 | C1 H+tau+E_GT | .5839 | .5693 | .09433 |
 
 C0's shuffle drop is 23.36pp, but matched H-only B reaches .7226 while C0 is
-only .6569 (`-6.57pp`), so the shuffle drop cannot be read as an independent
-tau benefit. C1 is .5839 (`-7.30pp` versus C0) and its shuffle drop is only
-1.46pp; the exploratory screen is false. The fit is therefore `UNCLEAR`, with
-the tau-conditioned arm `UNPROMISING` on this approximate-H panel, not support
-for GT-effect information or a deployable selector. C2/PointWorld, deadzones,
-online planning, and native R execution remain closed. The panel's
-approximate-H tolerance and seven informative test panels are evidence
-limitations; do not treat any single-seed arm as a formal trajectory-ranking
-claim.
+only .6569 (`-6.57pp`). T tau-only reaches .7007 and its shuffle drop is
+24.09pp, so tau has an exploratory signal but combining it with this
+approximate H is not useful in the current architecture. C1 is .5839
+(`-7.30pp` versus C0) and its shuffle drop is only 1.46pp; the exploratory
+screen is false. The fit is therefore `UNCLEAR`, with the C0/C1 combined arms
+`UNPROMISING` on this panel, not support for GT-effect information or a
+deployable selector. C2/PointWorld, deadzones, online planning, and native R
+execution remain closed. The panel's approximate-H tolerance and seven
+informative test panels are evidence limitations; do not treat any single-seed
+arm as a formal trajectory-ranking claim.

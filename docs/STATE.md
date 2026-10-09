@@ -119,14 +119,15 @@ PhysX state fork。
 
 基于这些 split 构造了 25/12/18 个 train/val/test 七候选 panel（输出
 `history-candidate-panel-20261010-r2/`，label 未参与候选选择），并完成 matched-init
-B/C0/C1 trajectory utility fit（输出
-`history-panel-trajectory-utility-20261010-r3/`，GPU2，1200 steps，约31s）。18个
-test panels 中只有7个 informative anchors/137 strict pairs；C0 `H+tau` strict
-为 `.6569`，tau shuffle 为 `.4234`（drop23.36pp），C1 `H+tau+E_GT` 为 `.5839`，
-shuffle `.5693`（drop1.46pp），C1 相对 C0 为 -7.30pp，approximate-H evaluator
-screen 为 false。H-only B 的 matched ablation 为 `.7226`，高于 C0 的 `.6569`，
-故 C0 shuffle 不能单独解释为 tau 的独立收益；C0 tau-conditioned arm 在该 panel
-上 `UNPROMISING`，不能升级为正式 ranking claim；C1 GT-information 不成立。按 Decision Note 停止 C2/PW、deadzone、
+B/T/C0/C1 trajectory utility fit（输出
+`history-panel-trajectory-utility-20261010-r4/`，GPU2，1200 steps，约40s）。18个
+test panels 中只有7个 informative anchors/137 strict pairs；H-only B strict
+为 `.7226`，tau-only T 为 `.7007`（shuffle `.4599`，drop24.09pp），C0 `H+tau`
+为 `.6569`（shuffle `.4234`，drop23.36pp），C1 `H+tau+E_GT` 为 `.5839`，shuffle
+`.5693`（drop1.46pp），C1 相对 C0 为 -7.30pp，approximate-H evaluator screen
+为 false。B/T ablation 说明 tau-only 仍有 exploratory signal，但与 approximate H
+合并后 C0 反而低于 H-only；C0/C1 combined arms 在该 panel 上 `UNPROMISING`，不能
+升级为正式 ranking claim；C1 GT-information 不成立。按 Decision Note 停止 C2/PW、deadzone、
 selector、online planner/MPC 和 native R 接线，保留 panel/fit 作为后续若需扩大
 数据或改进 H 合同的证据。
 
@@ -134,11 +135,12 @@ selector、online planner/MPC 和 native R 接线，保留 panel/fit 作为后�
 
 当前需要决定的是：history-preserving split 是否足以把主线推进到 PW/C2 或在线
 selector。关键证据是三 split 的近 H pair 仍有 label variation，但 held panel 只有
-7个 informative anchors；matched H-only B 为 `.7226`，C0 为 `.6569`，C0 tau shuffle
-drop 为23.36pp，C1 加 GT effect 反而低于 C0 且 shuffle drop 仅1.46pp。root 选择把
-C0 tau-use 降级为不能归因的 `UNPROMISING` engineering result，关闭
+7个 informative anchors；matched H-only B 为 `.7226`，tau-only T 为 `.7007` 且
+shuffle drop24.09pp，C0 为 `.6569` 且 shuffle drop23.36pp，C1 加 GT effect 反而低于
+C0 且 shuffle drop 仅1.46pp。root 选择保留 tau-only 的弱 exploratory signal，但把
+C0/C1 combined arms 降级为不能归因的 `UNPROMISING` engineering result，关闭
 C1/PW/selector/online/native expansion。理由是 full-H data screen 说明候选库不是
-塌缩，但 approximate-H/稀疏 informative panels 甚至让 H-only 胜过 tau arm，尚不足
+塌缩，但 approximate-H/稀疏 informative panels 让 H-only 胜过 combined tau arm，尚不足
 以支持 effect information 或可部署排序。下一步若继续，只能先扩大严格 H-matched
 panel 或修正 H/label 合同；不追加 evaluator epoch 及不把单 seed/small panel 结果写成
 科学结论。
