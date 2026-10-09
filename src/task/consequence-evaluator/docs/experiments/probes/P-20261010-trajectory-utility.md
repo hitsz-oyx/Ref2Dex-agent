@@ -36,7 +36,7 @@ future effects separate. The cheapest discriminating data are already frozen
 in `old-utility-data-20261009-r1` and `old-utility-pw-20261009-r2`, including
 the 25 same-H x 7 candidate panel.
 
-The three matched arms are:
+The three arms are intended to be matched at initialization:
 
 * C0: current history `H` plus candidate `tau`;
 * C1: C0 plus the measured GT object effect `E_GT`;
@@ -80,12 +80,36 @@ nonfinite values or input drift.
 | C1 H+tau+GT effect | .6410 | .6282 | .0600 |
 | C2 H+tau+PW effect | .7692 | .7821 | .0596 |
 
-C0's shuffle drop (25.64pp) confirms that the new model is actually using the
-candidate trajectory. C1's incremental gain is only 1.28pp and its shuffle
-drop is 1.28pp. C2's higher raw accuracy does not survive its tau-shuffle
-control, and C1-vs-C2 retention is therefore not interpretable as a positive
-PW result. Ordinary held-out test RMSE is recorded in `result.json`; it is not
-used as a panel selection claim.
+C0's shuffle drop (25.64pp) is an exploratory indication that the new model
+can use the candidate trajectory. However, a post-run implementation audit
+found that r1 actually constructed C0/C1/C2 from three independent random
+initializations and saved a fourth, unused model as `initial.pt`. Its raw
+C1/C0/C2 comparisons are therefore initialization-confounded and are not a
+matched-arm method result. The r1 within-arm fit and shuffle numbers remain
+as engineering evidence only; they cannot support or refute the GT/PW gates.
+
+### Matched-initialization correction
+
+This was a blocker for the intended decision, so one bounded correction was
+run before expanding the candidate bank. It kept the exact data, split,
+seed, sampler, batch, 1200-step cap, and gate, but deep-copied one shared
+`initial_state` into all three arms and saved that same state as `initial.pt`.
+The old r1 directory was not overwritten. The corrected fit is
+`outputs/consequence-evaluator/trajectory-utility-fit-20261010-r2/` and
+completed on GPU2 in 32.2 seconds with shared initialization recorded in its
+manifest.
+
+| Arm | Matched panel strict accuracy | Tau-shuffle accuracy | Mean regret |
+| --- | ---: | ---: | ---: |
+| C0 H+tau | .6282 | .3718 | .0229 |
+| C1 H+tau+GT effect | .6538 | .6538 | .0725 |
+| C2 H+tau+PW effect | .5897 | .5641 | .0729 |
+
+The corrected C1 gain is 2.56pp, below the 3pp gate, and its tau-shuffle
+drop is 0pp. The GT-information screen and PW-retention screen both remain
+false. This is a valid matched implementation screen, still limited to five
+informative anchors and 78 strict pairs; no C2 expansion, online planner, or
+control claim follows from it.
 
 ## Frozen H-to-tau candidate-bank audit
 
@@ -157,11 +181,12 @@ assertion. None reached a scientific result; r4 is the corrected run.
 
 The implementation contract is valid: C0/C1/C2 receive distinct tau/effect
 branches, the panel remains same-H, and no future contact label is exposed.
-The result is evidence-insufficient rather than a refutation of the complete
-chain. The dominant limitation is the exposed panel: 20/25 anchors are tied,
-only five are informative, and the observed tau/effect candidates are not a
-controlled independent proposal bank. Do not increase epochs, change the
-thresholds, or promote C2 to a deployable planner from this run.
+The corrected result is evidence-insufficient rather than a refutation of the
+complete chain. The dominant limitations are the exposed panel (20/25 anchors
+are tied, only five are informative), the lack of a controlled independent
+proposal bank, and the failed tau-use screen after matched initialization.
+Do not increase epochs, change thresholds, or promote C2 to a deployable
+planner from these runs.
 
 Keep the frozen evaluator artifacts and move to the next cheapest route work:
 audit or construct a candidate bank with non-tied same-H consequences and

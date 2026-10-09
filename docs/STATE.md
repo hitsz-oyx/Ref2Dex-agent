@@ -16,6 +16,14 @@ shuffle 从 .6282 降至 .3718，说明新 τ 分支确实被使用；但 C1 增
 strict pairs，当前不扩 epoch、不改 gate、不进入可部署 planner；保留为主线第7–8步
 的接口与证据，下一步需要非平凡同-H candidate bank/H→τ proposal 审计。
 
+随后审计发现 r1 的 C0/C1/C2 是三个独立随机初始化，`initial.pt` 是未参与训练
+的第四个实例，因此 r1 的 C1−C0、C1 shuffle 和 C1/C2 gate 不能作 matched-arm
+归因。按 Decision Note 保留 r1、不覆盖产物，只修复初始化并以同数据/seed/步数重跑
+`trajectory-utility-fit-20261010-r2`（GPU2，32.2s）。共享初始化后的 panel 为
+C0/C1/C2 `.6282/.6538/.5897`，C1 增益 `.0256`、τ-shuffle drop `0`；GT
+information 与 PW retention gates 均为 false。该实现修复后的结果仍只覆盖5个
+informative anchors/78 strict pairs，故不扩 candidate bank、不启动 C2/PW 在线链路。
+
 随后对冻结 `H.pt`/`HA.pt` 做只读 candidate-bank audit（commit `e0b8e2f`）：H-only
 七候选完全相同（candidate RMS 0），HA 虽有动作条件，但 panel 候选差异仅约
 1.09 mm mean / 1.40 mm max，observed-τ point RMSE 约59.53 mm。将 HA 生成 τ
@@ -79,6 +87,18 @@ hand RMSE=61.4/75.8/77.4mm（冻结 GPU source 为0/0/0、109–114mm），确�
 诊断反而 held=0/0/0、RMSE=117.2/101.2/81.3mm；同 CPU teacher env 间本身已有26–37mm
 hand variation，不能把它解释为同-state验证。当前停止 query/model sweep，保留隔离
 产物与失败 run，后续接触/preload 工作需 source-matched replay 和 contact-force proxy。
+
+同一 source-matched CPU packet 上完成只读 contact-proxy audit
+(`ref7_2-contact-proxy-audit-20261010-r13`)：R 三角色的 `surface_gap<=10 mm`
+首段均从 tick43 开始，早于 teacher `pair` proxy 的 tick45；几何近段分别在
+67/70/136 结束，随后 gap 为 15.87/14.07/11.76mm，而 teacher pair 仍为真。
+全轨迹 hand RMSE 为61.43/75.83/77.40mm，近段退出时 wrist/finger误差为
+5.56/17.01、6.03/24.72、30.99/51.09mm。source trajectory 与 source packet
+字段逐项 bitwise 一致，执行 packet 没有 R-side pair、contact force 或 impulse，
+故这些只是 gap/table-support 与 q/dq/action proxy，不能解释 preload 或宣称
+contact-loss 机制；同-env q/dq/action 对比也不是 same-state 因果验证。
+该审计只收紧了后续 source-matched replay 的观测需求，没有恢复 retarget gate，
+不启动新的 R sweep、H-to-hand、PointWorld 或 evaluator 训练。
 
 ## 2026-10-09 ref7_1 物体系 GT servo 与接触控制诊断
 

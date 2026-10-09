@@ -146,7 +146,12 @@ def main():
         "effect_pw": torch.as_tensor(encode(effect_pw, stats["effect"]), device=device),
         "label": torch.as_tensor(data["label"], device=device),
     }
-    models = {arm: TrajectoryUtility().to(device) for arm in ("C0", "C1", "C2")}
+    # Keep the three input arms matched at initialization.  A prior Probe
+    # constructed three independent models and saved a fourth, unused model
+    # as ``initial.pt``; that made small arm deltas uninterpretable.
+    initial_model = TrajectoryUtility().to(device)
+    initial_state = copy.deepcopy(initial_model.state_dict())
+    models = {arm: copy.deepcopy(initial_model) for arm in ("C0", "C1", "C2")}
     opts = {arm: torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
             for arm, model in models.items()}
     batches = episode_batches(train_rows, data["episode"], args.steps, args.batch, args.seed)
@@ -157,8 +162,7 @@ def main():
         Path(__file__).resolve(), TASK / "src/consequence_evaluator/trajectory_utility.py",
         TASK / "src/consequence_evaluator/old_utility.py")}
     output.mkdir(parents=True)
-    initial = TrajectoryUtility()
-    torch.save(initial.state_dict(), output / "initial.pt")
+    torch.save(initial_state, output / "initial.pt")
     fit_manifest = dict(
         schema=SCHEMA, status="RUNNING", git_commit=subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -175,7 +179,8 @@ def main():
         label=manifest["label"], test_used_for_selection=False,
         ordinary_rows={split: int(len(rows)) for split, rows in ids.items()},
         panel_contract="25 same-H anchors x 7 candidates; candidate trajectories/effects retained",
-        sampler="episode-uniform then window-uniform")
+        sampler="episode-uniform then window-uniform",
+        shared_initialization=True)
     write(output / "manifest.json", fit_manifest)
 
     best = {arm: float("inf") for arm in models}; selected = {}; history = []

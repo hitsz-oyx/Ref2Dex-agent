@@ -144,3 +144,31 @@ The follow-up therefore remains `UNCLEAR` for attribution and `UNPROMISING`
 for the native execution gate. No further query-period or contextual-fit
 sweep is warranted; future contact/preload work must use source-matched replay
 and record native contact-force proxies before making a representation claim.
+
+## Same-CPU contact-proxy audit
+
+To separate the remaining attribution question from another retarget sweep, I
+audited the already-completed same-CPU packet without launching simulation.
+The source teacher has a saved `pair` proxy, but the R execution packet has no
+R-side pair, contact force, or impulse label. The audit therefore finds the
+first contiguous execution `surface_gap <= 10 mm` run and reports its exit;
+it does not call that exit a recovered contact-loss event.
+
+For all three R roles, the first near-gap run starts at tick 43, before the
+teacher `pair` proxy turns on at tick 45. The runs end at ticks 67/70/136,
+then the sampled gap is 15.87/14.07/11.76 mm while the teacher pair proxy is
+true. The corresponding full-trajectory hand RMSE against the broadcast
+source is 61.43/75.83/77.40 mm; at the geometry-near exit, wrist errors are
+5.56/6.03/30.99 mm and finger errors are 17.01/24.72/51.09 mm. Same-env
+teacher q/dq and requested-action differences are descriptive only because
+these environments are not same-state counterfactual replays. Source trajectory
+and source packet fields were bitwise checked; zero clipping
+and the existing exact requested/actual-action contract remain intact.
+
+This audit makes the next blocker more specific but does not identify a
+mechanism: the saved geometry proxy shows a short near-gap interval followed
+by divergence, while the packet cannot tell whether preload, contact manifold,
+or another hidden simulator state caused it. Result and hashes:
+`outputs/consequence-evaluator/ref7_2-contact-proxy-audit-20261010-r13/`.
+No new native run, force claim, H-to-hand integration, PointWorld inference,
+or evaluator training is justified by this proxy-only result.
