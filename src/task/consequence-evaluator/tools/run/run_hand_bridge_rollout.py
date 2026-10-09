@@ -1,5 +1,6 @@
 """Ordinary random-plan rollouts and prospective rolling planning; never fork."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,8 +13,11 @@ import numpy as np
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path[:0]=[str(TASK/'src'),str(ROOT),str(ROOT/'third_party/DExplore/dexplore'),
               str(ROOT/'src/task/cm-interaction-oracle/src')]
-from consequence_evaluator.data import sha
 from consequence_evaluator.contracts import is_within, HAND_LINKS
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def write(path, value):
