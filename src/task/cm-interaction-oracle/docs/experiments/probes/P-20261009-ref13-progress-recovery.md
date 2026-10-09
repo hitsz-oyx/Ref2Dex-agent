@@ -100,8 +100,12 @@ prefix contract and scoring checks measured geometry through the query.
 Current-only synchronous support selects25s3envs at tick71, retaining>122future
 steps. Reanchor-r2 has zero recorded prefix errors and baseline Z90=20/25.
 GPU2 observed approximately7.45GiB and21--38% GPU utilization. No training.
-The first two native candidates also have zero prefix errors; remaining scoring
-and real rolling execution are pending.
+All35 candidate panels and six actual mixed executions completed. All rolling
+workers passed the full-world prefix contract, and measured object/11-hand-point
+prefixes through each query were bitwise equal within each seven-candidate
+comparison. Frozen causal progress starts matched to1e-12. Initial interventions
+were realized to<=1.49e-8 residual error, with zero clipped steps and mean
+step8 fingertip displacements9.69--28.05mm across alternative arms.
 
 Startup failures are preserved: r1 hit Python3.8 Path.is_relative_to, r2 had a
 relative worker path, and reanchor first attempted a rolling-only record flag.
@@ -117,6 +121,47 @@ for rolling Z. This preserves the initial Y comparison and complete outcomes;
 a fourth replan is deferred unless the smaller screen changes the decision.
 No resource boundary, Y, actor, candidate or outcome threshold is changed.
 
-Decision: historical baseline-repeat screen passes; continue the already
-authorized bounded seven-candidate/new-Y comparison. Keep status UNCLEAR and
-do not infer formal Gate1 or Cm policy utility from this recovery.
+## Completed Y comparison
+
+| Actual Z90 | Baseline | Old Y | New delta-progress Y |
+|---|---:|---:|---:|
+| One-shot residual8 + native continuation |20/25|21/25|22/25|
+| Three real decisions at offsets0/8/16 |20/25|23/25|22/25|
+
+The first decision differed on21/25rows: old Y selected22baseline/3alternative,
+new Y selected3baseline/22alternative. Old rolling rescued3 and harmed0;
+new one-shot and rolling both rescued2 and harmed0 relative to baseline, with
+the same final success set. New rolling versus old rolling lost one rescue
+(0rescues/1harm in that paired comparison). The extra successes all belong
+to frame0 initialization: baseline12/17, old one-shot13/17, new one-shot14/17,
+old rolling15/17, new rolling14/17; all8hybrid-nonzero anchors succeeded in
+every arm. Thus the observed gains are not from favorable mid-motion starts.
+
+Exploratory env bootstrap rolling gains: old +.12 [0,.28], new +.08 [0,.20],
+new versus old -.04 [-.12,0]. Only one seed/motion and25anchors; no interval
+or raw count upgrades this to Validation, episode-wide success or Gate1 pass.
+The saved `result-summary.json` keeps statusUNCLEAR and full_episode_gate1=false.
+
+Exact argmax was kept for both arms to isolate the Y replacement. As a separate
+descriptive diagnostic only, the preexisting progress-selector .01 deadzone
+would select7 initial alternatives rather than22; median new-Y advantage over
+baseline was.00264. No deadzone execution was run or tuned after seeing Z.
+
+Conditional work finished in approximately2231s (cap2400), with44 completed
+native workers across engineering/reanchor/candidate/actual stages and1
+pre-simulation startup failure in r3. Artifacts approximately1404MiB (cap4GiB),
+oneGPU2; GPU released. Code contracts passed17targeted tests. Run manifests
+pin each worker commit and immutable actor/RMS/config/motion/source inputs.
+
+Decision: recover the old whole-world method as a viable engineering route.
+New Y has a small positive one-shot signal against baseline in this cohort;
+three replans add no gain and do not outperform old Y rolling. Do not close
+the new-Y hypothesis, enlarge this run, fit evaluator/PointWorld, or claim
+Gate1. Next decision experiment should use the recovered execution contract
+for a full-episode matched new-Y/baseline screen, with its selector/tie rule
+specified before execution; broader references/cohorts remain future evidence.
+
+Artifacts: `outputs/cm-interaction-oracle/ref13-progress-recovery-20261009-r3/`
+contains `engineering-audit.json`, `initial-scores.json`, per-decision scores,
+`initial-intervention-audit.json`, `one-shot-summary.json`, `rolling-status.json`,
+`result-summary.json`, `resource-summary.json` and pinned native manifests/logs.

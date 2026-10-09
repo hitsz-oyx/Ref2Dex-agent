@@ -16,10 +16,21 @@ repeat未保存完整trace，不能把这些字段的一致升级为所有隐藏
 当前只恢复了旧执行筛选，不代表正式Gate1通过。
 
 冻结的current-only同步s3组为tick71的25个env，重采baseline Z90为20/25；
-reanchor的记录前缀误差为0。正在采七候选并比较原U与冻结物理bank的
-P[t+24]-P[t]。首轮新旧选择有21/25不同；原U选3次非baseline，新Y选22次。
-按实测预算，在同一组上各做三次真实8步重规划并保留one-shot与原Z90评价。
-本组只有一个motion，不满足旧>=30锚点/>=2motions收益门槛。
+reanchor的记录前缀误差为0。七候选与每条实际滚动路径都已完成：one-shot
+baseline/原U/新P[t+24]-P[t]为20/25、21/25、22/25；三次真实8步决策后分别为
+20/25、23/25、22/25。新Y对baseline救回2/harm0，原U滚动救回3/harm0；新Y
+继续重规划没有增加成功，少于原U滚动一个救回。所有新增成功都在frame0组，
+不是hybrid中途初始化造成：该17env组baseline12、原U滚动15、新Y14；其余8env
+各臂均成功。首轮新旧选择21/25不同，原U选3次非baseline、新Y选22次。
+
+35候选panel与6真实mixed执行均通过旧full-world前缀合同，候选评分所用的object/
+11hand-point query前轨迹bitwise一致，初始动作无裁剪且实际进入运动。冻结bank/
+TCC、actor、Y和Z判据没有调参。工程旧方法可继续使用；新Y one-shot有小幅局部
+正向信号，但不能视为优于原U滚动或正式Gate1通过。结果保持UNCLEAR：单seed、
+单motion、25锚点，收益CI下界为0，且只观察原Z90而非完整episode。本轮不扩跑、
+不训练evaluator/PointWorld。下一步可在恢复后的合同中预先固定selector，做完整
+episode的new-Y/baseline最小对照；更广reference bank和cohort是后续证据。
+条件实验约2231秒、产物约1.37GiB，均在预算内；GPU2已释放，17个相关测试通过。
 实验卡：`src/task/cm-interaction-oracle/docs/experiments/probes/P-20261009-ref13-progress-recovery.md`；
 产物：`outputs/cm-interaction-oracle/ref13-progress-recovery-20261009-r3/`。
 
