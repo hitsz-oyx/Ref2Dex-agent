@@ -178,9 +178,10 @@ dispatch tick 显式读取 live `q/dq`，不读 future joint/force/command label
 CPU packet、seed282、GPU2、四角色、542 controls 全部完成，requested=applied，整体/
 wrist/finger clipping 均为零；finger coordinates 与 v2 输出逐项一致。live teacher held480、
 source teacher481，reference floor432.9，但三个 hybrid 角色只 held4/6/8，hand RMSE
-7.87/7.82/7.86mm。结论是 wrist 几何跟踪准确而 learned finger branch 未保持接触，
-该单 source/seed Probe `UNPROMISING`；不把它升级为所有 finger representation 的正式
-反证，也不再做同一 decoder 的 epoch/threshold/native sweep。r1 因 runner 未显式保证
+7.87/7.82/7.86mm。结论是 fixed-wrist/v2-finger 组合的 wrist 几何跟踪准确但未保持
+接触；该单 source/seed Probe `UNPROMISING`，不能把失败单独归因于 learned finger
+branch，也不把它升级为所有 finger representation 的正式反证，不再做同一 decoder 的
+epoch/threshold/native sweep。r1 因 runner 未显式保证
 chunk 内 live-state contract 而保留为 `INVALID_IMPLEMENTATION`，r2 才是可用记录；卡片见
 [`P-20261010-hand-action-fixed-wrist-finger`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-hand-action-fixed-wrist-finger.md)。
 当前仍不解锁 H-to-hand、PointWorld、evaluator、selector、MPC 或 Cm；下一步若继续，
