@@ -276,6 +276,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-spatial-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md) | Does shared local spatial structure preserve intended action consequences? | UNPROMISING: reduced spatial encoding remains stable but preserves too little intended action contrast; OOF consequences show no unique task | Stop this fixed nominal spatial fit; retain GT prognosis and examine the nominal-to-realized execution contract before further geometry lear | probes/UNPROMISING |
 
+## HF-weak-temporal-value
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261009-weak-temporal-value](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-weak-temporal-value.md) | Can outcome/time supervision learn useful GT consequence value? | pending. | user ref4_3 authorizes a bounded learned evaluator Probe, replacing | probes/UNCLEAR |
+
 ## HF-y-noise-tolerance
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
