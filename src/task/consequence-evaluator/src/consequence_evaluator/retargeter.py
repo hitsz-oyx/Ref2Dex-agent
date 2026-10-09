@@ -15,8 +15,8 @@ FINGER_SCALE = np.array([1.6,1.6,1.6,1.6,1.15,.55],dtype=np.float32)
 DOF_NAMES = ('joint1','joint2','joint3','joint4','joint5','joint6',
              'index_proximal_joint','index_intermediate_joint',
              'middle_proximal_joint','middle_intermediate_joint',
-             'ring_proximal_joint','ring_intermediate_joint',
              'pinky_proximal_joint','pinky_intermediate_joint',
+             'ring_proximal_joint','ring_intermediate_joint',
              'thumb_proximal_yaw_joint','thumb_proximal_pitch_joint',
              'thumb_intermediate_joint','thumb_distal_joint')
 
