@@ -129,6 +129,17 @@ def test_host_backend_alias_and_old_gpu_cpu_flag_are_unambiguous():
         resolve_legacy_backend('host', 'gpu')
 
 
+def test_gpu_pipeline_threads1_keeps_gpu_tensor_contract():
+    backend = resolve_backend('gpu_physx_gpu_pipeline_threads1')
+    assert backend.name == 'gpu_physx_gpu_pipeline_threads1'
+    assert backend.sim_device == 'cuda:0'
+    assert backend.pipeline == 'gpu'
+    assert backend.physx_use_gpu is True
+    assert backend.physx_num_threads == 1
+    assert backend.tensor_device == 'cuda:0'
+    assert backend.actor_device == 'cuda:0'
+
+
 def test_backend_canonicalizes_isaac_cuda_shorthand():
     assert canonical_device('cuda') == 'cuda:0'
     assert canonical_device('cuda:2') == 'cuda:2'

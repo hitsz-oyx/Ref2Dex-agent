@@ -61,6 +61,10 @@ _GPU = NativeBackend(
     name='gpu_physx_gpu_pipeline', sim_device='cuda:0', pipeline='gpu',
     physx_use_gpu=True, physx_num_threads=8,
     tensor_device='cuda:0', actor_device='cuda:0')
+_GPU_THREADS1 = NativeBackend(
+    name='gpu_physx_gpu_pipeline_threads1', sim_device='cuda:0', pipeline='gpu',
+    physx_use_gpu=True, physx_num_threads=1,
+    tensor_device='cuda:0', actor_device='cuda:0')
 _CPU = NativeBackend(
     name='cpu_physx_cpu_pipeline', sim_device='cpu', pipeline='cpu',
     physx_use_gpu=False, physx_num_threads=1,
@@ -74,6 +78,7 @@ _HOST = NativeBackend(
 BACKENDS = {
     'gpu': _GPU,
     'gpu_physx_gpu_pipeline': _GPU,
+    'gpu_physx_gpu_pipeline_threads1': _GPU_THREADS1,
     'cpu': _CPU,
     'cpu_physx_cpu_pipeline': _CPU,
     'host': _HOST,
