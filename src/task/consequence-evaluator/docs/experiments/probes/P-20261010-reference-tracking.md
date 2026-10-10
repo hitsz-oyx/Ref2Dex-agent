@@ -5,7 +5,7 @@ experiment_id: P-20261010-reference-tracking
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: c638548
+git_commit: a2ea730
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 1
@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [271, 272]
 decision_changed_if_positive: implement 11-point tau retargeting after the robot-reference control upper bound passes
 decision_changed_if_negative: inspect control feasibility before investing in tau retargeting or more inverse-action L1 fitting
-status: RUNNING
+status: UNPROMISING
 run_id: ref7_3-tracker-train-20261010-r1
 ---
 
 # Does reference-conditioned residual RL recover native object holding?
 
-Result: Pending bounded Probe; no tau-to-action completion claim.
-Decision: First separate robot-reference control feasibility from 11-point retargeting quality.
+Result: UNPROMISING for the predeclared near-teacher screen; transient holding improved (nominal median0, tracker286.5, teacher483), but all tracker rows lose terminal hold.
+Decision: Retain the controller for a later targeted sustained-contact Probe; do not yet replace the robot-q oracle with 11-point retargeting or declare tau-to-action complete.
 
 ## Motivation and Decision Note
 
@@ -102,7 +102,9 @@ settled placement. Report actual held/loss/geometry rather than training loss.
 ## Limitations and future evidence
 
 Single motion, privileged robot/object reference, synchronized training phase,
-short training and one seed. No tau-only mapping, held-out motion generalization,
+short training and one seed. Role rows are contiguous and show repeated layout
+patterns; they are not randomized, matched counterfactuals or independent seeds.
+No tau-only mapping, held-out motion generalization,
 same-state fork, Cm policy benefit, deployable object-future input, or formal
 comparison to DexTrack/REGRIND. If positive, the next Probe replaces robot-q
 oracle with geometry retargeting from the declared 11-point tau; only then
@@ -113,6 +115,69 @@ consider H/PW proposals and matched comparisons.
 Smoke r1 reached physics execution but stopped at tick1 because native reset
 returns an observation dictionary while env_step returns a tensor. This is an
 interface defect, not a controller result; preserve its FAILED manifest/log.
-Wrap both forms at the teacher control boundary and rerun engineering smoke.
-Per-run manifest records actual code commit, every essential input hash,
-device, budget and runtime. Training and frozen behavior evaluation are pending.
+The fix is `a2ea730`; smoke r2 passed all 8 controls. Both raw runs remain in
+`outputs/consequence-evaluator/ref7_3-tracker-smoke-20261010-r{1,2}/`.
+
+Training r1 (`a2ea730`, seed271, GPU2) completed 128 updates /262144 environment
+transitions in453.97s, changing all13 learned state tensors. Fixed final
+checkpoint SHA256 is
+`b1b609a0919dd7ef3217883f59bfc3bfae173549187f4651764d72b6b7c0c02c`.
+Training clipping rate1.012%; no nonfinite or requested/applied mismatch.
+GPU usage stayed about7.5GiB, observed utilization1–35%; CPU tensor exchange
+and native simulation dominate this small model. Final checkpoint is
+`outputs/consequence-evaluator/ref7_3-tracker-train-20261010-r1/final.pt`.
+
+Evaluation r1 (`c8bdb05`, seed272) completed543 states/542 controls in75.56s.
+The change from training to evaluation code only added diagnostic state/PD
+target recording; model, feature/reward/action contracts are unchanged.
+
+| Role | Rows | Median held | Hold>=45 | Hold>=90% reference481 | Terminal held |
+| --- | --- | --- | --- | --- | --- |
+| Owned teacher | 16 | 483 | 12 | 11 | 11 |
+| Nominal robot-q reference | 16 | 0 | 0 | 0 | 0 |
+| Trained residual tracker | 32 | 286.5 | 32 | 0 | 0 |
+
+Tracker held range57–288, mean233.97; zero clipped evaluation controls. Its
+mean hand-coordinate RMSE29.68mm is similar to nominal28.97mm despite the
+holding difference. This is a descriptive single-launch control signal, not
+formal causal superiority or generalization. All tracker objects eventually
+return to the table; controlled final placement is false. The legacy outcome
+reports zero intermediate loss events because supported states are excluded
+from that loss definition. **Do not interpret this as zero drops.**
+
+The teacher container passes (12/16 hold>=45). The strong predeclared screen
+fails (0/32 reach>=433 consecutive held frames), hence `UNPROMISING` for this
+fixed-budget controller screen. It does not refute reference tracking as a
+method; the transient lift/hold signal warrants preserving this implementation.
+Do not lower the gate after seeing the result.
+
+Read-only independent implementation review found no clear PD inversion,
+coupling, reference/frame, reward, PPO/GAE or dispatch defect. Post-run audit
+also confirms initial q/dq/hand/object bitwise alignment across64 rows and
+exact reconstruction of every captured native PD target (maximum error0).
+Per-update reward is a synchronized32-tick phase slice, not a phase-matched
+learning curve; training revisits the complete trajectory only about7.6times
+per environment.
+
+Raw evaluation: `outputs/consequence-evaluator/ref7_3-tracker-eval-20261010-r1/`.
+Screen/contracts/figure: `outputs/consequence-evaluator/ref7_3-tracker-audit-20261010-r1/`.
+Reproduce the audit with `tools/audit/audit_reference_tracking.py` and the
+training/evaluation/reference paths above, choosing a fresh output directory.
+
+An independent offline diagnostic using teacher commands **not as model
+inputs or training labels** finds that matching the teacher PD target around
+measured next q would exceed the chosen wrist y/z residual limits in9.04%/7.20%
+of source ticks (artifact `ref7_3-tracker-reference-capacity-20261010.json`).
+This limits the upper-bound interpretation but does not establish the observed
+drop mechanism: during ticks340–364 the teacher wrist target residual remains
+within the chosen limits, and the learned residual is not saturated. Do not
+claim that increasing bounds alone will recover the late hold.
+
+Decision after result: keep this control route as a more informative next
+direction than another inverse-L1 sweep. Before tau retargeting, the next
+decision-serving experiment should separate insufficient late-phase/contact
+learning coverage from the controller/reward objective. No additional sweep is
+run under this card. Needed future evidence: sustainable late hold, removal of
+robot-q/object-future oracles, randomized role/layout or matched repeats, and
+held-out motion/seed Validation. Total executed GPU work was under10 minutes;
+run outputs are under10MiB, plus about3.4MiB reusable build cache.

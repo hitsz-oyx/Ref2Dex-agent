@@ -282,7 +282,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-reference-tracking](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md) | Does reference-conditioned residual RL recover native object holding? | Pending bounded Probe; no tau-to-action completion claim. | First separate robot-reference control feasibility from 11-point retargeting quality. | probes/RUNNING |
+| [P-20261010-reference-tracking](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md) | Does reference-conditioned residual RL recover native object holding? | UNPROMISING for the predeclared near-teacher screen; transient holding improved (nominal median0, tracker286.5, teacher483), but all tracker | Retain the controller for a later targeted sustained-contact Probe; do not yet replace the robot-q oracle with 11-point retargeting or decla | probes/UNPROMISING |
 
 ## HF-relative-action
 

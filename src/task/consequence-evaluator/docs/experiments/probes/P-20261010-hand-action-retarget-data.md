@@ -93,9 +93,11 @@ not rescue the representation: teacher 482 frames, R roles 0/0/8 frames and
 RMSE `177.12/226.69/207.27 mm`. This rejects “24-step dispatch alone” as a
 sufficient explanation, but does not prove that all hand geometry is unusable.
 
-The decisive limitation is attribution: ordinary structured rollouts fit the
-command numerically, yet contact/preload state is not recoverable from the
-current `future hand displacement + q_t + dq_t` contract. The preserved teacher
+The decisive limitation remains attribution: ordinary structured rollouts fit
+the command numerically, yet this trained retargeter did not preserve native
+contact/holding under the current `future hand displacement + q_t + dq_t`
+contract. These results do not establish whether contact/preload state is
+recoverable from that representation. The preserved teacher
 anchors modestly improve offline error but do not pass native Gym behavior.
 Therefore this Probe is `UNCLEAR` overall, with the current retarget execution
 route `UNPROMISING` for the hard gate. No H-to-hand, PointWorld, evaluator, or

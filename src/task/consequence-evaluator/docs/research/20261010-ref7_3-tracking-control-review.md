@@ -1,6 +1,6 @@
 # ref7_3: reference tracking control 与现有 R 的比较
 
-日期：2026-10-10。范围：核实 ref7_3 的论文、作者开源与迁移边界；未训练、未仿真、未安装依赖。本文是方法调研与下一步建议，不是本仓库控制收益 Validation。
+日期：2026-10-10。范围：核实 ref7_3 的论文、作者开源与迁移边界；本调研阶段未训练、未仿真、未安装依赖。本文是方法调研与下一步建议，不是本仓库控制收益 Validation。用户随后授权的实现与训练结果见 [reference-tracking Probe](../experiments/probes/P-20261010-reference-tracking.md)。
 
 ## 判断与需要纠正的前提
 

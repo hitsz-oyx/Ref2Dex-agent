@@ -1,6 +1,22 @@
 # Consequence evaluator
 
-当前按用户 [ref7_1](docs/user/ref/ref7_1.md)完成16组物体系 GT servo/接触诊断，
+## 2026-10-10 reference-tracking 当前进展
+
+按用户 [ref7_3](docs/user/ref/ref7_3.md)的路线讨论完成有界残差PPO Probe，保留
+原生Inspire/Gym。tracker使用实测robot-q/手/object参考与live state，输出PD目标残差；
+尚有robot-q/object-future oracle，不是完成的11点τ→A。
+完整542步评估中nominal/训练后tracker/teacher的保持中位数为0/286.5/483帧。
+tracker32/32有短时稳定保持，但均未达到近teacher门槛，末帧仍持有为0/32。
+预声明强gate为`UNPROMISING`，实现保留；下一步研究后段接触保持，再进入τ retarget。
+单seed/单动作/固定角色布局，不宣称方法无效、正式路线优越性或Cm收益。
+
+协议与结果：[reference-tracking Probe](docs/experiments/probes/P-20261010-reference-tracking.md)。
+工具：[训练与评估](tools/run/probe_reference_tracking.py)、
+[行为与原生PD审计](tools/audit/audit_reference_tracking.py)。
+
+## 2026-10-09 物体系GT诊断（历史状态）
+
+按用户 [ref7_1](docs/user/ref/ref7_1.md)完成16组物体系 GT servo/接触诊断，
 整体 **UNCLEAR**，完整几何控制gate未通过；旧R、ACT/G/H->V训练继续暂停。
 分支保持 `main`。所有未来 geometry/q/actions 都是特权 oracle，尚不能部署或宣称 Cm 增益。
 协议与逐轮证据见 [物体系 GT 上界 Probe](docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。

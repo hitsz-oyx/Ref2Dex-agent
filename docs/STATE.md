@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 ref7_3 reference-tracking control Probe
+
+已实现并训练原生 Inspire/Gym 小残差 PPO：实测 robot-q/11点手/object reference
+加 live state -> residual PD target -> native18维 command。使用明确声明的 robot-q
+与 object-future oracle，不用 teacher future command 作训练标签或 tracker 输入。
+GPU2 单 seed128更新/262144转移，约454秒；冻结 final checkpoint 后完整542步评估。
+
+teacher16行的保持中位数483帧，nominal16行0帧，tracker32行286.5帧；tracker32/32
+均达到45帧，但0/32达到参考481帧的90%，末帧仍持有也是0/32，最终回到桌面。
+初始 q/dq/hand/object bitwise 对齐，native PD目标重建误差0，tracker评估零裁剪。
+因此预声明近 teacher gate 为 `UNPROMISING`；保留短时保持的正向控制信号，不降低
+gate，也不解释成方法无效。旧 loss-event 计数排除了supported状态，不能把其0写成
+没有掉落。这里只是单动作/单seed/固定角色布局的Probe，未完成τ→A，未证明Cm收益。
+
+下一步优先区分后段接触保持的训练覆盖与控制/reward问题，再替换robot-q oracle为
+11点τ retarget；不继续仅压inverse L1，不启动新的sweep或正式Validation。协议与结果见
+[`P-20261010-reference-tracking`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md)。
+
 ## 2026-10-10 主线 τ-conditioned evaluator Probe
 
 为继续 `docs/user/完整链路.md` 的第 7–8 步，新增真实 hand-trajectory 接口的
