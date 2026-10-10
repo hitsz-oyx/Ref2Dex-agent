@@ -1,6 +1,9 @@
 """Small deterministic contracts for the EPIC scene-flow conversion probe."""
 import importlib.util
 import csv
+import io
+import json
+import tarfile
 from pathlib import Path
 
 import numpy as np
@@ -138,3 +141,24 @@ def test_static_tracks_exclude_later_hand_occlusion():
     # The obscured track cannot satisfy the >=.8 selection threshold.
     assert valid.shape == (2, 8)
     assert valid.all()
+
+
+def test_inventory_counts_clips_with_missing_clock_metadata(tmp_path):
+    audit_spec = importlib.util.spec_from_file_location(
+        'epic_video_readiness', SCRIPT.with_name('audit_epic_video_readiness.py'))
+    audit = importlib.util.module_from_spec(audit_spec)
+    audit_spec.loader.exec_module(audit)
+    (tmp_path / 'shard').mkdir()
+    (tmp_path / 'epic_contact').mkdir()
+    with tarfile.open(tmp_path / 'shard/sample.tar', 'w') as tar:
+        for name, content in [('P01_03/P01_03_3/action.mp4', b'video-placeholder'),
+                              ('P03_03/P03_03_23/action.meta.json',
+                               json.dumps(dict(start_frame=10, stop_frame=70, fps=60)).encode())]:
+            member = tarfile.TarInfo(name)
+            member.size = len(content)
+            tar.addfile(member, io.BytesIO(content))
+    result = audit.audit(tmp_path)
+    assert result['local_scene_count'] == 2
+    assert result['scene_clock_metadata_count'] == 1
+    assert result['scenes_missing_clock_metadata'] == ['P01_03_3']
+    assert result['hand_train_qualified_windows'] == 0
