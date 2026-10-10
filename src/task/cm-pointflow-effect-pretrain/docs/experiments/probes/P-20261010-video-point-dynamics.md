@@ -29,6 +29,18 @@ and constant-velocity baselines? A positive result justifies expanding video
 labels and testing transfer into native geometry training; a negative result
 blocks blind scaling and prioritizes label/interaction-input diagnosis.
 
+## Current evidence boundary (source audit correction)
+
+The learner reads only HISTORY entries of a fixed pack; that does not certify
+causal perception. Public generation code jointly processes the full video for
+depth/camera and refined tracks. Historical generation revision/checkpoints are
+not stored, so strict causality of these released inputs is UNQUALIFIED. Prior
+pack-level future-target mutation tests prove explicit interface isolation only.
+Keep both500-step results as offline full-clip teacher weak-label learnability
+Probes, not deployment history-only forecasts. Teacher-scale metre/mm convention
+is nominal, not calibrated3D GT. Neither native training nor final Mission
+claim relies on these weak inputs. See the [fixed source contract](../../research/2026-10-10-objectforesight-spatracker-track-contract.md).
+
 ## Design / decision note (pre-run)
 
 Dense Contact hands have zero accepted local H4+K24 windows. Choose a separate
@@ -393,3 +405,56 @@ perception inputs. The source-contract note will pin exact source links/lines.
 This census therefore concerns offline teacher LABEL coverage only; even a
 passed coverage gate must not promote original tracker history as future-free
 inputs. Preserve all old runs, inputs and explicit target-isolation tests.
+
+
+## Common-camera and original-query results
+
+Common-camera scoring atd7f4fff completed9.19s on freshly free GPU1, peak216.65MiB.
+All baseline world-EPE/support values reproduce previous audit; model values agree
+within1e-5 nominal m (small BF16/batch evaluation variation). No scored dev model
+or OLS projections are invalid. Only the retained500-step point model was evaluated; no frontend inference ran.
+
+| Qualified dev | projected world-static px | world OLS px | model px | OLS radial energy | model radial energy |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| P03_13_12 |2.369|2.907|4.658|89.35%|37.69%|
+| P03_13_19 |5.303|7.399|31.236|88.76%|26.46%|
+
+Fixed diagnostic signal REPROJECTION_HISTORY_ERROR. Large radial extrapolation
+error exists, but projected OLS is22.7%/39.5% worse than common world-static.
+Model transverse errors7.195/35.482 nominal mm and radial energies37.7%/26.5%
+do not support an exclusively radial/depth failure. Retained model learnability
+negative cannot be rescued by reporting only projection instead of3D error.
+Public geometry/history preprocessing is offline/full-clip, as clarified above.
+
+Original-query initial census at53142b2 completed0.37s on CPU. Every source has100
+columns but only72..95 exact unique initial coordinates; full-trajectory unique
+counts match initial counts, confirming duplicate output columns. Actual projected
+initial unique object query counts: train_12/13/14/15=4/0/1/1;
+dev_10/12/19/8=1/1/2/0. Zero clips meet the predeclared16unique object-point floor
+in either split. These are initial-mask coverage bounds, not all possible later
+object identities or complete-window visibility. Do not create a replacement
+corpus by copying duplicate queries, reviving lost IDs or lowering this gate.
+
+## Decision note: restrict offline inputs before further weak-video work
+
+Question: expand this released3D video forecasting recipe, or preserve it as an
+offline teacher experiment and obtain a separately qualified input contract?
+Evidence: negative world/projection model gates, raw100-query object coverage
+failure, duplicate columns, source visibility offset/recovery, and public full-
+clip future-dependent geometry. Release generation identity is not sufficient to
+certify causal historical inputs. Core Cm hypothesis/claim remains unchanged.
+
+Choose to stop direct expansion and raw-coordinate substitution. Preserve all
+runs, checkpoints and explicit input-isolation tests, with their narrower scope.
+Retain native OakInk2/GRAB/ARCTIC action-conditioned model. For future video use,
+separate (a) full-clip teacher label generation from (b) history/prefix-only
+observations; a later matched native transfer benefit can assess offline
+representation utility without pretending the old weak-data scores prove
+online forecasting. No new front-end/model download or long fitting is justified
+by the present evidence. First identify a cheap causal observation path and a
+label contract that can supply enough independent interaction points; otherwise
+keep this source as offline/teacher-only, outside the native main manifest.
+No new authorization needed for this bounded correction; no policy/system work,
+core-claim change or source/checkpoint deletion. Prefix/full comparison, calibrated
+geometry, physically correct recovery and matched transfer are deferred evidence
+until a usable observation/teacher pair is available.

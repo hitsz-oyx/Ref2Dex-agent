@@ -1,6 +1,15 @@
 # cm-pointflow-effect-pretrain
 
-Main training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
+Current retained baseline: the repaired ref8 sharedstats run completed50000
+updates from random initialization; final symmetric moving/static object
+EPE21.896/4.321mm. See [current state](docs/STATE.md) and the
+[sharedstats card](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
+Video/sensor pilot recipes have failed their benefit gates and are outside native
+training. Public video geometry is generated jointly over the whole clip; packed
+history entries are not certified causal perception. Existing video scores are
+offline teacher learnability evidence, not deployment forecasting claims.
+
+Historical ref3 training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
 supervision only, on GPUs1/2 with per-rank batch64/global128. The stopped
 four-source latest14250 initializes model weights; AdamW/schedule/draw reset.
 All50000new updates completed before2026-10-08 10:00 Asia/Shanghai;
@@ -150,8 +159,8 @@ is registered for point-dynamics training.
 
 
 The [video point-dynamics Probe](docs/experiments/probes/P-20261010-video-point-dynamics.md)
-now has a history-only PTv3 point-flow head, permanent RGB identity checks,
-window-local births, train-only normalization and per-clip physical metrics.
+now has a pack-history PTv3 point-flow head, permanent LK lost-ID masking,
+window-local births, train-only normalization and nominal teacher-scale metrics.
 The fixed500-step h24 run failed the gate (21.861mm vs static18.294mm), and
 its development long-term labels came from one clip. Window births/recovery
 still leave h24 support insufficient. A separately qualified h8 run also fails:
@@ -160,3 +169,12 @@ recipes; the video route remains UNCLEAR. Do not scale or claim native-transfer
 benefit from these runs. Current decisions and artifact pointers are in
 [Task state](docs/STATE.md). Native three-source training/checkpoints remain
 separate from these weak-video probes.
+
+
+The [original SpaTracker contract](docs/research/2026-10-10-objectforesight-spatracker-track-contract.md)
+clarifies full-clip future dependence of geometry, visibility offset and copied
+queries. Initial object coverage of original100-column queries fails in every
+pilot clip after initial-observation deduplication. Neither these tracks nor
+LK/backprojected offline geometry can be silently promoted to certified causal
+history inputs. Future target-side teacher labels and learner observation
+provenance require separate contracts before more weak-video training.

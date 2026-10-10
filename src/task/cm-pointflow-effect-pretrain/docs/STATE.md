@@ -1,93 +1,85 @@
 # Task state: point dynamics pretraining
 
-Updated2026-10-10. Branch `cm-pointflow-effect-pretrain`; execution remains on RLG.
-Root Mission/Campaign apply. Video learning is an intermediate representation
-route toward action-conditioned Cm, not a replacement for self-trained robotic
-policy validation.
+Updated2026-10-10. Branch `cm-pointflow-effect-pretrain`; execution on RLG.
+Root Mission/Campaign apply: intermediate pretraining must eventually support
+action-conditioned Cm and matched self-trained robot policy benefit. Neither
+weak video nor raw sensor forecasting replaces that final objective.
 
-- Main sources: OakInk2/GRAB/ARCTIC,4,378,478 overlapping TRAIN anchors, retained
-  sharedstats50k checkpoint. Weak video/tactile are outside that manifest.
-- EPIC native hand-conditioned access: zero locally qualified H4+K24 hand windows
-  after quality/split/clock fixes; hand/object labels cannot be silently promoted.
-- [Video Probe](experiments/probes/P-20261010-video-point-dynamics.md): history-only
-  PTv3 per-point head and weak-track loader are runnable. h24 initial500-step run
-  fails the benefit gate; all dev endpoint object labels came from one clip.
-  Window births improve train support but h24 still has only one supported dev
-  clip. h8 recovery gives78/71 train/dev windows,4/2 supported clips. Fixed500-step
-  h8 run at `6d7fdb2` gives model/static object clip-macro24.808/9.464mm. Both
-  qualified dev clips fail; independent review reproduces metrics, input isolation
-  and gradient masking. Recipe-level UNPROMISING; route-level UNCLEAR.
-- [Tactile readiness](experiments/probes/P-20261010-egotouch-label-schema.md): two
-  verified original TRAIN bundles and chest RGB,43/47 frames, relative clock
-  agreement<1us/0.333ms.217/441 cells per hand are finite. Bend/tactile role and
-  per-record normalization still need qualification.40-task contact flag search
-  found allfalse; annotation semantics are UNKNOWN, not physical no-contact.
-- Windows reverse SSH connection works; NAS has ample storage. Remote GPU driver
-  mismatch remains outside this local campaign. [Connection guide](../../../../docs/user/连接远程服务器.md)
-  records established access and limitations.
+## Retained native baseline
 
-Current artifact group:
-`outputs/cm-pointflow-effect-pretrain/video-point-dynamics-20261010-r1/`;
-`train-r1/`, `train-h8-r2/` retain final checkpoints, progress and fit audits.
-Video artifacts1.9GiB, within the5GiB Probe cap; models/fit used one free GPU1
-and<4min total GPU wall time. No active training remains; no new large downloads.
+OakInk2/GRAB/ARCTIC remain the main sources:4,378,478 overlapping TRAIN anchors.
+The repaired sharedstats run completed50000 updates from random initialization;
+final endpoint symmetric moving/static object EPE21.896/4.321mm (macro13.109mm).
+Selection/population distinctions, frozen identities and limitations are in the
+[sharedstats card](experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
+Retain final checkpoint under
+outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/training-r1/train-action/final.pt.
+No new main training, native-transfer or robot-policy claim has been made.
 
-Next decisions: identify whether weak3D pseudo tracks and noisy history velocities
-are the limiting signal before adding updates/data; qualify pressure-only masks
-and original normalization before a tactile auxiliary adapter. No scale-up or
-native encoder-transfer run follows from the current negative probes. Additional
-seeds and long runs are deferred evidence until a minimal positive signal exists.
-No change to the final Mission claim, no policy training, no remote system work.
+## Video: offline teacher inputs, expansion stopped
 
-Additional tactile gate: official217-cell maps alias138/147 unique raw indices;
-NPZ global max keys differ from the release converter's per-hand keys. Whole-
-record normalization may expose future maxima in historical inputs. Use original
-raw sensor values with fixed scaling/TRAIN-only statistics in any future adapter;
-retain sparse validity, original normalization metadata and uncertain roles.
+[Readiness](experiments/probes/P-20261010-video-data-readiness.md) repaired source
+clocks/splits, semantic hand validity/quality and permanent LK loss.34local clips,
+20clock files;95candidate H4+K24 hand starts yield ZERO qualified windows.
+Keep weak data outside native training. Window births/recovery give a separate
+h8 point-only view78train/71dev windows with4/2 supported clips. Fixed500-step
+[video learner](experiments/probes/P-20261010-video-point-dynamics.md) loses to
+static in both dev clips:24.808 vs9.464 nominal teacher-scale mm macro. Its h24
+screen also failed; all initial dev endpoint object labels came from one clip.
 
+New [source contract](research/2026-10-10-objectforesight-spatracker-track-contract.md)
+finds public VGGT/tracker processing uses whole video/future information for
+historical depth/camera/coords. Historical release generation identity is absent;
+strict causal observation inputs are UNQUALIFIED. Our LK2D is history-directed,
+but backprojection uses these offline geometry fields. Existing pack-level
+future-label mutation tests only establish explicit learner interface isolation.
+Old runs remain offline full-clip teacher learnability Probes, with nominal3D
+scale; they do not prove deployment history-only prediction or calibrated GT.
 
-The observed-history OLS audit also loses to static in both qualifying dev clips
-(15.014/6.763 and20.523/12.165mm), though it reduces last-two-CV errors. Next
-video work should inspect pseudo-motion/observation quality rather than add steps.
-The [channel-contract note](research/2026-10-10-egotouch-tactile-channel-contract.md)
-now reproduces all finite/NaN values of both tactile samples within3e-8, confirmed
-by root. Candidate groups/28 right-hand imputed cells are processing evidence;
-hardware tactile/bend roles remain UNKNOWN. A raw/255 sensor representation can
-be explored without making physical contact claims or future-max leakage.
+Common endpoint-camera scoring atd7f4fff reproduces all original masks/world
+errors and shows model pixel errors4.658/31.236 vs world-static2.369/5.303px.
+OLS has89.35%/88.76% radial error energy but also loses in projection; purely
+radial noise cannot explain the model's transverse errors. Direct image CV can
+beat image-static, partly reflecting camera motion, not world-object prediction.
+Original100-column tracker queries contain72..95exact unique starts; actual
+unique initial object coverage is0..4 per clip. ZERO clips pass the16-point floor
+in either split. Do not silently substitute coords, copy duplicate queries or
+relax the coverage gate. The video route overall remains UNCLEAR.
 
+## Raw sensor/tactile: usable records, no teacher benefit yet
 
-2026-10-10 further progress: [raw sensor/hand conditioning](experiments/probes/P-20261010-rawsensor-hand-conditioning.md)
-acquired10 tasks across5 settings,14.39MB/40 verified labels, and qualified330/535
-complete windows from4 fitting/5 held tasks. Many original empty hand rows are
-retained as NaN/invalid, not silently imputed. Fixed raw/255 matched500-update
-three-arm MLP screen at `cc16f9e` fails: groupA h24 held-task macro actual future
-hand4.607 counts vs history4.238/shuffle4.131/persistence3.435. Group hardware
-roles remain UNKNOWN. Fit gains are real but no held-task teacher benefit. No
-native auxiliary integration or expansion follows. Total local additions<120MB.
+[Channel contract](research/2026-10-10-egotouch-tactile-channel-contract.md) reproduces
+release grids but finds sparse/aliased cells and imputed right-hand channels;
+hardware tactile/bend/contact roles remain UNKNOWN. Whole-record normalization
+exposes future maxima; later probes use original raw/255 and FIT-only statistics.
+Allfalse manual flags do not mean physical no-contact.
 
-The rigidity audit is mixed (.393/.763 residual-to-motion ratios for qualifying
-dev clips), so no uniform depth-noise attribution. Decision checkpoint after
-three neural negative gates: prioritize current observation/physical interaction
-context and weak-label quality before more updates; keep core Mission and mature
-native main3 baseline. Next cheap action is paired RGB/context qualification for
-new diverse raw-sensor tasks. No active training remains.
+[Raw sensor/hand screen](experiments/probes/P-20261010-rawsensor-hand-conditioning.md)
+verified10official-TRAIN task records, qualified330/535windows from4fit/5held tasks.
+Missing hands remain NaN. Actual future shape groupA h24 macro4.607counts loses
+to history4.238/shuffle4.131/persistence3.435. Independent review finds no gate-
+changing implementation bug. Conditional future hands are human oracles, not
+controllable robot interventions; candidate groupA/B are not calibrated forces.
 
+[Current RGB screen](experiments/probes/P-20261010-egotouch-visual-context.md) verified
+ten chest videos38.86MB and original frame count/IDs, max relative clock deviation
+0.667ms. Fixed snapshots show interaction but nominal scenario labels often share
+one physical table. Frozen ImageNet ResNet18 frame-local current features and six
+matched500-update arms also fail: history_rgb4.173/future_hand_rgb4.415 vs
+persistence3.435counts. Stop this local recipe; no sensor/native auxiliary expansion.
 
-Paired-current RGB/context follow-up: [visual context screen](experiments/probes/P-20261010-egotouch-visual-context.md)
-verified ten chest videos38.86MB, all original frame counts/IDs agree, max relative
-clock deviation0.667ms. Root fixed30-frame inspection confirms visible hand/object
-context; nominal Home/Office/Outdoor categories share the same physical table, so
-no environment-independent claim. Frozen local ImageNet ResNet18 extracted3655
-frame-local features,8.46s/3.24MB/389MiB CUDA. Learner uses only current start+3.
-Six matched500-step MLP arms at347a184 finish10.72s/667MiB CUDA: groupA endpoint
-macro history_rgb4.173/future_hand_rgb4.415 vs persistence3.435 counts. Both preset
-context and conditional-motion gates fail; no sensor/native auxiliary scale-up.
+## Current decision and resources
 
-Same-track h8 image-coordinate audit atdbcd471 retains exact3D denominators.
-Dev last-two CV2.488/37.554px improves over image-static5.204/49.492px in both
-clips; H4 OLS2.516/45.405px fails preset10%-in-both gate. This is a useful contrast
-with3D history extrapolation, not proof of depth noise because camera motion and
-world estimation differ. Next minimal weak-label action is a common endpoint-
-camera reprojection diagnostic before choosing a new weak-video loss/label route.
-All training/extraction ended;9 focused temporal/geometry/interface tests pass.
-New artifacts remain well within campaign bounds; no new remote/policy operations.
+Retain native main3 model and all weak-label/sensor evidence. Video follow-up
+must separate offline teacher LABELS from independently qualified history/prefix
+OBSERVATIONS, then fix a matched benefit/transfer screen before scale-up. No
+frontend weights or large new corpus download is justified by these negative
+pilot recipes. Broader video/tactile potential remains unproven rather than
+refuted; exact generation identity, physical scale, source coverage and cross-
+task utility are material limits. Core Mission claim is unchanged.
+
+All training/extraction/inference processes ended; new common-camera inference
+9.19s/216.65MiB CUDA and census0.37s CPU. Video artifact group remains about1.9GiB
+within5GiB cap; diverse RGB/features/checkpoints about206MiB. No external data
+modified. [Windows bridge](../../../../docs/user/连接远程服务器.md) works; NAS has space,
+remote GPU driver mismatch remains outside this local campaign. No new push.
