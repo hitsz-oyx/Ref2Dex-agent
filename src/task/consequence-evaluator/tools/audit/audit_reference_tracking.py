@@ -18,6 +18,8 @@ def main():
     parser.add_argument("--evaluation", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--tracker-role", default="tracker")
+    parser.add_argument("--control-role", default="nominal")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[5]
     output = args.output.resolve()
@@ -67,8 +69,8 @@ def main():
         raise ValueError("native PD target/action reconstruction mismatch")
     rows = result["outcomes"]
     teacher = [row for row in rows if row["role"] == "teacher"]
-    tracker = [row for row in rows if row["role"] == "tracker"]
-    nominal = [row for row in rows if row["role"] == "nominal"]
+    tracker = [row for row in rows if row["role"] == args.tracker_role]
+    nominal = [row for row in rows if row["role"] == args.control_role]
     teacher_usable = sum(row["maximum_held_frames"] >= 45 for row in teacher) >= len(teacher) / 2
     near_teacher = [row for row in tracker if row["maximum_held_frames"] >= .9 * result["reference_held"]
                     and row["intermediate_loss_events"] == 0]
@@ -84,10 +86,11 @@ def main():
     held = (data["surface_gap"] <= .01) & ~supported & (height >= .03)
     held[0] = False
     roles = np.asarray([row["role"] for row in rows])
-    terminal_held = {role: int(held[-1, roles == role].sum()) for role in ("teacher", "nominal", "tracker")}
+    terminal_held = {role: int(held[-1, roles == role].sum()) for role in sorted(set(roles))}
     audit = dict(schema="ref2dex.reference-tracker-audit.v1", status=status,
                  screen="predeclared near-teacher native holding screen", passed=passed,
-                 teacher_usable=teacher_usable, qualifying_tracker_count=len(near_teacher),
+                 teacher_usable=teacher_usable, tracker_role=args.tracker_role, control_role=args.control_role,
+                 qualifying_tracker_count=len(near_teacher),
                  median_tracker_advantage_frames=median_advantage, tracker_clipping_rate=clipping_rate,
                  exact_initial=exact_initial, maximum_pd_reconstruction_error=target_error,
                  terminal_held=terminal_held, summary=result["summary"],
@@ -107,7 +110,7 @@ def main():
     fig, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True)
     source = reference["object_pose"][:, 0, 2, 3]
     axes[0].plot(time_s, source - source[0], "k--", label="Fixed reference")
-    for role, color in (("teacher", "C0"), ("nominal", "C1"), ("tracker", "C2")):
+    for role, color in zip(sorted(set(roles)), ("C0", "C1", "C2", "C3")):
         group = roles == role
         values = height[:, group]
         axes[0].plot(time_s, np.median(values, axis=1), color=color, label=role)

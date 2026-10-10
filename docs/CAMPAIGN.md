@@ -153,3 +153,9 @@ e260 作为独立对照，tracker 从零残差初始化。先使用明确声明�
 oracle reference 区分执行控制与 tau retargeting，不外推为 tau-only 或 Cm utility。
 一张空闲 GPU，总上限27分钟/2GiB，不突破全局预算；协议与停止条件见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md`。
+
+2026-10-10 用户要求自主解决 tracker 不稳脱手问题。允许在同一控制路线做有界
+wrist velocity feedforward 对照与必要的短 PPO 微调，保留原始任务放置和 measured
+teacher holding 上界的不同语义。一张空闲 GPU，新增总上限32分钟/2GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking-feedforward.md`。
+不改变 Mission 或 Cm claim，不新建分支，不影响外部进程/数据。

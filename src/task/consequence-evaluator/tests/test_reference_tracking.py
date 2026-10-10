@@ -55,3 +55,28 @@ def test_object_drop_reduces_reward_even_with_identical_relative_hand():
     dropped_hand = hand - torch.tensor([0., 0., .3])
     loss = tracking_reward(dropped_hand, dropped, hand, obj, torch.tensor([False]), initial, latent)
     assert loss.item() < held.item() - .5
+
+
+def test_velocity_feedforward_recovers_moving_reference_pd_force():
+    from consequence_evaluator.reference_tracking import wrist_feedforward
+    qref = torch.full((2, 18), .2)
+    velocity = torch.full_like(qref, .3)
+    q = qref - .02; dq = torch.full_like(qref, .1)
+    target = wrist_feedforward(qref, velocity, torch.full((6,), .1))
+    force = 200 * (target[:, :6] - q[:, :6]) - 20 * dq[:, :6]
+    desired = 200 * (qref[:, :6] - q[:, :6]) + 20 * (velocity[:, :6] - dq[:, :6])
+    assert torch.allclose(force, desired, atol=1e-5)
+    assert torch.equal(target[:, 6:], qref[:, 6:])
+    # Original position-only controller omits the desired velocity term.
+    assert not torch.allclose(200 * (qref[:, :6] - q[:, :6]) - 20 * dq[:, :6], desired)
+
+
+def test_reference_velocity_handles_rotation_wrap_and_episode_endpoints():
+    from consequence_evaluator.reference_tracking import reference_velocity
+    q = torch.zeros(4, 18)
+    q[:, 0] = torch.tensor([0., .01, .03, .06])
+    q[:, 3] = torch.tensor([3.13, 3.14, 3.15 - 2 * torch.pi, 3.16 - 2 * torch.pi])
+    velocity = reference_velocity(q, .1)
+    assert torch.allclose(velocity[:, 0], torch.tensor([.1, .15, .25, .3]), atol=1e-6)
+    assert torch.allclose(velocity[:, 3], torch.full((4,), .1), atol=1e-5)
+    assert torch.equal(velocity[:, 6:], torch.zeros(4, 12))

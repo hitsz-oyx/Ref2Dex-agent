@@ -12,6 +12,33 @@ RESIDUAL_LIMITS = (.06, .06, .06, .6, .6, .6, .5, .5, .5, .5, .35, .35)
 INPUT_DIM = 36 + 33 + 24 * 33 + 18 + 12 + 12 + 6
 
 
+def reference_velocity(q, dt):
+    """Position-derived generalized velocity, with one-sided episode endpoints."""
+    if q.ndim != 2 or q.shape[1] != 18 or len(q) < 2 or dt <= 0:
+        raise ValueError("finite episode q and positive control dt required")
+    delta = q[1:] - q[:-1]
+    delta = delta.clone()
+    delta[:, 3:6] = torch.atan2(torch.sin(delta[:, 3:6]), torch.cos(delta[:, 3:6]))
+    velocity = torch.cat((delta[:1], (delta[:-1] + delta[1:]) / 2, delta[-1:])) / dt
+    if not torch.isfinite(velocity).all():
+        raise FloatingPointError("nonfinite reference velocity")
+    return velocity
+
+
+def wrist_feedforward(q, velocity, damping_over_stiffness):
+    """Compensate native position-drive damping using kinematic reference velocity.
+
+    This yields Kp*(q_ref-q)+Kd*(dq_ref-dq), without pretending to invert
+    acceleration, contact, gravity or solver dynamics. Finger preload remains
+    learned; its velocity is not treated as a wrist kinematic reference.
+    """
+    if q.shape != velocity.shape or q.shape[-1] != 18:
+        raise ValueError("matching 18-D reference position/velocity required")
+    target = q.clone()
+    target[..., :6] += velocity[..., :6] * damping_over_stiffness
+    return target
+
+
 def apply_coupling(target):
     target = target.clone()
     for distal, parent, ratio in ((7, 6, 1.05), (9, 8, 1.05), (11, 10, 1.05),

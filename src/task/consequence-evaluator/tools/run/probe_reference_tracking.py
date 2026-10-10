@@ -49,7 +49,12 @@ def main():
     p.add_argument("--seconds", type=int, default=1200)
     p.add_argument("--mode", choices=("train", "evaluate", "smoke"), required=True)
     p.add_argument("--checkpoint", type=Path)
+    p.add_argument("--wrist-feedforward", action="store_true")
+    p.add_argument("--compare-feedforward", action="store_true",
+                   help="four randomized roles with the same frozen policy")
     args = p.parse_args()
+    if args.compare_feedforward and (args.mode != "evaluate" or args.wrist_feedforward):
+        raise ValueError("comparison requires evaluation and selects feedforward per role")
     if args.checkpoint:
         args.checkpoint = args.checkpoint.resolve()
     output = args.output.resolve()
@@ -77,7 +82,8 @@ def main():
     from isaacgym import gymtorch  # noqa: Isaac Gym must precede Torch
     import torch
     from consequence_evaluator.reference_tracking import (
-        ACTIVE, SCHEMA, ReferenceTracker, advantages, features, native_action, tracking_reward)
+        ACTIVE, SCHEMA, ReferenceTracker, advantages, features, native_action, tracking_reward,
+        reference_velocity, wrist_feedforward)
     from consequence_evaluator.native_reset import install_reset_patch
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
@@ -98,6 +104,7 @@ def main():
                  str(ROOT / "third_party/DExplore/dexplore/evaluate.py"),
                  str(ROOT / "third_party/DExplore/dexplore/env/tasks/base_dexplore_task.py"),
                  str(ROOT / "third_party/DExplore/dexplore/env/tasks/dexplore_inspire.py")]
+    essential += [path for path in cfg["input_sha256"] if path.endswith("interaction_hand_inspire.pt")]
     for path in essential:
         if sha(path) != cfg["input_sha256"][path]:
             raise ValueError("native input drift: " + path)
@@ -146,6 +153,7 @@ def main():
     manifest = dict(schema=SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     mode=args.mode, seed=args.seed, num_envs=args.envs, updates=args.updates,
+                    wrist_feedforward=args.wrist_feedforward, compare_feedforward=args.compare_feedforward,
                     physical_gpu=args.gpu, gpu_before=before, budget_s=args.seconds,
                     input_sha256=frozen, reference_held=reference_held,
                     reference_contract="privileged measured teacher robot-q/hand/object reference; no teacher commanded actions",
@@ -177,6 +185,18 @@ def main():
             manifest["native_controller"] = dict(
                 dof_names=task.gym.get_actor_dof_names(task.envs[0], task.humanoid_handles[0]),
                 offset=offset.cpu().tolist(), scale=scale.cpu().tolist())
+            props = task.gym.get_actor_dof_properties(task.envs[0], task.humanoid_handles[0])
+            kp = torch.as_tensor(props["stiffness"][:6].copy(), device=device)
+            kd = torch.as_tensor(props["damping"][:6].copy(), device=device)
+            if (kp <= 0).any() or not torch.allclose(kd / kp, torch.full_like(kp, .1)):
+                raise ValueError("unexpected native wrist PD gains")
+            ratio = kd / kp
+            control_dt = task.gym.get_sim_params(task.sim).dt * task.control_freq_inv
+            ref_velocity = reference_velocity(reference["dof_position"], control_dt)
+            manifest["wrist_feedforward_contract"] = dict(
+                stiffness=kp.cpu().tolist(), damping=kd.cpu().tolist(), control_dt=control_dt,
+                derivative="central position differences, wrapped native rotations, one-sided endpoints",
+                scope="first six native wrist DOFs only; next-frame aligned; no teacher command labels")
             policy = ReferenceTracker().to(device)
             if args.checkpoint:
                 checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
@@ -214,7 +234,11 @@ def main():
 
             def step(latent, next_q, measured):
                 nonlocal obs, previous
-                target = policy.target(next_q, latent)
+                base = next_q
+                if args.wrist_feedforward:
+                    index = (task.progress_buf.to(device).long() + 1).clamp_max(542)
+                    base = wrist_feedforward(next_q, ref_velocity[index], ratio)
+                target = policy.target(base, latent)
                 intended = native_action(target, measured["q"], offset, scale)
                 command = intended.clamp(-1, 1)
                 obs, reward_unused, done, info = self.env_step(self.env, command.clone())
@@ -319,7 +343,16 @@ def main():
                 geometry = PhysicalGeometry(task, ROOT / "third_party/DExplore/dexplore/data/assets", distance_device=device)
                 support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
                 quarter = n // 4
-                roles = ["teacher"] * quarter + ["nominal"] * quarter + ["tracker"] * (2 * quarter)
+                if args.compare_feedforward:
+                    roles = np.repeat(["teacher", "nominal", "tracker", "tracker_feedforward"], quarter)
+                    roles = np.random.default_rng(args.seed).permutation(roles).tolist()
+                else:
+                    roles = ["teacher"] * quarter + ["nominal"] * quarter + ["tracker"] * (2 * quarter)
+                teacher_mask = torch.tensor([r == "teacher" for r in roles], device=device)
+                nominal_mask = torch.tensor([r == "nominal" for r in roles], device=device)
+                ff_mask = torch.tensor([r == "tracker_feedforward" or
+                                        (args.wrist_feedforward and r != "teacher") for r in roles], device=device)
+                manifest["roles"] = roles
                 arrays = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                               "table_footprint", "object_velocity", "pair", "action", "clipped",
                                               "dof_position", "dof_velocity", "latent", "pd_targets")}
@@ -345,12 +378,15 @@ def main():
                     with torch.no_grad():
                         x, measured, next_q, _, _ = observation()
                         latent = policy.actor(x)
-                        latent[:2 * quarter] = 0
-                        intended = native_action(policy.target(next_q, latent), measured["q"], offset, scale)
+                        latent[teacher_mask | nominal_mask] = 0
+                        base = next_q.clone()
+                        base[ff_mask] = wrist_feedforward(next_q[ff_mask],
+                            ref_velocity[tick + 1].expand(int(ff_mask.sum()), -1), ratio)
+                        intended = native_action(policy.target(base, latent), measured["q"], offset, scale)
                         # Teacher action is used only for independent native control rows.
                         actor_obs = obs if isinstance(obs, dict) else {"obs": obs}
                         teacher = self.get_action(actor_obs, True).to(device).clone().clamp(-1, 1)
-                        intended[:quarter] = teacher[:quarter]
+                        intended[teacher_mask] = teacher[teacher_mask]
                         command = intended.clamp(-1, 1)
                         obs, _, done, _ = self.env_step(self.env, command.clone())
                         if capture is None or not torch.equal(capture, command):
