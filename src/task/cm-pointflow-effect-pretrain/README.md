@@ -9,16 +9,15 @@ training. Public video geometry is generated jointly over the whole clip; packed
 history entries are not certified causal perception. Existing video scores are
 offline teacher learnability evidence, not deployment forecasting claims.
 
-User steering: prioritize released open-source assets to test whether video
-pretraining helps this model. See the [official source usage review](docs/research/2026-10-10-open-video-data-usage.md).
-PointWorld's released small-DROID spatial backbone passed strict 448-tensor
-compatibility and checkpoint checksum checks. The matched native initialization
-Probe completed both 2000-update arms, but failed its fixed benefit gate:
-moving h24 EPE 0.082070 versus random 0.080660 and static h24 EPE 0.029279 versus
-0.022597. The released-backbone-only recipe is `UNPROMISING`; retain its
-artifacts for comparison, do not scale it or attach it to native/RL training,
-and keep custom RGB/LK and future-sensor expansion paused. The broader video
-route remains unresolved rather than refuted.
+User steering: prioritize released open-source assets to test whether video data
+helps this model. See the [official source usage review](docs/research/2026-10-10-open-video-data-usage.md).
+The previous matched Probe used the released small-DROID checkpoint rather than
+the released video data: both 2000-update arms trained only on native
+OakInk2/GRAB/ARCTIC data. Its 448-tensor transfer audit and failed gate are
+retained as checkpoint-transfer engineering evidence, but the run is
+`INVALID_IMPLEMENTATION / INCONCLUSIVE` for the intended data question. Do not
+use it to reject the official video data or broader video route; first audit a
+bounded data subset before any acquisition or training.
 
 Historical ref3 training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
 supervision only, on GPUs1/2 with per-rank batch64/global128. The stopped

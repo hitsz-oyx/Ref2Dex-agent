@@ -79,7 +79,8 @@ Pause the proposed custom RGB/LK observation entry and future-sensor expansion.
 Offline teacher processing is permissible for representation pretraining, while
 deployment/causal forecasting claims still require independently qualified inputs.
 
-Decision note: acquire pinned official PointWorld small-DROID checkpoint
+Historical decision note for the mismatched checkpoint-transfer run: acquire
+pinned official PointWorld small-DROID checkpoint
 (1,826,853,514 bytes, SHA256 ccb9ed93dff5eea976010c57dd0cb5634db61c68b732c4437cbf54c8da9de8fe)
 and inspect backbone key/shape compatibility only. New artifact cap3GiB,
 download deadline15min, CPU metadata inspection2min, no GPU training or full
@@ -90,21 +91,24 @@ Acquisition completed and strict compatibility passed 448/448 tensors with
 is frozen: seed228, two2000-update arms, same native data/stats/draw, random
 versus official video backbone, existing trainer, at most two free GPUs and
 45min per arm. Initializer integrity tests and both3-update GPU checks passed.
-Matched2000-update runs completed on free GPUs2/3 using the existing launcher,
-Git 199c7db; both arms exited normally at step 2000. The matched identity audit
-passed and the complete final result is in
+Matched 2000-update runs completed on free GPUs 2/3 using the existing launcher,
+Git 199c7db; both arms exited normally at step 2000. This was a checkpoint-
+transfer run, not training on the official video data: the training manifest
+remained OakInk2/GRAB/ARCTIC and only `small-droid/model-best.pt` was acquired.
+The complete transfer result is preserved in
 `outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/result_analysis_r1.json`.
-On the fixed balanced source-macro panel, video initialization gives moving h24 EPE
-0.082070 versus random 0.080660 (+1.75%), and static h24 EPE 0.029279 versus
-0.022597 (+29.57%). The predeclared moving≤90% and static≤120% gate therefore
-fails both criteria. Action shuffling still raises moving h24 error by 42.84%
-(random) and 39.92% (video), so the native action path is active; this does not
-show a video benefit. Classify this Probe `UNPROMISING` for the released
-backbone-only recipe. Do not scale this arm, download the large corpus, or
-attach these weights to native/RL training. The broader video route remains
-UNCLEAR rather than refuted; a future attempt needs a different
-input-compatible open-source recipe and a new matched gate. No new external
-authorization is needed.
+Its moving/static gate failed, but the result is `INVALID_IMPLEMENTATION /
+INCONCLUSIVE` for the intended official-video-data question. Retain the
+checkpoint outputs as recipe-level engineering evidence; do not use them to
+reject DROID data or the broader video route.
+
+Correction decision note (2026-10-10): the current question is whether released
+video data can improve the native model. The previous intervention used released
+weights instead, so it cannot close that question. First perform a bounded
+metadata/subset availability audit; do not download the full DROID corpus or
+start another transfer run. The published full corpus is reported at roughly
+3.9 TB, above this Campaign's 300 GB local artifact cap. Any remote NAS staging,
+large subset acquisition or new long run requires a separate resource decision.
 
 ## Current decision and resources
 

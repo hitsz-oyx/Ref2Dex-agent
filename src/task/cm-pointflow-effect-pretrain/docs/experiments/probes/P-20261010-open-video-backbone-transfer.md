@@ -9,27 +9,41 @@ git_commit: 199c7dbd9ea14b761acabac89fd852a3fee442ee
 claim_id: C1
 hypothesis_family: HF-open-video-backbone-transfer
 probe_index_in_family: 1
+requested_intervention: official_video_data_training
+executed_intervention: official_pretrained_backbone_initialization
 seed_pool: probe
 seeds: [228]
 decision_changed_if_positive: expand matched native transfer from official video-pretrained PointWorld backbone
 decision_changed_if_negative: inspect pretrained feature compatibility before larger video investment
-status: UNPROMISING
+validity: INVALID_IMPLEMENTATION
+scientific_conclusion: INCONCLUSIVE
+status: UNCLEAR
 run_id: open-video-backbone-transfer-20261010-r1
 ---
 
-# Does the released video-pretrained backbone help our native effect model?
+# Historical checkpoint-transfer run (not the requested official-video-data test)
 
 Class: Decision. User requests open-source reuse before writing new pipelines;
 the immediate question is video benefit to this model, not reproduction of a
 different video task. Mission remains action-conditioned Cm and eventual matched
 Cm-on/off benefit to self-trained robot RL.
 
-Result: UNPROMISING for the registered released-backbone-only transfer gate;
-video initialization fails both the moving and static h24 thresholds after two
-matched 2000-update arms.
-Decision: stop this recipe before longer training or large corpus acquisition;
-retain the checkpoints and analysis, and require a different input-compatible
-open-source route for any future video attempt.
+Validity correction: **INVALID_IMPLEMENTATION for the intended official-video-data
+question**. The user intended to train with released video data, but this run
+only initialized the native model from an official pretrained checkpoint. The
+training data remained the native OakInk2/GRAB/ARCTIC manifest; no official DROID
+video data entered training. The checkpoint-transfer measurements are retained
+as an engineering record, but they are **INCONCLUSIVE** for video-data benefit.
+Decision: do not use this run to stop the video-data route. Preserve its outputs,
+reclassify its transfer gate as recipe-level evidence only, and perform a
+separate bounded audit of the released video data before any acquisition or
+training.
+
+## Actual protocol executed (checkpoint-transfer interpretation)
+
+The following protocol records the intervention that was actually executed after
+the open-source request was misinterpreted. It is retained for reproducibility;
+it is not the protocol for the intended official-video-data experiment.
 
 ## Decision note / frozen protocol before training
 
@@ -102,7 +116,7 @@ after compatibility preflight, before non-smoke training.
 
 Output `outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/`.
 
-## Results
+## Results (checkpoint transfer only; not the intended video-data experiment)
 
 Official acquisition and compatibility preflight completed within the frozen
 bounds. Both initializer integrity tests and both three-update GPU checks passed.
@@ -141,13 +155,12 @@ video arm. This confirms action sensitivity in both trained models, but gives no
 video-transfer advantage. Static-object shuffled EPE falls at h24 in both arms
 (−26.13% and −28.65%), so it is not evidence of a useful static action effect.
 
-The registered Probe classification is **UNPROMISING** for this released
-PointWorld-small DROID-backbone-only transfer recipe. This closes the immediate
-scale-up decision: do not run a longer matched arm, add epochs, download the
-large video corpus or attach these weights to native/RL training. It rejects this
-initialization recipe, not video or human-video pretraining in general; any later
-attempt requires a different input-compatible open-source recipe and a new
-matched gate.
+The checkpoint-transfer recipe itself did not pass its predeclared gate, but that
+result cannot answer whether the released video data help the native model. The
+run is therefore **INVALID_IMPLEMENTATION / INCONCLUSIVE** relative to the
+intended data intervention. It must not be used to reject official DROID data,
+video pretraining, or human-video pretraining. No official DROID video file was
+used by either training arm; the only official asset was the 1.83 GB checkpoint.
 
 The post-run implementation audit confirms that the released backbone was the
 intended intervention. Both final checkpoints changed all 448 backbone tensors
@@ -158,16 +171,17 @@ the released checkpoint records 31-dimensional scene features, 0.015m grid
 size and patch size 256, while the native arm feeds 18-dimensional projected
 features on a 0.01m grid with patch size 128 and temporal pooling. Exact tensor
 shape compatibility therefore proves only that the weights can be loaded; it
-does not make the two backbone input distributions equivalent.
+does not make the two backbone input distributions equivalent. This is a
+limitation of the attempted checkpoint-transfer recipe, not evidence about
+training on the official video data.
 
 ## Limitations / future evidence
 
-DROID is real robot demonstration video, not human egocentric video. This Probe
-asks about that released video-pretrained spatial backbone; it cannot attribute
-benefit to video alone versus other details of the author's pretraining recipe,
-or establish EgoDex/EPIC/EgoTouch benefit. Native feature/action/effect interfaces
-remain different from the official RGB-D/gripper model. Native attention
-patch_size128 and time-aware pooling are retained; source patch_size256 and
-ordinary spatial pooling differ despite exact tensor compatibility. Single seed and short
-matched training cannot establish a formal advantage; multi-seed matched budgets
-and eventual robot Cm-on/off evidence are deferred until a positive signal.
+DROID is real robot demonstration video, not human egocentric video. This run did
+not train on DROID and therefore provides no evidence for or against its data.
+Native feature/action/effect interfaces remain different from the official
+RGB-D/gripper model. Native attention patch_size128 and time-aware pooling are
+retained; source patch_size256 and ordinary spatial pooling differ despite exact
+tensor compatibility. The original checkpoint-transfer outputs remain useful
+for tracing the failed intervention, while a data-use experiment needs its own
+card, data manifest, adapter, control and gate.

@@ -2,9 +2,11 @@
 
 核查日期：2026-10-10。问题来自用户：先找开源，尽量不自行重写；目标是判断视频是否帮助现有模型。使用 research 技能并行核查论文与官方源码。以下调查没有训练模型；权重获取/兼容性检查单独记录。全局目标仍是动作条件 Cm 改善自训练机器人策略。
 
-## 选择
+## 选择（已纠正）
 
-优先核查官方 **PointWorld-small 的 DROID 预训练编码器迁移**，复用当前训练器，比较视频初始化与随机初始化；不继续自写 RGB/LK 视频入口或扩大未来传感器 MLP。原因：官方代码、视频预训练权重都可获得，而本项目已经使用其 PTv3-small；这一对照直接问视频资产是否帮助现有模型。它首先检验机器人视频预训练，不自动回答人类视频或触觉是否有效。
+此前错误地优先执行了官方 **PointWorld-small 的 DROID 预训练编码器迁移**，复用当前训练器比较视频初始化与随机初始化；这实际测试的是官方权重，不是官方视频数据。该运行已保留，但相对于用户要问的“官方视频数据能否帮助现有模型”，应标为 `INVALID_IMPLEMENTATION / INCONCLUSIVE`，不能作为数据路线的负结果。
+
+用户真正要求的是优先复用公开视频数据，训练或适配原生模型后再与原生数据控制臂比较。下一步应先做不下载大语料的官方数据合同和可用子集审计，再决定是否在 NAS 上取得一个有界子集；不再把 checkpoint transfer 当作数据实验。
 
 离线全视频重建可以用于制造训练监督。历史重建输入也受未来影响时，不能宣称严格历史预测，但**这不自动禁止将该离线任务用于表征预训练**：是否值得复用，要在独立、合格的下游输入上做有无预训练的匹配比较。不能以旧的少量 LK 学习失败关闭整个视频路线。
 
@@ -70,14 +72,22 @@ API与header；没有改代码或训练。若复用应优先官方完整模块/�
 
 ## 下一步决策与范围
 
-root 在现有用户授权内选择：先获取固定SHA的官方 small checkpoint，只作 tensor/key/shape 兼容检查；新产物<=3GiB、获取<=15min、CPU检查<=2min，无GPU训练，无新branch，无完整corpus或DINO下载。不覆盖任何已有文件；source/checksum漂移、资源越界或不可加载即停止并保留记录。权重下载依次尝试ModelScope可发现性、HF国内镜像、现有代理官方源。
+此前的资源决策只批准获取固定 SHA 的官方 small checkpoint 做兼容检查，
+没有批准获取官方视频数据。该检查和后续 checkpoint-transfer 运行已经完成，
+但它不回答视频数据问题；对应结果按 `INVALID_IMPLEMENTATION / INCONCLUSIVE`
+保留在[实验卡](../experiments/probes/P-20261010-open-video-backbone-transfer.md)。
 
-执行更新：获取与兼容检查已通过，已冻结并启动
-[匹配初始化Probe](../experiments/probes/P-20261010-open-video-backbone-transfer.md)：
-两组各2000updates，seed228，复用现有训练器；GPU2随机/GPU3视频初始化，
-每组45min、训练产物合计6GiB。只增加严格权重格式转换，不另写视频模型或训练循环。
+当前真正的 Decision 是：能否从官方 DROID/PointWorld 视频数据中取得一个有界、
+可复现、与原生 point-dynamics 接口相容的子集。官方数据卡报告全量下载约
+3.91 TB、展开约4.65 TB，而本 Campaign 本地产物上限为300 GB。因此先做只读
+metadata、分片布局、ModelScope/镜像可用性和最小子集恢复审计；不下载全量数据，
+不启动新的权重迁移训练。若子集仍超过本地上限，则需要用户决定 NAS 远程存储和
+具体子集范围。
 
-该下游matched Probe：同native数据/统计/动作接口/初始化后的非backbone参数/seed/batch/optimizer/更新预算/固定末步评价，只改 backbone 视频初始化。现有随机初始化50000步结果可作背景，不能直接拿它与一个短迁移运行比较并归因预训练。至少报告moving/static object误差和actual/shuffled-action敏感性；是否改善最终RL必须另作Mission要求的Cm-on/off比较。当前不承诺收益，也不启动大规模训练。
+有效的数据 Probe 必须使用官方视频样本作为训练输入，并保留同一原生模型随机
+初始化控制臂、固定 native 数据/统计/评价接口和明确的数据适配层；不能把官方
+checkpoint 当作“视频数据臂”。是否改善最终 RL 仍需独立的 Mission 级 Cm-on/off
+比较。
 
 失败后优先核查官方 ObjectForesight checkpoint/loader 对既有 EPIC 的复用，或选择已公开的共同场景/手处理产物；不默认自己复刻待发布 PointWAM。研究范围不缩减成人类动作识别、2D像素预测或视觉触觉同期估计。
 
@@ -85,7 +95,7 @@ root 在现有用户授权内选择：先获取固定SHA的官方 small checkpoi
 
 固定小源码及其逐文件URL/SHA在 `tmp/open-video-data-usage-20261010/{RustinS-ObjectForesight-1a2fa7e8b41caec3c2c9930bcb077ddef22cf319,NVlabs-PointWorld-3872ec6ee73146aa671192ef79b5dfbedc0246e3}/source-manifest.json`。Hub API快照为同目录 `nvidia-PointWorld*-hub.json`，模型卡为 `PointWorld-models-README.md`。GitHub API一度限流，commit改用只读 `git ls-remote` 获取，再读固定raw文件；未修改本地submodule。
 
-## Matched open-source transfer result (2026-10-10)
+## Mismatched checkpoint-transfer result (2026-10-10; retained, not data evidence)
 
 The pinned small-DROID backbone was tested in the existing native action trainer,
 with the same seed, draw, data, statistics, optimizer and 2000-update budget as a
@@ -94,16 +104,18 @@ moving-object EPE was 0.080660 for random initialization and 0.082070 for the
 released video initialization (+1.75%); static-object EPE was 0.022597 and
 0.029279 (+29.57%). The predeclared moving-at-most-90% and static-at-most-120%
 gates both failed. The released-backbone-only transfer is therefore
-`UNPROMISING` as a Probe recipe. Final evaluation and the full source/horizon
+`UNPROMISING` as a checkpoint-transfer recipe only. The run is
+`INVALID_IMPLEMENTATION / INCONCLUSIVE` for the official-video-data question:
+neither arm consumed official DROID video samples. Final evaluation and the full source/horizon
 breakdown are preserved in
 `outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/result_analysis_r1.json`.
 
 The action shuffle diagnostic still increases moving h24 error by 42.84% for the
 random arm and 39.92% for the video arm, confirming that the native action path
 is being used. It does not establish a video benefit, and the static shuffle
-change goes in the opposite direction in both arms. Stop this recipe before
-longer training or large corpus acquisition. The negative result is specific to
-transferring this released spatial backbone into the native feature/action
-interface; it does not refute other video or human-video pretraining routes.
+change goes in the opposite direction in both arms. Stop this checkpoint-transfer
+recipe before longer training. This result says nothing about training on the
+released video data and does not refute other video or human-video pretraining
+routes.
 ObjectForesight's released encoder remains structurally incompatible with the
 native backbone, so no second open-source transfer run is started automatically.
