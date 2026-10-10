@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-native-execution
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 3ed2404
+git_commit: 94a1632
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [298]
 decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
 decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
 status: UNCLEAR
-run_id: generated-tau-native-execution-20261010-r1
+run_id: generated-tau-native-execution-20261010-r2
 ---
 
 # Can pure measured-history generated tau drive the frozen native executor?
@@ -169,6 +169,16 @@ this is an engineering defect, not a method negative. Preserve failure metadata
 as generated-tau-projection-latency-20261010-r4; the original harness had not
 created its output folder before this failure. Fix harness to save RUNNING/
 FAILED state before computation, then recheck the same frozen inputs as r5.
+
+94a1632 r5 PASS: original300step captured fit cold2.078s, steady<=.8561s,
+original saved points/identical-query replay/changed frame4 versus original
+eager all point errors0. Ordinary Adam/full iterations/two starts retained;
+GPU365MiB/util100% during replay. FK joint-gradient regression passes. Preserve
+r2/r3/r4 failures rather than replace their outputs. Main next decision:
+execute the same16role/seed298 complete542steps with position FK/capture,
+300iterations, budget600s, output generated-tau-native-execution-20261010-r2.
+No new physical model/scorer training, no GT startup, no additional seed.
+Estimated fit work68*.86s plus native overhead fits remaining original15min.
 
 ## Limitations / future evidence
 
