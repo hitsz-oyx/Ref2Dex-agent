@@ -5,13 +5,13 @@ experiment_id: P-20261011-tau-residual-basin
 date: 2026-10-11
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: 00859cf
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 5
 seed_pool: probe
 seeds: [286]
-decision_changed_if_positive: retain a bounded thumb residual basin and use it as the low-level adapter for the ref2 goal route
+decision_changed_if_positive: retain the bounded thumb residual as a candidate adapter and run one matched robustness Probe before exposing it to the ref2 goal route
 decision_changed_if_negative: stop fixed thumb-offset diagnostics and preserve the retained tail canonicalization candidate without more PPO
 status: PLANNED
 run_id: ref2-tau-residual-basin-20261011-r1
@@ -47,14 +47,14 @@ each:
 
 | Role | Fixed latent delta |
 | --- | --- |
-| `baseline` | zero |
+| `baseline` | zero external offset; the retained actor latent is still active |
 | `thumb_pitch_plus` | residual coordinate 11, `+0.05` |
 | `thumb_pitch_minus` | residual coordinate 11, `-0.05` |
 | `thumb_yaw_plus` | residual coordinate 10, `+0.05` |
 
 The values are chosen before execution and are not fit from this rollout. The
-run records raw intended/applied commands, native PD targets, clipping, full
-physical outcomes and provenance hashes. It does not alter nominal geometry,
+run records raw pre-clamp intended commands, the clamped/applied `action`, native
+PD targets, clipping, full physical outcomes and provenance hashes. It does not alter nominal geometry,
 the observation contract, or reset semantics.
 
 ## Gates and interpretation
@@ -81,5 +81,6 @@ the declared comparison arm regardless of this diagnostic.
 This is a single motion and a separate-live descriptive comparison. It cannot
 distinguish a thumb offset from a missing state/history adaptation mechanism,
 and it does not change the direct-action BC/PPO conclusion. A positive result
-would justify exposing the shared bounded residual adapter to the ref2 goal
-policy; a negative result closes only these four fixed offsets.
+would justify one matched robustness Probe before exposing the shared bounded
+residual adapter to the ref2 goal policy; a negative result closes only these
+four fixed offsets.
