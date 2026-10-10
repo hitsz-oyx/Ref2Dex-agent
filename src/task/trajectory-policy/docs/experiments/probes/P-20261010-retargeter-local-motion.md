@@ -120,6 +120,27 @@ and use a separate bounded diagnosis to distinguish command-identification error
 from native execution/preload semantics before deciding whether another learned
 retargeter intervention is justified.
 
+### Frozen error decomposition
+
+The CPU-only decomposition `retargeter-local-motion-diagnosis-20261010-r2`
+reconstructed the 16,576 validation labels from the two source `low.npz` files;
+the fit audit was required to be `PASS`. It does not run a model forward, retrain,
+or step physics. Local normalized error improves most on wrist translation
+(`43.9%/51.9%/50.5%` for wx/wy/wz) and less on the distal fingers, while the
+first-command local PD p95 remains `24.3/25.4/26.8 mm` for wrist translation,
+`0.288/0.116/0.296 rad` for wrist rotation, and `0.049/0.047/0.037/0.054/0.074/0.033
+rad` for the six active fingers. Normalized error also rises across the eight
+active steps (`0.230` at step 0 to `0.260` at step 7).
+
+The paired fit audit already reconstructs the native label-to-PD conversion and
+all coupling/scale checks within tolerance, so this decomposition finds no
+conversion or label-wiring failure. It does not test closed-loop contact or
+preload semantics. The remaining evidence is therefore an unresolved command
+identification/conditioning gap, with native execution semantics still untested;
+do not treat it as evidence that the native solver is faulty.
+
+Diagnosis output: `outputs/trajectory-policy/retargeter-local-motion-diagnosis-20261010-r2/`.
+
 ## Limitations / future evidence
 
 只有单motion/同initial/失败多的PPO轨迹，validation参与checkpoint selection，

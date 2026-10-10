@@ -82,8 +82,10 @@ retargeter原文与actual hand/action数据合同：支持真实动作监督的�
 τ/state-only L1为.241886/.332077（ratio.7284），同tick shuffle ratio2.1482，
 说明信号被使用；但all/startup XYZ p95仍44.15/51.21mm、rotation.3688/.1101rad、
 fingers.1019/.1210rad，未过5mm/.05rad screen，局部UNCLEAR。保留离线条件化证据，
-不进入competent物理采集；下一步先做有界inverse conditioning/native preload语义诊断，
-不直接增加epochs、seed、数据或接WM。
+不进入competent物理采集。随后CPU冻结分解显示local对腕部normalized residual改善
+43.9--51.9%，但首步wrist rotation p95仍.288/.116/.296rad、后续8步误差
+.230→.260；fit audit已证明label→PD转换无接线错误，native preload/闭环语义仍未测。
+当前保留为动作识别/conditioning gap，先不增加epochs、seed、数据、物理或接WM。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
