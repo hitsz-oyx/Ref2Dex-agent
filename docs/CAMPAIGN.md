@@ -177,3 +177,8 @@ canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入�
 必要性重复实验与在线selector继续冻结。单空闲GPU，上限16GPUmin/1GiB，协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md`。
 不改Mission/Cm claim，不新建分支、不扩大仿真/训练sweep。
+
+2026-10-10 持续主线授权下新增生成τ评分迁移/URDF几何审计：冻结纯历史proposal
+和T evaluator，不以旧Y冒充新候选的执行标签。单空闲GPU，15GPUmin/1GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md`。
+本轮不训练模型、不仿真、不启用PointWorld或改变Mission/Cm claim。
