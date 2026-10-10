@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-residual-integration
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: f63d971
+git_commit: 1b56d4f
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 7
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [314]
 decision_changed_if_positive: retain the shared nominal-plus-residual executor and consider one bounded on-policy continuation
 decision_changed_if_negative: close this student integration variant while retaining the fixed tau residual-basin evidence; do not launch PPO
-status: PLANNED
-run_id: goal-conditioned-residual-integration-20261011-r1
+status: UNPROMISING
+run_id: goal-conditioned-residual-integration-20261011-r4
 ---
 
 # Goal-conditioned residual policy through the shared executor
@@ -76,13 +76,37 @@ PD conversion, provenance hashes and outcome gate.
 
 ## Results
 
-Pending execution.
+The offline BC run completed in
+`outputs/trajectory-policy/goal-conditioned-residual-bc-20261011-r1/` on GPU0
+with 3,000 requested updates (best checkpoint at update 1,200), 6,504 train
+rows and 2,168 held-out rows. The best validation raw-latent L1 was `0.0249544`,
+below the `0.10` offline gate, so the physical Probe was allowed.
+
+The valid physical run is
+`outputs/trajectory-policy/goal-conditioned-residual-integration-20261011-r4/`.
+All 16 environments completed 542 controls without an early reset. Ten of 16
+episodes reached the long-held terminal screen, 15 of 16 reached at least 45
+held frames, and median held frames were 483. Native clipping was `6.6075%`,
+above the predeclared `<1%` gate, so the Probe is `UNPROMISING`. All controlled
+placement `success` flags remained false; the gate is deliberately reported
+separately from that stricter placement metric.
+
+The independent audit
+`outputs/trajectory-policy/goal-conditioned-residual-integration-audit-20261011-r4/audit.json`
+returned `PASS`: feature replay max error `2.86e-6`, policy latent `7.75e-7`,
+executor target `3.58e-7`, command `4.77e-7`, clipping flags exact, and PD
+reconstruction exact. Thus the negative result is not explained by the
+residual-history, executor, native command, or PD audit.
+
+The r1-r3 attempts stopped before a physical trajectory (historical source
+hash handling, rl_games factory compatibility, and a feature-scale variable
+shadow); they are retained as setup failures and are not counted as runs.
 
 ## Limitations and follow-up
 
 This is a single-motion, single-seed distillation and a privileged nominal
-reference diagnostic. A positive Probe authorizes at most one small PPO
-continuation under a separate card; it does not support a generalization,
-REGRIND reproduction, or Cm benefit claim. A negative result closes this
-student interface at the current budget while preserving the fixed residual
-basin as a control diagnostic.
+reference diagnostic. The clipping/hold gate failed, so no PPO continuation is
+authorized by this card. The result closes this student integration variant at
+the current budget while preserving the fixed residual basin as a control
+diagnostic; it does not refute measured-state residual control, REGRIND, or
+the later H/PointWAM route.

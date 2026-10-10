@@ -100,8 +100,17 @@ seed287 的一次 matched repeat 仍满足门槛：baseline `3/4`、`thumb_pitch
 variation。两轮完整 controlled-placement success 都是 `0/16`，因此只保留
 `thumb_pitch_minus`，不把固定残差当作 Stage 1 已解决。
 
+随后完成的 residual integration Probe 使用 24-step hand/object goals、前一步 bounded
+residual 和共享 `GoalConditionedExecutor`，nominal q/velocity 来自 geometry cache 并明确
+标为 privileged integration diagnostic。offline raw-latent L1 为 `0.0249544`，物理运行
+10/16 long-held terminal、15/16 hold45、median held 483，但 clipping `6.6075%` 超过
+`<1%` 门槛，故 `UNPROMISING`；独立 feature/latent/executor/PD audit 通过。这个结果关闭
+当前 residual student 的 PPO continuation，不把失败归因于 executor wiring，也不启动
+REGRIND 原始规模。
+
 - [goal-conditioned BC](docs/experiments/probes/P-20261011-goal-conditioned-bc.md)
 - [BC physical execution](docs/experiments/probes/P-20261011-goal-conditioned-execution.md)
 - [goal-conditioned PPO](docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)
 - [PPO frozen execution](docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)
+- [goal-conditioned residual integration](docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md)
 - [fixed tau residual basin](../consequence-evaluator/docs/experiments/probes/P-20261011-tau-residual-basin.md)

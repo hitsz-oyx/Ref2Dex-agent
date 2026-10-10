@@ -206,9 +206,32 @@ BC/PPO 的 `0/16` 物理失败，也不能替代新的 `training_allowed=true` t
 long-held terminal，`thumb_pitch_minus` 为 `3/4`、clipping `5/2168=0.2306%`，
 独立审计最大 feature replay error `1.91e-6`；因此重复仍通过预注册门槛。yaw 在这一
 launch 为 `3/4`，而首轮为 `0/4`，说明 separate-live 单 motion 结果存在 launch variation，
-不能把 yaw 方向写成稳定改善；两轮完整 `success` 都是 `0/16`。root 现在只保留
-`thumb_pitch_minus` 作为候选，下一步若继续只能做一次共享 executor 的 goal-conditioned
-integration Probe，仍不启动 REGRIND 原始训练规模或 H/PointWAM 高层路线。
+不能把 yaw 方向写成稳定改善；两轮完整 `success` 都是 `0/16`。root 只保留
+`thumb_pitch_minus` 作为固定残差 basin 候选，并据此完成了一次共享 executor 的
+goal-conditioned residual integration Probe；仍不启动 REGRIND 原始训练规模或 H/PointWAM
+高层路线。
+
+### Goal-conditioned residual integration
+
+新卡 `P-20261011-goal-conditioned-residual-integration` 使用 24 步 hand/object goal、
+`tanh(previous raw residual)` 历史和共享 `GoalConditionedExecutor`，严格筛选 retained
+r3 的 16 个 `role==tracker` 环境。offline BC 在 2,168 个环境留出样本上的 raw-latent
+L1 为 `0.0249544`，因此允许运行 privileged nominal-reference physical Probe；nominal
+q/velocity 明确来自 geometry cache，只作集成诊断，不是可部署的 no-future-q planner。
+
+有效 r4 运行使用 GPU0、16 env、542 controls，全部完成且无 early reset；10/16 达到
+long-held terminal，15/16 达到 hold45，median held `483`，但 native clipping 为
+`6.6075%`，超过预注册 `<1%` 门槛，Probe 标为 `UNPROMISING`。所有 controlled-placement
+success 仍为 false。独立 audit 为 `PASS`：feature `2.86e-6`、latent `7.75e-7`、
+executor target `3.58e-7`、command `4.77e-7`，clipping flags exact、PD reconstruction
+exact；负结果不是 residual/executor/PD wiring 错误。r1-r3 是仿真前的历史 hash、rl_games
+compatibility 和变量遮蔽 setup failures，不计入科学波次。
+
+Decision Note：当前关键选择是是否在该 residual student 上继续 PPO。由于 physical gate
+同时未达到 12/16 long-held terminal 且 clipping 超阈值，root 关闭这条 student integration
+变体，不启动 PPO；保留 fixed residual basin 作为控制诊断，并等待明确
+`training_allowed=true` 的 fresh teacher 或新的 preload 参数化。该结果仍不 refute
+measured-state residual control、REGRIND 思路或 H/PointWAM 路线。
 
 ### Decision Note: close direct-action Stage 1 variant
 
@@ -223,7 +246,8 @@ teacher rollout；不启动 REGRIND 4096-env/failure-bin training，也不进入
 证据卡片：[goal BC](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-bc.md)、
 [BC execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-execution.md)、
 [goal PPO](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)、
-[PPO execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)。
+[PPO execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)、
+[goal-conditioned residual integration](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md)。
 
 ## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
 
