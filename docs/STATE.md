@@ -40,6 +40,12 @@ FF RMS5.464mm。改善但仍未过固定5/10mm门槛，局部UNPROMISING；按�
 warm start；不以oracle数据/监督loss替代实际RL或Cm收益。
 证据：[history actor](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md)、
 [startup balanced](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md)。
+首轮真实任务[PPO](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md)
+`4da53a9` 完成24updates/48992交互/264s，KL受控；训练随机采样有一次486帧且终末
+持有，最终 `054a78c` 冻结完整比较GT/dense各3/4，warm/PPO均0/4且未形成held。
+全历史/采样概率/价值/bootstrap/任务奖励/GAE、随机c独立物理解码及R/native/终末
+结果审计通过；本轮局部UNPROMISING。初始同H最终XYZ mean变化仅.04964mm RMS，
+下一步用保留rollout/快照核对探索与更新尺度，先不追加训练或WM；核心目标仍未完成。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

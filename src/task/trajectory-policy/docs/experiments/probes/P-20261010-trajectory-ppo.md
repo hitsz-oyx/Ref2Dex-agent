@@ -5,7 +5,7 @@ experiment_id: P-20261010-trajectory-ppo
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 4da53a9
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-learning
 probe_index_in_family: 3
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [293, 294]
 decision_changed_if_positive: retain actual task trajectory RL baseline and evaluate WM training intervention
 decision_changed_if_negative: audit reward events and actual PPO credit/execution before further training
-status: UNCLEAR
+status: UNPROMISING
 run_id: trajectory-ppo-20261010-r1
 ---
 
@@ -97,7 +97,7 @@ OldTask stayspaused, main/no branch/push, no external writes/process changes.
 
 ## Results
 
-Formal Probe not run yet. Engineering smoke r1 (`57d9390`, debug9) completed
+Engineering smoke r1 (`57d9390`, debug9) completed
 13.398s,448interactions on an artificial14control horizon,8/6duration/reset masks
 correct; actor parameters changed and behavior-logprob replay<=.00055. It found
 vanishing exp(-50gap) reward (gap1.03--1.37m, proximity<=8.76e-24) and first-step
@@ -108,7 +108,7 @@ Preserve `outputs/trajectory-policy/trajectory-ppo-smoke-20261010-r1/`.
 Pre-training repair: physical distance kernel exp(-2gap), no reference terms;
 finite KL proposal backtracking, fixed no-accept rollback. Same Gaussian action,
 D/R/H, horizon and task metrics. Smoke r2 must verify these changes before the
-single formal training run; totalengineering cost remains within120s cap.
+single bounded Probe training run; totalengineering cost remains within120s cap.
 
 Repair smoke r2 (`b1bdb20`) completed13.423s/448interactions: jointKL .013974
 and .001818, four accepted actor steps each, replaylogprob max .000336,
@@ -116,6 +116,68 @@ actor parameter L2 change9.68e-5. Proximity .0130--.0255; duration8/6 and
 terminal/reset masks correct. Engineering passed; no grasp inference from14steps.
 Before formal training, preserve actual rollout-end H alongside V bootstrap to
 permit independent snapshot/value replay; this adds trace data only.
+
+Full training `4da53a9`, seed293 completed264.032s:24updates,96accepted
+actor steps,3062controls x16=48992interactions, clipping1.0267%, actor mean
+parameter L2 change .00094752. JointKL .001723--.017811; mean Adam LR after
+initial backtracking remained6.25e-8. Five complete542control waves plus352
+controls. 2416held steps; one completed row held486consecutive and terminal,
+one held471 then dropped. These exploratory sampled trajectories do not
+establish a stable policy or improvement over the warm start.
+
+Frozen `054a78c`, seed294 completed56.411s,542controls: GT3/4 longheld+terminal,
+dense3/4, warm_start0/4 andPPO0/4 (both zero held frames). Warm/PPO clipping
+.3229%/1.1531%. All learned rows reached gap<=.01 atcontrol42, then lost proximity
+betweencontrol52--62; thus this is failure to acquire stable grasp, not successful
+reference placing. Final deterministic mean does not preserve occasional long
+holding from stochastic training. Local protocol conclusion **UNPROMISING**;
+not a refutation of trajectory PPO in general or a Cm conclusion.
+
+Training replay `054a78c` r1 exact H/behavior/value/bootstrap and then `c7eab30`
+r2 expanded all6144 sampled c: independent XYZ/SO3/native Euler/finger coupling/FK
+q/hand exact, velocity5.72e-6. GAE max1.22e-5, reward1.19e-7, executor inputs
+5.72e-6, latent2.91e-7, command/PD exact. Each training audit<=6.36s.
+Frozen execution audit `054a78c` H/c/D/FK exact, Rinput3.81e-6, command2.38e-7,
+PD0, outcomes and predeclared classification agree. No physical rerun.
+11Task tests passed; the first test command omitted task PYTHONPATH and failed
+collection, corrected command passed (no code change or scientific impact).
+
+Artifacts (preserved, no overwritten checkpoints):
+- `outputs/trajectory-policy/trajectory-ppo-20261010-r1/`: full training and24 snapshots.
+- `outputs/trajectory-policy/trajectory-ppo-training-audit-20261010-r1/`: first credit/control replay.
+- `outputs/trajectory-policy/trajectory-ppo-training-audit-20261010-r2/`: expanded sampled-decode replay.
+- `outputs/trajectory-policy/trajectory-ppo-execution-20261010-r1/`: frozen comparison.
+- `outputs/trajectory-policy/trajectory-ppo-execution-audit-20261010-r1/`: outcomes/control replay andbehavior.png.
+Training artifacts282.79MiB; remaining artifacts within512MiB experiment cap.
+
+## Next decision
+
+Independent read-only review under AGENTS14 found no terminal, input, precision
+or reward/GAE implementation error that invalidates this negative Probe. Initial same-H actor XYZ mean change from warm tofinal is only .04964mm
+RMS across24frames; startup geometric discrepancy was7.395mm. This makes
+insufficient practical policy movement plausible, without establishing cause.
+Also stochastic versus mean deployment differs. Before any further simulation
+or training, distinguish sampled exploration and update scale using existing
+rollouts and checkpoint snapshots; no more BC weight/48D decoder sweep.
+Seven sampled rows with>=45consecutiveheld all had negative batch-normalized
+advantage on their episode-start chunk. The documented per-control lambda.95
+propagates credit by(.99*.95)^60=.0252. Keeping all stored rewards/value/masks/
+bootstrap fixed, lambda1 makes sixofseven startup advantages positive. This
+suggests a trace-time-scale problem; sample-local surrogate sign cannot prove
+the shared-network update decreases each sample's actual probability.
+
+Post-hoc **Decision diagnostic** (no new physics/training budget): replay the
+four recorded rollout snapshots containing allseven startup rows, matched
+lambda.95/1 arms with same H/c/V/reward/done/bootstrap/learningrate/KL budget.
+Use fresh Adam in both arms because optimizer moments were not saved; this is
+not exact historical optimizer reconstruction. Each arm calls the same production
+PPO function with only GAE lambda overridden locally; no edits to frozen source.
+Measure actual startup sampled-action logprob changes and prefixXYZmean movement.
+GPU4,<=30s within remaining audit allocation,<=16MiB; files/statsCPU.
+If lambda1 raises successful-startup probability more consistently while KL<=.02,
+next fixed-budget task Probe changes lambda only; otherwise reassess before
+spending simulation. Allseven rows retained, no best-checkpoint/seed selection.
+Keep Mission claim andoldTask pause; baseline andWM training benefit incomplete.
 
 ## Limitations / future evidence
 

@@ -22,9 +22,13 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 `tools/run/fit_history_actor.py`：全部源轨迹保留，train-only normalization，按行留出；
 首轮6504样本BC初始化2500updates完成14s；留出目标比常量低80%，但实际纯H两组
 均0/4稳定抓持（GT4/4、dense3/4），启动手点RMS56.36mm。实际H/c/D/native链审计
-通过，局部UNPROMISING；尚未PPO训练或接入WM。后续startup-balanced2500update/13s把启动手点RMS降到7.395mm，但掌部max15.61mm，
+通过，局部UNPROMISING；当时尚未PPO训练或接入WM。后续startup-balanced2500update/13s把启动手点RMS降到7.395mm，但掌部max15.61mm，
 仍未过5/10mm初始化screen，按协议未仿真。停止BC权重搜索，下一步固定D/R做真实奖励
-trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略。consequence-evaluator后续实验按用户
+trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略。
+首轮真实任务PPO `4da53a9` 已完成24updates/48992交互/264s，训练采样曾有
+486帧且终末持有，但最终冻结比较GT/dense各3/4，warm/PPO均0/4形成抓持。
+全H、概率/价值/奖励/GAE、随机c物理解码及实际执行链审计通过，局部UNPROMISING；
+尚未形成可用轨迹baseline或WM收益。下一步先用已有rollout隔离探索与更新尺度。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 
@@ -36,6 +40,7 @@ trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略
 - [pose/FF metric覆盖与停止48D搜索](docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)
 - [独立H→c初始化与完整执行](docs/experiments/probes/P-20261010-history-trajectory-actor.md)
 - [启动平衡初始化与转入RL的决策](docs/experiments/probes/P-20261010-startup-balanced-actor.md)
+- [首次真实任务PPO及冻结比较](docs/experiments/probes/P-20261010-trajectory-ppo.md)
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。
