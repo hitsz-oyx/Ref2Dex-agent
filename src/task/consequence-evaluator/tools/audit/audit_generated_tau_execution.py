@@ -26,7 +26,9 @@ def main():
         raise ValueError('completed generated-tau execution required')
     with np.load(a.evaluation/'trajectory.npz',allow_pickle=False) as s:data={k:s[k] for k in s.files}
     with np.load(a.evaluation/'plans.npz',allow_pickle=False) as s:plans={k:s[k] for k in s.files}
-    if data['action'].shape!=(542,16,18) or plans['ticks'].tolist()!=list(range(0,542,8)):
+    diagnostic=bool(m.get('interface_diagnostic'))
+    controls=128 if diagnostic else 542
+    if data['action'].shape!=(controls,16,18) or plans['ticks'].tolist()!=list(range(0,controls,8)):
         raise ValueError('complete trajectory and every8step plan required')
     if not all(np.isfinite(v).all() for v in list(data.values())+list(plans.values())):
         raise ValueError('nonfinite saved data')
@@ -36,7 +38,8 @@ def main():
     if len(references)!=1:raise ValueError('unique independent reference required')
     with references[0].open('rb') as s:ref=pickle.load(s)
     roles=np.asarray(m['roles']);envs=plans['envs']
-    if set(roles)!= {'tau_gt','persistence','displacement','scored'} or any(sum(roles==r)!=4 for r in set(roles)):
+    expected_roles= {'tau_gt','tau_online','displacement','displacement_handoff'} if diagnostic else {'tau_gt','persistence','displacement','scored'}
+    if set(roles)!=expected_roles or any(sum(roles==r)!=4 for r in set(roles)):
         raise ValueError('four predeclared roles required')
     if not np.array_equal(envs,np.flatnonzero(roles!='tau_gt')):raise ValueError('plan role identity mismatch')
     initial={k:bool(np.array_equal(data[k][0],np.broadcast_to(ref[k][0,0],data[k][0].shape)))
@@ -53,34 +56,47 @@ def main():
     if history_error>3e-6 or current_error>3e-6:raise ValueError('actual measured history mismatch')
     choices=plans['choices']
     for i,env in enumerate(envs):
-        expected=0 if roles[env]=='persistence' else (1 if roles[env]=='displacement' else plans['score'][:,i].argmax(-1))
+        expected=0 if roles[env] in ('persistence','tau_online') else (1 if roles[env] in ('displacement','displacement_handoff') else plans['score'][:,i].argmax(-1))
         if not np.all(choices[:,i]==expected):raise ValueError('actual generated choice mismatch')
-    if plans['score'].shape!=(68,12,10) or np.any(choices<0) or np.any(choices>=10):
+    if plans['score'].shape!=(len(plans['ticks']),12,10) or np.any(choices<0) or np.any(choices>=10):
         raise ValueError('only ten generated alternatives admitted')
+    privileged_error=0.
+    if diagnostic:
+        mask=roles[envs]=='tau_online'
+        if not np.array_equal(plans['privileged_online_tau'],np.broadcast_to(mask,(len(plans['ticks']),12))):
+            raise ValueError('diagnostic privilege identity mismatch')
+        for j,tick in enumerate(plans['ticks']):
+            pose=data['object_pose'][tick,envs[mask]]
+            actual=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],plans['raw'][j,mask])+pose[:,None,None,:3,3]
+            target=ref['hand_keypoints'][np.minimum(tick+np.arange(1,25),542),0]
+            privileged_error=max(privileged_error,float(np.max(np.abs(actual-target[None]))))
+        if privileged_error>3e-6:raise ValueError('GT online control is not the actual reference hand tau')
     with np.load(Path(m['geometry_reference'])/'geometry.npz',allow_pickle=False) as s:base=s['q']
     dt=m['wrist_feedforward_contract']['control_dt']
     ratio=np.asarray(m['wrist_feedforward_contract']['damping'],np.float32)/np.asarray(m['wrist_feedforward_contract']['stiffness'],np.float32)
     def velocity(q):
         d=np.diff(q,axis=-2).copy();d[...,3:6]=np.arctan2(np.sin(d[...,3:6]),np.cos(d[...,3:6]))
         return np.concatenate((d[...,:1,:],(d[...,:-1,:]+d[...,1:,:])/2,d[...,-1:,:]),axis=-2)/dt
-    next_q=np.broadcast_to(base[1:,None],(542,16,18)).copy()
-    next_v=np.broadcast_to(velocity(base)[1:,None],next_q.shape).copy()
-    future=np.stack([ref['hand_keypoints'][np.minimum(t+np.arange(1,25),542),0] for t in range(542)])
-    future=np.broadcast_to(future[:,None],(542,16,24,11,3)).copy()
+    next_q=np.broadcast_to(base[1:controls+1,None],(controls,16,18)).copy()
+    next_v=np.broadcast_to(velocity(base)[1:controls+1,None],next_q.shape).copy()
+    future=np.stack([ref['hand_keypoints'][np.minimum(t+np.arange(1,25),542),0] for t in range(controls)])
+    future=np.broadcast_to(future[:,None],(controls,16,24,11,3)).copy()
     pv=velocity(plans['q'])
-    for t in range(542):
+    for t in range(controls):
         j=t//8;off=t%8
-        next_q[t,envs]=plans['q'][j,:,off+1]
-        next_v[t,envs]=pv[j,:,off+1]
-        future[t,envs]=plans['hand'][j,:,np.minimum(np.arange(24)+off,23)].transpose(1,0,2,3)
+        enabled=np.asarray([not(diagnostic and roles[e]=='displacement_handoff' and t<8) for e in envs])
+        ids=envs[enabled]
+        next_q[t,ids]=plans['q'][j,enabled,off+1]
+        next_v[t,ids]=pv[j,enabled,off+1]
+        future[t,ids]=plans['hand'][j,:,np.minimum(np.arange(24)+off,23)].transpose(1,0,2,3)[enabled]
     # Independent numpy reconstruction of the *actual*897D controller input.
     obj=data['object_pose'][:-1];rot=obj[...,:3,:3];center=obj[...,:3,3]
     hand=(data['hand_keypoints'][:-1]-center[...,None,:])@rot
     local_future=(future-center[...,None,None,:])@rot[...,None,:,:]
     qe=next_q-data['dof_position'][:-1];qe[...,3:6]=np.arctan2(np.sin(qe[...,3:6]),np.cos(qe[...,3:6]))
     previous=np.concatenate((np.zeros((1,16,12),np.float32),np.tanh(data['latent'][:-1])))
-    x=np.concatenate((data['dof_position'][:-1],data['dof_velocity'][:-1]/8,hand.reshape(542,16,33)/.1,
-        local_future.reshape(542,16,792)/.1,qe,previous,data['object_velocity'][:-1]/2),-1).clip(-20,20)
+    x=np.concatenate((data['dof_position'][:-1],data['dof_velocity'][:-1]/8,hand.reshape(controls,16,33)/.1,
+        local_future.reshape(controls,16,792)/.1,qe,previous,data['object_velocity'][:-1]/2),-1).clip(-20,20)
     feature_error=float(np.max(np.abs(x-data['student_features'])))
     if feature_error>2e-5:raise ValueError('actual student input differs from declared plan')
     offset=np.asarray(m['native_controller']['offset'],np.float32);scale=np.asarray(m['native_controller']['scale'],np.float32)
@@ -114,17 +130,22 @@ def main():
             terminal_held=int(held[-1,mask].sum()),median_maximum_held=float(np.median([v['maximum_held_frames'] for v in rows])),
             maximum_lift_m=float(height[:,mask].max()),clipping_rate=clip,
             raw_screen=bool(qualifying>=3 and clip<.01))
-    calibration=summary['tau_gt']['long_held_terminal']>=3
+    calibration=summary['tau_gt']['held45']>=3 if diagnostic else summary['tau_gt']['long_held_terminal']>=3
     for r in summary:
-        summary[r]['status']='UNCLEAR' if not calibration else ('PROMISING' if summary[r]['raw_screen'] else 'UNPROMISING')
-    status='UNCLEAR' if not calibration else ('PROMISING' if any(summary[r]['raw_screen'] for r in ('persistence','displacement','scored')) else 'UNPROMISING')
-    audit=dict(status=status,calibration_pass=calibration,summary=summary,initial_state_exact=initial,
+        screen=(summary[r]['held45']>=3 and summary[r]['clipping_rate']<.01) if diagnostic else summary[r]['raw_screen']
+        summary[r]['status']='UNCLEAR' if not calibration else ('PROMISING' if screen else 'UNPROMISING')
+    generated_roles=[r for r in sorted(set(roles)) if r!='tau_gt']
+    status='UNCLEAR' if not calibration else (summary['tau_online']['status'] if diagnostic else
+        ('PROMISING' if any(summary[r]['raw_screen'] for r in generated_roles) else 'UNPROMISING'))
+    audit=dict(status=status,interface_diagnostic=diagnostic,maximum_privileged_tau_error=privileged_error,
+        calibration_pass=calibration,summary=summary,initial_state_exact=initial,
         maximum_history_error=history_error,maximum_current_hand_error=current_error,maximum_student_feature_error=feature_error,
         maximum_command_error=command_error,maximum_pd_error=pd_error,
-        generated_choice_counts={r:np.bincount(choices[:,roles[envs]==r].reshape(-1),minlength=10).tolist() for r in ('persistence','displacement','scored')},
+        generated_choice_counts={r:np.bincount(choices[:,roles[envs]==r].reshape(-1),minlength=10).tolist() for r in generated_roles},
         projection_median_s=float(np.median(plans['projection_s'])),projection_max_s=float(plans['projection_s'].max()),
         scorer_benefit='UNCLEAR: separate live roles, no same-state counterfactual outcomes',
-        claim='Single-motion execution Probe only; not Cm benefit or formal method refutation')
+        claim='Privileged interface diagnostic,128steps only; not pure-H deployment' if diagnostic else
+              'Single-motion execution Probe only; not Cm benefit or formal method refutation')
     a.output.mkdir(parents=True)
     (a.output/'audit.json').write_text(json.dumps(audit,indent=2,allow_nan=False)+'\n')
     files=[a.evaluation/n for n in ('manifest.json','result.json','trajectory.npz','plans.npz')]+[Path(__file__).resolve()]
@@ -134,7 +155,7 @@ def main():
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     fig,axes=plt.subplots(2,1,figsize=(9,6),sharex=True)
-    for r in ('tau_gt','persistence','displacement','scored'):
+    for r in ['tau_gt']+generated_roles:
         mask=roles==r
         axes[0].plot(np.median(height[:,mask],1),label=r)
         axes[1].plot(held[:,mask].mean(1),label=r)

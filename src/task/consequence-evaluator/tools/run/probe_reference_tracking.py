@@ -65,6 +65,8 @@ def main():
     p.add_argument('--projection-iterations',type=int,choices=(60,300),default=300)
     p.add_argument('--positions-only',action='store_true',help='geometric fit uses equivalent XYZ-only FK')
     p.add_argument('--projection-cuda-graph',action='store_true')
+    p.add_argument('--generated-interface-diagnostic',action='store_true',
+                   help='privileged GT online projection and eight-step GT handoff controls,128steps only')
     args = p.parse_args()
     if args.generated_proposal or args.generated_evaluator:
         if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
@@ -73,6 +75,8 @@ def main():
             raise ValueError('generated tau requires frozen tau controller and four-role sixteen-env evaluation')
         args.generated_proposal=args.generated_proposal.resolve()
         args.generated_evaluator=args.generated_evaluator.resolve()
+    if args.generated_interface_diagnostic and (not args.generated_proposal or args.mode != 'evaluate'):
+        raise ValueError('interface diagnostic requires frozen generated evaluation')
     if args.projection_cuda_graph and (not args.positions_only or not args.generated_proposal):
         raise ValueError('projection capture requires generated position-FK mode')
     if args.finger_only and (not args.tau_only or args.mode != 'train' or args.checkpoint is None):
@@ -276,6 +280,12 @@ def main():
             projection_cuda_graph=args.projection_cuda_graph,
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
+    if args.generated_interface_diagnostic:
+        manifest.update(interface_diagnostic=True,diagnostic_controls=128,
+            diagnostic_handoff_tick=8,
+            inference_contract='Displacement uses pure H; tau_online reads privileged GT hand only after the ten-member pool; handoff uses privileged original GT controller for ticks0--7 only',
+            reference_contract='Explicit privileged diagnostic controls; never a deployable pure-H policy or eligible selector candidate',
+            claim='Single-motion privileged interface/acquisition diagnostic,128steps only; no full-task or Cm utility claim')
     write(output / "manifest.json", manifest)
 
     class Player(native.EvalPlayer):
@@ -408,7 +418,7 @@ def main():
             def monitor(update, frames):
                 elapsed = time.monotonic() - started
                 state = gpu_state(args.gpu)
-                total = args.updates if args.mode == "train" else (8 if args.mode == "smoke" else 542)
+                total = args.updates if args.mode == "train" else (8 if args.mode == "smoke" else (128 if args.generated_interface_diagnostic else 542))
                 eta = (time.monotonic() - work_started) / max(update, 1) * max(total - update, 0)
                 print(json.dumps(dict(update=update, frames=frames, elapsed_s=round(elapsed, 1),
                                       eta_s=round(eta, 1), gpu=state,
@@ -535,7 +545,8 @@ def main():
                 quarter = n // 4
                 if generator is not None:
                     roles=np.random.default_rng(args.seed).permutation(np.repeat(
-                        ['tau_gt','persistence','displacement','scored'],quarter)).tolist()
+                        (['tau_gt','tau_online','displacement','displacement_handoff']
+                         if args.generated_interface_diagnostic else ['tau_gt','persistence','displacement','scored']),quarter)).tolist()
                 elif args.compare_tau:
                     roles = np.repeat(["oracle", "tau_nominal", "tracker",
                                        "tau_frozen" if args.tau_teacher_checkpoint else "tau_shifted"], quarter)
@@ -577,10 +588,11 @@ def main():
                                      ("dof_position", current["q"]), ("dof_velocity", current["dq"])):
                         arrays[key].append(val.detach().cpu().numpy().copy())
                 record()
-                generated_ids=np.array([i for i,r in enumerate(roles) if r in ('persistence','displacement','scored')])
+                generated_ids=np.array([i for i,r in enumerate(roles) if r in
+                    ('persistence','displacement','scored','tau_online','displacement_handoff')])
                 generated_torch_ids=torch.as_tensor(generated_ids,device=device)
                 measured_history=[]; plans=[]; plan_ticks=[]; active_plan=None
-                controls = 8 if args.mode == "smoke" else 542
+                controls = 8 if args.mode == "smoke" else (128 if args.generated_interface_diagnostic else 542)
                 work_started = time.monotonic()
                 for tick in range(controls):
                     with torch.no_grad():
@@ -592,18 +604,38 @@ def main():
                             measured_history=measured_history[-4:]
                             if tick % 8 == 0:
                                 history=([measured_history[0]]*(4-len(measured_history)))+measured_history
-                                active_plan=generator.plan({key:np.stack([v[key] for v in history]) for key in history[0]},
-                                    [roles[i] for i in generated_ids])
+                                query={key:np.stack([v[key] for v in history]) for key in history[0]}
+                                if args.generated_interface_diagnostic:
+                                    # GT hand is a separate privileged control after proposal/score,
+                                    # never the eleventh eligible candidate or an H feature.
+                                    query_roles=['persistence' if roles[i]=='tau_online' else 'displacement'
+                                                 for i in generated_ids]
+                                    selected=generator.propose(query,query_roles)
+                                    privileged=np.asarray([roles[i]=='tau_online' for i in generated_ids])
+                                    future_index=(tick+torch.arange(1,25,device=device)).clamp_max(542)
+                                    gt_world=reference['hand_keypoints'][future_index].cpu().numpy()
+                                    pose=query['obj'][-1,privileged]
+                                    selected['raw'][privileged]=np.einsum('npij,njk->npik',
+                                        gt_world[None]-pose[:,None,None,:3,3],pose[:,:3,:3])
+                                    selected['privileged_online_tau']=privileged
+                                    active_plan=generator.project_selected(query,selected)
+                                else:
+                                    active_plan=generator.plan(query,[roles[i] for i in generated_ids])
                                 plans.append(active_plan['audit']);plan_ticks.append(tick)
+                            # Handoff gets the original GT controller only for ticks0--7.
+                            enabled=np.asarray([not (args.generated_interface_diagnostic and
+                                roles[i]=='displacement_handoff' and tick<8) for i in generated_ids])
+                            active_ids=generated_torch_ids[torch.as_tensor(enabled,device=device)]
+                            local_ids=torch.as_tensor(np.flatnonzero(enabled),device=device)
                             offset_in_plan=tick%8
                             next_q=next_q.clone()
-                            next_q[generated_torch_ids]=active_plan['q'][:,offset_in_plan+1]
+                            next_q[active_ids]=active_plan['q'][local_ids,offset_in_plan+1]
                             index_in_plan=(torch.arange(24,device=device)+offset_in_plan).clamp_max(23)
-                            future=active_plan['hand'][:,index_in_plan]
-                            x[generated_torch_ids]=tau_features(measured['q'][generated_torch_ids],measured['dq'][generated_torch_ids],
-                                measured['hand'][generated_torch_ids],measured['obj'][generated_torch_ids],
-                                measured['velocity'][generated_torch_ids],future,next_q[generated_torch_ids],previous[generated_torch_ids])
-                            plan_velocity=active_plan['velocity'][:,offset_in_plan+1]
+                            future=active_plan['hand'][local_ids][:,index_in_plan]
+                            x[active_ids]=tau_features(measured['q'][active_ids],measured['dq'][active_ids],
+                                measured['hand'][active_ids],measured['obj'][active_ids],
+                                measured['velocity'][active_ids],future,next_q[active_ids],previous[active_ids])
+                            plan_velocity=active_plan['velocity'][local_ids,offset_in_plan+1]
                         ref_indices = torch.full((n,), tick + 1, device=device, dtype=torch.long)
                         if shifted_mask.any():
                             ref_indices[shifted_mask] = (tick + 1 + 271) % 543
@@ -628,7 +660,7 @@ def main():
                         base[ff_mask] = wrist_feedforward(next_q[ff_mask],
                             ref_velocity[ref_indices[ff_mask]], wrist_gain_ratio)
                         if generator is not None:
-                            base[generated_torch_ids]=wrist_feedforward(next_q[generated_torch_ids],plan_velocity,wrist_gain_ratio)
+                            base[active_ids]=wrist_feedforward(next_q[active_ids],plan_velocity,wrist_gain_ratio)
                         intended = native_action(policy.target(base, latent), measured["q"], offset, scale)
                         if oracle_mask.any():
                             index = (tick + torch.arange(1, 25, device=device)).clamp_max(542)
@@ -658,7 +690,7 @@ def main():
                         record()
                         if tick < controls - 1 and done.any():
                             raise ValueError("unexpected early terminal state in complete evaluation")
-                    if tick % 128 == 0:
+                    if tick % (64 if args.generated_interface_diagnostic else 128) == 0:
                         monitor(tick + 1, (tick + 1) * n)
                 packed = {key: np.stack(value) for key, value in arrays.items()}
                 np.savez_compressed(output / "trajectory.npz", **packed)
@@ -676,9 +708,9 @@ def main():
                             "object_pose", "surface_gap", "support_gap", "table_footprint", "object_velocity")})
                         outcome.update(role=roles[env], env=env, clipping_count=int(packed["clipped"][:, env].sum()))
                         outcome["hand_rmse_m"] = float(np.sqrt(np.mean((
-                            packed["hand_keypoints"][:, env] - reference["hand_keypoints"].cpu().numpy())**2)))
+                            packed["hand_keypoints"][:, env] - reference["hand_keypoints"][:controls+1].cpu().numpy())**2)))
                         outcome["object_position_rmse_m"] = float(np.sqrt(np.mean((
-                            packed["object_pose"][:, env, :3, 3] - reference["object_pose"].cpu().numpy()[:, :3, 3])**2)))
+                            packed["object_pose"][:, env, :3, 3] - reference["object_pose"][:controls+1].cpu().numpy()[:, :3, 3])**2)))
                         outcomes.append(outcome)
                     summary = {}
                     for role in sorted(set(roles)):

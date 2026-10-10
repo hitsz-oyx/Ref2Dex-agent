@@ -1,24 +1,21 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-10 生成τ几何可用，闭环工程已接通，完整执行待解决延迟
+## 2026-10-10 生成τ首次完整执行：当前组合 UNPROMISING
 
-纯历史proposal/T scorer/保留fingerfit executor均冻结；PointWorld与E必要性继续冻结。
-ff65bb3评分/URDF审计22.39s：observed18/18、评分选中18/18几何通过，选择15检索+
-3persistence；单预测器仅4/18，掌部刚性是具体修正点。旧记录标签上的forecast
-排序55.47%/shuffle59.85%，不能当作新候选的真实Y或路线反证，因为未来随机动作
-不在纯H中；原预声明联合screen输出UNPROMISING保留，科学判断仍UNCLEAR。
-协议：[生成τ评分/几何](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md)。
+纯历史proposal/T/fingerfit executor冻结，PointWorld和E必要性继续冻结。原300step
+投影经XYZ-only FK和单迭代CUDA graph加速，保留普通Adam/两起点/所有迭代；保存输入、
+重复输入和变化输入均与原拟合点一致。7840f92 seed298完成16env/542步，107.71s，
+68次投影中位.835s。GTτ对照4/4长时且终末held，median479、无裁剪；persistence、
+位移、评分各0/4形成抓持，裁剪100%/92.435%/95.018%。只是当前冻结组合的局部负Probe，
+不单独否定proposal/scorer/τ路线。旧短迭代精度失败和中断运行原样保留。
 
-68e7ed3原生16env四角色（GTτ/persistence/位移/评分）工程8步smoke通过，独立复算
-实际897输入1.91e-6、命令2.38e-7；生成角色无未来q/物体/GTτ/force/phase/clock
-输入，每8步重规划，所选τ先投影到原生URDF再由冻结控制器执行。完整seed298 r1
-因300step拟合14.57s/chunk将超720s上限，于65.61s自主中止，FAILED记录保留，
-不是行为负证据。3ed2404检查60step虽3.95s，但与300step拟合点最大差2.398mm，
-未过预声明1mm门槛，未启动r2、不放宽门槛。启动t0生成τ还有17–24mm几何修正，
-训练窗口从tick8开始，须关注bootstrap覆盖，不以GT启动掩盖问题。
-下一blocker是加速原300step在线拟合并完成真实生成τ执行；同状态排序、selector
-收益、完整任务和Cm效用仍未证。当前GPU2空闲，持续主线goal未完成。
-协议：[生成τ原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)。
+c8280e3全轨迹审计：初始state与参考exact，所有纯H/当前手重算error0；实际897输入
+3.81e-6、原生命令3.05e-7、PD0、选择/物理outcome一致。独立review未发现接口遗漏，
+但训练最早tick8而部署tick0，以及在线重标定/分段末帧padding均未被隔离。
+下一步先用短GT在线链路/启动handoff诊断区分这两点，真实τ只作明确的privileged对照，
+不加入纯H部署。完整ref8、同状态排序与Mission Cm策略训练收益仍未完成，GPU2空闲。
+协议：[原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)、
+[接口诊断](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md)。
 
 ## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
 

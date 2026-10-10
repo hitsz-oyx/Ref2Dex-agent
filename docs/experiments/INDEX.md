@@ -142,7 +142,8 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-generated-tau-native-execution](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md) | Can pure measured-history generated tau drive the frozen native executor? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-generated-tau-interface-diagnosis](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md) | Does the online tau execution interface preserve the GT acquisition control? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-generated-tau-native-execution](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md) | Can pure measured-history generated tau drive the frozen native executor? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-geometric-innovation
 

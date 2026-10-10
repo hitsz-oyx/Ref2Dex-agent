@@ -30,7 +30,7 @@ class GeneratedTau:
         self.episode = torch.as_tensor(np.unique(train_bank['episode'], return_inverse=True)[1], device=device)
         self.displacement = torch.as_tensor(train_bank['target']-train_bank['current'][:, None], device=device)
 
-    def plan(self, history, roles):
+    def propose(self, history, roles):
         """Exactly four measured states, no clock/phase/reference/force argument."""
         features=[]; current=[]
         for i in range(len(roles)):
@@ -53,8 +53,13 @@ class GeneratedTau:
                 elif role == 'displacement': choices[i]=1
                 elif role != 'scored': raise ValueError('unknown generated role')
             raw=pool[torch.arange(len(roles),device=self.device),torch.as_tensor(choices,device=self.device)].cpu().numpy()
+        return dict(history=np.stack(features),current=current.cpu().numpy(),raw=raw,
+            choices=choices,score=scores,source_rows=ids.cpu().numpy(),distances=distances.cpu().numpy())
+
+    def project_selected(self, history, audit):
+        """Project already selected tau; privileged diagnostics stay outside proposal."""
         pose=history['obj'][-1]
-        world=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],raw)+pose[:,None,None,:3,3]
+        world=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],audit['raw'])+pose[:,None,None,:3,3]
         # Geometry is fitted without dynamics/labels. Repaired native points,
         # rather than the nonrigid prediction, condition the frozen controller.
         with torch.enable_grad():
@@ -64,8 +69,8 @@ class GeneratedTau:
         q=torch.as_tensor(fit['q'],device=self.device)
         velocity=torch.stack([reference_velocity(v,self.dt) for v in q])
         hand=torch.as_tensor(fit['points'][:,1:],device=self.device)
-        return dict(hand=hand,q=q,velocity=velocity,
-            audit=dict(history=np.stack(features),current=current.cpu().numpy(),raw=raw,
-                hand=hand.cpu().numpy(),q=fit['q'],choices=choices,score=scores,
-                source_rows=ids.cpu().numpy(),distances=distances.cpu().numpy(),
-                projection_s=fit['elapsed_s']))
+        audit=dict(audit,hand=hand.cpu().numpy(),q=fit['q'],projection_s=fit['elapsed_s'])
+        return dict(hand=hand,q=q,velocity=velocity,audit=audit)
+
+    def plan(self, history, roles):
+        return self.project_selected(history,self.propose(history,roles))

@@ -187,3 +187,8 @@ canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入�
 fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/位移/评分四角色。
 单空闲GPU新增15GPUmin/1GiB，smoke120s+单次eval720s；无训练/额外seed/物理fork claim。
 协议见`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md`。
+
+2026-10-10 持续主线下隔离生成τ接口与启动覆盖：冻结全部模型，GT在线投影与GT8步
+前缀仅为显式privileged诊断，不加入纯H部署。单空闲GPU，新增5GPUmin/512MiB，
+单次16env/128步<=240s，无训练/额外seed；协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md`。

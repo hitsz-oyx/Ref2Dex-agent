@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-native-execution
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 94a1632
+git_commit: 7840f92
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [298]
 decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
 decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
-status: UNCLEAR
+status: UNPROMISING
 run_id: generated-tau-native-execution-20261010-r2
 ---
 
@@ -179,6 +179,34 @@ execute the same16role/seed298 complete542steps with position FK/capture,
 300iterations, budget600s, output generated-tau-native-execution-20261010-r2.
 No new physical model/scorer training, no GT startup, no additional seed.
 Estimated fit work68*.86s plus native overhead fits remaining original15min.
+
+## Completed native execution and independent audit
+
+7840f92 r2 completed all542steps/68plans in107.71s. Same frozen inputs and
+seed298, original300iterations/two starts retained; projection median.835s,
+maximum1.241s. GPU2 about7.5GiB/util56--100%, no process remains.
+GT calibration4/4 >=433held and terminal, median479, clipping0. Persistence,
+displacement and scored each0/4 even held45 or any grasp; clipping respectively
+100%,92.435%,95.018%. Local combination status UNPROMISING; scorer causal
+benefit remains UNCLEAR. This does not refute H->tau or the core Mission.
+
+c8280e3 audit `generated-tau-native-audit-20261010-r2/audit.json` confirms all
+initial measured fields exactly aligned, every bootstrap/replanning H and
+current hand error0,897D student features3.81e-6, actual native command3.05e-7,
+PD targets0, full outcome reconstruction and only ten eligible candidates.
+Plot: `generated-tau-native-audit-20261010-r2/behavior.png`.
+Independent read-only review confirms fresh graph buffers/Adam state per query,
+changed-query graph/eager q+points bitwise equal, CPU first actor output8.94e-8.
+No wiring defect found. Persistence's current-q/static-hand plan nevertheless
+gets positive actor thumb-yaw residual at the initial upper bound, so clipping
+is real executor behavior, not a missing plan.
+
+Next cheapest discriminating action is a128step interface diagnostic: original
+GT tau, GT tau through the identical online projection/chunk path, displacement,
+and GT-prefix8 then displacement. The last two privileged arms are diagnostic
+controls only, never a deployable pure-H baseline. This tests executor-path
+mismatch before assuming the untrained tick0 bootstrap is the sole cause.
+Protocol: [interface diagnostic](P-20261010-generated-tau-interface-diagnosis.md).
 
 ## Limitations / future evidence
 
