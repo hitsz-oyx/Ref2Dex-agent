@@ -240,8 +240,9 @@ def main() -> None:
     for line in after["processes"].splitlines():
         if line.strip():
             foreign.add(int(line.split(",")[0]))
-    if foreign - initial_pids:
-        raise RuntimeError("unexpected GPU process appeared: " + repr(foreign - initial_pids))
+    own_pid = os.getpid()
+    if (foreign - initial_pids) - {own_pid}:
+        raise RuntimeError("unexpected GPU process appeared: " + repr((foreign - initial_pids) - {own_pid}))
 
     result_status = "PROMISING" if best["val_active_l1"] <= 0.05 else "UNPROMISING"
     result = dict(
