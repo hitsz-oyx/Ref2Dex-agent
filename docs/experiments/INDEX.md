@@ -271,6 +271,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-video-data-readiness](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-data-readiness.md) | Local video data readiness after semantic contract repairs | UNPROMISING for immediate joint hand/scene training from this local | retain OakInk2/GRAB/ARCTIC as main training sources. Do not start mixed | probes/UNPROMISING |
 
+## HF-video-point-dynamics
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-y-noise-tolerance
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

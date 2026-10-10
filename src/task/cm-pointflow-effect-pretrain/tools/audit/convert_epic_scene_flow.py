@@ -188,7 +188,8 @@ def static_tracks(depths, Ks, w2cs, object_masks, hand_masks, target_frames,
         residual_count=len(residuals))
 
 
-def track_object_rgb(gray, object_masks, target_frames, max_corners=512):
+def track_object_rgb(gray, object_masks, target_frames, max_corners=512,
+                     forward_backward_threshold_px=None):
     """Track object-mask corners through RGB; invalid tracks remain masked."""
     p = cv2.goodFeaturesToTrack(gray[0], mask=object_masks[0].astype('uint8'),
                                 maxCorners=max_corners, qualityLevel=.001,
@@ -217,6 +218,17 @@ def track_object_rgb(gray, object_masks, target_frames, max_corners=512):
         ui = np.rint(np.nan_to_num(q[:, 0], nan=-1)).astype(int).clip(0, gray.shape[2] - 1)
         vi = np.rint(np.nan_to_num(q[:, 1], nan=-1)).astype(int).clip(0, gray.shape[1] - 1)
         good &= object_masks[frame, vi, ui]
+        if forward_backward_threshold_px is not None:
+            back, back_status, _ = cv2.calcOpticalFlowPyrLK(
+                gray[frame], previous, np.nan_to_num(q).reshape(-1, 1, 2), None,
+                winSize=(21, 21), maxLevel=3,
+                criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 20, .03))
+            if back is None or back_status is None:
+                break
+            back = back.reshape(-1, 2)
+            good &= ((back_status.reshape(-1) > 0) & np.isfinite(back).all(1)
+                     & (np.linalg.norm(back - current[indices], axis=1)
+                        <= forward_backward_threshold_px))
         active[indices[~good]] = False
         positions[frame, indices[good]] = q[good]
         current[indices[good]] = q[good]

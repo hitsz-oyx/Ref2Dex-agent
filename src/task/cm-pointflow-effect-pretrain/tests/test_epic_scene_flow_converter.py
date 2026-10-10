@@ -162,3 +162,21 @@ def test_inventory_counts_clips_with_missing_clock_metadata(tmp_path):
     assert result['scene_clock_metadata_count'] == 1
     assert result['scenes_missing_clock_metadata'] == ['P01_03_3']
     assert result['hand_train_qualified_windows'] == 0
+
+
+def test_forward_backward_inconsistency_kills_track(monkeypatch):
+    corners = np.tile([[[3., 3.]]], (16, 1, 1)).astype('float32')
+    monkeypatch.setattr(converter.cv2, 'goodFeaturesToTrack', lambda *a, **k: corners)
+    calls = []
+    def flow(previous, image, p, *args, **kwargs):
+        calls.append(len(p))
+        q = p.copy()
+        if len(calls) == 2:
+            q[0, 0, 0] += 2
+        return q, np.ones((len(p), 1), dtype='uint8'), None
+    monkeypatch.setattr(converter.cv2, 'calcOpticalFlowPyrLK', flow)
+    tracks = converter.track_object_rgb(np.zeros((3, 8, 8), dtype='uint8'),
+                                        np.ones((3, 8, 8), bool), np.arange(3),
+                                        forward_backward_threshold_px=1.)
+    assert calls == [16, 16, 15, 15]
+    assert np.isnan(tracks[1:, 0]).all()
