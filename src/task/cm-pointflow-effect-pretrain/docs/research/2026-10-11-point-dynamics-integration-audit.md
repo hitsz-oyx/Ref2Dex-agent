@@ -75,6 +75,9 @@ current fixed PTv3 workspace principle.  `module.py::ARPredictor` adds learned
 temporal positions and conditions a causal transformer on action embeddings
 (lines 300-341).  This is a useful architecture comparison, but replacing the
 current PTv3 encoder would be a high-cost route with no native transfer proof.
+Its ball-query subsample is stochastic in both train and eval
+(`_group`, lines 397-413), so it would also need an explicit deterministic
+evaluation variant before being used in a reproducible matched Probe.
 
 ### DynamicWAM
 
