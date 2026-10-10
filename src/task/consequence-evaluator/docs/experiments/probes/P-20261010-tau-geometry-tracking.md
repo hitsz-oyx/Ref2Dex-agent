@@ -134,3 +134,10 @@ penalty favors valid equivalent preload over unnecessary overdrive. All other
 PPO settings stay fixed. Record this targeted reward change before training;
 geometry fitting is not redone or chosen by rollout result.
 Frozen artifacts: outputs/consequence-evaluator/ref7_4-tau-tracker-frozen-{eval,audit}-20261010-r1/.
+
+
+Train smoke r1 (62d168b, debug43,8env,2updates) completed512transitions with all13
+learned tensors changed; no wiring error. Full training r1 uses unchanged
+seed277/64env/128update from the original declared warmstart (not smoke weights).
+Geometry cache is precomputed for this fixed GT tau; real-time retarget of
+new high-level proposals is not measured and remains future evidence.

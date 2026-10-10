@@ -1,5 +1,24 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 ref7_4 τ几何 / 无真实未来q与物体参考
+
+用户确认保留τ，去掉真实q_ref和未来物体参考，触觉暂不引入。沿ref7_4两层路线：
+11点τ+初始q/静态URDF -> 几何q_hat与速度 -> learned closed-loop residual ->
+full native command。学生输入897维，删除未来物体12列，关节误差/PD基底/前馈
+均来自τ几何；奖励也改为τ手跟踪、当前物体lift/hold，不读未来物体目标。
+从旧自训练oracle tracker迁移权重，不声称从未使用oracle训练信息。
+
+几何拟合GPU14.31秒，整体坐标RMSE2.47mm、拇指尖13.80mm，其余指尖0.51–2.79mm。
+冻结迁移权重完整对照：tau tracker保持中位478帧、13/16近teacher且末帧持有；
+但41.01%控制步裁剪，主要拇指，强门槛仍为UNPROMISING。old oracle16/16近teacher，
+tau nominal0/16，shifted tau近teacher0/16（末帧15/16，不能只看末帧持有）。
+actual student897输入独立重构误差3.81e-6、command2.38e-7、native PD0。
+
+正在执行一次固定128update微调，加入越界惩罚，不藏掉clipping或降低原门槛。
+geometry只拟合τ/initial q，不按执行结果重新挑选；仍无触觉输入与未来物体监督。
+协议：[tau-geometry-tracking](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-geometry-tracking.md)。
+单motionGT-τ上界与缓存几何，实时新τ retarget latency/泛化/原始放置/Cm仍待后续证据。
+
 ## 2026-10-10 wrist velocity feedforward 修复
 
 冻结轨迹核算发现 position-only PD target 缺少参考速度阻尼补偿。原生腕部
