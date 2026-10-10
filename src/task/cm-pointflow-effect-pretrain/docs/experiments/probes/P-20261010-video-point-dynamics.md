@@ -100,6 +100,16 @@ empty `data/` output is preserved with a failure note. Both preparation/training
 entry paths are resolved before hashing; the replacement output is `data-r2/`.
 This startup failure provides no scientific evidence about video learning.
 
+The fixed500-update run completed at `848be09`: development object h24 EPE
+21.861mm vs static18.294mm and CV88.943mm, so the fixed scale-up gate fails.
+Before interpreting this as a method result, run a bounded checkpoint diagnosis
+of train/development EPE per clip with identical baselines, plus a current-only
+input intervention (zero historical kinematics/static indicator). No model
+training or step selection. Budget<=90s on one free GPU within the same15min
+group budget. The intervention can expose dependence but is not a matched
+training comparison. Request an independent read-only semantic review under
+AGENTS14; preserve the original negative result and all outputs.
+
 ## Limitations / future evidence
 
 Two source videos and overlapping temporal anchors cannot establish large-scale
