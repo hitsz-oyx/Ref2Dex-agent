@@ -243,3 +243,11 @@ signal to justify checking model optimization; otherwise retain label/input
 quality as the next gate and do not add training. This is not a physical-noise
 measurement because the targets themselves are pseudo-labels. CPU statistical
 arithmetic only, <=30s/100KiB, output `history-motion-audit.json` in the group.
+
+
+The history-only arithmetic audit at `a0ec3d5` completed0.312s CPU. h8 dev
+object OLS/static EPE is15.014/6.763mm for `_12` and20.523/12.165mm for `_19`;
+no preset observed-motion signal. OLS improves the noisy last-two CV
+28.772/42.441mm but still loses to static in both qualifying clips. This supports
+history/target quality inspection before another optimization run; it does not
+identify true physical noise or prove that history contains no usable signal.

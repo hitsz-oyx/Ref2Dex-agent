@@ -44,3 +44,13 @@ NPZ global max keys differ from the release converter's per-hand keys. Whole-
 record normalization may expose future maxima in historical inputs. Use original
 raw sensor values with fixed scaling/TRAIN-only statistics in any future adapter;
 retain sparse validity, original normalization metadata and uncertain roles.
+
+
+The observed-history OLS audit also loses to static in both qualifying dev clips
+(15.014/6.763 and20.523/12.165mm), though it reduces last-two-CV errors. Next
+video work should inspect pseudo-motion/observation quality rather than add steps.
+The [channel-contract note](research/2026-10-10-egotouch-tactile-channel-contract.md)
+now reproduces all finite/NaN values of both tactile samples within3e-8, confirmed
+by root. Candidate groups/28 right-hand imputed cells are processing evidence;
+hardware tactile/bend roles remain UNKNOWN. A raw/255 sensor representation can
+be explored without making physical contact claims or future-max leakage.

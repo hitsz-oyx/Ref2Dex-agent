@@ -175,3 +175,13 @@ unconfirmed. Whole-record maximum normalization can depend on future frames;
 future adapters must use raw/fixed-scale or TRAIN-only statistics for historical
 sensor inputs. Preserve actual metadata and qualify any target normalization
 separately. No pressure-only mask or calibrated-force training claim is made.
+
+
+The [channel-contract note](../../research/2026-10-10-egotouch-tactile-channel-contract.md)
+contains candidate normalization groups and right-hand spatial repair. Root
+executed its read-only reconstruction on both original records: all NaN masks
+match and maximum cell errors are1.19e-8/2.78e-8 and9.54e-9/2.91e-8 (left/right).
+This verifies sample-level numerical reconstruction, not hardware semantic roles
+or full-release consistency. Keep those roles UNKNOWN; the next engineering
+adapter can predict original sensors with raw/255 and explicit alias/imputation
+provenance without asserting calibrated contact or pressure.
