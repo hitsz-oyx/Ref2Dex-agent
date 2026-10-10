@@ -115,7 +115,21 @@ H/distribution/logprob/V/bootstrap/cdecode/FK exact, velocity7.63e-6, reward1.19
 Rinputs5.72e-6, command/PD exact. Audit6.133s; only validator precision fixed,
 nottraining data/algorithm, no physical rerun.
 
-Frozen complete-task comparison launched afteraudit pass; classification pending.
+Frozen f5a965d seed294 completed55.423s:GT/dense each3/4>=433held+terminal,
+warm_start/finalPPO each0/4 withzeroheld. PPOclipping .6919% (oldlambda.95
+1.1531%), warm .3229%; betterclipping alone is notgrasp gain. LocalUNPROMISING.
+Independent execution/outcome audit launched; no repeatphysical wave.
+
+Next post-hoc **Decision diagnostic**, withinremaining audit60s cap: on all68x4
+saved warm-start measured H/currentq/object, frozenwarm/lambda.95final/lambda1final
+means throughsameD. QueryeachactoronidenticalH, measure decodedfirst8 hand/XYZ/
+fingermean movement andactualstd, especiallyprecontactticks0--40. Allqueries
+retained; interpretthis as updateamplitude, notsuccessfulcounterfactual physics.
+SingleidleGPU4 forbatchinference/FK,<=30s, smallJSONonly; no training/sampling/
+physics/extraepoch. Ifmovement remains tiny relativedeclared Gaussiannoise,
+nextdecision examines trust-region/updatescale; ifsubstantial, investigate
+closed-loop/contact execution before changingoptimization. Read-only independent
+negative-result review requested underAGENTS14, limitedsource/trace scope.
 
 ## Limitations / future evidence
 
