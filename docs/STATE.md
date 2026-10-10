@@ -66,9 +66,19 @@ clip .9818%/1.0741%，局部UNCLEAR；当前没有可用trajectory baseline，Cm
 PROMISING；没有新任务训练或物理收益。用户随后提供ref1_1，root先核对learned
 retargeter原文与actual hand/action数据合同：支持真实动作监督的小型R Probe，
 不能说当前R已被定位为主故障。两轮已有PPO可构造93,376合法窗，但完整稳定held
-仅1行、同seed，旧成功teacher packet不可训练；未新采集/训练。详情见
+仅1行、同seed，旧成功teacher packet不可训练；当时未新采集/训练。详情见
 [结构取舍](../src/task/trajectory-policy/docs/research/20261010-ref1_1-retargeter-design-review.md)。
 步长真实训练留作备选，WM尚未启用。
+后续`653f884` [learned R inverse](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
+双臂1500updates完成36.42s/GPU5，独立原始标签/PD/normalizer/全部val预测审计PASS。
+τ val动作误差比state-only低7.82%，同tick τshuffle提高56.74%，但首PD XYZ p95
+49.71mm/startup40.04mm，未过5mm门槛，局部UNCLEAR，无新物理执行或可用R。
+冻结train精度诊断4.44s：train也有38.78mm p95，val L1仅高6.95%，优先精度/conditioning。
+`1e9782c` [局部inverse标定](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md)
+3.44s完成：hand恢复腕姿p95<=.00158mm/1.84e-5rad，但hand与privileged next-q
+标定均未过screen，val XYZ约32.6mm，局部UNCLEAR。原r1 angular周期差缺陷已修正并
+原样保留，不影响先前neural fit。下一候选为24全局context+每动作query对齐的局部
+手点位移/帧差分条件分支，先固定Probe；不直接扩大PPO/epochs或接WM。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

@@ -124,6 +124,15 @@ startup40.044mm/.14035rad/.13218rad，均未过固定误差screen。局部**UNCL
 val明显差才优先扩competent/perturbed coverage。非有限/source drift/foreignGPU冲突
 停止保留FAILED，不扩大物理训练或改变Mission/claim，无新授权需求。
 
+`5b9e860` 冻结精度诊断已完成4.44s/GPU5，无参数更新：τ train/val L1
+.284684/.304456（val高6.95%），state-only .309711/.330274（val高6.64%）。
+τ train first-PD XYZ p95 all38.782mm/startup38.388mm，rotation
+.44448/.14921rad、fingers.08359/.13979rad，也未过screen；首步normalized L1
+.25003、后续至.30033，不是仅chunk末端精度不够。
+下一步优先局部motion→native逆映射/条件提取诊断，不能单归因于held-out coverage。
+这不证明数据量充足或模型已收敛；当前不直接增加epochs/采集规模。
+后续诊断见同Task `P-20261010-retargeter-step-inverse`。
+
 ## Limitations / future evidence
 
 仅failure-rich小数据、单motion/同initial/seed，完整稳定held训练数据极少。

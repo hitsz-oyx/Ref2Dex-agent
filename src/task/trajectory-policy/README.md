@@ -42,7 +42,14 @@ warm/final各2/28长时终末held，成功均同pair8/20，clip .9818%/1.0741%�
 PointWAM原文并建议先小型actual未来手轨迹→真实native action的learned retargeter
 Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗，但均seed293、
 完整稳定held仅1行；旧成功teacher packet禁止训练，不能复用其动作标签。
-不把offline信用或训练reward改善当作抓取收益，暂不再改训练或接WM。consequence-evaluator后续实验按用户
+`653f884` learned R首次双臂1500updates/36.42s完成并独立审计PASS：τ val误差
+比state-only低7.82%，同tick shuffle增加56.74%，但first-PD XYZ p9549.71mm，
+未过5mm screen，局部UNCLEAR；无物理rollout或可用controller证明。
+冻结train也有38.78mm p95，val L1只高6.95%；`1e9782c` 局部affine inverse
+标定的hand/privileged next-q两臂均未过screen，hand几何恢复p95约.0016mm精确。
+下一候选为global24-step context与first8 action query显式局部motion/帧差分条件，
+固定数据/control/门槛小Probe；不直接扩PPO或接WM。
+不把offline信用或训练reward改善当作抓取收益。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 
@@ -65,3 +72,5 @@ Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗�
 
 - [ref1_1 PointWAM原始来源核对](docs/research/20261010-ref1_1-pointwam-source-check.md)
 - [ref1_1对本项目的结构取舍与最小验证](docs/research/20261010-ref1_1-retargeter-design-review.md)
+- [真实hand/action监督的learned R及训练精度诊断](docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
+- [腕部局部inverse与角度周期修正](docs/experiments/probes/P-20261010-retargeter-step-inverse.md)

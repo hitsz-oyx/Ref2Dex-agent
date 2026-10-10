@@ -5,7 +5,7 @@ experiment_id: P-20261010-retargeter-step-inverse
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 1e9782c
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-retargeter
 probe_index_in_family: 2
@@ -61,7 +61,25 @@ hand臂all/startup均过为机制PROMISING，否则UNCLEAR；不是抓取control
 
 ## Results
 
-Not run yet; protocol fixed before calibration.
+修正实现`1e9782c` r2完成3.44s/GPU5，Torch peak13.67MiB；r1+r2总6.98s。
+两臂均未过腕部first-control screen，局部**UNCLEAR**：privileged q validation
+all XYZ32.601mm/rotation.15562rad、startup48.038mm/.11558rad；hand路径
+all32.575mm/.15501rad、startup48.038mm/.11581rad。手点恢复总体精确：
+各split XYZ p95<=1.58e-6m、SO3 p95<=1.84e-5rad；旧source val有一个26.30mm
+max长尾，当前不把它泛化为整体几何故障，保留后续定位需求。
+两臂global first-step affine inverse在当前dynamic/contact数据上均不足；
+不证明τ→A不可辨识、不代表所有非线性inverse无效，也不是物理执行负证据。
+
+产物：`outputs/trajectory-policy/retargeter-step-inverse-20261010-r2/`，原r1保留。
+
+### Next decision
+
+下一轮最小模型候选：保留24-step global attention/context，同时让每个first8 action
+query显式读对应时刻的desired hand displacement及相邻帧差分。前一模型的query
+只有独立learned embedding，局部motion必须经attention提取；添加对齐的局部分支
+可检验这种条件提取是否限制native精度，仍是learned R，不用固定PD系数替代。
+同actual输入/标签/whole-wave split、同state-only控制和shuffle/PD门槛；
+先写独立Probe协议/资源、再实现，不根据本结果自动加epochs或物理数据。
 
 ### Implementation correction before interpretation
 
