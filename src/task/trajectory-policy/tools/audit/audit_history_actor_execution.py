@@ -78,7 +78,9 @@ def main():
     from consequence_evaluator.contracts import HAND_LINKS
     from consequence_evaluator.tau_tracking import FINGER_LIMITS
     torch.set_num_threads(2)
-    torch.backends.cuda.matmul.allow_tf32 = False
+    # rl_games Runner.__init__ switches native execution to high/TF32-on.
+    # Match that actual runtime for actor replay; do not loosen tolerances.
+    torch.set_float32_matmul_precision('high')
     actor_paths = [Path(path) for path in manifest['input_sha256'] if path.endswith('/best.pt')]
     urdf_paths = [Path(path) for path in manifest['input_sha256'] if path.endswith('inspire_hand_right.urdf')]
     if len(actor_paths) != 1 or len(urdf_paths) != 1:
@@ -109,8 +111,7 @@ def main():
         delta[..., 3:6] = np.arctan2(np.sin(delta[..., 3:6]), np.cos(delta[..., 3:6]))
         return np.concatenate((delta[..., :1, :], (delta[..., :-1, :] + delta[..., 1:, :])/2,
                                delta[..., -1:, :]), axis=-2)/dt
-    errors = dict(knots_translation=0., knots_rotation_matrix=0., knots_fingers=0.,
-                  dense_q=0., dense_fk_hand=0., gt_hand=0., velocity=0.)
+    errors = dict(dense_q=0., dense_fk_hand=0., gt_hand=0., velocity=0.)
     global_v = velocity(geometry_q)
     for j, tick in enumerate(plans['tick']):
         indices = np.minimum(tick + np.arange(1, 25), 542)
@@ -227,6 +228,7 @@ def main():
     if status != result['status']:
         raise ValueError('screen differs')
     audit = dict(status=status, calibration_pass=calibrated, summary=summary, maximum_errors=errors,
+        actor_replay_matmul_precision=torch.get_float32_matmul_precision(),
         audited='Initial states, all68 actor H from measured t-3:t, actual actor c, independent dense physical decode/native Euler/coupling/FK, control labels, future-only velocity, actual897inputs, nativecommands/PD/outcomes',
         claim=manifest['claim'])
     args.output.mkdir(parents=True)
