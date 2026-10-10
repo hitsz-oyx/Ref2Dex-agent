@@ -5,8 +5,10 @@
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
 [ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。当前仅架构梳理：独立绝对
 trajectory latent actor、固定D/R、真实奖励PPO baseline，之后检验WM动作条件
-physical token是否改善策略训练。根级Mission/Cm claim不变，尚无新Task训练或仿真。
-建议先做D/R可执行行为覆盖而非直接搭建整套WM/critic/planner。
+physical token是否改善策略训练。根级Mission/Cm claim不变，尚无新Task策略训练。
+已实现固定48维D，2个微型合同测试通过；下一步运行
+[D/R覆盖Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)，
+检查几何重建与压缩后是否保留长时抓持，尚无原生结果。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

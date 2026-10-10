@@ -351,6 +351,12 @@
 | [P-20261010-tau-selector-abstention](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-selector-abstention.md) | Can an observed-trajectory selector abstain safely near the baseline? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261010-trajectory-utility](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-trajectory-utility.md) | Does a real hand trajectory interface retain consequence ranking information? | `UNCLEAR`. C0 (`H+tau`) has 62.82% strict pair accuracy; C1 | 见原卡 | probes/UNCLEAR |
 
+## HF-trajectory-policy-action-space
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-trajectory-decoder-coverage](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md) | Can a fixed48D trajectory decoder retain executable grasp behavior? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-weak-temporal-value
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

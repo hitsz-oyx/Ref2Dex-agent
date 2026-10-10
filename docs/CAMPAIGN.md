@@ -193,3 +193,8 @@ fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/�
 两次16env/128步接口诊断及一次修复后的542步纯H跟进，各<=240s（共用5GPUmin上限），
 无训练/额外seed；协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md`。
+
+2026-10-10 新trajectory-policy主线的48D decoder覆盖Probe：旧Task实验继续暂停，
+只读复用其几何/controller。单空闲GPU2，新增8GPUmin/512MiB，一次离线audit<=120s、
+一次16env/542步原生执行<=300s；无训练/额外seed/WM，协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md`。
