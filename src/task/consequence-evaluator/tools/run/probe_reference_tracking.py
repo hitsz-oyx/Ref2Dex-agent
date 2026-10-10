@@ -52,7 +52,22 @@ def main():
     p.add_argument("--wrist-feedforward", action="store_true")
     p.add_argument("--compare-feedforward", action="store_true",
                    help="four randomized roles with the same frozen policy")
+    p.add_argument("--tau-only", action="store_true")
+    p.add_argument("--geometry-reference", type=Path)
+    p.add_argument("--compare-tau", action="store_true")
+    p.add_argument("--oracle-checkpoint", type=Path)
     args = p.parse_args()
+    if args.tau_only:
+        if args.geometry_reference is None:
+            raise ValueError("tau-only execution requires verified geometric reference")
+        args.geometry_reference = args.geometry_reference.resolve()
+        args.wrist_feedforward = True
+    elif args.geometry_reference or args.compare_tau:
+        raise ValueError("tau comparison/geometry requires tau-only mode")
+    if args.compare_tau:
+        if args.mode != "evaluate" or args.oracle_checkpoint is None or args.compare_feedforward:
+            raise ValueError("tau comparison requires independent owned oracle checkpoint")
+        args.oracle_checkpoint = args.oracle_checkpoint.resolve()
     if args.compare_feedforward and (args.mode != "evaluate" or args.wrist_feedforward):
         raise ValueError("comparison requires evaluation and selects feedforward per role")
     if args.checkpoint:
@@ -84,6 +99,8 @@ def main():
     from consequence_evaluator.reference_tracking import (
         ACTIVE, SCHEMA, ReferenceTracker, advantages, features, native_action, tracking_reward,
         reference_velocity, wrist_feedforward)
+    from consequence_evaluator.tau_tracking import (
+        SCHEMA as TAU_SCHEMA, TauTracker, tau_features, tau_reward)
     from consequence_evaluator.native_reset import install_reset_patch
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
@@ -116,14 +133,31 @@ def main():
             or packet["dof_position"].shape != (543, 4, 18)):
         raise ValueError("frozen complete CPU-source reference required")
     reference = {}
-    for name in ("dof_position", "hand_keypoints", "object_pose"):
+    fields = ("hand_keypoints",) if args.tau_only and args.mode == "train" else (
+        "dof_position", "hand_keypoints", "object_pose")
+    for name in fields:
         value = np.asarray(packet[name][:, 0], dtype=np.float32)
         if not np.isfinite(value).all():
             raise ValueError("nonfinite reference: " + name)
         reference[name] = torch.as_tensor(value, device=device)
     initial_height = float(packet["object_pose"][0, 0, 2, 3])
     reference_held = int(packet["role_outcomes"]["reactive_teacher"]["maximum_held_frames"])
+    initial_palm_height = float(packet["hand_keypoints"][0, 0, 0, 2])
     del packet
+    geometry_data = None
+    if args.tau_only:
+        geometry_manifest = json.loads((args.geometry_reference / "manifest.json").read_text())
+        if (geometry_manifest.get("status") != "COMPLETED"
+                or geometry_manifest.get("schema") != "ref2dex.tau-geometry-reference.v1"
+                or geometry_manifest["reference_sha256"] != sha(args.reference)
+                or geometry_manifest["geometry_sha256"] != sha(args.geometry_reference / "geometry.npz")):
+            raise ValueError("verified tau-only geometry provenance required")
+        with np.load(args.geometry_reference / "geometry.npz", allow_pickle=False) as stream:
+            geometry_data = {key: stream[key].copy() for key in stream.files}
+        if (geometry_data["q"].shape != (543, 18)
+                or not np.array_equal(geometry_data["target_points"], reference["hand_keypoints"].cpu().numpy())):
+            raise ValueError("geometry/tau alignment mismatch")
+        reference["geometric_q"] = torch.as_tensor(geometry_data["q"], device=device)
     install_reset_patch()
     reset = DexploreTask._reset_ref_state_init
     def aligned(task, ids):
@@ -148,12 +182,20 @@ def main():
         frozen[str(path.resolve())] = sha(path)
     if args.checkpoint:
         frozen[str(args.checkpoint.resolve())] = sha(args.checkpoint)
+    if args.tau_only:
+        for path in (args.geometry_reference / "manifest.json", args.geometry_reference / "geometry.npz",
+                     TASK / "src/consequence_evaluator/tau_tracking.py"):
+            frozen[str(path.resolve())] = sha(path)
+    if args.oracle_checkpoint:
+        frozen[str(args.oracle_checkpoint)] = sha(args.oracle_checkpoint)
     output.mkdir(parents=True)
     started = time.monotonic()
-    manifest = dict(schema=SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
+    manifest = dict(schema=TAU_SCHEMA if args.tau_only else SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     mode=args.mode, seed=args.seed, num_envs=args.envs, updates=args.updates,
                     wrist_feedforward=args.wrist_feedforward, compare_feedforward=args.compare_feedforward,
+                    tau_only=args.tau_only, compare_tau=args.compare_tau,
+                    geometry_reference=str(args.geometry_reference) if args.geometry_reference else None,
                     physical_gpu=args.gpu, gpu_before=before, budget_s=args.seconds,
                     input_sha256=frozen, reference_held=reference_held,
                     reference_contract="privileged measured teacher robot-q/hand/object reference; no teacher commanded actions",
@@ -164,6 +206,13 @@ def main():
                     training_contract="on-policy PPO only; no imitation/action-label supervision; fixed final checkpoint",
                     source_authorization="2026-10-10 user approved ref7_3 control upper-bound Probe; old diagnostic training_allowed=false is not inherited as a data split",
                     claim="single-motion oracle robot-reference execution Probe; no tau-only deployment or Cm utility claim")
+    if args.tau_only:
+        manifest.update(
+            inference_contract="live q/dq/hand/object/velocity, future11-point tau, tau-derived joint error, previous residual; no true future q/object or tactile input",
+            action_contract="tau-derived coupled geometric target + tau-derived wrist velocity feedforward + learned residual; full native command",
+            reference_contract="GT future hand upper bound; geometry from tau/reset/static URDF only; q/object labels only for independent comparison/evaluation",
+            training_contract="on-policy PPO; tau-only hand/lift/hold reward, no future object reward or command supervision",
+            claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
     write(output / "manifest.json", manifest)
 
     class Player(native.EvalPlayer):
@@ -193,22 +242,40 @@ def main():
                 raise ValueError("unexpected native wrist PD gains")
             wrist_gain_ratio = kd / kp
             control_dt = task.gym.get_sim_params(task.sim).dt * task.control_freq_inv
-            ref_velocity = reference_velocity(reference["dof_position"], control_dt)
+            base_reference = reference["geometric_q"] if args.tau_only else reference["dof_position"]
+            ref_velocity = reference_velocity(base_reference, control_dt)
+            if args.tau_only and not np.array_equal(geometry_data["reset_q"], task._dof_pos[0].cpu().numpy()):
+                raise ValueError("tau geometry calibration is not actual initial live q")
             manifest["wrist_feedforward_contract"] = dict(
                 stiffness=kp.cpu().tolist(), damping=kd.cpu().tolist(), control_dt=control_dt,
                 derivative="central position differences, wrapped native rotations, one-sided endpoints",
-                scope="first six native wrist DOFs only; next-frame aligned; no teacher command labels")
-            policy = ReferenceTracker().to(device)
+                scope=("first six native wrist DOFs only; next-frame aligned; tau-derived velocity" if args.tau_only
+                       else "first six native wrist DOFs only; next-frame aligned; no teacher command labels"))
+            policy = (TauTracker() if args.tau_only else ReferenceTracker()).to(device)
             if args.checkpoint:
                 checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
-                if checkpoint.get("schema") != SCHEMA:
-                    raise ValueError("reference tracker checkpoint schema mismatch")
+                allowed = (SCHEMA, TAU_SCHEMA) if args.tau_only else (SCHEMA,)
+                if checkpoint.get("schema") not in allowed:
+                    raise ValueError("tracker checkpoint schema mismatch")
                 trained_ff = checkpoint.get("manifest", {}).get("wrist_feedforward", False)
                 if args.mode != "train" and trained_ff and not (args.wrist_feedforward or args.compare_feedforward):
                     raise ValueError("feedforward-trained checkpoint requires explicit feedforward controller")
                 manifest["checkpoint_control"] = dict(trained_wrist_feedforward=trained_ff,
                                                        evaluation_override=args.compare_feedforward)
-                policy.load_state_dict(checkpoint["state_dict"], strict=True)
+                if args.tau_only and checkpoint["schema"] == SCHEMA:
+                    policy.warmstart(checkpoint["state_dict"])
+                    manifest["checkpoint_control"]["migration"] = "drop future-object-error columns only"
+                else:
+                    policy.load_state_dict(checkpoint["state_dict"], strict=True)
+            oracle_policy = None
+            if args.compare_tau:
+                oracle_checkpoint = torch.load(args.oracle_checkpoint, map_location=device, weights_only=False)
+                if oracle_checkpoint.get("schema") != SCHEMA or not oracle_checkpoint["manifest"].get("wrist_feedforward"):
+                    raise ValueError("independent verified feedforward oracle required")
+                oracle_policy = ReferenceTracker().to(device)
+                oracle_policy.load_state_dict(oracle_checkpoint["state_dict"], strict=True)
+                oracle_policy.eval()
+                oracle_velocity = reference_velocity(reference["dof_position"], control_dt)
             initial_state = {k: v.detach().clone() for k, v in policy.state_dict().items()}
             previous = torch.zeros(n, 12, device=device)
             capture = None
@@ -232,10 +299,15 @@ def main():
                 tick = task.progress_buf.to(device).long().clamp(0, 542)
                 index = (tick[:, None] + torch.arange(1, 25, device=device)[None]).clamp_max(542)
                 next_index = (tick + 1).clamp_max(542)
-                next_q = reference["dof_position"][next_index]
-                next_obj = reference["object_pose"][next_index]
-                value = features(measured["q"], measured["dq"], measured["hand"], measured["obj"],
-                                 measured["velocity"], reference["hand_keypoints"][index], next_q, next_obj, previous)
+                next_q = base_reference[next_index]
+                if args.tau_only:
+                    next_obj = None
+                    value = tau_features(measured["q"], measured["dq"], measured["hand"], measured["obj"],
+                                         measured["velocity"], reference["hand_keypoints"][index], next_q, previous)
+                else:
+                    next_obj = reference["object_pose"][next_index]
+                    value = features(measured["q"], measured["dq"], measured["hand"], measured["obj"],
+                                     measured["velocity"], reference["hand_keypoints"][index], next_q, next_obj, previous)
                 return value, measured, next_q, next_obj, reference["hand_keypoints"][next_index]
 
             def step(latent, next_q, measured):
@@ -277,7 +349,7 @@ def main():
                 path = output / name
                 if path.exists():
                     raise ValueError("checkpoint path already exists")
-                torch.save(dict(schema=SCHEMA, state_dict=policy.state_dict(), updates=updates,
+                torch.save(dict(schema=TAU_SCHEMA if args.tau_only else SCHEMA, state_dict=policy.state_dict(), updates=updates,
                                 manifest=manifest), path)
                 return sha(path)
 
@@ -296,8 +368,12 @@ def main():
                             value = policy.value(x); logp = dist.log_prob(latent).sum(-1)
                             done, clipped = step(latent, next_q, measured)
                             after = measure()
-                            reward = tracking_reward(after["hand"], after["obj"], next_hand, next_obj,
-                                                     after["pair"], initial_height, latent)
+                            if args.tau_only:
+                                reward = tau_reward(after["hand"], after["obj"], next_hand, after["pair"],
+                                                    initial_height, initial_palm_height, latent)
+                            else:
+                                reward = tracking_reward(after["hand"], after["obj"], next_hand, next_obj,
+                                                         after["pair"], initial_height, latent)
                             for key, val in (("obs", x), ("latent", latent), ("logp", logp),
                                              ("value", value), ("reward", reward), ("done", done)):
                                 records[key].append(val.detach())
@@ -351,16 +427,23 @@ def main():
                 geometry = PhysicalGeometry(task, ROOT / "third_party/DExplore/dexplore/data/assets", distance_device=device)
                 support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
                 quarter = n // 4
-                if args.compare_feedforward:
+                if args.compare_tau:
+                    roles = np.repeat(["oracle", "tau_nominal", "tracker", "tau_shifted"], quarter)
+                    roles = np.random.default_rng(args.seed).permutation(roles).tolist()
+                elif args.compare_feedforward:
                     roles = np.repeat(["teacher", "nominal", "tracker", "tracker_feedforward"], quarter)
                     roles = np.random.default_rng(args.seed).permutation(roles).tolist()
                 else:
                     roles = ["teacher"] * quarter + ["nominal"] * quarter + ["tracker"] * (2 * quarter)
                 teacher_mask = torch.tensor([r == "teacher" for r in roles], device=device)
-                nominal_mask = torch.tensor([r == "nominal" for r in roles], device=device)
+                nominal_mask = torch.tensor([r in ("nominal", "tau_nominal") for r in roles], device=device)
                 ff_mask = torch.tensor([r == "tracker_feedforward" or
                                         (args.wrist_feedforward and r != "teacher") for r in roles], device=device)
+                oracle_mask = torch.tensor([r == "oracle" for r in roles], device=device)
+                shifted_mask = torch.tensor([r == "tau_shifted" for r in roles], device=device)
                 manifest["roles"] = roles
+                if args.compare_tau:
+                    manifest["tau_shift_ticks"] = 271
                 arrays = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                               "table_footprint", "object_velocity", "pair", "action", "clipped",
                                               "dof_position", "dof_velocity", "latent", "pd_targets")}
@@ -386,16 +469,40 @@ def main():
                 for tick in range(controls):
                     with torch.no_grad():
                         x, measured, next_q, _, _ = observation()
+                        ref_indices = torch.full((n,), tick + 1, device=device, dtype=torch.long)
+                        if shifted_mask.any():
+                            ref_indices[shifted_mask] = (tick + 1 + 271) % 543
+                            shifted_future = (tick + torch.arange(1, 25, device=device) + 271) % 543
+                            next_q = next_q.clone()
+                            next_q[shifted_mask] = base_reference[ref_indices[shifted_mask]]
+                            x[shifted_mask] = tau_features(
+                                measured["q"][shifted_mask], measured["dq"][shifted_mask],
+                                measured["hand"][shifted_mask], measured["obj"][shifted_mask],
+                                measured["velocity"][shifted_mask],
+                                reference["hand_keypoints"][shifted_future].expand(int(shifted_mask.sum()), -1, -1, -1),
+                                next_q[shifted_mask], previous[shifted_mask])
                         latent = policy.actor(x)
                         latent[teacher_mask | nominal_mask] = 0
                         base = next_q.clone()
                         base[ff_mask] = wrist_feedforward(next_q[ff_mask],
-                            ref_velocity[tick + 1].expand(int(ff_mask.sum()), -1), wrist_gain_ratio)
+                            ref_velocity[ref_indices[ff_mask]], wrist_gain_ratio)
                         intended = native_action(policy.target(base, latent), measured["q"], offset, scale)
+                        if oracle_mask.any():
+                            index = (tick + torch.arange(1, 25, device=device)).clamp_max(542)
+                            oracle_q = reference["dof_position"][tick + 1].expand(n, -1)
+                            oracle_x = features(measured["q"], measured["dq"], measured["hand"], measured["obj"],
+                                measured["velocity"], reference["hand_keypoints"][index].expand(n, -1, -1, -1),
+                                oracle_q, reference["object_pose"][tick + 1].expand(n, -1, -1), previous)
+                            oracle_latent = oracle_policy.actor(oracle_x)
+                            oracle_base = wrist_feedforward(oracle_q, oracle_velocity[tick + 1].expand(n, -1), wrist_gain_ratio)
+                            oracle_action = native_action(oracle_policy.target(oracle_base, oracle_latent), measured["q"], offset, scale)
+                            intended[oracle_mask] = oracle_action[oracle_mask]
+                            latent[oracle_mask] = oracle_latent[oracle_mask]
                         # Teacher action is used only for independent native control rows.
                         actor_obs = obs if isinstance(obs, dict) else {"obs": obs}
-                        teacher = self.get_action(actor_obs, True).to(device).clone().clamp(-1, 1)
-                        intended[teacher_mask] = teacher[teacher_mask]
+                        if teacher_mask.any():
+                            teacher = self.get_action(actor_obs, True).to(device).clone().clamp(-1, 1)
+                            intended[teacher_mask] = teacher[teacher_mask]
                         command = intended.clamp(-1, 1)
                         obs, _, done, _ = self.env_step(self.env, command.clone())
                         if capture is None or not torch.equal(capture, command):

@@ -159,3 +159,9 @@ wrist velocity feedforward 对照与必要的短 PPO 微调，保留原始任务
 teacher holding 上界的不同语义。一张空闲 GPU，新增总上限32分钟/2GiB，协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking-feedforward.md`。
 不改变 Mission 或 Cm claim，不新建分支，不影响外部进程/数据。
+
+2026-10-10 用户确认保留 τ、移除真实 q_ref 与未来物体参考，按 ref7_4 两层
+几何retarget/闭环控制思路继续，不引入触觉。允许有界几何拟合、冻结对照与一次
+短 PPO 微调；一张空闲 GPU，新上限34分钟/2GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-geometry-tracking.md`。
+不改变 Mission/Cm claim；GT future hand 仍是明确的执行上界，不代表高层预测已完成。
