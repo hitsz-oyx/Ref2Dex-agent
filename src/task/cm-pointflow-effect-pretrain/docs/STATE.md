@@ -84,8 +84,13 @@ Decision note: acquire pinned official PointWorld small-DROID checkpoint
 and inspect backbone key/shape compatibility only. New artifact cap3GiB,
 download deadline15min, CPU metadata inspection2min, no GPU training or full
 corpus/DINO download. Stop on source/hash drift, collision, cap or incompatibility.
-Compatibility permits a separately frozen native matched initialization Probe;
-it does not establish transfer benefit. No new external authorization needed.
+Acquisition completed and strict compatibility passed448/448 tensors with
+50,417,280 entries; no key/shape/dtype/finite failures. The
+[matched initialization Probe](experiments/probes/P-20261010-open-video-backbone-transfer.md)
+is frozen: seed228, two2000-update arms, same native data/stats/draw, random
+versus official video backbone, existing trainer, at most two free GPUs and
+45min per arm. The initializer integrity tests passed2/2. Native patch128 and
+time-aware pooling remain; official patch256 differs. No transfer benefit yet. No new external authorization needed.
 
 ## Current decision and resources
 

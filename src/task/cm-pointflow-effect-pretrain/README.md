@@ -11,8 +11,10 @@ offline teacher learnability evidence, not deployment forecasting claims.
 
 User steering: prioritize released open-source assets to test whether video
 pretraining helps this model. See the [official source usage review](docs/research/2026-10-10-open-video-data-usage.md).
-First candidate is PointWorld's released small-DROID spatial backbone; tensor
-compatibility and a matched native transfer comparison are still pending.
+PointWorld's released small-DROID spatial backbone has passed strict448-tensor
+compatibility and checkpoint checksum checks. The next step is the
+[matched native initialization Probe](docs/experiments/probes/P-20261010-open-video-backbone-transfer.md),
+using the existing trainer for both arms; transfer benefit is still pending.
 Pause custom RGB/LK and future-sensor pipeline expansion.
 
 Historical ref3 training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
