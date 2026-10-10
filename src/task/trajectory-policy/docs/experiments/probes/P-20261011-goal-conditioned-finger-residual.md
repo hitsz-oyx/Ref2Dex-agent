@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-finger-residual
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: PENDING
+git_commit: 81b59f4
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 9
