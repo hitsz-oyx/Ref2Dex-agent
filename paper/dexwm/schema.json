@@ -1,0 +1,8 @@
+{
+  "title": "World Models Can Leverage Human Videos for Dexterous Manipulation",
+  "arxiv_url": "https://arxiv.org/abs/2512.13644",
+  "code_url": "https://github.com/facebookresearch/dexwm",
+  "code_commit": "74ccc30a3f390d49445b63ec6f7469805d5bd954",
+  "verification_date": "2026-10-10",
+  "notes": "DexWM learns action-conditioned visual latent transitions and uses visual goals with CEM over robot joints. It is not a direct current-state-to-hand-trajectory proposal model. Repository README uses an alternate paper-title wording but links the same arXiv identifier."
+}

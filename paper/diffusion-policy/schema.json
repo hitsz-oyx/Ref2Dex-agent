@@ -1,0 +1,8 @@
+{
+  "title": "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion",
+  "arxiv_url": "https://arxiv.org/abs/2303.04137",
+  "code_url": "https://github.com/real-stanford/diffusion_policy",
+  "code_commit": "5ba07ac6661db573af695b419a7947ecb704690f",
+  "verification_date": "2026-10-10",
+  "notes": "Official low-dimensional policy samples observation-conditioned future action sequences. Adapting the target to 24 x 11 x 3 hand displacements needs explicit shape, temporal alignment, normalization and valid-mask handling. No training or downloads performed in this review."
+}

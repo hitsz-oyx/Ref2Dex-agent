@@ -171,3 +171,9 @@ canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入�
 物体参考或触觉输入。一张空闲GPU，新增上限25分钟/2GiB；协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-finger-canonicalization.md`。
 不改Mission/Cm claim或原保持/裁剪门槛，不新建分支、不扩展无界参数/seed sweep。
+
+2026-10-10 用户ref8将近期优先级转向H→候选τ。允许一次旧H→τ预测器的冻结
+数据/输入分布诊断及有证据支持的最小离线修复或候选覆盖Probe；PointWorld、GT E/I
+必要性重复实验与在线selector继续冻结。单空闲GPU，上限16GPUmin/1GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md`。
+不改Mission/Cm claim，不新建分支、不扩大仿真/训练sweep。

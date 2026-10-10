@@ -1,0 +1,8 @@
+{
+  "title": "Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware",
+  "arxiv_url": "https://arxiv.org/abs/2304.13705",
+  "code_url": "https://github.com/tonyzhaozh/act",
+  "code_commit": "742c753c0d4a5d87076c8f69e5628c79a8cc5488",
+  "verification_date": "2026-10-10",
+  "notes": "ACT trains a chunk CVAE but standard inference uses zero latent. The unmodified state-only branch does not pass latent to its transformer. Any sampled H-to-hand-tau proposal is an explicit project adaptation."
+}

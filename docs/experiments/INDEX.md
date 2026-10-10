@@ -182,6 +182,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261009-hand-execution-bridge](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-hand-execution-bridge.md) | Can ordinary e260 interventions bridge plans to useful future hand geometry? | Prospective G->PW->C1 rolling chain completed; policy utility UNCLEAR. | Stop expanding fork panels and observed-hand-only C2a. Freeze old | probes/UNCLEAR |
 
+## HF-history-tau-proposal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-history-tau-proposal-diagnosis](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md) | Diagnose the history-to-candidate-tau blocker | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-hocap-frame-generalization
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
