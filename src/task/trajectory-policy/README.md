@@ -20,7 +20,10 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 这是同一既有成功计划的编码/解码一致性，未新增物理rollout或学习证据。
 已补充H328纯测量历史合同、独立Gaussian actor与有界监督初始化入口
 `tools/run/fit_history_actor.py`：全部源轨迹保留，train-only normalization，按行留出；
-当前仅完成实现与输入合同测试，尚未启动该actor训练或接入WM。consequence-evaluator后续实验按用户
+首轮6504样本BC初始化2500updates完成14s；留出目标比常量低80%，但实际纯H两组
+均0/4稳定抓持（GT4/4、dense3/4），启动手点RMS56.36mm。实际H/c/D/native链审计
+通过，局部UNPROMISING；尚未PPO训练或接入WM。下一步只做一次针对稀有启动状态
+的平衡初始化，不继续无界BC sweep。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 
@@ -30,6 +33,7 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 - [固定D的前缀最优拟合诊断](docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)
 - [固定PCA时间基底覆盖](docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)
 - [pose/FF metric覆盖与停止48D搜索](docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)
+- [独立H→c初始化与完整执行](docs/experiments/probes/P-20261010-history-trajectory-actor.md)
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。

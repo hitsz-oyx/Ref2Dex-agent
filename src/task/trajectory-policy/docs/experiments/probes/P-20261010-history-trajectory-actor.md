@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-trajectory-actor
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 68fccf9
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-learning
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [295, 296]
 decision_changed_if_positive: keep independent actor initializer and enter real-reward trajectory PPO
 decision_changed_if_negative: audit measured-history and prefix prediction execution gap before RL initialization
-status: UNCLEAR
+status: UNPROMISING
 run_id: history-trajectory-actor-20261010-r1
 ---
 
@@ -87,7 +87,68 @@ no newbranch/push or external process/data changes; oldTask stayspaused.
 
 ## Results
 
-Not run yet.
+Code `68fccf9`; fit seed295 completed13.980s onGPU4,2500updates. GPU utilization
+16--19%/399MiB at later monitors, Torch peak59.10MiB; tiny dataset throughput
+reasonable. Selected update250 per frozen val criterion. Train6504/val2168
+samples, train rows[0,1,2,3,4,5,6,7,9,10,11,12], val[13,15,14,8].
+Val objective1.46352 vs train-mean7.31600 (79.996% lower), but val replan first8
+hand RMS34.979mm and palm maximum189.530mm. No execution claim from that loss.
+
+Native code `68fccf9`, seed296,54.963s,16env/542controls/68replans onGPU4.
+GPU utilization26--43%/7543MiB at later monitors; owned PID294788 exited.
+
+| Role | >=433held+terminal | Terminal held | Median max held | Clipping |
+| --- | --- | --- | --- | --- |
+| Original GT tau | 4/4 | 4/4 | 478 | 0% |
+| Dense hand-derived FK | 3/4 | 3/4 | 480.5 | 6.8266% |
+| Independent history actor | 0/4 | 0/4 | 0 | 0% |
+| History actor repeat rows | 0/4 | 0/4 | 0 | 0% |
+
+Calibration met the predeclared >=3/4 grasp gates (one dense row lost after
+139heldframes; do not hide that row or its clipping). Neither actor arm formed
+stable grasp. Local **UNPROMISING** for this particular BC initialization/D/R,
+not a test of PPO or all H-only policies. Repeat rows are not independent seeds.
+
+Independent audit r2 `4af8345`: initial state/H/actor c/decoded native q/FK all
+exact; future velocity4.29e-6, actual897Rfeatures3.81e-6, intended/command2.38e-7,
+appliedPD0. Audit r1 used strict FP32 whereas rl_games Runner.__init__ changes
+native runtime to high/TF32-on; c error0.008327484 exceeded fixed tolerance.
+Preserved FAILED r1 record. Matching actual high precision made all68c exact
+without relaxing thresholds, changing checkpoints or rerunning simulation.
+Pure FP32/TF32 c differences at startup0.001621246 are far below initial physical
+error; no claim that precision caused failure. Runtime setting was reconstructed
+from installed Runner and exact saved-output replay, not captured in native
+manifest; record it explicitly in future runs.
+
+Read-only independent AGENTS14 review found no H/label/split/normalization or
+actor->D/R wiring error. Initial H equals source/val H exactly, labels agree
+across rows, no startup label conflict. Native first-query prefix handRMS56.363mm,
+offline same-H56.369mm; initial action XYZ RMS35.31mm, rotvec RMS0.3033rad,
+finger maximum0.1914rad. Thus inaccurate initialization precedes feedback:
+not all failure can be assigned to covariate shift. Native prefix RMS grows
+59.51mm at tick8 and146.12mm at tick16; correlation alone isn't causal proof.
+At ticks0/8/16 all H columns stay within training min/max; tick64 about0.9%
+outside. Tick0 occupies12/6504=0.1845% of uniform training samples. Global val
+selection improving80% did not guarantee the startup portion.
+
+Artifacts:
+
+- Fit: `outputs/trajectory-policy/history-trajectory-actor-20261010-r1/{manifest.json,result.json,best.pt,coverage.npz,monitor.jsonl}`.
+- Native: `outputs/trajectory-policy/history-trajectory-actor-execution-20261010-r1/{manifest.json,result.json,trajectory.npz,plans.npz,monitor.jsonl}`.
+- Audit: `outputs/trajectory-policy/history-trajectory-actor-execution-audit-20261010-r2/{manifest.json,audit.json,behavior.png}`.
+- Preserved failed audit: `outputs/trajectory-policy/history-trajectory-actor-execution-audit-20261010-r1/manifest.json`.
+
+## Follow-up Decision Note
+
+Do not initialize a PPO benefit claim from this non-grasping mean. The next
+cheapest distinction is whether rare startup/approach states are underfit under
+uniform BC/global-val selection, rather than changing H/D/R or adding WM.
+One fixed startup-balanced fitting/selection Probe on the same all-row dataset,
+with explicit first-query geometric screening before at most one native wave,
+is warranted. Same pure H and independent actor; no phase/clock policy input.
+If that remains poor, stop BC weighting search and reassess initialization/RL
+curriculum with a bounded decision note. No core claim or external authority
+changed; preserve this valid negative initializer evidence.
 
 ## Limitations / future evidence
 

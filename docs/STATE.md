@@ -5,7 +5,7 @@
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
 [ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。新路线采用独立绝对
 trajectory latent actor、固定D/R、真实奖励PPO baseline，之后检验WM动作条件
-physical token是否改善策略训练。根级Mission/Cm claim不变，尚无新Task策略训练。
+physical token是否改善策略训练。根级Mission/Cm claim不变，新Task已训练首轮BC初始化，尚未获得可用高层策略或RL收益。
 已实现固定48维D，2个微型合同测试通过；首轮
 [D/R覆盖Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)
 ce503af native16env/542步完成57.29s：原GT3/4长时终末held，dense FK4/4；
@@ -29,6 +29,13 @@ velocity1.97e-5、wrist FF2.35e-6，GPU4约0.975s；8个Task合同测试通过�
 证据：[metric D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)。
 证据：[prefix fitting](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)、
 [lowrank D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)。
+首轮独立H328->c288初始化68fccf9：2500update/14s，val目标比常量低80%，但
+完整54.96s执行GT4/4、dense3/4、两个H组均0/4稳定抓持。启动H在训练域且输入exact，
+首查询手点RMS56.36mm；初始预测错误早于反馈，不只是假设闭环分布偏移。
+4af8345 audit匹配rl_games实际TF32后H/c/D/FK exact、Rfeatures3.81e-6、command2.38e-7、
+PD0，保留原precision mismatch失败记录，无物理重跑。局部UNPROMISING，未PPO/WM。
+下一步一次startup-balanced初始化，仍纯H、不加clock/phase；若失败停止BC权重搜索。
+证据：[history actor](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md)。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
