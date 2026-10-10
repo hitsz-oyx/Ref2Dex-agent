@@ -86,12 +86,13 @@ Unmeasured cells are NaN with a constant spatial mask, not observed zero
 pressure. Both 21-joint hands are finite, but original z values range6.21–19.07
 in the released coordinate convention; no calibrated stationary-world or
 physical-unit claim follows. Equal frame IDs are an engineering alignment
-signal; RGB synchronization remains untested. Both sampled episodes are
-clip-level no-contact, illustrating the bias of the cheapest-recording selector.
+signal; RGB synchronization remains untested. Both samples contain false/false annotation values. The semantics and
+completeness of those flags have not been qualified, so physical absence of
+contact cannot be inferred from them.
 Normalized nonzero cells do not establish contact or calibrated force.
 
 Decision: keep tactile training gated. Next cheap tactile probe should select
-a contact-positive TRAIN episode using its original annotation, retain original
+a verified active-pressure TRAIN episode, qualify the annotation semantics, retain original
 frame IDs and sparse sensor masks, separate pressure from bend, and establish
 RGB/camera relations before hand-world targets. Preserve per-record maxima;
 these grids are not directly comparable calibrated force targets. Tactile
@@ -112,6 +113,24 @@ original frame-index/timestamp/pressure layout in a numeric audit. Equal counts
 are insufficient to prove synchronization; no camera calibration is inferred.
 Tool: `tools/audit/sample_egotouch_contact_positive.py`. This is CPU acquisition/
 schema checking, not model training or a change in the Mission claim.
+
+## Follow-up results and correction
+
+The bounded search at `7a0dc86` completed in28.10s, transferring10934 bytes.
+All40 distinct TRAIN tasks had false/false contact flags; no RGB was acquired.
+This includes names suggesting grasp/squeeze, but task names are not physical
+contact evidence either. Preserve `egotouch-contact-positive-20261010-r2/manifest.json`
+and all original annotations. These flags cannot currently serve as a reliable
+positive/negative training filter. Earlier wording implying physical no-contact
+from false flags is corrected above. The release converter examined so far does
+not establish the annotation provenance or coverage; default/unvalidated flags
+are a hypothesis, not a finding.
+
+Next tactile decision: audit pressure-channel roles/normalization and temporal
+activation in the existing two verified records, then acquire one small chest
+RGB to check original frame identity. Pressure activation is not force calibration
+or contact GT. Keep tactile as an optional auxiliary teacher; do not block the
+video-only geometry route on annotation availability.
 
 ## Limitations / future evidence
 

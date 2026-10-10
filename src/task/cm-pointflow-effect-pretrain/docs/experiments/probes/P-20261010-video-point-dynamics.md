@@ -148,3 +148,17 @@ least2 clips in EACH split. If this corpus gate fails, stop training and inspect
 motion-support/label alternatives. New output `data-window-births-r3/`; preparation
 <=600s CPU, <=1GiB, existing total5GiB/15min GPU limits apply. This is a reversible
 sampling refinement within the existing Mission and user authorization.
+
+The `ed531f3` window-birth audit completed29.60s, writing12.74MB. Object h24
+support by train clip: `_12`223, `_13`0, `_14`122, `_15`32. Development:
+`_10`0, `_12`3705, `_19`0. Three train clips qualify but only one dev clip;
+status `INSUFFICIENT_LONG_HORIZON_SUPPORT`. No new training launched.
+
+Next cheap step: recover only previously extracted rejected clips from the
+same source videos in fixed sorted order. Check nonoverlap, official TRAIN
+object membership, source bytes against archive, rigid camera and >=5x convention
+separation again. Reuse window births and the same support gate without changing
+thresholds. No new dataset download or source-video split. Output
+`data-recovered-births-r4/`, CPU<=600s, total artifact cap unchanged. If a second
+dev clip still fails, choose a shorter-horizon/data-quality probe before training;
+large-scale training remains gated.

@@ -4,6 +4,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
@@ -14,7 +15,57 @@ sys.path.insert(0, str(TASK / 'src'))
 sys.path.insert(0, str(TASK / 'tools/run'))
 from oakink_wm.video_points import sample_window
 from prepare_epic_video_points import (sha, source_clock, read_video, load_object_masks,
-    load_hand_masks, background_points, object_points)
+    load_hand_masks, background_points, object_points, rigid_valid,
+    static_convention_diagnostic, infer_extrinsics_convention)
+
+
+def recover_entries(source, inventory_path, original):
+    """Audit previously extracted rejects in fixed order, using no model scores."""
+    inventory = json.loads(inventory_path.read_text())['scenes']
+    entries = list(original['sequences'])
+    recovered = []
+    for raw in sorted((source / 'raw').iterdir()):
+        if raw.name in {e['scene'] for e in entries}:
+            continue
+        item = inventory[raw.name]
+        meta = item['metadata']
+        lo, hi = int(meta['start_frame']), int(meta['stop_frame'])
+        video = '_'.join(raw.name.split('_')[:2])
+        if not 55 <= hi - lo <= 600 or video not in ('P03_03', 'P03_13'):
+            continue
+        if any(e['video'] == video and max(lo, e['source_range'][0]) < min(hi, e['source_range'][1]) for e in entries):
+            continue
+        archive = Path(item['archive'])
+        official = set((archive.parent.parent / 'metadata/train.txt').read_text().splitlines())
+        objects = sorted(k for k in official if k.startswith(raw.name + '/objects/'))
+        if len(objects) != 1:
+            continue
+        names = ['action.meta.json', 'action.mp4', 'spatracker.npz',
+                 'egohos/twohands_masks.npz', objects[0].split('/', 1)[1] + '/masks.npz']
+        hashes = {name: sha(raw / name) for name in names}
+        # Original failed extraction had no persisted hashes: verify against tar.
+        import hashlib
+        with tarfile.open(archive) as tar:
+            for name in names:
+                with tar.extractfile(video + '/' + raw.name + '/' + name) as f:
+                    digest = hashlib.sha256()
+                    for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                        digest.update(chunk)
+                if digest.hexdigest() != hashes[name]:
+                    raise ValueError('recovered source differs from archive: ' + raw.name)
+        with np.load(raw / 'spatracker.npz', allow_pickle=False) as z:
+            depths, Ks, ex = [z[k].astype('float32') for k in ('depths', 'intrinsics', 'extrinsics')]
+        if not rigid_valid(ex).all():
+            continue
+        diagnostic = static_convention_diagnostic(depths, Ks, ex, np.unique(np.linspace(0, len(depths) - 1, min(len(depths), 64), dtype=int)))
+        convention = infer_extrinsics_convention(diagnostic, 5.)
+        entry = dict(scene=raw.name, video=video, split='train' if video == 'P03_03' else 'dev',
+                     source_range=[lo, hi], source_sha256=hashes, camera_inference=convention,
+                     camera_diagnostic=diagnostic, original_split='ObjectForesight train',
+                     history_selection_uses_future_validity=False)
+        entries.append(entry)
+        recovered.append(raw.name)
+    return entries, recovered
 
 
 def main():
@@ -22,6 +73,8 @@ def main():
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--max-seconds', type=float, default=600)
+    parser.add_argument('--recover-inventory', type=Path,
+                        help='also audit already-extracted clips rejected by frame-zero tracks')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -39,7 +92,11 @@ def main():
             (Path(__file__).resolve(), TASK / 'tools/run/prepare_epic_video_points.py',
              TASK / 'tools/audit/convert_epic_scene_flow.py', TASK / 'src/oakink_wm/video_points.py')})
     try:
-        for entry in original['sequences']:
+        entries = original['sequences']
+        if args.recover_inventory:
+            manifest['recovery_inventory_sha256'] = sha(args.recover_inventory)
+            entries, manifest['recovered_clips'] = recover_entries(args.source, args.recover_inventory, original)
+        for entry in entries:
             raw = args.source / 'raw' / entry['scene']
             for name, checksum in entry['source_sha256'].items():
                 if sha(raw / name) != checksum:
