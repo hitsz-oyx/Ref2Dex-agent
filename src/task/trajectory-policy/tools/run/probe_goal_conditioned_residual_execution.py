@@ -143,8 +143,8 @@ def main():
         np.asarray(payload['standardizer']['mean'], np.float32),
         np.asarray(payload['standardizer']['scale'], np.float32),
     )
-    mean = torch.as_tensor(standardizer.mean, device=device)
-    scale = torch.as_tensor(standardizer.scale, device=device)
+    feature_mean = torch.as_tensor(standardizer.mean, device=device)
+    feature_scale = torch.as_tensor(standardizer.scale, device=device)
     reference_q = torch.as_tensor(geometry_data['q'], device=device)
     if reference_q.shape != (543, 18) or not torch.isfinite(reference_q).all():
         raise ValueError('geometry cache must contain a finite 543-frame q plan')
@@ -236,15 +236,15 @@ def main():
                 raise ValueError('actual frame0 initialization mismatch')
             names = task.gym.get_actor_rigid_body_names(task.envs[0], task.humanoid_handles[0])
             key_ids = [names.index(name) for name in HAND_LINKS]
-            offset, scale = task._pd_action_offset.to(device), task._pd_action_scale.to(device)
+            offset, native_scale = task._pd_action_offset.to(device), task._pd_action_scale.to(device)
             props = task.gym.get_actor_dof_properties(task.envs[0], task.humanoid_handles[0])
             ratio = torch.as_tensor(props['damping'][:6].copy() / props['stiffness'][:6].copy(), device=device)
             dt = task.gym.get_sim_params(task.sim).dt * task.control_freq_inv
             if abs(dt - 1/30) > 1e-8 or not torch.allclose(ratio, torch.full_like(ratio, .1)):
                 raise ValueError('fixed native gains/control interval mismatch')
-            manifest['native_controller'] = dict(offset=offset.cpu().tolist(), scale=scale.cpu().tolist(),
+            manifest['native_controller'] = dict(offset=offset.cpu().tolist(), scale=native_scale.cpu().tolist(),
                 gain_ratio=ratio.cpu().tolist())
-            executor = GoalConditionedExecutor(offset, scale, ratio, RESIDUAL_LIMITS,
+            executor = GoalConditionedExecutor(offset, native_scale, ratio, RESIDUAL_LIMITS,
                                                 execute_steps=8)
             nominal_velocity = reference_velocity(reference_q, dt)
             manifest['native_controller'].update(
@@ -294,7 +294,7 @@ def main():
                     raw_features = residual_goal_features(
                         current['q'], current['dq'], current['hand'], current['obj'],
                         current['velocity'], previous, hand_goal, obj_goal)
-                    encoded = (raw_features - mean) / scale
+                    encoded = (raw_features - feature_mean) / feature_scale
                     latent = policy(encoded)
                     bounded = torch.tanh(latent)
                     nominal_q = reference_q[tick + 1].expand(n, -1)
