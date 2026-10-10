@@ -5,7 +5,7 @@ experiment_id: P-20261010-video-data-readiness
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: b550e841dd0511e7f012d8d3e5cc788e0efc2569
 claim_id: C1
 hypothesis_family: HF-video-data-readiness
 probe_index_in_family: 1
@@ -67,7 +67,15 @@ Tools: `tools/audit/audit_epic_video_readiness.py` and
 
 ## Results
 
-Pending execution of the committed protocol.
+Initial committed run completed: zero qualified hand windows. Two geometry
+replays retained 176/74 moved points valid throughout the first window but only
+17/0 valid right-hand frames respectively, so neither emits an H4+K24 window.
+The initial inventory reported only 20 scenes because it counted scene clock
+metadata; the P01_03 shard has 14 additional clips without `action.meta.json`.
+The inventory correction records those missing clocks explicitly and treats
+video/time overlap as a candidate match rather than confirmed object pairing.
+The initial `readiness.json` is preserved; rerun inventory goes to
+`readiness-inventory-r2.json`, with its own execution commit/hash.
 
 ## Limitations / future evidence
 

@@ -18,9 +18,12 @@ from convert_epic_scene_flow import WINDOW, load_contact_hand, source_clock, sou
 def audit(root):
     metadata = root / 'metadata'
     inventory = {}
+    local_scenes = set()
     for archive in sorted((root / 'shard').glob('*.tar')):
         with tarfile.open(archive) as tar:
             for member in tar:
+                if member.name.endswith(('/spatracker.npz', '/action.mp4')):
+                    local_scenes.add(Path(member.name).parent.name)
                 if not member.name.endswith('/action.meta.json'):
                     continue
                 if not member.isfile() or member.size > 65536:
@@ -69,11 +72,14 @@ def audit(root):
                               hand_window_candidates=len(offsets),
                               hand_qualified_windows=len(qualified), qualified=qualified,
                               window_records=records,
-                              first_window_hand_audit=hand if len(offsets) == 1 else
+                              overlap_semantics='source video/time overlap only; object/semantic pairing not qualified',
+                              first_window_hand_audit=None if not len(offsets) else
                               load_contact_hand(contact, 2 * np.arange(WINDOW), start,
                                                 quality_csv=quality, source_fps=fps)[4]))
     return dict(schema='ref2dex.epic-video-readiness.v1', status='CANDIDATE_ONLY',
-                training_allowed=False, local_scene_count=len(inventory),
+                training_allowed=False, local_scene_count=len(local_scenes | set(inventory)),
+                scene_clock_metadata_count=len(inventory),
+                scenes_missing_clock_metadata=sorted(local_scenes - set(inventory)),
                 local_contact_clip_count=len(list((root / 'epic_contact').glob('*.npz'))),
                 overlap_pair_count=len(pairs),
                 hand_qualified_windows=sum(p['hand_qualified_windows'] for p in pairs),
@@ -84,6 +90,7 @@ def audit(root):
                               all_11_joints_required=True, high_confidence_required=True,
                               verified_clip_required=True, extrapolation_allowed=False),
                 limitations=['hand qualification is necessary but insufficient for scene-flow training',
+                             'time-overlap candidates do not establish same-object pairing',
                              'inventory metadata does not qualify all camera/scene tracks',
                              'clock resampling and scene decoder adapter remain separate gates'])
 
