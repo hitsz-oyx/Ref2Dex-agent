@@ -5,7 +5,7 @@ experiment_id: P-20261011-official-video-state-aux
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: c25a3b7
 claim_id: C1
 hypothesis_family: official-video-state-conditioned-scene-flow
 probe_index_in_family: 2
