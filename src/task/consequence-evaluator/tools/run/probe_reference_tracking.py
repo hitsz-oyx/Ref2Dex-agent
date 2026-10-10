@@ -262,9 +262,11 @@ def main():
         frozen[str(TASK/'tools/run/probe_measured_history_tau.py')]=sha(TASK/'tools/run/probe_measured_history_tau.py')
     output.mkdir(parents=True)
     started = time.monotonic()
+    planned_controls = 8 if args.mode == "smoke" else (128 if args.generated_interface_diagnostic else 542)
     manifest = dict(schema=TAU_SCHEMA if args.tau_only else SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
                     git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                     mode=args.mode, seed=args.seed, num_envs=args.envs, updates=args.updates,
+                    planned_controls=planned_controls,
                     wrist_feedforward=args.wrist_feedforward, compare_feedforward=args.compare_feedforward,
                     tau_only=args.tau_only, compare_tau=args.compare_tau,
                     finger_only=args.finger_only,
@@ -294,9 +296,14 @@ def main():
             basin_deltas={role: [[int(index), float(value)] for index, value in BASIN_DELTAS[role]]
                           for role in BASIN_ROLES},
             persistent_each_control_tick=True,
+            baseline_semantics="retained canonicalized actor with zero external offset; actor latent remains nonzero",
+            delta_application=("fixed post-inference latent offset on every control tick 0..planned_controls-1; "
+                               "tanh(latent) is fed back as previous residual on the next tick"),
+            raw_command_arrays="intended is pre-clamp native command; action is the clamped command captured by native pre_physics_step",
             inference_contract=("live q/dq/hand/object/velocity, future11-point GT tau, tau-derived "
                                 "joint error, previous residual; fixed diagnostic thumb residual delta; "
                                 "no future q/object or tactile input"),
+            training_contract="No training; retained checkpoint frozen; post-inference fixed latent offset only",
             claim="single-motion fixed residual-basin diagnostic; no trained-policy or Cm claim")
     if args.finger_only:
         manifest['training_contract'] += '; frozen actor encoder/wrist/logstd, finger-only Gaussian sampling and PPO likelihood; critic trains; worst1% mean-policy interior bound penalty coefficient10'
@@ -611,6 +618,7 @@ def main():
                 if args.residual_basin:
                     arrays["actor_latent"] = []
                     arrays["residual_delta"] = []
+                    arrays["intended"] = []
                 applied_target = None
                 original_encode = task._action_to_pd_targets
                 def encode(action):
@@ -632,7 +640,7 @@ def main():
                     ('persistence','displacement','scored','tau_online','displacement_handoff','tau_future_velocity','tau_intent')])
                 generated_torch_ids=torch.as_tensor(generated_ids,device=device)
                 measured_history=[]; plans=[]; plan_ticks=[]; active_plan=None
-                controls = 8 if args.mode == "smoke" else (128 if args.generated_interface_diagnostic else 542)
+                controls = planned_controls
                 work_started = time.monotonic()
                 for tick in range(controls):
                     with torch.no_grad():
@@ -738,6 +746,7 @@ def main():
                         if args.residual_basin:
                             arrays["actor_latent"].append(actor_latent.cpu().numpy().copy())
                             arrays["residual_delta"].append(delta.cpu().numpy().copy())
+                            arrays["intended"].append(intended.cpu().numpy().copy())
                         arrays["pd_targets"].append(applied_target.cpu().numpy().copy())
                         arrays["clipped"].append(((intended - command).abs().amax(-1) > 1e-6).cpu().numpy())
                         previous = torch.tanh(latent)
@@ -761,6 +770,7 @@ def main():
                         outcome = episode_outcome({key: packed[key][:, env] for key in (
                             "object_pose", "surface_gap", "support_gap", "table_footprint", "object_velocity")})
                         outcome.update(role=roles[env], env=env, clipping_count=int(packed["clipped"][:, env].sum()))
+                        outcome["terminal_held"] = bool(outcome["last_stable_tick"] == controls)
                         outcome["hand_rmse_m"] = float(np.sqrt(np.mean((
                             packed["hand_keypoints"][:, env] - reference["hand_keypoints"][:controls+1].cpu().numpy())**2)))
                         outcome["object_position_rmse_m"] = float(np.sqrt(np.mean((
