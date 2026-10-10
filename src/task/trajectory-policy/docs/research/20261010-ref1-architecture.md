@@ -185,3 +185,19 @@ velocity/FF一致。这只是接口工程核对；下一次有学习意义的Pro
 初始化及执行，不能把又一个oracle重放当作H→τ已经学会。先固定D/R与无WM baseline，
 减少同时变化的模块。288维探索方差、实际接触执行及episode外泛化仍需评估；
 当前单motion行划分不能替代独立motion泛化证据。
+
+`457c65f`实现的D288工程回放已通过68窗口x4条dense计划，GPU4计算0.975s，
+Torch峰值6.85MiB。literal native q max5.96e-7，FK点3.58e-7m，future-only
+velocity1.97e-5，腕部FF2.35e-6；8个Task合同测试通过。产物为
+`outputs/trajectory-policy/dense-trajectory-interface-smoke-20261010-r1/`
+（manifest/result/replay），没有新仿真或神经网络训练。这使直接D288可以进入
+高层初始化检查，仍未证明可部署H→c或RL收益。
+
+下一学习Probe应明确区分：纯H actor是否能在执行时生成接近可执行前缀的c，
+而非再次证明oracle c可执行。先用已有完整rollout全部行构造四帧实测历史，
+补当前高度/重力，不含clock/phase/未来参考/触觉；未来手反解几何仅作离线标签，
+不得以实际未来robot q或物体作为监督输入。按行隔离初始化评估，保留失败行，
+报告这是同motion条件。actor直接输出288维c，不调用旧actor生成在线动作基座。
+监督误差只用于选择初始化；实际从tick0执行与终末held仍是下一决策依据。
+如果初始化执行出现偏移，先核对H归一化/当前标定/输出尺度，再判断学习问题；
+暂不同时引入新decoder、WM、off-policy算法或更多motion，避免重建搜索取代RL主线。

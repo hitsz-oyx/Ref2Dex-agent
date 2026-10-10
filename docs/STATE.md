@@ -23,6 +23,9 @@ first8手点RMS5.61mm、掌部max23.62mm、FF最差RMS18.50mm，未过预声明�
 八行均先抓住，六行随后失持；在线live q/object前缀RMS8.017mm，与离线输入域不同。
 4be7d90仅修复audit accumulator，独立实际c/输入/命令/PD审计通过，未重跑仿真。
 按预声明停止48D重建搜索，下一步D288接口等价与H→c学习；actor/Cm仍未训练。
+457c65f D288已对68x4条既有dense计划完成工程回放：q max5.96e-7、hand3.58e-7m、
+velocity1.97e-5、wrist FF2.35e-6，GPU4约0.975s；8个Task合同测试通过。
+纯接口核对，无新物理执行、无actor学习；下一步纯测量H→独立c初始化，再真实奖励RL。
 证据：[metric D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)。
 证据：[prefix fitting](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)、
 [lowrank D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)。

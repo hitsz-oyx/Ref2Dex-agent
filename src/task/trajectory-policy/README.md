@@ -14,7 +14,10 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 但原生两组长时终末held为2/4、0/4；GT与dense各4/4。8行都先抓住，6行随后失持。
 实际live q/object重编码下前缀手点RMS8.017mm；输入/命令/PD与独立实现审查通过。
 按预声明停止48D重建搜索，改用保留24步独立腕姿/手指的直接D288，先核对既有dense
-执行轨迹的接口等价，再进入H→c初始化及真实奖励RL，
+执行轨迹的接口等价，再进入H→c初始化及真实奖励RL。
+`457c65f` D288工程回放通过68窗口x4条dense计划：native q max5.96e-7、
+手点3.58e-7m、速度1.97e-5、腕FF2.35e-6；GPU4约0.975s、Torch峰值6.85MiB。
+这是同一既有成功计划的编码/解码一致性，未新增物理rollout或学习证据。
 尚未训练高层actor或接入WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
