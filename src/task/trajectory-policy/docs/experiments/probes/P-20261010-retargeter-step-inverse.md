@@ -40,6 +40,8 @@ learned R显式提供局部运动/速度特征；这是后续结构候选，不�
 
 每DOF固定3项输入：(next wrist q-current q)、current dq、intercept。
 目标actual applied native A乘实际scale，单位为腕PD位移/旋转。
+actual next-q比较臂的三个angular joint delta必须按2π周期wrap到[-π,π)，
+不能把SDK周期边界当成一控制步运动；hand恢复误差用SO(3) geodesic而非Euler差。
 Torch CUDA FP64 least squares、train-only coefficients，validation仅一次评价。
 privileged比较臂使用actual next q，**只作诊断，不能加入策略输入**。
 hand臂的next wrist只来自actual下一帧11点手几何，经当前q/源reset固定rigid-root
@@ -60,6 +62,15 @@ hand臂all/startup均过为机制PROMISING，否则UNCLEAR；不是抓取control
 ## Results
 
 Not run yet; protocol fixed before calibration.
+
+### Implementation correction before interpretation
+
+`b71563f` r1已运行并原样保留：直接减actual关节角受到SDK[-2π,2π]周期
+边界污染，两源valid窗口有84/87次raw delta>π；原angular系数与Euler max误差
+不能作为连续局部inverse/geometry负证据。XYZ标定未受影响但未过5mm screen。
+修复按2π wrap true angular joint delta，geometry改报SO3误差；只补一次r2，
+同数据/whole-wave split/target/affine形式/门槛，无调参。r1+r2合计仍<=120s/
+2GPUmin/16MiB，输出独立`retargeter-step-inverse-20261010-r2/`，不覆盖r1。
 
 ## Limitations / future evidence
 

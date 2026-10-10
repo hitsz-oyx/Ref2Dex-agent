@@ -31,6 +31,7 @@ def main():
     sys.path.insert(0, str(TASK.parents[0]/'consequence-evaluator/src'))
     from consequence_evaluator.object_relative_servo import recover_wrist
     from consequence_evaluator.retargeter import wrist_rotation
+    from scipy.spatial.transform import Rotation
     torch.set_num_threads(2)
     args.output.mkdir(parents=True)
     started = time.monotonic()
@@ -61,14 +62,21 @@ def main():
                 velocity = data['dq'][indices].reshape(-1, 18)
                 hand_next = data['hand'][indices+1].reshape(-1, 11, 3)
                 recovered = recover_wrist(hand_next, template, current)
+                joint_delta = following[:, :6]-current[:, :6]
+                raw_jumps = int((np.abs(joint_delta[:, 3:6]) > np.pi).sum())
+                joint_delta[:, 3:6] = (joint_delta[:, 3:6]+np.pi) % (2*np.pi)-np.pi
+                angular_difference = wrist_rotation(recovered) @ np.swapaxes(wrist_rotation(following), -1, -2)
+                so3_error = Rotation.from_matrix(angular_difference).magnitude()
                 geometry_errors.append(dict(source=metadata['source'], split=split,
                     xyz_max_m=float(np.abs(recovered[:, :3]-following[:, :3]).max()),
-                    euler_max_rad=float(np.abs(recovered[:, 3:6]-following[:, 3:6]).max())))
+                    xyz_p95_m=float(np.percentile(np.abs(recovered[:, :3]-following[:, :3]).max(-1), 95)),
+                    so3_max_rad=float(so3_error.max()), so3_p95_rad=float(np.percentile(so3_error, 95)),
+                    raw_joint_angle_boundary_jumps=raw_jumps))
                 scale = np.asarray(fit['native_controller']['scale'][:6], np.float64)
                 target = data['applied'][indices].reshape(-1, 18)[:, :6]*scale
                 ticks = np.repeat(data['episode_tick'][indices], 16)
                 # Columns per DOF: motion, current velocity, intercept. No future action input.
-                measured_features = np.stack((following[:, :6]-current[:, :6], velocity[:, :6], np.ones_like(target)), -1)
+                measured_features = np.stack((joint_delta, velocity[:, :6], np.ones_like(target)), -1)
                 hand_features = np.stack((recovered[:, :6]-current[:, :6], velocity[:, :6], np.ones_like(target)), -1)
                 pieces[split].append((measured_features, hand_features, target, ticks))
         arrays = {split: [np.concatenate([part[k] for part in pieces[split]]) for k in range(4)] for split in pieces}
