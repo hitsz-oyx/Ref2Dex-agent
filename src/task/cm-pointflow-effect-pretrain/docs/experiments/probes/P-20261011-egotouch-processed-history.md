@@ -5,7 +5,7 @@ experiment_id: P-20261011-egotouch-processed-history
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: 5549eb1
 claim_id: C1
 hypothesis_family: HF-egotouch-pressure-contact
 probe_index_in_family: 2
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [229]
 decision_changed_if_positive: open a processed hand-surface pressure/contact token before native point-cloud fusion
 decision_changed_if_negative: defer EgoTouch pressure and prioritize T-Rex/RBO/simulator wrench routes
-status: PLANNED
-run_id: egotouch-processed-pressure-history-20261011-r1
+status: UNPROMISING
+run_id: egotouch-processed-pressure-history-20261011-r3
 ---
 
 # Causal processed-pressure history probe
@@ -67,7 +67,28 @@ calibrated T-Rex/RBO and simulator CHORD routes open.
 
 ## Results
 
-Pending execution.
+The reproducible run used all 10 records (3,166 fit windows and 3,924 held
+windows), seed 229, batch 32, AdamW, 500 updates, and GPU0. Both arms completed
+normally; elapsed time was 9.6 seconds for pressure-only and 8.9 seconds for
+pressure+hand. The result manifest records the committed implementation
+`5549eb1` and pack hash
+`315a32ef58d3ebe660c40638602988a3ea6bd741cd697326f36b8343504941cf`.
+
+Original-scale held pressure MAE / persistence MAE was:
+
+| held task | pressure history | pressure history + hand | persistence |
+|---|---:|---:|---:|
+| drag chair | 0.0488 / 0.0299 | 0.0467 / 0.0299 | 0.0299 |
+| flip book pages | 0.0706 / 0.0330 | 0.0738 / 0.0330 | 0.0330 |
+| badminton racket | 0.0613 / 0.0182 | 0.0622 / 0.0182 | 0.0182 |
+| shop for snacks | 0.0398 / 0.0180 | 0.0397 / 0.0180 | 0.0180 |
+| squeeze pliers | 0.0288 / 0.0116 | 0.0286 / 0.0116 | 0.0116 |
+
+Both causal processed-pressure arms lost to persistence on every held task. This
+Probe is therefore `UNPROMISING` for direct future pressure-map forecasting,
+even after removing the record-wide scale from the input. It does not test a
+learned contact token as a downstream policy feature, T-Rex per-fingertip
+wrenches, RBO measured interaction wrenches, or simulator CHORD support.
 
 ## Limitations / future evidence
 
