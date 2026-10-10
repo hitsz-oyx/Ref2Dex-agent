@@ -27,6 +27,17 @@ reusable contracts.  None is a drop-in replacement for the current native
 
 ## What this changes
 
+The repository contracts were also checked from pinned local checkouts, not only
+from project pages.  T-Rex `ba4047ce3e9f3d2013d60de600e136897e90ccb8` defines
+`TACTILE_FORCE_DIM = 60` as two hands times five fingers times six force/torque
+components, and its quickstart decoder loads one episode as a `(T, 60)`
+`observation.tactile_force` array.  Its HDF5 writer stores each hand as
+`(T, 5, 6)`.  RBO `b191d0cd3a076757fc60b8e1feed8bf5d0bd1103` documents the
+358 RGB-D sequence/78 force-torque subset and its downloader exposes the
+`with_ft` group; its visualizer reads the released
+`ft_sensor_netft_data.csv`.  These are concrete reusable data contracts, not
+claims that either repository already contains the current model's adapter.
+
 The previous raw `jq_pressure` experiment used 512 byte channels and predicted
 future raw glove values.  It did not use the released `(21,21)` pressure grids,
 T-Rex wrench signals, or RBO object-frame wrench labels.  Its persistence result
