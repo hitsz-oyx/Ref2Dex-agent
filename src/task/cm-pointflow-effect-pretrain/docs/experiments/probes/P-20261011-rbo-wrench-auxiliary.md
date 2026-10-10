@@ -5,7 +5,7 @@ experiment_id: P-20261011-rbo-wrench-auxiliary
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: TBD
+git_commit: feae14f
 claim_id: C1
 hypothesis_family: rbo-measured-wrench-temporal-auxiliary
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [231]
 decision_changed_if_positive: retain the calibrated RBO RGB-D plus measured-wrench route for a matched point-flow/wrench auxiliary arm
 decision_changed_if_negative: stop this one-sequence wrench-forecast recipe while retaining the adapter contract and keeping T-Rex and simulator CHORD routes separate
-status: RUNNING
+status: UNPROMISING
 run_id: rbo-wrench-auxiliary-20261011-r1
 ---
 
@@ -66,12 +66,26 @@ one-sequence learnability signal and cannot establish downstream Cm benefit.
 
 ## Results
 
-Filled after the bounded run.
+The bounded run used the adapter output hash
+`9ea36e59b601efcfc355845c958d5e98160d6c28054afe6b9cf75dc796e0c72f`, seed
+231 (sensor) / 232 (geometric), and GPU1. It completed in 7.8 seconds with
+peak allocated memory 19.1 MiB (NVML reported 345 MiB on the GPU). The model
+lost to persistence at every reported horizon:
+
+| target | H1 model/persistence L2 | H4 model/persistence L2 | H8 model/persistence L2 | H8 relative |
+|---|---:|---:|---:|---:|
+| sensor `myframe` | 0.319 / 0.064 | 0.437 / 0.112 | 0.503 / 0.140 | 3.61x |
+| geometric object frame | 0.297 / 0.078 | 0.382 / 0.131 | 0.455 / 0.161 | 2.83x |
+
+The Probe is `UNPROMISING` for this one-sequence chronological-tail forecast
+recipe. The result does not invalidate the timestamp/frame adapter, and it is
+not evidence against a later matched point-flow auxiliary trained across more
+RBO interactions.
 
 ## Limitations / future evidence
 
 This is one interaction with a chronological tail, not an object- or task-held
-generalization test. The measured FT stream still lacks verified payload/COM
+generalization test; the tail also shifts away from the fit portion. The measured FT stream still lacks verified payload/COM
 compensation, so the geometric target remains a frame-transformed sensor
 wrench. A positive result justifies a matched RBO auxiliary arm; a negative
 result cannot reject T-Rex fingertip F6, CHORD simulator support, or the adapter

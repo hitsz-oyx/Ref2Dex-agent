@@ -178,7 +178,22 @@ streams within 16.00 ms maximum (2.70 ms median), with finite sampled points
 and geometric object-frame wrenches. Keep RBO open for a matched geometric-
 wrench auxiliary Probe, while retaining the explicit
 `payload_compensation=false` boundary; this is not yet CHORD object-COM net
-wrench evidence.
+wrench evidence. The follow-up [RBO measured-wrench auxiliary
+Probe](experiments/probes/P-20261011-rbo-wrench-auxiliary.md) used a
+chronological 220/64 window split and a random-initialized MLP. Both raw
+sensor and geometric wrench forecasts lost to persistence at H8 (3.61x and
+2.83x L2, respectively), so close this one-sequence forecast recipe while
+retaining the adapter contract. This is a local negative learnability signal;
+it does not reject cross-interaction RBO training, T-Rex fingertip F6, or
+simulator-side CHORD support.
+
+Decision note (2026-10-11): the current choice is to stop expanding this
+single-interaction RBO forecast and preserve the verified adapter for a future
+multi-interaction matched arm. The key evidence is the complete timestamp/frame
+contract plus the held-tail loss to persistence. Cost is minimal and no new
+resource boundary is crossed; further RBO investment requires additional
+interactions and an object/task split, while the present Mission claim remains
+unchanged.
 
 ## Current decision and resources
 
