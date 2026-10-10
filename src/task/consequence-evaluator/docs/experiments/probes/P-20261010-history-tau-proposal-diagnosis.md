@@ -74,7 +74,44 @@ input/target contracts, not model names alone.
 
 ## Results
 
-Pending. Artifacts: outputs/consequence-evaluator/history-tau-proposal-diagnosis-20261010-r1/.
+Frozen replay40f03cb, GPU2/339MiB,7.12s: exact saved prediction replay error0.
+Test original .30279982m; zero train-floor channels .30280095m; clip10 .43596327m.
+Train/val stay .04328/.06698m, so train-floor amplification is not supported as
+the main explanation. Test normalized current-hand RMS2.415 versus train1.0
+and val.916; raw current hand can be >6m from object in two failed trajectories.
+All measured rotation matrices are orthogonal within1.08e-6. Per-episode model
+RMSE median.04705m, but worst two are1.90673/1.21583m; whole-split failure must
+not be removed by excluding these rows. Original replay artifact:
+`outputs/consequence-evaluator/history-tau-proposal-diagnosis-20261010-r1/`.
+
+Semantic defect: `base_dexplore_task.py:_compute_observations_iter` explicitly
+reads reference at t+1/t+16 and includes reference/contact differences. The
+old1442-D actor H was never pure measured history. Its old prediction metrics
+remain valid under the declared actor-observation contract but cannot establish
+a future-reference-free/tactile-free proposal. This is distinct from an invalid
+coordinate transform or corruption of recorded labels.
+
+User clarification: only current/past measured hand/object states, **no task
+phase or clock**. Decision: one bounded matched preprocessing/target repair,
+not a new architecture sweep. Four measured states t-3:t ->300-D hand geometry,
+object relative SE3, finger q/dq and object velocity, using the current object
+frame; exclude actor observation/ref/contact/action/phase/reward. Compare
+absolute position target and **current-hand displacement target** with identical
+width256MLP initial weights, episode-balanced batches, optimizer and1200steps.
+Train-only history std floor.001 and clip10 applied identically in both arms;
+each arm selects on val physical L1 only. Seed296. Historical held seed414 is
+used only for final exploratory metrics, not preprocessing/model/K tuning.
+
+In the same run, retrieve8 train-only nearest histories, one window per distinct
+train episode; transplant their source-current-hand-relative displacements onto
+the query current hand. No future target/utility participates in retrieval.
+Report nearest top1 separately from best-of-8 **GT coverage upper bound**, sample
+diversity, per-episode tails and all-window/H24/persistence screens unchanged.
+Train retrieval excludes its own episode. GT-nearest candidate is not a selector
+and the shifted segments are not guaranteed native/contact feasible. No CVAE,
+DP, evaluator/PW/native rollout in this run. Stop after this minimal comparison;
+use coverage versus top1 to choose the next question. Output:
+`outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/`.
 
 ## Limitations / future evidence
 
