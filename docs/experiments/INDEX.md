@@ -355,7 +355,8 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-decoder-prefix-fitting](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md) | Can fitting c preserve the immediate wrist trajectory with fixed D? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-decoder-prefix-fitting](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md) | Can fitting c preserve the immediate wrist trajectory with fixed D? | 见原卡 | do not spend another native wave on this initializer. Keep c48 and | probes/UNPROMISING |
+| [P-20261010-lowrank-trajectory-decoder](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md) | Can a fixed learned time basis preserve executable trajectories? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-trajectory-decoder-coverage](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md) | Can a fixed48D trajectory decoder retain executable grasp behavior? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-weak-temporal-value

@@ -58,10 +58,19 @@ def main():
         geometry_q = stream['q'].copy()
         geometry_hand = stream['fitted_points'].copy()
     roles = np.asarray(manifest['roles'])
-    if set(roles) != {'tau_gt', 'dense_fk', 'knots48', 'knots48_repeat'} or any(sum(roles == r) != 4 for r in set(roles)):
+    lowrank = manifest.get('representation') == 'lowrank48'
+    learned_roles = ('lowrank48', 'lowrank48_repeat') if lowrank else ('knots48', 'knots48_repeat')
+    if set(roles) != {'tau_gt', 'dense_fk', *learned_roles} or any(sum(roles == r) != 4 for r in set(roles)):
         raise ValueError('predeclared roles differ')
     gt, dense = roles == 'tau_gt', roles == 'dense_fk'
     compressed = ~(gt | dense)
+    basis = None
+    if lowrank:
+        paths = [Path(path) for path in manifest['input_sha256'] if path.endswith('/basis.npz')]
+        if len(paths) != 1:
+            raise ValueError('unique lowrank basis required')
+        with np.load(paths[0], allow_pickle=False) as stream:
+            basis = {key: stream[key].copy() for key in stream.files}
     if not np.array_equal(plans['q'][:, :, 0], data['q'][plans['tick']]) or not np.array_equal(plans['query_obj'], data['obj'][plans['tick']]):
         raise ValueError('plan is not anchored in actual current state')
     dt = manifest['dt']
@@ -82,13 +91,31 @@ def main():
         error('dense_q', q[gt | dense, 1:], target[None])
         error('dense_fk_hand', plans['hand'][j, dense], geometry_hand[indices][None])
         error('gt_hand', plans['hand'][j, gt], reference_hand[indices][None])
-        nodes = q[compressed][:, [1, 8, 16, 24]]
-        labels = target[[0, 7, 15, 23]]
-        error('knots_translation', nodes[:, :, :3], labels[None, :, :3])
-        a = Rotation.from_euler('XYZ', nodes[:, :, 3:6].reshape(-1, 3)).as_matrix()
-        b = Rotation.from_euler('XYZ', np.broadcast_to(labels[None, :, 3:6], nodes[:, :, 3:6].shape).reshape(-1, 3)).as_matrix()
-        error('knots_rotation_matrix', a, b)
-        error('knots_fingers', nodes[:, :, [6, 8, 10, 12, 14, 15]], labels[None, :, [6, 8, 10, 12, 14, 15]])
+        if lowrank:
+            from scipy.special import expit
+            value = (basis['mean']+(plans['c'][j, compressed]*basis['latent_scale'])@basis['components']).reshape(-1, 24, 12)
+            value *= np.asarray([.1]*3+[.5]*3+[4.]*6, np.float32)
+            rot = plans['query_obj'][j, compressed, :3, :3]
+            cur = q[compressed, 0]
+            xyz = cur[:, None, :3]+np.einsum('nij,nkj->nki', rot, np.tanh(value[:, :, :3]))
+            angular = value[:, :, 3:6]
+            radius = np.linalg.norm(angular, axis=-1, keepdims=True)
+            vector = angular*(np.pi*np.tanh(radius)/np.maximum(radius, 1e-12))
+            relative = Rotation.from_rotvec(vector.reshape(-1, 3)).as_matrix().reshape(-1, 24, 3, 3)
+            current_rot = Rotation.from_euler('XYZ', cur[:, 3:6]).as_matrix()
+            expected_rot = rot[:, None] @ relative @ rot[:, None].transpose(0, 1, 3, 2) @ current_rot[:, None]
+            actual_rot = Rotation.from_euler('XYZ', q[compressed, 1:, 3:6].reshape(-1, 3)).as_matrix().reshape(-1, 24, 3, 3)
+            error('knots_translation', q[compressed, 1:, :3], xyz)
+            error('knots_rotation_matrix', actual_rot, expected_rot)
+            error('knots_fingers', q[compressed][:, 1:, [6, 8, 10, 12, 14, 15]], expit(value[:, :, 6:])*np.asarray([1.6]*4+[1.15, .55]))
+        else:
+            nodes = q[compressed][:, [1, 8, 16, 24]]
+            labels = target[[0, 7, 15, 23]]
+            error('knots_translation', nodes[:, :, :3], labels[None, :, :3])
+            a = Rotation.from_euler('XYZ', nodes[:, :, 3:6].reshape(-1, 3)).as_matrix()
+            b = Rotation.from_euler('XYZ', np.broadcast_to(labels[None, :, 3:6], nodes[:, :, 3:6].shape).reshape(-1, 3)).as_matrix()
+            error('knots_rotation_matrix', a, b)
+            error('knots_fingers', nodes[:, :, [6, 8, 10, 12, 14, 15]], labels[None, :, [6, 8, 10, 12, 14, 15]])
         expected_v = np.zeros_like(q)
         expected_v[:, 1:] = velocity(q[:, 1:])
         expected_v[gt, 1:] = global_v[indices]
@@ -155,12 +182,12 @@ def main():
         raise ValueError('summary differs')
     calibrated = summary['tau_gt']['long_held_terminal'] >= 3 and summary['dense_fk']['long_held_terminal'] >= 3
     passes = [summary[role]['long_held_terminal'] >= 3 and summary[role]['clipping_rate'] < .01
-              for role in ('knots48', 'knots48_repeat')]
+              for role in learned_roles]
     status = 'PROMISING' if calibrated and all(passes) else ('UNPROMISING' if calibrated and not any(passes) else 'UNCLEAR')
     if status != result['status']:
         raise ValueError('screen differs')
     audit = dict(status=status, calibration_pass=calibrated, summary=summary, maximum_errors=errors,
-        audited='Initial states, all68plans, hand-only oracle knots, future-only velocity, actual897inputs, nativecommands/PD/outcomes',
+        audited='Initial states, all68plans, hand-derived oracle geometry, c-decoded lowrank trajectory or copied knots, future-only velocity, actual897inputs, nativecommands/PD/outcomes',
         claim=manifest['claim'])
     args.output.mkdir(parents=True)
     (args.output/'audit.json').write_text(json.dumps(audit, indent=2, allow_nan=False)+'\n')
@@ -172,7 +199,7 @@ def main():
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(2, 1, figsize=(9, 6), sharex=True)
-    for role in ('tau_gt', 'dense_fk', 'knots48', 'knots48_repeat'):
+    for role in ('tau_gt', 'dense_fk')+learned_roles:
         mask = roles == role
         axes[0].plot(np.median(height[:, mask], 1), label=role)
         axes[1].plot(held[:, mask].mean(1), label=role)

@@ -202,3 +202,8 @@ fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/�
 2026-10-10 trajectory-policy固定48D前缀拟合诊断：CPU4列线性投影与单空闲GPU2
 FK复算，<=120s/2GPUmin/64MiB；无神经训练/仿真/额外seed/WM，协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md`。
+
+2026-10-10 trajectory-policy固定PCA D48覆盖Probe：单空闲GPU2，<=8GPUmin/512MiB，
+手轨迹几何坐标basis拟合/audit<=120s，几何screen通过后一次16env原生执行<=300s；
+无高层策略训练/WM/额外seed。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md`。

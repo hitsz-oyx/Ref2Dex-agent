@@ -5,7 +5,7 @@ experiment_id: P-20261010-decoder-prefix-fitting
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 7a0a21d
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-action-space
 probe_index_in_family: 2
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [297]
 decision_changed_if_positive: test optimized c reconstruction before enlarging decoder
 decision_changed_if_negative: replace straight temporal segments before actor initialization
-status: UNCLEAR
+status: UNPROMISING
 run_id: decoder-prefix-fitting-20261010-r1
 ---
 
@@ -80,7 +80,21 @@ is deterministic and consumes no RNG/validation seed.
 
 ## Results
 
-Not run yet.
+Run completed, fixed code7a0a21d. Separate prefix XYZ optimum worst-window
+3D RMS32.20mm (median3.88mm), maxpoint48.34mm. Separate FF optimum worst-window
+3D RMS30.67mm (median6.25mm), maxpoint52.52mm. Both miss unchanged5/10mm bands.
+Normal-equation residuals <=1.67e-14; actual decoded joint-fit XYZ error1.40e-7m,
+velocity operator1.19e-7. Two analytic contract tests passed.
+
+Joint fit improves wrist position worst RMS57.82->43.08mm and FF97.13->62.47mm;
+first8 full-hand3D RMS13.97->10.26mm. These improvements still do not reproduce
+the dense prefix closely. No simulation or policy training was run; this does
+not exclude another successful wrist path/policy in the same48D space.
+
+Artifacts: `outputs/trajectory-policy/decoder-prefix-fitting-20261010-r1/{manifest.json,result.json,fitting.npz,first-window.png}`.
+Decision: do not spend another native wave on this initializer. Keep c48 and
+independent actor, next test a fixed low-rank time decoder learned from dense
+hand-derived trajectories so it can express curvature without knot interpolation.
 
 ## Limitations / future evidence
 

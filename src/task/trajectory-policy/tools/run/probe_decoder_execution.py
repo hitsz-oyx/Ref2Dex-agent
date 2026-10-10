@@ -37,6 +37,7 @@ def main():
     for key in ('inputs', 'reference', 'geometry', 'checkpoint', 'output'):
         parser.add_argument('--' + key, type=Path, required=True)
     parser.add_argument('--gpu', type=int, required=True)
+    parser.add_argument('--decoder-basis', type=Path, help='completed fixed lowrank D folder; otherwise original knot D')
     args = parser.parse_args()
     args.output = args.output.resolve()
     if args.output.exists() or ROOT / 'outputs/trajectory-policy' not in args.output.parents:
@@ -94,7 +95,25 @@ def main():
         raise ValueError('fixed retained executor identity required')
     reference_q = torch.as_tensor(geometry_data['q'], device=device)
     reference_hand = torch.as_tensor(hand, device=device)
-    decoder = TrajectoryDecoder(urdf, device)
+    lowrank = args.decoder_basis is not None
+    if lowrank:
+        from trajectory_policy.lowrank_decoder import LowrankDecoder
+        basis_manifest = json.loads((args.decoder_basis/'manifest.json').read_text())
+        basis_result = json.loads((args.decoder_basis/'result.json').read_text())
+        if basis_manifest['status'] != 'COMPLETED' or not basis_result['offline_screen_pass']:
+            raise ValueError('completed screened lowrank decoder required')
+        if sha(args.decoder_basis/'basis.npz') != basis_manifest['basis_sha256']:
+            raise ValueError('decoder basis drift')
+        for path, digest in basis_manifest['input_sha256'].items():
+            if sha(path) != digest:
+                raise ValueError('basis source/input drift: '+path)
+        hashes.update(basis_manifest['input_sha256'])
+        for name in ('manifest.json', 'result.json', 'basis.npz'):
+            path = args.decoder_basis/name
+            hashes[str(path.resolve())] = sha(path)
+        decoder = LowrankDecoder(urdf, device, args.decoder_basis/'basis.npz')
+    else:
+        decoder = TrajectoryDecoder(urdf, device)
     policy = TauTracker().to(device)
     payload = torch.load(args.checkpoint, map_location=device, weights_only=False)
     if payload['schema'] != SCHEMA:
@@ -104,13 +123,14 @@ def main():
     for parameter in policy.parameters():
         parameter.requires_grad_(False)
     weights = {key: value.clone() for key, value in policy.state_dict().items()}
-    roles = np.random.default_rng(297).permutation(np.repeat(
-        ['tau_gt', 'dense_fk', 'knots48', 'knots48_repeat'], 4)).tolist()
+    learned_roles = ['lowrank48', 'lowrank48_repeat'] if lowrank else ['knots48', 'knots48_repeat']
+    roles = np.random.default_rng(297).permutation(np.repeat(['tau_gt', 'dense_fk']+learned_roles, 4)).tolist()
     args.output.mkdir(parents=True)
     manifest = dict(schema='ref2dex.trajectory-decoder-execution.v1', status='RUNNING',
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, gpu_before=before, seed=297, roles=roles, input_sha256=hashes,
-        inference_contract='Oracle future HAND-derived knots only; live object/q; frozen R; not H-to-c inference',
+        representation='lowrank48' if lowrank else 'knots48',
+        inference_contract='Oracle future HAND-derived geometry labels only; live object/q; frozen R; not H-to-c inference',
         replan_interval=8, controls=542, envs=16, dt=1/30,
         claim='Single-motion decoder/executor coverage Probe, not trained policy or Cm benefit')
     write(args.output / 'manifest.json', manifest)
@@ -159,7 +179,7 @@ def main():
                 gain_ratio=ratio.cpu().tolist())
             global_velocity = reference_velocity(reference_q, dt)
             gt = torch.tensor([r == 'tau_gt' for r in roles], device=device)
-            latent_rows = np.flatnonzero(np.isin(roles, ['knots48', 'knots48_repeat']))
+            latent_rows = np.flatnonzero(np.isin(roles, learned_roles))
             latent_ids = torch.as_tensor(latent_rows, device=device)
             previous = torch.zeros(n, 12, device=device)
             capture = pd_target = None
@@ -272,7 +292,7 @@ def main():
                     clipping_rate=sum(row['clipping_count'] for row in rows)/(4*542))
             calibrated = summary['tau_gt']['long_held_terminal'] >= 3 and summary['dense_fk']['long_held_terminal'] >= 3
             passes = [summary[role]['long_held_terminal'] >= 3 and summary[role]['clipping_rate'] < .01
-                      for role in ('knots48', 'knots48_repeat')]
+                      for role in learned_roles]
             status = 'PROMISING' if calibrated and all(passes) else ('UNPROMISING' if calibrated and not any(passes) else 'UNCLEAR')
             if any(sha(path) != digest for path, digest in hashes.items()) or any(
                     not torch.equal(value, weights[key]) for key, value in policy.state_dict().items()):
