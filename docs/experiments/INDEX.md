@@ -375,6 +375,12 @@
 | [P-20261010-trajectory-ppo-long-credit](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md) | Does longer credit improve actual trajectory policy learning? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-trajectory-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md) | Can real-task PPO improve the independent trajectory actor? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-trajectory-policy-optimization
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-trajectory-step-replay](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md) | Does persistent early LR backtracking constrain later useful updates? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-weak-temporal-value
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

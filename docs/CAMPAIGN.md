@@ -240,3 +240,9 @@ seed/奖励/D/R/预算的lambda1 Decision Probe，仅改变GAE信用时间尺度
 <=240s，独立采样/执行/结果审计<=60s。固定noisebank295、physics294，
 不追加seed/epoch或重启旧Task/WM。协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md`。
+
+2026-10-10 冻结随机部署warm/final同2/28稳定成功后，允许保存rollout的Adam状态
+重建与单update恢复LR机制诊断，无新物理训练：单空闲GPU4，新增3GPUmin/128MiB，
+全24updates历史actor/value bitwise checkpoint核对后才解释fork，<=120s。
+同真实moment/batch/GAE/目标KL，比较保留LR与每update恢复1e-6；不产生新部署策略。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md`。

@@ -33,7 +33,11 @@ trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略
 lambda1固定预算Probe已完成265s/48992交互，9/12长held探索行启动Apositive，
 但冻结warm/final仍各0/4，GT/dense各3/4；全链审计通过，局部UNPROMISING。
 固定同H接触前XYZ mean改动<=.03893mm（per-coordinate RMS），探索std1mm。
-下一步先冻结随机采样warm/final比较，分辨随机部署收益与偶然探索；尚未启动。
+`959cd74` 冻结随机64env比较85.72s完成并通过全链审计：GT4/4、dense3/4，
+warm/final各2/28长时终末held，成功均同pair8/20，clip .9818%/1.0741%。
+按固定screen局部UNCLEAR，仍没有可用baseline或稳定成功增量。
+下一步先重建真实Adam状态并逐轮exact核对checkpoint，再用保存batch检查LR恢复，
+不直接追加训练。
 不把offline信用或训练reward改善当作抓取收益，暂不再改训练或接WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
@@ -51,3 +55,6 @@ lambda1固定预算Probe已完成265s/48992交互，9/12长held探索行启动Ap
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。
+
+- [冻结同噪声随机部署对比](docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md)
+- [真实Adam重建与单update更新尺度诊断](docs/experiments/probes/P-20261010-trajectory-step-replay.md)

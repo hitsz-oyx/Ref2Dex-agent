@@ -57,6 +57,12 @@ warm start；不以oracle数据/监督loss替代实际RL或Cm收益。
 RMS），探索std1mm，未形成足够mean策略变化的线索。下一步先冻结warm/final同条件
 随机采样执行，区分stochastic部署收益与探索偶然成功，再决定optimizer诊断；
 不直接增加epochs/改LR。核心目标与WM收益仍未完成。
+`959cd74` [同噪声冻结随机对比](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md)
+85.72s/64env完成并通过H/采样/D/FK/R/native/outcome独立审计。GT4/4、dense3/4；
+warm/final各2/28长时终末held，而且同pair8/20成功，未显示稳定成功增量。
+clip .9818%/1.0741%，局部UNCLEAR；当前没有可用trajectory baseline，Cm收益仍未证。
+下一步已有rollout真实Adam重建与单update LR恢复诊断，先核对全部历史checkpoint，
+不直接追加训练或提前接WM。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

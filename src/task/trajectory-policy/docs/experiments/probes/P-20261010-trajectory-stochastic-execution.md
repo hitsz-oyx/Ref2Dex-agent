@@ -5,7 +5,7 @@ experiment_id: P-20261010-trajectory-stochastic-execution
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 959cd74408ddf7fbbc6e83e24ed10505838e06fe
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-deployment
 probe_index_in_family: 1
@@ -88,7 +88,28 @@ Totaloutputs must staybelow300GiB; existing119GiB ample. No other processes touc
 
 ## Results
 
-Not run yet; frozen protocol above beforecreating the noise bank orphysics.
+`959cd74` 一次64env/542control完整冻结wave已完成85.719s，151.51MiB。
+GPU4显存约7553MiB，128--384步util37--43%，ETA与预算相符；没有重跑、
+训练或模型选择。GT4/4、dense3/4达到>=433连续held且终末持有，校准通过。
+warm/final各2/28长时终末持有，medianheld均0，clip分别.9818%/1.0741%。
+稳定成功出现在相同pair8/20：warm477/484帧，final481/484帧；未增加成功数。
+按固定screen，学习和baseline信号均UNCLEAR，不能称为可用baseline或RL收益。
+
+同提交独立all68query审计通过：H/mean/std/epsilon/rawc/物理解码/FK exact，
+velocity3.81e-6，Rfeatures5.72e-6，command2.38e-7，PD0；初始states、noisebank
+seed/hash/pairID、实际执行与outcome一致。CPU配对报告工具进一步独立计算
+held连续长度、取得/失持、clip并核验同noise/初始H；报告保存到原wave新增的
+paired_outcomes.json，既有文件不覆盖。
+
+Root据此选择已有数据的**真实Adam状态重建/单update LR恢复诊断**，不是第三次
+盲目训练。当前随机策略仍只有罕见抓持，最终策略没有显示稳定成功增量；不关闭
+trajectory/WM科学假设，下一卡将先要求逐轮actor/value checkpoint exact，再
+比较同batch/同moment的更新尺度。没有新增seed/epochs/物理评价或WM。
+
+Artifacts:
+- `outputs/trajectory-policy/trajectory-stochastic-execution-20261010-r1/`
+- `outputs/trajectory-policy/trajectory-stochastic-execution-audit-20261010-r1/`
+
 
 ## Limitations / future evidence
 
