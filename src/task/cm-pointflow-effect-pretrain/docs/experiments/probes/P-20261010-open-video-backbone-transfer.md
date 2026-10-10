@@ -5,7 +5,7 @@ experiment_id: P-20261010-open-video-backbone-transfer
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 281672a8240fd4e2ed7137c80966b1f64ae5f2ea
+git_commit: 199c7dbd9ea14b761acabac89fd852a3fee442ee
 claim_id: C1
 hypothesis_family: HF-open-video-backbone-transfer
 probe_index_in_family: 1
@@ -65,7 +65,7 @@ validation is diagnostic, no best-step selection. The historical50000-update
 native result is background, not a matched random-init control.
 
 Primary: equally weighted source macro of h24 EPE on
-`moving_objects/cat-1` and separately `static_objects/cat-1`, with per-source
+`model/moving_objects/cat-1` and separately `model/static_objects/cat-1`, with per-source
 and pooled values retained. Source panels/stratum label counts must match both
 arms. Positive gate: moving EPE at least10% below the new matched random arm,
 static EPE no greater than1.2x random. Report all-horizon/source metrics and
@@ -106,8 +106,21 @@ Compatibility reports are preserved in the preflight output above.
 The minimal native-format initializer conversion uses existing model/data code;
 no new training loop. Two targeted integrity tests passed (8.81s), checking that
 only the spatial backbone changes and rejecting partial/nonfinite/mismatched
-imports before mutation. Initializer export and GPU smoke/training are next;
-no benefit result or change of Mission claim yet.
+imports before mutation. Initializer export passed. Both artifacts preserve exactly the same nonbackbone
+state SHA25639b8fba696a17d4617bb35ded55fbf4e4034386a8bb903273d3dd6914683643f;
+only the complete spatial backbone changes. Outputs are202,183,941 and
+202,159,518 bytes, with no native training/optimizer history. Three-update GPU2
+engineering checks passed for both arms (6.476s/6.772s), including identical
+constructor/draw/source/stat/config hashes. Stable updates about0.4s, peak
+reserved4,686MiB; benchmark skips checkpoints/evaluation. Full engineering
+metadata lives in `engineering_summary.json` and `initialization-r1/manifest.json`.
+
+Paired2000-update training started on free GPUs2(random) and3(video), using
+unchanged existing launcher/trainer at Git199c7db. Per-arm2700s deadline,6GiB
+group artifact bound. Arm roots `random-r1/` and `video-r1/`; authoritative live
+status/PIDs/deadlines in each `group_status.json`, model identities/progress in
+`train-action/`. Startup estimate15–25min including validation. No benefit
+result or change of Mission claim yet.
 
 ## Limitations / future evidence
 

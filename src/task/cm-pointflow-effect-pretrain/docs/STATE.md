@@ -89,7 +89,9 @@ Acquisition completed and strict compatibility passed448/448 tensors with
 [matched initialization Probe](experiments/probes/P-20261010-open-video-backbone-transfer.md)
 is frozen: seed228, two2000-update arms, same native data/stats/draw, random
 versus official video backbone, existing trainer, at most two free GPUs and
-45min per arm. The initializer integrity tests passed2/2. Native patch128 and
+45min per arm. Initializer integrity tests and both3-update GPU checks passed.
+Matched2000-update runs have started on free GPUs2/3 using existing launcher,
+Git199c7db; initializer nonbackbone state is exactly shared. Native patch128 and
 time-aware pooling remain; official patch256 differs. No transfer benefit yet. No new external authorization needed.
 
 ## Current decision and resources
@@ -102,7 +104,8 @@ pilot recipes. Broader video/tactile potential remains unproven rather than
 refuted; exact generation identity, physical scale, source coverage and cross-
 task utility are material limits. Core Mission claim is unchanged.
 
-All training/extraction/inference processes ended; new common-camera inference
+Earlier video/sensor training/extraction/inference processes ended; the new
+paired open-backbone transfer runs are active and bounded as above. Common-camera inference
 9.19s/216.65MiB CUDA and census0.37s CPU. Video artifact group remains about1.9GiB
 within5GiB cap; diverse RGB/features/checkpoints about206MiB. No external data
 modified. [Windows bridge](../../../../docs/user/连接远程服务器.md) works; NAS has space,
