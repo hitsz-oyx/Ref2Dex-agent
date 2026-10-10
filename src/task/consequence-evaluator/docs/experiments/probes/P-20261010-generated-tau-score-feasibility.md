@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-score-feasibility
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 1352105
+git_commit: ff65bb3
 claim_id: C3
 hypothesis_family: HF-history-tau-proposal
 probe_index_in_family: 2
@@ -82,7 +82,40 @@ bounded repair Decision Note instead of spending automatic extra seeds.
 
 ## Results
 
-Pending. Full scope remains active; this Probe only resolves the next blocker.
+Completed at ff65bb3 in22.39s (projection18.80s), GPU2 peak877MiB,
+utilization16%; Torch peak503MiB. Outputs:
+`outputs/consequence-evaluator/generated-tau-score-feasibility-20261010-r1/`;
+launch log: `generated-tau-score-feasibility-launch-20261010-r1/run.log`.
+Frozen observed scores replay exactly; runtime proposal replay error4.17e-7.
+
+Observed18/18 and raw-score-selected18/18 pass native geometry. Independent
+finger limits/finiteness/coupling pass (coupling error0). Raw selector chooses
+15retrieval/3persistence/0displacement; projection changes no selected identity.
+Learned displacement alone passes only4/18, with median coordinate2.56mm and
+palm-point3.38mm; retrieval top1 passes18/18 (median coordinate.681mm).
+This identifies a palm-rigidity repair before executing the learned proposal.
+
+Recorded-policy forecast substitution pair55.47%, shuffled59.85% versus
+observed70.07%; projected forecast remains55.47%. Predeclared joint screen
+therefore emits UNPROMISING in immutable result.json. **Scientific status here
+is UNCLEAR for generated-candidate utility**, not a refutation of proposal or
+scorer: future random actions are absent from pureH, and evaluating T at a
+conditional mean trajectory need not preserve each realized future's utility.
+It cannot distinguish stochastic ambiguity from prediction or scorer error.
+Independent read-only review reproduced choice/frame/geometry and confirmed
+this boundary; 137strict pairs still involve only7informative anchors.
+
+## Follow-up Decision Note
+
+Do not use forecast70% as a prerequisite to all execution. Native geometry is
+usable for selected candidates; learned tau has a specific static repair.
+Freeze all models, project the selected/learned tau to coupled native geometry,
+then run one small real closed-loop execution Probe with separate live GT,
+persistence, displacement and score-selected roles. This tests whether any
+generated proposal can drive the existing executor, not causal selector benefit.
+No complete hidden PhysX fork exists, so no same-state ranking claim is allowed.
+New bounded resources/protocol are recorded in the native-execution card.
+Full H->tau->Y->selector->A->Z/Mission scope remains active.
 
 ## Limitations / future evidence
 

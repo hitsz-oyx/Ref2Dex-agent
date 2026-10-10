@@ -60,7 +60,16 @@ def main():
     p.add_argument("--oracle-checkpoint", type=Path)
     p.add_argument("--tau-teacher-checkpoint", type=Path,
                    help="compare frozen tau teacher instead of shifted tau, on its own live rows")
+    p.add_argument('--generated-proposal', type=Path)
+    p.add_argument('--generated-evaluator', type=Path)
     args = p.parse_args()
+    if args.generated_proposal or args.generated_evaluator:
+        if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
+                or args.mode not in ('evaluate','smoke') or args.compare_tau or args.compare_feedforward
+                or args.checkpoint is None or args.envs != 16):
+            raise ValueError('generated tau requires frozen tau controller and four-role sixteen-env evaluation')
+        args.generated_proposal=args.generated_proposal.resolve()
+        args.generated_evaluator=args.generated_evaluator.resolve()
     if args.finger_only and (not args.tau_only or args.mode != 'train' or args.checkpoint is None):
         raise ValueError('finger-only adaptation needs a tau-only training checkpoint')
     if args.tau_only:
@@ -199,6 +208,29 @@ def main():
         frozen[str(args.oracle_checkpoint)] = sha(args.oracle_checkpoint)
     if args.tau_teacher_checkpoint:
         frozen[str(args.tau_teacher_checkpoint)] = sha(args.tau_teacher_checkpoint)
+    generated_bank = None
+    if args.generated_proposal:
+        from probe_measured_history_tau import collect
+        pm=json.loads((args.generated_proposal/'manifest.json').read_text())
+        em=json.loads((args.generated_evaluator/'manifest.json').read_text())
+        if pm.get('status') != 'COMPLETED' or em.get('status') != 'COMPLETED':
+            raise ValueError('completed proposal/evaluator required')
+        for folder, file, digest in ((args.generated_proposal,'displacement-best.pt',pm['checkpoint_sha256']['displacement']),
+                                    (args.generated_evaluator,'T.pt',em['checkpoint_sha256']['T'])):
+            if sha(folder/file) != digest: raise ValueError('generated model identity drift')
+            for name in ('manifest.json',file): frozen[str(folder/name)]=sha(folder/name)
+        sources=[Path(v).parent for v in pm['input_sha256'] if v.endswith('/manifest.json') and 'bank-train-' in v]
+        if len(sources) != 1: raise ValueError('unique train bank required')
+        generated_bank, _, bank_hash=collect(sources[0])
+        for path, digest in bank_hash.items():
+            if pm['input_sha256'].get(path) != digest: raise ValueError('train bank drift')
+        frozen.update(bank_hash)
+        for name in ('generated_tau.py','proposal_runtime.py','proposal_history.py','tau_projection.py',
+                     'trajectory_utility.py','fixed_wrist_decoder.py','reset_kinematics.py','object_relative_servo.py'):
+            path=TASK/'src/consequence_evaluator'/name; frozen[str(path)]=sha(path)
+        urdf=ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf'
+        frozen[str(urdf)]=sha(urdf)
+        frozen[str(TASK/'tools/run/probe_measured_history_tau.py')]=sha(TASK/'tools/run/probe_measured_history_tau.py')
     output.mkdir(parents=True)
     started = time.monotonic()
     manifest = dict(schema=TAU_SCHEMA if args.tau_only else SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
@@ -228,6 +260,13 @@ def main():
             claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
     if args.finger_only:
         manifest['training_contract'] += '; frozen actor encoder/wrist/logstd, finger-only Gaussian sampling and PPO likelihood; critic trains; worst1% mean-policy interior bound penalty coefficient10'
+    if args.generated_proposal:
+        manifest.update(generated_proposal=str(args.generated_proposal),generated_evaluator=str(args.generated_evaluator),
+            inference_contract='Generated roles: measured t-3:t only -> ten candidates -> frozen score/fixed choice -> coupled geometry -> frozen tau controller; no future reference/phase/clock/force input',
+            reference_contract='GT hand/geometry only independent upper-bound role and evaluation; generated roles use their own live current q/hand/object',
+            training_contract='No training; all proposal/evaluator/controller weights frozen',replan_interval=8,
+            history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
+            claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     write(output / "manifest.json", manifest)
 
     class Player(native.EvalPlayer):
@@ -282,6 +321,12 @@ def main():
                     manifest["checkpoint_control"]["migration"] = "drop future-object-error columns only"
                 else:
                     policy.load_state_dict(checkpoint["state_dict"], strict=True)
+            generator = None
+            if args.generated_proposal:
+                from consequence_evaluator.generated_tau import GeneratedTau
+                generator=GeneratedTau(torch.load(args.generated_proposal/'displacement-best.pt',map_location='cpu',weights_only=False),
+                    torch.load(args.generated_evaluator/'T.pt',map_location='cpu',weights_only=False),
+                    generated_bank,urdf,device,control_dt)
             oracle_policy = None
             tau_teacher_policy = None
             if args.tau_teacher_checkpoint:
@@ -479,7 +524,10 @@ def main():
                 geometry = PhysicalGeometry(task, ROOT / "third_party/DExplore/dexplore/data/assets", distance_device=device)
                 support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
                 quarter = n // 4
-                if args.compare_tau:
+                if generator is not None:
+                    roles=np.random.default_rng(args.seed).permutation(np.repeat(
+                        ['tau_gt','persistence','displacement','scored'],quarter)).tolist()
+                elif args.compare_tau:
                     roles = np.repeat(["oracle", "tau_nominal", "tracker",
                                        "tau_frozen" if args.tau_teacher_checkpoint else "tau_shifted"], quarter)
                     roles = np.random.default_rng(args.seed).permutation(roles).tolist()
@@ -520,11 +568,33 @@ def main():
                                      ("dof_position", current["q"]), ("dof_velocity", current["dq"])):
                         arrays[key].append(val.detach().cpu().numpy().copy())
                 record()
+                generated_ids=np.array([i for i,r in enumerate(roles) if r in ('persistence','displacement','scored')])
+                generated_torch_ids=torch.as_tensor(generated_ids,device=device)
+                measured_history=[]; plans=[]; plan_ticks=[]; active_plan=None
                 controls = 8 if args.mode == "smoke" else 542
                 work_started = time.monotonic()
                 for tick in range(controls):
                     with torch.no_grad():
                         x, measured, next_q, _, _ = observation()
+                        plan_velocity=None
+                        if generator is not None:
+                            measured_history.append({key:measured[key][generated_torch_ids].cpu().numpy().copy()
+                                for key in ('q','dq','hand','obj','velocity')})
+                            measured_history=measured_history[-4:]
+                            if tick % 8 == 0:
+                                history=([measured_history[0]]*(4-len(measured_history)))+measured_history
+                                active_plan=generator.plan({key:np.stack([v[key] for v in history]) for key in history[0]},
+                                    [roles[i] for i in generated_ids])
+                                plans.append(active_plan['audit']);plan_ticks.append(tick)
+                            offset_in_plan=tick%8
+                            next_q=next_q.clone()
+                            next_q[generated_torch_ids]=active_plan['q'][:,offset_in_plan+1]
+                            index_in_plan=(torch.arange(24,device=device)+offset_in_plan).clamp_max(23)
+                            future=active_plan['hand'][:,index_in_plan]
+                            x[generated_torch_ids]=tau_features(measured['q'][generated_torch_ids],measured['dq'][generated_torch_ids],
+                                measured['hand'][generated_torch_ids],measured['obj'][generated_torch_ids],
+                                measured['velocity'][generated_torch_ids],future,next_q[generated_torch_ids],previous[generated_torch_ids])
+                            plan_velocity=active_plan['velocity'][:,offset_in_plan+1]
                         ref_indices = torch.full((n,), tick + 1, device=device, dtype=torch.long)
                         if shifted_mask.any():
                             ref_indices[shifted_mask] = (tick + 1 + 271) % 543
@@ -548,6 +618,8 @@ def main():
                         base = next_q.clone()
                         base[ff_mask] = wrist_feedforward(next_q[ff_mask],
                             ref_velocity[ref_indices[ff_mask]], wrist_gain_ratio)
+                        if generator is not None:
+                            base[generated_torch_ids]=wrist_feedforward(next_q[generated_torch_ids],plan_velocity,wrist_gain_ratio)
                         intended = native_action(policy.target(base, latent), measured["q"], offset, scale)
                         if oracle_mask.any():
                             index = (tick + torch.arange(1, 25, device=device)).clamp_max(542)
@@ -581,6 +653,11 @@ def main():
                         monitor(tick + 1, (tick + 1) * n)
                 packed = {key: np.stack(value) for key, value in arrays.items()}
                 np.savez_compressed(output / "trajectory.npz", **packed)
+                if generator is not None:
+                    np.savez_compressed(output/'plans.npz',ticks=np.asarray(plan_ticks),envs=generated_ids,
+                        **{key:np.stack([v[key] for v in plans]) for key in plans[0]})
+                    if any(sha(path)!=digest for path,digest in frozen.items()):
+                        raise ValueError('generated run input drift')
                 if args.mode == "smoke":
                     result = dict(status="COMPLETED", controls=controls, roles=roles, claim="engineering wiring only")
                 else:

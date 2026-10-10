@@ -182,3 +182,8 @@ canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入�
 和T evaluator，不以旧Y冒充新候选的执行标签。单空闲GPU，15GPUmin/1GiB，协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md`。
 本轮不训练模型、不仿真、不启用PointWorld或改变Mission/Cm claim。
+
+2026-10-10 持续主线下进入首个纯历史生成τ真实执行Probe：冻结proposal/T/保留的
+fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/位移/评分四角色。
+单空闲GPU新增15GPUmin/1GiB，smoke120s+单次eval720s；无训练/额外seed/物理fork claim。
+协议见`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md`。

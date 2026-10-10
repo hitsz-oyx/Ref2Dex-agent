@@ -138,6 +138,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261006-frozen-critic-ranking](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261006-frozen-critic-ranking.md) | Can frozen PPO critic replace short-Y candidate ranking? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-generated-tau-execution
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-generated-tau-native-execution](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md) | Can pure measured-history generated tau drive the frozen native executor? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-geometric-innovation
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
