@@ -12,7 +12,7 @@ from .tau_tracking import FINGERS, FINGER_LIMITS
 
 
 def project_tau(current_hand, future_hand, current_q, urdf, device, iterations=300,
-                deadline_s=480, monitor=None, positions_only=False):
+                deadline_s=480, monitor=None, positions_only=False, graph_cache=None):
     """No future q/action/object/force labels; current q calibrates each query.
 
     Same two-start frame-local coupled finger fit as the existing tau tracker.
@@ -38,6 +38,22 @@ def project_tau(current_hand, future_hand, current_q, urdf, device, iterations=3
     limits = torch.tensor(FINGER_LIMITS, device=device)
     live_fingers = np.repeat(reset[:, list(FINGERS)], length, axis=0)
     initial = np.concatenate((live_fingers, np.broadcast_to(np.asarray(FINGER_LIMITS)/2, (count, 6))))
+    if graph_cache is not None:
+        if not positions_only:raise ValueError('capture requires equivalent position FK')
+        from .tau_projection_graph import FingerFitGraph
+        start=torch.tensor(initial,dtype=torch.float32,device=device).clamp_(min=0)
+        start=torch.minimum(start,limits)
+        if 'fit' not in graph_cache:graph_cache['fit']=FingerFitGraph(fixed,target,start,urdf)
+        graph=graph_cache['fit']
+        result,error=graph.fit(fixed,target,start,iterations,started,deadline_s,monitor)
+        with torch.no_grad():
+            choice=error.reshape(2,count).argmin(0)
+            ids=choice*count+torch.arange(count,device=device)
+            q=result[ids].reshape(n,length,18)
+            q[:,0]=torch.tensor(reset,device=device)
+            fitted=graph.fk.positions(q.reshape(-1,18),graph.root[:count]).reshape(n,length,11,3)
+        return dict(q=q.cpu().numpy(),points=fitted.cpu().numpy(),elapsed_s=time.monotonic()-started,
+                    chosen_start=choice.cpu().numpy().reshape(n,length))
     variable = torch.tensor(initial, dtype=torch.float32, device=device)
     variable.clamp_(min=0); variable.copy_(torch.minimum(variable, limits)); variable.requires_grad_(True)
     fk = ResetKinematics(urdf, NATIVE_DOF_NAMES, HAND_LINKS, device)

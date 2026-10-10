@@ -145,6 +145,23 @@ and matching joint gradient to full state FK (nonzero root/joint velocities).
 Then repeat all original300steps on the same saved12queries. Keep all iteration,
 initialization, optimizer/bounds/selection and static URDF contracts unchanged.
 
+1e237ad XYZ-only path reproduces points bitwise but12.94s, so velocity work is
+not dominant. Static URDF contains25links and every one is an ancestor of the
+11requested points; hypothesis2 has no pruning opportunity. Test hypothesis3:
+capture only FK/best-update/backward for one optimization iteration, use fixed
+shape torch.where instead of dynamic boolean extraction, retain ordinary Adam
+outside capture and reset its moments/step for every query. Reuse one cache
+shape per runtime, update fixed wrist/target/initial buffers each plan.
+Source: [PyTorch2.4 CUDA graphs](https://docs.pytorch.org/docs/2.4/notes/cuda.html#cuda-graphs).
+CPU work is elided by replay; hence optimizer step/bias corrections remain
+outside capture. Side-stream warmup, immutable buffers, no concurrent native
+simulation during capture. No need for new model/dataset/runtime installation.
+Measure cold initialization separately (<=30s once), steady original300step
+fit<=5s, original geometry tolerance unchanged. Require identical-query replay
+<=2e-6m and a changed live frame4 query versus original eager300step<=1mm to
+exclude stale inputs/momentum/best-state. These are engineering cost controls,
+not changed scientific gates. Stop if capture/fresh-query equivalence fails.
+
 ## Limitations / future evidence
 
 Single motion, few separate-live-role envs, observed-history training bank from

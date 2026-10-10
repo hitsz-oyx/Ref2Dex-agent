@@ -11,10 +11,12 @@ from .reference_tracking import reference_velocity
 
 class GeneratedTau:
     def __init__(self, proposal_packet, evaluator_packet, train_bank, urdf, device, dt,
-                 projection_iterations=300,positions_only=False):
+                 projection_iterations=300,positions_only=False,cuda_graph=False):
         if projection_iterations not in (60,300): raise ValueError('declared bounded projection required')
         self.projection_iterations=projection_iterations
         self.positions_only=positions_only
+        if cuda_graph and not positions_only:raise ValueError('capture requires position FK')
+        self.graph_cache={} if cuda_graph else None
         self.device = device; self.urdf = urdf; self.dt = dt
         self.proposal = TauProposal(proposal_packet).to(device).eval()
         if evaluator_packet.get('arm') != 'T':
@@ -58,7 +60,7 @@ class GeneratedTau:
         with torch.enable_grad():
             fit=project_tau(history['hand'][-1],world,history['q'][-1],self.urdf,
                             self.device,iterations=self.projection_iterations,deadline_s=30,
-                            positions_only=self.positions_only)
+                            positions_only=self.positions_only,graph_cache=self.graph_cache)
         q=torch.as_tensor(fit['q'],device=self.device)
         velocity=torch.stack([reference_velocity(v,self.dt) for v in q])
         hand=torch.as_tensor(fit['points'][:,1:],device=self.device)

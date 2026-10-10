@@ -64,6 +64,7 @@ def main():
     p.add_argument('--generated-evaluator', type=Path)
     p.add_argument('--projection-iterations',type=int,choices=(60,300),default=300)
     p.add_argument('--positions-only',action='store_true',help='geometric fit uses equivalent XYZ-only FK')
+    p.add_argument('--projection-cuda-graph',action='store_true')
     args = p.parse_args()
     if args.generated_proposal or args.generated_evaluator:
         if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
@@ -72,6 +73,8 @@ def main():
             raise ValueError('generated tau requires frozen tau controller and four-role sixteen-env evaluation')
         args.generated_proposal=args.generated_proposal.resolve()
         args.generated_evaluator=args.generated_evaluator.resolve()
+    if args.projection_cuda_graph and (not args.positions_only or not args.generated_proposal):
+        raise ValueError('projection capture requires generated position-FK mode')
     if args.finger_only and (not args.tau_only or args.mode != 'train' or args.checkpoint is None):
         raise ValueError('finger-only adaptation needs a tau-only training checkpoint')
     if args.tau_only:
@@ -228,7 +231,8 @@ def main():
             if pm['input_sha256'].get(path) != digest: raise ValueError('train bank drift')
         frozen.update(bank_hash)
         for name in ('generated_tau.py','proposal_runtime.py','proposal_history.py','tau_projection.py',
-                     'trajectory_utility.py','fixed_wrist_decoder.py','reset_kinematics.py','object_relative_servo.py'):
+                     'trajectory_utility.py','fixed_wrist_decoder.py','reset_kinematics.py','object_relative_servo.py',
+                     'tau_projection_graph.py'):
             path=TASK/'src/consequence_evaluator'/name; frozen[str(path)]=sha(path)
         urdf=ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf'
         frozen[str(urdf)]=sha(urdf)
@@ -269,6 +273,7 @@ def main():
             training_contract='No training; all proposal/evaluator/controller weights frozen',replan_interval=8,
             projection_iterations=args.projection_iterations,
             positions_only=args.positions_only,
+            projection_cuda_graph=args.projection_cuda_graph,
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     write(output / "manifest.json", manifest)
@@ -330,7 +335,7 @@ def main():
                 from consequence_evaluator.generated_tau import GeneratedTau
                 generator=GeneratedTau(torch.load(args.generated_proposal/'displacement-best.pt',map_location='cpu',weights_only=False),
                     torch.load(args.generated_evaluator/'T.pt',map_location='cpu',weights_only=False),
-                    generated_bank,urdf,device,control_dt,args.projection_iterations,args.positions_only)
+                    generated_bank,urdf,device,control_dt,args.projection_iterations,args.positions_only,args.projection_cuda_graph)
             oracle_policy = None
             tau_teacher_policy = None
             if args.tau_teacher_checkpoint:
