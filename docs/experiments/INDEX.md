@@ -110,6 +110,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
 
+## HF-egotouch-visual-context
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-egotouch-visual-context](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-visual-context.md) | Paired visual context after the shape-only teacher screen | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-epic-contact-overlap
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
