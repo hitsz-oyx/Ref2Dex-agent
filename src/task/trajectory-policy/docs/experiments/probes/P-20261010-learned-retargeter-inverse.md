@@ -5,7 +5,7 @@ experiment_id: P-20261010-learned-retargeter-inverse
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 653f88494f827b62b4bc659f3545649a19e92a10
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-retargeter
 probe_index_in_family: 1
@@ -97,7 +97,32 @@ util<=10%，训练期间foreigncompute>512MiB停止。仅用一张卡，全局<=
 
 ## Results
 
-Not run yet; fixed protocol before training.
+`653f884` 固定双臂1500updates完成36.42s/GPU5；显存monitor1019MiB，
+GPU utilization34--74%，Torch peak578.63MiB，产物38MiB。
+同协议独立audit完成5.51s/PASS：actual PD误差0、normalizer最大4.08e-7，
+全16576 validation预测重放最大2.98e-7，split/shuffle/指标/选择一致。
+
+τ/state-only standardized L1 .304456/.330274，τ低7.82%，未达20%门槛。
+同tick τshuffle .477209，增加56.74%；首步clipped native MAE .023770/.025525。
+τ all第一步PD p95 XYZ49.714mm、rotation.38898rad、fingers.10784rad；
+startup40.044mm/.14035rad/.13218rad，均未过固定误差screen。局部**UNCLEAR**，
+不能作为learned R可物理抓取的证据；不自动增加训练或关闭trajectory interface。
+两臂best都1500，无snapshot覆盖；旧teacher packet未用于学习。
+
+产物：`outputs/trajectory-policy/learned-retargeter-inverse-20261010-r1/`，
+独立审计：`outputs/trajectory-policy/learned-retargeter-inverse-audit-20261010-r1/`。
+
+### Post-fit Decision Note / cheapest diagnosis
+
+关键链审计已通过；下一决策区分训练精度不足与留出episode分布偏移。
+在原8GPUmin/96MiB预算的剩余范围内，仅对固定两best checkpoint运行一次
+66304 train windows的冻结推理，<=60s/1MiB；与已有whole-wave val误差比较，
+记录每个horizon/coordinate，不更新参数或选择新checkpoint。
+入口`tools/audit/diagnose_learned_retargeter_fit.py`，新增产物目录
+`outputs/trajectory-policy/learned-retargeter-fit-diagnosis-20261010-r1/`。
+训练集也未过screen且误差近val则优先解决精度/conditioning；训练集已准而
+val明显差才优先扩competent/perturbed coverage。非有限/source drift/foreignGPU冲突
+停止保留FAILED，不扩大物理训练或改变Mission/claim，无新授权需求。
 
 ## Limitations / future evidence
 
