@@ -93,7 +93,29 @@ actual lambda1 recorded. Duration8/6/8/6 andterminal masks correct; independent
 MonteCarlo prefixreturn max error8.94e-8, actor changed9.68e-5, jointKL .01395/
 .001835, behaviorlogprob replay max.000535. This only validates wiring.
 Full task train run launched fromsame0487233, seed293, fixed24updates.
-No final policy/held conclusion until completed frozen comparison andaudits.
+Full training completed265.022s,48992interactions,96accepted actor epochs.
+Actor mean parameter L2change .00097549; sampleheld2825steps, clipping1.2349%.
+Two completed rows were terminalheld252/424frames, neither>=433;0fullstable
+successes duringtraining (oldlambda.95 hadone486frame terminalheld row).
+Valuefit lasttwo losses1279.7/1260.6; longer credit increases target magnitude/
+variance. No nonfinite/KL/logprob guard failure, no model/physics restart.
+
+`6d0d532` CPU fixed-condition comparison passed: first16high queries and128native
+controls match original lambda.95 run **exactly**, including H/c/mean/std/value/
+reward/state/action/PD. Fixeddata/checkpoints, seed/horizon/optimizer/gains match.
+After updates, lambda1 observed12sampled rows>=45held,9startup normalized Apositive;
+oldlambda.95 7rows,0positive. Different subsequent trajectories are not matched
+individual outcomes. Credit improvement alone is not stable-grasp learning.
+
+Training audit r1 (`6d0d532`) stopped on FP64 versus storedFP32 GAE error4.79e-5
+above original3e-5 fixedabsolute tolerance; failed manifest preserved. Independent
+NumPy FP32 replay isexact for all24rollouts. `f5a965d` audit r2 reports FP64maximum
+4.938e-5 separately andpreserves fixedFP32 tolerance; actual GAE/returns exact,
+H/distribution/logprob/V/bootstrap/cdecode/FK exact, velocity7.63e-6, reward1.19e-7,
+Rinputs5.72e-6, command/PD exact. Audit6.133s; only validator precision fixed,
+nottraining data/algorithm, no physical rerun.
+
+Frozen complete-task comparison launched afteraudit pass; classification pending.
 
 ## Limitations / future evidence
 
