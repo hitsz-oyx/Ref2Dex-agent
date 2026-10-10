@@ -101,6 +101,15 @@ N/Nm 成为合理的来源解释，但数据合同没有单独的单位元数据
 `ftSensor` 名称不同。`ftSensor.urdf` 可以解释这两个 frame 的固定关系，但 adapter
 必须明确应用该 URDF，而不能把六个数直接当作 `/map` 或 object frame。
 
+对这一个下载的序列做了不训练的 timestamp smoke：295 个 RGB anchor 全部能在 20 ms
+内匹配 depth、FT、joint 和 rigid-body pose；RGB→depth 的中位数/最大误差为
+7.00/16.00 ms，RGB→FT 为 2.51/5.38 ms，RGB→joint/RB 为 2.54/8.27 ms。FT 有
+1,044 行、joint/RB 各有 1,041 行，均接近 100 Hz；所有 RGB anchor 都有对应的
+finite depth/FT/state。用 `ftSensor.urdf` 的固定链解析出的 `T_ft0_my` 平移为
+`[0.023147, 0.015107, 0.018348]` m；首个 FT 样本与最近 `map→ftSensor` TF 相差
+1.95 ms。这证明单序列的时钟和 frame 链可以实现，当前风险是单位声明和 payload
+补偿，而不是无法对齐。
+
 `cardboardbox` 模型配置 `configuration_2017-08-02` 给出 base marker
 `/TransparentBoxWith4Markers`、link IDs `{1: rb0, 4: rb1}`、mesh、一个 `j_0_1`
 revolute joint、joint origin/axis 和 marker link。该 URDF 没有质量、COM 或 inertia
