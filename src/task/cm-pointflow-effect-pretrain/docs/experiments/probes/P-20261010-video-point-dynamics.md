@@ -279,3 +279,28 @@ the cause of neural failure; no true GT accuracy follows. The helper originally
 computed empty-cloud means before returning unsupported; reordered the guard
 without changing reported supported values, and verified rigid/nonrigid/degenerate
 synthetic cases. Do not use the endpoint oracle transform as a predictive input.
+
+
+## Image-coordinate history diagnostic, fixed before execution
+
+Decision: is a cheap history-motion signal present in the image-coordinate tracks
+when 3D/world-coordinate extrapolation fails? If both qualifying dev clips show
+>=10% OLS improvement over image-static, consider a weak image-coordinate auxiliary
+Probe before rebuilding metric labels. Otherwise do not start a passive history-
+velocity learner from these pilot clips. No change to the declared 3D result/gate.
+
+Same h8 view, history-only selected object identities, identical endpoint masks
+and denominators. Recover per-frame image positions by projecting retained world
+points through original hashed SpaTracker intrinsics/extrinsics, with already-
+frozen camera convention and exact original source-row IDs. Predictor uses four
+observed image positions/timestamps only: image-static, last-two CV, H4 OLS. Future
+camera is only used to reconstruct endpoint label, never a predictor input. Fail
+on nonpositive/nonfinite scored projection instead of silently dropping support.
+
+Report per-clip pixel EPE and counts, require at least2 dev clips>=16 point-window
+labels. CPU<=30s, JSON<=1MiB, no download/GPU/train. Pixel labels contain camera
+motion; prior3D labels infer world coordinates. A discrepancy alone cannot prove
+that depth reconstruction rather than camera motion or other errors caused the
+3D result. This diagnostic changes the next data/auxiliary choice, not the Mission
+claim or native data contract. Artifact image-motion-audit.json alongside prior
+history-motion/rigidity audits; preserve all prior results.

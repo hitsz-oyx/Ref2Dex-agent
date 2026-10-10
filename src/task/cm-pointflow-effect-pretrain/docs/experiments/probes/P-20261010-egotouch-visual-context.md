@@ -10,10 +10,10 @@ claim_id: C1
 hypothesis_family: HF-egotouch-visual-context
 probe_index_in_family: 1
 seed_pool: probe
-seeds: []
+seeds: [227]
 decision_changed_if_positive: test current visual interaction context as an optional representation teacher input
 decision_changed_if_negative: resolve visibility and source correspondence before any visual sensor learner
-status: UNCLEAR
+status: UNPROMISING
 run_id: egotouch-diverse-rgb-20261010-r1
 ---
 
@@ -119,3 +119,42 @@ GPU training/evaluation cap300s and output cap400MiB; same free GPU1 if still fr
 else reselect. Log utilization/memory/ETA; stop on conflict/nonfinite/hash drift or
 caps. Preserve sources/checkpoints. No native corpus integration, longer fitting,
 remote operations or robot-policy training follows automatically from this screen.
+
+
+## Matched current-image screen results
+
+Feature extraction at347a184 completed3655 original frames in8.46s,3.24MB,
+peak CUDA389.00MiB. Frozen/eval encoder, pretrained ImageNet weight SHA verified;
+no future RGB input or fit/held encoder updates. Two information-ablation tests
+pass, including changing every non-current feature row without changing inputs.
+
+Six-arm matched500-update screen at347a184 completed10.72s, peak CUDA667.16MiB;
+GPU1 NVML823MiB/15% at final step. Tiny-MLP throughput is not a large-training
+benchmark. Final six-model/optimizer checkpoint roundtrip exact; all jobs ended.
+
+| Arm | GroupA h24 held-task macro MAE, raw counts |
+| --- | ---: |
+| history | 4.350 |
+| future_hand | 4.658 |
+| history_rgb | 4.173 |
+| future_hand_rgb | 4.415 |
+| shuffled_future_hand_rgb | 4.199 |
+| shuffled_rgb | 4.374 |
+| persistence | 3.435 |
+
+Observation-context gate FAILED, conditional-human-motion gate FAILED;
+recipe-level UNPROMISING. history_rgb improves over history modestly but remains
+above persistence in all5 held tasks; its shop-snacks error is2.565 vs0.663 counts.
+future_hand_rgb also loses to persistence in all5 tasks. Current view visibly
+contains interaction context but this frozen/global-pooled visual encoder plus
+small MLP did not produce the required held-task benefit. Do not infer that all
+visual context, spatial features, pressure/contact dynamics or tactile learning
+are ineffective. No new model-selection or gate-relaxation from exposed tasks.
+
+Next action: retain paired video/sensor inputs and qualified fixed-scale masks for
+future targeted representation work; stop this global-image MLP recipe and return
+to the weak-point observation/label bottleneck. Do not enlarge the sensor corpus,
+add epochs, promote EgoTouch as metric object-flow supervision or add this teacher
+to native training on the strength of fitting gains. World coordinates, hardware
+roles and task-background leakage remain material limitations. Existing native
+main3 geometry pretraining checkpoint remains the retained baseline.
