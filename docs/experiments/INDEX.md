@@ -386,6 +386,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261010-learned-retargeter-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md) | Can actual future hand motion supervise a trajectory-dependent native retargeter? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-retargeter-step-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md) | Does an observable local wrist inverse explain the native control precision gap? | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-weak-temporal-value
 

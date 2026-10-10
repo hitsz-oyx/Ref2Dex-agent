@@ -253,3 +253,8 @@ GPU4已有他人计算，选择GPU5（约130MiB初始化context、无活跃计�
 新增8GPUmin/96MiB，1500update双臂fit<=360s、独立audit<=120s；无物理/teacher标签/
 高层PPO/WM训练。协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md`。
+
+2026-10-10 learned R审计通过但train也有腕部精度gap，固定local step inverse诊断：
+同actual PPO数据/split，比较privileged next q与next hand恢复腕姿的train-only线性标定。
+新增2GPUmin/16MiB，单idle GPU5、<=120s；不重训网络/采物理/读取teacher labels。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md`。
