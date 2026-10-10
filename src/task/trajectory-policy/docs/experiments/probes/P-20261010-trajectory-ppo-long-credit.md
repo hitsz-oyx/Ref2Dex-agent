@@ -5,7 +5,7 @@ experiment_id: P-20261010-trajectory-ppo-long-credit
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 0487233
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-learning
 probe_index_in_family: 4
@@ -88,7 +88,12 @@ Do not touch other processes/checkpoints orread-onlyexternal project.
 
 ## Results
 
-Not run yet. Fixed probe above before launching physical work.
+Engineering smoke `0487233` debug9 completed13.651s/448interactions,
+actual lambda1 recorded. Duration8/6/8/6 andterminal masks correct; independent
+MonteCarlo prefixreturn max error8.94e-8, actor changed9.68e-5, jointKL .01395/
+.001835, behaviorlogprob replay max.000535. This only validates wiring.
+Full task train run launched fromsame0487233, seed293, fixed24updates.
+No final policy/held conclusion until completed frozen comparison andaudits.
 
 ## Limitations / future evidence
 

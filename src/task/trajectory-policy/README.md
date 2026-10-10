@@ -43,6 +43,7 @@ trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略
 - [独立H→c初始化与完整执行](docs/experiments/probes/P-20261010-history-trajectory-actor.md)
 - [启动平衡初始化与转入RL的决策](docs/experiments/probes/P-20261010-startup-balanced-actor.md)
 - [首次真实任务PPO及冻结比较](docs/experiments/probes/P-20261010-trajectory-ppo.md)
+- [只改信用时间尺度的lambda1任务Probe](docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md)
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。
