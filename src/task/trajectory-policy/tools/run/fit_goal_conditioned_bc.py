@@ -260,7 +260,7 @@ def main() -> None:
     )
     manifest = dict(
         schema="ref2dex.goal-conditioned-bc.v1", status="COMPLETED",
-        task="trajectory-policy", run_id="goal-conditioned-bc-20261011-r1",
+        task="trajectory-policy", run_id=args.output.name,
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         seed=args.seed, physical_gpu=args.gpu, input_dim=INPUT_DIM,
         goal_horizon=8, action_contract="native 18-D action; twelve active coordinates",
