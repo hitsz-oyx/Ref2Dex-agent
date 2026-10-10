@@ -36,8 +36,10 @@ lambda1固定预算Probe已完成265s/48992交互，9/12长held探索行启动Ap
 `959cd74` 冻结随机64env比较85.72s完成并通过全链审计：GT4/4、dense3/4，
 warm/final各2/28长时终末held，成功均同pair8/20，clip .9818%/1.0741%。
 按固定screen局部UNCLEAR，仍没有可用baseline或稳定成功增量。
-下一步先重建真实Adam状态并逐轮exact核对checkpoint，再用保存batch检查LR恢复，
-不直接追加训练。
+`eb3e96d` 真实Adam重建通过全部25个actor/value checkpoint bitwise核对。
+单update恢复LR在19/24批次有>=2倍启动位移且更好surrogate/同KL上限，机制PROMISING；
+位移中位仅.00591mm，尚未新训练或取得物理收益。用户随后给出ref1_1：下一步先评估
+actual未来手轨迹→真实native action的learned retargeter监督路线，保留LR恢复为备选。
 不把offline信用或训练reward改善当作抓取收益，暂不再改训练或接WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
@@ -58,3 +60,6 @@ warm/final各2/28长时终末held，成功均同pair8/20，clip .9818%/1.0741%�
 
 - [冻结同噪声随机部署对比](docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md)
 - [真实Adam重建与单update更新尺度诊断](docs/experiments/probes/P-20261010-trajectory-step-replay.md)
+
+- [ref1_1 PointWAM原始来源核对](docs/research/20261010-ref1_1-pointwam-source-check.md)
+- [ref1_1对本项目的结构取舍与最小验证](docs/research/20261010-ref1_1-retargeter-design-review.md)

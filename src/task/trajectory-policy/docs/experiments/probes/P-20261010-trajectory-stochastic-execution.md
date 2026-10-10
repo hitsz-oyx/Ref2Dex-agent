@@ -99,7 +99,8 @@ warm/final各2/28长时终末持有，medianheld均0，clip分别.9818%/1.0741%�
 velocity3.81e-6，Rfeatures5.72e-6，command2.38e-7，PD0；初始states、noisebank
 seed/hash/pairID、实际执行与outcome一致。CPU配对报告工具进一步独立计算
 held连续长度、取得/失持、clip并核验同noise/初始H；报告保存到原wave新增的
-paired_outcomes.json，既有文件不覆盖。
+paired_outcomes.json，既有文件不覆盖。`eb3e96d` 配对统计通过：both2/final-only0/warm-only0/neither26；
+warm有6行形成过held，4行随后失持，final为5/3。滑窗/短时held不替代固定433帧标准。
 
 Root据此选择已有数据的**真实Adam状态重建/单update LR恢复诊断**，不是第三次
 盲目训练。当前随机策略仍只有罕见抓持，最终策略没有显示稳定成功增量；不关闭

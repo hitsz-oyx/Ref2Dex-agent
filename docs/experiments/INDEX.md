@@ -379,7 +379,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-trajectory-step-replay](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md) | Does persistent early LR backtracking constrain later useful updates? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-trajectory-step-replay](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md) | Does persistent early LR backtracking constrain later useful updates? | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF-weak-temporal-value
 

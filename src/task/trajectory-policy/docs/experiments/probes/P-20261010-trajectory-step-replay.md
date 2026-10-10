@@ -5,7 +5,7 @@ experiment_id: P-20261010-trajectory-step-replay
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: eb3e96d1aa0b1150ee63bc5090991fb66cdb804a
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-optimization
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [293]
 decision_changed_if_positive: test bounded adaptive actor step scaling with unchanged task contracts
 decision_changed_if_negative: inspect action dimension and gradient allocation before more training
-status: UNCLEAR
+status: PROMISING
 run_id: trajectory-step-replay-20261010-r1
 ---
 
@@ -81,7 +81,30 @@ FAILED manifest和已经完成的记录，不自动重跑。原训练/checkpoint
 
 ## Results
 
-Not run yet; protocol frozen before diagnostic execution.
+`eb3e96d` 完成5.394s，25个不同actor/value checkpoint（u0:23+final）逐张
+bitwise匹配，全部24update的accepted epochs/LR与保存优势exact。初始Adam状态
+为空，其后由实际updates重建；不是fresh late optimizer。GPU4约383--393MiB，
+util5--11%，短批量网络回放在预算内完成。全输入hash不变，原文件未覆盖。
+
+两臂均96accepted epochs：historical/resetLR median jointKL .003782/.017654，
+最大.015754/.019973；启动同H first8 XYZ mean单update位移中位.002289/.005909mm
+（per-coordinate RMS），surrogate .037593/.049141。19/24update同时达到>=2倍
+位移、KL<=.02和更好surrogate，通过固定机制PROMISING screen。
+12条longheld探索startup中，两臂同9条positive A、同7条概率增加，meanlogpchange
+.02365/.05408。不能说resetLR普遍改善每条启动样本，更不能说已提升抓持。
+
+历史更新median95.39%的KL来自后16步、99.04%来自XYZ；resetLR为95.29%/98.96%。
+后16步仍进入R前缀conditioning，不能据此删除或断言无效。历史u0后log_std各轮
+均无新变化，fork有若干坐标FP32变化，但最大量级约1e-6，仍几乎未改变实际探索。
+两臂最终actor LR中位都6.25e-8；区别是每update起始的可回退proposal LR，
+不能只看最终LR数字解释更新。此结果只是更大有效proposal的机制线索。
+
+用户随后给出ref1_1 learned retargeter新思路。尚未启动第三次任务训练；root先
+核对PointWAM原文与现有actual hand/action数据合同，再比较新监督路线的成本。
+LR恢复真实任务Probe仅保留为有证据支持的备选；本轮不据负baseline关闭τ路线。
+
+Artifact: `outputs/trajectory-policy/trajectory-step-replay-20261010-r1/`。
+
 
 ## Limitations / future evidence
 

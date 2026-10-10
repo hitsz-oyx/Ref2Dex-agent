@@ -61,8 +61,10 @@ RMS），探索std1mm，未形成足够mean策略变化的线索。下一步先�
 85.72s/64env完成并通过H/采样/D/FK/R/native/outcome独立审计。GT4/4、dense3/4；
 warm/final各2/28长时终末held，而且同pair8/20成功，未显示稳定成功增量。
 clip .9818%/1.0741%，局部UNCLEAR；当前没有可用trajectory baseline，Cm收益仍未证。
-下一步已有rollout真实Adam重建与单update LR恢复诊断，先核对全部历史checkpoint，
-不直接追加训练或提前接WM。
+`eb3e96d` 已有rollout真实Adam重建5.39s完成，25个actor/value checkpoint bitwise一致。
+单update LR恢复在19/24批次带来>=2倍启动mean位移、更好surrogate及同KL上限，机制
+PROMISING；没有新任务训练或物理收益。用户随后提供ref1_1，root先核对learned
+retargeter原文与actual hand/action数据合同；步长真实训练留作备选，WM尚未启用。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
