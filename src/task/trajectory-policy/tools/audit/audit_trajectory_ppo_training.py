@@ -10,6 +10,7 @@ import sys
 import time
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
@@ -55,6 +56,10 @@ def main():
     from trajectory_policy.actor import load_actor
     from trajectory_policy.ppo import HistoryValue
     from consequence_evaluator.tau_tracking import TauTracker
+    from consequence_evaluator.tau_tracking import FINGER_LIMITS
+    from consequence_evaluator.reset_kinematics import ResetKinematics
+    from consequence_evaluator.reference_motion import NATIVE_DOF_NAMES
+    from consequence_evaluator.contracts import HAND_LINKS
     torch.set_num_threads(2)
     torch.set_float32_matmul_precision('highest')
     errors = {}
@@ -128,6 +133,41 @@ def main():
     for key in ('history_mean','history_scale','action_mean','action_scale'):
         if not torch.equal(final.state_dict()[key].cpu(),first[key]):
             raise ValueError('normalization drift')
+    # Independent physical decode of every sampled c, including training noise.
+    current=low['q'][high['low_index']].reshape(-1,18)
+    rot=low['obj'][high['low_index'],:,:3,:3].reshape(-1,3,3)
+    c=high['c'].reshape(-1,24,12)*np.asarray([.01]*3+[.1]*9,np.float32)
+    q=np.zeros((len(current),25,18),np.float32)
+    q[:,1:,:3]=current[:,None,:3]+np.einsum('nij,nkj->nki',rot,c[:,:,:3].clip(-1,1))
+    relative=Rotation.from_rotvec(c[:,:,3:6].reshape(-1,3)).as_matrix().reshape(-1,24,3,3)
+    base=Rotation.from_euler('XYZ',current[:,3:6]).as_matrix()
+    matrices=rot[:,None]@relative@rot[:,None].transpose(0,1,3,2)@base[:,None]
+    prior=current[:,3:6]
+    for slot in range(24):
+        angles=Rotation.from_matrix(matrices[:,slot]).as_euler('XYZ')
+        alternative=np.stack((angles[:,0]+np.pi,np.pi-angles[:,1],angles[:,2]+np.pi),-1)
+        options=np.stack((angles,alternative),1)
+        options+=2*np.pi*np.round((prior[:,None]-options)/(2*np.pi))
+        chosen=options[np.arange(len(current)),np.sum((options-prior[:,None])**2,-1).argmin(-1)]
+        q[:,slot+1,3:6]=chosen
+        prior=q[:,slot+1,3:6]
+    q[:,1:,[6,8,10,12,14,15]]=c[:,:,6:].clip(0,np.asarray(FINGER_LIMITS))
+    for distal,parent,ratio in ((7,6,1.05),(9,8,1.05),(11,10,1.05),(13,12,1.05),(16,15,.6),(17,15,.8)):
+        q[:,:,distal]=q[:,:,parent]*ratio
+    q[:,0]=current
+    error('sampled_decode_q',q,high['q'].reshape(-1,25,18),2e-5)
+    urdf=ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf'
+    fk=ResetKinematics(urdf,NATIVE_DOF_NAMES,HAND_LINKS,torch.device('cuda'))
+    with torch.no_grad():
+        tensor=torch.as_tensor(q[:,1:].reshape(-1,18),device='cuda')
+        root=torch.zeros(len(tensor),13,device='cuda');root[:,6]=1
+        points=fk.positions(tensor,root).reshape(-1,24,11,3).cpu().numpy()
+    error('sampled_decode_hand',points,high['hand'].reshape(-1,24,11,3),2e-5)
+    delta=np.diff(q[:,1:],axis=1)
+    delta[:,:,3:6]=np.arctan2(np.sin(delta[:,:,3:6]),np.cos(delta[:,:,3:6]))
+    velocity=np.zeros_like(q)
+    velocity[:,1:]=np.concatenate((delta[:,:1],(delta[:,:-1]+delta[:,1:])/2,delta[:,-1:]),1)*30
+    error('sampled_decode_velocity',velocity,high['velocity'].reshape(-1,25,18),5e-5)
     supported=low['table_footprint']&(abs(low['support_gap'])<=.02)
     lift=low['next_obj'][:,:,2,3]-low['initial_z']
     held=(low['surface_gap']<=.01)&~supported&(lift>=.03)
@@ -182,7 +222,7 @@ def main():
         raise ValueError('interaction/event counts differ')
     report=dict(status='COMPLETED',maximum_errors=errors,actor_parameter_change=change,held_steps=int(held.sum()),
         environment_interactions=len(low['q'])*16,elapsed_s=time.monotonic()-started,
-        audited='All measured H, pre-update Gaussian density/value, bootstrap inputs/value, variable-duration reward/GAE, task events, frozen executor inputs/output and requested/applied/native PD; no physics rerun')
+        audited='All measured H, pre-update Gaussian density/value, bootstrap inputs/value, variable-duration reward/GAE, task events, independently decoded sampled c/native Euler/coupling/FK/velocity, frozen executor inputs/output and requested/applied/native PD; no physics rerun')
     args.output.mkdir(parents=True)
     (args.output/'audit.json').write_text(json.dumps(report,indent=2)+'\n')
     files=[args.training/name for name in ('manifest.json','result.json','high.npz','low.npz','final.pt','monitor.jsonl')]+[Path(__file__)]+list((args.training/'actors').glob('*.pt'))
