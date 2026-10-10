@@ -14,7 +14,8 @@ from consequence_evaluator.fixed_wrist_decoder import (
     root_template)
 from consequence_evaluator.retarget_collection import (
     ACTIVE_FINGERS, MODE_NAMES, PHASE_NAMES, finger_pulse_residual,
-    phase_code, sample_structured_residual, validate_residual_family)
+    paired_pulse_ticks, paired_triplet_pulse, phase_code,
+    sample_structured_residual, validate_residual_family)
 from consequence_evaluator.trajectory_utility import (
     OBJECT_EFFECT_DIM, SCHEMA as TRAJECTORY_SCHEMA, TRAJECTORY_DIM,
     TrajectoryUtility)
@@ -59,6 +60,24 @@ def test_serial_finger_pulse_is_one_independent_bounded_channel():
         finger_pulse_residual(1, 7, .08)
     with np.testing.assert_raises(ValueError):
         finger_pulse_residual(1, int(ACTIVE_FINGERS[0]), .13)
+
+
+def test_paired_triplet_pulse_has_control_plus_minus_order_and_schedule():
+    residual = paired_triplet_pulse(6, int(ACTIVE_FINGERS[0]), .04)
+    index = int(ACTIVE_FINGERS[0])
+    np.testing.assert_array_equal(residual[:, index],
+                                  np.asarray([0., .04, -.04, 0., .04, -.04], dtype="float32"))
+    assert np.count_nonzero(residual[:, :index]) == 0
+    assert validate_residual_family(residual[None])
+    np.testing.assert_array_equal(paired_pulse_ticks(3, "contact"), [120, 121, 122])
+    np.testing.assert_array_equal(paired_pulse_ticks(3, "hold"), [240, 241, 242])
+    ticks = paired_pulse_ticks(30, "contact")
+    pulse = paired_triplet_pulse(90, index, .08)
+    for tick in ticks:
+        groups = np.flatnonzero(ticks == tick)
+        assert int((3 * groups + 2).max()) < pulse.shape[0]
+    with np.testing.assert_raises(ValueError):
+        paired_triplet_pulse(4, int(ACTIVE_FINGERS[0]), .04)
 
 
 def test_full_action_model_and_horizon_action_normalization_contract():

@@ -16,7 +16,8 @@ sys.path[:0]=[str(TASK/'src'),str(ROOT),str(ROOT/'third_party/DExplore/dexplore'
 from consequence_evaluator.contracts import is_within, HAND_LINKS
 from consequence_evaluator.retarget_collection import (
     ACTIVE_FINGERS, MODE_NAMES, PHASE_NAMES, STRUCTURED_PROFILE_NAMES,
-    finger_pulse_residual, phase_code, sample_structured_residual,
+    finger_pulse_residual, paired_pulse_ticks,
+    phase_code, sample_structured_residual,
     validate_residual_family)
 
 
@@ -44,6 +45,8 @@ def main():
     p.add_argument('--pulse-end-tick',type=int,default=51)
     p.add_argument('--pulse-finger-index',type=int,choices=tuple(int(i) for i in ACTIVE_FINGERS),default=6)
     p.add_argument('--pulse-value',type=float,default=.08)
+    p.add_argument('--paired-phase',choices=('contact','hold'),default='contact',
+                   help='phase schedule for the paired-triplet diagnostic profile')
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
     if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
@@ -56,6 +59,11 @@ def main():
             raise ValueError('finger-pulse interval must lie within the 542 commands')
         if not np.isfinite(a.pulse_value) or abs(a.pulse_value) > .120001:
             raise ValueError('finger-pulse value exceeds the registered bound')
+    if a.structured_profile == 'paired-triplet':
+        if a.envs < 3 or a.envs % 3:
+            raise ValueError('paired-triplet requires envs to be a positive multiple of three')
+        if not np.isfinite(a.pulse_value) or abs(a.pulse_value) > .120001:
+            raise ValueError('paired-triplet pulse value exceeds the registered bound')
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
         raise RuntimeError('GPU occupied')
     scratch=ROOT/'tmp/hand-execution';scratch.mkdir(parents=True,exist_ok=True)
@@ -122,6 +130,15 @@ def main():
         contact_capture=dict(hand_field='native_contact_forces', object_field='native_object_contact_forces',
                              pair_rule='hand force norm>.1 any AND object force norm>.1'))
     if a.mode == 'retarget':
+        paired_schedule = None
+        if a.structured_profile == 'paired-triplet':
+            groups = a.envs // 3
+            pulse_ticks = paired_pulse_ticks(groups, a.paired_phase)
+            paired_schedule = dict(phase=a.paired_phase, groups=groups,
+                                   branch_order=['control','plus','minus'],
+                                   pulse_ticks=pulse_ticks.tolist(),
+                                   finger_index=a.pulse_finger_index,
+                                   pulse_value=a.pulse_value)
         manifest.update(structured_residual_schema='ref2dex.structured-residual.v1',
                         structured_profile=a.structured_profile,
                         structured_pulse=(dict(start_tick=a.pulse_start_tick,
@@ -137,7 +154,11 @@ def main():
                         saved_state_fields=['dof_position','dof_velocity'],
                         target_field='action[t:t+24] captured after actor+residual composition',
                         native_pd_target_field=('task.real_pd_tar captured during pre_physics_step; '
-                                                'Inspire active order [14,15,6,8,12,10]'))
+                                                'Inspire active order [14,15,6,8,12,10]'),
+                        paired_schedule=paired_schedule)
+        if a.structured_profile == 'paired-triplet':
+            manifest['rollout_kind'] = ('deterministic parallel triplet prefixes with a scheduled '
+                                        'single-tick command perturbation; no forks')
     write(out/'manifest.json',manifest)
     class Player(native.EvalPlayer):
         @torch.no_grad()
@@ -234,15 +255,18 @@ def main():
                     if a.structured_profile == 'random' and tick % 16 == 0:
                         phase = phase_code(tick)
                         structured, structured_modes = sample_structured_residual(rng, n, phase)
+                    elif a.structured_profile == 'paired-triplet' and tick % 16 == 0:
+                        phase = phase_code(tick)
+                        groups = n // 3
+                        base_structured, base_modes = sample_structured_residual(rng, groups, phase)
+                        structured = np.repeat(base_structured, 3, axis=0)
+                        structured_modes = np.repeat(base_modes, 3, axis=0)
                     elif a.structured_profile == 'zero':
                         structured.fill(0.)
                         structured_modes.fill(-1)
                     elif a.structured_profile == 'finger-pulse':
                         structured.fill(0.)
                         structured_modes.fill(-1)
-                        if a.pulse_start_tick <= tick < a.pulse_end_tick:
-                            structured[:] = finger_pulse_residual(
-                                n, a.pulse_finger_index, a.pulse_value)
                 decide=tick>=40 and ((tick-40)%(8 if a.mode=='planner' else 32)==0)
                 remaining=(task.max_episode_length[task.data_id]-1-task.progress_buf).cpu().numpy()
                 selected=np.flatnonzero(active&(remaining>=32)) if decide else np.array([],int)
@@ -271,6 +295,18 @@ def main():
                         decisions.append(record)
                 if a.mode == 'retarget':
                     requested=structured.copy()
+                    if a.structured_profile == 'finger-pulse':
+                        requested.fill(0.)
+                        if a.pulse_start_tick <= tick < a.pulse_end_tick:
+                            requested[:] = finger_pulse_residual(
+                                n, a.pulse_finger_index, a.pulse_value)
+                    elif a.structured_profile == 'paired-triplet':
+                        pulse_ticks = paired_pulse_ticks(n // 3, a.paired_phase)
+                        groups = np.flatnonzero(pulse_ticks == tick)
+                        if len(groups):
+                            requested[3 * groups, a.pulse_finger_index] = 0.
+                            requested[3 * groups + 1, a.pulse_finger_index] = a.pulse_value
+                            requested[3 * groups + 2, a.pulse_finger_index] = -a.pulse_value
                 else:
                     requested=np.zeros((n,18),np.float32)
                     rows=np.flatnonzero(active&(ages<8));requested[rows]=plan[rows,ages[rows]]
@@ -304,6 +340,10 @@ def main():
                 arrays.update(structured_residual=np.stack(retarget_residuals),
                               actor_action=np.stack(retarget_base), structured_mode=np.stack(retarget_modes),
                               structured_phase=np.asarray(retarget_phases,dtype=np.int8))
+                if a.structured_profile == 'paired-triplet':
+                    groups = n // 3
+                    arrays.update(paired_group=np.repeat(np.arange(groups, dtype=np.int16), 3),
+                                  paired_branch=np.tile(np.asarray([0, 1, 2], dtype=np.int8), groups))
                 validate_residual_family(arrays['structured_residual'])
             np.savez_compressed(out/'trajectory.npz',**arrays)
             windows=[]

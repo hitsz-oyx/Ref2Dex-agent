@@ -18,7 +18,7 @@ MODE_NAMES = (
     "wrist_finger",
 )
 ACTIVE_FINGERS = np.asarray([6, 8, 10, 12, 14, 15], dtype=np.int64)
-STRUCTURED_PROFILE_NAMES = ("random", "zero", "finger-pulse")
+STRUCTURED_PROFILE_NAMES = ("random", "zero", "finger-pulse", "paired-triplet")
 
 
 def finger_pulse_residual(count, finger_index, value):
@@ -42,6 +42,40 @@ def finger_pulse_residual(count, finger_index, value):
     residual = np.zeros((count, 18), dtype=np.float32)
     residual[:, finger_index] = np.float32(value)
     return residual
+
+
+def paired_triplet_pulse(count, finger_index, value):
+    """Return ``control/+d/-d`` residuals in consecutive triplet order."""
+    count = int(count)
+    finger_index = int(finger_index)
+    value = float(value)
+    if count < 1 or count % 3:
+        raise ValueError("paired triplet count must be a positive multiple of three")
+    if finger_index not in set(int(index) for index in ACTIVE_FINGERS):
+        raise ValueError("finger pulse must use an independently commanded finger")
+    if not np.isfinite(value) or abs(value) > .120001:
+        raise ValueError("finger pulse exceeds the registered residual bound")
+    residual = np.zeros((count, 18), dtype=np.float32)
+    residual[1::3, finger_index] = np.float32(value)
+    residual[2::3, finger_index] = np.float32(-value)
+    return residual
+
+
+def paired_pulse_ticks(groups, phase):
+    """Choose one deterministic pulse tick per triplet for a phase pilot."""
+    groups = int(groups)
+    if groups < 1:
+        raise ValueError("positive paired group count required")
+    if phase == "contact":
+        start = 120
+    elif phase == "hold":
+        start = 240
+    else:
+        raise ValueError("paired phase must be contact or hold")
+    ticks = np.arange(start, start + groups, dtype=np.int32)
+    if int(ticks[-1]) >= 542:
+        raise ValueError("paired pulse schedule exceeds the command sequence")
+    return ticks
 
 
 def phase_code(tick, contact_tick=120, hold_tick=240):
