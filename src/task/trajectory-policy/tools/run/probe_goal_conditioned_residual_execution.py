@@ -45,8 +45,12 @@ def main():
         parser.add_argument('--' + key, type=Path, required=True)
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--goal-env', type=int, default=0)
+    parser.add_argument('--thumb-pitch-offset', type=float, default=0.0,
+                        help='fixed raw-latent offset at active residual index 11')
     parser.add_argument('--seed', type=int, default=314)
     args = parser.parse_args()
+    if not -0.1 <= args.thumb_pitch_offset <= 0.1:
+        raise ValueError('thumb-pitch offset must be in [-0.1, 0.1]')
     args.output = args.output.resolve()
     if args.output.exists() or ROOT / 'outputs/trajectory-policy' not in args.output.parents:
         raise ValueError('fresh trajectory-policy output required')
@@ -149,6 +153,8 @@ def main():
     if reference_q.shape != (543, 18) or not torch.isfinite(reference_q).all():
         raise ValueError('geometry cache must contain a finite 543-frame q plan')
     roles = ['goal_residual'] * 16
+    fixed_offset = torch.zeros(12, device=device)
+    fixed_offset[11] = args.thumb_pitch_offset
     with args.reference.open('rb') as stream:
         import pickle
         goal_packet = pickle.load(stream)
@@ -195,6 +201,7 @@ def main():
             'not deployable no-future-q nominal reference'),
         goal_authorization='engineering_only=true, training_allowed=false packet used only for hand/object goals',
         action_contract='raw residual latent -> tanh bounded residual -> shared executor target/coupling/native clamp',
+        fixed_residual_offset=fixed_offset.cpu().tolist(),
         replan_interval=1, controls=542, envs=16, dt=1/30,
         gate=dict(long_held_terminal_min=12, clipping_rate_max=.01),
         claim='privileged nominal-reference residual-policy integration Probe; no deployable H or Cm claim')
@@ -295,7 +302,7 @@ def main():
                         current['q'], current['dq'], current['hand'], current['obj'],
                         current['velocity'], previous, hand_goal, obj_goal)
                     encoded = (raw_features - feature_mean) / feature_scale
-                    latent = policy(encoded)
+                    latent = policy(encoded) + fixed_offset
                     bounded = torch.tanh(latent)
                     nominal_q = reference_q[tick + 1].expand(n, -1)
                     nominal_v = nominal_velocity[tick + 1].expand(n, -1)

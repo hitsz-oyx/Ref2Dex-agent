@@ -134,10 +134,13 @@ def main():
         np.asarray(payload["standardizer"]["mean"], np.float32),
         np.asarray(payload["standardizer"]["scale"], np.float32),
     )
+    fixed_offset = np.asarray(manifest.get("fixed_residual_offset", np.zeros(12)), np.float32)
+    if fixed_offset.shape != (12,) or not np.isfinite(fixed_offset).all():
+        raise ValueError("invalid fixed residual offset provenance")
     with torch.inference_mode():
         replay_latent = policy(torch.from_numpy(
             standardizer.encode(expected_features.reshape(-1, expected_features.shape[-1]))
-        )).numpy().reshape(controls, envs, 12)
+        )).numpy().reshape(controls, envs, 12) + fixed_offset
     errors["latent"] = max_error(data["latent"], replay_latent)
     errors["bounded_residual"] = max_error(data["bounded_residual"], np.tanh(replay_latent))
     if errors["latent"] > 2e-5 or errors["bounded_residual"] > 2e-5:
@@ -206,6 +209,7 @@ def main():
         status="PASS", probe_status=result["status"], errors=errors,
         controls=controls, envs=envs,
         privileged_nominal_reference=True,
+        fixed_residual_offset=fixed_offset.tolist(),
         audited=("source hashes, exact goal horizon, live-state features, previous bounded residual, "
                  "policy latent, tanh residual, executor target/intended/command/clipping, PD targets and outcomes"),
         claim=manifest["claim"],
