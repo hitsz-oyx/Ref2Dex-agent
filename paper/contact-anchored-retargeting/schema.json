@@ -1,0 +1,8 @@
+{
+  "title": "Dexterous Robot Manipulation from Human Demonstrations via Contact-Anchored Retargeting and Residual Policy Learning",
+  "arxiv_url": "https://arxiv.org/abs/2609.24093",
+  "code_url": "https://github.com/DexGEM-Lab/real2sim2real",
+  "verification_date": "2026-10-10",
+  "code_status": "not released; repository README says Code release coming soon; assets/LICENSE/README only",
+  "code_commit": "97f89a265968904f2a7e5a9ba2c82e88ae9afc7a"
+}

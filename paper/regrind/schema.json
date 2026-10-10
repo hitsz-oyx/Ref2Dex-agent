@@ -1,0 +1,8 @@
+{
+  "title": "A Minimalist Retargeting-Guided Reinforcement Learning Recipe for Dexterous Manipulation",
+  "arxiv_url": "https://arxiv.org/abs/2607.11874",
+  "code_url": "https://github.com/yunhaif/regrind",
+  "verification_date": "2026-10-10",
+  "code_status": "released; source and retargeted data available; IsaacSim 5.1.0 / IsaacLab 2.3.0; not executed locally",
+  "code_commit": "38347a9e30184620df04e19c63c7c72378cae103"
+}

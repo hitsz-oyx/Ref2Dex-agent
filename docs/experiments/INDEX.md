@@ -278,6 +278,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261007-ref5-data-expansion](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-ref5-data-expansion.md) | Ref5 native-3D expansion and EgoDex engineering pilot | 见原卡 | test whether existing GRAB/ARCTIC and native EgoDex hands can feed | probes/UNCLEAR |
 
+## HF-reference-tracking-control
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-reference-tracking](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md) | Does reference-conditioned residual RL recover native object holding? | Pending bounded Probe; no tau-to-action completion claim. | First separate robot-reference control feasibility from 11-point retargeting quality. | probes/RUNNING |
+
 ## HF-relative-action
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

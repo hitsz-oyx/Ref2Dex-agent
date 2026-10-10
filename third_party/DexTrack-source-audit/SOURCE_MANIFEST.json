@@ -1,0 +1,44 @@
+{
+  "repository": "https://github.com/Meowuu7/DexTrack",
+  "commit": "1005fad6158c3fa0e4e8df01323de2f62d539f7a",
+  "verification_date": "2026-10-10",
+  "scope": "read-only selected-source snapshot; not installed or executed",
+  "files": [
+    {
+      "path": "README.md",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/README.md",
+      "bytes": 21556,
+      "sha256": "9690bb81f35876aee4bd022725e07da272f5aecb7523ad56eef7c0d936c82ae4"
+    },
+    {
+      "path": "LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/LICENSE.txt",
+      "bytes": 1615,
+      "sha256": "68f7ce6ed43e93e5d6404a9b05f97c0864a32b373548dba93a2c262e81561931"
+    },
+    {
+      "path": "isaacgymenvs/tasks/allegro_hand_tracking_generalist.py",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/isaacgymenvs/tasks/allegro_hand_tracking_generalist.py",
+      "bytes": 867248,
+      "sha256": "8b2c5ef1075841faff0655205b058d89791438fe8de985ba23854851ae8ce7c5"
+    },
+    {
+      "path": "isaacgymenvs/cfg/task/AllegroHandTrackingGeneralist.yaml",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/isaacgymenvs/cfg/task/AllegroHandTrackingGeneralist.yaml",
+      "bytes": 24956,
+      "sha256": "67814882a76873aaef3e00bffc9dc26c6104507b19c9193f06ffc653d4046d33"
+    },
+    {
+      "path": "isaacgymenvs/scripts/run_tracking_headless_grab_single.sh",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/isaacgymenvs/scripts/run_tracking_headless_grab_single.sh",
+      "bytes": 26880,
+      "sha256": "cf92463ddfd4c4e9db65706a9541eb5bf3059ea2e91dce9c11013b9f40fe57a0"
+    },
+    {
+      "path": "isaacgymenvs/scripts/run_tracking_headless_grab_single_ctlv2.sh",
+      "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/isaacgymenvs/scripts/run_tracking_headless_grab_single_ctlv2.sh",
+      "bytes": 37160,
+      "sha256": "45ccb3d77c4f746d39ff412117b6d86cf768cf7ed5986b0fc067a6b4ab9baff4"
+    }
+  ]
+}

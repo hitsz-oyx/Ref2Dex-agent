@@ -146,3 +146,10 @@ rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改�
 替代该路线的PPO暂停：h8真实rollout监督actor z，普通/条件/shuffle/stopgrad四臂，
 source_e260恢复，保持原奖励与actor推理结构。单seed短训练、同z独立return诊断及
 完整episode评价，资源预算与停止条件见Task卡P-20261006-gt-interaction-aux。
+
+2026-10-10 用户在 ref7_3 开源路线审查后授权最小 reference-tracking control Probe。
+本项仅为该 Probe 重开原生 Inspire/Gym 的小残差 PPO 与交互跟踪奖励；保留 owned
+e260 作为独立对照，tracker 从零残差初始化。先使用明确声明的 measured robot/object
+oracle reference 区分执行控制与 tau retargeting，不外推为 tau-only 或 Cm utility。
+一张空闲 GPU，总上限27分钟/2GiB，不突破全局预算；协议与停止条件见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md`。
