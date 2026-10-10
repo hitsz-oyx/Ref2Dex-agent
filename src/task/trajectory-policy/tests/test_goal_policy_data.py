@@ -2,7 +2,8 @@ import numpy as np
 
 from trajectory_policy.goal_policy import INPUT_DIM, RESIDUAL_INPUT_DIM
 from trajectory_policy.goal_policy_data import (
-    build_goal_policy_dataset, build_goal_residual_dataset, split_by_environment,
+    build_goal_finger_residual_dataset, build_goal_policy_dataset,
+    build_goal_residual_dataset, split_by_environment,
 )
 
 
@@ -54,3 +55,19 @@ def test_residual_dataset_uses_self_owned_latent_labels():
     previous_offset = 18 + 18 + 11 * 3 + 24 * 11 * 3 + 24 * 12 + 6
     np.testing.assert_allclose(data.features[1, previous_offset + 1], np.tanh(-3.0))
     assert not np.isclose(data.features[1, previous_offset + 1], 7.)
+
+
+def test_finger_residual_dataset_masks_wrist_labels_and_history():
+    trajectory = _trajectory()
+    trajectory["latent"][..., :6] = 4.
+    trajectory["latent"][..., 6:] = -2.
+    reference_hand = np.zeros((10, 11, 3), np.float32)
+    reference_obj = np.tile(np.eye(4, dtype=np.float32), (10, 1, 1))
+    data = build_goal_finger_residual_dataset(
+        trajectory, reference_hand, reference_obj,
+        ["tracker", "tracker", "tracker", "nominal"], role="tracker")
+    assert data.labels.shape == (3 * 9, 6)
+    np.testing.assert_array_equal(data.labels[:, 0], -2.)
+    previous_offset = 18 + 18 + 11 * 3 + 24 * 11 * 3 + 24 * 12 + 6
+    np.testing.assert_array_equal(data.features[1, previous_offset:previous_offset + 6], 0.)
+    np.testing.assert_allclose(data.features[1, previous_offset + 6], np.tanh(-2.))

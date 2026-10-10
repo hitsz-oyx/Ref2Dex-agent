@@ -74,7 +74,8 @@ def main():
     from consequence_evaluator.gate1 import episode_outcome
     from trajectory_policy.goal_executor import GoalConditionedExecutor
     from trajectory_policy.goal_policy import (
-        RESIDUAL_GOAL_HORIZON, GoalConditionedResidualPolicy,
+        FINGER_RESIDUAL_INDICES, RESIDUAL_GOAL_HORIZON,
+        GoalConditionedFingerResidualPolicy, GoalConditionedResidualPolicy,
         ResidualStandardizer, residual_goal_features,
     )
     from trajectory_policy.inputs import load_geometry
@@ -121,7 +122,10 @@ def main():
     residual_manifest = json.loads(args.residual_manifest.read_text())
     residual_result = json.loads((args.residual_checkpoint.parent / 'result.json').read_text())
     if (residual_manifest.get('status') != 'COMPLETED'
-            or residual_manifest.get('schema') != 'ref2dex.goal-conditioned-residual-bc-run.v1'
+            or residual_manifest.get('schema') not in (
+                'ref2dex.goal-conditioned-residual-bc-run.v1',
+                'ref2dex.goal-conditioned-finger-residual-bc-run.v1',
+            )
             or residual_result.get('status') != 'PROMISING'
             or not residual_result.get('offline_only')):
         raise ValueError('completed promising residual BC Probe required')
@@ -131,13 +135,21 @@ def main():
         if sha(path) != digest:
             raise ValueError('residual source/input drift: ' + path)
     payload = torch.load(args.residual_checkpoint, map_location=device, weights_only=False)
-    if payload.get('schema') != GoalConditionedResidualPolicy.schema:
+    if payload.get('schema') == GoalConditionedResidualPolicy.schema:
+        finger_only = False
+        policy_class = GoalConditionedResidualPolicy
+    elif payload.get('schema') == GoalConditionedFingerResidualPolicy.schema:
+        finger_only = True
+        policy_class = GoalConditionedFingerResidualPolicy
+        if abs(args.thumb_pitch_offset) > 1e-12:
+            raise ValueError('fixed wrist/thumb offset is incompatible with finger-only policy')
+    else:
         raise ValueError('residual checkpoint schema mismatch')
     if payload.get('input_dim') != residual_manifest.get('input_dim'):
         raise ValueError('residual input dimension provenance mismatch')
     if payload.get('goal_horizon') != RESIDUAL_GOAL_HORIZON:
         raise ValueError('residual horizon must be 24')
-    policy = GoalConditionedResidualPolicy(width=int(payload['width'])).to(device)
+    policy = policy_class(width=int(payload['width'])).to(device)
     policy.load_state_dict(payload['state_dict'], strict=True)
     policy.eval()
     for parameter in policy.parameters():
@@ -200,7 +212,10 @@ def main():
             'privileged geometry cache q and position-derived velocity; integration diagnostic only; '
             'not deployable no-future-q nominal reference'),
         goal_authorization='engineering_only=true, training_allowed=false packet used only for hand/object goals',
-        action_contract='raw residual latent -> tanh bounded residual -> shared executor target/coupling/native clamp',
+        action_contract=('raw 6-D finger latent with zero wrist residual -> tanh bounded residual -> '
+                         'shared executor target/coupling/native clamp' if finger_only else
+                         'raw 12-D residual latent -> tanh bounded residual -> shared executor target/coupling/native clamp'),
+        policy_mode='finger_only' if finger_only else 'full_residual',
         fixed_residual_offset=fixed_offset.cpu().tolist(),
         replan_interval=1, controls=542, envs=16, dt=1/30,
         gate=dict(long_held_terminal_min=12, clipping_rate_max=.01),
@@ -302,7 +317,13 @@ def main():
                         current['q'], current['dq'], current['hand'], current['obj'],
                         current['velocity'], previous, hand_goal, obj_goal)
                     encoded = (raw_features - feature_mean) / feature_scale
-                    latent = policy(encoded) + fixed_offset
+                    raw_output = policy(encoded)
+                    if finger_only:
+                        latent = torch.zeros(n, 12, device=device, dtype=raw_output.dtype)
+                        latent[:, list(FINGER_RESIDUAL_INDICES)] = raw_output
+                    else:
+                        latent = raw_output
+                    latent = latent + fixed_offset
                     bounded = torch.tanh(latent)
                     nominal_q = reference_q[tick + 1].expand(n, -1)
                     nominal_v = nominal_velocity[tick + 1].expand(n, -1)

@@ -7,6 +7,7 @@ from trajectory_policy.goal_policy import (
     INPUT_DIM,
     RESIDUAL_GOAL_HORIZON,
     RESIDUAL_INPUT_DIM,
+    GoalConditionedFingerResidualPolicy,
     GoalConditionedResidualPolicy,
     GoalConditionedPolicy,
     ResidualStandardizer,
@@ -60,6 +61,14 @@ def test_residual_policy_emits_executor_latent():
     policy = GoalConditionedResidualPolicy(width=32)
     output = policy(torch.randn(3, RESIDUAL_INPUT_DIM))
     assert output.shape == (3, 12)
+    assert torch.isfinite(output).all()
+
+
+def test_finger_residual_policy_emits_only_six_active_finger_latents():
+    torch.manual_seed(9)
+    policy = GoalConditionedFingerResidualPolicy(width=32)
+    output = policy(torch.randn(3, RESIDUAL_INPUT_DIM))
+    assert output.shape == (3, 6)
     assert torch.isfinite(output).all()
 
 

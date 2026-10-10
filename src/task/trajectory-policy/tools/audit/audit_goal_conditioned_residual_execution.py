@@ -56,7 +56,10 @@ def main():
     fit_manifest = json.loads(args.residual_manifest.read_text())
     fit_result = json.loads((args.residual_checkpoint.parent / "result.json").read_text())
     if (fit_manifest.get("status") != "COMPLETED"
-            or fit_manifest.get("schema") != "ref2dex.goal-conditioned-residual-bc-run.v1"
+            or fit_manifest.get("schema") not in (
+                "ref2dex.goal-conditioned-residual-bc-run.v1",
+                "ref2dex.goal-conditioned-finger-residual-bc-run.v1",
+            )
             or fit_result.get("status") != "PROMISING"):
         raise ValueError("promising residual BC provenance required")
     if sha(args.residual_checkpoint) != fit_result.get("checkpoint_sha256"):
@@ -98,7 +101,8 @@ def main():
     from consequence_evaluator.reference_tracking import reference_velocity
     from trajectory_policy.goal_executor import GoalConditionedExecutor
     from trajectory_policy.goal_policy import (
-        RESIDUAL_GOAL_HORIZON, GoalConditionedResidualPolicy,
+        FINGER_RESIDUAL_INDICES, RESIDUAL_GOAL_HORIZON,
+        GoalConditionedFingerResidualPolicy, GoalConditionedResidualPolicy,
         ResidualStandardizer, residual_goal_features,
     )
 
@@ -127,7 +131,15 @@ def main():
         raise ValueError("feature replay mismatch: " + repr(errors))
 
     payload = torch.load(args.residual_checkpoint, map_location="cpu", weights_only=False)
-    policy = GoalConditionedResidualPolicy(width=int(payload["width"]))
+    if payload.get("schema") == GoalConditionedResidualPolicy.schema:
+        finger_only = False
+        policy_class = GoalConditionedResidualPolicy
+    elif payload.get("schema") == GoalConditionedFingerResidualPolicy.schema:
+        finger_only = True
+        policy_class = GoalConditionedFingerResidualPolicy
+    else:
+        raise ValueError("residual checkpoint schema mismatch")
+    policy = policy_class(width=int(payload["width"]))
     policy.load_state_dict(payload["state_dict"], strict=True)
     policy.eval()
     standardizer = ResidualStandardizer(
@@ -138,9 +150,15 @@ def main():
     if fixed_offset.shape != (12,) or not np.isfinite(fixed_offset).all():
         raise ValueError("invalid fixed residual offset provenance")
     with torch.inference_mode():
-        replay_latent = policy(torch.from_numpy(
+        raw_output = policy(torch.from_numpy(
             standardizer.encode(expected_features.reshape(-1, expected_features.shape[-1]))
-        )).numpy().reshape(controls, envs, 12) + fixed_offset
+        ))
+        if finger_only:
+            replay_latent = torch.zeros(raw_output.shape[0], 12, dtype=raw_output.dtype)
+            replay_latent[:, list(FINGER_RESIDUAL_INDICES)] = raw_output
+        else:
+            replay_latent = raw_output
+        replay_latent = replay_latent.numpy().reshape(controls, envs, 12) + fixed_offset
     errors["latent"] = max_error(data["latent"], replay_latent)
     errors["bounded_residual"] = max_error(data["bounded_residual"], np.tanh(replay_latent))
     if errors["latent"] > 2e-5 or errors["bounded_residual"] > 2e-5:
@@ -209,6 +227,7 @@ def main():
         status="PASS", probe_status=result["status"], errors=errors,
         controls=controls, envs=envs,
         privileged_nominal_reference=True,
+        policy_mode="finger_only" if finger_only else "full_residual",
         fixed_residual_offset=fixed_offset.tolist(),
         audited=("source hashes, exact goal horizon, live-state features, previous bounded residual, "
                  "policy latent, tanh residual, executor target/intended/command/clipping, PD targets and outcomes"),
