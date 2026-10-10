@@ -8,7 +8,7 @@ import torch
 
 TASK = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TASK / 'src'))
-from oakink_wm.video_points import sample_window, collate_video, balanced_flow_loss, flow_metrics
+from oakink_wm.video_points import sample_window, collate_video, balanced_flow_loss, flow_metrics, VideoWindows
 
 
 def sequence():
@@ -72,3 +72,24 @@ def test_background_density_cannot_change_kind_balanced_loss():
                 if value.ndim >= 2 and value.shape[1] == 40 else value for key, value in batch.items()}
     longer = torch.zeros_like(repeated['target_flow'])
     torch.testing.assert_close(balanced_flow_loss(longer, repeated), original)
+
+
+def test_window_blocks_preserve_birth_specific_identity_and_clock(tmp_path):
+    import json
+    points, valid, kind, ts = sequence()
+    # Two independently born windows, with distinct origins and start times.
+    blocks = np.stack((points[:28], points[2:30] + 10))
+    clocks = np.stack((ts[:28], ts[2:30]))
+    np.savez_compressed(tmp_path / 'scene.npz', points=blocks,
+                        valid=np.stack((valid[:28], valid[2:30])),
+                        kind=np.stack((kind, kind)), timestamps=clocks)
+    (tmp_path / 'manifest.json').write_text(json.dumps(dict(
+        status='QUALIFIED_VIDEO_PROBE_ONLY', protocol=dict(points_per_kind=128),
+        sequences=[dict(scene='scene', split='train', file='scene.npz', window_starts=[0, 1])])) )
+    dataset = VideoWindows(tmp_path, 'train')
+    expected = sample_window(blocks[1], valid[2:30], kind, clocks[1], 0)
+    for key in expected:
+        np.testing.assert_array_equal(dataset[1][key], expected[key])
+    # Change a different birth's future; this birth's observed input is stable.
+    dataset.sequences['scene']['points'][0, 4:] = np.nan
+    np.testing.assert_array_equal(dataset[1]['features'], expected['features'])

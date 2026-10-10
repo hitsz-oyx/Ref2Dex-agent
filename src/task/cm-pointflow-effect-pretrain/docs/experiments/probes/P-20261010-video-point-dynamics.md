@@ -119,3 +119,32 @@ visibility masks condition scored support and must be reported. History-only
 predictability does not demonstrate human-action causality or robot usefulness.
 Positive evidence still needs native encoder-transfer and matched conditioning
 controls, then the global Mission's self-trained robot policy comparison.
+
+## Completed diagnosis and next bounded decision (2026-10-10)
+
+`train-r1/fit-audit.json` at `6663d42` reproduces the negative development
+result. On the two train clips with h24 support, model/static object EPE is
+4.70/7.51mm and2.86/5.64mm. Current-only input intervention changes development
+object h24 only21.861→21.875mm; this is not a matched conditioning experiment.
+Independent read-only review found no definite indexing, future-input leakage,
+loss or checkpoint-identity error. Label quality remains weak.
+
+Crucially,28 training windows provide only150 scored h24 object observations
+(125 from `_14`,25 from `_15`). All4034 development h24 object observations
+come from one clip, `P03_13_12`; `_10/_19` supply none. Windows overlap and are
+not independent episodes. Run-level result is UNPROMISING at the preset gate;
+route-level evidence remains UNCLEAR. Do not scale from this result.
+
+Decision: distinguish premature clip-start track death from intrinsically poor
+long-horizon support. Reuse exactly the same seven clips, source hashes, split,
+LK F/B1px, masks, camera convention and fixed training recipe. Initialize new
+object/background identities at EACH window's first HISTORY frame, then keep
+identity stable for its55 source frames; failed RGB identities never revive
+within a window. Separate births do not assert cross-window identity. Enumerate
+all stride2 starts, keeping windows/points by HISTORY support only. Report
+future support separately; do not use it to choose input points. Qualification
+for another500-update run requires >=16 scored h24 object observations in at
+least2 clips in EACH split. If this corpus gate fails, stop training and inspect
+motion-support/label alternatives. New output `data-window-births-r3/`; preparation
+<=600s CPU, <=1GiB, existing total5GiB/15min GPU limits apply. This is a reversible
+sampling refinement within the existing Mission and user authorization.

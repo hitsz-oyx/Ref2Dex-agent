@@ -79,6 +79,12 @@ class VideoWindows(Dataset):
     def __getitem__(self, index):
         scene, start = self.index[index]
         a = self.sequences[scene]
+        if a['points'].ndim == 4:
+            # Each block births identities at its own HISTORY start. No identity
+            # continuity is asserted between overlapping blocks.
+            return sample_window(a['points'][start], a['valid'][start],
+                                 a['kind'][start], a['timestamps'][start], 0,
+                                 self.manifest['protocol']['points_per_kind'])
         return sample_window(a['points'], a['valid'], a['kind'], a['timestamps'], start,
                              self.manifest['protocol']['points_per_kind'])
 

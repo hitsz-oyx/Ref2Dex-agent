@@ -106,6 +106,7 @@ def main():
     atomic_json(args.output / 'input_manifest.json', identity)
     amp = torch.cuda.is_bf16_supported()
     started = time.monotonic()
+    last_gpu_sample = -10.
     status, step = 'RUNNING', 0
     try:
         if not args.smoke:
@@ -135,6 +136,11 @@ def main():
                                   elapsed_seconds=elapsed, updates_per_second=step / elapsed,
                                   estimated_remaining_seconds=(args.steps - step) * elapsed / step,
                                   peak_memory_mib=torch.cuda.max_memory_allocated() / 1024 ** 2)
+                    if elapsed - last_gpu_sample >= 10. or step == args.steps:
+                        record['nvml_gpu_rows'] = subprocess.check_output(
+                            ['nvidia-smi', '--query-gpu=index,utilization.gpu,memory.used',
+                             '--format=csv,noheader,nounits'], text=True).strip().splitlines()
+                        last_gpu_sample = elapsed
                     log.write(json.dumps(record) + '\n')
                     print(json.dumps(record), flush=True)
                 if not args.smoke and step % 100 == 0:
