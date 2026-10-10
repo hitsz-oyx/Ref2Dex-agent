@@ -96,6 +96,7 @@ def main():
     reference_q = torch.as_tensor(geometry_data['q'], device=device)
     reference_hand = torch.as_tensor(hand, device=device)
     lowrank = args.decoder_basis is not None
+    metric = False
     if lowrank:
         from trajectory_policy.lowrank_decoder import LowrankDecoder
         basis_manifest = json.loads((args.decoder_basis/'manifest.json').read_text())
@@ -111,7 +112,9 @@ def main():
         for name in ('manifest.json', 'result.json', 'basis.npz'):
             path = args.decoder_basis/name
             hashes[str(path.resolve())] = sha(path)
-        decoder = LowrankDecoder(urdf, device, args.decoder_basis/'basis.npz')
+        from trajectory_policy.metric_decoder import MetricDecoder, SCHEMA as METRIC_SCHEMA
+        metric = basis_manifest['schema'] == METRIC_SCHEMA
+        decoder = (MetricDecoder if metric else LowrankDecoder)(urdf, device, args.decoder_basis/'basis.npz')
     else:
         decoder = TrajectoryDecoder(urdf, device)
     policy = TauTracker().to(device)
@@ -123,13 +126,14 @@ def main():
     for parameter in policy.parameters():
         parameter.requires_grad_(False)
     weights = {key: value.clone() for key, value in policy.state_dict().items()}
-    learned_roles = ['lowrank48', 'lowrank48_repeat'] if lowrank else ['knots48', 'knots48_repeat']
+    representation = 'metric48' if metric else ('lowrank48' if lowrank else 'knots48')
+    learned_roles = [representation, representation+'_repeat']
     roles = np.random.default_rng(297).permutation(np.repeat(['tau_gt', 'dense_fk']+learned_roles, 4)).tolist()
     args.output.mkdir(parents=True)
     manifest = dict(schema='ref2dex.trajectory-decoder-execution.v1', status='RUNNING',
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, gpu_before=before, seed=297, roles=roles, input_sha256=hashes,
-        representation='lowrank48' if lowrank else 'knots48',
+        representation=representation,
         inference_contract='Oracle future HAND-derived geometry labels only; live object/q; frozen R; not H-to-c inference',
         replan_interval=8, controls=542, envs=16, dt=1/30,
         claim='Single-motion decoder/executor coverage Probe, not trained policy or Cm benefit')

@@ -58,8 +58,10 @@ def main():
         geometry_q = stream['q'].copy()
         geometry_hand = stream['fitted_points'].copy()
     roles = np.asarray(manifest['roles'])
-    lowrank = manifest.get('representation') == 'lowrank48'
-    learned_roles = ('lowrank48', 'lowrank48_repeat') if lowrank else ('knots48', 'knots48_repeat')
+    representation = manifest.get('representation', 'knots48')
+    metric = representation == 'metric48'
+    lowrank = representation in ('metric48', 'lowrank48')
+    learned_roles = (representation, representation+'_repeat')
     if set(roles) != {'tau_gt', 'dense_fk', *learned_roles} or any(sum(roles == r) != 4 for r in set(roles)):
         raise ValueError('predeclared roles differ')
     gt, dense = roles == 'tau_gt', roles == 'dense_fk'
@@ -94,20 +96,32 @@ def main():
         if lowrank:
             from scipy.special import expit
             value = (basis['mean']+(plans['c'][j, compressed]*basis['latent_scale'])@basis['components']).reshape(-1, 24, 12)
-            value *= np.asarray([.1]*3+[.5]*3+[4.]*6, np.float32)
+            value *= np.asarray([.01]*3+[.1]*9 if metric else [.1]*3+[.5]*3+[4.]*6, np.float32)
             rot = plans['query_obj'][j, compressed, :3, :3]
             cur = q[compressed, 0]
-            xyz = cur[:, None, :3]+np.einsum('nij,nkj->nki', rot, np.tanh(value[:, :, :3]))
+            xyz = cur[:, None, :3]+np.einsum('nij,nkj->nki', rot, value[:, :, :3].clip(-1, 1) if metric else np.tanh(value[:, :, :3]))
             angular = value[:, :, 3:6]
             radius = np.linalg.norm(angular, axis=-1, keepdims=True)
-            vector = angular*(np.pi*np.tanh(radius)/np.maximum(radius, 1e-12))
+            vector = angular if metric else angular*(np.pi*np.tanh(radius)/np.maximum(radius, 1e-12))
             relative = Rotation.from_rotvec(vector.reshape(-1, 3)).as_matrix().reshape(-1, 24, 3, 3)
             current_rot = Rotation.from_euler('XYZ', cur[:, 3:6]).as_matrix()
             expected_rot = rot[:, None] @ relative @ rot[:, None].transpose(0, 1, 3, 2) @ current_rot[:, None]
             actual_rot = Rotation.from_euler('XYZ', q[compressed, 1:, 3:6].reshape(-1, 3)).as_matrix().reshape(-1, 24, 3, 3)
             error('knots_translation', q[compressed, 1:, :3], xyz)
             error('knots_rotation_matrix', actual_rot, expected_rot)
-            error('knots_fingers', q[compressed][:, 1:, [6, 8, 10, 12, 14, 15]], expit(value[:, :, 6:])*np.asarray([1.6]*4+[1.15, .55]))
+            limits = np.asarray([1.6]*4+[1.15, .55])
+            finger_target = np.maximum(np.minimum(value[:, :, 6:], limits), 0) if metric else expit(value[:, :, 6:])*limits
+            error('knots_fingers', q[compressed][:, 1:, [6, 8, 10, 12, 14, 15]], finger_target)
+            if metric:
+                rotation = rot[:, None]
+                reference_rot = Rotation.from_euler('XYZ', target[:, 3:6]).as_matrix()
+                relative_label = rotation.transpose(0, 1, 3, 2) @ reference_rot[None] @ current_rot[:, None].transpose(0, 1, 3, 2) @ rotation
+                label_rv = Rotation.from_matrix(relative_label.reshape(-1, 3, 3)).as_rotvec().reshape(-1, 24, 3)
+                label_xyz = np.einsum('nij,nkj->nki', rot.transpose(0, 2, 1), target[None, :, :3]-cur[:, None, :3])
+                label_fingers = np.broadcast_to(target[None, :, [6, 8, 10, 12, 14, 15]], (len(cur), 24, 6))
+                coordinate = (np.concatenate((label_xyz, label_rv, label_fingers), -1)/np.asarray([.01]*3+[.1]*9, np.float32)).reshape(-1, 288)
+                encoded = ((coordinate-basis['mean'])@basis['encoder_components']/basis['latent_scale']).astype(np.float32)
+                error('encoder_c', encoded, plans['c'][j, compressed])
         else:
             nodes = q[compressed][:, [1, 8, 16, 24]]
             labels = target[[0, 7, 15, 23]]

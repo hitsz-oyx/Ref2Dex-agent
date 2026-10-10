@@ -207,3 +207,8 @@ FK复算，<=120s/2GPUmin/64MiB；无神经训练/仿真/额外seed/WM，协议�
 手轨迹几何坐标basis拟合/audit<=120s，几何screen通过后一次16env原生执行<=300s；
 无高层策略训练/WM/额外seed。协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md`。
+
+2026-10-10 trajectory-policy pose/FF metric D48 Probe：单空闲GPU2，<=8GPUmin/512MiB，
+fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无策略训练/WM/
+额外seed。此次后停止48D重建搜索，转入可执行轨迹表示的H->c学习。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md`。
