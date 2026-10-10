@@ -68,6 +68,25 @@ one physical table. Frozen ImageNet ResNet18 frame-local current features and si
 matched500-update arms also fail: history_rgb4.173/future_hand_rgb4.415 vs
 persistence3.435counts. Stop this local recipe; no sensor/native auxiliary expansion.
 
+## Open-source-first follow-up (user steering)
+
+User explicitly requests existing open-source assets before writing new pipelines,
+with the decision being whether video helps our existing model. The new
+[source usage review](research/2026-10-10-open-video-data-usage.md) distinguishes
+author ObjectForesight rigid-pose supervision from our LK pilot, PointWorld
+DROID video pretraining, and PointWAM's paper-only human-video recipe.
+Pause the proposed custom RGB/LK observation entry and future-sensor expansion.
+Offline teacher processing is permissible for representation pretraining, while
+deployment/causal forecasting claims still require independently qualified inputs.
+
+Decision note: acquire pinned official PointWorld small-DROID checkpoint
+(1,826,853,514 bytes, SHA256 ccb9ed93dff5eea976010c57dd0cb5634db61c68b732c4437cbf54c8da9de8fe)
+and inspect backbone key/shape compatibility only. New artifact cap3GiB,
+download deadline15min, CPU metadata inspection2min, no GPU training or full
+corpus/DINO download. Stop on source/hash drift, collision, cap or incompatibility.
+Compatibility permits a separately frozen native matched initialization Probe;
+it does not establish transfer benefit. No new external authorization needed.
+
 ## Current decision and resources
 
 Retain native main3 model and all weak-label/sensor evidence. Video follow-up
