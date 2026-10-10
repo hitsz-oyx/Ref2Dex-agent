@@ -162,3 +162,28 @@ thresholds. No new dataset download or source-video split. Output
 `data-recovered-births-r4/`, CPU<=600s, total artifact cap unchanged. If a second
 dev clip still fails, choose a shorter-horizon/data-quality probe before training;
 large-scale training remains gated.
+
+The `fbcbc07` recovery adds `_8` with6 history-valid dev windows but no h24
+object support; `_17/_4` still have no accepted history windows. The same
+h24 corpus gate fails. Preserve this result; no h24 retraining or scaling.
+
+Short-horizon follow-up protocol (before training): qualify h8 (actual0.26693s)
+from `data-recovered-births-r4/`, >=16 scored object observations in >=2 clips
+per split. All history-qualified windows/points remain present; future support
+only qualifies the corpus and determines reported metric support. Retain all24
+labels for audit, but h9..h24 are excluded from training loss and scored metrics.
+Use same random initialization/seed226, PTv3/head topology, batch2/AdamW and
+fixed500-update final checkpoint; do not reuse/select the negative trained model.
+Result addresses short-term motion only, not long-term prediction.
+
+Fix the decision gate before execution: model object h8 clip-macro EPE over dev
+clips with>=16 labels must beat the macro of each clip's better static/CV by>=10%,
+with no qualifying clip worse than its better baseline by>20%, and background
+point-weighted h8 EPE<=1.2x static. Report each clip and support alongside pooled
+metrics; sparse clips are still reported and trained according to their original
+split, not silently removed. Diagnostic evaluations cannot select a checkpoint.
+Negative means investigate label/interaction quality before additional training;
+positive justifies a bounded native transfer comparison. Output view
+`data-h8-view-r5/`, run `train-h8-r2/`; one verified-free GPU<=15min cumulatively,
+all outputs<=5GiB. Automated NVML utilization/memory samples supplement ETA and
+allocator-peak telemetry. No full dataset acquisition or remote machine work.

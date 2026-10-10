@@ -82,11 +82,17 @@ class VideoWindows(Dataset):
         if a['points'].ndim == 4:
             # Each block births identities at its own HISTORY start. No identity
             # continuity is asserted between overlapping blocks.
-            return sample_window(a['points'][start], a['valid'][start],
-                                 a['kind'][start], a['timestamps'][start], 0,
-                                 self.manifest['protocol']['points_per_kind'])
-        return sample_window(a['points'], a['valid'], a['kind'], a['timestamps'], start,
-                             self.manifest['protocol']['points_per_kind'])
+            sample = sample_window(a['points'][start], a['valid'][start],
+                                   a['kind'][start], a['timestamps'][start], 0,
+                                   self.manifest['protocol']['points_per_kind'])
+        else:
+            sample = sample_window(a['points'], a['valid'], a['kind'], a['timestamps'], start,
+                                   self.manifest['protocol']['points_per_kind'])
+        horizon = self.manifest['protocol'].get('supervised_horizon', HORIZON)
+        if not 1 <= horizon <= HORIZON:
+            raise ValueError('unsupported video supervision horizon')
+        sample['target_valid'][:, horizon:] = False
+        return sample
 
 
 def collate_video(samples):
@@ -125,13 +131,13 @@ def balanced_flow_loss(prediction, batch, scale=.01):
     return torch.stack(terms).mean()
 
 
-def flow_metrics(prediction, batch):
+def flow_metrics(prediction, batch, horizon=HORIZON):
     error = torch.linalg.vector_norm(prediction - batch['target_flow'], dim=-1)
     result = {}
     for group, name in ((0, 'background'), (1, 'object')):
         mask = batch['target_valid'] & batch['point_valid'][..., None] & (batch['point_kind'][..., None] == group)
-        for horizon, suffix in ((None, 'all'), (23, 'h24')):
-            selected = mask if horizon is None else mask[..., horizon]
-            values = error if horizon is None else error[..., horizon]
+        for step, suffix in ((None, 'all'), (horizon - 1, 'h%d' % horizon)):
+            selected = mask[..., :horizon] if step is None else mask[..., step]
+            values = error[..., :horizon] if step is None else error[..., step]
             result[name + '/' + suffix] = (float(values[selected].sum()), int(selected.sum()))
     return result

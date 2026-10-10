@@ -93,3 +93,13 @@ def test_window_blocks_preserve_birth_specific_identity_and_clock(tmp_path):
     # Change a different birth's future; this birth's observed input is stable.
     dataset.sequences['scene']['points'][0, 4:] = np.nan
     np.testing.assert_array_equal(dataset[1]['features'], expected['features'])
+    dataset.manifest['protocol']['supervised_horizon'] = 8
+    short = dataset[1]
+    np.testing.assert_array_equal(short['features'], expected['features'])
+    assert short['target_valid'][:, :8].all()
+    assert not short['target_valid'][:, 8:].any()
+    batch = collate_video([short])
+    pred = torch.zeros_like(batch['target_flow'], requires_grad=True)
+    balanced_flow_loss(pred, batch).backward()
+    assert not pred.grad[:, :, 8:].any()
+    assert flow_metrics(pred.detach(), batch, horizon=8)['object/h8'][1] == 20
