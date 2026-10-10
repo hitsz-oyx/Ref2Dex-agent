@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-interface-diagnosis
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 8330b07
+git_commit: e3f5a17
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 2
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [298]
 decision_changed_if_positive: repair proposal bootstrap coverage if handoff restores acquisition
 decision_changed_if_negative: fix online tau executor interface before new proposal training
-status: UNCLEAR
-run_id: generated-tau-interface-diagnosis-20261010-r1
+status: PROMISING
+run_id: generated-tau-interface-diagnosis-20261010-r2
 ---
 
 # Does the online tau execution interface preserve the GT acquisition control?
@@ -105,6 +105,31 @@ requires first-future velocity invariant to changing the live q anchor, while
 later central derivatives/angle wrapping stay intact. If either repair restores
 short hold, retain it and test pure-H generated execution; otherwise investigate
 remaining chunk conditioning mismatch, without more proposal training.
+
+## Repair result and pure-H follow-up Decision Note
+
+e3f5a17 r2 completed128steps in33.96s, ~7.5GiB GPU.
+Original GT4/4held45/terminal4, no clipping; old online2/4held45/terminal0,
+median37frames, no clipping. Future-only velocity with fitted points4/4held45/
+terminal4, median69, clipping.390625%; future-only velocity with raw intent4/4
+held45/terminal4, median64, clipping0. Interface repair PROMISING for short
+acquisition; no formal causal or full-task claim. All query/current inputs0,
+privileged tau transform3.58e-7, actual897features1.91e-6/command2.38e-7/PD0.
+Saved masks and intended/fitted tau are independently checked in audit r2.
+Original r1/r2 outputs and old velocity function remain for diagnostic controls.
+
+Next minimal follow-up: default generated FF uses future-only velocity, retain
+fitted points/8step replanning and frozen original proposal/T/executor unchanged.
+One complete seed29816env/542step pure-H wave in
+`generated-tau-native-execution-20261010-r3`, <=240s, included in the same total
+5GPUmin/512MiB (two33--34s waves plus ~108s projected follow-up). No training,
+extra seed, GT startup, new candidates or padding change. Original full-execution
+>=3/4held433+terminal/clip<1% gates apply. Repair actual feedforward input only;
+if generated acquisition still fails with GT calibrated, proposal/distribution
+issues remain and then bootstrap data repair is justified. Previous original
+combination negative cannot by itself be evidence that H->tau is ineffective,
+because velocity semantics were wrong. Audit the corrected full execution before
+any such local conclusion; future-only velocity invariance tests pass.
 
 ## Limitations / future evidence
 

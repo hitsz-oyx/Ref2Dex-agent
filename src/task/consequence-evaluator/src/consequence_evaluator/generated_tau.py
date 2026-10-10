@@ -67,10 +67,12 @@ class GeneratedTau:
                             self.device,iterations=self.projection_iterations,deadline_s=30,
                             positions_only=self.positions_only,graph_cache=self.graph_cache)
         q=torch.as_tensor(fit['q'],device=self.device)
-        velocity=torch.stack([reference_velocity(v,self.dt) for v in q])
-        if 'future_velocity' in audit:
-            mask=torch.as_tensor(audit['future_velocity'],device=self.device)
-            velocity[mask]=torch.stack([future_reference_velocity(v,self.dt) for v in q[mask]])
+        # q[0] is measured calibration, not a nominal future target. Default
+        # FF excludes it; only explicit diagnostic controls retain old velocity.
+        future_velocity=np.asarray(audit.get('future_velocity',np.ones(len(q),dtype=bool)))
+        velocity=torch.stack([(future_reference_velocity(v,self.dt) if future_velocity[i]
+                              else reference_velocity(v,self.dt)) for i,v in enumerate(q)])
+        audit=dict(audit,future_velocity=future_velocity)
         hand=torch.as_tensor(fit['points'][:,1:],device=self.device)
         fitted_hand=hand.cpu().numpy().copy()
         if 'condition_raw_tau' in audit:

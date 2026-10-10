@@ -208,6 +208,19 @@ controls only, never a deployable pure-H baseline. This tests executor-path
 mismatch before assuming the untrained tick0 bootstrap is the sole cause.
 Protocol: [interface diagnostic](P-20261010-generated-tau-interface-diagnosis.md).
 
+## Implementation limitation identified after complete r2
+
+The [interface diagnostic](P-20261010-generated-tau-interface-diagnosis.md)
+found that project_tau replaces q0 with actual measured q, whereas the original
+FF derivative treated q0 as part of a nominal trajectory. This mixes tracking
+error into first-future velocity at each replan. A frozen128step GT interface
+control loses hold with the original calculation, but future-only derivatives
+restore4/4held45/terminal. Thus r2 is a valid observed negative of that executed
+combination, not sound negative evidence for the intended nominal-velocity
+proposal/executor method. Preserve artifacts and original UNPROMISING label;
+corrected full seed298 r3 is the only new follow-up, bounded under the interface
+card. Repair commit and r3 results will be recorded here when complete.
+
 ## Limitations / future evidence
 
 Single motion, few separate-live-role envs, observed-history training bank from

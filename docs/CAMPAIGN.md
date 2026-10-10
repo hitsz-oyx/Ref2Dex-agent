@@ -190,5 +190,6 @@ fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/�
 
 2026-10-10 持续主线下隔离生成τ接口与启动覆盖：冻结全部模型，GT在线投影与GT8步
 前缀仅为显式privileged诊断，不加入纯H部署。单空闲GPU，新增5GPUmin/512MiB，
-最多两次16env/128步各<=240s（共用5GPUmin上限），无训练/额外seed；协议见
+两次16env/128步接口诊断及一次修复后的542步纯H跟进，各<=240s（共用5GPUmin上限），
+无训练/额外seed；协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md`。

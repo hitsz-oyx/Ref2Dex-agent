@@ -281,6 +281,7 @@ def main():
             projection_iterations=args.projection_iterations,
             positions_only=args.positions_only,
             projection_cuda_graph=args.projection_cuda_graph,
+            projection_velocity_contract='Default nominal derivative from future geometric q only; live calibration q0 excluded; explicit legacy diagnostic controls remain recorded',
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     if args.generated_interface_diagnostic:
@@ -624,6 +625,7 @@ def main():
                                     selected['raw'][privileged]=np.einsum('npij,njk->npik',
                                         gt_world[None]-pose[:,None,None,:3,3],pose[:,:3,:3])
                                     selected['privileged_online_tau']=privileged
+                                    selected['future_velocity']=np.zeros(len(generated_ids),dtype=bool)
                                     if args.interface_variant=='feedforward':
                                         selected['future_velocity']=np.asarray([roles[i] in ('tau_future_velocity','tau_intent') for i in generated_ids])
                                         selected['condition_raw_tau']=np.asarray([roles[i]=='tau_intent' for i in generated_ids])

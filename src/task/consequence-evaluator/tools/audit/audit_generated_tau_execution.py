@@ -84,14 +84,19 @@ def main():
     future=np.stack([ref['hand_keypoints'][np.minimum(t+np.arange(1,25),542),0] for t in range(controls)])
     future=np.broadcast_to(future[:,None],(controls,16,24,11,3)).copy()
     pv=velocity(plans['q'])
+    if 'future_velocity' in plans:
+        future_v=velocity(plans['q'][...,1:,:])
+        for j in range(len(plans['ticks'])):
+            corrected=plans['future_velocity'][j]
+            pv[j,corrected,1:]=future_v[j,corrected]
+        if not diagnostic and not np.all(plans['future_velocity']):
+            raise ValueError('pure-H deployed nominal velocity still uses live anchor')
     if diagnostic and variant=='feedforward':
         corrected=roles[envs]!='tau_online'
         raw_intent=roles[envs]=='tau_intent'
         if (not np.array_equal(plans['future_velocity'],np.broadcast_to(corrected,(len(plans['ticks']),12)))
             or not np.array_equal(plans['condition_raw_tau'],np.broadcast_to(raw_intent,(len(plans['ticks']),12)))):
             raise ValueError('diagnostic velocity/conditioning arm mismatch')
-        future_v=velocity(plans['q'][...,1:,:])
-        pv[:,corrected,1:]=future_v[:,corrected]
         for j,tick in enumerate(plans['ticks']):
             pose=data['object_pose'][tick,envs[raw_intent]]
             intended=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],plans['raw'][j,raw_intent])+pose[:,None,None,:3,3]
