@@ -66,11 +66,13 @@ training loss, policy metric or checkpoint result was produced.
 
 ## Next decision
 
-Do not start a native training Probe from these H5 clips. A future route must
-explicitly choose one contract: process a sufficiently long raw DROID sequence
-with verified point identities and native hand/action labels; change the model
-to an explicitly shorter PointWorld-style horizon; or add a separate RGB/robot
-state front-end. Each route needs its own matched random-initialization control
-and experiment card. The current official-data route remains available, but
-the released H5 shard cannot be silently presented as native `H=4,K=24`
-training data.
+Do not start a native training Probe from these H5 clips. A separate [raw temporal audit](P-20261010-droid100-raw-video-temporal-audit.md)
+shows that the
+source MP4 itself has 166 frames at 60 FPS, so one possible route is to run the
+official processing pipeline with a longer clip. That route still needs
+verified point identities and native hand/action labels. The other options are
+an explicitly shorter PointWorld-style horizon or a separate RGB/robot-state
+front-end. Each route needs its own matched random-initialization control and
+experiment card. The current official-data route remains available, but the
+released H5 shard cannot be silently presented as native `H=4,K=24` training
+data.

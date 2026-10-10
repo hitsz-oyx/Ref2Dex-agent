@@ -126,6 +126,9 @@ choose an explicit raw-sequence, shorter-horizon, or RGB/robot-state contract.
 See [DROID-100 video audit](experiments/probes/P-20261010-droid100-video-data-audit.md)
 [episode pairing audit](experiments/probes/P-20261010-droid100-pointworld-match.md)
 and [native contract audit](experiments/probes/P-20261010-droid100-native-adapter-contract.md).
+The separate raw temporal audit found 166 frames at 60 FPS in the matching
+official MP4, so raw reprocessing remains technically possible but still lacks
+the verified point/hand/action contract.
 
 ## Current decision and resources
 

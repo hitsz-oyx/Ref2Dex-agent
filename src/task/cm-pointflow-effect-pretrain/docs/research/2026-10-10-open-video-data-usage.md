@@ -104,6 +104,14 @@ native 覆盖为零；同时没有已验证的 object/background `point_kind`、
 显式缩短时域的 PointWorld-style 模型，或独立 RGB/robot-state 前端，并为所选路线
 重新冻结随机初始化控制臂。
 
+同一 episode 的官方 raw `20521388.mp4` 也做了有界核查：1280x720、60 FPS、166
+帧、2.767 秒，GCS MD5/SHA 与本地文件一致。时间长度本身足以覆盖 `H=4,K=24`；
+因此阻塞来自点轨迹/标签合同，而不是视频过短。作者 data 分支的 `compute_2d_flows.py`
+公开了 `--frames_per_clip`，默认 11，可以在另一个明确的 Probe 中尝试 28-frame
+重处理；但这还需要双外部相机、立体深度、外参以及 CoTracker/FoundationStereo/VGGT
+检查点，并必须重新定义 point identity、point-kind 和 native hand/action 字段。
+这一 raw temporal audit 只证明输入时域可用，不构成训练收益证据。
+
 ## 下一步决策与范围
 
 此前的资源决策只批准获取固定 SHA 的官方 small checkpoint 做兼容检查，
