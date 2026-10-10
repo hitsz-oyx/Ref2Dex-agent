@@ -21,8 +21,8 @@ def test_contact_rays_and_support_are_finite_and_masked():
     )
     basis = torch.eye(6)
     sigma = support_vector(rays, valid, basis)
-    assert rays.shape == (1, 16, 6)
-    assert int(valid.sum()) == 8
+    assert rays.shape == (1, 18, 6)
+    assert int(valid.sum()) == 9
     assert torch.isfinite(rays).all()
     assert torch.isfinite(sigma).all()
     assert sigma[0, 0] > 0
@@ -45,4 +45,3 @@ def test_support_tolerance_penalizes_missed_and_unintended_directions():
     loss, reward = chord_support_loss(predicted, reference, tolerance=0.1)
     assert float(loss) > 0
     assert float(reward[0]) < 1.0
-

@@ -25,8 +25,10 @@ def contact_wrench_rays(
     """Construct normalized friction-cone wrench rays.
 
     Parameters are batched as ``[B,C,3]`` in the object COM frame.  The result
-    has shape ``[B,C*ray_count,6]`` and a matching boolean validity mask.  The
-    first three wrench components are force and the last three are the
+    has shape ``[B,C*(ray_count+1),6]`` and a matching boolean validity mask;
+    ``ray_count`` is the number of friction-cone edge rays and one additional
+    pure-normal ray is appended per contact, matching the released CHORD
+    implementation.  The first three wrench components are force and the last three are the
     lever-arm torque divided by ``body_radius`` as in the released CHORD code.
     """
     if points.ndim != 3 or normals.shape != points.shape or points.shape[-1] != 3:
@@ -55,13 +57,16 @@ def contact_wrench_rays(
         tangent_1.unsqueeze(-2) * angles.cos().view(1, 1, ray_count, 1)
         + tangent_2.unsqueeze(-2) * angles.sin().view(1, 1, ray_count, 1)
     )
-    force = n.unsqueeze(-2) + float(friction) * tangent
-    force = force / torch.linalg.vector_norm(force, dim=-1, keepdim=True).clamp_min(eps)
+    edge_force = n.unsqueeze(-2) + float(friction) * tangent
+    edge_force = edge_force / torch.linalg.vector_norm(edge_force, dim=-1, keepdim=True).clamp_min(eps)
+    force = torch.cat((edge_force, n.unsqueeze(-2)), dim=-2)
     torque = torch.linalg.cross(
         points.unsqueeze(-2).expand_as(force), force, dim=-1
     ) / float(body_radius)
     rays = torch.cat((force, torque), dim=-1).reshape(points.shape[0], -1, 6)
-    valid = contact_mask.to(torch.bool).unsqueeze(-1).expand(-1, -1, ray_count).reshape(points.shape[0], -1)
+    valid = contact_mask.to(torch.bool).unsqueeze(-1).expand(
+        -1, -1, ray_count + 1
+    ).reshape(points.shape[0], -1)
     return rays, valid
 
 
@@ -118,4 +123,3 @@ def chord_support_loss(
     per_sample = per_sample + unintended + missed
     reward = torch.exp(-per_sample)
     return per_sample.mean(), reward
-
