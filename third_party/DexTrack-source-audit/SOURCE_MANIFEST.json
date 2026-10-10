@@ -5,10 +5,11 @@
   "scope": "read-only selected-source snapshot; not installed or executed",
   "files": [
     {
-      "path": "README.md",
+      "path": "README.upstream.txt",
       "url": "https://raw.githubusercontent.com/Meowuu7/DexTrack/1005fad6158c3fa0e4e8df01323de2f62d539f7a/README.md",
       "bytes": 21556,
-      "sha256": "9690bb81f35876aee4bd022725e07da272f5aecb7523ad56eef7c0d936c82ae4"
+      "sha256": "9690bb81f35876aee4bd022725e07da272f5aecb7523ad56eef7c0d936c82ae4",
+      "upstream_path": "README.md"
     },
     {
       "path": "LICENSE.txt",

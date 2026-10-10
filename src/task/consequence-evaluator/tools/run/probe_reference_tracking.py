@@ -174,6 +174,9 @@ def main():
             names = task.gym.get_actor_rigid_body_names(task.envs[0], task.humanoid_handles[0])
             key_ids = [names.index(name) for name in HAND_LINKS]
             offset = task._pd_action_offset.to(device); scale = task._pd_action_scale.to(device)
+            manifest["native_controller"] = dict(
+                dof_names=task.gym.get_actor_dof_names(task.envs[0], task.humanoid_handles[0]),
+                offset=offset.cpu().tolist(), scale=scale.cpu().tolist())
             policy = ReferenceTracker().to(device)
             if args.checkpoint:
                 checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
@@ -318,13 +321,23 @@ def main():
                 quarter = n // 4
                 roles = ["teacher"] * quarter + ["nominal"] * quarter + ["tracker"] * (2 * quarter)
                 arrays = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
-                                              "table_footprint", "object_velocity", "pair", "action", "clipped")}
+                                              "table_footprint", "object_velocity", "pair", "action", "clipped",
+                                              "dof_position", "dof_velocity", "latent", "pd_targets")}
+                applied_target = None
+                original_encode = task._action_to_pd_targets
+                def encode(action):
+                    nonlocal applied_target
+                    target = original_encode(action)
+                    applied_target = target.detach().clone().to(device)
+                    return target
+                task._action_to_pd_targets = encode
                 def record():
                     hand, gap = geometry.measure(task); sup, foot = support.measure(task, geometry)
                     current = measure()
                     for key, val in (("object_pose", current["obj"]), ("hand_keypoints", hand),
                                      ("surface_gap", gap), ("support_gap", sup), ("table_footprint", foot),
-                                     ("object_velocity", current["velocity"]), ("pair", current["pair"])):
+                                     ("object_velocity", current["velocity"]), ("pair", current["pair"]),
+                                     ("dof_position", current["q"]), ("dof_velocity", current["dq"])):
                         arrays[key].append(val.detach().cpu().numpy().copy())
                 record()
                 controls = 8 if args.mode == "smoke" else 542
@@ -343,6 +356,8 @@ def main():
                         if capture is None or not torch.equal(capture, command):
                             raise ValueError("evaluation requested/applied command mismatch")
                         arrays["action"].append(command.cpu().numpy().copy())
+                        arrays["latent"].append(latent.cpu().numpy().copy())
+                        arrays["pd_targets"].append(applied_target.cpu().numpy().copy())
                         arrays["clipped"].append(((intended - command).abs().amax(-1) > 1e-6).cpu().numpy())
                         previous = torch.tanh(latent)
                         record()
@@ -360,6 +375,10 @@ def main():
                         outcome = episode_outcome({key: packed[key][:, env] for key in (
                             "object_pose", "surface_gap", "support_gap", "table_footprint", "object_velocity")})
                         outcome.update(role=roles[env], env=env, clipping_count=int(packed["clipped"][:, env].sum()))
+                        outcome["hand_rmse_m"] = float(np.sqrt(np.mean((
+                            packed["hand_keypoints"][:, env] - reference["hand_keypoints"].cpu().numpy())**2)))
+                        outcome["object_position_rmse_m"] = float(np.sqrt(np.mean((
+                            packed["object_pose"][:, env, :3, 3] - reference["object_pose"].cpu().numpy()[:, :3, 3])**2)))
                         outcomes.append(outcome)
                     summary = {}
                     for role in sorted(set(roles)):
@@ -368,6 +387,8 @@ def main():
                                              median_held=float(np.median([r["maximum_held_frames"] for r in rows])),
                                              near_teacher_count=sum(r["maximum_held_frames"] >= .9 * reference_held for r in rows),
                                              hold45_count=sum(r["maximum_held_frames"] >= 45 for r in rows),
+                                             mean_hand_rmse_m=float(np.mean([r["hand_rmse_m"] for r in rows])),
+                                             mean_object_position_rmse_m=float(np.mean([r["object_position_rmse_m"] for r in rows])),
                                              loss_events=sum(r["intermediate_loss_events"] for r in rows),
                                              clipping_count=sum(r["clipping_count"] for r in rows))
                     result = dict(status="UNCLEAR", outcomes=outcomes, summary=summary,
