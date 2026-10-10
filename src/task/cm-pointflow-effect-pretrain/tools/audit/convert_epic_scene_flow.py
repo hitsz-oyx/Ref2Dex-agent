@@ -504,7 +504,10 @@ def main():
         static_point_count=np.asarray(static.shape[1]), moved_point_count=np.asarray(moved.shape[1]))
     audit = dict(
         status='CANDIDATE_ONLY', training_allowed=False, schema=SCHEMA,
-        source_clip='P03_03_23', source_scene_sha256={
+        source_clip=scene.name,
+        source_scene_dir=str(scene.resolve()),
+        source_start_frame=int(args.start_frame),
+        source_scene_sha256={
             'action.mp4': sha(scene / 'action.mp4'),
             'spatracker.npz': sha(scene / 'spatracker.npz'),
             'object_masks.npz': sha(scene / 'objects/0+object_0/masks.npz'),
@@ -525,7 +528,8 @@ def main():
         extrinsics_provenance='ObjectForesight-Data step9_spatracker.py saves inverse(c2w_traj)',
         upstream_source='https://raw.githubusercontent.com/RustinS/ObjectForesight-Data/main/step9_spatracker.py',
         forbidden_supervision=['FoundationPose T_c_o', 'TRELLIS mesh', 'propagated object pose'],
-        target_fps=TARGET_FPS, window_frames=WINDOW, source_fps=SOURCE_FPS,
+        target_fps=TARGET_FPS, sampled_fps=SOURCE_FPS / 2,
+        window_frames=WINDOW, source_fps=SOURCE_FPS,
         static_tracks=static_audit, moved_object_tracks=moved_audit, hand=hand_audit,
         scene_points=int(scene_points.shape[1]),
         scene_valid_fraction=float(scene_valid.mean()),

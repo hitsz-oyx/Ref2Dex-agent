@@ -113,3 +113,21 @@ outputs/cm-pointflow-effect-pretrain/spider-data-preflight-20261006/.venv/bin/py
 Earlier SPIDER work was acquisition/engineering only. OakInk2 now has its own
 training route above. Root Mission/Campaign remain authoritative; training uses
 available GPUs within the global four-GPU boundary. No PPO is started.
+
+## Video and tactile data feasibility (2026-10-10)
+
+The EPIC dataset branch is merged locally, with original experiment outputs
+preserved in this worktree. Keep converted EPIC packs `CANDIDATE_ONLY`: review
+found missing semantic-joint validity/quality filtering, conflicting source
+splits, clock and persistent-track questions, and a per-point schema that is
+not supported by the existing rigid-object decoder. The reported P03_03
+complete window used side-level validity and is not a qualified training
+window. OakInk2/GRAB/ARCTIC remain the registered main sources.
+
+EgoTouch is a candidate for separate tactile representation/auxiliary-target
+work, with pressure/bend mapping and release completeness audited first. It
+does not supply paired object SE(3) supervision or a calibrated substitute
+for Isaac net contact forces. See the [source and implementation review](docs/research/2026-10-10-video-tactile-primary-sources.md).
+Remote connection details are in [the Windows bridge guide](../../../docs/user/连接远程服务器.md);
+current work continues on RLG. No new training or full dataset download has
+been launched by this review.

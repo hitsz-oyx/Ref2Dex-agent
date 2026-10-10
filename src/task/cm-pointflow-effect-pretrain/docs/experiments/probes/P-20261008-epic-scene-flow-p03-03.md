@@ -95,3 +95,69 @@ depth/RGB pseudo-labels, hand joints are Contact estimates with 13 interpolated
 target frames, and the release metadata contains a conflicting `c2w` label that
 must be audited per clip/release. The next evidence step is a bounded multi-clip
 conversion and manifest audit; training remains out of scope for this Probe.
+
+## 2026-10-10 integration and worktree cleanup Decision Note
+
+The user requested merging the dataset work into
+`cm-pointflow-effect-pretrain` and removing the unused EPIC worktree. Merge
+`a039077b2f5ec4c4349b0708353c6755db19bfde` preserves the full EPIC history
+through `1f91044`; relevant converter/contact/Gate1 tests pass (14 tests),
+and repository verification passes. The EPIC worktree has no tracked or
+untracked user changes, but contains about 25 MiB of ignored experiment
+outputs. Preserve all output files with byte hashes under the current
+worktree's same relative `outputs/` paths before removing its Git registration.
+Keep the EPIC branch and install an old-path compatibility symlink for
+historical absolute references. The original main worktree remains because
+it holds shared source datasets and ongoing independent work.
+
+Cost: metadata, hashing, and same-filesystem moves; no GPU, model training,
+large download, or checkpoint rewrite. Stop on destination collisions, user
+changes, active tasks, or hash disagreement. The user has authorized removal
+of the unused worktree; no additional external permission is needed. The
+move manifest is local at `tmp/epic-worktree-merge-20261010/manifest.json`.
+
+Independent implementation review found the audit's `source_clip` was
+hardcoded to `P03_03_23`, including the P03_13 run. Retain original audits;
+their input SHA256 values identify the sources, but the old clip field must
+not define training splits or deduplication. A following provenance repair
+will record the actual scene directory and explicit source start frame.
+No existing scene tensors are reclassified as training data.
+
+### Post-merge provenance repair and qualification review
+
+The converter now derives `source_clip` from the actual scene basename and
+records `source_scene_dir`, `source_start_frame`, and the actual every-other-
+frame `sampled_fps=29.97002997`. Original audits and tensors are unchanged.
+Engineering replay is preserved at
+`outputs/cm-pointflow-effect-pretrain/epic-scene-flow-provenance-20261010-r1/`.
+Both real inputs reproduce all 11 NPZ arrays exactly and have matching source
+SHA256 values; the P03_13 clip field is correctly `P03_13_12`. The comparison
+manifest records the repaired converter SHA256. P03_13 uses 1927 to reproduce
+the historical tensor only; its metadata start1929/pad5 clock remains unresolved.
+This is a CPU file/geometry replay, with no neural model computation.
+
+The historical `PROMISING` result applies to generating candidate scene
+tracks, not to qualified PointWorld training windows. Independent review,
+checked against source NPZ/quality CSV by root, identifies critical limitations:
+
+- Hand side-valid ignores `joints_valid_*` and quality/confidence. Plate has37
+  invalid semantic11 entries and only20/30 fully valid source rows; bottle has29
+  invalid entries and15/30 fully valid rows. The reported plate1 window does
+  not establish a complete per-joint-quality training window.
+- Both objects are ObjectForesight train, but the bottle's Contact labels are
+  test. Preserve both source splits; do not promote it into hand training.
+- LK invalid points can become valid again without verified physical-point
+  identity; background points are depth-reprojected pseudo observations, not
+  exact static world points. Camera reprojection self-consistency does not
+  prove physical flow accuracy.
+- Scene flow avoids FoundationPose/TRELLIS motion targets, but hand geometry
+  still uses Contact object transforms/shape and future depth-mask fitting.
+  Future hand and object labels share reconstruction sources.
+- The existing PointWorld object-SE(3) loader/loss cannot consume this scene
+  mask schema, and the exact source clock differs from nominal30Hz.
+
+Keep all runs `CANDIDATE_ONLY / training_allowed=false`. Resolve source
+identity/splits, per-joint validity, clock, and persistent track identity before
+any matched weak-data training Probe. Detailed primary-source and current
+implementation review is in
+[the Task research note](../../research/2026-10-10-video-tactile-primary-sources.md).
