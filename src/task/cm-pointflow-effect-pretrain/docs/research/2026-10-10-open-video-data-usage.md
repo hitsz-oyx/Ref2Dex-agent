@@ -95,10 +95,14 @@ RGB、11-step 3-D scene flow、7-D gripper pose 和 7-D joint positions。两份
 
 这一步的结论是 `PROMISING`，范围仅限“官方视频样本和官方 3-D 标注可以有界地取得
 并配对”。尚未把它们送进 native trainer，也没有任何视频收益结论。下一步最便宜
-且可判别的动作是把一个匹配 H5 clip 规范化为现有 18-D point-flow 输入合同，冻结
-feature/target 映射和 split 边界；合同通过后再做随机初始化的短 Probe，并保留同一
-native 数据控制臂。若改做 RGB encoder，则属于新前端路线，不能冒充当前 native
-point-flow 训练。
+且可判别的动作是先审计该输入合同。结果显示所有匹配 clip 只有 11 个时间点，
+而当前 native learner 要求 4 个 history 加 24 个 future（共 28 点），所以直接
+native 覆盖为零；同时没有已验证的 object/background `point_kind`、跨 clip 点身份
+或 2-hand×11-keypoint×9-D action 张量。这个结论记录在
+[native adapter Probe](../experiments/probes/P-20261010-droid100-native-adapter-contract.md)。
+因此不能把 H5 clip 静默填充成 `H=4,K=24` 后训练。后续必须明确选择原始长序列重处理、
+显式缩短时域的 PointWorld-style 模型，或独立 RGB/robot-state 前端，并为所选路线
+重新冻结随机初始化控制臂。
 
 ## 下一步决策与范围
 
@@ -107,7 +111,8 @@ point-flow 训练。
 但它不回答视频数据问题；对应结果按 `INVALID_IMPLEMENTATION / INCONCLUSIVE`
 保留在[实验卡](../experiments/probes/P-20261010-open-video-backbone-transfer.md)。
 
-当前 Decision 已从“能否取得数据”推进到“怎样把已配对子集接入 native 合同”。
+当前 Decision 已从“能否取得数据”推进到“选择哪一种显式适配合同”；已配对子集不能
+直接接入现有 native 时域。
 官方数据卡报告 PointWorld-DROID 全量下载约 3.91 TB、展开约4.65 TB，而本
 Campaign 本地产物上限为300 GB；DROID 原始 MP4/SVO 规模更大。因此保持有界
 episode/shard 策略，不下载全量数据，不启动新的权重迁移训练。只有在 adapter

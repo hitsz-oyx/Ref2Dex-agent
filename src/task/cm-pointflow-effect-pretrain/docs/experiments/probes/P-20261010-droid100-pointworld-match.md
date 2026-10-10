@@ -81,12 +81,18 @@ The complete audit is in
 `outputs/cm-pointflow-effect-pretrain/droid100-pointworld-match-20261010-r1/h5_audit_result.json`;
 the raw episode metadata is in `source/raw_metadata.json`.
 
+A separate [native-contract Probe](P-20261010-droid100-native-adapter-contract.md)
+then checked whether this matched H5 can be passed directly to the current
+`H=4,K=24,18-D` learner. It cannot: the released clips have only 11 time points
+and do not publish the native point-kind or hand-action tensor contracts. This
+does not invalidate the pairing; it bounds what can be claimed from it.
+
 ## Next decision
 
-The data contract is now concrete enough for a small adapter audit: normalize
-one matched H5 clip into the native point-flow sample contract, record the
-feature/target mapping and split boundary, and only then run a short random-
-initialization training Probe with the same native control arm. An RGB-only
+The data contract is concrete enough for separate adapter design, but not for
+direct native training. The native-contract audit closes the silent conversion
+route; a new route must explicitly choose raw-sequence reprocessing, a shorter
+PointWorld-style horizon, or an RGB/robot-state front-end. An RGB-only
 front-end would be a different architecture and must not be reported as native
 point-flow training. Do not expand to the full DROID corpus or raw MP4/SVO
-bucket before that adapter contract is checked.
+bucket before one of those contracts is frozen.

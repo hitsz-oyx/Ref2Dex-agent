@@ -984,7 +984,12 @@ matching episode contains ten clips for camera serials `20521388` and
 `24259877`, with finite sampled 3-D scene flow and robot-state fields. This
 proves a reproducible official video/data pairing, not a training benefit. No
 official checkpoint was used and no training has started. The next action is a
-Task-local adapter audit against the native 18-D point-flow contract before any
-new data Probe or larger download. See the Task-local
+Task-local adapter audit against the native 18-D point-flow contract is now
+complete: every matched H5 clip has 11 time points instead of the native
+4-history/24-future contract, and no verified point-kind, cross-clip identity
+or native hand-action tensor is published. The direct native adapter route is
+closed until an explicit raw-sequence, shorter-horizon, or RGB/robot-state
+contract is chosen. See the Task-local
 [video-data audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md)
-and [pairing audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md).
+[pairing audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md)
+and [native contract audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-native-adapter-contract.md).

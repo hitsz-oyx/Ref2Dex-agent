@@ -359,6 +359,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261010-droid100-native-adapter-contract](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-native-adapter-contract.md) | Does the matched official H5 clip satisfy the native point-flow input contract? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-droid100-pointworld-match](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md) | Can an official DROID video episode be paired with PointWorld 3-D labels? | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## 未分类历史记录

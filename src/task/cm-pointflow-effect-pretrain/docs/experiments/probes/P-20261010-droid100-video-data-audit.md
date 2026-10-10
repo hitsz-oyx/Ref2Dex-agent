@@ -79,12 +79,13 @@ the native point-flow model.
 
 The native model currently consumes 3-D point trajectories, 18-D scene features,
 and action-conditioned targets; the DROID-100 RLDS record supplies RGB frames,
-robot states and actions but no 3-D point-flow labels. The cheapest compatible
-route is to match one DROID-100 episode to the released PointWorld-DROID flow
-annotation. That bounded match is now complete in
+robot states and actions but no 3-D point-flow labels. One DROID-100 episode
+has now been matched to the released PointWorld-DROID flow annotation in
 [the pairing Probe](P-20261010-droid100-pointworld-match.md): the exact episode
 is present in flow shard `000409`, with ten clips, two matching camera serials,
 and finite 3-D scene-flow fields. This verifies a concrete official video plus
 annotation source without using any released checkpoint. An RGB-only adapter
 remains a separate route and must not be conflated with native point-flow
-training.
+training. The follow-up [native-contract Probe](P-20261010-droid100-native-adapter-contract.md)
+found that these clips cannot be passed directly to the current `H=4,K=24`
+learner, so no training route is opened by this audit.

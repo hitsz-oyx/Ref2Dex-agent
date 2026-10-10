@@ -118,11 +118,14 @@ clips, camera serials `20521388`/`24259877`, 11-step scene flow, gripper pose
 and joint fields were restored from the pinned SHA256 package, with finite
 sampled values. This establishes data availability and a reproducible pairing,
 not a video benefit. No official checkpoint entered this audit and no training
-has started. The next bounded action is a Task-local adapter audit that maps
-one matched H5 clip to the native 18-D point-flow contract; only after that
-contract is accepted should a random-initialization data Probe be considered.
+has started. The Task-local adapter audit found that all matched clips have 11
+time points rather than the native 4-history/24-future contract, and do not
+publish verified point-kind, cross-clip identity or native hand-action fields.
+The direct native adapter route is therefore closed; any next Probe must first
+choose an explicit raw-sequence, shorter-horizon, or RGB/robot-state contract.
 See [DROID-100 video audit](experiments/probes/P-20261010-droid100-video-data-audit.md)
-and [episode pairing audit](experiments/probes/P-20261010-droid100-pointworld-match.md).
+[episode pairing audit](experiments/probes/P-20261010-droid100-pointworld-match.md)
+and [native contract audit](experiments/probes/P-20261010-droid100-native-adapter-contract.md).
 
 ## Current decision and resources
 
