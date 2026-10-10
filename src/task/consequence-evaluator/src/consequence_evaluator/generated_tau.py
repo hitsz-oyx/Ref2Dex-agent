@@ -6,7 +6,7 @@ from .proposal_history import condition
 from .proposal_runtime import TauProposal, retrieve_rows, choose_generated
 from .trajectory_utility import TrajectoryUtility
 from .tau_projection import project_tau
-from .reference_tracking import reference_velocity
+from .reference_tracking import reference_velocity, future_reference_velocity
 
 
 class GeneratedTau:
@@ -68,8 +68,15 @@ class GeneratedTau:
                             positions_only=self.positions_only,graph_cache=self.graph_cache)
         q=torch.as_tensor(fit['q'],device=self.device)
         velocity=torch.stack([reference_velocity(v,self.dt) for v in q])
+        if 'future_velocity' in audit:
+            mask=torch.as_tensor(audit['future_velocity'],device=self.device)
+            velocity[mask]=torch.stack([future_reference_velocity(v,self.dt) for v in q[mask]])
         hand=torch.as_tensor(fit['points'][:,1:],device=self.device)
-        audit=dict(audit,hand=hand.cpu().numpy(),q=fit['q'],projection_s=fit['elapsed_s'])
+        fitted_hand=hand.cpu().numpy().copy()
+        if 'condition_raw_tau' in audit:
+            mask=torch.as_tensor(audit['condition_raw_tau'],device=self.device)
+            hand[mask]=torch.as_tensor(world,device=self.device)[mask]
+        audit=dict(audit,hand=hand.cpu().numpy(),fitted_hand=fitted_hand,q=fit['q'],projection_s=fit['elapsed_s'])
         return dict(hand=hand,q=q,velocity=velocity,audit=audit)
 
     def plan(self, history, roles):

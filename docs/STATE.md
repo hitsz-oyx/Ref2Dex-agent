@@ -12,8 +12,10 @@
 c8280e3全轨迹审计：初始state与参考exact，所有纯H/当前手重算error0；实际897输入
 3.81e-6、原生命令3.05e-7、PD0、选择/物理outcome一致。独立review未发现接口遗漏，
 但训练最早tick8而部署tick0，以及在线重标定/分段末帧padding均未被隔离。
-下一步先用短GT在线链路/启动handoff诊断区分这两点，真实τ只作明确的privileged对照，
-不加入纯H部署。完整ref8、同状态排序与Mission Cm策略训练收益仍未完成，GPU2空闲。
+8330b07短诊断确认GT在线链路只1/4 held45而原GT4/4，前8步GT handoff仍未恢复生成
+抓持。在线几何q接近原目标，但首目标速度差分混入live q跟踪误差，重规划FF偏移最高
+7cm/.30rad。下一步同预算内隔离future-only速度和原始τ conditioning；真实τ仅明确的
+privileged对照，不加入纯H部署。完整ref8、同状态排序与Mission Cm策略训练收益仍未完成，GPU2空闲。
 协议：[原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)、
 [接口诊断](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md)。
 

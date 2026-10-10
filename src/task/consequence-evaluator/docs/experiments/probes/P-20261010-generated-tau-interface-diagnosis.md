@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-interface-diagnosis
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: 8330b07
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 2
@@ -72,8 +72,39 @@ CPU pure-file/numpy auditing is sufficient; no neural CPU evaluation required.
 
 ## Results
 
-Not run yet. Implementation and manifest must explicitly mark diagnostic GT
-privilege; prior generated execution remains unchanged and retained.
+8330b07 r1 completed128controls in33.88s, GPU2~7.5GiB/util52--69%. Original
+GT4/4 held45, median64.5frames/terminal4; online GT1/4 held45,
+median34.5/terminal0; displacement and eight-step handoff both0/4 even grasp.
+Online GT has no clipping but loses the object. Local interface UNPROMISING;
+bootstrap alone does not explain the difference. Independent numpy audit
+passes: all measured H/current errors0, privileged GT hand transform2.98e-7,
+actual897features2.86e-6/command2.38e-7/PD0, handoff first8steps reconstruct
+original GT controls. Outputs `generated-tau-interface-diagnosis-20261010-r1/`
+and `generated-tau-interface-audit-20261010-r1/` including behavior.png.
+
+## Boundary derivative repair Decision Note
+
+Saved online GT geometric q targets differ negligibly from precomputed GT q;
+however q[:,0] is overwritten with live current q. Computing central velocity
+at the first target as (q2-live_q0)/(2dt) mixes tracking error into nominal
+velocity. At replanning boundaries its FF target difference versus precomputed
+GT reaches XYZ[41.95,54.23,69.83]mm and Euler[.199,.300,.147]rad. This is an
+implementation/input-semantic issue to repair before changing proposal data.
+Other unisolated causes: fitted instead of intent points and chunk padding.
+
+Cheapest next action: one additional same-seed128step diagnostic wave in the
+same5GPUmin/512MiB total, <=240s. Four roles: original GT, original online GT,
+online GT with velocity derived only from future geometric q (one-sided first
+future target), and that corrected velocity plus raw intended GT tau as actor
+conditioning. Both new arms still use the identical online geometric q/8step
+consumption/padding. No model training or new seed, no true future q/object as
+input; GT hand only privileged diagnostic. This sequential arm design isolates
+velocity, then intent conditioning conditional on velocity repair. Same GT
+calibration and held45/clipping gates, no longer-term success claim. Regression
+requires first-future velocity invariant to changing the live q anchor, while
+later central derivatives/angle wrapping stay intact. If either repair restores
+short hold, retain it and test pure-H generated execution; otherwise investigate
+remaining chunk conditioning mismatch, without more proposal training.
 
 ## Limitations / future evidence
 

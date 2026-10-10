@@ -25,6 +25,19 @@ def reference_velocity(q, dt):
     return velocity
 
 
+def future_reference_velocity(q, dt):
+    """Nominal future velocity must not depend on the live calibration q[0].
+
+    q[0] is measured feedback, whereas q[1:] is the future geometric plan.
+    The first future target uses a one-sided derivative; later targets retain
+    central differences. Index0 is unused and returned as zero.
+    """
+    if q.ndim != 2 or q.shape[1] != 18 or len(q) < 3:
+        raise ValueError("current calibration and at least two future targets required")
+    future = reference_velocity(q[1:], dt)
+    return torch.cat((torch.zeros_like(future[:1]), future))
+
+
 def wrist_feedforward(q, velocity, damping_over_stiffness):
     """Compensate native position-drive damping using kinematic reference velocity.
 

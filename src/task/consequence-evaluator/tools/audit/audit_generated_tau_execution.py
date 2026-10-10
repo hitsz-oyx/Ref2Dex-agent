@@ -38,7 +38,9 @@ def main():
     if len(references)!=1:raise ValueError('unique independent reference required')
     with references[0].open('rb') as s:ref=pickle.load(s)
     roles=np.asarray(m['roles']);envs=plans['envs']
-    expected_roles= {'tau_gt','tau_online','displacement','displacement_handoff'} if diagnostic else {'tau_gt','persistence','displacement','scored'}
+    variant=m.get('interface_variant','baseline')
+    expected_roles= ({'tau_gt','tau_online','displacement','displacement_handoff'} if variant=='baseline' else
+        {'tau_gt','tau_online','tau_future_velocity','tau_intent'}) if diagnostic else {'tau_gt','persistence','displacement','scored'}
     if set(roles)!=expected_roles or any(sum(roles==r)!=4 for r in set(roles)):
         raise ValueError('four predeclared roles required')
     if not np.array_equal(envs,np.flatnonzero(roles!='tau_gt')):raise ValueError('plan role identity mismatch')
@@ -56,13 +58,13 @@ def main():
     if history_error>3e-6 or current_error>3e-6:raise ValueError('actual measured history mismatch')
     choices=plans['choices']
     for i,env in enumerate(envs):
-        expected=0 if roles[env] in ('persistence','tau_online') else (1 if roles[env] in ('displacement','displacement_handoff') else plans['score'][:,i].argmax(-1))
+        expected=0 if roles[env] in ('persistence','tau_online','tau_future_velocity','tau_intent') else (1 if roles[env] in ('displacement','displacement_handoff') else plans['score'][:,i].argmax(-1))
         if not np.all(choices[:,i]==expected):raise ValueError('actual generated choice mismatch')
     if plans['score'].shape!=(len(plans['ticks']),12,10) or np.any(choices<0) or np.any(choices>=10):
         raise ValueError('only ten generated alternatives admitted')
     privileged_error=0.
     if diagnostic:
-        mask=roles[envs]=='tau_online'
+        mask=np.asarray([r.startswith('tau_') for r in roles[envs]])
         if not np.array_equal(plans['privileged_online_tau'],np.broadcast_to(mask,(len(plans['ticks']),12))):
             raise ValueError('diagnostic privilege identity mismatch')
         for j,tick in enumerate(plans['ticks']):
@@ -82,6 +84,22 @@ def main():
     future=np.stack([ref['hand_keypoints'][np.minimum(t+np.arange(1,25),542),0] for t in range(controls)])
     future=np.broadcast_to(future[:,None],(controls,16,24,11,3)).copy()
     pv=velocity(plans['q'])
+    if diagnostic and variant=='feedforward':
+        corrected=roles[envs]!='tau_online'
+        raw_intent=roles[envs]=='tau_intent'
+        if (not np.array_equal(plans['future_velocity'],np.broadcast_to(corrected,(len(plans['ticks']),12)))
+            or not np.array_equal(plans['condition_raw_tau'],np.broadcast_to(raw_intent,(len(plans['ticks']),12)))):
+            raise ValueError('diagnostic velocity/conditioning arm mismatch')
+        future_v=velocity(plans['q'][...,1:,:])
+        pv[:,corrected,1:]=future_v[:,corrected]
+        for j,tick in enumerate(plans['ticks']):
+            pose=data['object_pose'][tick,envs[raw_intent]]
+            intended=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],plans['raw'][j,raw_intent])+pose[:,None,None,:3,3]
+            if np.max(np.abs(intended-plans['hand'][j,raw_intent]))>3e-6:
+                raise ValueError('raw intent did not condition the selected actor arm')
+        repaired=~raw_intent
+        if not np.array_equal(plans['hand'][:,repaired],plans['fitted_hand'][:,repaired]):
+            raise ValueError('fitted-point control arms changed unexpectedly')
     for t in range(controls):
         j=t//8;off=t%8
         enabled=np.asarray([not(diagnostic and roles[e]=='displacement_handoff' and t<8) for e in envs])
@@ -135,9 +153,9 @@ def main():
         screen=(summary[r]['held45']>=3 and summary[r]['clipping_rate']<.01) if diagnostic else summary[r]['raw_screen']
         summary[r]['status']='UNCLEAR' if not calibration else ('PROMISING' if screen else 'UNPROMISING')
     generated_roles=[r for r in sorted(set(roles)) if r!='tau_gt']
-    status='UNCLEAR' if not calibration else (summary['tau_online']['status'] if diagnostic else
+    status='UNCLEAR' if not calibration else (summary['tau_intent' if variant=='feedforward' else 'tau_online']['status'] if diagnostic else
         ('PROMISING' if any(summary[r]['raw_screen'] for r in generated_roles) else 'UNPROMISING'))
-    audit=dict(status=status,interface_diagnostic=diagnostic,maximum_privileged_tau_error=privileged_error,
+    audit=dict(status=status,interface_diagnostic=diagnostic,interface_variant=variant,maximum_privileged_tau_error=privileged_error,
         calibration_pass=calibration,summary=summary,initial_state_exact=initial,
         maximum_history_error=history_error,maximum_current_hand_error=current_error,maximum_student_feature_error=feature_error,
         maximum_command_error=command_error,maximum_pd_error=pd_error,

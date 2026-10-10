@@ -67,6 +67,7 @@ def main():
     p.add_argument('--projection-cuda-graph',action='store_true')
     p.add_argument('--generated-interface-diagnostic',action='store_true',
                    help='privileged GT online projection and eight-step GT handoff controls,128steps only')
+    p.add_argument('--interface-variant',choices=('baseline','feedforward'),default='baseline')
     args = p.parse_args()
     if args.generated_proposal or args.generated_evaluator:
         if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
@@ -77,6 +78,8 @@ def main():
         args.generated_evaluator=args.generated_evaluator.resolve()
     if args.generated_interface_diagnostic and (not args.generated_proposal or args.mode != 'evaluate'):
         raise ValueError('interface diagnostic requires frozen generated evaluation')
+    if args.interface_variant != 'baseline' and not args.generated_interface_diagnostic:
+        raise ValueError('interface variant is privileged diagnostic only')
     if args.projection_cuda_graph and (not args.positions_only or not args.generated_proposal):
         raise ValueError('projection capture requires generated position-FK mode')
     if args.finger_only and (not args.tau_only or args.mode != 'train' or args.checkpoint is None):
@@ -236,7 +239,7 @@ def main():
         frozen.update(bank_hash)
         for name in ('generated_tau.py','proposal_runtime.py','proposal_history.py','tau_projection.py',
                      'trajectory_utility.py','fixed_wrist_decoder.py','reset_kinematics.py','object_relative_servo.py',
-                     'tau_projection_graph.py'):
+                     'tau_projection_graph.py','reference_tracking.py','tau_tracking.py'):
             path=TASK/'src/consequence_evaluator'/name; frozen[str(path)]=sha(path)
         urdf=ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf'
         frozen[str(urdf)]=sha(urdf)
@@ -281,9 +284,11 @@ def main():
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     if args.generated_interface_diagnostic:
-        manifest.update(interface_diagnostic=True,diagnostic_controls=128,
-            diagnostic_handoff_tick=8,
-            inference_contract='Displacement uses pure H; tau_online reads privileged GT hand only after the ten-member pool; handoff uses privileged original GT controller for ticks0--7 only',
+        manifest.update(interface_diagnostic=True,interface_variant=args.interface_variant,diagnostic_controls=128,
+            diagnostic_handoff_tick=8 if args.interface_variant=='baseline' else None,
+            inference_contract=('Displacement uses pure H; tau_online reads privileged GT hand only after the ten-member pool; handoff uses privileged original GT controller for ticks0--7 only'
+                                if args.interface_variant=='baseline' else
+                                'All online arms read privileged GT hand after pool generation: original velocity/fitted points, future-only velocity/fitted points, future-only velocity/raw intent points'),
             reference_contract='Explicit privileged diagnostic controls; never a deployable pure-H policy or eligible selector candidate',
             claim='Single-motion privileged interface/acquisition diagnostic,128steps only; no full-task or Cm utility claim')
     write(output / "manifest.json", manifest)
@@ -545,7 +550,8 @@ def main():
                 quarter = n // 4
                 if generator is not None:
                     roles=np.random.default_rng(args.seed).permutation(np.repeat(
-                        (['tau_gt','tau_online','displacement','displacement_handoff']
+                        ((['tau_gt','tau_online','displacement','displacement_handoff'] if args.interface_variant=='baseline'
+                           else ['tau_gt','tau_online','tau_future_velocity','tau_intent'])
                          if args.generated_interface_diagnostic else ['tau_gt','persistence','displacement','scored']),quarter)).tolist()
                 elif args.compare_tau:
                     roles = np.repeat(["oracle", "tau_nominal", "tracker",
@@ -589,7 +595,7 @@ def main():
                         arrays[key].append(val.detach().cpu().numpy().copy())
                 record()
                 generated_ids=np.array([i for i,r in enumerate(roles) if r in
-                    ('persistence','displacement','scored','tau_online','displacement_handoff')])
+                    ('persistence','displacement','scored','tau_online','displacement_handoff','tau_future_velocity','tau_intent')])
                 generated_torch_ids=torch.as_tensor(generated_ids,device=device)
                 measured_history=[]; plans=[]; plan_ticks=[]; active_plan=None
                 controls = 8 if args.mode == "smoke" else (128 if args.generated_interface_diagnostic else 542)
@@ -608,16 +614,19 @@ def main():
                                 if args.generated_interface_diagnostic:
                                     # GT hand is a separate privileged control after proposal/score,
                                     # never the eleventh eligible candidate or an H feature.
-                                    query_roles=['persistence' if roles[i]=='tau_online' else 'displacement'
+                                    query_roles=['persistence' if roles[i].startswith('tau_') else 'displacement'
                                                  for i in generated_ids]
                                     selected=generator.propose(query,query_roles)
-                                    privileged=np.asarray([roles[i]=='tau_online' for i in generated_ids])
+                                    privileged=np.asarray([roles[i].startswith('tau_') for i in generated_ids])
                                     future_index=(tick+torch.arange(1,25,device=device)).clamp_max(542)
                                     gt_world=reference['hand_keypoints'][future_index].cpu().numpy()
                                     pose=query['obj'][-1,privileged]
                                     selected['raw'][privileged]=np.einsum('npij,njk->npik',
                                         gt_world[None]-pose[:,None,None,:3,3],pose[:,:3,:3])
                                     selected['privileged_online_tau']=privileged
+                                    if args.interface_variant=='feedforward':
+                                        selected['future_velocity']=np.asarray([roles[i] in ('tau_future_velocity','tau_intent') for i in generated_ids])
+                                        selected['condition_raw_tau']=np.asarray([roles[i]=='tau_intent' for i in generated_ids])
                                     active_plan=generator.project_selected(query,selected)
                                 else:
                                     active_plan=generator.plan(query,[roles[i] for i in generated_ids])
