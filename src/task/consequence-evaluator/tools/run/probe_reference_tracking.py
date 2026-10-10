@@ -293,6 +293,7 @@ def main():
             basin_roles=list(BASIN_ROLES),
             basin_deltas={role: [[int(index), float(value)] for index, value in BASIN_DELTAS[role]]
                           for role in BASIN_ROLES},
+            persistent_each_control_tick=True,
             inference_contract=("live q/dq/hand/object/velocity, future11-point GT tau, tau-derived "
                                 "joint error, previous residual; fixed diagnostic thumb residual delta; "
                                 "no future q/object or tactile input"),
@@ -607,6 +608,9 @@ def main():
                                               "dof_position", "dof_velocity", "latent", "pd_targets")}
                 if args.tau_only:
                     arrays["student_features"] = []
+                if args.residual_basin:
+                    arrays["actor_latent"] = []
+                    arrays["residual_delta"] = []
                 applied_target = None
                 original_encode = task._action_to_pd_targets
                 def encode(action):
@@ -692,9 +696,10 @@ def main():
                             student_x = x.clone()
                             student_x[oracle_mask | teacher_mask] = 0
                             arrays["student_features"].append(student_x.cpu().numpy().copy())
-                        latent = policy.actor(x)
+                        actor_latent = policy.actor(x)
+                        latent = actor_latent
+                        delta = torch.zeros_like(latent)
                         if args.residual_basin:
-                            delta = torch.zeros_like(latent)
                             for env, role in enumerate(roles):
                                 for index, value in BASIN_DELTAS[role]:
                                     delta[env, index] = value
@@ -730,6 +735,9 @@ def main():
                             raise ValueError("evaluation requested/applied command mismatch")
                         arrays["action"].append(command.cpu().numpy().copy())
                         arrays["latent"].append(latent.cpu().numpy().copy())
+                        if args.residual_basin:
+                            arrays["actor_latent"].append(actor_latent.cpu().numpy().copy())
+                            arrays["residual_delta"].append(delta.cpu().numpy().copy())
                         arrays["pd_targets"].append(applied_target.cpu().numpy().copy())
                         arrays["clipped"].append(((intended - command).abs().amax(-1) > 1e-6).cpu().numpy())
                         previous = torch.tanh(latent)
