@@ -228,3 +228,9 @@ fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无�
 debug smoke<=120s，24update/16env/<=49152实际环境交互train<=480s，单次完整冻结比较<=180s，
 audit<=60s。固定D/R、H-only与真实当前几何奖励，无参考奖励/WM；协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md`。
+
+2026-10-10 首轮trajectory PPO完整负结果和固定快照credit信号后，允许一次同初始化/
+seed/奖励/D/R/预算的lambda1 Decision Probe，仅改变GAE信用时间尺度。单空闲GPU4，
+新增14GPUmin/512MiB，smoke120s+24update训练480s+完整冻结评价180s+audit60s；
+不扩大BC/架构/seed sweep、旧Task或WM。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md`。

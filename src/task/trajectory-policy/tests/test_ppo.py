@@ -25,3 +25,16 @@ def test_task_reward_distinguishes_table_support_and_loss_without_references():
     assert reward[0]-reward[1] == 1
     assert terms['loss'][2] == -.5
     assert reward[0] > reward[1] > reward[2]
+
+
+def test_lambda_one_returns_discounted_prefix_returns_independent_of_intermediate_value():
+    reward = torch.tensor([[2., 2.], [3., 3.]])
+    duration = torch.tensor([[8, 8], [6, 6]])
+    value = torch.tensor([[.5, .5], [100., -100.]])
+    bootstrap = torch.tensor([7., 7.])
+    for terminal in (False, True):
+        done = torch.tensor([[False, False], [terminal, terminal]])
+        _, returns = advantages(reward, value, done, duration, bootstrap, lam=1.)
+        last = 3. + (0. if terminal else .99**6 * 7.)
+        expected = torch.tensor([[2. + .99**8 * last]*2, [last]*2])
+        torch.testing.assert_close(returns, expected, atol=2e-5, rtol=1e-5)

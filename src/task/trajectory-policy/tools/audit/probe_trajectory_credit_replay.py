@@ -1,6 +1,5 @@
 """Post-hoc matched credit/update replay on frozen sampled rollouts; no physics."""
 import argparse
-from functools import partial
 import hashlib
 import json
 import os
@@ -65,7 +64,6 @@ def main():
     from trajectory_policy.ppo import HistoryValue
     import trajectory_policy.ppo as ppo
     torch.set_num_threads(2);torch.set_float32_matmul_precision('highest')
-    original=ppo.advantages
     args.output.mkdir(parents=True)
     files=[args.training/name for name in ('manifest.json','high.npz','low.npz','monitor.jsonl')]+[Path(__file__)]
     hashes={str(p.resolve()):sha(p) for p in files}
@@ -86,8 +84,7 @@ def main():
             value.load_state_dict(packet['value_model'])
             actor_optimizer=torch.optim.Adam(actor.parameters(),lr=6.25e-8)
             value_optimizer=torch.optim.Adam(value.parameters(),lr=3e-4)
-            ppo.advantages=partial(original,lam=lam)
-            update=ppo.update(actor,value,batch,bootstrap,actor_optimizer,value_optimizer)
+            update=ppo.update(actor,value,batch,bootstrap,actor_optimizer,value_optimizer,gae_lambda=lam)
             raw=update['advantage'];normalized=(raw-raw.mean())/raw.std(unbiased=False).clamp_min(1e-6)
             rows=[]
             with torch.no_grad():
@@ -102,7 +99,6 @@ def main():
                         logprob_change=logp-float(batch['logp'][k,row]),prefix_xyz_mean_change_mm=float(xyz.square().mean().sqrt()*1000)))
             results.append(dict(update=u,lam=lam,actor_steps=update['actor_steps'],joint_kl=update['joint_action_kl'],actor_lr=update['actor_lr'],rows=rows))
             print(json.dumps(results[-1]),flush=True)
-    ppo.advantages=original
     if any(sha(path)!=digest for path,digest in hashes.items()):
         raise ValueError('diagnostic inputs drift')
     aggregate={str(lam):dict(positive_advantages=sum(r['normalized_advantage']>0 for a in results if a['lam']==lam for r in a['rows']),

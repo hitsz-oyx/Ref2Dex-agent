@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--high-steps', type=int, default=16)
     parser.add_argument('--seed', type=int, default=293)
     parser.add_argument('--seconds', type=int, default=480)
+    parser.add_argument('--gae-lambda', type=float, choices=(.95, 1.), default=.95)
     parser.add_argument('--engineering-smoke', action='store_true')
     args = parser.parse_args()
     if not (1 <= args.updates <= 24 and 2 <= args.high_steps <= 16):
@@ -138,7 +139,7 @@ def main():
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, gpu_before=before, seed=args.seed, input_sha256=hashes,
         updates=args.updates, high_steps=args.high_steps, envs=16, episode_controls=episode_controls,
-        engineering_smoke=args.engineering_smoke, gamma=.99, gae_lambda=.95,
+        engineering_smoke=args.engineering_smoke, gamma=.99, gae_lambda=args.gae_lambda,
         actor_lr=1e-6, value_lr=3e-4, clip_ratio=.2, epochs=4, target_joint_kl=.02,
         actor_backtrack_factor=.25, actor_backtrack_trials=4,
         inference_contract='Measured H328 -> independent sampled c288 -> D -> tau -> frozen R; no future reference, phase, force or WM',
@@ -328,7 +329,7 @@ def main():
                     bootstrap_history = observation()
                     bootstrap = value_net(bootstrap_history).detach()
                 with torch.enable_grad():
-                    result = ppo_update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer)
+                    result = ppo_update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer, gae_lambda=args.gae_lambda)
                 for chunk in range(args.high_steps):
                     high_records[-args.high_steps+chunk].update(
                         advantage=result['advantage'][chunk].cpu().numpy().copy(), returns=result['returns'][chunk].cpu().numpy().copy(),

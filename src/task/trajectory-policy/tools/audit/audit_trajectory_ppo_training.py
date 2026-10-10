@@ -121,7 +121,7 @@ def main():
         a=np.zeros_like(v);carry=np.zeros(16)
         for k in range(15,-1,-1):
             nxt=high['bootstrap'][u*16] if k==15 else v[k+1]
-            carry=r[k]+.99**duration[k]*(~done[k])*nxt-v[k]+(.99*.95)**duration[k]*(~done[k])*carry
+            carry=r[k]+.99**duration[k]*(~done[k])*nxt-v[k]+(.99*manifest['gae_lambda'])**duration[k]*(~done[k])*carry
             a[k]=carry
         error('advantage',a,high['advantage'][u*16:(u+1)*16],3e-5)
         error('returns',a+v,high['returns'][u*16:(u+1)*16],3e-5)

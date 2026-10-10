@@ -51,8 +51,8 @@ class HistoryValue(nn.Module):
         return self.net((history-self.mean)/self.scale).squeeze(-1)
 
 
-def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer):
-    advantage, returns = advantages(batch['reward'], batch['value'], batch['done'], batch['duration'], bootstrap)
+def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer, gae_lambda=.95):
+    advantage, returns = advantages(batch['reward'], batch['value'], batch['done'], batch['duration'], bootstrap, lam=gae_lambda)
     h, c, old_logp, old_mean, old_std, target = (batch[key].flatten(0, 1) for key in
         ('history', 'c', 'logp', 'mean', 'std', 'value'))
     target = returns.flatten()
