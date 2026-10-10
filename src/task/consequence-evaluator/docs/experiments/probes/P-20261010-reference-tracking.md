@@ -192,4 +192,46 @@ show planned placement, revise the completion interpretation; if unsupported
 separation/free fall, retain the sustained-contact blocker. Use only frozen
 arrays and raw input deserialization on CPU, no model/simulator execution or
 new training. This extends the existing Probe diagnosis, not a new Validation.
-Tool: `tools/audit/audit_reference_tracking_drop.py`. Results pending.
+Tool: `tools/audit/audit_reference_tracking_drop.py`, diagnostic code `a7c1696`.
+Output: `outputs/consequence-evaluator/ref7_3-tracker-drop-diagnostic-20261010-r1/`.
+
+**There are two different references.** The raw543-frame
+`s3_airplane_lift/interaction_hand_inspire.pt` contains repeated lowering to the
+table and final release: raw object center starts at0.781684m and ends
+at0.782180m (difference0.495mm); its annotated right-hand contact ends at
+tick498. Its object positions are columns198:201 and right-hand contact labels
+222:238, as verified against the native motion loader. The file hash matches
+the pinned inputs. Thus the original task does include placing/releasing.
+
+This PPO Probe instead uses the **measured teacher** robot/hand/object trace.
+That reference never completes final placing: final object lift is0.831632m,
+bottom/table gap0.785556m, sampled hand gap about1mm and force-pair proxy true.
+The previous statement that the source lacks final settled placing refers only
+to this measured teacher reference, not to the raw task. Teacher-held duration
+is a control upper-bound screen, not successful completion of the original task.
+
+Recorded tracker behavior is not successful controlled placing. Of32 tracker
+rows,31 have hand/object separation while unsupported, with vertical
+acceleration within0.5m/s² of gravity -9.81m/s² in the separated interval.
+The remaining row separates near the table and has no recorded detached
+airborne interval; do not claim a31/32 diagnostic proves the same free-fall
+window for all32. At every row's loss of final held run, the measured teacher
+reference is still held (table clearance0.12–0.44m).
+
+For env32, final held sample is tick351. At352, hand/object gap grows to25.4mm,
+object/table gap is155.6mm, vz=-1.384m/s and force-pair proxy false. By354,
+vz=-2.037m/s (two1/30s intervals at about -9.81m/s²); the object reaches the
+table by355, while the measured reference still has225.6mm table clearance.
+The raw motion is lowering at this time too, but still annotates hand contact
+through this segment; coincidence with raw descent is not evidence of
+controlled placement by the robot.
+
+Diagnosis: observed loss of support/separation explains these recorded drops;
+the exact policy/contact reason for losing support remains unresolved. This is
+a frozen-trajectory diagnostic, not causal intervention or formal Validation.
+No controller or checkpoint was changed. Plot: `reference-vs-drop.png` in the
+diagnostic output directory. Needed protocol correction before original-task
+claims: explicitly align target/metric semantics with raw controlled placement;
+zero terminal hold is expected after a proper placement and cannot by itself
+be counted as original-task failure. The current near-teacher tracking screen
+remains failed for the measured reference actually used by this Probe.

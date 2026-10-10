@@ -18,6 +18,14 @@ gate，也不解释成方法无效。旧 loss-event 计数排除了supported状�
 11点τ retarget；不继续仅压inverse L1，不启动新的sweep或正式Validation。协议与结果见
 [`P-20261010-reference-tracking`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md)。
 
+用户追问放置语义后，冻结轨迹审计确认：原始motion确实有放置/松手（末端物体高度
+回到初始+0.495mm，contact标签最后活跃tick498），但本轮PPO用的是teacher实测
+reference，它末端仍抬升0.832m、离桌面0.786m。31/32 tracker行在无支撑分离后
+出现接近-9.81m/s²的下落；其余一行在近桌面分离。故本轮行为不是受控放置，原始
+任务的放置成功也不能用末帧持有判定。后续须明确原始任务目标与teacher控制上界
+两种语义；本轮仅对实际使用的teacher-reference tracking gate作判断。诊断图/JSON：
+`outputs/consequence-evaluator/ref7_3-tracker-drop-diagnostic-20261010-r1/`。
+
 ## 2026-10-10 主线 τ-conditioned evaluator Probe
 
 为继续 `docs/user/完整链路.md` 的第 7–8 步，新增真实 hand-trajectory 接口的
