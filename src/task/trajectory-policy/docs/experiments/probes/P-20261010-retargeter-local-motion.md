@@ -5,7 +5,7 @@ experiment_id: P-20261010-retargeter-local-motion
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 49013f69b06bee53436f0fc731a730e4a0c94bc7
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-retargeter
 probe_index_in_family: 3
@@ -87,7 +87,38 @@ foreigncompute>512MiB停止。fit<=360s/audit<=120s，新增8GPUmin/64MiB，总<
 
 ## Results
 
-Not run yet; fixed protocol before training.
+Result: `UNCLEAR` — local-motion improves offline τ usage, but the fixed native-precision screen still fails.
+
+`49013f6` fixed fit completed in 40.02s on GPU5 (Torch peak 58.65MiB; monitor
+reported 1025MiB device usage and no foreign compute). The τ arm and matched
+state-only arm both selected update 1500. Validation standardized L1 was
+`0.241886` versus `0.332077` (ratio `0.7284`), and same-tick τ shuffle was
+`0.519620` (shuffle/full ratio `2.1482`). Thus the aligned branch uses the
+provided local motion signal under the fixed data contract.
+
+The physical-error screen did not pass: τ all/startup first-command XYZ p95 was
+`44.15/51.21 mm`, rotation `0.3688/0.1101 rad`, and fingers
+`0.1019/0.1210 rad`. The matched state-only values were
+`58.09/74.47 mm`, `0.3974/0.1702 rad`, and `0.1174/0.1591 rad`.
+The independent audit completed in 5.55s with `PASS`; requested/applied labels,
+native PD reconstruction, split, train-only statistics, checkpoint selection,
+all saved validation predictions, and shuffle mapping were independently
+reconstructed within the fixed tolerances.
+
+This is a positive offline conditioning signal but not a deployable retargeter,
+physical grasp result, or Cm utility result. Since the fixed physical screen did
+not pass, do not collect competent native data or enter physics with this
+checkpoint. Inspect inverse conditioning and native execution semantics before
+another architecture change; do not add epochs, seeds, data, or physics in this
+Probe.
+
+Fit output: `outputs/trajectory-policy/retargeter-local-motion-20261010-r1/`.
+Independent audit: `outputs/trajectory-policy/retargeter-local-motion-audit-20261010-r1/`.
+
+Decision: retain the local-motion evidence as `UNCLEAR`, close this fixed Probe,
+and use a separate bounded diagnosis to distinguish command-identification error
+from native execution/preload semantics before deciding whether another learned
+retargeter intervention is justified.
 
 ## Limitations / future evidence
 

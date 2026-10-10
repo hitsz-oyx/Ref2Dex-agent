@@ -77,8 +77,13 @@ retargeter原文与actual hand/action数据合同：支持真实动作监督的�
 `1e9782c` [局部inverse标定](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md)
 3.44s完成：hand恢复腕姿p95<=.00158mm/1.84e-5rad，但hand与privileged next-q
 标定均未过screen，val XYZ约32.6mm，局部UNCLEAR。原r1 angular周期差缺陷已修正并
-原样保留，不影响先前neural fit。下一候选为24全局context+每动作query对齐的局部
-手点位移/帧差分条件分支，先固定Probe；不直接扩大PPO/epochs或接WM。
+原样保留，不影响先前neural fit。后续`49013f6` [local-motion retargeter](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-local-motion.md)
+固定双臂1500updates完成40.02s/GPU5，独立审计5.55s/PASS：对齐局部分支的
+τ/state-only L1为.241886/.332077（ratio.7284），同tick shuffle ratio2.1482，
+说明信号被使用；但all/startup XYZ p95仍44.15/51.21mm、rotation.3688/.1101rad、
+fingers.1019/.1210rad，未过5mm/.05rad screen，局部UNCLEAR。保留离线条件化证据，
+不进入competent物理采集；下一步先做有界inverse conditioning/native preload语义诊断，
+不直接增加epochs、seed、数据或接WM。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
