@@ -5,7 +5,7 @@ experiment_id: P-20261011-video-motion-token
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: 79df493
 claim_id: C1
 hypothesis_family: HF-video-point-dynamics
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [226]
 decision_changed_if_positive: retain a DynamicWAM-style global history token for the weak-video point-flow auxiliary and test representation transfer
 decision_changed_if_negative: defer global motion-token fusion and prioritize calibrated wrench/simulator routes
-status: PLANNED
+status: UNPROMISING
 run_id: video-motion-token-20261011-r1
 ---
 
@@ -64,14 +64,30 @@ this global-token recipe, not all video, point-dynamics, or wrench routes.
 
 ## Results
 
-Pending execution.
+The matched run completed normally in
+`outputs/cm-pointflow-effect-pretrain/video-motion-token-20261011-r1/` on GPU1
+(500 updates per arm; control 93.3 s, motion 98.1 s; peak allocations 1106 and
+1265 MiB). The background gate passed. Only `P03_13_12` and `P03_13_19` met the
+16-point object-H8 support floor, so the object decision is a two-clip Probe.
+
+| arm | object H8 macro EPE | background H8 EPE |
+|---|---:|---:|
+| matched control | 12.949 mm | 6.301 mm |
+| history motion token | 13.726 mm | 6.359 mm |
+
+The motion arm was worse on both qualified clips (ratios 1.177 and 1.005), so
+the pre-registered gate failed and the result is `UNPROMISING` for this
+DynamicWAM-style global token recipe. The code path, data split, and matched
+state/RNG protocol completed without an implementation failure.
 
 ## Limitations / future evidence
 
 The source point tracks are offline teacher geometry from ObjectForesight and do
 not establish a causal deployment camera pipeline. The weak-video corpus has
-few qualifying object points in dev, so the result is a route Probe only. A
-positive token result would still require native encoder-transfer and matched
-Cm-on/Cm-off policy validation. A negative token result does not reject RBO,
-T-Rex, CHORD simulator support, or correspondence-free geometry losses on an
-explicitly unordered label contract.
+few qualifying object points in dev, so this is a route Probe only. The
+negative result closes this global-token recipe for the current pack; it does
+not reject the official-data K_aux=10 auxiliary route, RBO/T-Rex sensor or
+geometry adapters, CHORD simulator support, or correspondence-free geometry
+losses on an explicitly unordered label contract. Any positive result on a
+future route would still require native encoder-transfer and matched Cm-on /
+Cm-off policy validation.

@@ -146,6 +146,16 @@ open; its next required experiment is a random-initialization control that
 uses the same official H5/WDS data and transfers only the shared representation
 into the native downstream task. See the [source-level reuse note](research/2026-10-10-droid-no-zed-reuse.md).
 
+The matched [metric-3D motion-token Probe](experiments/probes/P-20261011-video-motion-token.md)
+also completed. A DynamicWAM-style global history token was wired as an
+auxiliary path while preserving the native pointwise history and Huber flow
+loss. Background behavior passed the gate, but the two qualified object clips
+gave 13.726 mm motion-token H8 EPE versus 12.949 mm matched control EPE, with
+both clips no better than control. Mark this particular token recipe
+`UNPROMISING`; keep the official-data K_aux=10 route and calibrated
+wrench/geometry routes open. This does not establish a negative result for
+video data as a whole.
+
 ## Current decision and resources
 
 Retain native main3 model and all weak-label/sensor evidence. Video follow-up
