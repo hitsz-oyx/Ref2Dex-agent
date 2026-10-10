@@ -106,3 +106,31 @@ later matched Validation; Probe tags only PROMISING/UNPROMISING/UNCLEAR.
 ## Runs
 
 Pending. Actual implementation commit is captured in run manifests.
+
+
+Geometry r1 (0a79260) completes300iterations/14.31s onGPU2 (~337MiB).
+Coordinate RMSE2.47mm, fixed roots<0.0001mm, thumb tip point RMSE13.80mm;
+other fingertip point RMSE0.51–2.79mm. Coupled geometry is not loaded-q recovery.
+Warmstart weights carry prior oracle training information; only current student
+execution and fine-tuning inputs/reward remove that privileged information.
+
+Frozen comparison r1 (75ff26e,seed276): oracle median484/near43316/16/terminal16;
+tau nominal median0/near0/terminal0; migrated tau tracker median478/near13/16/
+terminal13; tau shifted median207/near0/terminal15. Do not use end-hold alone
+to infer tracking correctness. Actual student897 input reconstruction maxerror
+3.81e-6, command maxerror2.38e-7, nativePDtargeterror0, reset alignment bitwise.
+The strong screen remains UNPROMISING because tracker clipping3556/8672=41.01%.
+3547thumb-pitch and44thumb-yaw coordinate overdrives; no wrist clipping.
+The original threshold is not relaxed; saturated commands are not concealed by
+preprojecting desired targets or changing which controls count as clipping.
+
+Decision before training: retain geometry + feedback hypothesis; wrist works
+without measured q_ref but the old preload is incompatible with the new thumb
+base. Use the single predeclared128update seed277 fine-tune with a smooth
+native-command excess cost: reward minus0.20*max(abs(requested-clamped)).
+This is computed before native dispatch from intended commands, with no future
+labels or added tactile state. Clamped effective control is unchanged; the
+penalty favors valid equivalent preload over unnecessary overdrive. All other
+PPO settings stay fixed. Record this targeted reward change before training;
+geometry fitting is not redone or chosen by rollout result.
+Frozen artifacts: outputs/consequence-evaluator/ref7_4-tau-tracker-frozen-{eval,audit}-20261010-r1/.

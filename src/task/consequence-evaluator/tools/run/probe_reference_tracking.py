@@ -211,7 +211,7 @@ def main():
             inference_contract="live q/dq/hand/object/velocity, future11-point tau, tau-derived joint error, previous residual; no true future q/object or tactile input",
             action_contract="tau-derived coupled geometric target + tau-derived wrist velocity feedforward + learned residual; full native command",
             reference_contract="GT future hand upper bound; geometry from tau/reset/static URDF only; q/object labels only for independent comparison/evaluation",
-            training_contract="on-policy PPO; tau-only hand/lift/hold reward, no future object reward or command supervision",
+            training_contract="on-policy PPO; tau-only hand/lift/hold reward, no future object reward or command supervision; minus0.20*max native-command excess",
             claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
     write(output / "manifest.json", manifest)
 
@@ -323,7 +323,8 @@ def main():
                 if capture is None or not torch.equal(capture, command):
                     raise ValueError("requested/applied native tracking action mismatch")
                 previous = torch.tanh(latent).detach()
-                return done.to(device).bool().reshape(-1), (intended - command).abs().amax(-1) > 1e-6
+                excess = (intended - command).abs().amax(-1)
+                return done.to(device).bool().reshape(-1), excess > 1e-6, excess
 
             work_started = time.monotonic()
 
@@ -366,11 +367,11 @@ def main():
                             x, measured, next_q, next_obj, next_hand = observation()
                             dist = policy.distribution(x); latent = dist.sample()
                             value = policy.value(x); logp = dist.log_prob(latent).sum(-1)
-                            done, clipped = step(latent, next_q, measured)
+                            done, clipped, excess = step(latent, next_q, measured)
                             after = measure()
                             if args.tau_only:
                                 reward = tau_reward(after["hand"], after["obj"], next_hand, after["pair"],
-                                                    initial_height, initial_palm_height, latent)
+                                                    initial_height, initial_palm_height, latent) - .20 * excess
                             else:
                                 reward = tracking_reward(after["hand"], after["obj"], next_hand, next_obj,
                                                          after["pair"], initial_height, latent)
