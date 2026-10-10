@@ -94,6 +94,12 @@ Outputs: `outputs/cm-pointflow-effect-pretrain/video-point-dynamics-20261010-r1/
 
 Pending implementation/qualification at a fixed execution commit.
 
+The first preparation invocation at `2d8a573` failed before any source extraction:
+relative `__file__` was passed to absolute Task-relative identity logging. The
+empty `data/` output is preserved with a failure note. Both preparation/training
+entry paths are resolved before hashing; the replacement output is `data-r2/`.
+This startup failure provides no scientific evidence about video learning.
+
 ## Limitations / future evidence
 
 Two source videos and overlapping temporal anchors cannot establish large-scale

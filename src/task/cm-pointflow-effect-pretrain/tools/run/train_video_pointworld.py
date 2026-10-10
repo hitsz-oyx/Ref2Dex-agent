@@ -98,7 +98,7 @@ def main():
                     normalization=dict(split='train', scene_mean=mean.tolist(), scene_std=std.tolist()),
                     train_windows=len(train), dev_windows=len(dev),
                     implementation_sha256={str(p.relative_to(TASK)): sha(p) for p in
-                        (Path(__file__), TASK / 'src/oakink_wm/video_points.py',
+                        (Path(__file__).resolve(), TASK / 'src/oakink_wm/video_points.py',
                          TASK / 'src/oakink_wm/video_pointworld.py', TASK / 'src/oakink_wm/pointworld.py',
                          TASK / 'src/oakink_wm/model.py')},
                     vendor_sources_sha256={str(p.relative_to(VENDOR)): sha(p)

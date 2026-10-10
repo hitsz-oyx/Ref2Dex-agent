@@ -83,7 +83,7 @@ def main():
                     source_inventory_sha256=sha(args.inventory),
                     official_train_sha256=sha(args.data_root / 'metadata/train.txt'),
                     implementation_sha256={str(p.relative_to(TASK)): sha(p) for p in
-                        (Path(__file__), TASK / 'src/oakink_wm/video_points.py',
+                        (Path(__file__).resolve(), TASK / 'src/oakink_wm/video_points.py',
                          TASK / 'tools/audit/convert_epic_scene_flow.py')})
     try:
         for video, split in [('P03_03', 'train'), ('P03_13', 'dev')]:
