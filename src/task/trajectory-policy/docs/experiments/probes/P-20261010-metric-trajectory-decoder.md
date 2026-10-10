@@ -5,7 +5,7 @@ experiment_id: P-20261010-metric-trajectory-decoder
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 7e7e909
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-action-space
 probe_index_in_family: 4
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [297]
 decision_changed_if_positive: freeze executable D and initialize measured-history actor
 decision_changed_if_negative: stop48D reconstruction search and use less compressed trajectory baseline
-status: UNCLEAR
+status: UNPROMISING
 run_id: metric-trajectory-decoder-20261010-r1
 ---
 
@@ -80,7 +80,67 @@ no foreign process touched, no started experiment to restart, no extra run/seed.
 
 ## Results
 
-Not run yet.
+Implementation `03c19e4`, actual fit/native code `7e7e909`; seed297 onGPU4.
+Offline screen passed: first8 hand3D RMS0.91855mm, palm maximum4.38554mm,
+worst-window wrist FF XYZ3D RMS2.80546mm; full24 handRMS3.57701mm.
+This is in-sample nominal-geometry coverage, not learned policy performance.
+
+One native16env/542control wave completed55.168s. GPU memory~7537MiB,
+utilization33--47% at later monitors; CPU-exchange/GPUPhysX cost within cap.
+No owned GPU process left running. Actual physical screen unchanged:
+
+| Role | >=433held and terminal | Terminal held | Median max held | Clipping |
+| --- | --- | --- | --- | --- |
+| Original GT tau | 4/4 | 4/4 | 478.5 | 0% |
+| Dense hand-derived FK tau | 4/4 | 4/4 | 482.5 | 0.09225% |
+| Metric48 | 2/4 | 2/4 | 387 | 0% |
+| Metric48 repeat rows | 0/4 | 0/4 | 291.5 | 0.04613% |
+
+Both metric arms missed the >=3/4 gate with calibrated controls: local
+**UNPROMISING** for this projection/live-calibration/frozen-R combination.
+All eight metric rows first acquired stable grasp; six later lost it, with
+last stable ticks206/282/349/352/356/356. These are not eight acquisition
+failures. Repeat arm is different native rows, not an independent seed.
+Longheld/terminal is a grasp metric, not completion of original placing task.
+
+Independent source/plan/input/command replay passed: actual encoder c error0,
+translation0, rotation-matrix1.01e-6, finger1.19e-8, future-only velocity9.54e-7,
+897features2.86e-6, command2.38e-7 and applied PD0. Audit r1 failed on missing
+`encoder_c` accumulator key, after that additional check was introduced;
+`4be7d90` fixes only audit accumulation. Preserved failed record, replay r2
+completed; no simulation rerun or original result modification.
+
+Independent read-only review under AGENTS14 found no whitening-direction,
+dual-encoder, actual-c or Euler-branch implementation error. Weighted decoder
+orthogonality residual2.90e-8; encoder/metric-adjoint difference7.82e-8;
+maximum adjacent future Euler coordinate change0.1934rad. However native
+compressed plans, anchored in their own measured q/object, have first8 hand
+3D RMS8.017mm and maximum43.026mm against dense geometry across68x8 queries;
+first query RMS2.941mm/max7.749mm. XYZ FF error `delta_q+.1delta_v` RMS3.233mm,
+first query1.366mm. This is a different input domain from offline geometry-q
+and fixed initial object frame, so offline0.919mm cannot characterize executed
+trajectory accuracy. Near loss, prefix RMS5.18--12.19mm; correlation alone
+does not identify the cause of dropping.
+
+Artifacts:
+
+- Fit: `outputs/trajectory-policy/metric-trajectory-decoder-20261010-r1/{manifest.json,result.json,basis.npz,coverage.npz}`.
+- Native: `outputs/trajectory-policy/metric-trajectory-decoder-execution-20261010-r1/{manifest.json,result.json,trajectory.npz,plans.npz,monitor.jsonl}`.
+- Replay: `outputs/trajectory-policy/metric-trajectory-decoder-execution-audit-20261010-r2/{manifest.json,audit.json,behavior.png}`.
+- Preserved failed replay: `outputs/trajectory-policy/metric-trajectory-decoder-execution-audit-20261010-r1/manifest.json`.
+
+## Follow-up Decision Note
+
+Honor the predeclared cap: stop48D reconstruction search, retaining all failures.
+Use a direct288D trajectory representation (24x[XYZ,relative SO3,six fingers])
+without a PCA projection or reference-action base. First replay its encode/decode
+against all68x4 successful dense calibration plans, checking literal native
+Euler q, FK and future-only FF, not merely orientation equivalence. This is
+bounded GPU engineering identity, no new rollout or scientific claim. If identity
+passes, next research decision is measured-history actor initialization and
+real-reward RL, not another compression sweep. More action coordinates may
+make RL harder; that tradeoff remains unresolved. No abandonment of all48D
+policies/trajectory RL, no new external permission/resource requirement.
 
 ## Limitations / future evidence
 

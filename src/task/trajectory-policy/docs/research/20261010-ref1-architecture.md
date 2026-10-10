@@ -165,5 +165,23 @@ D/R覆盖不过则停在该blocker；PPO无行为进展先查实际高层采样/
 正式结论或放弃核心Mission；遵循Decision Checkpoint，以Probe标签和清楚的适用
 范围记录有效负结果，必要时再做matched Validation或请用户改变全局claim。
 
-当前可执行的下一步是第1项的最小动作接口/初始化覆盖Probe；本次只形成设计建议，
-没有新Task实验、预算消耗或已经完成新baseline的主张。
+以上是最初设计建议；后续执行证据以Task实验卡为准，尚未完成高层策略baseline。
+
+## 2026-10-10 动作接口试验后的修订
+
+四节点48D、最佳前缀拟合、coordinate-PCA和pose/FF metric的证据见Task实验卡。
+最终metric离线误差很小，在线live-state重编码仍出现明显投影误差，两组长时
+保持2/4与0/4，而密集几何轨迹4/4。链路审计通过，只能局部评价当前固定D/R组合；
+没有证据证明所有48D策略都不可行。按预声明停止继续重建搜索。
+
+第一轮学习改用直接24x12=288维物理轨迹坐标：query-object frame下相对当前腕部
+XYZ与SO3，以及六个独立手指角；每步全部保留。绝对actor输出c，D只做坐标恢复、
+native bounds/coupling和FK，没有在线reference chunk或母策略。这里“绝对actor”
+指不依赖reference-action基座，不要求坐标必须在世界系中表达。真实未来q/object
+仍不能作为actor/executor输入，encode仅接受离线手轨迹反解的几何标签。
+
+先检查D288与已保存dense成功执行计划的literal native Euler、FK、future-only
+velocity/FF一致。这只是接口工程核对；下一次有学习意义的Probe应针对纯H actor
+初始化及执行，不能把又一个oracle重放当作H→τ已经学会。先固定D/R与无WM baseline，
+减少同时变化的模块。288维探索方差、实际接触执行及episode外泛化仍需评估；
+当前单motion行划分不能替代独立motion泛化证据。

@@ -18,7 +18,12 @@ ce503af native16env/542步完成57.29s：原GT3/4长时终末held，dense FK4/4�
 后续7a0a21d前缀最优拟合：四节点位置RMS下界最差32.20mm、FF30.67mm，
 只证实当前轨迹复现限制，不排除别的成功策略。772190e固定PCA D48离线fit完成：
 first8手点RMS5.61mm、掌部max23.62mm、FF最差RMS18.50mm，未过预声明几何screen，
-按协议没有启动仿真。下一步针对前缀手几何与腕部速度拟合D；actor/Cm仍未训练。
+按协议没有启动仿真。后续7e7e909 pose/FF metric D48离线手点RMS0.919mm通过，
+55.17s原生执行GT/dense各4/4，metric两组2/4和0/4长时终末held，局部UNPROMISING。
+八行均先抓住，六行随后失持；在线live q/object前缀RMS8.017mm，与离线输入域不同。
+4be7d90仅修复audit accumulator，独立实际c/输入/命令/PD审计通过，未重跑仿真。
+按预声明停止48D重建搜索，下一步D288接口等价与H→c学习；actor/Cm仍未训练。
+证据：[metric D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)。
 证据：[prefix fitting](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)、
 [lowrank D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。

@@ -10,7 +10,11 @@ PointWorld动作条件物理表征是否改善真实RL策略训练。
 最优四节点拟合仍有最差窗口32mm位置/31mm FF RMS，证实这种时间形状难以近似
 当前可执行前缀。固定PCA D48把手点RMS降到5.61mm，但启动掌部max23.62mm/
 FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负证据。
-下一步让decoder拟合目标直接约束前缀手几何与腕部速度，
+最终pose/FF metric D48离线手点RMS0.919mm、掌部max4.386mm、FF RMS2.805mm通过，
+但原生两组长时终末held为2/4、0/4；GT与dense各4/4。8行都先抓住，6行随后失持。
+实际live q/object重编码下前缀手点RMS8.017mm；输入/命令/PD与独立实现审查通过。
+按预声明停止48D重建搜索，改用保留24步独立腕姿/手指的直接D288，先核对既有dense
+执行轨迹的接口等价，再进入H→c初始化及真实奖励RL，
 尚未训练高层actor或接入WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
@@ -20,6 +24,7 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 - [48维decoder覆盖Probe](docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)
 - [固定D的前缀最优拟合诊断](docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)
 - [固定PCA时间基底覆盖](docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)
+- [pose/FF metric覆盖与停止48D搜索](docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。
