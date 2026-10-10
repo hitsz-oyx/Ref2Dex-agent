@@ -20,6 +20,7 @@ def main():
     for name in ('evaluation', 'geometry', 'reference', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
+    p.add_argument('--startup-balanced', action='store_true', help='fixed .25 startup/.25 approach/.5 all-state BC sampling and selection')
     args = p.parse_args()
     args.output = args.output.resolve()
     if args.output.exists() or ROOT/'outputs/trajectory-policy' not in args.output.parents:
@@ -64,6 +65,8 @@ def main():
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         input_sha256=hashes, physical_gpu=args.gpu, gpu_before=before, seed=295,
         updates=2500, batch_size=512, width=512, optimizer='Adam', learning_rate=.0003,
+        startup_balanced=args.startup_balanced,
+        selection_metric='0.25 ticks0:8 +0.25 ticks8:64 +0.5 all' if args.startup_balanced else 'all-state',
         offline_future_labels='Only hand-derived geometry q; never actual future robot/object state.',
         deployment='H328 only; no clock/phase/reference/tactile or reference actor.')
     args.output.mkdir(parents=True)
@@ -106,11 +109,21 @@ def main():
             ff = error[:, :8, :6]+.1*velocity[:, :8]
             return ((error*weights)**2).mean()+.1*(ff**2).mean()
         with torch.no_grad():
-            mean_baseline = float(loss(actor.action_mean.expand_as(vy), vy))
+            def selection(prediction):
+                if not args.startup_balanced:
+                    return loss(prediction, vy)
+                return .25*loss(prediction[:32], vy[:32])+.25*loss(prediction[32:256], vy[32:256])+.5*loss(prediction, vy)
+            mean_baseline = float(selection(actor.action_mean.expand_as(vy)))
         best, best_step, best_state = float('inf'), None, None
         fit_started = time.monotonic()
         for step in range(1, 2501):
-            ids = torch.randint(len(x), (512,), device='cuda')
+            if args.startup_balanced:
+                # Offline row/time strata only; no time/phase supplied to actor.
+                ids = torch.cat((torch.randint(8*12, (128,), device='cuda'),
+                    torch.randint(8*12, 64*12, (128,), device='cuda'),
+                    torch.randint(len(x), (256,), device='cuda')))
+            else:
+                ids = torch.randint(len(x), (512,), device='cuda')
             objective = loss(actor(x[ids]), y[ids])
             if not torch.isfinite(objective):
                 raise FloatingPointError('nonfinite BC objective')
@@ -120,7 +133,7 @@ def main():
             optimizer.step()
             if step == 1 or step % 250 == 0:
                 with torch.no_grad():
-                    val = float(loss(actor(vx), vy))
+                    val = float(selection(actor(vx)))
                 if val < best:
                     best, best_step = val, step
                     best_state = {key: value.detach().cpu().clone() for key, value in actor.state_dict().items()}
@@ -152,11 +165,22 @@ def main():
         index = np.minimum(ticks[:, None]+np.arange(1, 25), 542)
         target_hand = np.repeat(geometry['fitted_points'][index][:, None], 4, axis=1).reshape(-1, 24, 11, 3)
         error = np.linalg.norm(hand-target_hand, axis=-1)
+        startup_rms = float(np.sqrt((error[:4, :8]**2).mean())*1000)
+        startup_palm = float(error[:4, :8, 0].max()*1000)
+        target_xyz = geometry['q'][1:25, :3]
+        delta_xyz = np.diff(target_xyz, axis=0)*30
+        target_velocity = np.concatenate((delta_xyz[:1], (delta_xyz[:-1]+delta_xyz[1:])/2, delta_xyz[-1:]))
+        ff_error = q[:4, 1:9, :3]+.1*velocity[:4, 1:9, :3]-(target_xyz[:8]+.1*target_velocity[:8])[None]
+        startup_ff = float(np.sqrt((ff_error**2).sum(-1).mean(-1)).max()*1000)
+        startup_pass = startup_rms <= 5 and startup_palm <= 10 and startup_ff <= 10
         np.savez_compressed(args.output/'coverage.npz', tick=ticks, rows=validation_rows,
             history=h[ticks][:, validation_rows], c=predicted, q=q, hand=hand, velocity=velocity)
         if any(sha(path) != digest for path, digest in hashes.items()):
             raise ValueError('source/input drift during fit')
-        result = dict(status='UNCLEAR', neural_training_completed=True, native_evaluation_required=True,
+        result = dict(status='UNCLEAR' if not args.startup_balanced or startup_pass else 'UNPROMISING',
+            neural_training_completed=True, native_evaluation_required=not args.startup_balanced or startup_pass,
+            startup_screen_pass=startup_pass, startup_prefix8_hand_3d_rms_mm=startup_rms,
+            startup_prefix8_palm_max_mm=startup_palm, startup_wrist_ff_3d_rms_mm=startup_ff,
             best_update=best_step, validation_loss=best, train_mean_validation_loss=mean_baseline,
             improvement_over_mean=1-best/mean_baseline, train_rows=train_rows.tolist(), validation_rows=validation_rows.tolist(),
             train_samples=len(train_h), validation_samples=len(val_h), prefix8_hand_3d_rms_mm=float(np.sqrt((error[:, :8]**2).mean())*1000),

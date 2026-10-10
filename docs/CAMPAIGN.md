@@ -218,3 +218,8 @@ fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无�
 新增12GPUmin/512MiB，一次2500update监督fit<=240s、一次16env完整执行<=300s、
 审计<=120s。旧Task只读复用，保留全部失败行，无WM/额外seed sweep/新分支/push。
 协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md`。
+
+2026-10-10 首轮H actor启动误差后的一次startup-balanced初始化Decision Probe：单空闲GPU4，
+新增10GPUmin/512MiB，fit<=240s，启动几何screen通过才一次16env完整执行<=300s及audit<=60s。
+同数据/H/D/R/网络/optimizer，不加clock/phase策略输入；此次后停止BC权重搜索。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md`。
