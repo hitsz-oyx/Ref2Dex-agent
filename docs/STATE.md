@@ -3,12 +3,18 @@
 ## 2026-10-10 用户转入 trajectory-policy 新架构设计
 
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
-[ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。当前仅架构梳理：独立绝对
+[ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。新路线采用独立绝对
 trajectory latent actor、固定D/R、真实奖励PPO baseline，之后检验WM动作条件
 physical token是否改善策略训练。根级Mission/Cm claim不变，尚无新Task策略训练。
-已实现固定48维D，2个微型合同测试通过；下一步运行
-[D/R覆盖Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)，
-检查几何重建与压缩后是否保留长时抓持，尚无原生结果。
+已实现固定48维D，2个微型合同测试通过；首轮
+[D/R覆盖Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)
+ce503af native16env/542步完成57.29s：原GT3/4长时终末held，dense FK4/4；
+四节点48D两组均0/4终末held（其中一行曾持有397帧），局部UNPROMISING。
+压缩前8步手点RMS13.97mm、掌部max84.25mm，最大误差在启动窗口；
+独立审查未见SO3/时序/FF接线错误，输入2.86e-6、命令2.38e-7、PD0。
+5fe3d05仅修复audit JSON序列化，未重跑仿真。下一步先核对c拟合是否能保留
+前缀位置和速度，再决定增加D表达能力；不据此否定48D或整体trajectory-policy。
+本轮没有高层actor训练/WM，GPU2已释放。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

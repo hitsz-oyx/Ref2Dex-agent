@@ -4,6 +4,12 @@
 训练/仿真。根级[Mission](../../../../../docs/MISSION.md)的自训练操纵与Cm策略训练收益
 目标不变；用户要求暂停consequence-evaluator后续实验，在本Task探索新架构。
 
+后续首轮原型已完成：[48D覆盖Probe](../experiments/probes/P-20261010-trajectory-decoder-coverage.md)。
+密集几何τ4/4长时终末held，而四节点重建两组均0/4终末持有；审计未见接线错误。
+这使下面“结构化48维先起步”的建议停在D/R修复阶段，尚不能直接进入PPO。
+节点复制不是所有latent c的控制性能上界；下一步先区分拟合问题与D表达能力，
+保留独立actor结构，不升级为trajectory policy无效或WM无用的结论。
+
 ## 我选择的主版本
 
 采用ref1后半部分：`c~πθ(c|H)`直接提出运动，`τ=D(H,c)`交给闭环executor R。

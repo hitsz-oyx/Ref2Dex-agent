@@ -5,7 +5,9 @@ trajectory actor→latent c→24步11点手轨迹→每步读取实时状态的e
 旧behavior只提供初始化和可衰减训练先验，不作为永久在线动作基座；后续检验
 PointWorld动作条件物理表征是否改善真实RL策略训练。
 
-当前阶段：已实现固定48维轨迹decoder，微型合同测试通过；准备一次D/R覆盖Probe，
+当前阶段：固定48维轨迹decoder首轮覆盖Probe已完成，局部UNPROMISING。
+密集几何轨迹4/4长时终末抓持；四节点重建两组均0/4终末持有，输入/FF/命令审计通过。
+当前重建明显改变前8步轨迹及速度；下一步先区分编码拟合与表达能力，
 尚未训练高层actor或接入WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。

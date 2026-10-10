@@ -5,7 +5,7 @@ experiment_id: P-20261010-trajectory-decoder-coverage
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: ce503afd93d717c0f6868c00e9dc7d9273201234
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-action-space
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [297]
 decision_changed_if_positive: initialize an independent measured-history latent actor then train high-level PPO
 decision_changed_if_negative: repair trajectory representation or executor interface before policy training
-status: UNCLEAR
+status: UNPROMISING
 run_id: trajectory-decoder-coverage-20261010-r1
 ---
 
@@ -48,7 +48,9 @@ Latent actor would emit standalone c; no frozen base-policy addition.
 
 Coverage uses verified old hand-derived geometry q, generated only from GT
 hand tau/reset/static URDF, not recorded future joints. It is an explicit oracle
-label upper bound to test decoder, not H->c inference or final policy success.
+label reconstruction diagnostic, not H->c inference or final policy success.
+Copying reference knot values is not optimization over all c, so this is not
+an upper bound on the decoder's attainable control performance.
 Check all68 eight-step windows, first8/full24 errors, palm/fingertips and actual
 limits/coupling. Do not select knots/dimension/seed from these results. Tiny
 shape/rotation tests can use CPU; batched FK uses one idleGPU2.
@@ -82,11 +84,67 @@ New branch prohibited without user permission; remain main; no push.
 
 ## Results
 
-Not run yet.
+Code `ce503af`; seed297; offline audit2.09s onGPU2, native wave57.29s onGPU2.
+Native GPU memory~7.5GiB (Torch peak143.66MiB), utilization16--32% at later
+monitors; speed reasonable for small CPU-exchange16env/GPUPhysX evaluation.
+GPU2 released to its pre-existing passive130MiB process; no own live process.
+Saved newTask artifacts~30MiB. Two tiny CPU decoder contract tests passed.
+
+| Role | >=433held and terminal | Terminal held | Median max held | Clipping |
+| --- | --- | --- | --- | --- |
+| Original GT tau | 3/4 | 3/4 | 479 | 0.1845% |
+| Dense hand-derived FK tau | 4/4 | 4/4 | 482.5 | 0% |
+| Four-node48D | 0/4 | 0/4 | 1.5 | 1.1531% |
+| Four-node48D repeat rows | 0/4 | 0/4 | 0 | 0.2768% |
+
+One48D row did acquire and hold397frames before loss; do not describe all rows
+as never grasping. The repeated arm has identical design but different native
+rows, not a second seed. Original GT3/4 and dense4/4 meet predeclared calibration.
+Both48D arms miss the unchanged long-held/terminal screen. Local **UNPROMISING**
+for this node-copy reconstruction plus frozen executor; no actor was trained.
+
+Geometry coverage relative dense FK: full24 point3D RMS13.94mm, first8 RMS13.97mm;
+first8 palm maximum84.25mm, all-point maximum116.85mm. The largest prefix error
+is the first planning window. Actual source wrist moves nonlinearly during its
+first8steps, while D interpolates a straight segment between frames1 and8.
+Independent read-only review reconstructed all68plans: translation4.17e-7m,
+finger1.15e-6rad, Slerp matrix7.09e-7, coupling error0. It found no SO3, timing,
+padding or future-only FF wiring error. In the first window, planned wrist
+FF base position difference `delta_q + .1*delta_velocity` reaches141.69mm;
+rotation difference-vector norm0.3656rad. Compression changes immediate
+geometry and feedforward, not merely an unexecuted far suffix. Their separate
+causal contributions have not been isolated.
+
+Independent saved-input/command audit: actual897features maxerror2.86e-6,
+velocity9.54e-7, command2.38e-7, applied PD0; requested/applied commands exact,
+initial states exact, all outcomes/screens reconstructed. Audit r1 failed only
+on JSON serialization of a NumPy boolean after checks; preserved FAILED record.
+Fix `5fe3d05` casts counts to Python integers; audit r2 completed without rerunning
+simulation or modifying source results. This serialization failure does not
+invalidate execution data or support changing physical thresholds.
+
+Artifacts (read-only oldTask inputs remain in manifests):
+
+- Coverage: `outputs/trajectory-policy/trajectory-decoder-coverage-20261010-r1/{manifest.json,result.json,coverage.npz}`.
+- Native: `outputs/trajectory-policy/trajectory-decoder-execution-20261010-r1/{manifest.json,result.json,trajectory.npz,plans.npz,monitor.jsonl}`.
+- Audit: `outputs/trajectory-policy/trajectory-decoder-execution-audit-20261010-r2/{manifest.json,audit.json,behavior.png}`.
+- Retained failed audit: `outputs/trajectory-policy/trajectory-decoder-execution-audit-20261010-r1/manifest.json`.
+
+## Follow-up Decision Note
+
+Do not initialize PPO with this unverified reconstruction or add WM yet. Keep
+the independent actor->D->tau->R architecture; this Probe only rejects promoting
+the current node-copy initializer/frozen-R combination. Next cheapest question:
+can better fitting of the same c preserve executed-prefix positions AND nominal
+velocities, or is a more expressive D needed? This avoids confusing a poor
+encoding with a proof that no feasible c exists. Any follow-up gets a new bounded
+protocol before execution; no additional training/simulation in this card.
 
 ## Limitations / future evidence
 
-Single motion/seed, oracle tau compression and frozen oracle-warmstarted low
+Single motion/seed, oracle-label tau reconstruction and frozen oracle-warmstarted low
 controller. Positive does not prove a learned H->c policy, superiority to native
 PPO, general trajectory executability, original placing success or Cm benefit.
 Need standalone actor and actual RL learning, then matched Cm-on/off training.
+No optimization over c or separately matched geometry-vs-velocity intervention;
+this failure does not refute all48D representations or all policies within D.
