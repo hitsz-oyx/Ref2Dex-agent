@@ -176,6 +176,32 @@ hold，但只有 `4/16` 达到 near-teacher/terminal，clipping 仍为 `17.90%`�
 希望，但当前瓶颈是可行的 thumb preload/非饱和目标，而不是 REGRIND 的训练规模或 phase
 配置；不会把这条单 motion 结果升级为完整 REGRIND 结论。
 
+### Fixed tau residual-basin diagnostic
+
+为区分“残差分层本身不可行”和“拇指预载方向尚未落在可行 basin”，新增了固定
+offset 的冻结诊断 `P-20261011-tau-residual-basin`（代码提交 `00859cf`）。它沿用
+verified GT tau 几何、实时 q/dq/hand/object/velocity、native PD adapter 和
+future-only wrist feedforward；每个 control tick 在冻结 canonicalized actor 的
+12-D latent 后持续注入一个预先固定的 thumb offset，并把扰动后的 `tanh(latent)`
+作为下一 tick 的 previous residual。没有训练、没有 phase/clock/contact/future-q
+输入，也没有使用 packet actions/q 作为标签。
+
+GPU2 的 16-env/542-control full wave 已完成。无外部 offset 的 retained actor 为
+`4/4` long-held terminal、0 clipping；`thumb_pitch_minus (coord11=-0.05)` 同为
+`4/4`、clipping `4/2168=0.1845%`；`thumb_pitch_plus` 为 `4/4` 但 clipping
+`55.35%`；`thumb_yaw_plus (coord10=0.05)` 为 `0/4` terminal-held，median held
+131 帧、object-position RMSE `0.4197 m`。完整 controlled-placement `success` 仍为
+`0/16`，所以这不是完整抓取/放置成功结论。按预注册的 baseline 与扰动门槛，Probe
+标为 `PROMISING`，含义仅是该单 motion 上存在一个低裁剪的 thumb residual basin。
+独立 audit 对 delta/latent/action/PD 和 tau/live-state feature replay 均通过
+（最大 feature replay error `2.86e-6`）。
+
+Decision Note：当前关键选择是直接把这个 fixed offset 接入 ref2 Stage 1，还是先验证
+它的可重复性。root 选择保留 `thumb_pitch_minus` 为候选低层 adapter，只允许下一张卡
+做一次 matched robustness Probe；在该 Probe 前不把它写成 goal policy 已解决，也不启动
+REGRIND 原始 4096-env/failure-bin 配置、H→tau 或 PointWAM。该正向结果不能抵消 direct-action
+BC/PPO 的 `0/16` 物理失败，也不能替代新的 `training_allowed=true` teacher rollout。
+
 ### Decision Note: close direct-action Stage 1 variant
 
 当前问题是 direct native-action goal policy 是否继续投入。关键证据是 offline fit 很低但

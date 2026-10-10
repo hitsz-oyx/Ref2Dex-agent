@@ -89,7 +89,14 @@ nominal-goal + bounded-residual 物理路线；它恢复了短 hold，但严格 
 门槛仍未通过，因此后续应优先修复可行的 preload 参数化或取得明确
 `training_allowed=true` 的 teacher rollout，而不是启动 REGRIND 原配置。
 
+随后完成的固定 tau residual-basin 诊断在同一 executor 上找到一个局部低裁剪方向：冻结
+`thumb_pitch_minus` 在单 motion 上为 `4/4` long-held terminal、`0.1845%` clipping，
+但 `thumb_yaw_plus` 为 `0/4`，且完整 controlled-placement success 仍为 `0/16`。
+这只授权一次 matched robustness Probe；它仍不是 goal-conditioned policy 已解决或完整
+REGRIND 的结果。
+
 - [goal-conditioned BC](docs/experiments/probes/P-20261011-goal-conditioned-bc.md)
 - [BC physical execution](docs/experiments/probes/P-20261011-goal-conditioned-execution.md)
 - [goal-conditioned PPO](docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)
 - [PPO frozen execution](docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)
+- [fixed tau residual basin](../consequence-evaluator/docs/experiments/probes/P-20261011-tau-residual-basin.md)

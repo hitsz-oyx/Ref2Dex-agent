@@ -9,7 +9,7 @@ git_commit: ab7d270
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 1
-seed_pool: engineering
+seed_pool: debug
 seeds: []
 decision_changed_if_positive: use the shared goal-conditioned executor for the next GT-vs-generated-tau physics comparison
 decision_changed_if_negative: keep the existing direct execution path and diagnose the contract mismatch before physics

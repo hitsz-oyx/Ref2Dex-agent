@@ -8,6 +8,19 @@ GT在线128步4/4保持。修复后的完整纯H执行r3仍三个生成角色0/4
 实际输入/速度/命令审计通过。当前生成组合局部UNPROMISING，不代表τ路线已被否定。
 不再运行后续旧Task实验，未启动bootstrap训练；所有自身GPU进程已结束，产物保留。
 
+## 2026-10-11 固定 tau residual basin 诊断
+
+为支持 trajectory-policy 的 REGRIND-inspired residual 分层，新增并完成了冻结诊断
+[P-20261011-tau-residual-basin](docs/experiments/probes/P-20261011-tau-residual-basin.md)。
+它只在 retained canonicalized tau actor 的 latent 上持续施加预注册 thumb offset，
+每步重读 live 状态；不训练、不读 future q/object、phase、clock、contact 或 packet
+actions。`no_offset` 与 `thumb_pitch_minus` 分别为 `4/4` long-held terminal，后者
+clipping `0.1845%`；`thumb_yaw_plus` 为 `0/4`，完整 controlled-placement success
+仍为 `0/16`。因此 Probe 仅对这个单 motion 的低裁剪 residual basin 标为 `PROMISING`，
+不能当作完整抓取、Stage 1 goal policy 或完整 REGRIND 证据。独立合同审计见
+`outputs/consequence-evaluator/ref2-tau-residual-basin-audit-20261011-r1/audit.json`，
+工具为 `tools/audit/audit_tau_residual_basin.py`。
+
 ## 2026-10-10 生成τ执行状态
 
 纯H四帧→十候选→选择→原生几何→冻结控制器的完整542步已完成（7840f92，107.71s）。

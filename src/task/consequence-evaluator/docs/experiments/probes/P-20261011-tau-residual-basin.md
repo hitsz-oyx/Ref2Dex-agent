@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [286]
 decision_changed_if_positive: retain the bounded thumb residual as a candidate adapter and run one matched robustness Probe before exposing it to the ref2 goal route
 decision_changed_if_negative: stop fixed thumb-offset diagnostics and preserve the retained tail canonicalization candidate without more PPO
-status: PLANNED
+status: PROMISING
 run_id: ref2-tau-residual-basin-20261011-r1
 ---
 
@@ -73,8 +73,26 @@ Budget: one idle GPU, one eight-minute smoke/full wall-time envelope, below
 
 ## Results
 
-Pending the fixed smoke and full execution. The retained tail candidate remains
-the declared comparison arm regardless of this diagnostic.
+The engineering smoke completed first; it is retained only as a wiring check. The
+fixed full wave completed in
+`outputs/consequence-evaluator/ref2-tau-residual-basin-20261011-r1/` with
+GPU2, seed286, 16 environments, 542 controls, 66.2 s wall time and 148,584,960
+bytes peak Torch allocation. The retained actor with no external offset
+(`baseline`) reached long-held terminal in `4/4` rows with zero clipping.
+`thumb_pitch_minus` also reached `4/4`, with `4/2168 = 0.1845%` clipping;
+`thumb_pitch_plus` reached `4/4` but clipped `1200/2168 = 55.35%`; and
+`thumb_yaw_plus` reached `0/4` terminal-held rows, with median held duration
+131 frames and mean object-position RMSE 0.4197 m. All `16/16` rows had
+`success=false` under the complete controlled-placement outcome, so the gate
+only concerns sustained holding, not full task completion.
+
+The predeclared gate therefore labels this fixed-offset basin Probe
+`PROMISING`: the baseline calibrated and at least one perturbation direction
+(`thumb_pitch_minus`) met the 3/4 terminal-held and <1% clipping thresholds.
+The independent audit
+`outputs/consequence-evaluator/ref2-tau-residual-basin-audit-20261011-r1/audit.json`
+is `PASS`: delta, latent, applied-command, native-PD reconstruction errors are
+zero and the tau/live-state feature replay maximum is `2.86e-6`.
 
 ## Limitations / follow-up
 
