@@ -5,7 +5,7 @@ experiment_id: P-20261011-egotouch-processed-action
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: TBD
+git_commit: 73c7900
 claim_id: C1
 hypothesis_family: HF-egotouch-pressure-contact
 probe_index_in_family: 3
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [230]
 decision_changed_if_positive: keep an offline action/hand-trajectory-conditioned pressure-contact token as a teacher-side route
 decision_changed_if_negative: close this future-hand oracle recipe and keep pressure-map use limited to representation/audit evidence
-status: PLANNED
+status: UNPROMISING
 run_id: egotouch-processed-pressure-action-20261011-r1
 ---
 
@@ -69,8 +69,30 @@ native fusion and a deployable action contract require a separate matched Probe.
 
 ## Results
 
-To be filled after the fixed run. Report held per-record pressure MAE,
-persistence MAE, contact F1 and the aligned-versus-shuffled donor comparison.
+The fixed run used all 3,166 fit windows and 3,924 held windows, seed 230,
+batch 32, AdamW and GPU1 for 500 updates per arm. The output is
+`outputs/cm-pointflow-effect-pretrain/egotouch-processed-pressure-action-20261011-r1/result.json`;
+the pack manifest hash is
+`315a32ef58d3ebe660c40638602988a3ea6bd741cd697326f36b8343504941cf`.
+
+Original-scale held pressure MAE / persistence MAE was:
+
+| held task | pressure | pressure + past hand | aligned future hand | shuffled future hand | persistence |
+|---|---:|---:|---:|---:|---:|
+| drag chair | 0.04849 / 0.02993 | 0.04677 / 0.02993 | 0.04690 / 0.02993 | 0.04788 / 0.02993 | 0.02993 |
+| flip book pages | 0.07162 / 0.03302 | 0.07130 / 0.03302 | 0.07048 / 0.03302 | 0.07185 / 0.03302 | 0.03302 |
+| badminton racket | 0.06085 / 0.01822 | 0.05982 / 0.01822 | 0.05965 / 0.01822 | 0.06057 / 0.01822 | 0.01822 |
+| shop for snacks | 0.03989 / 0.01802 | 0.04060 / 0.01802 | 0.04045 / 0.01802 | 0.04021 / 0.01802 | 0.01802 |
+| squeeze pliers | 0.02865 / 0.01162 | 0.02867 / 0.01162 | 0.02902 / 0.01162 | 0.02954 / 0.01162 | 0.01162 |
+
+All four learned arms lost to persistence on all five held tasks. The aligned
+future-hand arm did not beat the shuffled donor; their held pressure MAE values
+differed by at most 0.00099 in original-scale units. Contact F1 was also below
+persistence on every held task (for example, aligned future-hand F1 ranged
+0.454--0.769 versus persistence 0.737--0.914). The result is therefore
+`UNPROMISING` for this offline action/hand-trajectory-conditioned pressure
+recipe. It closes this teacher-side forecast recipe, not calibrated tactile
+representation, T-Rex per-fingertip wrench, RBO measured FT or simulator CHORD.
 
 ## Limitations / future evidence
 

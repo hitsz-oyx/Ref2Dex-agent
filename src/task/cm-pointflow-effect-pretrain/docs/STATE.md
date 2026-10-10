@@ -1,6 +1,6 @@
 # Task state: point dynamics pretraining
 
-Updated2026-10-10. Branch `cm-pointflow-effect-pretrain`; execution on RLG.
+Updated2026-10-11. Branch `cm-pointflow-effect-pretrain`; execution on RLG.
 Root Mission/Campaign apply: intermediate pretraining must eventually support
 action-conditioned Cm and matched self-trained robot policy benefit. Neither
 weak video nor raw sensor forecasting replaces that final objective.
@@ -67,6 +67,17 @@ ten chest videos38.86MB and original frame count/IDs, max relative clock deviati
 one physical table. Frozen ImageNet ResNet18 frame-local current features and six
 matched500-update arms also fail: history_rgb4.173/future_hand_rgb4.415 vs
 persistence3.435counts. Stop this local recipe; no sensor/native auxiliary expansion.
+
+The processed [pressure-map history Probe](experiments/probes/P-20261011-egotouch-processed-history.md)
+then used the released masked `(21,21)` grids with past-only normalization and
+lost to persistence on all five held tasks. To answer ref10's next narrower
+`(H,A/tau) -> future map` question, the [future-hand action-conditioned Probe](experiments/probes/P-20261011-egotouch-processed-action.md)
+added an offline future hand trajectory and a different-task donor shuffle under
+the same contract. Pressure-only, past-hand, aligned-future-hand and shuffled-
+future-hand all lost to persistence on all five held tasks; aligned and shuffled
+MAE differed by at most 0.00099 original-scale units. This closes the current
+processed pressure forecast/teacher recipe. It does not reject a calibrated
+touch representation, T-Rex F6, RBO multi-interaction data, or simulator CHORD.
 
 ## Open-source-first follow-up (user steering)
 

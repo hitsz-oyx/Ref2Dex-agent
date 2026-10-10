@@ -110,6 +110,14 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
 
+## HF-egotouch-pressure-contact
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-egotouch-pressure-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-pressure-auxiliary.md) | EgoTouch processed pressure/contact auxiliary | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-egotouch-processed-action](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-processed-action.md) | Action-conditioned processed pressure/contact probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-egotouch-processed-history](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-processed-history.md) | Causal processed-pressure history probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
 ## HF-egotouch-visual-context
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -300,6 +308,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | distinguish premature clip-start track death from intrinsically poor | probes/UNPROMISING |
+| [P-20261011-video-motion-token](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-video-motion-token.md) | Metric-3D history motion-token Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-y-noise-tolerance
 
@@ -343,6 +352,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20260930-cm-inference-bottleneck](probes/P-20260930-cm-inference-bottleneck.md) | Real-policy Probe: explicit physical prediction input | `UNPROMISING`; execution `COMPLETED` on code | close HF07; no Validation and no local width/seed/step/target sweep. | probes/UNPROMISING |
 
+## RBO-object-wrench-adapter
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-rbo-wrench-alignment](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-alignment.md) | RBO RGB-D / FT alignment Probe | 见原卡 | 见原卡 | probes/PROMISING |
+
 ## REF5-SURFACE-I
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -357,12 +372,36 @@
 | [P-20261010-droid100-raw-video-temporal-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-raw-video-temporal-audit.md) | Does the matched official raw DROID episode have native temporal coverage? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261010-droid100-video-data-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md) | Can the official DROID video subset provide actual frame/action samples? | 见原卡 | 见原卡 | probes/PROMISING |
 
+## official-video-data-only-native-transfer
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-native-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-native-transfer.md) | Official video data-only native-transfer Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
 ## official-video-pointflow-adapter
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261010-droid100-native-adapter-contract](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-native-adapter-contract.md) | Does the matched official H5 clip satisfy the native point-flow input contract? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-droid100-pointworld-match](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md) | Can an official DROID video episode be paired with PointWorld 3-D labels? | 见原卡 | 见原卡 | probes/PROMISING |
+
+## official-video-scene-flow-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-aux](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-aux.md) | Official DROID / PointWorld H5 auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## official-video-state-conditioned-scene-flow
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-state-aux](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-state-aux.md) | Official H5 state-conditioned auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## rbo-measured-wrench-temporal-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-rbo-wrench-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-auxiliary.md) | RBO measured-wrench auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## 未分类历史记录
 
