@@ -1,5 +1,25 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 生成τ几何可用，闭环工程已接通，完整执行待解决延迟
+
+纯历史proposal/T scorer/保留fingerfit executor均冻结；PointWorld与E必要性继续冻结。
+ff65bb3评分/URDF审计22.39s：observed18/18、评分选中18/18几何通过，选择15检索+
+3persistence；单预测器仅4/18，掌部刚性是具体修正点。旧记录标签上的forecast
+排序55.47%/shuffle59.85%，不能当作新候选的真实Y或路线反证，因为未来随机动作
+不在纯H中；原预声明联合screen输出UNPROMISING保留，科学判断仍UNCLEAR。
+协议：[生成τ评分/几何](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md)。
+
+68e7ed3原生16env四角色（GTτ/persistence/位移/评分）工程8步smoke通过，独立复算
+实际897输入1.91e-6、命令2.38e-7；生成角色无未来q/物体/GTτ/force/phase/clock
+输入，每8步重规划，所选τ先投影到原生URDF再由冻结控制器执行。完整seed298 r1
+因300step拟合14.57s/chunk将超720s上限，于65.61s自主中止，FAILED记录保留，
+不是行为负证据。3ed2404检查60step虽3.95s，但与300step拟合点最大差2.398mm，
+未过预声明1mm门槛，未启动r2、不放宽门槛。启动t0生成τ还有17–24mm几何修正，
+训练窗口从tick8开始，须关注bootstrap覆盖，不以GT启动掩盖问题。
+下一blocker是加速原300step在线拟合并完成真实生成τ执行；同状态排序、selector
+收益、完整任务和Cm效用仍未证。当前GPU2空闲，持续主线goal未完成。
+协议：[生成τ原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)。
+
 ## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
 
 用户ref8把近期工作转向H→候选τ，并确认H只用当前/过去手物状态，不含任务phase/clock。

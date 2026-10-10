@@ -1,5 +1,19 @@
 # Consequence evaluator
 
+## 2026-10-10 生成τ执行状态
+
+冻结proposal/T/原fingerfit控制器，已接通四帧测量H→十候选→选择→URDF几何→原生
+闭环控制。生成角色无GT未来/phase/clock/force输入，GTτ仅独立对照。
+旧18anchor审计评分选择18/18静态几何通过，但单预测器4/18；旧标签forecast排序
+下降不能当成生成候选真实Y。原生8步smoke及独立输入/命令重构通过，完整执行因
+300step几何拟合延迟主动停止；60step缩短检查未过精度门槛，仍无完整holding结果。
+当前优先加速原拟合再执行，不扩模型/seed、不重做E必要性，完整ref8/Mission未完成。
+协议：[评分/几何](docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md)、
+[原生执行](docs/experiments/probes/P-20261010-generated-tau-native-execution.md)；
+工具：[生成运行时](src/consequence_evaluator/generated_tau.py)、
+[原生入口](tools/run/probe_reference_tracking.py)、
+[拟合延迟检查](tools/audit/audit_tau_projection_latency.py)。
+
 ## 2026-10-10 ref8：H→候选τ 当前进展
 
 按用户[ref8](docs/user/ref/ref8.md)优先解决proposal，冻结PointWorld和GT E/I必要性重复实验。

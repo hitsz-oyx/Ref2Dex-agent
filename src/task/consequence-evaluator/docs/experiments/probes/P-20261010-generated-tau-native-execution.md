@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-native-execution
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: ff65bb3
+git_commit: 3ed2404
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [298]
 decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
 decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
 status: UNCLEAR
-run_id: generated-tau-native-execution-20261010-r2
+run_id: generated-tau-native-execution-20261010-r1
 ---
 
 # Can pure measured-history generated tau drive the frozen native executor?
@@ -98,7 +98,28 @@ outputs bounded coupled URDF geometry, though approximation quality may vary.
 If convergence check fails, stop to identify the latency source. Original smoke,
 failed full and300step geometry remain intact; do not rewrite them.
 
-Complete execution results pending.
+3ed2404 engineering latency check completed:60iterations3.95s versus300
+14.57s; max target-coordinate RMSE degradation only.0174mm, but max fitted
+point-coordinate difference2.398mm, exceeding the predeclared1mm bound.
+Status FAIL; do not launch repaired r2 or relax the tolerance post hoc.
+Outputs `generated-tau-projection-latency-20261010-r1/` (frozen smoke inputs,
+source hashes/result/60step geometry). Native smoke25.89s+interrupted full
+65.61s+latency check fit3.95s are within15GPUmin; no owned task process running.
+
+First-query raw tau has17.00mm coordinate error for scored retrieval and
+24.11mm for learned displacement even after300step projection, versus near
+zero persistence. Old audit anchors were>=tick8; online t0 uses a padded
+history outside the training-window protocol. This identifies a separate
+startup-distribution limitation, not evidence of eventual holding success.
+Do not silently hide it with a GT startup policy or actual future input.
+
+Current native execution status UNCLEAR: engineering chain passes but full
+holding outcomes unavailable. Next bounded action is to identify/accelerate
+the existing300step implementation while preserving outputs (e.g. reusable
+GPU computation capture), then complete the same frozen seed298 execution
+within remaining declared resources. If that cannot fit, record a new bounded
+Decision Note; no unbounded retry/sweep. Goal still covers the full ref8 chain
+and eventual Mission utility, not merely an engineering smoke.
 
 ## Limitations / future evidence
 
