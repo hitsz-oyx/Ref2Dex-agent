@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-execution
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 0b5466e9914d14d54f7a8b9e5c10eaf7371ed468
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 4
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [312]
 decision_changed_if_positive: keep the goal-conditioned low-level interface and start a bounded PPO residual continuation
 decision_changed_if_negative: retain the shared executor but obtain a fresh explicitly training-eligible teacher rollout or revise the goal/action interface before PPO
-status: PLANNED
+status: UNPROMISING
 run_id: goal-conditioned-execution-20261011-r1
 ---
 
@@ -44,7 +44,7 @@ environments.
 * geometry/reset contract:
   `outputs/consequence-evaluator/ref7_4-tau-geometry-20261010-r1/`;
 * frozen BC checkpoint and result:
-  `outputs/trajectory-policy/goal-conditioned-bc-20261011-r2/`;
+  `outputs/trajectory-policy/goal-conditioned-bc-20261011-r3/`;
 * one idle GPU, 16 environments, 542 controls, and a 300-second execution
   timeout. Outputs are written to a fresh directory and all source hashes are
   captured before simulation.
@@ -57,12 +57,35 @@ still only a Probe result; PPO is a separate experiment.
 
 ## Results
 
-Pending physical execution.
+The valid run completed in
+`outputs/trajectory-policy/goal-conditioned-execution-20261011-r1/` in 61.7
+seconds on GPU0. IsaacGym/Graspenv Torch 2.4.1+cu121, 16 environments and all
+542 controls completed; peak Torch allocation was 148,920,832 bytes (about 7.54
+GiB native process memory). The run produced finite commands/PD targets and no
+early reset.
+
+The student reached `0/16` long-held terminal episodes, `0/16` 45-frame holds,
+and median held frames `0`; the predeclared gate therefore returns
+`UNPROMISING`. It used no native action clipping because the policy output was
+already bounded. The earlier tracker calibration remains separate evidence and
+is not silently counted as a student row.
+
+The independent audit
+`outputs/trajectory-policy/goal-conditioned-execution-audit-20261011-r1/audit.json`
+passed the wiring/provenance checks: feature reconstruction max error
+`8.45e-3`, policy replay max error `6.41e-7`, requested/applied max error zero,
+finite PD targets, and goal packet authorization preserved. The first student
+action differs from the same-state tracker label by only active-action L1
+`0.00208`; standardized feature distance stays below `0.05` through tick 30
+but grows to `0.73` by tick 44 after the object has already dropped. This
+supports a closed-loop covariate-shift/hidden-state failure of one-step BC, not
+an executor wiring mismatch.
 
 ## Limitations and follow-up
 
 This is one motion and one seed. It does not test high-level forecasting,
 generalization, failure-bin sampling, matched Cm-on/off training, or a fresh
-training-eligible teacher corpus. Any positive result must be followed by a
-bounded PPO/residual Probe with the same student observation contract.
-
+training-eligible teacher corpus. The next route decision is a bounded
+goal-conditioned PPO/residual continuation or a fresh explicitly
+training-eligible teacher rollout; the failure does not refute REGRIND's
+measured-state residual-control principle.

@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-ppo
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: d07b739be20921cc533f469e9802ca510f03bf23
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 5
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [313]
 decision_changed_if_positive: continue Stage 1 with a frozen PPO low-level actor and run a separate frozen evaluation
 decision_changed_if_negative: stop this direct-action continuation and obtain a fresh training-eligible teacher or add an explicit nominal/residual adapter
-status: PLANNED
+status: UNCLEAR
 run_id: goal-conditioned-ppo-20261011-r1
 ---
 
@@ -56,12 +56,21 @@ training-eligible teacher rollout.
 
 ## Results
 
-Pending PPO continuation.
+The bounded run completed in `outputs/trajectory-policy/goal-conditioned-ppo-20261011-r1/`
+at code commit `d07b739`, seed 313, 24 updates, 3,072 controls and 49,152
+environment transitions. GPU0 stayed available with about 7.56 GiB native
+memory and the Torch peak was 177,190,400 bytes. All 24 PPO updates passed the
+finite/behavior-logprob/KL checks; the joint KL stayed below `0.015`, actor
+parameter change was `0.0529`, and mean rollout reward was `0.1073`.
+
+This is `UNCLEAR` training evidence: five 542-control episodes completed during
+the run, but their maximum held frames were at most 3 and none was terminal held.
+The final actor therefore required the separate frozen evaluation below.
 
 ## Limitations and follow-up
 
 This single-motion, single-seed Probe does not test high-level forecasting,
 generalization, failure-bin sampling, matched Cm-on/off training, or the full
-REGRIND reference-tracking configuration. It only decides whether on-policy
-adaptation is worth a separate frozen evaluation.
-
+REGRIND reference-tracking configuration. The frozen evaluation is recorded in
+`P-20261011-goal-conditioned-ppo-execution.md`; direct-action BC/PPO is closed
+for this motion if that gate also fails.

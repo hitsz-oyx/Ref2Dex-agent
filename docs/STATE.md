@@ -143,6 +143,54 @@ c8280e3全轨迹审计：初始state与参考exact，所有纯H/当前手重算e
 协议：[原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)、
 [接口诊断](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md)。
 
+## 2026-10-11 ref2 Stage 1 goal-conditioned low-level route
+
+按用户提供的 `ref2.md`，trajectory-policy 新增了 REGRIND-inspired 的 goal-conditioned
+low-level 合同：live `q/dq/hand/object/velocity`、previous native command 与 8 步未来
+hand/object goal 输入 policy，禁止 future q、teacher command、phase、clock、contact label
+和 Cm。REGRIND 源码审计仍限定迁移边界为 measured-state feedback + bounded native
+correction，不复制其 asset-specific gains、reference reset、phase、4096-env 配置。
+
+`P-20261011-goal-conditioned-bc` 在自有 tracker 执行轨迹上做 train-only normalization 和
+按环境留出，17,344 rows 的 validation active-action L1 为 `0.00672288`，标为
+`PROMISING`，但只代表 offline action distillation。旧 reactive packet 保持
+`engineering_only=true, training_allowed=false`，这里只读取其 hand/object goal，丢弃
+actions/q；没有把它升级为 teacher dataset。
+
+物理 BC Probe `P-20261011-goal-conditioned-execution` 使用 GPU0、16 env、542 controls，
+16/16 在 3 帧内失去 hold，long-held terminal `0/16`。独立 audit 的 feature replay max
+`8.45e-3`、policy replay `6.41e-7`、requested/applied `0`、PD finite，说明当前失败是
+direct-action BC 的闭环 covariate shift/隐藏 preload 问题，不是 executor 接线错误。
+
+随后按 ref2 的 BC→PPO 顺序完成 `P-20261011-goal-conditioned-ppo`：24 updates、49,152
+transitions、KL<`0.015`、actor parameter change `0.0529`，训练状态 `UNCLEAR`；5 个完整
+episode 的最大 hold 仅 3 帧。冻结评估 `P-20261011-goal-conditioned-ppo-execution` 同样
+为 `0/16` long-held terminal，独立 audit 通过，因而 direct native-action BC/PPO 在这条
+单 motion、单 seed、固定预算下记为 `UNPROMISING`。
+
+仓库中已有一条更接近 REGRIND action 分层的独立 tau-only residual 路线：几何名义目标经
+`GoalConditionedExecutor`/native adapter，再叠加 learned bounded residual，并且每步重读
+live `q`。`P-20261010-tau-geometry-tracking` 的 fixed-final r2 恢复了 `16/16` 的 45-frame
+hold，但只有 `4/16` 达到 near-teacher/terminal，clipping 仍为 `17.90%`；feature、command
+和 PD 审计通过，卡片严格标为 `UNPROMISING`。这说明 residual 分层比 direct action 更有
+希望，但当前瓶颈是可行的 thumb preload/非饱和目标，而不是 REGRIND 的训练规模或 phase
+配置；不会把这条单 motion 结果升级为完整 REGRIND 结论。
+
+### Decision Note: close direct-action Stage 1 variant
+
+当前问题是 direct native-action goal policy 是否继续投入。关键证据是 offline fit 很低但
+BC/ppo frozen physics 均在启动后失持，且两次 executor/feature/PD audits 通过。root 选择
+关闭本 motion 的 direct-action BC/PPO sweep，保留 ref2 Stage 1 接口，下一步只考虑
+`nominal goal + bounded residual` adapter 或重新采集并明确 `training_allowed=true` 的
+teacher rollout；不启动 REGRIND 4096-env/failure-bin training，也不进入 H/PointWAM/ACT
+高层训练。成本为保留现有 outputs 和代码；若新 residual/teacher Probe 仍失败，再决定是否
+暂停 Stage 1 并转向执行合同或 fresh teacher provenance。
+
+证据卡片：[goal BC](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-bc.md)、
+[BC execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-execution.md)、
+[goal PPO](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)、
+[PPO execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)。
+
 ## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
 
 用户ref8把近期工作转向H→候选τ，并确认H只用当前/过去手物状态，不含任务phase/clock。

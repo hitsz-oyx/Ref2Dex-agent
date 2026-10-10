@@ -77,3 +77,19 @@ Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗�
 - [腕部局部inverse与角度周期修正](docs/experiments/probes/P-20261010-retargeter-step-inverse.md)
 - [共享goal-conditioned闭环执行器合同](docs/experiments/probes/P-20261010-goal-conditioned-executor-contract.md)
 - [REGRIND启发的同执行器GT/生成τ物理对照](docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md)
+
+## ref2 Stage 1（2026-10-11）
+
+已按 `docs/user/ref/ref2.md` 实现并审计 goal-conditioned low-level 接口：live state +
+8-step hand/object goal → bounded native action。离线 BC 的 validation active-action L1
+为 `0.00672288`，但 BC 冻结物理执行和 BC 初始化后的 24-update PPO 冻结执行均为
+`0/16` long-held terminal；feature/command/PD audits 通过。当前 direct-action BC/PPO
+variant 已关闭，不把 offline loss 或训练 reward 当作抓取成功证据。仓库已有 tau-only
+nominal-goal + bounded-residual 物理路线；它恢复了短 hold，但严格 near-teacher/clipping
+门槛仍未通过，因此后续应优先修复可行的 preload 参数化或取得明确
+`training_allowed=true` 的 teacher rollout，而不是启动 REGRIND 原配置。
+
+- [goal-conditioned BC](docs/experiments/probes/P-20261011-goal-conditioned-bc.md)
+- [BC physical execution](docs/experiments/probes/P-20261011-goal-conditioned-execution.md)
+- [goal-conditioned PPO](docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)
+- [PPO frozen execution](docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)

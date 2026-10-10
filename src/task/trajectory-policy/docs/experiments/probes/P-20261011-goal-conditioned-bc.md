@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-bc
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: 5699a2c6f919cf1561c7c9a2b06882f3559f6b68
+git_commit: 0b5466e9914d14d54f7a8b9e5c10eaf7371ed468
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 3
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [311]
 decision_changed_if_positive: freeze the goal-conditioned low-level BC policy and run a bounded physical hold Probe before PPO
 decision_changed_if_negative: keep the executor contract, reject this label/interface combination, and obtain an explicitly training-eligible fresh teacher rollout
-status: RUNNING
-run_id: goal-conditioned-bc-20261011-r1
+status: PROMISING
+run_id: goal-conditioned-bc-20261011-r3
 ---
 
 # Stage 1 goal-conditioned low-level BC
@@ -31,7 +31,7 @@ gains, reset distribution, phase variables, or 4096-environment configuration.
 The old reactive teacher packet is explicitly `engineering_only=true` and
 `training_allowed=false`; its actions are not used here. Labels come from the
 self-owned successful tracker execution wave, whose manifest records an on-policy
-PPO tracker and no imitation labels. The original retargeted motion supplies only
+PPO tracker and no imitation labels. The packet's hand/object arrays supply only
 future hand keypoints and object poses as a fixed goal. This is a derived
 distillation Probe, not a claim that the source packet is a training corpus. If the
 provenance audit or offline result is insufficient, the next action is a fresh
@@ -68,11 +68,23 @@ success. GPU state and elapsed time must be recorded during the fit.
 
 ## Results
 
-Pending implementation and offline fit.
+The fixed run completed in `outputs/trajectory-policy/goal-conditioned-bc-20261011-r3/`
+using GPU0, seed 311, 3,000 updates and 17,344 rows. The environment split was
+13,008 train rows from envs 32--55 and 4,336 validation rows from envs 56--63.
+The best validation active-coordinate L1 was `0.00672288`, below the predeclared
+`0.05` offline gate; peak allocation was about 395 MiB and elapsed time was
+12.6 seconds. The result is `PROMISING` for offline action distillation only.
+
+An earlier attempt in `goal-conditioned-bc-20261011-r1/` reached the same 3,000
+updates but stopped while checking its own GPU PID before writing a manifest; it
+is retained as a setup failure and is not used as evidence. The r3 rerun used the
+fixed source hashes and is the only checkpoint used by the physical Probe.
 
 ## Limitations and follow-up
 
 This single-motion distillation set cannot establish generalization, contact preload
-transfer, or a deployable policy. A positive offline result must be followed by a
-fresh physical hold comparison against the existing frozen tracker. PPO and the
-PointWAM-style high-level forecaster remain deferred until that gate passes.
+transfer, or a deployable policy. The fresh physical hold comparison against the
+existing frozen tracker is recorded in `P-20261011-goal-conditioned-execution.md`.
+Offline success alone does not
+permit PPO or a grasp claim. The PointWAM-style high-level forecaster remains
+deferred until a low-level policy survives that physical gate.
