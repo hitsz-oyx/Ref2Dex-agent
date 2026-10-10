@@ -77,6 +77,18 @@ history 评估和 decoder 评估入口；18 个 Task 测试通过。对既有 8,
 控制记录的逐步重放，新执行器与旧公式的 requested command 最大差为
 `2.38e-7`，因此这是接口统一而非行为改动。下一步应在同一执行器下做 GT tau 与
 生成 tau 的对照，再决定是否补训练；当前没有启动新训练或物理仿真。
+2026-10-11 已审计用户提供的只读 `third_party/regrind`（commit
+`38347a9e30184620cae103`）。源码确认 REGRIND 的可迁移核心是
+`reference target + bounded residual + measured-state feedback`；其 IsaacLab 的
+root-wrench 数值、16/20-DoF action scale、phase 输入、reference-state reset/RSI 和
+object-tracking reward 都绑定另一套资产与任务语义，不能直接复制到 DExplore 或当前
+纯测量 H 合同。当前 executor 因而可称为 REGRIND-inspired closed-loop executor，不能
+称为完整 REGRIND 实现。Decision Note：当前问题是是否先改成 REGRIND 全量训练；关键
+证据是 executor 已通过 8,672 行等价回放，而 GT/generated tau 的物理差异尚未隔离；root
+选择保留现有 H/D/R 与真实 frame-0 reset，先做同一 executor 的 GT/generated tau 对照，
+再决定是否借用 failure-bin sampling。成本为一次既有协议的最小物理 Probe；若 GT 失败先修
+执行合同，若 GT 成功而 generated 失败则继续查高层 tau coverage，不启动 REGRIND 训练配置。
+审计记录见 [REGRIND source audit](../src/task/trajectory-policy/docs/research/20261010-regrind-source-audit.md)。
 后续`653f884` [learned R inverse](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
 双臂1500updates完成36.42s/GPU5，独立原始标签/PD/normalizer/全部val预测审计PASS。
 τ val动作误差比state-only低7.82%，同tick τshuffle提高56.74%，但首PD XYZ p95

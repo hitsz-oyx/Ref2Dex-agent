@@ -55,6 +55,7 @@ Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗�
 
 - [架构建议与最小验证路径](docs/research/20261010-ref1-architecture.md)
 - [RLT/PPO/chunk原始来源核对](docs/research/20261010-trajectory-policy-source-check.md)
+- [REGRIND源码级审计与迁移边界](docs/research/20261010-regrind-source-audit.md)
 - [48维decoder覆盖Probe](docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)
 - [固定D的前缀最优拟合诊断](docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)
 - [固定PCA时间基底覆盖](docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)

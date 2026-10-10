@@ -5,7 +5,7 @@ experiment_id: P-20261010-goal-conditioned-executor-contract
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: ab7d270
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 1
