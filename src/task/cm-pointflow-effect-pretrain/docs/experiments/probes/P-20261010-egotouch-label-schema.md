@@ -185,3 +185,24 @@ This verifies sample-level numerical reconstruction, not hardware semantic roles
 or full-release consistency. Keep those roles UNKNOWN; the next engineering
 adapter can predict original sensors with raw/255 and explicit alias/imputation
 provenance without asserting calibrated contact or pressure.
+
+## Raw sensor dynamics audit (before execution)
+
+Class Decision: determine if existing raw bytes offer nontrivial temporal
+supervision without processed-grid future normalization or inferred contact.
+Use exactly two verified records; sorted USB is fitting material and mouse is
+held-record development (both originally official TRAIN). Keep original frame
+IDs/actual sensor timestamps, H4/K8. Scale raw512 bimanual channels by fixed255;
+no baseline subtraction, record maximum, grid aliases or bend-role interpretation.
+Freeze changing channels from fitting record raw range>=2 counts, requiring>=16
+channels. This uses fitting labels only; report all channels and frozen-active
+ones separately so missing newly active held channels remain visible.
+
+Compare persistence, last-two CV and four-history OLS at actual elapsed time,
+clipped only to the known byte range. No model training/GPU. Report MAE all/h8,
+left/right, support, and fraction changing>=2 counts. If held-record OLS h8 MAE
+beats persistence by>=10%, raw temporal predictability justifies a bounded
+sensor-representation probe; otherwise use manipulation conditioning/diverse
+label acquisition as the next question. This is raw sensor prediction, not force,
+contact or world-point supervision. CPU<=30s, <=100KiB, output
+`raw-dynamics-audit.json` under the original acquisition; original files untouched.
