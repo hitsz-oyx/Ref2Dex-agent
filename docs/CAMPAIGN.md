@@ -234,3 +234,9 @@ seed/奖励/D/R/预算的lambda1 Decision Probe，仅改变GAE信用时间尺度
 新增14GPUmin/512MiB，smoke120s+24update训练480s+完整冻结评价180s+audit60s；
 不扩大BC/架构/seed sweep、旧Task或WM。协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md`。
+
+2026-10-10 lambda1 mean策略负结果后，允许一次冻结随机warm/final对比，无训练：
+单空闲GPU4，新6GPUmin/256MiB，64env（28同噪声配对+8校准）完整542controls
+<=240s，独立采样/执行/结果审计<=60s。固定noisebank295、physics294，
+不追加seed/epoch或重启旧Task/WM。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md`。

@@ -41,7 +41,9 @@ def main():
         with np.load(args.evaluation / name, allow_pickle=False) as stream:
             return {key: stream[key].copy() for key in stream.files}
     data, plans = load('trajectory.npz'), load('plans.npz')
-    if data['action'].shape != (542, 16, 18) or plans['tick'].tolist() != list(range(0, 542, 8)):
+    n = manifest['envs']
+    paired = manifest.get('action_mode', 'mean') == 'paired_gaussian'
+    if n != (64 if paired else 16) or data['action'].shape != (542, n, 18) or plans['tick'].tolist() != list(range(0, 542, 8)):
         raise ValueError('complete execution and all replans required')
     if not all(np.isfinite(value).all() for value in list(data.values()) + list(plans.values())):
         raise ValueError('nonfinite saved arrays')
@@ -62,8 +64,22 @@ def main():
         geometry_hand = stream['fitted_points'].copy()
     roles = np.asarray(manifest['roles'])
     learned_roles = ('warm_start', 'ppo')
-    if set(roles) != {'tau_gt', 'dense_fk', *learned_roles} or any(sum(roles == role) != 4 for role in set(roles)):
+    expected_counts = dict(tau_gt=4, dense_fk=4, warm_start=28 if paired else 4, ppo=28 if paired else 4)
+    if set(roles) != set(expected_counts) or any(sum(roles == role) != expected_counts[role] for role in set(roles)):
         raise ValueError('predeclared roles differ')
+    if paired:
+        if sha(args.evaluation/'noise.npy') != manifest['noise_sha256']:
+            raise ValueError('frozen noise bank drift')
+        noise_bank = np.load(args.evaluation/'noise.npy', allow_pickle=False)
+        expected_noise = np.random.default_rng(295).standard_normal((68, 28, 288)).astype(np.float32)
+        pair_ids = np.asarray(manifest['pair_ids'])
+        if manifest['noise_seed'] != 295 or not np.array_equal(noise_bank, expected_noise):
+            raise ValueError('noise bank differs from predeclared seed')
+        for role in learned_roles:
+            if pair_ids[roles == role].tolist() != list(range(28)):
+                raise ValueError('pair assignment differs')
+        if not np.all(pair_ids[np.isin(roles, ('tau_gt', 'dense_fk'))] == -1):
+            raise ValueError('calibration rows have paired noise')
     gt, dense = roles == 'tau_gt', roles == 'dense_fk'
     compressed = ~(gt | dense)
     gpu_before = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'], text=True).strip()
@@ -129,10 +145,19 @@ def main():
         measured_h = history(int(tick))
         error('actor_history', measured_h, plans['history'][j, compressed])
         with torch.no_grad():
-            predicted = np.zeros((8, 288), np.float32)
+            predicted = np.zeros((sum(compressed), 288), np.float32)
             for role, model in (('warm_start', actor), ('ppo', ppo_actor)):
                 selected = roles[compressed] == role
-                predicted[selected] = model(torch.as_tensor(measured_h[selected], device='cuda')).cpu().numpy()
+                distribution = model.distribution(torch.as_tensor(measured_h[selected], device='cuda'))
+                if paired:
+                    rows = np.flatnonzero(compressed)[selected]
+                    eps = noise_bank[j, pair_ids[rows]]
+                    error('sample_mean', distribution.loc.cpu().numpy(), plans['mean'][j, rows])
+                    error('sample_std', distribution.scale.cpu().numpy(), plans['std'][j, rows])
+                    error('paired_noise', eps, plans['epsilon'][j, rows])
+                    predicted[selected] = (distribution.loc+distribution.scale*torch.as_tensor(eps, device='cuda')).cpu().numpy()
+                else:
+                    predicted[selected] = distribution.loc.cpu().numpy()
         error('actor_c', predicted, plans['c'][j, compressed])
         value = plans['c'][j, compressed].reshape(-1, 24, 12)*np.asarray([.01]*3+[.1]*9, np.float32)
         rot = plans['query_obj'][j, compressed, :3, :3]
@@ -181,9 +206,9 @@ def main():
     local_future = (future-center[..., None, None, :]) @ rot[..., None, :, :]
     qe = next_q-data['q'][:-1]
     qe[..., 3:6] = np.arctan2(np.sin(qe[..., 3:6]), np.cos(qe[..., 3:6]))
-    previous = np.concatenate((np.zeros((1, 16, 12), np.float32), np.tanh(data['latent'][:-1])))
-    features = np.concatenate((data['q'][:-1], data['dq'][:-1]/8, hand.reshape(542, 16, 33)/.1,
-        local_future.reshape(542, 16, 792)/.1, qe, previous, data['velocity'][:-1]/2), -1).clip(-20, 20)
+    previous = np.concatenate((np.zeros((1, n, 12), np.float32), np.tanh(data['latent'][:-1])))
+    features = np.concatenate((data['q'][:-1], data['dq'][:-1]/8, hand.reshape(542, n, 33)/.1,
+        local_future.reshape(542, n, 792)/.1, qe, previous, data['velocity'][:-1]/2), -1).clip(-20, 20)
     errors['features'] = float(np.max(np.abs(features-data['features'])))
     control = manifest['native_controller']
     offset, scale = np.asarray(control['offset'], np.float32), np.asarray(control['scale'], np.float32)
@@ -222,16 +247,16 @@ def main():
             raise ValueError('outcome differs')
     for role in sorted(set(roles)):
         rows = [row for row in result['outcomes'] if row['role'] == role]
-        summary[role] = dict(episodes=4, long_held_terminal=int(sum(row['maximum_held_frames'] >= 433
+        summary[role] = dict(episodes=len(rows), long_held_terminal=int(sum(row['maximum_held_frames'] >= 433
             and held[-1, row['env']] for row in rows)), terminal=int(held[-1, roles == role].sum()),
             median_held=float(np.median([row['maximum_held_frames'] for row in rows])),
             clipping_rate=float(data['clipped'][:, roles == role].mean()))
     if summary != result['summary']:
         raise ValueError('summary differs')
     calibrated = summary['tau_gt']['long_held_terminal'] >= 3 and summary['dense_fk']['long_held_terminal'] >= 3
-    ppo_success = summary['ppo']['long_held_terminal'] >= 3 and summary['ppo']['clipping_rate'] < .01
+    ppo_success = summary['ppo']['long_held_terminal'] >= (21 if paired else 3) and summary['ppo']['clipping_rate'] < .01
     improvement = summary['ppo']['long_held_terminal'] - summary['warm_start']['long_held_terminal']
-    status = 'PROMISING' if calibrated and ppo_success and improvement >= 2 else (
+    status = 'PROMISING' if calibrated and ppo_success and improvement >= (7 if paired else 2) else (
         'UNPROMISING' if calibrated and all(summary[role]['long_held_terminal'] == 0 for role in learned_roles) else 'UNCLEAR')
     baseline_signal = 'PROMISING' if calibrated and ppo_success else 'UNCLEAR'
     if baseline_signal != result['baseline_signal']:
@@ -245,6 +270,8 @@ def main():
     args.output.mkdir(parents=True)
     (args.output/'audit.json').write_text(json.dumps(audit, indent=2, allow_nan=False)+'\n')
     files = [args.evaluation/name for name in ('manifest.json', 'result.json', 'trajectory.npz', 'plans.npz')] + [Path(__file__)]
+    if paired:
+        files.append(args.evaluation/'noise.npy')
     (args.output/'manifest.json').write_text(json.dumps(dict(status='COMPLETED',
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, gpu_before=gpu_before, input_sha256={str(path.resolve()): sha(path) for path in files}), indent=2)+'\n')

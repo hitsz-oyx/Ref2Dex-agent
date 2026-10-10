@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--actor-fit', type=Path, required=True, help='completed independent actor BC folder')
     parser.add_argument('--ppo-run', type=Path, required=True)
+    parser.add_argument('--paired-noise', action='store_true', help='28 common-noise Gaussian pairs and eight calibration rows')
     args = parser.parse_args()
     args.output = args.output.resolve()
     if args.output.exists() or ROOT / 'outputs/trajectory-policy' not in args.output.parents:
@@ -143,16 +144,30 @@ def main():
     weights = {key: value.clone() for key, value in policy.state_dict().items()}
     representation = 'warm_start_vs_ppo'
     learned_roles = ['warm_start', 'ppo']
-    roles = np.random.default_rng(294).permutation(np.repeat(['tau_gt', 'dense_fk']+learned_roles, 4)).tolist()
+    counts = [4, 4, 28, 28] if args.paired_noise else [4]*4
+    roles = np.random.default_rng(294).permutation(np.repeat(['tau_gt', 'dense_fk']+learned_roles, counts)).tolist()
+    env_count = len(roles)
+    pair_ids = np.full(env_count, -1, np.int64)
+    noise_bank = None
+    if args.paired_noise:
+        noise_bank = np.random.default_rng(295).standard_normal((68, 28, 288)).astype(np.float32)
+        for role in learned_roles:
+            pair_ids[np.flatnonzero(np.asarray(roles) == role)] = np.arange(28)
     args.output.mkdir(parents=True)
     manifest = dict(schema='ref2dex.trajectory-ppo-execution.v1', status='RUNNING',
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         physical_gpu=args.gpu, gpu_before=before, seed=294, roles=roles, input_sha256=hashes,
         representation=representation,
+        action_mode='paired_gaussian' if args.paired_noise else 'mean',
+        pair_ids=pair_ids.tolist(), noise_seed=295 if args.paired_noise else None,
         inference_contract='H328 from own past/current measured states -> independent c288 -> D -> tau -> frozen R; only controls use future labels',
-        replan_interval=8, controls=542, envs=16, dt=1/30,
+        replan_interval=8, controls=542, envs=env_count, dt=1/30,
         claim='Single-motion frozen final PPO versus warm start Probe; no Validation or Cm claim')
     write(args.output / 'manifest.json', manifest)
+    if noise_bank is not None:
+        np.save(args.output/'noise.npy', noise_bank)
+        manifest['noise_sha256'] = sha(args.output/'noise.npy')
+        write(args.output/'manifest.json', manifest)
     install_reset_patch()
     reset = DexploreTask._reset_ref_state_init
     def aligned(task, ids):
@@ -175,8 +190,8 @@ def main():
         def run(self):
             task = self.env.task
             n = task.num_envs
-            if n != 16 or self.is_rnn or len(task.motion_file) != 1 or str(task.device) != 'cpu' or not task.gym.get_sim_params(task.sim).physx.use_gpu:
-                raise ValueError('sixteen-env single-motion CPU exchange/GPU PhysX required')
+            if n != env_count or self.is_rnn or len(task.motion_file) != 1 or str(task.device) != 'cpu' or not task.gym.get_sim_params(task.sim).physx.use_gpu:
+                raise ValueError('declared-env single-motion CPU exchange/GPU PhysX required')
             task._enable_early_termination = False
             task._adaptive_kappa_enabled = False
             task._state_init = DexploreTask.StateInit.Start
@@ -248,9 +263,20 @@ def main():
                         h_saved = np.zeros((n, 328), np.float32)
                         h_saved[latent_rows] = h
                         c = np.zeros((n, 288), dtype=np.float32)
+                        means = np.zeros_like(c)
+                        stds = np.zeros_like(c)
+                        epsilons = np.zeros_like(c)
                         for role, model in (('warm_start', actor), ('ppo', ppo_actor)):
                             selected = np.flatnonzero(np.asarray(roles)[latent_rows] == role)
-                            c[latent_rows[selected]] = model(torch.as_tensor(h[selected], device=device)).cpu().numpy()
+                            rows = latent_rows[selected]
+                            distribution = model.distribution(torch.as_tensor(h[selected], device=device))
+                            means[rows] = distribution.loc.cpu().numpy()
+                            stds[rows] = distribution.scale.cpu().numpy()
+                            if args.paired_noise:
+                                epsilons[rows] = noise_bank[tick//8, pair_ids[rows]]
+                                c[rows] = (distribution.loc + distribution.scale*torch.as_tensor(epsilons[rows], device=device)).cpu().numpy()
+                            else:
+                                c[rows] = means[rows]
                         decoded = decoder.decode(c[latent_rows], current['q'][latent_ids].cpu().numpy(),
                             current['obj'][latent_ids].cpu().numpy(), dt)
                         q[latent_ids] = decoded['q']
@@ -261,6 +287,7 @@ def main():
                         velocity = torch.stack([future_reference_velocity(value, dt) for value in q])
                         velocity[gt, 1:] = global_velocity[index]
                         plans.append(dict(tick=tick, history=h_saved, c=c.copy(), q=q.cpu().numpy().copy(),
+                            mean=means, std=stds, epsilon=epsilons,
                             hand=future.cpu().numpy().copy(), velocity=velocity.cpu().numpy().copy(),
                             query_obj=current['obj'].cpu().numpy().copy()))
                     slot = tick % 8
@@ -315,15 +342,17 @@ def main():
             summary = {}
             for role in sorted(set(roles)):
                 rows = [row for row in outcomes if row['role'] == role]
-                summary[role] = dict(episodes=4, long_held_terminal=sum(
+                summary[role] = dict(episodes=len(rows), long_held_terminal=sum(
                     row['maximum_held_frames'] >= 433 and row['terminal_held'] for row in rows),
                     terminal=sum(row['terminal_held'] for row in rows),
                     median_held=float(np.median([row['maximum_held_frames'] for row in rows])),
-                    clipping_rate=sum(row['clipping_count'] for row in rows)/(4*542))
+                    clipping_rate=sum(row['clipping_count'] for row in rows)/(len(rows)*542))
             calibrated = summary['tau_gt']['long_held_terminal'] >= 3 and summary['dense_fk']['long_held_terminal'] >= 3
-            ppo_success = summary['ppo']['long_held_terminal'] >= 3 and summary['ppo']['clipping_rate'] < .01
+            required = 21 if args.paired_noise else 3
+            required_gain = 7 if args.paired_noise else 2
+            ppo_success = summary['ppo']['long_held_terminal'] >= required and summary['ppo']['clipping_rate'] < .01
             improvement = summary['ppo']['long_held_terminal'] - summary['warm_start']['long_held_terminal']
-            status = 'PROMISING' if calibrated and ppo_success and improvement >= 2 else (
+            status = 'PROMISING' if calibrated and ppo_success and improvement >= required_gain else (
                 'UNPROMISING' if calibrated and all(summary[role]['long_held_terminal'] == 0 for role in learned_roles) else 'UNCLEAR')
             baseline_signal = 'PROMISING' if calibrated and ppo_success else 'UNCLEAR'
             if any(sha(path) != digest for path, digest in hashes.items()) or any(
@@ -340,14 +369,14 @@ def main():
     native.EvalPlayer = Player
     sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', cfg['cfg_env'],
         '--cfg_train', cfg['cfg_train'], '--checkpoint', cfg['actor'], '--motion_file', cfg['motions'],
-        '--headless', '--num_envs', '16', '--seed', '294', '--sim_device', 'cuda:0', '--rl_device', 'cuda:0',
+        '--headless', '--num_envs', str(env_count), '--seed', '294', '--sim_device', 'cuda:0', '--rl_device', 'cuda:0',
         '--pipeline', 'cpu', '--graphics_device_id', '0', '--num_threads', '1', '--disable-early-termination',
         '--output', str(args.output / 'native-unused.json'), '--output_path', str(args.output / 'native')]
     cwd = Path.cwd()
     def deadline(signum, frame):
-        raise TimeoutError('PPO frozen execution exceeded180s')
+        raise TimeoutError('PPO frozen execution exceeded declared wall-time cap')
     handler = signal.signal(signal.SIGALRM, deadline)
-    signal.alarm(180)
+    signal.alarm(240 if args.paired_noise else 180)
     try:
         os.chdir(ROOT / 'third_party/DExplore')
         native.main()
