@@ -219,6 +219,7 @@ def main():
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--seed", type=int, default=229)
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--run-id", default=None)
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError(f"output exists: {args.output}")
@@ -236,7 +237,7 @@ def main():
     result = {
         "schema": "ref2dex.egotouch-processed-pressure-history-result.v1",
         "status": "RUNNING",
-        "run_id": "egotouch-processed-pressure-history-20261011-r1",
+        "run_id": args.run_id or args.output.name,
         "seed": args.seed,
         "device": str(device),
         "steps": args.steps,
