@@ -62,6 +62,7 @@ def main():
                    help="compare frozen tau teacher instead of shifted tau, on its own live rows")
     p.add_argument('--generated-proposal', type=Path)
     p.add_argument('--generated-evaluator', type=Path)
+    p.add_argument('--projection-iterations',type=int,choices=(60,300),default=300)
     args = p.parse_args()
     if args.generated_proposal or args.generated_evaluator:
         if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
@@ -265,6 +266,7 @@ def main():
             inference_contract='Generated roles: measured t-3:t only -> ten candidates -> frozen score/fixed choice -> coupled geometry -> frozen tau controller; no future reference/phase/clock/force input',
             reference_contract='GT hand/geometry only independent upper-bound role and evaluation; generated roles use their own live current q/hand/object',
             training_contract='No training; all proposal/evaluator/controller weights frozen',replan_interval=8,
+            projection_iterations=args.projection_iterations,
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     write(output / "manifest.json", manifest)
@@ -326,7 +328,7 @@ def main():
                 from consequence_evaluator.generated_tau import GeneratedTau
                 generator=GeneratedTau(torch.load(args.generated_proposal/'displacement-best.pt',map_location='cpu',weights_only=False),
                     torch.load(args.generated_evaluator/'T.pt',map_location='cpu',weights_only=False),
-                    generated_bank,urdf,device,control_dt)
+                    generated_bank,urdf,device,control_dt,args.projection_iterations)
             oracle_policy = None
             tau_teacher_policy = None
             if args.tau_teacher_checkpoint:

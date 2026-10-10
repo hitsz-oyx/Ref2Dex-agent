@@ -14,7 +14,7 @@ seeds: [298]
 decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
 decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
 status: UNCLEAR
-run_id: generated-tau-native-execution-20261010-r1
+run_id: generated-tau-native-execution-20261010-r2
 ---
 
 # Can pure measured-history generated tau drive the frozen native executor?
@@ -45,7 +45,8 @@ clock/phase/action or tactile input to proposal/retrieval/choice. Retrieve only
 train-bank displacements, one per episode; frozen T scores raw generated tau.
 The runtime never admits a query-GT future into the ten-candidate pool.
 
-Project the chosen future using live current hand/q and static URDF,300steps,
+Project the chosen future using live current hand/q and static URDF,60steps
+(original300step run interrupted for engineering latency; Decision Note below),
 two starts, independent native finger bounds/coupling. Use the resulting rigid
 hand points and geometric q to condition the frozen897dim tau controller.
 Next-frame tau-derived wrist velocity feedforward, original native residual
@@ -75,7 +76,29 @@ runtime contract tests may use CPU where startup dominates fixture cost.
 
 ## Results
 
-Pending.
+68e7ed3 seed29 engineering8-step smoke completed25.89s; own GPU7555MiB/util11%.
+Independent reconstruction: bootstrap history error0, actual897features1.91e-6,
+applied command2.38e-7. Correct own query history/choice/native q/FF; no GT leak.
+Outputs `generated-tau-native-smoke-20261010-r1/`, log `generated-tau-native-launch-20261010-r1/smoke.log`.
+
+First full seed298 r1 at a1eeccd was interrupted by root's SIGINT to its confirmed
+owned PID, preserving FAILED/KeyboardInterrupt manifest and log. Engineering
+cost:300-step projection14.57s/chunk predicts~1000s across68chunks, exceeding
+720s cap. Not a behavior negative result; no complete trajectory produced.
+
+## Engineering repair Decision Note
+
+Latency blocks the cheapest complete execution. Check fixed60iteration fit on
+the saved12query smoke inputs against300step geometry, with no actual outcome
+selection. Require max coordinate-RMSE degradation<=.5mm, max point-coordinate
+RMSE to300step<=1mm, latency<=5s. If this engineering check passes, run exactly
+one repaired full seed298 r2 <=600s. No additional seed or model training; count
+interrupted run and audit within the original15GPUmin total.60iteration always
+outputs bounded coupled URDF geometry, though approximation quality may vary.
+If convergence check fails, stop to identify the latency source. Original smoke,
+failed full and300step geometry remain intact; do not rewrite them.
+
+Complete execution results pending.
 
 ## Limitations / future evidence
 
