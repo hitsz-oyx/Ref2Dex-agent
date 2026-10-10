@@ -133,6 +133,19 @@ robot/timestamp/camera-extrinsic records and 128x128 RGB, but no depth or
 intrinsics; the official processor requires `pyzed`/ZED SVO access, which is
 absent here. Do not install system dependencies or infer calibration silently.
 
+Correction after checking the author data/training repositories: the raw
+reprocessing boundary above does not close the released-data route. PointWorld's
+fixed release contract is one context frame plus ten prediction steps, exactly
+the 11 time points in these generated H5 clips. A local official-pipeline smoke
+accepted all 10 matched clips, produced an 8/2 train/test WDS split, and the
+official scene decoder recovered both cameras with finite 11-step flow, RGB,
+depth, intrinsics, extrinsics, visibility and depth-valid masks. This used no
+official checkpoint and no ZED. The direct native `H=4,K=24` adapter remains
+`UNPROMISING`, but a short-horizon `K_aux=10` auxiliary pretraining route is
+open; its next required experiment is a random-initialization control that
+uses the same official H5/WDS data and transfers only the shared representation
+into the native downstream task. See the [source-level reuse note](research/2026-10-10-droid-no-zed-reuse.md).
+
 ## Current decision and resources
 
 Retain native main3 model and all weak-label/sensor evidence. Video follow-up

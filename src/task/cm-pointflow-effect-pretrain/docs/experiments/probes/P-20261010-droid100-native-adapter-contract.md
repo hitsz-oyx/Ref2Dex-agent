@@ -76,3 +76,16 @@ front-end. Each route needs its own matched random-initialization control and
 experiment card. The current official-data route remains available, but the
 released H5 shard cannot be silently presented as native `H=4,K=24` training
 data.
+
+## Correction: the shorter official H5 route is open
+
+The direct-native `UNPROMISING` label is limited to the current `H=4,K=24`
+contract. The pinned PointWorld release defines one context frame and ten
+prediction steps (`RELEASE_CONTEXT_HORIZON=1`, `RELEASE_PRED_HORIZON=10`), so
+the 11-step H5 clips have a native contract for a separate auxiliary task. A
+local read-only smoke on the matched episode passed NVIDIA's H5 integrity
+check for all 10 clips, generated an 8/2 WDS split, and decoded both camera
+streams with finite flow, RGB-D and calibration fields. It used no released
+checkpoint and no ZED dependency. This does not change the direct-native
+result; it changes the next decision to a bounded `K_aux=10`
+auxiliary-pretraining Probe with a random-initialization control.

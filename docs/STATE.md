@@ -999,3 +999,17 @@ still unresolved. Companion raw H5 files provide robot/timestamp/extrinsic
 records and RGB but no depth/intrinsics, while the official processor requires
 the unavailable ZED/`pyzed` path. No system dependency installation or
 calibration substitution is authorized in this worktree.
+
+This boundary is narrower than the earlier wording suggested. The released
+PointWorld data contract itself is `RELEASE_CONTEXT_HORIZON=1` plus
+`RELEASE_PRED_HORIZON=10`, so an 11-step generated H5 clip is a valid
+short-horizon auxiliary scene-flow sample even though it is not a drop-in
+replacement for native `H=4,K=24` training. The official H5-only path was
+verified locally on the matched episode: NVIDIA's integrity check accepted
+10/10 clips, the official manifest split them into 8 train and 2 test clips,
+and the official WDS decoder recovered both cameras with 11-step scene flow,
+RGB, depth, intrinsics, extrinsics, visibility and depth-valid masks. This
+smoke used no PointWorld checkpoint and no ZED dependency. The open route is
+therefore an explicit `K_aux=10` auxiliary pretraining adapter with a matched
+random-initialization control; only raw MP4/SVO-to-new-3-D-label regeneration
+remains ZED-bound. See the [no-ZED reuse research note](../src/task/cm-pointflow-effect-pretrain/docs/research/2026-10-10-droid-no-zed-reuse.md).
