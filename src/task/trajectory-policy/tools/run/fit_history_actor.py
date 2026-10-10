@@ -28,6 +28,8 @@ def main():
     util, memory = map(int, before.split(','))
     if util > 10 or memory > 512:
         raise ValueError('GPU not idle: '+before)
+    processes = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-compute-apps=pid,used_gpu_memory', '--format=csv,noheader,nounits'], text=True).strip()
+    initial_pids = {int(row.split(',')[0]) for row in processes.splitlines() if row}
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
     import torch
     from trajectory_policy.actor import HistoryActor, SCHEMA
@@ -123,6 +125,11 @@ def main():
                     best, best_step = val, step
                     best_state = {key: value.detach().cpu().clone() for key, value in actor.state_dict().items()}
                 state = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'], text=True).strip()
+                processes = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-compute-apps=pid,used_gpu_memory', '--format=csv,noheader,nounits'], text=True).strip()
+                for row in processes.splitlines():
+                    pid, used = map(int, row.split(','))
+                    if pid not in initial_pids | {os.getpid()} and used > 512:
+                        raise RuntimeError('foreign GPU compute detected')
                 monitor = dict(update=step, train_loss=float(objective), validation_loss=val,
                     elapsed_s=time.monotonic()-started, eta_s=(time.monotonic()-fit_started)/step*(2500-step), gpu=state)
                 print(json.dumps(monitor), flush=True)

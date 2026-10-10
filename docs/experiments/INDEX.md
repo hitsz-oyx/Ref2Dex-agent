@@ -360,6 +360,12 @@
 | [P-20261010-metric-trajectory-decoder](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md) | Does a pose/FF metric retain the executable trajectory in D48? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-trajectory-decoder-coverage](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md) | Can a fixed48D trajectory decoder retain executable grasp behavior? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-trajectory-policy-learning
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-history-trajectory-actor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md) | Can measured history initialize a standalone trajectory actor? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-weak-temporal-value
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

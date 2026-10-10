@@ -213,3 +213,8 @@ FK复算，<=120s/2GPUmin/64MiB；无神经训练/仿真/额外seed/WM，协议�
 fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无策略训练/WM/
 额外seed。此次后停止48D重建搜索，转入可执行轨迹表示的H->c学习。协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md`。
+
+2026-10-10 持续主线下进入trajectory-policy独立H328->c288 actor初始化：单空闲GPU4，
+新增12GPUmin/512MiB，一次2500update监督fit<=240s、一次16env完整执行<=300s、
+审计<=120s。旧Task只读复用，保留全部失败行，无WM/额外seed sweep/新分支/push。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md`。
