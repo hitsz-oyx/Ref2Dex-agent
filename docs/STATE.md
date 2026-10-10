@@ -191,6 +191,37 @@ decoder。关键证据是 action composition、force proxy、episode split 和 f
 必须在保持 contact/state 的条件下施加成对的 finger command perturbation，并保存对应
 的 contact/state provenance；在此之前不接 H→τ、PointWorld、selector、MPC 或 Cm。
 
+随后完成了一次最小 serial contact-stage paired-capture Probe
+(`P-20261010-serial-finger-pulse-prefix`)。新增的 diagnostic profile 不改变默认
+structured random rollout：它在单环境、同 seed 的 retarget world 中做 zero replay，或在
+tick50 对 independently commanded finger coordinate 6 施加一个单 tick `±0.08` residual，
+并同步保存完整 action、actor action、`task.real_pd_tar`、state frame 和 actor observation。
+GPU2 上两次 zero replay 和正负 pulse 均在约41s完成，543 state frames/542 commands、finite、
+requested=applied、zero clipping 和 input/actor hash 合同通过。
+
+zero replay 的全部状态、action、actor observation、contact-force proxy 和 native PD target
+逐项 bitwise 一致；±pulse 的 tick50 前缀也逐项 bitwise 一致，pulse residual/action 精确为
+`±0.08`，对应 active PD target 改变量约`.064`。这证明了 serial deterministic prefix 和
+command/PD-target capture 合同可用，但没有提供 hidden PhysX fork，也不等价于同状态反事实。
+单 seed 的 post-pulse pair rate 仅作诊断：zero 为 onset/contact/hold `0.65/0/0`，+pulse
+为 `0.60/0.033/0`，-pulse 为 `0.875/0.208/0.033`；不写成 success、preload 或因果效应。
+结果卡与审计产物见
+[`P-20261010-serial-finger-pulse-prefix`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-serial-finger-pulse-prefix.md)
+和 `outputs/consequence-evaluator/serial-finger-pulse-audit-{zero-repeat,plus,minus}-20261010-r1/`。
+
+### Decision Note — serial paired-capture contract (executed)
+
+当前需要决定的是：是否继续投入，先构造接触/保持阶段的 matched-state command
+perturbation 数据，而不是把现有普通 env 行当作 counterfactual。关键证据是 zero twin 与
+pulse prefix 均 bitwise 通过，requested/applied/PD target 可审计；但 post-pulse 只有单 seed
+单 tick、隐藏 solver state 未克隆，且当前还没有每阶段20条 matched row/10条 nontrivial
+差异。root 选择保留该 serial capture contract 为 `PROMISING` engineering evidence，
+不训练 decoder、不跑 native success、不重开 H→τ/PointWorld/selector/MPC。预计下一步成本
+是一次有界的多状态 contact/hold pilot；若 visible hand/q/dq/same-pair gate 或 twin gate
+失败，则立即回到 `UNCLEAR/evidence-insufficient` 并关闭该数据路线；若达到预注册行数门槛，
+再另建实验卡审查是否值得 decoder Probe。当前仍需把科学效应与工程可采集性分开，不能由
+本 Probe 升级全局 claim。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

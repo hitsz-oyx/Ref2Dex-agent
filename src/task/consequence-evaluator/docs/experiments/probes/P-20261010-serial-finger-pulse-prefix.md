@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [421]
 decision_changed_if_positive: retain a narrow serial contact-stage paired-capture contract for future matched-state data collection
 decision_changed_if_negative: close the serial paired-capture route and keep decoder, H-to-hand, PointWorld, selector, and native integration frozen
-status: PLANNED
+status: PROMISING
 run_id: serial-finger-pulse-prefix-20261010-r1
 ---
 
@@ -82,4 +82,27 @@ Outputs:
 
 ## Result
 
-Pending bounded capture.
+All four bounded rollouts completed on GPU2 in about 41 seconds each. The two
+zero-residual replays were bitwise identical for every saved state, command,
+actor observation, force proxy, and native active PD target. This is a valid
+deterministic serial prefix/twin contract, not a hidden-PhysX state fork.
+
+Both pulse branches also passed the engineering gates: 543 finite state
+frames, 542 commands, zero clipping, exact action composition, bitwise-equal
+prefix through tick 50, and exact requested/applied `0.08` or `-0.08` residual
+on native finger coordinate 6. The corresponding active PD-target change was
+about `0.064` in the saved `real_pd_tar` coordinate.
+
+The post-pulse diagnostic differs by sign. The zero control has pair rates
+`0.65 / 0 / 0` in onset/contact/hold windows; the `+0.08` branch has
+`0.60 / 0.033 / 0`, while the `-0.08` branch has `0.875 / 0.208 / 0.033`.
+These are one-seed, one-tick feedback trajectories and are not success,
+preload, or causal estimates; the post-pulse hand/object/force changes are
+explicitly diagnostic only.
+
+The Probe is therefore `PROMISING` only for retaining the serial paired-capture
+data contract. It does not reopen the execution decoder or native route. The
+next collection would need multiple contact and hold states, with the
+pre-registered visible matched-state thresholds and at least 20 matched rows
+and 10 nontrivial command differences per phase before any decoder fit or
+scientific effect screen.
