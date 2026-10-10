@@ -57,7 +57,19 @@ def test_tau_reward_penalizes_object_fall_without_future_object_label():
     reference = torch.zeros(1, 11, 3); reference[:, :, 2] = .8
     obj = torch.eye(4)[None]; obj[:, 2, 3] = .8
     latent = torch.zeros(1, 12)
-    good = tau_reward(reference, obj, reference, torch.tensor([True]), .5, .5, latent)
+    good = tau_reward(reference, obj, reference, torch.tensor([True]), .5, latent)
     fallen = obj.clone(); fallen[:, 2, 3] = .5
-    bad = tau_reward(reference, fallen, reference, torch.tensor([False]), .5, .5, latent)
+    bad = tau_reward(reference, fallen, reference, torch.tensor([False]), .5, latent)
     assert good.item() > bad.item() + .5
+
+
+def test_tau_reward_prefers_holding_when_palm_moves_below_reset():
+    # The actual source palm descends while the object is lifted. Palm motion
+    # must not prescribe the object's height or disable physical holding.
+    reference = torch.zeros(1, 11, 3); reference[:, :, 2] = .3
+    obj = torch.eye(4)[None]; obj[:, 2, 3] = .8
+    latent = torch.zeros(1, 12)
+    held = tau_reward(reference + .02, obj, reference, torch.tensor([True]), .5, latent)
+    fallen = obj.clone(); fallen[:, 2, 3] = .5
+    nominal = tau_reward(reference, fallen, reference, torch.tensor([False]), .5, latent)
+    assert held.item() > nominal.item() + .5

@@ -142,7 +142,6 @@ def main():
         reference[name] = torch.as_tensor(value, device=device)
     initial_height = float(packet["object_pose"][0, 0, 2, 3])
     reference_held = int(packet["role_outcomes"]["reactive_teacher"]["maximum_held_frames"])
-    initial_palm_height = float(packet["hand_keypoints"][0, 0, 0, 2])
     del packet
     geometry_data = None
     if args.tau_only:
@@ -211,7 +210,7 @@ def main():
             inference_contract="live q/dq/hand/object/velocity, future11-point tau, tau-derived joint error, previous residual; no true future q/object or tactile input",
             action_contract="tau-derived coupled geometric target + tau-derived wrist velocity feedforward + learned residual; full native command",
             reference_contract="GT future hand upper bound; geometry from tau/reset/static URDF only; q/object labels only for independent comparison/evaluation",
-            training_contract="on-policy PPO; tau-only hand/lift/hold reward, no future object reward or command supervision; minus0.20*max native-command excess",
+            training_contract="on-policy PPO; weak tau hand tracking plus actual lift/force-pair holding, no palm-to-object target or future object reward; minus0.20*max native-command excess",
             claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
     write(output / "manifest.json", manifest)
 
@@ -371,7 +370,7 @@ def main():
                             after = measure()
                             if args.tau_only:
                                 reward = tau_reward(after["hand"], after["obj"], next_hand, after["pair"],
-                                                    initial_height, initial_palm_height, latent) - .20 * excess
+                                                    initial_height, latent) - .20 * excess
                             else:
                                 reward = tracking_reward(after["hand"], after["obj"], next_hand, next_obj,
                                                          after["pair"], initial_height, latent)

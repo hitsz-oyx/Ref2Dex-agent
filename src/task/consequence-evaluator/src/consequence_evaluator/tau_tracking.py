@@ -95,14 +95,19 @@ def tau_features(q, dq, hand, obj, velocity, future_hand, geometric_q, previous)
     return full[:, list(KEEP_COLUMNS)]
 
 
-def tau_reward(hand, obj, reference_hand, pair, initial_height, initial_palm_height, latent):
-    """Physical lift/hold plus hand tracking; no future-object reference reward."""
+def tau_reward(hand, obj, reference_hand, pair, initial_height, latent):
+    """Sustained-lift task reward and weak tau tracking, without future object.
+
+    Palm displacement cannot specify object height or gate holding: the palm
+    descends through approach/grasp while the object is lifted. Net force pair
+    remains a training-only proxy, not a tactile policy input or force target.
+    This holding objective does not implement a later placement/release task.
+    """
     hand_error = (hand - reference_hand).square().mean((1, 2)).sqrt()
-    desired_lift = reference_hand[:, 0, 2] - initial_palm_height
     actual_lift = obj[:, 2, 3] - initial_height
-    lift = torch.exp(-(actual_lift - desired_lift).abs() / .08)
-    hold = (pair & (actual_lift > .03) & (desired_lift > .03)).float()
-    reward = (.45 * torch.exp(-hand_error / .04) + .40 * lift + .25 * hold
+    lift = (actual_lift / .05).clamp(0, 1)
+    hold = (pair & (actual_lift > .03)).float()
+    reward = (.30 * torch.exp(-hand_error / .04) + .20 * lift + .80 * hold
               - .005 * torch.tanh(latent).square().mean(-1))
     if not torch.isfinite(reward).all():
         raise FloatingPointError("nonfinite tau tracking reward")

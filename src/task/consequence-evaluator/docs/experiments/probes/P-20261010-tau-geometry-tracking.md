@@ -60,9 +60,9 @@ new input dimension897. Actor's joint-error fields contain only tau-derived q.
 Old controller remains an independent privileged comparison arm. In training,
 future q/object fields are not materialized for the student.
 
-Reward also drops future-object reference: absolute hand tracking, object lift
-following tau palm displacement, and existing actual-lift/force-pair holding
-proxy; small residual penalty. Force proxy is training reward/statistics only,
+Corrected reward drops future-object reference: weak absolute hand tracking,
+actual object lift and existing force-pair holding proxy; small residual penalty.
+Palm displacement does not prescribe object height or gate holding. Force proxy is training reward/statistics only,
 not a new sensory input. No force or commanded-PD supervision. Keep native
 PD gains, bounds, coupling, PPO hyperparameters and fixed final checkpoint.
 128updates x32steps x64env, seed277. Smoke debug43 crosses2 PPO updates.
@@ -141,3 +141,37 @@ learned tensors changed; no wiring error. Full training r1 uses unchanged
 seed277/64env/128update from the original declared warmstart (not smoke weights).
 Geometry cache is precomputed for this fixed GT tau; real-time retarget of
 new high-level proposals is not measured and remains future evidence.
+
+## Reward-defect repair / Decision Note
+
+Full train r1 (62d168b,seed277) completed128updates/262144transitions/425.53s,
+changed13 tensors, training clipping25.08%, final SHA
+e9c8e8ae5f6abab09152f8bac29fde3a586409fa94b76b3334090baf2551e2ad.
+Final eval r1 (0902598,seed278) had tracker0/16 hold45/near433/terminal vs
+oracle16/16 near433. Input/command reconstruction passed. Preserve this run;
+it is not valid negative evidence against a sustained-holding tau learner.
+
+Root cause: r1 used palm displacement as object lift target and as holding
+phase gate. Source palm/object lift mean absolute mismatch0.396m; palm>.03
+only65/542frames. CPU replay of actual tau_reward including overdrive cost
+ranks no-grasp above the frozen holder: mean0.4890 vs0.2882, gamma.99 return
+44.23 vs29.88. Minimal real-pattern regression (palm descends, object held)
+fails before the fix; independent read-only review confirms this defect.
+Training optimized the wrong objective, not an inverse identifiability limit.
+
+Decision: repair only reward, keep geometry, original warmstart, seed277,
+128updates and fixed-final seed278 evaluation. Reward=.30*exp(-handRMSE/.04)
++.20*clamp(actual_lift/.05,0,1)+.80*(force_pair & actual_lift>.03)
+-.005*mean(tanh(latent)^2)-.20*command_excess. Existing force proxy recalls
+97.19% of geometrically held frozen tracker frames; only0.47% forceheld frames
+are not geometrically held. No new tactile input or future-object label.
+Original and corrected replay artifacts ref7_4-tau-reward-audit-20261010-r1/r2
+retain reward/source hashes. Corrected replay favors holder0.9863/70.89 vs
+nominal0.2668/25.55; all12 focused tests pass after actual red regression.
+CPU here is statistical trace replay only, no neural model inference.
+
+One defect-repair r2 train (~7min) plus final evaluation (~2min), within original
+34GPUmin/2GiB and combined training<=1200s. If holding is restored but clipping
+still fails, keep strict gate and stop this budget; if no restoration, inspect
+specific implementation evidence before any route-level negative claim. No
+seed/checkpoint selection, changed geometry, new branch or external operation.
