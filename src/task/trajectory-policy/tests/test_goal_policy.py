@@ -5,9 +5,14 @@ from trajectory_policy.goal_policy import (
     ACTIVE_ACTION,
     GOAL_HORIZON,
     INPUT_DIM,
+    RESIDUAL_GOAL_HORIZON,
+    RESIDUAL_INPUT_DIM,
+    GoalConditionedResidualPolicy,
     GoalConditionedPolicy,
+    ResidualStandardizer,
     Standardizer,
     goal_features,
+    residual_goal_features,
 )
 
 
@@ -48,3 +53,28 @@ def test_policy_masks_dependent_native_actions_and_standardizer_is_finite():
     encoded = stats.encode(np.ones((2, INPUT_DIM), np.float32))
     assert np.isfinite(encoded).all()
     assert np.all(stats.scale > 0)
+
+
+def test_residual_policy_emits_executor_latent():
+    torch.manual_seed(8)
+    policy = GoalConditionedResidualPolicy(width=32)
+    output = policy(torch.randn(3, RESIDUAL_INPUT_DIM))
+    assert output.shape == (3, 12)
+    assert torch.isfinite(output).all()
+
+
+def test_residual_features_use_24_step_goal_and_bounded_latent_history():
+    q, dq, hand, obj, obj_velocity, _, _, _ = _states()
+    previous = torch.zeros(2, 12)
+    goal_hand = torch.zeros(2, RESIDUAL_GOAL_HORIZON, 11, 3)
+    goal_obj = torch.eye(4).expand(2, RESIDUAL_GOAL_HORIZON, 4, 4).clone()
+    features = residual_goal_features(q, dq, hand, obj, obj_velocity, previous,
+                                      goal_hand, goal_obj)
+    assert features.shape == (2, RESIDUAL_INPUT_DIM)
+    previous[0, 0] = .5
+    changed = residual_goal_features(q, dq, hand, obj, obj_velocity, previous,
+                                     goal_hand, goal_obj)
+    assert changed[0, 1155] == .5
+    assert not torch.equal(features, changed)
+    stats = ResidualStandardizer.fit(np.zeros((4, RESIDUAL_INPUT_DIM), np.float32))
+    assert np.isfinite(stats.encode(np.ones((2, RESIDUAL_INPUT_DIM), np.float32))).all()
