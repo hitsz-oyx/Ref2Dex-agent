@@ -125,3 +125,28 @@ class TauTracker(ReferenceTracker):
         for name in ("actor.0.weight", "critic.0.weight"):
             state[name] = state[name][:, list(KEEP_COLUMNS)]
         self.load_state_dict(state, strict=True)
+
+
+def configure_finger_fit(policy):
+    """Train only six finger output rows; preserve the learned wrist function."""
+    for parameter in policy.parameters():
+        parameter.requires_grad_(False)
+    layer = policy.actor[-1]
+    for parameter in (layer.weight, layer.bias):
+        parameter.requires_grad_(True)
+        parameter.register_hook(lambda grad: torch.cat((torch.zeros_like(grad[:6]), grad[6:]), 0))
+    return [layer.weight, layer.bias]
+
+
+def canonical_finger_targets(applied_pd, offset, scale, margin=.005):
+    """Interior PD targets from actual commands, never loaded next joint labels.
+
+    margin is a fraction of native finger range. It changes physical targets
+    explicitly; no projection is added to the deployed controller/clip metric.
+    """
+    if not 0 <= margin < .1:
+        raise ValueError('small declared native-range margin required')
+    ids = list(FINGERS)
+    lower = offset[ids] + scale[ids] * margin
+    upper = offset[ids] + scale[ids] * (1 - margin)
+    return torch.maximum(torch.minimum(applied_pd[..., ids], upper), lower)

@@ -165,3 +165,9 @@ teacher holding 上界的不同语义。一张空闲 GPU，新增总上限32分�
 短 PPO 微调；一张空闲 GPU，新上限34分钟/2GiB，协议见
 `src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-geometry-tracking.md`。
 不改变 Mission/Cm claim；GT future hand 仍是明确的执行上界，不代表高层预测已完成。
+
+2026-10-10 用户要求继续解决τ-only不稳。允许同一路线有界finger-command
+canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入真实未来q/
+物体参考或触觉输入。一张空闲GPU，新增上限25分钟/2GiB；协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-finger-canonicalization.md`。
+不改Mission/Cm claim或原保持/裁剪门槛，不新建分支、不扩展无界参数/seed sweep。

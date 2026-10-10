@@ -56,6 +56,8 @@ def main():
     p.add_argument("--geometry-reference", type=Path)
     p.add_argument("--compare-tau", action="store_true")
     p.add_argument("--oracle-checkpoint", type=Path)
+    p.add_argument("--tau-teacher-checkpoint", type=Path,
+                   help="compare frozen tau teacher instead of shifted tau, on its own live rows")
     args = p.parse_args()
     if args.tau_only:
         if args.geometry_reference is None:
@@ -68,6 +70,10 @@ def main():
         if args.mode != "evaluate" or args.oracle_checkpoint is None or args.compare_feedforward:
             raise ValueError("tau comparison requires independent owned oracle checkpoint")
         args.oracle_checkpoint = args.oracle_checkpoint.resolve()
+    if args.tau_teacher_checkpoint:
+        if not args.compare_tau:
+            raise ValueError('tau teacher comparison requires compare-tau evaluation')
+        args.tau_teacher_checkpoint = args.tau_teacher_checkpoint.resolve()
     if args.compare_feedforward and (args.mode != "evaluate" or args.wrist_feedforward):
         raise ValueError("comparison requires evaluation and selects feedforward per role")
     if args.checkpoint:
@@ -187,6 +193,8 @@ def main():
             frozen[str(path.resolve())] = sha(path)
     if args.oracle_checkpoint:
         frozen[str(args.oracle_checkpoint)] = sha(args.oracle_checkpoint)
+    if args.tau_teacher_checkpoint:
+        frozen[str(args.tau_teacher_checkpoint)] = sha(args.tau_teacher_checkpoint)
     output.mkdir(parents=True)
     started = time.monotonic()
     manifest = dict(schema=TAU_SCHEMA if args.tau_only else SCHEMA, status="RUNNING", run_id=output.name, task="consequence-evaluator",
@@ -195,6 +203,7 @@ def main():
                     wrist_feedforward=args.wrist_feedforward, compare_feedforward=args.compare_feedforward,
                     tau_only=args.tau_only, compare_tau=args.compare_tau,
                     geometry_reference=str(args.geometry_reference) if args.geometry_reference else None,
+                    tau_teacher_checkpoint=str(args.tau_teacher_checkpoint) if args.tau_teacher_checkpoint else None,
                     physical_gpu=args.gpu, gpu_before=before, budget_s=args.seconds,
                     input_sha256=frozen, reference_held=reference_held,
                     reference_contract="privileged measured teacher robot-q/hand/object reference; no teacher commanded actions",
@@ -267,6 +276,14 @@ def main():
                 else:
                     policy.load_state_dict(checkpoint["state_dict"], strict=True)
             oracle_policy = None
+            tau_teacher_policy = None
+            if args.tau_teacher_checkpoint:
+                payload = torch.load(args.tau_teacher_checkpoint, map_location=device, weights_only=False)
+                if payload['schema'] != TAU_SCHEMA or not payload['manifest']['tau_only']:
+                    raise ValueError('independent frozen tau-only teacher required')
+                tau_teacher_policy = TauTracker().to(device)
+                tau_teacher_policy.load_state_dict(payload['state_dict'], strict=True)
+                tau_teacher_policy.eval()
             if args.compare_tau:
                 oracle_checkpoint = torch.load(args.oracle_checkpoint, map_location=device, weights_only=False)
                 if oracle_checkpoint.get("schema") != SCHEMA or not oracle_checkpoint["manifest"].get("wrist_feedforward"):
@@ -428,7 +445,8 @@ def main():
                 support = TableSupport(ROOT / "third_party/DExplore/dexplore/data/assets", task.device)
                 quarter = n // 4
                 if args.compare_tau:
-                    roles = np.repeat(["oracle", "tau_nominal", "tracker", "tau_shifted"], quarter)
+                    roles = np.repeat(["oracle", "tau_nominal", "tracker",
+                                       "tau_frozen" if args.tau_teacher_checkpoint else "tau_shifted"], quarter)
                     roles = np.random.default_rng(args.seed).permutation(roles).tolist()
                 elif args.compare_feedforward:
                     roles = np.repeat(["teacher", "nominal", "tracker", "tracker_feedforward"], quarter)
@@ -441,6 +459,7 @@ def main():
                                         (args.wrist_feedforward and r != "teacher") for r in roles], device=device)
                 oracle_mask = torch.tensor([r == "oracle" for r in roles], device=device)
                 shifted_mask = torch.tensor([r == "tau_shifted" for r in roles], device=device)
+                frozen_tau_mask = torch.tensor([r == 'tau_frozen' for r in roles], device=device)
                 manifest["roles"] = roles
                 if args.compare_tau:
                     manifest["tau_shift_ticks"] = 271
@@ -488,6 +507,8 @@ def main():
                             student_x[oracle_mask | teacher_mask] = 0
                             arrays["student_features"].append(student_x.cpu().numpy().copy())
                         latent = policy.actor(x)
+                        if frozen_tau_mask.any():
+                            latent[frozen_tau_mask] = tau_teacher_policy.actor(x[frozen_tau_mask])
                         latent[teacher_mask | nominal_mask] = 0
                         base = next_q.clone()
                         base[ff_mask] = wrist_feedforward(next_q[ff_mask],

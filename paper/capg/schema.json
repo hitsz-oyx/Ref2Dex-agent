@@ -1,0 +1,7 @@
+{
+  "title": "Clipped Action Policy Gradient",
+  "arxiv_url": "https://arxiv.org/abs/1802.07564",
+  "code_url": "https://github.com/pfnet-research/capg",
+  "verification_date": "2026-10-10",
+  "notes": "This paper studies variance reduction by incorporating action bounds. Current tau finger canonicalization is not CAPG. Clipping is not established as the physical cause of drops; canonical commands need separate live evaluation."
+}

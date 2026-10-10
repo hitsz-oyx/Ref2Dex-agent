@@ -8,7 +8,8 @@ from consequence_evaluator.reference_motion import NATIVE_DOF_NAMES
 from consequence_evaluator.reference_tracking import ReferenceTracker, apply_coupling, features
 from consequence_evaluator.reset_kinematics import ResetKinematics
 from consequence_evaluator.tau_tracking import (
-    TauTracker, fit_geometry, tau_calibration, tau_features, tau_reward)
+    TauTracker, canonical_finger_targets, configure_finger_fit, fit_geometry,
+    tau_calibration, tau_features, tau_reward)
 
 
 def test_calibration_ignores_poisoned_future_joint_and_object_labels():
@@ -73,3 +74,30 @@ def test_tau_reward_prefers_holding_when_palm_moves_below_reset():
     fallen = obj.clone(); fallen[:, 2, 3] = .5
     nominal = tau_reward(reference, fallen, reference, torch.tensor([False]), .5, latent)
     assert held.item() > nominal.item() + .5
+
+
+def test_finger_fit_cannot_change_wrist_function_or_encoder():
+    policy = TauTracker()
+    torch.nn.init.normal_(policy.actor[-1].weight, std=.01)
+    state = {key: val.clone() for key, val in policy.state_dict().items()}
+    x = torch.randn(7, 897)
+    wrist = policy.actor(x)[:, :6].detach().clone()
+    optimizer = torch.optim.Adam(configure_finger_fit(policy), lr=.01)
+    for _ in range(3):
+        optimizer.zero_grad()
+        policy.actor(x)[:, 6:].square().sum().backward()
+        optimizer.step()
+    assert torch.equal(policy.actor(x)[:, :6], wrist)
+    assert not torch.equal(policy.actor[-1].weight[6:], state['actor.4.weight'][6:])
+    for key, val in policy.state_dict().items():
+        if key not in ('actor.4.weight', 'actor.4.bias'):
+            assert torch.equal(val, state[key])
+
+
+def test_command_canonicalization_retains_preload_and_discards_overdrive():
+    # Commanded PD target may exceed the loaded q. Preserve command, not q.
+    applied = torch.zeros(1, 18); applied[:, 15] = .55
+    scale = torch.ones(18); scale[15] = .55
+    target = canonical_finger_targets(applied, torch.zeros(18), scale)
+    assert abs(target[0, -1].item() - .54725) < 1e-6
+    assert target[0, -1] > .45  # illustrative loaded posture is not the label
