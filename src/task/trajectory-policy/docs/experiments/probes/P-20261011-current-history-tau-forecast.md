@@ -5,7 +5,7 @@ experiment_id: P-20261011-current-history-tau-forecast
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: PENDING
+git_commit: 28fe04d
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-history-to-tau
 probe_index_in_family: 10
