@@ -378,6 +378,7 @@
 | [P-20261011-goal-conditioned-ppo-execution](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md) | Frozen evaluation of the Stage 1 PPO actor | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-goal-conditioned-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo.md) | Stage 1 goal-conditioned PPO continuation | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-conditioned-residual-integration](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md) | Goal-conditioned residual policy through the shared executor | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-goal-conditioned-residual-offset](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md) | Fixed thumb preload offset on the residual student | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-regrind-executor-gt-generated](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md) | Same-executor GT/generated tau physical comparison | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-trajectory-policy-learning

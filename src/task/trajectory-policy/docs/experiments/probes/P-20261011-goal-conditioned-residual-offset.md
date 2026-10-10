@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-residual-offset
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: a72f84f
+git_commit: 028b5d4
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 8
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [315]
 decision_changed_if_positive: retain a fixed thumb preload adapter and design a separately bounded student/PPO follow-up
 decision_changed_if_negative: close the current goal-conditioned residual student route and require a fresh training-eligible teacher or new preload parameterization
-status: PLANNED
+status: UNPROMISING
 run_id: goal-conditioned-residual-offset-20261011-r1
 ---
 
@@ -45,7 +45,26 @@ and audit `outputs/trajectory-policy/goal-conditioned-residual-offset-audit-2026
 
 ## Results
 
-Pending execution.
+The completed run used GPU0, 16 environments and 542 controls. It reached
+`0/16` long-held terminal episodes and `12/16` hold45 episodes, with median
+maximum held duration `79` frames. The fixed offset reduced native clipping to
+`0.8187%` and therefore passed the clipping half of the gate, but the physical
+long-hold half (`>=12/16`) failed. All 16 controlled-placement `success` flags
+were false. The Probe is `UNPROMISING`; the result does not authorize PPO.
+
+The independent replay audit is `PASS`: feature error `2.86e-6`, raw-latent
+error `7.15e-7`, bounded-residual error `5.36e-7`, executor target error
+`3.58e-7`, command error `4.77e-7`, exact clipping flags, and exact PD
+reconstruction. Thus the negative result is a physical student-performance
+failure, not a residual-history, offset, executor, or logging mismatch.
+
+Decision Note: the question was whether the retained `thumb_pitch_minus`
+basin transfers from a frozen tau diagnostic to the goal-conditioned residual
+student. The two matched conditions were the `0/16` long-held result and the
+predeclared `<1%` clipping gate; only clipping passed. Root closes the current
+student route and does not launch PPO. A fresh `training_allowed=true` teacher
+rollout or a separately motivated preload parameterization would require a new
+experiment card.
 
 ## Limitations and stopping rule
 

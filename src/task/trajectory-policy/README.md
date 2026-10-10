@@ -108,9 +108,17 @@ residual 和共享 `GoalConditionedExecutor`，nominal q/velocity 来自 geometr
 当前 residual student 的 PPO continuation，不把失败归因于 executor wiring，也不启动
 REGRIND 原始规模。
 
+为检验冻结 tau basin 是否能迁移到 student，在同一执行器上加入
+`thumb_pitch_minus` 的 raw residual coordinate 11 固定偏置 `-0.05`。该 matched Probe
+达到 `12/16` hold45、clipping `0.8187%`，但 `0/16` long-held terminal，median held
+仅 `79`，完整 controlled-placement success 仍为 `0/16`；独立 feature/latent/executor/PD
+audit 通过。因此固定偏置没有通过预注册的 `12/16` physical gate，当前 residual student
+路线关闭，不启动 PPO 或继续扫描 offset。
+
 - [goal-conditioned BC](docs/experiments/probes/P-20261011-goal-conditioned-bc.md)
 - [BC physical execution](docs/experiments/probes/P-20261011-goal-conditioned-execution.md)
 - [goal-conditioned PPO](docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)
 - [PPO frozen execution](docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)
 - [goal-conditioned residual integration](docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md)
+- [goal-conditioned residual offset](docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md)
 - [fixed tau residual basin](../consequence-evaluator/docs/experiments/probes/P-20261011-tau-residual-basin.md)

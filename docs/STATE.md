@@ -229,9 +229,23 @@ compatibility 和变量遮蔽 setup failures，不计入科学波次。
 
 Decision Note：当前关键选择是是否在该 residual student 上继续 PPO。由于 physical gate
 同时未达到 12/16 long-held terminal 且 clipping 超阈值，root 关闭这条 student integration
-变体，不启动 PPO；保留 fixed residual basin 作为控制诊断，并等待明确
+变体，不启动 PPO；固定 residual basin 只作为控制诊断，并等待明确
 `training_allowed=true` 的 fresh teacher 或新的 preload 参数化。该结果仍不 refute
 measured-state residual control、REGRIND 思路或 H/PointWAM 路线。
+
+### Fixed residual offset on the residual student
+
+为检验 `thumb_pitch_minus` 是否能从冻结 tau basin 迁移到 residual student，完成了
+`P-20261011-goal-conditioned-residual-offset`：在同一 16-env、542-control、同一
+student 上只加入 raw residual coordinate 11 的 `-0.05` 固定偏置。结果为 `0/16`
+long-held terminal、`12/16` hold45、median held `79`，clipping `0.8187%`，且
+controlled-placement success 为 `0/16`，所以预注册的 `12/16 + <1%` physical gate
+只通过 clipping 半边，Probe 为 `UNPROMISING`。独立 audit 为 `PASS`（feature
+`2.86e-6`、latent `7.15e-7`、target `3.58e-7`、command `4.77e-7`、clipping
+exact、PD exact）。这关闭当前 residual student 的 PPO 和继续调固定 offset；不能把
+冻结 tau 的局部 basin 解释成 learned student 的可行性，也不 refute REGRIND-inspired
+measured-state residual 接口。证据卡片见
+[goal-conditioned residual offset](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md)。
 
 ### Decision Note: close direct-action Stage 1 variant
 
@@ -247,7 +261,8 @@ teacher rollout；不启动 REGRIND 4096-env/failure-bin training，也不进入
 [BC execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-execution.md)、
 [goal PPO](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)、
 [PPO execution](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md)、
-[goal-conditioned residual integration](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md)。
+[goal-conditioned residual integration](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md)、
+[goal-conditioned residual offset](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md)。
 
 ## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
 
