@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import pickle
+import subprocess
 import sys
 
 import numpy as np
@@ -146,8 +147,8 @@ def main():
             raise ValueError('outcome differs')
     for role in sorted(set(roles)):
         rows = [row for row in result['outcomes'] if row['role'] == role]
-        summary[role] = dict(episodes=4, long_held_terminal=sum(row['maximum_held_frames'] >= 433
-            and held[-1, row['env']] for row in rows), terminal=int(held[-1, roles == role].sum()),
+        summary[role] = dict(episodes=4, long_held_terminal=int(sum(row['maximum_held_frames'] >= 433
+            and held[-1, row['env']] for row in rows)), terminal=int(held[-1, roles == role].sum()),
             median_held=float(np.median([row['maximum_held_frames'] for row in rows])),
             clipping_rate=float(data['clipped'][:, roles == role].mean()))
     if summary != result['summary']:
@@ -164,7 +165,9 @@ def main():
     args.output.mkdir(parents=True)
     (args.output/'audit.json').write_text(json.dumps(audit, indent=2, allow_nan=False)+'\n')
     files = [args.evaluation/name for name in ('manifest.json', 'result.json', 'trajectory.npz', 'plans.npz')] + [Path(__file__)]
-    (args.output/'manifest.json').write_text(json.dumps(dict(status='COMPLETED', input_sha256={str(path.resolve()): sha(path) for path in files}), indent=2)+'\n')
+    (args.output/'manifest.json').write_text(json.dumps(dict(status='COMPLETED',
+        git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+        input_sha256={str(path.resolve()): sha(path) for path in files}), indent=2)+'\n')
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
