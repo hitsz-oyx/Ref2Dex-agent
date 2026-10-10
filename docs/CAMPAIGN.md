@@ -223,3 +223,8 @@ fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无�
 新增10GPUmin/512MiB，fit<=240s，启动几何screen通过才一次16env完整执行<=300s及audit<=60s。
 同数据/H/D/R/网络/optimizer，不加clock/phase策略输入；此次后停止BC权重搜索。
 协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md`。
+
+2026-10-10 trajectory-policy真实任务PPO Probe：单空闲GPU4，新增14GPUmin/512MiB，
+debug smoke<=120s，24update/16env/<=49152实际环境交互train<=480s，单次完整冻结比较<=180s，
+audit<=60s。固定D/R、H-only与真实当前几何奖励，无参考奖励/WM；协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md`。

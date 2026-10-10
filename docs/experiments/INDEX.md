@@ -366,6 +366,7 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-history-trajectory-actor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md) | Can measured history initialize a standalone trajectory actor? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-startup-balanced-actor](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md) | Does startup-balanced BC repair the independent actor initializer? | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261010-trajectory-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md) | Can real-task PPO improve the independent trajectory actor? | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-weak-temporal-value
 
