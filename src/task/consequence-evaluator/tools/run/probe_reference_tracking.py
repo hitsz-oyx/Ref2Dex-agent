@@ -17,6 +17,16 @@ ROOT = TASK.parents[2]
 sys.path[:0] = [str(TASK / "src"), str(ROOT), str(ROOT / "third_party/DExplore/dexplore"),
                str(ROOT / "src/task/cm-interaction-oracle/src")]
 
+# Fixed diagnostic offsets in the twelve-coordinate residual vector.  These
+# are chosen before a run and are never policy inputs or fitted from outcomes.
+BASIN_ROLES = ("baseline", "thumb_pitch_plus", "thumb_pitch_minus", "thumb_yaw_plus")
+BASIN_DELTAS = {
+    "baseline": (),
+    "thumb_pitch_plus": ((11, 0.05),),
+    "thumb_pitch_minus": ((11, -0.05),),
+    "thumb_yaw_plus": ((10, 0.05),),
+}
+
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -55,6 +65,8 @@ def main():
     p.add_argument("--compare-feedforward", action="store_true",
                    help="four randomized roles with the same frozen policy")
     p.add_argument("--tau-only", action="store_true")
+    p.add_argument("--residual-basin", action="store_true",
+                   help="evaluate one fixed GT-tau residual-basin diagnostic")
     p.add_argument("--geometry-reference", type=Path)
     p.add_argument("--compare-tau", action="store_true")
     p.add_argument("--oracle-checkpoint", type=Path)
@@ -91,6 +103,10 @@ def main():
         args.wrist_feedforward = True
     elif args.geometry_reference or args.compare_tau:
         raise ValueError("tau comparison/geometry requires tau-only mode")
+    if args.residual_basin and (
+            not args.tau_only or args.mode not in ("evaluate", "smoke") or args.envs != 16
+            or args.compare_tau or args.compare_feedforward or args.generated_proposal):
+        raise ValueError("residual basin requires a sixteen-env tau-only evaluation")
     if args.compare_tau:
         if args.mode != "evaluate" or args.oracle_checkpoint is None or args.compare_feedforward:
             raise ValueError("tau comparison requires independent owned oracle checkpoint")
@@ -271,6 +287,16 @@ def main():
             reference_contract="GT future hand upper bound; geometry from tau/reset/static URDF only; q/object labels only for independent comparison/evaluation",
             training_contract="on-policy PPO; weak tau hand tracking plus actual lift/force-pair holding, no palm-to-object target or future object reward; minus0.20*max native-command excess",
             claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
+    if args.residual_basin:
+        manifest.update(
+            residual_basin=True,
+            basin_roles=list(BASIN_ROLES),
+            basin_deltas={role: [[int(index), float(value)] for index, value in BASIN_DELTAS[role]]
+                          for role in BASIN_ROLES},
+            inference_contract=("live q/dq/hand/object/velocity, future11-point GT tau, tau-derived "
+                                "joint error, previous residual; fixed diagnostic thumb residual delta; "
+                                "no future q/object or tactile input"),
+            claim="single-motion fixed residual-basin diagnostic; no trained-policy or Cm claim")
     if args.finger_only:
         manifest['training_contract'] += '; frozen actor encoder/wrist/logstd, finger-only Gaussian sampling and PPO likelihood; critic trains; worst1% mean-policy interior bound penalty coefficient10'
     if args.generated_proposal:
@@ -554,6 +580,9 @@ def main():
                         ((['tau_gt','tau_online','displacement','displacement_handoff'] if args.interface_variant=='baseline'
                            else ['tau_gt','tau_online','tau_future_velocity','tau_intent'])
                          if args.generated_interface_diagnostic else ['tau_gt','persistence','displacement','scored']),quarter)).tolist()
+                elif args.residual_basin:
+                    roles = np.random.default_rng(args.seed).permutation(
+                        np.repeat(BASIN_ROLES, quarter)).tolist()
                 elif args.compare_tau:
                     roles = np.repeat(["oracle", "tau_nominal", "tracker",
                                        "tau_frozen" if args.tau_teacher_checkpoint else "tau_shifted"], quarter)
@@ -664,6 +693,12 @@ def main():
                             student_x[oracle_mask | teacher_mask] = 0
                             arrays["student_features"].append(student_x.cpu().numpy().copy())
                         latent = policy.actor(x)
+                        if args.residual_basin:
+                            delta = torch.zeros_like(latent)
+                            for env, role in enumerate(roles):
+                                for index, value in BASIN_DELTAS[role]:
+                                    delta[env, index] = value
+                            latent = latent + delta
                         if frozen_tau_mask.any():
                             latent[frozen_tau_mask] = tau_teacher_policy.actor(x[frozen_tau_mask])
                         latent[teacher_mask | nominal_mask] = 0
@@ -734,7 +769,24 @@ def main():
                                              mean_object_position_rmse_m=float(np.mean([r["object_position_rmse_m"] for r in rows])),
                                              loss_events=sum(r["intermediate_loss_events"] for r in rows),
                                              clipping_count=sum(r["clipping_count"] for r in rows))
-                    result = dict(status="UNCLEAR", outcomes=outcomes, summary=summary,
+                    if args.residual_basin:
+                        rows_by_role = {
+                            role: [row for row in outcomes if row["role"] == role]
+                            for role in BASIN_ROLES
+                        }
+                        def qualifies(rows):
+                            return sum(row["maximum_held_frames"] >= 433 and row["terminal_held"]
+                                       for row in rows) >= 3
+                        calibrated = qualifies(rows_by_role["baseline"])
+                        usable = any(
+                            qualifies(rows_by_role[role])
+                            and summary[role]["clipping_count"] / (summary[role]["episodes"] * 542) < .01
+                            for role in BASIN_ROLES if role != "baseline")
+                        status = ("PROMISING" if calibrated and usable else
+                                  ("UNPROMISING" if calibrated else "UNCLEAR"))
+                    else:
+                        status = "UNCLEAR"
+                    result = dict(status=status, outcomes=outcomes, summary=summary,
                                   reference_held=reference_held, claim=manifest["claim"])
             manifest.update(status="COMPLETED", elapsed_s=time.monotonic() - started,
                             torch_peak_allocated_bytes=torch.cuda.max_memory_allocated())
