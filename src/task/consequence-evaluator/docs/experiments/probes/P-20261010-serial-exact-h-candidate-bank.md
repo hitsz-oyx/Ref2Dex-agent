@@ -5,7 +5,7 @@ experiment_id: P-20261010-serial-exact-h-candidate-bank
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: d25f043
+git_commit: f6ab626
 claim_id: C3
 hypothesis_family: HF-trajectory-conditioned-evaluator
 probe_index_in_family: 8
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [421]
 decision_changed_if_positive: retain an exact-prefix candidate-bank route and fit a fresh offline selector/evaluator panel
 decision_changed_if_negative: close serial exact-H candidate collection and keep selector/PW/native integration frozen
-status: RUNNING
+status: UNPROMISING
 run_id: serial-exact-h-candidate-bank-20261010-r1
 ---
 
@@ -78,4 +78,20 @@ post-run panel audit will record all input and trajectory hashes.
 
 ## Result
 
-Pending the seven serial rollouts and the prefix/candidate audit.
+The seven serial runs completed with 543 state frames, 542 commands, finite
+values, and zero clipping.  The prefix gate passed bitwise for actor
+observation, hand, object pose/velocity, q/dq, action, and native PD target
+through tick 120.  All seven post-pulse hand trajectories were distinct, so
+the bounded pulses did reach the visible execution path.
+
+The label gate failed.  At query tick 120 every candidate had
+`current_pair=false`; the frozen U32 utility was `0.0` for all seven
+candidates, with zero strict pairs and zero informative label rows.  The
+post-pulse contact proxy also remained false for every candidate.  The audit
+therefore concludes `UNPROMISING` for this collection/query stage: it creates
+exact-prefix trajectory diversity but not a consequence-labelled candidate
+panel.  This is not evidence against the selector method or against a causal
+effect; it is a data/phase blocker.
+
+Audit output:
+`outputs/consequence-evaluator/serial-exact-h-candidate-bank-audit-20261010-r1/`.

@@ -187,6 +187,36 @@ selector contract，把下一预算优先用于 exact-H、非 tie 的 trajectory
 不启动 C2/PW/online/native。预计成本为未来一次数据采集与同一离线审计；若 exact-H
 重审不再保留 signal，则关闭 selector 路线。
 
+基于该 Decision，启动新的 exact-H serial candidate-bank Probe
+(`P-20261010-serial-exact-h-candidate-bank`)：复用已通过的单环境 deterministic prefix，
+以 seed421、envs=1 串行重放同一 reset/actor 前缀，在 tick120--151 仅对 finger6/8/10
+施加 `0、±.08` 六条候选脉冲。候选0为 zero control；每条运行保存 actor observation、
+hand/object/q/dq/action/PD target，要求 tick120 前跨候选 bitwise 一致。该 Probe 只判断
+是否能形成 exact-prefix、非塌缩 candidate bank，不宣称 hidden-PhysX fork 或因果 effect，
+也不提前接 C1/C2/PW/native；卡片和运行目录见
+[`P-20261010-serial-exact-h-candidate-bank`](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-serial-exact-h-candidate-bank.md)。
+
+该 Probe 已完成：7 条 serial rollout 全部 `COMPLETED`，543 个 state frames、542 个
+commands、无 clipping；actor observation、hand、object pose/velocity、q/dq、action 和
+native PD target 在 tick120 前跨候选均 bitwise 一致，且 7 条 post-pulse hand trajectories
+均不同。可是 query tick120 的 `current_pair=false`，冻结 U32 utility 七条全为 `0.0`，
+strict pairs=0、informative label rows=0；pulse 后 pair proxy 也没有恢复。因此该卡标为
+`UNPROMISING`：serial exact-prefix 的工程合同成立，但当前 reset/阶段没有产生可标注的
+consequence panel。这是 data/phase blocker，不是 selector 或因果 effect 的方法负结论；产物
+见 `outputs/consequence-evaluator/serial-exact-h-candidate-bank-audit-20261010-r1/`。
+
+### Decision Note — serial exact-H candidate bank (executed)
+
+当前需要决定的是：是否继续在同一 reset 上扩大 serial pulse bank，还是回到
+`ref7_2.md` 指定的 execution upper-bound。关键证据是 exact-prefix 和 7 条轨迹多样性均
+通过，但 query-time `current_pair=false`、U32 七行全 tie，扩大同一阶段的候选不会改变
+标签 blocker。root 选择关闭这条 exact-H serial candidate collection，优先按
+`ref7_2.md` 回到真实 GT future-hand trajectory 驱动的 full-action execution model：先审计
+现有 teacher-action packet/runner 的标签与执行合同，再做最小 GT-τ→full-action Probe；不
+启动 PointWorld、selector、C1/PW、online planner、MPC 或 native R。预计成本为一次只读
+代码/产物审计和一个 bounded execution Probe；若 teacher-action clone 已满足 held 90%
+合同，再进入 episode-split 结构化 rollout 与 R 训练，否则先修复数据/执行接口。
+
 随后按主线后续的 H→τ 链路做了一次独立的 bounded offline Probe
 (`P-20261010-history-to-tau`)：输入 history-preserving rollout 的
 `actor_observation[t]` 与当前 hand，目标为当前物体坐标系下的实测
