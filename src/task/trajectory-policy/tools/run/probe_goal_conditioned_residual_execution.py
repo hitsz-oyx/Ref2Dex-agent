@@ -77,9 +77,17 @@ def main():
     from oracle_y_utility import align_native_reference_tables
     import evaluate as native
     from env.tasks.base_dexplore_task import DexploreTask
+    from rl_games.torch_runner import Runner as RLRunner
 
     if torch.__version__ != '2.4.1+cu121':
         raise ValueError('pinned graspenv runtime required')
+    # The pinned rl_games package calls player_factory.create(..., config=...),
+    # while this checkout's historical DExplore evaluator registers its player
+    # builder with the older ``params`` keyword.  Keep the compatibility shim
+    # local to this Probe rather than mutating the external evaluator source.
+    def create_player_compat(runner):
+        return runner.player_factory.create(runner.algo_name, params=runner.config)
+    RLRunner.create_player = create_player_compat
     torch.set_num_threads(2)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -191,6 +199,7 @@ def main():
         gate=dict(long_held_terminal_min=12, clipping_rate_max=.01),
         claim='privileged nominal-reference residual-policy integration Probe; no deployable H or Cm claim')
     manifest['historical_native_source_drift'] = historical_native_drift
+    manifest['rl_games_compatibility'] = 'local Runner.create_player shim maps config to historical params builder'
     write(args.output / 'manifest.json', manifest)
     install_reset_patch()
     reset = DexploreTask._reset_ref_state_init
