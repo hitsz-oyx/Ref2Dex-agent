@@ -28,7 +28,9 @@ trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略
 首轮真实任务PPO `4da53a9` 已完成24updates/48992交互/264s，训练采样曾有
 486帧且终末持有，但最终冻结比较GT/dense各3/4，warm/PPO均0/4形成抓持。
 全H、概率/价值/奖励/GAE、随机c物理解码及实际执行链审计通过，局部UNPROMISING；
-尚未形成可用轨迹baseline或WM收益。下一步先用已有rollout隔离探索与更新尺度。consequence-evaluator后续实验按用户
+尚未形成可用轨迹baseline或WM收益。已有rollout显示短credit导致长held样本启动
+优势全负；固定快照lambda1回放把实际启动样本概率提升从1/7变5/7，KL受控。
+下一步一次只改lambda的固定预算任务Probe，未启动；不把offline改善当作抓取收益。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 

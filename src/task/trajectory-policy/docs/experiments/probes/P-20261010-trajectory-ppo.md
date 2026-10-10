@@ -177,6 +177,23 @@ GPU4,<=30s within remaining audit allocation,<=16MiB; files/statsCPU.
 If lambda1 raises successful-startup probability more consistently while KL<=.02,
 next fixed-budget task Probe changes lambda only; otherwise reassess before
 spending simulation. Allseven rows retained, no best-checkpoint/seed selection.
+Credit replay `12a0f7c`,2.206s GPU4 completed allfour snapshots/eight arms.
+Originallambda:0/7positive startup advantages,1/7actual sampled-action probability
+increases, meanlogprobchange-.08634. Lambda1:6/7positive advantages,5/7probability
+increases, meanlogprobchange+.19413. Every arm accepted4epochs, KL .00432--.00875;
+startup prefixXYZ mean changes only .00186--.00573mm. Shared-network gradients
+can override sample-local advantage sign: e.g. one lambda.95 negative-advantage
+sample's probability increased. FreshAdam limitation remains explicit.
+Artifacts `outputs/trajectory-policy/trajectory-credit-replay-20261010-r1/`.
+This is **PROMISING for the credit intervention**, not physical performance;
+original fixed-policy task Probe remains UNPROMISING. Total replay/audit runtime
+within60s allocation; source/checkpoints preserved, no simulation rerun.
+
+Root chooses one subsequent same-init/D/R/H/Gaussian/reward/budget/seed Probe
+changing only lambda.95->1. Success requires a frozen complete-task holding
+signal, not just credit signs; failure triggers examination of exploration and
+actual policy movement, no unbounded epochs/architecture sweep. New run/card and
+resource note must be fixed before launch; no further training started here.
 Keep Mission claim andoldTask pause; baseline andWM training benefit incomplete.
 
 ## Limitations / future evidence

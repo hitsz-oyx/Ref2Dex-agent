@@ -45,7 +45,10 @@ warm start；不以oracle数据/监督loss替代实际RL或Cm收益。
 持有，最终 `054a78c` 冻结完整比较GT/dense各3/4，warm/PPO均0/4且未形成held。
 全历史/采样概率/价值/bootstrap/任务奖励/GAE、随机c独立物理解码及R/native/终末
 结果审计通过；本轮局部UNPROMISING。初始同H最终XYZ mean变化仅.04964mm RMS，
-下一步用保留rollout/快照核对探索与更新尺度，先不追加训练或WM；核心目标仍未完成。
+已有rollout独立审查发现7条>=45held探索行启动normalized A均负；
+`12a0f7c` GPU固定快照credit回放只改lambda.95->1，启动样本实际概率提升由1/7
+变5/7，meanlogpchange-.086->+.194，KL<=.00876。机制线索PROMISING，未新物理收益；
+下一步只改lambda的有界任务Probe，尚未启动；核心目标与WM收益仍未完成。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
