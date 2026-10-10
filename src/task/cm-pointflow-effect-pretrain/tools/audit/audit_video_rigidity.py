@@ -16,8 +16,10 @@ from oakink_wm.video_points import sample_window
 
 
 def rigid_residual(source, target):
+    if len(source) < 8:
+        return None
     a, b = source - source.mean(0), target - target.mean(0)
-    if len(a) < 8 or np.linalg.svd(a, compute_uv=False)[1] < 1e-5:
+    if np.linalg.svd(a, compute_uv=False)[1] < 1e-5:
         return None
     u, _, vh = np.linalg.svd(a.T @ b)
     sign = np.ones(3)
