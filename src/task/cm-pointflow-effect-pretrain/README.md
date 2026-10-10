@@ -19,7 +19,13 @@ remains candidate_only after coordinate/validity/dual-hand/gap audits.
 See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
 for per-source moving-anchor metrics, exact artifacts and frozen identities.
 
-Current development branch: `main` (integrated from `consequence-evaluator`). Architecture:
+Current development branch: `cm-pointflow-effect-pretrain` (renamed from
+`agent/pointworld-ref8-fix` on 2026-10-10). Local worktree:
+`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-wt-cm-pointflow-effect-pretrain`.
+The former `Ref2Dex-agent-wt-ref8` path is retained as a compatibility symlink.
+See the [completed ref8 run and rename note](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
+
+Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus
 0.5m current geometry-center local objects; fixed right/left11semantic points

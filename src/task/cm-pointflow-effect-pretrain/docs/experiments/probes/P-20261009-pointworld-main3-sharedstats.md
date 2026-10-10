@@ -109,3 +109,29 @@ passes (`80 passed, 6 skipped`), and the real CUDA model-level
 batch-composition/gradient/checkpoint contract passes (`1 passed`). The
 `motion_floor` remains `0.1`, and no HOCap or static-loss ablation was run, so
 the Probe does not close the static-dynamics question.
+
+## 2026-10-10 branch and worktree rename Decision Note
+
+The user requested the development branch name `cm-pointflow-effect-pretrain`,
+a matching worktree directory, and publication to origin. The existing local
+and remote branch at `a620375771babbf358f29e6ac575628869f339d8` is an ancestor
+of the completed ref8 route at `8bd733c4ee011d94d6ac6f0ebf41f99c2bf5308d`;
+there is no divergent history. Training is complete and no training process
+uses the old worktree.
+
+Rename the previous local branch to
+`cm-pointflow-effect-pretrain-before-ref8-20261010` to preserve its identity,
+and rename `agent/pointworld-ref8-fix` to `cm-pointflow-effect-pretrain`. Move
+the worktree to
+`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-wt-cm-pointflow-effect-pretrain`, repair
+Git registration, and retain the old `Ref2Dex-agent-wt-ref8` path as a symlink
+for existing session paths and artifact references. Historical experiment
+branch/commit fields above continue to identify the actual training code.
+
+Cost is Git metadata and a small documentation commit, without training,
+artifact copying, or checkpoint rewriting. Verify unchanged artifact location,
+submodule identity, uncommitted reference content, and worktree registration,
+then push normally with the new upstream. Stop on a branch collision,
+unexpected worktree changes, or a non-fast-forward remote update; do not force
+push. Preserve the old remote branch. User authorization covers renaming and
+publication; no additional resource or permission expansion is required.
