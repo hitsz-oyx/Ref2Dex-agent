@@ -330,3 +330,36 @@ camera used only by the scorer, to separate radial/depth error from spatial-imag
 error without giving the predictor future pose. Retain the native main3 model;
 no large weak-video scale-up on the current pilot. Further confirmation and a
 positive matched transfer screen are required before claiming video helps Cm.
+
+
+## Common-camera reprojection diagnostic, fixed before execution
+
+Decision: are weak-world forecasting failures mostly radial while projected
+spatial motion is usable, or do observed-world extrapolation errors also affect
+image position? Same h8 view and exact history-selected object/endpoint masks.
+World-static, last-two world CV, H4 world OLS and the retained fixed500-step h8
+model predict world endpoints from observed inputs ONLY. Original endpoint camera
+and ray are used exclusively in scoring, not forecast inputs. Hash-check original
+point/camera sources and checkpoint/data/implementation/vendor identity.
+
+Report full-support world EPE, absolute radial/transverse errors in common future
+camera frame, radial squared-error-energy fraction and reprojection pixel EPE.
+Predictions behind endpoint camera retain world errors/counts; whole-clip projected
+EPE is null if any projection invalid, never silently discard poor predictions.
+Target invalid/nonfinite or non-rigid camera fails instead of changing support.
+
+Fixed diagnostic signal: both dev clips>=16labels, OLS radial energy>=70% AND
+projected error>=10% better than projected world-static => radial-concentrated
+history-error clue, prioritize label-side ray/reprojection objectives. Both OLS
+projected errors>=10% worse than projected static (or invalid) => reprojection-
+history-error clue, prioritize observed-history quality/motion modeling before
+more training. Otherwise UNCLEAR. Model decomposition reported alongside, no
+model-selection/gate rewrite from one loss. Neither signal establishes actual
+sensor depth/camera accuracy or causal physical motion.
+
+Pure geometry is CPU statistics; retained model inference uses one newly checked
+free GPU, <=90s total scoring, <=2GiB allocation, JSON<=1MiB. No updates, download,
+external work, branch/push or corpus promotion. Original metric model result
+remains UNPROMISING. Output common-camera-audit.json; source arrays cached once
+per clip to avoid repeated archive decompression. Stop on identity/resource/
+nonfinite/deadline violations; preserve original outputs.
