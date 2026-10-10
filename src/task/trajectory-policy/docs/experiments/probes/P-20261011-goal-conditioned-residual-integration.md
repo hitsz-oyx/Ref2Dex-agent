@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-residual-integration
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: a325c78
+git_commit: 89dc95e
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 7
@@ -69,7 +69,7 @@ goal-to-nominal planner.
 
 The output directories are
 `outputs/trajectory-policy/goal-conditioned-residual-bc-20261011-r1/` and
-`outputs/trajectory-policy/goal-conditioned-residual-integration-20261011-r1/`.
+`outputs/trajectory-policy/goal-conditioned-residual-integration-20261011-r3/`.
 Both must be fresh and retain GPU/ETA monitoring. An independent audit must
 replay the residual features, policy output, executor target/command/clipping,
 PD conversion, provenance hashes and outcome gate.
