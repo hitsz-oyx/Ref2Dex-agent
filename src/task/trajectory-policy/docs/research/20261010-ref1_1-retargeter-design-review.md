@@ -4,6 +4,11 @@
 论文事实单独见 [PointWAM 来源核对](20261010-ref1_1-pointwam-source-check.md)；
 本文是针对当前仓库的判断与待检验方案，不是新方法已经有效的结论。
 
+更新：用户询问已有研究后核对发现，旧Task已有actual τ+q/dq→native action的
+learned Transformer及v2 context版本。下表“当前实现”仅指最近实际运行的TauTracker，
+不能代表全仓库没有动作监督R。新Task是历史失败路线的有界后续，不是首次提出。
+具体旧实验/代码/结果与下一步去重见[已有研究核对](20261010-retargeter-prior-work.md)。
+
 ## 判断和当前证据
 
 建议把近期最小实验优先级转到实际手轨迹—动作监督的 learned retargeter，暂不

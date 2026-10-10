@@ -258,3 +258,8 @@ GPU4已有他人计算，选择GPU5（约130MiB初始化context、无活跃计�
 同actual PPO数据/split，比较privileged next q与next hand恢复腕姿的train-only线性标定。
 新增2GPUmin/16MiB，单idle GPU5、<=120s；不重训网络/采物理/读取teacher labels。
 协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md`。
+
+2026-10-10 learned R局部条件提取Decision Probe：同actual PPO数据/整wave split/
+1500update双臂算法，新增action query对齐位移与帧差分分支。单idle GPU5，
+新增8GPUmin/64MiB，fit<=360s/audit<=120s，无新物理/RL/WM或teacher数据。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-local-motion.md`。

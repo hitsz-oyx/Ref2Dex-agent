@@ -102,6 +102,13 @@ def main():
         result = json.loads((args.fit/'result.json').read_text())
         if fit['status'] != 'COMPLETED' or fit['train_samples'] != 66304 or fit['validation_samples'] != 16576:
             raise ValueError('fixed completed fit required')
+        if fit['schema'] == 'ref2dex.local-motion-retargeter.v1':
+            from trajectory_policy.local_retargeter import load_retargeter as local_loader
+            model_loader = local_loader
+        elif fit['schema'] == 'ref2dex.learned-native-retargeter.v1':
+            model_loader = load_retargeter
+        else:
+            raise ValueError('unknown fit schema')
         bound = dict(fit['input_sha256'])
         for name in ('manifest.json', 'result.json', 'validation_predictions.npz', 'monitor.jsonl', 'tau-best.pt', 'state_only-best.pt'):
             bound[str(args.fit/name)] = sha(args.fit/name)
@@ -158,11 +165,11 @@ def main():
             saved = {key: f[key] for key in f.files}
         for name in ('tau', 'state_only'):
             packet = torch.load(args.fit/(name+'-best.pt'), map_location='cpu', weights_only=False)
-            if sha(args.fit/(name+'-best.pt')) != fit['checkpoint_sha256'][name] or packet['use_tau'] != (name == 'tau') or packet['git_commit'] != fit['git_commit']:
+            if sha(args.fit/(name+'-best.pt')) != fit['checkpoint_sha256'][name] or packet['use_tau'] != (name == 'tau') or packet['git_commit'] != fit['git_commit'] or packet['schema'] != fit['schema']:
                 raise ValueError('checkpoint identity/control mode differs')
             if packet['input_sha256'] != fit['input_sha256']:
                 raise ValueError('checkpoint input binding differs')
-            models[name] = load_retargeter(packet, 'cuda').eval()
+            models[name] = model_loader(packet, 'cuda').eval()
             for prefix, raw, floor in zip(('state', 'tau', 'action'), arrays['train'], (.001, .001, .01)):
                 for suffix, expected in (('mean', raw.mean(axis=0, dtype=np.float64)), ('scale', np.maximum(raw.std(axis=0, dtype=np.float64), floor))):
                     check(name+'_'+prefix+'_'+suffix, packet['model'][prefix+'_'+suffix].numpy(), expected, 1e-5)
