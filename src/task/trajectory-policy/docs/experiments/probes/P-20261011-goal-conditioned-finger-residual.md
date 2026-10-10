@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [316]
 decision_changed_if_positive: retain analytic-wrist/finger-residual decomposition and design a separately bounded continuation
 decision_changed_if_negative: close this low-level student decomposition and proceed only with fresh teacher provenance or Stage 2 offline forecasting
-status: PLANNED
+status: UNPROMISING
 run_id: goal-conditioned-finger-residual-20261011-r2
 ---
 
@@ -60,7 +60,24 @@ the matching audit directory.
 
 ## Results
 
-Pending execution.
+The offline fit was `PROMISING` for a finite validation loss: 6,504 train rows,
+2,168 held-out rows, and best raw-finger latent L1 `0.0208398` after 1,300
+updates on GPU0. The valid physical rerun is
+`outputs/trajectory-policy/goal-conditioned-finger-residual-20261011-r2/`.
+The first physical attempt (`...-r1/`) stopped at control 384 because a
+transient GPU process guard fired before any trajectory was written; it is a
+setup failure and is not counted.
+
+The completed r2 run used 16 environments and 542 controls. It reached `0/16`
+long-held terminal episodes and `7/16` hold45 episodes, with median held `5`
+frames and clipping `13.5148%`. All controlled-placement success flags were
+false, so the physical gate failed and the Probe is `UNPROMISING`.
+
+The independent replay audit is `PASS`: feature error `2.86e-6`, latent error
+`5.96e-7`, bounded-residual error `5.36e-7`, executor target error `3.58e-7`,
+command error `4.77e-7`, exact clipping flags and exact PD reconstruction. The
+finger-only intervention therefore does not rescue the current residual
+student; no PPO or further wrist/finger mask sweep is authorized by this card.
 
 ## Limitations and stopping rule
 
