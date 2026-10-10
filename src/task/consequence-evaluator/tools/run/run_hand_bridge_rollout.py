@@ -47,6 +47,8 @@ def main():
     p.add_argument('--pulse-value',type=float,default=.08)
     p.add_argument('--paired-phase',choices=('contact','hold'),default='contact',
                    help='phase schedule for the paired-triplet diagnostic profile')
+    p.add_argument('--paired-base-profile',choices=('zero','random'),default='random',
+                   help='shared residual prefix for paired-triplet groups')
     a=p.parse_args();out=a.output.resolve();cfg=json.loads(a.inputs.read_text())
     if a.bridge is not None:a.bridge=a.bridge.resolve()
     if out.exists() or not is_within(out,ROOT/'outputs/consequence-evaluator') or not 1<=a.envs<=96 or not 1<=a.seconds<=900:
@@ -138,7 +140,8 @@ def main():
                                    branch_order=['control','plus','minus'],
                                    pulse_ticks=pulse_ticks.tolist(),
                                    finger_index=a.pulse_finger_index,
-                                   pulse_value=a.pulse_value)
+                                   pulse_value=a.pulse_value,
+                                   base_profile=a.paired_base_profile)
         manifest.update(structured_residual_schema='ref2dex.structured-residual.v1',
                         structured_profile=a.structured_profile,
                         structured_pulse=(dict(start_tick=a.pulse_start_tick,
@@ -176,7 +179,11 @@ def main():
                 # step. The reset FK keeps caches/observations coherent.
                 gen=np.random.default_rng(a.seed)
                 scale=np.array([.001]*3+[.005]*3+[.01]*12,np.float32)
-                noise=torch.from_numpy(gen.uniform(-1,1,(n,18)).astype('float32')*scale).to(device)
+                jitter_count = n // 3 if a.structured_profile == 'paired-triplet' else n
+                noise_np=gen.uniform(-1,1,(jitter_count,18)).astype('float32')*scale
+                if a.structured_profile == 'paired-triplet':
+                    noise_np=np.repeat(noise_np, 3, axis=0)
+                noise=torch.from_numpy(noise_np).to(device)
                 q=task._dof_pos.clone()+noise;velocity=task._dof_vel.clone()
                 task._set_env_state(ids,q,velocity)
                 task._reset_env_tensors(ids)
@@ -256,11 +263,15 @@ def main():
                         phase = phase_code(tick)
                         structured, structured_modes = sample_structured_residual(rng, n, phase)
                     elif a.structured_profile == 'paired-triplet' and tick % 16 == 0:
-                        phase = phase_code(tick)
-                        groups = n // 3
-                        base_structured, base_modes = sample_structured_residual(rng, groups, phase)
-                        structured = np.repeat(base_structured, 3, axis=0)
-                        structured_modes = np.repeat(base_modes, 3, axis=0)
+                        if a.paired_base_profile == 'random':
+                            phase = phase_code(tick)
+                            groups = n // 3
+                            base_structured, base_modes = sample_structured_residual(rng, groups, phase)
+                            structured = np.repeat(base_structured, 3, axis=0)
+                            structured_modes = np.repeat(base_modes, 3, axis=0)
+                        else:
+                            structured.fill(0.)
+                            structured_modes.fill(-1)
                     elif a.structured_profile == 'zero':
                         structured.fill(0.)
                         structured_modes.fill(-1)
