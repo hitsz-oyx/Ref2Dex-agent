@@ -447,6 +447,8 @@ def main():
                 arrays = {key: [] for key in ("object_pose", "hand_keypoints", "surface_gap", "support_gap",
                                               "table_footprint", "object_velocity", "pair", "action", "clipped",
                                               "dof_position", "dof_velocity", "latent", "pd_targets")}
+                if args.tau_only:
+                    arrays["student_features"] = []
                 applied_target = None
                 original_encode = task._action_to_pd_targets
                 def encode(action):
@@ -481,6 +483,10 @@ def main():
                                 measured["velocity"][shifted_mask],
                                 reference["hand_keypoints"][shifted_future].expand(int(shifted_mask.sum()), -1, -1, -1),
                                 next_q[shifted_mask], previous[shifted_mask])
+                        if args.tau_only:
+                            student_x = x.clone()
+                            student_x[oracle_mask | teacher_mask] = 0
+                            arrays["student_features"].append(student_x.cpu().numpy().copy())
                         latent = policy.actor(x)
                         latent[teacher_mask | nominal_mask] = 0
                         base = next_q.clone()
