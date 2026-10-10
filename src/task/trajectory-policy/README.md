@@ -95,6 +95,11 @@ nominal-goal + bounded-residual 物理路线；它恢复了短 hold，但严格 
 这只授权一次 matched robustness Probe；它仍不是 goal-conditioned policy 已解决或完整
 REGRIND 的结果。
 
+seed287 的一次 matched repeat 仍满足门槛：baseline `3/4`、`thumb_pitch_minus` `3/4`
+且 clipping `0.2306%`；yaw 从首轮 `0/4` 变为 `3/4`，显示 separate-live launch
+variation。两轮完整 controlled-placement success 都是 `0/16`，因此只保留
+`thumb_pitch_minus`，不把固定残差当作 Stage 1 已解决。
+
 - [goal-conditioned BC](docs/experiments/probes/P-20261011-goal-conditioned-bc.md)
 - [BC physical execution](docs/experiments/probes/P-20261011-goal-conditioned-execution.md)
 - [goal-conditioned PPO](docs/experiments/probes/P-20261011-goal-conditioned-ppo.md)

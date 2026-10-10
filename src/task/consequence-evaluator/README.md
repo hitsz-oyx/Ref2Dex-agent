@@ -21,6 +21,12 @@ clipping `0.1845%`；`thumb_yaw_plus` 为 `0/4`，完整 controlled-placement su
 `outputs/consequence-evaluator/ref2-tau-residual-basin-audit-20261011-r1/audit.json`，
 工具为 `tools/audit/audit_tau_residual_basin.py`。
 
+同一四臂协议的 seed287 repeat 仍通过预注册门槛：baseline `3/4`、
+`thumb_pitch_minus` `3/4` 且 clipping `0.2306%`；yaw 方向从首轮 `0/4` 变为本轮
+`3/4`，保留为 separate-live launch variation。重复的完整 controlled-placement
+success 仍为 `0/16`，所以只保留 pitch-minus 作为下一次 shared-executor integration
+Probe 的候选，不把它升级为完整任务结果。
+
 ## 2026-10-10 生成τ执行状态
 
 纯H四帧→十候选→选择→原生几何→冻结控制器的完整542步已完成（7840f92，107.71s）。

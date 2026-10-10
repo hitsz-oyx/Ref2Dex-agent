@@ -202,6 +202,14 @@ Decision Note：当前关键选择是直接把这个 fixed offset 接入 ref2 St
 REGRIND 原始 4096-env/failure-bin 配置、H→tau 或 PointWAM。该正向结果不能抵消 direct-action
 BC/PPO 的 `0/16` 物理失败，也不能替代新的 `training_allowed=true` teacher rollout。
 
+该 matched repeat 已按新卡完成（seed287，GPU2，65.7s）。baseline 为 `3/4`
+long-held terminal，`thumb_pitch_minus` 为 `3/4`、clipping `5/2168=0.2306%`，
+独立审计最大 feature replay error `1.91e-6`；因此重复仍通过预注册门槛。yaw 在这一
+launch 为 `3/4`，而首轮为 `0/4`，说明 separate-live 单 motion 结果存在 launch variation，
+不能把 yaw 方向写成稳定改善；两轮完整 `success` 都是 `0/16`。root 现在只保留
+`thumb_pitch_minus` 作为候选，下一步若继续只能做一次共享 executor 的 goal-conditioned
+integration Probe，仍不启动 REGRIND 原始训练规模或 H/PointWAM 高层路线。
+
 ### Decision Note: close direct-action Stage 1 variant
 
 当前问题是 direct native-action goal policy 是否继续投入。关键证据是 offline fit 很低但

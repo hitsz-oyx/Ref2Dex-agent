@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [287]
 decision_changed_if_positive: retain thumb_pitch_minus as a candidate bounded-residual adapter for one later goal-conditioned integration Probe
 decision_changed_if_negative: close the fixed thumb offset route and preserve only the retained canonicalized tau candidate
-status: PLANNED
+status: PROMISING
 run_id: ref2-tau-residual-basin-repeat-20261011-r1
 ---
 
@@ -48,7 +48,24 @@ Budget: one idle GPU, one eight-minute wall-time envelope, below 2 GiB output.
 
 ## Results
 
-Pending the single repeat and its independent contract audit.
+The repeat completed in
+`outputs/consequence-evaluator/ref2-tau-residual-basin-repeat-20261011-r1/`
+with GPU2, seed287, 16 environments, 542 controls, 65.7 s wall time and
+148,584,960 bytes peak Torch allocation. The baseline had `3/4` long-held
+terminal rows. `thumb_pitch_minus` had `3/4` long-held terminal rows with
+`5/2168 = 0.2306%` clipping, so it passed the predeclared repeat gate.
+`thumb_pitch_plus` had `3/4` terminal rows but `52.58%` clipping. The yaw
+direction happened to reach `3/4` terminal rows in this launch, compared with
+`0/4` in the first wave; this launch-to-launch variation is retained as a
+limitation rather than a positive yaw claim. All `16/16` rows again had
+`success=false` for complete controlled placement.
+
+The independent audit
+`outputs/consequence-evaluator/ref2-tau-residual-basin-repeat-audit-20261011-r1/audit.json`
+is `PASS`; delta, latent, applied-command and native-PD errors are zero and
+feature replay maximum is `1.91e-6`. The repeat is therefore `PROMISING` for
+retaining `thumb_pitch_minus` as a candidate bounded-residual adapter, still
+only on this single motion.
 
 ## Limitations / follow-up
 
