@@ -249,7 +249,7 @@ def main():
             nominal_velocity = reference_velocity(reference_q, dt)
             manifest['native_controller'].update(
                 residual_limits=list(RESIDUAL_LIMITS), control_dt=float(dt),
-                privileged_nominal_q_source=str((args.geometry / 'geometry.npz').resolve()),
+                privileged_nominal_q_source=str((args.geometry.resolve() / 'geometry.npz').resolve()),
                 privileged_nominal_velocity_contract='reference_velocity(geometry q, control_dt)')
             previous = torch.zeros(n, 12, device=device)
             capture = pd_target = None
