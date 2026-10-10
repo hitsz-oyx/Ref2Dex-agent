@@ -8,7 +8,11 @@ PD 参考缺少速度阻尼补偿的问题。使用原生 Kd/Kp 与参考 q 的�
 
 冻结旧策略、随机四角色完整542步对照中，保持中位数从285提高到479.5帧；
 13/16达到近teacher门槛并保持到末帧，零裁剪，原始预声明screen为`PROMISING`。
-仍有3/16不稳脱手；一次固定128update微调及完整final评估正在进行。
+随后固定128update微调、final完整评估：tracker保持中位483帧（同轮teacher484），
+31/32达到433帧且末帧仍持有，nominal+FF中位92帧；裁剪0.438%，强门槛通过。
+仍有1/32在tick451脱手自由落体。最终结果仍是单seed Probe，不是正式Validation。
+固定checkpoint与复现argv见 outputs/consequence-evaluator/
+ref7_3-tracker-feedforward-controller-20261010-r1/controller.json。
 这是measured teacher holding上界。原始motion有放置，不能把成功放置的末帧松手
 判为失败。尚有robot-q/object-future oracle，仍未完成11点τ→A，不宣称Cm收益。
 

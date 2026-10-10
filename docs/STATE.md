@@ -11,11 +11,17 @@ Kp200/Kd20，使用 next-frame q 的中心差分速度和真实 control dt，PD�
 剩余3/16仍有无支撑分离/自由落体。初始状态bitwise一致，原生PD重建误差0，独立
 reference/residual/feedforward command合同最大误差2.38e-7。
 
-已冻结一次128update微调与final checkpoint评估，正在执行，保留冻结修复控制器。
-训练r1因PPO概率ratio覆盖腕部gain ratio发生shape异常，代码91550b9修复；2update
-工程run已跨更新边界通过。原四臂评估不经过PPO循环，结果不受影响。
-仍是measured teacher holding reference上界；原始motion有放置，不能用末帧持有
-判断原始任务成功。尚未移除robot-q/object-future oracle，因此仍未完成τ→A。
+修复后seed274微调128updates/262144转移完成，固定最终checkpoint经过seed275
+完整542步评估：teacher median484；nominal+FF median92、近teacher4/16；
+trained tracker+FF median483、31/32达到433且末帧持有，32/32 hold45。
+评估裁剪76/17344=0.438%，原始强门槛 `PROMISING`，未降低标准。
+剩余env38在451脱离后无支撑自由下落；reference当时仍抓持，不是受控放置。
+训练r1的变量shadow defect已修复，原冻结对照不受影响；所有失败/成功运行均保留。
+固定checkpoint：outputs/consequence-evaluator/ref7_3-tracker-feedforward-train-20261010-r2/final.pt。
+控制配置、哈希与复现argv：outputs/consequence-evaluator/ref7_3-tracker-feedforward-controller-20261010-r1/controller.json。
+运行必须显式启用wrist FF，权重单独加载不等同于修复控制链。正式Validation、
+其余掉落、原始motion放置与τ retarget留作后续决策；当前robot-q/object-future
+oracle尚未移除，仍未完成τ→A。此次单seed结果不升级为全局claim或Cm收益。
 实验卡：[reference-tracking-feedforward](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking-feedforward.md)。
 
 ## 2026-10-10 ref7_3 reference-tracking control Probe

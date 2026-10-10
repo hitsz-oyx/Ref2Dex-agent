@@ -5,7 +5,7 @@ experiment_id: P-20261010-reference-tracking-feedforward
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 91af895
+git_commit: 91550b9
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 2
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [273, 274, 275]
 decision_changed_if_positive: retain velocity feedforward and fine-tune a fixed tracker before removing robot reference oracles
 decision_changed_if_negative: distinguish policy distribution change from missing contact learning before another bounded control experiment
-status: UNCLEAR
-run_id: ref7_3-tracker-feedforward-eval-20261010-r1
+status: PROMISING
+run_id: ref7_3-tracker-feedforward-train-20261010-r2
 ---
 
 # Wrist velocity feedforward for sustained reference holding
@@ -127,3 +127,58 @@ Independent command-contract audit reproduces the actual reference + residual
 reconstruction remains exactly0. Updated audit output suffix r2; remaining3/16
 terminal-lost intervention rows all show unsupported gravity-like separation.
 Drop details: outputs/consequence-evaluator/ref7_3-tracker-feedforward-drop-20261010-r1/.
+
+
+## Fixed final controller result
+
+Full training r2 (91550b9, seed274) completed128updates/262144transitions in
+453.20s. All13 learned tensors changed; training clipping1.398%. Native GPU
+memory stayed about7.3GiB, sampled utilization4–40%, CPU exchange/simulation
+bottleneck as before. Final checkpoint SHA256:
+20073fc165e13f00f4e8f9f7b7f25d8b686faa3d6e5b98dbc8a6a9e867fe16b5.
+No checkpoint selection or extra hyperparameter run.
+
+Final evaluation r1 (b995a42, seed275) completes542controls/543states in86.41s.
+Here nominal means the **same feedforward base with zero learned residual**.
+
+| Role | Rows | Median held | Hold>=45 | Hold>=433 | Terminal held | Clipped steps |
+| --- | --- | --- | --- | --- | --- | --- |
+| Owned teacher | 16 | 484 | 12 | 12 | 12 | 0 |
+| Reference + wrist FF, zero residual | 16 | 92 | 12 | 4 | 4 | 16 |
+| Fine-tuned reference + wrist FF tracker | 32 | 483 | 32 | 31 | 31 | 76 |
+
+Final predeclared screen is PROMISING:31/32 qualifying, median391frames above
+nominal,76/(542*32)=0.438%clip<1%, valid teacher container. Qualifying rows have
+no legacy intermediate loss. Native target reconstruction maxerror0, actual
+reference/residual/feedforward command contract maxerror2.38e-7, initial
+q/dq/hand/object bitwise aligned. This is not Validation or a general method
+claim. Final role layout is contiguous as predeclared; do not treat its31/32
+versus earlier randomized13/16 as a formal matched fine-tuning effect.
+
+Remaining env38 last held450, separates451: hand gap11.95mm, object/table
+clearance142.99mm, vz=-0.473m/s, pairfalse; separated451–454 gravity-like
+intervals451–453. The measured reference remains held with176.42mm table
+clearance. Thus one remaining failure is a true loss, not desired placing.
+Do not claim32/32 stability or original-task completion.
+
+Artifacts under outputs/consequence-evaluator/:
+- ref7_3-tracker-feedforward-train-20261010-r2/final.pt
+- ref7_3-tracker-feedforward-final-eval-20261010-r1/ (trajectory, manifests, results)
+- ref7_3-tracker-feedforward-final-audit-20261010-r1/ (audit.json, behavior.png)
+- ref7_3-tracker-feedforward-final-drop-20261010-r1/ (remaining loss diagnostic)
+- ref7_3-tracker-feedforward-controller-20261010-r1/controller.json (checkpoint,
+  reference hashes, explicit feedforward flag and complete reproduction argv).
+
+The saved policy is only one component: evaluation must enable the declared
+wrist feedforward, which is now enforced when loading a feedforward-trained
+checkpoint. Loading weights without this base is a different controller.
+Total actual GPU work including failed training/smoke/evaluations is about11
+minutes, artifacts under32MiB, within32minutes/2GiB. Preserve all originals.
+
+Decision after result: retain corrected control and the fixed fine-tuned
+checkpoint. Measured-robot reference execution is now PROMISING at the original
+strong holding gate. Next meaningful route step is replacing robot-q oracle
+with11-point tau retargeting, while defining raw-motion controlled-placement
+reference/metrics coherently. No additional contact sweep or Validation under
+this card. Future evidence: remaining failure, randomized matched repeats,
+held-out motions/seeds, raw placing and removal of robot/object-future oracles.
