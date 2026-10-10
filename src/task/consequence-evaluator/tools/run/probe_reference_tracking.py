@@ -63,6 +63,7 @@ def main():
     p.add_argument('--generated-proposal', type=Path)
     p.add_argument('--generated-evaluator', type=Path)
     p.add_argument('--projection-iterations',type=int,choices=(60,300),default=300)
+    p.add_argument('--positions-only',action='store_true',help='geometric fit uses equivalent XYZ-only FK')
     args = p.parse_args()
     if args.generated_proposal or args.generated_evaluator:
         if (not args.generated_proposal or not args.generated_evaluator or not args.tau_only
@@ -267,6 +268,7 @@ def main():
             reference_contract='GT hand/geometry only independent upper-bound role and evaluation; generated roles use their own live current q/hand/object',
             training_contract='No training; all proposal/evaluator/controller weights frozen',replan_interval=8,
             projection_iterations=args.projection_iterations,
+            positions_only=args.positions_only,
             history_bootstrap='Until four states exist, repeat the earliest measured state; no negative-time reference',
             claim='Single-motion generated-tau execution Probe; separate live roles, not same-state causal utility or Cm benefit')
     write(output / "manifest.json", manifest)
@@ -328,7 +330,7 @@ def main():
                 from consequence_evaluator.generated_tau import GeneratedTau
                 generator=GeneratedTau(torch.load(args.generated_proposal/'displacement-best.pt',map_location='cpu',weights_only=False),
                     torch.load(args.generated_evaluator/'T.pt',map_location='cpu',weights_only=False),
-                    generated_bank,urdf,device,control_dt,args.projection_iterations)
+                    generated_bank,urdf,device,control_dt,args.projection_iterations,args.positions_only)
             oracle_policy = None
             tau_teacher_policy = None
             if args.tau_teacher_checkpoint:

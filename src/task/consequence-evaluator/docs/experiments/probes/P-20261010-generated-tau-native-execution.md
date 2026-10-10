@@ -121,8 +121,6 @@ within remaining declared resources. If that cannot fit, record a new bounded
 Decision Note; no unbounded retry/sweep. Goal still covers the full ref8 chain
 and eventual Mission utility, not merely an engineering smoke.
 
-## Limitations / future evidence
-
 ## Continued engineering Decision Note
 
 Previous goal turn made progress: actual pure-H native wiring was independently
@@ -139,6 +137,13 @@ same .5mm degradation/1mm fitted-point/5s gate, plus exact FK/gradient test.
 If original300step is fast and equivalent, execute one full r2 <=600s on idleGPU2.
 If not, diagnose the next specific source without another full expensive launch.
 No external authorization boundary is changed.
+
+Original300step replay at cb81166 reproduces15.35s and bitwise-identical saved
+hand points: geometry passes,5s latency gate fails. Add XYZ-only FK without
+pruning/topology changes; a synthetic CPU regression requires exact positions
+and matching joint gradient to full state FK (nonzero root/joint velocities).
+Then repeat all original300steps on the same saved12queries. Keep all iteration,
+initialization, optimizer/bounds/selection and static URDF contracts unchanged.
 
 ## Limitations / future evidence
 

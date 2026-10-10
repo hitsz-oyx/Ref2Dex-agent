@@ -65,6 +65,32 @@ class ResetKinematics:
             raise ValueError('native actor/URDF reset topology mismatch')
         self.root = roots.pop()
 
+    def positions(self, q, root):
+        """Same link origins as states(), without unused velocity computation.
+
+        Keep the full topology and identical quaternion/translation arithmetic;
+        the geometric optimizer needs XYZ and its joint gradient only.
+        """
+        torch, quat = self.torch, self.quat
+        if q.ndim != 2 or q.shape[1] != len(self.dof_names) or root.shape != (len(q),13):
+            raise ValueError('position q/root shapes mismatch')
+        batch=len(q); positions={self.root:(root[:,:3],root[:,3:7])}
+        def visit(parent):
+            pp,pr=positions[parent]
+            for child,kind,position,rotation,direction,index in self.children.get(parent,()):
+                jr=quat.quat_mul(pr,rotation.expand(batch,4))
+                axis=direction.expand(batch,3)
+                delta=quat.quat_rotate(pr,position.expand(batch,3))
+                cr=jr
+                if kind=='prismatic':
+                    delta=delta+quat.quat_rotate(jr,axis)*q[:,index,None]
+                elif kind in ('revolute','continuous'):
+                    cr=quat.quat_mul(jr,quat.quat_from_angle_axis(q[:,index],axis))
+                positions[child]=(pp+delta,cr)
+                visit(child)
+        visit(self.root)
+        return torch.stack([positions[name][0] for name in self.body_names],dim=1)
+
     def states(self, q, qdot, root):
         torch, quat = self.torch, self.quat
         if q.shape != qdot.shape or q.shape[-1] != len(self.dof_names):

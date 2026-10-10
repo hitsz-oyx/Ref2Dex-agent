@@ -19,6 +19,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,required=True)
     p.add_argument('--iterations',type=int,choices=(60,300),default=60)
+    p.add_argument('--positions-only',action='store_true')
     a=p.parse_args();a.output=a.output.resolve()
     if a.output.exists() or ROOT/'outputs/consequence-evaluator' not in a.output.parents:
         raise ValueError('fresh bounded output required')
@@ -36,7 +37,8 @@ def main():
         hand=s['hand_keypoints'][0,ids];q=s['dof_position'][0,ids];pose=s['object_pose'][0,ids]
     world=np.einsum('nij,ntpj->ntpi',pose[:,:3,:3],raw)+pose[:,None,None,:3,3]
     urdf=ROOT/'third_party/DExplore/dexplore/data/assets/inspire_hand_new/inspire_hand_right.urdf'
-    fit=project_tau(hand,world,q,urdf,'cuda:0',iterations=a.iterations,deadline_s=60)
+    fit=project_tau(hand,world,q,urdf,'cuda:0',iterations=a.iterations,deadline_s=60,
+                    positions_only=a.positions_only)
     fresh=fit['points'][:,1:]
     rms=np.sqrt(np.mean((fresh-world)**2,(1,2,3)))*1000
     prior=np.sqrt(np.mean((old-world)**2,(1,2,3)))*1000
@@ -44,9 +46,11 @@ def main():
     # Engineering convergence/latency gate, fixed before observing outcomes.
     passed=bool(np.max(rms-prior)<=.5 and np.max(delta)<=1 and fit['elapsed_s']<=5)
     files=[a.smoke/'manifest.json',a.smoke/'plans.npz',a.smoke/'trajectory.npz',urdf,
-           Path(__file__).resolve(),TASK/'src/consequence_evaluator/tau_projection.py']
+           Path(__file__).resolve(),TASK/'src/consequence_evaluator/tau_projection.py',
+           TASK/'src/consequence_evaluator/reset_kinematics.py',TASK/'src/consequence_evaluator/fixed_wrist_decoder.py']
     a.output.mkdir(parents=True)
-    result=dict(status='PASS' if passed else 'FAIL',iterations=a.iterations,projection_s=fit['elapsed_s'],
+    result=dict(status='PASS' if passed else 'FAIL',iterations=a.iterations,positions_only=a.positions_only,
+        projection_s=fit['elapsed_s'],
         original_projection_s=old_s,coordinate_rmse_mm=rms.tolist(),original_rmse_mm=prior.tolist(),
         delta_to300_mm=delta.tolist(),max_degradation_mm=float(np.max(rms-prior)),
         gpu=gpu_state(a.gpu),claim='Engineering convergence/latency only; no behavior evidence')

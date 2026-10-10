@@ -12,7 +12,7 @@ from .tau_tracking import FINGERS, FINGER_LIMITS
 
 
 def project_tau(current_hand, future_hand, current_q, urdf, device, iterations=300,
-                deadline_s=480, monitor=None):
+                deadline_s=480, monitor=None, positions_only=False):
     """No future q/action/object/force labels; current q calibrates each query.
 
     Same two-start frame-local coupled finger fit as the existing tau tracker.
@@ -49,7 +49,7 @@ def project_tau(current_hand, future_hand, current_q, urdf, device, iterations=3
 
     def points(v):
         q = coupled(v)
-        return fk.states(q, torch.zeros_like(q), root)[:, :, :3]
+        return fk.positions(q,root) if positions_only else fk.states(q, torch.zeros_like(q), root)[:, :, :3]
 
     with torch.no_grad():
         best_error = (points(variable)-target).square().sum((1, 2)); best = variable.detach().clone()
@@ -76,6 +76,7 @@ def project_tau(current_hand, future_hand, current_q, urdf, device, iterations=3
         q = coupled(best)[ids].reshape(n, length, 18)
         q[:, 0] = torch.tensor(reset, device=device)
         flat = q.reshape(-1, 18)
-        fitted = fk.states(flat, torch.zeros_like(flat), root[:count])[:, :, :3].reshape(n, length, 11, 3)
+        fitted = (fk.positions(flat,root[:count]) if positions_only else
+                  fk.states(flat, torch.zeros_like(flat), root[:count])[:, :, :3]).reshape(n, length, 11, 3)
     return dict(q=q.cpu().numpy(), points=fitted.cpu().numpy(),
                 elapsed_s=time.monotonic()-started, chosen_start=choice.cpu().numpy().reshape(n, length))
