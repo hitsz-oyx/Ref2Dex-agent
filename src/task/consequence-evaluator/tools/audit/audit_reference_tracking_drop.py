@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--inputs", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--role", default="tracker")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[5]
     output = args.output.resolve()
@@ -57,9 +58,11 @@ def main():
     source_held = (source["surface_gap"][:, 0] <= .01) & ~source_supported & (source_lift >= .03)
     rows = []
     for outcome in result["outcomes"]:
-        if outcome["role"] != "tracker":
+        if outcome["role"] != args.role:
             continue
         env = outcome["env"]
+        if held[-1, env] or not held[:, env].any():
+            continue
         last = int(np.flatnonzero(held[:, env])[-1])
         release = last + 1
         indices = np.arange(release, min(last + 12, 543))
@@ -80,7 +83,9 @@ def main():
     if any(not row["reference_held_at_separation"] for row in rows):
         raise ValueError("the teacher-reference holding interpretation changed")
     diagnostic = dict(schema="ref2dex.reference-tracker-drop-diagnostic.v1",
-                      control_dt_s=dt,
+                      control_dt_s=dt, role=args.role,
+                      episodes=sum(row["role"] == args.role for row in result["outcomes"]),
+                      terminal_held_count=sum(bool(held[-1, row["env"]]) for row in result["outcomes"] if row["role"] == args.role),
                       raw_motion=dict(initial_z_m=float(raw[0, 200]), final_z_m=float(raw[-1, 200]),
                                       final_lift_m=float(raw_lift[-1]), peak_lift_m=float(raw_lift.max()),
                                       final_contact=bool(raw_contact[-1]),
@@ -91,8 +96,8 @@ def main():
                       unsupported_separation_count=sum(bool(row["unsupported_separated_ticks"]) for row in rows),
                       gravity_like_drop_count=sum(bool(row["gravity_like_intervals"]) for row in rows),
                       reference_held_at_all_separations=True, tracker_rows=rows,
-                      interpretation="Raw motion includes placing/releasing. The learned tracker instead follows measured teacher reference that stays airborne. 31/32 tracker rows show detached unsupported gravity-like descent; this is not successful controlled placement.",
-                      limitation="One near-table separation has no detached airborne interval. This diagnoses recorded behavior, not its exact policy/contact failure cause or original-task success.",
+                      interpretation="Raw motion includes placing/releasing; this measured teacher reference stays airborne. Remaining lost terminal holds are diagnosed individually; unsupported detached gravity-like descent is not controlled placement.",
+                      limitation="Rows without terminal loss, or without any held interval, are excluded from separation details. This diagnoses recorded behavior, not its exact policy/contact failure cause or original-task success.",
                       input_sha256={str(path.resolve()): sha(path) for path in (
                           args.inputs, args.reference, motion, Path(inputs["cfg_env"]),
                           args.evaluation / "trajectory.npz", args.evaluation / "result.json", Path(__file__))})
@@ -102,11 +107,11 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     ticks = np.arange(543)
-    env = 32
+    env = rows[0]["env"] if rows else next(row["env"] for row in result["outcomes"] if row["role"] == args.role)
     fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
     axes[0].plot(ticks, raw_lift, label="Raw motion")
     axes[0].plot(ticks, source_lift, label="Teacher reference")
-    axes[0].plot(ticks, z[:, env] - z[0, env], label="Tracker env32")
+    axes[0].plot(ticks, z[:, env] - z[0, env], label="{} env{}".format(args.role, env))
     axes[0].set_ylabel("Lift relative to reset (m)"); axes[0].legend(ncol=3)
     axes[1].plot(ticks, data["surface_gap"][:, env], label="Hand-object gap")
     axes[1].plot(ticks, data["support_gap"][:, env], label="Object-table gap")
@@ -117,7 +122,8 @@ def main():
     axes[2].set_ylabel("Vertical velocity (m/s)"); axes[2].set_xlabel("Native control tick")
     axes[2].legend(ncol=2)
     for axis in axes:
-        axis.axvline(352, linestyle=":", color="red", linewidth=1)
+        if rows:
+            axis.axvline(rows[0]["separation_tick"], linestyle=":", color="red", linewidth=1)
         axis.grid(alpha=.2)
     fig.suptitle("Raw task placing vs teacher-reference holding and tracker separation")
     fig.tight_layout(); fig.savefig(output / "reference-vs-drop.png", dpi=150); plt.close(fig)

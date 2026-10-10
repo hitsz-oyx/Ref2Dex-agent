@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 wrist velocity feedforward 修复
+
+冻结轨迹核算发现 position-only PD target 缺少参考速度阻尼补偿。原生腕部
+Kp200/Kd20，使用 next-frame q 的中心差分速度和真实 control dt，PD参考加入
+0.1*dq_ref；不使用 teacher command 标签，仅补偿腕部6维，手指仍由闭环残差处理。
+固定旧策略的随机角色四臂完整542步对照：old tracker held中位285帧、近teacher
+0/16、末帧0/16；tracker+FF中位479.5帧、近teacher13/16、末帧13/16、零裁剪。
+原始预声明门槛通过，结论仅为此单motion干预 `PROMISING`，不是正式因果Validation。
+剩余3/16仍有无支撑分离/自由落体。初始状态bitwise一致，原生PD重建误差0，独立
+reference/residual/feedforward command合同最大误差2.38e-7。
+
+已冻结一次128update微调与final checkpoint评估，正在执行，保留冻结修复控制器。
+训练r1因PPO概率ratio覆盖腕部gain ratio发生shape异常，代码91550b9修复；2update
+工程run已跨更新边界通过。原四臂评估不经过PPO循环，结果不受影响。
+仍是measured teacher holding reference上界；原始motion有放置，不能用末帧持有
+判断原始任务成功。尚未移除robot-q/object-future oracle，因此仍未完成τ→A。
+实验卡：[reference-tracking-feedforward](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking-feedforward.md)。
+
 ## 2026-10-10 ref7_3 reference-tracking control Probe
 
 已实现并训练原生 Inspire/Gym 小残差 PPO：实测 robot-q/11点手/object reference

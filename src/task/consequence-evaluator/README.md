@@ -2,17 +2,23 @@
 
 ## 2026-10-10 reference-tracking 当前进展
 
-按用户 [ref7_3](docs/user/ref/ref7_3.md)的路线讨论完成有界残差PPO Probe，保留
-原生Inspire/Gym。tracker使用实测robot-q/手/object参考与live state，输出PD目标残差；
-尚有robot-q/object-future oracle，不是完成的11点τ→A。
-完整542步评估中nominal/训练后tracker/teacher的保持中位数为0/286.5/483帧。
-tracker32/32有短时稳定保持，但均未达到近teacher门槛，末帧仍持有为0/32。
-预声明强gate为`UNPROMISING`，实现保留；下一步研究后段接触保持，再进入τ retarget。
-单seed/单动作/固定角色布局，不宣称方法无效、正式路线优越性或Cm收益。
+按用户 [ref7_3](docs/user/ref/ref7_3.md)路线，已找到并修复腕部 position-only
+PD 参考缺少速度阻尼补偿的问题。使用原生 Kd/Kp 与参考 q 的中心差分速度，
+仅补偿 wrist6维，保持手指反馈与 native full-command adapter。
 
-协议与结果：[reference-tracking Probe](docs/experiments/probes/P-20261010-reference-tracking.md)。
+冻结旧策略、随机四角色完整542步对照中，保持中位数从285提高到479.5帧；
+13/16达到近teacher门槛并保持到末帧，零裁剪，原始预声明screen为`PROMISING`。
+仍有3/16不稳脱手；一次固定128update微调及完整final评估正在进行。
+这是measured teacher holding上界。原始motion有放置，不能把成功放置的末帧松手
+判为失败。尚有robot-q/object-future oracle，仍未完成11点τ→A，不宣称Cm收益。
+
+协议与结果：[feedforward修复](docs/experiments/probes/P-20261010-reference-tracking-feedforward.md)、
+[旧reference-tracking Probe](docs/experiments/probes/P-20261010-reference-tracking.md)。
 工具：[训练与评估](tools/run/probe_reference_tracking.py)、
-[行为与原生PD审计](tools/audit/audit_reference_tracking.py)。
+[行为与原生PD审计](tools/audit/audit_reference_tracking.py)、
+[掉落与放置语义审计](tools/audit/audit_reference_tracking_drop.py)。
+运行修复控制器必须显式传`--wrist-feedforward`；旧checkpoint的权重本身不包含
+这个解析前馈，不能把单独加载旧权重等同于加载修复后的控制链。
 
 ## 2026-10-09 物体系GT诊断（历史状态）
 

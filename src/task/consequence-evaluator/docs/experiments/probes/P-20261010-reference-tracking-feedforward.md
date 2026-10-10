@@ -117,3 +117,13 @@ checkpoint was produced; preserve FAILED manifest, initial checkpoint and log.
 The frozen evaluation has no PPO loop and remains unaffected. Fix uses an
 explicit wrist_gain_ratio identifier. A two-update engineering run must cross
 the PPO boundary before retrying the same predeclared full protocol.
+
+Engineering training smoke (91550b9, debug seed42,8env,2updates) completed
+in14.48s, with changed parameters and finite outputs; crosses the formerly
+failing PPO update boundary. This is not a scientific sample. Full train r2
+retries unchanged seed274/64env/128updates into a fresh output.
+Independent command-contract audit reproduces the actual reference + residual
++ wrist feedforward before native encoding to2.38e-7max error; native target
+reconstruction remains exactly0. Updated audit output suffix r2; remaining3/16
+terminal-lost intervention rows all show unsupported gravity-like separation.
+Drop details: outputs/consequence-evaluator/ref7_3-tracker-feedforward-drop-20261010-r1/.

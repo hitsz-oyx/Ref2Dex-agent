@@ -68,6 +68,27 @@ def main():
     if target_error > 1e-6:
         raise ValueError("native PD target/action reconstruction mismatch")
     rows = result["outcomes"]
+    roles = np.asarray([row["role"] for row in rows])
+    next_q = np.broadcast_to(reference["dof_position"][1:, 0, None], (542, n, 18)).copy()
+    ff_rows = (roles == "tracker_feedforward") | (evaluation.get("wrist_feedforward", False) & (roles != "teacher"))
+    if ff_rows.any():
+        contract = evaluation["wrist_feedforward_contract"]
+        delta = np.diff(reference["dof_position"][:, 0], axis=0)
+        delta[:, 3:6] = np.arctan2(np.sin(delta[:, 3:6]), np.cos(delta[:, 3:6]))
+        velocity = np.concatenate((delta[:1], (delta[:-1] + delta[1:]) / 2, delta[-1:])) / contract["control_dt"]
+        gain_ratio = np.asarray(contract["damping"]) / np.asarray(contract["stiffness"])
+        next_q[:, ff_rows, :6] += (velocity[1:, None, :6] * gain_ratio).astype(np.float32)
+    active = [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 15]
+    limits = np.asarray([.06, .06, .06, .6, .6, .6, .5, .5, .5, .5, .35, .35], np.float32)
+    next_q[:, :, active] += np.tanh(data["latent"]) * limits
+    expected = (next_q - offset) / scale
+    expected[..., :6] = (next_q[..., :6] - data["dof_position"][:-1, :, :6] - offset[:6]) / scale[:6]
+    expected[..., 6:] = expected[..., 6:] * 2 - 1
+    expected[..., [7, 9, 11, 13, 16, 17]] = 0
+    expected = np.clip(expected, -1, 1)
+    command_error = float(np.abs(expected[:, roles != "teacher"] - data["action"][:, roles != "teacher"]).max())
+    if command_error > 2e-6:
+        raise ValueError("declared reference/residual/feedforward did not enter native command")
     teacher = [row for row in rows if row["role"] == "teacher"]
     tracker = [row for row in rows if row["role"] == args.tracker_role]
     nominal = [row for row in rows if row["role"] == args.control_role]
@@ -93,6 +114,7 @@ def main():
                  qualifying_tracker_count=len(near_teacher),
                  median_tracker_advantage_frames=median_advantage, tracker_clipping_rate=clipping_rate,
                  exact_initial=exact_initial, maximum_pd_reconstruction_error=target_error,
+                 maximum_control_contract_error=command_error,
                  terminal_held=terminal_held, summary=result["summary"],
                  interpretation="Transient holding benefit can coexist with failure of the near-teacher screen. No tau-only completion or method refutation.",
                  loss_metric_caveat="Intermediate loss counts exclude supported states; zero counts do not imply no slip/drop back to table.",
