@@ -208,3 +208,75 @@ class GoalConditionedPolicy(nn.Module):
         if not torch.isfinite(output).all():
             raise FloatingPointError("nonfinite goal policy output")
         return output
+
+
+class GoalConditionedActor(nn.Module):
+    """Gaussian latent actor used by the bounded PPO continuation.
+
+    The mean network has the same parameterization as ``GoalConditionedPolicy``;
+    a BC checkpoint can therefore initialize its weights exactly.  PPO samples
+    an unconstrained latent and applies ``tanh`` only at the native-action
+    boundary.  Log probabilities are evaluated on active latent coordinates,
+    which keeps the coupled passive coordinates out of the policy objective.
+    """
+
+    schema = "ref2dex.goal-conditioned-low-level-ppo.v1"
+
+    def __init__(self, width: int = 256, log_std: float = -2.3025851):
+        super().__init__()
+        if not isinstance(width, int) or width < 16:
+            raise ValueError("actor width must be an integer >= 16")
+        self.network = nn.Sequential(
+            nn.Linear(INPUT_DIM, width), nn.Tanh(),
+            nn.Linear(width, width), nn.Tanh(),
+            nn.Linear(width, DOF),
+        )
+        self.log_std = nn.Parameter(torch.full((DOF,), float(log_std)))
+        mask = torch.zeros(DOF, dtype=torch.float32)
+        mask[list(ACTIVE_ACTION)] = 1.0
+        self.register_buffer("active_mask", mask)
+        self.register_buffer("active_indices", torch.as_tensor(ACTIVE_ACTION, dtype=torch.long))
+
+    def mean(self, features: torch.Tensor) -> torch.Tensor:
+        if not isinstance(features, torch.Tensor) or features.ndim != 2:
+            raise ValueError("actor features must be a [batch, INPUT_DIM] tensor")
+        if features.shape[-1] != INPUT_DIM or not torch.isfinite(features).all():
+            raise ValueError("invalid actor features")
+        return self.network(features)
+
+    def distribution(self, features: torch.Tensor) -> torch.distributions.Normal:
+        mean = self.mean(features)
+        std = self.log_std.clamp(-5.0, -1.2).exp()
+        return torch.distributions.Normal(mean, std)
+
+    def action(self, latent: torch.Tensor) -> torch.Tensor:
+        if latent.ndim != 2 or latent.shape[-1] != DOF or not torch.isfinite(latent).all():
+            raise ValueError("invalid actor latent")
+        return torch.tanh(latent) * self.active_mask
+
+    def active_log_prob(self, features: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
+        distribution = self.distribution(features)
+        return distribution.log_prob(latent)[:, self.active_indices].sum(-1)
+
+
+class GoalConditionedValue(nn.Module):
+    """Value baseline sharing the policy's train-only feature normalization."""
+
+    def __init__(self, standardizer: Standardizer, width: int = 256):
+        super().__init__()
+        if not isinstance(standardizer, Standardizer):
+            raise TypeError("value network requires a Standardizer")
+        self.register_buffer("mean", torch.from_numpy(standardizer.mean.copy()))
+        self.register_buffer("scale", torch.from_numpy(standardizer.scale.copy()))
+        self.network = nn.Sequential(
+            nn.Linear(INPUT_DIM, width), nn.Tanh(),
+            nn.Linear(width, width), nn.Tanh(),
+            nn.Linear(width, 1),
+        )
+
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
+        if features.ndim != 2 or features.shape[-1] != INPUT_DIM:
+            raise ValueError("value feature dimension mismatch")
+        if not torch.isfinite(features).all():
+            raise ValueError("value features must be finite")
+        return self.network((features - self.mean) / self.scale).squeeze(-1)
