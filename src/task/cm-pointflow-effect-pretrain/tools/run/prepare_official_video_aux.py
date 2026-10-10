@@ -30,6 +30,8 @@ def main():
     parser.add_argument("--h5", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--points", type=int, default=512)
+    parser.add_argument("--state", action="store_true",
+                        help="populate remaining scene channels with context joint/gripper state")
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("output exists: %s" % args.output)
@@ -43,6 +45,11 @@ def main():
         "points_per_sample": args.points,
         "context_steps": 1,
         "prediction_steps": HORIZON,
+        "state_features": bool(args.state),
+        "feature_contract": (
+            "context color/normal + joint_positions[0] + gripper_pose[0,:5]"
+            if args.state else "context color/normal + zero placeholders"
+        ),
         "clips": list(CLIPS),
         "cameras": list(CAMERAS),
         "selection": [],
@@ -57,6 +64,8 @@ def main():
                 depth_valid = np.asarray(group["scene_depth_valid_mask"], dtype=bool)
                 colors = np.asarray(group["scene_colors"], dtype=np.float32)
                 normals = np.asarray(group["scene_normals"], dtype=np.float32)
+                joint_positions = np.asarray(group["joint_positions"], dtype=np.float32)
+                gripper_pose = np.asarray(group["gripper_pose"], dtype=np.float32)
                 if points.shape[0] != HORIZON + 1 or points.shape[-1] != 3:
                     raise ValueError("unexpected scene flow shape: %s" % (points.shape,))
                 valid = visibility & depth_valid & np.isfinite(points).all(-1)
@@ -67,6 +76,11 @@ def main():
                 features = np.zeros((args.points, 18), dtype=np.float32)
                 features[:, :3] = colors[0, selected] / 255.0
                 features[:, 3:6] = normals[0, selected] / 127.0
+                if args.state:
+                    if joint_positions.shape != (HORIZON + 1, 7) or gripper_pose.shape != (HORIZON + 1, 7):
+                        raise ValueError("official robot-state shape changed")
+                    features[:, 6:13] = joint_positions[0]
+                    features[:, 13:18] = gripper_pose[0, :5]
                 sample = {
                     "xyz": points[0, selected],
                     "features": features,
