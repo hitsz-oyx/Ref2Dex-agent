@@ -129,8 +129,8 @@ work, with pressure/bend mapping and release completeness audited first. It
 does not supply paired object SE(3) supervision or a calibrated substitute
 for Isaac net contact forces. See the [source and implementation review](docs/research/2026-10-10-video-tactile-primary-sources.md).
 Remote connection details are in [the Windows bridge guide](../../../docs/user/连接远程服务器.md);
-current work continues on RLG. No new training or full dataset download has
-been launched by this review.
+current work continues on RLG. The initial review launched no training;
+the separate bounded model probes below were subsequently completed.
 
 The follow-up [EPIC readiness probe](docs/experiments/probes/P-20261010-video-data-readiness.md)
 repaired semantic-joint/quality masks, source splits, metadata clocks, background
@@ -142,7 +142,21 @@ This is a local coverage blocker, not evidence against video learning.
 The [original tactile label sample](docs/experiments/probes/P-20261010-egotouch-label-schema.md)
 acquired two TRAIN bundles (485754 bytes,10 verified files). Original frame IDs
 agree, but only217/441 grid cells are measured, per-record pressure/bend maxima
-differ, confidence and camera calibration are absent, and both cheapest
-episodes are annotated no-contact. Next qualification should use a
-contact-positive episode and original clocks; neither sample is registered
-for point-dynamics training.
+differ, and confidence/camera calibration are absent. False contact flags
+remain semantically unqualified: a40-task scan found allfalse and cannot establish
+physical no-contact. Two small chest videos now match43/47 original label frames
+and relative clocks; tactile/bend separation is still gated. Neither sample
+is registered for point-dynamics training.
+
+
+The [video point-dynamics Probe](docs/experiments/probes/P-20261010-video-point-dynamics.md)
+now has a history-only PTv3 point-flow head, permanent RGB identity checks,
+window-local births, train-only normalization and per-clip physical metrics.
+The fixed500-step h24 run failed the gate (21.861mm vs static18.294mm), and
+its development long-term labels came from one clip. Window births/recovery
+still leave h24 support insufficient. A separately qualified h8 run also fails:
+two-clip macro24.808mm vs static9.464mm. This is UNPROMISING for these small
+recipes; the video route remains UNCLEAR. Do not scale or claim native-transfer
+benefit from these runs. Current decisions and artifact pointers are in
+[Task state](docs/STATE.md). Native three-source training/checkpoints remain
+separate from these weak-video probes.

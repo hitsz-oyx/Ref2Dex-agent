@@ -270,3 +270,19 @@ mouse实际步长33–34ms。网格每手217/441位置有效，其余是NaN；�
 与native手动作条件表示的迁移；触觉先采contact-positive TRAIN样本、保留
 frame_id/未测量mask/pressure-bend区别，并核对RGB与相机关系。训练主来源
 仍为OakInk2/GRAB/ARCTIC，现有sharedstats checkpoint和全部旧实验输出保留。
+
+### 同日后续：可运行视频 Probe 与 RGB/传感时钟
+
+上述“未启动训练”和下一步选择属于初始审计阶段。后续
+[视频点动力学卡](../experiments/probes/P-20261010-video-point-dynamics.md)
+记录 history-only PTv3 点轨迹训练：h24 与独立 h8 各500步，均未通过收益门槛。
+窗口起点建轨迹改善训练长期支持，但开发 h24 仍只有一个片段；h8 两片段宏平均
+24.808mm 对静止9.464mm。完整源码/目标mask/分片指标经独立最小复算未见
+推翻结果的缺陷。此设置 UNPROMISING，视频路线仍 UNCLEAR，不据此扩训。
+
+触觉的两个原始 TRAIN 录制现在各有43/47帧胸前 RGB，与标签原始帧号一致，
+相对时间误差<1微秒/0.333ms；仅属接口一致性，不证明物理同步。40任务原始
+contact flag全false，不能解释为没有物理接触。217有效格对应左138/右147个
+unique raw index，包含重复映射；样本NPZ存global max而固定converter期望
+per-hand max，会产生元数据零默认值。后续历史传感输入不能依赖未来整段峰值。
+细节与原始文件SHA见[触觉卡](../experiments/probes/P-20261010-egotouch-label-schema.md)。

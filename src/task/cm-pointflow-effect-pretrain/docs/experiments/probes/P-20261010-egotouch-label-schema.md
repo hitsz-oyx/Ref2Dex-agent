@@ -150,3 +150,28 @@ pressure times. Count distinct decoded frames and report normalized grid tempora
 changes without interpreting the mixed tactile/bend grid as contact or force.
 Output `egotouch-rgb-clock-20261010-r3/`; CPU file/video audit only. Agreement is
 engineering consistency, not proof of physical synchronization or calibration.
+
+
+RGB clock audit completed at `c57dcbf`,6.25s,369809 verified bytes. Both videos
+are30Hz and contain43/47 distinct decoded frames, matching contiguous original
+pressure IDs. Maximum relative PTS/pressure-clock deviation is0.445microseconds
+for USB cable and0.333ms for mouse. This qualifies row/relative-clock consistency
+for these two samples only, not sensor latency, physical synchronization or
+world calibration. Per-hand normalized-grid mean frame changes range0.00306–0.01309;
+nonzero values alone remain uninterpretable as contact before bend separation.
+Both raw videos and full original PTS are preserved in the follow-up manifest.
+
+Root independently counted the official fixed mappings:217 display cells map to
+138 distinct raw indices on the left and147 on the right; a raw value can alias
+to5 cells. The cell count is not an independent sensor count. See the preserved
+`normalization-mapping-audit.json` with mapping/grid hashes. Both actual NPZs
+store global `tactile_max`/`bend_max`, while the fixed release HDF5 converter
+reads per-hand `*_max_left/right` with0 defaults; those four keys are absent.
+Do not silently convert the metadata to zero or infer separate hand maxima.
+
+The follow-up channel investigation can numerically reproduce these two grids
+with candidate normalization groups, but hardware tactile/bend semantics remain
+unconfirmed. Whole-record maximum normalization can depend on future frames;
+future adapters must use raw/fixed-scale or TRAIN-only statistics for historical
+sensor inputs. Preserve actual metadata and qualify any target normalization
+separately. No pressure-only mask or calibrated-force training claim is made.

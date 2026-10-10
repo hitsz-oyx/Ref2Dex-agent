@@ -5,7 +5,7 @@ experiment_id: P-20261010-video-point-dynamics
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: 848be0993d80111ba2a9f6bc22008267b842429e
 claim_id: C1
 hypothesis_family: HF-video-point-dynamics
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [226]
 decision_changed_if_positive: expand qualified video tracks and test encoder transfer to native hand-conditioned dynamics
 decision_changed_if_negative: diagnose track quality or missing interaction inputs before scaling video training
-status: UNCLEAR
+status: UNPROMISING
 run_id: video-point-dynamics-20261010-r1
 ---
 
@@ -92,7 +92,8 @@ Outputs: `outputs/cm-pointflow-effect-pretrain/video-point-dynamics-20261010-r1/
 
 ## Results
 
-Pending implementation/qualification at a fixed execution commit.
+Both fixed500-update model probes and the support/fit audits completed;
+run-level gates failed. See the recorded execution commits and results below.
 
 The first preparation invocation at `2d8a573` failed before any source extraction:
 relative `__file__` was passed to absolute Task-relative identity logging. The
@@ -212,3 +213,33 @@ route still UNCLEAR. Diagnose train fits/label quality and independently
 recheck h8 loss/metric support before any more model training; no expansion or
 native transfer is authorized by this negative signal. Fit diagnosis<=90s,
 no updates; reuse the model and exact data identity, all outputs preserved.
+
+The h8 fit audit at `75d5f4c` confirms large train/dev motion differences:
+train `_12` model/static78.800/117.483mm and `_13`49.376/64.461mm;
+near-static `_14/_15`3.496/3.210 and4.121/3.397mm. The model is learning
+some training motion but has not demonstrated held-video gains.500 steps,
+source shift and pseudo-label noise remain alternative explanations; missing
+hand context is not established as the cause. Independent CPU review reproduced
+clip support/static/CV and macro to1e-8m; real gradients h9..24 were exactly0,
+future mutations left inputs unchanged, and a true cross-clip batch retained
+correct metric ownership. No defect overturns the short-run negative result.
+
+Engineering note: the initial3-update smoke was inadvertently launched onGPU0
+while an unrelated process had occupied it after an earlier check. It finished
+in9.70s before an ownership-checked attempt to stop our worker. No unrelated
+process was touched. All substantive training/fit runs used freshly inspected
+freeGPU1. Future launch checks must be inspected before dependent startup.
+
+Next Decision: audit pseudo-track physical consistency and input motion noise;
+qualify tactile-only channel masks before any auxiliary loss. Large training and
+native-transfer comparisons remain deferred until a useful minimal signal.
+
+Before the next file-only diagnosis: compare last-two-frame CV with four-history
+mean and exact four-point OLS velocity, all derived exclusively from observed
+kinematics/displacement at the actual uniform clock. Reuse h8 target support and
+report each clip's object/background EPE. Class Decision: if history OLS beats
+static by>=10% in BOTH qualifying dev clips, there is an observable baseline
+signal to justify checking model optimization; otherwise retain label/input
+quality as the next gate and do not add training. This is not a physical-noise
+measurement because the targets themselves are pseudo-labels. CPU statistical
+arithmetic only, <=30s/100KiB, output `history-motion-audit.json` in the group.
