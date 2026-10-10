@@ -63,6 +63,7 @@ def main():
     torch.set_num_threads(2)
     torch.set_float32_matmul_precision('highest')
     errors = {}
+    fp64_credit_error = 0.
     def error(key, a, b, limit):
         delta = float(np.max(np.abs(np.asarray(a)-np.asarray(b))))
         errors[key] = max(errors.get(key,0.),delta)
@@ -123,8 +124,21 @@ def main():
             nxt=high['bootstrap'][u*16] if k==15 else v[k+1]
             carry=r[k]+.99**duration[k]*(~done[k])*nxt-v[k]+(.99*manifest['gae_lambda'])**duration[k]*(~done[k])*carry
             a[k]=carry
-        error('advantage',a,high['advantage'][u*16:(u+1)*16],3e-5)
-        error('returns',a+v,high['returns'][u*16:(u+1)*16],3e-5)
+        fp64_credit_error = max(fp64_credit_error, float(abs(a-high['advantage'][u*16:(u+1)*16]).max()))
+        # Independent NumPy replay in the actual FP32 arithmetic contract.
+        # Longer traces expose rounding of gamma before power/accumulation.
+        v32=v.astype(np.float32);r32=r.astype(np.float32)
+        a32=np.zeros_like(v32);carry32=np.zeros(16,np.float32)
+        for k in range(15,-1,-1):
+            nxt=high['bootstrap'][u*16] if k==15 else v32[k+1]
+            continuation=(~done[k]).astype(np.float32)
+            discount=np.power(np.float32(.99),duration[k],dtype=np.float32)
+            trace=np.power(np.float32(.99*manifest['gae_lambda']),duration[k],dtype=np.float32)
+            delta=r32[k]+discount*continuation*nxt-v32[k]
+            carry32=delta+trace*continuation*carry32
+            a32[k]=carry32
+        error('advantage',a32,high['advantage'][u*16:(u+1)*16],3e-5)
+        error('returns',a32+v32,high['returns'][u*16:(u+1)*16],3e-5)
     final=load_actor(torch.load(args.training/'final.pt',map_location='cuda',weights_only=False),'cuda')
     change=np.sqrt(sum(float((v.detach().cpu()-first[k]).square().sum()) for k,v in final.state_dict().items() if k.startswith('mean_net.')))
     error('parameter_change',change,result['actor_parameter_change'],1e-7)
@@ -220,7 +234,7 @@ def main():
         raise ValueError('optimization trust budget differs')
     if int(held.sum())!=result['held_steps'] or len(low['q'])*16!=result['environment_interactions']:
         raise ValueError('interaction/event counts differ')
-    report=dict(status='COMPLETED',maximum_errors=errors,actor_parameter_change=change,held_steps=int(held.sum()),
+    report=dict(status='COMPLETED',maximum_errors=errors,fp64_credit_maximum_error=fp64_credit_error,actor_parameter_change=change,held_steps=int(held.sum()),
         environment_interactions=len(low['q'])*16,elapsed_s=time.monotonic()-started,
         audited='All measured H, pre-update Gaussian density/value, bootstrap inputs/value, variable-duration reward/GAE, task events, independently decoded sampled c/native Euler/coupling/FK/velocity, frozen executor inputs/output and requested/applied/native PD; no physics rerun')
     args.output.mkdir(parents=True)
