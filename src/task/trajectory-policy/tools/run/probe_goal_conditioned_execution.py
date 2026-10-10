@@ -209,7 +209,7 @@ def main():
         hashes[str(path.resolve())] = sha(path)
 
     args.output.mkdir(parents=True)
-    roles = ["goal_bc"] * 16
+    roles = ["goal_ppo" if policy_kind == "ppo" else "goal_bc"] * 16
     manifest = dict(
         schema="ref2dex.goal-conditioned-execution.v1", status="RUNNING",
         task="trajectory-policy", run_id=args.output.name,
@@ -217,9 +217,13 @@ def main():
         physical_gpu=args.gpu, seed=args.seed, roles=roles, envs=16, controls=542, dt=1 / 30,
         goal_env=args.goal_env, input_sha256=hashes,
         inference_contract=payload["inference_contract"],
-        action_contract="frozen MLP native action with active-coordinate mask; DExplore performs PD conversion",
+        action_contract=("frozen PPO actor deterministic tanh-mean native action with active-coordinate mask; DExplore performs PD conversion"
+                         if policy_kind == "ppo" else
+                         "frozen MLP native action with active-coordinate mask; DExplore performs PD conversion"),
         goal_authorization="engineering_only=true, training_allowed=false packet used only for hand/object goals",
-        claim="single-motion Stage 1 physical execution Probe; no PPO, high-level H, or Cm claim",
+        claim=("single-motion frozen Stage 1 PPO execution Probe; no high-level H or Cm claim"
+               if policy_kind == "ppo" else
+               "single-motion Stage 1 physical execution Probe; no PPO, high-level H, or Cm claim"),
         gate=dict(long_held_terminal_min=12, clipping_rate_max=.01),
         gpu_before=before,
     )
