@@ -14,7 +14,17 @@ full native command。学生输入897维，删除未来物体12列，关节误�
 tau nominal0/16，shifted tau近teacher0/16（末帧15/16，不能只看末帧持有）。
 actual student897输入独立重构误差3.81e-6、command2.38e-7、native PD0。
 
-正在执行一次固定128update微调，加入越界惩罚，不藏掉clipping或降低原门槛。
+第一次固定128update微调后0/16稳定保持，但查明奖励目标错误：手掌高度变化
+不能代表物体lift或抓持阶段。原奖励把不抓轨迹排在稳定holder前面，不能作为
+τ方法负证据。真实模式回归测试先失败后通过；现有轨迹重评分确认修复后的
+实际lift/force-pair holding + 弱τ tracking奖励排序正确，独立审查通过。
+52b5b88修复后从原始warmstart完成同seed277/128update的r2；固定seed278评估
+16/16 hold45，中位保持292帧，4/16达到433且末帧持有；old oracle16/16，
+tau nominal0/16。裁剪1552/8672=17.90%，强门槛UNPROMISING，仍未训练好稳定执行器。
+12条末帧失持均在teacher仍holding时无支撑脱手/重力下落，不是原始任务放置。
+实际897输入重构误差2.86e-6、command2.38e-7、PD0。修复恢复抓持但不优于冻结迁移。
+保留两层路线的可行信号，不据此否定τ；本轮预算结束。下一决策是可行的拇指
+target/预载参数化与短PPO适配不足的区分，暂不扩展seed/model sweep。
 geometry只拟合τ/initial q，不按执行结果重新挑选；仍无触觉输入与未来物体监督。
 协议：[tau-geometry-tracking](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-geometry-tracking.md)。
 单motionGT-τ上界与缓存几何，实时新τ retarget latency/泛化/原始放置/Cm仍待后续证据。

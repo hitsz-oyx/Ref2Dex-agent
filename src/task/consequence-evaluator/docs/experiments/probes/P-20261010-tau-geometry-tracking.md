@@ -5,7 +5,7 @@ experiment_id: P-20261010-tau-geometry-tracking
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 0003ab0
+git_commit: 52b5b88
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 3
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [276, 277, 278]
 decision_changed_if_positive: retain tau geometry plus closed-loop preload learning before high-level proposal integration
 decision_changed_if_negative: isolate geometric reference error from missing feedback learning rather than refute tau representation
-status: UNCLEAR
-run_id: ref7_4-tau-tracker-train-20261010-r1
+status: UNPROMISING
+run_id: ref7_4-tau-tracker-train-20261010-r2
 ---
 
 # Remove measured q and future-object reference from the execution controller
@@ -105,7 +105,7 @@ later matched Validation; Probe tags only PROMISING/UNPROMISING/UNCLEAR.
 
 ## Runs
 
-Pending. Actual implementation commit is captured in run manifests.
+Actual implementation commit is captured per run below and in manifests.
 
 
 Geometry r1 (0a79260) completes300iterations/14.31s onGPU2 (~337MiB).
@@ -175,3 +175,55 @@ One defect-repair r2 train (~7min) plus final evaluation (~2min), within origina
 still fails, keep strict gate and stop this budget; if no restoration, inspect
 specific implementation evidence before any route-level negative claim. No
 seed/checkpoint selection, changed geometry, new branch or external operation.
+
+## Fixed-final result / decision
+
+Repair train r2 (52b5b88,seed277) completed128updates/262144transitions in479.41s,
+13 tensors changed, training clipping37.88%. Fixed final checkpoint SHA
+3a2b2667de9302dfc3e8844990163b01eec460f1646807dd51de6c89868d8ced.
+The two full training runs total904.94s, below1200s combined training budget.
+All geometry/smoke/evaluation plus training fit34GPUmin; artifacts<0.3GiB.
+
+Final eval r2 (52b5b88,seed278,542controls,64randomized rows):
+
+| Role | Hold45 | Median longest hold | >=433 | Terminal held | Clipped controls |
+| --- | --- | --- | --- | --- | --- |
+| Old oracle | 16/16 | 483 | 16/16 | 16/16 | 38/8672 |
+| Tau geometry only | 0/16 | 0 | 0/16 | 0/16 | 0/8672 |
+| Tau closed-loop student | 16/16 | 292 | 4/16 | 4/16 | 1552/8672 (17.90%) |
+| Shifted tau student | 16/16 | 207 | 0/16 | 16/16 | 937/8672 |
+
+Original strong screen UNPROMISING: near-teacher count4<8 and clipping17.90%>1%.
+Do not relax the gate or call this a trained reliable tau executor. Correct
+reward restored grasping compared with r1's0/16, but did not improve frozen
+migration's13/16 near-teacher. Clipping decreased from41.01% but still fails;
+92thumb-yaw and1460thumb-pitch overdrives, other finger coordinates0.
+
+Actual student897 feature reconstruction maxerror2.86e-6, command2.38e-7,
+nativePDtarget0; initial q/dq/hand/object alignment exact. No measured future
+q or object label entered student execution. Geometry/FF cache is unchanged.
+Twelve failed terminal holds separate at298–479 while teacher remains held,
+all12 with unsupported separation and gravity-like descent. They are drops,
+not raw-task placement. Existing intermediate_loss_events0 excludes supported
+states and therefore does not mean no loss; final drop diagnostic is retained.
+Shifted arm terminal16/16 with near-teacher0/16 also cautions against using only
+terminal hold as a tracking metric. No high-level proposal or Cm claim.
+
+Decision: retain geometry plus state-feedback as a plausible execution design;
+stop this declared short-learning budget. Sustained non-saturating preload is
+still unresolved. Next decision experiment should distinguish feasible bounded
+thumb-target parameterization from insufficient PPO adaptation, retaining fixed
+tau/live-state inputs and actual-holding evaluation. Do not declare tau refuted
+or run a seed/learning-rate sweep. Wider motions, scratch initialization, new
+proposal retarget latency and matched multi-seed Validation remain deferred.
+
+Final independent read-only review reproduces holding/clipping counts, confirms
+the12 unsupported drops (~-9.79m/s^2 vertical acceleration), and finds no new
+control-chain implementation defect. Review supports verification, not formal
+Validation or proof that short PPO/geometry is the exact failure cause.
+
+Artifacts: outputs/consequence-evaluator/ref7_4-tau-tracker-train-20261010-r2/,
+ref7_4-tau-tracker-final-{eval,audit,drop-audit}-20261010-r2/.
+Reproduction parameters and hashes are in
+outputs/consequence-evaluator/ref7_4-tau-tracker-controller-20261010-r2/controller.json;
+its status is explicitly UNPROMISING, not a release-ready controller.

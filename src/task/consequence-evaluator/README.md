@@ -1,5 +1,25 @@
 # Consequence evaluator
 
+## 2026-10-10 τ-only 当前进展
+
+按用户 [ref7_4](docs/user/ref/ref7_4.md)采用两层执行：11点未来τ先得到几何q_hat/
+腕部速度，再由当前状态反馈学习残差控制。移除真实未来q_ref和未来物体输入/
+奖励，不新增触觉输入；保留live q/dq、hand/object/velocity及previous residual。
+几何参考只拟合τ、initial q和静态URDF，整体坐标RMSE2.47mm，拇指尖13.80mm。
+
+冻结旧自训练tracker迁移后13/16近teacher，但裁剪41.01%。首次微调因奖励误把
+手掌高度当物体高度而放弃抓持；真实模式回归测试和独立trace审查定位并修复。
+修复后固定128update warmstart微调：最终16/16 hold45、中位292帧，4/16近teacher
+且末帧仍持有，纯几何0/16；裁剪17.90%，强门槛`UNPROMISING`，尚未训练好稳定
+τ执行器。12条失持均为参考仍held时无支撑重力下落，非原始任务放置。
+实际897输入/command/PD独立重构通过。本轮不关闭τ路线，也不增加参数/seed sweep。
+
+协议：[τ几何闭环](docs/experiments/probes/P-20261010-tau-geometry-tracking.md)。
+实验配置与复现argv：outputs/consequence-evaluator/
+ref7_4-tau-tracker-controller-20261010-r2/controller.json（明确未通过强门槛）。
+这是single-motion GT-τ、旧自训练oracle tracker warmstart上界；尚非新τ泛化/
+从零训练/原始放置/Cm收益。旧oracle成功结果保留在下面，不能当成τ-only结果。
+
 ## 2026-10-10 reference-tracking 当前进展
 
 按用户 [ref7_3](docs/user/ref/ref7_3.md)路线，已找到并修复腕部 position-only
