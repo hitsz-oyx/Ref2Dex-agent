@@ -140,3 +140,13 @@ No object trajectory or camera extrinsic calibration is inferred from Vive
 tracker records alone. Without RGB, equal label-array counts cannot establish
 video synchronization or useful point-dynamics supervision. No main-source
 training registration or deployment tactile-input requirement is introduced.
+
+Before the RGB-clock follow-up: acquire only `chest.mp4` of the two existing
+verified TRAIN records (306893 and62916 bytes in the pinned inventory). Reuse
+ModelScope discovery; mirror first then project proxy. Verify original size and
+Git/LFS identity, cap2MiB transfer/90s, no annotation-positive assertion. Decode
+RGB and extract video PTS with ffprobe; compare frame-index/count and relative
+pressure times. Count distinct decoded frames and report normalized grid temporal
+changes without interpreting the mixed tactile/bend grid as contact or force.
+Output `egotouch-rgb-clock-20261010-r3/`; CPU file/video audit only. Agreement is
+engineering consistency, not proof of physical synchronization or calibration.
