@@ -171,6 +171,17 @@ pre-registered seed 231. It also lost to persistence on held H10 (2.183 vs
 Keep the conclusion local: the episode/split is small and this does not reject
 other qualified official RGB/state front ends or measured-wrench routes.
 
+The direct [official-video data-only native-transfer Probe](experiments/probes/P-20261011-official-video-native-transfer.md)
+then trained a native-compatible normal-only H5 auxiliary from random
+initialization and copied only its shared scene projection/PTv3 core into a
+matched native action arm. The 500-update balanced H24 panel was 101.580/6.020
+mm moving/static for the video-data arm versus 101.296/5.977 mm for random;
+macro 0.053801 versus 0.053637. The result is `UNPROMISING` for this explicit
+feature mapping and short transfer recipe. This closes the current data-only
+initialization route for further investment, while retaining the official H5
+adapter as a valid data contract and keeping the conclusion separate from
+other RGB front ends, T-Rex, RBO multi-interaction data, and simulator CHORD.
+
 The bounded [RBO RGB-D/FT adapter Probe](experiments/probes/P-20261011-rbo-wrench-alignment.md)
 then completed on one pinned 42 MB interaction archive. All 295 RGB anchors
 matched registered depth, FT, joint, rigid-body, camera, object, and sensor TF
