@@ -92,3 +92,19 @@ PointWAM的scene辅助head不以任意候选τ为条件；不能把共享scene�
 `outputs/trajectory-policy/retargeter-data-contract-20261010-r1/`。
 统计是工程合同证据，不给方法PROMISING标签；后续科学Probe另写Task-local卡片，
 明确数据来源/训练资格、split、R反馈频率、错误τ评价、预算和停止条件后执行。
+
+## 本次库存审计结果
+
+`9f74302` CPU合同审计完成：两轮PPO各46,688合法窗口，合计93,376；
+每轮80个完整environment episodes加16个部分episode，全部保留真实失败行。
+每轮5个完整542步批次可各切518起点，末尾352步partial可切328起点，均16env；
+排除跨reset/缺失末端hand的起点，未生成或训练张量数据集。
+actual requested/applied command完全一致，passive native command列为零，
+q/dq/hand/object/objectvelocity字段齐全且有限。两源seed都是293，旧lambda.95
+完整稳定held仅1行、lambda1为0；不能把93,376窗口当独立示范，或把这些失败丰富的
+轨迹视为已具备competent数据覆盖。teacher packet资格检查为不可训练。
+
+这是可以立即复用日志格式与一部分inverse配对的工程证据，不是learned R有效。
+下一最便宜科学决策是小型R的held-out动作/τ使用性Probe；物理学习前需有清楚
+competent coverage和训练资格，必要时用本Task有界native采集补足，不能静默改
+旧teacher packet资格。没有启动新R/forecaster/高层PPO/WM训练。

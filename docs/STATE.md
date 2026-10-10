@@ -64,7 +64,11 @@ clip .9818%/1.0741%，局部UNCLEAR；当前没有可用trajectory baseline，Cm
 `eb3e96d` 已有rollout真实Adam重建5.39s完成，25个actor/value checkpoint bitwise一致。
 单update LR恢复在19/24批次带来>=2倍启动mean位移、更好surrogate及同KL上限，机制
 PROMISING；没有新任务训练或物理收益。用户随后提供ref1_1，root先核对learned
-retargeter原文与actual hand/action数据合同；步长真实训练留作备选，WM尚未启用。
+retargeter原文与actual hand/action数据合同：支持真实动作监督的小型R Probe，
+不能说当前R已被定位为主故障。两轮已有PPO可构造93,376合法窗，但完整稳定held
+仅1行、同seed，旧成功teacher packet不可训练；未新采集/训练。详情见
+[结构取舍](../src/task/trajectory-policy/docs/research/20261010-ref1_1-retargeter-design-review.md)。
+步长真实训练留作备选，WM尚未启用。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

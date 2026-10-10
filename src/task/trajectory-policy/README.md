@@ -38,8 +38,10 @@ warm/final各2/28长时终末held，成功均同pair8/20，clip .9818%/1.0741%�
 按固定screen局部UNCLEAR，仍没有可用baseline或稳定成功增量。
 `eb3e96d` 真实Adam重建通过全部25个actor/value checkpoint bitwise核对。
 单update恢复LR在19/24批次有>=2倍启动位移且更好surrogate/同KL上限，机制PROMISING；
-位移中位仅.00591mm，尚未新训练或取得物理收益。用户随后给出ref1_1：下一步先评估
-actual未来手轨迹→真实native action的learned retargeter监督路线，保留LR恢复为备选。
+位移中位仅.00591mm，尚未新训练或取得物理收益。用户随后给出ref1_1：已核对
+PointWAM原文并建议先小型actual未来手轨迹→真实native action的learned retargeter
+Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗，但均seed293、
+完整稳定held仅1行；旧成功teacher packet禁止训练，不能复用其动作标签。
 不把offline信用或训练reward改善当作抓取收益，暂不再改训练或接WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
