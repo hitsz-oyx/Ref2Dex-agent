@@ -80,6 +80,10 @@ UNPROMISING若τmodel不优于state-only或shuffle损失增加<=2%；其余UNCLE
 这是有界离线screen，不是可用抓取controller或正式因果证明。
 独立audit从原low重建全部validation s/τ/A和shuffle mapping，用保存checkpoint重放
 全部预测与PD换算/指标、检查train-only statistics/split/sourcehash/推理passive列。
+审计入口 `tools/audit/audit_learned_retargeter.py` 不调用训练的feature/window构造。
+独立NumPy FP64 train statistics与保存normalizer绝对误差<=1e-5；全部validation
+预测重放<=2e-5、实际native PD<=1e-6、重新计算指标<=1e-5；超出即审计失败，
+不根据结果放宽容差。checkpoint选择也与六条固定monitor记录独立核对。
 
 ## Resources / stop
 
