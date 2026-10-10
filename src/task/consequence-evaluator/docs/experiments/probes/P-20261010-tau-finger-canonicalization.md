@@ -134,6 +134,25 @@ Command-fit provenance is transitive through its pinned source manifest; the
 audit verifies that hash before checking reference identity, since fitting does
 not read future-q/object labels from the reference packet itself.
 
+Coverage fit r2 (0040485,seed279) completes8.92s/GPU585MiB,17244state examples;
+training raw clipping2.91%,commandRMSE3.77mrad. Final eval r2 (seed281) gives
+student16/16 hold45, median479,near43313,terminal13,clipping193/8672=2.23%.
+Oracle16/16 near/terminal, frozen tau12/16 near/terminal, nominal0. All input/
+action checks pass. Strong screen remains UNPROMISING only for clipping.
+31thumb-yaw and162thumb-pitch overdrives, other finger coordinates0.
+
+Decision Note: coverage repair reduced live overdrive but mean-bound loss still
+tolerates rare corner violations (max native excess .1102yaw/.0235pitch),
+while long holding is preserved. Before spending another PPO batch, use the
+cheaper informative loss intervention: **worst1% coordinate-bound loss** instead
+of its mean. Keep coefficient10, original+first-student source states, original
+initialization, seed279,1000updates, all six finger rows and target margin fixed.
+No new scene/outcome selection or actor inputs. This distinguishes insufficient
+weight on rare constraints from state coverage; it is not a seed/LR sweep.
+Fixed final eval seed283. Cost~15sfit/~100seval; within25min/2GiB. If it fails
+the existing gate, stop this canonicalization experiment and record the specific
+remaining limitation rather than automatically doing the optional PPO.
+
 ## Related sources
 
 [Previous tau Probe](P-20261010-tau-geometry-tracking.md) remains the source of

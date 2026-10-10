@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--seed', type=int, default=279)
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--seconds', type=int, default=120)
+    parser.add_argument('--bound-aggregation', choices=('mean', 'tail'), default='mean',
+                        help='tail emphasizes the worst one percent of coordinate bound errors')
     parser.add_argument('--extra', type=Path, help='One DAgger student-state packet; labels from frozen owned tau teacher')
     args = parser.parse_args()
     output = args.output.resolve(); output.relative_to(ROOT / 'outputs/consequence-evaluator')
@@ -128,6 +130,7 @@ def main():
                     inference_contract=teacher_payload['manifest']['inference_contract'],
                     training_contract='Only six finger output rows; all tracker rows, owned tau-only applied PD commands with .005 native-range interior margin; no loaded future q/object label; wrist/trunk/critic/logstd frozen',
                     initialization=str(args.checkpoint.resolve()), margin_fraction=.005, epochs=args.epochs,
+                    bound_aggregation=args.bound_aggregation,
                     native_controller=controllers[0], source_rows=len(x), initial=initial,
                     claim='Engineering command canonicalization; live behavior and original clip gate remain unmodified')
     write(output / 'manifest.json', manifest)
@@ -140,7 +143,11 @@ def main():
             ranges = scale[list(FINGERS)]
             scaled = (target - offset[list(FINGERS)]) / ranges
             fit = ((target - label) / ranges).square().mean()
-            boundary = (torch.relu(.005 - scaled).square() + torch.relu(scaled - .995).square()).mean()
+            violations = torch.relu(.005 - scaled).square() + torch.relu(scaled - .995).square()
+            if args.bound_aggregation == 'tail':
+                boundary = violations.flatten().topk(max(1, int(np.ceil(violations.numel() * .01)))).values.mean()
+            else:
+                boundary = violations.mean()
             loss = fit + 10 * boundary
             if not torch.isfinite(loss):
                 raise FloatingPointError('nonfinite finger fit')
