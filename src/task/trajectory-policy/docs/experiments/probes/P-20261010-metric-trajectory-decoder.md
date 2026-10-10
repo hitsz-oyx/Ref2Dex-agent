@@ -68,12 +68,15 @@ velocity and actual native/PD/outcomes audit required. No post-hoc screen change
 
 ## Resources / stop
 
-One idleGPU2, <=8GPUmin/512MiB; fit+coverage<=120s, conditional one native wave
+One idleGPU4, <=8GPUmin/512MiB; fit+coverage<=120s, conditional one native wave
 <=300s. GPU SVD/FK/controller/GPUPhysX, CPU only transforms/file/statistics and
 tiny contract smoke. Monitor utilization/memory/ETA on native startup/128steps.
 No neural policy training, WM, extra data/seed or automatic simulation retry.
 Stop on source/input drift, nonfinite, unsafe occupancy or unexpected reset.
 Staymain/no new branch/push, preserve all old outputs. No new external authority.
+GPU2 preflight rejected71%/6677MiB before model/output creation; GPU3 also busy.
+Root relocates the unchanged single-GPU design to idleGPU4 within global budget;
+no foreign process touched, no started experiment to restart, no extra run/seed.
 
 ## Results
 
