@@ -269,3 +269,13 @@ consistency; if both<=.25, prioritize predictive conditioning/optimization.
 Other cases remain UNCLEAR. Thresholds do not remove training windows or points.
 CPU arrays/SVD<=30s, <=100KiB, no GPU/model/new download; output
 `rigidity-audit.json`. Retain raw labels and all previous results.
+
+
+The rigidity audit at `5bee4df` yields UNCLEAR under the fixed thresholds:
+dev `_12` residual/static2.655/6.763mm (ratio.393), `_19`9.284/12.165mm
+(ratio.763). Train fast clips `_12/_13` ratios.177/.378, near-static `_14/_15`
+.620/.621. Internal inconsistency matters in some clips but is not uniformly
+the cause of neural failure; no true GT accuracy follows. The helper originally
+computed empty-cloud means before returning unsupported; reordered the guard
+without changing reported supported values, and verified rigid/nonrigid/degenerate
+synthetic cases. Do not use the endpoint oracle transform as a predictive input.

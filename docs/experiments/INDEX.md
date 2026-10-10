@@ -216,6 +216,12 @@
 | [P-20261007-pointworld-small-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md) | Unified spatial hand/action-to-rigid-effect Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261007-pointworld-temporal-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-temporal-wm24.md) | Time-preserving PointWorld action/effect Probe | at matched6000-update validation, H+A moving-anchor h24 point EPE is15.63mm versus H21.81mm and shuffled-action21.90mm; training and final T | evaluate observed-action predictive benefit after the user-requested ref4 correction. | probes/UNCLEAR |
 
+## HF-rawsensor-hand-conditioning
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-rawsensor-hand-conditioning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-rawsensor-hand-conditioning.md) | Raw sensor supervision and human hand conditioning readiness | 见原卡 | 见原卡 | probes/UNPROMISING |
+
 ## HF-ref5-data-expansion
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

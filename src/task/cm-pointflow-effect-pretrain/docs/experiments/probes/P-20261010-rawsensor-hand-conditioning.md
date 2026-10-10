@@ -5,15 +5,15 @@ experiment_id: P-20261010-rawsensor-hand-conditioning
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: cc16f9e9876f6df31ac97ca179a7d5e420837c12
 claim_id: C1
 hypothesis_family: HF-rawsensor-hand-conditioning
 probe_index_in_family: 1
 seed_pool: probe
-seeds: []
+seeds: [227]
 decision_changed_if_positive: test raw sensor prediction from human hand motion as an optional representation teacher
 decision_changed_if_negative: defer sensor learning until longer diverse source labels and hand relations can be qualified
-status: UNCLEAR
+status: UNPROMISING
 run_id: egotouch-diverse-raw-20261010-r1
 ---
 
@@ -59,7 +59,8 @@ CPU acquisition/arrays only, no GPU or model training. No new branch/push.
 
 ## Results
 
-Pending fixed-commit acquisition and semantic qualification.
+Fixed acquisition/qualification and the matched three-arm screen completed;
+see original identities and result below.
 
 ## Limitations / future evidence
 
@@ -127,3 +128,57 @@ One freshly inspected free GPU, max300s whole three-arm loop, artifacts<=300MiB.
 Stop on nonfinite, source/hash drift, conflict, cap/deadline; preserve failed runs.
 GPU utilization/memory and ETA logged after startup and every10s. No external
 process/system changes, dataset expansion or policy training. Output `matched-r1/`.
+
+
+## Matched screen results
+
+Execution `cc16f9e`, seed227,500 updates per arm, COMPLETED; final checkpoint
+roundtrip exact. Model loop/final evaluation5.63s, peak CUDA allocation414.18MiB;
+GPU1 sampled621–623MiB NVML memory and2–20% utilization. This tiny MLP screen
+underuses a3090 and is not a throughput/scaling benchmark. All compute ended.
+
+Primary endpoint groupA raw-count MAE (normalized values times255):
+
+| Held task | history | actual future hand | shuffled hand | persistence |
+| --- | ---: | ---: | ---: | ---: |
+| drag chair |5.090|5.676|5.241|4.697|
+| flip book pages |5.904|5.648|5.633|5.192|
+| badminton racket |1.979|2.925|1.485|0.952|
+| shop for snacks |1.848|1.894|2.152|0.663|
+| squeeze pliers |6.368|6.893|6.142|5.668|
+| Equal task macro |4.238|4.607|4.131|3.435|
+
+Actual future shape fails the preset10% gain gate and loses to persistence in
+all five tasks. It fits fitting tasks better than history (groupA endpoint
+0.598–1.151 vs0.691–1.398 counts), so learning is wired; fitting loss alone
+cannot establish utility. Normalization groupB also shows no held-task gain.
+Recipe-level UNPROMISING; tactile teacher usefulness remains UNCLEAR.
+The scoregroups are processing candidates, not calibrated tactile channels.
+
+Independent read-only CPU audit reproduces source hashes, scale, fit statistics,
+task/donor separation, exact complete-hand masks, identical initial weights and
+batches, future-target input isolation and persistence/macro. The root checked
+the reported metrics against the retained manifest; no gate-changing bug was found.
+An explicit boundary:290 dynamic channels come from all5 original FIT records,
+including unsupported plush toy; channel130 is dynamic only there. These are
+not290 channels proven dynamic in the330 actual fitting windows. This follows
+predeclared FIT-only protocol and does not leak held values.
+
+## Decision note after three neural scale-up gates fail
+
+Question: add updates/data to geometry-only video/shape-only sensor recipes, or
+resolve observation/interaction-context information first? Evidence: h24 video
+has one long-label dev clip; h8 video and raw sensor held-task gates fail even
+though fitting gains exist. Pure history velocity smoothing also loses to static;
+weak3D rigidity differs markedly by clip. These signals do not refute C1 or the
+value of video/tactile data, but give no reason to scale these pilot recipes.
+
+Choose observation/label and current object/contact context as the next cheap
+Decision. Keep mature native three-source model/checkpoints; defer more seeds,
+longer fitting and adding this teacher to native training. First inspect paired
+RGB/hand/sensor context from the new original tasks, with bounded acquisition if
+needed; distinguish useful visual state from only human posture or raw-current
+persistence. A later positive gate must precede more expensive auxiliary/model
+training. No final-claim change, deployment tactile requirement, main corpus
+promotion or new external authorization. Stop this local MLP recipe now, preserving
+all outputs; do not turn its negative result into physical sensor/contact failure.

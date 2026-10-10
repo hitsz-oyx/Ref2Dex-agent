@@ -54,3 +54,20 @@ now reproduces all finite/NaN values of both tactile samples within3e-8, confirm
 by root. Candidate groups/28 right-hand imputed cells are processing evidence;
 hardware tactile/bend roles remain UNKNOWN. A raw/255 sensor representation can
 be explored without making physical contact claims or future-max leakage.
+
+
+2026-10-10 further progress: [raw sensor/hand conditioning](experiments/probes/P-20261010-rawsensor-hand-conditioning.md)
+acquired10 tasks across5 settings,14.39MB/40 verified labels, and qualified330/535
+complete windows from4 fitting/5 held tasks. Many original empty hand rows are
+retained as NaN/invalid, not silently imputed. Fixed raw/255 matched500-update
+three-arm MLP screen at `cc16f9e` fails: groupA h24 held-task macro actual future
+hand4.607 counts vs history4.238/shuffle4.131/persistence3.435. Group hardware
+roles remain UNKNOWN. Fit gains are real but no held-task teacher benefit. No
+native auxiliary integration or expansion follows. Total local additions<120MB.
+
+The rigidity audit is mixed (.393/.763 residual-to-motion ratios for qualifying
+dev clips), so no uniform depth-noise attribution. Decision checkpoint after
+three neural negative gates: prioritize current observation/physical interaction
+context and weak-label quality before more updates; keep core Mission and mature
+native main3 baseline. Next cheap action is paired RGB/context qualification for
+new diverse raw-sensor tasks. No active training remains.

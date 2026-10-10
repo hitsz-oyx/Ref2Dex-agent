@@ -206,3 +206,12 @@ sensor-representation probe; otherwise use manipulation conditioning/diverse
 label acquisition as the next question. This is raw sensor prediction, not force,
 contact or world-point supervision. CPU<=30s, <=100KiB, output
 `raw-dynamics-audit.json` under the original acquisition; original files untouched.
+
+
+The fixed-scale two-record raw dynamics audit at `5bee4df` finds65 changing
+FIT channels versus137 in held mouse. h8 active-channel normalized MAE for
+persistence/OLS is.013625/.021940 on held mouse; no preset history signal.
+Fitting USB has only8.13% h8 active point-channels changing>=2 byte counts.
+These short samples were inadequate for a learning decision. Follow-up longer
+[raw sensor/hand conditioning screen](P-20261010-rawsensor-hand-conditioning.md)
+acquired10 original TRAIN tasks and preserves missing WiLoR hands explicitly.
