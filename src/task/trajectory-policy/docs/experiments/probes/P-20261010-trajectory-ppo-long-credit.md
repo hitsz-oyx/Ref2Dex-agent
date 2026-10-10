@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [293, 294]
 decision_changed_if_positive: retain longer-credit trajectory PPO baseline and verify the physical mechanism before WM
 decision_changed_if_negative: inspect actual policy movement and stochastic exploration before further training
-status: UNCLEAR
+status: UNPROMISING
 run_id: trajectory-ppo-long-credit-20261010-r1
 ---
 
@@ -130,6 +130,42 @@ physics/extraepoch. Ifmovement remains tiny relativedeclared Gaussiannoise,
 nextdecision examines trust-region/updatescale; ifsubstantial, investigate
 closed-loop/contact execution before changingoptimization. Read-only independent
 negative-result review requested underAGENTS14, limitedsource/trace scope.
+
+Independent frozen execution audit `f5a965d` passed:H/c/D/nativeEuler/FKexact,
+velocity3.81e-6, Rfeatures3.81e-6, command2.38e-7, PD0, outcomes/screen agree.
+No simulation rerun. Allcheckpoints/originalfailedvalidator retained.
+
+`77b0e9e` fixed-H movement diagnostic completed in 5.800s onGPU4,
+all68x4 warm-history queries retained. Metrics here are **per-coordinate RMS**
+(not Euclidean per-point RMS). Initial handmean movement:warm->lambda.95
+.01747mm, warm->lambda1 .02569mm. Before contact(ticks0--40), lambda1
+XYZmean change<=.03893mm, handmean<=.04205mm, fingermax8.12e-5rad; actualXYZ
+samplingstd1mm. Thus update amplitude is small relative to exploration at these
+fixed measured inputs; not proof that optimization is locked or causal failure
+attribution. Failed warm-H aftercontact may also be OOD; no physicalcounterfactual.
+
+Read-only independent review confirmed actuallambda intervention: firstrollout
+FP32 A replaylambda1exact; reusinglambda.95 woulderr11.7264. All96epochs accepted,
+KLmedian .003782, LR6.25e-8, stdalmostunchanged. Longercredit improves sampled
+startup signal butdoesnot establish frozenmeangrasp. Root chooses the next
+cheapest **frozen stochastic warm/final comparison withdeclared paired noise**
+beforeanothertraining change, to distinguish learning instochastic deployment
+from occasionalexploration successes. Newprotocol/resourcecard must precede
+thatwave; none launched here. If no usable stochastic gain, then investigate
+actualKL/step movement onretainedbatches before any optimizer tweak; packetslack
+Adam moments, so freshoptimizer replay mustnot be called an exactcounterfactual.
+No morelambda/epoch/BC/48D sweeps, noWMactivation orMission claimchange.
+
+Artifacts:
+- `outputs/trajectory-policy/trajectory-ppo-long-credit-20261010-r1/`
+- `outputs/trajectory-policy/trajectory-ppo-long-credit-training-audit-20261010-r1/` (FP64validatorfailure)
+- `outputs/trajectory-policy/trajectory-ppo-long-credit-training-audit-20261010-r2/`
+- `outputs/trajectory-policy/trajectory-ppo-long-credit-execution-20261010-r1/`
+- `outputs/trajectory-policy/trajectory-ppo-long-credit-execution-audit-20261010-r1/`
+- `outputs/trajectory-policy/trajectory-ppo-credit-comparison-20261010-r1/`
+- `outputs/trajectory-policy/trajectory-mean-movement-20261010-r1/`
+12Task contracts passed andrepositoryverification passed. Currentoutputs119GiB,
+wellbelow300GiB global cap; thisProbe artifacts remainwithin512MiB and14GPUmin.
 
 ## Limitations / future evidence
 

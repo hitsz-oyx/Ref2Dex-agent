@@ -5,7 +5,7 @@
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
 [ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。新路线采用独立绝对
 trajectory latent actor、固定D/R、真实奖励PPO baseline，之后检验WM动作条件
-physical token是否改善策略训练。根级Mission/Cm claim不变，新Task已训练首轮BC初始化，尚未获得可用高层策略或RL收益。
+physical token是否改善策略训练。根级Mission/Cm claim不变，新Task已训练BC初始化及两轮短PPO，尚未获得可用高层策略或RL收益。
 已实现固定48维D，2个微型合同测试通过；首轮
 [D/R覆盖Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md)
 ce503af native16env/542步完成57.29s：原GT3/4长时终末held，dense FK4/4；
@@ -48,7 +48,15 @@ warm start；不以oracle数据/监督loss替代实际RL或Cm收益。
 已有rollout独立审查发现7条>=45held探索行启动normalized A均负；
 `12a0f7c` GPU固定快照credit回放只改lambda.95->1，启动样本实际概率提升由1/7
 变5/7，meanlogpchange-.086->+.194，KL<=.00876。机制线索PROMISING，未新物理收益；
-下一步只改lambda的有界任务Probe，尚未启动；核心目标与WM收益仍未完成。
+后续 [lambda1任务Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md)
+`0487233` 完成24update/48992交互/265s；首轮128controls与lambda.95完全相同，
+9/12长held探索行启动Apositive，但冻结GT/dense各3/4，warm/final仍0/4形成held。
+完整H/概率/GAE/随机c解码/R/native/outcome审计通过，局部UNPROMISING。FP64validator
+误差原样保留，独立FP32 A/return复算exact，未重跑训练/物理。
+`77b0e9e` 固定warmH诊断：lambda1接触前XYZ均值改动最大.03893mm（per-coordinate
+RMS），探索std1mm，未形成足够mean策略变化的线索。下一步先冻结warm/final同条件
+随机采样执行，区分stochastic部署收益与探索偶然成功，再决定optimizer诊断；
+不直接增加epochs/改LR。核心目标与WM收益仍未完成。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
