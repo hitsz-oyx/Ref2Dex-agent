@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [231]
 decision_changed_if_positive: retain official H5 video plus robot-state auxiliary for matched native backbone transfer
 decision_changed_if_negative: close this H5 state-conditioned recipe while keeping RBO and other official RGB routes separate
-status: PLANNED
+status: UNPROMISING
 run_id: official-video-state-aux-20261011-r1
 ---
 
@@ -53,12 +53,29 @@ by context joint/gripper state.
 
 ## Results
 
-Pending execution.
+The protocol-compliant run used seed 231, the immutable state-feature pack,
+the same 8/2 temporal split and 20 samples, 512 tracks per sample, and 500
+updates on GPU1. It completed in 70.5 s with peak allocation 1,003 MiB. No
+official checkpoint or ZED dependency was used; the H5 SHA256 remained
+`99bfb31a46c331fa49b87ca33f46fc17a5795c8f1785562e043122d0e27caa2b`.
+
+| held metric | state-conditioned model | static persistence |
+|---|---:|---:|
+| H1 EPE | 1.021 mm | 0.722 mm |
+| H5 EPE | 1.724 mm | 1.461 mm |
+| H10 EPE | 2.183 mm | 1.878 mm |
+
+The state-conditioned arm loses to persistence at every horizon and on both
+held clips. The result is `UNPROMISING` for this one-context official H5
+state-conditioned auxiliary recipe. The data adapter and random-initialized
+training path remain valid; the negative result is not evidence that all
+official video or robot-state pretraining is impossible.
 
 ## Limitations / future evidence
 
-This is still one DROID episode and a short auxiliary task. A positive result
-only justifies a matched native transfer Probe; it does not establish Cm policy
-utility or cross-episode generalization. A negative result closes this
-state-conditioned H5 recipe, not RBO measured wrench data or official RGB/state
-front-end research in general.
+This is still one DROID episode and a short auxiliary task. The held clips are
+temporal tails from the same episode, not independent tasks. This result closes
+the current state-conditioned H5 recipe for further native transfer investment;
+it does not establish Cm policy utility, cross-episode generalization, or a
+negative result for RBO measured wrench data, CHORD simulator support, or a
+different officially qualified RGB/state front end.

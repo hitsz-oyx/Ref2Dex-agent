@@ -164,6 +164,13 @@ the explicitly separate H5 gripper/joint-state-conditioned auxiliary; this
 result does not answer whether official video plus robot state can help the
 native representation.
 
+The follow-up [official H5 state-conditioned Probe](experiments/probes/P-20261011-official-video-state-aux.md)
+then used only context joint/gripper state in the same 18-D input and the
+pre-registered seed 231. It also lost to persistence on held H10 (2.183 vs
+1.878 mm), so close this one-context H5 recipe for further transfer investment.
+Keep the conclusion local: the episode/split is small and this does not reject
+other qualified official RGB/state front ends or measured-wrench routes.
+
 The bounded [RBO RGB-D/FT adapter Probe](experiments/probes/P-20261011-rbo-wrench-alignment.md)
 then completed on one pinned 42 MB interaction archive. All 295 RGB anchors
 matched registered depth, FT, joint, rigid-body, camera, object, and sensor TF
