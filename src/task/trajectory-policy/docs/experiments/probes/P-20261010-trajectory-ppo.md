@@ -43,7 +43,7 @@ queried for actions. D/R weights/normalization are frozen. Actor mean and
 logstd are trainable; Gaussian raw c density is used before deterministic D
 bounds, one joint logprob per high-level sample, no low-step probability copies.
 
-Task reward from actual after-step geometry: .2 exp(-50*unsignedsurfacegap),
+Task reward from actual after-step geometry: .2 exp(-2*unsignedsurfacegap),
 +.5 clip(lift/.2,0,1) ifgap<=.01, +1 ifnear andunsupported andlift>=.03,
 -.5 on held->lost, -.1 native clipping, -.01 mean squared native action change.
 Lift is current object center z minus its measured reset z. Supported means
@@ -62,8 +62,9 @@ initialization, recorded; future frozen comparison uses same precision.
 
 Train seed293,16env,24updates x16high transitions; <=49152actual environment
 interactions (shortterminalprefixes reduce count). Full-batch4epochs PPO clip.2,
-actor Adam lr1e-6, value Adam lr3e-4, maxgrad.5/1, stop actor epochs if mean joint
-Gaussian KL>.02; logstd clamp log(.01):log(.2). No entropy/behavior-prior/WM terms.
+actor Adam lr1e-6, value Adam lr3e-4, maxgrad.5/1, backtrack actor proposals until mean joint
+Gaussian KL<=.02 (factor.25, atmost4trials; restore actor/Adam moments on rejection,
+retain reduced LR; stop epochs if no feasible proposal); logstd clamp log(.01):log(.2). No entropy/behavior-prior/WM terms.
 Before updating, behavior logprob replay max must<=.02 to catch precision/layout
 errors. Save every rollout's pre-update actor/value snapshot and final checkpoint
 once; all high H/c/distribution/logprob/duration/value/reward/GAE/returns plus
@@ -96,7 +97,18 @@ OldTask stayspaused, main/no branch/push, no external writes/process changes.
 
 ## Results
 
-Not run yet.
+Formal Probe not run yet. Engineering smoke r1 (`57d9390`, debug9) completed
+13.398s,448interactions on an artificial14control horizon,8/6duration/reset masks
+correct; actor parameters changed and behavior-logprob replay<=.00055. It found
+vanishing exp(-50gap) reward (gap1.03--1.37m, proximity<=8.76e-24) and first-step
+joint KL1.67/1.07 despite early stopping. This is engineering evidence for fixing
+reward scale and trust control before scientific training, not policy failure.
+Preserve `outputs/trajectory-policy/trajectory-ppo-smoke-20261010-r1/`.
+
+Pre-training repair: physical distance kernel exp(-2gap), no reference terms;
+finite KL proposal backtracking, fixed no-accept rollback. Same Gaussian action,
+D/R/H, horizon and task metrics. Smoke r2 must verify these changes before the
+single formal training run; totalengineering cost remains within120s cap.
 
 ## Limitations / future evidence
 

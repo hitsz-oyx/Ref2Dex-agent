@@ -140,6 +140,7 @@ def main():
         updates=args.updates, high_steps=args.high_steps, envs=16, episode_controls=episode_controls,
         engineering_smoke=args.engineering_smoke, gamma=.99, gae_lambda=.95,
         actor_lr=1e-6, value_lr=3e-4, clip_ratio=.2, epochs=4, target_joint_kl=.02,
+        actor_backtrack_factor=.25, actor_backtrack_trials=4,
         inference_contract='Measured H328 -> independent sampled c288 -> D -> tau -> frozen R; no future reference, phase, force or WM',
         reward_contract='Current physical proximity/lift/held/loss/native control cost; native reference reward ignored',
         claim='Bounded trajectory PPO Probe, not Validation or Cm utility')
@@ -336,12 +337,12 @@ def main():
                 state = gpu_state(args.gpu)
                 for row in state['processes'].splitlines():
                     pid, memory = map(int, row.split(','))
-                    if pid not in initial_pids | {os.getpid()} and memory > 512:
+                    if pid != os.getpid() and memory > 512:
                         raise RuntimeError('foreign GPU compute detected')
                 monitor = dict(update=update_index+1, low_controls=low_index, environment_interactions=low_index*n,
                     mean_discounted_chunk_reward=float(batch['reward'].mean()),
                     actor_steps=result['actor_steps'], policy_loss=result['policy_loss'], value_loss=result['value_loss'],
-                    joint_action_kl=result['joint_action_kl'], behavior_logprob_error=result['behavior_logprob_error'],
+                    joint_action_kl=result['joint_action_kl'], actor_lr=result['actor_lr'], behavior_logprob_error=result['behavior_logprob_error'],
                     elapsed_s=time.monotonic()-started, eta_s=(time.monotonic()-work_started)/(update_index+1)*(args.updates-update_index-1), gpu=state)
                 metrics.append(monitor)
                 print(json.dumps(monitor), flush=True)

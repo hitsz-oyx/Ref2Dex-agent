@@ -1,4 +1,6 @@
 """Task-only reward and variable-duration high-level PPO contracts."""
+import copy
+
 import torch
 from torch import nn
 
@@ -9,7 +11,7 @@ def task_reward(gap, lift, supported, previous_held, clipped, action_delta):
     """Only actual present geometry/control; no reference/force/phase argument."""
     near = gap <= .01
     held = near & ~supported & (lift >= .03)
-    terms = dict(proximity=.2*torch.exp(-50*gap.clamp_min(0)),
+    terms = dict(proximity=.2*torch.exp(-2*gap.clamp_min(0)),
         lift=.5*(lift/.2).clamp(0, 1)*near,
         held=held.float(), loss=-.5*(previous_held & ~held).float(),
         clipping=-.1*clipped.float(), action_rate=-.01*action_delta.square().mean(-1))
@@ -72,13 +74,27 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer)
         actor_optimizer.zero_grad(set_to_none=True)
         objective.backward()
         torch.nn.utils.clip_grad_norm_(actor.parameters(), .5)
-        actor_optimizer.step()
-        with torch.no_grad():
-            kl = float(torch.distributions.kl_divergence(old_distribution, actor.distribution(h)).sum(-1).mean())
+        state = {key: value.detach().clone() for key, value in actor.state_dict().items()}
+        optimizer_state = copy.deepcopy(actor_optimizer.state_dict())
+        accepted = False
+        for trial in range(4):
+            actor_optimizer.step()
+            with torch.no_grad():
+                kl = float(torch.distributions.kl_divergence(old_distribution, actor.distribution(h)).sum(-1).mean())
+            if kl <= .02:
+                accepted = True
+                break
+            next_lr = actor_optimizer.param_groups[0]['lr']*.25
+            actor.load_state_dict(state)
+            actor_optimizer.load_state_dict(optimizer_state)
+            actor_optimizer.param_groups[0]['lr'] = next_lr
+        if not accepted:
+            # A failed trust-region proposal leaves actor and Adam moments intact.
+            with torch.no_grad():
+                kl = float(torch.distributions.kl_divergence(old_distribution, actor.distribution(h)).sum(-1).mean())
+            break
         steps += 1
         policy_loss = float(objective)
-        if kl > .02:
-            break
     for epoch in range(4):
         value_loss = (value_net(h)-target).square().mean()
         if not torch.isfinite(value_loss):
@@ -89,4 +105,4 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer)
         value_optimizer.step()
     return dict(advantage=advantage.detach(), returns=returns.detach(),
         actor_steps=steps, policy_loss=policy_loss, value_loss=float(value_loss),
-        joint_action_kl=kl, behavior_logprob_error=replay_error)
+        joint_action_kl=kl, behavior_logprob_error=replay_error, actor_lr=actor_optimizer.param_groups[0]['lr'])
