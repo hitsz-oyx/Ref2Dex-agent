@@ -71,3 +71,23 @@ three neural negative gates: prioritize current observation/physical interaction
 context and weak-label quality before more updates; keep core Mission and mature
 native main3 baseline. Next cheap action is paired RGB/context qualification for
 new diverse raw-sensor tasks. No active training remains.
+
+
+Paired-current RGB/context follow-up: [visual context screen](experiments/probes/P-20261010-egotouch-visual-context.md)
+verified ten chest videos38.86MB, all original frame counts/IDs agree, max relative
+clock deviation0.667ms. Root fixed30-frame inspection confirms visible hand/object
+context; nominal Home/Office/Outdoor categories share the same physical table, so
+no environment-independent claim. Frozen local ImageNet ResNet18 extracted3655
+frame-local features,8.46s/3.24MB/389MiB CUDA. Learner uses only current start+3.
+Six matched500-step MLP arms at347a184 finish10.72s/667MiB CUDA: groupA endpoint
+macro history_rgb4.173/future_hand_rgb4.415 vs persistence3.435 counts. Both preset
+context and conditional-motion gates fail; no sensor/native auxiliary scale-up.
+
+Same-track h8 image-coordinate audit atdbcd471 retains exact3D denominators.
+Dev last-two CV2.488/37.554px improves over image-static5.204/49.492px in both
+clips; H4 OLS2.516/45.405px fails preset10%-in-both gate. This is a useful contrast
+with3D history extrapolation, not proof of depth noise because camera motion and
+world estimation differ. Next minimal weak-label action is a common endpoint-
+camera reprojection diagnostic before choosing a new weak-video loss/label route.
+All training/extraction ended;9 focused temporal/geometry/interface tests pass.
+New artifacts remain well within campaign bounds; no new remote/policy operations.

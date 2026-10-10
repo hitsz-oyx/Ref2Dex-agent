@@ -304,3 +304,29 @@ that depth reconstruction rather than camera motion or other errors caused the
 3D result. This diagnostic changes the next data/auxiliary choice, not the Mission
 claim or native data contract. Artifact image-motion-audit.json alongside prior
 history-motion/rigidity audits; preserve all prior results.
+
+
+Image-history audit atdbcd471 completed20.10s on CPU. All per-clip h8 support
+counts exactly match the3D history audit, including dev3941/309 labels; no new
+future-visibility filter or denominator change. Qualified dev pixel EPE:
+
+| Clip | image-static | last-two CV | H4 OLS |
+| --- | ---: | ---: | ---: |
+| P03_13_12 |5.204|2.488|2.516|
+| P03_13_19 |49.492|37.554|45.405|
+
+Fixed OLS10%-in-both gate fails (second clip improves8.26%); report
+NO_PRESET_IMAGE_HISTORY_SIGNAL without changing the threshold. Last-two CV is
+better than image-static in both clips (52.2%/24.1% reductions), an exploratory
+clue even though corresponding3D last-two CV loses to world-static. The clips
+are not uniformly devoid of predictable image motion. This does not prove depth
+error: image targets contain camera motion,3D targets infer world coordinates,
+and camera/world reconstruction can contribute. No2D neural learner or static-
+pixel auxiliary promoted from this diagnostic; the declared gate remains failed.
+
+Next cheap Decision if continuing weak3D: compare world-static/world-history
+predictions under a common endpoint-camera reprojection metric, with future
+camera used only by the scorer, to separate radial/depth error from spatial-image
+error without giving the predictor future pose. Retain the native main3 model;
+no large weak-video scale-up on the current pilot. Further confirmation and a
+positive matched transfer screen are required before claiming video helps Cm.

@@ -5,7 +5,7 @@ experiment_id: P-20261010-egotouch-visual-context
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 46c787d
+git_commit: 347a184954f84d111e2d966f3d0d91789b4e5e2e
 claim_id: C1
 hypothesis_family: HF-egotouch-visual-context
 probe_index_in_family: 1
