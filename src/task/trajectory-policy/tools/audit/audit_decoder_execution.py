@@ -89,7 +89,7 @@ def main():
         target = geometry_q[indices]
         q = plans['q'][j]
         def error(key, actual, expected):
-            errors[key] = max(errors[key], float(np.max(np.abs(actual-expected))))
+            errors[key] = max(errors.get(key, 0.), float(np.max(np.abs(actual-expected))))
         error('dense_q', q[gt | dense, 1:], target[None])
         error('dense_fk_hand', plans['hand'][j, dense], geometry_hand[indices][None])
         error('gt_hand', plans['hand'][j, gt], reference_hand[indices][None])
