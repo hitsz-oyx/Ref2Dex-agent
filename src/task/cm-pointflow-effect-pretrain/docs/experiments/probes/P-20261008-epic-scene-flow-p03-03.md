@@ -19,6 +19,14 @@ run_id: epic-scene-flow-p03-03-20261008
 
 # EPIC scene-flow conversion without object-pose supervision
 
+Training qualification update (2026-10-10): the geometry candidate remains
+historical evidence, but its reported full hand window used side-only validity.
+[The corrected readiness probe](P-20261010-video-data-readiness.md) applies all
+semantic joints, verified/high-confidence quality, metadata clocks, source
+splits and persistent LK masking. The first plate window now has17/28 qualified
+right-hand frames; none of95 audited local candidate starts qualifies. Do not
+use the historical one-window count as training readiness.
+
 This Probe tests the revised data contract: EPIC-Contact contributes hand and
 hand-object geometry, while the RGB clip, depth, camera trajectory and object
 mask produce persistent scene points. FoundationPose `T_c_o`, the TRELLIS mesh,

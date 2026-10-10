@@ -5,7 +5,7 @@ experiment_id: P-20261010-egotouch-label-schema
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: a33305e905042c77bae6f5c8823ffe6663b992c7
 claim_id: C1
 hypothesis_family: HF-tactile-data-readiness
 probe_index_in_family: 1
@@ -57,7 +57,46 @@ this bounded public-data sample under the user's video/tactile exploration.
 
 ## Results
 
-Pending execution of the committed protocol.
+Result: UNCLEAR for training readiness. Acquisition completed in129.97s, with
+485754 bytes and10 verified files. Domestic mirror requests timed out; official
+HF through the project proxy succeeded. Every size and Git/LFS checksum matched
+the pinned revision. No video or model was downloaded.
+
+Acquisition: `manifest.json` under the run output. Numeric audit:
+`label-audit.json`, executed at `f8ff894` using
+`tools/audit/audit_egotouch_label_schema.py`.
+
+| Sample (official TRAIN) | USB cable | mouse |
+| --- | --- | --- |
+| Task / recording |Home/plug_unplug_usb_cable/20260320_135743_682|Office/slide_mouse/20260314_161602_832|
+| Pressure / Wilor / Vive rows |43 /43 /43|47 /47 /47|
+| Source frame IDs |all three match, contiguous|all three match, contiguous|
+| Pressure clock step range |33.3333–33.3335ms|33.0000–34.0002ms|
+| Wilor clock |relative, synthetic30Hz|relative, synthetic30Hz|
+| Pressure / Vive timestamps |exactly match|exactly match|
+| Valid cells /441, per hand |217|217|
+| Per-record tactile / bend max |20 /30|50 /45|
+| Baseline corrected / separate normalization |true /true|true /true|
+| Wilor `aligned_to_vive` |false|false|
+| Explicit joint confidence / validity |absent|absent|
+| Camera calibration file |absent|absent|
+| Clip-level annotated contact (left / right) |false /false|false /false|
+
+Unmeasured cells are NaN with a constant spatial mask, not observed zero
+pressure. Both 21-joint hands are finite, but original z values range6.21–19.07
+in the released coordinate convention; no calibrated stationary-world or
+physical-unit claim follows. Equal frame IDs are an engineering alignment
+signal; RGB synchronization remains untested. Both sampled episodes are
+clip-level no-contact, illustrating the bias of the cheapest-recording selector.
+Normalized nonzero cells do not establish contact or calibrated force.
+
+Decision: keep tactile training gated. Next cheap tactile probe should select
+a contact-positive TRAIN episode using its original annotation, retain original
+frame IDs and sparse sensor masks, separate pressure from bend, and establish
+RGB/camera relations before hand-world targets. Preserve per-record maxima;
+these grids are not directly comparable calibrated force targets. Tactile
+remains an optional auxiliary target/teacher for the geometry route, not a
+required robot inference input.
 
 ## Limitations / future evidence
 

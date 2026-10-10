@@ -131,3 +131,18 @@ for Isaac net contact forces. See the [source and implementation review](docs/re
 Remote connection details are in [the Windows bridge guide](../../../docs/user/连接远程服务器.md);
 current work continues on RLG. No new training or full dataset download has
 been launched by this review.
+
+The follow-up [EPIC readiness probe](docs/experiments/probes/P-20261010-video-data-readiness.md)
+repaired semantic-joint/quality masks, source splits, metadata clocks, background
+occlusion and permanent lost-track masking. The34 local clips have20 clock
+metadata files;95 candidate starts across four temporal overlaps yield zero
+complete hand windows. Keep these packs outside the native training manifest.
+This is a local coverage blocker, not evidence against video learning.
+
+The [original tactile label sample](docs/experiments/probes/P-20261010-egotouch-label-schema.md)
+acquired two TRAIN bundles (485754 bytes,10 verified files). Original frame IDs
+agree, but only217/441 grid cells are measured, per-record pressure/bend maxima
+differ, confidence and camera calibration are absent, and both cheapest
+episodes are annotated no-contact. Next qualification should use a
+contact-positive episode and original clocks; neither sample is registered
+for point-dynamics training.

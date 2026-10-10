@@ -235,3 +235,38 @@ OakInk source manifest含627条序列；GRAB/ARCTIC共享native manifest共1636�
 单独EgoTouch head通过，不代表把它拼到物体head会有效；共享encoder和robot
 contact融合仍要matched小Probe检验，不能用跨数据集非配对样本伪造联合标签。
 当前尚未实现新head、改变模型架构、启动新训练或进行大下载。
+
+### 同日后续：修复与真实标签抽样已完成
+
+上述问题清单描述修复前状态；最新可执行证据见
+[EPIC readiness卡](../experiments/probes/P-20261010-video-data-readiness.md)和
+[EgoTouch schema卡](../experiments/probes/P-20261010-egotouch-label-schema.md)。
+
+EPIC converter现为v2：使用semantic11逐关节/finite/quality有效性、两端插值
+支持域、原始train/test划分、metadata时钟，以及永久失效的LK身份；背景每帧
+排除hand/object遮挡。上游
+[step1_split.py](https://github.com/RustinS/ObjectForesight-Data/blob/main/step1_split.py)
+先算`ts_start-pad`再写入metadata.start_frame，故padding已经包含在1929中，
+不能再减5或用Contact首帧1927代替。原始源帧号和local索引分别保存，实际
+stride-two时钟为29.97002997Hz；仍未进行严格30Hz重采样。
+
+34个本地clip中14个P01_03 clip缺少action.meta时钟，另20个有时钟。两份
+Contact形成4个时间重叠候选，95个H4+K24起点中0个通过严格手标签检查。
+已验证的plate/bottle首窗口手有效帧17/28、0/28，完整运动track176/74。
+仅有运动track不能补足动作条件手输入，也不能直接接入当前刚体decoder。
+这阻塞当前本地EPIC子集的联合训练，不反驳视频自监督动力学路线。
+
+EgoTouch从固定raw revision下载两个TRAIN任务的10个标签文件，共485754B，
+全部Git/LFS校验通过；ModelScope检索未发现对应release，国内镜像超时后
+通过项目代理下载官方源。压力/Wilor/Vive原始frame_index在样本中完全一致，
+但Wilor时间戳是相对30Hz合成时钟，而sensor/Vive使用绝对采集时间戳，
+mouse实际步长33–34ms。网格每手217/441位置有效，其余是NaN；压力/bend
+各自归一化，两个episode的max分别20/30与50/45，不能当跨episode的统一
+物理力单位。两个样本均`aligned_to_vive=false`，无手关节confidence/validity，
+无camera_matrix，且clip-level左右contact均false。因此样本只能用于数据
+接口检查，不能形成world-point监督或证明触觉有效。
+
+下一步选择：视频可先探索不依赖未来手标签的point-track预测，然后单独检查
+与native手动作条件表示的迁移；触觉先采contact-positive TRAIN样本、保留
+frame_id/未测量mask/pressure-bend区别，并核对RGB与相机关系。训练主来源
+仍为OakInk2/GRAB/ARCTIC，现有sharedstats checkpoint和全部旧实验输出保留。

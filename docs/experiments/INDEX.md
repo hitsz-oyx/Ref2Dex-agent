@@ -263,13 +263,13 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-egotouch-label-schema](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-label-schema.md) | EgoTouch original label schema sample | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-egotouch-label-schema](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-label-schema.md) | EgoTouch original label schema sample | UNCLEAR for training readiness. Acquisition completed in129.97s, with | keep tactile training gated. Next cheap tactile probe should select | probes/UNCLEAR |
 
 ## HF-video-data-readiness
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-video-data-readiness](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-data-readiness.md) | Local video data readiness after semantic contract repairs | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-video-data-readiness](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-data-readiness.md) | Local video data readiness after semantic contract repairs | UNPROMISING for immediate joint hand/scene training from this local | retain OakInk2/GRAB/ARCTIC as main training sources. Do not start mixed | probes/UNPROMISING |
 
 ## HF-y-noise-tolerance
 

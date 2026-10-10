@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: []
 decision_changed_if_positive: qualify a bounded weak-video adapter before mixed-source training
 decision_changed_if_negative: retain native main sources and acquire denser video hand labels before training
-status: UNCLEAR
+status: UNPROMISING
 run_id: video-data-readiness-20261010-r1
 ---
 
@@ -76,6 +76,43 @@ The inventory correction records those missing clocks explicitly and treats
 video/time overlap as a candidate match rather than confirmed object pairing.
 The initial `readiness.json` is preserved; rerun inventory goes to
 `readiness-inventory-r2.json`, with its own execution commit/hash.
+
+Result: UNPROMISING for immediate joint hand/scene training from this local
+EPIC subset; this does not test the video-pretraining method. Inventory rerun
+at `a7783600bd80aca743dddb6b539ae0c829483829` finds34 local scenes,20 scene-clock
+metadata files and14 missing clocks, all in P01_03. Two Contact files have four
+source-video/time overlaps: P03_03_23 (11 starts), P03_13_11 (28), P03_13_12 (52),
+P03_13_13 (too short, zero starts). All95 starts yield zero qualified windows.
+These overlaps are temporal candidates, not four verified same-object pairs.
+
+| First-window replay | plate / P03_03_23 | bottle / P03_13_12 |
+| --- | --- | --- |
+| Metadata source start |4054|1929|
+| Source split (ObjectForesight / Contact) |train / train|train / test|
+| Qualified source right-hand rows |20/30|14/30|
+| Qualified target right-hand frames |17/28|0/28|
+| Fully valid moved-point tracks |176|74|
+| Candidate H4+K24 windows |0|0|
+| Training allowed |false|false|
+
+Both geometry replays ran converter commit `b550e84` (SHA256
+`d3712efc666869938417eddfc694d8f10fc0741acf092b709e8cb96c076e04c6`).
+The bottle source starts before the video origin; it may supply a bracketed
+observation, but cannot shift the video to the first Contact row. Its five/six
+frame label gaps do not satisfy the fixed <=3-frame rule. Historical side-only
+window counts are superseded for training qualification.
+
+Decision: retain OakInk2/GRAB/ARCTIC as main training sources. Do not start mixed
+EPIC training or spend on a rigid-native decoder adapter for zero accepted
+windows. Next video work should test video-only track prediction separately or
+obtain denser, confidence-masked hands; both need qualified source clocks and
+their own adapter. The [tactile schema probe](P-20261010-egotouch-label-schema.md)
+checks a cheaper auxiliary-supervision entry point.
+
+Verification:18 EPIC/tactile contract tests pass, including original failed-LK
+revival reproduction (`tmp/video-readiness-regression/repro.json`), joint/quality
+masking, non-extrapolation, source split preservation, missing-clock inventory
+and frame-identity preservation. No model training or checkpoint write occurred.
 
 ## Limitations / future evidence
 
