@@ -110,6 +110,13 @@ finite KL proposal backtracking, fixed no-accept rollback. Same Gaussian action,
 D/R/H, horizon and task metrics. Smoke r2 must verify these changes before the
 single formal training run; totalengineering cost remains within120s cap.
 
+Repair smoke r2 (`b1bdb20`) completed13.423s/448interactions: jointKL .013974
+and .001818, four accepted actor steps each, replaylogprob max .000336,
+actor parameter L2 change9.68e-5. Proximity .0130--.0255; duration8/6 and
+terminal/reset masks correct. Engineering passed; no grasp inference from14steps.
+Before formal training, preserve actual rollout-end H alongside V bootstrap to
+permit independent snapshot/value replay; this adds trace data only.
+
 ## Limitations / future evidence
 
 Single motion/seed, small interaction budget, imperfect BC warm start and frozen

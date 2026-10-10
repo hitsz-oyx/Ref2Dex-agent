@@ -325,13 +325,14 @@ def main():
                             episode_start = low_index
                 batch = {key: torch.stack(values) for key, values in records.items()}
                 with torch.no_grad():
-                    bootstrap = value_net(observation()).detach()
+                    bootstrap_history = observation()
+                    bootstrap = value_net(bootstrap_history).detach()
                 with torch.enable_grad():
                     result = ppo_update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer)
                 for chunk in range(args.high_steps):
                     high_records[-args.high_steps+chunk].update(
                         advantage=result['advantage'][chunk].cpu().numpy().copy(), returns=result['returns'][chunk].cpu().numpy().copy(),
-                        bootstrap=bootstrap.cpu().numpy().copy())
+                        bootstrap=bootstrap.cpu().numpy().copy(), bootstrap_history=bootstrap_history.cpu().numpy().copy())
                 with torch.no_grad():
                     actor.log_std.clamp_(-4.605170186, -1.609437912)
                 state = gpu_state(args.gpu)
