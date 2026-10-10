@@ -91,4 +91,20 @@ learning or original-task training needs its own decision-serving protocol.
 
 ## Runs
 
-Pending. Actual code identity is captured in each run manifest after commit.
+Frozen comparison r1 (code c9e3604, seed273) completed the full542 controls.
+Teacher container passes8/16 hold45. Old tracker median285, near433 count0/16,
+terminal held0/16. Tracker+FF median479.5, near433 count13/16, terminal held13/16,
+zero clipping; hand RMSE11.88mm versus29.61mm, object RMSE52.58mm versus212.46mm.
+Predeclared frozen intervention screen PROMISING. Two intervention rows have
+legacy intermediate loss events; qualifying rows are checked individually.
+Initial q/dq/hand/object are bitwise aligned and all native PD reconstruction
+errors are zero. Randomized roles still describe one launch, not Validation.
+Artifacts: outputs/consequence-evaluator/ref7_3-tracker-feedforward-{eval,audit}-20261010-r1/.
+
+Decision before training: the intervention passes the original strong screen
+without changing policy weights. Retain velocity feedforward and run the single
+predeclared seed274 warm-start128-update fine-tune, then fixed final seed275
+evaluation. This tests whether feedback/preload adapts to the corrected base;
+no parameter sweep or checkpoint selection. Preserve the frozen corrected
+controller independently even if fine-tuning degrades it. Expected~8 GPU minutes
+training plus~2 evaluation, within32-minute card budget. Stop conditions unchanged.

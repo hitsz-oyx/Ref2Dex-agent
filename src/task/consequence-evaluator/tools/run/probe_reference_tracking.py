@@ -159,7 +159,8 @@ def main():
                     reference_contract="privileged measured teacher robot-q/hand/object reference; no teacher commanded actions",
                     inference_contract="live q/dq/hand/object/velocity, fixed future hand and next robot/object reference, previous residual",
                     action_contract="bounded absolute residual PD targets around next reference q, encoded through native Inspire adapter",
-                    initialization="zero residual actor, random small critic; no official actor or future command labels",
+                    initialization=("warm-start declared owned tracker checkpoint; no official actor or future command labels"
+                                if args.checkpoint else "zero residual actor, random small critic; no official actor or future command labels"),
                     training_contract="on-policy PPO only; no imitation/action-label supervision; fixed final checkpoint",
                     source_authorization="2026-10-10 user approved ref7_3 control upper-bound Probe; old diagnostic training_allowed=false is not inherited as a data split",
                     claim="single-motion oracle robot-reference execution Probe; no tau-only deployment or Cm utility claim")
@@ -247,11 +248,13 @@ def main():
                 previous = torch.tanh(latent).detach()
                 return done.to(device).bool().reshape(-1), (intended - command).abs().amax(-1) > 1e-6
 
+            work_started = time.monotonic()
+
             def monitor(update, frames):
                 elapsed = time.monotonic() - started
                 state = gpu_state(args.gpu)
                 total = args.updates if args.mode == "train" else (8 if args.mode == "smoke" else 542)
-                eta = elapsed / max(update, 1) * max(total - update, 0)
+                eta = (time.monotonic() - work_started) / max(update, 1) * max(total - update, 0)
                 print(json.dumps(dict(update=update, frames=frames, elapsed_s=round(elapsed, 1),
                                       eta_s=round(eta, 1), gpu=state,
                                       torch_peak_mib=round(torch.cuda.max_memory_allocated() / 2**20, 1))), flush=True)
@@ -374,6 +377,7 @@ def main():
                         arrays[key].append(val.detach().cpu().numpy().copy())
                 record()
                 controls = 8 if args.mode == "smoke" else 542
+                work_started = time.monotonic()
                 for tick in range(controls):
                     with torch.no_grad():
                         x, measured, next_q, _, _ = observation()
