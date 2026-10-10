@@ -23,9 +23,60 @@ sys.path.insert(0, str(HERE))
 from audit_epic_contact_pair import SEMANTIC_11, SOURCE_FPS, grid_support, sha  # noqa: E402
 
 
-SCHEMA = 'ref2dex.epic-scene-flow.v1'
+SCHEMA = 'ref2dex.epic-scene-flow.v2'
 TARGET_FPS = 30.0
 WINDOW = 28
+
+
+def source_clock(meta, n_frames, requested_start=None):
+    """Metadata start already includes padding; stop is exclusive upstream."""
+    start, stop = int(meta['start_frame']), int(meta['stop_frame'])
+    fps = float(meta['fps'])
+    if not np.isfinite(fps) or not 0 < fps < 240 or stop - start != n_frames:
+        raise ValueError('metadata clock does not match the decoded frame count')
+    if requested_start is not None and requested_start != start:
+        raise ValueError('requested start frame disagrees with action.meta.json')
+    return start, fps
+
+
+def contact_quality(path, clip, frames):
+    """Missing, duplicate or unverified quality rows never qualify a hand."""
+    result = np.zeros((len(frames), 2), dtype=bool)
+    rows = {}
+    with Path(path).open() as f:
+        for row in csv.DictReader(f):
+            if row['clip'] != clip:
+                continue
+            key = (int(row['frame_num']), row['annotated_side'])
+            if key in rows:
+                raise ValueError('duplicate Contact quality row')
+            rows[key] = row
+    truth = lambda value: str(value).lower() in ('1', 'true')
+    for i, frame in enumerate(frames):
+        for s, side in enumerate(('r', 'l')):
+            row = rows.get((int(frame), side), {})
+            result[i, s] = all(truth(row.get(k, '')) for k in
+                               ('hand_valid_ok', 'high_confidence', 'clip_verified'))
+    return result
+
+
+def source_splits(scene, quality_csv, train_file, val_file):
+    """Retain both authorities; evaluation rows cannot become training rows."""
+    membership = []
+    key = scene + '/objects/0+object_0'
+    for name, path in (('train', train_file), ('val', val_file)):
+        if key in Path(path).read_text().splitlines():
+            membership.append(name)
+    if len(membership) != 1:
+        raise ValueError('ObjectForesight object has missing or conflicting split')
+    contact = {'epic_contact_train_frame_quality.csv': 'train',
+               'epic_contact_test_frame_quality.csv': 'test'}.get(Path(quality_csv).name)
+    if contact is None:
+        raise ValueError('unrecognized Contact split authority')
+    return dict(objectforesight=membership[0], epic_contact=contact,
+                train_eligible=membership[0] == contact == 'train',
+                authorities_sha256={str(Path(p).resolve()): sha(p) for p in
+                                    (quality_csv, train_file, val_file)})
 
 
 def rigid_valid(poses):
@@ -113,6 +164,9 @@ def static_tracks(depths, Ks, w2cs, object_masks, hand_masks, target_frames,
         residual = np.abs(sampled - camera[:, 2])
         good &= sampled > .05
         good &= residual <= np.maximum(.03, .05 * camera[:, 2])
+        visible = np.flatnonzero(good)
+        good[visible] &= (~object_masks[frame, vi[visible], ui[visible]]
+                          & ~hand_masks[frame, vi[visible], ui[visible]])
         valid[j] = good
         residuals.extend(residual[good].tolist())
         if good.any():
@@ -145,11 +199,17 @@ def track_object_rgb(gray, object_masks, target_frames, max_corners=512):
     positions[0] = p.reshape(-1, 2)
     previous = gray[0]
     current = positions[0].copy()
+    active = np.ones(len(p), dtype=bool)
     for frame in range(1, len(gray)):
+        indices = np.flatnonzero(active)
+        if not len(indices):
+            break
         q, status, _ = cv2.calcOpticalFlowPyrLK(
-            previous, gray[frame], current.reshape(-1, 1, 2), None,
+            previous, gray[frame], current[indices].reshape(-1, 1, 2), None,
             winSize=(21, 21), maxLevel=3,
             criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 20, .03))
+        if q is None or status is None:
+            break
         q = q.reshape(-1, 2)
         good = ((status.reshape(-1) > 0) & np.isfinite(q).all(1)
                 & (q[:, 0] >= 0) & (q[:, 0] < gray.shape[2])
@@ -157,8 +217,9 @@ def track_object_rgb(gray, object_masks, target_frames, max_corners=512):
         ui = np.rint(np.nan_to_num(q[:, 0], nan=-1)).astype(int).clip(0, gray.shape[2] - 1)
         vi = np.rint(np.nan_to_num(q[:, 1], nan=-1)).astype(int).clip(0, gray.shape[1] - 1)
         good &= object_masks[frame, vi, ui]
-        positions[frame, good] = q[good]
-        current = np.where(good[:, None], q, current)
+        active[indices[~good]] = False
+        positions[frame, indices[good]] = q[good]
+        current[indices[good]] = q[good]
         previous = gray[frame]
     target = positions[target_frames]
     return target
@@ -288,19 +349,29 @@ def fit_similarity(source, target, max_source=700, max_target=2400, iterations=8
                 matched_points=int(len(distances)))
 
 
-def load_contact_hand(contact_npz, target_frames, start_frame, max_frame_gap=3):
+def load_contact_hand(contact_npz, target_frames, start_frame, max_frame_gap=3,
+                      quality_csv=None, source_fps=SOURCE_FPS):
     with np.load(contact_npz, allow_pickle=True) as z:
         frames = np.asarray(z['_frame_num'], dtype=np.int64)
         hand = np.stack([np.asarray(z['mano.j3d.cam.' + s], dtype='float32')
                          for s in ('r', 'l')], axis=1)[:, :, SEMANTIC_11]
         valid = np.stack([np.asarray(z[s + '_valid'], dtype='float32') > .5
                           for s in ('right', 'left')], axis=1)
+        joint_valid = np.stack([np.asarray(z['joints_valid_' + s]) > .5
+                                for s in ('r', 'l')], axis=1)[:, :, SEMANTIC_11]
+        row_valid = np.asarray(z['is_valid']) > .5
         object_vertices = np.asarray(z['object.v.cam'], dtype='float32')
         object_t = np.asarray(z['object.cam_t'], dtype='float32')
         object_rot = np.asarray(z['object.rot'], dtype='float32')
     local = frames - start_frame
-    if np.any(local < 0) or np.any(local >= 10_000):
+    if len(frames) < 2 or np.any(np.diff(frames) <= 0):
         raise ValueError('EPIC-Contact frame numbering is invalid')
+    if quality_csv is None:
+        raise ValueError('Contact quality CSV is required')
+    quality = contact_quality(quality_csv, Path(contact_npz).stem, frames)
+    semantic_valid = joint_valid & np.isfinite(hand).all(-1)
+    valid &= semantic_valid.all(-1) & row_valid[:, None] & quality
+    valid &= (np.isfinite(object_t).all(-1) & np.isfinite(object_rot).all((-1, -2)))[:, None]
     # The Contact camera has a different metric origin from SpaTracker.  Keep
     # only object-relative hand geometry here; it will be placed by fitting the
     # Contact object mesh to the scene depth mask for each target frame.
@@ -309,8 +380,8 @@ def load_contact_hand(contact_npz, target_frames, start_frame, max_frame_gap=3):
     for i in range(len(frames)):
         hand_can[i] = np.einsum('svi,ij->svj', hand[i] - object_t[i], object_rot[i])
         object_can[i] = np.einsum('vi,ij->vj', object_vertices[i] - object_t[i], object_rot[i])
-    source_times = local.astype(float) / SOURCE_FPS
-    target_times = target_frames.astype(float) / SOURCE_FPS
+    source_times = local.astype(float) / source_fps
+    target_times = target_frames.astype(float) / source_fps
     lo, hi, exact, gap = grid_support(source_times, local, target_times,
                                        max_frame_gap=max_frame_gap)
     out = np.zeros((len(target_frames), 2, 11, 3), dtype='float32')
@@ -319,7 +390,8 @@ def load_contact_hand(contact_npz, target_frames, start_frame, max_frame_gap=3):
                  np.maximum(source_times[hi] - source_times[lo], 1e-9))
         out[:, side] = (hand_can[lo, side] * (1 - alpha[:, None, None])
                         + hand_can[hi, side] * alpha[:, None, None])
-    out_valid = valid[lo] & valid[hi] & ~gap[:, None]
+    outside = (target_times < source_times[0]) | (target_times > source_times[-1])
+    out_valid = valid[lo] & valid[hi] & ~(gap | outside)[:, None]
     out[~out_valid] = 0
     # The mesh is effectively static in Contact canonical coordinates.  The
     # per-frame spread is recorded so this assumption is auditable.
@@ -329,6 +401,11 @@ def load_contact_hand(contact_npz, target_frames, start_frame, max_frame_gap=3):
         source_rows=int(len(frames)), source_frame_range=[int(frames[0]), int(frames[-1])],
         target_valid_frames=out_valid.sum(0).tolist(), interpolated_frames=int((~exact).sum()),
         gap_crossing_frames=int(gap.sum()), max_source_gap_allowed=int(max_frame_gap),
+        outside_source_support_frames=int(outside.sum()),
+        invalid_semantic_joint_entries=int((~semantic_valid).sum()),
+        source_qualified_side_rows=valid.sum(0).tolist(),
+        quality_qualified_side_rows=quality.sum(0).tolist(),
+        quality_csv_sha256=sha(quality_csv),
         strict_gap_crossing_frames=int(grid_support(source_times, local, target_times,
                                                     max_frame_gap=2)[3].sum()),
         source_sha256=sha(contact_npz), canonical_mesh_vertices=int(len(canonical)),
@@ -434,7 +511,11 @@ def main():
     p.add_argument('--scene-dir', type=Path, required=True)
     p.add_argument('--contact-npz', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--start-frame', type=int, required=True)
+    p.add_argument('--start-frame', type=int)
+    p.add_argument('--window-start', type=int, default=0)
+    p.add_argument('--quality-csv', type=Path, required=True)
+    p.add_argument('--of-train-file', type=Path, required=True)
+    p.add_argument('--of-val-file', type=Path, required=True)
     p.add_argument('--extrinsics-convention', choices=('auto', 'w2c', 'c2w'),
                    default='auto')
     p.add_argument('--metadata-convention', choices=('w2c', 'c2w'))
@@ -451,12 +532,18 @@ def main():
     if not rigid_valid(raw_extrinsics).all():
         raise ValueError('invalid SpaTracker extrinsics')
     n_frames, h, w = depths.shape
+    meta_path = scene / 'action.meta.json'
+    start_frame, source_fps = source_clock(json.loads(meta_path.read_text()), n_frames,
+                                         args.start_frame)
+    splits = source_splits(scene.name, args.quality_csv, args.of_train_file, args.of_val_file)
     gray = read_video(scene / 'action.mp4', (w, h))
     if len(gray) != n_frames:
         raise ValueError('video and SpaTracker frame counts differ')
     object_masks = load_object_masks(scene / 'objects/0+object_0/masks.npz', (h, w), n_frames)
     hand_masks = load_hand_masks(scene / 'egohos/twohands_masks.npz', (h, w), n_frames)
-    target_frames = np.arange(WINDOW, dtype=np.int64) * 2
+    if args.window_start < 0:
+        raise ValueError('window start must be nonnegative')
+    target_frames = args.window_start + np.arange(WINDOW, dtype=np.int64) * 2
     if target_frames[-1] >= n_frames:
         raise ValueError('clip is shorter than one 4+24 30-Hz window')
     # Convention is a clip-level property.  Use the full clip (bounded to 64
@@ -483,7 +570,8 @@ def main():
         depths, Ks, w2cs, object_masks, gray, target_frames,
         max_points=args.max_object_points)
     (hand_can, hand_valid, hand_interpolated, canonical_object,
-     hand_audit) = load_contact_hand(args.contact_npz, target_frames, args.start_frame)
+     hand_audit) = load_contact_hand(args.contact_npz, target_frames, start_frame,
+                                    quality_csv=args.quality_csv, source_fps=source_fps)
     hand, hand_valid, alignment_audit = align_contact_hand_to_scene(
         hand_can, hand_valid, canonical_object, depths, Ks, object_masks, w2cs,
         target_frames)
@@ -499,16 +587,18 @@ def main():
         point_track_valid=scene_valid, point_kind=point_kind,
         hand_points_world=hand, hand_valid=hand_valid,
         hand_interpolated_mask=hand_interpolated,
-        source_frame_ids=target_frames, timestamps=target_frames / SOURCE_FPS,
+        source_frame_ids=target_frames + start_frame, local_frame_ids=target_frames,
+        timestamps=target_frames / source_fps,
         camera_c2w=c2ws.astype('float32'),
         static_point_count=np.asarray(static.shape[1]), moved_point_count=np.asarray(moved.shape[1]))
     audit = dict(
         status='CANDIDATE_ONLY', training_allowed=False, schema=SCHEMA,
         source_clip=scene.name,
         source_scene_dir=str(scene.resolve()),
-        source_start_frame=int(args.start_frame),
+        source_start_frame=start_frame, source_splits=splits,
         source_scene_sha256={
             'action.mp4': sha(scene / 'action.mp4'),
+            'action.meta.json': sha(meta_path),
             'spatracker.npz': sha(scene / 'spatracker.npz'),
             'object_masks.npz': sha(scene / 'objects/0+object_0/masks.npz'),
             'twohands_masks.npz': sha(scene / 'egohos/twohands_masks.npz')},
@@ -528,18 +618,25 @@ def main():
         extrinsics_provenance='ObjectForesight-Data step9_spatracker.py saves inverse(c2w_traj)',
         upstream_source='https://raw.githubusercontent.com/RustinS/ObjectForesight-Data/main/step9_spatracker.py',
         forbidden_supervision=['FoundationPose T_c_o', 'TRELLIS mesh', 'propagated object pose'],
-        target_fps=TARGET_FPS, sampled_fps=SOURCE_FPS / 2,
-        window_frames=WINDOW, source_fps=SOURCE_FPS,
+        target_fps=TARGET_FPS, sampled_fps=source_fps / 2,
+        strict_native_30hz_clock=bool(np.isclose(2 / source_fps, 1 / TARGET_FPS, atol=1e-5, rtol=0)),
+        window_start_local_frame=args.window_start,
+        window_frames=WINDOW, source_fps=source_fps,
         static_tracks=static_audit, moved_object_tracks=moved_audit, hand=hand_audit,
         scene_points=int(scene_points.shape[1]),
         scene_valid_fraction=float(scene_valid.mean()),
         scene_points_valid_all_frames=int(scene_valid.all(0).sum()),
         scene_points_valid_ge_08=int((scene_valid.mean(0) >= .8).sum()),
         hand_valid_frames=hand_valid.sum(0).tolist(),
-        h4_k24_windows=int(hand_valid[:, 0].all() and (scene_valid.mean(1) >= .8).all()),
+        h4_k24_windows=int(hand_valid[:, 0].all() and moved_valid.all(0).sum() >= 16),
+        moved_points_valid_all_frames=int(moved_valid.all(0).sum()),
         camera_self_consistency=diagnostic,
         candidate_npz_sha256=sha(out_npz),
-        limitations=['single clip', 'camera convention must be audited per release',
+        limitations=['single clip; window count is candidate geometry only, not training eligibility',
+                     '29.97 Hz subsampling is not native 30 Hz resampling',
+                     'rigid-object native decoder cannot consume scene point trajectories',
+                     'LK status does not prove drift-free surface correspondence',
+                     'camera convention must be audited per release',
                      'scene tracks use depth/RGB pseudo-labels',
                      'hand is EPIC-Contact object-relative geometry placed by depth-mask fit',
                      'Contact and SpaTracker absolute camera origins are not shared',

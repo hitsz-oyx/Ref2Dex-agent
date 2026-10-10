@@ -259,6 +259,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-spatial-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md) | Does shared local spatial structure preserve intended action consequences? | UNPROMISING: reduced spatial encoding remains stable but preserves too little intended action contrast; OOF consequences show no unique task | Stop this fixed nominal spatial fit; retain GT prognosis and examine the nominal-to-realized execution contract before further geometry lear | probes/UNPROMISING |
 
+## HF-video-data-readiness
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-video-data-readiness](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-data-readiness.md) | Local video data readiness after semantic contract repairs | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-y-noise-tolerance
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
