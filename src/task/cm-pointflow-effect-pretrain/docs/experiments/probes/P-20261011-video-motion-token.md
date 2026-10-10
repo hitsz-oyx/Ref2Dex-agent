@@ -8,7 +8,7 @@ branch: cm-pointflow-effect-pretrain
 git_commit: 79df493
 claim_id: C1
 hypothesis_family: HF-video-point-dynamics
-probe_index_in_family: 1
+probe_index_in_family: 2
 seed_pool: probe
 seeds: [226]
 decision_changed_if_positive: retain a DynamicWAM-style global history token for the weak-video point-flow auxiliary and test representation transfer
