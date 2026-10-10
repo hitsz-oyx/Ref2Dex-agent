@@ -246,3 +246,10 @@ seed/奖励/D/R/预算的lambda1 Decision Probe，仅改变GAE信用时间尺度
 全24updates历史actor/value bitwise checkpoint核对后才解释fork，<=120s。
 同真实moment/batch/GAE/目标KL，比较保留LR与每update恢复1e-6；不产生新部署策略。
 协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md`。
+
+2026-10-10 用户ref1_1后首个learned retargeter离线inverse Probe：只读已有actual
+PPO hand/applied动作，整reset-wave split，τ/state-only匹配训练与同tick τshuffle。
+GPU4已有他人计算，选择GPU5（约130MiB初始化context、无活跃计算）；foreign>512MiB停止。
+新增8GPUmin/96MiB，1500update双臂fit<=360s、独立audit<=120s；无物理/teacher标签/
+高层PPO/WM训练。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md`。
