@@ -108,3 +108,12 @@ evaluation. This tests whether feedback/preload adapts to the corrected base;
 no parameter sweep or checkpoint selection. Preserve the frozen corrected
 controller independently even if fine-tuning degrades it. Expected~8 GPU minutes
 training plus~2 evaluation, within32-minute card budget. Stop conditions unchanged.
+
+
+Training r1 (a5a0a35) is INVALID_IMPLEMENTATION for training: after the first
+PPO update, the local likelihood `ratio` shadowed the wrist Kd/Kp variable
+captured by the step closure, causing a6-vs512shape exception. No final
+checkpoint was produced; preserve FAILED manifest, initial checkpoint and log.
+The frozen evaluation has no PPO loop and remains unaffected. Fix uses an
+explicit wrist_gain_ratio identifier. A two-update engineering run must cross
+the PPO boundary before retrying the same predeclared full protocol.

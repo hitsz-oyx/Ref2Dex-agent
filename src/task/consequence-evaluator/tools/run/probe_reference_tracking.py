@@ -191,7 +191,7 @@ def main():
             kd = torch.as_tensor(props["damping"][:6].copy(), device=device)
             if (kp <= 0).any() or not torch.allclose(kd / kp, torch.full_like(kp, .1)):
                 raise ValueError("unexpected native wrist PD gains")
-            ratio = kd / kp
+            wrist_gain_ratio = kd / kp
             control_dt = task.gym.get_sim_params(task.sim).dt * task.control_freq_inv
             ref_velocity = reference_velocity(reference["dof_position"], control_dt)
             manifest["wrist_feedforward_contract"] = dict(
@@ -238,7 +238,7 @@ def main():
                 base = next_q
                 if args.wrist_feedforward:
                     index = (task.progress_buf.to(device).long() + 1).clamp_max(542)
-                    base = wrist_feedforward(next_q, ref_velocity[index], ratio)
+                    base = wrist_feedforward(next_q, ref_velocity[index], wrist_gain_ratio)
                 target = policy.target(base, latent)
                 intended = native_action(target, measured["q"], offset, scale)
                 command = intended.clamp(-1, 1)
@@ -385,7 +385,7 @@ def main():
                         latent[teacher_mask | nominal_mask] = 0
                         base = next_q.clone()
                         base[ff_mask] = wrist_feedforward(next_q[ff_mask],
-                            ref_velocity[tick + 1].expand(int(ff_mask.sum()), -1), ratio)
+                            ref_velocity[tick + 1].expand(int(ff_mask.sum()), -1), wrist_gain_ratio)
                         intended = native_action(policy.target(base, latent), measured["q"], offset, scale)
                         # Teacher action is used only for independent native control rows.
                         actor_obs = obs if isinstance(obs, dict) else {"obs": obs}
