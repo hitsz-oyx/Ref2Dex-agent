@@ -7,11 +7,23 @@
 奖励，不新增触觉输入；保留live q/dq、hand/object/velocity及previous residual。
 几何参考只拟合τ、initial q和静态URDF，整体坐标RMSE2.47mm，拇指尖13.80mm。
 
-冻结旧自训练tracker迁移后13/16近teacher，但裁剪41.01%。首次微调因奖励误把
+最新手指命令重新拟合只更新六个手指输出，保护腕部/编码器，用旧τ控制器实际执行的
+PD命令及学生实时状态覆盖作为训练信号，未用真实未来q/物体作标签。固定最终权重完整
+评估12/16达到433帧且保持到结束，中位479帧，裁剪0.06919%，原门槛`PROMISING`。
+仍有三行无支撑下落、一行近桌面分离；同轮冻结τ为15/16，不能宣称抓持稳定性更优。
+随后64update仅手指PPO退化到0/16末帧持有；保护参数/输入/PD检查通过，失败记录保留，
+保留预声明的重新拟合候选，不继续无约束PPO或seed sweep。
+
+协议：[手指命令重新拟合](docs/experiments/probes/P-20261010-tau-finger-canonicalization.md)。
+保留checkpoint：outputs/consequence-evaluator/ref7_4-tau-finger-fit-20261010-r3/final.pt；
+配置/哈希/复现argv：outputs/consequence-evaluator/ref7_4-tau-finger-controller-20261010-r1/controller.json。
+下一决策是在接触适配时保护有效的手指预载，仍未解决所有失持。
+
+以下保留原τ训练的失败证据：冻结旧自训练tracker迁移后13/16近teacher，但裁剪41.01%。首次微调因奖励误把
 手掌高度当物体高度而放弃抓持；真实模式回归测试和独立trace审查定位并修复。
 修复后固定128update warmstart微调：最终16/16 hold45、中位292帧，4/16近teacher
 且末帧仍持有，纯几何0/16；裁剪17.90%，强门槛`UNPROMISING`，尚未训练好稳定
-τ执行器。12条失持均为参考仍held时无支撑重力下落，非原始任务放置。
+τ执行器（此为重新拟合前的状态）。12条失持均为参考仍held时无支撑重力下落，非原始任务放置。
 实际897输入/command/PD独立重构通过。本轮不关闭τ路线，也不增加参数/seed sweep。
 
 协议：[τ几何闭环](docs/experiments/probes/P-20261010-tau-geometry-tracking.md)。

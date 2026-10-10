@@ -1,5 +1,30 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 τ-only 手指命令重新拟合：PROMISING，仍有失持
+
+保留τ、去掉真实未来q/物体参考和触觉输入的合同不变。冻结旧τ策略的腕部与编码器，
+用其实际执行的手指PD命令重新拟合六个手指输出；覆盖全部16行及首轮学生的实时状态，
+没有按成功挑样本。目标留出原生范围0.5%余量，并惩罚最差1%的越界；执行端仍用原来的
+残差尺度、native clamp和coupling，没有通过新增裁剪隐藏越界。
+
+固定1000update最终权重（6dc24eb，fit279/eval283）完整542步评估：16/16 hold45，
+12/16达到433帧且末帧持有，保持中位479帧，裁剪6/8672=0.06919%；纯几何0/16。
+原强门槛通过，标记PROMISING。独立输入/command/PD重构通过；剩余三行无支撑重力下落，
+一行近桌面分离，参考当时仍holding。同轮冻结τ持有15/16但裁剪40.15%，不能声称新策略
+抓持稳定性优于冻结策略。相对先前短PPO的4/16与17.90%只是不同Probe的描述性进展。
+
+后续仅更新手指的64update PPO（be738cc，train284/eval285）仍退化：0/16近teacher或
+末帧持有，保持中位11帧，裁剪0.438%。腕部/编码器/logstd保护及实际输入/PD合同通过；
+该局部适配UNPROMISING，保留原始失败记录，不以此否定τ路线，也不继续参数/seed sweep。
+保留预声明的手指重新拟合候选，下一决策是如何在接触适配时保护有效的手指预载。
+
+保留checkpoint：outputs/consequence-evaluator/ref7_4-tau-finger-fit-20261010-r3/final.pt，
+SHA79ee282e6b2287375c6480eb8f793864c858311b968ffa97b95c65842502fa45；
+控制配置/复现argv：outputs/consequence-evaluator/ref7_4-tau-finger-controller-20261010-r1/controller.json。
+仍是single-motion GT-τ、旧自训oracle知识warmstart的Probe；未完成稳定新τ泛化、原始放置
+或Cm收益验证。本轮受控预算内已停止，GPU2空闲。
+协议：[tau-finger-canonicalization](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-finger-canonicalization.md)。
+
 ## 2026-10-10 ref7_4 τ几何 / 无真实未来q与物体参考
 
 用户确认保留τ，去掉真实q_ref和未来物体参考，触觉暂不引入。沿ref7_4两层路线：

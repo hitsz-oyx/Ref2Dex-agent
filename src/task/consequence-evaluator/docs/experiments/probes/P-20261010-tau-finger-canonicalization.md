@@ -5,7 +5,7 @@ experiment_id: P-20261010-tau-finger-canonicalization
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 3aa7f65
+git_commit: 6dc24eb9c5633100739385de89e731841325723b
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 4
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [279, 280, 281, 283, 284, 285]
 decision_changed_if_positive: retain tau state closed-loop commands with protected wrist and learned feasible finger preload
 decision_changed_if_negative: distinguish feedback state coverage from action parameterization before more PPO
-status: UNCLEAR
-run_id: ref7_4-tau-finger-fit-20261010-r1
+status: PROMISING
+run_id: ref7_4-tau-finger-fit-20261010-r3
 ---
 
 # Preserve the tau tracker while learning feasible finger commands
@@ -107,7 +107,7 @@ not be credited to reduced clipping without a matched mechanistic comparison.
 
 ## Runs
 
-Pending; manifests record actual code/input identities and monitored resources.
+Completed; manifests record actual code/input identities and monitored resources.
 
 Engineering smoke (470b9af,debug44,one update) passes the source latent/input
 checks, differentiable target loss and wrist/trunk protection. Fixed1000update
@@ -179,6 +179,44 @@ checkpoint selection inside training. Added cost~4mintrain/~2mineval, stays unde
 25GPUmin/2GiB. Preserve the predeclared canonical candidate regardless of this
 follow-up; report the new learned candidate honestly if it regresses. Stop
 after this one adaptation; broader robustness Validation is deferred.
+
+Finger-only PPO smoke (be738cc,debug45,8env/2updates) passes protected-parameter
+and finite likelihood checks. Main Probe run284/64updates completes131072
+transitions in226.44s, GPU7455MiB/util0–24%; only two finger-head and six critic
+tensors change, wrist/encoder/logstd remain bitwise identical. No foreign GPU
+process. Stochastic training clipping31.48% is distinct from mean-policy eval.
+Fixed final SHA d9876e210919138fe9ff4407a61f4426f9580c061fa21bdb6bd7b1cf65f9f539.
+
+Final eval285 (be738cc,77.14s): student5/16 hold45,median11,near4330,
+terminal0,clipping38/8672=.43819%. Oracle15/16 near and terminal,median483;
+frozen tau13 near/14 terminal,median479,clipping3707/8672=42.75%; nominal0.
+Feature/native-command/PD/reset checks pass; ten failed rows have unsupported
+gravity-like separation. Low raw clipping does not guarantee contact stability.
+The finger-only adaptation is UNPROMISING; no intermediate-checkpoint rescue,
+seed sweep or further training is run. This is a local negative Probe, not
+refutation of tau execution or proof of the exact contact failure cause.
+Independent read-only review verifies actual frozen tensors and recomputes
+held/clipping from the recorded trajectory, with no clear implementation defect.
+Training latents were not saved per step, so sampled logprobs cannot be separately
+recomputed from artifacts; source sampling/likelihood semantics were reviewed.
+
+Retain the **predeclared tail canonicalization candidate**, not the regressed
+PPO final. It preserves majority holding while satisfying the original gate;
+it does not outperform the frozen tau policy in physical holding. Across the
+canonical fits/evals and one PPO follow-up, declared run elapsed sums are below
+12GPUmin (plus small audits), under25min/2GiB. GPU2 is idle after completion.
+Four canonical terminal failures remain; the next useful decision is how to
+protect commanded finger preload during contact adaptation, rather than a
+longer unconstrained PPO run. Formal matched/multi-seed/new-tau Validation is
+deferred; no global C3/Cm claim changes.
+
+Pinned retained checkpoint:
+`outputs/consequence-evaluator/ref7_4-tau-finger-fit-20261010-r3/final.pt`,
+SHA `79ee282e6b2287375c6480eb8f793864c858311b968ffa97b95c65842502fa45`.
+Controller config/decoder bounds/input hashes/reproduction argv:
+`outputs/consequence-evaluator/ref7_4-tau-finger-controller-20261010-r1/controller.json`.
+Original and failed candidates, train manifests and full trajectories remain
+in their own run directories; no checkpoint has been overwritten.
 
 ## Related sources
 
