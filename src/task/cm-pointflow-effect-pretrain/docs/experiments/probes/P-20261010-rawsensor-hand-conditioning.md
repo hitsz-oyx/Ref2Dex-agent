@@ -88,3 +88,42 @@ and declared invalid. FIT dynamic-channel statistics may use FIT data only and
 are frozen for held tasks. All original raw timestamps/frame IDs are retained.
 CPU<=30s, <=16MiB new packs, no network/model/GPU. Future human hand inputs would
 be an offline observed-trajectory teacher, not causal controllable robot actions.
+
+Qualification at `02300b7` passed:4 fitting tasks330 windows,5 held tasks535
+windows. Plush-toy fitting recording has no complete28-frame dual-hand windows;
+it is preserved but not sampled. This is an explicit visibility-conditioned
+pseudo-action subset. Row counts, NaN masks and source IDs remain preserved.
+
+## Matched learning screen (fixed before execution)
+
+Class Decision: does human future joint shape add raw sensor prediction information
+beyond observed sensor/hand history? If positive, test an auxiliary point-feature
+teacher; if negative, do not expand this sensor learner or claim tactile useless.
+This is not the native point-dynamics main model or a robot-policy comparison.
+
+Three identical128-hidden-layer MLP residual heads from identical initial weights:
+HISTORY sensor4x512 + root-relative hands4x42x3, with future hand shape24x42x3
+as actual/zero/shuffled input. Shuffle uses next sorted different task and modulo
+window index, fixed without sensor values in fit/held separately. Original actual
+future hand is a retrospective human observation/oracle, not a proposed robot
+intervention. All arms see identical complete windows, task-uniform draws and
+raw target labels; all have identical architecture/capacity.
+
+Predict24x512 sensor delta from current raw/255; zero final layer initializes
+persistence exactly. TRAIN/FIT input mean/std only, std floor.01, no record future
+maxima. Loss fixed Huber scale.02 over frozen FIT-dynamic channels (range>=2 raw
+counts). Same seed227,500 updates/arm, batch4 windows per fitting task16 total,
+AdamW lr3e-4/WD.01, grad clip1, BF16, fixed final checkpoint. No dev selection.
+
+Report each task all-dynamic and candidate normalization groupsA/B (raw mapping
+indices excluding/including left208..222/right33..47, respectively). These are
+processing candidates, not verified hardware pressure/bend labels. Primary gate:
+held-task macro groupA endpoint MAE with actual future hand improves>=10% over
+best of history/shuffle/persistence; no held task worse than its best control by
+>20%. Compare groups separately to expose a trivial bend-channel-only gain.
+Positive remains a teacher-potential Probe, not physical tactile/robot usefulness.
+
+One freshly inspected free GPU, max300s whole three-arm loop, artifacts<=300MiB.
+Stop on nonfinite, source/hash drift, conflict, cap/deadline; preserve failed runs.
+GPU utilization/memory and ETA logged after startup and every10s. No external
+process/system changes, dataset expansion or policy training. Output `matched-r1/`.
