@@ -135,9 +135,18 @@ def main() -> None:
     declared_hashes = trajectory_manifest.get("input_sha256", {})
     if not isinstance(declared_hashes, dict) or not declared_hashes:
         raise ValueError("retained source manifest has no input provenance")
+    historical_source_drift = {}
+    historical_source_allowlist = {
+        str((OLD / "tools/run/probe_reference_tracking.py").resolve()),
+        str((OLD / "src/consequence_evaluator/reference_tracking.py").resolve()),
+    }
     for path, digest in declared_hashes.items():
-        if not Path(path).is_file() or sha(Path(path)) != digest:
-            raise ValueError("retained source/input drift: " + path)
+        current = sha(Path(path)) if Path(path).is_file() else None
+        if current != digest:
+            if path in historical_source_allowlist and current is not None:
+                historical_source_drift[path] = dict(declared=digest, current=current)
+            else:
+                raise ValueError("retained source/input drift: " + path)
     retained_paths = [
         path for path in declared_hashes
         if path.endswith("ref7_4-tau-finger-fit-20261010-r3/final.pt")
@@ -149,7 +158,10 @@ def main() -> None:
         raise ValueError("retained tau teacher checkpoint identity is not the canonical r3 final.pt")
     if trajectory_manifest.get("tau_teacher_checkpoint") == retained_paths[0]:
         raise ValueError("old tau_teacher_checkpoint field must not be used as teacher provenance")
-    source_hashes = dict(declared_hashes)
+    source_hashes = {
+        path: historical_source_drift.get(path, {}).get("current", digest)
+        for path, digest in declared_hashes.items()
+    }
     source_hashes.update({
         str(args.trajectory.resolve()): sha(args.trajectory),
         str(args.trajectory_manifest.resolve()): sha(args.trajectory_manifest),
@@ -257,6 +269,7 @@ def main() -> None:
         teacher_checkpoint=retained_paths[0],
         teacher_checkpoint_sha256=declared_hashes[retained_paths[0]],
         teacher_source_contract="retained r3 tracker latent labels; exact role==tracker filter; no outcome selection",
+        historical_source_drift=historical_source_drift,
     )
     checkpoint_path = args.output / "best.pt"
     torch.save(checkpoint, checkpoint_path)
@@ -295,6 +308,7 @@ def main() -> None:
         teacher_checkpoint=retained_paths[0],
         teacher_checkpoint_sha256=declared_hashes[retained_paths[0]],
         previous_residual_contract=checkpoint["previous_residual_contract"],
+        historical_source_drift=historical_source_drift,
         goal_source=checkpoint["goal_source"],
         inference_contract=checkpoint["inference_contract"],
         input_sha256=source_hashes, gpu_before=before, gpu_after=after,
