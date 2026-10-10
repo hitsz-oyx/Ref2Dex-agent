@@ -68,3 +68,23 @@ sensor channel/contact roles and calibration remain UNKNOWN. Fit/held examples a
 separate tasks but not certified separate people/cameras. Raw sensor prediction is
 not paired object flow or robot-force supervision. Any later future-hand conditioning
 is an observed human-trajectory teacher/oracle, not online robotic access or causality.
+
+Acquisition completed at `25d9986` in41.93s,14387483B,40 verified files. Original
+pressure/WiLoR row IDs match all10 recordings, each224..751 frames. Many WiLoR
+hands are missing/empty; preserve them as invalid rather than zero-valued points.
+
+Before qualification: retain all original rows and hand shape/finite validity,
+but any later matched retrospective future-hand comparison uses only complete
+H4+K24 dual-hand windows, identically for all arms. This conditions evidence on
+visible pseudo-action support; it is not a deployable history-only availability
+policy. Future sensor values do not choose windows. Require>=3 supported tasks
+in each split. Hand coordinates are wrist-relative per-frame shape with a scale
+from median wrist–middle-MCP distance of the4 HISTORY frames only, never future
+maxima/spans. This discards global wrist transport and does not invent a metric
+world/camera frame. Predict raw sensor bytes/fixed255, not calibrated contact.
+
+Prepare immutable packs under `processed/`; original empty hand rows remain NaN
+and declared invalid. FIT dynamic-channel statistics may use FIT data only and
+are frozen for held tasks. All original raw timestamps/frame IDs are retained.
+CPU<=30s, <=16MiB new packs, no network/model/GPU. Future human hand inputs would
+be an offline observed-trajectory teacher, not causal controllable robot actions.
