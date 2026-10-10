@@ -141,6 +141,8 @@ def main():
     parser.add_argument("--points", type=int, default=512)
     parser.add_argument("--seed", type=int, default=230)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--scene-stats", type=Path,
+                        help="reuse a native train-only scene_mean/std contract")
     args = parser.parse_args()
     if args.output.exists():
         raise ValueError("output exists: %s" % args.output)
@@ -156,9 +158,18 @@ def main():
     train = [x for x in samples if x["split"] == "train"]
     held = [x for x in samples if x["split"] == "held_clip"]
     feature_matrix = np.concatenate([x["features"] for x in train], axis=0)
-    mean = feature_matrix.mean(0)
-    std = feature_matrix.std(0)
-    std = np.where(std < 1e-6, 1.0, np.maximum(std, 1e-3))
+    if args.scene_stats:
+        scene_stats = json.loads(args.scene_stats.read_text())
+        mean = np.asarray(scene_stats["scene_mean"], dtype=np.float32)
+        std = np.asarray(scene_stats["scene_std"], dtype=np.float32)
+        if mean.shape != (18,) or std.shape != (18,) or not np.isfinite(mean).all() or not np.isfinite(std).all():
+            raise ValueError("native scene stats must contain finite 18-D scene_mean/scene_std")
+        if (std <= 0).any():
+            raise ValueError("native scene stats must have positive scene_std")
+    else:
+        mean = feature_matrix.mean(0)
+        std = feature_matrix.std(0)
+        std = np.where(std < 1e-6, 1.0, np.maximum(std, 1e-3))
     # The source contract is color/normal + explicit zero placeholders; use
     # train-only statistics and leave constant placeholders identity-scaled.
     model = VideoPointWorldWM(mean, std).to(device)
@@ -185,6 +196,8 @@ def main():
             "target": "official_scene_flows[t+1:t+11] - scene_flows[t]",
             "feature_contract": pack_manifest.get("feature_contract"),
             "state_features": bool(pack_manifest.get("state_features", False)),
+            "native_contract": bool(pack_manifest.get("native_contract", False)),
+            "scene_stats_source": str(args.scene_stats) if args.scene_stats else "train-pack-only",
             "point_selection": "all-step visibility/depth-valid tracks, deterministic linspace",
                 "official_checkpoint_loaded": False,
             "zed_used": False,

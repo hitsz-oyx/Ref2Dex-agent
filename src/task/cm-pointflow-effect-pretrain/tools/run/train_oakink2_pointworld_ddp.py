@@ -127,6 +127,47 @@ def initialize_weights(state, model, config, identity):
                                 for key in recipe_keys if state['config'].get(key)!=config.get(key)})
 
 
+def initialize_from_video_aux(path, model):
+    """Import only shape-compatible scene weights from a data-only video arm.
+
+    The official H5 auxiliary model has no native action/hand/object heads and
+    uses a raw PTv3 backbone, while this trainer wraps that backbone in a
+    time-preserving adapter.  Copying is therefore explicit and limited to the
+    shared scene projection, PTv3 core, and scene skip parameters.  Native
+    normalization buffers and all action/object/output heads stay freshly
+    initialized.
+    """
+    state = torch.load(path, map_location='cpu', weights_only=False)
+    source = state.get('model', state)
+    current = model.state_dict()
+    selected = {}
+    for source_key, value in source.items():
+        if source_key.startswith('backbone.'):
+            target_key = 'backbone.core.' + source_key[len('backbone.'):]
+        elif (source_key.startswith('scene_proj.') or
+              source_key in {'skip_gamma', 'skip_beta'}):
+            target_key = source_key
+        else:
+            continue
+        if target_key in current and tuple(current[target_key].shape) == tuple(value.shape):
+            selected[target_key] = value
+    if not selected:
+        raise ValueError('video auxiliary checkpoint has no compatible scene tensors')
+    current.update(selected)
+    model.load_state_dict(current, strict=True)
+    return {
+        'kind': 'official-video-data-only-partial-scene-init',
+        'source': str(Path(path).resolve()),
+        'source_sha256': base.digest(path),
+        'selected_tensor_count': len(selected),
+        'selected_parameter_count': int(sum(value.numel() for value in selected.values())),
+        'selected_prefixes': ['scene_proj.', 'backbone.core.', 'skip_gamma', 'skip_beta'],
+        'optimizer_reset': True,
+        'schedule_reset': True,
+        'native_normalization_and_heads': 'fresh',
+    }
+
+
 def run(args):
     if 'RANK' not in os.environ:
         raise RuntimeError('launch this entry with torchrun, including world-size1')
@@ -237,6 +278,10 @@ def run(args):
             identity['parent_checkpoint_sha256'] = base.digest(args.init_weights)
             identity['parent_checkpoint_path'] = str(args.init_weights.resolve())
             del state
+        if args.video_init:
+            identity['initialization'] = initialize_from_video_aux(args.video_init, model)
+            identity['parent_checkpoint_sha256'] = base.digest(args.video_init)
+            identity['parent_checkpoint_path'] = str(args.video_init.resolve())
         if args.continue_from:
             from oakink_wm.continuation import continue_optimizer
             state = torch.load(args.continue_from, map_location='cpu', weights_only=False, mmap=True)
@@ -308,14 +353,14 @@ def run(args):
                 return measured
             base.evaluate = mixed_evaluate
         engineering = args.smoke or args.engineering or args.benchmark
-        if (args.init_weights or args.continue_from) and not engineering:
+        if (args.init_weights or args.continue_from or args.video_init) and not engineering:
             measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
             selection = base.validation_selection(measured) if rank==0 else None
             score = [selection['score'] if rank==0 else None]
             dist.broadcast_object_list(score, src=0)
             best = score[0]
             if rank == 0:
-                baseline = dict(step=0, parent_step=identity['initialization']['parent_step'],
+                baseline = dict(step=0, parent_step=identity['initialization'].get('parent_step', 0),
                                 metrics=measured, selection=selection)
                 base.atomic_json(out/'validation_initial.json', baseline)
                 with (out/'validation.jsonl').open('a') as f:
@@ -448,6 +493,7 @@ def main():
     group.add_argument('--resume', type=Path)
     group.add_argument('--import-single-checkpoint', type=Path)
     group.add_argument('--init-weights', type=Path, help='New recipe initialized from single-GPU model weights only')
+    group.add_argument('--video-init', type=Path, help='Partial scene initialization from official-video data-only auxiliary weights')
     group.add_argument('--continue-from', type=Path, help='Two-rank recipe migration retaining trained AdamW moments')
     group.add_argument('--random-init', action='store_true', help='Start a fresh model with the configured seed')
     run(p.parse_args())

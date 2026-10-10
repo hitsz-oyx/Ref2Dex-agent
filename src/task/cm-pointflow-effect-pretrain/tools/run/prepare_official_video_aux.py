@@ -32,7 +32,11 @@ def main():
     parser.add_argument("--points", type=int, default=512)
     parser.add_argument("--state", action="store_true",
                         help="populate remaining scene channels with context joint/gripper state")
+    parser.add_argument("--native-contract", action="store_true",
+                        help="map official normals into the native 18-D scene contract and zero unavailable channels")
     args = parser.parse_args()
+    if args.state and args.native_contract:
+        raise ValueError("--state and --native-contract are mutually exclusive")
     if args.output.exists():
         raise ValueError("output exists: %s" % args.output)
     args.output.mkdir(parents=True)
@@ -46,9 +50,12 @@ def main():
         "context_steps": 1,
         "prediction_steps": HORIZON,
         "state_features": bool(args.state),
+        "native_contract": bool(args.native_contract),
         "feature_contract": (
-            "context color/normal + joint_positions[0] + gripper_pose[0,:5]"
-            if args.state else "context color/normal + zero placeholders"
+            "native scene contract: context normal in channels 0:3; unavailable kinematics and identity channels zero"
+            if args.native_contract else (
+                "context color/normal + joint_positions[0] + gripper_pose[0,:5]"
+                if args.state else "context color/normal + zero placeholders")
         ),
         "clips": list(CLIPS),
         "cameras": list(CAMERAS),
@@ -75,8 +82,15 @@ def main():
                     raise ValueError("insufficient all-step-valid points: %s/%s" % (clip, camera))
                 selected = eligible[np.linspace(0, len(eligible) - 1, args.points, dtype=np.int64)]
                 features = np.zeros((args.points, 18), dtype=np.float32)
-                features[:, :3] = colors[0, selected] / 255.0
-                features[:, 3:6] = normals[0, selected] / 127.0
+                if args.native_contract:
+                    # Native scene channels are normal, velocity, acceleration,
+                    # displacement and identity flags.  The official H5 has no
+                    # causal history or point identity, so only its context
+                    # normal is copied and every unavailable field stays zero.
+                    features[:, :3] = normals[0, selected] / 127.0
+                else:
+                    features[:, :3] = colors[0, selected] / 255.0
+                    features[:, 3:6] = normals[0, selected] / 127.0
                 if args.state:
                     if joint_positions.shape != (HORIZON + 1, 7) or gripper_pose.shape != (HORIZON + 1, 7):
                         raise ValueError("official robot-state shape changed")
