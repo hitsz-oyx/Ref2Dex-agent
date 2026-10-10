@@ -34,8 +34,12 @@ velocity1.97e-5、wrist FF2.35e-6，GPU4约0.975s；8个Task合同测试通过�
 首查询手点RMS56.36mm；初始预测错误早于反馈，不只是假设闭环分布偏移。
 4af8345 audit匹配rl_games实际TF32后H/c/D/FK exact、Rfeatures3.81e-6、command2.38e-7、
 PD0，保留原precision mismatch失败记录，无物理重跑。局部UNPROMISING，未PPO/WM。
-下一步一次startup-balanced初始化，仍纯H、不加clock/phase；若失败停止BC权重搜索。
-证据：[history actor](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md)。
+c7d991b startup-balanced初始化13.14s完成：启动手点RMS7.395mm、掌部max15.61mm、
+FF RMS5.464mm。改善但仍未过固定5/10mm门槛，局部UNPROMISING；按协议无新增仿真。
+停止BC权重搜索，下一步真实奖励trajectory PPO，固定D/R、纯H，balanced500仅未验证
+warm start；不以oracle数据/监督loss替代实际RL或Cm收益。
+证据：[history actor](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md)、
+[startup balanced](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md)。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、

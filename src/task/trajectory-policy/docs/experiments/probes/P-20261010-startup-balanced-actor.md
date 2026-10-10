@@ -5,7 +5,7 @@ experiment_id: P-20261010-startup-balanced-actor
 date: 2026-10-10
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: c7d991b
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-learning
 probe_index_in_family: 2
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [295, 296]
 decision_changed_if_positive: use startup-accurate pure-H initializer for trajectory PPO
 decision_changed_if_negative: stop BC weighting search and reassess RL initialization
-status: UNCLEAR
+status: UNPROMISING
 run_id: startup-balanced-actor-20261010-r1
 ---
 
@@ -70,7 +70,45 @@ No Mission/claim or external authority change.
 
 ## Results
 
-Not run yet.
+Code `c7d991b`, seed295,2500updates completed13.143s onGPU4. Later utilization
+11--23%,399MiB, Torch peak59.10MiB; no owned process remains. Selected update500
+per the frozen combined val criterion. Train6504/val2168 and allsource rows
+unchanged. Weighted val objective0.81043 vs mean19.68379 (95.883% lower); its
+weighting differs from previous card, so raw objective values are not matched.
+
+First-query four-val-row prefix hand3D RMS7.39460mm, palm maximum15.60908mm,
+worst-row wristXYZ nominalFF3D RMS5.46399mm. First two miss the fixed5/10mm
+limits; FF meets10mm. Across all68x4 row-val replans, prefix hand RMS35.13388mm
+and palm maximum204.72589mm. Startup improved relative to prior same-H FP32
+coverage56.369mm, but did not meet the declared initialization gate. Local
+**UNPROMISING** for promoting this fitted initializer under this protocol.
+No native simulation, no new grasp-failure evidence, no PPO or WM in this run.
+
+Artifacts: `outputs/trajectory-policy/startup-balanced-actor-20261010-r1/`
+contains manifest/result/best.pt/coverage.npz/monitor.jsonl. Checkpoint was
+written once; prior uniform-fit and native/audit outputs unchanged.
+
+## Follow-up Decision Note
+
+Honor the stopping rule: no more BC weighting/epoch/width sweep. Evidence now
+separates representational coverage (D288 exact) and initializer learning:
+independent H-only BC retains substantially more startup geometry after one
+rebalance, yet startup remains imperfect and rolling execution is unproven.
+Neither this offline gate nor the first BC zero-grasp run tests task RL.
+
+Next bounded research decision: can real-reward closed-loop trajectory PPO
+improve this independent actor, with D/R fixed and no WM? Use balanced500 only
+as a declared supervised warm start, never as an already successful policy.
+Compare to its frozen mean under the same reset/task reward/evaluation contract;
+collect from true frame0, no teacher action substitution or reference reward.
+First freeze reward from current measured proximity/lift/held/loss and native
+control cost, plus chunk transition discount/GAE/logprob semantics; separate
+V(H) from any action-Q/WM. A new PPO card must declare concrete GPU/interactions/
+stop bounds before training. Small mean/std updates and audited actual chunks
+will distinguish learning signal from execution/credit-assignment errors.
+If early PPO has no useful signal, diagnose which physical events/reward paths
+occur; do not claim PPO or trajectory RL refuted. This changes implementation
+phase, not Mission/Cm claim or external permissions.
 
 ## Limitations / future evidence
 

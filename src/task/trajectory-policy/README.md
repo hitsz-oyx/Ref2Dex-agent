@@ -22,8 +22,9 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 `tools/run/fit_history_actor.py`：全部源轨迹保留，train-only normalization，按行留出；
 首轮6504样本BC初始化2500updates完成14s；留出目标比常量低80%，但实际纯H两组
 均0/4稳定抓持（GT4/4、dense3/4），启动手点RMS56.36mm。实际H/c/D/native链审计
-通过，局部UNPROMISING；尚未PPO训练或接入WM。下一步只做一次针对稀有启动状态
-的平衡初始化，不继续无界BC sweep。consequence-evaluator后续实验按用户
+通过，局部UNPROMISING；尚未PPO训练或接入WM。后续startup-balanced2500update/13s把启动手点RMS降到7.395mm，但掌部max15.61mm，
+仍未过5/10mm初始化screen，按协议未仿真。停止BC权重搜索，下一步固定D/R做真实奖励
+trajectory PPO；balanced500仅作为未验证warm start，不作为成功策略。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 
@@ -34,6 +35,7 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 - [固定PCA时间基底覆盖](docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)
 - [pose/FF metric覆盖与停止48D搜索](docs/experiments/probes/P-20261010-metric-trajectory-decoder.md)
 - [独立H→c初始化与完整执行](docs/experiments/probes/P-20261010-history-trajectory-actor.md)
+- [启动平衡初始化与转入RL的决策](docs/experiments/probes/P-20261010-startup-balanced-actor.md)
 
 本Task成功仍需自训练操纵策略与matched Cm-on/off训练收益，不能由decoder重建、
 单个成功视频或冻结控制器收益替代。具体Probe先写Task-local实验卡，再运行。
