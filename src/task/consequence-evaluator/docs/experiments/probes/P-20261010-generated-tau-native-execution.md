@@ -162,6 +162,14 @@ fit<=5s, original geometry tolerance unchanged. Require identical-query replay
 exclude stale inputs/momentum/best-state. These are engineering cost controls,
 not changed scientific gates. Stop if capture/fresh-query equivalence fails.
 
+cfaf672 first capture attempt failed at q[:,list(FINGERS)] because conversion
+of a Python index list performs a prohibited CPU->CUDA operation during
+capture. No fit/physical run completed. Preallocate immutable CUDA index tensor;
+this is an engineering defect, not a method negative. Preserve failure metadata
+as generated-tau-projection-latency-20261010-r4; the original harness had not
+created its output folder before this failure. Fix harness to save RUNNING/
+FAILED state before computation, then recheck the same frozen inputs as r5.
+
 ## Limitations / future evidence
 
 Single motion, few separate-live-role envs, observed-history training bank from

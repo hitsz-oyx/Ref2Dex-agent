@@ -23,6 +23,7 @@ class FingerFitGraph:
         self.variable=initial.clone().requires_grad_(True)
         self.variable.grad=torch.zeros_like(self.variable)
         self.limits=torch.tensor(FINGER_LIMITS,device=fixed.device)
+        self.finger_ids=torch.tensor(FINGERS,device=fixed.device)
         self.fk=ResetKinematics(urdf,NATIVE_DOF_NAMES,HAND_LINKS,fixed.device)
         self.root=torch.zeros(len(fixed),13,device=fixed.device);self.root[:,6]=1
         self.best=initial.clone()
@@ -38,7 +39,7 @@ class FingerFitGraph:
         with torch.cuda.graph(self.graph):self.gradient()
 
     def coupled(self):
-        q=self.fixed.clone();q[:,list(FINGERS)]=self.variable
+        q=self.fixed.clone();q[:,self.finger_ids]=self.variable
         return apply_coupling(q)
 
     def points(self):
@@ -74,5 +75,5 @@ class FingerFitGraph:
             error=(self.points()-self.target).square().sum((1,2))
             self.best.copy_(torch.where((error<self.best_error)[:,None],self.variable,self.best))
             self.best_error.copy_(torch.minimum(self.best_error,error))
-            q=self.fixed.clone();q[:,list(FINGERS)]=self.best
+            q=self.fixed.clone();q[:,self.finger_ids]=self.best
             return apply_coupling(q),self.best_error
