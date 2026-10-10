@@ -39,13 +39,14 @@ def main():
         if sha(VENDOR / path) != expected:
             raise ValueError('checkpoint vendor source drift')
     stats = checkpoint['identity']['normalization']
+    horizon = checkpoint['identity'].get('supervised_horizon', 24)
     model = VideoPointWorldWM(stats['scene_mean'], stats['scene_std']).cuda().eval()
     model.load_state_dict(checkpoint['model'], strict=True)
     del checkpoint
     result = dict(schema='ref2dex.video-fit-audit.v1',
                   git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                   checkpoint_sha256=sha(args.checkpoint), script_sha256=sha(Path(__file__)),
-                  fits={}, gpu_samples=[],
+                  fits={}, gpu_samples=[], supervised_horizon=horizon,
                   limitation='current-only ablation is an input intervention on the trained model, not a matched training arm')
     started, last_monitor = time.monotonic(), 0
     with torch.no_grad():
@@ -67,7 +68,7 @@ def main():
                     scene = dataset.index[number + j][0]
                     for name, values in controls.items():
                         one = {key: value[j:j + 1] for key, value in batch.items()}
-                        for key, (total, count) in flow_metrics(values[j:j + 1], one).items():
+                        for key, (total, count) in flow_metrics(values[j:j + 1], one, horizon).items():
                             group = result['fits'].setdefault(split + '/' + scene, {})
                             pair = group.setdefault(name + '/' + key, [0., 0])
                             pair[0] += total

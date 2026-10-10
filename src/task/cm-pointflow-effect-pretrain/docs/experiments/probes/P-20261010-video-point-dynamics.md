@@ -187,3 +187,28 @@ positive justifies a bounded native transfer comparison. Output view
 `data-h8-view-r5/`, run `train-h8-r2/`; one verified-free GPU<=15min cumulatively,
 all outputs<=5GiB. Automated NVML utilization/memory samples supplement ETA and
 allocator-peak telemetry. No full dataset acquisition or remote machine work.
+
+## Short-horizon results and attribution boundary
+
+Qualification at `6d7fdb2`:78 TRAIN and71 development overlapping windows;
+4 TRAIN and2 development clips meet the preset h8 support floor. The fixed
+500-step run completed96.43s with exact checkpoint roundtrip. Peak CUDA model
+allocation1001.08MiB; sampled GPU1 memory1367–1389MiB, utilization11–51%.
+The small batch/point count leaves GPU capacity unused; this is a cheap Decision
+Probe, not a throughput benchmark. GPU0 belonged to an unrelated job throughout
+this run. ETA converged to about90s after warmup and all worker compute ended.
+
+| Qualified dev clip | h8 labels | model EPE mm | static mm | CV mm |
+| --- | ---: | ---: | ---: | ---: |
+| P03_13_12 |3941|11.002|6.763|28.772|
+| P03_13_19 |309|38.614|12.165|42.441|
+| Clip macro |2 clips|24.808|9.464|35.606|
+
+Sparse dev `_10`6 and `_8`4 scored object observations remain reported in
+`train-h8-r2/final-development.json` and are not used for the predefined macro.
+Background h8 EPE6.723mm versus static6.233mm passes the1.2x constraint;
+object macro fails the>=10% benefit gate. Result UNPROMISING for this recipe,
+route still UNCLEAR. Diagnose train fits/label quality and independently
+recheck h8 loss/metric support before any more model training; no expansion or
+native transfer is authorized by this negative signal. Fit diagnosis<=90s,
+no updates; reuse the model and exact data identity, all outputs preserved.
