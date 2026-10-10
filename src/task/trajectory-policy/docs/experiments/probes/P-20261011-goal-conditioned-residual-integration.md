@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-conditioned-residual-integration
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 4ff97e9
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-execution-interface
 probe_index_in_family: 7
