@@ -156,6 +156,15 @@ both clips no better than control. Mark this particular token recipe
 wrench/geometry routes open. This does not establish a negative result for
 video data as a whole.
 
+The bounded [RBO RGB-D/FT adapter Probe](experiments/probes/P-20261011-rbo-wrench-alignment.md)
+then completed on one pinned 42 MB interaction archive. All 295 RGB anchors
+matched registered depth, FT, joint, rigid-body, camera, object, and sensor TF
+streams within 16.00 ms maximum (2.70 ms median), with finite sampled points
+and geometric object-frame wrenches. Keep RBO open for a matched geometric-
+wrench auxiliary Probe, while retaining the explicit
+`payload_compensation=false` boundary; this is not yet CHORD object-COM net
+wrench evidence.
+
 ## Current decision and resources
 
 Retain native main3 model and all weak-label/sensor evidence. Video follow-up

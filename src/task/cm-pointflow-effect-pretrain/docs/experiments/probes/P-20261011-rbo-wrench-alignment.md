@@ -5,7 +5,7 @@ experiment_id: P-20261011-rbo-wrench-alignment
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: cb286a5
 claim_id: C1
 hypothesis_family: RBO-object-wrench-adapter
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: []
 decision_changed_if_positive: retain RBO as a bounded source for point-flow plus geometric-wrench auxiliary training
 decision_changed_if_negative: defer RBO and keep only the official-data and simulator-calibrated routes open
-status: PLANNED
-run_id: rbo-wrench-alignment-20261011-r1
+status: PROMISING
+run_id: rbo-wrench-alignment-20261011-r3
 ---
 
 # RBO RGB-D / FT alignment Probe
@@ -61,7 +61,21 @@ transform the raw `myframe` wrench through the sensor URDF and object pose.
 
 ## Results
 
-Pending execution.
+The full bounded adapter completed on the pinned local archive in
+`outputs/cm-pointflow-effect-pretrain/rbo-wrench-alignment-20261011-r3/`.
+All 295 RGB anchors were retained. Nearest semantic timestamp matching across
+depth, FT, joint, rigid-body, camera-pose, object-pose, and sensor-pose streams
+had a maximum error of 16.00 ms and a median error of 2.70 ms, within the
+20 ms gate. The output contains finite `(295, 300, 3)` sampled world points,
+finite `(295, 6)` raw `myframe` wrenches, finite geometric object-frame
+wrenches, joint positions, and pose chains; source and output hashes are in
+`manifest.json`.
+
+The result is `PROMISING` only for the data/adapter contract. It demonstrates a
+reproducible RGB-D plus measured-wrench sequence suitable for a later auxiliary
+Probe. `wrench_object_geometric` applies the sensor URDF and object-pose
+rotation/lever-arm transform while retaining `payload_compensation=false`; it
+is not an object-COM net wrench and is not yet CHORD supervision.
 
 ## Limitations / future evidence
 
