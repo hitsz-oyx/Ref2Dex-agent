@@ -45,8 +45,8 @@ clock/phase/action or tactile input to proposal/retrieval/choice. Retrieve only
 train-bank displacements, one per episode; frozen T scores raw generated tau.
 The runtime never admits a query-GT future into the ten-candidate pool.
 
-Project the chosen future using live current hand/q and static URDF,60steps
-(original300step run interrupted for engineering latency; Decision Note below),
+Project the chosen future using live current hand/q and static URDF,300steps
+(60step shortcut failed its geometry tolerance and will not be deployed),
 two starts, independent native finger bounds/coupling. Use the resulting rigid
 hand points and geometric q to condition the frozen897dim tau controller.
 Next-frame tau-derived wrist velocity feedforward, original native residual
@@ -120,6 +120,25 @@ GPU computation capture), then complete the same frozen seed298 execution
 within remaining declared resources. If that cannot fit, record a new bounded
 Decision Note; no unbounded retry/sweep. Goal still covers the full ref8 chain
 and eventual Mission utility, not merely an engineering smoke.
+
+## Limitations / future evidence
+
+## Continued engineering Decision Note
+
+Previous goal turn made progress: actual pure-H native wiring was independently
+verified, and the original300step latency/failed60step shortcut changed the next
+action. Current HEAD3ec5236 and outputs confirm no owned live task. Keep full
+Mission/ref8 scope and seed298; no convergence relaxation or narrower success.
+First reproduce the 300step saved-smoke timing. Ranked falsifiable hypotheses:
+1 unused link velocity computations dominate point-loss FK/backward (a pure
+XYZ path should preserve positions/gradients and reduce cost);2 unrelated link
+work (pruning only unobserved descendants should reduce cost);3 host/kernel
+launch overhead (capture/reuse should reduce repeated cost). Test sequentially,
+not together. New engineering checks count within remaining original15GPUmin;
+same .5mm degradation/1mm fitted-point/5s gate, plus exact FK/gradient test.
+If original300step is fast and equivalent, execute one full r2 <=600s on idleGPU2.
+If not, diagnose the next specific source without another full expensive launch.
+No external authorization boundary is changed.
 
 ## Limitations / future evidence
 
