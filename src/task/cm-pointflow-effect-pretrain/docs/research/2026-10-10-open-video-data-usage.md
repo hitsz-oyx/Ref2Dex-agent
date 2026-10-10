@@ -112,6 +112,16 @@ native 覆盖为零；同时没有已验证的 object/background `point_kind`、
 检查点，并必须重新定义 point identity、point-kind 和 native hand/action 字段。
 这一 raw temporal audit 只证明输入时域可用，不构成训练收益证据。
 
+同 episode 的 `trajectory.h5`（167 条机器人/时间戳记录）和
+`trajectory_im128.h5`（154 帧、6 路 128x128 RGB、4x4 外参）也已取得并审计；
+它们没有可直接用的深度图或内参。作者 data branch 的 `real/droid_utils.py`
+明确通过 `pyzed` 读取 SVO 才得到立体帧、标定和可选深度，而当前环境没有 ZED
+SDK/`pyzed`，也没有 CoTracker、FoundationStereo、VGGT。不能为了跑通而猜内参或
+把 RGB 当 3-D；这会改变标签语义。对应边界记在
+[raw input package audit](../experiments/probes/P-20261010-droid100-raw-input-package-audit.md)。
+在获得已授权的依赖环境或等价、可验证的 SVO 标定/深度来源前，不启动 raw
+28-frame 重处理和训练。
+
 ## 下一步决策与范围
 
 此前的资源决策只批准获取固定 SHA 的官方 small checkpoint 做兼容检查，

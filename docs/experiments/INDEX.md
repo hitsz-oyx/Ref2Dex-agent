@@ -353,6 +353,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261010-droid100-raw-input-package-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-raw-input-package-audit.md) | Does the raw DROID episode already contain the inputs needed for 3-D reprocessing? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-droid100-raw-video-temporal-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-raw-video-temporal-audit.md) | Does the matched official raw DROID episode have native temporal coverage? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261010-droid100-video-data-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md) | Can the official DROID video subset provide actual frame/action samples? | 见原卡 | 见原卡 | probes/PROMISING |
 

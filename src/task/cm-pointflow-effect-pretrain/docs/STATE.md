@@ -128,7 +128,10 @@ See [DROID-100 video audit](experiments/probes/P-20261010-droid100-video-data-au
 and [native contract audit](experiments/probes/P-20261010-droid100-native-adapter-contract.md).
 The separate raw temporal audit found 166 frames at 60 FPS in the matching
 official MP4, so raw reprocessing remains technically possible but still lacks
-the verified point/hand/action contract.
+the verified point/hand/action contract. The companion raw H5 files contain
+robot/timestamp/camera-extrinsic records and 128x128 RGB, but no depth or
+intrinsics; the official processor requires `pyzed`/ZED SVO access, which is
+absent here. Do not install system dependencies or infer calibration silently.
 
 ## Current decision and resources
 

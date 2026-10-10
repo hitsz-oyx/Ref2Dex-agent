@@ -995,4 +995,7 @@ contract is chosen. See the Task-local
 and [native contract audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-native-adapter-contract.md).
 The matching raw MP4 has 166 frames at 60 FPS, so temporal coverage is
 available for a future reprocessing Probe; point and hand/action contracts are
-still unresolved.
+still unresolved. Companion raw H5 files provide robot/timestamp/extrinsic
+records and RGB but no depth/intrinsics, while the official processor requires
+the unavailable ZED/`pyzed` path. No system dependency installation or
+calibration substitution is authorized in this worktree.
