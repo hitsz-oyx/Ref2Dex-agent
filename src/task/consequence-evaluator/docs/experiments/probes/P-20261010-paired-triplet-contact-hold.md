@@ -5,7 +5,7 @@ experiment_id: P-20261010-paired-triplet-contact-hold
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: c77bac3
+git_commit: de7597ae3a7cc701b4bfc23125c5d1ea9dc73489
 claim_id: C3
 hypothesis_family: HF-hand-action-retarget
 probe_index_in_family: 8
@@ -88,7 +88,8 @@ the saved state, actor action, and applied action prefixes drifted at tick 1
 kept the same pre-action pair proxy. Consequently the visible matched screen
 had `0` eligible and `0` nontrivial rows. The audit result is
 `INVALID_IMPLEMENTATION` for this parallel twin contract, with audit code at
-git commit `688b1d8` and rollout code at `c77bac3`.
+git commit `688b1d8` and rollout code at `de7597a` (the paired runner changes
+were introduced in `c77bac3`).
 
 Per the frozen stop condition, the hold rollout was not run and no decoder,
 native execution, or causal/preload claim is unlocked. This is evidence that
