@@ -25,6 +25,15 @@ reusable contracts.  None is a drop-in replacement for the current native
 | [NVIDIA video-to-data CHORD](https://github.com/nvidia-isaac/video_to_data/tree/main/docs/chord) and [paper](https://arxiv.org/abs/2607.00033) | Public friction-cone contact-wrench-space support computation and RL reward | Requires object-frame contacts, normals, geometry and simulator sensors; DROID H5 alone has none of these | Use on the native simulator reward/auxiliary arm; do not fabricate CHORD labels from normalized glove pressure |
 | [TouchAnything/EgoTouch](https://github.com/Jianyi2004/TouchAnything) and [EgoTac](https://github.com/Mr-Zwkid/EgoTac) | Processed hand-surface pressure/contact representations and temporal encoders | No verified object-world calibration or Newton force scale in the current downloads | Use pressure/contact auxiliary head first; fuse with native point cloud only after a calibrated bridge |
 
+The T-Rex checkout also contains a reusable tactile representation
+implementation, not only a dataset schema: `tactile_vqvae/` defines a per-hand
+`[T,5,6]` force/torque encoder, EMA codebook and magnitude-weighted
+reconstruction loss. Its intended downstream interface writes discrete
+per-hand codes alongside each episode. This is a viable adapter design for F6
+data, but the local audit has no T-Rex episode parquet/video and no checkpoint,
+so it is evidence of an available representation contract rather than a result
+on this Task.
+
 ## What this changes
 
 The repository contracts were also checked from pinned local checkouts, not only
@@ -45,6 +54,8 @@ therefore closes only that raw-sensor recipe.
 
 The strongest new data route is T-Rex for temporal hand/tactile/wrench
 representation and RBO for a small calibrated object-wrench contract.  The
+T-Rex VQ-VAE code gives a concrete way to turn the per-fingertip F6 stream into
+a compact auxiliary token once a bounded episode is available.  The
 strongest point-dynamics design references are PointWorld's released H5/WDS
 contract and ParticleFormer's correspondence-free hybrid geometry supervision.
 CHORD remains a simulator-side contact-wrench reward/representation, not a
@@ -57,7 +68,9 @@ Keep the mainline split explicit:
 1. Run the already audited official PointWorld H5 `K_aux=10` data route as a
    video-data auxiliary pretraining arm.
 2. Build the pressure-map adapter from existing local EgoTouch files; compare
-   persistence, history+hand, and masked pressure/contact prediction.
+   persistence, history+hand, aligned future-hand and masked pressure/contact
+   prediction. The bounded processed-history and future-hand probes are now
+   negative, so do not silently promote them to a native Cm claim.
 3. If that signal is learnable, add T-Rex metadata/one-episode streaming as a
    separate tactile+wrench auxiliary arm.  Do not download the full 1.53 TB
    release.
