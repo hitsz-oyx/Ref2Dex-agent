@@ -198,3 +198,7 @@ fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/�
 只读复用其几何/controller。单空闲GPU2，新增8GPUmin/512MiB，一次离线audit<=120s、
 一次16env/542步原生执行<=300s；无训练/额外seed/WM，协议见
 `src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md`。
+
+2026-10-10 trajectory-policy固定48D前缀拟合诊断：CPU4列线性投影与单空闲GPU2
+FK复算，<=120s/2GPUmin/64MiB；无神经训练/仿真/额外seed/WM，协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md`。
