@@ -55,13 +55,14 @@ def main():
     import torch
     from consequence_evaluator.data import sha
     from consequence_evaluator.contracts import HAND_LINKS
-    from consequence_evaluator.reference_tracking import reference_velocity, future_reference_velocity, wrist_feedforward, native_action
+    from consequence_evaluator.reference_tracking import reference_velocity, future_reference_velocity
     from consequence_evaluator.tau_tracking import TauTracker, SCHEMA, tau_features
     from consequence_evaluator.native_reset import install_reset_patch
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
     from consequence_evaluator.gate1 import episode_outcome
     from trajectory_policy.decoder import TrajectoryDecoder
+    from trajectory_policy.goal_executor import GoalConditionedExecutor
     from trajectory_policy.inputs import load_geometry
     from oracle_y_utility import align_native_reference_tables
     import evaluate as native
@@ -181,6 +182,7 @@ def main():
                 raise ValueError('fixed native gains/control interval mismatch')
             manifest['native_controller'] = dict(offset=offset.cpu().tolist(), scale=scale.cpu().tolist(),
                 gain_ratio=ratio.cpu().tolist())
+            executor = GoalConditionedExecutor(offset, scale, ratio, policy.limits)
             global_velocity = reference_velocity(reference_q, dt)
             gt = torch.tensor([r == 'tau_gt' for r in roles], device=device)
             latent_rows = np.flatnonzero(np.isin(roles, learned_roles))
@@ -245,9 +247,8 @@ def main():
                     x = tau_features(current['q'], current['dq'], current['hand'], current['obj'],
                         current['velocity'], conditioning_tau, next_q, previous)
                     latent = policy.actor(x)
-                    base = wrist_feedforward(next_q, velocity[:, slot + 1], ratio)
-                    intended = native_action(policy.target(base, latent), current['q'], offset, scale)
-                    command = intended.clamp(-1, 1)
+                    executed = executor.step(current['q'], next_q, velocity[:, slot + 1], latent)
+                    intended, command = executed['intended'], executed['command']
                     if not all(torch.isfinite(value).all() for value in (x, latent, intended)):
                         raise FloatingPointError('nonfinite execution chain')
                     obs, _, done, _ = self.env_step(self.env, command.clone())

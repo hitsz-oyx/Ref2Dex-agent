@@ -66,13 +66,14 @@ def main():
     import torch
     from consequence_evaluator.data import sha
     from consequence_evaluator.contracts import HAND_LINKS
-    from consequence_evaluator.reference_tracking import reference_velocity, future_reference_velocity, wrist_feedforward, native_action
+    from consequence_evaluator.reference_tracking import reference_velocity, future_reference_velocity
     from consequence_evaluator.tau_tracking import TauTracker, SCHEMA, tau_features
     from consequence_evaluator.native_reset import install_reset_patch
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
     from consequence_evaluator.gate1 import episode_outcome
     from trajectory_policy.dense_decoder import DenseDecoder
+    from trajectory_policy.goal_executor import GoalConditionedExecutor
     from trajectory_policy.history import measured_history
     from trajectory_policy.actor import load_actor
     from trajectory_policy.ppo import HistoryValue, task_reward, update as ppo_update
@@ -191,6 +192,7 @@ def main():
             if abs(dt-1/30) > 1e-8 or not torch.allclose(ratio, torch.full_like(ratio, .1)):
                 raise ValueError('fixed controller contract required')
             manifest['native_controller'] = dict(offset=offset.cpu().tolist(), scale=scale.cpu().tolist(), gain_ratio=ratio.cpu().tolist())
+            executor = GoalConditionedExecutor(offset, scale, ratio, policy.limits)
             value_net = HistoryValue(actor.history_mean, actor.history_scale).to(device)
             actor_optimizer = torch.optim.Adam(actor.parameters(), lr=1e-6)
             value_optimizer = torch.optim.Adam(value_net.parameters(), lr=3e-4)
@@ -259,9 +261,8 @@ def main():
                             x = tau_features(current['q'], current['dq'], current['hand'], current['obj'],
                                 current['velocity'], future[:, shifted], next_q, previous)
                             latent = policy.actor(x)
-                            base = wrist_feedforward(next_q, velocity[:, slot+1], ratio)
-                            intended = native_action(policy.target(base, latent), current['q'], offset, scale)
-                            command = intended.clamp(-1, 1)
+                            executed = executor.step(current['q'], next_q, velocity[:, slot+1], latent)
+                            intended, command = executed['intended'], executed['command']
                             if not all(torch.isfinite(value).all() for value in (h, c, x, latent, intended)):
                                 raise FloatingPointError('nonfinite execution')
                             before_state = numpy_state(current)

@@ -69,6 +69,14 @@ retargeter原文与actual hand/action数据合同：支持真实动作监督的�
 仅1行、同seed，旧成功teacher packet不可训练；当时未新采集/训练。详情见
 [结构取舍](../src/task/trajectory-policy/docs/research/20261010-ref1_1-retargeter-design-review.md)。
 步长真实训练留作备选，WM尚未启用。
+
+当前按 ref1_2 将执行边界收敛为共享的
+`tau -> q_des/velocity_des -> measured-q feedback + bounded residual -> native`
+合同。`goal_executor.py` 已接入 trajectory-policy 的 PPO 训练、PPO 冻结评估、
+history 评估和 decoder 评估入口；18 个 Task 测试通过。对既有 8,672 条完整 PPO
+控制记录的逐步重放，新执行器与旧公式的 requested command 最大差为
+`2.38e-7`，因此这是接口统一而非行为改动。下一步应在同一执行器下做 GT tau 与
+生成 tau 的对照，再决定是否补训练；当前没有启动新训练或物理仿真。
 后续`653f884` [learned R inverse](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
 双臂1500updates完成36.42s/GPU5，独立原始标签/PD/normalizer/全部val预测审计PASS。
 τ val动作误差比state-only低7.82%，同tick τshuffle提高56.74%，但首PD XYZ p95
