@@ -975,3 +975,16 @@ next valid action is a bounded data/subset availability audit; the reported full
 DROID corpus is roughly 3.9 TB, above the current 300 GB local storage cap, so
 large staging or training requires a separate resource decision. The Mission
 claim and final Cm-on/off policy comparison are unchanged.
+
+The bounded official-data audit is complete. The official DROID-100 RLDS shard
+was parsed as real 320x180 JPEG video with actions, joint states and language,
+and its first episode was paired with PointWorld-DROID flow shard `000409`.
+The pinned shard restored 68 H5 files, 722 clips and 1,444 camera groups; the
+matching episode contains ten clips for camera serials `20521388` and
+`24259877`, with finite sampled 3-D scene flow and robot-state fields. This
+proves a reproducible official video/data pairing, not a training benefit. No
+official checkpoint was used and no training has started. The next action is a
+Task-local adapter audit against the native 18-D point-flow contract before any
+new data Probe or larger download. See the Task-local
+[video-data audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md)
+and [pairing audit](../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md).

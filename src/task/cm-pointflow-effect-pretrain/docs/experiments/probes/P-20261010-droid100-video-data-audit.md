@@ -5,13 +5,17 @@ experiment_id: P-20261010-droid100-video-data-audit
 date: 2026-10-10
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: 71ca378
+git_commit: 7a66aac
 claim_id: C1
 hypothesis_family: official-raw-video-data
 probe_index_in_family: 1
+seed_pool: probe
+seeds: []
+decision_changed_if_positive: run a bounded adapter audit on an official video/annotation pair
+decision_changed_if_negative: stop official DROID acquisition and retain the native data route
 requested_intervention: official_video_data_training
 executed_intervention: official_droid100_video_data_audit
-status: UNCLEAR
+status: PROMISING
 run_id: droid100-video-data-audit-20261010-r1
 ---
 
@@ -48,8 +52,39 @@ The audit records object sizes/hashes, TFRecord integrity, episode/step counts,
 JPEG decode dimensions, and the minimal adapter contract. It does not train or
 claim that video improves the native model.
 
-## Current status
+## Result
 
-Metadata and one TFRecord shard have not yet been acquired in this card. The
-previous PointWorld-DROID derived annotation audit remains preserved separately
-and must not be counted as this raw-video audit.
+The GCS inventory contains 33 objects: 31 TFRecord shards, `dataset_info.json`,
+and `features.json`. The TFRecord objects total 2,192,595,669 bytes and the
+metadata reports 100 episodes across shard lengths summing to 100. The first
+shard is 27,488,816 bytes and its GCS MD5 is
+`IQoCwa04u58UpSOzKsS/6g==`; the local copy has the same MD5 and SHA256
+`37d04d3586fbde386d14122320d8f7d866b37007ff7a8d96625e72a3994dda70`.
+
+The first shard contains two valid `SequenceExample` records with 166 and 238
+steps. Every sampled first/middle/last frame in all three camera fields
+(`wrist_image_left`, `exterior_image_1_left`, and `exterior_image_2_left`)
+decoded as RGB JPEG at 320x180. The same records contain 7-D actions, 7-D joint
+positions, boundary flags, language instructions, and source recording paths.
+The full parsed result is in the ignored run artifact
+`audit_result.json`; the object inventory is `source/inventory.json`.
+
+This is a valid, bounded official video-data source (`PROMISING` for data
+readiness). It is an RLDS TFRecord release with downsampled JPEG frames, not the
+multi-terabyte raw MP4/SVO bucket. It therefore proves that official video
+samples can be acquired and decoded, but it does not yet prove usefulness for
+the native point-flow model.
+
+## Next decision
+
+The native model currently consumes 3-D point trajectories, 18-D scene features,
+and action-conditioned targets; the DROID-100 RLDS record supplies RGB frames,
+robot states and actions but no 3-D point-flow labels. The cheapest compatible
+route is to match one DROID-100 episode to the released PointWorld-DROID flow
+annotation. That bounded match is now complete in
+[the pairing Probe](P-20261010-droid100-pointworld-match.md): the exact episode
+is present in flow shard `000409`, with ten clips, two matching camera serials,
+and finite 3-D scene-flow fields. This verifies a concrete official video plus
+annotation source without using any released checkpoint. An RGB-only adapter
+remains a separate route and must not be conflated with native point-flow
+training.

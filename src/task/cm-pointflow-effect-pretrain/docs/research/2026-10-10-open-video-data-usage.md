@@ -70,6 +70,36 @@ config名main_ptv3_fresh，没有冻结/加载通用Sonata的代码证据。因�
 API与header；没有改代码或训练。若复用应优先官方完整模块/入口，另冻匹配协议，
 不默认写部分权重映射来凑兼容。
 
+## DROID-100：确认拿到的是官方视频数据，并与官方 3-D 标注配对
+
+为回答“官方视频数据能否进入训练”而不是“官方权重能否加载”，先审计了
+官方 DROID-100 RLDS 子集。官方文档将它列为约 2 GB、100 episode 的调试子集，
+而原始 MP4/SVO 发布物是多 TB 规模（见[The DROID Dataset
+docs](https://droid-dataset.github.io/droid/the-droid-dataset)）。只下载了
+一个 TFRecord shard（27,488,816 bytes）和两个元数据文件，没有下载全量语料。
+该 shard 含两个 `SequenceExample`，166 和 238 个 step；三路字段
+`wrist_image_left`、`exterior_image_1_left`、`exterior_image_2_left` 的抽样帧均
+能解码为 320x180 RGB JPEG，并同时带有 7-D action、joint state、语言和源路径。
+因此它确实是官方视频帧/动作记录，不是 PointWorld 的派生标签包。
+
+随后按 PointWorld-DROID 固定 revision 的 manifest，只取得 flow shard `000409`
+（压缩包 3,499,128,679 bytes，SHA256
+`38fc5fc032f422a34d62a5b7a6d554189f68fafdab0f568660651467de2b23e9`）。官方恢复
+脚本得到 68 个 H5、722 个 clip、1,444 个 camera group；全部可打开，抽样 scene
+flow 没有非有限值。DROID-100 首条 episode
+`RAIL+80edfcb1+2023-04-17-14h-48m-05s` 在其中出现十个 clip，两个 camera serial
+`20521388`、`24259877` 与 raw metadata 对上；每个匹配 clip 同时有 320x180 初始
+RGB、11-step 3-D scene flow、7-D gripper pose 和 7-D joint positions。两份发布物
+的初始 RGB 尺寸与相机身份一致，但像素 MAE 约 4.46，说明它们经过不同 JPEG/处理
+路径，不能声称字节级相同。
+
+这一步的结论是 `PROMISING`，范围仅限“官方视频样本和官方 3-D 标注可以有界地取得
+并配对”。尚未把它们送进 native trainer，也没有任何视频收益结论。下一步最便宜
+且可判别的动作是把一个匹配 H5 clip 规范化为现有 18-D point-flow 输入合同，冻结
+feature/target 映射和 split 边界；合同通过后再做随机初始化的短 Probe，并保留同一
+native 数据控制臂。若改做 RGB encoder，则属于新前端路线，不能冒充当前 native
+point-flow 训练。
+
 ## 下一步决策与范围
 
 此前的资源决策只批准获取固定 SHA 的官方 small checkpoint 做兼容检查，
@@ -77,12 +107,12 @@ API与header；没有改代码或训练。若复用应优先官方完整模块/�
 但它不回答视频数据问题；对应结果按 `INVALID_IMPLEMENTATION / INCONCLUSIVE`
 保留在[实验卡](../experiments/probes/P-20261010-open-video-backbone-transfer.md)。
 
-当前真正的 Decision 是：能否从官方 DROID/PointWorld 视频数据中取得一个有界、
-可复现、与原生 point-dynamics 接口相容的子集。官方数据卡报告全量下载约
-3.91 TB、展开约4.65 TB，而本 Campaign 本地产物上限为300 GB。因此先做只读
-metadata、分片布局、ModelScope/镜像可用性和最小子集恢复审计；不下载全量数据，
-不启动新的权重迁移训练。若子集仍超过本地上限，则需要用户决定 NAS 远程存储和
-具体子集范围。
+当前 Decision 已从“能否取得数据”推进到“怎样把已配对子集接入 native 合同”。
+官方数据卡报告 PointWorld-DROID 全量下载约 3.91 TB、展开约4.65 TB，而本
+Campaign 本地产物上限为300 GB；DROID 原始 MP4/SVO 规模更大。因此保持有界
+episode/shard 策略，不下载全量数据，不启动新的权重迁移训练。只有在 adapter
+合同通过后，才评估一个仍在本地上限内的训练子集；远程 NAS 或大规模 staging
+仍需要单独的资源决策。
 
 有效的数据 Probe 必须使用官方视频样本作为训练输入，并保留同一原生模型随机
 初始化控制臂、固定 native 数据/统计/评价接口和明确的数据适配层；不能把官方

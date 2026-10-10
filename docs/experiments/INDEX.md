@@ -349,6 +349,18 @@
 | --- | --- | --- | --- | --- |
 | [P-20261004-ref5-surface-i-gt-value](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md) | Ref5: does GT spatial surface I add G information after H and E? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## official-raw-video-data
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-droid100-video-data-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md) | Can the official DROID video subset provide actual frame/action samples? | 见原卡 | 见原卡 | probes/PROMISING |
+
+## official-video-pointflow-adapter
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-droid100-pointworld-match](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md) | Can an official DROID video episode be paired with PointWorld 3-D labels? | 见原卡 | 见原卡 | probes/PROMISING |
+
 ## 未分类历史记录
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

@@ -9,6 +9,10 @@ git_commit: 455b6c4
 claim_id: C1
 hypothesis_family: HF-official-video-data
 probe_index_in_family: 1
+seed_pool: probe
+seeds: []
+decision_changed_if_positive: audit a matched official DROID episode and consider a native adapter Probe
+decision_changed_if_negative: stop official PointWorld data acquisition and retain native sources
 requested_intervention: official_video_data_training
 status: UNCLEAR
 run_id: official-video-data-subset-20261010-r1

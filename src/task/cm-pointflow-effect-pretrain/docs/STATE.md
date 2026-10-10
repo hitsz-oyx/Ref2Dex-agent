@@ -110,6 +110,20 @@ start another transfer run. The published full corpus is reported at roughly
 3.9 TB, above this Campaign's 300 GB local artifact cap. Any remote NAS staging,
 large subset acquisition or new long run requires a separate resource decision.
 
+The bounded official-data audit is now complete. The official DROID-100 RLDS
+shard contains real 320x180 JPEG frames, actions, joint states and language;
+it is distinct from the PointWorld-derived H5 annotation package. The first
+DROID-100 episode was matched to PointWorld-DROID flow shard `000409`: ten
+clips, camera serials `20521388`/`24259877`, 11-step scene flow, gripper pose
+and joint fields were restored from the pinned SHA256 package, with finite
+sampled values. This establishes data availability and a reproducible pairing,
+not a video benefit. No official checkpoint entered this audit and no training
+has started. The next bounded action is a Task-local adapter audit that maps
+one matched H5 clip to the native 18-D point-flow contract; only after that
+contract is accepted should a random-initialization data Probe be considered.
+See [DROID-100 video audit](experiments/probes/P-20261010-droid100-video-data-audit.md)
+and [episode pairing audit](experiments/probes/P-20261010-droid100-pointworld-match.md).
+
 ## Current decision and resources
 
 Retain native main3 model and all weak-label/sensor evidence. Video follow-up
