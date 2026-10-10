@@ -4,6 +4,11 @@
 
 A full Isaac/MuJoCo contact smoke cannot run in the current worktree because `python3` has neither `isaacgym` nor `mujoco` installed, and the SPIDER sample output corpus is not present here. A **static CHORD support-function smoke does run** using the locally readable HRDexDB Inspire geometry. This is sufficient to validate the wrench math and data shape, but it does not validate simulator contact forces or native policy reward wiring.
 
+That limitation is narrower than a machine-wide blocker: the read-only DExplore
+checkout has a compatible runtime environment. Its bounded one-environment
+contact-tensor smoke is recorded below; the CWS-on/off reward decision is still
+open.
+
 No external data was downloaded and no external repository was modified.
 
 ## Locally available geometry and contracts
@@ -30,6 +35,18 @@ The larger DFTP episode tree has `raw/hand/force.npy`, tactile, and arm torque p
 ### Existing Inspire simulator implementation
 
 The checked-in `third_party/DExplore` source is Git `00d5c6c7a7eadf4237e0f808aad40943950c8165`. `dexplore/env/tasks/base_dexplore_task.py` acquires Isaac Gym net-contact-force and force-sensor tensors (`acquire_net_contact_force_tensor`, `acquire_force_sensor_tensor`, `refresh_net_contact_force_tensor`, and `refresh_force_sensor_tensor`). `dexplore/env/tasks/dexplore_inspire.py` defines the 18-DOF Inspire hand and its finger-coupling rules.
+
+The current task checkout does not contain DExplore's full `data/cfg`, asset, and
+motion tree, but the read-only full checkout at
+`/home2/wyy/oyx_ws/Ref2Dex/third_party/DExplore` (Git
+`82c11b3d04a02efff43c97e6507c7b985a982a7b`) does. Using a project-local
+symlink to one existing `interaction_hand_inspire.pt` trajectory, the external
+runtime environment created one GPU Isaac Gym environment with 18 actions and
+ran 120 reference-following steps. The contact tensor was `[1,5,3]`, finite at
+every step; nonzero body contact appeared at steps 48--49, 67--78, and 82--83,
+with maximum body-force norm `0.20162`. The bounded output is
+`tmp/chord-sim-smoke-20261011/contact_force_smoke.json`. This is a simulator
+contact-tensor smoke, not a CHORD reward comparison.
 
 This is enough to construct a native smoke once Isaac Gym is available:
 
