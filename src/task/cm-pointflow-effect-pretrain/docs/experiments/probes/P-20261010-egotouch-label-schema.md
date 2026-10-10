@@ -98,6 +98,21 @@ these grids are not directly comparable calibrated force targets. Tactile
 remains an optional auxiliary target/teacher for the geometry route, not a
 required robot inference input.
 
+## Follow-up protocol: contact-positive sample (before execution)
+
+Run `egotouch-contact-positive-20261010-r2` continues this same schema question.
+Search at most40 distinct original TRAIN tasks for a true original left/right
+contact annotation, favoring manipulation task names and then smallest complete
+bundles. Task name alone never establishes contact. Fixed raw revision and
+Git/LFS checks remain unchanged. Download one positive bundle's five labels and
+chest RGB only; total transfer<=16MiB, wall<=300s, new local directory. Reuse
+ModelScope discovery; try mirror first, then project proxy, retaining the failed
+mirror result for remaining files. Decode chest frame count/fps and compare
+original frame-index/timestamp/pressure layout in a numeric audit. Equal counts
+are insufficient to prove synchronization; no camera calibration is inferred.
+Tool: `tools/audit/sample_egotouch_contact_positive.py`. This is CPU acquisition/
+schema checking, not model training or a change in the Mission claim.
+
 ## Limitations / future evidence
 
 Pressure values do not establish Pa/N calibration. Sparse 21x21 mapped values
