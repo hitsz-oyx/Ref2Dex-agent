@@ -53,8 +53,12 @@ def sha(path):
 
 def _parse():
     parser = argparse.ArgumentParser(description=__doc__)
-    for key in ("inputs", "reference", "geometry", "bc-checkpoint", "bc-manifest", "output"):
+    for key in ("inputs", "reference", "geometry", "output"):
         parser.add_argument("--" + key, type=Path, required=True)
+    parser.add_argument("--bc-checkpoint", type=Path)
+    parser.add_argument("--bc-manifest", type=Path)
+    parser.add_argument("--ppo-checkpoint", type=Path)
+    parser.add_argument("--ppo-manifest", type=Path)
     parser.add_argument("--gpu", type=int, required=True)
     parser.add_argument("--goal-env", type=int, default=0)
     parser.add_argument("--seed", type=int, default=312)
@@ -64,7 +68,10 @@ def _parse():
 def main():
     args = _parse()
     args.output = args.output.resolve()
-    for path in (args.inputs, args.reference, args.geometry, args.bc_checkpoint, args.bc_manifest):
+    for path in (args.inputs, args.reference, args.geometry, args.bc_checkpoint, args.bc_manifest,
+                 args.ppo_checkpoint, args.ppo_manifest):
+        if path is None:
+            continue
         if not path.exists():
             raise FileNotFoundError(path)
     if args.output.exists() or ROOT / "outputs/trajectory-policy" not in args.output.parents:
@@ -95,8 +102,8 @@ def main():
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
     from consequence_evaluator.gate1 import episode_outcome
-    from trajectory_policy.goal_policy import (GoalConditionedPolicy, Standardizer,
-                                                goal_features)
+    from trajectory_policy.goal_policy import (GoalConditionedActor, GoalConditionedPolicy,
+                                                Standardizer, goal_features)
     from trajectory_policy.inputs import load_geometry
     from oracle_y_utility import align_native_reference_tables
     import evaluate as native
@@ -121,24 +128,50 @@ def main():
             raise ValueError("native input drift: " + path)
 
     geometry_data, initial, _, geometry_hashes = load_geometry(args.geometry, args.reference, urdf)
-    bc_manifest = json.loads(args.bc_manifest.read_text())
-    if bc_manifest.get("status") != "COMPLETED" or bc_manifest.get("schema") != "ref2dex.goal-conditioned-bc.v1":
-        raise ValueError("completed goal-conditioned BC manifest required")
-    bc_result = json.loads((args.bc_checkpoint.parent / "result.json").read_text())
-    if bc_result.get("status") != "PROMISING" or not bc_result.get("offline_only"):
-        raise ValueError("offline BC gate did not pass")
-    if sha(args.bc_checkpoint) != bc_result.get("checkpoint_sha256"):
-        raise ValueError("BC checkpoint hash mismatch")
-    for path, digest in bc_manifest.get("input_sha256", {}).items():
-        if sha(path) != digest:
-            raise ValueError("BC source/input drift: " + path)
-    payload = torch.load(args.bc_checkpoint, map_location=device, weights_only=False)
-    if payload.get("schema") != GoalConditionedPolicy.schema:
-        raise ValueError("BC checkpoint schema mismatch")
+    ppo_pair = args.ppo_checkpoint is not None and args.ppo_manifest is not None
+    bc_pair = args.bc_checkpoint is not None and args.bc_manifest is not None
+    if ppo_pair == bc_pair:
+        raise ValueError("supply exactly one PPO checkpoint/manifest pair or the BC pair")
+    if args.ppo_checkpoint is not None:
+        checkpoint_path, checkpoint_manifest_path = args.ppo_checkpoint, args.ppo_manifest
+        checkpoint_manifest = json.loads(checkpoint_manifest_path.read_text())
+        if checkpoint_manifest.get("status") != "COMPLETED" or checkpoint_manifest.get("schema") != "ref2dex.goal-conditioned-ppo-run.v1":
+            raise ValueError("completed goal-conditioned PPO manifest required")
+        checkpoint_result = json.loads((checkpoint_path.parent / "result.json").read_text())
+        if checkpoint_result.get("final_checkpoint_sha256") != sha(checkpoint_path):
+            raise ValueError("PPO checkpoint hash mismatch")
+        for path, digest in checkpoint_manifest.get("input_sha256", {}).items():
+            if sha(path) != digest:
+                raise ValueError("PPO source/input drift: " + path)
+        payload = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        if payload.get("schema") != GoalConditionedActor.schema:
+            raise ValueError("PPO checkpoint schema mismatch")
+        policy_kind = "ppo"
+    else:
+        checkpoint_path, checkpoint_manifest_path = args.bc_checkpoint, args.bc_manifest
+        checkpoint_manifest = json.loads(checkpoint_manifest_path.read_text())
+        if checkpoint_manifest.get("status") != "COMPLETED" or checkpoint_manifest.get("schema") != "ref2dex.goal-conditioned-bc.v1":
+            raise ValueError("completed goal-conditioned BC manifest required")
+        checkpoint_result = json.loads((checkpoint_path.parent / "result.json").read_text())
+        if checkpoint_result.get("status") != "PROMISING" or not checkpoint_result.get("offline_only"):
+            raise ValueError("offline BC gate did not pass")
+        if sha(checkpoint_path) != checkpoint_result.get("checkpoint_sha256"):
+            raise ValueError("BC checkpoint hash mismatch")
+        for path, digest in checkpoint_manifest.get("input_sha256", {}).items():
+            if sha(path) != digest:
+                raise ValueError("BC source/input drift: " + path)
+        payload = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        if payload.get("schema") != GoalConditionedPolicy.schema:
+            raise ValueError("BC checkpoint schema mismatch")
+        policy_kind = "bc"
     if payload.get("inference_contract", "").find("no future q") < 0:
         raise ValueError("BC checkpoint does not declare the no-future-q contract")
-    policy = GoalConditionedPolicy(width=int(payload["width"])).to(device)
-    policy.load_state_dict(payload["state_dict"], strict=True)
+    if policy_kind == "bc":
+        policy = GoalConditionedPolicy(width=int(payload["width"])).to(device)
+        policy.load_state_dict(payload["state_dict"], strict=True)
+    else:
+        policy = GoalConditionedActor(width=int(payload["width"])).to(device)
+        policy.load_state_dict(payload["actor_state_dict"], strict=True)
     policy.eval()
     for parameter in policy.parameters():
         parameter.requires_grad_(False)
@@ -168,9 +201,9 @@ def main():
     hashes[str(args.reference.resolve())] = sha(args.reference)
     hashes[str(args.geometry.resolve() / "manifest.json")] = sha(args.geometry / "manifest.json")
     hashes[str(args.geometry.resolve() / "geometry.npz")] = sha(args.geometry / "geometry.npz")
-    hashes[str(args.bc_checkpoint.resolve())] = sha(args.bc_checkpoint)
-    hashes[str(args.bc_manifest.resolve())] = sha(args.bc_manifest)
-    hashes[str((args.bc_checkpoint.parent / "result.json").resolve())] = sha(args.bc_checkpoint.parent / "result.json")
+    hashes[str(checkpoint_path.resolve())] = sha(checkpoint_path)
+    hashes[str(checkpoint_manifest_path.resolve())] = sha(checkpoint_manifest_path)
+    hashes[str((checkpoint_path.parent / "result.json").resolve())] = sha(checkpoint_path.parent / "result.json")
     for path in (Path(__file__), TASK / "src/trajectory_policy/goal_policy.py",
                  TASK / "src/trajectory_policy/goal_policy_data.py"):
         hashes[str(path.resolve())] = sha(path)
@@ -278,7 +311,11 @@ def main():
                     raw = goal_features(current["q"], current["dq"], current["hand"], current["obj"],
                                         current["velocity"], previous, hand_goal, obj_goal)
                     encoded = (raw - mean) / scale
-                    command = policy(encoded).clamp(-1, 1)
+                    if policy_kind == "bc":
+                        command = policy(encoded)
+                    else:
+                        command = policy.action(policy.mean(encoded))
+                    command = command.clamp(-1, 1)
                     if not all(torch.isfinite(value).all() for value in (raw, encoded, command)):
                         raise FloatingPointError("nonfinite goal-policy execution chain")
                     obs, _, done, _ = self.env_step(self.env, command.clone())
@@ -368,4 +405,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
