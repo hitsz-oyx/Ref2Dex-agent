@@ -131,6 +131,17 @@ combination negative cannot by itself be evidence that H->tau is ineffective,
 because velocity semantics were wrong. Audit the corrected full execution before
 any such local conclusion; future-only velocity invariance tests pass.
 
+## Completed corrected pure-H follow-up / stop
+
+35093fb full r3 completed107.01s. GT4/4 original long-held433+terminal calibration;
+three generated roles each0/4 acquisition, clipping100%/97.094%/94.649%. Actual
+nominal-velocity masks and all input/command/PD/physical-label audits pass.
+Interface repair remains PROMISING for the privileged short-GT control, whereas
+the corrected pure-H frozen combination is still UNPROMISING. No bootstrap
+training started. Total new sim time33.88+33.96+107.01=174.85s, within5GPUmin;
+outputs well below512MiB. User paused this Task and redirected work to the new
+trajectory-policy architecture. No owned GPU process remains.
+
 ## Limitations / future evidence
 
 Single motion/seed and separate live rows, oracle-warmstarted executor.128steps

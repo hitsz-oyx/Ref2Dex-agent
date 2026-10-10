@@ -5,7 +5,7 @@ experiment_id: P-20261010-generated-tau-native-execution
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: 7840f92
+git_commit: 35093fb
 claim_id: C3
 hypothesis_family: HF-generated-tau-execution
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [298]
 decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
 decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
 status: UNPROMISING
-run_id: generated-tau-native-execution-20261010-r2
+run_id: generated-tau-native-execution-20261010-r3
 ---
 
 # Can pure measured-history generated tau drive the frozen native executor?
@@ -220,6 +220,22 @@ combination, not sound negative evidence for the intended nominal-velocity
 proposal/executor method. Preserve artifacts and original UNPROMISING label;
 corrected full seed298 r3 is the only new follow-up, bounded under the interface
 card. Repair commit and r3 results will be recorded here when complete.
+
+## Corrected full r3 and user pause
+
+35093fb corrected future-only FF r3 completed16env/542controls/68plans in107.01s.
+GT4/4longheld+terminal, median479, clipping0. Persistence/displacement/scored
+still0/4 even formed grasp; clip100%,97.094%,94.649%. Projection median.835s,
+max1.229s. Audit `generated-tau-native-audit-20261010-r3/` checks all future-only
+velocity masks, measuredH/current0, actual897features3.81e-6/command2.38e-7/PD0,
+choice/physical outcome. Local corrected combination UNPROMISING; it does not
+separately refute proposal/scorer or trajectory interfaces. Interface repair is
+retained; no bootstrap retraining was launched.
+
+User then explicitly stopped further work on this Task and redirected architecture
+thinking to `trajectory-policy/docs/user/ref/ref1.md`. All own GPU/task processes
+are terminal. Preserve this evidence and frozen models; do not resume this Task's
+experiments under the new architecture discussion without user steering.
 
 ## Limitations / future evidence
 

@@ -1,5 +1,13 @@
 # Consequence evaluator
 
+## 当前 Task 暂停
+
+2026-10-10 用户要求先做到这里，转入 [trajectory-policy](../trajectory-policy/README.md)
+的新架构设计。最新35093fb修复生成τ的nominal未来速度，不再混入live q0跟踪误差；
+GT在线128步4/4保持。修复后的完整纯H执行r3仍三个生成角色0/4抓持，GT4/4长时终末held，
+实际输入/速度/命令审计通过。当前生成组合局部UNPROMISING，不代表τ路线已被否定。
+不再运行后续旧Task实验，未启动bootstrap训练；所有自身GPU进程已结束，产物保留。
+
 ## 2026-10-10 生成τ执行状态
 
 纯H四帧→十候选→选择→原生几何→冻结控制器的完整542步已完成（7840f92，107.71s）。

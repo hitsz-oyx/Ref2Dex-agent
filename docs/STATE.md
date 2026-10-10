@@ -1,5 +1,19 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 用户转入 trajectory-policy 新架构设计
+
+用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
+[ref1](../src/task/trajectory-policy/docs/user/ref/ref1.md)。当前仅架构梳理：独立绝对
+trajectory latent actor、固定D/R、真实奖励PPO baseline，之后检验WM动作条件
+physical token是否改善策略训练。根级Mission/Cm claim不变，尚无新Task训练或仿真。
+建议先做D/R可执行行为覆盖而非直接搭建整套WM/critic/planner。
+入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
+
+旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
+clip0，生成三组仍0/4抓持、clip100%/97.094%/94.649%；全历史/未来速度/输入/命令审计
+通过。接口错误已修复，生成proposal执行问题未解决；checkpoint/失败证据保留，
+没有启动bootstrap训练，GPU2已释放。完整ref8和Mission最终收益仍未完成。
+
 ## 2026-10-10 生成τ首次完整执行：当前组合 UNPROMISING
 
 纯历史proposal/T/fingerfit executor冻结，PointWorld和E必要性继续冻结。原300step
@@ -14,8 +28,9 @@ c8280e3全轨迹审计：初始state与参考exact，所有纯H/当前手重算e
 但训练最早tick8而部署tick0，以及在线重标定/分段末帧padding均未被隔离。
 8330b07短诊断确认GT在线链路只1/4 held45而原GT4/4，前8步GT handoff仍未恢复生成
 抓持。在线几何q接近原目标，但首目标速度差分混入live q跟踪误差，重规划FF偏移最高
-7cm/.30rad。下一步同预算内隔离future-only速度和原始τ conditioning；真实τ仅明确的
-privileged对照，不加入纯H部署。完整ref8、同状态排序与Mission Cm策略训练收益仍未完成，GPU2空闲。
+7cm/.30rad。e3f5a17同预算内future-only速度/原始τ对照均4/4 held45且终末held，
+修复35093fb后纯H完整执行仍未抓持，详见上方最新状态。真实τ仅明确的privileged
+对照，不加入纯H部署；本Task后续实验按用户要求暂停。完整ref8、同状态排序与Mission Cm策略训练收益仍未完成，GPU2空闲。
 协议：[原生执行](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md)、
 [接口诊断](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md)。
 
