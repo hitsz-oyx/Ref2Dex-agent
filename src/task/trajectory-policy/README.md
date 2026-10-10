@@ -18,7 +18,9 @@ FF RMS18.50mm未过几何screen，按协议未仿真；不作为新的抓持负�
 `457c65f` D288工程回放通过68窗口x4条dense计划：native q max5.96e-7、
 手点3.58e-7m、速度1.97e-5、腕FF2.35e-6；GPU4约0.975s、Torch峰值6.85MiB。
 这是同一既有成功计划的编码/解码一致性，未新增物理rollout或学习证据。
-尚未训练高层actor或接入WM。consequence-evaluator后续实验按用户
+已补充H328纯测量历史合同、独立Gaussian actor与有界监督初始化入口
+`tools/run/fit_history_actor.py`：全部源轨迹保留，train-only normalization，按行留出；
+当前仅完成实现与输入合同测试，尚未启动该actor训练或接入WM。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
 无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
 
