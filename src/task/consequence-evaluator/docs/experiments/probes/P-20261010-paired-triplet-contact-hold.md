@@ -5,7 +5,7 @@ experiment_id: P-20261010-paired-triplet-contact-hold
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending
+git_commit: c77bac3
 claim_id: C3
 hypothesis_family: HF-hand-action-retarget
 probe_index_in_family: 8
@@ -27,8 +27,8 @@ diagnostic rather than a registered contact/hold row. Existing structured
 rollouts have contact and hold coverage but no paired command perturbations.
 This bounded follow-up asks only whether a deterministic triplet schedule can
 join those two contracts: each group has a control, `+d`, and `-d` branch with
-the same random structured prefix, then receives one active-finger pulse at a
-fixed contact or hold tick.
+the same seeded initial state and receives one active-finger pulse at a fixed
+contact or hold tick.
 
 A positive result keeps a data-collection route alive; it does not establish
 preload causality, decoder identifiability, or native task benefit. A failed
@@ -37,15 +37,14 @@ main R/H/PointWorld claims.
 
 ## Frozen protocol
 
-Run two fresh GPU2 retarget rollouts with 90 environments each (30 triplets),
+Run two fresh GPU2 retarget rollouts with 96 environments each (32 triplets),
 seed 211 for contact and seed 212 for hold, using the same frozen execution
-input packet and `--structured-profile paired-triplet`. Within each triplet the
-random residual schedule is duplicated across `control/plus/minus`; the
-intervention overwrites independent finger coordinate 6 for one command tick
-with `0/+0.08/-0.08`. Contact pulse ticks are 120--149; hold pulse ticks are
-240--269. No post-reset jitter is used, so the triplet prefix itself remains
-bitwise comparable; distinct groups receive distinct structured residual
-prefixes.
+input packet and `--structured-profile paired-triplet --paired-base-profile
+zero --initial-jitter`. Within each triplet the seeded initial q-jitter is
+duplicated across `control/plus/minus`, while the residual schedule is zero;
+distinct groups receive distinct initial states. The intervention overwrites
+independent finger coordinate 6 for one command tick with `0/+0.08/-0.08`.
+Contact pulse ticks are 120--151; hold pulse ticks are 240--271.
 
 The saved state frame `t` is paired with command `t`. A row is eligible only
 when all three branches have bitwise-equal state/action prefixes through `t`,
