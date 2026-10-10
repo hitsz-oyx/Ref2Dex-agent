@@ -109,6 +109,31 @@ not be credited to reduced clipping without a matched mechanistic comparison.
 
 Pending; manifests record actual code/input identities and monitored resources.
 
+Engineering smoke (470b9af,debug44,one update) passes the source latent/input
+checks, differentiable target loss and wrist/trunk protection. Fixed1000update
+fit r1 (470b9af,seed279) completes8.38s onGPU2 (~465MiB,6–7%util): source
+raw clipping41.01% ->2.48%, command RMSE8.50 ->3.16mrad. Fit is engineering
+only; no behavior-based checkpoint selection.
+
+Complete eval r1 (470b9af,seed280): student16/16 hold45, median483, near43313,
+terminal13, clipping584/8672=6.73%; frozen tau median478,near14,terminal14,
+clipping3486/8672=40.20%. Oracle median483.5,near14,terminal14,nominal0.
+Original strong gate still UNPROMISING for clipping, with adequate live oracle.
+Input/nativePD reconstruction passes. Preserved wrist weights do not imply
+an identical wrist trajectory when the live/history inputs change.
+
+Predeclared coverage-repair condition met: learning restores long holding but
+live raw clipping exceeds training-state clipping. Annotate every first-eval
+student row from the frozen owned897-input tau policy on the exact recorded
+live/history state; do not pick only its successful rows. Combine both state
+sets; same original checkpoint, seed279, fixed1000updates/margin/loss. Eval
+seed281 is a new launch, not Validation. This probes feedback coverage before
+altering representation or another broad PPO. Added cost~15sfit/~100seval.
+
+Command-fit provenance is transitive through its pinned source manifest; the
+audit verifies that hash before checking reference identity, since fitting does
+not read future-q/object labels from the reference packet itself.
+
 ## Related sources
 
 [Previous tau Probe](P-20261010-tau-geometry-tracking.md) remains the source of

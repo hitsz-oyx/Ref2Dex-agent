@@ -69,6 +69,8 @@ def main():
             raise ValueError('geometry drift')
         hashes.update({str((packet / name).resolve()): sha(packet / name) for name in ('manifest.json', 'trajectory.npz')})
         hashes[str(geometry.resolve())] = sha(geometry)
+        geometry_manifest = geometry.parent / 'manifest.json'
+        hashes[str(geometry_manifest.resolve())] = sha(geometry_manifest)
         controllers.append(manifest['native_controller'])
         if controllers[-1] != controllers[0]:
             raise ValueError('source native controller mismatch')

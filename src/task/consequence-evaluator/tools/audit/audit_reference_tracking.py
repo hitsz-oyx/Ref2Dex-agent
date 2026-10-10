@@ -34,7 +34,16 @@ def main():
         raise ValueError("completed frozen training and evaluation required")
     reference_path = str(args.reference.resolve())
     checkpoint = args.training / "final.pt"
-    if (train["input_sha256"][reference_path] != sha(args.reference)
+    train_reference_sha = train['input_sha256'].get(reference_path)
+    if train_reference_sha is None and train.get('source'):
+        # Command fitting consumes a pinned source trajectory, not the packet's
+        # future object/q labels. Verify this transitive provenance explicitly.
+        source_manifest = Path(train['source']) / 'manifest.json'
+        if sha(source_manifest) != train['input_sha256'][str(source_manifest.resolve())]:
+            raise ValueError('command-fit source provenance mismatch')
+        source = json.loads(source_manifest.read_text())
+        train_reference_sha = source['input_sha256'].get(reference_path)
+    if (train_reference_sha != sha(args.reference)
             or evaluation["input_sha256"][reference_path] != sha(args.reference)
             or evaluation["input_sha256"][str(checkpoint.resolve())] != sha(checkpoint)):
         raise ValueError("reference/checkpoint provenance mismatch")
