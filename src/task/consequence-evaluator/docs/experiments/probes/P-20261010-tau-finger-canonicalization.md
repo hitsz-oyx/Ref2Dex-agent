@@ -10,7 +10,7 @@ claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 4
 seed_pool: probe
-seeds: [279, 280, 281, 283]
+seeds: [279, 280, 281, 283, 284, 285]
 decision_changed_if_positive: retain tau state closed-loop commands with protected wrist and learned feasible finger preload
 decision_changed_if_negative: distinguish feedback state coverage from action parameterization before more PPO
 status: UNCLEAR
@@ -134,7 +134,7 @@ Command-fit provenance is transitive through its pinned source manifest; the
 audit verifies that hash before checking reference identity, since fitting does
 not read future-q/object labels from the reference packet itself.
 
-Coverage fit r2 (0040485,seed279) completes8.92s/GPU585MiB,17244state examples;
+Coverage fit r2 (0040485,seed279) completes8.92s/GPU585MiB,17344state examples;
 training raw clipping2.91%,commandRMSE3.77mrad. Final eval r2 (seed281) gives
 student16/16 hold45, median479,near43313,terminal13,clipping193/8672=2.23%.
 Oracle16/16 near/terminal, frozen tau12/16 near/terminal, nominal0. All input/
@@ -152,6 +152,33 @@ weight on rare constraints from state coverage; it is not a seed/LR sweep.
 Fixed final eval seed283. Cost~15sfit/~100seval; within25min/2GiB. If it fails
 the existing gate, stop this canonicalization experiment and record the specific
 remaining limitation rather than automatically doing the optional PPO.
+
+Tail fit r3 (6dc24eb,seed279) completes9.37s/GPU587MiB: source clipping.0577%,
+commandRMSE6.82mrad. Fixed-final seed283 evaluation passes the unchanged strong
+gate:12/16 qualifying>=433 and terminal held, median479, clipping6/8672=.06919%.
+Oracle16/16, frozen tau15/16 (clipping3482), nominal0/16. Student feature error
+2.86e-6, command2.38e-7,PD0, reset alignment exact. All12 qualifiers have no
+recorded intermediate loss; two loss events belong to failed rows. Three failed
+rows (33,57,58) have unsupported gravity-like descent; env42 separates near
+table support. Four terminal failures remain. Independent review confirms this.
+This is PROMISING for feasible majority holding, not better stability than the
+same-launch frozen teacher or total removal of drops.
+
+Positive-gate follow-up Decision Note: now there is a valid low-clipping policy
+but four terminal holds fail. Classify one64update finger-only PPO as Decision:
+can actual-holding feedback improve contact robustness without changing the
+successful wrist mapping? Initialize declared tail-fit final (not the old full
+PPO). Freeze actor encoder/wrist/logstd, train only six final finger rows and
+critic; sample only finger Gaussian noise, wrist remains deterministic mean.
+PPO likelihood includes only the sampled six dimensions. Same actual-lift/hold
+reward and.20 raw excess cost; coefficient10 worst1% interior-bound loss on
+current mean finger targets. The bound term uses tau-derived q from actual
+student feature q+geometry error, not measured future joint labels.
+Seed284/64env/64updates, fixed final eval285 with same four roles. No outcome/
+checkpoint selection inside training. Added cost~4mintrain/~2mineval, stays under
+25GPUmin/2GiB. Preserve the predeclared canonical candidate regardless of this
+follow-up; report the new learned candidate honestly if it regresses. Stop
+after this one adaptation; broader robustness Validation is deferred.
 
 ## Related sources
 

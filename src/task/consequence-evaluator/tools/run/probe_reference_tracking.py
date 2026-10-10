@@ -46,6 +46,8 @@ def main():
     p.add_argument("--seed", type=int, default=271)
     p.add_argument("--envs", type=int, default=64)
     p.add_argument("--updates", type=int, default=128)
+    p.add_argument('--finger-only', action='store_true',
+                   help='tau-only PPO: deterministic frozen wrist, learn only finger rows and critic')
     p.add_argument("--seconds", type=int, default=1200)
     p.add_argument("--mode", choices=("train", "evaluate", "smoke"), required=True)
     p.add_argument("--checkpoint", type=Path)
@@ -59,6 +61,8 @@ def main():
     p.add_argument("--tau-teacher-checkpoint", type=Path,
                    help="compare frozen tau teacher instead of shifted tau, on its own live rows")
     args = p.parse_args()
+    if args.finger_only and (not args.tau_only or args.mode != 'train' or args.checkpoint is None):
+        raise ValueError('finger-only adaptation needs a tau-only training checkpoint')
     if args.tau_only:
         if args.geometry_reference is None:
             raise ValueError("tau-only execution requires verified geometric reference")
@@ -106,7 +110,7 @@ def main():
         ACTIVE, SCHEMA, ReferenceTracker, advantages, features, native_action, tracking_reward,
         reference_velocity, wrist_feedforward)
     from consequence_evaluator.tau_tracking import (
-        SCHEMA as TAU_SCHEMA, TauTracker, tau_features, tau_reward)
+        SCHEMA as TAU_SCHEMA, FINGERS, TauTracker, configure_finger_fit, tau_features, tau_reward)
     from consequence_evaluator.native_reset import install_reset_patch
     from consequence_evaluator.physical_geometry import PhysicalGeometry, poses
     from consequence_evaluator.value_geometry import TableSupport
@@ -202,6 +206,7 @@ def main():
                     mode=args.mode, seed=args.seed, num_envs=args.envs, updates=args.updates,
                     wrist_feedforward=args.wrist_feedforward, compare_feedforward=args.compare_feedforward,
                     tau_only=args.tau_only, compare_tau=args.compare_tau,
+                    finger_only=args.finger_only,
                     geometry_reference=str(args.geometry_reference) if args.geometry_reference else None,
                     tau_teacher_checkpoint=str(args.tau_teacher_checkpoint) if args.tau_teacher_checkpoint else None,
                     physical_gpu=args.gpu, gpu_before=before, budget_s=args.seconds,
@@ -221,6 +226,8 @@ def main():
             reference_contract="GT future hand upper bound; geometry from tau/reset/static URDF only; q/object labels only for independent comparison/evaluation",
             training_contract="on-policy PPO; weak tau hand tracking plus actual lift/force-pair holding, no palm-to-object target or future object reward; minus0.20*max native-command excess",
             claim="single-motion tau-conditioned geometry/closed-loop execution Probe; no learned high-level tau or Cm benefit")
+    if args.finger_only:
+        manifest['training_contract'] += '; frozen actor encoder/wrist/logstd, finger-only Gaussian sampling and PPO likelihood; critic trains; worst1% mean-policy interior bound penalty coefficient10'
     write(output / "manifest.json", manifest)
 
     class Player(native.EvalPlayer):
@@ -372,7 +379,15 @@ def main():
 
             if args.mode == "train":
                 manifest["initial_sha256"] = save("initial.pt", 0)
-                optimizer = torch.optim.Adam(policy.parameters(), lr=3e-4)
+                if args.finger_only:
+                    trainable = configure_finger_fit(policy)
+                    for parameter in policy.critic.parameters():
+                        parameter.requires_grad_(True)
+                    trainable += list(policy.critic.parameters())
+                else:
+                    trainable = list(policy.parameters())
+                optimizer = torch.optim.Adam(trainable, lr=3e-4)
+                probability_columns = slice(6, None) if args.finger_only else slice(None)
                 history = []; frames = 0; total_clipping = 0
                 for update in range(1, args.updates + 1):
                     if time.monotonic() - started > args.seconds - 30:
@@ -382,7 +397,9 @@ def main():
                         with torch.no_grad():
                             x, measured, next_q, next_obj, next_hand = observation()
                             dist = policy.distribution(x); latent = dist.sample()
-                            value = policy.value(x); logp = dist.log_prob(latent).sum(-1)
+                            if args.finger_only:
+                                latent[:, :6] = dist.loc[:, :6]
+                            value = policy.value(x); logp = dist.log_prob(latent)[:, probability_columns].sum(-1)
                             done, clipped, excess = step(latent, next_q, measured)
                             after = measure()
                             if args.tau_only:
@@ -413,11 +430,19 @@ def main():
                             for begin in range(0, len(adv), 512):
                                 select = permutation[begin:begin + 512]
                                 dist = policy.distribution(flat["obs"][select])
-                                logp = dist.log_prob(flat["latent"][select]).sum(-1)
+                                logp = dist.log_prob(flat["latent"][select])[:, probability_columns].sum(-1)
                                 ratio = (logp - flat["logp"][select]).exp()
                                 actor_loss = -torch.minimum(ratio * adv[select], ratio.clamp(.8, 1.2) * adv[select]).mean()
                                 critic_loss = (policy.value(flat["obs"][select]) - returns[select]).square().mean()
-                                loss = actor_loss + .5 * critic_loss - .001 * dist.entropy().sum(-1).mean()
+                                loss = actor_loss + .5 * critic_loss - .001 * dist.entropy()[:, probability_columns].sum(-1).mean()
+                                if args.finger_only:
+                                    selected_obs = flat['obs'][select]
+                                    geometric_fingers = (selected_obs[:, :18] + selected_obs[:, 861:879])[:, list(FINGERS)]
+                                    intended_fingers = geometric_fingers + torch.tanh(dist.loc[:, 6:]) * policy.limits[6:]
+                                    scaled = (intended_fingers - offset[list(FINGERS)]) / scale[list(FINGERS)]
+                                    violations = torch.relu(.005 - scaled).square() + torch.relu(scaled - .995).square()
+                                    boundary = violations.flatten().topk(max(1, int(np.ceil(violations.numel() * .01)))).values.mean()
+                                    loss = loss + 10 * boundary
                                 if not torch.isfinite(loss):
                                     raise FloatingPointError("nonfinite PPO loss")
                                 optimizer.zero_grad(); loss.backward()
@@ -433,6 +458,16 @@ def main():
                     if update == 1 or update % 4 == 0:
                         monitor(update, frames)
                 checksum = save("final.pt", args.updates)
+                if args.finger_only:
+                    for key, val in policy.state_dict().items():
+                        if key.startswith('critic.'):
+                            continue
+                        expected = initial_state[key]
+                        if key in ('actor.4.weight', 'actor.4.bias'):
+                            val = val[:6]; expected = expected[:6]
+                        if not torch.equal(val, expected):
+                            raise ValueError('finger-only adaptation changed wrist/encoder/logstd: ' + key)
+                    manifest['frozen_wrist_encoder_logstd'] = True
                 changed = sum(not torch.equal(val, initial_state[key]) for key, val in policy.state_dict().items())
                 if changed == 0:
                     raise ValueError("PPO did not change tracker parameters")
