@@ -5,7 +5,7 @@ experiment_id: P-20261011-egotouch-pressure-auxiliary
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: 8a044c8
 claim_id: C1
 hypothesis_family: HF-egotouch-pressure-contact
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [229]
 decision_changed_if_positive: use processed hand-surface pressure/contact as a candidate auxiliary representation before native point-cloud fusion
 decision_changed_if_negative: keep pressure-map auxiliary deferred; retain T-Rex/RBO and simulator wrench routes as separate candidates
-status: PLANNED
+status: UNPROMISING
 run_id: egotouch-pressure-20261011-r1
 ---
 
@@ -83,4 +83,26 @@ must use a matched Cm-on/Cm-off downstream comparison.
 
 ## Results
 
-Pending implementation and one bounded probe.
+The prepared pack used all ten already acquired records (5 fit / 5 held),
+side-specific H4/K8 windows, finite-cell masks, and raw sensor inputs divided by
+255. Two matched GPU arms used seed 229, batch 32, AdamW, 500 updates, and the
+same architecture except for the past-hand input. Each arm completed in about
+8 seconds on an otherwise idle RTX 3090; peak `nvidia-smi` memory returned to
+2 MiB after exit.
+
+The raw-only and raw+hand pressure MAE both lost to persistence on every held
+task. The exact held pressure MAE / persistence MAE pairs were:
+
+| held task | raw | raw+hand | persistence |
+|---|---:|---:|---:|
+| drag chair | 0.0754 / 0.0299 | 0.0655 / 0.0299 | 0.0299 |
+| flip book pages | 0.0915 / 0.0330 | 0.0917 / 0.0330 | 0.0330 |
+| badminton racket | 0.0727 / 0.0182 | 0.0731 / 0.0182 | 0.0182 |
+| shop for snacks | 0.0528 / 0.0180 | 0.0514 / 0.0180 | 0.0180 |
+| squeeze pliers | 0.0401 / 0.0116 | 0.0399 / 0.0116 | 0.0116 |
+
+This probe is `UNPROMISING` for the raw-sensor-to-future-pressure recipe. It
+does not close the processed pressure route: the model did not consume a
+processed pressure history, and the persistence comparison uses the released
+processed scale. It also does not test T-Rex wrench streams or RBO object-frame
+wrenches. Those remain separate follow-up evidence routes.
