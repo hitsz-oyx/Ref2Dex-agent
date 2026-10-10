@@ -251,3 +251,21 @@ no preset observed-motion signal. OLS improves the noisy last-two CV
 28.772/42.441mm but still loses to static in both qualifying clips. This supports
 history/target quality inspection before another optimization run; it does not
 identify true physical noise or prove that history contains no usable signal.
+
+## Rigidity consistency decision (before execution)
+
+Class Decision: after the failed neural and history-only baselines, ask whether
+weak object3D correspondences admit a single rigid transform or are internally
+inconsistent. This can distinguish a label-quality priority from another model-
+optimization attempt; it cannot establish true reconstruction error.
+
+On exactly the h8 view, use the same HISTORY-selected object IDs and original
+future validity. Require>=8 endpoint correspondences and current centered cloud
+second singular value>=1e-5m. Fit a proper SE(3), fixed scale1, using endpoint
+labels only; this is explicitly an oracle diagnostic, never a forecasting control
+or new target. Report point-weighted residual/static EPE and support per clip.
+If both qualified dev clips have residual/motion>=.5, prioritize pseudo-label
+consistency; if both<=.25, prioritize predictive conditioning/optimization.
+Other cases remain UNCLEAR. Thresholds do not remove training windows or points.
+CPU arrays/SVD<=30s, <=100KiB, no GPU/model/new download; output
+`rigidity-audit.json`. Retain raw labels and all previous results.
