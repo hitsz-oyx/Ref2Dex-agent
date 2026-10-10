@@ -14,7 +14,7 @@ seeds: [316]
 decision_changed_if_positive: retain analytic-wrist/finger-residual decomposition and design a separately bounded continuation
 decision_changed_if_negative: close this low-level student decomposition and proceed only with fresh teacher provenance or Stage 2 offline forecasting
 status: PLANNED
-run_id: goal-conditioned-finger-residual-20261011-r1
+run_id: goal-conditioned-finger-residual-20261011-r2
 ---
 
 # Analytic-wrist, finger-only residual student
@@ -55,7 +55,7 @@ features, masked latent, bounded residual, executor, PD targets and outcomes.
 
 Outputs:
 `outputs/trajectory-policy/goal-conditioned-finger-residual-bc-20261011-r1/`,
-`outputs/trajectory-policy/goal-conditioned-finger-residual-20261011-r1/`, and
+`outputs/trajectory-policy/goal-conditioned-finger-residual-20261011-r2/`, and
 the matching audit directory.
 
 ## Results
