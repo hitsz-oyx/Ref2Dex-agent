@@ -145,6 +145,29 @@ C1/PW/selector/online/native expansion。理由是 full-H data screen 说明候�
 panel 或修正 H/label 合同；不追加 evaluator epoch 及不把单 seed/small panel 结果写成
 科学结论。
 
+随后对冻结的 matched-init C1 做只读 GT-effect branch audit
+(`P-20261010-history-utility-effect-audit`)：同一 18 个 held test panels、137 strict
+pairs、7 个 informative anchors 上，nominal `H+tau+E_GT` 仍为 `.5839`；将 `E_GT`
+置零（或显式 `use_effect=False`）均为 `.7007`，比 nominal 高 11.68pp；panel 内
+shuffle `E_GT` 为 `.4526`，shuffle `tau` 为 `.5693`（nominal drop 1.46pp），两者都
+shuffle 为 `.4453`。零 effect 与禁用 effect 的预测逐项 bitwise 一致，输入/权重/面板
+hash 合同通过。该结果表明当前 effect branch 被模型使用但会伤害该小型 approximate-H
+panel 的排序，不能把 C1/PW 失败归因成“GT effect 不存在”，也不能直接修 selector。
+Probe 标为 `UNPROMISING`（当前 branch/分布的 engineering screen），不启动 C2/PW、
+deadzone、selector、online planner/MPC 或 native R；若重开，先修 effect contract 或
+取得更大 exact-H panel，再做新的 matched audit。产物见
+`outputs/consequence-evaluator/history-utility-effect-audit-20261010-r2/`。
+
+### Decision Note — frozen C1 effect-branch safety (executed)
+
+当前需要决定的是：冻结 C1 的 GT-effect 分支是否足以进入主线第 8–9 步。关键证据是
+nominal `.5839`，`E_GT=0` `.7007`（+11.68pp），effect shuffle `.4526`，tau shuffle
+drop 仅1.46pp，且零 effect 与禁用分支完全相同。root 选择关闭当前 effect-to-selector
+路线，保留 audit 作为实现/分布 blocker，而不是对 GT consequence 的方法负结论；理由是
+当前分支未通过 nominal、ablation-safety 和 tau-use 三项 screen，继续接 C2/PW 或在线
+selector 不能改变已观测问题。预计成本为零；未来若修复 effect 表示或获得 exact-H 数据，
+再按同一合同重跑，成功才重新审查 C2/PW。
+
 随后按主线后续的 H→τ 链路做了一次独立的 bounded offline Probe
 (`P-20261010-history-to-tau`)：输入 history-preserving rollout 的
 `actor_observation[t]` 与当前 hand，目标为当前物体坐标系下的实测
