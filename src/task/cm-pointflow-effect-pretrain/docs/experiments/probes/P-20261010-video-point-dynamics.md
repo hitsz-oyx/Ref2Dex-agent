@@ -363,3 +363,33 @@ external work, branch/push or corpus promotion. Original metric model result
 remains UNPROMISING. Output common-camera-audit.json; source arrays cached once
 per clip to avoid repeated archive decompression. Stop on identity/resource/
 nonfinite/deadline violations; preserve original outputs.
+
+
+## Original offline-teacher track coverage, fixed before execution
+
+Before replacing LK/depth labels, census original100 SpaTracker query columns,
+projecting actual initial coords with original intrinsics and identity initial
+camera into the original object mask. Do not assume a unique10x10 grid: bundled
+tracker copies high-confidence queries after rejecting others; original query
+IDs are not saved. Deduplicate only EXACT initial coordinate duplicates using
+initial teacher observations, never future visibility/trajectory quality. Whole-
+trajectory equality is reported only as an alias diagnostic, not a selector.
+Report raw and unique object-query counts, outside-image queries and mask area.
+
+Upper-bound coverage only: require>=16unique initial-object queries in at least2
+train and2dev clips to justify a later teacher-target converter proposal. No
+H4/future visibility qualification follows; do not lower the existing floor
+because the original grid is sparse. CPU<=30s, JSON<=1MiB, hashed original
+tracks/masks, no network/GPU/training or source changes. Output
+original-track-initial-coverage.json. First camera must be identity; reject if
+this initial-coordinate shortcut is not justified by the source.
+
+Official-source follow-up found that coords are already clip-world estimates;
+visibs are sigmoid(logit)+0.2, not a calibrated[0,1] probability. More materially,
+VGGT consumes the whole clip with unmasked temporal/global attention, and tracker
+refinement also uses temporal windows/future support. Thus neither original
+coords history nor our LK+full-clip depth/camera history are certified causal
+perception inputs. The source-contract note will pin exact source links/lines.
+This census therefore concerns offline teacher LABEL coverage only; even a
+passed coverage gate must not promote original tracker history as future-free
+inputs. Preserve all old runs, inputs and explicit target-isolation tests.
