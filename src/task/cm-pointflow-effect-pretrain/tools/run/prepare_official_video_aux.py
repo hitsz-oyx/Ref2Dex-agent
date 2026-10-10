@@ -57,15 +57,16 @@ def main():
     }
     with h5py.File(args.h5, "r") as handle:
         for clip_index, clip in enumerate(CLIPS):
+            clip_group = handle[clip]
+            joint_positions = np.asarray(clip_group["joint_positions"], dtype=np.float32) if args.state else None
+            gripper_pose = np.asarray(clip_group["gripper_pose"], dtype=np.float32) if args.state else None
             for camera in CAMERAS:
-                group = handle[clip][camera]
+                group = clip_group[camera]
                 points = np.asarray(group["scene_flows"], dtype=np.float32)
                 visibility = np.asarray(group["scene_visibility"], dtype=bool)
                 depth_valid = np.asarray(group["scene_depth_valid_mask"], dtype=bool)
                 colors = np.asarray(group["scene_colors"], dtype=np.float32)
                 normals = np.asarray(group["scene_normals"], dtype=np.float32)
-                joint_positions = np.asarray(group["joint_positions"], dtype=np.float32)
-                gripper_pose = np.asarray(group["gripper_pose"], dtype=np.float32)
                 if points.shape[0] != HORIZON + 1 or points.shape[-1] != 3:
                     raise ValueError("unexpected scene flow shape: %s" % (points.shape,))
                 valid = visibility & depth_valid & np.isfinite(points).all(-1)
