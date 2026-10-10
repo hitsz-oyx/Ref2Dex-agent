@@ -168,6 +168,25 @@ drop 仅1.46pp，且零 effect 与禁用分支完全相同。root 选择关闭�
 selector 不能改变已观测问题。预计成本为零；未来若修复 effect 表示或获得 exact-H 数据，
 再按同一合同重跑，成功才重新审查 C2/PW。
 
+随后完成 observed-τ 的 baseline-preserving selector abstention audit
+(`P-20261010-tau-selector-abstention`)：冻结 T-only 的 18×7 held panel 上，nominal
+pair accuracy `.7007`，τ shuffle `.4599`（drop24.09pp），7 个 informative anchors
+的 T argmax 全部为 teacher maximum。以 candidate 0 为 baseline，margin
+`epsilon=.01--.03` 时非 baseline 选择由15/18降到11/18或8/18，mean regret
+`.00521/.00463`，informative mean regret 仍为0；`epsilon=.05` 才开始丢失 informative
+rows，regret 升至`.04398`。该结果是 `PROMISING` 的 observed-τ/offline selector
+engineering signal，不绕过 H→τ 的 held split 失败，也不接 C1/PW、native 或 MPC。
+
+### Decision Note — observed-τ selector abstention (executed)
+
+当前需要决定的是：第9步的 selector 接口是否值得保留，还是连 selector 也应冻结。关键
+证据是 T-only 在7个 informative anchors 上 argmax 全部命中 teacher maximum，且固定
+`epsilon=.01--.03` 的 baseline abstention 保持 informative regret 为0；但 panel 仅18个
+近似-H panels，τ 是 observed 而非 H→τ 生成。root 选择保留一个 baseline-preserving
+selector contract，把下一预算优先用于 exact-H、非 tie 的 trajectory proposal bank；
+不启动 C2/PW/online/native。预计成本为未来一次数据采集与同一离线审计；若 exact-H
+重审不再保留 signal，则关闭 selector 路线。
+
 随后按主线后续的 H→τ 链路做了一次独立的 bounded offline Probe
 (`P-20261010-history-to-tau`)：输入 history-preserving rollout 的
 `actor_observation[t]` 与当前 hand，目标为当前物体坐标系下的实测
