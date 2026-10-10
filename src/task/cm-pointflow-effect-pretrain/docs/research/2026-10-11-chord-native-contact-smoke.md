@@ -43,8 +43,12 @@ motion tree, but the read-only full checkout at
 symlink to one existing `interaction_hand_inspire.pt` trajectory, the external
 runtime environment created one GPU Isaac Gym environment with 18 actions and
 ran 120 reference-following steps. The contact tensor was `[1,5,3]`, finite at
-every step; nonzero body contact appeared at steps 48--49, 67--78, and 82--83,
-with maximum body-force norm `0.20162`. The bounded output is
+every step; nonzero body contact appeared at steps 48--49, 63, 65, 67--78,
+and 82, with maximum body-force norm `0.17250`. Transforming those net-force
+directions into the object frame and applying the local 8-edge-plus-normal
+CHORD ray adapter produced 45 rays, 9 valid rays on each active frame, and
+finite support ranges (latest run: approximately `[-1.128, 2.039]`). The
+bounded output is
 `tmp/chord-sim-smoke-20261011/contact_force_smoke.json`. This is a simulator
 contact-tensor smoke, not a CHORD reward comparison.
 
