@@ -181,3 +181,15 @@ run under this card. Needed future evidence: sustainable late hold, removal of
 robot-q/object-future oracles, randomized role/layout or matched repeats, and
 held-out motion/seed Validation. Total executed GPU work was under10 minutes;
 run outputs are under10MiB, plus about3.4MiB reusable build cache.
+
+## User-requested drop vs placement diagnostic
+
+Decision question: are the tracker returns to the table intended placements,
+or uncontrolled losses relative to the reference actually used for training?
+Compare raw-motion object height/contact labels, the measured teacher reference,
+and complete recorded tracker hand/table gaps and vertical velocity. If they
+show planned placement, revise the completion interpretation; if unsupported
+separation/free fall, retain the sustained-contact blocker. Use only frozen
+arrays and raw input deserialization on CPU, no model/simulator execution or
+new training. This extends the existing Probe diagnosis, not a new Validation.
+Tool: `tools/audit/audit_reference_tracking_drop.py`. Results pending.
