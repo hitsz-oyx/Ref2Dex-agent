@@ -5,7 +5,7 @@ experiment_id: P-20261010-reference-tracking
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: pending-first-implementation-checkpoint
+git_commit: c638548
 claim_id: C3
 hypothesis_family: HF-reference-tracking-control
 probe_index_in_family: 1
@@ -110,5 +110,9 @@ consider H/PW proposals and matched comparisons.
 
 ## Runs and results
 
-Pending smoke, training and frozen behavior evaluation. Per-run manifest records
-actual code commit, every essential input hash, device, budget and runtime.
+Smoke r1 reached physics execution but stopped at tick1 because native reset
+returns an observation dictionary while env_step returns a tensor. This is an
+interface defect, not a controller result; preserve its FAILED manifest/log.
+Wrap both forms at the teacher control boundary and rerun engineering smoke.
+Per-run manifest records actual code commit, every essential input hash,
+device, budget and runtime. Training and frozen behavior evaluation are pending.

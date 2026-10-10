@@ -50,6 +50,8 @@ def main():
     p.add_argument("--mode", choices=("train", "evaluate", "smoke"), required=True)
     p.add_argument("--checkpoint", type=Path)
     args = p.parse_args()
+    if args.checkpoint:
+        args.checkpoint = args.checkpoint.resolve()
     output = args.output.resolve()
     try:
         output.relative_to(ROOT / "outputs/consequence-evaluator")
@@ -333,7 +335,8 @@ def main():
                         latent[:2 * quarter] = 0
                         intended = native_action(policy.target(next_q, latent), measured["q"], offset, scale)
                         # Teacher action is used only for independent native control rows.
-                        teacher = self.get_action(obs, True).to(device).clone().clamp(-1, 1)
+                        actor_obs = obs if isinstance(obs, dict) else {"obs": obs}
+                        teacher = self.get_action(actor_obs, True).to(device).clone().clamp(-1, 1)
                         intended[:quarter] = teacher[:quarter]
                         command = intended.clamp(-1, 1)
                         obs, _, done, _ = self.env_step(self.env, command.clone())
