@@ -5,7 +5,7 @@ experiment_id: P-20261010-history-tau-proposal-diagnosis
 date: 2026-10-10
 task: consequence-evaluator
 branch: main
-git_commit: e45fa8e
+git_commit: 0860e0b
 claim_id: C3
 hypothesis_family: HF-history-tau-proposal
 probe_index_in_family: 1
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [296]
 decision_changed_if_positive: repair history representation before investing in multimodal tau proposal
 decision_changed_if_negative: prioritize train-only candidate coverage and multimodal proposal over more deterministic regression
-status: UNCLEAR
-run_id: history-tau-proposal-diagnosis-20261010-r1
+status: PROMISING
+run_id: measured-history-tau-proposal-20261010-r1
 ---
 
 # Diagnose the history-to-candidate-tau blocker
@@ -112,6 +112,61 @@ and the shifted segments are not guaranteed native/contact feasible. No CVAE,
 DP, evaluator/PW/native rollout in this run. Stop after this minimal comparison;
 use coverage versus top1 to choose the next question. Output:
 `outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/`.
+
+Matched run0860e0b completes29.76s onGPU2 (~421MiB, sampled2–9%util during
+the short fit). Both arms select1200steps by validation physical L1. Small MLP
+computation finishes within seconds; data preparation/retrieval/compression
+account for the rest. Total frozen replay+matched run is under1GPUmin/200MiB
+new artifacts, well within16min/1GiB. GPU2 is idle after completion.
+
+| Test proposal | Point RMSE (m) | H24 RMSE (m) | Old fixed screen |
+| --- | ---: | ---: | --- |
+| persistence | .26213902 | .40718773 | baseline |
+| measured-H absolute position | .46329695 | .51887554 | false |
+| measured-H displacement | .21266073 | .33152354 | true |
+| train-only nearest candidate | .24278082 | .37549460 | false |
+| train-only best-of-8 GT coverage | .17191198 | .26879540 | coverage only |
+
+Displacement improves test point/H24 RMSE18.87%/18.59% over persistence while
+retaining all64episodes/4096windows, including tails. Train/val point RMSE is
+.10096547/.10757317m. Test episode median.10158417m; two worst episodes still
+contribute61.23% of its squared error. Absolute-target test tails contribute
+89.70%; neither median reporting nor future-based exclusion replaces full data.
+The old1475-input model used different information/normalization: comparisons
+with its .3028m are descriptive, not a matched causal ablation. The two new
+arms share inputs/weights/batches/optimizer, but target statistics also change;
+do not attribute their entire difference solely to anchoring.
+
+KNN eight candidates come from eight distinct train episodes, with test mean
+pairwise trajectory RMS.141337m; point-step p99.067672m/max.243046m per30Hz
+control. Those statistics do not establish geometry/contact/dynamic feasibility.
+Nearest-candidate top1 improves only7.38%, below the fixed10% screen, while
+GT best-of-8 improves34.42%: coverage and usable selection remain different.
+Query GT determines only the retrospective coverage index. Independent review
+recomputes all RMSEs, reconstructs candidates/targets exactly, verifies source
+hashes, and replays seven dispersed nearest-neighbor queries without GT sorting.
+
+Decision: retain the **future-reference-free measured-H displacement baseline**
+as a PROMISING offline prediction component and the train-only retrieval bank
+construction as a coverage diagnostic. No current evidence requires a full
+ACT/diffusion/visual world-model replacement. Stop this planned comparison;
+next discriminate whether generated-tau scoring/selection preserves the observed
+tau ranking signal and whether candidates are feasible, before expanding K or
+model architecture. An eventual small CVAE remains a method option, not an
+experiment already validated. PointWorld/online execution remain frozen.
+
+Pinned displacement checkpoint:
+`outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/displacement-best.pt`,
+SHA `de98077c51ee7c8de3ffe604d91b8fa02459c80ef40b276f34c946f7df813d3c`.
+Saved `test-candidates.npz` contains absolute/displacement predictions,8retrieved
+trajectories, source rows/distance, GT coverage index and labels for offline audit.
+Reproduction protocol: `tools/run/probe_measured_history_tau.py`, the original
+`history-preserving-candidate-bank-{train,val,test}-20261010-r1` directories,
+`--gpu 2 --seed 296 --steps 1200 --seconds 600`, fresh task-owned output. Input/target mean/std and
+input clip10 are saved in each checkpoint; using weights without those transforms
+does not reproduce the proposal. Source code is pinned by manifest/commit.
+Full input layout/frame/decoder/hashes and exact reproduction argv:
+`outputs/consequence-evaluator/measured-history-tau-proposal-config-20261010-r1/proposal.json`.
 
 ## Limitations / future evidence
 

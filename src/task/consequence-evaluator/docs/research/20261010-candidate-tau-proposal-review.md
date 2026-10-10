@@ -37,4 +37,6 @@ DexWM 的[论文 §3.2–3.4/Appendix B](https://arxiv.org/html/2512.13644v1)是
 
 ## 追溯
 
+本次后续[固定诊断/最小匹配Probe](../experiments/probes/P-20261010-history-tau-proposal-diagnosis.md)已完成：旧H包含未来参考/contact差；纯测量H下位移target的held point RMSE为212.66mm，优于persistence262.14mm，位置target463.30mm。八个train-only检索候选的GT覆盖171.91mm，但top1为242.78mm，未过固定门槛。它支持先保留位移预测基线、区分覆盖与选择，尚不支持必须增加CVAE/DP、生成候选能执行或新的Cm结论。两个target的normalization也不同，不能把差异全归因于纯anchoring；旧H与新H结果同样不是匹配比较。
+
 作者源码固定身份：ACT `742c753c0d4a5d87076c8f69e5628c79a8cc5488`；Diffusion Policy `5ba07ac6661db573af695b419a7947ecb704690f`；DexWM `74ccc30a3f390d49445b63ec6f7469805d5bd954`。书目信息见 `paper/act/schema.json`、`paper/diffusion-policy/schema.json`、`paper/pointwam/schema.json`、`paper/dexwm/schema.json`。

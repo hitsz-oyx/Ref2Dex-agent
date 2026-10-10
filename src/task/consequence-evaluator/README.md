@@ -1,5 +1,25 @@
 # Consequence evaluator
 
+## 2026-10-10 ref8：H→候选τ 当前进展
+
+按用户[ref8](docs/user/ref/ref8.md)优先解决proposal，冻结PointWorld和GT E/I必要性重复实验。
+用户确认仅当前/过去状态，不用phase/clock。旧actor-observation H含未来参考/contact差，
+保留旧结果但不再称其为纯历史输入；固定旧权重测试不能通过清零恒定列或简单clip修复。
+
+已实现四测量state的300维历史及固定1200step位置/位移匹配对照，排除未来参考、接触力
+和actor输入。完整测试位移预测RMSE212.66mm，优于persistence262.14mm，H24也改善，
+通过原门槛`PROMISING`；位置预测463.30mm。K8训练集检索覆盖上界171.91mm，但top1
+242.78mm未过门槛，未证明选择或接触执行。包含全部异常episode；target统计变化也属于干预。
+
+工具：[测量历史输入](src/consequence_evaluator/proposal_history.py)、
+[训练/检索Probe](tools/run/probe_measured_history_tau.py)、
+[旧权重诊断](tools/audit/audit_history_tau_proposal.py)。
+协议：[proposal诊断](docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md)；
+[ACT/CVAE/DP/PointWAM/DexWM方法核对](docs/research/20261010-candidate-tau-proposal-review.md)。
+权重：outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/displacement-best.pt，
+必须同时加载checkpoint中的train-only statistics、输入clip10、当前手位移解码。
+下一步检验生成τ的评分迁移与候选可执行性；当前没有在线selector/PW/τ→A→Z或Cm收益结论。
+
 ## 2026-10-10 τ-only 当前进展
 
 按用户 [ref7_4](docs/user/ref/ref7_4.md)采用两层执行：11点未来τ先得到几何q_hat/

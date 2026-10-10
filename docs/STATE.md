@@ -1,5 +1,30 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-10 ref8：H→候选τ，纯历史位移预测 PROMISING
+
+用户ref8把近期工作转向H→候选τ，并确认H只用当前/过去手物状态，不含任务phase/clock。
+PointWorld和GT E/I→Y必要性重复实验冻结；保留τ→A的12/16候选，不继续其手指PPO。
+旧1442维actor observation含t+1/t+16参考与contact差，旧H→τ结果不能当作纯历史proposal。
+固定旧权重诊断复现.3028m；清零训练近恒定列没有改善，clip10反而.4360m。
+旧测试episode误差中位47mm但两条超过1m，不能简单归因为所有episode都迁移失败。
+
+新输入300维只读四个实测states t-3:t：手几何、物体相对SE3、手指q/dq、物体速度，
+不读actor obs/真实未来参考/接触力/action/phase/clock。相同初始化、batch和1200steps
+对比位置与相对当前手的位移目标，两臂分别由val L1选权重。完整held Probe数据中，
+位置point/H24 RMSE为.46330/.51888m，位移为.21266/.33152m，persistence.26214/.40719m；
+位移通过原90%/H24预测门槛，标记PROMISING。仍保留全部64episode，包括异常长尾；
+这是探索性held split，不是新Validation，也不能把target normalization变化忽略后作纯anchoring归因。
+
+纯训练集K=8检索每候选来自不同episode，距离只读实测H：top1.24278m，未过门槛；
+GT best-of-8覆盖上界.17191m，不能称为可部署selector。独立重算/候选重建/来源合同通过。
+下一决策转向生成τ的评价分布与候选可执行性，不立即扩大ACT/CVAE/diffusion或重做E必要性。
+正式same-state ranking、生成τ→A→Z、Cm收益仍未证；本次计划内最小比较已结束，GPU2空闲。
+
+checkpoint：outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/displacement-best.pt；
+SHAde98077c51ee7c8de3ffe604d91b8fa02459c80ef40b276f34c946f7df813d3c。
+协议：[history-tau-proposal-diagnosis](../src/task/consequence-evaluator/docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md)；
+方法核对：[candidate-tau-proposal-review](../src/task/consequence-evaluator/docs/research/20261010-candidate-tau-proposal-review.md)。
+
 ## 2026-10-10 τ-only 手指命令重新拟合：PROMISING，仍有失持
 
 保留τ、去掉真实未来q/物体参考和触觉输入的合同不变。冻结旧τ策略的腕部与编码器，
