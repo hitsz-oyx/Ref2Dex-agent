@@ -366,6 +366,13 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-trajectory-stochastic-execution](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md) | Is stochastic deployment hiding a learned usable trajectory policy? | 见原卡 | 见原卡 | probes/UNCLEAR |
 
+## HF-trajectory-policy-execution-interface
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-goal-conditioned-executor-contract](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-goal-conditioned-executor-contract.md) | Can the trajectory-policy executor expose a single closed-loop goal contract? | 见原卡 | 见原卡 | probes/PROMISING |
+| [P-20261011-regrind-executor-gt-generated](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md) | Same-executor GT/generated tau physical comparison | 见原卡 | 见原卡 | probes/UNPROMISING |
+
 ## HF-trajectory-policy-learning
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

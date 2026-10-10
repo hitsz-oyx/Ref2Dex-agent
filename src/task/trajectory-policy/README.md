@@ -76,3 +76,4 @@ Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗�
 - [真实hand/action监督的learned R及训练精度诊断](docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
 - [腕部局部inverse与角度周期修正](docs/experiments/probes/P-20261010-retargeter-step-inverse.md)
 - [共享goal-conditioned闭环执行器合同](docs/experiments/probes/P-20261010-goal-conditioned-executor-contract.md)
+- [REGRIND启发的同执行器GT/生成τ物理对照](docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md)

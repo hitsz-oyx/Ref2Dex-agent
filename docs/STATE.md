@@ -89,6 +89,16 @@ object-tracking reward 都绑定另一套资产与任务语义，不能直接复
 再决定是否借用 failure-bin sampling。成本为一次既有协议的最小物理 Probe；若 GT 失败先修
 执行合同，若 GT 成功而 generated 失败则继续查高层 tau coverage，不启动 REGRIND 训练配置。
 审计记录见 [REGRIND source audit](../src/task/trajectory-policy/docs/research/20261010-regrind-source-audit.md)。
+随后按该 Decision Note 在当前提交 `7748c42` 完成
+[同执行器 GT/generated tau 物理对照](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md)：
+真实 frame-0、16 env、542 controls、68 次重规划在 GPU0 完成，GT 与 dense 校准均为
+4/4 长时终末 held；metric48 为 2/4，重复臂为 0/4。独立保存轨迹审计通过，897 条
+控制输入的 features 最大误差 `2.86e-6`、requested/applied command 最大误差
+`2.38e-7`、PD 误差 0。因校准成功而生成 τ 两臂未通过预声明门槛，该固定 metric
+decoder/executor 组合记为 `UNPROMISING`，生成失败不能归因于当前 executor 接线。
+因此继续保留 H/D/R、真实 reset 和无 phase/future-reference 合同，不启动 REGRIND 的
+4096-env/reference-tracking 训练或 failure-bin sampling；下一步只在新卡片约束下查高层
+τ coverage/conditioning 或 GT-centered 扰动 basin。
 后续`653f884` [learned R inverse](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md)
 双臂1500updates完成36.42s/GPU5，独立原始标签/PD/normalizer/全部val预测审计PASS。
 τ val动作误差比state-only低7.82%，同tick τshuffle提高56.74%，但首PD XYZ p95
