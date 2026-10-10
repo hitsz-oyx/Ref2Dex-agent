@@ -203,6 +203,11 @@ def main():
                 checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
                 if checkpoint.get("schema") != SCHEMA:
                     raise ValueError("reference tracker checkpoint schema mismatch")
+                trained_ff = checkpoint.get("manifest", {}).get("wrist_feedforward", False)
+                if args.mode != "train" and trained_ff and not (args.wrist_feedforward or args.compare_feedforward):
+                    raise ValueError("feedforward-trained checkpoint requires explicit feedforward controller")
+                manifest["checkpoint_control"] = dict(trained_wrist_feedforward=trained_ff,
+                                                       evaluation_override=args.compare_feedforward)
                 policy.load_state_dict(checkpoint["state_dict"], strict=True)
             initial_state = {k: v.detach().clone() for k, v in policy.state_dict().items()}
             previous = torch.zeros(n, 12, device=device)
