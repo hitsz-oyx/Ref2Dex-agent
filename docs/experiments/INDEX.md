@@ -41,6 +41,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261007-consequence-baseline-rebuild](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261007-consequence-baseline-rebuild.md) | Rebuild a self-trained rollout substrate after asset loss | Three roles pass the operational gate (airplane_base36/64, duck8/64, cup63/64); mixed12/train5/balanced5 remain weak at 0/5/4. A six-hash ob | Freeze the six endpoint hashes and preserve weak-role runs as observational candidates; do not append unbounded specialist epochs. Keep eval | probes/PROMISING |
 
+## HF-consequence-gate1-gt-progress
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-gate1-gt-progress](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261008-gate1-gt-progress.md) | Does causal physical-reference GT value improve real rolling control? | Protocol and runner implemented; real native replay checks pending. | Run bounded early-contact Gate1 Probe using the owned self-trained actor. | probes/PLANNED |
+
 ## HF-consequence-official-generator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -109,6 +115,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261007-epic-contact-overlap](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-epic-contact-overlap.md) | Same-clip EPIC-Contact and ObjectForesight bridge | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-epic-scene-flow
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-epic-scene-flow-p03-03](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-epic-scene-flow-p03-03.md) | EPIC scene-flow conversion without object-pose supervision | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF-execution-geometry
 
@@ -467,4 +479,6 @@
 | [PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT](probes/PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT.md) | Cm 效应头的动作对应关系 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-COMPONENTS](probes/PROBE-20260923-CM-WEIGHT-COMPONENTS.md) | Cm PPO 权重分量离线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261008-pointworld-ref8-voxel-static](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-pointworld-ref8-voxel-static.md) | P-20261008-pointworld-ref8-voxel-static | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261009-pointworld-main3-sharedstats](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md) | P-20261009-pointworld-main3-sharedstats | 见原卡 | 见原卡 | probes/见原卡 |
 | [VAL-20260923-CM-EFFECT-PPO](validations/VAL-20260923-CM-EFFECT-PPO.md) | Validation: 动作条件 Cm 效应排序能否稳定改善 PPO？ | 见原卡 | 见原卡 | validations/见原卡 |

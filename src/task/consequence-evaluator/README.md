@@ -10,7 +10,7 @@ bank由[构建工具](tools/audit/build_physical_reference_bank.py)冻结实测1
 [标签工具](tools/run/label_reference_progress.py)对8个独立prior固定等权平均。
 旧[原始参考几何Probe](docs/experiments/probes/P-20261008-reference-progress-labels.md)
 和[原始R TCC Probe](docs/experiments/probes/P-20261008-tcc-phase-alignment.md)完整保留。
-标签通过后按[完整链路](docs/user/完整链路.md)先做直接GT-value的Gate1，
+标签通过后按[完整链路](../../../docs/user/完整链路.md)先做直接GT-value的Gate1，
 再考虑evaluator；当前Gate1未运行，延迟失抓和候选排序仍待检验，不启动evaluator。
 新schema独立于旧S/P/M和旧局部H匹配标签。
 
