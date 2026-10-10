@@ -50,6 +50,14 @@ There is a public NVIDIA implementation of the contact-wrench computation and re
 
 The implementation depends on Isaac Lab contact sensors, object COM poses, per-body geometry, and a trajectory command cache. It is not a standalone PyTorch loss that can consume `(xyz, point features, target flow)`.
 
+The current Task now contains a small dependency-free geometric adapter at
+`src/oakink_wm/chord_wrench.py`. It constructs friction-cone rays from
+object-frame contacts/normals, applies body-radius lever-arm scaling, builds a
+fixed-basis support vector and reproduces the tolerance/missed/unintended
+support loss. Its tests use finite synthetic contacts only. This verifies the
+wiring and masking contract; it is not evidence that the official H5 or
+EgoTouch packs contain the required contact geometry.
+
 ## Consequence for the current PointWorld/CM route
 
 The current `VideoPointWorldWM` predicts pointwise 3-D flow with 24 temporal slots and uses masked Huber flow loss (`src/task/cm-pointflow-effect-pretrain/src/oakink_wm/video_pointworld.py` and `video_points.py`). CHORD cannot be copied as a direct replacement for that loss: current video/H5 clips contain scene trajectories and camera/robot metadata, but no per-contact object-frame normals plus friction-cone geometry suitable for `σ_h`. DROID gripper pose/action fields alone do not identify contact force directions or object-part meshes.
