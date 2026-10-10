@@ -181,7 +181,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261010-open-video-backbone-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-open-video-backbone-transfer.md) | Does the released video-pretrained backbone help our native effect model? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-open-video-backbone-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-open-video-backbone-transfer.md) | Does the released video-pretrained backbone help our native effect model? | UNPROMISING for the registered released-backbone-only transfer gate; | stop this recipe before longer training or large corpus acquisition; | probes/UNPROMISING |
 
 ## HF-oracle-flow-task
 

@@ -84,15 +84,27 @@ Decision note: acquire pinned official PointWorld small-DROID checkpoint
 and inspect backbone key/shape compatibility only. New artifact cap3GiB,
 download deadline15min, CPU metadata inspection2min, no GPU training or full
 corpus/DINO download. Stop on source/hash drift, collision, cap or incompatibility.
-Acquisition completed and strict compatibility passed448/448 tensors with
+Acquisition completed and strict compatibility passed 448/448 tensors with
 50,417,280 entries; no key/shape/dtype/finite failures. The
 [matched initialization Probe](experiments/probes/P-20261010-open-video-backbone-transfer.md)
 is frozen: seed228, two2000-update arms, same native data/stats/draw, random
 versus official video backbone, existing trainer, at most two free GPUs and
 45min per arm. Initializer integrity tests and both3-update GPU checks passed.
-Matched2000-update runs have started on free GPUs2/3 using existing launcher,
-Git199c7db; initializer nonbackbone state is exactly shared. Native patch128 and
-time-aware pooling remain; official patch256 differs. No transfer benefit yet. No new external authorization needed.
+Matched2000-update runs completed on free GPUs2/3 using the existing launcher,
+Git 199c7db; both arms exited normally at step 2000. The matched identity audit
+passed and the complete final result is in
+`outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/result_analysis_r1.json`.
+On the fixed balanced source-macro panel, video initialization gives moving h24 EPE
+0.082070 versus random 0.080660 (+1.75%), and static h24 EPE 0.029279 versus
+0.022597 (+29.57%). The predeclared moving≤90% and static≤120% gate therefore
+fails both criteria. Action shuffling still raises moving h24 error by 42.84%
+(random) and 39.92% (video), so the native action path is active; this does not
+show a video benefit. Classify this Probe `UNPROMISING` for the released
+backbone-only recipe. Do not scale this arm, download the large corpus, or
+attach these weights to native/RL training. The broader video route remains
+UNCLEAR rather than refuted; a future attempt needs a different
+input-compatible open-source recipe and a new matched gate. No new external
+authorization is needed.
 
 ## Current decision and resources
 
@@ -104,9 +116,12 @@ pilot recipes. Broader video/tactile potential remains unproven rather than
 refuted; exact generation identity, physical scale, source coverage and cross-
 task utility are material limits. Core Mission claim is unchanged.
 
-Earlier video/sensor training/extraction/inference processes ended; the new
-paired open-backbone transfer runs are active and bounded as above. Common-camera inference
+Earlier video/sensor training/extraction/inference processes ended; the paired
+open-backbone transfer runs are also complete and bounded. Common-camera inference
 9.19s/216.65MiB CUDA and census0.37s CPU. Video artifact group remains about1.9GiB
 within5GiB cap; diverse RGB/features/checkpoints about206MiB. No external data
 modified. [Windows bridge](../../../../docs/user/连接远程服务器.md) works; NAS has space,
-remote GPU driver mismatch remains outside this local campaign. No new push.
+remote GPU driver mismatch remains outside this local campaign. The user pause
+was lifted before this result analysis; the original pause record is retained in
+`outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/pause_status.json`.
+No new push.

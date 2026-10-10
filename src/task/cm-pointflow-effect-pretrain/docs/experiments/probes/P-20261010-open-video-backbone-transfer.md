@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [228]
 decision_changed_if_positive: expand matched native transfer from official video-pretrained PointWorld backbone
 decision_changed_if_negative: inspect pretrained feature compatibility before larger video investment
-status: UNCLEAR
+status: UNPROMISING
 run_id: open-video-backbone-transfer-20261010-r1
 ---
 
@@ -23,6 +23,13 @@ Class: Decision. User requests open-source reuse before writing new pipelines;
 the immediate question is video benefit to this model, not reproduction of a
 different video task. Mission remains action-conditioned Cm and eventual matched
 Cm-on/off benefit to self-trained robot RL.
+
+Result: UNPROMISING for the registered released-backbone-only transfer gate;
+video initialization fails both the moving and static h24 thresholds after two
+matched 2000-update arms.
+Decision: stop this recipe before longer training or large corpus acquisition;
+retain the checkpoints and analysis, and require a different input-compatible
+open-source route for any future video attempt.
 
 ## Decision note / frozen protocol before training
 
@@ -64,7 +71,7 @@ checkpoint intervals500, final checkpoint only for the gate. Intermediate
 validation is diagnostic, no best-step selection. The historical50000-update
 native result is background, not a matched random-init control.
 
-Primary: equally weighted source macro of h24 EPE on
+Primary on the fixed balanced96-window panel: equally weighted source macro of h24 EPE on
 `model/moving_objects/cat-1` and separately `model/static_objects/cat-1`, with per-source
 and pooled values retained. Source panels/stratum label counts must match both
 arms. Positive gate: moving EPE at least10% below the new matched random arm,
@@ -97,30 +104,61 @@ Output `outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-202610
 
 ## Results
 
-Official acquisition completed within the15min bound. Full SHA256 and byte
-count match the pinned asset. Strict CPU preflight passed:448/448 tensors,
-50,417,280 entries, zero missing/extra keys, shape/dtype mismatches or nonfinite
-weights. Inspection took5.928s; no neural inference/training was run on CPU.
-Compatibility reports are preserved in the preflight output above.
+Official acquisition and compatibility preflight completed within the frozen
+bounds. Both initializer integrity tests and both three-update GPU checks passed.
+The two matched training arms then completed the planned 2000 updates with exit
+code 0: random-backbone 15.53 minutes and released-video-backbone 15.72 minutes.
+The final result, validation arrays, logs and checkpoints are preserved under
+`outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/`.
+The full all-horizon/source extraction and gate calculation is in
+`result_analysis_r1.json`.
 
-The minimal native-format initializer conversion uses existing model/data code;
-no new training loop. Two targeted integrity tests passed (8.81s), checking that
-only the spatial backbone changes and rejecting partial/nonfinite/mismatched
-imports before mutation. Initializer export passed. Both artifacts preserve exactly the same nonbackbone
-state SHA25639b8fba696a17d4617bb35ded55fbf4e4034386a8bb903273d3dd6914683643f;
-only the complete spatial backbone changes. Outputs are202,183,941 and
-202,159,518 bytes, with no native training/optimizer history. Three-update GPU2
-engineering checks passed for both arms (6.476s/6.772s), including identical
-constructor/draw/source/stat/config hashes. Stable updates about0.4s, peak
-reserved4,686MiB; benchmark skips checkpoints/evaluation. Full engineering
-metadata lives in `engineering_summary.json` and `initialization-r1/manifest.json`.
+The final identity audit passed. Both arms used the same Git commit
+`199c7dbd9ea14b761acabac89fd852a3fee442ee`, dataset/config/statistics/loss/source
+hashes, seed 228, effective batch 32, global draw
+`92babbdf52a1178aa2c4666d8229b36565683980e4e6b9ec631150de3005a139`, validation
+panel and trainer. The only intended initialization difference was the complete
+spatial backbone; all metrics were finite, and balanced/natural/shuffle panels
+have identical metric keys. No assigned training process remains on GPU2/3.
 
-Paired2000-update training started on free GPUs2(random) and3(video), using
-unchanged existing launcher/trainer at Git199c7db. Per-arm2700s deadline,6GiB
-group artifact bound. Arm roots `random-r1/` and `video-r1/`; authoritative live
-status/PIDs/deadlines in each `group_status.json`, model identities/progress in
-`train-action/`. Startup estimate15–25min including validation. No benefit
-result or change of Mission claim yet.
+On the fixed balanced source-macro panel, the predeclared positive gate fails both criteria:
+
+| Primary final h24 point EPE | Random backbone | Video backbone | Change | Gate |
+| --- | ---: | ---: | ---: | --- |
+| Moving objects, source-macro `cat-1` | 0.080660 | 0.082070 | +1.75% | video must be ≤0.072594 (fail) |
+| Static objects, source-macro `cat-1` | 0.022597 | 0.029279 | +29.57% | video must be ≤0.027117 (fail) |
+
+The per-source h24 moving EPE changes are +8.65% (OakInk2), +0.19%
+(GRAB), and +3.46% (ARCTIC). Static h24 changes are +82.61%, +54.09%, and
+−6.82%, respectively. The JSON artifact retains every h1/h4/h8/h12/h24,
+source and stratum value; these source differences do not rescue the fixed
+source-macro gate.
+
+The actual-versus-shuffled-action intervention is retained as a diagnostic. At
+h24 moving-object EPE, shuffling actions raises error from 0.080660 to 0.115215
+(+42.84%) for the random arm and from 0.082070 to 0.114830 (+39.92%) for the
+video arm. This confirms action sensitivity in both trained models, but gives no
+video-transfer advantage. Static-object shuffled EPE falls at h24 in both arms
+(−26.13% and −28.65%), so it is not evidence of a useful static action effect.
+
+The registered Probe classification is **UNPROMISING** for this released
+PointWorld-small DROID-backbone-only transfer recipe. This closes the immediate
+scale-up decision: do not run a longer matched arm, add epochs, download the
+large video corpus or attach these weights to native/RL training. It rejects this
+initialization recipe, not video or human-video pretraining in general; any later
+attempt requires a different input-compatible open-source recipe and a new
+matched gate.
+
+The post-run implementation audit confirms that the released backbone was the
+intended intervention. Both final checkpoints changed all 448 backbone tensors
+relative to their initializer (relative backbone L2 change 0.0749 for random
+and 0.0530 for video); the 26 trainable nonbackbone tensors also changed in
+both arms. The direct transfer nevertheless crosses an input-contract gap:
+the released checkpoint records 31-dimensional scene features, 0.015m grid
+size and patch size 256, while the native arm feeds 18-dimensional projected
+features on a 0.01m grid with patch size 128 and temporal pooling. Exact tensor
+shape compatibility therefore proves only that the weights can be loaded; it
+does not make the two backbone input distributions equivalent.
 
 ## Limitations / future evidence
 

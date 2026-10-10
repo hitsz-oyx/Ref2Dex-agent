@@ -961,3 +961,20 @@ action 仍核对 18 维；RNN 必须使用显式 `is_rnn/state` sentinel；Pytho
 自动冻结 direct tensor、scalar 和 Enum（包括 `_state_init`）inventory，并提供 CPU/GPU
 Torch RNG restore helper。Task tests 为 114 passed，compileall 与 diff-check 通过。当前仍没有 native branch runner
 和真实 twin branch 数据，不能把合同测试当作 twin coverage 或 evaluator 科学证据。
+
+## 2026-10-10 open-source video-backbone transfer result
+
+The user-directed open-source follow-up completed its paired native transfer Probe
+on branch `cm-pointflow-effect-pretrain`. The official PointWorld small-DROID
+spatial backbone passed the strict 448-tensor compatibility and checksum audit;
+two matched 2000-update arms then completed with the same data, draw, statistics,
+seed and trainer. On the fixed balanced source-macro panel, released-video initialization
+worsens moving-object h24 EPE from 0.080660 to 0.082070 (+1.75%) and static h24
+EPE from 0.022597 to 0.029279 (+29.57%), failing both predeclared gates. Moving
+action shuffling still raises h24 error by 42.84%/39.92% in random/video arms,
+which confirms action sensitivity but does not show transfer benefit. Record the
+recipe as `UNPROMISING`; preserve the checkpoints and analysis, stop this
+backbone-only scale-up, and do not infer that all video or human-video
+pretraining is refuted. The detailed Task card and result artifact remain the
+authoritative evidence; the Mission claim and final Cm-on/off policy comparison
+are unchanged.

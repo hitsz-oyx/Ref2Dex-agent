@@ -32,7 +32,7 @@ data 分支固定 `3872ec6ee73146aa671192ef79b5dfbedc0246e3`。作者用 CoTrack
 - DROID revision `dd9aaeec94bb14e27ab6b16b6e4aa0dbcf3ef56f`，1030文件。发布的是分片压缩的 H5/JSON 包，不是已经训练就绪的 WDS；卡报告下载约3.91TB、展开约4.65TB。不能取任一分片便宣称能独立恢复任一episode。[DROID 数据卡](https://huggingface.co/datasets/nvidia/PointWorld-DROID)
 - BEHAVIOR revision `5579a0c584caa182db7bda66764eb5c9b52c1c55`，172文件，允许按 task 包恢复；task-0000 整包1,660,733,672bytes。卡报告全包约718GB、展开约1.55TB。它是模拟数据，单独使用不能证明真实视频收益。[BEHAVIOR 数据卡](https://huggingface.co/datasets/nvidia/PointWorld-BEHAVIOR)、[作者按任务恢复示例](https://github.com/NVlabs/PointWorld/blob/3872ec6ee73146aa671192ef79b5dfbedc0246e3/README.md)
 
-当前 native 模型与官方 small 都按同一 PTv3 blueprint 创建空间 backbone，native latent width128；这只是结构候选，**尚未证明 checkpoint 所有键/shape可加载或其输入分布相容**。RGB/DINO 和机器人 head 不可冒充 native feature/action/effect head。完整 official 推理还需要作者依赖和 DINO 权重，而 backbone-only 迁移可先不启动这些额外部分。所有已存在 native checkpoint 原样保留。
+当前 native 模型与官方 small 都按同一 PTv3 blueprint 创建空间 backbone，native latent width128。后续工程核查已完成：固定文件的字节数和完整SHA256正确；空间backbone448/448张量、50,417,280entries，键、shape、dtype全部匹配且有限。两组3-update GPU检查通过。**这证明权重能装入，不证明输入分布相容或视频迁移有收益**。native保留patch128和time-aware pooling，作者small使用patch256；非backbone参数和归一化统计保持配对相同。RGB/DINO 和机器人 head 不可冒充 native feature/action/effect head。完整 official 推理还需要作者依赖和 DINO 权重，而 backbone-only 迁移可先不启动这些额外部分。所有已存在 native checkpoint 原样保留。
 
 ## ObjectForesight：与我们的 LK 试验不同，不能因为 LK 失败否定作者数据
 
@@ -44,14 +44,66 @@ loader 将窗限制在同一 `init_from_frame` 注册段，按 IoU drop 过滤�
 
 root 只读列出已有 P03_03/P03_13 tar 的 `poses.npz/track_log.csv/run_summary.json`：分别27/20文件，约245,641/125,185bytes。证明本地存在作者刚体轨迹资产；**未加载其窗口或验证质量**。可在官方加载器路径上继续，而不是因原始稀疏查询没16点就断言这些shard不能学物体动力学。缺密集未来手动作仍阻止把它伪装成完整 native hand-conditioned 数据。
 
+补充资产核查：作者[项目页](https://objectforesight.github.io/)直接链接
+[EPIC 模型](https://huggingface.co/raivn/ObjectForesight-EPIC-DiT)和
+[HOT3D 模型](https://huggingface.co/raivn/ObjectForesight-HOT3D-DiT)，均公开且非gated；
+四个权重文件匿名HEAD均返回200。EPIC revision
+`08084845391b0db49966c8da58c453d47430316c`，best.pt733,255,992bytes，
+model.safetensors733,124,554bytes；HOT3D revision
+`808f3361b6bce3e9e1ceb422b14df21d084f8403`。数据审批与模型可下载性不同。
+仅读取EPIC safetensors的94,464-byte JSON header，没有下载完整权重。
+实际包含655个encoder tensors、50,564,431entries，不是只发布DiT。
+
+当前官方代码直接创建PTv3、可导调用encoder、AdamW接收全部model.parameters()；
+config名main_ptv3_fresh，没有冻结/加载通用Sonata的代码证据。因此不能把它描述成
+“仅冻结Sonata训练DiT”，但也不能单凭当前源码证明历史每个encoder参数实际更新。
+[构造](https://github.com/RustinS/ObjectForesight/blob/1a2fa7e8b41caec3c2c9930bcb077ddef22cf319/src/encoders/ptv3_adapter.py#L52-L55)、
+[优化器](https://github.com/RustinS/ObjectForesight/blob/1a2fa7e8b41caec3c2c9930bcb077ddef22cf319/src/train_main.py#L419-L423)、
+[完整保存](https://github.com/RustinS/ObjectForesight/blob/1a2fa7e8b41caec3c2c9930bcb077ddef22cf319/src/models/poser_v1/io.py#L12-L18)。
+
+不能整体导入现有模型：其stem输入6、encoder宽度(32,64,128,256,512)、decoder64、
+末端投影768；现有backbone输入及前两层128、decoder128。条件PDNorm/姿态上下文
+和池化也不同。后三级部分尺寸相同只表示局部候选，不能当作已兼容的视频迁移。
+核查证据 `tmp/objectforesight-assets-20261010/source-manifest.json`，包含固定来源、
+API与header；没有改代码或训练。若复用应优先官方完整模块/入口，另冻匹配协议，
+不默认写部分权重映射来凑兼容。
+
 ## 下一步决策与范围
 
 root 在现有用户授权内选择：先获取固定SHA的官方 small checkpoint，只作 tensor/key/shape 兼容检查；新产物<=3GiB、获取<=15min、CPU检查<=2min，无GPU训练，无新branch，无完整corpus或DINO下载。不覆盖任何已有文件；source/checksum漂移、资源越界或不可加载即停止并保留记录。权重下载依次尝试ModelScope可发现性、HF国内镜像、现有代理官方源。
 
-成功后才固定一个下游matched Probe：同native数据/统计/动作接口/初始化后的非backbone参数/seed/batch/optimizer/更新预算/固定末步评价，只改 backbone 视频初始化。现有随机初始化50000步结果可作背景，不能直接拿它与一个短迁移运行比较并归因预训练。至少报告moving/static object误差和actual/shuffled-action敏感性；是否改善最终RL必须另作Mission要求的Cm-on/off比较。当前不承诺收益，也不启动大规模训练。
+执行更新：获取与兼容检查已通过，已冻结并启动
+[匹配初始化Probe](../experiments/probes/P-20261010-open-video-backbone-transfer.md)：
+两组各2000updates，seed228，复用现有训练器；GPU2随机/GPU3视频初始化，
+每组45min、训练产物合计6GiB。只增加严格权重格式转换，不另写视频模型或训练循环。
+
+该下游matched Probe：同native数据/统计/动作接口/初始化后的非backbone参数/seed/batch/optimizer/更新预算/固定末步评价，只改 backbone 视频初始化。现有随机初始化50000步结果可作背景，不能直接拿它与一个短迁移运行比较并归因预训练。至少报告moving/static object误差和actual/shuffled-action敏感性；是否改善最终RL必须另作Mission要求的Cm-on/off比较。当前不承诺收益，也不启动大规模训练。
 
 失败后优先核查官方 ObjectForesight checkpoint/loader 对既有 EPIC 的复用，或选择已公开的共同场景/手处理产物；不默认自己复刻待发布 PointWAM。研究范围不缩减成人类动作识别、2D像素预测或视觉触觉同期估计。
 
 ## 证据文件
 
 固定小源码及其逐文件URL/SHA在 `tmp/open-video-data-usage-20261010/{RustinS-ObjectForesight-1a2fa7e8b41caec3c2c9930bcb077ddef22cf319,NVlabs-PointWorld-3872ec6ee73146aa671192ef79b5dfbedc0246e3}/source-manifest.json`。Hub API快照为同目录 `nvidia-PointWorld*-hub.json`，模型卡为 `PointWorld-models-README.md`。GitHub API一度限流，commit改用只读 `git ls-remote` 获取，再读固定raw文件；未修改本地submodule。
+
+## Matched open-source transfer result (2026-10-10)
+
+The pinned small-DROID backbone was tested in the existing native action trainer,
+with the same seed, draw, data, statistics, optimizer and 2000-update budget as a
+random-backbone control. Both arms completed normally. The balanced source-macro h24
+moving-object EPE was 0.080660 for random initialization and 0.082070 for the
+released video initialization (+1.75%); static-object EPE was 0.022597 and
+0.029279 (+29.57%). The predeclared moving-at-most-90% and static-at-most-120%
+gates both failed. The released-backbone-only transfer is therefore
+`UNPROMISING` as a Probe recipe. Final evaluation and the full source/horizon
+breakdown are preserved in
+`outputs/cm-pointflow-effect-pretrain/open-video-backbone-transfer-20261010-r1/result_analysis_r1.json`.
+
+The action shuffle diagnostic still increases moving h24 error by 42.84% for the
+random arm and 39.92% for the video arm, confirming that the native action path
+is being used. It does not establish a video benefit, and the static shuffle
+change goes in the opposite direction in both arms. Stop this recipe before
+longer training or large corpus acquisition. The negative result is specific to
+transferring this released spatial backbone into the native feature/action
+interface; it does not refute other video or human-video pretraining routes.
+ObjectForesight's released encoder remains structurally incompatible with the
+native backbone, so no second open-source transfer run is started automatically.
