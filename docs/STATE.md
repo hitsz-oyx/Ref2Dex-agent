@@ -222,6 +222,28 @@ pulse prefix 均 bitwise 通过，requested/applied/PD target 可审计；但 po
 再另建实验卡审查是否值得 decoder Probe。当前仍需把科学效应与工程可采集性分开，不能由
 本 Probe 升级全局 claim。
 
+随后执行了预注册的多状态 paired-triplet contact/hold pilot
+(`P-20261010-paired-triplet-contact-hold`) 的 contact 半臂：96 env/32 triplet
+groups，seed211，zero residual 加 triplet-shared initial q-jitter，pulse ticks
+120--151。rollout 在 GPU2 上 99.3s 完成，542 commands、finite、zero clipping、时间
+全局 `structured_phase` 合同和 residual overwrite 均通过；但 parallel env 的状态与
+actor/action 前缀在 tick1 即漂移。严格 audit 为 `0/32` prefix-valid、`0/32`
+applied-action-delta-valid、`21/32` same-pair，matched/nontrivial rows `0/0`，状态为
+`INVALID_IMPLEMENTATION`（contact audit 见
+`outputs/consequence-evaluator/paired-triplet-contact-audit-20261010-r2/`）。这不是
+phase 维度 bug：审计已将 time-global phase 独立校验，并把 `done` 按 command transition
+对齐；first-drift 位于 pulse 之前，且 ordinary state/action 已失配。
+
+### Decision Note — parallel paired-triplet contract (executed)
+
+当前需要决定的是：是否继续用该多环境 triplet 当作 contact/hold matched-state 数据源。
+关键证据是 zero residual、重复 initial jitter、相同输入下仍在 tick1 出现 backend/env-layout
+差异，无法满足 hidden-state twin 或 visible same-state 前缀；而 serial 单环境只是工程
+capture contract，不提供多状态 counterfactual。root 选择立即停止 hold 半臂，将本 Probe
+记为 `UNCLEAR`/contract invalid，不训练 decoder、不做 native execution，也不把它外推为
+finger/preload 方法负结果。预计后续若重新收集，唯一保守方案是多 seed 的 serial
+control/+pulse/-pulse 重放；其成本高且仍非 hidden-state fork，当前不占用探索预算。
+
 ## 2026-10-10 ref7_2 full-action hand retarget follow-up
 
 按 `src/task/consequence-evaluator/docs/user/ref/ref7_2.md` 完成路线 B 的最小

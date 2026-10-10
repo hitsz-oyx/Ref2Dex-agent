@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [211, 212]
 decision_changed_if_positive: retain a multi-state contact/hold paired-capture contract for a future commanded-finger decoder Probe
 decision_changed_if_negative: close the contact/hold paired-data route and keep R, H-to-tau, PointWorld, selector, and native integration frozen
-status: PLANNED
+status: UNCLEAR
 run_id: paired-triplet-contact-hold-20261010-r1
 ---
 
@@ -74,10 +74,24 @@ Audit entry point:
 
 Outputs:
 `outputs/consequence-evaluator/paired-triplet-contact-20261010-r1/`,
-`outputs/consequence-evaluator/paired-triplet-hold-20261010-r1/`,
-`outputs/consequence-evaluator/paired-triplet-contact-audit-20261010-r1/`,
-`outputs/consequence-evaluator/paired-triplet-hold-audit-20261010-r1/`.
+`outputs/consequence-evaluator/paired-triplet-contact-audit-20261010-r2/`.
+The hold rollout was not started after the contact prefix stop condition.
 
 ## Result
 
-Pending bounded contact/hold capture.
+The contact rollout completed on GPU2 in 99.3 seconds with 96 environments,
+542 commands per environment, finite arrays, zero clipping, and an exact
+time-global phase contract. The residual overwrite itself was exact in all
+32 groups, but the parallel triplet execution contract failed immediately:
+the saved state, actor action, and applied action prefixes drifted at tick 1
+(`all_prefix_bitwise=false`, `0/32` prefix-valid groups); only `21/32` groups
+kept the same pre-action pair proxy. Consequently the visible matched screen
+had `0` eligible and `0` nontrivial rows. The audit result is
+`INVALID_IMPLEMENTATION` for this parallel twin contract, with audit code at
+git commit `688b1d8` and rollout code at `c77bac3`.
+
+Per the frozen stop condition, the hold rollout was not run and no decoder,
+native execution, or causal/preload claim is unlocked. This is evidence that
+the multi-environment prefix contract is unusable on this backend, not a
+negative result for finger-conditioned execution or the hand-action method;
+the serial single-world capture remains engineering-only evidence.
