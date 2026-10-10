@@ -156,6 +156,14 @@ both clips no better than control. Mark this particular token recipe
 wrench/geometry routes open. This does not establish a negative result for
 video data as a whole.
 
+The first actual data-only [official H5 auxiliary Probe](experiments/probes/P-20261011-official-video-aux.md)
+also completed from random initialization, without the published model
+weights. Its one-context color/normal-only input lost to zero-flow persistence
+at H10 (2.263 vs 1.878 mm) on the two held tail clips. Keep the route open for
+the explicitly separate H5 gripper/joint-state-conditioned auxiliary; this
+result does not answer whether official video plus robot state can help the
+native representation.
+
 The bounded [RBO RGB-D/FT adapter Probe](experiments/probes/P-20261011-rbo-wrench-alignment.md)
 then completed on one pinned 42 MB interaction archive. All 295 RGB anchors
 matched registered depth, FT, joint, rigid-body, camera, object, and sensor TF

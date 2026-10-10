@@ -5,7 +5,7 @@ experiment_id: P-20261011-official-video-aux
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: pending
+git_commit: c89d33e
 claim_id: C1
 hypothesis_family: official-video-scene-flow-auxiliary
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [230]
 decision_changed_if_positive: prepare a matched shared-backbone transfer into the native Cm downstream task
 decision_changed_if_negative: defer official H5 pretraining and retain the route only as a data-contract result
-status: PLANNED
+status: UNPROMISING
 run_id: official-video-aux-20261011-r1
 ---
 
@@ -66,13 +66,31 @@ Probe.
 
 ## Results
 
-Pending execution.
+The reproducible run used the hash-locked 20-sample NPZ pack (8 temporal fit
+clips and 2 held clips, two cameras), 512 all-step-valid tracks per sample,
+seed 230, 500 updates, and GPU1. It completed in 67.4 s with peak allocation
+1,003 MiB; the pack records H5 SHA256
+`99bfb31a46c331fa49b87ca33f46fc17a5795c8f1785562e043122d0e27caa2b`. No
+official checkpoint or ZED dependency was used.
+
+| held metric | trained auxiliary | static persistence |
+|---|---:|---:|
+| H1 EPE | 0.979 mm | 0.722 mm |
+| H5 EPE | 1.760 mm | 1.461 mm |
+| H10 EPE | 2.263 mm | 1.878 mm |
+
+The learned arm loses to the zero-flow persistence baseline at every reported
+horizon and both held clips, so this exact color/normal-only recipe is
+`UNPROMISING`. The training/data path itself completed normally. The negative
+result is limited to a one-context, no-robot-state representation; it does not
+reject the official H5 route or a state/action-conditioned auxiliary.
 
 ## Limitations / future evidence
 
-This Probe establishes only official-H5 auxiliary learnability. It does not
-show native Cm utility, policy benefit, cross-episode generalization, or that
-the color/normal-plus-zero feature projection is the best representation. A
-positive result requires a new matched native downstream transfer with random
-and data-pretrained shared backbones; a negative result does not reject the
-official raw RGB/robot-state route or other calibrated data adapters.
+This Probe establishes only official-H5 auxiliary learnability for a
+color/normal-only input. It does not show native Cm utility, policy benefit,
+cross-episode generalization, or that the feature projection is adequate. The
+H5 robot state/action fields were intentionally not consumed here; a separate
+state-conditioned card is required before closing the official-data route. A
+positive result on that route would still require a matched native downstream
+transfer with random and data-pretrained shared backbones.
