@@ -80,7 +80,7 @@ is deterministic and consumes no RNG/validation seed.
 
 ## Results
 
-Run completed, fixed code7a0a21d. Separate prefix XYZ optimum worst-window
+Run completed in1.28s onGPU2 for FK (peak2.05MiB), fixed code7a0a21d. Separate prefix XYZ optimum worst-window
 3D RMS32.20mm (median3.88mm), maxpoint48.34mm. Separate FF optimum worst-window
 3D RMS30.67mm (median6.25mm), maxpoint52.52mm. Both miss unchanged5/10mm bands.
 Normal-equation residuals <=1.67e-14; actual decoded joint-fit XYZ error1.40e-7m,

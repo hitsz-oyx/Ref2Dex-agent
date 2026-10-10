@@ -15,6 +15,12 @@ ce503af native16env/542步完成57.29s：原GT3/4长时终末held，dense FK4/4�
 5fe3d05仅修复audit JSON序列化，未重跑仿真。下一步先核对c拟合是否能保留
 前缀位置和速度，再决定增加D表达能力；不据此否定48D或整体trajectory-policy。
 本轮没有高层actor训练/WM，GPU2已释放。
+后续7a0a21d前缀最优拟合：四节点位置RMS下界最差32.20mm、FF30.67mm，
+只证实当前轨迹复现限制，不排除别的成功策略。772190e固定PCA D48离线fit完成：
+first8手点RMS5.61mm、掌部max23.62mm、FF最差RMS18.50mm，未过预声明几何screen，
+按协议没有启动仿真。下一步针对前缀手几何与腕部速度拟合D；actor/Cm仍未训练。
+证据：[prefix fitting](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md)、
+[lowrank D](../src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md)。
 入口：[trajectory-policy](../src/task/trajectory-policy/README.md)。
 
 旧Task35093fb corrected full r3已完成107.01s：GT4/4longheld+terminal、median479、
