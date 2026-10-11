@@ -22,6 +22,9 @@ def main():
     out = args.output.resolve()
     if out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents:
         raise ValueError('fresh task output required')
+    scratch = ROOT / 'tmp/trajectory-policy/competent-pd'
+    scratch.mkdir(parents=True, exist_ok=True)
+    os.environ['TMPDIR'] = str(scratch)
     os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
     import torch
     torch.set_num_threads(2)

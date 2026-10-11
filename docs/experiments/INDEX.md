@@ -362,6 +362,18 @@
 | [P-20261010-metric-trajectory-decoder](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md) | Does a pose/FF metric retain the executable trajectory in D48? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-trajectory-decoder-coverage](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md) | Can a fixed48D trajectory decoder retain executable grasp behavior? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-trajectory-policy-competent-pd
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-competent-pd-retargeter](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-pd-retargeter.md) | Competent official rollout to measured-state/trajectory-conditioned PD targets | 见原卡 | 见原卡 | probes/PLANNED |
+
+## HF-trajectory-policy-competent-pd-physical
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-competent-pd-physical](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-pd-physical.md) | Does the competent PD retargeter's finite error preserve real task behavior? | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-trajectory-policy-deployment
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -375,11 +387,18 @@
 | [P-20261010-goal-conditioned-executor-contract](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-goal-conditioned-executor-contract.md) | Can the trajectory-policy executor expose a single closed-loop goal contract? | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261011-goal-conditioned-bc](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-bc.md) | Stage 1 goal-conditioned low-level BC | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261011-goal-conditioned-execution](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-execution.md) | Stage 1 physical execution gate | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-goal-conditioned-finger-residual](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-finger-residual.md) | Analytic-wrist, finger-only residual student | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-goal-conditioned-ppo-execution](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo-execution.md) | Frozen evaluation of the Stage 1 PPO actor | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-goal-conditioned-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-ppo.md) | Stage 1 goal-conditioned PPO continuation | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-conditioned-residual-integration](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-integration.md) | Goal-conditioned residual policy through the shared executor | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-goal-conditioned-residual-offset](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-goal-conditioned-residual-offset.md) | Fixed thumb preload offset on the residual student | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261011-regrind-executor-gt-generated](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-regrind-executor-gt-generated.md) | Same-executor GT/generated tau physical comparison | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## HF-trajectory-policy-history-to-tau
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-current-history-tau-forecast](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-current-history-tau-forecast.md) | Current-source pure measured-history H to tau forecast | 见原卡 | 见原卡 | probes/PLANNED |
 
 ## HF-trajectory-policy-learning
 
