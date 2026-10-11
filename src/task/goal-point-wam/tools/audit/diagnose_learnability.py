@@ -90,6 +90,7 @@ def choose_windows(base, selection_seed):
 
 @torch.no_grad()
 def measure(model, batch):
+    was_training = model.training
     model.eval()
     with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
         pred = model(batch)
@@ -106,11 +107,13 @@ def measure(model, batch):
         world_mask = moving[rows]
         result['sources'][name] = dict(trajectory_epe_m=float(trajectory[rows][valid].mean()),
             moving_world_epe_m_h24=float(error[rows][world_mask].mean()))
+    model.train(was_training)
     return result
 
 
 def gradient_audit(model, batch):
     """Compare branch gradients on a shared parameter without optimizer mutation."""
+    was_training = model.training
     model.eval()
     pred = model(batch)
     trajectory = model.trajectory_loss(pred['trajectory'], batch)
@@ -127,6 +130,7 @@ def gradient_audit(model, batch):
     _, oracle_terms = model.loss(oracle, batch)
     if float(oracle_terms['trajectory']) != 0 or float(oracle_terms['world_point']) != 0:
         raise ValueError('oracle target does not minimize trajectory/point loss')
+    model.train(was_training)
     return dict(trajectory_shared_gradient_norm=norms[0], world_shared_gradient_norm=norms[1],
                 shared_gradient_cosine=cosine, oracle_terms={k: float(v) for k, v in oracle_terms.items()})
 
@@ -138,7 +142,7 @@ def fit_arm(state, stats, batch, learning_rate, args, output, deadline):
     model.load_state_dict(state['model'], strict=True)
     # Inference-mode layers, with autograd enabled, remove dropout/order noise.
     # This measures fixed-input learnability, not the historical train recipe.
-    model.eval()
+    model.train(args.forward_mode == 'train')
     initial_hash = parameter_hash(model)
     initial = measure(model, batch)
     audit = gradient_audit(model, batch)
@@ -149,6 +153,8 @@ def fit_arm(state, stats, batch, learning_rate, args, output, deadline):
     step = 0
     try:
         for step in range(1, args.updates + 1):
+            if model.training != (args.forward_mode == 'train'):
+                raise RuntimeError('diagnostic measurement changed the fit mode')
             if time.time() > deadline:
                 raise TimeoutError('fixed-batch budget exhausted')
             optimizer.zero_grad(set_to_none=True)
@@ -197,6 +203,8 @@ def main():
     parser.add_argument('--selection-seed', type=int, default=251)
     parser.add_argument('--updates', type=int, default=300)
     parser.add_argument('--budget-seconds', type=float, default=900)
+    parser.add_argument('--forward-mode', choices=('eval', 'train'), default='eval')
+    parser.add_argument('--only-learning-rate', type=float, choices=(.0001, .001))
     args = parser.parse_args()
     if not torch.cuda.is_available(): raise RuntimeError('GPU required')
     if args.output.exists(): raise FileExistsError(args.output)
@@ -226,13 +234,16 @@ def main():
             stats_sha256=state['identity']['stats_sha256'], windows=windows,
             batch_sha256=tensor_digest(cpu_batch), seed=args.seed, selection_seed=args.selection_seed,
             updates=args.updates, budget_seconds=args.budget_seconds,
-            forward_mode='eval with gradients; BF16; fixed full six-window batch',
-            learning_rates=[.0001, .001], conditional_second_arm='only if lr1e-4 fails fit gate')
+            forward_mode=args.forward_mode, precision='BF16', batch_mode='fixed full six-window batch',
+            learning_rates=[args.only_learning_rate] if args.only_learning_rate else [.0001, .001],
+            conditional_second_arm='only if lr1e-4 fails fit gate')
         atomic_json(args.output / 'input_manifest.json', identity)
         batch = move_batch(cpu_batch, torch.device('cuda'))
         results = {}
-        results['lr1e-4'] = fit_arm(state, stats, batch, .0001, args, args.output / 'lr1e-4', deadline)
-        if not results['lr1e-4']['fit_gate']:
+        first_rate = args.only_learning_rate or .0001
+        first_name = 'lr1e-3' if first_rate == .001 else 'lr1e-4'
+        results[first_name] = fit_arm(state, stats, batch, first_rate, args, args.output / first_name, deadline)
+        if not args.only_learning_rate and not results[first_name]['fit_gate']:
             torch.cuda.empty_cache()
             results['lr1e-3'] = fit_arm(state, stats, batch, .001, args, args.output / 'lr1e-3', deadline)
             if results['lr1e-3']['initial_parameter_sha256'] != results['lr1e-4']['initial_parameter_sha256']:
