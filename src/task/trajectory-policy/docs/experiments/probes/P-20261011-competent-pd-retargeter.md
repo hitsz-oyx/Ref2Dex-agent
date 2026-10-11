@@ -5,7 +5,7 @@ experiment_id: P-20261011-competent-pd-retargeter
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: 8af2e7a
+git_commit: 1036698
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-competent-pd
 probe_index_in_family: 1

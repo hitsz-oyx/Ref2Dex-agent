@@ -230,6 +230,10 @@ def main():
                         raise FloatingPointError('nonfinite native command')
                     expected_pd = pd_from_action(native_command, current['q'], offset, scale)
                     obs, _, done, _ = self.env_step(self.env, native_command.clone())
+                    # Archived env_step returns a tensor; reset uses the repo's
+                    # dict wrapper. Normalize the boundary before the next call.
+                    if not isinstance(obs, dict):
+                        obs = {'obs': obs}
                     if capture is None or not torch.equal(capture, native_command):
                         raise ValueError('requested/applied action mismatch')
                     if actual_pd is None or (expected_pd - actual_pd).abs().max() > 1e-6:
