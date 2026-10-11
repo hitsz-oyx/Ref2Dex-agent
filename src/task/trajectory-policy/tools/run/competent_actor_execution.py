@@ -8,8 +8,11 @@ from trajectory_policy.competent_actor import actor_input, load_actor, shifted_p
 
 
 class ActorExecution:
-    def __init__(self, directory, device):
+    def __init__(self, directory, device, period=8):
         self.device = device
+        if period not in (1, 8):
+            raise ValueError('one or eight control query period required')
+        self.period = period
         self.models = {name: load_actor(torch.load(Path(directory) / (name + '.pt'),
                        map_location=device), device) for name in ('tau_only', 'joint')}
         self.plan = None
@@ -17,7 +20,7 @@ class ActorExecution:
 
     def future(self, tick, measured, goal):
         # measured holds only already recorded states, including current tick.
-        if tick % 8 == 0:
+        if tick % self.period == 0:
             past = np.maximum(tick + np.arange(-3, 1), 0)
             inputs = actor_input(*(np.stack([measured[k][i][8:24] for i in past])
                                  for k in ('obj', 'hand', 'q', 'dq', 'velocity')), goal[8:24])
@@ -29,4 +32,4 @@ class ActorExecution:
             for key, value in dict(query_tick=tick, high_input=inputs, high_tau=predictions,
                                    plan_world=self.plan).items():
                 self.records[key].append(np.asarray(value).copy())
-        return shifted_plan(self.plan, tick % 8)
+        return shifted_plan(self.plan, tick % self.period)

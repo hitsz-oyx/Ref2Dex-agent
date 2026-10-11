@@ -362,11 +362,17 @@
 | [P-20261010-metric-trajectory-decoder](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md) | Does a pose/FF metric retain the executable trajectory in D48? | 见原卡 | 见原卡 | probes/UNPROMISING |
 | [P-20261010-trajectory-decoder-coverage](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md) | Can a fixed48D trajectory decoder retain executable grasp behavior? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
+## HF-trajectory-policy-competent-actor-cadence
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-competent-actor-cadence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-actor-cadence.md) | Does current-state per-control trajectory replanning preserve competence? | 见原卡 | 见原卡 | probes/PLANNED |
+
 ## HF-trajectory-policy-competent-joint-bc
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261011-competent-joint-bc](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-joint-bc.md) | Competent teacher H/G -> trajectory -> frozen actual-PD R | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261011-competent-joint-bc](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-joint-bc.md) | Competent teacher H/G -> trajectory -> frozen actual-PD R | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-trajectory-policy-competent-pd
 

@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--source', type=Path)
     parser.add_argument('--model', type=Path)
     parser.add_argument('--actor-fit', type=Path, help='frozen matched H/G actor fit for autonomous execution')
+    parser.add_argument('--actor-period', type=int, choices=(1, 8), default=8)
     parser.add_argument('--idle-context-pid', type=int, action='append', default=[],
                         help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
@@ -147,7 +148,8 @@ def main():
         if sha(args.model) != fit_result['checkpoint_sha256']['tau']:
             raise ValueError('exact selected model required')
         if autonomous:
-            card = TASK / 'docs/experiments/probes/P-20261011-competent-joint-bc.md'
+            card = TASK / ('docs/experiments/probes/P-20261011-competent-actor-cadence.md'
+                           if args.actor_period == 1 else 'docs/experiments/probes/P-20261011-competent-joint-bc.md')
             actor_result = json.loads((args.actor_fit / 'result.json').read_text())
             actor_manifest = json.loads((args.actor_fit / 'manifest.json').read_text())
             if (actor_manifest['status'] != 'COMPLETED'
@@ -199,9 +201,10 @@ def main():
         target_alignment='q[t],hand[t] -> PD[t] -> hand[t+1]; no future q/object input')
     write(out / 'manifest.json', manifest)
     if autonomous:
-        manifest.update(experiment_id='P-20261011-competent-joint-bc',
+        manifest.update(experiment_id=('P-20261011-competent-actor-cadence' if args.actor_period == 1
+                                       else 'P-20261011-competent-joint-bc'), actor_period=args.actor_period,
             evaluation='autonomous measured H/G trajectory -> frozen R full physical execution',
-            inference='H328 + goal12 queried every8; R uses live measured state every control',
+            inference='H328 + goal12 queried every%d; R uses live measured state every control' % args.actor_period,
             actor_fit=str(args.actor_fit.resolve()), retargeter=str(args.model.resolve()),
             source_envs=list(range(24, 28)))
         write(out / 'manifest.json', manifest)
@@ -272,7 +275,7 @@ def main():
             actor_execution = None
             if autonomous:
                 from competent_actor_execution import ActorExecution
-                actor_execution = ActorExecution(args.actor_fit, task.device)
+                actor_execution = ActorExecution(args.actor_fit, task.device, args.actor_period)
             work_started = time.monotonic()
             for tick in range(542):
                 with torch.no_grad():

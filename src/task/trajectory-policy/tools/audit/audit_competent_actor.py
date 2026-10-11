@@ -146,7 +146,8 @@ def main():
         close('actual_PD', independent_pd(execution['action'], execution['q'][:-1], em['native_controller']), execution['pd_targets'], 1e-6)
         if not np.array_equal(execution['clipped'], np.max(np.abs(execution['intended'] - execution['action']), axis=-1) > 1e-6):
             raise ValueError('clip flags differ')
-        if not np.array_equal(execution['query_tick'], np.arange(0, 542, 8)):
+        period = em.get('actor_period', 8)
+        if period not in (1, 8) or not np.array_equal(execution['query_tick'], np.arange(0, 542, period)):
             raise ValueError('query period differs')
         plans = []
         for j, tick in enumerate(execution['query_tick']):
@@ -163,7 +164,7 @@ def main():
             plans.append(plan)
         for tick in range(542):
             oracle = np.moveaxis(source['hand'][np.minimum(tick + np.arange(1, 25), 542)][:, 24:28], 0, 1)
-            remaining = plans[tick // 8][:, np.minimum(np.arange(24) + tick % 8, 23)]
+            remaining = plans[tick // period][:, np.minimum(np.arange(24) + tick % period, 23)]
             s, tau = independent_features(execution, np.full(20, tick), np.arange(4, 24), np.concatenate((oracle, remaining)))
             close('live_R_state', s, execution['state_features'][tick])
             close('live_R_tau', tau, execution['tau_features'][tick])

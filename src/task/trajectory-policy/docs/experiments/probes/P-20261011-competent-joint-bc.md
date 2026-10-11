@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [183, 184]
 decision_changed_if_positive: retain autonomous H/G trajectory BC baseline before PointWorld integration
 decision_changed_if_negative: diagnose earliest high-level error against competent frozen R before RL or Cm
-status: PLANNED
+status: UNPROMISING
 run_id: competent-joint-bc-fit-20261011-r1
 ---
 
@@ -74,7 +74,31 @@ No Campaign change, no new branch, no push, no external modification.
 
 ## Results
 
-Pending.
+Fit `b00a533`, seed183,3000updates/22.97s. Validation startup first8 coordinate
+RMS tau_only0.922mm,joint0.693mm; normalized PD MSE .040412/.028681 (29% lower),
+no offline clipping. Both selected update3000, both execution screens pass.
+Independent fit audit exact predictions; normalization max2.39e-7; PD gradient
+into actor18.9866, frozen R unchanged. Task tests33 passed.
+
+Completed physical r3 `6a75a26`,seed184,542controls/65s:teacher4/4 and GT-R4/4
+hold45+controlled placement, median440.5/436.5 frames; tau_only0/8,joint0/8,
+median held0/0, clip4.3589%/8.8561%. Valid calibration with failed joint gate:
+UNPROMISING for these fixed checkpoints with eight-control replanning.
+Independent audit `4473013` exact H/G and actor predictions; plan2.38e-7m,
+live-R tau2.98e-7m, R7.15e-7,requestedPD8.34e-7,actual nativePD exact0;
+outcomes and frozen gates reproduce. Neither high-level arm lifts the object.
+
+Artifacts: [fit](../../../../../../outputs/trajectory-policy/competent-joint-bc-fit-20261011-r1/result.json),
+[physical](../../../../../../outputs/trajectory-policy/competent-joint-bc-execution-20261011-r3/result.json),
+[audit](../../../../../../outputs/trajectory-policy/competent-joint-bc-execution-20261011-r3/audit.json),
+[behavior](../../../../../../outputs/trajectory-policy/competent-joint-bc-execution-20261011-r3/behavior.png).
+First actions are close to calibration, but approach deviates before contact.
+Frozen validation-state schedule diagnostic `8cce545` shows joint contact XYZ
+p95 increases29.33->60.56mm when changing per-tick query to eight-tick plan
+reuse/padding; whole-wave PD MSE .02868->.22842. GT padding also changes first8
+p95 3.72->17.78mm. This is not closed-loop attribution. Next is the frozen
+[one-variable cadence Decision](P-20261011-competent-actor-cadence.md), not a
+retraining sweep, nor a negative conclusion about ref3 or the core Cm hypothesis.
 
 ## Limitations / future evidence
 
