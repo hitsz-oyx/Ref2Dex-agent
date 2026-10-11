@@ -129,6 +129,18 @@ def resize_intrinsics(intrinsic: np.ndarray, original_wh: tuple[int, int],
     return out
 
 
+def resize_valid_depth(depth: np.ndarray, target_wh: tuple[int, int]) -> np.ndarray:
+    """Resize without converting invalid-depth boundaries into valid surfaces."""
+    output = []
+    for frame in np.asarray(depth, np.float32):
+        valid = np.isfinite(frame) & (frame > 0)
+        resized = cv2.resize(np.where(valid, frame, 0), target_wh, interpolation=cv2.INTER_LINEAR)
+        support = cv2.resize(valid.astype(np.float32), target_wh, interpolation=cv2.INTER_LINEAR)
+        resized[support < 1-1e-6] = 0
+        output.append(resized)
+    return np.stack(output)
+
+
 def sample_depth(depth: np.ndarray, uv: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Bilinear depth; require all four sampled pixels finite and positive."""
     depth, uv = np.asarray(depth, np.float32), np.asarray(uv, np.float32)

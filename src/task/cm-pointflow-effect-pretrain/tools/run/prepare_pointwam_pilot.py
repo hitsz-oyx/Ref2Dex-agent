@@ -21,7 +21,7 @@ TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK / "src"))
 from oakink_wm.pointwam_data import (ARKIT_TO_ZUP, candidate_clips, lift_tracks,
     load_episode, pack_clip, palm_keypoints, project_world, recover_metric_scale,
-    resize_intrinsics, sha256)
+    resize_intrinsics, resize_valid_depth, sha256)
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -67,7 +67,38 @@ def depth_from_spatracker(rgb: np.ndarray, vendor_root: Path, checkpoint: Path) 
     depth[~np.isfinite(depth) | (depth <= 0) | (confidence < .5)] = 0
     del model, video, prediction
     torch.cuda.empty_cache()
-    return np.stack([cv2.resize(x, (640, 360)) for x in depth])
+    return resize_valid_depth(depth, (640, 360))
+
+
+def depth_from_omega(rgb: np.ndarray, vendor: Path, checkpoint: Path,
+                     destination: Path) -> np.ndarray:
+    """Official VGGT-Omega code and image preprocessing, 1B/512 depth model."""
+    import torch
+    sys.path.insert(0, str(vendor))
+    from vggt_omega.models import VGGTOmega
+    from vggt_omega.utils.load_fn import load_and_preprocess_images
+    inputs = destination / "omega_input"; inputs.mkdir()
+    paths = []
+    for t, image in enumerate(rgb):
+        path = inputs / f"{t:02d}.png"
+        cv2.imwrite(str(path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        paths.append(str(path))
+    # All inputs are 16:9, within the helper's [.5,2] range: no crop or padding.
+    images = load_and_preprocess_images(paths, image_resolution=512).cuda()
+    model = VGGTOmega().eval()
+    weights = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    model.load_state_dict(weights, strict=True)
+    del weights
+    model = model.cuda()
+    with torch.inference_mode():
+        prediction = model(images)
+    depth = prediction["depth"].float().cpu().numpy()
+    if depth.shape[0] != 1 or depth.shape[1] != len(rgb) or depth.shape[-1] != 1:
+        raise ValueError(f"unexpected Omega depth shape: {depth.shape}")
+    depth = depth[0, ..., 0]
+    del model, images, prediction
+    torch.cuda.empty_cache()
+    return resize_valid_depth(depth, (640, 360))
 
 
 def track_clip(rgb: np.ndarray, vendor: Path, checkpoint: Path, query_batch: int,
@@ -166,6 +197,7 @@ def main() -> None:
     parser.add_argument("--palm-offsets", type=Path, required=True)
     parser.add_argument("--depth-vendor", type=Path, required=True)
     parser.add_argument("--depth-checkpoint", type=Path, required=True)
+    parser.add_argument("--depth-backend", choices=("spatracker", "omega"), default="spatracker")
     parser.add_argument("--tracker-vendor", type=Path, required=True)
     parser.add_argument("--tracker-checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -180,7 +212,8 @@ def main() -> None:
     report = dict(status="RUNNING", run_id=args.output.name, engineering_only=True,
                   training_allowed=False, split="official_test", device="cuda:0",
                   cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES"), pid=os.getpid(),
-                  depth_backend="SpaTrackerV2-VGGT4Track (substitute; not VGGT-Omega)",
+                  depth_backend=("VGGT-Omega-1B-512" if args.depth_backend == "omega" else
+                                 "SpaTrackerV2-VGGT4Track (substitute; not VGGT-Omega)"),
                   exact_paper_backend=False, strictly_causal_observation=False,
                   observation_provenance="offline full-clip teacher reconstruction",
                   camera_backend="native EgoDex camera-to-ARKit-origin",
@@ -201,8 +234,13 @@ def main() -> None:
         report["git_commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         report["branch"] = subprocess.check_output(["git", "branch", "--show-current"], text=True).strip()
         paths = [args.hdf5, args.video, args.palm_offsets, args.tracker_checkpoint,
-                 Path(__file__), TASK / "src/oakink_wm/pointwam_data.py",
-                 args.depth_checkpoint / "model.safetensors", args.depth_checkpoint / "config.json"]
+                 Path(__file__), TASK / "src/oakink_wm/pointwam_data.py"]
+        if args.depth_backend == "omega":
+            paths.append(args.depth_checkpoint)
+            report["depth_git_commit"] = subprocess.check_output(["git", "-C", str(args.depth_vendor), "rev-parse", "HEAD"], text=True).strip()
+            report["depth_checkpoint_source"] = "user-selected ModelScope mirror, published SHA256 verified; HF LFS identity gated"
+        else:
+            paths.extend((args.depth_checkpoint / "model.safetensors", args.depth_checkpoint / "config.json"))
         report["input_sha256"] = {str(p.resolve()): sha256(p) for p in paths}
         report["tracker_git_commit"] = subprocess.check_output(["git", "-C", str(args.tracker_vendor), "rev-parse", "HEAD"], text=True).strip()
         episode = load_episode(args.hdf5)
@@ -222,7 +260,10 @@ def main() -> None:
             joints = episode["joints"][ids]; jvalid = episode["joint_valid"][ids]
             hand, hvalid = palm_keypoints(joints, jvalid, np.asarray(offsets["offsets_m"]))
             progress(dict(stage="DEPTH", current_clip=index, source_start_frame=int(ids[0])))
-            depth = depth_from_spatracker(rgb, args.depth_vendor, args.depth_checkpoint)
+            if args.depth_backend == "omega":
+                depth = depth_from_omega(rgb, args.depth_vendor, args.depth_checkpoint, destination)
+            else:
+                depth = depth_from_spatracker(rgb, args.depth_vendor, args.depth_checkpoint)
             calibration = recover_metric_scale(depth, joints, jvalid, intrinsic, camera)
             depth *= calibration["scale"]
             progress(dict(stage="TRACKING_START", depth_calibration=calibration,

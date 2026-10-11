@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from oakink_wm.pointwam_data import (ARKIT_TO_ZUP, JOINT_NAMES, lift_tracks,
-    pack_clip, palm_keypoints, recover_metric_scale, resample_valid, select_scene)
+    pack_clip, palm_keypoints, recover_metric_scale, resample_valid, resize_valid_depth, select_scene)
 
 
 def test_original_observation_recovers_after_invalid_gap():
@@ -16,6 +16,12 @@ def test_original_observation_recovers_after_invalid_gap():
     out, mask = resample_valid(xyz, valid)
     assert not mask[13, 0]  # between missing frame4 and observed frame5
     assert mask[15, 0] and out[15, 0, 0] == 5
+
+
+def test_depth_resize_preserves_invalid_support():
+    depth = np.ones((1, 3, 3), np.float32);depth[0, 1, 1] = 0
+    resized = resize_valid_depth(depth, (6, 6))
+    assert resized[0, 2, 2] == 0 and resized[0, 0, 0] == 1
 
 
 def test_inf_and_nan_never_become_valid_targets():
