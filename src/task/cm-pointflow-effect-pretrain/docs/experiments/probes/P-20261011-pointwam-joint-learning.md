@@ -93,6 +93,10 @@ predictions: original episode IDs contain directory separators. Preserve its
 FAILED manifest/log; no scientific result follows. The filename is now escaped
 into a single basename; rerun the same debug smoke before main training.
 
+Smoke2 at16912856 completed in5.20s with59.98MiB peak GPU allocation;
+both heads receive finite gradients and checkpoint replay is bitwise equal.
+It is ENGINEERING_SMOKE regardless of its fit/dev screen numbers.
+
 ## Limitations / future evidence
 
 Three fit and three dev TRAIN records; no subject/session isolation or official
