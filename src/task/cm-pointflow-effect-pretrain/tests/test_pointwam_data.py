@@ -1,12 +1,15 @@
 """Critical geometry/missing-observation invariants, independent of models."""
 import sys
+import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from oakink_wm.pointwam_data import (ARKIT_TO_ZUP, JOINT_NAMES, lift_tracks,
-    pack_clip, palm_keypoints, recover_metric_scale, resample_valid, resize_valid_depth, select_scene)
+    pack_clip, palm_keypoints, recover_metric_scale, resample_valid, resize_valid_depth,
+    select_scene, sha256, source_identity)
 
 
 def test_original_observation_recovers_after_invalid_gap():
@@ -81,3 +84,35 @@ def test_selection_never_depends_on_future_tracks_and_targets_have_30_steps():
     assert not pack["scene_target_valid"].any()
     assert pack["language"].item() == "pick up"
     assert not pack["training_allowed"].item()
+
+
+def test_train_source_requires_verified_split_and_unchanged_files(tmp_path):
+    hdf5 = tmp_path / "raw/part2/basic_pick_place/0.hdf5"
+    hdf5.parent.mkdir(parents=True)
+    hdf5.write_bytes(b"original pose")
+    video = hdf5.with_suffix(".mp4"); video.write_bytes(b"original video")
+    manifest = tmp_path / "download_manifest.json"
+    data = dict(status="COMPLETED", split="official_train",
+                url="https://ml-site.cdn-apple.com/datasets/egodex/part2.zip",
+                files=[dict(member=p.relative_to(tmp_path / "raw").as_posix(),
+                            bytes=p.stat().st_size, sha256=sha256(p)) for p in (hdf5, video)])
+    manifest.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="manifest"):
+        source_identity(hdf5, video)
+    identity = source_identity(hdf5, video, manifest)
+    assert identity["split"] == "official_train" and not identity["training_allowed"]
+    data["split"] = "official_test"; manifest.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="split"):
+        source_identity(hdf5, video, manifest)
+    data["split"] = "official_train"; manifest.write_text(json.dumps(data))
+    video.write_bytes(b"modified video")
+    with pytest.raises(ValueError, match="differs"):
+        source_identity(hdf5, video, manifest)
+
+
+def test_test_source_stays_excluded_and_cannot_pair_other_record(tmp_path):
+    hdf5 = tmp_path / "raw/test/basic_pick_place/0.hdf5"
+    video = hdf5.with_suffix(".mp4")
+    assert source_identity(hdf5, video)["split"] == "official_test"
+    with pytest.raises(ValueError, match="paired"):
+        source_identity(hdf5, video.with_name("1.mp4"))

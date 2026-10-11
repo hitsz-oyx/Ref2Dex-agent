@@ -231,7 +231,8 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261011-pointwam-data-pipeline](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-pipeline.md) | PointWAM human scene/hand data pipeline: small engineering pilot | VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; visual palm qualification remains pending. | review real-data visual alignment before any training or scaling. | probes/UNCLEAR |
+| [P-20261011-pointwam-data-pipeline](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-pipeline.md) | PointWAM human scene/hand data pipeline: small engineering pilot | VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; user accepts the visual preview. | proceed to bounded official-TRAIN qualification with episode-isolated fit/dev; retain the approximate palm convention. | probes/UNCLEAR |
+| [P-20261011-pointwam-train-qualification](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-train-qualification.md) | PointWAM official-TRAIN data qualification | pending bounded TRAIN qualification. | execute the frozen qualification before expanding data or training. | probes/RUNNING |
 
 ## HF-pointworld-multisource
 

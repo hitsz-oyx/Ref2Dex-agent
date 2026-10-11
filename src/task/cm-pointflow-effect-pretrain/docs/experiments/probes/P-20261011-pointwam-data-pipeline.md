@@ -71,8 +71,8 @@ Tool: `../../../tools/run/prepare_pointwam_pilot.py` (Task-relative entry:
 Machine-local external input paths, SHA256s, backend identities and actual
 execution commit belong to the run manifest. Sources remain read-only.
 
-Result: VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; visual palm qualification remains pending.
-Decision: review real-data visual alignment before any training or scaling.
+Result: VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; user accepts the visual preview.
+Decision: proceed to bounded official-TRAIN qualification with episode-isolated fit/dev; retain the approximate palm convention.
 Unquantized palm constants and exact author preprocessing remain future
 evidence, along with train-split acquisition and robot-stage transfer.
 
@@ -142,6 +142,12 @@ validity alone cannot qualify that mapping. User visual review should check the
 hand frame and its relationship to the scene before accepting these labels.
 No obvious global camera flip appeared in these views; roundtrip consistency
 does not establish depth accuracy or contact alignment.
+
+User visual feedback (2026-10-11): “看起来没问题，你继续吧”. This accepts the
+shown overlays/3D preview for continuing the pilot; it does not establish the
+exact author offsets, measured scene accuracy or training/policy benefit.
+The next bounded qualification is tracked in
+[the TRAIN qualification card](P-20261011-pointwam-train-qualification.md).
 
 ## Limitations / future evidence
 

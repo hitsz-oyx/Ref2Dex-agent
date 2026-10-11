@@ -7,6 +7,7 @@ explicit input: the paper does not publish its unquantized offset table.
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import cv2
@@ -27,6 +28,41 @@ def sha256(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def source_identity(hdf5: Path, video: Path, manifest: Path | None = None) -> dict:
+    """Keep release split distinct from pilot admission; verify TRAIN provenance."""
+    hdf5, video = hdf5.resolve(), video.resolve()
+    if video != hdf5.with_suffix(".mp4"):
+        raise ValueError("source files must be one original paired episode")
+    if manifest is None:
+        if hdf5.parent.parent.name != "test":
+            raise ValueError("non-test input requires a verified acquisition manifest")
+        return dict(split="official_test", training_allowed=False,
+                    episode_id="test/" + hdf5.parent.name + "/" + hdf5.stem)
+    manifest = manifest.resolve()
+    data = json.loads(manifest.read_text())
+    urls = {f"https://ml-site.cdn-apple.com/datasets/egodex/part{i}.zip":
+            ("official_train", f"part{i}") for i in range(1, 6)}
+    urls["https://ml-site.cdn-apple.com/datasets/egodex/test.zip"] = ("official_test", "test")
+    expected = urls.get(data.get("url"))
+    if (data.get("status") != "COMPLETED" or expected is None
+            or data.get("split") != expected[0]):
+        raise ValueError("unqualified release split or incomplete acquisition")
+    members = []
+    for path in (hdf5, video):
+        member = path.relative_to(manifest.parent / "raw").as_posix()
+        if Path(member).parts[0] != expected[1]:
+            raise ValueError("archive member disagrees with release split")
+        records = [r for r in data.get("files", []) if r["member"] == member]
+        if (len(records) != 1 or records[0]["bytes"] != path.stat().st_size
+                or records[0]["sha256"] != sha256(path)):
+            raise ValueError("source input differs from verified acquisition")
+        members.append(member)
+    return dict(split=expected[0], training_allowed=False,
+                episode_id=members[0][:-5], acquisition_manifest=str(manifest),
+                acquisition_manifest_sha256=sha256(manifest),
+                source_archive_etag=data.get("archive_etag"))
 
 
 def load_episode(path: str | Path) -> dict:

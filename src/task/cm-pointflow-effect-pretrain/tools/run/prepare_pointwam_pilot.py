@@ -21,7 +21,7 @@ TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK / "src"))
 from oakink_wm.pointwam_data import (ARKIT_TO_ZUP, candidate_clips, lift_tracks,
     load_episode, pack_clip, palm_keypoints, project_world, recover_metric_scale,
-    resize_intrinsics, resize_valid_depth, sha256)
+    resize_intrinsics, resize_valid_depth, sha256, source_identity)
 
 
 def write_json(path: Path, value: dict) -> None:
@@ -193,6 +193,8 @@ def visualize(destination: Path, rgb: np.ndarray, raw_hand: np.ndarray,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--hdf5", type=Path, required=True)
+    parser.add_argument("--source-manifest", type=Path,
+                        help="verified acquisition manifest required for official TRAIN input")
     parser.add_argument("--video", type=Path, required=True)
     parser.add_argument("--palm-offsets", type=Path, required=True)
     parser.add_argument("--depth-vendor", type=Path, required=True)
@@ -227,6 +229,7 @@ def main() -> None:
         print(json.dumps(update), flush=True)
 
     try:
+        report.update(source_identity(args.hdf5, args.video, args.source_manifest))
         import torch
         torch.set_num_threads(2); cv2.setNumThreads(2)
         if not torch.cuda.is_available():
@@ -274,6 +277,8 @@ def main() -> None:
             y, x = np.rint(uv[0, :, 1]).astype(int), np.rint(uv[0, :, 0]).astype(int)
             color = rgb[0, np.clip(y, 0, 359), np.clip(x, 0, 639)]
             pack = pack_clip(world, svalid, hand, hvalid, color, ids, episode["language"])
+            pack["source_split"] = np.asarray(report["split"])
+            pack["source_episode_id"] = np.asarray(report["episode_id"])
             # Independent camera round-trip uses original tracks and native transforms.
             reprojected, _ = project_world(world[:, None], intrinsic, camera)
             pixel_errors = np.linalg.norm(reprojected[:, 0]-uv, axis=-1)[svalid]
