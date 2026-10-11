@@ -4,8 +4,10 @@ This Task implements the approved no-video Goal-Point-WAM route on the frozen
 OakInk2/GRAB/ARCTIC main-three corpus.
 
 The scene encoder consumes only current/history scene points. The trajectory
-branch receives a teacher endpoint goal made from the observed current hand
-and the future step-24 hand. The world branch receives the executed future
+branch supports the historical hand endpoint proxy and the `object_points`
+contract requested in ref1_1: 32 paired current/t+24 target-object points,
+expressed in the single current anchor frame. The target flag selects the
+object; future hand endpoints are absent from this goal contract. The world branch receives the executed future
 hand trajectory and predicts the existing per-object rigid effect; it never
 receives goal tokens. RGB, video, robot H328, PD, policy and evaluator losses
 are outside this phase.
@@ -39,3 +41,13 @@ its differently structured object projection remain fresh. Temporal PW weights
 are reused in the scene-only spatial encoder; this is weight transfer, not a
 reproduction of PW's action-fused temporal forward. World memory now retains
 all 528 executed-action tokens and their validity masks.
+
+
+Object-goal runs use `--config configs/three_domain_object_goal_probe.json`
+(relative to this Task) with the same trainer. The cheaper train-only contract
+Probe is `tools/audit/probe_object_goal.py`; it reuses the saved six-window
+manifest, independently checks object endpoints against canonical points/raw
+poses, performs 300 fixed-batch updates from PW initialization, and reports
+symmetric object-goal translations with identical cached scene/action memory.
+The response gate is an exploratory mechanism screen, not a physical guarantee
+that hand movement should equal object movement. No robot/RL utility is tested.

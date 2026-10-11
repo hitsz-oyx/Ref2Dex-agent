@@ -162,6 +162,35 @@ class GoalEncoder(nn.Module):
         return tokens, mask
 
 
+class ObjectGoalEncoder(nn.Module):
+    """Encode target-object start/goal sets without hand or point-index IDs."""
+
+    def __init__(self, hidden: int = HIDDEN, layers: int = 2):
+        super().__init__()
+        self.point = nn.Sequential(nn.Linear(3, hidden), nn.GELU(), nn.Linear(hidden, hidden))
+        self.goal_type = nn.Embedding(2, hidden)
+        layer = nn.TransformerEncoderLayer(hidden, 4, hidden * 4, dropout=0.0,
+                                           activation="gelu", batch_first=True, norm_first=True)
+        self.encoder = nn.TransformerEncoder(layer, layers, enable_nested_tensor=False)
+        self.null = nn.Parameter(torch.zeros(1, 1, hidden))
+
+    def forward(self, start: torch.Tensor, goal: torch.Tensor, valid: torch.Tensor):
+        if start.shape != goal.shape or start.ndim != 3 or start.shape[-1] != 3:
+            raise ValueError("expected paired BxNx3 object goal point sets")
+        if valid.shape != start.shape[:2]:
+            raise ValueError("object goal mask shape mismatch")
+        batch = len(start)
+        mask = valid.bool()[:, None].expand(-1, 2, -1)
+        points = torch.stack((start, goal), dim=1)
+        points = torch.where(mask[..., None], points, torch.zeros_like(points))
+        kind = torch.arange(2, device=start.device)[None, :, None]
+        tokens = (self.point(points) + self.goal_type(kind)).reshape(batch, -1, self.null.shape[-1])
+        mask = mask.reshape(batch, -1)
+        tokens = torch.cat((tokens, self.null.expand(batch, -1, -1)), dim=1)
+        mask = torch.cat((mask, torch.ones((batch, 1), dtype=torch.bool, device=start.device)), dim=1)
+        return self.encoder(tokens, src_key_padding_mask=~mask), mask
+
+
 class TrajectoryDecoder(nn.Module):
     def __init__(self, hidden: int = HIDDEN, layers: int = 3):
         super().__init__()
@@ -265,7 +294,11 @@ class GoalPointWAM(nn.Module):
             voxel_origin_m=config.get("voxel_origin_m", DEFAULT_VOXEL_ORIGIN_M),
             voxel_size_m=float(config.get("voxel_m", DEFAULT_VOXEL_SIZE_M)),
         )
-        self.goal = GoalEncoder(hidden, int(config.get("goal_layers", 2)))
+        self.goal_type = config.get("goal_type", "hand_endpoint")
+        if self.goal_type not in ("hand_endpoint", "object_points"):
+            raise ValueError("unknown goal contract")
+        goal_encoder = ObjectGoalEncoder if self.goal_type == "object_points" else GoalEncoder
+        self.goal = goal_encoder(hidden, int(config.get("goal_layers", 2)))
         self.trajectory = TrajectoryDecoder(hidden, int(config.get("trajectory_layers", 3)))
         self.action = ExecutedActionAdapter(stats, hidden)
         self.world = WorldDecoder(stats, hidden, int(config.get("world_layers", 2)))
@@ -280,8 +313,12 @@ class GoalPointWAM(nn.Module):
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         scene = self.scene(batch)
-        goal_input = torch.cat((batch["start_hand_valid"], batch["goal_hand_valid"]), dim=1)
-        goal_tokens, goal_mask = self.goal(batch["start_hand"], batch["goal_hand"], goal_input)
+        if self.goal_type == "object_points":
+            goal_tokens, goal_mask = self.goal(batch["start_object_points"], batch["goal_object_points"],
+                                               batch["object_goal_valid"])
+        else:
+            goal_input = torch.cat((batch["start_hand_valid"], batch["goal_hand_valid"]), dim=1)
+            goal_tokens, goal_mask = self.goal(batch["start_hand"], batch["goal_hand"], goal_input)
         trajectory = self.trajectory(scene["scene_tokens"], scene["scene_mask"], goal_tokens, goal_mask)
         action = batch["action"].reshape(-1, HORIZON, HANDS, KEYPOINTS, 9)
         action_valid = batch["action_valid"].reshape(-1, HORIZON, HANDS, KEYPOINTS)

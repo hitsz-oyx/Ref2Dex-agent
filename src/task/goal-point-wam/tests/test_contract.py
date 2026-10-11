@@ -34,6 +34,7 @@ def _sample(offset=0.0, missing_left=False):
     object_xyz = object_points[0]
     object_features = np.zeros((objects, 15), np.float32)
     object_features[:, 0] = offset
+    object_features[:, 13] = 1.0
     hand_feature_array = np.concatenate((np.zeros((len(hand_features), 12), np.float32),
                                          np.asarray(hand_features, np.float32)), axis=1)
     object_feature_array = np.concatenate((
@@ -95,6 +96,60 @@ def test_goal_collate_preserves_masks_and_shapes():
     assert batch["trajectory_valid"][0].all()
     assert not batch["trajectory_valid"][1, :, 1].any()
     assert batch["scene_object"].shape == batch["point_valid"].shape
+
+
+def test_object_goal_uses_target_flag_and_rigid_current_frame_without_hand_goal():
+    from goal_point_wam.data import _object_goal
+    sample = _sample()
+    second = sample["points"] + np.array([.3, .1, 0.], np.float32)
+    sample["points"] = np.concatenate((sample["points"], second))
+    sample["object_features"] = np.zeros((2, 15), np.float32)
+    sample["object_features"][1, 13] = 1.
+    effect = np.tile(np.eye(4, dtype=np.float32), (2, 24, 1, 1))
+    effect[1, -1, :3, :3] = [[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]]
+    effect[1, -1, :3, 3] = [.04, -.02, .01]
+    sample["effect"] = effect
+    result = _object_goal(sample, 32)
+    ids = np.linspace(0, 511, 32, dtype=np.int64)
+    expected_start = second[0, ids]
+    expected_goal = np.stack((-expected_start[:, 1], expected_start[:, 0],
+                              expected_start[:, 2]), axis=-1) + [.04, -.02, .01]
+    np.testing.assert_allclose(result["start_object_points"], expected_start)
+    np.testing.assert_allclose(result["goal_object_points"], expected_goal, atol=1e-7)
+    assert result["goal_object_slot"] == 1
+    sample["action"][:] = 12345.
+    np.testing.assert_array_equal(_object_goal(sample, 32)["goal_object_points"], result["goal_object_points"])
+    sample["object_features"][0, 13] = 1.
+    with pytest.raises(ValueError, match="exactly one"):
+        _object_goal(sample, 32)
+    batch = goal_collate([GoalWindows(_Base(), goal_type="object_points")[i] for i in range(2)])
+    assert batch["goal_object_points"].shape == (2, 32, 3)
+    assert "goal_hand" not in batch and "goal_hand_valid" not in batch
+    assert not batch["trajectory_valid"][1, :, 1].any()
+
+
+def test_object_goal_is_a_masked_point_set_and_coordinate_gradients_exist():
+    from goal_point_wam.model import ObjectGoalEncoder, TrajectoryDecoder
+    torch.set_num_threads(2)
+    torch.manual_seed(5)
+    goal, trajectory = ObjectGoalEncoder(), TrajectoryDecoder()
+    torch.nn.init.normal_(trajectory.head[-1].weight, std=.02)
+    start, end = torch.randn(2, 7, 3), torch.randn(2, 7, 3, requires_grad=True)
+    valid = torch.ones(2, 7, dtype=torch.bool)
+    valid[1] = False
+    def predict(a, b, mask):
+        tokens, token_mask = goal(a, b, mask)
+        return trajectory(torch.zeros(2, 3, 128), torch.ones(2, 3, dtype=torch.bool), tokens, token_mask)
+    original = predict(start, end, valid)
+    gradient, = torch.autograd.grad(original[0].square().sum(), end)
+    assert torch.isfinite(gradient).all() and gradient[0].abs().max() > 0
+    assert gradient[1].abs().max() == 0
+    with torch.no_grad():
+        order = torch.tensor([3, 0, 6, 2, 1, 5, 4])
+        torch.testing.assert_close(original, predict(start[:, order], end[:, order], valid[:, order]), atol=2e-6, rtol=2e-5)
+        invalid_end, invalid_start = end.detach().clone(), start.clone()
+        invalid_end[1] = invalid_start[1] = float('nan')
+        torch.testing.assert_close(original, predict(invalid_start, invalid_end, valid), atol=0, rtol=0)
 
 
 def test_goal_and_world_components_are_finite_with_missing_goal_points():

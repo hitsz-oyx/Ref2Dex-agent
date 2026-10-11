@@ -36,6 +36,32 @@ ACTION_DIMS = 9
 HAND_MARKER = 14
 HAND_ID = 15
 KEYPOINT_ID = 16
+OBJECT_TARGET = 13
+
+
+def _object_goal(sample: dict, point_count: int) -> dict:
+    """Paired target-object endpoints in the single current anchor frame.
+
+    The target flag identifies the anchor; never select an object using future
+    motion or use the future object's own coordinate frame. Uniform canonical
+    point indices are shared by both sets, without encoding their index as ID.
+    """
+    targets = np.flatnonzero(np.asarray(sample["object_features"])[:, OBJECT_TARGET] > .5)
+    if len(targets) != 1:
+        raise ValueError("object goal requires exactly one current target object")
+    slot = int(targets[0])
+    points = np.asarray(sample["points"], dtype=np.float32)[slot]
+    if not 1 <= point_count <= len(points):
+        raise ValueError("invalid object goal point count")
+    indices = np.linspace(0, len(points) - 1, point_count, dtype=np.int64)
+    start = points[indices].copy()
+    effect = np.asarray(sample["effect"], dtype=np.float32)[slot, -1]
+    goal = start @ effect[:3, :3].T + effect[:3, 3]
+    if not np.isfinite(start).all() or not np.isfinite(goal).all():
+        raise ValueError("nonfinite target-object endpoint")
+    return dict(start_object_points=start, goal_object_points=goal.astype(np.float32),
+                object_goal_valid=np.ones(point_count, dtype=bool),
+                goal_object_slot=np.int64(slot))
 
 
 def _current_hand(sample: dict) -> tuple[np.ndarray, np.ndarray]:
@@ -68,9 +94,13 @@ def _current_hand(sample: dict) -> tuple[np.ndarray, np.ndarray]:
 class GoalWindows(Dataset):
     """Expose a frozen MixedWindows corpus with endpoint goal supervision."""
 
-    def __init__(self, mixed_dataset):
+    def __init__(self, mixed_dataset, goal_type="hand_endpoint", goal_points=32):
         self.base = mixed_dataset
         self.source_names = tuple(d["name"] for d in mixed_dataset.meta["sources"])
+        if goal_type not in ("hand_endpoint", "object_points"):
+            raise ValueError("unknown goal contract")
+        self.goal_type = goal_type
+        self.goal_points = int(goal_points)
 
     def __len__(self) -> int:
         return len(self.base)
@@ -107,6 +137,10 @@ class GoalWindows(Dataset):
             trajectory_valid=trajectory_valid,
             source_id=np.int64(self._source_id(index)),
         )
+        if self.goal_type == "object_points":
+            sample.update(_object_goal(sample, self.goal_points))
+            # This contract does not expose future hand endpoint goal fields.
+            del sample["goal_hand"], sample["goal_hand_valid"]
         return sample
 
 
@@ -152,13 +186,19 @@ def goal_collate(samples: list[dict]) -> dict[str, torch.Tensor]:
         )
     for key, dtype in (
         ("start_hand", torch.float32),
-        ("goal_hand", torch.float32),
         ("trajectory_target", torch.float32),
         ("start_hand_valid", torch.bool),
-        ("goal_hand_valid", torch.bool),
         ("trajectory_valid", torch.bool),
         ("source_id", torch.long),
     ):
+        out[key] = torch.as_tensor(np.stack([sample[key] for sample in capped]), dtype=dtype)
+    object_goal = "goal_object_points" in capped[0]
+    if any(("goal_object_points" in sample) != object_goal for sample in capped):
+        raise ValueError("mixed goal contracts in one batch")
+    fields = (("start_object_points", torch.float32), ("goal_object_points", torch.float32),
+              ("object_goal_valid", torch.bool), ("goal_object_slot", torch.long)) if object_goal else (
+              ("goal_hand", torch.float32), ("goal_hand_valid", torch.bool))
+    for key, dtype in fields:
         out[key] = torch.as_tensor(np.stack([sample[key] for sample in capped]), dtype=dtype)
     return out
 

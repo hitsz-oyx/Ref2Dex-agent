@@ -157,8 +157,11 @@ def goal_isolation(model, batch: dict[str, torch.Tensor]) -> float:
     with torch.no_grad():
         original = model(batch)
     changed = {key: value.clone() for key, value in batch.items()}
-    changed["goal_hand"] = torch.flip(changed["goal_hand"], dims=(1, 2)) + .07
-    changed["goal_hand_valid"] = batch["goal_hand_valid"].clone()
+    if model.goal_type == "object_points":
+        changed["goal_object_points"] = changed["goal_object_points"].flip(1) + .07
+    else:
+        changed["goal_hand"] = torch.flip(changed["goal_hand"], dims=(1, 2)) + .07
+        changed["goal_hand_valid"] = batch["goal_hand_valid"].clone()
     with torch.no_grad():
         altered = model(changed)
     difference = max(
@@ -227,7 +230,9 @@ def run(args: argparse.Namespace) -> None:
         raise ValueError(f"expected main three source manifest, got {names}")
     if train_base.meta.get("supervision") != "measured_dynamic_hand_main":
         raise ValueError("video/auxiliary source is not allowed in this run")
-    train, val = GoalWindows(train_base), GoalWindows(val_base)
+    goal_args = dict(goal_type=config.get("goal_type", "hand_endpoint"),
+                     goal_points=int(config.get("goal_points", 32)))
+    train, val = GoalWindows(train_base, **goal_args), GoalWindows(val_base, **goal_args)
     stats = json.loads(args.stats.read_text())
     if stats.get("sources") != list(names) or stats.get("split") != "train":
         raise ValueError("normalization stats do not describe OakInk2/GRAB/ARCTIC train data")
