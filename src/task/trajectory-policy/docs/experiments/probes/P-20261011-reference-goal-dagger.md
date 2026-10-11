@@ -5,7 +5,7 @@ experiment_id: P-20261011-reference-goal-dagger
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: 27ac34fe
+git_commit: 7f67d38f
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-reference-goal-dagger
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [183, 184, 185, 186]
 decision_changed_if_positive: retain reference-conditioned autonomous trajectory baseline and validate before PointWorld
 decision_changed_if_negative: separate reference conditioning from learner-state PD correction and remaining R domain limits
-status: PLANNED
+status: UNCLEAR
 run_id: reference-goal-bc-fit-20261011-r1
 ---
 
@@ -93,7 +93,28 @@ main branch, explicit staged files, no push, no Campaign changes or ref addition
 
 ## Results
 
-Pending.
+Reference export: `outputs/trajectory-policy/competent-reference-20261011-r1/`;
+raw-source/SciPy pose audit and native processed-reference comparisons pass
+(native max error0). BC fit `reference-goal-bc-fit-20261011-r1`, seed183,
+3000updates/28.10s GPU3: joint val tauMSE .00612650, PD MSE .02297259,
+startup RMS .618mm; tau-only PD MSE .03224009. Fit audit PASS. Offline
+improvement does not demonstrate closed-loop reference competence.
+
+Physical `reference-goal-bc-execution-20261011-r1` completed542controls/543states
+but failed only in result postprocessing (NumPy advanced index moved env axis).
+Original FAILED manifest/log/trace preserved. `...-r1-recovered` symlinks the
+original immutable trace and authenticates original input hashes against producer
+commit cba9436b; recovery commit7f67d38f. Independent full feature/action/native-PD,
+R/actor inference and physical outcomes audit PASS. Teacher hold4/4,place1/4;
+GT-R hold4/4,place3/4; joint and tau-only hold0/8,place0/8. Calibration failed,
+so status UNCLEAR, not negative evidence against reference conditioning. Joint
+clipping3.506%, ref position RMSE .1793m, teacher .2310m. Retain all controls.
+
+Decision: proceed with already specified one-round PD-query correction because
+student autonomous grasp is absent and the user authorized DAgger. Collection
+is not evaluation; teacher placement weakness is a limitation on teacher-query
+quality and interpretation. Do not select a new seed or checkpoint based on
+physical outcomes. No change to gates, R or budget. DAgger round pending.
 
 ## Limitations / future evidence
 
