@@ -16,7 +16,9 @@
 
 - [参考条件与一轮PD DAgger](docs/experiments/probes/P-20261011-reference-goal-dagger.md)：G接入计划参考，并完成一轮真实学生状态PD查询。无教师干预评估中，PD DAgger8/8持物和放置、零裁剪、参考位置RMSE7.57cm；offline joint续训7/8hold、6/8放置、中位held92帧，对比DAgger376帧。完整独立审计通过，局部 PROMISING；先做冻结matched重复/Validation，尚未证明多motion泛化。
 
-这些是同一 airplane reference 的 Probe，尚未证明 G 泛化、精准目标位姿、完整参考跟踪
+- [冻结模型双seed Validation](docs/experiments/validations/VAL-20261011-reference-goal-dagger-repeat.md)：两个预定holdout启动均8/8持物和放置、零裁剪，参考位置RMSE7.58/7.52cm，六项gate均通过，局部 SUPPORTED。离线续训对照放置5/8、6/8。两次真实初始状态exact相同，只支持当前frame0重复性；不证明扰动或多motion泛化。保留固定baseline，下一步Cm/PointWorld接入设计。
+
+这些是同一 airplane reference 的 Probe及固定模型重复验证，尚未证明 G 泛化、精准目标位姿、完整参考跟踪
 或 Cm 帮助 RL；先获得自主物理 baseline，再进入 PointWorld 动作条件 critic。
 下面保留旧ref1/ref2实现与负结果，避免重复尝试。
 

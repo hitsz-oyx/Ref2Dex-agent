@@ -432,7 +432,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261011-reference-goal-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-reference-goal-dagger.md) | Authorized human/object reference goals and one-round PD DAgger | 见原卡 | proceed with already specified one-round PD-query correction because | probes/PROMISING |
-| [VAL-20261011-reference-goal-dagger-repeat](../../src/task/trajectory-policy/docs/experiments/validations/VAL-20261011-reference-goal-dagger-repeat.md) | Frozen reference-conditioned PD DAgger: two holdout launches | 见原卡 | 见原卡 | validations/PLANNED |
+| [VAL-20261011-reference-goal-dagger-repeat](../../src/task/trajectory-policy/docs/experiments/validations/VAL-20261011-reference-goal-dagger-repeat.md) | Frozen reference-conditioned PD DAgger: two holdout launches | 见原卡 | 见原卡 | validations/SUPPORTED |
 
 ## HF-trajectory-policy-retargeter
 

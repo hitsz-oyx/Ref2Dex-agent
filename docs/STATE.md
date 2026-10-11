@@ -51,6 +51,16 @@ GT-R4/4、median436。仅offline joint续训7/8hold、6/8放置、median92帧、
 单评估seed和teacher首次live变动限制了结论；query-val失败env23恢复仍未学会。
 新产物452.1MiB，35 Task tests通过，所有自有GPU任务已结束，不改 Campaign。
 
+[冻结双seed Validation](../src/task/trajectory-policy/docs/experiments/validations/VAL-20261011-reference-goal-dagger-repeat.md)
+已完成：holdout400/401的DAgger均8/8hold+放置、零裁剪、median376/405帧、
+参考位置RMSE7.58/7.52cm；offline continuation放置5/8、6/8，median均92帧，
+参考RMSE80.78/76.74cm。每轮teacher/GT-R均4/4，完整GPU执行审计和独立gate复算通过。
+原六项门槛在两轮均通过，局部固定模型/参考/初始化重复性 claim SUPPORTED；
+不是DAgger训练seed泛化或Cm收益。不同seed的真实初始q/物体/手/速度全部exact相同，
+所以这是独立native启动的重复验证，尚未测试初始化扰动。新增156.8MiB，未再训练，
+所有自有GPU进程已结束。下一步保留该固定任务baseline、进入Cm/PointWorld接入设计；
+扰动/多motion/训练seed证据延后，不继续无界优化无Cm策略。Campaign仍未由agent修改。
+
 ## 2026-10-10 用户转入 trajectory-policy 新架构设计
 
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task
