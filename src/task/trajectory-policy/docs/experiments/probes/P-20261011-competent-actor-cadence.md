@@ -5,7 +5,7 @@ experiment_id: P-20261011-competent-actor-cadence
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: 8cce545
+git_commit: c897d745
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-competent-actor-cadence
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [184]
 decision_changed_if_positive: retain per-control measured feedback trajectory BC and reassess baseline readiness
 decision_changed_if_negative: investigate closed-loop actor distribution before Cm or new hyperparameter training
-status: PLANNED
+status: UNPROMISING
 run_id: competent-joint-bc-cadence-20261011-r1
 ---
 
@@ -66,7 +66,42 @@ Never operate on the other user's process. No Campaign change/branch/push.
 
 ## Results
 
-Pending.
+Execution `c897d745`,seed184,542controls/74.72s completes. Teacher4/4
+hold45 and controlled place; GT-R4/4 hold45,3/4 controlled place (calibration
+passes), median440.5/436frames. Tau_only0/8 hold45 and0/8 full successes,
+clipping15.2906%. Joint4/8 hold45 but0/8 full successes, median159frames,
+clipping2.7445%. Its four long holds are311,309,427,427frames; some later lose
+the object and two settle into a stationary held state without completing the
+reference/controlled placing. Endpoint errors are not goal success evidence.
+The fixed joint success, held-median and clipping gates fail: UNPROMISING for
+this checkpoint and complete-task protocol. Local hold4/8 vs0/8 is a bounded
+positive component signal for joint supervision, not a usable baseline, formal
+incremental benefit or Mission/Cm completion.
+
+Independent audit `7b008fb4` passes: H/G, actor outputs and actual native PD
+exact0; world plans4.77e-7m,live-R tau5.07e-7m, predictions/requestedPD4.77e-7,
+all outcomes/gates reproduced. No new fit/checkpoint selection or rollout retry.
+Artifacts: [result](../../../../../../outputs/trajectory-policy/competent-joint-bc-cadence-20261011-r1/result.json),
+[audit](../../../../../../outputs/trajectory-policy/competent-joint-bc-cadence-20261011-r1/audit.json),
+[behavior](../../../../../../outputs/trajectory-policy/competent-joint-bc-cadence-20261011-r1/behavior.png).
+
+A cheap GPU nearest-source coverage diagnostic `9cb2686b` uses train-only H/G
+normalization and training states only as reference, without fitting or future
+labels. Validation NN RMS p95=.5282. Fresh teacher contact median1.0265 is
+already above that scale; joint contact1.4262 and late1.6250, while teacher
+late median.2807. This indicates that existing teacher data also under-covers
+fresh contact conditions; it cannot uniquely attribute failure to student
+covariate shift. Joint first8/approach medians.0116/.0588 remain inside source
+coverage, and input/output replay is exact. Preserve this observational limit.
+Diagnostic [coverage](../../../../../../outputs/trajectory-policy/competent-joint-bc-coverage-20261011-r1/result.json).
+
+Next Decision should isolate contact/late-phase coverage with a minimal fresh
+competent-teacher collection and fixed-data fit comparison, then compare actual
+hold/placing/reference behavior. Do not simply increase epochs from the offline
+loss, add a clock/reference leak, or call stationary holding a completed target
+reference trajectory. PointWorld remains deferred until autonomous baseline
+competence. All retained route artifacts total about240MiB, within1GiB; bounded
+runs remain within20GPUmin and all owned GPU jobs have finished.
 
 ## Limitations / future evidence
 

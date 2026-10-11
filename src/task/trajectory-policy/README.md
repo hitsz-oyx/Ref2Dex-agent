@@ -10,7 +10,7 @@
 - [真实PD监督](docs/experiments/probes/P-20261011-competent-pd-retargeter.md)：32条新合格teacher，离线门槛失败仍 UNCLEAR。
 - [R完整物理执行](docs/experiments/probes/P-20261011-competent-pd-physical.md)：teacher/真实PD/GT轨迹-R 各8/8持物和受控放置，独立审计通过，局部 PROMISING。
 - [自主联合BC](docs/experiments/probes/P-20261011-competent-joint-bc.md)：离线启动误差0.922/0.693mm，梯度与预测审计通过；8步查询完整物理比较teacher/GT-R各4/4，自主两臂各0/8，执行链审计通过，局部 UNPROMISING。
-- [每步查询冻结对照](docs/experiments/probes/P-20261011-competent-actor-cadence.md)：诊断计划复用造成的条件化差异，保持同模型/seed/判据，执行中。
+- [每步查询冻结对照](docs/experiments/probes/P-20261011-competent-actor-cadence.md)：保持同模型/seed/判据完成并通过独立审计。联合监督4/8hold（311/309/427/427帧），纯轨迹0/8；完整任务仍0/8，整体 UNPROMISING。静态持物与后段失物都不能算完整参考任务成功。
 
 这些是同一 airplane reference 的 Probe，尚未证明 G 泛化、精准目标位姿、完整参考跟踪
 或 Cm 帮助 RL；先获得自主物理 baseline，再进入 PointWorld 动作条件 critic。

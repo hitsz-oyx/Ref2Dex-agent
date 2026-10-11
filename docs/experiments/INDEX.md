@@ -366,7 +366,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261011-competent-actor-cadence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-actor-cadence.md) | Does current-state per-control trajectory replanning preserve competence? | 见原卡 | 见原卡 | probes/PLANNED |
+| [P-20261011-competent-actor-cadence](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-actor-cadence.md) | Does current-state per-control trajectory replanning preserve competence? | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-trajectory-policy-competent-joint-bc
 

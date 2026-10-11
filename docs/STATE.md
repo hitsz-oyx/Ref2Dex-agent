@@ -24,7 +24,14 @@ r1相对checkpoint路径错误在控制前失败（`f4e1881`修复），r2因外
 均非科研负结果。冻结验证状态诊断 `8cce545` 显示 joint 接触段PD XYZ p95由每步查询
 29.33mm增至8步计划复用60.56mm，尚未证明闭环原因；当前按
 [单变量 cadence Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-actor-cadence.md)
-保持checkpoint/seed/判据，仅把查询周期8->1，正在完整执行，不先加epochs或接Cm。
+保持checkpoint/seed/判据，仅把查询周期8->1。`c897d745` 完成74.72s并独立审计通过：
+teacher4/4，GT-R4/4hold+3/4放置，纯轨迹0/8hold，联合PD4/8hold（最长311/309/427/427帧），
+但完整成功0/8、clip2.7445%、median159帧，固定整体gate仍 UNPROMISING。
+这是联合监督+每步反馈的局部抓持线索，不是合格 baseline；部分失物，部分静态持物
+而未完成参考波形/放置。所有自有GPU任务已结束，route产物约240MiB。
+冻结H/G覆盖诊断 `9cb2686b` 发现fresh teacher接触状态本身也偏离旧训练域，联合后段
+偏离更明显，不能只归因为student covariate shift。下一步优先最小接触/后段数据覆盖
+对照，再评价实际完整任务，不直接加epochs、用时钟/参考泄漏或接PointWorld。
 教师末端物体位置相对 G 平均误差143.98mm；当前 hold/放置指标不证明精准目标位姿
 或完整参考轨迹跟踪，更没有 Cm-on/off 训练收益。本路线预算共用20GPUmin/1GiB，
 不改 Campaign，不新建分支、不push。
