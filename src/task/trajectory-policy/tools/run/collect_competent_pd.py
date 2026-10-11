@@ -263,7 +263,7 @@ def main():
         teacher_inference_rows=64, source_envs=list(range(24, 32)) if evaluating else None,
         producer_code_updates=producer_code_updates, physical_decision_card=physical_decision,
         original_offline_screen_pass=fit_result['physical_screen_pass'] if evaluating else None,
-        target_alignment='q[t],hand[t] -> PD[t] -> hand[t+1]; no future q/object input')
+        target_alignment='q[t],hand[t] -> PD[t] -> hand[t+1]; no future measured q/object labels as input')
     write(out / 'manifest.json', manifest)
     if autonomous:
         manifest.update(experiment_id=('P-20261011-competent-actor-cadence' if args.actor_period == 1

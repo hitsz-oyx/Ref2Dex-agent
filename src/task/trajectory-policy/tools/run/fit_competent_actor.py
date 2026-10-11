@@ -101,7 +101,7 @@ def main():
     if args.warm is not None:
         base = load_reference_actor(torch.load(args.warm, map_location='cuda', weights_only=False), 'cuda')
         qm = json.loads((args.queries / 'manifest.json').read_text())
-        if (qm['status'] != 'COMPLETED' or not qm.get('dagger_rollin')
+        if (qm['status'] != 'COMPLETED' or not qm.get('dagger_rollin') or qm.get('training_allowed') is not True
                 or not json.loads((args.queries / 'audit.json').read_text())['pass']):
             raise ValueError('audited completed expert-PD query roll-in required')
         from trajectory_policy.pd_retargeter import encode_target
@@ -154,6 +154,7 @@ def main():
             experiment_id='P-20261011-reference-goal-dagger')
     if args.warm is not None:
         manifest.update(warm=str(args.warm.resolve()), queries=str(args.queries.resolve()), normalization_frozen=True,
+            checkpoint_selection='own source validation tau + .1 PD; DAgger additionally .1 held-out query PD; every250updates',
             continuation_arms=dict(tau_only='offline_joint_continuation', joint='PD_DAgger_continuation'))
     write(out / 'manifest.json', manifest)
     best = {key: (float('inf'), None, None) for key in models}
