@@ -64,6 +64,24 @@ collision stops the run. Qualified packs remain `training_allowed=false` until
 an explicit expanded-cohort admission manifest is produced. The user's
 untracked reference files and `pointwam_core.py` remain untouched.
 
+## PointWAM expansion result (2026-10-11)
+
+The authorized official-TRAIN expansion completed on the remote NAS under
+`/mnt/ugreen_nas/storage/oyx_storage/pointwam-data-expansion-20261011-r1/`.
+All 52 selected HDF5/MP4 members were acquired in five fresh groups and
+re-audited without mixing sibling native-data directories. The combined
+qualification manifest contains 48 valid clips, 23 fit and 25 dev clips,
+12/13 fit/dev records, and all 13 tasks; every data-coverage gate passes.
+
+The matched 600-update current-only learner (seed247, AdamW `1e-3`, 1024 scene
+points) completed with finite gradients and exact checkpoint replay, but its
+result is `UNCLEAR`: fit scene loss reduction is below the 50% gate and held-dev
+hand and moving-scene EPE remain worse than static baselines. The larger cohort
+is therefore a valid data resource, while the small substitute still lacks a
+demonstrated held-record generalization benefit. Stop further data-only scaling
+of this substitute until a representation/source-contract decision is made;
+do not upgrade this result to a PointWAM, Cm or policy conclusion.
+
 ## Retained native baseline
 
 OakInk2/GRAB/ARCTIC remain the main sources:4,378,478 overlapping TRAIN anchors.
