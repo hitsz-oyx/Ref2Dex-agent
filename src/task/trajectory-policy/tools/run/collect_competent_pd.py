@@ -42,6 +42,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--source', type=Path)
     parser.add_argument('--model', type=Path)
+    parser.add_argument('--actor-fit', type=Path, help='frozen matched H/G actor fit for autonomous execution')
     parser.add_argument('--physical-probe-card', type=Path,
                         help='explicit frozen physical Decision after a failed offline precision screen')
     parser.add_argument('--gpu', type=int, required=True)
@@ -49,9 +50,11 @@ def main():
     args = parser.parse_args()
     out = args.output.resolve()
     evaluating = args.source is not None
+    autonomous = args.actor_fit is not None
     if (out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents
             or Path(sys.prefix).resolve() != RUNTIME.resolve()
-            or evaluating != (args.model is not None) or not 100 <= args.seed <= 299):
+            or evaluating != (args.model is not None) or (autonomous and not evaluating)
+            or not 100 <= args.seed <= 299):
         raise ValueError('fresh task output, archived runtime and source/model pair required')
     before = gpu_state(args.gpu)
     if before['pids'] or before['utilization'] > 10 or before['used_mib'] > 512:
@@ -131,6 +134,22 @@ def main():
         fit_result = json.loads((args.model.parent / 'result.json').read_text())
         if sha(args.model) != fit_result['checkpoint_sha256']['tau']:
             raise ValueError('exact selected model required')
+        if autonomous:
+            card = TASK / 'docs/experiments/probes/P-20261011-competent-joint-bc.md'
+            actor_result = json.loads((args.actor_fit / 'result.json').read_text())
+            actor_manifest = json.loads((args.actor_fit / 'manifest.json').read_text())
+            if (actor_manifest['status'] != 'COMPLETED'
+                    or actor_manifest['retargeter_sha256'] != sha(args.model)
+                    or not json.loads((args.actor_fit / 'audit.json').read_text())['pass']
+                    or not all(actor_result['physical_screen_pass'].values())):
+                raise ValueError('audited screened frozen H/G fit required')
+            for arm in ('tau_only', 'joint'):
+                if sha(args.actor_fit / (arm + '.pt')) != actor_result['checkpoint_sha256'][arm]:
+                    raise ValueError('actor checkpoint drift')
+            physical_decision = str(card)
+            files += [card, TASK / 'src/trajectory_policy/competent_actor.py',
+                TASK / 'src/trajectory_policy/history.py', Path(__file__).with_name('competent_actor_execution.py'),
+                *[args.actor_fit / name for name in ('tau_only.pt', 'joint.pt', 'manifest.json', 'result.json', 'audit.json')]]
         if args.physical_probe_card is not None:
             card = args.physical_probe_card.resolve()
             expected = TASK / 'docs/experiments/probes/P-20261011-competent-pd-physical.md'
@@ -147,7 +166,8 @@ def main():
         files += [args.source / 'manifest.json', args.source / 'trajectory.npz',
                   args.model, args.model.parent / 'manifest.json', args.model.parent / 'result.json']
     hashes = {str(path.resolve()): sha(path) for path in files}
-    roles = (['teacher'] * 8 + ['source_pd'] * 8 + ['gt_tau_R'] * 8
+    roles = (['teacher'] * 4 + ['gt_tau_R'] * 4 + ['tau_only'] * 8 + ['joint'] * 8 if autonomous else
+             ['teacher'] * 8 + ['source_pd'] * 8 + ['gt_tau_R'] * 8
              if evaluating else ['teacher'] * 32)
     out.mkdir(parents=True)
     manifest = dict(schema='ref2dex.competent-pd-rollout.v1', status='RUNNING',
@@ -165,6 +185,13 @@ def main():
         original_offline_screen_pass=fit_result['physical_screen_pass'] if evaluating else None,
         target_alignment='q[t],hand[t] -> PD[t] -> hand[t+1]; no future q/object input')
     write(out / 'manifest.json', manifest)
+    if autonomous:
+        manifest.update(experiment_id='P-20261011-competent-joint-bc',
+            evaluation='autonomous measured H/G trajectory -> frozen R full physical execution',
+            inference='H328 + goal12 queried every8; R uses live measured state every control',
+            actor_fit=str(args.actor_fit.resolve()), retargeter=str(args.model.resolve()),
+            source_envs=list(range(24, 28)))
+        write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
     started = time.monotonic()
@@ -229,6 +256,10 @@ def main():
                 return current
 
             current = record()
+            actor_execution = None
+            if autonomous:
+                from competent_actor_execution import ActorExecution
+                actor_execution = ActorExecution(args.actor_fit, task.device)
             work_started = time.monotonic()
             for tick in range(542):
                 with torch.no_grad():
@@ -238,20 +269,24 @@ def main():
                     intended = native_command.clone()
                     requested_pd = pd_from_action(native_command, current['q'], offset, scale)
                     if evaluating:
-                        donor = np.arange(24, 32)
-                        target = torch.as_tensor(source['pd_targets'][tick, donor], device=task.device)
-                        first, native_command[8:16], _ = command(target, current['q'][8:16], offset, scale)
-                        intended[8:16], requested_pd[8:16] = first, target
+                        donor = np.arange(24, 28) if autonomous else np.arange(24, 32)
+                        low_ids = slice(4, 24) if autonomous else slice(16, 24)
+                        if not autonomous:
+                            target = torch.as_tensor(source['pd_targets'][tick, donor], device=task.device)
+                            first, native_command[8:16], _ = command(target, current['q'][8:16], offset, scale)
+                            intended[8:16], requested_pd[8:16] = first, target
                         index = np.minimum(tick + np.arange(1, 25), 542)
                         future = np.moveaxis(source['hand'][index][:, donor], 0, 1)
-                        s, tau = features(*(current[key][16:24].cpu().numpy() for key in
+                        if autonomous:
+                            future = np.concatenate((future, actor_execution.future(tick, logs, goal_np)))
+                        s, tau = features(*(current[key][low_ids].cpu().numpy() for key in
                                           ('q', 'dq', 'hand', 'obj', 'velocity')), future)
                         state_tensor = torch.as_tensor(s, device=task.device)
                         tau_tensor = torch.as_tensor(tau, device=task.device)
                         encoded = model(state_tensor, tau_tensor)
-                        target = decode_target(encoded, current['q'][16:24])
-                        first, native_command[16:24], _ = command(target, current['q'][16:24], offset, scale)
-                        intended[16:24], requested_pd[16:24] = first, target
+                        target = decode_target(encoded, current['q'][low_ids])
+                        first, native_command[low_ids], _ = command(target, current['q'][low_ids], offset, scale)
+                        intended[low_ids], requested_pd[low_ids] = first, target
                         for key, value in dict(state_features=s, tau_features=tau,
                                               encoded_target=encoded.cpu().numpy()).items():
                             logs[key].append(value.copy())
@@ -284,6 +319,8 @@ def main():
                     with (out / 'monitor.jsonl').open('a') as stream:
                         stream.write(json.dumps(monitor) + '\n')
             packed = {key: np.stack(value) for key, value in logs.items() if value}
+            if autonomous:
+                packed.update({key: np.stack(value) for key, value in actor_execution.records.items()})
             packed['goal'] = goal_np
             np.savez_compressed(out / 'trajectory.npz', **packed)
             outcomes = []
@@ -301,9 +338,17 @@ def main():
                     success=sum(r['success'] for r in rows), median_held=float(np.median([r['maximum_held_frames'] for r in rows])),
                     clipping_rate=float(packed['clipped'][:, ids].mean()),
                     endpoint_position_error_m=float(np.linalg.norm(packed['obj'][-1, ids, :3, 3] - goal_np[ids, :3, 3], axis=-1).mean()))
-            readiness = summary['teacher']['hold45'] >= (6 if evaluating else 24) and summary['teacher']['success'] >= (6 if evaluating else 24)
+            teacher_gate = 3 if autonomous else (6 if evaluating else 24)
+            readiness = summary['teacher']['hold45'] >= teacher_gate and summary['teacher']['success'] >= teacher_gate
             status = 'PROMISING' if readiness else 'UNCLEAR'
-            if evaluating:
+            if autonomous:
+                gt = summary['gt_tau_R']
+                calibration = readiness and gt['hold45'] >= 3 and gt['success'] >= 3
+                r = summary['joint']
+                passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
+                          and r['median_held'] >= .8 * gt['median_held'])
+                status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+            elif evaluating:
                 calibration = readiness and summary['source_pd']['hold45'] >= 6 and summary['source_pd']['success'] >= 6
                 r = summary['gt_tau_R']
                 passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01

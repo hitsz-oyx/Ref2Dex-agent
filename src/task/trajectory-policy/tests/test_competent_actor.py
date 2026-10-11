@@ -9,7 +9,7 @@ def test_world_plan_retains_query_frame_when_feedback_changes():
     rotation = np.array([[[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]]], np.float32)
     hand = np.ones((1, 11, 3), np.float32)
     tau = np.zeros((1, 24, 33), np.float32)
-    tau[:, :, ::3] = np.arange(1, 25)
+    tau[:, :, ::3] = np.arange(1, 25)[None, :, None]
     plan = world_plan(tau, hand, rotation)
     assert np.allclose(plan[0, :, 0, 0], 1)
     assert np.allclose(plan[0, :, 0, 1], 1 + np.arange(1, 25))
