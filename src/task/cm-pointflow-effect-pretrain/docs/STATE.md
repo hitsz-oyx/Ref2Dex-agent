@@ -5,6 +5,20 @@ Root Mission/Campaign apply: intermediate pretraining must eventually support
 action-conditioned Cm and matched self-trained robot policy benefit. Neither
 weak video nor raw sensor forecasting replaces that final objective.
 
+## PointWAM: bounded data engineering pilot
+
+The [PointWAM data card](experiments/probes/P-20261011-pointwam-data-pipeline.md)
+records two1-second EgoDex clips processed with native camera annotations,
+official CoTracker3 and VGGT-Omega-1B-512. The user-selected ModelScope weights
+pass published SHA256 verification and strict official-model loading. Packs
+contain scene identities/RGB, ten semantic points per hand, language, explicit
+masks,31 positions and30 future displacement targets. Human visual review of
+the palm mapping remains pending: six palm offsets come from quantized public
+robot viewer geometry with an explicit human-frame convention, rather than an
+unreleased unquantized author table. Offline full-clip geometry and partitioned
+tracker queries are declared. These official-test samples are engineering-only;
+no training, benefit claim or expansion follows from the smoke alone.
+
 ## Retained native baseline
 
 OakInk2/GRAB/ARCTIC remain the main sources:4,378,478 overlapping TRAIN anchors.

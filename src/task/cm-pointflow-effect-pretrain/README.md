@@ -44,6 +44,18 @@ Current development branch: `cm-pointflow-effect-pretrain` (renamed from
 The former `Ref2Dex-agent-wt-ref8` path is retained as a compatibility symlink.
 See the [completed ref8 run and rename note](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
 
+The bounded [PointWAM data pilot](docs/experiments/probes/P-20261011-pointwam-data-pipeline.md)
+converts original EgoDex RGB/HDF5 into scene tracks, ten points per hand,
+language, masks,31 positions and30 future displacement targets. Entry:
+`tools/run/prepare_pointwam_pilot.py --depth-backend omega`; supply original
+HDF5/video, explicit palm offsets, pinned depth/tracker code and weights, and
+a fresh output directory using its `--help` arguments. The pilot uses verified
+ModelScope VGGT-Omega weights and official CoTracker3, with native cameras.
+Published-viewer palm offsets are approximate; query partitioning is explicit.
+Official test clips remain engineering-only and excluded from training.
+Each clip includes `pointwam_clip.npz`, `teacher_frontend.npz`, numerical
+`audit.json`, an RGB/depth overlay and an interactive `scene_hand.html`.
+
 Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus

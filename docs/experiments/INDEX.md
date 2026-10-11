@@ -227,6 +227,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261004-pointflow-g](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md) | Does real point-flow predicted E preserve E-to-G information? | UNCLEAR for the valid K1 point-flow-to-G bridge; UNPROMISING for expanding a pose-only K4 predictor into this G regression from the fixed GT | keep E as the physical main route, freeze I head/K4 expansion and this frozen K1 G teacher; audit task-relevant hold/drop value evidence bef | probes/UNCLEAR |
 
+## HF-pointwam-data-pipeline
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-pointwam-data-pipeline](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-pipeline.md) | PointWAM human scene/hand data pipeline: small engineering pilot | VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; visual palm qualification remains pending. | review real-data visual alignment before any training or scaling. | probes/UNCLEAR |
+
 ## HF-pointworld-multisource
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -402,6 +408,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261011-rbo-wrench-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-auxiliary.md) | RBO measured-wrench auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## simulator-chord-wrench-action-ranking
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-chord-action-ranking](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-chord-action-ranking.md) | Simulator CHORD action-ranking Probe | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## 未分类历史记录
 
