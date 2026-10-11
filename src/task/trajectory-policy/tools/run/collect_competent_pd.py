@@ -39,6 +39,58 @@ def gpu_state(gpu):
     return dict(utilization=utilization, used_mib=memory, pids=[int(v) for v in pids], process_mib=process_mib)
 
 
+def summarize(packed, roles, reference, manifest, autonomous, evaluating, dagger_rollin=False):
+    """Summarize a complete captured trace; no simulator or model inference."""
+    sys.path.insert(0, str(OLD / 'src'))
+    from consequence_evaluator.gate1 import episode_outcome
+    goal_np = packed['goal']
+    outcomes = []
+    for env, role in enumerate(roles):
+        outcome = episode_outcome(dict(object_pose=packed['obj'][:, env],
+            object_velocity=packed['velocity'][:, env], surface_gap=packed['surface_gap'][:, env],
+            support_gap=packed['support_gap'][:, env], table_footprint=packed['table_footprint'][:, env]))
+        outcome.update(env=env, role=role)
+        outcomes.append(outcome)
+    summary = {}
+    for role in sorted(set(roles)):
+        ids = [i for i, r in enumerate(roles) if r == role]
+        rows = [outcomes[i] for i in ids]
+        summary[role] = dict(episodes=len(ids), hold45=sum(r['maximum_held_frames'] >= 45 for r in rows),
+            success=sum(r['success'] for r in rows), median_held=float(np.median([r['maximum_held_frames'] for r in rows])),
+            clipping_rate=float(packed['clipped'][:, ids].mean()),
+            endpoint_position_error_m=float(np.linalg.norm(packed['obj'][-1, ids, :3, 3] - goal_np[ids, :3, 3], axis=-1).mean()))
+        if reference is not None:
+            planned = reference['obj'][:, None]
+            pos_error = packed['obj'][:, ids][:, :, :3, 3] - planned[..., :3, 3]
+            relative_rotation = np.matmul(planned[..., :3, :3].swapaxes(-1, -2), packed['obj'][:, ids][:, :, :3, :3])
+            angle = np.arccos(np.clip((np.trace(relative_rotation, axis1=-2, axis2=-1) - 1) / 2, -1, 1))
+            summary[role].update(reference_position_rmse_m=float(np.sqrt(np.mean(np.sum(pos_error ** 2, axis=-1)))),
+                                 reference_rotation_mean_rad=float(angle.mean()))
+    teacher_gate = 3 if autonomous else (6 if evaluating else 24)
+    readiness = summary['teacher']['hold45'] >= teacher_gate and summary['teacher']['success'] >= teacher_gate
+    status = 'PROMISING' if readiness else 'UNCLEAR'
+    if autonomous:
+        gt = summary['gt_tau_R']
+        calibration = readiness and gt['hold45'] >= 3 and gt['success'] >= 3
+        r = summary['joint']
+        passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
+                  and r['median_held'] >= .8 * gt['median_held'])
+        if reference is not None:
+            passed = (passed and r['reference_position_rmse_m'] <= 1.5 * summary['teacher']['reference_position_rmse_m']
+                      and r['reference_rotation_mean_rad'] <= 1.5 * summary['teacher']['reference_rotation_mean_rad'] + .1)
+        status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+        if dagger_rollin:
+            status = 'UNCLEAR'  # collection with interventions is not autonomous evaluation
+    elif evaluating:
+        calibration = readiness and summary['source_pd']['hold45'] >= 6 and summary['source_pd']['success'] >= 6
+        r = summary['gt_tau_R']
+        passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
+                  and r['median_held'] >= .8 * summary['source_pd']['median_held'])
+        status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+    return dict(status=status, teacher_readiness=readiness, summary=summary,
+                outcomes=outcomes, audit_required=True, scope=manifest['evaluation'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-dir', type=Path, required=True)
@@ -394,51 +446,9 @@ def main():
                 packed.update({key: np.stack(value) for key, value in actor_execution.records.items()})
             packed['goal'] = goal_np
             np.savez_compressed(out / 'trajectory.npz', **packed)
-            outcomes = []
-            for env, role in enumerate(roles):
-                outcome = episode_outcome(dict(object_pose=packed['obj'][:, env],
-                    object_velocity=packed['velocity'][:, env], surface_gap=packed['surface_gap'][:, env],
-                    support_gap=packed['support_gap'][:, env], table_footprint=packed['table_footprint'][:, env]))
-                outcome.update(env=env, role=role)
-                outcomes.append(outcome)
-            summary = {}
-            for role in sorted(set(roles)):
-                ids = [i for i, r in enumerate(roles) if r == role]
-                rows = [outcomes[i] for i in ids]
-                summary[role] = dict(episodes=len(ids), hold45=sum(r['maximum_held_frames'] >= 45 for r in rows),
-                    success=sum(r['success'] for r in rows), median_held=float(np.median([r['maximum_held_frames'] for r in rows])),
-                    clipping_rate=float(packed['clipped'][:, ids].mean()),
-                    endpoint_position_error_m=float(np.linalg.norm(packed['obj'][-1, ids, :3, 3] - goal_np[ids, :3, 3], axis=-1).mean()))
-                if reference is not None:
-                    planned = reference['obj'][:, None]
-                    pos_error = packed['obj'][:, ids, :3, 3] - planned[..., :3, 3]
-                    relative_rotation = np.matmul(planned[..., :3, :3].swapaxes(-1, -2), packed['obj'][:, ids, :3, :3])
-                    angle = np.arccos(np.clip((np.trace(relative_rotation, axis1=-2, axis2=-1) - 1) / 2, -1, 1))
-                    summary[role].update(reference_position_rmse_m=float(np.sqrt(np.mean(np.sum(pos_error ** 2, axis=-1)))),
-                                         reference_rotation_mean_rad=float(angle.mean()))
-            teacher_gate = 3 if autonomous else (6 if evaluating else 24)
-            readiness = summary['teacher']['hold45'] >= teacher_gate and summary['teacher']['success'] >= teacher_gate
-            status = 'PROMISING' if readiness else 'UNCLEAR'
-            if autonomous:
-                gt = summary['gt_tau_R']
-                calibration = readiness and gt['hold45'] >= 3 and gt['success'] >= 3
-                r = summary['joint']
-                passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
-                          and r['median_held'] >= .8 * gt['median_held'])
-                if reference is not None:
-                    passed = (passed and r['reference_position_rmse_m'] <= 1.5 * summary['teacher']['reference_position_rmse_m']
-                              and r['reference_rotation_mean_rad'] <= 1.5 * summary['teacher']['reference_rotation_mean_rad'] + .1)
-                status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
-                if args.dagger_rollin:
-                    status = 'UNCLEAR'  # collection with interventions is not autonomous evaluation
-            elif evaluating:
-                calibration = readiness and summary['source_pd']['hold45'] >= 6 and summary['source_pd']['success'] >= 6
-                r = summary['gt_tau_R']
-                passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
-                          and r['median_held'] >= .8 * summary['source_pd']['median_held'])
-                status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
-            write(out / 'result.json', dict(status=status, teacher_readiness=readiness,
-                summary=summary, outcomes=outcomes, audit_required=True, scope=manifest['evaluation']))
+            result = summarize(packed, roles, reference, manifest, autonomous, evaluating, args.dagger_rollin)
+            write(out / 'result.json', result)
+            summary = result['summary']
             if any(sha(path) != value for path, value in hashes.items()):
                 raise ValueError('input/source drift')
             manifest.update(status='COMPLETED', trajectory_sha256=sha(out / 'trajectory.npz'),

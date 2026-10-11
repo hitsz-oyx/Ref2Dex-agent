@@ -104,6 +104,26 @@ def main():
         close('reference_human_rotation', reference['hand_rot'], Rotation.from_quat(raw[:, 309:373].reshape(-1, 4)).as_matrix().reshape(-1, 16, 3, 3))
         close('reference_object_position', reference['obj'][:, :3, 3], raw[:, 198:201])
         close('reference_object_rotation', reference['obj'][:, :3, :3], Rotation.from_quat(raw[:, 201:205]).as_matrix())
+    query_arrays = None
+    if manifest.get('queries'):
+        query_dir = Path(manifest['queries'])
+        qm = json.loads((query_dir / 'manifest.json').read_text())
+        if not qm.get('dagger_rollin') or qm['status'] != 'COMPLETED':
+            raise ValueError('completed teacher-query roll-in required')
+        with np.load(query_dir / 'trajectory.npz', allow_pickle=False) as f:
+            query_record = {k: f[k].copy() for k in f.files}
+        if sha(query_dir / 'trajectory.npz') != qm['trajectory_sha256']:
+            raise ValueError('queried data identity differs')
+        close('queried_teacher_PD', independent_pd(query_record['expert_action'], query_record['q'][:-1], qm['native_controller']), query_record['expert_pd'], 1e-6)
+        query_arrays = {}
+        for name, ids in dict(train=np.arange(16, 22), validation=np.arange(22, 24)).items():
+            ticks, envs = np.repeat(np.arange(542), len(ids)), np.tile(ids, 542)
+            qx = independent_input(query_record, ticks, envs, reference)
+            close(name + '_query_HG', qx, query_record['high_input'][:, ids - 8].reshape(-1, len(qx[0])))
+            qs = query_record['state_features'][:, ids - 4].reshape(-1, 87)
+            yy = query_record['expert_pd'][ticks, envs][:, ACTIVE].copy()
+            yy[:, :6] -= query_record['q'][ticks, envs, :6]
+            query_arrays[name] = qx, qs, yy
 
     if not args.execution:
         with np.load(args.fit / 'predictions.npz', allow_pickle=False) as f:
@@ -122,6 +142,10 @@ def main():
                 raise ValueError('actor checkpoint differs')
             packet = torch.load(args.fit / (arm + '.pt'), map_location=device, weights_only=False)
             actor = load_actor(packet, device)
+            if manifest.get('normalization_frozen'):
+                warm = load_actor(torch.load(manifest['warm'], map_location=device, weights_only=False), device)
+                for name in ('input_mean', 'input_scale', 'tau_mean', 'tau_scale'):
+                    close(arm + '_frozen_' + name, getattr(actor, name).cpu().numpy(), getattr(warm, name).cpu().numpy(), 0.)
             for name, value in (('input', arrays['train'][0]), ('tau', arrays['train'][2])):
                 close(arm + '_' + name + '_mean', value.astype(np.float64).mean(0), getattr(actor, name + '_mean').cpu().numpy())
                 close(arm + '_' + name + '_scale', np.maximum(value.astype(np.float64).std(0), .001),
@@ -141,6 +165,19 @@ def main():
             monitor = [json.loads(row) for row in (args.fit / 'monitor.jsonl').read_text().splitlines()]
             if min(monitor, key=lambda row: row[arm]['objective'])['update'] != packet['selected_update']:
                 raise ValueError('validation selection differs')
+            selected_row = next(row for row in monitor if row['update'] == packet['selected_update'])
+            objective = result['reports'][arm]['validation']['tau_mse']
+            if arm == 'joint' or query_arrays is not None:
+                objective += .1 * result['reports'][arm]['validation']['pd_mse']
+            if query_arrays is not None and arm == 'joint':
+                qx, qs, yy = query_arrays['validation']
+                with torch.no_grad():
+                    pred = np.concatenate([r(torch.as_tensor(qs[i:i + 256], device=device),
+                        actor(torch.as_tensor(qx[i:i + 256], device=device))).cpu().numpy() for i in range(0, len(qx), 256)])
+                query_loss = float(np.mean(((pred - yy) / r.target_scale.cpu().numpy()) ** 2))
+                close('query_validation_PD_MSE', query_loss, selected_row[arm]['query_pd_mse'])
+                objective += .1 * query_loss
+            close(arm + '_selected_objective', objective, selected_row[arm]['objective'])
             models[arm] = actor
         for parameter in r.parameters():
             parameter.requires_grad_(False)
@@ -238,8 +275,8 @@ def main():
         if reference is not None:
             for role in summary:
                 ids = [i for i, name in enumerate(em['roles']) if name == role]
-                pos_error = execution['obj'][:, ids, :3, 3] - reference['obj'][:, None, :3, 3]
-                relative_rot = np.matmul(reference['obj'][:, None, :3, :3].swapaxes(-1, -2), execution['obj'][:, ids, :3, :3])
+                pos_error = execution['obj'][:, ids][:, :, :3, 3] - reference['obj'][:, None, :3, 3]
+                relative_rot = np.matmul(reference['obj'][:, None, :3, :3].swapaxes(-1, -2), execution['obj'][:, ids][:, :, :3, :3])
                 angle = np.arccos(np.clip((np.trace(relative_rot, axis1=-2, axis2=-1) - 1) / 2, -1, 1))
                 summary[role].update(reference_position_rmse_m=float(np.sqrt(np.mean(np.sum(pos_error ** 2, axis=-1)))),
                                      reference_rotation_mean_rad=float(angle.mean()))
