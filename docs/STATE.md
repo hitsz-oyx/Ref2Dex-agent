@@ -1,5 +1,24 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 WAM 学习能力与目标响应诊断
+
+[固定训练窗口诊断](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-learnability.md)
+在六个 train 窗口完成独立标签重建（误差0）、共享梯度与 oracle loss 核对。
+300步 lr1e-3 在 eval/train 两种 forward mode 均通过三来源拟合门槛，局部
+**PROMISING**；这只表明固定输入可拟合，不证明条件信息使用或泛化。
+[单变量学习率 Probe](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-optimizer-scale.md)
+复用原始初始化/seed/96个 val 窗口完成600步，best500；moving-world 相对静止
+改善为 -.429%/+.017%/-.157%，未过5%门槛，仍 **UNCLEAR**。线性 start-goal
+轨迹明显优于当前学习预测，因此停止只加学习率/epoch 的路线。
+
+冻结六训练窗口的 +10cm X goal 干预响应很弱，包括低拟合误差模型。固定fit
+checkpoint 的 whole-forward world 隔离1e-5门槛失败，同时不改输入的重复误差
+也越界；缓存同一scene后，三个模型 world goal-change/repeat 均为0。原失败
+标记和日志保留，不将数值重复噪声直接归因为goal泄漏。token范数和attention
+诊断未支持scene幅度压制goal/action的猜想；没有据此改归一化或架构。
+下一步应检查goal几何/边界合同；本次按用户要求先提交，未启动后续实验。
+所有自有GPU任务结束；未改变最终claim、资源边界、Mission/Campaign或用户草稿。
+
 ## 2026-10-11 Goal-Point-WAM ref1 修订与短 Probe
 
 接续前会话已授权的修订，在 `main` 的 `412c6aef` 复用修复后 PW 的 PTv3/scene
