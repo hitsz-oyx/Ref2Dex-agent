@@ -31,6 +31,7 @@ def audit_pack(path: Path, split: str, episode: str) -> dict:
         checks["clock"] = bool(np.allclose(pack["timestamps_s"][::3], pack["source_frame_ids"] / 30))
         checks["hand_order_shape"] = pack["hand_order"].tolist() == ["right", "left"] and pack["hand_xyz_m"].shape == (31, 2, 10, 3)
         checks["unique_identities"] = len(np.unique(pack["track_ids"])) == len(pack["track_ids"])
+        checks["instruction"] = bool(str(pack["language"]).strip())
     return dict(checks=checks, passed=all(checks.values()))
 
 
@@ -102,6 +103,12 @@ def main() -> None:
                                             exit_code=completed.returncode, status=result["status"],
                                             manifest=str((run / "manifest.json").resolve()),
                                             error=result.get("error"), command=command))
+            # Data shortages are measured outcomes. Implementation/input/clock
+            # errors stop the group rather than retrying them on other episodes.
+            shortages = ("no clip passes", "insufficient hand/depth scale samples",
+                         "insufficient hand/depth scale inliers", "no initial visible/depth-valid")
+            if completed.returncode and not any(s in result.get("error", "") for s in shortages):
+                raise RuntimeError(f"episode contract/execution failure: {result.get('error')}")
             for c in result["clips"]:
                 pack = Path(c["path"]) / "pointwam_clip.npz"
                 audit = audit_pack(pack, identity["split"], identity["episode_id"])
