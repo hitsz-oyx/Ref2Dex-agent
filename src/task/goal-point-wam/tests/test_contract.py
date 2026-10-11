@@ -170,6 +170,22 @@ def test_object_goal_scale_is_a_unit_conversion_with_identical_weights():
             ObjectGoalEncoder(coordinate_scale_m=bad)
 
 
+def test_relative_object_goal_uses_paired_displacement_and_masks_nan():
+    from goal_point_wam.model import ObjectGoalEncoder
+    torch.set_num_threads(2)
+    relative = ObjectGoalEncoder(coordinate_scale_m=.05, encoding='start_delta').eval()
+    absolute = ObjectGoalEncoder(coordinate_scale_m=.05).eval()
+    absolute.load_state_dict(relative.state_dict(), strict=True)
+    start, end = torch.randn(2, 4, 3), torch.randn(2, 4, 3)
+    valid = torch.ones(2, 4, dtype=torch.bool); valid[1] = False
+    start[1] = end[1] = float('nan')
+    with torch.no_grad():
+        a, am = relative(start, end, valid)
+        b, bm = absolute(start, end - start, valid)
+    torch.testing.assert_close(a, b, atol=0, rtol=0)
+    assert torch.equal(am, bm) and torch.isfinite(a).all()
+
+
 def test_controlled_teacher_preserves_world_and_masks_artificial_labels():
     sys.path.insert(0, str(TASK / 'tools/audit'))
     from probe_controlled_goal import controlled_batch

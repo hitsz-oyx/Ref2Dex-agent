@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-point-wam-controlled-goal
 date: 2026-10-11
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: ce269baa851e020fcd540ffd9bd71b438e7b1ff2
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 7
@@ -25,8 +25,8 @@ fit can memorize H without using g. Distinguish inability to learn conditional
 motion with current wiring from the shortcut permitted by that dataset. This
 analytic teacher does not test physical feasibility, real-data accuracy or RL.
 
-Result: Pending.
-Decision: Run this inexpensive conditional-capacity screen first.
+Result: UNCLEAR under the full engineering gate; input scaling strongly improves conditional response but not absolute teacher accuracy.
+Decision: Defer real-data scale-up; inspect an explicit paired displacement encoding in a separate matched engineering Probe.
 
 ## Protocol fixed before execution
 
@@ -85,3 +85,29 @@ utility remain future evidence, chosen only when they change the next decision.
 - [Run inputs](../../../../../../outputs/goal-point-wam/controlled-goal-20261011-r1/input_manifest.json)
 - [Run results](../../../../../../outputs/goal-point-wam/controlled-goal-20261011-r1/result.json)
 - [Diagnostic implementation](../../../tools/audit/probe_controlled_goal.py)
+
+## Completed result
+
+Code ce269baa, four-update smoke completed. Both600-update arms completed,
+raw21.93s/scaled21.70s training and audits; same initial parameter hash, fixed
+scene cache and offsets. Frozen world goal difference exactly0 in both arms.
+Current tests:9 passed/1 skipped. Training samples GPU2 utilization4--20%,
+about807MiB memory. Both source gates and the overall full gate fail.
+
+| Source | Raw / scaled trajectory EPE (mm) | Raw / scaled endpoint response error (mm) | Raw / scaled gain |
+| --- | ---: | ---: | ---: |
+| OakInk2 | 29.43 / 8.64 | 45.68 / 5.58 | .113 / .982 |
+| GRAB | 39.07 / 11.85 | 46.81 / 6.77 | .087 / 1.044 |
+| ARCTIC | 31.71 / 8.80 | 45.59 / 6.07 | .116 / 1.012 |
+
+The scale intervention shows much lower analytic errors and near-unit response
+within the same budget. It narrows the raw-conditioning optimization concern,
+but it does not satisfy the preregistered <=5mm accuracy gate. Do not call it a
+passed Probe, or infer physical/real-data usefulness. Per-source error ratios
+against zero-offset prediction remain .304/.400/.306 in scaled arm, above.25.
+No real-data training launched based on this run.
+
+Decision Note: retain thresholds and original arms; check whether feeding
+paired goal displacement reduces the remaining inference burden, using the
+same teacher and a separately registered matched comparison. This is within
+the original900s engineering and5GiB artifact budget, without new authorization.

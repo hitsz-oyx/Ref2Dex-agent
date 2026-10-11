@@ -165,11 +165,15 @@ class GoalEncoder(nn.Module):
 class ObjectGoalEncoder(nn.Module):
     """Encode target-object start/goal sets without hand or point-index IDs."""
 
-    def __init__(self, hidden: int = HIDDEN, layers: int = 2, coordinate_scale_m: float = 1.0):
+    def __init__(self, hidden: int = HIDDEN, layers: int = 2, coordinate_scale_m: float = 1.0,
+                 encoding: str = "endpoint"):
         super().__init__()
         self.coordinate_scale_m = float(coordinate_scale_m)
         if not np.isfinite(self.coordinate_scale_m) or self.coordinate_scale_m <= 0:
             raise ValueError("object goal coordinate scale must be finite and positive")
+        if encoding not in ("endpoint", "start_delta"):
+            raise ValueError("unknown object goal encoding")
+        self.encoding = encoding
         self.point = nn.Sequential(nn.Linear(3, hidden), nn.GELU(), nn.Linear(hidden, hidden))
         self.goal_type = nn.Embedding(2, hidden)
         layer = nn.TransformerEncoderLayer(hidden, 4, hidden * 4, dropout=0.0,
@@ -186,6 +190,8 @@ class ObjectGoalEncoder(nn.Module):
         mask = valid.bool()[:, None].expand(-1, 2, -1)
         points = torch.stack((start, goal), dim=1)
         points = torch.where(mask[..., None], points, torch.zeros_like(points))
+        if self.encoding == "start_delta":
+            points = torch.stack((points[:, 0], points[:, 1] - points[:, 0]), dim=1)
         kind = torch.arange(2, device=start.device)[None, :, None]
         tokens = (self.point(points / self.coordinate_scale_m) + self.goal_type(kind)).reshape(batch, -1, self.null.shape[-1])
         mask = mask.reshape(batch, -1)
@@ -302,7 +308,8 @@ class GoalPointWAM(nn.Module):
             raise ValueError("unknown goal contract")
         if self.goal_type == "object_points":
             self.goal = ObjectGoalEncoder(hidden, int(config.get("goal_layers", 2)),
-                                          float(config.get("goal_coordinate_scale_m", 1.0)))
+                                          float(config.get("goal_coordinate_scale_m", 1.0)),
+                                          config.get("object_goal_encoding", "endpoint"))
         else:
             self.goal = GoalEncoder(hidden, int(config.get("goal_layers", 2)))
         self.trajectory = TrajectoryDecoder(hidden, int(config.get("trajectory_layers", 3)))

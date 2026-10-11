@@ -91,9 +91,9 @@ def evaluate(model, scene, batch):
                 offsets_m=offsets, scope='analytic translation teacher on six fixed scenes; no physical validation')
 
 
-def fit_arm(state, stats, scene, batch, shifts, args, scale, output, deadline):
+def fit_arm(state, stats, scene, batch, shifts, args, scale, output, deadline, encoding='endpoint'):
     random.seed(args.seed); np.random.seed(args.seed); torch.manual_seed(args.seed)
-    config = dict(state['config'], goal_coordinate_scale_m=scale)
+    config = dict(state['config'], goal_coordinate_scale_m=scale, object_goal_encoding=encoding)
     model = GoalPointWAM(stats, config).cuda().eval()
     model.load_state_dict(state['model'], strict=True)
     for p in model.parameters(): p.requires_grad_(False)
@@ -144,7 +144,7 @@ def fit_arm(state, stats, scene, batch, shifts, args, scale, output, deadline):
     # These artificial-teacher weights must never initialize real training.
     torch.save(dict(checkpoint_kind='goal-point-wam.analytic-diagnosis.v1', diagnosis_only=True,
                     artificial_labels=True, model=model.state_dict(), config=config, step=len(shifts)), output / 'final.pt')
-    result = dict(status='COMPLETED', engineering_only=True, coordinate_scale_m=scale,
+    result = dict(status='COMPLETED', engineering_only=True, coordinate_scale_m=scale, object_goal_encoding=encoding,
                   initial_parameter_sha256=initial_hash, trainable_parameters=sum(p.numel() for p in trainable),
                   initial=initial, final=final, cached_scene_world_isolation_max=isolation,
                   history=history, elapsed_seconds=time.monotonic() - started, gpu=gpu_snapshot(torch.device('cuda')))
@@ -181,11 +181,18 @@ def run(args):
         batch_sha256=digest(args.batch), offsets_sha256=digest(args.output / 'train_offsets.pt'),
         scene_cache_sha256=scene_hash, seed=args.seed, offset_seed=args.offset_seed,
         updates=args.updates, lr=.001, warmup_updates=20, max_offset_m=.1, world_loss_used=False,
-        synthetic_weights_for_real_training=False, budget_seconds=args.budget_seconds)
+        synthetic_weights_for_real_training=False, compare_encoding=args.compare_encoding,
+        budget_seconds=args.budget_seconds)
     atomic_json(args.output / 'input_manifest.json', identity)
     deadline = time.monotonic() + args.budget_seconds
-    results = {'raw': fit_arm(state, stats, scene, batch, shifts.cuda(), args, 1., args.output / 'raw', deadline)}
-    if not results['raw']['final']['gate']:
+    if args.compare_encoding:
+        results = {name: fit_arm(state, stats, scene, batch, shifts.cuda(), args, .05, args.output / name, deadline, name)
+                   for name in ('endpoint', 'start_delta')}
+        if results['endpoint']['initial_parameter_sha256'] != results['start_delta']['initial_parameter_sha256']:
+            raise RuntimeError('controlled arms have different initial parameters')
+    else:
+        results = {'raw': fit_arm(state, stats, scene, batch, shifts.cuda(), args, 1., args.output / 'raw', deadline)}
+    if not args.compare_encoding and not results['raw']['final']['gate']:
         results['scaled'] = fit_arm(state, stats, scene, batch, shifts.cuda(), args, .05, args.output / 'scaled', deadline)
         if results['scaled']['initial_parameter_sha256'] != results['raw']['initial_parameter_sha256']:
             raise RuntimeError('controlled arms have different initial parameters')
@@ -204,6 +211,7 @@ def main():
     parser.add_argument('--seed', type=int, default=247)
     parser.add_argument('--offset-seed', type=int, default=252)
     parser.add_argument('--budget-seconds', type=float, default=900)
+    parser.add_argument('--compare-encoding', action='store_true', help='matched endpoint vs start_delta, both at .05m scale')
     args = parser.parse_args()
     if args.updates <= 0: parser.error('updates must be positive')
     existed = args.output.exists()
