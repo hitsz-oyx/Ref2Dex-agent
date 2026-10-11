@@ -33,7 +33,10 @@ def gpu_state(gpu):
     utilization, memory = map(int, row.strip().split(','))
     pids = subprocess.check_output(['nvidia-smi', '-i', str(gpu),
         '--query-compute-apps=pid', '--format=csv,noheader,nounits'], text=True).split()
-    return dict(utilization=utilization, used_mib=memory, pids=[int(v) for v in pids])
+    rows = subprocess.check_output(['nvidia-smi', '-i', str(gpu),
+        '--query-compute-apps=pid,used_memory', '--format=csv,noheader,nounits'], text=True).splitlines()
+    process_mib = {int(row.split(',')[0]): int(row.split(',')[1]) for row in rows if row.strip()}
+    return dict(utilization=utilization, used_mib=memory, pids=[int(v) for v in pids], process_mib=process_mib)
 
 
 def main():
@@ -43,6 +46,8 @@ def main():
     parser.add_argument('--source', type=Path)
     parser.add_argument('--model', type=Path)
     parser.add_argument('--actor-fit', type=Path, help='frozen matched H/G actor fit for autonomous execution')
+    parser.add_argument('--idle-context-pid', type=int, action='append', default=[],
+                        help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
                         help='explicit frozen physical Decision after a failed offline precision screen')
     parser.add_argument('--gpu', type=int, required=True)
@@ -60,8 +65,12 @@ def main():
             or not 100 <= args.seed <= 299):
         raise ValueError('fresh task output, archived runtime and source/model pair required')
     before = gpu_state(args.gpu)
-    if before['pids'] or before['utilization'] > 10 or before['used_mib'] > 512:
+    allowed_contexts = set(args.idle_context_pid)
+    if (allowed_contexts and not autonomous) or (set(before['pids']) - allowed_contexts
+            or before['utilization'] > (5 if allowed_contexts else 10) or before['used_mib'] > 512):
         raise RuntimeError('GPU occupied: ' + repr(before))
+    context_commands = {pid: subprocess.check_output(['ps', '-p', str(pid), '-o', 'args='], text=True).strip()
+                        for pid in allowed_contexts if pid in before['pids']}
     scratch = ROOT / 'tmp/trajectory-policy/competent-pd'
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(args.gpu), TMPDIR=str(scratch),
@@ -181,6 +190,7 @@ def main():
         controls=542, dt=1 / 30, checkpoint=str(OFFICIAL), checkpoint_sha256=OFFICIAL_SHA,
         training_allowed=not evaluating, source_origin='official DExplore demonstration',
         input_sha256=hashes, gpu_before=before,
+        preexisting_idle_contexts=context_commands, idle_context_max_mib=512,
         evaluation='full-reference oracle R mechanism, not independent high-level policy',
         inference='current measured state87 + oracle future actual hand24 -> actual PD target',
         teacher_inference_rows=64, source_envs=list(range(24, 32)) if evaluating else None,
@@ -314,7 +324,17 @@ def main():
                         raise ValueError('early termination/reset invalidates windows')
                 if tick == 0 or (tick + 1) % 128 == 0:
                     state = gpu_state(args.gpu)
-                    if set(state['pids']) - {os.getpid()}:
+                    foreign = set(state['pids']) - {os.getpid()}
+                    if (foreign - allowed_contexts or
+                            any(state['process_mib'][pid] > 512 for pid in foreign)):
+                        # Preserve incomplete measurements without labeling them
+                        # a completed physical experiment or a training source.
+                        partial = {key: np.stack(value) for key, value in logs.items() if value}
+                        partial['goal'] = goal_np
+                        if autonomous:
+                            partial.update({key: np.stack(value) for key, value in actor_execution.records.items()})
+                        np.savez_compressed(out / 'partial.npz', **partial)
+                        manifest['partial_controls'] = tick + 1
                         raise RuntimeError('foreign GPU process: ' + repr(state))
                     monitor = dict(control=tick + 1, elapsed_s=time.monotonic() - started,
                         eta_s=(time.monotonic() - work_started) / (tick + 1) * (541 - tick), gpu=state)

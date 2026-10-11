@@ -1,5 +1,29 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 ref3：competent teacher 真实 PD 分层路线
+
+用户已确认官方 DExplore actor 仅作为 teacher、监督实际下发的 PD target，G 为物体
+目标位姿，R 每步读取真实测量反馈。保留完整24步手轨迹，当前不接 PointWorld。
+新训练数据是明确可训练的新采集，旧工程 packet 的禁训标记保持原样。
+
+[P-20261011-competent-pd-retargeter](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-pd-retargeter.md)：
+32/32 teacher 完成 hold45 和受控放置。实际 PD R 留出误差比 state-only 降低59%，
+原5mm/.05rad离线门槛仍失败，原卡 UNCLEAR。另行冻结的
+[物理 Decision](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-pd-physical.md)
+`eaeb81f` 比较 teacher、source-PD、GT-tau/R，各8/8 hold45及受控放置；R median436帧，
+裁剪0.0461%，独立实际PD/状态/轨迹/预测审计 exact，局部 PROMISING。
+这只是 oracle实际未来手轨迹+learned R，不是自主高层策略。
+
+[联合 BC](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-joint-bc.md)
+`b00a533` 完成 matched H328/G12->24x33 轨迹监督和轨迹+真实PD联合监督，冻结 R。
+3000updates/22.97s/GPU0，启动 first8 coordinate RMS0.922/0.693mm；联合 PD val MSE
+比轨迹监督低29%。独立历史/目标/标签/预测及梯度审计通过，33个 Task 测试通过。
+尚待完整自主物理评估：r1在控制前相对checkpoint路径错误（`f4e1881`修复），
+r2中途因其他用户GPU进程触发资源保护停止。两次均非科研负结果。
+教师末端物体位置相对 G 平均误差143.98mm；当前 hold/放置指标不证明精准目标位姿
+或完整参考轨迹跟踪，更没有 Cm-on/off 训练收益。本路线预算共用20GPUmin/1GiB，
+不改 Campaign，不新建分支、不push。
+
 ## 2026-10-10 用户转入 trajectory-policy 新架构设计
 
 用户要求consequence-evaluator先做到这里，不再运行其后续实验，改看新Task

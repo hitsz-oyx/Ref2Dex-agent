@@ -1,5 +1,20 @@
 # Trajectory policy
 
+## ref3 当前进展（2026-10-11）
+
+当前优先按 [ref3](docs/user/ref/ref3.md) 推进第一阶段：
+`(H,G) -> 24步真实手轨迹 -> learned R(当前实测状态,轨迹) -> 实际PD目标`。
+官方 actor 只采集合格 teacher，不作为自主 arm 的动作基座。G 是已知物体终目标位姿，
+历史输入无参考/phase/clock/未来q/接触标签；冻结 R 的 PD loss 可更新高层 actor。
+
+- [真实PD监督](docs/experiments/probes/P-20261011-competent-pd-retargeter.md)：32条新合格teacher，离线门槛失败仍 UNCLEAR。
+- [R完整物理执行](docs/experiments/probes/P-20261011-competent-pd-physical.md)：teacher/真实PD/GT轨迹-R 各8/8持物和受控放置，独立审计通过，局部 PROMISING。
+- [自主联合BC](docs/experiments/probes/P-20261011-competent-joint-bc.md)：离线启动误差0.922/0.693mm，梯度与预测审计通过；完整自主物理评估待GPU空闲继续。
+
+这些是同一 airplane reference 的 Probe，尚未证明 G 泛化、精准目标位姿、完整参考跟踪
+或 Cm 帮助 RL；先获得自主物理 baseline，再进入 PointWorld 动作条件 critic。
+下面保留旧ref1/ref2实现与负结果，避免重复尝试。
+
 用户 [ref1](docs/user/ref/ref1.md) 指定的新架构研究边界：纯测量历史H→独立高层
 trajectory actor→latent c→24步11点手轨迹→每步读取实时状态的executor→native command。
 旧behavior只提供初始化和可衰减训练先验，不作为永久在线动作基座；后续检验

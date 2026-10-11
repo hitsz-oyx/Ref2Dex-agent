@@ -84,3 +84,19 @@ G accurately. Oracle GT-R calibration and independent PhysX rows are privileged
 controls, not exact hidden-state forks. Tail padding, single-seed bounded Probe
 and no PointWorld/critic/RL. Formal validation and varied goals wait for a
 competent baseline.
+
+## Resource-only amendment before execution r3
+
+Execution r1 failed before control because a relative checkpoint path crossed
+native cwd; f4e1881 fixes it. Execution r2 stopped on a foreign context at its
+256-control resource check. Neither is a valid negative or completed result.
+GPU inspection shows that process1969748 performs its actual Isaac Sim work on
+GPU1 (3682MiB, per-process SM10%); GPU0 is0% aggregate utilization and only166MiB
+context, with24076MiB free. Permit this explicitly recorded pre-existing idle
+context on GPU0 only: launch utilization<=5%, total prior allocation<=512MiB;
+stop on new foreign PID or existing foreign context growing past512MiB. Never
+kill, modify or request changes to that process. Own expected allocation18.1GiB
+leaves>5GiB headroom. This resource refinement is within Campaign limits, changes
+no seed/model/scientific variable/gate or budget, and is frozen before r3.
+Retain incomplete run identities; future conflicts preserve partial measurements
+without allowing them as training data or completed scientific results.
