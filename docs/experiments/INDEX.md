@@ -177,6 +177,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261011-goal-point-wam-learnability](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-learnability.md) | Fixed-train-window WAM learnability diagnosis | 见原卡 | 见原卡 | probes/PROMISING |
+| [P-20261011-goal-point-wam-object-goal-response](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-object-goal-response.md) | Object start/goal point contract and frozen response Probe | UNCLEAR: all three sources fit, but symmetric object-goal response remains weak. | Stop scale-up; preserve the object-goal implementation and diagnose geometric conditioning before further training. | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-optimizer-scale](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-optimizer-scale.md) | Matched optimizer-scale Decision Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-ref1-alignment](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-ref1-alignment.md) | Ref1 alignment: pretrained scene and full executed-action memory | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-three-domain-probe](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-probe.md) | Goal-Point-WAM three-domain no-video Probe | 见原卡 | 见原卡 | probes/UNCLEAR |

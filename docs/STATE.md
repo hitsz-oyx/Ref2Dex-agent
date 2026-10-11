@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 ref1_1 物体点集 goal Probe
+
+按用户 `goal-point-wam/docs/user/ref/ref1_1.md` 指定的语义，在 `39700aba` 增加
+object start/goal 点集合同：当前 target flag 选择物体，32对点始终位于单一当前
+anchor frame，trajectory 不读取 hand endpoint goal；world 仍 goal-blind，PW
+50,436,224参数迁移和528动作tokens保留。历史hand proxy配置仍可读取。
+[物体 goal 实验卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-object-goal-response.md)：
+7合同测试通过、1跳过；首个smoke的局部/全局sequence ID检查错误由 `66f42def`
+修复，失败保留且未进入训练。后续4步smoke与300步六train窗口Probe完成，原始
+物体endpoint重建最大2.98e-8m。trajectory拟合2.16/2.60/3.08mm，但 +/-10cm
+物体goal干预仅约.034mm末端RMS响应，静态物体goal替换后EPE几乎不变。
+冻结checkpoint重载、真实object输入接线和有限非零goal坐标梯度核验通过；缓存
+同一scene的world变化为0，whole-forward重复噪声超1e-5仍记录，不冒充gate通过。
+整体 **UNCLEAR**，仅六训练窗口的机制筛查，不是物体goal方案无效或RL结论。
+停止扩大训练，下一步区分几何尺度/decoder条件表示/同scene目标变化不足。
+GPU2用时62.8秒，新增约406MiB，所有自有GPU任务结束；Mission/Campaign与用户
+草稿未修改，没有接入机器人、DAgger、RL、视频或启动mixed-source规模训练。
+
 ## 2026-10-11 WAM 学习能力与目标响应诊断
 
 [固定训练窗口诊断](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-learnability.md)
