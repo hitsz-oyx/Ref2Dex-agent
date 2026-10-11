@@ -8,6 +8,11 @@ branch: cm-pointflow-effect-pretrain
 git_commit: 2a3a985f
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
+probe_index_in_family: 1
+seed_pool: probe
+seeds: [247]
+decision_changed_if_positive: start the bounded three-domain no-video Probe
+decision_changed_if_negative: repair the scene/goal/world contract before training
 status: COMPLETED
 run_id: engineering-smoke-20261011-r2
 ---
