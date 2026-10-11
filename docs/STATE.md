@@ -1,5 +1,27 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 Goal-Point-WAM ref1 修订与短 Probe
+
+接续前会话已授权的修订，在 `main` 的 `412c6aef` 复用修复后 PW 的 PTv3/scene
+projection（454 tensors、50,436,224 parameters），world decoder 接入全部528个
+逐点执行动作 token 与 mask。头和不同结构的 object projection 保持新初始化；
+H328/R/PD/video 仍属后续阶段。训练未修改 Mission/Campaign 或用户草稿。
+
+[ref1 alignment 实验卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-ref1-alignment.md)：
+合同测试5 passed/1 skipped；4步GPU smoke 的两分支共享梯度、goal isolation、
+checkpoint replay 通过。GPU2 的600步训练完成，用时273.4秒，best为400步，
+验证窗口与旧run exact；显存峰值采样1.48GiB，利用率3--26%。
+评估入口读取不存在的 `MixedWindows.source_names`，由 `f1eb97b7` 修复为manifest
+字段后完整补评，原始失败日志与训练checkpoint保留，未补跑训练。
+
+同一96-window/source panel上，OakInk2 test/GRAB test/ARCTIC val diagnostic 的
+moving-world EPE 相对静止基线只改善1.14%/0.80%/0.55%，没有来源达到预注册5%
+门槛；trajectory 相对重放旧模型变化+0.20%/-0.43%/-0.26%。结论 **UNCLEAR**：
+结构偏差已修正，但短 Probe 尚未形成 world/trajectory 收益证据，不反驳完整WAM
+或Cm/RL claim。停止追加epoch与机器人/视频接入；下一步优先训练集固定小batch
+学习能力诊断，分清目标/优化问题与短预算/来源覆盖问题，出现正向信号后再做
+matched world-loss-off。新实验、仿真和Validation未启动。
+
 ## 2026-10-11 完整合并与 PW 工作树退役 Decision Note
 
 用户授权合入 `cm-pointflow-effect-pretrain` 全部分支内容并删除旧工作树及
