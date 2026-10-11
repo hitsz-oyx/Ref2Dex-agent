@@ -229,6 +229,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261009-object-relative-gt-servo](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-object-relative-gt-servo.md) | Object-relative GT geometry and state-conditioned PD control | UNCLEAR: wrist geometry with calibrated dynamics is PROMISING; full11-point cold control does not confirm, and native finger/contact decodin | Freeze the promising analytic wrist decoder; next isolate commanded finger/contact targets. Keep old R, ACT, G and H-to-V training paused pe | probes/UNCLEAR |
 
+## HF-official-reference-coverage
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-reference-screen](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-official-reference-screen.md) | Current corrected12 references: official actor physical screening | 见原卡 | candidate competent sources s3/s9 airplane, toothpaste and waterbottle; | probes/UNCLEAR |
+
 ## HF-old-utility-evaluator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -426,6 +432,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261010-trajectory-step-replay](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md) | Does persistent early LR backtracking constrain later useful updates? | 见原卡 | 见原卡 | probes/PROMISING |
+
+## HF-trajectory-policy-pw-critic
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-pw-critic-policy](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-pw-critic-policy.md) | Frozen PointWorld action-conditioned Q and bounded policy improvement | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-trajectory-policy-reference-goal-dagger
 

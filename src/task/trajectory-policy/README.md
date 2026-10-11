@@ -1,5 +1,16 @@
 # Trajectory policy
 
+## 官方教师跨参考筛查（2026-10-11）
+
+用户暂缓 WAM/PW，先看当前仓库官方 actor 的实际表现。
+[corrected12 筛查](docs/experiments/probes/P-20261011-official-reference-screen.md)
+用同一官方 Inspire checkpoint、seed191、每条8个frame0完整回放：11条均8/8持物，
+手机仅2/8；受控放置合计68/96。s3/s9飞机、牙膏、水瓶均8/8放置，物体位置
+RMSE约5–7.5cm，是下一轮教师采集候选；Retake飞机/鸭子放置1/8和2/8，
+手机位置RMSE1.56m。抓持、放置与精准参考跟踪分别报告，整体质量UNCLEAR。
+所有实测轨迹/PD/参考合同审计通过，评估包training_allowed=false；未启动WAM训练。
+这是固定初始状态Probe，不能作为随机初始状态泛化或最终RL收益结论。
+
 ## ref3 当前进展（2026-10-11）
 
 当前优先按 [ref3](docs/user/ref/ref3.md) 推进第一阶段：

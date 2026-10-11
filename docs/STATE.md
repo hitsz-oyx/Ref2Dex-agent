@@ -1,5 +1,17 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 官方 DExplore corrected12 实际表现筛查
+
+用户暂缓 WAM/PW，优先评估当前参考库。
+[官方 actor 跨参考 Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-official-reference-screen.md)
+完成同checkpoint/seed191、每条8个frame0完整回放：12条共90/96稳定持物、68/96
+受控放置。s3/s9飞机、牙膏、水瓶均8/8持物+放置，是较好教师候选；但位置RMSE
+仍5–7.5cm，不能称精准参考跟踪。Retake飞机/鸭子放置1/8和2/8；手机持物/放置
+均2/8、位置RMSE1.56m。整体质量UNCLEAR，仅当前固定初始状态Probe。
+完整有限轨迹、参考来源、native实际PD和指标重算审计PASS，PD误差0；新评估数据
+training_allowed=false。GPU任务已结束，新增272MiB。未启动WAM训练；用户确认最终
+目标仍为RL，当前不改Mission/Campaign或最终claim。
+
 ## 2026-10-11 ref3：competent teacher 真实 PD 分层路线
 
 用户已确认官方 DExplore actor 作为 teacher、监督实际下发的 PD target，R 每步读取

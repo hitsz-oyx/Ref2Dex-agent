@@ -5,7 +5,7 @@ experiment_id: P-20261011-official-reference-screen
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: a9b0fa64
+git_commit: 82bf96ad
 claim_id: C3
 hypothesis_family: HF-official-reference-coverage
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [191]
 decision_changed_if_positive: use competent references as candidate multi-task teacher sources before WAM
 decision_changed_if_negative: restrict teacher collection to competent references and diagnose failed tasks before imitation training
-status: RUNNING
+status: UNCLEAR
 run_id: official-reference-screen-20261011-r1
 ---
 
@@ -64,3 +64,58 @@ manifest/log; not a physical negative result. Permit loader aliases only after
 every resolved path, frame count and processed reference tensor matches the
 single authenticated input. Retry cubesmall in a fresh directory; no changes to
 native simulation, sampling defaults, checkpoint, seed or evaluation thresholds.
+
+## Results and scope
+
+All12 complete: first worker82bf96ad, subsequent f40e7313, cubesmall retry and
+remaining workers62060ae2. Per-run manifests pin actual source Git/input SHA.
+Summary/trace/controller/reference audit:
+`outputs/trajectory-policy/official-reference-screen-20261011-r1/summary.json`
+and `summary.md`; figure `comparison.png`. Each8env, seed191, complete frame0
+reference. All12 references end geometrically supported at the source table.
+No evaluation trace is training-eligible. Failed pre-control cubesmall attempt
+retained alongside the single declared retry; no outcome-based run selection.
+
+| Reference | Held>=45 | Controlled place | Object position RMSE cm | Rotation mean rad | Endpoint position error cm |
+|---|---:|---:|---:|---:|---:|
+| s3_airplane_lift | 8/8 | 8/8 | 7.46 | .464 | 12.99 |
+| s7_airplane_lift_Retake | 8/8 | 1/8 | 44.27 | .812 | 145.30 |
+| s9_airplane_lift | 8/8 | 8/8 | 7.11 | .505 | 2.20 |
+| s7_apple_lift | 8/8 | 5/8 | 24.54 | 1.100 | 59.39 |
+| s1_mug_lift | 8/8 | 6/8 | 24.28 | 1.174 | 22.30 |
+| s1_toothpaste_lift | 8/8 | 8/8 | 6.58 | .602 | 3.97 |
+| s1_alarmclock_lift | 8/8 | 7/8 | 5.37 | .831 | 3.43 |
+| s1_cubesmall_lift | 8/8 | 6/8 | 8.42 | .858 | 7.26 |
+| s1_cup_lift | 8/8 | 7/8 | 11.32 | .521 | 13.33 |
+| s1_duck_lift | 8/8 | 2/8 | 11.74 | 1.242 | 24.78 |
+| s1_phone_lift | 2/8 | 2/8 | 155.60 | 1.787 | 124.41 |
+| s1_waterbottle_lift | 8/8 | 8/8 | 5.28 | .765 | 7.43 |
+
+All96 briefly lift>=5frames;90/96 held45;68/96 controlled place. These sums are
+inventory counts, not IID success-rate estimates. Under the predeclared grasp
+screen11 references PROMISING, phone UNPROMISING. Aggregate teacher quality
+UNCLEAR: complete reference quality is mixed, and placing does not establish
+accurate object-pose tracking. In particular successful s3 placements still have
+12.99cm mean terminal error. Sampled unsigned hand/object gap and table bounding
+box support are geometric proxies, not exact contact/force/stability proof.
+
+Independent CPU analysis verifies all source/checkpoint/mesh hashes (earlier
+entrypoint/card versions authenticated from producer Git), raw-vs-native reference
+poses, complete finite traces, action capture equality, native finger coupling and
+every actual PD target (maximum absolute error0), recomputed held runs/placing and
+position RMSE. These checks authenticate rollout semantics; they do not explain
+phone/late-placement failure causes. No formal scientific conclusion or route
+refutation. Initialization/generalization, repeated seeds and failed-task causal
+diagnosis are deferred until required for teacher collection or a formal claim.
+
+Decision: candidate competent sources s3/s9 airplane, toothpaste and waterbottle;
+alarmclock/cubesmall/cup remain secondary candidates. Apple/mug track poorly,
+Retake/duck have weak placement, phone is weak even at stable holding. Do not
+label every official rollout a competent demonstration or use reference object
+poses as if they were actual successful outcomes. User defers WAM implementation;
+final target remains RL. This assessment starts no training or new collection.
+
+Successful native in-process elapsed sum752.15s, failed pre-control run11.31s,
+peak native device occupancy about18,366MiB (17.9GiB), ordinary utilization
+31–50%, total new artifacts272MiB. GPU3 released; foreign idle context untouched.
+Within20GPUmin/1GiB budget; legacy imports/startup add bounded overhead.

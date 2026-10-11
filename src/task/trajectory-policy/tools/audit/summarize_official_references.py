@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 
 import numpy as np
@@ -28,6 +29,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--directory', type=Path, required=True)
     args = p.parse_args()
+    args.directory = args.directory.resolve()
     bank = json.loads((ROOT / 'outputs/consequence-evaluator/corrected-expert-inputs-20261007-r2/manifest.json').read_text())
     rows = []
     from consequence_evaluator.gate1 import episode_outcome
@@ -35,11 +37,25 @@ def main():
     import torch
     for motion in bank['motion_inputs']:
         directory = args.directory / motion['sequence']
+        if motion['sequence'] == 's1_cubesmall_lift' and (args.directory / (motion['sequence'] + '-retry-r2')).exists():
+            # Pre-control loader-guard failure has one declared implementation
+            # retry; this is not selecting a rollout by physical performance.
+            directory = args.directory / (motion['sequence'] + '-retry-r2')
         if not (directory / 'result.json').exists():
             continue
         manifest = json.loads((directory / 'manifest.json').read_text())
         result = json.loads((directory / 'result.json').read_text())
         assert manifest['status'] == 'COMPLETED' and not manifest['training_allowed']
+        authenticated_updates = []
+        for path, digest in manifest['input_sha256'].items():
+            if sha(path) != digest:
+                relative = Path(path).relative_to(ROOT)
+                if relative not in (Path('src/task/trajectory-policy/tools/run/evaluate_official_reference.py'),
+                    Path('src/task/trajectory-policy/docs/experiments/probes/P-20261011-official-reference-screen.md')):
+                    raise AssertionError('immutable input drift: ' + path)
+                original = subprocess.check_output(['git', 'show', manifest['git_commit'] + ':' + str(relative)], cwd=ROOT)
+                assert hashlib.sha256(original).hexdigest() == digest
+                authenticated_updates.append(str(relative))
         assert sha(directory / 'trajectory.npz') == manifest['trajectory_sha256']
         assert sha(motion['path']) == motion['sha256']
         with np.load(directory / 'trajectory.npz', allow_pickle=False) as stream:
@@ -84,8 +100,10 @@ def main():
         assert (lift5, hold45, placed) == (result['lift5'], result['hold45'], result['controlled_place'])
         assert abs(rmse - result['reference_position_rmse_m']) < 1e-6
         rows.append(dict(sequence=motion['sequence'], frames=motion['frames'], **result,
-            elapsed_s=manifest['elapsed_s'], audit=dict(pass_=True, pd_max_error=pd_error,
-            reference_max_errors=errors, trace_sha256=manifest['trajectory_sha256'])))
+            elapsed_s=manifest['elapsed_s'], producer_run=str(directory.relative_to(ROOT)),
+            git_commit=manifest['git_commit'], audit=dict(pass_=True, pd_max_error=pd_error,
+            reference_max_errors=errors, authenticated_source_updates=authenticated_updates,
+            trace_sha256=manifest['trajectory_sha256'])))
     summary = dict(status='UNCLEAR', scope='fixed frame0 official teacher probe; correlated environment repeats',
         expected_references=12, completed=len(rows), audit_pass=True, rows=rows)
     (args.directory / 'summary.json').write_text(json.dumps(summary, indent=2, allow_nan=False) + '\n')
