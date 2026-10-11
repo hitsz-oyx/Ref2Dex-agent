@@ -97,6 +97,21 @@ Smoke2 at16912856 completed in5.20s with59.98MiB peak GPU allocation;
 both heads receive finite gradients and checkpoint replay is bitwise equal.
 It is ENGINEERING_SMOKE regardless of its fit/dev screen numbers.
 
+## Targeted diagnostic decision
+
+The frozen main run atc9727b88 completed600steps: fit scene loss6.02475→4.62520
+and hand1.00000→.41528. Only hand passes its fit threshold, so the original
+result is UNCLEAR; dev also fails and is not used for tuning. Before attributing
+this to data/model failure, perform the cheapest optimization diagnosis: from
+scratch on the first fit clip, fixed512initial-only point IDs, debug seed7,
+same model/contract/loss,600steps atlr1e-3,<=2min/one GPU/<10MiB artifacts.
+Record initial/final loss and finite gradients. This removes cross-clip
+interference and changes the optimizer scale purely to check fitting capacity.
+It neither replaces the main run nor changes its gates; no dev is evaluated.
+Stop on non-finite values/input drift/budget. Strong single-clip fitting would
+shift diagnosis toward multi-clip optimization/capacity; persistent failure
+requires closer scene-target/weight/model diagnosis. No method is closed here.
+
 ## Limitations / future evidence
 
 Three fit and three dev TRAIN records; no subject/session isolation or official
