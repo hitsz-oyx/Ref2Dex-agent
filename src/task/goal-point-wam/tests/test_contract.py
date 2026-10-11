@@ -152,6 +152,41 @@ def test_object_goal_is_a_masked_point_set_and_coordinate_gradients_exist():
         torch.testing.assert_close(original, predict(invalid_start, invalid_end, valid), atol=0, rtol=0)
 
 
+def test_object_goal_scale_is_a_unit_conversion_with_identical_weights():
+    from goal_point_wam.model import ObjectGoalEncoder
+    torch.set_num_threads(2)
+    raw = ObjectGoalEncoder(coordinate_scale_m=1.).eval()
+    scaled = ObjectGoalEncoder(coordinate_scale_m=.05).eval()
+    scaled.load_state_dict(raw.state_dict(), strict=True)
+    start, end = torch.randn(2, 4, 3), torch.randn(2, 4, 3)
+    valid = torch.ones(2, 4, dtype=torch.bool)
+    with torch.no_grad():
+        a, am = raw(start / .05, end / .05, valid)
+        b, bm = scaled(start, end, valid)
+    torch.testing.assert_close(a, b, atol=0, rtol=0)
+    assert torch.equal(am, bm)
+    for bad in (0., -1., float('nan'), float('inf')):
+        with pytest.raises(ValueError, match='finite and positive'):
+            ObjectGoalEncoder(coordinate_scale_m=bad)
+
+
+def test_controlled_teacher_preserves_world_and_masks_artificial_labels():
+    sys.path.insert(0, str(TASK / 'tools/audit'))
+    from probe_controlled_goal import controlled_batch
+    batch = goal_collate([GoalWindows(_Base(), goal_type='object_points')[i] for i in range(2)])
+    shift = torch.tensor([[.1, -.02, .03], [-.05, .04, -.01]])
+    changed = controlled_batch(batch, shift)
+    torch.testing.assert_close(changed['goal_object_points'] - batch['goal_object_points'],
+                               shift[:, None].expand(-1, 32, -1), atol=1e-7, rtol=1e-6)
+    valid = batch['trajectory_valid'][:, -1]
+    expected = shift[:, None, None].expand(-1, 2, 11, -1)
+    torch.testing.assert_close((changed['trajectory_target'] - batch['trajectory_target'])[:, -1][valid], expected[valid])
+    assert torch.count_nonzero(changed['trajectory_target'][~batch['trajectory_valid']]) == 0
+    for key in ('action', 'effect', 'start_object_points', 'start_hand', 'features'):
+        assert changed[key] is batch[key]
+    torch.testing.assert_close(controlled_batch(batch, torch.zeros_like(shift))['trajectory_target'], batch['trajectory_target'])
+
+
 def test_goal_and_world_components_are_finite_with_missing_goal_points():
     stats = {
         "action_mean": [0.] * 9,
