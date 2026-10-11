@@ -56,8 +56,11 @@ to prior r3 are local cadence evidence, not a formal matched multi-seed claim.
 ## Resources / stops
 
 Shared original route20GPUmin/1GiB remaining envelope, not added budget. OneGPU0,
-physics<=300s, audit<=120s, outputs<=256MiB. The already recorded foreign idle
-context PID1969748 may remain<=512MiB, aggregate prelaunch<=5% and512MiB; stop
+physics<=300s, audit<=120s, outputs<=256MiB. A pre-inspected foreign idle
+context may remain<=512MiB, aggregate prelaunch<=5% and512MiB; each launch
+records its current PID/command. The initial1969748 process ended and the same
+other-user Isaac Sim session restarted as1976813; GPU0 remains0%/166MiB.
+The first preflight was refused before creating an output; no physics occurred. stop
 on a new PID, context growth>512MiB, nonfinite/reset/input drift or timeout.
 Never operate on the other user's process. No Campaign change/branch/push.
 
