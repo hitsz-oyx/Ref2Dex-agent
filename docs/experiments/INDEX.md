@@ -176,12 +176,15 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261011-goal-point-wam-controlled-goal](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-controlled-goal.md) | Controlled multi-goal engineering diagnosis | UNCLEAR under the full engineering gate; input scaling strongly improves conditional response but not absolute teacher accuracy. | Defer real-data scale-up; inspect an explicit paired displacement encoding in a separate matched engineering Probe. | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-learnability](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-learnability.md) | Fixed-train-window WAM learnability diagnosis | 见原卡 | 见原卡 | probes/PROMISING |
 | [P-20261011-goal-point-wam-object-goal-response](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-object-goal-response.md) | Object start/goal point contract and frozen response Probe | UNCLEAR: all three sources fit, but symmetric object-goal response remains weak. | Stop scale-up; preserve the object-goal implementation and diagnose geometric conditioning before further training. | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-optimizer-scale](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-optimizer-scale.md) | Matched optimizer-scale Decision Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-ref1-alignment](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-ref1-alignment.md) | Ref1 alignment: pretrained scene and full executed-action memory | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-three-domain-probe](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-probe.md) | Goal-Point-WAM three-domain no-video Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-three-domain-smoke](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-smoke.md) | Goal-Point-WAM three-domain engineering smoke | 见原卡 | 见原卡 | probes/COMPLETED |
+| [P-20261012-goal-point-wam-paired-geometry](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-paired-geometry.md) | Paired goal geometry engineering comparison | UNCLEAR; neither arm passes full gate and paired displacement offers only2.3% macro analytic error reduction. | Stop analytic representation tuning; retain endpoint mode and reassess the real-data effect of coordinate units. | probes/UNCLEAR |
+| [P-20261012-goal-point-wam-real-goal-scale](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-real-goal-scale.md) | Real-data goal coordinate scale comparison | UNCLEAR; matched units-only training gives no real-data trajectory improvement and negligible goal use. | Stop units-only and analytic tuning; prioritize current-hand spatial/history conditioning before longer training. | probes/UNCLEAR |
 
 ## HF-gt-consequence-sufficiency
 

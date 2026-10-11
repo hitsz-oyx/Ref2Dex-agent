@@ -1,5 +1,25 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 Goal 几何条件自主探索
+
+[受控多goal诊断](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-controlled-goal.md)
+保持六train场景不变，用解析平移标签迫使模型使用goal；只训练goal/trajectory，
+world冻结且无loss。米单位响应增益约.09--.12，.05m单位约.98--1.04，但
+完整<=5mm门槛均失败，**UNCLEAR**。这只是工程条件学习信号，人工标签权重
+从未进入真实训练。[配对位移对照](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-paired-geometry.md)
+同单位下endpoint与start/delta仅约2.3%误差差异，未达门槛，停止解析表示调参。
+
+[真实尺度对照](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-real-goal-scale.md)
+从严格PW迁移+新头重新初始化，两臂相同参数/数据/seed/96val窗口，仅goal单位
+不同；各600步，代码1310c47e。原始/缩放trajectory EPE为35.59/35.67、
+141.64/141.69、71.86/71.88mm，均稍差于不动手基线；替换为静态物体goal
+只改变预测约3--7微米。物体平移/刚体随动参照没有多来源明显收益。整体
+**UNCLEAR**，停止单位与epoch堆叠，下一步先区分当前手空间/历史表示与条件
+学习问题，不据此放弃物体goal/WAM/Cm或形成RL结论。保留可选诊断代码及原始
+结果，未修改默认配置。11 tests passed/1 skipped；GPU2真实训练总约604s、
+峰值采样1513MiB，所有自有训练与评估完成；新增产物<5GiB，总产物<300GB。
+
+
 ## 2026-10-11 ref1_1 物体点集 goal Probe
 
 按用户 `goal-point-wam/docs/user/ref/ref1_1.md` 指定的语义，在 `39700aba` 增加

@@ -91,8 +91,8 @@ utility remain future evidence, chosen only when they change the next decision.
 Code ce269baa, four-update smoke completed. Both600-update arms completed,
 raw21.93s/scaled21.70s training and audits; same initial parameter hash, fixed
 scene cache and offsets. Frozen world goal difference exactly0 in both arms.
-Current tests:9 passed/1 skipped. Training samples GPU2 utilization4--20%,
-about807MiB memory. Both source gates and the overall full gate fail.
+Current tests:9 passed/1 skipped. Training samples GPU2 utilization4--21%,
+maximum recorded memory869MiB. Both source gates and the overall full gate fail.
 
 | Source | Raw / scaled trajectory EPE (mm) | Raw / scaled endpoint response error (mm) | Raw / scaled gain |
 | --- | ---: | ---: | ---: |

@@ -25,8 +25,8 @@ transfers to real goal-dependent trajectories. Full synthetic teacher gates
 failed; this Probe tests a narrower positive component directly, without
 claiming a passed engineering gate or physical validity of synthetic labels.
 
-Result: Pending.
-Decision: Run matched raw/scaled endpoint models at the minimum existing budget.
+Result: UNCLEAR; matched units-only training gives no real-data trajectory improvement and negligible goal use.
+Decision: Stop units-only and analytic tuning; prioritize current-hand spatial/history conditioning before longer training.
 
 ## Protocol fixed before execution
 
@@ -92,3 +92,63 @@ alternative hand labels. No extrapolation to stable grasping or RL sample effici
 - [Raw goal ablation](../../../../../../outputs/goal-point-wam/real-goal-scale-20261012-raw/object_goal_validation.json)
 - [Scaled goal ablation](../../../../../../outputs/goal-point-wam/real-goal-scale-20261012-scaled/object_goal_validation.json)
 - [Frozen evaluation](../../../tools/audit/evaluate_object_goal.py)
+
+## Completed results and matched implementation review
+
+Training code1310c47e; frozen audit code205f6be8. Both arms completed600
+updates on GPU2 in302.31/301.40s. Exact initial parameters, data/stats/model/
+trainer identity,96 validation indices and actual validation window identities
+match. Config difference is ONLY goal_coordinate_scale_m1 versus .05. Sampler
+precomputes1200 train indices with seed248 before updates, using the same data
+and sampler code. Every logged training-mode flag is true; no artificial labels
+or weights enter these runs. Strict checkpoint/stats/data/model reload succeeds.
+
+| Source | Raw / scaled EPE (mm) | Zero-hand EPE (mm) | Translation / rigid-follow EPE (mm) |
+| --- | ---: | ---: | ---: |
+| OakInk2 | 35.59 / 35.67 | 34.80 | 35.87 / 36.25 |
+| GRAB | 141.64 / 141.69 | 141.32 | 146.51 / 178.66 |
+| ARCTIC | 71.86 / 71.88 | 71.63 | 68.70 / 69.12 |
+
+Scaled changes versus raw are -.209%/-.030%/-.024% in trajectory improvement
+(negative means worse). No source passes the5% improvement screen. Both models
+are slightly worse than zero hand displacement. True versus static-goal inputs
+change the raw predictions by2.73/3.10/3.16 micrometers on average and scaled
+by4.48/7.24/6.27 micrometers. True-goal EPE improvements over static-goal
+inputs remain below.0004% in scaled arm. All three conditional source gates
+fail; moving-world non-regression gates pass (scaled changes+.412%/+.007%/-.064%).
+Whole-forward goal-world isolation maxima1.83e-7/9.42e-7, both below1e-5.
+
+The object-motion geometric references do not beat zero displacement by5% on
+multiple sources; only ARCTIC improves modestly. They cannot be adopted as a
+general hand policy, and these numbers do not prove that object goal is
+inherently insufficient. The task can involve hands moving independently of
+the target object and multiple possible paths to the same endpoint.
+
+Overall **UNCLEAR**, a single-seed short real-data Probe. Scaling makes the
+analytic teacher easier but does not rescue real supervised prediction here.
+The conditional branch can respond under deliberately informative labels; no
+missing goal input or disconnected gradient has been found. Current real-data
+behavior is consistent with weak condition learning / a near-stationary predictor,
+but this run does not isolate spatial encoding, optimization or supervision
+ambiguity as the sole cause. Do not close the WAM/Cm route or assert RL utility.
+
+## Final Decision Note and resource closure
+
+Retain the optional diagnostic units and paired-geometry implementations, keep
+historical default endpoint/meter configuration, and stop units-only/teacher
+tuning. Next minimum decision should test direct current-hand spatial/history
+conditioning against the same real-data control; check a hand-history forecast
+baseline before spending on longer full training. World-loss-off is a subsequent
+matched question, not inferred from these results. No new training is launched
+after this bounded sequence. Mission/claim/permissions remain unchanged.
+
+11 contract tests passed/1 optional GPU test skipped. Tiny CPU contract tests
+avoid GPU startup overhead; all training and frozen model evaluation use GPU2.
+Real training sampled utilization5--25%/6--37%, memory maximum1513MiB. The
+small fixed microbatch is intentional for this matched Probe; no batch tuning
+is mixed into the comparison. All owned jobs completed; run artifacts and
+original weak results are preserved. Shared turn artifacts remain under5GiB
+and project artifacts under300GB. Actual new run artifacts4.68GiB; current
+outputs+tmp about263.23GB. GPU2 has no remaining compute process.
+
+- [Matched checks, gates and telemetry](../../../../../../outputs/goal-point-wam/real-goal-scale-20261012-scaled/comparison.json)

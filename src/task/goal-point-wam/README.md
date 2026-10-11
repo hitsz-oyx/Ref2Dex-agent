@@ -51,3 +51,18 @@ poses, performs 300 fixed-batch updates from PW initialization, and reports
 symmetric object-goal translations with identical cached scene/action memory.
 The response gate is an exploratory mechanism screen, not a physical guarantee
 that hand movement should equal object movement. No robot/RL utility is tested.
+
+
+Goal geometry diagnostics use `tools/audit/probe_controlled_goal.py`. Its
+analytic translation labels only test conditional learning; checkpoints marked
+`analytic-diagnosis.v1` must never initialize real-data training. Optional
+`goal_coordinate_scale_m` defaults to1 (historical meter coordinates);
+`object_goal_encoding` defaults to `endpoint`, with exploratory `start_delta`
+supported for paired point geometry. Both keep historical parameter keys.
+
+The real-data units comparison uses `three_domain_object_goal_{raw,scaled}_600.json`.
+`tools/audit/evaluate_object_goal.py` loads its final real-data checkpoint and
+saved validation indices, checks data/stats/model identity, and compares true
+goal versus static object goal with identical cached scenes. It also reports
+zero hand displacement and object translation/rigid-follow geometric references;
+these references are prediction baselines, not physical controllers.
