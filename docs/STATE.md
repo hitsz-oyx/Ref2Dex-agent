@@ -11,6 +11,11 @@
 详见[整合和复现路径说明](archive/2026-10-11-worktree-retirement.md)。不改 Campaign，
 不新增训练或改变最终 RL claim。
 
+整合提交 `862a2ee5` 已包含源分支全部提交，工作树和两个别名已删除；Git 仅登记
+主工作树，源分支仍保留。58,510 个保留路径核对通过，文档合同 PASS，
+Goal-Point-WAM 测试 3 passed / 1 skipped。新 corpus 的六次 train/val 源样本读取
+通过，原始 artifact manifest 和 checkpoint 不改写，用户草稿保持未提交状态。
+
 源分支的[Goal-Point-WAM 600-update Probe](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-probe.md)
 已完成，整体 UNCLEAR：小型 held-out panel 尚未出现明确 world-motion 静态基线收益，
 ARCTIC 无 test windows，其 held-out 数字属于 val diagnostic。下一步仍需 source/
