@@ -20,7 +20,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def independent_input(data, ticks, envs):
+def independent_input(data, ticks, envs, reference=None):
     past = np.maximum(ticks[None] + np.arange(-3, 1)[:, None], 0)
     obj, hand, q, dq, vel = [data[k][past, envs[None]].swapaxes(0, 1)
                             for k in ('obj', 'hand', 'q', 'dq', 'velocity')]
@@ -34,10 +34,21 @@ def independent_input(data, ticks, envs):
     goal_position = np.einsum('nj,njk->nk', goal[:, :3, 3] - center, rotation)
     goal_rotation = np.matmul(rotation.swapaxes(-1, -2), goal[:, :3, :3])
     n = len(ticks)
-    return np.concatenate((local[:, :, 0].reshape(n, -1), fingers.reshape(n, -1),
+    history = np.concatenate((local[:, :, 0].reshape(n, -1), fingers.reshape(n, -1),
         local_obj[:, :, :3].reshape(n, -1), q[..., 6:].reshape(n, -1), dq[..., 6:].reshape(n, -1),
         velocity.reshape(n, -1), wrist.reshape(n, -1), obj[:, -1, 2:3, 3], -rotation[:, 2],
         goal_position, goal_rotation.reshape(n, 9)), -1).astype(np.float32)
+    if reference is None:
+        return history
+    columns = []
+    for offset in (1, 16):
+        index = np.minimum(ticks + offset, len(reference['obj']) - 1)
+        position = np.matmul(reference['hand_pos'][index] - center[:, None], rotation)
+        orientation = np.matmul(rotation.swapaxes(-1, -2)[:, None], reference['hand_rot'][index])
+        obj_position = np.matmul((reference['obj'][index, :3, 3] - center)[:, None], rotation)[:, 0]
+        obj_orientation = np.matmul(rotation.swapaxes(-1, -2), reference['obj'][index, :3, :3])
+        columns.extend((position.reshape(n, 48), orientation.reshape(n, 144), obj_position, obj_orientation.reshape(n, 9)))
+    return np.concatenate((history[:, :328], *columns), -1).astype(np.float32)
 
 
 def main():
@@ -59,6 +70,16 @@ def main():
     if manifest['status'] != 'COMPLETED':
         raise ValueError('completed fit required')
     source_dir = Path(manifest['source'])
+    reference = None
+    if manifest.get('reference'):
+        from trajectory_policy.reference_actor import load_reference_actor
+        load_actor = load_reference_actor
+        ref_path = Path(manifest['reference'])
+        rm = json.loads((ref_path.parent / 'manifest.json').read_text())
+        if sha(ref_path) != rm['reference_sha256'] or sha(rm['motion']) != rm['motion_sha256']:
+            raise ValueError('planned reference identity differs')
+        with np.load(ref_path, allow_pickle=False) as f:
+            reference = {k: f[k].copy() for k in f.files}
     with np.load(source_dir / 'trajectory.npz', allow_pickle=False) as f:
         source = {k: f[k].copy() for k in f.files}
     if sha(source_dir / 'trajectory.npz') != json.loads((source_dir / 'manifest.json').read_text())['trajectory_sha256']:
@@ -76,13 +97,21 @@ def main():
         if error > tolerance:
             raise ValueError('independent replay differs: ' + label + ' ' + str(error))
 
+    if reference is not None:
+        from scipy.spatial.transform import Rotation
+        raw = torch.load(rm['motion'], map_location='cpu', weights_only=False).numpy()
+        close('reference_human_position', reference['hand_pos'], raw[:, 150:198].reshape(-1, 16, 3))
+        close('reference_human_rotation', reference['hand_rot'], Rotation.from_quat(raw[:, 309:373].reshape(-1, 4)).as_matrix().reshape(-1, 16, 3, 3))
+        close('reference_object_position', reference['obj'][:, :3, 3], raw[:, 198:201])
+        close('reference_object_rotation', reference['obj'][:, :3, :3], Rotation.from_quat(raw[:, 201:205]).as_matrix())
+
     if not args.execution:
         with np.load(args.fit / 'predictions.npz', allow_pickle=False) as f:
             predictions = {k: f[k].copy() for k in f.files}
         arrays = {}
         for split, ids in manifest['groups'].items():
             ticks, envs = np.repeat(np.arange(519), len(ids)), np.tile(ids, 519)
-            x = independent_input(source, ticks, envs)
+            x = independent_input(source, ticks, envs, reference)
             future = np.stack([source['hand'][t + 1:t + 25, e] for t, e in zip(ticks, envs)])
             s, tau = independent_features(source, ticks, envs, future)
             pd = source['pd_targets'][ticks, envs][:, ACTIVE].copy()
@@ -152,7 +181,7 @@ def main():
         plans = []
         for j, tick in enumerate(execution['query_tick']):
             ids = np.arange(8, 24)
-            x = independent_input(execution, np.full(16, tick), ids)
+            x = independent_input(execution, np.full(16, tick), ids, reference)
             close('history_goal_input', x, execution['high_input'][j])
             with torch.no_grad():
                 prediction = np.concatenate([models[arm](torch.as_tensor(x[i * 8:(i + 1) * 8], device=device)).cpu().numpy()
@@ -176,7 +205,16 @@ def main():
             requested[:, :6] += execution['q'][tick, 4:24, :6]
             for distal, parent, ratio in COUPLING:
                 requested[:, distal] = requested[:, parent] * ratio
+            if em.get('dagger_rollin'):
+                intervention = execution['intervention'][tick, 4:24]
+                requested[intervention] = execution['expert_pd'][tick, 4:24][intervention]
             close('requested_PD', requested, execution['requested_pd'][tick, 4:24])
+        if em.get('dagger_rollin'):
+            close('expert_PD_queries', independent_pd(execution['expert_action'], execution['q'][:-1], em['native_controller']), execution['expert_pd'], 1e-6)
+            if execution['intervention'][:, :16].any() or not .15 <= execution['intervention'][:, 16:24].mean() <= .35:
+                raise ValueError('intervention scope or rate differs')
+            mask = execution['intervention']
+            close('intervention_applied_action', execution['action'][mask], execution['expert_action'][mask], 1e-6)
         for env in range(24):
             outcome = episode_outcome(dict(object_pose=execution['obj'][:, env], object_velocity=execution['velocity'][:, env],
                 surface_gap=execution['surface_gap'][:, env], support_gap=execution['support_gap'][:, env], table_footprint=execution['table_footprint'][:, env]))
@@ -197,7 +235,21 @@ def main():
         joint = summary['joint']
         passed = (joint['hold45'] >= 6 and joint['success'] >= 6 and joint['clipping_rate'] < .01
                   and joint['median_held'] >= .8 * summary['gt_tau_R']['median_held'])
+        if reference is not None:
+            for role in summary:
+                ids = [i for i, name in enumerate(em['roles']) if name == role]
+                pos_error = execution['obj'][:, ids, :3, 3] - reference['obj'][:, None, :3, 3]
+                relative_rot = np.matmul(reference['obj'][:, None, :3, :3].swapaxes(-1, -2), execution['obj'][:, ids, :3, :3])
+                angle = np.arccos(np.clip((np.trace(relative_rot, axis1=-2, axis2=-1) - 1) / 2, -1, 1))
+                summary[role].update(reference_position_rmse_m=float(np.sqrt(np.mean(np.sum(pos_error ** 2, axis=-1)))),
+                                     reference_rotation_mean_rad=float(angle.mean()))
+                for key in ('reference_position_rmse_m', 'reference_rotation_mean_rad'):
+                    close(role + '_' + key, summary[role][key], er['summary'][role][key], 1e-6)
+            passed = (passed and joint['reference_position_rmse_m'] <= 1.5 * summary['teacher']['reference_position_rmse_m']
+                      and joint['reference_rotation_mean_rad'] <= 1.5 * summary['teacher']['reference_rotation_mean_rad'] + .1)
         expected_status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+        if em.get('dagger_rollin'):
+            expected_status = 'UNCLEAR'
         if er['status'] != expected_status:
             raise ValueError('frozen physical gate status differs')
         import matplotlib
