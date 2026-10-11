@@ -55,6 +55,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--fit', type=Path, required=True)
     p.add_argument('--execution', type=Path)
+    p.add_argument('--report-name', choices=('audit.json', 'audit_query.json'), default='audit.json')
     args = p.parse_args()
     scratch = ROOT / 'tmp/trajectory-policy/competent-pd'
     os.environ.update(TMPDIR=str(scratch), MPLCONFIGDIR=str(scratch / 'matplotlib'))
@@ -331,7 +332,7 @@ def main():
         scope='independent history/goal/trajectory/R/actual-PD replay; no formal validation')
     if query_metrics:
         report['teacher_query_fit'] = query_metrics
-    (folder / 'audit.json').write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
+    (folder / args.report_name).write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
     print(json.dumps(report), flush=True)
 
 
