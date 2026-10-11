@@ -88,6 +88,11 @@ final metrics under `outputs/cm-pointflow-effect-pretrain/pointwam-joint-learnin
 Result: pending.
 Decision: pending fixed-budget training.
 
+Debug smoke1 at576b9dc7 reached16 finite updates but failed while saving dev
+predictions: original episode IDs contain directory separators. Preserve its
+FAILED manifest/log; no scientific result follows. The filename is now escaped
+into a single basename; rerun the same debug smoke before main training.
+
 ## Limitations / future evidence
 
 Three fit and three dev TRAIN records; no subject/session isolation or official

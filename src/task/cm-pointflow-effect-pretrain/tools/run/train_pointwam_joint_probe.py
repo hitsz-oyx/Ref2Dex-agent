@@ -68,7 +68,7 @@ def evaluate(model, clips, contract, device, save=None):
                          loss={key: float(value) for key, value in loss.items()},
                          metrics={name: error_metrics(pack, value) for name, value in controls.items()}))
         if save and clip["partition"] == "dev_candidate":
-            name = clip["episode"] + "-" + Path(clip["path"]).parent.name
+            name = clip["episode"].replace("/", "__") + "-" + Path(clip["path"]).parent.name
             np.savez_compressed(save / (name + "-prediction.npz"), **prediction)
     # Equal weight to original records; overlapping windows do not become independent records.
     records = {}
