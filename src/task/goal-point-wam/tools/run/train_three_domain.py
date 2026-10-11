@@ -308,6 +308,7 @@ def run(args: argparse.Namespace) -> None:
             optimizer.step(); optimizer.zero_grad(set_to_none=True)
             step += 1
             row = dict(step=step, loss=loss_value, gradient_norm=float(grad),
+                       forward_training=model.training,
                        seconds=time.monotonic() - update_start, elapsed_seconds=time.time() - started,
                        learning_rate=optimizer.param_groups[0]["lr"], gpu=gpu_snapshot(device))
             row.update({key: float(value) for key, value in terms.items()})

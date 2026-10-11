@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-paired-geometry
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: bc2c592042e592b698bf04b655c4ec5c1601c189
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 8
@@ -26,8 +26,8 @@ start/delta features avoid forcing the set transformer to infer small paired
 geometric changes from two endpoint sets. This is the cheapest discriminator
 before real-data scale-up; not a physical counterfactual training proposal.
 
-Result: Pending.
-Decision: Compare only endpoint versus paired start/delta representation.
+Result: UNCLEAR; neither arm passes full gate and paired displacement offers only2.3% macro analytic error reduction.
+Decision: Stop analytic representation tuning; retain endpoint mode and reassess the real-data effect of coordinate units.
 
 ## Protocol fixed before execution
 
@@ -70,3 +70,20 @@ endpoint mode remains backward compatible; new mode is exploratory only.
 - [Input manifest](../../../../../../outputs/goal-point-wam/paired-geometry-20261012-r1/input_manifest.json)
 - [Matched results](../../../../../../outputs/goal-point-wam/paired-geometry-20261012-r1/result.json)
 - [Implementation](../../../tools/audit/probe_controlled_goal.py)
+
+## Completed result
+
+Code bc2c5920,10 contract tests passed/1 skipped. Endpoint/start_delta arms
+completed600 updates in20.85/21.42s, identical initial parameters/cache/offsets;
+world cached goal changes0. Both full gates fail. Per-source trajectory EPE
+endpoint versus start_delta (mm): OakInk2 7.62/8.15, GRAB12.21/11.12,
+ARCTIC8.62/8.53. Macro9.49/9.26mm,2.3% reduction, below20% requirement.
+Directional gains remain near1 in both; no material reason to select paired
+displacement over endpoint input. Raw values and training logs retained.
+
+Decision Note: stop artificial-teacher tuning. The reproducible scale effect
+is narrower than a passed full teacher gate, but is sufficient to motivate the
+cheapest direct real-data scale question: fresh matched600-update endpoint
+models differing only1m/.05m input units. This is a new real-data Probe with
+its own gates, not a threshold change or a declaration that either engineering
+Probe passed. No analytic-trained weights or teacher labels carry over.
