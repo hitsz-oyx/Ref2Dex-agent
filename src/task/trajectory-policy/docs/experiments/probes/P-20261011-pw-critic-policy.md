@@ -5,7 +5,7 @@ experiment_id: P-20261011-pw-critic-policy
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: pending
+git_commit: 430ab620
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-pw-critic
 probe_index_in_family: 1
@@ -99,4 +99,28 @@ RL are deferred until a useful pilot signal.
 
 ## Results
 
-Pending implementation, collection, feature/learning and physical audits.
+Collection `outputs/trajectory-policy/pw-critic-collection-20261011-r1/`, producer
+430ab620, seed187:542controls/543states, no interventions. Teacher and GT-R each
+4/4hold+place; noisy learner blocks hold6/8 and4/8,place4/8 and1/8, clipping
+9.50% and1.75%. All failures retained; this collection is not autonomous evaluation.
+Independent full H/G/actor mean/noise/plan/liveR/native PD/outcome audit PASS.
+
+PW cache `outputs/trajectory-policy/pw-critic-cache-20261011-r1/`,899233d7:
+2080anchors x2 proposals,51.44s GPU3,595MiB device occupancy. Exact repeated and
+batch-permuted inference; proposal/mean z RMS difference .0121486 (mixed rotation/
+translation units, not a physical error score). Current fixed-frame inputs and
+semantic hand mapping independently rebuilt; no observed future hand conditioning.
+
+Matched fit `outputs/trajectory-policy/pw-critic-policy-fit-20261011-r1/`,
+ee926dc2,seed188,17.61s GPU3,461MiB occupancy. Q val normalized MSE off .69304,
+on .62330 (constant1.37671), selected500/750; on phase-matched shuffled-z .77859.
+This is predictive evidence only. Q proposal/mean absolute delta .02193/.09294
+return units; train weight std .50885/.41695, arm weight RMS difference .60644.
+Both actor1000updates then parameter interpolation .5: global trajectory RMS
+change .15818/.16234mm, first8 .10768/.11041mm, startup .05103/.04518mm;
+actor-arm difference .08806mm. Nonzero gradients and parameters, all normalization
+frozen. Learned off/on SHA418e9ad111d062b4412ef35e1626eda0aa54a06ff16661bb11ad0198ea81fb13 /
+addb2877a9b2bb720f71f79f7edb30accb703b04144f1ef9ea8f18dc1d108356.
+Independent eligible-label/reward/return/PW first-paired-batch/Q/weight/interpolation/
+learned actor audit PASS (461deb5c). No model selection using physical outcomes.
+Next fixed seed189 execution with exploration OFF, under the unchanged gates.
