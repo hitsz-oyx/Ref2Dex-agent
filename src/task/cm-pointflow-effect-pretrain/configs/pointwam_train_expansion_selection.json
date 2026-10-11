@@ -1,0 +1,106 @@
+[
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_chair/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_chair/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_desk/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_desk/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_drawer/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_drawer/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_lamp/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_lamp/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_square_table/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_square_table/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_stool/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/assemble_disassemble_furniture_bench_stool/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/basic_fold/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/basic_fold/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/basic_pick_place/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/basic_pick_place/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/fold_stack_unstack_unfold_cloths/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/fold_stack_unstack_unfold_cloths/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_basic/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_basic/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_origami/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_origami/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/insert_remove_furniture_bench_cabinet/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/insert_remove_furniture_bench_cabinet/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/insert_remove_furniture_bench_round_table/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/insert_remove_furniture_bench_round_table/1.hdf5",
+    "partition": "dev_candidate"
+  }
+]

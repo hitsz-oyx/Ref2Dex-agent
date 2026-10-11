@@ -231,6 +231,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261011-pointwam-data-expansion](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-expansion.md) | PointWAM official-TRAIN data expansion | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261011-pointwam-data-pipeline](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-pipeline.md) | PointWAM human scene/hand data pipeline: small engineering pilot | VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; user accepts the visual preview. | proceed to bounded official-TRAIN qualification with episode-isolated fit/dev; retain the approximate palm convention. | probes/UNCLEAR |
 | [P-20261011-pointwam-train-qualification](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-train-qualification.md) | PointWAM official-TRAIN data qualification | 12/12 TRAIN clips from3tasks/6records qualify; record-isolated fit/dev each contain6clips; processing605.94s and peak GPU allocation6923.70M | retain this bounded subset for joint scene/hand learning; do not expand raw data or admit TEST samples. | probes/PROMISING |
 
@@ -239,6 +240,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261011-pointwam-joint-learning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-joint-learning.md) | Bounded scene/hand joint learning | UNCLEAR. The fixed main run completes and hand fitting improves, but | retain the qualified data and verified joint learning contract; | probes/UNCLEAR |
+| [P-20261011-pointwam-optimization-diagnosis](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-optimization-diagnosis.md) | Optimization diagnosis for the bounded PointWAM learner | `UNPROMISING` for the optimizer-only variant; fit scene reduction is | retain the verified data contract and stop this small substitute | probes/UNPROMISING |
 
 ## HF-pointworld-multisource
 

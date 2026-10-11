@@ -5,7 +5,7 @@ experiment_id: P-20261011-pointwam-optimization-diagnosis
 date: 2026-10-11
 task: cm-pointflow-effect-pretrain
 branch: cm-pointflow-effect-pretrain
-git_commit: f68be5b5
+git_commit: 3bae27c2629a7bb57e6de23e272e08e7fa583091
 claim_id: C1
 hypothesis_family: HF-pointwam-joint-learning
 probe_index_in_family: 2
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [7]
 decision_changed_if_positive: run one matched learner variant with the corrected optimizer scale and assess the frozen dev gate
 decision_changed_if_negative: preserve the verified data contract and stop spending budget on this small substitute learner
-status: RUNNING
+status: UNPROMISING
 ---
 
 # Optimization diagnosis for the bounded PointWAM learner
@@ -30,6 +30,12 @@ gradients, and never reads dev targets during training. The corrected run
 `pointwam-optimization-diagnosis-20261011-r2` keeps the original continuous
 RNG stream. A later `r3` adds pair-fixed point IDs to distinguish point
 resampling noise while retaining two-clip batches.
+
+Result: `UNPROMISING` for the optimizer-only variant; fit scene reduction is
+41.8% and held-dev scene/hand gates fail despite exact replay.
+
+Decision: retain the verified data contract and stop this small substitute
+learner route until a new architecture or source-coverage decision is made.
 
 ## Ranked hypotheses and predictions
 
@@ -77,14 +83,46 @@ The diagnosis supports hypotheses 1 and 2 partially: optimizer scale is the
 dominant change, while point resampling contributes smaller noise. It does not
 show a contract failure or prove that the architecture can generalize.
 
-## Next matched Probe
+## Matched learning-rate result
 
-Run one exact main-protocol variant with only the learning rate changed from
-`1e-4` to `1e-3`, retaining two random clips, 1024 points, 600 updates, seed
-247, fit-only statistics, and the predeclared fit/dev gates. If the fit gate
-passes but the dev gate fails, classify this learner recipe `UNPROMISING` and
-stop expanding it. If both gates pass, retain the variant for a later faithful
-encoder comparison; no policy or Cm claim follows from this Probe.
+The pre-registered matched variant `pointwam-joint-learning-lr1e-3-20261011-r1`
+changed only AdamW's learning rate from `1e-4` to `1e-3`; it retained the
+original two-random-fit-clip schedule, 1024 points, seed 247, 600 updates and
+the original fit/dev gates. It completed on GPU7 in 19.2 seconds with 60.77 MiB
+peak allocation, finite gradients and exact checkpoint replay.
+
+| Metric | Initial | `1e-3` final | Gate |
+| --- | ---: | ---: | --- |
+| fit scene loss | 6.02475 | 3.50641 (41.8% reduction) | fail, needs 50% |
+| fit hand loss | 1.00000 | 0.35183 (64.8% reduction) | pass |
+| dev hand EPE | 94.112 mm static | 95.530 mm model | fail |
+| dev moving-scene EPE | 32.652 mm static | 71.724 mm model | fail |
+
+The model improved on 2/3 dev records for hand EPE, but the aggregate hand
+gate and the moving-scene gate failed. Raising the learning rate therefore
+overfits the tiny fit cohort and does not recover held-record scene prediction.
+This optimizer-only recipe is `UNPROMISING`; it does not refute the PointWAM
+data contract or the full paper architecture.
+
+## Decision
+
+Retain the qualified data and the verified scene/hand contract, but stop
+spending this Probe's budget on learning-rate or point-sampling variants of the
+195k-parameter substitute. The remaining gap is representation/capacity and
+small-source generalization, while the faithful Mosaic3D/Recap-CLIP/Volt
+encoders are not reproduced here. Any further investment should first have a
+new explicit architecture or source-coverage decision; do not expand data or
+claim PointWAM/policy benefit from these runs.
+
+## Matched variant artifact
+
+[learning-rate variant manifest](../../../../../../outputs/cm-pointflow-effect-pretrain/pointwam-joint-learning-lr1e-3-20261011-r1/manifest.json)
+
+## Closure
+
+There is no further run authorized by this card. A future architecture/source
+decision may reopen the route, but no policy or Cm claim follows from this
+Probe.
 
 Artifacts:
 

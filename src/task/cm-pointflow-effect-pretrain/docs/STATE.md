@@ -41,6 +41,29 @@ held-record benefit. Main15.67s/GPU7 peak60.77MiB; GPU is idle again.
 Retain the verified pipeline and fix fit-only optimization/architecture limits
 before expanding data. No native checkpoint transfer or policy experiment.
 
+## Decision note 2026-10-11: user-authorized PointWAM data expansion
+
+The user explicitly changed the previous stop condition and authorized a larger
+official-TRAIN probe. The key evidence is the six-fit/six-dev cohort's mixed
+fit failure and held-record gap; the cheapest discriminator for sample shortage
+versus the small substitute's limits is to keep the current contract and model
+recipe while broadening task and record coverage. Use Part2 records `0` and `1`
+from all thirteen inventory tasks: record `0` is fit and record `1` is dev,
+with no episode crossing the partition. The frozen selection is
+`configs/pointwam_train_expansion_selection.json` (26 episodes, 178.4 MiB raw,
+selection SHA256 `73263f1ae7c4882b5fd2e1aad03f6334102142ca0d1f9d6a454743a9ffa3ca4d`).
+
+The run stays on the existing branch and uses the verified VGGT-Omega,
+CoTracker3, 31-position/30-target scene+hand contract. Outputs are staged under
+`/mnt/ugreen_nas/storage/oyx_storage/pointwam-data-expansion-20261011-r1/` on
+the 4-4090 host; no existing sibling directory is overwritten. A positive
+qualification requires at least 40/52 declared clips, at least 10 fit and 10
+dev records, and at least 8 tasks with all stored-pack audits passing. A
+shortfall, source/hash drift, contract error, resource conflict, or output
+collision stops the run. Qualified packs remain `training_allowed=false` until
+an explicit expanded-cohort admission manifest is produced. The user's
+untracked reference files and `pointwam_core.py` remain untouched.
+
 ## Retained native baseline
 
 OakInk2/GRAB/ARCTIC remain the main sources:4,378,478 overlapping TRAIN anchors.
