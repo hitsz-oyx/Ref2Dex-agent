@@ -65,7 +65,8 @@ def main():
                   checkpoint_sha256=digest(args.checkpoint), checkpoint_step=state['step'],
                   previous_sha256=digest(args.previous), data_sha256=digest(args.data / 'processed/manifest.json'),
                   evaluator_sha256=digest(Path(__file__)), panels={})
-    for source_id, name in enumerate(bases['test'].source_names):
+    source_names = tuple(source['name'] for source in bases['test'].meta['sources'])
+    for source_id, name in enumerate(source_names):
         base = bases['test']
         split = 'test'
         if base.offsets[source_id + 1] == base.offsets[source_id]:
