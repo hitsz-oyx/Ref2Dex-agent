@@ -332,6 +332,11 @@ def main():
         scope='independent history/goal/trajectory/R/actual-PD replay; no formal validation')
     if query_metrics:
         report['teacher_query_fit'] = query_metrics
+    evidence = [args.fit / name for name in ('manifest.json', 'result.json', 'tau_only.pt', 'joint.pt')]
+    evidence.append(retargeter)
+    if args.execution:
+        evidence.extend(args.execution / name for name in ('manifest.json', 'result.json', 'trajectory.npz'))
+    report['evidence_sha256'] = {str(path.resolve()): sha(path) for path in evidence}
     (folder / args.report_name).write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
     print(json.dumps(report), flush=True)
 
