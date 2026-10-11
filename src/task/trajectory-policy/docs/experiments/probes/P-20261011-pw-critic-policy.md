@@ -146,3 +146,13 @@ as a mechanism candidate for later validation. If the pattern reverses or
 calibration fails, treat the relative observation as UNCLEAR and diagnose layout/
 launch variance before expanding. Bound one300s launch plus120s audit, same20GPUmin/
 2GiB probe envelope; then stop this pilot. No external authorization needed.
+
+Swap r1(c413dc27) stopped safely after1control when a newly appearing foreign
+PID2378894 created a254MiB context on GPU3. FAILED manifest and partial.npz retained;
+not a scientific result. Read-only ps/nvidia-smi identifies an external Isaac Sim
+sensor job active on GPU0, with130MiB idle contexts on all other GPUs. Restart once
+as swap-r2 on GPU3 only if utilization<=5%,totalprior<=512MiB; explicitly register
+this already inspected idle PID/command using the existing collector allowance.
+Stop on any new PID, context growth>512MiB, nonfinite or300s. No external process
+operation, no expansion of GPU/count/storage permissions. The physics pilot still
+has only one completed swapped launch; no model/seed selection from failed launch.
