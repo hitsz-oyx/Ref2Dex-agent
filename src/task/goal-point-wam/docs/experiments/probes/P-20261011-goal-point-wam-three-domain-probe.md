@@ -69,6 +69,17 @@ memorization gap. The source panels are small and not a matched full-split
 evaluation, so the overall Probe conclusion is **UNCLEAR**, rather than a
 claim that the architecture is overfit or that it generalizes.
 
+The static no-motion baseline on the same diagnostic panels is 6.5 / 201.5 /
+104.1 mm world EPE for OakInk2 test, GRAB test and ARCTIC validation. The
+learned world branch is 8.3 / 201.6 / 104.2 mm, so no source shows a clear
+world-motion gain in this short run. The contract audit found full action and
+hand validity in all 512 sampled train windows; the main distribution difference
+is scale and scene structure: GRAB's median h24 object translation is 105 mm
+with 534 scene points and one object, versus OakInk2's 3.5 mm, 3094 points and
+six objects, and ARCTIC's 36.0 mm, 1046 points and two objects. This points to a
+source/representation or training-budget diagnosis, rather than evidence of a
+pure train/test memorization gap.
+
 Following the approved stop condition, no unbounded extra epochs were started.
 The next decision is a source/representation and held-out-contract diagnosis;
 video, robot policy, and formal multi-seed Validation remain out of scope.
@@ -79,6 +90,8 @@ video, robot policy, and formal multi-seed Validation remain out of scope.
 - [Best validation panel](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/validation_best_panel.json)
 - [Held-out panel](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/heldout_panel.json)
 - [Train diagnostic panel](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/train_panel.json)
+- [Static baseline panel](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/static_baseline_panel.json)
+- [Source contract panel](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/source_contract_panel.json)
 - [Best checkpoint](../../../../../../outputs/goal-point-wam/three-domain-probe-20261011-r2/best.pt)
 - [Engineering smoke card](P-20261011-goal-point-wam-three-domain-smoke.md)
 
