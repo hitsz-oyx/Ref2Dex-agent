@@ -138,6 +138,11 @@ def main():
             execution = {k: f[k].copy() for k in f.files}
         if sha(folder / 'trajectory.npz') != em['trajectory_sha256'] or not np.array_equal(execution['action'], execution['applied']):
             raise ValueError('execution identity or applied command mismatch')
+        if (execution['action'].shape != (542, 24, 18)
+                or any(len(execution[k]) != 543 for k in ('q', 'dq', 'hand', 'obj', 'velocity'))
+                or any(not np.isfinite(v).all() for v in execution.values())):
+            raise ValueError('full finite execution required')
+        close('known_goal', execution['goal'], np.broadcast_to(source['goal'][0], (24, 4, 4)), 1e-6)
         close('actual_PD', independent_pd(execution['action'], execution['q'][:-1], em['native_controller']), execution['pd_targets'], 1e-6)
         if not np.array_equal(execution['clipped'], np.max(np.abs(execution['intended'] - execution['action']), axis=-1) > 1e-6):
             raise ValueError('clip flags differ')
@@ -176,6 +181,24 @@ def main():
                 surface_gap=execution['surface_gap'][:, env], support_gap=execution['support_gap'][:, env], table_footprint=execution['table_footprint'][:, env]))
             if any(value != er['outcomes'][env][key] for key, value in outcome.items()):
                 raise ValueError('physical outcome differs')
+        summary = {}
+        for role in ('teacher', 'gt_tau_R', 'tau_only', 'joint'):
+            ids = [i for i, name in enumerate(em['roles']) if name == role]
+            rows = [er['outcomes'][i] for i in ids]
+            summary[role] = dict(episodes=len(ids), hold45=sum(row['maximum_held_frames'] >= 45 for row in rows),
+                success=sum(row['success'] for row in rows), median_held=float(np.median([row['maximum_held_frames'] for row in rows])),
+                clipping_rate=float(execution['clipped'][:, ids].mean()),
+                endpoint_position_error_m=float(np.linalg.norm(execution['obj'][-1, ids, :3, 3]
+                    - execution['goal'][ids, :3, 3], axis=-1).mean()))
+            for key, value in summary[role].items():
+                close(role + '_' + key, value, er['summary'][role][key], 1e-6)
+        calibration = all(summary[role]['hold45'] >= 3 and summary[role]['success'] >= 3 for role in ('teacher', 'gt_tau_R'))
+        joint = summary['joint']
+        passed = (joint['hold45'] >= 6 and joint['success'] >= 6 and joint['clipping_rate'] < .01
+                  and joint['median_held'] >= .8 * summary['gt_tau_R']['median_held'])
+        expected_status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+        if er['status'] != expected_status:
+            raise ValueError('frozen physical gate status differs')
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
