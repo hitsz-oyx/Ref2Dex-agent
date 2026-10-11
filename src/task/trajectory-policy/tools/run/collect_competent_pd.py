@@ -48,6 +48,9 @@ def main():
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--seed', type=int, default=180)
     args = parser.parse_args()
+    if args.actor_fit is not None:
+        # native.main changes cwd before Player.run loads the high-level actors.
+        args.actor_fit = args.actor_fit.resolve()
     out = args.output.resolve()
     evaluating = args.source is not None
     autonomous = args.actor_fit is not None
