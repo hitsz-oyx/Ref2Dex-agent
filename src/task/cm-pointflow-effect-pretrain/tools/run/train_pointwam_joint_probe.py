@@ -104,12 +104,13 @@ def run(args):
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
-    manifest = dict(status="RUNNING", run_id=output.name, experiment_id="P-20261011-pointwam-joint-learning",
+    manifest = dict(status="RUNNING", run_id=output.name, experiment_id=args.experiment_id,
         git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         work_version="git:" + subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         pid=os.getpid(), command=[sys.executable, *sys.argv],
         cuda_visible_devices=os.getenv("CUDA_VISIBLE_DEVICES"), seed=args.seed,
         smoke=args.smoke, steps=args.steps, scene_points=args.scene_points, seconds_cap=args.seconds,
+        learning_rate=args.learning_rate,
         output_bytes_cap=1024 ** 3, qualification=str(args.qualification.resolve()),
         qualification_sha256=sha256(args.qualification), architecture="small RGB/geometry set MLP; learned word table",
         author_architecture=False, training_inputs="current frame only; teacher future targets are supervision")
@@ -134,7 +135,7 @@ def run(args):
             sources=[dict(pack=c["path"], sha256=c["sha256"], source_episode=c["episode"],
                           permission="fit" if c["partition"] == "fit_candidate" else "evaluation_only") for c in clips]))
         model = JointForecaster(len(contract["vocabulary"]) + 1).to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=.01)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=.01)
         manifest["parameters"] = sum(p.numel() for p in model.parameters())
         monitor.start()
         initial = evaluate(model, clips, contract, device)
@@ -226,10 +227,13 @@ def main():
     parser.add_argument("--steps", type=int, default=600)
     parser.add_argument("--scene-points", type=int, default=1024)
     parser.add_argument("--seed", type=int, default=247)
+    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--experiment-id", default="P-20261011-pointwam-joint-learning")
     parser.add_argument("--seconds", type=int, default=900)
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
-    if not (1 <= args.steps <= 600 and 1 <= args.scene_points <= 1024 and 1 <= args.seconds <= 900):
+    if not (1 <= args.steps <= 600 and 1 <= args.scene_points <= 1024 and 1 <= args.seconds <= 900
+            and args.learning_rate > 0):
         parser.error("budget capped at 600steps /1024points /900seconds")
     if not args.smoke and (args.steps != 600 or args.scene_points != 1024 or args.seed != 247):
         parser.error("main Probe uses the frozen 600step/1024point/247seed protocol")
