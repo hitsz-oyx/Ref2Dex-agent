@@ -30,7 +30,9 @@ def prepare_batch(base, window_manifest, point_count):
         source = base.sources[sid]
         local = index - int(base.offsets[sid])
         seq, anchor, tick, category = map(int, source.rows[local])
-        if [seq, anchor, tick] != record['sample_id'] or source.sequences[seq] != record['source_sequence']:
+        mixed_seq = seq + int(base.sequence_offsets[sid])
+        if (local != int(record['source_index']) or [mixed_seq, anchor, tick] != record['sample_id']
+                or source.sequences[seq] != record['source_sequence']):
             raise ValueError('fixed window identity drift')
         sample = dataset[index]
         raw = source.sequence(source.sequences[seq])
