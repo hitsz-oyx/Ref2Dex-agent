@@ -7,6 +7,7 @@ import pytest
 TASK = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TASK / 'src'))
 from consequence_evaluator.gate1 import candidate_plan, choose_candidate, episode_outcome, paired_counts
+from consequence_evaluator.native_backend import canonical_device, resolve_backend, resolve_legacy_backend
 
 
 def fixture():
@@ -69,3 +70,77 @@ def test_runner_import_does_not_initialize_torch_before_isaac():
     import subprocess
     code = "import sys,runpy;runpy.run_path(%r);assert 'torch' not in sys.modules" % str(TASK / 'tools/run/run_gate1_gt_progress.py')
     subprocess.run([sys.executable, '-c', code], check=True)
+
+
+def test_legacy_actor_batch_preserves_observation_and_only_first_control():
+    import torch
+    from consequence_evaluator.gate1 import legacy_batched_actor_action
+    raw = torch.arange(1442, dtype=torch.float32)[None]
+    original = raw.clone()
+    class Player:
+        is_rnn = False
+        def get_action(self, observation, deterministic):
+            assert deterministic is True
+            assert observation['obs'].shape == (64, 1442)
+            assert torch.equal(observation['obs'], original.repeat(64, 1))
+            output = torch.arange(64 * 18, dtype=torch.float32).reshape(64, 18)
+            return output
+    control = legacy_batched_actor_action(Player(), {'obs': raw})
+    assert control.shape == (1, 18)
+    assert torch.equal(control, torch.arange(18, dtype=torch.float32)[None])
+    assert torch.equal(raw, original)
+
+
+def test_legacy_group_actor_batch_contract():
+    import torch
+    from consequence_evaluator.gate1 import legacy_group_actor_action
+    raw = torch.arange(2 * 18, dtype=torch.float32).reshape(2, 18)
+    class Player:
+        is_rnn = False
+        def get_action(self, observation, deterministic):
+            assert deterministic is True
+            assert observation['obs'].shape == (8, 18)
+            return observation['obs']
+    result = legacy_group_actor_action(Player(), {'obs': raw}, copies=4)
+    assert result.shape == (2, 18)
+    assert torch.equal(result, raw)
+
+
+def test_host_backend_separates_gpu_physx_from_cpu_tensor_pipeline():
+    backend = resolve_backend('host')
+    assert backend.name == 'gpu_physx_cpu_pipeline'
+    assert backend.sim_device == 'cuda:0'
+    assert backend.pipeline == 'cpu'
+    assert backend.physx_use_gpu is True
+    assert backend.physx_num_threads == 1
+    assert backend.tensor_device == 'cpu'
+    assert backend.actor_device == 'cuda:0'
+    assert backend.argv() == (
+        '--sim_device', 'cuda:0', '--rl_device', 'cuda:0', '--pipeline', 'cpu',
+        '--num_threads', '1')
+
+
+def test_host_backend_alias_and_old_gpu_cpu_flag_are_unambiguous():
+    assert resolve_backend('gpu_physx_cpu_pipeline') == resolve_backend('host')
+    assert resolve_legacy_backend(None, 'gpu') == resolve_backend('gpu')
+    assert resolve_legacy_backend(None, 'cpu') == resolve_backend('cpu')
+    assert resolve_legacy_backend('host', 'host') == resolve_backend('host')
+    with pytest.raises(ValueError, match='different contracts'):
+        resolve_legacy_backend('host', 'gpu')
+
+
+def test_gpu_pipeline_threads1_keeps_gpu_tensor_contract():
+    backend = resolve_backend('gpu_physx_gpu_pipeline_threads1')
+    assert backend.name == 'gpu_physx_gpu_pipeline_threads1'
+    assert backend.sim_device == 'cuda:0'
+    assert backend.pipeline == 'gpu'
+    assert backend.physx_use_gpu is True
+    assert backend.physx_num_threads == 1
+    assert backend.tensor_device == 'cuda:0'
+    assert backend.actor_device == 'cuda:0'
+
+
+def test_backend_canonicalizes_isaac_cuda_shorthand():
+    assert canonical_device('cuda') == 'cuda:0'
+    assert canonical_device('cuda:2') == 'cuda:2'
+    assert canonical_device('cpu') == 'cpu'

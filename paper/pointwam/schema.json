@@ -1,0 +1,9 @@
+{
+  "title": "PointWAM: 3D World Action Modeling for Dexterous Robotic Manipulation",
+  "arxiv_url": "https://arxiv.org/abs/2610.02840",
+  "project_url": "https://chrockey.github.io/PointWAM/",
+  "code_url": null,
+  "code_status": "Author project page says Code soon at verification date",
+  "verification_date": "2026-10-10",
+  "notes": "Original forecaster jointly predicts scene and hand displacement trajectories through deterministic MLP heads with squared-error supervision. It is not a demonstrated multimodal sampler. The similarly named xiaooai/PointWAM repository is not treated as official author code."
+}

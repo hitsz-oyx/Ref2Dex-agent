@@ -1,0 +1,9 @@
+{
+  "title": "DexMV: Imitation Learning for Dexterous Manipulation from Human Videos",
+  "arxiv_url": "https://arxiv.org/abs/2108.05877",
+  "code_url": "https://github.com/yzqin/dexmv-sim",
+  "learning_code_url": "https://github.com/yzqin/dexmv-learn",
+  "verification_date": "2026-10-10",
+  "code_status": "released; MuJoCo 2.0 environment, demonstration generation and learning repositories; not executed locally",
+  "code_commit": "d857c16e4d6888a60560b12f5eca20c36e4073f6"
+}

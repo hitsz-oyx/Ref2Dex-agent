@@ -1,0 +1,8 @@
+{
+  "title": "AnyTeleop: A General Vision-Based Dexterous Robot Arm-Hand Teleoperation System",
+  "arxiv_url": "https://arxiv.org/abs/2307.04577",
+  "code_url": "https://github.com/dexsuite/dex-retargeting",
+  "verification_date": "2026-10-10",
+  "code_status": "associated retargeting component released, including Inspire vector-retargeting config; not a pretrained tracking controller; not executed locally",
+  "code_commit": "3f56141bc8bd2760d5e452e382937269554ebb21"
+}

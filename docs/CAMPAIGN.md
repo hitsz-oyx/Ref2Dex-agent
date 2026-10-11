@@ -146,3 +146,120 @@ rolling learned-Y。此次固定Probe已完成但三臂未过70%screen；不改�
 替代该路线的PPO暂停：h8真实rollout监督actor z，普通/条件/shuffle/stopgrad四臂，
 source_e260恢复，保持原奖励与actor推理结构。单seed短训练、同z独立return诊断及
 完整episode评价，资源预算与停止条件见Task卡P-20261006-gt-interaction-aux。
+
+2026-10-10 用户在 ref7_3 开源路线审查后授权最小 reference-tracking control Probe。
+本项仅为该 Probe 重开原生 Inspire/Gym 的小残差 PPO 与交互跟踪奖励；保留 owned
+e260 作为独立对照，tracker 从零残差初始化。先使用明确声明的 measured robot/object
+oracle reference 区分执行控制与 tau retargeting，不外推为 tau-only 或 Cm utility。
+一张空闲 GPU，总上限27分钟/2GiB，不突破全局预算；协议与停止条件见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking.md`。
+
+2026-10-10 用户要求自主解决 tracker 不稳脱手问题。允许在同一控制路线做有界
+wrist velocity feedforward 对照与必要的短 PPO 微调，保留原始任务放置和 measured
+teacher holding 上界的不同语义。一张空闲 GPU，新增总上限32分钟/2GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-reference-tracking-feedforward.md`。
+不改变 Mission 或 Cm claim，不新建分支，不影响外部进程/数据。
+
+2026-10-10 用户确认保留 τ、移除真实 q_ref 与未来物体参考，按 ref7_4 两层
+几何retarget/闭环控制思路继续，不引入触觉。允许有界几何拟合、冻结对照与一次
+短 PPO 微调；一张空闲 GPU，新上限34分钟/2GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-geometry-tracking.md`。
+不改变 Mission/Cm claim；GT future hand 仍是明确的执行上界，不代表高层预测已完成。
+
+2026-10-10 用户要求继续解决τ-only不稳。允许同一路线有界finger-command
+canonicalization/feedback-coverage Probe，保护已有腕部映射，不引入真实未来q/
+物体参考或触觉输入。一张空闲GPU，新增上限25分钟/2GiB；协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-tau-finger-canonicalization.md`。
+不改Mission/Cm claim或原保持/裁剪门槛，不新建分支、不扩展无界参数/seed sweep。
+
+2026-10-10 用户ref8将近期优先级转向H→候选τ。允许一次旧H→τ预测器的冻结
+数据/输入分布诊断及有证据支持的最小离线修复或候选覆盖Probe；PointWorld、GT E/I
+必要性重复实验与在线selector继续冻结。单空闲GPU，上限16GPUmin/1GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md`。
+不改Mission/Cm claim，不新建分支、不扩大仿真/训练sweep。
+
+2026-10-10 持续主线授权下新增生成τ评分迁移/URDF几何审计：冻结纯历史proposal
+和T evaluator，不以旧Y冒充新候选的执行标签。单空闲GPU，15GPUmin/1GiB，协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-score-feasibility.md`。
+本轮不训练模型、不仿真、不启用PointWorld或改变Mission/Cm claim。
+
+2026-10-10 持续主线下进入首个纯历史生成τ真实执行Probe：冻结proposal/T/保留的
+fingerfit executor，原生几何修正后滚动执行，独立GT/persistence/位移/评分四角色。
+单空闲GPU新增15GPUmin/1GiB，smoke120s+单次eval720s；无训练/额外seed/物理fork claim。
+协议见`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-native-execution.md`。
+
+2026-10-10 持续主线下隔离生成τ接口与启动覆盖：冻结全部模型，GT在线投影与GT8步
+前缀仅为显式privileged诊断，不加入纯H部署。单空闲GPU，新增5GPUmin/512MiB，
+两次16env/128步接口诊断及一次修复后的542步纯H跟进，各<=240s（共用5GPUmin上限），
+无训练/额外seed；协议见
+`src/task/consequence-evaluator/docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md`。
+
+2026-10-10 新trajectory-policy主线的48D decoder覆盖Probe：旧Task实验继续暂停，
+只读复用其几何/controller。单空闲GPU2，新增8GPUmin/512MiB，一次离线audit<=120s、
+一次16env/542步原生执行<=300s；无训练/额外seed/WM，协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-decoder-coverage.md`。
+
+2026-10-10 trajectory-policy固定48D前缀拟合诊断：CPU4列线性投影与单空闲GPU2
+FK复算，<=120s/2GPUmin/64MiB；无神经训练/仿真/额外seed/WM，协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-decoder-prefix-fitting.md`。
+
+2026-10-10 trajectory-policy固定PCA D48覆盖Probe：单空闲GPU2，<=8GPUmin/512MiB，
+手轨迹几何坐标basis拟合/audit<=120s，几何screen通过后一次16env原生执行<=300s；
+无高层策略训练/WM/额外seed。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-lowrank-trajectory-decoder.md`。
+
+2026-10-10 trajectory-policy pose/FF metric D48 Probe：单空闲GPU4（GPU2/3启动前被其他
+任务占用，原GPU2 preflight在模型/产物创建前退出），<=8GPUmin/512MiB，
+fit+coverage<=120s，screen通过才一次16env/542步原生执行<=300s；无策略训练/WM/
+额外seed。此次后停止48D重建搜索，转入可执行轨迹表示的H->c学习。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-metric-trajectory-decoder.md`。
+
+2026-10-10 持续主线下进入trajectory-policy独立H328->c288 actor初始化：单空闲GPU4，
+新增12GPUmin/512MiB，一次2500update监督fit<=240s、一次16env完整执行<=300s、
+审计<=120s。旧Task只读复用，保留全部失败行，无WM/额外seed sweep/新分支/push。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-history-trajectory-actor.md`。
+
+2026-10-10 首轮H actor启动误差后的一次startup-balanced初始化Decision Probe：单空闲GPU4，
+新增10GPUmin/512MiB，fit<=240s，启动几何screen通过才一次16env完整执行<=300s及audit<=60s。
+同数据/H/D/R/网络/optimizer，不加clock/phase策略输入；此次后停止BC权重搜索。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-startup-balanced-actor.md`。
+
+2026-10-10 trajectory-policy真实任务PPO Probe：单空闲GPU4，新增14GPUmin/512MiB，
+debug smoke<=120s，24update/16env/<=49152实际环境交互train<=480s，单次完整冻结比较<=180s，
+audit<=60s。固定D/R、H-only与真实当前几何奖励，无参考奖励/WM；协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo.md`。
+
+2026-10-10 首轮trajectory PPO完整负结果和固定快照credit信号后，允许一次同初始化/
+seed/奖励/D/R/预算的lambda1 Decision Probe，仅改变GAE信用时间尺度。单空闲GPU4，
+新增14GPUmin/512MiB，smoke120s+24update训练480s+完整冻结评价180s+audit60s；
+不扩大BC/架构/seed sweep、旧Task或WM。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-ppo-long-credit.md`。
+
+2026-10-10 lambda1 mean策略负结果后，允许一次冻结随机warm/final对比，无训练：
+单空闲GPU4，新6GPUmin/256MiB，64env（28同噪声配对+8校准）完整542controls
+<=240s，独立采样/执行/结果审计<=60s。固定noisebank295、physics294，
+不追加seed/epoch或重启旧Task/WM。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-stochastic-execution.md`。
+
+2026-10-10 冻结随机部署warm/final同2/28稳定成功后，允许保存rollout的Adam状态
+重建与单update恢复LR机制诊断，无新物理训练：单空闲GPU4，新增3GPUmin/128MiB，
+全24updates历史actor/value bitwise checkpoint核对后才解释fork，<=120s。
+同真实moment/batch/GAE/目标KL，比较保留LR与每update恢复1e-6；不产生新部署策略。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md`。
+
+2026-10-10 用户ref1_1后首个learned retargeter离线inverse Probe：只读已有actual
+PPO hand/applied动作，整reset-wave split，τ/state-only匹配训练与同tick τshuffle。
+GPU4已有他人计算，选择GPU5（约130MiB初始化context、无活跃计算）；foreign>512MiB停止。
+新增8GPUmin/96MiB，1500update双臂fit<=360s、独立audit<=120s；无物理/teacher标签/
+高层PPO/WM训练。协议见
+`src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md`。
+
+2026-10-10 learned R审计通过但train也有腕部精度gap，固定local step inverse诊断：
+同actual PPO数据/split，比较privileged next q与next hand恢复腕姿的train-only线性标定。
+新增2GPUmin/16MiB，单idle GPU5、<=120s；不重训网络/采物理/读取teacher labels。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md`。
+
+2026-10-10 learned R局部条件提取Decision Probe：同actual PPO数据/整wave split/
+1500update双臂算法，新增action query对齐位移与帧差分分支。单idle GPU5，
+新增8GPUmin/64MiB，fit<=360s/audit<=120s，无新物理/RL/WM或teacher数据。
+协议见`src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-local-motion.md`。

@@ -81,3 +81,35 @@ def paired_counts(pairs):
     return dict(episodes=len(pairs), baseline_success=int(before.sum()),
         rolling_success=int(after.sum()), rescued=int((~before & after).sum()),
         harmed=int((before & ~after).sum()))
+
+
+def legacy_batched_actor_action(player, observation):
+    """Keep archived GPU inference on its verified64row path, with one sim env.
+
+    The archived Torch2.0.1 runtime produced incorrect single-row GEMV results
+    on this machine. Independent nonrecurrent copies preserve the controller
+    mean; all fresh workers use the same64row model call/RNG consumption.
+    """
+    raw = observation['obs']
+    if raw.ndim != 2 or raw.shape[0] != 1 or player.is_rnn:
+        raise ValueError('single-environment nonrecurrent actor required')
+    batch = dict(observation, obs=raw.repeat(64, 1))
+    actions = player.get_action(batch, True)
+    if actions.shape != (64, 18):
+        raise ValueError('archived actor batch shape changed')
+    return actions[:1].clone()
+
+
+def legacy_group_actor_action(player, observation, copies=64):
+    """Run a synchronous group through fixed-size deterministic actor blocks."""
+    raw = observation['obs']
+    if raw.ndim != 2 or raw.shape[0] < 2 or player.is_rnn:
+        raise ValueError('synchronous actor group requires a nonrecurrent batch')
+    if not isinstance(copies, int) or copies < 1:
+        raise ValueError('actor copies must be a positive integer')
+    envs = raw.shape[0]
+    repeated = raw[:, None, :].expand(envs, copies, raw.shape[-1]).reshape(envs * copies, -1)
+    actions = player.get_action(dict(observation, obs=repeated), True)
+    if actions.shape != (envs * copies, 18):
+        raise ValueError('archived actor group batch shape changed')
+    return actions.reshape(envs, copies, 18)[:, 0].clone()

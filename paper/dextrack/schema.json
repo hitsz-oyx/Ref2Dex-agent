@@ -1,0 +1,11 @@
+{
+  "title": "DexTrack: Towards Generalizable Neural Tracking Control for Dexterous Manipulation from Human References",
+  "arxiv_url": "https://arxiv.org/abs/2502.09614",
+  "paper_html": "https://arxiv.org/html/2502.09614v1",
+  "code_url": "https://github.com/Meowuu7/DexTrack",
+  "code_commit": "1005fad6158c3fa0e4e8df01323de2f62d539f7a",
+  "verification_date": "2026-10-10",
+  "code_status": "Partial public release: tracking environments and single/multiple trajectory training; README says homotopy optimization and combined IL/RL generalist iterative components not planned for public release.",
+  "source_snapshot": "third_party/DexTrack-source-audit/SOURCE_MANIFEST.json",
+  "notes": "src/task/consequence-evaluator/docs/research/20261010-ref7_3-tracking-control-review.md"
+}

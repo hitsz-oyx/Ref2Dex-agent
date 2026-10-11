@@ -1,0 +1,246 @@
+---
+schema: ref2dex.probe.v2
+probe_id: P-20261010-generated-tau-native-execution
+experiment_id: P-20261010-generated-tau-native-execution
+date: 2026-10-10
+task: consequence-evaluator
+branch: main
+git_commit: 35093fb
+claim_id: C3
+hypothesis_family: HF-generated-tau-execution
+probe_index_in_family: 1
+seed_pool: probe
+seeds: [298]
+decision_changed_if_positive: collect real generated-candidate outcomes before scorer adaptation
+decision_changed_if_negative: identify proposal or executor distribution mismatch before more scorer training
+status: UNPROMISING
+run_id: generated-tau-native-execution-20261010-r3
+---
+
+# Can pure measured-history generated tau drive the frozen native executor?
+
+## Motivation / Decision Note
+
+Blocker for ref8 H->candidate tau->Y->selector->tau*->A->Z: no generated tau
+has actually been executed. Frozen score/geometry audit shows selected18/18
+geometrically usable, but learned raw tau4/18; forecast-substitution failure
+cannot label newly generated alternatives. Cheapest decision is one small
+native execution wave, with frozen weights and repaired geometric outputs.
+This serves the full chain; PointWorld/E necessity remain frozen. No new model,
+seed sweep, core Mission/claim change, branch or strict same-state assertion.
+
+## Protocol
+
+Use existing owned CPU tensor exchange/GPU PhysX native single-motion task,
+aligned frame0 reset and actual canonical fingerfit controller SHA79ee282e...
+(ref7_4-tau-finger-fit-20261010-r3/final.pt). Fixed four roles,4env each16total,
+randomized by seed298: tau_gt independent upper-bound, persistence,
+learned displacement, scored ten-candidate pool (persistence+learned+K8).
+Roles have separate live physical states; do not claim same-state causal utility.
+
+At every8control steps, generated roles read only their measured t-3:t
+hand/object poses, finger q/dq and object velocity. Bootstrap by repeating the
+earliest measured state until four exist. No true future/actor observation,
+clock/phase/action or tactile input to proposal/retrieval/choice. Retrieve only
+train-bank displacements, one per episode; frozen T scores raw generated tau.
+The runtime never admits a query-GT future into the ten-candidate pool.
+
+Project the chosen future using live current hand/q and static URDF,300steps
+(60step shortcut failed its geometry tolerance and will not be deployed),
+two starts, independent native finger bounds/coupling. Use the resulting rigid
+hand points and geometric q to condition the frozen897dim tau controller.
+Next-frame tau-derived wrist velocity feedforward, original native residual
+limits/clamp/coupling; no extra command clipping. Consume first8steps before
+replanning;24future input is shifted and terminal-padded within the chunk.
+Clock schedules replanning/independent GT comparison only, never model input.
+All model weights frozen; no physical reset/fork at plan boundaries.
+
+Full542steps, preserve all16rows including failures. Capture actual student
+input, applied commands/PD targets, full measured trajectories, every plan's
+pure history/raw tau/repaired points/q/score/choice/train donors. First8step
+seed29 engineering smoke verifies wiring only. Compare3generated roles with
+GT upper-bound descriptively, report held45, >=433held+terminal, clipping and
+loss. Calibration requires GT>=3/4longheld+terminal. For each generated role,
+original strong screen >=3/4longheld+terminal and clip<1% yields PROMISING;
+otherwise local UNPROMISING if calibration passes, UNCLEAR if not. Scored
+benefit remains UNCLEAR regardless, because roles are not matched forks.
+
+## Resources / stop
+
+One idleGPU2, new<=15GPUmin/1GiB. Smoke<=120s, one complete eval<=720s;
+no training, automatic retries or extra seeds. Monitor GPU utilization/memory
+and ETA at first step and128step intervals. Native projection deadline30s/plan;
+global deadline and source hashes. Stop on nonfinite/identity/input/applied-
+command mismatch or foreign GPU work; preserve failure artifacts. Tiny pure
+runtime contract tests may use CPU where startup dominates fixture cost.
+
+## Results
+
+68e7ed3 seed29 engineering8-step smoke completed25.89s; own GPU7555MiB/util11%.
+Independent reconstruction: bootstrap history error0, actual897features1.91e-6,
+applied command2.38e-7. Correct own query history/choice/native q/FF; no GT leak.
+Outputs `generated-tau-native-smoke-20261010-r1/`, log `generated-tau-native-launch-20261010-r1/smoke.log`.
+
+First full seed298 r1 at a1eeccd was interrupted by root's SIGINT to its confirmed
+owned PID, preserving FAILED/KeyboardInterrupt manifest and log. Engineering
+cost:300-step projection14.57s/chunk predicts~1000s across68chunks, exceeding
+720s cap. Not a behavior negative result; no complete trajectory produced.
+
+## Engineering repair Decision Note
+
+Latency blocks the cheapest complete execution. Check fixed60iteration fit on
+the saved12query smoke inputs against300step geometry, with no actual outcome
+selection. Require max coordinate-RMSE degradation<=.5mm, max point-coordinate
+RMSE to300step<=1mm, latency<=5s. If this engineering check passes, run exactly
+one repaired full seed298 r2 <=600s. No additional seed or model training; count
+interrupted run and audit within the original15GPUmin total.60iteration always
+outputs bounded coupled URDF geometry, though approximation quality may vary.
+If convergence check fails, stop to identify the latency source. Original smoke,
+failed full and300step geometry remain intact; do not rewrite them.
+
+3ed2404 engineering latency check completed:60iterations3.95s versus300
+14.57s; max target-coordinate RMSE degradation only.0174mm, but max fitted
+point-coordinate difference2.398mm, exceeding the predeclared1mm bound.
+Status FAIL; do not launch repaired r2 or relax the tolerance post hoc.
+Outputs `generated-tau-projection-latency-20261010-r1/` (frozen smoke inputs,
+source hashes/result/60step geometry). Native smoke25.89s+interrupted full
+65.61s+latency check fit3.95s are within15GPUmin; no owned task process running.
+
+First-query raw tau has17.00mm coordinate error for scored retrieval and
+24.11mm for learned displacement even after300step projection, versus near
+zero persistence. Old audit anchors were>=tick8; online t0 uses a padded
+history outside the training-window protocol. This identifies a separate
+startup-distribution limitation, not evidence of eventual holding success.
+Do not silently hide it with a GT startup policy or actual future input.
+
+Current native execution status UNCLEAR: engineering chain passes but full
+holding outcomes unavailable. Next bounded action is to identify/accelerate
+the existing300step implementation while preserving outputs (e.g. reusable
+GPU computation capture), then complete the same frozen seed298 execution
+within remaining declared resources. If that cannot fit, record a new bounded
+Decision Note; no unbounded retry/sweep. Goal still covers the full ref8 chain
+and eventual Mission utility, not merely an engineering smoke.
+
+## Continued engineering Decision Note
+
+Previous goal turn made progress: actual pure-H native wiring was independently
+verified, and the original300step latency/failed60step shortcut changed the next
+action. Current HEAD3ec5236 and outputs confirm no owned live task. Keep full
+Mission/ref8 scope and seed298; no convergence relaxation or narrower success.
+First reproduce the 300step saved-smoke timing. Ranked falsifiable hypotheses:
+1 unused link velocity computations dominate point-loss FK/backward (a pure
+XYZ path should preserve positions/gradients and reduce cost);2 unrelated link
+work (pruning only unobserved descendants should reduce cost);3 host/kernel
+launch overhead (capture/reuse should reduce repeated cost). Test sequentially,
+not together. New engineering checks count within remaining original15GPUmin;
+same .5mm degradation/1mm fitted-point/5s gate, plus exact FK/gradient test.
+If original300step is fast and equivalent, execute one full r2 <=600s on idleGPU2.
+If not, diagnose the next specific source without another full expensive launch.
+No external authorization boundary is changed.
+
+Original300step replay at cb81166 reproduces15.35s and bitwise-identical saved
+hand points: geometry passes,5s latency gate fails. Add XYZ-only FK without
+pruning/topology changes; a synthetic CPU regression requires exact positions
+and matching joint gradient to full state FK (nonzero root/joint velocities).
+Then repeat all original300steps on the same saved12queries. Keep all iteration,
+initialization, optimizer/bounds/selection and static URDF contracts unchanged.
+
+1e237ad XYZ-only path reproduces points bitwise but12.94s, so velocity work is
+not dominant. Static URDF contains25links and every one is an ancestor of the
+11requested points; hypothesis2 has no pruning opportunity. Test hypothesis3:
+capture only FK/best-update/backward for one optimization iteration, use fixed
+shape torch.where instead of dynamic boolean extraction, retain ordinary Adam
+outside capture and reset its moments/step for every query. Reuse one cache
+shape per runtime, update fixed wrist/target/initial buffers each plan.
+Source: [PyTorch2.4 CUDA graphs](https://docs.pytorch.org/docs/2.4/notes/cuda.html#cuda-graphs).
+CPU work is elided by replay; hence optimizer step/bias corrections remain
+outside capture. Side-stream warmup, immutable buffers, no concurrent native
+simulation during capture. No need for new model/dataset/runtime installation.
+Measure cold initialization separately (<=30s once), steady original300step
+fit<=5s, original geometry tolerance unchanged. Require identical-query replay
+<=2e-6m and a changed live frame4 query versus original eager300step<=1mm to
+exclude stale inputs/momentum/best-state. These are engineering cost controls,
+not changed scientific gates. Stop if capture/fresh-query equivalence fails.
+
+cfaf672 first capture attempt failed at q[:,list(FINGERS)] because conversion
+of a Python index list performs a prohibited CPU->CUDA operation during
+capture. No fit/physical run completed. Preallocate immutable CUDA index tensor;
+this is an engineering defect, not a method negative. Preserve failure metadata
+as generated-tau-projection-latency-20261010-r4; the original harness had not
+created its output folder before this failure. Fix harness to save RUNNING/
+FAILED state before computation, then recheck the same frozen inputs as r5.
+
+94a1632 r5 PASS: original300step captured fit cold2.078s, steady<=.8561s,
+original saved points/identical-query replay/changed frame4 versus original
+eager all point errors0. Ordinary Adam/full iterations/two starts retained;
+GPU365MiB/util100% during replay. FK joint-gradient regression passes. Preserve
+r2/r3/r4 failures rather than replace their outputs. Main next decision:
+execute the same16role/seed298 complete542steps with position FK/capture,
+300iterations, budget600s, output generated-tau-native-execution-20261010-r2.
+No new physical model/scorer training, no GT startup, no additional seed.
+Estimated fit work68*.86s plus native overhead fits remaining original15min.
+
+## Completed native execution and independent audit
+
+7840f92 r2 completed all542steps/68plans in107.71s. Same frozen inputs and
+seed298, original300iterations/two starts retained; projection median.835s,
+maximum1.241s. GPU2 about7.5GiB/util56--100%, no process remains.
+GT calibration4/4 >=433held and terminal, median479, clipping0. Persistence,
+displacement and scored each0/4 even held45 or any grasp; clipping respectively
+100%,92.435%,95.018%. Local combination status UNPROMISING; scorer causal
+benefit remains UNCLEAR. This does not refute H->tau or the core Mission.
+
+c8280e3 audit `generated-tau-native-audit-20261010-r2/audit.json` confirms all
+initial measured fields exactly aligned, every bootstrap/replanning H and
+current hand error0,897D student features3.81e-6, actual native command3.05e-7,
+PD targets0, full outcome reconstruction and only ten eligible candidates.
+Plot: `generated-tau-native-audit-20261010-r2/behavior.png`.
+Independent read-only review confirms fresh graph buffers/Adam state per query,
+changed-query graph/eager q+points bitwise equal, CPU first actor output8.94e-8.
+No wiring defect found. Persistence's current-q/static-hand plan nevertheless
+gets positive actor thumb-yaw residual at the initial upper bound, so clipping
+is real executor behavior, not a missing plan.
+
+Next cheapest discriminating action is a128step interface diagnostic: original
+GT tau, GT tau through the identical online projection/chunk path, displacement,
+and GT-prefix8 then displacement. The last two privileged arms are diagnostic
+controls only, never a deployable pure-H baseline. This tests executor-path
+mismatch before assuming the untrained tick0 bootstrap is the sole cause.
+Protocol: [interface diagnostic](P-20261010-generated-tau-interface-diagnosis.md).
+
+## Implementation limitation identified after complete r2
+
+The [interface diagnostic](P-20261010-generated-tau-interface-diagnosis.md)
+found that project_tau replaces q0 with actual measured q, whereas the original
+FF derivative treated q0 as part of a nominal trajectory. This mixes tracking
+error into first-future velocity at each replan. A frozen128step GT interface
+control loses hold with the original calculation, but future-only derivatives
+restore4/4held45/terminal. Thus r2 is a valid observed negative of that executed
+combination, not sound negative evidence for the intended nominal-velocity
+proposal/executor method. Preserve artifacts and original UNPROMISING label;
+corrected full seed298 r3 is the only new follow-up, bounded under the interface
+card. Repair commit and r3 results will be recorded here when complete.
+
+## Corrected full r3 and user pause
+
+35093fb corrected future-only FF r3 completed16env/542controls/68plans in107.01s.
+GT4/4longheld+terminal, median479, clipping0. Persistence/displacement/scored
+still0/4 even formed grasp; clip100%,97.094%,94.649%. Projection median.835s,
+max1.229s. Audit `generated-tau-native-audit-20261010-r3/` checks all future-only
+velocity masks, measuredH/current0, actual897features3.81e-6/command2.38e-7/PD0,
+choice/physical outcome. Local corrected combination UNPROMISING; it does not
+separately refute proposal/scorer or trajectory interfaces. Interface repair is
+retained; no bootstrap retraining was launched.
+
+User then explicitly stopped further work on this Task and redirected architecture
+thinking to `trajectory-policy/docs/user/ref/ref1.md`. All own GPU/task processes
+are terminal. Preserve this evidence and frozen models; do not resume this Task's
+experiments under the new architecture discussion without user steering.
+
+## Limitations / future evidence
+
+Single motion, few separate-live-role envs, observed-history training bank from
+old actor+random residual distribution and oracle-trained executor warmstart.
+Geometry repair can alter task intent; static reachability is not contact or
+dynamic feasibility. This is not same-H generated-candidate ranking, Cm-on/off,
+formal Validation, from-scratch learning or original placing task success.

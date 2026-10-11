@@ -49,6 +49,12 @@ class CandidatePlayer(original.EvalPlayer):
             physx={k:getattr(params.physx,k) for k in ('use_gpu','num_threads','num_subscenes','solver_type',
                 'num_position_iterations','num_velocity_iterations','contact_offset','rest_offset')})
         n = task.num_envs; ids = torch.arange(n, device=device); empty = ids[:0]
+        progress_ids = None
+        if ARGS.capture_progress_geometry:
+            sys.path.insert(0, str(ROOT/'src/task/consequence-evaluator/src'))
+            from consequence_evaluator.contracts import HAND_LINKS
+            progress_ids = task._key_body_ids[[task.cfg['env']['keyBodies'].index(name)
+                                              for name in HAND_LINKS]]
         if abs(task.dt-1/30)>1e-8 or len(task.motion_file)!=3:
             raise ValueError('motion/control interval drift')
         if not torch.allclose(task._pd_action_scale[:3], torch.ones(3,device=device)):
@@ -147,6 +153,11 @@ class CandidatePlayer(original.EvalPlayer):
         # Raw per-environment pre-branch max errors. Units/tolerances are audited separately.
         errors = torch.zeros(n,7,device=device) # physical72, q/dq36, root13, obs, history, shadowaction, done
         logs = {k:[] for k in ('physical','dof','root','action','done')}; rng = []
+        progress_geometry = dict(object_pose=[], hand_keypoints=[])
+        def record_geometry():
+            if progress_ids is not None:
+                progress_geometry['object_pose'].append(dexplore_root_pose(task._target_states).cpu().clone())
+                progress_geometry['hand_keypoints'].append(task._rigid_body_pos[:,progress_ids].cpu().clone())
         if rolling and record_trace:
             logs.update(base_action=[], after_physical=[])
         decision_states = {}
@@ -162,6 +173,7 @@ class CandidatePlayer(original.EvalPlayer):
             replay_rng = trace is not None and (not rolling or tick <= fork_tick)
             if replay_rng: restore_rng(trace['rng'][tick]['before_reset'])
             r_reset = capture_rng(); obs = self.env_reset(empty)
+            record_geometry()
             phys = physical(); dof = torch.cat((task._dof_pos,task._dof_vel),-1).clone()
             root = task._humanoid_root_states.clone()
             hold = update_predecision_hold(hold,phys[:,2],rest,phys[:,71]>.5)
@@ -262,6 +274,7 @@ class CandidatePlayer(original.EvalPlayer):
         else:
             if trace is None: raise RuntimeError('baseline episodes exceed bounded trace')
         assigned=(triggers>=0)
+        record_geometry()
         if not packet['valid_steps'][assigned].all(): raise ValueError('assigned anchor has incomplete outcome; no post-treatment filtering allowed')
         if rolling:
             tolerance = torch.tensor([1e-4]*5+[1e-5,0.], device=device)
@@ -276,6 +289,10 @@ class CandidatePlayer(original.EvalPlayer):
         packet=cpu_copy(packet); torch.save(packet,ARGS.run_dir/'panel.pt')
         if record_trace:
             value={k:torch.stack(v) for k,v in logs.items()}
+            if progress_ids is not None:
+                value['progress_geometry'] = {k:torch.stack(v) for k,v in progress_geometry.items()}
+                value['progress_geometry']['timestamps'] = torch.arange(tick+2,dtype=torch.float64)*task.dt
+                value['progress_geometry']['hand_links'] = tuple(HAND_LINKS)
             value.update(simulation_contract=simulation_contract,model_fingerprint=model_hash,rms_fingerprint=rms_hash,rng=rng,triggers=packet['triggers'],anchors={k:packet[k] for k in ('actor_obs','history')},initial_fingerprint=initial_hash)
             if rolling: value['decision_states'] = decision_states
             torch.save(value,ARGS.run_dir/'trace.pt')
@@ -305,6 +322,10 @@ def main():
     parser.add_argument('--rolling-plan', type=Path)
     parser.add_argument('--post-window', type=int, choices=(32,90), default=90)
     parser.add_argument('--record-rolling-trace', action='store_true')
+    parser.add_argument('--capture-progress-geometry', action='store_true',
+                        help='archive measured T+1 object/11-hand states for causal progress scoring')
+    parser.add_argument('--expected-checkpoint-sha256', default=SOURCE_SHA,
+                        help='explicit frozen replacement identity; default retains historical source_e260')
     ARGS,remaining=parser.parse_known_args()
     if ARGS.rolling_offset is not None:
         if ARGS.reference is None or ARGS.rolling_offset not in range(0,89,8):
@@ -318,7 +339,11 @@ def main():
     if ARGS.reference is None and ARGS.candidate!=0: raise ValueError('reference is baseline')
     ARGS.run_dir.mkdir(parents=True,exist_ok=False)
     checkpoint=Path(remaining[remaining.index('--checkpoint')+1])
-    if sha(checkpoint)!=SOURCE_SHA: raise ValueError('pinned self-trained source_e260 required')
+    if (len(ARGS.expected_checkpoint_sha256)!=64
+            or sha(checkpoint)!=ARGS.expected_checkpoint_sha256):
+        raise ValueError('pinned self-trained checkpoint identity required')
+    if ARGS.capture_progress_geometry and ARGS.reference is not None and not ARGS.record_rolling_trace and ARGS.rolling_offset is not None:
+        raise ValueError('progress geometry requires recorded rolling trace')
     paths=[checkpoint,Path(__file__)]
     paths += [ROOT/p for p in (
         'src/task/cm-interaction-oracle/tools/run/collect_interventions.py',
@@ -339,6 +364,8 @@ def main():
     motions=sorted(p/'interaction_hand_inspire.pt' for p in motion_root.iterdir() if p.is_dir())
     if len(motions)!=3: raise ValueError('three pinned canonical motion files required')
     paths += motions
+    if ARGS.capture_progress_geometry:
+        paths.append(ROOT/'src/task/consequence-evaluator/src/consequence_evaluator/contracts.py')
     for flag in ('--cfg_env','--cfg_train'): paths.append(Path(remaining[remaining.index(flag)+1]))
     if ARGS.reference is not None: paths += [ARGS.reference/k for k in ('initial_state.pt','trace.pt','panel.pt')]
     if ARGS.anchor_schedule is not None: paths.append(ARGS.anchor_schedule)
@@ -346,6 +373,10 @@ def main():
     inputs={str(p.resolve()):sha(p) for p in paths}
     manifest=dict(status='RUNNING',pid=os.getpid(),command=sys.argv,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         input_sha256=inputs,physical_gpu=os.environ.get('CUDA_VISIBLE_DEVICES'),no_training=True,candidate=ARGS.candidate)
+    manifest.update(checkpoint_sha256=ARGS.expected_checkpoint_sha256,
+                    historical_checkpoint_match=ARGS.expected_checkpoint_sha256==SOURCE_SHA,
+                    capture_progress_geometry=ARGS.capture_progress_geometry,
+                    runtime=dict(python=sys.executable,torch=torch.__version__))
     begin=time.monotonic()
     try:
         original.EvalPlayer=CandidatePlayer; sys.argv=[sys.argv[0],*remaining]; original.main()

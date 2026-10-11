@@ -1,6 +1,204 @@
 # Consequence evaluator
 
-当前按用户 [ref4_2](docs/user/ref/ref4_2.md)修订 [ref4_1](docs/user/ref/ref4_1.md)：
+## 当前 Task 暂停
+
+2026-10-10 用户要求先做到这里，转入 [trajectory-policy](../trajectory-policy/README.md)
+的新架构设计。最新35093fb修复生成τ的nominal未来速度，不再混入live q0跟踪误差；
+GT在线128步4/4保持。修复后的完整纯H执行r3仍三个生成角色0/4抓持，GT4/4长时终末held，
+实际输入/速度/命令审计通过。当前生成组合局部UNPROMISING，不代表τ路线已被否定。
+不再运行后续旧Task实验，未启动bootstrap训练；所有自身GPU进程已结束，产物保留。
+
+## 2026-10-11 固定 tau residual basin 诊断
+
+为支持 trajectory-policy 的 REGRIND-inspired residual 分层，新增并完成了冻结诊断
+[P-20261011-tau-residual-basin](docs/experiments/probes/P-20261011-tau-residual-basin.md)。
+它只在 retained canonicalized tau actor 的 latent 上持续施加预注册 thumb offset，
+每步重读 live 状态；不训练、不读 future q/object、phase、clock、contact 或 packet
+actions。`no_offset` 与 `thumb_pitch_minus` 分别为 `4/4` long-held terminal，后者
+clipping `0.1845%`；`thumb_yaw_plus` 为 `0/4`，完整 controlled-placement success
+仍为 `0/16`。因此 Probe 仅对这个单 motion 的低裁剪 residual basin 标为 `PROMISING`，
+不能当作完整抓取、Stage 1 goal policy 或完整 REGRIND 证据。独立合同审计见
+`outputs/consequence-evaluator/ref2-tau-residual-basin-audit-20261011-r1/audit.json`，
+工具为 `tools/audit/audit_tau_residual_basin.py`。
+
+同一四臂协议的 seed287 repeat 仍通过预注册门槛：baseline `3/4`、
+`thumb_pitch_minus` `3/4` 且 clipping `0.2306%`；yaw 方向从首轮 `0/4` 变为本轮
+`3/4`，保留为 separate-live launch variation。重复的完整 controlled-placement
+success 仍为 `0/16`，所以只保留 pitch-minus 作为下一次 shared-executor integration
+Probe 的候选，不把它升级为完整任务结果。
+
+## 2026-10-10 生成τ执行状态
+
+纯H四帧→十候选→选择→原生几何→冻结控制器的完整542步已完成（7840f92，107.71s）。
+300step CUDA拟合保持原几何，解决了延迟；GTτ4/4长时终末held且无裁剪，生成三组各0/4
+形成抓持，裁剪92--100%，当前冻结组合UNPROMISING。c8280e3全轨迹输入/命令/outcome
+审计通过。此结果不能分别归因于proposal/scorer/τ路线，也未完成ref8或Mission。
+下一步短诊断隔离GT在线投影/chunk接口与tick0启动覆盖；privileged GT对照不作为部署。
+协议：[原生执行](docs/experiments/probes/P-20261010-generated-tau-native-execution.md)、
+[接口诊断](docs/experiments/probes/P-20261010-generated-tau-interface-diagnosis.md)；
+工具：[生成运行时](src/consequence_evaluator/generated_tau.py)、
+[原生入口](tools/run/probe_reference_tracking.py)、
+[执行审计](tools/audit/audit_generated_tau_execution.py)。
+
+## 2026-10-10 ref8：H→候选τ 当前进展
+
+按用户[ref8](docs/user/ref/ref8.md)优先解决proposal，冻结PointWorld和GT E/I必要性重复实验。
+用户确认仅当前/过去状态，不用phase/clock。旧actor-observation H含未来参考/contact差，
+保留旧结果但不再称其为纯历史输入；固定旧权重测试不能通过清零恒定列或简单clip修复。
+
+已实现四测量state的300维历史及固定1200step位置/位移匹配对照，排除未来参考、接触力
+和actor输入。完整测试位移预测RMSE212.66mm，优于persistence262.14mm，H24也改善，
+通过原门槛`PROMISING`；位置预测463.30mm。K8训练集检索覆盖上界171.91mm，但top1
+242.78mm未过门槛，未证明选择或接触执行。包含全部异常episode；target统计变化也属于干预。
+
+工具：[测量历史输入](src/consequence_evaluator/proposal_history.py)、
+[训练/检索Probe](tools/run/probe_measured_history_tau.py)、
+[旧权重诊断](tools/audit/audit_history_tau_proposal.py)。
+协议：[proposal诊断](docs/experiments/probes/P-20261010-history-tau-proposal-diagnosis.md)；
+[ACT/CVAE/DP/PointWAM/DexWM方法核对](docs/research/20261010-candidate-tau-proposal-review.md)。
+权重：outputs/consequence-evaluator/measured-history-tau-proposal-20261010-r1/displacement-best.pt，
+必须同时加载checkpoint中的train-only statistics、输入clip10、当前手位移解码。
+下一步检验生成τ的评分迁移与候选可执行性；当前没有在线selector/PW/τ→A→Z或Cm收益结论。
+
+## 2026-10-10 τ-only 当前进展
+
+按用户 [ref7_4](docs/user/ref/ref7_4.md)采用两层执行：11点未来τ先得到几何q_hat/
+腕部速度，再由当前状态反馈学习残差控制。移除真实未来q_ref和未来物体输入/
+奖励，不新增触觉输入；保留live q/dq、hand/object/velocity及previous residual。
+几何参考只拟合τ、initial q和静态URDF，整体坐标RMSE2.47mm，拇指尖13.80mm。
+
+最新手指命令重新拟合只更新六个手指输出，保护腕部/编码器，用旧τ控制器实际执行的
+PD命令及学生实时状态覆盖作为训练信号，未用真实未来q/物体作标签。固定最终权重完整
+评估12/16达到433帧且保持到结束，中位479帧，裁剪0.06919%，原门槛`PROMISING`。
+仍有三行无支撑下落、一行近桌面分离；同轮冻结τ为15/16，不能宣称抓持稳定性更优。
+随后64update仅手指PPO退化到0/16末帧持有；保护参数/输入/PD检查通过，失败记录保留，
+保留预声明的重新拟合候选，不继续无约束PPO或seed sweep。
+
+协议：[手指命令重新拟合](docs/experiments/probes/P-20261010-tau-finger-canonicalization.md)。
+保留checkpoint：outputs/consequence-evaluator/ref7_4-tau-finger-fit-20261010-r3/final.pt；
+配置/哈希/复现argv：outputs/consequence-evaluator/ref7_4-tau-finger-controller-20261010-r1/controller.json。
+下一决策是在接触适配时保护有效的手指预载，仍未解决所有失持。
+
+以下保留原τ训练的失败证据：冻结旧自训练tracker迁移后13/16近teacher，但裁剪41.01%。首次微调因奖励误把
+手掌高度当物体高度而放弃抓持；真实模式回归测试和独立trace审查定位并修复。
+修复后固定128update warmstart微调：最终16/16 hold45、中位292帧，4/16近teacher
+且末帧仍持有，纯几何0/16；裁剪17.90%，强门槛`UNPROMISING`，尚未训练好稳定
+τ执行器（此为重新拟合前的状态）。12条失持均为参考仍held时无支撑重力下落，非原始任务放置。
+实际897输入/command/PD独立重构通过。本轮不关闭τ路线，也不增加参数/seed sweep。
+
+协议：[τ几何闭环](docs/experiments/probes/P-20261010-tau-geometry-tracking.md)。
+实验配置与复现argv：outputs/consequence-evaluator/
+ref7_4-tau-tracker-controller-20261010-r2/controller.json（明确未通过强门槛）。
+这是single-motion GT-τ、旧自训练oracle tracker warmstart上界；尚非新τ泛化/
+从零训练/原始放置/Cm收益。旧oracle成功结果保留在下面，不能当成τ-only结果。
+
+## 2026-10-10 reference-tracking 当前进展
+
+按用户 [ref7_3](docs/user/ref/ref7_3.md)路线，已找到并修复腕部 position-only
+PD 参考缺少速度阻尼补偿的问题。使用原生 Kd/Kp 与参考 q 的中心差分速度，
+仅补偿 wrist6维，保持手指反馈与 native full-command adapter。
+
+冻结旧策略、随机四角色完整542步对照中，保持中位数从285提高到479.5帧；
+13/16达到近teacher门槛并保持到末帧，零裁剪，原始预声明screen为`PROMISING`。
+随后固定128update微调、final完整评估：tracker保持中位483帧（同轮teacher484），
+31/32达到433帧且末帧仍持有，nominal+FF中位92帧；裁剪0.438%，强门槛通过。
+仍有1/32在tick451脱手自由落体。最终结果仍是单seed Probe，不是正式Validation。
+固定checkpoint与复现argv见 outputs/consequence-evaluator/
+ref7_3-tracker-feedforward-controller-20261010-r1/controller.json。
+这是measured teacher holding上界。原始motion有放置，不能把成功放置的末帧松手
+判为失败。尚有robot-q/object-future oracle，仍未完成11点τ→A，不宣称Cm收益。
+
+协议与结果：[feedforward修复](docs/experiments/probes/P-20261010-reference-tracking-feedforward.md)、
+[旧reference-tracking Probe](docs/experiments/probes/P-20261010-reference-tracking.md)。
+工具：[训练与评估](tools/run/probe_reference_tracking.py)、
+[行为与原生PD审计](tools/audit/audit_reference_tracking.py)、
+[掉落与放置语义审计](tools/audit/audit_reference_tracking_drop.py)。
+运行修复控制器必须显式传`--wrist-feedforward`；旧checkpoint的权重本身不包含
+这个解析前馈，不能把单独加载旧权重等同于加载修复后的控制链。
+
+## 2026-10-09 物体系GT诊断（历史状态）
+
+按用户 [ref7_1](docs/user/ref/ref7_1.md)完成16组物体系 GT servo/接触诊断，
+整体 **UNCLEAR**，完整几何控制gate未通过；旧R、ACT/G/H->V训练继续暂停。
+分支保持 `main`。所有未来 geometry/q/actions 都是特权 oracle，尚不能部署或宣称 Cm 增益。
+协议与逐轮证据见 [物体系 GT 上界 Probe](docs/experiments/probes/P-20261009-object-relative-gt-servo.md)。
+
+有界物体系命令修正 held484/483，但保留了source finger PD预载；完整SE3反馈会
+放大运动。11点解析腕逆解+train-only一步动态逆控制，在source finger命令下两次
+held483、约3mm手误差，腕部信号PROMISING。完整11点控制一次held485但live
+teacher未过行为门槛，重复仅238；实测next-finger-q及过去命令负载EMA两臂均0。
+小世界系手误差仍不能保证接触。静态coupled逆解不能精确表示受载实际关节，
+当前优先固定腕部、单独检验finger commanded PD target与接触状态解码。
+
+16组执行/时序/矩阵/负载重建独立审计PASS，18项合同测试通过。相同目标流的
+物理角色仍可在接触前后分叉，尚不具备strict same-state因果比较。
+汇总CSV/图在 `outputs/consequence-evaluator/object-relative-gt-campaign-20261009-r1/`。
+原 [GT-hand retargeter](docs/experiments/probes/P-20261009-gt-hand-retargeter.md)
+held117/42/0历史失败保留，不将旧world replay称为geometry inverse。
+
+## 暂停的手执行桥路线
+
+之前按用户 [ref5](docs/user/ref/ref5.md)推进普通随机干预 rollout 的手执行桥：
+`G(H,A) -> 24x11x3 hand -> frozen PointWorld -> frozen C1 -> 每8步选择7候选`。
+不扩大 fork panel，旧 `U32=Y7+.25Y3-Y6` 仍只作为 evaluator teacher。
+自训 e260、PW best46000 和 C1 step1000 全部冻结；在线选择只读当前/过去几何，
+不接实测未来手轨迹。分支保持 `main`。
+
+[手执行桥与在线 Probe](docs/experiments/probes/P-20261009-hand-execution-bridge.md)
+完成96train/64val/64test和另一个64episode新test，全部完整542步；
+原始96/64/64数据共3360窗口，另一个test960窗口。两次匹配HA/H-only训练
+各2000步，保持同模型/采样/val选择，仅第二次改变固定native请求单位。
+手轨迹预测明显优于persistence/nominal FK，但zero-A误差没有达到预设1%门槛，
+因此不把桥称为可靠的candidate execution predictor。选模型仅用val误差，
+保留第一版step200。同C1 waterfall已完成；初始seed重复已修复为匹配初始q扰动。
+真实32episode/arm中baseline/planner完整受控放回均0，stable45为24/26，
+稳定后失抓1/8，平均非零干预0/55.97。在线选择/过去几何/完整542步合同通过，
+但控制收益UNCLEAR；不扩百级episode，不把stable45当完整任务或安全保持成功。
+下一步须区分动作敏感性、C1跨actor迁移和baseline放回阶段不足，旧Y继续冻结。
+工具：[采集/在线执行](tools/run/run_hand_bridge_rollout.py)、
+[桥训练](tools/run/train_hand_execution.py)、
+[三层误差审计](tools/audit/audit_hand_bridge_waterfall.py)、
+[完整任务对照审计](tools/audit/audit_hand_planner_control.py)。
+
+## 保留的旧 U evaluator 实验
+
+之前按用户 [ref4_4](docs/user/ref/ref4_4.md)冻结旧 `U32=Y7+.25Y3-Y6` 为 teacher，
+推进 C0(H+A)、C1(H+A+GT24)、C2(H+A+PW24) evaluator；future均只有24步几何，
+force-pair/contact只生成32步标签。C2按用户选择使用实测未来手轨迹条件，替换物体
+future，是离线oracle，尚不能作为可部署planner。分支仍为`main`。
+
+[首轮旧U evaluator Probe](docs/experiments/probes/P-20261009-old-utility-evaluator.md)
+完成192源episode的独立训练/验证/普通测试和保留25x7候选考试。
+候选严格排序C0/C1/C2为60.26%/75.64%/69.23%；C1 shuffle降至51.28%，
+GT信息screen为PROMISING，PW retention screen未过。真实one-shot Z90为
+baseline20、C019、C120、C221（25锚点），C2 rescue1/harm0，控制收益UNCLEAR。
+同C1权重换PW的离线诊断为73.08%，提示还需区分world-model误差和evaluator拟合。
+当时建议冻结共同C1，在独立cohort比较GT/PW；ref5现在用普通rollout执行桥
+取代继续扩fork数据。不再定义新Y，不直接进入RL。
+旧teacher rolling23/25与本次one-shot分开保存，不能据单次选择关闭rolling路线。
+[标签准备](tools/run/prepare_old_utility.py)、[PW推理](tools/run/predict_old_utility_future.py)、
+[匹配训练](tools/run/train_old_utility.py)、[执行/权重复核](tools/audit/report_old_utility.py)。
+
+## 保留的弱时序 evaluator 实验
+
+之前按用户 [ref4_3](docs/user/ref/ref4_3.md)尝试 learned `Q(H,A,Zgt)`：
+episode 最终抓稳并受控放回为 success，成功轨迹中的失抓/recovery 窗口 mask；
+重新稳定45帧后恢复正监督。标签为 `±24/(T-t)`，时钟和 outcome 只作监督，
+模型只输入原生 H、预知24步残差计划 A 和实测 future Z，不使用 TCC/S/P/M value。
+开发分支仍为 `main`。
+
+[首轮弱时序 Probe](docs/experiments/probes/P-20261009-weak-temporal-value.md)已完成：
+192完整episode，HA/HAZ同初始化各1200步，GPU2用时26.66秒。
+冻结测试排序为88.42%/89.67%，future打乱后84.32%；额外收益1.24pp未达3pp screen，
+状态UNCLEAR，尚未进入完整任务GT候选控制/Gate1。训练窗口仅3.23%含非零计划，
+没有成功recovery训练样例；下一步优先补决策时刻、同H候选及恢复覆盖，而非增加epoch。
+复用旧25锚点的缓存仅做评分迁移审计，没有完整任务结局，不作成功率证据。
+[标签准备](tools/run/prepare_temporal_value.py)、[训练](tools/run/train_temporal_value.py)和
+[冻结审计](tools/audit/audit_temporal_value.py)使用独立 temporal-value schema。
+
+## 保留的 reference-progress 路线
+
+之前按用户 [ref4_2](docs/user/ref/ref4_2.md)修订 [ref4_1](docs/user/ref/ref4_1.md)：
 保留`Y_t=P_(t+24)-P_t`，P改由成功真实机器人reference bank与实际3D因果历史匹配；
 不用episode时钟或最终结局。开发分支为`main`。
 [物理reference bank Probe](docs/experiments/probes/P-20261008-physical-reference-bank.md)
@@ -11,13 +209,49 @@ bank由[构建工具](tools/audit/build_physical_reference_bank.py)冻结实测1
 旧[原始参考几何Probe](docs/experiments/probes/P-20261008-reference-progress-labels.md)
 和[原始R TCC Probe](docs/experiments/probes/P-20261008-tcc-phase-alignment.md)完整保留。
 标签通过后按[完整链路](../../../docs/user/完整链路.md)先做直接GT-value的Gate1，
-再考虑evaluator；当前Gate1未运行，延迟失抓和候选排序仍待检验，不启动evaluator。
+再考虑evaluator；[Gate1入口](docs/experiments/probes/P-20261008-gate1-gt-progress.md)
+已修复单样本GPU actor前向，CPU-PhysX/GPU actor的72步零分支重放完全一致。
+首轮1个配对episode已完成：严格滚动重放通过，任务成功0/1对0/1，结论UNCLEAR。
+CPU后端baseline未抓起，GPU预检同策略hold483步；先恢复代表性GPU执行，
+暂不扩大CPU样本或训练evaluator。
 新schema独立于旧S/P/M和旧局部H匹配标签。
+
+### ACT-like native proposal engineering route
+
+`src/consequence_evaluator/action_chunk.py` defines a separate engineering
+contract for `H_t -> action[t:t+24]`: the target is the 18-D control captured at
+the native `pre_physics_step` boundary, while `residual_plan` and hand flow
+remain excluded. `tools/run/train_action_chunk.py` enforces episode-separated
+windows, clean `expert_success` provenance, train-only/frozen observation
+normalization, and an explicit audit-only mode. Its outputs are marked
+`engineering_only` and cannot be passed to evaluator fitting.
+
+The native group behavior harness accepts the resulting checkpoint through
+`--action-chunk-checkpoint`. `open_loop24` is the retained behavior screen;
+`receding8` for the direct imitation checkpoint fails before lift. Candidate
+mode additionally accepts a provenance-checked recorded chunk through
+`--action-chunk-replay`, but its nominal behavior and zero-pair gates must pass
+before any candidate effect is usable. The evidence and stopping decision are
+recorded in [P-20261009-act-native-chunk](docs/experiments/probes/P-20261009-act-native-chunk.md).
+
+The ref6 inference diagnosis additionally supports `overlap8` (query every8,
+combine overlapping chunks) and `temporal1` (query and combine every step),
+with absolute-tick expiry and official oldest-first exponential weighting.
+Both reduce executed control changes but still fail to grasp with the frozen
+historical checkpoint. The actual stride8 query-grid horizon errors do not
+show a disproportionately weak first8-token average. See the
+[temporal aggregation Probe](docs/experiments/probes/P-20261009-act-temporal-ensemble.md)
+and [horizon/dispatch audit tool](tools/audit/audit_action_chunk_execution.py).
+
+`receding1` queries every step and executes only the latest horizon0 control,
+discarding previous chunks. It also fails to lift with this frozen checkpoint
+(held0, while the teacher held484), despite bitwise latest-action/native
+dispatch checks. See the [one-step Probe](docs/experiments/probes/P-20261009-act-receding1.md).
 
 ## 历史路线与保留证据
 
 早期用户方案：[ref1](docs/user/ref/ref1.md)，连续采集按[ref2](docs/user/ref/ref2.md)；数据分级按[ref3](docs/user/ref/ref3.md)。历史实现分支：`consequence-evaluator`。
-当前工作只建立离线 oracle headroom 检验，不改变根级 Mission 的最终 Cm 策略收益要求。
+历史离线 oracle headroom 检验与当前弱时序 Probe 都不改变根级 Mission 的最终 Cm 策略收益要求。
 
 2026-10-08：[官方DExplore生成器筛查](docs/experiments/probes/P-20261008-official-generator-screen.md)
 已跑通归档的完整运行时，并完成官方/自训各64条同输入评估。官方45帧保持覆盖64/64，
