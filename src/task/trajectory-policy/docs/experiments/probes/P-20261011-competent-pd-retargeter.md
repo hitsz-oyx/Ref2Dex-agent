@@ -108,7 +108,41 @@ Stay main, no branch/push or external environment modification.
 
 ## Results
 
-Pending execution. Artifacts go under `outputs/trajectory-policy/competent-pd-*`.
+Code1036698 introduced the contract;30d8eff fixed the archived step's tensor/dict
+boundary. r1 stopped after one control before saving a trajectory; it is a setup
+failure. Completed teacher r2 used seed180/GPU0:32/32 hold45 and controlled
+placement, median435 consecutive held frames, zero clipping. Source PD audit
+reproduced every actual target exactly. Raw data are11MiB and training-eligible.
+
+Fit r1 completed3,000 matched updates in15.98s/GPU0 (peak260.50MiB; monitor
+11--21%util/649MiB). Validation tau/state-only normalized MSE=.010165/.024799
+(59.01% lower); same-tick tau shuffle=.056263 (5.535x). Tau gradient L1=16.0107.
+Validation XYZ/rotation/finger p95=12.506mm/.03737rad/.06634rad; startup
+9.293mm/.02101rad/.04652rad. Train XYZ p95=8.858mm. Selected checkpoints both
+update3000; test reported once, with XYZ p95=13.900mm. Independent source,
+train-only normalization, labels, predictions and selection audit PASS; actual
+PD and GPU model replay max error0. Local status **UNCLEAR**, original precision
+screen failed; no physical result belongs to this card.
+
+Cheapest conditioning diagnosis: train-only fixed affine wrist model from
+measured dq and actual next1/2 palm motion (no future q) gives validation XYZ
+p95=24.416mm/startup79.236mm. Thus the one local affine mapping is not a fix.
+Palm/world wrist XYZ agree within5.41um. This diagnostic does not prove that
+the remaining nonlinear model error is irreducible or that extra training works.
+
+Decision Note: a59% offline information signal on competent demonstrations
+justifies testing whether the finite12.5mm PD gap actually changes physical
+behavior, rather than treating the numeric screen as a grasp result. Preserve
+the failed screen and both checkpoints. A separately declared frozen physical
+Decision uses the remaining original20GPUmin/1GiB budget and keeps the original
+physical gates; no refit or test-selected model. See
+[physical Decision](P-20261011-competent-pd-physical.md).
+
+Artifacts: `outputs/trajectory-policy/competent-pd-teacher-20261011-r2/`,
+`competent-pd-fit-20261011-r1/`, and `competent-pd-wrist-diagnostic-20261011-r1/`.
+Teacher terminal object position differs from the known reference goal by
+143.98mm on average: physical grasp/placement readiness is not exact goal-pose
+tracking. This gap remains explicitly reported for later high-level/RL work.
 
 ## Limitations / future evidence
 

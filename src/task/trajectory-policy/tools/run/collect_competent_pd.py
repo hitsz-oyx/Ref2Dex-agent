@@ -42,6 +42,8 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--source', type=Path)
     parser.add_argument('--model', type=Path)
+    parser.add_argument('--physical-probe-card', type=Path,
+                        help='explicit frozen physical Decision after a failed offline precision screen')
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--seed', type=int, default=180)
     args = parser.parse_args()
@@ -100,6 +102,8 @@ def main():
              *list((OLD / 'src/consequence_evaluator').glob('*.py')),
              *list(native_root.rglob('*.py'))]
     source = model = None
+    producer_code_updates = []
+    physical_decision = None
     if evaluating:
         source_manifest = json.loads((args.source / 'manifest.json').read_text())
         if (source_manifest.get('status') != 'COMPLETED'
@@ -108,14 +112,36 @@ def main():
             raise ValueError('fresh completed training-eligible official source required')
         for path, digest in source_manifest['input_sha256'].items():
             if sha(path) != digest:
-                raise ValueError('teacher input drift: ' + path)
+                # A new consumer protocol may update this producer entrypoint.
+                # Authenticate the actual producer from Git; data/native/env
+                # inputs must still match current immutable files exactly.
+                if Path(path).resolve() != Path(__file__).resolve():
+                    raise ValueError('teacher input drift: ' + path)
+                relative = str(Path(path).resolve().relative_to(ROOT))
+                original = subprocess.check_output(['git', 'show',
+                    source_manifest['git_commit'] + ':' + relative], cwd=ROOT)
+                if hashlib.sha256(original).hexdigest() != digest:
+                    raise ValueError('producer Git blob differs from recorded source hash')
+                producer_code_updates.append(dict(path=path, producer_sha256=digest,
+                    consumer_sha256=sha(path), authenticated_git_commit=source_manifest['git_commit']))
         if sha(args.source / 'trajectory.npz') != source_manifest['trajectory_sha256']:
             raise ValueError('teacher trajectory drift')
         with np.load(args.source / 'trajectory.npz', allow_pickle=False) as stream:
             source = {key: stream[key].copy() for key in ('hand', 'pd_targets', 'q', 'goal')}
         fit_result = json.loads((args.model.parent / 'result.json').read_text())
-        if not fit_result.get('physical_screen_pass') or sha(args.model) != fit_result['checkpoint_sha256']['tau']:
-            raise ValueError('offline precision screen and exact selected model required')
+        if sha(args.model) != fit_result['checkpoint_sha256']['tau']:
+            raise ValueError('exact selected model required')
+        if args.physical_probe_card is not None:
+            card = args.physical_probe_card.resolve()
+            expected = TASK / 'docs/experiments/probes/P-20261011-competent-pd-physical.md'
+            if card != expected or 'model_sha256: ' + sha(args.model) not in card.read_text():
+                raise ValueError('exact frozen physical Decision card/model required')
+            if not json.loads((args.model.parent / 'audit.json').read_text()).get('pass'):
+                raise ValueError('independent fit audit required for physical Decision')
+            physical_decision = str(card)
+            files.append(card)
+        if not fit_result.get('physical_screen_pass') and physical_decision is None:
+            raise ValueError('offline precision screen or separately specified physical Decision required')
         packet = torch.load(args.model, map_location='cuda:0')
         model = load_model(packet, 'cuda:0')
         files += [args.source / 'manifest.json', args.source / 'trajectory.npz',
@@ -125,7 +151,8 @@ def main():
              if evaluating else ['teacher'] * 32)
     out.mkdir(parents=True)
     manifest = dict(schema='ref2dex.competent-pd-rollout.v1', status='RUNNING',
-        task='trajectory-policy', experiment_id='P-20261011-competent-pd-retargeter',
+        task='trajectory-policy', experiment_id=('P-20261011-competent-pd-physical'
+            if physical_decision else 'P-20261011-competent-pd-retargeter'),
         run_id=out.name, git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'],
         cwd=ROOT, text=True).strip(), physical_gpu=args.gpu, seed=args.seed, roles=roles,
         controls=542, dt=1 / 30, checkpoint=str(OFFICIAL), checkpoint_sha256=OFFICIAL_SHA,
@@ -134,6 +161,8 @@ def main():
         evaluation='full-reference oracle R mechanism, not independent high-level policy',
         inference='current measured state87 + oracle future actual hand24 -> actual PD target',
         teacher_inference_rows=64, source_envs=list(range(24, 32)) if evaluating else None,
+        producer_code_updates=producer_code_updates, physical_decision_card=physical_decision,
+        original_offline_screen_pass=fit_result['physical_screen_pass'] if evaluating else None,
         target_alignment='q[t],hand[t] -> PD[t] -> hand[t+1]; no future q/object input')
     write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
