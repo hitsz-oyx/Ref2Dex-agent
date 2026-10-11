@@ -54,3 +54,13 @@ PID2378894 is an inspected Isaac Sim job active on other GPUs with130MiB idle co
 here. Allow only that existing context with GPU utilization<=5% and prior total<=512MiB;
 stop on new PID/context growth>512MiB, nonfinite, unexpected reset, source drift or
 budget. Do not operate foreign processes. No Campaign/ref modifications or new branch.
+
+## Execution compatibility note
+
+First cubesmall attempt stopped before any controls: native default hard-object
+oversampling repeats the same input path because its name contains `small`.
+The one-motion guard treated this alias as a second reference. Preserve FAILED
+manifest/log; not a physical negative result. Permit loader aliases only after
+every resolved path, frame count and processed reference tensor matches the
+single authenticated input. Retry cubesmall in a fresh directory; no changes to
+native simulation, sampling defaults, checkpoint, seed or evaluation thresholds.

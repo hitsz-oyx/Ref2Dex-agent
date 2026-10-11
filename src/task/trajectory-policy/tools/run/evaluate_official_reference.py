@@ -132,8 +132,13 @@ def main():
 
         def run(self):
             task = self.env.task
-            if task.num_envs != 8 or self.is_rnn or task.num_motions != 1:
-                raise ValueError('single motion/8env/nonrecurrent required')
+            # Native hardObjectOversampling duplicates names containing small.
+            # Accept only aliases of this exact authenticated input, never a
+            # second distinct reference or silently changed sampling mixture.
+            if (task.num_envs != 8 or self.is_rnn or task.num_motions < 1
+                    or any(Path(path).resolve() != Path(motion['path']).parent.resolve()
+                           for path in task.motion_file)):
+                raise ValueError('single unique motion/8env/nonrecurrent required')
             task._state_init = DexploreTask.StateInit.Start
             task._hybrid_init_prob = 1.
             task._adaptive_kappa_enabled = False
@@ -141,13 +146,16 @@ def main():
             obs = self.env_reset(torch.arange(8, device=task.device))
             self.get_batch_size(obs['obs'], 1)
             frames = int(task.max_episode_length[0])
-            if frames != motion['frames'] or (task.start_times != 0).any() or task.ball_size != 1:
+            if (frames != motion['frames'] or (task.max_episode_length != frames).any()
+                    or (task.start_times != 0).any() or task.ball_size != 1
+                    or any(not torch.equal(task.hoi_data[0], task.hoi_data[i]) for i in range(task.num_motions))):
                 raise ValueError('source duration/frame0/scale mismatch')
             ref = reference_from_processed(task.hoi_data[0, :frames].cpu().numpy())
             geometry = PhysicalGeometry(task, assets, distance_device=task.device)
             support = TableSupport(assets, task.device)
             offset, scale = task._pd_action_offset.clone(), task._pd_action_scale.clone()
-            manifest.update(controls=frames - 1, native_controller=dict(offset=offset.tolist(), scale=scale.tolist()))
+            manifest.update(controls=frames - 1, native_loaded_aliases=task.num_motions,
+                native_controller=dict(offset=offset.tolist(), scale=scale.tolist()))
             write(out / 'manifest.json', manifest)
             capture = actual_pd = None
             original_pre, original_pd = task.pre_physics_step, task._action_to_pd_targets
