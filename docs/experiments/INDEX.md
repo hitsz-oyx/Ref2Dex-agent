@@ -238,7 +238,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261011-pointwam-joint-learning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-joint-learning.md) | Bounded scene/hand joint learning | pending. | pending fixed-budget training. | probes/RUNNING |
+| [P-20261011-pointwam-joint-learning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-joint-learning.md) | Bounded scene/hand joint learning | UNCLEAR. The fixed main run completes and hand fitting improves, but | retain the qualified data and verified joint learning contract; | probes/UNCLEAR |
 
 ## HF-pointworld-multisource
 

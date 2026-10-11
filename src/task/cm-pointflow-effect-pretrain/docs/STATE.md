@@ -22,12 +22,24 @@ no benefit claim follows from the smoke alone. The user-authorized follow-up
 completed12/12qualified clips across three tasks/six records, with6fit and6dev
 clips from disjoint record sets. This is PROMISING for data qualification only.
 TRAIN sources require a complete acquisition manifest and matching
-file hashes; TEST remains excluded and all pilot packs remain training-disabled.
+file hashes; TEST remains excluded and all packs retain their original
+training_allowed=false flags. The learner authorizes only qualified fit packs
+through an explicit run-local admission ledger; dev packs are evaluation-only.
 Teacher processing took605.94s on GPU7, peak allocation6923.70MiB; processed
-data324.69MB and source/index assets94.03MB. Existing weights were reused and
-the GPU is idle again. Nine contract tests and repository verification pass.
-Retain this subset for a bounded joint scene/hand learner; no model learning,
-native checkpoint transfer or policy experiment has started.
+data324.69MB and source/index assets94.03MB. Existing weights were reused.
+The follow-up [joint learner](experiments/probes/P-20261011-pointwam-joint-learning.md)
+completed600steps on six fit clips with record-isolated six-clip dev evaluation.
+Current-only RGB/geometry/hand/text inputs, fit-only statistics and masked joint
+targets reach both heads; checkpoint replay is exact. Fourteen data/learning
+contract tests pass. This195764parameter set MLP/word table is an explicit
+substitute for unreproduced Mosaic3D/Recap-CLIP/Volt, not official PointWAM.
+Result UNCLEAR: fit hand loss drops58.47%, but scene only23.23%; dev hand EPE
+96.243 vs94.112mm static, moving-scene55.228 vs32.652mm static. Fit-only
+single-clip diagnosis lowers scene loss91.01% and hand99.998%, supporting
+working learning wiring but not attributing the multi-clip failure or proving
+held-record benefit. Main15.67s/GPU7 peak60.77MiB; GPU is idle again.
+Retain the verified pipeline and fix fit-only optimization/architecture limits
+before expanding data. No native checkpoint transfer or policy experiment.
 
 ## Retained native baseline
 

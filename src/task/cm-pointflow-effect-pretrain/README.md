@@ -60,8 +60,20 @@ then completed12/12clips across three tasks/six records, with6fit/6dev clips
 isolated by source record. `tools/run/download_pointwam_train_subset.py`
 acquires CRC/SHA-verified pairs from a pinned remote inventory;
 `tools/run/qualify_pointwam_train.py` verifies source/model identities and runs
-the bounded cohort. Existing TEST packs stay excluded. No joint learner or
-native-model transfer has been trained from these data yet.
+the bounded cohort. Existing TEST packs stay excluded.
+
+The bounded [joint learner](docs/experiments/probes/P-20261011-pointwam-joint-learning.md)
+now reaches600updates, masked scene/hand evaluation and exact checkpoint
+replay from the qualified TRAIN packs. Entry:
+`tools/run/train_pointwam_joint_probe.py --qualification <group-manifest> --output <fresh-directory>`.
+Its195764parameter RGB/geometry set MLP and learned word table are explicit
+architecture/text substitutes. Fit hand loss improves58.47%, scene23.23%;
+dev hand96.243mm and moving-scene55.228mm fail static94.112/32.652mm controls.
+Result UNCLEAR; no PointWAM representation/policy benefit claim. A fit-only
+single-clip debug run demonstrates fitting capacity. Run-local admission
+authorizes only fit clips and preserves original pack flags. See the card
+for fixed protocol, source identities, diagnostic and trajectory preview.
+No native model transfer or policy training from these packs has occurred.
 
 Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
