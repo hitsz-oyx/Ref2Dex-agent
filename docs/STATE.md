@@ -18,8 +18,13 @@
 `b00a533` 完成 matched H328/G12->24x33 轨迹监督和轨迹+真实PD联合监督，冻结 R。
 3000updates/22.97s/GPU0，启动 first8 coordinate RMS0.922/0.693mm；联合 PD val MSE
 比轨迹监督低29%。独立历史/目标/标签/预测及梯度审计通过，33个 Task 测试通过。
-尚待完整自主物理评估：r1在控制前相对checkpoint路径错误（`f4e1881`修复），
-r2中途因其他用户GPU进程触发资源保护停止。两次均非科研负结果。
+完整自主物理评估 r3 `6a75a26` 已完成：teacher/GT-R各4/4，两个高层各0/8持物，
+clip4.36%/8.86%，独立H/G/计划/R/actualPD/outcome审计通过，局部 UNPROMISING。
+r1相对checkpoint路径错误在控制前失败（`f4e1881`修复），r2因外来GPU上下文中断，
+均非科研负结果。冻结验证状态诊断 `8cce545` 显示 joint 接触段PD XYZ p95由每步查询
+29.33mm增至8步计划复用60.56mm，尚未证明闭环原因；当前按
+[单变量 cadence Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-actor-cadence.md)
+保持checkpoint/seed/判据，仅把查询周期8->1，正在完整执行，不先加epochs或接Cm。
 教师末端物体位置相对 G 平均误差143.98mm；当前 hold/放置指标不证明精准目标位姿
 或完整参考轨迹跟踪，更没有 Cm-on/off 训练收益。本路线预算共用20GPUmin/1GiB，
 不改 Campaign，不新建分支、不push。
