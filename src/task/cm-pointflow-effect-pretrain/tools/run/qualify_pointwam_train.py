@@ -62,6 +62,15 @@ def main() -> None:
         if identity["split"] != "official_train":
             raise ValueError("test/additional data cannot enter this qualification")
         identities.append(identity)
+    pinned = ((a.depth_checkpoint, "c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934"),
+              (a.tracker_checkpoint, "2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834"))
+    for path, expected in pinned:
+        if sha256(path) != expected:
+            raise ValueError("teacher checkpoint differs from the frozen pilot")
+    for path, expected in ((a.depth_vendor, "48b23c8ce72c9a8fcf987f0d7f43d8e4870759f6"),
+                           (a.tracker_vendor, "82e02e8029753ad4ef13cf06be7f4fc5facdda4d")):
+        if subprocess.check_output(["git", "-C", str(path), "rev-parse", "HEAD"], text=True).strip() != expected:
+            raise ValueError("teacher source differs from the frozen pilot")
     a.output.mkdir(parents=True, exist_ok=False)
     start = time.monotonic()
     report = dict(status="RUNNING", run_id=a.output.name, training_allowed=False,
