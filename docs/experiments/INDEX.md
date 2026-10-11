@@ -427,6 +427,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-trajectory-step-replay](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-trajectory-step-replay.md) | Does persistent early LR backtracking constrain later useful updates? | 见原卡 | 见原卡 | probes/PROMISING |
 
+## HF-trajectory-policy-reference-goal-dagger
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-reference-goal-dagger](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-reference-goal-dagger.md) | Authorized human/object reference goals and one-round PD DAgger | 见原卡 | proceed with already specified one-round PD-query correction because | probes/PROMISING |
+
 ## HF-trajectory-policy-retargeter
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

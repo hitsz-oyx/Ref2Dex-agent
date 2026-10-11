@@ -4,13 +4,17 @@
 
 当前优先按 [ref3](docs/user/ref/ref3.md) 推进第一阶段：
 `(H,G) -> 24步真实手轨迹 -> learned R(当前实测状态,轨迹) -> 实际PD目标`。
-官方 actor 只采集合格 teacher，不作为自主 arm 的动作基座。G 是已知物体终目标位姿，
-历史输入无参考/phase/clock/未来q/接触标签；冻结 R 的 PD loss 可更新高层 actor。
+官方 actor 用于 teacher 数据和训练期 PD 查询；自主评估关闭教师干预。
+用户已授权 G 使用 DExplore 式 t+1/t+16 人手和物体计划参考位姿，当前 H328/G408。
+早先物体终目标 G12 是 agent 的限制假设，现已纠正。历史 H 仍来自真实测量，
+未来实测 q/物体和接触标签不作为输入；冻结 R 的 PD loss 可更新高层 actor。
 
 - [真实PD监督](docs/experiments/probes/P-20261011-competent-pd-retargeter.md)：32条新合格teacher，离线门槛失败仍 UNCLEAR。
 - [R完整物理执行](docs/experiments/probes/P-20261011-competent-pd-physical.md)：teacher/真实PD/GT轨迹-R 各8/8持物和受控放置，独立审计通过，局部 PROMISING。
 - [自主联合BC](docs/experiments/probes/P-20261011-competent-joint-bc.md)：离线启动误差0.922/0.693mm，梯度与预测审计通过；8步查询完整物理比较teacher/GT-R各4/4，自主两臂各0/8，执行链审计通过，局部 UNPROMISING。
 - [每步查询冻结对照](docs/experiments/probes/P-20261011-competent-actor-cadence.md)：保持同模型/seed/判据完成并通过独立审计。联合监督4/8hold（311/309/427/427帧），纯轨迹0/8；完整任务仍0/8，整体 UNPROMISING。静态持物与后段失物都不能算完整参考任务成功。
+
+- [参考条件与一轮PD DAgger](docs/experiments/probes/P-20261011-reference-goal-dagger.md)：G接入计划参考，并完成一轮真实学生状态PD查询。无教师干预评估中，PD DAgger8/8持物和放置、零裁剪、参考位置RMSE7.57cm；offline joint续训7/8hold、6/8放置、中位held92帧，对比DAgger376帧。完整独立审计通过，局部 PROMISING；先做冻结matched重复/Validation，尚未证明多motion泛化。
 
 这些是同一 airplane reference 的 Probe，尚未证明 G 泛化、精准目标位姿、完整参考跟踪
 或 Cm 帮助 RL；先获得自主物理 baseline，再进入 PointWorld 动作条件 critic。
@@ -67,7 +71,7 @@ Probe，保留LR恢复为备选。CPU库存审计两轮PPO共有93,376合法窗�
 固定数据/control/门槛小Probe；不直接扩PPO或接WM。
 不把offline信用或训练reward改善当作抓取收益。consequence-evaluator后续实验按用户
 要求暂停；保留其实现、修复和运行证据。继承根级Mission/Campaign/AGENTS，包括
-无真实未来q/物体参考、phase/clock或触觉策略输入；不新建分支、不push。
+旧ref1阶段无真实未来q/物体参考、phase/clock或触觉策略输入；当前ref3的人手/物体计划参考按用户后续授权使用。不新建分支、不push。
 
 - [架构建议与最小验证路径](docs/research/20261010-ref1-architecture.md)
 - [RLT/PPO/chunk原始来源核对](docs/research/20261010-trajectory-policy-source-check.md)

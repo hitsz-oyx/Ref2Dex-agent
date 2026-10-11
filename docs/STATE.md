@@ -2,8 +2,9 @@
 
 ## 2026-10-11 ref3：competent teacher 真实 PD 分层路线
 
-用户已确认官方 DExplore actor 仅作为 teacher、监督实际下发的 PD target，G 为物体
-目标位姿，R 每步读取真实测量反馈。保留完整24步手轨迹，当前不接 PointWorld。
+用户已确认官方 DExplore actor 作为 teacher、监督实际下发的 PD target，R 每步读取
+真实测量反馈。后续已明确允许 G 使用 t+1/t+16 人手和物体计划参考，并允许 DAgger；
+早先仅物体终目标 G12 是 agent 的限制假设，现已纠正。保留完整24步手轨迹，当前不接 PointWorld。
 新训练数据是明确可训练的新采集，旧工程 packet 的禁训标记保持原样。
 
 [P-20261011-competent-pd-retargeter](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-competent-pd-retargeter.md)：
@@ -35,6 +36,20 @@ teacher4/4，GT-R4/4hold+3/4放置，纯轨迹0/8hold，联合PD4/8hold（最长
 教师末端物体位置相对 G 平均误差143.98mm；当前 hold/放置指标不证明精准目标位姿
 或完整参考轨迹跟踪，更没有 Cm-on/off 训练收益。本路线预算共用20GPUmin/1GiB，
 不改 Campaign，不新建分支、不push。
+
+[参考条件/PD DAgger Probe](../src/task/trajectory-policy/docs/experiments/probes/P-20261011-reference-goal-dagger.md)：
+H328/G408参考位姿与 native hoi_data 比较 exact。BC3000updates/28.10s，joint val
+PD MSE .02297、启动RMS .618mm，独立审计通过。首次自主物理执行完整测量已保存，
+汇总数组维度错误在7f67d38f修复；原FAILED记录保留，另行恢复汇总并独立审计通过。
+自主0/8hold/放置；teacher4/4hold但1/4放置未过校准，GT-R4/4hold、3/4放置，
+首轮 UNCLEAR。随后完成一轮 beta=.25 训练期PD查询与matched continuation：4336查询、
+实际干预24.42%、采集7/8放置，训练3000updates/36.83s；完全无干预 seed186 评估
+PD DAgger8/8hold+放置、median376帧、clip0%、物体参考RMSE7.57cm，teacher4/4、RMSE6.97cm，
+GT-R4/4、median436。仅offline joint续训7/8hold、6/8放置、median92帧、RMSE75.69cm。
+完整输入/模型/R/下发PD/outcome审计通过，局部 PROMISING。保持固定R与参考anchors，
+下一步冻结matched重复/Validation，不继续aggregation扫描或接PointWorld。单motion/
+单评估seed和teacher首次live变动限制了结论；query-val失败env23恢复仍未学会。
+新产物452.1MiB，35 Task tests通过，所有自有GPU任务已结束，不改 Campaign。
 
 ## 2026-10-10 用户转入 trajectory-policy 新架构设计
 
