@@ -60,8 +60,8 @@ the 4-4090 host; no existing sibling directory is overwritten. A positive
 qualification requires at least 40/52 declared clips, at least 10 fit and 10
 dev records, and at least 8 tasks with all stored-pack audits passing. A
 shortfall, source/hash drift, contract error, resource conflict, or output
-collision stops the run. Qualified packs remain `training_allowed=false` until
-an explicit expanded-cohort admission manifest is produced. The user's
+collision stops the run. The combined manifest is a run-local admission ledger
+for this Probe; source packs retain `training_allowed=false`. The user's
 untracked reference files and `pointwam_core.py` remain untouched.
 
 ## PointWAM expansion result (2026-10-11)
