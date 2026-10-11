@@ -16,7 +16,10 @@ from torch import nn
 from .pointwam_data import sha256
 
 
-def load_qualified(manifest: Path) -> list[dict]:
+def load_qualified(manifest: Path, *, expected_clips: int = 12,
+                   expected_fit_clips: int = 6) -> list[dict]:
+    if not (1 <= expected_clips <= 52 and 2 <= expected_fit_clips < expected_clips):
+        raise ValueError("cohort must declare 1..52 clips, at least two fit clips and a dev clip")
     data = json.loads(manifest.read_text())
     if data.get("status") != "COMPLETED" or not data.get("gate_pass"):
         raise ValueError("data qualification has not passed")
@@ -51,9 +54,9 @@ def load_qualified(manifest: Path) -> list[dict]:
             raise ValueError("empty instruction")
         clips.append(dict(pack=pack, path=str(path), sha256=row["pack_sha256"],
                           episode=row["episode_id"], partition=row["partition"]))
-    if (len(clips) != 12 or len({c["path"] for c in clips}) != 12
-            or sum(c["partition"] == "fit_candidate" for c in clips) != 6):
-        raise ValueError("expected the frozen twelve-clip/six-fit cohort")
+    if (len(clips) != expected_clips or len({c["path"] for c in clips}) != expected_clips
+            or sum(c["partition"] == "fit_candidate" for c in clips) != expected_fit_clips):
+        raise ValueError(f"expected the declared {expected_clips}-clip/{expected_fit_clips}-fit cohort")
     return clips
 
 

@@ -111,6 +111,7 @@ def run(args):
         cuda_visible_devices=os.getenv("CUDA_VISIBLE_DEVICES"), seed=args.seed,
         smoke=args.smoke, steps=args.steps, scene_points=args.scene_points, seconds_cap=args.seconds,
         learning_rate=args.learning_rate,
+        expected_clips=args.expected_clips, expected_fit_clips=args.expected_fit_clips,
         output_bytes_cap=1024 ** 3, qualification=str(args.qualification.resolve()),
         qualification_sha256=sha256(args.qualification), architecture="small RGB/geometry set MLP; learned word table",
         author_architecture=False, training_inputs="current frame only; teacher future targets are supervision")
@@ -124,7 +125,8 @@ def run(args):
         torch.manual_seed(args.seed); np.random.seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
         device = "cuda:0"
-        clips = load_qualified(args.qualification)
+        clips = load_qualified(args.qualification, expected_clips=args.expected_clips,
+                               expected_fit_clips=args.expected_fit_clips)
         manifest["code_sha256"] = {str(path): sha256(path) for path in (
             Path(__file__), TASK / "src/oakink_wm/pointwam_learning.py", TASK / "src/oakink_wm/pointwam_data.py")}
         fit = [c for c in clips if c["partition"] == "fit_candidate"]
@@ -226,6 +228,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=600)
     parser.add_argument("--scene-points", type=int, default=1024)
+    parser.add_argument("--expected-clips", type=int, default=12)
+    parser.add_argument("--expected-fit-clips", type=int, default=6)
     parser.add_argument("--seed", type=int, default=247)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--experiment-id", default="P-20261011-pointwam-joint-learning")
@@ -233,7 +237,8 @@ def main():
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
     if not (1 <= args.steps <= 600 and 1 <= args.scene_points <= 1024 and 1 <= args.seconds <= 900
-            and args.learning_rate > 0):
+            and args.learning_rate > 0 and 1 <= args.expected_clips <= 52
+            and 2 <= args.expected_fit_clips < args.expected_clips):
         parser.error("budget capped at 600steps /1024points /900seconds")
     if not args.smoke and (args.steps != 600 or args.scene_points != 1024 or args.seed != 247):
         parser.error("main Probe uses the frozen 600step/1024point/247seed protocol")
