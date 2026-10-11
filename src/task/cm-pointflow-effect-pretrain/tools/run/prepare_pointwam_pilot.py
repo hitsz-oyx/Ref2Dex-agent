@@ -179,6 +179,7 @@ def main() -> None:
     start = time.monotonic(); deadline = start+args.seconds
     report = dict(status="RUNNING", run_id=args.output.name, engineering_only=True,
                   training_allowed=False, split="official_test", device="cuda:0",
+                  cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES"), pid=os.getpid(),
                   depth_backend="SpaTrackerV2-VGGT4Track (substitute; not VGGT-Omega)",
                   exact_paper_backend=False, strictly_causal_observation=False,
                   observation_provenance="offline full-clip teacher reconstruction",
