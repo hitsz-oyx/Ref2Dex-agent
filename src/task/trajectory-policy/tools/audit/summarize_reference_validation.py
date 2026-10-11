@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -36,7 +37,7 @@ def main():
     if out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents:
         raise ValueError('fresh owned summary output required')
     protocol = yaml.safe_load(args.card.read_text().split('---', 2)[1])
-    reports, hashes, found = [], {}, []
+    reports, hashes, found, initial_states = [], {}, [], []
     for folder in args.runs:
         m = json.loads((folder / 'manifest.json').read_text())
         r = json.loads((folder / 'result.json').read_text())
@@ -91,6 +92,7 @@ def main():
         calibrated = all(rows[role]['hold45'] >= 3 and rows[role]['success'] >= 3 for role in ('teacher', 'gt_tau_R'))
         student_gates = {role: gates(rows[role], rows['teacher'], rows['gt_tau_R']) for role in ('tau_only', 'joint')}
         initial = {key: float(np.max(np.abs(data[key][0, 8:16] - data[key][0, 16:24]))) for key in ('q', 'obj', 'hand', 'velocity')}
+        initial_states.append({key: data[key][0].copy() for key in ('q', 'obj', 'hand', 'velocity')})
         reports.append(dict(seed=m['seed'], run_id=m['run_id'], calibrated=calibrated,
             groups=rows, gates=student_gates, initial_offline_dagger_max_difference=initial))
         found.append(m['seed'])
@@ -112,7 +114,31 @@ def main():
         repeated_descriptive_advantage=bool(repeated_advantage), seeds=reports,
         input_sha256=hashes, summary_tool_sha256=sha(__file__),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip())
+    result['cross_seed_initial_max_difference'] = {
+        key: float(np.max(np.abs(initial_states[0][key] - initial_states[1][key])))
+        for key in initial_states[0]}
     (out / 'result.json').write_text(json.dumps(result, indent=2, allow_nan=False) + '\n')
+    os.environ['MPLCONFIGDIR'] = str(ROOT / 'tmp/trajectory-policy/competent-pd/matplotlib')
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.5))
+    for offset, (role, label) in enumerate((('tau_only', 'Offline continuation'), ('joint', 'PD DAgger'))):
+        positions = np.arange(2) + (offset - .5) * .35
+        values = [r['groups'][role] for r in reports]
+        for ax, metric in zip(axes, ('success', 'median_held', 'reference_position_rmse_m')):
+            ax.bar(positions, [r[metric] for r in values], width=.35, label=label)
+    for ax, label in zip(axes, ('Controlled placements / 8', 'Median held frames', 'Object reference RMSE (m)')):
+        ax.set_ylabel(label)
+        ax.set_xticks(np.arange(2))
+        ax.set_xticklabels(['Seed ' + str(r['seed']) for r in reports])
+        ax.grid(axis='y', alpha=.2)
+    axes[0].set_ylim(0, 8.5)
+    axes[0].legend(fontsize=8)
+    fig.suptitle('Fixed models, independent launches, teacher intervention off')
+    fig.tight_layout()
+    fig.savefig(out / 'comparison.png', dpi=160)
+    plt.close(fig)
     print(json.dumps(result))
 
 
