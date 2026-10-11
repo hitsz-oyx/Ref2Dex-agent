@@ -5,7 +5,7 @@ experiment_id: P-20261011-goal-point-wam-three-domain-smoke
 date: 2026-10-11
 task: goal-point-wam
 branch: cm-pointflow-effect-pretrain
-git_commit: d27ad40f
+git_commit: 2a3a985f
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 status: COMPLETED
