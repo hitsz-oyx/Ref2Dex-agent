@@ -6,7 +6,7 @@ import pytest
 import torch
 
 
-TASK = Path(__file__).resolve().parents[2]
+TASK = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TASK / "src"))
 
 from goal_point_wam.data import (  # noqa: E402
@@ -118,14 +118,13 @@ def test_goal_and_world_components_are_finite_with_missing_goal_points():
     assert torch.isfinite(tokens).all()
 
     action = ExecutedActionAdapter(stats)
-    encoded, summary, action_mask = action(torch.zeros(2, 24, 2, 11, 9), valid[:, :2].unsqueeze(1).expand(2, 24, 2, 11))
+    encoded, action_mask = action(torch.zeros(2, 24, 2, 11, 9), valid[:, :2].unsqueeze(1).expand(2, 24, 2, 11))
     assert encoded.shape == (2, 528, 128)
-    assert summary.shape == (2, 24, 128)
-    assert action_mask.shape == (2, 24)
+    assert action_mask.shape == (2, 528)
     world = WorldDecoder(stats)
     output = world(torch.zeros(2, 8, 128), torch.ones(2, 8, dtype=torch.bool),
                    torch.zeros(2, 1, 128), torch.ones(2, 1, dtype=torch.bool),
-                   summary, action_mask)
+                   encoded, action_mask)
     assert output["translation"].shape == (2, 1, 24, 3)
     assert output["rotation"].shape == (2, 1, 24, 3, 3)
     assert torch.isfinite(output["translation"]).all()
@@ -137,3 +136,69 @@ def test_full_model_world_isolation_smoke():
     # The GPU engineering entry point performs this audit against a real
     # three-source batch; this test is intentionally only an opt-in CUDA gate.
     pytest.skip("covered by train_three_domain.py GPU engineering audit")
+
+
+def test_world_preserves_keypoint_assignment_and_masks_missing_actions():
+    # The former per-time mean was invariant to this permutation. World memory
+    # must retain semantic assignment, and invalid payloads must be irrelevant.
+    torch.set_num_threads(2)
+    torch.manual_seed(9)
+    stats = dict(action_mean=[0.] * 9, action_std=[1.] * 9,
+                 flow_mean=[[0.] * 3] * 24, flow_std=[[1.] * 3] * 24,
+                 translation_mean=[[0.] * 3] * 24, translation_std=[[1.] * 3] * 24,
+                 rotation_scale=[1.] * 24)
+    adapter, world = ExecutedActionAdapter(stats), WorldDecoder(stats)
+    torch.nn.init.normal_(world.head[-1].weight, std=.02)
+    action = torch.randn(1, 24, 2, 11, 9)
+    valid = torch.ones(1, 24, 2, 11, dtype=torch.bool)
+    valid[:, :, 1] = False
+    scene = torch.randn(1, 8, 128)
+    scene_mask = torch.ones(1, 8, dtype=torch.bool)
+    objects = torch.randn(1, 1, 128)
+    object_mask = torch.ones(1, 1, dtype=torch.bool)
+    def predict(payload):
+        tokens, mask = adapter(payload, valid)
+        return world(scene, scene_mask, objects, object_mask, tokens, mask)['translation']
+    with torch.no_grad():
+        original = predict(action)
+        corrupted = action.clone()
+        corrupted[:, :, 1] = float('nan')
+        assert torch.equal(original, predict(corrupted))
+        permuted = action.flip(3)
+        assert (original - predict(permuted)).abs().max() > 1e-5
+
+
+def test_pretrained_transfer_is_strict_and_leaves_new_projection_untouched(monkeypatch):
+    from goal_point_wam import pretrained
+    class Scene(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.backbone = torch.nn.Linear(2, 2)
+            self.scene_proj = torch.nn.Linear(2, 2)
+            self.object_proj = torch.nn.Linear(2, 2)
+            self.register_buffer('scene_mean', torch.zeros(2))
+            self.register_buffer('scene_std', torch.ones(2))
+    scene = Scene()
+    monkeypatch.setattr(pretrained, 'file_digest', lambda path: 'vendor')
+    config = dict(hidden=128, patch_size=128, fps=30, history=4, horizon=24,
+                  voxel_m=.01, voxel_origin_m=[-2., -2., -2.])
+    source = {}
+    for key, value in scene.state_dict().items():
+        if key.startswith('object_proj.'): continue
+        name = 'backbone.core.' + key[len('backbone.'):] if key.startswith('backbone.') else key
+        source[name] = value.clone() if key.startswith('scene_') and '.' not in key else torch.full_like(value, .3)
+    state = dict(checkpoint_kind='pointworld-temporal.ddp.v1', config=config, step=50000,
+                 identity=dict(stats_sha256='stats', git_commit='parent',
+                               vendor_sources={'ptv3/ptv3.py': 'vendor', 'ptv3/ptv3_arch.yaml': 'vendor'}),
+                 model=source)
+    before = {key: value.clone() for key, value in scene.state_dict().items()}
+    source['scene_std'] = torch.full((2,), 2.)
+    with pytest.raises(ValueError, match='normalization buffer'): pretrained.transfer_scene(scene, state, config, 'stats')
+    assert all(torch.equal(before[k], v) for k, v in scene.state_dict().items())
+    source['scene_std'] = torch.ones(2)
+    report = pretrained.transfer_scene(scene, state, config, 'stats')
+    assert report['transferred_parameters'] == 12
+    assert torch.equal(scene.backbone.weight, source['backbone.core.weight'])
+    assert torch.equal(scene.object_proj.weight, before['object_proj.weight'])
+    with pytest.raises(ValueError, match='normalization hash'): pretrained.transfer_scene(scene, state, config, 'wrong')
+    with pytest.raises(ValueError, match='config mismatch'): pretrained.transfer_scene(scene, state, {**config, 'patch_size': 64}, 'stats')

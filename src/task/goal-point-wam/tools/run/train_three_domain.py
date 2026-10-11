@@ -26,6 +26,7 @@ sys.path.insert(0, str(TASK / "src"))
 sys.path.insert(0, str(CM_TASK / "src"))
 
 from goal_point_wam.data import GoalWindows, goal_collate  # noqa: E402
+from goal_point_wam.pretrained import initialize_pw
 from goal_point_wam.model import GoalPointWAM  # noqa: E402
 from oakink_wm.model import metrics, object_motion_masks  # noqa: E402
 from oakink_wm.multisource import MAIN_SOURCE_NAMES, mixed_indices  # noqa: E402
@@ -70,9 +71,12 @@ def gpu_snapshot(device: torch.device) -> dict:
     index = torch.cuda.current_device()
     result = dict(device=f"cuda:{index}", allocated_bytes=torch.cuda.memory_allocated(index),
                   reserved_bytes=torch.cuda.memory_reserved(index))
+    visible = os.environ.get("CUDA_VISIBLE_DEVICES", "").split(",")
+    physical = visible[index].strip() if visible[0] else str(index)
+    result["physical_gpu"] = physical
     try:
         text = subprocess.check_output(
-            ["nvidia-smi", "-i", str(index), "--query-gpu=utilization.gpu,memory.used,memory.total",
+            ["nvidia-smi", "-i", str(physical), "--query-gpu=utilization.gpu,memory.used,memory.total",
              "--format=csv,noheader,nounits"], text=True, timeout=5).strip()
         util, used, total = [int(piece.strip()) for piece in text.split(",")]
         result.update(utilization_percent=util, memory_used_mib=used, memory_total_mib=total)
@@ -134,13 +138,15 @@ def evaluate(model, dataset: GoalWindows, indices: np.ndarray, batch_size: int,
     model.train()
     result = {}
     for name in names:
-        result[f"source/{name}/trajectory_epe_m"] = trajectory_sum[name] / max(1, trajectory_count[name])
-        result[f"source/{name}/world_point_epe_m_h24"] = world_sum[name] / max(1, world_count[name])
-        result[f"source/{name}/moving_world_point_epe_m_h24"] = moving_sum[name] / max(1, moving_count[name])
-        result[f"source/{name}/static_world_point_epe_m_h24"] = static_sum[name] / max(1, static_count[name])
-    valid_world = [result[f"source/{name}/world_point_epe_m_h24"] for name in names]
+        result[f"source/{name}/trajectory_epe_m"] = trajectory_sum[name] / trajectory_count[name] if trajectory_count[name] else None
+        result[f"source/{name}/world_point_epe_m_h24"] = world_sum[name] / world_count[name] if world_count[name] else None
+        result[f"source/{name}/moving_world_point_epe_m_h24"] = moving_sum[name] / moving_count[name] if moving_count[name] else None
+        result[f"source/{name}/static_world_point_epe_m_h24"] = static_sum[name] / static_count[name] if static_count[name] else None
+        result[f"source/{name}/counts"] = dict(trajectory_points=trajectory_count[name],
+            objects=world_count[name], moving_objects=moving_count[name], static_objects=static_count[name])
+    valid_world = [result[f"source/{name}/world_point_epe_m_h24"] for name in names if world_count[name]]
     result["macro/world_point_epe_m_h24"] = float(np.mean(valid_world))
-    result["macro/trajectory_epe_m"] = float(np.mean([result[f"source/{name}/trajectory_epe_m"] for name in names]))
+    result["macro/trajectory_epe_m"] = float(np.mean([result[f"source/{name}/trajectory_epe_m"] for name in names if trajectory_count[name]]))
     return result
 
 
@@ -148,11 +154,13 @@ def goal_isolation(model, batch: dict[str, torch.Tensor]) -> float:
     """Return the maximum world-output change after replacing only the goal."""
     was_training = model.training
     model.eval()
-    original = model(batch)
+    with torch.no_grad():
+        original = model(batch)
     changed = {key: value.clone() for key, value in batch.items()}
     changed["goal_hand"] = torch.flip(changed["goal_hand"], dims=(1, 2)) + .07
     changed["goal_hand_valid"] = batch["goal_hand_valid"].clone()
-    altered = model(changed)
+    with torch.no_grad():
+        altered = model(changed)
     difference = max(
         (original["translation"] - altered["translation"]).abs().max().item(),
         (original["rotation"] - altered["rotation"]).abs().max().item(),
@@ -160,6 +168,33 @@ def goal_isolation(model, batch: dict[str, torch.Tensor]) -> float:
     if was_training:
         model.train()
     return float(difference)
+
+
+def engineering_audit(model, batch, saved):
+    """Real-batch goal isolation, branch gradients and exact checkpoint replay."""
+    model.eval()
+    prediction = model(batch)
+    shared = model.scene.scene_proj[0].weight
+    trajectory = model.trajectory_loss(prediction["trajectory"], batch)
+    world, _ = model.world_loss(prediction, batch)
+    gradients = {}
+    for name, loss in (("trajectory", trajectory), ("world", world)):
+        grad, = torch.autograd.grad(loss, shared, retain_graph=True)
+        norm = float(grad.norm().item())
+        if not math.isfinite(norm) or norm <= 0:
+            raise RuntimeError(name + " loss does not reach shared scene projection")
+        gradients[name + "_scene_gradient_norm"] = norm
+    reference = {key: value.detach().clone() for key, value in prediction.items()}
+    del prediction, trajectory, world
+    state = torch.load(saved, map_location="cpu", weights_only=False)
+    model.load_state_dict(state["model"], strict=True)
+    with torch.no_grad():
+        replay = model(batch)
+    replay_max = max(float((reference[key] - replay[key]).abs().max()) for key in reference)
+    isolation = goal_isolation(model, batch)
+    if replay_max > 1e-5 or isolation > 1e-5:
+        raise RuntimeError("checkpoint replay or goal isolation failed")
+    return dict(**gradients, checkpoint_replay_max=replay_max, goal_world_isolation_max=isolation)
 
 
 def run(args: argparse.Namespace) -> None:
@@ -203,21 +238,32 @@ def run(args: argparse.Namespace) -> None:
                     data_manifest_sha256=data_hash, stats_sha256=digest(args.stats), sources=names,
                     config_sha256=digest(args.config), script_sha256=digest(Path(__file__)),
                     model_parameters=None, device=str(device), no_video=True)
-    model = GoalPointWAM(stats, config).to(device)
+    model = GoalPointWAM(stats, config)
+    if args.init_pw:
+        identity["pretrained"] = initialize_pw(model, args.init_pw, config, identity["stats_sha256"])
+    elif not args.resume and not args.random_init:
+        raise ValueError("fresh runs require --init-pw; --random-init is an explicit control")
+    identity["model_sha256"] = digest(TASK / "src/goal_point_wam/model.py")
+    identity["pretrained_loader_sha256"] = digest(TASK / "src/goal_point_wam/pretrained.py")
+    identity["initial_parameter_sha256"] = parameter_hash(model)
+    model = model.to(device)
     identity["model_parameters"] = sum(parameter.numel() for parameter in model.parameters())
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"],
                                   weight_decay=config["weight_decay"])
-    atomic_json(output / "input_manifest.json", identity)
     step, best = 0, float("inf")
     if args.resume:
         state = torch.load(args.resume, map_location=device, weights_only=False)
-        if state["identity"].get("data_manifest_sha256") != data_hash or state["config"] != config:
+        if (state["identity"].get("data_manifest_sha256") != data_hash or state["config"] != config
+                or state["identity"].get("model_sha256") != identity["model_sha256"]
+                or state["identity"].get("stats_sha256") != identity["stats_sha256"]):
             raise ValueError("resume identity/config mismatch")
+        identity = state["identity"]
         model.load_state_dict(state["model"]); optimizer.load_state_dict(state["optimizer"])
         step, best = int(state["step"]), float(state["best"])
         torch.set_rng_state(state["torch_rng"].cpu())
         if device.type == "cuda": torch.cuda.set_rng_state(state["cuda_rng"].cpu())
         np.random.set_state(state["numpy_rng"]); random.setstate(state["python_rng"])
+    atomic_json(output / "input_manifest.json", identity)
     train_indices = mixed_indices(train_base, config["updates"] * config["microbatch"] * config["accumulation"],
                                    int(config["seed"]) + 1)
     validation = mixed_indices(val_base, config["validation_samples"], int(config["validation_seed"]),
@@ -282,6 +328,8 @@ def run(args: argparse.Namespace) -> None:
                      gpu=gpu_snapshot(device), engineering_only=args.smoke)
         if step:
             final["validation"] = json.loads((output / "validation_latest.json").read_text()).get("metrics", {})
+        if args.smoke:
+            final["engineering_audit"] = engineering_audit(model, batch, output / "final.pt")
         atomic_json(output / "result.json", final)
         atomic_json(output / "progress.json", final)
         print(json.dumps(final), flush=True)
@@ -302,7 +350,10 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--steps", type=int)
     parser.add_argument("--deadline", type=float)
-    parser.add_argument("--resume", type=Path)
+    initialization = parser.add_mutually_exclusive_group()
+    initialization.add_argument("--resume", type=Path)
+    initialization.add_argument("--init-pw", type=Path)
+    initialization.add_argument("--random-init", action="store_true")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--require-cuda", action="store_true")
     args = parser.parse_args()

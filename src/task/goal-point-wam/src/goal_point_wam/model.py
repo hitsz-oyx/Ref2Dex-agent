@@ -211,10 +211,9 @@ class ExecutedActionAdapter(nn.Module):
         hand = torch.arange(HANDS, device=action.device)[None, :, None]
         keypoint = torch.arange(KEYPOINTS, device=action.device)[None, None, :]
         encoded = (self.proj(normalized) + self.time(time) + self.hand(hand) + self.keypoint(keypoint))
-        counts = valid.sum(dim=(2, 3), keepdim=False).clamp_min(1).to(encoded.dtype)
-        summary = (encoded * valid[..., None].to(encoded.dtype)).sum(dim=(2, 3)) / counts[..., None]
-        summary_mask = valid.any(dim=(2, 3))
-        return encoded.reshape(len(action), HORIZON * HAND_POINTS, HIDDEN), summary, summary_mask
+        encoded = torch.where(valid[..., None], encoded, torch.zeros_like(encoded))
+        return (encoded.reshape(len(action), HORIZON * HAND_POINTS, HIDDEN),
+                valid.reshape(len(action), HORIZON * HAND_POINTS))
 
 
 class WorldDecoder(nn.Module):
@@ -235,9 +234,9 @@ class WorldDecoder(nn.Module):
 
     def forward(self, scene: torch.Tensor, scene_mask: torch.Tensor,
                 objects: torch.Tensor, object_mask: torch.Tensor,
-                action_summary: torch.Tensor, action_mask: torch.Tensor):
+                action_tokens: torch.Tensor, action_mask: torch.Tensor):
         batch, objects_count = objects.shape[:2]
-        memory = torch.cat((scene, action_summary), dim=1)
+        memory = torch.cat((scene, action_tokens), dim=1)
         memory_mask = torch.cat((scene_mask, action_mask), dim=1)
         time = self.time.weight[None, None].expand(batch, objects_count, -1, -1)
         query = objects[:, :, None] + time
@@ -286,9 +285,9 @@ class GoalPointWAM(nn.Module):
         trajectory = self.trajectory(scene["scene_tokens"], scene["scene_mask"], goal_tokens, goal_mask)
         action = batch["action"].reshape(-1, HORIZON, HANDS, KEYPOINTS, 9)
         action_valid = batch["action_valid"].reshape(-1, HORIZON, HANDS, KEYPOINTS)
-        _, action_summary, action_mask = self.action(action, action_valid)
+        action_tokens, action_mask = self.action(action, action_valid)
         world = self.world(scene["scene_tokens"], scene["scene_mask"], scene["object_tokens"],
-                           scene["object_mask"], action_summary, action_mask)
+                           scene["object_mask"], action_tokens, action_mask)
         return dict(trajectory=trajectory, translation=world["translation"], rotation=world["rotation"])
 
     def trajectory_loss(self, pred: torch.Tensor, batch: dict[str, torch.Tensor]):
