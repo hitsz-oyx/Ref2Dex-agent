@@ -1,4 +1,4 @@
-"""Run and audit the frozen twelve-clip official-TRAIN PointWAM qualification."""
+"""Run and audit a bounded official-TRAIN PointWAM qualification group."""
 from __future__ import annotations
 
 import argparse
@@ -44,13 +44,18 @@ def main() -> None:
     p.add_argument("--depth-checkpoint", type=Path, required=True)
     p.add_argument("--tracker-vendor", type=Path, required=True)
     p.add_argument("--tracker-checkpoint", type=Path, required=True)
+    p.add_argument("--expected-episodes", type=int, default=6,
+                   help="number of distinct selected episodes in this group (1..6)")
     p.add_argument("--seconds", type=int, default=1800)
     a = p.parse_args()
+    if not 1 <= a.expected_episodes <= 6:
+        p.error("expected-episodes must be between1 and6")
     if not 1 <= a.seconds <= 1800:
         p.error("group processing is capped at30minutes")
     selected = json.loads(a.selection.read_text())
     source = json.loads(a.source_manifest.read_text())
-    if (len(selected) != 6 or len({r["member"] for r in selected}) != 6
+    if (len(selected) != a.expected_episodes
+            or len({r["member"] for r in selected}) != a.expected_episodes
             or any(r["partition"] not in ("fit_candidate", "dev_candidate") for r in selected)
             or source["selection_sha256"] != sha256(a.selection) or source["selection"] != selected):
         raise ValueError("frozen selection/partition identity mismatch")
@@ -77,7 +82,8 @@ def main() -> None:
                   pid=os.getpid(), cuda_visible_devices=os.environ.get("CUDA_VISIBLE_DEVICES"),
                   git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                   source_manifest_sha256=sha256(a.source_manifest), selection=selected,
-                  selection_sha256=sha256(a.selection), seconds_cap=a.seconds, episodes=[], clips=[])
+                  selection_sha256=sha256(a.selection), expected_episodes=a.expected_episodes,
+                  seconds_cap=a.seconds, episodes=[], clips=[])
 
     def save(stage: str) -> None:
         report.update(stage=stage, elapsed_s=time.monotonic() - start)
