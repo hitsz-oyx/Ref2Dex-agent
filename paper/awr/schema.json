@@ -1,0 +1,8 @@
+{
+  "title": "Advantage-Weighted Regression: Simple and Scalable Off-Policy Reinforcement Learning",
+  "arxiv_url": "https://arxiv.org/abs/1910.00177",
+  "project_url": "https://xbpeng.github.io/projects/AWR/",
+  "related_primary_source": "https://arxiv.org/abs/2102.06782",
+  "verification_date": "2026-10-11",
+  "notes": "Ref3 pilot borrows value/advantage-weighted regression: real physical returns fit action-conditioned Q and Q-derived weights train trajectory actor. Fixed 24-step truncated behavior-continuation return, deterministic actor, rank33 decaying exploration, diagonal normalized squared-error surrogate and explicit parameter trust interpolation are project adaptations. This does not reproduce AWR/QWR algorithms or their theoretical guarantees. No gradients through frozen PW."
+}
