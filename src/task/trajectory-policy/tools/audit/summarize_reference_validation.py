@@ -36,7 +36,18 @@ def main():
     out = args.output.resolve()
     if out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents:
         raise ValueError('fresh owned summary output required')
-    protocol = yaml.safe_load(args.card.read_text().split('---', 2)[1])
+    first_manifest = json.loads((args.runs[0] / 'manifest.json').read_text())
+    card_path = args.card.resolve()
+    if str(card_path) != first_manifest['validation_card']:
+        raise ValueError('exact recorded protocol card required')
+    protocol_sha = first_manifest['input_sha256'][str(card_path)]
+    protocol_bytes = card_path.read_bytes()
+    if hashlib.sha256(protocol_bytes).hexdigest() != protocol_sha:
+        protocol_bytes = subprocess.check_output(['git', 'show', first_manifest['git_commit'] + ':'
+            + str(card_path.relative_to(ROOT))], cwd=ROOT)
+    if hashlib.sha256(protocol_bytes).hexdigest() != protocol_sha:
+        raise ValueError('cannot authenticate original frozen protocol')
+    protocol = yaml.safe_load(protocol_bytes.decode().split('---', 2)[1])
     reports, hashes, found, initial_states = [], {}, [], []
     for folder in args.runs:
         m = json.loads((folder / 'manifest.json').read_text())
@@ -51,6 +62,8 @@ def main():
             if sha(path) != digest:
                 raise ValueError('audited measurement/model drift: ' + path)
         for path, digest in m['input_sha256'].items():
+            if Path(path) == card_path and digest == protocol_sha:
+                continue  # Results may be appended; frozen protocol is authenticated above.
             if sha(path) != digest:
                 raise ValueError('frozen execution input drift: ' + path)
         fit = Path(m['actor_fit'])
@@ -107,8 +120,8 @@ def main():
         r['groups']['joint']['reference_position_rmse_m'] <= .8 * r['groups']['tau_only']['reference_position_rmse_m']
         and r['groups']['joint']['median_held'] >= 1.25 * r['groups']['tau_only']['median_held'] for r in reports)
     out.mkdir()
-    (out / 'protocol_frozen.md').write_bytes(args.card.read_bytes())
-    hashes[str(args.card.resolve())] = sha(args.card)
+    (out / 'protocol_frozen.md').write_bytes(protocol_bytes)
+    hashes[str(card_path)] = protocol_sha
     result = dict(schema='ref2dex.reference-validation-summary.v1', experiment_id=protocol['validation_id'],
         status='COMPLETED', conclusion=verdict, scope='two prespecified holdout launches; fixed models and single reference',
         repeated_descriptive_advantage=bool(repeated_advantage), seeds=reports,
