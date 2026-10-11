@@ -127,6 +127,47 @@ def initialize_weights(state, model, config, identity):
                                 for key in recipe_keys if state['config'].get(key)!=config.get(key)})
 
 
+def initialize_from_video_aux(path, model):
+    """Import only shape-compatible scene weights from a data-only video arm.
+
+    The official H5 auxiliary model has no native action/hand/object heads and
+    uses a raw PTv3 backbone, while this trainer wraps that backbone in a
+    time-preserving adapter.  Copying is therefore explicit and limited to the
+    shared scene projection, PTv3 core, and scene skip parameters.  Native
+    normalization buffers and all action/object/output heads stay freshly
+    initialized.
+    """
+    state = torch.load(path, map_location='cpu', weights_only=False)
+    source = state.get('model', state)
+    current = model.state_dict()
+    selected = {}
+    for source_key, value in source.items():
+        if source_key.startswith('backbone.'):
+            target_key = 'backbone.core.' + source_key[len('backbone.'):]
+        elif (source_key.startswith('scene_proj.') or
+              source_key in {'skip_gamma', 'skip_beta'}):
+            target_key = source_key
+        else:
+            continue
+        if target_key in current and tuple(current[target_key].shape) == tuple(value.shape):
+            selected[target_key] = value
+    if not selected:
+        raise ValueError('video auxiliary checkpoint has no compatible scene tensors')
+    current.update(selected)
+    model.load_state_dict(current, strict=True)
+    return {
+        'kind': 'official-video-data-only-partial-scene-init',
+        'source': str(Path(path).resolve()),
+        'source_sha256': base.digest(path),
+        'selected_tensor_count': len(selected),
+        'selected_parameter_count': int(sum(value.numel() for value in selected.values())),
+        'selected_prefixes': ['scene_proj.', 'backbone.core.', 'skip_gamma', 'skip_beta'],
+        'optimizer_reset': True,
+        'schedule_reset': True,
+        'native_normalization_and_heads': 'fresh',
+    }
+
+
 def run(args):
     if 'RANK' not in os.environ:
         raise RuntimeError('launch this entry with torchrun, including world-size1')
@@ -178,7 +219,11 @@ def run(args):
         stats = json.loads(args.stats.read_text())
         stats_dataset_hash = train.meta['normalization_source_manifest_sha256'] if args.mixed_data else dataset_hash
         if (stats['split']!='train' or stats['input_manifest_sha256']!=stats_dataset_hash
-                or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])):
+                or (args.mixed_data and base.digest(args.stats) != train.meta['normalization_stats_sha256'])
+                or (args.mixed_data and train.meta.get('normalization_mode')
+                    and stats.get('normalization_mode') != train.meta['normalization_mode'])
+                or (args.mixed_data and config.get('normalization_mode')
+                    and config.get('normalization_mode') != train.meta.get('normalization_mode'))):
             raise ValueError('normalization identity mismatch')
         model = model_from_config(stats, config).to(device)
         loss_scales = None
@@ -233,6 +278,10 @@ def run(args):
             identity['parent_checkpoint_sha256'] = base.digest(args.init_weights)
             identity['parent_checkpoint_path'] = str(args.init_weights.resolve())
             del state
+        if args.video_init:
+            identity['initialization'] = initialize_from_video_aux(args.video_init, model)
+            identity['parent_checkpoint_sha256'] = base.digest(args.video_init)
+            identity['parent_checkpoint_path'] = str(args.video_init.resolve())
         if args.continue_from:
             from oakink_wm.continuation import continue_optimizer
             state = torch.load(args.continue_from, map_location='cpu', weights_only=False, mmap=True)
@@ -240,6 +289,10 @@ def run(args):
             identity['parent_checkpoint_sha256'] = base.digest(args.continue_from)
             identity['parent_checkpoint_path'] = str(args.continue_from.resolve())
             del state
+        if args.random_init:
+            identity['initialization'] = dict(random_init=True, optimizer_reset=True,
+                                               schedule_reset=True, draw_reset=True,
+                                               normalization='shared multisource train-union forward statistics')
         checkpoint = args.resume or args.import_single_checkpoint
         if checkpoint:
             state = torch.load(checkpoint, map_location=device, weights_only=False)
@@ -290,7 +343,7 @@ def run(args):
                     metrics = standard_evaluate(net, dataset, selected, arm, batch_size, amp, intervention)
                     source_metrics.append(metrics)
                     for key, value in metrics.items(): measured['source/'+desc['name']+'/'+key] = value
-                key = 'model/anchor/cat0/h24/point_epe'
+                key = base.MOVING_SELECTION_KEY
                 if len(source_metrics) == len(dataset.sources) and all(key in m for m in source_metrics):
                     for common in set.intersection(*(set(m) for m in source_metrics)):
                         measured['pooled/'+common] = measured[common]
@@ -300,13 +353,15 @@ def run(args):
                 return measured
             base.evaluate = mixed_evaluate
         engineering = args.smoke or args.engineering or args.benchmark
-        if (args.init_weights or args.continue_from) and not engineering:
+        if (args.init_weights or args.continue_from or args.video_init) and not engineering:
             measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
-            score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
+            selection = base.validation_selection(measured) if rank==0 else None
+            score = [selection['score'] if rank==0 else None]
             dist.broadcast_object_list(score, src=0)
             best = score[0]
             if rank == 0:
-                baseline = dict(step=0, parent_step=identity['initialization']['parent_step'], metrics=measured)
+                baseline = dict(step=0, parent_step=identity['initialization'].get('parent_step', 0),
+                                metrics=measured, selection=selection)
                 base.atomic_json(out/'validation_initial.json', baseline)
                 with (out/'validation.jsonl').open('a') as f:
                     f.write(json.dumps(baseline)+'\n')
@@ -370,12 +425,15 @@ def run(args):
             can_evaluate = not any_rank(stop[0] or time.time()>=deadline, device)
             if can_evaluate and not (args.benchmark or args.engineering) and (step % config['validation_interval']==0 or step==config['updates']):
                 measured = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp']) if rank==0 else None
-                score = [measured['model/anchor/cat0/h24/point_epe'] if rank==0 else None]
+                selection = base.validation_selection(measured) if rank==0 else None
+                score = [selection['score'] if rank==0 else None]
                 dist.broadcast_object_list(score, src=0)
                 if rank == 0:
-                    base.atomic_json(out/'validation_latest.json', dict(step=step, metrics=measured))
+                    base.atomic_json(out/'validation_latest.json',
+                                     dict(step=step, metrics=measured, selection=selection))
                     with (out/'validation.jsonl').open('a') as f:
-                        f.write(json.dumps(dict(step=step, metrics=measured))+'\n')
+                        f.write(json.dumps(dict(step=step, metrics=measured,
+                                                selection=selection))+'\n')
                 if score[0] < best:
                     best = score[0]
                     if not args.smoke:
@@ -393,7 +451,9 @@ def run(args):
         if rank == 0:
             final = dict(status='COMPLETED' if step==config['updates'] else 'BUDGET_STOP', step=step,
                          elapsed_seconds=time.time()-started, reason=reason, world_size=world,
-                         rank_parameter_hashes=hashes, rank_parameters_identical=True, engineering_only=engineering)
+                         rank_parameter_hashes=hashes, rank_parameters_identical=True,
+                         engineering_only=engineering,
+                         best_validation_score=best if math.isfinite(best) else None)
             if time.time()<deadline and not stop[0] and not (args.benchmark or args.engineering):
                 final['balanced'] = base.evaluate(raw_model, val, validation, args.arm, evaluation_batch, config['amp'])
                 final['natural'] = base.evaluate(raw_model, val, natural, args.arm, evaluation_batch, config['amp'])
@@ -433,7 +493,9 @@ def main():
     group.add_argument('--resume', type=Path)
     group.add_argument('--import-single-checkpoint', type=Path)
     group.add_argument('--init-weights', type=Path, help='New recipe initialized from single-GPU model weights only')
+    group.add_argument('--video-init', type=Path, help='Partial scene initialization from official-video data-only auxiliary weights')
     group.add_argument('--continue-from', type=Path, help='Two-rank recipe migration retaining trained AdamW moments')
+    group.add_argument('--random-init', action='store_true', help='Start a fresh model with the configured seed')
     run(p.parse_args())
 
 

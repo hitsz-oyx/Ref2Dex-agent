@@ -10,7 +10,8 @@ import torch
 
 TASK = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TASK/'src'))
-from oakink_wm.multisource import MixedWindows, mixed_indices, sha, validate_pretrained
+from oakink_wm.multisource import (MixedWindows, mixed_indices, normalization_source_identity,
+                                   sha, validate_pretrained)
 
 
 def make_source(root, name):
@@ -83,6 +84,24 @@ def test_actual_tensor_clock_category_identity_and_source_balanced_draws(tmp_pat
     index = Path(data.meta['sources'][1]['indices']['train']['path'])
     index.write_bytes(index.read_bytes()+b'drift')
     with pytest.raises(ValueError, match='index drift'): MixedWindows(output, 'train')
+
+
+def test_shared_normalization_identity_ignores_derived_paths_and_stats_fields():
+    meta = dict(sources=[
+        dict(name='oakink2', kind='oakink2', weight=5/9, manifest_sha256='oak', indices={
+            split: dict(path='/old/'+split+'.npy', sha256='oak-'+split, windows=10)
+            for split in ('train', 'val', 'test')}),
+        dict(name='grab', kind='native', weight=2/9, manifest_sha256='native', indices={
+            split: dict(path='/old/grab-'+split+'.npy', sha256='grab-'+split, windows=4)
+            for split in ('train', 'val', 'test')}),
+    ])
+    derived = json.loads(json.dumps(meta))
+    derived['sources'][0]['indices']['train']['path'] = '/new/copied.npy'
+    derived['normalization_stats_sha256'] = 'changed'
+    derived['normalization_source_manifest_sha256'] = 'changed'
+    assert normalization_source_identity(meta) == normalization_source_identity(derived)
+    derived['sources'][1]['indices']['val']['sha256'] = 'drift'
+    assert normalization_source_identity(meta) != normalization_source_identity(derived)
 
 
 def test_mixed_model_only_initialization_rejects_scale_and_model_drift():

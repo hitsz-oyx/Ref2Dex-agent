@@ -11,7 +11,8 @@ import torch
 TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK/'src'))
 from oakink_wm.data import Windows, balanced_indices
-from oakink_wm.pointworld import PointWorldWM
+from oakink_wm.pointworld import (DEFAULT_VOXEL_ORIGIN_M, DEFAULT_VOXEL_SIZE_M,
+                                  PointWorldWM)
 spec = importlib.util.spec_from_file_location('trainer', TASK/'tools/run/train_oakink2_pointworld.py')
 trainer = importlib.util.module_from_spec(spec); spec.loader.exec_module(trainer)
 
@@ -26,7 +27,9 @@ def main():
     state=torch.load(a.checkpoint,map_location='cpu',weights_only=False)
     if state['dataset_hash']!=trainer.digest(a.data/'processed/manifest.json'):raise ValueError('dataset mismatch')
     c=state['config'];arm=state['identity']['arm']
-    model=PointWorldWM(state['identity']['stats'], c['patch_size']).cuda()
+    model=PointWorldWM(state['identity']['stats'], c['patch_size'],
+                       voxel_origin_m=c.get('voxel_origin_m', DEFAULT_VOXEL_ORIGIN_M),
+                       voxel_size_m=c.get('voxel_m', DEFAULT_VOXEL_SIZE_M)).cuda()
     model.load_state_dict(state['model'])
     test=Windows(a.data,a.split)
     balanced=balanced_indices(test,a.samples,214 if a.split=='test' else 212)

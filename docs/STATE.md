@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 PW 主实现整合与旧路线归档
+
+按用户授权，以 `cm-pointflow-effect-pretrain` 固定提交 `5f12ae31` 为 PW
+主实现合并，保留本页已有 DExplore/DAgger 进展。旧 PW 数据、checkpoint 和
+pilot 原位归档，历史实现由 `archive/pw-premerge-20261011` 保留；
+详见[归档与复现说明](archive/2026-10-11-pointworld-premerge.md)。
+新实现不能直接复算旧 voxel 语义的 checkpoint；来源校验不放宽。
+
+修复后 sharedstats 基线及 PointWAM 的局部状态见
+[预训练 Task 状态](../src/task/cm-pointflow-effect-pretrain/docs/STATE.md)。
+[Goal-Point-WAM 工程 smoke](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-smoke.md)
+已通过有限梯度、checkpoint 和 world 分支 goal 隔离检查，尚无泛化或 RL 收益结论。
+最终目标仍为 RL；本次只整合代码/证据和同步产物，不启动训练，不改 Mission/Campaign。
+既有两个 worktree 产物去重约 313.6 GB 已超 300 GB；硬链接同步不新增大文件占用，
+后续新增大规模产物前需处理既有超额。
+
 ## 2026-10-11 官方 DExplore corrected12 实际表现筛查
 
 用户暂缓 WAM/PW，优先评估当前参考库。

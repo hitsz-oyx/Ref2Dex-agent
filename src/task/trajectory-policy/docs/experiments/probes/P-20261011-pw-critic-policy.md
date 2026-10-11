@@ -13,11 +13,23 @@ seed_pool: probe
 seeds: [187, 188, 189]
 decision_changed_if_positive: retain frozen PW consequence features for a larger matched policy-training probe
 decision_changed_if_negative: inspect critic informativeness and update scale before spending on longer RL
-status: RUNNING
+status: UNCLEAR
 run_id: pw-critic-policy-20261011-r1
 ---
 
 # Frozen PointWorld action-conditioned Q and bounded policy improvement
+
+## Archive status (2026-10-11)
+
+This bounded pilot is stopped and archived by user choice. Its original
+both-competent benefit screen remains UNPROMISING; the favorable first-launch
+contrast did not establish a mechanism benefit. Old PW artifacts and their
+implementation identities remain intact. See the
+[premerge archive guide](../../../../../../docs/archive/2026-10-11-pointworld-premerge.md)
+before reproducing cache or audit outputs under the legacy checkpoint.
+The protocol and chronological records below are retained as history; RUNNING
+instructions do not authorize further execution. No formal negative RL claim
+follows from this Probe.
 
 ## Motivation / Decision
 
@@ -156,3 +168,18 @@ this already inspected idle PID/command using the existing collector allowance.
 Stop on any new PID, context growth>512MiB, nonfinite or300s. No external process
 operation, no expansion of GPU/count/storage permissions. The physics pilot still
 has only one completed swapped launch; no model/seed selection from failed launch.
+
+## Completed swap and archival decision
+
+Swap-r2 (`a9b0fa64`) completed with full execution audit PASS. The stored
+`outputs/trajectory-policy/pw-critic-policy-summary-20261011-swap-r2/`
+summary reports calibration and both-arm competence PASS. PW-on and PW-off
+both hold/place 8/8; position RMSE is .0704696/.0741192 m, median held
+435/438 frames and clipping 0/.046125%. Position gain is 4.9239%, below the
+predeclared 5% gate, and PW-on has a shorter median hold. Thus this strict
+screen remains UNPROMISING. The large first-launch contrast was not repeated;
+mechanism attribution remains UNCLEAR. No further training or rollout is
+authorized by this historical card. Original outputs and failed swap-r1 stay
+preserved; the current user chooses the new branch implementation as the main
+PW route. Multi-motion, initialization and training-seed evidence remain
+deferred until a new decision justifies them.

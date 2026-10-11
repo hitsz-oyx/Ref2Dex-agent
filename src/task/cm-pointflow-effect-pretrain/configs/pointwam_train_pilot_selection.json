@@ -1,0 +1,26 @@
+[
+  {
+    "member": "part2/basic_pick_place/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/basic_pick_place/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/basic_fold/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/basic_fold/1.hdf5",
+    "partition": "dev_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_basic/0.hdf5",
+    "partition": "fit_candidate"
+  },
+  {
+    "member": "part2/fold_unfold_paper_basic/1.hdf5",
+    "partition": "dev_candidate"
+  }
+]

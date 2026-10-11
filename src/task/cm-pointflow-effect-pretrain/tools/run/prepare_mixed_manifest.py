@@ -10,7 +10,8 @@ TASK = Path(__file__).resolve().parents[2]
 ROOT = TASK.parents[2]
 sys.path.insert(0, str(TASK/'src'))
 from oakink_wm.multisource import (MixedWindows, SOURCE_NAMES, SOURCE_WEIGHTS,
-                                  MAIN_SOURCE_NAMES, MAIN_SOURCE_WEIGHTS, sha)
+                                  MAIN_SOURCE_NAMES, MAIN_SOURCE_WEIGHTS, sha,
+                                  normalization_source_identity)
 
 
 def prepare(roots, output, stats, main_dynamics=False):
@@ -48,17 +49,24 @@ def prepare(roots, output, stats, main_dynamics=False):
             descriptor['indices'][split] = dict(path=str(target.resolve()), sha256=sha(target), windows=len(rows))
         descriptors.append(descriptor)
     norm = json.loads(stats.read_text())
-    if norm['split'] != 'train' or norm['input_manifest_sha256'] != descriptors[0]['manifest_sha256']:
-        raise ValueError('pretrained normalization is not from this OakInk training corpus')
+    shared = norm.get('normalization_mode') == 'shared_multisource_train_union'
+    descriptor_meta = dict(sources=descriptors)
+    expected_norm_source = (normalization_source_identity(descriptor_meta)
+                            if shared else descriptors[0]['manifest_sha256'])
+    if norm['split'] != 'train' or norm['input_manifest_sha256'] != expected_norm_source:
+        raise ValueError('normalization is not bound to the declared training source contract')
     meta = dict(schema='pointworld-multisource.wm30.v1', status='COMPLETED', fps=30, history=4, horizon=24,
                 sources=descriptors, normalization_stats_sha256=sha(stats),
-                normalization_source_manifest_sha256=descriptors[0]['manifest_sha256'],
+                normalization_source_manifest_sha256=expected_norm_source,
                 sampling='source '+('/'.join(str(w) for w in weights))+'; source-internal .6/.2/.2 renormalized over real strata',
                 validation='64 fixed balanced windows/source; no TEST access for tuning',
                 supervision='measured_dynamic_hand_main' if main_dynamics else 'mixed_dynamic_and_rigid_transport',
                 excluded_auxiliary_sources=['contactpose'] if main_dynamics else [],
-                normalization_role='forward_input_output_warmstart',
+                normalization_role=('forward_input_output_shared_multisource_train_union'
+                                    if shared else 'forward_input_output_warmstart'),
                 category_mapping='OakInk unchanged; native moving1->0/near-static2->1; no program fabrication')
+    if shared:
+        meta['normalization_mode'] = 'shared_multisource_train_union'
     path = processed/'manifest.json'; path.write_text(json.dumps(meta, indent=2)+'\n')
     try:
         for split in ('train', 'val'):

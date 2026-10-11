@@ -1,6 +1,30 @@
 # cm-pointflow-effect-pretrain
 
-Main training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
+Merged into `main` at source commit `5f12ae31` on 2026-10-11 by user request.
+The implementation in this Task is authoritative for new PW runs. Older
+checkpoint semantics and pilot results remain available through the
+[premerge archive guide](../../../docs/archive/2026-10-11-pointworld-premerge.md).
+
+Current retained baseline: the repaired ref8 sharedstats run completed50000
+updates from random initialization; final symmetric moving/static object
+EPE21.896/4.321mm. See [current state](docs/STATE.md) and the
+[sharedstats card](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
+Video/sensor pilot recipes have failed their benefit gates and are outside native
+training. Public video geometry is generated jointly over the whole clip; packed
+history entries are not certified causal perception. Existing video scores are
+offline teacher learnability evidence, not deployment forecasting claims.
+
+User steering: prioritize released open-source assets to test whether video data
+helps this model. See the [official source usage review](docs/research/2026-10-10-open-video-data-usage.md).
+The previous matched Probe used the released small-DROID checkpoint rather than
+the released video data: both 2000-update arms trained only on native
+OakInk2/GRAB/ARCTIC data. Its 448-tensor transfer audit and failed gate are
+retained as checkpoint-transfer engineering evidence, but the run is
+`INVALID_IMPLEMENTATION / INCONCLUSIVE` for the intended data question. Do not
+use it to reject the official video data or broader video route; first audit a
+bounded data subset before any acquisition or training.
+
+Historical ref3 training completed (2026-10-08): user ref3 uses OakInk2/GRAB/ARCTIC main
 supervision only, on GPUs1/2 with per-rank batch64/global128. The stopped
 four-source latest14250 initializes model weights; AdamW/schedule/draw reset.
 All50000new updates completed before2026-10-08 10:00 Asia/Shanghai;
@@ -19,7 +43,44 @@ remains candidate_only after coordinate/validity/dual-hand/gap audits.
 See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
 for per-source moving-anchor metrics, exact artifacts and frozen identities.
 
-Current development branch: `main` (integrated from `consequence-evaluator`). Architecture:
+Current development branch: `cm-pointflow-effect-pretrain` (renamed from
+`agent/pointworld-ref8-fix` on 2026-10-10). Local worktree:
+`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-wt-cm-pointflow-effect-pretrain`.
+The former `Ref2Dex-agent-wt-ref8` path is retained as a compatibility symlink.
+See the [completed ref8 run and rename note](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
+
+The bounded [PointWAM data pilot](docs/experiments/probes/P-20261011-pointwam-data-pipeline.md)
+converts original EgoDex RGB/HDF5 into scene tracks, ten points per hand,
+language, masks,31 positions and30 future displacement targets. Entry:
+`tools/run/prepare_pointwam_pilot.py --depth-backend omega`; supply original
+HDF5/video, explicit palm offsets, pinned depth/tracker code and weights, and
+a fresh output directory using its `--help` arguments. The pilot uses verified
+ModelScope VGGT-Omega weights and official CoTracker3, with native cameras.
+Published-viewer palm offsets are approximate; query partitioning is explicit.
+Official test clips remain engineering-only and excluded from training.
+Each clip includes `pointwam_clip.npz`, `teacher_frontend.npz`, numerical
+`audit.json`, an RGB/depth overlay and an interactive `scene_hand.html`.
+The [official-TRAIN qualification](docs/experiments/probes/P-20261011-pointwam-train-qualification.md)
+then completed12/12clips across three tasks/six records, with6fit/6dev clips
+isolated by source record. `tools/run/download_pointwam_train_subset.py`
+acquires CRC/SHA-verified pairs from a pinned remote inventory;
+`tools/run/qualify_pointwam_train.py` verifies source/model identities and runs
+the bounded cohort. Existing TEST packs stay excluded.
+
+The bounded [joint learner](docs/experiments/probes/P-20261011-pointwam-joint-learning.md)
+now reaches600updates, masked scene/hand evaluation and exact checkpoint
+replay from the qualified TRAIN packs. Entry:
+`tools/run/train_pointwam_joint_probe.py --qualification <group-manifest> --output <fresh-directory>`.
+Its195764parameter RGB/geometry set MLP and learned word table are explicit
+architecture/text substitutes. Fit hand loss improves58.47%, scene23.23%;
+dev hand96.243mm and moving-scene55.228mm fail static94.112/32.652mm controls.
+Result UNCLEAR; no PointWAM representation/policy benefit claim. A fit-only
+single-clip debug run demonstrates fitting capacity. Run-local admission
+authorizes only fit clips and preserves original pack flags. See the card
+for fixed protocol, source identities, diagnostic and trajectory preview.
+No native model transfer or policy training from these packs has occurred.
+
+Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step
 action-conditioned multi-object world model. Program anchor plus
 0.5m current geometry-center local objects; fixed right/left11semantic points
@@ -107,3 +168,59 @@ outputs/cm-pointflow-effect-pretrain/spider-data-preflight-20261006/.venv/bin/py
 Earlier SPIDER work was acquisition/engineering only. OakInk2 now has its own
 training route above. Root Mission/Campaign remain authoritative; training uses
 available GPUs within the global four-GPU boundary. No PPO is started.
+
+## Video and tactile data feasibility (2026-10-10)
+
+The EPIC dataset branch is merged locally, with original experiment outputs
+preserved in this worktree. Keep converted EPIC packs `CANDIDATE_ONLY`: review
+found missing semantic-joint validity/quality filtering, conflicting source
+splits, clock and persistent-track questions, and a per-point schema that is
+not supported by the existing rigid-object decoder. The reported P03_03
+complete window used side-level validity and is not a qualified training
+window. OakInk2/GRAB/ARCTIC remain the registered main sources.
+
+EgoTouch is a candidate for separate tactile representation/auxiliary-target
+work, with pressure/bend mapping and release completeness audited first. It
+does not supply paired object SE(3) supervision or a calibrated substitute
+for Isaac net contact forces. See the [source and implementation review](docs/research/2026-10-10-video-tactile-primary-sources.md).
+Remote connection details are in [the Windows bridge guide](../../../docs/user/连接远程服务器.md);
+current work continues on RLG. The initial review launched no training;
+the separate bounded model probes below were subsequently completed.
+
+The follow-up [EPIC readiness probe](docs/experiments/probes/P-20261010-video-data-readiness.md)
+repaired semantic-joint/quality masks, source splits, metadata clocks, background
+occlusion and permanent lost-track masking. The34 local clips have20 clock
+metadata files;95 candidate starts across four temporal overlaps yield zero
+complete hand windows. Keep these packs outside the native training manifest.
+This is a local coverage blocker, not evidence against video learning.
+
+The [original tactile label sample](docs/experiments/probes/P-20261010-egotouch-label-schema.md)
+acquired two TRAIN bundles (485754 bytes,10 verified files). Original frame IDs
+agree, but only217/441 grid cells are measured, per-record pressure/bend maxima
+differ, and confidence/camera calibration are absent. False contact flags
+remain semantically unqualified: a40-task scan found allfalse and cannot establish
+physical no-contact. Two small chest videos now match43/47 original label frames
+and relative clocks; tactile/bend separation is still gated. Neither sample
+is registered for point-dynamics training.
+
+
+The [video point-dynamics Probe](docs/experiments/probes/P-20261010-video-point-dynamics.md)
+now has a pack-history PTv3 point-flow head, permanent LK lost-ID masking,
+window-local births, train-only normalization and nominal teacher-scale metrics.
+The fixed500-step h24 run failed the gate (21.861mm vs static18.294mm), and
+its development long-term labels came from one clip. Window births/recovery
+still leave h24 support insufficient. A separately qualified h8 run also fails:
+two-clip macro24.808mm vs static9.464mm. This is UNPROMISING for these small
+recipes; the video route remains UNCLEAR. Do not scale or claim native-transfer
+benefit from these runs. Current decisions and artifact pointers are in
+[Task state](docs/STATE.md). Native three-source training/checkpoints remain
+separate from these weak-video probes.
+
+
+The [original SpaTracker contract](docs/research/2026-10-10-objectforesight-spatracker-track-contract.md)
+clarifies full-clip future dependence of geometry, visibility offset and copied
+queries. Initial object coverage of original100-column queries fails in every
+pilot clip after initial-observation deduplication. Neither these tracks nor
+LK/backprojected offline geometry can be silently promoted to certified causal
+history inputs. Future target-side teacher labels and learner observation
+provenance require separate contracts before more weak-video training.

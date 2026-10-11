@@ -120,11 +120,31 @@
 | --- | --- | --- | --- | --- |
 | [P-20261008-contactpose-transport-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-contactpose-transport-auxiliary.md) | Does a separate rigid-transport auxiliary help measured dynamic prediction? | Main-three completed and two-update engineering r2 passes; the300-update Probe fails when a DataLoader worker aborts after control update112 | Preserve the failed run; repair the data-loader execution before any bounded retry, keeping the frozen scientific comparison unchanged. | probes/UNCLEAR |
 
+## HF-egotouch-pressure-contact
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-egotouch-pressure-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-pressure-auxiliary.md) | EgoTouch processed pressure/contact auxiliary | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-egotouch-processed-action](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-processed-action.md) | Action-conditioned processed pressure/contact probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261011-egotouch-processed-history](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-egotouch-processed-history.md) | Causal processed-pressure history probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## HF-egotouch-visual-context
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-egotouch-visual-context](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-visual-context.md) | Paired visual context after the shape-only teacher screen | 见原卡 | 见原卡 | probes/UNPROMISING |
+
 ## HF-epic-contact-overlap
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261007-epic-contact-overlap](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-epic-contact-overlap.md) | Same-clip EPIC-Contact and ObjectForesight bridge | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-epic-scene-flow
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261008-epic-scene-flow-p03-03](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-epic-scene-flow-p03-03.md) | EPIC scene-flow conversion without object-pose supervision | 见原卡 | 见原卡 | probes/PROMISING |
 
 ## HF-execution-geometry
 
@@ -151,6 +171,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261005-geometric-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-innovation.md) | Ref10: does intended surface motion generalize beyond action categories? | UNPROMISING: fixed PCA/bilinear ridge nominal-flow screen extrapolates badly; independent review plus frozen replay find no fatal wiring bug | Stop the unconstrained PCA/bilinear endpoint route, retain physical action contracts and local spatial/execution hypotheses; do not enter se | probes/UNPROMISING |
 | [P-20261005-geometric-support](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-support.md) | Separate physical point-flow from feature amplification | UNPROMISING: additive physical-scaled flow avoids the bilinear explosion but still underperforms State, Arm and Joint; the isolated original | Stop PCA/ridge endpoint fitting; retain geometry contract and require local spatial or execution inductive bias for the next geometry experi | probes/UNPROMISING |
+
+## HF-goal-point-wam-three-domain
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-goal-point-wam-three-domain-smoke](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-smoke.md) | Goal-Point-WAM three-domain engineering smoke | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-gt-consequence-sufficiency
 
@@ -235,11 +261,23 @@
 | --- | --- | --- | --- | --- |
 | [P-20261011-official-reference-screen](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-official-reference-screen.md) | Current corrected12 references: official actor physical screening | 见原卡 | candidate competent sources s3/s9 airplane, toothpaste and waterbottle; | probes/UNCLEAR |
 
+## HF-official-video-data
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-official-video-data-subset](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-official-video-data-subset.md) | Can a bounded official DROID video subset enter the native data route? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
 ## HF-old-utility-evaluator
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261009-old-utility-evaluator](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-old-utility-evaluator.md) | Can GT and frozen PointWorld geometry recover the old teacher's action ranking? | GT ranking screen PROMISING; C1.75641 versus C0.60256, C2.69231. | user ref4_4 freezes old U32 and authorizes matched C0/C1/C2 evaluator | probes/PROMISING |
+
+## HF-open-video-backbone-transfer
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-open-video-backbone-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-open-video-backbone-transfer.md) | Historical checkpoint-transfer run (not the requested official-video-data test) | 见原卡 | do not use this run to stop the video-data route. Preserve its outputs, | probes/UNCLEAR |
 
 ## HF-oracle-flow-task
 
@@ -271,6 +309,21 @@
 | --- | --- | --- | --- | --- |
 | [P-20261004-pointflow-g](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-pointflow-g.md) | Does real point-flow predicted E preserve E-to-G information? | UNCLEAR for the valid K1 point-flow-to-G bridge; UNPROMISING for expanding a pose-only K4 predictor into this G regression from the fixed GT | keep E as the physical main route, freeze I head/K4 expansion and this frozen K1 G teacher; audit task-relevant hold/drop value evidence bef | probes/UNCLEAR |
 
+## HF-pointwam-data-pipeline
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-pointwam-data-expansion](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-expansion.md) | PointWAM official-TRAIN data expansion | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261011-pointwam-data-pipeline](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-data-pipeline.md) | PointWAM human scene/hand data pipeline: small engineering pilot | VGGT-Omega/CoTracker3 completed two clips in97.76s; numerical gates and stored-pack audit pass; user accepts the visual preview. | proceed to bounded official-TRAIN qualification with episode-isolated fit/dev; retain the approximate palm convention. | probes/UNCLEAR |
+| [P-20261011-pointwam-train-qualification](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-train-qualification.md) | PointWAM official-TRAIN data qualification | 12/12 TRAIN clips from3tasks/6records qualify; record-isolated fit/dev each contain6clips; processing605.94s and peak GPU allocation6923.70M | retain this bounded subset for joint scene/hand learning; do not expand raw data or admit TEST samples. | probes/PROMISING |
+
+## HF-pointwam-joint-learning
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-pointwam-joint-learning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-joint-learning.md) | Bounded scene/hand joint learning | UNCLEAR. The fixed main run completes and hand fitting improves, but | retain the qualified data and verified joint learning contract; | probes/UNCLEAR |
+| [P-20261011-pointwam-optimization-diagnosis](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-pointwam-optimization-diagnosis.md) | Optimization diagnosis for the bounded PointWAM learner | `UNPROMISING` for the optimizer-only variant; fit scene reduction is | retain the verified data contract and stop this small substitute | probes/UNPROMISING |
+
 ## HF-pointworld-multisource
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -285,6 +338,12 @@
 | [P-20261007-pointworld-ref4-input-loss-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-ref4-input-loss-audit.md) | Ref4 action-voxel and motion-weight diagnosis | substantial cross-time action merging; low raw selector weights do not imply uniform supervision suppression after normalization. | diagnose input-time identity and relative motion-weight exposure while preserving the live three-arm run. | probes/UNCLEAR |
 | [P-20261007-pointworld-small-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md) | Unified spatial hand/action-to-rigid-effect Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261007-pointworld-temporal-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-temporal-wm24.md) | Time-preserving PointWorld action/effect Probe | at matched6000-update validation, H+A moving-anchor h24 point EPE is15.63mm versus H21.81mm and shuffled-action21.90mm; training and final T | evaluate observed-action predictive benefit after the user-requested ref4 correction. | probes/UNCLEAR |
+
+## HF-rawsensor-hand-conditioning
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-rawsensor-hand-conditioning](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-rawsensor-hand-conditioning.md) | Raw sensor supervision and human hand conditioning readiness | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-ref13-progress-recovery
 
@@ -345,6 +404,12 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261005-spatial-consequence](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-spatial-consequence.md) | Does shared local spatial structure preserve intended action consequences? | UNPROMISING: reduced spatial encoding remains stable but preserves too little intended action contrast; OOF consequences show no unique task | Stop this fixed nominal spatial fit; retain GT prognosis and examine the nominal-to-realized execution contract before further geometry lear | probes/UNPROMISING |
+
+## HF-tactile-data-readiness
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-egotouch-label-schema](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-egotouch-label-schema.md) | EgoTouch original label schema sample | UNCLEAR for training readiness. Acquisition completed in129.97s, with | keep tactile training gated. Next cheap tactile probe should select | probes/UNCLEAR |
 
 ## HF-trajectory-conditioned-evaluator
 
@@ -437,7 +502,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261011-pw-critic-policy](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-pw-critic-policy.md) | Frozen PointWorld action-conditioned Q and bounded policy improvement | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261011-pw-critic-policy](../../src/task/trajectory-policy/docs/experiments/probes/P-20261011-pw-critic-policy.md) | Frozen PointWorld action-conditioned Q and bounded policy improvement | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-trajectory-policy-reference-goal-dagger
 
@@ -453,6 +518,19 @@
 | [P-20261010-learned-retargeter-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md) | Can actual future hand motion supervise a trajectory-dependent native retargeter? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-retargeter-local-motion](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-local-motion.md) | Can action-aligned local hand motion improve native inverse precision? | `UNCLEAR` — local-motion improves offline τ usage, but the fixed native-precision screen still fails. | retain the local-motion evidence as `UNCLEAR`, close this fixed Probe, | probes/UNCLEAR |
 | [P-20261010-retargeter-step-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md) | Does an observable local wrist inverse explain the native control precision gap? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-video-data-readiness
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-video-data-readiness](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-data-readiness.md) | Local video data readiness after semantic contract repairs | UNPROMISING for immediate joint hand/scene training from this local | retain OakInk2/GRAB/ARCTIC as main training sources. Do not start mixed | probes/UNPROMISING |
+
+## HF-video-point-dynamics
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-video-point-dynamics](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-video-point-dynamics.md) | Video point prediction without dense future hand labels | 见原卡 | distinguish premature clip-start track death from intrinsically poor | probes/UNPROMISING |
+| [P-20261011-video-motion-token](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-video-motion-token.md) | Metric-3D history motion-token Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-weak-temporal-value
 
@@ -502,11 +580,62 @@
 | --- | --- | --- | --- | --- |
 | [P-20260930-cm-inference-bottleneck](probes/P-20260930-cm-inference-bottleneck.md) | Real-policy Probe: explicit physical prediction input | `UNPROMISING`; execution `COMPLETED` on code | close HF07; no Validation and no local width/seed/step/target sweep. | probes/UNPROMISING |
 
+## RBO-object-wrench-adapter
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-rbo-wrench-alignment](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-alignment.md) | RBO RGB-D / FT alignment Probe | 见原卡 | 见原卡 | probes/PROMISING |
+
 ## REF5-SURFACE-I
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261004-ref5-surface-i-gt-value](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261004-ref5-surface-i-gt-value.md) | Ref5: does GT spatial surface I add G information after H and E? | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## official-raw-video-data
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-droid100-raw-input-package-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-raw-input-package-audit.md) | Does the raw DROID episode already contain the inputs needed for 3-D reprocessing? | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261010-droid100-raw-video-temporal-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-raw-video-temporal-audit.md) | Does the matched official raw DROID episode have native temporal coverage? | 见原卡 | 见原卡 | probes/PROMISING |
+| [P-20261010-droid100-video-data-audit](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-video-data-audit.md) | Can the official DROID video subset provide actual frame/action samples? | 见原卡 | 见原卡 | probes/PROMISING |
+
+## official-video-data-only-native-transfer
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-native-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-native-transfer.md) | Official video data-only native-transfer Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## official-video-pointflow-adapter
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261010-droid100-native-adapter-contract](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-native-adapter-contract.md) | Does the matched official H5 clip satisfy the native point-flow input contract? | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261010-droid100-pointworld-match](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-droid100-pointworld-match.md) | Can an official DROID video episode be paired with PointWorld 3-D labels? | 见原卡 | 见原卡 | probes/PROMISING |
+
+## official-video-scene-flow-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-aux](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-aux.md) | Official DROID / PointWorld H5 auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## official-video-state-conditioned-scene-flow
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-official-video-state-aux](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-official-video-state-aux.md) | Official H5 state-conditioned auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## rbo-measured-wrench-temporal-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-rbo-wrench-auxiliary](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-rbo-wrench-auxiliary.md) | RBO measured-wrench auxiliary Probe | 见原卡 | 见原卡 | probes/UNPROMISING |
+
+## simulator-chord-wrench-action-ranking
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261011-chord-action-ranking](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261011-chord-action-ranking.md) | Simulator CHORD action-ranking Probe | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## 未分类历史记录
 
@@ -680,6 +809,8 @@
 | [PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT](probes/PROBE-20260923-CM-EFFECT-ACTION-ALIGNMENT.md) | Cm 效应头的动作对应关系 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-COMPONENTS](probes/PROBE-20260923-CM-WEIGHT-COMPONENTS.md) | Cm PPO 权重分量离线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
 | [PROBE-20260923-CM-WEIGHT-ONLINE-HEADS](probes/PROBE-20260923-CM-WEIGHT-ONLINE-HEADS.md) | Cm PPO 权重分量在线 Probe | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261008-pointworld-ref8-voxel-static](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261008-pointworld-ref8-voxel-static.md) | P-20261008-pointworld-ref8-voxel-static | 见原卡 | 见原卡 | probes/见原卡 |
+| [P-20261009-pointworld-main3-sharedstats](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md) | P-20261009-pointworld-main3-sharedstats | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-contract](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-contract.md) | Native GPU group role/layout contract | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-group-value-noise](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-group-value-noise.md) | Native GPU synchronous group Value-noise calibration | 见原卡 | 见原卡 | probes/见原卡 |
 | [P-20261009-gpu-pipeline-threads1](../../src/task/consequence-evaluator/docs/experiments/probes/P-20261009-gpu-pipeline-threads1.md) | GPU pipeline with one PhysX task thread | 见原卡 | 见原卡 | probes/见原卡 |

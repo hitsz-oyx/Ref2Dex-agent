@@ -1,0 +1,460 @@
+---
+schema: ref2dex.probe.v2
+probe_id: P-20261010-video-point-dynamics
+experiment_id: P-20261010-video-point-dynamics
+date: 2026-10-10
+task: cm-pointflow-effect-pretrain
+branch: cm-pointflow-effect-pretrain
+git_commit: 848be0993d80111ba2a9f6bc22008267b842429e
+claim_id: C1
+hypothesis_family: HF-video-point-dynamics
+probe_index_in_family: 1
+seed_pool: probe
+seeds: [226]
+decision_changed_if_positive: expand qualified video tracks and test encoder transfer to native hand-conditioned dynamics
+decision_changed_if_negative: diagnose track quality or missing interaction inputs before scaling video training
+status: UNPROMISING
+run_id: video-point-dynamics-20261010-r1
+---
+
+# Video point prediction without dense future hand labels
+
+Class: Decision. The global goal remains action-conditioned Cm for self-trained
+robot manipulation; video history prediction is an intermediate representation
+pretraining test, not a replacement for action conditioning or policy validation.
+
+Question: Does the existing PTv3 encoder plus a point-displacement head learn
+held-source-video motion information from weak RGB/depth tracks beyond static
+and constant-velocity baselines? A positive result justifies expanding video
+labels and testing transfer into native geometry training; a negative result
+blocks blind scaling and prioritizes label/interaction-input diagnosis.
+
+## Current evidence boundary (source audit correction)
+
+The learner reads only HISTORY entries of a fixed pack; that does not certify
+causal perception. Public generation code jointly processes the full video for
+depth/camera and refined tracks. Historical generation revision/checkpoints are
+not stored, so strict causality of these released inputs is UNQUALIFIED. Prior
+pack-level future-target mutation tests prove explicit interface isolation only.
+Keep both500-step results as offline full-clip teacher weak-label learnability
+Probes, not deployment history-only forecasts. Teacher-scale metre/mm convention
+is nominal, not calibrated3D GT. Neither native training nor final Mission
+claim relies on these weak inputs. See the [fixed source contract](../../research/2026-10-10-objectforesight-spatracker-track-contract.md).
+
+## Design / decision note (pre-run)
+
+Dense Contact hands have zero accepted local H4+K24 windows. Choose a separate
+video-only loader/head that never reads Contact, FoundationPose, TRELLIS, future
+hands or tactile targets. Retain the existing native model/data/checkpoints.
+Reuse PTv3-small topology and the native 18-component scene feature meanings;
+missing surface normals are explicitly zero. Predict per-point future flow
+rather than pretend the clip has rigid-object GT. Train from random
+initialization; a transfer comparison is a later Decision gate.
+
+Data: already-local ObjectForesight shards, require clock metadata and official
+TRAIN object membership. All P03_03 clips are eligible for TRAIN selection;
+all P03_13 clips are held for development only. P01_03 missing-clock clips are
+excluded. Choose up to4 nonoverlapping clips per video in stable sorted order;
+require55..600 source frames, no ambiguous camera convention (>=5x static
+reprojection separation). Source videos and selected action time intervals may
+not overlap across partitions. Development is a held subset of original TRAIN
+material, not an official test score. Contact-test frames are never training
+inputs. If qualification leaves fewer than2 clips per partition, do not train.
+
+Tracks: fixed source stride2, record actual29.97002997Hz and original frame IDs.
+RGB LK requires forward/backward error <=1 pixel and object mask membership;
+failed IDs never revive. Background is frame-zero metric depth, with per-frame
+depth/mask occlusion checks; retain measured depth jitter, not forced zero flow.
+Initial track candidates are selected from frame-zero observations only. For
+each H4+K24 window, input points are selected using all four HISTORY validity
+frames only, with up to128 object and128 background points. Future label masks
+may affect loss/metric support but never input point selection or features.
+
+Features: history velocity/acceleration use actual timestamps, history
+displacement and static indicator use history only; anchor frame is a fixed
+current-point-derived center, independent of future labels. Normalization uses
+TRAIN inputs only. Future flow loss uses a fixed0.01m Huber scale; object and
+background losses each receive half the mass when both are present. Each
+window/group is averaged before pooling windows, so abundant background or
+longer valid tracks cannot swamp object dynamics. All invalid target entries
+are excluded before arithmetic. Report supported counts and physical-metre EPE.
+
+Controls: zero-flow/static and constant velocity from the last two history
+frames at actual elapsed time. Forward receives xyz/features/input validity
+only; future labels/masks, point kind and split identifiers are absent from its
+interface. Test future-label changes leave model inputs and outputs unchanged,
+and invalid labels do not affect loss. Verify CUDA backward/checkpoint roundtrip
+before a non-smoke run.
+
+Training: one currently free GPU, seed226, batch2, max500 updates, AdamW lr1e-4,
+weight decay.01, grad clip1, BF16 where supported, fixed final checkpoint only.
+Development evaluation every100 updates is diagnostic; no threshold tuning or
+best-step selection. Decision criterion: final development object-track h24 EPE
+improves >=10% over the better of static/CV, while background h24 EPE is <=1.2x
+static. Report all-horizon EPE as well. No scientific conclusion from training
+loss or a fixed-batch overfit; results are Probe labels only.
+
+Budget: CPU preparation<=20min, one GPU<=15min, new artifacts<=5GiB total,
+raw extraction<=2GiB. Stop on nonfinite data/loss, source/hash drift, collision,
+GPU conflict, resource cap or deadline; preserve failed run/log. Inspect GPU
+utilization/memory after startup and estimate ETA. No system modifications,
+remote training, full download, existing checkpoint overwrite or new branch.
+
+Outputs: `outputs/cm-pointflow-effect-pretrain/video-point-dynamics-20261010-r1/`.
+
+## Results
+
+Both fixed500-update model probes and the support/fit audits completed;
+run-level gates failed. See the recorded execution commits and results below.
+
+The first preparation invocation at `2d8a573` failed before any source extraction:
+relative `__file__` was passed to absolute Task-relative identity logging. The
+empty `data/` output is preserved with a failure note. Both preparation/training
+entry paths are resolved before hashing; the replacement output is `data-r2/`.
+This startup failure provides no scientific evidence about video learning.
+
+The fixed500-update run completed at `848be09`: development object h24 EPE
+21.861mm vs static18.294mm and CV88.943mm, so the fixed scale-up gate fails.
+Before interpreting this as a method result, run a bounded checkpoint diagnosis
+of train/development EPE per clip with identical baselines, plus a current-only
+input intervention (zero historical kinematics/static indicator). No model
+training or step selection. Budget<=90s on one free GPU within the same15min
+group budget. The intervention can expose dependence but is not a matched
+training comparison. Request an independent read-only semantic review under
+AGENTS14; preserve the original negative result and all outputs.
+
+## Limitations / future evidence
+
+Two source videos and overlapping temporal anchors cannot establish large-scale
+or independent-episode generalization. LK consistency is not ground-truth
+physical correspondence; static depth jitter remains label noise. Future
+visibility masks condition scored support and must be reported. History-only
+predictability does not demonstrate human-action causality or robot usefulness.
+Positive evidence still needs native encoder-transfer and matched conditioning
+controls, then the global Mission's self-trained robot policy comparison.
+
+## Completed diagnosis and next bounded decision (2026-10-10)
+
+`train-r1/fit-audit.json` at `6663d42` reproduces the negative development
+result. On the two train clips with h24 support, model/static object EPE is
+4.70/7.51mm and2.86/5.64mm. Current-only input intervention changes development
+object h24 only21.861→21.875mm; this is not a matched conditioning experiment.
+Independent read-only review found no definite indexing, future-input leakage,
+loss or checkpoint-identity error. Label quality remains weak.
+
+Crucially,28 training windows provide only150 scored h24 object observations
+(125 from `_14`,25 from `_15`). All4034 development h24 object observations
+come from one clip, `P03_13_12`; `_10/_19` supply none. Windows overlap and are
+not independent episodes. Run-level result is UNPROMISING at the preset gate;
+route-level evidence remains UNCLEAR. Do not scale from this result.
+
+Decision: distinguish premature clip-start track death from intrinsically poor
+long-horizon support. Reuse exactly the same seven clips, source hashes, split,
+LK F/B1px, masks, camera convention and fixed training recipe. Initialize new
+object/background identities at EACH window's first HISTORY frame, then keep
+identity stable for its55 source frames; failed RGB identities never revive
+within a window. Separate births do not assert cross-window identity. Enumerate
+all stride2 starts, keeping windows/points by HISTORY support only. Report
+future support separately; do not use it to choose input points. Qualification
+for another500-update run requires >=16 scored h24 object observations in at
+least2 clips in EACH split. If this corpus gate fails, stop training and inspect
+motion-support/label alternatives. New output `data-window-births-r3/`; preparation
+<=600s CPU, <=1GiB, existing total5GiB/15min GPU limits apply. This is a reversible
+sampling refinement within the existing Mission and user authorization.
+
+The `ed531f3` window-birth audit completed29.60s, writing12.74MB. Object h24
+support by train clip: `_12`223, `_13`0, `_14`122, `_15`32. Development:
+`_10`0, `_12`3705, `_19`0. Three train clips qualify but only one dev clip;
+status `INSUFFICIENT_LONG_HORIZON_SUPPORT`. No new training launched.
+
+Next cheap step: recover only previously extracted rejected clips from the
+same source videos in fixed sorted order. Check nonoverlap, official TRAIN
+object membership, source bytes against archive, rigid camera and >=5x convention
+separation again. Reuse window births and the same support gate without changing
+thresholds. No new dataset download or source-video split. Output
+`data-recovered-births-r4/`, CPU<=600s, total artifact cap unchanged. If a second
+dev clip still fails, choose a shorter-horizon/data-quality probe before training;
+large-scale training remains gated.
+
+The `fbcbc07` recovery adds `_8` with6 history-valid dev windows but no h24
+object support; `_17/_4` still have no accepted history windows. The same
+h24 corpus gate fails. Preserve this result; no h24 retraining or scaling.
+
+Short-horizon follow-up protocol (before training): qualify h8 (actual0.26693s)
+from `data-recovered-births-r4/`, >=16 scored object observations in >=2 clips
+per split. All history-qualified windows/points remain present; future support
+only qualifies the corpus and determines reported metric support. Retain all24
+labels for audit, but h9..h24 are excluded from training loss and scored metrics.
+Use same random initialization/seed226, PTv3/head topology, batch2/AdamW and
+fixed500-update final checkpoint; do not reuse/select the negative trained model.
+Result addresses short-term motion only, not long-term prediction.
+
+Fix the decision gate before execution: model object h8 clip-macro EPE over dev
+clips with>=16 labels must beat the macro of each clip's better static/CV by>=10%,
+with no qualifying clip worse than its better baseline by>20%, and background
+point-weighted h8 EPE<=1.2x static. Report each clip and support alongside pooled
+metrics; sparse clips are still reported and trained according to their original
+split, not silently removed. Diagnostic evaluations cannot select a checkpoint.
+Negative means investigate label/interaction quality before additional training;
+positive justifies a bounded native transfer comparison. Output view
+`data-h8-view-r5/`, run `train-h8-r2/`; one verified-free GPU<=15min cumulatively,
+all outputs<=5GiB. Automated NVML utilization/memory samples supplement ETA and
+allocator-peak telemetry. No full dataset acquisition or remote machine work.
+
+## Short-horizon results and attribution boundary
+
+Qualification at `6d7fdb2`:78 TRAIN and71 development overlapping windows;
+4 TRAIN and2 development clips meet the preset h8 support floor. The fixed
+500-step run completed96.43s with exact checkpoint roundtrip. Peak CUDA model
+allocation1001.08MiB; sampled GPU1 memory1367–1389MiB, utilization11–51%.
+The small batch/point count leaves GPU capacity unused; this is a cheap Decision
+Probe, not a throughput benchmark. GPU0 belonged to an unrelated job throughout
+this run. ETA converged to about90s after warmup and all worker compute ended.
+
+| Qualified dev clip | h8 labels | model EPE mm | static mm | CV mm |
+| --- | ---: | ---: | ---: | ---: |
+| P03_13_12 |3941|11.002|6.763|28.772|
+| P03_13_19 |309|38.614|12.165|42.441|
+| Clip macro |2 clips|24.808|9.464|35.606|
+
+Sparse dev `_10`6 and `_8`4 scored object observations remain reported in
+`train-h8-r2/final-development.json` and are not used for the predefined macro.
+Background h8 EPE6.723mm versus static6.233mm passes the1.2x constraint;
+object macro fails the>=10% benefit gate. Result UNPROMISING for this recipe,
+route still UNCLEAR. Diagnose train fits/label quality and independently
+recheck h8 loss/metric support before any more model training; no expansion or
+native transfer is authorized by this negative signal. Fit diagnosis<=90s,
+no updates; reuse the model and exact data identity, all outputs preserved.
+
+The h8 fit audit at `75d5f4c` confirms large train/dev motion differences:
+train `_12` model/static78.800/117.483mm and `_13`49.376/64.461mm;
+near-static `_14/_15`3.496/3.210 and4.121/3.397mm. The model is learning
+some training motion but has not demonstrated held-video gains.500 steps,
+source shift and pseudo-label noise remain alternative explanations; missing
+hand context is not established as the cause. Independent CPU review reproduced
+clip support/static/CV and macro to1e-8m; real gradients h9..24 were exactly0,
+future mutations left inputs unchanged, and a true cross-clip batch retained
+correct metric ownership. No defect overturns the short-run negative result.
+
+Engineering note: the initial3-update smoke was inadvertently launched onGPU0
+while an unrelated process had occupied it after an earlier check. It finished
+in9.70s before an ownership-checked attempt to stop our worker. No unrelated
+process was touched. All substantive training/fit runs used freshly inspected
+freeGPU1. Future launch checks must be inspected before dependent startup.
+
+Next Decision: audit pseudo-track physical consistency and input motion noise;
+qualify tactile-only channel masks before any auxiliary loss. Large training and
+native-transfer comparisons remain deferred until a useful minimal signal.
+
+Before the next file-only diagnosis: compare last-two-frame CV with four-history
+mean and exact four-point OLS velocity, all derived exclusively from observed
+kinematics/displacement at the actual uniform clock. Reuse h8 target support and
+report each clip's object/background EPE. Class Decision: if history OLS beats
+static by>=10% in BOTH qualifying dev clips, there is an observable baseline
+signal to justify checking model optimization; otherwise retain label/input
+quality as the next gate and do not add training. This is not a physical-noise
+measurement because the targets themselves are pseudo-labels. CPU statistical
+arithmetic only, <=30s/100KiB, output `history-motion-audit.json` in the group.
+
+
+The history-only arithmetic audit at `a0ec3d5` completed0.312s CPU. h8 dev
+object OLS/static EPE is15.014/6.763mm for `_12` and20.523/12.165mm for `_19`;
+no preset observed-motion signal. OLS improves the noisy last-two CV
+28.772/42.441mm but still loses to static in both qualifying clips. This supports
+history/target quality inspection before another optimization run; it does not
+identify true physical noise or prove that history contains no usable signal.
+
+## Rigidity consistency decision (before execution)
+
+Class Decision: after the failed neural and history-only baselines, ask whether
+weak object3D correspondences admit a single rigid transform or are internally
+inconsistent. This can distinguish a label-quality priority from another model-
+optimization attempt; it cannot establish true reconstruction error.
+
+On exactly the h8 view, use the same HISTORY-selected object IDs and original
+future validity. Require>=8 endpoint correspondences and current centered cloud
+second singular value>=1e-5m. Fit a proper SE(3), fixed scale1, using endpoint
+labels only; this is explicitly an oracle diagnostic, never a forecasting control
+or new target. Report point-weighted residual/static EPE and support per clip.
+If both qualified dev clips have residual/motion>=.5, prioritize pseudo-label
+consistency; if both<=.25, prioritize predictive conditioning/optimization.
+Other cases remain UNCLEAR. Thresholds do not remove training windows or points.
+CPU arrays/SVD<=30s, <=100KiB, no GPU/model/new download; output
+`rigidity-audit.json`. Retain raw labels and all previous results.
+
+
+The rigidity audit at `5bee4df` yields UNCLEAR under the fixed thresholds:
+dev `_12` residual/static2.655/6.763mm (ratio.393), `_19`9.284/12.165mm
+(ratio.763). Train fast clips `_12/_13` ratios.177/.378, near-static `_14/_15`
+.620/.621. Internal inconsistency matters in some clips but is not uniformly
+the cause of neural failure; no true GT accuracy follows. The helper originally
+computed empty-cloud means before returning unsupported; reordered the guard
+without changing reported supported values, and verified rigid/nonrigid/degenerate
+synthetic cases. Do not use the endpoint oracle transform as a predictive input.
+
+
+## Image-coordinate history diagnostic, fixed before execution
+
+Decision: is a cheap history-motion signal present in the image-coordinate tracks
+when 3D/world-coordinate extrapolation fails? If both qualifying dev clips show
+>=10% OLS improvement over image-static, consider a weak image-coordinate auxiliary
+Probe before rebuilding metric labels. Otherwise do not start a passive history-
+velocity learner from these pilot clips. No change to the declared 3D result/gate.
+
+Same h8 view, history-only selected object identities, identical endpoint masks
+and denominators. Recover per-frame image positions by projecting retained world
+points through original hashed SpaTracker intrinsics/extrinsics, with already-
+frozen camera convention and exact original source-row IDs. Predictor uses four
+observed image positions/timestamps only: image-static, last-two CV, H4 OLS. Future
+camera is only used to reconstruct endpoint label, never a predictor input. Fail
+on nonpositive/nonfinite scored projection instead of silently dropping support.
+
+Report per-clip pixel EPE and counts, require at least2 dev clips>=16 point-window
+labels. CPU<=30s, JSON<=1MiB, no download/GPU/train. Pixel labels contain camera
+motion; prior3D labels infer world coordinates. A discrepancy alone cannot prove
+that depth reconstruction rather than camera motion or other errors caused the
+3D result. This diagnostic changes the next data/auxiliary choice, not the Mission
+claim or native data contract. Artifact image-motion-audit.json alongside prior
+history-motion/rigidity audits; preserve all prior results.
+
+
+Image-history audit atdbcd471 completed20.10s on CPU. All per-clip h8 support
+counts exactly match the3D history audit, including dev3941/309 labels; no new
+future-visibility filter or denominator change. Qualified dev pixel EPE:
+
+| Clip | image-static | last-two CV | H4 OLS |
+| --- | ---: | ---: | ---: |
+| P03_13_12 |5.204|2.488|2.516|
+| P03_13_19 |49.492|37.554|45.405|
+
+Fixed OLS10%-in-both gate fails (second clip improves8.26%); report
+NO_PRESET_IMAGE_HISTORY_SIGNAL without changing the threshold. Last-two CV is
+better than image-static in both clips (52.2%/24.1% reductions), an exploratory
+clue even though corresponding3D last-two CV loses to world-static. The clips
+are not uniformly devoid of predictable image motion. This does not prove depth
+error: image targets contain camera motion,3D targets infer world coordinates,
+and camera/world reconstruction can contribute. No2D neural learner or static-
+pixel auxiliary promoted from this diagnostic; the declared gate remains failed.
+
+Next cheap Decision if continuing weak3D: compare world-static/world-history
+predictions under a common endpoint-camera reprojection metric, with future
+camera used only by the scorer, to separate radial/depth error from spatial-image
+error without giving the predictor future pose. Retain the native main3 model;
+no large weak-video scale-up on the current pilot. Further confirmation and a
+positive matched transfer screen are required before claiming video helps Cm.
+
+
+## Common-camera reprojection diagnostic, fixed before execution
+
+Decision: are weak-world forecasting failures mostly radial while projected
+spatial motion is usable, or do observed-world extrapolation errors also affect
+image position? Same h8 view and exact history-selected object/endpoint masks.
+World-static, last-two world CV, H4 world OLS and the retained fixed500-step h8
+model predict world endpoints from observed inputs ONLY. Original endpoint camera
+and ray are used exclusively in scoring, not forecast inputs. Hash-check original
+point/camera sources and checkpoint/data/implementation/vendor identity.
+
+Report full-support world EPE, absolute radial/transverse errors in common future
+camera frame, radial squared-error-energy fraction and reprojection pixel EPE.
+Predictions behind endpoint camera retain world errors/counts; whole-clip projected
+EPE is null if any projection invalid, never silently discard poor predictions.
+Target invalid/nonfinite or non-rigid camera fails instead of changing support.
+
+Fixed diagnostic signal: both dev clips>=16labels, OLS radial energy>=70% AND
+projected error>=10% better than projected world-static => radial-concentrated
+history-error clue, prioritize label-side ray/reprojection objectives. Both OLS
+projected errors>=10% worse than projected static (or invalid) => reprojection-
+history-error clue, prioritize observed-history quality/motion modeling before
+more training. Otherwise UNCLEAR. Model decomposition reported alongside, no
+model-selection/gate rewrite from one loss. Neither signal establishes actual
+sensor depth/camera accuracy or causal physical motion.
+
+Pure geometry is CPU statistics; retained model inference uses one newly checked
+free GPU, <=90s total scoring, <=2GiB allocation, JSON<=1MiB. No updates, download,
+external work, branch/push or corpus promotion. Original metric model result
+remains UNPROMISING. Output common-camera-audit.json; source arrays cached once
+per clip to avoid repeated archive decompression. Stop on identity/resource/
+nonfinite/deadline violations; preserve original outputs.
+
+
+## Original offline-teacher track coverage, fixed before execution
+
+Before replacing LK/depth labels, census original100 SpaTracker query columns,
+projecting actual initial coords with original intrinsics and identity initial
+camera into the original object mask. Do not assume a unique10x10 grid: bundled
+tracker copies high-confidence queries after rejecting others; original query
+IDs are not saved. Deduplicate only EXACT initial coordinate duplicates using
+initial teacher observations, never future visibility/trajectory quality. Whole-
+trajectory equality is reported only as an alias diagnostic, not a selector.
+Report raw and unique object-query counts, outside-image queries and mask area.
+
+Upper-bound coverage only: require>=16unique initial-object queries in at least2
+train and2dev clips to justify a later teacher-target converter proposal. No
+H4/future visibility qualification follows; do not lower the existing floor
+because the original grid is sparse. CPU<=30s, JSON<=1MiB, hashed original
+tracks/masks, no network/GPU/training or source changes. Output
+original-track-initial-coverage.json. First camera must be identity; reject if
+this initial-coordinate shortcut is not justified by the source.
+
+Official-source follow-up found that coords are already clip-world estimates;
+visibs are sigmoid(logit)+0.2, not a calibrated[0,1] probability. More materially,
+VGGT consumes the whole clip with unmasked temporal/global attention, and tracker
+refinement also uses temporal windows/future support. Thus neither original
+coords history nor our LK+full-clip depth/camera history are certified causal
+perception inputs. The source-contract note will pin exact source links/lines.
+This census therefore concerns offline teacher LABEL coverage only; even a
+passed coverage gate must not promote original tracker history as future-free
+inputs. Preserve all old runs, inputs and explicit target-isolation tests.
+
+
+## Common-camera and original-query results
+
+Common-camera scoring atd7f4fff completed9.19s on freshly free GPU1, peak216.65MiB.
+All baseline world-EPE/support values reproduce previous audit; model values agree
+within1e-5 nominal m (small BF16/batch evaluation variation). No scored dev model
+or OLS projections are invalid. Only the retained500-step point model was evaluated; no frontend inference ran.
+
+| Qualified dev | projected world-static px | world OLS px | model px | OLS radial energy | model radial energy |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| P03_13_12 |2.369|2.907|4.658|89.35%|37.69%|
+| P03_13_19 |5.303|7.399|31.236|88.76%|26.46%|
+
+Fixed diagnostic signal REPROJECTION_HISTORY_ERROR. Large radial extrapolation
+error exists, but projected OLS is22.7%/39.5% worse than common world-static.
+Model transverse errors7.195/35.482 nominal mm and radial energies37.7%/26.5%
+do not support an exclusively radial/depth failure. Retained model learnability
+negative cannot be rescued by reporting only projection instead of3D error.
+Public geometry/history preprocessing is offline/full-clip, as clarified above.
+
+Original-query initial census at53142b2 completed0.37s on CPU. Every source has100
+columns but only72..95 exact unique initial coordinates; full-trajectory unique
+counts match initial counts, confirming duplicate output columns. Actual projected
+initial unique object query counts: train_12/13/14/15=4/0/1/1;
+dev_10/12/19/8=1/1/2/0. Zero clips meet the predeclared16unique object-point floor
+in either split. These are initial-mask coverage bounds, not all possible later
+object identities or complete-window visibility. Do not create a replacement
+corpus by copying duplicate queries, reviving lost IDs or lowering this gate.
+
+## Decision note: restrict offline inputs before further weak-video work
+
+Question: expand this released3D video forecasting recipe, or preserve it as an
+offline teacher experiment and obtain a separately qualified input contract?
+Evidence: negative world/projection model gates, raw100-query object coverage
+failure, duplicate columns, source visibility offset/recovery, and public full-
+clip future-dependent geometry. Release generation identity is not sufficient to
+certify causal historical inputs. Core Cm hypothesis/claim remains unchanged.
+
+Choose to stop direct expansion and raw-coordinate substitution. Preserve all
+runs, checkpoints and explicit input-isolation tests, with their narrower scope.
+Retain native OakInk2/GRAB/ARCTIC action-conditioned model. For future video use,
+separate (a) full-clip teacher label generation from (b) history/prefix-only
+observations; a later matched native transfer benefit can assess offline
+representation utility without pretending the old weak-data scores prove
+online forecasting. No new front-end/model download or long fitting is justified
+by the present evidence. First identify a cheap causal observation path and a
+label contract that can supply enough independent interaction points; otherwise
+keep this source as offline/teacher-only, outside the native main manifest.
+No new authorization needed for this bounded correction; no policy/system work,
+core-claim change or source/checkpoint deletion. Prefix/full comparison, calibrated
+geometry, physically correct recovery and matched transfer are deferred evidence
+until a usable observation/teacher pair is available.
