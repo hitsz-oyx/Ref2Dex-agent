@@ -82,6 +82,31 @@ demonstrated held-record generalization benefit. Stop further data-only scaling
 of this substitute until a representation/source-contract decision is made;
 do not upgrade this result to a PointWAM, Cm or policy conclusion.
 
+## Decision note 2026-10-11: user-authorized full Part2 archive acquisition
+
+The user now explicitly authorized downloading the complete official EgoDex TRAIN
+Part2 archive to the remote NAS. The current question is acquisition and
+provenance, not admitting the full archive to training: the existing expansion
+packs and their `training_allowed=false` boundary remain unchanged.
+
+The pinned source is `https://ml-site.cdn-apple.com/datasets/egodex/part2.zip`,
+with size `327274733628` bytes and ETag
+`"1bb5321e52a3204c791561dd30204968-4877"`. A fresh NAS root
+`/mnt/ugreen_nas/storage/oyx_storage/egodex-full-part2-20261011-r1/` will hold
+the archive, range manifest and logs; no existing data is overwritten. The NAS
+has about 50 TB free. The archive exceeds the local Campaign's 300 GB work-
+product limit, so this is an explicit user-approved remote-NAS exception; no
+new local copy is created.
+
+The downloader uses direct HTTPS byte ranges, 16 workers, exact
+Content-Range/ETag/size checks, resumable per-range state, and a 48-hour wall
+cap. At the measured 6.68 MiB/s aggregate range throughput, expected transfer
+time is roughly 14 hours. Stop without renaming the partial archive on ETag or
+size drift, repeated range failures, a projected completion beyond 48 hours,
+or insufficient NAS space. After transfer, validate the ZIP64 central directory
+against the pinned inventory before publishing `part2.zip`; do not start full
+archive processing or training automatically.
+
 ## Retained native baseline
 
 OakInk2/GRAB/ARCTIC remain the main sources:4,378,478 overlapping TRAIN anchors.
