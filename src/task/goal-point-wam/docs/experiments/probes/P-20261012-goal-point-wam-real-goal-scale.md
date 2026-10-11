@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-real-goal-scale
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 1310c47ea9914bd95a9e861efc4e55c53406cf7c
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 9
@@ -65,6 +65,18 @@ use rather than extending the teacher budget. Failure closes units-only tuning
 at this budget, not object-goal/WAM/Cm. Positive would justify current-hand
 spatial conditioning; matched world-loss-off and RL remain deferred. Core claim
 and resource boundaries unchanged, no additional authorization needed.
+
+## Secondary geometric reference, fixed before frozen ablation
+
+Before observing frozen goal-ablation metrics, add two no-training references:
+linear interpolation of target object centroid translation applied to current
+hand, and linear interpolation toward the current hand transformed by the
+paired goal Kabsch rigid transform. Neither reads future hands; both use exactly
+the intended object goal and current hand. These are crude information screens,
+not physical controllers; all original gates remain unchanged. If they reduce
+error while the network does not, prioritize explicit current-hand/object-goal
+geometric conditioning over more units/epoch tuning. Contract test checks a
+known90-degree rotation+translation and masked NaN payloads.
 
 ## Limitations / future evidence
 

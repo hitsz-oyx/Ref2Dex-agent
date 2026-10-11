@@ -203,6 +203,25 @@ def test_controlled_teacher_preserves_world_and_masks_artificial_labels():
     torch.testing.assert_close(controlled_batch(batch, torch.zeros_like(shift))['trajectory_target'], batch['trajectory_target'])
 
 
+def test_geometric_reference_recovers_goal_rigid_motion_without_future_hands():
+    sys.path.insert(0, str(TASK / 'tools/audit'))
+    from evaluate_object_goal import geometric_baselines
+    torch.manual_seed(13)
+    points = torch.randn(2, 8, 3)
+    rotation = torch.tensor([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    shift = torch.tensor([.02, -.03, .04])
+    hand = torch.randn(2, 2, 11, 3)
+    goal = points @ rotation.T + shift
+    valid = torch.ones(2, 8, dtype=torch.bool); valid[:, -1] = False
+    points[:, -1] = goal[:, -1] = float('nan')
+    batch = dict(start_object_points=points, goal_object_points=goal, object_goal_valid=valid, start_hand=hand)
+    predicted = geometric_baselines(batch)
+    endpoint = hand @ rotation.T + shift - hand
+    torch.testing.assert_close(predicted['object_rigid_follow'][:, -1], endpoint, atol=2e-6, rtol=2e-6)
+    torch.testing.assert_close(predicted['object_rigid_follow'][:, 0], endpoint / 24, atol=2e-6, rtol=2e-6)
+    assert all(torch.isfinite(value).all() for value in predicted.values())
+
+
 def test_goal_and_world_components_are_finite_with_missing_goal_points():
     stats = {
         "action_mean": [0.] * 9,

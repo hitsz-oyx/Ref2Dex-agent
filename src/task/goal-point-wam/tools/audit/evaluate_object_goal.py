@@ -15,6 +15,28 @@ from train_three_domain import GoalPointWAM, GoalWindows, atomic_json, digest, l
 from oakink_wm.multisource import MixedWindows, MAIN_SOURCE_NAMES
 
 
+def geometric_baselines(batch):
+    """Goal-only geometric references, not physically validated hand actions."""
+    valid = batch['object_goal_valid']
+    count = valid.sum(1)
+    if (count < 3).any(): raise ValueError('rigid goal reference needs at least three paired points')
+    start = torch.where(valid[..., None], batch['start_object_points'], 0.)
+    goal = torch.where(valid[..., None], batch['goal_object_points'], 0.)
+    start_center, goal_center = start.sum(1)/count[:,None], goal.sum(1)/count[:,None]
+    a = torch.where(valid[..., None], start-start_center[:,None], 0.)
+    b = torch.where(valid[..., None], goal-goal_center[:,None], 0.)
+    u, _, vh = torch.linalg.svd(a.transpose(1,2) @ b)
+    correction = torch.ones_like(start_center)
+    correction[:,-1] = torch.linalg.det(vh.transpose(1,2) @ u.transpose(1,2))
+    rotation = vh.transpose(1,2) @ torch.diag_embed(correction) @ u.transpose(1,2)
+    translation = goal_center - (rotation @ start_center[...,None]).squeeze(-1)
+    hand = batch['start_hand']
+    endpoint_delta = (rotation[:,None,None] @ hand[...,None]).squeeze(-1) + translation[:,None,None] - hand
+    phase = torch.arange(1,25,device=hand.device,dtype=hand.dtype)[None,:,None,None,None]/24
+    return dict(object_translation=phase*(goal_center-start_center)[:,None,None,None],
+                object_rigid_follow=phase*endpoint_delta[:,None])
+
+
 @torch.no_grad()
 def evaluate(args):
     if args.output.exists(): raise FileExistsError(args.output)
@@ -36,7 +58,8 @@ def evaluate(args):
     if len(indices) != config['validation_samples']: raise ValueError('validation panel size drift')
     model = GoalPointWAM(json.loads(args.stats.read_text()), config).cuda().eval()
     model.load_state_dict(state['model'], strict=True)
-    totals = {name: dict(count=0, real=0., static_goal=0., zero=0., endpoint_count=0, endpoint=0., response=0.)
+    totals = {name: dict(count=0, real=0., static_goal=0., zero=0., object_translation=0., object_rigid_follow=0.,
+                         endpoint_count=0, endpoint=0., response=0.)
               for name in MAIN_SOURCE_NAMES}
     windows = []
     for cpu in loader(dataset, indices, config['microbatch'], 0):
@@ -52,6 +75,8 @@ def evaluate(args):
         static = predict(batch['start_object_points'])
         errors = {key: torch.linalg.vector_norm(value - batch['trajectory_target'], dim=-1)
                   for key, value in (('real', pred), ('static_goal', static), ('zero', torch.zeros_like(pred)))}
+        for key, value in geometric_baselines(batch).items():
+            errors[key] = torch.linalg.vector_norm(value-batch['trajectory_target'], dim=-1)
         response = torch.linalg.vector_norm(pred - static, dim=-1)
         valid = batch['trajectory_valid']
         for row, sid in enumerate(batch['source_id'].tolist()):
@@ -67,6 +92,8 @@ def evaluate(args):
         result[name] = dict(trajectory_epe_m=x['real']/x['count'], static_object_goal_epe_m=x['static_goal']/x['count'],
                             zero_hand_epe_m=x['zero']/x['count'], endpoint_epe_m=x['endpoint']/x['endpoint_count'],
                             real_vs_static_goal_prediction_difference_m=x['response']/x['count'],
+                            object_translation_epe_m=x['object_translation']/x['count'],
+                            object_rigid_follow_epe_m=x['object_rigid_follow']/x['count'],
                             improvement_vs_static_goal=1-x['real']/x['static_goal'],
                             improvement_vs_zero_hand=1-x['real']/x['zero'])
     value = dict(status='COMPLETED', split='val', scope='96 balanced validation windows; no robot/RL claim',
