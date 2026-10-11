@@ -43,10 +43,13 @@ remains candidate_only after coordinate/validity/dual-hand/gap audits.
 See the [current mixed pretraining card](docs/experiments/probes/P-20261007-pointworld-multisource.md)
 for per-source moving-anchor metrics, exact artifacts and frozen identities.
 
-Current development branch: `cm-pointflow-effect-pretrain` (renamed from
-`agent/pointworld-ref8-fix` on 2026-10-10). Local worktree:
-`/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent-wt-cm-pointflow-effect-pretrain`.
-The former `Ref2Dex-agent-wt-ref8` path is retained as a compatibility symlink.
+The complete branch through `23241463` was merged into `main` on 2026-10-11.
+Use `/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent` as the working directory. The old
+worktree and its `epic-scene-flow`/`ref8` aliases are retired. The branch
+`cm-pointflow-effect-pretrain` remains available in Git (renamed from
+`agent/pointworld-ref8-fix` on 2026-10-10). New main-three runs use
+`outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data-main-worktree`;
+the original manifest and artifact hashes remain intact.
 See the [completed ref8 run and rename note](docs/experiments/probes/P-20261009-pointworld-main3-sharedstats.md).
 
 The bounded [PointWAM data pilot](docs/experiments/probes/P-20261011-pointwam-data-pipeline.md)

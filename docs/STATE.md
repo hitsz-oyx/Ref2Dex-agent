@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-11 完整合并与 PW 工作树退役 Decision Note
+
+用户授权合入 `cm-pointflow-effect-pretrain` 全部分支内容并删除旧工作树及
+`epic-scene-flow`/`ref8` 两个软链接。固定源提交 `23241463`，新增两条实验记录；
+5 份未提交草稿保留到主工作区，outputs 全量核对同步，tmp 和独立 PointWorld clone
+归档。源 HEAD/内容漂移、进程占用或来源校验失败时停止删除。Git 分支与历史保留。
+共享 corpus 原 manifest 使用旧绝对路径，因此创建独立 `data-main-worktree` 副本，
+只迁移路径，保留数据 hash、split 与 normalization identity；历史产物不改写。
+详见[整合和复现路径说明](archive/2026-10-11-worktree-retirement.md)。不改 Campaign，
+不新增训练或改变最终 RL claim。
+
+源分支的[Goal-Point-WAM 600-update Probe](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-probe.md)
+已完成，整体 UNCLEAR：小型 held-out panel 尚未出现明确 world-motion 静态基线收益，
+ARCTIC 无 test windows，其 held-out 数字属于 val diagnostic。下一步仍需 source/
+representation 和 held-out contract 诊断；本次整合不将结果升级为正式结论。
+
 ## 2026-10-11 存储清理 Decision Note
 
 用户明确授权删除已审查的第一批：30 个旧版展开数据文件（65.3 GB）与 ref5

@@ -176,6 +176,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
+| [P-20261011-goal-point-wam-three-domain-probe](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-probe.md) | Goal-Point-WAM three-domain no-video Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261011-goal-point-wam-three-domain-smoke](../../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-three-domain-smoke.md) | Goal-Point-WAM three-domain engineering smoke | 见原卡 | 见原卡 | probes/COMPLETED |
 
 ## HF-gt-consequence-sufficiency

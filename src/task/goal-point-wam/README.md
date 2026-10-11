@@ -12,10 +12,14 @@ are outside this phase.
 
 Use the existing mixed manifest and train-only normalization statistics:
 
+After retiring the former worktree on 2026-10-11, use the path-relocated
+`data-main-worktree` view below. Index/source hashes and normalization identity
+are unchanged; the original `data` manifest retains its historical bytes.
+
 ```bash
 PYTHONPATH=src/task/goal-point-wam/src:src/task/cm-pointflow-effect-pretrain/src \
 python3 src/task/goal-point-wam/tools/run/train_three_domain.py \
-  --data outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data \
+  --data outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/data-main-worktree \
   --stats outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/norm_stats.json \
   --output outputs/goal-point-wam/<run_id> \
   --require-cuda
