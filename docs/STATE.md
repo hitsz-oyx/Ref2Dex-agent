@@ -21,6 +21,14 @@ Goal-Point-WAM 测试 3 passed / 1 skipped。新 corpus 的六次 train/val 源�
 ARCTIC 无 test windows，其 held-out 数字属于 val diagnostic。下一步仍需 source/
 representation 和 held-out contract 诊断；本次整合不将结果升级为正式结论。
 
+对照用户 ref1 的实现复核补充：该 Probe 未迁移 PW 预训练权重，world decoder
+实际使用 24 个每帧平均动作 token，而非构造出的 528 个逐点语义 token；这两项
+尚未落实 ref1 的关键选择，不能用当前无收益结果反驳完整方案。Goal 当前是 hand
+endpoint proxy，H328/R/PD/video 按阶段暂缓。实验卡已纠正 trajectory EPE 为
+24 步平均值（world EPE 才是 h24），保留原数值和 UNCLEAR 标签。先对齐上述
+初始化与动作记忆，再评价是否追加训练；world loss 对轨迹分支的收益还需要 matched
+world-loss-off 对照。未启动新的训练，也未修改模型行为。
+
 ## 2026-10-11 存储清理 Decision Note
 
 用户明确授权删除已审查的第一批：30 个旧版展开数据文件（65.3 GB）与 ref5

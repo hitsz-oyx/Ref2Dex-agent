@@ -53,7 +53,8 @@ finite. The goal replacement audit changed world translation/rotation by at
 most `7.18e-7`, consistent with the goal-blind world branch at this numerical
 precision.
 
-Errors below are trajectory EPE / world point EPE at h24, in millimetres:
+Errors below are trajectory EPE averaged over all 24 future steps / world point
+EPE at h24, in millimetres. The trajectory column is not endpoint-only EPE:
 
 | Panel | OakInk2 | GRAB | ARCTIC |
 | --- | ---: | ---: | ---: |
@@ -96,6 +97,34 @@ video, robot policy, and formal multi-seed Validation remain out of scope.
 - [Engineering smoke card](P-20261011-goal-point-wam-three-domain-smoke.md)
 
 ## Limitations and future evidence
+
+### Implementation scope against user ref1 (reviewed 2026-10-11)
+
+The retained producer script hash matches the current training entry. It creates
+the WAM from random initialization; there is no PW-pretrained initialization
+path. Thus this run did not test ref1's central reuse of learned PW scene weights.
+The action adapter constructs 528 semantic action tokens, but `forward` discards
+them and supplies only 24 hand/keypoint-averaged per-time tokens to the world
+decoder. This differs from ref1 and the local design's full executed-action
+token memory. It can lose semantic point assignment and has not been isolated
+as the cause of the reported error. The small trained-adapter audit is recorded
+in `tmp/goal-point-wam-ref1-review-20261011/action-summary-audit.json`; it uses
+CPU for a tiny token-contract calculation, not training or batch model inference.
+
+The goal is a current/future-step24 semantic hand endpoint proxy (44 point tokens
+plus a null token), rather than the general unordered start/goal-cloud interface.
+Robot H328, frozen R/PD, video and point-flow remain deferred by the approved
+three-domain phase boundary; rigid SE(3) is a permitted intermediate in ref1.
+The scene token cap samples by point-list index rather than FPS/interaction-region
+selection. This is a declared representation simplification, not an established
+explanation for GRAB/ARCTIC error.
+
+The shared scene/trajectory/world wiring and goal isolation remain retained
+engineering evidence, and the numerical results remain unchanged. The absence
+of benefit in this run cannot refute the pretrained/full-action-token ref1
+architecture. Align those implementation choices before using a longer run to
+judge that architecture; world-supervision benefit to the trajectory branch also
+requires a matched world-loss-off control rather than joint loss alone.
 
 This is one seed and small fixed panels, not a full source test evaluation or
 matched baseline. ARCTIC has no test windows in the frozen manifest. Full
