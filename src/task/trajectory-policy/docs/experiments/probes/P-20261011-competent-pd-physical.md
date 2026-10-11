@@ -5,7 +5,7 @@ experiment_id: P-20261011-competent-pd-physical
 date: 2026-10-11
 task: trajectory-policy
 branch: main
-git_commit: 30d8eff
+git_commit: eaeb81f
 claim_id: C3
 hypothesis_family: HF-trajectory-policy-competent-pd-physical
 probe_index_in_family: 1
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [182]
 decision_changed_if_positive: retain learned actual-PD R and advance to a separately specified high-level joint BC
 decision_changed_if_negative: distinguish source-sequence replay calibration from learned-R execution failure before high-level training
-status: PLANNED
+status: PROMISING
 run_id: competent-pd-execution-20261011-r1
 model_sha256: 414411a0c16d92a9e43c3b7a40615f8995ec4ea3b66bcaca3dc1a0fcae10181f
 ---
@@ -63,7 +63,18 @@ record that code-version difference, never rewrite source provenance.
 
 ## Results
 
-Pending execution.
+Native execution `eaeb81f`, seed182,542 controls completed. Teacher8/8,
+source-PD8/8 and GT-tau/R8/8 all passed hold45 and controlled placement.
+Median held436.5/435/436 frames, clipping0/0/0.0461%. All frozen physical gates
+pass: PROMISING for this R checkpoint with oracle actual hand trajectory.
+Independent audit `3093877` passes with exact0 error for actual PD, R measured
+state, tau, predictions and requested targets. Retained outputs:
+[execution](../../../../../../outputs/trajectory-policy/competent-pd-execution-20261011-r1/result.json),
+[audit](../../../../../../outputs/trajectory-policy/competent-pd-execution-20261011-r1/audit.json),
+[behavior](../../../../../../outputs/trajectory-policy/competent-pd-execution-20261011-r1/behavior.png).
+Mean goal endpoint error teacher129.26mm,source-PD145.84mm,R171.01mm: these
+are controlled-placement successes, not precise goal attainment.
+Next is the [separate joint BC Probe](P-20261011-competent-joint-bc.md).
 
 ## Limitations / future evidence
 

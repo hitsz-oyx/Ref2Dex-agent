@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [180, 181, 182]
 decision_changed_if_positive: retain the real-PD retargeter and design joint measured-history/goal trajectory BC
 decision_changed_if_negative: diagnose the specific target/conditioning/execution gap before high-level BC or PointWorld
-status: PLANNED
+status: UNCLEAR
 run_id: competent-pd-teacher-20261011-r1
 ---
 
