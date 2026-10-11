@@ -55,6 +55,13 @@ Published-viewer palm offsets are approximate; query partitioning is explicit.
 Official test clips remain engineering-only and excluded from training.
 Each clip includes `pointwam_clip.npz`, `teacher_frontend.npz`, numerical
 `audit.json`, an RGB/depth overlay and an interactive `scene_hand.html`.
+The [official-TRAIN qualification](docs/experiments/probes/P-20261011-pointwam-train-qualification.md)
+then completed12/12clips across three tasks/six records, with6fit/6dev clips
+isolated by source record. `tools/run/download_pointwam_train_subset.py`
+acquires CRC/SHA-verified pairs from a pinned remote inventory;
+`tools/run/qualify_pointwam_train.py` verifies source/model identities and runs
+the bounded cohort. Existing TEST packs stay excluded. No joint learner or
+native-model transfer has been trained from these data yet.
 
 Architecture:
 PointWorld-small unified spatial encoder for OakInk2 30Hz /24-step

@@ -12,12 +12,22 @@ records two1-second EgoDex clips processed with native camera annotations,
 official CoTracker3 and VGGT-Omega-1B-512. The user-selected ModelScope weights
 pass published SHA256 verification and strict official-model loading. Packs
 contain scene identities/RGB, ten semantic points per hand, language, explicit
-masks,31 positions and30 future displacement targets. Human visual review of
-the palm mapping remains pending: six palm offsets come from quantized public
+masks,31 positions and30 future displacement targets. The user accepts the
+visual preview for continuing; six palm offsets come from quantized public
 robot viewer geometry with an explicit human-frame convention, rather than an
 unreleased unquantized author table. Offline full-clip geometry and partitioned
 tracker queries are declared. These official-test samples are engineering-only;
-no training, benefit claim or expansion follows from the smoke alone.
+no benefit claim follows from the smoke alone. The user-authorized follow-up
+[TRAIN qualification](experiments/probes/P-20261011-pointwam-train-qualification.md)
+completed12/12qualified clips across three tasks/six records, with6fit and6dev
+clips from disjoint record sets. This is PROMISING for data qualification only.
+TRAIN sources require a complete acquisition manifest and matching
+file hashes; TEST remains excluded and all pilot packs remain training-disabled.
+Teacher processing took605.94s on GPU7, peak allocation6923.70MiB; processed
+data324.69MB and source/index assets94.03MB. Existing weights were reused and
+the GPU is idle again. Nine contract tests and repository verification pass.
+Retain this subset for a bounded joint scene/hand learner; no model learning,
+native checkpoint transfer or policy experiment has started.
 
 ## Retained native baseline
 
