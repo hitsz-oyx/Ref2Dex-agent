@@ -104,6 +104,7 @@ def main():
                         help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
                         help='explicit frozen physical Decision after a failed offline precision screen')
+    parser.add_argument('--validation-card', type=Path, help='frozen autonomous holdout evaluation protocol')
     parser.add_argument('--gpu', type=int, required=True)
     parser.add_argument('--seed', type=int, default=180)
     args = parser.parse_args()
@@ -114,10 +115,22 @@ def main():
     evaluating = args.source is not None
     autonomous = args.actor_fit is not None
     reference = None
+    validation = None
+    if args.validation_card is not None:
+        import yaml
+        card = args.validation_card.resolve()
+        expected = TASK / 'docs/experiments/validations/VAL-20261011-reference-goal-dagger-repeat.md'
+        if card != expected or not autonomous or args.dagger_rollin or args.actor_period != 1:
+            raise ValueError('exact frozen autonomous validation protocol required')
+        validation = yaml.safe_load(card.read_text().split('---', 2)[1])
+        if (validation['schema'] != 'ref2dex.validation.v2'
+                or args.seed not in validation['validation_seeds']
+                or not 400 <= args.seed <= 499):
+            raise ValueError('predeclared validation holdout seed required')
     if (out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents
             or Path(sys.prefix).resolve() != RUNTIME.resolve()
             or evaluating != (args.model is not None) or (autonomous and not evaluating)
-            or not 100 <= args.seed <= 299):
+            or not (validation is not None or 100 <= args.seed <= 299)):
         raise ValueError('fresh task output, archived runtime and source/model pair required')
     before = gpu_state(args.gpu)
     allowed_contexts = set(args.idle_context_pid)
@@ -225,6 +238,12 @@ def main():
             for arm in ('tau_only', 'joint'):
                 if sha(args.actor_fit / (arm + '.pt')) != actor_result['checkpoint_sha256'][arm]:
                     raise ValueError('actor checkpoint drift')
+            if validation is not None:
+                if (reference is None or actor_result['checkpoint_sha256'] != validation['checkpoint_sha256']
+                        or sha(args.model) != validation['retargeter_sha256']
+                        or sha(ref_path) != validation['reference_sha256']):
+                    raise ValueError('validation frozen model/reference identity differs')
+                card = args.validation_card.resolve()
             physical_decision = str(card)
             files += [card, TASK / 'src/trajectory_policy/competent_actor.py',
                 TASK / 'src/trajectory_policy/history.py', Path(__file__).with_name('competent_actor_execution.py'),
@@ -280,6 +299,10 @@ def main():
                 training_labels='expert native PD queries only; mixed future hand is not expert tau',
                 intervention_beta=.25 if args.dagger_rollin else 0.,
                 continuation_arms=actor_manifest.get('continuation_arms'))
+            write(out / 'manifest.json', manifest)
+        if validation is not None:
+            manifest.update(experiment_id=validation['validation_id'], validation_card=str(args.validation_card.resolve()),
+                            seed_pool='validation.holdout', evaluation_stage='frozen holdout execution; final multi-run verdict requires audits')
             write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
