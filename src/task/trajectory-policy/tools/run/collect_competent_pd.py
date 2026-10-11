@@ -100,6 +100,8 @@ def main():
     parser.add_argument('--actor-fit', type=Path, help='frozen matched H/G actor fit for autonomous execution')
     parser.add_argument('--actor-period', type=int, choices=(1, 8), default=8)
     parser.add_argument('--dagger-rollin', action='store_true', help='collect teacher PD queries with25% joint-arm expert interventions')
+    parser.add_argument('--pw-mode', choices=('collect', 'evaluate'),
+                        help='fixed PW critic probe: noisy collection or frozen matched policy evaluation')
     parser.add_argument('--idle-context-pid', type=int, action='append', default=[],
                         help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
@@ -116,6 +118,8 @@ def main():
     autonomous = args.actor_fit is not None
     reference = None
     validation = None
+    if args.pw_mode and (not autonomous or args.dagger_rollin or args.actor_period != 1 or args.validation_card):
+        raise ValueError('PW probe requires per-control reference actors without teacher intervention')
     if args.validation_card is not None:
         import yaml
         card = args.validation_card.resolve()
@@ -244,6 +248,12 @@ def main():
                         or sha(ref_path) != validation['reference_sha256']):
                     raise ValueError('validation frozen model/reference identity differs')
                 card = args.validation_card.resolve()
+            if args.pw_mode:
+                card = TASK / 'docs/experiments/probes/P-20261011-pw-critic-policy.md'
+                if reference is None:
+                    raise ValueError('PW probe requires authorized planned reference')
+                if args.pw_mode == 'collect' and actor_result['checkpoint_sha256']['joint'] != '7c2d1fe98a27c7c3ba72ba44a217c631aea5e46b0c74384a0cc7c9d4f692677e':
+                    raise ValueError('PW collection requires fixed validated DAgger initialization')
             physical_decision = str(card)
             files += [card, TASK / 'src/trajectory_policy/competent_actor.py',
                 TASK / 'src/trajectory_policy/history.py', Path(__file__).with_name('competent_actor_execution.py'),
@@ -303,6 +313,14 @@ def main():
         if validation is not None:
             manifest.update(experiment_id=validation['validation_id'], validation_card=str(args.validation_card.resolve()),
                             seed_pool='validation.holdout', evaluation_stage='frozen holdout execution; final multi-run verdict requires audits')
+            write(out / 'manifest.json', manifest)
+        if args.pw_mode:
+            manifest.update(experiment_id='P-20261011-pw-critic-policy', pw_mode=args.pw_mode,
+                training_allowed=args.pw_mode == 'collect', intervention_beta=0.,
+                exploration_m=.001 if args.pw_mode == 'collect' else 0.,
+                continuation_arms={'tau_only': 'PW-off', 'joint': 'PW-on'} if args.pw_mode == 'evaluate'
+                    else {'tau_only': 'DAQ+noise', 'joint': 'DAQ+noise'},
+                training_labels='actual physical discounted returns; no teacher labels used')
             write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
@@ -380,7 +398,8 @@ def main():
             actor_execution = None
             if autonomous:
                 from competent_actor_execution import ActorExecution
-                actor_execution = ActorExecution(args.actor_fit, task.device, args.actor_period)
+                actor_execution = ActorExecution(args.actor_fit, task.device, args.actor_period,
+                    exploration_m=.001 if args.pw_mode == 'collect' else 0.)
             work_started = time.monotonic()
             for tick in range(542):
                 with torch.no_grad():

@@ -9,11 +9,14 @@ from trajectory_policy.competent_actor import actor_input, load_actor, shifted_p
 
 
 class ActorExecution:
-    def __init__(self, directory, device, period=8):
+    def __init__(self, directory, device, period=8, exploration_m=0.):
         self.device = device
         if period not in (1, 8):
             raise ValueError('one or eight control query period required')
         self.period = period
+        self.exploration_m = exploration_m
+        if exploration_m not in (0., .001) or (exploration_m and period != 1):
+            raise ValueError('PW exploration requires per-control queries and1mm noise')
         self.reference = None
         manifest = json.loads((Path(directory) / 'manifest.json').read_text())
         if manifest.get('reference'):
@@ -27,6 +30,8 @@ class ActorExecution:
                        map_location=device), device) for name in ('tau_only', 'joint')}
         self.plan = None
         self.records = dict(query_tick=[], high_input=[], high_tau=[], plan_world=[])
+        if exploration_m:
+            self.records.update(high_tau_mean=[], high_tau_noise=[])
 
     def future(self, tick, measured, goal):
         # measured holds only already recorded states, including current tick.
@@ -38,8 +43,16 @@ class ActorExecution:
                 from trajectory_policy.reference_actor import reference_input
                 inputs = reference_input(*(np.stack([measured[k][i][8:24] for i in past])
                          for k in ('obj', 'hand', 'q', 'dq', 'velocity')), self.reference, np.full(16, tick))
+            names = ('joint', 'joint') if self.exploration_m else ('tau_only', 'joint')
             predictions = np.concatenate([self.models[name](torch.as_tensor(inputs[i * 8:(i + 1) * 8],
-                          device=self.device)).cpu().numpy() for i, name in enumerate(('tau_only', 'joint'))])
+                          device=self.device)).cpu().numpy() for i, name in enumerate(names)])
+            if self.exploration_m:
+                # One coherent point displacement per plan, decaying with horizon.
+                noise = torch.randn(16, 1, 33, device=self.device).cpu().numpy() * self.exploration_m
+                noise = noise * np.exp(-np.arange(24, dtype=np.float32)[None, :, None] / 8.)
+                self.records['high_tau_mean'].append(predictions.copy())
+                self.records['high_tau_noise'].append(noise.copy())
+                predictions = predictions + noise
             current_hand = measured['hand'][-1][8:24]
             current_rotation = measured['obj'][-1][8:24, :3, :3]
             self.plan = world_plan(predictions, current_hand, current_rotation)

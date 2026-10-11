@@ -240,8 +240,16 @@ def main():
             x = independent_input(execution, np.full(16, tick), ids, reference)
             close('history_goal_input', x, execution['high_input'][j])
             with torch.no_grad():
+                arms = ('joint', 'joint') if em.get('pw_mode') == 'collect' else ('tau_only', 'joint')
                 prediction = np.concatenate([models[arm](torch.as_tensor(x[i * 8:(i + 1) * 8], device=device)).cpu().numpy()
-                                             for i, arm in enumerate(('tau_only', 'joint'))])
+                                             for i, arm in enumerate(arms)])
+            if em.get('pw_mode') == 'collect':
+                close('exploration_mean', prediction, execution['high_tau_mean'][j])
+                noise = execution['high_tau_noise'][j]
+                close('exploration_horizon', noise, noise[:, :1] * np.exp(-np.arange(24, dtype=np.float32)[None, :, None] / 8.))
+                if em['exploration_m'] != .001 or em['intervention_beta'] != 0 or not em['training_allowed']:
+                    raise ValueError('PW collection protocol differs')
+                prediction += noise
             close('actor_output', prediction, execution['high_tau'][j])
             plan = np.matmul(prediction.reshape(16, 24, 11, 3), execution['obj'][tick, ids, :3, :3].swapaxes(-1, -2)[:, None])
             plan = plan + execution['hand'][tick, ids, None]
