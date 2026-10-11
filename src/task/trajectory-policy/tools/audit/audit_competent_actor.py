@@ -90,6 +90,7 @@ def main():
     r = load_model(torch.load(retargeter, map_location=device, weights_only=False), device)
     models = {}
     errors = {}
+    query_metrics = {}
 
     def close(label, actual, expected, tolerance=2e-5):
         error = float(np.max(np.abs(np.asarray(actual) - np.asarray(expected))))
@@ -179,6 +180,23 @@ def main():
                 objective += .1 * query_loss
             close(arm + '_selected_objective', objective, selected_row[arm]['objective'])
             models[arm] = actor
+        if query_arrays is not None:
+            warm = load_actor(torch.load(manifest['warm'], map_location=device, weights_only=False), device)
+            for name, actor in dict(warm=warm, offline_control=models['tau_only'], dagger=models['joint']).items():
+                query_metrics[name] = {}
+                for split, (qx, qs, yy) in query_arrays.items():
+                    with torch.no_grad():
+                        pred = np.concatenate([r(torch.as_tensor(qs[i:i + 256], device=device),
+                            actor(torch.as_tensor(qx[i:i + 256], device=device))).cpu().numpy()
+                            for i in range(0, len(qx), 256)])
+                    delta = pred - yy
+                    count = 6 if split == 'train' else 2
+                    per_env = (((delta / r.target_scale.cpu().numpy()) ** 2)
+                               .reshape(542, count, 12).mean(axis=(0, 2)))
+                    query_metrics[name][split] = dict(normalized_PD_MSE=float(per_env.mean()),
+                        per_env_PD_MSE=per_env.tolist(),
+                        wrist_position_abs_p95_m=float(np.quantile(np.abs(delta[:, :3]), .95)),
+                        finger_abs_p95_rad=float(np.quantile(np.abs(delta[:, 6:]), .95)))
         for parameter in r.parameters():
             parameter.requires_grad_(False)
         x, s, _, y, _ = arrays['train']
@@ -311,6 +329,8 @@ def main():
     report = dict(**{'pass': True}, max_errors=errors, replay_device=device, audit_source_sha256=sha(__file__),
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         scope='independent history/goal/trajectory/R/actual-PD replay; no formal validation')
+    if query_metrics:
+        report['teacher_query_fit'] = query_metrics
     (folder / 'audit.json').write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
     print(json.dumps(report), flush=True)
 
