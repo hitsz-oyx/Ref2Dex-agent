@@ -32,6 +32,10 @@ def main():
     p.add_argument('--physical', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--gpu', type=int, required=True)
+    p.add_argument('--reference', type=Path)
+    p.add_argument('--idle-context-pid', type=int, action='append', default=[])
+    p.add_argument('--warm', type=Path, help='reference joint checkpoint for matched continuation')
+    p.add_argument('--queries', type=Path, help='audited learner-state expert-PD query collection')
     args = p.parse_args()
     out = args.output.resolve()
     if out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents:
@@ -61,13 +65,25 @@ def main():
     pids = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-compute-apps=pid',
                                     '--format=csv,noheader,nounits'], text=True).split()
     util, used = map(int, row.split(','))
-    if pids or util > 10 or used > 512:
+    allowed_contexts = set(args.idle_context_pid)
+    if set(map(int, pids)) - allowed_contexts or util > (5 if allowed_contexts else 10) or used > 512:
         raise RuntimeError('GPU occupied')
     scratch = ROOT / 'tmp/trajectory-policy/competent-pd'
     scratch.mkdir(parents=True, exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(args.gpu), TMPDIR=str(scratch), OMP_NUM_THREADS='2')
     import torch
     from trajectory_policy.competent_actor import CompetentActor, SCHEMA, actor_windows
+    reference = None
+    if args.reference is not None:
+        from trajectory_policy.reference_actor import ReferenceActor, SCHEMA, reference_windows, load_reference_actor
+        ref_manifest = json.loads((args.reference.parent / 'manifest.json').read_text())
+        if sha(args.reference) != ref_manifest['reference_sha256'] or not ref_manifest['planned_reference_only']:
+            raise ValueError('authenticated planned reference required')
+        with np.load(args.reference, allow_pickle=False) as f:
+            reference = {k: f[k].copy() for k in f.files}
+        def actor_windows(data, envs):
+            return reference_windows(data, envs, reference)
+        CompetentActor = ReferenceActor
     from trajectory_policy.pd_retargeter import load_model, command, decode_target
     torch.set_num_threads(2)
     torch.set_float32_matmul_precision('highest')
@@ -79,10 +95,29 @@ def main():
     tensors = {key: [torch.as_tensor(v, device='cuda') for v in values[:4]] for key, values in arrays.items()}
     x, state, tau, target = tensors['train']
     base = CompetentActor().cuda()
+    if (args.warm is None) != (args.queries is None) or (args.warm is not None and reference is None):
+        raise ValueError('reference warm checkpoint and query collection must be paired')
+    queries = None
+    if args.warm is not None:
+        base = load_reference_actor(torch.load(args.warm, map_location='cuda', weights_only=False), 'cuda')
+        qm = json.loads((args.queries / 'manifest.json').read_text())
+        if (qm['status'] != 'COMPLETED' or not qm.get('dagger_rollin')
+                or not json.loads((args.queries / 'audit.json').read_text())['pass']):
+            raise ValueError('audited completed expert-PD query roll-in required')
+        from trajectory_policy.pd_retargeter import encode_target
+        with np.load(args.queries / 'trajectory.npz', allow_pickle=False) as f:
+            query = {k: f[k].copy() for k in ('high_input', 'state_features', 'expert_pd', 'q')}
+        queries = {}
+        for name, envs in dict(train=np.arange(16, 22), validation=np.arange(22, 24)).items():
+            queries[name] = [torch.as_tensor(v, device='cuda') for v in (
+                query['high_input'][:, envs - 8].reshape(-1, len(base.input_mean)),
+                query['state_features'][:, envs - 4].reshape(-1, 87),
+                encode_target(query['expert_pd'][:, envs], query['q'][:-1, envs]).reshape(-1, 12))]
     with torch.no_grad():
         for name, values in (('input', x), ('tau', tau)):
-            getattr(base, name + '_mean').copy_(values.mean(0))
-            getattr(base, name + '_scale').copy_(values.std(0, unbiased=False).clamp_min(.001))
+            if args.warm is None:
+                getattr(base, name + '_mean').copy_(values.mean(0))
+                getattr(base, name + '_scale').copy_(values.std(0, unbiased=False).clamp_min(.001))
     models = dict(tau_only=base, joint=copy.deepcopy(base))
     optimizers = {key: torch.optim.Adam(model.parameters(), lr=3e-4) for key, model in models.items()}
     r = load_model(torch.load(args.retargeter, map_location='cuda', weights_only=False), 'cuda')
@@ -97,6 +132,11 @@ def main():
         TASK / 'docs/experiments/probes/P-20261011-competent-joint-bc.md', args.retargeter,
         *[args.source / name for name in ('manifest.json', 'trajectory.npz', 'audit.json')],
         *[args.physical / name for name in ('result.json', 'audit.json')]]
+    if reference is not None:
+        files += [TASK / 'src/trajectory_policy/reference_actor.py', args.reference,
+                  args.reference.parent / 'manifest.json', TASK / 'docs/experiments/probes/P-20261011-reference-goal-dagger.md']
+    if args.warm is not None:
+        files += [args.warm, *[args.queries / name for name in ('trajectory.npz', 'manifest.json', 'audit.json')]]
     hashes = {str(path.resolve()): sha(path) for path in files}
     out.mkdir(parents=True)
     manifest = dict(schema=SCHEMA, status='RUNNING', groups=groups, seed=183, updates=3000,
@@ -107,6 +147,14 @@ def main():
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         checkpoint_selection='lowest own validation trajectory MSE + lambda PD MSE every250updates',
         inference='own measured H328 + known goal12 only; no clock/teacher', train_only_normalization=True)
+    write(out / 'manifest.json', manifest)
+    if reference is not None:
+        manifest.update(reference=str(args.reference.resolve()), input_dim=len(base.input_mean), actor_period=1,
+            inference='measured H328 + authorized planned human/object pose anchors t+1,t+16',
+            experiment_id='P-20261011-reference-goal-dagger')
+    if args.warm is not None:
+        manifest.update(warm=str(args.warm.resolve()), queries=str(args.queries.resolve()), normalization_frozen=True,
+            continuation_arms=dict(tau_only='offline_joint_continuation', joint='PD_DAgger_continuation'))
     write(out / 'manifest.json', manifest)
     best = {key: (float('inf'), None, None) for key in models}
     started = time.monotonic()
@@ -136,11 +184,18 @@ def main():
             ids = torch.cat((early[torch.randint(len(early), (128,), device='cuda')],
                              approach[torch.randint(len(approach), (128,), device='cuda')],
                              torch.randint(len(x), (256,), device='cuda')))
+            if queries is not None:
+                ids = ids[torch.randperm(len(ids), device='cuda')]
             for name, model in models.items():
-                prediction = model(x[ids])
-                loss = ((prediction - tau[ids]) / model.tau_scale).square().mean()
-                if name == 'joint':
-                    loss = loss + .1 * ((r(state[ids], prediction) - target[ids]) / r.target_scale).square().mean()
+                source_ids = ids[:256] if queries is not None and name == 'joint' else ids
+                prediction = model(x[source_ids])
+                loss = ((prediction - tau[source_ids]) / model.tau_scale).square().mean()
+                if name == 'joint' or queries is not None:
+                    loss = loss + .1 * ((r(state[source_ids], prediction) - target[source_ids]) / r.target_scale).square().mean()
+                if queries is not None and name == 'joint':
+                    qx, qs, qy = queries['train']
+                    qi = torch.randint(len(qx), (256,), device='cuda')
+                    loss = loss + .1 * ((r(qs[qi], model(qx[qi])) - qy[qi]) / r.target_scale).square().mean()
                 if not torch.isfinite(loss):
                     raise FloatingPointError('nonfinite BC loss')
                 optimizers[name].zero_grad(set_to_none=True)
@@ -152,15 +207,25 @@ def main():
                            eta_s=(time.monotonic() - started) / step * (3000 - step))
                 for name, model in models.items():
                     _, _, lt, lp = predict(model, 'validation')
-                    objective = lt + (.1 * lp if name == 'joint' else 0)
+                    objective = lt + (.1 * lp if name == 'joint' or queries is not None else 0)
                     row[name] = dict(objective=objective, tau_mse=lt, pd_mse=lp)
+                    if queries is not None and name == 'joint':
+                        qx, qs, qy = queries['validation']
+                        with torch.no_grad():
+                            query_loss = torch.cat([((r(qs[i:i + 256], model(qx[i:i + 256])) - qy[i:i + 256])
+                                / r.target_scale).square().mean(-1) for i in range(0, len(qx), 256)]).mean()
+                        objective += .1 * float(query_loss)
+                        row[name].update(objective=objective, query_pd_mse=float(query_loss))
                     if objective < best[name][0]:
                         best[name] = objective, step, {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
                 row['gpu'] = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu),
                     '--query-gpu=utilization.gpu,memory.used', '--format=csv,noheader,nounits'], text=True).strip()
                 pids = subprocess.check_output(['nvidia-smi', '-i', str(args.gpu), '--query-compute-apps=pid',
                                                '--format=csv,noheader,nounits'], text=True).split()
-                if set(map(int, pids)) - {os.getpid()}:
+                from collect_competent_pd import gpu_state
+                gpu_status = gpu_state(args.gpu)
+                foreign = set(gpu_status['pids']) - {os.getpid()}
+                if foreign - allowed_contexts or any(gpu_status['process_mib'][pid] > 512 for pid in foreign):
                     raise RuntimeError('foreign GPU process')
                 with (out / 'monitor.jsonl').open('a') as f:
                     f.write(json.dumps(row) + '\n')

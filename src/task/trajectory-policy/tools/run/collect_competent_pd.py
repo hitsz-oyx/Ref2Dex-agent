@@ -47,6 +47,7 @@ def main():
     parser.add_argument('--model', type=Path)
     parser.add_argument('--actor-fit', type=Path, help='frozen matched H/G actor fit for autonomous execution')
     parser.add_argument('--actor-period', type=int, choices=(1, 8), default=8)
+    parser.add_argument('--dagger-rollin', action='store_true', help='collect teacher PD queries with25% joint-arm expert interventions')
     parser.add_argument('--idle-context-pid', type=int, action='append', default=[],
                         help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
@@ -60,6 +61,7 @@ def main():
     out = args.output.resolve()
     evaluating = args.source is not None
     autonomous = args.actor_fit is not None
+    reference = None
     if (out.exists() or ROOT / 'outputs/trajectory-policy' not in out.parents
             or Path(sys.prefix).resolve() != RUNTIME.resolve()
             or evaluating != (args.model is not None) or (autonomous and not evaluating)
@@ -152,6 +154,17 @@ def main():
                            if args.actor_period == 1 else 'docs/experiments/probes/P-20261011-competent-joint-bc.md')
             actor_result = json.loads((args.actor_fit / 'result.json').read_text())
             actor_manifest = json.loads((args.actor_fit / 'manifest.json').read_text())
+            if actor_manifest.get('reference'):
+                card = TASK / 'docs/experiments/probes/P-20261011-reference-goal-dagger.md'
+                ref_path = Path(actor_manifest['reference'])
+                ref_manifest = json.loads((ref_path.parent / 'manifest.json').read_text())
+                if sha(ref_path) != ref_manifest['reference_sha256']:
+                    raise ValueError('planned reference identity changed')
+                with np.load(ref_path, allow_pickle=False) as f:
+                    reference = {k: f[k].copy() for k in f.files}
+                files += [ref_path, ref_path.parent / 'manifest.json', TASK / 'src/trajectory_policy/reference_actor.py']
+            if args.dagger_rollin and (reference is None or args.actor_period != 1):
+                raise ValueError('DAgger roll-in requires reference actors queried each control')
             if (actor_manifest['status'] != 'COMPLETED'
                     or actor_manifest['retargeter_sha256'] != sha(args.model)
                     or not json.loads((args.actor_fit / 'audit.json').read_text())['pass']
@@ -208,6 +221,14 @@ def main():
             actor_fit=str(args.actor_fit.resolve()), retargeter=str(args.model.resolve()),
             source_envs=list(range(24, 28)))
         write(out / 'manifest.json', manifest)
+        if reference is not None:
+            manifest.update(experiment_id='P-20261011-reference-goal-dagger', reference=actor_manifest['reference'],
+                reference_pose_anchors=[1, 16], inference='H328 + authorized reference human/object anchors408 -> trajectory -> frozen R',
+                dagger_rollin=args.dagger_rollin, training_allowed=args.dagger_rollin,
+                training_labels='expert native PD queries only; mixed future hand is not expert tau',
+                intervention_beta=.25 if args.dagger_rollin else 0.,
+                continuation_arms=actor_manifest.get('continuation_arms'))
+            write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
     started = time.monotonic()
@@ -243,6 +264,13 @@ def main():
             root[:, :3], root[:, 3:7] = terminal_ref[:, 106:109], terminal_ref[:, 109:113]
             goal = poses(root)
             goal_np = goal.cpu().numpy().copy()
+            if reference is not None:
+                from trajectory_policy.reference_actor import reference_from_processed
+                measured_reference = reference_from_processed(task.hoi_data[task.data_id[0]].cpu().numpy())
+                ref_error = {k: float(np.max(np.abs(measured_reference[k] - reference[k]))) for k in reference}
+                if max(ref_error.values()) > 2e-5:
+                    raise ValueError('exported reference disagrees with native processed reference')
+                manifest['native_reference_max_errors'] = ref_error
             capture = actual_pd = None
             original_pre, original_pd = task.pre_physics_step, task._action_to_pd_targets
 
@@ -260,6 +288,8 @@ def main():
             logs = {key: [] for key in ('q', 'dq', 'hand', 'obj', 'velocity', 'surface_gap',
                 'support_gap', 'table_footprint', 'action', 'applied', 'pd_targets', 'intended',
                 'clipped', 'requested_pd', 'state_features', 'tau_features', 'encoded_target')}
+            if args.dagger_rollin:
+                logs.update(expert_action=[], expert_pd=[], intervention=[])
 
             def record():
                 hand, gap = geometry.measure(task)
@@ -284,6 +314,12 @@ def main():
                     native_command = self.get_action(dict(obs, obs=padded), True)[:n].clamp(-1, 1).clone()
                     intended = native_command.clone()
                     requested_pd = pd_from_action(native_command, current['q'], offset, scale)
+                    teacher_command = native_command.clone()
+                    teacher_target = requested_pd.clone()
+                    if args.dagger_rollin:
+                        native_teacher_target = original_pd(teacher_command.clone())
+                        if (teacher_target - native_teacher_target).abs().max() > 1e-6:
+                            raise ValueError('teacher-query native PD target mismatch')
                     if evaluating:
                         donor = np.arange(24, 28) if autonomous else np.arange(24, 32)
                         low_ids = slice(4, 24) if autonomous else slice(16, 24)
@@ -306,6 +342,15 @@ def main():
                         for key, value in dict(state_features=s, tau_features=tau,
                                               encoded_target=encoded.cpu().numpy()).items():
                             logs[key].append(value.copy())
+                    if args.dagger_rollin:
+                        intervention = torch.zeros(n, dtype=torch.bool, device=task.device)
+                        intervention[16:24] = torch.rand(8, device=task.device) < .25
+                        native_command[intervention] = teacher_command[intervention]
+                        intended[intervention] = teacher_command[intervention]
+                        requested_pd[intervention] = teacher_target[intervention]
+                        for key, value in dict(expert_action=teacher_command, expert_pd=teacher_target,
+                                               intervention=intervention).items():
+                            logs[key].append(value.cpu().numpy().copy())
                     if not torch.isfinite(native_command).all():
                         raise FloatingPointError('nonfinite native command')
                     expected_pd = pd_from_action(native_command, current['q'], offset, scale)
@@ -364,6 +409,13 @@ def main():
                     success=sum(r['success'] for r in rows), median_held=float(np.median([r['maximum_held_frames'] for r in rows])),
                     clipping_rate=float(packed['clipped'][:, ids].mean()),
                     endpoint_position_error_m=float(np.linalg.norm(packed['obj'][-1, ids, :3, 3] - goal_np[ids, :3, 3], axis=-1).mean()))
+                if reference is not None:
+                    planned = reference['obj'][:, None]
+                    pos_error = packed['obj'][:, ids, :3, 3] - planned[..., :3, 3]
+                    relative_rotation = np.matmul(planned[..., :3, :3].swapaxes(-1, -2), packed['obj'][:, ids, :3, :3])
+                    angle = np.arccos(np.clip((np.trace(relative_rotation, axis1=-2, axis2=-1) - 1) / 2, -1, 1))
+                    summary[role].update(reference_position_rmse_m=float(np.sqrt(np.mean(np.sum(pos_error ** 2, axis=-1)))),
+                                         reference_rotation_mean_rad=float(angle.mean()))
             teacher_gate = 3 if autonomous else (6 if evaluating else 24)
             readiness = summary['teacher']['hold45'] >= teacher_gate and summary['teacher']['success'] >= teacher_gate
             status = 'PROMISING' if readiness else 'UNCLEAR'
@@ -373,7 +425,12 @@ def main():
                 r = summary['joint']
                 passed = (r['hold45'] >= 6 and r['success'] >= 6 and r['clipping_rate'] < .01
                           and r['median_held'] >= .8 * gt['median_held'])
+                if reference is not None:
+                    passed = (passed and r['reference_position_rmse_m'] <= 1.5 * summary['teacher']['reference_position_rmse_m']
+                              and r['reference_rotation_mean_rad'] <= 1.5 * summary['teacher']['reference_rotation_mean_rad'] + .1)
                 status = ('PROMISING' if passed else 'UNPROMISING') if calibration else 'UNCLEAR'
+                if args.dagger_rollin:
+                    status = 'UNCLEAR'  # collection with interventions is not autonomous evaluation
             elif evaluating:
                 calibration = readiness and summary['source_pd']['hold45'] >= 6 and summary['source_pd']['success'] >= 6
                 r = summary['gt_tau_R']
