@@ -9,12 +9,15 @@ from trajectory_policy.competent_actor import actor_input, load_actor, shifted_p
 
 
 class ActorExecution:
-    def __init__(self, directory, device, period=8, exploration_m=0.):
+    def __init__(self, directory, device, period=8, exploration_m=0., swap_arms=False):
         self.device = device
         if period not in (1, 8):
             raise ValueError('one or eight control query period required')
         self.period = period
         self.exploration_m = exploration_m
+        self.swap_arms = swap_arms
+        if swap_arms and exploration_m:
+            raise ValueError('swap is frozen evaluation only')
         if exploration_m not in (0., .001) or (exploration_m and period != 1):
             raise ValueError('PW exploration requires per-control queries and1mm noise')
         self.reference = None
@@ -44,6 +47,8 @@ class ActorExecution:
                 inputs = reference_input(*(np.stack([measured[k][i][8:24] for i in past])
                          for k in ('obj', 'hand', 'q', 'dq', 'velocity')), self.reference, np.full(16, tick))
             names = ('joint', 'joint') if self.exploration_m else ('tau_only', 'joint')
+            if self.swap_arms:
+                names = names[::-1]
             predictions = np.concatenate([self.models[name](torch.as_tensor(inputs[i * 8:(i + 1) * 8],
                           device=self.device)).cpu().numpy() for i, name in enumerate(names)])
             if self.exploration_m:

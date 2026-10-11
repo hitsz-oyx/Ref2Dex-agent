@@ -124,3 +124,25 @@ addb2877a9b2bb720f71f79f7edb30accb703b04144f1ef9ea8f18dc1d108356.
 Independent eligible-label/reward/return/PW first-paired-batch/Q/weight/interpolation/
 learned actor audit PASS (461deb5c). No model selection using physical outcomes.
 Next fixed seed189 execution with exploration OFF, under the unchanged gates.
+
+## Post-first-execution Decision Note: bounded block-swap diagnostic
+
+First seed189 execution (25347d43) and full independent audit PASS. Teacher/GT-R
+4/4hold/place; PW-on8/8hold/place,median442,clip0,posRMSE .07117m; PW-off8/8hold,
+6/8place,median408,clip14.4834%,posRMSE .13928m. Reference-angle .41473/.83474rad.
+The original six-gate PW-on passes; PW-off fails clipping/position/rotation.
+Thus the predeclared BOTH-competent pilot-benefit gate fails: original decision
+UNPROMISING by that strict screen, even though the relative on/off observation
+favors PW-on. Do not silently relax or relabel this original gate.
+
+Question: is the favorable PW-on observation tied to its environment block?
+Before longer RL, perform ONE fresh seed189 launch with the EXACT same learned
+actors/R/reference and controls but reverse student blocks (on8:16,off16:24).
+No new training, checkpoint/seed selection, noise/intervention or gate changes.
+This is cheaper than new training and may expose a layout dependency; native
+launch/contact variation is still not independently controlled by this swap.
+If on remains competent and off degradation persists, retain PW/Q-weighted learning
+as a mechanism candidate for later validation. If the pattern reverses or
+calibration fails, treat the relative observation as UNCLEAR and diagnose layout/
+launch variance before expanding. Bound one300s launch plus120s audit, same20GPUmin/
+2GiB probe envelope; then stop this pilot. No external authorization needed.

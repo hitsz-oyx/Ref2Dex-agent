@@ -102,6 +102,7 @@ def main():
     parser.add_argument('--dagger-rollin', action='store_true', help='collect teacher PD queries with25% joint-arm expert interventions')
     parser.add_argument('--pw-mode', choices=('collect', 'evaluate'),
                         help='fixed PW critic probe: noisy collection or frozen matched policy evaluation')
+    parser.add_argument('--pw-swap-arms', action='store_true', help='frozen PW evaluation with reversed student environment blocks')
     parser.add_argument('--idle-context-pid', type=int, action='append', default=[],
                         help='pre-existing idle <=512MiB context; never authorize other active workloads')
     parser.add_argument('--physical-probe-card', type=Path,
@@ -120,6 +121,8 @@ def main():
     validation = None
     if args.pw_mode and (not autonomous or args.dagger_rollin or args.actor_period != 1 or args.validation_card):
         raise ValueError('PW probe requires per-control reference actors without teacher intervention')
+    if args.pw_swap_arms and args.pw_mode != 'evaluate':
+        raise ValueError('PW arm swap requires frozen evaluation')
     if args.validation_card is not None:
         import yaml
         card = args.validation_card.resolve()
@@ -277,6 +280,8 @@ def main():
     roles = (['teacher'] * 4 + ['gt_tau_R'] * 4 + ['tau_only'] * 8 + ['joint'] * 8 if autonomous else
              ['teacher'] * 8 + ['source_pd'] * 8 + ['gt_tau_R'] * 8
              if evaluating else ['teacher'] * 32)
+    if args.pw_swap_arms:
+        roles = ['teacher'] * 4 + ['gt_tau_R'] * 4 + ['joint'] * 8 + ['tau_only'] * 8
     out.mkdir(parents=True)
     manifest = dict(schema='ref2dex.competent-pd-rollout.v1', status='RUNNING',
         task='trajectory-policy', experiment_id=('P-20261011-competent-pd-physical'
@@ -316,6 +321,7 @@ def main():
             write(out / 'manifest.json', manifest)
         if args.pw_mode:
             manifest.update(experiment_id='P-20261011-pw-critic-policy', pw_mode=args.pw_mode,
+                pw_swap_arms=args.pw_swap_arms,
                 training_allowed=args.pw_mode == 'collect', intervention_beta=0.,
                 exploration_m=.001 if args.pw_mode == 'collect' else 0.,
                 continuation_arms={'tau_only': 'PW-off', 'joint': 'PW-on'} if args.pw_mode == 'evaluate'
@@ -399,7 +405,7 @@ def main():
             if autonomous:
                 from competent_actor_execution import ActorExecution
                 actor_execution = ActorExecution(args.actor_fit, task.device, args.actor_period,
-                    exploration_m=.001 if args.pw_mode == 'collect' else 0.)
+                    exploration_m=.001 if args.pw_mode == 'collect' else 0., swap_arms=args.pw_swap_arms)
             work_started = time.monotonic()
             for tick in range(542):
                 with torch.no_grad():

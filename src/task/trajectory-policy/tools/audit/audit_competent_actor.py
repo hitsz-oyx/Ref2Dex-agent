@@ -213,7 +213,12 @@ def main():
         folder = args.execution
         em = json.loads((folder / 'manifest.json').read_text())
         er = json.loads((folder / 'result.json').read_text())
-        if em['status'] != 'COMPLETED' or em['roles'] != ['teacher'] * 4 + ['gt_tau_R'] * 4 + ['tau_only'] * 8 + ['joint'] * 8:
+        expected_roles = ['teacher'] * 4 + ['gt_tau_R'] * 4 + ['tau_only'] * 8 + ['joint'] * 8
+        if em.get('pw_swap_arms'):
+            if em.get('pw_mode') != 'evaluate':
+                raise ValueError('arm swap is frozen PW evaluation only')
+            expected_roles = ['teacher'] * 4 + ['gt_tau_R'] * 4 + ['joint'] * 8 + ['tau_only'] * 8
+        if em['status'] != 'COMPLETED' or em['roles'] != expected_roles:
             raise ValueError('completed fixed autonomous execution required')
         for arm in ('tau_only', 'joint'):
             if sha(args.fit / (arm + '.pt')) != result['checkpoint_sha256'][arm]:
@@ -241,6 +246,8 @@ def main():
             close('history_goal_input', x, execution['high_input'][j])
             with torch.no_grad():
                 arms = ('joint', 'joint') if em.get('pw_mode') == 'collect' else ('tau_only', 'joint')
+                if em.get('pw_swap_arms'):
+                    arms = arms[::-1]
                 prediction = np.concatenate([models[arm](torch.as_tensor(x[i * 8:(i + 1) * 8], device=device)).cpu().numpy()
                                              for i, arm in enumerate(arms)])
             if em.get('pw_mode') == 'collect':
