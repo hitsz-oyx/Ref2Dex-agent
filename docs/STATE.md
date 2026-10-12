@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 ref2_7 C四卡大batch已启动；C0先行，10点前静默
+
+用户冻结B研究并授权C0后大规模C1，视频在其他服务器。保留old raw-hand
+接口/Probe32 warm policy和A2合格Chunk-R，冻结scene/goal/raw/action/world/R
+与buffers，仅训练trajectory decoder。单模型GPU0/1/2/3、每rank100/global400，
+精确60%三域主数据/25%nominal/15%实际expert recovery；human PD loss0，
+robot实际effect与planned goal分离。lambda_a1/lambda_E.1，AdamW1e-5。
+四卡full-batch smoke修正DDP返回节点梯度检查及fresh scene数值噪声后通过；
+固定panel采用缓存冻结context，GT oracle变化0。effect/动作梯度进入decoder，
+World/R/冻结模块不变；不将工程smoke当效果结论。C0科学500步通过合同及
+不退化门才自动继续同模型/optimizer额外20k；有信号且8h预算充足才到50k。
+初次科学启动在首更新前因fork/LLVM退出，日志保留；改用spawn且实际worker
+路径smoke通过后，监督进程609910启动r2，保留首轮绝对截止08:23:29。
+不新增数据采集、B调参或RL；固定context也保存以保证resume的oracle不漂移。
+最新要求：开始后每30分钟轮询，2026-10-13 10:00 Asia/Shanghai前不发聊天。
+训练状态和ETA保存在产物；Delta_E仅为冻结模型差距，不能称不可约/物理收益。
+见[C实验卡37](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md)。
+
 ## 2026-10-12 ref2_6 B2门控接口保持初始行为，通过不退化门；手特征收益仍UNCLEAR
 
 按ref2_6将硬加改成raw+alpha P(LN(current PTv3 hand))，alpha0；保留A2

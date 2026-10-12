@@ -5,7 +5,7 @@ experiment_id: P-20261013-goal-point-wam-ref27-effect-consistency
 date: 2026-10-13
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 01add31e
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 37
@@ -14,12 +14,12 @@ seeds: [295, 296]
 decision_changed_if_positive: continue one-model mixed-domain C1 after C0; retain trajectory and control while reducing frozen-world effect gap
 decision_changed_if_negative: save C0 and stop scale-up if contracts or non-regression fail; preserve A2 and B baselines
 status: UNCLEAR
-run_id: wam-effect-ddp-20261013-r1
+run_id: wam-effect-ddp-20261013-r2
 ---
 
 # ref2_7 C: frozen-world predicted-trajectory consistency
 
-Result: Protocol fixed; full-batch DDP engineering smoke pending.
+Result: Corrected full-batch4GPU smoke passed; scientific C0 r2 started, C1 remains conditional on its500-update gate.
 Decision: Freeze B research and use old raw-hand WAM; C0 gates automatic C1.
 
 ## Decision Note
@@ -90,7 +90,9 @@ startup64, three actual recovery TRAIN pools. Report h1/first8/all24; robot
 first applied PD XYZ/rotation/finger p95 and clipping; predicted and exact-GT
 World point EPE h24/all24. Delta_E=predicted minus GT EPE, may be negative;
 it is a frozen-model discrepancy, not irreducible error or physical utility.
-Initial and every evaluation use identical samples/batch shapes and oracle.
+Initial and every evaluation use identical samples/batch shapes and cached frozen scene/goal/raw context; exact oracle is recomputed each time.
+Per-rank frozen context packets are persisted so checkpoint resume retains
+the same oracle representation, rather than reintroducing sparse replay noise.
 All saved arrays/metrics have one immutable step identity.
 
 Long-run loss decline does not alone justify useful effect supervision.
@@ -107,6 +109,9 @@ nonfinite, contract/frozen drift or storage bound. Never stop unknown workers.
 Keep immutable decoder/optimizer step checkpoints (roughly tens ofMB each),
 latest receipt only; preserve original checkpoints and B2 artifacts.
 Supervisor records owned rank PIDs, GPU/VRAM, progress and ETA. No new branch.
+Latest user instruction: root polls every30min after startup and sends no
+chat updates before2026-10-13 10:00 Asia/Shanghai. Deterministic supervisor
+resource checks run independently and consume no model tokens.
 
 ## Implementation / reproduction
 
@@ -119,6 +124,59 @@ Supervisor records owned rank PIDs, GPU/VRAM, progress and ETA. No new branch.
 /home2/wyy/miniconda3/envs/graspenv/bin/python src/task/goal-point-wam/tools/run/launch_effect_consistency.py --smoke --output outputs/goal-point-wam/wam-effect-smoke-20261013-r1
 /home2/wyy/miniconda3/envs/graspenv/bin/python src/task/goal-point-wam/tools/run/launch_effect_consistency.py --output outputs/goal-point-wam/wam-effect-ddp-20261013-r1
 ```
+
+## Engineering findings / launch
+
+Original engineering runsr1..r4 are preserved and are not scientific negatives.
+The first hit DDP find_unused output-sink wrapping: returned tau ceased to be
+an ancestor of returned effect although decoder gradient existed. A2s CPU
+Gloo reproduction demonstrated the distinction; freeze the unused memory-mode
+query adapter and use DDP without that wrapper. Fix8d80e631, then filter frozen
+parameters out of autograd.grad (17313a88). Repeated CPU DDP forward/backward
+regression passes. Nine existing action/consequence tests and two deterministic
+mixture/resume tests also pass (12 including the new DDP regression).
+
+The next run caught fresh sparse-encoder oracle replay drift despite frozen
+state. Fixed evaluation now caches frozen scene/goal/raw context, explicitly
+isolating actor adaptation. Smoke also measures fresh-context oracle replay
+rather than concealing the noise: max absolute h24 discrepancy.05199mm on
+nominal; no state change. Cached-context GT oracle drift exactly0.
+An empty rank in the three-window human smoke panel required optional diagnostic
+aggregation (129d9831); no loss or dataset semantics changed. Scientific panel
+has96 human occurrences per domain and is partitioned across all4 ranks.
+
+Full-batch4-step smoke r5 COMPLETED/engineering PASS,36/36 miniature panel
+checks pass. All4 effect-to-tau sums363..484, effect-to-decoder1024..1976,
+action-to-tau75..85 nonzero; human PD rows0; rebuilt recorded9D max1.937e-7m.
+World/R/all frozen differences0. Weighted effect gradient is2.27..3.19 times
+geometry gradient, so there is no evidence that lambda_E=.1 is too small.
+No increase is made. This checks wiring, not the 500-step scientific gate.
+Observed full-batch first-step~1.22s and rank0VRAM3855MiB/utilization69%.
+
+Scientific r1/supervisor604880 started00:23:29 but stopped before update1:
+CPU DataLoader fork inherited initialized LLVM threads (`pthread_join failed`).
+This is a loader implementation failure, not negative C evidence. Keep logs.
+Use4 spawned CPU loaders/rank after LLVM initialization (847452f8); repeat the
+same full-batch engineering smoke with this actual loader path. Smoke r6
+COMPLETED and all numerical/frozen/gradient checks pass. No method/data change.
+
+Scientific r2/supervisor609910 starts from the original warm model, with the
+same global400 and4GPUs. Its original absolute deadline1791851009.5187526
+(~08:23:29) is preserved, so engineering retry does not reset the8h budget.
+Implementation01add31e also persists frozen validation contexts for resume.
+Root will inspect the scientific C0 gate, controls, effect curves and resource
+status at30-minute intervals while user sleeps, without chat before10:00.
+
+Startup verification00:31: actual scientific update400 reached, finite loss.
+After loader startup, updates100..400 took~.344s/update (~1160 windows/s across4GPUs). Rank0
+VRAM5251MiB; supervisor snapshots four-card utilization49..69% and
+VRAM5.3..7.7GB, within24GB/card. Early target ETA~2.45h includes
+startup amortization; steady update cost projects~1.95h plus evaluations.
+No memory/throughput blocker observed. Root next scientific poll~01:02 local; no user notification during quiet hours.
+
+- [Engineering result](../../../../../../outputs/goal-point-wam/wam-effect-smoke-20261013-r6/train/result.json)
+- [Live supervisor](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r2/group_status.json)
+- [Live model manifest](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r2/train/manifest.json)
 
 ## Limitations / future evidence
 
