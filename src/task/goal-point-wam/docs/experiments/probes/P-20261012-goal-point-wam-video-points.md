@@ -1005,7 +1005,7 @@ root independently checked camera chaining and imputed-valid source lines.
 Whole-record geometry/camera/scale and frozen held session unchanged. Tracking
 49.596s; all clip data extraction/save95.969s; with unchanged quality audit and
 strict80-window H4/K24 loader total138.937s. Peak allocated1.151GB (GPU observed
-1.917GiB footprint), model snapshots97% utilization during inference; released.
+1917MiB footprint), model snapshots97% utilization during inference; released.
 80/80 point-count/future-valid/current-alignment/scale gates pass: minimum993
 current points, minimum33.63% future validity, same-cache current alignment0mm.
 74/80 all-seven-gate admission screens PASS (92.5% >= predeclared80% decision
