@@ -190,3 +190,39 @@ Planned remote artifacts: isolated NAS scope `video-repo/` and
 `video-points-20261012-r1/`; original EgoDex r2 remains separate. Budget must
 be recomputed including atomic save peaks before any scientific fit. Stop on
 identity drift, nonfinite/OOM, GPU conflict, storage threshold or deadline.
+
+## Clarification: offline human preprocessing versus online observations
+
+The user's PointWAM question prompted a primary-source recheck of
+[Appendix B.1](https://arxiv.org/html/2610.02840v1#A2.SS1): its human-data
+pipeline uses offline clip reconstruction, clip-level hand scale calibration
+and offline tracks; it does not certify prefix-only depth for human training.
+Our four-frame causal observation requirement was an additional adaptation,
+not a paper requirement. Combining independently reconstructed prefix inputs
+with full-clip absolute labels introduced the measured33.575mm median offset.
+That is an implementation alignment blocker, not evidence against EgoDex or
+the paper's method. The existing remote run is hand-only auxiliary training,
+not the paper's joint human scene/hand training.
+
+Decision Note: first screen same-reconstruction offline human pretraining.
+Use the existing teacher's initial depth for current queries and its future
+depth for labels; preserve native cameras, grid identities and all original
+arrays. This tests whether original teacher quality, rather than incompatible
+frontends, blocks a mixed Probe. No global fitted scale or per-track rebasing.
+This replaces the rolling-depth comparison as the immediate next step; its
+code remains available but no rolling-depth remote job has been started.
+The new mode is explicitly `offline-teacher`, `causal_observation=false`,
+`observation_policy=offline_clip_reconstruction`, `offline_pretraining_only=true`.
+Loader accepts it only with those explicit declarations; engineering data
+still cannot enter a scientific fit. It cannot establish online causality,
+deployable perception quality or a formal video transfer claim.
+
+Cheapest check: CPU-only reuse of already acquired depth/tracks for the same
+basic_pick_place train/dev pair,<=900s/clip and<=20MB/clip. No neural model
+computation and no GPU allocation are needed. Preserve the existing quality
+screen, inspect the results, then decide whether remaining22 clips and a GPU
+mixed smoke are useful. Stop on source drift, geometry-screen failure or scope
+budget/deadline. A new scientific fit remains conditional on separate-session
+admission and GPU availability after the original run finishes. Existing main
+architecture and Cm interface remain the Task adaptation, not an official
+PointWAM reproduction; the author project page still shows Code soon.

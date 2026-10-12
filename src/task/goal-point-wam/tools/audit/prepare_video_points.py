@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Build a causal-observation engineering clip from an existing offline teacher.
+"""Build an engineering clip with explicitly declared reconstruction context.
 
-Only current/past RGB is passed to the observation depth model. Offline full
-clip tracks supply labels. Geometry-quality admission is a separate decision.
+The default observation frontend uses current/past RGB. offline-teacher instead
+reuses one offline clip reconstruction, as in paper-described human pretraining;
+it is never certified as an online causal frontend. Admission is separate.
 """
 import argparse
 import json
@@ -30,7 +31,7 @@ def main():
     for name in ('hdf5', 'source-manifest', 'teacher', 'depth-vendor', 'depth-checkpoint', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
     p.add_argument('--max-points', type=int, default=2048)
-    p.add_argument('--label-depth', choices=('offline', 'rolling-prefix'), default='offline',
+    p.add_argument('--label-depth', choices=('offline', 'rolling-prefix', 'offline-teacher'), default='offline',
                    help='rolling-prefix uses the identical four-frame frontend for inputs and labels')
     p.add_argument('--goal-mask', type=Path, help='current-frame target mask at640x360; optional, never selected by future motion')
     a = p.parse_args()
@@ -68,7 +69,8 @@ def main():
         raise ValueError('teacher/source camera mismatch')
     a.output.mkdir(parents=True)
     started = time.time()
-    print(json.dumps(dict(stage='PREFIX_DEPTH', observation_frame_ids=prefix_ids.tolist(), latest_allowed_frame=tick)), flush=True)
+    print(json.dumps(dict(stage='OFFLINE_TEACHER' if a.label_depth == 'offline-teacher' else 'PREFIX_DEPTH',
+                         depth_context_frame_ids=frame_ids.tolist() if a.label_depth == 'offline-teacher' else prefix_ids.tolist())), flush=True)
     if a.label_depth == 'rolling-prefix':
         label_ids = frame_ids[:9]
         label_depth, label_calibrations = rolling_metric_depth(rgb, decode_ids, label_ids,
@@ -77,6 +79,10 @@ def main():
         calibration = label_calibrations[0]
         np.savez_compressed(a.output/'depth_frontend.npz', depth_m=label_depth,
                             source_frame_ids=label_ids, observation_frame_ids=prefix_ids)
+    elif a.label_depth == 'offline-teacher':
+        label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
+        depth = label_depth[:1]
+        calibration = None  # Existing teacher scale is not estimated again.
     else:
         label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
         depth = depth_from_omega(rgb, a.depth_vendor, a.depth_checkpoint, a.output)
@@ -132,7 +138,11 @@ def main():
     if a.label_depth == 'rolling-prefix':
         record.update(label_depth_path='depth_frontend.npz', label_depth_sha256=sha256(a.output/'depth_frontend.npz'))
     report = dict(schema='goal-point-wam.video-points.v1', status='COMPLETED', training_allowed=False,
-        engineering_only=True, causal_observation=True, fps=30, history=4, horizon=24, records=[record],
+        engineering_only=True, causal_observation=a.label_depth != 'offline-teacher',
+        observation_policy='offline_clip_reconstruction' if a.label_depth == 'offline-teacher' else 'causal_prefix',
+        offline_pretraining_only=a.label_depth == 'offline-teacher',
+        depth_context_frame_ids=frame_ids.tolist() if a.label_depth == 'offline-teacher' else prefix_ids.tolist(),
+        fps=30, history=4, horizon=24, records=[record],
         current_frame='native current camera, metric', native_hand_keypoints=JOINTS,
         hand_order=['right', 'left'], world_labels='CoTracker 10Hz, interpolated30Hz; NOT native30Hz measurements',
         label_depth_backend=a.label_depth,

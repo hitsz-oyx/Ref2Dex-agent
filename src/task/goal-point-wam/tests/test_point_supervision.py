@@ -97,3 +97,18 @@ def test_reject_engineering_and_noncausal_scientific_data(tmp_path):
     (dataset.root/'manifest.json').write_text(json.dumps(meta))
     with pytest.raises(ValueError, match='current/past'):
         VideoPointWindows(dataset.root, 'train', engineering=True)
+
+
+def test_offline_teacher_requires_explicit_scope_and_still_rejects_unadmitted_data(tmp_path):
+    dataset = write_corpus(tmp_path/'offline', sample(4))
+    meta = dataset.meta
+    meta.update(causal_observation=False, observation_policy='offline_clip_reconstruction',
+                offline_pretraining_only=True, label_depth_backend='offline-teacher')
+    (dataset.root/'manifest.json').write_text(json.dumps(meta))
+    assert len(VideoPointWindows(dataset.root, 'train', engineering=True)) == 1
+    with pytest.raises(ValueError, match='engineering corpus'):
+        VideoPointWindows(dataset.root, 'train')
+    meta['offline_pretraining_only'] = False
+    (dataset.root/'manifest.json').write_text(json.dumps(meta))
+    with pytest.raises(ValueError, match='explicitly scoped'):
+        VideoPointWindows(dataset.root, 'train', engineering=True)

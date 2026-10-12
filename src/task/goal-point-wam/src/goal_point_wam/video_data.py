@@ -18,7 +18,10 @@ class VideoPointWindows(Dataset):
         if (self.meta.get('fps'), self.meta.get('history'), self.meta.get('horizon')) != (30, 4, 24):
             raise ValueError('H4/K24 time contract mismatch')
         if not self.meta.get('causal_observation'):
-            raise ValueError('video observations must be generated from current/past frames only')
+            if not (self.meta.get('observation_policy') == 'offline_clip_reconstruction'
+                    and self.meta.get('offline_pretraining_only') is True
+                    and self.meta.get('label_depth_backend') == 'offline-teacher'):
+                raise ValueError('current/past observations or explicitly scoped offline pretraining required')
         if not self.meta.get('training_allowed') and not engineering:
             raise ValueError('engineering corpus cannot enter scientific training')
         records = self.meta['records']
