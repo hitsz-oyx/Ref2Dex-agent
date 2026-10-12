@@ -2,7 +2,7 @@ import hashlib
 
 import pytest
 
-from trajectory_policy.wam_calibration_provenance import authenticate_calibration_inputs
+from trajectory_policy.wam_calibration_provenance import authenticate_calibration_inputs, absolute_hashes
 
 
 def fixture(tmp_path, monkeypatch):
@@ -42,3 +42,16 @@ def test_other_calibration_inputs_cannot_drift(tmp_path, monkeypatch):
     manifest['input_sha256'][str(path)] = hashlib.sha256(b'original').hexdigest()
     with pytest.raises(ValueError, match='native/data/config drift'):
         authenticate_calibration_inputs(manifest, tmp_path, task, lambda *a: proof)
+
+
+def test_relative_training_evidence_survives_native_chdir(tmp_path, monkeypatch):
+    path = tmp_path/'fit.py'
+    path.write_bytes(b'fixed input')
+    hashes = absolute_hashes({'fit.py': 'digest', str(path): 'digest'}, tmp_path)
+    elsewhere = tmp_path/'native'
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    assert list(hashes) == [str(path)]
+    assert path.read_bytes() == b'fixed input'
+    with pytest.raises(ValueError, match='conflicting'):
+        absolute_hashes({'fit.py': 'digest', str(path): 'other'}, tmp_path)

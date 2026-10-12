@@ -100,7 +100,7 @@ def main():
         or not json.loads((source/'result.json').read_text())['teacher_readiness']
         or sha(source/'trajectory.npz')!=source_manifest['trajectory_sha256']):
         raise ValueError('authenticated source oracle calibration required')
-    from trajectory_policy.wam_calibration_provenance import authenticate_calibration_inputs, verify_default_R_compatibility
+    from trajectory_policy.wam_calibration_provenance import authenticate_calibration_inputs, verify_default_R_compatibility, absolute_hashes
     producer_updates=authenticate_calibration_inputs(source_manifest,ROOT,TASK,
         lambda blob,path: verify_default_R_compatibility(blob,path,source,
             ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt','cuda:0'))
@@ -174,6 +174,7 @@ def main():
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
     hashes={str(path.resolve()):sha(path) for path in files}
     hashes.update(r_hashes)
+    hashes=absolute_hashes(hashes,ROOT)
     out.mkdir(parents=True)
     manifest=dict(schema='ref2dex.wam-native-recovery.v1' if args.expert_recovery else 'ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
         task='goal-point-wam',experiment_id=args.experiment_id,run_id=out.parent.name,

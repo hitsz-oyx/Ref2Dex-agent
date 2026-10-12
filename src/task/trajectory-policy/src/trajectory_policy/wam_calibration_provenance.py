@@ -5,6 +5,18 @@ from pathlib import Path
 import subprocess
 
 
+def absolute_hashes(hashes, root):
+    """Evidence paths remain rooted in the repository after native chdir."""
+    values = {}
+    for path, digest in hashes.items():
+        path = Path(path)
+        key = str((path if path.is_absolute() else root/path).resolve())
+        if key in values and values[key] != digest:
+            raise ValueError('conflicting evidence path aliases')
+        values[key] = digest
+    return values
+
+
 def verify_default_R_compatibility(old_blob, current_path, source, base_R, device):
     """GPU differential replay of legacy default K24 in the ACTUAL runtime."""
     import numpy as np
