@@ -266,3 +266,46 @@ all exclusions. A GPU mixed smoke can use engineering data after the old four-ra
 run and GPUs have fully exited; scientific fit still needs both admitted splits,
 fresh total storage accounting and explicit Probe identity. This is a reuse and
 window-extraction change, not a PointWAM architecture or global-claim change.
+
+## Cached-window results and first mixed learning Probe
+
+Code9c81eaa2, remote driver212312 COMPLETED: native offsets0/3/6 of train
+basic_pick_place0 pass all geometry and recovered-scale screens; frozen-dev
+basic_pick_place1 offset6 passes, offsets0/3 fail and remain excluded. This is
+four admitted-quality windows from two sessions, not new unique episodes.
+Independent HDF5 checks verify current/final native hand ticks and the next
+10Hz scene measurement at all three train offsets: maximum coordinate residual
+2.19e-7m. Current alignment is0 for later windows. Cached source depths/tracks
+were not recomputed or modified. The original insufficient dev0 window remains
+preserved; the changed window contains a different, explicitly recorded interval.
+
+Actual one-GPU four-update mixed smoke completed2.39s, losses/gradients finite,
+video WORLD-only shared-backbone gradient4.17e-5; reserved2.50GB, physical2.88GB.
+Native auxiliary final10000 checkpoint transfer hash
+`5ea08456ecb77125de557c19d2009b49265f66e24678eed82d448a5029a27922`;
+new point head/fresh optimizer, no smoke checkpoint. Existing projection/depth
+views are inspected as rough geometry evidence, not depth/motion ground truth.
+
+Decision Note: can a tiny same-reconstruction, action-conditioned video fit
+improve held-session point trajectories while retaining the native WAM? Run
+300 mixed updates (3 native:1 video), seed287/draw288, one free remote GPU,
+native batch16/video4, lr1e-4,<=900s. Separate immutable aggregate admission
+manifest records the three train/one dev windows, source hashes, seven quality
+gates and both excluded dev windows; do not mutate engineering manifests.
+Null video goals stay explicit. Fixed main64/source panel and cached true/static
+goal response are evaluated before and after. Only final checkpoint is saved
+(periodic intervals1000); latest/final hardlinked, fresh optimizer/RNG retained.
+
+Before fitting, positive screening is held-video point EPE >=5% lower than its
+initial/static baseline, main hand macro <=105% and main point macro <=110%
+of this run's initial panel. Positive permits wider existing-data extraction;
+otherwise inspect fit/capacity/noise and use UNCLEAR with this tiny sample,
+not a negative method claim. No official PointWAM, formal transfer or RL claim.
+
+Root adjusts only the isolated NAS self-allocation to6.0GB for new checkpoint
+storage; Campaign300GB and combined298GB proactive stop remain unchanged.
+Measured pre-fit combined artifacts~296.54GB; one final checkpoint estimated
+<=0.70GB, <=1.40GB conservative allowance for any atomic replacement. Stop on
+drift/nonfinite/OOM/GPU conflict, deadline or storage threshold. Never overwrite
+original auxiliary final or engineering arrays. New run_id=
+video-offline-mixed-20261012-r1, isolated NAS scope/video-offline-mixed-20261012-r1.
