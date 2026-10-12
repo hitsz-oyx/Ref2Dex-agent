@@ -4,6 +4,15 @@ import torch
 from .model import GoalPointWAM
 
 
+def effect_ddp(model, device_ids=None):
+    from torch.nn.parallel import DistributedDataParallel
+    # find_unused_parameters adds an output sink: returned tau then becomes a
+    # sibling of returned effect, obscuring grad(effect, tau). Freeze unused
+    # modules explicitly instead; preserve the actual ancestor tensor.
+    return DistributedDataParallel(model, device_ids=device_ids, broadcast_buffers=False,
+                                   find_unused_parameters=False)
+
+
 def action_from_delta(delta, start, valid):
     """9D = future XYZ, current-relative displacement, previous-step increment."""
     previous = torch.cat((torch.zeros_like(delta[:, :1]), delta[:, :-1]), 1)
@@ -19,6 +28,8 @@ class FrozenEffectWAM(GoalPointWAM):
         super().__init__(stats, config)
         self.requires_grad_(False)
         self.trajectory.requires_grad_(True)
+        if self.trajectory.goal_query is not None and self.trajectory.goal_injection != 'query':
+            self.trajectory.goal_query.requires_grad_(False)
         self.eval()
 
     def contexts(self, batch):

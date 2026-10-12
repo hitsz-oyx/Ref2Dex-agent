@@ -12,14 +12,13 @@ import time
 import numpy as np
 import torch
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 
 TASK=Path(__file__).resolve().parents[2];ROOT=TASK.parents[2]
 sys.path[:0]=[str(TASK/'src'),str(ROOT/'src/task/trajectory-policy/src'),str(TASK/'tools/run')]
 from train_three_domain import atomic_json,gpu_snapshot
 from goal_point_wam.data import GoalWindows
-from goal_point_wam.effect_consistency import FrozenEffectWAM,action_from_delta
+from goal_point_wam.effect_consistency import FrozenEffectWAM,action_from_delta,effect_ddp
 from oakink_wm.multisource import MixedWindows
 from oakink_wm.model import metrics
 from oakink_wm.pointworld_performance import install_fused_hilbert
@@ -80,7 +79,8 @@ def main():
     train=EffectData(ROOT,GoalWindows(mixed,'object_points',32));val=EffectData(ROOT,GoalWindows(vbase,'object_points',32))
     pdscale=independent_PD_scale(torch.tensor(np.asarray(train.controller['scale'])[list(ACTIVE)],device=device,dtype=torch.float32))
     order=torch.tensor(WAM_TO_NATIVE,device=device)
-    frozen={k:v.cpu().clone() for k,v in model.state_dict().items() if not k.startswith('trajectory.')}
+    train_keys={k for k,v in model.named_parameters() if v.requires_grad}
+    frozen={k:v.cpu().clone() for k,v in model.state_dict().items() if k not in train_keys}
     r_before={k:v.cpu().clone() for k,v in r.state_dict().items()}
     optimizer=torch.optim.AdamW(model.trajectory.parameters(),lr=1e-5,weight_decay=.01)
     step=0;initial=None;curve=[];contracts=[];c0_pass=False;bad_streak=0
@@ -176,7 +176,7 @@ def main():
     if initial is None:initial=evaluate(0)
     stop=[False]
     for sig in (signal.SIGUSR1,signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
-    ddp=DistributedDataParallel(model,device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
+    ddp=effect_ddp(model,[local])
     sampler=EffectBatches(mixed,train.takeovers,rank,step+1,maximum)
     batches=DataLoader(train,batch_sampler=sampler,collate_fn=effect_collate,num_workers=0 if a.smoke else 4,
                        pin_memory=True,persistent_workers=not a.smoke)
