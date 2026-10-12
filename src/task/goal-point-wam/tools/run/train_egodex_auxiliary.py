@@ -139,6 +139,14 @@ def main():
             raise ValueError('native WAM/stat warm-start mismatch')
         if parent['identity']['model_sha256'] != base.digest(base.TASK/'src/goal_point_wam/model.py'):
             raise ValueError('warm-start model semantics changed')
+        semantic_keys = ['hidden', 'patch_size', 'scene_tokens', 'goal_layers', 'trajectory_layers',
+                         'world_layers', 'fps', 'history', 'horizon', 'voxel_m', 'voxel_origin_m',
+                         'trajectory_scale_m', 'world_weight', 'motion_tau_m', 'rotation_tau_rad',
+                         'motion_temperature', 'motion_floor', 'goal_type', 'goal_points',
+                         'goal_coordinate_scale_m', 'object_goal_encoding', 'goal_injection',
+                         'goal_query_adapter', 'observed_hand_query']
+        if any(parent['config'].get(k) != config.get(k) for k in semantic_keys):
+            raise ValueError('warm-start changes model/data/loss semantics')
         model.load_state_dict(parent['model'], strict=True)
         identity = dict(git_commit=base.subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                         script_sha256=base.digest(Path(__file__)), model_sha256=base.digest(base.TASK/'src/goal_point_wam/model.py'),
