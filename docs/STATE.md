@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 完整WAM策略链与R已联合微调，R映射保留仍是问题
+
+按用户要求参考PointWAM，a1bd58e8/GPU2完成1000更新458.44s、batch64、
+峰值2159MiB。scene/PTv3、goal、trajectory、hand_query、R.net均有实际
+action-only梯度和参数更新；action/world参数与所有统计buffer冻结。起步PD
+XYZp9512.08->2.76mm、early pure TRAIN587.93->60.89mm，但late purged诊断
+940.48->955.48mm；nominal近8手轨迹17.20->14.76mm，PD25.63->35.26mm。
+nominal真实tau->新R10.59->43.96mm，未过预设30mm门，未执行物理回放。
+同状态交叉审计：newWAM+oldR nominal24.94mm/recovery32.56mm，exact learned
+pair35.26/49.12mm，局部暴露R更新损害部分映射；不是关闭联合训练路线。
+160metrics重算max0/当前PD标签max0/真实future max1.19e-7m，scope与源身份通过。
+当前UNCLEAR；下一决策保留端到端梯度、加入真实tau->R动作监督以保护R物理
+映射，另需后期真实偏离状态覆盖。原R物理资格不转移，无新的自主成功证据。
+见[实验28](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-joint-retargeter.md)。
+
 ## 2026-10-12 几何拟合改善但即时控制退化，优先锚定起步
 
 真实expert future监督/217恢复训练窗把nearest8降到约11mm，nominal

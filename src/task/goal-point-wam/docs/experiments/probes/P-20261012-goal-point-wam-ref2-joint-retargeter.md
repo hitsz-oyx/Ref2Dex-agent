@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-joint-retargeter
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 935740e7
+git_commit: a1bd58e8
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 28
@@ -124,5 +124,60 @@ Larger demonstrations and matched formal comparisons remain future evidence.
 
 ## Results
 
-Result: pending.
-Decision: implement and run the fixed jointly differentiable recipe, then evaluate the exact learned pair if screened.
+Result: **UNCLEAR** for the joint policy route; mixed offline signal, no physics
+admission and no autonomous-success evidence. Fixed1000 completed458.44s on
+GPU2, peak2158.69MiB; batch64. Source/input hashes held, all five ACTION-only
+gradient sums finite/nonzero, all five module hashes changed, action/world
+weights and every WAM/R buffer byte-identical.
+
+| Panel / metric | Initial | Final |
+| --- | ---: | ---: |
+| Nominal predicted PD XYZ p95 mm | 25.63 | 35.26 |
+| Nominal near8 hand EPE mm | 17.20 | 14.76 |
+| Nominal true tau -> same R PD XYZ p95 mm | 10.59 | 43.96 |
+| Startup frame0 predicted PD XYZ p95 mm | 12.08 | 2.76 |
+| Startup all0:15 predicted PD XYZ p95 mm | 20.51 | 9.87 |
+| Recovery TRAIN predicted PD XYZ p95 mm | 42.88 | 49.12 |
+| Recovery TRAIN near8 hand EPE mm | 19.19 | 13.41 |
+| Recovery TRAIN true tau -> same R PD XYZ p95 mm | 20.44 | 62.76 |
+| Pure early CURRENT-PD TRAIN XYZ p95 mm | 587.93 | 60.89 |
+| Purged late pure CURRENT-PD diagnostic XYZ p95 mm | 940.48 | 955.48 |
+
+All reported clipping0. Exactly one preregistered screen failed: nominal
+GTtau->newR43.96mm >30mm. The unchanged screen blocks physics; did NOT swap
+back to old R to bypass this gate, nor inherit original R qualification.
+Training loss reduction or early fit is not an actual-policy rollout result.
+
+Root independently reconstructed160 metrics (max error0), actual current
+PD labels (max0) and current-anchored actual expert future tau (max1.19e-7m),
+with pure future masks denied and consumed hashes unchanged. GPU R-only
+cross-input diagnostic held each measured state fixed: nominal newWAM+oldR
+24.94mm vs exact learned pair35.26mm; recovery newWAM+oldR32.56mm vs learned
+pair49.12mm. NewR+oldWAM nominal30.72mm; newR+true tau43.96mm. This local
+evidence isolates a harmful contribution of R updating to nominal/recovery
+control, alongside a beneficial coadaptation on early pure TRAIN
+(newWAM+oldR330.21mm -> learned pair60.89mm). All late pure combinations
+remain approximately938--955mm: no local coverage transfer demonstrated.
+
+Independent pre-fit review found a deployment-only persistent=False
+voxel-origin loading KeyError; a1bd58e8 fixes it before the full run.43 CPU
+contracts passed, including this actual model buffer semantics. Smoke1 at
+5b052b93 completed27.79s/no checkpoint and verifies training gradients only;
+its result is not invalidated by the deployment-only fix. Original source
+and every completed run remain preserved.
+
+Artifacts:
+- `outputs/trajectory-policy/wam-ref2-joint-fit-20261012-r1/{manifest,result}.json`
+- paired `head.pt` (full scene/goal/head patch) + `tau.pt`, `predictions.npz`
+- `root_joint_audit.json`: reconstructed labels/metrics and GPU cross-R checks
+- `root_policy_roundtrip.json`, `root_native_checkpoint_audit.json`: actual
+  checkpoint loading and rejection checks in the pinned runtimes
+- smoke `outputs/trajectory-policy/wam-ref2-joint-smoke-20261012-r1/`
+
+Decision: retain the jointly differentiable implementation; do not close the
+joint-training hypothesis or launch this pair in physics. Next distinct
+decision is whether adding **true tau->R recorded-PD supervision** alongside
+the same predicted-tau end-to-end loss preserves physical R meaning while
+keeping early benefits. Preregister that variant before running it; do not
+silently change this completed objective. Later actual-state expert coverage
+remains necessary evidence rather than a demonstrated improvement.
