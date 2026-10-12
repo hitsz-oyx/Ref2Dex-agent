@@ -39,3 +39,26 @@ def expert_on_rows(player, observation, verify_official=False):
 def paired_prefix_error(current):
     """Before intervention, equality must be measured, never reset/forked into place."""
     return {key:float((value[2].float()-value[3].float()).abs().max()) for key,value in current.items()}
+
+
+PREFIX_PHYSICAL_BOUNDS={
+    'q_xyz_norm_m':1e-4,'q_other_max_rad':1e-3,'hand_point_max_norm_m':1e-4,
+    'object_translation_norm_m':1e-4,'object_rotation_frobenius_over_sqrt2':1e-3,
+}
+
+
+def prefix_physical_metrics(current):
+    """Comparability bounds for independent PhysX rows, never a hidden-state fork.
+
+    Rotation Frobenius/sqrt2 is a small-angle proxy, not an exact SO(3) angle.
+    All velocity differences are separately recorded without an equality claim.
+    """
+    import torch
+    q=current['q'][2]-current['q'][3]
+    hand=current['hand'][2]-current['hand'][3]
+    obj=current['obj'][2]-current['obj'][3]
+    return dict(q_xyz_norm_m=float(torch.linalg.vector_norm(q[:3])),
+        q_other_max_rad=float(q[3:].abs().max()),
+        hand_point_max_norm_m=float(torch.linalg.vector_norm(hand,dim=-1).max()),
+        object_translation_norm_m=float(torch.linalg.vector_norm(obj[:3,3])),
+        object_rotation_frobenius_over_sqrt2=float(torch.linalg.vector_norm(obj[:3,:3])/(2**.5)))

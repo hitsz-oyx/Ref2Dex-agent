@@ -31,7 +31,7 @@ def main():
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     args=p.parse_args()
     out=args.output.resolve()
-    roles=['teacher','gt_tau_R','wam_R']+(['wam_then_expert_tick16'] if args.expert_recovery else [])
+    roles=['teacher','gt_tau_R','wam_R']+(['wam_command_replay_then_expert_tick16'] if args.expert_recovery else [])
     env_count=len(roles)
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or Path(sys.prefix).resolve()!=RUNTIME.resolve():
         raise ValueError('fresh owned output and pinned native runtime required')
@@ -193,13 +193,16 @@ def main():
                 'action','applied','pd_targets','intended','requested_pd','clipped','state_features','tau_features',
                 'encoded_target','wam_object_history','wam_hand_history','wam_goal','server_latency_s','native_latency_s')}
             if args.expert_recovery:
-                from wam_expert_probe import expert_on_rows,paired_prefix_error
+                from wam_expert_probe import expert_on_rows,paired_prefix_error,prefix_physical_metrics,PREFIX_PHYSICAL_BOUNDS
                 logs.update({key:[] for key in ('expert_raw','expert_action','expert_clipped','expert_PD',
                     'expert_observation','learner_state','learner_object_history','learner_hand_history','learner_goal',
                     'learner_wam_tau','learner_wam_tau_valid','expert_applied')})
                 queries=out/'expert_queries';queries.mkdir()
                 manifest['prefix_pair_max_errors']={}
                 manifest['expert_query_sha256']={}
+                manifest['prefix_physical_bounds']=PREFIX_PHYSICAL_BOUNDS
+                manifest['prefix_physical_max_metrics']={}
+                manifest['prefix_pairing']='same normalized command prefix, independent PhysX measured states; not exact hidden-state fork'
             captured_logs.update(logs)
 
             def record():
@@ -228,8 +231,10 @@ def main():
                         if tick<=16:
                             errors=paired_prefix_error(current)
                             manifest['prefix_pair_max_errors']={key:max(value,manifest['prefix_pair_max_errors'].get(key,0.)) for key,value in errors.items()}
-                            if max(errors.values())!=0:
-                                raise ValueError('pre16 learner/recovery measured states are not bitexact')
+                            metrics=prefix_physical_metrics(current)
+                            manifest['prefix_physical_max_metrics']={key:max(value,manifest['prefix_physical_max_metrics'].get(key,0.)) for key,value in metrics.items()}
+                            if any(metrics[key]>bound for key,bound in PREFIX_PHYSICAL_BOUNDS.items()):
+                                raise ValueError('pre16 command-replay rows exceed declared physical comparability bounds')
                     else:
                         raw=obs['obs'];padded=raw.repeat((64+2)//3,1)[:64]
                         action=self.get_action(dict(obs,obs=padded),True)[:3].clamp(-1,1).clone()
@@ -259,7 +264,8 @@ def main():
                     action[1:3]=applied;intended[1:3]=first;requested[1:3]=target
                     if args.expert_recovery:
                         if tick<16:
-                            action[3]=action[2];intended[3]=intended[2];requested[3]=requested[2]
+                            action[3]=action[2];intended[3]=intended[2]
+                            requested[3]=pd_from_action(intended[3:4],current['q'][3:4],offset,scale)[0]
                         learner_states=[];learner_oh=[];learner_hh=[]
                         for env in (2,3):
                             state,_=features(*(current[k][env].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
@@ -271,8 +277,8 @@ def main():
                             expert_PD=expert_PD[2:],expert_observation=obs['obs'][2:].clone(),
                             learner_state=np.stack(learner_states),learner_object_history=np.stack(learner_oh),
                             learner_hand_history=np.stack(learner_hh),learner_goal=np.repeat(goal[None],2,axis=0),
-                            learner_wam_tau=np.stack((wamtau,wamtau if tick<16 else np.zeros_like(wamtau))),
-                            learner_wam_tau_valid=np.array([True,tick<16]),expert_applied=np.array([False,tick>=16]))
+                            learner_wam_tau=np.stack((wamtau,np.zeros_like(wamtau))),
+                            learner_wam_tau_valid=np.array([True,False]),expert_applied=np.array([False,tick>=16]))
                         extra={key:value.cpu().numpy().copy() if isinstance(value,torch.Tensor) else np.asarray(value).copy()
                                for key,value in extra.items()}
                         # A durable query record exists before advancing physics; it is not a future-hand label.
@@ -303,8 +309,8 @@ def main():
                         server_latency_s=reply['elapsed_s'],native_latency_s=time.monotonic()-before).items():
                         logs[k].append(v.cpu().numpy().copy() if isinstance(v,torch.Tensor) else np.asarray(v).copy())
                     if args.expert_recovery:
-                        if tick<16 and (not torch.equal(capture[2],capture[3]) or not torch.equal(actual_pd[2],actual_pd[3])):
-                            raise ValueError('pre16 paired learner PD/applied action differ')
+                        if tick<16 and not torch.equal(capture[2],capture[3]):
+                            raise ValueError('pre16 paired learner normalized actions differ')
                         for key,value in extra.items():
                             logs[key].append(value)
                     current=record()

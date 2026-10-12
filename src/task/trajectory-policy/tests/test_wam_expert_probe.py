@@ -58,3 +58,17 @@ def test_prefix_equality_checks_bool_and_actual_float_state():
     assert max(module.paired_prefix_error(current).values())==0
     current['q'][3,0]=1e-7
     assert module.paired_prefix_error(current)['q']>0
+
+
+def test_prefix_physical_bounds_allow_tiny_solver_differences_but_reject_drift():
+    q=torch.zeros(4,18)
+    hand=torch.zeros(4,11,3)
+    obj=torch.eye(4).repeat(4,1,1)
+    current={'q':q,'hand':hand,'obj':obj}
+    q[3,0]=4.768e-7
+    hand[3,:,0]=7.75e-7
+    obj[3,0,3]=2.17e-5
+    metrics=module.prefix_physical_metrics(current)
+    assert all(metrics[key]<=bound for key,bound in module.PREFIX_PHYSICAL_BOUNDS.items())
+    q[3,0]=.054
+    assert module.prefix_physical_metrics(current)['q_xyz_norm_m']>module.PREFIX_PHYSICAL_BOUNDS['q_xyz_norm_m']

@@ -42,10 +42,13 @@ source/frame/reset/finite/PD/peer mismatch, resource or foreign GPU conflict.
 ## Fixed protocol
 
 Four simulated roles: teacher, privileged GT-tau-R calibration, unassisted
-WAM-R, and WAM-R until controls0:16 then official expert from control16.
-The two WAM rows must share exactly equal reset and pre-takeover measured
-state/action. One queried WAM tau is reused only during this equal prefix.
-The recovery row thereafter uses its own live expert observation/action.
+WAM-R, and WAM command replay until controls0:16 then official expert from
+control16. Reset is equal within the original1e-5 gate. The recovery row
+replays the exact normalized native command from the unassisted row; its
+PD target is independently reconstructed with its own current measured q.
+It thereafter uses its own live expert observation/action. Replay is not
+WAM inference on that row's H4; its tau placeholder is zero/invalid throughout.
+Expert queries use its real state, not the other row or a forced state fork.
 Keep the authenticated startup head2b7eff74991a8ef306b192747d716210d4348d3259f628fa73c78dfc7b617fc2,
 human base, R, native physics/controller, object reference and actor period1
 unchanged. Deliberately reuse physics seed292 for the same frame0 condition;
@@ -79,4 +82,19 @@ as autonomous WAM success, broader recovery or retargeter correctness.
 
 ## Results
 
-Pending implementation and authenticated execution. No new training started.
+First r1 fixed5354774d FAILED after1 control because independent PhysX rows
+are not bit-identical despite equal reset and commands: hand max7.75e-7m,
+q4.77e-7, object matrix2.17e-5, velocity.001378m/s. Durable query/actual PD
+audit passed with zero error. Preserve logs/partial; this is an overstrict
+comparison implementation constraint, not evidence against expert recovery.
+
+Root Decision: permit one r2 after command-replay semantics and physical
+comparability checks. For measured states0:17 require qXYZ norm<=1e-4m,
+other q max<=1e-3rad, hand point norm<=1e-4m, object XYZ norm<=1e-4m and
+object rotation-matrix Frobenius/sqrt2<=1e-3 (an approximate angular quantity).
+All dq/velocity differences are reported. Applied native command equality
+remains exact, while both rows' PD must match their own current-q inverse.
+These numerical comparison bounds are far below the measured54mm failure;
+they do not make the independent rows exact hidden-state forks. No state
+copy/reset, actor/R/source/physics/clipping change. Cost<=600s/100MB unchanged.
+Only audited PD labels admitted; no new training has started.
