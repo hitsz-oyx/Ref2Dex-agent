@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-recovery
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 7f516d59
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 20
@@ -14,7 +14,7 @@ seeds: [292]
 decision_changed_if_positive: admit live-state expert PD labels for one bounded frozen-R actor correction
 decision_changed_if_negative: inspect expert recovery and goal observability before fitting learner-state PD targets
 status: UNCLEAR
-run_id: wam-ref2-execution-recovery-20261012-r1
+run_id: wam-ref2-execution-recovery-20261012-r2
 ---
 
 # Expert recovery from the measured WAM approach state
@@ -98,3 +98,22 @@ These numerical comparison bounds are far below the measured54mm failure;
 they do not make the independent rows exact hidden-state forks. No state
 copy/reset, actor/R/source/physics/clipping change. Cost<=600s/100MB unchanged.
 Only audited PD labels admitted; no new training has started.
+
+R2 completed542 controls/543 states in139.13s. Teacher held438/placePASS,
+GT-R251/placePASS, WAM0/placeFAIL/clipping4.059%; calibrationPASS. Expert
+takeover held435, first stable tick99, clipping0, but intermediate loss1 and
+terminal height+.310m/settled0: placementFAIL. Predeclared recovery remains
+UNCLEAR and complete-recovery admission false. No full-phase correction fit.
+
+Independent audits authenticate134 source paths and542 durable expert query
+files. Root recomputed9768 array checks, all exact0: actual/expert native PD
+inversion, preclamp/clamp, own q/current R state, own H4/planned goal, replay
+commands and expert takeover. Pair hand max1.67e-6m, object XYZ2.71e-7m,
+qXYZ1.33e-7m, rotation proxy2.21e-5, all declared bounds pass; velocity max
+.002420m/s is reported rather than claimed equal. GPU2 released; outputs
+42.13MB. Full source/durable query arrays are finite. This supports a local
+early-recovery decision only, not autonomous policy success or full-task
+teacher recovery.
+
+Artifacts under `outputs/trajectory-policy/wam-ref2-execution-recovery-20261012-r2`:
+`native/trajectory.npz`, `native/root_recovery_audit.json`, `collection_audit.json`.

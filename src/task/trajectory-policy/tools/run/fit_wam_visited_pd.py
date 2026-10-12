@@ -22,11 +22,15 @@ from audit_wam_ref2_shadow import sha, write
 from calibrate_wam_robot_startup import network_hash
 
 
-def query_partition(ticks, roles):
+def query_partition(ticks, roles, approach_only=False):
     """Predeclared temporal blocks; no duplicated common prefix in both sets."""
     ticks, roles = np.asarray(ticks), np.asarray(roles)
     if ticks.shape != roles.shape:
         raise ValueError('matching tick and role arrays required')
+    if approach_only:
+        admitted=((roles==2)&(ticks<48))|((roles==3)&(ticks>=16)&(ticks<128))
+        val=admitted&(((roles==2)&(ticks>=32))|((roles==3)&(ticks>=64)&(ticks<80)))
+        return admitted&~val,val
     admitted = ((roles == 2) & (ticks < 64)) | ((roles == 3) & (ticks >= 16) & (ticks < 519))
     val = admitted & (((roles == 2) & (ticks >= 48)) | ((roles == 3) &
         (((ticks >= 64) & (ticks < 80)) | ((ticks >= 256) & (ticks < 272)) |
@@ -39,6 +43,7 @@ def main():
     parser.add_argument('--queries', type=Path, required=True, help='completed recovery/native directory')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--gpu', type=int, default=2)
+    parser.add_argument('--approach-only',action='store_true',help='admit local early recovery only, excluding the failed placement phase')
     parser.add_argument('--engineering-smoke', action='store_true')
     args = parser.parse_args()
     out, query_dir = args.output.resolve(), args.queries.resolve()
@@ -70,8 +75,12 @@ def main():
     qm = json.loads((query_dir / 'manifest.json').read_text())
     qa = json.loads((query_dir / 'root_recovery_audit.json').read_text())
     qr = json.loads((query_dir / 'result.json').read_text())
+    local=qr['outcomes'][3]
+    local_pass=bool(qr['calibration_pass'] and local['maximum_held_frames']>=45 and
+        local['first_stable_tick'] is not None and local['first_stable_tick']<=128 and local['clipping_rate']<.01)
+    admission=local_pass if args.approach_only else qr.get('recovery_pass')
     if (qm['status'] != 'COMPLETED' or qm.get('training_allowed') is not True or
-        not qa.get('pass') or not qr.get('recovery_pass')):
+        not qa.get('pass') or not admission):
         raise ValueError('independently audited expert recovery and live-PD admission required')
     if pm['status'] != 'COMPLETED' or sha(previous / 'head.pt') != pr['head_sha256']:
         raise ValueError('authenticated fixed startup head required')
@@ -138,7 +147,7 @@ def main():
     panel = [0,1,2,4,8,16,32,64,96,128,192,256,320,384,448,518]
     report = [(0,t,e) for t in panel for e in range(24,28)]
     lt, lr = np.repeat(np.arange(519),2), np.tile([2,3],519)
-    train_mask, val_mask = query_partition(lt, lr)
+    train_mask, val_mask = query_partition(lt, lr,args.approach_only)
     query_rows = [(1,int(t),int(role)) for t,role in zip(lt,lr)]
     train_queries = [row for row,ok in zip(query_rows,train_mask) if ok]
     val_queries = [row for row,ok in zip(query_rows,val_mask) if ok]
@@ -170,14 +179,15 @@ def main():
             eta_s=elapsed/max(count,1)*(total-count),artifact_bytes=size)),flush=True)
     out.mkdir(parents=True)
     manifest = dict(schema='ref2dex.wam-visited-pd.v1',status='RUNNING',task='goal-point-wam',
-        experiment_id='P-20261012-goal-point-wam-ref2-visited-pd',run_id=out.name,
+        experiment_id='P-20261012-goal-point-wam-ref2-approach-pd' if args.approach_only else 'P-20261012-goal-point-wam-ref2-visited-pd',run_id=out.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         seed=295,draw_seed=296,physical_gpu=args.gpu,input_sha256=evidence,training_allowed=False,
         maximum_updates=1 if args.engineering_smoke else 300,nominal_windows=len(nominal),
         live_training_windows=len(train_queries),live_validation_windows=len(val_queries),
         split='temporal blocks in one episode; correlated diagnostic, no independent generalization claim',
         loss='nominal Huber tau/.05 + nominal Huber PD/scale + live Huber PD/scale; equal nominal/live batches',
-        fixed_final_only=True,base_checkpoint_sha256=sha(base),warm_head_sha256=sha(previous/'head.pt'))
+        fixed_final_only=True,approach_only=args.approach_only,full_recovery_pass=qr['recovery_pass'],
+        base_checkpoint_sha256=sha(base),warm_head_sha256=sha(previous/'head.pt'))
     write(out/'manifest.json',manifest)
     equivalent = 0.
     with torch.no_grad():
@@ -232,7 +242,8 @@ def main():
         return stats,dict(tau=tau.cpu().numpy(),pd=pd.cpu().numpy(),pd_true=target.cpu().numpy(),
             action=action.cpu().numpy(),tau_label_valid=valid,row_ids=ids.cpu().numpy())
     initial={}; raw={}
-    for name,ids in (('nominal_report',report_ids),('query_validation',query_val_ids)):
+    query_training_ids=torch.as_tensor(query_train_ids,device='cuda')
+    for name,ids in (('nominal_report',report_ids),('query_training',query_training_ids),('query_validation',query_val_ids)):
         initial[name],values=evaluate(ids); raw.update({'initial_'+name+'_'+k:v for k,v in values.items()})
     params=[p for p in model.parameters() if p.requires_grad]
     optimizer=torch.optim.AdamW(params,lr=3e-4,weight_decay=.01)
@@ -270,7 +281,7 @@ def main():
             curve.append(dict(step=step,tau=float(nominal_tau),nominal_pd=float(nominal_pd),live_pd=float(live_pd),gradient=float(norm)))
             guard('train',step,manifest['maximum_updates'])
     final={}
-    for name,ids in (('nominal_report',report_ids),('query_validation',query_val_ids)):
+    for name,ids in (('nominal_report',report_ids),('query_training',query_training_ids),('query_validation',query_val_ids)):
         final[name],values=evaluate(ids); raw.update({'final_'+name+'_'+k:v for k,v in values.items()})
     if frozen_hashes!={name:network_hash(net) for name,net in frozen.items()}:
         raise ValueError('frozen weights changed')

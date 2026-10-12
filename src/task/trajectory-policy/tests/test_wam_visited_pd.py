@@ -22,3 +22,10 @@ def test_query_partition_excludes_duplicate_prefix_and_unsupported_roles():
     assert np.all(train[(roles==2)&(ticks<48)])
     assert np.all(val[(roles==2)&(ticks>=48)&(ticks<64)])
     assert train.sum()==503 and val.sum()==64
+    train,val=module.query_partition(ticks,roles,approach_only=True)
+    assert not np.any(train&val)
+    assert not (train|val)[(roles==2)&(ticks>=48)].any()
+    assert not (train|val)[(roles==3)&((ticks<16)|(ticks>=128))].any()
+    assert np.all(val[(roles==2)&(ticks>=32)&(ticks<48)])
+    assert np.all(val[(roles==3)&(ticks>=64)&(ticks<80)])
+    assert train.sum()==128 and val.sum()==32

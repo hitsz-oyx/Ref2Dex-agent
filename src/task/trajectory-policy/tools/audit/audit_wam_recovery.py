@@ -44,6 +44,7 @@ def main():
     check('actual_applied_action',d['action'],d['applied'])
     check('actual_native_PD_inverse',d['pd_targets'],pd(d['applied'],d['q'][:-1]))
     check('expert_action_clamp',d['expert_action'],np.clip(d['expert_raw'],-1,1))
+    check('expert_clipping_mask',d['expert_clipped'],np.max(np.abs(d['expert_raw']-d['expert_action']),axis=-1)>1e-6)
     check('expert_live_q_PD',d['expert_PD'],pd(d['expert_action'],d['q'][:-1,2:]))
     check('takeover_applied_expert_action',d['applied'][16:,3],d['expert_action'][16:,1])
     check('takeover_actual_expert_PD',d['pd_targets'][16:,3],d['expert_PD'][16:,1])

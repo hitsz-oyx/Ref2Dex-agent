@@ -80,5 +80,8 @@ remote training or external source modification.
 
 ## Results
 
-Not started; waiting for expert recovery and independent query admission.
+Not started and not admitted: recovery-r2 takeover held435 frames but failed
+controlled placement, so the predeclared complete-recovery prerequisite is
+false. Preserve this original protocol. A new local approach-only question
+is recorded as experiment22; it does not retroactively pass this admission.
 See [design/source review](../../../../trajectory-policy/docs/research/20261012-wam-visited-pd-design.md).

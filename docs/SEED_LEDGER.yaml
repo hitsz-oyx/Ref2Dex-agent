@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-approach-pd:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: unused full-phase fit seeds; physics preserves the paired nominal reset
+
   P-20261012-goal-point-wam-ref2-visited-pd:
     seed_pool: probe
     model_seed: 295
