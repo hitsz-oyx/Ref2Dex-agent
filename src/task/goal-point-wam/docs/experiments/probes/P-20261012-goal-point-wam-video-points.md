@@ -226,3 +226,20 @@ budget/deadline. A new scientific fit remains conditional on separate-session
 admission and GPU availability after the original run finishes. Existing main
 architecture and Cm interface remain the Task adaptation, not an official
 PointWAM reproduction; the author project page still shows Code soon.
+
+Offline screen code `d497685d`, owned remote driver PID208763: both clips were
+prepared without model/GPU computation and retained `training_allowed=false`.
+basic_pick_place0 current-alignment median0/p90.000169mm,244 background audit
+candidates, maximum median6.604mm/p9013.046mm; all six geometry screens pass.
+Held-session basic_pick_place1 current alignment median0/p90.000239mm, but
+only15 background candidates, maximum median16.548mm/p9028.570mm; three
+geometry screens fail. Exact shared geometry removes the cross-frontend offset
+in both records, but does not make reconstructed depth or tracks ground truth.
+The pair is therefore not scientifically admitted. Neither a mixed video fit
+nor a rolling-depth job was launched. Next cheapest decision is to determine
+whether the dev failure is clip-specific or shared teacher geometry drift,
+using existing frozen-dev clips and source calibration/visualization evidence.
+Do not infer method ineffectiveness or change the frozen recording-session split.
+Receipt and measured quality: `tmp/video-training-20261012-takeover/`; remote
+`video-offline-screen-20261012-r1/`. Tests7 passed, including explicit offline
+scope acceptance and retained unadmitted-data rejection.
