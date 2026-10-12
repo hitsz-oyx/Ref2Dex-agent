@@ -142,7 +142,8 @@ def main():
             or audit.get('pass') is not True or audit.get('checks_max')!=0
             or audit.get('check_count')!=9768 or audit.get('native_data_sha256')!=SOURCE_SHA
             or audit.get('controls')!=542 or audit.get('measured_states')!=543
-            or audit.get('takeover_tick')!=16 or nr.get('status')!='COMPLETED'):
+            or ('takeover_tick' in audit and audit['takeover_tick']!=16)
+            or nr.get('status')!='COMPLETED'):
         raise ValueError('bound old542/t16/root9768 source required')
     keys=('q','dq','hand','obj','velocity','action','applied','pd_targets','expert_action','expert_PD','expert_applied')
     with np.load(native/'trajectory.npz',allow_pickle=False) as stream:
