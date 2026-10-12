@@ -858,3 +858,15 @@ Report visibility/valid3D per birth group over time and1s window candidate
 drift, with no physical-static or point-ground-truth claim. CoTracker forcibly
 sets query-birth pixels/visibility, so birth agreement cannot validate tracking.
 Engineering output only; neither held-label admission nor training is automatic.
+
+19:58 tracking r1 OOM in legacy explicit time attention (q@k.T), requested
+5.41GiB with1.50GiB free; process45.86GiB total, allocated34.70GiB plus
+10.72GiB reserved-unallocated. It reached all13 feature chunks; independent
+feature chunking is insufficient for1024 simultaneous point queries. No
+tracking accuracy result produced. Preserve r1 log, not method-negative evidence.
+Next r2 uses four256-query batches, each still sees all402 frames with the SAME
+fixed global depth/scale. This follows existing pilot query-batching semantics;
+spatial attention support changes between batches, so exact output invariance
+is not claimed. No external vendor patch/new weights/temporal window reset.
+GPU0<=10min, output<=100MB. Further OOM would justify128 or efficient attention,
+not rerunning independent depth/calibration per training window.

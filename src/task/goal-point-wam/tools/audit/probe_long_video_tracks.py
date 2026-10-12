@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('geometry', 'tracker-vendor', 'tracker-checkpoint', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--query-batch', type=int, choices=(128, 256, 512, 1024), default=256)
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
@@ -76,21 +77,29 @@ def main():
     def after_features(module, inputs, output):
         feature_chunks[0] += 1
         torch.cuda.synchronize()
-        progress('FEATURES', chunks=feature_chunks[0], expected_chunks=13,
+        progress('FEATURES', chunks=feature_chunks[0], expected_chunks=13*(1024//args.query_batch),
                  allocated_bytes=torch.cuda.memory_allocated(), peak_allocated_bytes=torch.cuda.max_memory_allocated())
     hooks.append(predictor.model.fnet.register_forward_hook(after_features))
     forward_started = time.monotonic()
-    progress('TRACKING', frames=len(frames), queries=len(queries), feature_chunk_size=32)
-    with torch.inference_mode():
-        xy, visible = predictor(tensor_video, queries=torch.from_numpy(queries)[None].cuda(), backward_tracking=False)
+    progress('TRACKING', frames=len(frames), queries=len(queries), feature_chunk_size=32, query_batch=args.query_batch)
+    all_tracks, all_visibility = [], []
+    for lo in range(0, len(queries), args.query_batch):
+        with torch.inference_mode():
+            xy, visible = predictor(tensor_video, queries=torch.from_numpy(queries[lo:lo+args.query_batch])[None].cuda(), backward_tracking=False)
+        torch.cuda.synchronize()
+        all_tracks.append(xy[0].float().cpu().numpy())
+        all_visibility.append(visible[0].cpu().numpy().astype(bool))
+        del xy, visible
+        progress('QUERY_BATCH', processed_queries=min(lo+args.query_batch,len(queries)),queries=len(queries),
+                 forward_seconds=time.monotonic()-forward_started, peak_allocated_bytes=torch.cuda.max_memory_allocated())
     torch.cuda.synchronize()
     forward_seconds = time.monotonic() - forward_started
-    tracks = xy[0].float().cpu().numpy()
-    visibility = visible[0].cpu().numpy().astype(bool)
+    tracks = np.concatenate(all_tracks,axis=1)
+    visibility = np.concatenate(all_visibility,axis=1)
     peak_allocated = torch.cuda.max_memory_allocated()
     for hook in hooks:
         hook.remove()
-    del tensor_video, predictor, xy, visible
+    del tensor_video, predictor
     torch.cuda.empty_cache()
     visibility &= np.arange(len(frames))[:, None] >= query_time[None]
     if not np.isfinite(tracks[visibility]).all():
@@ -113,17 +122,19 @@ def main():
         displacement = np.linalg.norm(world[span] - world[tick], axis=-1)*1000
         windows.append(dict(current_raw_frame=int(frames[tick]),current_valid3d=int(valid[tick].sum()),
             mean_future_valid_fraction=float(valid[span][1:].mean()),candidate_count=int(candidate.sum()),
+            future_valid_fraction_among_current=float(valid[span][1:,valid[tick]].mean()) if valid[tick].any() else None,
             maximum_candidate_median_mm=float(np.median(displacement[:,candidate],axis=1).max()) if candidate.any() else None,
             maximum_candidate_p90_mm=float(np.percentile(displacement[:,candidate],90,axis=1).max()) if candidate.any() else None))
     np.savez_compressed(args.output / 'tracks.npz', source_frame_ids=frames, tracks_uv=tracks,
         visibility=visibility, query_time=query_time, query_pixels=np.tile(pixels,(2,1)), world_xyz=world, world_valid=valid)
     report = dict(status='COMPLETED', engineering_only=True, training_allowed=False,
         raw_duration_seconds=metadata['raw_duration_seconds'], frames=len(frames), queries=len(queries),
+        query_batch=args.query_batch,
         forward_seconds=forward_seconds, seconds=time.monotonic()-started, peak_allocated_bytes=peak_allocated,
         coverage=coverage, local_window_audit=windows, geometry_provenance=provenance,
         tracker_vendor_sha256=vendor_sha, tracker_checkpoint_sha256=checkpoint_sha,
         tracks_sha256=sha256(args.output/'tracks.npz'), code_sha256=sha256(Path(__file__)),
-        limitation='Fixed grid point births; full offline temporal context. Birth positions/visibility are overridden by predictor. Reconstructed low-image-residual strata are not physical static ground truth. No scientific admission.')
+        limitation='Fixed grid point births; full offline temporal context. Query batches change spatial support context; no exact invariance claimed. Birth positions/visibility are overridden by predictor. Reconstructed low-image-residual strata are not physical static ground truth. No scientific admission.')
     (args.output/'result.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
     progress('COMPLETED', forward_seconds=forward_seconds)
 
