@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref12-methods
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 4448ecf7
+git_commit: e6e42832
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-ref12-methods
 probe_index_in_family: 1
@@ -27,7 +27,7 @@ memory/query and world-on/off screens are not repeated; the main four-rank
 reproductions. [Primary-source mapping](../../research/2026-10-12-ref12-method-probe-map.md)
 records which mechanisms and action semantics the papers actually use.
 
-Result: UNCLEAR; implementation and engineering checks prepared, method training not yet launched.
+Result: UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; scientific methods are launching.
 Decision: Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism.
 
 ## Decision Note: remaining-card authorization
@@ -158,3 +158,30 @@ large random increments, making its auxiliary loss dominate (26.65 before .25
 weight). Its final layer is now zero initialized to start at the zero-change
 reference; preserve the original smoke and rerun only the affected arm. A frozen
 world consistency smoke is also queued separately. These are wiring results only.
+
+## Decision Note: action-world findings before scientific launch
+
+Parent cached-H768 audit completed: repeated world noise0 on all three sources,
+nonzero world-to-action gradient; moving world/identity EPE respectively
+16.31/25.97mm (OakInk2),113.38/163.21mm (GRAB),78.69/108.59mm (ARCTIC).
+Thus W uses actions and improves on identity on this panel, but absolute errors
+remain large. Recorded action beats static-action predicted goal distance in
+41.4/52.7/48.0% of windows; recorded action is ranked first in only
+10.2/14.1/13.7% of the five diagnostic candidates. These are surrogate rankings,
+not measured outcomes of the alternatives, so they do not establish physical
+correctness or falsify the recorded action's validity.
+
+Choose forward ROI, legal goal diversity, intermediate plan and future-change
+training now; keep the successful frozen-W goal-loss gradient check as engineering
+only, with no3000-update closed-loop launch. Further ranking/direct optimization
+needs targeted execution or stronger forward reliability. This changes investment
+priority without closing the general world-model idea. All input/source/storage
+bounds remain as above. New-head corrected smoke loss .01236 rather than26.65;
+frozen-W goal-only gradients reach actor and its parameters receive no gradients.
+
+Implementation e6e42832, model-only parent step1200; frozen parent actor EPE on
+this same panel19.98/94.41/66.76mm. This differs from the old384 panel and must
+not be mixed with the old card's score. Audit binds checkpoint/panel/model hashes:
+[action-world audit](../../../../../../outputs/goal-point-wam/ref12-methods-20261012-r1/action_world_parent.json).
+No additional main-training seed/control is created; fresh method heads and
+extra training prevent attributing later improvement exclusively to mechanism.

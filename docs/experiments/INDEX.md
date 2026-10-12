@@ -176,7 +176,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261012-goal-point-wam-ref12-methods](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md) | ref1_2 intermediate literature methods on remaining GPUs | UNCLEAR; implementation and engineering checks prepared, method training not yet launched. | Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism. | probes/UNCLEAR |
+| [P-20261012-goal-point-wam-ref12-methods](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md) | ref1_2 intermediate literature methods on remaining GPUs | UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; scientific methods are launching. | Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism. | probes/UNCLEAR |
 
 ## HF-goal-point-wam-three-domain
 

@@ -10,7 +10,11 @@
 未来变化辅助监督是否值得继续。以旧memory+hand/world1 final1200暖启动，单seed；
 不启动新的多seed或主训练对照。新时间面板生成因未看stratum不足而失败，未读取模型
 结果；改为固定既有DDP面板的768窗口子集，明确作为共享探索评估而非独立Validation。
-先检查action→effect合同，再运行有界方法实验，所有模型内排名/梯度不代表物理可执行。
+action→effect核对：cached repeat noise0、梯度非零，moving预测比identity好，但
+GRAB/ARCTIC误差仍113/79mm，五候选中真实动作模型排序第一仅10--14%，没有
+未执行候选的真实标签。ROI forward、合法prefix增广、中间几何plan、future-change
+四方法将各batch64/3000步暖启动旧final1200；冻结world的L_goal仅通过梯度smoke，
+不升级为完整训练。四方法/修正aux smoke均完成，标签不进入cached actor。
 
 ## 2026-10-12 单模型四卡规模训练运行中
 
