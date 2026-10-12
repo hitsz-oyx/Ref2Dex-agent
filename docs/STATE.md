@@ -1,6 +1,6 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-13 ref2_7 C四卡大batch已启动；C0先行，10点前静默
+## 2026-10-13 ref2_7 C四卡global400；数值C0合格后同模型继续C1
 
 用户冻结B研究并授权C0后大规模C1，视频在其他服务器。保留old raw-hand
 接口/Probe32 warm policy和A2合格Chunk-R，冻结scene/goal/raw/action/world/R
@@ -9,10 +9,14 @@
 robot实际effect与planned goal分离。lambda_a1/lambda_E.1，AdamW1e-5。
 四卡full-batch smoke修正DDP返回节点梯度检查及fresh scene数值噪声后通过；
 固定panel采用缓存冻结context，GT oracle变化0。effect/动作梯度进入decoder，
-World/R/冻结模块不变；不将工程smoke当效果结论。C0科学500步通过合同及
-不退化门才自动继续同模型/optimizer额外20k；有信号且8h预算充足才到50k。
-初次科学启动在首更新前因fork/LLVM退出，日志保留；改用spawn且实际worker
-路径smoke通过后，监督进程609910启动r2，保留首轮绝对截止08:23:29。
+World/R/冻结模块不变。科学r2的500步数值C0全部合格，root额外轨迹10%门
+仅startup first8失败10.107->11.384mm，35/36通过；首PD全部保留且XYZ
+nominal71.416->17.899mm/startup21.503->1.454mm。按ref2_7优先取得长训练
+信息，明确记录事后协议修订：严格36项仍报告，停止门保留原first-PD限制，
+轨迹只用2x+.05mm防严重退化；不得称通过原不退化门。r3/监督635812从
+r2不可变step500及optimizer/context继续，loss/配比/学习率不变，20k后仅有
+gap信号且时间足够才扩至50k；两次连续停止门失败即保存退出。
+初次科学fork/LLVM错误已修复spawn，保留首轮绝对截止08:23:29。
 不新增数据采集、B调参或RL；固定context也保存以保证resume的oracle不漂移。
 最新要求：开始后每30分钟轮询，2026-10-13 10:00 Asia/Shanghai前不发聊天。
 训练状态和ETA保存在产物；Delta_E仅为冻结模型差距，不能称不可约/物理收益。

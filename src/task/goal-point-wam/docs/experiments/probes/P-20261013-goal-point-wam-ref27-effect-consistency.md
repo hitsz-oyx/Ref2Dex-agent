@@ -5,7 +5,7 @@ experiment_id: P-20261013-goal-point-wam-ref27-effect-consistency
 date: 2026-10-13
 task: goal-point-wam
 branch: main
-git_commit: 01add31e
+git_commit: f8b8366c
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 37
@@ -14,13 +14,13 @@ seeds: [295, 296]
 decision_changed_if_positive: continue one-model mixed-domain C1 after C0; retain trajectory and control while reducing frozen-world effect gap
 decision_changed_if_negative: save C0 and stop scale-up if contracts or non-regression fail; preserve A2 and B baselines
 status: UNCLEAR
-run_id: wam-effect-ddp-20261013-r2
+run_id: wam-effect-ddp-20261013-r3
 ---
 
 # ref2_7 C: frozen-world predicted-trajectory consistency
 
-Result: Corrected full-batch4GPU smoke passed; scientific C0 r2 started, C1 remains conditional on its500-update gate.
-Decision: Freeze B research and use old raw-hand WAM; C0 gates automatic C1.
+Result: Numerical C0 passed; original root forecast gate failed1/36. C1 r3 resumes step500 under the disclosed continuation amendment below.
+Decision: Freeze B research and use old raw-hand WAM; continue one model with unchanged losses and native-control preservation guards.
 
 ## Decision Note
 
@@ -217,3 +217,7 @@ A20k continuation costs~2h plus evaluation; optional50k remains conditional
 on gap improvement, guard pass and remaining original deadline08:23:29.
 Failure saves and stops; success remains offline single-seed evidence only.
 No new authorization boundary: same task/claim,4GPUs,400GB and original8h.
+
+Continuation r3 supervisor635812 launched with f8b8366c; original absolute
+deadline remains08:23:29. Six targeted action/DDP/mixture/guard tests pass.
+[Continuation supervisor](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/group_status.json).

@@ -3,7 +3,9 @@
 The ref2_7 C continuation uses the stable old raw-hand interface with frozen
 scene/goal/action/World/R. `tools/run/launch_effect_consistency.py` runs one
 4GPU model at global batch400 with60/25/15 main/nominal/actual recovery mixing.
-A500-update C0 gate precedes conditional20k-to50k C1; fixed cached-context
+A500-update numerical C0 gate precedes conditional20k-to50k C1;
+original strict forecast diagnostics stay visible, while continuation guards
+preserve native controls and prevent gross forecast deterioration; fixed cached-context
 panels track forecasts, native controls and induced-vs-GT World errors.
 See the [C protocol](docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md).
 The earlier B2 candidate remains preserved; its research is frozen.
