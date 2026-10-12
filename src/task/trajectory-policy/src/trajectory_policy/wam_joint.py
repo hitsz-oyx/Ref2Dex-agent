@@ -155,11 +155,14 @@ def policy_patch_admission(packet, manifest, result):
             raise ValueError('joint policy module state/hash differs: ' + name)
     return dict(applied=True, schema=PATCH_SCHEMA,
                 module_sha256={name:hashes[name] for name in POLICY_MODULES},
+                WAM_buffer_sha256=result['normalization_final_hash']['WAM'],
                 joint_R_sha256=packet['joint_R_sha256'])
 
 
 def load_policy_patch(model, packet, identity):
     """Validate every tensor BEFORE applying any policy change."""
+    if buffer_hash(model)!=identity['WAM_buffer_sha256']:
+        raise ValueError('joint WAM normalization/config buffers differ from frozen base')
     states = dict(packet['policy_patch'], **packet['head'])
     for name in POLICY_MODULES:
         expected = getattr(model, name).state_dict()
@@ -172,6 +175,10 @@ def load_policy_patch(model, packet, identity):
                 raise ValueError('joint state tensor differs: ' + name + '.' + key)
         # Original normalization and PTv3 statistics are frozen in this recipe.
         for key, value in getattr(model, name).named_buffers():
+            # Nonpersistent voxel_origin_m is reconstructed from authenticated
+            # base config; its bytes are included in the whole-model hash above.
+            if key not in expected:
+                continue
             if state_hash({key:values[key]}) != state_hash({key:value}):
                 raise ValueError('joint normalization buffer changed: ' + name + '.' + key)
     for name in POLICY_MODULES:

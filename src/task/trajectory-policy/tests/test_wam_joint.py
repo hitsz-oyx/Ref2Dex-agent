@@ -53,6 +53,7 @@ def fixture_pair():
         action_gradient_checks={k:1. for k in TRAIN_MODULES},
         normalization_buffers_unchanged=True,frozen_initial_hash={'world':'w'},frozen_final_hash={'world':'w'})
     result['train_final_hash']['R']='finalR'
+    result['normalization_final_hash']={'WAM':buffer_hash(model)}
     manifest=dict(schema=JOINT_SCHEMA,status='COMPLETED',head_sha256='h',checkpoint_sha256='r',
         head_training_R_sha256='r',train_modules=list(TRAIN_MODULES),policy_patch_schema=PATCH_SCHEMA,input_sha256={'source':'s'})
     packet=dict(schema=JOINT_SCHEMA,head={k:states[k] for k in ('trajectory','hand_query')},
@@ -97,3 +98,14 @@ def test_byte_exact_buffers_include_negative_zero():
     b=nn.Module();b.register_buffer('scale',torch.tensor([-0.]))
     assert torch.equal(a.scale,b.scale)
     assert buffer_hash(a)!=buffer_hash(b)
+
+
+def test_nonpersistent_voxel_origin_is_checked_without_loading_a_missing_key():
+    model,packet,manifest,result=fixture_pair()
+    model.scene.register_buffer('voxel_origin_m',torch.tensor([-1.,-1.,-1.]),persistent=False)
+    result['normalization_final_hash']={'WAM':buffer_hash(model)}
+    identity=policy_patch_admission(packet,manifest,result)
+    load_policy_patch(model,packet,identity)
+    model.scene.voxel_origin_m.add_(1.)
+    with pytest.raises(ValueError,match='config buffers'):
+        load_policy_patch(model,packet,identity)
