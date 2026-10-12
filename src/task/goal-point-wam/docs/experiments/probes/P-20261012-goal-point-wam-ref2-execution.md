@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-execution
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 07bf1e6b
+git_commit: ed53315d
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 18
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [292]
 decision_changed_if_positive: retain live WAM-R interface and review a separately bounded robot-domain continuation
 decision_changed_if_negative: use live state/trajectory/PD trace to locate startup or retargeter-distribution failure before adapting again
-status: UNCLEAR
-run_id: wam-ref2-execution-20261012-r2
+status: UNPROMISING
+run_id: wam-ref2-execution-20261012-r3
 ---
 
 # First live WAM -> frozen R -> native PD simulated closure
@@ -142,6 +142,58 @@ that a lower nominal trajectory EPE alone guarantees closed-loop control.
 The next useful decision is whether targeted startup/prefix supervision can
 prevent initial drift while retaining nominal real-H4 behavior; any new fit
 requires its own fixed protocol, and no fit or further actions occurred here.
+
+The startup-coverage continuation is a separate predeclared Probe
+`P-20261012-goal-point-wam-ref2-startup`, with fixed additional300 updates and
+its own seeds293/294. Its preliminary gates passed; root permitted the sole
+r3 using that frozen head, leaving all native physics/reference/controller,
+three roles and sim seed292 unchanged. Codeed53315d; head SHA
+2b7eff74991a8ef306b192747d716210d4348d3259f628fa73c78dfc7b617fc2.
+
+R3 completed all542 controls/543 measured states in115.25s, without workspace
+or wiring failure. Teacher and GT-R each held441 frames and passed controlled
+placement (terminal settled38/37 frames), so three-row physical calibration
+**passed**. WAM held0 frames, did not place, and clipped22/542 controls=4.059%
+(first clippingtick120). Its object eventually fell below the table to~0.024m.
+Per the predeclared calibrated physical criterion, this exact startup-head
+initialization is **UNPROMISING**, not a rejection of WAM or the ref2 route.
+Offline startup-fit PROMISING remains a different decision result.
+
+Full measured artifact:
+`outputs/trajectory-policy/wam-ref2-execution-20261012-r3/native/trajectory.npz`
+SHA9c92013d8c202096039e418e66ac8b3c71e5d0cf5200a2ecc62d00808e8514a3.
+Independent `execution_audit.json` and `root_full_audit.json` authenticate
+finite542/543 arrays and exact0 in applied action, pure native PD inverse,
+current R state, GT-R donor tau, WAM's own H4 and planned goal. Frozen R
+GPU replay maximum2.38e-7 encoded/4.77e-7 requested PD; first-query WAM
+full-model/bridge comparison exact0. Source/input hashes unchanged; owned
+processes all exited. Server/native median49.81/124.83ms, sampled GPU2
+18776/24576MiB and23–40% utilization. New fit plus closure183.50s, well under
+600s; all ref2 outputs/private scratch~21.8MB, below100MB. No additional fit,
+guard changes, robot execution or further controls followed this negative run.
+
+Startup repair improves actual earliest execution: frame0 PD XYZ error versus
+live teacher225.27 ->11.71mm, state1 wrist error25.32 ->1.65mm. It does not
+prevent subsequent precontact drift: first wrist>10mm atstate9, PD>50mm at
+control12; at16 PD58.51mm/wrist53.68mm, and at32 PD260.09mm/wrist89.86mm,
+wrist axis-coordinate difference.484rad. At these ticks every object remains
+on the table. At48 WAM hand-surface gap24mm but hand-base/object distance.280m
+versus teacher.203m; by64 WAM gap302mm while teacher/GT are holding. Detailed
+observed diagnostics are `phase_drift.json`; these differences are not a
+causal decomposition of rotations, fingers or position.
+
+Privileged **offline** early-prefix substitutions at actual WAM state, ticks
+8/12/16/32, yield WAM versus full source-GT-R immediate PD XYZ discrepancies
+49.66/105.87/130.56/318.70mm. Replacing first4 tau rows reduces those to
+2.76/7.77/17.11/3.76mm. Short-prefix forecast remains materially influential
+before contact. But even full source-GT tau at these same visited states
+produces PD15.36/44.55/75.08/106.37mm away from **source nominal teacher** PD.
+Source donor PD is distinct from this new three-row live teacher. Such
+recentered source future hand is a descriptive privileged substitution, not
+an expert recovery label and not proof that frozen R is defective. Evidence
+now points to forecast/feedback errors on visited states beyond the nominal
+teacher manifold; lower offline nominal startup PD alone was insufficient.
+No new adaptation recipe was selected from this result.
 
 ## Limitations / future evidence
 

@@ -108,7 +108,17 @@ Root independently recomputed rawstartup PD18.341158mm andheldreal-H4
 16.478322mm; sampling/frozen/source audit passed. Root permits the sole
 follow-up `wam-ref2-execution-20261012-r3` under the original execution card,
 seed292, same teacher/GT-R/WAM-R native protocol with this fixed head and
-remaining530s deadline. Physical outcomes are pending and remain separate.
+remaining530s deadline. Physical continuation completed and remains separate: teacher/GT-R each
+held441 frames and passed controlled placement; WAM held0, clipped4.059% and
+failed placement. Execution Probe's exact-current-initialization result is
+UNPROMISING. Initial executed PD improved225.27 ->11.71mm, wrist state1
+25.32 ->1.65mm, but visited-state drift returned before contact (first wrist
+>10mm at9, PD>50mm at12). This Probe is still PROMISING only for its fixed
+nominal startup-fit criterion; it did not establish successful control.
+Full evidence/early forecast-dependency diagnostics and limits are in the
+execution card and `outputs/trajectory-policy/wam-ref2-execution-20261012-r3/`.
+No extra fit or control followed. Fit plus closure183.50s and total ref2
+artifacts/private scratch~21.8MB remain within declared600s/100MB.
 
 ## Limitations / future evidence
 

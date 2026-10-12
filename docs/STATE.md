@@ -1,5 +1,33 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 新head完整闭环完成，执行仍未建立
+
+代码ed53315d、冻结startup head 2b7eff74991a8ef306b192747d716210d4348d3259f628fa73c78dfc7b617fc2、
+seed292的r3完成542 controls/543 measured states，整组115.25s，GPU2已释放。
+teacher和GT-R各held441帧、controlled-placement PASS、clipping0，完整calibration
+PASS。WAM held0、placement FAIL、clipping22/542=4.059%，物体最终落到地面。
+按预定门槛，此精确初始化的physical Probe为UNPROMISING；startup离线局部Probe
+保持PROMISING。没有据一次nominalepisode否定WAM/backbone或形成正式科研结论。
+[执行结果](../outputs/trajectory-policy/wam-ref2-execution-20261012-r3/native/result.json)。
+
+实际PD纯逆解、current R state、live自有H4、planned goal、applied action均max0；
+冻结R独立回放encoded max2.38e-7、requestedPD max4.77e-7，所有源身份核对。
+root亦独立核对全数组、实际PD/current-state/H4/goal均max0并复算clipping。
+[独立全回合审计](../outputs/trajectory-policy/wam-ref2-execution-20261012-r3/root_full_audit.json)。
+首步实际PD差225.27→11.71mm，state1 wrist差25.32→1.65mm，startup修复进入
+真实执行；之后state9 wrist>10mm，tick12 PD>50mm，tick16 wrist53.68/PD58.51mm，
+tick32 wrist89.86/PD260.09mm；此时三角色物体仍在桌上，问题已出现于接触之前。
+
+相同实际WAM状态t8/12/16/32，将预测tau换为source未来GT时立即PD相对WAM差
+49.66/105.87/130.56/318.70mm；仅替换前4步后差降为2.76/7.77/17.11/3.76mm。
+source GTtau在这些learner状态所得PD与source nominal teacher PD差仍15.36/
+44.55/75.08/106.37mm。短前缀forecast误差仍实质影响动作，且执行分布逐渐偏离；
+source未来不是learner状态的专家recovery标签，不能据此单独指认R错误。
+[依赖诊断](../outputs/trajectory-policy/wam-ref2-execution-20261012-r3/R_dependency_audit.json)。
+下一决策优先获得实际learner接近阶段的专家PD监督，检查小偏差下的可恢复性；不再
+继续同一nominal teacher-offline recipe或扩大人类训练步数。PD-DAgger采集/训练需
+单独最小协议、source准入与停止条件，当前尚未启动。视频由用户另一个agent负责。
+
 ## 2026-10-12 Startup continuation通过预定局部门槛
 
 固定代码ed53315d、GPU2、model293/draw294完成300追加更新，68.25s。
