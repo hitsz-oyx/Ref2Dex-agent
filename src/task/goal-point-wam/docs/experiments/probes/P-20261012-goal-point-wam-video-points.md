@@ -309,3 +309,64 @@ Measured pre-fit combined artifacts~296.54GB; one final checkpoint estimated
 drift/nonfinite/OOM/GPU conflict, deadline or storage threshold. Never overwrite
 original auxiliary final or engineering arrays. New run_id=
 video-offline-mixed-20261012-r1, isolated NAS scope/video-offline-mixed-20261012-r1.
+
+First launch r1 failed before creating a training process: temporary admission
+assembly assigned a dictionary to the supervisor's `record` function name,
+so writing TRAINING status raised TypeError. No model update, GPU allocation
+or checkpoint occurred. Preserve r1 admission/logs. Rename the row variable,
+assert the writer remains callable, and retry identical protocol as
+video-offline-mixed-20261012-r2; do not reinterpret this launcher defect as a
+learning result. Core training code stays pinned9c81eaa2.
+
+Retry r2 also exited in CPU admission assembly: the variable rename
+unintentionally changed `item['record']` to a nonexistent dictionary key.
+Both failures precede GPU/model updates and are preserved. Correct the exact
+field access and check AST bindings/callable status writer; identical protocol
+r3 is the first actual learning run. Launcher218720, training PID218779,
+driver hash `0a223284fdb9e77c04d8b2e135091b47c4073a2815d37573053ef4a5899dc827`.
+At step36 finite loss/gradient and video updates are confirmed; physical GPU0
+3.76GB, reserved3.43GB, observed step samples about49--56% GPU utilization,
+initial remaining ETA106s. This is a small-batch Probe, not a throughput
+benchmark; do not add work merely to inflate utilization.
+
+Initial frozen main panel: hand44.569mm/world20.269mm. Initial held video
+point EPE21.028mm exactly equals the stationary baseline because the new point
+head is zero-initialized; held actor130.457mm on209 valid hand points. These
+refer to the single admitted video window, not the original five-session native
+auxiliary panel. Source admission/clock/visual checks do not establish video
+transfer. Actual r3 final metrics remain pending here.
+
+
+## 17:35 final300 result and next cheapest Decision
+
+r3 completed300 updates in104.097s, exit0. Video WORLD gradients reached
+the shared backbone (mean norm0.24126); final parameter SHA
+`fdc360eff0f50f05932edaebb01af7d4a1cd876fe5acdcc6f584dd277cdfca8c`. Latest/final share one
+inode (629762368 bytes); all four remote GPUs are released.
+
+Frozen held video scene EPE21.028→22.464mm (+6.83%); stationary21.028mm.
+Held hand130.457→97.583mm (-25.20%,209 valid points in ONE window).
+Main three-source hand macro44.569→46.648mm (+4.67%, <=5% screen PASS);
+world macro20.269→21.847mm (+7.79%, <=10% screen PASS). True goals still
+outperform static goals on all three sources. Scene >=5% improvement screen
+FAIL; combined learning Probe remains UNCLEAR. This is not matched
+causal evidence for video transfer or a negative method conclusion.
+
+Local receipt: `tmp/video-training-20261012-takeover/mixed_probe_final.json`.
+Remote artifacts: isolated scope/video-offline-mixed-20261012-r3/train/.
+Measured isolated NAS5.133GB; last combined297.185GB, below proactive298GB
+and Campaign300GB. Parent/native auxiliary final is preserved.
+
+Decision: distinguish insufficient fitting from poor generalization before
+longer training. Cheapest check: GPU evaluation of the fixed final on all
+three train windows and one held window, with horizon/motion-bin EPE and
+stationary baselines, without saving another checkpoint. Independently
+extract/screen offsets0/3/6 from the other existing22 cached clips on CPU;
+never rerun Omega or change the frozen session split/quality thresholds.
+At most66 total extracted windows, <=200MB new arrays, <=20min processing,
+GPU audit <=5min. Stop on source drift, foreign GPU process, invalid tensors
+or storage threshold. Use admission counts and fit/static comparisons to
+decide between more diverse data and a point-head/label diagnosis. No new
+external identity, dataset download, branch or permission boundary is needed.
+User requests continued work until19:30 local, with long-run polling <=20min;
+interpret the typo “完善七点半” as evening19:30 on2026-10-12.
