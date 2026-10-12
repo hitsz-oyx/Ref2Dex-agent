@@ -1095,3 +1095,73 @@ regenerating completed data. Existing25GB scope/10GB new-run cap and40min
 deadline unchanged. Fit periodic checks use small control files; arrays/parent
 verified at admission/load instead of re-reading the entire dataset/checkpoint
 every10 updates, following new AGENTS section20. Loss/RNG/metric unchanged.
+
+21:12 expansion r2 COMPLETED, sourcef8ffd7e4/driver346122. All22 records
+completed,403 H4/K24 windows,389/403 all-seven quality gates PASS (96.53%).
+Qualified view:303 TRAIN windows/18 distinct sessions,86 held windows/4 distinct
+sessions; original splitseed283 unchanged and normalized session sets disjoint.
+Exclusions14: six TRAIN cloth, six held cloth and two held pick-place. Eight
+insufficient background-candidate windows, four background-p90 failures and
+three background-median failures (one pick-place window fails both). No scale,
+current count, future-valid or same-frame-alignment failures. Across all403
+windows min current993/min future validity33.63%/same-cache alignmentmax0mm.
+These are numerical screens, not physical point accuracy. Independent review
+rechecked actual seven gate booleans/counts and their recorded session order.
+
+R1 stopped only its owned work after11 records/80 windows completed; original
+held cloth80 plus all11 completed record caches reused in r2. One in-progress
+pick-place depth interrupted during switch, kept and regenerated in newoutput.
+R2 new artifacts3.597GB, ownedremote scope11.997GB; measuredlocaloutputs+tmp
+292.575GB, combined~304.572GB plus0.279GB primary-source clones, below400GB.
+Four-card resumed batch finished in about4min, following about4min two-card
+initial stage; no claim of a measured matched2-vs4 throughput comparison.
+Local summary/inspectedplot outputs/goal-point-wam/video-window-expansion-
+summary-20261012-r1/{cohort-summary.json,cohort-admission.png}.
+
+Short mixed-fit r1 source96de597c failed at import before model loading: newly
+created sparse checkout omitted third_party/PointWorld and its PTv3 dependency.
+No data/method negative result. Added read-only symlink only in owned checkout
+to existing pinned PointWorld f120642bd4ea60aeb4b85773bf4aaa1bc52a4dcf. R2 repeats
+unchanged protocol/data in fresh output. Actual four-update GPU smoke completed
+in2.011s, finite gradients, VIDEO WORLD itself reaches shared backbone norm
+8.637e-6 at step4 with native actor masked. Scientific runreloads originalparent
+and fresh optimizer; smoke updates are not its initialization. Source model,
+point_supervision,video_data andPointWorld core diff empty versus old9c81eaa2;
+only balanced held evaluation and disk-check overhead changed, not loss.
+Run video-window-expanded-fit-20261012-r2 supervised by355969 onGPU0.
+
+21:18 mixed r2 SAFETY STOPPED, not a completed1000-step result. Frozen held
+panel14 windows across all4 sessions (4cloth/3lamp/4chair/3pick),517984 actual
+valid point labels; initial point EPE/stationary9.911518mm. Step250 EPE9.870301
+(-0.416%), native hand44.585659->48.478898mm (+8.733%), native world20.300216
+->24.734853mm (+21.845%), triggering predeclared world>120% stop. Supervisor
+sent only owned childSIGUSR1; graceful receipt/final evaluation/checkpoint at
+step282:156.174s total, point9.861941mm (-0.500%), all4 session point EPE
+slightly lower but none reaches5%; native hand48.267063mm (+8.257%), native
+world23.677160mm (+16.635%). No continuation, final1000 checkpoint or deployment.
+Originallatest.pt is preserved as explicitly STOPPED step282 state, not selected
+as a successful checkpoint. All remote assigned GPUs released.
+
+Conclusion UNCLEAR for scientific video utility; label-engineering cohort
+expansion PROMISING. This early safety stop cannot establish eventual1000-step
+performance, label invalidity or intrinsic ineffectiveness of video pretraining.
+Actual video gradients reach shared backbone (max0.287071), so supervision was
+not disconnected. Model/loss/input contract review found no new mismatch. The
+point-supervised recipe deliberately changes native world loss relative to the
+parent: constant5cm point normalization and point-only objective replaces
+per-horizon flow normalization plus rigid translation/rotation auxiliaries.
+That and video hand/world gradients both change learning; without matched
+native-only control, cannot attribute native degradation causally to video.
+Next training decision should isolate this native loss adaptation versus video
+gradients with fixed original sample stream before expanding update budgets;
+no weak evidence upgraded into a scientific negative or robot claim.
+
+Artifacts: outputs/goal-point-wam/video-window-expansion-summary-20261012-r1/
+cohort-summary.json,cohort-admission.png,train-tracks.jpg,fit-summary.json,
+fit-validation.json,fit-input_manifest.json,short-fit-retention.png. Actual
+current-selected96-ID2D tracking preview inspected onTRAIN cloth/paper/cabinet:
+visibility gaps not bridged; moving cloth20.1s shown is excluded by insufficient
+background support and must not be interpreted as an admitted example. Preview
+source IDs/provenance are saved. Physical3D accuracy remains unmeasured.
+
+Final remote fit artifacts630.777MB, ownedremote scope12.630GB; retained checkpoint inventory{'train/latest.pt': 629850048}.
