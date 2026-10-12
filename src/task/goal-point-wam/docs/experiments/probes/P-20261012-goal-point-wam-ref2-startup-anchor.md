@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [295, 296, 292]
 decision_changed_if_positive: collect new actor states only after explicit startup control retention
 decision_changed_if_negative: keep original startup actor and revise geometry to control compatibility before further rollout
-status: UNCLEAR
+status: UNPROMISING
 run_id: wam-ref2-head-startup-anchor-20261012-r1
 ---
 
@@ -94,8 +94,8 @@ reviewed; defer it until this actor-control blocker has a useful signal.
 
 ## Results
 
-Result: pending.
-Decision: implement the fixed anchored probe and inspect startup retention first.
+Result: startup retention restored, but the fresh autonomous actor still has0held; this fixed local recipe is UNPROMISING for immediate closed-loop grasp improvement.
+Decision: preserve original startup and both actual-state collections; stop further geometry-only capacity/weight sweeps and inspect early visited-state control coverage before another training recipe.
 
 ## Fixed200 result and bounded fresh-state collection
 
@@ -121,3 +121,31 @@ change of observed pass metric. Root checks final incremental<=20MB and
 aggregate<=120MB; launcher7c787527 uses120 only for this explicit experiment,
 all original experiment limits stay100. Check local calibration and earliest
 PD/wrist drift on fresh actor actual states; no unseen/generalization claim.
+
+## Fresh128 actual-state result
+
+Group7c787527 COMPLETED72.44s/native+serverexit0; independent root
+2316 checks/max0/finite PASS. Trace SHA
+7c586a79eb8c859405cca1be9cda3b7a28505136d4464f2a24a2e8f80bf343a3.
+Teacher/GT/expert8 held74/75/74 with zero clip; pure actor0held,
+10/128=7.8125%clip. This shorter run cannot be compared directly to192
+for whole-episode clip/hold totals and cannot claim placement. Actual frame0
+expert-PD error11.852mm; t8 wrist9.413mm, essentially restoring original
+startup t8~9.2mm vs failed unanchored head28.9mm. However t9/12 wrist
+15.924/30.798mm, t12 actual expert-PD103.436mm; early visited-state drift
+remains. t24/32 PD97.149/174.602mm is only a paired-time descriptive
+observation, not a matched scientific superiority claim.
+
+All cumulative ref2 outputs/scratch119,811,019bytes<120MB. This experiment's
+explicit own smoke/fit/collection/scratch totals18,688,961bytes<20MB. A
+naive difference from an earlier pre-diagnostic byte snapshot also included
+previous experiment audits/cache changes; explicit new-owned paths provide
+the allocation accounting. All formal sources/checkpoints and previous FAILED
+group preserved. No active owned training/physics process after completion.
+
+The requested sustained ref2_1 work window passed19:30. Robot autonomous
+manipulation remains unresolved; this timeboxed progress objective does NOT
+mean the Mission is complete. Further work should prioritize early actual
+visited-state control support and preserving startup, rather than treating
+late teacher-restored states or mean geometry as proof of recovery. World-only
+label contract is prepared but no world scientific training or RL started.

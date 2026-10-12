@@ -13,7 +13,10 @@
 下一步原startup头+新t8 true recovery+固定startup输出锚定200更新，
 增加frame0/repeat-H4控制保留门，暂不扩大backbone解冻/RL。固定200更新
 100.45s通过起步/nominal门：frame0 PD12.046->11.855mm，恢复TRAIN
-nearest8 18.094->14.175mm；全程自主收益仍待新128步回放检查。新Probe
+nearest8 18.094->14.175mm；新128步回放COMPLETED/2316checks全0，但自主仍0held/7.81%clip；
+frame0 PD11.852mm/t8腕部9.413mm已恢复，t12偏离仍30.798mm。
+此固定修正局部UNPROMISING，不关闭聚合路线；下一步优先早期visited-state
+控制覆盖，停止平均几何/解冻继续搜索。新Probe
 增量20MB/累计120MB且global292.10GB<300GB，不改变旧失败预算。
 见[实验27](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-startup-anchor.md)。
 
