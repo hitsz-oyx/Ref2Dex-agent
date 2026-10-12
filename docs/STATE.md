@@ -1,5 +1,32 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 可审计闭环前缀与启动修复方向
+
+用户最新明确专心联调，视频由另一个agent接手；本会话不再修改视频代码或标签。
+修复07bf1e6b的相同模型/seed292 r2仍在query172触发原PTv3范围保护，保留172步
+实际控制/173帧状态和失败请求。独立pure-array核对实际action/PD逆解/current
+R state87/本角色live H4/planned goal/失败请求均max0；冻结R replay encoded
+max2.98e-7、requestedPD max4.77e-7。GPU已释放，没有放宽输入工作区。
+[原始前缀审计](../outputs/trajectory-policy/wam-ref2-execution-20261012-r2/root_prefix_audit.json)。
+
+已执行前缀teacher/GT-R最长held118/119帧，WAM0；没有完整放置/calibration verdict，
+实验仍UNCLEAR。WAM第0步实际teacher PD XYZ差225.27mm，GT-R2.28mm；
+state1 wrist偏差25.32mm。WAM基地到物体距离tick64/96/172为.224/.406/1.837m，
+其物体留在桌面，teacher/GT在已记录部分已抬升并保持。相同frame0状态仅将WAM
+预测前4/8/16步替换GT，立即WAM-vs-GT-R XYZ差225.80→38.53/14.59/4.61mm。
+这是privileged离线定位，不是执行成功；偏离状态后整条GT也不能恢复nominal PD。
+[输入依赖诊断](../outputs/trajectory-policy/wam-ref2-execution-20261012-r2/R_dependency_audit.json)。
+
+下一最小Decision：沿用同一humanbase和300-update机器人head，冻结backbone/R，
+只再训练现有trajectory/hand_query300更新。训练env0:16，固定25%抽tick0:16，
+75%抽tick16:519，保持原损失/batch128/lr3e-4；不新增架构/对照或多seed。
+固定final，验证startup PD p95<=20mm且real-H4轨迹误差不恶化>25%才视为下一次
+短闭环的正向信号。单GPU2训练+最多一次同protocol仿真总<=10min、当日ref2
+输出+scratch<=100MB；不选held checkpoint，不改原checkpoint或早期producer。
+检验短前缀PD错误是否能由机器人startup coverage修正；不能将继续训练后的改善
+直接归因于sampling因果效应。若仍失败，定位真实visited-state教师监督而非扩大
+人类主训练步数。初始研究问题/claim和权限资源边界不变。
+
 ## 2026-10-12 首次WAM-R闭环触发输入范围保护
 
 固定代码2fb7a8b9、seed292、3角色teacher/GT-R/WAM-R、GPU2原生仿真已启动。

@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-execution
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 7f053ac9
+git_commit: 07bf1e6b
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 18
@@ -14,7 +14,7 @@ seeds: [292]
 decision_changed_if_positive: retain live WAM-R interface and review a separately bounded robot-domain continuation
 decision_changed_if_negative: use live state/trajectory/PD trace to locate startup or retargeter-distribution failure before adapting again
 status: UNCLEAR
-run_id: wam-ref2-execution-20261012-r1
+run_id: wam-ref2-execution-20261012-r2
 ---
 
 # First live WAM -> frozen R -> native PD simulated closure
@@ -92,6 +92,56 @@ failed server request, then audit earliest visited-state divergence. No actor,
 R, sampling, serialization origin or precision threshold changes. The original
 10mm/.05rad shadow screens remain FAILED; physics is a separately authorized
 Decision, not a claim that those screens have passed.
+
+Logging-only rerun r2, code07bf1e6b, stopped at the same query172 in62.32s.
+It saved172 executed controls and173 measured states in
+`outputs/trajectory-policy/wam-ref2-execution-20261012-r2/native/partial.npz`
+(SHA d0392772a84c219bd4e2d28791f771f39bed54b1e553c9bd2925c214ecc6b19b),
+plus the exact failed live request. Scene minimum y=-2.03637m crosses the
+unchanged -2m workspace origin (1cm voxel, grid y_min=-4). Model/head/R,
+seed292, reference and controller remained fixed; no guard relaxation.
+All owned processes exited. GPU2 peaked around18776/24576MiB with
+native18156MiB/server594MiB; sampled utilization14–40%, server median
+49.88ms/query and native median124.42ms/control. Combined ref2 outputs/private
+scratch approximately11.26MB; the two groups together139.22s.
+
+Two independent raw audits recovered exact0 for requested/applied action,
+actual native PD versus pure inverse, current-state87, GT-R source tau,
+WAM's own live H4 and planned goal; all raw arrays are finite and authenticated.
+Pinned Torch2.0.1 GPU replay of frozen R differs by at most2.98e-7 in encoded
+output and4.77e-7 in requested PD; original first-query/full-model server
+comparison was exact0. No recorded source/input drift. Reproduction/audits:
+`outputs/trajectory-policy/wam-ref2-execution-20261012-r2/prefix_audit.json`,
+`root_prefix_audit.json`, `R_dependency_audit.json` and their artifact scripts.
+
+Observed prefix geometry, **not a full episode verdict**: teacher and GT-R
+achieved118 and119 consecutive held frames, while WAM achieved0. Placement
+was not reached by the truncated run, so three-row calibration is incomplete
+and the predeclared full-episode label remains **UNCLEAR**. WAM wrist/object
+distance grows from0.224m at tick64 to1.837m at172; teacher/GT distances
+remain about0.169/0.174m at172. WAM object stays on the table (height~0.780m)
+while teacher/GT have lifted it to~0.881/0.888m. All rows have0 clipping;
+the large native XYZ scale makes clipping a weak safety/quality proxy.
+
+Earliest failure is measurable before contact: identical frame0 state yields
+WAM versus actual teacher PD XYZ error225.27mm, GT-R2.28mm; measured WAM
+wrist differs from teacher by25.32mm after the first control. GT-R wrist first
+exceeds10mm only at measured tick53. WAM prefix PD error versus teacher has
+p95=1529.29mm as its own visited state drifts.
+
+Privileged offline substitutions at **the same measured WAM state** locate
+input dependence, not an executable oracle repair: at tick0 replacing the
+first1/4/8/16 predicted tau rows with GT reduces immediate PD discrepancy
+versus full GT-R from225.80mm to153.04/38.53/14.59/4.61mm. The short trajectory
+prefix materially drives initial control error. Later state divergence is
+also consequential: at WAM tick64 even full source-GT tau yields PD XYZ
+298.45mm from nominal teacher, and at171 this is1447.00mm. Source future hand
+becomes an out-of-distribution recovery request in the diverged live state.
+This does not establish that repeated startup H4 alone causes failure, nor
+that a lower nominal trajectory EPE alone guarantees closed-loop control.
+The next useful decision is whether targeted startup/prefix supervision can
+prevent initial drift while retaining nominal real-H4 behavior; any new fit
+requires its own fixed protocol, and no fit or further actions occurred here.
 
 ## Limitations / future evidence
 
