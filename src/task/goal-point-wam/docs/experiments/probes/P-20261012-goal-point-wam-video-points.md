@@ -870,3 +870,63 @@ spatial attention support changes between batches, so exact output invariance
 is not claimed. No external vendor patch/new weights/temporal window reset.
 GPU0<=10min, output<=100MB. Further OOM would justify128 or efficient attention,
 not rerunning independent depth/calibration per training window.
+
+20:02 r2 completed:1024 queries over all402 frames in11.483s tracking forward,
+18.844s including decode/load/lift/save; peak allocated17.773GB (~16.55GiB).
+Four256-query batches solved the observed temporal-attention OOM without
+new depth/scales or temporal resets. Sourcecf2c60c1, driver328862/child328893.
+All pre-birth outputs masked and valid tracked XYZ finite. Receipt
+long_video_tracks_final.json; remote video-long-tracks-20261012-r2/tracking/.
+
+Final engineering reference: extract H4/K24 windows at raw currents3/303/603/
+903/1179 from this SAME full-depth/full-track cache, selecting points only by
+current validity/workspace/voxel. Original native2x11 hand clock/confidence;
+10Hz point measurements interpolated30Hz, null object goals, offline context
+declared. CPU<=60s, <=5MB window artifacts, engineering-only; verify bit-identical
+current label/input positions and actual loader admission without model inference.
+This tests whether trajectory-first work makes subsequent window extraction
+cheap and consistent; it does not certify labels or change frozen scientific
+cohort/checkpoint. Only sampled visible tracks enter each current observation.
+
+20:07 whole-cache extraction r2 COMPLETED: five actual H4/K24 windows at
+0.1/10.1/20.1/30.1/39.3s, selected current point counts503/155/518/365/396;
+CPU1.530s including strict reference loader+collate for all5 windows. Current
+input/label positions bit-identical, and independent UV/depth reprojection
+agrees exactly (0mm in this numerical same-cache check). Native hand time
+contract retained. No depth/tracker/calibration rerun. Engineering loader
+acceptance does not mean quality-gate admission or scientific training.
+Manifest SHA4f40fb52945a0a317b25e3ac40b9632d38c0c74e58db8ed3459a7e2d2753c7ef;
+script SHA6017a38da31e2f24ede8f122a933aa15ae72aa5a91df49806ae1fcf94a12f511;
+reference loader SHA7ceb9e17517bcec67cfa727322ebfb8236ca94241f21da0285a1627ea7039185.
+Run video-long-window-extraction-20261012-r2. Extraction r1 produced window
+files but package import unnecessarily pulled training spconv into prep env;
+retain failed log/data. R2 loads the exact immutable video_data.py module via
+importlib without importing unrelated model initialization; no mock dependency,
+loader implementation change, environment install or window math change.
+
+Decision result: trajectory-first geometry and point tracking are feasible
+for the acquired40.17s recording at10Hz on the assigned49GB GPU. Initial1024
+simultaneous query tracking OOM is resolved by256-point batches. Whole-record
+context/calibration removes separate-window numerical frame disagreement by
+construction; this is not evidence of physical depth/track accuracy. Full30Hz
+1205-frame or multi-minute single-pass reconstruction remains untested.
+
+Remaining blocker to broad training-window admission: occlusion/coverage,
+not extraction or disk capacity. At10s only107 initial points valid3D (10
+low-image-residual background candidates); 10.1s extracted155 points, below
+existing256 minimum. At35s initial75 plus161 later-born points=236. At25s
+later-born points contribute275 beyond initial183, supporting periodic point
+births within shared geometry as next cheapest step. Birth forcing and later
+reappearance preclude interpreting birth agreement or sampled count as track
+accuracy/monotonic survival. Some windows lack enough candidates for the
+original background gate; no gate relaxation or automatic training admission.
+Next worthwhile engineering Probe: denser time-spaced fixed-grid query births
+on this same geometry cache, then existing quality gate; no new model fitting
+until admitted separate-session labels exist. Metric ground truth and actual
+held-session training benefit remain future evidence, not inferred here.
+
+Local numeric summary and inspected plot:
+outputs/goal-point-wam/video-long-record-summary-20261012-r1/summary.json and
+coverage-and-scale.png. Local receipts remain under
+tmp/video-training-20261012-takeover/. GPU depth/tracking jobs completed and
+released assigned GPU; no video model-training/checkpoint created in this spike.
