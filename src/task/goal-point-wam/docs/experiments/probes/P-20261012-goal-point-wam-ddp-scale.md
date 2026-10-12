@@ -64,6 +64,9 @@ hardware or method-quality comparison. Full-batch four-update engineering smoke
 must finish with finite losses and equal final parameter hashes before training.
 OOM or dependency incompatibility stops launch for diagnosis; no silent batch
 reduction. Monitor all rank progress, GPU memory/utilization and estimate ETA.
+After passing preflight, preserve its logs, input/result/rank-parameter hashes
+and checkpoint SHA256; remove only its reproducible four-update engineering
+checkpoint files to reserve space for scientific rolling checkpoints.
 
 Authorized temporary concurrency: local4 main +2 extra, remote4; no use of
 local4/5. Remote training max6h/1440GPUmin, isolated entire NAS scope <=5GB

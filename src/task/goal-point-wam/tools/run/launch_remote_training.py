@@ -84,6 +84,16 @@ def main():
             if result['status']!='COMPLETED' or result['step']!=4 or len(set(result['rank_parameter_sha256']))!=1:
                 raise RuntimeError('four-rank full-batch preflight failed')
             state['preflight_result'] = result
+            # Keep numerical/identity evidence; these four-update engineering
+            # checkpoints are reproducible and need not consume NAS budget.
+            state['preflight_checkpoint_sha256'] = {}
+            for name in ('latest.pt','best.pt','final.pt'):
+                checkpoint = output/'preflight'/name
+                if checkpoint.exists():
+                    state['preflight_checkpoint_sha256'][name] = helpers.digest(checkpoint)
+            helpers.record(output/'remote_status.json',state)
+            for name in state['preflight_checkpoint_sha256']:
+                (output/'preflight'/name).unlink()
     state.update(status='STOPPED' if stop[0] else 'COMPLETED',ended_at=time.time())
     helpers.record(output/'remote_status.json',state)
     return 0
