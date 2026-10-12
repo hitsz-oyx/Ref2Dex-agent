@@ -180,3 +180,12 @@ Probes require a separately admitted manifest, frozen train/dev recording
 sessions, geometry/calibration screens and the frozen native validation panel.
 See the [video experiment card](docs/experiments/probes/P-20261012-goal-point-wam-video-points.md)
 for actual admission counts, code identity, run outcomes and limitations.
+
+`--trajectory-depth /path/to/depth.npz` optionally reuses one once-calibrated
+offline geometry span across several cached tracking clips. The sibling
+`result.json` must declare a completed engineering geometry, original source
+video, frame IDs, calibration and depth hash. Extraction validates the raw
+camera/intrinsic/clock and reads existing depths without a model run or scale
+refit; `audit_video_tracks.py` checks the same shared geometry and provenance.
+This route remains engineering-only until separate quality admission. A cached
+span may cover only part of a recording; see the video card for actual coverage.
