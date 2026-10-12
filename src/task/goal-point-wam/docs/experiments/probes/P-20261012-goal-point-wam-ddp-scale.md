@@ -29,7 +29,7 @@ without further utilization tuning. No six-arm
 training started; their unused configs were removed. The cancelled panel449 was
 generated but no outcome was observed, and is not used by this Probe.
 
-Result: UNCLEAR; four-rank engineering preflight passed and the single scientific training run is RUNNING. No formal causal or multi-seed claim is possible.
+Result: UNCLEAR; local single-model training resumed from7300 after a foreign-GPU pause. Original remote main saved at2100 for the separately recorded native EgoDex handoff. No formal causal or multi-seed claim is possible.
 Decision: Run the selected architecture at larger global batch and fixed budget;
 use final real/static goal and world/action diagnostics to choose the next step.
 
@@ -313,3 +313,48 @@ Diagnostics: [timing/topology](../../../../../../tmp/remote-training-20261012-r1
 [GPU/rank samples](../../../../../../tmp/remote-training-20261012-r1/steady_sample.json),
 [latest remote status](../../../../../../tmp/remote-training-20261012-r1/status_update.json).
 Only OakInk2/GRAB/ARCTIC are in this run; no EgoDex, Touch or EPIC input added.
+
+
+## Local foreign-context pause and same-model continuation at7300
+
+Local r2 saved/stopped at7300 with stop_reason=foreign_gpu_process, not plateau,
+nonfinite or source drift. User confirmed PID4084729 was another person's job;
+no foreign process was modified. All four final parameter hashes match
+`f4203bd4aaf33663c17ad427987f489f880b7a373fcd0bfda9d88812ea7d1043`.
+The complete model, optimizer and per-rank RNG remain in r2 final.pt.
+
+| Actor macro EPE (mm) | step4000 | step5000 | step6000 | step7000 | step7300 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Same fixed1536-window panel | 52.516 | 51.391 | 50.387 | 49.779 | 49.589 |
+
+Learning slows but this curve does not show a clear actor plateau. At7300 actor
+OakInk2/GRAB/ARCTIC=16.504/77.403/54.860mm; moving world h24=9.489/35.498/36.732mm.
+Final10000-step goal/zero-hand gate is still pending; these interim numbers
+cannot replace it.
+
+User then reported the temporary foreign job had ended and explicitly requested
+continuation. All8 local GPUs were checked idle. r3 resumes the identical native
+trainer/config/model/data/panel/optimizer and all-rank RNG from r2 final7300 on
+GPU0--3, preserving original absolute deadline1791795639.2882197. Supervisor
+4107069, launch HEAD0fd399e3; original scientific identity remains cc434265
+and all r2 guarded source bytes match. No new model, seed, control or method.
+Actual r3 passed7310 with finite loss/gradient, about1.06s/update.
+
+Resource Decision Note: together with remote EgoDex rolling checkpoints, a new
+local segment needs extra disk headroom. Retain all scientific checkpoints and
+raw numerical logs. Remove only reproducible4-step engineering checkpoint
+files under r1/ddp-smoke and r1/ddp-full-batch-smoke, after checking both results
+are engineering_only, step4 and equal four-rank parameter hashes and recording
+every checkpoint SHA/size/inode. Reclaimed2,513,346,460 unique bytes. Numerical
+logs/input/config/result/parameter identities are intact. Shared298GB proactive
+watcher now covers r3 and the remote EgoDex chain;300GB hard cap unchanged.
+[Reclaim receipt](../../../../../../tmp/goal-memory-ddp-20261012-r1/smoke_checkpoint_reclaim.json),
+[resume receipt](../../../../../../tmp/goal-memory-ddp-20261012-r1/resume_receipt-r3.json),
+[r3 status](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r3/group_status.json).
+
+Remote original main saved/stopped at2100 for the user-authorized EgoDex
+addition, preserving complete optimizer/RNG checkpoint and identical four-rank
+final hashes. This run still has only OakInk2/GRAB/ARCTIC. New native EgoDex
+auxiliary execution is recorded separately in
+[P-egodex-auxiliary](P-20261012-goal-point-wam-egodex-auxiliary.md);
+truncation for handoff is not a method-negative conclusion.

@@ -117,3 +117,16 @@ for the actual run and resources. This single-seed run has no matched control.
 
 The current continuation uses GPUs0/1/2/3, restoring step400 through `--resume`
 and keeping the original supervisor `--deadline`; see the card for exact paths.
+
+
+Native EgoDex auxiliary training uses `tools/audit/prepare_egodex_actor.py`
+with completed official-TRAIN acquisition manifests. It admits native H4/K24
+confidence-masked hand labels, fixes the current camera frame and splits by
+session. `tools/run/launch_egodex_auxiliary.py` supervises
+`train_egodex_auxiliary.py` on one or four GPUs from `--init-wam`: three full
+main-corpus updates followed by one native actor-only update. EgoDex has null
+object goals and bypasses action/world forward; object-goal/world supervision
+continues on the original main-three corpus. Local and remote configurations
+are `configs/egodex_native_auxiliary_{local,remote}.json`.
+See the [admission and execution card](docs/experiments/probes/P-20261012-goal-point-wam-egodex-auxiliary.md)
+for qualified inputs, limits and runtime evidence.

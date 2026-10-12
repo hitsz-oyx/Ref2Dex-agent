@@ -1,5 +1,45 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 本地7300续训与远程原生EgoDex混合训练
+
+本地主训练r2因他人PID4084729在GPU0--3建立CUDA context，保护性保存停在7300，
+优化器/四rank RNG完整，四rank最终参数SHA一致；从未干预他人进程。用户先确认
+他人任务，后明确告知临时占用结束并要求继续。复查所有本地卡空闲，r3现GPU0--3
+从final7300恢复同一个模型/优化器/RNG，保持原始绝对deadline；实际推进至7410，
+梯度范数四rank一致，约1.07s/update，余下约47min加验证/保存。GPU4--7保留空闲。
+固定1536-window actor macro4000/5000/6000/7000/7300分别52.516/51.391/50.387/
+49.779/49.589mm，仍下降但减速，尚不能判定平台期或替代最终goal-ablation gate。
+[DDP-scale卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ddp-scale.md)。
+
+用户要求先本地小测后加入远程EgoDex。新流程只接入官方TRAIN原生HDF5手部/相机/
+置信度，按session分割、固定当前camera frame、缺失关键点mask；不使用离线全片
+teacher，不伪造object goal/world标签。3次原主三域完整WAM更新+1次EgoDex actor-only
+更新，共用同一模型，EgoDex跳过world/action forward。局部200步单卡通过，EgoDex
+单held-session EPE108.168→99.366mm（8.14%），main小panel宏均值基本保持，
+ARCTIC约恶化1.9%；这是局部正向信号，未证明数据因果增益或机器人收益。
+
+远程原三域训练已在2100步完整保存。原生EgoDex24/26记录通过，6484帧、
+4476train/1305dev windows，5held sessions。远程新code0fd399e3，4×4090单模型
+每rank256/global1024/10000步，parent为远程原main final2100，optimizer reset。
+初次四卡工程测试训练4步后因rank0-only metrics误用于全rank最终验证分支，
+导致NCCL collective错序；失败日志保留，修复为所有rank一致的last_evaluation_step。
+修复后完整batch测试4步通过，四rank最终参数SHA一致；mixed正式训练实际通过10步
+并到18步，四rank梯度一致，auxiliary world loss为0，GPU快照全4卡100%，
+显存35211--45569/49140MiB。初步主更新1.41s/aux.35s，余下约3.2h加验证保存。
+
+这只是现有短片原生EgoDex子集，不是完整EgoDex大语料；大batch暴露重复4476窗口。
+完整327GB归档FAILED，未用于训练，未新增下载。object-goal/world监督继续只来自
+OakInk2/GRAB/ARCTIC；native aux不改变global claim。所有结论仍Probe/UNCLEAR。
+[原生EgoDex卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-egodex-auxiliary.md)。
+
+资源：用户授权本地主4+远端4，不恢复额外方法；新本地段与远程混合模型均有guard。
+保留所有科学checkpoint，记录SHA后只删除本地4步DDP engineering smoke的可重现
+checkpoint，释放2.513GB。跨主机watcher4108465覆盖local r3与remote chain189914，
+近期合计294.46GB，298GB主动保存停止/300GB硬上限不变。新NAS子预算由root记录
+DecisionNote调为5.1GB（原5GB为root分配），代码sparse checkout降低原子保存峰值，
+没有改变用户总存储限额。远程科学launcher190557；后台训练不依赖SSH保持连接，
+监控访问需要Windows隧道。以下旧时间快照保留作历史，当前状态以本节为准。
+
 ## 2026-10-12 本地额外卡释放与远程四卡训练
 
 按最新指示，额外方法在GPU6/7按两波恢复optimizer/RNG，GPU4/5释放；四方法
