@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref22-gt-anchored
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 6b8bb3d9
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 30
@@ -87,4 +87,41 @@ Cm-on/off validation remain subsequent evidence, not assumed outcomes.
 
 ## Results
 
-Pending execution.
+Result: **PROMISING** for preserving the local GT-tau execution mapping;
+autonomous utility remains **UNCLEAR** pending the fresh physical diagnostic.
+Fixed1000 completed404.40s/GPU2, peak2158.69MiB. The original offline
+screen passes13/13. R predicted-action gradient0, GT-anchor gradient nonzero;
+all four WAM ACTION-only gradients and all five parameter updates nonzero,
+action/world and normalization hashes unchanged. Engineering1 completed
+23.55s/no checkpoint.39 relevant contracts and5 aggregation contracts pass.
+
+| Panel / PD XYZp95 mm | Initial | Anchored final | Prior unanchored final |
+| --- | ---: | ---: | ---: |
+| Nominal predicted | 25.63 | 22.67 | 35.26 |
+| Nominal GT tau -> R | 10.59 | 13.35 | 43.96 |
+| Startup frame0 predicted | 12.08 | 5.82 | 2.76 |
+| Startup all predicted | 20.51 | 8.31 | 9.87 |
+| Recovery TRAIN predicted | 42.88 | 38.72 | 49.12 |
+| Recovery TRAIN GT tau -> R | 20.44 | 6.19 | 62.76 |
+| Early pure CURRENT-PD TRAIN | 587.93 | 159.87 | 60.89 |
+| Late purged pure diagnostic | 940.48 | 965.32 | 955.48 |
+
+Nominal near8 hand17.20->15.52mm. Improvement trades off some early pure
+training fit against retaining physical R meaning; late coverage remains
+unresolved. Same stream/initialization comparison remains single-seed
+development evidence, not Validation. Independent root label/160metric
+reconstruction PASS: PD max0/tau1.19e-7m/metric0.
+
+Artifacts: `outputs/trajectory-policy/wam-ref2-joint-anchored-20261012-r1/`
+contains exact head/tau pair, result/manifest/predictions and root_joint_audit.
+Fresh128/takeover8 group `wam-ref2-execution-anchored-t8-20261012-r1`
+failed BEFORE any physics because the calibrated-source preflight rejected
+the evolved pd_retargeter.py hash. This is engineering rejection, not negative
+method evidence; its group/server/native logs are preserved.0e4f1e76 adds
+authenticated historical Git source plus runtime GPU default-K24 differential
+replay and unchanged PD-conversion AST checks. All other source/data/config
+inputs remain byte-bound.519 actual calibration windows show bitwise equal
+old/new R outputs in graspenv2.4.1;18 related tests pass. The ORIGINAL
+calibration files remain untouched. Fresh group sibling `...-t8-...-r2`
+is running and repeats this check in the pinned2.0.1 native runtime.
+No physical conclusion yet; new R still earns its own qualification.
