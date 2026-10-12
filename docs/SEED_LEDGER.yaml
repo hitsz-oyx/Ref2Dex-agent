@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-recovery-retargeter:
+    seed_pool: probe
+    model_seed: 290
+    train_draw_seed: 291
+    execution_seed: 292
+    reuse_reason: deterministic retargeter recipe and nominal reset continuity; new recovery support, not a replicate
+
   P-20261012-goal-point-wam-ref2-robot-aggregation:
     seed_pool: probe
     model_seed: 295

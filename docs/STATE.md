@@ -1,5 +1,18 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 数据聚合后发现真实恢复轨迹的R覆盖误差
+
+实验24固定500更新112.41s：pure-WAM训练PD XYZ p95636.50→143.26mm，
+但nominal25.56→59.48mm，未过50mm新actor采集门，不部署该head。
+late pure诊断1194.21→1186.27mm；不能由训练改善推断恢复收益。
+随后用role3实际专家接管的137个完整24控制窗独立检查冻结R：all XYZ
+p9547.17mm，早期32:48为126.64mm，同ticks nominal为16.01/9.71mm。
+输入是真实测量专家future，不是无约束tau优化；原actor future禁令保留。
+优先补齐R物理恢复覆盖，原六个normalization buffers冻结并混合nominal
+replay；固定1000更新通过offline门才接入新R的局部GT物理校准。
+WAM head仍用原startup，显式记录其训练旧R与执行新R的身份差异。
+见[实验25](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-recovery-retargeter.md)。
+
 ## 2026-10-12 ref2_1机器人数据聚合启动，持续工作到19:30
 
 用户新目标按goal-point-wam/ref2_1持续推进到今天19:30。先验证更远自主偏离状态

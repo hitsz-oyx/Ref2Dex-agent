@@ -139,3 +139,11 @@ if both good, prioritize trajectory prediction/supervision. This is privileged
 diagnosis only. Source actor_future_hand_training_allowed=false is preserved;
 any later expert-only training requires a separate derived scoped admission,
 not reinterpretation of mixed-policy future or overwrite of the source.
+
+Diagnostic completed0.55s/GPU2/11.9MiB. All137 recovered windows XYZ
+p505.261mm/p9547.171mm, nominal p504.635/p9516.011mm;
+early recovery32:48 p95126.638mm versus nominal9.705mm. Both clipping0.
+Recovery rotation/finger p95.1456/.1189rad overall; early.4539/.2152rad.
+Root independently recomputed every raw XYZ p95 exactly. The imperfect R on
+physically measured early recovery futures motivates scoped R adaptation in
+experiment25. It does not establish that actor prediction is otherwise correct.
