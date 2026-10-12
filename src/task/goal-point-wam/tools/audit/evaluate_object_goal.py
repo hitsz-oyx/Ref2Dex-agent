@@ -67,10 +67,11 @@ def evaluate(args):
         if 'goal_hand' in batch: raise ValueError('hand endpoint goal leaked into object validation')
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
             scene = model.scene(batch)
+            observed_hand = model.observed_hand_condition(batch)
         def predict(goal):
             with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
                 tokens, mask = model.goal(batch['start_object_points'], goal, batch['object_goal_valid'])
-                return model.trajectory(scene['scene_tokens'], scene['scene_mask'], tokens, mask)
+                return model.trajectory(scene['scene_tokens'], scene['scene_mask'], tokens, mask, observed_hand)
         pred = predict(batch['goal_object_points'])
         static = predict(batch['start_object_points'])
         shift = batch['goal_object_points'].new_tensor([.1, 0., 0.])

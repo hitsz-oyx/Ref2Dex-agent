@@ -251,6 +251,14 @@ def run(args: argparse.Namespace) -> None:
     identity["model_sha256"] = digest(TASK / "src/goal_point_wam/model.py")
     identity["pretrained_loader_sha256"] = digest(TASK / "src/goal_point_wam/pretrained.py")
     identity["initial_parameter_sha256"] = parameter_hash(model)
+    core_hash = hashlib.sha256()
+    for name, parameter in model.named_parameters():
+        if not name.startswith("hand_query."):
+            core_hash.update(parameter.detach().float().cpu().numpy().tobytes())
+    identity["initial_core_parameter_sha256"] = core_hash.hexdigest()
+    expected_core = config.get("expected_initial_core_parameter_sha256")
+    if expected_core is not None and expected_core != identity["initial_core_parameter_sha256"]:
+        raise ValueError("observed-hand intervention changed matched core initialization")
     model = model.to(device)
     identity["model_parameters"] = sum(parameter.numel() for parameter in model.parameters())
     optimizer = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"],

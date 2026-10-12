@@ -239,7 +239,8 @@ class TrajectoryDecoder(nn.Module):
         return torch.where(valid[:, :count].any(1)[:, None], condition, torch.zeros_like(condition))
 
     def forward(self, scene: torch.Tensor, scene_mask: torch.Tensor,
-                goal: torch.Tensor, goal_mask: torch.Tensor) -> torch.Tensor:
+                goal: torch.Tensor, goal_mask: torch.Tensor,
+                observed_hand: torch.Tensor = None) -> torch.Tensor:
         batch = scene.shape[0]
         if self.goal_injection == "query":
             condition = self._query_condition(goal, goal_mask)
@@ -258,6 +259,10 @@ class TrajectoryDecoder(nn.Module):
         query = query.expand(batch, -1, -1)
         if self.goal_injection == "query":
             query = query + condition[:, None]
+        if observed_hand is not None:
+            if observed_hand.shape != (batch, HANDS, KEYPOINTS, HIDDEN):
+                raise ValueError("observed hand query shape mismatch")
+            query = query + observed_hand[:, None].expand(-1, HORIZON, -1, -1, -1).reshape(batch, -1, HIDDEN)
         decoded = self.decoder(query, memory, memory_key_padding_mask=~memory_mask)
         # Physical/masked losses run outside autocast; keep their prediction
         # tensors in float32 so CUDA has a stable backward path.
@@ -359,6 +364,23 @@ class GoalPointWAM(nn.Module):
         self.motion_floor = float(config.get("motion_floor", .1))
         if self.trajectory_scale_m <= 0 or not 0 < self.motion_floor <= 1:
             raise ValueError("invalid loss scales")
+        self.observed_hand_query = bool(config.get("observed_hand_query", False))
+        # Append after all historical modules and preserve CPU RNG so adding
+        # this observed-only adapter does not change core weights or the first
+        # stochastic scene serialization. Default keeps old checkpoint keys.
+        with torch.random.fork_rng(devices=[]):
+            self.hand_query = (nn.Sequential(nn.Linear(12, hidden), nn.GELU(), nn.Linear(hidden, hidden),
+                                            nn.LayerNorm(hidden)) if self.observed_hand_query else None)
+
+    def observed_hand_condition(self, batch):
+        if self.hand_query is None:
+            return None
+        valid = batch["start_hand_valid"].bool()
+        history = (batch["start_hand_history"].float() - self.scene.scene_mean[3:12]) / self.scene.scene_std[3:12]
+        features = torch.cat((batch["start_hand"].float() / .05, history), -1)
+        features = torch.where(valid[..., None], features, torch.zeros_like(features))
+        encoded = self.hand_query(features)
+        return torch.where(valid[..., None], encoded, torch.zeros_like(encoded))
 
     def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         scene = self.scene(batch)
@@ -368,7 +390,8 @@ class GoalPointWAM(nn.Module):
         else:
             goal_input = torch.cat((batch["start_hand_valid"], batch["goal_hand_valid"]), dim=1)
             goal_tokens, goal_mask = self.goal(batch["start_hand"], batch["goal_hand"], goal_input)
-        trajectory = self.trajectory(scene["scene_tokens"], scene["scene_mask"], goal_tokens, goal_mask)
+        trajectory = self.trajectory(scene["scene_tokens"], scene["scene_mask"], goal_tokens, goal_mask,
+                                     self.observed_hand_condition(batch))
         action = batch["action"].reshape(-1, HORIZON, HANDS, KEYPOINTS, 9)
         action_valid = batch["action_valid"].reshape(-1, HORIZON, HANDS, KEYPOINTS)
         action_tokens, action_mask = self.action(action, action_valid)

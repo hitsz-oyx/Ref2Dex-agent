@@ -309,6 +309,40 @@ def test_goal_injection_routes_match_weights_and_remove_encoded_null_leakage():
         TrajectoryDecoder(goal_injection='query')
 
 
+def test_observed_hand_adapter_preserves_core_rng_and_ignores_future_labels(monkeypatch):
+    from goal_point_wam import model as module
+    class Scene(torch.nn.Module):
+        def __init__(self, stats, **kwargs):
+            super().__init__()
+            self.proj = torch.nn.Linear(18, 128)
+            self.register_buffer('scene_mean', torch.tensor(stats['scene_mean']))
+            self.register_buffer('scene_std', torch.tensor(stats['scene_std']))
+    monkeypatch.setattr(module, 'SceneHistoryEncoder', Scene)
+    stats = dict(scene_mean=[0.] * 18, scene_std=[1.] * 18,
+                 action_mean=[0.] * 9, action_std=[1.] * 9, flow_mean=[[0.] * 3] * 24,
+                 flow_std=[[1.] * 3] * 24, translation_mean=[[0.] * 3] * 24,
+                 translation_std=[[1.] * 3] * 24, rotation_scale=[1.] * 24)
+    config = dict(goal_type='object_points', goal_query_adapter=True)
+    torch.manual_seed(247); base = module.GoalPointWAM(stats, config); before = torch.get_rng_state()
+    torch.manual_seed(247); hand = module.GoalPointWAM(stats, dict(config, observed_hand_query=True))
+    assert torch.equal(before, torch.get_rng_state())
+    assert all(torch.equal(v, hand.state_dict()[k]) for k, v in base.state_dict().items())
+    batch = goal_collate([GoalWindows(_Base(), goal_type='object_points')[0]])
+    expected = hand.observed_hand_condition(batch)
+    altered = dict(batch, action=torch.full_like(batch['action'], 123.),
+                   trajectory_target=torch.full_like(batch['trajectory_target'], 456.))
+    assert torch.equal(expected, hand.observed_hand_condition(altered))
+    altered = {k: v.clone() for k, v in batch.items()}
+    altered['start_hand_valid'][:, 1] = False
+    altered['start_hand'][:, 1] = float('nan'); altered['start_hand_history'][:, 1] = float('nan')
+    encoded = hand.observed_hand_condition(altered)
+    assert torch.isfinite(encoded).all() and torch.count_nonzero(encoded[:, 1]) == 0
+    decoder = hand.trajectory.eval(); torch.nn.init.normal_(decoder.head[-1].weight, std=.01)
+    scene, valid = torch.randn(1, 4, 128), torch.ones(1, 4, dtype=torch.bool)
+    goal, mask = hand.goal(batch['start_object_points'], batch['goal_object_points'], batch['object_goal_valid'])
+    assert (decoder(scene, valid, goal, mask, expected) - decoder(scene, valid, goal, mask)).abs().max() > 1e-5
+
+
 def test_goal_and_world_components_are_finite_with_missing_goal_points():
     stats = {
         "action_mean": [0.] * 9,
