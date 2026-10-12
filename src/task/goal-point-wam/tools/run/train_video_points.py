@@ -25,13 +25,15 @@ from goal_point_wam.data import GoalWindows, goal_collate
 from oakink_wm.multisource import MixedWindows, mixed_indices
 from train_three_domain import digest, atomic_json, gpu_snapshot, move_batch, evaluate
 from train_egodex_auxiliary import goal_sensitivity
+from video_validation_panel import balanced_video_panel
 
 
 @torch.no_grad()
-def evaluate_video(model, dataset, device, batch_size):
+def evaluate_video(model, dataset, device, batch_size, panel):
     model.eval()
     total, zero, count, actor, actor_count = 0., 0., 0, 0., 0
-    for cpu in DataLoader(Subset(dataset, list(range(min(16, len(dataset))))), batch_size=batch_size, collate_fn=video_collate):
+    sessions = {}; offset = 0
+    for cpu in DataLoader(Subset(dataset, [r['index'] for r in panel]), batch_size=batch_size, collate_fn=video_collate):
         batch = move_batch(cpu, device)
         with torch.autocast('cuda', dtype=torch.bfloat16):
             pred = model(batch)
@@ -45,8 +47,19 @@ def evaluate_video(model, dataset, device, batch_size):
         he = torch.linalg.vector_norm(pred['trajectory']-batch['trajectory_target'], dim=-1)
         actor += float(he[hv].sum())
         actor_count += int(hv.sum())
+        for row in range(len(error)):
+            session = panel[offset+row]['session']
+            values = sessions.setdefault(session, dict(error=0., stationary=0., count=0, windows=0))
+            values['error'] += float(error[row][valid[row]].sum())
+            values['stationary'] += float(reference[row][valid[row]].sum())
+            values['count'] += int(valid[row].sum()); values['windows'] += 1
+        offset += len(error)
+    per_session = {s:dict(point_epe_mm=v['error']/max(v['count'],1)*1000,
+                         stationary_point_epe_mm=v['stationary']/max(v['count'],1)*1000,
+                         valid_points=v['count'],windows=v['windows']) for s,v in sessions.items()}
     return dict(point_epe_mm=total/max(count, 1)*1000, stationary_point_epe_mm=zero/max(count, 1)*1000,
-                valid_points=count, actor_epe_mm=actor/max(actor_count, 1)*1000, valid_hand_points=actor_count)
+                valid_points=count, actor_epe_mm=actor/max(actor_count, 1)*1000, valid_hand_points=actor_count,
+                sessions=per_session, session_macro_point_epe_mm=sum(v['point_epe_mm'] for v in per_session.values())/len(per_session))
 
 
 def main():
@@ -93,6 +106,7 @@ def main():
             raise ValueError('scientific mixed fit requires the frozen main-three panel')
     else:
         held = None
+    video_panel = balanced_video_panel(held.records) if held is not None else []
     base = MixedWindows(a.data, 'train')
     native = GoalWindows(base, 'object_points', 32)
     native_held, native_panel = None, None
@@ -118,7 +132,7 @@ def main():
     identities = {str(f.resolve()): digest(f) for f in (
         a.stats, a.init_wam, a.video_data/'manifest.json', a.data/'processed/manifest.json',
         Path(__file__), TASK/'src/goal_point_wam/model.py', TASK/'src/goal_point_wam/point_supervision.py',
-        TASK/'src/goal_point_wam/video_data.py')}
+        TASK/'src/goal_point_wam/video_data.py', Path(__file__).with_name('video_validation_panel.py'))}
     for record in video.meta['records']:
         path = a.video_data/record['path']
         if digest(path) != record['sha256']:
@@ -138,7 +152,7 @@ def main():
                     world_size=world, main_global_batch=world*a.main_batch, video_global_batch=world*a.video_batch,
                     recipe='three native point-supervised updates then one video point-supervised update',
                     optimizer_reset=True, checkpoint_kind='goal-point-wam.point-supervised.v1',
-                    parent_step=parent_step, engineering_only=a.smoke, ranks=[])
+                    parent_step=parent_step, engineering_only=a.smoke, ranks=[],video_validation_panel=video_panel)
     ranks = [dict(rank=rank, pid=os.getpid())]
     if world > 1:
         ranks = [None]*world
@@ -154,7 +168,7 @@ def main():
             dist.barrier()
         report = None
         if rank == 0 and held is not None:
-            report = dict(step=step, video=evaluate_video(model, held, device, a.video_batch),
+            report = dict(step=step, video=evaluate_video(model, held, device, a.video_batch, video_panel),
                           main=evaluate(model, native_held, native_panel, min(a.main_batch, 16), 0, device),
                           main_goal=goal_sensitivity(model, native_held, native_panel, device))
             with (a.output/'validation.jsonl').open('a') as f:
@@ -260,7 +274,7 @@ def main():
             final_rank_parameter_sha256=hashes, video_shared_backbone_gradient_norm=video_shared_gradient,
             transfer=transfer, input_identity=identities, history=log, gpu=gpu_snapshot(device),
             held_session_before=held_before, held_session_after=held_after,
-            limitations='Engineering wiring only; video actor loss masked to isolate point-world gradient' if a.smoke else 'Exploratory mixed fit, up to16 held-session clips; no matched control')
+            limitations='Engineering wiring only; video actor loss masked to isolate point-world gradient' if a.smoke else 'Exploratory mixed fit, up to4 clock-spaced clips per held session; no matched control')
         if not a.smoke and step == steps:
             # Final is the same inode as rolling latest, including optimizer/RNG.
             os.link(a.output/'latest.pt', a.output/'final.pt')
