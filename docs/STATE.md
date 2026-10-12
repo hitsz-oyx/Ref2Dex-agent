@@ -1,5 +1,28 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_3多接管训练降低后期漂移，自主持物仍未建立
+
+按用户ref2_3，Probe32从Probe30精确WAM/R继续固定1000更新，加入
+Probe31的259实际expert future+384当前PD-only；nominal/startup回放、
+K24和GT-only R梯度职责保持。GPU2用时471.29s、峰值2149MiB。
+13/13原离线门通过；643行全部实际抽到，256指标/PD标签max0，
+tau1.19e-7m，初始参数精确承接Probe30，冻结buffer/action/world不变。
+nominal predicted PD22.67->31.21mm、startup8.31->13.56mm有保留代价；
+t32恢复TRAIN predicted422.17->254.79mm、near8轨迹60.72->22.79mm，
+但GT-tau R误差仍257.80mm，不可认为后期控制问题已解决。
+
+仅一次新128步闭环97.67s完成，2316物理检查max0。t24 PD265.83->
+108.10mm，t32腕偏差354.10->63.17mm，t48腕522.77->105.09mm；
+纯actor裁剪5.47%->0，但held仍0。新GT-R75held/零裁剪获得局部短抓持
+资格；t16专家接管75held但107/108两步裁剪，严格local recovery=false。
+预设闭环组合门4/5：t16 PD28.28mm略超原2x限27.80mm，其余通过。
+后期漂移幅度降低局部PROMISING，整体UNCLEAR，不宣称漂移起点推迟、
+自主抓取或正式证明DAgger有效。保留候选与Probe30基线，停止本轮固定
+实验；下一决策围绕新分布的更晚恢复监督及早期保留，暂不改变架构/goal。
+未启动额外训练、world/evaluator/RL。ref2累计804.52MB<850MB，
+outputs+tmp292.80GB<400GB，GPU2已释放。见
+[训练及新闭环卡32](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref23-multitakeover-fit.md)。
+
 ## 2026-10-12 ref2_2保住R映射并改善早期闭环，后期恢复监督已聚合
 
 按指定历史会话/ref2_2继续，暂冻结结构修改/world/RL。Probe29五个
@@ -19,8 +42,8 @@ GT-R重新获得75held/零裁剪局部资格，但actor仍0held，t24 PD265.83mm
 三源各2316物理检查max0，接管held74/75/41；t32短迹不足45帧持物门，
 仅是部分恢复信号。聚合643行=259实际专家future+384纯actor当前PD，
 7073独立重建检查通过（state/tau浮点差<=1.19e-7，其他标签误差0）；
-纯actor未来仍禁止用于轨迹/R监督。新数据尚未训练，下一步固定GT-only R
-职责，以真实多接管恢复监督训练并保住nominal/startup，再检查新actor闭环。
+纯actor未来仍禁止用于轨迹/R监督。此阶段结束时新数据尚未训练；后续固定
+GT-only R职责的多接管训练与新actor闭环结果见上方ref2_3记录。
 整体UNCLEAR；未开始world/evaluator/RL，不把训练标签当自主成功。
 outputs+tmp约292.58GB<用户已更新Campaign上限400GB，GPU2已释放。详见
 [窗口卡29](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-r-horizon.md)

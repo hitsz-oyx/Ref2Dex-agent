@@ -96,4 +96,75 @@ action-only gradients nonzero. Frozen weights/buffers unchanged.21 admission,
 sampling and gradient-ownership contracts pass. Independent actual-source
 label/256metric audit passes (PD0/tau1.19e-7m/metric0). Auditor resolves the
 recovered t8 symlink to its original completed trajectory; no data changed.
-Fixed1000 continuation is running; fresh rollout remains conditional on screens.
+
+### Completed fixed continuation
+
+`wam-ref2-joint-multitakeover-20261012-r1` completed1000 updates471.29s,
+peak2149MiB (device process ~2753MiB). Short utilization sample mean22.4%/
+max43%; throughput ~2.3 updates/s remained steady, consistent with the prior
+full policy-chain recipe. No performance or research variable changed.
+13/13 original offline screens pass; initial hashes exactly equal Probe30
+final policy/R/frozen/normalization hashes. All643 aggregation rows actually
+appear in source-balanced batches. R predicted-action gradient0; GT gradient
+567.70, four WAM action gradients nonzero.256 independently reconstructed
+metrics/PD labels max0, tau max1.19e-7m; buffers/action/world unchanged.
+
+| Offline development/TRAIN panel | Warm Probe30 | Final |
+| --- | ---: | ---: |
+| Nominal predicted PD XYZp95 mm | 22.67 | 31.21 |
+| Nominal GT-tau R PD XYZp95 mm | 13.35 | 11.58 |
+| Startup frame0 predicted PD XYZp95 mm | 5.82 | 6.91 |
+| Startup all predicted PD XYZp95 mm | 8.31 | 13.56 |
+| t8 actual-future predicted PD XYZp95 mm | 42.16 | 32.30 |
+| t16 actual-future predicted PD XYZp95 mm | 63.49 | 34.34 |
+| t32 actual-future predicted PD XYZp95 mm | 422.17 | 254.79 |
+| t32 actual-future first8 EPE mm | 60.72 | 22.79 |
+| t32 actual-future GT-tau R PD XYZp95 mm | 403.14 | 257.80 |
+| Pure current-PD XYZp95 mm (each source) | 658.80 | 435.11 |
+
+Late TRAIN geometry/action improve but large action errors remain even for
+GT tau on t32 states. Nominal/startup predicted PD worsens while still passing
+original limits; retaining physical mapping does not mean no retention cost.
+All these aggregation panels are TRAIN, never held-out evidence.
+
+### One new actual student rollout
+
+`wam-ref2-execution-multi-20261012-r1` completed128 controls/129 states,
+97.67s/GPU2. Same exact newly learned WAM/R pair in both pinned runtimes;
+independent native audit2316 checks/max0 PASS. Teacher/GT-R held73/75 with
+zero clipping; the NEW R earns only this local short-grasp calibration.
+Pure actor held0 with clipping0% (Probe30 5.47%). t16 expert takeover held75
+but expert commands107/108 clipped (2/128 total); its strict local recovery
+flag is false. Do not call that row unclipped or grant all its futures training
+admission. No second fresh rollout or training sweep was performed.
+
+| Tick | Probe30 actual PD error mm | New PD error mm | Probe30 wrist deviation mm | New wrist deviation mm |
+| --- | ---: | ---: | ---: | ---: |
+| 8 | 12.93 | 23.90 | 6.43 | 11.39 |
+| 12 | 21.98 | 20.19 | 9.33 | 15.82 |
+| 16 | 13.90 | 28.28 | 10.03 | 18.95 |
+| 24 | 265.83 | 108.10 | 65.15 | 49.71 |
+| 32 | 257.46 | 74.90 | 354.10 | 63.17 |
+| 48 | 530.24 | 328.07 | 522.77 | 105.09 |
+
+Local late-drift magnitude reduction is **PROMISING** (t24 PD -59.3%,
+t32 wrist -82.2%); autonomous usefulness remains **UNCLEAR**, held0.
+Predeclared composite4/5: t8/t12 early retention and both late-halving checks
+pass; t16 PD28.28mm exceeds its unchanged2x limit27.80mm. Thus the full
+predeclared promising gate FAILS, despite the late signal. Do not move the
+threshold or describe the policy as successfully retained. Drift persists
+at t24 and later; onset delay or successful distribution coverage is not proved.
+
+Decision: retain this candidate and evidence, preserve the Probe30 baseline,
+and stop this fixed experiment. The changed late behavior does not justify
+an immediate architecture/goal change or a loss sweep. Next experiment should
+address remaining later visited-state supervision and early retention using
+this newly visited distribution, with its own objective/budget; no additional
+experiment started here. Independent training-source/gradient/native checks
+confirm the intended intervention, without proving observation sufficiency.
+
+Raw reports: fit `result.json`, `predictions.npz`, `root_joint_audit.json`;
+native `short_rollout_comparison.json`, `closed_loop_decision.json` and
+`root_recovery_audit.json`. New stage outputs/caches~228MB, cumulative ref2
+804.52MB<850MB; outputs+tmp292.80GB<400GB. GPU2 released. Scientific
+conclusion remains scoped to one-motion/reset development, no formal validation.
