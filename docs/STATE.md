@@ -1,5 +1,37 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 短时域审计与优先机器人联调
+
+用户要求先统计最近8步，再并行推进ref2，并最新明确优先WAM→冻结R→PD联调。
+本地final10000原1536窗审计：最近1--8步宏EPE13.460mm（0.267s），
+中间9--16为50.407mm，最远17--24为85.629mm，全24仍49.832mm。
+第1/8/24步2.847/27.585/98.420mm；最近8静止31.574mm、匀速21.911mm。
+平均50mm主要受远期拉高，不等于已经达到不可约难度，也不等于机器人能用。
+[分时域结果](../outputs/goal-point-wam/goal-memory-ddp-20261012-r3/final_horizon_audit.json)，
+[曲线](../outputs/goal-point-wam/goal-memory-ddp-20261012-r3/final_horizon_curve.png)。
+
+ref2初次64窗机器人shadow：active-hand顺序与当前物体frame数值门通过
+（max3.662e-7m），PD native往返1.192e-7。人腕/机器人基座等仅语义角色对应，
+不宣称解剖位置等价。原人类模型直接用于机器人h1/8/24为12.10/172.40/311.24mm，
+最近8为86.53mm；WAM与GT喂给同一冻结R后的PD XYZ差p95=288.67mm，未通过
+闭环screen。零clipping受native XYZ1m量程影响，不能等价为控制可用。
+进一步shadow混合GT前8/WAM后16，立即PD差p95仍129.88mm；WAM前8/GT后16
+为219.54mm；真实H4窗口最近8仍64.74mm。当前优先冻结scene/PTv3与R的机器人
+域trajectory-head/observed-hand adapter小Probe，不执行未过门的WAM动作。
+[联调卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-shadow.md)。
+
+视频点监督接口已实现共享同一PTv3参数，原生可选SE3 head解码到统一点损失，
+视频直接逐点轨迹；旧WAM显式权重迁移，新optimizer/checkpoint身份。工程混合
+一步/双rank smoke有限且video WORLD梯度进入共享backbone。标签准入仍engineering：
+只用过去/当前4帧重新构造输入，但与离线教师当前点位置median33.575mm不一致。
+已发现并修复video未来action单位合同（native为位置/当前位移/单步位移，
+不是速度/加速度）；原pre-fix日志保留。视频额外研究暂让位联调，不因缺SE3
+拒绝点监督，也不将有几何偏差的标签直接投入正式训练。
+[视频卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-video-points.md)。
+
+远程原独立四卡EgoDex-native混合训练保持运行，仍是小subset手部辅助监督，
+不是全量EgoDex或新视频点world训练。以下2600步记录为较早运行快照。
+
 ## 2026-10-12 本地10000完成与远程约2600步快照
 
 本地r3完成10000步、exit0，四rank final参数SHA一致，optimizer/RNG完整保存，

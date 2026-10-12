@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-head-calibration:
+    seed_pool: probe
+    model_and_update_seed: 290
+    train_draw_seed: 291
+
   P-20261012-goal-point-wam-ref2-shadow:
     seed_pool: probe
     inference_seed: 289

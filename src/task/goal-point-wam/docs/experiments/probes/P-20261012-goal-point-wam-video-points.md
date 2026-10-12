@@ -111,6 +111,14 @@ Raw absolute video labels therefore need consistent current/teacher geometry
 handling and quality inspection before scientific admission. Do not hide the
 offset by silently rebasing labels or claim four updates prove method quality.
 
+Corrected-action repeat code69c69de7:
+`video-points-ddp-engineering-20261012-r2` completed4 updates in5.97s,
+video WORLD-only backbone gradient9.91e-5, finite gradients and equal two-rank
+final parameters `c3b61e9e35c2326d464ffcde261d7b2dc03c994589c2f340b221ea61be3abdf6`.
+Reserved2.55GB on rank0; no checkpoint, no scientific fit. Explicit action-unit
+semantic tests again4 passed. User subsequently prioritizesref2 robot integration;
+video label-quality work deferred while preserving this reusable interface.
+
 Limitations/future evidence: per-frame depth drift, occlusion/scale stability,
 moving/static point EPE, source-balanced held-session metrics and target-goal
 admission; no causal method-quality, robot or RL claim from smoke.
