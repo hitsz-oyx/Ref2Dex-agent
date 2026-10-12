@@ -33,7 +33,11 @@ def main():
     for sig in (signal.SIGUSR1, signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, lambda *_: stop.__setitem__(0, True))
     config = json.loads(args.config.read_text())
-    env = dict(os.environ, CUDA_VISIBLE_DEVICES='0,1,2,3', TMPDIR=str(REPO/'tmp'),
+    runtime_tmp = scope/'t'
+    if len(os.fsencode(str(runtime_tmp)))>75:
+        raise ValueError('short scoped directory required for multiprocessing sockets')
+    runtime_tmp.mkdir(exist_ok=True)
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='0,1,2,3', TMPDIR=str(runtime_tmp),
                OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='2',
                TRITON_CACHE_DIR=str(REPO/'tmp/triton-remote'))
     common = []
@@ -42,8 +46,8 @@ def main():
     smoke = [sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node=4',
              str(TASK/'tools/run/train_distributed.py'), *common,
              '--output',str(output/'preflight'), '--smoke','--smoke-full-batch']
-    train = [sys.executable,str(TASK/'tools/run/launch_distributed.py'), *common,
-             '--gpus','0,1,2,3','--output',str(output/'training')]
+    train = [sys.executable,str(TASK/'tools/run/launch_remote_distributed.py'), *common,
+             '--gpus','0,1,2,3','--runtime-tmp',str(runtime_tmp),'--output',str(output/'training')]
     state = dict(pid=os.getpid(),status='PREFLIGHT',gpus=[0,1,2,3],
                  started_at=time.time(),microbatch=config['microbatch'],global_batch=4*config['microbatch'])
     for phase, command in [('PREFLIGHT',smoke),('TRAINING',train)]:
