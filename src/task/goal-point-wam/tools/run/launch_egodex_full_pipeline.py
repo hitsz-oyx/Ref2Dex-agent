@@ -28,7 +28,15 @@ REPO = Path(__file__).resolve().parents[5]
 sys.path.insert(0,str(REPO/'src/task/cm-pointflow-effect-pretrain/tools/run/ref5_data_expansion'))
 sys.path.insert(0,str(REPO/'src/task/cm-pointflow-effect-pretrain/tools/run'))
 from download_egodex import RemoteZip
-from launch_pointworld_action_ddp import belongs_to, gpu_processes, record
+from launch_pointworld_action_ddp import belongs_to, gpu_processes
+
+
+def record(path,value):
+    """Publish an explicitly readable owned receipt on the mapped NAS."""
+    part=path.with_suffix('.json.part')
+    part.write_text(json.dumps(value,indent=2)+'\n')
+    part.chmod(0o644)
+    part.replace(path)
 
 
 def direct_session():
@@ -316,6 +324,7 @@ def main():
                                                 for block in iter(lambda:f.read(8*2**20),b''):
                                                     safety();target.write(block);digest.update(block)
                                             if part.stat().st_size!=files[name].file_size:raise ValueError('member size mismatch')
+                                            part.chmod(0o644)
                                             part.replace(dest)
                                         manifest['files'].append(dict(member=name,bytes=dest.stat().st_size,
                                                                       sha256=digest.hexdigest(),crc32=files[name].CRC))
