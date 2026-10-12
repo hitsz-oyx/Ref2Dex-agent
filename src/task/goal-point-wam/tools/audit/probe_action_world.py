@@ -36,6 +36,7 @@ def run(args):
                          static_target=0., predicted_actor_goal=0., world_gradient_norm_sum=0., actor_error_sum=0., actor_valid_points=0,
                          moving_objects=0, moving_epe=0., moving_identity_epe=0.) for name in MAIN_SOURCE_NAMES}
     windows = []
+    contract = dict(mask_disagreements=0, common_action_max_error=0.)
     for cpu in loader(dataset, np.load(args.indices), args.batch, 2):
         batch = move_batch(cpu, torch.device('cuda'))
         with torch.no_grad(), torch.autocast('cuda', dtype=torch.bfloat16):
@@ -45,19 +46,30 @@ def run(args):
             else:
                 goal, goal_mask = model.goal(batch['start_object_points'], batch['goal_object_points'], batch['object_goal_valid'])
                 actor = model.trajectory(scene['scene_tokens'], scene['scene_mask'], goal, goal_mask, model.observed_hand_condition(batch))
-        def world(delta):
-            action, valid = action_from_delta(delta, batch['start_hand'], batch['trajectory_valid'])
+        def decode(action, valid):
             with torch.autocast('cuda', dtype=torch.bfloat16):
                 tokens, mask = model.action(action, valid)
                 return model.world(scene['scene_tokens'], scene['scene_mask'], scene['object_tokens'], scene['object_mask'], tokens, mask)
+        def world(delta):
+            action, valid = action_from_delta(delta, batch['start_hand'], batch['trajectory_valid'])
+            return decode(action, valid)
         truth = batch['trajectory_target']
         actor_error = torch.linalg.vector_norm(actor - truth, dim=-1)
+        raw_action = batch['action'].reshape(-1, 24, 2, 11, 9)
+        raw_mask = batch['action_valid'].reshape(-1, 24, 2, 11)
+        rebuilt, rebuilt_mask = action_from_delta(truth, batch['start_hand'], batch['trajectory_valid'])
+        common = raw_mask & rebuilt_mask
+        contract['mask_disagreements'] += int((raw_mask != rebuilt_mask).sum())
+        if common.any():
+            contract['common_action_max_error'] = max(contract['common_action_max_error'], float((raw_action - rebuilt)[common].abs().max()))
         with torch.no_grad():
             predictions = {name: world(delta) for name, delta in
                            [('recorded', truth), ('static', torch.zeros_like(truth)), ('half', .5 * truth), ('one_half', 1.5 * truth), ('actor', actor)]}
+            # Real teacher reliability must use the loader's exact action/mask.
+            predictions['recorded'] = decode(raw_action, raw_mask)
             scores = {name: torch.linalg.vector_norm(goal_points_from_world(value, batch) - batch['goal_object_points'], dim=-1).mean(-1)
                       for name, value in predictions.items()}
-            repeat = world(truth)
+            repeat = decode(raw_action, raw_mask)
             teacher = predictions['recorded']
             rows = torch.arange(len(truth), device=truth.device)
             slots = batch['goal_object_slot']
@@ -102,9 +114,9 @@ def run(args):
         sources[name].update(windows=n, moving_objects=m, parent_actor_trajectory_epe_m=t['actor_error_sum']/t['actor_valid_points'], actor_valid_points=t['actor_valid_points'], moving_world_epe_m=t['moving_epe']/m if m else None,
                              moving_identity_epe_m=t['moving_identity_epe']/m if m else None)
     atomic_json(args.output, dict(status='COMPLETED', checkpoint_sha256=digest(args.checkpoint), checkpoint_step=state['step'],
-                                 indices_sha256=digest(args.indices), parent_identity=state['identity'], sources=sources, windows=windows,
+                                 indices_sha256=digest(args.indices), parent_identity=state['identity'], sources=sources, windows=windows, action_contract=contract,
                                  gpu=gpu_snapshot(torch.device('cuda')), audit_sha256=digest(Path(__file__)),
-                                 scope='Cached H, same action masks, real labels only for recorded action; candidate ranking and gradients do not establish counterfactual physics.'))
+                                 scope='Cached H, exact raw teacher action/mask and separately checked candidate reconstruction; real labels only for recorded action; candidate ranking and gradients do not establish counterfactual physics.'))
     print(json.dumps(sources, indent=2), flush=True)
 
 

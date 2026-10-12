@@ -27,7 +27,7 @@ memory/query and world-on/off screens are not repeated; the main four-rank
 reproductions. [Primary-source mapping](../../research/2026-10-12-ref12-method-probe-map.md)
 records which mechanisms and action semantics the papers actually use.
 
-Result: UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; scientific methods are launching.
+Result: UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; all four scientific methods are RUNNING.
 Decision: Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism.
 
 ## Decision Note: remaining-card authorization
@@ -143,7 +143,7 @@ indices, `plan.json` exact configs/devices/inputs, `smoke/` engineering records,
 `action_world_parent.json` cached-H audit, `training/` guarded actual launches,
 per-arm progress/curves/checkpoints/final goal/auxiliary metrics. Source/PID hashes
 and actual Git commit are saved at launch; fixed implementation commit is
-recorded after preparation. Scientific training is pending.
+recorded after preparation. Scientific training is running, with launch metadata below.
 
 Deferred: independent subjects/panels, multi-seed causal comparison, real
 candidate execution, faithful video/latent paper reproductions, detached 4D
@@ -185,3 +185,38 @@ not be mixed with the old card's score. Audit binds checkpoint/panel/model hashe
 [action-world audit](../../../../../../outputs/goal-point-wam/ref12-methods-20261012-r1/action_world_parent.json).
 No additional main-training seed/control is created; fresh method heads and
 extra training prevent attributing later improvement exclusively to mechanism.
+
+## Actual scientific launch and independent semantic review
+
+Launcher commit0197ebf8, implementatione6e42832; supervisor PID3959106,
+world_roi GPU5/PID3959127, hindsight_prefix GPU6/PID3959128,
+intermediate_plan GPU7/PID3959129, change_supervision GPU4/PID3959130.
+[Live state](../../../../../../outputs/goal-point-wam/ref12-methods-20261012-r1/training/group_status.json)
+and each arm's progress/log record actual execution. At approximately step220,
+all losses/gradients finite, median .44--.48s/update, remaining ETA21--23min
+plus evaluations/checkpoint/final audits; model memory later~11.6--12.4GiB.
+A bounded20s GPU sample averaged72/68/60/68% on4/5/6/7; primary0--3 remained
+active and advanced to1990 with recent1.09s/step, without source/ownership drift.
+
+Independent read-only review confirmed information isolation, ROI normalization,
+prefix labels and frozen-world gradients. It found two important limitations:
+ROI4 cancels after normalization on single-object windows (GRAB), so any benefit
+there cannot be attributed to target/context weighting; change supervision is
+centroid increments, blind to rotation about the centroid, not full point motion.
+The world_roi arm also changes to world-only fine-tuning, further preventing a
+pure ROI causal claim. New planner/change/horizon heads and extra training remain
+separate confounds acknowledged above.
+
+The initial ranking audit rebuilt recorded actions; review requested exact raw
+teacher inputs when hand validity changes. CPU label arithmetic on all768 actual
+windows found405504 valid points, no raw/rebuilt mask disagreement, and max9D
+value difference1.192e-7m. Thus that specific panel's recorded-action diagnostic
+uses the same physical action with floating arithmetic error; it is not a
+general guarantee for hand disappearance/reappearance. Preserve the original
+audit, and update the audit tool to use exact raw teacher actions/masks for future
+runs; report mask disagreement explicitly. This fix changes no running training.
+[Panel action contract](../../../../../../outputs/goal-point-wam/ref12-methods-20261012-r1/parent_action_contract.json).
+
+`tools/audit/compare_ref12_methods.py` binds fixed-final3000 checkpoint/panel/
+parent hashes and predeclared criteria. No current training loss or smoke has
+been promoted to a scientific result.
