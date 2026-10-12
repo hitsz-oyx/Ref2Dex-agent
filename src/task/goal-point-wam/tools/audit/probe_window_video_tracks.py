@@ -26,8 +26,9 @@ from video_clock import cached_window_clock
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    for name in ('geometry', 'baseline-tracks', 'tracker-vendor', 'tracker-checkpoint', 'output'):
+    for name in ('geometry', 'tracker-vendor', 'tracker-checkpoint', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
+    p.add_argument('--baseline-tracks', type=Path, help='Optional frozen whole-record tracking comparison')
     p.add_argument('--starts', type=int, nargs='+', default=[0, 150, 300, 450, 600, 900, 1050, 1170])
     p.add_argument('--all-windows', action='store_true', help='0.5s stride with a complete tail; at most80 clips')
     p.add_argument('--max-queries', type=int, choices=(1024, 2048, 4096), default=2048)
@@ -65,13 +66,15 @@ def main():
     with np.load(a.geometry, allow_pickle=False) as f:
         intrinsic = f['intrinsic'].copy()
     depth, calibration, provenance = shared_trajectory_depth(a.geometry, frames, intrinsic, camera, video)
-    bmeta = json.loads(a.baseline_tracks.with_name('result.json').read_text())
-    if sha256(a.baseline_tracks) != bmeta['tracks_sha256'] or bmeta['geometry_provenance']['trajectory_depth_sha256'] != provenance['trajectory_depth_sha256']:
-        raise ValueError('baseline identity drift')
-    with np.load(a.baseline_tracks, allow_pickle=False) as f:
-        baseline = {key: f[key].copy() for key in ('source_frame_ids', 'world_xyz', 'world_valid')}
-    if not np.array_equal(baseline['source_frame_ids'], frames):
-        raise ValueError('baseline source clock mismatch')
+    baseline, bmeta = None, None
+    if a.baseline_tracks is not None:
+        bmeta = json.loads(a.baseline_tracks.with_name('result.json').read_text())
+        if sha256(a.baseline_tracks) != bmeta['tracks_sha256'] or bmeta['geometry_provenance']['trajectory_depth_sha256'] != provenance['trajectory_depth_sha256']:
+            raise ValueError('baseline identity drift')
+        with np.load(a.baseline_tracks, allow_pickle=False) as f:
+            baseline = {key: f[key].copy() for key in ('source_frame_ids', 'world_xyz', 'world_valid')}
+        if not np.array_equal(baseline['source_frame_ids'], frames):
+            raise ValueError('baseline source clock mismatch')
     spans = []
     for start in a.starts:
         ids = np.arange(start, start+31, 3)
@@ -138,9 +141,11 @@ def main():
             source_split='official_train', source_identity=meta['source_identity'], raw_hdf5_sha256=meta['raw_hdf5_sha256'],
             teacher_path=str(teacher.resolve()), teacher_sha256=sha256(teacher), teacher_frame_ids=ids[offset:].tolist(),
             source_clip_frame_ids=ids.tolist(), source_current_frame=current, observation_frame_ids=history.tolist(), window_offset=3, **provenance))
-        old = anchor(baseline['world_xyz'][k[offset]:k[offset]+1]); old_valid = baseline['world_valid'][k[offset]:k[offset]+1] & (np.abs(old)<=1.99).all(-1)
-        old_chosen = select_scene(old, old_valid, 2048)
-        summaries.append(dict(raw_current=current, seconds=current/30, tracked_queries=len(pixels), baseline_selected_points=len(old_chosen),
+        old_count = None
+        if baseline is not None:
+            old = anchor(baseline['world_xyz'][k[offset]:k[offset]+1]); old_valid = baseline['world_valid'][k[offset]:k[offset]+1] & (np.abs(old)<=1.99).all(-1)
+            old_count = len(select_scene(old, old_valid, 2048))
+        summaries.append(dict(raw_current=current, seconds=current/30, tracked_queries=len(pixels), baseline_selected_points=old_count,
             selected_points=len(chosen), future_valid_fraction=float(sample['point_target_valid'].mean()), current_alignment_max_mm=float(error.max()*1000), forward_seconds=elapsed))
         progress('WINDOW_COMPLETED', **summaries[-1])
     peak = torch.cuda.max_memory_allocated(); del predictor; torch.cuda.empty_cache()
@@ -163,7 +168,7 @@ def main():
     quality = json.loads((a.output/'quality.json').read_text())
     report = dict(status='COMPLETED', engineering_only=True, training_allowed=False, windows=summaries,
         admission_pass=sum(r['admission_screen_pass'] for r in quality['records']), loader_windows=len(loader),
-        geometry_provenance=provenance, baseline_tracks_sha256=bmeta['tracks_sha256'], tracker_vendor_sha256=vendor_sha,
+        geometry_provenance=provenance, baseline_tracks_sha256=bmeta['tracks_sha256'] if bmeta else None, tracker_vendor_sha256=vendor_sha,
         tracker_checkpoint_sha256=checkpoint_sha, script_sha256=sha256(Path(__file__)), audit_sha256=sha256(Path(__file__).with_name('audit_video_tracks.py')),
         manifest_sha256=sha256(a.output/'manifest.json'), forward_seconds=forward_seconds, seconds=time.monotonic()-started,
         peak_allocated_bytes=peak, limitation=manifest['limitation'])

@@ -1043,3 +1043,42 @@ outputs/goal-point-wam/video-window-restarts-summary-20261012-r1/.
 Overlay shows predetermined0/10/15/35s clips at birth/+0.5/+1.0s, current-only
 selected track IDs and visibility mask, max96 trajectories. Forced birth dots
 and visual coherence are not quantitative physical correctness evidence.
+
+## 20:55 batch whole-geometry/window-query expansion (authorized)
+
+User asks to expand the validated label workflow. Decision Probe: does the
+same fixed once-per-record geometry + fresh1s queries produce usable labels
+across the original22 recordings/18 TRAIN sessions/4 held sessions, and does
+a bounded mixed fit improve held point forecasting without damaging native
+main-three heads? No additional downloads or split changes. Existing80-window
+held cloth extraction is reused by hashes; other21 recordings each get one
+10Hz whole-record depth/calibration and all0.5s-stride1s clips plus complete
+tail,2048 initial-only queries/256 tracking batches. Original seven gates
+remain unchanged; failed records/windows and logs are preserved and excluded.
+Qualified view uses symlinks, normalized session IDs and at least6 train/3 held
+sessions before scientific fitting. No future-based input-point sampling.
+
+Root resource Decision Note: current Campaign now explicitly permits400GB
+shared output (updated by user in the other active session), superseding the
+old300GB limit and this route's temporary310GB exception. Existing user space
+expansion authorization remains. Allocate two idle remote GPUs0/1, <=40min
+batch deadline, <=10GB new run/<=25GB owned remote scope; combined local+our
+remote remains below400GB. Per-record depth<=300s/model and tracker<=600s;
+stop owned children on code/input drift, foreign GPU, storage/deadline or user
+stop. Preserve old source/raw/vendor/checkpoints and other-agent changes.
+
+Scientific short fit after admission: original native auxiliary10000 parent,
+fresh point head/AdamW1e-4,3 native:1 video updates,1000 fixed updates, model
+seed287/draw288 repeat within existing family, nativebatch16/videobatch4, one
+remoteGPU0<=15min training/<=25min supervisor/<=1.5GB outputs. Balanced held
+panel<=16 clips (up to4 uniformly clock-spaced per held session), fixed before
+fit and saved with IDs/hashes; native frozen192 panel unchanged. Final1000
+checkpoint only for decision, no intermediate checkpoint selection. PASS
+requires held EPE>=5% better than both initial/stationary, improvement in>=75%
+held sessions, native hand<=105% and native world<=110% initial; stronger
+intermediate safety stops hand>110%/world>120%. Result is Probe PROMISING or
+UNCLEAR, not physical/robot claim. Failure changes data/learning diagnosis,
+not automatic long training. Cheapest useful test is this existing-data single
+seed bounded fit; formal controls/multi-seed/physical labels remain future
+evidence. Baseline whole-track comparison becomes optional for expansion:
+its absence does not change query selection or label/quality math.
