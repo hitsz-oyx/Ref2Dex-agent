@@ -9,7 +9,7 @@
   "goal_layers": 2,
   "trajectory_layers": 3,
   "world_layers": 2,
-  "microbatch": 16,
+  "microbatch": 64,
   "accumulation": 1,
   "updates": 1200,
   "learning_rate": 0.001,

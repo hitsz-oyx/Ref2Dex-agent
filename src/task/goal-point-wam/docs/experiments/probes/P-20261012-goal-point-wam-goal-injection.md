@@ -102,6 +102,16 @@ If batch16 does not fit, choose and record one common smaller batch before
 launching all three arms. This budget revision is user-directed and does not
 change mission/claim or external permissions.
 
+Batch16 engineering preflight completed: peak allocated2.57GB/reserved2.81GB,
+steady synchronized compute0.204s/update. There is ample24GiB device headroom.
+Before launching scientific r2 arms, root chooses a further common batch64
+preflight (six updates, no checkpoint) to better use idle GPUs and distinguish
+the user's undertraining concern. If it fits with headroom, r2 uses batch64
+and1200 updates =76,800 train windows/arm (64x the original1200), all other
+r2 settings and limits above unchanged. Both engineering reports are kept;
+they are not conditioning/accuracy evidence. No training arm uses preflight
+weights. Current large config files express the intended batch64 choice.
+
 ## Primary-source design input
 
 [ViGAR Table2a](https://arxiv.org/html/2610.02368v1#S5.SS5) verifies the ref's
