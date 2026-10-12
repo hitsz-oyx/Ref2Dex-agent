@@ -188,6 +188,13 @@ def load_policy_patch(model, packet, identity):
 
 
 def paired_manifest_admission(manifest, result, head_manifest, head_sha, r_sha):
+    anchored = manifest.get('gradient_ownership') == 'ref2dex.GT-tau-only-R.v1'
+    gradient_modules = POLICY_MODULES if anchored else TRAIN_MODULES
+    if anchored and (result.get('gradient_ownership') != manifest['gradient_ownership']
+            or result.get('predicted_action_R_gradient_sum') != 0
+            or not math.isfinite(result.get('R_GT_gradient_sum', float('nan')))
+            or result.get('R_GT_gradient_sum', 0) <= 0):
+        raise ValueError('GT-only R gradient ownership evidence required')
     if (head_manifest is None or head_manifest != manifest
             or manifest.get('schema') != JOINT_SCHEMA or manifest.get('status') != 'COMPLETED'
             or result.get('status') != 'COMPLETED' or result.get('offline_screen_pass') is not True
@@ -197,7 +204,7 @@ def paired_manifest_admission(manifest, result, head_manifest, head_sha, r_sha):
             or manifest.get('train_modules') != list(TRAIN_MODULES)
             or result.get('normalization_buffers_unchanged') is not True
             or result.get('frozen_initial_hash') != result.get('frozen_final_hash')
-            or set(result.get('action_gradient_checks', {})) != set(TRAIN_MODULES)
+            or set(result.get('action_gradient_checks', {})) != set(gradient_modules)
             or not all(math.isfinite(v) and v > 0 for v in result.get('action_gradient_checks', {}).values())
             or set(result.get('train_initial_hash', {})) != set(TRAIN_MODULES)
             or set(result.get('train_final_hash', {})) != set(TRAIN_MODULES)

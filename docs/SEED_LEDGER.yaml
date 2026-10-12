@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref22-gt-anchored:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: matched original joint recipe and nominal reset for development comparison, not new replicates
+
   P-20261012-goal-point-wam-ref22-r-horizon:
     seed_pool: probe
     model_seed: 290

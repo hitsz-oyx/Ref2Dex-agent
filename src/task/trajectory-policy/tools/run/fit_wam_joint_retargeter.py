@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--gpu',type=int,default=2)
     parser.add_argument('--engineering-smoke',action='store_true')
+    parser.add_argument('--gt-anchored',action='store_true',help='R learns GT tau only; predicted action trains WAM only')
     args = parser.parse_args()
     out = args.output.resolve()
     if (args.gpu != 2 or out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents
@@ -38,6 +39,7 @@ def main():
     from trajectory_policy.wam_retargeter_admission import BASE_R_SHA
     from trajectory_policy.wam_joint import (JOINT_SCHEMA,PATCH_SCHEMA,POLICY_MODULES,TRAIN_MODULES,
         state_hash,buffer_hash,joint_losses,action_gradient_evidence,offline_screen,own_expert_admission)
+    from trajectory_policy.wam_anchored import anchored_losses, anchored_gradient_evidence, GRADIENT_OWNERSHIP
     from goal_point_wam.data import goal_collate
     from oakink_wm.pointworld_performance import install_fused_hilbert
     torch.set_num_threads(2);torch.manual_seed(295);torch.backends.cuda.matmul.allow_tf32=True
@@ -78,6 +80,7 @@ def main():
         TASK/'src/trajectory_policy/retargeter_data.py',TASK/'src/trajectory_policy/wam_retargeter_admission.py',
         TASK/'tools/audit/audit_wam_ref2_shadow.py',ROOT/'src/task/goal-point-wam/src/goal_point_wam/data.py',
         ref_path,canonical_path,base,stats,original,r_path,live.parent/'group_status.json']
+    if args.gt_anchored:consumed.append(TASK/'src/trajectory_policy/wam_anchored.py')
     consumed += [parent/k for k in ('head.pt','manifest.json','result.json')]
     consumed += [source/k for k in ('trajectory.npz','manifest.json','result.json','audit.json')]
     consumed += [live/k for k in ('trajectory.npz','manifest.json','result.json','root_recovery_audit.json')]
@@ -151,7 +154,7 @@ def main():
     out.mkdir(parents=True);write(out/'actor_admission.json',admission)
     evidence[str(out/'actor_admission.json')]=sha(out/'actor_admission.json')
     manifest=dict(schema=JOINT_SCHEMA,status='RUNNING',task='goal-point-wam',
-        experiment_id='P-20261012-goal-point-wam-ref2-joint-retargeter',run_id=out.name,
+        experiment_id='P-20261012-goal-point-wam-ref22-gt-anchored' if args.gt_anchored else 'P-20261012-goal-point-wam-ref2-joint-retargeter',run_id=out.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         seed=295,draw_seed=296,physical_gpu=2,input_sha256=evidence,training_allowed=False,
         base_checkpoint_sha256=sha(base),base_R_sha256=BASE_R_SHA,warm_head_sha256=sha(parent/'head.pt'),
@@ -163,7 +166,10 @@ def main():
         nominal_sampling='16 startup +16 later',recovery_sampling='16',pure_current_sampling='16',
         cache_scope='raw samples/labels RAM only; FULL scene and goal forward per update',
         model_mode='eval with trainable policy/R parameters; all statistics buffers frozen',
-        fixed_final_only=True,new_stage_artifact_limit_bytes=500_000_000,ref2_artifact_limit_bytes=620_000_000)
+        fixed_final_only=True,new_stage_artifact_limit_bytes=500_000_000,ref2_artifact_limit_bytes=850_000_000 if args.gt_anchored else 620_000_000)
+    if args.gt_anchored:
+        manifest.update(gradient_ownership=GRADIENT_OWNERSHIP,execution_horizon=24,
+            loss='valid true tau MSE/.05 + all-row predicted PD L1 to WAM only + valid GT-tau PD L1 to R only; equal weights')
     write(out/'manifest.json',manifest)
     def guard(phase,count,total):
         elapsed=time.monotonic()-started
@@ -173,7 +179,7 @@ def main():
         paths=list(owner.glob('wam-ref2-*'))+list((ROOT/'tmp').glob('wam-ref2-*'))+list((ROOT/'tmp/trajectory-policy').glob('wam*'))
         size=sum(int(subprocess.check_output(['du','-sb',str(p)],text=True).split()[0]) for p in paths if p.is_dir())
         own=sum(int(subprocess.check_output(['du','-sb',str(p)],text=True).split()[0]) for p in (out,scratch))
-        if size>=620_000_000 or own>=500_000_000:raise RuntimeError('joint artifact boundary')
+        if size>=manifest['ref2_artifact_limit_bytes'] or own>=500_000_000:raise RuntimeError('joint artifact boundary')
         print(json.dumps(dict(phase=phase,count=count,total=total,elapsed_s=elapsed,
             eta_s=(time.monotonic()-train_started)/max(count,1)*(total-count) if phase=='train' else None,
             artifact_bytes=size,peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20)),flush=True)
@@ -214,10 +220,16 @@ def main():
         ids=np.r_[rng.choice(startup,16),rng.choice(later,16),
             rng.choice(groups['recovery_training'],16),rng.choice(groups['pure_PD_training'],16)]
         draws.append(ids);b=get(ids);optimizer.zero_grad(set_to_none=True)
-        tau=predict(b);pd=r(b['state'],tau)
-        geometry,action=joint_losses(tau,b['tau'],b['tau_label_valid'],pd,b['pd_label'],r.target_scale)
-        if step==1:gradient_checks=action_gradient_evidence(action,modules)
-        loss=geometry+action
+        tau=predict(b)
+        if args.gt_anchored:
+            geometry,action,anchor=anchored_losses(r,b['state'],tau,b['tau'],b['tau_label_valid'],b['pd_label'])
+            if step==1:gradient_checks=anchored_gradient_evidence(action,anchor,modules)
+            loss=geometry+action+anchor
+        else:
+            pd=r(b['state'],tau)
+            geometry,action=joint_losses(tau,b['tau'],b['tau_label_valid'],pd,b['pd_label'],r.target_scale)
+            if step==1:gradient_checks=action_gradient_evidence(action,modules)
+            loss=geometry+action
         if not torch.isfinite(loss):raise FloatingPointError('nonfinite joint loss')
         loss.backward()
         if any(p.grad is not None for net in frozen.values() for p in net.parameters()):raise ValueError('frozen world/action gradient')
@@ -226,6 +238,7 @@ def main():
         optimizer.step()
         if step==1 or step%25==0:
             curve.append(dict(step=step,tau_MSE=float(geometry),PD_L1=float(action),gradient=float(norm)))
+            if args.gt_anchored:curve[-1]['R_GT_L1']=float(anchor)
             guard('train',step,manifest['maximum_updates'])
     final={}
     for name,ids in groups.items():
@@ -247,10 +260,12 @@ def main():
         updates=manifest['maximum_updates'],elapsed_s=time.monotonic()-started,
         peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20,
         conclusion='engineering PASS' if args.engineering_smoke else 'UNCLEAR; exact paired physics needed')
+    if args.gt_anchored:result.update(gradient_checks)
     if not args.engineering_smoke:
         rp=dict(schema=base_r_packet['schema'],width=base_r_packet['width'],use_tau=True,
             model={k:v.detach().cpu() for k,v in r.state_dict().items()},base_R_sha256=BASE_R_SHA,
             joint_training_schema=JOINT_SCHEMA,run_id=out.name,input_sha256=evidence)
+        if args.gt_anchored:rp.update(gradient_ownership=GRADIENT_OWNERSHIP,execution_horizon=24)
         torch.save(rp,out/'tau.pt');result['checkpoint_sha256']=sha(out/'tau.pt')
         saved={name:{k:v.detach().cpu() for k,v in getattr(model,name).state_dict().items()} for name in POLICY_MODULES}
         torch.save(dict(schema=JOINT_SCHEMA,head={k:saved[k] for k in ('trajectory','hand_query')},

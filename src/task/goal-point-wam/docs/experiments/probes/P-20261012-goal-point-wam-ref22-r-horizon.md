@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref22-r-horizon
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 738ff2cc
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 29
@@ -39,7 +39,7 @@ GPU2, fixed1000 updates per arm, batch128, AdamW1e-4/wd.01/clip1, normalized
 current PD L1. Each batch16 startup nominal +48 later nominal +64 true t8
 expert recovery. This matches the next anchored-R objective. One engineering
 update before the fixed fit; no repeated seeds/checkpoint search. Stage<=600s,
-new stage<=100MB (expected<40MB), cumulative ref2<=750MB, global300GB;
+new stage<=100MB (expected<40MB), cumulative ref2<=750MB, global400GB;
 current outputs+tmp292.333GB. Stop on input drift, nonfinite, foreign GPU2,
 deadline or resource boundary. No new branch or external writes.
 
@@ -84,4 +84,24 @@ closed-loop coverage and formal Cm-on/off remain deferred evidence.
 
 ## Results
 
-Pending execution; no new scientific conclusion yet.
+Result: **UNCLEAR** on the short-execution-interface hypothesis. Five matched
+1000-update arms completed16.14s/GPU2/peak72.15MiB, buffers unchanged.
+Engineering1 completed2.28s/no checkpoint;12 horizon/PD contracts PASS.
+
+| K | nominal XYZp95 | startupall | t8 TRAIN | t16 dev | t32 dev |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 24.24 | 9.08 | 7.48 | 24.48 | 54.12 |
+| 4 | 20.55 | 4.10 | 5.32 | 19.84 | 40.40 |
+| 8 | 15.40 | 3.87 | 5.34 | 21.66 | 42.19 |
+| 16 | 15.05 | 3.96 | 5.11 | 20.65 | 36.21 |
+| 24 | 15.36 | 3.02 | 4.56 | 21.19 | 39.99 |
+
+All values mm; all arms pass declared development retention. K16 worst-panel
+improvement9.5%, below20% cutoff; K8 is not clearly superior. Decision: retain
+K24 and perform GT-only R gradient anchoring, without expanding WAM capacity.
+Masking a K24-pretrained model is a limitation; this result does not prove
+execution horizons interchangeable on predicted trajectories or fresh physics.
+
+Artifacts: `outputs/trajectory-policy/wam-ref2-r-horizon-20261012-r1/`
+contains manifest/result, per-K checkpoints, sampled indices and raw PD arrays.
+The smoke uses sibling `wam-ref2-r-horizon-smoke-20261012-r1/`.
