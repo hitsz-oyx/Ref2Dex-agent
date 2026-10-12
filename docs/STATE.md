@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 几何拟合改善但即时控制退化，优先锚定起步
+
+真实expert future监督/217恢复训练窗把nearest8降到约11mm，nominal
+17.22->14.06mm，但同一frame0 PD12.12->24.72mm。实际192步新actor
+仍0held/8.33%clip，t8腕部偏差由旧9.2变28.9mm；独立review未见
+标签/anchor/order/head/R/native错配。整体几何门掩盖即时控制退化，
+当前geometry-only recipe局部UNPROMISING，不关闭聚合路线。native完整
+3468/max0审计PASS，但group触发100MB产物限FAILED，原状态/数据保留。
+只清理root-owned可再生成Triton缓存恢复99.53MB。原R在新t8专家真实
+轨迹上的all/earlyXYZp95为25.10/30.12mm，仍存在恢复覆盖误差。
+下一步原startup头+新t8 true recovery+固定startup输出锚定200更新，
+增加frame0/repeat-H4控制保留门，暂不扩大backbone解冻/RL。新Probe
+增量20MB/累计120MB且global292.10GB<300GB，不改变旧失败预算。
+见[实验27](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-startup-anchor.md)。
+
 ## 2026-10-12 数据聚合后发现真实恢复轨迹的R覆盖误差
 
 实验24固定500更新112.41s：pure-WAM训练PD XYZ p95636.50→143.26mm，

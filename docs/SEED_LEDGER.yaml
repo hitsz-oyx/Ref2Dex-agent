@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-startup-anchor:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: fixed recipe and reset continuity; earlier true support plus startup anchor, not a replicate
+
   P-20261012-goal-point-wam-ref2-recovery-geometry:
     seed_pool: probe
     model_seed: 295
