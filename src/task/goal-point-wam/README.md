@@ -1,7 +1,7 @@
 # goal-point-wam
 
-This Task implements the approved no-video Goal-Point-WAM route on the frozen
-OakInk2/GRAB/ARCTIC main-three corpus.
+This Task implements Goal-Point-WAM on the frozen OakInk2/GRAB/ARCTIC
+main-three corpus, with a separate EgoDex video point-supervision route.
 
 The scene encoder consumes only current/history scene points. The trajectory
 branch supports the historical hand endpoint proxy and the `object_points`
@@ -157,3 +157,26 @@ The final10000 audit was completed before the optional dense-feature interface
 changed the model source hash. Re-running old strict identity audits requires
 their original committed model source, although historical parameter keys are
 unchanged.
+
+
+Video point supervision uses `tools/audit/prepare_video_points.py`,
+`tools/audit/audit_video_tracks.py`, and `tools/run/train_video_points.py`.
+The video and native branches share the same PTv3 parameters; video uses
+a direct point trajectory head, while native rigid effects may retain their
+SE(3) head decoded to the common masked point loss. Existing WAM checkpoints
+initialize this new model through explicit weight transfer and a fresh
+optimizer, rather than resuming the native checkpoint.
+
+For offline pretraining, `--label-depth offline-teacher --window-offset 0|3|6`
+extracts input and future labels from one previously cached clip reconstruction.
+It preserves the native camera/hand clock and records reconstruction context
+and calibration provenance. This mode may use future clip context for depth
+and is explicitly marked `offline_pretraining_only`; it does not certify an
+online causal perception pipeline. The optional `rolling-prefix` mode has
+different causal context and is not the current training route.
+
+An engineering corpus remains `training_allowed=false`. Scientific mixed
+Probes require a separately admitted manifest, frozen train/dev recording
+sessions, geometry/calibration screens and the frozen native validation panel.
+See the [video experiment card](docs/experiments/probes/P-20261012-goal-point-wam-video-points.md)
+for actual admission counts, code identity, run outcomes and limitations.

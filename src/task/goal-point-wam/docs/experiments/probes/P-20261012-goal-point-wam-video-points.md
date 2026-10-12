@@ -370,3 +370,49 @@ decide between more diverse data and a point-head/label diagnosis. No new
 external identity, dataset download, branch or permission boundary is needed.
 User requests continued work until19:30 local, with long-run polling <=20min;
 interpret the typo “完善七点半” as evening19:30 on2026-10-12.
+
+
+17:43 GPU fixed-checkpoint audit: train windows EPE11.237/13.540/15.297mm
+vs static10.957/14.290/16.457mm. Predictions move low-motion points about6mm;
+<2mm-motion EPE5.43/5.36/6.18mm vs static1.43/1.40/1.36mm. Held similarly
+6.01 vs1.37mm. Large-motion labels remain poorly fitted: train>50mm strata
+98--117mm EPE vs108--128mm static. Motion bins are teacher-label audit strata,
+not reliable physical motion classes. Do not label this purely generalization.
+
+Diverse extraction r1 hit a stale5.1GB scope self-limit before any clip work.
+Preserve its FAILED receipt; align r2 explicitly to5.4GB (<=6GB current scope
+allowance, <=200MB additional extraction, global298GB active guard unchanged).
+
+Decision: frozen-backbone point-head-only diagnostic on the SAME three training
+windows, current final300 initialization,300 updates/lr1e-3, seed287. Cache
+observed scene and action embeddings on GPU; no future labels in the cache
+features. Optimize the existing masked point loss only. This distinguishes
+insufficient point-head optimization from limited fitting under fixed
+representation. Positive fit screen: train mean-window EPE >=20% lower while
+masked loss decreases; held is reported but never used for selection. Save
+only a small point-head diagnostic state, explicitly ineligible as full WAM
+initialization; all original checkpoints untouched. Single GPU0 <=180s,
+new artifacts<=10MB. Negative/inconsistent outcome means UNCLEAR and inspect
+loss/decoder reachability; positive means pursue diverse admitted data rather
+than blindly extending the tiny mixed fit. This is an exploratory diagnostic,
+not a method comparison or claim upgrade.
+
+
+17:46 frozen-feature head diagnostic completed300 updates in9.822s,
+120323 trainable parameters; peak reserved367MB. Mean-window train EPE
+13.358→8.217mm (-38.48%), masked loss also decreased: predefined >=20%
+fitting screen PASS. Held22.464→25.715mm (+14.47%); no checkpoint selection.
+Local receipt `tmp/video-training-20261012-takeover/fit_head_audits.json`;
+remote diagnostic head is explicitly ineligible for full WAM initialization.
+This supports point-head fitting under current frozen representation, while
+showing stronger specialization to the one training clip. Next decision:
+use a more diverse quality-screened cohort, not repeat the one-clip head fit.
+
+17:48 extraction r2 deliberately stopped via its owned SIGUSR1 handler after
+three completed windows; original arrays/receipts preserved. Its generic
+20-second sleep unnecessarily delayed every small CPU child, risking the
+20-minute bound before reaching held sessions. r3 uses proc.wait(timeout=20),
+which returns immediately on child completion, and prioritizes frozen held
+records. It reuses completed r2 manifests/audits and runs the same extractor
+and thresholds for remaining clips. This changes supervisor waiting only,
+not labels, split or scientific method; core remains9c81eaa2.
