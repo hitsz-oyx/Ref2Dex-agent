@@ -1197,3 +1197,25 @@ Avoid per-window copies of shared dense depth; long contexts beyond the existing
 450-frame whole-record frontend must be tracked as pending, never silently
 truncated or marked reconstructed. Storage/time limits pause with resumable
 receipts; downstream physical pseudo-label accuracy remains unvalidated.
+
+
+Three-rank startup code e6dd6e0f: all11 clock/panel tests passed. Actual128/32
+per-rank four-update smoke passed9.470s; world-only video backbone gradient
+5.321e-6 and equal three-rank final parameters. Rank0 reserved19.164GB, no
+OOM/fallback. Fit launched from original10000 parent on GPUs0/1/2; first50
+updates77.598s (warmup/evaluation included), rank0 reserved26.256GB. Runtime
+ETA21.5h is preliminary, not a convergence claim. Supervisor PID359469.
+
+Full pipeline implementation uses range extraction of every ZIP file member
+rather than keeping both full archives and extracted files. Eight CPU/network
+workers cache each immutable central directory, check exact range/ETag,
+CRC at decompression EOF and streaming SHA, write per-packet acquisition
+receipts, and feed a persistent GPU3 worker. Depth/CoTracker weights are loaded
+once per worker; dense float32 depth is losslessly compressed once per record,
+compact teachers reference that same cache, and only invocation-owned decoded
+PNG scratch is removed after success. All original numerical quality gates
+remain unchanged. Complete acquisitions and reconstructed/admitted subsets have
+separate progress counters. TRAIN450-frame limit is an explicit pending-long
+context state; short/screen-rejected/failed clips are counted, not hidden.
+Full acquisition deadline7days and initial reconstruction budget8TB are resumable
+boundaries, not a guarantee the whole725h can be reconstructed in that period.

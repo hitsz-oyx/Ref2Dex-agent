@@ -23,6 +23,9 @@ from prepare_egodex_actor import JOINTS
 from trajectory_geometry import shared_trajectory_depth
 from video_clock import cached_window_clock
 
+_TRACKER_CACHE = {}
+_TRACKER_IDENTITIES = {}
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -33,17 +36,23 @@ def main():
     p.add_argument('--all-windows', action='store_true', help='0.5s stride with a complete tail; at most80 clips')
     p.add_argument('--max-queries', type=int, choices=(1024, 2048, 4096), default=2048)
     p.add_argument('--seconds', type=int, default=600)
+    p.add_argument('--max-windows', type=int, default=80)
+    p.add_argument('--compact-teachers', action='store_true', help='Reference the identical shared dense geometry instead of copying it into every teacher')
+    p.add_argument('--reuse-model', action='store_true')
     a = p.parse_args()
     if a.output.exists() or not 1 <= len(a.starts) <= 12 or len(set(a.starts)) != len(a.starts):
         raise ValueError('new bounded output and unique clip starts required')
-    if not 1 <= a.seconds <= 900 or not torch.cuda.is_available():
+    if not 1 <= a.seconds <= 900 or not 1 <= a.max_windows <= 100 or not torch.cuda.is_available():
         raise ValueError('bounded CUDA inference required')
     vendor_sha = subprocess.check_output(['git', '-C', str(a.tracker_vendor), 'rev-parse', 'HEAD'], text=True).strip()
     if vendor_sha != '82e02e8029753ad4ef13cf06be7f4fc5facdda4d':
         raise ValueError('tracker vendor drift')
-    checkpoint_sha = sha256(a.tracker_checkpoint)
+    tracker_key = str(a.tracker_checkpoint.resolve())
+    checkpoint_sha = _TRACKER_IDENTITIES.get(tracker_key) if a.reuse_model else None
+    if checkpoint_sha is None: checkpoint_sha = sha256(a.tracker_checkpoint)
     if checkpoint_sha != '2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834':
         raise ValueError('tracker weights drift')
+    if a.reuse_model: _TRACKER_IDENTITIES[tracker_key] = checkpoint_sha
     meta = json.loads(a.geometry.with_name('result.json').read_text())
     video = Path(meta['video']); raw = video.with_suffix('.hdf5')
     if sha256(raw) != meta['raw_hdf5_sha256']:
@@ -61,8 +70,8 @@ def main():
         tail = int(frames[-1])-30
         if not a.starts or a.starts[-1] != tail:
             a.starts.append(tail)
-        if len(a.starts) > 80:
-            raise ValueError('full-record probe exceeds80-window budget')
+        if len(a.starts) > a.max_windows:
+            raise ValueError('full-record extraction exceeds declared window budget')
     with np.load(a.geometry, allow_pickle=False) as f:
         intrinsic = f['intrinsic'].copy()
     depth, calibration, provenance = shared_trajectory_depth(a.geometry, frames, intrinsic, camera, video)
@@ -96,8 +105,11 @@ def main():
     rgb, _ = decode_clip(video, frames, len(camera))
     sys.path.insert(0, str(a.tracker_vendor))
     from cotracker.predictor import CoTrackerPredictor
-    predictor = CoTrackerPredictor(checkpoint=str(a.tracker_checkpoint), offline=True, window_len=60).eval().cuda()
-    predictor.model.forward = partial(predictor.model.forward, fmaps_chunk_size=32)
+    predictor = _TRACKER_CACHE.get(tracker_key) if a.reuse_model else None
+    if predictor is None:
+        predictor = CoTrackerPredictor(checkpoint=str(a.tracker_checkpoint), offline=True, window_len=60).eval().cuda()
+        predictor.model.forward = partial(predictor.model.forward, fmaps_chunk_size=32)
+        if a.reuse_model: _TRACKER_CACHE[tracker_key] = predictor
     yy, xx = np.mgrid[0:360:2, 0:640:2]
     dense = np.stack((xx.ravel(), yy.ravel()), -1).astype('float32')
     records = []; summaries = []; forward_seconds = 0.
@@ -135,12 +147,14 @@ def main():
             start_object_points=np.zeros((32,3),'float32'), goal_object_points=np.zeros((32,3),'float32'), object_goal_valid=np.zeros(32,bool))
         clip = folder/'clip.npz'; teacher = folder/'teacher.npz'
         np.savez_compressed(clip, **sample)
-        np.savez_compressed(teacher, source_frame_ids=ids, tracks_uv=uv, visibility=visible, depth_m=depth[k], intrinsic=intrinsic,
+        dense_teacher = {} if a.compact_teachers else dict(depth_m=depth[k])
+        np.savez_compressed(teacher, **dense_teacher, source_frame_ids=ids, tracks_uv=uv, visibility=visible, intrinsic=intrinsic,
             camera_to_origin=camera[ids], query_pixels=pixels, query_grid_ids=grid_ids)
         records.append(dict(path=str(clip.relative_to(a.output)), sha256=sha256(clip), split=meta['source_split'], session=session,
             source_split='official_train', source_identity=meta['source_identity'], raw_hdf5_sha256=meta['raw_hdf5_sha256'],
             teacher_path=str(teacher.resolve()), teacher_sha256=sha256(teacher), teacher_frame_ids=ids[offset:].tolist(),
-            source_clip_frame_ids=ids.tolist(), source_current_frame=current, observation_frame_ids=history.tolist(), window_offset=3, **provenance))
+            source_clip_frame_ids=ids.tolist(), source_current_frame=current, observation_frame_ids=history.tolist(), window_offset=3,
+            teacher_depth_storage='shared_lossless_cache' if a.compact_teachers else 'embedded', **provenance))
         old_count = None
         if baseline is not None:
             old = anchor(baseline['world_xyz'][k[offset]:k[offset]+1]); old_valid = baseline['world_valid'][k[offset]:k[offset]+1] & (np.abs(old)<=1.99).all(-1)

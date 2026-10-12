@@ -22,6 +22,7 @@ def main():
         raise FileExistsError(a.output)
     meta = json.loads((a.data/'manifest.json').read_text())
     records = []
+    depth_cache = {}
     for record in meta['records']:
         teacher = Path(record['teacher_path'])
         clip = a.data/record['path']
@@ -38,7 +39,7 @@ def main():
         offsets = np.searchsorted(t['source_frame_ids'], frame_ids)
         if not np.array_equal(t['source_frame_ids'][offsets], frame_ids):
             raise ValueError('label clock differs from recorded teacher')
-        depth = t['depth_m'][offsets]
+        depth = t['depth_m'][offsets] if 'depth_m' in t else None
         if record.get('trajectory_depth_path'):
             import h5py
             metadata_path = Path(record['trajectory_geometry_manifest_path'])
@@ -48,7 +49,7 @@ def main():
             with h5py.File(Path(metadata['video']).with_suffix('.hdf5'), 'r') as raw:
                 native_camera = raw['transforms/camera'][:]
             depth, _, provenance = shared_trajectory_depth(Path(record['trajectory_depth_path']),
-                frame_ids, t['intrinsic'], native_camera, metadata['video'])
+                frame_ids, t['intrinsic'], native_camera, metadata['video'], cache=depth_cache)
             if provenance['trajectory_depth_sha256'] != record['trajectory_depth_sha256']:
                 raise ValueError('shared geometry depth changed')
         if 'label_depth_path' in record:
@@ -59,6 +60,8 @@ def main():
                 if not np.array_equal(f['source_frame_ids'], frame_ids):
                     raise ValueError('rolling depth clock mismatch')
                 depth = f['depth_m'].copy()
+        if depth is None:
+            raise ValueError('compact teacher requires its verified shared geometry')
         camera = t['camera_to_origin'][offsets]
         uv = t['tracks_uv'][offsets][:, chosen]
         world, valid = lift_tracks(uv, t['visibility'][offsets][:, chosen], depth, t['intrinsic'], camera)
@@ -74,7 +77,7 @@ def main():
         current_good = valid[0] & np.isfinite(error)
         first = offsets[:1]
         raw_world, raw_valid = lift_tracks(t['tracks_uv'][first][:, chosen], t['visibility'][first][:, chosen],
-            t['depth_m'][first], t['intrinsic'], t['camera_to_origin'][first])
+            t['depth_m'][first] if 'depth_m' in t else depth[:1], t['intrinsic'], t['camera_to_origin'][first])
         raw_current = raw_world[0] @ C[:3, :3].T + C[:3, 3]
         raw_error = np.linalg.norm(raw_current-d['query_xyz'], axis=-1)*1000
         raw_good = raw_valid[0] & np.isfinite(raw_error)

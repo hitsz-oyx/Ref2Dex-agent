@@ -21,6 +21,9 @@ from oakink_wm.pointwam_data import (project_world, recover_metric_scale,
 from prepare_pointwam_pilot import decode_clip
 from prepare_egodex_actor import JOINTS
 
+_MODEL_CACHE = {}
+_CHECKPOINT_CACHE = {}
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -29,6 +32,9 @@ def main():
     parser.add_argument('--member', default='part2/fold_stack_unstack_unfold_cloths/1.hdf5')
     parser.add_argument('--max-frames', type=int, default=450)
     parser.add_argument('--seconds', type=int, default=1200)
+    parser.add_argument('--reuse-model', action='store_true', help='Reuse pinned weights within a persistent full-corpus worker')
+    parser.add_argument('--lossless-compressed', action='store_true')
+    parser.add_argument('--discard-decoded-images', action='store_true', help='Remove only PNG scratch created by this invocation after a completed cache')
     args = parser.parse_args()
     if args.output.exists() or not 2 <= args.max_frames <= 500 or not 30 <= args.seconds <= 1200:
         raise ValueError('new bounded output/frame/deadline required')
@@ -44,9 +50,13 @@ def main():
     vendor_sha = subprocess.check_output(['git', '-C', str(vendor), 'rev-parse', 'HEAD'], text=True).strip()
     if vendor_sha != '48b23c8ce72c9a8fcf987f0d7f43d8e4870759f6':
         raise ValueError('unexpected vendor source')
-    checkpoint_sha = sha256(checkpoint)
+    checkpoint_key = str(checkpoint.resolve())
+    checkpoint_sha = _CHECKPOINT_CACHE.get(checkpoint_key) if args.reuse_model else None
+    if checkpoint_sha is None:
+        checkpoint_sha = sha256(checkpoint)
     if checkpoint_sha != 'c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934':
         raise ValueError('unexpected depth checkpoint')
+    if args.reuse_model: _CHECKPOINT_CACHE[checkpoint_key] = checkpoint_sha
     identity = source_identity(source, video, Path(record['source_manifest']))
     if identity['split'] != 'official_train' or not torch.cuda.is_available():
         raise ValueError('verified TRAIN acquisition and GPU required')
@@ -92,11 +102,14 @@ def main():
     from vggt_omega.models import VGGTOmega
     from vggt_omega.utils.load_fn import load_and_preprocess_images
     progress('MODEL_LOAD')
-    model = VGGTOmega().eval()
-    weights = torch.load(checkpoint, map_location='cpu', weights_only=True)
-    model.load_state_dict(weights, strict=True)
-    del weights
-    model.cuda()
+    model = _MODEL_CACHE.get(checkpoint_key) if args.reuse_model else None
+    if model is None:
+        model = VGGTOmega().eval()
+        weights = torch.load(checkpoint, map_location='cpu', weights_only=True)
+        model.load_state_dict(weights, strict=True)
+        del weights
+        model.cuda()
+        if args.reuse_model: _MODEL_CACHE[checkpoint_key] = model
     images = load_and_preprocess_images(paths, image_resolution=512).cuda()
     input_shape = list(images.shape)
     torch.cuda.synchronize()
@@ -149,7 +162,8 @@ def main():
             scale_relative_to_global=float(np.median(ratios) / calibration['scale']) if len(ratios) else None))
     depth *= calibration['scale']
     progress('SAVE', calibration=calibration)
-    np.savez(args.output / 'depth.npz', source_frame_ids=frames, depth_m=depth,
+    saver = np.savez_compressed if args.lossless_compressed else np.savez
+    saver(args.output / 'depth.npz', source_frame_ids=frames, depth_m=depth,
              intrinsic=intrinsic, camera_to_origin=c)
     elapsed = time.monotonic() - started
     report = dict(status='COMPLETED', engineering_only=True, training_allowed=False,
@@ -165,6 +179,9 @@ def main():
         source_split=record['split'], source_session=record['session'],
         limitation='Complete recorded duration at10Hz, not30Hz measured depth. Offline future context; approximate hand-to-surface scale. No long point tracking or scientific admission/training.')
     (args.output / 'result.json').write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
+    if args.discard_decoded_images:
+        for path in paths: Path(path).unlink()
+        image_root.rmdir()
     progress('COMPLETED', forward_seconds=forward_seconds, total_seconds=elapsed)
 
 
