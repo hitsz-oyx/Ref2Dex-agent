@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_4 Chunk-R已实现，GT执行第一关未通过
+
+按用户ref2_4先做A：24个tau token+state token、2层128维Transformer、
+8个12D native applied action；每tick重新规划、只执行首步。合格teacher
+与259实际恢复窗训练3000更新49.45s，report首步PD XYZ p95为31.09mm，
+recovery TRAIN为94.80mm。修复新对照入口中旧PD-R的Torch2.0.1单样本
+推理异常：同查询batch2精确复现既有合格首步动作，原无效比较记录保留。
+修正后128步独立GT回放33.20s，teacher73held/旧R75held/新Chunk-R0held，
+均零裁剪；对照资格通过但新R未过60held门。实际标签、当前状态、GT坐标、
+native PD转换、只执行首步的独立复算均max0，5项接口测试通过。
+结论仅为当前固定配方局部UNPROMISING，不能否定Chunk Transformer；
+按ref2_4暂停B手token显式读出和C预测tau world一致性，下一决策优先解决
+GT Chunk-R首步精度与执行，而不是继续改WAM。旧WAM/goal/checkpoint保留。
+新增产物17.70MB<80MB，outputs+tmp292.82GB<400GB，GPU2已释放。见
+[Chunk-R实验卡33](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref24-chunk-R.md)。
+
 ## 2026-10-12 ref2_3多接管训练降低后期漂移，自主持物仍未建立
 
 按用户ref2_3，Probe32从Probe30精确WAM/R继续固定1000更新，加入

@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref24-chunk-R
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: ae693070
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 33
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [295, 296, 292]
 decision_changed_if_positive: proceed to explicit PTv3 hand anchors then gated frozen predicted-tau world consistency
 decision_changed_if_negative: stop WAM architecture changes and address GT chunk execution first
-status: UNCLEAR
+status: UNPROMISING
 run_id: wam-v2-chunk-fit-20261012-r1
 ---
 
 # ref2_4 A: GT trajectory to independent native action chunk
+
+Result: Corrected128-control comparison: teacher73held, qualified oldR75held, new Chunk-R0held; zero clipping, independent label/execution audit PASS.
+Decision: Stop B/C under ref2_4's GT execution gate; preserve the fixed Chunk-R recipe and diagnose first-action accuracy before any WAM change.
 
 ## Decision Note and staged design
 
@@ -120,4 +123,57 @@ Repair Decision: rerun exactly the affected128-control GT comparison once as
 or new architectural variable. Both physical runs remain within stage80MB and
 total20GPUmin. Stop B/C if the corrected calibrated GT gate fails. Label and
 native execution audit passed on r1 despite its invalid control qualification.
-Corrected comparison and final interpretation pending.
+Corrected r2 completed in33.20s onGPU2 at commit `2d2575e2`, with the exact
+same selected fit. Qualified comparison calibration now passes:
+
+| Actual role | Maximum consecutive held frames | Clipping rate |
+| --- | ---: | ---: |
+| Official teacher | 73 | 0 |
+| GT tau + original qualified PD-R | 75 | 0 |
+| GT tau + new Chunk-R | 0 | 0 |
+
+The new-R threshold is60frames (max45,80% of75); it fails. Root independently
+reconstructed all8-action source labels and first-PD metrics, own measured
+state87, own-current-frame GTtau24, actual native PD conversion and first-only
+dispatch; every reported maximum error is0. Passive6 columns remainzero and
+there are128controls/129states. Thus the corrected result is a valid local
+negative for this fixed fit, not a failed comparison or a WAM forecaster test.
+
+Fit:3000 updates in49.45s, selected update3000; torch allocated peak274.17MiB,
+GPU-process occupancy683MiB, recorded training utilization18--39% after warmup.
+This small model finishes within a minute; no throughput expansion is needed.
+Native PhysX process occupancy18,162MiB, utilization12--45%, then GPU2released.
+Engineering tests:3 chunk contract tests plus2 existing learned-R tests pass;
+native-runtime regression fails before correction (max0.914004) and passes
+after (max0). No further training, seeds or coefficient search was started.
+
+| Offline panel | Standardized action8 L1 | First native MAE | First PD XYZ p95 (mm) |
+| --- | ---: | ---: | ---: |
+| TRAIN nominal + actual recovery | 0.15794 | 0.02169 | 31.60 |
+| Development selection | 0.16097 | 0.02251 | 29.61 |
+| Report episodes | 0.16397 | 0.02285 | 31.09 |
+| Actual recovery TRAIN | 0.19368 | 0.02382 | 94.80 |
+
+Offline first raw clipping is0 in every panel. Similar TRAIN/report errors
+do not establish either enough fitting or physical utility. Final development
+loss was still falling, so this Probe does not rule out longer training or a
+better first-action objective. It also does not prove a specific cause of
+failure. The next useful decision must concern GT Chunk-R first-step execution;
+hand anchoring and frozen predicted-tau world consistency remain conditional,
+not implemented or tested in this run. Goal representation remains unchanged.
+
+Outputs (originals preserved):
+
+- [Smoke](../../../../../../outputs/trajectory-policy/wam-v2-chunk-smoke-20261012-r1/result.json)
+- [Fixed fit](../../../../../../outputs/trajectory-policy/wam-v2-chunk-fit-20261012-r1/result.json)
+- [Invalid comparison r1](../../../../../../outputs/trajectory-policy/wam-v2-chunk-GT-20261012-r1/result.json)
+- [Corrected comparison r2](../../../../../../outputs/trajectory-policy/wam-v2-chunk-GT-20261012-r2/result.json)
+- [Independent corrected execution audit](../../../../../../outputs/trajectory-policy/wam-v2-chunk-GT-20261012-r2/root_chunk_audit.json)
+
+All new wam-v2 output/scratch directories together17.70MB<80MB. Global
+outputs+tmp292.82GB<400GB. Prior ref2 phase remains within its own850MB limit.
+Repository verification `VERIFY_BASE=8e8c8d2f ... tools/verify.py --changed`
+passed after updating the experiment index and current state.
+Conclusion: **UNPROMISING for this fixed GT Chunk-R qualification recipe**.
+Per user ref2_4, do not proceed with B/C while GT execution fails; no core
+architecture hypothesis or final scientific claim is closed by this Probe.

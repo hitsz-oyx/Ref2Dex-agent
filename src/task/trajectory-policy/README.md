@@ -1,5 +1,21 @@
 # Trajectory policy
 
+## Goal-Point-WAM ref2_4 Chunk-R（2026-10-12）
+
+`tools/run/fit_chunk_retargeter.py --output <fresh-owned-dir>`训练小型
+trajectory-conditioned Transformer，输出8×12实际native action；
+`tools/run/execute_chunk_retargeter.py --fit <fit-dir> --output <fresh-owned-dir>`
+在固定native runtime/GPU2比较teacher、GT旧PD-R、GT新Chunk-R。每步重规划，
+只执行首步。`tools/audit/audit_chunk_retargeter.py --fit <fit-dir> --execution <trace-dir>`
+独立核对动作标签、实测状态、GT坐标与native执行。
+
+固定3000更新后的GT比较为73/75/0连续held、全部零裁剪，新Chunk-R第一关失败，
+本轮按ref2_4暂停后续WAM hand anchoring/world consistency。旧PD-R在此入口
+使用同查询batch2以复现其合格native推理；对应实际运行时回归为
+`tools/audit/check_native_PD_batch.py --safe`。首轮无效对照记录保留。
+结果仅适用于当前固定配方，详见
+[Chunk-R卡33](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref24-chunk-R.md)。
+
 ## Goal-Point-WAM ref2_3 multi-takeover fit（2026-10-12）
 
 `tools/run/fit_wam_multitakeover_anchored.py --output <fresh-owned-dir>`
