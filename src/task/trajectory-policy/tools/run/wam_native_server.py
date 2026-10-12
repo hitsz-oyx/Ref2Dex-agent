@@ -62,6 +62,7 @@ def main():
     p.add_argument('--controls',type=int,default=542)
     p.add_argument('--experiment-id',default='P-20261012-goal-point-wam-ref2-execution')
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
+    p.add_argument('--r-dir',type=Path,default=None)
     a=p.parse_args()
     if not 1<=a.controls<=542:
         raise ValueError('bounded controls required')
@@ -90,6 +91,8 @@ def main():
     for path,digest in head_manifest['input_sha256'].items():
         if sha(path)!=digest:
             raise ValueError('head training evidence drift: '+path)
+    from trajectory_policy.wam_retargeter_admission import retargeter_admission
+    _,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
     original=ROOT/'outputs/trajectory-policy/wam-ref2-shadow-20261012-r2/code/model.py'
     base=ROOT/'outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/final.pt'
     stats=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/norm_stats.json'
@@ -130,11 +133,13 @@ def main():
     implementation += list((vendor/'ptv3').rglob('*.py'))
     implementation += [vendor/'ptv3/ptv3_arch.yaml',ROOT/'src/task/goal-point-wam/src/goal_point_wam/data.py']
     implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py']
+    implementation += [TASK/'src/trajectory_policy/wam_retargeter_admission.py']
     if patch_identity['applied']:
         implementation += [TASK/'tools/run/calibrate_wam_robot_startup.py']
     hashes={str(path):sha(path) for path in (Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',
         TASK/'src/trajectory_policy/wam_shadow.py',original,base,stats,head_dir/'head.pt',
         head_dir/'manifest.json',head_dir/'result.json',canonical_path,*implementation)}
+    hashes.update(r_hashes)
     a.output.mkdir(parents=True,exist_ok=False)
     if a.socket.exists() or ROOT/'tmp' not in a.socket.resolve().parents:
         raise ValueError('fresh project-owned socket required')
@@ -145,7 +150,8 @@ def main():
     status=dict(schema=SCHEMA,status='READY',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
         torch_version=torch.__version__,training_allowed=False,queries=0,
-        scene_patch_identity=patch_identity,controls=a.controls,experiment_id=a.experiment_id)
+        scene_patch_identity=patch_identity,controls=a.controls,experiment_id=a.experiment_id,
+        retargeter_identity=r_identity)
     write(a.output/'status.json',status)
     began=time.monotonic()
     request=None

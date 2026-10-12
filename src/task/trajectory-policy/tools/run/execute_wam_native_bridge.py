@@ -56,6 +56,7 @@ def main():
     p.add_argument('--takeover-tick',type=int,default=16)
     p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
+    p.add_argument('--r-dir',type=Path,default=None)
     args=p.parse_args()
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
@@ -127,10 +128,8 @@ def main():
         raise ValueError('planned reference differs from export or head calibration identity')
     with np.load(reference_path,allow_pickle=False) as stream:
         reference={k:stream[k].copy() for k in stream.files}
-    r_path=ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt'
-    r_hash=json.loads((ROOT/'outputs/trajectory-policy/competent-pd-execution-20261011-r1/manifest.json').read_text())['input_sha256'][str(r_path)]
-    if sha(r_path)!=r_hash:
-        raise ValueError('physically calibrated R identity drift')
+    from trajectory_policy.wam_retargeter_admission import retargeter_admission
+    r_path,r_identity,r_hashes=retargeter_admission(args.r_dir,head_manifest)
     r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
     for parameter in r.parameters():
         parameter.requires_grad_(False)
@@ -157,18 +156,22 @@ def main():
         or handshake.get('controls')!=args.controls
         or handshake.get('experiment_id')!=args.experiment_id
         or handshake['base_sha256']!=base_hash
-        or handshake.get('scene_patch_identity')!=patch_identity):
+        or handshake.get('scene_patch_identity')!=patch_identity
+        or handshake.get('retargeter_identity')!=r_identity):
         raise ValueError('WAM inference peer identity differs')
     helper=TASK/'src/trajectory_policy/wam_scene_patch.py'
     if handshake['input_sha256'].get(str(helper))!=sha(helper):
         raise ValueError('WAM inference scene-patch helper source differs')
+    r_helper=TASK/'src/trajectory_policy/wam_retargeter_admission.py'
+    if handshake['input_sha256'].get(str(r_helper))!=sha(r_helper):
+        raise ValueError('WAM inference retargeter-admission helper source differs')
     initial_gpu=gpu_state(args.gpu)
     if set(initial_gpu['pids'])-{os.getpid(),args.server_pid}:
         raise RuntimeError('foreign GPU process before simulation')
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
         source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path,
-        helper,TASK/'tools/run/wam_native_server.py',base_path]
+        helper,r_helper,TASK/'tools/run/wam_native_server.py',base_path]
     if args.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
     files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']
@@ -176,6 +179,7 @@ def main():
     files += list(Path(cfg['motion_root']).glob('*/interaction_hand_inspire.pt'))
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
     hashes={str(path.resolve()):sha(path) for path in files}
+    hashes.update(r_hashes)
     out.mkdir(parents=True)
     manifest=dict(schema='ref2dex.wam-native-recovery.v1' if args.expert_recovery else 'ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
         task='goal-point-wam',experiment_id=args.experiment_id,run_id=out.parent.name,
@@ -191,6 +195,7 @@ def main():
         original_shadow_screen='FAILED; root Decision authorizes bounded simulation after frame/role gates',
         actor_period=1,oracle_source_env=24,wam_input='live measured H4 + planned object endpoint min(t+24,542)',
         no_wam_oracle_prefix=True,controller='frozen actual-PD R, native conversion, no extra feedforward')
+    manifest['retargeter_identity']=r_identity
     manifest['producer_code_updates']=producer_updates
     write(out/'manifest.json',manifest)
     install_legacy_player_compat(native,common_player,base_player);install_reset_patch()
