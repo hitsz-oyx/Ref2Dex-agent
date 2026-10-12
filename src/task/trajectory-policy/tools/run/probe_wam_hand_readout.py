@@ -157,7 +157,8 @@ def main():
             return report
         initial=evaluate('initial');draws=[];curve=[];gradient={};train_started=time.monotonic();guard(arm,0,train_started)
         for step in range(1,updates+1):
-            ids=np.r_[rng.choice(startup,16),rng.choice(later,16),*(rng.choice(pool,count) for pool,count in zip(recovery,(11,11,10)))]
+            ids=np.concatenate([rng.choice(startup,16),rng.choice(later,16),
+                                *[rng.choice(pool,count) for pool,count in zip(recovery,(11,11,10))]])
             draws.append(ids);b=get(ids);optimizer.zero_grad(set_to_none=True)
             tau,scene=predict(b);geometry=((tau-b['tau'])/.05).square().mean()
             action,_=control_aware_loss(r(b['state'],tau),b['actual_action'],r.action_scale,pdscale)
