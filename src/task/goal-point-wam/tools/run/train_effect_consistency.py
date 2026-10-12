@@ -90,7 +90,8 @@ def main():
                 C0_updates=c0,C1_updates=20000,maximum_C1_updates=50000,validation_interval=1000,
                 world_loss='existing normalized motion-weighted point + translation + rotation',
                 trajectory_loss='valid coordinate MSE/.05',action_loss='control-aware Chunk-R on robot only, weighted by robot fraction',
-                world_mask='future validity used as supervision only; actor queries receive observed H and goal only')
+                world_mask='future validity used as supervision only; actor queries receive observed H and goal only',
+                validation_context='cache frozen scene/goal/raw context per fixed evaluation batch; exact oracle recomputed each time')
     manifest=dict(schema='ref2dex.frozen-effect-ddp.v1',status='RUNNING',task='goal-point-wam',
                   experiment_id='P-20261013-goal-point-wam-ref27-effect-consistency',run_id=out.name,
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
@@ -121,6 +122,7 @@ def main():
         re=max(float((r.state_dict()[k].cpu()-v).abs().max()) for k,v in r_before.items())
         if max(error,re)!=0:raise ValueError('frozen parameters/buffers drift')
         return dict(model_frozen_max_difference=error,R_max_difference=re)
+    context_cache={}
     @torch.no_grad()
     def evaluate(at):
         local_values={}
@@ -130,7 +132,12 @@ def main():
             for begin in range(0,len(own),16):
                 b=move(effect_collate([val[k] for k in own[begin:begin+16]]),device)
                 with torch.autocast('cuda',dtype=torch.bfloat16):
-                    context=model.contexts(b);tau=model.actor(context);pred=model.induced(tau,b,context[0]);oracle=model.oracle(b,context[0])
+                    cache_key=(name,begin)
+                    if cache_key not in context_cache:context_cache[cache_key]=model.contexts(b)
+                    context=context_cache[cache_key]
+                    tau=model.actor(context);pred=model.induced(tau,b,context[0]);oracle=model.oracle(b,context[0])
+                    if a.smoke:
+                        fresh=model.contexts(b);fresh_oracle=model.oracle(b,fresh[0])
                 error=torch.linalg.vector_norm(tau-b['trajectory_target'],dim=-1)*1000;valid=b['trajectory_valid']
                 for key,count in (('h1_mm',1),('first8_mm',8),('all24_mm',24)):
                     values[key].extend(((error[:,:count]*valid[:,:count]).flatten(1).sum(1)/valid[:,:count].flatten(1).sum(1).clamp_min(1)).cpu().tolist())
@@ -140,6 +147,10 @@ def main():
                     ep=metrics(prediction,b)['point_epe']*1000;mask=b['object_valid']
                     values[prefix+'_h24_mm'].extend(((ep[:,:,-1]*mask).sum(1)/mask.sum(1).clamp_min(1)).cpu().tolist())
                     values[prefix+'_all24_mm'].extend(((ep.mean(-1)*mask).sum(1)/mask.sum(1).clamp_min(1)).cpu().tolist())
+                if a.smoke:
+                    fresh_ep=metrics(fresh_oracle,b)['point_epe'][:,:,-1]*1000
+                    fresh_value=(fresh_ep*b['object_valid']).sum(1)/b['object_valid'].sum(1).clamp_min(1)
+                    values.setdefault('fresh_context_oracle_h24_mm',[]).extend(fresh_value.cpu().tolist())
                 if b['has_pd'].any():
                     action=r(b['native_state'],tau[:,:,0].index_select(2,order).reshape(-1,24,33))[:,0]
                     diff=(action.clamp(-1,1)-b['native_action'][:,0])*pdscale
