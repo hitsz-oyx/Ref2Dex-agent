@@ -192,7 +192,7 @@ def main():
         action,_=control_aware_loss(r(b['native_state'][pdvalid],native),b['native_action'][pdvalid],r.action_scale,pdscale)
         action=action*pdvalid.float().mean()
         if step==1 or (a.resume and step==sampler.first):
-            effect_grads=torch.autograd.grad(effect,[tau]+list(model.trajectory.parameters()),retain_graph=True,allow_unused=True)
+            effect_grads=torch.autograd.grad(effect,[tau]+[p for p in model.trajectory.parameters() if p.requires_grad],retain_graph=True,allow_unused=True)
             gt_grad=torch.autograd.grad(tau_loss,tau,retain_graph=True)[0]
             act_grad=torch.autograd.grad(action,tau,retain_graph=True)[0]
             rebuilt,mask=action_from_delta(b['trajectory_target'],b['start_hand'],b['trajectory_valid'])
