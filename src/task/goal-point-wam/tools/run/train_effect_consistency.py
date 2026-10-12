@@ -160,7 +160,7 @@ def main():
             local_values[name]=values
         parts=[None]*world;dist.all_gather_object(parts,local_values);report={};raw={}
         for name in groups:
-            v={k:np.concatenate([np.asarray(part[name][k]) for part in parts]) for k in parts[0][name]}
+            v={k:np.concatenate([np.asarray(part[name].get(k,[])) for part in parts]) for k in parts[0][name]}
             report[name]={k:float(x.mean()) for k,x in v.items() if not k.startswith('PD_')}
             for k in ('PD_xyz','PD_rotation','PD_finger'):
                 if k in v:report[name][k+'_p95_'+('mm' if k=='PD_xyz' else 'rad')]=float(np.percentile(v[k],95))
