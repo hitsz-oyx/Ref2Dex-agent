@@ -122,7 +122,8 @@ def main():
         re=max(float((r.state_dict()[k].cpu()-v).abs().max()) for k,v in r_before.items())
         if max(error,re)!=0:raise ValueError('frozen parameters/buffers drift')
         return dict(model_frozen_max_difference=error,R_max_difference=re)
-    context_cache={}
+    context_cache=(torch.load(a.resume.parent/('validation_context_rank%d.pt'%rank),map_location=device,weights_only=False)
+                   if a.resume else {})
     @torch.no_grad()
     def evaluate(at):
         local_values={}
@@ -184,7 +185,16 @@ def main():
             part=path.with_suffix('.pt.part');torch.save(state,part);part.replace(path)
             atomic_json(out/'latest_checkpoint.json',dict(path=str(path),step=at))
         dist.barrier()
-    if initial is None:initial=evaluate(0)
+    if initial is None:
+        initial=evaluate(0)
+        # Reuse the exact fixed encoder representation after an interrupted
+        # run as well; a fresh sparse replay can vary below a tenth of a mm.
+        saved_context={key:tuple({k:v.cpu() for k,v in item.items()} if isinstance(item,dict)
+                        else item.cpu() if isinstance(item,torch.Tensor) else item for item in context)
+                       for key,context in context_cache.items()}
+        context_path=out/('validation_context_rank%d.pt'%rank)
+        if context_path.exists():raise FileExistsError('preserve validation context')
+        torch.save(saved_context,context_path);del saved_context
     stop=[False]
     for sig in (signal.SIGUSR1,signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
     ddp=effect_ddp(model,[local])
