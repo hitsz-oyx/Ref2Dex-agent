@@ -10,7 +10,7 @@ teacher73held/旧PD-R75held/新Chunk-R74held，全零裁剪；60held门通过。
 8接口测试通过，标签与实际执行复算max0，objective复算差<9.4e-8。
 局部PROMISING，仅取得GT执行资格，不能当自主WAM、完整放置或Cm收益。
 已保留候选，下一步按ref2_4/ref2_5进入B显式PTv3手token读出离线比较，
-C仍以B不退化为条件。累计wam-v2产物33.17MB<80MB，GPU2已释放。
+C仍以B不退化为条件。累计wam-v2产物34.17MB<80MB，GPU2已释放。
 见[控制目标卡34](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref25-control-aware-R.md)。
 
 ## 2026-10-12 ref2_4 Chunk-R已实现，GT执行第一关未通过

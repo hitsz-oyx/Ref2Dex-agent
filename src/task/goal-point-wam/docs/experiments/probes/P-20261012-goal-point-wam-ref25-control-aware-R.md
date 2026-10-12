@@ -119,7 +119,7 @@ GPU2released. No teacher intervention in the newR role.
 - [GT comparison](../../../../../../outputs/trajectory-policy/wam-v2-control-GT-20261012-r1/result.json)
 - [Execution audit](../../../../../../outputs/trajectory-policy/wam-v2-control-GT-20261012-r1/root_chunk_audit.json)
 
-Cumulative wam-v2 output/scratch33.17MB<80MB. Current fixed localGT recipe
+Cumulative wam-v2 output/scratch34.17MB<80MB. Current fixed localGT recipe
 is **PROMISING** and qualifies the next B offline Probe. It does not establish
 autonomous WAM, complete placement, perturbation robustness or Cm utility.
 No additional steps, alternate coefficients or seeds were needed. Repository

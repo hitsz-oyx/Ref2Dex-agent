@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref25-hand-readout:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    reuse_reason: matched warm policy and training draws for explicit-hand-readout arms; not validation replicates
+
   P-20261012-goal-point-wam-ref25-control-aware-R:
     seed_pool: probe
     model_seed: 295
