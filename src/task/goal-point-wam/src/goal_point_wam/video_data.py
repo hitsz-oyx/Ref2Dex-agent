@@ -55,17 +55,16 @@ class VideoPointWindows(Dataset):
         start = np.where(known[..., None], hand[3], 0.).astype('float32')
         history = np.concatenate(((hand[3]-hand[2])*30, (hand[3]-2*hand[2]+hand[1])*900, hand[3]-hand[0]), -1)
         history = np.where(known[..., None], history, 0.).astype('float32')
-        action_valid = hv[4:]
-        velocity = (hand[4:]-hand[3:-1])*30
-        acceleration = (hand[4:]-2*hand[3:-1]+hand[2:-2])*900
-        action = np.concatenate((hand[4:], velocity, acceleration), -1)
-        # Position labels can remain valid when a derivative is unavailable.
-        action[..., 3:6] = np.where((hv[4:] & hv[3:-1])[..., None], velocity, 0.)
-        action[..., 6:9] = np.where((hv[4:] & hv[3:-1] & hv[2:-2])[..., None], acceleration, 0.)
+        # Match the retained native action/statistics contract exactly:
+        # absolute XYZ, displacement from current XYZ, one-tick displacement.
+        # These are meter displacements, NOT velocity/acceleration features.
+        action_valid = hv[4:] & hv[3][None] & hv[3:-1]
+        action = np.concatenate((hand[4:], hand[4:]-hand[3], hand[4:]-hand[3:-1]), -1)
         action = np.where(action_valid[..., None], action, 0.).astype('float32')
-        tvalid = action_valid & known[None]
+        tvalid = hv[4:] & known[None]
         features = np.zeros((n, 18), 'float32')
-        features[:, 17] = 1  # current observed scene point, no invented rigid object id
+        # Unknown target/static/local-instance metadata stays zero; field17 is
+        # a native instance id, not a generic point-valid flag.
         hand_features = np.zeros((22, 18), 'float32')
         hand_features[:, 3:12] = history.reshape(22, 9)
         hand_features[:, 14] = 1

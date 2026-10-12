@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Per-horizon hand EPE on the unchanged frozen object-goal validation panel."""
 import argparse
+import importlib.util
 import json
 import subprocess
 import sys
@@ -31,7 +32,7 @@ def evaluate(args):
     config, identity = state['config'], state['identity']
     for path, key in ((args.stats, 'stats_sha256'),
                       (args.data / 'processed/manifest.json', 'data_manifest_sha256'),
-                      (TASK / 'src/goal_point_wam/model.py', 'model_sha256')):
+                      (args.model_source, 'model_sha256')):
         if digest(path) != identity[key]:
             raise ValueError('frozen input/model drift: ' + key)
     dataset = GoalWindows(MixedWindows(args.data, 'val'), goal_type='object_points', goal_points=config['goal_points'])
@@ -39,7 +40,16 @@ def evaluate(args):
     indices = np.load(indices_path)
     if len(indices) != config['validation_samples']:
         raise ValueError('validation panel size drift')
-    model = GoalPointWAM(json.loads(args.stats.read_text()), config).cuda().eval()
+    # Old checkpoint audits can explicitly select their exact archived source;
+    # never waive its byte identity because current model code changed.
+    if args.model_source.resolve() == (TASK/'src/goal_point_wam/model.py').resolve():
+        model_class = GoalPointWAM
+    else:
+        spec = importlib.util.spec_from_file_location('frozen_horizon_wam', args.model_source)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        model_class = module.GoalPointWAM
+    model = model_class(json.loads(args.stats.read_text()), config).cuda().eval()
     model.load_state_dict(state['model'], strict=True)
     names = dataset.source_names
     sums = {n: {k: np.zeros(24, np.float64) for k in ('real', 'static_goal', 'zero', 'velocity')} for n in names}
@@ -98,4 +108,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('checkpoint', 'data', 'stats', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
+    parser.add_argument('--model-source', type=Path, default=TASK/'src/goal_point_wam/model.py')
     evaluate(parser.parse_args())

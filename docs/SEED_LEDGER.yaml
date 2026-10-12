@@ -25,6 +25,10 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-shadow:
+    seed_pool: probe
+    inference_seed: 289
+
   P-20261012-goal-point-wam-video-points:
     seed_pool: probe
     model_seed: 287

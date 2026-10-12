@@ -72,6 +72,8 @@ def write_corpus(root, arrays):
 def test_future_labels_do_not_enter_current_features(tmp_path):
     arrays = sample(5)
     before = write_corpus(tmp_path/'before', arrays)[0]
+    np.testing.assert_allclose(before['action'][:, 0, 3], np.arange(1, 25)*.001, atol=1e-8)
+    np.testing.assert_allclose(before['action'][:, 0, 6], .001, atol=1e-8)
     arrays['hand'][4:] += .3
     arrays['point_target'] += .4
     after = write_corpus(tmp_path/'after', arrays)[0]
