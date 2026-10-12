@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-scene-thaw
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: d56cfa31
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 23
@@ -89,4 +89,55 @@ robot adaptation, world preservation or Cm causal benefit.
 
 ## Results
 
-Not started; CPU patch admission tests passed, pending fixed commit and GPU smoke.
+Result: 100 updates improve train PD44.24->33.32mm but validation384.76->398.67mm; nominal PD46.82mm misses retention; UNCLEAR, no closure.
+Decision: inspect unsupported pure-WAM recovery states and supervision/replay conflict before expanding thaw depth; do not thaw the full backbone on this evidence.
+
+Engineering smoke completed1 update/17.95s; all three live-PD gradients
+positive, frozen scene remainder and goal/action/world/R identities unchanged.
+Actual fixed100 continuation completed109.46s on GPU2, peak757.88MiB
+allocated. Runtime HEAD wasd56cfa31 (concurrent video documentation commit);
+unchanged fit/helper code was introduced inc5df7848. No source drift occurred.
+
+| Metric | Initial warm head, full forward | Final |
+| --- | --- | --- |
+| Live training PD XYZ p95, mm | 44.237 | 33.315 |
+| Live validation PD XYZ p95, mm | 384.760 | 398.673 |
+| Nominal true-PD XYZ p95, mm | 82.689 | 46.820 |
+| Nominal nearest8 trajectory EPE, mm | 19.525 | 17.451 |
+
+Query-halving FAIL; nearest8 retention PASS; nominal PD retention FAIL
+(original startup limit38.335mm). Local conclusion UNCLEAR; no unassisted
+closure admitted or run. The warm-head initial measurements use full-scene
+microbatch forward, while the parent used a BF16 token cache and different
+batch sizes; small numerical differences are retained in both reports.
+This continuation does not isolate the causal effect of thawing: learning
+rate, extra updates and draw order also differ from the prior fit.
+
+Root independent checkpoint/array audit reproduced reported XYZ/rotation/
+finger/nearest8 metrics and expert PD labels with max difference0; confirmed
+128/32 disjoint live rows, absent live tau labels, all transitive input hashes,
+exact44-key dec0 whitelist and final scene hash reconstructed from original
+base plus saved patch. Goal/action/world hashes independently match the base;
+the live PD gradient reaches dec0, trajectory and hand_query. Head8.968MB,
+SHA8732c5876a5f240c457067a514bf2ad62cdcf44d839a20ad690e92da0e087c62.
+Audit uses CPU for pure arrays and checkpoint statistics, no model inference.
+
+The large validation error is concentrated in pure-WAM role2 ticks32:48:
+XYZ p95433.06->435.20mm; recovered role3 ticks64:80 is31.93->33.77mm.
+Training role2 ticks0:32 also fails to improve,45.94->50.23mm; training
+role3 improves39.35->24.29mm. Aggregate training improvement therefore does
+not establish recovery of autonomous-WAM states. These blocks are correlated
+within one collection; this is not a generalized recovery estimate or proof
+that additional capacity cannot help. Retain the fixed holdout unchanged.
+
+Descriptive scene-token RMS change=.02237, world translation max change
+.146mm/rotation-matrix max1.953e-4 on16 nominal robot inputs. Human/video/
+world prediction quality was not validated. Strict optional-patch bridge
+application/authentication was implemented separately in3b0d11f9 and17
+CPU tests passed; this is engineering readiness, not physical execution.
+
+[Result](../../../../../../outputs/trajectory-policy/wam-ref2-head-scene-thaw-20261012-r1/result.json),
+[independent audit](../../../../../../outputs/trajectory-policy/wam-ref2-head-scene-thaw-20261012-r1/root_fit_audit.json).
+Reproduce audit with trajectory-policy/tools/audit/audit_wam_scene_thaw_fit.py.
+Smoke+fit127.42s; no closure consumed. GPU2 released. All ref2 artifacts
+remain below100MB and shared monitor finished below300GB.

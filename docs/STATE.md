@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 局部解冻改善部分拟合，未学会更远偏离状态的恢复
+
+按用户建议完成PTv3最后decoder dec0+trajectory/hand_query的100更新，
+其余scene/goal/action/world/R冻结；固定代码c5df7848、运行HEAD d56cfa31，
+GPU2用时109.46s/峰值758MiB，已释放。live train PD XYZ p95 44.24→33.32mm，
+validation384.76→398.67mm；nominal nearest8 EPE19.53→17.45mm，nominal
+PD82.69→46.82mm，但未保住original startup要求38.335mm。两项门未过，
+局部UNCLEAR，不运行这个head的闭环，不据此继续盲目扩大解冻范围。
+独立数组/标签/输入身份/scene补丁重建hash审计通过，metric与label误差0。
+
+大validation误差集中在pure-WAM ticks32:48（PD p95 433.06→435.20mm）；
+专家接管后的validation ticks64:80为31.93→33.77mm。训练pool中pure-WAM
+0:32也未改善45.94→50.23mm，整体改善主要来自专家接管状态39.35→24.29mm。
+下一步优先核对自主偏离状态覆盖、恢复监督与nominal replay冲突，再决定是否
+扩大解冻；保留固定holdout，不把训练拟合改善当作恢复能力。严格补丁桥接已实现，
+17项CPU测试通过。视频仍由另一个agent负责，当前head不声称保住human/world质量。
+[实验23](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-scene-thaw.md)。
+
 ## 2026-10-12 早期专家PD头部修正可拟合训练点，未改善留出偏离状态
 
 固定b002588c完成300更新/77.01s，live train PD XYZ p95 136.61→44.28mm，
