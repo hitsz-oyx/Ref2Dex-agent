@@ -1219,3 +1219,24 @@ separate progress counters. TRAIN450-frame limit is an explicit pending-long
 context state; short/screen-rejected/failed clips are counted, not hidden.
 Full acquisition deadline7days and initial reconstruction budget8TB are resumable
 boundaries, not a guarantee the whole725h can be reconstructed in that period.
+
+
+Full startup code95a351cf:15 clock/panel/geometry tests passed. Synthetic ZIP
+cache/exact-range/CRC extraction smoke passed. Numeric compact-teacher audit
+on an existing complete held cloth window is bitwise identical to embedded
+depth under all seven gates: teacher8,723,814 ->165,269 bytes, with shared
+float32 geometry unchanged. Evidence at remote scope
+`compact-teacher-equivalence-20261012-r1/`; no held data added to fitting.
+
+Actual running receipt: training step700/50000, ETA16.90h, source e6dd6e0f,
+three ranks GPUs0/1/2; full producer PID360902/consumer PID360908 source95a351cf.
+Downloaded423 packets/0.918GB at initial3.17MB/s; reconstructed29 TRAIN records
+with151 admitted windows, acquisition failures0/reconstruction failures0.
+OnlyPart2 is currently downloading; its inventory contains95,125 paired
+episodes/372.025GB uncompressed. Queued remaining parts/test/extra are not yet
+acquired. Whole-corpus reconstruction is much longer than this fit; initial
+network and model rates are startup observations, not completion guarantees.
+Immutable local launch/progress receipt:
+`tmp/video-training-20261012-takeover/ddp50k-and-full-startup.json`.
+Current full acquisition/consumer statuses remain RUNNING/RECONSTRUCTING.
+Numerical admission does not certify physical 3D accuracy.
