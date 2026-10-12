@@ -108,20 +108,35 @@ def main():
     head_result=json.loads((head_dir/'result.json').read_text())
     if head_manifest['status']!='COMPLETED' or sha(head_path)!=head_result['head_sha256']:
         raise ValueError('authenticated completed frozen head required')
+    from wam_native_server import scene_patch_admission
+    head_packet=torch.load(head_path,map_location='cpu')
+    base_path=ROOT/'outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/final.pt'
+    base_hash=sha(base_path)
+    if (head_packet.get('base_checkpoint_sha256')!=base_hash
+            or head_manifest.get('base_checkpoint_sha256')!=base_hash):
+        raise ValueError('native peer head base identity differs')
+    patch_identity=scene_patch_admission(head_packet,head_manifest,head_result)
+    del head_packet
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     connection.settimeout(30);connection.connect(str(args.socket))
     if peer_pid(connection)!=args.server_pid:
         raise ValueError('wrong local inference server PID')
     handshake=receive(connection)
     if (handshake['schema']!=SCHEMA or handshake['pid']!=args.server_pid
-        or handshake['physical_gpu']!=args.gpu or handshake['head_sha256']!=sha(head_path)):
+        or handshake['physical_gpu']!=args.gpu or handshake['head_sha256']!=sha(head_path)
+        or handshake['base_sha256']!=base_hash
+        or handshake.get('scene_patch_identity')!=patch_identity):
         raise ValueError('WAM inference peer identity differs')
+    helper=TASK/'src/trajectory_policy/wam_scene_patch.py'
+    if handshake['input_sha256'].get(str(helper))!=sha(helper):
+        raise ValueError('WAM inference scene-patch helper source differs')
     initial_gpu=gpu_state(args.gpu)
     if set(initial_gpu['pids'])-{os.getpid(),args.server_pid}:
         raise RuntimeError('foreign GPU process before simulation')
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
-        source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path]
+        source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path,
+        helper,TASK/'tools/run/wam_native_server.py',base_path]
     if args.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
     files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']

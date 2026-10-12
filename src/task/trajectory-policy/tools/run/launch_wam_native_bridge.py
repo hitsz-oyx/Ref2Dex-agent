@@ -45,7 +45,7 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir))
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
-           TASK/'src/trajectory_policy/wam_ipc.py']
+           TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/wam_scene_patch.py']
     if a.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
     status['source_sha256']={str(path):sha(path) for path in files}

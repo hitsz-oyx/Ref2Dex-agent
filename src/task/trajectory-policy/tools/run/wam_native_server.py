@@ -18,6 +18,42 @@ from audit_wam_ref2_shadow import sha,write
 from trajectory_policy.wam_ipc import SCHEMA,send,receive,peer_pid
 
 
+def scene_patch_admission(packet, manifest, result):
+    """Authenticate optional dec0 provenance before application in either runtime."""
+    if any(k.startswith('scene_patch') and k not in {'scene_patch','scene_patch_schema'} for k in packet):
+        raise ValueError('unknown scene patch packet field')
+    if set(packet.get('head', {})) != {'trajectory', 'hand_query'}:
+        raise ValueError('only original trajectory/hand-query head modules admitted')
+    if 'scene_patch' not in packet:
+        if ('scene_patch_schema' in packet or 'scene_patch_schema' in manifest
+                or 'scene_patch_prefix' in manifest):
+            raise ValueError('scene patch marker without patch')
+        return dict(applied=False)
+    from trajectory_policy.wam_scene_patch import SCENE_PATCH_SCHEMA, SCENE_PATCH_PREFIX
+    patch = packet['scene_patch']
+    if (packet.get('scene_patch_schema') != SCENE_PATCH_SCHEMA
+            or manifest.get('scene_patch_schema') != SCENE_PATCH_SCHEMA
+            or manifest.get('scene_patch_prefix') != SCENE_PATCH_PREFIX
+            or packet.get('schema') != 'ref2dex.wam-visited-pd-dec0.v1'
+            or manifest.get('schema') != packet['schema']
+            or not isinstance(patch, dict) or not patch
+            or not all(isinstance(k,str) and k.startswith(SCENE_PATCH_PREFIX) for k in patch)):
+        raise ValueError('unknown scene patch schema or module prefix')
+    scene_hash = result.get('scene_final_hash', '')
+    if (not isinstance(scene_hash, str) or len(scene_hash) != 64
+            or any(c not in '0123456789abcdef' for c in scene_hash)):
+        raise ValueError('completed scene hash required')
+    parent = Path(manifest.get('warm_head_dir', '')).resolve() / 'head.pt'
+    digest = packet.get('parent_head_sha256')
+    if (ROOT/'outputs/trajectory-policy' not in parent.parents or not parent.is_file()
+            or digest != manifest.get('warm_head_sha256')
+            or digest != manifest.get('input_sha256', {}).get(str(parent))
+            or digest != sha(parent)):
+        raise ValueError('scene patch parent identity differs')
+    return dict(applied=True, schema=SCENE_PATCH_SCHEMA, prefix=SCENE_PATCH_PREFIX,
+        scene_sha256=scene_hash, parent_head_sha256=digest)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--socket',type=Path,required=True)
@@ -63,10 +99,19 @@ def main():
     model=module.GoalPointWAM(json.loads(stats.read_text()),state['config']).cuda().eval()
     model.load_state_dict(state['model'],strict=True)
     head=torch.load(head_dir/'head.pt',map_location='cpu',weights_only=False)
-    if head['base_checkpoint_sha256']!=sha(base) or set(head['head'])!={'trajectory','hand_query'}:
+    if (head['base_checkpoint_sha256']!=sha(base)
+            or head_manifest.get('base_checkpoint_sha256')!=head['base_checkpoint_sha256']
+            or set(head['head'])!={'trajectory','hand_query'}):
         raise ValueError('head belongs to another base or module set')
+    patch_identity=scene_patch_admission(head,head_manifest,head_result)
     for name,value in head['head'].items():
         getattr(model,name).load_state_dict(value,strict=True)
+    if patch_identity['applied']:
+        from trajectory_policy.wam_scene_patch import load_scene_patch
+        from calibrate_wam_robot_startup import network_hash
+        load_scene_patch(model.scene,head['scene_patch'])
+        if network_hash(model.scene)!=patch_identity['scene_sha256']:
+            raise ValueError('applied scene differs from authenticated final scene')
     for parameter in model.parameters():
         parameter.requires_grad_(False)
         if not torch.isfinite(parameter).all():
@@ -80,6 +125,9 @@ def main():
     implementation=[support/name for name in ('model.py','data.py','pointworld.py','pointworld_performance.py')]
     implementation += list((vendor/'ptv3').rglob('*.py'))
     implementation += [vendor/'ptv3/ptv3_arch.yaml',ROOT/'src/task/goal-point-wam/src/goal_point_wam/data.py']
+    implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py']
+    if patch_identity['applied']:
+        implementation += [TASK/'tools/run/calibrate_wam_robot_startup.py']
     hashes={str(path):sha(path) for path in (Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',
         TASK/'src/trajectory_policy/wam_shadow.py',original,base,stats,head_dir/'head.pt',
         head_dir/'manifest.json',head_dir/'result.json',canonical_path,*implementation)}
@@ -92,7 +140,8 @@ def main():
     server.listen(1);server.settimeout(120)
     status=dict(schema=SCHEMA,status='READY',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
-        torch_version=torch.__version__,training_allowed=False,queries=0)
+        torch_version=torch.__version__,training_allowed=False,queries=0,
+        scene_patch_identity=patch_identity)
     write(a.output/'status.json',status)
     began=time.monotonic()
     request=None
