@@ -1335,3 +1335,85 @@ panel files remain0644/readable and r2 continues; evidence/result/findings JSON
 are beneath `permission-probe-1791816960/`. Root cause remains NOT_CONFIRMED.
 NFS attribute-cache reference: https://man7.org/linux/man-pages/man5/nfs.5.html
 File-creation mask reference: https://man7.org/linux/man-pages/man2/umask.2.html
+
+User requests further download acceleration and explicitly rejects the current
+~3.4MB/s rate. Bounded engineering Decision: compare actual adjacent-member
+coalescing and bulk/concurrency transports under the existing NAS allocation.
+To distinguish path capacity from producer competition, temporarily SIGSTOP
+only the verified owned acquisition PID, protected by an independent90s
+SIGCONT watchdog and try/finally. GPU3 has a large verified-record backlog and
+continues independently; GPUs0--2 remain untouched. Probe network <=1GiB,
+artifacts <=256MiB, no new account or system configuration. Preserve existing
+CRC/SHA/source contracts, downloaded packets and current training inputs.
+Enable a measured faster bounded transport, or document a demonstrated external
+capacity limit rather than merely increasing worker count. New code will be
+deployed in a separate pinned checkout; current training code stays pinned.
+
+Hot-migration Decision Note (2026-10-12): real isolated bulk tests reach
+7.11--7.53MB/s with4--8 connections, whereas acquisition averages3.36MB/s.
+Choose8 workers with32MiB physical-order groups in a new pinned checkout,
+preserving exact Range/ETag, member CRC/SHA and the original7day deadline.
+Stop only the verified owned old producer PID360902 abruptly: its old graceful
+shutdown signals the independent GPU3 consumer, so normal termination would
+unnecessarily interrupt reconstruction. Preserve partial files for bounded
+retry and all completed receipts; reconcile counts from unique ready keys and
+the already checked official inventory, without rehashing completed raw data.
+The live consumer PID360908 and fit ranks remain untouched. Keep acquisition
+RUNNING across migration so the consumer does not mistake this for queue EOF.
+Save old status and migration receipt before stopping. Stop/recover migration
+if pinned-code preflight or identity validation fails; preserve all old evidence.
+
+A fresh status check also found7780 accumulated reconstruction failures and
+PermissionError reading one acquisition receipt. Sample reconstruction failures
+explicitly identify raw HDF5 PermissionError. A subsequent metadata scan found
+all31378 acquisition files0777/readable, but16362 reconstruction files000;
+this inconsistent observation does not establish when/how NAS permissions
+changed. Restore0644 only for000 files beneath this owned full-pipeline run,
+archive FAILED permission-error receipts under unique names, and append their
+existing verified ready records for the persistent consumer to retry. Preserve
+historical failure counters; future successful retry does not erase evidence.
+New acquisition payloads and JSON receipts explicitly chmod0644 before atomic
+publication. No NAS/system configuration or unrelated data is changed.
+
+Acceleration implementation commits9309599c/f2ee8cea. The19 relevant earlier
+checks passed; the4 range-prefetch regression tests were rerun after explicit
+readable publication and passed. Real-source preflight
+`download-fast-preflight-1791819841/result.json`:17 paired records, one32,825,655
+byte request,9.316s while the old producer still competed; all34 member CRCs
+passed and SHA256 for both previously benchmarked pairs matched. This confirms
+byte identity and batching, not sustained full-job throughput.
+
+Owned permission recovery `full-permission-recovery-1791819909/result.json`
+restored16360 mode000 files and archived/requeued7936 FAILED receipts, all
+PermissionError; no recovery errors. Historical consumer failed counter is
+retained. Owned video-plan.json also needed explicit0644 before migration;
+NAS root cause remains unconfirmed. New raw payload/receipt publication uses
+explicit0644. Actual pinned migration
+`download-fast-migration-1791820059/migration_receipt.json`: old360902 ->
+new399615, unchanged consumer360908/birth18533225;10792 unique verified pairs,
+26,149,977,127 raw bytes, original deadline1792418084.6057417. Reconciled counts
+use original checked inventory and unique ready keys; duplicate retry rows are
+not duplicate downloaded packets. Old network snapshot can omit its last
+periodic interval, so acceleration measurements use subsequent window deltas.
+Remote git fetch imported objects but connectivity traversal complained about
+missing historical parents in inherited alternates; the required commit/tree
+was verified directly and checkout f2ee8cea741bd8c7259b9386f146ee4553c3894d
+succeeded. Current fit remains on e6dd6e0f and its fixed inputs. No claims about
+reconstruction pseudolabel fidelity follow from this engineering repair.
+
+Production result `download-fast-throughput-1791820038/summary.json`: exclude
+startup and use checked_at1791820090.201551--1791820270.8397658 (180.638s).
+Network7.819MB/s, verified uncompressed raw8.956MB/s,2.327x versus old3.36MB/s.
+No new download failures or prefetch retries in the observed window. Conditional
+remaining original-release acquisition ETA2.742days at this short-window rate;
+this is not a guarantee and does not include reconstruction completion. Final
+snapshot11358 verified paired packets/28.013GB raw. Persistent consumer732
+completed/4103 admitted windows; its historical7936 failures stayed constant
+through the measurement. Latest24 published source manifests/HDF5/MP4 files
+all readable and explicitly0644, checked without redundant content hashing.
+Three-rank fit2950/50000, ETA58171.8s (~16.2h); observed GPU0--2 busy92/89/100%
+at one sampling point with29--30GB reserved, no OOM. Utilization varies across
+load/compute phases, so instantaneous0% elsewhere is not a failed process.
+Consumer GPU3 same PID360908 and continuing. Speed engineering is improved;
+NAS permission origin remains NOT_CONFIRMED, reconstruction label quality and
+held-task generalization remain separate unresolved research evidence.
