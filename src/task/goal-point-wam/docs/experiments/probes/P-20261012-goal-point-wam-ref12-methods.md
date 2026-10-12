@@ -225,3 +225,21 @@ CPU watcher PID3968845 waits for all4 jobs COMPLETED, verifies comparator source
 and generates `comparison.json` plus `analysis_status.json`. A stopped/failed
 run is not compared as fixed-final evidence. This postprocessing adds no GPU
 or training and does not replace root's interpretation of actual results.
+
+## User resource reduction: saved-state two-card continuation
+
+Latest instruction supersedes the four-extra-card allocation: use only physical
+GPUs6/7, leave4/5 available to other users, keep the main0--3 DDP run running.
+Old supervisor3959106 saved/stopped all four methods at1150/1166/1218/1162
+steps (hindsight/plan/world/change). No optimizer restart or new seed: resume
+model, optimizer, RNG and train-index suffix with code97c07d04. Original90min
+absolute deadline1791782006.7310078 remains fixed. Queue3976980 runs hindsight
+and plan first, world and change second; both waves exclusively use6/7.
+At1550/1560 steps the resumed jobs were finite and ~.48s/update, confirming
+actual continuation. Original checkpoints/results remain preserved.
+
+New CPU watcher3988572 waits for the two-card queue and binds both wave roots
+to fixed-final3000 before writing `two_card_comparison.json` and
+`two_card_analysis_status.json`; the previous stopped-group watcher exited
+without treating interrupted results as final evidence. No GPU4/5 monitoring
+or automatic future allocation remains in this queue.

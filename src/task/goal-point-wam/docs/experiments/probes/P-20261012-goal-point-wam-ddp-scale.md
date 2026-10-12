@@ -33,6 +33,49 @@ Result: UNCLEAR; four-rank engineering preflight passed and the single scientifi
 Decision: Run the selected architecture at larger global batch and fixed budget;
 use final real/static goal and world/action diagnostics to choose the next step.
 
+## Remote four-rank scale run: launch protocol
+
+Decision Note (latest user authorization): retain local main0--3 and reduce
+local extra methods to6/7; release4/5. User explicitly asks to try large training
+on the remote server. Remote `deepcybo-4-4090-48` has four idle48GiB4090 and a
+ready graspenv (torch2.0.1+cu118, spconv/flash-attn/scatter available). Run one
+remote DDP model on remote0--3, same selected architecture and seed275; this
+is a hardware/larger-batch execution run, not a new control or multi-seed test.
+Success means actual four-rank finite training after a full-batch compatibility
+preflight. Failure changes deployment/batch/environment choices, not the core
+research claim. No tuning grid or additional method comparison is requested.
+
+Dedicated NAS root:
+`/mnt/ugreen_nas/storage/oyx_storage/goal-point-wam-remote-20261012-r1/repo/`.
+Existing `/home/wbcd/workspace/oyx_ws/Ref2Dex-agent` and NAS datasets are untouched.
+Export the committed main snapshot97c07d04, its exact PW vendor files, and only
+qualified processed OakInk2/GRAB/ARCTIC inputs. Verify SHA256 for every migrated
+file. Relocate source/index paths into a NEW mixed manifest, preserving original
+manifest bytes, source/index hashes, weights and normalization-source identity.
+Copy the same1536-window panel indices; rebind only its relocated manifest hash
+and retain original panel hash. No new Touch/EPIC/EgoDex supervision enters.
+
+Remote recipe: strict PW50000 initialization, hand+memory-goal/world1,
+BF16/TF32/AdamW, per-rank256/global1024,10000 updates (10.24M sampled occurrences),
+same seed275/draw276/panel277 and LR schedule as the local scale candidate.
+The remote run starts fresh from PW; it does not resume the local optimizer.
+Different batch/occurrence counts and software versions preclude a matched
+hardware or method-quality comparison. Full-batch four-update engineering smoke
+must finish with finite losses and equal final parameter hashes before training.
+OOM or dependency incompatibility stops launch for diagnosis; no silent batch
+reduction. Monitor all rank progress, GPU memory/utilization and estimate ETA.
+
+Authorized temporary concurrency: local4 main +2 extra, remote4; no use of
+local4/5. Remote training max6h/1440GPUmin, isolated entire NAS scope <=5GB
+including code, migrated inputs, preflight and rolling checkpoints. These are
+additional user-authorized remote resources, counted against the shared300GB
+artifact boundary. Pre-staging local outputs+tmp~290--291GB; reserve local
+remaining rolling-checkpoint growth and enforce combined298GB save/stop through
+the local remote-budget watcher. Remote standalone cap remains active if SSH
+disconnects. Stop own jobs only on drift, foreign-GPU conflict, nonfinite/OOM,
+disk budget or deadline. Remote training survives SSH disconnection; monitoring
+requires the user's existing Windows tunnel to stay available.
+
 ## Fixed method and budget
 
 - Fresh strict PW50000 scene/projection transfer; current WAM heads, object
