@@ -1,18 +1,31 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-12 ref2_2先完成执行窗口诊断，转GT-only R梯度职责
+## 2026-10-12 ref2_2保住R映射并改善早期闭环，后期恢复监督已聚合
 
 按指定历史会话/ref2_2继续，暂冻结结构修改/world/RL。Probe29五个
 K1/4/8/16/24同初始化/同采样GT-R窗口比较1000更新16.14s/GPU2完成。
 K16 worst-panel36.21mm vs K2439.99mm，未达预设20%改善；K8 nominal
 15.40/t8TRAIN5.34/t16dev21.66/t32dev42.19mm，无明显短窗口优势，保留K24。
 240指标/实际PD标签独立复算max0，不能由GT结果排除预测far-tau敏感性。
-下一Probe30保持原startup WAM/原R/同1000更新流，预测action梯度只更新
-WAM，R只用真实expert tau更新；纯student动作查询不更新R。39合同及
-GPU单步通过，预测loss->R梯度0、GTloss->R非零；完整运行正在进行。
-用户已更新Campaign产物上限400GB。详见
+Probe30保持原startup WAM/原R/同1000更新流，预测action梯度只更新
+WAM，R只用真实expert tau更新；纯student动作查询不更新R。404.40s/
+GPU2、峰值2159MiB，13/13离线保留门通过；nominal GT-R13.35mm
+（原无锚定43.96mm）、predicted22.67mm。160指标/标签独立复算通过。
+新128步实际闭环t12 PD103.44->21.98mm/腕偏差30.80->9.33mm；
+GT-R重新获得75held/零裁剪局部资格，但actor仍0held，t24 PD265.83mm，
+后期漂移未解决。旧校准代码哈希兼容/终端相对路径问题已修复，原FAILED
+记录保留；完整物理trace经身份/快照一致审计形成派生记录，无重复仿真。
+停止loss-only调参，Probe31同一learned pair完成t8/16/32实际专家接管。
+三源各2316物理检查max0，接管held74/75/41；t32短迹不足45帧持物门，
+仅是部分恢复信号。聚合643行=259实际专家future+384纯actor当前PD，
+7073独立重建检查通过（state/tau浮点差<=1.19e-7，其他标签误差0）；
+纯actor未来仍禁止用于轨迹/R监督。新数据尚未训练，下一步固定GT-only R
+职责，以真实多接管恢复监督训练并保住nominal/startup，再检查新actor闭环。
+整体UNCLEAR；未开始world/evaluator/RL，不把训练标签当自主成功。
+outputs+tmp约292.58GB<用户已更新Campaign上限400GB，GPU2已释放。详见
 [窗口卡29](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-r-horizon.md)
-和[锚定卡30](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-gt-anchored.md)。
+、[锚定卡30](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-gt-anchored.md)
+和[聚合卡31](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-multitakeover.md)。
 
 ## 2026-10-12 完整WAM策略链与R已联合微调，R映射保留仍是问题
 

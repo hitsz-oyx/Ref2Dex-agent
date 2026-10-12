@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref22-multitakeover
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 28d3498d
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 31
@@ -76,4 +76,45 @@ formal matched Cm-on/off remain necessary. No world/evaluator/RL started.
 
 ## Results
 
-Pending t16/t32 collection and row audit.
+Collection and aggregation **COMPLETED**. Usable actual expert-future support
+is locally **PROMISING**; autonomous learning benefit remains **UNCLEAR**.
+No additional policy fit or rollout after aggregation has been run.
+
+| Takeover | Physical run | Wall seconds | Expert held frames | Actual future rows | Pure current-PD rows |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 8 | `wam-ref2-execution-anchored-t8-20261012-r2-recovered` | reused Probe30 | 74 | 97 | 128 |
+| 16 | `wam-ref2-execution-anchored-t16-20261012-r1` | 97.23 | 75 | 89 | 128 |
+| 32 | `wam-ref2-execution-anchored-t32-20261012-r1` | 92.14 | 41 | 73 | 128 |
+
+Every source contains128 completed controls/129 measured states. Same exact
+head/R identity, unclipped expert applied controls and current-PD labels are
+verified. Each independent native root audit has2316 checks/max0. Every pure
+actor remains0held. Takeover32 shows41 held frames at the128-control cutoff,
+with final object height.0705m; it does not reach45-frame sustained-hold
+qualification here. This short trace cannot establish failed expert recovery,
+placement success, autonomous success or generalization.
+
+Original t8 FAILED terminal records remain preserved; its derivative reuses
+the single completed physical trace. t16 runs code28d3498d, t32 f8ffd7e4;
+aggregation records96de597cc42309f8e3fe8450ec0a6ed6527c3b32. Those commits
+include concurrent video-line work; the exact retained robot checkpoint pair
+and input hashes, rather than Git HEAD alone, define this collection identity.
+
+Artifact: `outputs/trajectory-policy/wam-ref2-multitakeover-20261012-r1/`
+contains `aggregation.npz`, manifest and `root_aggregation_audit.json`.
+Dataset SHA256:
+`9c6f4b30afda0d559d0544e19e4bb1906e7d1cef0c88e1d3e34989bedef5a8b7`.
+643 samples=259 actual expert-future rows+384 current-PD-only pure rows.
+Independent per-point matrix-product reconstruction (without producer feature
+helper) performs7073 checks: state/tau maximum1.19e-7 float-rounding delta;
+PD/q/H4/goal/applied action/next state all0. All input hashes match, all values
+finite and every pure tau is zero with trajectory_valid=false.
+Auditor: project-local `tmp/ref22-audit/audit_aggregation.py`, hash recorded
+in the audit; CPU used for file/label arithmetic, without model inference.
+
+Decision: actual t8/t16 and partial t32 recovery provide admissible broader
+supervision. Next fixed anchored fit should mix these actual futures and pure
+current PD with nominal/startup retention, preserving GT-only R gradients;
+after unchanged screens, one new student rollout must test coverage benefit.
+No loss coefficient search, model-capacity expansion or RL. The queried
+collection is TRAIN and cannot serve as independent evaluation of that fit.

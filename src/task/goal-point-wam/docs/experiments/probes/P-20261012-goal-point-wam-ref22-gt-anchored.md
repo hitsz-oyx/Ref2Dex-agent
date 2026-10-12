@@ -88,7 +88,7 @@ Cm-on/off validation remain subsequent evidence, not assumed outcomes.
 ## Results
 
 Result: **PROMISING** for preserving the local GT-tau execution mapping;
-autonomous utility remains **UNCLEAR** pending the fresh physical diagnostic.
+autonomous utility remains **UNCLEAR** after the completed physical diagnostic below.
 Fixed1000 completed404.40s/GPU2, peak2158.69MiB. The original offline
 screen passes13/13. R predicted-action gradient0, GT-anchor gradient nonzero;
 all four WAM ACTION-only gradients and all five parameter updates nonzero,
@@ -123,5 +123,41 @@ replay and unchanged PD-conversion AST checks. All other source/data/config
 inputs remain byte-bound.519 actual calibration windows show bitwise equal
 old/new R outputs in graspenv2.4.1;18 related tests pass. The ORIGINAL
 calibration files remain untouched. Fresh group sibling `...-t8-...-r2`
-is running and repeats this check in the pinned2.0.1 native runtime.
-No physical conclusion yet; new R still earns its own qualification.
+repeated this check in the pinned2.0.1 native runtime and completed physics;
+its terminal bookkeeping failure and recovered evidence are detailed below.
+
+### Completed fresh physical diagnostic and terminal bookkeeping recovery
+
+The r2 trace actually completed128 controls/129 measured states and128
+durable queries; server COMPLETED128. Native terminal check then failed because
+the relative fit-script path was resolved after chdir into third_party/DExplore.
+aa95652d roots evidence paths before native chdir;6 provenance contracts pass.
+Original FAILED manifests/logs are preserved. `recover_wam_terminal.py`
+authenticates full trace==terminal partial snapshot, every data/checkpoint
+hash and historical code at recorded commit, then creates a fresh derivative
+`wam-ref2-execution-anchored-t8-20261012-r2-recovered`; NO second simulation.
+Derived root2316 checks/max0 PASS, own H4/PD/expert masks and approximate
+prefix pair within original bounds. Actual native2.0.1 K24 compatibility
+replay also519 windows/max0, unchanged conversion AST.
+
+| Same-motion short physical development diagnostic | Previous startup | New anchored |
+| --- | ---: | ---: |
+| t0 PD XYZ error mm | 11.85 | 6.76 |
+| t8 PD XYZ error mm | 43.79 | 12.93 |
+| t12 PD XYZ error mm | 103.44 | 21.98 |
+| t12 wrist deviation from same-trace teacher mm | 30.80 | 9.33 |
+| t16 PD XYZ error mm | 67.97 | 13.90 |
+| t16 wrist deviation mm | 48.61 | 10.03 |
+| t24 PD XYZ error mm | 97.15 | 265.83 |
+| t32 wrist deviation mm | 43.15 | 354.10 |
+| Pure actor maximum held frames | 0 | 0 |
+| Pure actor clipping | 7.81% | 5.47% |
+
+New teacher/GT-R/t8-expert held73/75/74 frames, each clipping0: local R
+grasp calibration earned anew, without full placement proof. Pure actor still
+fails and later drift is severe; early-loop benefit does not establish useful
+autonomous manipulation. Overall policy outcome **UNCLEAR**, local mapping
+and early-loop mechanism **PROMISING**. Decision: stop loss-only fitting,
+collect actual learned-student t16/t32 takeovers and aggregate with this t8
+trace (Probe31). Full raw reports are short_rollout_comparison.json and
+root_recovery_audit.json in the derivative native directory.
