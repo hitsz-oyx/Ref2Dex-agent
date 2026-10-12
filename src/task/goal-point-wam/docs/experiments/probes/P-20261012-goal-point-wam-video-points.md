@@ -796,3 +796,37 @@ remote5.854GB, combined~297.967GB. No active video job left unattended.
 Continue-to19:30 user request fulfilled; no additional scientific conclusion
 or successful generalization claimed. Next work is longer-record shared
 geometry/calibration plus separate-session admission before a matched fit.
+
+## 19:45 long-recording reconstruction feasibility
+
+User explicitly permits expanding storage and requests an actual assessment
+of long-recording trajectory reconstruction. Decision Note: temporary extra
+10GB video-only artifact allowance (combined ceiling310GB; owned remote scope
+ceiling15GB), no deletion of previous scientific data and no machine change.
+This supersedes the previous300GB/298GB stop for this bounded video work only.
+Actual remote NAS free~54.3TB; local filesystem free~652GB. Prior298GB was
+an interpreted experiment-output budget, not physical disk capacity.
+
+Raw metadata correction: current22 mapped records are2.07–40.17 seconds,
+not assumed multi-minute recordings. All raw video/native-camera counts agree
+at30Hz. Longest cloth held record:1205raw frames/402sampled10Hz frames;
+longest train cloth record860raw/287sampled. Earlier shared span only0:3:45.
+Pinned primary Omega source48b23/weightsc02da; published reference memory
+400frames35.71GB and500frames43.15GB at512-balanced, different hardware;
+our idle GPU exposes49140MiB. Source global attention still couples all
+frames; no recurrent streaming state in this forward API. References:
+https://github.com/facebookresearch/vggt-omega#runtime-and-gpu-memory and
+https://arxiv.org/abs/2605.15195 . Estimates are not measured local feasibility.
+
+Engineering/Decision Probe: reconstruct the entire longest acquired recording
+ONCE at the existing10Hz scene clock/512-balanced, all402 frames and original
+native camera/intrinsic. No independent window reconstruction/calibration.
+Use actual native2x11 hand positions with confidence>=.5 for one global scale;
+record this anchor choice explicitly (earlier cached teachers used derived
+2x10 palm/tip points). Report measured startup/forward/save time, peak GPU,
+global scale support/IQR and temporal segment scale statistics. Fixed offline
+context, no model training/checkpoint selection or scientific val metric.
+GPU0<=20min, artifact<=2GB, owned scope<=15GB; stop on OOM, nonfinite,
+input/code/vendor drift, foreign GPU or timeout. A failure distinguishes
+compute/memory feasibility from quality. Successful completion alone does
+not establish reliable long point tracks or ground-truth metric accuracy.
