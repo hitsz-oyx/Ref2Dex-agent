@@ -80,7 +80,16 @@ cover finite JSON, exact peer PID, maximum frame size and malformed length.
 
 ## Results
 
-Pending source review/commit and one bounded3-row execution. The original
+First execution code2fb7a8b9, r1, ran76.90s and returned172 live queries.
+Frame0 role reset, native reference and first-query full-model/bridge differences
+were exact0. Query172 stopped at the original fixed PTv3 workspace bound
+(grid y_min=-4). Both owned runtimes stopped; no full behavior/calibration
+verdict is available. The exception path omitted partial raw trace persistence,
+a recording implementation defect; preserve r1 and its FAILED logs as-is.
+Root permits one same-model/same-seed r2 after logging-only repair, within
+unchanged600s/100MB bounds. Save executed-prefix states/actions/PD/H4 plus
+failed server request, then audit earliest visited-state divergence. No actor,
+R, sampling, serialization origin or precision threshold changes. The original
 10mm/.05rad shadow screens remain FAILED; physics is a separately authorized
 Decision, not a claim that those screens have passed.
 

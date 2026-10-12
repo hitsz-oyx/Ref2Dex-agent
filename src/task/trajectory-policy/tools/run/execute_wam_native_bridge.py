@@ -131,6 +131,8 @@ def main():
     write(out/'manifest.json',manifest)
     install_legacy_player_compat(native,common_player,base_player);install_reset_patch()
     started=time.monotonic()
+    captured_logs={}
+    executed_controls=0
 
     class Player(native.EvalPlayer):
         def restore(self,filename):
@@ -142,6 +144,7 @@ def main():
                 self._amp_input_mean_std.load_state_dict(value['amp_input_mean_std'],strict=True)
 
         def run(self):
+            nonlocal executed_controls
             task=self.env.task
             if task.num_envs!=3 or self.is_rnn or str(task.device)!='cuda:0':
                 raise ValueError('exact three-row nonrecurrent GPU pipeline required')
@@ -174,6 +177,7 @@ def main():
             logs={k:[] for k in ('q','dq','hand','obj','velocity','surface_gap','support_gap','table_footprint',
                 'action','applied','pd_targets','intended','requested_pd','clipped','state_features','tau_features',
                 'encoded_target','wam_object_history','wam_hand_history','wam_goal','server_latency_s','native_latency_s')}
+            captured_logs.update(logs)
 
             def record():
                 hand,gap=geometry.measure(task);sup,foot=support.measure(task,geometry)
@@ -221,6 +225,7 @@ def main():
                     if not torch.isfinite(action).all():
                         raise FloatingPointError('nonfinite requested native action')
                     obs,_,done,_=self.env_step(self.env,action.clone())
+                    executed_controls+=1
                     if not isinstance(obs,dict):
                         obs={'obs':obs}
                     if capture is None or not torch.equal(capture,action) or actual_pd is None or (actual_pd-expected).abs().max()>1e-6:
@@ -275,7 +280,18 @@ def main():
     try:
         os.chdir(ROOT/'third_party/DExplore');native.main()
     except BaseException as error:
-        manifest.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-started)
+        manifest.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-started,
+                        executed_controls=executed_controls)
+        try:
+            if captured_logs:
+                partial={key:np.stack(value) for key,value in captured_logs.items() if value}
+                if partial:
+                    np.savez_compressed(out/'partial.npz',**partial)
+                    manifest.update(partial_controls=len(captured_logs.get('action',[])),
+                            partial_measured_states=len(captured_logs.get('q',[])),
+                        partial_sha256=sha(out/'partial.npz'),partial_only=True)
+        except Exception as recording_error:
+            manifest['failure_recording_error']=repr(recording_error)
         write(out/'manifest.json',manifest);raise
     finally:
         signal.alarm(0);os.chdir(cwd);connection.close()

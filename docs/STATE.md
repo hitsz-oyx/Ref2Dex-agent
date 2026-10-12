@@ -1,5 +1,22 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 首次WAM-R闭环触发输入范围保护
+
+固定代码2fb7a8b9、seed292、3角色teacher/GT-R/WAM-R、GPU2原生仿真已启动。
+初始q/dq/hand/obj/velocity角色差exact0；planned native reference误差exact0；
+首query完整原模型与actor-only桥接预测max0。共返回172次live WAM预测后，
+下一次当前手点相对物体超出原PTv3固定工作区（grid y_min=-4<0），server主动
+FAIL，native因EOF停止；整组76.90s保护退出，两owned进程已释放GPU。
+原运行保留[状态](../outputs/trajectory-policy/wam-ref2-execution-20261012-r1/group_status.json)。
+这是闭环状态范围问题的观察，尚无完整episode/calibration或成功率判断。
+
+实现记录缺陷：native异常路径未持久保存内存中的已执行部分轨迹，因而当前无法
+独立审计172步的PD和visited states。按AGENTS第14节保留r1，在原实验卡注明
+证据受影响；只修partial trace/失败request保存，不改模型、R、采样、seed或PTv3
+范围保护。修复review/commit后允许同recipe一次r2，仍单GPU2<=600s、当日所有
+ref2输出+scratch<=100MB；资源/身份/有限值冲突停止。用可审计的实际状态确定
+是否需机器人startup/visited-state监督，不能把r1日志缺失当作方法负结论。
+
 ## 2026-10-12 机器人head校准与最小仿真Decision
 
 固定代码7f053ac9、GPU2完成300更新（61.42s，8304 train windows）。仅训练

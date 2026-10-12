@@ -92,6 +92,7 @@ def main():
         torch_version=torch.__version__,training_allowed=False,queries=0)
     write(a.output/'status.json',status)
     began=time.monotonic()
+    request=None
     try:
         connection,_=server.accept()
         connection.settimeout(30)
@@ -139,6 +140,22 @@ def main():
                           peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20)
     except BaseException as error:
         status.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-began)
+        try:
+            if request is not None:
+                write(a.output/'failed_request.json',request)
+                failed={key:np.asarray(request[key],np.float32) for key in
+                        ('object_history','hand_history','planned_object_goal') if key in request}
+                np.savez_compressed(a.output/'failed_request.npz',**failed)
+                status.update(failed_query=request.get('tick'),failed_request_sha256=sha(a.output/'failed_request.npz'))
+                status['failed_request_json_sha256']=sha(a.output/'failed_request.json')
+                if 'batch' in locals():
+                    valid_xyz=batch['xyz'][batch['point_valid']]
+                    status.update(failed_scene_xyz_min_m=valid_xyz.amin(0).cpu().tolist(),
+                                  failed_scene_xyz_max_m=valid_xyz.amax(0).cpu().tolist(),
+                                  workspace_origin_m=model.scene.voxel_origin_m.detach().cpu().tolist(),
+                                  voxel_m=model.scene.voxel_size_m)
+        except Exception as recording_error:
+            status['failure_recording_error']=repr(recording_error)
         raise
     finally:
         write(a.output/'status.json',status)
