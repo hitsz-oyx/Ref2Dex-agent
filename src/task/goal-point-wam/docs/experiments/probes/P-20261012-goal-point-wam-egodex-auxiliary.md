@@ -257,3 +257,23 @@ remote4.406GB; thresholds unchanged. Full remote training result remains pending
 [Interim snapshot](../../../../../../tmp/egodex-training-20261012-r1/status_update-20261012-1430.json),
 [monitor receipt](../../../../../../tmp/egodex-training-20261012-r1/remote_adopt_receipt.json),
 [actual-launcher budget watcher](../../../../../../tmp/egodex-training-20261012-r1/aggregate_budget_status-r3.json).
+
+## Remote final confirmed by video-session takeover
+
+Scientific group and result both COMPLETED at10000 updates;11790.87s
+(3.275h). All four final parameter hashes equal
+`457f913a24e83556c3a9f11f078bc255ad2481f590bdf88242f2f5ba7b9d0f90`.
+Final/latest preserve the run's optimizer and rank RNG, with final as a hardlink;
+the earlier failed phase chain is preserved and is not the scientific status.
+
+Fixed held-session native EgoDex hand macro50.146mm, warm start63.280mm and
+static59.815mm. Main-three hand macro44.585mm and world-point macro20.319mm;
+cached true goal remains better than static on each source. Sampled fit-record
+hand macro6.084mm versus static5.974mm; loss/fit alone does not establish motion
+learning. These are single-run monitoring comparisons, not matched controls,
+formal causal EgoDex benefit or evidence for video scene supervision. Video
+scene labels still belong to the separate point-supervision admission Probe.
+
+Authoritative remote files remain training/{group_status.json,train/result.json,
+train/final.pt}; copied runtime/validation identity is at
+`tmp/video-training-20261012-takeover/original_training_final.json`.
