@@ -1,5 +1,5 @@
 schema: ref2dex.seed_ledger.v1
-updated: 2026-09-25
+updated: 2026-10-12
 
 # Seed ownership is explicit.  Historical cards keep their original seeds;
 # this ledger governs new v2 cards and prevents a Probe from consuming the
@@ -23,3 +23,12 @@ pools:
     holdout:
       ranges:
         - [400, 499]
+
+allocations:
+  P-20261012-goal-point-wam-ddp-scale:
+    seed_pool: probe
+    model_seed: 275
+    train_draw_seed: 276
+    evaluation_draw_seed: 277
+    engineering_seed: 278
+    cancelled_validation: model/train seeds411/412,421/422,431/432 unused; panel449 generated but no outcomes observed
