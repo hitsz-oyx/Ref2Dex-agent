@@ -32,3 +32,9 @@ allocations:
     evaluation_draw_seed: 277
     engineering_seed: 278
     cancelled_validation: model/train seeds411/412,421/422,431/432 unused; panel449 generated but no outcomes observed
+
+  P-20261012-goal-point-wam-ref12-methods:
+    seed_pool: probe
+    model_and_augmentation_seed: 280
+    train_draw_seed: 281
+    evaluation_subset_seed: 282
