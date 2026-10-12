@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-scene-thaw:
+    seed_pool: probe
+    model_seed: 297
+    train_draw_seed: 298
+    execution_seed: 292
+    reuse_reason: same paired nominal physics reset; one new partial-adaptation fit
+
   P-20261012-goal-point-wam-ref2-approach-pd:
     seed_pool: probe
     model_seed: 295
