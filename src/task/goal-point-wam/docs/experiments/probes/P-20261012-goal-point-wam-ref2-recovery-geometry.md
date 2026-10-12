@@ -171,3 +171,58 @@ This is a feedback-affected hand-motion proxy, not yet a native-action causal
 model suitable for RL candidate evaluation. Independent CPU frame/unit/leak
 checks and eight bounded raw samples (<1MB) prepare the later integration;
 they do not prove world quality, grasp benefit or RL/Cm utility.
+
+## Follow-up aggregation training result
+
+Fixed code4ef2952d completed500 additional updates120.73s/GPU2, peak2471MiB.
+Both recovery panels are TRAIN: old80 nearest8 11.207->10.649mm/all24
+11.886->11.040; retired137 nearest8 19.635->11.252mm/all24
+27.586->12.998. Early32:48 training nearest8 56.382->18.324mm.
+Nominal nearest8 15.874->14.063mm; original-R PD29.020->27.419mm,
+zero clipping. Frozen scene/goal/action/world/R hashes unchanged, recovery
+head gradient646.578/cache-direct0/R_backward_used=false. All predeclared
+collection gates passed; this authorizes fresh-state collection, not recovery
+or generalization claims. Fixed head SHA397a42399a092ff36eb6d88cadd00b5d3fe120b82182a5d2f5c943726c5920d1.
+Root rederived true current-anchor tau, source expert PD, raw metrics and input
+identities. Geometry labels differ<=1.20e-7m; one CPU/GPU float32 EPE mean
+differs1.91e-6mm. Separate metric tolerance2e-5mm and label tolerance1e-6m
+passes; original combined-unit audit failure retained as r0.
+Fresh192/takeover8 four-role group launched with this head and original R.
+
+Consequence helper/preparation fixed3f1d18fc,7CPU tests PASS; fixed-source
+view contains676 indexed own-role windows and8 audited samples, full
+preparation PASS. Actual9D max4.82e-7m/effect max5.82e-8, future mutation
+leaves current scene/known goal unchanged. Engineering-only, no world
+scientific training or RL admission.
+
+## Resource stop and completed native trace
+
+Fresh group4ef2952d FAILED its aggregate100MB guard after the native process
+had already completed all192 controls and saved source trace/result. Retained
+bytes101,412,742, including1,889,307 of root-owned regenerable Triton scratch.
+Native elapsed60.34s; teacher/GT/takeover8 held137/139/137, pure actor0,
+actor clipping16/192=8.33%. Complete placement verdict remains null.
+Independent root audit checks3468/max0/finite/pass; source trace SHA
+8513480747187963e2d9b5a16d0dbde2997bcab5bbf5e7e0fb7545d7c1cf8259.
+This is complete inspected raw local evidence under a FAILED resource group,
+not a passed authorized experiment group or improved autonomous recovery.
+
+Decision: preserve all checkpoints/raw traces/manifests/audits and the failed
+group/log; remove ONLY regenerable root-owned Hilbert Triton compile scratch
+at tmp/trajectory-policy/wam-robot-head/triton after verifying no live owned
+GPU process and that no consumed-input SHA binds a cache file. Its kernels
+can be regenerated from pinned source; no research evidence is discarded.
+Do not relabel/restart the failed group, broaden the budget or launch more
+checkpoint-producing fits. Read-only early-drift/geometry-vs-R analysis will
+choose next method. Restored space is for small audits/docs only; current
+training fit improvement does not justify capacity thaw or RL.
+
+Root-owned Triton/Hilbert cache removal restored retained bytes99,527,531;
+all formal evidence remains. No additional training/large collection started.
+Decision diagnostic: original R on THIS t8 source's161 actual expert-only
+future windows vs same-native nominal teacher. This distinguishes whether
+earlier correction data have a usable fixed-R physical mapping before
+another actor fit; GPU2 single small R forward<=60s, small XYZ JSON<=300KB.
+No actor input/learning/admission or resource group status change. Repeated
+original startup and geometry raw panel checks also isolate first-step control
+retention from aggregate nearest8 loss. No budget expansion.
