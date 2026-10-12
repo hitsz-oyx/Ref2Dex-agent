@@ -59,7 +59,7 @@ def evaluate(args):
     model = GoalPointWAM(json.loads(args.stats.read_text()), config).cuda().eval()
     model.load_state_dict(state['model'], strict=True)
     totals = {name: dict(count=0, real=0., static_goal=0., zero=0., object_translation=0., object_rigid_follow=0.,
-                         endpoint_count=0, endpoint=0., response=0.)
+                         endpoint_count=0, endpoint=0., response=0., shift_squared=0., shift_gain=0.)
               for name in MAIN_SOURCE_NAMES}
     windows = []
     for cpu in loader(dataset, indices, config['microbatch'], 0):
@@ -73,6 +73,10 @@ def evaluate(args):
                 return model.trajectory(scene['scene_tokens'], scene['scene_mask'], tokens, mask)
         pred = predict(batch['goal_object_points'])
         static = predict(batch['start_object_points'])
+        shift = batch['goal_object_points'].new_tensor([.1, 0., 0.])
+        plus = predict(batch['goal_object_points'] + shift)
+        minus = predict(batch['goal_object_points'] - shift)
+        symmetric = (plus[:, -1] - minus[:, -1]) / 2
         errors = {key: torch.linalg.vector_norm(value - batch['trajectory_target'], dim=-1)
                   for key, value in (('real', pred), ('static_goal', static), ('zero', torch.zeros_like(pred)))}
         for key, value in geometric_baselines(batch).items():
@@ -85,6 +89,8 @@ def evaluate(args):
             for key, error in errors.items(): target[key] += float(error[row][mask].sum())
             target['endpoint'] += float(errors['real'][row,-1][end].sum())
             target['response'] += float(response[row][mask].sum())
+            target['shift_squared'] += float(symmetric[row][end].square().sum())
+            target['shift_gain'] += float((symmetric[row, ..., 0] / .1)[end].sum())
             windows.append(dict(source=name, sample_id=batch['sample_id'][row].tolist(), valid_points=int(mask.sum())))
     result = {}
     for name, x in totals.items():
@@ -92,6 +98,8 @@ def evaluate(args):
         result[name] = dict(trajectory_epe_m=x['real']/x['count'], static_object_goal_epe_m=x['static_goal']/x['count'],
                             zero_hand_epe_m=x['zero']/x['count'], endpoint_epe_m=x['endpoint']/x['endpoint_count'],
                             real_vs_static_goal_prediction_difference_m=x['response']/x['count'],
+                            translated_goal_endpoint_rms_m=(x['shift_squared']/x['endpoint_count'])**.5,
+                            translated_goal_endpoint_x_gain=x['shift_gain']/x['endpoint_count'],
                             object_translation_epe_m=x['object_translation']/x['count'],
                             object_rigid_follow_epe_m=x['object_rigid_follow']/x['count'],
                             improvement_vs_static_goal=1-x['real']/x['static_goal'],

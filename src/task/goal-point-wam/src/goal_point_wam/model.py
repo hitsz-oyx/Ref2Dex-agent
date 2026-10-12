@@ -201,8 +201,14 @@ class ObjectGoalEncoder(nn.Module):
 
 
 class TrajectoryDecoder(nn.Module):
-    def __init__(self, hidden: int = HIDDEN, layers: int = 3):
+    def __init__(self, hidden: int = HIDDEN, layers: int = 3,
+                 goal_injection: str = "memory", goal_query_adapter: bool = False):
         super().__init__()
+        if goal_injection not in ("memory", "query", "none"):
+            raise ValueError("unknown goal injection route")
+        if goal_injection == "query" and not goal_query_adapter:
+            raise ValueError("query injection requires goal_query_adapter")
+        self.goal_injection = goal_injection
         self.time = nn.Embedding(HORIZON, hidden)
         self.hand = nn.Embedding(HANDS, hidden)
         self.keypoint = nn.Embedding(KEYPOINTS, hidden)
@@ -213,10 +219,36 @@ class TrajectoryDecoder(nn.Module):
                                   nn.Linear(hidden, 3))
         nn.init.zeros_(self.head[-1].weight)
         nn.init.zeros_(self.head[-1].bias)
+        # Allocate in every matched arm, including the unused memory/no-goal
+        # controls. Historical configs keep their original parameter keys.
+        self.goal_query = (nn.Sequential(nn.LayerNorm(2 * hidden), nn.Linear(2 * hidden, hidden),
+                                        nn.GELU(), nn.Linear(hidden, hidden), nn.LayerNorm(hidden))
+                           if goal_query_adapter else None)
+
+    def _query_condition(self, goal: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
+        # Encoder contract: paired start/end blocks followed by a null token.
+        # Never pool the null: it attends to goals and is not a no-goal token.
+        count = goal.shape[1] - 1
+        if count < 2 or count % 2:
+            raise ValueError("expected paired start/end goal tokens plus null")
+        safe = torch.where(valid[..., None], goal, torch.zeros_like(goal))
+        half = count // 2
+        start = _masked_mean(safe[:, :half], valid[:, :half], 1)
+        end = _masked_mean(safe[:, half:count], valid[:, half:count], 1)
+        condition = self.goal_query(torch.cat((start, end), -1))
+        return torch.where(valid[:, :count].any(1)[:, None], condition, torch.zeros_like(condition))
 
     def forward(self, scene: torch.Tensor, scene_mask: torch.Tensor,
                 goal: torch.Tensor, goal_mask: torch.Tensor) -> torch.Tensor:
         batch = scene.shape[0]
+        if self.goal_injection == "query":
+            condition = self._query_condition(goal, goal_mask)
+        if self.goal_injection != "memory":
+            # Retain the same memory length in all arms. Zero even the encoded
+            # null token, whose transformer output can contain future goal.
+            goal = torch.zeros_like(goal)
+            goal_mask = torch.zeros_like(goal_mask)
+            goal_mask[:, -1] = True
         memory = torch.cat((scene, goal), dim=1)
         memory_mask = torch.cat((scene_mask, goal_mask), dim=1)
         time = torch.arange(HORIZON, device=scene.device)[:, None, None]
@@ -224,6 +256,8 @@ class TrajectoryDecoder(nn.Module):
         keypoint = torch.arange(KEYPOINTS, device=scene.device)[None, None, :]
         query = (self.time(time) + self.hand(hand) + self.keypoint(keypoint)).reshape(1, -1, HIDDEN)
         query = query.expand(batch, -1, -1)
+        if self.goal_injection == "query":
+            query = query + condition[:, None]
         decoded = self.decoder(query, memory, memory_key_padding_mask=~memory_mask)
         # Physical/masked losses run outside autocast; keep their prediction
         # tensors in float32 so CUDA has a stable backward path.
@@ -312,7 +346,9 @@ class GoalPointWAM(nn.Module):
                                           config.get("object_goal_encoding", "endpoint"))
         else:
             self.goal = GoalEncoder(hidden, int(config.get("goal_layers", 2)))
-        self.trajectory = TrajectoryDecoder(hidden, int(config.get("trajectory_layers", 3)))
+        self.trajectory = TrajectoryDecoder(hidden, int(config.get("trajectory_layers", 3)),
+                                            config.get("goal_injection", "memory"),
+                                            bool(config.get("goal_query_adapter", False)))
         self.action = ExecutedActionAdapter(stats, hidden)
         self.world = WorldDecoder(stats, hidden, int(config.get("world_layers", 2)))
         self.trajectory_scale_m = float(config.get("trajectory_scale_m", .05))

@@ -1,0 +1,10 @@
+{
+  "title": "SelfWAM: A Self-Grounded Unified World Action Model for Fast Robot Control",
+  "arxiv_url": "https://arxiv.org/abs/2608.00725",
+  "verified_version": "v1",
+  "project_url": "https://selfwam.github.io/",
+  "code_url": "https://github.com/SelfWAM/SelfWAM",
+  "code_status": "Author-linked release branch shows README, docs and LICENSE; no runnable model/training source verified",
+  "verification_date": "2026-10-12",
+  "notes": "Verified clean-action directed attention and future robot mask supervision. Does not establish differentiable goal-through-world actor optimization or accurate causal dynamics in this repository."
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Rethinking World-Action Model for Compositional and In-Context Robotic Manipulation",
+  "short_name": "ViGAR",
+  "arxiv_url": "https://arxiv.org/abs/2610.02368",
+  "verified_version": "v1",
+  "project_url": "https://dagroup-pku.github.io/ViGAR/",
+  "code_url": "https://github.com/DAGroup-PKU/ViGAR",
+  "code_status": "Official repository contains policy/planner source directories and training/evaluation guides; implementation files not audited or executed in this note",
+  "verification_date": "2026-10-12",
+  "notes": "Goal injection Table 2a verified against the primary paper. Semantic vision tokens versus geometric VAE tokens changes representation as well as destination branch; not a direct memory-versus-trajectory-query ablation."
+}

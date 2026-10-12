@@ -1,0 +1,10 @@
+{
+  "title": "Act2Goal: From World Model To General Goal-conditioned Policy",
+  "arxiv_url": "https://arxiv.org/abs/2512.23541",
+  "verified_version": "v1",
+  "project_url": "https://act2goal.github.io/",
+  "code_url": null,
+  "code_status": "Not verified in this bounded literature audit; project page returned no readable text to browser",
+  "verification_date": "2026-10-12",
+  "notes": "Stage 1 jointly fine-tunes pretrained visual world and action objectives; Stage 2 uses action-only objective end to end. Hindsight relabeling does not itself prove multiple distinct goals for identical observations."
+}

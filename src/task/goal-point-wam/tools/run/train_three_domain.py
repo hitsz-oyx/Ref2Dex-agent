@@ -268,12 +268,15 @@ def run(args: argparse.Namespace) -> None:
         torch.set_rng_state(state["torch_rng"].cpu())
         if device.type == "cuda": torch.cuda.set_rng_state(state["cuda_rng"].cpu())
         np.random.set_state(state["numpy_rng"]); random.setstate(state["python_rng"])
-    atomic_json(output / "input_manifest.json", identity)
     train_indices = mixed_indices(train_base, config["updates"] * config["microbatch"] * config["accumulation"],
                                    int(config["seed"]) + 1)
     validation = mixed_indices(val_base, config["validation_samples"], int(config["validation_seed"]),
                                equal_sources=True)
     np.save(output / "validation_balanced.npy", validation)
+    np.save(output / "train_indices.npy", train_indices)
+    identity["train_indices_sha256"] = digest(output / "train_indices.npy")
+    identity["validation_indices_sha256"] = digest(output / "validation_balanced.npy")
+    atomic_json(output / "input_manifest.json", identity)
     batches = iter(loader(train, train_indices[step * config["microbatch"] * config["accumulation"]:],
                           config["microbatch"], int(config["workers"])))
     started = time.time()

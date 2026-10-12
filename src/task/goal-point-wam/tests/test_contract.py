@@ -270,6 +270,45 @@ def test_compact_inputs_are_observed_only_and_goal_rigid_features_are_correct():
     assert prediction.shape == (1, 24, 2, 11, 3) and torch.isfinite(gradient).all() and gradient.abs().max() > 0
 
 
+def test_goal_injection_routes_match_weights_and_remove_encoded_null_leakage():
+    from goal_point_wam.model import TrajectoryDecoder
+    torch.set_num_threads(2)
+    arms = {}
+    for route in ('memory', 'query', 'none'):
+        torch.manual_seed(27)
+        arms[route] = TrajectoryDecoder(layers=1, goal_injection=route, goal_query_adapter=True).eval()
+        # Zero output initialization otherwise hides the conditional path.
+        torch.nn.init.normal_(arms[route].head[-1].weight, std=.01)
+    state = arms['memory'].state_dict()
+    assert all(torch.equal(state[k], arm.state_dict()[k]) for arm in arms.values() for k in state)
+    scene = torch.randn(1, 4, 128)
+    scene_mask = torch.ones(1, 4, dtype=torch.bool)
+    goal = torch.randn(1, 9, 128, requires_grad=True)
+    valid = torch.ones(1, 9, dtype=torch.bool)
+    altered = goal.detach().clone()
+    altered[:, 4:] += torch.randn_like(altered[:, 4:])  # Includes goal-encoded null.
+    for route, arm in arms.items():
+        pred = arm(scene, scene_mask, goal, valid)
+        other = arm(scene, scene_mask, altered, valid)
+        gradient, = torch.autograd.grad(pred.square().sum(), goal, allow_unused=True)
+        if route == 'none':
+            assert torch.equal(pred, other) and gradient is None
+        else:
+            assert (pred - other).abs().max() > 1e-5
+            assert gradient is not None and torch.isfinite(gradient).all() and gradient.abs().max() > 0
+        if route == 'query':
+            assert torch.count_nonzero(gradient[:, -1]) == 0
+    valid[:, 1:4] = False
+    poisoned = goal.detach().clone(); poisoned[:, 1:4] = float('nan')
+    query = arms['query']
+    torch.testing.assert_close(query(scene, scene_mask, poisoned, valid),
+                               query(scene, scene_mask, goal, valid), atol=0, rtol=0)
+    valid[:, :-1] = False
+    assert torch.count_nonzero(query._query_condition(poisoned, valid)) == 0
+    with pytest.raises(ValueError, match='requires'):
+        TrajectoryDecoder(goal_injection='query')
+
+
 def test_goal_and_world_components_are_finite_with_missing_goal_points():
     stats = {
         "action_mean": [0.] * 9,
