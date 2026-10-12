@@ -149,7 +149,7 @@ def main() -> None:
     if any(index < 0 or index >= len(ranges) for index in rows):
         raise ValueError("manifest contains an invalid completed range")
 
-    chunks_dir.mkdir()
+    chunks_dir.mkdir(exist_ok=args.resume)
     if not target.exists():
         with target.open("wb") as handle:
             handle.truncate(args.expected_bytes)

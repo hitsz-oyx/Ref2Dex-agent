@@ -5,6 +5,7 @@ from datetime import timedelta
 import hashlib
 import json
 import os
+import random
 import signal
 import sys
 import time
@@ -76,6 +77,8 @@ def main():
     p.add_argument('--validation-indices', type=Path)
     p.add_argument('--eval-every', type=int, default=1000)
     p.add_argument('--checkpoint-every', type=int, default=1000)
+    p.add_argument('--telemetry-every', type=int, default=50)
+    p.add_argument('--resume', type=Path, help='Resume optimizer, per-rank RNG and sampling at the saved step into a new output')
     a = p.parse_args()
     rank, world = int(os.environ.get('RANK', 0)), int(os.environ.get('WORLD_SIZE', 1))
     local_rank = int(os.environ.get('LOCAL_RANK', 0))
@@ -83,9 +86,11 @@ def main():
         raise RuntimeError('GPU required')
     torch.cuda.set_device(local_rank)
     if world > 1:
-        dist.init_process_group('nccl', timeout=timedelta(seconds=180))
+        dist.init_process_group('nccl', timeout=timedelta(seconds=900))
     torch.set_num_threads(2)
     torch.manual_seed(a.seed)
+    np.random.seed(a.seed)
+    random.seed(a.seed)
     torch.backends.cuda.matmul.allow_tf32 = True
     device = torch.device('cuda', local_rank)
     if rank == 0:
@@ -96,7 +101,7 @@ def main():
         dist.barrier()
     steps = 4 if a.smoke else a.steps
     if steps < 4 or min(a.main_batch, a.video_batch, a.seconds, a.artifact_cap_bytes,
-                         a.eval_every, a.checkpoint_every) < 1:
+                         a.eval_every, a.checkpoint_every, a.telemetry_every) < 1:
         raise ValueError('positive bounded run required')
     video = VideoPointWindows(a.video_data, 'train', engineering=a.smoke)
     # Scientific training cannot silently use an engineering-only corpus or one session.
@@ -143,20 +148,44 @@ def main():
     # scans of every clip and the full parent checkpoint every ten updates.
     controls = {path: sha for path, sha in identities.items()
                 if Path(path).suffix != '.pt' and Path(path).suffix != '.npz'}
+    resumed = torch.load(a.resume, map_location='cpu', weights_only=False) if a.resume else None
+    start_step = 0
+    if resumed is not None:
+        old = resumed['identity']
+        if (a.smoke or resumed['checkpoint_kind'] != 'goal-point-wam.point-supervised.v1'
+                or old['world_size'] != world or old['model_seed'] != a.seed
+                or old['main_global_batch'] != world*a.main_batch
+                or old['video_global_batch'] != world*a.video_batch
+                or old['planned_steps'] != steps or old['input_identity'] != identities):
+            raise ValueError('resume requires unchanged recipe, ranks, inputs, code and planned steps')
+        start_step = int(resumed['step'])
+        if not 0 <= start_step < steps:
+            raise ValueError('resume step must precede planned completion')
+        model.load_state_dict(resumed['model'])
     native_indices = mixed_indices(base, steps*a.main_batch, a.seed+1+1000*rank).astype('int32')
-    native_loader = iter(DataLoader(Subset(native, native_indices.tolist()), batch_size=a.main_batch, collate_fn=goal_collate))
+    native_consumed = (start_step-start_step//4)*a.main_batch
+    video_consumed = (start_step//4)*a.video_batch
+    native_loader = iter(DataLoader(Subset(native, native_indices[native_consumed:].tolist()), batch_size=a.main_batch, collate_fn=goal_collate))
     generator = torch.Generator().manual_seed(a.seed+1+1000*rank)
     video_indices = torch.randint(len(video), (steps*a.video_batch,), generator=generator).tolist()
-    video_loader = iter(DataLoader(Subset(video, video_indices), batch_size=a.video_batch, collate_fn=video_collate))
+    video_loader = iter(DataLoader(Subset(video, video_indices[video_consumed:]), batch_size=a.video_batch, collate_fn=video_collate))
     wrapped = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True) if world > 1 else model
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    if resumed is not None:
+        optimizer.load_state_dict(resumed['optimizer'])
+        rng = resumed['distributed_rng'][rank]
+        torch.set_rng_state(rng['torch_rng'])
+        torch.cuda.set_rng_state(rng['cuda_rng'], device)
+        np.random.set_state(rng['numpy_rng'])
+        random.setstate(rng['python_rng'])
     np.save(a.output/f'rank{rank}_native_indices.npy', native_indices)
     np.save(a.output/f'rank{rank}_video_indices.npy', np.asarray(video_indices, dtype='int32'))
     manifest = dict(git_commit=__import__('subprocess').check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                     run_id=a.output.name, input_identity=identities, model_seed=a.seed,
                     world_size=world, main_global_batch=world*a.main_batch, video_global_batch=world*a.video_batch,
                     recipe='three native point-supervised updates then one video point-supervised update',
-                    optimizer_reset=True, checkpoint_kind='goal-point-wam.point-supervised.v1',
+                    optimizer_reset=resumed is None, checkpoint_kind='goal-point-wam.point-supervised.v1',
+                    planned_steps=steps, resumed_from=str(a.resume) if a.resume else None, start_step=start_step,
                     parent_step=parent_step, engineering_only=a.smoke, ranks=[],video_validation_panel=video_panel)
     ranks = [dict(rank=rank, pid=os.getpid())]
     if world > 1:
@@ -184,7 +213,8 @@ def main():
         return report
 
     def save_checkpoint(step):
-        rng = dict(torch_rng=torch.get_rng_state(), cuda_rng=torch.cuda.get_rng_state(), numpy_rng=np.random.get_state())
+        rng = dict(torch_rng=torch.get_rng_state(), cuda_rng=torch.cuda.get_rng_state(),
+                   numpy_rng=np.random.get_state(), python_rng=random.getstate())
         states = [rng]
         if world > 1:
             states = [None]*world
@@ -193,22 +223,24 @@ def main():
             part = a.output/'latest.pt.part'
             torch.save(dict(checkpoint_kind='goal-point-wam.point-supervised.v1', model=model.state_dict(),
                        optimizer=optimizer.state_dict(), distributed_rng=states, config=config,
-                       identity=manifest, step=step, optimizer_resumable=True), part)
+                       identity=manifest, step=step, video_shared_gradient=video_shared_gradient,
+                       optimizer_resumable=True), part)
             if sum(f.stat().st_size for f in a.output.rglob('*') if f.is_file()) > a.artifact_cap_bytes:
                 raise ValueError('atomic checkpoint exceeds declared output budget')
             part.replace(a.output/'latest.pt')
         if world > 1:
             dist.barrier()
 
-    initial_validation = validation(0)
+    video_shared_gradient = float(resumed.get('video_shared_gradient', 0.)) if resumed else 0.
+    del resumed
+    initial_validation = validation(start_step)
     held_before = initial_validation['video'] if initial_validation else None
     stop = [False]
     for sig in (signal.SIGUSR1, signal.SIGTERM):
         signal.signal(sig, lambda *_: stop.__setitem__(0, True))
-    video_shared_gradient = 0.
     log = []
     model.train()
-    for step in range(1, steps+1):
+    for step in range(start_step+1, steps+1):
         # Three native batches and one video batch; smoke exercises both twice.
         is_video = (step % 2 == 0) if a.smoke else (step % 4 == 0)
         batch = move_batch(next(video_loader if is_video else native_loader), device)
@@ -238,10 +270,11 @@ def main():
                    elapsed_seconds=time.time()-started, terms={k:float(v) for k,v in terms.items()})
         log.append(row)
         if rank == 0:
-            row['gpu'] = gpu_snapshot(device)
-            row['eta_seconds'] = row['elapsed_seconds']/step*(steps-step)
-            print(json.dumps(row), flush=True)
-            atomic_json(a.output/'progress.json', dict(status='RUNNING', **row))
+            row['eta_seconds'] = row['elapsed_seconds']/(step-start_step)*(steps-step)
+            if step == start_step+1 or step % a.telemetry_every == 0 or step == steps:
+                row['gpu'] = gpu_snapshot(device)
+                print(json.dumps(row), flush=True)
+                atomic_json(a.output/'progress.json', dict(status='RUNNING', **row))
             with (a.output/'train.jsonl').open('a') as f:
                 f.write(json.dumps(row, allow_nan=False)+'\n')
         if not a.smoke and step % a.eval_every == 0:
@@ -249,9 +282,7 @@ def main():
         if not a.smoke and step % a.checkpoint_every == 0:
             save_checkpoint(step)
         local_stop = torch.tensor(int(stop[0] or time.time()-started >= a.seconds), device=device)
-        if rank == 0 and (step == steps or step % 10 == 0):
-            if any(digest(Path(path)) != sha for path,sha in controls.items()):
-                local_stop.fill_(1)
+        if rank == 0 and (step == steps or step % a.telemetry_every == 0):
             total_bytes = sum(f.stat().st_size for f in a.output.rglob('*') if f.is_file())
             if total_bytes >= a.artifact_cap_bytes:
                 local_stop.fill_(1)

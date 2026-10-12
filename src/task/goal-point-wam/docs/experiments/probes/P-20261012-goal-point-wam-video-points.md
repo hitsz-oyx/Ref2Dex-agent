@@ -1165,3 +1165,35 @@ background support and must not be interpreted as an admitted example. Preview
 source IDs/provenance are saved. Physical3D accuracy remains unmeasured.
 
 Final remote fit artifacts630.777MB, ownedremote scope12.630GB; retained checkpoint inventory{'train/latest.pt': 629850048}.
+
+
+## User-authorized three-rank 50000-step fit and full acquisition
+
+Decision Note (2026-10-12): user requests three remote GPUs, enlarged batch,
+50000 optimizer updates, and the fourth GPU for full EgoDex reconstruction.
+The earlier282-step stop cannot resolve convergence: native world degradation
+recovered from21.8% at250 to16.6% at282. Run a fixed50000-step exploratory fit
+from the completed native10000-step parent, same loss/AdamW1e-4 and3:1 native/
+video update recipe. Freeze existing303train/86held video windows and the
+192-window native panel; newly downloaded records cannot change this run.
+Try per-rank native128/video32 on GPUs0/1/2, with one half-batch OOM fallback
+before the fit. Scientific metrics are monitored every1000 steps with no
+quality-based early stop. Save optimizer/per-rank RNG every1000, keep one
+rolling latest plus hardlinked final; preserve all previous experiments.
+Run_id `video-points-ddp50k-20261012-r1`, seed287 (same family), code commit
+recorded by runtime. Training deadline48h, new artifacts4GB, existing training
+scope25GB. Stop for nonfinite computation, resource conflict, storage/deadline
+or user signal. A completed fit still provides a Probe, not a causal claim.
+
+Full official acquisition is separately owned under NAS
+`/mnt/ugreen_nas/storage/oyx_storage/egodex-full-20261012-r1`.
+User's earlier explicit space expansion and current full-data request authorize
+an initial raw2.5TB plus reconstruction8TB budget there; retain at least10TB
+free NAS. Checked54.31TB free before launch. Queue official TRAINpart1--5,
+TEST and EXTRA with isolated identities; GPU3 reconstructs TRAIN records as
+available. Raw-download completion and qualified-reconstruction completion
+are distinct statuses. Full-corporal caches do not enter the active frozen fit.
+Avoid per-window copies of shared dense depth; long contexts beyond the existing
+450-frame whole-record frontend must be tracked as pending, never silently
+truncated or marked reconstructed. Storage/time limits pause with resumable
+receipts; downstream physical pseudo-label accuracy remains unvalidated.
