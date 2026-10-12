@@ -189,8 +189,10 @@ def main():
     for sig in (signal.SIGUSR1,signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
     ddp=effect_ddp(model,[local])
     sampler=EffectBatches(mixed,train.takeovers,rank,step+1,maximum)
-    batches=DataLoader(train,batch_sampler=sampler,collate_fn=effect_collate,num_workers=0 if a.smoke else 4,
-                       pin_memory=True,persistent_workers=not a.smoke)
+    # PTv3/Triton initializes LLVM threads before loading batches. Forking that
+    # runtime aborts inherited LLVM workers; spawn independent CPU loaders.
+    batches=DataLoader(train,batch_sampler=sampler,collate_fn=effect_collate,num_workers=4,
+                       pin_memory=True,persistent_workers=True,multiprocessing_context='spawn')
     started=time.monotonic();reason=None;last=None
     for cpu in batches:
         step+=1;b=move(cpu,device);optimizer.zero_grad(set_to_none=True)

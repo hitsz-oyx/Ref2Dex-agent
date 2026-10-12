@@ -20,7 +20,8 @@ def write(path,value):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--gpus',default='0,1,2,3');p.add_argument('--smoke',action='store_true');a=p.parse_args()
+    p.add_argument('--gpus',default='0,1,2,3');p.add_argument('--smoke',action='store_true')
+    p.add_argument('--deadline',type=float);a=p.parse_args()
     out=a.output.resolve();gpus=list(map(int,a.gpus.split(',')))
     if len(set(gpus))!=len(gpus) or not 1<=len(gpus)<=4 or ROOT/'outputs/goal-point-wam' not in out.parents:
         raise ValueError('owned output and1..4 distinct local GPUs required')
@@ -29,7 +30,8 @@ def main():
     out.mkdir();scratch=ROOT/'tmp/wam-effect-consistency';scratch.mkdir(parents=True,exist_ok=True)
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=a.gpus,TMPDIR=str(scratch),TRITON_CACHE_DIR=str(scratch/'triton'),
              OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='2')
-    deadline=time.time()+(600 if a.smoke else 28800)
+    started=time.time();deadline=a.deadline or started+(600 if a.smoke else 28800)
+    if not started<deadline<=started+(600 if a.smoke else 28800):raise ValueError('remaining wall budget required')
     command=[sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node='+str(len(gpus)),
              str(TASK/'tools/run/train_effect_consistency.py'),'--output',str(out/'train'),'--deadline',str(deadline)]
     if a.smoke:command.append('--smoke')
