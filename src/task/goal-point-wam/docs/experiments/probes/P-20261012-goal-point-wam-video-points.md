@@ -1240,3 +1240,71 @@ Immutable local launch/progress receipt:
 `tmp/video-training-20261012-takeover/ddp50k-and-full-startup.json`.
 Current full acquisition/consumer statuses remain RUNNING/RECONSTRUCTING.
 Numerical admission does not certify physical 3D accuracy.
+
+2026-10-12 download transport diagnosis and mirror lookup (no running-job
+changes): ModelScope `https://modelscope.cn/datasets/YuhengZhao/EgoDex`
+is anonymously accessible from the remote server. Its README claims all
+TRAIN Part1--5, repacked into three-task ZIP groups, with oversized missing
+groups under `repacked_zips/large_halves` and `repacked_zips/sub50`.
+Verified repository listings and exact206 responses for two16MiB ranges;
+whole-corpus member equivalence and TEST/EXTRA availability are not established.
+Avoid snapshot download: this repository also contains unrelated checkpoints.
+Two concurrent short direct tests measured0.887/0.919MB/s including resolve
+redirects; resolving once and reusing the CDN connection measured1.130/1.202MB/s.
+Official Apple two8MiB range probes measured1.498/1.677MB/s; these short probes
+do not establish sustained multiworker throughput. NAS64MiB write+fsync measured
+116.0MB/s, so bulk NAS writing is not the observed transport bottleneck.
+The original HF mirror `zhenyuxie-zhzh/egodex` and matching hf-mirror endpoint
+both returned401 on anonymous access; the precise access failure is unknown.
+Keep the active official producer unchanged because the tested ModelScope route
+has no demonstrated speed advantage. Remote evidence directories beneath
+`/mnt/ugreen_nas/storage/oyx_storage/goal-point-wam-remote-20261012-r1/`:
+`download-transport-probe-1791815195/` and
+`modelscope-egodex-probe-1791815707/` (README/API listings and speed JSON).
+An undeployed bounded adjacent-member prefetch candidate reduces synthetic
+paired ZIP extraction from at least6 HTTP GETs to1 while retaining exact
+contents/CRC; its budget fallback and15 existing clock/panel/geometry checks
+pass (17 total). Real packet timing remains required before enabling it.
+
+Follow-up concurrency transport probe at remote
+`download-concurrency-probe-1791816196/result.json`: official16MiB ranges,
+with the eight-worker production acquisition continuing throughout, measured
+1/4/8 additional connections at3.827/4.498/5.239MB/s aggregate respectively.
+The1/4-connection cases completed all exact206 responses; every8-connection
+request reached its deliberate20s timeout after12.47--13.81MB, so5.239MB/s
+describes received bytes within that bound, not completed files. Connection
+count did not scale aggregate throughput proportionally; a fixed1.5MB/s
+per-connection ceiling is contradicted by the new single-connection result.
+These measurements cannot distinguish server-wide egress, path congestion,
+CDN per-client limits, or production competition. No global capacity claim
+is made; measuring a separate route or controlling production competition
+would be required. Producer remained RUNNING with zero failed packets.
+
+Unexpected fit blocker found during transport monitoring: original DDP workers
+and supervisor have exited, GPUs0--2 idle. `train.log` reports rank0 failing
+the step1000 held-video evaluation with PermissionError on owned qualified
+`video-window-expansion-20261012-r2/qualified/clips/r15-f000000.npz`.
+Several run artifacts now stat as mode000, uid1005/gid10 while SSH uid is1006;
+the last readable progress JSON is stale at1000 and no `train/latest.pt` exists.
+This is an interrupted implementation run, not scientific negative evidence.
+Decision: try one reversible chmod0644 on that exact owned derived clip and
+read it, without touching other users' files, sudo, NAS configuration or jobs.
+If ordinary permissions reject the repair, stop that mutation and report the
+external filesystem permission blocker; do not claim the50k fit is running.
+If successful, check only the frozen fit's owned inputs/artifacts and prepare
+a fresh bounded restart from the original native10000 parent, since there is
+no saved step1000 continuation. Download/GPU3 remain untouched.
+
+Ordinary chmod succeeded despite the NAS-mapped uid difference. Restored0644
+only mode000 files within three known owned derived scopes:
+`video-window-expansion-20261012-r1`, `video-window-expansion-20261012-r2`,
+and `video-window-restarts-full-20261012-r1`; all398 recorded identity inputs
+and389 qualified-record aliases are readable. Bytes and manifests unchanged;
+cause of the NAS permission changes remains unknown. No sudo or system changes.
+Restarted the same pinned e6dd6e0f implementation/seed287/128+32 per-rank recipe
+from the original native10000 parent into new run
+`video-points-ddp50k-20261012-r2` (planned50000, supervisor PID378066), preserving
+the failed r1. Remote receipts `ddp50k-permission-repair-20261012-r1.json`
+and `ddp50k-r2-launch-receipt.json`; the original distributed smoke still
+precedes this fresh fit. No continuation checkpoint from the interrupted
+1000-step run is claimed. The producer and persistent GPU3 job are unchanged.
