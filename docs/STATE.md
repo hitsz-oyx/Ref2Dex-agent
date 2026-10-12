@@ -1,5 +1,24 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 显式手几何学习诊断
+
+用户确认可能没有新修改并授权继续自主探索。
+[历史外推筛查](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-hand-query.md)
+当前速度/加速度/三步位移与raw重建误差0；常速度只在OakInk2有效，GRAB/
+ARCTIC更差，多来源门槛失败，保持UNCLEAR，原条件式full-WAM query训练未启动。
+
+[紧凑预测器](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-compact-forecast.md)
+用直接当前手XYZ/历史动态/当前物体几何，两臂同23,851参数/初始化、1200个真实
+train窗口、600次batch2更新和既有96val。H-only相对不动手改善24.24%/7.50%/
+9.40%，局部 **PROMISING for observed-input prediction**；H+object-goal相对
+H-only变化-1.38%/+1.79%/+3.05%，未过goal增益门槛，goal utility仍UNCLEAR。
+这支持先定位WAM的信息接线/学习差距，不能单独归因PTv3或world loss，也不形成
+机器人/Cm/RL结论。下一步匹配WAM显式hand XYZ/history query开关，随后再隔离
+world loss；不追加单位或常速度prior调参。现有val已多次观察，正式Validation
+需独立证据。代码b24dc66a，13 tests passed/1 skipped，GPU2诊断总17.38s、
+峰值采样373MiB、新产物约10.4MiB；本轮自有GPU任务全部结束。
+
+
 ## 2026-10-12 Goal 几何条件自主探索
 
 [受控多goal诊断](../src/task/goal-point-wam/docs/experiments/probes/P-20261011-goal-point-wam-controlled-goal.md)

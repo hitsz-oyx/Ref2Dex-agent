@@ -66,3 +66,13 @@ saved validation indices, checks data/stats/model identity, and compares true
 goal versus static object goal with identical cached scenes. It also reports
 zero hand displacement and object translation/rigid-follow geometric references;
 these references are prediction baselines, not physical controllers.
+
+
+`tools/audit/probe_hand_history.py` checks semantic observed-hand dynamics
+against raw histories and reports zero/velocity forecast references on the saved
+validation panel. `tools/audit/probe_compact_forecast.py` then trains matched
+H-only/H+object-goal23.9k-parameter diagnostic MLPs on the original1200-sample,
+600-update stream. Current-hand history is exposed as `start_hand_history`
+(velocity, acceleration, three-step displacement); existing WAM configs ignore
+this additional observed-only field. Compact checkpoints are diagnostics, not
+WAM/policy initialization. History prediction and goal utility are separate gates.
