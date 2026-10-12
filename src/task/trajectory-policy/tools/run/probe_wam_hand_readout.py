@@ -17,15 +17,16 @@ from audit_wam_ref2_shadow import write
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--engineering-smoke',action='store_true');a=p.parse_args();out=a.output.resolve()
+    p.add_argument('--engineering-smoke',action='store_true');p.add_argument('--gated',action='store_true');a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents:raise ValueError('fresh owned output required')
     if subprocess.check_output(['nvidia-smi','-i','2','--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():
         raise RuntimeError('GPU2 occupied')
-    scratch=ROOT/'tmp/wam-hand-readout';scratch.mkdir(parents=True,exist_ok=True)
+    scratch=ROOT/('tmp/wam-hand-gated' if a.gated else 'tmp/wam-hand-readout');scratch.mkdir(parents=True,exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES='2',TMPDIR=str(scratch),TRITON_CACHE_DIR=str(scratch/'triton'))
     import torch
     from goal_point_wam.model import GoalPointWAM
     from goal_point_wam.hand_anchored import HandAnchoredWAM
+    from goal_point_wam.hand_gated import GatedHandAnchoredWAM
     from goal_point_wam.data import goal_collate
     from trajectory_policy.wam_shadow import robot_goal_sample,WAM_TO_NATIVE
     from trajectory_policy.retargeter_data import features,ACTIVE
@@ -81,7 +82,7 @@ def main():
         return b
     out.mkdir();updates=1 if a.engineering_smoke else 200
     manifest=dict(schema='ref2dex.hand-readout-comparison.v1',status='RUNNING',task='goal-point-wam',
-        experiment_id='P-20261012-goal-point-wam-ref25-hand-readout',run_id=out.name,
+        experiment_id='P-20261012-goal-point-wam-ref26-gated-hand' if a.gated else 'P-20261012-goal-point-wam-ref25-hand-readout',run_id=out.name,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),physical_gpu=2,
         warm_policy=str(warm),base_checkpoint=str(base),qualified_chunk=str(fit),source=str(source),
         recovery_sources=[entry['native'] for entry in am['admissions']],maximum_updates_per_arm=updates,
@@ -92,6 +93,16 @@ def main():
         hand_anchoring='full-packed semantic2x11 PTv3 features + unchanged raw-hand residual',
         goal='unchanged32-point endpoint/memory',world='unchanged teacher-forced interface; no world loss in this B Probe',
         budget_seconds=1200,artifact_limit_bytes=500_000_000,training_allowed=False)
+    if a.gated:
+        manifest.update(readout_mode='zero-init gated LayerNorm/MLP residual',
+            train_modules=['trajectory','hand_residual (anchored only)'],
+            frozen_modules=['scene','goal','hand_query','R','action','world','normalization buffers'],
+            learning_rates=dict(trajectory=1e-4,hand_residual=1e-4),
+            hand_anchoring='raw + alpha * P(LN(full-packed semantic2x11)); alpha initially0',
+            initial_behavior_required='bitwise identical tau, first native action and shifted-goal predictions',
+            useful_signal='all non-regression checks plus >=5% reduction in at least one h1/first8/firstPD panel',
+            attribution='post-fit alpha=0 ablation with identical trained decoder; no additional fitting',
+            C='paused throughout this revision')
     write(out/'manifest.json',manifest);started=time.monotonic();all_raw={};results={}
     order=torch.as_tensor(WAM_TO_NATIVE,device='cuda');controller=json.loads((source/'manifest.json').read_text())['native_controller']
     pdscale=independent_PD_scale(torch.tensor(np.asarray(controller['scale'])[list(ACTIVE)],dtype=torch.float32,device='cuda'))
@@ -106,16 +117,24 @@ def main():
                  eta_arm_s=(time.monotonic()-train_started)/max(step,1)*(updates-step),gpu=gpu)
         print(json.dumps(row),flush=True)
         with (out/'monitor.jsonl').open('a') as f:f.write(json.dumps(row)+'\n')
-    for arm,cls in (('old',GoalPointWAM),('anchored',HandAnchoredWAM)):
+    for arm,cls in (('old',GoalPointWAM),('anchored',GatedHandAnchoredWAM if a.gated else HandAnchoredWAM)):
         torch.manual_seed(295);rng=np.random.default_rng(296)
         packet=torch.load(base,map_location='cpu',weights_only=False)
-        model=cls(stats,packet['config']).cuda().eval();model.load_state_dict(packet['model'],strict=True)
+        model=cls(stats,packet['config']).cuda().eval()
+        loaded=model.load_state_dict(packet['model'],strict=not (a.gated and arm=='anchored'))
+        if a.gated and arm=='anchored':
+            expected={'hand_residual.'+k for k in model.hand_residual.state_dict()}
+            if set(loaded.missing_keys)!=expected or loaded.unexpected_keys:raise ValueError('unexpected historical checkpoint mismatch')
         head=torch.load(warm/'head.pt',map_location='cpu',weights_only=False)
         load_policy_patch(model,head,policy_patch_admission(head,wm,wr));del packet,head
         r=load_chunk(torch.load(fit/'chunk.pt',map_location='cpu',weights_only=False),'cuda');r.requires_grad_(False)
         for name in ('action','world'):getattr(model,name).requires_grad_(False)
-        modules={name:getattr(model,name) for name in POLICY_MODULES}
-        frozen={k:v.detach().cpu().clone() for k,v in model.state_dict().items() if k.startswith(('action.','world.'))}
+        train_names=(('trajectory',)+(('hand_residual',) if arm=='anchored' else ())) if a.gated else POLICY_MODULES
+        if a.gated:
+            model.requires_grad_(False)
+            for name in train_names:getattr(model,name).requires_grad_(True)
+        modules={name:getattr(model,name) for name in train_names}
+        frozen={k:v.detach().cpu().clone() for k,v in model.named_parameters() if not v.requires_grad}
         buffers={k:v.detach().cpu().clone() for k,v in model.named_buffers()}
         r_before={k:v.detach().cpu().clone() for k,v in r.state_dict().items()}
         optimizer=torch.optim.AdamW([dict(params=list(net.parameters()),lr=1e-5 if name=='scene' else 1e-4)
@@ -155,7 +174,14 @@ def main():
                 report['goal_sensitivity_mm']=float(response.mean())
                 all_raw[arm+'_'+phase+'_goal_minus_tau'],all_raw[arm+'_'+phase+'_goal_plus_tau']=shifted
             return report
-        initial=evaluate('initial');draws=[];curve=[];gradient={};train_started=time.monotonic();guard(arm,0,train_started)
+        initial=evaluate('initial');draws=[];curve=[];gradient={}
+        if a.gated and arm=='anchored':
+            comparisons={k:float(np.max(np.abs(v.astype(np.float64)-all_raw[k.replace('anchored_initial_', 'old_initial_',1)].astype(np.float64))))
+                         for k,v in all_raw.items() if k.startswith('anchored_initial_')}
+            if any(comparisons.values()):raise ValueError('zero gate did not preserve actual initial behavior')
+            gradient['initial_behavior_max_difference']=max(comparisons.values())
+            gradient['initial_alpha']=float(model.hand_residual.alpha)
+        train_started=time.monotonic();guard(arm,0,train_started)
         for step in range(1,updates+1):
             ids=np.concatenate([rng.choice(startup,16),rng.choice(later,16),
                                 *[rng.choice(pool,count) for pool,count in zip(recovery,(11,11,10))]])
@@ -169,23 +195,40 @@ def main():
             loss=geometry+action
             if not torch.isfinite(loss):raise FloatingPointError('nonfinite readout loss')
             loss.backward()
-            if any(p.grad is not None for net in (r,model.action,model.world) for p in net.parameters()):raise ValueError('frozen module gradient')
+            if any(p.grad is not None for p in list(r.parameters())+list(model.parameters()) if not p.requires_grad):raise ValueError('frozen module gradient')
+            if a.gated and arm=='anchored' and step<=2:
+                gate_grad=float(model.hand_residual.alpha.grad.abs())
+                projection_grad=sum(float(p.grad.abs().sum()) for p in model.hand_residual.projection.parameters())
+                gradient['gate_grad_step%d'%step]=gate_grad
+                gradient['projection_grad_step%d'%step]=projection_grad
+                if step==1 and (gate_grad<=0 or projection_grad!=0):raise ValueError('zero gate gradient wiring differs')
+                if step==2 and projection_grad<=0:raise ValueError('gate failed to wake projection')
             norm=torch.nn.utils.clip_grad_norm_(params,1.)
             if not torch.isfinite(norm):raise FloatingPointError('nonfinite readout gradient')
             optimizer.step()
             if step==1 or step%25==0:
-                curve.append(dict(step=step,tau_MSE=float(geometry),control=float(action)));guard(arm,step,train_started)
-        final=evaluate('final')
+                curve.append(dict(step=step,tau_MSE=float(geometry),control=float(action),
+                                  alpha=float(model.hand_residual.alpha) if a.gated and arm=='anchored' else None));guard(arm,step,train_started)
+        final=evaluate('final');ablation=None
+        if a.gated and arm=='anchored':
+            gradient['final_alpha']=float(model.hand_residual.alpha)
+            saved_alpha=model.hand_residual.alpha.detach().clone()
+            with torch.no_grad():model.hand_residual.alpha.zero_()
+            ablation=evaluate('gate_zero')
+            with torch.no_grad():model.hand_residual.alpha.copy_(saved_alpha)
         frozen_error=max(float((model.state_dict()[k].cpu()-v).abs().max()) for k,v in frozen.items())
         buffer_error=max(float((v.cpu().float()-buffers[k].float()).abs().max()) for k,v in model.named_buffers())
         r_error=max(float((r.state_dict()[k].cpu()-v).abs().max()) for k,v in r_before.items())
         if max(frozen_error,buffer_error,r_error)>0:raise ValueError('frozen model or statistics changed')
         results[arm]=dict(initial=initial,final=final,curve=curve,gradient=gradient,
-                          frozen_world_action_max_change=frozen_error,buffer_max_change=buffer_error,R_max_change=r_error)
+                          frozen_world_action_max_change=frozen_error,buffer_max_change=buffer_error,R_max_change=r_error,
+                          frozen_parameter_max_change=frozen_error,gate_zero_ablation=ablation)
         all_raw[arm+'_draws']=np.asarray(draws)
         if not a.engineering_smoke:
+            save_names=POLICY_MODULES+(('hand_residual',) if a.gated and arm=='anchored' else ())
             torch.save(dict(schema='ref2dex.hand-readout-robot-policy.v1',hand_anchored=arm=='anchored',
-                            modules={name:{k:v.detach().cpu() for k,v in net.state_dict().items()} for name,net in modules.items()},
+                            readout_mode='gated' if a.gated else 'direct',
+                            modules={name:{k:v.detach().cpu() for k,v in getattr(model,name).state_dict().items()} for name in save_names},
                             base_checkpoint=str(base),qualified_R=str(fit/'chunk.pt')),out/(arm+'.pt'))
         del model,r,optimizer,modules,params;gc.collect();torch.cuda.empty_cache()
     if not np.array_equal(all_raw['old_draws'],all_raw['anchored_draws']):raise ValueError('unmatched training rows')
@@ -200,8 +243,16 @@ def main():
     passed=all(checks.values()) and not a.engineering_smoke
     np.savez_compressed(out/'predictions.npz',**all_raw,rows_kind=np.asarray([k for k,t,e in rows]),
                         rows_tick=np.asarray([t for k,t,e in rows]),rows_role=np.asarray([e for k,t,e in rows]))
+    useful_panels={}
+    if a.gated:
+        for group in groups:
+            old,new=[results[arm]['final'][group] for arm in ('old','anchored')]
+            for key in ('h1_mm','first8_mm','first_PD_xyz_p95_mm'):
+                useful_panels[group+'_'+key]=new[key]<=.95*old[key]
+    useful=passed and (any(useful_panels.values()) if a.gated else True)
     result=dict(status='COMPLETED',arms=results,checks=checks,B_offline_gate=passed,
-                conclusion='engineering PASS' if a.engineering_smoke else 'PROMISING' if passed else 'UNPROMISING',
+                useful_panels=useful_panels,B_useful_signal=useful,C_started=False,
+                conclusion='engineering PASS' if a.engineering_smoke else 'PROMISING' if useful else 'UNCLEAR' if passed else 'UNPROMISING',
                 elapsed_s=time.monotonic()-started,scope='fixed robot offline matched short fit; no autonomous physics or core hypothesis verdict')
     write(out/'result.json',result);manifest['status']='COMPLETED';write(out/'manifest.json',manifest)
     print(json.dumps(dict(B_offline_gate=passed,checks=checks,elapsed_s=result['elapsed_s'])),flush=True)

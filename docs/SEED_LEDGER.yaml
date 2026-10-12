@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref26-gated-hand:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    reuse_reason: paired warm policy and deterministic draws for gated adaptation; frozen encoder recipe differs from Probe35, not a replicate
+
   P-20261012-goal-point-wam-ref25-hand-readout:
     seed_pool: probe
     model_seed: 295
