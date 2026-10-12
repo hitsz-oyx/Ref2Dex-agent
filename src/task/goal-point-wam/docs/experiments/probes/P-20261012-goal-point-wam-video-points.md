@@ -1000,3 +1000,46 @@ supervisor<=15min, new output<=1GB, scope<=15GB/combined<=310GB. No data deletio
 no hand/camera reconstruction and no training; preserve all failures. Primary
 MINT/HaWoR audit saved paper/pointwam/mint-hawor-pipeline-primary-audit-20261012.md;
 root independently checked camera chaining and imputed-valid source lines.
+
+20:38 full80-window run COMPLETED, pinned4581191e, driver333445/child333477.
+Whole-record geometry/camera/scale and frozen held session unchanged. Tracking
+49.596s; all clip data extraction/save95.969s; with unchanged quality audit and
+strict80-window H4/K24 loader total138.937s. Peak allocated1.151GB (GPU observed
+1.917GiB footprint), model snapshots97% utilization during inference; released.
+80/80 point-count/future-valid/current-alignment/scale gates pass: minimum993
+current points, minimum33.63% future validity, same-cache current alignment0mm.
+74/80 all-seven-gate admission screens PASS (92.5% >= predeclared80% decision
+threshold); 6 remain excluded. Five background-support failures at native
+current3.1/3.6/9.1/26.6/34.6s:8/18/25/22/28 candidates (<32). One at21.6s
+has background p90 max28.207mm (>25) despite91 candidates. No quality threshold
+change, physical-static claim, frozen scientific corpus update or model fit.
+Audit candidate_rule inherited string says all11, but this offset3 run analyzes
+10 measured frames from current to+0.9s (explicit offsets/teacher_frame_ids),
+while native training targets cover24 ticks/+0.8s. The actual gates use these
+arrays, not the descriptive string.
+
+Decision: short fresh queries plus once-calibrated whole geometry are PROMISING
+as this recording's label-engineering route; proceed next on a distinct frozen
+TRAIN recording before scientific corpus admission/fit. The paired workflows
+also differ in query density/temporal context, so do not attribute the gains
+solely to shortened track lifetime or claim true tracked-point accuracy.
+No MINT/HaWoR camera or hand model substituted for native measurements; no
+imputed hand/scene target promoted to observed-valid. Record next engineering
+improvements as stage-level resume with hash verification and separate observed,
+interpolated and model-imputed provenance; do not introduce smoothing/infilling
+without a matched label-quality check. Multi-minute/30Hz full-context geometry
+and any WAM/robot training improvement remain unverified future evidence.
+
+Run video-window-restarts-full-20261012-r1:726.938MB (<1GB budget), owned remote
+scope7.145GB (<15GB); localoutputs+tmp292.333GB and new owned primary-code clones
+279.350MB, combined~299.757GB (<user-authorized310GB). No unknown process killed,
+new branch or external asset/checkpoint overwritten. First full-repo bundle
+fetch hit git's nested-alternate limit; flattened only the new owned checkout's
+object-store list and launched same source/input, no model rerun from this issue.
+
+Receipts: tmp/video-training-20261012-takeover/window_restarts_full_final.json.
+Local summary/inspected actual RGB track overlay/full-admission plot:
+outputs/goal-point-wam/video-window-restarts-summary-20261012-r1/.
+Overlay shows predetermined0/10/15/35s clips at birth/+0.5/+1.0s, current-only
+selected track IDs and visibility mask, max96 trajectories. Forced birth dots
+and visual coherence are not quantitative physical correctness evidence.

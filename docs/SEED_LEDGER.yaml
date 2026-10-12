@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref22-r-horizon:
+    seed_pool: probe
+    model_seed: 290
+    train_draw_seed: 291
+    reuse_reason: deterministic R adaptation continuity; identical draws across horizon arms, not independent replicates
+
   P-20261012-goal-point-wam-ref2-joint-retargeter:
     seed_pool: probe
     model_seed: 295

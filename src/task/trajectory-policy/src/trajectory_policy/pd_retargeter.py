@@ -78,9 +78,12 @@ def windows(data, envs):
 
 
 class PDRetargeter(nn.Module):
-    def __init__(self, width=256, use_tau=True):
+    def __init__(self, width=256, use_tau=True, execution_horizon=24):
         super().__init__()
+        if type(execution_horizon) is not int or not 1 <= execution_horizon <= 24:
+            raise ValueError('execution horizon must be an integer in1..24')
         self.width, self.use_tau = width, use_tau
+        self.execution_horizon = execution_horizon
         for name, shape in (('state', (STATE_DIM,)), ('tau', (24, 33)), ('target', (12,))):
             self.register_buffer(name + '_mean', torch.zeros(shape))
             self.register_buffer(name + '_scale', torch.ones(shape))
@@ -93,6 +96,11 @@ class PDRetargeter(nn.Module):
         if state.shape != (len(state), STATE_DIM) or tau.shape != (len(state), 24, 33):
             raise ValueError('measured state / hand trajectory shape mismatch')
         local = (tau - self.tau_mean) / self.tau_scale
+        # Mask AFTER normalization: omitted futures cannot affect current control.
+        # Retain historical parameter/buffer shapes for matched warm starts.
+        if self.execution_horizon < 24:
+            local = torch.cat((local[:, :self.execution_horizon],
+                               torch.zeros_like(local[:, self.execution_horizon:])), 1)
         if not self.use_tau:
             local = torch.zeros_like(local)
         value = torch.cat(((state - self.state_mean) / self.state_scale, local.flatten(1)), -1)
@@ -102,7 +110,8 @@ class PDRetargeter(nn.Module):
 def load_model(packet, device):
     if packet.get('schema') != SCHEMA:
         raise ValueError('actual PD-target model schema required')
-    model = PDRetargeter(packet['width'], packet['use_tau']).to(device)
+    model = PDRetargeter(packet['width'], packet['use_tau'],
+                         packet.get('execution_horizon', 24)).to(device)
     model.load_state_dict(packet['model'], strict=True)
     if not all(torch.isfinite(v).all() for v in model.state_dict().values()):
         raise ValueError('nonfinite model')
