@@ -53,6 +53,9 @@ def retargeter_admission(r_dir=None,head_manifest=None):
     identity=dict(R_override=False,base_R_sha256=BASE_R_SHA,head_training_R_sha256=BASE_R_SHA,
         execution_R_sha256=BASE_R_SHA,R_identity_changed_since_head=False,
         scope='original physically calibrated R; unchanged default selection')
+    from .wam_joint import JOINT_SCHEMA, paired_manifest_admission, policy_patch_admission, state_hash
+    if head_manifest is not None and head_manifest.get('schema')==JOINT_SCHEMA and r_dir is None:
+        raise ValueError('jointly learned WAM requires its exact jointly learned R directory')
     if r_dir is None:
         return base,identity,hashes
     directory=Path(r_dir).resolve()
@@ -61,6 +64,32 @@ def retargeter_admission(r_dir=None,head_manifest=None):
     checkpoint=directory/'tau.pt'
     manifest=json.loads((directory/'manifest.json').read_text())
     result=json.loads((directory/'result.json').read_text())
+    if manifest.get('schema')==JOINT_SCHEMA:
+        if (manifest.get('result_sha256')!=sha(directory/'result.json')
+                or manifest.get('base_R_sha256')!=BASE_R_SHA):
+            raise ValueError('joint result/base R binding differs')
+        paired_manifest_admission(manifest,result,head_manifest,sha(directory/'head.pt'),sha(checkpoint))
+        inputs=manifest.get('input_sha256',{})
+        if not inputs or any(sha(path)!=digest for path,digest in inputs.items()):
+            raise ValueError('joint actual input identity drift')
+        import torch
+        packet=torch.load(checkpoint,map_location='cpu')
+        base_packet=torch.load(base,map_location='cpu')
+        validate_r_packet(packet,base_packet)
+        net_state={k[4:]:v for k,v in packet['model'].items() if k.startswith('net.')}
+        if state_hash(net_state)!=result['train_final_hash']['R']:
+            raise ValueError('joint learned R weights differ from final training identity')
+        if (packet.get('joint_training_schema')!=JOINT_SCHEMA or packet.get('run_id')!=manifest['run_id']
+                or packet.get('input_sha256')!=inputs):
+            raise ValueError('joint R packet provenance differs')
+        head=torch.load(directory/'head.pt',map_location='cpu')
+        policy_patch_admission(head,manifest,result)
+        hashes.update(inputs)
+        hashes.update({str(directory/k):sha(directory/k) for k in ('head.pt','tau.pt','manifest.json','result.json')})
+        identity.update(R_override=True,head_training_R_sha256=sha(checkpoint),execution_R_sha256=sha(checkpoint),
+            R_identity_changed_since_head=False,jointly_trained_pair=True,head_sha256=sha(directory/'head.pt'),
+            scope='exact jointly trained WAM/R simulation diagnostic; original R physical qualification does not transfer')
+        return checkpoint,identity,hashes
     if (manifest.get('schema')!='ref2dex.wam-recovery-R-fit.v1'
             or manifest.get('status')!='COMPLETED' or result.get('status')!='COMPLETED'
             or sha(directory/'result.json')!=manifest.get('result_sha256')

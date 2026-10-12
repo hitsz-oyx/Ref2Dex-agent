@@ -165,13 +165,16 @@ def main():
     r_helper=TASK/'src/trajectory_policy/wam_retargeter_admission.py'
     if handshake['input_sha256'].get(str(r_helper))!=sha(r_helper):
         raise ValueError('WAM inference retargeter-admission helper source differs')
+    joint_helper=TASK/'src/trajectory_policy/wam_joint.py'
+    if handshake['input_sha256'].get(str(joint_helper))!=sha(joint_helper):
+        raise ValueError('WAM inference joint-policy helper source differs')
     initial_gpu=gpu_state(args.gpu)
     if set(initial_gpu['pids'])-{os.getpid(),args.server_pid}:
         raise RuntimeError('foreign GPU process before simulation')
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
         source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path,
-        helper,r_helper,TASK/'tools/run/wam_native_server.py',base_path]
+        helper,r_helper,joint_helper,TASK/'tools/run/wam_native_server.py',base_path]
     if args.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
     files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']

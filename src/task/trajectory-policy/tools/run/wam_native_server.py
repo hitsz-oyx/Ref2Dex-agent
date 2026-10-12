@@ -20,6 +20,9 @@ from trajectory_policy.wam_ipc import SCHEMA,send,receive,peer_pid
 
 def scene_patch_admission(packet, manifest, result):
     """Authenticate optional dec0 provenance before application in either runtime."""
+    from trajectory_policy.wam_joint import JOINT_SCHEMA, policy_patch_admission
+    if packet.get('schema')==JOINT_SCHEMA or 'policy_patch' in packet or 'policy_patch_schema' in packet:
+        return policy_patch_admission(packet,manifest,result)
     if any(k.startswith('scene_patch') and k not in {'scene_patch','scene_patch_schema'} for k in packet):
         raise ValueError('unknown scene patch packet field')
     if set(packet.get('head', {})) != {'trajectory', 'hand_query'}:
@@ -113,7 +116,10 @@ def main():
     patch_identity=scene_patch_admission(head,head_manifest,head_result)
     for name,value in head['head'].items():
         getattr(model,name).load_state_dict(value,strict=True)
-    if patch_identity['applied']:
+    if patch_identity['applied'] and 'policy_patch' in head:
+        from trajectory_policy.wam_joint import load_policy_patch
+        load_policy_patch(model,head,patch_identity)
+    elif patch_identity['applied']:
         from trajectory_policy.wam_scene_patch import load_scene_patch
         from calibrate_wam_robot_startup import network_hash
         load_scene_patch(model.scene,head['scene_patch'])
@@ -134,6 +140,7 @@ def main():
     implementation += [vendor/'ptv3/ptv3_arch.yaml',ROOT/'src/task/goal-point-wam/src/goal_point_wam/data.py']
     implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py']
     implementation += [TASK/'src/trajectory_policy/wam_retargeter_admission.py']
+    implementation += [TASK/'src/trajectory_policy/wam_joint.py']
     if patch_identity['applied']:
         implementation += [TASK/'tools/run/calibrate_wam_robot_startup.py']
     hashes={str(path):sha(path) for path in (Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',
