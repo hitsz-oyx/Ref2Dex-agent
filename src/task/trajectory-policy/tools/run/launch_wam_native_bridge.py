@@ -18,6 +18,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--expert-recovery',action='store_true')
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
@@ -40,11 +41,13 @@ def main():
     out.mkdir(parents=True)
     started=time.monotonic()
     status=dict(status='STARTING',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
-        run_id=out.name,experiment_id='P-20261012-goal-point-wam-ref2-execution',
+        run_id=out.name,experiment_id='P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='three simulated nominal rows; no real robot',head_directory=str(a.head_dir))
+        started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir))
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py']
+    if a.expert_recovery:
+        files.append(TASK/'tools/run/wam_expert_probe.py')
     status['source_sha256']={str(path):sha(path) for path in files}
     write(out/'group_status.json',status)
     processes=[];streams=[]
@@ -94,7 +97,7 @@ def main():
         native_script=TASK/'tools/run/execute_wam_native_bridge.py'
         native_log=(out/'native.log').open('w');streams.append(native_log)
         native=subprocess.Popen(['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(native_script),
-            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native')],
+            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*(['--expert-recovery'] if a.expert_recovery else [])],
             cwd=ROOT,stdout=native_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((native,native_script));status.update(status='RUNNING',native_pid=native.pid)
         write(out/'group_status.json',status)

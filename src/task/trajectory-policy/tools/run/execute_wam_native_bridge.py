@@ -27,9 +27,12 @@ def main():
     p.add_argument('--socket',type=Path,required=True)
     p.add_argument('--server-pid',type=int,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--expert-recovery',action='store_true')
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     args=p.parse_args()
     out=args.output.resolve()
+    roles=['teacher','gt_tau_R','wam_R']+(['wam_then_expert_tick16'] if args.expert_recovery else [])
+    env_count=len(roles)
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or Path(sys.prefix).resolve()!=RUNTIME.resolve():
         raise ValueError('fresh owned output and pinned native runtime required')
     scratch=args.socket.parent.resolve()
@@ -119,15 +122,21 @@ def main():
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
         source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path]
+    if args.expert_recovery:
+        files.append(TASK/'tools/run/wam_expert_probe.py')
     files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']
     files += list((OLD/'src/consequence_evaluator').glob('*.py'))+list(native_root.rglob('*.py'))
     files += list(Path(cfg['motion_root']).glob('*/interaction_hand_inspire.pt'))
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
     hashes={str(path.resolve()):sha(path) for path in files}
     out.mkdir(parents=True)
-    manifest=dict(schema='ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
-        task='goal-point-wam',experiment_id='P-20261012-goal-point-wam-ref2-execution',run_id=out.parent.name,
-        roles=['teacher','gt_tau_R','wam_R'],controls=542,dt=1/30,training_allowed=False,
+    manifest=dict(schema='ref2dex.wam-native-recovery.v1' if args.expert_recovery else 'ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
+        task='goal-point-wam',experiment_id='P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution',run_id=out.parent.name,
+        roles=roles,controls=542,dt=1/30,training_allowed=args.expert_recovery,
+        training_scope='visited-state expert PD only; mixed-policy future hand forbidden' if args.expert_recovery else 'none',
+        takeover_tick=16 if args.expert_recovery else None,
+        expert_PD_training_allowed=args.expert_recovery,mixed_policy_future_hand_training_allowed=False,
+        expert_observation_semantics='current measured native state + loaded planned HOI hand/body/object/contact reference at t+1/t+16',
         server_pid=args.server_pid,native_pid=os.getpid(),server_identity=handshake,input_sha256=hashes,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         original_shadow_screen='FAILED; root Decision authorizes bounded simulation after frame/role gates',
@@ -152,11 +161,11 @@ def main():
         def run(self):
             nonlocal executed_controls
             task=self.env.task
-            if task.num_envs!=3 or self.is_rnn or str(task.device)!='cuda:0':
-                raise ValueError('exact three-row nonrecurrent GPU pipeline required')
+            if task.num_envs!=env_count or self.is_rnn or str(task.device)!='cuda:0':
+                raise ValueError('exact declared-row nonrecurrent GPU pipeline required')
             task._state_init=DexploreTask.StateInit.Start;task._hybrid_init_prob=1.
             task._adaptive_kappa_enabled=False;task._enable_early_termination=False
-            obs=self.env_reset(torch.arange(3,device=task.device));self.get_batch_size(obs['obs'],1)
+            obs=self.env_reset(torch.arange(env_count,device=task.device));self.get_batch_size(obs['obs'],1)
             if (task.start_times!=0).any():
                 raise ValueError('frame0 reset required')
             geometry=PhysicalGeometry(task,native_root/'data/assets',distance_device=task.device)
@@ -183,6 +192,14 @@ def main():
             logs={k:[] for k in ('q','dq','hand','obj','velocity','surface_gap','support_gap','table_footprint',
                 'action','applied','pd_targets','intended','requested_pd','clipped','state_features','tau_features',
                 'encoded_target','wam_object_history','wam_hand_history','wam_goal','server_latency_s','native_latency_s')}
+            if args.expert_recovery:
+                from wam_expert_probe import expert_on_rows,paired_prefix_error
+                logs.update({key:[] for key in ('expert_raw','expert_action','expert_clipped','expert_PD',
+                    'expert_observation','learner_state','learner_object_history','learner_hand_history','learner_goal',
+                    'learner_wam_tau','learner_wam_tau_valid','expert_applied')})
+                queries=out/'expert_queries';queries.mkdir()
+                manifest['prefix_pair_max_errors']={}
+                manifest['expert_query_sha256']={}
             captured_logs.update(logs)
 
             def record():
@@ -202,9 +219,22 @@ def main():
             for tick in range(542):
                 before=time.monotonic()
                 with torch.no_grad():
-                    raw=obs['obs'];padded=raw.repeat((64+2)//3,1)[:64]
-                    action=self.get_action(dict(obs,obs=padded),True)[:3].clamp(-1,1).clone()
-                    intended=action.clone();requested=pd_from_action(action,current['q'],offset,scale)
+                    if args.expert_recovery:
+                        expert_raw,expert_action,expert_clipped=expert_on_rows(self,obs,verify_official=tick==0)
+                        expert_PD=pd_from_action(expert_action,current['q'],offset,scale)
+                        if not torch.isfinite(expert_PD).all():
+                            raise FloatingPointError('nonfinite current-q expert PD')
+                        action=expert_action.clone()
+                        if tick<=16:
+                            errors=paired_prefix_error(current)
+                            manifest['prefix_pair_max_errors']={key:max(value,manifest['prefix_pair_max_errors'].get(key,0.)) for key,value in errors.items()}
+                            if max(errors.values())!=0:
+                                raise ValueError('pre16 learner/recovery measured states are not bitexact')
+                    else:
+                        raw=obs['obs'];padded=raw.repeat((64+2)//3,1)[:64]
+                        action=self.get_action(dict(obs,obs=padded),True)[:3].clamp(-1,1).clone()
+                    intended=expert_raw.clone() if args.expert_recovery else action.clone()
+                    requested=pd_from_action(intended,current['q'],offset,scale)
                     past=np.maximum(tick+np.arange(-3,1),0)
                     oh=np.stack([logs['obj'][i][2] for i in past])
                     hh=np.stack([logs['hand'][i][2] for i in past])
@@ -224,9 +254,35 @@ def main():
                         np.broadcast_to(current['hand'][2].cpu().numpy(),(24,11,3)))
                     states=np.stack((state_gt,state_wam));taus=np.stack((tau_gt,wamtau))
                     encoded=r(torch.as_tensor(states,device=task.device),torch.as_tensor(taus,device=task.device))
-                    target=decode_target(encoded,current['q'][1:])
-                    first,applied,_=command(target,current['q'][1:],offset,scale)
-                    action[1:]=applied;intended[1:]=first;requested[1:]=target
+                    target=decode_target(encoded,current['q'][1:3])
+                    first,applied,_=command(target,current['q'][1:3],offset,scale)
+                    action[1:3]=applied;intended[1:3]=first;requested[1:3]=target
+                    if args.expert_recovery:
+                        if tick<16:
+                            action[3]=action[2];intended[3]=intended[2];requested[3]=requested[2]
+                        learner_states=[];learner_oh=[];learner_hh=[]
+                        for env in (2,3):
+                            state,_=features(*(current[k][env].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
+                                np.broadcast_to(current['hand'][env].cpu().numpy(),(24,11,3)))
+                            learner_states.append(state)
+                            learner_oh.append(np.stack([logs['obj'][i][env] for i in past]))
+                            learner_hh.append(np.stack([logs['hand'][i][env] for i in past]))
+                        extra=dict(expert_raw=expert_raw[2:],expert_action=expert_action[2:],expert_clipped=expert_clipped[2:],
+                            expert_PD=expert_PD[2:],expert_observation=obs['obs'][2:].clone(),
+                            learner_state=np.stack(learner_states),learner_object_history=np.stack(learner_oh),
+                            learner_hand_history=np.stack(learner_hh),learner_goal=np.repeat(goal[None],2,axis=0),
+                            learner_wam_tau=np.stack((wamtau,wamtau if tick<16 else np.zeros_like(wamtau))),
+                            learner_wam_tau_valid=np.array([True,tick<16]),expert_applied=np.array([False,tick>=16]))
+                        extra={key:value.cpu().numpy().copy() if isinstance(value,torch.Tensor) else np.asarray(value).copy()
+                               for key,value in extra.items()}
+                        # A durable query record exists before advancing physics; it is not a future-hand label.
+                        if not all(np.isfinite(value).all() for value in extra.values()):
+                            raise FloatingPointError('nonfinite expert query data')
+                        query_path=queries/f'{tick:04d}.npz'
+                        np.savez_compressed(query_path,tick=np.asarray(tick),
+                            current_q=current['q'][2:].cpu().numpy(),**extra)
+                        manifest['expert_query_records']=tick+1
+                        manifest['expert_query_sha256'][str(query_path.relative_to(out))]=sha(query_path)
                     expected=pd_from_action(action,current['q'],offset,scale)
                     if not torch.isfinite(action).all():
                         raise FloatingPointError('nonfinite requested native action')
@@ -236,6 +292,8 @@ def main():
                         obs={'obs':obs}
                     if capture is None or not torch.equal(capture,action) or actual_pd is None or (actual_pd-expected).abs().max()>1e-6:
                         raise ValueError('native applied command/actual PD capture mismatch')
+                    if args.expert_recovery and tick>=16 and (actual_pd[3]-expert_PD[3]).abs().max()>1e-6:
+                        raise ValueError('applied takeover PD differs from current-q expert label')
                     if tick<541 and done.any():
                         raise ValueError('early reset invalidates full episode')
                     for k,v in dict(action=action,applied=capture,pd_targets=actual_pd,intended=intended,
@@ -244,6 +302,11 @@ def main():
                         wam_object_history=oh,wam_hand_history=hh,wam_goal=goal,
                         server_latency_s=reply['elapsed_s'],native_latency_s=time.monotonic()-before).items():
                         logs[k].append(v.cpu().numpy().copy() if isinstance(v,torch.Tensor) else np.asarray(v).copy())
+                    if args.expert_recovery:
+                        if tick<16 and (not torch.equal(capture[2],capture[3]) or not torch.equal(actual_pd[2],actual_pd[3])):
+                            raise ValueError('pre16 paired learner PD/applied action differ')
+                        for key,value in extra.items():
+                            logs[key].append(value)
                     current=record()
                 if tick==0 or (tick+1)%64==0:
                     gpu=gpu_state(args.gpu)
@@ -266,7 +329,17 @@ def main():
                 calibration_pass=all(v['success'] and v['maximum_held_frames']>=45 for v in outcomes[:2]),
                 server_latency_median_s=float(np.median(packed['server_latency_s'])),
                 native_latency_median_s=float(np.median(packed['native_latency_s'])),
-                scope='one nominal simulated episode per row; no hidden-state fork or robot-domain generalization claim')
+                scope='one nominal simulated episode per row; expert takeover is training-time diagnosis, never autonomous success' if args.expert_recovery
+                    else 'one nominal simulated episode per row; no hidden-state fork or robot-domain generalization claim')
+            if args.expert_recovery:
+                value=outcomes[3]
+                result['recovery_pass']=bool(result['calibration_pass'] and value['success']
+                    and value['maximum_held_frames']>=45 and value['clipping_rate']<.01)
+                result['recovery_conclusion']='PROMISING' if result['recovery_pass'] else (
+                    'UNPROMISING' if result['calibration_pass'] and value['maximum_held_frames']==0 else 'UNCLEAR')
+                result['expert_query_records']=manifest['expert_query_records']
+                result['expert_query_clipping_rates']=packed['expert_clipped'].mean(0).tolist()
+                result['expert_query_scope']='actual learner observations, privileged planned HOI reference; PD labels only'
             if any(sha(path)!=digest for path,digest in hashes.items()):
                 raise ValueError('native frozen input/source drift')
             write(out/'result.json',result)
@@ -276,7 +349,7 @@ def main():
 
     native.EvalPlayer=Player
     sys.argv=[sys.argv[0],'--task','Dexplore_Inspire','--cfg_env',cfg['cfg_env'],'--cfg_train',str(train_cfg),
-        '--motion_file',cfg['motion_root'],'--checkpoint',str(OFFICIAL),'--headless','--num_envs','3','--seed','292',
+        '--motion_file',cfg['motion_root'],'--checkpoint',str(OFFICIAL),'--headless','--num_envs',str(env_count),'--seed','292',
         '--sim_device','cuda:0','--rl_device','cuda:0','--pipeline','gpu','--graphics_device_id','0','--num_threads','1',
         '--disable-early-termination','--output',str(out/'unused.json'),'--output_path',str(out/'native')]
     cwd=Path.cwd()

@@ -25,6 +25,18 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-visited-pd:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: physics comparison only; identical nominal reset with prior execution
+
+  P-20261012-goal-point-wam-ref2-recovery:
+    seed_pool: probe
+    execution_seed: 292
+    reuse_reason: exact paired frame0 condition with ref2-execution; not a fresh replicate
+
   P-20261012-goal-point-wam-ref2-startup:
     seed_pool: probe
     model_seed: 293
