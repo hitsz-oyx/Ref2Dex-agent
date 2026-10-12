@@ -91,6 +91,24 @@ def _current_hand(sample: dict) -> tuple[np.ndarray, np.ndarray]:
     return points, valid
 
 
+def _current_hand_history(sample: dict) -> np.ndarray:
+    """Observed velocity/acceleration/three-step displacement, by hand ID."""
+    # Validate the same semantic assignment used by current hand coordinates.
+    _, valid = _current_hand(sample)
+    features = np.asarray(sample['features'], dtype=np.float32)
+    rows = np.flatnonzero((np.asarray(sample['scene_object']) < 0) & (features[:, HAND_MARKER] > .5))
+    history = np.zeros((HANDS, KEYPOINTS, 9), dtype=np.float32)
+    for row in rows:
+        hand = int(np.rint(features[row, HAND_ID]))
+        keypoint = int(np.rint(features[row, KEYPOINT_ID] * 10.))
+        value = features[row, 3:12]
+        if not np.isfinite(value).all():
+            raise ValueError('nonfinite observed hand history')
+        history[hand, keypoint] = value
+    history[~valid] = 0.
+    return history
+
+
 class GoalWindows(Dataset):
     """Expose a frozen MixedWindows corpus with endpoint goal supervision."""
 
@@ -130,6 +148,7 @@ class GoalWindows(Dataset):
         goal = np.where(goal_valid[..., None], future[-1], 0.0).astype(np.float32)
         sample.update(
             start_hand=start.astype(np.float32),
+            start_hand_history=_current_hand_history(sample),
             start_hand_valid=start_valid,
             goal_hand=goal,
             goal_hand_valid=goal_valid,
@@ -186,6 +205,7 @@ def goal_collate(samples: list[dict]) -> dict[str, torch.Tensor]:
         )
     for key, dtype in (
         ("start_hand", torch.float32),
+        ("start_hand_history", torch.float32),
         ("trajectory_target", torch.float32),
         ("start_hand_valid", torch.bool),
         ("trajectory_valid", torch.bool),

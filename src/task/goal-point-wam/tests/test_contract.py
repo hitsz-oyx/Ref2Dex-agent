@@ -90,12 +90,31 @@ def test_goal_collate_preserves_masks_and_shapes():
     dataset = GoalWindows(_Base())
     batch = goal_collate([dataset[0], dataset[1]])
     assert batch["start_hand"].shape == (2, 2, 11, 3)
+    assert batch["start_hand_history"].shape == (2, 2, 11, 9)
     assert batch["goal_hand"].shape == (2, 2, 11, 3)
     assert batch["trajectory_target"].shape == (2, 24, 2, 11, 3)
     assert batch["trajectory_valid"].shape == (2, 24, 2, 11)
     assert batch["trajectory_valid"][0].all()
     assert not batch["trajectory_valid"][1, :, 1].any()
     assert batch["scene_object"].shape == batch["point_valid"].shape
+
+
+def test_observed_hand_history_is_semantic_current_only_and_missing_safe():
+    from goal_point_wam.data import _current_hand_history
+    sample = _sample(missing_left=True)
+    rows = np.flatnonzero(sample['scene_object'] < 0)
+    sample['features'][rows, 3:12] = np.arange(len(rows))[:, None] + np.arange(9)[None] / 10.
+    expected = _current_hand_history(sample)
+    np.testing.assert_allclose(expected[0, :, 0], np.arange(11))
+    assert not expected[1].any()
+    order = np.arange(len(sample['xyz']))[::-1]
+    for key in ('xyz', 'features', 'scene_object'): sample[key] = sample[key][order].copy()
+    sample['action'][:] = 9876.
+    np.testing.assert_array_equal(_current_hand_history(sample), expected)
+    handrow = np.flatnonzero(sample['scene_object'] < 0)[0]
+    sample['features'][handrow, 3] = np.nan
+    with pytest.raises(ValueError, match='observed hand history'):
+        _current_hand_history(sample)
 
 
 def test_object_goal_uses_target_flag_and_rigid_current_frame_without_hand_goal():
