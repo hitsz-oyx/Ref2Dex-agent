@@ -76,3 +76,28 @@ H-only/H+object-goal23.9k-parameter diagnostic MLPs on the original1200-sample,
 (velocity, acceleration, three-step displacement); existing WAM configs ignore
 this additional observed-only field. Compact checkpoints are diagnostics, not
 WAM/policy initialization. History prediction and goal utility are separate gates.
+
+
+Matched object-goal injection uses `goal_injection: memory|query|none` and a
+common `goal_query_adapter: true`. Memory uses encoded goal tokens; query masks
+those tokens and adds a pooled start/end embedding to trajectory queries; none
+masks both routes, including the encoded null token. Historical configs without
+the adapter keep their existing checkpoint keys. `observed_hand_query: true`
+adds a per-keypoint adapter from current XYZ and observed9D history only, with
+missing-hand masks. Its allocation preserves the original core initialization
+and RNG. It receives neither goal nor future hand/action labels.
+
+The completed batch64/1200-update configs are `three_domain_goal_injection_*_large.json`
+and `three_domain_hand_goal_*_world{0,1}.json` under `configs/`. See the
+[goal route comparison](docs/experiments/probes/P-20261012-goal-point-wam-goal-injection.md)
+and [hand/goal/world-loss comparison](docs/experiments/probes/P-20261012-goal-point-wam-hand-goal-interaction.md)
+for exact config filenames and component-specific results. These remain local
+single-seed Probes; the useful candidate is observed hand + memory goal + world1.
+
+`tools/audit/compare_goal_injection.py` and `compare_hand_goal_interaction.py`
+bind actual final checkpoint hashes, indices, initialization, budgets and frozen
+EPE before comparison. `audit_world_isolation.py --code-root <matching-code-root>`
+is a no-training engineering diagnostic: it separates full-forward same-input
+noise from world decoding with identical cached scene/action memory and checks
+absence of a goal gradient. Original full-forward threshold failures remain
+recorded; cached independence does not establish physical world accuracy.

@@ -42,6 +42,7 @@ def evaluate(args):
     if args.output.exists(): raise FileExistsError(args.output)
     if not torch.cuda.is_available(): raise RuntimeError('GPU required')
     torch.set_num_threads(2)
+    torch.backends.cuda.matmul.allow_tf32 = True
     state = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
     if state.get('artificial_labels') or state.get('checkpoint_kind') != 'goal-point-wam.single.v1':
         raise ValueError('real-data checkpoint required; artificial diagnostic weights are prohibited')

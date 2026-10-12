@@ -1,5 +1,43 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref1_2 扩大预算与手部条件结果
+
+按用户授权并行使用8张空闲GPU，完成原始memory/query/none和5个显式hand/world-loss
+对照，每臂batch64、1200更新、76,800样本暴露、384平衡val；同数据/统计/train-val
+indices，旧新核心初值完全匹配。正式训练代码a90b57eb/fbb33460。
+[goal路径卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-goal-injection.md)
+中query准确率没有超过memory，原query优越性门槛 **UNCLEAR**；较大预算下memory
+相对no-goal在GRAB/ARCTIC改善10.3%/9.5%，不再是几微米goal响应。
+
+[手部/goal/world-loss卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-hand-goal-interaction.md)
+显式当前手XYZ/历史动态query使memory EPE从25.755/79.587/61.866降至
+24.056/73.958/56.594mm，改善6.60%/7.07%/8.52%，当前手信息路径局部
+**PROMISING**。固定hand/world1后memory goal在GRAB/ARCTIC相对no-goal改善
+14.56%/14.51%，相对自身静态goal改善15.88%/12.34%，goal utility局部
+**PROMISING**；OakInk2仍未达到goal门槛。query goal也有收益但三个源均稍差于
+memory。关闭world loss收益仅约0.3--2.5%，未过5%门槛，保持 **UNCLEAR**。
+
+原whole-forward隔离门槛失败，原结果保留；相同输入重复forward也发生数值变化。
+8个补充final-checkpoint诊断固定scene/执行action后world变化0，goal梯度边不存在。
+这只支持信息隔离，不能作为物理可靠性或原门槛通过证据。冻结goal评估缓存同一scene，
+EPE与训练final一致<=1e-5m。保留“显式hand+memory goal+world1”用于后续独立
+多seed Validation，停止query-only/world-off调参；L_goal仍待forward action可靠性。
+训练总105.74GPUmin，约10.1GiB/card，outputs+tmp279.873GB<300GB。
+所有本轮自有GPU任务已结束；后来GPU2/3出现外部作业，补充诊断避开。临时8卡
+授权本轮已停止使用。既有15 tests passed/1 optional CUDA skipped；没有RL/Cm结论。
+
+## 2026-10-12 等待实验期间的远程与数据核对
+
+Windows反向隧道恢复，严格SSH已能只读访问远端NAS；无需重配密钥，保持隧道窗口。
+[远程库存笔记](../src/task/goal-point-wam/docs/research/2026-10-12-remote-data-access.md)
+记录限定两层目录未见touch/EPIC包，不能推广为整个NAS无数据。已有48个EgoDex
+工程clip明确training_allowed=false，手点10/11、时钟插值、整段离线教师非因果输入、
+目标对象/刚体标签均需适配；未下载、写远端或使用远端GPU。
+[Touch/EPIC适配笔记](../src/task/goal-point-wam/docs/research/2026-10-12-touch-epic-data-fit.md)
+建议优先对T-Rex做少量episode合同审计用于独立辅助表征；它不提供现行对象运动
+完整合同。原EPIC本地34clips有0个合格H4+K24手窗口，扩大batch无法补齐监督。
+数据研究不改变本轮主线结论，也未启动外部数据训练。
+
 ## 2026-10-12 显式手几何学习诊断
 
 用户确认可能没有新修改并授权继续自主探索。

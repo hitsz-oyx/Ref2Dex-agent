@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-goal-injection
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 00ca63ef
+git_commit: a90b57eb
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 12
@@ -14,7 +14,7 @@ seeds: [247, 248, 249]
 decision_changed_if_positive: retain query conditioning and consider larger matched learning before world consistency
 decision_changed_if_negative: stop injection-only tuning and prioritize observed-hand representation and world action reliability
 status: UNCLEAR
-run_id: goal-injection-20261012-r1
+run_id: goal-injection-20261012-r2
 ---
 
 # Matched object-goal injection routes
@@ -26,8 +26,8 @@ and does its response improve real held-out prediction? Three short full-WAM
 arms are the cheapest matched discriminator; synthetic response training would
 not establish real conditional utility.
 
-Result: UNCLEAR; small memory arm complete, larger matched comparison pending.
-Decision: User requests larger batches and parallel GPUs; replace the remaining tiny arms with a larger matched three-arm run, deferring closed-loop world goal loss.
+Result: UNCLEAR for direct-query superiority; all three larger arms and frozen audits complete. Memory goal has a local conditional-utility signal on GRAB/ARCTIC.
+Decision: Stop query-only injection tuning; retain memory goal and test explicit observed-hand access. Continue deferring closed-loop world goal loss.
 
 ## Protocol fixed before execution
 
@@ -123,16 +123,62 @@ Detailed notes reside in paper/vigar, paper/selfwam and paper/act2goal.
 
 ## Limitations / future evidence
 
-Single seed,1200 update samples and reused96-window val panel cannot reject
-goal conditioning or establish architecture superiority. A larger matched
-budget, untouched evaluation and multi-seed Validation are deferred until a
-positive decision signal. World action sensitivity, held-out forward accuracy,
+Single initialization seed, overlapping 76,800 train windows and a reused
+384-window exploration panel cannot establish architecture superiority.
+Untouched evaluation and multi-seed Validation remain required. The retained
+tiny run uses a different96-window panel; its numbers do not establish a matched
+small/large-budget effect. World action sensitivity, held-out forward accuracy,
 candidate ranking and bounded L_goal require separate evidence; current task
 results cannot establish human-to-robot transfer, physics or Cm/RL utility.
 
 ## Artifacts
 
-- Planned output: `outputs/goal-point-wam/goal-injection-20261012-r1/`
+- Retained tiny output: `outputs/goal-point-wam/goal-injection-20261012-r1/memory/`
+- Completed matched output: `outputs/goal-point-wam/goal-injection-20261012-r2/`
 - Each arm saves `result.json`, `input_manifest.json`, indices and final checkpoint.
 - Post-training frozen audits save `goal_audit.json`; the summary is `comparison.json`.
 - [Comparison implementation](../../../tools/audit/compare_goal_injection.py)
+
+## Completed larger comparison
+
+Actual batch64 preflight: 7.76GB allocated/8.57GB reserved, synchronized steady
+compute0.456s/update. All three fresh arms completed1200 updates with76,800
+sample exposures each,384 balanced validation windows and fixed final checkpoints.
+Actual code a90b57eb; initialization and train/val/data/stats hashes match.
+Training wall per arm: memory802.41s, query793.43s, none807.55s.
+
+Trajectory EPE (mm; average over valid hand points and24 future steps):
+
+| Arm | OakInk2 | GRAB | ARCTIC |
+| --- | ---: | ---: | ---: |
+| Zero hand | 35.333 | 114.981 | 73.638 |
+| Memory, real goal | 25.755 | 79.587 | 61.866 |
+| Memory, static goal | 26.284 | 89.029 | 66.302 |
+| Query, real goal | 26.455 | 82.327 | 62.262 |
+| Query, static goal | 27.108 | 91.239 | 67.359 |
+| No goal | 26.403 | 88.711 | 68.353 |
+
+Memory beats no-goal by10.3%/9.5% on GRAB/ARCTIC and its own static-goal
+ablation by10.6%/6.7%. Query responds more to translated goal (endpoint RMS
+33.9/46.1/42.9mm versus memory24.5/35.6/35.6mm), but no source passes either
+the registered accuracy or5x-response superiority gate. Query world macro EPE
+is12.57% lower than memory; this does not make query trajectory superior.
+No-goal intervention responses are exactly0. Frozen EPE matches trainer final
+within1e-5m, using the same TF32 setting and cached scenes for all goal variants.
+
+The original full-forward world-isolation threshold FAILS (maximum.001987).
+Same-input repeated forwards also differ, so this statistic confounds goal
+intervention with sparse scene numerical variation and includes padded objects.
+Independent query audit found repeat.006293 versus changed-goal.004926;
+valid-only repeat5.33e-5 also fails, so masking padding is not a threshold fix.
+All three supplementary final-checkpoint audits hold scene/executed-action
+memory identical: world translation/rotation differences exactly0 and gradient
+to goal is absent. This supports architectural independence of goal, not world
+physical reliability. Original failures and comparison.json remain unchanged;
+no thresholds or accuracy gates are retroactively relaxed. Supplementary audit
+is engineering-only, with final checkpoint/source/data/stream hashes bound.
+
+[Original comparison](../../../../../../outputs/goal-point-wam/goal-injection-20261012-r2/comparison.json),
+[Independent measurement review](../../../../../../outputs/goal-point-wam/goal-injection-20261012-r2/world-isolation-independent.json).
+Per-arm `world_isolation.json` saves the supplementary diagnostics. The original
+small run remains intact and is excluded from this comparison.

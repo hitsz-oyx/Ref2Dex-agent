@@ -14,31 +14,36 @@ def digest(path):
     return value.hexdigest()
 
 
+def load_run(path):
+    run = json.loads((path / 'result.json').read_text())
+    audit = json.loads((path / 'goal_audit.json').read_text())
+    identity = json.loads((path / 'input_manifest.json').read_text())
+    config = json.loads((path / 'config.json').read_text())
+    if run['status'] != 'COMPLETED' or run['step'] != config['updates']:
+        raise ValueError('incomplete final budget: ' + str(path))
+    if audit['status'] != 'COMPLETED' or audit['checkpoint_step'] != config['updates']:
+        raise ValueError('frozen audit must use final budget')
+    if audit['input_identity'] != identity or audit['config'] != config:
+        raise ValueError('audit/run input identity or config mismatch')
+    if audit['checkpoint_sha256'] != digest(path / 'final.pt'):
+        raise ValueError('audit does not describe final checkpoint')
+    if audit['validation_indices_sha256'] != identity['validation_indices_sha256']:
+        raise ValueError('audit panel mismatch')
+    for name, measured in audit['sources'].items():
+        trained = run['validation']['source/' + name + '/trajectory_epe_m']
+        if abs(measured['trajectory_epe_m'] - trained) > 1e-5:
+            raise ValueError('audit/final validation EPE mismatch')
+    return run, audit, identity
+
+
 def compare(root):
     routes = ('memory', 'query', 'none')
-    runs = {r: json.loads((root / r / 'result.json').read_text()) for r in routes}
-    audits = {r: json.loads((root / r / 'goal_audit.json').read_text()) for r in routes}
-    identities = {r: json.loads((root / r / 'input_manifest.json').read_text()) for r in routes}
+    loaded = {r: load_run(root / r) for r in routes}
+    runs, audits, identities = ({r: loaded[r][i] for r in routes} for i in range(3))
     budgets = {r: json.loads((root / r / 'config.json').read_text())['updates'] for r in routes}
     if len(set(budgets.values())) != 1: raise ValueError('different update budgets')
     if any(x['status'] != 'COMPLETED' or x['step'] != budgets[r] for r, x in runs.items()):
         raise ValueError('all final arms must complete their fixed budget')
-    for route in routes:
-        audit, identity = audits[route], identities[route]
-        if audit['status'] != 'COMPLETED' or audit['checkpoint_step'] != budgets[route]:
-            raise ValueError('frozen audit must use final budget')
-        if audit['input_identity'] != identity:
-            raise ValueError('audit/run input identity mismatch')
-        if audit['checkpoint_sha256'] != digest(root / route / 'final.pt'):
-            raise ValueError('audit does not describe final checkpoint')
-        if audit['validation_indices_sha256'] != identity['validation_indices_sha256']:
-            raise ValueError('audit panel mismatch')
-        if audit['config'] != json.loads((root / route / 'config.json').read_text()):
-            raise ValueError('audit config mismatch')
-        for name, measured in audit['sources'].items():
-            trained = runs[route]['validation']['source/' + name + '/trajectory_epe_m']
-            if abs(measured['trajectory_epe_m'] - trained) > 1e-5:
-                raise ValueError('audit/final validation EPE mismatch')
     keys = ('initial_parameter_sha256', 'model_parameters', 'data_manifest_sha256', 'stats_sha256',
             'model_sha256', 'script_sha256', 'train_indices_sha256', 'validation_indices_sha256', 'git_commit')
     for key in keys:

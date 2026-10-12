@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-hand-goal-interaction
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: a90b57eb
+git_commit: fbb33460
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 13
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [247, 248, 249]
 decision_changed_if_positive: keep observed-hand query substrate and select the supported goal/world-loss combination for validation
 decision_changed_if_negative: stop these local query/loss changes and diagnose sample budget or target information before larger scale
-status: UNCLEAR
+status: PROMISING
 run_id: hand-goal-interaction-20261012-r1
 ---
 
@@ -25,8 +25,8 @@ Question: does access to observed per-hand geometry make goal useful, and does
 world auxiliary loss prevent learning that substrate? Rather than explore
 unrelated hyperparameters, five extra matched arms isolate these two questions.
 
-Result: UNCLEAR; execution pending.
-Decision: Add observed-hand memory/query/no-goal and two world-off controls alongside the larger goal-injection runs.
+Result: PROMISING for memory observed-hand access and memory/query goal utility on the specified panel; world-loss-off remains UNCLEAR. Original raw isolation failures are retained separately.
+Decision: Retain observed-hand + memory goal + world_weight1 as the next candidate; stop query-only/world-off tuning. Validate the positive components on independent evidence before any formal claim or L_goal.
 
 ## Decision Note: explicit temporary full-machine authorization
 
@@ -100,3 +100,70 @@ metrics and cached-scene goal ablations. Comparator will bind actual final
 checkpoint hashes, update budgets and code/data/stats identities before using
 results. CPU component tests verify common initialization/RNG and observed-only
 feature semantics; full training/evaluation use GPU.
+
+## Completed result and attribution
+
+All five arms completed the fixed1200-update batch64 budget from fbb33460.
+Each sees76,800 train windows; all eight old/new train/validation/data/stats
+hashes and original-core initialization match. Full initialization of five new
+arms is71df275c5feaa2b3345ea6ae982670dbc3bfeff03719dc44b2ba81121fa68d29.
+Final-checkpoint audits match trainer EPE within1e-5m; no best-checkpoint choice.
+
+| Hand-enabled arm | OakInk2 EPE mm | GRAB EPE mm | ARCTIC EPE mm |
+| --- | ---: | ---: | ---: |
+| Memory / world1 | 24.056 | 73.958 | 56.594 |
+| Query / world1 | 24.660 | 80.334 | 59.239 |
+| No goal / world1 | 24.755 | 86.558 | 66.203 |
+| Memory / world0 | 23.739 | 73.076 | 56.410 |
+| Query / world0 | 24.302 | 78.308 | 58.038 |
+
+Memory observed-hand access improves its no-hand counterpart by6.60%/7.07%/
+8.52%, passing all3 sources. Query/no-goal hand access only passes OakInk2,
+so their multivariate gates remain UNCLEAR. This identifies a useful information
+path, not an isolated proof that PTv3 cannot represent hands.
+
+With observed hand and world1 fixed, memory goal beats no-goal14.56%/14.51%
+and its own static-goal ablation15.88%/12.34% on GRAB/ARCTIC. Query goal also
+passes those2 sources (no-goal7.19%/10.52%, own-static10.30%/9.52%), but memory
+has lower true-goal EPE in all3. OakInk2 goal improvements remain below5%.
+No-goal has exactly0 intervention response. Goal utility and hand access are
+separate named PROMISING accuracy components, each still exploratory.
+
+World-off gains are only1.32%/1.19%/.33% for memory and1.45%/2.52%/2.03% for
+query; no source passes5%. Current evidence does not identify world auxiliary
+loss as the main trajectory-learning blocker. World0 world heads are untrained,
+so their forward-world scores are not physical-model comparisons.
+
+### Isolation measurement review
+
+Six world1 arms fail the original whole-forward1e-5 isolation threshold;
+world0 arms pass. Same-input repetition produces comparable variation, including
+valid-only maxima above threshold. Independent sparse-scene forwards and padded
+world predictions make the raw statistic unsuitable for attributing goal leak.
+All eight bound final-checkpoint supplementary audits use identical cached
+scene/executed-action memory: translation/rotation changes exactly0, and no
+world-to-goal autograd edge exists. Comparator retains each original failed
+statistic and distinguishes supplementary engineering gates from accuracy
+component labels. It does not label the original isolation protocol passed,
+rerun training, or establish world accuracy. See the original route card for
+independent reviewer evidence and no-change repeat numbers.
+
+### Resource record and stopping decision
+
+Five trainer times: memory-world1 786.67s, query-world1 799.54s,
+none-world1 781.82s, memory-world0 800.61s, query-world0 772.22s.
+All eight larger trainers total105.74GPUmin; training samples about10.1GiB
+per GPU with initial utilization mostly84--99%, declining around validation
+and I/O. Final model audits and engineering diagnostics completed without
+extending training. Global outputs+tmp measured279.873GB, below300GB; owned
+GPU processes ended. Foreign work later appeared on GPU2/3 and was avoided by
+supplementary audits. Temporary full-machine authorization is no longer used.
+
+Next Decision: preserve the memory+observed-hand candidate; a matched multi-seed
+Validation with independently frozen evaluation is warranted before scientific
+support. Do not add L_goal until forward-action reliability is discriminated.
+Query-only and world-off variants receive no further budget in this screen.
+
+[Bound comparison](../../../../../../outputs/goal-point-wam/hand-goal-interaction-20261012-r1/comparison.json),
+[Memory goal audit](../../../../../../outputs/goal-point-wam/hand-goal-interaction-20261012-r1/memory-world1/goal_audit.json),
+[Memory isolation diagnostic](../../../../../../outputs/goal-point-wam/hand-goal-interaction-20261012-r1/memory-world1/world_isolation.json).
