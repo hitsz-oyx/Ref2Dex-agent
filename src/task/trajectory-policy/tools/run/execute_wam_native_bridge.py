@@ -100,20 +100,10 @@ def main():
         or not json.loads((source/'result.json').read_text())['teacher_readiness']
         or sha(source/'trajectory.npz')!=source_manifest['trajectory_sha256']):
         raise ValueError('authenticated source oracle calibration required')
-    producer_updates=[]
-    for name,digest in source_manifest['input_sha256'].items():
-        path=Path(name)
-        if sha(path)==digest:
-            continue
-        if path!=TASK/'tools/run/collect_competent_pd.py':
-            raise ValueError('calibrated source native/data/config drift: '+name)
-        relative=path.relative_to(ROOT).as_posix()
-        blob=subprocess.check_output(['git','show',source_manifest['git_commit']+':'+relative],cwd=ROOT)
-        import hashlib
-        if hashlib.sha256(blob).hexdigest()!=digest:
-            raise ValueError('source producer Git blob differs from recorded identity')
-        producer_updates.append(dict(path=name,producer_sha256=digest,consumer_sha256=sha(path),
-                                     authenticated_git_commit=source_manifest['git_commit']))
+    from trajectory_policy.wam_calibration_provenance import authenticate_calibration_inputs, verify_default_R_compatibility
+    producer_updates=authenticate_calibration_inputs(source_manifest,ROOT,TASK,
+        lambda blob,path: verify_default_R_compatibility(blob,path,source,
+            ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt','cuda:0'))
     with np.load(source/'trajectory.npz',allow_pickle=False) as stream:
         oracle=stream['hand'][:,24].copy()  # privileged GT-R arm only
     reference_path=ROOT/'outputs/trajectory-policy/competent-reference-20261011-r1/reference.npz'
@@ -172,6 +162,7 @@ def main():
     if set(initial_gpu['pids'])-{os.getpid(),args.server_pid}:
         raise RuntimeError('foreign GPU process before simulation')
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
+        TASK/'src/trajectory_policy/wam_calibration_provenance.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
         source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path,
         helper,r_helper,joint_helper,TASK/'tools/run/wam_native_server.py',base_path]
