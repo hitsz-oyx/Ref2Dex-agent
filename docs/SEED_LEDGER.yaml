@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-goal-point-wam-ref27-effect-consistency:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    reuse_reason: same warm policy with stateless step/rank substreams; new mixed-domain objective, not independent replicates
+
   P-20261012-goal-point-wam-ref26-gated-hand:
     seed_pool: probe
     model_seed: 295
