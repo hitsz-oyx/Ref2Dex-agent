@@ -340,7 +340,7 @@ transfer. Actual r3 final metrics remain pending here.
 ## 17:35 final300 result and next cheapest Decision
 
 r3 completed300 updates in104.097s, exit0. Video WORLD gradients reached
-the shared backbone (mean norm0.24126); final parameter SHA
+the shared backbone (maximum post-clipping norm0.24126); final parameter SHA
 `fdc360eff0f50f05932edaebb01af7d4a1cd876fe5acdcc6f584dd277cdfca8c`. Latest/final share one
 inode (629762368 bytes); all four remote GPUs are released.
 
@@ -416,3 +416,62 @@ which returns immediately on child completion, and prioritizes frozen held
 records. It reuses completed r2 manifests/audits and runs the same extractor
 and thresholds for remaining clips. This changes supervisor waiting only,
 not labels, split or scientific method; core remains9c81eaa2.
+
+
+## Diverse cached-cohort mixed fit protocol (predeclared before launch)
+
+Class Decision: test whether1250 video updates across multiple admitted
+recordings improve held scene prediction while preserving the native main
+representation. This serves reusable point-transition pretraining upstream
+of Cm; it is not robot/RL validation. Small head-only fitting succeeded but
+one-clip held prediction worsened, so adding diverse existing data is more
+informative than repeating or extending that one-clip diagnostic.
+
+Run_id video-diverse-mixed-20261012-r1; core commit9c81eaa2; model-only
+initialization from original native auxiliary final10000, fresh optimizer.
+Use ALL66 screened cached windows (22 source clips) from original and diverse
+extraction; admit only original seven-gate PASS windows. Require>=6 unique
+train sessions and>=3 frozen held sessions before launch. Frozen seed283
+splits unchanged, no quality threshold relaxation or input selection using
+future motion. Excluded windows stay in the manifest/receipts.
+
+Single GPU0, main batch16/video4, 3native:1video,5000 total updates, lr1e-4,
+model287/draw288, max2400s training/2520s supervisor. Frozen native64/source
+panel, video validation every500; final fixed by step budget or safety stop,
+never choose the best held checkpoint. Checkpoint interval10000 (>5000),
+so save once at final and hardlink latest/final; avoid redundant terminal
+checkpoint writes and an unnecessary second atomic-file storage peak.
+Scientific retention screens: held video pooled EPE>=5% better than initial
+and stationary; main hand<=105% initial, world<=110% initial. All PASS gives
+a local PROMISING screen and motivates deeper per-session/motion analysis;
+otherwise UNCLEAR and prioritize input/label/head diagnosis. Report per-session
+values later, not pooled error alone.
+
+Supervisor stops on main hand>110% or world>120% initial at intermediate
+validation, nonfinite/OOM/input drift/foreign GPU/deadline/storage. These are
+safety limits, distinct from the stricter final positive screens. GPU/ETA
+observed on launch and subsequent polls; user-requested poll interval<=20min.
+Existing local outputs+tmp292.053GB; isolated NAS~5.16GB. New checkpoint
+<=0.70GB plus small logs/data projects combined<298GB proactive limit.
+Remote supervisor cap5.85GB (<current self-allocation6GB), leaving~97MB
+local headroom at that worst-case cap; recheck combined before launch and
+during training. Campaign300GB/four-card maximum unchanged, use just one
+remote GPU and preserve all original checkpoints.
+
+Repository native scene features include observed point velocity/acceleration/
+displacement; current video frontend zeroes them because it originally used
+current-only geometry. Later cached windows may support observed track
+history, worth a cheap separate check. This is OUR possible input adaptation:
+PointWAM paper §3.1--3.2 describes current colored point cloud/current hand
+keypoints, not a requirement to supply four-frame scene motion. Primary
+source https://arxiv.org/html/2610.02840v1#S3.SS1. Do not claim that absence
+of scene history invalidates the authors' current-input route or that ours
+is a full reproduction. Keep this fit protocol fixed while investigating.
+
+Admission finalized:66 total screened windows;54 train windows from18 unique
+recordings and6 held windows from4 recordings pass. All54 train windows
+pass;6/12 held candidates fail (4 new,2 original), preserved/excluded.
+This selected held cohort is not the entire EgoDex distribution. Diverse
+extraction completed60 windows in453.315s, CPU only, no reconstruction.
+Normalized session names (optional .mov suffix removed) have no train/dev
+overlap. NAS5.165GB before mixed fit, projected final combined297.85GB.
