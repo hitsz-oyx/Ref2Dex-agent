@@ -1308,3 +1308,30 @@ the failed r1. Remote receipts `ddp50k-permission-repair-20261012-r1.json`
 and `ddp50k-r2-launch-receipt.json`; the original distributed smoke still
 precedes this fresh fit. No continuation checkpoint from the interrupted
 1000-step run is claimed. The producer and persistent GPU3 job are unchanged.
+
+Permission-origin follow-up: no chmod000/umask mutation found in the relevant
+trainer, atomic JSON writer, distributed helper, window creation/admission or
+owned driver code. Current three rank processes show Umask0002, uid/gid1006;
+NAS reports uid1005/gid10 for created files. Mapping alone is not proof of the
+failure, since ordinary chmod succeeds and mapped-owner files are readable.
+An isolated NAS probe produced readable plain/atomic JSON/NumPy files and
+explicit600/644/664 files, unchanged after84.6s (beyond the documented default
+NFS regular-file attribute cache maximum60s). New probes beneath the old
+failed train directory are also readable. Historical unrepaired rank index
+files remain000 with ctime equal to mtime; this does not identify an actor or
+exclude server ACL policy changes that are not ordinary per-file chmod.
+
+Syscall differential at `permission-probe-1791816960/syscalls.log` is more
+specific: both pathlib.open('wb') and os.open(O_CREAT|O_TRUNC,0666) return
+mode0777, while os.open(O_CREAT|O_EXCL,0666) returns0664 under the same Umask0002,
+UID and parent directory. strace captured0666 openat requests and no chmod
+calls for those paths. Thus the ordinary-create permission result differs
+from the exclusive-create result; NAS/NFS create/ACL handling is a candidate,
+not a confirmed explanation for historical000. Current probe cannot recreate
+000. Client kernel journal access is denied and NAS export configuration/audit
+logs are unavailable through the current client identity. No remount, sudo,
+NAS configuration changes or live-code mutation performed. Repaired14 held
+panel files remain0644/readable and r2 continues; evidence/result/findings JSON
+are beneath `permission-probe-1791816960/`. Root cause remains NOT_CONFIRMED.
+NFS attribute-cache reference: https://man7.org/linux/man-pages/man5/nfs.5.html
+File-creation mask reference: https://man7.org/linux/man-pages/man2/umask.2.html
