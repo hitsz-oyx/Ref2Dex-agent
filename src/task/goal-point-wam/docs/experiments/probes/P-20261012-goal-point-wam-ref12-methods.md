@@ -149,3 +149,12 @@ Deferred: independent subjects/panels, multi-seed causal comparison, real
 candidate execution, faithful video/latent paper reproductions, detached 4D
 teacher feature distillation, robot adaptation and final Cm-on/off RL evidence.
 None is established by this round.
+
+## Engineering preparation result
+
+Commit1edaafba full batch64 two-update smokes passed all4 methods; losses and
+gradients finite, cached actor label-leak max0. The change head initially emitted
+large random increments, making its auxiliary loss dominate (26.65 before .25
+weight). Its final layer is now zero initialized to start at the zero-change
+reference; preserve the original smoke and rerun only the affected arm. A frozen
+world consistency smoke is also queued separately. These are wiring results only.

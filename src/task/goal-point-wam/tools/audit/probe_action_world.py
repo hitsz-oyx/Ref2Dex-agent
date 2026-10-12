@@ -33,7 +33,7 @@ def run(args):
     dataset = GoalWindows(MixedWindows(args.data, 'val'), goal_type='object_points', goal_points=32)
     totals = {name: dict(windows=0, teacher_better_than_static=0, recorded_candidate_best=0,
                          action_response=0., repeated_world_noise=0., actual_teacher_target=0.,
-                         static_target=0., predicted_actor_goal=0., world_gradient_norm_sum=0.,
+                         static_target=0., predicted_actor_goal=0., world_gradient_norm_sum=0., actor_error_sum=0., actor_valid_points=0,
                          moving_objects=0, moving_epe=0., moving_identity_epe=0.) for name in MAIN_SOURCE_NAMES}
     windows = []
     for cpu in loader(dataset, np.load(args.indices), args.batch, 2):
@@ -51,6 +51,7 @@ def run(args):
                 tokens, mask = model.action(action, valid)
                 return model.world(scene['scene_tokens'], scene['scene_mask'], scene['object_tokens'], scene['object_mask'], tokens, mask)
         truth = batch['trajectory_target']
+        actor_error = torch.linalg.vector_norm(actor - truth, dim=-1)
         with torch.no_grad():
             predictions = {name: world(delta) for name, delta in
                            [('recorded', truth), ('static', torch.zeros_like(truth)), ('half', .5 * truth), ('one_half', 1.5 * truth), ('actor', actor)]}
@@ -80,6 +81,9 @@ def run(args):
         for row, sid in enumerate(batch['source_id'].tolist()):
             name = MAIN_SOURCE_NAMES[sid]
             t = totals[name]; t['windows'] += 1
+            actor_valid = batch['trajectory_valid'][row]
+            t['actor_error_sum'] += float(actor_error[row][actor_valid].sum())
+            t['actor_valid_points'] += int(actor_valid.sum())
             t['teacher_better_than_static'] += int(scores['recorded'][row] < scores['static'][row])
             t['recorded_candidate_best'] += int(best[row] == 0)
             for key, value in [('action_response', response), ('repeated_world_noise', noise), ('actual_teacher_target', scores['recorded']),
@@ -94,8 +98,8 @@ def run(args):
     sources = {}
     for name, t in totals.items():
         n = t['windows']; m = t['moving_objects']
-        sources[name] = {key: value / n for key, value in t.items() if key not in ('windows', 'moving_objects', 'moving_epe', 'moving_identity_epe')}
-        sources[name].update(windows=n, moving_objects=m, moving_world_epe_m=t['moving_epe']/m if m else None,
+        sources[name] = {key: value / n for key, value in t.items() if key not in ('windows', 'moving_objects', 'moving_epe', 'moving_identity_epe', 'actor_error_sum', 'actor_valid_points')}
+        sources[name].update(windows=n, moving_objects=m, parent_actor_trajectory_epe_m=t['actor_error_sum']/t['actor_valid_points'], actor_valid_points=t['actor_valid_points'], moving_world_epe_m=t['moving_epe']/m if m else None,
                              moving_identity_epe_m=t['moving_identity_epe']/m if m else None)
     atomic_json(args.output, dict(status='COMPLETED', checkpoint_sha256=digest(args.checkpoint), checkpoint_step=state['step'],
                                  indices_sha256=digest(args.indices), parent_identity=state['identity'], sources=sources, windows=windows,

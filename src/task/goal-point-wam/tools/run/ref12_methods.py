@@ -58,6 +58,8 @@ class Ref12Method(GoalPointWAM):
             nn.init.zeros_(self.horizon_condition.weight)
         if self.method == 'change_supervision':
             self.future_change = nn.Sequential(nn.LayerNorm(128), nn.Linear(128, 128), nn.GELU(), nn.Linear(128, 3))
+            nn.init.zeros_(self.future_change[-1].weight)
+            nn.init.zeros_(self.future_change[-1].bias)
         if self.method == 'intermediate_plan':
             layer = nn.TransformerDecoderLayer(128, 4, 512, dropout=0., activation='gelu', batch_first=True, norm_first=True)
             self.plan_decoder = nn.TransformerDecoder(layer, 1)
