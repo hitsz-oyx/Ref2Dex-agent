@@ -33,8 +33,12 @@ def main():
     p.add_argument('--max-points', type=int, default=2048)
     p.add_argument('--label-depth', choices=('offline', 'rolling-prefix', 'offline-teacher'), default='offline',
                    help='rolling-prefix uses the identical four-frame frontend for inputs and labels')
+    p.add_argument('--window-offset', type=int, choices=(0, 3, 6), default=0,
+                   help='native30Hz ticks into the cached clip; nonzero offsets require offline-teacher')
     p.add_argument('--goal-mask', type=Path, help='current-frame target mask at640x360; optional, never selected by future motion')
     a = p.parse_args()
+    if a.window_offset and a.label_depth != 'offline-teacher':
+        raise ValueError('cached trajectory windows require the offline-teacher frontend')
     if a.output.exists() or not 32 <= a.max_points <= 4096:
         raise ValueError('new bounded output required')
     if sha256(a.depth_checkpoint) != 'c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934':
@@ -46,11 +50,15 @@ def main():
     if identity['split'] != 'official_train':
         raise ValueError('official TRAIN only')
     teacher_sha = sha256(a.teacher)
+    teacher_audit = a.teacher.with_name('audit.json')
+    teacher_provenance = None
     with np.load(a.teacher, allow_pickle=False) as f:
         t = {k: f[k].copy() for k in f.files}
     frame_ids = t['source_frame_ids']
-    tick = int(frame_ids[0])
-    if tick < 3 or len(frame_ids) != 11 or not np.array_equal(np.diff(frame_ids), np.full(10, 3)):
+    clip_start = int(frame_ids[0])
+    tick = clip_start + a.window_offset
+    label_offset = a.window_offset // 3
+    if clip_start < 3 or len(frame_ids) != 11 or not np.array_equal(np.diff(frame_ids), np.full(10, 3)):
         raise ValueError('teacher requires1s/10Hz and at least3 observed history frames')
     with h5py.File(a.hdf5, 'r') as f:
         if 'confidences' not in f:
@@ -80,9 +88,15 @@ def main():
         np.savez_compressed(a.output/'depth_frontend.npz', depth_m=label_depth,
                             source_frame_ids=label_ids, observation_frame_ids=prefix_ids)
     elif a.label_depth == 'offline-teacher':
-        label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
+        label_ids, label_depth, label_calibrations = frame_ids[label_offset:], t['depth_m'][label_offset:], None
         depth = label_depth[:1]
         calibration = None  # Existing teacher scale is not estimated again.
+        if teacher_audit.exists():
+            teacher_provenance = json.loads(teacher_audit.read_text())
+            if teacher_provenance['source_frames'] != frame_ids.tolist():
+                raise ValueError('teacher calibration clock mismatch')
+            calibration = teacher_provenance['calibration']
+            label_calibrations = [dict(frame_ids=frame_ids.tolist(), **calibration)]
     else:
         label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
         depth = depth_from_omega(rgb, a.depth_vendor, a.depth_checkpoint, a.output)
@@ -93,14 +107,20 @@ def main():
     queries = np.stack((xx.ravel(), yy.ravel()), -1).astype('float32')[None]
     if t['tracks_uv'].shape[1] != queries.shape[1]:
         raise ValueError('teacher query identity is not the documented every-second-pixel grid')
-    observed, observed_valid = lift_tracks(queries, np.ones(queries.shape[:-1], bool), depth[-1:], intrinsic, camera[tick:tick+1])
+    query_visible = np.ones(queries.shape[:-1], bool)
+    if a.window_offset:
+        # Current positions of existing clip-local track IDs, not future motion.
+        queries = t['tracks_uv'][label_offset:label_offset+1]
+        query_visible = t['visibility'][label_offset:label_offset+1]
+    observed, observed_valid = lift_tracks(queries, query_visible, depth[-1:], intrinsic, camera[tick:tick+1])
     C = np.linalg.inv(camera[tick])
     def anchor(x):
         return (x @ C[:3, :3].T + C[:3, 3]).astype('float32')
     observed = anchor(observed)
     observed_valid &= (np.abs(observed) <= 1.99).all(-1)
     chosen = select_scene(observed, observed_valid, a.max_points)
-    teacher_world, teacher_valid = lift_tracks(t['tracks_uv'][:len(label_ids), chosen], t['visibility'][:len(label_ids), chosen],
+    teacher_world, teacher_valid = lift_tracks(t['tracks_uv'][label_offset:label_offset+len(label_ids), chosen],
+        t['visibility'][label_offset:label_offset+len(label_ids), chosen],
         label_depth, intrinsic, camera[label_ids])
     future_world, future_valid = resample_valid(teacher_world, teacher_valid, 3*(len(label_ids)-1)+1)
     actual = anchor(future_world)[1:25]
@@ -135,6 +155,9 @@ def main():
                   source_split='official_train', source_identity=identity, teacher_sha256=teacher_sha,
                   raw_hdf5_sha256=sha256(a.hdf5), teacher_path=str(a.teacher.resolve()), observation_frame_ids=prefix_ids.tolist(),
                   teacher_frame_ids=label_ids.tolist(), source_current_frame=tick)
+    record.update(source_clip_frame_ids=frame_ids.tolist(), window_offset=a.window_offset)
+    if teacher_provenance is not None:
+        record.update(teacher_audit_path=str(teacher_audit.resolve()), teacher_audit_sha256=sha256(teacher_audit))
     if a.label_depth == 'rolling-prefix':
         record.update(label_depth_path='depth_frontend.npz', label_depth_sha256=sha256(a.output/'depth_frontend.npz'))
     report = dict(schema='goal-point-wam.video-points.v1', status='COMPLETED', training_allowed=False,

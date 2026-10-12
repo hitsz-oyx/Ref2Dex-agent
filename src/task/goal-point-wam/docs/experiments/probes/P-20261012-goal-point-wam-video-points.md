@@ -243,3 +243,26 @@ Do not infer method ineffectiveness or change the frozen recording-session split
 Receipt and measured quality: `tmp/video-training-20261012-takeover/`; remote
 `video-offline-screen-20261012-r1/`. Tests7 passed, including explicit offline
 scope acceptance and retained unadmitted-data rejection.
+
+## Cached-trajectory extraction decision
+
+User explicitly requests preparing the complete trajectory once, then extracting
+windows. The offline-teacher path implements that contract per already processed
+one-second clip; long episodes may stay partitioned into bounded clips, with
+clip-local track identities. Cache is read-only. Native30Hz offsets0/3/6 each
+have H4 measured hand history and K24 future labels; later windows use current
+tracked pixels/visibility and the same cached metric depth for both current
+queries and future labels. Future visibility or motion does not select current
+queries. Native current camera anchors each window, without rerunning Omega
+or recalibrating scale. Copy existing calibration provenance and verify its
+source clock/hash where available; do not replace it with a new estimate.
+
+Decision: inspect existing frozen-dev clips at all three offsets to determine
+whether the first dev failure is local or shared. Then extract existing train
+clips only if dev geometry offers a viable Probe. CPU-only extraction/audit,
+<=1h and <=480MB total, no new download or GPU inference. Quality failures stay
+excluded, frozen session split is preserved, and aggregate admission must record
+all exclusions. A GPU mixed smoke can use engineering data after the old four-rank
+run and GPUs have fully exited; scientific fit still needs both admitted splits,
+fresh total storage accounting and explicit Probe identity. This is a reuse and
+window-extraction change, not a PointWAM architecture or global-claim change.

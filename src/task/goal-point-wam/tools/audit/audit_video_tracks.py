@@ -26,6 +26,8 @@ def main():
         clip = a.data/record['path']
         if sha256(teacher) != record['teacher_sha256'] or sha256(clip) != record['sha256']:
             raise ValueError('data identity drift')
+        if record.get('teacher_audit_path') and sha256(Path(record['teacher_audit_path'])) != record['teacher_audit_sha256']:
+            raise ValueError('teacher calibration identity drift')
         with np.load(teacher, allow_pickle=False) as f:
             t = {k: f[k].copy() for k in f.files}
         with np.load(clip, allow_pickle=False) as f:
@@ -57,8 +59,9 @@ def main():
         teacher_initial = world[0] @ C[:3, :3].T + C[:3, 3]
         error = np.linalg.norm(teacher_initial-d['query_xyz'], axis=-1)*1000
         current_good = valid[0] & np.isfinite(error)
-        raw_world, raw_valid = lift_tracks(t['tracks_uv'][:1, chosen], t['visibility'][:1, chosen],
-            t['depth_m'][:1], t['intrinsic'], t['camera_to_origin'][:1])
+        first = offsets[:1]
+        raw_world, raw_valid = lift_tracks(t['tracks_uv'][first][:, chosen], t['visibility'][first][:, chosen],
+            t['depth_m'][first], t['intrinsic'], t['camera_to_origin'][first])
         raw_current = raw_world[0] @ C[:3, :3].T + C[:3, 3]
         raw_error = np.linalg.norm(raw_current-d['query_xyz'], axis=-1)*1000
         raw_good = raw_valid[0] & np.isfinite(raw_error)
