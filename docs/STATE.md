@@ -1,5 +1,29 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 机器人head校准与最小仿真Decision
+
+固定代码7f053ac9、GPU2完成300更新（61.42s，8304 train windows）。仅训练
+trajectory decoder/hand_query；scene/PTv3、goal、action、world、R权重hash保持一致。
+冻结64窗held report最近8步86.530→28.025mm，全24步205.414→38.213mm；
+WAM-vs-GT-R PD XYZ p95 288.487→199.834mm。真实H4窗口最近8步
+64.741→20.773mm、PD XYZ p95 155.074→34.877mm；startup repeated-H4
+最近8步仍59.453mm、PD XYZ p95 225.526mm。所有窗口clipping=0。
+预先要求两项误差均减半未全部满足，Probe保持UNCLEAR；不能将head拟合或
+零clipping当成自主机器人成功。
+[校准结果](../outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1/result.json)。
+
+Decision Note：当前需要区分剩余离线误差是否导致逐tick重规划闭环失效，尤其是
+启动阶段。ref2明确要求最小闭环判断控制价值，mapping/frame硬工程门已通过；
+10mm/.05rad是保守offline screen，保持FAIL记录，不把它当作仿真禁令。
+root选择实现一次最小native仿真Probe，从frame0使用真实测量H4（不足时重复当前
+已有首帧）、当前object与已知reference endpoint，不引入未来手/关节状态，不用
+teacher prefix隐藏启动问题。固定冻结R/校准head、actor period1；同次保留teacher/
+GT-R执行校准。先review接线再启动，不接物理机器人。预计单GPU2不超过10min，
+所有当日ref2输出+scratch合计仍<=100MB，不占远程或他人卡。非有限值、错误
+applied PD/坐标/身份或资源界限触发停止；校准臂失败则结果UNCLEAR，校准通过
+但WAM失败则据真实visited-state轨迹与PD定位下一步，不直接否定共享backbone。
+当前授权覆盖可逆仿真，不需要新增外部权限。
+
 ## 2026-10-12 短时域审计与优先机器人联调
 
 用户要求先统计最近8步，再并行推进ref2，并最新明确优先WAM→冻结R→PD联调。

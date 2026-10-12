@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-head-calibration
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 23947ec4
+git_commit: 7f053ac9
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 17
@@ -88,7 +88,42 @@ strata without changing uniform weights. New128-cache/64-eval batch context
 causes roughly.06mm mean full24 EPE difference from the original8-batch
 shadow; initial/final training comparisons reuse exactly the same frozen cache.
 
-Formal bounded300-update calibration pending fixed code commit.
+Formal calibration at7f053ac9 completed300 updates in61.42s (cache38.06s,
+head optimization about20.4s), GPU2 peak2459.65MiB. All five frozen hashes
+exactly unchanged; cache/direct max0 and both trainable modules have nonzero
+gradients. Native GPU sampling showed0% instantaneous utilization while
+memory and CUDA compute were active; this bounded head-only test does not
+justify spending extra compute to force utilization.
+
+Held64 initial/final nearest8 EPE86.53->28.03mm, full24 205.41->38.21mm,
+h1 12.10->9.11mm. WAM-vs-GT-R XYZ p95288.49->199.83mm, rotation
+1.095->.652rad, fingers.716->.399rad; clipping remains0. Actual PD deviation
+final XYZ198.69mm versus GT-R baseline10.597mm; report R's finite precision
+separately. First8 reduction criterion passes but >=50% PD reduction does not,
+so predeclared joint signal remains UNCLEAR. All three distance screens fail;
+the passing frame/semantic/PD conversion gates remain intact.
+
+The12 startup repeat-H4 report rows have first8 EPE180.95->59.45mm,
+h1 31.72->28.62mm and PD XYZ p95311.99->225.53mm. The52 real-H4
+rows have first8 64.74->20.77mm, h1 7.58->4.60mm and PD XYZ
+155.07->34.88mm. Later-than-tick8 first8 is18.68mm/h1 3.84mm,
+PD XYZ p9535.77mm. Startup draws240/38400=.625% follow uniform sampling;
+startup rows12/64=18.75% of the intentionally startup-rich report panel.
+No held-driven reweighting or checkpoint selection occurred.
+
+Validation64 env16:20 has first8 87.13->27.27mm, full24
+206.90->36.20mm, PD XYZ p95288.54->199.18mm, clipping0.
+Raw initial/final prediction/teacher/PD/action arrays, all frozen hashes and
+draw counts are retained at
+`outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1/`.
+Head-only checkpoint SHA1d1d9678bf7788d2929677c6e93f653a21126656fb5d56641c5c5017a31a9724;
+no base WAM, R, optimizer or disk token cache was written.
+
+User ref2 specifically requests minimal simulated closure after interface
+gates to determine actual control value. Root has recorded a separate Decision
+allowing a bounded3-row teacher/GT-R/WAM-R simulation despite the failed
+conservative offline screen. This preserves this card's UNCLEAR result and
+screen; no oracle prefix, frame0 shortcut or physical robot execution is allowed.
 
 ## Limitations / future evidence
 
