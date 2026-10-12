@@ -1,5 +1,14 @@
 # Trajectory policy
 
+## Goal-Point-WAM ref2_3 multi-takeover fit（2026-10-12）
+
+`tools/run/fit_wam_multitakeover_anchored.py --output <fresh-owned-dir>`
+从Probe30的GT-anchored WAM/R继续，以Probe31的259个实际专家future和
+384个当前PD-only样本训练，保持nominal/startup回放和GT-only R梯度职责。
+`tools/audit/audit_wam_multitakeover_fit.py --fit <fit-dir>`核对各实际源的
+标签与报告指标。保留门通过后只运行一次新闭环，比较t8/12/16/24/32/48。
+协议见[多接管训练卡32](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref23-multitakeover-fit.md)。
+
 ## Goal-Point-WAM ref2_2 continuation（2026-10-12）
 
 当前robot执行线先做GT-tau R窗口诊断，再拆分WAM/R梯度职责，暂不扩大

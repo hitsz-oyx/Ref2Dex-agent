@@ -27,7 +27,7 @@ def audit(directory):
     aggregation=Path(manifest['aggregation_directory'])
     am=json.loads((aggregation/'manifest.json').read_text())
     for sid,entry in enumerate(am['admissions']):
-        paths['multi%d'%sid]=Path(entry['native'])/'trajectory.npz'
+        paths['multi%d'%sid]=(Path(entry['native'])/'trajectory.npz').resolve()
     data={}
     for name,path in paths.items():
         if manifest['input_sha256'].get(str(path))!=sha(path):raise ValueError('measured label source drift')

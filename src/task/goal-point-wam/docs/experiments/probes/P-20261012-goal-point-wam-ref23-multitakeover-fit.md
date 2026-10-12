@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref23-multitakeover-fit
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: bdc6abad
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 32
@@ -90,4 +90,10 @@ deferred evidence. No world/evaluator/RL begun.
 
 ## Results
 
-Pending engineering smoke, fixed fit and one admitted fresh rollout.
+Engineering smoke completed42.12s/GPU2, peak2116MiB, one update/no checkpoint.
+Predicted-action gradient into R0, GT-anchor into R1020.01; all four WAM
+action-only gradients nonzero. Frozen weights/buffers unchanged.21 admission,
+sampling and gradient-ownership contracts pass. Independent actual-source
+label/256metric audit passes (PD0/tau1.19e-7m/metric0). Auditor resolves the
+recovered t8 symlink to its original completed trajectory; no data changed.
+Fixed1000 continuation is running; fresh rollout remains conditional on screens.
