@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-startup
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 65f10a8b
+git_commit: ed53315d
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 19
@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [293, 294]
 decision_changed_if_positive: run one bounded nominal closure with the fixed final startup head and unchanged teacher/GT calibration rows
 decision_changed_if_negative: inspect startup per-tick trajectory/PD errors without launching another adaptation recipe
-status: UNCLEAR
+status: PROMISING
 run_id: wam-ref2-head-startup-20261012-r1
 ---
 
@@ -81,7 +81,34 @@ Engineering smoke is at most one update and saves no checkpoint.
 
 ## Results
 
-Implementation/review pending. No training or new control executed yet.
+Fixed final300 continuation completed with sourceed53315d in68.25s
+(monitor including final artifact guard69.82s). Predeclared preliminary signals
+both passed, **PROMISING for one physical continuation**, not control success.
+Startup validation PD XYZ p95 versus GT-R199.878 ->18.341mm (<=20), versus
+actual teacher199.332 ->20.246mm. Held real-H4 nearest8 EPE16.478mm is below
+the fixed25.965923mm allowance; held overall nearest8 improved28.020 ->17.217mm.
+Startup validation nearest8 improved34.246 ->13.118mm. Startup per-tick PD
+GT-R p95 is13.890mm at0; largest per-tick value19.345mm at8. Original
+10mm/.05rad screens remain failed: held PD XYZ p95=21.139mm, wrist-axis
+p95=.06281rad, finger-coordinate p95=.05402rad; clipping0. Held true-PD
+XYZ p95=25.556mm and GT-R baseline remains reported separately.
+
+Sampling exactly9600/38400 first16 rows (25%),1817 tick<3 rows (4.73%).
+Both trainable modules received gradients; frozen scene/goal/action/world/R
+initial/final hashes exactly match prior300 source. Cache/direct maximum
+passed, authenticated base/model/stats/source/head unchanged; fixed final
+only, no optimizer/base copies. CUDA peak allocated2456MiB, physical sampled
+memory3133/24576MiB; a steady training sample showed90% GPU utilization.
+Combined ref2 artifacts/private scratch~16.43MB, below100MB.
+
+Artifacts: `outputs/trajectory-policy/wam-ref2-head-startup-20261012-r1/`
+contains manifest/result/predictions/monitor and head-only checkpoint SHA
+2b7eff74991a8ef306b192747d716210d4348d3259f628fa73c78dfc7b617fc2.
+Root independently recomputed rawstartup PD18.341158mm andheldreal-H4
+16.478322mm; sampling/frozen/source audit passed. Root permits the sole
+follow-up `wam-ref2-execution-20261012-r3` under the original execution card,
+seed292, same teacher/GT-R/WAM-R native protocol with this fixed head and
+remaining530s deadline. Physical outcomes are pending and remain separate.
 
 ## Limitations / future evidence
 

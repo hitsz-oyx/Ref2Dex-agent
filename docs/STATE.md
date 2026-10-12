@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 Startup continuation通过预定局部门槛
+
+固定代码ed53315d、GPU2、model293/draw294完成300追加更新，68.25s。
+现有head共600更新，原humanbase/backbone/goal/action/world/R未改；5项冻结hash
+一致，25%first16 draw9600/38400精确。startup validation PD XYZ p95
+199.878→18.341mm，frame0 GT-R差13.890mm、实际teacher差12.116mm。
+held real-H4最近8步20.769→16.478mm（预定上限25.966mm），两项局部信号通过，
+本startup Probe判PROMISING；不是物理执行成功或sampling因果Validation。
+held全panel最近8步约17.22mm、PD XYZ p95约21.14mm；原10mm/.05rad离线
+screen仍FAIL且未改。root已对保存的预测/PD arrays独立复算并核对身份、冻结hash。
+[结果](../outputs/trajectory-policy/wam-ref2-head-startup-20261012-r1/result.json)。
+
+按预先protocol启动唯一一次r3闭环：同3角色、native配置/R、seed292、frame0、
+actor period1，只换固定startup head；剩余整组deadline<=530s计入训练+仿真600s
+总预算，单GPU2/当日全部ref2输出+scratch<=100MB。若动作/坐标/身份/资源异常
+保存部分trace退出；完整行为由校准teacher/GT-R与WAM保持/放置一起判断。
+不从执行结果选checkpoint，不追加训练recipe。
+
 ## 2026-10-12 可审计闭环前缀与启动修复方向
 
 用户最新明确专心联调，视频由另一个agent接手；本会话不再修改视频代码或标签。
