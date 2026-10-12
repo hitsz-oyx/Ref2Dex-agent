@@ -45,8 +45,11 @@ support, not automatic full backbone thaw. No new permission boundary.
 
 ## Independent derived actor admission
 
-Preserve both source manifests' blanket actor_future_hand_training_allowed
-false and mixed-policy deny. NEW actor-specific admission authorizes only
+Preserve source actor-future restrictions and mixed-policy deny. The newer
+t32 manifest has actor_future_hand_training_allowed=false; legacy t16 lacks
+that explicit key and its original admission allowed expert PD only. Neither
+absence nor old training_allowed=true grants actor future labels.
+NEW actor-specific admission authorizes only
 role3 actually measured hand future whose entire24 causing controls are
 actually applied unclipped expert. Never use role2 future, copied/forked
 state, nominal teacher future as recovery label or cross handoff windows.

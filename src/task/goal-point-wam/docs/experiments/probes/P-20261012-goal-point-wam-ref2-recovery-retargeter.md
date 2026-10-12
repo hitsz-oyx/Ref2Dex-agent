@@ -147,3 +147,15 @@ If new R degrades this independent-takeover early recovery, collect broader
 true recovery support before further R training; if preserved, reassess the
 practical rotation constraint and actor trajectory supervision. Same motion/
 reset and privileged expert still limit independence/generalization.
+
+Cross diagnostic completed6.03s (fixed22a49ef4). On actually measured t16
+expert recovery80 windows, base/full/half XYZ p9544.272/31.027/33.897mm;
+same-trace teacher17.310/21.942/19.412mm. Early recovery16:32
+38.445/35.406/32.924mm, transition48:64 72.662/49.404/54.076mm. There is
+limited cross-takeover change, but nominal degradation and original failed
+gates remain; neither candidate is deployed. All PD current-q reconstruction0.
+Initial engineering preflight rejected legacy audit's missing takeover_tick;
+fixed ONLY missing legacy key by using fixed traceSHA+manifest+actual applied
+expert mask, still rejects contradictory explicit key. Failed preflight log
+retained separately; it is not method evidence. Original R is used for the
+separate direct actor-geometry probe26; R is only a frozen forward diagnostic.
