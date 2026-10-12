@@ -1,14 +1,46 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-12 用户收紧本地额外卡并授权远程训练
+## 2026-10-12 本地额外卡释放与远程四卡训练
 
-最新授权：本地主训练仍GPU0--3；额外探索只用GPU6/7，GPU4/5完全释放给别人。
-四方法已保存停止在1150--1218步，保留checkpoint/optimizer/RNG，按两波恢复到
-原3000目标且保留原90min绝对deadline。旧四卡supervisor已STOPPED，不再监控
-GPU4/5或启动后续占用；新的队列只监控6/7。远程wbcd既有SSH身份已连通，用户
-明确授权尝试远程大规模训练；最多远程4卡，不扩展身份、不修改远端已有项目/数据。
-目前远端四4090空闲，NAS50TB空余，正在检查依赖与迁移冻结输入；资源Decision
-继续遵守全局300GB产物限制，新增数据和远端产物须计入预算。远端训练未启动。
+按最新指示，额外方法在GPU6/7按两波恢复optimizer/RNG，GPU4/5释放；四方法
+均完成固定3000步，CPU哈希绑定比较已完成。自有额外GPU4--7作业均已释放；
+GPU5已有他人作业，不干预。主训练仍GPU0--3，12:50快照5520/10000步，
+最近100步中位1.076s/update，余下训练约80min加验证/保存。固定1536-window
+panel第1000→5000步macro actor EPE57.272→51.391mm（降低10.27%），
+属于同一次训练内的趋势，不是方法因果结论；不再为占利用率启动额外作业。
+[P-ref12-methods](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md)
+四候选局部PROMISING，actor三个候选只在OakInk2/GRAB通过完整门槛，ARCTIC
+相对parent不足5%；ROI world三来源通过，但joint→world-only和单物体归一化
+混杂未消除。Change head在OakInk2比静态差14.95%；不能据actor增益声称aux有效。
+额外训练/新头/共享已看panel没有matched-duration control，因果与正式claim仍未验证。
+
+用户明确授权尝试远程大规模训练。已在NAS独立root迁移1.8776GB、24479文件，
+逐文件SHA通过，4,378,478 train窗口/源indices/stats/vendor不变；仅新manifest
+的路径与panel绑定改变，原字节保留。远端既有项目和数据未修改、依赖未重装。
+四4090/48GiB，graspenv torch2.0.1+cu118；一个四rank模型，strict PW50000初始化，
+hand+memory goal/world1，每rank256/global1024/10000步（10.24M暴露），同seed275。
+这是额外远程更大batch执行，不是多seed/control，也不迁移本地optimizer。
+
+remote-memory-ddp-20261012-r1 初次preflight因NAS TMPDIR使Unix socket路径110B
+而阻塞step0；保留日志，已停止所有自有worker。最小Listener复现长路径失败、
+同NAS scope/t短路径通过。代码f120642b新增remote专用launcher，修复preflight和
+正式worker TMPDIR，不修改本地live guarded源码。run-r2四rank全batch4步通过，
+final参数SHA一致，正式训练推进到560步且loss/梯度有限，最近100步中位
+1.426s/update（global1024），约718样本/s；本地global512约476样本/s。
+四卡此前20s采样平均利用率85.5--87%，显存约37--46GiB/48GiB；
+预计余下约3.7h加评估/保存。实际NAS数据加载CPU-only同batch/4worker
+稳态平均0.478s/batch，供给能力快于1.426s/update；不是训练内实测等待时间。
+训练不经Windows SSH读数据。四卡直接P2P不可用、跨两NUMA，GPU2当前PCIe4x8；
+这些是同步开销候选，尚无kernel/NCCL分段时间，不能量化计算/通信占比。
+输出：`/mnt/ugreen_nas/storage/oyx_storage/goal-point-wam-remote-20261012-r1/repo/outputs/goal-point-wam/remote-memory-ddp-20261012-r1/run-r2/`。
+[本地远程运行快照](../tmp/remote-training-20261012-r1/remote_observation-r2.json)。
+
+资源Decision：此次用户临时允许本地主4+额外2与远端4；额外已结束，现主4+
+远端4。远端训练<=6h/1440GPUmin、整个新NAS scope<=5GB；preflight保存数值/
+身份/parameter/checkpoint哈希后删除自有可重现工程cp，为科学rolling cp留余量。
+跨主机watcher4026316计入本地outputs+tmp和整个新NAS scope，combined298GB保存
+停止自有supervisor；远端独立source/foreign-GPU/deadline/5GB守卫持续运行。
+最近combined~294.94GB<300GB。SSH断开不会结束后台训练，状态获取仍需Windows隧道。
 
 ## 2026-10-12 ref1_2 文献方法并行探索
 

@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [280, 281, 282]
 decision_changed_if_positive: retain useful geometric method for forward reliability or goal-conditioned action work
 decision_changed_if_negative: stop the tested local adaptation and preserve the running large-scale substrate
-status: UNCLEAR
+status: PROMISING
 run_id: ref12-methods-20261012-r1
 ---
 
@@ -27,8 +27,8 @@ memory/query and world-on/off screens are not repeated; the main four-rank
 reproductions. [Primary-source mapping](../../research/2026-10-12-ref12-method-probe-map.md)
 records which mechanisms and action semantics the papers actually use.
 
-Result: UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; all four scientific methods are RUNNING.
-Decision: Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism.
+Result: PROMISING for the four additional-training candidates on the shared panel; all four reached fixed3000 and passed their predeclared source gates. Isolated method/auxiliary causality remains UNCLEAR.
+Decision: Retain the candidate checkpoints, prioritize intermediate-plan coverage and recheck the world-only candidate's action reliability before L_goal. Do not add a new training/control grid now.
 
 ## Decision Note: remaining-card authorization
 
@@ -243,3 +243,36 @@ to fixed-final3000 before writing `two_card_comparison.json` and
 `two_card_analysis_status.json`; the previous stopped-group watcher exited
 without treating interrupted results as final evidence. No GPU4/5 monitoring
 or automatic future allocation remains in this queue.
+
+## Fixed3000 two-card results
+
+Both waves completed with finite training and preserved optimizer/RNG progress.
+The bound comparator completed successfully, checking parent, panel, statistics,
+data/model identities and actual final checkpoint hashes. Source order below is
+OakInk2/GRAB/ARCTIC; figures are percent improvements on the fixed768-window panel.
+
+| Candidate | Actor improvement versus parent | Real-goal improvement versus own static goal | Passing sources |
+| --- | --- | --- | --- |
+| hindsight_prefix | 6.70 / 6.71 / 2.58 | 6.30 / 17.37 / 12.25 | OakInk2, GRAB |
+| intermediate_plan | 7.75 / 9.48 / 3.81 | 7.14 / 18.76 / 13.34 | OakInk2, GRAB |
+| change_supervision | 7.85 / 8.76 / 4.17 | 6.17 / 17.88 / 12.99 | OakInk2, GRAB |
+
+All three also beat zero-hand by>=5% on their passing sources, so each candidate
+is locally PROMISING. Intermediate plan beats its static-object plan by
+52.64/64.88/50.51%. The change head itself is **14.95% worse than static on
+OakInk2**, and improves only6.00/8.95% on GRAB/ARCTIC; actor gains do not establish
+that this auxiliary is effective or that it caused the gains.
+
+World-only/ROI moving-world EPE improves over identity by48.03/58.47/37.06%,
+and target auxiliary prediction improves over static by41.62/55.59/32.56%:
+locally PROMISING on all three sources. It still changes the joint objective,
+and ROI normalization cancels on single-object windows; this is no isolated
+evidence for ROI weighting. Counterfactual ordering/physical execution remain
+unverified. No full frozen-world goal-consistency training is launched.
+
+All four had additional3000 updates versus the parent, new heads/objectives and
+a repeatedly observed shared validation panel. No same-duration continuation
+control or multi-seed validation exists. Method ranking, causality, untouched
+subject generalization and downstream robot/Cm/RL claims remain deferred evidence.
+All extra GPUs were released after completion; main0--3 DDP remains running.
+[Bound results](../../../../../../outputs/goal-point-wam/ref12-methods-20261012-r1/two_card_comparison.json).

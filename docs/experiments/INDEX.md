@@ -176,7 +176,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261012-goal-point-wam-ref12-methods](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md) | ref1_2 intermediate literature methods on remaining GPUs | UNCLEAR; four full-batch engineering smokes and the corrected auxiliary/closed-loop wiring checks passed; all four scientific methods are RU | Use bounded single-seed method Probes and cached-H world diagnostics to identify the next useful mechanism. | probes/UNCLEAR |
+| [P-20261012-goal-point-wam-ref12-methods](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md) | ref1_2 intermediate literature methods on remaining GPUs | PROMISING for the four additional-training candidates on the shared panel; all four reached fixed3000 and passed their predeclared source ga | Retain the candidate checkpoints, prioritize intermediate-plan coverage and recheck the world-only candidate's action reliability before L_g | probes/PROMISING |
 
 ## HF-goal-point-wam-three-domain
 

@@ -79,6 +79,45 @@ disconnects. Stop own jobs only on drift, foreign-GPU conflict, nonfinite/OOM,
 disk budget or deadline. Remote training survives SSH disconnection; monitoring
 requires the user's existing Windows tunnel to stay available.
 
+### Actual remote execution
+
+All24479 files/1,877,608,466 input bytes passed migrated SHA256 verification.
+Relocated train/val counts are4,378,478/715,689; normalization-source identity
+`fedfd19e0d14a5185d5f2710ce619b942815b415fe1a0099bf6317b78027017a`
+and original panel index SHA are unchanged. New mixed manifest SHA is
+`3e6fa78658b40f742efaeca83f84a824c1451a1e1402f07d6677af6b4c90beac`.
+
+First attempt `run/` blocked at step0 because the NAS TMPDIR gave a110-byte
+AF_UNIX socket pathname. Preserve its logs/input identity; its result is an
+engineering failure, no method-negative evidence. A minimal actual
+`multiprocessing.connection.Listener()` reproduced the long-path failure and
+passed with the short directory inside the same NAS scope. Stop only the owned
+torchrun and its workers. Fix commitf120642b adds remote-only launcher handling
+`scope/t` for BOTH preflight and scientific DataLoader IPC. No local live
+model/trainer/launcher source changed. No dependency install or driver change.
+
+Second attempt `run-r2/`: four-rank batch256/global1024 engineering smoke
+completed all4 steps, finite losses, final parameter SHA identical across ranks;
+training elapsed27.7s. Checkpoint hashes and numerical logs are retained; only
+the reproducible smoke checkpoint files were removed as declared. NFS worker
+finalization printed temporary-file EBUSY warnings but smoke returned0 and
+completed its numerical/hash checks; logs preserve these warnings.
+
+Remote supervisor177156, scientific launcher177896, running codef120642b.
+Scientific training advanced to80 with finite loss/gradient, about1.41s/update;
+sampled four-GPU memory37--46GiB/48GiB. Initial remaining ETA~4h plus evaluation
+and checkpoint overhead, within6h training cap. First shared step's all-rank
+gradient norms were identical1.1594147682. Training is still RUNNING/UNCLEAR.
+NAS output relative to repo:
+`outputs/goal-point-wam/remote-memory-ddp-20261012-r1/run-r2/training/`.
+[Local snapshot](../../../../../../tmp/remote-training-20261012-r1/remote_observation-r2.json),
+[relocation audit](../../../../../../tmp/remote-training-20261012-r1/relocation_audit.json),
+[launch identity](../../../../../../tmp/remote-training-20261012-r1/launch_receipt-r2.json).
+Cross-host budget watcher4026316 preserves original failed attempt and counts
+the entire NAS scope; recent aggregate294.94GB,298GB proactive owned save/stop.
+It never signals foreign tasks. Remote independent5GB/source/conflict/deadline
+guards continue if the SSH tunnel disconnects.
+
 ## Fixed method and budget
 
 - Fresh strict PW50000 scene/projection transfer; current WAM heads, object
@@ -219,3 +258,58 @@ this is recorded without extending utilization tuning.
 Aggregate artifacts283.10GB remain below300GB. Source/storage/ownership guards
 remain active; no further throughput benchmarks or implementation changes are
 planned while this run trains. Results remain UNCLEAR until actual evaluation.
+
+
+## 12:50 local progress and remote performance diagnosis
+
+Local r2 is RUNNING at5520/10000, finite losses/gradients, last100 updates
+median1.0764s, global512 (~476 sampled occurrences/s); remaining training
+about80min plus evaluation/checkpoint overhead. GPU0--3 memory about18--22GiB.
+All extra method jobs have finished and released GPU4--7; GPU5 now has a
+foreign job, which is untouched. Fixed1536-window validation results (mm):
+
+| Metric | Source | step1000 | step5000 |
+| --- | --- | ---: | ---: |
+| Actor trajectory EPE | OakInk2 | 19.889 | 17.490 |
+| Actor trajectory EPE | GRAB | 90.752 | 80.246 |
+| Actor trajectory EPE | ARCTIC | 61.174 | 56.436 |
+| Actor trajectory EPE | macro | 57.272 | 51.391 |
+| Moving world point EPE h24 | OakInk2 | 15.904 | 10.153 |
+| Moving world point EPE h24 | GRAB | 58.745 | 37.026 |
+| Moving world point EPE h24 | ARCTIC | 60.308 | 41.386 |
+
+Macro actor error decreased10.27% within this run. This is interim learning
+progress on its reused fixed panel, not a final goal-ablation, causal, physical
+execution or RL claim. Keep the existing final-checkpoint decision protocol.
+
+Remote r2 advanced to560; last100-step median1.4259s/update, global1024
+(~718 occurrences/s). Larger per-step batch prevents comparing raw step time
+as equal work. At earlier step343, median1.4250s and wall/update1.4278s: log
+write/flush and non-iteration overhead are small outside evaluation/checkpoints.
+A20s GPU snapshot series averaged87.0/86.25/86.75/85.5% activity. These samples
+are engineering observations, not sustained hardware benchmark results.
+
+Read-only diagnosis tests actual loader production using rank0 indexed batches,
+microbatch256,4 workers,24 batches (discard first4), no model/CUDA allocation.
+CPU-only production mean0.4777s/batch across20 steady batches; median0.0294s
+is misleading because prefetch gives one slow batch followed by three fast
+batches. Producer capacity exceeds training consumption, so loader capacity
+is not the leading bottleneck candidate. This measurement does not time
+actual in-training data waits/H2D; data loading overlaps compute, and subtracting
+0.4777 from1.4259 would not give model compute time. All inputs are on remote
+NAS; the Windows SSH tunnel is outside the training input path.
+
+Measured topology: no direct GPU P2P (all off-diagonal read access CNS), two
+NUMA sockets, cross-pair SYS links, GPU2 currently PCIe4 x8 versus x16 on
+others. Host/NUMA communication and synchronization are plausible overhead
+candidates; actual GPU-kernel/NCCL fractions have not been profiled, so no
+claim that communication is the dominant measured bottleneck. Torch remote
+2.0.1/cu118 versus local2.4.1/cu121 is another unisolated implementation
+confound. Continue the authorized training without changing its live guarded
+recipe or launching a tuning grid. Remaining remote training~3.7h plus saves.
+
+Diagnostics: [timing/topology](../../../../../../tmp/remote-training-20261012-r1/performance_inventory.json),
+[loader measurement](../../../../../../tmp/remote-training-20261012-r1/loader_benchmark.json),
+[GPU/rank samples](../../../../../../tmp/remote-training-20261012-r1/steady_sample.json),
+[latest remote status](../../../../../../tmp/remote-training-20261012-r1/status_update.json).
+Only OakInk2/GRAB/ARCTIC are in this run; no EgoDex, Touch or EPIC input added.
