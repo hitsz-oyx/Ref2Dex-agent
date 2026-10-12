@@ -22,6 +22,7 @@ sys.path.insert(0, str(TASK/'tools/audit'))
 from oakink_wm.pointwam_data import source_identity, sha256, recover_metric_scale, resize_intrinsics, lift_tracks, resample_valid, select_scene
 from prepare_pointwam_pilot import decode_clip, depth_from_omega
 from prepare_egodex_actor import JOINTS
+from rolling_video_depth import rolling_metric_depth
 
 
 def main():
@@ -29,6 +30,8 @@ def main():
     for name in ('hdf5', 'source-manifest', 'teacher', 'depth-vendor', 'depth-checkpoint', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
     p.add_argument('--max-points', type=int, default=2048)
+    p.add_argument('--label-depth', choices=('offline', 'rolling-prefix'), default='offline',
+                   help='rolling-prefix uses the identical four-frame frontend for inputs and labels')
     p.add_argument('--goal-mask', type=Path, help='current-frame target mask at640x360; optional, never selected by future motion')
     a = p.parse_args()
     if a.output.exists() or not 32 <= a.max_points <= 4096:
@@ -58,16 +61,27 @@ def main():
         session = str(f.attrs['session_name'])
     hv &= np.isfinite(hand).all(-1)
     prefix_ids = np.arange(tick-3, tick+1)
-    rgb, original_wh = decode_clip(a.hdf5.with_suffix('.mp4'), prefix_ids, len(hand))
+    decode_ids = np.arange(tick-3, tick+25) if a.label_depth == 'rolling-prefix' else prefix_ids
+    rgb, original_wh = decode_clip(a.hdf5.with_suffix('.mp4'), decode_ids, len(hand))
     intrinsic = resize_intrinsics(intrinsic, original_wh, (640, 360))
     if not np.allclose(t['camera_to_origin'], camera[frame_ids], atol=1e-5) or not np.allclose(t['intrinsic'], intrinsic, atol=1e-4):
         raise ValueError('teacher/source camera mismatch')
     a.output.mkdir(parents=True)
     started = time.time()
     print(json.dumps(dict(stage='PREFIX_DEPTH', observation_frame_ids=prefix_ids.tolist(), latest_allowed_frame=tick)), flush=True)
-    depth = depth_from_omega(rgb, a.depth_vendor, a.depth_checkpoint, a.output)
-    calibration = recover_metric_scale(depth, hand[prefix_ids], hv[prefix_ids], intrinsic, camera[prefix_ids])
-    depth *= calibration['scale']
+    if a.label_depth == 'rolling-prefix':
+        label_ids = frame_ids[:9]
+        label_depth, label_calibrations = rolling_metric_depth(rgb, decode_ids, label_ids,
+            hand, hv, intrinsic, camera, a.depth_vendor, a.depth_checkpoint, a.output)
+        depth = label_depth[:1]
+        calibration = label_calibrations[0]
+        np.savez_compressed(a.output/'depth_frontend.npz', depth_m=label_depth,
+                            source_frame_ids=label_ids, observation_frame_ids=prefix_ids)
+    else:
+        label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
+        depth = depth_from_omega(rgb, a.depth_vendor, a.depth_checkpoint, a.output)
+        calibration = recover_metric_scale(depth, hand[prefix_ids], hv[prefix_ids], intrinsic, camera[prefix_ids])
+        depth *= calibration['scale']
     # Use original query grid, NOT offline tracked current pixel estimates.
     yy, xx = np.mgrid[0:360:2, 0:640:2]
     queries = np.stack((xx.ravel(), yy.ravel()), -1).astype('float32')[None]
@@ -80,13 +94,13 @@ def main():
     observed = anchor(observed)
     observed_valid &= (np.abs(observed) <= 1.99).all(-1)
     chosen = select_scene(observed, observed_valid, a.max_points)
-    teacher_world, teacher_valid = lift_tracks(t['tracks_uv'][:, chosen], t['visibility'][:, chosen],
-        t['depth_m'], intrinsic, t['camera_to_origin'])
-    future_world, future_valid = resample_valid(teacher_world, teacher_valid, 31)
+    teacher_world, teacher_valid = lift_tracks(t['tracks_uv'][:len(label_ids), chosen], t['visibility'][:len(label_ids), chosen],
+        label_depth, intrinsic, camera[label_ids])
+    future_world, future_valid = resample_valid(teacher_world, teacher_valid, 3*(len(label_ids)-1)+1)
     actual = anchor(future_world)[1:25]
     target_valid = future_valid[1:25] & future_valid[0][None]
     query_xyz = observed[0, chosen]
-    # Report teacher/causal depth disagreement; do not conceal it by rebasing labels.
+    # Measure alignment directly, without rebasing or translating any labels.
     initial_error = np.linalg.norm(anchor(teacher_world)[0] - query_xyz, axis=-1)
     finite_initial = teacher_valid[0] & np.isfinite(initial_error)
     if not target_valid.any() or not finite_initial.any():
@@ -114,15 +128,21 @@ def main():
     record = dict(path=path.name, sha256=sha256(path), split='train', session=session,
                   source_split='official_train', source_identity=identity, teacher_sha256=teacher_sha,
                   raw_hdf5_sha256=sha256(a.hdf5), teacher_path=str(a.teacher.resolve()), observation_frame_ids=prefix_ids.tolist(),
-                  teacher_frame_ids=frame_ids.tolist(), source_current_frame=tick)
+                  teacher_frame_ids=label_ids.tolist(), source_current_frame=tick)
+    if a.label_depth == 'rolling-prefix':
+        record.update(label_depth_path='depth_frontend.npz', label_depth_sha256=sha256(a.output/'depth_frontend.npz'))
     report = dict(schema='goal-point-wam.video-points.v1', status='COMPLETED', training_allowed=False,
         engineering_only=True, causal_observation=True, fps=30, history=4, horizon=24, records=[record],
         current_frame='native current camera, metric', native_hand_keypoints=JOINTS,
-        hand_order=['right', 'left'], world_labels='offline teacher 10Hz, interpolated30Hz; NOT native30Hz measurements',
+        hand_order=['right', 'left'], world_labels='CoTracker 10Hz, interpolated30Hz; NOT native30Hz measurements',
+        label_depth_backend=a.label_depth,
+        label_calibrations=label_calibrations,
+        label_geometry='absolute metric positions; no per-track offset subtraction or rebasing',
         current_scene_features='current-only depth; scene normal/history fields unavailable and zeroed; native hand history retained',
         goal_available=bool(sample['object_goal_valid'].any()), goal_mask_sha256=sha256(a.goal_mask) if a.goal_mask else None,
         calibration=calibration, depth_vendor_sha256=vendor_sha, depth_checkpoint_sha256=sha256(a.depth_checkpoint),
-        code_sha256=sha256(Path(__file__)), elapsed_seconds=time.time()-started,
+        code_sha256=sha256(Path(__file__)), rolling_frontend_sha256=sha256(Path(__file__).with_name('rolling_video_depth.py')),
+        elapsed_seconds=time.time()-started,
         teacher_current_disagreement_mm=dict(median=float(np.median(initial_error[finite_initial])*1000),
                                              p90=float(np.percentile(initial_error[finite_initial], 90)*1000)),
         admission_limitation='Engineering only: inspect depth/track drift and overlay; require separate sessions for scientific probe.')

@@ -31,24 +31,57 @@ def main():
         with np.load(clip, allow_pickle=False) as f:
             d = {k: f[k].copy() for k in f.files}
         chosen = d['track_ids']
-        uv = t['tracks_uv'][:, chosen]
-        world, valid = lift_tracks(uv, t['visibility'][:, chosen], t['depth_m'], t['intrinsic'], t['camera_to_origin'])
+        frame_ids = np.asarray(record['teacher_frame_ids'])
+        offsets = np.searchsorted(t['source_frame_ids'], frame_ids)
+        if not np.array_equal(t['source_frame_ids'][offsets], frame_ids):
+            raise ValueError('label clock differs from recorded teacher')
+        depth = t['depth_m'][offsets]
+        if 'label_depth_path' in record:
+            depth_path = a.data/record['label_depth_path']
+            if sha256(depth_path) != record['label_depth_sha256']:
+                raise ValueError('rolling label depth changed')
+            with np.load(depth_path, allow_pickle=False) as f:
+                if not np.array_equal(f['source_frame_ids'], frame_ids):
+                    raise ValueError('rolling depth clock mismatch')
+                depth = f['depth_m'].copy()
+        camera = t['camera_to_origin'][offsets]
+        uv = t['tracks_uv'][offsets][:, chosen]
+        world, valid = lift_tracks(uv, t['visibility'][offsets][:, chosen], depth, t['intrinsic'], camera)
         initial = np.broadcast_to(world[0], world.shape)
-        projected, _ = project_world(initial[:, None], t['intrinsic'], t['camera_to_origin'])
+        projected, _ = project_world(initial[:, None], t['intrinsic'], camera)
         residual_px = np.linalg.norm(projected[:, 0]-uv, axis=-1)
         # Future-based strata are AUDIT ONLY, never used in training input sampling.
         candidate = valid.all(0) & np.isfinite(residual_px).all(0) & (np.max(residual_px, 0) <= 2.)
         displacement = np.linalg.norm(world-world[0], axis=-1)*1000
-        C = np.linalg.inv(t['camera_to_origin'][0])
+        C = np.linalg.inv(camera[0])
         teacher_initial = world[0] @ C[:3, :3].T + C[:3, 3]
         error = np.linalg.norm(teacher_initial-d['query_xyz'], axis=-1)*1000
         current_good = valid[0] & np.isfinite(error)
+        raw_world, raw_valid = lift_tracks(t['tracks_uv'][:1, chosen], t['visibility'][:1, chosen],
+            t['depth_m'][:1], t['intrinsic'], t['camera_to_origin'][:1])
+        raw_current = raw_world[0] @ C[:3, :3].T + C[:3, 3]
+        raw_error = np.linalg.norm(raw_current-d['query_xyz'], axis=-1)*1000
+        raw_good = raw_valid[0] & np.isfinite(raw_error)
+        medians = np.median(displacement[:, candidate], axis=1) if candidate.any() else None
+        p90 = np.percentile(displacement[:, candidate], 90, axis=1) if candidate.any() else None
+        gates = dict(current_alignment_p90_le025mm=bool(np.percentile(error[current_good], 90) <= .25),
+                     at_least32_background_audit_candidates=bool(candidate.sum() >= 32),
+                     background_median_le10mm=bool(medians is not None and medians.max() <= 10),
+                     background_p90_le25mm=bool(p90 is not None and p90.max() <= 25),
+                     at_least256_current_points=bool(current_good.sum() >= 256),
+                     at_least25percent_future_valid=bool(d['point_target_valid'].mean() >= .25))
+        if meta.get('label_calibrations'):
+            gates['all_scale_iqr_le035'] = all(c['relative_iqr'] <= .35 for c in meta['label_calibrations'])
         records.append(dict(session=record['session'], query_points=len(chosen),
+            label_depth_backend=meta.get('label_depth_backend', 'offline'),
             current_disagreement_percentiles_mm=np.percentile(error[current_good], [25, 50, 75, 90]).tolist(),
+            original_offline_current_disagreement_percentiles_mm=np.percentile(raw_error[raw_good], [25, 50, 75, 90]).tolist(),
             candidate_static_tracks=int(candidate.sum()), candidate_rule='all11 visible/depth valid; camera-compensated pixel residual<=2px at every frame, audit only',
-            static_candidate_median_displacement_mm=np.median(displacement[:, candidate], axis=1).tolist() if candidate.any() else None,
-            original_measurement_offsets_s=((t['source_frame_ids']-t['source_frame_ids'][0])/30).tolist(),
+            static_candidate_median_displacement_mm=medians.tolist() if medians is not None else None,
+            static_candidate_p90_displacement_mm=p90.tolist() if p90 is not None else None,
+            original_measurement_offsets_s=((frame_ids-frame_ids[0])/30).tolist(),
             initial_tracker_query_residual_px=float(np.median(residual_px[0, current_good])),
+            admission_screen=gates, admission_screen_pass=all(gates.values()),
             warning='Low image residual is not proof of physical staticness; depth drift and motion along viewing rays remain confounded'))
     a.output.write_text(json.dumps(dict(status='COMPLETED', manifest_sha256=sha256(a.data/'manifest.json'),
                                        scope='no model inference/training; label-quality audit only', records=records), indent=2, allow_nan=False)+'\n')

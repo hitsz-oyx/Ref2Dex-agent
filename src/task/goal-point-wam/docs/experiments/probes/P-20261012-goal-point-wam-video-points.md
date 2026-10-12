@@ -122,3 +122,71 @@ video label-quality work deferred while preserving this reusable interface.
 Limitations/future evidence: per-frame depth drift, occlusion/scale stability,
 moving/static point EPE, source-balanced held-session metrics and target-goal
 admission; no causal method-quality, robot or RL claim from smoke.
+
+## Video-agent takeover and rolling-depth Decision (2026-10-12)
+
+User explicitly assigns video/EgoDex work to this separate session; robot
+integration stays with traj_policy. Existing remote native auxiliary training
+is preserved and monitored, not mislabeled as scene/video supervision. At7770
+updates it uses all four remote GPUs; main macro44.626mm and EgoDex held
+macro50.172mm at8000 are monitoring observations, not matched causal evidence.
+The existing remote guard and300GB global storage limit remain binding.
+
+Decision question: can using one identical observed-four-frame depth frontend
+for current inputs and future label frames remove cross-frontend alignment
+error without introducing unacceptable temporal drift? Old absolute teacher
+alignment median33.575/p9052.089mm; a diagnostic global depth ratio.964063
+reduces median to9.854mm but leaves local shape differences. No label offsets
+are subtracted, and this fitted ratio does not enter input or labels.
+
+Root selects a bounded engineering comparison, then a mixed learning Probe
+only if label screening passes. `--label-depth rolling-prefix` reuses original
+CoTracker pixel identities/visibility and native cameras, but evaluates Omega
+once per sampled label tick on that tick's four consecutive native past/current
+frames, with native2x11/confidence>=.5 hand-depth calibration. Each label frame
+can use later video than the actor current time solely as supervision. The
+first depth result itself supplies current input, so frontend identity is exact
+without per-track rebasing. Nine10Hz measurements span0--.8s, interpolated to
+25 positions;28 native hand frames remain H4/K24. Future camera transforms
+participate only in label lifting into the single current frame.
+
+Before seeing new results, screening requires current alignment p90<=.25mm,
+>=32 camera-compensated low-image-motion background candidates, their largest
+timewise median displacement<=10mm/p90<=25mm, all scale-calibration relative
+IQR<=.35,>=256 observed queries and>=25% future-label availability. Background
+candidates are audit strata, never future-based input point selection. Passing
+this heuristic is permission for an exploratory pseudo-label fit, not proof of
+ground-truth depth/motion. Record original full-teacher discrepancy as well.
+Failure keeps original admission flags false and leads to a geometry repair;
+do not automatically relax thresholds or declare EgoDex ineffective.
+
+Reuse existing24 native-admitted official-TRAIN records, native session split283
+and completed acquisition bytes. Start with basic_pick_place0/1 (train/val),
+then screen remaining existing nonzero-start clips if those pass. No archive
+download, new branch, full-corpus claim, extra seed/model controls or object
+SE(3) prerequisite. Null video object goals remain explicit; original main-three
+batches continue object-goal/rigid-point supervision on the shared backbone.
+
+Remote processing starts after original four-rank job completes and the assigned
+GPU has no other job; existing sources/checkpoints are never modified. First
+two clips<=900s each,<=20MB/clip; expansion<=24 clips/480MB and<=1h wall on
+at most four remote GPUs. New sparse code checkout/data/logs remain in the
+existing authorized isolated NAS scope. Engineering manifests stay inadmissible
+until screen and frozen session split are bound to a new aggregate manifest.
+All original failed/successful raw and teacher records remain untouched.
+
+Point trainer now monitors a fixed64/source subset of the existing frozen
+main panel, cached true/static goal response, and held-session video point EPE;
+records rank sampling, actual parent step/hash, fresh optimizer and new model
+kind. Periodic atomic latest includes optimizer and per-rank RNG; final uses a
+hardlink. All ranks enter the same evaluation/save barriers, independent of
+whether a rank writes metrics. Actual GPU preflight/label results are pending.
+CPU scheduler/point semantic tests6 passed; CPU label audit reproduces failure
+only at the old current-alignment gate. Model computation uses GPU; CPU only
+performs these array/contract checks.
+
+Runtime takeover and diagnostics: `tmp/video-training-20261012-takeover/`.
+Planned remote artifacts: isolated NAS scope `video-repo/` and
+`video-points-20261012-r1/`; original EgoDex r2 remains separate. Budget must
+be recomputed including atomic save peaks before any scientific fit. Stop on
+identity drift, nonfinite/OOM, GPU conflict, storage threshold or deadline.
