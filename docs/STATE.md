@@ -1,5 +1,20 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 B显式手token读出已实现，200步匹配比较未过非退化门
+
+在ref2_5合格Chunk-R之后，按ref2_4/ref2_5进入B：完整PTv3 packed输出
+按当前语义提取2×11hand feature，与原raw-hand query相加；不受256scene
+采样影响。两臂同Probe32 warm policy/固定新R/同采样各200更新，129.87s。
+nominal h1旧6.51/新8.59mm、first8旧16.06/新25.00mm，startup控制p95
+6.41->4.44mm改善，但10个轨迹门及t8恢复控制门失败，总10/21通过。
+全部零裁剪，goal sensitivity保留。144独立指标/标签复算通过，tau差
+<=1.2e-7m，其他指标/动作标签差0；R/action/world/统计buffer变化0。
+当前固定短适配局部UNPROMISING，初始新读出h154.51->8.59mm说明需区分
+适配不足与接法/尺度，不否定手交互表征。保留两臂，按gate暂不进入C或
+新actor闭环；A2的GT Chunk-R资格仍有效。B产物430.23MB<500MB，
+outputs+tmp293.27GB<400GB，仓库verify通过，GPU2已释放。
+见[手读出卡35](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref25-hand-readout.md)。
+
 ## 2026-10-12 ref2_5首步控制目标让Chunk-R通过GT抓持门
 
 保留Chunk Transformer和同初始化/同采样，固定3000更新48.38s；改用

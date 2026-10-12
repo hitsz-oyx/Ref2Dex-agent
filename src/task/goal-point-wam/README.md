@@ -1,5 +1,14 @@
 # goal-point-wam
 
+The isolated `src/goal_point_wam/hand_anchored.py` robot variant adds full-packed
+current semantic PTv3 hand features to the existing raw-hand query residual,
+preserving parameter keys and the teacher-forced world interface. Its matched
+short robot Probe uses `../trajectory-policy/tools/run/probe_wam_hand_readout.py`.
+The fixed200-update variant did not pass the offline non-regression gate;
+predicted-tau world consistency remains disabled. The qualified control-aware
+Chunk-R is retained independently. See the
+[hand-readout experiment](docs/experiments/probes/P-20261012-goal-point-wam-ref25-hand-readout.md).
+
 This Task implements Goal-Point-WAM on the frozen OakInk2/GRAB/ARCTIC
 main-three corpus, with a separate EgoDex video point-supervision route.
 

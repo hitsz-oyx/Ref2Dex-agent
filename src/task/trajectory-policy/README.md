@@ -1,5 +1,15 @@
 # Trajectory policy
 
+## PTv3 explicit hand readout（2026-10-12）
+
+`tools/run/probe_wam_hand_readout.py --output <fresh-owned-dir>`比较同一warm
+WAM在旧query接口与完整packed语义hand-token残差下的各200更新；固定合格
+control-aware Chunk-R，保留32-point memory goal，action/world/统计buffer冻结。
+`tools/audit/audit_wam_hand_readout.py --fit <comparison-dir>`独立重建标签、
+指标、采样和门槛。当前短适配10/21非退化门通过，暂不启用world一致性或
+actor物理比较；新R本身的GT资格保留。见
+[手读出卡35](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref25-hand-readout.md)。
+
 ## Goal-Point-WAM ref2_5 control-aware Chunk-R（2026-10-12）
 
 `tools/run/fit_chunk_retargeter.py --control-aware --output <fresh-owned-dir>`
