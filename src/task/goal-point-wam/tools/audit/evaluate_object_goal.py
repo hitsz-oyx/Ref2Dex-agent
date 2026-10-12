@@ -104,7 +104,7 @@ def evaluate(args):
                             object_rigid_follow_epe_m=x['object_rigid_follow']/x['count'],
                             improvement_vs_static_goal=1-x['real']/x['static_goal'],
                             improvement_vs_zero_hand=1-x['real']/x['zero'])
-    value = dict(status='COMPLETED', split='val', scope='96 balanced validation windows; no robot/RL claim',
+    value = dict(status='COMPLETED', split='val', scope=str(len(indices))+' balanced validation windows; no robot/RL claim',
                  checkpoint_sha256=digest(args.checkpoint), checkpoint_step=state['step'], config=config,
                  input_identity=identity, validation_indices_sha256=digest(indices_path), windows=windows,
                  sources=result, macro_trajectory_epe_m=float(np.mean([x['trajectory_epe_m'] for x in result.values()])),

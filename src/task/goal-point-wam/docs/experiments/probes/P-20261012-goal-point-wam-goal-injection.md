@@ -26,8 +26,8 @@ and does its response improve real held-out prediction? Three short full-WAM
 arms are the cheapest matched discriminator; synthetic response training would
 not establish real conditional utility.
 
-Result: UNCLEAR; execution pending.
-Decision: Run memory/query/no-goal at the existing600-update budget; defer closed-loop world goal loss.
+Result: UNCLEAR; small memory arm complete, larger matched comparison pending.
+Decision: User requests larger batches and parallel GPUs; replace the remaining tiny arms with a larger matched three-arm run, deferring closed-loop world goal loss.
 
 ## Protocol fixed before execution
 
@@ -74,6 +74,33 @@ screens, so L_goal would be hard to interpret and could exploit model error.
 No core mission/claim, branch, external project or resource boundary changes.
 Positive keeps query route; mechanism-only/negative stops route-only tuning
 and returns to observed-hand access or action-specific world reliability.
+
+## User-directed budget revision before larger execution
+
+The user explicitly notes idle GPUs and that the tiny screen may be unable to
+distinguish efficacy, authorizing larger batch and concurrent execution. The
+small memory run completed600 updates in305.16s, val EPE35.85/141.78/71.90mm,
+isolation2.50e-7. Keep it intact; the two small comparison arms are not started.
+It is not a completed three-arm result and will not enter the larger comparison.
+
+Root now chooses run_id `goal-injection-20261012-r2`: fresh strict PW initialization
+and the same complete parameter set in memory/query/none. Only route differs
+within r2. Microbatch16,1200 updates =19,200 actual train windows per arm (16x
+the small screen),100 warmup, same lr.001/cosine/decay/clip/loss. Workers2 for
+all arms,384 balanced validation windows (128/source), validation/checkpoint
+every400, final1200 only. This expanded exploration panel is not untouched
+Validation. All accuracy/response gates above remain fixed. Same seeds247--249.
+
+Three idle3090s (GPU2/3/4), one complete arm per GPU, concurrently; no DDP or
+cross-arm gradient sharing. Benchmark six batch16 training updates first on
+GPU3, engineering-only and no checkpoint, to measure actual memory/throughput.
+Then launch the matched runs only if memory fits with headroom. Shared bound
+<=140GPUmin/50min wall and8GiB new artifacts (including the retained small arm),
+<=2700s trainer wall each, under the global4-GPU/300GB limits. Stop on OOM,
+nonfinite, foreign resource conflict or deadline; no silent batch reduction.
+If batch16 does not fit, choose and record one common smaller batch before
+launching all three arms. This budget revision is user-directed and does not
+change mission/claim or external permissions.
 
 ## Primary-source design input
 

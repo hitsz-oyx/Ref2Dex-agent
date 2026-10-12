@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 """Compare completed matched injection arms; never choose a checkpoint or train."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
+
+
+def digest(path):
+    value = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            value.update(block)
+    return value.hexdigest()
 
 
 def compare(root):
@@ -10,8 +19,26 @@ def compare(root):
     runs = {r: json.loads((root / r / 'result.json').read_text()) for r in routes}
     audits = {r: json.loads((root / r / 'goal_audit.json').read_text()) for r in routes}
     identities = {r: json.loads((root / r / 'input_manifest.json').read_text()) for r in routes}
-    if any(x['status'] != 'COMPLETED' or x['step'] != 600 for x in runs.values()):
-        raise ValueError('all final600 arms must complete')
+    budgets = {r: json.loads((root / r / 'config.json').read_text())['updates'] for r in routes}
+    if len(set(budgets.values())) != 1: raise ValueError('different update budgets')
+    if any(x['status'] != 'COMPLETED' or x['step'] != budgets[r] for r, x in runs.items()):
+        raise ValueError('all final arms must complete their fixed budget')
+    for route in routes:
+        audit, identity = audits[route], identities[route]
+        if audit['status'] != 'COMPLETED' or audit['checkpoint_step'] != budgets[route]:
+            raise ValueError('frozen audit must use final budget')
+        if audit['input_identity'] != identity:
+            raise ValueError('audit/run input identity mismatch')
+        if audit['checkpoint_sha256'] != digest(root / route / 'final.pt'):
+            raise ValueError('audit does not describe final checkpoint')
+        if audit['validation_indices_sha256'] != identity['validation_indices_sha256']:
+            raise ValueError('audit panel mismatch')
+        if audit['config'] != json.loads((root / route / 'config.json').read_text()):
+            raise ValueError('audit config mismatch')
+        for name, measured in audit['sources'].items():
+            trained = runs[route]['validation']['source/' + name + '/trajectory_epe_m']
+            if abs(measured['trajectory_epe_m'] - trained) > 1e-5:
+                raise ValueError('audit/final validation EPE mismatch')
     keys = ('initial_parameter_sha256', 'model_parameters', 'data_manifest_sha256', 'stats_sha256',
             'model_sha256', 'script_sha256', 'train_indices_sha256', 'validation_indices_sha256', 'git_commit')
     for key in keys:
