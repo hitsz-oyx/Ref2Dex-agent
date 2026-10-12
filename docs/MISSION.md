@@ -23,7 +23,7 @@ Cm 可以重新设计、重新训练或改变接入方式。
 
 ### Objective A — Self-trained manipulation
 
-在 DExplore 的物理环境中，不直接使用官方 DExplore actor checkpoint 作为最终策略基础，自行训练得到能够完成目标抓取/抬升任务的策略。
+在 DExplore 的物理环境中，不直接使用官方 DExplore actor checkpoint 作为最终策略基础，自行训练得到能够完成目标参考轨迹任务的策略。
 
 ---
 

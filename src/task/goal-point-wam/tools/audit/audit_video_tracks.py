@@ -10,6 +10,7 @@ import numpy as np
 TASK = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(TASK.parent/'cm-pointflow-effect-pretrain/src'))
 from oakink_wm.pointwam_data import lift_tracks, project_world, sha256
+from trajectory_geometry import shared_trajectory_depth
 
 
 def main():
@@ -38,6 +39,18 @@ def main():
         if not np.array_equal(t['source_frame_ids'][offsets], frame_ids):
             raise ValueError('label clock differs from recorded teacher')
         depth = t['depth_m'][offsets]
+        if record.get('trajectory_depth_path'):
+            import h5py
+            metadata_path = Path(record['trajectory_geometry_manifest_path'])
+            if sha256(metadata_path) != record['trajectory_geometry_manifest_sha256']:
+                raise ValueError('shared geometry metadata changed')
+            metadata = json.loads(metadata_path.read_text())
+            with h5py.File(Path(metadata['video']).with_suffix('.hdf5'), 'r') as raw:
+                native_camera = raw['transforms/camera'][:]
+            depth, _, provenance = shared_trajectory_depth(Path(record['trajectory_depth_path']),
+                frame_ids, t['intrinsic'], native_camera, metadata['video'])
+            if provenance['trajectory_depth_sha256'] != record['trajectory_depth_sha256']:
+                raise ValueError('shared geometry depth changed')
         if 'label_depth_path' in record:
             depth_path = a.data/record['label_depth_path']
             if sha256(depth_path) != record['label_depth_sha256']:

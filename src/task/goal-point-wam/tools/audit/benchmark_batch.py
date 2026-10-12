@@ -23,6 +23,12 @@ def run(args):
     torch.set_num_threads(2)
     torch.backends.cuda.matmul.allow_tf32 = True
     config = json.loads(args.config.read_text())
+    if args.fused_hilbert:
+        from oakink_wm.pointworld_performance import install_fused_hilbert
+        install_fused_hilbert()
+    if args.vectorized_scene_sampling:
+        from goal_point_wam.performance import install_vectorized_sampling
+        install_vectorized_sampling()
     random.seed(config['seed']); np.random.seed(config['seed']); torch.manual_seed(config['seed'])
     base = MixedWindows(args.data, 'train')
     dataset = GoalWindows(base, goal_type='object_points', goal_points=config['goal_points'])
@@ -54,6 +60,8 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--fused-hilbert', action='store_true')
+    parser.add_argument('--vectorized-scene-sampling', action='store_true')
     for name in ('data', 'stats', 'init-pw', 'config', 'output'):
         parser.add_argument('--'+name, type=Path, required=True)
     run(parser.parse_args())

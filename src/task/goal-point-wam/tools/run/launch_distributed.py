@@ -22,6 +22,9 @@ def main():
     for name in ('data','stats','init-pw','config','output','validation-indices'):
         parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--gpus',default='0,1,4,5')
+    parser.add_argument('--resume',type=Path)
+    parser.add_argument('--import-reference-script-sha256')
+    parser.add_argument('--deadline',type=float)
     args=parser.parse_args(); root=args.output.resolve()
     gpus=[int(x) for x in args.gpus.split(',')]
     config=json.loads(args.config.read_text())
@@ -36,16 +39,24 @@ def main():
            args.validation_indices,args.validation_indices.parent/'panel.json',
            TASK/'tools/run/train_distributed.py',TASK/'tools/run/train_three_domain.py']
     files += list((TASK/'src/goal_point_wam').glob('*.py'))
+    if config.get('fused_hilbert',False):
+        files.append(TASK.parent/'cm-pointflow-effect-pretrain/src/oakink_wm/pointworld_performance.py')
     sources={str(p.resolve()):helpers.digest(p) for p in files}
     command=[sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node=4',
              str(TASK/'tools/run/train_distributed.py')]
     for name in ('data','stats','init-pw','config','validation-indices'):
         command += ['--'+name,str(getattr(args,name.replace('-','_')).resolve())]
     command += ['--output',str(root/'train')]
+    if args.resume:
+        command += ['--resume',str(args.resume.resolve())]
+    if args.import_reference_script_sha256:
+        command += ['--import-reference-script-sha256',args.import_reference_script_sha256]
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=args.gpus,TMPDIR=str(REPO/'tmp'),
              TRITON_CACHE_DIR=str(REPO/'tmp/triton-goal-point-wam-ddp'),
              OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='2')
-    started=time.time(); deadline=started+config['group_seconds']; stop=[False]
+    started=time.time(); deadline=args.deadline or started+config['group_seconds']; stop=[False]
+    if not started<deadline<=started+config['group_seconds']:
+        raise ValueError('deadline must preserve authorized remaining wall budget')
     for sig in (signal.SIGUSR1,signal.SIGTERM,signal.SIGINT):
         signal.signal(sig,lambda *_:stop.__setitem__(0,True))
     with (root/'console.log').open('w') as log:

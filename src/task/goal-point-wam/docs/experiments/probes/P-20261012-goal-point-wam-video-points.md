@@ -576,3 +576,156 @@ and other existing cached intervals. Same seven gates, max60 new windows,
 stop unchanged. Separate immutable new plan/run, no completed scientific
 manifest or checkpoint mutation. This tests whether avoidable coverage loss
 excluded more informative motion/held sessions before further model work.
+
+
+18:49 early extraction setup: isolated clone initially lacked fetched-only
+commit45632 in its reachable refs and unnecessarily copied83.18MB objects.
+No extraction had started. Configure this new clone's object alternates to
+the existing owned video-repo object store, verify9c81/45632 commits, remove
+ONLY its redundant newly created clone pack/index/reverse-index, and checkout
+45632. Original code tree, objects and checkpoints untouched. Narrow sparse
+paths to actual audit/common tools. Scope returned to5.807GB.
+Launcher281770/driver SHA
+`21adc2af081762af106f77b4bdc6d71b6f9a80cb873634c7d3ec38c6b603e5da`.
+New mapped cohort23 cached teachers/50 windows/23 records (18train,5held
+teachers); four other teacher archives cannot map to frozen original raw
+records and are excluded. Mapping reads existing pack source_episode_id; no
+filename-based guessed identities or new download. Plan on scope/video-early-plan.json.
+
+Decision: current-depth normals as compatible native input fields. Native
+18D point features reserve dimensions0:3 for measured surface normals;
+video currently zeros them. CPU surface-normal estimate uses ONLY current
+metric depth/intrinsic and current tracked UV, camera-facing orientation,
+finite/support/discontinuity masks, unit norm; unknown stays zero. Analytic
+fronto-parallel/slanted planes and NaN support checks before model probe.
+Two paired frozen-representation head fits: original zero normals vs current
+depth normals; same final5000 parent,54train/6held admitted windows, identical
+2000 cyclic/random draws (draw288), head-only AdamW lr1e-3. Cache both
+feature arms on GPU0. Native backbone/actor/goal/action/rigid world unchanged;
+no full WAM checkpoint. Positive screen: held point-pooled EPE>=5% better
+than zero-normal arm and stationary, and >=3/4 held session macros improve.
+Else UNCLEAR, defer normal field integration. Fixed finals, no held-based
+selection. GPU<=300s and artifacts<=2MB (small typed diagnostic heads/JSON);
+stop on drift, foreign GPU, nonfinite/deadline/scope/global budgets. This is
+a single-seed input/optimization Probe, not official PointWAM reproduction
+or formal Cm/robot evidence. Current PointWAM paper input includes colored
+geometry, but this normal field specifically adapts OUR native feature contract.
+
+## 19:10 early coverage and paired-normal outcomes
+
+Early extraction completed50 windows in325.233s;45 passed unchanged gates
+(40train/5held). Combined existing/new cached coverage is105 qualified windows:
+94train/19 sessions,11held/4 sessions. The fifth held session still fails
+quality; no threshold relaxation. Independent raw-HDF clock audit checked all50
+windows, including quality failures: native H4/K24 hand mismatch0m; directly
+backprojected next10Hz point mismatch max3.257339e-7m. This supports source
+clock/coordinate implementation, not teacher physical accuracy. New individual
+engineering manifests remain training_allowed=false; completed scientific
+manifest54train/6held is unchanged. Receipts: early_normals_final.json and
+early_clock_receipt.txt under local tmp/video-training-20261012-takeover/.
+
+Normal paired diagnostic completed60.957s, peak reserved574.620MB. Held pooled
+zero-normal14.88001mm vs current-normal14.82282mm; stationary14.77599mm.
+Only2/4 session macros improve; predeclared5%/stationary/3-session screen FAIL.
+UNCLEAR: defer product normal integration. This comparison does not attribute
+head-only optimization gains over the full-model final to normals. Typed small
+head files cannot initialize the full WAM. Parent full-checkpoint SHA
+573701835d1ac8b2c48d01efd761893e2cbcb2aa98164f129796ef174fb23126.
+
+Decision: paired motion-weight diagnostic, same frozen final5000 parent,
+54train/6held, current zero-normal features cached once, same initial head,
+2000 draws seed288, AdamW lr1e-3, gradient clip10. Original arm uses cumulative
+current-relative displacement/2mm; alternative uses adjacent-frame target
+displacement/5mm, first predecessor=current query. A missing predecessor
+gets zero motion weight while current valid supervision remains; NaNs are
+masked before arithmetic. Hold Huber/.05m, .1 weight floor and per-time/window
+reduction fixed. This tests a weighting adaptation, not full paper B.5 (which
+also differs in floor/reduction/MSE/statistical scale/clipping); definition
+and threshold change together. Independent primary-source note:
+paper/pointwam/video-loss-contract-audit-20261012.md.
+
+Question: does this weighting adaptation reduce held false motion enough to
+justify a later coupled-model Probe? Positive screen: alternative fixed-final
+held pooled EPE>=5% better than original and stationary, >=3/4 held session
+macros improve. Otherwise UNCLEAR and no blind full continuation. Log motion
+strata as label-defined diagnostics, not physical motion truth. GPU0<=300s,
+artifacts<=2MB, no full model/checkpoint mutation; stop on nonfinite/drift,
+foreign GPU, deadline or storage envelope. Run video-motion-head-probe-20261012-r1.
+
+19:14 Decision audit: same original RGB frame reconstructed in overlapping
+cached teacher clips. Current extraction is coherent within one teacher pack,
+not automatically throughout an entire multi-minute recording. Compare already
+cached metric depth at identical pixel coordinates/shared raw frame IDs for
+paired clips of the same raw episode; use existing scale/intrinsic only, no
+refit/reconstruction/input modification. Pixel grid<=4096/frame, finite positive
+depth masks, report per-frame/episode median/p90 3D disagreement and existing
+per-clip scale. CPU<=300s, JSON<=1MB. Exact raw identity/clock/intrinsic required.
+This asks whether clip-context reconstruction inconsistency remains large
+enough to prioritize unified trajectory geometry before more model fitting.
+The two reconstructions do not provide physical ground truth; disagreement
+can locate a consistency problem, agreement cannot prove accuracy. Compare
+to the existing 10mm-median/25mm-p90 quality envelope descriptively, without
+retroactively changing admission or formal conclusions.
+
+## 19:15 paired weighting outcome
+
+Motion-head diagnostic completed72.843s, peak reserved505413632 bytes (~482MiB),
+driver322315/child322345; driver SHA
+d52bb420dc3acd9801952cc0c3915e360437af09b069745f34b12097d82fd20e.
+Held pooled original14.880007mm vs adjacent14.845424mm (-0.2324%);
+static14.775990mm. Only1/4 session macros improves; positive screen FAIL,
+UNCLEAR. Held label-motion bins (<2,2–10,10–50,>=50mm) original/adjacent EPE:
+2.2363/2.3446,5.6555/6.1536,18.6259/18.5969,149.9335/142.2750mm.
+High-motion tail improves while low-motion errors worsen; no evidence this
+weight adaptation resolves held false motion. These bins are reconstructed
+label magnitude, not verified object motion. Same parent/backbone/head init
+and draw order; original arm exactly reproduces the normal Probe zero arm
+14.880007mm. Small typed head states only; no full WAM checkpoint or method
+negative claim. Local motion_head_final.json; remote run/fit/result.json.
+
+Cross-clip audit r1 failed before comparison because old/new plan records use
+different clock-field schemas. Preserve empty failed output; r2 reads actual
+teacher source_frame_ids (authoritative clock), unchanged comparison method.
+
+19:18 cross-clip result:45 mapped teachers/19 overlapping episode pairs/114
+shared raw frames;102 frames from17 pairs have both teacher clips represented
+by quality-admitted windows. Identical grid pixels/raw camera pose checked.
+Among both-admitted frames, per-frame median disagreement median12.146mm,
+p90 disagreement median26.687mm;61/102 exceed10mm median,54/102 exceed25mm
+p90. Episode medians range~2.06 to56.16mm. The numerical alignment fix within
+each cached teacher is valid, but whole-recording geometry is not yet unified.
+This is direct reconstruction inconsistency, not ground-truth reconstruction
+error or established causal attribution for poor training. Receipts:
+cross_clip_geometry_final.json; remote video-cross-clip-geometry-audit-20261012-r2.
+
+Decision: prioritize teacher-context consistency over another feature/loss
+training sweep. Cheapest follow-up separates multiplicative scale from depth
+shape: per clip pair fit ONE median depth ratio on alternating fixed grid
+pixels across all shared frames, evaluate remaining grid pixels; additionally
+evaluate per-frame scalar as a descriptive upper flexibility reference. Preserve
+uncorrected metric depth/report, no teacher or scientific label mutation.
+If one scalar leaves most mismatch, unified scalar calibration alone is
+insufficient; investigate one geometry per raw frame/full-record context before
+coupled training. CPU<=300s, JSON<=1MB. Shared-frame pixel split is a numerical
+consistency audit, not a held-recording scientific experiment or physical scale
+validation; held labels never select a scientific checkpoint.
+
+19:20 scale-vs-shape result: on alternating evaluation grid pixels, both-
+admitted shared-frame median-of-medians12.207mm original→3.967mm with ONE
+pair scalar (~67.5% lower); p90 median26.637→9.934mm. Per-frame scalars only
+slightly improve3.877/9.694mm. Scale inconsistency is therefore a substantial
+numerical component, while chair/lamp pair medians remain11.636/10.873mm.
+Agreement optimization is not physical scale validation. No corrected labels
+admitted and no retroactive reinterpretation of the previous training.
+
+Engineering next: test a single reconstruction context over the complete
+cached span of ONE train recording basic_pick_place/0, source frames0:3:45
+(16frames), using pinned Omega/direct weights and original camera/intrinsic.
+Calibrate ONCE over that span using existing original hand labels; store one
+depth per raw frame and immutable context identity. This is a feasibility smoke
+for the user's trajectory-first workflow, not a complete multi-minute recording
+or fresh scientific fit. Successful finite output and recoverable calibration
+permit designing the whole-recording shared geometry contract; poor calibration
+or OOM stops the approach without scaling. No tracker rerun/full checkpoint.
+GPU0<=360s, new artifacts<=20MB, scope cap5.855GB; current combined297.933GB
+leaves ~67MB below proactive298GB, and global300GB hard bound unchanged.

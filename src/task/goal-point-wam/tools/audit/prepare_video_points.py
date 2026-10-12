@@ -25,6 +25,7 @@ from prepare_pointwam_pilot import decode_clip, depth_from_omega
 from prepare_egodex_actor import JOINTS
 from rolling_video_depth import rolling_metric_depth
 from video_clock import cached_window_clock
+from trajectory_geometry import shared_trajectory_depth
 
 
 def main():
@@ -37,9 +38,13 @@ def main():
     p.add_argument('--window-offset', type=int, choices=(0, 3, 6), default=0,
                    help='native30Hz ticks into the cached clip; nonzero offsets require offline-teacher')
     p.add_argument('--goal-mask', type=Path, help='current-frame target mask at640x360; optional, never selected by future motion')
+    p.add_argument('--trajectory-depth', type=Path,
+                   help='once-calibrated shared offline geometry; engineering-only, requires offline-teacher')
     a = p.parse_args()
     if a.window_offset and a.label_depth != 'offline-teacher':
         raise ValueError('cached trajectory windows require the offline-teacher frontend')
+    if a.trajectory_depth and a.label_depth != 'offline-teacher':
+        raise ValueError('shared trajectory geometry requires offline-teacher')
     if a.output.exists() or not 32 <= a.max_points <= 4096:
         raise ValueError('new bounded output required')
     if sha256(a.depth_checkpoint) != 'c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934':
@@ -71,6 +76,11 @@ def main():
     intrinsic = resize_intrinsics(intrinsic, original_wh, (640, 360))
     if not np.allclose(t['camera_to_origin'], camera[frame_ids], atol=1e-5) or not np.allclose(t['intrinsic'], intrinsic, atol=1e-4):
         raise ValueError('teacher/source camera mismatch')
+    trajectory_provenance = None
+    if a.trajectory_depth:
+        shared_depth, shared_calibration, trajectory_provenance = shared_trajectory_depth(
+            a.trajectory_depth, frame_ids, intrinsic, camera, a.hdf5.with_suffix('.mp4'))
+        t['depth_m'] = shared_depth
     a.output.mkdir(parents=True)
     started = time.time()
     print(json.dumps(dict(stage='OFFLINE_TEACHER' if a.label_depth == 'offline-teacher' else 'PREFIX_DEPTH',
@@ -93,6 +103,9 @@ def main():
                 raise ValueError('teacher calibration clock mismatch')
             calibration = teacher_provenance['calibration']
             label_calibrations = [dict(frame_ids=frame_ids.tolist(), **calibration)]
+        if trajectory_provenance is not None:
+            calibration = shared_calibration
+            label_calibrations = [dict(frame_ids=trajectory_provenance['depth_context_frame_ids'], **calibration)]
     else:
         label_ids, label_depth, label_calibrations = frame_ids, t['depth_m'], None
         depth = depth_from_omega(rgb, a.depth_vendor, a.depth_checkpoint, a.output)
@@ -152,6 +165,8 @@ def main():
                   raw_hdf5_sha256=sha256(a.hdf5), teacher_path=str(a.teacher.resolve()), observation_frame_ids=prefix_ids.tolist(),
                   teacher_frame_ids=label_ids.tolist(), source_current_frame=tick)
     record.update(source_clip_frame_ids=frame_ids.tolist(), window_offset=a.window_offset)
+    if trajectory_provenance is not None:
+        record.update(trajectory_provenance)
     if teacher_provenance is not None:
         record.update(teacher_audit_path=str(teacher_audit.resolve()), teacher_audit_sha256=sha256(teacher_audit))
     if a.label_depth == 'rolling-prefix':
@@ -175,6 +190,10 @@ def main():
         teacher_current_disagreement_mm=dict(median=float(np.median(initial_error[finite_initial])*1000),
                                              p90=float(np.percentile(initial_error[finite_initial], 90)*1000)),
         admission_limitation='Engineering only: inspect depth/track drift and overlay; require separate sessions for scientific probe.')
+    if trajectory_provenance is not None:
+        report.update(depth_context_frame_ids=trajectory_provenance['depth_context_frame_ids'],
+                      geometry_context='shared_trajectory_span',
+                      geometry_limitation='One cached geometry per raw frame; span may cover only part of the full recording.')
     (a.output/'manifest.json').write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
     print(json.dumps(report), flush=True)
 
