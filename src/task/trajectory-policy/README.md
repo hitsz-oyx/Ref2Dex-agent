@@ -1,5 +1,15 @@
 # Trajectory policy
 
+## Goal-Point-WAM ref2_5 control-aware Chunk-R（2026-10-12）
+
+`tools/run/fit_chunk_retargeter.py --control-aware --output <fresh-owned-dir>`
+保留原模型和采样，以4×首步native L1、后7步L1、首步物理PD误差训练；
+按开发集首步PD XYZ p95选checkpoint，all8 L1仅作第二指标。PD尺度固定
+XYZ10mm、腕角/手指各.1rad；训练用raw输出保留越界纠正梯度，执行仍裁剪。
+新GT比较teacher/旧R/新R为73/75/74held，全零裁剪，局部GT门通过。
+训练、物理与独立审计入口沿用下方工具；无flag时保持原all8目标。
+见[首步控制目标卡34](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref25-control-aware-R.md)。
+
 ## Goal-Point-WAM ref2_4 Chunk-R（2026-10-12）
 
 `tools/run/fit_chunk_retargeter.py --output <fresh-owned-dir>`训练小型

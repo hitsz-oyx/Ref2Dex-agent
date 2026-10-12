@@ -1,5 +1,18 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_5首步控制目标让Chunk-R通过GT抓持门
+
+保留Chunk Transformer和同初始化/同采样，固定3000更新48.38s；改用
+4×首步standardized L1+后7步L1+首步physical PD loss，checkpoint按
+first-PD XYZ p95优先选择。report首步XYZ p9531.09->19.51mm，恢复TRAIN
+94.80->12.78mm，代价为all8 L1.16397->.23493。实际128步GT比较22.73s，
+teacher73held/旧PD-R75held/新Chunk-R74held，全零裁剪；60held门通过。
+8接口测试通过，标签与实际执行复算max0，objective复算差<9.4e-8。
+局部PROMISING，仅取得GT执行资格，不能当自主WAM、完整放置或Cm收益。
+已保留候选，下一步按ref2_4/ref2_5进入B显式PTv3手token读出离线比较，
+C仍以B不退化为条件。累计wam-v2产物33.17MB<80MB，GPU2已释放。
+见[控制目标卡34](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref25-control-aware-R.md)。
+
 ## 2026-10-12 ref2_4 Chunk-R已实现，GT执行第一关未通过
 
 按用户ref2_4先做A：24个tau token+state token、2层128维Transformer、

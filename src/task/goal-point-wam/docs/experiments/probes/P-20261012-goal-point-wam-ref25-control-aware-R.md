@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref25-control-aware-R
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 9fca37b7
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 34
@@ -13,11 +13,14 @@ seed_pool: probe
 seeds: [295, 296, 292]
 decision_changed_if_positive: qualify control-aware Chunk-R before conditional hand anchoring and frozen predicted-tau world consistency
 decision_changed_if_negative: retain the implementation but stop this fixed recipe and prioritize GT first-control execution
-status: UNCLEAR
+status: PROMISING
 run_id: wam-v2-control-fit-20261012-r1
 ---
 
 # ref2_5 A2: first-action and PD-aware Chunk-R
+
+Result: Matched3000 updates reduce report first-PD XYZ p95 31.09->19.51mm; GT teacher/oldR/newR held73/75/74, zero clipping; GT gate PASS.
+Decision: Preserve the qualified control-aware Chunk-R and proceed to the already authorized explicit-hand-readout offline comparison; C remains gated by B.
 
 ## Decision Note / motivation
 
@@ -84,7 +87,43 @@ root audit before interpreting physics.
 
 ## Results
 
-Pending engineering smoke, matched fixed fit and independent GT comparison.
+Engineering smoke passed;8 interface tests passed, including native physical
+scales, raw-output gradients and first-step selection. Matched3000 updates
+completed in48.38s/GPU2, selected update3000; allocated peak274.17MiB/process
+683MiB, recorded utilization24--33% after warmup. The label/PD metric audit
+reproduced maxima0; objective components agree within9.4e-8 and independent
+TRAIN action normalization within4.18e-7. First-step selection agrees exactly.
+
+| Offline panel | Original first XYZ p95 (mm) | Control-aware (mm) | Original all8 L1 | Control-aware all8 L1 |
+| --- | ---: | ---: | ---: | ---: |
+| TRAIN nominal + recovery | 31.60 | 16.40 | .15794 | .23537 |
+| Development selection | 29.61 | 18.01 | .16097 | .23223 |
+| Report episodes | 31.09 | 19.51 | .16397 | .23493 |
+| Actual recovery TRAIN | 94.80 | 12.78 | .19368 | .34564 |
+
+Report first native MAE.02285->.01895; wrist-angle p95.10173->.06825rad,
+finger p95.13321->.11070rad. First control improves at the cost of later
+chunk precision; all raw first-action clipping rates0. These offline results
+do not isolate weighting, PD loss or selection as the cause of improvement.
+
+Actual128-control comparison completed in22.73s with current-state querying
+and only first action execution. Maximum consecutive held: teacher73,
+qualified oldPD-R75, new control-aware Chunk-R74; clipping0 for all roles.
+Calibration passes, newR passes the60held threshold. Independent native
+conversion/dispatch/current-state/GT-frame audits allmax0,129measured states
+for128controls. PhysX process occupancy18,162MiB, utilization2--46%, then
+GPU2released. No teacher intervention in the newR role.
+
+- [Matched fit](../../../../../../outputs/trajectory-policy/wam-v2-control-fit-20261012-r1/result.json)
+- [Fit audit](../../../../../../outputs/trajectory-policy/wam-v2-control-fit-20261012-r1/root_chunk_audit.json)
+- [GT comparison](../../../../../../outputs/trajectory-policy/wam-v2-control-GT-20261012-r1/result.json)
+- [Execution audit](../../../../../../outputs/trajectory-policy/wam-v2-control-GT-20261012-r1/root_chunk_audit.json)
+
+Cumulative wam-v2 output/scratch33.17MB<80MB. Current fixed localGT recipe
+is **PROMISING** and qualifies the next B offline Probe. It does not establish
+autonomous WAM, complete placement, perturbation robustness or Cm utility.
+No additional steps, alternate coefficients or seeds were needed. Repository
+verification with `VERIFY_BASE=c64a42d2` passed for this implementation.
 
 ## Limitations / future evidence
 
