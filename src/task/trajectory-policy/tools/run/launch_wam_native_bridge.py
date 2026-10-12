@@ -19,9 +19,15 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--expert-recovery',action='store_true')
+    p.add_argument('--controls',type=int,default=542)
+    p.add_argument('--takeover-tick',type=int,default=16)
+    p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
+    a.experiment_id=a.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
+    if not 1<=a.controls<=542 or (a.expert_recovery and not 0<=a.takeover_tick<a.controls):
+        raise ValueError('bounded controls and in-horizon takeover required')
     if not 1<=a.deadline_seconds<=600:
         raise ValueError('owned group deadline must be <=600s')
     a.head_dir=a.head_dir.resolve()
@@ -41,9 +47,9 @@ def main():
     out.mkdir(parents=True)
     started=time.monotonic()
     status=dict(status='STARTING',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
-        run_id=out.name,experiment_id='P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution',
+        run_id=out.name,experiment_id=a.experiment_id,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir))
+        started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir),controls=a.controls,takeover_tick=a.takeover_tick if a.expert_recovery else None,partial_episode=a.controls<542)
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/wam_scene_patch.py']
     if a.expert_recovery:
@@ -81,7 +87,7 @@ def main():
         server_script=TASK/'tools/run/wam_native_server.py'
         server_log=(out/'server.log').open('w');streams.append(server_log)
         server=subprocess.Popen(['/home2/wyy/miniconda3/envs/graspenv/bin/python',str(server_script),
-            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--output',str(out/'server')],cwd=ROOT,
+            '--gpu',str(a.gpu),'--controls',str(a.controls),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--output',str(out/'server')],cwd=ROOT,
             stdout=server_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((server,server_script));status['server_pid']=server.pid
         write(out/'group_status.json',status)
@@ -97,7 +103,7 @@ def main():
         native_script=TASK/'tools/run/execute_wam_native_bridge.py'
         native_log=(out/'native.log').open('w');streams.append(native_log)
         native=subprocess.Popen(['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(native_script),
-            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*(['--expert-recovery'] if a.expert_recovery else [])],
+            '--gpu',str(a.gpu),'--controls',str(a.controls),'--takeover-tick',str(a.takeover_tick),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*(['--expert-recovery'] if a.expert_recovery else [])],
             cwd=ROOT,stdout=native_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((native,native_script));status.update(status='RUNNING',native_pid=native.pid)
         write(out/'group_status.json',status)

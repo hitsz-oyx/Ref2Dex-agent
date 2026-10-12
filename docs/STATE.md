@@ -1,5 +1,16 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_1机器人数据聚合启动，持续工作到19:30
+
+用户新目标按goal-point-wam/ref2_1持续推进到今天19:30。先验证更远自主偏离状态
+的真实恢复：best startup head、四角色、takeover32/controls192，独立审计后聚合
+unclipped pure-WAM0:63和recovered32:160的真实PD。旧val32:48/64:80显式退役
+为训练，不能再称validation；用新训练actor产生的新状态查询检验收益。所有真实
+applied action与measured next state一起保留作actual consequence，mixed-policy
+future手轨迹不能作expert标签。先head-only检查coverage，不扩大PTv3解冻。
+短采集不判断完整placement；默认542/16评价保留。阶段预算/准入/停止条件见
+[实验24](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-robot-aggregation.md)。
+
 ## 2026-10-12 局部解冻改善部分拟合，未学会更远偏离状态的恢复
 
 按用户建议完成PTv3最后decoder dec0+trajectory/hand_query的100更新，

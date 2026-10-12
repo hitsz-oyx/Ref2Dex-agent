@@ -59,8 +59,12 @@ def main():
     p.add_argument('--socket',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--controls',type=int,default=542)
+    p.add_argument('--experiment-id',default='P-20261012-goal-point-wam-ref2-execution')
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     a=p.parse_args()
+    if not 1<=a.controls<=542:
+        raise ValueError('bounded controls required')
     a.output=a.output.resolve();a.socket=a.socket.resolve()
     if (a.output.exists() or ROOT/'outputs/trajectory-policy' not in a.output.parents
             or 'wam-ref2-execution-' not in a.output.parent.name
@@ -141,7 +145,7 @@ def main():
     status=dict(schema=SCHEMA,status='READY',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
         torch_version=torch.__version__,training_allowed=False,queries=0,
-        scene_patch_identity=patch_identity)
+        scene_patch_identity=patch_identity,controls=a.controls,experiment_id=a.experiment_id)
     write(a.output/'status.json',status)
     began=time.monotonic()
     request=None
@@ -151,7 +155,7 @@ def main():
         with connection:
             status['client_pid']=peer_pid(connection)
             send(connection,status)
-            for query in range(542):
+            for query in range(a.controls):
                 request=receive(connection)
                 if set(request)!={'tick','object_history','hand_history','planned_object_goal'} or request['tick']!=query:
                     raise ValueError('live H4/object-goal-only sequential request required')

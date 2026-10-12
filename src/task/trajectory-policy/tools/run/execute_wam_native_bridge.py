@@ -21,6 +21,30 @@ from trajectory_policy.wam_ipc import SCHEMA,send,receive,peer_pid
 from collect_competent_pd import OFFICIAL,OFFICIAL_SHA,gpu_state
 
 
+def partial_grasp_outcome(packet):
+    """Measured hold45 component only; a truncated rollout cannot judge placement."""
+    pose=np.asarray(packet['object_pose']);count=len(pose)
+    gap=np.asarray(packet['surface_gap']);support=np.asarray(packet['support_gap'])
+    footprint=np.asarray(packet['table_footprint']);velocity=np.asarray(packet['object_velocity'])
+    if (count<2 or pose.shape!=(count,4,4) or gap.shape!=(count,)
+            or support.shape!=(count,) or footprint.shape!=(count,)
+            or velocity.shape!=(count,6) or any(not np.isfinite(x).all()
+                for x in (pose,gap,support,velocity)) or np.any(gap<0)):
+        raise ValueError('finite measured partial rollout required')
+    height=pose[:,2,3]-pose[0,2,3]
+    valid=np.arange(count)>0
+    supported=valid&footprint.astype(bool)&(np.abs(support)<=.02)
+    held=valid&(gap<=.01)&~supported&(height>=.03)
+    run=np.zeros(count,np.int64)
+    for i in range(1,count):
+        run[i]=run[i-1]+1 if held[i] else 0
+    stable=np.flatnonzero(run>=45)
+    return dict(maximum_held_frames=int(run.max()),
+        first_stable_tick=int(stable[0]) if len(stable) else None,
+        last_stable_tick=int(stable[-1]) if len(stable) else None,
+        terminal_height_m=float(height[-1]),metric='partial_hold45_only_no_placement')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
@@ -28,10 +52,16 @@ def main():
     p.add_argument('--server-pid',type=int,required=True)
     p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--expert-recovery',action='store_true')
+    p.add_argument('--controls',type=int,default=542)
+    p.add_argument('--takeover-tick',type=int,default=16)
+    p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     args=p.parse_args()
+    args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
+    if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
+        raise ValueError('bounded controls and in-horizon takeover required')
     out=args.output.resolve()
-    roles=['teacher','gt_tau_R','wam_R']+(['wam_command_replay_then_expert_tick16'] if args.expert_recovery else [])
+    roles=['teacher','gt_tau_R','wam_R']+([f'wam_command_replay_then_expert_tick{args.takeover_tick}'] if args.expert_recovery else [])
     env_count=len(roles)
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or Path(sys.prefix).resolve()!=RUNTIME.resolve():
         raise ValueError('fresh owned output and pinned native runtime required')
@@ -124,6 +154,8 @@ def main():
     handshake=receive(connection)
     if (handshake['schema']!=SCHEMA or handshake['pid']!=args.server_pid
         or handshake['physical_gpu']!=args.gpu or handshake['head_sha256']!=sha(head_path)
+        or handshake.get('controls')!=args.controls
+        or handshake.get('experiment_id')!=args.experiment_id
         or handshake['base_sha256']!=base_hash
         or handshake.get('scene_patch_identity')!=patch_identity):
         raise ValueError('WAM inference peer identity differs')
@@ -146,11 +178,13 @@ def main():
     hashes={str(path.resolve()):sha(path) for path in files}
     out.mkdir(parents=True)
     manifest=dict(schema='ref2dex.wam-native-recovery.v1' if args.expert_recovery else 'ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
-        task='goal-point-wam',experiment_id='P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution',run_id=out.parent.name,
-        roles=roles,controls=542,dt=1/30,training_allowed=args.expert_recovery,
+        task='goal-point-wam',experiment_id=args.experiment_id,run_id=out.parent.name,
+        roles=roles,controls=args.controls,partial_episode=args.controls<542,dt=1/30,training_allowed=args.expert_recovery,
         training_scope='visited-state expert PD only; mixed-policy future hand forbidden' if args.expert_recovery else 'none',
-        takeover_tick=16 if args.expert_recovery else None,
+        takeover_tick=args.takeover_tick if args.expert_recovery else None,
         expert_PD_training_allowed=args.expert_recovery,mixed_policy_future_hand_training_allowed=False,
+        actor_future_hand_training_allowed=False,
+        actual_consequence_scope='executed action plus measured next state; not expert motion',
         expert_observation_semantics='current measured native state + loaded planned HOI hand/body/object/contact reference at t+1/t+16',
         server_pid=args.server_pid,native_pid=os.getpid(),server_identity=handshake,input_sha256=hashes,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
@@ -234,7 +268,7 @@ def main():
             if max(reset.values())>1e-5:
                 raise ValueError('teacher/GT/WAM observed resets differ')
             manifest['reset_max_errors']=reset;write(out/'manifest.json',manifest)
-            for tick in range(542):
+            for tick in range(args.controls):
                 before=time.monotonic()
                 with torch.no_grad():
                     if args.expert_recovery:
@@ -243,13 +277,13 @@ def main():
                         if not torch.isfinite(expert_PD).all():
                             raise FloatingPointError('nonfinite current-q expert PD')
                         action=expert_action.clone()
-                        if tick<=16:
+                        if tick<=args.takeover_tick:
                             errors=paired_prefix_error(current)
                             manifest['prefix_pair_max_errors']={key:max(value,manifest['prefix_pair_max_errors'].get(key,0.)) for key,value in errors.items()}
                             metrics=prefix_physical_metrics(current)
                             manifest['prefix_physical_max_metrics']={key:max(value,manifest['prefix_physical_max_metrics'].get(key,0.)) for key,value in metrics.items()}
                             if any(metrics[key]>bound for key,bound in PREFIX_PHYSICAL_BOUNDS.items()):
-                                raise ValueError('pre16 command-replay rows exceed declared physical comparability bounds')
+                                raise ValueError('pre-takeover command-replay rows exceed declared physical comparability bounds')
                     else:
                         raw=obs['obs'];padded=raw.repeat((64+2)//3,1)[:64]
                         action=self.get_action(dict(obs,obs=padded),True)[:3].clamp(-1,1).clone()
@@ -278,7 +312,7 @@ def main():
                     first,applied,_=command(target,current['q'][1:3],offset,scale)
                     action[1:3]=applied;intended[1:3]=first;requested[1:3]=target
                     if args.expert_recovery:
-                        if tick<16:
+                        if tick<args.takeover_tick:
                             action[3]=action[2];intended[3]=intended[2]
                             requested[3]=pd_from_action(intended[3:4],current['q'][3:4],offset,scale)[0]
                         learner_states=[];learner_oh=[];learner_hh=[]
@@ -293,7 +327,7 @@ def main():
                             learner_state=np.stack(learner_states),learner_object_history=np.stack(learner_oh),
                             learner_hand_history=np.stack(learner_hh),learner_goal=np.repeat(goal[None],2,axis=0),
                             learner_wam_tau=np.stack((wamtau,np.zeros_like(wamtau))),
-                            learner_wam_tau_valid=np.array([True,False]),expert_applied=np.array([False,tick>=16]))
+                            learner_wam_tau_valid=np.array([True,False]),expert_applied=np.array([False,tick>=args.takeover_tick]))
                         extra={key:value.cpu().numpy().copy() if isinstance(value,torch.Tensor) else np.asarray(value).copy()
                                for key,value in extra.items()}
                         # A durable query record exists before advancing physics; it is not a future-hand label.
@@ -313,9 +347,9 @@ def main():
                         obs={'obs':obs}
                     if capture is None or not torch.equal(capture,action) or actual_pd is None or (actual_pd-expected).abs().max()>1e-6:
                         raise ValueError('native applied command/actual PD capture mismatch')
-                    if args.expert_recovery and tick>=16 and (actual_pd[3]-expert_PD[3]).abs().max()>1e-6:
+                    if args.expert_recovery and tick>=args.takeover_tick and (actual_pd[3]-expert_PD[3]).abs().max()>1e-6:
                         raise ValueError('applied takeover PD differs from current-q expert label')
-                    if tick<541 and done.any():
+                    if tick<args.controls-1 and done.any():
                         raise ValueError('early reset invalidates full episode')
                     for k,v in dict(action=action,applied=capture,pd_targets=actual_pd,intended=intended,
                         requested_pd=requested,clipped=(intended-action).abs().amax(-1)>1e-6,
@@ -324,8 +358,8 @@ def main():
                         server_latency_s=reply['elapsed_s'],native_latency_s=time.monotonic()-before).items():
                         logs[k].append(v.cpu().numpy().copy() if isinstance(v,torch.Tensor) else np.asarray(v).copy())
                     if args.expert_recovery:
-                        if tick<16 and not torch.equal(capture[2],capture[3]):
-                            raise ValueError('pre16 paired learner normalized actions differ')
+                        if tick<args.takeover_tick and not torch.equal(capture[2],capture[3]):
+                            raise ValueError('pre-takeover paired learner normalized actions differ')
                         for key,value in extra.items():
                             logs[key].append(value)
                     current=record()
@@ -334,7 +368,7 @@ def main():
                     if set(gpu['pids'])-{os.getpid(),args.server_pid}:
                         raise RuntimeError('foreign GPU process during episode')
                     row=dict(control=tick+1,elapsed_s=time.monotonic()-started,
-                        eta_s=(time.monotonic()-started)/(tick+1)*(541-tick),gpu=gpu)
+                        eta_s=(time.monotonic()-started)/(tick+1)*(args.controls-1-tick),gpu=gpu)
                     print(json.dumps(row),flush=True)
                     with (out/'monitor.jsonl').open('a') as stream:
                         stream.write(json.dumps(row)+'\n')
@@ -342,22 +376,34 @@ def main():
             np.savez_compressed(out/'trajectory.npz',**packed)
             outcomes=[]
             for env,role in enumerate(manifest['roles']):
-                value=episode_outcome(dict(object_pose=packed['obj'][:,env],object_velocity=packed['velocity'][:,env],
+                outcome=partial_grasp_outcome if args.controls<542 else episode_outcome
+                value=outcome(dict(object_pose=packed['obj'][:,env],object_velocity=packed['velocity'][:,env],
                     surface_gap=packed['surface_gap'][:,env],support_gap=packed['support_gap'][:,env],table_footprint=packed['table_footprint'][:,env]))
                 value.update(env=env,role=role,clipping_rate=float(packed['clipped'][:,env].mean()))
                 outcomes.append(value)
             result=dict(status='COMPLETED',outcomes=outcomes,
-                calibration_pass=all(v['success'] and v['maximum_held_frames']>=45 for v in outcomes[:2]),
+                partial_episode=args.controls<542,
+                calibration_pass=None if args.controls<542 else all(v['success'] and v['maximum_held_frames']>=45 for v in outcomes[:2]),
                 server_latency_median_s=float(np.median(packed['server_latency_s'])),
                 native_latency_median_s=float(np.median(packed['native_latency_s'])),
                 scope='one nominal simulated episode per row; expert takeover is training-time diagnosis, never autonomous success' if args.expert_recovery
                     else 'one nominal simulated episode per row; no hidden-state fork or robot-domain generalization claim')
+            if args.controls<542:
+                result.update(recovery_pass=None,
+                    local_grasp_calibration=all(v['maximum_held_frames']>=45 for v in outcomes[:2]),
+                    scope='truncated rollout; local grasp only, no placement verdict')
             if args.expert_recovery:
                 value=outcomes[3]
-                result['recovery_pass']=bool(result['calibration_pass'] and value['success']
-                    and value['maximum_held_frames']>=45 and value['clipping_rate']<.01)
-                result['recovery_conclusion']='PROMISING' if result['recovery_pass'] else (
-                    'UNPROMISING' if result['calibration_pass'] and value['maximum_held_frames']==0 else 'UNCLEAR')
+                if args.controls<542:
+                    result.update(recovery_pass=None,recovery_conclusion='UNCLEAR',
+                        local_grasp_calibration=all(v['maximum_held_frames']>=45 for v in outcomes[:2]),
+                        local_grasp_recovery=bool(value['maximum_held_frames']>=45 and value['clipping_rate']<.01),
+                        scope='truncated training-time expert-query rollout; local grasp only, no placement or autonomous recovery verdict')
+                else:
+                    result['recovery_pass']=bool(result['calibration_pass'] and value['success']
+                        and value['maximum_held_frames']>=45 and value['clipping_rate']<.01)
+                    result['recovery_conclusion']='PROMISING' if result['recovery_pass'] else (
+                        'UNPROMISING' if result['calibration_pass'] and value['maximum_held_frames']==0 else 'UNCLEAR')
                 result['expert_query_records']=manifest['expert_query_records']
                 result['expert_query_clipping_rates']=packed['expert_clipped'].mean(0).tolist()
                 result['expert_query_scope']='actual learner observations, privileged planned HOI reference; PD labels only'
