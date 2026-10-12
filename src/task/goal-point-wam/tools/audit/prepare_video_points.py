@@ -24,6 +24,7 @@ from oakink_wm.pointwam_data import source_identity, sha256, recover_metric_scal
 from prepare_pointwam_pilot import decode_clip, depth_from_omega
 from prepare_egodex_actor import JOINTS
 from rolling_video_depth import rolling_metric_depth
+from video_clock import cached_window_clock
 
 
 def main():
@@ -55,11 +56,7 @@ def main():
     with np.load(a.teacher, allow_pickle=False) as f:
         t = {k: f[k].copy() for k in f.files}
     frame_ids = t['source_frame_ids']
-    clip_start = int(frame_ids[0])
-    tick = clip_start + a.window_offset
-    label_offset = a.window_offset // 3
-    if clip_start < 3 or len(frame_ids) != 11 or not np.array_equal(np.diff(frame_ids), np.full(10, 3)):
-        raise ValueError('teacher requires1s/10Hz and at least3 observed history frames')
+    tick, label_offset, prefix_ids = cached_window_clock(frame_ids, a.window_offset)
     with h5py.File(a.hdf5, 'r') as f:
         if 'confidences' not in f:
             raise ValueError('native hand confidence missing')
@@ -69,7 +66,6 @@ def main():
         camera, intrinsic = f['transforms/camera'][:], f['camera/intrinsic'][:]
         session = str(f.attrs['session_name'])
     hv &= np.isfinite(hand).all(-1)
-    prefix_ids = np.arange(tick-3, tick+1)
     decode_ids = np.arange(tick-3, tick+25) if a.label_depth == 'rolling-prefix' else prefix_ids
     rgb, original_wh = decode_clip(a.hdf5.with_suffix('.mp4'), decode_ids, len(hand))
     intrinsic = resize_intrinsics(intrinsic, original_wh, (640, 360))

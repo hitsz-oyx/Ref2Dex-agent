@@ -523,3 +523,56 @@ h5py imported by geometry utilities. No environment installation or method
 change: r2 uses the existing preprocessing environment already containing
 h5py. Preserve failed log; this is an execution/environment defect, not
 negative evidence for point history.
+
+
+18:30 cheapest action-use Decision audit: fixed diverse final5000, same scene/
+H4/validity; replace future actions with current hand repeated24 times and
+zero current-relative/step deltas. Report world response, actual-label EPE
+under true/static actions per-window/session. Actor prediction must remain
+unchanged within1e-4m (numerical tolerance); larger change is an implementation
+blocker because future executed actions belong only to the world branch.
+If actual actions do not help on held recordings, diagnose weak action use/
+generalization before more representation training. No claim that output
+response alone demonstrates physically correct actions or Cm benefit.
+GPU0 <=300s, no weight updates/checkpoint, JSON<=1MB.
+
+
+## 18:37 fixed-input diagnostics and early-window implementation fix
+
+Final5000 window-macro train scene7.347mm vs static8.055mm (-8.80%);
+held window macro16.346 vs15.074mm (+8.44%). Four held session macros:
+basic-pick-place23.518/static21.028; bench-chair13.145/11.004; bench-lamp
+14.786/14.251; cloth20.336/22.151. Only cloth improves (~8.19%); do not
+claim all domains ineffective or hide the three negative sessions behind
+a pooled metric. Train hand window macro9.620mm, held82.740mm. These
+window/session macros differ from training evaluator point-pooled values.
+
+True/static action intervention: train world7.347/7.740mm; held16.346/
+15.803mm. Mean response1.579/3.737mm, proving action dependence, not
+physical correctness. Actor max change train3.052e-5m/held0 due to repeated
+sparse floating computations, below1e-4 tolerance; no future-action leak
+found in inspected branch. Exact wiring evidence comes from source and
+input intervention together, not gradient/response alone.
+
+Past-track reference screen FAIL: held mean short8-tick CV19.314mm vs
+static11.074mm; full24 CV43.011 vs15.969mm. History coverage99.61%, current
+alignmentp90 exactly0. Thus no history feature expansion now; this does not
+prove a learned history encoder cannot help. Geometry/noise and actual
+acceleration confound this simple extrapolation.
+
+Coverage bug: prepare_video_points previously required clip_start>=3 even
+when current=clip_start+offset had valid nativeH4. Fix clock gate to current
+tick; source f0 offset0 still rejected, offsets3/6 may enter. New pure
+video_clock helper validates11 integer10Hz frames, nonnegative source,
+allowed offsets, currentH4 and completeK24 coverage; same existing nonzero
+clock preserved.16 relevant tests pass (7.52s), including actual boundary
+contracts, invalid clocks and prior point-loss/input-scope tests. This is a
+coverage fix, not relaxed geometry quality or future-frame input leakage.
+
+Decision: CPU-only extract/screen previously omitted cached teachers mapped
+back to original24 native records/frozen seed283; prioritize initial clips
+and other existing cached intervals. Same seven gates, max60 new windows,
+<=35MB actual scope growth, <=15min CPU; scope cap5.84GB/combined298GB
+stop unchanged. Separate immutable new plan/run, no completed scientific
+manifest or checkpoint mutation. This tests whether avoidable coverage loss
+excluded more informative motion/held sessions before further model work.
