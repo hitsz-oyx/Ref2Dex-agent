@@ -69,7 +69,7 @@ def main():
     cfg=json.loads((run_dir/'config.json').read_text());train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml'
     out.mkdir();roles=['teacher','GT_tau_old_PD_R','GT_tau_chunk_R']
     m=dict(schema='ref2dex.chunk-R-GT-execution.v1',status='RUNNING',task='goal-point-wam',
-        experiment_id='P-20261012-goal-point-wam-ref24-chunk-R',run_id=out.name,seed=292,physical_gpu=2,
+        experiment_id=fm['experiment_id'],run_id=out.name,seed=292,physical_gpu=2,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         controls=128,roles=roles,dt=1/30,oracle_source_env=24,training_allowed=False,
         checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),

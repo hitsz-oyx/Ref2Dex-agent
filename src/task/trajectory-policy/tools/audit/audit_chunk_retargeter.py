@@ -39,6 +39,25 @@ def main():
             delta=(f[name+'_prediction'][:,0].clip(-1,1)-true[:,0])*scale
             metric=float(np.percentile(np.linalg.norm(delta[:,:3],axis=-1),95)*1000)
             maxima[name+'_first_PD_metric']=abs(metric-fr['reports'][name]['first_PD_xyz_p95_mm'])
+            if 'first_action_weight' in fm:
+                action_scale=np.asarray(fm['action_normalization_scale'])
+                normalized=np.abs(f[name+'_prediction']-true)/action_scale
+                raw_delta=(f[name+'_prediction'][:,0]-true[:,0])*scale
+                pd0=(np.abs(raw_delta[:,:3]).mean()/.01+np.abs(raw_delta[:,3:6]).mean()/.1
+                     +np.abs(raw_delta[:,6:]).mean()/.1)/3
+                terms=dict(first_action=normalized[:,0].mean(),tail_chunk=normalized[:,1:].mean(),first_PD=pd0)
+                for key,value in terms.items():
+                    maxima[name+'_'+key+'_objective']=abs(float(value)-fr['reports'][name]['objective_terms'][key])
+                total=4*terms['first_action']+terms['tail_chunk']+pd0
+                maxima[name+'_total_objective']=abs(float(total)-fr['reports'][name]['objective'])
+        if 'first_action_weight' in fm:
+            if fm['first_action_weight']!=4 or fm['tail_chunk_weight']!=1 or fm['PD0_weight']!=1 or fm['PD0_group_units']!=[.01,.1,.1]:
+                raise ValueError('fixed control-aware protocol differs')
+            independent_norm=expected['train'].std(0).clip(.01)
+            maxima['TRAIN_only_action_normalization']=float(np.abs(independent_norm-action_scale).max())
+            selected=min(fr['curve'],key=lambda row:(row['development_first_PD_xyz_p95_mm'],row['development_L1']))
+            if selected['step']!=fr['selected_update']:raise ValueError('first-step selection rule violated')
+            maxima['selected_development_first_PD']=abs(selected['development_first_PD_xyz_p95_mm']-fr['reports']['development']['first_PD_xyz_p95_mm'])
     report=dict(schema='ref2dex.chunk-R-root-audit.v1',maxima=maxima,
                 actual_eight_action_labels_verified=True,no_pure_future_used=True)
     if a.execution:

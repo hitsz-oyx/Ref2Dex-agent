@@ -19,6 +19,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--engineering-smoke',action='store_true')
+    p.add_argument('--control-aware',action='store_true',help='ref2_5 first-action and physical PD0 objective')
     a=p.parse_args();out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents:
         raise ValueError('fresh task-owned output required')
@@ -29,6 +30,7 @@ def main():
     import torch
     from trajectory_policy.chunk_retargeter import SCHEMA,ChunkRetargeter,chunk_windows,expert_chunk_rows
     from trajectory_policy.retargeter_data import ACTIVE
+    from trajectory_policy.chunk_objective import control_aware_loss,independent_PD_scale,development_key,PD_UNITS
     torch.set_num_threads(2);torch.manual_seed(295);torch.set_float32_matmul_precision('highest')
     owner=ROOT/'outputs/trajectory-policy';source=owner/'competent-pd-teacher-20261011-r2'
     sm=json.loads((source/'manifest.json').read_text())
@@ -62,9 +64,12 @@ def main():
         for name,v,floor in zip(('state','tau','action'),tensors['train'],(.001,.001,.01)):
             getattr(net,name+'_mean').copy_(v.mean(0));getattr(net,name+'_scale').copy_(v.std(0,unbiased=False).clamp_min(floor))
     optimizer=torch.optim.Adam(net.parameters(),lr=3e-4)
+    pd_scale=independent_PD_scale(torch.as_tensor(np.asarray(sm['native_controller']['scale'])[list(ACTIVE)],
+                                                dtype=torch.float32,device='cuda'))
     gen=torch.Generator(device='cuda').manual_seed(296)
     out.mkdir();started=time.monotonic();updates=1 if a.engineering_smoke else 3000
-    m=dict(schema=SCHEMA,status='RUNNING',task='goal-point-wam',experiment_id='P-20261012-goal-point-wam-ref24-chunk-R',
+    experiment='P-20261012-goal-point-wam-ref25-control-aware-R' if a.control_aware else 'P-20261012-goal-point-wam-ref24-chunk-R'
+    m=dict(schema=SCHEMA,status='RUNNING',task='goal-point-wam',experiment_id=experiment,
         run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         physical_gpu=2,model_seed=295,draw_seed=296,width=128,heads=4,decoder_layers=2,ffn=512,
         source=str(source),recovery_aggregation=str(am_path.parent),input_sha256=evidence,
@@ -73,6 +78,13 @@ def main():
         target='actual independent native applied action[t:t+7]',inference='replan each tick; only action0 executed',
         development_selection='lowest standardized L1 every250 updates; single final selected packet',
         groups={k:len(v[0]) for k,v in arrays.items()},training_allowed=False)
+    if a.control_aware:
+        m.update(loss='4*standardized first + standardized tail7 mean + physical PD0',
+                 first_action_weight=4,tail_chunk_weight=1,PD0_weight=1,PD0_group_units=list(PD_UNITS),
+                 action_normalization_scale=net.action_scale.cpu().tolist(),
+                 objective_code=str(TASK/'src/trajectory_policy/chunk_objective.py'),
+                 PD0_training='unclamped independent PD error; current q and offset cancel',
+                 development_selection='lexicographic first applied PD XYZ p95, then all8 L1 every250 updates')
     write(out/'manifest.json',m)
     x,tau,target=tensors['train'];nominal=8304
     startup=torch.as_tensor(np.flatnonzero(np.repeat(np.arange(519),16)<16),device='cuda')
@@ -86,17 +98,24 @@ def main():
             ids=torch.cat([pool[torch.randint(len(pool),(count,),generator=gen,device='cuda')]
                            for pool,count in ((startup,96),(later,96),(rec,64))])
             net.train();optimizer.zero_grad(set_to_none=True)
-            loss=((net(x[ids],tau[ids])-target[ids])/net.action_scale).abs().mean()
+            prediction=net(x[ids],tau[ids])
+            if a.control_aware:
+                loss,_=control_aware_loss(prediction,target[ids],net.action_scale,pd_scale)
+            else:
+                loss=((prediction-target[ids])/net.action_scale).abs().mean()
             if not torch.isfinite(loss):raise FloatingPointError('nonfinite chunk loss')
             loss.backward();norm=torch.nn.utils.clip_grad_norm_(net.parameters(),1.)
             if not torch.isfinite(norm):raise FloatingPointError('nonfinite chunk gradients')
             optimizer.step()
             if step==1 or step%250==0 or step==updates:
-                net.eval();val=float(((predict('development')-tensors['development'][2])/net.action_scale).abs().mean())
-                if val<best[0]:best=(val,step,{k:v.detach().cpu().clone() for k,v in net.state_dict().items()})
+                net.eval();dev=predict('development')
+                val=float(((dev-tensors['development'][2])/net.action_scale).abs().mean())
+                key=development_key(dev.cpu().numpy(),arrays['development'][2],net.action_scale.cpu().numpy(),pd_scale.cpu().numpy()) if a.control_aware else val
+                if best[1] is None or key<best[0]:best=(key,step,{k:v.detach().cpu().clone() for k,v in net.state_dict().items()})
                 elapsed=time.monotonic()-started
                 gpu=subprocess.check_output(['nvidia-smi','-i','2','--query-gpu=utilization.gpu,memory.used','--format=csv,noheader,nounits'],text=True).strip()
                 row=dict(step=step,loss=float(loss),development_L1=val,elapsed_s=elapsed,eta_s=elapsed/step*(updates-step),gpu=gpu)
+                if a.control_aware:row['development_first_PD_xyz_p95_mm']=key[0]
                 curve.append(row);print(json.dumps(row),flush=True)
                 if elapsed>600:raise TimeoutError('chunk fit600s deadline')
                 pids=set(map(int,subprocess.check_output(['nvidia-smi','-i','2','--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
@@ -112,10 +131,15 @@ def main():
                 first_PD_rotation_p95_rad=float(np.percentile(np.abs(delta[:,3:6]).max(-1),95)),
                 first_PD_finger_p95_rad=float(np.percentile(np.abs(delta[:,6:]).max(-1),95)),
                 first_raw_clipping_rate=float((np.abs(prediction[:,0])>1+1e-6).any(-1).mean()))
+            if a.control_aware:
+                objective,terms=control_aware_loss(torch.as_tensor(prediction,device='cuda'),tensors[name][2],net.action_scale,pd_scale)
+                reports[name]['objective_terms']={k:float(v) for k,v in terms.items()}
+                reports[name]['objective']=float(objective)
             raw[name+'_prediction']=prediction;raw[name+'_true']=true
         result=dict(status='COMPLETED',reports=reports,selected_update=best[1],curve=curve,
             elapsed_s=time.monotonic()-started,peak_allocated_mib=torch.cuda.max_memory_allocated()/2**20,
             conclusion='UNCLEAR; GT execution gate required')
+        if a.control_aware:result['selection_key']=list(best[0])
         if not a.engineering_smoke:
             torch.save(dict(schema=SCHEMA,width=128,model=best[2],native_controller=sm['native_controller']),out/'chunk.pt')
             result['checkpoint_sha256']=sha(out/'chunk.pt')
