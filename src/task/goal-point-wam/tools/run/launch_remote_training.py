@@ -94,6 +94,16 @@ def main():
             helpers.record(output/'remote_status.json',state)
             for name in state['preflight_checkpoint_sha256']:
                 (output/'preflight'/name).unlink()
+        else:
+            group = json.loads((output/'training/group_status.json').read_text())
+            result_path = output/'training/train/result.json'
+            result = json.loads(result_path.read_text()) if result_path.exists() else {}
+            if group['status']!='COMPLETED' or result.get('status')!='COMPLETED':
+                state.update(status='STOPPED' if group['status']=='STOPPED' else 'FAILED',
+                             stop_reason=group.get('stop_reason','incomplete_training'),
+                             result_status=result.get('status'),ended_at=time.time())
+                helpers.record(output/'remote_status.json',state)
+                return 1
     state.update(status='STOPPED' if stop[0] else 'COMPLETED',ended_at=time.time())
     helpers.record(output/'remote_status.json',state)
     return 0
