@@ -13,8 +13,10 @@
 action→effect核对：cached repeat noise0、梯度非零，moving预测比identity好，但
 GRAB/ARCTIC误差仍113/79mm，五候选中真实动作模型排序第一仅10--14%，没有
 未执行候选的真实标签。ROI forward、合法prefix增广、中间几何plan、future-change
-四方法将各batch64/3000步暖启动旧final1200；冻结world的L_goal仅通过梯度smoke，
-不升级为完整训练。四方法/修正aux smoke均完成，标签不进入cached actor。
+四方法已各batch64/3000步暖启动旧final1200；冻结world的L_goal仅通过梯度smoke，
+不升级为完整训练。四方法/修正aux smoke均完成，标签不进入cached actor。GPU4--7正式作业已RUNNING，
+约.44--.48s/步；CPU后处理在完成后自动绑定final3000、parent/panel哈希生成comparison，
+科学解释仍待实际结果复核。原四卡DDP主训练继续RUNNING。
 
 ## 2026-10-12 单模型四卡规模训练运行中
 

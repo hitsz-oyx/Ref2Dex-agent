@@ -220,3 +220,8 @@ runs; report mask disagreement explicitly. This fix changes no running training.
 `tools/audit/compare_ref12_methods.py` binds fixed-final3000 checkpoint/panel/
 parent hashes and predeclared criteria. No current training loss or smoke has
 been promoted to a scientific result.
+
+CPU watcher PID3968845 waits for all4 jobs COMPLETED, verifies comparator source
+and generates `comparison.json` plus `analysis_status.json`. A stopped/failed
+run is not compared as fixed-final evidence. This postprocessing adds no GPU
+or training and does not replace root's interpretation of actual results.
