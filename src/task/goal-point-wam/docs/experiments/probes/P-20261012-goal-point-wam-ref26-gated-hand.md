@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref26-gated-hand
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 161d4b06
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 36
@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [295, 296]
 decision_changed_if_positive: retain warm-start preserving hand adapter for subsequent staged study; C remains paused in this revision
 decision_changed_if_negative: preserve baseline and qualified Chunk-R; stop this short adaptation without rejecting the hand representation
-status: UNCLEAR
+status: PROMISING
 run_id: wam-hand-gated-fit-20261012-r1
 ---
 
 # ref2_6 B2: zero-init gated hand residual
 
-Result: Protocol fixed; engineering smoke and matched short fit pending.
-Decision: Change only hand injection; preserve qualified A2 Chunk-R and pause C.
+Result: Initial outputs exactly preserved; matched200 updates pass21/21 checks. Nominal/startup first-PD p95 improve11.30%/18.04%; direct hand-feature utility remains UNCLEAR after ablation.
+Decision: Retain B2 as a safe adapter candidate and both packets; preserve qualified A2 Chunk-R. C stays paused; do not attribute most paired gains to the live hand residual.
 
 ## Decision Note / motivation
 
@@ -79,6 +79,59 @@ of this run's classification; any next-stage protocol is separate work.
 /home2/wyy/miniconda3/envs/graspenv/bin/python src/task/trajectory-policy/tools/run/probe_wam_hand_readout.py --gated --output outputs/trajectory-policy/wam-hand-gated-fit-20261012-r1
 /home2/wyy/miniconda3/envs/graspenv/bin/python src/task/trajectory-policy/tools/audit/audit_wam_hand_readout.py --fit outputs/trajectory-policy/wam-hand-gated-fit-20261012-r1
 ```
+
+## Results / independent attribution
+
+Implementation/training commit161d4b06, audit subsequently checks persisted
+patches independently against the original warm packet. Smoke31.34s; paired
+scientific run100.69s. Initial predictions, R first controls and shifted-goal
+outputs are exactly identical across all five panels. Initial alpha0;
+update1 gate gradient.095703125, projection gradient0 as designed; update2
+projection gradient.0260003. Final alpha+.0001711579. R/action/world/scene/
+goal/raw adapter and every normalization buffer have zero recorded change;
+independent saved scene/goal/hand_query comparisons are bitwise equal to warm.
+
+| Panel | Old h1 / first8 mm | B2 h1 / first8 mm | Old first-PD XYZ p95 mm | B2 first-PD XYZ p95 mm |
+| --- | ---: | ---: | ---: | ---: |
+| Nominal report | 6.163 / 15.421 | 6.168 / 15.420 | 19.600 | 17.386 |
+| Startup report | 6.627 / 11.462 | 6.625 / 10.829 | 11.088 | 9.087 |
+| t8 recovery TRAIN | 5.522 / 13.695 | 5.814 / 13.719 | 16.479 | 17.232 |
+| t16 recovery TRAIN | 5.903 / 15.405 | 5.902 / 15.347 | 21.999 | 21.231 |
+| t32 recovery TRAIN | 11.401 / 23.034 | 12.465 / 22.260 | 143.698 | 145.698 |
+
+21/21 non-regression checks pass; all clipping0. Goal response76.751->72.889mm
+passes preservation threshold. Relative to matched decoder-only training,
+nominal/startup first-PD improve11.30%/18.04%; startup first8 improves5.53%.
+Recovery t32 h1 worsens9.33%, still inside the predeclared10%+.05mm tolerance;
+passing this tolerant screen does not mean every metric improved. Nominal
+all24 increases21.689->22.189mm. Do not substitute Probe35's all-policy-trained
+control (6.51mm h1) for the contemporaneous frozen-encoder control here.
+
+Post-fit alpha0 ablation leaves nominal PD17.493mm, startup PD9.299mm and
+startup first8 10.838mm: most paired improvement persists without live hand
+injection. The direct gate effect is only.61%/2.27% on these control metrics;
+h1/first8 changes are tiny. Nonzero alpha and gradients prove use of the
+interface, not useful hand representation. **PROMISING applies to warm-start
+preservation and this offline adaptation screen; PTv3 hand-feature utility
+remains UNCLEAR.** The two training paths may alter decoder optimization;
+this one run cannot establish which mechanism caused the paired improvement.
+No autonomous grasp/control qualification or formal representation claim.
+
+Independent audit recomputes180 labels/metrics including the alpha0 ablation,
+all deterministic draws,21 thresholds and the15 useful-signal comparisons;
+maximum tau label error1.192e-7m, action/metric errors0. Saved frozen patches
+and alpha also verified. Five hand-gather/gate tests and six Chunk objective/
+retargeter tests pass; root changed-file verification passes.
+
+- [Matched result](../../../../../../outputs/trajectory-policy/wam-hand-gated-fit-20261012-r1/result.json)
+- [Independent audit](../../../../../../outputs/trajectory-policy/wam-hand-gated-fit-20261012-r1/root_hand_readout_audit.json)
+- [Run protocol](../../../../../../outputs/trajectory-policy/wam-hand-gated-fit-20261012-r1/manifest.json)
+
+Fit423.24MB + smoke8.72MB + scratch1.89MB =433.84MB<500MB. Global outputs+tmp
+293.70GB<400GB (du counted separately from the owned artifact directories).
+GPU2 sampling utilization0-3%, VRAM peak sampled1581MiB; short-run throughput
+~.18-.20s/update. Low utilization was reported; no recipe changed mid-run,
+no GPU throughput claim. GPU2 is released. Qualified Chunk-R remains intact.
 
 ## Limitations / future evidence
 

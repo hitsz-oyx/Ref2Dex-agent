@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_6 B2门控接口保持初始行为，通过不退化门；手特征收益仍UNCLEAR
+
+按ref2_6将硬加改成raw+alpha P(LN(current PTv3 hand))，alpha0；保留A2
+合格Chunk-R、goal32和世界接口。完整模型初始五组tau/首步动作/goal扰动
+输出与旧WAM逐值相等，最大差0。冻结scene/goal/raw-hand/R/action/world，
+两臂只训decoder，新臂另训LN/P/alpha；各200更新100.69s，21/21门通过。
+nominal首步PD p95旧19.60/新17.39mm，startup11.09/9.09mm；startup first8
+11.46/10.83mm。全部零裁剪，final alpha+.00017116，投影从第二步获梯度。
+但alpha0消融仍有nominal17.49/startup9.30mm，大部分改善来自已适配decoder
+路径；手特征本身效用仍UNCLEAR。PROMISING只指初始行为保持及当前离线
+筛查，不构成抓持或表征结论。t32 h1恶化9.33%仍在预设宽容门内，不能说
+全指标改善。180独立指标/标签复算、相同采样及保存的冻结模块比较通过。
+保留B2候选和旧接口，两份checkpoint，不开启C或actor闭环。11相关测试
+及仓库verify通过。新增433.84MB<500MB；全局293.70GB<400GB，GPU2已释放。
+见[门控手读出卡36](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref26-gated-hand.md)。
+
 ## 2026-10-12 B显式手token读出已实现，200步匹配比较未过非退化门
 
 在ref2_5合格Chunk-R之后，按ref2_4/ref2_5进入B：完整PTv3 packed输出

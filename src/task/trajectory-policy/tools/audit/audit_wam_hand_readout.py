@@ -90,6 +90,32 @@ def main():
         if r['C_started']:raise ValueError('C must remain paused')
     report=dict(pass_=all(v<=1e-5 for v in maxima.values()),maxima=maxima,matched_sampling=True,
                 own_actual_expert_future=True,frozen_R_world_action_buffers=True,checks=checks,B_offline_gate=r['B_offline_gate'])
+    if m.get('readout_mode') and m['maximum_updates_per_arm']>1:
+        # CPU deserialization/comparison only; independently check the saved
+        # frozen patches against their warm source, rather than trusting logs.
+        import torch
+        warm=torch.load(Path(m['warm_policy'])/'head.pt',map_location='cpu',weights_only=False)
+        frozen=dict(warm['policy_patch'],hand_query=warm['head']['hand_query'])
+        patch_checks={}
+        for arm in ('old','anchored'):
+            packet=torch.load(out/(arm+'.pt'),map_location='cpu',weights_only=False)
+            expected={'scene','goal','trajectory','hand_query'}|({'hand_residual'} if arm=='anchored' else set())
+            if set(packet['modules'])!=expected or packet.get('readout_mode')!='gated':
+                raise ValueError('saved B2 patch contract differs')
+            for name,values in frozen.items():
+                saved=packet['modules'][name]
+                if set(saved)!=set(values):raise ValueError('frozen patch keys differ')
+                patch_checks[arm+'_'+name]=all(torch.equal(saved[k],v) for k,v in values.items())
+            if arm=='anchored':
+                patch_checks['saved_alpha']=float(packet['modules']['hand_residual']['alpha'])==r['arms'][arm]['gradient']['final_alpha']
+            del packet
+        if not all(patch_checks.values()):raise ValueError('saved frozen patch/gate drift')
+        report['saved_patch_checks']=patch_checks
+        report['initial_behavior_exact']=True
+        report['gate_ablation_relative_improvement']={
+            group+'_'+key:1-computed['anchored']['final'][group][key]/max(computed['anchored']['gate_zero'][group][key],1e-12)
+            for group in ('nominal','startup','recovery0_TRAIN','recovery1_TRAIN','recovery2_TRAIN')
+            for key in ('h1_mm','first8_mm','first_PD_xyz_p95_mm')}
     report['pass']=report.pop('pass_');write(out/'root_hand_readout_audit.json',report)
     print(json.dumps(dict(pass_=report['pass'],checks=len(maxima),maximum_error=max(maxima.values()),B_offline_gate=r['B_offline_gate'])))
     if not report['pass']:raise SystemExit(1)

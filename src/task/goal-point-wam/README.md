@@ -1,5 +1,14 @@
 # goal-point-wam
 
+The ref2_6 B2 variant `src/goal_point_wam/hand_gated.py` uses
+`raw + alpha * P(LN(hand))`, with alpha initially zero. Its paired frozen-encoder
+Probe preserves initial outputs exactly and passes21/21 non-regression checks.
+Nominal/startup control p95 improves11.30%/18.04%, but most gains survive
+post-fit alpha0 ablation: hand-feature utility remains UNCLEAR. Qualified
+Chunk-R is retained; predicted-tau world consistency remains paused. Run the
+same robot entrypoint with `--gated`; see the
+[gated-hand experiment](docs/experiments/probes/P-20261012-goal-point-wam-ref26-gated-hand.md).
+
 The isolated `src/goal_point_wam/hand_anchored.py` robot variant adds full-packed
 current semantic PTv3 hand features to the existing raw-hand query residual,
 preserving parameter keys and the teacher-forced world interface. Its matched
