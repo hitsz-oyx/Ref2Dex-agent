@@ -125,6 +125,20 @@ def run(args):
     del parent
     model.cuda().train()
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=config['learning_rate'], weight_decay=.01)
+    resumed = torch.load(args.resume, map_location='cpu', weights_only=False) if args.resume else None
+    step = 0
+    if resumed is not None:
+        if resumed['config'] != config:
+            raise ValueError('resume config differs')
+        for key in ('stats_sha256', 'data_manifest_sha256', 'model_sha256', 'method_sha256', 'parent_checkpoint_sha256'):
+            if resumed['identity'][key] != identity[key]:
+                raise ValueError('resume scientific identity differs: ' + key)
+        model.load_state_dict(resumed['model'], strict=True)
+        optimizer.load_state_dict(resumed['optimizer'])
+        step = int(resumed['step'])
+        identity.update(resume_step=step, resume_checkpoint_sha256=digest(args.resume),
+                        previous_script_sha256=resumed['identity']['script_sha256'],
+                        segment_start_parameter_sha256=parameter_hash(model))
     train_base = MixedWindows(args.data, 'train')
     train = GoalWindows(train_base, goal_type='object_points', goal_points=32)
     val = GoalWindows(MixedWindows(args.data, 'val'), goal_type='object_points', goal_points=32)
@@ -135,10 +149,22 @@ def run(args):
     np.save(root / 'train_indices.npy', indices); np.save(root / 'validation_balanced.npy', validation)
     identity['train_indices_sha256'] = digest(root / 'train_indices.npy')
     identity['validation_indices_sha256'] = digest(root / 'validation_balanced.npy')
+    if resumed is not None:
+        for key in ('train_indices_sha256', 'validation_indices_sha256'):
+            if resumed['identity'][key] != identity[key]:
+                raise ValueError('resume sample stream/panel differs')
     atomic_json(root / 'input_manifest.json', identity); atomic_json(root / 'config.json', config)
-    batches = iter(loader(train, indices, config['microbatch'], config['workers']))
+    batches = iter(loader(train, indices[step * config['microbatch']:], config['microbatch'], config['workers']))
+    # Construct the iterator before restoring CPU RNG: it consumes a base seed.
+    if resumed is not None:
+        torch.set_rng_state(resumed['torch_rng'])
+        torch.cuda.set_rng_state(resumed['cuda_rng'])
+        np.random.set_state(resumed['numpy_rng']); random.setstate(resumed['python_rng'])
+        del resumed
     stopped = [False]; signal.signal(signal.SIGUSR1, lambda *_: stopped.__setitem__(0, True))
-    started = time.time(); step = 0; curve = []
+    started = time.time(); curve = []
+    if args.resume and (args.resume.parent / 'validation_curve.json').exists():
+        curve = json.loads((args.resume.parent / 'validation_curve.json').read_text())['curve']
     try:
         with (root / 'train.jsonl').open('w') as log:
             while step < config['updates'] and time.time() < args.deadline and not stopped[0]:
@@ -215,4 +241,5 @@ if __name__ == '__main__':
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--deadline', type=float, required=True)
     parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--resume', type=Path)
     run(parser.parse_args())

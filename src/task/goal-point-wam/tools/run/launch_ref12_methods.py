@@ -25,8 +25,8 @@ def run(args):
         raise ValueError('only remaining GPUs4--7, one task/card')
     if helpers.gpu_processes(gpus):
         raise RuntimeError('assigned card is busy; never preempt it')
-    started = time.time(); deadline = started + (900 if args.smoke else plan['wall_seconds'])
-    if deadline > started + 5400:
+    started = time.time(); deadline = plan.get('deadline', started + (900 if args.smoke else plan['wall_seconds']))
+    if not started < deadline <= started + 5400:
         raise ValueError('90min maximum additional wall budget')
     sources = [Path(__file__), Path(__file__).with_name('train_ref12_method.py'), Path(__file__).with_name('ref12_methods.py'),
                TASK / 'tools/run/train_three_domain.py', Path(plan['stats']), Path(plan['data']) / 'processed/manifest.json', Path(plan['indices'])]
@@ -48,6 +48,8 @@ def run(args):
                 command += ['--' + name, plan[name]]
             if args.smoke:
                 command += ['--smoke']
+            if entry.get('resume'):
+                command += ['--resume', entry['resume']]
             env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(entry['gpu']), TMPDIR=str(REPO / 'tmp'),
                        TRITON_CACHE_DIR=str(REPO / 'tmp/triton-ref12-methods'), OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='1', MKL_NUM_THREADS='2')
             child = subprocess.Popen(command, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)

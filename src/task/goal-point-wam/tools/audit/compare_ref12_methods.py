@@ -19,7 +19,9 @@ def run(args):
         raise FileExistsError(args.output)
     parent = json.loads((args.root / 'action_world_parent.json').read_text())
     results = {}
-    for directory in sorted((args.root / 'training').iterdir()):
+    roots = args.training_roots or [args.root / 'training']
+    directories = [p for root in roots for p in root.iterdir() if p.is_dir()]
+    for directory in sorted(directories):
         if not directory.is_dir():
             continue
         result = json.loads((directory / 'result.json').read_text())
@@ -67,4 +69,5 @@ def run(args):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
+    p.add_argument('--training-roots', nargs='+', type=Path)
     run(p.parse_args())
