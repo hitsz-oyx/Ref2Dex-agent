@@ -775,3 +775,24 @@ outputs/goal-point-wam/video-diagnostic-summary-20261012-r1/diagnostics.png
 (head arms paired; full5000 uses a different optimization recipe).
 Remote scope5.854GB, local outputs+tmp~292.097GB, combined~297.951GB;
 no further full-checkpoint allocation. All four assigned remote GPUs released.
+
+19:29 final engineering check: pass one new shared-geometry window to the
+existing pinned9c81 mixed trainer --smoke (4updates, video actor masked to
+isolate world gradient, no checkpoint). GPU0<=120s, log/JSON<=200KB; existing
+native data/statistics and auxiliary parent unchanged. This only verifies
+the new data reaches the shared backbone with finite gradients, not held
+prediction quality or scientific video benefit.
+
+19:31 closeout: r1 smoke used unsupported --main-data and failed at argument
+parsing before a model/update. Preserve failed run; r2 corrected --data,
+completed4 mixed updates in3.910s (full launcher ~22.6s), no checkpoint.
+Driver325887/child325917, all losses/gradients finite. First video update has
+zero backbone gradient because the new point output layer is zero-initialized;
+second video update reaches shared backbone norm1.66559635e-5. World-only
+video gradient isolation passes; this is engineering wiring evidence only.
+Peak physical GPU2869MiB, GPU now released. Local receipt
+shared_geometry_smoke_final.json. Final local outputs+tmp292.113GB and
+remote5.854GB, combined~297.967GB. No active video job left unattended.
+Continue-to19:30 user request fulfilled; no additional scientific conclusion
+or successful generalization claimed. Next work is longer-record shared
+geometry/calibration plus separate-session admission before a matched fit.
