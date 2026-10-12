@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-approach-pd
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: b002588c
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 22
@@ -79,4 +79,26 @@ partial thaw is not automatically authorized by its mention here.
 
 ## Results
 
-Not started; implementation prepared, pending fixed code identity and smoke.
+Engineering smoke passed1 update/13.45s with live-PD actor gradient425.43,
+both trainable modules nonzero, exact frozen hashes and cache/direct0.
+Fixed300 fit completed77.01s, GPU2 peak2476.56MiB, headSHA
+3b879329acef50f24fc7eb07338492f06462e01b2ecb9377480b9abffde51aaf.
+Live train PD XYZ p95=136.61->44.28mm, validation404.15->384.46mm.
+Nominal nearest8 EPE17.22->19.51mm passes25% retention, but nominal PD
+XYZ p95 worsens25.56->82.83mm. Query-halving gate fails; local conclusion
+UNCLEAR. No head closure is admitted or run. Live gradient268.09; all five
+frozen hashes unchanged/cache0. Saved raw arrays include training/validation
+rows, targets, predictions and intended native actions.
+
+Root Decision: before interpreting remaining error as backbone capacity,
+screen the fixed R's PD range and per-state tau inverse. Its final Tanh->Linear
+global interval contains all admitted expert targets (pure checkpoint/array
+statistics on CPU; no network inference), so no global bound exclusion is
+identified. Next cheapest GPU check optimizes independent tau variables at
+the recorded train/validation states100steps, with the R and states fixed.
+This is a privileged unconstrained diagnostic, never an actor or physical
+trajectory evidence. Report actual PD and tau displacement; local optimizer
+failure is not proof of global impossibility. Budget<=60s/<1MB, still inside
+the shared600s/100MB allowance. Entry audit_wam_pd_reachability.py.
+Only if this reveals useful local R sensitivity does partial scene thaw
+remain a reasonable next check; its protocol is separate and not yet run.

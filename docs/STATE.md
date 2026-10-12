@@ -1,5 +1,14 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 早期专家PD头部修正可拟合训练点，未改善留出偏离状态
+
+固定b002588c完成300更新/77.01s，live train PD XYZ p95 136.61→44.28mm，
+留出404.15→384.46mm，未过减半门；nominal nearest8 EPE17.22→19.51mm，
+但nominal PD25.56→82.83mm，局部UNCLEAR，不运行这个head的闭环。
+livePD梯度实际到达actor，scene/goal/action/world/R冻结身份一致。下一步先排查
+冻结R的局部输出可达性，再决定用户提出的PTv3输出层逐步解冻；不能把训练
+拟合不足直接归因backbone容量。全量recovery仍因末段放置失败而未过门。
+
 ## 2026-10-12 真实偏离状态可恢复抓持，完整放置仍失败
 
 固定7f516d59的专家接管Probe完成542步，teacher/GT-R持物438/251帧并放置；
