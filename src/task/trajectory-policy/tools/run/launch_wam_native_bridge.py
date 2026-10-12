@@ -18,7 +18,12 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
+    p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
+    if not 1<=a.deadline_seconds<=600:
+        raise ValueError('owned group deadline must be <=600s')
+    a.head_dir=a.head_dir.resolve()
     out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or not out.name.startswith('wam-ref2-execution-'):
         raise ValueError('fresh task-owned execution group required')
@@ -37,7 +42,7 @@ def main():
     status=dict(status='STARTING',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
         run_id=out.name,experiment_id='P-20261012-goal-point-wam-ref2-execution',
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-        started_at=time.time(),deadline=time.time()+600,scope='three simulated nominal rows; no real robot')
+        started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='three simulated nominal rows; no real robot',head_directory=str(a.head_dir))
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py']
     status['source_sha256']={str(path):sha(path) for path in files}
@@ -53,16 +58,15 @@ def main():
                 os.killpg(process.pid,signal.SIGTERM)
 
     def guard():
-        if time.monotonic()-started>600:
+        if time.monotonic()-started>a.deadline_seconds:
             raise TimeoutError('whole execution group600s deadline')
         pids=set(map(int,subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid',
             '--format=csv,noheader,nounits'],text=True).split()))
         if pids-{process.pid for process,_ in processes}:
             raise RuntimeError('foreign GPU PID during owned group')
-        paths=[path for pattern in ('wam-ref2-shadow-20261012-*','wam-ref2-head-smoke-20261012-*',
-                'wam-ref2-head-calibration-20261012-*','wam-ref2-execution-20261012-*')
-               for path in (ROOT/'outputs/trajectory-policy').glob(pattern) if path.is_dir()]
-        paths += [scratch,ROOT/'tmp/trajectory-policy/wam-robot-head']
+        paths=[path for path in (ROOT/'outputs/trajectory-policy').glob('wam-ref2-*') if path.is_dir()]
+        paths += [path for path in (ROOT/'tmp').glob('wam-ref2-*') if path.is_dir()]
+        paths += [ROOT/'tmp/trajectory-policy/wam-robot-head']
         size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in paths if path.exists())
         if size>=100_000_000:
             raise RuntimeError('combined ref2 artifacts>=100MB')
@@ -74,7 +78,7 @@ def main():
         server_script=TASK/'tools/run/wam_native_server.py'
         server_log=(out/'server.log').open('w');streams.append(server_log)
         server=subprocess.Popen(['/home2/wyy/miniconda3/envs/graspenv/bin/python',str(server_script),
-            '--gpu',str(a.gpu),'--socket',str(address),'--output',str(out/'server')],cwd=ROOT,
+            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--output',str(out/'server')],cwd=ROOT,
             stdout=server_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((server,server_script));status['server_pid']=server.pid
         write(out/'group_status.json',status)
@@ -90,7 +94,7 @@ def main():
         native_script=TASK/'tools/run/execute_wam_native_bridge.py'
         native_log=(out/'native.log').open('w');streams.append(native_log)
         native=subprocess.Popen(['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(native_script),
-            '--gpu',str(a.gpu),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native')],
+            '--gpu',str(a.gpu),'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native')],
             cwd=ROOT,stdout=native_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((native,native_script));status.update(status='RUNNING',native_pid=native.pid)
         write(out/'group_status.json',status)

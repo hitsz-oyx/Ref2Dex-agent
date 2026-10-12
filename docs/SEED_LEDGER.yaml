@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref2-startup:
+    seed_pool: probe
+    model_seed: 293
+    train_draw_seed: 294
+
   P-20261012-goal-point-wam-ref2-execution:
     seed_pool: probe
     execution_seed: 292

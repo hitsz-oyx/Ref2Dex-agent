@@ -23,6 +23,7 @@ def main():
     p.add_argument('--socket',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     a=p.parse_args()
     a.output=a.output.resolve();a.socket=a.socket.resolve()
     if (a.output.exists() or ROOT/'outputs/trajectory-policy' not in a.output.parents
@@ -39,7 +40,9 @@ def main():
     torch.set_num_threads(2)
     torch.manual_seed(292)
     torch.backends.cuda.matmul.allow_tf32=True
-    head_dir=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1'
+    head_dir=a.head_dir.resolve()
+    if ROOT/'outputs/trajectory-policy' not in head_dir.parents:
+        raise ValueError('task-owned authenticated head required')
     head_result=json.loads((head_dir/'result.json').read_text())
     head_manifest=json.loads((head_dir/'manifest.json').read_text())
     if head_manifest['status']!='COMPLETED' or sha(head_dir/'head.pt')!=head_result['head_sha256']:

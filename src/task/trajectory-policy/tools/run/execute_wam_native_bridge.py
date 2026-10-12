@@ -27,6 +27,7 @@ def main():
     p.add_argument('--socket',type=Path,required=True)
     p.add_argument('--server-pid',type=int,required=True)
     p.add_argument('--gpu',type=int,default=2)
+    p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     args=p.parse_args()
     out=args.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or Path(sys.prefix).resolve()!=RUNTIME.resolve():
@@ -83,7 +84,9 @@ def main():
         oracle=stream['hand'][:,24].copy()  # privileged GT-R arm only
     reference_path=ROOT/'outputs/trajectory-policy/competent-reference-20261011-r1/reference.npz'
     reference_manifest=json.loads((reference_path.parent/'manifest.json').read_text())
-    head_dir=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1'
+    head_dir=args.head_dir.resolve()
+    if ROOT/'outputs/trajectory-policy' not in head_dir.parents:
+        raise ValueError('task-owned authenticated head required')
     head_manifest=json.loads((head_dir/'manifest.json').read_text())
     if (reference_manifest['status']!='COMPLETED' or not reference_manifest['planned_reference_only']
         or sha(reference_path)!=reference_manifest['reference_sha256']
@@ -98,7 +101,10 @@ def main():
     r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
     for parameter in r.parameters():
         parameter.requires_grad_(False)
-    head_path=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1/head.pt'
+    head_path=head_dir/'head.pt'
+    head_result=json.loads((head_dir/'result.json').read_text())
+    if head_manifest['status']!='COMPLETED' or sha(head_path)!=head_result['head_sha256']:
+        raise ValueError('authenticated completed frozen head required')
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     connection.settimeout(30);connection.connect(str(args.socket))
     if peer_pid(connection)!=args.server_pid:
@@ -113,7 +119,7 @@ def main():
     files=[Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/pd_retargeter.py',
         TASK/'src/trajectory_policy/retargeter_data.py',r_path,OFFICIAL,reference_path,source/'trajectory.npz',
         source/'manifest.json',run_dir/'config.json',Path(cfg['cfg_env']),head_path]
-    files += [reference_path.parent/'manifest.json',head_dir/'manifest.json']
+    files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']
     files += list((OLD/'src/consequence_evaluator').glob('*.py'))+list(native_root.rglob('*.py'))
     files += list(Path(cfg['motion_root']).glob('*/interaction_hand_inspire.pt'))
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
