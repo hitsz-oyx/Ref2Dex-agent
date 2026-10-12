@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-robot-aggregation
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: a4158031
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 24
@@ -103,4 +103,39 @@ Formal matched controls/multiple independent starts remain future Validation.
 
 ## Results
 
-Implementation/review underway; no new GPU run yet.
+Result: later takeover32 locally recovers139 held frames; aggregation improves pure training636->143mm but nominal PD59.48mm fails50mm collection gate, late pure diagnostic remains1186mm.
+Decision: do not deploy this head; test frozen R on actual expert-only recovery hand futures before further actor/data scaling.
+
+Collectionr1 completed74.83s: teacher/GT-R held138/139, expert takeover held139,
+first-stable98 and clipping0; pure WAM0 held/clipping1.0417%. Partial local
+calibration/recovery true, complete calibration/recovery null. Independent
+raw audit3468 checks max0. All192 actual expert queries persist. Training
+source has63 unclipped autonomous rows and128 recovered rows. Actor never
+receives expert observation; mixed-policy hand futures remain forbidden.
+
+Engineering smoke passed1 update/13.75s; live PD gradient1399.58, both
+trainable modules nonzero and all five frozen hashes/cache-direct unchanged.
+Fixed500 fit completed112.41s fromoriginalstartup; raw source label/row
+identities retained. Pure training XYZ p95636.50->143.26mm; recovered
+62.36->30.13mm. Late pure diagnostic1194.21->1186.27mm (22 unclipped rows),
+recovered25.13->27.73mm (16 rows). Nominal nearest8 EPE17.22->19.70mm,
+nominal PD25.56->59.48mm. Nominal retention and pure diagnostic halving fail;
+collection admission<=50mm also fails. No learned-actor rollout run.
+HeadSHA979621c5282a6e91cb96941546ca0b385235c2f432d34ded48ae066a44c86624.
+This is UNCLEAR; training improvement does not prove on-policy improvement.
+
+### Next Decision: physically measured expert future -> frozen R
+
+The new source offers137 complete unmixed expert windows, role3 current
+ticks32..168, futurecontrols[t:t+24] all actuallyexpert. Independent review
+found action/PD equality and current-state reconstruction max0. Unlike
+unconstrained tau inversion, actual future hand motion is physically measured.
+Run audit_wam_expert_recovery_tau.py on these ALL137 windows and same ticks
+teacher row0, frozen R/current q; report PD XYZ p50/p95, rotation/finger,
+clipping and fixed time blocks. GPU2<=60s/<1MB, still within this iteration's
+600s/100MB allowance. If recovered GT-R is bad while nominal is good, address
+R physical-trajectory mapping coverage rather than blaming only actor inputs;
+if both good, prioritize trajectory prediction/supervision. This is privileged
+diagnosis only. Source actor_future_hand_training_allowed=false is preserved;
+any later expert-only training requires a separate derived scoped admission,
+not reinterpretation of mixed-policy future or overwrite of the source.
