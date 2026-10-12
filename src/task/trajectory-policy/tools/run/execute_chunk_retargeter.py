@@ -46,6 +46,7 @@ def main():
     from consequence_evaluator.value_geometry import TableSupport
     from env.tasks.base_dexplore_task import DexploreTask
     from trajectory_policy.pd_retargeter import load_model,decode_target,command,pd_from_action
+    from trajectory_policy.native_R_inference import calibrated_PD_forward
     from trajectory_policy.chunk_retargeter import load_chunk
     from trajectory_policy.retargeter_data import features,ACTIVE
     from execute_wam_native_bridge import partial_grasp_outcome
@@ -126,7 +127,7 @@ def main():
                     future=np.broadcast_to(oracle[tick+np.arange(1,25)],(2,24,11,3))
                     state,tau=features(*(current[k][1:].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),future)
                     s,t=[torch.as_tensor(v,device=task.device) for v in (state,tau)]
-                    target=decode_target(old_r(s[:1],t[:1]),current['q'][1:2])
+                    target=decode_target(calibrated_PD_forward(old_r,s[:1],t[:1]),current['q'][1:2])
                     raw,applied,_=command(target,current['q'][1:2],offset,scale)
                     intended[1],action[1]=raw[0],applied[0]
                     predicted=chunk(s[1:],t[1:])

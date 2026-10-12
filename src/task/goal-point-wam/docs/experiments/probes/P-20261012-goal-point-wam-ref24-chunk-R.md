@@ -103,4 +103,21 @@ held-out disturbances/motions or final Cm-on/off. B/C remain conditional.
 
 ## Results
 
-Pending engineering smoke, fixed chunk fit and independent GT physics.
+Engineering smoke and fixed3000-update fit completed. Initial physical run
+`wam-v2-chunk-GT-20261012-r1` has invalid comparison calibration: teacher72held,
+old qualified PD-R0held, new Chunk-R0held. Keep its original trace/result; it
+cannot provide negative evidence against the intended calibrated comparison.
+Same initial measured state, GT features and old checkpoint were verified.
+On pinned Torch2.0.1/cu118 the retained PD-R singleton call differs from its
+qualified batch2 call: first native command max error0.914004. A differential
+replay against the actual qualified trace fails before the fix and passes with
+max error0 after duplicating the same query to batch2. New Chunk-R did not show
+that discrepancy. This is an observed runtime-path defect, not a universal
+claim about Torch. Narrow correction affects only the old-R control call.
+
+Repair Decision: rerun exactly the affected128-control GT comparison once as
+`wam-v2-chunk-GT-20261012-r2`; same trained Chunk-R/data/seed/physics, no retrain
+or new architectural variable. Both physical runs remain within stage80MB and
+total20GPUmin. Stop B/C if the corrected calibrated GT gate fails. Label and
+native execution audit passed on r1 despite its invalid control qualification.
+Corrected comparison and final interpretation pending.
