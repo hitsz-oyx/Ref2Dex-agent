@@ -27,6 +27,8 @@ def main():
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
     a.experiment_id=a.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
+    artifact_limit = (120_000_000 if a.experiment_id ==
+        'P-20261012-goal-point-wam-ref2-startup-anchor' else 100_000_000)
     if not 1<=a.controls<=542 or (a.expert_recovery and not 0<=a.takeover_tick<a.controls):
         raise ValueError('bounded controls and in-horizon takeover required')
     if not 1<=a.deadline_seconds<=600:
@@ -57,6 +59,7 @@ def main():
         started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir),controls=a.controls,takeover_tick=a.takeover_tick if a.expert_recovery else None,partial_episode=a.controls<542)
     status['retargeter_identity']=r_identity
     status['retargeter_input_sha256']=r_hashes
+    status['artifact_limit_bytes']=artifact_limit
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/wam_scene_patch.py',
            TASK/'src/trajectory_policy/wam_retargeter_admission.py']
@@ -85,8 +88,8 @@ def main():
         paths += [path for path in (ROOT/'tmp').glob('wam-ref2-*') if path.is_dir()]
         paths += [ROOT/'tmp/trajectory-policy/wam-robot-head']
         size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in paths if path.exists())
-        if size>=100_000_000:
-            raise RuntimeError('combined ref2 artifacts>=100MB')
+        if size>=artifact_limit:
+            raise RuntimeError('combined ref2 artifacts>=%dMB' % (artifact_limit//1_000_000))
         status['artifact_bytes']=size
         if any(sha(path)!=digest for path,digest in status['source_sha256'].items()):
             raise ValueError('owned launcher/server/native IPC source drift')
