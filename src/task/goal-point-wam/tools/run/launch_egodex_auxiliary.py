@@ -51,6 +51,16 @@ def main():
              a.ego_data/'manifest.json', a.ego_data/'index_train.npy', a.ego_data/'index_val.npy',
              a.validation_indices, a.validation_indices.parent/'panel.json']
     files += list((TASK/'src/goal_point_wam').glob('*.py'))
+    cm = TASK.parent/'cm-pointflow-effect-pretrain/src/oakink_wm'
+    files += [cm/name for name in ['data.py', 'multisource.py', 'model.py', 'pointworld.py']]
+    vendor = REPO/'third_party/PointWorld'
+    files += list(vendor.rglob('*.py'))+list(vendor.rglob('*.yaml'))
+    main_manifest = json.loads((a.data/'processed/manifest.json').read_text())
+    for source in main_manifest['sources']:
+        files.append(Path(source['root'])/'processed/manifest.json')
+        files += [Path(index['path']) for index in source['indices'].values()]
+    ego_manifest = json.loads((a.ego_data/'manifest.json').read_text())
+    files += [a.ego_data/record['path'] for record in ego_manifest['records']]
     sources = {str(f.resolve()):helpers.digest(f) for f in files}
     command = [sys.executable]
     if len(gpus) > 1:
