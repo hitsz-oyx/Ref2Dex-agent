@@ -172,6 +172,12 @@
 | [P-20261005-geometric-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-innovation.md) | Ref10: does intended surface motion generalize beyond action categories? | UNPROMISING: fixed PCA/bilinear ridge nominal-flow screen extrapolates badly; independent review plus frozen replay find no fatal wiring bug | Stop the unconstrained PCA/bilinear endpoint route, retain physical action contracts and local spatial/execution hypotheses; do not enter se | probes/UNPROMISING |
 | [P-20261005-geometric-support](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-support.md) | Separate physical point-flow from feature amplification | UNPROMISING: additive physical-scaled flow avoids the bilinear explosion but still underperforms State, Arm and Joint; the isolated original | Stop PCA/ridge endpoint fitting; retain geometry contract and require local spatial or execution inductive bias for the next geometry experi | probes/UNPROMISING |
 
+## HF-goal-point-wam-egodex-auxiliary
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261012-goal-point-wam-egodex-auxiliary](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-egodex-auxiliary.md) | Native EgoDex hands as auxiliary training data | UNCLEAR; native admission is prepared, model training not yet verified. | complete the local engineering/learning Probe before remote handoff. | probes/UNCLEAR |
+
 ## HF-goal-point-wam-ref12-methods
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

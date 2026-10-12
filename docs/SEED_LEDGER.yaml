@@ -38,3 +38,10 @@ allocations:
     model_and_augmentation_seed: 280
     train_draw_seed: 281
     evaluation_subset_seed: 282
+
+  P-20261012-goal-point-wam-egodex-auxiliary:
+    seed_pool: probe
+    session_split_seed: 283
+    model_seed: 284
+    train_draw_seed: 285
+    engineering_seed: 286
