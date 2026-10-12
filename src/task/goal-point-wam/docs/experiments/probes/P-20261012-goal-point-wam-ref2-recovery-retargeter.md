@@ -103,5 +103,24 @@ matched RL/Cm Validation remain future evidence.
 
 ## Results
 
-Result: predeclared R coverage probe; implementation and source admission in progress.
-Decision: run engineering smoke then fixed1000 updates, and admit physical diagnosis only on the predeclared screens.
+Result: fixed1000 updates reduce recovery train53.22->6.05mm but held17.99->19.74mm; startup rotation retention gate fails, so no deployment.
+Decision: test ONE predeclared alpha=.5 interpolation of base/final net weights with all original screens unchanged; no repeat training or rewrite of the completed fit.
+
+Fitter77ab8e14, engineering1 update5.13s/PASS; fixed1000 updates64.58s,
+GPU2/peak54MiB. Nominal XYZ p9510.59->9.02mm, startup2.28->.959mm.
+Recovery train53.22->6.05mm, held17.99->19.74mm and earlyheld19.63->21.29mm.
+Clipping0 everywhere; original buffers bitwise unchanged and initial net exact.
+Startup rotation p95.002769->.004442rad exceeds1.5x, so offline_screen_pass
+false. Final checkpoint is preserved and does not enter physics.
+
+### Follow-up Decision: conservative weight interpolation
+
+The strong training change with slight held worsening suggests local overfit
+or too large an adaptation; failure is not a mapping-capacity proof. Cheapest
+check is a single alpha=.5 parameter interpolation between authenticated base
+and fixed1000 final R.net. No new optimization or selection over a grid. Keep
+six buffers identical and all original gates unchanged; fresh derived output
+links parent checkpoint/result/raw predictions and scoped admission. GPU2
+forward only<=60s/<2MB, same local correlated diagnostic panels. If it passes,
+admit the already-declared local GT physical calibration; if not, investigate
+recovery support/trajectory supervision before further R investment.
