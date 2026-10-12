@@ -67,11 +67,31 @@ def audit(directory):
             for key,value in recomputed.items():
                 checks[prefix+key]=float(abs(stats[key]-value))
     maxima['metric_max']=max(checks.values())
+    parent_result=json.loads((Path(manifest['warm_pair_directory'])/'result.json').read_text())
+    warm_start=(result['train_initial_hash']==parent_result['train_final_hash']
+                and result['frozen_initial_hash']==parent_result['frozen_final_hash']
+                and result['normalization_initial_hash']==parent_result['normalization_final_hash'])
+    draws=raw['sampled_row_ids']
+    if draws.shape!=(manifest['maximum_updates'],64):raise ValueError('actual draw matrix differs')
+    kinds,ticks,roles=[raw['rows_'+k][draws] for k in ('kind','tick','role')]
+    if (not (kinds[:,:32]=='nominal').all() or not (ticks[:,:16]<16).all()
+            or not (ticks[:,16:32]>=16).all() or not (roles[:,32:48]==3).all()
+            or not (roles[:,48:]==2).all()):
+        raise ValueError('nominal/startup/actual future/pure-current sample roles differ')
+    for batch in kinds:
+        for part in (batch[32:48],batch[48:]):
+            counts=[int((part=='multi%d'%sid).sum()) for sid in range(3)]
+            if sorted(counts)!=[5,5,6]:raise ValueError('source-balanced actual draws differ')
+    coverage=len(np.unique(draws[:,32:]))
+    if manifest['maximum_updates']>1 and coverage!=643:
+        raise ValueError('full run did not use every aggregation sample')
     passed=(maxima['PD_label_max']<1e-6 and maxima['tau_label_max']<1e-6 and maxima['metric_max']<1e-5
-        and all(sha(p)==h for p,h in manifest['input_sha256'].items()))
+        and warm_start and all(sha(p)==h for p,h in manifest['input_sha256'].items()))
     report=dict(schema='ref2dex.joint-fit-root-audit.v1',pass_=bool(passed),maxima=maxima,
         checks=checks,metric_checks=len(checks),pure_future_geometry_denied=True,
         source_hashes={str(p):sha(p) for p in paths.values()},
+        exact_warm_start=warm_start,aggregation_samples_actually_drawn=coverage,
+        all_batches_source_balanced=True,
         note='CPU file/label/metric reconstruction only; no model or physics quality claim')
     report['pass']=report.pop('pass_')
     return report
