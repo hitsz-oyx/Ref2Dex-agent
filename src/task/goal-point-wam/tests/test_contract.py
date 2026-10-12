@@ -241,6 +241,35 @@ def test_geometric_reference_recovers_goal_rigid_motion_without_future_hands():
     assert all(torch.isfinite(value).all() for value in predicted.values())
 
 
+def test_compact_inputs_are_observed_only_and_goal_rigid_features_are_correct():
+    sys.path.insert(0, str(TASK / 'tools/audit'))
+    from probe_compact_forecast import compact_features, CompactForecast
+    from goal_point_wam.data import _current_hand_history
+    sample = _sample(missing_left=True)
+    start, valid = _current_hand(sample)
+    sample.update(start_hand=start, start_hand_valid=valid, start_hand_history=_current_hand_history(sample))
+    rng = np.random.default_rng(14)
+    points = rng.normal(size=(8, 3)).astype(np.float32)
+    rotation = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]], np.float32)
+    sample.update(start_object_points=points, goal_object_points=points @ rotation.T + [.02, -.03, .04],
+                  object_goal_valid=np.ones(8, bool))
+    stats = dict(scene_mean=[0.] * 18, scene_std=[1.] * 18)
+    hand, geometry, goal = compact_features(sample, stats)
+    np.testing.assert_allclose(goal[3:], (rotation - np.eye(3))[:, :2].T.reshape(-1), atol=2e-6)
+    assert not hand[1].any()
+    sample['action'][:] = 12345.
+    for a, b in zip((hand, geometry, goal), compact_features(sample, stats)):
+        np.testing.assert_array_equal(a, b)
+    batch = dict(hand=torch.from_numpy(hand)[None], geometry=torch.from_numpy(geometry)[None],
+                 goal=torch.from_numpy(goal)[None].requires_grad_())
+    model = CompactForecast()
+    torch.testing.assert_close(model(batch, True), model(batch, False), atol=0, rtol=0)
+    torch.nn.init.normal_(model.head[-1].weight, std=.01)
+    prediction = model(batch, True)
+    gradient, = torch.autograd.grad(prediction.sum(), batch['goal'])
+    assert prediction.shape == (1, 24, 2, 11, 3) and torch.isfinite(gradient).all() and gradient.abs().max() > 0
+
+
 def test_goal_and_world_components_are_finite_with_missing_goal_points():
     stats = {
         "action_mean": [0.] * 9,

@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-hand-query
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: dfcfef3a185c82ea4494799316f8c3d293857e0a
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 10
@@ -26,8 +26,8 @@ accessible hand dynamics from broader learning/supervision limitations. Cheapest
 screen is observed-only velocity forecasting on the existing96 validation
 windows, with independent raw history reconstruction before any neural change.
 
-Result: Pending.
-Decision: Run the observed-history screen, then follow the fixed conditional protocol.
+Result: UNCLEAR; observed velocity forecasting helps OakInk2 but fails the multi-source gate.
+Decision: Stop the conditional full-WAM query training here; use a separately registered compact predictor to test input learnability.
 
 ## Phase1: observed-only statistics fixed before execution
 
@@ -92,3 +92,26 @@ World-loss-off, longer training and multiple seeds remain conditional future wor
 
 - [Observed-history screen](../../../../../../outputs/goal-point-wam/hand-history-20261012-r1/result.json)
 - [History screen source](../../../tools/audit/probe_hand_history.py)
+
+## Completed Phase1 / conditional Phase2 not launched
+
+Run code dfcfef3a, label-statistics runtime1.00s on CPU. Raw history reconstruction
+maximum error0 in all sources; semantic/missing/current-only tests pass.
+
+| Source | Zero / last velocity / three-step velocity EPE (mm) | Primary improvement |
+| --- | ---: | ---: |
+| OakInk2 | 34.80 / 27.68 / 30.71 | +11.73% |
+| GRAB | 141.32 / 148.77 / 156.57 | -10.79% |
+| ARCTIC | 71.63 / 91.25 / 94.76 | -32.29% |
+
+Only OakInk2 passes; primary >=2-source gate fails. Its last-velocity secondary
+reference improves20.45%, but other sources worsen. Do not select this secondary
+post hoc as a passed multi-source screen. The planned full-WAM query change and
+training are NOT implemented/launched. This does not show that nonlinear hand
+history is uninformative or that explicit hand position cannot help.
+
+Decision Note: retain the negative linear-baseline results and stop the full
+query trial specified by this card. A compact learned H-only/H+object-goal
+predictor can distinguish cheap input learnability from failure of this rigid
+linear forecast before investing in another full scene/world training pair.
+It is a separate Probe with no architecture-causality claim.
