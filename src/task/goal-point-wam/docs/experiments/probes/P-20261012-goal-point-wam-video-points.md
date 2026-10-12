@@ -475,3 +475,51 @@ This selected held cohort is not the entire EgoDex distribution. Diverse
 extraction completed60 windows in453.315s, CPU only, no reconstruction.
 Normalized session names (optional .mov suffix removed) have no train/dev
 overlap. NAS5.165GB before mixed fit, projected final combined297.85GB.
+
+
+While diverse mixed fit runs, cheapest independent history Decision: CPU-only
+reference forecast from teacher frames t-3/t for offsets3/6, on unchanged
+current-selected points and frozen splits. Compare constant-velocity versus
+stationary on the SAME past-known/future-valid points, first8 ticks and all24.
+No extra model or checkpoint. At least3 held sessions, mean history coverage
+>=50%, and held short EPE>=5% better than stationary motivates a paired
+frozen-feature point-head history Probe. Otherwise defer scene-history
+changes and inspect other signals first. Current-past alignment p90<=.25mm
+and hashes must pass; bound CPU300s/JSON<=1MB. Interpolated past labels
+are10Hz approximations, not native measured30Hz scene motion.
+
+
+## 18:22 diverse final5000: UNCLEAR, no blind continuation
+
+Run video-diverse-mixed-20261012-r1 completed5000 updates (1250 video),
+1613.516s training/validation/save, exit0. Launcher268570/child268632,
+fixed core9c81eaa2; driver SHA
+`968a5181efea91df98b7c9ce34b5ef75ab6dede446e847e52a64c4d53973dde8`.
+Supervisor checks ownership/input/foreign GPU/storage/intermediate native
+degradation about every20s; no stop condition triggered. Peak physical
+GPU4659MiB; all remote GPUs released at completion.
+
+Held six-window scene EPE14.776→16.086mm (+8.864%, static14.776): FAIL
+>=5% improvement criterion. Held hand77.088→77.636mm (+0.711%).
+Native macro hand44.586→46.042mm (+3.265%, <=5% PASS), world20.290→
+20.658mm (+1.811%, <=10% PASS). True goal advantage retained on all3 sources.
+Fixed final parameter SHA
+`3e5125c95bbeddd2829b2c0ea4ce39d2a339af5654602b47539937b8eba862d9`.
+Latest/final are the same inode,629774336 bytes. Final validation is repeated
+at loop boundary and exit; tiny floating differences in world/actor metrics
+are retained in both lines, use final line consistently. No held-selected
+checkpoint or comparison to the one-clip panel as though it were matched.
+
+Local receipt `tmp/video-training-20261012-takeover/diverse_mixed_final.json`;
+remote scope/video-diverse-mixed-20261012-r1/train/. NAS5.804GB; local
+outputs+tmp292.067GB, combined~297.871GB. No new full checkpoint allocation
+without reclaiming eligible own disposable material or rechecking headroom.
+All scientific checkpoints/arrays preserved.
+
+Next: fixed final train/held per-window/motion-bin audit (GPU<=300s, JSON only),
+then decide whether remaining issue is fitting, action use or geometry/noise.
+CPU history-reference r1 failed before computation because graspenv lacks
+h5py imported by geometry utilities. No environment installation or method
+change: r2 uses the existing preprocessing environment already containing
+h5py. Preserve failed log; this is an execution/environment defect, not
+negative evidence for point history.
