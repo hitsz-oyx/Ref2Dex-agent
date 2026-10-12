@@ -159,6 +159,21 @@ control, alongside a beneficial coadaptation on early pure TRAIN
 (newWAM+oldR330.21mm -> learned pair60.89mm). All late pure combinations
 remain approximately938--955mm: no local coverage transfer demonstrated.
 
+Follow-up normal-retention diagnosis distinguishes mean from tail: nominal
+mean XYZ error14.10->11.63mm and normalized mean action L1.10760->.10303
+improve, while p95 worsens25.63->35.26mm. Tick32 mean12.88->36.67mm is the
+largest final error among the16 nominal panel ticks; startup ticks improve.
+The objective optimizes coordinate-average L1, not p95 or per-tick retention;
+batch64 gives16 startup nominal,16 other nominal,16 recovery and16 pure PD.
+Initial pure PD normalized L1.81955 is much larger than nominal report.10760,
+consistent with substantial adaptation pressure, but this is not a direct
+gradient-conflict measurement. R receives predicted tau only in its action
+loss; true tau currently constrains WAM geometry without directly preserving
+R(true tau). Together with the fixed-input cross-R audit, mapping drift and
+mean-versus-tail tradeoff are the leading local explanation; do not claim all
+normal predictions degraded or that the exact optimization mechanism is proven.
+Raw derived statistics: `normal_retention_diagnosis.json` in the fit directory.
+
 Independent pre-fit review found a deployment-only persistent=False
 voxel-origin loading KeyError; a1bd58e8 fixes it before the full run.43 CPU
 contracts passed, including this actual model buffer semantics. Smoke1 at

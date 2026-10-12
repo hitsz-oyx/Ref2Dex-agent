@@ -6,7 +6,8 @@
 峰值2159MiB。scene/PTv3、goal、trajectory、hand_query、R.net均有实际
 action-only梯度和参数更新；action/world参数与所有统计buffer冻结。起步PD
 XYZp9512.08->2.76mm、early pure TRAIN587.93->60.89mm，但late purged诊断
-940.48->955.48mm；nominal近8手轨迹17.20->14.76mm，PD25.63->35.26mm。
+940.48->955.48mm；nominal近8手轨迹17.20->14.76mm，PD p9525.63->35.26mm，
+均值14.10->11.63mm改善，尾部主要暴露tick32局部退化，不能称正常预测全部变差。
 nominal真实tau->新R10.59->43.96mm，未过预设30mm门，未执行物理回放。
 同状态交叉审计：newWAM+oldR nominal24.94mm/recovery32.56mm，exact learned
 pair35.26/49.12mm，局部暴露R更新损害部分映射；不是关闭联合训练路线。
