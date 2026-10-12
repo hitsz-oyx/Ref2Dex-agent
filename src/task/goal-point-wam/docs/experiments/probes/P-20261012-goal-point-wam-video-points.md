@@ -930,3 +930,38 @@ outputs/goal-point-wam/video-long-record-summary-20261012-r1/summary.json and
 coverage-and-scale.png. Local receipts remain under
 tmp/video-training-20261012-takeover/. GPU depth/tracking jobs completed and
 released assigned GPU; no video model-training/checkpoint created in this spike.
+
+## 20:22 short-window query restart with shared whole-record geometry
+
+User approved the proposed hybrid: immutable whole-record depth/calibration,
+then fresh queries in short windows, and also requests MINT/HaWoR source review.
+Bounded Decision Probe: discriminate accumulated long-track point loss from
+intrinsic inability to label local1s motion. Eight raw starts0/150/300/450/600/
+900/1050/1170, 11frames at10Hz; native current=start+3 and retained H4/K24.
+Compare current-selected point counts with the previous full-record tracker
+at these identical ticks and run unchanged audit_video_tracks.py quality gates.
+If coverage and quality pass, this becomes the next label-extraction workflow;
+if only coverage improves, investigate geometry/label quality rather than
+expanding training or weakening thresholds. Frozen held recording and official
+TRAIN acquisition provenance retained; no held-session fitting or cohort update.
+
+Cheapest adaptation: every-second-pixel candidate grid, select up to2048
+identities by first-frame depth and1.5cm voxel ONLY before model tracking;
+256-query batches, each sees the complete11frame clip. This is not exact
+PointWAM: paper subsamples after tracking, retains up to12000, and restarts
+clips every0.5s. Here8 predetermined starts and pre-subsampling bound compute;
+no selection by future visibility/motion, no depth or scale recomputation.
+Each clip has local track IDs; no cross-clip identity/global motion claim.
+Teacher archives include bounded shared-depth slices for compatibility with
+unchanged auditor; these are cached values, not new depth predictions.
+Engineering loader acceptance remains distinct from label admission/training.
+
+Run video-window-restarts-20261012-r1: one assigned GPU0, <=10min model+data
+budget/<=15min supervisor deadline, <=250MB owned artifacts, owned remote
+scope<=15GB and previously user-authorized combined ceiling310GB. Stop on
+input/source/vendor drift, OOM/nonfinite, foreign GPU, resource cap or deadline;
+retain partial output/logs. CPU quality audit and loader are file/tensor work,
+not CPU model inference. No checkpoint/model-training budget in this Probe.
+Implementation tools/audit/probe_window_video_tracks.py; exact commit pinned
+before execution. Additional MINT/HaWoR primary-source research runs independently
+without weights/GPU, and cannot change this already-fixed run protocol.
