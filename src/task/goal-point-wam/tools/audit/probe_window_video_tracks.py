@@ -74,7 +74,7 @@ def main():
     a.output.mkdir(); started = time.monotonic(); torch.set_num_threads(2)
 
     def progress(stage, **fields):
-        event = dict(stage=stage, seconds=time.monotonic()-started, **fields)
+        event = dict(stage=stage, elapsed_seconds=time.monotonic()-started, **fields)
         path = a.output/'progress.part'; path.write_text(json.dumps(event, allow_nan=False)+'\n'); path.replace(a.output/'progress.json')
         print(json.dumps(event), flush=True)
         if time.monotonic()-started > a.seconds:

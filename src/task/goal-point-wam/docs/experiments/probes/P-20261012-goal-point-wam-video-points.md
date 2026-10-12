@@ -965,3 +965,9 @@ not CPU model inference. No checkpoint/model-training budget in this Probe.
 Implementation tools/audit/probe_window_video_tracks.py; exact commit pinned
 before execution. Additional MINT/HaWoR primary-source research runs independently
 without weights/GPU, and cannot change this already-fixed run protocol.
+
+R1 failed after completing the first2048-query clip: progress logging reused
+`seconds` both for elapsed time and recording timestamp, raising TypeError.
+Peak allocated1.151GB, first-window teacher/sample retained. No method result
+or quality admission from incomplete run. Fix uses elapsed_seconds separately;
+r2 repeats the fixed8-window protocol in a new output and pinned detached repo.
