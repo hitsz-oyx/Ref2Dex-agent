@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ddp-scale
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: 04689d66
+git_commit: cc434265
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 14
@@ -14,7 +14,7 @@ seeds: [275, 276, 277, 278, 279]
 decision_changed_if_positive: retain scaled hand-memory candidate for action-world reliability and downstream policy work
 decision_changed_if_negative: inspect learning curves and forward-action/input semantics before additional scaling
 status: UNCLEAR
-run_id: goal-memory-ddp-20261012-r1
+run_id: goal-memory-ddp-20261012-r2
 ---
 
 # Single-model four-GPU Goal-Point-WAM scale-up
@@ -24,11 +24,12 @@ upstream of Mission's robot/Cm/RL claim. Prior hand+memory goal reduced trajecto
 EPE and goal ablations on GRAB/ARCTIC. This run asks whether that candidate keeps
 learning with broader exposure and yields a useful forward model. User explicitly
 replaces the proposed six matched seed/control launches with ONE model on FOUR
-synchronously distributed GPUs, maximizing useful GPU utilization. No six-arm
+synchronously distributed GPUs. The latest instruction is to train directly
+without further utilization tuning. No six-arm
 training started; their unused configs were removed. The cancelled panel449 was
 generated but no outcome was observed, and is not used by this Probe.
 
-Result: UNCLEAR; engineering preflight passed, scientific launch pending. No formal causal or multi-seed claim is possible.
+Result: UNCLEAR; four-rank engineering preflight passed and the single scientific training run is RUNNING. No formal causal or multi-seed claim is possible.
 Decision: Run the selected architecture at larger global batch and fixed budget;
 use final real/static goal and world/action diagnostics to choose the next step.
 
@@ -38,8 +39,8 @@ use final real/static goal and world/action diagnostics to choose the next step.
   projection and observed-hand adapter freshly initialized with seed275.
   Current-hand XYZ/history + memory object goal32 paired points, coordinate
   scale.05m, world_weight1. No robot, video, tactile auxiliary or L_goal.
-- NCCL DistributedDataParallel,4 ranks on idle physical GPUs0/1/4/5, all on
-  the same NUMA node. GPU topology avoids GPU7's cross-socket path. Each rank
+- NCCL DistributedDataParallel,4 ranks; initial segment GPUs0/1/4/5, resumed
+  segment GPUs0/1/2/3 after those devices became idle. Each rank
   microbatch128; global batch512, accumulation1,10000 optimizer steps,
   5,120,000 sample occurrences from the existing4,378,478 train-window corpus.
   Source weights5/9,2/9,2/9, existing category stratification, draw seed276.
@@ -88,9 +89,10 @@ checkpoint snapshots to bound disk. Earlier runs/checkpoints remain untouched.
 
 ## Artifacts / limitations
 
-Output root: `outputs/goal-point-wam/goal-memory-ddp-20261012-r1/`.
-`evaluation/panel.json` binds the frozen panel and excluded history; training
-subdirectory will hold global/per-rank indices, config/input identity,
+Output roots: `outputs/goal-point-wam/goal-memory-ddp-20261012-r1/` (initial
+segment and frozen evaluation panel), and `goal-memory-ddp-20261012-r2/`
+(resumed training). The r1 `evaluation/panel.json` binds the panel and excluded
+history; each training subdirectory holds global/per-rank indices, config/input identity,
 per-rank logs/progress, validation curve, optimizer checkpoints and result.
 Fixed code commit and launcher/PIDs are recorded before/at actual launch.
 Raw sparse forward-repeat noise remains a separate engineering issue; final
@@ -114,3 +116,60 @@ The supervised launcher reuses the existing PointWorld ownership checks,
 records exact source hashes/PIDs and polls every30s. It requests only owned
 workers save/stop on source drift, foreign context,298GB artifact threshold or
 6h deadline. Max180s cleanup grace; no foreign PID is signaled.
+
+## Actual launch
+
+Code cc434265, physical GPUs0/1/4/5, one model/global batch512.
+Supervisor PID3904485, torchrun PID3904499; worker PIDs3904547/3904548/
+3904552/3904557. Exact startup identity, commands/source hashes and live progress:
+[launcher state](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r1/group_status.json),
+[training identity](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r1/train/input_manifest.json),
+[progress](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r1/train/progress.json).
+At56 steps all4 gradient norms match, losses/gradients finite; recent median
+update time.98s, remaining ETA approximately2.7--3h. Startup sampling peaks
+100% utilization on each selected GPU; device memory about17--20GiB. This is
+runtime evidence only. No outcome label upgraded; training remains in progress.
+[Evaluation panel](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r1/evaluation/panel.json)
+contains512/source from59 OakInk2,88 GRAB,34 ARCTIC val sequences. Current
+artifacts282.387GB, within cap; no remote GPUs, auxiliary data or control runs.
+
+## Saved pause and direct continuation
+
+The reference run saved/stopped cleanly at step400, retaining its original
+latest/final checkpoints. A bounded engineering detour measured a fused Hilbert
+batch128 benchmark at.893s versus reference.882s, so fusion was not adopted.
+An optional vectorized sampling benchmark measured.690s with tested sampling
+parity; this also was not adopted after the user instructed direct training
+without further utilization tuning. These are engineering measurements only.
+
+The selected action is to resume the exact original trainer/config/model from
+step400, preserving optimizer and all-rank RNG, global512/10000-step target and
+original absolute6h deadline. No extra scientific seed, control or backend
+migration is used. This corrects the unnecessary tuning detour; it introduces
+no new accuracy claim. The latest reference-source trainer is byte-identical
+to cc434265. Unused performance drafts remain outside the active recipe.
+
+## Active resumed segment
+
+Run `goal-memory-ddp-20261012-r2`, physical GPUs0/1/2/3; supervisor PID3925911,
+torchrun PID3925924. The launcher receives `--resume` pointing to r1 step400
+and `--deadline` preserving r1's absolute budget. The deadline option belongs
+to the supervisor; the trainer retains its existing same-config resume checks.
+It restores the state after DataLoader iterator creation. This is continuation
+of one model, not another seed or fresh initialization.
+
+[Current launcher state](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/group_status.json),
+[training identity](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/train/input_manifest.json),
+[progress](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/train/progress.json),
+and [console](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/console.log)
+record actual execution. At step616 the resumed run is RUNNING, loss/gradient
+finite; all four rank gradients match at the latest shared step610. Recent
+median update1.138s, remaining training ETA about3h plus evaluation
+and checkpoint time. A GPU snapshot showed all4 devices at100%, memory about
+18--22.5GiB; point-in-time utilization is not a sustained performance claim.
+A subsequent20s sample averaged54.2/49.5/54.2/57.4% across GPUs0/1/2/3
+([samples](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/resume_gpu_samples.json));
+this is recorded without extending utilization tuning.
+Aggregate artifacts283.10GB remain below300GB. Source/storage/ownership guards
+remain active; no further throughput benchmarks or implementation changes are
+planned while this run trains. Results remain UNCLEAR until actual evaluation.

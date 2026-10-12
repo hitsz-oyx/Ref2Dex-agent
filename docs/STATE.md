@@ -1,5 +1,29 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 单模型四卡规模训练运行中
+
+用户明确取消多seed/对照，要求一个模型四卡分布式训练；最新指示直接训练，
+不再为提高利用率追加性能调优。
+[P-20261012-goal-point-wam-ddp-scale](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ddp-scale.md)
+以严格PW50000初始化，训练代码cc434265，memory-goal+当前hand XYZ/history+
+world1；每rank batch128、global512、10000步/512万样本暴露，seed275/抽样276/
+评估277。四rank小batch/完整batch smoke均通过同步参数SHA相等；独立实现复核
+已修复DataLoader iterator创建前恢复CPU RNG导致resume序列偏移的问题。
+
+r1在第400步保存后暂停；Hilbert融合无收益，采样优化草稿也未采用。按最新指示，
+r2已在GPUs0/1/2/3从原checkpoint恢复同一个模型、优化器及all-rank RNG，保留
+原6h绝对deadline，停止性能测试。第616步loss/梯度有限，四rank最近共享步610梯度范数一致，约1.14s/步，预计剩余
+训练约3h，另加评估/保存时间。单次GPU快照四卡100%，显存约18--22.5GiB；
+不把瞬时利用率当稳定性能结论。aggregate artifacts283.10GB<300GB。
+
+1536-window面板固定且避开本Task历史已看窗口共享帧，仍复用val序列/PW选择
+数据，不是独立新受试者评测；每1000步计数加权分布式评估。取消的6臂没有训练，
+panel449未观察结果且不用。上限6h/1440GPUmin、新产物<=6GiB，监控仅管理
+自有进程，每30s核对source/foreign GPU冲突、298GB主动停止。训练结束前保持
+UNCLEAR，不形成多seed/因果或RL结论。
+[实时状态](../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/group_status.json)
+与[训练日志](../outputs/goal-point-wam/goal-memory-ddp-20261012-r2/console.log)。
+
 ## 2026-10-12 ref1_2 扩大预算与手部条件结果
 
 按用户授权并行使用8张空闲GPU，完成原始memory/query/none和5个显式hand/world-loss
