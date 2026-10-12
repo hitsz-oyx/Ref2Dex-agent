@@ -25,7 +25,7 @@ def summarize(native):
         d = {k: f[k] for k in ('hand', 'obj', 'learner_wam_tau', 'pd_targets', 'requested_pd',
                               'expert_PD', 'expert_clipped', 'clipped')}
     rows = []
-    for tick in (0, 4, 8, 12, 16, 24, 32):
+    for tick in (0, 4, 8, 12, 16, 24, 32, 48):
         if tick >= m['controls']:
             continue
         pd = d['pd_targets'][tick, 2]-d['expert_PD'][tick, 0]
