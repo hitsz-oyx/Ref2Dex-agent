@@ -1,5 +1,30 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 本地10000完成与远程约2600步快照
+
+本地r3完成10000步、exit0，四rank final参数SHA一致，optimizer/RNG完整保存，
+GPU已释放。1536-window actor宏均值7000/7300/8000/9000/10000为
+49.779/49.589/49.740/49.674/49.833mm，后段呈平台，暂不追加训练步数。
+最终checkpoint固定同scene的goal/static/zero-hand审计已完成：真实goal相对
+static的EPE改善OakInk2/GRAB/ARCTIC为7.77/27.43/23.66%，相对zero-hand为
+44.50/50.03/31.27%，三源均通过预定>=5%门槛。本地candidate判为Probe
+PROMISING，仅说明该goal-conditioned表示有用，不证明机器人控制或Cm/RL因果收益。
+[DDP-scale卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ddp-scale.md)。
+
+远程EgoDex混合训练实际RUNNING约2600/10000，global1024，主更新1.42s、
+aux.36s，剩余约2.4h加验证保存。2000步EgoDex held-session EPE63.280→48.924mm
+（初值下降22.69%），但1000步47.646mm更低，尚无持续改善趋势；static为59.815mm。
+main64/source actor macro46.028→45.149mm，cached true goal优势三源仍保持。
+远程与本地panel大小和训练条件不同，不横向比较上述绝对误差。
+
+外层phase chain189914因一次NAS du返回1退出，实际scientific launcher190557、
+模型四rank一直继续，没有重启训练/重置optimizer。恢复独立CPU监控198540，
+combined watcher4161832改为直接依据实际launcher状态判断和保存停止，避免
+误把chain FAILED当作训练结束；原失败日志保留。近期combined296.40GB<298GB
+主动阈值/300GB硬边界，NAS4.406GB<5.1GB。独立监控能容忍单次统计失败。
+[实时快照](../tmp/egodex-training-20261012-r1/status_update-20261012-1430.json)。
+以下是较早快照；当前状态以本节为准。
+
 ## 2026-10-12 本地7300续训与远程原生EgoDex混合训练
 
 本地主训练r2因他人PID4084729在GPU0--3建立CUDA context，保护性保存停在7300，

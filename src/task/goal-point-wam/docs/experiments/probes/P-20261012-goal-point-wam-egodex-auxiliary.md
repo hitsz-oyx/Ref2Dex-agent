@@ -234,3 +234,26 @@ Remote artifacts: isolated scope/egodex-repo/outputs/goal-point-wam/
 chain status at scope/egodex-chain-status-r2.json.
 [Confirmed runtime snapshot](../../../../../../tmp/egodex-training-20261012-r1/remote_observation-r2.json),
 [shared budget watcher](../../../../../../tmp/egodex-training-20261012-r1/aggregate_budget_status-r2.json).
+
+
+## Interim remote2000 validation and monitor recovery
+
+Actual training continues beyond2600/10000, original scientific launcher190557
+alive, code/config/model unchanged. Native held-session macro EPE at0/1000/2000
+=63.280/47.646/48.924mm; static59.815mm. Thus2000 is22.69% below warm start
+and18.21% below static, but slightly worse than1000; no monotonic improvement
+or causal EgoDex claim. Main64/source actor macro46.028→45.149mm, with true
+goal still better than static on all3 sources. Main updates median1.419s,
+auxiliary.356s; initial remaining ETA~2.4h plus evaluations/saves.
+
+Phase-chain189914 died on a transient `du -sb` return1 while NAS output changed.
+Scientific child launcher/model never stopped: chain failure is not training
+failure. Preserve chain log/status; do not restart active training or mutate
+its guarded files. New CPU monitor198540 adopts the existing launcher and
+tolerates isolated stat errors (three consecutive errors request owned save/stop);
+cross-host watcher4161832 now reads actual training group_status.json and can
+signal only the identified scientific launcher. Shared artifacts296.40GB,
+remote4.406GB; thresholds unchanged. Full remote training result remains pending.
+[Interim snapshot](../../../../../../tmp/egodex-training-20261012-r1/status_update-20261012-1430.json),
+[monitor receipt](../../../../../../tmp/egodex-training-20261012-r1/remote_adopt_receipt.json),
+[actual-launcher budget watcher](../../../../../../tmp/egodex-training-20261012-r1/aggregate_budget_status-r3.json).

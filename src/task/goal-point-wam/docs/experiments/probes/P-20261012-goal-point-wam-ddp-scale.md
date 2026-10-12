@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: [275, 276, 277, 278, 279]
 decision_changed_if_positive: retain scaled hand-memory candidate for action-world reliability and downstream policy work
 decision_changed_if_negative: inspect learning curves and forward-action/input semantics before additional scaling
-status: UNCLEAR
+status: PROMISING
 run_id: goal-memory-ddp-20261012-r2
 ---
 
@@ -29,7 +29,7 @@ without further utilization tuning. No six-arm
 training started; their unused configs were removed. The cancelled panel449 was
 generated but no outcome was observed, and is not used by this Probe.
 
-Result: UNCLEAR; local single-model training resumed from7300 after a foreign-GPU pause. Original remote main saved at2100 for the separately recorded native EgoDex handoff. No formal causal or multi-seed claim is possible.
+Result: PROMISING (local fixed final10000 Probe gate): real goal beats static goal and zero hand by>=5% on all three sources. Original remote main saved at2100 for the separately recorded EgoDex handoff. No formal causal, robot/RL or multi-seed claim is possible.
 Decision: Run the selected architecture at larger global batch and fixed budget;
 use final real/static goal and world/action diagnostics to choose the next step.
 
@@ -358,3 +358,33 @@ final hashes. This run still has only OakInk2/GRAB/ARCTIC. New native EgoDex
 auxiliary execution is recorded separately in
 [P-egodex-auxiliary](P-20261012-goal-point-wam-egodex-auxiliary.md);
 truncation for handoff is not a method-negative conclusion.
+
+
+## Local fixed final10000 completion and predeclared decision gate
+
+r3 completed10000, exit0; last segment elapsed2968s, four final model hashes
+`400cb3a0fc9921dc48b27a141bb20eebbb89ffd51e4e6d06af8bddba58e5ad4b`.
+Final/rolling optimizer and all-rank RNG saved; all local GPUs released.
+Actor macro7000/7300/8000/9000/10000=49.779/49.589/49.740/49.674/49.833mm.
+The late actor curve is essentially flat, unlike the earlier4000--7000 trend.
+Do not append epochs merely to lower loss. Final world moving h24
+OakInk2/GRAB/ARCTIC=8.914/33.351/36.545mm, macro all-world19.979mm.
+
+The existing fixed-checkpoint audit ran onGPU0 with all1536 frozen windows,
+strict model/data/stats checks, cached scene tokens identical across goals,
+no checkpoint training/modification. Actual final10000 results (mm):
+
+| Source | True goal | Static goal | Zero hand | Gain vs static | Gain vs zero |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| OakInk2 | 16.472 | 17.861 | 29.680 | 7.77% | 44.50% |
+| GRAB | 76.718 | 105.719 | 153.513 | 27.43% | 50.03% |
+| ARCTIC | 56.307 | 73.762 | 81.925 | 23.66% | 31.27% |
+
+Decision: the predeclared>=5%/at least2-source gate passes on all3 sources,
+therefore local candidate is Probe PROMISING. This supports retaining the
+goal-conditioned hand model while the authorized remote auxiliary run proceeds.
+It does not establish route superiority without matched-duration controls,
+physical executability, world usefulness for hypothetical action ranking, or
+Mission's Cm-on/off RL claim. No new training is launched at this checkpoint.
+[Final result](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/result.json),
+[fixed goal audit](../../../../../../outputs/goal-point-wam/goal-memory-ddp-20261012-r3/final_goal_ablation.json).
