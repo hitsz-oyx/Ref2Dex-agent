@@ -130,3 +130,30 @@ continues on the original main-three corpus. Local and remote configurations
 are `configs/egodex_native_auxiliary_{local,remote}.json`.
 See the [admission and execution card](docs/experiments/probes/P-20261012-goal-point-wam-egodex-auxiliary.md)
 for qualified inputs, limits and runtime evidence.
+
+Direct video point supervision uses `src/goal_point_wam/point_supervision.py`
+and `tools/run/train_video_points.py`: the same actual PTv3 parameters serve
+native rigid and video point batches. Native SE(3) predictions are decoded to
+points; video tracks use a direct point head with no pose or mesh requirement.
+Both use the common masked metric point loss. World conditioning remains
+executed future hand actions; actor conditioning remains paired goal points.
+Weight transfer from a real WAM checkpoint is explicit, with a new point-model
+checkpoint kind and fresh optimizer. Old checkpoints are not silently resumed.
+
+`tools/audit/prepare_video_points.py` reuses existing offline teachers only for
+labels, re-runs observed-prefix depth for current inputs, and keeps original
+native2x11 hand semantics. Its output is causal but engineering-only until
+depth/track quality and held-session admission are reviewed. Optional current
+target mask supplies paired goals; otherwise videos supervise point-world with
+null goals. Pass `--smoke` to the trainer for four finite-gradient mixed updates
+without saving a checkpoint. Scientific training rejects engineering manifests.
+Single GPU or `torchrun --nproc_per_node=2` use the same trainer; no copied
+backbone per data source. See the
+[video point card](docs/experiments/probes/P-20261012-goal-point-wam-video-points.md).
+
+`tools/audit/evaluate_horizons.py` reports each of the24 hand prediction horizons
+and nearest1--8/middle9--16/far17--24 aggregates on the frozen validation panel.
+The final10000 audit was completed before the optional dense-feature interface
+changed the model source hash. Re-running old strict identity audits requires
+their original committed model source, although historical parameter keys are
+unchanged.

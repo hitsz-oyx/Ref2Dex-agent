@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-video-points:
+    seed_pool: probe
+    model_seed: 287
+    train_draw_seed: 288
+
   P-20261012-goal-point-wam-ddp-scale:
     seed_pool: probe
     model_seed: 275

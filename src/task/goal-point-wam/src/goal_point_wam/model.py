@@ -99,7 +99,7 @@ class SceneHistoryEncoder(nn.Module):
             mask[row, :count] = True
         return tokens, mask
 
-    def forward(self, batch: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+    def forward(self, batch: dict[str, torch.Tensor], return_points: bool = False) -> dict[str, torch.Tensor]:
         xyz = batch["xyz"]
         valid = batch["point_valid"].bool()
         scene_object = batch["scene_object"].long()
@@ -127,8 +127,11 @@ class SceneHistoryEncoder(nn.Module):
         pooled = mean_groups(packed[object_points], group, len(xyz) * object_count)
         pooled = pooled.reshape(len(xyz), object_count, HIDDEN)
         object_tokens = pooled + self.object_proj(batch["object_features"].float())
-        return dict(scene_tokens=scene_tokens, scene_mask=scene_mask,
-                    object_tokens=object_tokens, object_mask=object_valid)
+        result = dict(scene_tokens=scene_tokens, scene_mask=scene_mask,
+                      object_tokens=object_tokens, object_mask=object_valid)
+        if return_points:
+            result.update(point_features=packed, point_xyz=xyz, point_mask=valid)
+        return result
 
 
 class GoalEncoder(nn.Module):

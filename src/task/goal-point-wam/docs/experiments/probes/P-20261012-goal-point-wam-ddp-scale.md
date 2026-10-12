@@ -19,6 +19,26 @@ run_id: goal-memory-ddp-20261012-r2
 
 # Single-model four-GPU Goal-Point-WAM scale-up
 
+## Requested horizon audit (2026-10-12)
+
+Class: Decision, reuses final10000 and the unchanged1536-window panel. Distinguish
+whether the roughly50mm all24-step hand EPE is dominated by distant forecasts
+or also appears at nearest1--8 (30Hz,0.267s). Report every horizon and1--8/9--16/
+17--24 averages, true/static goal, stationary hand and observed constant velocity.
+This changes whether short-horizon usability needs immediate actor diagnosis;
+it does not establish an irreducible error bound. Cheapest method: one GPU
+inference, no retraining or new panel. Output: r3 `final_horizon_audit.json`.
+
+Completed15.73s on one idle GPU0, peak reserved2.35GB. Same final10000 SHA,
+panel SHA and source-macro aggregation reproduce49.832174mm full EPE.
+Nearest1--8 macro13.460330mm (Oak5.234167/GRAB18.484455/ARC16.662369);
+middle9--16 macro50.407299mm; far17--24 macro85.628894mm. Nearest stationary
+hand31.574260mm, observed constant velocity21.911371mm, static goal14.976521mm.
+Step1/8/24 macro2.847156/27.585132/98.420300mm. Recent trajectory errors grow
+with forecast horizon; full50mm does not describe0.267s performance. No
+irreducible-difficulty claim follows. Retain full24 loss and metric; report
+nearest8 alongside it when assessing short-transition usability.
+
 Class: Decision. Serves the Task's learned goal-conditioned hand representation
 upstream of Mission's robot/Cm/RL claim. Prior hand+memory goal reduced trajectory
 EPE and goal ablations on GRAB/ARCTIC. This run asks whether that candidate keeps
