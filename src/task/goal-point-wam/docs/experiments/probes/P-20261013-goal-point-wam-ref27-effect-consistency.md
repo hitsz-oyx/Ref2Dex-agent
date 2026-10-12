@@ -186,3 +186,34 @@ human data and scene was robot-adapted, so robot oracle trust remains empirical.
 Recorded hand trajectories are an executed-motion proxy, not a native-command
 causal transition contract. Matched effect-off continuation, multi-seed held
 out manipulation and causal utility Validation remain deferred.
+
+
+## 01:02 Decision Note: admit numerical C0 with a disclosed forecast tradeoff
+
+Scientific r2 stopped at500 because root's added 10% trajectory guard failed
+startup first8 only:10.1074->11.3837mm, threshold11.1682mm;35/36 passed.
+All user-requested numerical/frozen/oracle/gradient contracts passed. All
+first-PD checks passed: nominal XYZ p9571.416->17.899mm, startup21.503->1.454mm,
+three recovery pools43.197->18.229,44.177->22.677,171.827->151.582mm. Human
+all24 and effect gaps improved substantially. Robot effect gaps are mixed.
+This is a genuine forecast tradeoff, not an implementation error or a pass
+under the original stricter gate; original result/checkpoint remain intact.
+
+Question: stop the requested long C training over a1.276mm startup first8
+tradeoff, or obtain the explicitly requested long-horizon evidence? Root
+chooses same-model/same-optimizer continuation, with no loss, sampling or
+learning-rate change. ref2_7 defines C0 as numerical contracts and requests
+first-PD preservation; it does not define the additional10% tau cutoff.
+Replace root's extra scale-up rule prospectively: original36 diagnostics stay
+visible, native-control gates retain their original limits, and trajectory
+h1/first8 has a2x+.05mm gross-deterioration stop. Two consecutive failures of
+these continuation guards still stop/save. This is a protocol amendment after
+seeing C0, explicitly excludes any pre-registered non-regression claim, and
+must be included in final reporting. No weight search or baseline rerun.
+
+Resume immutable step500 and its cached contexts/optimizer into fresh r3;
+recheck exact oracle, frozen state and gradient contracts before admission.
+A20k continuation costs~2h plus evaluation; optional50k remains conditional
+on gap improvement, guard pass and remaining original deadline08:23:29.
+Failure saves and stops; success remains offline single-seed evidence only.
+No new authorization boundary: same task/claim,4GPUs,400GB and original8h.

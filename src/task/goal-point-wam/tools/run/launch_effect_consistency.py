@@ -21,11 +21,13 @@ def write(path,value):
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpus',default='0,1,2,3');p.add_argument('--smoke',action='store_true')
-    p.add_argument('--deadline',type=float);a=p.parse_args()
+    p.add_argument('--deadline',type=float);p.add_argument('--resume',type=Path);a=p.parse_args()
     out=a.output.resolve();gpus=list(map(int,a.gpus.split(',')))
     if len(set(gpus))!=len(gpus) or not 1<=len(gpus)<=4 or ROOT/'outputs/goal-point-wam' not in out.parents:
         raise ValueError('owned output and1..4 distinct local GPUs required')
     if out.exists():raise FileExistsError('fresh supervisor output required')
+    if a.resume and (ROOT/'outputs/goal-point-wam' not in a.resume.resolve().parents or not a.resume.is_file()):
+        raise ValueError('resume requires an existing owned goal-point-wam checkpoint')
     if helpers.gpu_processes(gpus):raise RuntimeError('assigned GPU occupied')
     out.mkdir();scratch=ROOT/'tmp/wam-effect-consistency';scratch.mkdir(parents=True,exist_ok=True)
     env=dict(os.environ,CUDA_VISIBLE_DEVICES=a.gpus,TMPDIR=str(scratch),TRITON_CACHE_DIR=str(scratch/'triton'),
@@ -35,6 +37,7 @@ def main():
     command=[sys.executable,'-m','torch.distributed.run','--standalone','--nproc_per_node='+str(len(gpus)),
              str(TASK/'tools/run/train_effect_consistency.py'),'--output',str(out/'train'),'--deadline',str(deadline)]
     if a.smoke:command.append('--smoke')
+    if a.resume:command.extend(['--resume',str(a.resume.resolve())])
     sources=[TASK/'tools/run/train_effect_consistency.py',TASK/'src/goal_point_wam/effect_consistency.py',
              TASK/'src/goal_point_wam/model.py',ROOT/'src/task/trajectory-policy/src/trajectory_policy/wam_effect_data.py']
     versions={str(p):(p.stat().st_mtime_ns,p.stat().st_size) for p in sources}

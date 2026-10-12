@@ -48,6 +48,15 @@ def nonregression(now,initial):
     return checks
 
 
+def continuation_checks(now,initial):
+    """Control preservation plus a gross forecast guard; retain strict diagnostics."""
+    checks=nonregression(now,initial)
+    for name in NAMES:
+        for metric in ('h1_mm','first8_mm'):
+            checks[name+'/'+metric]=now[name][metric]<=2.*initial[name][metric]+.05
+    return checks
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--deadline',type=float,required=True)
@@ -98,6 +107,8 @@ def main():
                   base_checkpoint=str(base),warm_policy=str(warm),qualified_chunk=str(fit/'chunk.pt'),
                   data=str(data_path),stats=str(stats_path),recipe=recipe,deadline=a.deadline,
                   robot_sources={k:str(v) for k,v in train.paths.items()},training_allowed=False)
+    manifest['continuation_policy']='first-PD original limits; trajectory h1/first8 <=2x initial+.05mm; strict 1.1x diagnostics retained; amended after C0 r2'
+    if a.resume:manifest['resumed_checkpoint']=str(a.resume.resolve())
     if a.resume:
         saved=torch.load(a.resume,map_location='cpu',weights_only=False)
         if saved['recipe']!=recipe:raise ValueError('resume recipe differs')
@@ -185,16 +196,27 @@ def main():
             part=path.with_suffix('.pt.part');torch.save(state,part);part.replace(path)
             atomic_json(out/'latest_checkpoint.json',dict(path=str(path),step=at))
         dist.barrier()
+    if a.resume and step==c0 and not c0_pass:
+        freeze=frozen_check();admission=evaluate(step)
+        checks=continuation_checks(admission,initial)
+        if (not contracts or not all(checks.values()) or any(
+            min(c[k] for k in ('effect_to_tau_sum','effect_to_decoder_sum','action_to_tau_sum'))<=0
+            or c['rebuilt_GT_action_max_difference']>2e-6 or c['human_PD_rows']!=0 for c in contracts)):
+            raise ValueError('saved C0 fails numerical/control continuation admission')
+        c0_pass=True
+        if rank==0:atomic_json(out/'C0_continuation_admission.json',dict(pass_=True,checks=checks,
+            strict_checks=nonregression(admission,initial),contracts=contracts,**freeze))
     if initial is None:
         initial=evaluate(0)
-        # Reuse the exact fixed encoder representation after an interrupted
-        # run as well; a fresh sparse replay can vary below a tenth of a mm.
-        saved_context={key:tuple({k:v.cpu() for k,v in item.items()} if isinstance(item,dict)
-                        else item.cpu() if isinstance(item,torch.Tensor) else item for item in context)
-                       for key,context in context_cache.items()}
-        context_path=out/('validation_context_rank%d.pt'%rank)
-        if context_path.exists():raise FileExistsError('preserve validation context')
-        torch.save(saved_context,context_path);del saved_context
+    # Reuse the exact fixed encoder representation after an interrupted
+    # run as well; a fresh sparse replay can vary below a tenth of a mm.
+    saved_context={key:tuple({k:v.cpu() for k,v in item.items()} if isinstance(item,dict)
+                    else item.cpu() if isinstance(item,torch.Tensor) else item for item in context)
+                   for key,context in context_cache.items()}
+    context_path=out/('validation_context_rank%d.pt'%rank)
+    if context_path.exists():raise FileExistsError('preserve validation context')
+    torch.save(saved_context,context_path);del saved_context
+    if rank==0 and a.resume:atomic_json(out/'evaluation_step0.json',initial)
     stop=[False]
     for sig in (signal.SIGUSR1,signal.SIGTERM,signal.SIGINT):signal.signal(sig,lambda *_:stop.__setitem__(0,True))
     ddp=effect_ddp(model,[local])
@@ -248,8 +270,9 @@ def main():
                 with (out/'train.jsonl').open('a') as f:f.write(json.dumps(record)+'\n')
                 print(json.dumps(record),flush=True)
         if step==c0 or step%1000==0 or step==target or stopping.item():
-            freeze=frozen_check();last=evaluate(step);checks=nonregression(last,initial)
-            curve.append(dict(step=step,metrics=last,checks=checks,**freeze))
+            freeze=frozen_check();last=evaluate(step);checks=continuation_checks(last,initial)
+            strict_checks=nonregression(last,initial)
+            curve.append(dict(step=step,metrics=last,checks=checks,strict_checks=strict_checks,**freeze))
             if rank==0:atomic_json(out/'curve.json',dict(curve=curve))
             if step==c0:
                 c0_pass=all(checks.values()) or a.smoke
