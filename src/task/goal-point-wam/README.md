@@ -1,13 +1,14 @@
 # goal-point-wam
 
-The ref2_7 C continuation uses the stable old raw-hand interface with frozen
-scene/goal/action/World/R. `tools/run/launch_effect_consistency.py` runs one
-4GPU model at global batch400 with60/25/15 main/nominal/actual recovery mixing.
-A500-update numerical C0 gate precedes conditional20k-to50k C1;
-original strict forecast diagnostics stay visible, while continuation guards
-preserve native controls and prevent gross forecast deterioration; fixed cached-context
-panels track forecasts, native controls and induced-vs-GT World errors.
-See the [C protocol](docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md).
+The ref2_7 C continuation completed500 C0 +50000 C1 updates on one4GPU
+model at global batch400, mixing60/25/15 main/nominal/actual recovery.
+Scene/goal/action/World/R remain frozen; only the old-interface decoder adapts.
+Fixed-panel mean World gap10.576->2.928mm and native controls improve, with
+two h1 forecast tradeoffs under the original strict diagnostic thresholds.
+The disclosed continuation amendment preserves control gates and prevents
+gross forecast deterioration. Saved-panel auditing and optimizer continuity
+pass; this is single-seed offline evidence with recovery TRAIN panels.
+See the [C protocol and completed results](docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md).
 The earlier B2 candidate remains preserved; its research is frozen.
 
 The ref2_6 B2 variant `src/goal_point_wam/hand_gated.py` uses

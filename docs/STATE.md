@@ -1,26 +1,29 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-13 ref2_7 C四卡global400；数值C0合格后同模型继续C1
+## 2026-10-13 ref2_7 C四卡global400完成C0 500+C1 50k
 
-用户冻结B研究并授权C0后大规模C1，视频在其他服务器。保留old raw-hand
-接口/Probe32 warm policy和A2合格Chunk-R，冻结scene/goal/raw/action/world/R
-与buffers，仅训练trajectory decoder。单模型GPU0/1/2/3、每rank100/global400，
-精确60%三域主数据/25%nominal/15%实际expert recovery；human PD loss0，
-robot实际effect与planned goal分离。lambda_a1/lambda_E.1，AdamW1e-5。
-四卡full-batch smoke修正DDP返回节点梯度检查及fresh scene数值噪声后通过；
-固定panel采用缓存冻结context，GT oracle变化0。effect/动作梯度进入decoder，
-World/R/冻结模块不变。科学r2的500步数值C0全部合格，root额外轨迹10%门
-仅startup first8失败10.107->11.384mm，35/36通过；首PD全部保留且XYZ
-nominal71.416->17.899mm/startup21.503->1.454mm。按ref2_7优先取得长训练
-信息，明确记录事后协议修订：严格36项仍报告，停止门保留原first-PD限制，
-轨迹只用2x+.05mm防严重退化；不得称通过原不退化门。r3/监督635812从
-r2不可变step500及optimizer/context继续，loss/配比/学习率不变，20k后仅有
-gap信号且时间足够才扩至50k；两次连续停止门失败即保存退出。
-初次科学fork/LLVM错误已修复spawn，保留首轮绝对截止08:23:29。
-不新增数据采集、B调参或RL；固定context也保存以保证resume的oracle不漂移。
-最新要求：开始后每30分钟轮询，2026-10-13 10:00 Asia/Shanghai前不发聊天。
-训练状态和ETA保存在产物；Delta_E仅为冻结模型差距，不能称不可约/物理收益。
-见[C实验卡37](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md)。
+B研究冻结，old raw-hand/Probe32 warm和合格Chunk-R保留；scene/goal/raw/
+action/world/R/buffers全冻结，只训trajectory decoder。4卡GPU0..3，global400，
+60%三域/25%nominal/15%实际expert recovery；human PD loss0，lambda_a1、
+lambda_E.1、AdamW1e-5。r3从r2 step500连同optimizer/context接续，05:55:31
+完成总50500更新/C1额外50k，曝光20.2M重复窗口，约.348s/update，GPU已释放。
+三域human all24和effect gap下降；等权8panel gap10.576->2.928mm。
+nominal/startup首PD XYZ p9571.416->14.538mm、21.503->.740mm，recovery
+TRAIN t8/t16/t32为43.197->9.247、44.177->6.959、171.827->148.081mm。
+全部零裁剪、rotation/finger保留，冻结state/R差0，GT oracle固定数组变化0。
+53评估的保存数组/optimizer50500/四rank context审计通过，非新推理或标签复算。
+
+C0数值合同合格，但root额外10%轨迹门有startup first8失败10.107->11.384mm；
+按ref2_7长训练意图明确作事后协议修订：严格36项继续报告，停止门保留原first-PD
+限，轨迹改用2x+.05mm严重退化限。C1两次连续停止门失败仍退出；20k有gap信号
+自动扩到50k。最终停止门36/36，原严格诊断34/36：startup h1+16.34%、t16
+recovery h1+12.02%仍退化，不能称全面不退化/原始预注册门通过。
+
+局部离线适配PROMISING；负gap是冻结模型差距而非不可约误差，recovery是TRAIN，
+t32仍148mm，不能声称可靠抓持或Cm因果收益。无Cm-off长训练/物理执行，本阶段
+仅保留候选/20500/final与旧A/B。首轮fork/LLVM及DDP/scene数值工程错误已修复，
+原记录保留，8h截止未延长。r3约.655GB，全局294.51GB<400GB。
+root按30分钟观察，10点前静默。见[C实验卡37](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md)。
 
 ## 2026-10-12 ref2_6 B2门控接口保持初始行为，通过不退化门；手特征收益仍UNCLEAR
 

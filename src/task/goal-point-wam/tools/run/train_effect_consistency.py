@@ -102,11 +102,11 @@ def main():
                 world_mask='future validity used as supervision only; actor queries receive observed H and goal only',
                 validation_context='cache frozen scene/goal/raw context per fixed evaluation batch; exact oracle recomputed each time')
     manifest=dict(schema='ref2dex.frozen-effect-ddp.v1',status='RUNNING',task='goal-point-wam',
-                  experiment_id='P-20261013-goal-point-wam-ref27-effect-consistency',run_id=out.name,
+                  experiment_id='P-20261013-goal-point-wam-ref27-effect-consistency',run_id=out.parent.name,
                   git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                   base_checkpoint=str(base),warm_policy=str(warm),qualified_chunk=str(fit/'chunk.pt'),
                   data=str(data_path),stats=str(stats_path),recipe=recipe,deadline=a.deadline,
-                  robot_sources={k:str(v) for k,v in train.paths.items()},training_allowed=False)
+                  robot_sources={k:str(v) for k,v in train.paths.items()},training_allowed=not a.smoke)
     manifest['continuation_policy']='first-PD original limits; trajectory h1/first8 <=2x initial+.05mm; strict 1.1x diagnostics retained; amended after C0 r2'
     if a.resume:manifest['resumed_checkpoint']=str(a.resume.resolve())
     if a.resume:

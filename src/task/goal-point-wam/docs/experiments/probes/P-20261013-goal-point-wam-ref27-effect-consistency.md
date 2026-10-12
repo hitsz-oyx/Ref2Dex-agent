@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [295, 296]
 decision_changed_if_positive: continue one-model mixed-domain C1 after C0; retain trajectory and control while reducing frozen-world effect gap
 decision_changed_if_negative: save C0 and stop scale-up if contracts or non-regression fail; preserve A2 and B baselines
-status: UNCLEAR
+status: PROMISING
 run_id: wam-effect-ddp-20261013-r3
 ---
 
 # ref2_7 C: frozen-world predicted-trajectory consistency
 
-Result: Numerical C0 passed; original root forecast gate failed1/36. C1 r3 resumes step500 under the disclosed continuation amendment below.
-Decision: Freeze B research and use old raw-hand WAM; continue one model with unchanged losses and native-control preservation guards.
+Result: COMPLETED at50500 total updates (C0 500 + C1 50000), global400/4GPUs. PROMISING for offline mixed-domain adaptation; Cm causal/physical utility remains UNCLEAR.
+Decision: Preserve the completed candidate and frozen A/B baselines. No further overnight training; retain the forecast tradeoffs and amended admission in reporting.
 
 ## Decision Note
 
@@ -221,3 +221,82 @@ No new authorization boundary: same task/claim,4GPUs,400GB and original8h.
 Continuation r3 supervisor635812 launched with f8b8366c; original absolute
 deadline remains08:23:29. Six targeted action/DDP/mixture/guard tests pass.
 [Continuation supervisor](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/group_status.json).
+
+
+## Completed run and saved-panel audit
+
+r3 completed2026-10-13 05:55:31 Asia/Shanghai, exit0, total50500 updates.
+C1 used exactly50000 additional updates from r2 step500 with the same model,
+optimizer and stateless occurrence stream; no reset/new seed/loss change.
+At20500, continuation guards all passed and mean8-panel gap decreased enough
+versus17000; measured time allowed30k more within the original8h deadline.
+The recorded curve therefore extended automatically to50500. Actual C1 update
+wall time17401s (~4h50m,19.33GPUh excluding initialization/C0), ~.348s/update
+including evaluations. Total sample exposure20.2M windows; C1 alone20M,
+including12M human/5M nominal/3M recovery repeated draws, not unique data.
+
+| Fixed panel | tau h1 mm, initial -> final | tau first8 mm | tau all24 mm | World gap all24 mm | first-PD XYZ p95 mm |
+| --- | --- | --- | --- | --- | --- |
+| OakInk2 VAL | 7.105 -> 2.639 | 17.531 -> 5.610 | 43.574 -> 15.761 | 3.130 -> .881 | n/a |
+| GRAB VAL | 7.199 -> 5.110 | 34.995 -> 21.392 | 114.145 -> 79.724 | 39.309 -> 16.131 | n/a |
+| ARCTIC VAL | 7.023 -> 4.208 | 28.793 -> 18.923 | 84.107 -> 62.485 | 23.092 -> 11.072 | n/a |
+| nominal REPORT | 6.947 -> 6.928 | 15.058 -> 16.257 | 21.646 -> 22.032 | 6.497 -> 6.329 | 71.416 -> 14.538 |
+| startup REPORT | 6.966 -> 8.104 | 10.107 -> 10.812 | 11.263 -> 10.150 | -.024 -> .103 | 21.503 -> .740 |
+| t8 recovery TRAIN | 6.925 -> 7.471 | 14.325 -> 13.683 | 16.682 -> 15.100 | 3.782 -> -1.220 | 43.197 -> 9.247 |
+| t16 recovery TRAIN | 7.046 -> 7.893 | 16.256 -> 14.735 | 18.073 -> 16.123 | 2.909 -> -1.620 | 44.177 -> 6.959 |
+| t32 recovery TRAIN | 13.626 -> 13.352 | 22.788 -> 19.715 | 24.869 -> 21.437 | 5.911 -> -8.251 | 171.827 -> 148.081 |
+
+Unweighted8-panel mean gap10.5757->2.9281mm (human3 mean21.8437->9.3614;
+robot5 mean3.8148->-.9318). Panel averaging is descriptive and not population
+weighting. Nominal/startup gaps barely change; recovery TRAIN gaps improve,
+including negative values, which can reflect frozen-model bias/compensation
+and do not demonstrate physical usefulness or held-out recovery generalization.
+Nominal native XYZ p95 improves while all24 tau slightly worsens. t32 remains
+148mm control error, so broad reliable manipulation is not established.
+
+All five robot first-PD XYZ/rotation/finger preservation checks pass; all panel
+clipping rates0. Final amended continuation guards36/36 pass. Original strict
+forecast diagnostics34/36 pass: startup h1 +16.34% and t16 recovery h1 +12.02%
+fail the original1.1x+.05mm limits. Initial C0 startup first8 failure is also
+preserved; later first8 recovers within its original limit. Do not describe
+the experiment as universal non-regression or an unamended prospective test.
+
+Across all recorded evaluations, frozen model/R differences exactly0; cached
+GT-oracle per-window arrays exactly unchanged; actor-vs-oracle action masks
+identical on these panels. `tools/audit/audit_effect_consistency.py` checks53
+saved evaluation panels including resumed step500 and every1k/final; all
+stored means/percentiles/gaps reproduce with maxdifference0, optimizer count
+50500, four saved contexts present. This is a saved-array/continuity audit,
+not fresh model inference or independent raw-label reconstruction. Existing
+contract/gradient tests supply the engineering checks; no extra evidence run.
+
+Historical run manifest uses `run_id=train` and `training_allowed=false` due
+to trainer metadata defaults; output paths/supervisor/recipe/checkpoint identify
+the actual admitted scientific r3 unambiguously. Preserve original records;
+audit receipt supplies the correct run_id. Future trainer metadata now uses
+supervisor run directory and distinguishes smoke from admitted training.
+This metadata repair does not alter completed weights/data/metrics.
+
+Rank VRAM plateau~8.0/10.0/9.1/6.9GB; root half-hour snapshots utilization
+~30..84%, no OOM or throughput degradation. GPU0..3 released after completion.
+Final r3 artifacts~.655GB including audit, well below8GB; global outputs+tmp
+~294.51GB below400GB. Checkpoints are small actor/optimizer patches, not full
+WAM duplicates. Latest immutable patch preserves step50500; all prior steps
+and original/failure artifacts remain available. No unrelated process stopped.
+
+- [Completed result](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/result.json)
+- [Latest checkpoint receipt](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/latest_checkpoint.json)
+- [Saved-array audit](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/audit-r1/result.json)
+- [Training curves](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/audit-r1/curves.png)
+- [Half-hour root observations](../../../../../../outputs/goal-point-wam/wam-effect-ddp-20261013-r3/root_monitor.jsonl)
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python src/task/goal-point-wam/tools/run/launch_effect_consistency.py --output outputs/goal-point-wam/wam-effect-ddp-20261013-r3 --deadline 1791851009.5187526 --resume outputs/goal-point-wam/wam-effect-ddp-20261013-r2/train/checkpoint_step500.pt
+/home2/wyy/miniconda3/envs/graspenv/bin/python src/task/goal-point-wam/tools/audit/audit_effect_consistency.py --run outputs/goal-point-wam/wam-effect-ddp-20261013-r3 --output outputs/goal-point-wam/wam-effect-ddp-20261013-r3/audit-r1
+```
+
+The experiment has delivered the requested large-exposure C mechanism Probe.
+Retain final and20500 checkpoints for a later separately authorized execution
+comparison; matched effect-off continuation is still required before attributing
+control gains to LE rather than continued tau/action supervision. No physical
+rollout, Cm-off extra training, B change or further50k run is performed tonight.
