@@ -1,0 +1,9 @@
+{
+  "title": "MINT: A Unified Model for World-Space Camera and Hand Motion Estimation from Scalable Egocentric Pipeline Supervision",
+  "arxiv_url": "https://arxiv.org/abs/2609.04958",
+  "code_url": "https://github.com/wuji-technology/wuji-ego-mint",
+  "code_commit": "1bd21e4edd6d5d2d59789ce64ee5450de24a7c2b",
+  "verification_date": "2026-10-12",
+  "local_code": "third_party/mint-primary-audit-20261012",
+  "notes": "Read-only primary code audit; no models or datasets downloaded. Combined findings: paper/pointwam/mint-hawor-pipeline-primary-audit-20261012.md. Published pretraining camera trajectories have acknowledged scale enlargement and are not metric ground truth."
+}

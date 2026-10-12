@@ -971,3 +971,32 @@ R1 failed after completing the first2048-query clip: progress logging reused
 Peak allocated1.151GB, first-window teacher/sample retained. No method result
 or quality admission from incomplete run. Fix uses elapsed_seconds separately;
 r2 repeats the fixed8-window protocol in a new output and pinned detached repo.
+
+20:28 r2 COMPLETED, source023de78f:8/8 unchanged seven-gate admission screens
+PASS; strict engineering loader/collate all8 PASS. Tracking5.126s, total16.420s,
+peak allocated1.151GB. Baseline vs short fresh selected counts at identical
+native currents0.1/5.1/10.1/15.1/20.1/30.1/35.1/39.1s:
+503->1863,256->1804,155->1346,193->1743,518->1332,365->1642,243->993,
+401->1829. Future valid fractions40.56–91.43%; numerical same-frame alignment
+0mm for all. Background candidates368/717/39/1086/184/674/42/544;
+all candidate median<=10mm and p90<=25mm. The10.1/35.1s background support
+is only39/42, close to32 gate; still not physical-static proof. Queries were
+increased from512 per sparse birth group to2048 per local clip and temporal
+context changed, so these results test a practical composite workflow, not
+an isolated causal effect of track lifetime. Geometry/calibration hash unchanged.
+Manifest SHA5dfe520efacc70950c57cdc1314e7a111888f980b3f3487c536fe2db70e7f15c;
+run72.456MB, owned remote scope6.415GB, assigned GPU released. Label-engineering
+route PROMISING for these8 windows; no training/physical accuracy conclusion.
+
+Next smallest Decision Probe: apply the fixed recipe across this same acquired
+longest recording, rather than selecting only good windows. All1s clips with
+0.5s stride plus final shifted tail (80windows, finalrawstart1173/sourceend1203).
+Keep H4/K24,2048 initial-only query cap,256 batches, shareddepth hash and all
+original quality gates. Report full admission fraction and weak temporal spans;
+>=80% screens passing supports rollout to a distinct train recording, otherwise
+inspect failing gates before expansion. Complete tail/globalIDs borrows MINT's
+window organization, not its predicted camera stitching. GPU0<=10min model/data,
+supervisor<=15min, new output<=1GB, scope<=15GB/combined<=310GB. No data deletion,
+no hand/camera reconstruction and no training; preserve all failures. Primary
+MINT/HaWoR audit saved paper/pointwam/mint-hawor-pipeline-primary-audit-20261012.md;
+root independently checked camera chaining and imputed-valid source lines.

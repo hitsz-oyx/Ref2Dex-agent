@@ -29,6 +29,7 @@ def main():
     for name in ('geometry', 'baseline-tracks', 'tracker-vendor', 'tracker-checkpoint', 'output'):
         p.add_argument('--'+name, type=Path, required=True)
     p.add_argument('--starts', type=int, nargs='+', default=[0, 150, 300, 450, 600, 900, 1050, 1170])
+    p.add_argument('--all-windows', action='store_true', help='0.5s stride with a complete tail; at most80 clips')
     p.add_argument('--max-queries', type=int, choices=(1024, 2048, 4096), default=2048)
     p.add_argument('--seconds', type=int, default=600)
     a = p.parse_args()
@@ -53,6 +54,14 @@ def main():
         session = str(f.attrs['session_name'])
     hv &= np.isfinite(hand).all(-1)
     frames = np.asarray(meta['frames'])
+    if a.all_windows:
+        # Keep global source IDs and shift the final window to cover the tail.
+        a.starts = list(range(int(frames[0]), int(frames[-1])-29, 15))
+        tail = int(frames[-1])-30
+        if not a.starts or a.starts[-1] != tail:
+            a.starts.append(tail)
+        if len(a.starts) > 80:
+            raise ValueError('full-record probe exceeds80-window budget')
     with np.load(a.geometry, allow_pickle=False) as f:
         intrinsic = f['intrinsic'].copy()
     depth, calibration, provenance = shared_trajectory_depth(a.geometry, frames, intrinsic, camera, video)

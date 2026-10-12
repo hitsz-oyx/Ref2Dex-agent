@@ -1,0 +1,10 @@
+{
+  "title": "HaWoR: World-Space Hand Motion Reconstruction from Egocentric Videos",
+  "arxiv_url": "https://arxiv.org/abs/2501.02973",
+  "project_url": "https://hawor-project.github.io/",
+  "code_url": "https://github.com/ThunderVVV/HaWoR",
+  "code_commit": "66c7d4108d58a716deccd192cb7645170cdc7bd7",
+  "verification_date": "2026-10-12",
+  "local_code": "third_party/hawor-primary-audit-20261012",
+  "notes": "Read-only primary code audit; no submodule initialization, models or datasets downloaded. Combined findings: paper/pointwam/mint-hawor-pipeline-primary-audit-20261012.md. Hand motion infilling is model prediction; the released demo promotes completed predictions to pred_valid=1."
+}
