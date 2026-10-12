@@ -5,7 +5,7 @@ experiment_id: P-20261012-goal-point-wam-ref2-recovery-retargeter
 date: 2026-10-12
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 77ab8e14
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 25
@@ -124,3 +124,26 @@ links parent checkpoint/result/raw predictions and scoped admission. GPU2
 forward only<=60s/<2MB, same local correlated diagnostic panels. If it passes,
 admit the already-declared local GT physical calibration; if not, investigate
 recovery support/trajectory supervision before further R investment.
+
+The single interpolation (generator605f6755) also failed unchanged gates:
+recovery train31.998mm, held16.721mm/earlyheld18.026mm; nominal11.195mm,
+startup3.673mm. Nominal rotation .023772->.053259rad and startup
+.002769->.005525rad fail retention. Both final R and interpolation remain
+offline diagnostics, neither deployed. Optional strict --r-dir integration
+e91be0d5 is available; root33 CPU admission/scene/partial/partition checks PASS.
+Root independently recomputed experiment24 raw metrics and actual-query PD
+labels, saved root_metric_label_audit.json: all errors0, identities match.
+
+### Follow-up Decision: cross-takeover physical-future diagnostic
+
+Before another adaptation, cheaply distinguish temporal fit from transfer to
+a different actual recovery. Existing recovery-r2 source542/t16 has root
+audit9768/max0/SHA b0edec52551bc9e7f528c80022f7aad946793d02e450fc234bac8eabde8c32ee.
+Evaluate base, final1000 and half R on role3 current16:96, each next24 controls
+actually expert; compare source teacher row0 same ticks, fixed16-tick blocks.
+GPU2 forward only<=60s/<1MB. This is privileged diagnosis only, allows no
+training or physics and does not reinterpret failed complete placement.
+If new R degrades this independent-takeover early recovery, collect broader
+true recovery support before further R training; if preserved, reassess the
+practical rotation constraint and actor trajectory supervision. Same motion/
+reset and privileged expert still limit independence/generalization.

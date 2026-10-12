@@ -9,7 +9,10 @@ late pure诊断1194.21→1186.27mm；不能由训练改善推断恢复收益。
 p9547.17mm，早期32:48为126.64mm，同ticks nominal为16.01/9.71mm。
 输入是真实测量专家future，不是无约束tau优化；原actor future禁令保留。
 优先补齐R物理恢复覆盖，原六个normalization buffers冻结并混合nominal
-replay；固定1000更新通过offline门才接入新R的局部GT物理校准。
+replay；固定1000更新64.58s，恢复训练53.22→6.05mm但held17.99→19.74mm，
+startup旋转超原1.5倍保留门，未进入物理校准。唯一alpha=.5插值held16.72mm，
+nominal/startup旋转仍未过原门，也不部署。下一步用已有t16实际专家接管轨迹
+跨接管时刻诊断，区分局部拟合与覆盖迁移，再决定真实恢复数据/监督方式。
 WAM head仍用原startup，显式记录其训练旧R与执行新R的身份差异。
 见[实验25](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-recovery-retargeter.md)。
 
