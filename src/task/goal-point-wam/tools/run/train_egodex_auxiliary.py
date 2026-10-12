@@ -190,9 +190,14 @@ def main():
         signal.signal(signal.SIGUSR1, lambda *_:stop.__setitem__(0, True))
         started = time.time(); log = (a.output/f'rank{rank}.jsonl').open('w')
         observations = {}
+        last_evaluation_step = None
         def evaluation():
+            nonlocal last_evaluation_step
             if world > 1:
                 dist.barrier()
+            # Every rank must make the same final-evaluation decision. Only
+            # rank zero owns metrics, so its observations cannot be the gate.
+            last_evaluation_step = step
             if rank == 0:
                 measured = dict(step=step, main=base.evaluate(model, val, validation, config['microbatch'], 0, device),
                     egodex_dev=evaluate_ego(model, ego_val, ego_validation, device, config['microbatch']),
@@ -242,7 +247,7 @@ def main():
                 evaluation()
             if step%config['checkpoint_interval'] == 0 and not a.no_checkpoint:
                 save(a.output/'latest.pt', model, optimizer, step, config, identity, rank, world)
-        if not observations or observations['step'] != step:
+        if last_evaluation_step != step:
             evaluation()
         if not a.no_checkpoint:
             save(a.output/'latest.pt', model, optimizer, step, config, identity, rank, world)
