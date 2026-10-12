@@ -1,5 +1,23 @@
 # Trajectory policy
 
+## Goal-Point-WAM ref2_2 continuation（2026-10-12）
+
+当前robot执行线先做GT-tau R窗口诊断，再拆分WAM/R梯度职责，暂不扩大
+WAM结构或启动RL。`tools/run/fit_wam_r_horizons.py`同初始化/同update stream
+比较K1/4/8/16/24；省略的未来在标准化后屏蔽，旧checkpoint默认K24。
+开发诊断未达到预设短窗口收益，暂保留24。
+
+`tools/run/fit_wam_joint_retargeter.py --gt-anchored --output <fresh-owned-dir>`
+让预测动作损失通过parameter-frozen R更新WAM，R只由真实expert tau训练。
+纯student当前专家PD查询不更新R，也没有几何未来标签。匹配checkpoint
+仍需要离线保留screen，并在新物理回放重新建立GT控制资格。
+`tools/audit/compare_wam_short_rollouts.py`对已审计实际回放报告固定ticks的
+PD/腕部偏离。`prepare_wam_multitakeover.py`聚合相同learned pair在8/16/32
+实际接管的专家未来；不能用nominal或另一row的future替代student接管状态。
+协议与研究判断见goal-point-wam的
+[窗口卡29](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-r-horizon.md)
+和[GT锚定卡30](../goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-gt-anchored.md)。
+
 ## 官方教师跨参考筛查（2026-10-11）
 
 用户暂缓 WAM/PW，先看当前仓库官方 actor 的实际表现。

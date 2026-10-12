@@ -1,5 +1,19 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-12 ref2_2先完成执行窗口诊断，转GT-only R梯度职责
+
+按指定历史会话/ref2_2继续，暂冻结结构修改/world/RL。Probe29五个
+K1/4/8/16/24同初始化/同采样GT-R窗口比较1000更新16.14s/GPU2完成。
+K16 worst-panel36.21mm vs K2439.99mm，未达预设20%改善；K8 nominal
+15.40/t8TRAIN5.34/t16dev21.66/t32dev42.19mm，无明显短窗口优势，保留K24。
+240指标/实际PD标签独立复算max0，不能由GT结果排除预测far-tau敏感性。
+下一Probe30保持原startup WAM/原R/同1000更新流，预测action梯度只更新
+WAM，R只用真实expert tau更新；纯student动作查询不更新R。39合同及
+GPU单步通过，预测loss->R梯度0、GTloss->R非零；完整运行正在进行。
+用户已更新Campaign产物上限400GB。详见
+[窗口卡29](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-r-horizon.md)
+和[锚定卡30](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref22-gt-anchored.md)。
+
 ## 2026-10-12 完整WAM策略链与R已联合微调，R映射保留仍是问题
 
 按用户要求参考PointWAM，a1bd58e8/GPU2完成1000更新458.44s、batch64、
