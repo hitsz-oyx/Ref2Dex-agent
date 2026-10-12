@@ -830,3 +830,31 @@ GPU0<=20min, artifact<=2GB, owned scope<=15GB; stop on OOM, nonfinite,
 input/code/vendor drift, foreign GPU or timeout. A failure distinguishes
 compute/memory feasibility from quality. Successful completion alone does
 not establish reliable long point tracks or ground-truth metric accuracy.
+
+19:53 full40.17s depth run completed:402frames/384x688 model inputs,
+forward99.759s, preprocessing+model+save123.681s; launcher wall138.978s.
+Peak allocated39.071GB (~36.39GiB), no OOM. Single native2x11 calibration
+scale=.395173,5359samples/5115inliers, relativeIQR=.175119 (<.35 PASS).
+Ten time-segment median ratios relative to global .9602–1.0286; no monotone
+drift in this numerical hand-anchor audit. This cannot exclude joint/surface
+bias or certify true metric depth. Whole-record geometry SHA
+f523fa80eb4633c901cf5cd61248362fb985483f541775cae8d952a9709d5917.
+Run video-long-depth-20261012-r1; launcher327183/child327231; source3d861ed3.
+This shows whole-record single-context geometry is computationally feasible
+for this acquired longest recording at10Hz; no claim about minutes/30Hz.
+
+Next engineering/Decision: full402-frame CoTracker3 offline on the same RGB,
+fixed1024 queries:512 evenly spaced current pixels born atframe0 and same
+512 born atsampled-frame200 (20s). Mask all pre-birth outputs. Adding later
+queries tests whether loss of initial-point coverage can be addressed without
+reconstructing depth again; point births use fixed current grids, never future
+motion/visibility selection. Model forward keeps entire temporal context;
+only independent convolutional feature extraction uses supported chunk_size32
+to reduce temporary memory (no model/vendor edits or temporal resets).
+Pinned source82e02e8029753ad4ef13cf06be7f4fc5facdda4d, offline weights SHA
+2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834.
+GPU0<=10min, artifacts<=100MB; reuse already saved depth/camera/one scale.
+Report visibility/valid3D per birth group over time and1s window candidate
+drift, with no physical-static or point-ground-truth claim. CoTracker forcibly
+sets query-birth pixels/visibility, so birth agreement cannot validate tracking.
+Engineering output only; neither held-label admission nor training is automatic.
