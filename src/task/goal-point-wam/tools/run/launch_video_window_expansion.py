@@ -23,6 +23,7 @@ def main():
         p.add_argument('--'+key, type=Path, required=True)
     p.add_argument('--gpus', type=int, nargs='+', default=[0, 1])
     p.add_argument('--reuse-windows', type=Path)
+    p.add_argument('--reuse-expansion', type=Path, help='Reuse completed records from an earlier owned batch')
     p.add_argument('--seconds', type=int, default=2400)
     p.add_argument('--scope-cap-bytes', type=int, default=25_000_000_000)
     p.add_argument('--artifact-cap-bytes', type=int, default=10_000_000_000)
@@ -31,8 +32,8 @@ def main():
     task = repo/'src/task/goal-point-wam'
     spec = importlib.util.spec_from_file_location('owned_helpers', repo/'src/task/cm-pointflow-effect-pretrain/tools/run/launch_pointworld_action_ddp.py')
     helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
-    if a.output.exists() or not 1 <= len(a.gpus) <= 2 or len(set(a.gpus)) != len(a.gpus) or not 60 <= a.seconds <= 3600:
-        raise ValueError('new bounded output and one/two unique GPUs required')
+    if a.output.exists() or not 1 <= len(a.gpus) <= 4 or len(set(a.gpus)) != len(a.gpus) or not 60 <= a.seconds <= 3600:
+        raise ValueError('new bounded output and one to four unique GPUs required')
     if helper.gpu_processes(a.gpus):
         raise RuntimeError('assigned GPUs occupied')
     plan = json.loads(a.plan.read_text())
@@ -108,6 +109,14 @@ def main():
                         os.killpg(proc.pid,signal.SIGKILL); proc.wait(timeout=10)
 
     reused = {}
+    if a.reuse_expansion:
+        previous = json.loads((a.reuse_expansion/'stage_status.json').read_text())
+        if previous['status'] not in ('STOPPED','COMPLETED') or previous['input_digests'][str(a.plan)] != helper.digest(a.plan):
+            raise ValueError('prior batch must be stopped/completed with the same frozen plan')
+        allowed_ids = {r['id'] for r in records}
+        for receipt in previous['records']:
+            if receipt['status'] == 'COMPLETED' and receipt['id'] in allowed_ids:
+                reused[receipt['id']] = Path(receipt['windows'])
     if a.reuse_windows:
         meta = json.loads((a.reuse_windows/'manifest.json').read_text())
         report = json.loads((a.reuse_windows/'result.json').read_text())

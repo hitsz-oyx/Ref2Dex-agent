@@ -1082,3 +1082,16 @@ not automatic long training. Cheapest useful test is this existing-data single
 seed bounded fit; formal controls/multi-seed/physical labels remain future
 evidence. Baseline whole-track comparison becomes optional for expansion:
 its absence does not change query selection or label/quality math.
+
+21:06 user asks why only two cards. Root expands data workers to all four
+currently idle remote GPUs0/1/2/3 within global6 cap (local inventory also idle
+at check). Two-card batch initial6 records/40 windows all pass gates, so the
+workflow can be parallelized further. Stop only owned r1 supervisor/children,
+preserve all outputs; new r2 reuses every completed record with the same frozen
+plan and original completed long-held extraction, and processes remaining
+records once. No reassignment of active/foreign GPU jobs or label/split/math
+changes. Additional record-level reuse supports this resource change without
+regenerating completed data. Existing25GB scope/10GB new-run cap and40min
+deadline unchanged. Fit periodic checks use small control files; arrays/parent
+verified at admission/load instead of re-reading the entire dataset/checkpoint
+every10 updates, following new AGENTS section20. Loss/RNG/metric unchanged.

@@ -138,6 +138,11 @@ def main():
         if digest(path) != record['sha256']:
             raise ValueError('video source identity drift')
         identities[str(path.resolve())] = record['sha256']
+    # Immutable parent weights/arrays are checked on admission and array load.
+    # Rehash only small control files during fitting, avoiding repeated NAS
+    # scans of every clip and the full parent checkpoint every ten updates.
+    controls = {path: sha for path, sha in identities.items()
+                if Path(path).suffix != '.pt' and Path(path).suffix != '.npz'}
     native_indices = mixed_indices(base, steps*a.main_batch, a.seed+1+1000*rank).astype('int32')
     native_loader = iter(DataLoader(Subset(native, native_indices.tolist()), batch_size=a.main_batch, collate_fn=goal_collate))
     generator = torch.Generator().manual_seed(a.seed+1+1000*rank)
@@ -245,7 +250,7 @@ def main():
             save_checkpoint(step)
         local_stop = torch.tensor(int(stop[0] or time.time()-started >= a.seconds), device=device)
         if rank == 0 and (step == steps or step % 10 == 0):
-            if any(digest(Path(path)) != sha for path,sha in identities.items()):
+            if any(digest(Path(path)) != sha for path,sha in controls.items()):
                 local_stop.fill_(1)
             total_bytes = sum(f.stat().st_size for f in a.output.rglob('*') if f.is_file())
             if total_bytes >= a.artifact_cap_bytes:
