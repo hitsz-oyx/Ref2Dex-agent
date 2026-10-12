@@ -11,7 +11,9 @@
 只清理root-owned可再生成Triton缓存恢复99.53MB。原R在新t8专家真实
 轨迹上的all/earlyXYZp95为25.10/30.12mm，仍存在恢复覆盖误差。
 下一步原startup头+新t8 true recovery+固定startup输出锚定200更新，
-增加frame0/repeat-H4控制保留门，暂不扩大backbone解冻/RL。新Probe
+增加frame0/repeat-H4控制保留门，暂不扩大backbone解冻/RL。固定200更新
+100.45s通过起步/nominal门：frame0 PD12.046->11.855mm，恢复TRAIN
+nearest8 18.094->14.175mm；全程自主收益仍待新128步回放检查。新Probe
 增量20MB/累计120MB且global292.10GB<300GB，不改变旧失败预算。
 见[实验27](../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref2-startup-anchor.md)。
 

@@ -729,3 +729,49 @@ permit designing the whole-recording shared geometry contract; poor calibration
 or OOM stops the approach without scaling. No tracker rerun/full checkpoint.
 GPU0<=360s, new artifacts<=20MB, scope cap5.855GB; current combined297.933GB
 leaves ~67MB below proactive298GB, and global300GB hard bound unchanged.
+
+## 19:27 trajectory-first feasibility and extraction outcome
+
+Single-context smoke completed54.676s, peak allocated7666918912 bytes
+(~7.14GiB); driver323549/child323579. All16 native source frames0:3:45 have
+one finite positive metric depth. One scale=.597694, relativeIQR=.349624
+(just below unchanged.35 gate; not robust physical scale evidence),320/320
+calibration inliers. Depth archive SHA
+59f42b78f4a8923abf2c899cb9548afab1d1f18925d1ef2aeea8f2b4c830056e.
+This spans1.5s of ONE train recording, not its entire multi-minute trajectory.
+
+Implemented --trajectory-depth with shared_trajectory_depth: verify declared
+engineering/offline scope, original video identity, exact raw frame coverage,
+depth/metadata hashes, camera/intrinsic and finite positive depth. Use that
+fixed depth for BOTH current input and future labels; no depth inference,
+window scale refit, offset subtraction or teacher mutation. Full shared span
+context/calibration is preserved in window provenance. Audit uses the same
+shared geometry and retains comparison against the original clip reconstruction.
+Four new contract tests cover bit-identical depth for overlapping windows,
+missing-frame rejection, source/camera mismatch and depth hash drift;
+18 relevant shared-geometry/clock/point tests passed8.02s. Existing default
+clip route is retained for historical identity/reproduction.
+
+Remote isolated cached-trajectory-repo pinnedb317651c4bbb6fa8738771ab67ebaca85cf297d8
+(owned helper7fbb147a, source/tests/notes included by concurrent research
+snapshotea55c66e, READMEb317651c). Historical9c81/45632 trees and artifacts
+untouched. video-shared-geometry-windows-20261012-r1 driver323943 extracted
+two real windows from old f0/f15 tracking clips with the shared depth,12.380s
+CPU, no model/calibration rerun. BOTH pass original seven quality gates;
+current input/label disagreement exactly0mm. Background candidate maximum
+median/p90: first5.130/12.589mm, second7.032/16.343mm. They remain engineering
+manifests; no scientific fit or causal-online/physical-accuracy claim.
+
+Next decision: this validates trajectory-first geometry reuse over a bounded
+span. Extend consistent reconstruction/calibration and identity to longer
+recordings before another admitted matched video fit; limit GPU/memory/storage
+explicitly. Full-record Omega context and chunk boundaries remain unresolved,
+as do approximate hand-to-surface scale and teacher physical accuracy. Do not
+declare the previous poor scene fit solely caused by this discrepancy.
+
+Local receipts shared_geometry_final.json and cross_clip_scale_final.json
+under tmp/video-training-20261012-takeover/. Compact comparison visualization:
+outputs/goal-point-wam/video-diagnostic-summary-20261012-r1/diagnostics.png
+(head arms paired; full5000 uses a different optimization recipe).
+Remote scope5.854GB, local outputs+tmp~292.097GB, combined~297.951GB;
+no further full-checkpoint allocation. All four assigned remote GPUs released.

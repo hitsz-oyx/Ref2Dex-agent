@@ -96,3 +96,28 @@ reviewed; defer it until this actor-control blocker has a useful signal.
 
 Result: pending.
 Decision: implement the fixed anchored probe and inspect startup retention first.
+
+## Fixed200 result and bounded fresh-state collection
+
+Code767e9ec2 fixed200 complete100.45s/GPU2. Nominal nearest8
+17.217->17.072mm/PD25.556->24.093mm; frame0 PD12.046->11.855mm,
+repeat-H4 PD12.046->11.855mm/wrist h1 11.303->11.399mm. All fixed
+startup+nominal collection gates pass. Recovery TRAIN nearest8
+18.094->14.175mm/all24 25.333->16.984mm, PD45.084->44.981mm.
+Original pure-row2 queried PD945.25->942.57mm remains high.
+Frozen scene/goal/action/world/R unchanged, cache-direct0/R no-backward,
+200 sampled batches verified32/32/64 and no unlabelled future draw.
+Raw metrics independently recomputed difference0. Original-head cached128
+vs report smaller-batch BF16 tau coordinate differences1.953/3.906mm
+are reported, not falsely claimed bit-identical; weights/source hashes match.
+
+Resource Decision: retained116.146MB leaves too little for a192 collection
+under120MB; remove only new root-owned regenerable Triton compile cache
+after idle GPU/no bound-cache check. Keep all formal training/raw evidence.
+Reduce planned new collection to128 controls/takeover8 (still one collection),
+which includes the original teacher's early local hold phase but NO placement
+verdict. This is a prospective budget-driven collection shortening, not a
+change of observed pass metric. Root checks final incremental<=20MB and
+aggregate<=120MB; launcher7c787527 uses120 only for this explicit experiment,
+all original experiment limits stay100. Check local calibration and earliest
+PD/wrist drift on fresh actor actual states; no unseen/generalization claim.
