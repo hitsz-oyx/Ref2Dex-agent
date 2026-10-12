@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261012-goal-point-wam-ref22-multitakeover:
+    seed_pool: probe
+    execution_seed: 292
+    reuse_reason: same exact learned policy reset for actual-state TRAIN collection at8/16/32, not validation replicates
+
   P-20261012-goal-point-wam-ref22-gt-anchored:
     seed_pool: probe
     model_seed: 295

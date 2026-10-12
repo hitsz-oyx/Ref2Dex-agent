@@ -29,6 +29,7 @@ def main():
     a.experiment_id=a.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     artifact_limit = {'P-20261012-goal-point-wam-ref2-startup-anchor':120_000_000,
         'P-20261012-goal-point-wam-ref22-gt-anchored':850_000_000,
+        'P-20261012-goal-point-wam-ref22-multitakeover':850_000_000,
         'P-20261012-goal-point-wam-ref2-joint-retargeter':620_000_000}.get(a.experiment_id,100_000_000)
     if not 1<=a.controls<=542 or (a.expert_recovery and not 0<=a.takeover_tick<a.controls):
         raise ValueError('bounded controls and in-horizon takeover required')
@@ -88,7 +89,7 @@ def main():
         paths=[path for path in (ROOT/'outputs/trajectory-policy').glob('wam-ref2-*') if path.is_dir()]
         paths += [path for path in (ROOT/'tmp').glob('wam-ref2-*') if path.is_dir()]
         paths += [ROOT/'tmp/trajectory-policy/wam-robot-head']
-        if a.experiment_id in ('P-20261012-goal-point-wam-ref2-joint-retargeter','P-20261012-goal-point-wam-ref22-gt-anchored'):
+        if a.experiment_id in ('P-20261012-goal-point-wam-ref2-joint-retargeter','P-20261012-goal-point-wam-ref22-gt-anchored','P-20261012-goal-point-wam-ref22-multitakeover'):
             paths += [p for p in (ROOT/'tmp/trajectory-policy').glob('wam*') if p.name!='wam-robot-head']
         size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in paths if path.exists())
         if size>=artifact_limit:
