@@ -176,7 +176,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-goal-point-wam-ref3-curation-audit](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref3-curation-audit.md) | ref3: is actor-specific curation justified on the local native three domains? | IN PROGRESS. No dataset, sampler, model weights or running job changed. | first measure all TRAIN windows and actual sampling exposure; then | probes/UNCLEAR |
+| [P-20261013-goal-point-wam-ref3-curation-audit](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref3-curation-audit.md) | ref3: is actor-specific curation justified on the local native three domains? | UNCLEAR for a causal benefit of cleaning. Target-specific actor weighting | prioritize OakInk2 target/hand association and native pre-contact | probes/UNCLEAR |
 
 ## HF-goal-point-wam-egodex-auxiliary
 
