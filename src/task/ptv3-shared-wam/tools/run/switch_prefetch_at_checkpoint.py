@@ -57,7 +57,7 @@ def main():
             time.sleep(20)
         if (ROOT / SOURCE).read_bytes() != original:
             raise RuntimeError("training source changed independently; refuse to overwrite")
-        subprocess.run(["git", "apply", "--check", str(patch)], cwd=ROOT, check=True)
+        subprocess.run(["git", "apply", "--unidiff-zero", "--check", str(patch)], cwd=ROOT, check=True)
         sys.path.insert(0, str(TASK / "src"))
         from ptv3_shared_wam.checkpoint import load_checkpoint
         packet = load_checkpoint(checkpoint)
@@ -81,7 +81,7 @@ def main():
                 raise TimeoutError("owned GPU contexts did not release; no foreign processes stopped")
             time.sleep(2)
         # Stop precedes any edit of the watched canonical source.
-        subprocess.run(["git", "apply", str(patch)], cwd=ROOT, check=True)
+        subprocess.run(["git", "apply", "--unidiff-zero", str(patch)], cwd=ROOT, check=True)
         subprocess.run(["git", "commit", "--only", "-m",
                         "perf(ptv3-shared-wam): overlap CPU batch preparation with GPU training",
                         "--", SOURCE], cwd=ROOT, check=True)
