@@ -21,13 +21,14 @@ from collect_competent_pd import OFFICIAL,OFFICIAL_SHA,RUNTIME,gpu_state
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--fit',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--gpu',type=int,default=2)
     a=p.parse_args();fit=a.fit.resolve();out=a.output.resolve()
     if (out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents
             or Path(sys.prefix).resolve()!=RUNTIME.resolve()):
         raise ValueError('fresh output and pinned native runtime required')
-    if gpu_state(2)['pids']:raise RuntimeError('GPU2 occupied')
+    if gpu_state(a.gpu)['pids']:raise RuntimeError('assigned GPU occupied')
     scratch=ROOT/'tmp/wam-v2';scratch.mkdir(exist_ok=True,parents=True)
-    os.environ.update(CUDA_VISIBLE_DEVICES='2',TMPDIR=str(scratch),
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(scratch),
         TORCH_EXTENSIONS_DIR=str(ROOT/'tmp/consequence-official-generator/torch201-extensions'),
         OMP_NUM_THREADS='2',PYTHONDONTWRITEBYTECODE='1')
     native_root=ROOT/'third_party/DExplore/dexplore'
@@ -69,7 +70,7 @@ def main():
     cfg=json.loads((run_dir/'config.json').read_text());train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml'
     out.mkdir();roles=['teacher','GT_tau_old_PD_R','GT_tau_chunk_R']
     m=dict(schema='ref2dex.chunk-R-GT-execution.v1',status='RUNNING',task='goal-point-wam',
-        experiment_id=fm['experiment_id'],run_id=out.name,seed=292,physical_gpu=2,
+        experiment_id=fm['experiment_id'],run_id=out.name,seed=292,physical_gpu=a.gpu,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         controls=128,roles=roles,dt=1/30,oracle_source_env=24,training_allowed=False,
         checkpoint=str(checkpoint),checkpoint_sha256=sha(checkpoint),
@@ -144,8 +145,8 @@ def main():
                     for k,v in vals.items():logs[k].append(v.cpu().numpy().copy())
                     current=record()
                 if tick==0 or (tick+1)%32==0:
-                    gpu=gpu_state(2)
-                    if set(gpu['pids'])-{os.getpid()}:raise RuntimeError('foreign GPU2 process')
+                    gpu=gpu_state(a.gpu)
+                    if set(gpu['pids'])-{os.getpid()}:raise RuntimeError('foreign process on assigned GPU')
                     row=dict(control=tick+1,elapsed_s=time.monotonic()-started,gpu=gpu)
                     print(json.dumps(row),flush=True)
                     with (out/'monitor.jsonl').open('a') as f:f.write(json.dumps(row)+'\n')
