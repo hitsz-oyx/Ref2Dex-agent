@@ -30,3 +30,27 @@ def test_effect_patch_rejects_changed_interface_and_frozen_state(tmp_path, monke
     torch.save(packet, path)
     with pytest.raises(ValueError, match='identity differs'):
         admission.effect_admission(path, warm, chunk)
+
+
+def test_repaired_executor_requires_explicit_opt_in_and_matching_training_parent(tmp_path, monkeypatch):
+    monkeypatch.setattr(admission,'ROOT',tmp_path)
+    d=tmp_path/'outputs/goal-point-wam/c';d.mkdir(parents=True)
+    old=tmp_path/'outputs/trajectory-policy/old';old.mkdir(parents=True)
+    new=tmp_path/'outputs/trajectory-policy/new';new.mkdir()
+    (old/'chunk.pt').write_bytes(b'original R')
+    warm=tmp_path/'warm';path=d/'c.pt'
+    packet=dict(schema='ref2dex.effect-policy-patch.v1',step=50500,C0_pass=True,
+        manifest=dict(warm_policy=str(warm),qualified_chunk=str(old/'chunk.pt'),base_checkpoint='base'),
+        recipe=dict(train_modules=['trajectory']),trajectory={'w':torch.ones(1)},
+        curve=[dict(model_frozen_max_difference=0.,R_max_difference=0.)])
+    torch.save(packet,path);(d/'result.json').write_text(json.dumps(dict(status='COMPLETED',step=50500)))
+    fm=dict(experiment_id='P-20261013-goal-point-wam-ref31-own-R',parent=str(old/'chunk.pt'),parent_sha256=admission.sha(old/'chunk.pt'))
+    (new/'manifest.json').write_text(json.dumps(fm));(new/'result.json').write_text(json.dumps(dict(offline_gate=True)))
+    calls=[]
+    monkeypatch.setattr(admission,'chunk_admission',lambda p:calls.append(p))
+    with pytest.raises(ValueError):admission.effect_admission(path,warm,new)
+    original,_=admission.effect_admission(path,warm,old)
+    replaced,_=admission.effect_admission(path,warm,new,allow_repaired_chunk=True)
+    assert original==replaced and calls==[new]
+    fm['parent_sha256']='wrong';(new/'manifest.json').write_text(json.dumps(fm))
+    with pytest.raises(ValueError):admission.effect_admission(path,warm,new,allow_repaired_chunk=True)

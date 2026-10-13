@@ -25,6 +25,7 @@ def main():
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
     p.add_argument('--deadline-seconds',type=float,default=600.)
@@ -48,6 +49,7 @@ def main():
     else:r_path,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
     r_args=['--r-dir',str(a.r_dir.resolve())] if a.r_dir is not None else []
     if a.chunk_dir:r_args+=['--chunk-dir',str(a.chunk_dir.resolve())]
+    if a.allow_repaired_chunk:r_args+=['--allow-repaired-chunk']
     if a.effect_checkpoint:r_args+=['--effect-checkpoint',str(a.effect_checkpoint.resolve())]
     if a.control_checkpoint:
         if not a.effect_checkpoint:raise ValueError('control adapter requires its C base')

@@ -12,7 +12,11 @@ def chunk_admission(directory):
     checkpoint = directory/'chunk.pt'
     manifest = json.loads((directory/'manifest.json').read_text())
     result = json.loads((directory/'result.json').read_text())
-    qualification = ROOT/'outputs/trajectory-policy/wam-v2-control-GT-20261012-r1'
+    receipt = directory/'qualification.json'
+    qualification = (Path(json.loads(receipt.read_text())['directory']).resolve() if receipt.exists()
+                     else ROOT/'outputs/trajectory-policy/wam-v2-control-GT-20261012-r1')
+    if ROOT/'outputs/trajectory-policy' not in qualification.parents:
+        raise ValueError('owned qualification required')
     qm = json.loads((qualification/'manifest.json').read_text())
     qr = json.loads((qualification/'result.json').read_text())
     digest = sha(checkpoint)
@@ -26,10 +30,13 @@ def chunk_admission(directory):
     identity = dict(R_override=True, kind='qualified_native_chunk8_execute_first',
                     execution_R_sha256=digest, checkpoint=str(checkpoint),
                     scope='prior GT qualification; current rollout calibrates again')
+    if receipt.exists():
+        paths.append(receipt)
+        identity.update(qualification_directory=str(qualification), repair_parent=manifest.get('parent'))
     return checkpoint, identity, {str(path): sha(path) for path in paths}
 
 
-def effect_admission(checkpoint, head_directory, chunk_directory):
+def effect_admission(checkpoint, head_directory, chunk_directory, allow_repaired_chunk=False):
     if checkpoint is None:
         return dict(applied=False), None
     import torch
@@ -40,11 +47,22 @@ def effect_admission(checkpoint, head_directory, chunk_directory):
     result = json.loads((checkpoint.parent/'result.json').read_text())
     manifest = packet.get('manifest', {})
     recipe = packet.get('recipe', {})
+    training_chunk = Path(manifest.get('qualified_chunk', '')).resolve()
+    execution_chunk = Path(chunk_directory).resolve()/'chunk.pt'
+    chunk_matches = training_chunk == execution_chunk
+    if not chunk_matches and allow_repaired_chunk:
+        chunk_admission(chunk_directory)
+        fm = json.loads((Path(chunk_directory)/'manifest.json').read_text())
+        fr = json.loads((Path(chunk_directory)/'result.json').read_text())
+        chunk_matches = (fm.get('experiment_id') == 'P-20261013-goal-point-wam-ref31-own-R'
+                         and Path(fm.get('parent', '')).resolve() == training_chunk
+                         and fm.get('parent_sha256') == sha(training_chunk)
+                         and fr.get('offline_gate') is True)
     if (packet.get('schema') != 'ref2dex.effect-policy-patch.v1'
             or result.get('status') != 'COMPLETED' or packet.get('step') != result.get('step')
             or packet.get('C0_pass') is not True or recipe.get('train_modules') != ['trajectory']
             or Path(manifest.get('warm_policy', '')).resolve() != Path(head_directory).resolve()
-            or Path(manifest.get('qualified_chunk', '')).resolve() != Path(chunk_directory).resolve()/'chunk.pt'
+            or not chunk_matches
             or not packet.get('curve') or any(row.get('model_frozen_max_difference') != 0.
                 or row.get('R_max_difference') != 0. for row in packet['curve'])):
         raise ValueError('completed decoder-only C continuation identity differs')

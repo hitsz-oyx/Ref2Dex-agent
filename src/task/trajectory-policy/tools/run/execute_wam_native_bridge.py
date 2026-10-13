@@ -58,6 +58,7 @@ def main():
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
     args=p.parse_args()
@@ -147,7 +148,7 @@ def main():
         raise ValueError('native peer head base identity differs')
     patch_identity=scene_patch_admission(head_packet,head_manifest,head_result)
     from trajectory_policy.wam_effect_admission import effect_admission
-    effect_identity,effect_values=effect_admission(args.effect_checkpoint,head_dir,args.chunk_dir)
+    effect_identity,effect_values=effect_admission(args.effect_checkpoint,head_dir,args.chunk_dir,args.allow_repaired_chunk)
     del effect_values
     if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
         raise ValueError('C base checkpoint differs')

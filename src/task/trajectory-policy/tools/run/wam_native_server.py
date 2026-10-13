@@ -67,6 +67,7 @@ def main():
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
     a=p.parse_args()
@@ -132,7 +133,7 @@ def main():
         if network_hash(model.scene)!=patch_identity['scene_sha256']:
             raise ValueError('applied scene differs from authenticated final scene')
     from trajectory_policy.wam_effect_admission import effect_admission
-    effect_identity,effect_values=effect_admission(a.effect_checkpoint,head_dir,a.chunk_dir)
+    effect_identity,effect_values=effect_admission(a.effect_checkpoint,head_dir,a.chunk_dir,a.allow_repaired_chunk)
     if effect_values is not None:
         if Path(effect_identity['base_checkpoint']).resolve()!=base:raise ValueError('C base checkpoint differs')
         model.trajectory.load_state_dict(effect_values,strict=True)
