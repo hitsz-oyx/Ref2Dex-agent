@@ -44,7 +44,11 @@ def main():
         q=np.zeros((len(true),18),np.float32)
         delta=independent_pd(full(pred[name+'_prediction'][:,0].clip(-1,1)),q,controller)-independent_pd(full(true[:,0]),q,controller)
         error=np.linalg.norm(delta[:,:3],axis=-1)*1000
-        maxima[name+'_PD_mm']=abs(float(np.percentile(error,95))-fr['reports'][name]['xyz_p95_mm'])
+        # Trainer uses torch.quantile on float32: reconstruct its float32 rank.
+        sorted_error=np.sort(error);rank=np.float32(.95)*np.float32(len(error)-1)
+        low,high=int(np.floor(rank)),int(np.ceil(rank));weight=rank-np.float32(low)
+        quantile=(sorted_error[low]+(sorted_error[high]-sorted_error[low])*weight if weight<.5 else sorted_error[high]-(sorted_error[high]-sorted_error[low])*(1-weight))
+        maxima[name+'_PD_mm']=abs(float(quantile)-fr['reports'][name]['xyz_p95_mm'])
     curve=json.loads((a.fit/'curve.json').read_text())['curve']
     selected=min(curve,key=lambda r:(not all(r['checks'].values()),r['score']))
     if selected['step']!=fr['selected_update']:raise ValueError('selection differs')
