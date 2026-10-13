@@ -86,5 +86,48 @@
       "code_status": "Policy code public; observed points are not externally specified future object goals"
     }
   ],
-  "notes": "Primary-source and interface audit only; no training/checkpoints downloaded or performance reproduced."
+  "notes": "Primary-source audit followed by local clones and bounded interface checks; no weights/assets downloaded or performance reproduced. Human video trajectories are not robot actuation labels.",
+  "local_source_audit": {
+    "date": "2026-10-13",
+    "clones": [
+      {
+        "repository": "Dex4D/Dex4D-Vision",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/dex4d-vision-egodex-audit-20261013",
+        "commit": "13c2f02902dc9b7f87d3db68eda69df417d851da",
+        "status": "SOURCE_CHECKED_OUT",
+        "checkout": "sparse text/source only; no meshes, weights, media or submodule recursion"
+      },
+      {
+        "repository": "Dex4D/Dex4D-Simulation",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/dex4d-simulation-egodex-audit-20261013",
+        "commit": "0dfccd82797e929cda6ab665003bc27a6b8cd31a",
+        "status": "SOURCE_CHECKED_OUT",
+        "checkout": "sparse text/source only; no meshes, weights, media or submodule recursion"
+      },
+      {
+        "repository": "realquantumcookie/COIL",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/coil-egodex-audit-20261013",
+        "commit": "d9947346c072e4c2c00fcbeed5d7d881393ae8e5",
+        "status": "SOURCE_CHECKED_OUT",
+        "checkout": "sparse text/source only; no meshes, weights, media or submodule recursion"
+      },
+      {
+        "repository": "real-stanford/im2flow2act",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/im2flow2act-egodex-audit-20261013",
+        "commit": "f44b368b76195c30bf38074f6419fc8b9f8feb5f",
+        "status": "SOURCE_CHECKED_OUT",
+        "checkout": "sparse text/source only; no meshes, weights, media or submodule recursion"
+      },
+      {
+        "repository": "tylerlum/simtoolreal",
+        "path": "/home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/simtoolreal-egodex-audit-20261013",
+        "commit": "313d5aea1f507c6cfe097b672b62945d7b0bbff5",
+        "status": "SOURCE_CHECKED_OUT",
+        "checkout": "sparse text/source only; no meshes, weights, media or submodule recursion"
+      }
+    ],
+    "summary": "egodex-compatibility-summary-20261013.md",
+    "runtime_scope": "Tiny CPU helper/encoder checks on actual EgoDex-derived samples; full upstream policies not executed or trained",
+    "direct_egodex_robot_training_verified": false
+  }
 }
