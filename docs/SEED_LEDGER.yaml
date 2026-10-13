@@ -215,3 +215,8 @@ allocations:
     train_draw_seed: 296
     execution_seed: 292
     reuse_reason: warm-start inverse-control repair and same nominal physics reset; not independent replication
+
+  P-20261013-goal-point-wam-ref31-actor-weight:
+    seed_pool: probe
+    model_and_stochastic_seed: 300
+    train_draw_seed: 301
