@@ -191,6 +191,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261012-goal-point-wam-ref12-methods](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-ref12-methods.md) | ref1_2 intermediate literature methods on remaining GPUs | PROMISING for the four additional-training candidates on the shared panel; all four reached fixed3000 and passed their predeclared source ga | Retain the candidate checkpoints, prioritize intermediate-plan coverage and recheck the world-only candidate's action reliability before L_g | probes/PROMISING |
 
+## HF-goal-point-wam-reference-goal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261013-goal-point-wam-reference-wrist-goal](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-reference-wrist-goal.md) | Sparse planned wrist conditioning matched Probe | UNPROMISING for this fixed sparse-wrist continuation recipe; exact-C | preserve current parent/R, do not promote or extend this candidate; | probes/UNPROMISING |
+
 ## HF-goal-point-wam-three-domain
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -236,6 +242,7 @@
 | [P-20261013-goal-point-wam-ref28-control-context](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md) | Robot control context and current C-state recovery | Adapter2000 + decoder5000 updates completed; selected stage2 step4500. | Preserve the adapter/candidate and successful engineering contracts; | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-ref31-actor-weight](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-actor-weight.md) | Independent OakInk actor-weight short A/B | Completed paired300 updates; target-interaction actor13.189->13.167mm | Preserve implementation and evidence; no larger weighting run now. | probes/UNCLEAR |
 | [P-20261013-goal-point-wam-ref31-own-R](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-own-R.md) | Chunk-R repair on actual C states | Fitted GT-to-command contract PROMISING; direct frozen-actor R swap | Preserve repaired R as an inverse-control candidate, retain original | probes/UNCLEAR |
+| [P-20261013-goal-point-wam-visited-realign](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-realign.md) | Current visited-state coverage and fixed-R actor realignment | Collection and bounded realignment pending. | Complete one collect/qualify/align/rollout loop, without larger models. | probes/RUNNING |
 
 ## HF-gt-consequence-sufficiency
 

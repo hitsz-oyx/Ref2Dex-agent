@@ -1,8 +1,8 @@
 # Object goals, hand intent and static-object windows
 
 Date:2026-10-13. Scope: a design recommendation grounded in local native-three
-data and a cached information Probe. No implemented architecture migration,
-new training, closed-loop improvement or core-claim change.
+data and a cached information Probe. No core-claim change or demonstrated closed-loop improvement.
+The initial design analysis is followed below by bounded training evidence.
 Evidence/protocol: [curation and goal-information experiment](../experiments/probes/P-20261013-goal-point-wam-ref3-curation-audit.md).
 
 ## What the present contract actually specifies
@@ -141,3 +141,20 @@ object-goal sensitivity and actual execution, not only all24 endpoint error.
 Do not run long pretraining based solely on the oracle retrieval gain.
 The current native audit cannot explain away the latest robot rollout failure;
 robot recovery, timing, proprioception and execution remain separate evidence.
+
+
+## Follow-up: actual sparse-reference conditioning Probe
+
+[Matched wrist-goal Probe](../experiments/probes/P-20261013-goal-point-wam-reference-wrist-goal.md)
+now implements +8/+16/+24 planned human wrist poses, expressed in the measured
+current-object frame and admitted only as learned conditioning. Same parent,
+R, training pools, draw sequence, parameter capacity and1000-update budget:
+A blank wrist vs B planned wrist. Exact three C-query TRAIN first8 mean
+57.082->57.667mm; t32 contact-control guard also fails. This fixed recipe is
+UNPROMISING, so the recommendation is not to extend it or claim that adding a
+wrist solves intent ambiguity. The broader goal question remains unresolved.
+Human masking is exact, the path has gradients, and input intervention changes
+predictions slightly. Small learned gate, one fixed reference, only three old
+C states, and observed batching sensitivity limit attribution. Priority shifts
+to current actor visited-state corrections and explicit interaction/contact
+coverage; richer goals remain a hypothesis, not an automatic next architecture.

@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+
+## 2026-10-13 参考手腕goal matched Probe：无近期收益，停止该配方扩训
+
+相同ref2_8 step4500底座、原合格R/旧control adapter冻结、相同数据与抽样，
+仅B新增计划人手腕+8/+16/+24条件；A同容量adapter输入为空。各1000步，
+GPU2共329s、显存2.1GB，已释放。三个精确C接管状态TRAIN first8均值
+A57.082/B57.667mm，未达10%改善，t32 contact16首PD p955.906->9.140mm
+防退化也失败，其余门通过。局部UNPROMISING，不扩训、不接入闭环。
+首批输入/预测/loss严格一致，冻结state/R差0，保存数组独立复算通过。
+同物理查询batch1/batch16编码有约1–2mm有效预测差异；用contact16首行
+复核A57.144/B57.642mm，仍无收益，不能把微小差异解释成科学结论。
+手腕输入屏蔽/错时只带来小幅预测变化，human严格不受该输入影响。
+这不是否定手goal：仅固定示范、稀疏腕、短适配、3个旧C状态；当前actor
+真实访问状态与接触/手指语义仍未覆盖。下一步优先真实状态专家纠偏和
+已知参考条件基线，不继续清洗或盲目扩训。见[参考手腕goal卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-reference-wrist-goal.md)。
+
 ## 2026-10-13 ref3.1 两个独立Probe完成：R拟合改善但直接替换失败，actor降权信号不足
 
 冻结既有actor，以50% nominal/25%精确C接管/25%专家后续修复Chunk-R，
