@@ -1,5 +1,27 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 ref3.1 两个独立Probe完成：R拟合改善但直接替换失败，actor降权信号不足
+
+冻结既有actor，以50% nominal/25%精确C接管/25%专家后续修复Chunk-R，
+GPU2/3000步55s。3个接管瞬间首PD32.82/58.95/159.93->1.74/1.84/1.37mm，
+nominal DEV18.01->18.68mm，20离线门通过；仍仅3个拟合C状态+192后续。
+首个GT运行因其他会话进入GPU2安全中止，转GPU4，128步GT held75、零裁剪。
+显式新R执行身份接入同一adapter4500，完整542步actor held0/最高2.7mm，
+裁剪50.37%（首次tick252，前128零）；GT held438并放置，但全程裁剪1.845%
+未过严格<1%校准门。13执行合同通过。固定相同actor tau交叉计算，接触16
+PD p95在三组都恶化；GT tau反而都改善，说明修R映射不自动修好actor/R配合。
+保留修复候选，默认旧R不动，不扩训adapter。见[卡40](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-own-R.md)。
+
+独立人类数据A/B，各300步，同底座/9600采样/随机流，仅OakInk几何mismatch
+actor权重.1；保留全部World监督、原训练模块。确定性GPU设置修复首batch
+配对不一致，修后输入/预测/World loss严格相同。244s完成，384 VAL中目标
+附近交互81窗EPE13.189->13.167mm（仅.169%），未达5%门；三域/World基本持平，
+结论UNCLEAR，无扩大或删数据依据。见[卡41](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-actor-weight.md)。
+
+下一优先级：修复R固定后的有界actor语义重对齐和真实访问状态覆盖；GRAB/ARCTIC
+far-to-contact覆盖仍待独立处理，未并入本轮。无稳定自训练抓取或Cm因果结论。
+本轮GPU3/4已释放；outputs+tmp约296.7GB，低于400GB，保留所有原始失败记录。
+
 ## 2026-10-13 三域actor降权短对照无实质收益；参考手目标来源已核实
 
 原始WAM step10000、同9216 TRAIN池/96k抽样、decoder-only各1000步：

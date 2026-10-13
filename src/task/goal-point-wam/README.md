@@ -1,5 +1,7 @@
 # goal-point-wam
 
+ref3.1 completed two separate Probes: [own-state R repair](docs/experiments/probes/P-20261013-goal-point-wam-ref31-own-R.md) improves fitted GT-to-command mapping, but replacing R under the frozen actor still held0 and worsens late clipping. Preserve the old default executor. [OakInk actor weighting](docs/experiments/probes/P-20261013-goal-point-wam-ref31-actor-weight.md), paired300 updates with unchanged sampler/World supervision, gives only0.169% target-interaction improvement and remains UNCLEAR. No large actor/pretraining expansion follows these results.
+
 The ref2_8 robot adapter adds zero-gated48D measured q/dq/previous actual
 command and27D current-object-relative planned+8/+16/+24 poses to the preserved
 raw-hand decoder query. Human samples mask the conditioner. Current C own-state

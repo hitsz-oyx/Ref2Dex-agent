@@ -1,3 +1,12 @@
+# ref3.1 own-state Chunk-R repair（2026-10-13）
+
+`tools/run/repair_chunk_own_states.py` separates3 exact C takeover states from192
+expert continuation states and retains nominal replay. Fitted expert controls
+improve; nominal128 GT qualification passes. Full frozen-actor replacement held0
+with50.37% late clipping, so the old default R remains. Explicit experimental
+replacement requires `--allow-repaired-chunk`, a verified training-parent identity
+and a separate GT qualification receipt. See [card40](../goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-own-R.md).
+
 # Robot control context rollout（2026-10-13）
 
 Add `--control-checkpoint <selected robot adapter>` to the C/Chunk launcher
