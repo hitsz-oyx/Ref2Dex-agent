@@ -237,8 +237,8 @@ def main():
         for name in (n for n in groups if 'contact' in n):
             checks[name+'/first8_nonregression'] = now[name]['first8_mm'] <= initial[name]['first8_mm']+.05
             checks[name+'/PD_xyz_mm_p95'] = now[name]['PD_xyz_mm_p95'] <= .9*initial[name]['PD_xyz_mm_p95']
-        checks['contact/mean_first8_ratio'] = np.mean([now[n]['first8_mm']/initial[n]['first8_mm']
-            for n in groups if 'contact' in n])<=.9
+        checks['contact/mean_first8_ratio'] = bool(np.mean([now[n]['first8_mm']/initial[n]['first8_mm']
+            for n in groups if 'contact' in n])<=.9)
         for name in ('nominal','startup'):
             limit=1.1*initial[name]['PD_xyz_mm_p95']+.1
             if name=='startup':limit=max(limit,3.)
