@@ -96,6 +96,14 @@ def main():
     torch.set_num_threads(2);torch.set_float32_matmul_precision('highest');torch.manual_seed(292)
     run_dir=ROOT/'outputs/consequence-evaluator/baseline-transfer-s3-20261007-r2/airplane_base'
     cfg=json.loads((run_dir/'config.json').read_text())
+    if args.effect_checkpoint:
+        import yaml
+        camera_cfg=yaml.safe_load(Path(cfg['cfg_env']).read_text())
+        camera_cfg['env']['enableCameraSensors']=True
+        camera_path=scratch/'camera-config.yaml'
+        if camera_path.exists():raise FileExistsError(camera_path)
+        camera_path.write_text(yaml.safe_dump(camera_cfg))
+        cfg['cfg_env']=str(camera_path)
     source=ROOT/'outputs/trajectory-policy/competent-pd-teacher-20261011-r2'
     source_manifest=json.loads((source/'manifest.json').read_text())
     if (source_manifest['status']!='COMPLETED' or not source_manifest['training_allowed']
