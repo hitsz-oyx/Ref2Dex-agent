@@ -117,7 +117,9 @@ class OmegaDepthBackend:
             if "image_resolution" in signature:
                 options["image_resolution"] = self.resolution
             if "mode" in signature:
-                options["mode"] = "crop"
+                # Omega exposes balanced/max_size; original VGGT exposes crop/pad.
+                default_mode = signature["mode"].default
+                options["mode"] = default_mode if default_mode in ("balanced", "max_size", "crop") else "crop"
             images = self.preprocess(paths, **options).to(self.device)
             # Landscape vendor crop mode changes resolution only.
             ih, iw = images.shape[-2:]
