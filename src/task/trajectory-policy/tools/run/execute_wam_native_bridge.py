@@ -59,6 +59,7 @@ def main():
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
     p.add_argument('--effect-checkpoint',type=Path)
+    p.add_argument('--control-checkpoint',type=Path)
     args=p.parse_args()
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
@@ -150,6 +151,9 @@ def main():
     del effect_values
     if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
         raise ValueError('C base checkpoint differs')
+    from trajectory_policy.wam_control_admission import control_admission
+    control_identity,control_packet=control_admission(args.control_checkpoint,effect_identity)
+    del control_packet
     del head_packet
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     connection.settimeout(30);connection.connect(str(args.socket))
@@ -163,7 +167,8 @@ def main():
         or handshake['base_sha256']!=base_hash
         or handshake.get('scene_patch_identity')!=patch_identity
         or handshake.get('retargeter_identity')!=r_identity
-        or handshake.get('effect_identity',dict(applied=False))!=effect_identity):
+        or handshake.get('effect_identity',dict(applied=False))!=effect_identity
+        or handshake.get('control_identity',dict(applied=False))!=control_identity):
         raise ValueError('WAM inference peer identity differs')
     helper=TASK/'src/trajectory_policy/wam_scene_patch.py'
     if handshake['input_sha256'].get(str(helper))!=sha(helper):
@@ -184,6 +189,9 @@ def main():
         helper,r_helper,joint_helper,TASK/'tools/run/wam_native_server.py',base_path]
     if args.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
+    if args.control_checkpoint:
+        files += [args.control_checkpoint.resolve(),TASK/'src/trajectory_policy/wam_control_admission.py',
+                  TASK/'src/trajectory_policy/robot_context.py']
     files += [reference_path.parent/'manifest.json',head_dir/'manifest.json',head_dir/'result.json']
     files += list((OLD/'src/consequence_evaluator').glob('*.py'))+list(native_root.rglob('*.py'))
     files += list(Path(cfg['motion_root']).glob('*/interaction_hand_inspire.pt'))
@@ -212,6 +220,7 @@ def main():
         no_wam_oracle_prefix=True,controller='frozen actual-PD R, native conversion, no extra feedforward')
     manifest['retargeter_identity']=r_identity
     manifest['effect_identity']=effect_identity
+    manifest['control_identity']=control_identity
     manifest['producer_code_updates']=producer_updates
     write(out/'manifest.json',manifest)
     install_legacy_player_compat(native,common_player,base_player);install_reset_patch()
@@ -264,6 +273,8 @@ def main():
             logs={k:[] for k in ('q','dq','hand','obj','velocity','surface_gap','support_gap','table_footprint',
                 'action','applied','pd_targets','intended','requested_pd','clipped','state_features','tau_features',
                 'encoded_target','wam_object_history','wam_hand_history','wam_goal','server_latency_s','native_latency_s')}
+            if args.control_checkpoint:
+                logs.update(control_proprio=[],control_robot_goal=[],control_reference_poses=[])
             if args.expert_recovery:
                 from wam_expert_probe import expert_on_rows,paired_prefix_error,prefix_physical_metrics,PREFIX_PHYSICAL_BOUNDS
                 logs.update({key:[] for key in ('expert_raw','expert_action','expert_clipped','expert_PD',
@@ -316,7 +327,17 @@ def main():
                     oh=np.stack([logs['obj'][i][2] for i in past])
                     hh=np.stack([logs['hand'][i][2] for i in past])
                     goal=reference['obj'][min(tick+24,542)]
-                    send(connection,dict(tick=tick,object_history=oh.tolist(),hand_history=hh.tolist(),planned_object_goal=goal.tolist()))
+                    request=dict(tick=tick,object_history=oh.tolist(),hand_history=hh.tolist(),planned_object_goal=goal.tolist())
+                    if args.control_checkpoint:
+                        from trajectory_policy.robot_context import control_context
+                        previous=logs['applied'][tick-1][2] if tick else np.zeros(18,np.float32)
+                        refs=reference['obj'][np.minimum(tick+np.array([8,16,24]),542)]
+                        prop,robot_goal=control_context(current['q'][2].cpu().numpy(),current['dq'][2].cpu().numpy(),
+                            previous,oh[-1],refs)
+                        request.update(proprio=prop.tolist(),robot_goal=robot_goal.tolist())
+                        logs['control_proprio'].append(prop.copy());logs['control_robot_goal'].append(robot_goal.copy())
+                        logs['control_reference_poses'].append(refs.copy())
+                    send(connection,request)
                     reply=receive(connection)
                     if reply['schema']!=SCHEMA or reply['tick']!=tick or not np.array_equal(np.asarray(reply['anchor_object_pose'],np.float32),oh[-1]):
                         raise ValueError('inference reply uses another live current anchor')

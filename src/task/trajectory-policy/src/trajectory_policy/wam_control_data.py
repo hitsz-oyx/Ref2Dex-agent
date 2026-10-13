@@ -20,12 +20,21 @@ class ControlData(EffectData):
             audit = json.loads((path/'root_recovery_audit.json').read_text())
             if m['status'] != 'COMPLETED' or not audit['pass'] or m['controls'] != 128:
                 raise ValueError('audited actual128-control C-state takeover required')
-            if not m.get('effect_identity', {}).get('applied'):
+            identity = m.get('effect_identity', {})
+            expected_c = Path(root)/'outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/checkpoint_step50500.pt'
+            if (not identity.get('applied') or identity.get('global_step') != 50500
+                    or Path(identity.get('checkpoint','')).resolve() != expected_c.resolve()
+                    or int(m['takeover_tick']) != (32,40,48)[i]):
                 raise ValueError('old student recovery cannot replace current C states')
             name = 'recovery%d' % i
             self.paths[name], self.takeovers[name] = path, int(m['takeover_tick'])
             with np.load(path/'trajectory.npz', allow_pickle=False) as f:
                 self.data[name] = {k: f[k].copy() for k in f.files}
+            d = self.data[name]
+            takeover = self.takeovers[name]
+            if (not np.array_equal(d['applied'][takeover:,3], d['expert_action'][takeover:,1])
+                    or not np.array_equal(d['action'],d['applied'])):
+                raise ValueError('recovery futures must follow actually applied own expert commands')
         self.valid_ticks = {}
         for name, takeover in self.takeovers.items():
             d = self.data[name]

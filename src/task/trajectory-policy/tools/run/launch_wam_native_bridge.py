@@ -26,6 +26,7 @@ def main():
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
     p.add_argument('--effect-checkpoint',type=Path)
+    p.add_argument('--control-checkpoint',type=Path)
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
     a.experiment_id=a.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
@@ -48,6 +49,9 @@ def main():
     r_args=['--r-dir',str(a.r_dir.resolve())] if a.r_dir is not None else []
     if a.chunk_dir:r_args+=['--chunk-dir',str(a.chunk_dir.resolve())]
     if a.effect_checkpoint:r_args+=['--effect-checkpoint',str(a.effect_checkpoint.resolve())]
+    if a.control_checkpoint:
+        if not a.effect_checkpoint:raise ValueError('control adapter requires its C base')
+        r_args+=['--control-checkpoint',str(a.control_checkpoint.resolve())]
     out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or not out.name.startswith('wam-ref2-execution-'):
         raise ValueError('fresh task-owned execution group required')
@@ -78,6 +82,9 @@ def main():
         files.append(TASK/'tools/run/wam_expert_probe.py')
     if a.chunk_dir:files += [TASK/'src/trajectory_policy/wam_effect_admission.py',TASK/'src/trajectory_policy/chunk_retargeter.py']
     if a.effect_checkpoint:files.append(a.effect_checkpoint.resolve())
+    if a.control_checkpoint:files += [a.control_checkpoint.resolve(),
+        TASK/'src/trajectory_policy/wam_control_admission.py',TASK/'src/trajectory_policy/robot_context.py',
+        ROOT/'src/task/goal-point-wam/src/goal_point_wam/control_context.py']
     status['source_sha256']={str(path):sha(path) for path in files}
     write(out/'group_status.json',status)
     processes=[];streams=[]

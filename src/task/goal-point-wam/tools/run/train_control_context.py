@@ -300,6 +300,15 @@ def main():
                 atomic_json(out/'progress.json',record)
                 print(json.dumps(record),flush=True)
             if step%500==0 or step==updates or stopping:
+                pids=set(map(int,subprocess.check_output(['nvidia-smi','-i',str(a.gpu),
+                    '--query-compute-apps=pid','--format=csv,noheader,nounits'],text=True).split()))
+                if pids-{os.getpid()}:
+                    raise RuntimeError('foreign GPU process during owned training')
+                sizes=subprocess.check_output(['du','-sb',str(out),str(scratch),
+                    str(ROOT/'outputs'),str(ROOT/'tmp')],text=True).splitlines()
+                sizes=[int(line.split()[0]) for line in sizes]
+                if sum(sizes[:2])>=2_000_000_000 or sum(sizes[2:])>=400_000_000_000:
+                    raise RuntimeError('adapter2GB / global400GB artifact cap')
                 last = evaluate(stage*100000+step)
                 checks = contact_gate(last)
                 curve.append(dict(stage=stage,step=step,metrics=last,contact_gate=checks,**frozen_check(stage)))

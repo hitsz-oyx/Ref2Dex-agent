@@ -68,6 +68,7 @@ def main():
     p.add_argument('--r-dir',type=Path,default=None)
     p.add_argument('--chunk-dir',type=Path)
     p.add_argument('--effect-checkpoint',type=Path)
+    p.add_argument('--control-checkpoint',type=Path)
     a=p.parse_args()
     if not 1<=a.controls<=542:
         raise ValueError('bounded controls required')
@@ -136,6 +137,15 @@ def main():
         if Path(effect_identity['base_checkpoint']).resolve()!=base:raise ValueError('C base checkpoint differs')
         model.trajectory.load_state_dict(effect_values,strict=True)
     del effect_values
+    from trajectory_policy.wam_control_admission import control_admission
+    control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity)
+    adapter=None
+    if control_packet is not None:
+        from goal_point_wam.control_context import RobotControlAdapter,conditioned_actor
+        adapter=RobotControlAdapter().cuda().eval().requires_grad_(False)
+        adapter.load_state_dict(control_packet['adapter'],strict=True)
+        model.trajectory.load_state_dict(control_packet['trajectory'],strict=True)
+        del control_packet
     for parameter in model.parameters():
         parameter.requires_grad_(False)
         if not torch.isfinite(parameter).all():
@@ -161,6 +171,11 @@ def main():
     if a.effect_checkpoint:
         hashes[str(a.effect_checkpoint.resolve())]=effect_identity['checkpoint_sha256']
         hashes[str(TASK/'src/trajectory_policy/wam_effect_admission.py')]=sha(TASK/'src/trajectory_policy/wam_effect_admission.py')
+    if a.control_checkpoint:
+        hashes[str(a.control_checkpoint.resolve())]=control_identity['checkpoint_sha256']
+        for path in (TASK/'src/trajectory_policy/wam_control_admission.py',
+                     ROOT/'src/task/goal-point-wam/src/goal_point_wam/control_context.py'):
+            hashes[str(path)]=sha(path)
     a.output.mkdir(parents=True,exist_ok=False)
     if a.socket.exists() or ROOT/'tmp' not in a.socket.resolve().parents:
         raise ValueError('fresh project-owned socket required')
@@ -172,7 +187,7 @@ def main():
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
         torch_version=torch.__version__,training_allowed=False,queries=0,
         scene_patch_identity=patch_identity,controls=a.controls,experiment_id=a.experiment_id,
-        retargeter_identity=r_identity,effect_identity=effect_identity)
+        retargeter_identity=r_identity,effect_identity=effect_identity,control_identity=control_identity)
     write(a.output/'status.json',status)
     began=time.monotonic()
     request=None
@@ -184,7 +199,9 @@ def main():
             send(connection,status)
             for query in range(a.controls):
                 request=receive(connection)
-                if set(request)!={'tick','object_history','hand_history','planned_object_goal'} or request['tick']!=query:
+                fields={'tick','object_history','hand_history','planned_object_goal'}
+                if adapter is not None:fields|={'proprio','robot_goal'}
+                if set(request)!=fields or request['tick']!=query:
                     raise ValueError('live H4/object-goal-only sequential request required')
                 if time.monotonic()-began>600:
                     raise TimeoutError('bounded WAM inference server deadline')
@@ -193,18 +210,35 @@ def main():
                     np.asarray(request['hand_history'],np.float32),
                     np.asarray(request['planned_object_goal'],np.float32),canonical,sample_id=query)
                 batch={k:v.cuda() for k,v in goal_collate([sample]).items()}
+                if adapter is not None:
+                    for key in ('proprio','robot_goal'):
+                        value=np.asarray(request[key],np.float32)
+                        if not np.isfinite(value).all():raise ValueError('nonfinite robot context')
+                        batch[key]=torch.tensor(value[None],device='cuda')
+                    batch['robot_mask']=torch.ones(1,device='cuda',dtype=torch.bool)
                 if query==0:
                     rng_cpu=torch.get_rng_state();rng_gpu=torch.cuda.get_rng_state()
                 with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
                     scene=model.scene(batch)
                     tokens,mask=model.goal(batch['start_object_points'],batch['goal_object_points'],batch['object_goal_valid'])
-                    prediction=model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,
-                                                 model.observed_hand_condition(batch)).float()
+                    raw=model.observed_hand_condition(batch)
+                    context=(scene,tokens,mask,raw)
+                    prediction=(conditioned_actor(model,context,adapter,batch) if adapter is not None
+                        else model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,raw)).float()
                 tau=active_hand_tau(prediction.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())[0]
                 if query==0:
                     torch.set_rng_state(rng_cpu);torch.cuda.set_rng_state(rng_gpu)
+                    hook=None
+                    if adapter is not None:
+                        with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
+                            residual=adapter(batch['proprio'],batch['robot_goal'],batch['robot_mask']).to(raw.dtype)
+                        # Independent full-WAM forward with the same additive
+                        # robot query condition; World still receives no goal.
+                        hook=model.trajectory.register_forward_pre_hook(
+                            lambda _,args: (*args[:4],args[4]+residual[:,None,None]))
                     with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
                         direct=model(batch)['trajectory'].float()
+                    if hook is not None:hook.remove()
                     direct_tau=active_hand_tau(direct.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())[0]
                     error=float(np.max(np.abs(tau-direct_tau)))
                     if error>1e-5:
