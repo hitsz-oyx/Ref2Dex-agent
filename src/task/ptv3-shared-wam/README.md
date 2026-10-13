@@ -59,7 +59,9 @@ ref1_2当前20个合同测试通过，覆盖goal影响共享表示及双头、31
 scene损失进入GoalTokenEncoder但不进入hand head、时间/目标分组指标、goal-only基线与旧路由拒绝。
 评估每个source自动输出scene h1/first8/middle（9–16）/h24/all24，并分别统计target/non-target。
 `goal_only/scene_*`基线只把终点delta按j/24插值，非目标静止；终点指标不独立代表动态学习。
-新路由的GPU工程smoke已完成，运行代码固定为 `5453d03a`；使用空闲GPU1。
+新路由的GPU工程smoke已完成，本Task实现提交为 `5453d03a`；使用空闲GPU1。
+预训练manifest的运行commit为 `5453d03a`，机器人为 `84968e49`；期间其他Task
+提交未改变本Task实现，具体运行身份以各manifest为准。
 GPU0启动前被外部任务占用，资源检查退出后换卡，没有停止外部进程。
 
 | ref1_2共享goal工程检查 | run_id |
