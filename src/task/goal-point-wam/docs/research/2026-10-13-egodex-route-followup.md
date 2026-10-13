@@ -73,8 +73,8 @@ UTC时间戳1791860572，远端 acquisition 检查时间1791860552：
 本地工程证据目录 `tmp/egodex-routes-20261013/`（不纳入Git）：
 
 - `local-probe-1791859480/result.json`、`local-probe-1791859668/result.json`：本地路线。
-- `ssh-throughput-1791859787/result.json`：单SSH；
-  `ssh-throughput-1791859900/failed_probe.json`：未完整通过的并发探针。
+- `ssh-throughput-1791859787/result.json`：单SSH。并发探针因TimeoutExpired退出，
+  未保存完整聚合JSON；只保留诊断脚本和会话错误，不能据此计算吞吐。
 - `remote_range_stream_and_status.json`：Range/完整流比较。
 - `http3_and_final_status.json`：协议结果、生产快照、训练PID核对。
 - 诊断脚本 `range_vs_stream.py`、`http3_probe.py`、`ssh_parallel.py`。
