@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-ptv3-shared-main3-80k:
+    seed_pool: probe
+    model_and_draw_seed: 100
+    rank_initialization_seeds: [100, 101, 102, 103]
+    evaluation_draw_seed: 104
+    reuse_reason: stateless step/rank substreams within one four-GPU run; ranks are not independent replicates
+
   P-20261013-pointwam-repro-frozen-step:
     seed_pool: debug
     model_seed: 12

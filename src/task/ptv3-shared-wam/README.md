@@ -46,6 +46,32 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
 `task_conditioning=shared-scene-hand-goal.v1`；旧absolute-goal和hand-only delta checkpoint默认拒绝加载/续训，
 不提供自动迁移。新goal模型可从原PW场景权重重新初始化。
 
+## 四卡80k预训练
+
+用户授权的长期预训练配置为[pretrain_80k.json](configs/pretrain_80k.json)，协议与运行身份见
+[实验卡](docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md)。GPU4/5/6/7，
+每卡128、global batch512；80,000次optimizer updates。保持原学习率，不自动按batch放大。
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam/tools/run/launch_pretrain.py \
+  --detach --gpus 4,5,6,7 \
+  --config src/task/ptv3-shared-wam/configs/pretrain_80k.json \
+  --experiment-card src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md \
+  --output outputs/ptv3-shared-wam/<fresh-run-id>
+```
+
+每1,000步验证，每2,000步保存恢复点；保留step1、每20k里程碑和最近一个恢复点，
+只移除当前run登记表中被替代的非里程碑文件。默认旧配置仍保留全部checkpoint。
+源码固定，wall-time硬上限7天，单run4GB/共享400GB预算不变。
+监督进程独立于当前终端，保存PID、退出码、GPU快照和30分钟无进展检查；
+只向它自己创建的torchrun进程组发送停止信号。
+训练目录的 `progress.json`、`process.json`、`launcher.log`、`gpu.jsonl` 可查看进度；
+`checkpoint_files.json`登记当前保留的恢复文件。直接torchrun入口仍支持 `--resume`。
+
+大batch工程验证可使用 `--smoke --smoke-batch-size 128`，四步且不用于科学初始化。
+单卡64和128、四卡128都已通过；四卡稳定约2.1–2.25秒/步、约230–245样本/秒，
+实测显存约14–16GiB/卡。初步80k预计约49小时，后续以实际长跑ETA为准。
+
 ## 验证
 
 ```bash
