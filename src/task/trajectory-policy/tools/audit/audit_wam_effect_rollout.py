@@ -52,6 +52,19 @@ def main():
     with np.load(ROOT/'outputs/trajectory-policy/competent-reference-20261011-r1/reference.npz') as stream:
         goals=stream['obj'][np.minimum(np.arange(542)+24,542)]
     check('planned_goal_only', data['wam_goal'],goals)
+    if manifest.get('control_identity',{}).get('applied'):
+        with np.load(ROOT/'outputs/trajectory-policy/competent-reference-20261011-r1/reference.npz') as stream:
+            refs=stream['obj'][np.minimum(np.arange(542)[:,None]+np.array([8,16,24]),542)]
+        previous=np.concatenate((np.zeros((1,18),np.float32),data['applied'][:-1,2]),axis=0)
+        proprio=np.concatenate((data['q'][:-1,2],data['dq'][:-1,2],previous[:,ACTIVE]),axis=-1)
+        check('own_q_dq_previous_applied',data['control_proprio'],proprio)
+        check('three_planned_references',data['control_reference_poses'],refs)
+        # Independent homogeneous inverse rather than the producer helper.
+        relative=np.linalg.inv(data['obj'][:-1,2].astype(np.float64))[:,None]@refs.astype(np.float64)
+        robot_goal=np.concatenate((relative[:,:,:3,3],relative[:,:,:3,0],relative[:,:,:3,1]),axis=-1).reshape(542,27)
+        check('own_relative_translation_rotation6D',data['control_robot_goal'],robot_goal)
+        if manifest['control_identity']!=manifest['server_identity']['control_identity']:
+            raise ValueError('native/server robot adapter identity differs')
     outcomes = []
     for env, saved in enumerate(result['outcomes']):
         actual = episode_outcome(dict(object_pose=data['obj'][:,env],object_velocity=data['velocity'][:,env],

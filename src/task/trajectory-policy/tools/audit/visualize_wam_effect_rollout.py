@@ -26,7 +26,9 @@ def main():
     height=data['obj'][:,:,2,3]-data['obj'][0,:,2,3]
     held=(data['surface_gap']<=.01)&(height>=.03)&~(data['table_footprint'].astype(bool)&(np.abs(data['support_gap'])<=.02))
     held[0]=False
-    names=['Teacher','GT tau + Chunk R','C final WAM + Chunk R']
+    native_manifest=json.loads((args.native/'manifest.json').read_text())
+    adapter=native_manifest.get('control_identity',{}).get('applied',False)
+    names=['Teacher','GT tau + Chunk R',('Robot-context WAM' if adapter else 'C final WAM')+' + Chunk R']
     colors=['tab:blue','tab:green','tab:red']
     figure,axes=plt.subplots(1,3,figsize=(15,4),constrained_layout=True)
     for env,name in enumerate(names):
@@ -38,7 +40,7 @@ def main():
     axes[1].set_yscale('symlog',linthresh=10)
     axes[2].set(title='Wrist deviation from same-trace teacher',ylabel='mm')
     for axis in axes:axis.set_xlabel('Simulation time (s)');axis.legend(fontsize=7);axis.grid(alpha=.25)
-    figure.suptitle('Actual measured rollout; C actor never lifts; GT controller lifts then loses during placement')
+    figure.suptitle('Actual measured rollout; '+names[2])
     figure.savefig(args.output/'outcomes.png',dpi=160);plt.close(figure)
     # Common fixed view of the grasp workspace. If an actor leaves it, retain
     # measured distance and explicitly mark the point outside the view.

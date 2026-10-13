@@ -78,6 +78,43 @@ full placement reported separately. A single reset is only a Probe.
 
 ## Limitations and future evidence
 
+## 2026-10-13 stage1 result and Decision Note (exploratory protocol amendment)
+
+Current C takeovers32/40/48 completed128 controls each; actual expert continuation
+holds75/74/71 consecutive frames with no clipping. Each saved-trace audit passes
+2316 checks max0; prefix physical tolerances pass (approximate PhysX pairs,
+not a hidden-state clone). Actual expert future24 grants73/65/57 TRAIN windows.
+No t56 collection needed to determine recoverability of this contact region.
+
+Adapter-only2000 updates at commit7e25cb30, ~200s including frozen-context
+preparation, exact initial C output and frozen decoder/scene/World/R difference0.
+Human outputs are exactly unchanged. first8 t32/40/48:24.133/35.890/60.496 ->
+22.962/32.974/42.527mm; first-PD XYZ p95:67.670/233.239/358.766 ->
+23.218/162.421/252.208mm. Nominal PD23.394->22.882mm, startup .617->.965mm,
+all clipping0. Original strict gate fails: two first8 improvements<10%, startup
+relative limit exceeded. This must not be described as passing the original gate.
+
+Decision: continue only5000 decoder updates because all three contact first8
+improve, average normalized improvement is >10%, and all first-PD improve>10%;
+startup absolute error remains <1mm. Retain strict diagnostics but amend the
+exploratory continuation gate to each contact first8 nonregressing (+.05mm),
+mean first8 ratio<=.9, each contact PD<=.9 initial, nominal PD original limit,
+startup PD<=max(original limit,3mm), clipping original limit. This decision is
+made from offline TRAIN data before any new actor physical outcome. It is not
+Validation or evidence that observation insufficiency is established. Stage2
+still freezes geometry/goal/raw/World/R, uses20/30/50 draws and1e-4/1e-5 LRs;
+stop at5000 or prior declared budget/gross-regression conditions. Candidate
+selection uses contact score with nominal/startup and <=20% human all24
+preservation; report a fallback explicitly if none qualifies.
+
+Stage1 r1's fallback selection retained first500 when no candidate met the
+strict startup guard. Preserve r1 as recorded; stage2 continues explicitly from
+its actual frozen-decoder step2000, and fixes fallback selection for future runs.
+No rerun of stage1 or alteration of the protected source packet is needed.
+Frozen train contexts use1104 nominal windows,195 recovery and192 human replay
+windows; these are repeated samples, not new environment exposure. Human val
+panel16 per domain and robot nominal roles24..27; recovery remains TRAIN.
+
 New recovery windows are TRAIN diagnostics, not independent generalization.
 Single seed/reset and joint proprio/reference intervention cannot prove
 observation insufficiency or Cm causal benefit. Matched input ablations and

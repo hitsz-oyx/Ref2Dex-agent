@@ -18,6 +18,7 @@ def control_admission(checkpoint, effect_identity):
     result = json.loads((path.parent/'result.json').read_text())
     frozen = packet.get('contracts', {})
     if (packet.get('schema') != SCHEMA or result.get('status') != 'COMPLETED'
+            or packet.get('manifest', {}).get('training_allowed') is not True
             or Path(result.get('final_checkpoint', '')).resolve() != path
             or not effect_identity.get('applied')
             or packet.get('manifest', {}).get('C_identity') != effect_identity
