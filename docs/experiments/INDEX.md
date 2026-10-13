@@ -185,6 +185,13 @@
 | --- | --- | --- | --- | --- |
 | [P-20261012-goal-point-wam-egodex-auxiliary](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-egodex-auxiliary.md) | Native EgoDex hands as auxiliary training data | UNCLEAR overall; local native admission, four-step smoke and200-step | local positive learning signal supports remote same-recipe admission | probes/UNCLEAR |
 
+## HF-goal-point-wam-object-motion-goal
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261013-goal-point-wam-video-object-goal](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-video-object-goal.md) | Video object-motion goal admission | 22 windows audited;12 current polygons;3 TRAIN/0 held numerical passes, all near-static supports. | Do not train; specify manipulated parts and acquire denser target tracks before matched actor probes. | probes/UNPROMISING |
+
+
 ## HF-goal-point-wam-ref12-methods
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

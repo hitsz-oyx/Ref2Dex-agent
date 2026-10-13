@@ -5,7 +5,7 @@ experiment_id: P-20261013-goal-point-wam-video-object-goal
 date: 2026-10-13
 task: goal-point-wam
 branch: main
-git_commit: pending
+git_commit: 3ac69607
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-object-motion-goal
 probe_index_in_family: 1
@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: []
 decision_changed_if_positive: run a bounded matched object-motion-conditioned video actor probe on visually admitted object tracks
 decision_changed_if_negative: repair target identity and tracking before training goal-conditioned video actors
-status: RUNNING
+status: UNPROMISING
 run_id: video-object-goal-audit-20261013-r1
 ---
 
 # Video object-motion goal admission
 
-Decision: can the existing video point corpus supply a meaningful target-object
+Research question: can the existing video point corpus supply a meaningful target-object
 motion goal without using hand futures as input or granting desired motion to
 the action-conditioned World? User explicitly chooses geometric object goals
 instead of language and authorizes continued bounded exploration. This remains
@@ -77,3 +77,87 @@ user/reference goals in the same coordinate contract. The same initial scene
 with multiple physically executable goals and actual robot success are later
 Validation needs. Label filtering here is target-goal admission, not destructive
 cleaning of the original World corpus. No new actor/R architecture is selected.
+
+
+## Completed result — 2026-10-13
+
+Result: 22 windows audited;12 current polygons;3 TRAIN/0 held numerical passes, all near-static supports.
+Decision: Do not train; specify manipulated parts and acquire denser target tracks before matched actor probes.
+
+Export code commit `1d8be444`; packet/audit code `3ac69607`. No RNG, no model
+training, no GPU, no remote writes. Export took30.7s and24.53MB; all local audit
+artifacts approximately54MB. File/statistical computation used CPU; no neural
+inference was involved. Four focused packet contract tests passed. This stage
+only implements the data packet/audit, **not a new actor temporal encoder**.
+World model code and its input contract were not changed; packet construction
+reads no hand and owns independent storage, checked by mutation tests.
+
+The qualified source has22 distinct recordings (r02/r06 absent), not24. All22
+clock-median windows were retrieved, without export failures. Current-only
+inspection fixed12 conservative visible-surface polygons before looking at
+future frames or displacement; six deformable and four ambiguous/occluded
+assemblies were deferred. These are provisional assistant visual annotations,
+not independently confirmed segmentation ground truth.
+
+| Outcome | Count / details |
+|---|---|
+| Numerical admission | 3 TRAIN windows/sessions; **0 held** |
+| Passed targets | r03 desk base24pts; r08 table base24pts; r09 table base20pts |
+| Passed target +24 median displacement | 2.69 /3.37 /1.13mm respectively |
+| Other annotated targets | All9 have only2–12 current points; several also lose visibility |
+| Moving drawer r05 | 6 current points ->6/4/3 valid; +24 displacement34.36mm on surviving3 |
+| Lamp bulb r07, held | 5 current ->3/2/3 valid |
+| Yellow bottle r12 | 4 current ->2/1/0 valid despite visible bottle transport |
+
+All12 overlays were inspected. The three numerical passes track their stated
+base surface reasonably, but the hands manipulate independently moving legs.
+They provide weak/near-static support constraints, not the intended moving-part
+trajectory. r13's bowl is static context while the blue item is manipulated;
+current intent was already marked ambiguous and is rejected. r22's conservative
+polygon still touches fingers at its right edge and is rejected for purity.
+Do not enlarge masks across background/hands or replace raw tracks with rigid
+fits merely to pass. No threshold was relaxed after inspecting results.
+
+**Local UNPROMISING:** directly extracting dense-enough object motion goals from
+this existing sparse scene cohort with this recipe. This is not evidence against
+object-conditioned policy learning, nor proof the underlying video is unusable.
+The16-point/80% thresholds are conservative admission choices, not physical
+minimum requirements; narrow polygons contribute to low counts. A target-specific
+retracking or a different representation may recover useful supervision.
+
+## Decision Note / next minimal probe
+
+Do not launch goal-conditioned video training on this cohort: held admission
+fails and the apparent numerical successes mainly describe static support.
+Continue the user-approved non-language interface: **explicit selected object or
+movable part + current points + desired points at times + validity**. For furniture,
+name and select the manipulated part, not the whole articulated assembly.
+
+Next decision experiment should fix current target-part masks first, reserve
+queries on those surfaces and test denser target-specific tracking on a small
+cohort with both TRAIN and held sessions. Preserve failed examples and near-static
+support cases separately; do not retrospectively infer task identity from the
+largest future displacement. Only after useful object-motion labels are available
+compare null/static/correct/shuffled goal conditions on the same short actor fit.
+Goal remains actor-side; the action-conditioned World cannot observe wishes.
+No hand-goal input is required by this packet; current hand/history remain observations.
+For a far-hand approach stage, a near-term static object goal may be legitimate
+but underdetermines approach intent: provide the later object-motion waypoint or
+a suitable longer-horizon plan, rather than falsely labeling it a no-op task.
+
+## Artifacts / reproduction
+
+Run root: `outputs/goal-point-wam/video-object-goal-audit-20261013-r1/`.
+`inputs/manifest.json` retains source windows, sessions and camera/RGB provenance;
+`annotations.json` fixes current-only polygons; `summary.json` contains numeric
+results and `visual_review.json` is the completed separate visual decision.
+`goals/*.npz` are **audit-only**, not admitted training data.
+`current-only-sheet.jpg` and `overlays/*.jpg` preserve inspection evidence.
+
+```bash
+PYTHONPATH=src/task/goal-point-wam/src /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/goal-point-wam/tools/audit/audit_video_object_goals.py \
+  --root outputs/goal-point-wam/video-object-goal-audit-20261013-r1
+PYTHONPATH=src/task/goal-point-wam/src /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  -m pytest src/task/goal-point-wam/tests/test_object_motion_goal.py -q
+```
