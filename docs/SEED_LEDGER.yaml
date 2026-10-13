@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-goal-point-wam-actor-curation-ab:
+    seed_pool: probe
+    paired_draw_and_rng_seed: 299
+    reuse_reason: matched curation follow-up using deterministic per-step substreams; not an independent validation replicate
+
   P-20261013-goal-point-wam-ref3-curation-audit:
     seed_pool: probe
     diagnostic_draw_seed: 299
@@ -203,3 +208,10 @@ allocations:
     model_seed: 284
     train_draw_seed: 285
     engineering_seed: 286
+
+  P-20261013-goal-point-wam-ref31-own-R:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: warm-start inverse-control repair and same nominal physics reset; not independent replication
