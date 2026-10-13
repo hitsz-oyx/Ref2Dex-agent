@@ -134,4 +134,12 @@ python -m pytest src/task/video-data-preparation/tests src/task/ptv3-shared-wam/
 
 工程 GPU run：`outputs/ptv3-shared-wam/engineering-egodex-adapter-20261013-r1/`。合成 geometry-only 数据经真实 HDF5→双 worker→真实 PTv3→U/V 完成 4 次更新，13.27 秒，GPU1 物理显存最高观察值约 1383 MiB；两项 loss 的 PTv3/interaction/goal 梯度非零，scene→hand head 无梯度。GPU 已释放。
 
-这些结果验证接口、掩码、数据读取、梯度与模型执行，**不验证真实 EgoDex 的目标选择、深度、tracker 质量或大规模吞吐**。本轮没有连接或写远端，没有停止原下载/重建，也没有启动科学训练。
+上述合成工程验证只检查接口、掩码、数据读取、梯度与模型执行，**不验证真实 EgoDex 的目标选择、深度、tracker 质量或大规模吞吐**。首版实现时没有连接远端；后续真实小样本试跑见下一节，仍未启动科学训练。
+
+## 已下载真实数据的小批量试跑
+
+2026-10-13开始、14日补齐审计：[实验卡](docs/experiments/probes/P-20261013-egodex-shared-real-processing.md)。已只读复制远端三个完整basic_pick_place配对，在本机GPU1跑真实Omega和CoTracker。三窗53.21秒，峰值分配约8GiB；一窗积木产生了真实2048 scene/32 query/H4/K24样本并通过新Shared-WAM读取，两窗观察尺度标定被拒绝。
+
+真实小批量入口 [process_selected_windows.py](tools/run/process_selected_windows.py) 接收固定tick输入清单和annotations，逐阶段保存原始depth/track缓存及拒绝原因，适用于这类最多三窗的Probe。默认不自动扩量；通过数值门的刚性窗口才发布分片，软物体只作diagnostic。Omega的preprocess现在沿用其合法balanced/max_size默认接口。
+
+实际scope：`outputs/video-data-preparation/egodex-shared-real-processing-20261013-r1/`；四帧轨迹预览在 `visual-audit-r1/window-000000.jpg`，全时序覆盖在 `all-track-steps-10.jpg`。该快照只有TRAIN1/VAL0，尚不足启动训练；中间遮挡/插值mask覆盖和独立米制几何仍需审查，整体结论UNCLEAR。没有在远端启动额外GPU任务。
