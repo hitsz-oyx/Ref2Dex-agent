@@ -205,6 +205,36 @@ VAL error to select samples or thresholds.
 
 ## Reproduction, checks and artifacts
 
+### Follow-up question: should goals contain hand intent? (pre-run protocol)
+
+The user asks whether a static object goal paired with distant moving hands
+is a normal goal design, and whether hand goals are needed. This is a Decision
+Probe: a useful coarse phase signal would prioritize phase/interaction intent;
+benefit only from precise oracle endpoints would instead expose an unresolved
+goal-proposal problem. Neither outcome alone authorizes adding GT futures to
+a deployed policy.
+
+Reuse the exact cached TRAIN3072 and VAL1536 examples and seed299. No model
+optimization or new split. Cross-sequence, same-source, same-hand-presence
+k5 retrieval compares the existing scene+object-goal+hand-history condition
+with: oracle coarse phase; oracle two-wrist endpoint displacement; oracle all
+22 hand endpoint displacements. Phase categories are far-to-near (current
+distance>50mm and future minimum<=50mm), near-to-far (current<=50mm and final
+>100mm), near-at-end (final<=50mm), and other, assigned in that priority order.
+Controls independently shuffle each supplemental condition within source and
+hand-presence groups. Feature normalization is fitted on TRAIN only; each
+added block has the same total scale as one baseline condition block, fixed
+before results. Predict by averaging five neighbor trajectories. Primary
+descriptive metric is first8-step EPE, excluding the supplied step24 endpoint;
+all24 remains secondary. Report all sources and existing strata, plus oracle
+linear interpolation as a sanity baseline. This is an information-availability
+screen, not a trained policy comparison, entropy estimate or causal benefit.
+
+One currently idle GPU1, <=5min; no new model inference, <=50MB new outputs.
+CPU handles cached-array statistics; GPU handles repeated feature distances
+and trajectory comparisons. Stop on finite/mask/index errors or conflicts.
+Record original data and goal construction semantics before interpreting.
+
 Implementation commits: census/tests `c835b448`, frozen model `f669c51f`,
 per-hand supplemental inference `6ac24d99`. Base repository was `7e25cb30`.
 Tools: [census](../../../tools/audit/audit_native_curation.py),
