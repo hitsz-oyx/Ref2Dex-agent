@@ -139,7 +139,7 @@ def main():
         model.trajectory.load_state_dict(effect_values,strict=True)
     del effect_values
     from trajectory_policy.wam_control_admission import control_admission
-    control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity)
+    control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity,r_identity)
     adapter=None
     if control_packet is not None:
         from goal_point_wam.control_context import RobotControlAdapter,conditioned_actor

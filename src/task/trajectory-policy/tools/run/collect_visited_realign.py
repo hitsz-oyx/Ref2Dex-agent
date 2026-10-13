@@ -11,9 +11,11 @@ PYTHON='/home2/wyy/miniconda3/envs/graspenv/bin/python'
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--families',type=int,nargs='+',default=[0]);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--ticks',type=int,nargs='+',default=[32,38,44,50,56,62])
     a=p.parse_args();out=a.output.resolve()
+    if any(t<32 or t>80 for t in a.ticks):raise ValueError('bounded contact ticks required')
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or any(f not in range(4) for f in a.families):raise ValueError('fresh owned bounded collection required')
-    out.mkdir();started=time.monotonic();jobs=[(f,t) for f in a.families for t in (32,38,44,50,56,62)]
+    out.mkdir();started=time.monotonic();jobs=[(f,t) for f in a.families for t in a.ticks]
     manifest=dict(status='RUNNING',experiment_id='P-20261013-goal-point-wam-visited-realign',git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),jobs=jobs,gpus=[3,4],admissions=[],failures=[])
     def save(): (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     save()

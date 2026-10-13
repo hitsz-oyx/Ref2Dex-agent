@@ -7,7 +7,7 @@ from .wam_retargeter_admission import ROOT, sha
 SCHEMA = 'ref2dex.robot-control-context.v1'
 
 
-def control_admission(checkpoint, effect_identity):
+def control_admission(checkpoint, effect_identity, execution_R_identity=None):
     if checkpoint is None:
         return dict(applied=False), None
     import torch
@@ -17,6 +17,12 @@ def control_admission(checkpoint, effect_identity):
     packet = torch.load(path, map_location='cpu')
     result = json.loads((path.parent/'result.json').read_text())
     frozen = packet.get('contracts', {})
+    if packet.get('manifest', {}).get('alignment'):
+        expected = packet['manifest'].get('training_R_sha256')
+        if not expected or (execution_R_identity or {}).get('execution_R_sha256') != expected:
+            raise ValueError('aligned actor requires its exact frozen training R')
+        if result.get('offline_gate') is not True:
+            raise ValueError('aligned actor offline admission gate failed')
     if (packet.get('schema') != SCHEMA or result.get('status') != 'COMPLETED'
             or packet.get('manifest', {}).get('training_allowed') is not True
             or Path(result.get('final_checkpoint', '')).resolve() != path

@@ -162,7 +162,7 @@ def main():
     if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
         raise ValueError('C base checkpoint differs')
     from trajectory_policy.wam_control_admission import control_admission
-    control_identity,control_packet=control_admission(args.control_checkpoint,effect_identity)
+    control_identity,control_packet=control_admission(args.control_checkpoint,effect_identity,r_identity)
     del control_packet
     del head_packet
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)

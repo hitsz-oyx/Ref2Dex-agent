@@ -52,12 +52,22 @@ def effect_admission(checkpoint, head_directory, chunk_directory, allow_repaired
     chunk_matches = training_chunk == execution_chunk
     if not chunk_matches and allow_repaired_chunk:
         chunk_admission(chunk_directory)
-        fm = json.loads((Path(chunk_directory)/'manifest.json').read_text())
-        fr = json.loads((Path(chunk_directory)/'result.json').read_text())
-        chunk_matches = (fm.get('experiment_id') == 'P-20261013-goal-point-wam-ref31-own-R'
-                         and Path(fm.get('parent', '')).resolve() == training_chunk
-                         and fm.get('parent_sha256') == sha(training_chunk)
-                         and fr.get('offline_gate') is True)
+        # Every repaired link must retain an exact parent and passing offline gate.
+        node = Path(chunk_directory).resolve()
+        for _ in range(3):
+            fm = json.loads((node/'manifest.json').read_text())
+            fr = json.loads((node/'result.json').read_text())
+            parent = Path(fm.get('parent', '')).resolve()
+            if (fm.get('experiment_id') not in ('P-20261013-goal-point-wam-ref31-own-R',
+                    'P-20261013-goal-point-wam-visited-realign')
+                    or ROOT/'outputs/trajectory-policy' not in parent.parents
+                    or not parent.is_file() or fm.get('parent_sha256') != sha(parent)
+                    or fr.get('offline_gate') is not True):
+                break
+            if parent == training_chunk:
+                chunk_matches = True
+                break
+            node = parent.parent
     if (packet.get('schema') != 'ref2dex.effect-policy-patch.v1'
             or result.get('status') != 'COMPLETED' or packet.get('step') != result.get('step')
             or packet.get('C0_pass') is not True or recipe.get('train_modules') != ['trajectory']

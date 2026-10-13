@@ -94,3 +94,15 @@ independently verify prefix actions (including declared perturbation), own H4,
 R state and proprio. Same-row takeover requires no hidden-state fork or equality
 to row2. r2 sources and follow-up data admission require this ownership flag.
 This change strengthens the intended current-policy-state contract.
+
+## First actual-row wave and adaptive sampling decision
+
+r2 same-row takeovers32/38/44/50/56/62 all complete128 controls and audit.
+Expert held74/75/73/3/0/5, zero clipping. Before44 this expert can recover;
+50 onward it fails under the existing reference clock. This does not prove
+physical irreversibility or impossibility for every controller. It changes the
+cheapest next collection: concentrate the four prefixes at32/35/38/41/44/47,
+retaining original late50/56/62 as diagnostic negatives. Only hold45 expert
+continuations with unclipped exact future24 enter success-directed fitting.
+Family3 remains entirely held out. Thus total collection can include27 states,
+with eligible training count determined by actual recovery, never fabricated.
