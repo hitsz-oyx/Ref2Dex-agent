@@ -1417,3 +1417,30 @@ load/compute phases, so instantaneous0% elsewhere is not a failed process.
 Consumer GPU3 same PID360908 and continuing. Speed engineering is improved;
 NAS permission origin remains NOT_CONFIRMED, reconstruction label quality and
 held-task generalization remain separate unresolved research evidence.
+
+2026-10-13 status follow-up: fit28050/50000 with fresh step28000 checkpoint,
+ETA28032.9s; full acquisition78489 pairs/297.385GB raw,121 packet failures,
+23 prefetch fallbacks. Since acceleration:8.959h sustained7.454MB/s, ~14.1%
+of full compressed release; remaining download conditional ETA2.50days.
+Consumer3010 completed/23463 admitted,17479 failed attempts including retries.
+Recent40 contiguous receipts all COMPLETED, but12 older/retry-row samples
+include5 FAILED PermissionError and several raw HDF5 now mode000/unreadable.
+The earlier mode000-only metadata scan did not ensure all old raw files were
+explicitly chmod'ed, and old failure retries therefore remained invalid. Do not
+claim the permission issue resolved. Decision: explicitly chmod0644 all raw
+HDF5/MP4 and acquisition receipts for the10792 unique records completed before
+migration, regardless of cached mode. Preserve and append PermissionError
+failures only after source readability is checked. This is confined to owned
+full-pipeline artifacts, with no content changes/hashing and no GPU restart.
+Historical failures remain counted; queued retry is not completed reconstruction.
+NAS origin remains NOT_CONFIRMED; retry backlog shares the existing deadline.
+
+Owned recovery is executing at remote
+`full-old-raw-recovery-1791852682/`; source indices0/1000 are now explicitly0644
+and3000+ not yet processed at the sampled check. NAS chmod operations take
+minutes; final result/retry receipt is `result.json` once the operation finishes.
+This operation remains in progress, and no completed recovery/reconstruction
+is claimed. Current fit28350/50000 (ETA27665.7s), consumer3036 completed/23713
+admitted, historical17479 failures unchanged; acquisition78721 verified pairs,
+121 failed packets unchanged. Acquisition retry failures still need subsequent
+reconciliation; full release is not ready. Existing active fit input stays fixed.
