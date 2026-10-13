@@ -1,0 +1,90 @@
+{
+  "schema": "ref2dex.primary-literature-audit.v1",
+  "verification_date": "2026-10-13",
+  "question": "Non-language object point motion as policy goal",
+  "papers": [
+    {
+      "name": "Dex4D",
+      "title": "Dex4D: Task-Agnostic Point Track Policy for Sim-to-Real Dexterous Manipulation",
+      "arxiv_url": "https://arxiv.org/abs/2602.15828",
+      "project_url": "https://dex4d.github.io/",
+      "code_urls": [
+        "https://github.com/Dex4D/Dex4D-Simulation",
+        "https://github.com/Dex4D/Dex4D-Vision",
+        "https://github.com/Dex4D/Dex4D-Hardware"
+      ],
+      "code_status": "Simulation/Vision sources public; Hardware Coming Soon placeholder"
+    },
+    {
+      "name": "COIL",
+      "title": "Correspondence-Oriented Imitation Learning: Flexible Visuomotor Control with 3D Conditioning",
+      "arxiv_url": "https://arxiv.org/abs/2512.05953",
+      "project_url": "https://coil-manip.github.io/",
+      "code_urls": [
+        "https://github.com/realquantumcookie/COIL"
+      ],
+      "code_status": "Simulation-side collection/training/evaluation sources public"
+    },
+    {
+      "name": "Im2Flow2Act",
+      "title": "Flow as the Cross-Domain Manipulation Interface",
+      "arxiv_url": "https://arxiv.org/abs/2407.15208",
+      "project_url": "https://im-flow-act.github.io/",
+      "code_urls": [
+        "https://github.com/real-stanford/im2flow2act"
+      ],
+      "code_status": "Flow-generation and flow-conditioned policy training/evaluation sources public"
+    },
+    {
+      "name": "SimToolReal",
+      "title": "SimToolReal: An Object-Centric Policy for Zero-Shot Dexterous Tool Manipulation",
+      "arxiv_url": "https://arxiv.org/abs/2602.16863",
+      "project_url": "https://simtoolreal.github.io/",
+      "code_urls": [
+        "https://github.com/tylerlum/simtoolreal"
+      ],
+      "code_status": "Official simulation, RL, deployment and checkpoint download entries public; source internals not fully reviewed here"
+    },
+    {
+      "name": "Dream2Flow",
+      "title": "Dream2Flow: Bridging Video Generation and Open-World Manipulation with 3D Object Flow",
+      "arxiv_url": "https://arxiv.org/abs/2512.24766",
+      "project_url": "https://dream2flow.github.io/",
+      "code_urls": [
+        "https://github.com/KDharmarajanDev/Dream2Flow"
+      ],
+      "code_status": "3D flow and PyRoki optimization public; RL code marked TODO"
+    },
+    {
+      "name": "ATM",
+      "title": "Any-point Trajectory Modeling for Policy Learning",
+      "arxiv_url": "https://arxiv.org/abs/2401.00025",
+      "project_url": "https://xingyu-lin.github.io/atm/",
+      "code_urls": [
+        "https://github.com/Large-Trajectory-Model/ATM"
+      ],
+      "code_status": "Trajectory predictor and downstream policy sources public; external supplied-goal API requires adaptation"
+    },
+    {
+      "name": "Track2Act",
+      "title": "Track2Act: Predicting Point Tracks from Internet Videos enables Generalizable Robot Manipulation",
+      "arxiv_url": "https://arxiv.org/abs/2405.01527",
+      "project_url": "https://homangab.github.io/track2act/",
+      "code_urls": [
+        "https://github.com/homangab/Track-2-Act"
+      ],
+      "code_status": "Track prediction training/inference verified; full robot residual-control release not verified"
+    },
+    {
+      "name": "Point Policy",
+      "title": "Point Policy: Unifying Observations and Actions with Key Points for Robot Manipulation",
+      "arxiv_url": "https://arxiv.org/abs/2502.20391",
+      "project_url": "https://point-policy.github.io/",
+      "code_urls": [
+        "https://github.com/siddhanthaldar/Point-Policy"
+      ],
+      "code_status": "Policy code public; observed points are not externally specified future object goals"
+    }
+  ],
+  "notes": "Primary-source and interface audit only; no training/checkpoints downloaded or performance reproduced."
+}
