@@ -78,6 +78,8 @@ def main():
         '--format=csv,noheader,nounits'], text=True).strip():
         raise RuntimeError('GPU occupied')
     os.environ['CUDA_VISIBLE_DEVICES'] = str(a.gpu)
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    torch.use_deterministic_algorithms(True)
     scratch = ROOT/'tmp'/out.name
     scratch.mkdir(parents=True, exist_ok=False)
     os.environ.update(TMPDIR=str(scratch), TRITON_CACHE_DIR=str(scratch/'triton'))
@@ -137,6 +139,7 @@ def main():
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT, text=True).strip(),
         parent_identity=parent_identity, retargeter_identity=ri, recovery_paths=list(map(str,recovery)),
         updates_per_arm=a.updates, mix=dict(nominal=30,recovery=50,human=20),
+        deterministic_algorithms=True, physical_gpu=a.gpu,
         lambda_a=1., lambda_E=.1, adapter_lr=1e-4, decoder_lr=1e-5, seed=295, draw_seed=296,
         deadline_seconds=a.deadline_seconds, training_allowed=not a.smoke,
         reference_source=str(goal_source),
@@ -259,6 +262,7 @@ def main():
     for sig in (signal.SIGTERM,signal.SIGINT,signal.SIGUSR1):
         signal.signal(sig,lambda *_:stop.__setitem__(0,True))
     curve=[]; final={}; contracts={}; intervention={}; completed=True
+    first_batches={}; paired_contract={}
     for arm,mode in (('A','blank'),('B','planned')):
         model.trajectory.load_state_dict(initial_decoder,strict=True)
         adapter.load_state_dict(initial_adapter,strict=True)
@@ -288,6 +292,17 @@ def main():
                     al,_=control_aware_loss(r(b['native_state'],native),b['native_action'],r.action_scale,pdscale)
                 loss=(tl+al+.1*el)*count/100
                 if not torch.isfinite(loss):raise FloatingPointError('nonfinite loss')
+                if step==1:
+                    if arm=='A':
+                        first_batches[name]=(ids.cpu().clone(),tau.detach().cpu().clone(),float(loss))
+                    else:
+                        old_ids,old_tau,old_loss=first_batches[name]
+                        difference=float((tau.detach().cpu()-old_tau).abs().max())
+                        paired_contract[name]=dict(same_draws=torch.equal(ids.cpu(),old_ids),
+                            initial_tau_max_difference=difference,initial_loss_difference=abs(float(loss)-old_loss))
+                        atomic_json(out/'paired_initial_batches.json',paired_contract)
+                        if not paired_contract[name]['same_draws'] or difference>1e-6 or abs(float(loss)-old_loss)>1e-7:
+                            raise ValueError('paired initial batches differ')
                 loss.backward();total+=float(loss.detach())
             trainable=[p for group in parameters for p in group['params']]
             norm=torch.nn.utils.clip_grad_norm_(trainable,1.)
