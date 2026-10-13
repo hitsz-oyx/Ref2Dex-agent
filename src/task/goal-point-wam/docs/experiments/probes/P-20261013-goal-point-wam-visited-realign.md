@@ -19,7 +19,7 @@ run_id: wam-visited-realign-20261013-r1
 
 # Current visited-state coverage and fixed-R actor realignment
 
-Result: Collection and bounded realignment pending.
+Result:27 actual takeovers collected;19 successful recovery queries admitted;R repaired/GT-qualified;actor realignment running.
 Decision: Complete one collect/qualify/align/rollout loop, without larger models.
 
 Decision Probe for C3 manipulation: is inadequate coverage of the current
@@ -128,3 +128,57 @@ the partial wave and failed trace. Launcher disk measurement now retries only
 ENOENT (maximum3), rejects permission errors/persistent races and never admits
 a partial du count. Two regression tests pass. Retry only38/44 in fresh r3
 source directories; original physics, checkpoints and resource caps unchanged.
+
+
+## Completed collection and independent R repair
+
+Collection manifests (all under outputs/trajectory-policy):
+`wam-visited-collection-wave1-20261013-r2`, `wave2-20261013-r1`,
+`wave3-20261013-r1`, `wave4-20261013-r1`, where each abbreviated wave retains
+prefix `wam-visited-collection-`. Wave3 admissions are combined with wave4's
+engineering retry; the failed wave3 source is excluded. Total27 distinct
+(family,takeover) queries.19 eligible: family0/1/2/3 count5/4/5/5; valid expert
+windows335/274/313/335.14 TRAIN exacts,5 whole-prefix DEV exacts. Exclude8
+hold45 failures; clip only removes affected future24 windows (family2/t41's
+late clipping does not invalidate its unclipped exact/early windows).
+
+| Prefix | t32 | t35 | t38 | t41 | t44 | t47 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| none |74|73|75|74|73|1|
+| +.5mm x |74|74|74|74|24|28|
+| -.5mm x |73|74|75|75|59|12|
+| +.5mm y (DEV) |74|74|73|74|75|16|
+
+Entries are maximum expert held frames in128 controls, not autonomous success.
+All sources audit actual same-row history/proprio/R-state, expert labels and
+bounded declared exploration. Four prefixes are correlated, not4 independent
+seeds. No evidence of unseen-reset generalization.
+
+R run `outputs/trajectory-policy/wam-visited-R-20261013-r1` (code660804cd):
+3000 updates65.05s onGPU5,~509MiB, select1500 by original passing gates then
+mean ratio. Later checkpoints fail gates and are not deployed.
+
+| R GT-input panel | Initial mean/p95 mm | Selected mean/p95 mm |
+| --- | ---: | ---: |
+| nominal DEV |7.584 /18.683|7.119 /17.173|
+| startup DEV |1.076 /1.790|.973 /1.521|
+| exact TRAIN |89.026 /174.699|2.022 /3.488|
+| contact16 TRAIN |34.376 /140.846|13.742 /42.169|
+| exact DEV |115.923 /210.387|62.636 /227.824|
+| contact16 DEV |46.771 /202.715|34.067 /143.667|
+
+DEV exact errors t32/35/38/41/44 are4.69/5.41/4.61/18.26/280.21mm: the last
+contact state remains poorly covered. This passes the predeclared relative
+non-regression gate, not a claim that every held-out state became controllable.
+Nominal physical128 GT run `wam-visited-R-GT-20261013-r1`: teacher/old-R/new-R
+hold73/75/75, zero clipping, GT_execution_gate true. Independent root audit
+reconstructs every panel state/tau/actual command and native current-frame
+execution; labels and native state/PD errors0, metric max3.34e-6mm. Auditor
+uses the trainer's float32 quantile rank (float64 percentile differed by
+.000217mm); tolerance and saved training metrics unchanged. Qualification
+receipt binds this exact checkpoint. Single motion/short GT scope only.
+
+Actor run `outputs/goal-point-wam/wam-visited-realign-20261013-r1` starts from
+4500 control adapter/decoder with this exact qualified R frozen. Bounds,
+sampling and gate remain as originally declared. User's ref3_2 question is
+answered separately; no joint/effect-off arm launched yet.

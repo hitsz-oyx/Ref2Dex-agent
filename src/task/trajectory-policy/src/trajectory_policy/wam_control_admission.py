@@ -17,18 +17,29 @@ def control_admission(checkpoint, effect_identity, execution_R_identity=None):
     packet = torch.load(path, map_location='cpu')
     result = json.loads((path.parent/'result.json').read_text())
     frozen = packet.get('contracts', {})
-    if packet.get('manifest', {}).get('alignment'):
-        expected = packet['manifest'].get('training_R_sha256')
+    manifest = packet.get('manifest', {})
+    joint = manifest.get('joint_anchor') is True
+    if manifest.get('alignment'):
+        expected = manifest.get('training_R_sha256')
         if not expected or (execution_R_identity or {}).get('execution_R_sha256') != expected:
             raise ValueError('aligned actor requires its exact frozen training R')
         if result.get('offline_gate') is not True:
             raise ValueError('aligned actor offline admission gate failed')
+    if joint:
+        expected = manifest.get('training_R_sha256')
+        if not expected or (execution_R_identity or {}).get('execution_R_sha256') != expected:
+            raise ValueError('joint pair requires its exact trained R')
+        if result.get('offline_gate') is not True:
+            raise ValueError('joint pair offline gate failed')
+        if frozen.get('R_max_difference', 0.) == 0.:
+            raise ValueError('joint pair did not update R')
+    r_moved = frozen.get('R_max_difference') != 0. and not joint
     if (packet.get('schema') != SCHEMA or result.get('status') != 'COMPLETED'
-            or packet.get('manifest', {}).get('training_allowed') is not True
+            or manifest.get('training_allowed') is not True
             or Path(result.get('final_checkpoint', '')).resolve() != path
             or not effect_identity.get('applied')
-            or packet.get('manifest', {}).get('C_identity') != effect_identity
-            or frozen.get('frozen_max_difference') != 0. or frozen.get('R_max_difference') != 0.
+            or manifest.get('C_identity') != effect_identity
+            or frozen.get('frozen_max_difference') != 0. or r_moved
             or packet.get('stage') not in (1,2)
             or (packet['stage']==1 and frozen.get('decoder_difference') != 0.)):
         raise ValueError('completed robot adapter / exact C base / frozen R contract differs')

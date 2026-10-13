@@ -25,6 +25,25 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-pointwam-repro-frozen-step:
+    seed_pool: debug
+    model_seed: 12
+    reuse_reason: one AdamW step with frozen encoders on one existing clip; not a learning result
+
+  P-20261013-pointwam-repro-frozen-forward:
+    seed_pool: debug
+    reuse_reason: one no-grad wiring check on 1024 points; the smoke script does not set a torch seed and the trainable forecaster stays randomly initialized
+
+  P-20261013-pointwam-repro-volt-forward:
+    seed_pool: debug
+    model_seed: 11
+    reuse_reason: one synthetic Volt-H step to check that the paper-sized forecaster fits; not a learning result
+
+  P-20261013-pointwam-repro-patch-fit:
+    seed_pool: probe
+    model_seed: 110
+    reuse_reason: new reduced patch forecaster on the existing 48 human clips; not a validation replicate
+
   P-20261013-goal-point-wam-actor-curation-ab:
     seed_pool: probe
     paired_draw_and_rng_seed: 299

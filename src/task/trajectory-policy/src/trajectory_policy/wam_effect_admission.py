@@ -59,7 +59,8 @@ def effect_admission(checkpoint, head_directory, chunk_directory, allow_repaired
             fr = json.loads((node/'result.json').read_text())
             parent = Path(fm.get('parent', '')).resolve()
             if (fm.get('experiment_id') not in ('P-20261013-goal-point-wam-ref31-own-R',
-                    'P-20261013-goal-point-wam-visited-realign')
+                    'P-20261013-goal-point-wam-visited-realign',
+                    'P-20261013-goal-point-wam-visited-joint-anchor')
                     or ROOT/'outputs/trajectory-policy' not in parent.parents
                     or not parent.is_file() or fm.get('parent_sha256') != sha(parent)
                     or fr.get('offline_gate') is not True):

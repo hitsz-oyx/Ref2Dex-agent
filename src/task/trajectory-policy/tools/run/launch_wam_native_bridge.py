@@ -44,6 +44,11 @@ def main():
     p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
+    p.add_argument('--progress-reference',action='store_true',
+                   help='actor-only object progress goals; teacher and GT rows stay on the local oracle')
+    p.add_argument('--record-expert-pd',action='store_true',
+                   help='record teacher PD on the actor state without applying it')
+    p.add_argument('--reference-packet',type=Path)
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
     if any(not math.isfinite(x) or abs(x)>.5 for x in a.prefix_xyz_mm):
@@ -59,19 +64,33 @@ def main():
     if not 1<=a.deadline_seconds<=600:
         raise ValueError('owned group deadline must be <=600s')
     a.head_dir=a.head_dir.resolve()
-    from trajectory_policy.wam_retargeter_admission import retargeter_admission
     head_manifest=json.loads((a.head_dir/'manifest.json').read_text())
-    if a.chunk_dir:
-        from trajectory_policy.wam_effect_admission import chunk_admission
-        r_path,r_identity,r_hashes=chunk_admission(a.chunk_dir)
-    else:r_path,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
-    r_args=['--r-dir',str(a.r_dir.resolve())] if a.r_dir is not None else []
-    if a.chunk_dir:r_args+=['--chunk-dir',str(a.chunk_dir.resolve())]
+    if a.reference_packet and (a.chunk_dir or a.r_dir or a.effect_checkpoint or a.control_checkpoint
+                               or a.progress_reference or a.expert_recovery or a.record_expert_pd
+                               or a.allow_repaired_chunk):
+        raise ValueError('reference packet replaces chunk R, effect, control and recovery')
+    if a.reference_packet:
+        from trajectory_policy.student_pd import competent_r_identity
+        r_path=ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt'
+        r_identity,r_hashes=competent_r_identity(r_path,sha)
+        r_args=['--reference-packet',str(a.reference_packet.resolve())]
+    else:
+        from trajectory_policy.wam_retargeter_admission import retargeter_admission
+        if a.chunk_dir:
+            from trajectory_policy.wam_effect_admission import chunk_admission
+            r_path,r_identity,r_hashes=chunk_admission(a.chunk_dir)
+        else:r_path,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
+        r_args=['--r-dir',str(a.r_dir.resolve())] if a.r_dir is not None else []
+        if a.chunk_dir:r_args+=['--chunk-dir',str(a.chunk_dir.resolve())]
     if a.allow_repaired_chunk:r_args+=['--allow-repaired-chunk']
     if a.effect_checkpoint:r_args+=['--effect-checkpoint',str(a.effect_checkpoint.resolve())]
     if a.control_checkpoint:
         if not a.effect_checkpoint:raise ValueError('control adapter requires its C base')
         r_args+=['--control-checkpoint',str(a.control_checkpoint.resolve())]
+    if a.progress_reference and not a.control_checkpoint:
+        raise ValueError('progress reference requires the robot adapter')
+    native_extra=(['--progress-reference'] if a.progress_reference else [])
+    native_extra += ['--record-expert-pd'] if a.record_expert_pd else []
     out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or not out.name.startswith('wam-ref2-execution-'):
         raise ValueError('fresh task-owned execution group required')
@@ -93,9 +112,12 @@ def main():
         started_at=time.time(),deadline=time.time()+a.deadline_seconds,scope='four simulated training-time recovery roles; no autonomous recovery claim' if a.expert_recovery else 'three simulated nominal rows; no real robot',head_directory=str(a.head_dir),controls=a.controls,takeover_tick=a.takeover_tick if a.expert_recovery else None,partial_episode=a.controls<542)
     status['retargeter_identity']=r_identity
     status['prefix_xyz_mm']=a.prefix_xyz_mm
+    status['progress_reference']=bool(a.progress_reference)
+    status['record_expert_pd']=bool(a.record_expert_pd)
+    status['reference_packet']=bool(a.reference_packet)
     status['retargeter_input_sha256']=r_hashes
     status['artifact_limit_bytes']=artifact_limit
-    if a.effect_checkpoint:status['artifact_limit_bytes']=1_000_000_000
+    if a.effect_checkpoint or a.reference_packet:status['artifact_limit_bytes']=1_000_000_000
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/wam_scene_patch.py',
            TASK/'src/trajectory_policy/wam_retargeter_admission.py',TASK/'src/trajectory_policy/wam_joint.py']
@@ -106,6 +128,10 @@ def main():
     if a.control_checkpoint:files += [a.control_checkpoint.resolve(),
         TASK/'src/trajectory_policy/wam_control_admission.py',TASK/'src/trajectory_policy/robot_context.py',
         ROOT/'src/task/goal-point-wam/src/goal_point_wam/control_context.py']
+    if a.reference_packet:files += [a.reference_packet.resolve(),
+        TASK/'src/trajectory_policy/student_pd.py',
+        ROOT/'src/task/goal-point-wam/src/goal_point_wam/reference_adapter.py',
+        ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt']
     status['source_sha256']={str(path):sha(path) for path in files}
     write(out/'group_status.json',status)
     processes=[];streams=[]
@@ -131,7 +157,7 @@ def main():
         if a.experiment_id in ('P-20261012-goal-point-wam-ref2-joint-retargeter','P-20261012-goal-point-wam-ref22-gt-anchored','P-20261012-goal-point-wam-ref22-multitakeover','P-20261012-goal-point-wam-ref23-multitakeover-fit'):
             paths += [p for p in (ROOT/'tmp/trajectory-policy').glob('wam*') if p.name!='wam-robot-head']
         size=sum(directory_bytes(path) for path in paths if path.exists())
-        if a.effect_checkpoint:
+        if a.effect_checkpoint or a.reference_packet:
             size=directory_bytes(out,scratch)
             total=directory_bytes(ROOT/'outputs',ROOT/'tmp')
             if total>=400_000_000_000:raise RuntimeError('global400GB artifact cap')
@@ -163,7 +189,7 @@ def main():
         native_script=TASK/'tools/run/execute_wam_native_bridge.py'
         native_log=(out/'native.log').open('w');streams.append(native_log)
         native=subprocess.Popen(['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(native_script),
-            '--gpu',str(a.gpu),'--controls',str(a.controls),'--takeover-tick',str(a.takeover_tick),'--prefix-xyz-mm',*map(str,a.prefix_xyz_mm),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*r_args,*(['--expert-recovery'] if a.expert_recovery else []),*(['--own-row-recovery'] if a.own_row_recovery else [])],
+            '--gpu',str(a.gpu),'--controls',str(a.controls),'--takeover-tick',str(a.takeover_tick),'--prefix-xyz-mm',*map(str,a.prefix_xyz_mm),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*r_args,*native_extra,*(['--expert-recovery'] if a.expert_recovery else []),*(['--own-row-recovery'] if a.own_row_recovery else [])],
             cwd=ROOT,stdout=native_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((native,native_script));status.update(status='RUNNING',native_pid=native.pid)
         write(out/'group_status.json',status)

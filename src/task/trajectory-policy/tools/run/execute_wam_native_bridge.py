@@ -63,7 +63,16 @@ def main():
     p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
+    p.add_argument('--progress-reference',action='store_true',
+                   help='actor object goals follow live progress; teacher and GT rows stay local')
+    p.add_argument('--record-expert-pd',action='store_true',
+                   help='query the teacher PD on the actor state; do not apply it or keep its future hand')
+    p.add_argument('--reference-packet',type=Path)
     args=p.parse_args()
+    if args.record_expert_pd and args.expert_recovery:
+        raise ValueError('expert PD recording is for autonomous actor states, not a takeover episode')
+    if args.progress_reference and not args.control_checkpoint:
+        raise ValueError('progress reference requires the robot adapter so scene and robot goals share one index')
     if any(not np.isfinite(x) or abs(x)>.5 for x in args.prefix_xyz_mm):
         raise ValueError('prefix wrist offset must be finite and <=.5mm per axis')
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
@@ -131,17 +140,30 @@ def main():
         raise ValueError('planned reference differs from export or head calibration identity')
     with np.load(reference_path,allow_pickle=False) as stream:
         reference={k:stream[k].copy() for k in stream.files}
-    from trajectory_policy.wam_retargeter_admission import retargeter_admission
-    if args.chunk_dir:
-        from trajectory_policy.wam_effect_admission import chunk_admission
-        from trajectory_policy.chunk_retargeter import load_chunk
-        from trajectory_policy.retargeter_data import ACTIVE
-        r_path,r_identity,r_hashes=chunk_admission(args.chunk_dir)
-        chunk_packet=torch.load(r_path,map_location='cuda:0')
-        r=load_chunk(chunk_packet,'cuda:0')
-    else:
-        r_path,r_identity,r_hashes=retargeter_admission(args.r_dir,head_manifest)
+    reference_mode=args.reference_packet is not None
+    if reference_mode and (args.chunk_dir or args.r_dir or args.effect_checkpoint or args.control_checkpoint
+                           or args.progress_reference or args.expert_recovery or args.record_expert_pd):
+        raise ValueError('reference packet replaces chunk R, effect, control and recovery')
+    competent=ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt'
+    base_path=ROOT/'outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/final.pt'
+    if reference_mode:
+        from trajectory_policy.student_pd import competent_r_identity,student_control_identity
+        r_path=competent
+        r_identity,r_hashes=competent_r_identity(competent,sha)
         r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
+        _,control_identity=student_control_identity(args.reference_packet,base_path,competent,sha)
+    else:
+        from trajectory_policy.wam_retargeter_admission import retargeter_admission
+        if args.chunk_dir:
+            from trajectory_policy.wam_effect_admission import chunk_admission
+            from trajectory_policy.chunk_retargeter import load_chunk
+            from trajectory_policy.retargeter_data import ACTIVE
+            r_path,r_identity,r_hashes=chunk_admission(args.chunk_dir)
+            chunk_packet=torch.load(r_path,map_location='cuda:0')
+            r=load_chunk(chunk_packet,'cuda:0')
+        else:
+            r_path,r_identity,r_hashes=retargeter_admission(args.r_dir,head_manifest)
+            r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
     for parameter in r.parameters():
         parameter.requires_grad_(False)
     head_path=head_dir/'head.pt'
@@ -155,15 +177,19 @@ def main():
     if (head_packet.get('base_checkpoint_sha256')!=base_hash
             or head_manifest.get('base_checkpoint_sha256')!=base_hash):
         raise ValueError('native peer head base identity differs')
-    patch_identity=scene_patch_admission(head_packet,head_manifest,head_result)
-    from trajectory_policy.wam_effect_admission import effect_admission
-    effect_identity,effect_values=effect_admission(args.effect_checkpoint,head_dir,args.chunk_dir,args.allow_repaired_chunk)
-    del effect_values
-    if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
-        raise ValueError('C base checkpoint differs')
-    from trajectory_policy.wam_control_admission import control_admission
-    control_identity,control_packet=control_admission(args.control_checkpoint,effect_identity,r_identity)
-    del control_packet
+    if reference_mode:
+        patch_identity=dict(applied=False)
+        effect_identity=dict(applied=False)
+    else:
+        patch_identity=scene_patch_admission(head_packet,head_manifest,head_result)
+        from trajectory_policy.wam_effect_admission import effect_admission
+        effect_identity,effect_values=effect_admission(args.effect_checkpoint,head_dir,args.chunk_dir,args.allow_repaired_chunk)
+        del effect_values
+        if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
+            raise ValueError('C base checkpoint differs')
+        from trajectory_policy.wam_control_admission import control_admission
+        control_identity,control_packet=control_admission(args.control_checkpoint,effect_identity,r_identity)
+        del control_packet
     del head_packet
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     connection.settimeout(30);connection.connect(str(args.socket))
@@ -206,6 +232,11 @@ def main():
     files += list((OLD/'src/consequence_evaluator').glob('*.py'))+list(native_root.rglob('*.py'))
     files += list(Path(cfg['motion_root']).glob('*/interaction_hand_inspire.pt'))
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
+    if reference_mode:
+        files += [Path(args.reference_packet).resolve(), TASK/'src/trajectory_policy/student_pd.py',
+                  TASK/'src/trajectory_policy/student_reference_data.py',
+                  TASK/'src/trajectory_policy/reference_actor.py',
+                  ROOT/'src/task/goal-point-wam/src/goal_point_wam/reference_adapter.py']
     hashes={str(path.resolve()):sha(path) for path in files}
     hashes.update(r_hashes)
     if args.effect_checkpoint:
@@ -226,7 +257,19 @@ def main():
         server_pid=args.server_pid,native_pid=os.getpid(),server_identity=handshake,input_sha256=hashes,
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         original_shadow_screen='FAILED; root Decision authorizes bounded simulation after frame/role gates',
-        actor_period=1,oracle_source_env=24,wam_input='live measured H4 + planned object endpoint min(t+24,542)',
+        actor_period=1,oracle_source_env=24,
+        wam_input=('live measured H4; planned object pose at reference t+16; '
+                   'demonstration hand and object anchors at t+1 and t+16'
+                   if reference_mode else
+                   'live measured H4; on-track goals stay at t+8/t+16/t+24; '
+                   'behind schedule, goals stay within 30mm above the last matched reference frame'
+                   if args.progress_reference else
+                   'live measured H4 + planned object endpoint min(t+24,542)'),
+        progress_reference=bool(args.progress_reference),
+        record_expert_pd=bool(args.record_expert_pd),
+        reference_packet=reference_mode,
+        head_weights_applied=not reference_mode,
+        student_expert_future_hand_stored=False,
         no_wam_oracle_prefix=True,controller='frozen actual-PD R, native conversion, no extra feedforward')
     manifest['retargeter_identity']=r_identity
     manifest['effect_identity']=effect_identity
@@ -288,6 +331,18 @@ def main():
                 'encoded_target','wam_object_history','wam_hand_history','wam_goal','server_latency_s','native_latency_s')}
             if args.control_checkpoint:
                 logs.update(control_proprio=[],control_robot_goal=[],control_reference_poses=[])
+            progress_cursor=0
+            if args.record_expert_pd:
+                from wam_expert_probe import expert_on_rows
+                logs.update(student_expert_raw=[],student_expert_action=[],student_expert_pd=[])
+            if reference_mode:
+                sys.path[:0]=[str(ROOT/'src/task/consequence-evaluator/src'),*sys.path]
+                from trajectory_policy.reference_actor import reference_goal
+                from trajectory_policy.student_reference_data import measured_proprio
+                logs.update(reference_proprio=[],reference_goal=[])
+            if args.progress_reference:
+                from trajectory_policy.robot_context import progress_goal_indices
+                logs.update(progress_index=[],progress_goal_indices=[])
             if args.expert_recovery:
                 from wam_expert_probe import expert_on_rows,paired_prefix_error,prefix_physical_metrics,PREFIX_PHYSICAL_BOUNDS
                 logs.update({key:[] for key in ('expert_raw','expert_action','expert_clipped','expert_PD',
@@ -334,17 +389,41 @@ def main():
                     else:
                         raw=obs['obs'];padded=raw.repeat((64+2)//3,1)[:64]
                         action=self.get_action(dict(obs,obs=padded),True)[:3].clamp(-1,1).clone()
+                    if args.record_expert_pd:
+                        queried=dict(obs,obs=obs['obs'][policy_role:policy_role+1])
+                        student_raw,student_action,_=expert_on_rows(self,queried,verify_official=tick==0)
+                        student_pd=pd_from_action(student_action,current['q'][policy_role:policy_role+1],offset,scale)
+                        logs['student_expert_raw'].append(student_raw[0].cpu().numpy().copy())
+                        logs['student_expert_action'].append(student_action[0].cpu().numpy().copy())
+                        logs['student_expert_pd'].append(student_pd[0].cpu().numpy().copy())
                     intended=expert_raw.clone() if args.expert_recovery else action.clone()
                     requested=pd_from_action(intended,current['q'],offset,scale)
                     past=np.maximum(tick+np.arange(-3,1),0)
                     oh=np.stack([logs['obj'][i][policy_role] for i in past])
                     hh=np.stack([logs['hand'][i][policy_role] for i in past])
-                    goal=reference['obj'][min(tick+24,542)]
+                    if reference_mode:
+                        goal=reference['obj'][min(tick+16,len(reference['obj'])-1)]
+                    elif args.progress_reference:
+                        progress_cursor,goal_indices=progress_goal_indices(oh[-1],reference['obj'],tick,progress_cursor)
+                        refs=reference['obj'][goal_indices]
+                        goal=refs[2]
+                        logs['progress_index'].append(np.int64(progress_cursor))
+                        logs['progress_goal_indices'].append(np.asarray(goal_indices,np.int64).copy())
+                    else:
+                        goal=reference['obj'][min(tick+24,542)]
+                        refs=reference['obj'][np.minimum(tick+np.array([8,16,24]),542)]
                     request=dict(tick=tick,object_history=oh.tolist(),hand_history=hh.tolist(),planned_object_goal=goal.tolist())
+                    if reference_mode:
+                        previous=logs['applied'][tick-1][policy_role] if tick else np.zeros(18,np.float32)
+                        prop=measured_proprio(current['q'][policy_role].cpu().numpy(),
+                                              current['dq'][policy_role].cpu().numpy(),previous)
+                        goal_vec=reference_goal(oh[-1][None],reference,[tick])[0]
+                        request.update(proprio=prop.tolist(),reference_goal=goal_vec.tolist())
+                        logs['reference_proprio'].append(prop.copy())
+                        logs['reference_goal'].append(goal_vec.copy())
                     if args.control_checkpoint:
                         from trajectory_policy.robot_context import control_context
                         previous=logs['applied'][tick-1][policy_role] if tick else np.zeros(18,np.float32)
-                        refs=reference['obj'][np.minimum(tick+np.array([8,16,24]),542)]
                         prop,robot_goal=control_context(current['q'][policy_role].cpu().numpy(),current['dq'][policy_role].cpu().numpy(),
                             previous,oh[-1],refs)
                         request.update(proprio=prop.tolist(),robot_goal=robot_goal.tolist())

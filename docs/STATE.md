@@ -1,5 +1,95 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 残差 PPO 短探针没有离开冻结底座
+
+冻结 context 演员和旧 Chunk-R。PPO 只加 12 维残差，系数 0.15。奖励是物体
+进度、接触、保持和滑落，不模仿专家动作。GPU0，295 s，显存约 18.6 GB，
+利用率约 20%。零残差诊断最近间隙 0.60 mm。六次更新后，frame-0 的平均残差
+只有 0.012，保持 0。四份同时重置的闭环从同一步命令分开：最好的一份在
+10 mm 内把物体抬高 17 mm 并留在桌面，有一份掉到 -757 mm。局部 UNCLEAR。
+不据此换 R，也不把 World 放进 actor。详见
+[残差 PPO 卡](../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md)。
+
+
+## 2026-10-13 学生状态动作适配一轮没有形成抓取
+
+三域初始化、408 维示范参考（t+1/t+16）和冻结的成功基线 R，effect loss 关闭。
+学生状态只监督专家当下的 PD，不把失败后的手运动标成轨迹。训练 1000 步，
+GPU0，127 s，显存 478 MiB。晚段学生腕部误差 615.5 mm 到 611.7 mm；起步状态
+仍约 304 mm。
+
+自主闭环在 GPU0，125 s，显存约 18.6 GB，执行审计通过。教师保持 435 帧并放下，
+同一套 R 上的真值轨迹保持 438 帧并放下。适配后的演员保持 0，裁剪 9.6%，
+最近间隙 2.4 mm，物体最高 19 mm，全程停在桌面上。局部 UNPROMISING。
+不给这一对追加 epoch，也不单独更换 R。详见
+[学生动作卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-student-pd.md)。
+
+
+## 2026-10-13 进度目标闭环跑完，前缀在改索引之前就分开了
+
+已准入的 realign actor 加 visited R，只改演员的物体目标索引。物体还在
+reference[tick] 的 5 mm 内时，目标仍是 t+8/t+16/t+24；落后之后停在抬起起点
+（这次参考上是第 62 帧，+15 mm），不再指向空中的演示帧。GPU2，542 步，149 s，
+显存约 18.6 GB。执行审计通过。教师保持 437 帧并完成放置。演员保持 0，
+裁剪 41%，最近间隙 0.24 mm，物体后来被抛到 680 mm。
+
+目标索引从第 50 步才离开演示时钟，但动作从第 6 步起就和上一次时钟闭环不同，
+那时目标还完全一致。后面的抛掷不能归因于这次索引。局部 UNCLEAR，不据此改训练标签。
+详见
+[进度目标卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-progress-reference.md)。
+
+
+## 2026-10-13 pointwam-repro：冻结编码器上一步优化已跑通
+
+GPU0 上，合格 clip 的 5848 个场景点经过冻结 Mosaic3D 和 Recap-CLIP，随机初始化的 Volt-H 按 Table 4 完成一步 AdamW。损失 7.903，梯度范数 5.592，峰值 13028 MiB，步耗时 0.604 秒。标准化统计只来自这一条 clip。60k 和 batch 192 没有启动。见
+[冻结优化步卡](../src/task/pointwam-repro/docs/experiments/probes/P-20261013-pointwam-repro-frozen-step.md)。
+
+
+## 2026-10-13 pointwam-repro：冻结编码器小规模前向已接通
+
+本机 Mosaic3D 全数据 checkpoint 已下完，平均 1.8 MiB/s。GPU0 上 1024 个真实场景点经过冻结 Mosaic3D 和 Recap-CLIP，随机初始化的 Volt-H 输出有限，峰值 6479 MiB。这只说明接口通了，不是预训练，也没有启动 60k。见
+[冻结前向卡](../src/task/pointwam-repro/docs/experiments/probes/P-20261013-pointwam-repro-frozen-forward.md)。
+
+
+## 2026-10-13 pointwam-repro：论文 Volt-H 一步能跑，编码器还没接上
+
+可训练 forecaster 按论文 stem、5³ patch、Volt-H、解码头和 Table 4 优化器写好，参数量 655,527,092。GPU0 上 12000 点、bf16 一步峰值 12776 MiB，损失有限。特征是同维度随机张量，不是 Mosaic3D / Recap-CLIP，所以不能当成预训练。60k 和 batch 192 没有启动。见
+[Volt 前向卡](../src/task/pointwam-repro/docs/experiments/probes/P-20261013-pointwam-repro-volt-forward.md)。
+
+
+## 2026-10-13 锚定联合更新未守住起步和留出接触映射，不进闭环
+
+从已过离线门的 realign actor 和 visited R 出发，场景/World/R 归一化冻结，
+无 World loss。损失为手轨迹 MSE、预测轨迹动作损失（同时更新 actor 和 R）、
+以及真实手轨迹动作损失（只更新 R）。GPU2，3000 步，609s，显存 1.8GB，已释放。
+首步梯度符合约定：预测动作进入 actor 与 R，锚只进入 R。
+
+12 个检查点全部未过预注册门，因此没有 GT 资格，也没有 542 步闭环。
+选中的 step2000 上，训练接管预测 PD 均值 1.33→2.49mm，没有下降；
+起步 GT p95 1.52→2.49mm、起步预测 p95 1.42→3.48mm，超出 1.1 倍+.1mm。
+名义 GT p95 14.60→10.73mm 改善，接触训练均值 22.4→13.8mm 改善，
+但留出精确接管 GT p95 228→288mm，并随步数继续变差。锚保住了名义轨迹，
+没有保住起步精度和留出接触状态。局部 UNPROMISING，不部署这一对。
+下一步改参考时钟合同，不再加长这次更新。详见
+[锚定联合卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-visited-joint-anchor.md)。
+
+
+## 2026-10-13 pointwam-repro：缩小 forecaster 只改善 fit 手部
+
+48 个 clip 的坐标合同仍然有效。GPU0 上的 1000 步零初始化拟合把 fit 手部 EPE 从 54.8 mm 降到 29.5 mm，同时 fit 场景从 9.0 mm 升到 15.1 mm，dev 手部从 69.3 mm 升到 87.1 mm。按静态损失平衡两项后结果相同。这套 1 cm patch 替代网络先停止加长；GPU3 全量 EgoDex 重建未动。见
+[patch fit 卡](../src/task/pointwam-repro/docs/experiments/probes/P-20261013-pointwam-repro-patch-fit.md)。
+
+
+## 2026-10-13 pointwam-repro：48 个 clip 合同通过，缩小模型只做本地测试
+
+只读登录 `deepcybo-4-4090-48`。GPU3 上的全量 EgoDex 重建仍在运行，未停止：
+`reconstruct_egodex_queue.py` 输出到 `egodex-full-20261012-r1`，当时完成 4563、
+失败 17479。已有 PointWAM 扩展包 48/48 通过形状、z-up、相对当前帧位移和
+`training_allowed=false` 核对，场景点 2856–12000，手末端位移中位数约 79 mm。
+新任务加入 1 cm / 5³ patch 和论文运动加权损失的缩小实现，不含 Mosaic3D、
+Recap-CLIP 或 Volt-H，也没有用这 48 个 clip 开训。见
+[pointwam-repro](../src/task/pointwam-repro/README.md)。
+
 
 ## 2026-10-13 视频物体轨迹goal审计：先修目标部件覆盖，不启动扩训
 

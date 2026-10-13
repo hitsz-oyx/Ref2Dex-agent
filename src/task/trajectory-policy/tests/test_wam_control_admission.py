@@ -45,3 +45,20 @@ def test_aligned_pair_requires_qualified_exact_training_R(tmp_path,monkeypatch):
         with pytest.raises(ValueError,match='exact frozen training R'):admission.control_admission(path,c,r)
     result['offline_gate']=False;(directory/'result.json').write_text(json.dumps(result))
     with pytest.raises(ValueError,match='offline admission'):admission.control_admission(path,c,dict(execution_R_sha256='R-exact'))
+
+
+def test_joint_anchor_requires_the_trained_R_and_a_real_R_update(tmp_path,monkeypatch):
+    monkeypatch.setattr(admission,'ROOT',tmp_path)
+    directory=tmp_path/'outputs/goal-point-wam/joint';directory.mkdir(parents=True)
+    path=directory/'selected.pt';c=dict(applied=True,checkpoint='C-final')
+    packet=dict(schema=admission.SCHEMA,stage=2,step=250,adapter={'x':torch.ones(1)},
+        trajectory={'x':torch.ones(1)},manifest=dict(C_identity=c,training_allowed=True,
+        joint_anchor=True,training_R_sha256='R-new'),contracts=dict(frozen_max_difference=0.,R_max_difference=.2))
+    result=dict(status='COMPLETED',final_checkpoint=str(path),offline_gate=True)
+    torch.save(packet,path);(directory/'result.json').write_text(json.dumps(result))
+    assert admission.control_admission(path,c,dict(execution_R_sha256='R-new'))[0]['applied']
+    with pytest.raises(ValueError,match='exact trained R'):
+        admission.control_admission(path,c,dict(execution_R_sha256='other'))
+    packet['contracts']['R_max_difference']=0.;torch.save(packet,path)
+    with pytest.raises(ValueError,match='did not update R'):
+        admission.control_admission(path,c,dict(execution_R_sha256='R-new'))

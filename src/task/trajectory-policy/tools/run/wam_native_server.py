@@ -70,8 +70,14 @@ def main():
     p.add_argument('--allow-repaired-chunk',action='store_true',help='explicit qualified R replacement; actor training identity unchanged')
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
+    p.add_argument('--reference-packet',type=Path)
+    p.add_argument('--open-queries',action='store_true',
+                   help='accept a declared number of live queries; ticks need not be 0..N-1')
     a=p.parse_args()
-    if not 1<=a.controls<=542:
+    if a.open_queries:
+        if not 1<=a.controls<=200000:
+            raise ValueError('open query budget required')
+    elif not 1<=a.controls<=542:
         raise ValueError('bounded controls required')
     a.output=a.output.resolve();a.socket=a.socket.resolve()
     if (a.output.exists() or ROOT/'outputs/trajectory-policy' not in a.output.parents
@@ -95,16 +101,27 @@ def main():
     head_manifest=json.loads((head_dir/'manifest.json').read_text())
     if head_manifest['status']!='COMPLETED' or sha(head_dir/'head.pt')!=head_result['head_sha256']:
         raise ValueError('authenticated final robot head required')
-    for path,digest in head_manifest['input_sha256'].items():
-        if sha(path)!=digest:
-            raise ValueError('head training evidence drift: '+path)
-    from trajectory_policy.wam_retargeter_admission import retargeter_admission
-    if a.chunk_dir:
-        from trajectory_policy.wam_effect_admission import chunk_admission
-        _,r_identity,r_hashes=chunk_admission(a.chunk_dir)
-    else:_,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
+    reference_mode=a.reference_packet is not None
+    # Reference mode loads the three-domain base, not this head. The later
+    # horizon argument defaults to 24 and does not change the competent command.
+    if not reference_mode and not a.open_queries:
+        for path,digest in head_manifest['input_sha256'].items():
+            if sha(path)!=digest:
+                raise ValueError('head training evidence drift: '+path)
+    from trajectory_policy.student_pd import competent_r_identity
+    competent=ROOT/'outputs/trajectory-policy/competent-pd-fit-20261011-r1/tau.pt'
     original=ROOT/'outputs/trajectory-policy/wam-ref2-shadow-20261012-r2/code/model.py'
     base=ROOT/'outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/final.pt'
+    if reference_mode and (a.chunk_dir or a.r_dir or a.effect_checkpoint or a.control_checkpoint):
+        raise ValueError('reference packet replaces chunk R, effect and the 27-D control adapter')
+    if reference_mode:
+        r_identity,r_hashes=competent_r_identity(competent,sha)
+    else:
+        from trajectory_policy.wam_retargeter_admission import retargeter_admission
+        if a.chunk_dir:
+            from trajectory_policy.wam_effect_admission import chunk_admission
+            _,r_identity,r_hashes=chunk_admission(a.chunk_dir)
+        else:_,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
     stats=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/norm_stats.json'
     state=torch.load(base,map_location='cpu',weights_only=False)
     if sha(original)!=state['identity']['model_sha256'] or sha(stats)!=state['identity']['stats_sha256']:
@@ -115,38 +132,50 @@ def main():
     install_fused_hilbert()
     model=module.GoalPointWAM(json.loads(stats.read_text()),state['config']).cuda().eval()
     model.load_state_dict(state['model'],strict=True)
-    head=torch.load(head_dir/'head.pt',map_location='cpu',weights_only=False)
-    if (head['base_checkpoint_sha256']!=sha(base)
-            or head_manifest.get('base_checkpoint_sha256')!=head['base_checkpoint_sha256']
-            or set(head['head'])!={'trajectory','hand_query'}):
-        raise ValueError('head belongs to another base or module set')
-    patch_identity=scene_patch_admission(head,head_manifest,head_result)
-    for name,value in head['head'].items():
-        getattr(model,name).load_state_dict(value,strict=True)
-    if patch_identity['applied'] and 'policy_patch' in head:
-        from trajectory_policy.wam_joint import load_policy_patch
-        load_policy_patch(model,head,patch_identity)
-    elif patch_identity['applied']:
-        from trajectory_policy.wam_scene_patch import load_scene_patch
-        from calibrate_wam_robot_startup import network_hash
-        load_scene_patch(model.scene,head['scene_patch'])
-        if network_hash(model.scene)!=patch_identity['scene_sha256']:
-            raise ValueError('applied scene differs from authenticated final scene')
-    from trajectory_policy.wam_effect_admission import effect_admission
-    effect_identity,effect_values=effect_admission(a.effect_checkpoint,head_dir,a.chunk_dir,a.allow_repaired_chunk)
-    if effect_values is not None:
-        if Path(effect_identity['base_checkpoint']).resolve()!=base:raise ValueError('C base checkpoint differs')
-        model.trajectory.load_state_dict(effect_values,strict=True)
-    del effect_values
-    from trajectory_policy.wam_control_admission import control_admission
-    control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity,r_identity)
-    adapter=None
-    if control_packet is not None:
-        from goal_point_wam.control_context import RobotControlAdapter,conditioned_actor
-        adapter=RobotControlAdapter().cuda().eval().requires_grad_(False)
-        adapter.load_state_dict(control_packet['adapter'],strict=True)
-        model.trajectory.load_state_dict(control_packet['trajectory'],strict=True)
-        del control_packet
+    if reference_mode:
+        from trajectory_policy.student_pd import student_control_identity
+        from goal_point_wam.reference_adapter import ReferenceAdapter
+        packet,control_identity=student_control_identity(a.reference_packet,base,competent,sha)
+        model.trajectory.load_state_dict(packet['trajectory'],strict=True)
+        adapter=ReferenceAdapter().cuda().eval().requires_grad_(False)
+        adapter.load_state_dict(packet['adapter'],strict=True)
+        patch_identity=dict(applied=False)
+        effect_identity=dict(applied=False)
+        head=None
+        del packet
+    else:
+        head=torch.load(head_dir/'head.pt',map_location='cpu',weights_only=False)
+        if (head['base_checkpoint_sha256']!=sha(base)
+                or head_manifest.get('base_checkpoint_sha256')!=head['base_checkpoint_sha256']
+                or set(head['head'])!={'trajectory','hand_query'}):
+            raise ValueError('head belongs to another base or module set')
+        patch_identity=scene_patch_admission(head,head_manifest,head_result)
+        for name,value in head['head'].items():
+            getattr(model,name).load_state_dict(value,strict=True)
+        if patch_identity['applied'] and 'policy_patch' in head:
+            from trajectory_policy.wam_joint import load_policy_patch
+            load_policy_patch(model,head,patch_identity)
+        elif patch_identity['applied']:
+            from trajectory_policy.wam_scene_patch import load_scene_patch
+            from calibrate_wam_robot_startup import network_hash
+            load_scene_patch(model.scene,head['scene_patch'])
+            if network_hash(model.scene)!=patch_identity['scene_sha256']:
+                raise ValueError('applied scene differs from authenticated final scene')
+        from trajectory_policy.wam_effect_admission import effect_admission
+        effect_identity,effect_values=effect_admission(a.effect_checkpoint,head_dir,a.chunk_dir,a.allow_repaired_chunk)
+        if effect_values is not None:
+            if Path(effect_identity['base_checkpoint']).resolve()!=base:raise ValueError('C base checkpoint differs')
+            model.trajectory.load_state_dict(effect_values,strict=True)
+        del effect_values
+        from trajectory_policy.wam_control_admission import control_admission
+        control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity,r_identity)
+        adapter=None
+        if control_packet is not None:
+            from goal_point_wam.control_context import RobotControlAdapter,conditioned_actor
+            adapter=RobotControlAdapter().cuda().eval().requires_grad_(False)
+            adapter.load_state_dict(control_packet['adapter'],strict=True)
+            model.trajectory.load_state_dict(control_packet['trajectory'],strict=True)
+            del control_packet
     for parameter in model.parameters():
         parameter.requires_grad_(False)
         if not torch.isfinite(parameter).all():
@@ -160,7 +189,8 @@ def main():
     implementation=[support/name for name in ('model.py','data.py','pointworld.py','pointworld_performance.py')]
     implementation += list((vendor/'ptv3').rglob('*.py'))
     implementation += [vendor/'ptv3/ptv3_arch.yaml',ROOT/'src/task/goal-point-wam/src/goal_point_wam/data.py']
-    implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py']
+    implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py',
+                       TASK/'src/trajectory_policy/scene_workspace.py']
     implementation += [TASK/'src/trajectory_policy/wam_retargeter_admission.py']
     implementation += [TASK/'src/trajectory_policy/wam_joint.py']
     if patch_identity['applied']:
@@ -177,13 +207,18 @@ def main():
         for path in (TASK/'src/trajectory_policy/wam_control_admission.py',
                      ROOT/'src/task/goal-point-wam/src/goal_point_wam/control_context.py'):
             hashes[str(path)]=sha(path)
+    if reference_mode:
+        hashes[str(Path(a.reference_packet).resolve())]=control_identity['checkpoint_sha256']
+        for path in (TASK/'src/trajectory_policy/student_pd.py',
+                     ROOT/'src/task/goal-point-wam/src/goal_point_wam/reference_adapter.py'):
+            hashes[str(path)]=sha(path)
     a.output.mkdir(parents=True,exist_ok=False)
     if a.socket.exists() or ROOT/'tmp' not in a.socket.resolve().parents:
         raise ValueError('fresh project-owned socket required')
     server=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     server.bind(str(a.socket))
     os.chmod(a.socket,0o600)
-    server.listen(1);server.settimeout(120)
+    server.listen(1);server.settimeout(180 if a.open_queries else 120)
     status=dict(schema=SCHEMA,status='READY',pid=os.getpid(),physical_gpu=a.gpu,seed=292,
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
         torch_version=torch.__version__,training_allowed=False,queries=0,
@@ -194,17 +229,23 @@ def main():
     request=None
     try:
         connection,_=server.accept()
-        connection.settimeout(30)
+        connection.settimeout(180 if a.open_queries else 30)
         with connection:
             status['client_pid']=peer_pid(connection)
             send(connection,status)
             for query in range(a.controls):
                 request=receive(connection)
                 fields={'tick','object_history','hand_history','planned_object_goal'}
-                if adapter is not None:fields|={'proprio','robot_goal'}
-                if set(request)!=fields or request['tick']!=query:
+                goal_key='reference_goal' if reference_mode else 'robot_goal'
+                if adapter is not None:fields|={'proprio',goal_key}
+                if set(request)!=fields:
+                    raise ValueError('live H4/object-goal-only request required')
+                if a.open_queries:
+                    if not isinstance(request['tick'], int) or not 0<=request['tick']<=542:
+                        raise ValueError('open query tick outside the demonstration')
+                elif request['tick']!=query:
                     raise ValueError('live H4/object-goal-only sequential request required')
-                if time.monotonic()-began>600:
+                if time.monotonic()-began>(14400 if a.open_queries else 600):
                     raise TimeoutError('bounded WAM inference server deadline')
                 before=time.monotonic()
                 sample=robot_goal_sample(np.asarray(request['object_history'],np.float32),
@@ -212,27 +253,41 @@ def main():
                     np.asarray(request['planned_object_goal'],np.float32),canonical,sample_id=query)
                 batch={k:v.cuda() for k,v in goal_collate([sample]).items()}
                 if adapter is not None:
-                    for key in ('proprio','robot_goal'):
+                    for key in ('proprio',goal_key):
                         value=np.asarray(request[key],np.float32)
                         if not np.isfinite(value).all():raise ValueError('nonfinite robot context')
                         batch[key]=torch.tensor(value[None],device='cuda')
                     batch['robot_mask']=torch.ones(1,device='cuda',dtype=torch.bool)
                 if query==0:
                     rng_cpu=torch.get_rng_state();rng_gpu=torch.cuda.get_rng_state()
+                from trajectory_policy.scene_workspace import mask_scene_outliers
+                # Open queries visit phase resets, which can put a few more
+                # points outside the grid than a frame-0 episode. A shifted
+                # cloud still aborts.
+                dropped=mask_scene_outliers(batch, model.scene.voxel_origin_m, float(model.scene.voxel_size_m),
+                                            limit=64 if a.open_queries else 8)
+                if dropped:
+                    status['workspace_points_dropped']=status.get('workspace_points_dropped',0)+dropped
                 with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
                     scene=model.scene(batch)
                     tokens,mask=model.goal(batch['start_object_points'],batch['goal_object_points'],batch['object_goal_valid'])
                     raw=model.observed_hand_condition(batch)
                     context=(scene,tokens,mask,raw)
-                    prediction=(conditioned_actor(model,context,adapter,batch) if adapter is not None
-                        else model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,raw)).float()
+                    if reference_mode:
+                        residual=adapter(batch['proprio'],batch['reference_goal'],batch['robot_mask']).to(raw.dtype)
+                        prediction=model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,
+                                                    raw+residual[:,None,None]).float()
+                    elif adapter is not None:
+                        prediction=conditioned_actor(model,context,adapter,batch).float()
+                    else:
+                        prediction=model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,raw).float()
                 tau=active_hand_tau(prediction.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())[0]
                 if query==0:
                     torch.set_rng_state(rng_cpu);torch.cuda.set_rng_state(rng_gpu)
                     hook=None
                     if adapter is not None:
                         with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
-                            residual=adapter(batch['proprio'],batch['robot_goal'],batch['robot_mask']).to(raw.dtype)
+                            residual=adapter(batch['proprio'],batch[goal_key],batch['robot_mask']).to(raw.dtype)
                         # Independent full-WAM forward with the same additive
                         # robot query condition; World still receives no goal.
                         hook=model.trajectory.register_forward_pre_hook(
@@ -247,8 +302,10 @@ def main():
                     status['first_query_direct_max_error_m']=error
                     write(a.output/'status.json',status)
                 latency=time.monotonic()-before
-                send(connection,dict(schema=SCHEMA,tick=query,tau=tau.tolist(),elapsed_s=latency,
-                                     anchor_object_pose=request['object_history'][-1]))
+                reply_tick=request['tick'] if a.open_queries else query
+                send(connection,dict(schema=SCHEMA,tick=reply_tick,tau=tau.tolist(),elapsed_s=latency,
+                                     anchor_object_pose=request['object_history'][-1],
+                                     workspace_points_dropped=dropped))
                 with (a.output/'latency.jsonl').open('a') as stream:
                     stream.write(json.dumps(dict(tick=query,elapsed_s=latency))+'\n')
                 status['queries']=query+1

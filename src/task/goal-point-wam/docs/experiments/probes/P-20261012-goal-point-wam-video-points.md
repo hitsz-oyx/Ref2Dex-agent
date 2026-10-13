@@ -1471,3 +1471,61 @@ are moved out of raw/train paths into their diagnostic evidence directory with
 29050/50000; reconstruction3101/24303 admitted; acquisition79245 pairs with121
 failed packet attempts/23 prefetch fallbacks. These remain separate from the
 permission-root-cause question and do not establish data/label quality.
+
+## 2026-10-13 read-only route review at step31000
+
+User requests an explanation of limited remote-video improvement. Read-only
+SSH snapshot at Unix1791856416--1791856472 confirms r2 still TRAINING, same
+303 TRAIN windows/18 sessions,86 held windows/4 sessions, native global384,
+video global96,3:1 updates. The fixed scored video panel has14 windows and
+517984 valid point-time labels. New full-pipeline reconstructions are not
+inputs to this run. Step31000 ETA is6.76h; sampled GPU0--2 memory is about
+28--30GiB each, supervisor shows active utilization and no failed fit status.
+This review did not stop, restart or modify remote jobs or guarded inputs.
+
+| Metric, mm (lower is better) | step0 | step31000 | Relative change |
+| --- | ---: | ---: | ---: |
+| Held video scene EPE | 9.9115 | 10.3447 | +4.37% |
+| Held video hand EPE | 51.9761 | 47.7581 | -8.12% |
+| Main-three hand macro | 44.5857 | 44.6626 | +0.17% |
+| Main-three world h24 macro | 20.2792 | 17.5675 | -13.37% |
+
+All31 post-initial1k video scene evaluations are worse than the fixed
+stationary9.9115mm baseline. At31000, three of four held session scene errors
+are worse than stationary; the remaining session improves only0.53%.
+Video hand improves early, then fluctuates around47--49mm without a sustained
+later decrease. Native world improvement is real on this fixed panel, but the
+changed native objective and additional native updates preclude attributing
+it to video without a matched native-only control.
+
+Rank0 logged training means (same recipe, random draws; not fixed fit EPE):
+first1000 versus steps29001--30000 video world point loss .0208134->.0123745
+(-40.55%), video hand loss .0327745->.0042354 (-87.08%). Training fitting with
+held scene deterioration supports a generalization/overfitting concern rather
+than disconnected gradients. It does not isolate noise, data diversity or
+model inductive bias as the cause. At31000 there are744000 video draws across
+all ranks, about2455 expected repetitions per training window. Adjacent
+windows overlap; three largest train sessions supply148/303 windows (48.85%).
+
+CPU-only label statistics on the exact14 held windows: cumulative teacher
+displacements <2/2--10/10--50/>=50mm account for17.15/60.80/19.78/2.27% of
+valid point-time pairs. The>=50mm bin contributes30.49% of stationary total
+error. Thus small motion dominates counts, but large motion remains important
+to error; these are pseudolabel magnitudes, not verified physical motion.
+Current aggregate EPE alone cannot establish whether the learned model
+improves moving objects while adding background false motion. Earlier
+different-cohort diagnostics cannot substitute for current-checkpoint bins.
+
+Recommendation: do not extend this fixed tiny-cohort recipe beyond the
+authorized50k on loss decline alone. Next decisions should use fixed-checkpoint
+motion-stratified error/action interventions, a matched native-only objective
+control, and a bounded broader-session cohort from newly qualified data.
+Video actor conditions remain null goal and geometry/history; world uses
+recorded future hand actions. No robot control training is present here.
+Neither current plateau nor historical geometry repairs refute video
+pretraining or demonstrate downstream Cm utility. Current run stays unchanged.
+
+- [Remote validation/status snapshot](../../../../../../tmp/video-training-review-20261013/remote_snapshot.json)
+- [Training means and cohort counts](../../../../../../tmp/video-training-review-20261013/training_and_cohort.json)
+- [Exact held-label motion bins](../../../../../../tmp/video-training-review-20261013/held_motion_bins.json)
+- [Four metric curves](../../../../../../outputs/goal-point-wam/video-training-review-20261013-r1/curves.png)
