@@ -17,15 +17,15 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--run',type=Path,required=True);p.add_argument('--gpu',type=int,default=5)
     a=p.parse_args();out=a.run.resolve();m=json.loads((out/'manifest.json').read_text());result=json.loads((out/'result.json').read_text())
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():raise RuntimeError('GPU occupied')
-    os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),CUBLAS_WORKSPACE_CONFIG=':4096:8')
     import torch
     from trajectory_policy.visited_control_data import VisitedControlData,collection_entries
     from trajectory_policy.chunk_retargeter import load_chunk
-    torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
+    torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True;torch.use_deterministic_algorithms(True)
     data=VisitedControlData(ROOT,None,collection_entries(m['collections']))
     rpath=Path(m['training_R_checkpoint'])
     if sha(rpath)!=m['training_R_sha256']:raise ValueError('fixed R changed')
-    net=load_chunk(torch.load(rpath,map_location='cpu',weights_only=False),'cuda')
+    net=load_chunk(torch.load(rpath,map_location='cpu',weights_only=False),'cuda').requires_grad_(False)
     groups=json.loads((out/'panel.json').read_text());keys=json.loads((out/'training_keys.json').read_text())
     for name,rows in keys.items():
         if any(k.startswith('recovery') and data.families[k]==3 for k,t,e in rows):raise ValueError('heldout prefix entered training')
@@ -48,7 +48,7 @@ def main():
             for label,count in [('first8_mm',8),('all24_mm',24)]:maxima[f'{step}/{name}/{label}']=float(np.max(np.abs(error[:,:count].mean((1,2))-raw[name+'_'+label])))
             with torch.no_grad():
                 state=torch.tensor(np.stack(states),device='cuda');tau=torch.tensor(pred.reshape(-1,24,33),device='cuda')
-                action=net(state,tau)[:,0].cpu().numpy()
+                action=torch.cat([net(state[i:i+16],tau[i:i+16])[:,0] for i in range(0,len(state),16)]).cpu().numpy()
             full=np.zeros((len(rows),18),np.float32);full[:,ACTIVE]=action.clip(-1,1)
             delta=independent_pd(full,np.zeros_like(full),data.controller)-independent_pd(np.stack(targets),np.zeros_like(full),data.controller)
             error=np.linalg.norm(delta[:,:3],axis=-1)*1000
