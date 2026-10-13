@@ -24,15 +24,24 @@ def main():
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--experiment-card", type=Path, required=True)
     parser.add_argument("--gpus", default="0,1,2,3")
+    parser.add_argument("--resume", type=Path)
+    parser.add_argument("--loader-workers", type=int, default=0)
+    parser.add_argument("--loader-prefetch", type=int, default=2)
+    parser.add_argument("--sequence-cache", type=int, default=0)
+    parser.add_argument("--pin-memory", action="store_true")
+    parser.add_argument("--deadline-seconds", type=int, help="remaining original experiment wall-time budget")
     parser.add_argument("--detach", action="store_true")
     args = parser.parse_args()
     out = args.output.resolve()
     config_path, card = args.config.resolve(), args.experiment_card.resolve()
-    if out.exists() or ROOT / "outputs/ptv3-shared-wam" not in out.parents:
+    if (out.exists() and not args.resume) or ROOT / "outputs/ptv3-shared-wam" not in out.parents:
         raise ValueError("fresh Task-local training output required")
     if TASK / "docs/experiments" not in card.parents or not card.is_file():
         raise ValueError("existing Task-local experiment card required")
     config = json.loads(config_path.read_text())
+    deadline = args.deadline_seconds or config["max_seconds"]
+    if not 1 <= deadline <= config["max_seconds"]:
+        raise ValueError("remaining deadline must stay inside the original budget")
     gpus = args.gpus.split(",")
     if not 1 <= len(gpus) <= 6 or len(set(gpus)) != len(gpus) or not all(g.isdigit() for g in gpus):
         raise ValueError("one to six distinct physical GPU indices required")
@@ -44,7 +53,14 @@ def main():
     scratch.mkdir(parents=True, exist_ok=True)
     if args.detach:
         command = [sys.executable, str(Path(__file__).resolve()), "--output", str(out),
-                   "--config", str(config_path), "--experiment-card", str(card), "--gpus", args.gpus]
+                   "--config", str(config_path), "--experiment-card", str(card), "--gpus", args.gpus,
+                   "--loader-workers", str(args.loader_workers), "--loader-prefetch", str(args.loader_prefetch),
+                   "--sequence-cache", str(args.sequence_cache)]
+        if args.resume:
+            command.extend(["--resume", str(args.resume.resolve())])
+        if args.pin_memory:
+            command.append("--pin-memory")
+        command.extend(["--deadline-seconds", str(deadline)])
         with (scratch / "supervisor.log").open("x") as log:
             child = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.DEVNULL,
                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
@@ -63,6 +79,13 @@ def main():
                "--nproc_per_node=" + str(len(gpus)), str(TASK / "tools/run/train_pretrain.py"),
                "--config", str(config_path), "--experiment-card", str(card), "--output", str(out),
                "--gpu", gpus[0]]
+    if args.resume:
+        command.extend(["--resume", str(args.resume.resolve())])
+    if args.loader_workers:
+        command.extend(["--loader-workers", str(args.loader_workers), "--loader-prefetch", str(args.loader_prefetch),
+                        "--sequence-cache", str(args.sequence_cache)])
+    if args.pin_memory:
+        command.append("--pin-memory")
     started = time.monotonic()
     status = dict(status="STARTING", supervisor_pid=os.getpid(), command=command, physical_gpus=gpus,
                   config=str(config_path), experiment_card=str(card), output=str(out),
@@ -84,7 +107,7 @@ def main():
                 elapsed = time.monotonic() - started
                 if requested_stop:
                     raise RuntimeError(requested_stop[0])
-                if elapsed > config["max_seconds"] + 600:
+                if elapsed > deadline:
                     raise TimeoutError("owned group wall-time budget exceeded")
                 if elapsed - storage_checked >= 120 or storage_checked == 0:
                     if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:

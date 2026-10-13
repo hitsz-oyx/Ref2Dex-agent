@@ -115,6 +115,40 @@ scene token采样同步。DDP等待和token采样的精确时间占比尚未做C
 证据保存在同名run scratch下的 `utilization-window.txt`、`input-preparation-profile/`、
 `input-preparation-control/`；只包含工程吞吐与CPU路径，不构成学习效果证据。
 
+## 数据管线优化与checkpoint边界续训
+
+用户进一步授权优化。保持模型、batch128/global512、学习率、80k总步数、源权重、
+标签和step/rank抽样规则；运行参数单独记录在provenance.execution，不改模型config。
+采用每rank4个spawn workers、prefetch factor2、persistent workers、pinned memory与
+non_blocking传输，worker内每source有界缓存512个序列；去掉已生成标签后不使用的
+legacy传输张量。worker IPC使用项目短路径，避免长run/rank名超过AF_UNIX108字节限制。
+
+- 25个测试通过，含原抽样与resume suffix、worker顺序、主torch RNG不受影响、短socket。
+- 真实四batch共88个tensor与同步版本逐位一致，CPU主RNG一致，缓存未改变标签。
+- 单卡128预取smoke完成：稳定约1.22–1.32秒/update，取batch等待0.5–1.8ms；
+  同规模同步约2.1秒。多worker初始启动约40秒，之后复用。
+- step2→step4恢复检查：CPU/CUDA RNG一致，最终验证objective差3.58e-7、
+  各EPE mean最大差9.85e-5mm。GPU参数未逐位一致（最大1.42e-4，集中于attention K-bias），
+  不声称逐位确定的优化轨迹；观测的预测误差差异远小于1e-3mm。
+- scene token采样单独测为17.2ms，批量原型0.43ms、所选tokens相同；当前总耗时贡献较小，
+  不在本次生产切换中改scene sampler。
+
+### 切换边界
+
+原r1仍运行至step2000。已验证的training补丁暂存为Task-local runtime patch，
+只在完整step2000 checkpoint原子保存后停止本任务的已核对torchrun组，才改动被监测的源码。
+补丁检查要求源码与原运行base完全一致；不覆盖用户或其他Task修改。
+随后提交代码，从模型/优化器/每rank RNG恢复到新run
+`pretrain-main3-ddp4-80k-20261013-r2`，目标仍为总step80000。
+原checkpoint和r1全部证据保留，dev curve拷贝延续，监督时间扣除r1已用时间以保持总7天上限。
+切换后需观察至少40次更新和四卡持续利用率，才能报告实际长跑收益。
+
+工具：`tools/run/switch_prefetch_at_checkpoint.py`；切换状态在r1 scratch的
+`prefetch_migration.json`。工程记录：`engineering-loader4-batch128-20261013-r2`、
+`engineering-loader-resume-continuous-20261013-r1`、`engineering-loader-resume-restored-20261013-r1`。
+旧loader prototype r1没有完成首步，发现项目长socket路径问题后停止；不作学习负证据。
+实际切换commit/PID/性能回填本卡。
+
 ## Limitations / future evidence
 
 单seed、三域dev曲线不替代匹配对照、多seed或机器人闭环。未来需评估完整airplane适配、
