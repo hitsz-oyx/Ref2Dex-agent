@@ -205,3 +205,14 @@ ModelScope实际CDN补测八连接32MiB为3.53 MB/s，紧接的交大32MiB对照
 追加路线诊断：本地代理峰值未能稳定复现，SSH中转慢，完整读流没有稳定收益；
 HTTP/3校准通过但Apple当前连接超时，ModelScope基线403不可判定。生产继续
 官方直连，证据和结束快照见[追加路线诊断](2026-10-13-egodex-route-followup.md)。
+
+
+## 国内托管搜索更新
+
+从ModelScope真实前端核实的公开dolphin接口使用Query参数，返回18个EgoDex候选，
+发现此前网页索引遗漏的jinzhou5042原始part1–4重打包及scarick TEST。part2抽查的
+MP4与官方SHA256相同，但HDF5内参变成(0,3)，且缺which_llm_description属性，
+不能原样接入现有重建。RoboFlywheel1.956TB实际是LeRobot v2.1。新两个国内源
+短测速2.57/2.74 MB/s，同轮官方3.59，无稳定速度优势；仍未确认七split国内原始
+全集。非ModelScope平台公开搜索和所有新内容证据见
+[国内托管搜索与内容核验](2026-10-13-egodex-domestic-hosting-secondary-search.md)。
