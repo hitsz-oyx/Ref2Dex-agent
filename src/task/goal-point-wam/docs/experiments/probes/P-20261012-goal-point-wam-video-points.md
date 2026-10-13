@@ -1444,3 +1444,30 @@ is claimed. Current fit28350/50000 (ETA27665.7s), consumer3036 completed/23713
 admitted, historical17479 failures unchanged; acquisition78721 verified pairs,
 121 failed packets unchanged. Acquisition retry failures still need subsequent
 reconciliation; full release is not ready. Existing active fit input stays fixed.
+
+Permission diagnosis2026-10-13: fresh control isolates NAS ordinary-create777
+versus exclusive-create664 under requested0666/Umask0002; local disk gives664
+for both. statx FORCE_SYNC confirms the returned permissions, including a real
+unrepaired owned alternates file000/read failure -> chmod0644/read success with
+same inode/size/mtime. Ordinary-create mismatch is reproducible, but natural
+creation of000 is not. Metadata mutation and45 same-parent/concurrent I/O
+samples also did not recreate000. Yesterday's independent probes remain
+readable after~10h; new publishedHDF5 samples remain0644 after8.85--9.39h.
+No evidence establishes cache expiry alone or UID mismatch alone as the cause.
+NAS configuration/firmware/permission auditing remains unavailable; user is
+unsure whether NAS permission settings changed. NFSv3 EXCLUSIVE post-create
+SETATTR (RFC1813/Linux7.0 source) provides a mechanism for explicit permissions
+to work differently, without proving the original actor/bug. NOT_CONFIRMED.
+Detailed evidence/limitations:
+[NAS权限诊断](../../research/2026-10-13-nas-permissions.md); reusable CPU-only diagnostic
+[CPU诊断工具](../../../tools/audit/probe_nas_permissions.py) does not modify existing files.
+
+Old source recovery now COMPLETED at1791853492.8528316: all10792 pairs readable,
+32376 explicit0644 operations,9540 permission-error receipts preserved/requeued,
+no errors; consumer360908 unchanged. Retried work remains queued, not completed,
+and historical17479 failed attempts stay recorded. Same-parent fake I/O samples
+are moved out of raw/train paths into their diagnostic evidence directory with
+`relocations.json`; they never enter ready/train manifests. Latest snapshot fit
+29050/50000; reconstruction3101/24303 admitted; acquisition79245 pairs with121
+failed packet attempts/23 prefetch fallbacks. These remain separate from the
+permission-root-cause question and do not establish data/label quality.
