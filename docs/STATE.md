@@ -1,5 +1,28 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 ref2_8 本体/temporal-goal适配完成，接触改善但仍未稳定抓持
+
+保留几何底座/goal32/raw-hand/World/合格Chunk-R，WAM新增48D q/dq/上一
+实际ACTIVE12动作及27D自身当前object相对计划+8/+16/+24位姿，零门控初始
+C输出严格相等；human屏蔽新条件。当前C t32/40/48实测专家接管分别held
+75/74/71，195自有expert future窗口，其中仅3个是真正C接管瞬间，其余为
+专家继续执行状态。adapter-only2000后decoder小LR5000（GPU2，659s），
+按contact选4500；冻结模块/R差0，35保存面板指标独立复算通过。
+原严格stage1门失败，按公开Decision Note修订探索门后继续；不是原门通过。
+精确C查询首PD t32/40/48为51.76/119.76/351.89 ->1.98/83.49/33.69mm；
+contact16 p95改善，但t32 first8仍有4.77%退化。真实GT tau进入固定R在新
+contact16仍有34/172/223mm误差，仅名义轨迹资格不能覆盖这些恢复状态。
+
+4步联调通过，完整542 controls/147.54s，teacher/GT held434/441，actor
+held0；最小gap .913mm后物体飞起至276.6mm（此时gap363.7mm），随后掉落。
+t48腕偏174.21->46.77mm、t56 393.97->82.76mm，t32反而7.21->32.57mm；
+裁剪9.225%->1.476%。13项执行/新增输入检查通过，SE3数值差<.9e-6。
+局部闭环UNPROMISING，接近/接触有部分改善，不证明缺观察是唯一原因，
+也不否定条件输入或Cm；未做matched input/Cm-off训练，未扩大到20k。
+保存候选与实测重建视频，下一步先辨别当前访问状态覆盖和R恢复映射局限。
+本轮GPU2/3已释放，outputs+tmp295.18GB<400GB。
+见[本体控制条件卡39](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md)。
+
 ## 2026-10-13 C最终模型实际rollout未抓起；执行链审计通过
 
 用户要求将C step50500接入真实仿真闭环。保留Probe32 warm scene/goal/hand

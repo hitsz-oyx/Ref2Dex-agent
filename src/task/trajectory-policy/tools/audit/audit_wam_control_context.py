@@ -30,6 +30,7 @@ def main():
     import torch
     from trajectory_policy.chunk_retargeter import load_chunk
     torch.set_num_threads(2)
+    torch.backends.cuda.matmul.allow_tf32=True
     packet=torch.load(result['final_checkpoint'],map_location='cpu',weights_only=False)
     manifest=packet['manifest']
     r=load_chunk(torch.load(manifest['C_identity']['qualified_chunk'],map_location='cpu',weights_only=False),'cuda').requires_grad_(False)
@@ -42,6 +43,15 @@ def main():
     evalstep=packet['stage']*100000+packet['step']
     saved=json.loads((out/('evaluation_step%d.json'%evalstep)).read_text())
     maxerr={};checks=0;oracle_panels={};takeover_queries={}
+    def apply_r(state,tau):
+        values=[]
+        # Preserve the recorded evaluation batch size; TF32 kernels can choose
+        # different reductions for a whole panel versus16 rows.
+        with torch.no_grad():
+            for start in range(0,len(state),16):
+                values.append(r(torch.tensor(state[start:start+16],device='cuda',dtype=torch.float32),
+                    torch.tensor(tau[start:start+16],device='cuda',dtype=torch.float32))[:,0].cpu().numpy())
+        return np.concatenate(values)
     with np.load(out/('panel_step%d.npz'%evalstep)) as arrays:
         for name,keys in panel.items():
             if keys[0][0]=='main':continue
@@ -64,14 +74,12 @@ def main():
                 checks+=1
             state,gt_native=independent_features(d,ticks,roles,future)
             native=tau[:,:,0][:,:,[0,1,6,2,7,3,8,4,9,5,10]].reshape(-1,24,33)
-            with torch.inference_mode():
-                action=r(torch.tensor(state,device='cuda'),torch.tensor(native,device='cuda'))[:,0].cpu().numpy()
+            action=apply_r(state,native)
             target=d['applied'][ticks,roles][:,ACTIVE]
             controller=json.loads((sources[kind]/'manifest.json').read_text())['native_controller']
             scale=np.asarray(controller['scale'],np.float32)[list(ACTIVE)].copy();scale[6:]/=2
             diff=(action.clip(-1,1)-target)*scale
-            with torch.inference_mode():
-                gt_action=r(torch.tensor(state,device='cuda'),torch.tensor(gt_native,device='cuda'))[:,0].cpu().numpy()
+            gt_action=apply_r(state,gt_native)
             gt_diff=(gt_action.clip(-1,1)-target)*scale
             oracle_panels[name]=dict(PD_xyz_mm_p95=float(np.percentile(np.linalg.norm(gt_diff[:,:3],axis=-1)*1000,95)),
                 clipping_rate=float((np.abs(gt_action)>1+1e-6).any(-1).mean()),
@@ -83,7 +91,7 @@ def main():
             for key,value in raw.items():
                 difference=float(np.abs(value-arrays[name+'_'+key]).max())
                 maxerr[name+'/'+key]=difference
-                if difference>2e-3:raise ValueError('own applied expert PD/R panel mismatch: '+name+'/'+key)
+                if difference>2e-3:raise ValueError('own applied expert PD/R panel mismatch: '+name+'/'+key+' '+str(difference))
                 checks+=1
             if kind.startswith('recovery'):
                 takeover_queries[name]=dict(tick=int(ticks[0]),

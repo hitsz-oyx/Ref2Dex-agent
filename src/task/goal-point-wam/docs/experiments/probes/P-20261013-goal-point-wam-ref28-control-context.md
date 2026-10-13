@@ -5,7 +5,7 @@ experiment_id: P-20261013-goal-point-wam-ref28-control-context
 date: 2026-10-13
 task: goal-point-wam
 branch: main
-git_commit: 8034be01
+git_commit: cee4c3e0
 claim_id: C3
 hypothesis_family: HF-goal-point-wam-three-domain
 probe_index_in_family: 39
@@ -13,15 +13,18 @@ seed_pool: probe
 seeds: [292, 295, 296]
 decision_changed_if_positive: retain robot conditioner and qualify its closed-loop grasp before further scaling
 decision_changed_if_negative: retain C and diagnose contact recovery without rerunning large geometry pretraining
-status: UNCLEAR
-run_id: wam-control-context-20261013-r1
+status: UNPROMISING
+run_id: wam-control-context-20261013-r3
 ---
 
 # Robot control context and current C-state recovery
 
-Result: IN PROGRESS; no observation sufficiency claim established.
-Decision: Follow user ref2_8 with a small robot adapter, actual current C takeovers,
-and bounded finetuning. Preserve geometry pretraining, raw-hand interface and Chunk-R.
+Result: Adapter2000 + decoder5000 updates completed; selected stage2 step4500.
+Offline own-state recovery improves, but full542-control actor rollout held0:
+contact occurs and object becomes airborne, then falls. Local grasp is UNPROMISING.
+Decision: Preserve the adapter/candidate and successful engineering contracts;
+do not scale to20k or rerun geometry pretraining based on offline loss alone.
+Observation insufficiency and Cm causal benefit remain unestablished.
 
 ## Motivation and fixed design
 
@@ -74,9 +77,10 @@ full placement reported separately. A single reset is only a Probe.
 - Warm policy: outputs/trajectory-policy/wam-ref2-joint-multitakeover-20261012-r1
 - Qualified Chunk-R: outputs/trajectory-policy/wam-v2-control-fit-20261012-r1/chunk.pt
 - New recovery: outputs/trajectory-policy/wam-ref2-execution-C-t{32,40,48}-20261013-r1/native
-- Adapter training: outputs/goal-point-wam/wam-control-context-20261013-r1
-
-## Limitations and future evidence
+- Stage1: outputs/goal-point-wam/wam-control-context-20261013-r1
+- Completed stage2: outputs/goal-point-wam/wam-control-context-20261013-r3
+- Selected candidate: outputs/goal-point-wam/wam-control-context-20261013-r3/stage2_step4500.pt
+- Native closed-loop: outputs/trajectory-policy/wam-ref2-execution-ctx-20261013-r1
 
 ## 2026-10-13 stage1 result and Decision Note (exploratory protocol amendment)
 
@@ -114,6 +118,105 @@ No rerun of stage1 or alteration of the protected source packet is needed.
 Frozen train contexts use1104 nominal windows,195 recovery and192 human replay
 windows; these are repeated samples, not new environment exposure. Human val
 panel16 per domain and robot nominal roles24..27; recovery remains TRAIN.
+
+## Completed stage2 and independent saved-panel audit
+
+Stage2 r3 at cee4c3e0 continues stage1 step2000 with a new AdamW optimizer;
+5000 updates,659.42s including cached-context preparation, GPU2 ~1.965GB,
+typically .12s/update. No20k extension. New inputs are exactly masked on human:
+all three final human tau arrays with adapter on/off differ0. Frozen
+scene/goal/raw/action/World/R/buffers difference0; decoder legitimately changes
+(selected maximum state difference .0163483). Zero-gate stage1 adapter-off
+arrays exactly equal initial C tau for all8 panels (max0).
+
+Select stage2 step4500 by contact score with nominal/startup and human all24
+preservation, not training loss. Robot clipping0 throughout the fixed panels.
+Original strict gate failure and amended exploratory admission remain disclosed;
+selected candidate still has t32 contact16 first8 deterioration4.77%, so do
+not describe every contact metric as improving or all revised gates passing.
+
+| panel | first8 C -> candidate, mm | first-PD XYZ p95 C -> candidate, mm |
+|---|---:|---:|
+| nominal | 15.307 ->15.388 | 23.394 ->22.240 |
+| startup | 10.804 ->11.702 | .617 ->.697 |
+| t32 first16 expert queries, TRAIN | 24.133 ->25.284 | 67.670 ->4.343 |
+| t40 first16 expert queries, TRAIN | 35.890 ->32.878 | 233.239 ->106.981 |
+| t48 first16 expert queries, TRAIN | 60.496 ->37.697 | 358.766 ->111.961 |
+
+The exact takeover queries are separated from subsequent expert states:
+
+| actual C query | first8 C -> candidate, mm | first-PD C -> candidate, mm |
+|---|---:|---:|
+| t32 | 38.681 ->34.745 | 51.763 ->1.981 |
+| t40 | 86.375 ->51.818 | 119.756 ->83.486 |
+| t48 | 221.889 ->85.399 | 351.894 ->33.692 |
+
+These195 recovery windows contain only3 exact C takeover states; the other192
+are own expert continuation states, not additional autonomous C visits. This
+distinction matters for sampling and attribution. Human all24 Oak/GRAB/ARCTIC
+13.040/56.258/47.333 ->12.961/58.881/47.350mm; replay prevents gross drift,
+not every human metric regression. The intervention combines new inputs, new
+recovery data and decoder adaptation, without matched conditioner-off training.
+
+`root_panel_audit.json` recomputes35 robot trajectory/first-PD metrics from
+actual own rows, with maximum trajectory scalar difference3e-5mm and PD
+difference8e-6mm. It also diagnoses fixed R on privileged actual expert tau:
+contact16 GT-Chunk first-PD p95 t32/40/48 =34.003/171.604/223.137mm, clipping0;
+exact takeover GT errors32.821/58.973/159.946mm. These are offline diagnostics,
+not physical GT-recovery qualification or an irreducible control-error floor.
+The learned tau can lower control error below true-tau R error, exposing a
+trajectory/control tradeoff and new-state R generalization limitation.
+
+Engineering incidents preserved: smoke r1 lacked the t48 persisted audit receipt;
+smoke r2 passed2 updates. Stage1 r1 completed2000 but summary serialization
+rejected infinity from its no-qualified-selection fallback; use the unchanged
+step2000 packet and separate root completion receipt. Stage2 r2 failed before
+updates on NumPy bool JSON serialization; r3 fixes it. Panel audit first needed
+float32 GT inputs, then identical16-row TF32 evaluation batching; whole-panel
+R forwarding differed .066mm due numerical batching, not labels. Final audit
+passes at the original tolerance; failed logs remain, source packets untouched.
+
+## Actual closed-loop result and diagnosis
+
+Four-step adapter/native smoke completes, full-WAM vs actor-only first-query
+tau max0 and own q/dq/previous applied input max0. Full native run on GPU2,
+seed292,147.54s,542 controls/543 states; both peers exit0. Original base/warm/C
+and exact qualified Chunk-R remain authenticated; native adds its own q/dq,
+previous actually applied ACTIVE12 and planned+8/+16/+24 relative object poses.
+Thirteen independent native checks pass: all command/current-state/history/
+goal/previous-action checks max0, independent SE3 inverse vs producer transpose
+rotation6D maximum8.6e-7. Calibration teacher/GT-Chunk hold434/441 frames with
+0/.9225% clipping; both controlled-place succeed in this run. Prior C run's
+GT placement failed, so do not imply deterministic matched physics or compare
+placement causally across these independent simulated rows.
+
+| actor checkpoint | max consecutive held | max object height | clipping |
+|---|---:|---:|---:|
+| prior C-final | 0 | 0mm | 9.225% |
+| robot context candidate | 0 | 276.605mm | 1.476% |
+
+New actor minimum hand-object gap .913mm at tick54; object first reaches30mm
+height at tick68, peaks at tick75 with hand-object gap363.666mm, then falls
+to terminal -757.170mm. No held frames occur. This is contact followed by
+airborne separation/drop, not a stable grasp or successful lift45.
+Measured wrist deviation from same-trace teacher t48=46.771mm vs prior174.213,
+t56=82.765mm vs393.974; t32 worsens32.566mm vs7.213. These comparisons describe
+two fixed candidates and are not an input-only causal estimate. At late ticks
+the new actor also diverges. Preserve the valid local negative result and
+partial approach/contact improvements without closing the observation route.
+
+Artifacts: native `root_effect_rollout_audit.json`, `drift_diagnostics.json`,
+and `visualization/measured_rollout.mp4`, `outcomes.png`, `contact_tick48.png`.
+Video is a measured-pose reconstruction, not camera footage. Relevant8 tests
+pass, repository verify passes; own GPU2/3 released, global outputs+tmp295.18GB.
+
+## Limitations and future evidence
+
+If continuing, first distinguish current candidate visited-state coverage,
+sampling of the3 genuine C queries versus192 expert continuation states,
+and frozen R's true-tau recovery error before additional scale. Additional
+contact/force/joint-error observations and matched input ablations remain
+future decision probes; none was added opportunistically to this run.
 
 New recovery windows are TRAIN diagnostics, not independent generalization.
 Single seed/reset and joint proprio/reference intervention cannot prove

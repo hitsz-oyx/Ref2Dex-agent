@@ -1,5 +1,16 @@
 # goal-point-wam
 
+The ref2_8 robot adapter adds zero-gated48D measured q/dq/previous actual
+command and27D current-object-relative planned+8/+16/+24 poses to the preserved
+raw-hand decoder query. Human samples mask the conditioner. Current C own-state
+takeovers32/40/48 provide actual expert futures; adapter2000 + decoder5000
+updates improve offline controls. The selected4500 candidate completes542
+native controls but never holds: it reaches contact, separates from the airborne
+object and drops it. Approach/contact improves partially; observation sufficiency
+is unestablished, and fixed R also has large GT-tau recovery errors.
+See [control-context protocol/results](docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md)
+and `tools/run/train_control_context.py`. Geometry/World/Chunk-R remain frozen.
+
 The ref2_7 C continuation completed500 C0 +50000 C1 updates on one4GPU
 model at global batch400, mixing60/25/15 main/nominal/actual recovery.
 Scene/goal/action/World/R remain frozen; only the old-interface decoder adapts.

@@ -1,3 +1,14 @@
+# Robot control context rollout（2026-10-13）
+
+Add `--control-checkpoint <selected robot adapter>` to the C/Chunk launcher
+below. The peer receives its own q/dq/previous actually applied command and
+planned object+8/+16/+24 relative poses; GT future hands remain calibration-only.
+The full542-control candidate reaches contact but held0, with1.476% clipping;
+teacher/GT hold434/441. Thirteen execution/input checks pass. Native and panel
+audits are `tools/audit/audit_wam_effect_rollout.py` and
+`tools/audit/audit_wam_control_context.py`.
+See [ref2_8 card39](../goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md).
+
 # C final frozen-policy physical rollout（2026-10-13）
 
 `tools/run/launch_wam_native_bridge.py --effect-checkpoint <C patch> --chunk-dir <qualified fit> --head-dir <exact warm policy>`
