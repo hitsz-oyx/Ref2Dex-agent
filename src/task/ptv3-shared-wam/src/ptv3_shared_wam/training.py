@@ -54,6 +54,8 @@ def parse_args(stage):
     parser.add_argument("--canonical", type=Path, default=ROOT / "outputs/consequence-evaluator/old-utility-pw-20261009-r2/canonical.npz")
     parser.add_argument("--steps", type=int)
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--smoke-batch-size", type=int, default=1,
+                        help="engineering load check, at most128 samples per rank")
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--experiment-card", type=Path)
     return parser.parse_args()
@@ -206,8 +208,11 @@ def run(stage):
             raise ValueError("card task and assigned seeds required")
         config["seed"] = int(experiment["seeds"][0])
     else:
-        config.update(updates=min(config["updates"], 4), batch_size=1, validation_samples=3,
-                      validation_interval=min(config["validation_interval"], 4), max_seconds=600)
+        if not 1 <= args.smoke_batch_size <= 128:
+            raise ValueError("engineering batch size must be in[1,128]")
+        config.update(updates=min(config["updates"], 4), batch_size=args.smoke_batch_size, validation_samples=3,
+                      validation_interval=min(config["validation_interval"], 4), max_seconds=600,
+                      log_interval=1)
     if config["updates"] < 1 or config["batch_size"] < 1 or not 0 <= config.get("replay_fraction", 0.) < 1:
         raise ValueError("positive update/batch count and replay fraction in[0,1) required")
     rank, world, device = setup(args)
@@ -227,7 +232,8 @@ def run(stage):
             from goal_point_wam.pretrained import initialize_pw, file_digest
             provenance["PW_transfer"] = initialize_pw(model, args.init_pw, config, file_digest(args.stats))
         groups = model.parameter_groups(config["scene_lr"], config["new_lr"])
-        validation = mixed_indices(dev.base, config["validation_samples"], config["seed"] + 1, equal_sources=True)
+        validation = mixed_indices(dev.base, config["validation_samples"],
+            config.get("validation_seed", config["seed"] + 1), equal_sources=True)
         human = None
     else:
         train = RobotWindows(args.source, args.reference, args.canonical, "train", config["object_points"])
@@ -311,13 +317,25 @@ def run(stage):
         startup, later = np.flatnonzero(ticks < 16), np.flatnonzero(ticks >= 16)
         indices = np.r_[rng.choice(startup, batch_size // 2), rng.choice(later, batch_size - batch_size // 2)]
         return [train[int(i)] for i in indices]
-    audit_batch = tensor_batch(draw(start_step + 1), device)
+    # Audit the same wiring on a small actual batch; full FP32 retained graphs
+    # need not consume the memory budget of a large bf16 optimizer batch.
+    audit_batch = tensor_batch(draw(start_step + 1)[:1], device)
     audit = gradient_audit(model, audit_batch, config, stage)
+    del audit_batch
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
     if rank == 0:
         atomic_json(out / "engineering_audit.json", audit)
     model.train()
     wrapped = nn.parallel.DistributedDataParallel(model, device_ids=[device.index],
         find_unused_parameters=stage == "robot") if world > 1 else model
+    checkpoint_interval = int(config.get("checkpoint_interval", config["validation_interval"]))
+    if checkpoint_interval < 1:
+        raise ValueError("positive checkpoint interval required")
+    checkpoint_files = []
+    if args.resume and (out / "checkpoint_files.json").exists():
+        checkpoint_files = json.loads((out / "checkpoint_files.json").read_text())
+    logged_at, logged_step = time.monotonic(), start_step
     try:
         for step in range(start_step + 1, config["updates"] + 1):
             batch = tensor_batch(draw(step), device)
@@ -342,8 +360,14 @@ def run(stage):
             optimizer.step()
             if step == start_step + 1 or step % config.get("log_interval", 20) == 0:
                 elapsed = time.monotonic() - started
+                interval = time.monotonic() - logged_at
+                step_seconds = interval / (step - logged_step)
+                logged_at, logged_step = time.monotonic(), step
                 row = dict(step=step, loss=float(loss.detach()), terms={k: float(v.detach()) for k, v in terms.items()},
-                           elapsed_s=elapsed, eta_s=elapsed / (step - start_step) * (config["updates"] - step),
+                           elapsed_s=elapsed, eta_s=step_seconds * (config["updates"] - step),
+                           step_seconds=step_seconds, global_batch=batch_size * world,
+                           samples_per_second=batch_size * world / max(step_seconds, 1e-8),
+                           peak_allocated_mib=torch.cuda.max_memory_allocated() / 2**20,
                            gpu=gpu_snapshot())
                 if rank == 0:
                     print(json.dumps(row), flush=True)
@@ -356,19 +380,29 @@ def run(stage):
                 if pids - set(workers):
                     raise RuntimeError("foreign process on assigned GPU")
             if step % config["validation_interval"] == 0 or step == config["updates"]:
-                report = evaluate(model, dev, validation, config, stage, device)
+                report = evaluate(model, dev, validation, config, stage, device) if rank == 0 else None
+                if rank == 0:
+                    curve.append(dict(step=step, **report))
+                    atomic_json(out / "curve.json", curve)
+                    if report["objective"] < best:
+                        best, best_step = report["objective"], step
+                if world > 1:
+                    distributed.barrier()
+            save_due = (step % checkpoint_interval == 0 or step == config["updates"]
+                        or (step == 1 and config.get("save_first_step", False)))
+            if save_due:
                 rank_rng = dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state())
                 states = [rank_rng]
                 if world > 1:
                     states = [None] * world
                     distributed.all_gather_object(states, rank_rng)
                 if rank == 0:
-                    curve.append(dict(step=step, **report))
-                    atomic_json(out / "curve.json", curve)
-                    if report["objective"] < best:
-                        best, best_step = report["objective"], step
                     path = out / ("step%d.pt" % step)
                     save_checkpoint(path, model, optimizer, config, stats, step, stage, provenance, states)
+                    checkpoint_files.append(path.name)
+                    from .checkpoint import prune_recovery_checkpoints
+                    checkpoint_files = prune_recovery_checkpoints(out, checkpoint_files, config)
+                    atomic_json(out / "checkpoint_files.json", checkpoint_files)
                 if world > 1:
                     distributed.barrier()
                 if directory_bytes(out, ROOT / "tmp" / out.name) > 4_000_000_000:

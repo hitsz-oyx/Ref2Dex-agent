@@ -60,5 +60,36 @@ def directory_bytes(*paths):
             raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
 
 
+def prune_recovery_checkpoints(output, files, config):
+    """Keep milestones and recent recovery states from this run's registry only.
+
+    Default behavior preserves every checkpoint. Explicit long-run configs may
+    discard unselected recovery states; other files and prior runs stay intact.
+    """
+    keep = config.get("checkpoint_keep_recent")
+    if keep is None:
+        return files
+    milestone = int(config.get("checkpoint_milestone_interval", 0))
+    if int(keep) < 1 or milestone < 1:
+        raise ValueError("positive recovery retention and milestone interval required")
+    output = Path(output).resolve()
+    steps = {}
+    for name in files:
+        path = Path(name)
+        if path.name != name or not name.startswith("step") or path.suffix != ".pt":
+            raise ValueError("checkpoint registry must contain owned stepN.pt basenames")
+        if (output / name).resolve().parent != output:
+            raise ValueError("checkpoint registry escapes owned run")
+        steps[name] = int(name[4:-3])
+    recent = sorted(files, key=steps.get)[-int(keep):]
+    preserved = {name for name, step in steps.items()
+                 if step == 1 or step == config["updates"] or step % milestone == 0}
+    preserved.update(recent)
+    for name in files:
+        if name not in preserved:
+            (output / name).unlink()
+    return [name for name in files if name in preserved]
+
+
 def git_commit():
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
