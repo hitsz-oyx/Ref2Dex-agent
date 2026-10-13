@@ -76,7 +76,7 @@ def main():
     sys.path[:0]=[str(Path('/home2/wyy/isaac-gym/isaacgym/python')),str(OLD/'src'),
         str(OLD/'tools/audit'),str(ROOT),str(native_root),str(ROOT/'src/task/CmResidual/tools')]
     sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
-    from isaacgym import gymtorch, gymapi  # must initialize before Torch
+    from isaacgym import gymtorch  # must initialize before Torch
     import dexplore_ddp_rank_bootstrap
     import torch
     import evaluate as native
@@ -96,14 +96,6 @@ def main():
     torch.set_num_threads(2);torch.set_float32_matmul_precision('highest');torch.manual_seed(292)
     run_dir=ROOT/'outputs/consequence-evaluator/baseline-transfer-s3-20261007-r2/airplane_base'
     cfg=json.loads((run_dir/'config.json').read_text())
-    if args.effect_checkpoint:
-        import yaml
-        camera_cfg=yaml.safe_load(Path(cfg['cfg_env']).read_text())
-        camera_cfg['env']['enableCameraSensors']=True
-        camera_path=scratch/'camera-config.yaml'
-        if camera_path.exists():raise FileExistsError(camera_path)
-        camera_path.write_text(yaml.safe_dump(camera_cfg))
-        cfg['cfg_env']=str(camera_path)
     source=ROOT/'outputs/trajectory-policy/competent-pd-teacher-20261011-r2'
     source_manifest=json.loads((source/'manifest.json').read_text())
     if (source_manifest['status']!='COMPLETED' or not source_manifest['training_allowed']
@@ -226,7 +218,6 @@ def main():
     started=time.monotonic()
     captured_logs={}
     executed_controls=0
-    video=None
 
     class Player(native.EvalPlayer):
         def restore(self,filename):
@@ -238,7 +229,7 @@ def main():
                 self._amp_input_mean_std.load_state_dict(value['amp_input_mean_std'],strict=True)
 
         def run(self):
-            nonlocal executed_controls,video
+            nonlocal executed_controls
             task=self.env.task
             if task.num_envs!=env_count or self.is_rnn or str(task.device)!='cuda:0':
                 raise ValueError('exact declared-row nonrecurrent GPU pipeline required')
@@ -286,7 +277,6 @@ def main():
                 manifest['prefix_pairing']='same normalized command prefix, independent PhysX measured states; not exact hidden-state fork'
             captured_logs.update(logs)
 
-            capture_frame=None
             def record():
                 hand,gap=geometry.measure(task);sup,foot=support.measure(task,geometry)
                 current=dict(q=task._dof_pos.clone(),dq=task._dof_vel.clone(),hand=hand,
@@ -294,36 +284,9 @@ def main():
                     surface_gap=gap,support_gap=sup,table_footprint=foot)
                 for k,v in current.items():
                     logs[k].append(v.cpu().numpy().copy())
-                if capture_frame is not None:capture_frame()
                 return current
 
             current=record()
-            if args.effect_checkpoint:
-                cameras=[];width=384;height=384
-                for env in range(3):
-                    props=gymapi.CameraProperties();props.width=width;props.height=height
-                    camera=task.gym.create_camera_sensor(task.envs[env],props)
-                    if camera<0:raise RuntimeError('rollout camera creation failed')
-                    origin=task.gym.get_env_origin(task.envs[env])
-                    center=current['obj'][env,:3,3].cpu().numpy()-np.array([origin.x,origin.y,origin.z])
-                    task.gym.set_camera_location(camera,task.envs[env],
-                        gymapi.Vec3(float(center[0]+.9),float(center[1]-.9),float(center[2]+.65)),
-                        gymapi.Vec3(float(center[0]),float(center[1]),float(center[2]+.1)))
-                    cameras.append(camera)
-                labels="drawtext=text='teacher':x=8:y=8:fontcolor=white:box=1:boxcolor=black,drawtext=text='GT tau + Chunk R':x=392:y=8:fontcolor=white:box=1:boxcolor=black,drawtext=text='C final WAM + Chunk R':x=776:y=8:fontcolor=white:box=1:boxcolor=black"
-                with (out/'video_encoder.log').open('w') as encoder_log:
-                    video=subprocess.Popen(['ffmpeg','-y','-loglevel','error','-f','rawvideo','-pixel_format','rgb24',
-                        '-video_size','1152x384','-framerate','30','-i','pipe:0','-vf',labels,
-                        '-c:v','libx264','-preset','veryfast','-crf','23','-pix_fmt','yuv420p',str(out/'rollout.mp4')],
-                        stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=encoder_log)
-                def capture_frame():
-                    task.gym.fetch_results(task.sim,True);task.gym.step_graphics(task.sim)
-                    task.gym.render_all_camera_sensors(task.sim)
-                    frames=[np.asarray(task.gym.get_camera_image(task.sim,task.envs[env],camera,gymapi.IMAGE_COLOR)).reshape(height,width,4)[:,:,:3]
-                            for env,camera in enumerate(cameras)]
-                    video.stdin.write(np.concatenate(frames,axis=1).tobytes())
-                capture_frame()
-                manifest['video']=dict(path=str(out/'rollout.mp4'),fps=30,roles=roles[:3],source='actual simulator camera frames, not reconstructed replay')
             reset={k:float(np.max(np.abs(logs[k][0]-logs[k][0][:1]))) for k in ('q','dq','hand','obj','velocity')}
             if max(reset.values())>1e-5:
                 raise ValueError('teacher/GT/WAM observed resets differ')
@@ -439,9 +402,6 @@ def main():
                         stream.write(json.dumps(row)+'\n')
             packed={k:np.stack(v) for k,v in logs.items()}
             np.savez_compressed(out/'trajectory.npz',**packed)
-            if video is not None:
-                video.stdin.close()
-                if video.wait(timeout=30)!=0:raise RuntimeError('rollout video encoder failed')
             outcomes=[]
             for env,role in enumerate(manifest['roles']):
                 outcome=partial_grasp_outcome if args.controls<542 else episode_outcome
@@ -508,9 +468,6 @@ def main():
             manifest['failure_recording_error']=repr(recording_error)
         write(out/'manifest.json',manifest);raise
     finally:
-        if video is not None and video.poll() is None:
-            if not video.stdin.closed:video.stdin.close()
-            video.wait(timeout=30)
         signal.alarm(0);os.chdir(cwd);connection.close()
 
 
