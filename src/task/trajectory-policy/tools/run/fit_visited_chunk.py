@@ -47,7 +47,7 @@ def main():
     panels=('nominal_dev','startup_dev','exact_train','contact_train','exact_dev','contact_dev')
     out.mkdir();started=time.monotonic();curve=[]
     np.savez_compressed(out/'panel_inputs.npz',**{name+'_'+field:v for name in panels for field,v in zip(('state','tau','true'),arrays[name])})
-    manifest=dict(status='RUNNING',schema=SCHEMA,experiment_id='P-20261013-goal-point-wam-visited-realign',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),source=str(data.source),parent=str(parent),parent_sha256=sha(parent),actor_training_parent=str(owner/'wam-v2-control-fit-20261012-r1/chunk.pt'),collections=list(map(str,a.collections)),queries=queries,excluded=data.excluded,gpu=a.gpu,maximum_updates=a.updates,learning_rate=1e-4,normalization='frozen parent buffers',training_allowed=False)
+    manifest=dict(status='RUNNING',schema=SCHEMA,experiment_id='P-20261013-goal-point-wam-visited-realign',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),source=str(data.source),parent=str(parent),parent_sha256=sha(parent),source_sha256=sha(data.source/'trajectory.npz'),actor_training_parent=str(owner/'wam-v2-control-fit-20261012-r1/chunk.pt'),collections=list(map(str,a.collections)),queries=queries,excluded=data.excluded,gpu=a.gpu,maximum_updates=a.updates,learning_rate=1e-4,normalization='frozen parent buffers',training_allowed=False)
     write(out/'manifest.json',manifest)
     def evaluate(label):
         net.eval();report={};raw={}
@@ -60,7 +60,7 @@ def main():
         np.savez_compressed(out/(label+'.npz'),**raw);return report
     initial=evaluate('initial');write(out/'initial.json',initial)
     print(json.dumps(dict(initial=initial,excluded=data.excluded)),flush=True)
-    optimizer=torch.optim.Adam(net.parameters(),lr=1e-4);gen=torch.Generator(device='cuda').manual_seed(296);best=None
+    optimizer=torch.optim.Adam(net.parameters(),lr=1e-4);gen=torch.Generator(device='cuda').manual_seed(296);best=None;bad=0
     pools=[('nominal_train',np.arange(256)),('nominal_train',np.arange(256,len(arrays['nominal_train'][0]))),('exact_train',np.arange(len(arrays['exact_train'][0]))),('continuation_train',np.arange(len(arrays['continuation_train'][0])))]
     try:
         for step in range(1,a.updates+1):
@@ -92,6 +92,8 @@ def main():
                 row=dict(step=step,loss=float(loss),reports=report,checks=checks,score=score,elapsed_s=elapsed,gpu=gpu,eta_s=elapsed/step*(a.updates-step));curve.append(row);write(out/'curve.json',dict(curve=curve));print(json.dumps(dict(step=step,gate=all(checks.values()),score=score,elapsed_s=elapsed,gpu=gpu)),flush=True)
                 pids=set(map(int,subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
                 if pids-{os.getpid()}:raise RuntimeError('foreign GPU process')
+                bad=bad+1 if any(report[n]['xyz_p95_mm']>2*initial[n]['xyz_p95_mm']+.1 for n in ('exact_train','exact_dev')) else 0
+                if bad>=2:raise RuntimeError('two gross R regressions')
                 if elapsed>900:raise TimeoutError('R900s')
         (out/'candidate.pt').rename(out/'chunk.pt')
         result=dict(status='COMPLETED',offline_gate=all(best[3].values()),initial=initial,reports=best[2],checks=best[3],selected_update=best[1],checkpoint_sha256=sha(out/'chunk.pt'),elapsed_s=time.monotonic()-started)

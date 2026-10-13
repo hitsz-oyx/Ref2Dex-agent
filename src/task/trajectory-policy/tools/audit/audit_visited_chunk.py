@@ -16,6 +16,7 @@ def main():
     def read(path):
         with np.load(path,allow_pickle=False) as f:return {k:f[k].copy() for k in f.files}
     source=read(Path(fm['source'])/'trajectory.npz');controller=json.loads((Path(fm['source'])/'manifest.json').read_text())['native_controller']
+    if sha(Path(fm['source'])/'trajectory.npz')!=fm['source_sha256']:raise ValueError('nominal source drift')
     truth={};maxima={};parts={k:[] for k in ('exact_train','contact_train','exact_dev','contact_dev')}
     def rows(d,ticks,roles):
         future=d['hand'][ticks[:,None]+np.arange(1,25),roles[:,None]]
