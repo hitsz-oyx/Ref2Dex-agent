@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-goal-point-wam-ref3-curation-audit:
+    seed_pool: probe
+    diagnostic_draw_seed: 299
+    reuse_reason: fixed TRAIN-only descriptive neighbor sample; no optimization or independent validation replicate
+
   P-20261013-goal-point-wam-ref27-rollout:
     seed_pool: probe
     execution_seed: 292
