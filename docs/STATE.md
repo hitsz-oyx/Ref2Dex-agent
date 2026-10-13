@@ -1,5 +1,21 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 C最终模型实际rollout未抓起；执行链审计通过
+
+用户要求将C step50500接入真实仿真闭环。保留Probe32 warm scene/goal/hand
+query，加载C decoder，只用自己的实测H4/计划object goal；固定训练时相同
+合格Chunk-R，每步预测8动作/执行首步，teacher不干预actor。
+GPU2/seed292完成542 controls，native/server正常exit0，组128.89s。
+教师/GT-Chunk分别434/441连续held（14.47/14.70s），C actor held0，最高
+抬升0mm、没有任何有效抓持帧，裁剪9.225%。GT后段放置掉落，完整任务不合格，
+但本次局部抓起校准通过。actor腕部距teacher t32=7.21mm、t48=174.21mm、
+t56=393.97mm，接触阶段漂移迅速扩大。实际commands/PD/首步/当前状态/GT帧/
+自身H4/计划goal/outcome独立数组审计10项max0；首次live直接模型等价差0。
+单reset固定checkpoint闭环局部UNPROMISING，不否定C表征或证明Cm无效。
+原离线改善不能当闭环抓持收益；保留候选/基线/新实测负结果，暂不扩大训练。
+视频用实测位姿点云重建，非相机录屏；两次早期图形工程失败已隔离记录。
+GPU已释放，未新采集DAgger/训练/RL。见[闭环卡38](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-rollout.md)。
+
 ## 2026-10-13 ref2_7 C四卡global400完成C0 500+C1 50k
 
 B研究冻结，old raw-hand/Probe32 warm和合格Chunk-R保留；scene/goal/raw/

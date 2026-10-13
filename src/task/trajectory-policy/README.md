@@ -1,3 +1,13 @@
+# C final frozen-policy physical rollout（2026-10-13）
+
+`tools/run/launch_wam_native_bridge.py --effect-checkpoint <C patch> --chunk-dir <qualified fit> --head-dir <exact warm policy>`
+loads the C decoder over the exact warm scene/goal/hand-query and uses qualified
+native Chunk-R with only first action execution. Default MLP-R behavior remains.
+The542-control development rollout is actor held0 vs teacher434/GT-Chunk441;
+independent native command/input/outcome auditing passes. The actor diverges
+near contact despite initial good control; offline gains do not establish grasp.
+See [C rollout card38](../goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-rollout.md).
+
 # Trajectory policy
 
 ## PTv3 explicit hand readout（2026-10-12）

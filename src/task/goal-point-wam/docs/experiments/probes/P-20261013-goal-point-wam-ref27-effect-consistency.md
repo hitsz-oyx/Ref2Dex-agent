@@ -300,3 +300,13 @@ Retain final and20500 checkpoints for a later separately authorized execution
 comparison; matched effect-off continuation is still required before attributing
 control gains to LE rather than continued tau/action supervision. No physical
 rollout, Cm-off extra training, B change or further50k run is performed tonight.
+
+
+## Subsequent user-authorized physical check
+
+User subsequently requested final C rollout. One full542-control development
+rollout under [Probe38](P-20261013-goal-point-wam-ref27-rollout.md) is valid but
+actor held0/no lift; teacher/GT-Chunk held434/441, local grasp calibration passes.
+Actual command/frame/outcome audit max0. This leaves the offline improvements
+intact but demonstrates that they did not establish autonomous grasp for this
+checkpoint/reset. Cm causal utility remains UNCLEAR; no further training here.
