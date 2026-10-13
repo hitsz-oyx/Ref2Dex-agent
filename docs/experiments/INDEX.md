@@ -172,6 +172,12 @@
 | [P-20261005-geometric-innovation](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-innovation.md) | Ref10: does intended surface motion generalize beyond action categories? | UNPROMISING: fixed PCA/bilinear ridge nominal-flow screen extrapolates badly; independent review plus frozen replay find no fatal wiring bug | Stop the unconstrained PCA/bilinear endpoint route, retain physical action contracts and local spatial/execution hypotheses; do not enter se | probes/UNPROMISING |
 | [P-20261005-geometric-support](../../src/task/cm-interaction-oracle/docs/experiments/probes/P-20261005-geometric-support.md) | Separate physical point-flow from feature amplification | UNPROMISING: additive physical-scaled flow avoids the bilinear explosion but still underperforms State, Arm and Joint; the isolated original | Stop PCA/ridge endpoint fitting; retain geometry contract and require local spatial or execution inductive bias for the next geometry experi | probes/UNPROMISING |
 
+## HF-goal-point-wam-curation
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261013-goal-point-wam-ref3-curation-audit](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref3-curation-audit.md) | ref3: is actor-specific curation justified on the local native three domains? | IN PROGRESS. No dataset, sampler, model weights or running job changed. | first measure all TRAIN windows and actual sampling exposure; then | probes/UNCLEAR |
+
 ## HF-goal-point-wam-egodex-auxiliary
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -226,6 +232,7 @@
 | [P-20261012-goal-point-wam-video-points](../../src/task/goal-point-wam/docs/experiments/probes/P-20261012-goal-point-wam-video-points.md) | Shared backbone and direct video point supervision | UNCLEAR; engineering wiring passed; scientific label admission pending. | retain point-supervision implementation if wiring passes; admit a | probes/UNCLEAR |
 | [P-20261013-goal-point-wam-ref27-effect-consistency](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md) | ref2_7 C: frozen-world predicted-trajectory consistency | COMPLETED at50500 total updates (C0 500 + C1 50000), global400/4GPUs. PROMISING for offline mixed-domain adaptation; Cm causal/physical util | Preserve the completed candidate and frozen A/B baselines. No further overnight training; retain the forecast tradeoffs and amended admissio | probes/PROMISING |
 | [P-20261013-goal-point-wam-ref27-rollout](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-rollout.md) | C final native rollout: can the trained actor lift and hold? | COMPLETED542 controls; final C actor never lifts/held0, while teacher/GT-Chunk hold434/441 frames. Current checkpoint rollout is UNPROMISING | Preserve the valid negative rollout; inspect contact-region closed-loop drift before further scaling. This does not refute C or establish Cm | probes/UNPROMISING |
+| [P-20261013-goal-point-wam-ref28-control-context](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md) | Robot control context and current C-state recovery | IN PROGRESS; no observation sufficiency claim established. | Follow user ref2_8 with a small robot adapter, actual current C takeovers, | probes/UNCLEAR |
 
 ## HF-gt-consequence-sufficiency
 
