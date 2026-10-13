@@ -16,3 +16,38 @@ Checked 2026-10-12; reuses the existing schema and architecture/source audits.
 Official project still says Code soon; no released author training implementation was linked. [Project](https://chrockey.github.io/PointWAM/)
 
 本地应用：联合微调可直接借鉴。保留已训练 R、当前步12D PD目标与24步11点手轨迹是本地变体；不能称作论文完整复现。直接轨迹标签约束 τ，动作损失同时更新 R 和 WAM；需要本地核验两者梯度及实际闭环效果。
+
+
+## 2026-10-13 ref3_2 assessment against current implementation
+
+Primary HTML rechecked: §3.3–3.4 supports paired forecaster/retargeter robot
+training, FK hand targets and direct scene supervision; C.2 describes an async
+30-action buffer refilled below24 remaining. These facts motivate a local
+Probe, not a causal explanation for our failed grasp.
+
+The proposal omits prior local evidence: Probe ref2-joint-retargeter already
+trained the policy/R end-to-end with real robot trajectory supervision, without
+frozen-World effect loss. Nominal GT-tau R PDp95 worsened10.59→43.96mm; mapping
+drift prevented physics admission. Joint updates alone do not preserve physical
+tau semantics. Subsequent ref22/ref23 experiments added GT-tau R anchoring and
+changed gradient ownership. Current actor training already includes true robot
+hand trajectory and recorded-action losses; it is not an unconstrained latent.
+Current ref2_8 actor additionally sees q/dq/previous command and planned object
+poses at+8/+16/+24, so the one-endpoint description is stale. Negative world-gap
+is a potential exploitation signal, not proof that effect loss caused failure.
+
+Decision: retain ongoing same-row visited-state collection and the bounded
+fixed-R control. Next useful comparison holds those data, initialization,
+draws and execution fixed: effect-on/fixed-R versus effect-off/fixed-R, then
+(if still decision-relevant) effect-off/joint-R with direct GT-tau→R anchoring.
+Require both geometric and action improvements, nominal/startup retention,
+whole-prefix development holdout and actual autonomous hold45/drop checks.
+Save/admit actor and R as one bound pair. Do not change action chunk execution
+in this comparison. Our frozen action-conditioned World cannot become a
+PointWAM shared-backbone auxiliary scene head merely by renaming its loss;
+that would be a separate implementation and research variable.
+
+This is a recommended Probe, not launched by the user's question about value.
+It supports MISSION baseline-first priority; eventual matched Cm-on/off policy
+training evidence remains required. No claim that PointWAM guarantees our
+embodiment, data coverage or controller will grasp.

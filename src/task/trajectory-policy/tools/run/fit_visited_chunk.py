@@ -15,7 +15,7 @@ from audit_wam_ref2_shadow import write,sha
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--collections',type=Path,nargs='+',required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--gpu',type=int,default=5);p.add_argument('--updates',type=int,default=3000)
     a=p.parse_args();out=a.output.resolve()
-    if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents:raise ValueError('fresh output required')
+    if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or not 1<=a.updates<=3000:raise ValueError('fresh output required')
     if subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).strip():raise RuntimeError('GPU occupied')
     os.environ['CUDA_VISIBLE_DEVICES']=str(a.gpu)
     import torch
@@ -41,11 +41,12 @@ def main():
         parts['exact_'+split].append(tuple(v[ticks==takeover] for v in row))
         parts['contact_'+split].append(tuple(v[ticks<takeover+16] for v in row))
         if split=='train':parts['continuation_train'].append(tuple(v[ticks>takeover] for v in row))
-        queries[name]=dict(family=family,takeover=takeover,split=split,valid_windows=len(ticks))
+        queries[name]=dict(family=family,takeover=takeover,split=split,valid_windows=len(ticks),native=str(data.paths[name]),trajectory_sha256=sha(data.paths[name]/'trajectory.npz'))
     for key,rows in parts.items():arrays[key]=tuple(np.concatenate([v[k] for v in rows]) for k in range(3))
     tensors={k:tuple(torch.tensor(v,device='cuda') for v in vs) for k,vs in arrays.items()}
     panels=('nominal_dev','startup_dev','exact_train','contact_train','exact_dev','contact_dev')
     out.mkdir();started=time.monotonic();curve=[]
+    np.savez_compressed(out/'panel_inputs.npz',**{name+'_'+field:v for name in panels for field,v in zip(('state','tau','true'),arrays[name])})
     manifest=dict(status='RUNNING',schema=SCHEMA,experiment_id='P-20261013-goal-point-wam-visited-realign',run_id=out.name,git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),source=str(data.source),parent=str(parent),parent_sha256=sha(parent),actor_training_parent=str(owner/'wam-v2-control-fit-20261012-r1/chunk.pt'),collections=list(map(str,a.collections)),queries=queries,excluded=data.excluded,gpu=a.gpu,maximum_updates=a.updates,learning_rate=1e-4,normalization='frozen parent buffers',training_allowed=False)
     write(out/'manifest.json',manifest)
     def evaluate(label):
@@ -89,6 +90,8 @@ def main():
                     (out/'selected.npz').write_bytes((out/'latest.npz').read_bytes())
                 elapsed=time.monotonic()-started;gpu=subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-gpu=utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip()
                 row=dict(step=step,loss=float(loss),reports=report,checks=checks,score=score,elapsed_s=elapsed,gpu=gpu,eta_s=elapsed/step*(a.updates-step));curve.append(row);write(out/'curve.json',dict(curve=curve));print(json.dumps(dict(step=step,gate=all(checks.values()),score=score,elapsed_s=elapsed,gpu=gpu)),flush=True)
+                pids=set(map(int,subprocess.check_output(['nvidia-smi','-i',str(a.gpu),'--query-compute-apps=pid','--format=csv,noheader'],text=True).split()))
+                if pids-{os.getpid()}:raise RuntimeError('foreign GPU process')
                 if elapsed>900:raise TimeoutError('R900s')
         (out/'candidate.pt').rename(out/'chunk.pt')
         result=dict(status='COMPLETED',offline_gate=all(best[3].values()),initial=initial,reports=best[2],checks=best[3],selected_update=best[1],checkpoint_sha256=sha(out/'chunk.pt'),elapsed_s=time.monotonic()-started)
