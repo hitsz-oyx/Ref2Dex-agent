@@ -24,6 +24,8 @@ def main():
     p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
+    p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--deadline-seconds',type=float,default=600.)
     a=p.parse_args()
     a.experiment_id=a.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if a.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
@@ -39,8 +41,13 @@ def main():
     a.head_dir=a.head_dir.resolve()
     from trajectory_policy.wam_retargeter_admission import retargeter_admission
     head_manifest=json.loads((a.head_dir/'manifest.json').read_text())
-    r_path,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
+    if a.chunk_dir:
+        from trajectory_policy.wam_effect_admission import chunk_admission
+        r_path,r_identity,r_hashes=chunk_admission(a.chunk_dir)
+    else:r_path,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
     r_args=['--r-dir',str(a.r_dir.resolve())] if a.r_dir is not None else []
+    if a.chunk_dir:r_args+=['--chunk-dir',str(a.chunk_dir.resolve())]
+    if a.effect_checkpoint:r_args+=['--effect-checkpoint',str(a.effect_checkpoint.resolve())]
     out=a.output.resolve()
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or not out.name.startswith('wam-ref2-execution-'):
         raise ValueError('fresh task-owned execution group required')
@@ -63,11 +70,14 @@ def main():
     status['retargeter_identity']=r_identity
     status['retargeter_input_sha256']=r_hashes
     status['artifact_limit_bytes']=artifact_limit
+    if a.effect_checkpoint:status['artifact_limit_bytes']=1_000_000_000
     files=[Path(__file__),TASK/'tools/run/wam_native_server.py',TASK/'tools/run/execute_wam_native_bridge.py',
            TASK/'src/trajectory_policy/wam_ipc.py',TASK/'src/trajectory_policy/wam_scene_patch.py',
            TASK/'src/trajectory_policy/wam_retargeter_admission.py',TASK/'src/trajectory_policy/wam_joint.py']
     if a.expert_recovery:
         files.append(TASK/'tools/run/wam_expert_probe.py')
+    if a.chunk_dir:files += [TASK/'src/trajectory_policy/wam_effect_admission.py',TASK/'src/trajectory_policy/chunk_retargeter.py']
+    if a.effect_checkpoint:files.append(a.effect_checkpoint.resolve())
     status['source_sha256']={str(path):sha(path) for path in files}
     write(out/'group_status.json',status)
     processes=[];streams=[]
@@ -93,7 +103,11 @@ def main():
         if a.experiment_id in ('P-20261012-goal-point-wam-ref2-joint-retargeter','P-20261012-goal-point-wam-ref22-gt-anchored','P-20261012-goal-point-wam-ref22-multitakeover','P-20261012-goal-point-wam-ref23-multitakeover-fit'):
             paths += [p for p in (ROOT/'tmp/trajectory-policy').glob('wam*') if p.name!='wam-robot-head']
         size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in paths if path.exists())
-        if size>=artifact_limit:
+        if a.effect_checkpoint:
+            size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in (out,scratch))
+            total=sum(int(line.split()[0]) for line in subprocess.check_output(['du','-sb',str(ROOT/'outputs'),str(ROOT/'tmp')],text=True).splitlines())
+            if total>=400_000_000_000:raise RuntimeError('global400GB artifact cap')
+        if size>=status['artifact_limit_bytes']:
             raise RuntimeError('combined ref2 artifacts>=%dMB' % (artifact_limit//1_000_000))
         status['artifact_bytes']=size
         if any(sha(path)!=digest for path,digest in status['source_sha256'].items()):

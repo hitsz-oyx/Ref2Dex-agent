@@ -57,6 +57,8 @@ def main():
     p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
+    p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--effect-checkpoint',type=Path)
     args=p.parse_args()
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
@@ -74,7 +76,7 @@ def main():
     sys.path[:0]=[str(Path('/home2/wyy/isaac-gym/isaacgym/python')),str(OLD/'src'),
         str(OLD/'tools/audit'),str(ROOT),str(native_root),str(ROOT/'src/task/CmResidual/tools')]
     sys.path.append('/home2/wyy/.local/lib/python3.8/site-packages')
-    from isaacgym import gymtorch  # must initialize before Torch
+    from isaacgym import gymtorch, gymapi  # must initialize before Torch
     import dexplore_ddp_rank_bootstrap
     import torch
     import evaluate as native
@@ -119,8 +121,16 @@ def main():
     with np.load(reference_path,allow_pickle=False) as stream:
         reference={k:stream[k].copy() for k in stream.files}
     from trajectory_policy.wam_retargeter_admission import retargeter_admission
-    r_path,r_identity,r_hashes=retargeter_admission(args.r_dir,head_manifest)
-    r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
+    if args.chunk_dir:
+        from trajectory_policy.wam_effect_admission import chunk_admission
+        from trajectory_policy.chunk_retargeter import load_chunk
+        from trajectory_policy.retargeter_data import ACTIVE
+        r_path,r_identity,r_hashes=chunk_admission(args.chunk_dir)
+        chunk_packet=torch.load(r_path,map_location='cuda:0')
+        r=load_chunk(chunk_packet,'cuda:0')
+    else:
+        r_path,r_identity,r_hashes=retargeter_admission(args.r_dir,head_manifest)
+        r=load_model(torch.load(r_path,map_location='cuda:0'),'cuda:0')
     for parameter in r.parameters():
         parameter.requires_grad_(False)
     head_path=head_dir/'head.pt'
@@ -135,6 +145,11 @@ def main():
             or head_manifest.get('base_checkpoint_sha256')!=base_hash):
         raise ValueError('native peer head base identity differs')
     patch_identity=scene_patch_admission(head_packet,head_manifest,head_result)
+    from trajectory_policy.wam_effect_admission import effect_admission
+    effect_identity,effect_values=effect_admission(args.effect_checkpoint,head_dir,args.chunk_dir)
+    del effect_values
+    if args.effect_checkpoint and Path(effect_identity['base_checkpoint']).resolve()!=base_path:
+        raise ValueError('C base checkpoint differs')
     del head_packet
     connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
     connection.settimeout(30);connection.connect(str(args.socket))
@@ -147,7 +162,8 @@ def main():
         or handshake.get('experiment_id')!=args.experiment_id
         or handshake['base_sha256']!=base_hash
         or handshake.get('scene_patch_identity')!=patch_identity
-        or handshake.get('retargeter_identity')!=r_identity):
+        or handshake.get('retargeter_identity')!=r_identity
+        or handshake.get('effect_identity',dict(applied=False))!=effect_identity):
         raise ValueError('WAM inference peer identity differs')
     helper=TASK/'src/trajectory_policy/wam_scene_patch.py'
     if handshake['input_sha256'].get(str(helper))!=sha(helper):
@@ -174,6 +190,10 @@ def main():
     train_cfg=native_root/'data/cfg/train/rlg/inspire.yaml';files.append(train_cfg)
     hashes={str(path.resolve()):sha(path) for path in files}
     hashes.update(r_hashes)
+    if args.effect_checkpoint:
+        hashes[str(args.effect_checkpoint.resolve())]=effect_identity['checkpoint_sha256']
+        hashes[str(TASK/'src/trajectory_policy/wam_effect_admission.py')]=sha(TASK/'src/trajectory_policy/wam_effect_admission.py')
+    if args.chunk_dir:hashes[str(TASK/'src/trajectory_policy/chunk_retargeter.py')]=sha(TASK/'src/trajectory_policy/chunk_retargeter.py')
     hashes=absolute_hashes(hashes,ROOT)
     out.mkdir(parents=True)
     manifest=dict(schema='ref2dex.wam-native-recovery.v1' if args.expert_recovery else 'ref2dex.wam-native-execution.v1',status='RUNNING',seed=292,physical_gpu=args.gpu,
@@ -191,12 +211,14 @@ def main():
         actor_period=1,oracle_source_env=24,wam_input='live measured H4 + planned object endpoint min(t+24,542)',
         no_wam_oracle_prefix=True,controller='frozen actual-PD R, native conversion, no extra feedforward')
     manifest['retargeter_identity']=r_identity
+    manifest['effect_identity']=effect_identity
     manifest['producer_code_updates']=producer_updates
     write(out/'manifest.json',manifest)
     install_legacy_player_compat(native,common_player,base_player);install_reset_patch()
     started=time.monotonic()
     captured_logs={}
     executed_controls=0
+    video=None
 
     class Player(native.EvalPlayer):
         def restore(self,filename):
@@ -208,7 +230,7 @@ def main():
                 self._amp_input_mean_std.load_state_dict(value['amp_input_mean_std'],strict=True)
 
         def run(self):
-            nonlocal executed_controls
+            nonlocal executed_controls,video
             task=self.env.task
             if task.num_envs!=env_count or self.is_rnn or str(task.device)!='cuda:0':
                 raise ValueError('exact declared-row nonrecurrent GPU pipeline required')
@@ -221,6 +243,8 @@ def main():
             support=TableSupport(native_root/'data/assets',task.device)
             offset,scale=task._pd_action_offset.clone(),task._pd_action_scale.clone()
             manifest['native_controller']=dict(offset=offset.tolist(),scale=scale.tolist())
+            if args.chunk_dir and manifest['native_controller']!=chunk_packet['native_controller']:
+                raise ValueError('native Chunk-R control units differ')
             measured_reference=reference_from_processed(task.hoi_data[task.data_id[0]].cpu().numpy())
             errors={k:float(np.max(np.abs(measured_reference[k]-reference[k]))) for k in reference}
             if max(errors.values())>2e-5:
@@ -254,6 +278,7 @@ def main():
                 manifest['prefix_pairing']='same normalized command prefix, independent PhysX measured states; not exact hidden-state fork'
             captured_logs.update(logs)
 
+            capture_frame=None
             def record():
                 hand,gap=geometry.measure(task);sup,foot=support.measure(task,geometry)
                 current=dict(q=task._dof_pos.clone(),dq=task._dof_vel.clone(),hand=hand,
@@ -261,9 +286,36 @@ def main():
                     surface_gap=gap,support_gap=sup,table_footprint=foot)
                 for k,v in current.items():
                     logs[k].append(v.cpu().numpy().copy())
+                if capture_frame is not None:capture_frame()
                 return current
 
             current=record()
+            if args.effect_checkpoint:
+                cameras=[];width=384;height=384
+                for env in range(3):
+                    props=gymapi.CameraProperties();props.width=width;props.height=height
+                    camera=task.gym.create_camera_sensor(task.envs[env],props)
+                    if camera<0:raise RuntimeError('rollout camera creation failed')
+                    origin=task.gym.get_env_origin(task.envs[env])
+                    center=current['obj'][env,:3,3].cpu().numpy()-np.array([origin.x,origin.y,origin.z])
+                    task.gym.set_camera_location(camera,task.envs[env],
+                        gymapi.Vec3(float(center[0]+.9),float(center[1]-.9),float(center[2]+.65)),
+                        gymapi.Vec3(float(center[0]),float(center[1]),float(center[2]+.1)))
+                    cameras.append(camera)
+                labels="drawtext=text='teacher':x=8:y=8:fontcolor=white:box=1:boxcolor=black,drawtext=text='GT tau + Chunk R':x=392:y=8:fontcolor=white:box=1:boxcolor=black,drawtext=text='C final WAM + Chunk R':x=776:y=8:fontcolor=white:box=1:boxcolor=black"
+                with (out/'video_encoder.log').open('w') as encoder_log:
+                    video=subprocess.Popen(['ffmpeg','-y','-loglevel','error','-f','rawvideo','-pixel_format','rgb24',
+                        '-video_size','1152x384','-framerate','30','-i','pipe:0','-vf',labels,
+                        '-c:v','libx264','-preset','veryfast','-crf','23','-pix_fmt','yuv420p',str(out/'rollout.mp4')],
+                        stdin=subprocess.PIPE,stdout=subprocess.DEVNULL,stderr=encoder_log)
+                def capture_frame():
+                    task.gym.fetch_results(task.sim,True);task.gym.step_graphics(task.sim)
+                    task.gym.render_all_camera_sensors(task.sim)
+                    frames=[np.asarray(task.gym.get_camera_image(task.sim,task.envs[env],camera,gymapi.IMAGE_COLOR)).reshape(height,width,4)[:,:,:3]
+                            for env,camera in enumerate(cameras)]
+                    video.stdin.write(np.concatenate(frames,axis=1).tobytes())
+                capture_frame()
+                manifest['video']=dict(path=str(out/'rollout.mp4'),fps=30,roles=roles[:3],source='actual simulator camera frames, not reconstructed replay')
             reset={k:float(np.max(np.abs(logs[k][0]-logs[k][0][:1]))) for k in ('q','dq','hand','obj','velocity')}
             if max(reset.values())>1e-5:
                 raise ValueError('teacher/GT/WAM observed resets differ')
@@ -308,8 +360,13 @@ def main():
                         np.broadcast_to(current['hand'][2].cpu().numpy(),(24,11,3)))
                     states=np.stack((state_gt,state_wam));taus=np.stack((tau_gt,wamtau))
                     encoded=r(torch.as_tensor(states,device=task.device),torch.as_tensor(taus,device=task.device))
-                    target=decode_target(encoded,current['q'][1:3])
-                    first,applied,_=command(target,current['q'][1:3],offset,scale)
+                    if args.chunk_dir:
+                        first=torch.zeros_like(action[1:3]);first[:,list(ACTIVE)]=encoded[:,0]
+                        applied=first.clamp(-1,1)
+                        target=pd_from_action(first,current['q'][1:3],offset,scale)
+                    else:
+                        target=decode_target(encoded,current['q'][1:3])
+                        first,applied,_=command(target,current['q'][1:3],offset,scale)
                     action[1:3]=applied;intended[1:3]=first;requested[1:3]=target
                     if args.expert_recovery:
                         if tick<args.takeover_tick:
@@ -374,6 +431,9 @@ def main():
                         stream.write(json.dumps(row)+'\n')
             packed={k:np.stack(v) for k,v in logs.items()}
             np.savez_compressed(out/'trajectory.npz',**packed)
+            if video is not None:
+                video.stdin.close()
+                if video.wait(timeout=30)!=0:raise RuntimeError('rollout video encoder failed')
             outcomes=[]
             for env,role in enumerate(manifest['roles']):
                 outcome=partial_grasp_outcome if args.controls<542 else episode_outcome
@@ -440,6 +500,9 @@ def main():
             manifest['failure_recording_error']=repr(recording_error)
         write(out/'manifest.json',manifest);raise
     finally:
+        if video is not None and video.poll() is None:
+            if not video.stdin.closed:video.stdin.close()
+            video.wait(timeout=30)
         signal.alarm(0);os.chdir(cwd);connection.close()
 
 

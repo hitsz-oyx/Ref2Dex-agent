@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261013-goal-point-wam-ref27-rollout:
+    seed_pool: probe
+    execution_seed: 292
+    reuse_reason: exact existing development motion and reset for final C physical check; not an independent validation replicate
+
   P-20261013-goal-point-wam-ref27-effect-consistency:
     seed_pool: probe
     model_seed: 295

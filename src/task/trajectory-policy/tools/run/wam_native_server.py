@@ -66,6 +66,8 @@ def main():
     p.add_argument('--experiment-id',default='P-20261012-goal-point-wam-ref2-execution')
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
+    p.add_argument('--chunk-dir',type=Path)
+    p.add_argument('--effect-checkpoint',type=Path)
     a=p.parse_args()
     if not 1<=a.controls<=542:
         raise ValueError('bounded controls required')
@@ -95,7 +97,10 @@ def main():
         if sha(path)!=digest:
             raise ValueError('head training evidence drift: '+path)
     from trajectory_policy.wam_retargeter_admission import retargeter_admission
-    _,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
+    if a.chunk_dir:
+        from trajectory_policy.wam_effect_admission import chunk_admission
+        _,r_identity,r_hashes=chunk_admission(a.chunk_dir)
+    else:_,r_identity,r_hashes=retargeter_admission(a.r_dir,head_manifest)
     original=ROOT/'outputs/trajectory-policy/wam-ref2-shadow-20261012-r2/code/model.py'
     base=ROOT/'outputs/goal-point-wam/goal-memory-ddp-20261012-r3/train/final.pt'
     stats=ROOT/'outputs/cm-pointflow-effect-pretrain/pointworld-main3-sharedstats-20261009/norm_stats.json'
@@ -125,6 +130,12 @@ def main():
         load_scene_patch(model.scene,head['scene_patch'])
         if network_hash(model.scene)!=patch_identity['scene_sha256']:
             raise ValueError('applied scene differs from authenticated final scene')
+    from trajectory_policy.wam_effect_admission import effect_admission
+    effect_identity,effect_values=effect_admission(a.effect_checkpoint,head_dir,a.chunk_dir)
+    if effect_values is not None:
+        if Path(effect_identity['base_checkpoint']).resolve()!=base:raise ValueError('C base checkpoint differs')
+        model.trajectory.load_state_dict(effect_values,strict=True)
+    del effect_values
     for parameter in model.parameters():
         parameter.requires_grad_(False)
         if not torch.isfinite(parameter).all():
@@ -147,6 +158,9 @@ def main():
         TASK/'src/trajectory_policy/wam_shadow.py',original,base,stats,head_dir/'head.pt',
         head_dir/'manifest.json',head_dir/'result.json',canonical_path,*implementation)}
     hashes.update(r_hashes)
+    if a.effect_checkpoint:
+        hashes[str(a.effect_checkpoint.resolve())]=effect_identity['checkpoint_sha256']
+        hashes[str(TASK/'src/trajectory_policy/wam_effect_admission.py')]=sha(TASK/'src/trajectory_policy/wam_effect_admission.py')
     a.output.mkdir(parents=True,exist_ok=False)
     if a.socket.exists() or ROOT/'tmp' not in a.socket.resolve().parents:
         raise ValueError('fresh project-owned socket required')
@@ -158,7 +172,7 @@ def main():
         input_sha256=hashes,base_sha256=sha(base),head_sha256=sha(head_dir/'head.pt'),
         torch_version=torch.__version__,training_allowed=False,queries=0,
         scene_patch_identity=patch_identity,controls=a.controls,experiment_id=a.experiment_id,
-        retargeter_identity=r_identity)
+        retargeter_identity=r_identity,effect_identity=effect_identity)
     write(a.output/'status.json',status)
     began=time.monotonic()
     request=None
