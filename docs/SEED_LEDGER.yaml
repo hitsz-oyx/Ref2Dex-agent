@@ -226,3 +226,10 @@ allocations:
     model_seed: 295
     train_draw_seed: 296
     reuse_reason: matched A/B continuation of ref2_8 with identical initialization and draw stream; not an independent replicate
+
+  P-20261013-goal-point-wam-visited-realign:
+    seed_pool: probe
+    model_seed: 295
+    train_draw_seed: 296
+    execution_seed: 292
+    reuse_reason: bounded continuation and matched nominal physics reset; prefix perturbations are not independent random seeds

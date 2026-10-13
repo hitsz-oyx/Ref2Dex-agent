@@ -54,6 +54,7 @@ def main():
     p.add_argument('--expert-recovery',action='store_true')
     p.add_argument('--controls',type=int,default=542)
     p.add_argument('--takeover-tick',type=int,default=16)
+    p.add_argument('--prefix-xyz-mm',type=float,nargs=3,default=[0.,0.,0.],help='bounded exploratory wrist target offset on controls24..31')
     p.add_argument('--experiment-id',default=None)
     p.add_argument('--head-dir',type=Path,default=ROOT/'outputs/trajectory-policy/wam-ref2-head-calibration-20261012-r1')
     p.add_argument('--r-dir',type=Path,default=None)
@@ -62,6 +63,8 @@ def main():
     p.add_argument('--effect-checkpoint',type=Path)
     p.add_argument('--control-checkpoint',type=Path)
     args=p.parse_args()
+    if any(not np.isfinite(x) or abs(x)>.5 for x in args.prefix_xyz_mm):
+        raise ValueError('prefix wrist offset must be finite and <=.5mm per axis')
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
         raise ValueError('bounded controls and in-horizon takeover required')
@@ -222,6 +225,7 @@ def main():
     manifest['retargeter_identity']=r_identity
     manifest['effect_identity']=effect_identity
     manifest['control_identity']=control_identity
+    manifest['prefix_exploration']=dict(xyz_mm=args.prefix_xyz_mm,controls=[24,32],scope='additive wrist PD-target offset before clipping; own measured observations thereafter')
     manifest['producer_code_updates']=producer_updates
     write(out/'manifest.json',manifest)
     install_legacy_player_compat(native,common_player,base_player);install_reset_patch()
@@ -361,6 +365,11 @@ def main():
                         target=decode_target(encoded,current['q'][1:3])
                         first,applied,_=command(target,current['q'][1:3],offset,scale)
                     action[1:3]=applied;intended[1:3]=first;requested[1:3]=target
+                    if 24<=tick<32 and any(args.prefix_xyz_mm):
+                        shift=torch.tensor(args.prefix_xyz_mm,device=task.device,dtype=first.dtype)/1000
+                        intended[2,:3]+=shift/scale[:3]
+                        action[2]=intended[2].clamp(-1,1)
+                        requested[2]=pd_from_action(intended[2:3],current['q'][2:3],offset,scale)[0]
                     if args.expert_recovery:
                         if tick<args.takeover_tick:
                             action[3]=action[2];intended[3]=intended[2]
