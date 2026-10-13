@@ -124,6 +124,40 @@ MP4 编码、置信度、session 字段与官方 split 归属未核实。根目�
 标识，当前不能确认全量。HF API 将它自动标记 `format:webdataset`，但平台可能仅按
 TAR 扩展名推断，不能把这个标签单独作为转换证明。
 
+## 追加：原始配对候选与 HF 区域选择边界
+
+继续查公开 HF API 和上传者数据卡，没有发现第二个可匿名读取的全量官方 ZIP 镜像。
+以下结果是有意义的排除，不能把同名仓库数量当成可用镜像数量：
+
+| 候选 | 匿名 API | 对当前原始下载的限制 |
+| --- | --- | --- |
+| [szang18/egodex_train_eval](https://huggingface.co/datasets/szang18/egodex_train_eval) | 200，259 个文件 | 有 extra/train/test 命名的 HDF5/MP4，但最多约 129 对的小抽样，无全量证据 |
+| [licesma/egodex_sub](https://huggingface.co/datasets/licesma/egodex_sub) | 200，23 个文件 | 约 11 对小抽样，无全量证据 |
+| [jungwook2358/egodex-hdf5](https://huggingface.co/datasets/jungwook2358/egodex-hdf5) | 200，2 个文件 | 仅 `basic_pick_place_hdf5.tar`，没有对应原始视频全集 |
+| [RayYoh/egodex_hdf5](https://huggingface.co/datasets/RayYoh/egodex_hdf5) | 200，7 个文件 | 没有原始 MP4/HDF5 配对树，不能替代本任务全量原始获取 |
+| [abraranwar/egodex_rfm](https://huggingface.co/datasets/abraranwar/egodex_rfm)、[jesbu1/egodex_rfm](https://huggingface.co/datasets/jesbu1/egodex_rfm) | 200；大量 `trajectory_*.mp4`，Parquet reward 数据卡 | 未见 HDF5，任务/episode 映射需审计；本轮没有确认 MP4 是否原样、重编码或裁剪，不作为原始配对镜像 |
+
+`szang18/egodex_train_eval_part1` 只有 `.gitattributes`，其他 LeRobot/WDS 来源沿用
+前面的转换边界。公开搜索仍仅找到先前 ModelScope YuhengZhao 的原始 TRAIN 转存；
+平台通用搜索 API 未成功，不能声称全平台不存在其他原始仓库。
+
+HF 官方 [Storage Regions](https://huggingface.co/docs/hub/main/storage-regions)
+当前列 US/EU，Asia-Pacific 为 Coming soon。区域由拥有仓库的 Team/Enterprise
+组织配置，普通仓库默认 US；这是存储位置设置，没有公布给下载者把别人的 US 仓库
+切到亚洲的参数。不能将开通账户或替换 URL hostname 视为已有授权内的提速方案。
+
+官方 [下载文档](https://huggingface.co/docs/hub/main/datasets-downloading)
+列出 `us.aws.cdn.hf.co` 和 `us.gcp.cdn.hf.co`。HF 人员在
+[下载重定向公告](https://discuss.huggingface.co/t/how-to-get-a-list-of-all-huggingface-download-redirections-to-whitelist/30486?page=2)
+说明 GCP 域名适用于来自 Google Cloud Platform 的流量。不同实际云出口可能改变
+服务端重定向，但没有文档支持下载者通过参数强制云区域。现有签名 URL 不应随意
+替换域名；获取一个 GCP 出口或另购机器是新的资源/身份问题，本文不启动这些操作。
+
+官方 [hf_xet 下载说明](https://huggingface.co/docs/huggingface_hub/en/guides/download#faster-downloads)
+提供的是 CAS/xorb 分块并行与去重，不承诺改变跨境网络路径；这里没有可读全量原始
+HF 仓库可用于实测，故不安装 SDK 或开始复制数据。当前更有价值的待决策信息仍是
+root 的实际出口与已知原始来源吞吐，而非再列处理后同名数据集。
+
 ## 后续实际结果
 
 - 同一八区间四轮 bare/query/query/bare 对照为4.52/3.55/3.85/3.66 MB/s；
@@ -167,3 +201,7 @@ ModelScope现有原始repacked候选的实际跳转hostname为
 ModelScope实际CDN补测八连接32MiB为3.53 MB/s，紧接的交大32MiB对照25.63；
 当前不能用“国际出口普遍受限”解释所有慢源，也不能保证国内平台更快。
 能确认的是独立国内来源明显超过EgoDex当前链路，远端整体统一低速假设已排除。
+
+追加路线诊断：本地代理峰值未能稳定复现，SSH中转慢，完整读流没有稳定收益；
+HTTP/3校准通过但Apple当前连接超时，ModelScope基线403不可判定。生产继续
+官方直连，证据和结束快照见[追加路线诊断](2026-10-13-egodex-route-followup.md)。
