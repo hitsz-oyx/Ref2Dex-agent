@@ -7,10 +7,10 @@ import torch
 from torch import nn
 
 from ptv3_shared_wam.data import endpoint_delta, point_labels
-from ptv3_shared_wam.contracts import GOAL_ENCODING
+from ptv3_shared_wam.contracts import GOAL_ENCODING, TASK_CONDITIONING
 from ptv3_shared_wam.execution import ActionBuffer
 from ptv3_shared_wam.model import SharedWAM
-from ptv3_shared_wam.objectives import forecast_loss
+from ptv3_shared_wam.objectives import forecast_loss, forecast_metrics, goal_only_scene
 from ptv3_shared_wam.robot import RobotPair, native_trajectory, robot_loss
 from ptv3_shared_wam.checkpoint import load_checkpoint, save_checkpoint
 
@@ -48,6 +48,8 @@ def batch():
              trajectory_valid=torch.ones(2, 24, 2, 11, dtype=torch.bool),
              scene_target=torch.randn(2, 2, 24, 4, 3) * .02,
              scene_valid=torch.ones(2, 2, 24, 4, dtype=torch.bool))
+    b["goal_object_slot"] = torch.tensor([0, 1])
+    b["start_object_points"] = b["scene_points"][torch.arange(2), b["goal_object_slot"]].clone()
     b["goal_object_delta"] = endpoint_delta(b["start_object_points"], b["goal_object_points"], b["object_goal_valid"])
     return b
 
@@ -56,18 +58,18 @@ def model():
     return SharedWAM(stats(), dict(interaction_layers=2), DenseScene()).eval()
 
 
-def test_goal_changes_hand_but_cannot_change_scene_or_shared_representation():
+def test_goal_changes_both_forecasts_and_shared_representation():
     net, b = model(), batch()
     before = net(b)
     z = net.encode(b)[0]
     altered = dict(b, goal_object_delta=b["goal_object_delta"] + .2)
     after = net(altered)
-    assert torch.equal(before["scene"], after["scene"])
-    assert torch.equal(z, net.encode(altered)[0])
+    assert not torch.equal(before["scene"], after["scene"])
+    assert not torch.equal(z, net.encode(altered)[0])
     assert not torch.equal(before["trajectory"], after["trajectory"])
     goal = b["goal_object_delta"].clone().requires_grad_()
     prediction = net(dict(b, goal_object_delta=goal))
-    assert torch.autograd.grad(prediction["scene"].sum(), goal, allow_unused=True)[0] is None
+    assert torch.autograd.grad(prediction["scene"].sum(), goal, retain_graph=True)[0].abs().sum() > 0
     assert torch.autograd.grad(prediction["trajectory"].sum(), goal)[0].abs().sum() > 0
 
 
@@ -89,10 +91,10 @@ def test_both_losses_reach_shared_scene_and_hand_encoders_without_V_to_U():
     _, terms = forecast_loss(p, b, {})
     for loss in terms.values():
         for parameter in (net.scene.backbone.weight, net.hand.mlp[0].weight,
-                          net.interaction.layers[0].self_attn.in_proj_weight):
+                          net.interaction.layers[0].self_attn.in_proj_weight, net.goal.point[0].weight):
             gradient = torch.autograd.grad(loss, parameter, retain_graph=True)[0]
             assert torch.isfinite(gradient).all() and gradient.abs().sum() > 0
-    parameters = list(net.hand_future.parameters()) + list(net.goal.parameters())
+    parameters = list(net.hand_future.parameters())
     assert all(g is None for g in torch.autograd.grad(terms["scene"], parameters,
                                                     retain_graph=True, allow_unused=True))
 
@@ -203,7 +205,7 @@ def test_checkpoint_is_complete_distinct_and_immutable(tmp_path):
     net = model()
     path = tmp_path / "step1.pt"
     opt = torch.optim.AdamW(net.parameters(), lr=1e-4)
-    config = dict(goal_encoding=GOAL_ENCODING)
+    config = dict(goal_encoding=GOAL_ENCODING, task_conditioning=TASK_CONDITIONING)
     save_checkpoint(path, net, opt, config, stats(), 1, "pretrain", dict(engineering_only=True))
     packet = load_checkpoint(path)
     restored = model()
@@ -221,6 +223,10 @@ def test_checkpoint_is_complete_distinct_and_immutable(tmp_path):
     torch.save(old_packet, legacy)
     with pytest.raises(ValueError, match="legacy absolute-goal"):
         load_checkpoint(legacy)
+    hand_only = tmp_path / "hand-only-goal.pt"
+    torch.save(dict(packet, config=dict(goal_encoding=GOAL_ENCODING)), hand_only)
+    with pytest.raises(ValueError, match="legacy hand-only"):
+        load_checkpoint(hand_only)
 
 
 def test_goal_encoder_reads_current_and_delta_exactly_once_and_target_is_trainable():
@@ -252,10 +258,79 @@ def test_goal_delta_represents_translation_rotation_and_missing_pairs():
         endpoint_delta(start, end, torch.ones_like(valid))
 
 
-def test_paired_goal_permutation_preserves_hand_forecast():
+def test_paired_goal_permutation_preserves_both_forecasts():
     net, b = model(), batch()
     permutation = torch.tensor([2, 0, 3, 1])
     changed = dict(b, start_object_points=b["start_object_points"][:, permutation],
                    goal_object_delta=b["goal_object_delta"][:, permutation],
                    object_goal_valid=b["object_goal_valid"][:, permutation])
-    torch.testing.assert_close(net(b)["trajectory"], net(changed)["trajectory"], atol=1e-6, rtol=1e-5)
+    for key in ("scene", "trajectory"):
+        torch.testing.assert_close(net(b)[key], net(changed)[key], atol=1e-6, rtol=1e-5)
+
+
+def test_310_token_layout_type_embeddings_and_hand_readout():
+    net, b = model(), batch()
+    b["xyz"] = torch.randn(2, 256, 3) * .05
+    b["point_valid"] = torch.ones(2, 256, dtype=torch.bool)
+    for key in ("start_object_points", "goal_object_delta", "object_goal_valid"):
+        b[key] = b[key].repeat(1, 8, *([1] if b[key].ndim == 3 else []))
+    trunk_input, hand_input = [], []
+    a = net.interaction.register_forward_pre_hook(lambda m, args: trunk_input.append(args[0].detach()))
+    c = net.hand_future.register_forward_pre_hook(lambda m, args: hand_input.append(args[0].detach()))
+    prediction = net(b)
+    a.remove(); c.remove()
+    shared, valid, _ = net.encode(b)
+    assert shared.shape == (2, 310, 128) and valid.shape == (2, 310)
+    hand, _ = net.hand(b)
+    goal, _ = net.goal(b)
+    torch.testing.assert_close(trunk_input[0][:, 256:278], hand + net.token_type.weight[1])
+    torch.testing.assert_close(trunk_input[0][:, 278:], goal + net.token_type.weight[2])
+    torch.testing.assert_close(hand_input[0], shared[:, 256:278])
+    assert prediction["trajectory"].shape == (2, 24, 2, 11, 3)
+    b["object_goal_valid"].zero_()
+    shared, valid, _ = net.encode(b)
+    assert not valid[:, 278:].any() and not shared[:, 278:].any()
+
+
+def test_goal_only_baseline_uses_endpoint_without_labels_and_exposes_bad_middle():
+    b = batch()
+    b["goal_object_delta"] = torch.zeros_like(b["goal_object_delta"])
+    b["goal_object_delta"][..., 0] = .024
+    baseline, supported = goal_only_scene(b)
+    b["scene_target"] = baseline.clone()
+    target = torch.arange(2)[None] == b["goal_object_slot"][:, None]
+    b["scene_target"][:, :, :16] = 0.  # Delayed movement with the same endpoint.
+    metrics = forecast_metrics(dict(scene=baseline, trajectory=b["trajectory_target"]), b, {})
+    assert metrics["goal_only/scene_target_h24"]["sum_mm"] == 0
+    assert metrics["goal_only/scene_target_h1"]["sum_mm"] == pytest.approx(8.)
+    assert metrics["goal_only/scene_target_first8"]["sum_mm"] == pytest.approx(288.)
+    assert metrics["goal_only/scene_target_middle"]["sum_mm"] == pytest.approx(800.)
+    assert metrics["goal_only/scene_non_target_all24"]["sum_mm"] == 0
+    assert metrics["scene_target_middle"]["count"] == 64
+    assert metrics["scene_non_target_h24"]["count"] == 8
+    assert torch.equal(baseline[target][:, -1], b["goal_object_delta"])
+    changed = dict(b, scene_target=torch.full_like(b["scene_target"], float("nan")),
+                   goal_object_points=torch.full_like(b["goal_object_points"], float("nan")))
+    other, other_valid = goal_only_scene(changed)
+    assert torch.equal(baseline, other) and torch.equal(supported, other_valid)
+    b["object_goal_valid"][0, 0] = False
+    b["goal_object_delta"][0, 0] = float("nan")
+    partial, supported = goal_only_scene(b)
+    assert torch.isfinite(partial).all() and not supported[0, 0, :, 0].any()
+    assert supported[0, 1].all()
+
+
+def test_metrics_exclude_padding_and_report_empty_non_target_category():
+    b = batch()
+    b["goal_object_slot"][:] = 0
+    b["start_object_points"] = b["scene_points"][:, 0].clone()
+    b["object_valid"][:, 1] = False
+    b["scene_target"][:, 1] = float("nan")
+    p = dict(scene=torch.zeros_like(b["scene_target"]), trajectory=b["trajectory_target"])
+    metrics = forecast_metrics(p, b, {})
+    assert metrics["scene_non_target_h24"] == dict(sum_mm=0., count=0)
+    assert metrics["scene_h24"]["count"] == 8
+    assert metrics["scene_target_first8"]["count"] == 64
+    b["start_object_points"] += .1
+    with pytest.raises(ValueError, match="point identities"):
+        goal_only_scene(b)

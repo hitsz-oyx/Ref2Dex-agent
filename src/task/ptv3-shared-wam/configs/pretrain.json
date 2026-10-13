@@ -1,6 +1,7 @@
 {
   "schema": "ref2dex.ptv3-shared-wam.v1",
   "goal_encoding": "current-point-horizon-delta.v1",
+  "task_conditioning": "shared-scene-hand-goal.v1",
   "seed": 0,
   "hidden": 128,
   "patch_size": 128,

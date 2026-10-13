@@ -1,6 +1,7 @@
 # PTv3-Shared-WAM
 
-实现依据是 [ref1.md](docs/user/ref/ref1.md)，goal按[ref1_1.md](docs/user/ref/ref1_1.md)更新。
+实现依据是 [ref1.md](docs/user/ref/ref1.md)，goal编码按[ref1_1.md](docs/user/ref/ref1_1.md)，共享条件按
+[ref1_2.md](docs/user/ref/ref1_2.md)更新。
 实际模型、张量合同、损失与执行语义见
 [架构.md](docs/user/架构.md)。本 Task 单独实现共享预测器，不修改其他 Task 的模型或训练入口。
 
@@ -38,9 +39,11 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
 人类样本只计算手/场景损失，不生成或使用机器人动作标签。
 
 当前goal是32个 `[当前点, t+24目标点−当前点]` 6D token，加可训练target embedding，
-仅进入hand branch。三域/机器人/在线入口共用 `shared_collate` 的endpoint→delta转换，
+与256个scene、22个hand token共同进入共享trunk，合计310个token。U/V双头都读取
+任务条件共享表示，不再有hand分支单独的goal cross-attention。三域/机器人/在线入口共用 `shared_collate` 的endpoint→delta转换，
 不使用+8/+16 waypoint或整任务最终位置。config明确标记
-`goal_encoding=current-point-horizon-delta.v1`；旧absolute-goal checkpoint默认拒绝加载/续训，
+`goal_encoding=current-point-horizon-delta.v1` 和
+`task_conditioning=shared-scene-hand-goal.v1`；旧absolute-goal和hand-only delta checkpoint默认拒绝加载/续训，
 不提供自动迁移。新goal模型可从原PW场景权重重新初始化。
 
 ## 验证
@@ -52,8 +55,14 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
 CPU 合同测试使用可微场景接口 fixture；真实稀疏 PTv3、权重迁移和机器人梯度由
 GPU 工程 smoke 验证。工程 smoke 不能说明预训练已有效、策略能抓取或 Cm 有收益。
 
-ref1_1更新后17个合同测试通过，覆盖delta的平移/旋转、有效性掩码、精确6D编码、
-goal隔离及旧checkpoint拒绝加载。GPU工程记录如下；只验证接口/梯度，不证明抓取收益。
+ref1_2当前20个合同测试通过，覆盖goal影响共享表示及双头、310-token布局和hand读取区间、
+scene损失进入GoalTokenEncoder但不进入hand head、时间/目标分组指标、goal-only基线与旧路由拒绝。
+评估每个source自动输出scene h1/first8/middle（9–16）/h24/all24，并分别统计target/non-target。
+`goal_only/scene_*`基线只把终点delta按j/24插值，非目标静止；终点指标不独立代表动态学习。
+新路由的GPU工程smoke待当前提交固定后运行，不启动正式长训。
+
+历史ref1_1更新后17个合同测试通过，覆盖delta的平移/旋转、有效性掩码、精确6D编码、
+hand-only goal路由及旧checkpoint拒绝加载。GPU工程记录如下；只验证接口/梯度，不证明抓取收益。
 
 | Delta-goal工程检查 | run_id |
 |---|---|

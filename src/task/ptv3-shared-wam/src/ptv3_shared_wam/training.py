@@ -13,7 +13,7 @@ from torch import nn
 import torch.distributed as distributed
 
 from .checkpoint import SCHEMA, atomic_json, directory_bytes, git_commit, load_checkpoint, save_checkpoint
-from .contracts import GOAL_ENCODING
+from .contracts import GOAL_ENCODING, TASK_CONDITIONING
 from .data import SharedWindows, shared_collate
 from .model import SharedWAM
 from .objectives import forecast_loss, forecast_metrics
@@ -102,18 +102,18 @@ def gradient_audit(model, batch, config, stage):
     interaction = list(forecaster.interaction.parameters())
     report = {}
     for name, loss in losses.items():
-        for group, parameters in (("PTv3", backbone), ("interaction", interaction)):
+        for group, parameters in (("PTv3", backbone), ("interaction", interaction),
+                                  ("goal", list(forecaster.goal.parameters()))):
             grads = torch.autograd.grad(loss, parameters, retain_graph=True, allow_unused=True)
             norm = sum(float(g.detach().float().square().sum()) for g in grads if g is not None)**.5
             if not np.isfinite(norm) or norm <= 0:
                 raise ValueError(name + " does not reach " + group)
             report[name + "_" + group + "_gradient"] = norm
-    # U does not depend on any hand prediction tensor or goal conditioner.
-    branch_grads = torch.autograd.grad(losses["scene"], list(forecaster.hand_future.parameters())
-        + list(forecaster.goal.parameters()), retain_graph=True, allow_unused=True)
+    # U depends on shared goal context, but never on the hand prediction head.
+    branch_grads = torch.autograd.grad(losses["scene"], list(forecaster.hand_future.parameters()), retain_graph=True, allow_unused=True)
     if any(g is not None for g in branch_grads):
-        raise ValueError("scene loss has a hand-head/goal dependency")
-    report["scene_to_hand_head_or_goal"] = False
+        raise ValueError("scene loss has a hand-head dependency")
+    report["scene_to_hand_head"] = False
     if stage == "robot":
         _, terms = robot_loss(prediction, batch, config, model.retargeter)
         for name in ("action", "anchor"):
@@ -189,6 +189,8 @@ def run(stage):
         raise ValueError("shared-WAM config required")
     if config.get("goal_encoding") != GOAL_ENCODING:
         raise ValueError("config must specify the current-point/horizon-delta goal contract")
+    if config.get("task_conditioning") != TASK_CONDITIONING:
+        raise ValueError("config must specify shared scene/hand/goal conditioning")
     if args.steps is not None:
         config["updates"] = args.steps
     experiment = None
@@ -235,7 +237,7 @@ def run(stage):
             raise ValueError("engineering checkpoints cannot silently initialize a scientific robot run")
         if parent["stats"] != stats:
             raise ValueError("robot input normalization differs from pretraining")
-        architecture = ("hidden", "horizon", "patch_size", "scene_tokens", "interaction_layers", "voxel_m", "voxel_origin_m", "object_points", "goal_encoding")
+        architecture = ("hidden", "horizon", "patch_size", "scene_tokens", "interaction_layers", "voxel_m", "voxel_origin_m", "object_points", "goal_encoding", "task_conditioning")
         if any(parent["config"].get(k) != config.get(k) for k in architecture):
             raise ValueError("robot stage changes the pretraining architecture")
         model = RobotPair(SharedWAM(stats, config))

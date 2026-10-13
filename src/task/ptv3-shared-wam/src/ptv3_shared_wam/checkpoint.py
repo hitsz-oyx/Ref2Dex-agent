@@ -6,7 +6,7 @@ import subprocess
 import torch
 
 from .paths import ROOT
-from .contracts import GOAL_ENCODING
+from .contracts import GOAL_ENCODING, TASK_CONDITIONING
 
 SCHEMA = "ref2dex.ptv3-shared-wam.v1"
 
@@ -24,6 +24,8 @@ def save_checkpoint(path, model, optimizer, config, stats, step, stage, provenan
         raise FileExistsError("checkpoint is immutable: " + str(path))
     if config.get("goal_encoding") != GOAL_ENCODING:
         raise ValueError("checkpoint config must explicitly identify the delta-goal contract")
+    if config.get("task_conditioning") != TASK_CONDITIONING:
+        raise ValueError("checkpoint config must explicitly identify shared task conditioning")
     state = dict(schema=SCHEMA, stage=stage, step=step, config=config, stats=stats,
                  model={k: v.detach().cpu() for k, v in model.state_dict().items()},
                  provenance=provenance, optimizer=optimizer.state_dict() if optimizer else None,
@@ -41,6 +43,8 @@ def load_checkpoint(path, device="cpu"):
         raise ValueError("full shared-WAM checkpoint required; legacy patches are incompatible")
     if state.get("config", {}).get("goal_encoding") != GOAL_ENCODING:
         raise ValueError("legacy absolute-goal checkpoint requires explicit migration; cannot resume as delta-goal")
+    if state.get("config", {}).get("task_conditioning") != TASK_CONDITIONING:
+        raise ValueError("legacy hand-only goal checkpoint cannot resume as shared task conditioning")
     return state
 
 

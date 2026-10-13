@@ -89,7 +89,7 @@ def shared_collate(samples):
 
 
 def observed_inputs(batch):
-    """Forecaster allowlist excludes every future label and native robot state."""
+    """Observation-only subset, excluding separate task goals and robot state."""
     keys = ("xyz", "features", "point_valid", "scene_object", "object_valid",
             "scene_points", "start_hand", "start_hand_history", "start_hand_valid")
     return {key: batch[key] for key in keys}
