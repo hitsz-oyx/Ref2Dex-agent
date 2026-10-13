@@ -66,6 +66,64 @@ Range 规范允许服务端忽略 Range，因此探针必须拒绝 `200` 或错�
 镜像迁移、无界提高并发或完整 ZIP 的额外复制。所有建议均是待测工程假设，不能据此
 宣称找到提速方案。
 
+## 追加：公开托管搜索与可访问性实查
+
+2026-10-13 本地已授权代理、无 token、仅 API/README/HEAD；没有启动数据下载。
+`https://huggingface.co/api/datasets?search=egodex&limit=100` 返回 200，列出约 40 个
+公开仓库。因此先前某个 EgoDex 镜像的 401 不代表所有 HF 数据集均不可访问。
+API 的元数据可读、HEAD 成功和远端正文吞吐是三个不同检查，本节未测吞吐。
+
+| 新来源 | 本轮公开访问 | 内容与完整性边界 |
+| --- | --- | --- |
+| [Wehere/EgoDex](https://huggingface.co/datasets/Wehere/EgoDex) | API/tree 200；`add_remove_lid.tar` HEAD 200，4,841,021,440 bytes，支持 bytes Range | 根目录 118 个任务 TAR，总约 578.05 GB；无 README，不能确定保留原始 MP4/HDF5、是否重编码、覆盖哪几个官方 split |
+| [UCBProject/EgoDex](https://huggingface.co/datasets/UCBProject/EgoDex) | API/tree 200；`test/add_remove_lid/0.mp4` HEAD 200，1,472,629 bytes | 根目录只有 test，含原始命名 MP4/HDF5 及 HaWoR 输出；不是全量来源，适合 HF 网络对照 |
+| [griffinlabs/EgoDex-LeRobot-v3.0](https://huggingface.co/datasets/griffinlabs/EgoDex-LeRobot-v3.0) | API/README 200 | 上传者声明 train/test 转成 LeRobot，约 1.47 TB；明确丢弃 confidence；未宣称提供 extra，需适配与语义审查 |
+| [yxgao/egodex-wds](https://huggingface.co/datasets/yxgao/egodex-wds) | API/README 200，749 个文件 | WebDataset，包含视频、transform/confidence NPY；数据卡有 original/target_resolution，原始分辨率与 split 覆盖未核实，不能当原始镜像 |
+| [liang12121/dreamzero-egodex-raw](https://huggingface.co/datasets/liang12121/dreamzero-egodex-raw) | API/tree 200 | 根只有 index/manifests；索引 JSON 321 MB，JSONL 285 MB；名称 raw 不意味着托管原始视频，尚未解析索引，不下载大索引 |
+| [D1ckyTwist3r/EgoDex](https://huggingface.co/datasets/D1ckyTwist3r/EgoDex) | API 200，无 README | 17,231 文件，Parquet/LeRobot 布局；转换数据，完整性未知 |
+
+两个可立即交给 root 做有上限远端网络对照的真实 URL：
+
+```text
+https://huggingface.co/datasets/Wehere/EgoDex/resolve/main/add_remove_lid.tar
+https://huggingface.co/datasets/UCBProject/EgoDex/resolve/main/test/add_remove_lid/0.mp4
+```
+
+Wehere 文件树证据来自公开
+[tree API](https://huggingface.co/api/datasets/Wehere/EgoDex/tree/main?limit=200)，
+UCB 根目录证据来自
+[root API](https://huggingface.co/api/datasets/UCBProject/EgoDex/tree/main?limit=100)。
+精简响应保存在项目 `tmp/video-training-20261012-takeover/mirror-discovery/` 下的
+`Wehere-tree-20261013.json`、`UCB-root-20261013.json`、`Liang-root-20261013.json`。
+API siblings 对大型仓库返回恰好 100,000 行时视为可能截断，不用于声称完整统计。
+
+ModelScope 另外找到的 `luyitas/egosim_egodex_egovid_full`，匿名 repo/tree 返回
+403（无权访问），metadata 返回 404；不能确认不存在还是隐藏。搜索索引称为 5,000
+EgoDex clips 的 16 fps/720p 子集，但无法从当前可读一级来源核实，不推荐替换。
+YuhengZhao 的公开 repo/tree 仍为 200。通用 ModelScope datasets 查询返回 500，
+没有据此声称已穷尽平台所有仓库。
+
+Apple 旧 issues 页面可读的 #1/#3/#4 分别讨论 LeRobot 转换、数据更新、坐标约定，
+未见其他托管地址。当前仓库页面 issues 为 0，旧仓库 GitHub API 因代理出口公开
+限额返回 403，评论未完整可读；不能声称全部历史 issues 已审查。
+
+新增决策顺序：root 先比较多个独立站点下载，区分整体出口问题和 Apple 路径问题；
+若 HF 正文实测更快，再优先审计 Wehere TAR 中少量可映射的原始配对及 split；如果
+它是删减或重编码数据，保留其网络诊断价值，但不把它投入现有原始数据重建队列。
+
+root 后续远端实查：Wehere TAR 在官方 HF 和 hf-mirror 路径均返回精确 `0–1023`
+的 `206`，最终托管 `us.aws.cdn.hf.co`；UCB 示例视频也返回 `206`。仍未据此宣称速度
+更快。不同站点短探针中，Apple 3.38→复测 6.62 MB/s、PyPI 2.63、Anaconda 5.97、
+上海交大 Ubuntu 镜像 34.84（8 连接、每请求 4 MiB）。这些短测已排除“所有互联网
+下载都同样慢”的说法，但国内结果还需长一点的探针排除 burst；不能区分国际出口和
+各国外 CDN 路径的影响。结果产物见后续独立互联网来源对照记录。
+
+Wehere 覆盖进一步只读核对：现有远端官方 `part2.json` inventory 的 13 个 HDF5
+任务目录，均在其 118 个 TAR 任务名中出现。此处仅证明任务名覆盖；episode 数量、
+MP4 编码、置信度、session 字段与官方 split 归属未核实。根目录没有 test/extra/part
+标识，当前不能确认全量。HF API 将它自动标记 `format:webdataset`，但平台可能仅按
+TAR 扩展名推断，不能把这个标签单独作为转换证明。
+
 ## 后续实际结果
 
 - 同一八区间四轮 bare/query/query/bare 对照为4.52/3.55/3.85/3.66 MB/s；
@@ -74,7 +132,7 @@ Range 规范允许服务端忽略 Range，因此探针必须拒绝 `200` 或错�
 - Google DNS 带不同 ECS 的观测又得到17.253.87、17.253.95、17.253.5网段；
   不修改系统解析，只通过保持域名/TLS的curl resolve测试。四连接聚合分别
   2.54/3.15/4.63 MB/s，同轮默认17.253.61地址6.60 MB/s。未支持固定其他网段。
-- 本轮对 HF 与 hf-mirror 的真实仓库 tree API匿名访问均返回401；这不是顶层ZIP
+- 较早对 `zhenyuxie-zhzh/egodex` 的 HF 与 hf-mirror tree API匿名访问均返回401；这不是顶层ZIP
   不存在的404，仍无法取得公开分块清单。不使用新身份或私有token。
 - 国内Ubuntu镜像对照未取得有效吞吐：阿里入口降级HTTP跳转后连接被拒绝，
   对跳转目标使用HTTPS也连接超时；清华ISO返回403。因此不能据此推断服务器
@@ -86,3 +144,26 @@ Range 规范允许服务端忽略 Range，因此探针必须拒绝 `200` 或错�
 HTTP协议补充：固定同一IP、八连接的HTTP1.1/HTTP2/HTTP2/HTTP1.1对照为
 4.042/4.82/5.502/7.206 MB/s；实际http_version分别1.1/2/2/1.1且区间和ETag一致，
 未支持为HTTP2重写生产传输。该结果也显示顺序实验的明显时间波动。
+
+## 当前决策更新：独立互联网来源实测
+
+已完成更大国内对照：上海交大Ubuntu镜像8连接、总256MiB读流测得67.53 MB/s，
+同轮Apple8连接64MiB为6.86 MB/s。它反驳“远端所有互联网下载均只有7–8 MB/s”，
+不能把某个来源的短测速当作服务器长期公网额定带宽。PyPI2.63与Anaconda5.97
+也明显低于该国内源，说明现象不局限于EgoDex单个文件；数据源/CDN与所走网络
+路径是当前更有价值的诊断方向，尚不能证明Apple限速或全部国际流量受限。
+
+Wehere真实TAR8连接64MiB测得3.38 MB/s，经hf-mirror入口4.76 MB/s，二者
+最终均到`us.aws.cdn.hf.co`。TAR前8个512-byte headers中发现
+`add_remove_lid/actions/0_0.pt`、`0_1.pt`，即至少包含已经处理的动作产物；
+并非仅根据平台format标签推测。但未遍历全部内容，不能断言没有原始MP4/HDF5。
+当前没有速度或原始完整性证据支持切换生产源。
+
+ModelScope现有原始repacked候选的实际跳转hostname为
+`cdn-lfs-cn-1.modelscope.cn`，不能仅因域名在中国就假定一定沿国内快路径。
+详细网络对照、后续ModelScope复测及状态见
+[互联网与EgoDex来源对照](2026-10-13-egodex-internet-source-comparison.md)。
+
+ModelScope实际CDN补测八连接32MiB为3.53 MB/s，紧接的交大32MiB对照25.63；
+当前不能用“国际出口普遍受限”解释所有慢源，也不能保证国内平台更快。
+能确认的是独立国内来源明显超过EgoDex当前链路，远端整体统一低速假设已排除。
