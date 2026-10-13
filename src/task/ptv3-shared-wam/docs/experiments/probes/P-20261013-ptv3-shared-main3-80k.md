@@ -5,7 +5,7 @@ experiment_id: P-20261013-ptv3-shared-main3-80k
 date: 2026-10-13
 task: ptv3-shared-wam
 branch: main
-git_commit: 17dd9349
+git_commit: 63bde79a
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-task-forecaster
 probe_index_in_family: 1
@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [100]
 decision_changed_if_positive: transfer the trained shared forecaster into airplane full-pair adaptation
 decision_changed_if_negative: inspect the forecast contract and data before spending on robot adaptation
-status: PLANNED
+status: RUNNING
 run_id: pretrain-main3-ddp4-80k-20261013-r1
 ---
 
 # 四卡三域共享预测器预训练：80,000 updates
 
-Result: PLANNED. 用户明确要求直接启动四卡大规模训练；尚无学习效果或抓取结论。
+Result: RUNNING. 四卡每卡128/global512正式预训练已启动；首个完整checkpoint已保存，早期loss/梯度有限，尚无学习效果或抓取结论。
 Decision: 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。
 
 Class: Decision. 服务于自主灵巧操作的预测器基础，而不直接验证Cm增益。具体问题是：
@@ -67,7 +67,8 @@ Class: Decision. 服务于自主灵巧操作的预测器基础，而不直接验
 ## 运行与追溯
 
 实际运行commit、输入路径、worker PID、config和初始化记录以run的manifest为准。
-启动后回填此卡。产物：`outputs/ptv3-shared-wam/pretrain-main3-ddp4-80k-20261013-r1/`；
+本次实际运行commit为 `63bde79a`，监督PID1960948，torchrun PID1961023，
+worker PID1961038–1961041；GPU4/5/6/7。产物：`outputs/ptv3-shared-wam/pretrain-main3-ddp4-80k-20261013-r1/`；
 launcher日志、GPU采样和scratch位于同名项目`tmp/`目录，训练目录提供对应链接。
 
 ```bash
@@ -80,6 +81,39 @@ launcher日志、GPU采样和scratch位于同名项目`tmp/`目录，训练目�
 
 工程负载记录：`engineering-batch64-20261013-r1`、`engineering-batch128-20261013-r1`；
 四卡检查（GPU0/1/2/3）：`engineering-ddp4-batch128-20261013-r1`。均为四步，不能据此形成训练效果结论。
+
+## 启动观察
+
+- 首个step1完整checkpoint已保存，`engineering_only=false`、world size4、target80000。
+- 启动记录观察至step80，loss/梯度有限；最近20步约1.82秒/update，约280.6样本/秒，
+  当时ETA约40.5小时。随真实数据/I/O及验证成本更新，不把初始化首步ETA作为最终估计。
+- rank0峰值分配约14.3GiB。四卡物理显存含allocator缓存约18–23GiB，明显高于四步
+  负载检查的缓存占用；目前无OOM，监督进程继续记录变化。GPU利用率有批次/同步波动。
+- 验证尚未到达1,000步，不能用这些训练loss判断预训练质量。
+- 实时状态、完整输入与初始化追溯见run的 `manifest.json`、`progress.json`、
+  `process.json`、`launcher.log` 和 `gpu.jsonl`。
+
+## 早期利用率诊断（运行保持继续）
+
+用户询问GPU利用率偏低。持续30秒dmon采样，GPU4/5/6/7的mean分别为
+40.3/40.4/40.6/42.9%，范围0–100%；是持续均值偏低，不只是一次采样。
+四个rank的主线程各约102% CPU，训练约1.8秒/update、280多样本/秒。
+
+纯CPU输入路径控制：同主种子100、rank0、step101–104、batch128，不执行神经网络。
+无cProfile干扰时，首次1.23秒，后三次总准备时间0.877/0.848/0.889秒，
+包含约0.08–0.09秒collate。这是独立进程中的同路径测量，并非精确划分原训练的所有时间。
+有cProfile的四batch归因显示序列读取、np.load/open_memmap/header解析及几何特征构造占主导；
+512样本中调用SourceWindows.sequence471次，缓存32项对当前随机大batch命中率很低。
+
+当前训练没有DataLoader workers/prefetch：逐样本同步draw→collate→阻塞to(device)→GPU。
+数据准备本身约相当于当前step时间的一半，足以解释GPU的大量空闲。
+优先改进是多worker预取、pinned memory/异步传输及有界序列缓存；还可检查逐样本
+scene token采样同步。DDP等待和token采样的精确时间占比尚未做CUDA profiler，不能
+把它们写成已经确认的主因。未修改运行中的模型/训练源码，也未中断80k任务。
+
+复现工具：[profile_batch_preparation.py](../../../tools/audit/profile_batch_preparation.py)。
+证据保存在同名run scratch下的 `utilization-window.txt`、`input-preparation-profile/`、
+`input-preparation-control/`；只包含工程吞吐与CPU路径，不构成学习效果证据。
 
 ## Limitations / future evidence
 

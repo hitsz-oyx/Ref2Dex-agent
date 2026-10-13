@@ -427,7 +427,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | PLANNED. 用户明确要求直接启动四卡大规模训练；尚无学习效果或抓取结论。 | 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。 | probes/PLANNED |
+| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | RUNNING. 四卡每卡128/global512正式预训练已启动；首个完整checkpoint已保存，早期loss/梯度有限，尚无学习效果或抓取结论。 | 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。 | probes/RUNNING |
 
 ## HF-rawsensor-hand-conditioning
 
