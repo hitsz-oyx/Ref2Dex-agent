@@ -4,13 +4,15 @@ import socket
 import struct
 
 SCHEMA = 'ref2dex.wam-native-ipc.v1'
-MAX_BYTES = 65536
+# One batched PPO step is several H4 histories plus several (24, 33) trajectories.
+# 4 MiB still rejects an unbounded frame; a 16-env packet is a few hundred KiB.
+MAX_BYTES = 4 * 1024 * 1024
 
 
 def send(connection, packet):
     data = json.dumps(packet, allow_nan=False, separators=(',', ':')).encode()
     if len(data) > MAX_BYTES:
-        raise ValueError('IPC frame exceeds64KiB')
+        raise ValueError('IPC frame exceeds limit')
     connection.sendall(struct.pack('!I', len(data)) + data)
 
 

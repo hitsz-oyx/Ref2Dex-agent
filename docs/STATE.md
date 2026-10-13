@@ -1,5 +1,23 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 残差 PPO 二百次更新后仍然抛掷
+
+`r5` 在 GPU0 跑完 200 次更新，2562 s。Frame-0 评估的残差 rms 是 0.136。
+最好的一份保持 5 帧、贴住时抬高 93 mm，然后掉到 −765 mm。其余几份留在
+桌面，几乎没有抬起。保持 45 帧没有出现。奖励和保持比例从第 51 次到第 200
+次都贴在地板上；残差幅度从 0.155 慢慢爬到 0.209。局部 UNPROMISING。
+同一套 α 和奖励不再加更新。详见
+[残差 PPO 卡](../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md)。
+
+## 2026-10-13 残差 PPO 改成一次 batch 前向
+
+串行 4 环境的 WAM 查询被收成同一个模型的一次 batch。GPU0 上 batch 4 是
+92 ms、43.7 samples/s，串行 4 次是 262 ms、15.2 samples/s。batch 32 峰值
+661 MiB，没有 OOM。同一输入的轨迹最大差 1.46 mm，base action 最大差
+5.2e-4。`r4` 停在第 70 次更新，保留的权重是 `update0050.pt`。`r5` 用
+8 个环境从这次权重继续，每次物理步一次 WAM+R。零残差诊断间隙 0.42 mm。
+显存仍约 18.7 GB，其中 Isaac 约 18.0 GB，WAM 约 0.6 GB。还没有新的抓取结论。
+
 ## 2026-10-13 残差 PPO 短探针没有离开冻结底座
 
 冻结 context 演员和旧 Chunk-R。PPO 只加 12 维残差，系数 0.15。奖励是物体

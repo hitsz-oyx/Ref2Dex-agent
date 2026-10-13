@@ -21,7 +21,7 @@ OLD = ROOT / 'src/task/consequence-evaluator'
 RUNTIME = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
 GRASPENV = '/home2/wyy/miniconda3/envs/graspenv/bin/python'
 EXP = 'P-20261013-wam-residual-ppo'
-RUN = 'wam-ref2-execution-rppo-20261013-r4'
+RUN = 'wam-ref2-execution-rppo-20261013-r5'
 HEAD = ROOT / 'outputs/trajectory-policy/wam-ref2-joint-multitakeover-20261012-r1'
 CHUNK = ROOT / 'outputs/trajectory-policy/wam-v2-control-fit-20261012-r1'
 EFFECT = ROOT / 'outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/checkpoint_step50500.pt'
@@ -34,7 +34,11 @@ DEADLINE_S = 14400
 ACTOR_LR = 3e-4
 EVAL = 542
 PHASES = (0, 32, 48, 62)
-QUERIES = N * (DIAGNOSTIC + UPDATES * ROLLOUT + EVAL)
+
+
+def rpc_budget(updates):
+    """One packet per control step. The server counts RPCs, not environments."""
+    return DIAGNOSTIC + updates * ROLLOUT + EVAL
 sys.path[:0] = [str(TASK / 'src'), str(TASK / 'tools/audit'), str(TASK / 'tools/run')]
 from audit_wam_ref2_shadow import sha, write
 from trajectory_policy.wam_ipc import SCHEMA, send, receive, peer_pid
@@ -60,10 +64,16 @@ def label_probe(outcomes, close_rise, thrown, residual_rms):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--gpu', type=int, default=0)
+    parser.add_argument('--envs', type=int, default=N)
+    parser.add_argument('--updates', type=int, default=UPDATES)
+    parser.add_argument('--resume', type=Path)
     parser.add_argument('--output', type=Path, default=ROOT / 'outputs/trajectory-policy' / RUN)
     args = parser.parse_args()
-    if QUERIES != 79224:
-        raise ValueError('query budget drifted from the long-run card')
+    if not 1 <= args.envs <= 16 or not 1 <= args.updates <= UPDATES:
+        raise ValueError('this probe stays within 16 envs and the declared 200 updates')
+    args.rpcs = rpc_budget(args.updates)
+    if args.rpcs > 200000:
+        raise ValueError('server query budget exceeded')
     out = args.output.resolve()
     scratch = ROOT / 'tmp' / out.name
     address = scratch / 'w.sock'
@@ -80,7 +90,7 @@ def main():
     server_script = TASK / 'tools/run/wam_native_server.py'
     server_log = (out / 'server.log').open('w')
     server = subprocess.Popen(
-        [GRASPENV, str(server_script), '--gpu', str(args.gpu), '--controls', str(QUERIES),
+        [GRASPENV, str(server_script), '--gpu', str(args.gpu), '--controls', str(args.rpcs),
          '--experiment-id', EXP, '--head-dir', str(HEAD), '--socket', str(address),
          '--output', str(out / 'server'), '--chunk-dir', str(CHUNK),
          '--effect-checkpoint', str(EFFECT), '--control-checkpoint', str(CONTROL), '--open-queries'],
@@ -111,6 +121,10 @@ def main():
 
 
 def run_native(args, out, address, server):
+    N = args.envs
+    UPDATES = args.updates
+    QUERIES = args.rpcs
+    phases = tuple(PHASES[index % len(PHASES)] for index in range(N))
     native_root = ROOT / 'third_party/DExplore/dexplore'
     sys.path[:0] = [str(Path('/home2/wyy/isaac-gym/isaacgym/python')), str(OLD / 'src'),
                     str(OLD / 'tools/audit'), str(ROOT), str(native_root), str(ROOT / 'src/task/CmResidual/tools')]
@@ -147,6 +161,15 @@ def run_native(args, out, address, server):
     torch.manual_seed(296)
     actor = ResidualActor().cuda()
     value_net = ResidualValue().cuda()
+    resume_updates = 0
+    if args.resume is not None:
+        resumed = torch.load(args.resume, map_location='cuda:0')
+        if resumed.get('schema') != 'ref2dex.wam-residual-ppo.v1' or 'actor' not in resumed or 'value' not in resumed:
+            raise ValueError('residual checkpoint schema differs')
+        actor.load_state_dict(resumed['actor'])
+        value_net.load_state_dict(resumed['value'])
+        resume_updates = int(resumed.get('update', 0))
+        del resumed
     actor_initial = {key: item.detach().clone() for key, item in actor.state_dict().items()}
     torch.manual_seed(292)
     noise = torch.Generator(device='cuda')
@@ -188,8 +211,10 @@ def run_native(args, out, address, server):
     queries = 0
     manifest = dict(schema='ref2dex.wam-residual-ppo.v1', status='RUNNING', seed=292,
                     ppo_seed=296, physical_gpu=args.gpu, experiment_id=EXP, run_id=out.name,
-                    alpha=ALPHA, phases=list(PHASES), queries=QUERIES, updates=UPDATES,
-                    rollout=ROLLOUT, diagnostic_steps=DIAGNOSTIC, eval_steps=EVAL,
+                    alpha=ALPHA, phases=list(phases), envs=N, queries=QUERIES, updates=UPDATES,
+                    resume_updates=resume_updates,
+                    resume=None if args.resume is None else str(args.resume),
+                    batched_wam=True, rollout=ROLLOUT, diagnostic_steps=DIAGNOSTIC, eval_steps=EVAL,
                     frozen_world=True, frozen_wam=True, frozen_R=True,
                     reward='object progress, contact, hold, slip, residual penalty',
                     git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
@@ -206,7 +231,7 @@ def run_native(args, out, address, server):
             nonlocal queries
             task = self.env.task
             if task.num_envs != N or self.is_rnn or str(task.device) != 'cuda:0':
-                raise ValueError('four-env nonrecurrent GPU pipeline required')
+                raise ValueError('requested nonrecurrent GPU env count required')
             task._state_init = DexploreTask.StateInit.Start
             task._hybrid_init_prob = 1.
             task._adaptive_kappa_enabled = False
@@ -272,7 +297,7 @@ def run_native(args, out, address, server):
 
             def ask(logs, starts, step):
                 nonlocal queries
-                taus, refs = [], []
+                rows, refs, states = [], [], []
                 for env in range(N):
                     phase = int(min(int(starts[env]) + step, 542))
                     obj = window(logs['obj'], env)
@@ -282,45 +307,66 @@ def run_native(args, out, address, server):
                     previous = logs['applied'][-1][env] if logs['applied'] else np.zeros(18, np.float32)
                     current = {key: logs[key][-1][env] for key in ('q', 'dq')}
                     prop, robot_goal = control_context(current['q'], current['dq'], previous, obj[-1], ref)
-                    request = dict(tick=phase, object_history=obj.tolist(), hand_history=hand.tolist(),
-                                   planned_object_goal=goal.tolist(), proprio=prop.tolist(),
-                                   robot_goal=robot_goal.tolist())
-                    send(connection, request)
-                    reply = receive(connection)
-                    queries += 1
-                    tau = np.asarray(reply['tau'], np.float32)
-                    if (reply['schema'] != SCHEMA or reply['tick'] != phase or tau.shape != (24, 33)
-                            or not np.isfinite(tau).all()
-                            or not np.array_equal(np.asarray(reply['anchor_object_pose'], np.float32), obj[-1])):
+                    state, _unused = features(
+                        current['q'], current['dq'], hand[-1], obj[-1], logs['velocity'][-1][env],
+                        np.broadcast_to(hand[-1], (24, 11, 3)))
+                    rows.append(dict(env_id=env, tick=phase, object_history=obj.tolist(),
+                                     hand_history=hand.tolist(), planned_object_goal=goal.tolist(),
+                                     proprio=prop.tolist(), robot_goal=robot_goal.tolist(),
+                                     retarget_state=np.asarray(state, np.float32).tolist()))
+                    refs.append(ref)
+                    states.append(np.asarray(state, np.float32))
+                send(connection, dict(batch=rows))
+                reply = receive(connection)
+                queries += 1
+                found = {item['env_id']: item for item in reply.get('responses', ())}
+                if reply.get('schema') != SCHEMA or reply.get('batch') is not True or set(found) != set(range(N)):
+                    raise ValueError('batched inference reply does not cover every env')
+                taus, bases = [], []
+                for env in range(N):
+                    item = found[env]
+                    tau = np.asarray(item['tau'], np.float32)
+                    base = np.asarray(item['base_action'], np.float32)
+                    anchor = np.asarray(item['anchor_object_pose'], np.float32)
+                    if (item['tick'] != rows[env]['tick'] or tau.shape != (24, 33) or base.shape != (18,)
+                            or not np.isfinite(tau).all() or not np.isfinite(base).all()
+                            or not np.array_equal(anchor, np.asarray(rows[env]['object_history'][-1], np.float32))):
                         raise ValueError('inference reply does not match this live phase')
                     taus.append(tau)
-                    refs.append(ref)
-                return np.stack(taus), np.stack(refs)
+                    bases.append(base)
+                taus, bases = np.stack(taus), np.stack(bases)
+                if queries == 1:
+                    with torch.no_grad():
+                        encoded = retargeter(torch.as_tensor(np.stack(states), device=task.device),
+                                             torch.as_tensor(taus, device=task.device))
+                    local = np.zeros_like(bases)
+                    local[:, list(ACTIVE)] = encoded[:, 0].detach().cpu().numpy()
+                    error = float(np.max(np.abs(local - bases)))
+                    manifest['cross_runtime_base_max_error'] = error
+                    write(out / 'manifest.json', manifest)
+                    print(json.dumps(dict(cross_runtime_base_max_error=error)), flush=True)
+                    if error > 1e-3:
+                        raise ValueError('server chunk base disagrees with native R: ' + str(error))
+                return taus, np.stack(refs), bases
 
-            def command(current, tau, refs, previous, deterministic):
-                states = []
-                for env in range(N):
-                    values = [current[key][env].detach().cpu().numpy() for key in ('q', 'dq', 'hand', 'obj', 'velocity')]
-                    state, _tau = features(*values, np.broadcast_to(values[2], (24, 11, 3)))
-                    states.append(state)
-                state_tensor = torch.as_tensor(np.stack(states), device=task.device)
+            def command(current, tau, refs, previous, deterministic, base, zero_residual=False):
                 tau_tensor = torch.as_tensor(tau, device=task.device)
                 ref_tensor = torch.as_tensor(refs, device=task.device)
-                with torch.no_grad():
-                    encoded = retargeter(state_tensor, tau_tensor)
-                base = torch.zeros(N, 18, device=task.device)
-                base[:, list(ACTIVE)] = encoded[:, 0]
+                base = torch.as_tensor(np.asarray(base, np.float32), device=task.device)
                 obs = observation(current['q'], current['dq'], previous, current['obj'], current['velocity'],
                                   current['hand'], tau_tensor, ref_tensor)
                 with torch.no_grad():
                     distribution = actor.distribution(obs)
-                    delta = distribution.loc if deterministic else distribution.sample()
+                    if zero_residual:
+                        delta = torch.zeros(N, 12, device=task.device)
+                    else:
+                        delta = distribution.loc if deterministic else distribution.sample()
                     logp = distribution.log_prob(delta).sum(-1)
                     mean, std = distribution.loc, distribution.scale
                 applied = apply_residual(base, delta)
                 return applied, obs, delta, logp, mean, std
 
-            def episode(steps, starts, deterministic, collect):
+            def episode(steps, starts, deterministic, collect, zero_residual=False):
                 logs = {key: [] for key in ('q', 'dq', 'hand', 'obj', 'velocity', 'surface_gap',
                                             'support_gap', 'table_footprint', 'applied', 'delta')}
                 rows = []
@@ -340,9 +386,9 @@ def run_native(args, out, address, server):
                 previous = torch.zeros(N, 18, device=task.device)
                 for step in range(steps):
                     before = time.monotonic()
-                    tau, refs = ask(logs, starts, step)
+                    tau, refs, base = ask(logs, starts, step)
                     applied, obs, delta, logp, mean, std = command(
-                        current, tau, refs, previous, deterministic)
+                        current, tau, refs, previous, deterministic, base, zero_residual=zero_residual)
                     if not torch.isfinite(applied).all():
                         raise FloatingPointError('nonfinite residual command')
                     expected = pd_from_action(applied, current['q'], offset, scale)
@@ -375,12 +421,12 @@ def run_native(args, out, address, server):
                         state = gpu_state(args.gpu)
                         if set(state['pids']) - {os.getpid(), server.pid}:
                             raise RuntimeError('foreign GPU process during residual PPO')
-                        print(json.dumps(dict(step=step + 1, steps=steps, queries=queries,
+                        print(json.dumps(dict(step=step + 1, steps=steps, rpcs=queries, queries=queries * N,
                                               elapsed_s=time.monotonic() - started,
                                               step_s=time.monotonic() - before, gpu=state)), flush=True)
                 return logs, rows
 
-            logs, _rows = episode(DIAGNOSTIC, [0] * N, True, False)
+            logs, _rows = episode(DIAGNOSTIC, [0] * N, True, False, zero_residual=True)
             gaps = np.stack(logs['surface_gap'][1:])
             diagnostic_gap = float(gaps.min())
             manifest['diagnostic_min_gap_m'] = diagnostic_gap
@@ -396,27 +442,28 @@ def run_native(args, out, address, server):
                 actor_optimizer.param_groups[0]['lr'] = ACTOR_LR
                 # Each update is its own phase reset. Continuing the previous
                 # physics state walks off the end of the 543-frame clip.
-                place(PHASES)
-                _logs, rows = episode(ROLLOUT, PHASES, False, True)
+                place(phases)
+                _logs, rows = episode(ROLLOUT, phases, False, True)
                 batch = {key: torch.stack([row[key] for row in rows]) for key in
                          ('observation', 'delta', 'reward', 'value', 'done', 'logp', 'mean', 'std')}
                 result = update(actor, value_net, batch, torch.zeros(N, device=task.device),
                                 actor_optimizer, value_optimizer)
                 with torch.no_grad():
                     actor.log_std.clamp_(-5., -1.2)
-                result.update(update=index + 1, mean_reward=float(batch['reward'].mean()),
+                global_update = resume_updates + index + 1
+                result.update(update=global_update, mean_reward=float(batch['reward'].mean()),
                               residual_rms=float(batch['delta'].square().mean().sqrt()),
-                              elapsed_s=time.monotonic() - started, queries=queries,
+                              elapsed_s=time.monotonic() - started, rpcs=queries, queries=queries * N,
                               reward_terms={key: float(np.mean([row['terms'][key] for row in rows]))
                                             for key in rows[0]['terms']})
                 metrics.append(result)
                 print(json.dumps(result), flush=True)
                 with (out / 'monitor.jsonl').open('a') as stream:
                     stream.write(json.dumps(result) + '\n')
-                if (index + 1) % 25 == 0:
-                    torch.save(dict(schema='ref2dex.wam-residual-ppo.v1', update=index + 1,
+                if global_update % 25 == 0:
+                    torch.save(dict(schema='ref2dex.wam-residual-ppo.v1', update=global_update,
                                     actor=actor.state_dict(), value=value_net.state_dict(), alpha=ALPHA),
-                               out / f'update{index + 1:04d}.pt')
+                               out / f'update{global_update:04d}.pt')
             self.env_reset(torch.arange(N, device=task.device))
             if (task.start_times != 0).any():
                 raise ValueError('frame0 evaluation reset required')
@@ -449,7 +496,7 @@ def run_native(args, out, address, server):
             report = dict(status=conclusion, engineering_pass=True, diagnostic_min_gap_m=diagnostic_gap,
                           outcomes=outcomes, close_rise_m=close_rise, thrown=thrown,
                           eval_residual_rms=residual_rms, actor_parameter_change=change,
-                          updates=UPDATES, queries=queries, metrics=metrics,
+                          updates=resume_updates + UPDATES, rpcs=queries, queries=queries * N, metrics=metrics,
                           final_checkpoint_sha256=sha(out / 'final.pt'),
                           claim='one airplane frame-0 residual rollout; probe label only')
             write(out / 'result.json', report)

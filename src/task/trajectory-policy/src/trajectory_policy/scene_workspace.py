@@ -21,12 +21,15 @@ def mask_scene_outliers(batch, origin, voxel_size, limit=8):
     grid = torch.floor((xyz.float() - origin) / float(voxel_size))
     finite = torch.isfinite(xyz).all(-1)
     outside = valid & (~finite | (grid < 0).any(-1) | (grid > MAX_SERIALIZED_GRID_COORD).any(-1))
-    dropped = int(outside.sum())
-    if dropped == 0:
-        return 0
+    # The limit is per environment. A batched forward must not inherit the sum.
+    row_dropped = outside.sum(dim=1)
     kept = valid & ~outside
-    if dropped > limit or not bool(kept.any()):
+    row_kept = kept.sum(dim=1)
+    row_had = valid.any(dim=1)
+    bad = (row_dropped > limit) | (row_had & (row_kept == 0))
+    if bool(bad.any()):
         raise ValueError(
-            f'workspace outlier count {dropped} exceeds per-query limit {limit}')
+            f'workspace outlier count {int(row_dropped.max())} exceeds per-query limit {limit}')
     batch['point_valid'] = kept
-    return dropped
+    batch['_dropped_per_row'] = [int(value) for value in row_dropped]
+    return int(row_dropped.sum())

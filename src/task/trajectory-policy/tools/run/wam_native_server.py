@@ -59,7 +59,9 @@ def scene_patch_admission(packet, manifest, result):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--socket',type=Path,required=True)
+    p.add_argument('--socket',type=Path)
+    p.add_argument('--bench',action='store_true',
+                   help='time serial and batched forwards, then exit without a socket')
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--controls',type=int,default=542)
@@ -79,17 +81,26 @@ def main():
             raise ValueError('open query budget required')
     elif not 1<=a.controls<=542:
         raise ValueError('bounded controls required')
-    a.output=a.output.resolve();a.socket=a.socket.resolve()
+    a.output=a.output.resolve()
+    if a.bench:
+        if a.socket is not None:
+            raise ValueError('benchmark does not open a socket')
+        cache_root=a.output.parent
+    else:
+        if a.socket is None:
+            raise ValueError('socket required')
+        a.socket=a.socket.resolve()
+        cache_root=a.socket.parent
+        if (ROOT/'tmp' not in a.socket.parents or a.socket.exists()
+                or len(os.fsencode(str(a.socket)))>=108):
+            raise ValueError('fresh task-owned execution/server output and short project socket required')
     if (a.output.exists() or ROOT/'outputs/trajectory-policy' not in a.output.parents
-            or 'wam-ref2-execution-' not in a.output.parent.name
-            or ROOT/'tmp' not in a.socket.parents or a.socket.exists()
-            or len(os.fsencode(str(a.socket)))>=108):
+            or 'wam-ref2-execution-' not in a.output.parent.name):
         raise ValueError('fresh task-owned execution/server output and short project socket required')
-    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(a.socket.parent),
-                      TRITON_CACHE_DIR=str(a.socket.parent/'triton'))
+    os.environ.update(CUDA_VISIBLE_DEVICES=str(a.gpu),TMPDIR=str(cache_root),
+                      TRITON_CACHE_DIR=str(cache_root/'triton'))
     import torch
-    from trajectory_policy.wam_shadow import robot_goal_sample,active_hand_tau
-    from goal_point_wam.data import goal_collate
+    from trajectory_policy.wam_shadow import active_hand_tau
     from oakink_wm.pointworld_performance import install_fused_hilbert
     torch.set_num_threads(2)
     torch.manual_seed(292)
@@ -132,6 +143,7 @@ def main():
     install_fused_hilbert()
     model=module.GoalPointWAM(json.loads(stats.read_text()),state['config']).cuda().eval()
     model.load_state_dict(state['model'],strict=True)
+    conditioned_actor=None
     if reference_mode:
         from trajectory_policy.student_pd import student_control_identity
         from goal_point_wam.reference_adapter import ReferenceAdapter
@@ -171,7 +183,8 @@ def main():
         control_identity,control_packet=control_admission(a.control_checkpoint,effect_identity,r_identity)
         adapter=None
         if control_packet is not None:
-            from goal_point_wam.control_context import RobotControlAdapter,conditioned_actor
+            from goal_point_wam.control_context import RobotControlAdapter
+            from goal_point_wam.control_context import conditioned_actor as conditioned_actor
             adapter=RobotControlAdapter().cuda().eval().requires_grad_(False)
             adapter.load_state_dict(control_packet['adapter'],strict=True)
             model.trajectory.load_state_dict(control_packet['trajectory'],strict=True)
@@ -184,6 +197,14 @@ def main():
     canonical_path=ROOT/'outputs/consequence-evaluator/old-utility-pw-20261009-r2/canonical.npz'
     with np.load(canonical_path,allow_pickle=False) as stream:
         canonical={k:stream[k].copy() for k in stream.files}
+    chunk_net=None
+    if a.chunk_dir and not reference_mode:
+        from trajectory_policy.chunk_retargeter import load_chunk
+        chunk_packet=torch.load(r_identity['checkpoint'],map_location='cuda',weights_only=False)
+        chunk_net=load_chunk(chunk_packet,'cuda')
+        for parameter in chunk_net.parameters():
+            parameter.requires_grad_(False)
+        del chunk_packet
     support=ROOT/'src/task/cm-pointflow-effect-pretrain/src/oakink_wm'
     vendor=ROOT/'third_party/PointWorld'
     implementation=[support/name for name in ('model.py','data.py','pointworld.py','pointworld_performance.py')]
@@ -192,7 +213,12 @@ def main():
     implementation += [TASK/'src/trajectory_policy/wam_scene_patch.py',
                        TASK/'src/trajectory_policy/scene_workspace.py']
     implementation += [TASK/'src/trajectory_policy/wam_retargeter_admission.py']
-    implementation += [TASK/'src/trajectory_policy/wam_joint.py']
+    implementation += [TASK/'src/trajectory_policy/wam_joint.py',
+                       TASK/'src/trajectory_policy/wam_batch.py']
+    if chunk_net is not None:
+        implementation += [TASK/'src/trajectory_policy/chunk_retargeter.py',
+                           TASK/'src/trajectory_policy/learned_retargeter.py',
+                           TASK/'src/trajectory_policy/retargeter_data.py']
     if patch_identity['applied']:
         implementation += [TASK/'tools/run/calibrate_wam_robot_startup.py']
     hashes={str(path):sha(path) for path in (Path(__file__),TASK/'src/trajectory_policy/wam_ipc.py',
@@ -212,6 +238,13 @@ def main():
         for path in (TASK/'src/trajectory_policy/student_pd.py',
                      ROOT/'src/task/goal-point-wam/src/goal_point_wam/reference_adapter.py'):
             hashes[str(path)]=sha(path)
+    if a.bench:
+        from trajectory_policy.wam_batch import run_forward_benchmark
+        report=run_forward_benchmark(model,adapter,canonical,reference_mode,conditioned_actor,chunk_net)
+        a.output.mkdir(parents=True,exist_ok=False)
+        write(a.output/'bench.json',report)
+        print(json.dumps(report),flush=True)
+        return
     a.output.mkdir(parents=True,exist_ok=False)
     if a.socket.exists() or ROOT/'tmp' not in a.socket.resolve().parents:
         raise ValueError('fresh project-owned socket required')
@@ -233,81 +266,78 @@ def main():
         with connection:
             status['client_pid']=peer_pid(connection)
             send(connection,status)
+            from trajectory_policy.scene_workspace import mask_scene_outliers
+            from trajectory_policy.wam_batch import MAX_BATCH, chunk_base, collate_robot_batch, predict_trajectory, request_rows
+            goal_key='reference_goal' if reference_mode else 'robot_goal'
+            # Open queries visit phase resets, which can put a few more
+            # points outside the grid than a frame-0 episode. The limit is
+            # per row, so a batch does not sum four environments together.
+            outlier_limit=64 if a.open_queries else 8
             for query in range(a.controls):
                 request=receive(connection)
-                fields={'tick','object_history','hand_history','planned_object_goal'}
-                goal_key='reference_goal' if reference_mode else 'robot_goal'
-                if adapter is not None:fields|={'proprio',goal_key}
-                if set(request)!=fields:
-                    raise ValueError('live H4/object-goal-only request required')
-                if a.open_queries:
-                    if not isinstance(request['tick'], int) or not 0<=request['tick']<=542:
-                        raise ValueError('open query tick outside the demonstration')
-                elif request['tick']!=query:
-                    raise ValueError('live H4/object-goal-only sequential request required')
+                rows,batched=request_rows(request,goal_key,adapter is not None,a.open_queries,query)
                 if time.monotonic()-began>(14400 if a.open_queries else 600):
                     raise TimeoutError('bounded WAM inference server deadline')
                 before=time.monotonic()
-                sample=robot_goal_sample(np.asarray(request['object_history'],np.float32),
-                    np.asarray(request['hand_history'],np.float32),
-                    np.asarray(request['planned_object_goal'],np.float32),canonical,sample_id=query)
-                batch={k:v.cuda() for k,v in goal_collate([sample]).items()}
-                if adapter is not None:
-                    for key in ('proprio',goal_key):
-                        value=np.asarray(request[key],np.float32)
-                        if not np.isfinite(value).all():raise ValueError('nonfinite robot context')
-                        batch[key]=torch.tensor(value[None],device='cuda')
-                    batch['robot_mask']=torch.ones(1,device='cuda',dtype=torch.bool)
-                if query==0:
-                    rng_cpu=torch.get_rng_state();rng_gpu=torch.cuda.get_rng_state()
-                from trajectory_policy.scene_workspace import mask_scene_outliers
-                # Open queries visit phase resets, which can put a few more
-                # points outside the grid than a frame-0 episode. A shifted
-                # cloud still aborts.
+                batch=collate_robot_batch(rows,canonical,goal_key,query*MAX_BATCH,adapter is not None)
                 dropped=mask_scene_outliers(batch, model.scene.voxel_origin_m, float(model.scene.voxel_size_m),
-                                            limit=64 if a.open_queries else 8)
+                                            limit=outlier_limit)
+                dropped_rows=list(batch.get('_dropped_per_row',[0]*len(rows)))
                 if dropped:
                     status['workspace_points_dropped']=status.get('workspace_points_dropped',0)+dropped
-                with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
-                    scene=model.scene(batch)
-                    tokens,mask=model.goal(batch['start_object_points'],batch['goal_object_points'],batch['object_goal_valid'])
-                    raw=model.observed_hand_condition(batch)
-                    context=(scene,tokens,mask,raw)
-                    if reference_mode:
-                        residual=adapter(batch['proprio'],batch['reference_goal'],batch['robot_mask']).to(raw.dtype)
-                        prediction=model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,
-                                                    raw+residual[:,None,None]).float()
-                    elif adapter is not None:
-                        prediction=conditioned_actor(model,context,adapter,batch).float()
-                    else:
-                        prediction=model.trajectory(scene['scene_tokens'],scene['scene_mask'],tokens,mask,raw).float()
-                tau=active_hand_tau(prediction.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())[0]
                 if query==0:
+                    rng_cpu=torch.get_rng_state();rng_gpu=torch.cuda.get_rng_state()
+                prediction=predict_trajectory(model,adapter,batch,reference_mode,conditioned_actor)
+                tau=active_hand_tau(prediction.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())
+                if query==0:
+                    # The actor-vs-full-model check stays on one row. A second
+                    # full-batch forward would double the first-step activation.
                     torch.set_rng_state(rng_cpu);torch.cuda.set_rng_state(rng_gpu)
+                    one=collate_robot_batch(rows[:1],canonical,goal_key,query*MAX_BATCH,adapter is not None)
+                    mask_scene_outliers(one, model.scene.voxel_origin_m, float(model.scene.voxel_size_m),
+                                        limit=outlier_limit)
+                    one_prediction=predict_trajectory(model,adapter,one,reference_mode,conditioned_actor)
+                    one_tau=active_hand_tau(one_prediction.cpu().numpy(),one['start_hand_valid'].cpu().numpy())[0]
                     hook=None
                     if adapter is not None:
                         with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
-                            residual=adapter(batch['proprio'],batch[goal_key],batch['robot_mask']).to(raw.dtype)
-                        # Independent full-WAM forward with the same additive
-                        # robot query condition; World still receives no goal.
+                            raw_one=model.observed_hand_condition(one)
+                            residual=adapter(one['proprio'],one[goal_key],one['robot_mask']).to(raw_one.dtype)
                         hook=model.trajectory.register_forward_pre_hook(
                             lambda _,args: (*args[:4],args[4]+residual[:,None,None]))
                     with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
-                        direct=model(batch)['trajectory'].float()
+                        direct=model(one)['trajectory'].float()
                     if hook is not None:hook.remove()
-                    direct_tau=active_hand_tau(direct.cpu().numpy(),batch['start_hand_valid'].cpu().numpy())[0]
-                    error=float(np.max(np.abs(tau-direct_tau)))
+                    direct_tau=active_hand_tau(direct.cpu().numpy(),one['start_hand_valid'].cpu().numpy())[0]
+                    error=float(np.max(np.abs(one_tau-direct_tau)))
                     if error>1e-5:
                         raise ValueError('batch1 original-model vs server actor-only equivalence failed')
                     status['first_query_direct_max_error_m']=error
                     write(a.output/'status.json',status)
+                base=None
+                if chunk_net is not None and 'retarget_state' in rows[0]:
+                    base=chunk_base(chunk_net,rows,tau)
                 latency=time.monotonic()-before
-                reply_tick=request['tick'] if a.open_queries else query
-                send(connection,dict(schema=SCHEMA,tick=reply_tick,tau=tau.tolist(),elapsed_s=latency,
-                                     anchor_object_pose=request['object_history'][-1],
-                                     workspace_points_dropped=dropped))
+                if batched:
+                    responses=[]
+                    for index,row in enumerate(rows):
+                        item=dict(env_id=row['env_id'],tick=row['tick'],tau=tau[index].tolist(),
+                                  anchor_object_pose=row['object_history'][-1],
+                                  workspace_points_dropped=dropped_rows[index])
+                        if base is not None:
+                            item['base_action']=base[index].tolist()
+                        responses.append(item)
+                    send(connection,dict(schema=SCHEMA,batch=True,elapsed_s=latency,responses=responses))
+                else:
+                    reply_tick=rows[0]['tick'] if a.open_queries else query
+                    reply=dict(schema=SCHEMA,tick=reply_tick,tau=tau[0].tolist(),elapsed_s=latency,
+                               anchor_object_pose=rows[0]['object_history'][-1],
+                               workspace_points_dropped=dropped_rows[0])
+                    if base is not None:
+                        reply['base_action']=base[0].tolist()
+                    send(connection,reply)
                 with (a.output/'latency.jsonl').open('a') as stream:
-                    stream.write(json.dumps(dict(tick=query,elapsed_s=latency))+'\n')
+                    stream.write(json.dumps(dict(tick=query,elapsed_s=latency,batch=len(rows)))+'\n')
                 status['queries']=query+1
             if any(sha(path)!=digest for path,digest in hashes.items()):
                 raise ValueError('frozen server source/input drift')
@@ -317,11 +347,12 @@ def main():
         status.update(status='FAILED',error=repr(error),elapsed_s=time.monotonic()-began)
         try:
             if request is not None:
+                payload=request['batch'][0] if isinstance(request.get('batch'),list) and request['batch'] else request
                 write(a.output/'failed_request.json',request)
-                failed={key:np.asarray(request[key],np.float32) for key in
-                        ('object_history','hand_history','planned_object_goal') if key in request}
+                failed={key:np.asarray(payload[key],np.float32) for key in
+                        ('object_history','hand_history','planned_object_goal') if key in payload}
                 np.savez_compressed(a.output/'failed_request.npz',**failed)
-                status.update(failed_query=request.get('tick'),failed_request_sha256=sha(a.output/'failed_request.npz'))
+                status.update(failed_query=payload.get('tick'),failed_request_sha256=sha(a.output/'failed_request.npz'))
                 status['failed_request_json_sha256']=sha(a.output/'failed_request.json')
                 if 'batch' in locals():
                     valid_xyz=batch['xyz'][batch['point_valid']]

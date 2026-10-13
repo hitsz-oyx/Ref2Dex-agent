@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [292, 296]
 decision_changed_if_positive: keep this frozen WAM+old-chunk pair and spend a longer residual-PPO budget on airplane
 decision_changed_if_negative: stop this alpha and reward, and do not add a world critic on top of a residual that still throws
-status: UNCLEAR
-run_id: wam-ref2-execution-rppo-20261013-r2
+status: UNPROMISING
+run_id: wam-ref2-execution-rppo-20261013-r5
 ---
 
 # Residual PPO on the frozen context pair
@@ -80,3 +80,51 @@ The frame-0 gate is unchanged. World and R stay frozen.
 `wam-ref2-execution-rppo-20261013-r3` stopped in update 5. The phase-reset
 function was never called, so physics continued from frame 0 and hit the end
 of the clip. `r4` calls that reset at every update.
+
+## Batched inference
+
+`r4` was still querying one environment at a time. It was stopped during
+update 70. The kept weights are `update0050.pt`; updates 51–70 were not
+checkpointed. WAM weights are 52M parameters, 0.19 GiB. A forward benchmark
+on GPU0 (`wam-ref2-execution-rppo-bench-20261013-r1`) compared the same four
+scenes:
+
+| mode | group wall | samples/s | peak GPU |
+|---|---:|---:|---:|
+| serial-4 | 262 ms | 15.2 | 555 MiB |
+| batch-2×2 | 162 ms | 24.7 | 557 MiB |
+| batch-4 | 92 ms | 43.7 | 557 MiB |
+| batch-8 | 113 ms | 71.1 | 581 MiB |
+| batch-16 | 161 ms | 99.5 | 601 MiB |
+| batch-32 | 252 ms | 127 | 661 MiB |
+
+Batch 4 is 2.9× the serial-4 rate. Batch 32 did not run out of memory.
+Against the matching serial rows, the largest trajectory difference was
+1.46 mm and the largest base-action difference was 5.2e-4. That is bf16
+batch noise, not a swapped row. `r5` therefore uses one batch-8 WAM+R
+call per physics step, eight environments, and resumes from update 50 for
+150 further updates. The frame-0 zero-residual gate is unchanged. World
+and R weights stay frozen.
+
+`r5` passed that gate: the zero-residual diagnostic gap was 0.42 mm, and
+the server base action matched native R within 4.7e-5. One control step
+is about 0.17 s, against about 0.27 s for the old 4-env serial step, so
+environment steps per second are about 3×. GPU0 stays near 18.7 GB:
+Isaac about 18034 MiB, the WAM server about 602 MiB. The earlier 18.6 GB
+reading was this Isaac allocation, not WAM weights. Utilization during
+the step is about 24%. Batch 16 and 32 still fit in the WAM process;
+they were not used for this run.
+
+## Completed long run
+
+`r5` finished 200 updates on GPU0 in 2562 s. The frame-0 evaluation is
+UNPROMISING for this alpha and reward. Eval residual rms is 0.136. The best
+environment held 5 frames, rose 93 mm while close, then left the table
+(terminal −765 mm). Other copies stayed on the table with almost no lift.
+Hold 45 did not occur.
+
+Reward and the hold fraction were flat from update 51 through 200: hold
+stayed near 0.006–0.010 of each rollout, mean reward between −0.03 and
+−0.01. Residual rms crept from 0.155 to 0.209, so the weights were still
+moving, but the task outcome was not. Another block of the same updates is
+not the next step.
