@@ -106,3 +106,25 @@ retaining original late50/56/62 as diagnostic negatives. Only hold45 expert
 continuations with unclipped exact future24 enter success-directed fitting.
 Family3 remains entirely held out. Thus total collection can include27 states,
 with eligible training count determined by actual recovery, never fabricated.
+
+
+## ref3_2 steering and baseline scope
+
+User asks whether paired robot fine-tuning is worth trying. Primary-paper and
+local-history assessment is recorded in
+[PointWAM joint audit](../../../../../../paper/pointwam/robot-joint-finetune-primary-audit-20261012.md).
+The current collect→fixed-R→actor loop remains the bounded control; no new joint
+arm or larger training is launched merely by this question. Both approaches
+can reuse exactly the same same-row recovery corpus. Proposed next decision
+comparison first removes frozen-World effect loss with R fixed, then tests
+joint R updating with GT-tau mapping anchoring if still necessary. Changing
+buffer execution or adding a shared scene head would be separate variables.
+
+
+Collection wave3 f3/t38 aborts during startup: du observed a Triton temporary
+cubin removed/renamed during traversal. This is an engineering false abort,
+not policy failure; the worker consequently never ran f3/t44. Preserve both
+the partial wave and failed trace. Launcher disk measurement now retries only
+ENOENT (maximum3), rejects permission errors/persistent races and never admits
+a partial du count. Two regression tests pass. Retry only38/44 in fresh r3
+source directories; original physics, checkpoints and resource caps unchanged.

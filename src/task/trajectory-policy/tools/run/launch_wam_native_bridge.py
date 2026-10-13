@@ -15,6 +15,19 @@ sys.path[:0]=[str(TASK/'tools/audit'),str(TASK/'src')]
 from audit_wam_ref2_shadow import sha,write
 
 
+def directory_bytes(*paths):
+    """Retry only ENOENT races from live compiler caches; keep budget failures fatal."""
+    command=['du','-sb',*map(str,paths)]
+    for attempt in range(3):
+        result=subprocess.run(command,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                              env=dict(os.environ,LC_ALL='C'))
+        if result.returncode==0:return sum(int(line.split()[0]) for line in result.stdout.splitlines())
+        lines=result.stderr.splitlines()
+        transient=result.returncode==1 and lines and all('No such file or directory' in line for line in lines)
+        if not transient or attempt==2:
+            raise subprocess.CalledProcessError(result.returncode,command,result.stdout,result.stderr)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
@@ -117,10 +130,10 @@ def main():
         paths += [ROOT/'tmp/trajectory-policy/wam-robot-head']
         if a.experiment_id in ('P-20261012-goal-point-wam-ref2-joint-retargeter','P-20261012-goal-point-wam-ref22-gt-anchored','P-20261012-goal-point-wam-ref22-multitakeover','P-20261012-goal-point-wam-ref23-multitakeover-fit'):
             paths += [p for p in (ROOT/'tmp/trajectory-policy').glob('wam*') if p.name!='wam-robot-head']
-        size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in paths if path.exists())
+        size=sum(directory_bytes(path) for path in paths if path.exists())
         if a.effect_checkpoint:
-            size=sum(int(subprocess.check_output(['du','-sb',str(path)],text=True).split()[0]) for path in (out,scratch))
-            total=sum(int(line.split()[0]) for line in subprocess.check_output(['du','-sb',str(ROOT/'outputs'),str(ROOT/'tmp')],text=True).splitlines())
+            size=directory_bytes(out,scratch)
+            total=directory_bytes(ROOT/'outputs',ROOT/'tmp')
             if total>=400_000_000_000:raise RuntimeError('global400GB artifact cap')
         if size>=status['artifact_limit_bytes']:
             raise RuntimeError('combined ref2 artifacts>=%dMB' % (artifact_limit//1_000_000))

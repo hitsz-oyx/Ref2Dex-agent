@@ -11,6 +11,7 @@ PYTHON='/home2/wyy/miniconda3/envs/graspenv/bin/python'
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--families',type=int,nargs='+',default=[0]);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--run-suffix',choices=('r2','r3'),default='r2')
     p.add_argument('--ticks',type=int,nargs='+',default=[32,38,44,50,56,62])
     a=p.parse_args();out=a.output.resolve()
     if any(t<32 or t>80 for t in a.ticks):raise ValueError('bounded contact ticks required')
@@ -23,7 +24,7 @@ def main():
         entries=[]
         for family,tick in assigned:
             if time.monotonic()-started>1800:raise TimeoutError('1800s collection wave budget')
-            run=ROOT/f'outputs/trajectory-policy/wam-ref2-execution-v32-f{family}-t{tick}-r2'
+            run=ROOT/f'outputs/trajectory-policy/wam-ref2-execution-v32-f{family}-t{tick}-{a.run_suffix}'
             shift=((0,0,0),(.5,0,0),(-.5,0,0),(0,.5,0))[family]
             cmd=[PYTHON,str(TASK/'tools/run/launch_wam_native_bridge.py'),'--output',str(run),'--gpu',str(gpu),'--controls','128','--expert-recovery','--own-row-recovery','--takeover-tick',str(tick),'--prefix-xyz-mm',*map(str,shift),'--experiment-id',manifest['experiment_id'],'--head-dir',str(ROOT/'outputs/trajectory-policy/wam-ref2-joint-multitakeover-20261012-r1'),'--chunk-dir',str(ROOT/'outputs/trajectory-policy/wam-ref31-own-R-20261013-r1'),'--effect-checkpoint',str(ROOT/'outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/checkpoint_step50500.pt'),'--control-checkpoint',str(ROOT/'outputs/goal-point-wam/wam-control-context-20261013-r3/stage2_step4500.pt'),'--allow-repaired-chunk']
             with (out/f'f{family}-t{tick}.log').open('w') as log:
