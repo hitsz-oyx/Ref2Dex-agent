@@ -5,7 +5,7 @@ experiment_id: P-20261013-ptv3-shared-main3-80k
 date: 2026-10-13
 task: ptv3-shared-wam
 branch: main
-git_commit: 63bde79a
+git_commit: 8510ec3a
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-task-forecaster
 probe_index_in_family: 1
@@ -14,7 +14,7 @@ seeds: [100]
 decision_changed_if_positive: transfer the trained shared forecaster into airplane full-pair adaptation
 decision_changed_if_negative: inspect the forecast contract and data before spending on robot adaptation
 status: RUNNING
-run_id: pretrain-main3-ddp4-80k-20261013-r1
+run_id: pretrain-main3-ddp4-80k-20261013-r2
 ---
 
 # 四卡三域共享预测器预训练：80,000 updates
@@ -147,7 +147,15 @@ legacy传输张量。worker IPC使用项目短路径，避免长run/rank名超�
 `prefetch_migration.json`。工程记录：`engineering-loader4-batch128-20261013-r2`、
 `engineering-loader-resume-continuous-20261013-r1`、`engineering-loader-resume-restored-20261013-r1`。
 旧loader prototype r1没有完成首步，发现项目长socket路径问题后停止；不作学习负证据。
-实际切换commit/PID/性能回填本卡。
+实际切换已完成，代码commit `8510ec3a`。从r1 `step2000.pt`恢复模型、优化器和每rank RNG，
+新run r2的manifest记录resume_parent及PW初始化来源，验证曲线延续。新监督PID2062864，
+worker PID2063036–2063039，GPU4/5/6/7、global512、目标仍step80000。
+原r1的进程退出由此次切换引起，不是方法负证据；原checkpoint/日志完整保留。
+观察至2040：稳定0.965–1.006秒/update、509–530样本/秒，data_wait约1.24ms；
+原r1稳定约1.83秒/update、280样本/秒。观察至2140仍约0.97秒/update、527样本/秒、
+取batch等待约1.2ms。新30秒dmon窗口四卡均值90.7/90.6/89.8/89.8%，
+旧窗口40.3/40.4/40.6/42.9%。早期吞吐约1.8–1.9倍，剩余ETA约21小时。
+这是工程性能结果，不是抓取或学习效果结论。
 
 ## Limitations / future evidence
 

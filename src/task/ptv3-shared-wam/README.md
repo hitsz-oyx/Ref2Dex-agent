@@ -60,13 +60,36 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
   --output outputs/ptv3-shared-wam/<fresh-run-id>
 ```
 
+数据管线可通过 `--loader-workers 4 --loader-prefetch 2 --sequence-cache 512 --pin-memory`
+启用。workers使用spawn并长期复用；每source/worker的序列缓存有界，不重写数据。
+每步抽样仍只由seed/step/rank确定，worker顺序和预取不消耗模型主RNG。
+运行参数记录在provenance.execution，模型config保持不变，旧checkpoint可按相同recipe续训。
+
 每1,000步验证，每2,000步保存恢复点；保留step1、每20k里程碑和最近一个恢复点，
 只移除当前run登记表中被替代的非里程碑文件。默认旧配置仍保留全部checkpoint。
 源码固定，wall-time硬上限7天，单run4GB/共享400GB预算不变。
 监督进程独立于当前终端，保存PID、退出码、GPU快照和30分钟无进展检查；
 只向它自己创建的torchrun进程组发送停止信号。
 训练目录的 `progress.json`、`process.json`、`launcher.log`、`gpu.jsonl` 可查看进度；
-`checkpoint_files.json`登记当前保留的恢复文件。直接torchrun入口仍支持 `--resume`。
+`checkpoint_files.json`登记当前保留的恢复文件。直接torchrun入口仍支持 `--resume`。优化版可从旧运行完整恢复点继续：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python src/task/ptv3-shared-wam/tools/run/launch_pretrain.py \
+  --detach --gpus 4,5,6,7 \
+  --config src/task/ptv3-shared-wam/configs/pretrain_80k.json \
+  --experiment-card src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md \
+  --resume outputs/ptv3-shared-wam/pretrain-main3-ddp4-80k-20261013-r1/step2000.pt \
+  --loader-workers 4 --loader-prefetch 2 --sequence-cache 512 --pin-memory \
+  --output outputs/ptv3-shared-wam/<fresh-resumed-run>
+```
+
+本次已由 `switch_prefetch_at_checkpoint.py` 在step2000边界完成切换，原产物保留。
+当前run为 `pretrain-main3-ddp4-80k-20261013-r2`，代码8510ec3a，目标仍总step80000。
+四卡稳定约0.97–1.01秒/update、510–530样本/秒，取batch等待约1.2ms；
+30秒平均GPU利用率约90%，原同步版本约40–43%。数据tensor/RNG一致性和恢复检查见实验卡。
+主训练代码的延后补丁仅在旧进程组退出后应用；切换状态见原run scratch的
+`prefetch_migration.json`。worker IPC目录使用短的项目 `tmp/lw-<pid>/` 路径，
+避免长run/rank路径超过Linux Unix-socket限制。
 
 大batch工程验证可使用 `--smoke --smoke-batch-size 128`，四步且不用于科学初始化。
 单卡64和128、四卡128都已通过；四卡稳定约2.1–2.25秒/步、约230–245样本/秒，

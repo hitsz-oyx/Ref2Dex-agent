@@ -626,7 +626,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNPROMISING |
 
 ## HF-weak-temporal-value
 
