@@ -59,7 +59,26 @@ ref1_2当前20个合同测试通过，覆盖goal影响共享表示及双头、31
 scene损失进入GoalTokenEncoder但不进入hand head、时间/目标分组指标、goal-only基线与旧路由拒绝。
 评估每个source自动输出scene h1/first8/middle（9–16）/h24/all24，并分别统计target/non-target。
 `goal_only/scene_*`基线只把终点delta按j/24插值，非目标静止；终点指标不独立代表动态学习。
-新路由的GPU工程smoke待当前提交固定后运行，不启动正式长训。
+新路由的GPU工程smoke已完成，运行代码固定为 `5453d03a`；使用空闲GPU1。
+GPU0启动前被外部任务占用，资源检查退出后换卡，没有停止外部进程。
+
+| ref1_2共享goal工程检查 | run_id |
+|---|---|
+| 真实三域四步预训练 | `engineering-shared-goal-pretrain-20261013-r1` |
+| 机器人四步联合微调 | `engineering-shared-goal-robot-20261013-r1` |
+| 共享goal四步原生执行＋独立审计 | `engineering-shared-goal-native-20261013-r1` |
+
+预测器51,407,878参数，机器人pair51,991,314参数。三域smoke的hand/scene到goal梯度
+范数分别为0.00660/0.01492；机器人对应为0.01391/0.01333，双方均到达真实PTv3和
+interaction。scene→hand head无梯度；predicted-action更新forecaster与R，
+GT-anchor→forecaster为0、→R非零。单样本训练显存约1.4GB；各4步更新与验证约4.5秒，
+不含初始化。原生组约33秒完成，峰值观测显存约18.7GB，两个runtime退出码均为0。
+独立数组审计 `pass=true`，PD/chunk/自身H4/R-state/计划goal核对误差均为0。
+
+每个source的新指标与goal-only基线均已落入预训练 `curve.json`；无non-target样本的
+类别保留 `mean_mm=null,count=0`。三域target h24的goal-only误差接近数值零，这是
+输入终点的代数结果；其first8/middle仍可能有误差，不将短smoke分数解释为学习效果。
+本轮没有启动正式长训或完整抓取评估。
 
 历史ref1_1更新后17个合同测试通过，覆盖delta的平移/旋转、有效性掩码、精确6D编码、
 hand-only goal路由及旧checkpoint拒绝加载。GPU工程记录如下；只验证接口/梯度，不证明抓取收益。
