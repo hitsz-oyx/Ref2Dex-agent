@@ -14,7 +14,7 @@ seeds: [300, 301]
 decision_changed_if_positive: retain association weighting for a longer matched human-pretraining comparison
 decision_changed_if_negative: defer weighting expansion and prioritize robot own-state coverage
 status: RUNNING
-run_id: wam-ref31-actor-weight-20261013-r1
+run_id: wam-ref31-actor-weight-20261013-r2
 ---
 
 # Independent OakInk actor-weight short A/B
@@ -56,3 +56,15 @@ Limitations/future evidence: single seed, short warm-start, geometric proxy,
 small held-out panel; null signal does not refute association quality. Actual
 robot outcome/Cm utility and GRAB/ARCTIC far-to-contact admission changes are
 outside this independent comparison and deferred.
+
+## Engineering correction before completed comparison
+
+r1 original300 finished, second arm stopped before its first optimizer update:
+first-batch World differed under nondeterministic GPU reduction. One-update
+smokes1/2 reproduced it with identical input/RNG and initial parameter identity;
+smoke2 actor trajectory difference0, World translation/rotation up to.0084m/
+.026 component, World loss relative3.1e-5. Enabling deterministic algorithms
+and CUBLAS_WORKSPACE_CONFIG=:4096:8 made smoke3 all predictions/loss exactly
+identical. r2 reruns both300-update arms with original strict loss1e-7 and
+prediction1e-6 checks, identical input/RNG checks. No scientific gate relaxed.
+Incomplete r1/smokes are engineering records, not paired research evidence.
