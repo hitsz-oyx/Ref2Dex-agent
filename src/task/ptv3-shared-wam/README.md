@@ -1,6 +1,7 @@
 # PTv3-Shared-WAM
 
-实现依据是 [ref1.md](docs/user/ref/ref1.md)。实际模型、张量合同、损失与执行语义见
+实现依据是 [ref1.md](docs/user/ref/ref1.md)，goal按[ref1_1.md](docs/user/ref/ref1_1.md)更新。
+实际模型、张量合同、损失与执行语义见
 [架构.md](docs/user/架构.md)。本 Task 单独实现共享预测器，不修改其他 Task 的模型或训练入口。
 
 ## 入口
@@ -36,6 +37,12 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
 机器人初阶段默认无 human replay；通过 robot config 的 `replay_fraction` 开启后续混合阶段。
 人类样本只计算手/场景损失，不生成或使用机器人动作标签。
 
+当前goal是32个 `[当前点, t+24目标点−当前点]` 6D token，加可训练target embedding，
+仅进入hand branch。三域/机器人/在线入口共用 `shared_collate` 的endpoint→delta转换，
+不使用+8/+16 waypoint或整任务最终位置。config明确标记
+`goal_encoding=current-point-horizon-delta.v1`；旧absolute-goal checkpoint默认拒绝加载/续训，
+不提供自动迁移。新goal模型可从原PW场景权重重新初始化。
+
 ## 验证
 
 ```bash
@@ -45,12 +52,24 @@ engineering checkpoint 不会静默进入科学微调或完整物理评估。
 CPU 合同测试使用可微场景接口 fixture；真实稀疏 PTv3、权重迁移和机器人梯度由
 GPU 工程 smoke 验证。工程 smoke 不能说明预训练已有效、策略能抓取或 Cm 有收益。
 
-当前验证记录：14个合同测试通过；双卡预训练与双卡robot+25%human replay各4步通过；
+ref1_1更新后17个合同测试通过，覆盖delta的平移/旋转、有效性掩码、精确6D编码、
+goal隔离及旧checkpoint拒绝加载。GPU工程记录如下；只验证接口/梯度，不证明抓取收益。
+
+| Delta-goal工程检查 | run_id |
+|---|---|
+| 真实三域四步预训练 | `engineering-delta-goal-pretrain-20261013-r1` |
+| 机器人四步联合微调 | `engineering-delta-goal-robot-20261013-r1` |
+| 在线delta-goal四步原生接线 | `engineering-delta-goal-native-20261013-r1` |
+
+三域/机器人各4步完成，hand与scene损失仍进入PTv3/共享trunk，GT锚定对forecaster梯度为0。
+原生两runtime正常退出；保存轨迹的PD/chunk/自身历史/计划goal由独立数组审计复核。
+
+历史absolute-goal版本：14个合同测试通过；双卡预训练与双卡robot+25%human replay各4步通过；
 从step2恢复至step4的参数最大差为 `3.47e-7`。
 原生工程入口默认4步；`--smoke --controls 16`允许验证完整8步buffer的两次查询，
 仍不评价抓取效果。
 
-| 最终工程检查 | run_id |
+| 历史absolute-goal工程检查 | run_id |
 |---|---|
 | 双卡共享预训练 | `engineering-ddp-pretrain-20261013-r2` |
 | 双卡机器人＋human replay | `engineering-ddp-robot-replay-20261013-r2` |

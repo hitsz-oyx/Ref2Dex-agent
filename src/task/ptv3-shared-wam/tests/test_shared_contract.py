@@ -6,7 +6,8 @@ import pytest
 import torch
 from torch import nn
 
-from ptv3_shared_wam.data import point_labels
+from ptv3_shared_wam.data import endpoint_delta, point_labels
+from ptv3_shared_wam.contracts import GOAL_ENCODING
 from ptv3_shared_wam.execution import ActionBuffer
 from ptv3_shared_wam.model import SharedWAM
 from ptv3_shared_wam.objectives import forecast_loss
@@ -47,6 +48,7 @@ def batch():
              trajectory_valid=torch.ones(2, 24, 2, 11, dtype=torch.bool),
              scene_target=torch.randn(2, 2, 24, 4, 3) * .02,
              scene_valid=torch.ones(2, 2, 24, 4, dtype=torch.bool))
+    b["goal_object_delta"] = endpoint_delta(b["start_object_points"], b["goal_object_points"], b["object_goal_valid"])
     return b
 
 
@@ -58,13 +60,13 @@ def test_goal_changes_hand_but_cannot_change_scene_or_shared_representation():
     net, b = model(), batch()
     before = net(b)
     z = net.encode(b)[0]
-    altered = dict(b, goal_object_points=b["goal_object_points"] + .2)
+    altered = dict(b, goal_object_delta=b["goal_object_delta"] + .2)
     after = net(altered)
     assert torch.equal(before["scene"], after["scene"])
     assert torch.equal(z, net.encode(altered)[0])
     assert not torch.equal(before["trajectory"], after["trajectory"])
-    goal = b["goal_object_points"].clone().requires_grad_()
-    prediction = net(dict(b, goal_object_points=goal))
+    goal = b["goal_object_delta"].clone().requires_grad_()
+    prediction = net(dict(b, goal_object_delta=goal))
     assert torch.autograd.grad(prediction["scene"].sum(), goal, allow_unused=True)[0] is None
     assert torch.autograd.grad(prediction["trajectory"].sum(), goal)[0].abs().sum() > 0
 
@@ -75,6 +77,7 @@ def test_future_labels_and_native_state_do_not_enter_forecasting():
     changed = dict(b, scene_target=torch.full_like(b["scene_target"], 100.),
                    trajectory_target=torch.full_like(b["trajectory_target"], -100.),
                    native_state=torch.randn(2, 87), native_tau=torch.randn(2, 24, 33),
+                   goal_object_points=torch.full_like(b["goal_object_points"], 100.),
                    action=torch.randn(2, 24, 22, 9), effect=torch.randn(2, 2, 24, 4, 4))
     after = net(changed)
     assert all(torch.equal(before[k], after[k]) for k in before)
@@ -107,6 +110,7 @@ def test_missing_hands_goals_and_padded_objects_cannot_leak_or_create_nan():
     dirty["start_hand_history"][:, 1] = float("nan")
     dirty["scene_points"][:, 1] = float("nan")
     dirty["goal_object_points"][:] = float("nan")
+    dirty["goal_object_delta"][:] = float("nan")
     dirty["start_object_points"][:] = float("nan")
     after = net(dirty)
     assert all(torch.equal(before[k], after[k]) and torch.isfinite(after[k]).all() for k in before)
@@ -199,15 +203,59 @@ def test_checkpoint_is_complete_distinct_and_immutable(tmp_path):
     net = model()
     path = tmp_path / "step1.pt"
     opt = torch.optim.AdamW(net.parameters(), lr=1e-4)
-    save_checkpoint(path, net, opt, {}, stats(), 1, "pretrain", dict(engineering_only=True))
+    config = dict(goal_encoding=GOAL_ENCODING)
+    save_checkpoint(path, net, opt, config, stats(), 1, "pretrain", dict(engineering_only=True))
     packet = load_checkpoint(path)
     restored = model()
     restored.load_state_dict(packet["model"], strict=True)
     b = batch()
     assert all(torch.equal(net(b)[key], restored(b)[key]) for key in ("scene", "trajectory"))
     with pytest.raises(FileExistsError):
-        save_checkpoint(path, net, opt, {}, stats(), 1, "pretrain", {})
+        save_checkpoint(path, net, opt, config, stats(), 1, "pretrain", {})
     wrong = tmp_path / "legacy.pt"
     torch.save(dict(schema="ref2dex.learned-native-retargeter.v1"), wrong)
     with pytest.raises(ValueError, match="full shared"):
         load_checkpoint(wrong)
+    legacy = tmp_path / "absolute-goal.pt"
+    old_packet = dict(packet, config={})
+    torch.save(old_packet, legacy)
+    with pytest.raises(ValueError, match="legacy absolute-goal"):
+        load_checkpoint(legacy)
+
+
+def test_goal_encoder_reads_current_and_delta_exactly_once_and_target_is_trainable():
+    net, b = model(), batch()
+    captured = []
+    handle = net.goal.point[0].register_forward_pre_hook(lambda module, args: captured.append(args[0].detach()))
+    prediction = net(b)
+    handle.remove()
+    torch.testing.assert_close(captured[0][..., :3], b["start_object_points"] / .05)
+    torch.testing.assert_close(captured[0][..., 3:], b["goal_object_delta"] / .05)
+    # Delta is not subtracted a second time, nor replaced with the raw endpoint.
+    assert not torch.equal(captured[0][..., 3:], b["goal_object_points"] / .05)
+    gradient = torch.autograd.grad(prediction["trajectory"].square().sum(), net.goal.target)[0]
+    assert torch.isfinite(gradient).all() and gradient.abs().sum() > 0
+
+
+def test_goal_delta_represents_translation_rotation_and_missing_pairs():
+    start = torch.tensor([[[1., 0., 0.], [0., 1., 0.], [float("nan")] * 3]])
+    rotation = torch.tensor([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
+    end = start @ rotation.T + torch.tensor([2., 3., 4.])
+    valid = torch.tensor([[True, True, False]])
+    delta = endpoint_delta(start, end, valid)
+    torch.testing.assert_close(delta, torch.tensor([[[1., 4., 4.], [1., 2., 4.], [0., 0., 0.]]]))
+    offset = torch.tensor([10., -20., 30.])
+    torch.testing.assert_close(delta, endpoint_delta(start + offset, end + offset, valid))
+    stationary = endpoint_delta(start, start, valid)
+    assert torch.isfinite(stationary).all() and not stationary.any()
+    with pytest.raises(ValueError, match="finite valid"):
+        endpoint_delta(start, end, torch.ones_like(valid))
+
+
+def test_paired_goal_permutation_preserves_hand_forecast():
+    net, b = model(), batch()
+    permutation = torch.tensor([2, 0, 3, 1])
+    changed = dict(b, start_object_points=b["start_object_points"][:, permutation],
+                   goal_object_delta=b["goal_object_delta"][:, permutation],
+                   object_goal_valid=b["object_goal_valid"][:, permutation])
+    torch.testing.assert_close(net(b)["trajectory"], net(changed)["trajectory"], atol=1e-6, rtol=1e-5)

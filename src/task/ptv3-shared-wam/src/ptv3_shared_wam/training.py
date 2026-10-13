@@ -13,6 +13,7 @@ from torch import nn
 import torch.distributed as distributed
 
 from .checkpoint import SCHEMA, atomic_json, directory_bytes, git_commit, load_checkpoint, save_checkpoint
+from .contracts import GOAL_ENCODING
 from .data import SharedWindows, shared_collate
 from .model import SharedWAM
 from .objectives import forecast_loss, forecast_metrics
@@ -186,6 +187,8 @@ def run(stage):
     config = json.loads(args.config.read_text())
     if config.get("schema") != SCHEMA:
         raise ValueError("shared-WAM config required")
+    if config.get("goal_encoding") != GOAL_ENCODING:
+        raise ValueError("config must specify the current-point/horizon-delta goal contract")
     if args.steps is not None:
         config["updates"] = args.steps
     experiment = None
@@ -232,7 +235,7 @@ def run(stage):
             raise ValueError("engineering checkpoints cannot silently initialize a scientific robot run")
         if parent["stats"] != stats:
             raise ValueError("robot input normalization differs from pretraining")
-        architecture = ("hidden", "horizon", "patch_size", "scene_tokens", "interaction_layers", "voxel_m", "voxel_origin_m", "object_points")
+        architecture = ("hidden", "horizon", "patch_size", "scene_tokens", "interaction_layers", "voxel_m", "voxel_origin_m", "object_points", "goal_encoding")
         if any(parent["config"].get(k) != config.get(k) for k in architecture):
             raise ValueError("robot stage changes the pretraining architecture")
         model = RobotPair(SharedWAM(stats, config))

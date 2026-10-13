@@ -49,8 +49,11 @@ def audit(path):
     state, _ = independent_features(d, query_ticks, np.full(controls, 2), dummy_future)
     check("own_R_state_at_query", d["R_state"], state)
     import torch
-    from ptv3_shared_wam.checkpoint import load_checkpoint
-    packet = load_checkpoint(manifest["checkpoint"])
+    # Metadata-only historical audit also accepts old goal contracts. It never
+    # instantiates a model or reinterprets legacy weights under the new goal.
+    packet = torch.load(manifest["checkpoint"], map_location="cpu", weights_only=False)
+    if packet.get("schema") != manifest["schema"] or packet.get("stage") != "robot":
+        raise ValueError("matching robot checkpoint metadata required")
     with np.load(packet["provenance"]["reference"], allow_pickle=False) as stream:
         reference = stream["obj"].copy()
     check("planned_goal_at_query", d["wam_goal"], reference[np.minimum(query_ticks + 24, len(reference) - 1)])

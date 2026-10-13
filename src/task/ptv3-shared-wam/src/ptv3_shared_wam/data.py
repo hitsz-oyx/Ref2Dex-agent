@@ -9,6 +9,26 @@ from goal_point_wam.data import GoalWindows, goal_collate
 from oakink_wm.multisource import MixedWindows, MAIN_SOURCE_NAMES
 
 
+def endpoint_delta(start, endpoint, valid):
+    """Convert paired current/t+24 points ONCE, in the same current frame.
+
+    Endpoint fields belong to the reused loader/pose transport. The forecaster
+    reads only current points and this delta; no waypoint or whole-task endpoint
+    is manufactured here. Sanitize missing pairs before subtraction.
+    """
+    if start.shape != endpoint.shape or start.shape[-1] != 3 or valid.shape != start.shape[:-1]:
+        raise ValueError("paired current/horizon endpoint points and matching mask required")
+    mask = valid.bool()[..., None]
+    start = torch.where(mask, start.float(), 0.)
+    endpoint = torch.where(mask, endpoint.float(), 0.)
+    if not torch.isfinite(start).all() or not torch.isfinite(endpoint).all():
+        raise ValueError("finite valid goal points required")
+    delta = endpoint - start
+    if not torch.isfinite(delta).all():
+        raise ValueError("nonfinite goal displacement")
+    return delta
+
+
 def point_labels(sample, point_count=32):
     """All points and all future transforms use the SAME current anchor frame."""
     points = np.asarray(sample["points"], dtype=np.float32)
@@ -48,6 +68,9 @@ class SharedWindows(torch.utils.data.Dataset):
 
 def shared_collate(samples):
     batch = goal_collate(samples)
+    # All providers (human, robot and online pose construction) share this path.
+    batch["goal_object_delta"] = endpoint_delta(batch["start_object_points"],
+        batch["goal_object_points"], batch["object_goal_valid"])
     count, objects = batch["object_valid"].shape
     points = samples[0]["scene_points"].shape[1]
     batch["scene_points"] = torch.zeros(count, objects, points, 3)

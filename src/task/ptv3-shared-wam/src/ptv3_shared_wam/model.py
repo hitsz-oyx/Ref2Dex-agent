@@ -1,6 +1,7 @@
 """U=D_U(Z), V=D_V(Z,G); Z sees only observed scene and semantic hands."""
 import torch
 from torch import nn
+from .contracts import GOAL_ENCODING
 
 HORIZON, HANDS, KEYPOINTS, HIDDEN = 24, 2, 11, 128
 
@@ -32,10 +33,11 @@ class HandTokenEncoder(nn.Module):
 
 
 class GoalConditioner(nn.Module):
-    """Paired object points condition hand features after the shared trunk."""
+    """32 [current point, t+24 displacement] tokens condition only the hands."""
     def __init__(self):
         super().__init__()
         self.point = nn.Sequential(nn.Linear(6, HIDDEN), nn.GELU(), nn.Linear(HIDDEN, HIDDEN))
+        self.target = nn.Parameter(torch.zeros(HIDDEN))
         self.null = nn.Parameter(torch.zeros(1, 1, HIDDEN))
         self.attention = nn.MultiheadAttention(HIDDEN, 4, dropout=0., batch_first=True)
         self.norm = nn.LayerNorm(HIDDEN)
@@ -43,8 +45,10 @@ class GoalConditioner(nn.Module):
     def forward(self, hand, batch):
         valid = batch["object_goal_valid"].bool()
         start = clean(batch["start_object_points"], valid)
-        end = clean(batch["goal_object_points"], valid)
-        token = self.point(torch.cat((start, end), -1) / .05)
+        delta = clean(batch["goal_object_delta"], valid)
+        if start.shape != delta.shape or start.shape[:-1] != valid.shape:
+            raise ValueError("current points and goal delta must be aligned")
+        token = self.point(torch.cat((start, delta), -1) / .05) + self.target
         token = torch.where(valid[..., None], token, 0.)
         token = torch.cat((token, self.null.expand(len(hand), -1, -1)), 1)
         mask = torch.cat((valid, torch.ones(len(hand), 1, dtype=torch.bool, device=hand.device)), 1)
@@ -95,6 +99,8 @@ class SharedWAM(nn.Module):
         super().__init__()
         if config.get("hidden", HIDDEN) != HIDDEN or config.get("horizon", 24) != 24:
             raise ValueError("PTv3-small128 and future24 required")
+        if config.get("goal_encoding", GOAL_ENCODING) != GOAL_ENCODING:
+            raise ValueError("current-point/horizon-delta goal contract required")
         if scene_encoder is None:
             from .scene import SceneEncoder
             scene_encoder = SceneEncoder(stats, config)
