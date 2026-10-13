@@ -1,0 +1,23 @@
+{
+  "profile": "geometry-only",
+  "stride": 8,
+  "max_seconds": 3600,
+  "episode_seconds": 1200,
+  "max_windows": 1000,
+  "max_output_bytes": 2147483648,
+  "max_scratch_bytes": 5368709120,
+  "shard_bytes": 268435456,
+  "processing": {
+    "scene_points": 2048,
+    "queries": 64,
+    "erosion": 2,
+    "min_current_points": 16,
+    "min_endpoint_fraction": 0.8,
+    "min_scale_samples": 12,
+    "max_scale_relative_iqr": 0.25,
+    "max_current_depth_median_m": 0.03,
+    "max_current_depth_p95_m": 0.06,
+    "max_rigid_median_m": 0.005,
+    "max_rigid_p95_m": 0.015
+  }
+}

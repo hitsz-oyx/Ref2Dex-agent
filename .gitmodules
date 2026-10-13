@@ -1,3 +1,30 @@
 [submodule "third_party/PointWorld"]
 	path = third_party/PointWorld
 	url = https://github.com/NVlabs/PointWorld.git
+[submodule "third_party/Mosaic3D"]
+	path = third_party/Mosaic3D
+	url = https://github.com/NVlabs/Mosaic3D.git
+[submodule "third_party/coil-egodex-audit-20261013"]
+	path = third_party/coil-egodex-audit-20261013
+	url = https://github.com/realquantumcookie/COIL.git
+[submodule "third_party/dex4d-simulation-egodex-audit-20261013"]
+	path = third_party/dex4d-simulation-egodex-audit-20261013
+	url = https://github.com/Dex4D/Dex4D-Simulation.git
+[submodule "third_party/dex4d-vision-egodex-audit-20261013"]
+	path = third_party/dex4d-vision-egodex-audit-20261013
+	url = https://github.com/Dex4D/Dex4D-Vision.git
+[submodule "third_party/hawor-primary-audit-20261012"]
+	path = third_party/hawor-primary-audit-20261012
+	url = https://github.com/ThunderVVV/HaWoR.git
+[submodule "third_party/im2flow2act-egodex-audit-20261013"]
+	path = third_party/im2flow2act-egodex-audit-20261013
+	url = https://github.com/real-stanford/im2flow2act.git
+[submodule "third_party/mint-primary-audit-20261012"]
+	path = third_party/mint-primary-audit-20261012
+	url = https://github.com/wuji-technology/wuji-ego-mint.git
+[submodule "third_party/regrind"]
+	path = third_party/regrind
+	url = https://github.com/yunhaif/regrind
+[submodule "third_party/simtoolreal-egodex-audit-20261013"]
+	path = third_party/simtoolreal-egodex-audit-20261013
+	url = https://github.com/tylerlum/simtoolreal.git
