@@ -41,7 +41,7 @@ def main():
         with np.load(path/'trajectory.npz') as f:traces[name]={k:f[k] for k in f.files}
     evalstep=packet['stage']*100000+packet['step']
     saved=json.loads((out/('evaluation_step%d.json'%evalstep)).read_text())
-    maxerr={};checks=0;oracle_panels={}
+    maxerr={};checks=0;oracle_panels={};takeover_queries={}
     with np.load(out/('panel_step%d.npz'%evalstep)) as arrays:
         for name,keys in panel.items():
             if keys[0][0]=='main':continue
@@ -86,6 +86,11 @@ def main():
                 if difference>2e-3:raise ValueError('own applied expert PD/R panel mismatch: '+name+'/'+key)
                 checks+=1
             if kind.startswith('recovery'):
+                takeover_queries[name]=dict(tick=int(ticks[0]),
+                    first8_mm=float(arrays[name+'_first8_mm'][0]),
+                    first_PD_xyz_mm=float(raw['PD_xyz_mm'][0]),
+                    GT_first_PD_xyz_mm=float(np.linalg.norm(gt_diff[0,:3])*1000),
+                    scope='exact takeover query; later panel rows are expert continuation states')
                 for tick in ticks:
                     if not d['expert_applied'][tick:tick+24,1].all() or d['expert_clipped'][tick:tick+24,1].any():
                         raise ValueError('mixed or clipped recovery future admitted')
@@ -93,6 +98,7 @@ def main():
         final_checkpoint=result['final_checkpoint'],stage=packet['stage'],step=packet['step'],
         frozen_contracts=packet['contracts'],scope='saved robot panels recomputed from own measured expert futures and fixed R; TRAIN recovery, no physical claim')
     report['GT_tau_Chunk_R_panels']=oracle_panels
+    report['exact_C_takeover_queries']=takeover_queries
     (out/'root_panel_audit.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))
 
