@@ -77,3 +77,20 @@ Future evidence: more diverse initial conditions, true per-row closed-loop
 queries instead of physically comparable command replay, unseen motions, and
 matched Cm causality remain deferred. Failure to recover after physical
 contact may require different earlier interventions rather than more epochs.
+
+## Collection correction: same-row takeover replaces paired command replay
+
+Initial wave1 r1: t32/38/44 experts held73/75/75 with audited actual futures.
+At t50/56 collection stops at47 controls: independent PhysX contact rows cross
+rotation comparability threshold .001rad (observed .0010173), before expert
+intervention. This is an implementation admission blocker, not unrecoverability.
+No paired tolerance is relaxed. Preserve r1 but exclude it from the new cohort.
+
+Add explicit --own-row-recovery: policy queries use actual recovery row3's H4,
+q/dq/previous command and object frame, execute there until takeover, then query
+and apply expert on the same row. Row2 is only a command-replay diagnostic;
+it is no longer a pure autonomous control. Record roles/query ownership and
+independently verify prefix actions (including declared perturbation), own H4,
+R state and proprio. Same-row takeover requires no hidden-state fork or equality
+to row2. r2 sources and follow-up data admission require this ownership flag.
+This change strengthens the intended current-policy-state contract.

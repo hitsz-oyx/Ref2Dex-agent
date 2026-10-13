@@ -68,7 +68,24 @@ def main():
         rotation_matrix_frobenius_over_sqrt2=float(np.linalg.norm(odelta[:,:3,:3],axis=(1,2)).max()/np.sqrt(2)))
     limits=dict(q_XYZ_norm_m=1e-4,q_other_max_rad=1e-3,hand_point_norm_m=1e-4,
         object_XYZ_norm_m=1e-4,rotation_matrix_frobenius_over_sqrt2=1e-3)
+    own_row=manifest.get('own_row_recovery',False)
     pair_pass=all(physical[k]<=v for k,v in limits.items())
+    if own_row:
+        if manifest.get('policy_query_role')!=3:raise ValueError('own-row query identity')
+        # A same-row takeover needs no equality to the unrelated replay row.
+        pair_pass=True
+        check('own_row_R_state',d['state_features'][:,1],d['learner_state'][:,1])
+        past=np.maximum(np.arange(controls)[:,None]+np.arange(-3,1),0)
+        check('own_row_actor_hand',d['wam_hand_history'],d['hand'][past,3])
+        check('own_row_actor_object',d['wam_object_history'],d['obj'][past,3])
+        expected=d['encoded_target'][:takeover,1,0].copy()
+        active=[0,1,2,3,4,5,6,8,10,12,14,15]
+        shift=np.asarray(manifest['prefix_exploration']['xyz_mm'])/1000
+        expected[24:min(32,takeover),:3]+=shift/scale[:3]
+        check('own_row_actor_actually_applied',d['applied'][:takeover,3][:,active],expected.clip(-1,1))
+        if 'control_proprio' in d:
+            prev=np.concatenate((np.zeros((1,18),np.float32),d['applied'][:-1,3]),0)
+            check('own_row_proprio',d['control_proprio'],np.concatenate((d['q'][:-1,3],d['dq'][:-1,3],prev[:,active]),-1))
     if takeover:
         for key in ('applied',):
             check('paired_prefix_'+key,d[key][:takeover,2],d[key][:takeover,3])
@@ -85,8 +102,8 @@ def main():
     state=np.concatenate((q,dq,local.reshape(controls,2,33),obj[...,:3,:].reshape(controls,2,12),vel),-1).astype(np.float32)
     check('current_R_state',d['learner_state'],state)
     check('expert_applied_mask',d['expert_applied'],np.c_[np.zeros(controls,bool),np.arange(controls)>=takeover])
-    check('tau_valid_mask',d['learner_wam_tau_valid'],np.c_[np.ones(controls,bool),np.zeros(controls,bool)])
-    check('no_command_replay_tau_label',d['learner_wam_tau'][:,1],np.zeros_like(d['learner_wam_tau'][:,1]))
+    check('tau_valid_mask',d['learner_wam_tau_valid'],np.c_[np.zeros(controls,bool),np.ones(controls,bool)] if own_row else np.c_[np.ones(controls,bool),np.zeros(controls,bool)])
+    check('no_command_replay_tau_label',d['learner_wam_tau'][:,0 if own_row else 1],np.zeros_like(d['learner_wam_tau'][:,0 if own_row else 1]))
     # The durable pre-physics query records must equal their measured full trace.
     for tick in range(controls):
         path=out/'expert_queries'/('%04d.npz'%tick)
@@ -108,7 +125,7 @@ def main():
         recovery_pass=None if result.get('recovery_pass') is None else bool(result['recovery_pass']),
         partial_episode=controls<542,takeover_tick=takeover,local_grasp_calibration=result.get('local_grasp_calibration'),
         controls=controls,measured_states=controls+1,prefix_pair_physical=physical,prefix_pair_limits=limits,
-        prefix_pair_all_raw_differences=pair_errors,approximate_pair_not_hidden_state_fork=True,
+        prefix_pair_all_raw_differences=pair_errors,approximate_pair_not_hidden_state_fork=not own_row,own_row_takeover=own_row,
         training_scope='live-state expert PD only; no mixed-policy tau labels')
     summary['pass']=summary.pop('pass_')
     if not a.check_only:

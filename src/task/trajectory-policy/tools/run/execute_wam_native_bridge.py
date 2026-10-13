@@ -52,6 +52,7 @@ def main():
     p.add_argument('--server-pid',type=int,required=True)
     p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--expert-recovery',action='store_true')
+    p.add_argument('--own-row-recovery',action='store_true',help='query and execute actor on recovery row3 itself before expert takeover')
     p.add_argument('--controls',type=int,default=542)
     p.add_argument('--takeover-tick',type=int,default=16)
     p.add_argument('--prefix-xyz-mm',type=float,nargs=3,default=[0.,0.,0.],help='bounded exploratory wrist target offset on controls24..31')
@@ -68,8 +69,13 @@ def main():
     args.experiment_id=args.experiment_id or ('P-20261012-goal-point-wam-ref2-recovery' if args.expert_recovery else 'P-20261012-goal-point-wam-ref2-execution')
     if not 1<=args.controls<=542 or (args.expert_recovery and not 0<=args.takeover_tick<args.controls):
         raise ValueError('bounded controls and in-horizon takeover required')
+    if args.own_row_recovery and not args.expert_recovery:raise ValueError('own-row mode requires expert recovery')
+    policy_role=3 if args.own_row_recovery else 2
     out=args.output.resolve()
     roles=['teacher','gt_tau_R','wam_R']+([f'wam_command_replay_then_expert_tick{args.takeover_tick}'] if args.expert_recovery else [])
+    if args.own_row_recovery:
+        roles[2]='command_replay_diagnostic_not_autonomous'
+        roles[3]=f'own_policy_then_expert_tick{args.takeover_tick}'
     env_count=len(roles)
     if out.exists() or ROOT/'outputs/trajectory-policy' not in out.parents or Path(sys.prefix).resolve()!=RUNTIME.resolve():
         raise ValueError('fresh owned output and pinned native runtime required')
@@ -225,6 +231,8 @@ def main():
     manifest['retargeter_identity']=r_identity
     manifest['effect_identity']=effect_identity
     manifest['control_identity']=control_identity
+    manifest['own_row_recovery']=args.own_row_recovery
+    manifest['policy_query_role']=policy_role
     manifest['prefix_exploration']=dict(xyz_mm=args.prefix_xyz_mm,controls=[24,32],scope='additive wrist PD-target offset before clipping; own measured observations thereafter')
     manifest['producer_code_updates']=producer_updates
     write(out/'manifest.json',manifest)
@@ -316,7 +324,7 @@ def main():
                         if not torch.isfinite(expert_PD).all():
                             raise FloatingPointError('nonfinite current-q expert PD')
                         action=expert_action.clone()
-                        if tick<=args.takeover_tick:
+                        if tick<=args.takeover_tick and not args.own_row_recovery:
                             errors=paired_prefix_error(current)
                             manifest['prefix_pair_max_errors']={key:max(value,manifest['prefix_pair_max_errors'].get(key,0.)) for key,value in errors.items()}
                             metrics=prefix_physical_metrics(current)
@@ -329,15 +337,15 @@ def main():
                     intended=expert_raw.clone() if args.expert_recovery else action.clone()
                     requested=pd_from_action(intended,current['q'],offset,scale)
                     past=np.maximum(tick+np.arange(-3,1),0)
-                    oh=np.stack([logs['obj'][i][2] for i in past])
-                    hh=np.stack([logs['hand'][i][2] for i in past])
+                    oh=np.stack([logs['obj'][i][policy_role] for i in past])
+                    hh=np.stack([logs['hand'][i][policy_role] for i in past])
                     goal=reference['obj'][min(tick+24,542)]
                     request=dict(tick=tick,object_history=oh.tolist(),hand_history=hh.tolist(),planned_object_goal=goal.tolist())
                     if args.control_checkpoint:
                         from trajectory_policy.robot_context import control_context
-                        previous=logs['applied'][tick-1][2] if tick else np.zeros(18,np.float32)
+                        previous=logs['applied'][tick-1][policy_role] if tick else np.zeros(18,np.float32)
                         refs=reference['obj'][np.minimum(tick+np.array([8,16,24]),542)]
-                        prop,robot_goal=control_context(current['q'][2].cpu().numpy(),current['dq'][2].cpu().numpy(),
+                        prop,robot_goal=control_context(current['q'][policy_role].cpu().numpy(),current['dq'][policy_role].cpu().numpy(),
                             previous,oh[-1],refs)
                         request.update(proprio=prop.tolist(),robot_goal=robot_goal.tolist())
                         logs['control_proprio'].append(prop.copy());logs['control_robot_goal'].append(robot_goal.copy())
@@ -353,8 +361,8 @@ def main():
                     state_gt,tau_gt=features(*(current[k][1].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),future)
                     # Construct current-only R state; the helper's dummy future
                     # has zero displacement and is discarded, never a label.
-                    state_wam,_=features(*(current[k][2].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
-                        np.broadcast_to(current['hand'][2].cpu().numpy(),(24,11,3)))
+                    state_wam,_=features(*(current[k][policy_role].cpu().numpy() for k in ('q','dq','hand','obj','velocity')),
+                        np.broadcast_to(current['hand'][policy_role].cpu().numpy(),(24,11,3)))
                     states=np.stack((state_gt,state_wam));taus=np.stack((tau_gt,wamtau))
                     encoded=r(torch.as_tensor(states,device=task.device),torch.as_tensor(taus,device=task.device))
                     if args.chunk_dir:
@@ -385,8 +393,8 @@ def main():
                             expert_PD=expert_PD[2:],expert_observation=obs['obs'][2:].clone(),
                             learner_state=np.stack(learner_states),learner_object_history=np.stack(learner_oh),
                             learner_hand_history=np.stack(learner_hh),learner_goal=np.repeat(goal[None],2,axis=0),
-                            learner_wam_tau=np.stack((wamtau,np.zeros_like(wamtau))),
-                            learner_wam_tau_valid=np.array([True,False]),expert_applied=np.array([False,tick>=args.takeover_tick]))
+                            learner_wam_tau=np.stack((np.zeros_like(wamtau),wamtau) if args.own_row_recovery else (wamtau,np.zeros_like(wamtau))),
+                            learner_wam_tau_valid=np.array([False,True] if args.own_row_recovery else [True,False]),expert_applied=np.array([False,tick>=args.takeover_tick]))
                         extra={key:value.cpu().numpy().copy() if isinstance(value,torch.Tensor) else np.asarray(value).copy()
                                for key,value in extra.items()}
                         # A durable query record exists before advancing physics; it is not a future-hand label.

@@ -20,6 +20,7 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--gpu',type=int,default=2)
     p.add_argument('--expert-recovery',action='store_true')
+    p.add_argument('--own-row-recovery',action='store_true')
     p.add_argument('--controls',type=int,default=542)
     p.add_argument('--takeover-tick',type=int,default=16)
     p.add_argument('--prefix-xyz-mm',type=float,nargs=3,default=[0.,0.,0.],help='bounded exploratory wrist target offset on controls24..31')
@@ -149,7 +150,7 @@ def main():
         native_script=TASK/'tools/run/execute_wam_native_bridge.py'
         native_log=(out/'native.log').open('w');streams.append(native_log)
         native=subprocess.Popen(['/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python',str(native_script),
-            '--gpu',str(a.gpu),'--controls',str(a.controls),'--takeover-tick',str(a.takeover_tick),'--prefix-xyz-mm',*map(str,a.prefix_xyz_mm),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*r_args,*(['--expert-recovery'] if a.expert_recovery else [])],
+            '--gpu',str(a.gpu),'--controls',str(a.controls),'--takeover-tick',str(a.takeover_tick),'--prefix-xyz-mm',*map(str,a.prefix_xyz_mm),'--experiment-id',a.experiment_id,'--head-dir',str(a.head_dir),'--socket',str(address),'--server-pid',str(server.pid),'--output',str(out/'native'),*r_args,*(['--expert-recovery'] if a.expert_recovery else []),*(['--own-row-recovery'] if a.own_row_recovery else [])],
             cwd=ROOT,stdout=native_log,stderr=subprocess.STDOUT,start_new_session=True)
         processes.append((native,native_script));status.update(status='RUNNING',native_pid=native.pid)
         write(out/'group_status.json',status)
