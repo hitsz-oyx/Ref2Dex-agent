@@ -36,7 +36,8 @@ def geometry(base, indices):
 @torch.no_grad()
 def infer(model, dataset, indices, batch_size, label):
     records={k:[] for k in ('index','source','sequence','presence','real_mm','static_mm','zero_mm','first8_mm',
-        'h1_mm','goal_response_mm','target','valid','scene_embedding','goal_embedding','hand_embedding')}
+        'h1_mm','goal_response_mm','target','valid','scene_embedding','goal_embedding','hand_embedding',
+        'real_per_hand_mm','zero_per_hand_mm','target_now_per_hand_mm','target_future_per_hand_mm')}
     cursor=0;started=time.time()
     for cpu in loader(dataset,indices,batch_size,0):
         batch=move_batch(cpu,torch.device('cuda'))
@@ -51,6 +52,19 @@ def infer(model, dataset, indices, batch_size, label):
             [('real',pred),('static',static),('zero',torch.zeros_like(pred))]}
         for key,error in errors.items():
             records[key+'_mm'].append(((error*valid).sum((1,2,3))/valid.sum((1,2,3))*1000).cpu().numpy())
+        for key in ('real','zero'):
+            e=errors[key]
+            records[key+'_per_hand_mm'].append(((e*valid).sum((1,3))/valid.sum((1,3)).clamp_min(1)*1000).cpu().numpy())
+        slots=batch['goal_object_slot'];bi=torch.arange(n,device='cuda')
+        points=batch['points'][bi,slots].float();effect=batch['effect'][bi,slots].float()
+        future_points=points[:,None] @ effect[:,:,:3,:3].transpose(-1,-2)+effect[:,:,None,:3,3]
+        future_hand=batch['start_hand'][:,None]+target
+        dist=torch.cdist(future_hand.reshape(n,24,22,3),future_points).amin(-1).reshape(n,24,2,11)
+        dist=dist.masked_fill(~valid,float('inf')).amin((1,3))*1000
+        current=torch.cdist(batch['start_hand'].reshape(n,22,3),points).amin(-1).reshape(n,2,11)
+        current=current.masked_fill(~batch['start_hand_valid'],float('inf')).amin(-1)*1000
+        records['target_now_per_hand_mm'].append(current.cpu().numpy())
+        records['target_future_per_hand_mm'].append(dist.cpu().numpy())
         for name,sl in [('first8',slice(0,8)),('h1',slice(0,1))]:
             e=errors['real'][:,sl];v=valid[:,sl]
             records[name+'_mm'].append(((e*v).sum((1,2,3))/v.sum((1,2,3))*1000).cpu().numpy())
@@ -118,6 +132,7 @@ def main():
     for name in ('data','checkpoint','stats','census','output'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--train-per-source',type=int,default=1024);p.add_argument('--batch',type=int,default=32)
     p.add_argument('--seed',type=int,default=299)
+    p.add_argument('--reuse-train',type=Path,help='reuse identical frozen TRAIN inference for a new VAL-only diagnostic')
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False);started=time.time()
     torch.set_num_threads(2);torch.backends.cuda.matmul.allow_tf32=True
     # Finish multiprocessing geometry before CUDA initialization.
@@ -140,7 +155,12 @@ def main():
     inputs=dict(checkpoint=str(a.checkpoint),checkpoint_step=packet['step'],config=packet['config'],
         source_git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip())
     del packet
-    tr=infer(model,GoalWindows(train,'object_points',32),train_indices,a.batch,'train')
+    if a.reuse_train:
+        with np.load(a.reuse_train,allow_pickle=False) as f:
+            tr={k:f[k] for k in f.files if k!='metrics'}
+        if not np.array_equal(tr['index'],train_indices):raise ValueError('TRAIN reuse sample mismatch')
+    else:
+        tr=infer(model,GoalWindows(train,'object_points',32),train_indices,a.batch,'train')
     va=infer(model,GoalWindows(val,'object_points',32),val_indices,a.batch,'val')
     result=dict(status='COMPLETED',input=inputs,train={},val={},neighbors=neighbors(tr,train_metrics,a.seed),
         elapsed_s=time.time()-started,gpu=gpu_snapshot(torch.device('cuda')),
