@@ -1,5 +1,16 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-13 三域actor降权短对照无实质收益；参考手目标来源已核实
+
+原始WAM step10000、同9216 TRAIN池/96k抽样、decoder-only各1000步：
+静止目标远手窗降权.1，六个交互panel first8为A14.67368/B14.66057mm，
+仅改善.0893%，未过5%门；三域防退化及goal作用门通过。局部UNPROMISING，
+停止该配方扩训，不否定从头清洗或共享编码器适配。冻结state差0，保存数组
+独立复算通过；GPU2共187.56s，已释放。用户允许参考示范，已从已知计划
+导出+8/+16/+24人手腕/物体目标，几何合同通过但形态/时序尚未接入WAM。
+历史reference+PD DAgger两次固定条件成功可作对照，不能归因于参考输入单项。
+见[降权对照卡](../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-actor-curation-ab.md)。
+
 ## 2026-10-13 ref2_8 本体/temporal-goal适配完成，接触改善但仍未稳定抓持
 
 保留几何底座/goal32/raw-hand/World/合格Chunk-R，WAM新增48D q/dq/上一

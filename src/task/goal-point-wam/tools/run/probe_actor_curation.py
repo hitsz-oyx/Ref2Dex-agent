@@ -200,6 +200,8 @@ def main():
                    for key, value in model.state_dict().items() if not key.startswith('trajectory.')}
     if max(differences.values()) != 0: raise ValueError('frozen model state changed')
     outcome = 'ENGINEERING_ONLY' if args.smoke else ('PROMISING' if all(history[-1]['gates'].values()) else 'UNPROMISING')
+    identity.update(status='COMPLETED', elapsed_s=time.time()-began)
+    write(args.output / 'manifest.json', identity)
     write(args.output / 'result.json', dict(status='COMPLETED', outcome=outcome, elapsed_s=time.time()-began,
            initial=initial, final=history[-1], frozen_max_abs=max(differences.values()),
            weighted_draw_fraction=float(suspect[draws].mean()), gpu=gpu_snapshot(torch.device('cuda')),

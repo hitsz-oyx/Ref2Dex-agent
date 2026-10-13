@@ -176,7 +176,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-goal-point-wam-actor-curation-ab](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-actor-curation-ab.md) | Matched decoder-only actor weighting Probe | IN PROGRESS. | execute the user-approved short comparison and audit a legitimate | probes/UNCLEAR |
+| [P-20261013-goal-point-wam-actor-curation-ab](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-actor-curation-ab.md) | Matched decoder-only actor weighting Probe | UNPROMISING for this fixed decoder-only recipe: final B improves the | retain the original model and both Probe artifacts; stop weighting | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-ref3-curation-audit](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref3-curation-audit.md) | ref3: is actor-specific curation justified on the local native three domains? | UNCLEAR for a causal benefit of cleaning. Target-specific actor weighting | prioritize OakInk2 target/hand association and native pre-contact | probes/UNCLEAR |
 
 ## HF-goal-point-wam-egodex-auxiliary
@@ -234,6 +234,7 @@
 | [P-20261013-goal-point-wam-ref27-effect-consistency](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-effect-consistency.md) | ref2_7 C: frozen-world predicted-trajectory consistency | COMPLETED at50500 total updates (C0 500 + C1 50000), global400/4GPUs. PROMISING for offline mixed-domain adaptation; Cm causal/physical util | Preserve the completed candidate and frozen A/B baselines. No further overnight training; retain the forecast tradeoffs and amended admissio | probes/PROMISING |
 | [P-20261013-goal-point-wam-ref27-rollout](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref27-rollout.md) | C final native rollout: can the trained actor lift and hold? | COMPLETED542 controls; final C actor never lifts/held0, while teacher/GT-Chunk hold434/441 frames. Current checkpoint rollout is UNPROMISING | Preserve the valid negative rollout; inspect contact-region closed-loop drift before further scaling. This does not refute C or establish Cm | probes/UNPROMISING |
 | [P-20261013-goal-point-wam-ref28-control-context](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref28-control-context.md) | Robot control context and current C-state recovery | Adapter2000 + decoder5000 updates completed; selected stage2 step4500. | Preserve the adapter/candidate and successful engineering contracts; | probes/UNPROMISING |
+| [P-20261013-goal-point-wam-ref31-actor-weight](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-actor-weight.md) | Independent OakInk actor-weight short A/B | Pending matched300-update warm-start comparison. | Keep this human-data intervention independent of Chunk-R repair. | probes/RUNNING |
 | [P-20261013-goal-point-wam-ref31-own-R](../../src/task/goal-point-wam/docs/experiments/probes/P-20261013-goal-point-wam-ref31-own-R.md) | Chunk-R repair on actual C states | Pending bounded fit and privileged GT execution qualification. | Freeze the existing actor; prioritize its inverse-control contract. | probes/RUNNING |
 
 ## HF-gt-consequence-sufficiency
