@@ -235,6 +235,67 @@ CPU handles cached-array statistics; GPU handles repeated feature distances
 and trajectory comparisons. Stop on finite/mask/index errors or conflicts.
 Record original data and goal construction semantics before interpreting.
 
+### Follow-up result: oracle endpoints mostly clarify distant futures
+
+Completed with code `2eb27715`, GPU1,1.16s including cached-array loading,
+peak Torch reservation136MiB. No optimization/new model inference. Artifact:
+`goal-information-r1/result.json`, `window_results.npz`; plot
+`goal_information.png`. All retrieved neighbors pass same-hand-presence,
+same-target-mask, same-source and different-sequence checks.
+
+VAL below is **k5 mean-trajectory prediction EPE**, not the frozen actor's
+EPE reported above. All512 examples/source are retained. Each cell is
+first8 / all24 mm; first8 excludes the provided step24 goal.
+
+| Added input to cached scene/object-goal/observed-hand condition | OakInk2 | GRAB | ARCTIC |
+|---|---:|---:|---:|
+| None | 11.74 / 31.40 | 37.71 / 122.88 | 29.30 / 83.80 |
+| Oracle coarse phase | 12.01 / 32.02 | 38.32 / 115.91 | 29.46 / 77.95 |
+| Oracle two wrist endpoints | 10.31 / 25.03 | 38.22 / 93.29 | 28.28 / 65.64 |
+| Oracle all22 hand endpoints | 10.24 / 24.85 | 38.19 / 93.24 | 28.19 / 65.92 |
+| Independently shuffled wrist endpoints | 12.17 / 32.73 | 40.46 / 130.47 | 29.74 / 84.18 |
+
+Adding oracle wrists reduces all24 error20.3/24.1/21.7%; first8 changes are
+-12.2/+1.4/-3.5% (negative means improvement). All22 points add little over
+wrists under this representation and macro metric; this cannot rule out the
+importance of finger/contact accuracy to physical grasping. Coarse phase has
+no consistent first8 gain at this fixed metric; do not present phase tokens
+as experimentally established solutions.
+
+OakInk2 static-goal far-moving first8 goes16.94->14.02mm with oracle wrists;
+GRAB static-goal near goes54.65->58.93mm, despite all24 improving
+234.48->160.78mm. Oracle linear interpolation is another caution: GRAB
+static-goal first8 is98.65mm even with exact all22 endpoints, worse than
+zero-motion87.20mm. Knowing where a hand ends does not determine when it
+waits, releases or accelerates. This motivates testing event/temporal intent,
+not claiming that the tested coarse phase label already works.
+
+The nearest-neighbor baseline is substantially worse than the existing
+neural actor and sometimes zero motion. Therefore this is only a relative
+information screen within one fixed retrieval metric, not a bound on the
+model's achievable error. TRAIN-only normalization and shuffle controls do
+not eliminate representation aliasing or guarantee a trained model benefit.
+The added endpoints/phase are privileged labels in this audit; they are not
+available deployment goals until a reference/task/planner provides them.
+
+An additional exact TRAIN census joins OakInk2 rows by sequence and time.
+Of2,122,678 raw static-goal far-moving rows,1,244,424 have another admitted
+anchor at the same time that is currently <=50mm from a hand and moves
+>=5mm within the horizon. This is60.49% of the sampled far-moving stratum,
+16.01% of OakInk2 exposure, or8.89% of total mixed exposure. Stored in
+`same_frame_alternative_anchor.json`, reproducible through the summary tool.
+It demonstrates available alternative anchors, not annotated human intent;
+automatic reanchoring still needs phase/role checks and deduplication.
+
+Follow-up decision: hand/interaction goal support is worth a bounded future
+test, but no goal interface or training data changes in this audit. Fix
+target relevance before trying to explain background-target rows using
+oracle hands. Retain object goals, allow explicit optional active-hand and
+contact/approach constraints, and separate supplied/planned goals from
+measured future labels. Exact22-point hand goals and a coarse phase-only
+solution are not selected. Method rationale and deployability boundary:
+[goal contract note](../../research/2026-10-13-object-and-hand-goal-contract.md).
+
 Implementation commits: census/tests `c835b448`, frozen model `f669c51f`,
 per-hand supplemental inference `6ac24d99`. Base repository was `7e25cb30`.
 Tools: [census](../../../tools/audit/audit_native_curation.py),

@@ -9,6 +9,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+from audit_native_curation import masks
+
 
 def summarize(root):
     census = json.loads((root / 'result.json').read_text())
@@ -67,6 +69,21 @@ def summarize(root):
     (root / 'per_hand_summary.json').write_text(json.dumps(hands, indent=2))
     (root / 'transition_summary.json').write_text(json.dumps(transitions, indent=2))
 
+    with np.load(root / 'oakink2.npz') as data:
+        rows, metric, category = data['rows'], data['metrics'], data['categories']
+    far = masks(metric)['static_goal_far_moving']
+    keys = rows[:, 0] * 1000000000 + rows[:, 2]
+    candidate = (metric[:, 4] <= 50) & (metric[:, 1] >= 5)
+    alternative = np.isin(keys, np.unique(keys[candidate]))
+    weights = np.array([.6, .2, .2])[category] / np.bincount(category, minlength=3)[category]
+    anchor = dict(static_far_count=int(far.sum()),
+                  same_frame_moving_near_alternative_count=int((far & alternative).sum()),
+                  sampled_fraction_of_far=float(weights[far & alternative].sum() / weights[far].sum()),
+                  sampled_fraction_of_oakink=float(weights[far & alternative].sum()),
+                  mixed_fraction=float(weights[far & alternative].sum() * 5 / 9),
+                  note='Same sequence/time, another admitted anchor currently near hands and moving >=5mm; geometry, not task-intent labels')
+    (root / 'same_frame_alternative_anchor.json').write_text(json.dumps(anchor, indent=2))
+
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), constrained_layout=True)
     labels = ['OakInk2', 'GRAB', 'ARCTIC']
     x = np.arange(3)
@@ -114,6 +131,21 @@ def summarize(root):
     fig.suptitle('Local three-domain curation audit | 4,378,478 TRAIN windows; frozen 1,536-window VAL', fontsize=13)
     fig.savefig(root / 'curation_summary.png', dpi=160)
     plt.close(fig)
+    information = root / 'goal-information-r1/result.json'
+    if information.exists():
+        results = json.loads(information.read_text())['sources']
+        fig, axes = plt.subplots(1, 2, figsize=(11, 4), constrained_layout=True)
+        variants = [('base', 'Object + history'), ('oracle_phase', '+ oracle phase'),
+                    ('oracle_wrist', '+ oracle wrists'), ('oracle_hand22', '+ oracle 22 points')]
+        for ax, key, title in zip(axes, ['first8_mm', 'all24_mm'], ['First 8 steps (endpoint excluded)', 'All 24 steps']):
+            for i, (variant, label) in enumerate(variants):
+                values = [results[name]['val']['variants'][variant]['all'][key] for name in names]
+                ax.bar(x + (i - 1.5) * .2, values, .2, label=label)
+            ax.set(xticks=x, xticklabels=labels, ylabel='k5 trajectory prediction EPE (mm)', title=title)
+            ax.legend(fontsize=8)
+        fig.suptitle('Goal information screen: oracle endpoints help long horizons more than immediate motion\nCached cross-sequence retrieval; NOT a trained/deployable policy comparison', fontsize=11)
+        fig.savefig(root / 'goal_information.png', dpi=160)
+        plt.close(fig)
     print(json.dumps(dict(status='COMPLETED', output=str(root / 'curation_summary.png'))))
 
 
