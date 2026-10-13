@@ -62,7 +62,7 @@ collection and matched causal input/Cm tests remain deferred.
 
 ## Completed results and Decision Note
 
-Fit81956abb,3000 updates/55.34s,GPU2 ~529MiB/30–40% utilization; selected3000.
+Fit81956abb,3000 updates/55.88s,GPU2 ~529MiB/30–40% utilization; selected3000.
 Same old normalization/controller, no actor weights trained. Exact C takeovers
 32/40/48 PD XYZ mm:32.820/58.948/159.934 ->1.736/1.840/1.367.
 Contact first16 p95:33.997/171.628/223.146 ->8.322/16.478/27.275.
