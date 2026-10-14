@@ -90,3 +90,23 @@ ShadowHand与当前Inspire的控制action不同，语义手点映射不意味着
 用兼容环境与实际GPU资源另记录run_id/预算；必须采到实际timestamp、q/root、物体SE(3)、
 action及reset边界后才能构造30Hz窗口。future query用当前选定的mesh局部点经真实object pose传播，
 不得跨reset拼接，也不得用最终抓取姿态插值替代执行轨迹。
+
+## 本地GPU短回放 Decision Note（run r2，用户授权）
+
+- 用户要求在本地实际回放；服务同一数据来源决策：公开++ checkpoint是否能便宜产生真实
+  连续手物轨迹，以及H4/future24是否能由同一执行切窗。
+- 最新进程归属核验：本地GPU0–3为其他用户，本项目GPU5/7运行既有训练；远端EgoDex旧重建
+  使用GPU1/2/3。因此本项目当前共5卡，使用空闲本地GPU4后为6卡，符合共享上限。
+  上次仅按本地活动GPU数量判断预算已满过于保守；不停止或共享任何现有GPU进程。
+- root选择单Car、scale .08、8个env、至多2个200-step episode的确定性actor推理，seed123；
+  禁止训练/梯度更新，沿用原物理与300D观察，关闭random_time以完整采集从reset起步的轨迹。
+  成功/失败均保留并分开标注；不由单物体成功率形成正式方法结论。
+- 运行`unidexgrasp-local-replay-20261014-r2`：准备下载/源码≤128MiB、scratch/extension≤1GiB，
+  输出≤128MiB；GPU4一次最多5分钟，含编译/初始化的外部owned watchdog最多10分钟。
+  初始化失败先修明确兼容问题；物理异常、非有限tensor、观察不符、占用冲突或预算超限即停。
+- 输出`outputs/video-data-preparation/unidexgrasp-local-replay-20261014-r2/`；
+  scratch `tmp/unidexgrasp-local-replay-20261014-r2/`。复用本地已有Isaac Gym/graspenv，只读外部
+  安装；源码/资产放本项目，extension/cache不写入外部项目。执行提交写launch manifest。
+- 运行后按真实sim.dt每2步抽30Hz，审计不跨reset、future点身份与米制一致，并生成可视化。
+  scene先用明确完整CAD geometry profile作工程检查，不冒充视频可见点；产物先禁止训练准入。
+  不需要新分支、权限突破或停止现有进程。
