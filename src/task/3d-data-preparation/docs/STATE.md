@@ -1,5 +1,13 @@
 # 原生3D数据接入状态
 
+## 2026-10-14 全量扩产 Decision Note
+
+- 用户明确取消产物磁盘空间上限并要求立即推进；根CAMPAIGN据此更新，六张项目GPU上限与外部只读/身份边界不变。
+- 行动：HOT3D全部ground_truth/hand_data/assets约2.70GB；TACO三份几何ZIP约15.69GB，CPU下载与转换并行；复用官方资产启动UniDex新增mesh采集，随后HO-Cap轻量接入。
+- 输入：用户三个授权清单只读；TACO/HO-Cap官方公开几何包；UniDex官方TRAIN中排除TEST mesh，保留train/dev按mesh分组。源数据不因未来结果筛选。
+- 成本与停止条件：CPU下载4线程/源、24小时可恢复期限，单次转换内存有界；UniDex每批≤50对象/≤400env/两轮、GPU4单worker、每批≤10分钟；扩产输出只受实际文件系统剩余≥20GiB约束，不生成视频。既有训练与未知进程不动。
+- 结果仍属工程语料，不自动准入训练；缺权限或临时URL失效及时向用户说明。源clock/语义问题保留明确mask与provenance，不伪造标签。
+
 ## 2026-10-14 路线切换 Decision Note
 
 - 决策：按用户授权暂停视频重建，转向已有连续3D手、物体pose/mesh的数据；不改变根MISSION的目标或claim。
