@@ -14,12 +14,15 @@ from test_pipeline import fixture_episode, Masks, Depth, Tracker
 def test_target_language_does_not_select_destination():
     assert target_phrase("Pick up a white lego block from the table and place it in the blue bowl.") == "white lego toy block"
     assert target_phrase("Pick up a yellow mustard bottle and place it in a Tupperware.") == "yellow mustard bottle"
+    assert target_phrase("Pick up a yellow rhombus block from the drying rack and place it in a bowl.") == "yellow rhombus block"
     with pytest.raises(ValueError, match="MATERIAL"):
         target_phrase("Pick up the blue scrub and place it in a bowl.")
     with pytest.raises(ValueError, match="AMBIGUOUS"):
         target_phrase("Pick up the cup and the bottle.")
     with pytest.raises(ValueError, match="AMBIGUOUS"):
         target_phrase("Pick up the red sharpie from the orange bowl and place it on the table.")
+    with pytest.raises(ValueError, match="MATERIAL"):
+        target_phrase("Pick up a clear hand sanitizer bottle from the table and place it on a lid.")
 
 
 def test_separated_current_detections_fail_closed():

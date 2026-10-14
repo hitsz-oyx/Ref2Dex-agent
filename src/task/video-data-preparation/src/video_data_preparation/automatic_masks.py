@@ -21,13 +21,19 @@ def target_phrase(description):
     text = description.lower().strip()
     # Source/destination containers must never replace an unsupported object.
     prefix = re.split(r"\b(?:from|off|with|out of|into|onto|inside|and (?:put|place)|then (?:put|place))\b", text)[0]
-    if re.search(r"\b(?:cloth|towel|sponge|scrub|transparent|glass|plastic bag|paper|food)\b", prefix):
+    if re.search(r"\b(?:cloth|towel|sponge|scrub|transparent|translucent|clear|glass|plastic bag|paper|food)\b", prefix):
         raise ValueError("TARGET_UNSUPPORTED_MATERIAL")
     heads = r"lego(?: block| brick)?|mustard bottle|bottle|cup|mug|box|block|brick|can|bowl|container|toy"
     matches = list(re.finditer(r"\b(?:white|black|red|blue|green|yellow|orange|pink|purple|small|large|wooden|metal)?\s*(?:"+heads+r")\b", prefix))
     if len(matches) != 1:
         raise ValueError("TARGET_LANGUAGE_AMBIGUOUS")
-    return matches[0].group().strip().replace("lego", "lego toy")
+    # Preserve shape/material/color modifiers. Dropping "yellow rhombus" from
+    # "yellow rhombus block" made the generic grounder choose a drying rack.
+    noun = re.sub(r"^pick\s+up\s+(?:(?:a|an|the)\s+)?", "", prefix).strip(" .,")
+    if (not prefix.startswith("pick up ") or len(noun.split()) > 8
+            or matches[0].end() != len(prefix.rstrip(" .,"))):
+        raise ValueError("TARGET_LANGUAGE_UNSUPPORTED_PARSE")
+    return noun.replace("lego", "lego toy")
 
 
 def box_iou(a, b):

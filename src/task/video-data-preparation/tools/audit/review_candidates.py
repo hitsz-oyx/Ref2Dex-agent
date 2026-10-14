@@ -37,6 +37,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--review", type=Path, help="JSON {reviewer, rows:[{shard,row,decision,reason}]} to promote")
     parser.add_argument("--max-windows", type=int, default=12)
+    parser.add_argument("--split", choices=["train", "val"], help="restrict rendered candidates to a session split")
     parser.add_argument("--mask-audit", type=Path, help="use saved current SAM PNGs for a CPU color consistency screen")
     args = parser.parse_args()
     if args.output.exists() or not 1 <= args.max_windows <= 48:
@@ -77,6 +78,8 @@ def main():
     rows = []
     for receipt_path in sorted((root/"shards").glob("*.json")):
         receipt = json.loads(receipt_path.read_text())
+        if args.split and receipt["split"] != args.split:
+            continue
         if receipt.get("training_allowed"):
             continue
         path = confined_path(root/"shards", receipt["path"])
