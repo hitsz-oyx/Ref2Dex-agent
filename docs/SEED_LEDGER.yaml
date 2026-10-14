@@ -25,6 +25,12 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-rl660-realized-q-replay:
+    seed_pool: probe
+    paired_physics_seed: 148
+    reserved_engineering_seed: 149
+    reuse_reason: paired native/PD/q arms and fixed dev sequences; not independent replicates
+
   P-20261014-rl660-geometry-lift-joint:
     seed_pool: probe
     model_and_rank_seeds: [124, 125]
