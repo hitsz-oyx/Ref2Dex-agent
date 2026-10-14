@@ -11,7 +11,7 @@ from torch import nn
 import torch.distributed as dist
 from .paths import ROOT, TASK, LEGACY, DEFAULT_DATA, SCHEMA
 from .checkpoint import (atomic_json, directory_bytes, git_commit, save_checkpoint, load_checkpoint,
-                         checkpoint_alias, prune_recovery_checkpoints)
+                         checkpoint_alias, prune_recovery_checkpoints, restore_optimizer)
 from .model import SharedWAMV2
 from .objectives import forecast_loss, forecast_metrics
 from ptv3_shared_wam.data import SharedWindows
@@ -178,7 +178,7 @@ def run():
         if parent["provenance"]["engineering_only"] != args.smoke:
             raise ValueError("engineering checkpoints cannot initialize scientific training")
         model.load_state_dict(parent["model"], strict=True)
-        optimizer.load_state_dict(parent["optimizer"])
+        restore_optimizer(optimizer, parent["optimizer"])
         start_step = parent["step"]
         if not 0 < start_step < config["updates"]:
             raise ValueError("resume requires a partial checkpoint before the target update")

@@ -22,3 +22,22 @@ def load_checkpoint(path):
     if state.get("schema") != SCHEMA or state.get("stage") != "pretrain":
         raise ValueError("v2 full pretraining checkpoint required; v1 incompatible")
     return state
+
+
+def restore_optimizer(optimizer, state):
+    """Restore CUDA scalar steps required by fused/capturable AdamW.
+
+    Torch2.0 deliberately leaves state['step'] on its loaded device, even
+    when a CPU-mapped checkpoint feeds a CUDA fused optimizer. Newer Torch
+    already handles this conversion; moving the scalar is idempotent there.
+    Unfused, non-capturable optimizers retain their normal CPU step storage.
+    """
+    optimizer.load_state_dict(state)
+    for group in optimizer.param_groups:
+        if not (group.get("fused", False) or group.get("capturable", False)):
+            continue
+        for parameter in group["params"]:
+            slot = optimizer.state.get(parameter, {})
+            step = slot.get("step")
+            if isinstance(step, torch.Tensor):
+                slot["step"] = step.to(device=parameter.device)
