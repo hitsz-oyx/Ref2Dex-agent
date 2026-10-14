@@ -25,6 +25,14 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-ptv3-shared-v2-pretrain:
+    seed_pool: probe
+    model_and_draw_seed: 136
+    rank_initialization_seeds: [136, 137]
+    evaluation_draw_seed: 138
+    statistics_sampling_seed: 18
+    reuse_reason: two ranks and fixed dev panel within one v2 Probe; TRAIN label statistics use a debug sampling seed, not an independent training replicate
+
   P-20261014-wam-residual-basin:
     seed_pool: probe
     seeds: [292, 296]
