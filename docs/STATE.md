@@ -48,6 +48,8 @@ dev/保存另计；30秒GPU0/2平均利用率96.8%/96.3%，物理显存最大291
 
 ## 2026-10-14 PTv3共享WAM停止预训练，转全660机器人联合微调
 
+ref2_2后7组GT-q重放与独立审计完成，GPU6已释放（约196s/3.62MB）。3条dev的原PD held63/89/74；直接q手点误差约61–86mm，固定阻尼补偿降至15–19mm，但mug仍held0；换回oracle手指PD仍held0，接触附近腕部约32mm误差。原native精确校准门未过，整体UNCLEAR，不切换大规模R_kin/PPO；现有PD训练保留，优先资格化接触阶段腕部跟踪。详见[GT-q重放卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-realized-q-replay.md)。
+
 用户追加授权扩大训练：2π修复83c06492用15维geometry+continuous-lift保存分支；122685窗全量标签无明显分支误差/新增clipping，full-batch双卡2步与K4真实执行/独立审计通过。新run `rl660-joint-geometry-lift-20261014-r1` 已在GPU5/7运行（supervisor82326，workers82548/82549），首段20步loss2.38有限、约1.43秒/步、GPU均100%、physical约11.1/11.2GB，预计7.5–8小时；global512、512D×16、原LR/权重/19k新更新；从旧14k仅继承forecaster，R/optimizer重置。run预算8GB、剩余空间20GiB保护；旧latest/best与远端v2保留。新run卡：[geometry-lift联合卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md)。无收敛/抓取结论。
 
 当前GPU预约：用户明确要求新geometry-lift联合大训练，GPU5/7已用于full-batch工程门，随后同卡global512/19000步；保守计远端WAM及既有重建最多4卡，已用满本项目6卡预算。新增GPU数据任务应等待本项目额度，不仅检查本机空闲卡。源码83c06492，旧latest/best保持保留；新训练就绪/进度见geometry-lift-joint实验卡。

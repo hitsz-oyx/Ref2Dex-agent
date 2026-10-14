@@ -5,7 +5,7 @@ experiment_id: P-20261014-rl660-realized-q-replay
 date: 2026-10-14
 task: ptv3-shared-wam
 branch: main
-git_commit: 625e3c135e5ff65e71390b9e439e84ec0511e61f
+git_commit: 274af4ce
 claim_id: C1
 hypothesis_family: HF-rl660-realized-q-replay
 probe_index_in_family: 1
@@ -19,8 +19,8 @@ run_id: rl660-realized-q-replay-20261014-r1
 
 # RL660 realized-q可执行性与原PD重放校准
 
-Result: UNCLEAR，待工程门及独立审计。
-Decision: 依用户ref2_2后的继续探索授权，先做无R/forecaster的最小物理上限检查；现有联合微调和远端预训练继续。
+Result: UNCLEAR（整体执行门）；7组物理检查与独立命令审计完成。固定阻尼补偿使3条序列手点误差降低约75–78%，但未过原tracking/校准门，mug仍无持物；原PD目标可以重放持物。
+Decision: 保留当前PD监督训练作为baseline，不立即切换大规模R_kin或启动PPO；优先资格化接触阶段的腕部轨迹跟踪，再决定运动学标签与反馈残差的分工。
 
 ## Decision Note 与研究动机
 
@@ -106,3 +106,46 @@ q+固定阻尼补偿。若恢复held，优先定位手指闭合/预紧映射；�
 归给手指，须继续分离腕部姿态/接触时序。它是oracle分组替换，不是独立学习策略。
 这是第7个、也是本卡最后一个科学运行，追加预计25s；最多运行数6改7，20 GPU-min
 和500MB原资源上限均不增加。完成后汇总，不继续扩展controller sweep或长训。
+
+## 最终结果与决策
+
+7个科学run均COMPLETED，独立NumPy command/actual PD/clock/label审计通过；原full
+分类按预定native校准全部保留UNCLEAR，不追溯改门。实际运行身份见各manifest：
+原q为0d1a072b，FF为c772f271，mug oracle finger为274af4ce。
+
+| dev序列 | 原PD手点mean mm / held帧 | q手点mean mm / held帧 | q+阻尼补偿mean mm / held帧 |
+|---|---:|---:|---:|
+| s10_airplane_pass_1 | 1.220 / 63 | 85.648 / 5 | 19.049 / 62 |
+| s10_mug_pass_1 | 0.939 / 89 | 60.972 / 0 | 15.346 / 0 |
+| s4_spheresmall_pass_1 | 0.000091 / 74 | 63.495 / 74 | 16.085 / 70 |
+
+表中PD是第一轮参考，FF每次另有PD校准；airplane FF的PD object mean6.705mm未过
+补充5mm门，不将其强行纳入合格对照。sphere/mug FF的PD校准通过。相对q原臂，FF
+hand mean降低77.76%/74.83%/74.67%，但mean<=10/p95<=20mm的tracking门仍未过，
+sphere held74降70，不满足预定“不降低持物”，所以整体不宣布PROMISING执行底座。
+
+mug仅换回原记录手指PD后，held仍0，object mean188.96mm，hand mean20.95mm。
+手指clipping由FF51.28%降0，仍未恢复抓取。在参考首次力接触tick43附近[t39,t51]，
+FF及oracle-finger臂腕部位置mean误差31.22/31.73mm，腕关节角max差.118/.127rad。
+因此此固定对照不支持“只补手指预紧即可”；接触前后腕部跟踪/姿态/时序仍有缺口。
+这不是证明接触残差RL无效，也不是未来R_kin的负证据：两者均未训练或验证。
+
+原PD目标重放的63/89/74连续held是高层无需teacher反馈推理的oracle控制轨迹，执行
+仍有低层PD及live-q逆转换。它们不支持“教师PD标签必然不能做开环chunk”这种绝对
+判断；当前难点是学得映射与执行精度，不是已证明标签无法执行。q目标经过同一
+controller会丢失原servo补偿，换标签本身不足。原native复现偏差及窗口fork未通过
+仍保留为限制，不能把held代理等同正式任务成功率。
+
+总计manifest内物理runtime196.27s（含一个失败壳和smoke），输出/日志约3.62MB，
+GPU6观测约4.1GiB，已释放；远低于原20GPU-min/500MB。没有改训练src包、Kp/Kd、
+checkpoint或teacher actor权重，也没有启动PPO或R_kin长训。
+
+结果汇总：`outputs/ptv3-shared-wam/rl660-realized-q-replay-summary-20261014-r1/result.json`。
+逐run数组与独立审计在同父目录`rl660-realized-q-replay-20261014-r1-{airplane,mug,sphere}`、
+`rl660-realized-q-replay-20261014-r2-{airplane,mug,sphere}-ff`与
+`rl660-realized-q-replay-20261014-r3-mug-oracle-fingers`。
+
+下一步Decision：不因ref2_2直接重标注并扩大R_kin，也不停止已有PD baseline。
+优先以已保存接触窗口定位腕部tracking缺口；若后续设计最小控制器资格门，必须复用
+本轮校准限制，不把平均手点误差下降替代实际持物/物体轨迹。残差RL是否提前仍依赖
+可执行nominal资格，本轮没有为它作方法有效性结论。
