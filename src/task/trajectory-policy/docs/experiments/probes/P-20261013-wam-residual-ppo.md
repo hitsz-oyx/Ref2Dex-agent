@@ -14,7 +14,7 @@ seeds: [292, 296]
 decision_changed_if_positive: keep this frozen WAM+old-chunk pair and spend a longer residual-PPO budget on airplane
 decision_changed_if_negative: stop this alpha and reward, and do not add a world critic on top of a residual that still throws
 status: UNPROMISING
-run_id: wam-ref2-execution-rppo-20261013-r5
+run_id: wam-ref2-execution-rppo-20261014-r7
 ---
 
 # Residual PPO on the frozen context pair
@@ -128,3 +128,117 @@ stayed near 0.006–0.010 of each rollout, mean reward between −0.03 and
 −0.01. Residual rms crept from 0.155 to 0.209, so the weights were still
 moving, but the task outcome was not. Another block of the same updates is
 not the next step.
+
+## 2026-10-14 ref6 implementation correction
+
+Historical r2–r5 traces remain evidence of their executed behavior, but their
+negative results cannot close the intended residual method: truncated rollout
+bootstrap was zero, intermediate resets fabricated H4 and previous command,
+and lift/held reward state used the reset height. A regression reproduced LR
+attempts [3e-4, 7.5e-5, 7.5e-5, 7.5e-5]; corrected backtracking progressively
+quarters each attempted rate and restores both weights and Adam moments.
+λ defaults to 1, following the existing long-credit mechanism evidence.
+
+Decision Note: this is a Blocker correctness repair for the Task's autonomous
+grasp baseline and global Objective A. First establish that measured prefix
+context and true terminal bootstrap reach the implemented PPO path; then ask
+whether a fresh 20-update probe produces hold beyond the old floor. The
+cheapest useful check is tiny deterministic contract tests plus one 4-env GPU
+run, rather than another 200-update run. WAM, World, old Chunk-R, alpha=.15
+and reward coefficients stay frozen. Phase snapshots now come from a bounded
+62-control teacher prefix, with matching measured past history/actions; this
+changes the reset physical source as well as its policy context, so r5/r6
+is not a single-variable causal comparison. Training perturbs only the reset
+frame; diagnostic resets have no perturbation. Held initialization uses the
+current measured gap/support and task-start lift; there is no expert command
+inside the training/evaluation rollout.
+
+Planned run `wam-ref2-execution-rppo-20261014-r6`: fresh initialization,
+GPU6 if free, phases 0/32/48/62, 96 diagnostic controls per phase in one
+batch, 20×96 training controls plus 20 actual post-control bootstrap queries,
+542 frame-0 eval controls. Total 2578 RPCs / 10312 model-query samples,
+plus 62 teacher prefix controls. One GPU, expected 5–10 minutes, hard wall
+cap 4 hours, outputs under 100 MB. Abort on any invalid execution/context,
+nonfinite value, unexpected early done, foreign GPU process or any phase
+with no gap under 30 mm. A successful engineering gate permits only this
+small probe; no permission/resource expansion is needed.
+
+Success/failure: retain frame-0 hold45/close-rise criteria as a Probe screen;
+report training held/slip, residual mean/std, per-DOF saturation/margins,
+per-phase returns and value explained variance. If hold remains near 1%,
+inspect these diagnostics before spending more updates; stop this block.
+No formal RL/WAM claim follows from this rerun. The old failed implementation
+is not negative evidence for a clean residual method.
+
+v2 checkpoints include optimizer state, update, all relevant RNG streams and
+the measured teacher prefix. v1 cannot be resumed as a strict continuation.
+GPU simulator contact caches are not serialized; resumed reset rollouts may
+still differ physically. Tiny tensor tests use CPU because they finish in
+seconds and GPU startup would dominate; model training/physics use GPU.
+
+Limitations/future evidence: exact frozen-pair fixed-residual basin screening,
+joint-wise feasible authority, observation normalization and matched multi-seed
+validation remain deferred. Gaussian-latent PPO remains mathematically defined
+through the deterministic clipping map; saturation can still hide useful
+exploration and is now explicitly measured. Do not transfer the old tau
+thumb-pitch basin to this WAM+R pair without testing it.
+
+## Completed corrected short probe
+
+Fix commits: `b201396b` (context/reward/bootstrap/λ/KL), `a2f85d4b`
+(legacy teacher batch initialization). The first attempt `r6` stopped before
+any WAM rollout or PPO update: the legacy player's batch marker had not been
+initialized, flattening a 64×1442 teacher observation. Its FAILED manifest
+is retained. `r7` ran the corrected implementation at `a2f85d4b`, fresh
+actor/value, on GPU6; 20 updates and frame-0 evaluation completed in 492 s
+after native/server readiness. GPU memory was 18832 MiB (18.4 GiB),
+utilization usually 17–34%. Output size 36 MiB; global outputs+tmp
+approximately 293 GiB, within the 400 GB budget.
+
+All four 96-control zero-residual phase diagnostics passed the <30 mm gate:
+
+| phase | minimum gap (mm) | held fraction |
+| --- | ---: | ---: |
+| 0 | 0.423 | 0 |
+| 32 | 0.598 | 0 |
+| 48 | 0.000 | 0.396 |
+| 62 | 1.563 | 1.000 |
+
+The phase62 reset was already held, 92.7 mm above task-start height.
+Its restored previous_held is true; previous-action RMS at phases32/48/62
+is .333/.206/.277, rather than zero. The phase0 value is correctly zero.
+These actual reset measurements validate why the prior reset-local lift and
+cleared reward state were semantically wrong.
+
+Training mean held fraction was .2346 (per-update range .1146–.3672), slip
+fraction .00208, and average active-DOF clipping .00289. Last-update value
+explained variance was .3459. High held fractions predominantly come from
+the already-grasped phase62 reset; they are not startup grasp progress.
+The final deterministic frame0 residual RMS was .0706, with held0 on all
+four environments, maximum object rise <=1.53 mm. All four objects remained
+on the table; no throw/drop was detected. Under the retained Probe screen,
+this fresh 20-update recipe is locally UNPROMISING for startup grasp. This
+does not refute residual RL or attribute failure to WAM alone, and it is not
+a controlled causal improvement over r5.
+
+`tools/audit/audit_wam_residual_ppo.py --run outputs/trajectory-policy/wam-ref2-execution-rppo-20261014-r7 --device cuda:0`
+was run with CUDA_VISIBLE_DEVICES=6 after the training processes exited.
+It independently checked 22 reset contexts, all four zero-residual phase
+traces, task-start lift/initial-held state, all 20 actual final observations
+(NumPy reconstruction), and all 20 saved pre-update value checkpoints.
+Bootstrap maximum discrepancy was 1.91e-6; all training endpoints are
+nonterminal. Both Adam states, update count, phase layout and all five RNG
+streams are present in final.pt. This is an engineering audit, not scientific
+validation or a bitwise physics-resume claim. Related contract tests: 17 pass.
+
+Artifacts: `outputs/trajectory-policy/wam-ref2-execution-rppo-20261014-r7/`
+contains manifest/result/audit, reset-prefix and reset captures, four-phase
+diagnostic, per-update bootstrap input/value, full evaluation and v2
+checkpoints. Raw native/server output is also preserved in
+`tmp/wam-ref6-monitor/r7.log` and the run's server.log.
+
+Next decision: stop this block at 20 updates. Before a longer PPO block,
+screen small fixed residual directions on this exact frozen WAM+R pair from
+frame0 and determine whether startup has a usable basin. Current measured
+saturation is low on average, so do not assume clipping alone is the blocker.
+No further experiment was started in this bug-fix task.

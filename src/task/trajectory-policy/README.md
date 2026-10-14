@@ -1,3 +1,38 @@
+# Residual PPO correctness repair（2026-10-14）
+
+按 [ref6](docs/user/ref/ref6.md) 修复 `tools/run/train_wam_residual_ppo.py` 和
+`src/trajectory_policy/residual_ppo.py`：非终止 96 步截断重新查询末端 WAM，使用
+`V(o_96)`；GAE λ=1；KL 拒绝后学习率逐级乘 .25 并恢复 Adam 状态。
+中途 reset 使用本次 62 步教师回放的实测 q/dq、root、object 和 table 状态，
+H4 的前三帧与上一拍 command 也来自同一条实测回放；当前帧是重置后的测量。
+训练噪声只作用于当前重置状态。lift 始终相对任务起始高度，初始 held 从真实
+gap/support/lift 重算，因此第一拍失物也会受罚。教师只生成训练 reset 前缀，
+残差 rollout 与 frame-0 评估均无教师命令干预。这个改动也修正了 reset 的物理
+来源；新旧运行不是单变量 reward/λ 的因果对照。
+
+默认上限为 20 updates；PPO 前必须对 phase 0/32/48/62 各做 96 步零残差诊断，
+每个 phase 的至少一次近接触需小于 30 mm。日志包含 per-phase return/held、
+hold/slip terms、12 DOF 的 residual mean/std、saturation/feasible margins 和 value EV。
+`bootstrap*.npz` 与对应更新前 value 权重用于独立复算末端值；
+`reset-prefix.npz`、`reset-*.npz`、`diagnostic*.npz` 用于核对历史和奖励状态。
+极小张量合同测试使用 CPU，避免 GPU 初始化成本；物理与训练仍使用 GPU。
+
+v2 checkpoint 保存 actor/value、两个 optimizer、update、CPU/CUDA/phase/Python/NumPy
+RNG 和实测 reset 前缀，`--resume` 只接受相同 env/phase 布局的 v2。
+这保证恢复训练状态；Isaac 的接触缓存与 GPU 物理不保证逐位可复现。
+旧 v1 权重不能冒充完整续训，昨天的 r2–r5 原始失败记录保留。
+当前仍用 Gaussian latent 的 PPO logprob 与 `clip(base + .15 * latent)`；
+该 deterministic 执行映射本身不使 latent-policy PPO 无效，但裁剪确实会消耗探索
+authority，因此先记录饱和率。joint-wise feasible 参数化、exact-pair 固定残差
+basin screen 与 observation normalization 留作后续决策，不能用旧 tau 的 basin 替代。
+协议与修复记录见[残差实验卡](docs/experiments/probes/P-20261013-wam-residual-ppo.md)。
+GPU6 的 fresh 20-update r7 已完成：四个 phase 零残差与独立末端 V 审计通过，
+训练 held 约23.5%但主要来自 phase62；frame0 仍4/4 held0，物体留在桌面。
+局部 UNPROMISING，不继续加更新。独立复算入口为
+`tools/audit/audit_wam_residual_ppo.py --run <completed-run> --device cuda:0`，
+在空闲 GPU 上执行；检查实际 H4/previous command、初始 held、末端 observation、
+保存的更新前 V 和 checkpoint 状态。17 项相关合同测试通过。
+
 # ref3.1 own-state Chunk-R repair（2026-10-13）
 
 `tools/run/repair_chunk_own_states.py` separates3 exact C takeover states from192
