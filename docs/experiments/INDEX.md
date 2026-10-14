@@ -448,6 +448,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | PROMISING（局部离线预测；用户已提前停止预训练）。37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。原训练最后日志39100，完整恢复点3 | 用户要求停止三域80k训练，保留完整best available/latest，转向660条机器人执行补录与联合适配。 | probes/PROMISING |
 
+## HF-ptv3-shared-v2-pretrain
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | RUNNING. 61项新旧合同测试及真实GPU四步/恢复/双卡global256检查通过；1000步Probe已交监督器启动。 | 用户已经同意新Task与双路hand/统一horizon方案；按自主探索规则先做最小可判别训练。 | probes/RUNNING |
+
 ## HF-rawsensor-hand-conditioning
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

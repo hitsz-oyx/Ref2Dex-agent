@@ -5,7 +5,7 @@ experiment_id: P-20261014-ptv3-shared-v2-pretrain
 date: 2026-10-14
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: da694f1f
+git_commit: 95c1436a
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-v2-pretrain
 probe_index_in_family: 1
@@ -13,13 +13,13 @@ seed_pool: probe
 seeds: [136]
 decision_changed_if_positive: continue bounded v2 pretraining if physical hand and scene errors improve on the fixed three-domain dev panel
 decision_changed_if_negative: audit input routes and normalized target semantics before increasing compute or rejecting v2
-status: PLANNED
+status: RUNNING
 run_id: pretrain-main3-probe-20261014-r1
 ---
 
 # 联合轻量PTv3与大shared的horizon标准化预训练
 
-Result: PENDING. 61项新旧合同测试通过，最终真实GPU四步/恢复/双卡global256工程检查通过；待1000步Probe。
+Result: RUNNING. 61项新旧合同测试及真实GPU四步/恢复/双卡global256检查通过；1000步Probe已交监督器启动。
 Decision: 用户已经同意新Task与双路hand/统一horizon方案；按自主探索规则先做最小可判别训练。
 
 Class: Decision. 服务于三域交互表示与最终机器人适配；问题是减少几何参数、让hand进入
@@ -77,7 +77,9 @@ metrics复用已审查的物理EPE与goal-only线性插值分组；normalized ob
   比双卡64的单卡吞吐外推更高，故将Probe选为global256，保持学习率和1000更新。
   四步负载不保证所有未来batch峰值；OOM/外部进程出现仍停止保存失败记录。
 - 以上均为工程证据，不代表预测质量或抓取收益。
-- 实际run代码提交、worker PID、输入、统计、配置与初始化由manifest.json记录。
+- 正式Probe run `pretrain-main3-probe-20261014-r1`，运行代码95c1436a，监督PID3444957，
+  GPU4/6，global256、1000更新。输入、worker PID、统计、配置与初始化由manifest.json记录。
+  旧Task660大模型训练继续，不把它的权重或optimizer混入v2。
 
 ## Limitations / future evidence
 
