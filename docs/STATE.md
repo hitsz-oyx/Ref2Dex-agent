@@ -42,8 +42,14 @@ PD xyz命令误差71.48→57.27mm，但hand_all24为111.48→111.43mm、scene40.
 xyz mean/p95=52.95/177.93mm优于4500的61.75/233.06mm，但10500未保存。另有RL660
 逐序列数据与旧native单文件入口不兼容的确定blocker。默认执行K4，不能照搬ref2的
 K1前提或把全部误差归因loss；16窗时序/坐标/PD复算通过。保留当前训练为基线，
-执行前须修选择/入口；R-only matched诊断等待共享GPU预算释放。详见
+执行前须修选择/入口。R-only已在六卡满额时用CPU4线程完成：control-aware相对all8
+dev mean/p95=50.78/161.68→45.80/148.05mm，局部PROMISING但不够执行。256窗
+能拟合到TRAIN8.64mm，dev反而63.30mm，优先查扩大覆盖后的优化/泛化。修复
+9a9b9ad1在隔离工作树通过56项测试与真实输入预检；物理执行未验证。旧训练仍跑原
+all8，守护4007948待peer退出且目标无并发修改后应用补丁，不热改源码。详见
 [660联合微调卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md)。
+
+[R-only修复卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-control-repair.md)。
 
 ## 2026-10-13 残差 PPO 二百次更新后仍然抛掷
 

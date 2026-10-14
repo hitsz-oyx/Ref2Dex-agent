@@ -367,3 +367,15 @@ PYTHONWARNINGS=ignore /home2/wyy/miniconda3/envs/graspenv/bin/python \
   六卡/400GB），单预算到期或非有限/外部冲突立即停，不做扫参或自动扩模型。
 - 正向时再按K1做GT执行门；不改善则分开排除优化/容量与输入覆盖，不能仅凭负Probe
   关闭inverse路线。此次未修改核心问题/claim、没有新增外部权限需求。
+
+
+## 2026-10-14 已授权修复与R-only结果
+
+见[独立R修复Probe](P-20261014-rl660-R-control-repair.md)。原联合运行保持all8基线，
+不热改loss或源码。隔离修复9a9b9ad1已实现独立forecast/control权重选择/保留及RL660
+逐序列native输入，56项测试、真实输入与R候选CPU预检通过，物理执行尚未验证。
+matched R-only的control-aware相对all8将dev first PD xyz mean/p95从50.78/161.68降到
+45.80/148.05mm；仍不够好。现有完整R能在256窗first-only拟合到TRAIN8.64mm，dev
+反而63.30mm，不能据此声称执行已修好或输入本来不确定。
+主工作树应用待本运行退出；守护4007948只在相关peer退出、目标未被并发修改且补丁
+可干净应用时写入，不自动提交。远端v2和本运行预算、checkpoint及配方均不变。

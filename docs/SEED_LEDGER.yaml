@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-rl660-R-control-repair:
+    seed_pool: probe
+    model_seed: 140
+    matched_draw_seed: 141
+    TRAIN_report_panel_seed: 142
+    reuse_reason: common warm-start weights and batch streams across three objective arms; not independent seeds
+
   P-20261014-unidexgrasp-local-admission:
     task: video-data-preparation
     seed_pool: probe
