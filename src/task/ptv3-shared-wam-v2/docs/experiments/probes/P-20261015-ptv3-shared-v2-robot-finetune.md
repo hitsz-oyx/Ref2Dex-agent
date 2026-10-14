@@ -66,9 +66,12 @@ only for engineering smoke and record the parent provenance.
 
 ## Engineering smoke status
 
-The v2 adapter passed a single-GPU and a two-GPU four-step smoke using the
-local scientific v2 `step1000.pt` only: finite loss, nonzero gradient norm,
-explicit q contract, and immutable checkpoint save all passed. These runs are
-stored under `outputs/ptv3-shared-wam-v2/robot-adapter-smoke-*` and are
-engineering-only. The scientific Probe remains PLANNED until the live remote
-80k checkpoint can be reached and copied with its schema/provenance intact.
+The v2 adapter passed single-GPU and two-GPU four-step smokes using the local
+scientific v2 `step1000.pt` only. The latest smoke records nonzero gradients in
+`joint_geometry`, `shared_and_heads`, and `retargeter`, finite loss, explicit q
+contract, and immutable checkpoint save. These runs are stored under
+`outputs/ptv3-shared-wam-v2/robot-adapter-smoke-*` and are engineering-only.
+The 660-sequence q-reference preflight also passed (all files finite, matching
+frame counts and raw schema). The scientific Probe remains PLANNED until the
+live remote 80k checkpoint can be reached and copied with its
+schema/provenance intact.
