@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [136]
 decision_changed_if_positive: continue bounded v2 pretraining if physical hand and scene errors improve on the fixed three-domain dev panel
 decision_changed_if_negative: audit input routes and normalized target semantics before increasing compute or rejecting v2
-status: RUNNING
+status: PROMISING
 run_id: pretrain-main3-probe-20261014-r1
 ---
 
 # 联合轻量PTv3与大shared的horizon标准化预训练
 
-Result: RUNNING. 61项新旧合同测试及真实GPU四步/恢复/双卡global256检查通过；1000步Probe已交监督器启动。
-Decision: 用户已经同意新Task与双路hand/统一horizon方案；按自主探索规则先做最小可判别训练。
+Result: PROMISING（局部离线Probe）。1000步完成，三域hand_all24均改善，scene_all24在GRAB/ARCTIC改善，OakInk2略差；未验证机器人抓取或Cm收益。
+Decision: 已通过固定面板继续投入门；按用户要求准备远端GPU0/2的大规模训练，先做独立工程预检。
 
 Class: Decision. 服务于三域交互表示与最终机器人适配；问题是减少几何参数、让hand进入
 PTv3并使用统一horizon统计后，该v2组合是否能稳定学习物理手/物体预测。
@@ -92,6 +92,69 @@ global256约240样本/s，剩余960更新的纯训练ETA约17分钟，含dev/保
 scene_all24为3.59/69.99/51.35mm；后续只与相同固定面板的物理EPE比较。
 三域初始量级不同，normalized objective不作为v1/v2跨架构收益结论。
 监督器每30秒记录GPU，保护best/latest并在deadline/源码变化/外部进程等边界停止。
+
+## 1000步Probe完成
+
+运行代码95c1436a，1196.16秒，监督器exit_code=0；best/latest均为step1000。
+固定96窗dev、每域32窗，与step0使用同一面板。下表为物理EPE，单位mm：
+
+| 域 | hand all24：step0 → 1000 | scene all24：step0 → 1000 |
+| --- | ---: | ---: |
+| OakInk2 | 29.72 → 23.83 | 3.59 → 3.69 |
+| GRAB | 123.10 → 87.16 | 69.99 → 41.04 |
+| ARCTIC | 63.58 → 55.14 | 51.35 → 33.18 |
+
+normalized dev objective为5.578→2.068。三域hand均改善、scene多数域改善，满足本卡
+预先定义的继续投入门，标为局部PROMISING；OakInk2 scene略差，仍需观察静止点漂移。
+单seed/小dev不支持显著性、v1/v2优劣、架构归因、真实物理推理或抓取有效结论。
+
+## 2026-10-14 远端训练工程预检 Decision Note
+
+用户要求远端大规模v2，指定GPU0/2；先确认能否正常训练。只做有界工程检查，
+不在本阶段自动启动长训练或改变统计/数据划分。初次GPU2占用时等待，用户随后
+明确告知卡已准备好，重新检查空闲后使用0/2，不干预1/3上的其他任务。
+
+- 主机deepcybo-4-4090-48，沿用已有wbcd身份/严格SSH主机键；不新增身份。
+- 独立目录 `/home/wbcd/workspace/oyx_ws/wam-v2-20261014/repo`，复用只读NAS
+  三域data-remote；不修改旧远端项目、环境或输入数据。固定代码7c256e8a，
+  PointWorld子模块05484826。horizon统计只更换data路径，数值完全保留。
+- 远端graspenv为Torch2.0.1+cu118、flash-attn2.5.9.post1、spconv-cu118 2.3.6；
+  与本地runtime不同，必须通过实际forward/backward/DDP/save/load检查，不能只依赖import。
+- `engineering-remote-ddp2-batch128-20261014-r1`，GPU0/2、每卡128/global256、4步，
+  debug seed17；最多900秒、整个新scope最多4GB。监督PID1669622；无科学训练结论。
+- GPU冲突、源码变化、非有限量、OOM、deadline或存储越界即停止所属进程组。
+  本地660微调继续在5/7；合计4张本项目GPU，在共享6张上限内。
+- 详细部署/runtime/运行回执保存在本地 `tmp/wam-v2-remote-preflight-20261014/`，
+  远端scope的deployment.json与repo/tmp/<run_id>/process.json保存实际路径、PID与边界。
+  预检结果和恢复兼容修复见下节；工程结果不升级为科学结论。
+- r1在rank1第三步取数据时退出，Errno24 Too many open files；前两次更新有限，
+  没有得到checkpoint，不算模型/显存负证据。远端默认RLIMIT_NOFILE为soft1024、
+  hard1048576。对同一rank1/worker0的step1/3抽样做CPU-only文件读取最小复现：
+  soft1024在1018个FD附近失败，soft65536正常读完，峰值1571个FD。
+  只把本次监督/训练/worker继承的进程软上限改到65536，hard与系统配置不变。
+  相同模型/数据/batch的独立r2复检；旧失败日志与复现结果保留。
+
+## 远端预检结果与恢复兼容修复
+
+`engineering-remote-ddp2-batch128-20261014-r2` 在7c256e8a代码上完成4步，exit0，
+model/gradient finite、真实PTv3/shared/双头接线与checkpoint保存通过。
+每卡128/global256，稳定步骤2/3/4约0.796/0.790/0.791秒，约324样本/s。
+rank0峰值分配14270MiB，末端物理显存GPU0/2约20483/21891MiB（48GiB卡），
+scope含代码与完整checkpoint约1.53GB；SSD仍余约279GB，NAS约52.3TB。
+四步吞吐只作工程容量估计，不能保证长训持续利用率、I/O与所有batch峰值。
+
+随后完整checkpoint的继续更新检查捕获第二个runtime兼容问题：Torch2.0.1
+`Optimizer.load_state_dict`对CPU映射的step标量不做设备迁移，而fused AdamW要求
+该标量位于CUDA。最小两参数GPU回归在legacy路径稳定失败（step_device=cpu），
+同一测试使用restore_optimizer后通过（step_device=cuda:0，step1→2）。
+修复提交d0288294只修正fused/capturable恢复的step设备，不改变模型、统计或配方；
+本地Torch2.4.1同一回归通过，13项v2合同测试通过。生产v2恢复入口已调用该函数。
+
+独立完整模型load/optimizer/RNG恢复与下一步更新通过：step4→5，RNG复核一致，
+loss3.1654、clip前梯度范数5.0623有限，参数实际更新；丢弃该工程模型，不另存科学checkpoint。
+远端ready代码为d0288294。所有原始失败
+与成功记录保留，完整数值报告位于本地 `outputs/ptv3-shared-wam-v2/remote-preflight-20261014-r1/`。
+远端仅做工程预检，未启动大规模长训；预检完成后GPU0/2自然释放，不操作其他任务。
 
 ## Limitations / future evidence
 

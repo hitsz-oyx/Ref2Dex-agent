@@ -452,7 +452,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | RUNNING. 61项新旧合同测试及真实GPU四步/恢复/双卡global256检查通过；1000步Probe已交监督器启动。 | 用户已经同意新Task与双路hand/统一horizon方案；按自主探索规则先做最小可判别训练。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-v2-pretrain](../../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md) | 联合轻量PTv3与大shared的horizon标准化预训练 | PROMISING（局部离线Probe）。1000步完成，三域hand_all24均改善，scene_all24在GRAB/ARCTIC改善，OakInk2略差；未验证机器人抓取或Cm收益。 | 已通过固定面板继续投入门；按用户要求准备远端GPU0/2的大规模训练，先做独立工程预检。 | probes/PROMISING |
 
 ## HF-rawsensor-hand-conditioning
 

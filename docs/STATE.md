@@ -1,15 +1,15 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-14 PTv3共享WAM v2独立预训练Probe
+## 2026-10-14 PTv3共享WAM v2本地Probe完成，远端预检通过
 
-承接用户已批准的新Task方案，`ptv3-shared-wam-v2`已实现轻量联合PTv3、hand双路
-保留、大shared及三域TRAIN共享horizon统计，输入改为固定物理尺度。最终98.59M参数，
-geometry11.09M、shared85.05M。61项新旧合同测试和真实GPU梯度/数值/恢复/双卡
-负载检查通过。`pretrain-main3-probe-20261014-r1`已由独立监督器启动，GPU4/6、
-global256、1000更新、最多2小时；旧660微调继续在5/7。当前仅有工程证据，尚无
-v2抓取/Cm结论。协议和进度见
+本地1000步局部PROMISING：三域hand_all24为23.83/87.16/55.14mm，均优于step0；
+scene在GRAB/ARCTIC改善，OakInk2略差，不形成抓取/Cm结论。用户指定远端GPU0/2，
+独立scope已完成每卡128/global256的4步训练与保存，约0.79秒/update，物理显存
+20–22GiB/卡。完整模型/optimizer/RNG恢复后step4→5更新也通过。
+远端ready代码d0288294，启动需进程级 `ulimit -n 65536`；修复Torch2.0 fused AdamW
+恢复step留在CPU的问题。未改系统配置、数据/统计或旧Task微调；当前未启动远端长训。
+报告为 `outputs/ptv3-shared-wam-v2/remote-preflight-20261014-r1/summary.json`，详见
 [v2实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
-
 
 ## 2026-10-14 PTv3共享WAM停止预训练，转全660机器人联合微调
 
