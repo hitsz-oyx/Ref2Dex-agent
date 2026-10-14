@@ -1,5 +1,18 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-14 用户解除400GB限制，原生3D已全量并行扩产
+
+按用户新授权更新CAMPAIGN并替换旧全局磁盘停止watcher；六张项目GPU、外部只读和身份边界不变。
+HOT3D全部849包完成：290段/999865时间步转换，4段无QA时段跳过，130记录无监督GT。
+UniDex排除旧20与官方TEST，2046新mesh分82批在GPU4持续采集，完成后自动审计/追加索引；
+TACO模型与位姿包完成，15.23GB手包8线程断点Range下载，完成后自动逐序列转换。
+旧Task已有HO-Cap64段72944帧和DexYCB subject10的100段7282帧，本轮只读复用；
+HO-Cap仍全部DEV不进入TRAIN，时钟未核实的来源继续工程状态。
+实时查看：`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`；
+完成分片自动汇入`outputs/3d-data-preparation/native3d-live-corpus-20261014-r1/`，不重复展开窗口。
+H2O账号与HOI4D网盘下载访问已向用户提问；没有等待它们而停止其他处理。详见
+[扩产状态](../src/task/3d-data-preparation/docs/STATE.md)和[报告](../src/task/3d-data-preparation/docs/user/架构.md)。
+
 ## 2026-10-14 用户暂停视频路线，原生3D样例已接入
 
 按用户授权，EgoDex下载及远端GPU1/3旧重建已正常STOPPED，输入/产物保留；既有训练继续。
