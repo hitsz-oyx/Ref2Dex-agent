@@ -256,3 +256,8 @@ Decision: GT执行B固定为 `full_stream-step1500.pt`；不使用最后一步�
 进程；已确认其他用户的进程不占本项目额度，但目标GPU须完全空闲，绝不操作其进程。
 工具的仓库定位、资源计数和teacher/GT门3项测试通过；实际运行状态另存于qualification
 产物目录，等待期间不视为已执行或通过。
+
+
+## Decision Note：按用户ref2_1指令停止旧微调
+
+用户要求暂停当前raw-native联合微调、保留latest/best，按ref2_1修订R输出合同。先取消已排队的旧补丁自动交接及GT执行，避免旧计划在停止后自动启动；再由已确认属于本run的监督器停止其训练组。保留step14000/latest与step4500/best，不删除历史证据；远端v2继续。随后在当前工作树实现相对当前状态的物理目标chunk并做matched R-only Probe，不直接恢复旧联合配方。
