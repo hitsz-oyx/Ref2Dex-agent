@@ -34,7 +34,7 @@
 - 旧393/400GB全局watcher已核验归属后替换为纯容量/远端训练监控，避免扩数据误停已有训练；相关receipt在项目tmp。
 - H2O用户提供的HTTP Basic凭证已实际验证：六包均HTTP200，合计326,238,749B；已启动4线程可恢复下载（1h期限、20GiB物理余量），凭证只存本机mode0600文件，不进入Git或日志。手/物体pose和CAD下载后再核验坐标、时钟、split；下载成功不等于训练准入。HOI4D仍需网盘下载访问，DexTrack官方受限且社区镜像有混合修改lineage，暂不把kinematic references记作执行数据。
 
-H2O新增实测：138个TRAIN/DEV原始take已变为524个连续片段、67,358帧，8个CAD；22个TRAIN帧所在连续段短于28帧而跳过。全量6,871窗口接口审计通过（TRAIN5,691/dev1,180），真实原生21点与官方MANO约定spotcheck最大差8.14e-8m；8项合同测试通过。静态图与冻结审计位于`h2o-interface-snapshot-20261014-r1`，多源冻结接口检查也通过；subject4仅隔离test，仍等待最后包输入，未进入多源索引或训练。
+H2O新增实测：138个TRAIN/DEV原始take已变为524个连续片段、67,358帧，8个CAD；22个TRAIN帧所在连续段短于28帧而跳过。全量6,871窗口接口审计通过（TRAIN5,691/dev1,180），真实原生21点与官方MANO约定spotcheck最大差8.14e-8m；8项合同测试通过。静态图与冻结审计位于`h2o-interface-snapshot-20261014-r1`，多源冻结接口检查也通过；H2O六包现已全部完成，含subject4 test的总转换为184个take/744个连续段/90,749帧，0失败；test220段/23,391帧独立保留，未进入多源索引或训练。
 
 实时查看：`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`。输出与日志在`outputs/3d-data-preparation/`和`tmp/3d-data-bulk-20261014-r1/`。下文初始512MiB/400GB预算是历史快照，已被本节用户授权覆盖。
 
