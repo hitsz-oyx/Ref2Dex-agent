@@ -40,30 +40,32 @@ def main():
     fd=os.open(str(partial),os.O_CREAT|os.O_RDWR,0o644);os.ftruncate(fd,total)
     started=time.monotonic();deadline=started+a.seconds;lock=threading.Lock();active={};network=[0];errors=[]
     def one(index):
-        lo,hi=ranges[index]
-        for attempt in range(6):
+        lo,hi=ranges[index];received=0;failures=0
+        # Keep acknowledged bytes across transport retries, and bound each HTTP response.
+        while received<hi-lo+1:
             if time.monotonic()>deadline or (root/'STOP').exists():raise TimeoutError('bounded acquisition stopped')
             if shutil.disk_usage(root).free<20*2**30:raise RuntimeError('physical disk reserve20GiB')
+            request_lo=lo+received;request_hi=min(hi,request_lo+8*2**20-1)
             session=requests.Session();session.trust_env=False
-            if (attempt+int(a.prefer_proxy))%2:session.proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'}
+            if (failures+int(a.prefer_proxy))%2:session.proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'}
             try:
-                with session.get(url,headers={'Range':f'bytes={lo}-{hi}'},stream=True,timeout=(15,30)) as response:
-                    if response.status_code!=206 or response.headers.get('Content-Range')!=f'bytes {lo}-{hi}/{total}':
+                with session.get(url,headers={'Range':f'bytes={request_lo}-{request_hi}'},stream=True,timeout=(15,30)) as response:
+                    if response.status_code!=206 or response.headers.get('Content-Range')!=f'bytes {request_lo}-{request_hi}/{total}':
                         raise ValueError('official server did not honor exact range')
-                    received=0
+                    request_received=0
                     for data in response.iter_content(1024*1024):
                         if time.monotonic()>deadline or (root/'STOP').exists():raise TimeoutError('stopped/deadline')
-                        if received+len(data)>hi-lo+1:raise ValueError('range exceeds declared bytes')
+                        if request_received+len(data)>request_hi-request_lo+1:raise ValueError('range exceeds declared bytes')
                         offset=0
                         while offset<len(data):offset+=os.pwrite(fd,data[offset:],lo+received+offset)
-                        received+=len(data)
+                        received+=len(data);request_received+=len(data)
                         with lock:active[index]=received;network[0]+=len(data)
-                    if received!=hi-lo+1:raise IOError('incomplete range')
-                return index
+                    if request_received!=request_hi-request_lo+1:raise IOError('incomplete range')
             except (requests.RequestException,IOError):
-                with lock:active[index]=0
-                if attempt==5:raise RuntimeError('range network failed; completed ranges retained; URL omitted') from None
+                failures+=1
+                if failures>=12:raise RuntimeError('range network failed; completed ranges retained; URL omitted') from None
             finally:session.close()
+        return index
     other=sum(size for key,(_,size) in ARCHIVES.items() if key!='hand');full=total+other
     def publish(status_value):
         with lock:
