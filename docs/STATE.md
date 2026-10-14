@@ -1,14 +1,16 @@
 # Ref2Dex 当前研究状态
 
-## 2026-10-14 PTv3共享WAM v2本地Probe完成，远端预检通过
+## 2026-10-14 PTv3共享WAM v2本地Probe完成，远端80k已启动
 
 本地1000步局部PROMISING：三域hand_all24为23.83/87.16/55.14mm，均优于step0；
-scene在GRAB/ARCTIC改善，OakInk2略差，不形成抓取/Cm结论。用户指定远端GPU0/2，
-独立scope已完成每卡128/global256的4步训练与保存，约0.79秒/update，物理显存
-20–22GiB/卡。完整模型/optimizer/RNG恢复后step4→5更新也通过。
-远端ready代码d0288294，启动需进程级 `ulimit -n 65536`；修复Torch2.0 fused AdamW
-恢复step留在CPU的问题。未改系统配置、数据/统计或旧Task微调；当前未启动远端长训。
-报告为 `outputs/ptv3-shared-wam-v2/remote-preflight-20261014-r1/summary.json`，详见
+scene在GRAB/ARCTIC改善，OakInk2略差，不形成抓取/Cm结论。
+远端GPU0/2已从头启动 `pretrain-main3-remote-80k-20261014-r1`，代码1650ffce，
+每卡128/global256，80000更新、48h/8GB上限。固定384窗dev每1000步评估，
+不同于本地96窗面板。step460快照约0.682秒/update、375.5样本/s，纯训练剩余15.1h，
+dev/保存另计；30秒GPU0/2平均利用率96.8%/96.3%，物理显存最大29107/23733MiB。
+完整恢复更新预检通过，采用进程nofile65536与Torch2.0 fused AdamW恢复修复。
+本地预算watcher每120秒汇总已声明scope，393GB主动停止本run，400GB硬限，
+初始合计344.48GB；旧Task GPU5/7微调继续。详见
 [v2实验卡](../src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
 
 ## 2026-10-14 PTv3共享WAM停止预训练，转全660机器人联合微调
@@ -22,8 +24,10 @@ TRAIN/dev为589/71条、110777/11908窗口，每条序列均有准入。
 共享trunk512D×16层，参数101.6M；向量化padding/token、重计算、融合AdamW
 和TF32接入。函数保持迁移、48项测试及降低分组LR后的短更新稳定性门通过。
 `rl660-joint-large-20261014-r1`已在GPU5/7、global512启动剩余19000步；
-optimizer显式重置，原权重不覆盖。大模型已跑过40步，约1.45秒/步、每卡物理显存11GiB，预计8–9小时；
-尚无更好抓取结论。详见
+optimizer显式重置，原权重不覆盖。15:44 CST快照扩容phase9460/19000，累计10460/20000，
+约1.45秒/步、剩余约3.84小时。训练分段日志均值4.73→1.80；固定dev1000→9000步
+PD xyz命令误差71.48→57.27mm，但hand_all24为111.48→111.43mm、scene40.72→41.95mm，
+轨迹泛化进入平台。best为step4500、latest为9000，尚无新增闭环抓取证据。详见
 [660联合微调卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md)。
 
 ## 2026-10-13 残差 PPO 二百次更新后仍然抛掷

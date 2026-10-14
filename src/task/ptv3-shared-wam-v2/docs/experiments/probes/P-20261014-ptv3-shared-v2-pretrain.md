@@ -5,7 +5,7 @@ experiment_id: P-20261014-ptv3-shared-v2-pretrain
 date: 2026-10-14
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: 95c1436a
+git_commit: 1650ffce
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-v2-pretrain
 probe_index_in_family: 1
@@ -179,6 +179,25 @@ loss3.1654、clip前梯度范数5.0623有限，参数实际更新；丢弃该工
 - 若改善则保留最佳与里程碑供后续robot适配；若dev恶化/平台先看固定物理EPE，
   不以训练loss升级结论。OOM、非有限量、外部GPU冲突或资源越界停止本run并保留已有
   完整恢复点，禁止杀未知进程。正式matched比较、多seed与抓取验证仍延后。
+
+## 远端80k启动回执
+
+运行代码1650ffce，监督PID1718152、torchrun1718160、rank worker1718169/1718170。
+run为 `pretrain-main3-remote-80k-20261014-r1`，no-file soft65536/hard1048576。
+独立监督器已在GPU0/2启动；初始工程梯度审查通过，hand/scene均进入PTv3/shared/goal，
+hand encoder经PTv3路径非零。固定step460快照：loss/梯度有限，最近0.682秒/update，
+global256、375.5样本/s，纯训练剩余15.06小时；后续dev、保存和I/O开销另计，
+因此启动前18–24小时只作为保守预估，不是已经测得的耗时。
+rank0峰值分配15447MiB；30秒逐秒采样中，GPU0/2平均利用率96.8%/96.3%，
+物理显存最大29107/23733MiB（约28.43/23.18GiB），包含allocator缓存。
+原始采样与进度保存在本地run目录的 `startup_gpu_observation.json`。
+本快照尚未到step1000首次训练后dev，不从单个训练loss判断80k阶段质量；
+本地1000步96窗与远端384窗面板不同，也不直接比较两阶段绝对分数。
+
+本地预算watcher PID3838855，每120秒合计本地outputs/tmp与两个已声明远端scope。
+初始合计344.48GB，低于393GB主动停止线与400GB硬上限；最多8GB新run预留也在界内。
+本地回执与当前远端快照：`outputs/ptv3-shared-wam-v2/pretrain-main3-remote-80k-20261014-r1/`。
+远端进度在对应scope的repo/outputs同名目录，checkpoint不回拷占用本地磁盘。
 
 ## Limitations / future evidence
 

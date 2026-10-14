@@ -440,7 +440,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 660条/50类补录审核完成；原小模型在完整1000步后保留并停止。容量扩展到101636370参数、global512，初始预测保持与短更新稳定性门通过；大模型新phase19000步已在GPU5/7启动。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING。扩容phase已到9460/19000步（累计10460/20000）。训练日志分段均值4.73→1.80；固定dev动作命令误差改善，手/物体轨迹误差进入平台。当前best=step4500、latest=step9000；尚无新增闭环抓取证据。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
 
 ## HF-ptv3-shared-task-forecaster
 
