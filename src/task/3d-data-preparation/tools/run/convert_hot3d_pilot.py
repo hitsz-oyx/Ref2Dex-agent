@@ -52,7 +52,7 @@ def geometry(path, scale=1.):
                 query=surface[np.linspace(0, len(surface)-1, 32, dtype=int)])
 
 
-def convert(path, models, frames):
+def convert(path, models, frames, alignment_limit_ms=2):
     import torch
     metadata = json.loads((path / 'metadata.json').read_text())
     stream = '214-1' if metadata['headset'] == 'Aria' else '1201-1'
@@ -71,9 +71,9 @@ def convert(path, models, frames):
     i = np.where(abs(timestamps[previous]-grid) < abs(timestamps[i]-grid), previous, i)
     native = timestamps[i]
     residual = native-grid
-    aligned = abs(residual) <= 2_000_000
-    if len(np.unique(native)) != len(native):
-        raise ValueError('resampling would duplicate a native annotation')
+    aligned = abs(residual) <= alignment_limit_ms*1e6
+    duplicate = np.r_[False, np.diff(native)==0]
+    aligned &= ~duplicate
     hand_rows = {}
     with (path / 'mano_hand_pose_trajectory.jsonl').open() as f:
         wanted = set(native.tolist())
@@ -130,7 +130,8 @@ def convert(path, models, frames):
     validate_sequence(sequence)
     report = dict(sequence=path.name, participant=metadata['participant_id'], stream=stream,
                   frames=count, max_alignment_residual_ms=float(abs(residual).max()/1e6),
-                  alignment_limit_ms=2, resampling='nearest native timestamp; no pose interpolation',
+                  alignment_limit_ms=alignment_limit_ms, resampling='nearest native timestamp; no pose interpolation',
+                  duplicate_resampled_frames_invalid=int(duplicate.sum()),
                   qa_passing_frames=int(quality.sum()), native_hands=int(hand_valid.any(-1).sum()),
                   known_object_frames=int(known.sum()), units='m', training_allowed=False)
     return sequence, metadata, report
