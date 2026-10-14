@@ -88,7 +88,11 @@ def main():
                         points=(joints/1000+trans[:,None])[:,[0,1,5,9,13,17,4,8,12,16,20]].numpy()
                         hand[offset:offset+len(chosen),slot]=points;valid[offset:offset+len(chosen),slot]=np.isfinite(points).all(-1)
                 if frame_ids is None:raise ValueError('no native hand')
-                object_known=np.isfinite(object_poses).all(axis=(-1,-2))
+                rotations=object_poses[:,:,:3,:3]
+                object_known=(np.isfinite(object_poses).all(axis=(-1,-2))
+                    & np.isclose(object_poses[:,:,3,:],[0,0,0,1],atol=1e-6).all(-1)
+                    & np.isclose(rotations.swapaxes(-1,-2)@rotations,np.eye(3),atol=2e-4).all(axis=(-1,-2))
+                    & np.isclose(np.linalg.det(rotations),1,atol=2e-4))
                 sequence=dict(time=np.arange(count)/30,hand=hand,hand_valid=valid,object_poses=object_poses,
                               object_pose_valid=object_known,segment=np.zeros(count,np.int64),native_frame_id=frame_ids)
                 validate_sequence(sequence);objects=[]

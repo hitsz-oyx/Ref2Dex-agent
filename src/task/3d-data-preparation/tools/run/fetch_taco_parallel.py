@@ -68,7 +68,7 @@ def main():
             received=sum(active.values());completed_bytes=prefix+sum(ranges[i][1]-ranges[i][0]+1 for i in state['completed'])
         elapsed=time.monotonic()-started
         write(status,dict(status=status_value,pid=os.getpid(),dataset='taco',total_files=3,completed_files=2+(status_value=='COMPLETE'),
-            completed_bytes=other+(total if status_value=='COMPLETE' else 0),active_received_bytes=completed_bytes+received,
+            completed_bytes=other+(total if status_value=='COMPLETE' else 0),active_received_bytes=0 if status_value=='COMPLETE' else completed_bytes+received,
             total_bytes=full,elapsed_s=elapsed,network_bytes=network[0],payload_bytes_per_s=network[0]/max(elapsed,1),
             completed_ranges=len(state['completed']),total_ranges=len(ranges),errors=errors,checked_at=time.time(),training_allowed=False))
     publish('RUNNING')

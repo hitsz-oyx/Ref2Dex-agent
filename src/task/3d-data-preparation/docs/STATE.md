@@ -5,8 +5,21 @@
 - 用户明确取消产物磁盘空间上限并要求立即推进；根CAMPAIGN据此更新，六张项目GPU上限与外部只读/身份边界不变。
 - 行动：HOT3D全部ground_truth/hand_data/assets约2.70GB；TACO三份几何ZIP约15.69GB，CPU下载与转换并行；复用官方资产启动UniDex新增mesh采集，随后HO-Cap轻量接入。
 - 输入：用户三个授权清单只读；TACO/HO-Cap官方公开几何包；UniDex官方TRAIN中排除TEST mesh，保留train/dev按mesh分组。源数据不因未来结果筛选。
-- 成本与停止条件：CPU下载4线程/源、24小时可恢复期限，单次转换内存有界；UniDex每批≤50对象/≤400env/两轮、GPU4单worker、每批≤10分钟；扩产输出只受实际文件系统剩余≥20GiB约束，不生成视频。既有训练与未知进程不动。
+- 成本与停止条件：HOT3D下载4线程、TACO手部ZIP8线程独立Range、24小时可恢复期限，单次转换内存有界；UniDex实际每批25对象/200env/两轮（末批更少；原collector最多256env）、GPU4单worker、每批≤10分钟；扩产输出只受实际文件系统剩余≥20GiB约束，不生成视频。既有训练与未知进程不动。
 - 结果仍属工程语料，不自动准入训练；缺权限或临时URL失效及时向用户说明。源clock/语义问题保留明确mask与provenance，不伪造标签。
+
+## 扩产实际状态（初始样例之后）
+
+- HOT3D849包已全部完成：2,701,783,954B压缩、9,069,098,557B展开；Aria136+Quest158=294个记录提供手物GT，130个不提供。290段转换为999,865个名义30Hz时间步，4段没有QA通过的原生时段跳过，0实现失败。
+- 全序列版保留native/grid timestamp和最近邻残差，容忍≤16ms；重复选中的native帧标invalid。它不是插值后的额外真实观测，也不是正式时间精度准入。原512步pilot仍保留其≤2ms规则。
+- UniDex排除已有20mesh和官方TEST后，2046个新mesh分82批，每mesh16条真实执行，正在GPU4持续采集与自动审计。原20保留，总目标2066mesh/33056条；实际完成数看progress，不写成已经全量完成。
+- HO-Cap旧Task已有9人64段72944帧，经原作者MANO与标签检查；只读复用成64条DEV工程序列，继续保留外部测试用途。DexYCB已有subject10，100段7282帧直接读取一个固定相机的joint_3d/pose_y，不处理图像、不重复8个视角；遵循官方s1把subject10全部放TRAIN。两者native clock仍明确未核实。
+- TACO物体位姿和模型包完成，15.23GB手包并行Range续传；完成后等待中的converter自动按序列读取ZIP，避免再全量解包26.99GB pickle。真实pilot重打包验证全量reader，全部原生数组与pilot一致（1e-7容差）。
+- `native3d-live-corpus-20261014-r1`每分钟自动追加完成分片、共享CAD引用，不把已有pilot和full重复纳入。5项合同测试通过，混合来源shared-collate已通过工程检查；没有开始多源模型训练。
+- 旧393/400GB全局watcher已核验归属后替换为纯容量/远端训练监控，避免扩数据误停已有训练；相关receipt在项目tmp。
+- H2O实际HTTP401 Basic账号要求、HOI4D网盘下载访问受限，已向用户发缺失访问问题；DexTrack官方受限且社区镜像有混合修改lineage，暂不把kinematic references记作执行数据。
+
+实时查看：`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`。输出与日志在`outputs/3d-data-preparation/`和`tmp/3d-data-bulk-20261014-r1/`。下文初始512MiB/400GB预算是历史快照，已被本节用户授权覆盖。
 
 ## 2026-10-14 路线切换 Decision Note
 

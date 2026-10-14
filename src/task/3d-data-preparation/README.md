@@ -6,6 +6,8 @@
 
 代码位于`src/pose_mesh_data/`，执行入口在`tools/run/`，审计入口在`tools/audit/`。数据、日志和静态审查图留在`outputs/3d-data-preparation/`及项目`tmp/`。
 
+全量扩产已启动，用户已取消400GB产物上限；`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`查看实际进度。HOT3D全量转换、UniDex批采集、TACO断点下载/后续转换与已授权HO-Cap/DexYCB复用的产物自动汇入`outputs/3d-data-preparation/native3d-live-corpus-20261014-r1/`，窗口不展开存储。新来源继续是工程语料，尚未进入模型训练。
+
 授权HOT3D下载清单在仓库根目录，含临时签名URL，不提交。下载器仅选择`ground_truth/hand_data/assets`。
 
 ```bash
