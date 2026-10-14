@@ -5,7 +5,7 @@ experiment_id: P-20261015-rl660-reference-q-replay
 date: 2026-10-15
 task: ptv3-shared-wam
 branch: main
-git_commit: pending
+git_commit: 75edfd80
 claim_id: C1
 hypothesis_family: HF-rl660-reference-q-replay
 probe_index_in_family: 1

@@ -5,7 +5,7 @@ experiment_id: P-20261015-ptv3-shared-v2-robot-finetune
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: pending
+git_commit: 75edfd80
 claim_id: C1
 hypothesis_family: HF-v2-remote-robot-adapter
 probe_index_in_family: 1
