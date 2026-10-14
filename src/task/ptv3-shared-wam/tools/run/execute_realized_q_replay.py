@@ -1,4 +1,4 @@
-"""Bounded diagnostic replay of recorded native, PD and realized-q targets.
+"""Bounded diagnostic replay of recorded native, PD and q targets.
 
 No learned R/forecaster or actor inference. The legacy player is only a runtime
 shell. Uses the unchanged native controller and records actual physics arrays.
@@ -35,7 +35,30 @@ def reference_chunk(data, query, kind, velocity_feedforward=False, oracle_finger
             action_indices = np.minimum(query+np.arange(8), len(data['pd_targets'])-1)
             result[:, 6:] = data['pd_targets'][action_indices, 6:]
         return result
+    if kind == 'reference_q':
+        # The geometric DExplore file stores the reference robot trajectory
+        # in raw columns 373:391.  The RL export overwrites those columns with
+        # realized simulation q, so this array is loaded separately below.
+        indices = np.minimum(query + np.arange(1, 9), len(data['reference_q']) - 1)
+        return data['reference_q'][indices].copy()
     raise ValueError(kind)
+
+
+def align_reference_branch(target, live_q, rotation_cls, nearest_euler, torch_module):
+    """Choose the equivalent XYZ wrist Euler branch nearest the live joints.
+
+    Geometric q_ref is an absolute pose label, not a servo winding.  PhysX can
+    wrap the continuous wrist coordinates between two controls, so the branch
+    is selected at every consumption tick rather than once per eight-step
+    chunk.  Translation and fingers remain untouched; native coupling happens
+    after this conversion.
+    """
+    result = target.clone()
+    rotation = rotation_cls.from_euler(
+        'XYZ', target[:, 3:6].detach().cpu().numpy())
+    angles = nearest_euler(rotation, live_q[:, 3:6].detach().cpu().numpy())
+    result[:, 3:6] = torch_module.as_tensor(angles, device=target.device, dtype=target.dtype)
+    return result
 
 
 def window_queries(record):
@@ -57,6 +80,10 @@ def main():
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--velocity-feedforward', action='store_true')
     parser.add_argument('--oracle-fingers', action='store_true', help='diagnostic only: recorded finger PD with q wrist')
+    parser.add_argument('--q-source', choices=('realized', 'reference'), default='realized',
+                        help='q target source: RL realized state or geometric DExplore reference')
+    parser.add_argument('--reference-branch', choices=('raw', 'nearest-live'), default='raw',
+                        help='Euler branch for reference q_ref; nearest-live is a diagnostic oracle')
     args = parser.parse_args()
     out, source = args.output.resolve(), args.source.resolve()
     if (Path(sys.prefix).resolve() != RUNTIME.resolve() or out.exists()
@@ -86,6 +113,10 @@ def main():
     scratch.mkdir(exist_ok=False)
     motion_meta = json.loads((Path(corpus['source_membership']) / 'manifest.json').read_text())
     motion = Path(motion_meta['source_geometric_root']) / args.sequence
+    reference_file = motion / 'interaction_hand_inspire.pt'
+    roles = (['recorded_native', 'recorded_PD', 'reference_q_full',
+              'reference_q_start', 'reference_q_middle', 'reference_q_late']
+             if args.q_source == 'reference' else ROLES)
     motions = out / 'motions'; motions.mkdir()
     (motions / args.sequence).symlink_to(motion)
     cwd = out / 'gym_runtime'
@@ -103,6 +134,16 @@ def main():
     from isaacgym import gymtorch  # must precede torch
     import dexplore_ddp_rank_bootstrap
     import torch
+    from scipy.spatial.transform import Rotation
+    sys.path.insert(0, str(TASK / 'src'))
+    from ptv3_shared_wam.action_targets import _nearest_euler
+    reference_raw = torch.load(reference_file, map_location='cpu', weights_only=False).numpy()
+    if (reference_raw.ndim != 2 or reference_raw.shape[1] < 391
+            or reference_raw.shape[0] != len(original['q'])):
+        raise ValueError('geometric reference motion must match RL length and contain raw q_ref columns 373:391')
+    original['reference_q'] = reference_raw[:, 373:391].copy()
+    if not np.isfinite(original['reference_q']).all():
+        raise ValueError('reference q contains non-finite values')
     import run as native
     from learning import common_player, dexplore_players
     from rl_games.common import player as base_player
@@ -122,15 +163,20 @@ def main():
     install_reset_patch()
     started = time.monotonic()
     manifest = dict(schema='ref2dex.rl660-q-replay.v1', status='RUNNING', source=str(source),
-        sequence=args.sequence, record=record, roles=ROLES, controls=controls,
+        sequence=args.sequence, record=record, roles=roles, controls=controls,
         execution_steps=4, window_queries=queries, window_controls=8,
         seed=args.seed, physical_gpu=args.gpu, engineering_only=args.smoke,
-        training_allowed=False, actor_inference=False, nominal_targets='recorded unwrapped q[t+1]',
+        training_allowed=False, actor_inference=False,
+        nominal_targets=('geometric q_ref[t+1]' if args.q_source == 'reference'
+                         else 'recorded realized q[t+1]'),
         wrist_stiffness=200, wrist_damping=20, finger_stiffness=100, finger_damping=10,
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         experiment_id=card['experiment_id'], pid=os.getpid())
     manifest['q_velocity_feedforward'] = 'finite-difference-0.1s.v1' if args.velocity_feedforward else None
     manifest['oracle_finger_PD'] = args.oracle_fingers
+    manifest['q_source'] = args.q_source
+    manifest['reference_branch'] = args.reference_branch if args.q_source == 'reference' else None
+    manifest['reference_q_source'] = str(reference_file)
     def write(name, value):
         (out / name).write_text(json.dumps(value, indent=2) + '\n')
     write('manifest.json', manifest)
@@ -143,7 +189,7 @@ def main():
 
         @torch.no_grad()
         def _run_export_rl(self, task):
-            if task.num_envs != len(ROLES) or len(task.motion_file) != 1:
+            if task.num_envs != len(roles) or len(task.motion_file) != 1:
                 raise ValueError('six paired rows and one unique motion required')
             task._adaptive_kappa_enabled = False
             task._enable_early_termination = False
@@ -198,24 +244,33 @@ def main():
             buffers, clock = {}, {}
             fork_errors = {}
             for tick in range(controls):
-                intended = torch.as_tensor(np.repeat(original['applied'][tick:tick+1], len(ROLES), axis=0), device=task.device)
+                intended = torch.as_tensor(np.repeat(original['applied'][tick:tick+1], len(roles), axis=0), device=task.device)
                 requested = pd_from_action(intended, current['q'], offset, scale)
-                clipped = torch.zeros(len(ROLES), dtype=torch.bool, device=task.device)
-                query = np.full(len(ROLES), -1, np.int64)
-                index = query.copy(); intervention = np.zeros(len(ROLES), bool)
-                for env in range(1, len(ROLES)):
+                clipped = torch.zeros(len(roles), dtype=torch.bool, device=task.device)
+                query = np.full(len(roles), -1, np.int64)
+                index = query.copy(); intervention = np.zeros(len(roles), bool)
+                for env in range(1, len(roles)):
                     start = 0 if env < 3 else queries[env - 3]
                     active = env < 3 or start <= tick < start + 8
                     if not active:
                         continue
                     if env >= 3 and tick == start:
-                        fork_errors[ROLES[env]] = {key: float((current[key][env] - current[key][0]).abs().max())
+                        fork_errors[roles[env]] = {key: float((current[key][env] - current[key][0]).abs().max())
                                                    for key in ('q', 'dq', 'hand', 'obj', 'velocity')}
                     if (tick - start) % 4 == 0:
-                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, 'PD' if env == 1 else 'q', args.velocity_feedforward, args.oracle_fingers), device=task.device)
+                        if env == 1:
+                            kind = 'PD'
+                        else:
+                            kind = 'reference_q' if args.q_source == 'reference' else 'q'
+                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, kind, args.velocity_feedforward, args.oracle_fingers), device=task.device)
                         clock[env] = tick
                     query[env], index[env] = clock[env], tick - clock[env]
-                    target = couple(buffers[env][index[env]:index[env]+1])
+                    target = buffers[env][index[env]:index[env]+1]
+                    if (args.q_source == 'reference' and args.reference_branch == 'nearest-live'
+                            and env != 1):
+                        target = align_reference_branch(target, current['q'][env:env+1], Rotation,
+                                                        _nearest_euler, torch)
+                    target = couple(target)
                     raw, _, clip = command(target, current['q'][env:env+1], offset, scale)
                     intended[env], requested[env], clipped[env] = raw[0], target[0], clip[0]
                     intervention[env] = env != 1
@@ -251,7 +306,7 @@ def main():
     cfg = ROOT / 'outputs/consequence-evaluator/baseline-transfer-inputs-20261007-r1/cfg/inspire.yaml'
     sys.argv = [sys.argv[0], '--task', 'Dexplore_Inspire', '--cfg_env', str(cfg), '--cfg_train',
         str(native_root / 'data/cfg/train/rlg/inspire.yaml'), '--test', '--headless', '--motion_file', str(motions),
-        '--num_envs', str(len(ROLES)), '--export_rl', '--export_output_dir', str(out), '--seed', str(args.seed),
+        '--num_envs', str(len(roles)), '--export_rl', '--export_output_dir', str(out), '--seed', str(args.seed),
         '--sim_device', 'cuda:0', '--rl_device', 'cuda:0', '--pipeline', 'gpu', '--graphics_device_id', '0',
         '--num_threads', '1', '--output_path', str(out / 'native')]
     def timeout(number, frame):

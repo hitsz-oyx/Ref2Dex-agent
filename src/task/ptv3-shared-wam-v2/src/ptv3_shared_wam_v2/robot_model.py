@@ -1,0 +1,58 @@
+"""Robot action adapter on top of the pretrained v2 shared WAM."""
+import torch
+from torch import nn
+
+from . import paths as _paths
+from .model import SharedWAMV2
+from .objectives import forecast_loss
+from ptv3_shared_wam.action_targets import NATIVE, target_tensor
+from ptv3_shared_wam.robot import native_trajectory
+from ptv3_shared_wam.target_retargeter import make_retargeter
+
+
+class SharedWAMV2Robot(nn.Module):
+    """V2 forecaster plus the existing Chunk-R action head.
+
+    The action head sees measured q_real/dq and the forecast hand trajectory.
+    Its labels are `action_target`, which for the selected geometry-lift
+    representation are encoded from q_pd.  q_ref and q_real stay in the batch
+    as explicit audit fields and never get implicitly swapped into the loss.
+    """
+
+    def __init__(self, stats, config, action_representation=NATIVE):
+        super().__init__()
+        self.forecaster = SharedWAMV2(stats, config)
+        self.action_representation = action_representation
+        self.retargeter = make_retargeter(action_representation)
+
+    def forward(self, batch):
+        prediction = self.forecaster(batch)
+        has_action = batch.get("has_action")
+        if has_action is None or not bool(has_action.all()):
+            raise ValueError("v2 robot fine-tune requires action labels on every row")
+        tau = native_trajectory(prediction["trajectory"], batch["start_hand_valid"])
+        prediction["action"] = self.retargeter(batch["native_state"], tau)
+        # Anchor R to the measured future hand trajectory.  It updates only R;
+        # observed future hand labels are detached from the v2 forecaster.
+        prediction["action_anchor"] = self.retargeter(
+            batch["native_state"], batch["native_tau"].detach())
+        return prediction
+
+    def parameter_groups(self, config):
+        groups = self.forecaster.parameter_groups(config["geometry_lr"], config["shared_lr"])
+        groups.append(dict(name="retargeter", params=list(self.retargeter.parameters()),
+                           lr=config.get("robot_lr", config.get("shared_lr", 1e-4))))
+        return groups
+
+
+def robot_loss(prediction, batch, config, model):
+    total, terms = forecast_loss(prediction, batch, config, model.forecaster.normalizer)
+    target = target_tensor(batch, model.action_representation)
+    scale = model.retargeter.action_scale
+    action = ((prediction["action"] - target) / scale).abs().mean()
+    anchor = ((prediction["action_anchor"] - target) / scale).abs().mean()
+    total = total + config.get("action_weight", 1.) * action + config.get("anchor_weight", 1.) * anchor
+    return total, dict(terms, action=action, anchor=anchor)
+
+
+__all__ = ["SharedWAMV2Robot", "robot_loss"]
