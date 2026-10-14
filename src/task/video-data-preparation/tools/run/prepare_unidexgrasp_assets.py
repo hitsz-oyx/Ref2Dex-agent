@@ -183,13 +183,21 @@ def prepare(args):
         downloads.append(download(url, inputs/name, size, deadline, args.workers))
 
     assets = root/'assets'
-    if assets.exists():
-        # Preparation resumes only task-owned unpublished files; existing files must agree.
-        pass
-    else:
-        assets.mkdir()
-        for name in ('mjcf', 'stls', 'textures'):
-            shutil.copytree(args.vendor/'assets'/name, assets/name)
+    assets.mkdir(exist_ok=True)
+    # STL and hand textures live inside mjcf/open_ai_assets in this release.
+    # Copy only absent files; verify previously prepared files on resume.
+    for name in ('mjcf', 'textures'):
+        source = args.vendor/'assets'/name
+        for original in source.rglob('*'):
+            if not original.is_file():
+                continue
+            dest = assets/name/original.relative_to(source)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest.exists():
+                if dest.read_bytes() != original.read_bytes():
+                    raise ValueError('prepared hand asset changed')
+            else:
+                shutil.copyfile(original, dest)
     selected = {r['object_code'] for r in chosen}
     extracted = 0
     scanned = 0
