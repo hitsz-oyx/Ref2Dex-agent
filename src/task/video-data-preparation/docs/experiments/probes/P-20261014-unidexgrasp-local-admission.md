@@ -19,6 +19,30 @@ run_id: unidexgrasp-local-replay-20261014-r7
 
 # UniDexGrasp / ++ 刚体样例接入检查
 
+## 继续处理：20对象官方初始化与批回放 Decision Note
+
+用户明确要求继续处理UniDexGrasp。沿用已验证的确定性++ state actor、原物理配置和
+ShadowHand/CAD profile；本轮区分“单Car偶然可用”与“少量不同刚体可稳定批量采集”。
+若多对象的真实连续执行、标签合同及成功示范覆盖可用，再扩大对象队列；若缺资产或初始化
+异常，先修对应工程链路，不把失败实现当作策略负结果。
+
+最便宜入口是作者提供的140,597,661字节 `datasetv4.1_posedata.npy`，加441,222,940字节
+scaled mesh与26,844,762字节feature，共608,665,363字节；无需先下载2.72GiB静态标签包。
+公共下载先检查精确HTTP Range、文件长度与来源身份；压缩输入缓存最多750MiB，解压仅选中
+对象，prepared assets≤128MiB，扫描mesh总展开≤8GiB。官方TRAIN按排序取不同类别首个对象
+共20个，预先固定每第五个mesh为dev（16/4），TEST不采集，不根据回放结果挑选split。
+
+输入准备 run_id=`unidexgrasp-policy-assets-20261014-r1`；下载/解包CPU最多30分钟，6条并发
+HTTP连接，可按完整range恢复。GPU回放run另记，最多20对象×8env×2轮=320条，新增GPU预算
+10分钟、单次hard watchdog≤10分钟、输出/extension≤1GiB；优先空闲本地GPU4，不使用已为
+用户训练腾出的远端GPU0/2。启动前复核共享六卡上限；若远端双卡训练已经启动且本地5/7
+仍在运行，则先完成CPU准备并等待项目卡释放，不抢占现有任务。
+
+成功/失败与实际timestamp、root/q/dq/action都保留；compact trajectory按需切H4/K24，不批量
+保存重叠窗口/视频。完整CAD/current profile和11点映射仍显式登记；本轮产物在完成provider、
+多对象/dev及实际视觉检查前保持`training_allowed=false`。同一资产路径供后续worker复用，
+避免按run重复VHACD；只允许本任务新asset产生的小缓存，不修改HOME/其他任务cache。
+
 Result: PROMISING（单对象接入Probe）。修复物理配置后，真实GPU回放13/16达到官方目标，30Hz/H4/K24及固定32点标签审计通过；完整训练准入仍待多对象/dev与profile接入。
 Decision: 保留有界回放/审计工具，优先扩少量刚体对象、按mesh分组建立dev，明确ShadowHand/CAD profile后接训练；不将单对象成功率升级为全库结论。
 
