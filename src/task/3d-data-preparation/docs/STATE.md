@@ -1,5 +1,12 @@
 # 原生3D数据接入状态
 
+## HOI4D Windows 取数 Decision Note（2026-10-14）
+
+- 授权/证据：用户明确授权按`docs/user/连接远程windows.md`从`D:\BaiduNetdiskDownload`取数，并已启动反向SSH隧道。已用现有服务器密钥连接oyx@127.0.0.1:2222，四个ZIP大小与官方清单完全一致，共24,189,914,732B。
+- 行动：只读SFTP拉取camera/hand/CAD/annotations四包至`hoi4d-native-full-20261014-r1/archives`；Windows源文件保留。2并发、断点partial、严格固定本次SSH host key、完整长度和ZIP目录检查后原子发布；不传用户其他文件。
+- 成本/停止条件：CPU/网络、最多24h、20GiB物理余量，STOP文件可停自己的SFTP子进程并保留断点；不会修改Windows系统设置或源数据。
+- 下一步：输入先检查hand/objpose/camera轨迹及rigid类别的共同坐标与原生时钟；annotations中的segmentation不自动当pose训练输入。
+
 ## TACO GPU6 加速 Decision Note（2026-10-14）
 
 - 决策：用户询问增加GPU并行后，启用空闲本地GPU6执行TACO MANO FK；保留GPU4上的UniDex队列，余下约3–4批不为临时并行重排任务。
