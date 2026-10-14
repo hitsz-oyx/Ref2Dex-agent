@@ -17,10 +17,48 @@ from video_data_preparation.unidexgrasp_data import UniDexGraspWindows, forecast
 from video_data_preparation.sample_contract import FIXED_FIELDS
 from ptv3_shared_wam.egodex_data import forecasting_collate
 from ptv3_shared_wam.data import observed_inputs
+from ptv3_shared_wam.loading import initialize_loader_worker, project_ipc_directory
 
 
-def main(root):
+def proximity_record(trajectory, row):
+    """Describe target proximity in recorded states; this is not a grasp label.
+
+    The official endpoint is at raw frame199. Compact30Hz stops at frame198;
+    keep these clocks separate and never filter samples implicitly.
+    """
+    times = np.asarray(trajectory['time'])
+    goal = np.asarray(trajectory['goal'])
+    objects = np.asarray(trajectory['object'])
+    if goal.shape != (len(times), 3) or not np.isfinite(goal).all():
+        raise ValueError('finite same-execution target positions required')
+    distance = np.linalg.norm(goal - objects[:, :3], axis=-1)
+    near = distance <= .05
+    tail_start = int(np.searchsorted(times, times[-1] - .5 - 1e-7))
+    if len(times) < 16 or times[-1] - times[tail_start] < .5 - 1e-7:
+        raise ValueError('half-second endpoint history required')
+    last = len(near)
+    while last > 0 and near[last - 1]:
+        last -= 1
+    return dict(path=row['path'], object_code=row['object_code'], split=row['split'],
+                official_success=row['official_success'],
+                official_endpoint_within_5cm=row['endpoint_within_5cm'],
+                official_endpoint_time_s=float(trajectory['terminal_time']),
+                sampled_endpoint_time_s=float(times[-1]),
+                sampled_endpoint_distance_m=float(distance[-1]),
+                sampled_endpoint_within_5cm=bool(near[-1]),
+                sampled_tail_half_second_within_5cm=bool(near[tail_start:].all()),
+                sampled_tail_duration_s=float(times[-1]-times[tail_start]),
+                sampled_final_proximity_duration_s=float(times[-1]-times[last]) if last < len(times) else 0.,
+                official_hit_then_sampled_endpoint_outside=bool(row['official_success'] and not near[-1]))
+
+
+def main(root, output=None):
+    output = output or root/'provider-audit.json'
+    if output.exists():
+        raise FileExistsError('retain previous audit; choose a new --output')
     begin = time.monotonic()
+    torch.set_num_threads(2)
+    project_ipc_directory()
     denied = False
     try:
         UniDexGraspWindows(root, 'train')
@@ -30,10 +68,14 @@ def main(root):
         raise ValueError('provisional training access was not blocked')
     datasets = {s: UniDexGraspWindows(root, s, engineering=True) for s in ('train', 'dev')}
     checked = set()
+    proximity = []
     samples_checked = 0
     causal_fields = ('xyz', 'features', 'scene_object', 'object_valid', 'scene_points',
                      'start_hand', 'start_hand_history', 'start_hand_valid', 'start_object_points')
     for split, dataset in datasets.items():
+        for trajectory_id in sorted({i for i, _ in dataset.index}):
+            row = dataset.meta['trajectories'][trajectory_id]
+            proximity.append(proximity_record(dataset._trajectory(trajectory_id), row))
         for i in range(len(dataset)):
             sample = dataset[i]
             for key, (shape, kind) in FIXED_FIELDS.items():
@@ -69,7 +111,8 @@ def main(root):
     # Exercise actual spawned workers and the existing Shared-WAM tensor boundary.
     joined = torch.utils.data.ConcatDataset(list(datasets.values()))
     loader = torch.utils.data.DataLoader(joined, batch_size=4, num_workers=2,
-        multiprocessing_context='spawn', collate_fn=forecasting_collate)
+        multiprocessing_context='spawn', collate_fn=forecasting_collate,
+        worker_init_fn=initialize_loader_worker)
     batches = []
     iterator = iter(loader)
     try:
@@ -88,14 +131,22 @@ def main(root):
                    object_disjoint_splits=True, future_intervention_objects=sorted(checked),
                    source_id=4, training_access_blocked=denied, training_admitted=0,
                    shared_spawn_worker_batches=batches, elapsed_s=time.monotonic()-begin,
+                   proximity_by_split={s: dict(trajectories=sum(r['split']==s for r in proximity),
+                       **{key: sum(r[key] for r in proximity if r['split']==s) for key in (
+                           'official_success', 'official_endpoint_within_5cm', 'sampled_endpoint_within_5cm',
+                           'sampled_tail_half_second_within_5cm', 'official_hit_then_sampled_endpoint_outside')})
+                       for s in datasets},
+                   trajectory_proximity=proximity,
                    limitations=['provisional full CAD with palm-root ShadowHand semantics',
                                 'not a shared model forward/backward or training admission',
-                                'official cumulative success is separate from endpoint distance'])
-    (root/'provider-audit.json').write_text(json.dumps(summary, indent=2)+'\n')
-    print(json.dumps(summary, indent=2))
+                                'target proximity, including half-second retention, is not stable grasp evidence'])
+    output.write_text(json.dumps(summary, indent=2)+'\n')
+    print(json.dumps({k: v for k, v in summary.items() if k != 'trajectory_proximity'}, indent=2))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', type=Path, required=True)
-    main(parser.parse_args().run.resolve())
+    parser.add_argument('--output', type=Path, help='new report path; existing reports are never overwritten')
+    args = parser.parse_args()
+    main(args.run.resolve(), args.output)

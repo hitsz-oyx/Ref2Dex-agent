@@ -638,7 +638,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（单对象接入Probe）。修复物理配置后，真实GPU回放13/16达到官方目标，30Hz/H4/K24及固定32点标签审计通过；完整训练准入仍待多对象/dev与profile接入。 | 保留有界回放/审计工具，优先扩少量刚体对象、按mesh分组建立dev，明确ShadowHand/CAD profile后接训练；不将单对象成功率升级为全库结论。 | probes/PROMISING |
+| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（刚体几何接入Probe）。20对象320条回放产生TRAIN2560/dev640窗；全部3200窗合同与未来隔离通过，末0.5秒持续接近目标83条；真实GPU模型接线及正式训练准入待验证。 | 保留完整CAD/ShadowHand按需provider和成功/失败物理数据；六卡满额时不另启GPU，释放后先做真实Shared-WAM工程前向/反向，再扩对象；不将距离指标升级为稳定抓持或全库结论。 | probes/PROMISING |
 
 ## HF-video-data-readiness
 

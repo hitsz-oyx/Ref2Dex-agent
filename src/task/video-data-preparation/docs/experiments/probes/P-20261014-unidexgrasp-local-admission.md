@@ -5,7 +5,7 @@ experiment_id: P-20261014-unidexgrasp-local-admission
 date: 2026-10-14
 task: video-data-preparation
 branch: main
-git_commit: 11b103f86030df80c52a8ac2573fa0d3e307dba1
+git_commit: 6141c34e592085f1f102205eab45dd643429e0ae
 claim_id: C1
 hypothesis_family: HF-unidexgrasp-rigid-admission
 probe_index_in_family: 1
@@ -14,10 +14,29 @@ seeds: [123]
 decision_changed_if_positive: use native rigid geometry and explicit ShadowHand FK, then assess rollout acquisition
 decision_changed_if_negative: resolve asset scale, pose or kinematic semantics before expansion
 status: PROMISING
-run_id: unidexgrasp-local-replay-20261014-r7
+run_id: unidexgrasp-multi-replay-20261014-r2
 ---
 
 # UniDexGrasp / ++ 刚体样例接入检查
+
+## 续接会话后的当前状态与最小决策（2026-10-14）
+
+20对象/320条有效回放已经完成，实际按需provider得到TRAIN2560/dev640窗口。
+3200窗实际字段、同ID endpoint、20对象future intervention及spawn双worker检查已通过，
+`provider-audit.json`耗时23.21秒；不是模型前向/反向或完整训练准入。
+用户确认相机/碗两张预览手物位置正常，相机留在手边、碗拿起后脱落；只覆盖两份抽样，
+不能推广为全部轨迹已审。
+
+当前决策：完整CAD/ShadowHand数据源是否已有跨对象、持续接近目标的执行覆盖，值得
+下一轮模型工程接线与扩对象。最便宜方法是只读现有320条原生30Hz轨迹，补报末0.5秒
+每个记录状态均在5cm目标范围内的数量，区分累计命中、原始末帧距离和持续接近。
+它只表示距离，不证明接触/稳定抓持，也不作为隐式过滤规则。若覆盖过少，先排查对象/初始化；
+若覆盖够用，下一步真实Shared-WAM工程前向/反向，保留成功与失败供物理预测使用。
+
+成本：CPU字段/统计与spawn回归≤2分钟，新报告≤2MiB；CPU用于文件、解析几何和统计，
+无训练/神经网络推理。报告`provider-audit-r2.json`写新路径，不覆盖之前证据。
+现场核验远端GPU0/2已运行v2训练，远端1/3旧重建与本地5/7训练合计六卡；
+真实GPU smoke因此延后，不改变或停止既有任务，不启动新的回放/下载。本轮代码沿用main。
 
 ## 继续处理：20对象官方初始化与批回放 Decision Note
 
@@ -43,8 +62,54 @@ HTTP连接，可按完整range恢复。GPU回放run另记，最多20对象×8env
 多对象/dev及实际视觉检查前保持`training_allowed=false`。同一资产路径供后续worker复用，
 避免按run重复VHACD；只允许本任务新asset产生的小缓存，不修改HOME/其他任务cache。
 
-Result: PROMISING（单对象接入Probe）。修复物理配置后，真实GPU回放13/16达到官方目标，30Hz/H4/K24及固定32点标签审计通过；完整训练准入仍待多对象/dev与profile接入。
-Decision: 保留有界回放/审计工具，优先扩少量刚体对象、按mesh分组建立dev，明确ShadowHand/CAD profile后接训练；不将单对象成功率升级为全库结论。
+### 20对象实际结果与provider续接审计
+
+- 准备资产已完成，20不同mesh各选一个scale，所有对象都来自官方TRAIN且不在官方TEST
+  mesh集合中。16/4对象划分在回放前固定，不按成功挑split。本次包含名为pillow/BeanBag等
+  资产，但仿真里全部是刚体，不是软体数据。
+- r1保留作诊断：上游按最后一个物体的碰撞形状数分配所有aggregate，复杂物体出现容量
+  警告。采集器按批次最大实际碰撞容量修复后r2重跑；未调整policy、碰撞mesh或物理参数。
+  有效运行collector提交`6141c34e`，upstream `6c9e710b`；r1不作为方法负证据。
+- r2为160env×2轮，320条×200个60Hz状态。采集19.7756秒，含初始化45.2910秒，GPU4
+  观察峰值2713MiB；无aggregate容量警告。GPU已释放，不在本次续接重新采集。
+- 原始末帧官方累计距离命中119/320，末帧位于目标5cm内100/320；它们均不是稳定抓持率。
+  新报告将原始199/60s末帧与compact198/60s末采样帧显式分开，前者100、后者99，
+  不是统计重算冲突。末0.5秒持续距离仅使用真实30Hz状态，不插值、不看单次命中替代保持。
+
+| 距离描述（不等同抓持成功） | TRAIN256条 | dev64条 | 合计320条 |
+| --- | ---: | ---: | ---: |
+| 官方累计命中 | 95 | 24 | 119 |
+| 官方原始末帧在5cm内 | 77 | 23 | 100 |
+| 30Hz末采样帧在5cm内 | 76 | 23 | 99 |
+| 30Hz末0.5秒每个采样状态均在5cm内 | 67 | 16 | 83 |
+| 曾官方命中但30Hz末采样已在范围外 | 19 | 1 | 20 |
+
+持续距离覆盖TRAIN13/16个对象、dev3/4个对象，足以保留本方向并安排下一次模型工程
+接线；不自动批准成功示范，不为其余对象增加尝试次数。本数据源的U/V物理监督保留
+成功和失败，二者都是真实执行；示范/控制用途须另定义质量，不把ShadowHand动作当Inspire。
+
+provider提交`0576812f`，原审计提交`4e4b2b00`。CAD和normal按对象共享，320条compact
+含30Hz手点、物体、q/dq、根状态和60Hz动作/实际命令，共15,721,464字节（约15MiB、
+47.98KiB/条）；窗口不展开存储。scene18D当前normal/H4motion、query32及手轨迹均从
+同执行构造，完整CAD明确包含背面。source_id4为临时几何profile，不生成控制batch。
+
+全部3200实际窗口再次通过：TRAIN2560/dev640，20对象future intervention不改变当前
+场景/手输入，endpoint与U末帧同点，缺失左手无标签；spawn双worker进入既有
+`forecasting_collate`。新审计25.75秒，全相关回归76项通过，日志在
+`tmp/unidexgrasp-continue-20261014-r1/regression.log`。
+
+结果目录`outputs/video-data-preparation/unidexgrasp-multi-replay-20261014-r2/`包含
+`trajectory-manifest.json`、`trajectories/`、`geometry/`、原`provider-audit.json`、
+新`provider-audit-r2.json`和具名抽样`user-visual-confirmation.json`。旧报告不覆盖。
+修复审计spawn IPC使用项目tmp；统计与图片只在CPU，未运行神经网络。
+
+限制与下一步：当前provider一mesh一scale、非空mesh-disjoint dev已具备；还未完成
+真实GPU模型前向/反向、完整source准入、跨scale索引、混域normalization/sampler或收益
+验证。下一张项目卡释放后先跑四步双头工程smoke，成功再考虑100对象有限回放及source
+准入；扩量按mesh/scale与有限初始化次数，不做无界“补到成功”。六卡满额时不后台自动抢卡。
+
+Result: PROMISING（刚体几何接入Probe）。20对象320条回放产生TRAIN2560/dev640窗；全部3200窗合同与未来隔离通过，末0.5秒持续接近目标83条；真实GPU模型接线及正式训练准入待验证。
+Decision: 保留完整CAD/ShadowHand按需provider和成功/失败物理数据；六卡满额时不另启GPU，释放后先做真实Shared-WAM工程前向/反向，再扩对象；不将距离指标升级为稳定抓持或全库结论。
 
 Class: Decision. 服务于Shared-WAM刚体手物监督来源的选择。
 区分“原生刚体mesh/抓取标签可便宜解析”与“格式/尺度/手FK仍是主要blocker”，同时确认

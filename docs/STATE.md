@@ -1,5 +1,15 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-14 UniDexGrasp刚体多对象数据接口续接完成
+
+有效20对象/320条++回放已生成TRAIN2560/dev640按需窗口，16/4对象不跨mesh。
+实际3200窗合同、20对象future隔离和spawn双worker通过，相关回归76项通过。
+累计目标命中119，原始末帧5cm内100，末0.5秒30Hz采样持续距离83（TRAIN67/dev16）；
+距离不等同稳定抓持。完整CAD/ShadowHand暂设source_id4，约15MiB compact共享CAD，
+仍禁止自动训练准入、不发出Inspire控制batch。现场本地5/7与远端0/2训练、远端1/3
+重建用满六卡，下一步GPU双头工程smoke待卡释放。详见
+[UniDex实验卡](../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md)。
+
 ## 2026-10-14 PTv3共享WAM v2本地Probe完成，远端80k已启动
 
 本地1000步局部PROMISING：三域hand_all24为23.83/87.16/55.14mm，均优于step0；

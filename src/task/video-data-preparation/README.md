@@ -39,7 +39,7 @@ UniDexGrasp/++作为刚体仿真来源的小样例已检查，见[研究笔记](
 手FK/mesh预览；它不采集动态轨迹或生成训练快照。已下载++ checkpoint和小样例形状编码，
 策略回放复用本地graspenv/Isaac Gym，已有8env×2轮的真实GPU执行与30Hz核心窗口检查；
 现有远端视频环境不具备该依赖。最终r7在补齐官方物理配置后13/16达到官方目标，
-仍是单对象Probe；fixture禁止训练准入，尚未建立完整corpus/provider。
+单对象结果是接入Probe；后续20对象结果和provider见下一节。fixture继续禁止自动训练准入。
 
 从Task根目录执行，输入复用已下载的小样例checkpoint；GPU号须重新核验空闲，输出须为新目录：
 
@@ -54,6 +54,35 @@ UniDexGrasp/++作为刚体仿真来源的小样例已检查，见[研究笔记](
 已有准备资产可用`--assets`只读复用，避免不同run反复生成VHACD缓存。
 审计与预览入口：`tools/audit/audit_unidexgrasp_replay.py --run <completed-run>`。
 MP4是记录手点/物体pose的三维重建，不是模拟相机RGB；该审计不运行模型训练。
+
+### UniDexGrasp20对象按需provider
+
+`unidexgrasp-multi-replay-20261014-r2`已采集320条真实执行，按mesh分为16个TRAIN对象和
+4个dev对象；同mesh不会跨组，并排除了官方TEST中出现的mesh。30Hz每条100个状态，
+stride8可按需构造TRAIN2560/dev640窗，不重复保存重叠窗口。
+
+`video_data_preparation.unidexgrasp_data.UniDexGraspWindows(root, 'train', engineering=True)`
+输出现有`forecasting_collate`所需的scene18D、双手H4、物体U/手V及同ID的t+24goal；
+source_id=4，profile为`unidexgrasp-shadow-complete-cad-provisional`。场景是完整CAD，
+normal来自CAD，运动来自同执行已观察H4；缺失左手invalid。它不发出ShadowHand action/state
+训练batch，也不冒充Inspire控制数据。当前每mesh只选一个scale，跨scale扩量尚需扩展索引。
+成功与失败轨迹均保留；provider不隐式挑成功、也不自动接到已有训练。
+
+在仓库根目录执行审计；已有报告不会被覆盖，每次给新输出文件：
+
+```bash
+TMPDIR="$PWD/tmp" PYTHONPATH="$PWD/tmp/video-data-preparation-deps" \
+  /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/video-data-preparation/tools/audit/audit_unidexgrasp_provider.py \
+  --run outputs/video-data-preparation/unidexgrasp-multi-replay-20261014-r2 \
+  --output outputs/video-data-preparation/unidexgrasp-multi-replay-20261014-r2/provider-audit-NEW.json
+```
+
+审计检查全部实际窗口、20个对象的未来隔离和spawn双worker；另报累计命中、官方原始末帧
+距离、30Hz末采样距离和末0.5秒持续距离。距离合格不能当稳定抓持。原始末帧为199/60s，
+30Hz末采样为198/60s，报告显式分开这两个时钟。此入口只读数据、在CPU做文件/几何/统计。
+全部窗口仍`training_allowed=false`；接入真实GPU模型工程检查、完整source准入和跨域
+训练收益尚待验证，结论/资源以[实验卡](docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md)为准。
 
 既有EgoDex处理流程：
 
