@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-wam-residual-curriculum:
+    seed_pool: probe
+    seeds: [292, 296]
+    reuse_reason: paired continuation of the same residual PPO family from r7 update20; shared parent prefix and training RNG, not independent replicates
+
   P-20261014-ptv3-shared-rl660-joint:
     seed_pool: probe
     collection_base_seed: 120

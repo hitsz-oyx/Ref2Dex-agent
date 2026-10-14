@@ -10,7 +10,7 @@ gap/support/lift 重算，因此第一拍失物也会受罚。教师只生成训
 残差 rollout 与 frame-0 评估均无教师命令干预。这个改动也修正了 reset 的物理
 来源；新旧运行不是单变量 reward/λ 的因果对照。
 
-默认上限为 20 updates；PPO 前必须对 phase 0/32/48/62 各做 96 步零残差诊断，
+默认 20 updates，单次有界续训最多追加100；PPO 前必须对 phase 0/32/48/62 各做 96 步零残差诊断，
 每个 phase 的至少一次近接触需小于 30 mm。日志包含 per-phase return/held、
 hold/slip terms、12 DOF 的 residual mean/std、saturation/feasible margins 和 value EV。
 `bootstrap*.npz` 与对应更新前 value 权重用于独立复算末端值；
@@ -18,7 +18,8 @@ hold/slip terms、12 DOF 的 residual mean/std、saturation/feasible margins 和
 极小张量合同测试使用 CPU，避免 GPU 初始化成本；物理与训练仍使用 GPU。
 
 v2 checkpoint 保存 actor/value、两个 optimizer、update、CPU/CUDA/phase/Python/NumPy
-RNG 和实测 reset 前缀，`--resume` 只接受相同 env/phase 布局的 v2。
+RNG 和实测 reset 前缀，`--resume` 只接受相同 env 数量的 v2；phase 默认必须一致，
+只有显式 `--allow-curriculum-change` 才允许改变课程分布。
 这保证恢复训练状态；Isaac 的接触缓存与 GPU 物理不保证逐位可复现。
 旧 v1 权重不能冒充完整续训，昨天的 r2–r5 原始失败记录保留。
 当前仍用 Gaussian latent 的 PPO logprob 与 `clip(base + .15 * latent)`；
@@ -32,6 +33,12 @@ GPU6 的 fresh 20-update r7 已完成：四个 phase 零残差与独立末端 V 
 `tools/audit/audit_wam_residual_ppo.py --run <completed-run> --device cuda:0`，
 在空闲 GPU 上执行；检查实际 H4/previous command、初始 held、末端 observation、
 保存的更新前 V 和 checkpoint 状态。17 项相关合同测试通过。
+
+后续[课程/预算对照](docs/experiments/probes/P-20261014-wam-residual-curriculum.md)
+从同一 update20 v2 继续：`--curriculum uniform` 保留0/32/48/62，
+`--curriculum contact --allow-curriculum-change` 使用0/48/50/52。
+`--eval-every 20` 定期做完整 frame0 评估，并恢复训练 RNG。
+新增 new_hold45 排除重置时已 held 的行，避免课程成功冒充自主抓取。
 
 # ref3.1 own-state Chunk-R repair（2026-10-13）
 
