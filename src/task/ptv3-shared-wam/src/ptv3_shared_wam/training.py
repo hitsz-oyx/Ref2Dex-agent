@@ -243,8 +243,16 @@ def run(stage):
             config.get("validation_seed", config["seed"] + 1), equal_sources=True)
         human = None
     else:
-        train = RobotWindows(args.source, args.reference, args.canonical, "train", config["object_points"])
-        dev = RobotWindows(args.source, args.reference, args.canonical, "val", config["object_points"])
+        source_manifest = json.loads((args.source / "manifest.json").read_text())
+        if source_manifest.get("schema") == "ref2dex.rl660-corpus.v1":
+            from .rl_robot import RLRobotWindows
+            if not args.smoke and source_manifest.get("engineering_only"):
+                raise ValueError("engineering corpus cannot initialize scientific robot training")
+            train = RLRobotWindows(args.source, "train", config["object_points"])
+            dev = RLRobotWindows(args.source, "val", config["object_points"])
+        else:
+            train = RobotWindows(args.source, args.reference, args.canonical, "train", config["object_points"])
+            dev = RobotWindows(args.source, args.reference, args.canonical, "val", config["object_points"])
         parent = load_checkpoint(args.resume or args.init_shared)
         if not args.smoke and parent["provenance"].get("engineering_only"):
             raise ValueError("engineering checkpoints cannot silently initialize a scientific robot run")
@@ -272,8 +280,13 @@ def run(stage):
         config["native_controller"] = train.controller
         provenance.update(source=str(args.source.resolve()), reference=str(args.reference.resolve()),
                           canonical=str(args.canonical.resolve()), init_shared=str(args.init_shared.resolve()) if args.init_shared else None)
+        if source_manifest.get("schema") == "ref2dex.rl660-corpus.v1":
+            provenance.update(reference="per-sequence recorded planned reference_obj",
+                              canonical="per-sequence captured URDF collision geometry",
+                              robot_corpus=dict(num_sequences=source_manifest["num_sequences"],
+                                  max_reference_error_m=source_manifest.get("max_reference_error_m", .1)))
         groups = model.parameter_groups(config)
-        rng = np.random.default_rng(config["seed"] + 1)
+        rng = np.random.default_rng(config.get("validation_seed", config["seed"] + 1))
         validation = rng.choice(len(dev), min(len(dev), config["validation_samples"]), replace=False)
         human = SharedWindows(args.data, "train", config["object_points"]) if config.get("replay_fraction", 0.) else None
     model.to(device)
@@ -324,6 +337,8 @@ def run(stage):
         if stage == "pretrain":
             return [train[int(i)] for i in mixed_indices(train.base, batch_size, seed)]
         rng = np.random.default_rng(seed)
+        if hasattr(train, "sample_indices"):
+            return [train[int(i)] for i in train.sample_indices(rng, batch_size)]
         ticks = np.asarray([key[0] for key in train.keys])
         startup, later = np.flatnonzero(ticks < 16), np.flatnonzero(ticks >= 16)
         indices = np.r_[rng.choice(startup, batch_size // 2), rng.choice(later, batch_size - batch_size // 2)]
@@ -348,8 +363,8 @@ def run(stage):
         checkpoint_files = json.loads((out / "checkpoint_files.json").read_text())
     loader = None
     if args.loader_workers:
-        if stage != "pretrain":
-            raise ValueError("CPU prefetch currently supports pretraining only")
+        if stage != "pretrain" and not hasattr(train, "sample_indices"):
+            raise ValueError("robot prefetch requires the whole-sequence corpus sampler")
         loader = pretrain_loader(train, batch_size, config["seed"], rank, start_step + 1,
             config["updates"], args.loader_workers, args.loader_prefetch, args.sequence_cache,
             args.pin_memory)
@@ -404,6 +419,7 @@ def run(stage):
                     "--query-compute-apps=pid", "--format=csv,noheader"], text=True).split()))
                 if pids - set(workers):
                     raise RuntimeError("foreign process on assigned GPU")
+            new_best = False
             if step % config["validation_interval"] == 0 or step == config["updates"]:
                 report = evaluate(model, dev, validation, config, stage, device) if rank == 0 else None
                 if rank == 0:
@@ -413,8 +429,12 @@ def run(stage):
                         best, best_step = report["objective"], step
                 if world > 1:
                     distributed.barrier()
+                selection = [best_step == step if rank == 0 else None]
+                if world > 1:
+                    distributed.broadcast_object_list(selection, src=0)
+                new_best = selection[0]
             save_due = (step % checkpoint_interval == 0 or step == config["updates"]
-                        or (step == 1 and config.get("save_first_step", False)))
+                        or new_best or (step == 1 and config.get("save_first_step", False)))
             if save_due:
                 rank_rng = dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state())
                 states = [rank_rng]
@@ -425,7 +445,10 @@ def run(stage):
                     path = out / ("step%d.pt" % step)
                     save_checkpoint(path, model, optimizer, config, stats, step, stage, provenance, states)
                     checkpoint_files.append(path.name)
-                    from .checkpoint import prune_recovery_checkpoints
+                    from .checkpoint import checkpoint_alias, prune_recovery_checkpoints
+                    checkpoint_alias(out, "latest.pt", path.name)
+                    if new_best:
+                        checkpoint_alias(out, "best.pt", path.name)
                     checkpoint_files = prune_recovery_checkpoints(out, checkpoint_files, config)
                     atomic_json(out / "checkpoint_files.json", checkpoint_files)
                 if world > 1:

@@ -31,6 +31,9 @@ def main():
     parser.add_argument("--pin-memory", action="store_true")
     parser.add_argument("--deadline-seconds", type=int, help="remaining original experiment wall-time budget")
     parser.add_argument("--detach", action="store_true")
+    parser.add_argument("--stage", choices=("pretrain", "robot"), default="pretrain")
+    parser.add_argument("--source", type=Path)
+    parser.add_argument("--init-shared", type=Path)
     args = parser.parse_args()
     out = args.output.resolve()
     config_path, card = args.config.resolve(), args.experiment_card.resolve()
@@ -56,6 +59,11 @@ def main():
                    "--config", str(config_path), "--experiment-card", str(card), "--gpus", args.gpus,
                    "--loader-workers", str(args.loader_workers), "--loader-prefetch", str(args.loader_prefetch),
                    "--sequence-cache", str(args.sequence_cache)]
+        command.extend(["--stage", args.stage])
+        if args.source:
+            command.extend(["--source", str(args.source.resolve())])
+        if args.init_shared:
+            command.extend(["--init-shared", str(args.init_shared.resolve())])
         if args.resume:
             command.extend(["--resume", str(args.resume.resolve())])
         if args.pin_memory:
@@ -76,9 +84,13 @@ def main():
     sys.path.insert(0, str(TASK / "src"))
     from ptv3_shared_wam.checkpoint import directory_bytes
     command = [sys.executable, "-m", "torch.distributed.run", "--standalone", "--nnodes=1",
-               "--nproc_per_node=" + str(len(gpus)), str(TASK / "tools/run/train_pretrain.py"),
+               "--nproc_per_node=" + str(len(gpus)), str(TASK / ("tools/run/train_%s.py" % args.stage)),
                "--config", str(config_path), "--experiment-card", str(card), "--output", str(out),
                "--gpu", gpus[0]]
+    if args.source:
+        command.extend(["--source", str(args.source.resolve())])
+    if args.init_shared:
+        command.extend(["--init-shared", str(args.init_shared.resolve())])
     if args.resume:
         command.extend(["--resume", str(args.resume.resolve())])
     if args.loader_workers:

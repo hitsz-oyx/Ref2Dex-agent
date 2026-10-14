@@ -22,3 +22,16 @@ def test_registry_escape_is_rejected_before_any_deletion(tmp_path):
     with pytest.raises(ValueError, match="basenames"):
         prune_recovery_checkpoints(tmp_path, ["step2.pt", "../step3.pt"], config)
     assert (tmp_path / "step2.pt").exists()
+
+
+def test_best_checkpoint_survives_later_recovery_pruning(tmp_path):
+    registered = ["step20000.pt", "step22000.pt", "step36000.pt", "step38000.pt"]
+    for name in registered:
+        (tmp_path / name).write_text("owned fixture")
+    (tmp_path / "best.pt").symlink_to("step22000.pt")
+    (tmp_path / "latest.pt").symlink_to("step38000.pt")
+    config = dict(updates=80000, checkpoint_keep_recent=1, checkpoint_milestone_interval=20000)
+    kept = prune_recovery_checkpoints(tmp_path, registered, config)
+    assert (tmp_path / "best.pt").is_file(), "best must not become a dangling alias"
+    assert set(kept) == {"step20000.pt", "step22000.pt", "step38000.pt"}
+    assert not (tmp_path / "step36000.pt").exists()

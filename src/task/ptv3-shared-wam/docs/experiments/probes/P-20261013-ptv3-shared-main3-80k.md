@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [100]
 decision_changed_if_positive: transfer the trained shared forecaster into airplane full-pair adaptation
 decision_changed_if_negative: inspect the forecast contract and data before spending on robot adaptation
-status: RUNNING
+status: PROMISING
 run_id: pretrain-main3-ddp4-80k-20261013-r2
 ---
 
 # 四卡三域共享预测器预训练：80,000 updates
 
-Result: RUNNING. 37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。训练继续，尚无抓取结论。
-Decision: 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。
+Result: PROMISING（局部离线预测；用户已提前停止预训练）。37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。原训练最后日志39100，完整恢复点38000已保留；尚无抓取结论。
+Decision: 用户要求停止三域80k训练，保留完整best available/latest，转向660条机器人执行补录与联合适配。
 
 Class: Decision. 服务于自主灵巧操作的预测器基础，而不直接验证Cm增益。具体问题是：
 该共享架构能否在三域实际手物运动上学到手轨迹和超过endpoint插值的中间场景预测。
@@ -29,6 +29,13 @@ Class: Decision. 服务于自主灵巧操作的预测器基础，而不直接验
 
 ## Decision Note
 
+- 2026-10-14用户要求停止预训练并转向660条DExplore RL重定向数据微调。当前约39k，
+  最近完整checkpoint为38k。选择验证完整38k后停止已确认归属的四卡进程，保留日志、
+  20k及38k；best/latest别名只指向已有完整文件。历史最低dev objective在22k，
+  其权重被此前恢复点保留逻辑清理，不能恢复或称38k为历史真正best。这是保存实现缺陷，
+  后续训练须独立保留best。预计停止与核验为分钟级；660数据的执行标签合同需先核对，
+  缺实际PD标签时不得静默替换为关节位置或把不同来源的手/物体轨迹配成完整机器人执行。
+  停止操作限本卡owned进程，外部数据只读，不需要追加权限。
 - 用户已授权四卡、80,000步及较大batch，本次按三域预训练解释。
 - 已有20项架构合同测试及真实PTv3/robot/native短smoke；长期运行调整后22项测试通过。
   这些仅证明接线，不证明学习效果。

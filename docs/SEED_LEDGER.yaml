@@ -25,6 +25,15 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-ptv3-shared-rl660-joint:
+    seed_pool: probe
+    collection_base_seed: 120
+    split_seed: 121
+    model_and_draw_seed: 124
+    rank_initialization_seeds: [124, 125]
+    evaluation_draw_seed: 126
+    reuse_reason: per-batch collection substreams and two-rank draw streams within one run; not independent replicates
+
   P-20261013-ptv3-shared-main3-80k:
     seed_pool: probe
     model_and_draw_seed: 100

@@ -87,7 +87,8 @@ class RobotWindows(torch.utils.data.Dataset):
 
 
 def initialize_retargeter(net, dataset):
-    if dataset.envs != list(range(16)):
+    if (getattr(dataset, 'split', None) != 'train'
+            and getattr(dataset, 'envs', None) != list(range(16))):
         raise ValueError("retargeter normalization must use TRAIN rows only")
     with torch.no_grad():
         for key, array, floor in zip(("state", "tau", "action"), dataset.normalization(), (.001, .001, .01)):

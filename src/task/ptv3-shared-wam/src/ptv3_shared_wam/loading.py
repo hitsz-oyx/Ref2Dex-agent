@@ -19,7 +19,7 @@ from oakink_wm.multisource import mixed_indices
 class StepBatchSampler:
     """Exactly the existing draw(seed, step, rank), regardless of worker count."""
     def __init__(self, dataset, batch_size, seed, rank, first_step, last_step):
-        self.dataset = dataset.base
+        self.dataset = dataset if hasattr(dataset, "sample_indices") else dataset.base
         self.batch_size, self.seed, self.rank = batch_size, seed, rank
         self.first_step, self.last_step = first_step, last_step
 
@@ -29,7 +29,10 @@ class StepBatchSampler:
     def __iter__(self):
         for step in range(self.first_step, self.last_step + 1):
             seed = int(np.random.SeedSequence([self.seed, step, self.rank]).generate_state(1)[0])
-            yield mixed_indices(self.dataset, self.batch_size, seed).tolist()
+            if hasattr(self.dataset, "sample_indices"):
+                yield self.dataset.sample_indices(np.random.default_rng(seed), self.batch_size)
+            else:
+                yield mixed_indices(self.dataset, self.batch_size, seed).tolist()
 
 
 def forecasting_collate(samples):
@@ -52,8 +55,11 @@ def initialize_loader_worker(worker_id):
     if size:
         # Each wrapper retains at most size sequence dictionaries per source.
         # It is installed after spawn, so unpicklable caches are never shipped.
-        for source in info.dataset.base.sources:
-            source.sequence = lru_cache(maxsize=size)(source.sequence)
+        if hasattr(info.dataset, "base"):
+            for source in info.dataset.base.sources:
+                source.sequence = lru_cache(maxsize=size)(source.sequence)
+        elif hasattr(info.dataset, "sequence"):
+            info.dataset.sequence = lru_cache(maxsize=size)(info.dataset.sequence)
 
 
 def project_ipc_directory():

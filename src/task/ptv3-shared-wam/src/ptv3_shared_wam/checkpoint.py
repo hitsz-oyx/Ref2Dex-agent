@@ -60,6 +60,23 @@ def directory_bytes(*paths):
             raise subprocess.CalledProcessError(result.returncode, result.args, result.stdout, result.stderr)
 
 
+def checkpoint_alias(output, name, target):
+    """Atomically select an immutable owned checkpoint without copying weights."""
+    output = Path(output).resolve()
+    path = output / target
+    if (name not in ("best.pt", "latest.pt") or Path(target).name != target
+            or not target.startswith("step") or path.suffix != ".pt"
+            or path.resolve().parent != output or not path.is_file()):
+        raise ValueError("owned existing stepN.pt and best/latest alias required")
+    int(target[4:-3])
+    link = output / name
+    if link.exists() and not link.is_symlink():
+        raise ValueError("cannot overwrite an existing checkpoint with an alias")
+    temporary = output / (name + ".alias-part")
+    temporary.symlink_to(target)
+    temporary.replace(link)
+
+
 def prune_recovery_checkpoints(output, files, config):
     """Keep milestones and recent recovery states from this run's registry only.
 
@@ -85,6 +102,13 @@ def prune_recovery_checkpoints(output, files, config):
     preserved = {name for name, step in steps.items()
                  if step == 1 or step == config["updates"] or step % milestone == 0}
     preserved.update(recent)
+    for alias in ("best.pt", "latest.pt"):
+        link = output / alias
+        if link.is_symlink():
+            target = link.resolve()
+            if target.parent != output or target.name not in steps or not target.is_file():
+                raise ValueError("checkpoint alias must identify a registered owned checkpoint")
+            preserved.add(target.name)
     for name in files:
         if name not in preserved:
             (output / name).unlink()

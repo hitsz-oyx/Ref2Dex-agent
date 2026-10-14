@@ -125,6 +125,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-egodex-shared-real-processing](../../src/task/video-data-preparation/docs/experiments/probes/P-20261013-egodex-shared-real-processing.md) | 已下载 EgoDex 的 Shared-WAM 真实处理小探针 | UNCLEAR overall. 三个真实窗口完成，1/3 通过数值门；白色积木 32/32 endpoint 有效，位移中位数170mm；另两段在观察尺度标定处拒绝。只有 TRAIN=1、dev=0，不扩训。 | 保留真实数据处理与 Shared-WAM 接入；先修/区分尺度标定及时间 mask 覆盖问题，不直接扩大下载集处理或开始训练。 | probes/UNCLEAR |
+| [P-20261014-egodex-shared-batch-ingestion](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md) | 远端 Shared-WAM 批量接入 | PENDING. GPU0旧worker已正常退出，批量consumer由owned supervisor启动；等待首批准入和视觉审查。 | 保持现有几何门，先处理50个下载完整的简单命名刚体episode；自动候选审查后再冻结训练语料。 | probes/RUNNING |
 
 ## HF-egotouch-pressure-contact
 
@@ -429,11 +430,17 @@
 | [P-20261007-pointworld-small-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-small-wm24.md) | Unified spatial hand/action-to-rigid-effect Probe | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261007-pointworld-temporal-wm24](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261007-pointworld-temporal-wm24.md) | Time-preserving PointWorld action/effect Probe | at matched6000-update validation, H+A moving-anchor h24 point EPE is15.63mm versus H21.81mm and shuffled-action21.90mm; training and final T | evaluate observed-action predictive benefit after the user-requested ref4 correction. | probes/UNCLEAR |
 
+## HF-ptv3-shared-rl660-joint
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 已停止三域预训练并保留可用38k权重；两条真实补录通过命令/PD合同，完整660补录和联合微调准备中。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
+
 ## HF-ptv3-shared-task-forecaster
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | RUNNING. 37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。训练继续，尚无抓取结论。 | 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。 | probes/RUNNING |
+| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | PROMISING（局部离线预测；用户已提前停止预训练）。37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。原训练最后日志39100，完整恢复点3 | 用户要求停止三域80k训练，保留完整best available/latest，转向660条机器人执行补录与联合适配。 | probes/PROMISING |
 
 ## HF-rawsensor-hand-conditioning
 
