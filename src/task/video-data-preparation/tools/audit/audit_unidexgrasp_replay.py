@@ -81,7 +81,7 @@ def render(data, env, vertices, root, label):
         writer.release();plt.close(fig)
 
 
-def main(root):
+def main(root, render_objects=1, export_windows=True):
     begin=time.monotonic()
     result=json.loads((root/'result.json').read_text())
     config=json.loads((root/'simulation-config.json').read_text())
@@ -89,19 +89,38 @@ def main(root):
             config['physx']['num_position_iterations']!=8 or
             not np.isclose(config['physx']['contact_offset'],.002)):
         raise ValueError('completed replay with official physical settings required')
-    asset=Path(result['asset_root'])/'meshdatav3_scaled'/result['object_code']/'coacd'
-    suffix='%03d'%round(result['scale']*100)
-    mesh=trimesh.load_mesh(asset/('decomposed_'+suffix+'.obj'),process=False)
-    rng=np.random.RandomState(0)
-    surface=mesh.vertices[np.linspace(0,len(mesh.vertices)-1,512,dtype=int)]
-    records=[];samples=[];representatives={}
+    specs = result.get('objects') or [dict(object_code=result['object_code'], scale=result['scale'], split='engineering')]
+    env_objects = result.get('environment_objects') or [dict(env=i,object_id=0,**specs[0]) for i in range(result['envs'])]
+    if len(env_objects) != result['envs']:
+        raise ValueError('simulator environment-object identities missing')
+    surfaces={}
+    geometry=root/'geometry';geometry.mkdir(exist_ok=True)
+    for spec in specs:
+        code,scale=spec['object_code'],spec['scale']
+        asset=Path(result['asset_root'])/'meshdatav3_scaled'/code/'coacd'
+        mesh=trimesh.load_mesh(asset/('decomposed_%03d.obj'%round(scale*100)),process=False)
+        if len(mesh.vertices)<32 or not np.isfinite(mesh.vertices).all():
+            raise ValueError('insufficient finite CAD vertices')
+        surface=mesh.vertices[np.linspace(0,len(mesh.vertices)-1,min(512,len(mesh.vertices)),dtype=int)]
+        # Meshes contain duplicated face vertices; query identities must be 32
+        # distinct physical local points, shared by every trajectory of the mesh.
+        surface=np.unique(surface,axis=0)
+        if len(surface)<32:raise ValueError('insufficient distinct CAD query positions')
+        surfaces[code]=surface
+        np.savez_compressed(geometry/('object-%03d.npz'%specs.index(spec)),surface=surface.astype(np.float32),
+                            query=surface[np.linspace(0,len(surface)-1,32,dtype=int)].astype(np.float32),
+                            object_code=code,scale=scale)
+    records=[];samples=[];representatives={};trajectories=[];counts={};causal_checked=set()
+    compact=root/'trajectories';compact.mkdir(exist_ok=True)
+    dest=root/'windows'
+    if export_windows:dest.mkdir(exist_ok=True)
     for episode,row in enumerate(result['episodes']):
         with np.load(root/row['path'],allow_pickle=False) as stream:
             data={key:stream[key].copy() for key in stream.files}
         frames,envs=data['hand'].shape[:2]
         if data['hand'].shape!=(frames,envs,11,3) or data['observation'].shape!=(frames,envs,300):
             raise ValueError('recorded hand/observation contract mismatch')
-        if frames!=200 or not np.isfinite(data['hand']).all() or not np.isfinite(data['object']).all():
+        if frames!=200 or any(not np.isfinite(v).all() for v in data.values()):
             raise ValueError('incomplete or nonfinite episode')
         if data['action'].shape!=(frames-1,envs,24) or not np.allclose(data['action'][...,6:],data['applied'][...,6:],atol=1e-6):
             raise ValueError('policy actuator commands differ from executed commands')
@@ -117,33 +136,70 @@ def main(root):
         anchors=np.arange(3,len(indices)-24,8)
         success=data['success'][-1]>0
         for env in range(envs):
-            for tick in anchors:
-                sample=fixture(data['hand'][indices,env],object_poses[:,env],surface,int(tick))
-                if not np.allclose(sample['goal_object_points']-sample['start_object_points'],sample['scene_target'][0,-1],atol=2e-6):
-                    raise ValueError('goal and label point identities differ')
-                if sample['trajectory_valid'][:,1].any() or np.any(sample['start_hand'][1]!=0):
-                    raise ValueError('missing left hand was fabricated')
-                if int(tick)==27:
-                    samples.append((episode,env,sample))
+            identity=env_objects[env];code=identity['object_code'];surface=surfaces[code]
+            tick=27
+            sample=fixture(data['hand'][indices,env],object_poses[:,env],surface,tick)
+            if not np.allclose(sample['goal_object_points']-sample['start_object_points'],sample['scene_target'][0,-1],atol=2e-6):
+                raise ValueError('goal and label point identities differ')
+            if sample['trajectory_valid'][:,1].any() or np.any(sample['start_hand'][1]!=0):
+                raise ValueError('missing left hand was fabricated')
+            if len(np.unique(sample['start_object_points'],axis=0))!=32:
+                raise ValueError('duplicate physical object queries')
+            if code not in causal_checked:
+                changed_hand=data['hand'][indices,env].copy();changed_obj=object_poses[:,env].copy()
+                changed_hand[tick+1:]+=1000;changed_obj[tick+1:,:3,3]+=500
+                altered=fixture(changed_hand,changed_obj,surface,tick)
+                for key in ('start_hand','start_hand_history','start_hand_valid','scene_points',
+                            'start_object_points','current_cad_points','anchor_world_to_current_object'):
+                    if not np.array_equal(sample[key],altered[key]):
+                        raise ValueError('future leaked into current input: '+key)
+                if np.array_equal(sample['scene_target'],altered['scene_target']):
+                    raise ValueError('future perturbation did not reach labels')
+                causal_checked.add(code)
+            if export_windows:
+                np.savez_compressed(dest/('episode-%02d-env-%03d.npz'%(episode,env)),**sample)
+            samples.append(dict(episode=episode,env=env,object_code=code,scale=identity['scale'],split=identity['split'],tick_30hz=tick))
+            name='episode-%02d-env-%03d.npz'%(episode,env)
+            values={key:data[key][indices,env] for key in ('hand','object','q','dq','hand_root','success','reset')}
+            if 'goal' in data:values['goal']=data['goal'][indices,env]
+            values.update(time=clock,action=data['action'][:,env],action_time=data['time'][:-1],
+                          applied=data['applied'][:,env],official_success=bool(success[env]),
+                          terminal_time=data['time'][-1],terminal_reset=data['reset'][-1,env],
+                          object_code=code,scale=identity['scale'],split=identity['split'],training_allowed=False)
+            np.savez_compressed(compact/name,**values)
+            end_distance=float(np.linalg.norm(data['observation'][-1,env,204:207]))
+            if 'goal' in data and not np.isclose(end_distance,np.linalg.norm(data['goal'][-1,env]-data['object'][-1,env,:3]),atol=1e-5):
+                raise ValueError('independent endpoint distance does not match observation')
+            trajectories.append(dict(path='trajectories/'+name,episode=episode,env=env,object_code=code,
+                scale=identity['scale'],split=identity['split'],official_success=bool(success[env]),
+                endpoint_distance_m=end_distance,endpoint_within_5cm=end_distance<=.05,
+                max_lift_m=float(data['object'][:,env,2].max()-data['object'][0,env,2])))
+            count=counts.setdefault(code,dict(object_code=code,scale=identity['scale'],split=identity['split'],
+                trajectories=0,official_success=0,endpoint_within_5cm=0))
+            count['trajectories']+=1;count['official_success']+=int(success[env]);count['endpoint_within_5cm']+=int(end_distance<=.05)
             label='success' if success[env] else 'failure'
-            representatives.setdefault(label,(data,env))
+            representatives.setdefault((identity['object_id'],label),(data,env,surface))
         records.append(dict(episode=episode,envs=envs,raw_frames=frames,frames_30hz=len(indices),
                             anchors_per_env=len(anchors),official_success=int(success.sum()),
                             finite=True,clock_pass=True,no_internal_reset=True))
-    # Export one fixed-time real window per recorded environment, including failures.
-    dest=root/'windows';dest.mkdir(exist_ok=True)
-    for episode,env,sample in samples:
-        np.savez_compressed(dest/('episode-%02d-env-%02d.npz'%(episode,env)),**sample)
-    for label,(data,env) in representatives.items():
-        render(data,env,surface,root,label)
+    rendered=0
+    for (object_id,label),(data,env,surface) in representatives.items():
+        if object_id>=render_objects:continue
+        render(data,env,surface,root,label if len(specs)==1 else 'object-%03d-%s'%(object_id,label));rendered+=1
+    (root/'trajectory-manifest.json').write_text(json.dumps(dict(profile='unidexgrasp-shadow-complete-cad-provisional',
+        objects=specs,trajectories=trajectories,training_allowed=False),indent=2))
+    (root/'window-manifest.json').write_text(json.dumps(dict(samples=samples,exported=export_windows,
+        training_allowed=False),indent=2))
     summary=dict(status='COMPLETE',episodes=records,official_success=sum(r['official_success'] for r in records),
                  total_episodes=sum(r['envs'] for r in records),
                  hand_object_candidate_windows=sum(r['envs']*r['anchors_per_env'] for r in records),
-                 exported_engineering_windows=len(samples),training_admitted=0,training_allowed=False,
-                 fixture_shapes={key:list(value.shape) for key,value in samples[0][2].items()},
+                 exported_engineering_windows=len(samples) if export_windows else 0,training_admitted=0,training_allowed=False,
+                 fixture_shapes={key:list(value.shape) for key,value in sample.items()},
+                 objects=list(counts.values()),causality_checked_objects=sorted(causal_checked),
+                 compact_trajectory_bytes=sum(p.stat().st_size for p in compact.glob('*.npz')),rendered_videos=rendered,
                  elapsed_s=time.monotonic()-begin,
                  visualization='CPU reconstruction of recorded hand landmarks/object poses; not camera RGB',
-                 limitations=['single object/seed; no object-disjoint dev','pose-complete CAD profile',
+                 limitations=['bounded objects/single seed; no formal policy benchmark','pose-complete CAD profile',
                               'official success is goal proximity flag, not independently validated stable grasp'])
     (root/'audit-summary.json').write_text(json.dumps(summary,indent=2))
     print(json.dumps(summary,indent=2))
@@ -152,4 +208,8 @@ def main(root):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run',type=Path,required=True)
-    main(parser.parse_args().run.resolve())
+    parser.add_argument('--render-objects',type=int,default=1)
+    parser.add_argument('--no-window-export',action='store_true',help='Audit fixed-time windows but store only native compact trajectories')
+    args=parser.parse_args()
+    if not 0<=args.render_objects<=5:raise ValueError('bounded visualization sample required')
+    main(args.run.resolve(),args.render_objects,not args.no_window_export)
