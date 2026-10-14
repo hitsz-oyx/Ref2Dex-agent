@@ -44,7 +44,10 @@ checkpoint load, and no foreign GPU process. Then run the bounded two-GPU Probe
 on GPUs 4 and 6 with seed 151, frozen RL660 split, batch 32 per GPU, 12,000
 updates, validation every 500 updates, and an 8 GB owned-artifact budget. The
 parent must be a non-engineering v2 pretraining checkpoint with matching model
-schema, config architecture, and horizon statistics.
+schema, config architecture, and horizon statistics. The fine-tune itself is
+local on GPUs 4/6: the remote WAM contributes only the copied parent
+checkpoint; the RL660 corpus, geometric q source, and statistics remain the
+local read-only inputs whose paths are recorded in the manifest.
 
 ## Data contract and interpretation
 
