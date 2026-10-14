@@ -5,7 +5,7 @@ experiment_id: P-20261015-ptv3-shared-v2-robot-finetune
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: d4b011a4
+git_commit: 98e490c1
 claim_id: C1
 hypothesis_family: HF-v2-remote-robot-adapter
 probe_index_in_family: 1
@@ -46,7 +46,8 @@ updates, validation every 500 updates, and an 8 GB owned-artifact budget. Use
 `tools/run/launch_robot_finetune.py` so the owned torchrun group, progress,
 GPU, disk, and stall timeout are recorded throughout the run. The parent must
 be a non-engineering v2 pretraining checkpoint with matching model schema,
-config architecture, and horizon statistics. The fine-tune itself is local
+config architecture, horizon statistics, and the pinned remote provenance
+commit `1650ffce293fb201fd7d12d5797ed71608dff5c5`. The fine-tune itself is local
 on GPUs 4/6: the remote WAM contributes only the copied parent checkpoint;
 the RL660 corpus, geometric q source, and statistics remain the local
 read-only inputs whose paths are recorded in the manifest.
