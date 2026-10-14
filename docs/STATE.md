@@ -1,5 +1,15 @@
 # Ref2Dex 当前研究状态
 
+## 2026-10-14 用户暂停视频路线，原生3D样例已接入
+
+按用户授权，EgoDex下载及远端GPU1/3旧重建已正常STOPPED，输入/产物保留；既有训练继续。
+新Task PoseMeshWindows复用UniDex3200窗并接入HOT3D115窗、TACO25窗，共3340工程窗口，
+全部字段/共享collate通过，UniDex与旧接口最大差2.98e-8；5项合同测试通过。
+HOT3D清单已授权，全量纯几何下载2.70GB；TACO几何15.69GB、全解压26.99GB。
+当前不做正式多源训练：HOT3D目标语义、TACO原生clock及source准入仍待核实。
+建议本地处理和审查、远端48GB GPU训练、NAS冷归档，遵守全局400GB。
+详见[原生3D报告](../src/task/3d-data-preparation/docs/user/架构.md)和[Task状态](../src/task/3d-data-preparation/docs/STATE.md)。
+
 ## 2026-10-14 UniDexGrasp刚体多对象数据接口续接完成
 
 有效20对象/320条++回放已生成TRAIN2560/dev640按需窗口，16/4对象不跨mesh。

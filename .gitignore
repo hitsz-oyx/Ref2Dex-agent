@@ -95,3 +95,8 @@ data/processed_data/stage2
 
 # Task-declared local data and repository recovery records.
 /artifacts/
+
+# User-provided expiring HOT3D download manifests remain machine-local.
+/Hot3DAria_download_urls.json
+/Hot3DQuest_download_urls.json
+/Hot3DAssets_download_urls.json
