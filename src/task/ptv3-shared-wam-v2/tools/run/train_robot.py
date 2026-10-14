@@ -81,7 +81,7 @@ def setup(args):
     return rank, world, local, physical, torch.device("cuda", local)
 
 
-def check_parent(parent, stats, config):
+def check_parent(parent, stats, config, expected_parent_commit=None):
     if not isinstance(parent, dict) or not isinstance(parent.get("model"), dict):
         raise ValueError("remote parent checkpoint is missing a model state")
     if parent.get("schema") != V2_SCHEMA or parent.get("stage") != "pretrain":
@@ -102,10 +102,7 @@ def check_parent(parent, stats, config):
     parent_provenance = parent.get("provenance")
     if not isinstance(parent_provenance, dict) or parent_provenance.get("engineering_only") is not False:
         raise ValueError("scientific remote pretraining checkpoint is required")
-    expected_parent_commit = config.get("remote_parent_git_commit")
-    if not isinstance(expected_parent_commit, str) or not expected_parent_commit:
-        raise ValueError("remote parent git commit pin is required")
-    if parent_provenance.get("git_commit") != expected_parent_commit:
+    if expected_parent_commit is not None and parent_provenance.get("git_commit") != expected_parent_commit:
         raise ValueError("remote parent checkpoint provenance commit differs from the pinned source")
 
 
@@ -183,7 +180,10 @@ def main():
     train = V2RLRobotWindows(args.source, "train", config["object_points"], representation)
     dev = V2RLRobotWindows(args.source, "val", config["object_points"], representation)
     parent = torch.load(args.init_shared, map_location="cpu", weights_only=False)
-    check_parent(parent, stats, config)
+    expected_parent_commit = None if args.smoke else config.get("remote_parent_git_commit")
+    if not args.smoke and (not isinstance(expected_parent_commit, str) or not expected_parent_commit):
+        raise ValueError("remote parent git commit pin is required")
+    check_parent(parent, stats, config, expected_parent_commit)
     model = SharedWAMV2Robot(stats, config, representation)
     model.forecaster.load_state_dict(parent["model"], strict=True)
     initialize_retargeter(model.retargeter, train)
