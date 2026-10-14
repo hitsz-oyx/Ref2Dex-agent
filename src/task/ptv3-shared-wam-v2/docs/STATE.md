@@ -11,7 +11,12 @@ continuous-lift 编码；本地 checkpoint 的 4-step engineering smoke 已通�
 13 项 v2 合同测试通过。远端 v2 80k checkpoint 尚未能读取：反向 SSH
 `127.0.0.1:22023` connection refused，直连 `100.64.0.23:22` timeout；因此
 两卡科学微调尚未启动，不将本地 smoke 冒充远端结果。GPU4/6 保留给远端父权重
-到达后的两卡启动，GPU5/7 既有 geometry-lift 运行不改动。
+到达后的两卡启动，GPU5/7 既有 geometry-lift 已自然完成 step19000/19000。
+适配器实现 commit 为 `d4b011a4`，新增的
+`tools/run/launch_robot_finetune.py` 只监督和终止自己创建的 torchrun 进程组，
+每60秒记录 progress/GPU/磁盘，8GB本run产物预算与20GiB可用空间安全线均独立于
+已由用户解除的旧400GB总上限。远端状态缓存仍停在 step33520，不能据此伪造
+最新 parent；需等 SSH 恢复后按 registry、稳定 hash 和 checkpoint 元数据验收。
 
 2026-10-14：本地1000步Probe已完成，局部PROMISING。固定三域dev的hand_all24
 从29.72/123.10/63.58降到23.83/87.16/55.14mm；scene在GRAB/ARCTIC改善，
