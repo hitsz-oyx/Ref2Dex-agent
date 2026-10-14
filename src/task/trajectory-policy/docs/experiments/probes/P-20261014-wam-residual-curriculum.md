@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [292, 296]
 decision_changed_if_positive: continue the arm that improves startup acquisition or progressively bridge successful contact starts toward frame0
 decision_changed_if_negative: do not equate insufficient evidence with convergence; inspect visited-state mismatch and residual authority before another long block
-status: RUNNING
-run_id: wam-ref2-execution-course-20261014-b1
+status: UNCLEAR
+run_id: wam-ref2-execution-course-20261014-b2
 ---
 
 # More updates versus contact-focused residual curriculum
@@ -151,3 +151,58 @@ cap, expected15 minutes,5156 RPCs and<100 MiB output. Stop at100 or on the
 existing safety/contract abort conditions. If strict startup hold still does
 not appear, prioritize actual visited-contact state coverage/authority checks,
 rather than another unbounded teacher-course block. No new external boundary.
+
+## Completed results and decision
+
+Code: `ea039ea3`; A1/B1 manifests record `59a31268` (same implementation
+plus protocol), B2 records `8ef5e766` (same implementation plus audit tools).
+A1/B1 share exactly the same saved parent measured prefix, model/value/Adam
+and RNG checkpoint. A1 completed1090.5s on GPU4, B1 completed1021.6s on GPU6;
+B2 completed973.4s on GPU6. Typical memory18834–18836 MiB; utilization17–34%.
+All are complete and the processes exited. No further PPO block was started.
+
+| arm / total updates | strict frame0 hold45 | close-range rise | last20 new_hold45 at48 /50 /52 |
+| --- | --- | --- | --- |
+| A original /60 | 0/4 | 3.55 mm | 2/20 / not sampled / not sampled |
+| B contact /60 | 0/4 | 64.13 mm | 3/20 /9/20 /12/20 |
+| B contact /100 | 0/4 | 23.14 mm | 0/20 /6/20 /9/20 |
+
+Intermediate total40 and80 evaluations also have strict held0 on all copies.
+At60 the object remained supported despite its center rising; this is partial
+lift/levering, not a hold. The close-rise helper automatically labeled B60
+PROMISING, but this does not satisfy the protocol's strict startup criterion.
+Card-level verdict is UNCLEAR on budget/course efficacy; descriptively these
+bounded fixed teacher courses did not solve startup. The60-to100 extension
+does not show monotonic acquisition improvement. A last-batch value EV of
+-40.42 reflects an overestimated failed rollout (return variance1.88), and B100
+last EV is-.170; neither training reward nor critic fit establishes convergence.
+
+Independent audits passed all three runs:43/44/44 reset captures and40 true
+post-control bootstraps per run, value maximum discrepancies3.81e-6/7.63e-6/
+7.63e-6. Full command/PD capture checks ran in the native loop. Parent prefix
+array equality and comparison settings were independently checked. Related
+contracts20 pass. Mean active-DOF saturation was .393%/.365%/.383% for
+A1/B1/B2, so global clipping frequency alone is not the explanation.
+
+Artifacts are under `outputs/trajectory-policy/wam-ref2-execution-course-20261014-{a1,b1,b2}/`.
+`tools/audit/compare_residual_curricula.py` writes the paired60 comparison;
+`plot_residual_curricula.py --b-continuation <b2>` plots the selected extension
+with an explicit unequal-budget caption. Summary files in
+`outputs/trajectory-policy/wam-ref2-execution-course-20261014-summary/` include
+comparison.json, state_coverage.json, learning_curves_60.png and learning_curves.png.
+
+Decision Note after the corrected short run, course/budget run and sparse
+authority screen: do not equate20 updates with a bottleneck or these negative
+startup observations with RL impossibility. More data did expose a learnable
+near-contact region, but teacher-start performance has not transferred to
+self-visited contact. Stop repeating this fixed teacher course now; prioritize
+an actual visited-contact reset/geometry screen with properly restored H4,
+commands and reward state, then choose physical per-DOF exploration only after
+finding a usable correction direction. Cost of that next work is not spent
+here. No core hypothesis/claim or resource boundary is changed.
+
+The separate [frozen finger screen](P-20261014-wam-residual-basin.md) tested
+explicit thumb± and finger-close corrections on the exact base; all four
+copies remained strict held0. That is a limited negative observation about
+those directions/window, not exclusion of a wrist/finger basin or evidence
+that the Gaussian residual architecture is incapable.

@@ -5,7 +5,7 @@ experiment_id: P-20261014-wam-residual-basin
 date: 2026-10-14
 task: trajectory-policy
 branch: main
-git_commit: 883464be
+git_commit: 96186ec3
 claim_id: C3
 hypothesis_family: HF-wam-residual-ppo
 probe_index_in_family: 3
@@ -13,8 +13,8 @@ seed_pool: probe
 seeds: [292, 296]
 decision_changed_if_positive: prioritize targeted finger exploration or a warm-start bias on the actual startup-contact states
 decision_changed_if_negative: do not close residual RL from four directions; prioritize actual visited-state coverage and controller geometry
-status: RUNNING
-run_id: wam-ref2-execution-basin-20261014-r1
+status: UNCLEAR
+run_id: wam-ref2-execution-basin-20261014-r2
 ---
 
 # Frozen finger authority screen after the corrected PPO budget/course probe
@@ -65,3 +65,41 @@ is deliberately bypassed, so this is an exact-base intervention screen,
 not an A/B evaluation of the100-update learned residual. Matched repeats
 and broader feasible-direction scans are deferred unless a positive signal
 changes the next decision.
+
+The first attempt r1 stopped before any candidate evaluation: a generic
+training gate rejected an extra phase0 diagnostic copy (env2,30.60 mm),
+while the actual baseline-control copy (env0) reached0.77 mm. This frozen
+probe only executes frame0; retain all diagnostic traces but require contact
+only for phase0/env0, its actual baseline control. Training runs retain their
+full phase gate. This is a scoped harness repair, not removal of a failed
+candidate result. The original FAILED run is retained.
+
+r2 ran at `96186ec3` with its phase0-only gate and passed both recorded
+phase0 copies. The later `04db1415` refinement limits future forward-only
+gates to the actual baseline-control copy; it does not change any candidate
+action, PPO gate or the completed r2 trace.
+
+## Completed frozen screen
+
+GPU6,152.1s after readiness,734 RPCs,18820 MiB. No parameter changed and
+no PPO step occurred. All542 recorded commands match clip(base+.15*delta),
+and the complete40:160 residual schedule independently matches the declared
+matrix. See frozen_audit.json in the run output; related contracts20 pass.
+
+| candidate | maximum strict held | highest center rise | mean active-DOF saturation |
+| --- | ---: | ---: | ---: |
+| base | 0 | 32.86 mm | 0% |
+| thumb_pitch_minus | 0 | 19.28 mm | .108% |
+| thumb_pitch_plus | 0 | 51.21 mm | .431% |
+| finger_close | 0 | 4.70 mm | .938% |
+
+Saturation averages include controls outside the120-control intervention
+window; inspect eval.npz for per-time/per-joint authority. These copies did
+not form a stable grasp; center rise alone does not imply off-table held.
+The runtime helper labeled this run UNPROMISING. The card remains UNCLEAR
+for the broader basin hypothesis because four fixed directions and one copy
+each do not cover wrist correction, timing or actual-state exploration.
+
+No repeat or training was started. Next priority is actual visited-contact
+state coverage and wrist/finger coordination, rather than simply closing
+all fingers or spending more updates on unchanged teacher starts.

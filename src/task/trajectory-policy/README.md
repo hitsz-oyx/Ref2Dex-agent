@@ -39,6 +39,13 @@ GPU6 的 fresh 20-update r7 已完成：四个 phase 零残差与独立末端 V 
 `--curriculum contact --allow-curriculum-change` 使用0/48/50/52。
 `--eval-every 20` 定期做完整 frame0 评估，并恢复训练 RNG。
 新增 new_hold45 排除重置时已 held 的行，避免课程成功冒充自主抓取。
+该对照已完成：A60/B60/B100 的 frame0 全部0/4 hold45；B60 的64mm部分抬升
+没有转成严格 held，B80/100 也未成功。接触启动有45–60%的 new_hold45 样本，
+但截至100并未可靠迁移到实际起步接触状态。停止同一课程续训，下一优先级为
+真实访问接触状态的覆盖与执行几何；这不构成 PPO 收敛或无效的证明。
+`tools/run/probe_wam_residual_basin.py` 另做 exact-base 零残差/拇指±/合拢手指
+冻结诊断，40:160控制有固定干预，无PPO更新；四份也全部held0。
+证据与限制见[固定手指卡](docs/experiments/probes/P-20261014-wam-residual-basin.md)。
 
 # ref3.1 own-state Chunk-R repair（2026-10-13）
 
