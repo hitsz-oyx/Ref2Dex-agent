@@ -7,6 +7,30 @@
 
 ## 入口
 
+当前机器人适配使用[660条补录/联合微调实验卡](docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md)。
+原660个RL tensor缺实际命令，不能直接传给旧airplane loader。新入口先补录真实机器人
+状态/手点/物体/实际命令，再冻结完整序列划分和10cm明显失跟准入；全部660均采集，
+每条的实际准入窗口数在corpus manifest报告。该门不代表成功抓取。
+
+```bash
+python3 src/task/ptv3-shared-wam/tools/run/collect_rl660.py --detach --gpus 4,5 \
+  --experiment-card src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md \
+  --output outputs/ptv3-shared-wam/<fresh-rl660-corpus>
+
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam/tools/run/launch_pretrain.py --detach --stage robot --gpus 4,5 \
+  --config src/task/ptv3-shared-wam/configs/robot_660.json \
+  --experiment-card src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md \
+  --source outputs/ptv3-shared-wam/<completed-rl660-corpus> \
+  --init-shared outputs/ptv3-shared-wam/pretrain-main3-ddp4-80k-20261013-r2/latest.pt \
+  --output outputs/ptv3-shared-wam/<fresh-rl660-joint> \
+  --loader-workers 4 --loader-prefetch 2 --sequence-cache 128 --pin-memory
+```
+
+新训练独立保存dev best/latest，清理恢复点时保护best。原三域预训练已由用户停止，
+最后日志39100、完整latest38000；其best别名也是38k，仅代表现存权重中的最佳，
+历史dev最低22k的权重因旧保留缺陷已丢失。不得称38k为历史真正best。
+
 使用 `/home2/wyy/miniconda3/envs/graspenv/bin/python`。已有三域数据、TRAIN 统计和
 PW step50000 的默认路径在 `src/ptv3_shared_wam/training.py`；CLI 可以显式覆盖。
 
@@ -163,3 +187,8 @@ hand-only goal路由及旧checkpoint拒绝加载。GPU工程记录如下；只�
 
 Residual PPO、旧 counterfactual World 和旧架构 matched 科学比较是后续实验，
 本次没有启动，也没有为目录完整性创建空实验卡。
+
+完整660补录支持 `collect_rl660.py --resume`：只复用完整且属于本corpus的batch回执，
+失败批次和日志不覆盖；恢复保持固定成员、分批seed和控制参数，累计计入原时间预算。
+`tools/run/finetune_after_collection.py` 可有界等待完整corpus、逐序列审核标签和准入索引，
+然后交接到独立训练监督器；未完整采齐或GPU有冲突时不会启动微调。

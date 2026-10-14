@@ -19,6 +19,34 @@ def write(path,value):
     temporary.replace(path)
 
 
+def recover_batches(out, batches, seed):
+    """Reuse only complete, owned batch receipts; partial attempts stay intact."""
+    recovered, completed, controller = set(), [], None
+    for receipt_path in sorted((out/'batches').glob('*/manifest.json')):
+        receipt = json.loads(receipt_path.read_text())
+        if receipt.get('status') != 'COMPLETED':
+            continue
+        names = receipt['sequences']
+        indices = [i for i, batch in enumerate(batches) if names == batch]
+        if (len(indices) != 1 or receipt['seed'] != seed+indices[0]
+                or receipt.get('schema') != 'ref2dex.rl660-batch.v1'
+                or sorted(r['sequence'] for r in receipt['records']) != sorted(names)):
+            raise ValueError('resume receipt differs from frozen batches/seed')
+        index = indices[0]
+        if index in recovered:
+            raise ValueError('duplicate completed batch receipt')
+        if controller is not None and receipt['native_controller'] != controller:
+            raise ValueError('native controller changes across resume receipts')
+        controller = receipt['native_controller']
+        for record in receipt['records']:
+            folder = (receipt_path.parent/record['path']).resolve()
+            if out not in folder.parents or not all((folder/f).is_file() for f in ('trajectory.npz','canonical.npz')):
+                raise ValueError('resume artifacts must exist inside corpus')
+            completed.append(dict(record, path=str(folder.relative_to(out))))
+        recovered.add(index)
+    return recovered, completed, controller
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output',type=Path,required=True)
@@ -28,19 +56,30 @@ def main():
     p.add_argument('--seed',type=int,default=120)
     p.add_argument('--seconds',type=int,default=10800)
     p.add_argument('--detach',action='store_true')
+    p.add_argument('--resume',action='store_true')
     a = p.parse_args()
     out = a.output.resolve()
     gpus = a.gpus.split(',')
-    if (out.exists() or ROOT/'outputs/ptv3-shared-wam' not in out.parents
+    if ((out.exists() != a.resume) or ROOT/'outputs/ptv3-shared-wam' not in out.parents
             or len(gpus) != 2 or len(set(gpus)) != 2 or not 1<=a.batch_size<=32
             or not a.experiment_card.is_file()):
-        raise ValueError('fresh owned output, two GPUs and existing experiment card required')
+        raise ValueError('fresh output or explicit resume, two GPUs and existing card required')
     scratch = ROOT/'tmp'/out.name
+    previous = None
+    if a.resume:
+        previous = json.loads((out/'manifest.json').read_text())
+        if (previous.get('schema') != 'ref2dex.rl660-corpus.v1'
+                or previous['status'] != 'FAILED' or previous['seed'] != a.seed):
+            raise ValueError('only failed owned corpus with unchanged seed can resume')
+        attempt = len(previous.get('resume_history',[]))+1
+        scratch = scratch/('resume%02d'%attempt)
     scratch.mkdir(parents=True,exist_ok=True)
     if a.detach:
         command = [sys.executable,str(Path(__file__).resolve()),'--output',str(out),
             '--experiment-card',str(a.experiment_card.resolve()),'--gpus',a.gpus,
             '--batch-size',str(a.batch_size),'--seed',str(a.seed),'--seconds',str(a.seconds)]
+        if a.resume:
+            command.append('--resume')
         with (scratch/'supervisor.log').open('x') as log:
             process = subprocess.Popen(command,cwd=ROOT,stdin=subprocess.DEVNULL,
                 stdout=log,stderr=subprocess.STDOUT,start_new_session=True,
@@ -55,17 +94,34 @@ def main():
     names = sorted(p.parent.name for p in source.glob('*/interaction_hand_inspire.pt'))
     if len(names)!=660:
         raise ValueError('frozen 660-member source required')
-    out.mkdir(parents=True)
+    out.mkdir(parents=True,exist_ok=a.resume)
     manifest = dict(schema='ref2dex.rl660-corpus.v1',status='RUNNING',training_allowed=False,
         engineering_only=False,num_sequences=660,fps=30,records=[],physical_gpus=gpus,
         experiment_card=str(a.experiment_card.resolve()),seed=a.seed,
         source_membership=str(source.resolve()),supervisor_pid=os.getpid(),
         git_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         split_policy='complete sequence; stratified by object, 10% dev with at least one per object')
-    write(out/'manifest.json',manifest)
     batches = [names[i:i+a.batch_size] for i in range(0,len(names),a.batch_size)]
-    pending = list(enumerate(batches))
-    active,completed = {},[]
+    reused, completed, controller = set(), [], None
+    prior_elapsed = 0.
+    if previous is not None:
+        if previous['source_membership'] != str(source.resolve()):
+            raise ValueError('source membership changed during resume')
+        reused,completed,controller = recover_batches(out,batches,a.seed)
+        if controller is not None:
+            manifest['native_controller'] = controller
+        prior_elapsed = previous.get('elapsed_s',json.loads((out/'progress.json').read_text()).get('elapsed_s',0.))
+        history = list(previous.get('resume_history',[]))
+        history.append(dict(status=previous['status'],error=previous.get('error'),
+            completed_sequences=len(completed),elapsed_s=prior_elapsed,
+            physical_gpus=previous['physical_gpus'],git_commit=previous['git_commit']))
+        manifest.update(resume_history=history,records=completed)
+        write(out/('prior-resume%02d.json'%attempt),previous)
+    manifest['batch_size'] = a.batch_size
+    write(out/'manifest.json',manifest)
+    pending = [(index,batch) for index,batch in enumerate(batches) if index not in reused]
+    active = {}
+    initial_completed = len(completed)
     started = time.monotonic()
     storage_checked = 0.
     stopped = []
@@ -73,7 +129,7 @@ def main():
     signal.signal(signal.SIGINT,lambda *_:stopped.append(True))
     try:
         while pending or active:
-            if stopped or time.monotonic()-started>a.seconds:
+            if stopped or prior_elapsed+time.monotonic()-started>a.seconds:
                 raise TimeoutError('requested stop or collection deadline')
             for gpu in gpus:
                 if gpu in active or not pending:
@@ -82,6 +138,8 @@ def main():
                 selection = scratch/('selection%03d.json'%index)
                 write(selection,batch)
                 folder = out/'batches'/('batch%03d'%index)
+                if a.resume:
+                    folder = folder.with_name(folder.name+('-resume%02d'%attempt))
                 folder.parent.mkdir(exist_ok=True)
                 command = [RUNTIME,str(TASK/'tools/run/collect_rl660_batch.py'),
                     '--selection',str(selection),'--output',str(folder),'--gpu',gpu,
@@ -108,9 +166,10 @@ def main():
                     record['path'] = str((folder/record['path']).relative_to(out))
                     completed.append(record)
                 del active[gpu]
-            elapsed = time.monotonic()-started
+            elapsed = prior_elapsed+time.monotonic()-started
+            new_count = len(completed)-initial_completed
             row = dict(status='RUNNING',completed_sequences=len(completed),target=660,
-                elapsed_s=elapsed,eta_s=elapsed/max(1,len(completed))*(660-len(completed)),
+                elapsed_s=elapsed,eta_s=((elapsed-prior_elapsed)/new_count*(660-len(completed)) if new_count else None),
                 active_pids=[v[0].pid for v in active.values()],
                 gpu=subprocess.check_output(['nvidia-smi','-i',a.gpus,
                     '--query-gpu=index,utilization.gpu,memory.used','--format=csv,noheader'],text=True).strip())
@@ -141,7 +200,7 @@ def main():
             for index,record in enumerate(group):
                 record['split']='val' if index<count else 'train'
         manifest.update(status='COMPLETED',training_allowed=True,
-            records=sorted(completed,key=lambda r:r['sequence']),elapsed_s=time.monotonic()-started)
+            records=sorted(completed,key=lambda r:r['sequence']),elapsed_s=prior_elapsed+time.monotonic()-started)
         import numpy as np
         manifest['max_reference_error_m'] = .1
         for record in manifest['records']:
@@ -156,8 +215,11 @@ def main():
         write(out/'manifest.json',manifest)
         write(out/'progress.json',dict(status='COMPLETED',completed_sequences=660,elapsed_s=manifest['elapsed_s']))
     except BaseException as error:
-        manifest.update(status='FAILED',error=repr(error),records=completed)
+        manifest.update(status='FAILED',error=repr(error),records=completed,
+            elapsed_s=prior_elapsed+time.monotonic()-started)
         write(out/'manifest.json',manifest)
+        write(out/'progress.json',dict(status='FAILED',error=repr(error),
+            completed_sequences=len(completed),target=660,elapsed_s=manifest['elapsed_s'],active_pids=[]))
         raise
     finally:
         for process,log,_,_ in active.values():
