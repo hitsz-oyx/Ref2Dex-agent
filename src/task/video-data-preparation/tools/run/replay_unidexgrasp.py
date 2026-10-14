@@ -208,6 +208,8 @@ def supervise(args):
     scratch.mkdir()
     metrics = subprocess.check_output(['nvidia-smi','-i',str(args.gpu),
         '--query-gpu=memory.used','--format=csv,noheader,nounits'],text=True)
+    write_json(args.output/'gpu-preflight.json',dict(gpu=args.gpu,raw_memory_mib=metrics.strip(),
+        status='IDLE' if int(metrics.strip())<=64 else 'BUSY',checked_at=time.time()))
     if int(metrics.strip()) > 64:
         raise RuntimeError('selected GPU is no longer idle')
     commit = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
