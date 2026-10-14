@@ -206,3 +206,11 @@ explicit thumb± and finger-close corrections on the exact base; all four
 copies remained strict held0. That is a limited negative observation about
 those directions/window, not exclusion of a wrist/finger basin or evidence
 that the Gaussian residual architecture is incapable.
+
+The96-control training horizon can censor startup new_hold45: a grasp
+starting near teacher control55 leaves fewer than45 subsequent controls.
+Training acquisition counts at phase0 must therefore not be interpreted as
+a complete startup-success test. The full542 evaluations are the actual
+startup criterion here and still show held0. Longer post-contact training
+windows remain a possible intervention once an actual-state grasp signal
+is available; no rollout-horizon claim was tested in this comparison.
