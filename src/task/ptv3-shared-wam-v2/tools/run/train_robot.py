@@ -84,7 +84,7 @@ def setup(args):
 def check_parent(parent, stats, config):
     if parent.get("schema") != V2_SCHEMA or parent.get("stage") != "pretrain":
         raise ValueError("remote v2 pretraining checkpoint required; v1 is incompatible")
-    if parent.get("stats") != stats:
+    if comparable_stats(parent.get("stats")) != comparable_stats(stats):
         raise ValueError("parent checkpoint statistics differ from the robot run")
     architectural = ("schema", "goal_encoding", "task_conditioning", "point_width",
                      "shared_width", "shared_heads", "shared_layers", "head_width",
@@ -97,6 +97,21 @@ def check_parent(parent, stats, config):
             raise ValueError("parent/config architecture differs: " + key)
     if parent["provenance"].get("engineering_only"):
         raise ValueError("engineering pretraining checkpoint cannot initialize scientific fine-tune")
+
+
+def comparable_stats(stats):
+    """Compare numerical normalization identity while allowing machine paths.
+
+    Remote and local copies use the same sampled statistics but necessarily
+    encode different absolute data paths and generation metadata.  The source
+    manifest hash, source weights, and every hand/scene moment remain strict.
+    """
+    if isinstance(stats, dict):
+        return {key: comparable_stats(value) for key, value in stats.items()
+                if key not in ("data", "provenance")}
+    if isinstance(stats, list):
+        return [comparable_stats(value) for value in stats]
+    return stats
 
 
 def save_robot_checkpoint(path, model, optimizer, config, stats, step, provenance, rank_rng):
@@ -173,7 +188,8 @@ def main():
         resume = torch.load(args.resume, map_location="cpu", weights_only=False)
         if resume.get("schema") != V2_SCHEMA or resume.get("stage") != "robot":
             raise ValueError("robot resume checkpoint required")
-        if resume.get("config") != config or resume.get("stats") != stats:
+        if (resume.get("config") != config
+                or comparable_stats(resume.get("stats")) != comparable_stats(stats)):
             raise ValueError("resume must preserve config and statistics")
         if resume.get("provenance", {}).get("world_size") != world:
             raise ValueError("resume must preserve world size")
