@@ -17,10 +17,14 @@ def main():
     parser.add_argument("--ready", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--episodes", type=int, default=50)
+    parser.add_argument("--exclude-manifest", type=Path, action="append", default=[],
+                        help="exclude episode keys already used by previous fixed cohorts")
     args = parser.parse_args()
     if args.output.exists() or not 1 <= args.episodes <= 50:
         raise ValueError("fresh bounded cohort required")
     rows, details, seen, sessions = [], [], set(), {}
+    for manifest in args.exclude_manifest:
+        seen.update(row["key"] for row in json.loads(manifest.read_text())["episodes"])
     skipped, scanned = {}, 0
     with args.ready.open() as stream:
         for line in stream:
