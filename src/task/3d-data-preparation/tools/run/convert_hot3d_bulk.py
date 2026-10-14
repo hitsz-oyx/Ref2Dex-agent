@@ -80,7 +80,13 @@ def main():
         status=a.input/'acquisition-status.json'
         terminal=json.loads(status.read_text()).get('status') if status.exists() else None
         if terminal in ('COMPLETE','PARTIAL','STOPPED'):
-            break
+            # Acquisition can publish the last sequence while this pass is
+            # scanning an earlier directory snapshot. Drain all ready inputs.
+            pending_ready=[path for family in ('aria','quest')
+                for path in (a.input/'native'/family).iterdir()
+                if family+'/'+path.name not in ledger and all((path/file).is_file() for file in required)]
+            if not pending_ready:break
+            continue
         time.sleep(10)
     write(root/'progress.json',dict(status='STOPPED' if STOP else 'FINISHED',pid=os.getpid(),
         converted_sequences=len(manifest['sequences']),converted_frames=sum(r.get('frames',0) for r in ledger.values() if r['status']=='CONVERTED'),
