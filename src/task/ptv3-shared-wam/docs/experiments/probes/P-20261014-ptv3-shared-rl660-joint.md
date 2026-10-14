@@ -272,6 +272,98 @@ step9000 predicted-τ PD xyz的p95=199.67mm，GT-τ为189.64mm，clipping均值�
 
 动作命令映射出现局部PROMISING信号；手/物体轨迹的持续泛化收益仍UNCLEAR，
 整条机器人执行路线尚无新闭环结果。保留当前best与latest，继续已授权的固定19000步
-预算并观察固定dev；不根据本次快照加预算、改网络或宣布收敛。完成后优先对dev best
-做独立native执行，再决定是否值得追加。GT-τ与predicted-τ误差接近只作诊断读数，
+预算并观察固定dev；不根据本次快照加预算、改网络或宣布收敛。当时拟完成后优先对
+dev best做独立native执行；该默认步骤已被下节ref2审计修正。GT-τ与predicted-τ误差接近只作诊断读数，
 尚不能把剩余误差归因于R、τ或数据某一环节；抓取收益与最终Cm增益仍属延后证据。
+
+
+## 2026-10-14 ref2微调缺陷审计（16:10 CST）
+
+依据用户提供的[ref2.md](../../user/ref/ref2.md)，对运行代码b22978c1及真实corpus做只读审计。
+快照phase10540；原训练保持RUNNING，本节不改变loss/config/已有checkpoint的含义。
+审计工具：[audit_ref2_finetune.py](../../../tools/audit/audit_ref2_finetune.py)。
+证据：`outputs/ptv3-shared-wam/rl660-ref2-audit-20261014-r1/report.json` 与 `repeat.json`。
+CPU只用于微小解析梯度和文件/标签算术，无模型拟合或批量神经推理。
+
+### 已确认的问题与边界
+
+1. **控制监督缺少执行前缀侧重（高优先级）**：`robot.py:135` 的predicted-action与
+   GT-anchor均为all8×12 standardized L1，没有历史control-aware配方的first/PD0项。
+   对真实 `robot_loss()` 做单位action_scale的最小梯度复现，两分支first/tail单标量
+   梯度比均为1；第一步全部DOF占12.5%、第一步XYZ占3.125%。这些是损失在标准化
+   输出上的系数占比，不是实际参数梯度或最终训练贡献占比；真实action_scale会改变
+   native单位上的梯度。缺少第一步物理误差目标已确认，解释52–54mm偏差的因果占比
+   尚未验证。
+2. **选点/保存偏离控制目标（高优先级）**：`training.py:461` 只按包含hand/scene/
+   action/anchor的总dev objective选 `best.pt`，不是独立forecast-best或control-best。
+   固定快照总best=4500，GT xyz mean/p95=61.75/233.06mm；控制p95最优=10500，
+   mean/p95=52.95/177.93mm，predicted-τ为55.79/188.55mm。后者总objective4.9415，
+   因而没有成为best；10500又非1000步恢复点，未保存权重，无法从该次dev读数恢复。
+   即便未来某个控制最优点恰逢恢复点，清理也只保护总best/latest/里程碑，不能保证
+   控制最优长期存在。不能把现有 `best.pt` 自动当成执行候选的最优权重。
+3. **RL660原生执行接口尚未适配（确定的工程blocker）**：训练manifest将reference/
+   canonical写成逐序列来源描述，实际文件在corpus各record目录；`policy_server.py:47`
+   仍把描述当文件路径，`execute_native.py:78` 仍读corpus根的 `trajectory.npz` 并固定
+   env24及airplane环境，`audit_native.py` 也沿用旧reference路径。对本run实际metadata
+   执行对应 `np.load`，canonical/reference/source-trajectory三项均FileNotFoundError。
+   不能直接沿用旧入口对660训练做多物体native结论；这不影响当前离线更新本身。
+
+### ref2中需要修正或暂缓的归因
+
+- **执行频率前提不同**：当前launcher默认K_exec=4，ActionBuffer最小复现消费索引
+  [0,1,2,3]后才重新查询；可显式选择1/4/8。ref2及历史control-aware实验的“每tick
+  只执行a0”对应K=1，不能直接描述当前默认K4。后续first-action诊断应明确固定K1；
+  如要保留K4，就应同时检查前4步监督与实际执行误差，不能只看第一步宣布K4可用。
+- **历史结果存在，但范围有限**：原fit/result与独立audit确认report first-xyz p95
+  19.51mm、GT执行teacher/oldR/newR连续held73/75/74，且逐tick执行第一步。该Probe
+  支持优先测试control-aware目标，但它是不同数据/局部任务，且loss和selection一起
+  改变，不能证明RL660的all8目标就是当前偏差的唯一或首要原因，更不证明其普遍无效。
+  历史PD0为三个物理分组的逐坐标绝对误差均值/.01m、.1rad、.1rad，再等权平均；
+  不能与报告xyz L2或ref2的示意公式混成同一实现。
+- **state87与R容量是候选限制**：R仍128D、2层decoder，输入为q/dq/局部手点/object
+  pose/velocity及24×33 τ，没有直接geometry/contact/previous-action/reference输入。
+  信息不足、跨物体覆盖和容量均需区分；没有matched诊断前不据此加输入或扩模型。
+  即使小预算first-only模型TRAIN仍高，也需先排除优化未充分/容量问题，不能直接证明
+  inverse映射不确定。
+- **分阶段读数缺失**：现有固定dev512窗中startup(tick<16)=39、later=473，覆盖69/71
+  条dev序列；训练抽样则约一半startup。当前汇总PD不能说明起步与接触阶段各自是否
+  改善。后续同时报告startup/later和手物距离分组；距离只作几何代理，不等同真实接触。
+
+### 标签、坐标与PD复算
+
+抽取TRAIN/dev各4条完整序列，每条各一个startup/later窗，共16窗；对真实loader输出
+独立复算同tick applied action、future1–24手位移、state87、WAM→native点顺序，及
+记录PD targets与扰动action的独立PD差。最大绝对差：action=0，τ/state=1.19e-7，
+点序/坐标=2.05e-7，PD=1.19e-7、PD差=2.20e-7；均小于1e-6。
+这些检查未见所抽窗口的时序/坐标/finger半scale错误，不是全660条的穷尽证明。
+
+复现命令（使用全新报告名，禁止覆盖证据）：
+
+```bash
+PYTHONWARNINGS=ignore /home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam/tools/audit/audit_ref2_finetune.py \
+  --run outputs/ptv3-shared-wam/rl660-joint-large-20261014-r1 \
+  --output outputs/ptv3-shared-wam/<fresh-ref2-audit>/report.json \
+  --require-control-alignment
+```
+
+两次执行均按预期退出1：`DATA_REPLAY True`，随后
+`FAIL: first-control emphasis, selection, or native inputs are not aligned`。
+这是成功复现工程问题，不是训练进程失败；没有改动活跃trainer源码以使其“通过”。
+
+### Decision Note：后续修复与最小判别
+
+- 问题：控制目标/选点错位是否足以解释当前GT-τ误差，以及如何选择真正可执行候选。
+  当前证据确认两处合同缺口和一处native接口blocker，尚无RL660上的因果比较。
+- 行动：保留这轮为all8联合基线，继续已授权预算；撤回上一节“完成后直接取总dev best
+  做native”的默认步骤。修复时必须独立保存forecast/control选择与对应权重，并在执行
+  前补齐按指定record选择geometry/reference/场景的接口和审计，不能仅替换一个路径。
+- 最便宜下一Probe：固定原TRAIN/dev、GT-τ、state87、128D×2、初始化与采样流，
+  R-only比较A(all8)、B(first/tail/PD0)、C(first-only)。先测TRAIN可拟合性再看dev，
+  同时报first XYZ mean/p95、rotation/finger/clipping、startup/later和尾部误差。
+  不动WAM，不把历史单物体权重或新conditioning混入对照。
+- 当前保守计数本地5/7、远端0/2及既有1/3合计六卡，故本次只做CPU算术审计，未新增
+  GPU训练；待既有卡释放后，先做有界单卡Probe（最多20分钟、产物100MB，仍计入共享
+  六卡/400GB），单预算到期或非有限/外部冲突立即停，不做扫参或自动扩模型。
+- 正向时再按K1做GT执行门；不改善则分开排除优化/容量与输入覆盖，不能仅凭负Probe
+  关闭inverse路线。此次未修改核心问题/claim、没有新增外部权限需求。
