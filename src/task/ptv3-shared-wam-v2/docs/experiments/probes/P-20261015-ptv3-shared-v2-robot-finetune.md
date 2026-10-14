@@ -5,7 +5,7 @@ experiment_id: P-20261015-ptv3-shared-v2-robot-finetune
 date: 2026-10-15
 task: ptv3-shared-wam-v2
 branch: main
-git_commit: c7e8f42e
+git_commit: f45f169d
 claim_id: C1
 hypothesis_family: HF-v2-remote-robot-adapter
 probe_index_in_family: 1
@@ -42,12 +42,14 @@ Before scientific training, run the four-step engineering smoke on GPU 4/6 and
 require finite loss, nonzero gradients through v2 shared/geometry and R, exact
 checkpoint load, and no foreign GPU process. Then run the bounded two-GPU Probe
 on GPUs 4 and 6 with seed 151, frozen RL660 split, batch 32 per GPU, 12,000
-updates, validation every 500 updates, and an 8 GB owned-artifact budget. The
-parent must be a non-engineering v2 pretraining checkpoint with matching model
-schema, config architecture, and horizon statistics. The fine-tune itself is
-local on GPUs 4/6: the remote WAM contributes only the copied parent
-checkpoint; the RL660 corpus, geometric q source, and statistics remain the
-local read-only inputs whose paths are recorded in the manifest.
+updates, validation every 500 updates, and an 8 GB owned-artifact budget. Use
+`tools/run/launch_robot_finetune.py` so the owned torchrun group, progress,
+GPU, disk, and stall timeout are recorded throughout the run. The parent must
+be a non-engineering v2 pretraining checkpoint with matching model schema,
+config architecture, and horizon statistics. The fine-tune itself is local
+on GPUs 4/6: the remote WAM contributes only the copied parent checkpoint;
+the RL660 corpus, geometric q source, and statistics remain the local
+read-only inputs whose paths are recorded in the manifest.
 
 ## Data contract and interpretation
 
