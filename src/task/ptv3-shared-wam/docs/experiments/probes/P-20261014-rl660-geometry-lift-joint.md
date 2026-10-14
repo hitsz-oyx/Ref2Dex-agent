@@ -91,3 +91,15 @@ float32恢复残差，低于5e-6工程门。完整标签通过不证明模型预
 训练更新约1.85秒/步，峰值allocated9703MiB。hand/scene均到PTv3/interaction/goal；
 action到forecaster/R非零，GT anchor到forecaster=0且到R非零；scene不经hand head。
 这只验证真实大batch接线、内存和数值，不形成学习效果结论。
+
+## K4工程门通过，启动原规模联合训练
+
+`engineering-rl660-geometry-lift-native-20261014-r1`使用15维full checkpoint、GPU7、
+固定seed147/s10_airplane_pass_1完成4控制/K4，37.39秒；独立审计pass：native PD和clock
+差0，几何buffer姿态最大差2.20e-7、query冻结目标到live command差1.52e-7。3角色的
+4控制都不构成held45证据。本轮仅接线，没有宣称模型已学会正确分支或抓取。
+
+用户授权的19k联合训练现在启动。实施code83c06492，具体启动/worker身份见新run的
+manifest.json与tmp同run_id的launch.json；原双卡超参逐项相同，仅新增表示与运行保护字段。
+CAMPAIGN已取消全球400GB上限，新run仍限制自己8GB并保留20GiB可用空间；远端监测器
+已由对应任务更新为无全球总量停止线，本轮没有改变远端权重、进程或训练超参。
