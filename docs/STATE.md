@@ -35,6 +35,8 @@ dev/保存另计；30秒GPU0/2平均利用率96.8%/96.3%，物理显存最大291
 
 ## 2026-10-14 PTv3共享WAM停止预训练，转全660机器人联合微调
 
+17:52 CST按用户ref2_1要求已停止旧raw-native微调（最后进度约14040）；保留latest=step14000和best=step4500，各1.22GB。旧自动部署/GT队列均取消，远端v2继续。物理目标chunk及live-q转换已提交00a7e7ee，70项测试通过；三臂2k更新已完成：dev mean/p95分别56.31/180.70、51.96/184.84、51.25/186.15mm，未过改善门（UNCLEAR）。relative-PD可逆，geometry有2π的Euler分支差异并禁止执行；新PD训练2步和K4真实执行/独立审计已通过。大规模联合微调保持停止。协议见[R物理目标卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-physical-targets.md)。以下15:44/16:10为历史快照。
+
 按用户要求停止三域80k运行，保留原20k/38k，best/latest为best available 38k；
 历史22k最低dev权重已被旧清理规则删除，不能恢复，现已修复best保护。
 用户确认全660条同执行补录手点、状态、实际命令，并排除明显失跟窗口。

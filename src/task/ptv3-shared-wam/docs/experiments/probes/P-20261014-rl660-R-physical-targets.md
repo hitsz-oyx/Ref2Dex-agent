@@ -19,8 +19,8 @@ run_id: rl660-R-physical-targets-20261014-r1
 
 # RL660动作标签表示对照：native / 相对PD / 相对几何目标
 
-Result: UNCLEAR，实施与检查中；未重启大规模联合微调。
-Decision: 按用户ref2_1停止旧raw-native微调，先完成物理目标合同与matched R-only Probe。
+Result: UNCLEAR；三臂2k步dev XYZ mean/p95为native56.31/180.70、PD51.96/184.84、geometry51.25/186.15mm，均未过预定改善门。K4物理接线与独立审计通过；未重启大规模联合微调。
+Decision: 保留统一当前时刻的PD目标合同和新微调模板；几何组因Euler分支不唯一禁止部署。R精度未解决，旧微调保持停止，不自动启动新联合长训。
 
 ## Decision Note 与研究动机
 
@@ -100,3 +100,61 @@ run_id=rl660-R-physical-targets-20261014-r1；1张空闲本地GPU5。保守计�
 
 本轮不是正式Validation，不形成根因已坐实、R已解决或Cm有效结论。成功率、多seed、
 独立新序列/物体、前馈forecaster误差与physics GT保持门留待正向Probe后。
+
+## 工程修复记录：首次K4 smoke的日志注册
+
+新物理执行首次到达真实Isaac第一控制，命令/PD一致性检查通过，随后因新审计字段
+R_output_chunk未加入预注册日志字典而KeyError停止，已保留r1的partial/manifest/peer日志。
+这不是控制策略负证据。修复注册R_output_chunk/R_query_q；仅在原2400秒/2GB总预算
+剩余范围内以相同seed147、序列和4控制重跑受影响的工程smoke，使用新r2目录，不重跑
+科学R-only对照或覆盖任何结果。不因工程重试扩大资源或自动启动联合长训。
+
+
+## 实测结果与当前判断
+
+科学Probe run `rl660-R-physical-targets-20261014-r1`，运行commit809a9e77（实现00a7e7ee），
+COMPLETED，GPU5，125.43秒；实际约1.3–1.7GiB显存，小网络受采样/解析转换开销影响，
+低于大模型GPU利用率属于本有界诊断的实际负载，不据此扩大网络或batch。
+三组dev所选均为step2000（本预算最后一步）；无法以短预算判断最终收敛或泛化上限。
+
+| label arm | TRAIN mean/p95 mm | dev mean/p95 mm | dev all8 mean/p95 mm | dev first/chunk clipping |
+| --- | --- | --- | --- | --- |
+| native | 59.17 / 236.82 | 56.31 / 180.70 | 72.45 / 226.05 | 0 / 0 |
+| relative-PD | 54.84 / 223.02 | 51.96 / 184.84 | 83.43 / 232.09 | 0 / .513% |
+| relative-geometry | 55.20 / 222.72 | 51.25 / 186.15 | 83.00 / 243.49 | 0 / .049% |
+
+相对PD/geometry的first mean改善7.7%/9.0%，p95反而差2.3%/3.0%，都未达到mean/p95
+同时改善20%的预定门，结论UNCLEAR；不能声称降到10–15mm或target定义已解释全部误差。
+三组随机R初始dev XYZ mean均125.08mm，当前PD组仍在明显学习，不以2k步关闭此路线。
+这些from-scratch、all8、seed144结果不能直接与先前warm-start/control-aware的43.02mm
+作为纯label对照；本表matched native才是本轮控制。
+
+全部110777准入TRAIN窗、8步exact-label回放：native最大PD差0，relative-PD为
+1.91e-6（float32大角度相减/恢复误差），均无clipping；geometry最大广义坐标差
+6.283185rad，即Euler绕圈分支不同，未获native资格。物理姿态等价不代表同servo路径，
+几何组仅保留离线诊断权重；不能假装已经有无歧义的姿态到控制器转换。
+
+独立工具 `tools/audit/audit_R_representation.py` 从原corpus重建state/τ/PD标签，以NumPy
+控制器和独立Euler分支计算复算三个选点、TRAIN/dev预测及first指标，全部通过；最大XYZ
+指标差<0.00005mm、clipping一致，报告 `independent-audit.json`。所有选点和曲线保留。
+
+### 训练与执行工程检查
+
+- `engineering-rl660-physical-targets-20261014-r1`，commit809a9e77，GPU7，真实PTv3共享
+  512D×16与新PD-R从step14000仅继承forecaster，fresh R/optimizer；2步训练、验证和
+  完整checkpoint保存完成，训练段约8.36秒。action→forecaster/R梯度非零，anchor→
+  forecaster为0、→R非零；hand/scene均到PTv3/interaction/goal，scene不经hand head。
+- 首次native工程r1因日志注册缺陷停在1控制，保留其失败证据；修复2bcafb76后只重跑
+  受影响工程检查。`engineering-rl660-physical-native-20261014-r2`完成同seed147/同序列
+  的4个控制、K4、teacher/GT/WAM三角色，33.53秒，显存观测峰值18,930MiB。
+  `native/independent_audit.json` pass：PD、chunk clock、各自query q/H4、planned goal、
+  被动command均核对；“查询冻结目标→实时q反解command”最大差1.19e-7。确实消费了
+  chunk索引0..3，而非每tick重加delta。4控制teacher/GT/WAM均无held45证据，不能
+  解读为抓取通过/失败，也不能用这个2步工程权重作策略收益结论。
+- Task合同测试70项通过（00a7e7ee）；后续日志注册修复由真实K4重跑及独立数组审计验证。
+  当前没有新的大规模联合微调进程。old latest/best再次用torch.load核对step14000/4500，
+  完整可读；保留路径和大小在旧run的user_stop.json。
+
+当前执行选择是relative-PD可逆合同；未来若继续研究R，需先区分现有预算下优化不足和
+实际映射歧义，不能凭论文迁移的直觉直接扩大联合训练。更长R-only优化、初始化、容量、
+额外状态/手点设计应逐一形成可判别变量；本轮不追加训练预算。

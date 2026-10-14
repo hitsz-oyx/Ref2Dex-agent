@@ -20,7 +20,7 @@ run_id: rl660-R-control-repair-20261014-r1
 # RL660 GT-τ R-only：控制目标修复与可拟合性Probe
 
 Result: PROMISING（局部离线控制目标与覆盖）。matched loss A/B dev XYZ mean/p95为50.78/161.68→45.80/148.05mm；再从相同B暖启动，全TRAIN采样改善到43.02/137.14mm，固定池续训未改善dev，clipping=0。仍未验证物理执行，不能声称R已修好。
-Decision: 保留control-aware配方与独立checkpoint选择；现有R小集合可拟合，后续优先解决覆盖/优化和startup，再过K1 GT执行门，不直接扩R或增加物体输入。
+Decision: 保留原离线观察；按用户ref2_1取消旧K1执行队列，转统一当前时刻的物理目标matched Probe，旧联合微调已停止并保留latest/best。
 
 ## Decision Note
 

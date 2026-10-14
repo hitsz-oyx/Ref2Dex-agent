@@ -379,3 +379,8 @@ matched R-only的control-aware相对all8将dev first PD xyz mean/p95从50.78/161
 反而63.30mm，不能据此声称执行已修好或输入本来不确定。
 主工作树应用待本运行退出；守护4007948只在相关peer退出、目标未被并发修改且补丁
 可干净应用时写入，不自动提交。远端v2和本运行预算、checkpoint及配方均不变。
+
+
+## 用户停止与权重保留（2026-10-14，ref2_1）
+
+按用户明确要求，通过本run监督器停止训练组，最后日志约14040/19000；原生监督器记录FAILED(signal15)表示主动停止。latest.pt→step14000.pt、best.pt→step4500.pt均保留（各约1.22GB），没有删除其他证据，回执user_stop.json。原计划自动源码交接与K1资格检查已取消；远端v2仍训练。下一轮先修统一当前时刻的物理目标chunk并做matched R-only Probe，见P-20261014-rl660-R-physical-targets；原权重保持native合同，不静默恢复为物理表示。
