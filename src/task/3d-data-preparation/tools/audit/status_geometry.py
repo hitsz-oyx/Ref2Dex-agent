@@ -6,6 +6,7 @@ import time
 REPO=Path(__file__).resolve().parents[5]
 BASE=REPO/'outputs/3d-data-preparation'
 NAMES=['hot3d-native-full-20261014-r1','hot3d-posemesh-full-20261014-r1',
+       'h2o-native-full-20261014-r1',
        'taco-native-full-20261014-r1','taco-posemesh-full-20261014-r1','unidexgrasp-expansion-20261014-r1',
        'hocap-posemesh-reuse-20261014-r1','dexycb-posemesh-reuse-20261014-r1','native3d-live-corpus-20261014-r1']
 

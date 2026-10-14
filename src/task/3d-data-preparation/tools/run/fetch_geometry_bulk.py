@@ -9,6 +9,7 @@ import signal
 import threading
 import time
 import zipfile
+from urllib.parse import urlsplit
 import requests
 
 STOP = threading.Event()
@@ -29,7 +30,7 @@ def safe_filename(name):
     return name
 
 
-def fetch(entry, root, deadline, progress):
+def fetch(entry, root, deadline, progress, auth=None):
     global NETWORK_BYTES
     path = root/'archives'/safe_filename(entry['filename'])
     expected = entry['bytes']
@@ -49,6 +50,11 @@ def fetch(entry, root, deadline, progress):
         if offset == expected:
             partial.replace(path); return path
         session = requests.Session(); session.trust_env = False
+        if auth is not None:
+            parsed = urlsplit(entry['url'])
+            if parsed.scheme != 'https' or parsed.hostname != 'h2odataset.ethz.ch':
+                raise ValueError('Basic credentials restricted to HTTPS H2O origin')
+            session.auth = auth
         if attempt % 2:
             session.proxies = {'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'}
         try:
@@ -116,6 +122,15 @@ def extract(path, destination):
 
 
 def entries(args):
+    if args.dataset == 'h2o':
+        preflight = json.loads((args.output/'access-preflight.json').read_text())['files']
+        expected = {'object.zip', 'label_split.zip'} | {f'subject{i}_pose_v1_1.tar.gz' for i in range(1,5)}
+        if {r['filename'] for r in preflight} != expected or len(preflight) != 6:
+            raise ValueError('six authorized H2O geometry archives required')
+        if any(r['http_status'] != 200 or r['bytes'] <= 0 for r in preflight):
+            raise ValueError('H2O access preflight failed')
+        return [dict(family='h2o',sequence='all',group='geometry',filename=r['filename'],
+            bytes=r['bytes'],url='https://h2odataset.ethz.ch/data/dataset/'+safe_filename(r['filename'])) for r in preflight]
     if args.dataset == 'hot3d':
         result = []
         for family, filename in [('aria','Hot3DAria_download_urls.json'),
@@ -135,7 +150,8 @@ def entries(args):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--dataset', choices=['hot3d','taco'], required=True)
+    p.add_argument('--dataset', choices=['hot3d','taco','h2o'], required=True)
+    p.add_argument('--credential-file', type=Path)
     p.add_argument('--repo', type=Path, default=Path.cwd())
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--reuse', type=Path)
@@ -143,6 +159,14 @@ def main():
     p.add_argument('--seconds', type=int, default=86400)
     p.add_argument('--plan-only', action='store_true')
     a = p.parse_args()
+    auth = None
+    if a.dataset == 'h2o' and not a.plan_only:
+        if a.credential_file is None or a.credential_file.stat().st_mode & 0o077:
+            p.error('H2O requires private mode0600 credential file')
+        credential = json.loads(a.credential_file.read_text())
+        auth = (credential['username'], credential['password'])
+    elif a.credential_file is not None:
+        p.error('credentials are only supported for H2O downloads')
     if not 1 <= a.workers <= 8 or not 60 <= a.seconds <= 86400:
         p.error('bounded workers/deadline required')
     if a.plan_only:
@@ -178,7 +202,7 @@ def main():
             network_bytes=NETWORK_BYTES,payload_bytes_per_s=NETWORK_BYTES/max(elapsed,1),errors=errors,
             checked_at=time.time(),training_allowed=False))
     def one(row):
-        path = fetch(row,root,deadline,progress)
+        path = fetch(row,root,deadline,progress,auth=auth)
         expanded = 0
         if a.dataset == 'hot3d':
             with EXTRACT_LOCK:
