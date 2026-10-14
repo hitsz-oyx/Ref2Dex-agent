@@ -72,6 +72,8 @@ def main():
                 if env != 1 and manifest.get('q_velocity_feedforward'):
                     assert manifest['q_velocity_feedforward'] == 'finite-difference-0.1s.v1'
                     target += 3 * (original['q'][tick+1] - original['q'][tick])
+                if env != 1 and manifest.get('oracle_finger_PD'):
+                    target[6:] = original['pd_targets'][tick, 6:]
                 target = couple(target)
                 normalized = (target-offset)/scale
                 normalized[:6] = (target[:6]-live[:6]-offset[:6])/scale[:6]

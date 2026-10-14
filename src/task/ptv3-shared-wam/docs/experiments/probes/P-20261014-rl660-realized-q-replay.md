@@ -93,3 +93,16 @@ Class: Decision。下一项只改确定性的trajectory tracking补偿：同3序
 原native校准和原分类不追溯放宽；新增单列supplemental_PD_calibration_pass，只有
 hand/object均<=5mm才解释对应FF与q跟踪对照。轨迹跟踪mean改善>=30%且不降低
 持物才记局部PROMISING，否则保留UNCLEAR或UNPROMISING（仅此控制律）。
+
+## FF后追加的单项定位Decision（运行前）
+
+FF三个手点mean为19.05/15.35/16.09mm，相对raw q降低77.8%/74.8%/74.7%；
+held为62/0/70。mug手误差下降但物体仍约171mm/held0，sphere held74降70，
+未通过“不降低持物”以及原hand门，不宣布nominal已合格。FF airplane的PD臂
+object mean6.70mm超过补充5mm校准，保留该限制，不追溯放宽。
+
+Class: Decision。在同一mug/seed148仅把q臂的手指部分改回原记录PD，腕部保持
+q+固定阻尼补偿。若恢复held，优先定位手指闭合/预紧映射；若仍失败，不能只把问题
+归给手指，须继续分离腕部姿态/接触时序。它是oracle分组替换，不是独立学习策略。
+这是第7个、也是本卡最后一个科学运行，追加预计25s；最多运行数6改7，20 GPU-min
+和500MB原资源上限均不增加。完成后汇总，不继续扩展controller sweep或长训。

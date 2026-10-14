@@ -20,7 +20,7 @@ ROLES = ['recorded_native', 'recorded_PD', 'realized_q_full',
          'realized_q_start', 'realized_q_middle', 'realized_q_late']
 
 
-def reference_chunk(data, query, kind, velocity_feedforward=False):
+def reference_chunk(data, query, kind, velocity_feedforward=False, oracle_fingers=False):
     """Absolute joint targets. Padding is only an unconsumed terminal suffix."""
     if kind == 'PD':
         return data['pd_targets'][np.minimum(query + np.arange(8), len(data['pd_targets']) - 1)].copy()
@@ -31,6 +31,9 @@ def reference_chunk(data, query, kind, velocity_feedforward=False):
             # Kd/Kp=.1s for wrist and fingers;30Hz finite differences use only
             # the same realized-q plan, never teacher actions or measured dq.
             result += 3 * (data['q'][indices] - data['q'][np.maximum(indices-1, 0)])
+        if oracle_fingers:
+            action_indices = np.minimum(query+np.arange(8), len(data['pd_targets'])-1)
+            result[:, 6:] = data['pd_targets'][action_indices, 6:]
         return result
     raise ValueError(kind)
 
@@ -53,6 +56,7 @@ def main():
     parser.add_argument('--seconds', type=int, default=300)
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--velocity-feedforward', action='store_true')
+    parser.add_argument('--oracle-fingers', action='store_true', help='diagnostic only: recorded finger PD with q wrist')
     args = parser.parse_args()
     out, source = args.output.resolve(), args.source.resolve()
     if (Path(sys.prefix).resolve() != RUNTIME.resolve() or out.exists()
@@ -126,6 +130,7 @@ def main():
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         experiment_id=card['experiment_id'], pid=os.getpid())
     manifest['q_velocity_feedforward'] = 'finite-difference-0.1s.v1' if args.velocity_feedforward else None
+    manifest['oracle_finger_PD'] = args.oracle_fingers
     def write(name, value):
         (out / name).write_text(json.dumps(value, indent=2) + '\n')
     write('manifest.json', manifest)
@@ -207,7 +212,7 @@ def main():
                         fork_errors[ROLES[env]] = {key: float((current[key][env] - current[key][0]).abs().max())
                                                    for key in ('q', 'dq', 'hand', 'obj', 'velocity')}
                     if (tick - start) % 4 == 0:
-                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, 'PD' if env == 1 else 'q', args.velocity_feedforward), device=task.device)
+                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, 'PD' if env == 1 else 'q', args.velocity_feedforward, args.oracle_fingers), device=task.device)
                         clock[env] = tick
                     query[env], index[env] = clock[env], tick - clock[env]
                     target = couple(buffers[env][index[env]:index[env]+1])
