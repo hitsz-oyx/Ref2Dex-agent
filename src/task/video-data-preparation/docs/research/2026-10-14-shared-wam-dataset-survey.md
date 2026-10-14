@@ -2,7 +2,65 @@
 
 日期：2026-10-14。范围：为 `video-data-preparation` 的 EgoDex 接入和 `ptv3-shared-wam` 训练寻找补充数据。本次只核验公开的第一方论文、官方格式说明和官方读取代码；没有下载数据、申请凭证或跑接入实验。下面的“适配建议”和成本排序是基于字段合同的工程判断，不是已验证的训练收益。
 
-当前建议：**优先 H2O / HO-Cap 的原生 RGB-D 小集，DexYCB 做单手抓取对照，随后 HOT3D / TACO；HoloAssist / EgoVerse 用于后续扩量。** 先减少目标误选和 metric 伪标签误差，再扩大视频规模。HOI4D 的 15Hz 与 SHOW3D 的移动 world frame 是需要明确处理的合同差异；详细依据、下载边界与最小检查见下文。
+用户补充重点是**大规模训练语料**。扩量候选调整为 Open-AoE、EgoSuite、EgoVerse、WIYH及可复用的EgoSteer派生标注；当前EgoDex继续推进。H2O / HO-Cap / DexYCB保留为小规模工程对照，不承担扩量主线。规模、实际发布、下载边界和接入缺口先见下一节。
+
+## 大规模语料：按用户补充重点更新
+
+“大规模”按连续演示小时数判断，不按多相机图像数判断；官方规模、已发布规模、我们质量筛选后能用的窗口数分别记录。本轮只查第一方公开文档/API与代码，没有新增数据下载、访问申请或运行实验。
+
+| 来源 | 规模与发布口径 | 对本流程的价值 / 限制 |
+| --- | --- | --- |
+| [EgoDex](https://github.com/apple-aiml-research/ml-egodex) | 829h，当前已有远端下载路线 | 原生30Hz手/相机；当前主线，仍需修好物体目标选择与几何准入 |
+| Open-AoE | full目标2000h仍上传；nano约3h、tiny约100h明确发布，后续已有较大批次 | 完整双手MANO+米制相机/K；目前最便于试接的新公开候选 |
+| EgoSuite-Open100K | 计划100000h；作者8月公告首批10000h上线；50h EgoDemo | 双手21点、世界系相机/标定、可选depth；大库需审批后核验Bucket实际覆盖 |
+| EgoVerse | 论文1362h/约80k episodes，网站快照4003h | RGB/头部pose/K及部分episode完整手点；需筛字段、核验下载服务 |
+| WIYH / World In Your Hands | 作者约1000h，HF存在大体量分包 | 手部状态、相机标定/轨迹、多模态；需核验手骨架和固定世界转换 |
+| EgoSteer / EgoSmith派生标注 | 论文整理9606h/12源，当前HF公开8源标注 | 手腕+指尖与camera估计；没有RGB/depth和完整MCP，可做部分手监督 |
+| Build AI Egocentric-10K / 100K | 10000h / 100405h | 大量操作视频和内参；手点/相机运动须估计，100K为456×256 |
+| NVIDIA EgoScale | 预训练使用20854h | 本轮官方项目未找到整套数据公开下载入口，暂不作为可获取语料 |
+
+规模依据与实际格式见以下链接。派生集含已有EgoDex/OakInk2/TACO，不能将小时数与原集直接相加；同段视频的MCAP/LeRobot/去畸变副本也不能重复计数。
+
+### Open-AoE：优先核验完整手点的大规模新来源
+
+官方卡明确2000h full仍上传，nano/tiny已发布；更新日志各批小时数不足以确定去重净总量。本轮不报“2000h已全部可下载”。30fps，有原/去畸变RGB、K、双手完整MANO和valid mask、米制camera-to-world，camera_traj明确没有depth；也未发布可直接用的object mask/6D。[官方数据卡](https://huggingface.co/datasets/inclusionAI/OpenAoE-2000h)
+
+手/相机由HaWoR、DROID-W和优化重建，并非EgoDex式采集原生tracking。解码MANO后可映射wrist/MCP/tip，再复用我们的物体mask/depth/tracks、anchor和shard；仍须核验尺度、投影、相机漂移及离线优化的观察边界。不能因为camera以米表示就认定目标物体depth准确。[官方论文](https://arxiv.org/html/2607.14183v1)
+
+代码另提供[ModelScope入口](https://www.modelscope.cn/datasets/inclusionAI/OpenAoE-2000h)，符合本仓库下载优先顺序；本轮未验证大文件下载。先处理tiny中少量明确刚体episode，再按实际上传index扩量。[官方仓库](https://github.com/ant-research/Open-AoE)
+
+### EgoSuite：万小时级发布声明，十万小时为计划总量
+
+作者2026-08-26文章明确首批10000h上线；当前Standard/Pro卡区分planned duration与实际Bucket，完整库需申请审批，不能下载数据卡Git仓库就算拿到视频。50h EgoDemo是样本入口，亦需访问条款。[作者发布公告](https://huggingface.co/blog/LightwheelAI/egosuite-open100k)、[Standard](https://huggingface.co/datasets/LightwheelAI/EgoStandard)、[Pro](https://huggingface.co/datasets/LightwheelAI/EgoPro)、[Demo](https://huggingface.co/datasets/LightwheelAI/EgoDemo)
+
+官方格式有双手21点的米制world、逐帧head-camera C2W/K、双目；depth和bad-frame flags可选。统一30Hz尚未确认，读取每episode时间戳和fps；手pose是算法恢复，不能把“raw MCAP”容器称为无误差设备GT。对象mask/6D未见字段证据，仍需我们的物体teacher。[手格式](https://docs.lightwheel.net/egocentric_data/mcap_data/pose/hand)、[相机格式](https://docs.lightwheel.net/egocentric_data/mcap_data/sensor/rgb_camera/head)、[官方DevKit](https://github.com/LightwheelAI/LW-Egosuite-DevKit)
+
+depth格式为可选16位PNG、默认mm，带K/pose；有depth子集可以减少Omega推理，不能推断全部首批均是RGB-D。首次须检查所选SKU的手/相机有效性、depth语义、同步和ego相机外参；world轴为X前/Y左/Z上，camera为OpenCV轴，应显式转换。[depth格式](https://docs.lightwheel.net/egocentric_data/mcap_data/sensor/depth_camera)、[LeRobot格式](https://docs.lightwheel.net/egocentric_data/lerobot_data/format_specification)
+
+### EgoVerse与WIYH：千小时级备选
+
+EgoVerse的论文1362h与网站4003h快照是不同版本口径；完整手点在Zarr合同中可选，先筛有手点/相机/内参的episode，随后复用物体teacher。完整接法见后文，不将全部网站时长视为字段完整的可训练语料。[论文](https://arxiv.org/abs/2604.07607)、[官网](https://egoverse.ai/)、[官方schema](https://github.com/GaTech-RL2/EgoVerse/blob/main/CONTRIBUTING_DATA.md)
+
+WIYH作者声明约1000h，官方HF已有大体量分包；本轮未逐包核验小时数。export的wrist_poses是零占位，chest_poses是当前chest坐标EEF；不能将其当固定世界逐指点。原始reader可读骨架、tracker/glove，首包应核验它们是否齐全、单位/时间与固定world转换。物体mask/depth/tracks仍单独生成，不沿用reader默认K或恒等矩阵作为有效真值。[作者仓库](https://github.com/tars-robotics/World-In-Your-Hands)、[论文](https://arxiv.org/abs/2512.24310)、[export字段](https://huggingface.co/datasets/tars-robotics/WIYH)、[原始reader](https://github.com/tars-robotics/World-In-Your-Hands/blob/main/wiyh.py)
+
+### EgoSteer：已有大规模标注可省计算，但只有部分手点
+
+代码/论文整理9606h、12来源；当前HF发布只列8源，不把论文全量算作公开发布。已发标注包含手腕、5指尖、camera和原视频帧映射，不含RGB/depth；部分手/相机为估计结果。须取得原视频并遵循原集分组/许可，且EgoDex子集与现有线路去重。[EgoSmith](https://github.com/egosteer/egosmith)、[发布数据卡](https://huggingface.co/datasets/EgoSteer/EgoSteer-Egocentric)
+
+缺MCP**不意味着完全不可用**：我们的模型支持逐点valid mask，新provider可每手仅填真实已有的wrist+5tips，将5个MCP无效；作为partial-hand profile，指标按有效点计数。不从腕部和指尖凭空推算MCP。它可以节省手/相机重建计算，但scene/U/G仍须补齐；当前未实现此provider或验证部分手输入效果。[HandTokenEncoder掩码实现](../../../ptv3-shared-wam/src/ptv3_shared_wam/model.py)
+
+### 纯视频大库和EgoScale
+
+Build AI的10K为10000h/1080p，100K为100405h/456×256，都是视频+内参并需接受访问条款。可按tar流式筛，不必全库落盘，但手点、相机motion、目标几何缺口更大；低分辨率会给精细手物表面query带来风险。这是工程风险判断，未实测其合格率。[10K](https://huggingface.co/datasets/builddotai/Egocentric-10K)、[100K](https://huggingface.co/datasets/builddotai/Egocentric-100K)
+
+NVIDIA EgoScale项目写预训练20854h，但本轮官方页只找到论文/展示，未找到整套训练视频公开下载入口；方法可借鉴，数据暂不能列为现成可获取来源。也不要与同名商业采集网站混淆。[NVIDIA项目](https://research.nvidia.com/labs/gear/egoscale/)
+
+### 大规模接入决策
+
+优先保留当前EgoDex，用Open-AoE小份核验reader，再按实际发布index扩量；具备访问条件时考虑EgoSuite的hand+camera完整子集，depth齐全者优先。EgoVerse/WIYH作为千小时备选，EgoSteer作为允许部分手监督的节省计算路线。小型原生标签集只用于校验，不限制扩量目标。
+
+大规模数据仍按“索引→轻量筛选→视觉teacher→审查→冻结快照”。先筛操作密集、当前目标明确、可见手和刚体，拒绝/延期行走、多人的手、强遮挡、软物体；目标身份不按未来位移选。已有手/相机复用，缺depth时估计，目标mask和未来点轨迹依然要检查。短样本核验合格率与处理成本后再扩大，不能由数据卡小时数预报我们最终训练窗口数。本轮没有新增GPU任务或下载。
+
 
 ## 判断标准
 
@@ -189,7 +247,7 @@ G_i      = U_24,i
 
 本轮形成**接入优先级建议**，尚无新增数据下载、adapter 实现或训练结果，不构成任何数据集能改善最终机器人策略的证据。
 
-建议先保留 EgoDex 线路，用 **H2O 或 HO-Cap 小份原生 RGB-D 数据建立对照**，再扩真实视频；已存在的 OakInk2/GRAB/ARCTIC 继续作为训练基线。选择逻辑：
+以下仅描述原生几何小集的校验顺序，不替代本文开头按用户要求更新的大规模扩量优先级。可用H2O或HO-Cap小份原生RGB-D建立对照；已存在的OakInk2/GRAB/ARCTIC继续作为训练基线。选择逻辑：
 
 - H2O 若下载权限可用，优先验证 ego 双手 RGB-D；若获取不便，HO-Cap 可按一个小 subject 包启动固定 RGB-D 对照，随后才处理头戴视角。
 - DexYCB 用于最省实现的单手抓取对照；同源多视角只保留一个观察视角起步，避免无用下载和重复推理。
