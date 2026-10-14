@@ -20,6 +20,7 @@ OLD = ROOT / 'src/task/consequence-evaluator'
 TRAJECTORY = ROOT / 'src/task/trajectory-policy'
 RUNTIME = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
 OFFICIAL = Path('/home2/wyy/oyx_ws/_external/dexplore_official_v120/checkpoint/inspire.pth')
+FULL_ASSETS = Path('/home2/wyy/oyx_ws/dexplore/dexplore/data/assets')
 
 
 def main():
@@ -53,6 +54,13 @@ def main():
     motions.mkdir()
     for name in names:
         (motions/name).symlink_to(geometric/name)
+    # Native object loading contains paths relative to the process cwd. Give
+    # this process an isolated read-only full-asset view; the shared repository
+    # asset link is a historical partial expert bank and must remain intact.
+    runtime = out/'gym_runtime'
+    asset_view = runtime/'dexplore/data/assets'
+    asset_view.parent.mkdir(parents=True)
+    asset_view.symlink_to(FULL_ASSETS)
     scratch = ROOT/'tmp'/out.name
     scratch.mkdir(parents=True,exist_ok=True)
     os.environ.update(CUDA_VISIBLE_DEVICES=str(args.gpu),TMPDIR=str(scratch),
@@ -121,7 +129,7 @@ def main():
             ids = [body_names.index(name) for name in NATIVE_LINKS]
             offset,scale = task._pd_action_offset.clone(),task._pd_action_scale.clone()
             manifest['native_controller'] = dict(offset=offset.tolist(),scale=scale.tolist())
-            assets = NATIVE/'data/assets'
+            assets = asset_view
             geometry = {}
             for name in set(task.object_name):
                 surface = _surface_geometry_class()(hand_urdf=assets/'inspire_hand_new/inspire_hand_right.urdf',
@@ -207,7 +215,7 @@ def main():
     signal.signal(signal.SIGALRM,timeout)
     signal.alarm(args.seconds)
     try:
-        os.chdir(NATIVE.parent)
+        os.chdir(runtime)
         native.main()
     except BaseException as error:
         manifest.update(status='FAILED',error=repr(error))
