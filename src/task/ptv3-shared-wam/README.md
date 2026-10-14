@@ -192,3 +192,9 @@ Residual PPO、旧 counterfactual World 和旧架构 matched 科学比较是后�
 失败批次和日志不覆盖；恢复保持固定成员、分批seed和控制参数，累计计入原时间预算。
 `tools/run/finetune_after_collection.py` 可有界等待完整corpus、逐序列审核标签和准入索引，
 然后交接到独立训练监督器；未完整采齐或GPU有冲突时不会启动微调。
+
+容量扩展用 `configs/robot_660_large.json` 与 `--expand-shared`：从完整robot checkpoint
+保留PTv3/观察编码器/预测头/已学R，显式扩宽加深共享trunk并重新初始化optimizer。
+这与 `--resume` 的精确恢复不同。整数复制与恒等新层、token/padding向量化、
+激活重计算、融合优化器及TF32均在当前Task内实现。性能工具：
+`tools/audit/benchmark_robot_scale.py`、`tools/audit/audit_scale_transfer.py`。

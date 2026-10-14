@@ -127,3 +127,76 @@ actor作为数据生成器，不能称全部是自训练RL演示。重采集与�
   无新增显存异常。早期按3–4小时预留验证/checkpoint开销；后续按正式吞吐修正。
 - 训练/梯度目前有限；early training loss仅说明优化运行，不能作为抓取改善证据。
   验证每500步，普通checkpoint每1000步，新best立即保存并保护best/latest。
+
+## 2026-10-14 用户授权容量与吞吐优化
+
+Decision Note：当前52M模型在每卡128时仅约4.7GiB，数据等待约0.5%，
+主要实现候选包括逐样本nonzero取token与小算子/同步/双卡通信。用户明确要求
+扩大模型、batch并全面优化。先在完整step1000之后停止本任务，保留best/latest，
+原指标及监督器SIGTERM退出记录保留；不修改正在运行的src。
+固定660准入/坐标/目标，保留PTv3、128D观察编码器、输出头和已学R；共享trunk
+尝试从128D×4扩大到768D×8，按整数复制权重并均值投影、附加恒等残差层，
+先证明迁移初始输出保持，再实际测试128/256/384吞吐、显存和训练梯度。
+这不是更大模型有效性的matched比较，也不声明扩容改善抓取。
+工程优化限定两卡5/7、最多一小时、每次短测试；无OOM/合同错误且吞吐/负载
+可接受时，从1000步权重迁移后进行剩余19000更新。扩容重置optimizer，记录
+新phase/global batch/累计样本量，不伪称精确恢复旧训练。原86400秒训练与
+400GB共享产物预算仍有效，无新增权限边界。
+
+### 性能与容量工程结果
+
+- 第1轮`engineering-rl660-scale-20261014-r1`保留：768D×8无重计算在256
+  OOM，benchmark旧版OOM清理也报UnboundLocalError，原日志/已完成case不覆盖。
+  修复清理变量后，第2轮各case正常结束。纯token向量化未见明确收益，转查padding。
+- 原PTv3逐样本padding使单步profile出现8448次item、7772次stream synchronize；
+  向量化保持所有pad/unpad/cu_seqlens并通过边界/短样本/零长度行索引回归。
+  优化大模型profile中stream synchronize降到139次；两组profile的模型/batch不同，
+  数量用于定位开销，不能作为同算子耗时比。
+- `engineering-rl660-scale-20261014-r2`，真实固定source1000、单GPU5、3步预热+8步测量：
+
+| 配置 | batch/GPU | step秒 | samples/s | peak allocated MiB |
+|---|---:|---:|---:|---:|
+| 原128D×4，原padding/token、普通AdamW |128|0.503|254.7|3654|
+| 同模型，向量化padding/token |128|0.358|357.3|3687|
+| 同模型，向量化+融合AdamW+TF32 |256|0.339|755.0|6704|
+| 768D×8，重计算+上述优化 |256|1.294|197.8|9940|
+| 768D×8，重计算+上述优化 |384|1.896|202.5|14211|
+
+- 768D按6份复制时FP32除以6会有权重舍入；第一版真实pipeline的10微米门失败，
+  第二版同输入FP64严格1e-9门也失败（差5.06e-7）。未把它们记录成精确保持迁移。
+  最终采用512D×16，按4份复制/除以4（binary-exact）；parameter101636370。
+- `engineering-rl660-transfer-20261014-r3`，8个实际TRAIN窗口：相同输入共享trunk
+  FP64最大差1.35e-14；完整GPU pipeline scene/hand最大差0.0404/0.0717mm，
+  normalized action差5.33e-6，GT-anchor差0。保持0.1mm pipeline数值门并明确
+  dtype/kernel数值差异；这不是预测准确性或闭环效果验证。
+- `engineering-rl660-scale-20261014-r3`：512D×16且重计算，batch256时1.371秒/
+  186.7samples/s/9561MiB，batch384时2.013秒/190.8samples/s/13672MiB。
+  384只多约2.2%吞吐，单update耗时约多47%，因此正式选256/GPU、global512。
+  总batch翻倍、参数约翻倍；更大容量有真实计算成本，不能宣称整体训练比小模型快。
+- Task全部47项CPU接口/合同检查通过；实际GPU迁移审核已通过。双卡大batch
+  工程检查随后补充。扩容optimizer重置，固定sample_step_offset1000，新phase
+  19000更新：本轮累计更新目标仍20000，但global batch512会增加总样本曝光。
+
+### 扩容后的短更新稳定性门
+
+Blocker：大batch四步工程检查虽完成，但其3-window dev不能直接与原512-window
+curve比较；按相同64个dev窗口复算，区分样本选择与扩容更新扰动。这项检查会
+决定是否降低迁移/新增层学习率，最便宜方法是现有两个checkpoint的GPU离线前向。
+`engineering-rl660-expansion-dev-20261014-r1`：原1000步objective5.0929、hand3.5259；
+扩容直接旧LR四更新后9.0109、7.4050，出现破坏性扰动。原结果保留，不能只因
+工程finite而启动长期训练。初始函数已对齐；宽矩阵复制后Adam更新的有效幅度与
+12个新恒等层的累积扰动需要分开控制。
+配置改为：scene1e-5、其余旧编码器/head/R5e-5、前4层迁移interaction2.5e-5、
+新增12层1e-5。不改标签、样本窗或架构，optimizer仍明确重新初始化。
+重新四步后用相同64窗口检查objective/hand/action均不超过parent1.2倍，
+通过才进入正式19000更新。这个工程稳定性门不证明更大模型有效或更好抓取。
+
+- 降低分组LR后的`engineering-rl660-large-ddp-20261014-r2`四步双卡global512完成，
+  所有关键梯度合同和best/latest完整保存通过；工程权重不进入正式训练。
+- 同64 dev的`engineering-rl660-expansion-dev-20261014-r2`通过：parent/candidate
+  objective5.0930/5.1548（+1.2%），hand3.5260/3.6158（+2.5%），
+  action0.4629/0.4605。相同窗口门通过只表明未出现原始LR的剧烈扰动。
+- 最终Task48项测试通过；正式配置256/GPU/global512、101636370参数，
+  继承原1000步model/已学R，optimizer按新分组重新初始化，新phase19000步；
+  max_seconds80000扣除已用时间和工程余量，checkpoint不留10k milestone，
+  仅保护best/latest以维持4GB单run预算。原三域38k和机器人1000权重不覆盖。

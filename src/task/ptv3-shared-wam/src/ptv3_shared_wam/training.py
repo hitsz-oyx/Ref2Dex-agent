@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
+import warnings
 
 import numpy as np
 import torch
@@ -50,13 +51,15 @@ def parse_args(stage):
     parser.add_argument("--init-pw", type=Path, default=DEFAULT_PW)
     parser.add_argument("--init-shared", type=Path)
     parser.add_argument("--init-r", type=Path)
+    parser.add_argument("--expand-shared", action="store_true",
+                        help="explicit wider/deeper warm start; retains weights and resets optimizer")
     parser.add_argument("--source", type=Path, default=OWNER / "competent-pd-teacher-20261011-r2")
     parser.add_argument("--reference", type=Path, default=OWNER / "competent-reference-20261011-r1/reference.npz")
     parser.add_argument("--canonical", type=Path, default=ROOT / "outputs/consequence-evaluator/old-utility-pw-20261009-r2/canonical.npz")
     parser.add_argument("--steps", type=int)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--smoke-batch-size", type=int, default=1,
-                        help="engineering load check, at most128 samples per rank")
+                        help="engineering load check, at most512 samples per rank")
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--loader-workers", type=int, default=0)
     parser.add_argument("--loader-prefetch", type=int, default=2)
@@ -67,6 +70,8 @@ def parse_args(stage):
 
 
 def setup(args):
+    warnings.filterwarnings("ignore",message=r".*torch\.cpu\.amp\.autocast.*",category=FutureWarning,
+                            module=r"torch\.utils\.checkpoint")
     world = int(os.environ.get("WORLD_SIZE", "1"))
     rank = int(os.environ.get("RANK", "0"))
     local = int(os.environ.get("LOCAL_RANK", "0"))
@@ -213,14 +218,16 @@ def run(stage):
             raise ValueError("card task and assigned seeds required")
         config["seed"] = int(experiment["seeds"][0])
     else:
-        if not 1 <= args.smoke_batch_size <= 128:
-            raise ValueError("engineering batch size must be in[1,128]")
+        if not 1 <= args.smoke_batch_size <= 512:
+            raise ValueError("engineering batch size must be in[1,512]")
         config.update(updates=min(config["updates"], 4), batch_size=args.smoke_batch_size, validation_samples=3,
                       validation_interval=min(config["validation_interval"], 4), max_seconds=600,
                       log_interval=1)
     if config["updates"] < 1 or config["batch_size"] < 1 or not 0 <= config.get("replay_fraction", 0.) < 1:
         raise ValueError("positive update/batch count and replay fraction in[0,1) required")
     rank, world, device = setup(args)
+    torch.backends.cuda.matmul.allow_tf32 = bool(config.get("tf32", False))
+    torch.backends.cudnn.allow_tf32 = bool(config.get("tf32", False))
     torch.manual_seed(config["seed"] + rank)
     stats = json.loads(args.stats.read_text())
     provenance = dict(git_commit=git_commit(), stage=stage, engineering_only=args.smoke,
@@ -259,20 +266,42 @@ def run(stage):
         if parent["stats"] != stats:
             raise ValueError("robot input normalization differs from pretraining")
         architecture = ("hidden", "horizon", "patch_size", "scene_tokens", "interaction_layers", "voxel_m", "voxel_origin_m", "object_points", "goal_encoding", "task_conditioning")
-        if any(parent["config"].get(k) != config.get(k) for k in architecture):
+        checked = [k for k in architecture if not args.expand_shared or k != "interaction_layers"]
+        if (any(parent["config"].get(k) != config.get(k) for k in checked)
+                or (not args.expand_shared and parent["config"].get("interaction_width",128)
+                    != config.get("interaction_width",128))):
             raise ValueError("robot stage changes the pretraining architecture")
         model = RobotPair(SharedWAM(stats, config))
         if not args.resume:
-            if parent["stage"] != "pretrain":
+            if parent["stage"] != "pretrain" and not args.expand_shared:
                 raise ValueError("fresh robot stage starts from shared pretraining")
-            model.forecaster.load_state_dict(parent["model"], strict=True)
+            if args.expand_shared:
+                if args.init_r:
+                    raise ValueError("expansion preserves its parent's R; no separate R initialization")
+                from .expansion import expand_forecaster
+                if parent["stage"] == "robot":
+                    if (parent["config"]["native_controller"] != train.controller
+                            or parent["provenance"].get("source") != str(args.source.resolve())):
+                        raise ValueError("robot expansion requires the same corpus/controller")
+                    state = {k[len("forecaster."):]:v for k,v in parent["model"].items()
+                             if k.startswith("forecaster.")}
+                    rstate = {k[len("retargeter."):]:v for k,v in parent["model"].items()
+                              if k.startswith("retargeter.")}
+                    model.retargeter.load_state_dict(rstate,strict=True)
+                else:
+                    state = parent["model"]
+                transfer = expand_forecaster(model.forecaster,state,parent["config"])
+                provenance["shared_expansion"] = dict(transfer,parent_checkpoint=str(args.init_shared.resolve()),
+                    parent_step=parent["step"],parent_stage=parent["stage"])
+            else:
+                model.forecaster.load_state_dict(parent["model"], strict=True)
             if args.init_r:
                 from trajectory_policy.chunk_retargeter import load_chunk
                 rpacket = torch.load(args.init_r, map_location="cpu", weights_only=False)
                 if rpacket["native_controller"] != train.controller:
                     raise ValueError("R initialization and robot controller differ")
                 model.retargeter = load_chunk(rpacket, "cpu")
-            else:
+            elif not args.expand_shared or parent["stage"] != "robot":
                 initialize_retargeter(model.retargeter, train)
         config["native_PD_scale"] = np.asarray(train.controller["scale"])[list(__import__(
             "trajectory_policy.retargeter_data", fromlist=["ACTIVE"]).ACTIVE)].tolist()
@@ -290,7 +319,8 @@ def run(stage):
         validation = rng.choice(len(dev), min(len(dev), config["validation_samples"]), replace=False)
         human = SharedWindows(args.data, "train", config["object_points"]) if config.get("replay_fraction", 0.) else None
     model.to(device)
-    optimizer = torch.optim.AdamW(groups, weight_decay=config.get("weight_decay", .01))
+    optimizer = torch.optim.AdamW(groups, weight_decay=config.get("weight_decay", .01),
+                                  fused=bool(config.get("fused_optimizer",False)))
     start_step = 0
     if args.resume:
         state = load_checkpoint(args.resume)
@@ -333,6 +363,7 @@ def run(stage):
     code_state = {str(path): (path.stat().st_size, path.stat().st_mtime_ns) for path in implementation}
     batch_size = config["batch_size"]
     def draw(step):
+        step += int(config.get("sample_step_offset",0))
         seed = int(np.random.SeedSequence([config["seed"], step, rank]).generate_state(1)[0])
         if stage == "pretrain":
             return [train[int(i)] for i in mixed_indices(train.base, batch_size, seed)]
@@ -354,7 +385,8 @@ def run(stage):
         atomic_json(out / "engineering_audit.json", audit)
     model.train()
     wrapped = nn.parallel.DistributedDataParallel(model, device_ids=[device.index],
-        find_unused_parameters=stage == "robot") if world > 1 else model
+        find_unused_parameters=stage == "robot" and human is not None,
+        gradient_as_bucket_view=True) if world > 1 else model
     checkpoint_interval = int(config.get("checkpoint_interval", config["validation_interval"]))
     if checkpoint_interval < 1:
         raise ValueError("positive checkpoint interval required")
@@ -365,8 +397,9 @@ def run(stage):
     if args.loader_workers:
         if stage != "pretrain" and not hasattr(train, "sample_indices"):
             raise ValueError("robot prefetch requires the whole-sequence corpus sampler")
-        loader = pretrain_loader(train, batch_size, config["seed"], rank, start_step + 1,
-            config["updates"], args.loader_workers, args.loader_prefetch, args.sequence_cache,
+        offset = int(config.get("sample_step_offset",0))
+        loader = pretrain_loader(train, batch_size, config["seed"], rank, start_step + 1+offset,
+            config["updates"]+offset, args.loader_workers, args.loader_prefetch, args.sequence_cache,
             args.pin_memory)
     batches = iter(loader) if loader is not None else None
     logged_at, logged_step = time.monotonic(), start_step

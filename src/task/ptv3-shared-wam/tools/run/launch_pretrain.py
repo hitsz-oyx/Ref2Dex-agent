@@ -34,6 +34,7 @@ def main():
     parser.add_argument("--stage", choices=("pretrain", "robot"), default="pretrain")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--init-shared", type=Path)
+    parser.add_argument("--expand-shared", action="store_true")
     args = parser.parse_args()
     out = args.output.resolve()
     config_path, card = args.config.resolve(), args.experiment_card.resolve()
@@ -64,6 +65,8 @@ def main():
             command.extend(["--source", str(args.source.resolve())])
         if args.init_shared:
             command.extend(["--init-shared", str(args.init_shared.resolve())])
+        if args.expand_shared:
+            command.append("--expand-shared")
         if args.resume:
             command.extend(["--resume", str(args.resume.resolve())])
         if args.pin_memory:
@@ -91,6 +94,8 @@ def main():
         command.extend(["--source", str(args.source.resolve())])
     if args.init_shared:
         command.extend(["--init-shared", str(args.init_shared.resolve())])
+    if args.expand_shared:
+        command.append("--expand-shared")
     if args.resume:
         command.extend(["--resume", str(args.resume.resolve())])
     if args.loader_workers:

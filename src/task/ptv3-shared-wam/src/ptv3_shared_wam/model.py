@@ -102,7 +102,12 @@ class SharedWAM(nn.Module):
         self.hand = HandTokenEncoder(stats)
         self.position = nn.Sequential(nn.Linear(3, HIDDEN), nn.GELU(), nn.Linear(HIDDEN, HIDDEN))
         self.token_type = nn.Embedding(3, HIDDEN)
-        layer = nn.TransformerEncoderLayer(HIDDEN, 4, 512, dropout=0., activation="gelu",
+        self.interaction_width = int(config.get("interaction_width", HIDDEN))
+        self.checkpoint_interaction = bool(config.get("checkpoint_interaction",False))
+        if self.interaction_width < HIDDEN or self.interaction_width % HIDDEN:
+            raise ValueError("interaction width must be an integer multiple of128")
+        width = self.interaction_width
+        layer = nn.TransformerEncoderLayer(width, width // 32, width * 4, dropout=0., activation="gelu",
                                            batch_first=True, norm_first=True)
         self.interaction = nn.TransformerEncoder(layer, config.get("interaction_layers", 4),
                                                  enable_nested_tensor=False)
@@ -126,7 +131,18 @@ class SharedWAM(nn.Module):
         valid = torch.cat((scene["mask"], hand_valid, goal_valid), 1)
         tokens = torch.cat((scene_tokens, hand, goal), 1)
         tokens = torch.where(valid[..., None], tokens, 0.)
-        shared = self.interaction(tokens, src_key_padding_mask=~valid)
+        repeat = self.interaction_width // HIDDEN
+        shared = tokens if repeat == 1 else tokens.repeat(1, 1, repeat)
+        if self.checkpoint_interaction and self.training and torch.is_grad_enabled():
+            from torch.utils.checkpoint import checkpoint
+            for layer in self.interaction.layers:
+                shared = checkpoint(layer,shared,src_key_padding_mask=~valid,use_reentrant=False,
+                                    preserve_rng_state=False)  # these layers have dropout=0
+        else:
+            shared = self.interaction(shared, src_key_padding_mask=~valid)
+        # Integer replication/mean bridges retain the trained128D heads while
+        # permitting a wider shared representation without new input features.
+        shared = shared.reshape(*shared.shape[:-1], repeat, HIDDEN).mean(-2)
         shared = torch.where(valid[..., None], shared, 0.)
         return shared, valid, scene
 
@@ -139,9 +155,18 @@ class SharedWAM(nn.Module):
         prediction = torch.where(batch["start_hand_valid"][:, None, ..., None], prediction, 0.)
         return dict(scene=scene_prediction, trajectory=prediction)
 
-    def parameter_groups(self, scene_lr=1e-5, new_lr=1e-4):
+    def parameter_groups(self, scene_lr=1e-5, new_lr=1e-4, interaction_lr=None,
+                         new_layer_lr=None, expansion_source_layers=0):
         pretrained = list(self.scene.parameters())
         ids = {id(p) for p in pretrained}
+        interaction = []
+        if interaction_lr is not None:
+            ids.update(id(p) for p in self.interaction.parameters())
+            for name,layers,lr in (
+                    ("transferred_interaction",list(self.interaction.layers)[:expansion_source_layers],interaction_lr),
+                    ("new_interaction",list(self.interaction.layers)[expansion_source_layers:],new_layer_lr or interaction_lr)):
+                params = [p for layer in layers for p in layer.parameters()]
+                if params:interaction.append(dict(params=params,lr=lr,name=name))
         return [dict(params=pretrained, lr=scene_lr, name="ptv3_scene"),
                 dict(params=[p for p in self.parameters() if id(p) not in ids],
-                     lr=new_lr, name="shared_and_heads")]
+                     lr=new_lr, name="shared_and_heads")] + interaction

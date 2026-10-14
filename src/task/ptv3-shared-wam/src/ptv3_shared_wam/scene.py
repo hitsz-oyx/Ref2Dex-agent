@@ -17,6 +17,32 @@ class SceneEncoder(SceneHistoryEncoder):
                          voxel_size_m=config.get("voxel_m", .01))
         # No inherited object-pose head or unused trainable object projector.
         del self.object_proj
+        if config.get('vectorized_padding', True):
+            from types import MethodType
+            from ptv3.ptv3 import SerializedAttention
+            from .padding import vectorized_padding
+            for module in self.backbone.modules():
+                if isinstance(module, SerializedAttention):
+                    module.get_padding_and_inverse = MethodType(vectorized_padding,module)
+
+    def _sample_tokens(self, packed, valid):
+        """Match legacy rounded evenly spaced valid IDs without per-row nonzero."""
+        batch, points, channels = packed.shape
+        counts = valid.sum(1)
+        if (counts == 0).any():
+            raise ValueError("scene encoder received no valid point")
+        ids = torch.arange(points, device=packed.device).expand(batch, -1)
+        ordered = torch.where(valid, ids, points).sort(1).values
+        slot = torch.arange(self.token_count, device=packed.device)
+        if self.token_count == 1:
+            ranks = torch.zeros((batch, 1), dtype=torch.long, device=packed.device)
+        else:
+            even = (counts[:, None]-1).float() * (slot.float() / (self.token_count-1))
+            ranks = torch.where(counts[:, None]>self.token_count, even.round().long(), slot[None])
+        mask = slot[None] < counts[:, None].clamp_max(self.token_count)
+        selected = ordered.gather(1, ranks.clamp_max(points-1)).clamp_max(points-1)
+        tokens = packed.gather(1, selected[..., None].expand(-1, -1, channels))
+        return torch.where(mask[..., None], tokens, 0.), mask
 
     def forward(self, batch):
         xyz = batch["xyz"].float()

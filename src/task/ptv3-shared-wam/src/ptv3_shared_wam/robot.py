@@ -125,7 +125,9 @@ class RobotPair(nn.Module):
         return prediction
 
     def parameter_groups(self, config):
-        groups = self.forecaster.parameter_groups(config["scene_lr"], config["new_lr"])
+        groups = self.forecaster.parameter_groups(config["scene_lr"], config["new_lr"],
+            interaction_lr=config.get("interaction_lr"),new_layer_lr=config.get("new_layer_lr"),
+            expansion_source_layers=int(config.get("expanded_source_layers",0)))
         groups.append(dict(params=list(self.retargeter.parameters()), lr=config["new_lr"], name="retargeter"))
         return groups
 
