@@ -37,7 +37,7 @@ allocations:
     rank_initialization_seeds: [136, 137]
     evaluation_draw_seed: 138
     statistics_sampling_seed: 18
-    reuse_reason: two ranks and fixed dev panel within one v2 Probe; TRAIN label statistics use a debug sampling seed, not an independent training replicate
+    reuse_reason: two ranks and fixed dev panel within one v2 Probe; TRAIN label statistics use a debug sampling seed; remote80k restarts the same seed family, not an independent training replicate
 
   P-20261014-wam-residual-basin:
     seed_pool: probe

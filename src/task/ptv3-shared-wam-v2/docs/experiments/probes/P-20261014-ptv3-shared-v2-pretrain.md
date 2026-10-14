@@ -13,14 +13,14 @@ seed_pool: probe
 seeds: [136]
 decision_changed_if_positive: continue bounded v2 pretraining if physical hand and scene errors improve on the fixed three-domain dev panel
 decision_changed_if_negative: audit input routes and normalized target semantics before increasing compute or rejecting v2
-status: PROMISING
-run_id: pretrain-main3-probe-20261014-r1
+status: RUNNING
+run_id: pretrain-main3-remote-80k-20261014-r1
 ---
 
 # 联合轻量PTv3与大shared的horizon标准化预训练
 
-Result: PROMISING（局部离线Probe）。1000步完成，三域hand_all24均改善，scene_all24在GRAB/ARCTIC改善，OakInk2略差；未验证机器人抓取或Cm收益。
-Decision: 已通过固定面板继续投入门；按用户要求准备远端GPU0/2的大规模训练，先做独立工程预检。
+Result: RUNNING（远端80k阶段）。本地1000步局部PROMISING，远端双卡与恢复预检通过；按用户明确要求启动GPU0/2长训。
+Decision: 用户已明确要求直接开始训练；采用预检通过的模型/配方，在独立远端run从头训练80000更新，保留本地Probe和工程checkpoint。
 
 Class: Decision. 服务于三域交互表示与最终机器人适配；问题是减少几何参数、让hand进入
 PTv3并使用统一horizon统计后，该v2组合是否能稳定学习物理手/物体预测。
@@ -155,6 +155,30 @@ loss3.1654、clip前梯度范数5.0623有限，参数实际更新；丢弃该工
 远端ready代码为d0288294。所有原始失败
 与成功记录保留，完整数值报告位于本地 `outputs/ptv3-shared-wam-v2/remote-preflight-20261014-r1/`。
 远端仅做工程预检，未启动大规模长训；预检完成后GPU0/2自然释放，不操作其他任务。
+
+## 远端80k阶段：启动 Decision Note
+
+- 用户在预检完成后明确要求“直接开始训练”。本地1000步已通过继续投入门，远端
+  global256、真实梯度/保存/恢复与step4→5更新通过；核心问题/claim不变。
+- root选择沿用原大规模预训练的80000更新预算，每卡128/global256，geometry/shared
+  lr仍为1e-4，AdamW/clip/bf16/TF32/模型/数据/数值统计不变。从seed136重新初始化，
+  不迁移工程权重；本地1000步Probe保留。不同Torch版本与执行不是独立seed证据。
+- 选择从头完整运行，避免把只设1000步的旧checkpoint配置静默扩展或混用跨runtime
+  optimizer；重新覆盖1000步成本约十余分钟，小于跨机器迁移大型checkpoint与新增恢复
+  语义的成本。该80k阶段仍是同一研究问题的Probe，不另建experiment ID或分支。
+- dev固定为384窗（每域128），seed138，step0与每1000步评估；较本地96窗扩大面板，
+  因而不能把两阶段dev绝对值直接相减。每2000步恢复点，保留20k里程碑、best与最近
+  恢复点；保护best/latest，不覆盖原权重。使用[remote80k配置](../../../configs/pretrain_remote_80k.json)。
+- run_id=`pretrain-main3-remote-80k-20261014-r1`，远端GPU0/2（48GiB/卡），预估18–24h，
+  硬上限48h；run产物8GB。每rank2个spawn worker、prefetch2、每source缓存128，
+  进程soft nofile65536。旧本地5/7微调继续；远端1/3现有任务不触碰；按保守计数最多6卡。
+- 启动前本地outputs+tmp约329.19GB；既有远端训练scope与新scope合计另计。
+  加新run8GB预留后仍低于共享400GB。监督器独立于SSH会话；本地预算watcher每120秒
+  合计本地与两个已声明远端scope，393GB主动停止本次已验证身份的远端监督器，
+  留7GB余量；远端同时独立执行run8GB/deadline/冲突/源码漂移/无进展检查。
+- 若改善则保留最佳与里程碑供后续robot适配；若dev恶化/平台先看固定物理EPE，
+  不以训练loss升级结论。OOM、非有限量、外部GPU冲突或资源越界停止本run并保留已有
+  完整恢复点，禁止杀未知进程。正式matched比较、多seed与抓取验证仍延后。
 
 ## Limitations / future evidence
 
