@@ -68,3 +68,28 @@ GPU6，开始前确认空闲。根STATE明确远端重建1/3已STOPPED，远端�
 重置可匹配可观测状态，接触solver状态无法从旧npz精确恢复；原native校准是解释前提。
 realized-q在当前输入下的可辨识性、FK误差、R-only拟合、predicted-tau执行与residual RL
 均延后，只在此gate能改变决策时推进。若q失败先区分阻尼/跟踪滞后，不能直接称接触力缺失。
+
+## 首批结果与下一项最小判别（追加运行前）
+
+实现0680af03/0d1a072b。首个smoke8.72s在legacy Runner无load_path失败，未进入physics；
+修复无checkpoint的runtime壳后r2四控制10.99s、独立审计通过。三条科学运行均完成，
+actual command/PD/clock独立审计通过。原native重放hand/object mean为15.72/12.13、
+28.72/26.45、6.39/6.49mm，均未过预定5mm校准，因此保留原full分类UNCLEAR，
+不将其升级为C或关闭q标签路线。相同初态/首拍PD不保证不同环境行的下一拍完全相同；
+接触solver隐状态/环境行差异尚未隔离。当前target wrapper已有持久tensor引用，
+生命周期假设可由代码排除，未为此修改主仿真或正在训练的源码。
+
+另一个预先声明的原绝对PD臂可以重现记录：hand/object mean分别1.220/4.547、
+0.939/2.590、0.000091/0.00399mm；q_full则hand mean85.65/60.97/63.49mm，
+held分别5/0/74，PD臂63/89/74。纯q在起步8拍也有明显手部滞后，不能直接称“仅缺接触预紧”。
+旧窗口中/晚段fork误差超过1e-4，仍不作为精确物理fork的因果比较。
+
+Class: Decision。下一项只改确定性的trajectory tracking补偿：同3序列、相同seed和
+控制器，在q目标上增加(Kd/Kp)*v_desired；所有组Kd/Kp=.1s，v_desired仅由相邻实际q
+以30Hz差分得到，故目标=q[t+1]+3*(q[t+1]-q[t])，不使用teacher PD/native或真实dq。
+之后照常couple、用live q逆转换/clamp。比较与原q臂的手/物体误差及held，原PD臂
+保持不变作为每次执行校准。没有调Kp/Kd、没有gain搜索、不训练R、不启动PPO。
+总科学运行数现在最多6（原3+FF3），仍计入原20 GPU-min/500MB，不新增预算。
+原native校准和原分类不追溯放宽；新增单列supplemental_PD_calibration_pass，只有
+hand/object均<=5mm才解释对应FF与q跟踪对照。轨迹跟踪mean改善>=30%且不降低
+持物才记局部PROMISING，否则保留UNCLEAR或UNPROMISING（仅此控制律）。

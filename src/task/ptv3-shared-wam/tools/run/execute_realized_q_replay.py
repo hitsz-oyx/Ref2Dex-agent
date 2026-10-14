@@ -20,12 +20,18 @@ ROLES = ['recorded_native', 'recorded_PD', 'realized_q_full',
          'realized_q_start', 'realized_q_middle', 'realized_q_late']
 
 
-def reference_chunk(data, query, kind):
+def reference_chunk(data, query, kind, velocity_feedforward=False):
     """Absolute joint targets. Padding is only an unconsumed terminal suffix."""
     if kind == 'PD':
         return data['pd_targets'][np.minimum(query + np.arange(8), len(data['pd_targets']) - 1)].copy()
     if kind == 'q':
-        return data['q'][np.minimum(query + np.arange(1, 9), len(data['q']) - 1)].copy()
+        indices = np.minimum(query + np.arange(1, 9), len(data['q']) - 1)
+        result = data['q'][indices].copy()
+        if velocity_feedforward:
+            # Kd/Kp=.1s for wrist and fingers;30Hz finite differences use only
+            # the same realized-q plan, never teacher actions or measured dq.
+            result += 3 * (data['q'][indices] - data['q'][np.maximum(indices-1, 0)])
+        return result
     raise ValueError(kind)
 
 
@@ -46,6 +52,7 @@ def main():
     parser.add_argument('--seed', type=int, default=148)
     parser.add_argument('--seconds', type=int, default=300)
     parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--velocity-feedforward', action='store_true')
     args = parser.parse_args()
     out, source = args.output.resolve(), args.source.resolve()
     if (Path(sys.prefix).resolve() != RUNTIME.resolve() or out.exists()
@@ -118,6 +125,7 @@ def main():
         wrist_stiffness=200, wrist_damping=20, finger_stiffness=100, finger_damping=10,
         git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
         experiment_id=card['experiment_id'], pid=os.getpid())
+    manifest['q_velocity_feedforward'] = 'finite-difference-0.1s.v1' if args.velocity_feedforward else None
     def write(name, value):
         (out / name).write_text(json.dumps(value, indent=2) + '\n')
     write('manifest.json', manifest)
@@ -199,7 +207,7 @@ def main():
                         fork_errors[ROLES[env]] = {key: float((current[key][env] - current[key][0]).abs().max())
                                                    for key in ('q', 'dq', 'hand', 'obj', 'velocity')}
                     if (tick - start) % 4 == 0:
-                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, 'PD' if env == 1 else 'q'), device=task.device)
+                        buffers[env] = torch.as_tensor(reference_chunk(original, tick, 'PD' if env == 1 else 'q', args.velocity_feedforward), device=task.device)
                         clock[env] = tick
                     query[env], index[env] = clock[env], tick - clock[env]
                     target = couple(buffers[env][index[env]:index[env]+1])

@@ -19,3 +19,11 @@ def test_next_q_targets_and_same_tick_pd_have_different_clocks():
     np.testing.assert_array_equal(chunked, data['q'][4:12])
     # Only unconsumed suffixes are padded near the recorded terminal frame.
     np.testing.assert_array_equal(replay.reference_chunk(data, 18, 'q')[0], data['q'][19])
+
+
+def test_damping_feedforward_uses_only_the_joint_plan_and_preserves_PD_control():
+    data = dict(q=np.repeat((np.arange(20, dtype=np.float32)**2)[:, None], 18, axis=1),
+                pd_targets=np.repeat((100 + np.arange(19))[:, None], 18, axis=1))
+    expected = data['q'][4:12] + 3*(data['q'][4:12]-data['q'][3:11])
+    np.testing.assert_array_equal(replay.reference_chunk(data, 3, 'q', True), expected)
+    np.testing.assert_array_equal(replay.reference_chunk(data, 3, 'PD', True), data['pd_targets'][3:11])

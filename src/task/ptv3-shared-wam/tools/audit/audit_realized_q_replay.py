@@ -68,7 +68,10 @@ def main():
                 index = tick-query
                 assert data['query_tick'][tick, env] == query
                 assert data['chunk_index'][tick, env] == index
-                target = original['pd_targets'][tick] if env == 1 else original['q'][tick+1]
+                target = original['pd_targets'][tick].copy() if env == 1 else original['q'][tick+1].copy()
+                if env != 1 and manifest.get('q_velocity_feedforward'):
+                    assert manifest['q_velocity_feedforward'] == 'finite-difference-0.1s.v1'
+                    target += 3 * (original['q'][tick+1] - original['q'][tick])
                 target = couple(target)
                 normalized = (target-offset)/scale
                 normalized[:6] = (target[:6]-live[:6]-offset[:6])/scale[:6]
@@ -130,9 +133,12 @@ def main():
         windows[manifest['roles'][env]] = dict(query=begin, fork_errors=fork,
             calibration_pass=max(fork.values()) <= 1e-4 and baseline['hand_EPE_mm']['mean'] <= 5 and baseline['object_position_mm']['mean'] <= 5,
             baseline=baseline, realized_q=treated)
+    pd = full['recorded_PD']
+    pd_calibration = pd['hand_EPE_mm']['mean'] <= 5 and pd['object_position_mm']['mean'] <= 5
     report = dict(pass_=True, scope='independent command/clock audit; single-seed oracle physics Probe',
         errors=errors, reset_errors=reset, full_calibration_pass=calibration,
-        classification=classification, held45_eligible=held_eligible, full=full, windows=windows)
+        classification=classification, supplemental_PD_calibration_pass=pd_calibration,
+        held45_eligible=held_eligible, full=full, windows=windows)
     destination.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(dict(pass_=True, classification=classification, calibration=calibration, full=full)))
 
