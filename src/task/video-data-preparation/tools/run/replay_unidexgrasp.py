@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bounded inference-only replay of the official UniDexGrasp++ state policy."""
 import argparse
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -43,6 +44,32 @@ def object_specs(args):
     return objects
 
 
+def task_class(vendor, output):
+    """Preserve upstream physics while fixing heterogeneous aggregate capacity."""
+    source_path = vendor/'dexgrasp/tasks/shadow_hand_grasp.py'
+    source = source_path.read_text()
+    replacements = {
+        'max_agg_bodies = self.num_shadow_hand_bodies * 1 + 2 * self.num_object_bodies + 1':
+            'max_agg_bodies = self.num_shadow_hand_bodies + 2 * max(self.gym.get_asset_rigid_body_count(a) for scales in object_asset_dict.values() for a in scales.values()) + 1\n        self._pilot_aggregate_bodies = max_agg_bodies',
+        'max_agg_shapes = self.num_shadow_hand_shapes * 1 + 2 * self.num_object_shapes + 1':
+            'max_agg_shapes = self.num_shadow_hand_shapes + 2 * max(self.gym.get_asset_rigid_shape_count(a) for scales in object_asset_dict.values() for a in scales.values()) + 1\n        self._pilot_aggregate_shapes = max_agg_shapes',
+    }
+    for old, new in replacements.items():
+        if source.count(old) != 1:
+            raise ValueError('pinned aggregate allocation source changed')
+        source = source.replace(old, new)
+    dest = output/'tmp/shadow_hand_grasp_capacity.py'
+    dest.write_text(source)
+    write_json(output/'upstream-runtime-patch.json',dict(source=str(source_path),copy=str(dest),
+        replacements=replacements,reason='reserve capacity for largest loaded object, not last object',
+        physics_parameters_changed=False,collision_geometry_changed=False))
+    spec = importlib.util.spec_from_file_location('tasks.shadow_hand_grasp_capacity', dest)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.ShadowHandGrasp
+
+
 def worker(args):
     # Isaac Gym must load its native library before importing torch.
     import numpy as np
@@ -59,7 +86,7 @@ def worker(args):
     random.seed(args.seed)
     vendor = args.vendor.resolve()
     sys.path.insert(0, str(vendor/'dexgrasp'))
-    from tasks.shadow_hand_grasp import ShadowHandGrasp
+    ShadowHandGrasp = task_class(vendor, args.output)
     from utils.data_info import plane2euler
 
     objects = object_specs(args)
@@ -151,6 +178,8 @@ def worker(args):
             raise ValueError('actual simulator object assignment disagrees with manifest')
         env_objects.append(dict(env=env_id,object_id=obj_id,object_code=code,scale=scale,split=spec['split']))
     write_json(args.output/'environment-objects.json',env_objects)
+    write_json(args.output/'aggregate-capacity.json',dict(bodies=task._pilot_aggregate_bodies,
+        shapes=task._pilot_aggregate_shapes,reservation='maximum over all loaded objects/scales'))
     actor_layers = []
     widths = [300,1024,1024,512,512,24]
     for i,(lo,hi) in enumerate(zip(widths,widths[1:])):

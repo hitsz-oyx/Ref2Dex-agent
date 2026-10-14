@@ -84,6 +84,8 @@ def render(data, env, vertices, root, label):
 def main(root, render_objects=1, export_windows=True):
     begin=time.monotonic()
     result=json.loads((root/'result.json').read_text())
+    if 'User aggregate size exceeded' in (root/'replay.log').read_text():
+        raise ValueError('aggregate capacity warnings: preserve as diagnostic, exclude from admission')
     config=json.loads((root/'simulation-config.json').read_text())
     if (result['status']!='COMPLETE' or config['substeps']!=2 or
             config['physx']['num_position_iterations']!=8 or
