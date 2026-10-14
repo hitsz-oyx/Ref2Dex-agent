@@ -19,7 +19,7 @@ run_id: pretrain-main3-probe-20261014-r1
 
 # 联合轻量PTv3与大shared的horizon标准化预训练
 
-Result: PENDING. CPU合同测试13项通过，待真实GPU工程检查和1000步Probe。
+Result: PENDING. 61项新旧合同测试通过，最终真实GPU四步/恢复/双卡global256工程检查通过；待1000步Probe。
 Decision: 用户已经同意新Task与双路hand/统一horizon方案；按自主探索规则先做最小可判别训练。
 
 Class: Decision. 服务于三域交互表示与最终机器人适配；问题是减少几何参数、让hand进入
@@ -33,7 +33,7 @@ PTv3并使用统一horizon统计后，该v2组合是否能稳定学习物理手/
 - 输入以固定物理尺度处理；输出统计仅来自TRAIN共享4096窗。手编码前后双路；
   22手点独立回读。参数从头初始化，不强行迁移维度不同的旧PTv3。
 - 先统计CPU数组（无神经计算），真实GPU四步接线/负载/恢复检查；通过后2卡4/6，
-  每卡64/global128、1000次optimizer更新，最多2小时、单run8GB、共享总量400GB。
+  每卡128/global256、1000次optimizer更新，最多2小时、单run8GB、共享总量400GB。
   预计10–40分钟，以实测吞吐更新。与旧训练合计4卡，不影响其他用户GPU0–3。
 - 任一非有限量、梯度合同失败、外部GPU进程出现、源码变化、资源超限立即停止本run。
   不杀未知进程，不覆盖旧权重。只有实施结果具备改善信号再考虑更长预算。
@@ -62,7 +62,21 @@ metrics复用已审查的物理EPE与goal-only线性插值分组；normalized ob
   hand编码经PTv3路径梯度非零；该候选几何支路33,988,832参数，超过设计预算。
   保留原始运行，随后把PTv3调整为11,092,000参数；shared保持85,054,464，
   最终98,591,142参数。这是根据实际参数统计修订工程配置，不是方法负结果。
-- 最终配置的GPU工程检查、恢复检查与吞吐在执行后补充。工程run不作为学习证据。
+- 最终配置 `engineering-main3-final-20261014-r2` 真实三域四步完成，hand/scene均到
+  PTv3、shared、hand encoder、goal；hand encoder经PTv3梯度非零。61项新旧测试通过。
+- `engineering-main3-partial-20261014-r1` step2→`engineering-main3-resumed-20261014-r1`
+  step4，与连续r2相比RNG一致；max参数差3.50e-4，固定dev预测hand/scene最大差
+  0.01515/0.00117mm。`engineering-resume-audit-20261014-r1/summary.json` pass=true，
+  不声称稀疏GPU轨迹逐位相同。
+- 单卡 `engineering-batch64-20261014-r1` 四步完成，约0.79秒/update，峰值分配7303MiB。
+- 首次DDP工程启动在12:11:56因GPU4被另一会话的UniDexGrasp回放占用而正确退出；
+  对方r7的gpu-started记录为12:11:49（launch PID3435226）。未杀对方进程，未开始训练。
+  两个最小启动复现均无rank自误判；回放自然结束后重启，不修改占用保护。
+- `engineering-ddp2-batch128-20261014-r2` 两卡每卡128/global256四步完成，
+  稳定约1.31秒/update、196样本/s，rank0峰值分配约13.6GiB，物理显存约19–20GiB。
+  比双卡64的单卡吞吐外推更高，故将Probe选为global256，保持学习率和1000更新。
+  四步负载不保证所有未来batch峰值；OOM/外部进程出现仍停止保存失败记录。
+- 以上均为工程证据，不代表预测质量或抓取收益。
 - 实际run代码提交、worker PID、输入、统计、配置与初始化由manifest.json记录。
 
 ## Limitations / future evidence

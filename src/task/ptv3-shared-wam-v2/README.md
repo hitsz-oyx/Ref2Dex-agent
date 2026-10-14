@@ -25,3 +25,8 @@
 必须指定config、stats、experiment-card、gpus和新output。
 resume显式指向v2 checkpoint，在新目录恢复相同config/world size/optimizer/RNG；
 工程checkpoint不能进入科学运行，不能把v1权重隐式迁移到v2。
+
+当前实现已通过61项新旧Task合同测试。最终模型98,591,142参数：geometry11,092,000，
+shared85,054,464；其余为输入融合、goal与双预测头。
+单卡batch64工程负载峰值分配约7.1GiB，物理显存约8.6GiB；工程检查不代表预测有效。
+当前研究运行与后续结果见[实验卡](docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
