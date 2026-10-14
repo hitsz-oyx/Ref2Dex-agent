@@ -1,5 +1,13 @@
 # 原生3D数据接入状态
 
+## H2O 接入 Decision Note（2026-10-14）
+
+- 决策：用户授权凭证下载后，直接接入pose包已有的原生21点手、物体RT和逐帧cam_to_world；不新增视频估计或MANO拟合。
+- 证据：实际subject1包同时含hand_pose（128数，左64/右64）、hand_pose_mano（124数）、obj_pose_rt和cam_pose；CAD米制范围约3–26cm。官方player以cam_to_world乘物体RT，官方pose split按session分开。
+- 行动：统一右/左11点，保留原始21点、MANO、相机轨迹和action/verb；仅使用cam4，官方train/val进入工程索引，subject4 test写独立heldout-test-manifest，不进入自动混合索引。原始帧号断点拆段，短于28帧不造窗。
+- 成本/停止条件：CPU流式读取每份tar，不完整解包近百万txt；2h期限、20GiB物理余量、STOP文件边界可停。CPU用于纯标签转换，无学习模型；不新占GPU。相机/物体非法旋转或缺失帧不补假标签。
+- 限制：论文记载30fps采集，但当前原生包没有逐帧时间戳，clock仍待准入；原生joint profile与MANO重建profile分开。工程转换不改变training_allowed=false。
+
 ## 2026-10-14 全量扩产 Decision Note
 
 - 用户明确取消产物磁盘空间上限并要求立即推进；根CAMPAIGN据此更新，六张项目GPU上限与外部只读/身份边界不变。

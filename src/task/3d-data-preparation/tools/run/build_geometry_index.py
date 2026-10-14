@@ -19,7 +19,8 @@ def write(path,value):
 def build(root):
     base=REPO/'outputs/3d-data-preparation'
     sources=[base/name for name in ['unidexgrasp-index-20261014-r1','hot3d-posemesh-full-20261014-r1',
-        'taco-posemesh-full-20261014-r1','hocap-posemesh-reuse-20261014-r1','dexycb-posemesh-reuse-20261014-r1']]
+        'taco-posemesh-full-20261014-r1','hocap-posemesh-reuse-20261014-r1','dexycb-posemesh-reuse-20261014-r1',
+        'h2o-posemesh-full-20261014-r1']]
     queue=base/'unidexgrasp-expansion-20261014-r1'
     for batch in sorted(queue.glob('batch*')):
         run=batch/'replay';index=batch/'posemesh-index'
