@@ -126,11 +126,21 @@ def split_file(root, name, deadline):
             raise ValueError('oversized split file')
         path.write_bytes(body)
     # Upstream files are Python-style dictionary entries without enclosing braces.
-    objects = ast.literal_eval('{'+path.read_text()+'}')
-    for code, scales in objects.items():
+    expression = ast.parse('{'+path.read_text()+'}', mode='eval').body
+    if not isinstance(expression, ast.Dict):
+        raise ValueError('expected official dictionary entries')
+    objects = {}
+    entries = 0
+    for key, value in zip(expression.keys, expression.values):
+        code, scales = ast.literal_eval(key), ast.literal_eval(value)
         if len(safe_name(code).parts) != 2 or not scales or any(s not in SCALES for s in scales):
             raise ValueError('invalid official object/scale')
-    return objects
+        # The public files repeat mesh keys for different scales. A plain dict
+        # evaluation silently loses earlier scales; preserve their union.
+        entries += 1
+        objects.setdefault(code, [])
+        objects[code] = sorted(set(objects[code]) | set(scales))
+    return objects, entries
 
 
 def prepare(args):
@@ -143,16 +153,20 @@ def prepare(args):
         raise ValueError('prepared pilot is immutable; use its manifest or a fresh output')
     inputs = root/'inputs'
     inputs.mkdir(exist_ok=True)
-    train = split_file(inputs, 'train_set.yaml', deadline)
-    seen = split_file(inputs, 'test_set_seen_cat.yaml', deadline)
-    unseen = split_file(inputs, 'test_set_unseen_cat.yaml', deadline)
-    if set(train) & (set(seen) | set(unseen)) or set(seen) & set(unseen):
-        raise ValueError('official train/test objects overlap')
-    if (len(train), len(seen), len(unseen)) != (3200, 141, 100):
-        raise ValueError('official policy split coverage changed')
+    train, train_entries = split_file(inputs, 'train_set.yaml', deadline)
+    seen, seen_entries = split_file(inputs, 'test_set_seen_cat.yaml', deadline)
+    unseen, unseen_entries = split_file(inputs, 'test_set_unseen_cat.yaml', deadline)
+    if (train_entries, seen_entries, unseen_entries) != (3200, 141, 100):
+        raise ValueError('official policy entry counts changed')
+    counts = {name: dict(entries=entries, meshes=len(values), unique_mesh_scale_pairs=sum(map(len, values.values())))
+              for name, values, entries in [('train', train, train_entries), ('test_seen', seen, seen_entries),
+                                             ('test_unseen', unseen, unseen_entries)]}
+    held_out_meshes = set(seen) | set(unseen)
     chosen = []
     categories = set()
     for code in sorted(train):
+        if code in held_out_meshes:
+            continue
         category = code.rsplit('-', 1)[0]
         if category not in categories:
             chosen.append(dict(object_code=code, scale=float(train[code][0]), official_split='TRAIN',
@@ -163,7 +177,7 @@ def prepare(args):
     if len(chosen) != args.objects:
         raise ValueError('not enough distinct official train categories')
     write_json(root/'selection.json', dict(objects=chosen, selection='sorted first distinct categories; no rollout outcomes',
-                                          official_counts=dict(train=len(train),test_seen=len(seen),test_unseen=len(unseen))))
+                                          official_counts=counts))
     downloads = []
     for name, (url, size) in PACKAGES.items():
         downloads.append(download(url, inputs/name, size, deadline, args.workers))
@@ -237,7 +251,7 @@ def prepare(args):
         row['initialization_priors'] = count
     np.save(assets/'datasetv4.1_posedata.npy', priors)
     manifest = dict(status='COMPLETE', upstream_commit=PIN, objects=chosen, asset_root=str(assets),
-                    priors_source=PACKAGES['datasetv4.1_posedata.npy'][0], official_split_counts=dict(train=3200,test_seen=141,test_unseen=100),
+                    priors_source=PACKAGES['datasetv4.1_posedata.npy'][0], official_split_counts=counts,
                     downloads=downloads, compressed_input_bytes=sum(s for _,s in PACKAGES.values()),
                     selected_assets_bytes=sum(p.stat().st_size for p in assets.rglob('*') if p.is_file()),
                     scanned_mesh_expanded_bytes=scanned, elapsed_s=time.monotonic()-begin, training_allowed=False)
