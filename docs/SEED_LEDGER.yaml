@@ -25,6 +25,11 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-wam-residual-basin:
+    seed_pool: probe
+    seeds: [292, 296]
+    reuse_reason: same frozen-pair family and parent measured prefix; four fixed interventions are not independent seeded training runs
+
   P-20261014-wam-residual-curriculum:
     seed_pool: probe
     seeds: [292, 296]
@@ -37,7 +42,7 @@ allocations:
     model_and_draw_seed: 124
     rank_initialization_seeds: [124, 125]
     evaluation_draw_seed: 126
-    reuse_reason: per-batch collection substreams and two-rank draw streams within one run; not independent replicates
+    reuse_reason: per-batch collection substreams, two-rank draw streams and explicit capacity warm-start phases; offset1000 continues draw identities, not independent replicates
 
   P-20261013-ptv3-shared-main3-80k:
     seed_pool: probe
