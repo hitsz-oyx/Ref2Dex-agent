@@ -1,3 +1,10 @@
+## HOI4D原生手物合并（2026-10-14）
+
+- GPU手缓存已完成1858段/458791个native frame ID；修复一条poseCoeff为标量的原始记录为invalid mask，保留原帧和失败历史，不丢弃整段275帧。
+- 3段真实原生pose smoke通过，raw LOG与物体RT共同坐标复算误差小于1e-6；14项合同测试通过。仅处理rigid CAD类别，保留canonical原点/米制；bbox dimensions作审计字段，不作为每帧scale。
+- release.txt2971行、testset.txt933行实际有31个重叠ID；原生合并只使用release且不在testset的序列，优先防泄漏。按全局<C,N>实例分TRAIN/DEV，未准入物理30Hz窗口。
+- 当前批处理：CPU流式读取已下载ZIP并合并已GPU生成手部cache，单worker4CPU线程、2h、20GiB余量；纯标签/矩阵/文件处理不额外占GPU。保留JSON内部frameId偏差、原生相机/物体矩阵、clock conflicts，输出单独native schema。失败留ledger，缺失mask不补假静止。
+
 ## TACO远端残余分片 Decision Note（2026-10-14）
 
 - 证据：本地下载反复超时/断流，当前约0.25MB/s；远端直连8MiB实测3.915秒、HTTP206/精确Content-Range，约2.14MB/s。下载而非GPU计算决定剩余时间。

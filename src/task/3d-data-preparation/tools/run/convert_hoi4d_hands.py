@@ -32,7 +32,8 @@ def models(root,device):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--input',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--mano-root',type=Path,required=True);p.add_argument('--device',choices=['cpu','cuda:0'],default='cuda:0')
-    p.add_argument('--limit',type=int);p.add_argument('--seconds',type=int,default=7200);a=p.parse_args()
+    p.add_argument('--limit',type=int);p.add_argument('--seconds',type=int,default=7200)
+    p.add_argument('--retry-failed',action='store_true');a=p.parse_args()
     if not 60<=a.seconds<=86400:p.error('bounded deadline required')
     root=a.output.resolve();root.mkdir(parents=True,exist_ok=True);(root/'sequences').mkdir(exist_ok=True)
     started=time.monotonic();deadline=started+a.seconds;torch.set_num_threads(4)
@@ -59,7 +60,9 @@ def main():
             identity='/'.join(parts[2:-1]);groups[identity][side].append((int(Path(parts[-1]).stem),entry.filename))
         identities=sorted(groups);identities=identities[:a.limit] if a.limit else identities
         for identity in identities:
-            if identity in ledger:continue
+            if identity in ledger:
+                if ledger[identity]['status']=='CONVERTED' or not a.retry_failed:continue
+                manifest.setdefault('previous_failures',[]).append(dict(source_sequence=identity,**ledger[identity]))
             if time.monotonic()>deadline or (root/'STOP').exists() or shutil.disk_usage(root).free<20*2**30:
                 phase='STOPPED';break
             try:
@@ -68,7 +71,8 @@ def main():
                 offsets={i:k for k,i in enumerate(ids)}
                 points=np.full((n,2,21,3),np.nan,np.float32);valid=np.zeros((n,2,21),bool)
                 params=np.full((n,2,61),np.nan,np.float32);kps=np.full((n,2,21,2),np.nan,np.float32)
-                projection=np.full((n,2,21),np.nan,np.float32)
+                projection=np.full((n,2,21),np.nan,np.float32);invalid_members=[]
+                invalid_native=np.zeros((n,2),bool)
                 camera=identity.split('/')[0];intrinsic=np.load(io.BytesIO(cameras.read('camera_params/'+camera+'/intrin.npy')),allow_pickle=False)
                 for slot,side in enumerate(['right','left']):
                     members=sorted(native.get(side,[]));seen=set();batch=[]
@@ -76,7 +80,10 @@ def main():
                         if frame in seen:raise ValueError('duplicate native hand frame')
                         seen.add(frame);data=pickle.loads(hands.read(member),encoding='latin1')
                         theta=np.asarray(data['poseCoeff'],np.float32);beta=np.asarray(data['beta'],np.float32);trans=np.asarray(data['trans'],np.float32)
-                        if theta.shape!=(48,) or beta.shape!=(10,) or trans.shape!=(3,):raise ValueError('MANO parameter shape mismatch')
+                        if theta.shape!=(48,) or beta.shape!=(10,) or trans.shape!=(3,):
+                            invalid_native[offsets[frame],slot]=True
+                            invalid_members.append(dict(side=side,frame=frame,reason='invalid native MANO parameter shape'))
+                            continue
                         k=offsets[frame];params[k,slot]=np.r_[theta,beta,trans]
                         if 'kps2D' in data:
                             if np.shape(data['kps2D'])!=(21,2):raise ValueError('native projection shape mismatch')
@@ -96,12 +103,14 @@ def main():
                 if target.exists():raise ValueError('unpublished sequence exists; never overwrite')
                 pending=root/'sequences'/('pending-'+filename)
                 np.savez_compressed(pending,native_frame_id=np.array(ids,np.int64),hand_camera=points,hand_valid=valid,
-                    native_mano_camera=params,native_kps2d=kps,reprojection_error_px=projection,camera_intrinsic=intrinsic)
+                    native_mano_camera=params,native_kps2d=kps,reprojection_error_px=projection,camera_intrinsic=intrinsic,
+                    invalid_native_parameter=invalid_native)
                 pending.replace(target)
                 finite=projection[np.isfinite(projection)]
                 row=dict(source_sequence=identity,path='sequences/'+filename,frames=n,annotated_hand_frames=int(valid.any(-1).sum()),
                     p95_reprojection_error_px=float(np.quantile(finite,.95)) if len(finite) else None,
                     max_reprojection_error_px=float(finite.max()) if len(finite) else None)
+                row['invalid_native_members']=invalid_members
                 manifest['sequences'].append(row);ledger[identity]=dict(status='CONVERTED',**row)
                 print('CONVERTED',identity,n,flush=True)
             except Exception as error:
