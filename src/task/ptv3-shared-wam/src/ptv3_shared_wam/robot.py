@@ -15,6 +15,7 @@ from trajectory_policy.chunk_retargeter import ChunkRetargeter, chunk_windows
 from trajectory_policy.retargeter_data import ACTIVE, features
 from trajectory_policy.wam_shadow import WAM_TO_NATIVE
 from trajectory_policy.wam_consequence import actual_consequence_sample
+from trajectory_policy.chunk_objective import control_aware_loss
 
 
 class RobotWindows(torch.utils.data.Dataset):
@@ -92,6 +93,8 @@ def initialize_retargeter(net, dataset):
         raise ValueError("retargeter normalization must use TRAIN rows only")
     with torch.no_grad():
         for key, array, floor in zip(("state", "tau", "action"), dataset.normalization(), (.001, .001, .01)):
+            if key=='action' and getattr(dataset,'action_representation','native-command.v1')!='native-command.v1':
+                floor=1e-6
             value = torch.as_tensor(array, device=net.state_mean.device)
             getattr(net, key + "_mean").copy_(value.mean(0))
             getattr(net, key + "_scale").copy_(value.std(0, unbiased=False).clamp_min(floor))
@@ -137,8 +140,22 @@ def robot_loss(prediction, batch, config, retargeter):
     if "action" not in prediction:
         return total, terms
     scale = retargeter.action_scale
-    action = ((prediction["action"] - batch["native_action"]) / scale).abs().mean()
-    anchor = ((prediction["action_anchor"] - batch["native_action"]) / scale).abs().mean()
+    from .action_targets import NATIVE, target_tensor
+    representation=config.get('action_representation',NATIVE)
+    target=target_tensor(batch,representation)
+    objective = config.get("action_objective", "all8-standardized-l1.v1")
+    if objective == "all8-standardized-l1.v1":
+        action = ((prediction["action"] - target) / scale).abs().mean()
+        anchor = ((prediction["action_anchor"] - target) / scale).abs().mean()
+    elif objective == "control-aware-first.v1":
+        if representation!=NATIVE:raise ValueError('physical chunks use all8 objective; native first-control loss has different units')
+        pd_scale = scale.new_tensor(config["native_PD_scale"])
+        action, action_terms = control_aware_loss(prediction["action"], batch["native_action"], scale, pd_scale)
+        anchor, anchor_terms = control_aware_loss(prediction["action_anchor"], batch["native_action"], scale, pd_scale)
+        terms.update({"action_" + k: v for k, v in action_terms.items()})
+        terms.update({"anchor_" + k: v for k, v in anchor_terms.items()})
+    else:
+        raise ValueError("unknown robot action objective: " + objective)
     total = total + config.get("action_weight", 1.) * action + config.get("anchor_weight", 1.) * anchor
     return total, dict(terms, action=action, anchor=anchor)
 

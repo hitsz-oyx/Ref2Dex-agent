@@ -22,6 +22,8 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--gpu", type=int, required=True)
     p.add_argument("--controls", type=int, required=True)
+    p.add_argument("--sequence")
+    p.add_argument("--retargeter", type=Path)
     a = p.parse_args()
     a.output, a.socket, a.checkpoint = a.output.resolve(), a.socket.resolve(), a.checkpoint.resolve()
     if (a.output.exists() or ROOT / "outputs/ptv3-shared-wam" not in a.output.parents
@@ -41,17 +43,22 @@ def main():
     packet = load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot":
         raise ValueError("jointly fitted robot pair required")
+    from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
+    selected = resolve_native_inputs(packet, a.sequence)
+    canonical = load_native_arrays(selected)["canonical"]
     model = RobotPair(SharedWAM(packet["stats"], packet["config"]))
     model.load_state_dict(packet["model"], strict=True)
+    from ptv3_shared_wam.native_inputs import load_execution_retargeter
+    model.retargeter = load_execution_retargeter(packet, a.retargeter)
     model = model.cuda().eval()
-    canonical_path = packet["provenance"]["canonical"]
-    with np.load(canonical_path, allow_pickle=False) as stream:
-        canonical = {key: stream[key].copy() for key in stream.files}
     a.output.mkdir()
     listener = socket.socket(socket.AF_UNIX)
     listener.bind(str(a.socket)); listener.listen(1); listener.settimeout(120)
     status = dict(schema=SCHEMA, status="READY", checkpoint=str(a.checkpoint), stage="robot", queries=0,
                   native_controller=packet["config"]["native_controller"])
+    status['action_representation']=model.retargeter.action_representation
+    status["native_input"] = selected
+    status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     atomic_json(a.output / "status.json", status)
     try:
         connection, _ = listener.accept()
@@ -87,6 +94,7 @@ def main():
                 if not torch.isfinite(chunk).all():
                     raise FloatingPointError("nonfinite action chunk")
                 send(connection, dict(tick=tick, action_chunk=chunk[0].cpu().tolist(),
+                                      action_representation=model.retargeter.action_representation,
                                       native_tau=tau[0].cpu().tolist(), elapsed_s=time.monotonic() - started))
                 status["queries"] += 1
                 atomic_json(a.output / "status.json", status)

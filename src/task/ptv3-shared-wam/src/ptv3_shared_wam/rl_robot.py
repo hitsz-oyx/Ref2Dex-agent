@@ -8,6 +8,7 @@ import torch
 
 from .data import point_labels
 from .robot import features, ACTIVE, actual_consequence_sample, chunk_windows
+from .action_targets import NATIVE, validate_representation, encode_targets
 
 CORPUS_SCHEMA = 'ref2dex.rl660-corpus.v1'
 
@@ -21,7 +22,8 @@ def tracking_windows(data, limit=.1):
 
 
 class RLRobotWindows(torch.utils.data.Dataset):
-    def __init__(self, source, split, point_count=32):
+    def __init__(self, source, split, point_count=32, action_representation=NATIVE):
+        self.action_representation=validate_representation(action_representation)
         self.root = Path(source).resolve()
         self.manifest = json.loads((self.root/'manifest.json').read_text())
         if (self.manifest.get('schema') != CORPUS_SCHEMA or self.manifest.get('status') != 'COMPLETED'
@@ -101,6 +103,11 @@ class RLRobotWindows(torch.utils.data.Dataset):
         sample.update(native_state=state,native_tau=tau,
             native_action=data['applied'][tick+np.arange(8)][:,list(ACTIVE)].astype(np.float32),
             has_action=np.bool_(True),source_id=np.int64(3))
+        if self.action_representation!=NATIVE:
+            sample.update(action_target=encode_targets(data['pd_targets'][tick+np.arange(8)],
+                              data['q'][tick],self.action_representation),
+                          pd_target=data['pd_targets'][tick+np.arange(8)].astype(np.float32),
+                          future_q=data['q'][tick+np.arange(8)].astype(np.float32))
         return sample
 
     def sample_indices(self, rng, batch_size):
@@ -122,6 +129,11 @@ class RLRobotWindows(torch.utils.data.Dataset):
                 continue
             data,_ = self.sequence(seq)
             expanded = {k:data[k][:,None] for k in ('q','dq','hand','obj','velocity','action','applied')}
-            for values,array in zip(arrays,chunk_windows(expanded,[0])):
+            windows=list(chunk_windows(expanded,[0]))
+            if self.action_representation!=NATIVE:
+                all_ticks=np.arange(len(windows[0]))
+                windows[2]=encode_targets(data['pd_targets'][all_ticks[:,None]+np.arange(8)],
+                                         data['q'][all_ticks],self.action_representation)
+            for values,array in zip(arrays,windows):
                 values.append(array[ticks])
         return [np.concatenate(values) for values in arrays]

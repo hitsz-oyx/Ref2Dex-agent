@@ -198,3 +198,58 @@ Residual PPO、旧 counterfactual World 和旧架构 matched 科学比较是后�
 这与 `--resume` 的精确恢复不同。整数复制与恒等新层、token/padding向量化、
 激活重计算、融合优化器及TF32均在当前Task内实现。性能工具：
 `tools/audit/benchmark_robot_scale.py`、`tools/audit/audit_scale_transfer.py`。
+
+## ref2：第一控制目标与RL660执行接口修复
+
+修复保留旧配置的 `all8-standardized-l1.v1` 语义；显式设置
+`action_objective=control-aware-first.v1` 才启用历史4×first+tail+PD0配方，训练raw输出，
+指标/执行clamp。新模板 `configs/robot_660_control_first.json` 明确K1语义、run8GB预算，
+旧4GB配置与运行不被静默改写。改变配方须新run/显式warm start，不能精确resume旧配置。
+该模板尚未启动新一轮联合训练，先通过R-only和GT执行门。
+
+新robot训练另存 `forecast_best.pt`（hand_all24+scene_all24物理mm误差之和）和
+`control_best.pt`（GT first XYZ p95、predicted first XYZ p95、GT rotation/finger p95
+依次打破平局）；兼容保留总objective的 `best.pt` 和恢复用 `latest.pt`。任一选择改善
+立即保存完整权重，清理保护四个别名；resume只从仍有权重的历史点初始化选择，不能
+把已删除/未保存的dev最优分数当成可恢复候选。多份完整大模型约需5GB，故新模板
+为8GB，仍须在全局400GB内预留；不能用旧4GB运行假装容纳四份完整恢复点。
+
+RL660执行必须显式 `--sequence <manifest中的完整序列名>`。server/native共用同record
+的CAD、reference_obj、真实hand oracle和几何motion；原生场景检查实际motion/object身份，
+关闭旧的重复采样/左手接触过滤仅限该进程的motion membership，不改变物理控制。
+独立audit从原始corpus重建目标；旧单文件/airplane路径仍兼容。不得把加载成功当作抓取验证。
+
+可用 `--retargeter <R-only/B_control_best.pt>` 在不复制完整WAM的情况下测试修复R，
+要求source、TRAIN normalizers、PD units和8-query结构一致，server/native必须加载同一
+候选；此时强制 `--execution-steps 1`。one-query C和256窗过拟合权重不能冒充合格执行R。
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam/tools/run/launch_native.py \
+  --checkpoint outputs/ptv3-shared-wam/<robot-run>/latest.pt \
+  --sequence s10_airplane_pass_1 --execution-steps 1 \
+  --retargeter outputs/ptv3-shared-wam/rl660-R-control-repair-20261014-r1/B_control_best.pt \
+  --controls 4 --smoke --preflight-only \
+  --output outputs/ptv3-shared-wam/<fresh-native-run>
+```
+
+`--preflight-only`只做CPU文件/权重合同，不启动GPU或仿真。移除该参数后才是物理
+工程检查；完整Probe仍需card、seed、空闲GPU和预算。R-only配方比较与256窗检查见
+主工作树的 `P-20261014-rl660-R-control-repair` 实验卡。活跃旧训练有源码保护，修复先在
+隔离工作树验证，待旧进程退出后再应用主工作树，禁止热改正在执行的旧训练源码。
+
+### ref2_1：统一查询时刻的物理目标 chunk
+
+新模板 `configs/robot_660_physical_targets.json` 显式使用
+`action_representation=pd-relative-current.v1`，all8 standardized L1等权；旧配置和
+native权重仍保留旧单位。每个未来PD目标（含手指）减同一个查询q[t]，按TRAIN的
+每horizon/坐标标准化。执行查询时恢复并冻结绝对目标，消费时以live q反算native
+command，K4/K8不反复重加query delta。几何旋转向量表示是独立诊断臂，Euler分支
+roundtrip未通过时拒绝加载到native执行。
+
+`tools/run/probe_R_representation.py` 在相同小R、GT-τ、split/sampler/预算下比较
+native、relative-PD与relative-geometry，不更新forecaster；协议与结果见
+`docs/experiments/probes/P-20261014-rl660-R-physical-targets.md`。
+`train_robot.py --init-forecaster-only` 可显式从保留的robot checkpoint只继承forecaster，
+重新初始化R/optimizer；本轮尚未重启大规模微调。更换表示不保证消除输入条件歧义，
+离线误差改善也不等于抓取通过。

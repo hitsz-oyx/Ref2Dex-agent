@@ -85,6 +85,8 @@ def shared_collate(samples):
     if "native_state" in samples[0]:
         for key in ("native_state", "native_tau", "native_action", "has_action"):
             batch[key] = torch.as_tensor(np.stack([sample[key] for sample in samples]))
+        for key in ('action_target','pd_target','future_q'):
+            if key in samples[0]:batch[key]=torch.as_tensor(np.stack([sample[key] for sample in samples]))
     return batch
 
 

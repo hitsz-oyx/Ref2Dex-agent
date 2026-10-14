@@ -33,9 +33,11 @@ def main():
     p.add_argument("--seed", type=int, default=292)
     p.add_argument("--deadline-seconds", type=int, default=600)
     p.add_argument("--engineering-only", action="store_true")
+    p.add_argument("--sequence")
+    p.add_argument("--retargeter", type=Path)
     a = p.parse_args()
     a.output, a.checkpoint = a.output.resolve(), a.checkpoint.resolve()
-    runtime = ROOT.parents[1] / ".runtime_envs/dexplore_v120_train"
+    runtime = Path("/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train")
     if (Path(sys.prefix).resolve() != runtime.resolve() or a.output.exists()
             or ROOT / "outputs/ptv3-shared-wam" not in a.output.parents or not 1 <= a.controls <= 542):
         raise ValueError("pinned runtime, fresh Task output and bounded episode required")
@@ -71,16 +73,34 @@ def main():
         raise ValueError("pinned native runtime and official calibration teacher required")
     torch.set_num_threads(2); torch.manual_seed(a.seed)
     packet = load_checkpoint(a.checkpoint)
-    r = ChunkRetargeter(128).cuda().eval()
-    r.load_state_dict({key[len("retargeter."):]: value for key, value in packet["model"].items()
-                       if key.startswith("retargeter.")}, strict=True)
-    source = Path(packet["provenance"]["source"])
-    with np.load(source / "trajectory.npz", allow_pickle=False) as stream:
-        oracle = stream["hand"][:, 24].copy()
-    with np.load(packet["provenance"]["reference"], allow_pickle=False) as stream:
-        reference = stream["obj"].copy()
+    from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
+    selected = resolve_native_inputs(packet, a.sequence)
+    arrays = load_native_arrays(selected)
+    oracle, reference = arrays["oracle"], arrays["reference"]
+    if selected["kind"] == "rl660" and a.controls + 24 > len(oracle):
+        raise ValueError("RL660 requires complete future windows; no padded oracle tail")
+    from ptv3_shared_wam.native_inputs import load_execution_retargeter
+    r = load_execution_retargeter(packet, a.retargeter, "cuda")
+    from ptv3_shared_wam.action_targets import freeze_chunk,consume_target
+    representation=r.action_representation
+    if r.first_only and a.execution_steps != 1:
+        raise ValueError("R-only control candidate requires first-only execution")
     cfg = json.loads((ROOT / "outputs/consequence-evaluator/baseline-transfer-s3-20261007-r2/airplane_base/config.json").read_text())
     a.output.mkdir()
+    native_cwd = ROOT / "third_party/DExplore"
+    if selected["kind"] == "rl660":
+        motion_root = a.output / "motions"
+        motion_root.mkdir()
+        (motion_root / a.sequence).symlink_to(selected["motion"], target_is_directory=True)
+        cfg["motion_root"] = str(motion_root)
+        cfg["cfg_env"] = str((native_cwd / cfg["cfg_env"]).resolve())
+        native_cwd = a.output / "gym_runtime"
+        assets = native_cwd / "dexplore/data/assets"
+        assets.parent.mkdir(parents=True)
+        full_assets = Path("/home2/wyy/oyx_ws/dexplore/dexplore/data/assets")
+        if not full_assets.is_dir():
+            raise FileNotFoundError(full_assets)
+        assets.symlink_to(full_assets, target_is_directory=True)
     connection = socket.socket(socket.AF_UNIX)
     connection.settimeout(120); connection.connect(str(a.socket))
     if peer_pid(connection) != a.server_pid:
@@ -89,13 +109,25 @@ def main():
     hello = receive(connection)
     if hello["checkpoint"] != str(a.checkpoint) or hello["schema"] != SCHEMA:
         raise ValueError("server and native checkpoints differ")
+    if hello.get("native_input") != selected:
+        raise ValueError("server and native selected different motion records")
+    override = str(a.retargeter.resolve()) if a.retargeter else None
+    if hello.get("retargeter_override") != override:
+        raise ValueError("server and native loaded different R candidates")
+    if hello.get('action_representation')!=representation:
+        raise ValueError('server/native action representation differs')
     manifest = dict(schema=SCHEMA, status="RUNNING", controls=a.controls, seed=a.seed,
                     execution_steps=a.execution_steps, checkpoint=str(a.checkpoint),
                     roles=["teacher", "GT_tau_R", "shared_WAM_R"], training_allowed=False,
                     engineering_only=a.engineering_only,
                     no_teacher_intervention=True, native_controller=packet["config"]["native_controller"])
+    manifest["native_input"] = selected
+    manifest["retargeter_override"] = override
+    manifest['action_representation']=representation
     atomic_json(a.output / "manifest.json", manifest)
     install_legacy_player_compat(native, common_player, base_player); install_reset_patch()
+    from ptv3_shared_wam.native_inputs import install_selected_motion_contract
+    install_selected_motion_contract(DexploreTask, selected)
     logs, executed = {}, 0
     started = time.monotonic()
 
@@ -120,6 +152,10 @@ def main():
             self.get_batch_size(obs["obs"], 1)
             if (task.start_times != 0).any():
                 raise ValueError("frame0 reset required")
+            if selected["kind"] == "rl660":
+                names = [Path(task.motion_file[int(i)]).name for i in task.data_id.cpu().tolist()]
+                if names != [a.sequence] * 3 or any(n != selected["object"] for n in task.object_name):
+                    raise ValueError("native reset motion/object differs from selected RL660 record")
             geometry = PhysicalGeometry(task, native_root / "data/assets", distance_device=task.device)
             support = TableSupport(native_root / "data/assets", task.device)
             offset, scale = task._pd_action_offset.clone(), task._pd_action_scale.clone()
@@ -171,18 +207,22 @@ def main():
                         reply = receive(connection)
                         if reply["tick"] != tick:
                             raise ValueError("server query clock differs")
+                        if reply.get('action_representation')!=representation:
+                            raise ValueError('query action units differ from loaded R')
                         own_tau = np.asarray(reply["native_tau"], np.float32)
-                        buffers[1].refill(reply["action_chunk"], tick)
+                        raw_chunks=[None,torch.tensor(reply['action_chunk'],device=task.device)[None]]
+                        query_q=current['q'][1:].clone()
+                        buffers[1].refill(freeze_chunk(raw_chunks[1],query_q[1:2],representation)[0].cpu().numpy(), tick)
                         future = oracle[np.minimum(tick + np.arange(1, 25), len(oracle) - 1)]
                         state, tau = features(*(current[k][1].cpu().numpy() for k in ("q", "dq", "hand", "obj", "velocity")), future)
                         gt = r(torch.as_tensor(state, device=task.device)[None], torch.as_tensor(tau, device=task.device)[None])[0]
-                        buffers[0].refill(gt.cpu().numpy(), tick)
+                        raw_chunks[0]=gt[None]
+                        buffers[0].refill(freeze_chunk(gt[None],query_q[:1],representation)[0].cpu().numpy(), tick)
                     receipts = []
                     for env, buffer in enumerate(buffers, start=1):
                         raw, receipt = buffer.pop(); receipts.append(receipt)
-                        intended[env].zero_()
-                        intended[env, list(ACTIVE)] = torch.as_tensor(raw, device=task.device)
-                        action[env] = intended[env].clamp(-1, 1)
+                        intended[env],action[env],_=consume_target(torch.as_tensor(raw,device=task.device),
+                              current['q'][env],representation,packet['config']['native_controller'])
                     expected = pd_from_action(action, current["q"], offset, scale)
                     obs, _, done, _ = self.env_step(self.env, action.clone()); executed += 1
                     if not isinstance(obs, dict):
@@ -196,6 +236,7 @@ def main():
                         query_tick=np.array([r["query_tick"] for r in receipts]),
                         chunk_index=np.array([r["chunk_index"] for r in receipts]),
                         wam_object_history=oh, wam_hand_history=hh, wam_goal=goal, R_state=own_state, R_tau=own_tau)
+                    values.update(R_output_chunk=torch.cat(raw_chunks),R_query_q=query_q)
                     for key, value in values.items():
                         logs[key].append(value.cpu().numpy().copy() if isinstance(value, torch.Tensor) else np.asarray(value).copy())
                     current = record()
@@ -235,7 +276,7 @@ def main():
         raise TimeoutError("bounded native execution deadline")
     signal.signal(signal.SIGALRM, deadline); signal.alarm(a.deadline_seconds)
     try:
-        os.chdir(ROOT / "third_party/DExplore"); native.main()
+        os.chdir(native_cwd); native.main()
         send(connection, dict(stop=True))
     except BaseException as error:
         manifest.update(status="FAILED", error=repr(error), executed_controls=executed)

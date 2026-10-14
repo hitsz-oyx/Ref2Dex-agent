@@ -21,6 +21,7 @@ from .loading import pretrain_loader, to_device
 from .objectives import forecast_loss, forecast_metrics
 from .paths import ROOT, TASK, add_dependencies
 from .robot import RobotPair, RobotWindows, human_replay, initialize_retargeter, robot_loss
+from .selection import SelectionTracker
 
 add_dependencies()
 from oakink_wm.multisource import mixed_indices
@@ -51,6 +52,8 @@ def parse_args(stage):
     parser.add_argument("--init-pw", type=Path, default=DEFAULT_PW)
     parser.add_argument("--init-shared", type=Path)
     parser.add_argument("--init-r", type=Path)
+    parser.add_argument('--init-forecaster-only',action='store_true',
+                        help='explicitly retain only a robot forecaster and initialize a new R/optimizer')
     parser.add_argument("--expand-shared", action="store_true",
                         help="explicit wider/deeper warm start; retains weights and resets optimizer")
     parser.add_argument("--source", type=Path, default=OWNER / "competent-pd-teacher-20261011-r2")
@@ -167,11 +170,22 @@ def evaluate(model, dataset, indices, config, stage, device):
         if "action" in prediction:
             scale = torch.tensor(config["native_PD_scale"], device=device)
             for name, key in (("pred", "action"), ("GT", "action_anchor")):
-                delta = (prediction[key][:, 0].clamp(-1, 1) - batch["native_action"][:, 0]) * scale
+                from .action_targets import NATIVE,freeze_chunk,consume_target
+                representation=config.get('action_representation',NATIVE)
+                if representation==NATIVE:
+                    delta = (prediction[key][:, 0].clamp(-1, 1) - batch["native_action"][:, 0]) * scale
+                    clipped=(prediction[key][:,0].abs()>1).any(-1).float()
+                else:
+                    from trajectory_policy.pd_retargeter import pd_from_action
+                    q=batch['native_state'][:,:18]
+                    frozen=freeze_chunk(prediction[key],q,representation)
+                    _,applied,clipped=consume_target(frozen[:,0],q,representation,config['native_controller'])
+                    actual=pd_from_action(applied,q,q.new_tensor(config['native_controller']['offset']),q.new_tensor(config['native_controller']['scale']))
+                    delta=(actual-batch['pd_target'][:,0])[:,list(__import__('trajectory_policy.retargeter_data',fromlist=['ACTIVE']).ACTIVE)]
                 values = dict(PD_xyz_mm=delta[:, :3].norm(dim=-1) * 1000,
                               PD_rotation_rad=delta[:, 3:6].abs().amax(-1),
                               PD_finger_rad=delta[:, 6:].abs().amax(-1),
-                              clipping=(prediction[key][:, 0].abs() > 1).any(-1).float())
+                              clipping=clipped.float())
                 for key, value in values.items():
                     totals.setdefault(name + "/" + key, []).extend(value.cpu().tolist())
     result = dict(objective=objective / max(batches, 1), metrics={})
@@ -251,13 +265,18 @@ def run(stage):
         human = None
     else:
         source_manifest = json.loads((args.source / "manifest.json").read_text())
+        from .action_targets import NATIVE,validate_representation
+        representation=validate_representation(config.get('action_representation',NATIVE))
+        if args.init_forecaster_only and (args.resume or args.expand_shared):
+            raise ValueError('forecaster-only restart resets optimizer and cannot resume/expand')
         if source_manifest.get("schema") == "ref2dex.rl660-corpus.v1":
             from .rl_robot import RLRobotWindows
             if not args.smoke and source_manifest.get("engineering_only"):
                 raise ValueError("engineering corpus cannot initialize scientific robot training")
-            train = RLRobotWindows(args.source, "train", config["object_points"])
-            dev = RLRobotWindows(args.source, "val", config["object_points"])
+            train = RLRobotWindows(args.source, "train", config["object_points"],representation)
+            dev = RLRobotWindows(args.source, "val", config["object_points"],representation)
         else:
+            if representation!=NATIVE:raise ValueError('physical chunks currently require audited RL660 targets')
             train = RobotWindows(args.source, args.reference, args.canonical, "train", config["object_points"])
             dev = RobotWindows(args.source, args.reference, args.canonical, "val", config["object_points"])
         parent = load_checkpoint(args.resume or args.init_shared)
@@ -273,9 +292,13 @@ def run(stage):
             raise ValueError("robot stage changes the pretraining architecture")
         model = RobotPair(SharedWAM(stats, config))
         if not args.resume:
-            if parent["stage"] != "pretrain" and not args.expand_shared:
+            if parent["stage"] != "pretrain" and not args.expand_shared and not args.init_forecaster_only:
                 raise ValueError("fresh robot stage starts from shared pretraining")
-            if args.expand_shared:
+            if args.init_forecaster_only:
+                if parent['stage']!='robot':raise ValueError('forecaster-only restart requires a robot parent')
+                model.forecaster.load_state_dict({k[len('forecaster.'):]:v for k,v in parent['model'].items() if k.startswith('forecaster.')},strict=True)
+                provenance['forecaster_only_parent']=dict(checkpoint=str(args.init_shared.resolve()),step=parent['step'],R_reset=True,optimizer_reset=True)
+            elif args.expand_shared:
                 if args.init_r:
                     raise ValueError("expansion preserves its parent's R; no separate R initialization")
                 from .expansion import expand_forecaster
@@ -296,6 +319,8 @@ def run(stage):
             else:
                 model.forecaster.load_state_dict(parent["model"], strict=True)
             if args.init_r:
+                if representation!=NATIVE:
+                    raise ValueError('physical R initialization must be explicitly bound; use fresh R until native qualification')
                 from trajectory_policy.chunk_retargeter import load_chunk
                 rpacket = torch.load(args.init_r, map_location="cpu", weights_only=False)
                 if rpacket["native_controller"] != train.controller:
@@ -359,6 +384,7 @@ def run(stage):
         curve = json.loads((out / "curve.json").read_text())
         previous = min(curve, key=lambda row: row["objective"])
         best, best_step = previous["objective"], previous["step"]
+    selections = SelectionTracker(out, stage, curve)
     implementation = list((TASK / "src").rglob("*.py")) + [Path(__file__)]
     code_state = {str(path): (path.stat().st_size, path.stat().st_mtime_ns) for path in implementation}
     batch_size = config["batch_size"]
@@ -453,6 +479,7 @@ def run(stage):
                 if pids - set(workers):
                     raise RuntimeError("foreign process on assigned GPU")
             new_best = False
+            new_selections = []
             if step % config["validation_interval"] == 0 or step == config["updates"]:
                 report = evaluate(model, dev, validation, config, stage, device) if rank == 0 else None
                 if rank == 0:
@@ -460,14 +487,15 @@ def run(stage):
                     atomic_json(out / "curve.json", curve)
                     if report["objective"] < best:
                         best, best_step = report["objective"], step
+                    new_selections = selections.update(report, step)
                 if world > 1:
                     distributed.barrier()
-                selection = [best_step == step if rank == 0 else None]
+                selection = [(best_step == step, new_selections) if rank == 0 else None]
                 if world > 1:
                     distributed.broadcast_object_list(selection, src=0)
-                new_best = selection[0]
+                new_best, new_selections = selection[0]
             save_due = (step % checkpoint_interval == 0 or step == config["updates"]
-                        or new_best or (step == 1 and config.get("save_first_step", False)))
+                        or new_best or new_selections or (step == 1 and config.get("save_first_step", False)))
             if save_due:
                 rank_rng = dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state())
                 states = [rank_rng]
@@ -482,12 +510,15 @@ def run(stage):
                     checkpoint_alias(out, "latest.pt", path.name)
                     if new_best:
                         checkpoint_alias(out, "best.pt", path.name)
+                    for name, selected in selections.best.items():
+                        checkpoint_alias(out, name + ".pt", "step%d.pt" % selected["step"])
+                    atomic_json(out / "checkpoint_selection.json", selections.report())
                     checkpoint_files = prune_recovery_checkpoints(out, checkpoint_files, config)
                     atomic_json(out / "checkpoint_files.json", checkpoint_files)
                 if world > 1:
                     distributed.barrier()
-                if directory_bytes(out, ROOT / "tmp" / out.name) > 4_000_000_000:
-                    raise RuntimeError("run artifact budget4GB reached")
+                if directory_bytes(out, ROOT / "tmp" / out.name) > int(config.get("artifact_budget_bytes", 4_000_000_000)):
+                    raise RuntimeError("run artifact budget reached")
                 if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
                     raise RuntimeError("shared400GB storage budget reached")
             if any((Path(path).stat().st_size, Path(path).stat().st_mtime_ns) != signature

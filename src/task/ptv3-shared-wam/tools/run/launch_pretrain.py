@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--source", type=Path)
     parser.add_argument("--init-shared", type=Path)
     parser.add_argument("--expand-shared", action="store_true")
+    parser.add_argument('--init-forecaster-only',action='store_true')
     args = parser.parse_args()
     out = args.output.resolve()
     config_path, card = args.config.resolve(), args.experiment_card.resolve()
@@ -67,6 +68,7 @@ def main():
             command.extend(["--init-shared", str(args.init_shared.resolve())])
         if args.expand_shared:
             command.append("--expand-shared")
+        if args.init_forecaster_only:command.append('--init-forecaster-only')
         if args.resume:
             command.extend(["--resume", str(args.resume.resolve())])
         if args.pin_memory:
@@ -96,6 +98,7 @@ def main():
         command.extend(["--init-shared", str(args.init_shared.resolve())])
     if args.expand_shared:
         command.append("--expand-shared")
+    if args.init_forecaster_only:command.append('--init-forecaster-only')
     if args.resume:
         command.extend(["--resume", str(args.resume.resolve())])
     if args.loader_workers:
@@ -130,8 +133,8 @@ def main():
                     if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
                         raise RuntimeError("shared400GB artifact budget reached")
                     owned = [scratch] + ([out] if out.exists() else [])
-                    if directory_bytes(*owned) > 4_000_000_000:
-                        raise RuntimeError("owned run artifact budget4GB reached")
+                    if directory_bytes(*owned) > int(config.get("artifact_budget_bytes", 4_000_000_000)):
+                        raise RuntimeError("owned run artifact budget reached")
                     storage_checked = elapsed
                 progress = out / "progress.json"
                 if progress.exists():

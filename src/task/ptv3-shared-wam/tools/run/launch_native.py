@@ -24,6 +24,9 @@ def main():
     p.add_argument("--deadline-seconds", type=int, default=600)
     p.add_argument("--experiment-card", type=Path)
     p.add_argument("--smoke", action="store_true", help="engineering execution, at most16 controls")
+    p.add_argument("--sequence", help="required exact corpus record for RL660 checkpoints")
+    p.add_argument("--retargeter", type=Path, help="compatible R-only eight-action candidate")
+    p.add_argument("--preflight-only", action="store_true", help="validate inputs and R on CPU without starting GPU peers")
     a = p.parse_args()
     out = a.output.resolve()
     if (out.exists() or ROOT / "outputs/ptv3-shared-wam" not in out.parents
@@ -42,13 +45,35 @@ def main():
         experiment = yaml.safe_load(card.read_text().split("---", 2)[1])
         if experiment.get("task") != TASK.name or a.seed not in experiment.get("seeds", []):
             raise ValueError("task and assigned rollout seed must match the card")
-    if subprocess.check_output(["nvidia-smi", "-i", str(a.gpu), "--query-compute-apps=pid",
-                                "--format=csv,noheader"], text=True).strip():
-        raise RuntimeError("GPU occupied before execution")
     from ptv3_shared_wam.checkpoint import directory_bytes, load_checkpoint
     packet = load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
+    from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
+    selected = resolve_native_inputs(packet, a.sequence)
+    if (packet["config"].get("action_objective") == "control-aware-first.v1"
+            and a.execution_steps != 1):
+        raise ValueError("first-control objective requires explicit execution-steps=1")
+    if a.retargeter:
+        from ptv3_shared_wam.native_inputs import load_execution_retargeter
+        candidate=load_execution_retargeter(packet, a.retargeter)
+        if candidate.first_only and a.execution_steps != 1:
+            raise ValueError("R-only first-control repair must first be evaluated with execution-steps=1")
+    arrays = load_native_arrays(selected)
+    if selected["kind"] == "rl660":
+        if "motion" not in selected:
+            raise ValueError("RL660 native execution requires a resolved geometric motion")
+        if a.controls + 24 > len(arrays["oracle"]):
+            raise ValueError("controls must leave a complete 24-step oracle horizon")
+    if a.preflight_only:
+        print(json.dumps(dict(status="PREFLIGHT_PASS", native_input=selected,
+                             retargeter_override=str(a.retargeter.resolve()) if a.retargeter else None,
+                             execution_steps=a.execution_steps, controls=a.controls,
+                             scope="CPU input/weight contract only; physics untested")))
+        return
+    if subprocess.check_output(["nvidia-smi", "-i", str(a.gpu), "--query-compute-apps=pid",
+                                "--format=csv,noheader"], text=True).strip():
+        raise RuntimeError("GPU occupied before execution")
     if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
         raise RuntimeError("shared400GB storage budget reached")
     out.mkdir(parents=True)
@@ -60,9 +85,15 @@ def main():
         raise ValueError("project socket address too long")
     checkpoint = a.checkpoint.resolve()
     common = ["--checkpoint", str(checkpoint), "--gpu", str(a.gpu), "--controls", str(a.controls)]
+    if a.sequence:
+        common.extend(["--sequence", a.sequence])
+    if a.retargeter:
+        common.extend(["--retargeter", str(a.retargeter.resolve())])
     status = dict(status="STARTING", checkpoint=str(checkpoint), controls=a.controls,
                   execution_steps=a.execution_steps, physical_gpu=a.gpu, seed=a.seed,
                   scratch=str(scratch), engineering_only=engineering)
+    status["native_input"] = selected
+    status["retargeter_override"] = str(a.retargeter.resolve()) if a.retargeter else None
     def write():
         from ptv3_shared_wam.checkpoint import atomic_json
         atomic_json(out / "group_status.json", status)
@@ -79,7 +110,7 @@ def main():
             raise RuntimeError("execution artifacts exceed1GB")
     try:
         for kind, python in (("server", "/home2/wyy/miniconda3/envs/graspenv/bin/python"),
-                             ("native", str(ROOT.parents[1] / ".runtime_envs/dexplore_v120_train/bin/python"))):
+                             ("native", "/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train/bin/python")):
             script = TASK / "tools/run" / ("policy_server.py" if kind == "server" else "execute_native.py")
             log = (out / (kind + ".log")).open("w"); handles.append(log)
             extra = [] if kind == "server" else ["--server-pid", str(processes[0].pid),

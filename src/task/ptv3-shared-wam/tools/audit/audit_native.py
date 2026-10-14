@@ -42,6 +42,32 @@ def audit(path):
     query_ticks = ticks - ticks % steps
     check("query_tick", d["query_tick"], np.repeat(query_ticks[:, None], 2, axis=1))
     check("chunk_index", d["chunk_index"], np.repeat((ticks % steps)[:, None], 2, axis=1))
+    representation=manifest.get('action_representation','native-command.v1')
+    if representation!='native-command.v1':
+        check('physical_query_q',d['R_query_q'],d['q'][query_ticks,1:])
+        target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]
+        desired=target+d['R_query_q'][...,ACTIVE]
+        if representation=='wrist-geometry-relative-current.v1':
+            from scipy.spatial.transform import Rotation
+            current=Rotation.from_euler('XYZ',d['R_query_q'][...,3:6].reshape(-1,3))
+            relative=Rotation.from_rotvec(target[...,3:6].reshape(-1,3))
+            # Check physical orientation independently of the Euler branch used
+            # by the live controller. Generalized-coordinate roundtrip is a
+            # separate prerequisite for admitting this representation.
+            target_rotation=(current*relative).as_matrix()
+            live=d['q'][:-1,1:]
+            intended_pd=independent_pd(d['intended'][:,1:],live,manifest['native_controller'])
+            actual_rotation=Rotation.from_euler('XYZ',intended_pd[...,3:6].reshape(-1,3)).as_matrix()
+            check('geometry_buffer_orientation',actual_rotation,target_rotation)
+        elif representation!='pd-relative-current.v1':raise ValueError('unknown physical target units')
+        controller=manifest['native_controller'];live=d['q'][:-1,1:]
+        raw=(desired-np.asarray(controller['offset'])[ACTIVE])/np.asarray(controller['scale'])[ACTIVE]
+        raw[...,:6]=(desired[...,:6]-live[...,:6]-np.asarray(controller['offset'])[:6])/np.asarray(controller['scale'])[:6]
+        raw[...,6:]=raw[...,6:]*2-1
+        if representation=='pd-relative-current.v1':check('query_frozen_target_to_live_command',d['intended'][:,1:,ACTIVE],raw)
+        else:
+            check('geometry_buffer_position',d['intended'][:,1:,:3],raw[...,:3])
+            check('geometry_buffer_fingers',d['intended'][:,1:,ACTIVE][...,6:],raw[...,6:])
     past = np.maximum(query_ticks[:, None] + np.arange(-3, 1), 0)
     check("own_H4_hand_at_query", d["wam_hand_history"], d["hand"][past, 2])
     check("own_H4_object_at_query", d["wam_object_history"], d["obj"][past, 2])
@@ -54,8 +80,23 @@ def audit(path):
     packet = torch.load(manifest["checkpoint"], map_location="cpu", weights_only=False)
     if packet.get("schema") != manifest["schema"] or packet.get("stage") != "robot":
         raise ValueError("matching robot checkpoint metadata required")
-    with np.load(packet["provenance"]["reference"], allow_pickle=False) as stream:
-        reference = stream["obj"].copy()
+    selected = manifest.get("native_input", {})
+    if selected.get("kind") == "rl660":
+        source = Path(packet["provenance"]["source"]).resolve()
+        corpus = json.loads((source / "manifest.json").read_text())
+        records = [r for r in corpus["records"] if r["sequence"] == selected["sequence"]]
+        if len(records) != 1:
+            raise ValueError("native audit requires one exact original corpus record")
+        folder = (source / records[0]["path"]).resolve()
+        if source not in folder.parents or str(folder / "trajectory.npz") != selected["trajectory"]:
+            raise ValueError("native audit sequence path differs from original corpus")
+        if selected["object"] != records[0]["object"]:
+            raise ValueError("native audit object differs from selected sequence")
+        with np.load(folder / "trajectory.npz", allow_pickle=False) as stream:
+            reference = stream["reference_obj"].copy()
+    else:
+        with np.load(packet["provenance"]["reference"], allow_pickle=False) as stream:
+            reference = stream["obj"].copy()
     check("planned_goal_at_query", d["wam_goal"], reference[np.minimum(query_ticks + 24, len(reference) - 1)])
     passive = [i for i in range(18) if i not in ACTIVE]
     check("passive_commands_zero", d["applied"][:, 1:, passive], np.zeros_like(d["applied"][:, 1:, passive]))
