@@ -5,7 +5,7 @@ experiment_id: P-20261014-ptv3-shared-rl660-joint
 date: 2026-10-14
 task: ptv3-shared-wam
 branch: main
-git_commit: 59a31268
+git_commit: b22978c1
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-rl660-joint
 probe_index_in_family: 1
@@ -14,12 +14,12 @@ seeds: [124]
 decision_changed_if_positive: evaluate the jointly adapted forecaster and Chunk-R on held-out complete robot motions
 decision_changed_if_negative: distinguish teacher data quality and retargeter mismatch before changing the shared architecture
 status: RUNNING
-run_id: rl660-joint-20261014-r1
+run_id: rl660-joint-large-20261014-r1
 ---
 
 # 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调
 
-Result: RUNNING. 全660条/50类同执行补录及逐序列审核完成；固定质量门准入122685/150497个窗口，每条序列均有准入。自训练38k初始化的WAM+新Chunk-R已在GPU5/7启动global256、20000步联合微调；尚未获得闭环抓取结果。
+Result: RUNNING. 660条/50类补录审核完成；原小模型在完整1000步后保留并停止。容量扩展到101636370参数、global512，初始预测保持与短更新稳定性门通过；大模型新phase19000步已在GPU5/7启动。
 Decision: 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。
 
 Class: Decision. 服务于自训练机器人执行底座与可用交互预测。检验固定共享goal架构
@@ -200,3 +200,15 @@ curve比较；按相同64个dev窗口复算，区分样本选择与扩容更新�
   继承原1000步model/已学R，optimizer按新分组重新初始化，新phase19000步；
   max_seconds80000扣除已用时间和工程余量，checkpoint不留10k milestone，
   仅保护best/latest以维持4GB单run预算。原三域38k和机器人1000权重不覆盖。
+
+### 大模型正式运行启动
+
+`rl660-joint-large-20261014-r1`已由监督器PID3344258启动，code b22978c1。
+从原robot step1000重新迁移，未使用engineering checkpoints；全WAM+已有R继续
+联合学习，optimizer按新分组重置。新phase步数0–19000，原phase1000步另计。
+source/frame/准入/split不变。大模型双卡检查约1.7秒/步，预计9小时上下；
+实际吞吐与GPU平均负载将在前40步后更新，不能再沿用小模型3–4小时估计。
+
+正式大模型step100观测：1.466秒/update、349.2samples/s、data wait5.98ms，peak allocated10096MiB，physical11141/11197MiB。按当时进度剩余7.70小时；比工程检查更快，预留验证/保存按8–9小时更新。所有关键初始梯度合同通过、loss/梯度有限。
+
+18秒、每卡10次稳态采样：GPU5平均94.7%（74–100%），GPU7平均93.4%（65–100%）；物理占用11141/11197MiB。该负载测量仅用于工程资源判断。

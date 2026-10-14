@@ -440,7 +440,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 全660条/50类同执行补录及逐序列审核完成；固定质量门准入122685/150497个窗口，每条序列均有准入。自训练38k初始化的WAM+新Chunk-R已在GPU5/7启动global256、20000步联合微调；尚未获得闭环抓取结果。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 660条/50类补录审核完成；原小模型在完整1000步后保留并停止。容量扩展到101636370参数、global512，初始预测保持与短更新稳定性门通过；大模型新phase19000步已在GPU5/7启动。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
 
 ## HF-ptv3-shared-task-forecaster
 
@@ -627,6 +627,12 @@
 | [P-20261010-learned-retargeter-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-learned-retargeter-inverse.md) | Can actual future hand motion supervise a trajectory-dependent native retargeter? | 见原卡 | 见原卡 | probes/UNCLEAR |
 | [P-20261010-retargeter-local-motion](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-local-motion.md) | Can action-aligned local hand motion improve native inverse precision? | `UNCLEAR` — local-motion improves offline τ usage, but the fixed native-precision screen still fails. | retain the local-motion evidence as `UNCLEAR`, close this fixed Probe, | probes/UNCLEAR |
 | [P-20261010-retargeter-step-inverse](../../src/task/trajectory-policy/docs/experiments/probes/P-20261010-retargeter-step-inverse.md) | Does an observable local wrist inverse explain the native control precision gap? | 见原卡 | 见原卡 | probes/UNCLEAR |
+
+## HF-unidexgrasp-rigid-admission
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | RUNNING. 已定位官方仓库自带单物体样例，待实读抓取标注、尺度mesh和手部FK。 | 按用户授权暂停Open-AoE后续接入，先用UniDexGrasp自带样例检验几何与数据类型；不下载整库、不启动训练。 | probes/RUNNING |
 
 ## HF-video-data-readiness
 
