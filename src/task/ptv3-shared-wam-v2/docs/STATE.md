@@ -17,6 +17,9 @@ continuous-lift 编码；本地 checkpoint 的 4-step engineering smoke 已通�
 每60秒记录 progress/GPU/磁盘，8GB本run产物预算与20GiB可用空间安全线均独立于
 已由用户解除的旧400GB总上限。远端状态缓存仍停在 step33520，不能据此伪造
 最新 parent；需等 SSH 恢复后按 registry、稳定 hash 和 checkpoint 元数据验收。
+04:07 CST 复核显示 `tailscale whois 100.64.0.23` 为 `peer not found`，本机
+Tailscale netcheck 亦无可用 UDP/DERP；因此当前阻塞是远端网络/Windows 转发状态，
+不是本地微调代码或 GPU 资源问题。
 
 2026-10-14：本地1000步Probe已完成，局部PROMISING。固定三域dev的hand_all24
 从29.72/123.10/63.58降到23.83/87.16/55.14mm；scene在GRAB/ARCTIC改善，
