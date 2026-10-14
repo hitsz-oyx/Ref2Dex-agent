@@ -1,5 +1,18 @@
 # PTv3-Shared-WAM v2 当前状态
 
+## 2026-10-15 q 三维合同与远端 WAM 适配
+
+RL660 reference-q raw replay 与 nearest-live branch follow-up 均通过独立
+command/PD/clock 审计，但 q_ref 直接执行仍为 UNPROMISING 信号（全程手/物体
+误差大、held=0；整体 audit 因 native 短回放门保持 UNCLEAR），因此没有把 q_ref
+改成监督标签。新 v2 adapter 位于 `src/task/ptv3-shared-wam-v2`，每个窗口显式
+保存 `q_ref_next`、`q_pd`、`q_real/q_real_next`，动作损失只使用 q_pd 的
+continuous-lift 编码；本地 checkpoint 的 4-step engineering smoke 已通过，
+13 项 v2 合同测试通过。远端 v2 80k checkpoint 尚未能读取：反向 SSH
+`127.0.0.1:22023` connection refused，直连 `100.64.0.23:22` timeout；因此
+两卡科学微调尚未启动，不将本地 smoke 冒充远端结果。GPU4/6 保留给远端父权重
+到达后的两卡启动，GPU5/7 既有 geometry-lift 运行不改动。
+
 2026-10-14：本地1000步Probe已完成，局部PROMISING。固定三域dev的hand_all24
 从29.72/123.10/63.58降到23.83/87.16/55.14mm；scene在GRAB/ARCTIC改善，
 OakInk2略差。best/latest为step1000，不能据此形成抓取或Cm增益结论。
