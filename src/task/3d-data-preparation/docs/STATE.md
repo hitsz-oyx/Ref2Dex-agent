@@ -1,3 +1,10 @@
+## 原生HOI4D GPU处理 Decision Note（2026-10-14）
+
+- 授权/资源：用户要求继续处理并允许使用空闲GPU。已核验本地4/6空闲、5/7和远端0/2为既有训练；HOI4D用GPU4、TACO保留GPU6，全部项目最多六卡。
+- 决策/证据：先缓存全部1,858段手部原生MANO/FK到相机系21点，保存原生frame ID、参数、2D重投影和缺失mask；3段真实GPU smoke及原始投影检查通过。随后按真实文件名把rigid物体RT、米制CAD和raw LOG camera_to_world接入原生序列。
+- 实质限制：官方decode固定15fps，但300帧对应action.duration10s/20s均实际存在；当前不假装全量30Hz、不静默插值，原生缓存与未准入pose数据先独立保存。内部frameId含关键帧编号，配对只使用文件名数值，原字段保留审计。CAD不减顶点均值、不盲乘bbox尺寸。
+- 成本/停止条件：GPU4单worker、CPU4线程、2h期限、20GiB物理余量、STOP序列边界；不生成视频、不改已有训练。失败序列留ledger，不把cache误纳入统一30Hz训练集。TACO残余下载用已实测更快的远端HTTP线路补齐后再GPU转换。
+
 # 原生3D数据接入状态
 
 ## HOI4D Windows 取数 Decision Note（2026-10-14）
