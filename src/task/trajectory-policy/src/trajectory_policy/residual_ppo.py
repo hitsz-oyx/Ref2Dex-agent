@@ -79,6 +79,28 @@ def residual_reward(distance, previous_distance, gap, lift, supported, previous_
     return reward, held, terms
 
 
+def rollout_bootstrap(value_net, final_observation, done):
+    """Value the actual post-control state; only real terminals have zero value."""
+    with torch.no_grad():
+        value = value_net(final_observation)
+    if value.shape != done.shape or not torch.isfinite(value).all():
+        raise ValueError('finite final value for each environment required')
+    return torch.where(done.bool(), torch.zeros_like(value), value)
+
+
+def residual_execution_stats(base, delta, applied, alpha=ALPHA):
+    active = base[..., list(ACTIVE)]
+    intended = active + alpha * delta
+    executed = applied[..., list(ACTIVE)]
+    axes = tuple(range(delta.ndim - 1))
+    return dict(
+        saturation_by_dof=(intended - executed).abs().gt(1e-6).float().mean(axes).tolist(),
+        positive_margin_by_dof=(1 - active.clamp(-1, 1)).mean(axes).tolist(),
+        negative_margin_by_dof=(1 + active.clamp(-1, 1)).mean(axes).tolist(),
+        applied_residual_rms=float((executed - active.clamp(-1, 1)).square().mean().sqrt()),
+    )
+
+
 class ResidualActor(nn.Module):
     """Zero-mean start, so the first sample stays near the frozen base action."""
 
@@ -110,7 +132,7 @@ class ResidualValue(nn.Module):
 
 
 def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer,
-           gamma=0.99, gae_lambda=0.95, target_kl=0.02, epochs=4):
+           gamma=0.99, gae_lambda=1.0, target_kl=0.02, epochs=4):
     """PPO on the 12 residual coordinates. One control is one action."""
     reward, value, done = (batch[key] for key in ('reward', 'value', 'done'))
     duration = torch.ones_like(done, dtype=torch.long)
@@ -149,9 +171,11 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer,
             if kl <= target_kl:
                 accepted = True
                 break
+            next_rates = [group['lr'] * 0.25 for group in actor_optimizer.param_groups]
             actor.load_state_dict(state)
             actor_optimizer.load_state_dict(optimizer_state)
-            actor_optimizer.param_groups[0]['lr'] *= 0.25
+            for group, rate in zip(actor_optimizer.param_groups, next_rates):
+                group['lr'] = rate
         if not accepted:
             break
         actor_steps += 1
@@ -164,6 +188,12 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer,
         value_loss.backward()
         torch.nn.utils.clip_grad_norm_(value_net.parameters(), 1.)
         value_optimizer.step()
+    with torch.no_grad():
+        target_variance = target.var(unbiased=False)
+        explained_variance = (1 - (target - value_net(obs)).var(unbiased=False) / target_variance
+                              if target_variance > 1e-8 else torch.zeros_like(target_variance))
     return dict(actor_steps=actor_steps, policy_loss=policy_loss, value_loss=float(value_loss.detach()),
                 joint_action_kl=kl, behavior_logprob_error=replay_error,
+                value_explained_variance=float(explained_variance),
+                bootstrap_mean=float(bootstrap.mean()), gae_lambda=gae_lambda,
                 actor_lr=actor_optimizer.param_groups[0]['lr'])

@@ -6,6 +6,7 @@ on the airplane outcome, not on an expert action.
 import argparse
 import json
 import os
+import random
 from pathlib import Path
 import signal
 import socket
@@ -21,14 +22,14 @@ OLD = ROOT / 'src/task/consequence-evaluator'
 RUNTIME = Path('/home2/wyy/oyx_ws/.runtime_envs/dexplore_v120_train')
 GRASPENV = '/home2/wyy/miniconda3/envs/graspenv/bin/python'
 EXP = 'P-20261013-wam-residual-ppo'
-RUN = 'wam-ref2-execution-rppo-20261013-r5'
+RUN = 'wam-ref2-execution-rppo-20261014-r6'
 HEAD = ROOT / 'outputs/trajectory-policy/wam-ref2-joint-multitakeover-20261012-r1'
 CHUNK = ROOT / 'outputs/trajectory-policy/wam-v2-control-fit-20261012-r1'
 EFFECT = ROOT / 'outputs/goal-point-wam/wam-effect-ddp-20261013-r3/train/checkpoint_step50500.pt'
 CONTROL = ROOT / 'outputs/goal-point-wam/wam-control-context-20261013-r3/stage2_step4500.pt'
 N = 4
-DIAGNOSTIC = 64
-UPDATES = 200
+DIAGNOSTIC = 96
+UPDATES = 20
 ROLLOUT = 96
 DEADLINE_S = 14400
 ACTOR_LR = 3e-4
@@ -36,9 +37,9 @@ EVAL = 542
 PHASES = (0, 32, 48, 62)
 
 
-def rpc_budget(updates):
+def rpc_budget(updates, envs=N):
     """One packet per control step. The server counts RPCs, not environments."""
-    return DIAGNOSTIC + updates * ROLLOUT + EVAL
+    return ((len(PHASES) + envs - 1) // envs) * DIAGNOSTIC + updates * (ROLLOUT + 1) + EVAL
 sys.path[:0] = [str(TASK / 'src'), str(TASK / 'tools/audit'), str(TASK / 'tools/run')]
 from audit_wam_ref2_shadow import sha, write
 from trajectory_policy.wam_ipc import SCHEMA, send, receive, peer_pid
@@ -46,9 +47,9 @@ from collect_competent_pd import OFFICIAL, OFFICIAL_SHA, gpu_state
 
 
 def window(rows, env):
+    if len(rows) < 4:
+        raise ValueError('phase context must contain three real past measurements and current state')
     frames = [row[env] for row in rows]
-    while len(frames) < 4:
-        frames.insert(0, frames[0])
     return np.stack(frames[-4:])
 
 
@@ -70,8 +71,8 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT / 'outputs/trajectory-policy' / RUN)
     args = parser.parse_args()
     if not 1 <= args.envs <= 16 or not 1 <= args.updates <= UPDATES:
-        raise ValueError('this probe stays within 16 envs and the declared 200 updates')
-    args.rpcs = rpc_budget(args.updates)
+        raise ValueError('correctness rerun stays within 16 envs and 20 updates')
+    args.rpcs = rpc_budget(args.updates, args.envs)
     if args.rpcs > 200000:
         raise ValueError('server query budget exceeded')
     out = args.output.resolve()
@@ -146,8 +147,9 @@ def run_native(args, out, address, server):
     from trajectory_policy.pd_retargeter import pd_from_action
     from trajectory_policy.residual_ppo import (
         ALPHA, ResidualActor, ResidualValue, apply_residual, object_distance, observation,
-        residual_reward, update,
+        residual_reward, rollout_bootstrap, residual_execution_stats, update,
     )
+    from trajectory_policy.residual_reset import reset_context
     from trajectory_policy.retargeter_data import ACTIVE, features
     from trajectory_policy.robot_context import control_context
     from trajectory_policy.wam_effect_admission import chunk_admission, effect_admission
@@ -161,17 +163,25 @@ def run_native(args, out, address, server):
     torch.manual_seed(296)
     actor = ResidualActor().cuda()
     value_net = ResidualValue().cuda()
+    actor_optimizer = torch.optim.Adam(actor.parameters(), lr=ACTOR_LR)
+    value_optimizer = torch.optim.Adam(value_net.parameters(), lr=1e-3)
     resume_updates = 0
+    resumed = None
     if args.resume is not None:
         resumed = torch.load(args.resume, map_location='cuda:0')
-        if resumed.get('schema') != 'ref2dex.wam-residual-ppo.v1' or 'actor' not in resumed or 'value' not in resumed:
-            raise ValueError('residual checkpoint schema differs')
+        if (resumed.get('schema') != 'ref2dex.wam-residual-ppo.v2'
+                or resumed.get('alpha') != ALPHA or resumed.get('phases') != list(phases)
+                or any(key not in resumed for key in ('actor_optimizer', 'value_optimizer', 'rng', 'prefix'))):
+            raise ValueError('v2 complete training state with matching phase layout required; v1 is only a warm start')
         actor.load_state_dict(resumed['actor'])
         value_net.load_state_dict(resumed['value'])
-        resume_updates = int(resumed.get('update', 0))
-        del resumed
+        actor_optimizer.load_state_dict(resumed['actor_optimizer'])
+        value_optimizer.load_state_dict(resumed['value_optimizer'])
+        resume_updates = int(resumed['update'])
     actor_initial = {key: item.detach().clone() for key, item in actor.state_dict().items()}
     torch.manual_seed(292)
+    random.seed(296)
+    np.random.seed(296)
     noise = torch.Generator(device='cuda')
     noise.manual_seed(296)
     run_dir = ROOT / 'outputs/consequence-evaluator/baseline-transfer-s3-20261007-r2/airplane_base'
@@ -209,7 +219,7 @@ def run_native(args, out, address, server):
         raise ValueError('WAM inference peer identity differs')
     started = time.monotonic()
     queries = 0
-    manifest = dict(schema='ref2dex.wam-residual-ppo.v1', status='RUNNING', seed=292,
+    manifest = dict(schema='ref2dex.wam-residual-ppo.v2', status='RUNNING', seed=292,
                     ppo_seed=296, physical_gpu=args.gpu, experiment_id=EXP, run_id=out.name,
                     alpha=ALPHA, phases=list(phases), envs=N, queries=QUERIES, updates=UPDATES,
                     resume_updates=resume_updates,
@@ -221,6 +231,10 @@ def run_native(args, out, address, server):
                     server_pid=server.pid, native_pid=os.getpid(),
                     retargeter_identity=r_identity, effect_identity=effect_identity,
                     control_identity=control_identity)
+    manifest.update(gae_lambda=1., gamma=0.99, bootstrap='V(actual post-control observation), terminal masked',
+                    reset_context='measured teacher prefix; current reset includes declared noise',
+                    residual_parameterization='Gaussian latent; clip(base + alpha * latent)',
+                    active_dofs=list(ACTIVE), checkpoint='optimizer, RNG, prefix and update state')
     write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
@@ -271,7 +285,37 @@ def run_native(args, out, address, server):
                             obj=poses(task._target_states), velocity=task._target_states[:, 7:13].clone(),
                             surface_gap=gap, support_gap=sup, table_footprint=foot)
 
-            def place(frames):
+            # Capture an actual, bounded teacher prefix once. Restoring a
+            # demonstration q alone cannot reconstruct measured H4/actions.
+            teacher_rows = []
+            teacher_actions = []
+            teacher_snapshots = []
+            obs = self.env_reset(torch.arange(N, device=task.device))
+            for tick in range(max(PHASES) + 1):
+                teacher_rows.append({key: item.detach().cpu().numpy().copy() for key, item in measure().items()})
+                teacher_snapshots.append({key: item.detach().cpu().numpy().copy() for key, item in dict(
+                    q=task._dof_pos, dq=task._dof_vel, root=task._humanoid_root_states,
+                    target=task._target_states, table=task._table_states).items()})
+                if tick == max(PHASES):
+                    break
+                with torch.no_grad():
+                    raw = obs['obs'] if isinstance(obs, dict) else obs
+                    padded = raw.repeat((64 + N - 1) // N, 1)[:64]
+                    teacher = self.get_action(dict(obs=padded), True)[:N].clamp(-1, 1)
+                obs, _, done, _ = self.env_step(self.env, teacher.clone())
+                if done.any() or capture is None or not torch.equal(capture, teacher):
+                    raise ValueError('teacher prefix terminated or applied command differed')
+                teacher_actions.append(capture.detach().cpu().numpy().copy())
+            prefix = {key: np.stack([row[key] for row in teacher_rows]) for key in teacher_rows[0]}
+            prefix['applied'] = np.stack(teacher_actions)
+            prefix['snapshots'] = {key: np.stack([row[key] for row in teacher_snapshots])
+                                   for key in teacher_snapshots[0]}
+            if resumed is not None:
+                prefix = resumed['prefix']
+            np.savez_compressed(out / 'reset-prefix.npz', **{key: item for key, item in prefix.items() if key != 'snapshots'},
+                                **{'snapshot_' + key: item for key, item in prefix['snapshots'].items()})
+
+            def place(frames, perturb=True):
                 frames = torch.as_tensor(frames, dtype=torch.long, device=task.device)
                 ids = torch.arange(N, device=task.device)
                 task.ref_index[:] = 0
@@ -279,12 +323,13 @@ def run_native(args, out, address, server):
                 task.start_times[:] = frames
                 task._hist_obs[:] = 0
                 task.contact_reset[:] = 0
-                dof = task.hoi_refs[task.data_id, 0, frames, 119:119 + task.num_dof]
-                vel = task.hoi_refs[task.data_id, 0, frames, 119 + task.num_dof:119 + 2 * task.num_dof]
-                task._set_env_state(ids, dof, vel)
-                task._reset_target(ids)
-                task._dof_pos += (torch.rand(task._dof_pos.shape, device=task.device, generator=noise) - 0.5) * 0.02
-                task._target_states[:, 0:3] += (torch.rand(N, 3, device=task.device, generator=noise) - 0.5) * 0.01
+                selected = frames.cpu().numpy(), np.arange(N)
+                for key, destination in dict(q=task._dof_pos, dq=task._dof_vel, root=task._humanoid_root_states,
+                                             target=task._target_states, table=task._table_states).items():
+                    destination[:] = torch.as_tensor(prefix['snapshots'][key][selected], device=task.device)
+                if perturb:
+                    task._dof_pos += (torch.rand(task._dof_pos.shape, device=task.device, generator=noise) - 0.5) * 0.02
+                    task._target_states[:, 0:3] += (torch.rand(N, 3, device=task.device, generator=noise) - 0.5) * 0.01
                 bodies = task._rigid_body_state.view(N, -1, 13)
                 bodies[:, :task.num_bodies] = task_kinematics(task).states(
                     task._dof_pos, task._dof_vel, task._humanoid_root_states)
@@ -295,18 +340,18 @@ def run_native(args, out, address, server):
                 task._reset_env_tensors(ids)
                 task._compute_observations(ids)
 
-            def ask(logs, starts, step):
+            def ask(logs, history, previous, starts, step):
                 nonlocal queries
                 rows, refs, states = [], [], []
                 for env in range(N):
                     phase = int(min(int(starts[env]) + step, 542))
-                    obj = window(logs['obj'], env)
-                    hand = window(logs['hand'], env)
+                    obj = window(history['obj'], env)
+                    hand = window(history['hand'], env)
                     goal = reference['obj'][min(phase + 24, 542)]
                     ref = reference['obj'][np.minimum(phase + np.array([8, 16, 24]), 542)]
-                    previous = logs['applied'][-1][env] if logs['applied'] else np.zeros(18, np.float32)
+                    previous_action = previous[env].detach().cpu().numpy()
                     current = {key: logs[key][-1][env] for key in ('q', 'dq')}
-                    prop, robot_goal = control_context(current['q'], current['dq'], previous, obj[-1], ref)
+                    prop, robot_goal = control_context(current['q'], current['dq'], previous_action, obj[-1], ref)
                     state, _unused = features(
                         current['q'], current['dq'], hand[-1], obj[-1], logs['velocity'][-1][env],
                         np.broadcast_to(hand[-1], (24, 11, 3)))
@@ -349,12 +394,15 @@ def run_native(args, out, address, server):
                         raise ValueError('server chunk base disagrees with native R: ' + str(error))
                 return taus, np.stack(refs), bases
 
-            def command(current, tau, refs, previous, deterministic, base, zero_residual=False):
+            def make_observation(current, tau, refs, previous):
                 tau_tensor = torch.as_tensor(tau, device=task.device)
                 ref_tensor = torch.as_tensor(refs, device=task.device)
+                return observation(current['q'], current['dq'], previous, current['obj'], current['velocity'],
+                                   current['hand'], tau_tensor, ref_tensor)
+
+            def command(current, tau, refs, previous, deterministic, base, zero_residual=False):
                 base = torch.as_tensor(np.asarray(base, np.float32), device=task.device)
-                obs = observation(current['q'], current['dq'], previous, current['obj'], current['velocity'],
-                                  current['hand'], tau_tensor, ref_tensor)
+                obs = make_observation(current, tau, refs, previous)
                 with torch.no_grad():
                     distribution = actor.distribution(obs)
                     if zero_residual:
@@ -368,7 +416,7 @@ def run_native(args, out, address, server):
 
             def episode(steps, starts, deterministic, collect, zero_residual=False):
                 logs = {key: [] for key in ('q', 'dq', 'hand', 'obj', 'velocity', 'surface_gap',
-                                            'support_gap', 'table_footprint', 'applied', 'delta')}
+                                            'support_gap', 'table_footprint', 'applied', 'delta', 'base')}
                 rows = []
 
                 def record():
@@ -378,15 +426,24 @@ def run_native(args, out, address, server):
                     return current
 
                 current = record()
-                z0 = current['obj'][:, 2, 3].clone()
+                history, previous_np, z0_np = reset_context(
+                    prefix, starts, {key: current[key].detach().cpu().numpy() for key in ('obj', 'hand')})
+                previous = torch.as_tensor(previous_np, device=task.device)
+                z0 = torch.as_tensor(z0_np, device=task.device)
                 phase = torch.as_tensor([min(int(start), 542) for start in starts], device=task.device)
                 ref = torch.as_tensor(reference['obj'][phase.cpu().numpy()], device=task.device)
                 previous_distance = object_distance(current['obj'], ref)
-                previous_held = torch.zeros(N, dtype=torch.bool, device=task.device)
-                previous = torch.zeros(N, 18, device=task.device)
+                supported = current['table_footprint'] & (current['support_gap'].abs() <= 0.02)
+                _, previous_held, _ = residual_reward(
+                    previous_distance, previous_distance, current['surface_gap'], current['obj'][:, 2, 3] - z0,
+                    supported, torch.zeros(N, dtype=torch.bool, device=task.device),
+                    torch.zeros(N, 12, device=task.device))
+                np.savez_compressed(out / f'reset-{queries:06d}.npz', starts=np.asarray(starts),
+                                    object_history=np.stack(history['obj']), hand_history=np.stack(history['hand']),
+                                    previous=previous_np, z0=z0_np, previous_held=previous_held.cpu().numpy())
                 for step in range(steps):
                     before = time.monotonic()
-                    tau, refs, base = ask(logs, starts, step)
+                    tau, refs, base = ask(logs, history, previous, starts, step)
                     applied, obs, delta, logp, mean, std = command(
                         current, tau, refs, previous, deterministic, base, zero_residual=zero_residual)
                     if not torch.isfinite(applied).all():
@@ -400,7 +457,11 @@ def run_native(args, out, address, server):
                         raise ValueError('early reset invalidates the residual episode')
                     logs['applied'].append(applied.detach().cpu().numpy().copy())
                     logs['delta'].append(delta.detach().cpu().numpy().copy())
+                    logs['base'].append(base.copy())
                     nxt = record()
+                    for key in history:
+                        history[key].append(logs[key][-1])
+                        history[key] = history[key][-4:]
                     post = np.minimum(np.asarray(starts) + step + 1, 542)
                     distance = object_distance(
                         nxt['obj'], torch.as_tensor(reference['obj'][post], device=task.device))
@@ -414,7 +475,7 @@ def run_native(args, out, address, server):
                         rows.append(dict(observation=obs, delta=delta.detach(), reward=reward.detach(),
                                          value=value, done=done.detach(),
                                          logp=logp.detach(), mean=mean.detach(), std=std.detach(),
-                                         terms={key: float(item.mean()) for key, item in terms.items()}))
+                                         terms={key: item.detach().cpu().numpy() for key, item in terms.items()}))
                     previous_distance, previous_held, previous = distance, held, applied.detach()
                     current = nxt
                     if step == 0 or (step + 1) % 64 == 0 or step + 1 == steps:
@@ -423,19 +484,65 @@ def run_native(args, out, address, server):
                             raise RuntimeError('foreign GPU process during residual PPO')
                         print(json.dumps(dict(step=step + 1, steps=steps, rpcs=queries, queries=queries * N,
                                               elapsed_s=time.monotonic() - started,
-                                              step_s=time.monotonic() - before, gpu=state)), flush=True)
-                return logs, rows
+                                              step_s=time.monotonic() - before,
+                                              eta_s=(time.monotonic() - started) / max(queries, 1) * (QUERIES - queries),
+                                              gpu=state)), flush=True)
+                bootstrap = None
+                if collect:
+                    # A new WAM query is required: V sees the real s_T plan,
+                    # measured H4, previous command and planned goals at T.
+                    tau, refs, _base = ask(logs, history, previous, starts, steps)
+                    final_obs = make_observation(current, tau, refs, previous)
+                    bootstrap = rollout_bootstrap(value_net, final_obs, done)
+                    global_update = resume_updates + len(metrics) + 1
+                    np.savez_compressed(out / f'bootstrap{global_update:04d}.npz',
+                                        observation=final_obs.cpu().numpy(), bootstrap=bootstrap.cpu().numpy(),
+                                        done=done.cpu().numpy(), phases=np.asarray(starts),
+                                        q=current['q'].cpu().numpy(), dq=current['dq'].cpu().numpy(),
+                                        previous=previous.cpu().numpy(), obj=current['obj'].cpu().numpy(),
+                                        hand=current['hand'].cpu().numpy(), velocity=current['velocity'].cpu().numpy(),
+                                        tau=tau, refs=refs,
+                                        reward=np.stack([row['reward'].cpu().numpy() for row in rows]),
+                                        value=np.stack([row['value'].cpu().numpy() for row in rows]))
+                    torch.save(value_net.state_dict(), out / f'bootstrap-value{global_update:04d}.pt')
+                return logs, rows, bootstrap
 
-            logs, _rows = episode(DIAGNOSTIC, [0] * N, True, False, zero_residual=True)
-            gaps = np.stack(logs['surface_gap'][1:])
-            diagnostic_gap = float(gaps.min())
+            diagnostics = []
+            for group in range((len(PHASES) + N - 1) // N):
+                starts = [PHASES[(group * N + env) % len(PHASES)] for env in range(N)]
+                place(starts, perturb=False)
+                logs, _rows, _ = episode(DIAGNOSTIC, starts, True, False, zero_residual=True)
+                packed = {key: np.stack(item) for key, item in logs.items()}
+                np.savez_compressed(out / f'diagnostic{group}.npz', phases=np.asarray(starts), **packed)
+                for env, phase in enumerate(starts):
+                    diagnostics.append(dict(phase=phase, env=env,
+                        min_gap_m=float(packed['surface_gap'][1:, env].min()),
+                        held_fraction=float(np.mean((packed['surface_gap'][1:, env] <= 0.01)
+                            & ~(packed['table_footprint'][1:, env] & (np.abs(packed['support_gap'][1:, env]) <= 0.02))
+                            & (packed['obj'][1:, env, 2, 3] - prefix['obj'][0, env, 2, 3] >= 0.03)))))
+            diagnostic_gap = min(item['min_gap_m'] for item in diagnostics if item['phase'] == 0)
+            manifest['phase_diagnostics'] = diagnostics
             manifest['diagnostic_min_gap_m'] = diagnostic_gap
             write(out / 'manifest.json', manifest)
             print(json.dumps(dict(diagnostic_min_gap_m=diagnostic_gap)), flush=True)
-            if diagnostic_gap > 0.03:
-                raise RuntimeError('zero-residual base lost the context contact; PPO not started')
-            actor_optimizer = torch.optim.Adam(actor.parameters(), lr=ACTOR_LR)
-            value_optimizer = torch.optim.Adam(value_net.parameters(), lr=1e-3)
+            if any(item['min_gap_m'] > 0.03 for item in diagnostics):
+                raise RuntimeError('zero-residual phase gate lost contact; PPO not started')
+            if resumed is not None:
+                rng = resumed['rng']
+                torch.set_rng_state(rng['torch'].cpu())
+                torch.cuda.set_rng_state_all([item.cpu() for item in rng['cuda']])
+                noise.set_state(rng['phase'].cpu())
+                np.random.set_state(rng['numpy'])
+                random.setstate(rng['python'])
+
+            def save_checkpoint(path, count):
+                torch.save(dict(schema='ref2dex.wam-residual-ppo.v2', update=count,
+                                actor=actor.state_dict(), value=value_net.state_dict(), alpha=ALPHA,
+                                actor_optimizer=actor_optimizer.state_dict(), value_optimizer=value_optimizer.state_dict(),
+                                phases=list(phases), prefix=prefix,
+                                rng=dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state_all(),
+                                         phase=noise.get_state(), numpy=np.random.get_state(), python=random.getstate())), path)
+
             for index in range(UPDATES):
                 # A KL reject may quarter the step size inside one update.
                 # The next update starts again at the declared rate.
@@ -443,11 +550,11 @@ def run_native(args, out, address, server):
                 # Each update is its own phase reset. Continuing the previous
                 # physics state walks off the end of the 543-frame clip.
                 place(phases)
-                _logs, rows = episode(ROLLOUT, phases, False, True)
+                _logs, rows, bootstrap = episode(ROLLOUT, phases, False, True)
                 batch = {key: torch.stack([row[key] for row in rows]) for key in
                          ('observation', 'delta', 'reward', 'value', 'done', 'logp', 'mean', 'std')}
-                result = update(actor, value_net, batch, torch.zeros(N, device=task.device),
-                                actor_optimizer, value_optimizer)
+                result = update(actor, value_net, batch, bootstrap,
+                                actor_optimizer, value_optimizer, gae_lambda=1.)
                 with torch.no_grad():
                     actor.log_std.clamp_(-5., -1.2)
                 global_update = resume_updates + index + 1
@@ -455,20 +562,28 @@ def run_native(args, out, address, server):
                               residual_rms=float(batch['delta'].square().mean().sqrt()),
                               elapsed_s=time.monotonic() - started, rpcs=queries, queries=queries * N,
                               reward_terms={key: float(np.mean([row['terms'][key] for row in rows]))
-                                            for key in rows[0]['terms']})
+                                            for key in rows[0]['terms']},
+                              residual_mean_by_dof=batch['delta'].mean((0, 1)).tolist(),
+                              residual_std_by_dof=batch['delta'].std((0, 1), unbiased=False).tolist(),
+                              phase_returns={str(phase): float(batch['reward'][:, [env for env, p in enumerate(phases)
+                                             if p == phase]].sum(0).mean()) for phase in set(phases)},
+                              phase_held_fraction={str(phase): float(np.mean([row['terms']['held'][env]
+                                             for row in rows for env, p in enumerate(phases) if p == phase]))
+                                             for phase in set(phases)},
+                              **residual_execution_stats(torch.as_tensor(np.stack(_logs['base']), device=task.device),
+                                  batch['delta'], torch.as_tensor(np.stack(_logs['applied']), device=task.device)))
                 metrics.append(result)
                 print(json.dumps(result), flush=True)
                 with (out / 'monitor.jsonl').open('a') as stream:
                     stream.write(json.dumps(result) + '\n')
-                if global_update % 25 == 0:
-                    torch.save(dict(schema='ref2dex.wam-residual-ppo.v1', update=global_update,
-                                    actor=actor.state_dict(), value=value_net.state_dict(), alpha=ALPHA),
-                               out / f'update{global_update:04d}.pt')
+                if global_update % 5 == 0:
+                    save_checkpoint(out / f'update{global_update:04d}.pt', global_update)
+            save_checkpoint(out / 'final.pt', resume_updates + UPDATES)
             self.env_reset(torch.arange(N, device=task.device))
             if (task.start_times != 0).any():
                 raise ValueError('frame0 evaluation reset required')
             actor.eval()
-            logs, _rows = episode(EVAL, [0] * N, True, False)
+            logs, _rows, _ = episode(EVAL, [0] * N, True, False)
             packed = {key: np.stack(logs[key]) for key in logs}
             np.savez_compressed(out / 'eval.npz', **packed)
             outcomes = []
@@ -491,8 +606,6 @@ def run_native(args, out, address, server):
                 raise ValueError('server query count drifted: ' + str(queries))
             change = float(torch.sqrt(sum((item - actor_initial[key]).square().sum()
                                           for key, item in actor.state_dict().items())))
-            torch.save(dict(schema='ref2dex.wam-residual-ppo.v1', actor=actor.state_dict(),
-                            value=value_net.state_dict(), alpha=ALPHA), out / 'final.pt')
             report = dict(status=conclusion, engineering_pass=True, diagnostic_min_gap_m=diagnostic_gap,
                           outcomes=outcomes, close_rise_m=close_rise, thrown=thrown,
                           eval_residual_rms=residual_rms, actor_parameter_change=change,
