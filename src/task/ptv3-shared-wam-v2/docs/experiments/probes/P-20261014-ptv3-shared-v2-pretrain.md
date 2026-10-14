@@ -81,6 +81,18 @@ metrics复用已审查的物理EPE与goal-only线性插值分组；normalized ob
   GPU4/6，global256、1000更新。输入、worker PID、统计、配置与初始化由manifest.json记录。
   旧Task660大模型训练继续，不把它的权重或optimizer混入v2。
 
+## 启动观察（固定step40快照）
+
+`startup_gpu_observation.json`保存连续30秒采样：GPU4/6均值83.2%/84.6%，物理显存
+峰值21423/20789MiB。rank0训练峰值分配14961MiB；最近20更新约1.067秒/update，
+global256约240样本/s，剩余960更新的纯训练ETA约17分钟，含dev/保存预计18–22分钟。
+数据workers完成初始化后loss/梯度有限，尚未到step250，不以训练loss报告效果。
+
+固定dev step0的hand_all24为OakInk2/GRAB/ARCTIC 29.72/123.10/63.58mm，
+scene_all24为3.59/69.99/51.35mm；后续只与相同固定面板的物理EPE比较。
+三域初始量级不同，normalized objective不作为v1/v2跨架构收益结论。
+监督器每30秒记录GPU，保护best/latest并在deadline/源码变化/外部进程等边界停止。
+
 ## Limitations / future evidence
 
 单seed、1000更新只用于可训练性与继续投入决策，不能形成机器人抓取/Cm收益结论。
