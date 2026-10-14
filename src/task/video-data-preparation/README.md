@@ -171,3 +171,11 @@ SAM2未来传播只在当前query固定后收到25帧RGB，以当前target和han
 远端scope：`/mnt/ugreen_nas/storage/oyx_storage/egodex-shared-batch-20261014-r1/`。
 首次预算为一个GPU、最多1小时处理/1000尝试窗口、2GiB输出和5GiB scratch。
 批量启动和审查结果以实验卡为准；本节不表示全量下载集已处理，也不自动启动训练。
+
+首个cohort已完成50段/441窗：74数值候选，1127.44秒；其中两个VAL候选经RGB审查均
+误选目标，未批准。r4抽查16窗批准5，独立 `approved-r4/` 为TRAIN5/VAL0。
+这与旧profile的r1 TRAIN7不相加、不合并重复窗口。第二个不重叠50段cohort已在GPU0
+运行，代码30b1e9a2，scope `batch-r5/`；当前输入解析保留全部目标修饰词、延期透明物体、
+使用修订颜色门。所有自动候选仍需视觉审查；不能把74或后续候选数量称为训练准入数量。
+NAS曾把新资产和split清单暴露为mode000；只恢复本任务这些确切输入，并补显式0644及
+启动前metadata检查。失败r2/r3保留，不影响原始数据或既有教师资产。

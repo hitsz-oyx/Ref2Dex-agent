@@ -125,7 +125,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-egodex-shared-real-processing](../../src/task/video-data-preparation/docs/experiments/probes/P-20261013-egodex-shared-real-processing.md) | 已下载 EgoDex 的 Shared-WAM 真实处理小探针 | UNCLEAR overall. 三个真实窗口完成，1/3 通过数值门；白色积木 32/32 endpoint 有效，位移中位数170mm；另两段在观察尺度标定处拒绝。只有 TRAIN=1、dev=0，不扩训。 | 保留真实数据处理与 Shared-WAM 接入；先修/区分尺度标定及时间 mask 覆盖问题，不直接扩大下载集处理或开始训练。 | probes/UNCLEAR |
-| [P-20261014-egodex-shared-batch-ingestion](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md) | 远端 Shared-WAM 批量接入 | PENDING. GPU0旧worker已正常退出，批量consumer由owned supervisor启动；等待首批准入和视觉审查。 | 保持现有几何门，先处理50个下载完整的简单命名刚体episode；自动候选审查后再冻结训练语料。 | probes/RUNNING |
+| [P-20261014-egodex-shared-batch-ingestion](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md) | 远端 Shared-WAM 批量接入 | UNCLEAR for automatic semantic admission. 首批50段/441窗完成，74数值候选；目标误选仍明显。r4抽查16窗批准5、拒绝10、延期1；两个VAL候选均误选。批量工程链路与Shared-WAM读取已跑通。 | 保持现有几何门，用完整对象修饰词、透明物体延期和修订颜色门处理第二个不重叠50段cohort；全部自动候选仍须审查，不训练或全量扩量。 | probes/RUNNING |
 
 ## HF-egotouch-pressure-contact
 
@@ -434,7 +434,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 已停止三域预训练并保留可用38k权重；两条真实补录通过命令/PD合同，完整660补录和联合微调准备中。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 已停止三域预训练并保留可用38k权重；双卡联合微调工程检查通过；全量补录r2已完成208/660，GPU4外部占用后已断点转5/7恢复。正式微调尚未启动。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
 
 ## HF-ptv3-shared-task-forecaster
 
