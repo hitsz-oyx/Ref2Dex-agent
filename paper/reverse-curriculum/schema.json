@@ -1,0 +1,22 @@
+{
+  "title": "Reverse Curriculum Generation for Reinforcement Learning",
+  "arxiv": "https://arxiv.org/abs/1707.05300",
+  "primary_pdf": "https://arxiv.org/pdf/1707.05300",
+  "authors": [
+    "Carlos Florensa",
+    "David Held",
+    "Markus Wulfmeier",
+    "Michael R. Zhang",
+    "Pieter Abbeel"
+  ],
+  "venue": "CoRL 2017",
+  "checked": "2026-10-14",
+  "related_task": "trajectory-policy",
+  "related_experiment": "P-20261014-wam-residual-curriculum",
+  "notes": [
+    "Grow the set of solvable starts outward from a successful region.",
+    "Judge progress on the original start distribution, not only curriculum starts.",
+    "Current probe uses measured teacher pre-hold states, not the paper Brownian state generator; no claim of reproducing the method.",
+    "Section 4 selects starts with intermediate success; Appendix A uses R_min=0.1 and R_max=0.9. Treat this as inspiration for frontier selection, not as thresholds validated for this grasp task."
+  ]
+}

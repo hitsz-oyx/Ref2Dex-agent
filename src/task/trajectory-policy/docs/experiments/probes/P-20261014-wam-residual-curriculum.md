@@ -107,3 +107,47 @@ joint-wise feasible action parameterization, actual frame0 visited-state
 curriculum, and baseline basin screen remain deferred unless this Probe makes
 them the next decision. CPU is used only for tiny contracts and file/label
 statistics; model inference and training use GPU.
+
+## Offline coverage / exploration checks
+
+`outputs/trajectory-policy/wam-ref2-execution-course-20261014-summary/state_coverage.json`
+compares r7's full frame0 evaluation to its measured teacher prefix. At the
+first tight contact (gap<=10 mm), the closest teacher hand pose over phases40–55
+still has28.6–60.0 mm hand-point RMS difference and .211–.326 rad active-finger
+RMS difference. The actual first-contact clocks are48/49/49/67, so matching only
+demonstration phase is also misleading. This suggests a teacher-start versus
+actual visited-state coverage gap; it does not prove that gap causes failure.
+
+Native controller scales make the initial Gaussian exploration physically
+uneven: alpha=.15 and std=exp(-2) imply20.3 mm wrist translation std per axis,
+about.064 rad wrist orientation std, .0162 rad for four finger coordinates,
+.0117 rad thumb yaw and .00558 rad thumb pitch. Thus a shared normalized alpha
+does not give equal physical exploration. No scale/std/reward changes were
+introduced into this A/B; authority diagnosis is a possible next decision.
+
+Zero-residual phase48 held fractions differ between the two native launches
+(A .406 vs B .760), despite the identical saved prefix. Its WAM query batch
+companions differ under the expanded diagnostic set, and GPU/PhysX trajectories
+are sensitive. The pair must not be used for a formal attribution of small
+curriculum effects. Original-start outcomes and broad learning trends are the
+decision signals, with independent audit still required after completion.
+
+## Decision Note: extend B from60 to100
+
+B's total40 frame0 evaluation has held0 on all copies. At total60 it still
+has held0, but close-range object rise reaches64.1 mm, versus the parent r7's
+1.27 mm, with all objects ultimately remaining on the table. Some support
+persists, so this is levering/partial lift, not a stable grasp. B's last20
+training trials have new_hold45 rates3/20 at48,9/20 at50 and12/20 at52.
+These are continuing acquisition signals, not evidence of convergence.
+
+Root chooses one further +40-update block on B, same contact course and all
+other settings, to total100. A remains the completed total60 budget/control
+comparison; do not present A60 versus B100 as a matched curriculum effect.
+Parent is B1 final.pt at60, with full Adam/RNG and the same measured prefix.
+Run `wam-ref2-execution-course-20261014-b2` on GPU6 after B1 exits and its
+engineering audit passes. Evaluate full frame0 at80/100, one GPU, same4-hour
+cap, expected15 minutes,5156 RPCs and<100 MiB output. Stop at100 or on the
+existing safety/contract abort conditions. If strict startup hold still does
+not appear, prioritize actual visited-contact state coverage/authority checks,
+rather than another unbounded teacher-course block. No new external boundary.
