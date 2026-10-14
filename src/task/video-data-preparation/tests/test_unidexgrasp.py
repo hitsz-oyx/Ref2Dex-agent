@@ -61,7 +61,8 @@ def test_future_intervention_changes_labels_and_task_goal_but_no_observations():
 def test_official_hit_endpoint_and_half_second_retention_are_separate():
     trajectory, _ = translating_trajectory()
     trajectory['goal'] = trajectory['object'][:, :3].copy()
-    trajectory['terminal_time'] = 199/60
+    trajectory['time'] += 1/60  # Official reset's zero-action warm step.
+    trajectory['terminal_time'] = 200/60
     row = dict(path='trajectory.npz', object_code='test', split='train',
                official_success=True, endpoint_within_5cm=True)
     retained = audit.proximity_record(trajectory, row)

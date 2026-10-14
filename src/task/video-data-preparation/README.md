@@ -79,8 +79,9 @@ TMPDIR="$PWD/tmp" PYTHONPATH="$PWD/tmp/video-data-preparation-deps" \
 ```
 
 审计检查全部实际窗口、20个对象的未来隔离和spawn双worker；另报累计命中、官方原始末帧
-距离、30Hz末采样距离和末0.5秒持续距离。距离合格不能当稳定抓持。原始末帧为199/60s，
-30Hz末采样为198/60s，报告显式分开这两个时钟。此入口只读数据、在CPU做文件/几何/统计。
+距离、30Hz末采样距离和末0.5秒持续距离。距离合格不能当稳定抓持。初始化warm step后
+首状态为1/60s，原始末帧为200/60s，30Hz末采样为199/60s；报告使用文件中的真实时间戳。
+此入口只读数据、在CPU做文件/几何/统计。
 全部窗口仍`training_allowed=false`；接入真实GPU模型工程检查、完整source准入和跨域
 训练收益尚待验证，结论/资源以[实验卡](docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md)为准。
 
