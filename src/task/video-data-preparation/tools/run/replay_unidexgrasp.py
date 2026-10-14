@@ -24,7 +24,7 @@ def worker(args):
     import numpy as np
     if 'float' not in np.__dict__:
         np.float = float
-    from isaacgym import gymapi, gymtorch
+    from isaacgym import gymapi, gymtorch, gymutil
     import torch
     import yaml
     from transforms3d.euler import euler2quat
@@ -94,6 +94,12 @@ def worker(args):
     sim.physx.num_subscenes = 0
     sim.physx.max_gpu_contact_pairs = 8*1024*1024
     sim.use_gpu_pipeline = True
+    # The public config overrides contact offsets, substeps and solver
+    # iterations. These are part of the trained policy's physical environment.
+    gymutil.parse_sim_config(cfg['sim'], sim)
+    write_json(args.output/'simulation-config.json', dict(dt=sim.dt,substeps=sim.substeps,
+        use_gpu_pipeline=sim.use_gpu_pipeline,physx={key:getattr(sim.physx,key)
+        for key in cfg['sim']['physx']},environment=cfg['env'],prepared_priors=len(row['object_init_z'])))
     write_json(args.output/'gpu-started.json', dict(time=time.time(), gpu=args.gpu))
     task = ShadowHandGrasp(cfg, sim, gymapi.SIM_PHYSX, 'cuda', 0, True)
     actor_layers = []

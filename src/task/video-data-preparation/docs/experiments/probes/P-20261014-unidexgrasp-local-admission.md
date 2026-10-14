@@ -121,3 +121,8 @@ extension/日志仍在新scope内，不修改其他缓存。后续扩物体需�
 r3在初始化暴露上游`../assets`硬编码：仅设置assetRoot不覆盖posedata读取。修复collector工作
 目录与已准备资产的相对关系后在r4重新执行，旧运行保留。r2/r3均未采到policy执行轨迹，
 不作为策略负结果；后续不为路径兼容改变物理或模型观察。
+
+r4采到两轮×8env×200frame，CUDA推理/同执行hand-object-action均有限，正式成功flag为0/16；
+但关键链路复核发现collector漏读官方cfg.sim（solver iterations/contact offset/substeps等）。
+这是实现缺陷，r4保留作采集工程证据，不能作为原policy负结果。按官方parse_sim_config
+修复后以同seed/对象/scale在r5重跑，不调整checkpoint、成功门或初始化。
