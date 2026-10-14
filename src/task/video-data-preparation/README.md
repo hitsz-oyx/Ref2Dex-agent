@@ -143,3 +143,31 @@ python -m pytest src/task/video-data-preparation/tests src/task/ptv3-shared-wam/
 真实小批量入口 [process_selected_windows.py](tools/run/process_selected_windows.py) 接收固定tick输入清单和annotations，逐阶段保存原始depth/track缓存及拒绝原因，适用于这类最多三窗的Probe。默认不自动扩量；通过数值门的刚性窗口才发布分片，软物体只作diagnostic。Omega的preprocess现在沿用其合法balanced/max_size默认接口。
 
 实际scope：`outputs/video-data-preparation/egodex-shared-real-processing-20261013-r1/`；四帧轨迹预览在 `visual-audit-r1/window-000000.jpg`，全时序覆盖在 `all-track-steps-10.jpg`。该快照只有TRAIN1/VAL0，尚不足启动训练；中间遮挡/插值mask覆盖和独立米制几何仍需审查，整体结论UNCLEAR。没有在远端启动额外GPU任务。
+
+## 远端有界批量接入（2026-10-14）
+
+用户已授权让一个远端 GPU 转入新线路。[批量接入实验卡](docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md)
+记录 GPU0 辅助重建进程的正常停止；下载、GPU3 主重建和 GPU1/2 辅助重建继续。
+
+[select_ready_cohort.py](tools/run/select_ready_cohort.py) 从 READY 中冻结最多50个简单、命名
+刚体 pick/place episode，每session最多3段；不复制原始数据、不使用未来物体运动挑选。
+[automatic_masks.py](src/video_data_preparation/automatic_masks.py) 用本地显式 Grounding DINO
+tiny 和 SAM2.1 tiny 资产，在当前 RGB 定位/分割目标并扣除手与前臂；候选面积、手邻近性、
+SAM质量及同分候选歧义门失败时拒绝。语言对象识别是保守小词表，暂不覆盖所有任务。
+SAM2未来传播只在当前query固定后收到25帧RGB，以当前target和hand mask初始化身份。
+尺度及原有几何门保持不变。
+
+自动窗口即使数值合格，也写入 `training_allowed=false` 的待审分片；`accepted`/`numeric_candidates`
+表示数值合格数量，`training_admitted` 单独计数。普通freeze和训练reader继续拒绝待审分片。
+[review_candidates.py](tools/audit/review_candidates.py) 生成同ID轨迹预览；具名审阅记录明确列出
+`shard,row,decision,reason` 后，可将批准窗口复制到新corpus并冻结快照，不修改原候选。
+
+[supervise_consumer.py](tools/run/supervise_consumer.py) 在独立scope启动一个owned consumer，
+每30秒记录GPU、显存、吞吐、拒绝原因、队列及ETA；外部硬限时含模型初始化。`STOP`文件
+或SIGTERM触发受控退出，90秒后仍未退出只终止该supervisor创建的child session。
+`fetch_mask_assets.py` 只向独立asset scope下载固定版本的模型和SAM2源码，不改生产环境。
+缺少的依赖使用scope-local packages；运行时HF离线，禁止隐式补下载。
+
+远端scope：`/mnt/ugreen_nas/storage/oyx_storage/egodex-shared-batch-20261014-r1/`。
+首次预算为一个GPU、最多1小时处理/1000尝试窗口、2GiB输出和5GiB scratch。
+批量启动和审查结果以实验卡为准；本节不表示全量下载集已处理，也不自动启动训练。

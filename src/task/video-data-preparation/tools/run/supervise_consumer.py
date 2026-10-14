@@ -27,6 +27,7 @@ def main():
     if not 60 <= args.seconds <= 7200 or scope == Path("/tmp") or Path("/tmp") in scope.parents:
         raise ValueError("owned scope and bounded deadline required")
     scope.mkdir(parents=True, exist_ok=True)
+    (scope/"tmp").mkdir(exist_ok=True)
     if (scope/"supervisor.json").exists():
         raise FileExistsError("fresh supervisor scope required")
     config = json.loads(args.config.read_text())

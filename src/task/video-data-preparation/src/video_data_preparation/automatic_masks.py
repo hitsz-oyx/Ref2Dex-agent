@@ -19,7 +19,8 @@ from .io import atomic_json
 
 def target_phrase(description):
     text = description.lower().strip()
-    prefix = re.split(r"\b(?:into|onto|inside|and (?:put|place)|then (?:put|place))\b", text)[0]
+    # Source/destination containers must never replace an unsupported object.
+    prefix = re.split(r"\b(?:from|off|with|out of|into|onto|inside|and (?:put|place)|then (?:put|place))\b", text)[0]
     if re.search(r"\b(?:cloth|towel|sponge|scrub|transparent|glass|plastic bag|paper|food)\b", prefix):
         raise ValueError("TARGET_UNSUPPORTED_MATERIAL")
     heads = r"lego(?: block| brick)?|mustard bottle|bottle|cup|mug|box|block|brick|can|bowl|container|toy"
