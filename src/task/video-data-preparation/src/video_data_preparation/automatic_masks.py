@@ -48,7 +48,7 @@ def choose_box(boxes, scores, hand_uv, shape):
         closest = np.maximum(np.maximum(box[:2]-hand_uv, hand_uv-box[2:]), 0)
         distance = float(np.linalg.norm(closest, axis=-1).min()) if len(hand_uv) else float("inf")
         if distance <= 180:
-            candidates.append(dict(box=box, score=float(score), rank=float(score)-.15*distance/max(h, w),
+            candidates.append(dict(box=box, score=float(score), rank=float(score)-.5*distance/90.,
                                    hand_distance_px=distance))
     candidates.sort(key=lambda x: x["rank"], reverse=True)
     if not candidates:
@@ -109,9 +109,22 @@ class GroundedSAMMasks:
         points = transform_points(native.hand[-1], np.linalg.inv(native.camera[-1]))
         projected = points @ native.intrinsic.T
         good = native.valid[-1] & (points[..., 2] > 0)
+        motion = []
+        for side in range(2):
+            supported = native.valid[:, side].all(0)
+            values = np.linalg.norm(native.hand[-1, side]-native.hand[0, side], axis=-1)
+            motion.append(float(np.median(values[supported])) if supported.sum() >= 3 else 0.)
+        active = int(np.argmax(motion))
+        # A clear already-observed interacting hand is a current-only prior.
+        # Weak/equal motion leaves both hands and ambiguity is rejected below.
+        if motion[active] >= .002 and motion[active] >= 2*(motion[1-active]+.0001):
+            good[1-active] = False
+        else:
+            active = None
         uv = projected[good, :2]/projected[good, 2:]
         boxes, scores = self._detect(rgb, phrase)
         choice = choose_box(boxes, scores, uv, rgb.shape[:2])
+        choice.update(observed_hand_motion_m=motion, observed_active_hand=active)
         hand_boxes, hand_scores = self._detect(rgb, "human hand . human forearm")
         with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
             self.image_model.set_image(rgb)

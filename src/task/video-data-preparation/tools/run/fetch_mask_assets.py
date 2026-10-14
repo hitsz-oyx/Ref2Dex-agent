@@ -54,6 +54,9 @@ def main():
                             if n > cap or total > 2*2**30 or time.monotonic() > deadline:
                                 raise RuntimeError("bounded asset download budget")
                             out.write(chunk)
+                expected = {"model.safetensors": 689359096, "sam2.1_hiera_tiny.pt": 156008466}.get(path.name)
+                if expected is not None and n != expected:
+                    raise ValueError("incomplete pinned binary asset: %d/%d" % (n, expected))
                 part.rename(path)
                 row = dict(path=str(path), bytes=n, source=url)
                 rows.append(row)

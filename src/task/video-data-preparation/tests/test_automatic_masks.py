@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
 import numpy as np
 import pytest
 
@@ -21,7 +24,7 @@ def test_target_language_does_not_select_destination():
 
 def test_separated_current_detections_fail_closed():
     boxes = np.array([[20, 20, 80, 80], [150, 20, 210, 80]], np.float32)
-    uv = np.array([[100, 50]], np.float32)
+    uv = np.array([[115, 50]], np.float32)
     with pytest.raises(ValueError, match="AMBIGUOUS"):
         choose_box(boxes, [.5, .49], uv, (360, 640))
     chosen = choose_box(boxes, [.7, .4], uv, (360, 640))
@@ -52,4 +55,15 @@ def test_future_hook_and_provisional_shards_never_become_trainable(tmp_path):
         freeze_snapshot(tmp_path, tmp_path/"snapshot.json", require_both=False)
     (tmp_path/"shards/a.json").unlink()
     assert recover_publications(tmp_path, "profile") == 1
+    assert not json.loads((tmp_path/"shards/a.json").read_text())["training_allowed"]
+    review = tmp_path/"review.json"
+    review.write_text(json.dumps(dict(reviewer="test-visual-review", rows=[dict(shard="a.h5", row=0,
+        decision="APPROVED", reason="current target and all four trajectory views checked")])) )
+    script = Path(__file__).resolve().parents[1]/"tools/audit/review_candidates.py"
+    approved = tmp_path/"approved"
+    subprocess.run([sys.executable, str(script), "--corpus", str(tmp_path), "--review", str(review),
+                    "--output", str(approved)], check=True, capture_output=True, text=True)
+    snapshot = json.loads((approved/"snapshot.json").read_text())
+    assert snapshot["counts"] == {"train": 1, "val": 0}
+    assert snapshot["shards"][0]["training_allowed"]
     assert not json.loads((tmp_path/"shards/a.json").read_text())["training_allowed"]
