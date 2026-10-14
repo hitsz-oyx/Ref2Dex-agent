@@ -35,15 +35,20 @@ DEADLINE_S = 14400
 ACTOR_LR = 3e-4
 EVAL = 542
 PHASES = (0, 32, 48, 62)
+CURRICULUM_EXP = 'P-20261014-wam-residual-curriculum'
+MAX_UPDATES = 100
 
 
-def rpc_budget(updates, envs=N):
+def rpc_budget(updates, envs=N, phases=PHASES, eval_every=0):
     """One packet per control step. The server counts RPCs, not environments."""
-    return ((len(PHASES) + envs - 1) // envs) * DIAGNOSTIC + updates * (ROLLOUT + 1) + EVAL
+    return query_budget(updates, envs, phases, eval_every, ROLLOUT, DIAGNOSTIC, EVAL)
 sys.path[:0] = [str(TASK / 'src'), str(TASK / 'tools/audit'), str(TASK / 'tools/run')]
 from audit_wam_ref2_shadow import sha, write
 from trajectory_policy.wam_ipc import SCHEMA, send, receive, peer_pid
 from collect_competent_pd import OFFICIAL, OFFICIAL_SHA, gpu_state
+from trajectory_policy.residual_curriculum import (
+    curriculum_phases, diagnostic_phases, query_budget, contact_hold_summary,
+)
 
 
 def window(rows, env):
@@ -68,11 +73,18 @@ def main():
     parser.add_argument('--envs', type=int, default=N)
     parser.add_argument('--updates', type=int, default=UPDATES)
     parser.add_argument('--resume', type=Path)
+    parser.add_argument('--curriculum', choices=('uniform', 'contact'), default='uniform')
+    parser.add_argument('--allow-curriculum-change', action='store_true')
+    parser.add_argument('--eval-every', type=int, default=0,
+                        help='additional training updates between full frame-0 evaluations; 0 means final only')
+    parser.add_argument('--experiment-id', choices=(EXP, CURRICULUM_EXP), default=EXP)
     parser.add_argument('--output', type=Path, default=ROOT / 'outputs/trajectory-policy' / RUN)
     args = parser.parse_args()
-    if not 1 <= args.envs <= 16 or not 1 <= args.updates <= UPDATES:
-        raise ValueError('correctness rerun stays within 16 envs and 20 updates')
-    args.rpcs = rpc_budget(args.updates, args.envs)
+    if not 1 <= args.envs <= 16 or not 1 <= args.updates <= MAX_UPDATES or args.eval_every < 0:
+        raise ValueError('bounded probe stays within 16 envs and 100 additional updates')
+    if args.allow_curriculum_change and args.resume is None:
+        raise ValueError('curriculum-change continuation requires a v2 parent checkpoint')
+    args.rpcs = rpc_budget(args.updates, args.envs, curriculum_phases(args.curriculum, args.envs), args.eval_every)
     if args.rpcs > 200000:
         raise ValueError('server query budget exceeded')
     out = args.output.resolve()
@@ -92,7 +104,7 @@ def main():
     server_log = (out / 'server.log').open('w')
     server = subprocess.Popen(
         [GRASPENV, str(server_script), '--gpu', str(args.gpu), '--controls', str(args.rpcs),
-         '--experiment-id', EXP, '--head-dir', str(HEAD), '--socket', str(address),
+         '--experiment-id', args.experiment_id, '--head-dir', str(HEAD), '--socket', str(address),
          '--output', str(out / 'server'), '--chunk-dir', str(CHUNK),
          '--effect-checkpoint', str(EFFECT), '--control-checkpoint', str(CONTROL), '--open-queries'],
         cwd=ROOT, stdout=server_log, stderr=subprocess.STDOUT, start_new_session=True)
@@ -125,7 +137,7 @@ def run_native(args, out, address, server):
     N = args.envs
     UPDATES = args.updates
     QUERIES = args.rpcs
-    phases = tuple(PHASES[index % len(PHASES)] for index in range(N))
+    phases = curriculum_phases(args.curriculum, N)
     native_root = ROOT / 'third_party/DExplore/dexplore'
     sys.path[:0] = [str(Path('/home2/wyy/isaac-gym/isaacgym/python')), str(OLD / 'src'),
                     str(OLD / 'tools/audit'), str(ROOT), str(native_root), str(ROOT / 'src/task/CmResidual/tools')]
@@ -170,9 +182,12 @@ def run_native(args, out, address, server):
     if args.resume is not None:
         resumed = torch.load(args.resume, map_location='cuda:0')
         if (resumed.get('schema') != 'ref2dex.wam-residual-ppo.v2'
-                or resumed.get('alpha') != ALPHA or resumed.get('phases') != list(phases)
+                or resumed.get('alpha') != ALPHA or len(resumed.get('phases', ())) != N
+                or (resumed.get('phases') != list(phases) and not args.allow_curriculum_change)
                 or any(key not in resumed for key in ('actor_optimizer', 'value_optimizer', 'rng', 'prefix'))):
-            raise ValueError('v2 complete training state with matching phase layout required; v1 is only a warm start')
+            raise ValueError('v2 training state and matching env count required; phase changes must be explicit')
+        if max(phases) >= len(resumed['prefix']['obj']):
+            raise ValueError('parent measured prefix does not cover requested reset phases')
         actor.load_state_dict(resumed['actor'])
         value_net.load_state_dict(resumed['value'])
         actor_optimizer.load_state_dict(resumed['actor_optimizer'])
@@ -211,7 +226,7 @@ def run_native(args, out, address, server):
     handshake = receive(connection)
     if (handshake['schema'] != SCHEMA or handshake['pid'] != server.pid
             or handshake['physical_gpu'] != args.gpu or handshake.get('controls') != QUERIES
-            or handshake.get('experiment_id') != EXP or handshake['base_sha256'] != base_hash
+            or handshake.get('experiment_id') != args.experiment_id or handshake['base_sha256'] != base_hash
             or handshake.get('scene_patch_identity') != patch_identity
             or handshake.get('retargeter_identity') != r_identity
             or handshake.get('effect_identity') != effect_identity
@@ -220,7 +235,7 @@ def run_native(args, out, address, server):
     started = time.monotonic()
     queries = 0
     manifest = dict(schema='ref2dex.wam-residual-ppo.v2', status='RUNNING', seed=292,
-                    ppo_seed=296, physical_gpu=args.gpu, experiment_id=EXP, run_id=out.name,
+                    ppo_seed=296, physical_gpu=args.gpu, experiment_id=args.experiment_id, run_id=out.name,
                     alpha=ALPHA, phases=list(phases), envs=N, queries=QUERIES, updates=UPDATES,
                     resume_updates=resume_updates,
                     resume=None if args.resume is None else str(args.resume),
@@ -235,6 +250,10 @@ def run_native(args, out, address, server):
                     reset_context='measured teacher prefix; current reset includes declared noise',
                     residual_parameterization='Gaussian latent; clip(base + alpha * latent)',
                     active_dofs=list(ACTIVE), checkpoint='optimizer, RNG, prefix and update state')
+    manifest.update(curriculum=args.curriculum, eval_every=args.eval_every,
+                    allow_curriculum_change=args.allow_curriculum_change,
+                    parent_phases=None if resumed is None else resumed['phases'],
+                    diagnostic_phases=list(diagnostic_phases(phases)))
     write(out / 'manifest.json', manifest)
     install_legacy_player_compat(native, common_player, base_player)
     install_reset_patch()
@@ -506,8 +525,9 @@ def run_native(args, out, address, server):
                 return logs, rows, bootstrap
 
             diagnostics = []
-            for group in range((len(PHASES) + N - 1) // N):
-                starts = [PHASES[(group * N + env) % len(PHASES)] for env in range(N)]
+            diagnostic_starts = diagnostic_phases(phases)
+            for group in range((len(diagnostic_starts) + N - 1) // N):
+                starts = [diagnostic_starts[(group * N + env) % len(diagnostic_starts)] for env in range(N)]
                 place(starts, perturb=False)
                 logs, _rows, _ = episode(DIAGNOSTIC, starts, True, False, zero_residual=True)
                 packed = {key: np.stack(item) for key, item in logs.items()}
@@ -525,21 +545,60 @@ def run_native(args, out, address, server):
             print(json.dumps(dict(diagnostic_min_gap_m=diagnostic_gap)), flush=True)
             if any(item['min_gap_m'] > 0.03 for item in diagnostics):
                 raise RuntimeError('zero-residual phase gate lost contact; PPO not started')
-            if resumed is not None:
-                rng = resumed['rng']
+            def restore_rng(rng):
                 torch.set_rng_state(rng['torch'].cpu())
                 torch.cuda.set_rng_state_all([item.cpu() for item in rng['cuda']])
                 noise.set_state(rng['phase'].cpu())
                 np.random.set_state(rng['numpy'])
                 random.setstate(rng['python'])
 
+            def training_rng():
+                return dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state_all(),
+                            phase=noise.get_state(), numpy=np.random.get_state(), python=random.getstate())
+
+            if resumed is not None:
+                restore_rng(resumed['rng'])
+
             def save_checkpoint(path, count):
                 torch.save(dict(schema='ref2dex.wam-residual-ppo.v2', update=count,
                                 actor=actor.state_dict(), value=value_net.state_dict(), alpha=ALPHA,
                                 actor_optimizer=actor_optimizer.state_dict(), value_optimizer=value_optimizer.state_dict(),
                                 phases=list(phases), prefix=prefix,
-                                rng=dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state_all(),
-                                         phase=noise.get_state(), numpy=np.random.get_state(), python=random.getstate())), path)
+                                rng=training_rng()), path)
+
+            def evaluate(global_update, final=False):
+                saved_rng = training_rng()
+                was_training = actor.training
+                self.env_reset(torch.arange(N, device=task.device))
+                if (task.start_times != 0).any():
+                    raise ValueError('frame0 evaluation reset required')
+                actor.eval()
+                logs, _rows, _ = episode(EVAL, [0] * N, True, False)
+                packed = {key: np.stack(logs[key]) for key in logs}
+                np.savez_compressed(out / ('eval.npz' if final else f'eval{global_update:04d}.npz'), **packed)
+                outcomes = []
+                close_rise, thrown, residual_values = 0., False, []
+                for env in range(N):
+                    outcome = episode_outcome(dict(
+                        object_pose=packed['obj'][:, env], object_velocity=packed['velocity'][:, env],
+                        surface_gap=packed['surface_gap'][:, env], support_gap=packed['support_gap'][:, env],
+                        table_footprint=packed['table_footprint'][:, env]))
+                    height = packed['obj'][:, env, 2, 3] - packed['obj'][0, env, 2, 3]
+                    close = packed['surface_gap'][:, env] <= 0.01
+                    close_rise = max(close_rise, float(height[close].max()) if close.any() else 0.)
+                    thrown = thrown or float(height.min()) < -0.05 or float(height[-1]) < -0.05
+                    outcome.update(env=env, min_gap_m=float(packed['surface_gap'][:, env].min()),
+                                   max_height_m=float(height.max()), terminal_height_m=float(height[-1]))
+                    outcomes.append(outcome)
+                residual_rms = float(np.sqrt(np.mean(np.square(packed['delta']))))
+                conclusion = label_probe(outcomes, close_rise, thrown, residual_rms)
+                actor.train(was_training)
+                restore_rng(saved_rng)
+                result = dict(status=conclusion, update=global_update, outcomes=outcomes,
+                              close_rise_m=close_rise, thrown=thrown, eval_residual_rms=residual_rms)
+                write(out / f'eval{global_update:04d}.json', result)
+                print(json.dumps(dict(evaluation=result)), flush=True)
+                return result
 
             for index in range(UPDATES):
                 # A KL reject may quarter the step size inside one update.
@@ -551,6 +610,7 @@ def run_native(args, out, address, server):
                 _logs, rows, bootstrap = episode(ROLLOUT, phases, False, True)
                 batch = {key: torch.stack([row[key] for row in rows]) for key in
                          ('observation', 'delta', 'reward', 'value', 'done', 'logp', 'mean', 'std')}
+                batch['phase'] = torch.as_tensor(phases, device=task.device)[None].expand(ROLLOUT, -1)
                 result = update(actor, value_net, batch, bootstrap,
                                 actor_optimizer, value_optimizer, gae_lambda=1.)
                 with torch.no_grad():
@@ -570,43 +630,28 @@ def run_native(args, out, address, server):
                                              for phase in set(phases)},
                               **residual_execution_stats(torch.as_tensor(np.stack(_logs['base']), device=task.device),
                                   batch['delta'], torch.as_tensor(np.stack(_logs['applied']), device=task.device)))
+                result['grasp_trials'] = contact_hold_summary(
+                    {key: np.stack(_logs[key]) for key in ('obj', 'surface_gap', 'support_gap', 'table_footprint')},
+                    phases, prefix['obj'][0, :, 2, 3])
                 metrics.append(result)
                 print(json.dumps(result), flush=True)
                 with (out / 'monitor.jsonl').open('a') as stream:
                     stream.write(json.dumps(result) + '\n')
                 if global_update % 5 == 0:
                     save_checkpoint(out / f'update{global_update:04d}.pt', global_update)
+                if args.eval_every and (index + 1) % args.eval_every == 0 and index + 1 < UPDATES:
+                    checkpoint = out / f'update{global_update:04d}.pt'
+                    if not checkpoint.exists():
+                        save_checkpoint(checkpoint, global_update)
+                    evaluate(global_update)
             save_checkpoint(out / 'final.pt', resume_updates + UPDATES)
-            self.env_reset(torch.arange(N, device=task.device))
-            if (task.start_times != 0).any():
-                raise ValueError('frame0 evaluation reset required')
-            actor.eval()
-            logs, _rows, _ = episode(EVAL, [0] * N, True, False)
-            packed = {key: np.stack(logs[key]) for key in logs}
-            np.savez_compressed(out / 'eval.npz', **packed)
-            outcomes = []
-            close_rise, thrown, residual_values = 0., False, []
-            for env in range(N):
-                outcome = episode_outcome(dict(
-                    object_pose=packed['obj'][:, env], object_velocity=packed['velocity'][:, env],
-                    surface_gap=packed['surface_gap'][:, env], support_gap=packed['support_gap'][:, env],
-                    table_footprint=packed['table_footprint'][:, env]))
-                height = packed['obj'][:, env, 2, 3] - packed['obj'][0, env, 2, 3]
-                close = packed['surface_gap'][:, env] <= 0.01
-                close_rise = max(close_rise, float(height[close].max()) if close.any() else 0.)
-                thrown = thrown or float(height.min()) < -0.05 or float(height[-1]) < -0.05
-                outcome.update(env=env, min_gap_m=float(packed['surface_gap'][:, env].min()),
-                               max_height_m=float(height.max()), terminal_height_m=float(height[-1]))
-                outcomes.append(outcome)
-            residual_rms = float(np.sqrt(np.mean(np.square(packed['delta']))))
-            conclusion = label_probe(outcomes, close_rise, thrown, residual_rms)
+            evaluation = evaluate(resume_updates + UPDATES, final=True)
             if queries != QUERIES:
                 raise ValueError('server query count drifted: ' + str(queries))
             change = float(torch.sqrt(sum((item - actor_initial[key]).square().sum()
                                           for key, item in actor.state_dict().items())))
-            report = dict(status=conclusion, engineering_pass=True, diagnostic_min_gap_m=diagnostic_gap,
-                          outcomes=outcomes, close_rise_m=close_rise, thrown=thrown,
-                          eval_residual_rms=residual_rms, actor_parameter_change=change,
+            report = dict(**evaluation, engineering_pass=True, diagnostic_min_gap_m=diagnostic_gap,
+                          actor_parameter_change=change,
                           updates=resume_updates + UPDATES, rpcs=queries, queries=queries * N, metrics=metrics,
                           final_checkpoint_sha256=sha(out / 'final.pt'),
                           claim='one airplane frame-0 residual rollout; probe label only')

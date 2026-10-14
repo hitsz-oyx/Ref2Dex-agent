@@ -77,7 +77,7 @@ def main():
             reset = next(arrays(p) for p in run.glob('reset-*.npz') if p.name != 'reset-prefix.npz'
                          and np.array_equal(arrays(p)['starts'], data['phases']))
             assert bool(reset['previous_held'][env]) == held
-    assert phases == {0, 32, 48, 62}
+    assert phases == set(manifest.get('diagnostic_phases', (0, 32, 48, 62)))
     import torch
     from trajectory_policy.residual_ppo import ResidualValue
     torch.set_num_threads(2)

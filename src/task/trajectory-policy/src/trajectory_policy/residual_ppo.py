@@ -142,6 +142,17 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer,
     target = returns.flatten()
     normalized = advantage.flatten()
     normalized = (normalized - normalized.mean()) / normalized.std(unbiased=False).clamp_min(1e-6)
+    phase_stats = {}
+    if 'phase' in batch:
+        phase_ids = batch['phase'].flatten()
+        if phase_ids.shape != normalized.shape:
+            raise ValueError('one reset phase per collected observation required')
+        for phase in phase_ids.unique().tolist():
+            selected = phase_ids == phase
+            phase_stats[str(phase)] = dict(
+                raw_advantage_mean=float(advantage.flatten()[selected].mean()),
+                normalized_advantage_mean=float(normalized[selected].mean()),
+                positive_advantage_fraction=float((normalized[selected] > 0).float().mean()))
     with torch.no_grad():
         replay = actor.distribution(obs).log_prob(delta).sum(-1)
         replay_error = float((replay - old_logp).abs().max())
@@ -195,5 +206,6 @@ def update(actor, value_net, batch, bootstrap, actor_optimizer, value_optimizer,
     return dict(actor_steps=actor_steps, policy_loss=policy_loss, value_loss=float(value_loss.detach()),
                 joint_action_kl=kl, behavior_logprob_error=replay_error,
                 value_explained_variance=float(explained_variance),
+                phase_advantages=phase_stats,
                 bootstrap_mean=float(bootstrap.mean()), gae_lambda=gae_lambda,
                 actor_lr=actor_optimizer.param_groups[0]['lr'])
