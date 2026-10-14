@@ -102,6 +102,7 @@ def run():
     parser.add_argument("--smoke-batch-size", type=int, default=2)
     parser.add_argument("--experiment-card", type=Path)
     parser.add_argument("--resume", type=Path)
+    parser.add_argument("--stop-after", type=int, help="engineering-only partial run for resume verification")
     parser.add_argument("--loader-workers", type=int, default=0)
     parser.add_argument("--loader-prefetch", type=int, default=2)
     parser.add_argument("--sequence-cache", type=int, default=128)
@@ -114,6 +115,8 @@ def run():
         raise ValueError("v2 config required")
     if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
         raise RuntimeError("shared400GB budget reached")
+    if args.stop_after is not None and (not args.smoke or not 1 <= args.stop_after <= 4):
+        raise ValueError("stop-after is only for partial four-step engineering checks")
     experiment = None
     if args.smoke:
         if not 1 <= args.smoke_batch_size <= 256:
@@ -165,6 +168,7 @@ def run():
     model = SharedWAMV2(stats, config).to(device)
     optimizer = torch.optim.AdamW(model.parameter_groups(config["geometry_lr"], config["shared_lr"]),
                                   weight_decay=config["weight_decay"], fused=True)
+    target_step = args.stop_after or config["updates"]
     start_step, previous_elapsed = 0, 0.
     parent = None
     if args.resume:
@@ -212,7 +216,7 @@ def run():
         # Resume RNG restoration follows audits so audit execution cannot perturb it.
         wrapped = nn.parallel.DistributedDataParallel(model, device_ids=[local], gradient_as_bucket_view=True) if world > 1 else model
         loader = pretrain_loader(train, config["batch_size"], config["seed"], rank, start_step+1,
-            config["updates"], args.loader_workers, args.loader_prefetch, args.sequence_cache, args.pin_memory)
+            target_step, args.loader_workers, args.loader_prefetch, args.sequence_cache, args.pin_memory)
         torch.cuda.empty_cache()
         torch.cuda.reset_peak_memory_stats()
         if rank == 0:
@@ -254,7 +258,7 @@ def run():
                 if pids-set(workers):
                     raise RuntimeError("foreign GPU process appeared")
             new_best = False
-            if step % config["validation_interval"] == 0 or step == config["updates"]:
+            if step % config["validation_interval"] == 0 or step == target_step:
                 if rank == 0:
                     report = evaluate(model, dev, validation, config, device)
                     if not np.isfinite(report["objective"]):
@@ -268,7 +272,7 @@ def run():
                 if world > 1:
                     dist.broadcast_object_list(selection, src=0)
                 new_best = selection[0]
-            if new_best or step % config["checkpoint_interval"] == 0 or step == config["updates"]:
+            if new_best or step % config["checkpoint_interval"] == 0 or step == target_step:
                 rng = dict(torch=torch.get_rng_state(), cuda=torch.cuda.get_rng_state())
                 states = [None]*world
                 if world > 1:
@@ -299,7 +303,7 @@ def run():
             manifest["status"] = "COMPLETED"
             atomic_json(out / "manifest.json", manifest)
             atomic_json(out / "result.json", dict(status="COMPLETED", elapsed_s=time.monotonic()-started,
-                final_step=config["updates"], scope="engineering_only" if args.smoke else "offline Probe; grasp/Cm benefit untested"))
+                final_step=target_step, scope="engineering_only" if args.smoke else "offline Probe; grasp/Cm benefit untested"))
     except BaseException as error:
         if rank == 0:
             manifest.update(status="FAILED", error=repr(error))

@@ -35,7 +35,7 @@ def main():
     args = parser.parse_args()
     out = args.output.resolve()
     config_path, card = args.config.resolve(), args.experiment_card.resolve()
-    if (out.exists() and not args.resume) or ROOT / "outputs/ptv3-shared-wam-v2" not in out.parents:
+    if out.exists() or ROOT / "outputs/ptv3-shared-wam-v2" not in out.parents:
         raise ValueError("fresh Task-local training output required")
     if TASK / "docs/experiments" not in card.parents or not card.is_file():
         raise ValueError("existing Task-local experiment card required")

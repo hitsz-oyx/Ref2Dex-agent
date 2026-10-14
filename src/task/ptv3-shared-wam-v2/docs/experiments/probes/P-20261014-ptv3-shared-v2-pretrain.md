@@ -58,7 +58,11 @@ metrics复用已审查的物理EPE与goal-only线性插值分组；normalized ob
 
 - 初始实现提交da694f1f；13项CPU测试覆盖mask/NaN、horizon24×3 roundtrip、同voxel
   密度不冲淡手分支、22语义槽位、goal到双头、梯度隔离与v1 checkpoint拒绝。
-- 真实GPU工程检查、参数实测与吞吐在执行后补充。工程run不作为学习证据。
+- 第一版真实三域四步 `engineering-main3-20261014-r1` 完成，双头均到达PTv3/shared/goal，
+  hand编码经PTv3路径梯度非零；该候选几何支路33,988,832参数，超过设计预算。
+  保留原始运行，随后把PTv3调整为11,092,000参数；shared保持85,054,464，
+  最终98,591,142参数。这是根据实际参数统计修订工程配置，不是方法负结果。
+- 最终配置的GPU工程检查、恢复检查与吞吐在执行后补充。工程run不作为学习证据。
 - 实际run代码提交、worker PID、输入、统计、配置与初始化由manifest.json记录。
 
 ## Limitations / future evidence
