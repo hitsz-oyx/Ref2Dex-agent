@@ -17,7 +17,7 @@
 - TACO物体位姿和模型包完成，15.23GB手包并行Range续传；完成后等待中的converter自动按序列读取ZIP，避免再全量解包26.99GB pickle。真实pilot重打包验证全量reader，全部原生数组与pilot一致（1e-7容差）。
 - `native3d-live-corpus-20261014-r1`每分钟自动追加完成分片、共享CAD引用，不把已有pilot和full重复纳入。5项合同测试通过，混合来源shared-collate已通过工程检查；没有开始多源模型训练。
 - 旧393/400GB全局watcher已核验归属后替换为纯容量/远端训练监控，避免扩数据误停已有训练；相关receipt在项目tmp。
-- H2O实际HTTP401 Basic账号要求、HOI4D网盘下载访问受限，已向用户发缺失访问问题；DexTrack官方受限且社区镜像有混合修改lineage，暂不把kinematic references记作执行数据。
+- H2O用户提供的HTTP Basic凭证已实际验证：六包均HTTP200，合计326,238,749B；已启动4线程可恢复下载（1h期限、20GiB物理余量），凭证只存本机mode0600文件，不进入Git或日志。手/物体pose和CAD下载后再核验坐标、时钟、split；下载成功不等于训练准入。HOI4D仍需网盘下载访问，DexTrack官方受限且社区镜像有混合修改lineage，暂不把kinematic references记作执行数据。
 
 实时查看：`python3 src/task/3d-data-preparation/tools/audit/status_geometry.py`。输出与日志在`outputs/3d-data-preparation/`和`tmp/3d-data-bulk-20261014-r1/`。下文初始512MiB/400GB预算是历史快照，已被本节用户授权覆盖。
 
