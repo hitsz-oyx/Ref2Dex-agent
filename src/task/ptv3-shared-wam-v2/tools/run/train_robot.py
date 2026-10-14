@@ -102,6 +102,11 @@ def check_parent(parent, stats, config):
     parent_provenance = parent.get("provenance")
     if not isinstance(parent_provenance, dict) or parent_provenance.get("engineering_only") is not False:
         raise ValueError("scientific remote pretraining checkpoint is required")
+    expected_parent_commit = config.get("remote_parent_git_commit")
+    if not isinstance(expected_parent_commit, str) or not expected_parent_commit:
+        raise ValueError("remote parent git commit pin is required")
+    if parent_provenance.get("git_commit") != expected_parent_commit:
+        raise ValueError("remote parent checkpoint provenance commit differs from the pinned source")
 
 
 def comparable_stats(stats):

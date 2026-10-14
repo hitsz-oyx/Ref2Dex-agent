@@ -58,5 +58,6 @@
   "max_seconds": 80000,
   "artifact_budget_bytes": 8000000000,
   "fused_optimizer": true,
-  "action_representation": "wrist-geometry-continuous-lift.v1"
+  "action_representation": "wrist-geometry-continuous-lift.v1",
+  "remote_parent_git_commit": "1650ffce293fb201fd7d12d5797ed71608dff5c5"
 }
