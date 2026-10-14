@@ -60,6 +60,33 @@ def choose_box(boxes, scores, hand_uv, shape):
     return best
 
 
+def color_evidence(rgb, visible, phrase):
+    """Reject clear named-color contradictions; do not infer white balance.
+
+    Warm illumination of white plastic is allowed. This small consistency
+    screen cannot establish semantic identity and does not remove visual review.
+    """
+    pixels = np.asarray(rgb, np.float32)[visible]/255.
+    if len(pixels) < 64:
+        raise ValueError("TARGET_COLOR_SUPPORT_INSUFFICIENT")
+    r, g, b = pixels.T
+    color = phrase.split()[0]
+    green = (g > 1.04*r) & (g > 1.1*b)
+    blue = (b > 1.1*r) & (b > 1.02*g)
+    red = (r > 1.6*g) & (r > 1.6*b)
+    conflict = np.zeros(len(pixels), bool)
+    if color == "white":
+        conflict = green | blue | red
+    elif color == "blue":
+        conflict = green | red
+    elif color == "green":
+        conflict = blue | red
+    fraction = float(conflict.mean())
+    if fraction > .5:
+        raise ValueError("TARGET_NAMED_COLOR_CONTRADICTION")
+    return dict(named_color=color, contradictory_fraction=fraction, median_rgb=np.median(pixels, axis=0).tolist())
+
+
 class GroundedSAMMasks:
     def __init__(self, config):
         from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
@@ -143,10 +170,12 @@ class GroundedSAMMasks:
         visible = target & ~hand
         if visible.sum() < 64 or visible.sum() < .2*target.sum() or target.sum() > .25*target.size:
             raise ValueError("TARGET_MASK_OCCLUDED_OR_IMPURE")
+        color = color_evidence(rgb, visible, phrase)
         folder = self.audit_root/(hashlib.sha256(key.encode()).hexdigest()[:16]+"-"+str(tick))
         folder.mkdir(parents=True, exist_ok=True)
         choice["box"] = choice["box"].tolist()
         evidence = dict(key=key, tick=tick, target=phrase, description=native.language, detection=choice,
+            color_consistency=color,
             mask_score=mask_score, visible_pixels=int(visible.sum()), verification="automatic-provisional",
             current_only=True, selection_s=time.monotonic()-began)
         atomic_json(folder/"selection.json", evidence)
@@ -154,6 +183,8 @@ class GroundedSAMMasks:
         image[visible] = (.55*image[visible]+.45*np.array([0, 255, 0])).astype(np.uint8)
         image[hand] = (.65*image[hand]+.35*np.array([0, 0, 255])).astype(np.uint8)
         cv2.imwrite(str(folder/"current.jpg"), image)
+        cv2.imwrite(str(folder/"target.png"), target.astype(np.uint8)*255)
+        cv2.imwrite(str(folder/"hand.png"), hand.astype(np.uint8)*255)
         self.active = dict(key=key, tick=tick, target=target.copy(), hand=hand.copy(), folder=folder,
                            evidence=evidence)
         return dict(target=target, hand=hand, name=phrase, current_verified=True, training_allowed=False,

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from video_data_preparation.automatic_masks import target_phrase, choose_box
+from video_data_preparation.automatic_masks import target_phrase, choose_box, color_evidence
 from video_data_preparation.pipeline import process_window, ProcessingConfig
 from video_data_preparation.shards import ShardWriter, freeze_snapshot, recover_publications
 from test_pipeline import fixture_episode, Masks, Depth, Tracker
@@ -29,6 +29,15 @@ def test_separated_current_detections_fail_closed():
         choose_box(boxes, [.5, .49], uv, (360, 640))
     chosen = choose_box(boxes, [.7, .4], uv, (360, 640))
     np.testing.assert_array_equal(chosen["box"], boxes[0])
+
+
+def test_named_white_rejects_green_but_allows_warm_lighting():
+    mask = np.ones((16, 16), bool)
+    green = np.broadcast_to(np.array([105, 125, 75], np.uint8), (16, 16, 3))
+    with pytest.raises(ValueError, match="COLOR_CONTRADICTION"):
+        color_evidence(green, mask, "white lego block")
+    white = np.broadcast_to(np.array([210, 186, 158], np.uint8), (16, 16, 3))
+    assert color_evidence(white, mask, "white lego block")["contradictory_fraction"] == 0
 
 
 def test_future_hook_and_provisional_shards_never_become_trainable(tmp_path):
