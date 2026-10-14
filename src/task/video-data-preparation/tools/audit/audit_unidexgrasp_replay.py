@@ -108,8 +108,13 @@ def main(root, render_objects=1, export_windows=True):
         # distinct physical local points, shared by every trajectory of the mesh.
         surface=np.unique(surface,axis=0)
         if len(surface)<32:raise ValueError('insufficient distinct CAD query positions')
+        vertex_ids={tuple(point):i for i,point in enumerate(mesh.vertices)}
+        normals=mesh.vertex_normals[[vertex_ids[tuple(point)] for point in surface]]
+        if normals.shape!=surface.shape or not np.isfinite(normals).all():
+            raise ValueError('invalid current CAD normals')
         surfaces[code]=surface
         np.savez_compressed(geometry/('object-%03d.npz'%specs.index(spec)),surface=surface.astype(np.float32),
+                            normals=normals.astype(np.float32),
                             query=surface[np.linspace(0,len(surface)-1,32,dtype=int)].astype(np.float32),
                             object_code=code,scale=scale)
     records=[];samples=[];representatives={};trajectories=[];counts={};causal_checked=set()
