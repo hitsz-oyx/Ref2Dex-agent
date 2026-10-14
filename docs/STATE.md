@@ -49,6 +49,8 @@ dev mean/p95=50.78/161.68→45.80/148.05mm，局部PROMISING但不够执行。25
 all8，守护4007948待peer退出且目标无并发修改后应用补丁，不热改源码。详见
 [660联合微调卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md)。
 
+全TRAIN覆盖对照（68747480）同预算下将B的dev mean/p95从45.80/148.05降至43.02/137.14mm，固定小池续训未改善；独立复算通过。候选固定step1500，startup仍81.28mm，物理执行未验证。已准备原训练自然退出后的有界GT执行交接，最多480秒/1GB，仍不启动新联合训练。
+
 [R-only修复卡](../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-control-repair.md)。
 
 ## 2026-10-13 残差 PPO 二百次更新后仍然抛掷

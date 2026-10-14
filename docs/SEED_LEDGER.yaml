@@ -30,6 +30,7 @@ allocations:
     model_seed: 140
     matched_draw_seed: 141
     TRAIN_report_panel_seed: 142
+    paired_native_execution_seed: 143
     reuse_reason: common warm-start weights and batch streams across three objective arms; not independent seeds
 
   P-20261014-unidexgrasp-local-admission:

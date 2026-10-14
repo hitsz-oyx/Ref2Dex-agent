@@ -10,7 +10,7 @@ claim_id: C1
 hypothesis_family: HF-rl660-R-control-repair
 probe_index_in_family: 1
 seed_pool: probe
-seeds: [140, 141, 142]
+seeds: [140, 141, 142, 143]
 decision_changed_if_positive: retain first-control objective and qualify R with matched native execution before new joint training
 decision_changed_if_negative: distinguish optimization capacity and input coverage before expanding R or adding object conditioning
 status: PROMISING
@@ -19,7 +19,7 @@ run_id: rl660-R-control-repair-20261014-r1
 
 # RL660 GT-τ R-only：控制目标修复与可拟合性Probe
 
-Result: PROMISING（局部离线控制目标）。matched A/B的dev第一控制XYZ mean/p95为50.78/161.68→45.80/148.05mm，clipping=0；仍未到可执行精度。256窗first-only拟合到8.64mm，但dev63.30mm，不能声称R已经修好。
+Result: PROMISING（局部离线控制目标与覆盖）。matched loss A/B dev XYZ mean/p95为50.78/161.68→45.80/148.05mm；再从相同B暖启动，全TRAIN采样改善到43.02/137.14mm，固定池续训未改善dev，clipping=0。仍未验证物理执行，不能声称R已修好。
 Decision: 保留control-aware配方与独立checkpoint选择；现有R小集合可拟合，后续优先解决覆盖/优化和startup，再过K1 GT执行门，不直接扩R或增加物体输入。
 
 ## Decision Note
@@ -161,3 +161,98 @@ clipping完全一致。报告 `rl660-R-control-repair-20261014-r1/independent-au
 等待旧训练及相关peer退出，最多4小时；检查目标无其他工作区/index修改、补丁可干净
 应用后才写入主工作树，不自动提交或覆盖用户修改。状态为该目录 `status.json`；冲突
 则保留隔离修复并记录停止原因。当前修复可在隔离工作树审阅，主工作树活跃源码尚未热改。
+
+## Decision Note：起步误差与覆盖审计（继续授权）
+
+用户要求远端v2继续，同时继续处理微调。当前B dev45.8mm、startup99.2mm，但固定256窗
+能拟合到8.6mm。要区分输入覆盖不足、现有R大样本拟合不足与同输入下命令区分困难，
+先复用原8192拟合池和固定TRAIN/dev报告面板，审计B误差的tick/物体分布、输入标准化
+范围，并做不增加输入的标准化state87+τ近邻命令预测。近邻仅是描述性参照，不能证明
+函数唯一性或接触因果；所有超参事先固定为1NN和8NN，不选择dev最优距离。
+Class: Decision；若近邻明显优于R则优先修表示/优化，若误差随距离/未覆盖状态集中，
+优先定位覆盖；若两者都差仍需可判别后续检查，不直接认定inverse不可学。
+CPU纯统计/小R审计，复用既有六卡满额下CPU理由，120秒/50MB，无新训练或GPU，
+run_id=`rl660-R-error-audit-20261014-r1`，复用原面板，无新seed、无测试集选择。
+
+## Decision Note：固定计算量的全TRAIN覆盖对照
+
+起步/覆盖审计f412990e完成4.13秒：B的tick0仅3窗、mean211.8mm，tick1–15的36窗
+mean89.8mm；不能以3个tick0样本形成广泛结论。标准化输入到原拟合池最远四分位的
+mean75.8mm，其余约34–39mm；1NN/8NN整体mean77.7/72.3mm，均差于R45.8mm。
+这支持优先检验覆盖，尚不能证明根因或同输入命令不唯一。
+
+Class: Decision。问题是R-only固定8192池（仅7304不同窗）是否限制当前适配。最便宜
+判别：从同一B-control step1000暖启动，optimizer均重置；两臂原128D×2/8-query、
+GT-τ/state87、normalizers、control-aware loss、batch128、AdamW3e-4/wd.01/clip1均一致。
+固定池组uniform8192位置采样，全覆盖组沿原sequence-uniform/half-startup sampler
+从110777准入TRAIN窗口抽样；每臂2000更新，seed141共同起点和各自确定的采样流，
+不声称每batch成员相同。全TRAIN只在RAM预打包，不新增数据集缓存。
+
+沿用原TRAIN报告512和dev512；另以seed142固定选择不在8192拟合池中的512个TRAIN
+窗口作覆盖诊断（不是独立留出，父联合训练已接触TRAIN）。每500更新评估，dev first
+XYZ p95再raw first MAE选点，记录startup/later及rotation/finger/clipping，不按TRAIN选。
+若全覆盖组相对固定池且相对parent的dev mean/p95都改善、clipping<1%，局部PROMISING；
+若只改善TRAIN而dev不改善，覆盖修复仍UNCLEAR，停止这块预算，不据此加模型输入或扫描。
+
+run_id=`rl660-R-coverage-20261014-r1`；CPU4线程/600秒/50MB，复用现有六卡满额理由，
+加前述231秒仍在本次1200秒CPU诊断总预算内。复用140/141/142，不是独立seed；
+模型计算仍无GPU。超时/非有限/资源越界停止自己的新进程，不改原联合训练或远端v2。
+
+## Decision Note：卡释放后的有界GT执行校验
+
+离线PD误差尚不能决定GT执行是否可用。用户已要求继续处理微调，因此在原联合训练
+自然退出并安全应用源码修复后，安排一次工程4步和同seed143的A/B各128步native
+校验。固定已预检的dev序列 `s10_airplane_pass_1`（173帧，128步保留完整24步未来），
+原始记录前128步物体抬高>=3cm有65帧，但这不是握持证明；最终以native接触/支撑门
+和teacher校准判断，不在结果出来后换物体找成功。
+
+A为既有A_all8_best；B由本次覆盖对照完成后、仅按预先固定dev XYZ p95确定候选，
+仅当mean/p95均优于原B且clipping<1%时替换原B_control_best，否则保留原B。
+两臂同一最终联合forecaster checkpoint、同K1、同几何motion和reset seed；三个
+角色teacher/GT-τ-R/WAM-R分别读自己的状态，GT-τ来自相同record，独立audit必须通过。
+检查重点为GT角色；WAM角色仅旁观，不把它当作本次R控制目标的收益证据。
+
+顺序：B工程4步（120秒）→A128步（180秒）→B128步（180秒），总新GPU墙钟
+最多480秒、产物合计1GB；每步监督器自身有deadline/foreign PID检查，预算不足或
+任何工程/独立audit失败就停止，不自动重试/扫参。只使用已释放的本地5或7；保守
+按远端最多4张卡计数，只有本地已有本用户或归属不明的活跃卡<=1且目标卡无PID时才启动，保持全局<=6。
+源码有并发修改/暂存冲突时保留修复，停止交接；只提交已核对的17个修复路径，
+不提交其他人的暂存内容。等待最长4小时；空间预留按共享预算watcher的最近报告检查。
+
+teacher两次均>=45连续held帧才视作校准通过；B的GT held需>=max(45,.8*teacher)
+且clipping<1%才局部PROMISING。校准失败为UNCLEAR；校准通过但B失败仅是该固定
+候选/序列执行UNPROMISING，不关闭R路线。A/B不是隐藏状态fork、多seed或独立泛化
+Validation；不据此形成Cm结论或自动启动新一轮联合大训练。
+
+
+## 全TRAIN覆盖对照结果
+
+run_id=`rl660-R-coverage-20261014-r1`，code `68747480`，COMPLETED，169.39秒。
+同一B暖启动、相同2000更新预算，保持模型/输入/loss/优化器不变：
+
+| 组别及dev选点 | dev XYZ mean/p95 mm | startup mean/p95 mm | rotation/finger p95 rad | clipping |
+| --- | --- | --- | --- | --- |
+| parent B / 固定池最佳 step0 | 45.80 / 148.05 | 99.19 / 327.44 | .3711 / .2505 | 0 |
+| 固定池最终 step2000 | 47.24 / 160.61 | 95.84 / 334.89 | .3400 / .2416 | 0 |
+| 全TRAIN最佳 step1500 | 43.02 / 137.14 | 81.28 / 288.94 | .3177 / .2488 | 0 |
+| 全TRAIN最终 step2000 | 42.92 / 154.23 | 83.06 / 285.37 | .2952 / .2352 | 0 |
+
+全TRAIN所选候选相对parent的mean/p95改善6.1%/7.4%，满足预定局部PROMISING门。
+固定池TRAIN报告mean49.84→36.14mm而dev变差，继续压小池训练误差不值得当前投入。
+全TRAIN候选的池外TRAIN报告mean42.98→38.91mm；这些不是独立holdout，不能作未见
+物体泛化或因果证明。startup仅39窗，误差仍明显偏大，后期尾部反弹，不延长本轮预算。
+
+独立审计从原corpus重新构造state/τ/PD并复算两个选点和三面板，最大XYZ差0.000101mm，
+角度差<1.8e-7rad、clipping一致；`independent-audit.json` pass。新候选的完整8-query、
+TRAIN normalizers、PD单位、同record motion/oracle与128+24帧合同通过CPU校验，记录为
+`native-preflight.json` 的CONTRACT_PASS；这不等于GPU物理执行。隔离工作树输出目录
+采用共享产物软链接，launcher路径边界不接受该路径；因此本次新候选用原合同函数校验，
+并未宣称其launcher CPU preflight通过。
+
+Decision: GT执行B固定为 `full_stream-step1500.pt`；不使用最后一步或memorization权重。
+保留原B、A和全部曲线证据，下一决定由上述固定序列teacher校准及GT门提供信息。
+交接工具 `tools/run/qualify_R_after_training.py` 等待现有repair守护完成，再逐字核对17个
+源码文件、仅提交这些路径并执行有界检查。GPU预算计入本用户和无法辨明归属的本地
+进程；已确认其他用户的进程不占本项目额度，但目标GPU须完全空闲，绝不操作其进程。
+工具的仓库定位、资源计数和teacher/GT门3项测试通过；实际运行状态另存于qualification
+产物目录，等待期间不视为已执行或通过。

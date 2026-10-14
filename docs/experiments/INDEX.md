@@ -500,7 +500,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-rl660-R-control-repair](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-control-repair.md) | RL660 GT-τ R-only：控制目标修复与可拟合性Probe | PROMISING（局部离线控制目标）。matched A/B的dev第一控制XYZ mean/p95为50.78/161.68→45.80/148.05mm，clipping=0；仍未到可执行精度。256窗first-only拟合到8.64mm，但dev63.30mm，不能声称 | 保留control-aware配方与独立checkpoint选择；现有R小集合可拟合，后续优先解决覆盖/优化和startup，再过K1 GT执行门，不直接扩R或增加物体输入。 | probes/PROMISING |
+| [P-20261014-rl660-R-control-repair](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-control-repair.md) | RL660 GT-τ R-only：控制目标修复与可拟合性Probe | PROMISING（局部离线控制目标与覆盖）。matched loss A/B dev XYZ mean/p95为50.78/161.68→45.80/148.05mm；再从相同B暖启动，全TRAIN采样改善到43.02/137.14mm，固定池续训未改善dev，clipping | 保留control-aware配方与独立checkpoint选择；现有R小集合可拟合，后续优先解决覆盖/优化和startup，再过K1 GT执行门，不直接扩R或增加物体输入。 | probes/PROMISING |
 
 ## HF-rolling-gt-y
 
