@@ -105,6 +105,9 @@ def main():
     torch.set_num_threads(2)
     install_legacy_player_compat(native, common_player, base_player)
     native.Runner.create_player = lambda runner: runner.player_factory.create(runner.algo_name, config=runner.config)
+    # Archived Runner.run unconditionally passes load_path to player.restore.
+    # This replay has no policy checkpoint; restore below is intentionally inert.
+    native.Runner.load_path = ''
     install_reset_patch()
     started = time.monotonic()
     manifest = dict(schema='ref2dex.rl660-q-replay.v1', status='RUNNING', source=str(source),
