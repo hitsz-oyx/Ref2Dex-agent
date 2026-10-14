@@ -13,7 +13,7 @@ seed_pool: probe
 seeds: []
 decision_changed_if_positive: keep a bounded remote consumer producing auditable Shared-WAM windows
 decision_changed_if_negative: fix the identified selector or processing blocker before expanding
-status: RUNNING
+status: UNCLEAR
 run_id: egodex-shared-batch-20261014-r1
 ---
 
@@ -152,3 +152,20 @@ remote `repo-30b1e9a2/`、`config-30b1e9a2-r5.json`、`ready-cohort-next.jsonl`�
 
 第二批正在运行时本卡status保持RUNNING；工程结果已保留，尚无可训练的非空dev快照。
 停止/预算触发保留已发布分片；后续扩量应基于语义审查结果，使用新运行预算记录。
+
+## r5正常完成与最新只读状态核验
+
+2026-10-14 03:36:40 UTC（北京时间11:36）现场核验：r5 supervisor为COMPLETED/CHILD_EXIT，
+returncode0，1275.23秒；consumer为DRAINED，50段全部处理（PUBLISHED32/REJECTED18），
+481尝试、122数值候选、training_admitted0，处理计时1240.80秒，峰值10289MiB。
+主要拒绝仍是scale90、endpoint84、观察/标签depth58及当前歧义38，几何门未放宽。
+累计含此前1734.60秒共约3009.83秒，未超原1GPU小时预算。GPU0当前空闲；本轮未重启consumer。
+
+下载producer399615仍RUNNING：completed_packets189064，part1完成、part2剩121失败配对、
+part3下载中。旧主重建360908和辅助671018/671019进程仍存在，GPU1/2/3未被本轮修改。
+这些旧重建属于既有线路，不能称为全部已通过本Task的Shared-WAM准入。
+证据：本地输出根下`latest-remote-status.json`、`r5-completion-summary.json`。
+
+当前自动语义准入判断仍UNCLEAR，r5候选待视觉审查，无训练启动。用户转向UniDexGrasp小样本
+核验，本轮不继续增加远端GPU批次；下载和旧重建继续自主运行。后续若恢复新批次，先做目标
+审查与新预算记录，不能把数值候选直接当训练数据。

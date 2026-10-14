@@ -125,7 +125,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-egodex-shared-real-processing](../../src/task/video-data-preparation/docs/experiments/probes/P-20261013-egodex-shared-real-processing.md) | 已下载 EgoDex 的 Shared-WAM 真实处理小探针 | UNCLEAR overall. 三个真实窗口完成，1/3 通过数值门；白色积木 32/32 endpoint 有效，位移中位数170mm；另两段在观察尺度标定处拒绝。只有 TRAIN=1、dev=0，不扩训。 | 保留真实数据处理与 Shared-WAM 接入；先修/区分尺度标定及时间 mask 覆盖问题，不直接扩大下载集处理或开始训练。 | probes/UNCLEAR |
-| [P-20261014-egodex-shared-batch-ingestion](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md) | 远端 Shared-WAM 批量接入 | UNCLEAR for automatic semantic admission. 首批50段/441窗完成，74数值候选；目标误选仍明显。r4抽查16窗批准5、拒绝10、延期1；两个VAL候选均误选。批量工程链路与Shared-WAM读取已跑通。 | 保持现有几何门，用完整对象修饰词、透明物体延期和修订颜色门处理第二个不重叠50段cohort；全部自动候选仍须审查，不训练或全量扩量。 | probes/RUNNING |
+| [P-20261014-egodex-shared-batch-ingestion](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-egodex-shared-batch-ingestion.md) | 远端 Shared-WAM 批量接入 | UNCLEAR for automatic semantic admission. 首批50段/441窗完成，74数值候选；目标误选仍明显。r4抽查16窗批准5、拒绝10、延期1；两个VAL候选均误选。批量工程链路与Shared-WAM读取已跑通。 | 保持现有几何门，用完整对象修饰词、透明物体延期和修订颜色门处理第二个不重叠50段cohort；全部自动候选仍须审查，不训练或全量扩量。 | probes/UNCLEAR |
 
 ## HF-egotouch-pressure-contact
 
@@ -632,7 +632,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | RUNNING. 已定位官方仓库自带单物体样例，待实读抓取标注、尺度mesh和手部FK。 | 按用户授权暂停Open-AoE后续接入，先用UniDexGrasp自带样例检验几何与数据类型；不下载整库、不启动训练。 | probes/RUNNING |
+| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（静态几何接入）。四个真实抓取完成ShadowHand FK与尺度mesh审计，++ checkpoint可读；现有动态训练准入仍UNCLEAR，未采集rollout。 | 优先用++状态策略做短仿真采集以获得真实连续轨迹；先解决兼容Isaac Gym运行环境和保真输入，不由静态终态插值生成训练数据。 | probes/PROMISING |
 
 ## HF-video-data-readiness
 
@@ -652,8 +652,8 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNPROMISING |
-| [P-20261014-wam-residual-basin](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md) | Frozen finger authority screen after the corrected PPO budget/course probe | 见原卡 | 见原卡 | probes/RUNNING |
-| [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/RUNNING |
+| [P-20261014-wam-residual-basin](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md) | Frozen finger authority screen after the corrected PPO budget/course probe | 见原卡 | 见原卡 | probes/UNCLEAR |
+| [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/UNCLEAR |
 
 ## HF-weak-temporal-value
 

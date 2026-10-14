@@ -33,6 +33,12 @@ python3 tools/run/fetch_openaoe_subset.py \
 
 ## 当前能执行的流程
 
+UniDexGrasp/++作为刚体仿真来源的小样例已检查，见[研究笔记](docs/research/2026-10-14-unidexgrasp-admission.md)
+和[实验卡](docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md)。
+`tools/audit/audit_unidexgrasp_subset.py --subset <subset-root>`用已有MuJoCo读取四个官方静态抓取并生成
+手FK/mesh预览；它不采集动态轨迹或生成训练快照。已下载++ checkpoint和小样例形状编码，
+策略回放需兼容Isaac Gym环境；现有远端视频环境不具备该依赖。
+
 1. 从既有下载器 `ready.jsonl` 增量索引完整 official TRAIN 配对。
 2. 读取原生 2×11 手点、confidence、相机和语言；校验 MP4/HDF5 原生时钟。
 3. 当前目标 mask 内选 64 个候选点，在跟踪前固定前 32 个 query 身份。
