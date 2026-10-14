@@ -2,6 +2,8 @@
 
 本 Task 实现 [架构方案](docs/user/架构.md)的 geometry-only 首版：原生手与 H4、当前非手稀疏场景、固定 32 个目标 query、连续 30 Hz 的 24 步物体伪标签及 endpoint goal。与 Shared-WAM 的对接是独立入口，不修改正在运行的三域主训练路径。
 
+补充数据来源见 [Shared-WAM 数据集调研（2026-10-14）](docs/research/2026-10-14-shared-wam-dataset-survey.md)：优先核查 H2O / HO-Cap 的原生 RGB-D 小集，用 DexYCB 作单手对照，并列出 HOT3D、TACO、HoloAssist、EgoVerse 等的字段、接入方式和限制。本轮调研未启动新增下载或数据接入。
+
 ## 当前能执行的流程
 
 1. 从既有下载器 `ready.jsonl` 增量索引完整 official TRAIN 配对。
