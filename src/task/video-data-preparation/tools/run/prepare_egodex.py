@@ -126,6 +126,7 @@ def main(argv=None):
                 raise ValueError("output contains a different preprocessing profile")
             ledger.register_shard(info)
         started, accepted, attempted, last_progress = time.monotonic(), 0, 0, 0.
+        admitted, rejection_counts = 0, {}
         runtime = float(config.get("max_seconds", 3600))
         max_windows = int(config.get("max_windows", 1000))
         output_cap = int(config.get("max_output_bytes", 2*2**30))
@@ -145,6 +146,7 @@ def main(argv=None):
                 return
             elapsed = time.monotonic()-started
             row = dict(status="RUNNING", current=current, profile_id=profile_id, accepted=accepted,
+                       numeric_candidates=accepted, training_admitted=admitted, rejected=rejection_counts,
                        attempted=attempted, elapsed_s=elapsed, accepted_per_s=accepted/max(elapsed, 1),
                        eta_to_window_limit_s=(max_windows-attempted)*elapsed/max(attempted, 1),
                        jobs=ledger.counts(), gpu=gpu_state(args.gpu), output_bytes=directory_bytes(output))
@@ -194,6 +196,11 @@ def main(argv=None):
                             except (RejectedWindow, ValueError, KeyError) as error:
                                 reason = str(error)
                                 report["rejected"][reason] = report["rejected"].get(reason, 0)+1
+                                category = reason.split(":", 1)[0]
+                                rejection_counts[category] = rejection_counts.get(category, 0)+1
+                                with (output/"events.jsonl").open("a") as events:
+                                    events.write(json.dumps(dict(key=key, tick=tick, status="REJECTED",
+                                        reason=reason, elapsed_s=time.monotonic()-started))+"\n")
                                 progress(key)
                                 continue
                             if writer is None:
@@ -204,7 +211,12 @@ def main(argv=None):
                                         preprocessing_profile_id=profile_id)
                             writer.append(sample, meta, audit)
                             accepted += 1
+                            admitted += int(meta["training_allowed"])
                             report["accepted"] += 1
+                            with (output/"events.jsonl").open("a") as events:
+                                events.write(json.dumps(dict(key=key, tick=tick,
+                                    status="ADMITTED" if meta["training_allowed"] else "NUMERIC_CANDIDATE",
+                                    timings=meta["timings"], elapsed_s=time.monotonic()-started))+"\n")
                             if writer.full:
                                 ledger.heartbeat(job)
                                 ledger.register_shard(writer.publish())
@@ -245,6 +257,8 @@ def main(argv=None):
             status = "STOPPED"
             print(str(error), flush=True)
         atomic_json(output/"progress.json", dict(status=status, accepted=accepted, attempted=attempted,
+                                                  numeric_candidates=accepted, training_admitted=admitted,
+                                                  rejected=rejection_counts, gpu=gpu_state(args.gpu),
                                                   elapsed_s=time.monotonic()-started, jobs=ledger.counts()))
     finally:
         ledger.close()

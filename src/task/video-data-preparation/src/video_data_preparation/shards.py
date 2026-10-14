@@ -171,7 +171,8 @@ def recover_publications(root, profile_id):
                 sample.update({k: f[k][lo:hi] for k in ("xyz", "features", "scene_object")})
                 validate_sample(sample)
                 meta = json.loads(f["metadata"][row])
-                if not meta.get("causal_observation") or not meta.get("training_allowed"):
+                if not meta.get("causal_observation") or (not meta.get("training_allowed") and
+                        meta.get("target_verification") != "automatic-provisional"):
                     raise ValueError("cannot adopt unqualified orphan")
                 metadata.append(meta)
             if (not metadata or len({m["episode_key"] for m in metadata}) != 1
@@ -180,7 +181,8 @@ def recover_publications(root, profile_id):
             receipt = dict(schema=SCHEMA, status="PUBLISHED", path=path.name, bytes=path.stat().st_size,
                 samples=n, split=f.attrs["split"], session=f.attrs["session"], profile_id=profile_id,
                 ticks=[m["tick"] for m in metadata], episode_keys=[metadata[0]["episode_key"]],
-                profile="geometry-only", causal_observation=True, training_allowed=True,
+                profile="geometry-only", causal_observation=True,
+                training_allowed=all(m.get("training_allowed", False) for m in metadata),
                 fps=30, history=4, horizon=24, object_points=32)
         atomic_json(path.with_suffix(".json"), receipt, exclusive=True)
         recovered += 1

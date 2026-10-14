@@ -90,6 +90,11 @@ def process_window(native: NativeEpisode, key, episode_id, tick, rgb, intrinsic,
         raise RejectedWindow("INSUFFICIENT_NATIVE_HAND_SUPERVISION")
     timings["observation_s"] = time.monotonic()-now
     now = time.monotonic()
+    # Future segmentation cannot change the finalized current target/queries.
+    if hasattr(masks, "prepare_labels"):
+        masks.prepare_labels(key, np.arange(tick, tick+25), rgb[3:].copy())
+    timings["label_segmentation_s"] = time.monotonic()-now
+    now = time.monotonic()
     tracks, visibility = tracker.track(rgb[3:].copy(), uv.copy())
     tracks, visibility = np.asarray(tracks, np.float32), np.asarray(visibility, bool)
     if tracks.shape != (25, len(uv), 2) or visibility.shape != (25, len(uv)):
@@ -160,8 +165,11 @@ def process_window(native: NativeEpisode, key, episode_id, tick, rgb, intrinsic,
     track_uv[:, :query_count] = np.nan_to_num(tracks[:, :query_count])
     meta = dict(episode_key=key, session=native.session, tick=tick, profile="geometry-only",
         fps=30, history=4, horizon=24, observation_frame_ids=obs_ids.tolist(),
-        label_frame_ids=label_ids.tolist(), causal_observation=True, training_allowed=True,
+        label_frame_ids=label_ids.tolist(), causal_observation=True,
+        training_allowed=bool(target.get("training_allowed", True)),
         target_name=target["name"], target_method=target.get("method", "backend"),
+        target_verification=target.get("verification", "explicit-frame-mask"),
+        target_evidence=target.get("evidence"),
         native_hand_supervision=True, scene_supervision="tracked-point-pseudolabel",
         anchor_world_to_sample=anchor.tolist(), depth_to_native=np.asarray(
             np.eye(4) if depth_to_native is None else depth_to_native).tolist(),
