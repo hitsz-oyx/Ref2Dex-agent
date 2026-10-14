@@ -1,5 +1,10 @@
 # EgoDex shared forecasting 数据准备
 
+最新进程状态、两条数据源审计入口与处理耗时见
+[2026-10-14现场报告](docs/user/ref/ref1_1.md)。本地UniDex批次与远端新EgoDex两批均已完成，
+没有持续生产；远端下载与旧重建仍在推进。报告附23张r5目标轨迹审查图及数值QC，
+数值候选不等于训练准入。
+
 本 Task 实现 [架构方案](docs/user/架构.md)的 geometry-only 首版：原生手与 H4、当前非手稀疏场景、固定 32 个目标 query、连续 30 Hz 的 24 步物体伪标签及 endpoint goal。与 Shared-WAM 的对接是独立入口，不修改正在运行的三域主训练路径。
 
 补充数据来源见 [Shared-WAM 数据集调研（2026-10-14）](docs/research/2026-10-14-shared-wam-dataset-survey.md)：按用户的大规模重点，先列Open-AoE、EgoSuite、EgoVerse、WIYH与EgoSteer派生标注的发布规模、字段及缺口；H2O/HO-Cap/DexYCB保留作小规模校验。后续按用户授权完成Open-AoE两段本地子集的手/相机检查，见[实验卡](docs/experiments/probes/P-20261014-openaoe-local-admission.md)；尚未形成完整物体训练样本。
