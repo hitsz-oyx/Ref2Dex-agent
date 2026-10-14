@@ -11,6 +11,7 @@ from scipy.spatial.transform import Rotation
 from convert_hot3d_pilot import geometry
 
 CLASSES={1:'ToyCar',2:'Mug',5:'Bottle',7:'Bowl',12:'Kettle',13:'Knife',14:'TrashCan',20:'Chair'}
+RIGID_CLASSES=set(CLASSES)-{14}  # C14 is cover+base with separate part transforms.
 POINTS=[0,1,5,9,13,17,4,8,12,16,20]
 
 
@@ -54,6 +55,16 @@ def object_label(data,expected_class):
     return out,dims,str(row.get('label',''))
 
 
+def native_clock(action,count):
+    value=action.get('info',{}).get('duration')
+    duration=float(value) if value is not None else None
+    if duration is not None and (not np.isfinite(duration) or duration<=0):duration=None
+    inferred=count/duration if duration is not None else None
+    status=('CONFLICTING_OFFICIAL_DECODE_AND_DURATION' if inferred and abs(inferred-30)<.05
+        else ('CONSISTENT_WITH_NOMINAL15' if inferred and abs(inferred-15)<.05 else 'UNRESOLVED'))
+    return duration,inferred,status
+
+
 def pair_native(ids,hand,hand_valid,cameras,objects):
     n=len(ids);hw=np.full((n,2,11,3),np.nan,np.float32);hv=np.zeros(hw.shape[:-1],bool)
     poses=np.full((n,1,4,4),np.nan,np.float32);known=np.zeros((n,1),bool)
@@ -79,7 +90,8 @@ def pair_native(ids,hand,hand_valid,cameras,objects):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--input',type=Path,required=True);p.add_argument('--hands',type=Path,required=True)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--limit',type=int);p.add_argument('--seconds',type=int,default=7200);a=p.parse_args()
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--limit',type=int);p.add_argument('--seconds',type=int,default=7200)
+    p.add_argument('--retry-failed',action='store_true');a=p.parse_args()
     if not 60<=a.seconds<=86400:p.error('bounded deadline required')
     root=a.output.resolve();root.mkdir(parents=True,exist_ok=True)
     for name in ['sequences','geometry','scratch']:(root/name).mkdir(exist_ok=True)
@@ -94,6 +106,8 @@ def main():
         if category in CLASSES and identity in official_release and identity not in official_test:eligible.append(identity)
     if not eligible:raise ValueError('no released rigid native sequence found')
     instances=sorted({(int(v.split('/')[2][1:]),int(v.split('/')[3][1:])) for v in eligible});dev=set(instances[4::5])
+    # Use the complete candidate catalog for stable splits, then exclude multipart classes.
+    eligible=[v for v in eligible if int(v.split('/')[2][1:]) in RIGID_CLASSES]
     if a.limit:eligible=eligible[:a.limit]
     meta=json.loads((root/'manifest.json').read_text()) if (root/'manifest.json').exists() else dict(
         schema='ref2dex.native-pose-mesh.v1',units='m',reference_frame='native initial-camera world',training_allowed=False,
@@ -104,6 +118,13 @@ def main():
             'Original CAD canonical origin/scale retained; native bbox dimensions audited, no per-frame mesh deformation.',
             'Official release included, official test excluded; engineering object-instance-disjoint TRAIN/DEV.'])
     ledger=json.loads((root/'conversion-ledger.json').read_text()) if (root/'conversion-ledger.json').exists() else {}
+    prior_failed={k:v for k,v in ledger.items() if v['status']=='FAILED'}
+    if prior_failed and a.retry_failed:
+        old=root/'failures-before-native-scope-fix.json'
+        if not old.exists():write(old,prior_failed)
+    for identity,value in list(ledger.items()):
+        if int(identity.split('/')[2][1:])==14 and value['status']=='FAILED':
+            ledger[identity]=dict(status='SKIPPED_ARTICULATED',reason='native Dustbincover/Dustbinbase require a part provider',previous_failure=value)
     known={v['key'] for v in meta['objects']};completed_at_start=len(ledger)
     write(root/'progress.json',dict(status='INDEXING_NATIVE_ARCHIVES',pid=os.getpid(),checked_at=time.time(),training_allowed=False))
     with zipfile.ZipFile(a.input/'archives/HOI4D_annotations.zip') as labels,zipfile.ZipFile(a.input/'archives/HOI4D_CAD_Model_for_release.zip') as cad:
@@ -114,14 +135,14 @@ def main():
                 identity=member.split('/objpose/',1)[0][len('HOI4D_annotations/'):]
                 if identity in object_members:object_members[identity].append(member)
         for identity in eligible:
-            if identity in ledger:continue
+            if identity in ledger and (ledger[identity]['status']=='CONVERTED' or not a.retry_failed):continue
             if time.monotonic()>deadline or (root/'STOP').exists() or shutil.disk_usage(root).free<20*2**30:phase='STOPPED';break
             try:
                 parts=identity.split('/');category=int(parts[2][1:]);instance=int(parts[3][1:]);group=(category,instance);name=CLASSES[category]
                 prefix='HOI4D_annotations/'+identity+'/'
                 log_name=prefix+'3Dseg/output.log';action_name=prefix+'action/color.json'
                 if log_name not in label_names or action_name not in label_names:raise ValueError('native camera/action record missing')
-                cameras=parse_camera_log(labels.read(log_name).decode());action=json.loads(labels.read(action_name));duration=float(action['info']['duration'])
+                cameras=parse_camera_log(labels.read(log_name).decode());action=json.loads(labels.read(action_name))
                 object_prefix=prefix+'objpose/'
                 objects={};bad_json=0;id_mismatch=0;labels_seen=set()
                 for member in object_members[identity]:
@@ -152,8 +173,7 @@ def main():
                 filename=identity.replace('/','__')+'.npz';target=root/'sequences'/filename
                 if target.exists():raise ValueError('unpublished native sequence exists; refuse overwrite')
                 pending=root/'sequences'/('pending-'+filename);np.savez_compressed(pending,**sequence);pending.replace(target)
-                inferred=len(ids)/duration if duration>0 else None
-                clock='CONFLICTING_OFFICIAL_DECODE_AND_DURATION' if inferred and abs(inferred-30)<.05 else ('CONSISTENT_WITH_NOMINAL15' if inferred and abs(inferred-15)<.05 else 'UNRESOLVED')
+                duration,inferred,clock=native_clock(action,len(ids))
                 row=dict(path='sequences/'+filename,source_sequence=identity,objects=[key],source_id=10,profile='hoi4d-author-native11',
                     group_id=key,split='dev' if group in dev else 'train',native_frames=len(ids),action_duration_s=duration,
                     duration_inferred_fps=inferred,clock_status=clock,filename_internal_id_mismatches=id_mismatch,
@@ -167,11 +187,14 @@ def main():
             write(root/'progress.json',dict(status='CONVERTING_NATIVE_GEOMETRY',pid=os.getpid(),converted_sequences=len(meta['sequences']),
                 converted_frames=sum(v['native_frames'] for v in meta['sequences']),total_sequences=len(eligible),objects=len(meta['objects']),
                 failed_sequences=sum(v['status']=='FAILED' for v in ledger.values()),elapsed_s=elapsed,
-                estimated_remaining_minutes=(len(eligible)-len(ledger))*elapsed/max(len(ledger)-completed_at_start,1)/60,
+                skipped_articulated_sequences=sum(v['status']=='SKIPPED_ARTICULATED' for v in ledger.values()),
+                estimated_remaining_minutes=max(0,len(eligible)-len(meta['sequences']))*elapsed/max(len(ledger)-completed_at_start,1)/60,
                 checked_at=time.time(),training_allowed=False))
     write(root/'progress.json',dict(status=phase if not any(v['status']=='FAILED' for v in ledger.values()) else 'PARTIAL',pid=os.getpid(),
         converted_sequences=len(meta['sequences']),converted_frames=sum(v['native_frames'] for v in meta['sequences']),objects=len(meta['objects']),
-        failed_sequences=sum(v['status']=='FAILED' for v in ledger.values()),elapsed_s=time.monotonic()-start,checked_at=time.time(),training_allowed=False))
+        failed_sequences=sum(v['status']=='FAILED' for v in ledger.values()),
+        skipped_articulated_sequences=sum(v['status']=='SKIPPED_ARTICULATED' for v in ledger.values()),
+        elapsed_s=time.monotonic()-start,checked_at=time.time(),training_allowed=False))
 
 
 if __name__=='__main__':main()

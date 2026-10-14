@@ -38,3 +38,18 @@ def test_missing_or_reflected_camera_never_fabricates_valid_world_geometry():
     hand={0:np.ones((2,21,3)),1:np.ones((2,21,3))};valid={i:np.ones((2,21),bool) for i in hand}
     result=pair_native([0,1],hand,valid,{0:camera},{i:(obj,np.ones(3),'Mug',i) for i in hand})
     assert not result['hand_valid'].any() and not result['object_pose_valid'].any()
+
+
+def test_missing_duration_preserves_native_geometry_without_inventing_time():
+    from convert_hoi4d_native import native_clock
+    assert native_clock({'info':{}},300)==(None,None,'UNRESOLVED')
+    assert native_clock({'info':{'duration':20}},300)==(20,15,'CONSISTENT_WITH_NOMINAL15')
+    assert native_clock({'info':{'duration':10}},300)==(10,30,'CONFLICTING_OFFICIAL_DECODE_AND_DURATION')
+
+
+def test_articulated_cover_and_base_are_never_coerced_into_one_rigid_object():
+    from convert_hoi4d_native import RIGID_CLASSES
+    assert 14 not in RIGID_CLASSES
+    fields=dict(center=dict(x=0,y=0,z=1),rotation=dict(x=0,y=0,z=0),dimensions=dict(length=.2,width=.2,height=.3))
+    data=dict(dataList=[dict(label='Dustbincover',**fields),dict(label='Dustbinbase',**fields)])
+    assert object_label(data,'TrashCan')==(None,None,None)
