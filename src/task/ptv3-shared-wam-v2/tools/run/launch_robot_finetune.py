@@ -168,7 +168,9 @@ def main():
                                      env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
         receipt = dict(supervisor_pid=child.pid, output=str(out), scratch=str(scratch),
                        command=command, physical_gpus=gpus)
-        write_json(scratch / "launch.json", receipt)
+        # Keep the parent receipt separate from the foreground supervisor's
+        # live launch/status record; detached startup must not race its child.
+        write_json(scratch / "detach.json", receipt)
         print(json.dumps(receipt, ensure_ascii=False), flush=True)
         return
 
