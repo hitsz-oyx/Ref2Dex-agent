@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import sys
 import time
 
 import cv2
@@ -10,40 +11,10 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.spatial.transform import Rotation
 import trimesh
 
-
-def poses(values):
-    if np.max(abs(np.linalg.norm(values[...,3:7],axis=-1)-1)) > 1e-4:
-        raise ValueError('recorded object quaternion is not unit length')
-    out = np.tile(np.eye(4), (*values.shape[:-1],1,1))
-    out[...,:3,:3] = Rotation.from_quat(values[...,3:7].reshape(-1,4)).as_matrix().reshape(*values.shape[:-1],3,3)
-    out[...,:3,3] = values[...,:3]
-    return out
-
-
-def fixture(hand, obj, surface, tick):
-    anchor = np.linalg.inv(obj[tick])
-    hh = (hand[tick-3:tick+25]-obj[tick,:3,3]) @ obj[tick,:3,:3]
-    start = np.zeros((2,11,3),np.float32);start[0] = hh[3]
-    valid = np.zeros((2,11),bool);valid[0] = True
-    history = np.zeros((2,11,9),np.float32)
-    history[0] = np.concatenate(((hh[3]-hh[2])*30,(hh[3]-2*hh[2]+hh[1])*900,hh[3]-hh[0]),-1)
-    future = np.zeros((24,2,11,3),np.float32);future[:,0] = hh[4:]-hh[3]
-    rel = anchor @ obj[tick+np.arange(1,25)]
-    query = surface[np.linspace(0,len(surface)-1,32,dtype=int)].copy()
-    moving = np.einsum('tij,pj->tpi',rel[:,:3,:3],query)+rel[:,None,:3,3]
-    target = (moving-query).astype(np.float32)
-    # Current complete CAD and no estimated camera are an explicit sim profile.
-    return dict(start_hand=start,start_hand_history=history,start_hand_valid=valid,
-                trajectory_target=future,trajectory_valid=np.broadcast_to(valid,(24,2,11)).copy(),
-                scene_points=query[None].astype(np.float32),scene_target=target[None],
-                scene_valid=np.ones((1,24,32),bool),start_object_points=query.astype(np.float32),
-                goal_object_points=moving[-1].astype(np.float32),object_goal_valid=np.ones(32,bool),
-                current_cad_points=surface.astype(np.float32),anchor_world_to_current_object=anchor,
-                source_profile=np.array('unidexgrasp-shadow-complete-cad-provisional'),
-                training_allowed=np.array(False))
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'src'))
+from video_data_preparation.unidexgrasp_data import object_poses as poses, core_window as fixture
 
 
 def view(data, env, tick, vertices, axis, label):
