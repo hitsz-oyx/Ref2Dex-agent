@@ -117,3 +117,7 @@ r2初始化31.25秒/2695MiB观察峰值，GPU PhysX与原18-actuator手加载成
 VHACD默认用户缓存；当前API未发现重定向入口，不修改HOME、不替换碰撞几何。
 r3复用r2准备好的资产路径和这份既有缓存，只读核对posedata，避免按run复制碰撞cache；
 extension/日志仍在新scope内，不修改其他缓存。后续扩物体需重新明确缓存边界。
+
+r3在初始化暴露上游`../assets`硬编码：仅设置assetRoot不覆盖posedata读取。修复collector工作
+目录与已准备资产的相对关系后在r4重新执行，旧运行保留。r2/r3均未采到policy执行轨迹，
+不作为策略负结果；后续不为路径兼容改变物理或模型观察。

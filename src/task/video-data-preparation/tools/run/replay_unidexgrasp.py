@@ -73,8 +73,10 @@ def worker(args):
         existing = np.load(pose_file, allow_pickle=True).item()[CAR][args.scale]
         if any(not np.array_equal(existing[key], row[key]) for key in row):
             raise ValueError('reused posedata differs from the pinned source labels')
-    work = scratch/'dexgrasp'
-    work.mkdir()
+    # The upstream state task hard-codes ../assets even when assetRoot is set.
+    # Reusing assets therefore also requires its original adjacent work folder.
+    work = assets.parent/'dexgrasp'
+    work.mkdir(exist_ok=True)
     os.chdir(work)  # Official task expects ../assets.
     cfg = yaml.safe_load((vendor/'dexgrasp/cfg/shadow_hand_grasp.yaml').read_text())
     cfg['env'].update(numEnvs=args.envs, random_time=False, printNumSuccesses=False,
