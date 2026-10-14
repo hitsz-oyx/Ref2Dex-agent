@@ -433,7 +433,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | RUNNING. 四卡每卡128/global512正式预训练已启动；首个完整checkpoint已保存，早期loss/梯度有限，尚无学习效果或抓取结论。 | 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。 | probes/RUNNING |
+| [P-20261013-ptv3-shared-main3-80k](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261013-ptv3-shared-main3-80k.md) | 四卡三域共享预测器预训练：80,000 updates | RUNNING. 37k固定dev显示局部学习信号：GRAB/ARCTIC目标物体中段误差低于goal-only插值；手轨迹相对保持当前手不动改善约35–39%，但GRAB后16步平均误差仍122mm。训练继续，尚无抓取结论。 | 固定ref1_2的共享goal架构，完成负载检查后启动80,000次优化器更新。 | probes/RUNNING |
 
 ## HF-rawsensor-hand-conditioning
 
