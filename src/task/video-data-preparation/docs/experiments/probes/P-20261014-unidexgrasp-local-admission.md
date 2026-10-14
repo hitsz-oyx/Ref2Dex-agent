@@ -5,22 +5,22 @@ experiment_id: P-20261014-unidexgrasp-local-admission
 date: 2026-10-14
 task: video-data-preparation
 branch: main
-git_commit: 255322371f7aa5bec6466cc55e67a7e2f90b5680
+git_commit: 11b103f86030df80c52a8ac2573fa0d3e307dba1
 claim_id: C1
 hypothesis_family: HF-unidexgrasp-rigid-admission
 probe_index_in_family: 1
 seed_pool: probe
-seeds: []
+seeds: [123]
 decision_changed_if_positive: use native rigid geometry and explicit ShadowHand FK, then assess rollout acquisition
 decision_changed_if_negative: resolve asset scale, pose or kinematic semantics before expansion
 status: PROMISING
-run_id: unidexgrasp-local-subset-20261014-r1
+run_id: unidexgrasp-local-replay-20261014-r7
 ---
 
 # UniDexGrasp / ++ 刚体样例接入检查
 
-Result: PROMISING（静态几何接入）。四个真实抓取完成ShadowHand FK与尺度mesh审计，++ checkpoint可读；现有动态训练准入仍UNCLEAR，未采集rollout。
-Decision: 优先用++状态策略做短仿真采集以获得真实连续轨迹；先解决兼容Isaac Gym运行环境和保真输入，不由静态终态插值生成训练数据。
+Result: PROMISING（单对象接入Probe）。修复物理配置后，真实GPU回放13/16达到官方目标，30Hz/H4/K24及固定32点标签审计通过；完整训练准入仍待多对象/dev与profile接入。
+Decision: 保留有界回放/审计工具，优先扩少量刚体对象、按mesh分组建立dev，明确ShadowHand/CAD profile后接训练；不将单对象成功率升级为全库结论。
 
 Class: Decision. 服务于Shared-WAM刚体手物监督来源的选择。
 区分“原生刚体mesh/抓取标签可便宜解析”与“格式/尺度/手FK仍是主要blocker”，同时确认
@@ -126,3 +126,38 @@ r4采到两轮×8env×200frame，CUDA推理/同执行hand-object-action均有限
 但关键链路复核发现collector漏读官方cfg.sim（solver iterations/contact offset/substeps等）。
 这是实现缺陷，r4保留作采集工程证据，不能作为原policy负结果。按官方parse_sim_config
 修复后以同seed/对象/scale在r5重跑，不调整checkpoint、成功门或初始化。
+
+## 修复后的本地真实回放结果（r7）
+
+执行代码`11b103f8`，上游++代码/资产固定`6c9e710b`，checkpoint沿用原官方文件。
+r5/r6仅GPU预检拒绝，没有child或推理；随后只读查询空闲并记录raw预检后，r7在GPU4执行。
+不将短暂显存读数推断为其他任务，也没有停止未知进程。
+
+- 8env×2轮，每条200个真实60Hz状态帧（初帧是官方reset的零动作warm step之后），
+  每轮199个policy动作及实际施加root force/torque/DOF target；不训练、不更新checkpoint。
+- 官方cfg.sim已应用：2substeps、8position iterations、contact_offset .002、原其余物理参数。
+  当前300D观察、64D shape feature、动作clamp、++ target置零均按原实现；snapshot与控制来自同一执行。
+- 官方goal-distance成功累计13/16（第一轮6/8、第二轮7/8）；独立核对末帧也有13条处于
+  5cm目标邻域，成功条末端物体z约.88–.93m。官方flag只表示目标接近，不能独立证明稳定抓持。
+  单物体、单seed不构成论文成功率复现或全库性能估计。
+- 策略/采集12.45秒；supervisor含编译/初始化36.27秒，观察显存峰值2707MiB。
+  r2/r3/r4/r7外部运行总计130.01秒，实际GPU使用不超过该总墙钟，仍小于5分钟。
+  GPU4运行结束已空闲；本轮没有改变本地训练或远端EgoDex进程。
+- 全部q、hand、object、observation有限。terminal reset仅raw第199帧出现；每2帧选取真实30Hz
+  得每条100帧，不插值。stride8扫描160个手物候选窗口，按预设tick27导出16份核心合同fixture，
+  包含成功/失败，训练准入0。hand未来`[24,2,11,3]`、scene未来`[1,24,32,3]`；左手全invalid。
+- 32个query来自同一已缩放CAD的固定局部点，由实际object SE(3)传播；history/future共用
+  当前物体anchor，goal对应同一query的t+24。未来扰动检查：只改t之后的手/物体，所有当前
+  输入字段逐值不变，U/V/G标签变化。未伪造相机、mask、置信度或Inspire控制量。
+- 目前只导出核心手/物体窗口，没有生成含scene18D、source注册、分片、归一化和非空dev的
+  正式Shared-WAM corpus。完整CAD包含背面，是显式仿真完整几何profile，不能当成当前可见表面。
+
+最终输出：`outputs/video-data-preparation/unidexgrasp-local-replay-20261014-r7/`（约8.37MiB含extension），
+包含`episode-00/01.npz`、`result.json`、`simulation-config.json`、`audit-summary.json`、
+`causality-audit.json`、`run-accounting.json`、`windows/*.npz`。
+audit工具实际提交`6e3afc8f`，CPU几何检查/绘图11.65秒。成功/失败各一份
+`replay-success/failure.mp4`与`review-success/failure.jpg`，是记录状态的三维重建而非相机RGB。
+
+剩余决策：少量不同mesh的成功示范覆盖与对象分组dev；准确landmark/profile注册；scene采用
+完整CAD还是当前模拟depth可见观测；在同一执行上建立训练provider再做共享模型工程检查。
+当前不直接全库下载/训练，不将r4错误物理的轨迹混入有效方法证据。

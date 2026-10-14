@@ -152,3 +152,20 @@ cache 定向到项目输出目录。以上是本机源码与环境检查，未�
 下一步只需一张可用 GPU、单对象少量环境的短 replay，先看抓取/抬升是否正常及是否能
 导出完整手物帧。通过后再扩对象与生成训练 shard。当前 example checkpoint 的实际
 对象覆盖和此环境成功率仍待 replay；不由文件名推断它能稳定处理全库。
+
+## 后续实测：本地回放已完成
+
+用户授权在本地回放后重新核验进程归属：GPU0–3为其他用户，本项目还有一张配额，
+因此使用空闲GPU4，未停止既有任务。复用本地3.8环境，无安装；最终r7在单Car/scale.08、
+seed123、8env×2轮采到16条真实60Hz执行，13条达到官方目标且末帧仍在5cm目标邻域。
+实际执行12.45秒，含编译/初始化36.27秒，峰值2707MiB。
+[实测实验卡](../experiments/probes/P-20261014-unidexgrasp-local-admission.md)
+
+初始化阶段修正了被删除wrist link与上游相对assets路径；更关键的是完整应用官方cfg.sim。
+漏读物理配置的r4为0/16，保留工程记录但不得用于否定policy；补齐后同seed重跑得到上述结果。
+采用原NN结构/权重、观察、控制与物理，仅关闭random_time以采完整reset后序列。
+
+30Hz切窗、无内部reset、固定32点的object SE(3)传播及未来扰动下当前输入不变均已核验，
+导出16份核心hand/scene标签fixture。它们还不是完整训练corpus：单mesh没有对象分组dev，
+scene18D/provider/profile准入仍待接入。官方success为目标接近flag，不能以13/16直接宣称
+稳定抓持、全库成功率或Shared-WAM训练收益。当前动态数据来源判断为PROMISING。

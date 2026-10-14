@@ -638,7 +638,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（静态几何接入）。四个真实抓取完成ShadowHand FK与尺度mesh审计，++ checkpoint可读；现有动态训练准入仍UNCLEAR，未采集rollout。 | 优先用++状态策略做短仿真采集以获得真实连续轨迹；先解决兼容Isaac Gym运行环境和保真输入，不由静态终态插值生成训练数据。 | probes/PROMISING |
+| [P-20261014-unidexgrasp-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md) | UniDexGrasp / ++ 刚体样例接入检查 | PROMISING（单对象接入Probe）。修复物理配置后，真实GPU回放13/16达到官方目标，30Hz/H4/K24及固定32点标签审计通过；完整训练准入仍待多对象/dev与profile接入。 | 保留有界回放/审计工具，优先扩少量刚体对象、按mesh分组建立dev，明确ShadowHand/CAD profile后接训练；不将单对象成功率升级为全库结论。 | probes/PROMISING |
 
 ## HF-video-data-readiness
 

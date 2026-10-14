@@ -37,7 +37,25 @@ UniDexGrasp/++作为刚体仿真来源的小样例已检查，见[研究笔记](
 和[实验卡](docs/experiments/probes/P-20261014-unidexgrasp-local-admission.md)。
 `tools/audit/audit_unidexgrasp_subset.py --subset <subset-root>`用已有MuJoCo读取四个官方静态抓取并生成
 手FK/mesh预览；它不采集动态轨迹或生成训练快照。已下载++ checkpoint和小样例形状编码，
-策略回放需兼容Isaac Gym环境；现有远端视频环境不具备该依赖。
+策略回放复用本地graspenv/Isaac Gym，已有8env×2轮的真实GPU执行与30Hz核心窗口检查；
+现有远端视频环境不具备该依赖。最终r7在补齐官方物理配置后13/16达到官方目标，
+仍是单对象Probe；fixture禁止训练准入，尚未建立完整corpus/provider。
+
+从Task根目录执行，输入复用已下载的小样例checkpoint；GPU号须重新核验空闲，输出须为新目录：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python tools/run/replay_unidexgrasp.py \
+  --subset /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/video-data-preparation/unidexgrasp-local-subset-20261014-r1 \
+  --vendor /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/third_party/UniDexGrasp2 \
+  --output /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/video-data-preparation/unidexgrasp-local-replay-NEW \
+  --gpu 4 --envs 8 --episodes 2
+```
+
+已有准备资产可用`--assets`只读复用，避免不同run反复生成VHACD缓存。
+审计与预览入口：`tools/audit/audit_unidexgrasp_replay.py --run <completed-run>`。
+MP4是记录手点/物体pose的三维重建，不是模拟相机RGB；该审计不运行模型训练。
+
+既有EgoDex处理流程：
 
 1. 从既有下载器 `ready.jsonl` 增量索引完整 official TRAIN 配对。
 2. 读取原生 2×11 手点、confidence、相机和语言；校验 MP4/HDF5 原生时钟。
