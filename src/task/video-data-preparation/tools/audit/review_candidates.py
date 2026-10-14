@@ -15,6 +15,7 @@ from video_data_preparation.sample_contract import FIXED_FIELDS
 from video_data_preparation.shards import ShardWriter, freeze_snapshot
 from video_data_preparation.native_hand import read_native
 from video_data_preparation.video import VideoFrames
+from video_data_preparation.automatic_masks import color_evidence
 
 
 def read_row(path, row):
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--review", type=Path, help="JSON {reviewer, rows:[{shard,row,decision,reason}]} to promote")
     parser.add_argument("--max-windows", type=int, default=12)
+    parser.add_argument("--mask-audit", type=Path, help="use saved current SAM PNGs for a CPU color consistency screen")
     args = parser.parse_args()
     if args.output.exists() or not 1 <= args.max_windows <= 48:
         raise ValueError("fresh bounded review output required")
@@ -87,6 +89,18 @@ def main():
             with VideoFrames(raw.with_suffix(".mp4"), native.frames) as video:
                 rgb = video.get(range(tick, tick+25))
             import cv2
+            color, decision, reason = None, "PENDING", ""
+            if args.mask_audit:
+                stem = hashlib.sha256(meta["episode_key"].encode()).hexdigest()[:16]+"-"+str(tick)
+                folder = args.mask_audit/stem
+                target = cv2.imread(str(folder/"target.png"), cv2.IMREAD_GRAYSCALE)
+                hand = cv2.imread(str(folder/"hand.png"), cv2.IMREAD_GRAYSCALE)
+                if target is None or hand is None or target.shape != rgb.shape[1:3] or hand.shape != target.shape:
+                    raise ValueError("saved current mask evidence missing or wrong shape")
+                try:
+                    color = color_evidence(rgb[0], (target > 0) & ~(hand > 0), meta["target_name"])
+                except ValueError as error:
+                    decision, reason = "REJECTED", "Current-mask color screen: "+str(error)
             tiles = []
             for step in (0, 8, 16, 24):
                 image = cv2.cvtColor(rgb[step], cv2.COLOR_RGB2BGR)
@@ -103,7 +117,7 @@ def main():
             rows.append(dict(shard=path.name, row=row, key=meta["episode_key"], tick=tick, split=receipt["split"],
                 target=meta["target_name"], target_evidence=meta["target_evidence"],
                 endpoint_valid=int(sample["object_goal_valid"].sum()), per_horizon=meta["per_horizon_valid"],
-                image=image_name, decision="PENDING", reason=""))
+                image=image_name, color_audit=color, decision=decision, reason=reason))
         if len(rows) >= args.max_windows:
             break
     atomic_json(args.output/"candidates.json", dict(corpus=str(root), rows=rows), exclusive=True)

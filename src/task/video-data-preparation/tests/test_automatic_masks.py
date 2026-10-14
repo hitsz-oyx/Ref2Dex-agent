@@ -33,7 +33,7 @@ def test_separated_current_detections_fail_closed():
 
 def test_named_white_rejects_green_but_allows_warm_lighting():
     mask = np.ones((16, 16), bool)
-    green = np.broadcast_to(np.array([105, 125, 75], np.uint8), (16, 16, 3))
+    green = np.broadcast_to(np.array([117, 119, 69], np.uint8), (16, 16, 3))
     with pytest.raises(ValueError, match="COLOR_CONTRADICTION"):
         color_evidence(green, mask, "white lego block")
     white = np.broadcast_to(np.array([210, 186, 158], np.uint8), (16, 16, 3))

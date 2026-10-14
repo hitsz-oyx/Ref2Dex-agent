@@ -71,7 +71,7 @@ def color_evidence(rgb, visible, phrase):
         raise ValueError("TARGET_COLOR_SUPPORT_INSUFFICIENT")
     r, g, b = pixels.T
     color = phrase.split()[0]
-    green = (g > 1.04*r) & (g > 1.1*b)
+    green = (g > .99*r) & (g > 1.25*b)
     blue = (b > 1.1*r) & (b > 1.02*g)
     red = (r > 1.6*g) & (r > 1.6*b)
     conflict = np.zeros(len(pixels), bool)
