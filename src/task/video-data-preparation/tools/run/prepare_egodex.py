@@ -93,6 +93,8 @@ def main(argv=None):
         for family in ("depth", "tracker"):
             if not config.get(family+"_backend") and any(not config.get(family+suffix) for suffix in ("_vendor", "_checkpoint")):
                 raise ValueError("configure --%s-vendor and --%s-checkpoint, or %s_backend module:factory" % (family, family, family))
+        # Fail on unreadable split metadata before allocating persistent GPU models.
+        registry = json.loads(Path(config["split_registry"]).read_text()) if config.get("split_registry") else None
         state = gpu_state(args.gpu)
         if state["pids"]:
             raise RuntimeError("assigned GPU occupied; choose an idle GPU")
@@ -117,7 +119,6 @@ def main(argv=None):
                  OmegaDepthBackend(config["depth_vendor"], config["depth_checkpoint"], scratch))
         tracker = (load_backend(config["tracker_backend"], config) if config.get("tracker_backend") else
                    CoTrackerBackend(config["tracker_vendor"], config["tracker_checkpoint"]))
-        registry = json.loads(Path(config["split_registry"]).read_text()) if config.get("split_registry") else None
         recover_publications(output, profile_id)
         # A single startup scan rebuilds the indexed native-window resume ledger.
         for path in (output/"shards").glob("*.json"):

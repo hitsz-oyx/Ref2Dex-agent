@@ -26,6 +26,7 @@ def main():
         if path.exists():
             if not args.resume or not 0 < path.stat().st_size <= cap:
                 raise FileExistsError(path)
+            path.chmod(0o644)
             rows.append(dict(path=str(path), bytes=path.stat().st_size, source="owned-pinned-resume"))
             return
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -58,6 +59,9 @@ def main():
                 if expected is not None and n != expected:
                     raise ValueError("incomplete pinned binary asset: %d/%d" % (n, expected))
                 part.rename(path)
+                # This NAS can expose renamed downloads with mode000 after
+                # attribute refresh. Explicitly publish readable owned assets.
+                path.chmod(0o644)
                 row = dict(path=str(path), bytes=n, source=url)
                 rows.append(row)
                 print(json.dumps(row), flush=True)
@@ -82,6 +86,7 @@ def main():
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root/"sam2", text=True).strip()
     (root/"asset-manifest.json").write_text(json.dumps(dict(assets=rows, sam2_commit=commit,
         grounding_revision=revision, network_bytes=total), indent=2)+"\n")
+    (root/"asset-manifest.json").chmod(0o644)
     print(json.dumps(dict(status="COMPLETED", sam2_commit=commit, bytes=total)), flush=True)
 
 
