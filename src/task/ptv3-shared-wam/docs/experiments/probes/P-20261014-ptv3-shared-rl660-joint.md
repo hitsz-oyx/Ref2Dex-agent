@@ -5,7 +5,7 @@ experiment_id: P-20261014-ptv3-shared-rl660-joint
 date: 2026-10-14
 task: ptv3-shared-wam
 branch: main
-git_commit: 983cbd2d
+git_commit: 24cdbb1a
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-rl660-joint
 probe_index_in_family: 1
@@ -19,7 +19,7 @@ run_id: rl660-corpus-20261014-r2
 
 # 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调
 
-Result: RUNNING. 已停止三域预训练并保留可用38k权重；双卡联合微调工程检查通过；全量补录r2已完成208/660，GPU4外部占用后准备断点转5/7。正式微调尚未启动。
+Result: RUNNING. 已停止三域预训练并保留可用38k权重；双卡联合微调工程检查通过；全量补录r2已完成208/660，GPU4外部占用后已断点转5/7恢复。正式微调尚未启动。
 Decision: 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。
 
 Class: Decision. 服务于自训练机器人执行底座与可用交互预测。检验固定共享goal架构
@@ -73,7 +73,7 @@ oversampling。记录q/dq、11个真实native rigid-body link点、动态物体S
   全量runtime与模型工程检查结果后续在本卡补充。
 - `engineering-rl660-joint-20261014-r2`：真实两轨迹单卡128四步完成；手/scene损失均到PTv3、interaction、goal；predicted-action到forecaster与R，GT-anchor到R且forecaster梯度为0。
 - `engineering-rl660-ddp2-prefetch-20261014-r1`：两卡每卡128/global256、双worker预取，四步及best/latest保存完成；最后步0.847秒，data wait1.13ms，rank0峰值分配3642MiB。只证明执行合同和负载，不证明学习。
-- 已有29个Task测试通过；新增整窗质量与TRAIN-only归一化检查7项通过。best清理回归先失败再通过。
+- 全部33个Task测试通过，包含整窗质量、TRAIN-only归一化与断点回执检查。best清理回归先失败再通过。
 
 ## 初始化与checkpoint保存缺陷
 
@@ -105,3 +105,7 @@ actor作为数据生成器，不能称全部是自训练RL演示。重采集与�
   准入tick一致性，输出每split的准入/零窗口序列统计后启动
   `rl660-joint-20261014-r1`（GPU5/7、global256、20000步）。资源占用或采集失败
   时停止交接，不抢占他人进程；训练由已有监督器独立管理best/latest、24小时与4GB预算。
+
+恢复已启动：supervisor PID3180629，GPU5/7正在重新采集第13/14批，实测
+4277/4251MiB、46%/44%利用率。交接PID3181015处于WAITING_FOR_COLLECTION；
+状态记录`tmp/rl660-joint-20261014-r1-handoff/status.json`。正式微调尚未启动。
