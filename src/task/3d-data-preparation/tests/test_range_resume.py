@@ -43,3 +43,23 @@ def test_interrupted_range_retains_valid_prefix(tmp_path,monkeypatch):
     assert target.exists(), 'restarting the same failed range loses its valid prefix'
     assert target.read_bytes()==payload
     assert seen==[0,1024*1024]
+
+
+def test_remote_range_worker_retains_prefix_and_publishes_exact_bytes(tmp_path):
+    from finish_taco_remote import remote_download
+    payload=bytes(range(251))*(3*2**20//251+1);payload=payload[:3*2**20];seen=[]
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self,*args):pass
+        def do_GET(self):
+            lo,hi=map(int,self.headers['Range'].split('=',1)[1].split('-'));seen.append(lo)
+            self.send_response(206);self.send_header('Content-Length',str(hi-lo+1))
+            self.send_header('Content-Range',f'bytes {lo}-{hi}/{len(payload)}');self.end_headers()
+            if lo==0:self.wfile.write(payload[:1536*1024]);self.wfile.flush();self.close_connection=True
+            else:self.wfile.write(payload[lo:hi+1])
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+    plan=dict(remote_root=str(tmp_path),archive_bytes=len(payload),seconds=60,ranges=[dict(index=0,lo=0,hi=len(payload)-1)])
+    try:remote_download(plan,f'http://127.0.0.1:{server.server_port}/archive')
+    finally:server.shutdown();server.server_close();thread.join()
+    assert (tmp_path/'range-0000.bin').read_bytes()==payload
+    assert seen==[0,1024*1024]
+    assert json.loads((tmp_path/'progress.json').read_text())['status']=='COMPLETE'

@@ -1,3 +1,9 @@
+## TACO远端残余分片 Decision Note（2026-10-14）
+
+- 证据：本地下载反复超时/断流，当前约0.25MB/s；远端直连8MiB实测3.915秒、HTTP206/精确Content-Range，约2.14MB/s。下载而非GPU计算决定剩余时间。
+- 行动：先在STOP安全边界停止已核验归属的本地range writer，保留全部completed和partial；只将残余不超过4GiB分片在既有授权远端workspace补齐（4个CPU网络线程、单请求8MiB、1h），通过固定SSH host key拉回并逐段合并本地原archive，不重复全部15GB。
+- 边界：URL仅经SSH stdin进入内存、不落日志/清单；不占远端GPU、不触动已有训练、不创建身份。双方20GiB物理余量，deadline或STOP停止，已完成数据保留。补齐后原GPU6 converter自动开始；残余transport失败保留partial并报告，不承诺短探针速度会始终维持。
+
 ## 原生HOI4D GPU处理 Decision Note（2026-10-14）
 
 - 授权/资源：用户要求继续处理并允许使用空闲GPU。已核验本地4/6空闲、5/7和远端0/2为既有训练；HOI4D用GPU4、TACO保留GPU6，全部项目最多六卡。
