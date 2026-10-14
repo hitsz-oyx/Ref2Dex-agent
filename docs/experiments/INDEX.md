@@ -434,7 +434,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 已停止三域预训练并保留可用38k权重；双卡联合微调工程检查通过；全量补录r2已完成208/660，GPU4外部占用后已断点转5/7恢复。正式微调尚未启动。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
+| [P-20261014-ptv3-shared-rl660-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-ptv3-shared-rl660-joint.md) | 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调 | RUNNING. 全660条/50类同执行补录及逐序列审核完成；固定质量门准入122685/150497个窗口，每条序列均有准入。自训练38k初始化的WAM+新Chunk-R已在GPU5/7启动global256、20000步联合微调；尚未获得闭环抓取结果。 | 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。 | probes/RUNNING |
 
 ## HF-ptv3-shared-task-forecaster
 
@@ -640,6 +640,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-weak-temporal-value
 

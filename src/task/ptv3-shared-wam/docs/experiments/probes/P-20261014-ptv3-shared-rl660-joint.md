@@ -5,7 +5,7 @@ experiment_id: P-20261014-ptv3-shared-rl660-joint
 date: 2026-10-14
 task: ptv3-shared-wam
 branch: main
-git_commit: 24cdbb1a
+git_commit: 59a31268
 claim_id: C1
 hypothesis_family: HF-ptv3-shared-rl660-joint
 probe_index_in_family: 1
@@ -14,12 +14,12 @@ seeds: [124]
 decision_changed_if_positive: evaluate the jointly adapted forecaster and Chunk-R on held-out complete robot motions
 decision_changed_if_negative: distinguish teacher data quality and retargeter mismatch before changing the shared architecture
 status: RUNNING
-run_id: rl660-corpus-20261014-r2
+run_id: rl660-joint-20261014-r1
 ---
 
 # 全660条DExplore轨迹：同执行补录与共享预测器/Chunk-R联合微调
 
-Result: RUNNING. 已停止三域预训练并保留可用38k权重；双卡联合微调工程检查通过；全量补录r2已完成208/660，GPU4外部占用后已断点转5/7恢复。正式微调尚未启动。
+Result: RUNNING. 全660条/50类同执行补录及逐序列审核完成；固定质量门准入122685/150497个窗口，每条序列均有准入。自训练38k初始化的WAM+新Chunk-R已在GPU5/7启动global256、20000步联合微调；尚未获得闭环抓取结果。
 Decision: 用户明确选择补录完整机器人执行，再联合微调WAM+Chunk-R；不只做airplane。
 
 Class: Decision. 服务于自训练机器人执行底座与可用交互预测。检验固定共享goal架构
@@ -106,6 +106,24 @@ actor作为数据生成器，不能称全部是自训练RL演示。重采集与�
   `rl660-joint-20261014-r1`（GPU5/7、global256、20000步）。资源占用或采集失败
   时停止交接，不抢占他人进程；训练由已有监督器独立管理best/latest、24小时与4GB预算。
 
-恢复已启动：supervisor PID3180629，GPU5/7正在重新采集第13/14批，实测
-4277/4251MiB、46%/44%利用率。交接PID3181015处于WAITING_FOR_COLLECTION；
-状态记录`tmp/rl660-joint-20261014-r1-handoff/status.json`。正式微调尚未启动。
+恢复阶段的supervisor PID3180629已完成全660条；交接PID3181015已完成审核并
+启动独立训练监督器PID3234992。交接记录
+`tmp/rl660-joint-20261014-r1-handoff/status.json`为TRAINING_OBSERVED。
+
+## 全量准入与实际训练启动
+
+- collection run：`rl660-corpus-20261014-r2`，660条/50类/166337帧，累计采集
+  1879.72秒（包含恢复前有效运行时间，不含两次运行之间的人工修复间隔）。
+- 质量门当前到未来24步最大物体位置误差<=0.10m：raw150497窗口，
+  admitted122685，excluded27812（18.48%）。无零窗口序列，最少准入7窗口。
+  每序列数量和固定tick已存corpus manifest；不同序列的准入长度不等。
+- 完整序列TRAIN/dev为589/71条，准入110777/11908窗口；没有跨split同序列
+  窗口，逐序列有限值、实际动作一致性和准入tick复算均通过。归一化只用TRAIN。
+- 正式run：`outputs/ptv3-shared-wam/rl660-joint-20261014-r1/`，
+  GPU5/7，128每卡/global256，20000更新，loader4 workers/rank、预取2、cache128、
+  pin_memory。初始化自best available step38000，全WAM+新R联合学习，保留GT-tau anchor。
+- 早期观察step240：0.595s/update，430.6 samples/s，data wait 3.32ms，peak allocated 3926MiB；物理占用约4793/4787MiB。
+- 18秒10次GPU采样：GPU5平均53.0%（15–82%）、GPU7平均46.8%（25–79%），
+  无新增显存异常。早期按3–4小时预留验证/checkpoint开销；后续按正式吞吐修正。
+- 训练/梯度目前有限；early training loss仅说明优化运行，不能作为抓取改善证据。
+  验证每500步，普通checkpoint每1000步，新best立即保存并保护best/latest。
