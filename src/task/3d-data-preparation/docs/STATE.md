@@ -1,5 +1,12 @@
 # 原生3D数据接入状态
 
+## TACO GPU6 加速 Decision Note（2026-10-14）
+
+- 决策：用户询问增加GPU并行后，启用空闲本地GPU6执行TACO MANO FK；保留GPU4上的UniDex队列，余下约3–4批不为临时并行重排任务。
+- 证据：已核实本地5/7和远端0/2是既有训练，UniDex用本地4，共5卡，增加6不超过六卡上限。真实221帧标注及仅用于测速的8倍平铺输入，FK在GPU快3.19/3.55倍；全reader GPU smoke与CPU原生数组差≤7.45e-8m，object/time和mask不变。数据解码和写盘仍在CPU，不能按FK倍数宣称全流程提速。
+- 行动与成本：先确认旧TACO converter仍处WAITING_NATIVE_ARCHIVES、UID/cmdline归属正确，再替换为GPU6版本；原生ZIP完成后自动开始，转换前再次检查该卡无其他占用。CPU4线程、单GPU、2h期限、20GiB物理余量，无视频，STOP可在序列边界停止。
+- 时间边界：21:13盘点TACO下载约余20分钟；2317序列的全量转换吞吐尚未测，暂估15–40分钟，后续审计约5–15分钟。该预算是工程估算，开始转换后用实际完成速率更新。HOI4D等待用户四包，DexTrack缺官方可读输入，均不计入可承诺完工时间。
+
 ## H2O 接入 Decision Note（2026-10-14）
 
 - 决策：用户授权凭证下载后，直接接入pose包已有的原生21点手、物体RT和逐帧cam_to_world；不新增视频估计或MANO拟合。

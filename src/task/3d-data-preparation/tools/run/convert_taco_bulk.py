@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import time
 import zipfile
@@ -21,6 +22,7 @@ def write(path,value):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--input',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--mano-root',type=Path,required=True)
+    p.add_argument('--device',choices=['cpu','cuda:0'],default='cpu')
     p.add_argument('--seconds',type=int,default=86400);a=p.parse_args()
     root=a.output.resolve();root.mkdir(parents=True,exist_ok=True);(root/'sequences').mkdir(exist_ok=True)
     (root/'geometry').mkdir(exist_ok=True);(root/'scratch').mkdir(exist_ok=True)
@@ -37,7 +39,13 @@ def main():
     if (outer/'mano').is_dir() and str(outer) not in manopth.__path__:manopth.__path__.append(str(outer))
     from manopth.manopth.manolayer import ManoLayer
     torch.set_num_threads(4)
-    models={s:ManoLayer(mano_root=str(a.mano_root),use_pca=False,ncomps=45,side=s,center_idx=0,flat_hand_mean=True)
+    if a.device!='cpu':
+        gpu=os.environ.get('CUDA_VISIBLE_DEVICES','')
+        if not gpu.isdigit():raise RuntimeError('explicit single physical GPU required')
+        memory=int(subprocess.check_output(['nvidia-smi','-i',gpu,'--query-gpu=memory.used','--format=csv,noheader,nounits'],text=True).strip())
+        if memory>64:raise RuntimeError('selected GPU became busy; existing tasks preserved')
+        if not torch.cuda.is_available():raise RuntimeError('requested GPU unavailable')
+    models={s:ManoLayer(mano_root=str(a.mano_root),use_pca=False,ncomps=45,side=s,center_idx=0,flat_hand_mean=True).to(a.device)
             for s in ['right','left']}
     manifest=json.loads((root/'manifest.json').read_text()) if (root/'manifest.json').exists() else dict(
         schema=SCHEMA,units='m',fps=30,source_fps_verified=False,training_allowed=False,objects=[],sequences=[],
@@ -46,6 +54,7 @@ def main():
                      'Native annotation tool is target; not robot control supervision.'])
     ledger=json.loads((root/'conversion-ledger.json').read_text()) if (root/'conversion-ledger.json').exists() else {}
     known={r['key'] for r in manifest['objects']}
+    conversion_started=time.monotonic();initial_ledger_count=len(ledger)
     with zipfile.ZipFile(archives/'Hand_Poses.zip') as hands,zipfile.ZipFile(archives/'Object_Poses.zip') as poses,zipfile.ZipFile(archives/'Object_Models.zip') as meshes:
         pose_names=set(poses.namelist());hand_names=set(hands.namelist());mesh_names=meshes.namelist()
         prefixes=sorted({str(Path(n).parent) for n in hand_names if Path(n).name in ['left_hand.pkl','right_hand.pkl']})
@@ -84,8 +93,8 @@ def main():
                         chosen=keys[offset:offset+128]
                         theta=torch.stack([torch.as_tensor(native[k]['hand_pose']).cpu().float() for k in chosen])
                         trans=torch.stack([torch.as_tensor(native[k]['hand_trans']).cpu().float() for k in chosen])
-                        with torch.no_grad():_,joints,_=models[side](theta,beta.repeat(len(chosen),1))
-                        points=(joints/1000+trans[:,None])[:,[0,1,5,9,13,17,4,8,12,16,20]].numpy()
+                        with torch.no_grad():_,joints,_=models[side](theta.to(a.device),beta.repeat(len(chosen),1).to(a.device))
+                        points=(joints.cpu()/1000+trans[:,None])[:,[0,1,5,9,13,17,4,8,12,16,20]].numpy()
                         hand[offset:offset+len(chosen),slot]=points;valid[offset:offset+len(chosen),slot]=np.isfinite(points).all(-1)
                 if frame_ids is None:raise ValueError('no native hand')
                 rotations=object_poses[:,:,:3,:3]
@@ -116,10 +125,13 @@ def main():
             write(root/'manifest.json',manifest);write(root/'conversion-ledger.json',ledger)
             write(root/'progress.json',dict(status='CONVERTING',pid=os.getpid(),converted_sequences=len(manifest['sequences']),
                 converted_frames=sum(r.get('frames',0) for r in ledger.values()),failed_sequences=sum(r['status']=='FAILED' for r in ledger.values()),
-                total_sequences=len(prefixes),elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
+                total_sequences=len(prefixes),device=a.device,conversion_elapsed_s=time.monotonic()-conversion_started,
+                estimated_remaining_minutes=(len(prefixes)-len(ledger))*(time.monotonic()-conversion_started)/max(len(ledger)-initial_ledger_count,1)/60,
+                gpu_allocated_mib=torch.cuda.memory_allocated()/2**20 if a.device!='cpu' else 0,
+                elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
     write(root/'progress.json',dict(status='FINISHED',pid=os.getpid(),converted_sequences=len(manifest['sequences']),
         converted_frames=sum(r.get('frames',0) for r in ledger.values()),failed_sequences=sum(r['status']=='FAILED' for r in ledger.values()),
-        elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
+        device=a.device,elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
 
 
 if __name__=='__main__':main()
