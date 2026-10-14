@@ -25,8 +25,11 @@ pretrain parent checkpoint，RL660 与几何源仍由本机只读加载。
 /home2/wyy/miniconda3/envs/graspenv/bin/python -m pytest src/task/ptv3-shared-wam-v2/tests -q
 ```
 
-训练支持torchrun与Task-local实验卡；有界监督器为tools/run/launch_pretrain.py，
-必须指定config、stats、experiment-card、gpus和新output。
+训练支持torchrun与Task-local实验卡；预训练有界监督器为
+`tools/run/launch_pretrain.py`，机器人适配使用
+`tools/run/launch_robot_finetune.py`，两者都必须指定config、stats、experiment-card、
+gpus和新output。机器人监督器每分钟记录 progress、GPU、磁盘和仅自己创建的进程组，
+默认在无进展30分钟或剩余磁盘低于20GiB时失败退出。
 resume显式指向v2 checkpoint，在新目录恢复相同config/world size/optimizer/RNG；
 工程checkpoint不能进入科学运行，不能把v1权重隐式迁移到v2。
 
@@ -46,6 +49,20 @@ shared85,054,464；其余为输入融合、goal与双预测头。
   --init-shared outputs/ptv3-shared-wam-v2/<remote-parent>.pt \
   --output outputs/ptv3-shared-wam-v2/<fresh-run> \
   --experiment-card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md
+```
+
+远端 parent 取回并通过四步 smoke 后，正式两卡 Probe 建议交给 owned supervisor：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/run/launch_robot_finetune.py --detach \
+  --gpus 4,6 --config src/task/ptv3-shared-wam-v2/configs/robot_remote_finetune.json \
+  --stats outputs/ptv3-shared-wam-v2/horizon-stats-main3-20261014-r1/stats.json \
+  --source outputs/ptv3-shared-wam/rl660-corpus-20261014-r2 \
+  --init-shared outputs/ptv3-shared-wam-v2/<remote-parent>.pt \
+  --output outputs/ptv3-shared-wam-v2/<fresh-run> \
+  --experiment-card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md \
+  --loader-workers 2 --loader-prefetch 2 --sequence-cache 16 --pin-memory
 ```
 
 先用 `--smoke --gpu 4` 验证 wiring；科学运行需使用远端 parent，并以

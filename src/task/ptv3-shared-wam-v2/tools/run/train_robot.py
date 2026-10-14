@@ -82,8 +82,12 @@ def setup(args):
 
 
 def check_parent(parent, stats, config):
+    if not isinstance(parent, dict) or not isinstance(parent.get("model"), dict):
+        raise ValueError("remote parent checkpoint is missing a model state")
     if parent.get("schema") != V2_SCHEMA or parent.get("stage") != "pretrain":
         raise ValueError("remote v2 pretraining checkpoint required; v1 is incompatible")
+    if not isinstance(parent.get("step"), int) or parent["step"] <= 0:
+        raise ValueError("remote parent checkpoint must have a positive completed step")
     if comparable_stats(parent.get("stats")) != comparable_stats(stats):
         raise ValueError("parent checkpoint statistics differ from the robot run")
     architectural = ("schema", "goal_encoding", "task_conditioning", "point_width",
@@ -95,8 +99,9 @@ def check_parent(parent, stats, config):
     for key in architectural:
         if parent["config"].get(key) != config.get(key):
             raise ValueError("parent/config architecture differs: " + key)
-    if parent["provenance"].get("engineering_only"):
-        raise ValueError("engineering pretraining checkpoint cannot initialize scientific fine-tune")
+    parent_provenance = parent.get("provenance")
+    if not isinstance(parent_provenance, dict) or parent_provenance.get("engineering_only") is not False:
+        raise ValueError("scientific remote pretraining checkpoint is required")
 
 
 def comparable_stats(stats):
