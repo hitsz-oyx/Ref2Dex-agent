@@ -87,7 +87,7 @@ def main():
                        TORCH_NCCL_ASYNC_ERROR_HANDLING="1", NCCL_DEBUG="WARN",
                        PYTHONDONTWRITEBYTECODE="1")
     sys.path.insert(0, str(TASK / "src"))
-    from ptv3_shared_wam.checkpoint import directory_bytes
+    from ptv3_shared_wam.checkpoint import directory_bytes,check_shared_storage
     command = [sys.executable, "-m", "torch.distributed.run", "--standalone", "--nnodes=1",
                "--nproc_per_node=" + str(len(gpus)), str(TASK / ("tools/run/train_%s.py" % args.stage)),
                "--config", str(config_path), "--experiment-card", str(card), "--output", str(out),
@@ -130,8 +130,7 @@ def main():
                 if elapsed > deadline:
                     raise TimeoutError("owned group wall-time budget exceeded")
                 if elapsed - storage_checked >= 120 or storage_checked == 0:
-                    if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
-                        raise RuntimeError("shared400GB artifact budget reached")
+                    check_shared_storage(config)
                     owned = [scratch] + ([out] if out.exists() else [])
                     if directory_bytes(*owned) > int(config.get("artifact_budget_bytes", 4_000_000_000)):
                         raise RuntimeError("owned run artifact budget reached")

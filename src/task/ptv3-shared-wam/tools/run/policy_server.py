@@ -46,7 +46,7 @@ def main():
     from ptv3_shared_wam.native_inputs import resolve_native_inputs, load_native_arrays
     selected = resolve_native_inputs(packet, a.sequence)
     canonical = load_native_arrays(selected)["canonical"]
-    model = RobotPair(SharedWAM(packet["stats"], packet["config"]))
+    model = RobotPair(SharedWAM(packet["stats"], packet["config"]),action_representation=packet['config'].get('action_representation','native-command.v1'))
     model.load_state_dict(packet["model"], strict=True)
     from ptv3_shared_wam.native_inputs import load_execution_retargeter
     model.retargeter = load_execution_retargeter(packet, a.retargeter)

@@ -127,7 +127,8 @@ def load_execution_retargeter(pair, override=None, device="cpu"):
                 if not torch.equal(candidate[key].cpu(), state[key].cpu()):
                     raise ValueError("R-only TRAIN normalizers differ: " + key)
         state = candidate
-    model = ChunkRetargeter(128)
+    from .target_retargeter import make_retargeter
+    model = make_retargeter(representation)
     model.load_state_dict(state, strict=True)
     if not all(torch.isfinite(v).all() for v in model.state_dict().values()):
         raise ValueError("nonfinite execution R")

@@ -101,3 +101,76 @@ def test_physical_checkpoint_units_and_geometry_roundtrip_gate(tmp_path):
     assert restored.action_representation==PD and not restored.first_only
     torch.save(dict(packet,action_representation=GEOMETRY),path)
     with pytest.raises(ValueError,match='roundtrip'):load_execution_retargeter(pair,path)
+
+
+def test_continuous_lift_restores_real_saturated_pi_servo_direction():
+    from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+    # s6_airplane_fly_1, query201, chunk7: both poses agree but old
+    # geometry decoding changes the native pitch command from +1 to -1.
+    q=torch.zeros(1,18);q[0,3:6]=torch.tensor([4.6777715683,3.4784977436,-5.2264471054])
+    pd=q[:,None].repeat(1,8,1);pd[...,3:6]=torch.tensor([5.1151351929,6.6200904846,-4.2884674072])
+    controller=dict(offset=[0.]*18,scale=[1.]*3+[float(np.pi)]*3+[1.]*12)
+    legacy=freeze_chunk(torch.tensor(encode_targets(pd.numpy(),q.numpy(),GEOMETRY)),q,GEOMETRY)
+    _,wrong,_=consume_target(legacy,q[:,None].expand(-1,8,-1),GEOMETRY,controller)
+    assert wrong[0,7,4]<-.99
+    encoded=encode_targets(pd.numpy(),q.numpy(),GEOMETRY_LIFTED)
+    frozen=freeze_chunk(torch.tensor(encoded),q,GEOMETRY_LIFTED)
+    _,applied,clipped=consume_target(frozen,q[:,None].expand(-1,8,-1),GEOMETRY_LIFTED,controller)
+    assert applied[0,7,4]>.99 and not clipped.any()
+    recovered=pd_from_action(applied,q[:,None],torch.zeros(18),torch.tensor(controller['scale']))
+    torch.testing.assert_close(recovered,pd,atol=2e-6,rtol=0)
+
+
+@pytest.mark.parametrize('pitch',[np.pi/2,-np.pi/2,5*np.pi/2])
+def test_continuous_lift_preserves_winding_at_gimbal_lock(pitch):
+    from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+    q=torch.zeros(2,18);q[:,3:6]=torch.tensor([7.,pitch,-4.])
+    target=q[:,None].repeat(1,8,1)
+    encoded=torch.tensor(encode_targets(target.numpy(),q.numpy(),GEOMETRY_LIFTED))
+    frozen=freeze_chunk(encoded,q,GEOMETRY_LIFTED)
+    _,applied,clipped=consume_target(frozen,q[:,None].expand(-1,8,-1),GEOMETRY_LIFTED,dict(offset=[0.]*18,scale=[1.]*18))
+    recovered=pd_from_action(applied,q[:,None],torch.zeros(18),torch.ones(18))
+    torch.testing.assert_close(recovered,target,atol=2e-6,rtol=0)
+    assert not clipped.any()
+
+
+def test_continuous_lift_model_and_buffer_keep_extra_branch_coordinates():
+    from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+    from ptv3_shared_wam.target_retargeter import make_retargeter
+    from ptv3_shared_wam.execution import ActionBuffer
+    net=make_retargeter(GEOMETRY_LIFTED)
+    value=net(torch.zeros(1,87),torch.zeros(1,24,33))
+    assert value.shape==(1,8,15)
+    buffer=ActionBuffer(4,15);buffer.refill(value[0].detach().numpy(),0)
+    assert buffer.pop()[0].shape==(15,)
+
+
+def test_lifted_full_checkpoint_restores_explicit_output_units(tmp_path):
+    from ptv3_shared_wam.action_targets import GEOMETRY_LIFTED
+    from ptv3_shared_wam.target_retargeter import make_retargeter
+    from ptv3_shared_wam.native_inputs import load_execution_retargeter
+    net=make_retargeter(GEOMETRY_LIFTED)
+    pair=dict(config=dict(action_representation=GEOMETRY_LIFTED),model={'retargeter.'+k:v for k,v in net.state_dict().items()})
+    restored=load_execution_retargeter(pair)
+    assert restored.action_representation==GEOMETRY_LIFTED and restored.head.out_features==15
+
+
+def test_lifted_recipe_preserves_large_training_hyperparameters():
+    import json
+    from pathlib import Path
+    configs=Path(__file__).resolve().parents[1]/'configs'
+    old=json.loads((configs/'robot_660_large.json').read_text())
+    new=json.loads((configs/'robot_660_geometry_lift.json').read_text())
+    assert {k:new[k] for k in old}==old
+    assert set(new)-set(old)=={'action_representation','action_objective','artifact_budget_bytes','min_free_disk_bytes'}
+
+
+def test_new_storage_reserve_and_legacy_budget_are_separate(monkeypatch):
+    import ptv3_shared_wam.checkpoint as checkpoint
+    from types import SimpleNamespace
+    monkeypatch.setattr(checkpoint,'directory_bytes',lambda *args:500_000_000_000)
+    monkeypatch.setattr(checkpoint.shutil,'disk_usage',lambda *args:SimpleNamespace(free=30*2**30))
+    checkpoint.check_shared_storage(dict(min_free_disk_bytes=20*2**30))
+    with pytest.raises(RuntimeError,match='legacy'):checkpoint.check_shared_storage({})
+    monkeypatch.setattr(checkpoint.shutil,'disk_usage',lambda *args:SimpleNamespace(free=19*2**30))
+    with pytest.raises(RuntimeError,match='reserve'):checkpoint.check_shared_storage(dict(min_free_disk_bytes=20*2**30))

@@ -188,7 +188,8 @@ def main():
                     logs[key].append(value.cpu().numpy().copy())
                 return current
             current = record()
-            buffers = [ActionBuffer(a.execution_steps), ActionBuffer(a.execution_steps)]
+            from ptv3_shared_wam.action_targets import action_dimension
+            buffers = [ActionBuffer(a.execution_steps,action_dimension(representation)) for _ in range(2)]
             own_state = own_tau = None
             for tick in range(a.controls):
                 with torch.no_grad():

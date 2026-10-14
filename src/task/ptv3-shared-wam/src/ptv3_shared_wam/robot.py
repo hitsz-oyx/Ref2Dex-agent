@@ -109,10 +109,11 @@ def native_trajectory(trajectory, hand_valid):
 
 
 class RobotPair(nn.Module):
-    def __init__(self, forecaster, retargeter=None):
+    def __init__(self, forecaster, retargeter=None, action_representation='native-command.v1'):
         super().__init__()
         self.forecaster = forecaster
-        self.retargeter = retargeter if retargeter is not None else ChunkRetargeter(128)
+        from .target_retargeter import make_retargeter
+        self.retargeter = retargeter if retargeter is not None else make_retargeter(action_representation)
         if retargeter is None:
             nn.init.normal_(self.retargeter.head.weight, std=.01)
 

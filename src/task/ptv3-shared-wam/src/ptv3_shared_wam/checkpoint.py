@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import subprocess
+import shutil
 
 import torch
 
@@ -10,6 +11,16 @@ from .contracts import GOAL_ENCODING, TASK_CONDITIONING
 from .selection import SELECTION_ALIASES
 
 SCHEMA = "ref2dex.ptv3-shared-wam.v1"
+
+
+def check_shared_storage(config):
+    """New campaigns use free space; retain the old contract for old configs."""
+    minimum=config.get('min_free_disk_bytes')
+    if minimum is not None:
+        if minimum<20*2**30:raise ValueError('at least20GiB free space reserve required')
+        if shutil.disk_usage(ROOT).free<minimum:raise RuntimeError('free space reserve reached')
+    elif directory_bytes(ROOT/'outputs',ROOT/'tmp')>=400_000_000_000:
+        raise RuntimeError('legacy shared400GB storage budget reached')
 
 
 def atomic_json(path, value):

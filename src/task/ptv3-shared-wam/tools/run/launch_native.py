@@ -45,7 +45,7 @@ def main():
         experiment = yaml.safe_load(card.read_text().split("---", 2)[1])
         if experiment.get("task") != TASK.name or a.seed not in experiment.get("seeds", []):
             raise ValueError("task and assigned rollout seed must match the card")
-    from ptv3_shared_wam.checkpoint import directory_bytes, load_checkpoint
+    from ptv3_shared_wam.checkpoint import directory_bytes, load_checkpoint,check_shared_storage
     packet = load_checkpoint(a.checkpoint)
     if packet["stage"] != "robot" or (not engineering and packet["provenance"].get("engineering_only")):
         raise ValueError("robot pair required; engineering weights only admit engineering smoke")
@@ -74,8 +74,7 @@ def main():
     if subprocess.check_output(["nvidia-smi", "-i", str(a.gpu), "--query-compute-apps=pid",
                                 "--format=csv,noheader"], text=True).strip():
         raise RuntimeError("GPU occupied before execution")
-    if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
-        raise RuntimeError("shared400GB storage budget reached")
+    check_shared_storage(packet['config'])
     out.mkdir(parents=True)
     # Short socket name avoids the Linux108-byte AF_UNIX limit.
     scratch = ROOT / "tmp" / ("swam-%d" % os.getpid())

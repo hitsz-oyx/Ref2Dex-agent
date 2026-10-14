@@ -13,7 +13,7 @@ import torch
 from torch import nn
 import torch.distributed as distributed
 
-from .checkpoint import SCHEMA, atomic_json, directory_bytes, git_commit, load_checkpoint, save_checkpoint
+from .checkpoint import SCHEMA, atomic_json, directory_bytes, git_commit, load_checkpoint, save_checkpoint, check_shared_storage
 from .contracts import GOAL_ENCODING, TASK_CONDITIONING
 from .data import SharedWindows, shared_collate
 from .model import SharedWAM
@@ -208,9 +208,8 @@ def run(stage):
         raise FileExistsError("fresh output required; use --resume explicitly")
     if stage == "robot" and not args.init_shared and not args.resume:
         raise ValueError("robot fine-tuning requires --init-shared")
-    if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
-        raise RuntimeError("shared400GB storage budget reached")
     config = json.loads(args.config.read_text())
+    check_shared_storage(config)
     if config.get("schema") != SCHEMA:
         raise ValueError("shared-WAM config required")
     if config.get("goal_encoding") != GOAL_ENCODING:
@@ -290,7 +289,7 @@ def run(stage):
                 or (not args.expand_shared and parent["config"].get("interaction_width",128)
                     != config.get("interaction_width",128))):
             raise ValueError("robot stage changes the pretraining architecture")
-        model = RobotPair(SharedWAM(stats, config))
+        model = RobotPair(SharedWAM(stats, config),action_representation=representation)
         if not args.resume:
             if parent["stage"] != "pretrain" and not args.expand_shared and not args.init_forecaster_only:
                 raise ValueError("fresh robot stage starts from shared pretraining")
@@ -519,8 +518,7 @@ def run(stage):
                     distributed.barrier()
                 if directory_bytes(out, ROOT / "tmp" / out.name) > int(config.get("artifact_budget_bytes", 4_000_000_000)):
                     raise RuntimeError("run artifact budget reached")
-                if directory_bytes(ROOT / "outputs", ROOT / "tmp") >= 400_000_000_000:
-                    raise RuntimeError("shared400GB storage budget reached")
+                check_shared_storage(config)
             if any((Path(path).stat().st_size, Path(path).stat().st_mtime_ns) != signature
                    for path, signature in code_state.items()):
                 raise RuntimeError("implementation changed during this run")

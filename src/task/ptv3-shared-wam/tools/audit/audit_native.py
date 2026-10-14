@@ -46,8 +46,8 @@ def audit(path):
     if representation!='native-command.v1':
         check('physical_query_q',d['R_query_q'],d['q'][query_ticks,1:])
         target=d['R_output_chunk'][np.arange(controls)[:,None],np.arange(2)[None,:],(ticks%steps)[:,None]]
-        desired=target+d['R_query_q'][...,ACTIVE]
-        if representation=='wrist-geometry-relative-current.v1':
+        desired=target[...,:12]+d['R_query_q'][...,ACTIVE]
+        if representation in ('wrist-geometry-relative-current.v1','wrist-geometry-continuous-lift.v1'):
             from scipy.spatial.transform import Rotation
             current=Rotation.from_euler('XYZ',d['R_query_q'][...,3:6].reshape(-1,3))
             relative=Rotation.from_rotvec(target[...,3:6].reshape(-1,3))
@@ -59,12 +59,31 @@ def audit(path):
             intended_pd=independent_pd(d['intended'][:,1:],live,manifest['native_controller'])
             actual_rotation=Rotation.from_euler('XYZ',intended_pd[...,3:6].reshape(-1,3)).as_matrix()
             check('geometry_buffer_orientation',actual_rotation,target_rotation)
+            if representation=='wrist-geometry-continuous-lift.v1':
+                reference=target[...,12:15]+d['R_query_q'][...,3:6]
+                absolute=current*relative
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore',UserWarning)
+                    first=absolute.as_euler('XYZ').reshape(reference.shape)
+                other=np.stack((first[...,0]+np.pi,np.pi-first[...,1],first[...,2]+np.pi),-1)
+                choices=np.stack((first,other),-2)
+                choices+=2*np.pi*np.round((reference[...,None,:]-choices)/(2*np.pi))
+                selected=np.square(choices-reference[...,None,:]).sum(-1).argmin(-1)
+                angles=np.take_along_axis(choices,selected[...,None,None],axis=-2)[...,0,:]
+                singular=np.abs(np.cos(first[...,1]))<1e-7
+                sign=np.where(np.sin(first[...,1])>=0,1.,-1.)
+                phase=(first[...,0]-reference[...,0]-sign*reference[...,2]+np.pi)%(2*np.pi)-np.pi
+                angles[...,0]=np.where(singular,reference[...,0]+phase/2,angles[...,0])
+                angles[...,2]=np.where(singular,reference[...,2]+sign*phase/2,angles[...,2])
+                mismatch=(Rotation.from_euler('XYZ',reference.reshape(-1,3)).inv()*absolute).magnitude().reshape(reference.shape[:-1])
+                desired[...,3:6]=np.where((mismatch<1e-6)[...,None],reference,angles)
         elif representation!='pd-relative-current.v1':raise ValueError('unknown physical target units')
         controller=manifest['native_controller'];live=d['q'][:-1,1:]
         raw=(desired-np.asarray(controller['offset'])[ACTIVE])/np.asarray(controller['scale'])[ACTIVE]
         raw[...,:6]=(desired[...,:6]-live[...,:6]-np.asarray(controller['offset'])[:6])/np.asarray(controller['scale'])[:6]
         raw[...,6:]=raw[...,6:]*2-1
-        if representation=='pd-relative-current.v1':check('query_frozen_target_to_live_command',d['intended'][:,1:,ACTIVE],raw)
+        if representation in ('pd-relative-current.v1','wrist-geometry-continuous-lift.v1'):check('query_frozen_target_to_live_command',d['intended'][:,1:,ACTIVE],raw)
         else:
             check('geometry_buffer_position',d['intended'][:,1:,:3],raw[...,:3])
             check('geometry_buffer_fingers',d['intended'][:,1:,ACTIVE][...,6:],raw[...,6:])

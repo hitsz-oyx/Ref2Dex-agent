@@ -253,3 +253,13 @@ native、relative-PD与relative-geometry，不更新forecaster；协议与结果
 `train_robot.py --init-forecaster-only` 可显式从保留的robot checkpoint只继承forecaster，
 重新初始化R/optimizer；本轮尚未重启大规模微调。更换表示不保证消除输入条件歧义，
 离线误差改善也不等于抓取通过。
+
+### 连续分支几何目标与大规模运行
+
+`configs/robot_660_geometry_lift.json`保持原大规模微调的全部训练超参，使用
+`wrist-geometry-continuous-lift.v1`：每步原12维几何目标加3维未折叠腕部关节角差。
+执行时冻结姿态和连续角参考，用参考恢复Euler分支，再按live q转换native command。
+它保留±π方向、多圈和奇异姿态的控制器目标信息；不把同姿态误认为同servo动作。
+R输出头增加387参数，trunk/层数/head数不变。标签全量回放和实际执行接线通过后，
+才启动独立19k联合run；旧native/12维权重须按原合同加载，不能静默解释成15维。
+新run参考实验卡 `docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md`。

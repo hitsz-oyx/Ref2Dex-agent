@@ -75,7 +75,7 @@ def main():
     controller=parent['config']['native_controller'];dev_ids=np.load(a.parent.parent/'validation.npy')
     initial={k[len('retargeter.'):]:v for k,v in parent['model'].items() if k.startswith('retargeter.')};del parent
     manifest=dict(status='RUNNING',git_commit=git_commit(),source=str(source.resolve()),parent=str(a.parent.resolve()),
-                  experiment_id=card['experiment_id'],run_id=out.name,seeds=[144,145,146],representations=list(REPRESENTATIONS),
+                  experiment_id=card['experiment_id'],run_id=out.name,seeds=[144,145,146],representations=[NATIVE,PD,GEOMETRY],
                   normalization='TRAIN-only per-horizon-coordinate.v1',input_normalization='unchanged parent TRAIN state/tau',
                   device='cuda',physical_gpu=a.gpu,updates=2000,batch=128,optimizer='AdamW3e-4 wd.01 clip1',
                   objective='all8 standardized L1, coefficients one',initialization='identical random trainable parameters; representation-specific output statistics',
