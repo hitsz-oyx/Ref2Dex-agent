@@ -6,6 +6,14 @@ no teacher command or measured future is queried during the residual rollout.
 import numpy as np
 
 
+def teacher_prefix_action(player, obs, envs):
+    """Initialize the legacy player's batch seam before its first query."""
+    raw = obs['obs'] if isinstance(obs, dict) else obs
+    player.get_batch_size(raw, 1)
+    padded = raw.repeat((64 + envs - 1) // envs, 1)[:64]
+    return player.get_action(dict(obs=padded), True)[:envs].clamp(-1, 1)
+
+
 def reset_context(prefix, starts, current):
     """Return true past H4 plus the reset measurement and previous applied action.
 

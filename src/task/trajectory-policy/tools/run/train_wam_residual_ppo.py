@@ -149,7 +149,7 @@ def run_native(args, out, address, server):
         ALPHA, ResidualActor, ResidualValue, apply_residual, object_distance, observation,
         residual_reward, rollout_bootstrap, residual_execution_stats, update,
     )
-    from trajectory_policy.residual_reset import reset_context
+    from trajectory_policy.residual_reset import reset_context, teacher_prefix_action
     from trajectory_policy.retargeter_data import ACTIVE, features
     from trajectory_policy.robot_context import control_context
     from trajectory_policy.wam_effect_admission import chunk_admission, effect_admission
@@ -299,9 +299,7 @@ def run_native(args, out, address, server):
                 if tick == max(PHASES):
                     break
                 with torch.no_grad():
-                    raw = obs['obs'] if isinstance(obs, dict) else obs
-                    padded = raw.repeat((64 + N - 1) // N, 1)[:64]
-                    teacher = self.get_action(dict(obs=padded), True)[:N].clamp(-1, 1)
+                    teacher = teacher_prefix_action(self, obs, N)
                 obs, _, done, _ = self.env_step(self.env, teacher.clone())
                 if done.any() or capture is None or not torch.equal(capture, teacher):
                     raise ValueError('teacher prefix terminated or applied command differed')
