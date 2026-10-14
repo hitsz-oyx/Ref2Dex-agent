@@ -175,7 +175,8 @@ def main():
             task.pre_physics_step, task._action_to_pd_targets = pre, pd
             keys = ("q", "dq", "hand", "obj", "velocity", "surface_gap", "support_gap", "table_footprint",
                     "applied", "intended", "pd_targets", "clipped", "query_tick", "chunk_index",
-                    "wam_object_history", "wam_hand_history", "wam_goal", "R_state", "R_tau")
+                    "wam_object_history", "wam_hand_history", "wam_goal", "R_state", "R_tau",
+                    "R_output_chunk", "R_query_q")
             logs.update({key: [] for key in keys})
             def record():
                 hand, gap = geometry.measure(task)
