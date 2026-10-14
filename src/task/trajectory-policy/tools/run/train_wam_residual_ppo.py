@@ -546,7 +546,9 @@ def run_native(args, out, address, server):
             required_phases = (set(args.required_contact_phases)
                                if UPDATES == 0 and hasattr(args, 'required_contact_phases')
                                else set(diagnostic_starts))
-            if any(item['min_gap_m'] > 0.03 for item in diagnostics if item['phase'] in required_phases):
+            required_envs = getattr(args, 'required_contact_envs', None) if UPDATES == 0 else None
+            if any(item['min_gap_m'] > 0.03 for item in diagnostics
+                   if item['phase'] in required_phases and (required_envs is None or item['env'] in required_envs)):
                 raise RuntimeError('zero-residual required phase gate lost contact')
             def restore_rng(rng):
                 torch.set_rng_state(rng['torch'].cpu())
