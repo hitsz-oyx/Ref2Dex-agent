@@ -253,7 +253,7 @@ def main(argv=None):
                     print(json.dumps(dict(job=job["key"], state=state, error=repr(error))), flush=True)
                 finally:
                     atomic_json(output/"last_job.json", dict(key=job["key"], **report))
-            status = "DRAINED" if args.once else "STOPPED"
+            status = "STOPPED" if stop[0] else "DRAINED" if args.once else "STOPPED"
         except InterruptedError as error:
             status = "STOPPED"
             print(str(error), flush=True)

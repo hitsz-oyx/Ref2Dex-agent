@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import signal
 from pathlib import Path
 import numpy as np
 import pytest
@@ -68,3 +69,28 @@ def test_indexed_resume_rejects_duplicate_published_windows(tmp_path):
     with pytest.raises(ValueError, match="already published"):
         ledger.register_shard(dict(receipt, path="b.h5"))
     ledger.close()
+
+
+def test_stop_during_initialization_never_reports_queue_drained(tmp_path, monkeypatch):
+    script = Path(__file__).resolve().parents[1]/"tools/run/prepare_egodex.py"
+    spec = importlib.util.spec_from_file_location("prepare_stopped_egodex", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    handlers = {}
+    monkeypatch.setattr(module.signal, "signal", lambda sig, handler: handlers.__setitem__(sig, handler))
+    monkeypatch.setattr(module, "gpu_state", lambda gpu: dict(gpu=gpu, pids=[]))
+    def backend(spec, config):
+        handlers[signal.SIGTERM](None, None)
+        return object()
+    monkeypatch.setattr(module, "load_backend", backend)
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+    ready = tmp_path/"ready.jsonl"
+    ready.write_text(json.dumps(dict(key="episode", raw_hdf5="/readonly/native.hdf5",
+                                    release_split="official_train"))+"\n")
+    config = tmp_path/"config.json"
+    config.write_text(json.dumps(dict(profile="geometry-only", mask_backend="test:factory",
+        depth_backend="test:factory", tracker_backend="test:factory")))
+    output = tmp_path/"consumer"
+    module.main(["--ready", str(ready), "--config", str(config), "--output", str(output), "--once"])
+    progress = json.loads((output/"progress.json").read_text())
+    assert progress["status"] == "STOPPED" and progress["jobs"] == {"READY": 1}
