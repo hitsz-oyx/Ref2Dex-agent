@@ -508,6 +508,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261014-rl660-R-physical-targets](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-R-physical-targets.md) | RL660动作标签表示对照：native / 相对PD / 相对几何目标 | UNCLEAR；三臂2k步dev XYZ mean/p95为native56.31/180.70、PD51.96/184.84、geometry51.25/186.15mm，均未过预定改善门。K4物理接线与独立审计通过；未重启大规模联合微调。 | 保留统一当前时刻的PD目标合同和新微调模板；几何组因Euler分支不唯一禁止部署。R精度未解决，旧微调保持停止，不自动启动新联合长训。 | probes/UNCLEAR |
 
+## HF-rl660-geometry-lift-joint
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-rl660-geometry-lift-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md) | RL660带连续分支的几何目标：原大规模配置联合微调 | UNCLEAR，标签全量回放通过；准备原双卡规模训练，尚无收敛或抓取结论。 | 用户明确要求解决2π分支后扩大训练，沿用原大规模微调超参启动新run，保留旧latest/best。 | probes/UNCLEAR |
+
 ## HF-rolling-gt-y
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |

@@ -25,6 +25,13 @@ pools:
         - [400, 499]
 
 allocations:
+  P-20261014-rl660-geometry-lift-joint:
+    seed_pool: probe
+    model_and_rank_seeds: [124, 125]
+    fixed_dev_seed: 126
+    engineering_execution_seed: 147
+    reuse_reason: user requests the same large-run recipe and fixed dev panel; new representation, not an independent seed replicate
+
   P-20261014-rl660-R-physical-targets:
     seed_pool: probe
     model_seed: 144
