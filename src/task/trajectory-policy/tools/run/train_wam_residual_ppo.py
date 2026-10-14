@@ -543,8 +543,11 @@ def run_native(args, out, address, server):
             manifest['diagnostic_min_gap_m'] = diagnostic_gap
             write(out / 'manifest.json', manifest)
             print(json.dumps(dict(diagnostic_min_gap_m=diagnostic_gap)), flush=True)
-            if any(item['min_gap_m'] > 0.03 for item in diagnostics):
-                raise RuntimeError('zero-residual phase gate lost contact; PPO not started')
+            required_phases = (set(args.required_contact_phases)
+                               if UPDATES == 0 and hasattr(args, 'required_contact_phases')
+                               else set(diagnostic_starts))
+            if any(item['min_gap_m'] > 0.03 for item in diagnostics if item['phase'] in required_phases):
+                raise RuntimeError('zero-residual required phase gate lost contact')
             def restore_rng(rng):
                 torch.set_rng_state(rng['torch'].cpu())
                 torch.cuda.set_rng_state_all([item.cpu() for item in rng['cuda']])

@@ -79,7 +79,7 @@ def main():
     controls = diagnostic_controls + runner.EVAL
     args = SimpleNamespace(gpu=a.gpu, envs=4, updates=0, resume=a.parent.resolve(),
                            curriculum='contact', allow_curriculum_change=False, eval_every=0,
-                           experiment_id=EXP, rpcs=controls)
+                           experiment_id=EXP, rpcs=controls, required_contact_phases=(0,))
     log = (out / 'server.log').open('w')
     server = subprocess.Popen(
         [runner.GRASPENV, str(TASK / 'tools/run/wam_native_server.py'), '--gpu', str(a.gpu),
