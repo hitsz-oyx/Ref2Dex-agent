@@ -5,7 +5,10 @@
 - 授权/证据：用户明确授权按`docs/user/连接远程windows.md`从`D:\BaiduNetdiskDownload`取数，并已启动反向SSH隧道。已用现有服务器密钥连接oyx@127.0.0.1:2222，四个ZIP大小与官方清单完全一致，共24,189,914,732B。
 - 行动：只读SFTP拉取camera/hand/CAD/annotations四包至`hoi4d-native-full-20261014-r1/archives`；Windows源文件保留。2并发、断点partial、严格固定本次SSH host key、完整长度和ZIP目录检查后原子发布；不传用户其他文件。
 - 成本/停止条件：CPU/网络、最多24h、20GiB物理余量，STOP文件可停自己的SFTP子进程并保留断点；不会修改Windows系统设置或源数据。
+- 初步实测：hand490,584个pickle/1,858个sequence ID，左31,845、右458,739；annotations远端只读目录891,900 objpose、2,973 camera trajectory/action。左右各一帧FK投影与原生kps2D平均误差约0.7px；已实际看到文件名00000与内部frameId1不一致，配对必须另核。
 - 下一步：输入先检查hand/objpose/camera轨迹及rigid类别的共同坐标与原生时钟；annotations中的segmentation不自动当pose训练输入。
+
+TACO网络恢复补记：原下载遇到transport断流，保留已完成分片。用真实HTTP故障服务复现了64MiB分片中途断流后重试从头丢失已接收前缀的问题；修复为每次请求不超过8MiB且同一分片重试保留已确认字节。该故障测试先失败后通过，Task共9项测试通过；STOP仅用于核验归属的旧writer安全切换，不丢弃完成分片。
 
 ## TACO GPU6 加速 Decision Note（2026-10-14）
 
