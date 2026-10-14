@@ -18,7 +18,9 @@ def write(path,value):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True)
     p.add_argument('--workers',type=int,default=8);p.add_argument('--seconds',type=int,default=86400)
+    p.add_argument('--prefer-proxy',action='store_true',help='try verified proxy route before direct fallback')
     a=p.parse_args();root=a.output.resolve();status=root/'acquisition-status.json'
+    if not 1<=a.workers<=8 or not 60<=a.seconds<=86400:p.error('bounded workers/deadline required')
     previous=json.loads(status.read_text());old_pid=previous['pid']
     if previous['status'] not in ('STOPPED','PARTIAL','COMPLETE') or (Path('/proc')/str(old_pid)).exists():
         raise RuntimeError('previous sequential writer must be stopped before range migration')
@@ -43,7 +45,7 @@ def main():
             if time.monotonic()>deadline or (root/'STOP').exists():raise TimeoutError('bounded acquisition stopped')
             if shutil.disk_usage(root).free<20*2**30:raise RuntimeError('physical disk reserve20GiB')
             session=requests.Session();session.trust_env=False
-            if attempt%2:session.proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'}
+            if (attempt+int(a.prefer_proxy))%2:session.proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'}
             try:
                 with session.get(url,headers={'Range':f'bytes={lo}-{hi}'},stream=True,timeout=(15,30)) as response:
                     if response.status_code!=206 or response.headers.get('Content-Range')!=f'bytes {lo}-{hi}/{total}':

@@ -30,19 +30,22 @@ def main():
         target = sample['start_object_points']
         ax.scatter(*target.T,s=7,c='orange',label='target current')
         future = sample['goal_object_points'][sample['object_goal_valid']]
-        ax.scatter(*future.T,s=7,c='red',label='target +0.8s')
+        ax.scatter(*future.T,s=7,c='red',label='target +24 steps')
+        visible=[sample['xyz'],target,future]
         for side, name, color in [(0,'right','blue'),(1,'left','purple')]:
             valid = sample['start_hand_valid'][side]
             hand = sample['start_hand'][side]
             ax.scatter(*hand[valid].T,s=15,c=color,label=name+' current')
+            visible.append(hand[valid])
             for finger in range(5):
                 ids = [0,1+finger,6+finger]
                 if valid[ids].all():
                     ax.plot(*hand[ids].T,color=color,lw=1)
             known = sample['trajectory_valid'][-1,side]
             future_hand = hand+sample['trajectory_target'][-1,side]
-            ax.scatter(*future_hand[known].T,s=14,c=color,marker='x',label=name+' +0.8s')
-        cloud = sample['xyz']
+            ax.scatter(*future_hand[known].T,s=14,c=color,marker='x',label=name+' +24 steps')
+            visible.append(future_hand[known])
+        cloud = np.concatenate(visible)
         center = (cloud.min(0)+cloud.max(0))/2
         radius = max(np.ptp(cloud,axis=0).max()/2,.1)
         for setter, value in zip((ax.set_xlim,ax.set_ylim,ax.set_zlim),center):
