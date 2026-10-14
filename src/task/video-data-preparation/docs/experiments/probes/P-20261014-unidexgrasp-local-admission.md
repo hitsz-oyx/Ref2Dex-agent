@@ -110,3 +110,10 @@ action及reset边界后才能构造30Hz窗口。future query用当前选定的me
 - 运行后按真实sim.dt每2步抽30Hz，审计不跨reset、future点身份与米制一致，并生成可视化。
   scene先用明确完整CAD geometry profile作工程检查，不冒充视频可见点；产物先禁止训练准入。
   不需要新分支、权限突破或停止现有进程。
+
+r2初始化31.25秒/2695MiB观察峰值，GPU PhysX与原18-actuator手加载成功，但采集器查找
+`robot0:wrist`失败：官方replay资产的wrist已注释，实际palm作为根；不是policy有效负结果。
+改为明确palm origin，与前次静态profile一致，保留r2错误记录。Gym另生成本任务的13,808字节
+VHACD默认用户缓存；当前API未发现重定向入口，不修改HOME、不替换碰撞几何。
+r3复用r2准备好的资产路径和这份既有缓存，只读核对posedata，避免按run复制碰撞cache；
+extension/日志仍在新scope内，不修改其他缓存。后续扩物体需重新明确缓存边界。

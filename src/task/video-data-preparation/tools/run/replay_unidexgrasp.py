@@ -39,8 +39,9 @@ def worker(args):
     from utils.data_info import plane2euler
 
     scratch = args.output/'tmp'
-    assets = scratch/'assets'
-    shutil.copytree(vendor/'assets', assets)
+    assets = args.assets if args.assets else scratch/'assets'
+    if args.assets is None:
+        shutil.copytree(vendor/'assets', assets)
     if sum(p.stat().st_size for p in assets.rglob('*') if p.is_file()) > 128*2**20:
         raise ValueError('bounded single-object assets exceeded 128MiB')
     pose_data = {CAR: {args.scale: dict(target_qpos=[], target_hand_pos=[], target_hand_rot=[],
@@ -65,7 +66,13 @@ def worker(args):
         raise ValueError('no real single-object support-pose labels at selected scale')
     for key in row:
         row[key] = np.asarray(row[key], np.float32)
-    np.save(assets/'datasetv4.1_posedata.npy', pose_data)
+    pose_file = assets/'datasetv4.1_posedata.npy'
+    if args.assets is None:
+        np.save(pose_file, pose_data)
+    else:
+        existing = np.load(pose_file, allow_pickle=True).item()[CAR][args.scale]
+        if any(not np.array_equal(existing[key], row[key]) for key in row):
+            raise ValueError('reused posedata differs from the pinned source labels')
     work = scratch/'dexgrasp'
     work.mkdir()
     os.chdir(work)  # Official task expects ../assets.
@@ -100,13 +107,16 @@ def worker(args):
                           if key.startswith('actor.')}, strict=True)
     for parameter in actor.parameters():
         parameter.requires_grad_(False)
-    names = ['robot0:wrist','robot0:thhub','robot0:ffknuckle','robot0:mfknuckle',
+    # The official replay asset removes the independent wrist body. Palm origin
+    # is the explicitly named root landmark, not an invented missing wrist.
+    names = ['robot0:palm','robot0:thhub','robot0:ffknuckle','robot0:mfknuckle',
              'robot0:rfknuckle','robot0:lfknuckle','robot0:thdistal','robot0:ffdistal',
              'robot0:mfdistal','robot0:rfdistal','robot0:lfdistal']
     indices = [task.gym.find_actor_rigid_body_index(task.envs[0], task.shadow_hands[0],
                                                   name, gymapi.DOMAIN_ACTOR) for name in names]
     if any(i < 0 for i in indices):
-        raise ValueError('missing named ShadowHand landmark')
+        present = task.gym.get_actor_rigid_body_names(task.envs[0],task.shadow_hands[0])
+        raise ValueError('missing named ShadowHand landmark: '+str(dict(zip(names,indices)))+'; '+str(present))
     tip_offsets = torch.tensor([[0,0,.0275]] + [[0,0,.026]]*4,
                                 dtype=torch.float32,device='cuda:0')
     from isaacgym.torch_utils import quat_apply
@@ -178,7 +188,7 @@ def worker(args):
                   upstream_commit='6c9e710b04769bf5d9765e3233820101cb3d718f',
                   policy='official deterministic state actor, strict weights',
                   hand_landmarks=names,hand_tip_local_offsets_m=tip_offsets.cpu().tolist(),
-                  first_observation='after official reset zero-action warm step',
+                  first_observation='after official reset zero-action warm step',asset_root=str(assets),
                   training_allowed=False)
     write_json(args.output/'result.json',result)
     print(json.dumps(result,indent=2),flush=True)
@@ -245,6 +255,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--subset',type=Path,required=True)
     parser.add_argument('--vendor',type=Path,required=True)
+    parser.add_argument('--assets',type=Path,help='Reuse an audited prepared asset root read-only')
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--gpu',type=int,required=True)
     parser.add_argument('--envs',type=int,default=8)
@@ -257,6 +268,8 @@ if __name__ == '__main__':
     args=parser.parse_args()
     for key in ('subset','vendor','output'):
         setattr(args,key,getattr(args,key).resolve())
+    if args.assets:
+        args.assets=args.assets.resolve()
     if (not 1<=args.envs<=32 or not 1<=args.episodes<=2 or not 60<=args.seconds<=600
             or not 30<=args.gpu_seconds<=300 or args.output==Path('/tmp') or Path('/tmp') in args.output.parents):
         raise ValueError('bounded replay arguments required')
