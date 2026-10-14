@@ -1,6 +1,6 @@
 # Shared-WAM 数据源接入调研
 
-日期：2026-10-14。范围：为 `video-data-preparation` 的 EgoDex 接入和 `ptv3-shared-wam` 训练寻找补充数据。本次只核验公开的第一方论文、官方格式说明和官方读取代码；没有下载数据、申请凭证或跑接入实验。下面的“适配建议”和成本排序是基于字段合同的工程判断，不是已验证的训练收益。
+日期：2026-10-14。范围：为 `video-data-preparation` 的 EgoDex 接入和 `ptv3-shared-wam` 训练寻找补充数据。调研阶段只核验公开的第一方论文、官方格式说明和官方读取代码；后续按用户授权执行Open-AoE两段本地子集检查，实测见下文及实验卡。下面的“适配建议”和成本排序不是已验证的训练收益。
 
 用户补充重点是**大规模训练语料**。扩量候选调整为 Open-AoE、EgoSuite、EgoVerse、WIYH及可复用的EgoSteer派生标注；当前EgoDex继续推进。H2O / HO-Cap / DexYCB保留为小规模工程对照，不承担扩量主线。规模、实际发布、下载边界和接入缺口先见下一节。
 
@@ -28,6 +28,17 @@
 手/相机由HaWoR、DROID-W和优化重建，并非EgoDex式采集原生tracking。解码MANO后可映射wrist/MCP/tip，再复用我们的物体mask/depth/tracks、anchor和shard；仍须核验尺度、投影、相机漂移及离线优化的观察边界。不能因为camera以米表示就认定目标物体depth准确。[官方论文](https://arxiv.org/html/2607.14183v1)
 
 代码另提供[ModelScope入口](https://www.modelscope.cn/datasets/inclusionAI/OpenAoE-2000h)，符合本仓库下载优先顺序；本轮未验证大文件下载。先处理tiny中少量明确刚体episode，再按实际上传index扩量。[官方仓库](https://github.com/ant-research/Open-AoE)
+
+**后续本地实测（同日，用户授权）：**ModelScope成功获取两个不同recording的90秒片段，
+440.55MiB、下载36.93秒。去畸变视频均30Hz/2700帧，手与相机数组/K匹配；已有MANO模型
+CPU解码共0.89秒，完整文件/几何审计7.42秒。两份真实手部H4/K24 fixture可接现有
+`NativeEpisode.window`，用户确认两段四帧投影基本贴合。手/相机接入判断为PROMISING，
+完整物体训练准入仍UNCLEAR，没有运行训练。[本地子集实验卡](../experiments/probes/P-20261014-openaoe-local-admission.md)
+
+实测缺口是物体侧：两段18条动作描述无法直接通过现有EgoDex“pick up”parser，需按atomic
+action/current RGB适配目标角色；一个软物体片段不满足当前刚体profile。没有发布depth/mask/
+object轨迹，仍需teacher；SLAM世界轴、米制独立精度与离线估计的因果边界也待核验。659个
+完整28帧至少一手有效的候选仅证明手部覆盖，不是659个完整训练窗口。暂不扩大下载量。
 
 ### EgoSuite：万小时级发布声明，十万小时为计划总量
 

@@ -361,6 +361,12 @@
 | --- | --- | --- | --- | --- |
 | [P-20261010-open-video-backbone-transfer](../../src/task/cm-pointflow-effect-pretrain/docs/experiments/probes/P-20261010-open-video-backbone-transfer.md) | Historical checkpoint-transfer run (not the requested official-video-data test) | 见原卡 | do not use this run to stop the video-data route. Preserve its outputs, | probes/UNCLEAR |
 
+## HF-openaoe-shared-track-admission
+
+| 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
+| --- | --- | --- | --- | --- |
+| [P-20261014-openaoe-local-admission](../../src/task/video-data-preparation/docs/experiments/probes/P-20261014-openaoe-local-admission.md) | Open-AoE 本地子集接入探针 | PROMISING（仅手/相机接入）。两段真实30Hz视频完成MANO解码、H4/K24合同检查，用户确认抽样投影基本贴合；完整手物训练准入仍UNCLEAR。 | 保留有界reader/audit，下一步用刚性容器/瓶子做少量完整手物窗口；先适配当前目标语义与坐标，暂不扩大下载量。 | probes/PROMISING |
+
 ## HF-oracle-flow-task
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
@@ -640,6 +646,7 @@
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
 | [P-20261013-wam-residual-ppo](../../src/task/trajectory-policy/docs/experiments/probes/P-20261013-wam-residual-ppo.md) | Residual PPO on the frozen context pair | 见原卡 | 见原卡 | probes/UNPROMISING |
+| [P-20261014-wam-residual-basin](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-basin.md) | Frozen finger authority screen after the corrected PPO budget/course probe | 见原卡 | 见原卡 | probes/RUNNING |
 | [P-20261014-wam-residual-curriculum](../../src/task/trajectory-policy/docs/experiments/probes/P-20261014-wam-residual-curriculum.md) | More updates versus contact-focused residual curriculum | 见原卡 | 见原卡 | probes/RUNNING |
 
 ## HF-weak-temporal-value

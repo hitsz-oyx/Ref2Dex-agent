@@ -2,7 +2,34 @@
 
 本 Task 实现 [架构方案](docs/user/架构.md)的 geometry-only 首版：原生手与 H4、当前非手稀疏场景、固定 32 个目标 query、连续 30 Hz 的 24 步物体伪标签及 endpoint goal。与 Shared-WAM 的对接是独立入口，不修改正在运行的三域主训练路径。
 
-补充数据来源见 [Shared-WAM 数据集调研（2026-10-14）](docs/research/2026-10-14-shared-wam-dataset-survey.md)：按用户的大规模重点，先列Open-AoE、EgoSuite、EgoVerse、WIYH与EgoSteer派生标注的发布规模、字段及缺口；H2O/HO-Cap/DexYCB保留作小规模校验。本轮调研未启动新增下载或数据接入。
+补充数据来源见 [Shared-WAM 数据集调研（2026-10-14）](docs/research/2026-10-14-shared-wam-dataset-survey.md)：按用户的大规模重点，先列Open-AoE、EgoSuite、EgoVerse、WIYH与EgoSteer派生标注的发布规模、字段及缺口；H2O/HO-Cap/DexYCB保留作小规模校验。后续按用户授权完成Open-AoE两段本地子集的手/相机检查，见[实验卡](docs/experiments/probes/P-20261014-openaoe-local-admission.md)；尚未形成完整物体训练样本。
+
+## Open-AoE 本地小样本检查
+
+新增有界ModelScope下载与真实输入审计入口，已下载两段各90秒、总440.55MiB的输入。
+手/相机检查和H4/K24手部fixture通过，用户确认抽样投影基本贴合；所有输出仍为
+`training_allowed=false`。该入口不生成scene、固定物体query或U/G，也不等于EgoDex完整CLI的替代。
+
+```bash
+python3 tools/run/fetch_openaoe_subset.py \
+  --samples aoe_20260131_193655_p002 aoe_20260131_204056_p001 \
+  --output /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/video-data-preparation/openaoe-local-subset-20261014-r1 \
+  --max-mib 512 --seconds 1200
+
+/home2/wyy/miniconda3/envs/graspenv/bin/python tools/audit/audit_openaoe_subset.py \
+  --subset /home2/wyy/oyx_ws/ai_ws/Ref2Dex-agent/outputs/video-data-preparation/openaoe-local-subset-20261014-r1 \
+  --mano-root /home2/wyy/oyx_ws/Ref2Dex/dataset/arctic/data/body_models/mano/models \
+  --device cpu
+```
+
+从本Task根目录执行；MANO使用已有授权模型，只读外部文件。本次CPU参数解码不足1秒，未运行
+深度/分割/跟踪网络。审计需当前环境已有NumPy、OpenCV、PyTorch、smplx、旧MANO pickle依赖
+及ffprobe，不自动安装。目录下`audit-summary.json`保存时钟/相机/fixture结果，
+`review-container.jpg`和`review-soft-object.jpg`是投影预览。
+
+下一步先接一个刚性目标：按Open-AoE atomic action和当前图像适配目标选择，核验SLAM世界轴，
+再复用物体depth/mask/tracks。现有只处理“pick up”的EgoDex parser对这两段18条描述均拒绝，
+软物体则保持独立范围边界；不为扩量放宽现有几何质量门。
 
 ## 当前能执行的流程
 
