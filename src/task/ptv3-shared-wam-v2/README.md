@@ -2,7 +2,11 @@
 
 用户已确认的新预训练路线：[架构与数值合同](docs/user/架构.md)。复用三域数据与
 加载工具；独立联合PTv3、hand双路编码、768D×12 shared和horizon标准化。
-旧Task仍承担当前660机器人微调。本Task尚不提供robot/Chunk-R/native执行入口。
+旧Task仍承担历史 v1 运行；本Task现在提供显式 q 三维合同的 robot/Chunk-R
+适配入口。`q_ref`（几何源）、`q_pd`（RL660 feedback-compensated target）和
+`q_real`（执行状态）在窗口中分开保存，动作损失只使用 q_pd 的
+`wrist-geometry-continuous-lift.v1` 编码。远端 WAM 只需提供兼容的 v2
+pretrain parent checkpoint，RL660 与几何源仍由本机只读加载。
 
 ```bash
 # 所有命令使用graspenv，TMPDIR指向项目tmp，先确认GPU空闲。
@@ -30,6 +34,22 @@ resume显式指向v2 checkpoint，在新目录恢复相同config/world size/opti
 shared85,054,464；其余为输入融合、goal与双预测头。
 单卡batch64工程负载峰值分配约7.1GiB，物理显存约8.6GiB；工程检查不代表预测有效。
 当前研究运行与后续结果见[实验卡](docs/experiments/probes/P-20261014-ptv3-shared-v2-pretrain.md)。
+
+机器人适配工程 smoke / Probe 入口：
+
+```bash
+/home2/wyy/miniconda3/envs/graspenv/bin/python \
+  src/task/ptv3-shared-wam-v2/tools/run/train_robot.py \
+  --config src/task/ptv3-shared-wam-v2/configs/robot_remote_finetune.json \
+  --stats outputs/ptv3-shared-wam-v2/horizon-stats-main3-20261014-r1/stats.json \
+  --source outputs/ptv3-shared-wam/rl660-corpus-20261014-r2 \
+  --init-shared outputs/ptv3-shared-wam-v2/<remote-parent>.pt \
+  --output outputs/ptv3-shared-wam-v2/<fresh-run> \
+  --experiment-card src/task/ptv3-shared-wam-v2/docs/experiments/probes/P-20261015-ptv3-shared-v2-robot-finetune.md
+```
+
+先用 `--smoke --gpu 4` 验证 wiring；科学运行需使用远端 parent，并以
+`torchrun --nproc_per_node=2` 占用 GPU4/6。不得用本地工程 checkpoint 冒充远端结果。
 
 ## 远端运行条件
 
