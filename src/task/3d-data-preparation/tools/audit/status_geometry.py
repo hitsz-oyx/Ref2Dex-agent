@@ -9,7 +9,7 @@ NAMES=['hot3d-native-full-20261014-r1','hot3d-posemesh-full-20261014-r1',
        'hoi4d-native-full-20261014-r1',
        'hoi4d-hand-native-20261014-r1','hoi4d-native-pose-full-20261014-r1',
        'h2o-native-full-20261014-r1','h2o-posemesh-full-20261014-r1',
-       'taco-native-full-20261014-r1','taco-posemesh-full-20261014-r1','unidexgrasp-expansion-20261014-r1',
+       'taco-native-full-20261014-r1','taco-posemesh-full-20261014-r1','taco-supervisor-20261014-r1','unidexgrasp-expansion-20261014-r1',
        'hocap-posemesh-reuse-20261014-r1','dexycb-posemesh-reuse-20261014-r1','native3d-live-corpus-20261014-r1']
 
 
@@ -22,7 +22,7 @@ for name in NAMES:
           'converted_sequences','converted_frames','completed_batches','total_batches','active_batch',
           'sequences','frames','objects','failed_sequences','skipped_sequences','source_counts',
           'archive','parsed_members','train_sequences','dev_sequences','heldout_test_sequences']
-    keys += ['device','gpu_allocated_mib','estimated_remaining_minutes','elapsed_s']
+    keys += ['device','gpu_allocated_mib','estimated_remaining_minutes','elapsed_s','completed_ranges','total_ranges','local_restarts','source_status']
     summary={k:raw[k] for k in keys if k in raw}
     if 'pid' in raw:summary['process_alive']=(Path('/proc')/str(raw['pid'])).exists()
     if 'checked_at' in raw:summary['status_age_seconds']=round(time.time()-raw['checked_at'],1)

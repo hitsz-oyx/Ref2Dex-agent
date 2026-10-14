@@ -74,6 +74,9 @@ def main():
     p.add_argument('--remote-root',required=True);p.add_argument('--seconds',type=int,default=3600);a=p.parse_args()
     if not 60<=a.seconds<=7200:p.error('bounded remote deadline required')
     root=a.output.resolve();runtime=a.runtime.resolve();runtime.mkdir(parents=True,exist_ok=True)
+    # Authenticate before asking a healthy local writer to stop.
+    client=paramiko.SSHClient();client.load_host_keys(str(Path.cwd()/'tmp/ssh-4-4090/known_hosts'))
+    client.connect('127.0.0.1',port=22023,username='wbcd',key_filename='/home2/wyy/.ssh/id_ed25519',look_for_keys=False,allow_agent=False,timeout=15)
     started=time.monotonic();deadline=started+a.seconds;old=json.loads((root/'acquisition-status.json').read_text())
     proc=Path('/proc')/str(old['pid']);stop=root/'STOP';marker='Owned migration to faster remote TACO range route.\n'
     if proc.exists():
@@ -95,8 +98,6 @@ def main():
     plan=dict(remote_root=a.remote_root,archive_bytes=total,ranges=ranges,seconds=a.seconds,
         git_commit=__import__('subprocess').check_output(['git','rev-parse','HEAD'],text=True).strip())
     write(runtime/'remote-plan.json',plan)
-    client=paramiko.SSHClient();client.load_host_keys(str(Path.cwd()/'tmp/ssh-4-4090/known_hosts'))
-    client.connect('127.0.0.1',port=22023,username='wbcd',key_filename='/home2/wyy/.ssh/id_ed25519',look_for_keys=False,allow_agent=False,timeout=15)
     code=inspect.getsource(remote_download)
     launch='import os,sys,json,pathlib\n'+code+'\nplan='+repr(plan)+'\nurl='+repr(BASE+ARCHIVES['hand'][0]+SUFFIX)+'''\nroot=pathlib.Path(plan['remote_root']);root.mkdir(parents=True,exist_ok=True)
 pid=os.fork()

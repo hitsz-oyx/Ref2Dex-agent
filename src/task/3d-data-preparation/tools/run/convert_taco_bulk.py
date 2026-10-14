@@ -23,15 +23,20 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--input',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True);p.add_argument('--mano-root',type=Path,required=True)
     p.add_argument('--device',choices=['cpu','cuda:0'],default='cpu')
+    p.add_argument('--wait-seconds',type=int,default=86400,help='bounded idle wait; conversion budget starts when inputs arrive')
     p.add_argument('--seconds',type=int,default=86400);a=p.parse_args()
     root=a.output.resolve();root.mkdir(parents=True,exist_ok=True);(root/'sequences').mkdir(exist_ok=True)
     (root/'geometry').mkdir(exist_ok=True);(root/'scratch').mkdir(exist_ok=True)
-    started=time.monotonic();deadline=started+a.seconds
+    if not 60<=a.seconds<=86400 or not 60<=a.wait_seconds<=86400:p.error('bounded wait/conversion deadlines required')
+    started=time.monotonic();deadline=started+a.wait_seconds
     archives=a.input/'archives'
     while not all((archives/n).exists() for n in ['Hand_Poses.zip','Object_Poses.zip','Object_Models.zip']):
         write(root/'progress.json',dict(status='WAITING_NATIVE_ARCHIVES',pid=os.getpid(),checked_at=time.time(),training_allowed=False))
-        if time.monotonic()>deadline or (root/'STOP').exists():return
+        if time.monotonic()>deadline or (root/'STOP').exists():
+            write(root/'progress.json',dict(status='WAIT_STOPPED',pid=os.getpid(),checked_at=time.time(),training_allowed=False))
+            return
         time.sleep(10)
+    deadline=time.monotonic()+a.seconds
     for name,value in [('bool',bool),('int',int),('float',float),('complex',complex),('object',object),('str',str),('unicode',str)]:
         if name not in np.__dict__:setattr(np,name,value)
     import manopth
@@ -129,7 +134,8 @@ def main():
                 estimated_remaining_minutes=(len(prefixes)-len(ledger))*(time.monotonic()-conversion_started)/max(len(ledger)-initial_ledger_count,1)/60,
                 gpu_allocated_mib=torch.cuda.memory_allocated()/2**20 if a.device!='cpu' else 0,
                 elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
-    write(root/'progress.json',dict(status='FINISHED',pid=os.getpid(),converted_sequences=len(manifest['sequences']),
+    write(root/'progress.json',dict(status='FINISHED' if len(ledger)==len(prefixes) else 'PARTIAL',
+        pid=os.getpid(),total_sequences=len(prefixes),processed_sequences=len(ledger),converted_sequences=len(manifest['sequences']),
         converted_frames=sum(r.get('frames',0) for r in ledger.values()),failed_sequences=sum(r['status']=='FAILED' for r in ledger.values()),
         device=a.device,elapsed_s=time.monotonic()-started,checked_at=time.time(),training_allowed=False))
 

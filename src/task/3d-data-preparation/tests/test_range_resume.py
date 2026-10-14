@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import sys
 import threading
+import os
+import types
+import pytest
 import requests
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools/run'))
@@ -63,3 +66,20 @@ def test_remote_range_worker_retains_prefix_and_publishes_exact_bytes(tmp_path):
     assert (tmp_path/'range-0000.bin').read_bytes()==payload
     assert seen==[0,1024*1024]
     assert json.loads((tmp_path/'progress.json').read_text())['status']=='COMPLETE'
+
+
+def test_unavailable_remote_does_not_interrupt_local_writer(tmp_path,monkeypatch):
+    import finish_taco_remote
+    class UnavailableClient:
+        def load_host_keys(self,path):pass
+        def connect(self,*args,**kwargs):raise ConnectionRefusedError('test tunnel unavailable')
+    monkeypatch.setitem(sys.modules,'paramiko',types.SimpleNamespace(SSHClient=UnavailableClient))
+    source=tmp_path/'source';source.mkdir()
+    status=source/'acquisition-status.json'
+    original=json.dumps(dict(status='RUNNING',pid=os.getpid()))
+    status.write_text(original)
+    monkeypatch.setattr(sys,'argv',['finish_taco_remote','--output',str(source),
+        '--runtime',str(tmp_path/'runtime'),'--remote-root','/unused/test','--seconds','60'])
+    with pytest.raises(ConnectionRefusedError):finish_taco_remote.main()
+    assert not (source/'STOP').exists()
+    assert status.read_text()==original

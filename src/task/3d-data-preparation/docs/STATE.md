@@ -1,3 +1,19 @@
+# 当前完成情况（2026-10-14 22:55 更新）
+
+- HOT3D、H2O、UniDex扩产、HO-Cap复用、DexYCB既有subject10均已完成工程转换；DexYCB不是全体subjects。UniDex共2066mesh/33056条执行，82/82批与逐批审计完成。
+- HOI4D手cache1858段/458791帧完成；rigid手物共同坐标输出1326段/397800帧/286 CAD（TRAIN1062、DEV264），0实现失败。194段TrashCan多部件对象明确跳过，失败历史保留。完整native审计通过，camera*object复算最大差1.58e-7；359840帧手标签、397784帧物体标签有效，缺失帧保持mask。
+- HOI4D仍不接入统一30Hz索引：1251段与官方名义15Hz相符，69段duration与decode冲突，6段无可判定duration。6段bbox/CAD比例明显偏离，单独列入native-bbox-review-cases.json，不自动拉伸mesh。静态图native-geometry-review.png可人工查看；全部仍training_allowed=false。
+- TACO仅手部ZIP未到齐，22:53记录200/223个64MiB分片，最近平均约0.29MB/s；这是网络transport瓶颈，GPU6尚在等待。远端22023隧道不可用，远端下载未启动；已向用户说明恢复方法，本地4线程续传继续。
+
+## TACO等待与恢复 Decision Note
+
+- 决策：避免下载耗尽转换期限，仅替换已核验UID/cmdline且处于WAITING_NATIVE_ARCHIVES的本项目converter。输入等待最多24h，下载完成后另计2h GPU6转换；转换前重新检查GPU占用，保留六卡上限和20GiB空间余量。
+- 本地supervisor最多4h，每30秒看本项目状态，仅在旧writer已退出且为PARTIAL/STOPPED时最多重启4次4线程、各1h下载；不因远端隧道缺失中断健康本地writer。supervisor不自动切远端；远端helper先SSH认证，成功后才请求本地停止，已通过断线不触碰本地状态的回归测试。
+- 输入到齐后自动等待转换、冻结TACO manifest并执行全量窗口接口审计和静态图；转换未遍历全量时记录PARTIAL，失败序列保留ledger，不写成全部完成。下载与转换子进程各有独立期限，supervisor到期不杀仍在预算内的子任务；STOP只停止对应管理循环，下载STOP在source目录、转换STOP在converted目录。
+- 成本：本次仅CPU监督与网络重试，不新增训练；真实221帧GPU reader smoke完成，3项断流/远端预检测试通过。运行receipt记录实际commit、PID和参数。
+
+下文为此前阶段记录，若状态冲突，以本节和实时progress为准。
+
 ## HOI4D原生手物合并（2026-10-14）
 
 - GPU手缓存已完成1858段/458791个native frame ID；修复一条poseCoeff为标量的原始记录为invalid mask，保留原帧和失败历史，不丢弃整段275帧。
