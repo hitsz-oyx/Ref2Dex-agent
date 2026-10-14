@@ -512,7 +512,7 @@
 
 | 实验 | 问题 | 结果摘要 | 下一步 | 类型/状态 |
 | --- | --- | --- | --- | --- |
-| [P-20261014-rl660-geometry-lift-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md) | RL660带连续分支的几何目标：原大规模配置联合微调 | UNCLEAR，标签全量回放通过；准备原双卡规模训练，尚无收敛或抓取结论。 | 用户明确要求解决2π分支后扩大训练，沿用原大规模微调超参启动新run，保留旧latest/best。 | probes/UNCLEAR |
+| [P-20261014-rl660-geometry-lift-joint](../../src/task/ptv3-shared-wam/docs/experiments/probes/P-20261014-rl660-geometry-lift-joint.md) | RL660带连续分支的几何目标：原大规模配置联合微调 | UNCLEAR；全量分支回放、global512双卡和K4工程门通过，新19k联合run已运行到首段20步，loss2.38有限。约1.43秒/步，尚无收敛或抓取结论。 | 按用户授权在GPU5/7沿用原大规模超参运行19k新更新，监视实际PD/分支及forecast指标；保留旧latest/best，不以首段loss形成效果结论。 | probes/UNCLEAR |
 
 ## HF-rolling-gt-y
 

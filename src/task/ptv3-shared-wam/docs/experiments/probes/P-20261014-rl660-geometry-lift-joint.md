@@ -19,8 +19,8 @@ run_id: rl660-joint-geometry-lift-20261014-r1
 
 # RL660带连续分支的几何目标：原大规模配置联合微调
 
-Result: UNCLEAR，标签全量回放通过；准备原双卡规模训练，尚无收敛或抓取结论。
-Decision: 用户明确要求解决2π分支后扩大训练，沿用原大规模微调超参启动新run，保留旧latest/best。
+Result: UNCLEAR；全量分支回放、global512双卡和K4工程门通过，新19k联合run已运行到首段20步，loss2.38有限。约1.43秒/步，尚无收敛或抓取结论。
+Decision: 按用户授权在GPU5/7沿用原大规模超参运行19k新更新，监视实际PD/分支及forecast指标；保留旧latest/best，不以首段loss形成效果结论。
 
 ## Decision Note
 
@@ -103,3 +103,16 @@ action到forecaster/R非零，GT anchor到forecaster=0且到R非零；scene不�
 manifest.json与tmp同run_id的launch.json；原双卡超参逐项相同，仅新增表示与运行保护字段。
 CAMPAIGN已取消全球400GB上限，新run仍限制自己8GB并保留20GiB可用空间；远端监测器
 已由对应任务更新为无全球总量停止线，本轮没有改变远端权重、进程或训练超参。
+
+
+## 启动回执与首段观测
+
+实际运行commit5a97b27b，run_id=`rl660-joint-geometry-lift-20261014-r1`，
+supervisor82326、torchrun82434、workers82548/82549。参数101,636,757（比旧pair仅多387）。
+manifest确认world_size2、parent step14000、R_reset/optimizer_reset=true；旧权重未覆盖。
+首段step20：loss2.37985（hand.56586、scene.16587、action.82406、anchor.82406），
+global512，1.430秒/步、358.0 samples/s，data_wait.00555秒；峰值allocated9974MiB，
+physical GPU5/7显存11141/11197MiB，后续即时利用率均100%。初估余下约7.5–8小时，
+不是完成承诺；含验证/保存和共享机器负载变化。监控记录startup_observation.json、
+process.json、progress.json和gpu.jsonl。首个固定dev在500步，当前尚无dev趋势或新best；
+总loss与旧12维native目标不可直接作优劣比较。阶段结论仍UNCLEAR。
